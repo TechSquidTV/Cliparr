@@ -1,0 +1,29 @@
+{
+  "name": "cliparr",
+  "private": true,
+  "version": "0.0.0",
+  "description": "Plex clipper for exporting MP4 clips from active playback sessions, featuring a React frontend and Express server.",
+  "license": "MIT",
+  "type": "module",
+  "packageManager": "pnpm@10.8.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/techsquidtv/cliparr.git"
+  },
+  "bugs": {
+    "url": "https://github.com/techsquidtv/cliparr/issues"
+  },
+  "homepage": "https://github.com/techsquidtv/cliparr#readme",
+  "scripts": {
+    "dev": "concurrently -c \"cyan,magenta\" -n \"frontend,server\" \"pnpm --filter @cliparr/frontend dev\" \"pnpm --filter @cliparr/server dev\"",
+    "build": "pnpm -r build",
+    "lint": "pnpm -r lint",
+    "preview": "pnpm --filter @cliparr/server preview",
+    "start": "pnpm --filter @cliparr/server start",
+    "clean": "pnpm -r clean"
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.1",
+    "typescript": "~6.0.2"
+  }
+}

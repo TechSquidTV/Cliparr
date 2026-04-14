@@ -1,0 +1,17 @@
+node_modules
+.pnpm-store
+apps/*/node_modules
+apps/*/dist
+dist
+build
+coverage
+*.tsbuildinfo
+
+.git
+.github
+.DS_Store
+*.log
+
+.env
+.env.*
+!.env.example
