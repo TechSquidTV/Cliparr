@@ -6,6 +6,11 @@ Media clipper for pulling quick MP4s out of whatever is currently playing on you
 
 Cliparr connects to Plex, finds active playback sessions, lets you mark a clip range on a timeline, previews the original media in the browser, and exports an MP4 without setting up a heavyweight editing pipeline.
 
+- Instantly loads your media player's currently playing file.
+- Intuitive single-track editor for selecting clip
+- Advanced metadata tagging. Clip will include rich exif data, like Season and Episode numbers, and timing data.
+- Select resolution; transcoding happens in-browser.
+
 Built with [Mediabunny](https://mediabunny.dev/) and [`react-timeline-editor`](https://github.com/xzdarcy/react-timeline-editor).
 
 

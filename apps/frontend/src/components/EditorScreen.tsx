@@ -737,6 +737,7 @@ export default function EditorScreen({ session, onBack }: Props) {
         startTime,
         endTime,
         resolution,
+        metadata: session.exportMetadata,
         onProgress: setProgress,
       });
       const url = URL.createObjectURL(blob);

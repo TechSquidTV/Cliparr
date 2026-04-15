@@ -47,6 +47,31 @@ export interface ProviderSession {
   expiresAt: string;
 }
 
+export interface MediaExportMetadata {
+  providerId: ProviderId;
+  itemType: string;
+  title?: string;
+  sourceTitle?: string;
+  showTitle?: string;
+  seasonTitle?: string;
+  seasonNumber?: number;
+  episodeNumber?: number;
+  year?: number;
+  date?: string;
+  description?: string;
+  tagline?: string;
+  studio?: string;
+  network?: string;
+  contentRating?: string;
+  genres?: string[];
+  directors?: string[];
+  writers?: string[];
+  actors?: string[];
+  guids?: string[];
+  ratingKey?: string;
+  imageUrl?: string;
+}
+
 export interface MediaSession {
   id: string;
   title: string;
@@ -58,6 +83,7 @@ export interface MediaSession {
   thumbUrl?: string;
   mediaUrl?: string;
   previewUrl?: string;
+  exportMetadata?: MediaExportMetadata;
 }
 
 export interface MediaHandle {

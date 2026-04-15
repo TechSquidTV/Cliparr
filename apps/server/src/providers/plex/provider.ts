@@ -2,7 +2,13 @@ import { randomUUID } from "crypto";
 import { Readable } from "stream";
 import type { Request, Response } from "express";
 import { ApiError } from "../../http/errors.js";
-import type { ProviderImplementation, ProviderResource, MediaHandle, MediaSession } from "../types.js";
+import type {
+  ProviderImplementation,
+  ProviderResource,
+  MediaExportMetadata,
+  MediaHandle,
+  MediaSession,
+} from "../types.js";
 import type { ProviderSessionRecord } from "../../session/store.js";
 
 const PLEX_PRODUCT = "Cliparr";
@@ -218,6 +224,10 @@ async function selectReachableConnection(resource: ProviderResource, preferredCo
 }
 
 function mediaPath(path: string) {
+  if (/^[a-z][a-z0-9+.-]*:/i.test(path)) {
+    return path;
+  }
+
   if (!path.startsWith("/")) {
     return `/${path}`;
   }
@@ -307,6 +317,146 @@ function asArray<T>(value: T | T[] | undefined): T[] {
   return Array.isArray(value) ? value : [value];
 }
 
+function stringValue(value: unknown) {
+  if (typeof value !== "string") {
+    return undefined;
+  }
+
+  const trimmed = value.trim();
+  return trimmed ? trimmed : undefined;
+}
+
+function numberValue(value: unknown) {
+  const number = Number(value);
+  if (!Number.isFinite(number)) {
+    return undefined;
+  }
+
+  return Math.trunc(number);
+}
+
+function uniqueStrings(values: (string | undefined)[]) {
+  const seen = new Set<string>();
+  const result: string[] = [];
+
+  for (const value of values) {
+    if (!value || seen.has(value)) {
+      continue;
+    }
+
+    seen.add(value);
+    result.push(value);
+  }
+
+  return result;
+}
+
+function tagValues(value: unknown) {
+  return uniqueStrings(
+    asArray(value as any).map((entry: any) => {
+      if (typeof entry === "string") {
+        return stringValue(entry);
+      }
+
+      return stringValue(entry?.tag) ?? stringValue(entry?.id) ?? stringValue(entry?.ratingKey);
+    })
+  );
+}
+
+function formatEpisodeCode(seasonNumber?: number, episodeNumber?: number) {
+  const season = seasonNumber === undefined ? undefined : `S${String(seasonNumber).padStart(2, "0")}`;
+  const episode = episodeNumber === undefined ? undefined : `E${String(episodeNumber).padStart(2, "0")}`;
+
+  if (season && episode) {
+    return `${season}${episode}`;
+  }
+
+  return season ?? episode;
+}
+
+function metadataImagePath(item: any) {
+  if (item?.type === "episode") {
+    return stringValue(item.grandparentThumb) ?? stringValue(item.parentThumb) ?? stringValue(item.thumb);
+  }
+
+  return stringValue(item?.thumb) ?? stringValue(item?.grandparentThumb) ?? stringValue(item?.parentThumb);
+}
+
+function buildSourceTitle(item: any) {
+  const title = stringValue(item?.title);
+  if (item?.type !== "episode") {
+    return title;
+  }
+
+  const showTitle = stringValue(item.grandparentTitle);
+  const episodeCode = formatEpisodeCode(numberValue(item.parentIndex), numberValue(item.index));
+  return uniqueStrings([showTitle, episodeCode, title]).join(" - ") || title;
+}
+
+async function fetchMetadataItem(resource: ProviderResource, item: any) {
+  const path = metadataPath(item);
+  if (!path) {
+    return undefined;
+  }
+
+  const data = await fetchPmsJson(resource, path) as any;
+  return data?.MediaContainer?.Metadata?.[0];
+}
+
+async function enrichMetadataItem(resource: ProviderResource, item: any) {
+  try {
+    const fullItem = await fetchMetadataItem(resource, item);
+    if (!fullItem) {
+      return item;
+    }
+
+    return {
+      ...item,
+      ...fullItem,
+      User: item.User,
+      Player: item.Player,
+      Session: item.Session,
+    };
+  } catch (err) {
+    console.warn(`Could not fetch metadata for ${metadataPath(item) ?? "Plex item"}:`, errorMessage(err));
+    return item;
+  }
+}
+
+function createExportMetadata(
+  session: ProviderSessionRecord,
+  resource: ProviderResource,
+  item: any
+): MediaExportMetadata {
+  const imagePath = metadataImagePath(item);
+  const guid = stringValue(item?.guid);
+
+  return {
+    providerId: "plex",
+    itemType: stringValue(item?.type) ?? "video",
+    title: stringValue(item?.title),
+    sourceTitle: buildSourceTitle(item),
+    showTitle: stringValue(item?.grandparentTitle),
+    seasonTitle: stringValue(item?.parentTitle),
+    seasonNumber: numberValue(item?.parentIndex),
+    episodeNumber: numberValue(item?.index),
+    year: numberValue(item?.year),
+    date: stringValue(item?.originallyAvailableAt),
+    description: stringValue(item?.summary),
+    tagline: stringValue(item?.tagline),
+    studio: stringValue(item?.studio),
+    network: stringValue(item?.Network?.title) ?? stringValue(item?.Network?.tag),
+    contentRating: stringValue(item?.contentRating),
+    genres: tagValues(item?.Genre),
+    directors: tagValues(item?.Director),
+    writers: tagValues(item?.Writer),
+    actors: tagValues(item?.Role).slice(0, 12),
+    guids: uniqueStrings([guid, ...tagValues(item?.Guid)]),
+    ratingKey: stringValue(item?.ratingKey),
+    imageUrl: imagePath ? createMediaHandle(session, resource, imagePath) : undefined,
+  };
+}
+
 function firstPart(item: any) {
   return asArray(item?.Media)[0] ? asArray(asArray(item.Media)[0]?.Part)[0] : undefined;
 }
@@ -332,10 +482,15 @@ function fallbackPartPath(part: any) {
   return `/library/parts/${part.id}/file`;
 }
 
-async function resolveMediaPath(resource: ProviderResource, item: any) {
+async function resolveMediaPath(resource: ProviderResource, item: any, enrichedItem?: any) {
   const directPath = fallbackPartPath(firstPart(item));
   if (directPath) {
     return directPath;
+  }
+
+  const enrichedPath = fallbackPartPath(firstPart(enrichedItem));
+  if (enrichedPath) {
+    return enrichedPath;
   }
 
   const path = metadataPath(item);
@@ -420,19 +575,21 @@ async function normalizeMediaSessions(session: ProviderSessionRecord, resource: 
   }
 
   return Promise.all(metadata.map(async (item: any) => {
-    const mediaPath = await resolveMediaPath(resource, item);
-    const previewPath = createPreviewPath(item);
+    const enrichedItem = await enrichMetadataItem(resource, item);
+    const mediaPath = await resolveMediaPath(resource, item, enrichedItem);
+    const previewPath = createPreviewPath(enrichedItem);
     return {
       id: String(item.Session?.id ?? item.key ?? item.ratingKey ?? randomUUID()),
-      title: String(item.title ?? "Untitled"),
-      type: String(item.type ?? "video"),
-      duration: Number(item.duration ?? asArray(item.Media)[0]?.duration ?? 0) / 1000,
+      title: String(enrichedItem.title ?? "Untitled"),
+      type: String(enrichedItem.type ?? "video"),
+      duration: Number(enrichedItem.duration ?? asArray(enrichedItem.Media)[0]?.duration ?? 0) / 1000,
       userTitle: String(item.User?.title ?? "Unknown User"),
       playerTitle: String(item.Player?.title ?? "Unknown Device"),
       playerState: String(item.Player?.state ?? "unknown"),
-      thumbUrl: item.thumb ? createMediaHandle(session, resource, item.thumb) : undefined,
+      thumbUrl: enrichedItem.thumb ? createMediaHandle(session, resource, enrichedItem.thumb) : undefined,
       mediaUrl: mediaPath ? createMediaHandle(session, resource, mediaPath) : undefined,
       previewUrl: previewPath ? createMediaHandle(session, resource, previewPath) : undefined,
+      exportMetadata: createExportMetadata(session, resource, enrichedItem),
     };
   }));
 }
