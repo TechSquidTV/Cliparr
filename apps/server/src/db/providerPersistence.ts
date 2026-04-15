@@ -1,7 +1,7 @@
 import { ApiError } from "../http/errors.js";
-import { upsertMediaSource } from "../db/mediaSourcesRepository.js";
-import { upsertProviderAccountByAccessToken } from "../db/providerAccountsRepository.js";
-import type { ProviderDefinition, ProviderResource, ProviderConnection } from "./types.js";
+import type { ProviderConnection, ProviderDefinition, ProviderResource } from "../providers/types.js";
+import { upsertMediaSource } from "./mediaSourcesRepository.js";
+import { upsertProviderAccountByAccessToken } from "./providerAccountsRepository.js";
 
 function connectionRank(connection: ProviderConnection) {
   if (connection.local && !connection.relay) {

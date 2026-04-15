@@ -1,6 +1,6 @@
 import { Router } from "express";
+import { persistProviderAuth, persistProviderResource } from "../db/providerPersistence.js";
 import { ApiError, asyncHandler } from "../http/errors.js";
-import { persistProviderAuth, persistProviderResource } from "../providers/persistence.js";
 import { getProvider, listProviders } from "../providers/registry.js";
 import type { ProviderResource } from "../providers/types.js";
 import { createProviderSession, getSessionCookieHeader } from "../session/store.js";
