@@ -127,22 +127,42 @@ export function getMediaSourceByProviderExternalId(providerId: string, externalI
 }
 
 export function upsertMediaSource(input: CreateMediaSourceInput) {
-  if (input.externalId) {
-    const existing = getMediaSourceByProviderExternalId(input.providerId, input.externalId);
-    if (existing) {
-      return updateMediaSource(existing.id, {
-        providerAccountId: input.providerAccountId ?? null,
-        name: input.name,
-        enabled: input.enabled ?? existing.enabled,
-        baseUrl: input.baseUrl,
-        connection: input.connection ?? existing.connection,
-        credentials: input.credentials ?? existing.credentials,
-        metadata: input.metadata ?? existing.metadata,
-      });
-    }
+  if (!input.externalId) {
+    return createMediaSource(input);
   }
 
-  return createMediaSource(input);
+  const db = getDatabase();
+
+  db.insert(mediaSources)
+    .values({
+      id: randomUUID(),
+      providerId: input.providerId,
+      providerAccountId: input.providerAccountId ?? null,
+      externalId: input.externalId,
+      name: input.name,
+      enabled: input.enabled ?? true,
+      baseUrl: input.baseUrl,
+      connection: input.connection ?? {},
+      credentials: input.credentials ?? {},
+      metadata: input.metadata ?? {},
+    })
+    .onConflictDoUpdate({
+      target: [mediaSources.providerId, mediaSources.externalId],
+      targetWhere: sql`${mediaSources.externalId} IS NOT NULL`,
+      set: {
+        ...(input.providerAccountId !== undefined ? { providerAccountId: input.providerAccountId } : {}),
+        name: input.name,
+        ...(input.enabled !== undefined ? { enabled: input.enabled } : {}),
+        baseUrl: input.baseUrl,
+        ...(input.connection !== undefined ? { connection: input.connection } : {}),
+        ...(input.credentials !== undefined ? { credentials: input.credentials } : {}),
+        ...(input.metadata !== undefined ? { metadata: input.metadata } : {}),
+        updatedAt: sql`strftime('%Y-%m-%dT%H:%M:%fZ', 'now')`,
+      },
+    })
+    .run();
+
+  return getMediaSourceByProviderExternalId(input.providerId, input.externalId);
 }
 
 export function listMediaSources(options: { enabledOnly?: boolean; providerId?: string } = {}) {

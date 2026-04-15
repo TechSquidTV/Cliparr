@@ -24,6 +24,10 @@ const migrations: Migration[] = [
       CREATE INDEX provider_accounts_provider_id_idx
         ON provider_accounts(provider_id);
 
+      CREATE UNIQUE INDEX provider_accounts_provider_access_token_idx
+        ON provider_accounts(provider_id, access_token)
+        WHERE access_token IS NOT NULL;
+
       CREATE TABLE media_sources (
         id TEXT PRIMARY KEY,
         provider_id TEXT NOT NULL,
@@ -79,6 +83,63 @@ const migrations: Migration[] = [
 
       CREATE INDEX IF NOT EXISTS provider_sessions_expires_at_idx
         ON provider_sessions(expires_at);
+    `,
+  },
+  {
+    id: 3,
+    name: "ensure_provider_accounts_access_token_uniqueness",
+    sql: `
+      CREATE TEMP TABLE duplicate_provider_accounts AS
+      SELECT id, canonical_id
+      FROM (
+        SELECT
+          id,
+          FIRST_VALUE(id) OVER (
+            PARTITION BY provider_id, access_token
+            ORDER BY created_at ASC, id ASC
+          ) AS canonical_id,
+          ROW_NUMBER() OVER (
+            PARTITION BY provider_id, access_token
+            ORDER BY created_at ASC, id ASC
+          ) AS row_num
+        FROM provider_accounts
+        WHERE access_token IS NOT NULL
+      )
+      WHERE row_num > 1;
+
+      UPDATE media_sources
+      SET provider_account_id = (
+        SELECT canonical_id
+        FROM duplicate_provider_accounts
+        WHERE duplicate_provider_accounts.id = media_sources.provider_account_id
+      )
+      WHERE provider_account_id IN (
+        SELECT id
+        FROM duplicate_provider_accounts
+      );
+
+      UPDATE provider_sessions
+      SET provider_account_id = (
+        SELECT canonical_id
+        FROM duplicate_provider_accounts
+        WHERE duplicate_provider_accounts.id = provider_sessions.provider_account_id
+      )
+      WHERE provider_account_id IN (
+        SELECT id
+        FROM duplicate_provider_accounts
+      );
+
+      DELETE FROM provider_accounts
+      WHERE id IN (
+        SELECT id
+        FROM duplicate_provider_accounts
+      );
+
+      DROP TABLE duplicate_provider_accounts;
+
+      CREATE UNIQUE INDEX IF NOT EXISTS provider_accounts_provider_access_token_idx
+        ON provider_accounts(provider_id, access_token)
+        WHERE access_token IS NOT NULL;
     `,
   },
 ];

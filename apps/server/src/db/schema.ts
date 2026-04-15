@@ -22,6 +22,9 @@ export const providerAccounts = sqliteTable(
   },
   (table) => [
     index("provider_accounts_provider_id_idx").on(table.providerId),
+    uniqueIndex("provider_accounts_provider_access_token_idx")
+      .on(table.providerId, table.accessToken)
+      .where(sql`${table.accessToken} IS NOT NULL`),
   ]
 );
 

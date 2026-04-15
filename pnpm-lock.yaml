@@ -106,9 +106,6 @@ importers:
       typescript:
         specifier: ~6.0.2
         version: 6.0.2
-      vite:
-        specifier: ^8.0.8
-        version: 8.0.8(@types/node@25.6.0)(esbuild@0.27.7)(jiti@2.6.1)(tsx@4.21.0)
 
 packages:
 

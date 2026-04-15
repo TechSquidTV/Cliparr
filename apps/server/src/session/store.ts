@@ -1,5 +1,5 @@
 import { randomUUID } from "crypto";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { getDatabase } from "../db/database.js";
 import { providerSessions, type ProviderSessionRow } from "../db/schema.js";
 
@@ -108,6 +108,7 @@ export function updateProviderSessionSelectedResource(sessionId: string, selecte
     .update(providerSessions)
     .set({
       selectedResource,
+      updatedAt: sql`strftime('%Y-%m-%dT%H:%M:%fZ', 'now')`,
     })
     .where(eq(providerSessions.id, sessionId))
     .run();

@@ -89,17 +89,32 @@ export function getProviderAccountByAccessToken(providerId: string, accessToken:
 }
 
 export function upsertProviderAccountByAccessToken(input: CreateProviderAccountInput) {
-  if (input.accessToken) {
-    const existing = getProviderAccountByAccessToken(input.providerId, input.accessToken);
-    if (existing) {
-      return updateProviderAccount(existing.id, {
-        label: input.label,
-        metadata: input.metadata ?? existing.metadata,
-      });
-    }
+  if (!input.accessToken) {
+    return createProviderAccount(input);
   }
 
-  return createProviderAccount(input);
+  const db = getDatabase();
+
+  db.insert(providerAccounts)
+    .values({
+      id: randomUUID(),
+      providerId: input.providerId,
+      label: input.label,
+      accessToken: input.accessToken,
+      metadata: input.metadata ?? {},
+    })
+    .onConflictDoUpdate({
+      target: [providerAccounts.providerId, providerAccounts.accessToken],
+      targetWhere: sql`${providerAccounts.accessToken} IS NOT NULL`,
+      set: {
+        label: input.label,
+        ...(input.metadata !== undefined ? { metadata: input.metadata } : {}),
+        updatedAt: sql`strftime('%Y-%m-%dT%H:%M:%fZ', 'now')`,
+      },
+    })
+    .run();
+
+  return getProviderAccountByAccessToken(input.providerId, input.accessToken);
 }
 
 export function listProviderAccounts(providerId?: string) {
