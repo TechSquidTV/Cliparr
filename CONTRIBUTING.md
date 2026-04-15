@@ -22,6 +22,8 @@ Run the development server:
 pnpm dev
 ```
 
+Open the app at http://localhost:5173. The API server runs on http://localhost:3000 and redirects auth callback pages back to the Vite frontend during development.
+
 Before opening a pull request, run:
 
 ```sh

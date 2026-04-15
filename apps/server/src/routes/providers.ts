@@ -1,8 +1,11 @@
 import { Router } from "express";
 import { ApiError, asyncHandler } from "../http/errors.js";
+import { persistProviderAuth, persistProviderResource } from "../providers/persistence.js";
 import { getProvider, listProviders } from "../providers/registry.js";
+import type { ProviderResource } from "../providers/types.js";
 import { createProviderSession, getSessionCookieHeader } from "../session/store.js";
 import { requireProviderSession, setNoStore } from "../session/request.js";
+import { updateProviderSessionSelectedResource } from "../session/store.js";
 
 export const providersRouter = Router();
 
@@ -43,8 +46,15 @@ providersRouter.get(
       throw new ApiError(502, "provider_auth_failed", "Provider auth did not return credentials");
     }
 
+    const account = persistProviderAuth({
+      provider: provider.definition,
+      userToken: authStatus.userToken,
+      resources: authStatus.resources,
+    });
+
     const session = createProviderSession({
       providerId: provider.definition.id,
+      providerAccountId: account.id,
       userToken: authStatus.userToken,
       resources: authStatus.resources,
     });
@@ -88,7 +98,20 @@ providersRouter.post(
     }
 
     const session = requireProviderSession(req, req.params.providerId as string);
-    await provider.selectResource(session, resourceId, connectionId);
+    const selectedResource = await provider.selectResource(session, resourceId, connectionId);
+    updateProviderSessionSelectedResource(session.id, selectedResource);
+    if (session.providerAccountId) {
+      const resource = (session.resources as ProviderResource[]).find((candidate) => candidate.id === resourceId);
+      const selectedConnection = selectedResource.connections[0];
+      if (resource && selectedConnection) {
+        persistProviderResource({
+          providerId: provider.definition.id,
+          providerAccountId: session.providerAccountId,
+          resource,
+          selectedConnection,
+        });
+      }
+    }
     res.json({ session: provider.serializeSession(session) });
   })
 );

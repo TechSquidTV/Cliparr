@@ -5,6 +5,7 @@ apps/*/dist
 dist
 build
 coverage
+.cliparr-data
 *.tsbuildinfo
 
 .git

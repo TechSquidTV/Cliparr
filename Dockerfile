@@ -31,13 +31,18 @@ FROM node:24-slim AS runner
 
 ENV NODE_ENV=production
 ENV PORT=3000
+ENV CLIPARR_DATA_DIR=/data
 
 WORKDIR /app
 
 COPY --from=build --chown=node:node /prod/apps/server ./apps/server
 COPY --from=build --chown=node:node /app/apps/frontend/dist ./apps/frontend/dist
 
+RUN mkdir -p /data && chown node:node /data
+
 USER node
+
+VOLUME ["/data"]
 
 EXPOSE 3000
 
