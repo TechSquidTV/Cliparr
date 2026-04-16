@@ -106,6 +106,7 @@ mediaRouter.get(
   asyncHandler(async (req, res) => {
     setNoStore(res);
     const session = requireSession(req);
+    pruneSessionMediaHandles(session);
     const provider = getProvider(session.providerId);
     if (!provider) {
       throw new ApiError(500, "provider_not_registered", "Session provider is not registered");
