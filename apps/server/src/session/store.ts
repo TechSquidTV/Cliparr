@@ -1,4 +1,7 @@
 import { randomUUID } from "crypto";
+import { eq, sql } from "drizzle-orm";
+import { getDatabase } from "../db/database.js";
+import { providerSessions, type ProviderSessionRow } from "../db/schema.js";
 
 const SESSION_COOKIE = "cliparr_session";
 const SESSION_TTL_MS = 1000 * 60 * 60 * 12;
@@ -6,6 +9,7 @@ const SESSION_TTL_MS = 1000 * 60 * 60 * 12;
 export interface ProviderSessionRecord {
   id: string;
   providerId: string;
+  providerAccountId?: string;
   userToken: string;
   resources: unknown[];
   selectedResource?: unknown;
@@ -14,25 +18,66 @@ export interface ProviderSessionRecord {
   expiresAt: number;
 }
 
-const sessions = new Map<string, ProviderSessionRecord>();
+const mediaHandlesBySessionId = new Map<string, Map<string, unknown>>();
+
+function getMediaHandles(sessionId: string) {
+  let mediaHandles = mediaHandlesBySessionId.get(sessionId);
+  if (!mediaHandles) {
+    mediaHandles = new Map<string, unknown>();
+    mediaHandlesBySessionId.set(sessionId, mediaHandles);
+  }
+  return mediaHandles;
+}
+
+function mapProviderSession(row: ProviderSessionRow): ProviderSessionRecord {
+  return {
+    id: row.id,
+    providerId: row.providerId,
+    providerAccountId: row.providerAccountId ?? undefined,
+    userToken: row.userToken,
+    resources: row.resources,
+    selectedResource: row.selectedResource ?? undefined,
+    mediaHandles: getMediaHandles(row.id),
+    createdAt: row.createdAt,
+    expiresAt: row.expiresAt,
+  };
+}
 
 export function createProviderSession(input: {
   providerId: string;
+  providerAccountId?: string;
   userToken: string;
   resources: unknown[];
 }) {
   const now = Date.now();
-  const session: ProviderSessionRecord = {
-    id: randomUUID(),
+  const id = randomUUID();
+  const expiresAt = now + SESSION_TTL_MS;
+
+  getDatabase()
+    .insert(providerSessions)
+    .values({
+      id,
+      providerId: input.providerId,
+      providerAccountId: input.providerAccountId ?? null,
+      userToken: input.userToken,
+      resources: input.resources,
+      selectedResource: null,
+      createdAt: now,
+      expiresAt,
+    })
+    .run();
+
+  return mapProviderSession({
+    id,
     providerId: input.providerId,
+    providerAccountId: input.providerAccountId ?? null,
     userToken: input.userToken,
     resources: input.resources,
-    mediaHandles: new Map(),
+    selectedResource: null,
     createdAt: now,
-    expiresAt: now + SESSION_TTL_MS,
-  };
-  sessions.set(session.id, session);
-  return session;
+    expiresAt,
+    updatedAt: new Date(now).toISOString(),
+  });
 }
 
 export function getProviderSession(sessionId?: string) {
@@ -40,22 +85,42 @@ export function getProviderSession(sessionId?: string) {
     return undefined;
   }
 
-  const session = sessions.get(sessionId);
-  if (!session) {
+  const row = getDatabase()
+    .select()
+    .from(providerSessions)
+    .where(eq(providerSessions.id, sessionId))
+    .get();
+
+  if (!row) {
     return undefined;
   }
 
-  if (session.expiresAt <= Date.now()) {
-    sessions.delete(sessionId);
+  if (row.expiresAt <= Date.now()) {
+    deleteProviderSession(sessionId);
     return undefined;
   }
 
-  return session;
+  return mapProviderSession(row);
+}
+
+export function updateProviderSessionSelectedResource(sessionId: string, selectedResource: unknown) {
+  getDatabase()
+    .update(providerSessions)
+    .set({
+      selectedResource,
+      updatedAt: sql`strftime('%Y-%m-%dT%H:%M:%fZ', 'now')`,
+    })
+    .where(eq(providerSessions.id, sessionId))
+    .run();
 }
 
 export function deleteProviderSession(sessionId?: string) {
   if (sessionId) {
-    sessions.delete(sessionId);
+    getDatabase()
+      .delete(providerSessions)
+      .where(eq(providerSessions.id, sessionId))
+      .run();
+    mediaHandlesBySessionId.delete(sessionId);
   }
 }
 

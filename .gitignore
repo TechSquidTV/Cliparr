@@ -3,6 +3,7 @@ node_modules/
 build/
 dist/
 coverage/
+.cliparr-data/
 .DS_Store
 *.log
 *.tsbuildinfo

@@ -7,19 +7,21 @@
     "dev": "node --watch-path=./src --import tsx ./src/server.ts",
     "build": "tsc -p tsconfig.build.json",
     "lint": "tsc --noEmit",
+    "db:generate": "drizzle-kit generate",
     "preview": "NODE_ENV=production tsx src/server.ts",
     "start": "NODE_ENV=production node dist/server.js",
     "clean": "rm -rf dist"
   },
   "dependencies": {
     "dotenv": "^17.4.2",
+    "drizzle-orm": "1.0.0-beta.21",
     "express": "^5.2.1"
   },
   "devDependencies": {
     "@types/express": "^5.0.6",
     "@types/node": "^25.6.0",
+    "drizzle-kit": "1.0.0-beta.21",
     "tsx": "^4.21.0",
-    "typescript": "~6.0.2",
-    "vite": "^8.0.8"
+    "typescript": "~6.0.2"
   }
 }

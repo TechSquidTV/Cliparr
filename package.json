@@ -15,12 +15,17 @@
   },
   "homepage": "https://github.com/techsquidtv/cliparr#readme",
   "scripts": {
-    "dev": "concurrently -c \"cyan,magenta\" -n \"frontend,server\" \"pnpm --filter @cliparr/frontend dev\" \"pnpm --filter @cliparr/server dev\"",
+    "dev": "concurrently -k -s first --handle-input -c \"cyan,magenta\" -n \"frontend,server\" \"pnpm --filter @cliparr/frontend dev\" \"pnpm --filter @cliparr/server dev\"",
     "build": "pnpm -r build",
     "lint": "pnpm -r lint",
     "preview": "pnpm --filter @cliparr/server preview",
     "start": "pnpm --filter @cliparr/server start",
     "clean": "pnpm -r clean"
+  },
+  "pnpm": {
+    "peerDependencyRules": {
+      "ignoreMissing": ["mssql", "@types/mssql"]
+    }
   },
   "devDependencies": {
     "concurrently": "^9.2.1",

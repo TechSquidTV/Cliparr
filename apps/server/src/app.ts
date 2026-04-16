@@ -1,16 +1,21 @@
 import express from "express";
 import path from "path";
 import { fileURLToPath } from "url";
+import { checkDatabaseHealth, initializeDatabase } from "./db/database.js";
 import { errorHandler, notFoundHandler } from "./http/errors.js";
 import { mediaRouter } from "./routes/media.js";
 import { providersRouter } from "./routes/providers.js";
 import { sessionRouter } from "./routes/session.js";
+import { sourcesRouter } from "./routes/sources.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const workspaceRoot = path.resolve(__dirname, "../../..");
 const frontendRoot = path.join(workspaceRoot, "apps/frontend");
+const DEFAULT_DEV_FRONTEND_URL = "http://localhost:5173";
 
 export async function createApp() {
+  initializeDatabase();
+
   const app = express();
 
   app.disable("x-powered-by");
@@ -22,31 +27,37 @@ export async function createApp() {
   });
 
   app.get("/api/health", (_req, res) => {
-    res.json({ status: "ok" });
+    checkDatabaseHealth();
+    res.json({ status: "ok", database: "ok" });
   });
 
   app.use("/api/providers", providersRouter);
   app.use("/api/session", sessionRouter);
+  app.use("/api/sources", sourcesRouter);
   app.use("/api/media", mediaRouter);
   app.use("/api", notFoundHandler);
 
   if (process.env.NODE_ENV !== "production") {
-    const { createServer: createViteServer } = await import("vite");
-    const vite = await createViteServer({
-      root: frontendRoot,
-      server: { middlewareMode: true },
-      appType: "spa",
+    const frontendUrl = new URL(process.env.CLIPARR_FRONTEND_URL ?? DEFAULT_DEV_FRONTEND_URL);
+    app.get(/^(?!\/api(?:\/|$)).*/, (req, res) => {
+      const redirectUrl = new URL(frontendUrl);
+      const safePath = req.path.replace(/^\/+/, "/");
+      const queryIndex = req.originalUrl.indexOf("?");
+
+      redirectUrl.pathname = safePath;
+      redirectUrl.search = queryIndex >= 0 ? req.originalUrl.slice(queryIndex) : "";
+
+      res.redirect(307, redirectUrl.toString());
     });
-    app.use(vite.middlewares);
   } else {
     const distPath = path.join(frontendRoot, "dist");
     app.use(express.static(distPath));
-    app.get("/{*path}", (_req, res) => {
+    app.get(/^(?!\/api(?:\/|$)).*/, (_req, res) => {
       res.sendFile(path.join(distPath, "index.html"));
     });
   }
 
   app.use(errorHandler);
 
-  return app;
+  return { app };
 }
