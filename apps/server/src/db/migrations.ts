@@ -68,8 +68,6 @@ const migrations: Migration[] = [
         provider_id TEXT NOT NULL,
         provider_account_id TEXT REFERENCES provider_accounts(id) ON DELETE SET NULL,
         user_token TEXT NOT NULL,
-        resources_json TEXT NOT NULL DEFAULT '[]',
-        selected_resource_json TEXT,
         created_at INTEGER NOT NULL,
         expires_at INTEGER NOT NULL,
         updated_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
@@ -152,6 +150,53 @@ const migrations: Migration[] = [
       CREATE UNIQUE INDEX IF NOT EXISTS provider_accounts_provider_access_token_hash_idx
         ON provider_accounts(provider_id, access_token_hash)
         WHERE access_token_hash IS NOT NULL;
+    `,
+  },
+  {
+    id: 5,
+    name: "drop_legacy_provider_session_resource_fields",
+    sql: `
+      CREATE TABLE provider_sessions_next (
+        id TEXT PRIMARY KEY,
+        provider_id TEXT NOT NULL,
+        provider_account_id TEXT REFERENCES provider_accounts(id) ON DELETE SET NULL,
+        user_token TEXT NOT NULL,
+        created_at INTEGER NOT NULL,
+        expires_at INTEGER NOT NULL,
+        updated_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
+      );
+
+      INSERT INTO provider_sessions_next (
+        id,
+        provider_id,
+        provider_account_id,
+        user_token,
+        created_at,
+        expires_at,
+        updated_at
+      )
+      SELECT
+        id,
+        provider_id,
+        provider_account_id,
+        user_token,
+        created_at,
+        expires_at,
+        updated_at
+      FROM provider_sessions;
+
+      DROP TABLE provider_sessions;
+
+      ALTER TABLE provider_sessions_next RENAME TO provider_sessions;
+
+      CREATE INDEX provider_sessions_provider_id_idx
+        ON provider_sessions(provider_id);
+
+      CREATE INDEX provider_sessions_provider_account_id_idx
+        ON provider_sessions(provider_account_id);
+
+      CREATE INDEX provider_sessions_expires_at_idx
+        ON provider_sessions(expires_at);
     `,
   },
 ];

@@ -194,24 +194,9 @@ function errorMessage(err: unknown) {
   return "Unknown error";
 }
 
-function fallbackSourceConnection(source: MediaSource) {
-  try {
-    assertHttpUrl(source.baseUrl);
-  } catch {
-    throw new ApiError(500, "source_configuration_invalid", "Stored Plex source has an invalid base URL");
-  }
-
-  return {
-    id: stringValue(source.connection.selectedConnectionId) ?? randomUUID(),
-    uri: source.baseUrl,
-    local: false,
-    relay: false,
-  };
-}
-
 function sourceConnections(source: MediaSource) {
   const rawConnections = Array.isArray(source.connection.connections) ? source.connection.connections : [];
-  const connections = rawConnections.flatMap((candidate) => {
+  return rawConnections.flatMap((candidate) => {
     const uri = stringValue((candidate as any)?.uri);
     if (!uri) {
       return [];
@@ -233,8 +218,6 @@ function sourceConnections(source: MediaSource) {
       port: numberValue((candidate as any)?.port),
     }];
   });
-
-  return connections.length > 0 ? connections : [fallbackSourceConnection(source)];
 }
 
 function sourceResource(source: MediaSource) {
@@ -243,7 +226,20 @@ function sourceResource(source: MediaSource) {
     throw new ApiError(500, "source_credentials_missing", "Stored Plex source is missing its access token");
   }
 
+  const provides = normalizeProvides(source.metadata.provides);
+  if (source.metadata.owned !== true || !provides.includes("server")) {
+    throw new ApiError(
+      500,
+      "source_configuration_invalid",
+      "Stored Plex source must be an owned server resource"
+    );
+  }
+
   const connections = sourceConnections(source);
+  if (connections.length === 0) {
+    throw new ApiError(500, "source_connections_missing", "Stored Plex source is missing connection details");
+  }
+
   const selectedConnectionId = stringValue(source.connection.selectedConnectionId);
   const matchingSelectedConnection = selectedConnectionId
     ? connections.find((candidate) => candidate.id === selectedConnectionId)
@@ -262,7 +258,7 @@ function sourceResource(source: MediaSource) {
       name: source.name,
       product: stringValue(source.metadata.product),
       platform: stringValue(source.metadata.platform),
-      provides: normalizeProvides(source.metadata.provides),
+      provides,
       owned: Boolean(source.metadata.owned),
       accessToken,
       connections,
@@ -271,12 +267,7 @@ function sourceResource(source: MediaSource) {
 }
 
 function sourceSupportsCurrentlyPlaying(source: MediaSource) {
-  if (source.metadata.owned !== true) {
-    return false;
-  }
-
-  const provides = normalizeProvides(source.metadata.provides);
-  return provides.length === 0 || provides.includes("server");
+  return source.metadata.owned === true && normalizeProvides(source.metadata.provides).includes("server");
 }
 
 async function probeConnection(resource: ProviderResource, connection: ProviderResource["connections"][number]) {

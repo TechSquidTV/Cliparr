@@ -64,8 +64,6 @@ export const providerSessions = sqliteTable(
     providerId: text("provider_id").notNull(),
     providerAccountId: text("provider_account_id").references(() => providerAccounts.id, { onDelete: "set null" }),
     userToken: text("user_token").notNull(),
-    resources: text("resources_json", { mode: "json" }).$type<unknown[]>().notNull().default([]),
-    selectedResource: text("selected_resource_json", { mode: "json" }).$type<unknown | null>(),
     createdAt: integer("created_at").notNull(),
     expiresAt: integer("expires_at").notNull(),
     updatedAt: text("updated_at").notNull().default(nowIso),

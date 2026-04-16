@@ -58,8 +58,6 @@ export function createProviderSession(input: {
       providerId: input.providerId,
       providerAccountId: input.providerAccountId ?? null,
       userToken: encryptSecret(input.userToken),
-      resources: [],
-      selectedResource: null,
       createdAt: now,
       expiresAt,
     })
@@ -70,8 +68,6 @@ export function createProviderSession(input: {
     providerId: input.providerId,
     providerAccountId: input.providerAccountId ?? null,
     userToken: input.userToken,
-    resources: [],
-    selectedResource: null,
     createdAt: now,
     expiresAt,
     updatedAt: new Date(now).toISOString(),
