@@ -35,7 +35,7 @@ function WarningBanner({ sourceErrors }: { sourceErrors: SourcePlaybackError[] }
   }
 
   return (
-    <div className="bg-amber-500/10 border border-amber-500/20 text-amber-900 dark:text-amber-200 p-4 rounded-xl">
+    <div className="rounded-xl border border-[color:color-mix(in_oklch,var(--destructive)_24%,transparent)] bg-[color:color-mix(in_oklch,var(--destructive)_12%,var(--background))] p-4 text-[color:color-mix(in_oklch,var(--destructive)_72%,var(--foreground))]">
       <div className="flex items-start gap-3">
         <AlertTriangle className="w-5 h-5 shrink-0 mt-0.5" />
         <div className="space-y-2 text-sm">

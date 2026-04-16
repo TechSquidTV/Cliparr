@@ -26,6 +26,15 @@ interface Feedback {
   message: string;
 }
 
+const healthySurfaceClasses =
+  "border-[color:color-mix(in_oklch,var(--primary)_24%,transparent)] bg-[color:color-mix(in_oklch,var(--primary)_12%,var(--background))] text-[color:color-mix(in_oklch,var(--primary)_78%,var(--foreground))]";
+const attentionSurfaceClasses =
+  "border-[color:color-mix(in_oklch,var(--destructive)_24%,transparent)] bg-[color:color-mix(in_oklch,var(--destructive)_12%,var(--background))] text-[color:color-mix(in_oklch,var(--destructive)_72%,var(--foreground))]";
+const secondarySurfaceClasses =
+  "border-[color:color-mix(in_oklch,var(--secondary)_24%,transparent)] bg-[color:color-mix(in_oklch,var(--secondary)_12%,var(--background))] text-[color:color-mix(in_oklch,var(--secondary)_64%,var(--foreground))]";
+const elevatedGlassClasses =
+  "border-[color:color-mix(in_oklch,var(--foreground)_10%,transparent)] bg-[color:color-mix(in_oklch,var(--card)_72%,transparent)]";
+
 function compareStrings(left: string, right: string) {
   return left.localeCompare(right, undefined, { sensitivity: "base" });
 }
@@ -70,7 +79,7 @@ function sourceStatus(source: MediaSource) {
   if (source.lastError) {
     return {
       label: "Needs attention",
-      className: "border-amber-500/30 bg-amber-500/10 text-amber-900 dark:text-amber-200",
+      className: attentionSurfaceClasses,
       icon: AlertTriangle,
     };
   }
@@ -78,14 +87,14 @@ function sourceStatus(source: MediaSource) {
   if (source.lastCheckedAt) {
     return {
       label: "Healthy",
-      className: "border-emerald-500/30 bg-emerald-500/10 text-emerald-900 dark:text-emerald-200",
+      className: healthySurfaceClasses,
       icon: CheckCircle2,
     };
   }
 
   return {
     label: "Unchecked",
-    className: "border-sky-500/30 bg-sky-500/10 text-sky-900 dark:text-sky-200",
+    className: secondarySurfaceClasses,
     icon: Globe,
   };
 }
@@ -507,7 +516,7 @@ export default function SourcesModal({ isOpen, onClose, onSourcesChanged }: Prop
 
   return (
     <div
-      className="fixed inset-0 z-50 bg-black/50 p-4 backdrop-blur-sm sm:p-6"
+      className="fixed inset-0 z-50 bg-[color:color-mix(in_oklch,var(--foreground)_38%,transparent)] p-4 backdrop-blur-sm sm:p-6"
       role="presentation"
       onClick={onClose}
     >
@@ -517,13 +526,13 @@ export default function SourcesModal({ isOpen, onClose, onSourcesChanged }: Prop
         aria-modal="true"
         aria-label="Manage sources"
         tabIndex={-1}
-        className="mx-auto flex h-full max-w-6xl flex-col overflow-hidden rounded-[2rem] border border-white/10 bg-card text-card-foreground shadow-2xl"
+        className="mx-auto flex h-full max-w-6xl flex-col overflow-hidden rounded-[2rem] border border-border bg-card text-card-foreground shadow-2xl"
         onClick={(event) => event.stopPropagation()}
       >
         <header className="border-b border-border bg-[linear-gradient(135deg,color-mix(in_oklch,var(--primary)_16%,transparent),transparent_55%),linear-gradient(180deg,color-mix(in_oklch,var(--muted)_82%,var(--card)),var(--card))] px-5 py-5 sm:px-8 sm:py-7">
           <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
             <div className="space-y-3">
-              <div className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
+              <div className={cn("inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground", elevatedGlassClasses)}>
                 <Server className="h-3.5 w-3.5" />
                 Source Control
               </div>
@@ -538,11 +547,11 @@ export default function SourcesModal({ isOpen, onClose, onSourcesChanged }: Prop
                   <div className="text-muted-foreground">Total</div>
                   <div className="text-lg font-semibold">{counts.all}</div>
                 </div>
-                <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/10 px-4 py-3 text-emerald-900 dark:text-emerald-200">
+                <div className={cn("rounded-2xl border px-4 py-3", healthySurfaceClasses)}>
                   <div className="opacity-80">Enabled</div>
                   <div className="text-lg font-semibold">{counts.enabled}</div>
                 </div>
-                <div className="rounded-2xl border border-amber-500/20 bg-amber-500/10 px-4 py-3 text-amber-900 dark:text-amber-200">
+                <div className={cn("rounded-2xl border px-4 py-3", attentionSurfaceClasses)}>
                   <div className="opacity-80">Needs Attention</div>
                   <div className="text-lg font-semibold">{counts.attention}</div>
                 </div>
@@ -632,13 +641,15 @@ export default function SourcesModal({ isOpen, onClose, onSourcesChanged }: Prop
                     )}
                   >
                     {label}
-                    <span
-                      className={cn(
-                        "rounded-full px-2 py-0.5 text-xs",
-                        isActive ? "bg-white/15 text-primary-foreground" : "bg-muted text-foreground"
-                      )}
-                    >
-                      {counts[value]}
+                      <span
+                        className={cn(
+                          "rounded-full px-2 py-0.5 text-xs",
+                          isActive
+                            ? "bg-[color:color-mix(in_oklch,var(--primary-foreground)_16%,transparent)] text-primary-foreground"
+                            : "bg-muted text-foreground"
+                        )}
+                      >
+                        {counts[value]}
                     </span>
                   </button>
                 );
@@ -660,8 +671,8 @@ export default function SourcesModal({ isOpen, onClose, onSourcesChanged }: Prop
                 className={cn(
                   "rounded-2xl border px-4 py-3 text-sm",
                   feedback.tone === "error" && "border-destructive/20 bg-destructive/10 text-destructive",
-                  feedback.tone === "success" && "border-emerald-500/20 bg-emerald-500/10 text-emerald-900 dark:text-emerald-200",
-                  feedback.tone === "warning" && "border-amber-500/20 bg-amber-500/10 text-amber-900 dark:text-amber-200"
+                  feedback.tone === "success" && healthySurfaceClasses,
+                  feedback.tone === "warning" && attentionSurfaceClasses
                 )}
               >
                 {feedback.message}
@@ -776,7 +787,7 @@ export default function SourcesModal({ isOpen, onClose, onSourcesChanged }: Prop
                       </dl>
 
                       {source.lastError && (
-                        <div className="mt-4 rounded-2xl border border-amber-500/20 bg-amber-500/10 px-4 py-3 text-sm text-amber-900 dark:text-amber-200">
+                        <div className={cn("mt-4 rounded-2xl border px-4 py-3 text-sm", attentionSurfaceClasses)}>
                           <div className="flex items-start gap-2">
                             <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
                             <div>
