@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
-import { AlertTriangle, LogOut, Play, RefreshCw, Video } from "lucide-react";
+import { AlertTriangle, LogOut, Play, RefreshCw, Settings2, Video } from "lucide-react";
 import { cliparrClient } from "../api/cliparrClient";
+import SourcesModal from "./SourcesModal";
 import type { CurrentlyPlayingItem, SourcePlaybackError, ViewerPlaybackGroup } from "../providers/types";
 
 interface Props {
@@ -34,7 +35,7 @@ function WarningBanner({ sourceErrors }: { sourceErrors: SourcePlaybackError[] }
   }
 
   return (
-    <div className="bg-amber-500/10 border border-amber-500/20 text-amber-900 dark:text-amber-200 p-4 rounded-xl">
+    <div className="rounded-xl border border-[color:color-mix(in_oklch,var(--destructive)_24%,transparent)] bg-[color:color-mix(in_oklch,var(--destructive)_12%,var(--background))] p-4 text-[color:color-mix(in_oklch,var(--destructive)_72%,var(--foreground))]">
       <div className="flex items-start gap-3">
         <AlertTriangle className="w-5 h-5 shrink-0 mt-0.5" />
         <div className="space-y-2 text-sm">
@@ -57,6 +58,7 @@ export default function SessionsScreen({ onSelectSession, onLogout }: Props) {
   const [sourceErrors, setSourceErrors] = useState<SourcePlaybackError[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [showSources, setShowSources] = useState(false);
 
   const fetchSessions = async () => {
     setLoading(true);
@@ -84,17 +86,26 @@ export default function SessionsScreen({ onSelectSession, onLogout }: Props) {
     : "No one is currently watching anything.";
 
   return (
-    <div className="min-h-screen bg-background text-foreground p-8">
+    <div className="min-h-screen bg-background p-4 text-foreground sm:p-8">
       <div className="max-w-5xl mx-auto">
-        <header className="flex items-center justify-between mb-12">
+        <header className="mb-10 flex flex-col gap-5 sm:mb-12 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-3">
             <div className="bg-primary/10 p-2 rounded-lg">
               <Video className="w-6 h-6 text-primary" />
             </div>
             <h1 className="text-2xl font-bold tracking-tight">Cliparr</h1>
           </div>
-          <div className="flex items-center gap-4">
+          <div className="flex flex-wrap items-center gap-3 sm:justify-end">
             <button
+              type="button"
+              onClick={() => setShowSources(true)}
+              className="flex items-center gap-2 rounded-lg border border-border px-4 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+            >
+              <Settings2 className="w-4 h-4" />
+              Sources
+            </button>
+            <button
+              type="button"
               onClick={fetchSessions}
               className="p-2 text-muted-foreground hover:text-foreground hover:bg-accent rounded-lg transition-colors"
               title="Refresh"
@@ -102,6 +113,7 @@ export default function SessionsScreen({ onSelectSession, onLogout }: Props) {
               <RefreshCw className={`w-5 h-5 ${loading ? "animate-spin text-primary" : ""}`} />
             </button>
             <button
+              type="button"
               onClick={onLogout}
               className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-accent rounded-lg transition-colors"
             >
@@ -115,7 +127,7 @@ export default function SessionsScreen({ onSelectSession, onLogout }: Props) {
           <div>
             <h2 className="text-xl font-semibold mb-2">Currently Playing</h2>
             <p className="text-muted-foreground text-sm">
-              See what everyone is watching across your enabled Plex sources.
+              See what everyone is watching across your enabled sources.
             </p>
           </div>
 
@@ -213,6 +225,12 @@ export default function SessionsScreen({ onSelectSession, onLogout }: Props) {
           </div>
         </div>
       </div>
+
+      <SourcesModal
+        isOpen={showSources}
+        onClose={() => setShowSources(false)}
+        onSourcesChanged={fetchSessions}
+      />
     </div>
   );
 }
