@@ -21,19 +21,25 @@ Built with [Mediabunny](https://mediabunny.dev/) and [`react-timeline-editor`](h
 The easiest way to run Cliparr is using the official image from the GitHub Container Registry:
 
 ```sh
+export APP_KEY="replace-with-a-stable-random-secret"
+
 docker run --rm -p 3000:3000 \
   -e APP_URL=http://localhost:3000 \
+  -e APP_KEY="$APP_KEY" \
   -v cliparr-data:/data \
   ghcr.io/techsquidtv/cliparr:latest
 ```
 
 Cliparr requires SQLite storage for configured media sources and provider tokens. The container stores that database under `/data`, so mount it as a volume.
+`APP_KEY` is required and must stay the same for a given data directory because Cliparr uses it to encrypt persisted provider credentials at rest.
 
 ### Docker Compose
 
 For local Docker usage, Compose will build the image and mount the database volume for you:
 
 ```sh
+cp .env.example .env
+# Set APP_KEY in .env before starting the stack.
 docker compose up --build
 ```
 
@@ -48,8 +54,11 @@ docker build -t cliparr .
 And run it:
 
 ```sh
+export APP_KEY="replace-with-a-stable-random-secret"
+
 docker run --rm -p 3000:3000 \
   -e APP_URL=http://localhost:3000 \
+  -e APP_KEY="$APP_KEY" \
   -v cliparr-data:/data \
   cliparr
 ```

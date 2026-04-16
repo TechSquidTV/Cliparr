@@ -16,15 +16,16 @@ export const providerAccounts = sqliteTable(
     providerId: text("provider_id").notNull(),
     label: text("label").notNull(),
     accessToken: text("access_token"),
+    accessTokenHash: text("access_token_hash"),
     metadata: text("metadata_json", { mode: "json" }).$type<Record<string, unknown>>().notNull().default({}),
     createdAt: text("created_at").notNull().default(nowIso),
     updatedAt: text("updated_at").notNull().default(nowIso),
   },
   (table) => [
     index("provider_accounts_provider_id_idx").on(table.providerId),
-    uniqueIndex("provider_accounts_provider_access_token_idx")
-      .on(table.providerId, table.accessToken)
-      .where(sql`${table.accessToken} IS NOT NULL`),
+    uniqueIndex("provider_accounts_provider_access_token_hash_idx")
+      .on(table.providerId, table.accessTokenHash)
+      .where(sql`${table.accessTokenHash} IS NOT NULL`),
   ]
 );
 

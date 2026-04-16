@@ -2,6 +2,7 @@ import { randomUUID } from "crypto";
 import { and, eq, sql } from "drizzle-orm";
 import { getDatabase } from "./database.js";
 import { providerAccounts, type ProviderAccountRow } from "./schema.js";
+import { decryptSecret, encryptSecret, hashSecret } from "../security/secrets.js";
 
 export interface ProviderAccount {
   id: string;
@@ -31,7 +32,7 @@ function mapProviderAccount(row: ProviderAccountRow): ProviderAccount {
     id: row.id,
     providerId: row.providerId,
     label: row.label,
-    accessToken: row.accessToken ?? undefined,
+    accessToken: row.accessToken ? decryptSecret(row.accessToken) : undefined,
     metadata: row.metadata,
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
@@ -46,7 +47,8 @@ export function createProviderAccount(input: CreateProviderAccountInput) {
     id,
     providerId: input.providerId,
     label: input.label,
-    accessToken: input.accessToken ?? null,
+    accessToken: input.accessToken ? encryptSecret(input.accessToken) : null,
+    accessTokenHash: input.accessToken ? hashSecret(input.accessToken) : null,
     metadata: input.metadata ?? {},
   }).run();
 
@@ -58,7 +60,12 @@ export function updateProviderAccount(id: string, input: UpdateProviderAccountIn
     .update(providerAccounts)
     .set({
       ...(input.label !== undefined ? { label: input.label } : {}),
-      ...(input.accessToken !== undefined ? { accessToken: input.accessToken } : {}),
+      ...(input.accessToken !== undefined
+        ? {
+          accessToken: encryptSecret(input.accessToken),
+          accessTokenHash: hashSecret(input.accessToken),
+        }
+        : {}),
       ...(input.metadata !== undefined ? { metadata: input.metadata } : {}),
       updatedAt: sql`strftime('%Y-%m-%dT%H:%M:%fZ', 'now')`,
     })
@@ -79,18 +86,40 @@ export function getProviderAccount(id: string) {
 }
 
 export function getProviderAccountByAccessToken(providerId: string, accessToken: string) {
-  const row = getDatabase()
+  const db = getDatabase();
+  const tokenHash = hashSecret(accessToken);
+  const row = db
     .select()
     .from(providerAccounts)
-    .where(and(eq(providerAccounts.providerId, providerId), eq(providerAccounts.accessToken, accessToken)))
+    .where(and(eq(providerAccounts.providerId, providerId), eq(providerAccounts.accessTokenHash, tokenHash)))
     .get();
 
-  return row ? mapProviderAccount(row) : undefined;
+  if (row) {
+    return mapProviderAccount(row);
+  }
+
+  const fallback = db
+    .select()
+    .from(providerAccounts)
+    .where(eq(providerAccounts.providerId, providerId))
+    .all()
+    .find((candidate) => candidate.accessToken && decryptSecret(candidate.accessToken) === accessToken);
+
+  return fallback ? mapProviderAccount(fallback) : undefined;
 }
 
 export function upsertProviderAccountByAccessToken(input: CreateProviderAccountInput) {
   if (!input.accessToken) {
     return createProviderAccount(input);
+  }
+
+  const existing = getProviderAccountByAccessToken(input.providerId, input.accessToken);
+  if (existing) {
+    return updateProviderAccount(existing.id, {
+      label: input.label,
+      accessToken: input.accessToken,
+      metadata: input.metadata,
+    });
   }
 
   const db = getDatabase();
@@ -100,14 +129,17 @@ export function upsertProviderAccountByAccessToken(input: CreateProviderAccountI
       id: randomUUID(),
       providerId: input.providerId,
       label: input.label,
-      accessToken: input.accessToken,
+      accessToken: encryptSecret(input.accessToken),
+      accessTokenHash: hashSecret(input.accessToken),
       metadata: input.metadata ?? {},
     })
     .onConflictDoUpdate({
-      target: [providerAccounts.providerId, providerAccounts.accessToken],
-      targetWhere: sql`${providerAccounts.accessToken} IS NOT NULL`,
+      target: [providerAccounts.providerId, providerAccounts.accessTokenHash],
+      targetWhere: sql`${providerAccounts.accessTokenHash} IS NOT NULL`,
       set: {
         label: input.label,
+        accessToken: encryptSecret(input.accessToken),
+        accessTokenHash: hashSecret(input.accessToken),
         ...(input.metadata !== undefined ? { metadata: input.metadata } : {}),
         updatedAt: sql`strftime('%Y-%m-%dT%H:%M:%fZ', 'now')`,
       },
