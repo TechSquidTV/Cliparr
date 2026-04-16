@@ -10,7 +10,7 @@ import {
 } from "../db/mediaSourcesRepository.js";
 import { ApiError, asyncHandler } from "../http/errors.js";
 import { getProvider } from "../providers/registry.js";
-import { syncProviderSessionSelectedResource } from "../session/store.js";
+import { setProviderSessionSelectedResource } from "../session/store.js";
 import { requireSession, setNoStore } from "../session/request.js";
 
 export const sourcesRouter = Router();
@@ -140,7 +140,7 @@ sourcesRouter.delete(
     deleteMediaSource(req.params.id as string);
 
     if (selectedInCurrentSession) {
-      syncProviderSessionSelectedResource(session, null, { clearMediaHandles: true });
+      setProviderSessionSelectedResource(session, null, { clearMediaHandles: true });
     }
 
     res.status(204).end();
@@ -196,7 +196,7 @@ sourcesRouter.post(
     }
 
     if (selectedInCurrentSession) {
-      syncProviderSessionSelectedResource(session, provider.selectedResourceFromSource(updatedSource));
+      setProviderSessionSelectedResource(session, provider.selectedResourceFromSource(updatedSource));
     }
 
     res.json({

@@ -115,7 +115,7 @@ export function updateProviderSessionSelectedResource(sessionId: string, selecte
     .run();
 }
 
-export function syncProviderSessionSelectedResource(
+export function setProviderSessionSelectedResource(
   session: ProviderSessionRecord,
   selectedResource: unknown,
   options: { clearMediaHandles?: boolean } = {}
