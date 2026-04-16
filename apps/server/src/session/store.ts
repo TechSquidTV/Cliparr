@@ -1,30 +1,30 @@
 import { randomUUID } from "crypto";
-import { eq, sql } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { getDatabase } from "../db/database.js";
 import { providerSessions, type ProviderSessionRow } from "../db/schema.js";
-import { decryptJsonSecrets, decryptSecret, encryptJsonSecrets, encryptSecret } from "../security/secrets.js";
+import type { MediaHandle } from "../providers/types.js";
+import { decryptSecret, encryptSecret } from "../security/secrets.js";
 
 const SESSION_COOKIE = "cliparr_session";
 const SESSION_TTL_MS = 1000 * 60 * 60 * 12;
+const MEDIA_HANDLE_IDLE_TTL_MS = 1000 * 60 * 15;
 
 export interface ProviderSessionRecord {
   id: string;
   providerId: string;
   providerAccountId?: string;
   userToken: string;
-  resources: unknown[];
-  selectedResource?: unknown;
-  mediaHandles: Map<string, unknown>;
+  mediaHandles: Map<string, MediaHandle>;
   createdAt: number;
   expiresAt: number;
 }
 
-const mediaHandlesBySessionId = new Map<string, Map<string, unknown>>();
+const mediaHandlesBySessionId = new Map<string, Map<string, MediaHandle>>();
 
 function getMediaHandles(sessionId: string) {
   let mediaHandles = mediaHandlesBySessionId.get(sessionId);
   if (!mediaHandles) {
-    mediaHandles = new Map<string, unknown>();
+    mediaHandles = new Map<string, MediaHandle>();
     mediaHandlesBySessionId.set(sessionId, mediaHandles);
   }
   return mediaHandles;
@@ -36,8 +36,6 @@ function mapProviderSession(row: ProviderSessionRow): ProviderSessionRecord {
     providerId: row.providerId,
     providerAccountId: row.providerAccountId ?? undefined,
     userToken: decryptSecret(row.userToken),
-    resources: decryptJsonSecrets(row.resources),
-    selectedResource: row.selectedResource == null ? undefined : decryptJsonSecrets(row.selectedResource),
     mediaHandles: getMediaHandles(row.id),
     createdAt: row.createdAt,
     expiresAt: row.expiresAt,
@@ -48,7 +46,6 @@ export function createProviderSession(input: {
   providerId: string;
   providerAccountId?: string;
   userToken: string;
-  resources: unknown[];
 }) {
   const now = Date.now();
   const id = randomUUID();
@@ -61,7 +58,7 @@ export function createProviderSession(input: {
       providerId: input.providerId,
       providerAccountId: input.providerAccountId ?? null,
       userToken: encryptSecret(input.userToken),
-      resources: encryptJsonSecrets(input.resources),
+      resources: [],
       selectedResource: null,
       createdAt: now,
       expiresAt,
@@ -73,7 +70,7 @@ export function createProviderSession(input: {
     providerId: input.providerId,
     providerAccountId: input.providerAccountId ?? null,
     userToken: input.userToken,
-    resources: input.resources,
+    resources: [],
     selectedResource: null,
     createdAt: now,
     expiresAt,
@@ -104,27 +101,16 @@ export function getProviderSession(sessionId?: string) {
   return mapProviderSession(row);
 }
 
-export function updateProviderSessionSelectedResource(sessionId: string, selectedResource: unknown) {
-  getDatabase()
-    .update(providerSessions)
-    .set({
-      selectedResource: selectedResource == null ? null : encryptJsonSecrets(selectedResource),
-      updatedAt: sql`strftime('%Y-%m-%dT%H:%M:%fZ', 'now')`,
-    })
-    .where(eq(providerSessions.id, sessionId))
-    .run();
-}
+export function pruneSessionMediaHandles(session: ProviderSessionRecord, maxIdleMs = MEDIA_HANDLE_IDLE_TTL_MS) {
+  const cutoff = Date.now() - maxIdleMs;
 
-export function setProviderSessionSelectedResource(
-  session: ProviderSessionRecord,
-  selectedResource: unknown,
-  options: { clearMediaHandles?: boolean } = {}
-) {
-  session.selectedResource = selectedResource ?? undefined;
-  if (options.clearMediaHandles) {
-    session.mediaHandles.clear();
+  for (const [handleId, handle] of session.mediaHandles.entries()) {
+    if (handle.lastAccessedAt >= cutoff) {
+      continue;
+    }
+
+    session.mediaHandles.delete(handleId);
   }
-  updateProviderSessionSelectedResource(session.id, selectedResource);
 }
 
 export function deleteProviderSession(sessionId?: string) {

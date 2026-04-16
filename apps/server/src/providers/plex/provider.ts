@@ -1,14 +1,14 @@
 import { randomUUID } from "crypto";
 import { Readable } from "stream";
 import type { Request, Response } from "express";
-import type { MediaSource } from "../../db/mediaSourcesRepository.js";
+import { updateMediaSource, type MediaSource } from "../../db/mediaSourcesRepository.js";
 import { ApiError } from "../../http/errors.js";
 import type {
+  CurrentlyPlayingEntry,
   ProviderImplementation,
   ProviderResource,
   MediaExportMetadata,
   MediaHandle,
-  MediaSession,
 } from "../types.js";
 import type { ProviderSessionRecord } from "../../session/store.js";
 
@@ -17,6 +17,8 @@ const PLEX_CLIENT_IDENTIFIER = process.env.PLEX_CLIENT_IDENTIFIER ?? `cliparr-${
 const AUTH_TTL_MS = 1000 * 60 * 10;
 const DEFAULT_APP_URL = "http://localhost:3000";
 const PLEX_AUTH_COMPLETE_PATH = "/auth/plex/complete";
+const CONNECTION_PROBE_TIMEOUT_MS = 2500;
+const CURRENT_PLAYBACK_REQUEST_TIMEOUT_MS = 5000;
 
 interface PlexAuthRequest {
   authId: string;
@@ -45,6 +47,12 @@ interface PlexResourceResponse {
 }
 
 const authRequests = new Map<string, PlexAuthRequest>();
+
+interface PlexSourceContext {
+  sourceId: string;
+  baseUrl: string;
+  token: string;
+}
 
 function getPlexAuthCompleteUrl() {
   const appUrl = new URL(process.env.APP_URL ?? DEFAULT_APP_URL);
@@ -99,9 +107,33 @@ function assertHttpUrl(uri: string) {
   return parsed;
 }
 
+function normalizeProvides(provides: unknown): string[] {
+  if (Array.isArray(provides)) {
+    return provides
+      .flatMap((value) => normalizeProvides(value))
+      .filter((value, index, values) => values.indexOf(value) === index);
+  }
+
+  if (typeof provides !== "string") {
+    return [];
+  }
+
+  return provides
+    .split(",")
+    .map((value) => value.trim().toLowerCase())
+    .filter(Boolean);
+}
+
+function isAdminServerResource(resource: PlexResourceResponse) {
+  return Boolean(resource.accessToken)
+    && resource.owned === true
+    && normalizeProvides(resource.provides).includes("server")
+    && Boolean(resource.connections?.length);
+}
+
 function normalizeResources(resources: PlexResourceResponse[]): ProviderResource[] {
   return resources
-    .filter((resource) => resource.accessToken && resource.connections?.length)
+    .filter((resource) => isAdminServerResource(resource))
     .map((resource) => {
       const connections = (resource.connections ?? [])
         .filter((connection) => connection.uri)
@@ -124,25 +156,13 @@ function normalizeResources(resources: PlexResourceResponse[]): ProviderResource
         name: resource.name ?? "Plex Media Server",
         product: resource.product,
         platform: resource.platform,
+        provides: normalizeProvides(resource.provides),
         owned: resource.owned,
         accessToken: resource.accessToken as string,
         connections,
       };
     })
     .filter((resource) => resource.connections.length > 0);
-}
-
-function publicResource(resource: ProviderResource) {
-  const { accessToken, ...safeResource } = resource;
-  return safeResource;
-}
-
-function selectedResource(session: ProviderSessionRecord) {
-  const resource = session.selectedResource as ProviderResource | undefined;
-  if (!resource) {
-    throw new ApiError(409, "resource_not_selected", "Select a Plex server before loading media");
-  }
-  return resource;
 }
 
 function connectionRank(connection: ProviderResource["connections"][number]) {
@@ -242,6 +262,7 @@ function sourceResource(source: MediaSource) {
       name: source.name,
       product: stringValue(source.metadata.product),
       platform: stringValue(source.metadata.platform),
+      provides: normalizeProvides(source.metadata.provides),
       owned: Boolean(source.metadata.owned),
       accessToken,
       connections,
@@ -249,24 +270,18 @@ function sourceResource(source: MediaSource) {
   };
 }
 
-function selectedSourceResource(source: MediaSource) {
-  const { resource, preferredConnectionId } = sourceResource(source);
-  const selectedConnection =
-    resource.connections.find((candidate) => candidate.id === preferredConnectionId) ?? resource.connections[0];
-
-  if (!selectedConnection) {
-    throw new ApiError(500, "source_connections_missing", "Stored Plex source is missing connection details");
+function sourceSupportsCurrentlyPlaying(source: MediaSource) {
+  if (source.metadata.owned !== true) {
+    return false;
   }
 
-  return {
-    ...resource,
-    connections: [selectedConnection],
-  } satisfies ProviderResource;
+  const provides = normalizeProvides(source.metadata.provides);
+  return provides.length === 0 || provides.includes("server");
 }
 
 async function probeConnection(resource: ProviderResource, connection: ProviderResource["connections"][number]) {
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 8000);
+  const timeout = setTimeout(() => controller.abort(), CONNECTION_PROBE_TIMEOUT_MS);
 
   try {
     const url = new URL("/identity", connection.uri);
@@ -327,17 +342,37 @@ function mediaPath(path: string) {
 
 function createMediaHandle(
   session: ProviderSessionRecord,
-  resource: ProviderResource,
+  context: PlexSourceContext,
   path: string,
   options: { basePath?: string } = {}
 ) {
+  const normalizedPath = mediaPath(path);
+  const normalizedBasePath = options.basePath ? mediaPath(options.basePath) : undefined;
+  const accessedAt = Date.now();
+
+  for (const existingHandle of session.mediaHandles.values()) {
+    if (
+      existingHandle.providerId === "plex"
+      && existingHandle.sourceId === context.sourceId
+      && existingHandle.baseUrl === context.baseUrl
+      && existingHandle.path === normalizedPath
+      && existingHandle.token === context.token
+      && existingHandle.basePath === normalizedBasePath
+    ) {
+      existingHandle.lastAccessedAt = accessedAt;
+      return `/api/media/${existingHandle.id}`;
+    }
+  }
+
   const handle: MediaHandle = {
     id: randomUUID(),
     providerId: "plex",
-    resourceId: resource.id,
-    path: mediaPath(path),
-    token: resource.accessToken,
-    basePath: options.basePath ? mediaPath(options.basePath) : undefined,
+    sourceId: context.sourceId,
+    baseUrl: context.baseUrl,
+    path: normalizedPath,
+    token: context.token,
+    basePath: normalizedBasePath,
+    lastAccessedAt: accessedAt,
   };
   session.mediaHandles.set(handle.id, handle);
   return `/api/media/${handle.id}`;
@@ -390,15 +425,29 @@ function transcodeSessionId(path: string) {
   }
 }
 
-async function fetchPmsJson(resource: ProviderResource, path: string) {
-  const baseUrl = resource.connections[0].uri;
-  const url = new URL(mediaPath(path), baseUrl);
-  const response = await plexFetch(url.toString(), {
-    headers: {
-      "X-Plex-Token": resource.accessToken,
-    },
-  });
-  return response.json();
+async function fetchPmsJson(
+  context: PlexSourceContext,
+  path: string,
+  options: { timeoutMs?: number } = {}
+) {
+  const url = new URL(mediaPath(path), context.baseUrl);
+  const controller = new AbortController();
+  const timeout = setTimeout(
+    () => controller.abort(),
+    options.timeoutMs ?? CURRENT_PLAYBACK_REQUEST_TIMEOUT_MS
+  );
+
+  try {
+    const response = await plexFetch(url.toString(), {
+      headers: {
+        "X-Plex-Token": context.token,
+      },
+      signal: controller.signal,
+    });
+    return response.json();
+  } finally {
+    clearTimeout(timeout);
+  }
 }
 
 function asArray<T>(value: T | T[] | undefined): T[] {
@@ -440,6 +489,77 @@ function uniqueStrings(values: (string | undefined)[]) {
   }
 
   return result;
+}
+
+function isRetryableConnectionError(err: unknown) {
+  if (!(err instanceof ApiError)) {
+    return true;
+  }
+
+  return err.code === "plex_request_failed" && err.status !== 401 && err.status !== 403;
+}
+
+function buildSourceContext(
+  sourceId: string,
+  token: string,
+  connection: ProviderResource["connections"][number]
+): PlexSourceContext {
+  return {
+    sourceId,
+    baseUrl: connection.uri,
+    token,
+  };
+}
+
+function persistWorkingSourceConnection(
+  source: MediaSource,
+  resource: ProviderResource,
+  connection: ProviderResource["connections"][number]
+) {
+  if (
+    source.baseUrl === connection.uri
+    && stringValue(source.connection.selectedConnectionId) === connection.id
+  ) {
+    return;
+  }
+
+  updateMediaSource(source.id, {
+    baseUrl: connection.uri,
+    connection: {
+      ...source.connection,
+      connections: resource.connections,
+      selectedConnectionId: connection.id,
+    },
+  });
+}
+
+async function fetchCurrentlyPlayingData(source: MediaSource) {
+  const { resource, preferredConnectionId } = sourceResource(source);
+  const failures: string[] = [];
+
+  for (const connection of orderedConnections(resource, preferredConnectionId)) {
+    const context = buildSourceContext(source.id, resource.accessToken, connection);
+
+    try {
+      const data = await fetchPmsJson(context, "/status/sessions", {
+        timeoutMs: CURRENT_PLAYBACK_REQUEST_TIMEOUT_MS,
+      });
+      persistWorkingSourceConnection(source, resource, connection);
+      return { context, data };
+    } catch (err) {
+      if (!isRetryableConnectionError(err)) {
+        throw err;
+      }
+
+      failures.push(`${connection.uri}: ${errorMessage(err)}`);
+    }
+  }
+
+  throw new ApiError(
+    502,
+    "plex_unreachable",
+    `Cliparr could not reach any discovered connection for ${resource.name}. Tried: ${failures.join("; ")}`
+  );
 }
 
 function tagValues(value: unknown) {
@@ -484,19 +604,19 @@ function buildSourceTitle(item: any) {
   return uniqueStrings([showTitle, episodeCode, title]).join(" - ") || title;
 }
 
-async function fetchMetadataItem(resource: ProviderResource, item: any) {
+async function fetchMetadataItem(context: PlexSourceContext, item: any) {
   const path = metadataPath(item);
   if (!path) {
     return undefined;
   }
 
-  const data = await fetchPmsJson(resource, path) as any;
+  const data = await fetchPmsJson(context, path) as any;
   return data?.MediaContainer?.Metadata?.[0];
 }
 
-async function enrichMetadataItem(resource: ProviderResource, item: any) {
+async function enrichMetadataItem(context: PlexSourceContext, item: any) {
   try {
-    const fullItem = await fetchMetadataItem(resource, item);
+    const fullItem = await fetchMetadataItem(context, item);
     if (!fullItem) {
       return item;
     }
@@ -516,7 +636,7 @@ async function enrichMetadataItem(resource: ProviderResource, item: any) {
 
 function createExportMetadata(
   session: ProviderSessionRecord,
-  resource: ProviderResource,
+  context: PlexSourceContext,
   item: any
 ): MediaExportMetadata {
   const imagePath = metadataImagePath(item);
@@ -544,7 +664,7 @@ function createExportMetadata(
     actors: tagValues(item?.Role).slice(0, 12),
     guids: uniqueStrings([guid, ...tagValues(item?.Guid)]),
     ratingKey: stringValue(item?.ratingKey),
-    imageUrl: imagePath ? createMediaHandle(session, resource, imagePath) : undefined,
+    imageUrl: imagePath ? createMediaHandle(session, context, imagePath) : undefined,
   };
 }
 
@@ -573,7 +693,7 @@ function fallbackPartPath(part: any) {
   return `/library/parts/${part.id}/file`;
 }
 
-async function resolveMediaPath(resource: ProviderResource, item: any, enrichedItem?: any) {
+async function resolveMediaPath(context: PlexSourceContext, item: any, enrichedItem?: any) {
   const directPath = fallbackPartPath(firstPart(item));
   if (directPath) {
     return directPath;
@@ -590,7 +710,7 @@ async function resolveMediaPath(resource: ProviderResource, item: any, enrichedI
   }
 
   try {
-    const data = await fetchPmsJson(resource, path) as any;
+    const data = await fetchPmsJson(context, path) as any;
     const fullItem = data?.MediaContainer?.Metadata?.[0];
     return fallbackPartPath(firstPart(fullItem));
   } catch (err) {
@@ -621,19 +741,22 @@ function resolvePlaylistUri(basePath: string, uri: string) {
 
 function rewritePlaylistUri(
   session: ProviderSessionRecord,
-  resource: ProviderResource,
+  handle: MediaHandle,
   basePath: string,
   uri: string
 ) {
   const nextPath = resolvePlaylistUri(basePath, uri);
-  return createMediaHandle(session, resource, nextPath, {
+  return createMediaHandle(session, {
+    sourceId: handle.sourceId,
+    baseUrl: handle.baseUrl,
+    token: handle.token,
+  }, nextPath, {
     basePath: playlistBasePath(nextPath),
   });
 }
 
 async function rewriteHlsPlaylist(
   session: ProviderSessionRecord,
-  resource: ProviderResource,
   handle: MediaHandle,
   upstream: globalThis.Response
 ) {
@@ -650,37 +773,73 @@ async function rewriteHlsPlaylist(
 
       if (trimmed.startsWith("#")) {
         return line.replace(/URI="([^"]+)"/g, (_match, uri: string) => {
-          return `URI="${rewritePlaylistUri(session, resource, basePath, uri)}"`;
+          return `URI="${rewritePlaylistUri(session, handle, basePath, uri)}"`;
         });
       }
 
-      return rewritePlaylistUri(session, resource, basePath, trimmed);
+      return rewritePlaylistUri(session, handle, basePath, trimmed);
     })
     .join("\n");
 }
 
-async function normalizeMediaSessions(session: ProviderSessionRecord, resource: ProviderResource, data: any): Promise<MediaSession[]> {
+function playbackSessionIdentity(item: any) {
+  return String(
+    item?.Session?.id
+    ?? item?.ratingKey
+    ?? item?.key
+    ?? item?.Player?.machineIdentifier
+    ?? randomUUID()
+  );
+}
+
+function playbackViewer(item: any, sourceId: string, sessionId: string) {
+  const externalId = stringValue(item?.User?.id);
+  return {
+    id: externalId ? `plex:user:${externalId}` : `plex:synthetic:${sourceId}:${sessionId}`,
+    providerId: "plex" as const,
+    externalId,
+    name: stringValue(item?.User?.title) ?? "Unknown User",
+    avatarUrl: stringValue(item?.User?.thumb),
+  };
+}
+
+async function normalizeCurrentPlayback(
+  session: ProviderSessionRecord,
+  source: MediaSource,
+  context: PlexSourceContext,
+  data: any
+): Promise<CurrentlyPlayingEntry[]> {
   const metadata = data?.MediaContainer?.Metadata;
   if (!Array.isArray(metadata)) {
     return [];
   }
 
   return Promise.all(metadata.map(async (item: any) => {
-    const enrichedItem = await enrichMetadataItem(resource, item);
-    const mediaPath = await resolveMediaPath(resource, item, enrichedItem);
+    const enrichedItem = await enrichMetadataItem(context, item);
+    const mediaPath = await resolveMediaPath(context, item, enrichedItem);
     const previewPath = createPreviewPath(enrichedItem);
+    const thumbPath = metadataImagePath(enrichedItem);
+    const sessionId = playbackSessionIdentity(item);
+
     return {
-      id: String(item.Session?.id ?? item.key ?? item.ratingKey ?? randomUUID()),
-      title: String(enrichedItem.title ?? "Untitled"),
-      type: String(enrichedItem.type ?? "video"),
-      duration: Number(enrichedItem.duration ?? asArray(enrichedItem.Media)[0]?.duration ?? 0) / 1000,
-      userTitle: String(item.User?.title ?? "Unknown User"),
-      playerTitle: String(item.Player?.title ?? "Unknown Device"),
-      playerState: String(item.Player?.state ?? "unknown"),
-      thumbUrl: enrichedItem.thumb ? createMediaHandle(session, resource, enrichedItem.thumb) : undefined,
-      mediaUrl: mediaPath ? createMediaHandle(session, resource, mediaPath) : undefined,
-      previewUrl: previewPath ? createMediaHandle(session, resource, previewPath) : undefined,
-      exportMetadata: createExportMetadata(session, resource, enrichedItem),
+      viewer: playbackViewer(item, source.id, sessionId),
+      item: {
+        id: `${source.id}:${sessionId}`,
+        source: {
+          id: source.id,
+          name: source.name,
+          providerId: "plex",
+        },
+        title: String(enrichedItem.title ?? "Untitled"),
+        type: String(enrichedItem.type ?? "video"),
+        duration: Number(enrichedItem.duration ?? asArray(enrichedItem.Media)[0]?.duration ?? 0) / 1000,
+        playerTitle: String(item.Player?.title ?? "Unknown Device"),
+        playerState: String(item.Player?.state ?? "unknown"),
+        thumbUrl: thumbPath ? createMediaHandle(session, context, thumbPath) : undefined,
+        mediaUrl: mediaPath ? createMediaHandle(session, context, mediaPath) : undefined,
+        previewUrl: previewPath ? createMediaHandle(session, context, previewPath) : undefined,
+        exportMetadata: createExportMetadata(session, context, enrichedItem),
+      },
     };
   }));
 }
@@ -798,26 +957,8 @@ export const plexProvider: ProviderImplementation = {
     };
   },
 
-  async selectResource(session, resourceId, connectionId) {
-    const resources = session.resources as ProviderResource[];
-    const resource = resources.find((candidate) => candidate.id === resourceId);
-    if (!resource) {
-      throw new ApiError(404, "resource_not_found", "Plex server was not found in this session");
-    }
-
-    const connection = resource.connections.find((candidate) => candidate.id === connectionId);
-    if (!connection) {
-      throw new ApiError(404, "connection_not_found", "Plex connection was not found in this session");
-    }
-
-    const selectedConnection = await selectReachableConnection(resource, connectionId);
-    const selected = {
-      ...resource,
-      connections: [selectedConnection],
-    };
-    session.selectedResource = selected;
-    session.mediaHandles.clear();
-    return selected;
+  supportsCurrentlyPlayingSource(source) {
+    return sourceSupportsCurrentlyPlaying(source);
   },
 
   async checkSource(source) {
@@ -846,33 +987,19 @@ export const plexProvider: ProviderImplementation = {
     }
   },
 
-  isSelectedSource(source, selectedResource) {
-    const resource = selectedResource as ProviderResource | undefined;
-    return resource?.id === (source.externalId ?? source.id);
-  },
-
-  selectedResourceFromSource(source) {
-    return selectedSourceResource(source);
-  },
-
-  async listMediaSessions(session) {
-    const resource = selectedResource(session);
-    const data = await fetchPmsJson(resource, "/status/sessions");
-    return normalizeMediaSessions(session, resource, data);
+  async listCurrentlyPlaying(session, source) {
+    const { context, data } = await fetchCurrentlyPlayingData(source);
+    return normalizeCurrentPlayback(session, source, context, data);
   },
 
   async proxyMedia(session, handleId, req, res) {
-    const handle = session.mediaHandles.get(handleId) as MediaHandle | undefined;
+    const handle = session.mediaHandles.get(handleId);
     if (!handle) {
       throw new ApiError(404, "media_not_found", "Media handle was not found or has expired");
     }
+    handle.lastAccessedAt = Date.now();
 
-    const resource = selectedResource(session);
-    if (handle.resourceId !== resource.id) {
-      throw new ApiError(404, "media_not_found", "Media handle was not found for this server");
-    }
-
-    const url = new URL(handle.path, resource.connections[0].uri);
+    const url = new URL(handle.path, handle.baseUrl);
     const headers = plexMediaHeaders({
       "X-Plex-Token": handle.token,
     });
@@ -906,7 +1033,7 @@ export const plexProvider: ProviderImplementation = {
 
     const contentType = upstream.headers.get("content-type") ?? "";
     if (isHlsPlaylist(handle, contentType)) {
-      const playlist = await rewriteHlsPlaylist(session, resource, handle, upstream);
+      const playlist = await rewriteHlsPlaylist(session, handle, upstream);
       res.setHeader("Content-Type", "application/vnd.apple.mpegurl");
       res.setHeader("Content-Length", Buffer.byteLength(playlist));
       res.send(playlist);
@@ -922,11 +1049,9 @@ export const plexProvider: ProviderImplementation = {
   },
 
   serializeSession(session) {
-    const resource = session.selectedResource as ProviderResource | undefined;
     return {
       id: session.id,
       providerId: "plex",
-      selectedResource: resource ? publicResource(resource) : undefined,
       expiresAt: new Date(session.expiresAt).toISOString(),
     };
   },

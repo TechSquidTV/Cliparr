@@ -36,6 +36,7 @@ export interface ProviderResource {
   name: string;
   product?: string;
   platform?: string;
+  provides?: string[];
   owned?: boolean;
   accessToken: string;
   connections: ProviderConnection[];
@@ -44,8 +45,21 @@ export interface ProviderResource {
 export interface ProviderSession {
   id: string;
   providerId: ProviderId;
-  selectedResource?: Omit<ProviderResource, "accessToken">;
   expiresAt: string;
+}
+
+export interface PlaybackViewer {
+  id: string;
+  providerId: ProviderId;
+  externalId?: string;
+  name: string;
+  avatarUrl?: string;
+}
+
+export interface PlaybackSource {
+  id: string;
+  name: string;
+  providerId: ProviderId;
 }
 
 export interface MediaExportMetadata {
@@ -73,12 +87,12 @@ export interface MediaExportMetadata {
   imageUrl?: string;
 }
 
-export interface MediaSession {
+export interface CurrentlyPlayingItem {
   id: string;
+  source: PlaybackSource;
   title: string;
   type: string;
   duration: number;
-  userTitle: string;
   playerTitle: string;
   playerState: string;
   thumbUrl?: string;
@@ -87,13 +101,32 @@ export interface MediaSession {
   exportMetadata?: MediaExportMetadata;
 }
 
+export interface CurrentlyPlayingEntry {
+  viewer: PlaybackViewer;
+  item: CurrentlyPlayingItem;
+}
+
+export interface ViewerPlaybackGroup {
+  viewer: PlaybackViewer;
+  items: CurrentlyPlayingItem[];
+}
+
+export interface SourcePlaybackError {
+  sourceId: string;
+  sourceName: string;
+  providerId: ProviderId;
+  message: string;
+}
+
 export interface MediaHandle {
   id: string;
   providerId: ProviderId;
-  resourceId: string;
+  sourceId: string;
+  baseUrl: string;
   path: string;
   token: string;
   basePath?: string;
+  lastAccessedAt: number;
 }
 
 export type ProviderSourceCheckResult =
@@ -116,15 +149,9 @@ export interface ProviderImplementation {
     userToken?: string;
     resources?: ProviderResource[];
   }>;
-  selectResource(
-    session: ProviderSessionRecord,
-    resourceId: string,
-    connectionId: string
-  ): Promise<ProviderResource>;
+  supportsCurrentlyPlayingSource?(source: MediaSource): boolean;
   checkSource(source: MediaSource): Promise<ProviderSourceCheckResult>;
-  isSelectedSource(source: MediaSource, selectedResource: unknown): boolean;
-  selectedResourceFromSource(source: MediaSource): unknown;
-  listMediaSessions(session: ProviderSessionRecord): Promise<MediaSession[]>;
+  listCurrentlyPlaying(session: ProviderSessionRecord, source: MediaSource): Promise<CurrentlyPlayingEntry[]>;
   proxyMedia(session: ProviderSessionRecord, handleId: string, req: Request, res: Response): Promise<void>;
   serializeSession(session: ProviderSessionRecord): ProviderSession;
 }

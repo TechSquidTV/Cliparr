@@ -14,29 +14,9 @@ export interface ProviderAuthStatus {
   status: "pending" | "complete" | "expired";
 }
 
-export interface ProviderConnection {
-  id: string;
-  uri: string;
-  local: boolean;
-  relay: boolean;
-  protocol?: string;
-  address?: string;
-  port?: number;
-}
-
-export interface ProviderResource {
-  id: string;
-  name: string;
-  product?: string;
-  platform?: string;
-  owned?: boolean;
-  connections: ProviderConnection[];
-}
-
 export interface ProviderSession {
   id: string;
   providerId: string;
-  selectedResource?: ProviderResource;
   expiresAt: string;
 }
 
@@ -86,16 +66,47 @@ export interface MediaExportMetadata {
   imageUrl?: string;
 }
 
-export interface MediaSession {
+export interface PlaybackViewer {
   id: string;
+  providerId: string;
+  externalId?: string;
+  name: string;
+  avatarUrl?: string;
+}
+
+export interface PlaybackSource {
+  id: string;
+  name: string;
+  providerId: string;
+}
+
+export interface CurrentlyPlayingItem {
+  id: string;
+  source: PlaybackSource;
   title: string;
   type: string;
   duration: number;
-  userTitle: string;
   playerTitle: string;
   playerState: string;
   thumbUrl?: string;
   mediaUrl?: string;
   previewUrl?: string;
   exportMetadata?: MediaExportMetadata;
+}
+
+export interface ViewerPlaybackGroup {
+  viewer: PlaybackViewer;
+  items: CurrentlyPlayingItem[];
+}
+
+export interface SourcePlaybackError {
+  sourceId: string;
+  sourceName: string;
+  providerId: string;
+  message: string;
+}
+
+export interface CurrentlyPlayingResponse {
+  viewers: ViewerPlaybackGroup[];
+  sourceErrors: SourcePlaybackError[];
 }

@@ -4,10 +4,10 @@ import "@xzdarcy/react-timeline-editor/dist/react-timeline-editor.css";
 import type { AudioBufferSink, CanvasSink, Input, WrappedAudioBuffer, WrappedCanvas } from "mediabunny";
 import { ArrowLeft, Download, Pause, Play, Scissors, Volume2, VolumeX } from "lucide-react";
 import { ensureMediabunnyCodecs } from "../lib/mediabunnyCodecs";
-import type { MediaSession } from "../providers/types";
+import type { CurrentlyPlayingItem } from "../providers/types";
 
 interface Props {
-  session: MediaSession;
+  session: CurrentlyPlayingItem;
   onBack: () => void;
 }
 

@@ -1,11 +1,10 @@
 import type {
+  CurrentlyPlayingResponse,
   MediaSource,
   MediaSourceCheckResult,
-  MediaSession,
   ProviderAuthStart,
   ProviderAuthStatus,
   ProviderDefinition,
-  ProviderResource,
   ProviderSession,
 } from "../providers/types";
 
@@ -63,19 +62,6 @@ export const cliparrClient = {
     await request<void>("/api/session", { method: "DELETE" });
   },
 
-  async listResources(providerId: string) {
-    const data = await request<{ resources: ProviderResource[] }>(`/api/providers/${providerId}/resources`);
-    return data.resources;
-  },
-
-  async selectResource(providerId: string, resourceId: string, connectionId: string) {
-    const data = await request<{ session: ProviderSession }>(`/api/providers/${providerId}/resources/select`, {
-      method: "POST",
-      body: JSON.stringify({ resourceId, connectionId }),
-    });
-    return data.session;
-  },
-
   async listSources() {
     const data = await request<{ sources: MediaSource[] }>("/api/sources");
     return data.sources;
@@ -106,8 +92,7 @@ export const cliparrClient = {
     });
   },
 
-  async listMediaSessions() {
-    const data = await request<{ sessions: MediaSession[] }>("/api/media/sessions");
-    return data.sessions;
+  async getCurrentlyPlaying() {
+    return request<CurrentlyPlayingResponse>("/api/media/currently-playing");
   },
 };
