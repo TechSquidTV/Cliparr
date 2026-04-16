@@ -27,12 +27,16 @@ export interface UpdateProviderAccountInput {
   metadata?: Record<string, unknown>;
 }
 
+function normalizeAccessToken(accessToken: string | undefined) {
+  return accessToken === "" ? null : accessToken;
+}
+
 function mapProviderAccount(row: ProviderAccountRow): ProviderAccount {
   return {
     id: row.id,
     providerId: row.providerId,
     label: row.label,
-    accessToken: row.accessToken ? decryptSecret(row.accessToken) : undefined,
+    accessToken: row.accessToken != null ? decryptSecret(row.accessToken) : undefined,
     metadata: row.metadata,
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
@@ -42,13 +46,14 @@ function mapProviderAccount(row: ProviderAccountRow): ProviderAccount {
 export function createProviderAccount(input: CreateProviderAccountInput) {
   const db = getDatabase();
   const id = randomUUID();
+  const accessToken = normalizeAccessToken(input.accessToken);
 
   db.insert(providerAccounts).values({
     id,
     providerId: input.providerId,
     label: input.label,
-    accessToken: input.accessToken ? encryptSecret(input.accessToken) : null,
-    accessTokenHash: input.accessToken ? hashSecret(input.accessToken) : null,
+    accessToken: accessToken ? encryptSecret(accessToken) : null,
+    accessTokenHash: accessToken ? hashSecret(accessToken) : null,
     metadata: input.metadata ?? {},
   }).run();
 
@@ -56,14 +61,16 @@ export function createProviderAccount(input: CreateProviderAccountInput) {
 }
 
 export function updateProviderAccount(id: string, input: UpdateProviderAccountInput) {
+  const accessToken = input.accessToken !== undefined ? normalizeAccessToken(input.accessToken) : undefined;
+
   getDatabase()
     .update(providerAccounts)
     .set({
       ...(input.label !== undefined ? { label: input.label } : {}),
-      ...(input.accessToken !== undefined
+      ...(accessToken !== undefined
         ? {
-          accessToken: encryptSecret(input.accessToken),
-          accessTokenHash: hashSecret(input.accessToken),
+          accessToken: accessToken ? encryptSecret(accessToken) : null,
+          accessTokenHash: accessToken ? hashSecret(accessToken) : null,
         }
         : {}),
       ...(input.metadata !== undefined ? { metadata: input.metadata } : {}),
@@ -103,7 +110,7 @@ export function getProviderAccountByAccessToken(providerId: string, accessToken:
     .from(providerAccounts)
     .where(eq(providerAccounts.providerId, providerId))
     .all()
-    .find((candidate) => candidate.accessToken && decryptSecret(candidate.accessToken) === accessToken);
+    .find((candidate) => candidate.accessToken != null && decryptSecret(candidate.accessToken) === accessToken);
 
   return fallback ? mapProviderAccount(fallback) : undefined;
 }

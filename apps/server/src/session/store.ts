@@ -37,7 +37,7 @@ function mapProviderSession(row: ProviderSessionRow): ProviderSessionRecord {
     providerAccountId: row.providerAccountId ?? undefined,
     userToken: decryptSecret(row.userToken),
     resources: decryptJsonSecrets(row.resources),
-    selectedResource: row.selectedResource ? decryptJsonSecrets(row.selectedResource) : undefined,
+    selectedResource: row.selectedResource == null ? undefined : decryptJsonSecrets(row.selectedResource),
     mediaHandles: getMediaHandles(row.id),
     createdAt: row.createdAt,
     expiresAt: row.expiresAt,
