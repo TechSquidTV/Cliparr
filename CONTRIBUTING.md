@@ -14,6 +14,9 @@ Install dependencies:
 
 ```sh
 pnpm install
+cp .env.example .env
+# Set APP_KEY in .env with a stable random value, for example:
+# openssl rand -base64 32
 ```
 
 Run the development server:

@@ -142,6 +142,20 @@ const migrations: Migration[] = [
         WHERE access_token IS NOT NULL;
     `,
   },
+  {
+    id: 4,
+    name: "add_provider_accounts_access_token_hash",
+    sql: `
+      ALTER TABLE provider_accounts
+      ADD COLUMN access_token_hash TEXT;
+
+      CREATE UNIQUE INDEX IF NOT EXISTS provider_accounts_provider_access_token_hash_idx
+        ON provider_accounts(provider_id, access_token_hash)
+        WHERE access_token_hash IS NOT NULL;
+
+      DROP INDEX IF EXISTS provider_accounts_provider_access_token_idx;
+    `,
+  },
 ];
 
 export function runMigrations(db: DatabaseSync) {

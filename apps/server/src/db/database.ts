@@ -6,6 +6,7 @@ import { drizzle, type NodeSQLiteDatabase } from "drizzle-orm/node-sqlite";
 import { runMigrations } from "./migrations.js";
 import * as schema from "./schema.js";
 import { resolveConfiguredDataDir, workspaceRoot } from "../config/loadEnv.js";
+import { assertAppKeyConfigured } from "../security/secrets.js";
 
 const DEFAULT_DATABASE_FILE = "cliparr.sqlite";
 const DEFAULT_DEVELOPMENT_DATA_DIR = ".cliparr-data";
@@ -46,6 +47,7 @@ export function initializeDatabase() {
     return database;
   }
 
+  assertAppKeyConfigured();
   dataDir = resolveDataDir();
   fs.mkdirSync(dataDir, { recursive: true, mode: 0o700 });
   enforcePermissions(dataDir, 0o700);
