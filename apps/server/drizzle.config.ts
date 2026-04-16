@@ -1,9 +1,12 @@
-import "dotenv/config";
+import "./src/config/loadEnv.ts";
 import path from "path";
 import { defineConfig } from "drizzle-kit";
+import { resolveConfiguredDataDir, workspaceRoot } from "./src/config/loadEnv.ts";
 
 const configuredDataDir = process.env.CLIPARR_DATA_DIR?.trim();
-const dataDir = configuredDataDir ? path.resolve(configuredDataDir) : path.resolve(process.cwd(), "../../.cliparr-data");
+const dataDir = configuredDataDir
+  ? resolveConfiguredDataDir(configuredDataDir)
+  : path.join(workspaceRoot, ".cliparr-data");
 
 export default defineConfig({
   schema: "./src/db/schema.ts",
