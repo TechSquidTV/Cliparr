@@ -11,7 +11,7 @@ WORKDIR /app
 
 FROM base AS build
 
-COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY .npmrc package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY apps/server/package.json apps/server/package.json
 COPY apps/frontend/package.json apps/frontend/package.json
 
