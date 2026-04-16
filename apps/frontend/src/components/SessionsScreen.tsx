@@ -97,6 +97,7 @@ export default function SessionsScreen({ onSelectSession, onLogout }: Props) {
           </div>
           <div className="flex flex-wrap items-center gap-3 sm:justify-end">
             <button
+              type="button"
               onClick={() => setShowSources(true)}
               className="flex items-center gap-2 rounded-lg border border-border px-4 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
             >
@@ -104,6 +105,7 @@ export default function SessionsScreen({ onSelectSession, onLogout }: Props) {
               Sources
             </button>
             <button
+              type="button"
               onClick={fetchSessions}
               className="p-2 text-muted-foreground hover:text-foreground hover:bg-accent rounded-lg transition-colors"
               title="Refresh"
@@ -111,6 +113,7 @@ export default function SessionsScreen({ onSelectSession, onLogout }: Props) {
               <RefreshCw className={`w-5 h-5 ${loading ? "animate-spin text-primary" : ""}`} />
             </button>
             <button
+              type="button"
               onClick={onLogout}
               className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-accent rounded-lg transition-colors"
             >

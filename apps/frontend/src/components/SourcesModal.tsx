@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   AlertTriangle,
   CheckCircle2,
@@ -110,8 +110,27 @@ export default function SourcesModal({ isOpen, onClose, onSourcesChanged }: Prop
   const [busyActions, setBusyActions] = useState<Record<string, string>>({});
   const [error, setError] = useState("");
   const [feedback, setFeedback] = useState<Feedback | null>(null);
+  const dialogRef = useRef<HTMLDivElement | null>(null);
+  const searchInputRef = useRef<HTMLInputElement | null>(null);
+  const lastFocusedElementRef = useRef<HTMLElement | null>(null);
+  const latestLoadRequestIdRef = useRef(0);
+  const isOpenRef = useRef(isOpen);
+
+  async function applyLoadedSources(requestId: number) {
+    const nextSources = sortSources(await cliparrClient.listSources());
+    if (requestId !== latestLoadRequestIdRef.current || !isOpenRef.current) {
+      return false;
+    }
+
+    setSources(nextSources);
+    setDraftNames(Object.fromEntries(nextSources.map((source) => [source.id, source.name])));
+    return true;
+  }
 
   async function loadSources(mode: "initial" | "reload" = "initial") {
+    const requestId = latestLoadRequestIdRef.current + 1;
+    latestLoadRequestIdRef.current = requestId;
+
     if (mode === "initial") {
       setLoading(true);
     } else {
@@ -121,15 +140,21 @@ export default function SourcesModal({ isOpen, onClose, onSourcesChanged }: Prop
     setError("");
 
     try {
-      const nextSources = sortSources(await cliparrClient.listSources());
-      setSources(nextSources);
-      setDraftNames(Object.fromEntries(nextSources.map((source) => [source.id, source.name])));
+      await applyLoadedSources(requestId);
     } catch (err) {
+      if (requestId !== latestLoadRequestIdRef.current || !isOpenRef.current) {
+        return;
+      }
+
       const message = err instanceof Error ? err.message : "Failed to load sources";
       setSources([]);
       setDraftNames({});
       setError(message);
     } finally {
+      if (requestId !== latestLoadRequestIdRef.current || !isOpenRef.current) {
+        return;
+      }
+
       if (mode === "initial") {
         setLoading(false);
       } else {
@@ -338,6 +363,13 @@ export default function SourcesModal({ isOpen, onClose, onSourcesChanged }: Prop
   }
 
   useEffect(() => {
+    isOpenRef.current = isOpen;
+    if (!isOpen) {
+      latestLoadRequestIdRef.current += 1;
+    }
+  }, [isOpen]);
+
+  useEffect(() => {
     if (!isOpen) {
       return;
     }
@@ -351,15 +383,64 @@ export default function SourcesModal({ isOpen, onClose, onSourcesChanged }: Prop
       return;
     }
 
+    lastFocusedElementRef.current = document.activeElement instanceof HTMLElement
+      ? document.activeElement
+      : null;
+    const frameId = window.requestAnimationFrame(() => {
+      searchInputRef.current?.focus();
+    });
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
     function onKeyDown(event: KeyboardEvent) {
       if (event.key === "Escape") {
         onClose();
+        return;
+      }
+
+      if (event.key !== "Tab") {
+        return;
+      }
+
+      const dialog = dialogRef.current;
+      if (!dialog) {
+        return;
+      }
+
+      const focusable = [...dialog.querySelectorAll<HTMLElement>(
+        'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])'
+      )].filter((element) => element.getAttribute("aria-hidden") !== "true");
+
+      if (focusable.length === 0) {
+        event.preventDefault();
+        dialog.focus();
+        return;
+      }
+
+      const firstFocusable = focusable[0];
+      const lastFocusable = focusable[focusable.length - 1];
+      const activeElement = document.activeElement;
+
+      if (event.shiftKey) {
+        if (activeElement === firstFocusable || !dialog.contains(activeElement)) {
+          event.preventDefault();
+          lastFocusable?.focus();
+        }
+        return;
+      }
+
+      if (activeElement === lastFocusable) {
+        event.preventDefault();
+        firstFocusable?.focus();
       }
     }
 
     window.addEventListener("keydown", onKeyDown);
     return () => {
+      window.cancelAnimationFrame(frameId);
       window.removeEventListener("keydown", onKeyDown);
+      document.body.style.overflow = previousOverflow;
+      lastFocusedElementRef.current?.focus();
     };
   }, [isOpen, onClose]);
 
@@ -418,6 +499,7 @@ export default function SourcesModal({ isOpen, onClose, onSourcesChanged }: Prop
       return haystack.includes(normalizedQuery);
     });
   }, [providerFilter, query, sources, statusFilter]);
+  const hasBusyActions = Object.keys(busyActions).length > 0;
 
   if (!isOpen) {
     return null;
@@ -430,9 +512,11 @@ export default function SourcesModal({ isOpen, onClose, onSourcesChanged }: Prop
       onClick={onClose}
     >
       <div
+        ref={dialogRef}
         role="dialog"
         aria-modal="true"
         aria-label="Manage sources"
+        tabIndex={-1}
         className="mx-auto flex h-full max-w-6xl flex-col overflow-hidden rounded-[2rem] border border-white/10 bg-card text-card-foreground shadow-2xl"
         onClick={(event) => event.stopPropagation()}
       >
@@ -478,7 +562,7 @@ export default function SourcesModal({ isOpen, onClose, onSourcesChanged }: Prop
               <button
                 type="button"
                 onClick={() => void refreshAllSources()}
-                disabled={loading || reloading || refreshingAll || sources.length === 0}
+                disabled={loading || reloading || refreshingAll || hasBusyActions || sources.length === 0}
                 className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 <RefreshCw className={cn("h-4 w-4", refreshingAll && "animate-spin")} />
@@ -502,6 +586,7 @@ export default function SourcesModal({ isOpen, onClose, onSourcesChanged }: Prop
               <label className="relative flex-1">
                 <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <input
+                  ref={searchInputRef}
                   value={query}
                   onChange={(event) => setQuery(event.target.value)}
                   placeholder="Search by source name, URL, provider, or platform"
