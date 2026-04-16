@@ -1,6 +1,6 @@
 import { ApiError } from "../http/errors.js";
 import type { ProviderConnection, ProviderDefinition, ProviderResource } from "../providers/types.js";
-import { upsertMediaSource } from "./mediaSourcesRepository.js";
+import { listMediaSources, updateMediaSource, upsertMediaSource } from "./mediaSourcesRepository.js";
 import { upsertProviderAccountByAccessToken } from "./providerAccountsRepository.js";
 
 function connectionRank(connection: ProviderConnection) {
@@ -38,6 +38,18 @@ export function persistProviderAuth(input: {
 
   if (!account) {
     throw new ApiError(500, "provider_account_not_saved", "Provider account could not be saved");
+  }
+
+  const activeResourceIds = new Set(input.resources.map((resource) => resource.id));
+  const staleSources = listMediaSources({ providerId: input.provider.id }).filter((source) =>
+    source.providerAccountId === account.id
+    && typeof source.externalId === "string"
+    && !activeResourceIds.has(source.externalId)
+    && source.enabled
+  );
+
+  for (const source of staleSources) {
+    updateMediaSource(source.id, { enabled: false });
   }
 
   for (const resource of input.resources) {
@@ -79,6 +91,7 @@ export function persistProviderResource(input: {
     metadata: {
       product: input.resource.product,
       platform: input.resource.platform,
+      provides: input.resource.provides,
       owned: input.resource.owned,
     },
   });

@@ -10,7 +10,6 @@ import {
 } from "../db/mediaSourcesRepository.js";
 import { ApiError, asyncHandler } from "../http/errors.js";
 import { getProvider } from "../providers/registry.js";
-import { setProviderSessionSelectedResource } from "../session/store.js";
 import { requireSession, setNoStore } from "../session/request.js";
 
 export const sourcesRouter = Router();
@@ -75,24 +74,6 @@ function parseSourceUpdate(body: unknown): UpdateMediaSourceInput {
   return input;
 }
 
-function currentSessionUsesSource(
-  session: ReturnType<typeof requireSession>,
-  source: MediaSource,
-  provider: ReturnType<typeof getProvider>
-) {
-  const selectedResourceId =
-    typeof (session.selectedResource as { id?: unknown } | undefined)?.id === "string"
-      ? ((session.selectedResource as { id: string }).id)
-      : undefined;
-
-  return Boolean(
-    session.selectedResource &&
-      session.providerId === source.providerId &&
-      (provider?.isSelectedSource(source, session.selectedResource) ??
-        selectedResourceId === (source.externalId ?? source.id))
-  );
-}
-
 sourcesRouter.get(
   "/",
   asyncHandler(async (req, res) => {
@@ -131,19 +112,13 @@ sourcesRouter.patch(
 sourcesRouter.delete(
   "/:id",
   asyncHandler(async (req, res) => {
-    const session = requireSession(req);
+    requireSession(req);
     setNoStore(res);
     const source = requireMediaSource(req.params.id as string);
-    const provider = getProvider(source.providerId);
-    const selectedInCurrentSession = currentSessionUsesSource(session, source, provider);
 
     const deleted = deleteMediaSource(source.id);
     if (!deleted) {
       throw new ApiError(404, "source_not_found", "Source was not found");
-    }
-
-    if (selectedInCurrentSession) {
-      setProviderSessionSelectedResource(session, null, { clearMediaHandles: true });
     }
 
     res.status(204).end();
@@ -153,7 +128,7 @@ sourcesRouter.delete(
 sourcesRouter.post(
   "/:id/check",
   asyncHandler(async (req, res) => {
-    const session = requireSession(req);
+    requireSession(req);
     setNoStore(res);
 
     const source = requireMediaSource(req.params.id as string);
@@ -163,7 +138,6 @@ sourcesRouter.post(
     }
 
     const checkedAt = new Date().toISOString();
-    const selectedInCurrentSession = currentSessionUsesSource(session, source, provider);
     const result = await provider.checkSource(source);
 
     if (!result.ok) {
@@ -196,10 +170,6 @@ sourcesRouter.post(
 
     if (!updatedSource) {
       throw new ApiError(404, "source_not_found", "Source was not found");
-    }
-
-    if (selectedInCurrentSession) {
-      setProviderSessionSelectedResource(session, provider.selectedResourceFromSource(updatedSource));
     }
 
     res.json({

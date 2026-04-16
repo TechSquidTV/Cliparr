@@ -2,14 +2,13 @@ import { lazy, Suspense, useEffect, useState } from "react";
 import { cliparrClient } from "./api/cliparrClient";
 import LoginScreen from "./components/LoginScreen";
 import SessionsScreen from "./components/SessionsScreen";
-import ServerPicker from "./providers/plex/ServerPicker";
-import type { MediaSession, ProviderSession } from "./providers/types";
+import type { CurrentlyPlayingItem, ProviderSession } from "./providers/types";
 
 const EditorScreen = lazy(() => import("./components/EditorScreen"));
 
 export default function App() {
   const [providerSession, setProviderSession] = useState<ProviderSession | null>(null);
-  const [selectedSession, setSelectedSession] = useState<MediaSession | null>(null);
+  const [selectedSession, setSelectedSession] = useState<CurrentlyPlayingItem | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -56,16 +55,6 @@ export default function App() {
     return <LoginScreen onLogin={setProviderSession} />;
   }
 
-  if (!providerSession.selectedResource) {
-    return (
-      <ServerPicker
-        providerId={providerSession.providerId}
-        onSelected={setProviderSession}
-        onLogout={logout}
-      />
-    );
-  }
-
   if (selectedSession) {
     return (
       <Suspense
@@ -85,7 +74,6 @@ export default function App() {
 
   return (
     <SessionsScreen
-      session={providerSession}
       onSelectSession={setSelectedSession}
       onLogout={logout}
     />

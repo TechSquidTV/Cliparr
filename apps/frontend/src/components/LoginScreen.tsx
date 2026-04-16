@@ -96,7 +96,9 @@ export default function LoginScreen({ onLogin }: Props) {
           </div>
         </div>
         <h1 className="text-2xl font-bold text-center mb-2">Welcome to Cliparr</h1>
-        <p className="text-muted-foreground text-center mb-8 text-sm">Sign in with a media provider to export clips.</p>
+        <p className="text-muted-foreground text-center mb-8 text-sm">
+          Sign in with a media provider to see what everyone is watching and export clips.
+        </p>
 
         {error && (
           <div className="mb-4 bg-destructive/10 border border-destructive/20 text-destructive p-3 rounded-lg text-sm">
