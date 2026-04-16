@@ -1,6 +1,7 @@
 import { randomUUID } from "crypto";
 import { Readable } from "stream";
 import type { Request, Response } from "express";
+import type { MediaSource } from "../../db/mediaSourcesRepository.js";
 import { ApiError } from "../../http/errors.js";
 import type {
   ProviderImplementation,
@@ -171,6 +172,96 @@ function errorMessage(err: unknown) {
     return err.message;
   }
   return "Unknown error";
+}
+
+function fallbackSourceConnection(source: MediaSource) {
+  try {
+    assertHttpUrl(source.baseUrl);
+  } catch {
+    throw new ApiError(500, "source_configuration_invalid", "Stored Plex source has an invalid base URL");
+  }
+
+  return {
+    id: stringValue(source.connection.selectedConnectionId) ?? randomUUID(),
+    uri: source.baseUrl,
+    local: false,
+    relay: false,
+  };
+}
+
+function sourceConnections(source: MediaSource) {
+  const rawConnections = Array.isArray(source.connection.connections) ? source.connection.connections : [];
+  const connections = rawConnections.flatMap((candidate) => {
+    const uri = stringValue((candidate as any)?.uri);
+    if (!uri) {
+      return [];
+    }
+
+    try {
+      assertHttpUrl(uri);
+    } catch {
+      return [];
+    }
+
+    return [{
+      id: stringValue((candidate as any)?.id) ?? randomUUID(),
+      uri,
+      local: Boolean((candidate as any)?.local),
+      relay: Boolean((candidate as any)?.relay),
+      protocol: stringValue((candidate as any)?.protocol),
+      address: stringValue((candidate as any)?.address),
+      port: numberValue((candidate as any)?.port),
+    }];
+  });
+
+  return connections.length > 0 ? connections : [fallbackSourceConnection(source)];
+}
+
+function sourceResource(source: MediaSource) {
+  const accessToken = stringValue(source.credentials.accessToken);
+  if (!accessToken) {
+    throw new ApiError(500, "source_credentials_missing", "Stored Plex source is missing its access token");
+  }
+
+  const connections = sourceConnections(source);
+  const selectedConnectionId = stringValue(source.connection.selectedConnectionId);
+  const matchingSelectedConnection = selectedConnectionId
+    ? connections.find((candidate) => candidate.id === selectedConnectionId)
+    : undefined;
+  const matchingBaseUrl = connections.find((candidate) => candidate.uri === source.baseUrl);
+  const preferredConnectionId = matchingSelectedConnection?.id ?? matchingBaseUrl?.id ?? connections[0]?.id;
+
+  if (!preferredConnectionId) {
+    throw new ApiError(500, "source_connections_missing", "Stored Plex source is missing connection details");
+  }
+
+  return {
+    preferredConnectionId,
+    resource: {
+      id: source.externalId ?? source.id,
+      name: source.name,
+      product: stringValue(source.metadata.product),
+      platform: stringValue(source.metadata.platform),
+      owned: Boolean(source.metadata.owned),
+      accessToken,
+      connections,
+    } satisfies ProviderResource,
+  };
+}
+
+function selectedSourceResource(source: MediaSource) {
+  const { resource, preferredConnectionId } = sourceResource(source);
+  const selectedConnection =
+    resource.connections.find((candidate) => candidate.id === preferredConnectionId) ?? resource.connections[0];
+
+  if (!selectedConnection) {
+    throw new ApiError(500, "source_connections_missing", "Stored Plex source is missing connection details");
+  }
+
+  return {
+    ...resource,
+    connections: [selectedConnection],
+  } satisfies ProviderResource;
 }
 
 async function probeConnection(resource: ProviderResource, connection: ProviderResource["connections"][number]) {
@@ -727,6 +818,41 @@ export const plexProvider: ProviderImplementation = {
     session.selectedResource = selected;
     session.mediaHandles.clear();
     return selected;
+  },
+
+  async checkSource(source) {
+    const { resource, preferredConnectionId } = sourceResource(source);
+    try {
+      const selectedConnection = await selectReachableConnection(resource, preferredConnectionId);
+
+      return {
+        ok: true,
+        baseUrl: selectedConnection.uri,
+        connection: {
+          ...source.connection,
+          connections: resource.connections,
+          selectedConnectionId: selectedConnection.id,
+        },
+      };
+    } catch (err) {
+      if (err instanceof ApiError && err.code === "plex_unreachable") {
+        return {
+          ok: false,
+          message: err.message,
+        };
+      }
+
+      throw err;
+    }
+  },
+
+  isSelectedSource(source, selectedResource) {
+    const resource = selectedResource as ProviderResource | undefined;
+    return resource?.id === (source.externalId ?? source.id);
+  },
+
+  selectedResourceFromSource(source) {
+    return selectedSourceResource(source);
   },
 
   async listMediaSessions(session) {

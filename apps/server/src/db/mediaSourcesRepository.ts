@@ -117,6 +117,15 @@ export function getMediaSource(id: string) {
   return row ? mapMediaSource(row) : undefined;
 }
 
+export function deleteMediaSource(id: string) {
+  const result = getDatabase()
+    .delete(mediaSources)
+    .where(eq(mediaSources.id, id))
+    .run();
+
+  return result.changes > 0;
+}
+
 export function getMediaSourceByProviderExternalId(providerId: string, externalId: string) {
   const row = getDatabase()
     .select()
