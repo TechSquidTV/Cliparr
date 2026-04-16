@@ -152,8 +152,6 @@ const migrations: Migration[] = [
       CREATE UNIQUE INDEX IF NOT EXISTS provider_accounts_provider_access_token_hash_idx
         ON provider_accounts(provider_id, access_token_hash)
         WHERE access_token_hash IS NOT NULL;
-
-      DROP INDEX IF EXISTS provider_accounts_provider_access_token_idx;
     `,
   },
 ];

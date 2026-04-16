@@ -5,6 +5,7 @@ import { fileURLToPath } from "url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const initialCliparrDataDir = process.env.CLIPARR_DATA_DIR;
+const initialEnvKeys = new Set(Object.keys(process.env));
 let configuredDataDirBaseDir: string | undefined;
 
 export const workspaceRoot = path.resolve(__dirname, "../../../..");
@@ -21,14 +22,20 @@ for (const envPath of envPaths) {
     continue;
   }
 
-  if (initialCliparrDataDir === undefined) {
-    const parsed = dotenv.parse(fs.readFileSync(resolvedPath));
-    if (configuredDataDirBaseDir === undefined && parsed.CLIPARR_DATA_DIR !== undefined) {
-      configuredDataDirBaseDir = path.dirname(resolvedPath);
+  const parsed = dotenv.parse(fs.readFileSync(resolvedPath));
+
+  for (const [key, value] of Object.entries(parsed)) {
+    if (initialEnvKeys.has(key)) {
+      continue;
     }
+
+    process.env[key] = value;
   }
 
-  dotenv.config({ path: resolvedPath, quiet: true });
+  if (initialCliparrDataDir === undefined && parsed.CLIPARR_DATA_DIR !== undefined) {
+    configuredDataDirBaseDir = path.dirname(resolvedPath);
+  }
+
   loadedPaths.add(resolvedPath);
 }
 

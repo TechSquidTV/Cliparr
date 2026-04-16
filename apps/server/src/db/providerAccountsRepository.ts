@@ -1,5 +1,5 @@
 import { randomUUID } from "crypto";
-import { and, eq, sql } from "drizzle-orm";
+import { and, eq, isNotNull, isNull, sql } from "drizzle-orm";
 import { getDatabase } from "./database.js";
 import { providerAccounts, type ProviderAccountRow } from "./schema.js";
 import { decryptSecret, encryptSecret, hashSecret } from "../security/secrets.js";
@@ -108,7 +108,11 @@ export function getProviderAccountByAccessToken(providerId: string, accessToken:
   const fallback = db
     .select()
     .from(providerAccounts)
-    .where(eq(providerAccounts.providerId, providerId))
+    .where(and(
+      eq(providerAccounts.providerId, providerId),
+      isNull(providerAccounts.accessTokenHash),
+      isNotNull(providerAccounts.accessToken)
+    ))
     .all()
     .find((candidate) => candidate.accessToken != null && decryptSecret(candidate.accessToken) === accessToken);
 
