@@ -40,6 +40,27 @@ export interface ProviderSession {
   expiresAt: string;
 }
 
+export interface MediaSource {
+  id: string;
+  providerId: string;
+  name: string;
+  enabled: boolean;
+  baseUrl: string;
+  metadata: Record<string, unknown>;
+  lastCheckedAt: string | null;
+  lastError: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface MediaSourceCheckResult {
+  ok: boolean;
+  source: MediaSource;
+  error?: {
+    message: string;
+  };
+}
+
 export interface MediaExportMetadata {
   providerId: string;
   itemType: string;

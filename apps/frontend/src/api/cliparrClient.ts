@@ -1,4 +1,6 @@
 import type {
+  MediaSource,
+  MediaSourceCheckResult,
   MediaSession,
   ProviderAuthStart,
   ProviderAuthStatus,
@@ -72,6 +74,36 @@ export const cliparrClient = {
       body: JSON.stringify({ resourceId, connectionId }),
     });
     return data.session;
+  },
+
+  async listSources() {
+    const data = await request<{ sources: MediaSource[] }>("/api/sources");
+    return data.sources;
+  },
+
+  async getSource(sourceId: string) {
+    const data = await request<{ source: MediaSource }>(`/api/sources/${sourceId}`);
+    return data.source;
+  },
+
+  async updateSource(sourceId: string, input: { name?: string; enabled?: boolean }) {
+    const data = await request<{ source: MediaSource }>(`/api/sources/${sourceId}`, {
+      method: "PATCH",
+      body: JSON.stringify(input),
+    });
+    return data.source;
+  },
+
+  async deleteSource(sourceId: string) {
+    await request<void>(`/api/sources/${sourceId}`, {
+      method: "DELETE",
+    });
+  },
+
+  async checkSource(sourceId: string) {
+    return request<MediaSourceCheckResult>(`/api/sources/${sourceId}/check`, {
+      method: "POST",
+    });
   },
 
   async listMediaSessions() {

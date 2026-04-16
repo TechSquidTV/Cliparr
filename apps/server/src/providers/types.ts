@@ -1,4 +1,5 @@
 import type { Request, Response } from "express";
+import type { MediaSource } from "../db/mediaSourcesRepository.js";
 import type { ProviderSessionRecord } from "../session/store.js";
 
 export type ProviderId = "plex" | string;
@@ -95,6 +96,18 @@ export interface MediaHandle {
   basePath?: string;
 }
 
+export type ProviderSourceCheckResult =
+  | {
+      ok: true;
+      baseUrl?: string;
+      connection?: Record<string, unknown>;
+      metadata?: Record<string, unknown>;
+    }
+  | {
+      ok: false;
+      message: string;
+    };
+
 export interface ProviderImplementation {
   definition: ProviderDefinition;
   startAuth(): Promise<ProviderAuthStart>;
@@ -108,6 +121,9 @@ export interface ProviderImplementation {
     resourceId: string,
     connectionId: string
   ): Promise<ProviderResource>;
+  checkSource(source: MediaSource): Promise<ProviderSourceCheckResult>;
+  isSelectedSource(source: MediaSource, selectedResource: unknown): boolean;
+  selectedResourceFromSource(source: MediaSource): unknown;
   listMediaSessions(session: ProviderSessionRecord): Promise<MediaSession[]>;
   proxyMedia(session: ProviderSessionRecord, handleId: string, req: Request, res: Response): Promise<void>;
   serializeSession(session: ProviderSessionRecord): ProviderSession;

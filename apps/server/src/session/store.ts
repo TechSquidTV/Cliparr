@@ -108,11 +108,23 @@ export function updateProviderSessionSelectedResource(sessionId: string, selecte
   getDatabase()
     .update(providerSessions)
     .set({
-      selectedResource: encryptJsonSecrets(selectedResource),
+      selectedResource: selectedResource == null ? null : encryptJsonSecrets(selectedResource),
       updatedAt: sql`strftime('%Y-%m-%dT%H:%M:%fZ', 'now')`,
     })
     .where(eq(providerSessions.id, sessionId))
     .run();
+}
+
+export function setProviderSessionSelectedResource(
+  session: ProviderSessionRecord,
+  selectedResource: unknown,
+  options: { clearMediaHandles?: boolean } = {}
+) {
+  session.selectedResource = selectedResource ?? undefined;
+  if (options.clearMediaHandles) {
+    session.mediaHandles.clear();
+  }
+  updateProviderSessionSelectedResource(session.id, selectedResource);
 }
 
 export function deleteProviderSession(sessionId?: string) {
