@@ -137,7 +137,10 @@ sourcesRouter.delete(
     const provider = getProvider(source.providerId);
     const selectedInCurrentSession = currentSessionUsesSource(session, source, provider);
 
-    deleteMediaSource(req.params.id as string);
+    const deleted = deleteMediaSource(source.id);
+    if (!deleted) {
+      throw new ApiError(404, "source_not_found", "Source was not found");
+    }
 
     if (selectedInCurrentSession) {
       setProviderSessionSelectedResource(session, null, { clearMediaHandles: true });
