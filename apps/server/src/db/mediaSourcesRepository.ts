@@ -2,6 +2,7 @@ import { randomUUID } from "crypto";
 import { and, asc, eq, sql } from "drizzle-orm";
 import { getDatabase } from "./database.js";
 import { mediaSources, type MediaSourceRow } from "./schema.js";
+import { decryptJsonSecrets, encryptJsonSecrets } from "../security/secrets.js";
 
 export interface MediaSource {
   id: string;
@@ -54,8 +55,8 @@ function mapMediaSource(row: MediaSourceRow): MediaSource {
     name: row.name,
     enabled: row.enabled,
     baseUrl: row.baseUrl,
-    connection: row.connection,
-    credentials: row.credentials,
+    connection: decryptJsonSecrets(row.connection),
+    credentials: decryptJsonSecrets(row.credentials),
     metadata: row.metadata,
     lastCheckedAt: row.lastCheckedAt ?? undefined,
     lastError: row.lastError ?? undefined,
@@ -76,8 +77,8 @@ export function createMediaSource(input: CreateMediaSourceInput) {
     name: input.name,
     enabled: input.enabled ?? true,
     baseUrl: input.baseUrl,
-    connection: input.connection ?? {},
-    credentials: input.credentials ?? {},
+    connection: encryptJsonSecrets(input.connection ?? {}),
+    credentials: encryptJsonSecrets(input.credentials ?? {}),
     metadata: input.metadata ?? {},
   }).run();
 
@@ -93,8 +94,8 @@ export function updateMediaSource(id: string, input: UpdateMediaSourceInput) {
       ...(input.name !== undefined ? { name: input.name } : {}),
       ...(input.enabled !== undefined ? { enabled: input.enabled } : {}),
       ...(input.baseUrl !== undefined ? { baseUrl: input.baseUrl } : {}),
-      ...(input.connection !== undefined ? { connection: input.connection } : {}),
-      ...(input.credentials !== undefined ? { credentials: input.credentials } : {}),
+      ...(input.connection !== undefined ? { connection: encryptJsonSecrets(input.connection) } : {}),
+      ...(input.credentials !== undefined ? { credentials: encryptJsonSecrets(input.credentials) } : {}),
       ...(input.metadata !== undefined ? { metadata: input.metadata } : {}),
       ...(input.lastCheckedAt !== undefined ? { lastCheckedAt: input.lastCheckedAt } : {}),
       ...(input.lastError !== undefined ? { lastError: input.lastError } : {}),
@@ -142,8 +143,8 @@ export function upsertMediaSource(input: CreateMediaSourceInput) {
       name: input.name,
       enabled: input.enabled ?? true,
       baseUrl: input.baseUrl,
-      connection: input.connection ?? {},
-      credentials: input.credentials ?? {},
+      connection: encryptJsonSecrets(input.connection ?? {}),
+      credentials: encryptJsonSecrets(input.credentials ?? {}),
       metadata: input.metadata ?? {},
     })
     .onConflictDoUpdate({
@@ -154,8 +155,8 @@ export function upsertMediaSource(input: CreateMediaSourceInput) {
         name: input.name,
         ...(input.enabled !== undefined ? { enabled: input.enabled } : {}),
         baseUrl: input.baseUrl,
-        ...(input.connection !== undefined ? { connection: input.connection } : {}),
-        ...(input.credentials !== undefined ? { credentials: input.credentials } : {}),
+        ...(input.connection !== undefined ? { connection: encryptJsonSecrets(input.connection) } : {}),
+        ...(input.credentials !== undefined ? { credentials: encryptJsonSecrets(input.credentials) } : {}),
         ...(input.metadata !== undefined ? { metadata: input.metadata } : {}),
         updatedAt: sql`strftime('%Y-%m-%dT%H:%M:%fZ', 'now')`,
       },

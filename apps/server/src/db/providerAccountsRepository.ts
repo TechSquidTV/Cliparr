@@ -1,7 +1,8 @@
 import { randomUUID } from "crypto";
-import { and, eq, sql } from "drizzle-orm";
+import { and, eq, isNotNull, isNull, sql } from "drizzle-orm";
 import { getDatabase } from "./database.js";
 import { providerAccounts, type ProviderAccountRow } from "./schema.js";
+import { decryptSecret, encryptSecret, hashSecret } from "../security/secrets.js";
 
 export interface ProviderAccount {
   id: string;
@@ -26,12 +27,16 @@ export interface UpdateProviderAccountInput {
   metadata?: Record<string, unknown>;
 }
 
+function normalizeAccessToken(accessToken: string | undefined) {
+  return accessToken === "" ? null : accessToken;
+}
+
 function mapProviderAccount(row: ProviderAccountRow): ProviderAccount {
   return {
     id: row.id,
     providerId: row.providerId,
     label: row.label,
-    accessToken: row.accessToken ?? undefined,
+    accessToken: row.accessToken != null ? decryptSecret(row.accessToken) : undefined,
     metadata: row.metadata,
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
@@ -41,12 +46,14 @@ function mapProviderAccount(row: ProviderAccountRow): ProviderAccount {
 export function createProviderAccount(input: CreateProviderAccountInput) {
   const db = getDatabase();
   const id = randomUUID();
+  const accessToken = normalizeAccessToken(input.accessToken);
 
   db.insert(providerAccounts).values({
     id,
     providerId: input.providerId,
     label: input.label,
-    accessToken: input.accessToken ?? null,
+    accessToken: accessToken ? encryptSecret(accessToken) : null,
+    accessTokenHash: accessToken ? hashSecret(accessToken) : null,
     metadata: input.metadata ?? {},
   }).run();
 
@@ -54,11 +61,18 @@ export function createProviderAccount(input: CreateProviderAccountInput) {
 }
 
 export function updateProviderAccount(id: string, input: UpdateProviderAccountInput) {
+  const accessToken = input.accessToken !== undefined ? normalizeAccessToken(input.accessToken) : undefined;
+
   getDatabase()
     .update(providerAccounts)
     .set({
       ...(input.label !== undefined ? { label: input.label } : {}),
-      ...(input.accessToken !== undefined ? { accessToken: input.accessToken } : {}),
+      ...(accessToken !== undefined
+        ? {
+          accessToken: accessToken ? encryptSecret(accessToken) : null,
+          accessTokenHash: accessToken ? hashSecret(accessToken) : null,
+        }
+        : {}),
       ...(input.metadata !== undefined ? { metadata: input.metadata } : {}),
       updatedAt: sql`strftime('%Y-%m-%dT%H:%M:%fZ', 'now')`,
     })
@@ -79,18 +93,44 @@ export function getProviderAccount(id: string) {
 }
 
 export function getProviderAccountByAccessToken(providerId: string, accessToken: string) {
-  const row = getDatabase()
+  const db = getDatabase();
+  const tokenHash = hashSecret(accessToken);
+  const row = db
     .select()
     .from(providerAccounts)
-    .where(and(eq(providerAccounts.providerId, providerId), eq(providerAccounts.accessToken, accessToken)))
+    .where(and(eq(providerAccounts.providerId, providerId), eq(providerAccounts.accessTokenHash, tokenHash)))
     .get();
 
-  return row ? mapProviderAccount(row) : undefined;
+  if (row) {
+    return mapProviderAccount(row);
+  }
+
+  const fallback = db
+    .select()
+    .from(providerAccounts)
+    .where(and(
+      eq(providerAccounts.providerId, providerId),
+      isNull(providerAccounts.accessTokenHash),
+      isNotNull(providerAccounts.accessToken)
+    ))
+    .all()
+    .find((candidate) => candidate.accessToken != null && decryptSecret(candidate.accessToken) === accessToken);
+
+  return fallback ? mapProviderAccount(fallback) : undefined;
 }
 
 export function upsertProviderAccountByAccessToken(input: CreateProviderAccountInput) {
   if (!input.accessToken) {
     return createProviderAccount(input);
+  }
+
+  const existing = getProviderAccountByAccessToken(input.providerId, input.accessToken);
+  if (existing) {
+    return updateProviderAccount(existing.id, {
+      label: input.label,
+      accessToken: input.accessToken,
+      metadata: input.metadata,
+    });
   }
 
   const db = getDatabase();
@@ -100,14 +140,17 @@ export function upsertProviderAccountByAccessToken(input: CreateProviderAccountI
       id: randomUUID(),
       providerId: input.providerId,
       label: input.label,
-      accessToken: input.accessToken,
+      accessToken: encryptSecret(input.accessToken),
+      accessTokenHash: hashSecret(input.accessToken),
       metadata: input.metadata ?? {},
     })
     .onConflictDoUpdate({
-      target: [providerAccounts.providerId, providerAccounts.accessToken],
-      targetWhere: sql`${providerAccounts.accessToken} IS NOT NULL`,
+      target: [providerAccounts.providerId, providerAccounts.accessTokenHash],
+      targetWhere: sql`${providerAccounts.accessTokenHash} IS NOT NULL`,
       set: {
         label: input.label,
+        accessToken: encryptSecret(input.accessToken),
+        accessTokenHash: hashSecret(input.accessToken),
         ...(input.metadata !== undefined ? { metadata: input.metadata } : {}),
         updatedAt: sql`strftime('%Y-%m-%dT%H:%M:%fZ', 'now')`,
       },

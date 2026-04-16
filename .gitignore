@@ -4,6 +4,7 @@ build/
 dist/
 coverage/
 .cliparr-data/
+apps/server/.cliparr-data/
 .DS_Store
 *.log
 *.tsbuildinfo

@@ -1,4 +1,4 @@
-import "dotenv/config";
+import "./config/loadEnv.js";
 import { createApp } from "./app.js";
 import { closeDatabase } from "./db/database.js";
 
@@ -56,4 +56,8 @@ async function startServer() {
 
 
 
-startServer();
+startServer().catch((err) => {
+  console.error("Failed to start server", err);
+  closeDatabase();
+  process.exit(1);
+});

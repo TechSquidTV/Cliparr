@@ -2,6 +2,7 @@ import { randomUUID } from "crypto";
 import { eq, sql } from "drizzle-orm";
 import { getDatabase } from "../db/database.js";
 import { providerSessions, type ProviderSessionRow } from "../db/schema.js";
+import { decryptJsonSecrets, decryptSecret, encryptJsonSecrets, encryptSecret } from "../security/secrets.js";
 
 const SESSION_COOKIE = "cliparr_session";
 const SESSION_TTL_MS = 1000 * 60 * 60 * 12;
@@ -34,9 +35,9 @@ function mapProviderSession(row: ProviderSessionRow): ProviderSessionRecord {
     id: row.id,
     providerId: row.providerId,
     providerAccountId: row.providerAccountId ?? undefined,
-    userToken: row.userToken,
-    resources: row.resources,
-    selectedResource: row.selectedResource ?? undefined,
+    userToken: decryptSecret(row.userToken),
+    resources: decryptJsonSecrets(row.resources),
+    selectedResource: row.selectedResource == null ? undefined : decryptJsonSecrets(row.selectedResource),
     mediaHandles: getMediaHandles(row.id),
     createdAt: row.createdAt,
     expiresAt: row.expiresAt,
@@ -59,8 +60,8 @@ export function createProviderSession(input: {
       id,
       providerId: input.providerId,
       providerAccountId: input.providerAccountId ?? null,
-      userToken: input.userToken,
-      resources: input.resources,
+      userToken: encryptSecret(input.userToken),
+      resources: encryptJsonSecrets(input.resources),
       selectedResource: null,
       createdAt: now,
       expiresAt,
@@ -107,7 +108,7 @@ export function updateProviderSessionSelectedResource(sessionId: string, selecte
   getDatabase()
     .update(providerSessions)
     .set({
-      selectedResource,
+      selectedResource: encryptJsonSecrets(selectedResource),
       updatedAt: sql`strftime('%Y-%m-%dT%H:%M:%fZ', 'now')`,
     })
     .where(eq(providerSessions.id, sessionId))
