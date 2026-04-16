@@ -1,13 +1,14 @@
 import { Router } from "express";
 import { listMediaSources } from "../db/mediaSourcesRepository.js";
 import { asyncHandler } from "../http/errors.js";
-import { setNoStore } from "../session/request.js";
+import { requireSession, setNoStore } from "../session/request.js";
 
 export const sourcesRouter = Router();
 
 sourcesRouter.get(
   "/",
-  asyncHandler(async (_req, res) => {
+  asyncHandler(async (req, res) => {
+    requireSession(req);
     setNoStore(res);
     res.json({
       sources: listMediaSources().map((source) => ({

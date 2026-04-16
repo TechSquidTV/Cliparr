@@ -18,6 +18,16 @@ let database: CliparrDatabase | undefined;
 let databasePath: string | undefined;
 let dataDir: string | undefined;
 
+function enforcePermissions(targetPath: string, mode: number) {
+  try {
+    fs.chmodSync(targetPath, mode);
+  } catch (err) {
+    if (process.platform !== "win32") {
+      console.warn(`Could not set permissions on ${targetPath}:`, err);
+    }
+  }
+}
+
 function resolveDataDir() {
   const configuredDataDir = process.env.CLIPARR_DATA_DIR?.trim();
   if (configuredDataDir) {
@@ -38,9 +48,11 @@ export function initializeDatabase() {
 
   dataDir = resolveDataDir();
   fs.mkdirSync(dataDir, { recursive: true, mode: 0o700 });
+  enforcePermissions(dataDir, 0o700);
 
   databasePath = path.join(dataDir, DEFAULT_DATABASE_FILE);
   sqlite = new DatabaseSync(databasePath);
+  enforcePermissions(databasePath, 0o600);
   sqlite.exec(`
     PRAGMA foreign_keys = ON;
     PRAGMA journal_mode = WAL;
@@ -66,6 +78,14 @@ export function getSqliteClient() {
   }
 
   return sqlite;
+}
+
+export function closeDatabase() {
+  if (sqlite) {
+    sqlite.close();
+    sqlite = undefined;
+    database = undefined;
+  }
 }
 
 export function getDatabaseInfo() {
