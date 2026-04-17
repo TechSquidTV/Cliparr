@@ -91,6 +91,14 @@ function timelineScaleForDuration(seconds: number) {
   return { scale: 5 * 60, scaleSplitCount: 5, scaleWidth: 148 };
 }
 
+function getTimelineZoomWidthLevels(preset: TimelineZoomPreset) {
+  return TIMELINE_ZOOM_WIDTH_MULTIPLIERS.map((widthMultiplier) => ({
+    scale: preset.scale,
+    scaleSplitCount: preset.scaleSplitCount,
+    scaleWidth: Math.max(72, Math.round((preset.scaleWidth * widthMultiplier) / 4) * 4),
+  }));
+}
+
 function getTimelineZoomLevels(seconds: number) {
   const safeDuration = Math.max(seconds, MIN_CLIP_SECONDS);
   const availableLevels = new Map<string, TimelineZoomLevel>();
@@ -100,13 +108,7 @@ function getTimelineZoomLevels(seconds: number) {
       continue;
     }
 
-    for (const widthMultiplier of TIMELINE_ZOOM_WIDTH_MULTIPLIERS) {
-      const scaleWidth = Math.max(72, Math.round((preset.scaleWidth * widthMultiplier) / 4) * 4);
-      const zoomLevel: TimelineZoomLevel = {
-        scale: preset.scale,
-        scaleSplitCount: preset.scaleSplitCount,
-        scaleWidth,
-      };
+    for (const zoomLevel of getTimelineZoomWidthLevels(preset)) {
       availableLevels.set(
         `${zoomLevel.scale}:${zoomLevel.scaleSplitCount}:${zoomLevel.scaleWidth}`,
         zoomLevel,
@@ -115,7 +117,13 @@ function getTimelineZoomLevels(seconds: number) {
   }
 
   if (availableLevels.size === 0) {
-    return [TIMELINE_ZOOM_PRESETS[TIMELINE_ZOOM_PRESETS.length - 1]];
+    const fallbackPreset = TIMELINE_ZOOM_PRESETS[TIMELINE_ZOOM_PRESETS.length - 1];
+    const minimumSafeScale = Math.max(1, Math.ceil(safeDuration / MAX_TIMELINE_ZOOM_SCALE_COUNT));
+    return getTimelineZoomWidthLevels({
+      scale: Math.max(fallbackPreset.scale, minimumSafeScale),
+      scaleSplitCount: fallbackPreset.scaleSplitCount,
+      scaleWidth: fallbackPreset.scaleWidth,
+    });
   }
 
   return [...availableLevels.values()].sort((left, right) => {
@@ -181,6 +189,14 @@ function getTimelineMaxScrollLeft(
     + TIMELINE_START_LEFT
     - viewportWidth,
   );
+}
+
+function getTimelineZoomLevel(
+  levels: readonly TimelineZoomLevel[],
+  index: number,
+  fallback: TimelineZoomLevel,
+) {
+  return levels[index] ?? fallback;
 }
 
 function themeValue(name: string, fallback: string) {
@@ -251,9 +267,12 @@ export default function EditorScreen({ session, onBack }: Props) {
     [availableTimelineZoomLevels, defaultTimelineScale],
   );
   const [timelineZoomIndex, setTimelineZoomIndex] = useState(defaultTimelineZoomIndex);
-  const activeTimelineScale = availableTimelineZoomLevels[timelineZoomIndex]
-    ?? availableTimelineZoomLevels[defaultTimelineZoomIndex]
-    ?? defaultTimelineScale;
+  const activeTimelineScale = getTimelineZoomLevel(
+    availableTimelineZoomLevels,
+    timelineZoomIndex,
+    getTimelineZoomLevel(availableTimelineZoomLevels, defaultTimelineZoomIndex, defaultTimelineScale),
+  );
+  const timelineZoomIndexRef = useRef(timelineZoomIndex);
   const timelineScaleCount = useMemo(
     () => Math.max(1, Math.ceil(Math.max(duration, MIN_CLIP_SECONDS) / activeTimelineScale.scale)),
     [duration, activeTimelineScale.scale],
@@ -328,7 +347,12 @@ export default function EditorScreen({ session, onBack }: Props) {
   }, [volume, muted]);
 
   useEffect(() => {
+    timelineZoomIndexRef.current = timelineZoomIndex;
+  }, [timelineZoomIndex]);
+
+  useEffect(() => {
     setTimelineZoomIndex(defaultTimelineZoomIndex);
+    timelineZoomIndexRef.current = defaultTimelineZoomIndex;
     timelineScrollLeftRef.current = 0;
     timelineWheelDeltaRef.current = 0;
     timelineRef.current?.setScrollLeft(0);
@@ -819,22 +843,33 @@ export default function EditorScreen({ session, onBack }: Props) {
       return;
     }
 
+    const currentZoomIndex = timelineZoomIndexRef.current;
+    const currentTimelineScale = getTimelineZoomLevel(
+      availableTimelineZoomLevels,
+      currentZoomIndex,
+      activeTimelineScale,
+    );
+    const currentScrollLeft = pendingTimelineScrollLeftRef.current ?? timelineScrollLeftRef.current;
     timelineWheelDeltaRef.current -= zoomDelta * TIMELINE_ZOOM_WHEEL_STEP;
     const nextZoomIndex = Math.min(
       availableTimelineZoomLevels.length - 1,
-      Math.max(0, timelineZoomIndex + zoomDelta),
+      Math.max(0, currentZoomIndex + zoomDelta),
     );
-    if (nextZoomIndex === timelineZoomIndex) {
+    if (nextZoomIndex === currentZoomIndex) {
       timelineWheelDeltaRef.current = 0;
       return;
     }
 
-    const nextTimelineScale = availableTimelineZoomLevels[nextZoomIndex];
+    const nextTimelineScale = getTimelineZoomLevel(
+      availableTimelineZoomLevels,
+      nextZoomIndex,
+      currentTimelineScale,
+    );
     const regionRect = timelineWheelRegion.getBoundingClientRect();
     const pointerX = Math.min(Math.max(event.clientX - regionRect.left, 0), regionRect.width);
     const anchorPixel = Math.max(
       TIMELINE_START_LEFT,
-      timelineScrollLeftRef.current + pointerX,
+      currentScrollLeft + pointerX,
     );
     const anchorTime = Math.min(
       duration,
@@ -842,8 +877,8 @@ export default function EditorScreen({ session, onBack }: Props) {
         0,
         timelinePixelToTime(
           anchorPixel,
-          activeTimelineScale.scale,
-          activeTimelineScale.scaleWidth,
+          currentTimelineScale.scale,
+          currentTimelineScale.scaleWidth,
           TIMELINE_START_LEFT,
         ),
       ),
@@ -860,10 +895,13 @@ export default function EditorScreen({ session, onBack }: Props) {
       nextTimelineScale.scaleWidth,
       regionRect.width,
     );
-    pendingTimelineScrollLeftRef.current = Math.min(
+    const nextScrollLeft = Math.min(
       nextMaxScrollLeft,
       Math.max(0, nextAnchorPixel - pointerX),
     );
+    pendingTimelineScrollLeftRef.current = nextScrollLeft;
+    timelineScrollLeftRef.current = nextScrollLeft;
+    timelineZoomIndexRef.current = nextZoomIndex;
 
     startTransition(() => {
       setTimelineZoomIndex(nextZoomIndex);
@@ -871,7 +909,6 @@ export default function EditorScreen({ session, onBack }: Props) {
   }, [
     hasDuration,
     availableTimelineZoomLevels,
-    timelineZoomIndex,
     duration,
     activeTimelineScale.scale,
     activeTimelineScale.scaleWidth,
