@@ -388,12 +388,115 @@ function metadataPath(item: any) {
   return undefined;
 }
 
-function createPreviewPath(item: any) {
+interface PlexMediaSelection {
+  mediaId?: string;
+  mediaIndex?: number;
+  partId?: string;
+  partIndex?: number;
+}
+
+function idValue(value: unknown) {
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+    return trimmed ? trimmed : undefined;
+  }
+
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return String(Math.trunc(value));
+  }
+
+  return undefined;
+}
+
+function isSelectedEntry(entry: any) {
+  return entry?.selected === true || entry?.selected === 1 || entry?.selected === "1";
+}
+
+function mediaEntries(item: any) {
+  return asArray(item?.Media);
+}
+
+function partEntries(media: any) {
+  return asArray(media?.Part);
+}
+
+function selectedIndex(entries: any[]) {
+  const index = entries.findIndex((entry) => isSelectedEntry(entry));
+  return index >= 0 ? index : 0;
+}
+
+function deriveMediaSelection(item: any): PlexMediaSelection | undefined {
+  const media = mediaEntries(item);
+  if (media.length === 0) {
+    return undefined;
+  }
+
+  const mediaIndex = selectedIndex(media);
+  const selectedMedia = media[mediaIndex];
+  const parts = partEntries(selectedMedia);
+  const partIndex = parts.length > 0 ? selectedIndex(parts) : undefined;
+  const selectedPart = partIndex === undefined ? undefined : parts[partIndex];
+
+  return {
+    mediaId: idValue(selectedMedia?.id),
+    mediaIndex,
+    partId: idValue(selectedPart?.id),
+    partIndex,
+  };
+}
+
+function resolveSelectedPart(item: any, selection?: PlexMediaSelection) {
+  const media = mediaEntries(item);
+  if (media.length === 0) {
+    return undefined;
+  }
+
+  let mediaIndex = selection?.mediaId
+    ? media.findIndex((entry) => idValue(entry?.id) === selection.mediaId)
+    : -1;
+  if (mediaIndex < 0 && selection?.mediaIndex !== undefined && media[selection.mediaIndex]) {
+    mediaIndex = selection.mediaIndex;
+  }
+  if (mediaIndex < 0) {
+    mediaIndex = selectedIndex(media);
+  }
+
+  const selectedMedia = media[mediaIndex];
+  const parts = partEntries(selectedMedia);
+  if (parts.length === 0) {
+    return {
+      media: selectedMedia,
+      mediaIndex,
+      part: undefined,
+      partIndex: 0,
+    };
+  }
+
+  let partIndex = selection?.partId
+    ? parts.findIndex((entry) => idValue(entry?.id) === selection.partId)
+    : -1;
+  if (partIndex < 0 && selection?.partIndex !== undefined && parts[selection.partIndex]) {
+    partIndex = selection.partIndex;
+  }
+  if (partIndex < 0) {
+    partIndex = selectedIndex(parts);
+  }
+
+  return {
+    media: selectedMedia,
+    mediaIndex,
+    part: parts[partIndex],
+    partIndex,
+  };
+}
+
+function createPreviewPath(item: any, selection?: PlexMediaSelection) {
   const path = metadataPath(item);
   if (!path) {
     return undefined;
   }
 
+  const resolvedSelection = resolveSelectedPart(item, selection);
   const transcodeSessionId = randomUUID();
   const params = new URLSearchParams({
     path,
@@ -402,8 +505,8 @@ function createPreviewPath(item: any) {
     directPlay: "0",
     directStream: "0",
     directStreamAudio: "0",
-    mediaIndex: "0",
-    partIndex: "0",
+    mediaIndex: String(resolvedSelection?.mediaIndex ?? 0),
+    partIndex: String(resolvedSelection?.partIndex ?? 0),
     audioChannelCount: "2",
     subtitles: "none",
     videoQuality: "80",
@@ -668,10 +771,6 @@ function createExportMetadata(
   };
 }
 
-function firstPart(item: any) {
-  return asArray(item?.Media)[0] ? asArray(asArray(item.Media)[0]?.Part)[0] : undefined;
-}
-
 function fallbackPartPath(part: any) {
   if (!part?.id) {
     return undefined;
@@ -693,13 +792,18 @@ function fallbackPartPath(part: any) {
   return `/library/parts/${part.id}/file`;
 }
 
-async function resolveMediaPath(context: PlexSourceContext, item: any, enrichedItem?: any) {
-  const directPath = fallbackPartPath(firstPart(item));
+async function resolveMediaPath(
+  context: PlexSourceContext,
+  item: any,
+  enrichedItem?: any,
+  selection?: PlexMediaSelection
+) {
+  const directPath = fallbackPartPath(resolveSelectedPart(item, selection)?.part);
   if (directPath) {
     return directPath;
   }
 
-  const enrichedPath = fallbackPartPath(firstPart(enrichedItem));
+  const enrichedPath = fallbackPartPath(resolveSelectedPart(enrichedItem, selection)?.part);
   if (enrichedPath) {
     return enrichedPath;
   }
@@ -712,7 +816,7 @@ async function resolveMediaPath(context: PlexSourceContext, item: any, enrichedI
   try {
     const data = await fetchPmsJson(context, path) as any;
     const fullItem = data?.MediaContainer?.Metadata?.[0];
-    return fallbackPartPath(firstPart(fullItem));
+    return fallbackPartPath(resolveSelectedPart(fullItem, selection)?.part);
   } catch (err) {
     console.warn(`Could not resolve media part for ${path}:`, errorMessage(err));
     return undefined;
@@ -815,9 +919,10 @@ async function normalizeCurrentPlayback(
   }
 
   return Promise.all(metadata.map(async (item: any) => {
+    const mediaSelection = deriveMediaSelection(item);
     const enrichedItem = await enrichMetadataItem(context, item);
-    const mediaPath = await resolveMediaPath(context, item, enrichedItem);
-    const previewPath = createPreviewPath(enrichedItem);
+    const mediaPath = await resolveMediaPath(context, item, enrichedItem, mediaSelection);
+    const previewPath = createPreviewPath(enrichedItem, mediaSelection);
     const thumbPath = metadataImagePath(enrichedItem);
     const sessionId = playbackSessionIdentity(item);
 
