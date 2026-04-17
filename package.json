@@ -19,17 +19,23 @@
     "dev:docker": "concurrently -k -s first --handle-input -c \"cyan,magenta\" -n \"frontend,server\" \"pnpm --filter @cliparr/frontend dev --host 0.0.0.0\" \"pnpm --filter @cliparr/server dev\"",
     "build": "pnpm -r build",
     "lint": "pnpm -r lint",
+    "knip": "knip",
     "preview": "pnpm --filter @cliparr/server preview",
     "start": "pnpm --filter @cliparr/server start",
     "clean": "pnpm -r clean"
   },
   "pnpm": {
     "peerDependencyRules": {
-      "ignoreMissing": ["mssql", "@types/mssql"]
+      "ignoreMissing": [
+        "mssql",
+        "@types/mssql"
+      ]
     }
   },
   "devDependencies": {
+    "@types/node": "^25.6.0",
     "concurrently": "^9.2.1",
+    "knip": "^6.4.1",
     "typescript": "~6.0.2"
   }
 }
