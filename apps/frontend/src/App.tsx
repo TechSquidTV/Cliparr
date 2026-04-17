@@ -1,17 +1,23 @@
-import { lazy, Suspense, useEffect, useState } from "react";
+import { RouterProvider } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
 import { cliparrClient } from "./api/cliparrClient";
-import LoginScreen from "./components/LoginScreen";
-import SessionsScreen from "./components/SessionsScreen";
-import type { CurrentlyPlayingItem, ProviderSession } from "./providers/types";
+import { AuthProvider } from "./auth";
+import type { ProviderSession } from "./providers/types";
+import { router } from "./router";
 
-const EditorScreen = lazy(() => import("./components/EditorScreen"));
+const PLEX_AUTH_COMPLETE_PATH = "/auth/plex/complete";
 
 export default function App() {
   const [providerSession, setProviderSession] = useState<ProviderSession | null>(null);
-  const [selectedSession, setSelectedSession] = useState<CurrentlyPlayingItem | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    const normalizedPath = window.location.pathname.replace(/\/$/, "") || "/";
+    if (normalizedPath === PLEX_AUTH_COMPLETE_PATH) {
+      setLoading(false);
+      return;
+    }
+
     let cancelled = false;
 
     async function loadSession() {
@@ -37,10 +43,17 @@ export default function App() {
     };
   }, []);
 
+  useEffect(() => {
+    if (loading) {
+      return;
+    }
+
+    void router.invalidate();
+  }, [loading, providerSession]);
+
   const logout = async () => {
     await cliparrClient.logout().catch(() => undefined);
     setProviderSession(null);
-    setSelectedSession(null);
   };
 
   if (loading) {
@@ -51,31 +64,24 @@ export default function App() {
     );
   }
 
-  if (!providerSession) {
-    return <LoginScreen onLogin={setProviderSession} />;
-  }
-
-  if (selectedSession) {
-    return (
-      <Suspense
-        fallback={
-          <div className="flex min-h-screen items-center justify-center bg-background text-foreground">
-            Loading editor...
-          </div>
-        }
-      >
-        <EditorScreen
-          session={selectedSession}
-          onBack={() => setSelectedSession(null)}
-        />
-      </Suspense>
-    );
-  }
-
   return (
-    <SessionsScreen
-      onSelectSession={setSelectedSession}
-      onLogout={logout}
-    />
+    <AuthProvider
+      auth={{
+        providerSession,
+        setProviderSession,
+        logout,
+      }}
+    >
+      <RouterProvider
+        router={router}
+        context={{
+          auth: {
+            providerSession,
+            setProviderSession,
+            logout,
+          },
+        }}
+      />
+    </AuthProvider>
   );
 }

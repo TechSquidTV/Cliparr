@@ -6,7 +6,7 @@ import { ProviderGlyph } from "./ProviderGlyph";
 import type { ProviderDefinition, ProviderSession } from "../providers/types";
 
 interface Props {
-  onLogin: (session: ProviderSession) => void;
+  onConnected: (session: ProviderSession) => void;
 }
 
 const devJellyfinUrl = typeof import.meta.env.VITE_CLIPARR_DEV_JELLYFIN_URL === "string"
@@ -71,7 +71,7 @@ function ProviderBadge({
   );
 }
 
-export default function LoginScreen({ onLogin }: Props) {
+export default function ProviderConnectScreen({ onConnected }: Props) {
   const [providers, setProviders] = useState<ProviderDefinition[]>([]);
   const [selectedProviderId, setSelectedProviderId] = useState("");
   const [authId, setAuthId] = useState("");
@@ -135,7 +135,7 @@ export default function LoginScreen({ onLogin }: Props) {
         const status = await cliparrClient.pollAuth(providerId, authId);
         if (status.status === "complete") {
           window.clearInterval(intervalId);
-          onLogin(await cliparrClient.getSession());
+          onConnected(await cliparrClient.getSession());
           return;
         }
 
@@ -155,7 +155,7 @@ export default function LoginScreen({ onLogin }: Props) {
     return () => {
       window.clearInterval(intervalId);
     };
-  }, [authId, onLogin, providerId, providerLabel]);
+  }, [authId, onConnected, providerId, providerLabel]);
 
   const startAuth = async (provider: ProviderDefinition) => {
     setError("");
@@ -185,7 +185,7 @@ export default function LoginScreen({ onLogin }: Props) {
         username,
         password,
       });
-      onLogin(session);
+      onConnected(session);
     } catch (err: unknown) {
       setAuthenticating(false);
       setProviderId("");

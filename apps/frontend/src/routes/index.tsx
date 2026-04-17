@@ -1,10 +1,11 @@
-import {createFileRoute} from '@tanstack/react-router';
-import App from '../App';
-
-function IndexRouteComponent() {
-  return <App />;
-}
+import {createFileRoute, redirect} from '@tanstack/react-router';
 
 export const Route = createFileRoute('/')({
-  component: IndexRouteComponent,
+  beforeLoad: ({ context }): ReturnType<typeof redirect> => {
+    return redirect({
+      to: context.auth.providerSession ? '/dashboard' : '/providers/connect',
+      replace: true,
+    });
+  },
+  component: () => null,
 });
