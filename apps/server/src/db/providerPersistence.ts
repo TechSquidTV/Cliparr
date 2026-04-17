@@ -86,15 +86,15 @@ export function persistProviderResource(input: {
       selectedConnectionId: connection.id,
     },
     credentials: {
-      accessToken: input.resource.accessToken,
       ...(input.resource.credentials ?? {}),
+      accessToken: input.resource.accessToken,
     },
     metadata: {
+      ...(input.resource.metadata ?? {}),
       product: input.resource.product,
       platform: input.resource.platform,
       provides: input.resource.provides,
       owned: input.resource.owned,
-      ...(input.resource.metadata ?? {}),
     },
   });
 }

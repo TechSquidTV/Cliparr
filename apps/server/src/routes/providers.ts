@@ -83,7 +83,11 @@ providersRouter.post(
     }
 
     const authResult = await provider.authenticateWithCredentials(req.body);
-    if (!authResult.userToken || !authResult.resources.length) {
+    if (
+      !authResult.userToken
+      || !Array.isArray(authResult.resources)
+      || authResult.resources.length === 0
+    ) {
       throw new ApiError(502, "provider_auth_failed", "Provider auth did not return credentials");
     }
 
