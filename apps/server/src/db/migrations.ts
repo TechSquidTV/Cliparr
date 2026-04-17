@@ -326,6 +326,16 @@ const migrations: Migration[] = [
         ON provider_sessions(expires_at);
     `,
   },
+  {
+    id: 8,
+    name: "make_media_source_external_id_uniqueness_unconditional",
+    sql: `
+      DROP INDEX IF EXISTS media_sources_provider_external_id_idx;
+
+      CREATE UNIQUE INDEX media_sources_provider_external_id_idx
+        ON media_sources(provider_id, provider_account_id, external_id);
+    `,
+  },
 ];
 
 export function runMigrations(db: DatabaseSync) {

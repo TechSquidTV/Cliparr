@@ -52,8 +52,7 @@ export const mediaSources = sqliteTable(
     index("media_sources_provider_id_idx").on(table.providerId),
     index("media_sources_provider_account_id_idx").on(table.providerAccountId),
     uniqueIndex("media_sources_provider_external_id_idx")
-      .on(table.providerId, table.providerAccountId, table.externalId)
-      .where(sql`${table.externalId} IS NOT NULL AND ${table.providerAccountId} IS NOT NULL`),
+      .on(table.providerId, table.providerAccountId, table.externalId),
   ]
 );
 

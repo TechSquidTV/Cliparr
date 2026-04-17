@@ -196,7 +196,6 @@ export function upsertMediaSource(input: CreateMediaSourceInput) {
     })
     .onConflictDoUpdate({
       target: [mediaSources.providerId, mediaSources.providerAccountId, mediaSources.externalId],
-      targetWhere: sql`${mediaSources.externalId} IS NOT NULL AND ${mediaSources.providerAccountId} IS NOT NULL`,
       set: {
         name: input.name,
         ...(input.enabled !== undefined ? { enabled: input.enabled } : {}),
