@@ -3,9 +3,9 @@ import type { ComponentProps } from "react";
 
 export const MIN_CLIP_SECONDS = 0.1;
 export const TIMELINE_START_LEFT = 24;
-export const MAX_TIMELINE_ZOOM_SCALE_COUNT = 2000;
+const MAX_TIMELINE_ZOOM_SCALE_COUNT = 2000;
 export const TIMELINE_ZOOM_WHEEL_STEP = 24;
-export const TIMELINE_ZOOM_WIDTH_MULTIPLIERS = [0.72, 0.84, 0.96, 1.08, 1.2] as const;
+const TIMELINE_ZOOM_WIDTH_MULTIPLIERS = [0.72, 0.84, 0.96, 1.08, 1.2] as const;
 
 export type TimelineZoomPreset = {
   scale: number;
@@ -15,7 +15,7 @@ export type TimelineZoomPreset = {
 
 export type TimelineZoomLevel = TimelineZoomPreset;
 
-export const TIMELINE_ZOOM_PRESETS: readonly TimelineZoomPreset[] = [
+const TIMELINE_ZOOM_PRESETS: readonly TimelineZoomPreset[] = [
   { scale: 1, scaleSplitCount: 10, scaleWidth: 160 },
   { scale: 2, scaleSplitCount: 8, scaleWidth: 152 },
   { scale: 5, scaleSplitCount: 5, scaleWidth: 120 },
@@ -74,7 +74,7 @@ export function timelineScaleForDuration(seconds: number) {
   return { scale: 5 * 60, scaleSplitCount: 5, scaleWidth: 148 };
 }
 
-export function getTimelineZoomWidthLevels(preset: TimelineZoomPreset) {
+function getTimelineZoomWidthLevels(preset: TimelineZoomPreset) {
   return TIMELINE_ZOOM_WIDTH_MULTIPLIERS.map((widthMultiplier) => ({
     scale: preset.scale,
     scaleSplitCount: preset.scaleSplitCount,
