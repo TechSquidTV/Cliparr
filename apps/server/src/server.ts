@@ -1,6 +1,11 @@
 import "./config/loadEnv.js";
+import type { Server } from "node:http";
 import { createApp } from "./app.js";
 import { closeDatabase } from "./db/database.js";
+
+function hasCloseAllConnections(server: Server): server is Server & { closeAllConnections(): void } {
+  return "closeAllConnections" in server && typeof server.closeAllConnections === "function";
+}
 
 async function startServer() {
   const { app } = await createApp();
@@ -32,8 +37,8 @@ async function startServer() {
     console.log("Shutting down server...");
 
     // Close all connections immediately in modern Node.js to release ports faster
-    if ("closeAllConnections" in server) {
-      (server as any).closeAllConnections();
+    if (hasCloseAllConnections(server)) {
+      server.closeAllConnections();
     }
 
     server.close(() => {
@@ -50,13 +55,17 @@ async function startServer() {
     }, 1000).unref();
   };
 
-  process.on("SIGINT", shutdown);
-  process.on("SIGTERM", shutdown);
+  process.on("SIGINT", () => {
+    void shutdown();
+  });
+  process.on("SIGTERM", () => {
+    void shutdown();
+  });
 }
 
 
 
-startServer().catch((err) => {
+startServer().catch((err: unknown) => {
   console.error("Failed to start server", err);
   closeDatabase();
   process.exit(1);

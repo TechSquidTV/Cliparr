@@ -244,6 +244,9 @@ export default function EditorScreen({ session, onBack }: Props) {
   const timelineScrollLeftRef = useRef(0);
   const pendingTimelineScrollLeftRef = useRef<number | null>(null);
   const timelineWheelDeltaRef = useRef(0);
+  const startVideoIteratorRef = useRef<(() => Promise<void>) | null>(null);
+  const startRenderLoopRef = useRef<(() => void) | null>(null);
+  const disposePreviewRef = useRef<(() => void) | null>(null);
 
   const mediaUrl = session.mediaUrl ?? "";
   const hasDuration = duration > 0;
@@ -489,6 +492,7 @@ export default function EditorScreen({ session, onBack }: Props) {
       drawFrame(firstFrame);
     }
   };
+  startVideoIteratorRef.current = startVideoIterator;
 
   const updateNextFrame = async (generation: number) => {
     const iterator = videoFrameIteratorRef.current;
@@ -557,6 +561,7 @@ export default function EditorScreen({ session, onBack }: Props) {
     animationFrameRef.current = requestAnimationFrame(tick);
     renderIntervalRef.current = window.setInterval(renderFrame, 500);
   };
+  startRenderLoopRef.current = startRenderLoop;
 
   const disposePreview = () => {
     generationRef.current++;
@@ -575,6 +580,7 @@ export default function EditorScreen({ session, onBack }: Props) {
     audioContextRef.current = null;
     gainNodeRef.current = null;
   };
+  disposePreviewRef.current = disposePreview;
 
   const runAudioIterator = async (generation: number) => {
     const iterator = audioBufferIteratorRef.current;
@@ -741,7 +747,7 @@ export default function EditorScreen({ session, onBack }: Props) {
     if (currentPreviewTime < roundedStart || currentPreviewTime > roundedEnd) {
       playbackTimeAtStartRef.current = roundedStart;
       setCurrentTime(roundedStart);
-      void startVideoIterator();
+      void startVideoIteratorRef.current?.();
     }
   }, []);
 
@@ -910,9 +916,8 @@ export default function EditorScreen({ session, onBack }: Props) {
     hasDuration,
     availableTimelineZoomLevels,
     duration,
-    activeTimelineScale.scale,
-    activeTimelineScale.scaleWidth,
-  ]);
+      activeTimelineScale,
+    ]);
 
   useEffect(() => {
     if (!mediaUrl) {
@@ -920,7 +925,7 @@ export default function EditorScreen({ session, onBack }: Props) {
     }
 
     let cancelled = false;
-    disposePreview();
+    disposePreviewRef.current?.();
     const generation = generationRef.current;
 
     async function loadPreview() {
@@ -1018,11 +1023,11 @@ export default function EditorScreen({ session, onBack }: Props) {
           audioSinkRef.current = new AudioBufferSink(audioTrack);
         }
 
-        await startVideoIterator();
-        startRenderLoop();
+        await startVideoIteratorRef.current?.();
+        startRenderLoopRef.current?.();
       } catch (err) {
         if (!cancelled) {
-          disposePreview();
+          disposePreviewRef.current?.();
           setError(errorMessage(err));
         }
       } finally {
@@ -1036,9 +1041,9 @@ export default function EditorScreen({ session, onBack }: Props) {
 
     return () => {
       cancelled = true;
-      disposePreview();
+      disposePreviewRef.current?.();
     };
-  }, [mediaUrl, session.id]);
+  }, [mediaUrl, session.duration, session.id]);
 
   const handleExport = async () => {
     if (!mediaUrl) return;

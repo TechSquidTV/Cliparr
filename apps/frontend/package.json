@@ -6,7 +6,9 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "lint": "tsc --noEmit",
+    "lint": "pnpm lint:eslint && pnpm lint:types",
+    "lint:eslint": "pnpm exec eslint \"src/**/*.{ts,tsx}\" vite.config.js",
+    "lint:types": "tsc --noEmit",
     "preview": "vite preview",
     "clean": "rm -rf dist"
   },

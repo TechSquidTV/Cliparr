@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   AlertTriangle,
   CheckCircle2,
@@ -118,7 +118,7 @@ export default function SourcesModal({ isOpen, onClose, onSourcesChanged }: Prop
   const latestLoadRequestIdRef = useRef(0);
   const isOpenRef = useRef(isOpen);
 
-  async function applyLoadedSources(requestId: number) {
+  const applyLoadedSources = useCallback(async (requestId: number) => {
     const nextSources = sortSources(await cliparrClient.listSources());
     if (requestId !== latestLoadRequestIdRef.current || !isOpenRef.current) {
       return false;
@@ -127,11 +127,12 @@ export default function SourcesModal({ isOpen, onClose, onSourcesChanged }: Prop
     setSources(nextSources);
     setDraftNames(Object.fromEntries(nextSources.map((source) => [source.id, source.name])));
     return true;
-  }
+  }, []);
 
-  async function loadSources(mode: "initial" | "reload" = "initial") {
+  const loadSources = useCallback(async (mode: "initial" | "reload" = "initial") => {
     const requestId = latestLoadRequestIdRef.current + 1;
     latestLoadRequestIdRef.current = requestId;
+    const isCurrentRequest = () => requestId === latestLoadRequestIdRef.current && isOpenRef.current;
 
     if (mode === "initial") {
       setLoading(true);
@@ -144,7 +145,7 @@ export default function SourcesModal({ isOpen, onClose, onSourcesChanged }: Prop
     try {
       await applyLoadedSources(requestId);
     } catch (err) {
-      if (requestId !== latestLoadRequestIdRef.current || !isOpenRef.current) {
+      if (!isCurrentRequest()) {
         return;
       }
 
@@ -153,17 +154,15 @@ export default function SourcesModal({ isOpen, onClose, onSourcesChanged }: Prop
       setDraftNames({});
       setError(message);
     } finally {
-      if (requestId !== latestLoadRequestIdRef.current || !isOpenRef.current) {
-        return;
-      }
-
-      if (mode === "initial") {
-        setLoading(false);
-      } else {
-        setReloading(false);
+      if (isCurrentRequest()) {
+        if (mode === "initial") {
+          setLoading(false);
+        } else {
+          setReloading(false);
+        }
       }
     }
-  }
+  }, [applyLoadedSources]);
 
   function updateBusyAction(sourceId: string, action?: string) {
     setBusyActions((current) => {
@@ -378,7 +377,7 @@ export default function SourcesModal({ isOpen, onClose, onSourcesChanged }: Prop
 
     setFeedback(null);
     void loadSources();
-  }, [isOpen]);
+  }, [isOpen, loadSources]);
 
   useEffect(() => {
     if (!isOpen) {

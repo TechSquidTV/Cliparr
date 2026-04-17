@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { ArrowRight, Check, ExternalLink, Server, Video } from "lucide-react";
 import { cliparrClient } from "../api/cliparrClient";
@@ -38,6 +38,10 @@ function providerPresentation(provider: ProviderDefinition) {
 
 function isLoopbackUrl(value: string) {
   return /^https?:\/\/(?:localhost|127(?:\.\d{1,3}){3}|\[::1\]|::1)(?:[:/]|$)/i.test(value.trim());
+}
+
+function errorMessage(err: unknown, fallback: string) {
+  return err instanceof Error && err.message ? err.message : fallback;
 }
 
 function ProviderBadge({
@@ -88,9 +92,9 @@ export default function LoginScreen({ onLogin }: Props) {
         if (!cancelled) {
           setProviders(data);
         }
-      } catch (err: any) {
+      } catch (err: unknown) {
         if (!cancelled) {
-          setError(err.message || "Failed to load providers");
+          setError(errorMessage(err, "Failed to load providers"));
         }
       } finally {
         if (!cancelled) {
@@ -99,7 +103,7 @@ export default function LoginScreen({ onLogin }: Props) {
       }
     }
 
-    loadProviders();
+    void loadProviders();
     return () => {
       cancelled = true;
     };
@@ -117,9 +121,9 @@ export default function LoginScreen({ onLogin }: Props) {
   );
   const selectedProviderDetails = selectedProvider ? providerPresentation(selectedProvider) : undefined;
 
-  const providerLabel = (id: string) => {
+  const providerLabel = useCallback((id: string) => {
     return providers.find((provider) => provider.id === id)?.name ?? "provider";
-  };
+  }, [providers]);
 
   useEffect(() => {
     if (!authId || !providerId) {
@@ -141,17 +145,17 @@ export default function LoginScreen({ onLogin }: Props) {
           setAuthId("");
           setError(`That ${providerLabel(providerId)} sign-in expired. Start again when you're ready.`);
         }
-      } catch (err: any) {
+      } catch (err: unknown) {
         window.clearInterval(intervalId);
         setAuthenticating(false);
-        setError(err.message || `Failed to finish ${providerLabel(providerId)} sign-in`);
+        setError(errorMessage(err, `Failed to finish ${providerLabel(providerId)} sign-in`));
       }
     }, 1500);
 
     return () => {
       window.clearInterval(intervalId);
     };
-  }, [authId, providerId, onLogin, providers]);
+  }, [authId, onLogin, providerId, providerLabel]);
 
   const startAuth = async (provider: ProviderDefinition) => {
     setError("");
@@ -162,10 +166,10 @@ export default function LoginScreen({ onLogin }: Props) {
       const auth = await cliparrClient.startAuth(provider.id);
       setAuthId(auth.authId);
       window.open(auth.authUrl, "_blank", "noopener,noreferrer");
-    } catch (err: any) {
+    } catch (err: unknown) {
       setAuthenticating(false);
       setProviderId("");
-      setError(err.message || `Failed to start ${provider.name} sign-in`);
+      setError(errorMessage(err, `Failed to start ${provider.name} sign-in`));
     }
   };
 
@@ -182,10 +186,10 @@ export default function LoginScreen({ onLogin }: Props) {
         password,
       });
       onLogin(session);
-    } catch (err: any) {
+    } catch (err: unknown) {
       setAuthenticating(false);
       setProviderId("");
-      setError(err.message || `Failed to connect ${provider.name}`);
+      setError(errorMessage(err, `Failed to connect ${provider.name}`));
     }
   };
 

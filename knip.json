@@ -3,9 +3,11 @@
   "ignoreWorkspaces": ["."],
   "workspaces": {
     "apps/frontend": {
+      "ignoreBinaries": ["eslint"],
       "project": ["src/**/*.{ts,tsx}"]
     },
     "apps/server": {
+      "ignoreBinaries": ["eslint"],
       "project": ["src/**/*.ts"]
     }
   }

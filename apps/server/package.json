@@ -6,7 +6,9 @@
   "scripts": {
     "dev": "node --watch-path=./src --import tsx ./src/server.ts",
     "build": "tsc -p tsconfig.build.json",
-    "lint": "tsc --noEmit",
+    "lint": "pnpm lint:eslint && pnpm lint:types",
+    "lint:eslint": "pnpm exec eslint \"src/**/*.ts\"",
+    "lint:types": "tsc --noEmit",
     "db:generate": "drizzle-kit generate",
     "preview": "NODE_ENV=production tsx src/server.ts",
     "start": "NODE_ENV=production node dist/server.js",

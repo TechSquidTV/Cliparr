@@ -2,7 +2,7 @@ import { createHash, randomUUID } from "crypto";
 import { lookup } from "dns/promises";
 import { isIP } from "net";
 import { Readable } from "stream";
-import type { Request, Response } from "express";
+import type { Response } from "express";
 import type { MediaSource } from "../../db/mediaSourcesRepository.js";
 import { ApiError } from "../../http/errors.js";
 import type { ProviderSessionRecord } from "../../session/store.js";
