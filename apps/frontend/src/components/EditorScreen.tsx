@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { MIN_CLIP_SECONDS, roundTimelineTime } from "./editor/EditorUtils";
 import { useEditorPlayback } from "./editor/useEditorPlayback";
 import { useEditorTimeline } from "./editor/useEditorTimeline";
@@ -11,6 +11,20 @@ import type { CurrentlyPlayingItem } from "../providers/types";
 interface Props {
   session: CurrentlyPlayingItem;
   onBack: () => void;
+}
+
+function isInteractiveKeyboardTarget(target: EventTarget | null) {
+  if (!(target instanceof HTMLElement)) {
+    return false;
+  }
+
+  if (target.isContentEditable) {
+    return true;
+  }
+
+  return Boolean(
+    target.closest("input, textarea, select, button, [contenteditable=\"true\"], [role=\"slider\"]"),
+  );
 }
 
 export default function EditorScreen({ session, onBack }: Props) {
@@ -124,9 +138,34 @@ export default function EditorScreen({ session, onBack }: Props) {
     }
   };
 
+  useEffect(() => {
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.code !== "Space") {
+        return;
+      }
+
+      if (event.repeat || event.metaKey || event.ctrlKey || event.altKey) {
+        return;
+      }
+
+      if (isInteractiveKeyboardTarget(event.target)) {
+        return;
+      }
+
+      event.preventDefault();
+      togglePlay();
+    }
+
+    window.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [togglePlay]);
+
   if (!session.mediaUrl) {
     return (
-      <div className="min-h-screen bg-background text-foreground p-8 flex items-center justify-center">
+      <div className="flex h-dvh items-center justify-center overflow-hidden bg-background p-8 text-foreground">
         <div className="text-center">
           <p className="text-destructive mb-4">Could not find media file for this session.</p>
           <button onClick={onBack} className="text-primary hover:underline">Go Back</button>
@@ -136,7 +175,7 @@ export default function EditorScreen({ session, onBack }: Props) {
   }
 
   return (
-    <div className="min-h-screen bg-background text-foreground flex flex-col">
+    <div className="flex h-dvh flex-col overflow-hidden bg-background text-foreground">
       <EditorHeader
         title={session.title}
         onBack={onBack}
@@ -147,39 +186,41 @@ export default function EditorScreen({ session, onBack }: Props) {
         handleExport={handleExport}
       />
 
-      <main className="flex-1 flex flex-col items-center justify-center p-8 max-w-6xl mx-auto w-full gap-8">
-        {error && (
-          <div className="w-full bg-destructive/10 border border-destructive/20 text-destructive p-4 rounded-lg text-sm">
-            {error}
-          </div>
-        )}
+      <main className="min-h-0 flex-1 overflow-hidden p-3 sm:p-4">
+        <div className="flex h-full min-h-0 flex-col gap-3">
+          {error && (
+            <div className="border border-destructive/35 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+              {error}
+            </div>
+          )}
 
-        <EditorPreview
-          canvasRef={canvasRef}
-          playing={playing}
-          loadingPreview={loadingPreview}
-          previewStatus={previewStatus}
-          togglePlay={togglePlay}
-        />
+          <section className="flex min-h-0 flex-1 items-center justify-center overflow-hidden border border-border bg-card p-3">
+            <EditorPreview
+              canvasRef={canvasRef}
+              playing={playing}
+              loadingPreview={loadingPreview}
+              previewStatus={previewStatus}
+              togglePlay={togglePlay}
+            />
+          </section>
 
-        <div className="w-full bg-card text-card-foreground border border-border rounded-lg p-6">
-          <EditorControls
-            playing={playing}
-            loadingPreview={loadingPreview}
-            togglePlay={togglePlay}
-            currentTime={currentTime}
-            duration={duration}
-            startTime={startTime}
-            endTime={endTime}
-            muted={muted}
-            setMuted={setMuted}
-            volume={volume}
-            setVolume={setVolume}
-          />
+          <section className="shrink-0 overflow-hidden border border-border bg-card text-card-foreground">
+            <EditorControls
+              playing={playing}
+              loadingPreview={loadingPreview}
+              togglePlay={togglePlay}
+              currentTime={currentTime}
+              duration={duration}
+              startTime={startTime}
+              endTime={endTime}
+              muted={muted}
+              setMuted={setMuted}
+              volume={volume}
+              setVolume={setVolume}
+            />
 
-          <div className="space-y-4">
             {!hasDuration && (
-              <div className="bg-secondary/10 border border-secondary/20 text-secondary p-3 rounded-lg text-sm">
+              <div className="border-t border-border px-3 py-3 text-sm text-muted-foreground">
                 Waiting for media duration before clip controls can be adjusted.
               </div>
             )}
@@ -194,7 +235,6 @@ export default function EditorScreen({ session, onBack }: Props) {
                 timelineScaleCount={timelineScaleCount}
                 loadingPreview={loadingPreview}
                 playing={playing}
-                duration={duration}
                 handleTimelineScroll={handleTimelineScroll}
                 handleTimelineChange={handleTimelineChange}
                 handleTimelineWheel={handleTimelineWheel}
@@ -210,7 +250,7 @@ export default function EditorScreen({ session, onBack }: Props) {
                 }}
               />
             )}
-          </div>
+          </section>
         </div>
       </main>
     </div>

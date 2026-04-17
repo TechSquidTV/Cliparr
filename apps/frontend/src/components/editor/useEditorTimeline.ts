@@ -3,6 +3,7 @@ import type { TimelineState } from "@xzdarcy/react-timeline-editor";
 import { 
   getTimelineZoomLevels, 
   getClosestTimelineZoomIndex, 
+  getFittingTimelineZoomIndex,
   timelineScaleForDuration, 
   getTimelineZoomLevel, 
   roundTimelineTime, 
@@ -40,11 +41,13 @@ export function useEditorTimeline({
   const timelineScrollLeftRef = useRef(0);
   const pendingTimelineScrollLeftRef = useRef<number | null>(null);
   const timelineWheelDeltaRef = useRef(0);
+  const hasUserAdjustedTimelineZoomRef = useRef(false);
+  const [timelineViewportWidth, setTimelineViewportWidth] = useState(0);
 
   const hasDuration = duration > 0;
   
   const timelineEffects = useMemo<ClipTimelineEffects>(() => ({
-    source: { id: "source", name: "Full video" },
+    source: { id: "source", name: "Source" },
     clip: { id: "clip", name: "Clip" },
   }), []);
 
@@ -54,6 +57,17 @@ export function useEditorTimeline({
     () => getClosestTimelineZoomIndex(availableTimelineZoomLevels, defaultTimelineScale),
     [availableTimelineZoomLevels, defaultTimelineScale],
   );
+  const fitTimelineZoomIndex = useMemo(() => {
+    if (timelineViewportWidth <= 0) {
+      return defaultTimelineZoomIndex;
+    }
+
+    return getFittingTimelineZoomIndex(
+      availableTimelineZoomLevels,
+      duration,
+      timelineViewportWidth,
+    );
+  }, [availableTimelineZoomLevels, defaultTimelineZoomIndex, duration, timelineViewportWidth]);
 
   const [timelineZoomIndex, setTimelineZoomIndex] = useState(defaultTimelineZoomIndex);
   const timelineZoomIndexRef = useRef(timelineZoomIndex);
@@ -122,13 +136,48 @@ export function useEditorTimeline({
   }, [timelineZoomIndex]);
 
   useEffect(() => {
+    const timelineWheelRegion = timelineWheelRegionRef.current;
+    if (!timelineWheelRegion) return;
+
+    const updateViewportWidth = () => {
+      setTimelineViewportWidth(timelineWheelRegion.clientWidth || 0);
+    };
+
+    updateViewportWidth();
+
+    const resizeObserver = new ResizeObserver(() => {
+      updateViewportWidth();
+    });
+
+    resizeObserver.observe(timelineWheelRegion);
+
+    return () => {
+      resizeObserver.disconnect();
+    };
+  }, []);
+
+  useEffect(() => {
     setTimelineZoomIndex(defaultTimelineZoomIndex);
     timelineZoomIndexRef.current = defaultTimelineZoomIndex;
     timelineScrollLeftRef.current = 0;
     timelineWheelDeltaRef.current = 0;
+    hasUserAdjustedTimelineZoomRef.current = false;
     timelineRef.current?.setScrollLeft(0);
     pendingTimelineScrollLeftRef.current = 0;
   }, [defaultTimelineZoomIndex, sessionId]);
+
+  useEffect(() => {
+    if (!hasDuration || timelineViewportWidth <= 0 || hasUserAdjustedTimelineZoomRef.current) {
+      return;
+    }
+
+    setTimelineZoomIndex(fitTimelineZoomIndex);
+    timelineZoomIndexRef.current = fitTimelineZoomIndex;
+    timelineScrollLeftRef.current = 0;
+    timelineWheelDeltaRef.current = 0;
+    timelineRef.current?.setScrollLeft(0);
+    pendingTimelineScrollLeftRef.current = 0;
+  }, [fitTimelineZoomIndex, hasDuration, timelineViewportWidth]);
 
   useEffect(() => {
     const pendingScrollLeft = pendingTimelineScrollLeftRef.current;
@@ -196,8 +245,8 @@ export function useEditorTimeline({
     }
 
     timelineWheelDeltaRef.current += normalizedDeltaY;
-    const zoomDelta = Math.trunc(timelineWheelDeltaRef.current / TIMELINE_ZOOM_WHEEL_STEP);
-    if (zoomDelta === 0) return;
+    const accumulatedZoomDelta = Math.trunc(timelineWheelDeltaRef.current / TIMELINE_ZOOM_WHEEL_STEP);
+    if (accumulatedZoomDelta === 0) return;
 
     const currentZoomIndex = timelineZoomIndexRef.current;
     const currentTimelineScale = getTimelineZoomLevel(
@@ -206,7 +255,8 @@ export function useEditorTimeline({
       activeTimelineScale,
     );
     const currentScrollLeft = pendingTimelineScrollLeftRef.current ?? timelineScrollLeftRef.current;
-    timelineWheelDeltaRef.current -= zoomDelta * TIMELINE_ZOOM_WHEEL_STEP;
+    const zoomDelta = Math.sign(accumulatedZoomDelta);
+    timelineWheelDeltaRef.current = 0;
     const nextZoomIndex = Math.min(
       availableTimelineZoomLevels.length - 1,
       Math.max(0, currentZoomIndex + zoomDelta),
@@ -252,6 +302,7 @@ export function useEditorTimeline({
     pendingTimelineScrollLeftRef.current = nextScrollLeft;
     timelineScrollLeftRef.current = nextScrollLeft;
     timelineZoomIndexRef.current = nextZoomIndex;
+    hasUserAdjustedTimelineZoomRef.current = true;
 
     startTransition(() => {
       setTimelineZoomIndex(nextZoomIndex);

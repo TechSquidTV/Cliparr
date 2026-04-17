@@ -4,8 +4,8 @@ import type { ComponentProps } from "react";
 export const MIN_CLIP_SECONDS = 0.1;
 export const TIMELINE_START_LEFT = 24;
 const MAX_TIMELINE_ZOOM_SCALE_COUNT = 2000;
-export const TIMELINE_ZOOM_WHEEL_STEP = 24;
-const TIMELINE_ZOOM_WIDTH_MULTIPLIERS = [0.72, 0.84, 0.96, 1.08, 1.2] as const;
+export const TIMELINE_ZOOM_WHEEL_STEP = 80;
+const TIMELINE_ZOOM_WIDTH_MULTIPLIERS = [0.64, 0.72, 0.8, 0.88, 0.96, 1.04, 1.12, 1.2] as const;
 
 export type TimelineZoomPreset = {
   scale: number;
@@ -135,6 +135,22 @@ export function getClosestTimelineZoomIndex(levels: readonly TimelineZoomLevel[]
     const nextScaleDistance = Math.abs(level.scale - targetScale.scale);
     return nextScaleDistance < closestScaleDistance ? index : closestIndex;
   }, 0);
+}
+
+export function getFittingTimelineZoomIndex(
+  levels: readonly TimelineZoomLevel[],
+  duration: number,
+  viewportWidth: number,
+) {
+  const fittingIndex = levels.findIndex((level) => (
+    getTimelineMaxScrollLeft(duration, level.scale, level.scaleWidth, viewportWidth) <= 0
+  ));
+
+  if (fittingIndex !== -1) {
+    return fittingIndex;
+  }
+
+  return Math.max(levels.length - 1, 0);
 }
 
 export function timelinePixelToTime(pixel: number, scale: number, scaleWidth: number, startLeft: number) {
