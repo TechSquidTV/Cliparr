@@ -1,0 +1,149 @@
+services:
+  media-seed:
+    image: alpine:3.20
+    command:
+      - /bin/sh
+      - -lc
+      - apk add --no-cache curl >/dev/null && sh /scripts/seed-media.sh
+    environment:
+      MEDIA_ROOT: /media
+      BBB_URL: https://download.blender.org/peach/bigbuckbunny_movies/BigBuckBunny_320x180.mp4
+    volumes:
+      - ./docker:/scripts:ro
+      - cliparr-dev-media:/media
+    networks:
+      - cliparr-dev
+
+  jellyfin:
+    image: jellyfin/jellyfin:latest
+    hostname: jellyfin
+    depends_on:
+      media-seed:
+        condition: service_completed_successfully
+    environment:
+      JELLYFIN_PublishedServerUrl: http://localhost:8096
+    ports:
+      - "8096:8096"
+    volumes:
+      - jellyfin-config:/config
+      - jellyfin-cache:/cache
+      - cliparr-dev-media:/media:ro
+    networks:
+      - cliparr-dev
+    restart: unless-stopped
+
+  jellyfin-bootstrap:
+    image: alpine:3.20
+    depends_on:
+      media-seed:
+        condition: service_completed_successfully
+      jellyfin:
+        condition: service_started
+    command:
+      - /bin/sh
+      - -lc
+      - apk add --no-cache curl jq >/dev/null && sh /scripts/bootstrap-jellyfin.sh
+    environment:
+      JELLYFIN_BASE_URL: http://jellyfin:8096
+      JELLYFIN_ADMIN_USERNAME: cliparr
+      JELLYFIN_ADMIN_PASSWORD: cliparr-dev
+      JELLYFIN_LIBRARY_NAME: Movies
+      JELLYFIN_LIBRARY_PATH: /media/movies
+    volumes:
+      - ./docker:/scripts:ro
+    networks:
+      - cliparr-dev
+
+  plex:
+    image: plexinc/pms-docker:latest
+    depends_on:
+      media-seed:
+        condition: service_completed_successfully
+    environment:
+      TZ: ${TZ:-America/New_York}
+      PLEX_CLAIM: ${PLEX_CLAIM:-}
+      ADVERTISE_IP: http://localhost:32400/,http://plex:32400/
+      ALLOWED_NETWORKS: 172.28.0.0/16
+    ports:
+      - "32400:32400"
+    volumes:
+      - plex-config:/config
+      - plex-transcode:/transcode
+      - cliparr-dev-media:/data:ro
+    networks:
+      - cliparr-dev
+    restart: unless-stopped
+
+  plex-bootstrap:
+    image: alpine:3.20
+    depends_on:
+      media-seed:
+        condition: service_completed_successfully
+      plex:
+        condition: service_started
+    network_mode: service:plex
+    command:
+      - /bin/sh
+      - -lc
+      - apk add --no-cache curl jq >/dev/null && sh /scripts/bootstrap-plex.sh
+    environment:
+      PLEX_BASE_URL: http://127.0.0.1:32400
+      PLEX_LIBRARY_NAME: Movies
+      PLEX_LIBRARY_PATH: /data/movies
+      PLEX_LIBRARY_LANGUAGE: en-US
+    volumes:
+      - ./docker:/scripts:ro
+
+  cliparr:
+    image: node:24-slim
+    depends_on:
+      media-seed:
+        condition: service_completed_successfully
+      jellyfin-bootstrap:
+        condition: service_completed_successfully
+      plex-bootstrap:
+        condition: service_completed_successfully
+    working_dir: /workspace
+    command:
+      - /bin/sh
+      - -lc
+      - corepack enable && pnpm install --frozen-lockfile && pnpm run dev:docker
+    environment:
+      APP_URL: http://localhost:3000
+      APP_KEY: cliparr-dev-only-not-secure-key-1234
+      PORT: "3000"
+      CLIPARR_DATA_DIR: /data
+      CLIPARR_FRONTEND_URL: http://localhost:5173
+      CLIPARR_DEV_JELLYFIN_URL: http://jellyfin:8096
+      CHOKIDAR_USEPOLLING: "true"
+      VITE_CLIPARR_DEV_JELLYFIN_URL: http://jellyfin:8096
+    ports:
+      - "3000:3000"
+      - "5173:5173"
+    volumes:
+      - .:/workspace
+      - cliparr-dev-data:/data
+      - cliparr-dev-root-node-modules:/workspace/node_modules
+      - cliparr-dev-server-node-modules:/workspace/apps/server/node_modules
+      - cliparr-dev-frontend-node-modules:/workspace/apps/frontend/node_modules
+      - cliparr-dev-pnpm-store:/root/.local/share/pnpm/store
+    networks:
+      - cliparr-dev
+
+networks:
+  cliparr-dev:
+    ipam:
+      config:
+        - subnet: 172.28.0.0/16
+
+volumes:
+  cliparr-dev-media:
+  jellyfin-config:
+  jellyfin-cache:
+  plex-config:
+  plex-transcode:
+  cliparr-dev-data:
+  cliparr-dev-root-node-modules:
+  cliparr-dev-server-node-modules:
+  cliparr-dev-frontend-node-modules:
+  cliparr-dev-pnpm-store:
