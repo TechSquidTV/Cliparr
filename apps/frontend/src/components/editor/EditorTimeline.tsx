@@ -4,7 +4,7 @@ import "@xzdarcy/react-timeline-editor/dist/react-timeline-editor.css";
 import type { RefObject, WheelEvent as ReactWheelEvent } from "react";
 import { Scissors } from "lucide-react";
 import { 
-  formatTime, 
+  formatTime,
   TIMELINE_START_LEFT, 
   type ClipTimelineData, 
   type ClipTimelineEffects, 
@@ -21,7 +21,6 @@ interface EditorTimelineProps {
   timelineScaleCount: number;
   loadingPreview: boolean;
   playing: boolean;
-  duration: number;
   handleTimelineScroll: (data: { scrollLeft: number }) => void;
   handleTimelineChange: (data: ClipTimelineData) => void;
   handleTimelineWheel: (event: ReactWheelEvent<HTMLDivElement>) => void;
@@ -40,7 +39,6 @@ export function EditorTimeline({
   timelineScaleCount,
   loadingPreview,
   playing,
-  duration,
   handleTimelineScroll,
   handleTimelineChange,
   handleTimelineWheel,
@@ -49,19 +47,18 @@ export function EditorTimeline({
   onCursorDragStart,
   onCursorDrag,
 }: EditorTimelineProps) {
-  const renderClipTimelineAction = useCallback((action: ClipTimelineAction) => (
-    <div className="cliparr-timeline-action-content">
-      <span className="cliparr-timeline-action-label">
-        {action.effectId === "clip" && <Scissors className="h-3.5 w-3.5" />}
-        {action.effectId === "source" ? "Full video" : "Clip"}
-      </span>
-      <span className="cliparr-timeline-action-time">
-        {action.effectId === "source"
-          ? formatTime(action.end)
-          : `${formatTime(action.start)} - ${formatTime(action.end)}`}
-      </span>
-    </div>
-  ), []);
+  const renderClipTimelineAction = useCallback((action: ClipTimelineAction) => {
+    const isSource = action.effectId === "source";
+
+    return (
+      <div className="cliparr-timeline-action-content">
+        <span className="cliparr-timeline-action-label">
+          {!isSource && <Scissors className="h-3.5 w-3.5" />}
+          {isSource ? "Source" : "Selection"}
+        </span>
+      </div>
+    );
+  }, []);
 
   return (
     <div
@@ -69,10 +66,6 @@ export function EditorTimeline({
       className="cliparr-timeline"
       onWheelCapture={handleTimelineWheel}
     >
-      <div className="mb-2 flex items-center justify-between gap-3 text-xs text-muted-foreground">
-        <span>Full video</span>
-        <span className="font-mono">0:00 - {formatTime(duration)}</span>
-      </div>
       <Timeline
         ref={timelineRef}
         editorData={timelineData}
@@ -92,20 +85,7 @@ export function EditorTimeline({
         onChange={handleTimelineChange}
         onActionMoving={({ start, end }) => isValidTimelineRange(start, end)}
         onActionResizing={({ start, end }) => isValidTimelineRange(start, end)}
-        onActionMoveEnd={({ start }) => {
-          void seekToTime(start);
-        }}
-        onActionResizeEnd={({ start, end, dir }) => {
-          void seekToTime(dir === "left" ? start : end);
-        }}
         onClickTimeArea={(time) => {
-          void seekToTime(time);
-          return false;
-        }}
-        onClickRow={(_, { time }) => {
-          void seekToTime(time);
-        }}
-        onClickActionOnly={(_, { time }) => {
           void seekToTime(time);
         }}
         onCursorDragStart={onCursorDragStart}
