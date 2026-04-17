@@ -12,7 +12,7 @@ const DEFAULT_DATABASE_FILE = "cliparr.sqlite";
 const DEFAULT_DEVELOPMENT_DATA_DIR = ".cliparr-data";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-export type CliparrDatabase = NodeSQLiteDatabase<typeof schema>;
+type CliparrDatabase = NodeSQLiteDatabase<typeof schema>;
 
 let sqlite: DatabaseSync | undefined;
 let database: CliparrDatabase | undefined;
@@ -74,7 +74,7 @@ export function getDatabase() {
   return database;
 }
 
-export function getSqliteClient() {
+function getSqliteClient() {
   if (!sqlite) {
     throw new Error("Database has not been initialized.");
   }
@@ -88,13 +88,6 @@ export function closeDatabase() {
     sqlite = undefined;
     database = undefined;
   }
-}
-
-export function getDatabaseInfo() {
-  return {
-    dataDir,
-    databasePath,
-  };
 }
 
 export function checkDatabaseHealth() {

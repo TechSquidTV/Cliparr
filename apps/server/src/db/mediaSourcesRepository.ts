@@ -21,7 +21,7 @@ export interface MediaSource {
   updatedAt: string;
 }
 
-export interface CreateMediaSourceInput {
+interface CreateMediaSourceInput {
   providerId: string;
   providerAccountId: string;
   externalId?: string;
@@ -85,7 +85,7 @@ function listMediaSourcesWhere(where?: SQL<unknown>) {
   return rows.map(mapMediaSource);
 }
 
-export function createMediaSource(input: CreateMediaSourceInput) {
+function createMediaSource(input: CreateMediaSourceInput) {
   const db = getDatabase();
   const id = randomUUID();
 
@@ -126,7 +126,7 @@ export function updateMediaSource(id: string, input: UpdateMediaSourceInput) {
   return getMediaSource(id);
 }
 
-export function getMediaSource(id: string) {
+function getMediaSource(id: string) {
   return getMediaSourceWhere(eq(mediaSources.id, id));
 }
 
@@ -137,15 +137,6 @@ export function getMediaSourceForAccount(id: string, providerAccountId: string) 
   );
 
   return where ? getMediaSourceWhere(where) : undefined;
-}
-
-export function deleteMediaSource(id: string) {
-  const result = getDatabase()
-    .delete(mediaSources)
-    .where(eq(mediaSources.id, id))
-    .run();
-
-  return result.changes > 0;
 }
 
 export function deleteMediaSourceForAccount(id: string, providerAccountId: string) {
@@ -160,7 +151,7 @@ export function deleteMediaSourceForAccount(id: string, providerAccountId: strin
   return result.changes > 0;
 }
 
-export function getMediaSourceByProviderExternalId(
+function getMediaSourceByProviderExternalId(
   providerId: string,
   providerAccountId: string,
   externalId: string
@@ -237,20 +228,6 @@ export function listMediaSources(options: {
       : and(...filters);
 
   return listMediaSourcesWhere(where);
-}
-
-export function updateMediaSourceHealth(id: string, input: { lastCheckedAt: string; lastError?: string }) {
-  getDatabase()
-    .update(mediaSources)
-    .set({
-      lastCheckedAt: input.lastCheckedAt,
-      lastError: input.lastError ?? null,
-      updatedAt: sql`strftime('%Y-%m-%dT%H:%M:%fZ', 'now')`,
-    })
-    .where(eq(mediaSources.id, id))
-    .run();
-
-  return getMediaSource(id);
 }
 
 export function updateMediaSourceForAccount(id: string, providerAccountId: string, input: UpdateMediaSourceInput) {

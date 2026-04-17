@@ -4,7 +4,7 @@ import { getDatabase } from "./database.js";
 import { providerAccounts, type ProviderAccountRow } from "./schema.js";
 import { decryptSecret, encryptSecret, hashSecret } from "../security/secrets.js";
 
-export interface ProviderAccount {
+interface ProviderAccount {
   id: string;
   providerId: string;
   label: string;
@@ -14,14 +14,14 @@ export interface ProviderAccount {
   updatedAt: string;
 }
 
-export interface CreateProviderAccountInput {
+interface CreateProviderAccountInput {
   providerId: string;
   label: string;
   accessToken?: string;
   metadata?: Record<string, unknown>;
 }
 
-export interface UpdateProviderAccountInput {
+interface UpdateProviderAccountInput {
   label?: string;
   accessToken?: string;
   metadata?: Record<string, unknown>;
@@ -43,7 +43,7 @@ function mapProviderAccount(row: ProviderAccountRow): ProviderAccount {
   };
 }
 
-export function createProviderAccount(input: CreateProviderAccountInput) {
+function createProviderAccount(input: CreateProviderAccountInput) {
   const db = getDatabase();
   const id = randomUUID();
   const accessToken = normalizeAccessToken(input.accessToken);
@@ -60,7 +60,7 @@ export function createProviderAccount(input: CreateProviderAccountInput) {
   return getProviderAccount(id);
 }
 
-export function updateProviderAccount(id: string, input: UpdateProviderAccountInput) {
+function updateProviderAccount(id: string, input: UpdateProviderAccountInput) {
   const accessToken = input.accessToken !== undefined ? normalizeAccessToken(input.accessToken) : undefined;
 
   getDatabase()
@@ -82,7 +82,7 @@ export function updateProviderAccount(id: string, input: UpdateProviderAccountIn
   return getProviderAccount(id);
 }
 
-export function getProviderAccount(id: string) {
+function getProviderAccount(id: string) {
   const row = getDatabase()
     .select()
     .from(providerAccounts)
@@ -92,7 +92,7 @@ export function getProviderAccount(id: string) {
   return row ? mapProviderAccount(row) : undefined;
 }
 
-export function getProviderAccountByAccessToken(providerId: string, accessToken: string) {
+function getProviderAccountByAccessToken(providerId: string, accessToken: string) {
   const db = getDatabase();
   const tokenHash = hashSecret(accessToken);
   const row = db
@@ -158,13 +158,4 @@ export function upsertProviderAccountByAccessToken(input: CreateProviderAccountI
     .run();
 
   return getProviderAccountByAccessToken(input.providerId, input.accessToken);
-}
-
-export function listProviderAccounts(providerId?: string) {
-  const db = getDatabase();
-  const rows = providerId
-    ? db.select().from(providerAccounts).where(eq(providerAccounts.providerId, providerId)).all()
-    : db.select().from(providerAccounts).all();
-
-  return rows.map(mapProviderAccount);
 }

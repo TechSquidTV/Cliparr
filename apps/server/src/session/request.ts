@@ -11,7 +11,7 @@ export function getRequestSessionId(req: Request) {
   return readCookie(req.header("cookie"), getSessionCookieName());
 }
 
-export function requireSession(req: Request): ProviderSessionRecord {
+function requireSession(req: Request): ProviderSessionRecord {
   const session = getProviderSession(getRequestSessionId(req));
   if (!session) {
     throw new ApiError(401, "not_authenticated", "Sign in with a provider first");
@@ -21,14 +21,6 @@ export function requireSession(req: Request): ProviderSessionRecord {
 
 export function requireAccountSession(req: Request): ProviderSessionRecord {
   return requireSession(req);
-}
-
-export function requireProviderSession(req: Request, providerId: string) {
-  const session = requireSession(req);
-  if (session.providerId !== providerId) {
-    throw new ApiError(400, "provider_mismatch", "Session does not belong to that provider");
-  }
-  return session;
 }
 
 export function setNoStore(res: Response) {

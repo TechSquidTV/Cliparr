@@ -65,7 +65,7 @@ export function persistProviderAuth(input: {
   return account;
 }
 
-export function persistProviderResource(input: {
+function persistProviderResource(input: {
   providerId: string;
   providerAccountId: string;
   resource: ProviderResource;
