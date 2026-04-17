@@ -39,19 +39,33 @@ wait_for_public_info() {
   return 1
 }
 
-wait_for_startup_api() {
+startup_completed_from_public_info() {
+  printf '%s' "$1" | jq -r '.StartupWizardCompleted // false'
+}
+
+wait_for_startup_ready_or_completed() {
+  initial_public_info="$1"
+  public_info="$initial_public_info"
   attempt=0
 
   while [ "$attempt" -lt 60 ]; do
+    startup_completed="$(startup_completed_from_public_info "$public_info")"
+    if [ "$startup_completed" = "true" ]; then
+      printf '%s' "$public_info"
+      return 0
+    fi
+
     if curl -fsS "$JELLYFIN_BASE_URL/Startup/User" \
       -H "Authorization: $(jellyfin_auth_header)" \
       -H "Accept: application/json" \
       >/dev/null 2>&1; then
+      printf '%s' "$public_info"
       return 0
     fi
 
     attempt=$((attempt + 1))
     sleep 2
+    public_info="$(wait_for_public_info)"
   done
 
   echo "Timed out waiting for Jellyfin startup endpoints." >&2
@@ -112,11 +126,11 @@ login_jellyfin() {
 }
 
 public_info="$(wait_for_public_info)"
-startup_completed="$(printf '%s' "$public_info" | jq -r '.StartupWizardCompleted // false')"
+public_info="$(wait_for_startup_ready_or_completed "$public_info")"
+startup_completed="$(startup_completed_from_public_info "$public_info")"
 
 if [ "$startup_completed" != "true" ]; then
   echo "Completing Jellyfin startup wizard."
-  wait_for_startup_api
 
   post_jellyfin_with_retries \
     "/Startup/User" \
