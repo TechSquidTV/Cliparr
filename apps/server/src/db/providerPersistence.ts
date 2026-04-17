@@ -86,9 +86,11 @@ export function persistProviderResource(input: {
       selectedConnectionId: connection.id,
     },
     credentials: {
+      ...(input.resource.credentials ?? {}),
       accessToken: input.resource.accessToken,
     },
     metadata: {
+      ...(input.resource.metadata ?? {}),
       product: input.resource.product,
       platform: input.resource.platform,
       provides: input.resource.provides,

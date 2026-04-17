@@ -3,11 +3,12 @@ import type { MediaSource } from "../db/mediaSourcesRepository.js";
 import type { ProviderSessionRecord } from "../session/store.js";
 
 export type ProviderId = "plex" | string;
+export type ProviderAuthType = "pin" | "credentials";
 
 export interface ProviderDefinition {
   id: ProviderId;
   name: string;
-  auth: "pin";
+  auth: ProviderAuthType;
 }
 
 export interface ProviderAuthStart {
@@ -40,6 +41,8 @@ export interface ProviderResource {
   owned?: boolean;
   accessToken: string;
   connections: ProviderConnection[];
+  credentials?: Record<string, unknown>;
+  metadata?: Record<string, unknown>;
 }
 
 export interface ProviderSession {
@@ -125,6 +128,7 @@ export interface MediaHandle {
   baseUrl: string;
   path: string;
   token: string;
+  deviceId?: string;
   basePath?: string;
   lastAccessedAt: number;
 }
@@ -132,6 +136,7 @@ export interface MediaHandle {
 export type ProviderSourceCheckResult =
   | {
       ok: true;
+      name?: string;
       baseUrl?: string;
       connection?: Record<string, unknown>;
       metadata?: Record<string, unknown>;
@@ -143,11 +148,15 @@ export type ProviderSourceCheckResult =
 
 export interface ProviderImplementation {
   definition: ProviderDefinition;
-  startAuth(): Promise<ProviderAuthStart>;
-  pollAuth(authId: string): Promise<{
+  startAuth?(): Promise<ProviderAuthStart>;
+  pollAuth?(authId: string): Promise<{
     status: ProviderAuthStatus["status"];
     userToken?: string;
     resources?: ProviderResource[];
+  }>;
+  authenticateWithCredentials?(body: unknown): Promise<{
+    userToken: string;
+    resources: ProviderResource[];
   }>;
   supportsCurrentlyPlayingSource?(source: MediaSource): boolean;
   checkSource(source: MediaSource): Promise<ProviderSourceCheckResult>;

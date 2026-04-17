@@ -161,6 +161,7 @@ sourcesRouter.post(
     }
 
     const updatedSource = updateMediaSource(source.id, {
+      ...(result.name !== undefined ? { name: result.name } : {}),
       ...(result.baseUrl !== undefined ? { baseUrl: result.baseUrl } : {}),
       ...(result.connection !== undefined ? { connection: result.connection } : {}),
       ...(result.metadata !== undefined ? { metadata: result.metadata } : {}),

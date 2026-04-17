@@ -53,6 +53,17 @@ export const cliparrClient = {
     return request<ProviderAuthStatus>(`/api/providers/${providerId}/auth/${authId}`);
   },
 
+  async loginWithCredentials(
+    providerId: string,
+    input: { serverUrl: string; username: string; password: string }
+  ) {
+    const data = await request<{ session: ProviderSession }>(`/api/providers/${providerId}/auth/login`, {
+      method: "POST",
+      body: JSON.stringify(input),
+    });
+    return data.session;
+  },
+
   async getSession() {
     const data = await request<{ session: ProviderSession }>("/api/session");
     return data.session;
