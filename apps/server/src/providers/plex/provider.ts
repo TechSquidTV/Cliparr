@@ -15,6 +15,7 @@ import type { ProviderSessionRecord } from "../../session/store.js";
 const PLEX_PRODUCT = "Cliparr";
 const PLEX_CLIENT_IDENTIFIER = process.env.PLEX_CLIENT_IDENTIFIER ?? `cliparr-${randomUUID()}`;
 const AUTH_TTL_MS = 1000 * 60 * 10;
+const MAX_PENDING_AUTH_REQUESTS = 512;
 const DEFAULT_APP_URL = "http://localhost:3000";
 const PLEX_AUTH_COMPLETE_PATH = "/auth/plex/complete";
 const CONNECTION_PROBE_TIMEOUT_MS = 2500;
@@ -52,6 +53,14 @@ interface PlexSourceContext {
   sourceId: string;
   baseUrl: string;
   token: string;
+}
+
+function pruneExpiredAuthRequests(now = Date.now()) {
+  for (const [authId, authRequest] of authRequests.entries()) {
+    if (authRequest.expiresAt <= now) {
+      authRequests.delete(authId);
+    }
+  }
 }
 
 function getPlexAuthCompleteUrl() {
@@ -878,6 +887,11 @@ export const plexProvider: ProviderImplementation = {
   },
 
   async startAuth() {
+    pruneExpiredAuthRequests();
+    if (authRequests.size >= MAX_PENDING_AUTH_REQUESTS) {
+      throw new ApiError(503, "plex_auth_busy", "Too many pending Plex sign-ins. Wait a moment and try again.");
+    }
+
     const response = await plexFetch("https://plex.tv/api/v2/pins?strong=true", {
       method: "POST",
     });
@@ -912,6 +926,7 @@ export const plexProvider: ProviderImplementation = {
   },
 
   async pollAuth(authId) {
+    pruneExpiredAuthRequests();
     const authRequest = authRequests.get(authId);
     if (!authRequest) {
       return { status: "expired" as const };

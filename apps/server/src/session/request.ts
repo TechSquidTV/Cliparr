@@ -19,6 +19,10 @@ export function requireSession(req: Request): ProviderSessionRecord {
   return session;
 }
 
+export function requireAccountSession(req: Request): ProviderSessionRecord {
+  return requireSession(req);
+}
+
 export function requireProviderSession(req: Request, providerId: string) {
   const session = requireSession(req);
   if (session.providerId !== providerId) {

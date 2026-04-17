@@ -73,6 +73,7 @@ volumes:
 | `APP_KEY` | **Required** secret for credential encryption. | - |
 | `PORT` | Internal port for the Express server. | `3000` |
 | `CLIPARR_DATA_DIR` | Directory for SQLite storage. | `/data` |
+| `CLIPARR_ALLOW_LOOPBACK_JELLYFIN_URLS` | Allow Jellyfin URLs that resolve to `localhost`/loopback. Use only for trusted self-hosted setups. | `false` |
 
 ## Development
 

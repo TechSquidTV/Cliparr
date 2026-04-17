@@ -1,16 +1,16 @@
 import { Router } from "express";
 import {
-  deleteMediaSource,
-  getMediaSource,
   listMediaSources,
-  updateMediaSource,
-  updateMediaSourceHealth,
+  getMediaSourceForAccount,
+  deleteMediaSourceForAccount,
+  updateMediaSourceForAccount,
+  updateMediaSourceHealthForAccount,
   type MediaSource,
   type UpdateMediaSourceInput,
 } from "../db/mediaSourcesRepository.js";
 import { ApiError, asyncHandler } from "../http/errors.js";
 import { getProvider } from "../providers/registry.js";
-import { requireSession, setNoStore } from "../session/request.js";
+import { requireAccountSession, setNoStore } from "../session/request.js";
 
 export const sourcesRouter = Router();
 
@@ -29,8 +29,8 @@ function serializeSource(source: MediaSource) {
   };
 }
 
-function requireMediaSource(sourceId: string) {
-  const source = getMediaSource(sourceId);
+function requireMediaSource(session: ReturnType<typeof requireAccountSession>, sourceId: string) {
+  const source = getMediaSourceForAccount(sourceId, session.providerAccountId);
   if (!source) {
     throw new ApiError(404, "source_not_found", "Source was not found");
   }
@@ -77,10 +77,10 @@ function parseSourceUpdate(body: unknown): UpdateMediaSourceInput {
 sourcesRouter.get(
   "/",
   asyncHandler(async (req, res) => {
-    requireSession(req);
+    const session = requireAccountSession(req);
     setNoStore(res);
     res.json({
-      sources: listMediaSources().map(serializeSource),
+      sources: listMediaSources({ providerAccountId: session.providerAccountId }).map(serializeSource),
     });
   })
 );
@@ -88,9 +88,9 @@ sourcesRouter.get(
 sourcesRouter.get(
   "/:id",
   asyncHandler(async (req, res) => {
-    requireSession(req);
+    const session = requireAccountSession(req);
     setNoStore(res);
-    const source = requireMediaSource(req.params.id as string);
+    const source = requireMediaSource(session, req.params.id as string);
     res.json({ source: serializeSource(source) });
   })
 );
@@ -98,10 +98,14 @@ sourcesRouter.get(
 sourcesRouter.patch(
   "/:id",
   asyncHandler(async (req, res) => {
-    requireSession(req);
+    const session = requireAccountSession(req);
     setNoStore(res);
-    requireMediaSource(req.params.id as string);
-    const source = updateMediaSource(req.params.id as string, parseSourceUpdate(req.body));
+    requireMediaSource(session, req.params.id as string);
+    const source = updateMediaSourceForAccount(
+      req.params.id as string,
+      session.providerAccountId,
+      parseSourceUpdate(req.body)
+    );
     if (!source) {
       throw new ApiError(404, "source_not_found", "Source was not found");
     }
@@ -112,11 +116,11 @@ sourcesRouter.patch(
 sourcesRouter.delete(
   "/:id",
   asyncHandler(async (req, res) => {
-    requireSession(req);
+    const session = requireAccountSession(req);
     setNoStore(res);
-    const source = requireMediaSource(req.params.id as string);
+    const source = requireMediaSource(session, req.params.id as string);
 
-    const deleted = deleteMediaSource(source.id);
+    const deleted = deleteMediaSourceForAccount(source.id, session.providerAccountId);
     if (!deleted) {
       throw new ApiError(404, "source_not_found", "Source was not found");
     }
@@ -128,10 +132,10 @@ sourcesRouter.delete(
 sourcesRouter.post(
   "/:id/check",
   asyncHandler(async (req, res) => {
-    requireSession(req);
+    const session = requireAccountSession(req);
     setNoStore(res);
 
-    const source = requireMediaSource(req.params.id as string);
+    const source = requireMediaSource(session, req.params.id as string);
     const provider = getProvider(source.providerId);
     if (!provider) {
       throw new ApiError(500, "provider_not_registered", "Source provider is not registered");
@@ -141,7 +145,7 @@ sourcesRouter.post(
     const result = await provider.checkSource(source);
 
     if (!result.ok) {
-      const updatedSource = updateMediaSourceHealth(source.id, {
+      const updatedSource = updateMediaSourceHealthForAccount(source.id, session.providerAccountId, {
         lastCheckedAt: checkedAt,
         lastError: result.message,
       });
@@ -160,7 +164,7 @@ sourcesRouter.post(
       return;
     }
 
-    const updatedSource = updateMediaSource(source.id, {
+    const updatedSource = updateMediaSourceForAccount(source.id, session.providerAccountId, {
       ...(result.name !== undefined ? { name: result.name } : {}),
       ...(result.baseUrl !== undefined ? { baseUrl: result.baseUrl } : {}),
       ...(result.connection !== undefined ? { connection: result.connection } : {}),

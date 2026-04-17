@@ -1,5 +1,5 @@
 import { randomUUID } from "crypto";
-import { and, asc, eq, sql } from "drizzle-orm";
+import { and, asc, eq, sql, type SQL } from "drizzle-orm";
 import { getDatabase } from "./database.js";
 import { mediaSources, type MediaSourceRow } from "./schema.js";
 import { decryptJsonSecrets, encryptJsonSecrets } from "../security/secrets.js";
@@ -7,7 +7,7 @@ import { decryptJsonSecrets, encryptJsonSecrets } from "../security/secrets.js";
 export interface MediaSource {
   id: string;
   providerId: string;
-  providerAccountId?: string;
+  providerAccountId: string;
   externalId?: string;
   name: string;
   enabled: boolean;
@@ -23,7 +23,7 @@ export interface MediaSource {
 
 export interface CreateMediaSourceInput {
   providerId: string;
-  providerAccountId?: string;
+  providerAccountId: string;
   externalId?: string;
   name: string;
   enabled?: boolean;
@@ -34,7 +34,6 @@ export interface CreateMediaSourceInput {
 }
 
 export interface UpdateMediaSourceInput {
-  providerAccountId?: string | null;
   externalId?: string | null;
   name?: string;
   enabled?: boolean;
@@ -50,7 +49,7 @@ function mapMediaSource(row: MediaSourceRow): MediaSource {
   return {
     id: row.id,
     providerId: row.providerId,
-    providerAccountId: row.providerAccountId ?? undefined,
+    providerAccountId: row.providerAccountId,
     externalId: row.externalId ?? undefined,
     name: row.name,
     enabled: row.enabled,
@@ -65,6 +64,27 @@ function mapMediaSource(row: MediaSourceRow): MediaSource {
   };
 }
 
+function getMediaSourceWhere(where: SQL<unknown>) {
+  const row = getDatabase()
+    .select()
+    .from(mediaSources)
+    .where(where)
+    .get();
+
+  return row ? mapMediaSource(row) : undefined;
+}
+
+function listMediaSourcesWhere(where?: SQL<unknown>) {
+  const query = getDatabase()
+    .select()
+    .from(mediaSources);
+  const rows = where
+    ? query.where(where).orderBy(asc(mediaSources.name)).all()
+    : query.orderBy(asc(mediaSources.name)).all();
+
+  return rows.map(mapMediaSource);
+}
+
 export function createMediaSource(input: CreateMediaSourceInput) {
   const db = getDatabase();
   const id = randomUUID();
@@ -72,7 +92,7 @@ export function createMediaSource(input: CreateMediaSourceInput) {
   db.insert(mediaSources).values({
     id,
     providerId: input.providerId,
-    providerAccountId: input.providerAccountId ?? null,
+    providerAccountId: input.providerAccountId,
     externalId: input.externalId ?? null,
     name: input.name,
     enabled: input.enabled ?? true,
@@ -89,7 +109,6 @@ export function updateMediaSource(id: string, input: UpdateMediaSourceInput) {
   getDatabase()
     .update(mediaSources)
     .set({
-      ...(input.providerAccountId !== undefined ? { providerAccountId: input.providerAccountId } : {}),
       ...(input.externalId !== undefined ? { externalId: input.externalId } : {}),
       ...(input.name !== undefined ? { name: input.name } : {}),
       ...(input.enabled !== undefined ? { enabled: input.enabled } : {}),
@@ -108,13 +127,16 @@ export function updateMediaSource(id: string, input: UpdateMediaSourceInput) {
 }
 
 export function getMediaSource(id: string) {
-  const row = getDatabase()
-    .select()
-    .from(mediaSources)
-    .where(eq(mediaSources.id, id))
-    .get();
+  return getMediaSourceWhere(eq(mediaSources.id, id));
+}
 
-  return row ? mapMediaSource(row) : undefined;
+export function getMediaSourceForAccount(id: string, providerAccountId: string) {
+  const where = and(
+    eq(mediaSources.id, id),
+    eq(mediaSources.providerAccountId, providerAccountId)
+  );
+
+  return where ? getMediaSourceWhere(where) : undefined;
 }
 
 export function deleteMediaSource(id: string) {
@@ -126,14 +148,30 @@ export function deleteMediaSource(id: string) {
   return result.changes > 0;
 }
 
-export function getMediaSourceByProviderExternalId(providerId: string, externalId: string) {
-  const row = getDatabase()
-    .select()
-    .from(mediaSources)
-    .where(and(eq(mediaSources.providerId, providerId), eq(mediaSources.externalId, externalId)))
-    .get();
+export function deleteMediaSourceForAccount(id: string, providerAccountId: string) {
+  const result = getDatabase()
+    .delete(mediaSources)
+    .where(and(
+      eq(mediaSources.id, id),
+      eq(mediaSources.providerAccountId, providerAccountId)
+    ))
+    .run();
 
-  return row ? mapMediaSource(row) : undefined;
+  return result.changes > 0;
+}
+
+export function getMediaSourceByProviderExternalId(
+  providerId: string,
+  providerAccountId: string,
+  externalId: string
+) {
+  const where = and(
+    eq(mediaSources.providerId, providerId),
+    eq(mediaSources.providerAccountId, providerAccountId),
+    eq(mediaSources.externalId, externalId)
+  );
+
+  return where ? getMediaSourceWhere(where) : undefined;
 }
 
 export function upsertMediaSource(input: CreateMediaSourceInput) {
@@ -147,7 +185,7 @@ export function upsertMediaSource(input: CreateMediaSourceInput) {
     .values({
       id: randomUUID(),
       providerId: input.providerId,
-      providerAccountId: input.providerAccountId ?? null,
+      providerAccountId: input.providerAccountId,
       externalId: input.externalId,
       name: input.name,
       enabled: input.enabled ?? true,
@@ -157,10 +195,8 @@ export function upsertMediaSource(input: CreateMediaSourceInput) {
       metadata: input.metadata ?? {},
     })
     .onConflictDoUpdate({
-      target: [mediaSources.providerId, mediaSources.externalId],
-      targetWhere: sql`${mediaSources.externalId} IS NOT NULL`,
+      target: [mediaSources.providerId, mediaSources.providerAccountId, mediaSources.externalId],
       set: {
-        ...(input.providerAccountId !== undefined ? { providerAccountId: input.providerAccountId } : {}),
         name: input.name,
         ...(input.enabled !== undefined ? { enabled: input.enabled } : {}),
         baseUrl: input.baseUrl,
@@ -172,39 +208,35 @@ export function upsertMediaSource(input: CreateMediaSourceInput) {
     })
     .run();
 
-  return getMediaSourceByProviderExternalId(input.providerId, input.externalId);
+  return getMediaSourceByProviderExternalId(input.providerId, input.providerAccountId, input.externalId);
 }
 
-export function listMediaSources(options: { enabledOnly?: boolean; providerId?: string } = {}) {
-  const db = getDatabase();
-  const orderBy = asc(mediaSources.name);
-  const enabledFilter = eq(mediaSources.enabled, true);
-
-  if (options.enabledOnly && options.providerId) {
-    return db.select().from(mediaSources)
-      .where(and(enabledFilter, eq(mediaSources.providerId, options.providerId)))
-      .orderBy(orderBy)
-      .all()
-      .map(mapMediaSource);
-  }
+export function listMediaSources(options: {
+  enabledOnly?: boolean;
+  providerId?: string;
+  providerAccountId?: string;
+} = {}) {
+  const filters: SQL<unknown>[] = [];
 
   if (options.enabledOnly) {
-    return db.select().from(mediaSources)
-      .where(enabledFilter)
-      .orderBy(orderBy)
-      .all()
-      .map(mapMediaSource);
+    filters.push(eq(mediaSources.enabled, true));
   }
 
   if (options.providerId) {
-    return db.select().from(mediaSources)
-      .where(eq(mediaSources.providerId, options.providerId))
-      .orderBy(orderBy)
-      .all()
-      .map(mapMediaSource);
+    filters.push(eq(mediaSources.providerId, options.providerId));
   }
 
-  return db.select().from(mediaSources).orderBy(orderBy).all().map(mapMediaSource);
+  if (options.providerAccountId) {
+    filters.push(eq(mediaSources.providerAccountId, options.providerAccountId));
+  }
+
+  const where = filters.length === 0
+    ? undefined
+    : filters.length === 1
+      ? filters[0]
+      : and(...filters);
+
+  return listMediaSourcesWhere(where);
 }
 
 export function updateMediaSourceHealth(id: string, input: { lastCheckedAt: string; lastError?: string }) {
@@ -219,4 +251,49 @@ export function updateMediaSourceHealth(id: string, input: { lastCheckedAt: stri
     .run();
 
   return getMediaSource(id);
+}
+
+export function updateMediaSourceForAccount(id: string, providerAccountId: string, input: UpdateMediaSourceInput) {
+  getDatabase()
+    .update(mediaSources)
+    .set({
+      ...(input.externalId !== undefined ? { externalId: input.externalId } : {}),
+      ...(input.name !== undefined ? { name: input.name } : {}),
+      ...(input.enabled !== undefined ? { enabled: input.enabled } : {}),
+      ...(input.baseUrl !== undefined ? { baseUrl: input.baseUrl } : {}),
+      ...(input.connection !== undefined ? { connection: encryptJsonSecrets(input.connection) } : {}),
+      ...(input.credentials !== undefined ? { credentials: encryptJsonSecrets(input.credentials) } : {}),
+      ...(input.metadata !== undefined ? { metadata: input.metadata } : {}),
+      ...(input.lastCheckedAt !== undefined ? { lastCheckedAt: input.lastCheckedAt } : {}),
+      ...(input.lastError !== undefined ? { lastError: input.lastError } : {}),
+      updatedAt: sql`strftime('%Y-%m-%dT%H:%M:%fZ', 'now')`,
+    })
+    .where(and(
+      eq(mediaSources.id, id),
+      eq(mediaSources.providerAccountId, providerAccountId)
+    ))
+    .run();
+
+  return getMediaSourceForAccount(id, providerAccountId);
+}
+
+export function updateMediaSourceHealthForAccount(
+  id: string,
+  providerAccountId: string,
+  input: { lastCheckedAt: string; lastError?: string }
+) {
+  getDatabase()
+    .update(mediaSources)
+    .set({
+      lastCheckedAt: input.lastCheckedAt,
+      lastError: input.lastError ?? null,
+      updatedAt: sql`strftime('%Y-%m-%dT%H:%M:%fZ', 'now')`,
+    })
+    .where(and(
+      eq(mediaSources.id, id),
+      eq(mediaSources.providerAccountId, providerAccountId)
+    ))
+    .run();
+
+  return getMediaSourceForAccount(id, providerAccountId);
 }

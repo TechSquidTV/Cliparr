@@ -41,9 +41,11 @@ export function persistProviderAuth(input: {
   }
 
   const activeResourceIds = new Set(input.resources.map((resource) => resource.id));
-  const staleSources = listMediaSources({ providerId: input.provider.id }).filter((source) =>
-    source.providerAccountId === account.id
-    && typeof source.externalId === "string"
+  const staleSources = listMediaSources({
+    providerId: input.provider.id,
+    providerAccountId: account.id,
+  }).filter((source) =>
+    typeof source.externalId === "string"
     && !activeResourceIds.has(source.externalId)
     && source.enabled
   );

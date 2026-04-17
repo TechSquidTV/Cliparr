@@ -1,4 +1,6 @@
 import { createHash, randomUUID } from "crypto";
+import { lookup } from "dns/promises";
+import { isIP } from "net";
 import { Readable } from "stream";
 import type { Request, Response } from "express";
 import type { MediaSource } from "../../db/mediaSourcesRepository.js";
@@ -18,6 +20,12 @@ const JELLYFIN_VERSION = process.env.npm_package_version ?? "0.0.0";
 const JELLYFIN_REQUEST_TIMEOUT_MS = 5000;
 const CURRENT_PLAYBACK_REQUEST_TIMEOUT_MS = 5000;
 const JELLYFIN_DEV_BASE_URL = stringValue(process.env.CLIPARR_DEV_JELLYFIN_URL);
+const ALLOW_LOOPBACK_JELLYFIN_URLS = booleanEnv(process.env.CLIPARR_ALLOW_LOOPBACK_JELLYFIN_URLS);
+const DISALLOWED_JELLYFIN_HOSTNAMES = new Set([
+  "metadata",
+  "metadata.azure.internal",
+  "metadata.google.internal",
+]);
 
 interface JellyfinSourceContext {
   sourceId: string;
@@ -47,6 +55,11 @@ function numberValue(value: unknown) {
 
 function booleanValue(value: unknown) {
   return typeof value === "boolean" ? value : undefined;
+}
+
+function booleanEnv(value: string | undefined) {
+  const normalized = value?.trim().toLowerCase();
+  return normalized === "1" || normalized === "true" || normalized === "yes" || normalized === "on";
 }
 
 function asArray<T>(value: T | T[] | null | undefined): T[] {
@@ -118,8 +131,110 @@ function normalizeBaseUrl(url: string) {
 }
 
 function isLoopbackHost(hostname: string) {
-  const host = hostname.toLowerCase();
-  return host === "localhost" || host === "::1" || host === "[::1]" || host.startsWith("127.");
+  const host = normalizeHostname(hostname);
+  return host === "localhost" || host === "::1" || host.startsWith("127.");
+}
+
+function normalizeIpCandidate(value: string) {
+  const normalized = value.toLowerCase();
+  if (normalized.startsWith("[") && normalized.endsWith("]")) {
+    return normalized.slice(1, -1);
+  }
+
+  return normalized.startsWith("::ffff:") ? normalized.slice(7) : normalized;
+}
+
+function normalizeHostname(value: string) {
+  return normalizeIpCandidate(value.trim()).replace(/\.+$/, "");
+}
+
+function isUnspecifiedHost(hostname: string) {
+  const host = normalizeHostname(hostname);
+  return host === "0.0.0.0" || host === "::";
+}
+
+function isLinkLocalHost(hostname: string) {
+  const host = normalizeHostname(hostname);
+  return host.startsWith("169.254.") || /^fe[89ab][0-9a-f]:/i.test(host);
+}
+
+function isMulticastHost(hostname: string) {
+  const host = normalizeHostname(hostname);
+  if (/^ff[0-9a-f]{2}:/i.test(host)) {
+    return true;
+  }
+
+  const firstOctet = Number(host.split(".")[0]);
+  return Number.isInteger(firstOctet) && firstOctet >= 224 && firstOctet <= 239;
+}
+
+async function resolveHostnameAddresses(hostname: string) {
+  const normalized = normalizeHostname(hostname);
+  if (isIP(normalized)) {
+    return [];
+  }
+
+  try {
+    const records = await lookup(normalized, {
+      all: true,
+      verbatim: true,
+    });
+
+    return uniqueStrings(records.map((record) => normalizeIpCandidate(record.address)));
+  } catch {
+    throw new ApiError(
+      400,
+      "invalid_jellyfin_server_url",
+      "Jellyfin serverUrl hostname could not be resolved for security validation"
+    );
+  }
+}
+
+function assertAllowedResolvedAddress(address: string) {
+  if (isUnspecifiedHost(address) || isLinkLocalHost(address) || isMulticastHost(address)) {
+    throw new ApiError(
+      400,
+      "invalid_jellyfin_server_url",
+      "Jellyfin serverUrl resolved to an unsafe address"
+    );
+  }
+
+  if (isLoopbackHost(address) && !ALLOW_LOOPBACK_JELLYFIN_URLS && !JELLYFIN_DEV_BASE_URL) {
+    throw new ApiError(
+      400,
+      "invalid_jellyfin_server_url",
+      "For security, localhost Jellyfin URLs are disabled unless CLIPARR_ALLOW_LOOPBACK_JELLYFIN_URLS is enabled"
+    );
+  }
+}
+
+async function assertAllowedJellyfinServerUrl(url: string) {
+  const parsed = assertHttpUrl(url.trim());
+  const hostname = normalizeHostname(parsed.hostname);
+
+  if (DISALLOWED_JELLYFIN_HOSTNAMES.has(hostname)) {
+    throw new ApiError(
+      400,
+      "invalid_jellyfin_server_url",
+      "Jellyfin serverUrl must point at your Jellyfin server, not a cloud metadata hostname"
+    );
+  }
+
+  if (isUnspecifiedHost(hostname) || isLinkLocalHost(hostname) || isMulticastHost(hostname)) {
+    throw new ApiError(
+      400,
+      "invalid_jellyfin_server_url",
+      "Jellyfin serverUrl must point at your Jellyfin server, not an unspecified, link-local, or multicast host"
+    );
+  }
+
+  assertAllowedResolvedAddress(hostname);
+
+  for (const address of await resolveHostnameAddresses(hostname)) {
+    assertAllowedResolvedAddress(address);
+  }
+
+  return parsed;
 }
 
 function resolveJellyfinBaseUrl(url: string) {
@@ -253,6 +368,7 @@ async function jellyfinFetch(
     timeoutMs?: number;
     errorCode?: string;
     failureMessage?: string;
+    exposeFailureDetail?: boolean;
   } = {}
 ) {
   const controller = new AbortController();
@@ -272,17 +388,21 @@ async function jellyfinFetch(
     });
 
     if (!response.ok && response.status !== 206) {
+      const failureMessage = options.failureMessage ?? "Jellyfin request failed";
+      const exposeFailureDetail = options.exposeFailureDetail ?? true;
       const detail = (await response.text().catch(() => ""))
         .slice(0, 400)
         .replace(/\s+/g, " ")
         .trim();
 
       throw new ApiError(
-        response.status,
+        !exposeFailureDetail && response.status !== 401 ? 502 : response.status,
         options.errorCode ?? "jellyfin_request_failed",
-        detail
-          ? `${options.failureMessage ?? "Jellyfin request failed"}: ${detail}`
-          : `${options.failureMessage ?? "Jellyfin request failed"}: ${response.status} ${response.statusText}`
+        !exposeFailureDetail
+          ? failureMessage
+          : detail
+            ? `${failureMessage}: ${detail}`
+            : `${failureMessage}: ${response.status} ${response.statusText}`
       );
     }
 
@@ -312,7 +432,9 @@ async function jellyfinFetch(
     throw new ApiError(
       502,
       options.errorCode ?? "jellyfin_request_failed",
-      `${options.failureMessage ?? "Jellyfin request failed"}: ${errorMessage(err)}`
+      options.exposeFailureDetail === false
+        ? options.failureMessage ?? "Jellyfin request failed"
+        : `${options.failureMessage ?? "Jellyfin request failed"}: ${errorMessage(err)}`
     );
   } finally {
     clearTimeout(timeout);
@@ -330,6 +452,7 @@ async function jellyfinJson<T>(
     body?: string;
     errorCode?: string;
     failureMessage?: string;
+    exposeFailureDetail?: boolean;
   } = {}
 ) {
   const url = buildJellyfinUrl(baseUrl, path);
@@ -361,7 +484,7 @@ async function jellyfinJson<T>(
   }
 }
 
-function parseCredentialsInput(body: unknown) {
+async function parseCredentialsInput(body: unknown) {
   if (!body || typeof body !== "object" || Array.isArray(body)) {
     throw new ApiError(
       400,
@@ -387,7 +510,7 @@ function parseCredentialsInput(body: unknown) {
   }
 
   return {
-    serverUrl: resolveJellyfinBaseUrl(serverUrl),
+    serverUrl: resolveJellyfinBaseUrl((await assertAllowedJellyfinServerUrl(serverUrl)).toString()),
     username,
     password: record.password,
   };
@@ -883,12 +1006,13 @@ export const jellyfinProvider: ProviderImplementation = {
   },
 
   async authenticateWithCredentials(body) {
-    const { serverUrl, username, password } = parseCredentialsInput(body);
+    const { serverUrl, username, password } = await parseCredentialsInput(body);
     const publicInfo = await jellyfinJson<any>(serverUrl, "/System/Info/Public", {
       deviceId: JELLYFIN_DEVICE_ID,
       timeoutMs: JELLYFIN_REQUEST_TIMEOUT_MS,
       errorCode: "jellyfin_server_unreachable",
       failureMessage: "Could not reach that Jellyfin server",
+      exposeFailureDetail: false,
     });
 
     let authResult: any;
@@ -903,6 +1027,7 @@ export const jellyfinProvider: ProviderImplementation = {
         }),
         errorCode: "jellyfin_auth_failed",
         failureMessage: "Jellyfin sign-in failed",
+        exposeFailureDetail: false,
       });
     } catch (err) {
       if (err instanceof ApiError && err.status === 401) {
