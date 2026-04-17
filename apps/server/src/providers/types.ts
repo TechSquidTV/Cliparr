@@ -2,7 +2,7 @@ import type { Request, Response } from "express";
 import type { MediaSource } from "../db/mediaSourcesRepository.js";
 import type { ProviderSessionRecord } from "../session/store.js";
 
-export type ProviderId = "plex" | string;
+export type ProviderId = string;
 export type ProviderAuthType = "pin" | "credentials";
 
 export interface ProviderDefinition {

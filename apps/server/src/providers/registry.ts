@@ -4,7 +4,7 @@ import { plexProvider } from "./plex/provider.js";
 
 const providers = new Map<string, ProviderImplementation>();
 
-export function registerProvider(provider: ProviderImplementation) {
+function registerProvider(provider: ProviderImplementation) {
   providers.set(provider.definition.id, provider);
 }
 

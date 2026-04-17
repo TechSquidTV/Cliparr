@@ -35,7 +35,7 @@ function describeTrack(track: InputTrack) {
   const label = `${track.type} ${track.number}`;
   const name = track.name ? ` "${track.name}"` : "";
 
-  return `${label}${name} (${codec})`;
+  return `${label}${name} (${String(codec)})`;
 }
 
 function describeDiscardedTracks(discardedTracks: readonly DiscardedTrack[]) {

@@ -31,7 +31,7 @@ export default function App() {
       }
     }
 
-    loadSession();
+    void loadSession();
     return () => {
       cancelled = true;
     };

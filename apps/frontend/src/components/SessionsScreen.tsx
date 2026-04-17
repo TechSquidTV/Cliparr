@@ -10,6 +10,10 @@ interface Props {
   onLogout: () => void;
 }
 
+function errorMessage(err: unknown, fallback: string) {
+  return err instanceof Error && err.message ? err.message : fallback;
+}
+
 function looksLikeGeneratedSourceName(value: string) {
   return /^[a-f0-9]{12,64}$/i.test(value.trim());
 }
@@ -85,8 +89,8 @@ export default function SessionsScreen({ onSelectSession, onLogout }: Props) {
       const playback = await cliparrClient.getCurrentlyPlaying();
       setViewers(playback.viewers);
       setSourceErrors(playback.sourceErrors);
-    } catch (err: any) {
-      setError(err.message || "Failed to fetch sessions");
+    } catch (err: unknown) {
+      setError(errorMessage(err, "Failed to fetch sessions"));
       setViewers([]);
       setSourceErrors([]);
     } finally {

@@ -6,7 +6,9 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "lint": "tsc --noEmit",
+    "lint": "pnpm lint:eslint && pnpm lint:types",
+    "lint:eslint": "pnpm exec eslint \"src/**/*.{ts,tsx}\" vite.config.js",
+    "lint:types": "tsc --noEmit",
     "preview": "vite preview",
     "clean": "rm -rf dist"
   },
@@ -14,7 +16,6 @@
     "@mediabunny/aac-encoder": "^1.40.1",
     "@mediabunny/ac3": "^1.40.1",
     "@xzdarcy/react-timeline-editor": "^1.0.0",
-    "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "lucide-react": "^1.8.0",
     "mediabunny": "^1.40.1",

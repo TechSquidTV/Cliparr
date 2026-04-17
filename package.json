@@ -18,18 +18,31 @@
     "dev": "concurrently -k -s first --handle-input -c \"cyan,magenta\" -n \"frontend,server\" \"pnpm --filter @cliparr/frontend dev\" \"pnpm --filter @cliparr/server dev\"",
     "dev:docker": "concurrently -k -s first --handle-input -c \"cyan,magenta\" -n \"frontend,server\" \"pnpm --filter @cliparr/frontend dev --host 0.0.0.0\" \"pnpm --filter @cliparr/server dev\"",
     "build": "pnpm -r build",
-    "lint": "pnpm -r lint",
+    "lint": "pnpm lint:eslint && pnpm lint:types",
+    "lint:eslint": "pnpm -r --if-present lint:eslint",
+    "lint:types": "pnpm -r --if-present lint:types",
+    "knip": "knip",
     "preview": "pnpm --filter @cliparr/server preview",
     "start": "pnpm --filter @cliparr/server start",
     "clean": "pnpm -r clean"
   },
   "pnpm": {
     "peerDependencyRules": {
-      "ignoreMissing": ["mssql", "@types/mssql"]
+      "ignoreMissing": [
+        "mssql",
+        "@types/mssql"
+      ]
     }
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@types/node": "^25.6.0",
     "concurrently": "^9.2.1",
-    "typescript": "~6.0.2"
+    "eslint": "^10.2.0",
+    "eslint-plugin-react-hooks": "^7.1.0",
+    "globals": "^17.5.0",
+    "knip": "^6.4.1",
+    "typescript": "~6.0.2",
+    "typescript-eslint": "^8.58.2"
   }
 }

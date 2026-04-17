@@ -40,7 +40,7 @@ export function assertAppKeyConfigured() {
   getEncryptionKey();
 }
 
-export function isEncryptedSecret(value: string) {
+function isEncryptedSecret(value: string) {
   return value.startsWith(`${ENCRYPTION_PREFIX}:`);
 }
 

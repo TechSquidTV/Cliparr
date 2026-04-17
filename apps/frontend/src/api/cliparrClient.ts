@@ -8,6 +8,19 @@ import type {
   ProviderSession,
 } from "../providers/types";
 
+function responseErrorMessage(payload: unknown) {
+  if (!payload || typeof payload !== "object") {
+    return undefined;
+  }
+
+  const error = "error" in payload ? payload.error : undefined;
+  if (!error || typeof error !== "object") {
+    return undefined;
+  }
+
+  return "message" in error && typeof error.message === "string" ? error.message : undefined;
+}
+
 async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   const response = await fetch(path, {
     ...init,
@@ -19,8 +32,10 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   const contentType = response.headers.get("content-type") ?? "";
 
   if (!response.ok) {
-    const data = contentType.includes("application/json") ? await response.json().catch(() => null) : null;
-    const message = data?.error?.message ?? `${response.status} ${response.statusText}`;
+    const data: unknown = contentType.includes("application/json")
+      ? await response.json().catch((): unknown => null)
+      : null;
+    const message = responseErrorMessage(data) ?? `${response.status} ${response.statusText}`;
     throw new Error(message);
   }
 
@@ -34,7 +49,8 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
     );
   }
 
-  return response.json();
+  const data: unknown = await response.json();
+  return data as T;
 }
 
 export const cliparrClient = {
