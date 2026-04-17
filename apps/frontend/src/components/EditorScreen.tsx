@@ -1,4 +1,13 @@
-import { type ComponentProps, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  startTransition,
+  type ComponentProps,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type WheelEvent as ReactWheelEvent,
+} from "react";
 import { Timeline, type TimelineState } from "@xzdarcy/react-timeline-editor";
 import "@xzdarcy/react-timeline-editor/dist/react-timeline-editor.css";
 import type { AudioBufferSink, CanvasSink, Input, WrappedAudioBuffer, WrappedCanvas } from "mediabunny";
@@ -12,10 +21,33 @@ interface Props {
 }
 
 const MIN_CLIP_SECONDS = 0.1;
+const TIMELINE_START_LEFT = 24;
+const MAX_TIMELINE_ZOOM_SCALE_COUNT = 2000;
+const TIMELINE_ZOOM_WHEEL_STEP = 24;
+const TIMELINE_ZOOM_WIDTH_MULTIPLIERS = [0.72, 0.84, 0.96, 1.08, 1.2] as const;
 
 type ClipTimelineData = ComponentProps<typeof Timeline>["editorData"];
 type ClipTimelineEffects = ComponentProps<typeof Timeline>["effects"];
 type ClipTimelineAction = ClipTimelineData[number]["actions"][number];
+type TimelineZoomPreset = {
+  scale: number;
+  scaleSplitCount: number;
+  scaleWidth: number;
+};
+type TimelineZoomLevel = TimelineZoomPreset;
+
+const TIMELINE_ZOOM_PRESETS: readonly TimelineZoomPreset[] = [
+  { scale: 1, scaleSplitCount: 10, scaleWidth: 160 },
+  { scale: 2, scaleSplitCount: 8, scaleWidth: 152 },
+  { scale: 5, scaleSplitCount: 5, scaleWidth: 120 },
+  { scale: 10, scaleSplitCount: 5, scaleWidth: 124 },
+  { scale: 15, scaleSplitCount: 5, scaleWidth: 128 },
+  { scale: 30, scaleSplitCount: 6, scaleWidth: 136 },
+  { scale: 60, scaleSplitCount: 6, scaleWidth: 140 },
+  { scale: 120, scaleSplitCount: 6, scaleWidth: 144 },
+  { scale: 300, scaleSplitCount: 5, scaleWidth: 148 },
+  { scale: 600, scaleSplitCount: 5, scaleWidth: 152 },
+];
 
 function formatTime(seconds: number) {
   if (!Number.isFinite(seconds)) {
@@ -59,6 +91,114 @@ function timelineScaleForDuration(seconds: number) {
   return { scale: 5 * 60, scaleSplitCount: 5, scaleWidth: 148 };
 }
 
+function getTimelineZoomWidthLevels(preset: TimelineZoomPreset) {
+  return TIMELINE_ZOOM_WIDTH_MULTIPLIERS.map((widthMultiplier) => ({
+    scale: preset.scale,
+    scaleSplitCount: preset.scaleSplitCount,
+    scaleWidth: Math.max(72, Math.round((preset.scaleWidth * widthMultiplier) / 4) * 4),
+  }));
+}
+
+function getTimelineZoomLevels(seconds: number) {
+  const safeDuration = Math.max(seconds, MIN_CLIP_SECONDS);
+  const availableLevels = new Map<string, TimelineZoomLevel>();
+
+  for (const preset of TIMELINE_ZOOM_PRESETS) {
+    if (Math.ceil(safeDuration / preset.scale) > MAX_TIMELINE_ZOOM_SCALE_COUNT) {
+      continue;
+    }
+
+    for (const zoomLevel of getTimelineZoomWidthLevels(preset)) {
+      availableLevels.set(
+        `${zoomLevel.scale}:${zoomLevel.scaleSplitCount}:${zoomLevel.scaleWidth}`,
+        zoomLevel,
+      );
+    }
+  }
+
+  if (availableLevels.size === 0) {
+    const fallbackPreset = TIMELINE_ZOOM_PRESETS[TIMELINE_ZOOM_PRESETS.length - 1];
+    const minimumSafeScale = Math.max(1, Math.ceil(safeDuration / MAX_TIMELINE_ZOOM_SCALE_COUNT));
+    return getTimelineZoomWidthLevels({
+      scale: Math.max(fallbackPreset.scale, minimumSafeScale),
+      scaleSplitCount: fallbackPreset.scaleSplitCount,
+      scaleWidth: fallbackPreset.scaleWidth,
+    });
+  }
+
+  return [...availableLevels.values()].sort((left, right) => {
+    const zoomDensityDifference = (right.scaleWidth / right.scale) - (left.scaleWidth / left.scale);
+    if (zoomDensityDifference !== 0) {
+      return zoomDensityDifference;
+    }
+
+    return left.scale - right.scale;
+  });
+}
+
+function getClosestTimelineZoomIndex(levels: readonly TimelineZoomLevel[], targetScale: TimelineZoomPreset) {
+  const targetZoomDensity = targetScale.scaleWidth / targetScale.scale;
+
+  return levels.reduce((closestIndex, level, index) => {
+    const closestLevel = levels[closestIndex];
+    const closestDensityDistance = Math.abs((closestLevel.scaleWidth / closestLevel.scale) - targetZoomDensity);
+    const nextDensityDistance = Math.abs((level.scaleWidth / level.scale) - targetZoomDensity);
+
+    if (nextDensityDistance !== closestDensityDistance) {
+      return nextDensityDistance < closestDensityDistance ? index : closestIndex;
+    }
+
+    const closestScaleDistance = Math.abs(closestLevel.scale - targetScale.scale);
+    const nextScaleDistance = Math.abs(level.scale - targetScale.scale);
+    return nextScaleDistance < closestScaleDistance ? index : closestIndex;
+  }, 0);
+}
+
+function timelinePixelToTime(pixel: number, scale: number, scaleWidth: number, startLeft: number) {
+  return ((pixel - startLeft) / scaleWidth) * scale;
+}
+
+function timelineTimeToPixel(time: number, scale: number, scaleWidth: number, startLeft: number) {
+  return startLeft + (time / scale) * scaleWidth;
+}
+
+function normalizeWheelDelta(
+  deltaY: number,
+  deltaMode: number,
+  containerSize: number,
+) {
+  switch (deltaMode) {
+    case 1:
+      return deltaY * 16;
+    case 2:
+      return deltaY * containerSize;
+    default:
+      return deltaY;
+  }
+}
+
+function getTimelineMaxScrollLeft(
+  duration: number,
+  scale: number,
+  scaleWidth: number,
+  viewportWidth: number,
+) {
+  return Math.max(
+    0,
+    Math.ceil(Math.max(duration, MIN_CLIP_SECONDS) / scale) * scaleWidth
+    + TIMELINE_START_LEFT
+    - viewportWidth,
+  );
+}
+
+function getTimelineZoomLevel(
+  levels: readonly TimelineZoomLevel[],
+  index: number,
+  fallback: TimelineZoomLevel,
+) {
+  return levels[index] ?? fallback;
+}
+
 function themeValue(name: string, fallback: string) {
   return getComputedStyle(document.documentElement).getPropertyValue(name).trim() || fallback;
 }
@@ -100,6 +240,10 @@ export default function EditorScreen({ session, onBack }: Props) {
   const endTimeRef = useRef(endTime);
   const volumeRef = useRef(volume);
   const mutedRef = useRef(muted);
+  const timelineWheelRegionRef = useRef<HTMLDivElement>(null);
+  const timelineScrollLeftRef = useRef(0);
+  const pendingTimelineScrollLeftRef = useRef<number | null>(null);
+  const timelineWheelDeltaRef = useRef(0);
 
   const mediaUrl = session.mediaUrl ?? "";
   const hasDuration = duration > 0;
@@ -116,10 +260,22 @@ export default function EditorScreen({ session, onBack }: Props) {
     }),
     [],
   );
-  const timelineScale = useMemo(() => timelineScaleForDuration(duration), [duration]);
+  const defaultTimelineScale = useMemo(() => timelineScaleForDuration(duration), [duration]);
+  const availableTimelineZoomLevels = useMemo(() => getTimelineZoomLevels(duration), [duration]);
+  const defaultTimelineZoomIndex = useMemo(
+    () => getClosestTimelineZoomIndex(availableTimelineZoomLevels, defaultTimelineScale),
+    [availableTimelineZoomLevels, defaultTimelineScale],
+  );
+  const [timelineZoomIndex, setTimelineZoomIndex] = useState(defaultTimelineZoomIndex);
+  const activeTimelineScale = getTimelineZoomLevel(
+    availableTimelineZoomLevels,
+    timelineZoomIndex,
+    getTimelineZoomLevel(availableTimelineZoomLevels, defaultTimelineZoomIndex, defaultTimelineScale),
+  );
+  const timelineZoomIndexRef = useRef(timelineZoomIndex);
   const timelineScaleCount = useMemo(
-    () => Math.max(1, Math.ceil(Math.max(duration, MIN_CLIP_SECONDS) / timelineScale.scale)),
-    [duration, timelineScale.scale],
+    () => Math.max(1, Math.ceil(Math.max(duration, MIN_CLIP_SECONDS) / activeTimelineScale.scale)),
+    [duration, activeTimelineScale.scale],
   );
   const timelineData = useMemo<ClipTimelineData>(() => {
     const clipLength = hasDuration ? Math.min(MIN_CLIP_SECONDS, duration) : MIN_CLIP_SECONDS;
@@ -189,6 +345,30 @@ export default function EditorScreen({ session, onBack }: Props) {
       gainNodeRef.current.gain.value = actualVolume ** 2;
     }
   }, [volume, muted]);
+
+  useEffect(() => {
+    timelineZoomIndexRef.current = timelineZoomIndex;
+  }, [timelineZoomIndex]);
+
+  useEffect(() => {
+    setTimelineZoomIndex(defaultTimelineZoomIndex);
+    timelineZoomIndexRef.current = defaultTimelineZoomIndex;
+    timelineScrollLeftRef.current = 0;
+    timelineWheelDeltaRef.current = 0;
+    timelineRef.current?.setScrollLeft(0);
+    pendingTimelineScrollLeftRef.current = 0;
+  }, [defaultTimelineZoomIndex, session.id]);
+
+  useEffect(() => {
+    const pendingScrollLeft = pendingTimelineScrollLeftRef.current;
+    if (pendingScrollLeft === null) {
+      return;
+    }
+
+    timelineRef.current?.setScrollLeft(pendingScrollLeft);
+    timelineScrollLeftRef.current = pendingScrollLeft;
+    pendingTimelineScrollLeftRef.current = null;
+  }, [activeTimelineScale.scale, activeTimelineScale.scaleWidth]);
 
   const clampTime = (seconds: number) => {
     const maxDuration = durationRef.current;
@@ -598,6 +778,142 @@ export default function EditorScreen({ session, onBack }: Props) {
     timelineRef.current.setTime(clampTime(currentTime));
   }, [currentTime, duration, hasDuration]);
 
+  const handleTimelineScroll = useCallback(({ scrollLeft }: { scrollLeft: number }) => {
+    timelineScrollLeftRef.current = scrollLeft;
+  }, []);
+
+  const handleTimelineWheel = useCallback((event: ReactWheelEvent<HTMLDivElement>) => {
+    if (!hasDuration) {
+      return;
+    }
+
+    const timelineWheelRegion = timelineWheelRegionRef.current;
+    if (!timelineWheelRegion) {
+      return;
+    }
+
+    const containerHeight = timelineWheelRegion.clientHeight || 1;
+    const containerWidth = timelineWheelRegion.clientWidth || 1;
+
+    if (!event.metaKey && !event.ctrlKey) {
+      timelineWheelDeltaRef.current = 0;
+      const horizontalWheelDelta = normalizeWheelDelta(event.deltaX, event.deltaMode, containerWidth);
+      const verticalWheelDelta = normalizeWheelDelta(event.deltaY, event.deltaMode, containerHeight);
+      const nextScrollDelta = horizontalWheelDelta + verticalWheelDelta;
+      const maxScrollLeft = getTimelineMaxScrollLeft(
+        duration,
+        activeTimelineScale.scale,
+        activeTimelineScale.scaleWidth,
+        containerWidth,
+      );
+      if (nextScrollDelta === 0 || maxScrollLeft <= 0) {
+        return;
+      }
+
+      event.preventDefault();
+      event.stopPropagation();
+
+      const nextScrollLeft = Math.min(
+        maxScrollLeft,
+        Math.max(0, timelineScrollLeftRef.current + nextScrollDelta),
+      );
+      timelineRef.current?.setScrollLeft(nextScrollLeft);
+      timelineScrollLeftRef.current = nextScrollLeft;
+      return;
+    }
+
+    event.preventDefault();
+    event.stopPropagation();
+
+    const normalizedDeltaY = normalizeWheelDelta(event.deltaY, event.deltaMode, containerHeight);
+    if (normalizedDeltaY === 0 || availableTimelineZoomLevels.length < 2) {
+      return;
+    }
+
+    if (
+      timelineWheelDeltaRef.current !== 0
+      && Math.sign(timelineWheelDeltaRef.current) !== Math.sign(normalizedDeltaY)
+    ) {
+      timelineWheelDeltaRef.current = 0;
+    }
+
+    timelineWheelDeltaRef.current += normalizedDeltaY;
+    const zoomDelta = Math.trunc(timelineWheelDeltaRef.current / TIMELINE_ZOOM_WHEEL_STEP);
+    if (zoomDelta === 0) {
+      return;
+    }
+
+    const currentZoomIndex = timelineZoomIndexRef.current;
+    const currentTimelineScale = getTimelineZoomLevel(
+      availableTimelineZoomLevels,
+      currentZoomIndex,
+      activeTimelineScale,
+    );
+    const currentScrollLeft = pendingTimelineScrollLeftRef.current ?? timelineScrollLeftRef.current;
+    timelineWheelDeltaRef.current -= zoomDelta * TIMELINE_ZOOM_WHEEL_STEP;
+    const nextZoomIndex = Math.min(
+      availableTimelineZoomLevels.length - 1,
+      Math.max(0, currentZoomIndex + zoomDelta),
+    );
+    if (nextZoomIndex === currentZoomIndex) {
+      timelineWheelDeltaRef.current = 0;
+      return;
+    }
+
+    const nextTimelineScale = getTimelineZoomLevel(
+      availableTimelineZoomLevels,
+      nextZoomIndex,
+      currentTimelineScale,
+    );
+    const regionRect = timelineWheelRegion.getBoundingClientRect();
+    const pointerX = Math.min(Math.max(event.clientX - regionRect.left, 0), regionRect.width);
+    const anchorPixel = Math.max(
+      TIMELINE_START_LEFT,
+      currentScrollLeft + pointerX,
+    );
+    const anchorTime = Math.min(
+      duration,
+      Math.max(
+        0,
+        timelinePixelToTime(
+          anchorPixel,
+          currentTimelineScale.scale,
+          currentTimelineScale.scaleWidth,
+          TIMELINE_START_LEFT,
+        ),
+      ),
+    );
+    const nextAnchorPixel = timelineTimeToPixel(
+      anchorTime,
+      nextTimelineScale.scale,
+      nextTimelineScale.scaleWidth,
+      TIMELINE_START_LEFT,
+    );
+    const nextMaxScrollLeft = getTimelineMaxScrollLeft(
+      duration,
+      nextTimelineScale.scale,
+      nextTimelineScale.scaleWidth,
+      regionRect.width,
+    );
+    const nextScrollLeft = Math.min(
+      nextMaxScrollLeft,
+      Math.max(0, nextAnchorPixel - pointerX),
+    );
+    pendingTimelineScrollLeftRef.current = nextScrollLeft;
+    timelineScrollLeftRef.current = nextScrollLeft;
+    timelineZoomIndexRef.current = nextZoomIndex;
+
+    startTransition(() => {
+      setTimelineZoomIndex(nextZoomIndex);
+    });
+  }, [
+    hasDuration,
+    availableTimelineZoomLevels,
+    duration,
+    activeTimelineScale.scale,
+    activeTimelineScale.scaleWidth,
+  ]);
+
   useEffect(() => {
     if (!mediaUrl) {
       return;
@@ -900,7 +1216,11 @@ export default function EditorScreen({ session, onBack }: Props) {
             )}
 
             {hasDuration && (
-              <div className="cliparr-timeline">
+              <div
+                ref={timelineWheelRegionRef}
+                className="cliparr-timeline"
+                onWheelCapture={handleTimelineWheel}
+              >
                 <div className="mb-2 flex items-center justify-between gap-3 text-xs text-muted-foreground">
                   <span>Full video</span>
                   <span className="font-mono">0:00 - {formatTime(duration)}</span>
@@ -909,16 +1229,17 @@ export default function EditorScreen({ session, onBack }: Props) {
                   ref={timelineRef}
                   editorData={timelineData}
                   effects={timelineEffects}
-                  scale={timelineScale.scale}
-                  scaleSplitCount={timelineScale.scaleSplitCount}
-                  scaleWidth={timelineScale.scaleWidth}
+                  scale={activeTimelineScale.scale}
+                  scaleSplitCount={activeTimelineScale.scaleSplitCount}
+                  scaleWidth={activeTimelineScale.scaleWidth}
                   minScaleCount={timelineScaleCount}
                   maxScaleCount={timelineScaleCount}
-                  startLeft={24}
+                  startLeft={TIMELINE_START_LEFT}
                   rowHeight={44}
                   autoScroll
                   dragLine
                   disableDrag={loadingPreview || playing}
+                  onScroll={handleTimelineScroll}
                   onChange={handleTimelineChange}
                   onActionMoving={({ start, end }) => isValidTimelineRange(start, end)}
                   onActionResizing={({ start, end }) => isValidTimelineRange(start, end)}
