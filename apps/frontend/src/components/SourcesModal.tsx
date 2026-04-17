@@ -10,6 +10,7 @@ import {
   X,
 } from "lucide-react";
 import { cliparrClient } from "../api/cliparrClient";
+import { formatProviderName } from "./ProviderGlyph";
 import { cn } from "../lib/utils";
 import type { MediaSource } from "../providers/types";
 
@@ -37,14 +38,6 @@ const elevatedGlassClasses =
 
 function compareStrings(left: string, right: string) {
   return left.localeCompare(right, undefined, { sensitivity: "base" });
-}
-
-function formatProviderName(providerId: string) {
-  return providerId
-    .split(/[-_\s]+/)
-    .filter(Boolean)
-    .map((segment) => segment.charAt(0).toUpperCase() + segment.slice(1))
-    .join(" ");
 }
 
 function stringValue(value: unknown) {

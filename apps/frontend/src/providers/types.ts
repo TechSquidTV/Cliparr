@@ -1,7 +1,7 @@
 export interface ProviderDefinition {
   id: string;
   name: string;
-  auth: "pin";
+  auth: "pin" | "credentials";
 }
 
 export interface ProviderAuthStart {

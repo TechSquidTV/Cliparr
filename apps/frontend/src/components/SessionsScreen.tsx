@@ -1,12 +1,25 @@
 import { useEffect, useState } from "react";
 import { AlertTriangle, LogOut, Play, RefreshCw, Settings2, Video } from "lucide-react";
 import { cliparrClient } from "../api/cliparrClient";
+import { formatProviderName, ProviderGlyph } from "./ProviderGlyph";
 import SourcesModal from "./SourcesModal";
 import type { CurrentlyPlayingItem, SourcePlaybackError, ViewerPlaybackGroup } from "../providers/types";
 
 interface Props {
   onSelectSession: (session: CurrentlyPlayingItem) => void;
   onLogout: () => void;
+}
+
+function looksLikeGeneratedSourceName(value: string) {
+  return /^[a-f0-9]{12,64}$/i.test(value.trim());
+}
+
+function formatSourceLabel(source: { name: string; providerId: string }) {
+  if (!looksLikeGeneratedSourceName(source.name)) {
+    return source.name;
+  }
+
+  return formatProviderName(source.providerId);
 }
 
 function ViewerAvatar({ name, avatarUrl }: { name: string; avatarUrl?: string }) {
@@ -43,7 +56,12 @@ function WarningBanner({ sourceErrors }: { sourceErrors: SourcePlaybackError[] }
           <div className="space-y-1">
             {sourceErrors.map((sourceError) => (
               <p key={sourceError.sourceId}>
-                <span className="font-medium">{sourceError.sourceName}</span>: {sourceError.message}
+                <span className="font-medium">
+                  {formatSourceLabel({
+                    name: sourceError.sourceName,
+                    providerId: sourceError.providerId,
+                  })}
+                </span>: {sourceError.message}
               </p>
             ))}
           </div>
@@ -195,8 +213,13 @@ export default function SessionsScreen({ onSelectSession, onLogout }: Props) {
                           )}
                           <div className="absolute inset-0 bg-gradient-to-t from-card/95 via-card/20 to-transparent" />
                           <div className="absolute top-3 left-3">
-                            <span className="inline-flex items-center rounded-full bg-card/90 px-2.5 py-1 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
-                              {mediaSession.source.name}
+                            <span className="inline-flex items-center gap-1.5 rounded-full bg-card/90 px-2.5 py-1 text-[11px] font-medium uppercase tracking-wide text-muted-foreground shadow-sm backdrop-blur-sm">
+                              <ProviderGlyph
+                                providerId={mediaSession.source.providerId}
+                                providerName={formatSourceLabel(mediaSession.source)}
+                                className="h-3.5 w-3.5"
+                              />
+                              {formatSourceLabel(mediaSession.source)}
                             </span>
                           </div>
                           <div className="absolute bottom-3 left-3 right-3">
@@ -210,7 +233,6 @@ export default function SessionsScreen({ onSelectSession, onLogout }: Props) {
                               <span className="truncate">{mediaSession.playerTitle}</span>
                               <span className="shrink-0 capitalize">{mediaSession.playerState}</span>
                             </div>
-                            <p className="truncate">Source: {mediaSession.source.name}</p>
                           </div>
                           <div className="flex items-center justify-center w-full py-2 bg-primary/10 text-primary rounded-lg text-sm font-medium group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
                             {canEdit ? "Edit Clip" : "No direct media file"}
