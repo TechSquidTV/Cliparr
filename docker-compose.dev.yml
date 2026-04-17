@@ -38,7 +38,7 @@ services:
       media-seed:
         condition: service_completed_successfully
       jellyfin:
-        condition: service_started
+        condition: service_healthy
     command:
       - /bin/sh
       - -lc
