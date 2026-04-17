@@ -28,27 +28,38 @@ export function EditorControls({
   volume,
   setVolume,
 }: EditorControlsProps) {
+  const clipDuration = Math.max(0, endTime - startTime);
+  const clipMetrics = [
+    { label: "In", value: formatTime(startTime) },
+    { label: "Out", value: formatTime(endTime) },
+    { label: "Duration", value: formatTime(clipDuration), emphasized: true },
+  ];
+
   return (
-    <div className="flex items-center justify-between mb-6 gap-4">
-      <div className="flex flex-wrap items-center gap-4">
-        <button
-          onClick={togglePlay}
-          disabled={loadingPreview}
-          className="w-10 h-10 bg-secondary hover:bg-secondary/90 text-secondary-foreground disabled:opacity-50 disabled:cursor-not-allowed rounded-full flex items-center justify-center transition-colors"
-        >
-          {playing ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5 ml-0.5" />}
-        </button>
-        <div className="text-sm font-medium font-mono">
-          {formatTime(currentTime)} / {formatTime(duration)}
+    <div className="border-b border-border px-3 py-2">
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+        <div className="flex items-center gap-2.5">
+          <button
+            onClick={togglePlay}
+            disabled={loadingPreview}
+            aria-label={playing ? "Pause preview" : "Play preview"}
+            className="flex h-8 w-8 items-center justify-center border border-border bg-accent text-foreground transition-colors hover:bg-accent/80 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {playing ? <Pause className="h-4 w-4" /> : <Play className="ml-0.5 h-4 w-4" />}
+          </button>
+          <div className="font-mono text-sm font-semibold text-foreground">
+            {formatTime(currentTime)} / {formatTime(duration)}
+          </div>
         </div>
+        <div className="h-5 w-px bg-border" />
         <div className="flex items-center gap-2">
           <button
             type="button"
             onClick={() => setMuted((current) => !current)}
-            className="p-2 text-muted-foreground hover:text-foreground hover:bg-accent rounded-lg transition-colors"
+            className="flex h-8 w-8 items-center justify-center border border-border bg-background text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
             aria-label={muted || volume === 0 ? "Unmute preview" : "Mute preview"}
           >
-            {muted || volume === 0 ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
+            {muted || volume === 0 ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
           </button>
           <input
             type="range"
@@ -61,16 +72,27 @@ export function EditorControls({
               setVolume(nextVolume);
               setMuted(nextVolume === 0);
             }}
-            className="w-24 accent-primary"
+            className="w-24 accent-primary sm:w-28"
             aria-label="Preview volume"
           />
         </div>
-        <div className="text-sm font-medium font-mono">
-          Clip: {formatTime(startTime)} - {formatTime(endTime)}
+        <div className="min-w-0 flex-1" />
+        <div className="flex flex-wrap items-center justify-end gap-x-4 gap-y-2 text-right sm:gap-x-6">
+          {clipMetrics.map((metric) => (
+            <div key={metric.label} className="flex items-center gap-2">
+              <span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+                {metric.label}
+              </span>
+              <span
+                className={`font-mono text-sm font-semibold ${
+                  metric.emphasized ? "text-foreground" : "text-muted-foreground"
+                }`}
+              >
+                {metric.value}
+              </span>
+            </div>
+          ))}
         </div>
-      </div>
-      <div className="text-sm text-muted-foreground font-mono">
-        {formatTime(endTime - startTime)}
       </div>
     </div>
   );

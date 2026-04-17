@@ -17,28 +17,29 @@ export function EditorPreview({
   togglePlay,
 }: EditorPreviewProps) {
   return (
-    <div className="w-full aspect-video bg-background rounded-lg overflow-hidden border border-border shadow-2xl relative group">
+    <div className="group relative aspect-video h-full max-h-full w-auto max-w-full overflow-hidden bg-black">
       <canvas
         ref={canvasRef}
-        className="w-full h-full object-contain"
+        className="h-full w-full object-contain"
         onClick={togglePlay}
       />
-      <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+      <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
         <button
           type="button"
           onClick={(event) => {
             event.stopPropagation();
             togglePlay();
           }}
-          className={`pointer-events-auto w-16 h-16 bg-primary/90 text-primary-foreground rounded-full flex items-center justify-center backdrop-blur-sm transition-all ${
-            playing ? "opacity-0 scale-90" : "opacity-100 scale-100 group-hover:bg-primary"
+          aria-label={playing ? "Pause preview" : "Play preview"}
+          className={`pointer-events-auto flex h-11 w-11 items-center justify-center border border-white/12 bg-card/92 text-foreground transition-all ${
+            playing ? "scale-95 opacity-0" : "scale-100 opacity-100 group-hover:bg-card"
           }`}
         >
-          <Play className="w-8 h-8 ml-1" />
+          <Play className="ml-0.5 h-5 w-5" />
         </button>
       </div>
       {loadingPreview && (
-        <div className="absolute inset-0 flex items-center justify-center bg-background/70 text-sm text-muted-foreground">
+        <div className="absolute inset-0 flex items-center justify-center bg-black/72 text-sm text-muted-foreground">
           {previewStatus}
         </div>
       )}
