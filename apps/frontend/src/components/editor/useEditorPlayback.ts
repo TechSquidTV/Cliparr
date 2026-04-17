@@ -346,9 +346,11 @@ export function useEditorPlayback({
       return;
     }
 
+    const clipStart = clampTime(startTimeRef.current);
     const clipEnd = Math.min(endTimeRef.current || durationRef.current, durationRef.current);
-    if (getPlaybackTime() >= clipEnd) {
-      playbackTimeAtStartRef.current = clampTime(startTimeRef.current);
+    const playbackTime = getPlaybackTime();
+    if (playbackTime < clipStart || playbackTime >= clipEnd) {
+      playbackTimeAtStartRef.current = clipStart;
       setCurrentTime(playbackTimeAtStartRef.current);
       await startVideoIterator();
     }

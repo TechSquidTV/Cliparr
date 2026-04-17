@@ -85,20 +85,7 @@ export function EditorTimeline({
         onChange={handleTimelineChange}
         onActionMoving={({ start, end }) => isValidTimelineRange(start, end)}
         onActionResizing={({ start, end }) => isValidTimelineRange(start, end)}
-        onActionMoveEnd={({ start }) => {
-          void seekToTime(start);
-        }}
-        onActionResizeEnd={({ start, end, dir }) => {
-          void seekToTime(dir === "left" ? start : end);
-        }}
         onClickTimeArea={(time) => {
-          void seekToTime(time);
-          return false;
-        }}
-        onClickRow={(_, { time }) => {
-          void seekToTime(time);
-        }}
-        onClickActionOnly={(_, { time }) => {
           void seekToTime(time);
         }}
         onCursorDragStart={onCursorDragStart}

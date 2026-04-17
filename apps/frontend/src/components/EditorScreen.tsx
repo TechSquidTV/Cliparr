@@ -70,12 +70,7 @@ export default function EditorScreen({ session, onBack }: Props) {
 
     setStartTime(roundedStart);
     setEndTime(roundedEnd);
-
-    const currentPreviewTime = playbackTimeAtStartRef.current;
-    if (currentPreviewTime < roundedStart || currentPreviewTime > roundedEnd) {
-      void seekToTime(roundedStart);
-    }
-  }, [duration, playbackTimeAtStartRef, seekToTime]);
+  }, [duration]);
 
   const isValidTimelineRange = useCallback((nextStart: number, nextEnd: number) => {
     const minClipLength = Math.min(MIN_CLIP_SECONDS, duration);
