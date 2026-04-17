@@ -132,7 +132,7 @@ function normalizeBaseUrl(url: string) {
 
 function isLoopbackHost(hostname: string) {
   const host = normalizeHostname(hostname);
-  return host === "localhost" || host === "::1" || host === "[::1]" || host.startsWith("127.");
+  return host === "localhost" || host === "::1" || host.startsWith("127.");
 }
 
 function normalizeIpCandidate(value: string) {
@@ -182,7 +182,11 @@ async function resolveHostnameAddresses(hostname: string) {
 
     return uniqueStrings(records.map((record) => normalizeIpCandidate(record.address)));
   } catch {
-    return [];
+    throw new ApiError(
+      400,
+      "invalid_jellyfin_server_url",
+      "Jellyfin serverUrl hostname could not be resolved for security validation"
+    );
   }
 }
 

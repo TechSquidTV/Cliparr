@@ -34,7 +34,6 @@ export interface CreateMediaSourceInput {
 }
 
 export interface UpdateMediaSourceInput {
-  providerAccountId?: string;
   externalId?: string | null;
   name?: string;
   enabled?: boolean;
@@ -110,7 +109,6 @@ export function updateMediaSource(id: string, input: UpdateMediaSourceInput) {
   getDatabase()
     .update(mediaSources)
     .set({
-      ...(input.providerAccountId !== undefined ? { providerAccountId: input.providerAccountId } : {}),
       ...(input.externalId !== undefined ? { externalId: input.externalId } : {}),
       ...(input.name !== undefined ? { name: input.name } : {}),
       ...(input.enabled !== undefined ? { enabled: input.enabled } : {}),
@@ -200,7 +198,6 @@ export function upsertMediaSource(input: CreateMediaSourceInput) {
       target: [mediaSources.providerId, mediaSources.providerAccountId, mediaSources.externalId],
       targetWhere: sql`${mediaSources.externalId} IS NOT NULL AND ${mediaSources.providerAccountId} IS NOT NULL`,
       set: {
-        ...(input.providerAccountId !== undefined ? { providerAccountId: input.providerAccountId } : {}),
         name: input.name,
         ...(input.enabled !== undefined ? { enabled: input.enabled } : {}),
         baseUrl: input.baseUrl,
@@ -261,7 +258,6 @@ export function updateMediaSourceForAccount(id: string, providerAccountId: strin
   getDatabase()
     .update(mediaSources)
     .set({
-      ...(input.providerAccountId !== undefined ? { providerAccountId: input.providerAccountId } : {}),
       ...(input.externalId !== undefined ? { externalId: input.externalId } : {}),
       ...(input.name !== undefined ? { name: input.name } : {}),
       ...(input.enabled !== undefined ? { enabled: input.enabled } : {}),

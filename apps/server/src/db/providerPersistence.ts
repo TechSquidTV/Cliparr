@@ -45,8 +45,7 @@ export function persistProviderAuth(input: {
     providerId: input.provider.id,
     providerAccountId: account.id,
   }).filter((source) =>
-    source.providerAccountId === account.id
-    && typeof source.externalId === "string"
+    typeof source.externalId === "string"
     && !activeResourceIds.has(source.externalId)
     && source.enabled
   );
