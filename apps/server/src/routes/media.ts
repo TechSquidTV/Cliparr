@@ -58,28 +58,44 @@ mediaRouter.get(
     setNoStore(res);
     const session = requireSession(req);
     pruneSessionMediaHandles(session);
-    const provider = getProvider(session.providerId);
-    if (!provider) {
-      throw new ApiError(500, "provider_not_registered", "Session provider is not registered");
-    }
+    const sourceErrors: SourcePlaybackError[] = [];
+    const sources = listMediaSources({ enabledOnly: true })
+      .flatMap((source) => {
+        const provider = getProvider(source.providerId);
+        if (!provider) {
+          sourceErrors.push({
+            sourceId: source.id,
+            sourceName: source.name,
+            providerId: source.providerId,
+            message: "Source provider is not registered",
+          });
+          return [];
+        }
 
-    const sources = listMediaSources({ enabledOnly: true, providerId: session.providerId })
-      .filter((source) => provider.supportsCurrentlyPlayingSource?.(source) ?? true);
+        if (!(provider.supportsCurrentlyPlayingSource?.(source) ?? true)) {
+          return [];
+        }
+
+        return [{
+          source,
+          provider,
+        }];
+      });
     const settledResults = await Promise.allSettled(
-      sources.map(async (source) => ({
+      sources.map(async ({ source, provider }) => ({
         source,
         entries: await provider.listCurrentlyPlaying(session, source),
       }))
     );
 
     const entries: CurrentlyPlayingEntry[] = [];
-    const sourceErrors: SourcePlaybackError[] = [];
 
     settledResults.forEach((result, index) => {
-      const source = sources[index];
-      if (!source) {
+      const sourceContext = sources[index];
+      if (!sourceContext) {
         return;
       }
+      const { source } = sourceContext;
 
       if (result.status === "fulfilled") {
         entries.push(...result.value.entries);
@@ -107,7 +123,12 @@ mediaRouter.get(
     setNoStore(res);
     const session = requireSession(req);
     pruneSessionMediaHandles(session);
-    const provider = getProvider(session.providerId);
+    const handle = session.mediaHandles.get(req.params.handleId as string);
+    if (!handle) {
+      throw new ApiError(404, "media_not_found", "Media handle was not found or has expired");
+    }
+
+    const provider = getProvider(handle.providerId);
     if (!provider) {
       throw new ApiError(500, "provider_not_registered", "Session provider is not registered");
     }

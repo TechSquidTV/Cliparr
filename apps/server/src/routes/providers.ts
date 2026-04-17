@@ -21,6 +21,10 @@ providersRouter.post(
       throw new ApiError(404, "provider_not_found", "Provider was not found");
     }
 
+    if (provider.definition.auth !== "pin" || !provider.startAuth) {
+      throw new ApiError(400, "provider_auth_not_supported", "This provider does not use browser PIN sign-in");
+    }
+
     res.json(await provider.startAuth());
   })
 );
@@ -32,6 +36,10 @@ providersRouter.get(
     const provider = getProvider(req.params.providerId as string);
     if (!provider) {
       throw new ApiError(404, "provider_not_found", "Provider was not found");
+    }
+
+    if (provider.definition.auth !== "pin" || !provider.pollAuth) {
+      throw new ApiError(400, "provider_auth_not_supported", "This provider does not use browser PIN sign-in");
     }
 
     const authStatus = await provider.pollAuth(req.params.authId as string);
@@ -58,5 +66,42 @@ providersRouter.get(
 
     res.setHeader("Set-Cookie", getSessionCookieHeader(session.id));
     res.json({ status: "complete" });
+  })
+);
+
+providersRouter.post(
+  "/:providerId/auth/login",
+  asyncHandler(async (req, res) => {
+    setNoStore(res);
+    const provider = getProvider(req.params.providerId as string);
+    if (!provider) {
+      throw new ApiError(404, "provider_not_found", "Provider was not found");
+    }
+
+    if (provider.definition.auth !== "credentials" || !provider.authenticateWithCredentials) {
+      throw new ApiError(400, "provider_auth_not_supported", "This provider does not use direct credential sign-in");
+    }
+
+    const authResult = await provider.authenticateWithCredentials(req.body);
+    if (!authResult.userToken || !authResult.resources.length) {
+      throw new ApiError(502, "provider_auth_failed", "Provider auth did not return credentials");
+    }
+
+    const account = persistProviderAuth({
+      provider: provider.definition,
+      userToken: authResult.userToken,
+      resources: authResult.resources,
+    });
+
+    const session = createProviderSession({
+      providerId: provider.definition.id,
+      providerAccountId: account.id,
+      userToken: authResult.userToken,
+    });
+
+    res.setHeader("Set-Cookie", getSessionCookieHeader(session.id));
+    res.json({
+      session: provider.serializeSession(session),
+    });
   })
 );

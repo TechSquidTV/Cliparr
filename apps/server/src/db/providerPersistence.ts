@@ -87,12 +87,14 @@ export function persistProviderResource(input: {
     },
     credentials: {
       accessToken: input.resource.accessToken,
+      ...(input.resource.credentials ?? {}),
     },
     metadata: {
       product: input.resource.product,
       platform: input.resource.platform,
       provides: input.resource.provides,
       owned: input.resource.owned,
+      ...(input.resource.metadata ?? {}),
     },
   });
 }
