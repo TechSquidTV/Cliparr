@@ -1,5 +1,6 @@
 import { useCallback } from "react";
 import { Timeline, type TimelineState } from "@xzdarcy/react-timeline-editor";
+import "@xzdarcy/react-timeline-editor/dist/react-timeline-editor.css";
 import type { RefObject, WheelEvent as ReactWheelEvent } from "react";
 import { Scissors } from "lucide-react";
 import { 
@@ -84,6 +85,7 @@ export function EditorTimeline({
         startLeft={TIMELINE_START_LEFT}
         rowHeight={44}
         autoScroll
+        hideCursor={false}
         dragLine
         disableDrag={loadingPreview || playing}
         onScroll={handleTimelineScroll}
