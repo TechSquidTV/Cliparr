@@ -34,7 +34,7 @@ export const mediaSources = sqliteTable(
   {
     id: text("id").primaryKey(),
     providerId: text("provider_id").notNull(),
-    providerAccountId: text("provider_account_id").references(() => providerAccounts.id, { onDelete: "set null" }),
+    providerAccountId: text("provider_account_id").notNull().references(() => providerAccounts.id, { onDelete: "cascade" }),
     externalId: text("external_id"),
     name: text("name").notNull(),
     enabled: integer("enabled", { mode: "boolean" }).notNull().default(true),
@@ -52,8 +52,8 @@ export const mediaSources = sqliteTable(
     index("media_sources_provider_id_idx").on(table.providerId),
     index("media_sources_provider_account_id_idx").on(table.providerAccountId),
     uniqueIndex("media_sources_provider_external_id_idx")
-      .on(table.providerId, table.externalId)
-      .where(sql`${table.externalId} IS NOT NULL`),
+      .on(table.providerId, table.providerAccountId, table.externalId)
+      .where(sql`${table.externalId} IS NOT NULL AND ${table.providerAccountId} IS NOT NULL`),
   ]
 );
 
@@ -62,7 +62,7 @@ export const providerSessions = sqliteTable(
   {
     id: text("id").primaryKey(),
     providerId: text("provider_id").notNull(),
-    providerAccountId: text("provider_account_id").references(() => providerAccounts.id, { onDelete: "set null" }),
+    providerAccountId: text("provider_account_id").notNull().references(() => providerAccounts.id, { onDelete: "cascade" }),
     userToken: text("user_token").notNull(),
     createdAt: integer("created_at").notNull(),
     expiresAt: integer("expires_at").notNull(),

@@ -12,7 +12,7 @@ const MEDIA_HANDLE_IDLE_TTL_MS = 1000 * 60 * 15;
 export interface ProviderSessionRecord {
   id: string;
   providerId: string;
-  providerAccountId?: string;
+  providerAccountId: string;
   userToken: string;
   mediaHandles: Map<string, MediaHandle>;
   createdAt: number;
@@ -34,7 +34,7 @@ function mapProviderSession(row: ProviderSessionRow): ProviderSessionRecord {
   return {
     id: row.id,
     providerId: row.providerId,
-    providerAccountId: row.providerAccountId ?? undefined,
+    providerAccountId: row.providerAccountId,
     userToken: decryptSecret(row.userToken),
     mediaHandles: getMediaHandles(row.id),
     createdAt: row.createdAt,
@@ -44,7 +44,7 @@ function mapProviderSession(row: ProviderSessionRow): ProviderSessionRecord {
 
 export function createProviderSession(input: {
   providerId: string;
-  providerAccountId?: string;
+  providerAccountId: string;
   userToken: string;
 }) {
   const now = Date.now();
@@ -56,7 +56,7 @@ export function createProviderSession(input: {
     .values({
       id,
       providerId: input.providerId,
-      providerAccountId: input.providerAccountId ?? null,
+      providerAccountId: input.providerAccountId,
       userToken: encryptSecret(input.userToken),
       createdAt: now,
       expiresAt,
@@ -66,7 +66,7 @@ export function createProviderSession(input: {
   return mapProviderSession({
     id,
     providerId: input.providerId,
-    providerAccountId: input.providerAccountId ?? null,
+    providerAccountId: input.providerAccountId,
     userToken: input.userToken,
     createdAt: now,
     expiresAt,

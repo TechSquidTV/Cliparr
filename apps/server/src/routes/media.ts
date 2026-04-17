@@ -3,7 +3,7 @@ import { listMediaSources } from "../db/mediaSourcesRepository.js";
 import { ApiError, asyncHandler } from "../http/errors.js";
 import { getProvider } from "../providers/registry.js";
 import type { CurrentlyPlayingEntry, SourcePlaybackError, ViewerPlaybackGroup } from "../providers/types.js";
-import { requireSession, setNoStore } from "../session/request.js";
+import { requireAccountSession, setNoStore } from "../session/request.js";
 import { pruneSessionMediaHandles } from "../session/store.js";
 
 export const mediaRouter = Router();
@@ -56,10 +56,13 @@ mediaRouter.get(
   "/currently-playing",
   asyncHandler(async (req, res) => {
     setNoStore(res);
-    const session = requireSession(req);
+    const session = requireAccountSession(req);
     pruneSessionMediaHandles(session);
     const sourceErrors: SourcePlaybackError[] = [];
-    const sources = listMediaSources({ enabledOnly: true })
+    const sources = listMediaSources({
+      enabledOnly: true,
+      providerAccountId: session.providerAccountId,
+    })
       .flatMap((source) => {
         const provider = getProvider(source.providerId);
         if (!provider) {
@@ -121,7 +124,7 @@ mediaRouter.get(
   "/:handleId",
   asyncHandler(async (req, res) => {
     setNoStore(res);
-    const session = requireSession(req);
+    const session = requireAccountSession(req);
     pruneSessionMediaHandles(session);
     const handle = session.mediaHandles.get(req.params.handleId as string);
     if (!handle) {

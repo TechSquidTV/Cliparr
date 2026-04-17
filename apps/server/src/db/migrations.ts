@@ -199,6 +199,133 @@ const migrations: Migration[] = [
         ON provider_sessions(expires_at);
     `,
   },
+  {
+    id: 6,
+    name: "scope_media_sources_external_ids_by_provider_account",
+    sql: `
+      DROP INDEX IF EXISTS media_sources_provider_external_id_idx;
+
+      CREATE UNIQUE INDEX media_sources_provider_external_id_idx
+        ON media_sources(provider_id, provider_account_id, external_id)
+        WHERE external_id IS NOT NULL AND provider_account_id IS NOT NULL;
+    `,
+  },
+  {
+    id: 7,
+    name: "require_provider_account_ownership",
+    sql: `
+      CREATE TABLE media_sources_next (
+        id TEXT PRIMARY KEY,
+        provider_id TEXT NOT NULL,
+        provider_account_id TEXT NOT NULL REFERENCES provider_accounts(id) ON DELETE CASCADE,
+        external_id TEXT,
+        name TEXT NOT NULL,
+        enabled INTEGER NOT NULL DEFAULT 1 CHECK (enabled IN (0, 1)),
+        base_url TEXT NOT NULL,
+        connection_json TEXT NOT NULL DEFAULT '{}',
+        credentials_json TEXT NOT NULL DEFAULT '{}',
+        metadata_json TEXT NOT NULL DEFAULT '{}',
+        last_checked_at TEXT,
+        last_error TEXT,
+        created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
+        updated_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
+      );
+
+      INSERT INTO media_sources_next (
+        id,
+        provider_id,
+        provider_account_id,
+        external_id,
+        name,
+        enabled,
+        base_url,
+        connection_json,
+        credentials_json,
+        metadata_json,
+        last_checked_at,
+        last_error,
+        created_at,
+        updated_at
+      )
+      SELECT
+        id,
+        provider_id,
+        provider_account_id,
+        external_id,
+        name,
+        enabled,
+        base_url,
+        connection_json,
+        credentials_json,
+        metadata_json,
+        last_checked_at,
+        last_error,
+        created_at,
+        updated_at
+      FROM media_sources
+      WHERE provider_account_id IS NOT NULL;
+
+      DROP TABLE media_sources;
+
+      ALTER TABLE media_sources_next RENAME TO media_sources;
+
+      CREATE INDEX media_sources_enabled_idx
+        ON media_sources(enabled);
+
+      CREATE INDEX media_sources_provider_id_idx
+        ON media_sources(provider_id);
+
+      CREATE INDEX media_sources_provider_account_id_idx
+        ON media_sources(provider_account_id);
+
+      CREATE UNIQUE INDEX media_sources_provider_external_id_idx
+        ON media_sources(provider_id, provider_account_id, external_id)
+        WHERE external_id IS NOT NULL;
+
+      CREATE TABLE provider_sessions_next (
+        id TEXT PRIMARY KEY,
+        provider_id TEXT NOT NULL,
+        provider_account_id TEXT NOT NULL REFERENCES provider_accounts(id) ON DELETE CASCADE,
+        user_token TEXT NOT NULL,
+        created_at INTEGER NOT NULL,
+        expires_at INTEGER NOT NULL,
+        updated_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
+      );
+
+      INSERT INTO provider_sessions_next (
+        id,
+        provider_id,
+        provider_account_id,
+        user_token,
+        created_at,
+        expires_at,
+        updated_at
+      )
+      SELECT
+        id,
+        provider_id,
+        provider_account_id,
+        user_token,
+        created_at,
+        expires_at,
+        updated_at
+      FROM provider_sessions
+      WHERE provider_account_id IS NOT NULL;
+
+      DROP TABLE provider_sessions;
+
+      ALTER TABLE provider_sessions_next RENAME TO provider_sessions;
+
+      CREATE INDEX provider_sessions_provider_id_idx
+        ON provider_sessions(provider_id);
+
+      CREATE INDEX provider_sessions_provider_account_id_idx
+        ON provider_sessions(provider_account_id);
+
+      CREATE INDEX provider_sessions_expires_at_idx
+        ON provider_sessions(expires_at);
+    `,
+  },
 ];
 
 export function runMigrations(db: DatabaseSync) {
