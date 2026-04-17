@@ -14,6 +14,7 @@ export default tseslint.config(
       "**/node_modules/**",
       "**/*.d.ts",
       "**/*.tsbuildinfo",
+      "**/routeTree.gen.ts",
     ],
     linterOptions: {
       reportUnusedDisableDirectives: "error",
