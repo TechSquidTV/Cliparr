@@ -21,6 +21,22 @@ function responseErrorMessage(payload: unknown) {
   return "message" in error && typeof error.message === "string" ? error.message : undefined;
 }
 
+function followAppAuthRedirect(response: Response) {
+  if (typeof window === "undefined" || !response.redirected) {
+    return false;
+  }
+
+  const redirectedUrl = new URL(response.url, window.location.origin);
+  if (!redirectedUrl.pathname.startsWith("/api/auth/")) {
+    return false;
+  }
+
+  const currentLocation = `${window.location.pathname}${window.location.search}${window.location.hash}`;
+  redirectedUrl.searchParams.set("redirectUrl", currentLocation);
+  window.location.assign(redirectedUrl.toString());
+  return true;
+}
+
 async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   const response = await fetch(path, {
     ...init,
@@ -29,6 +45,11 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
       ...init.headers,
     },
   });
+
+  if (followAppAuthRedirect(response)) {
+    return new Promise<T>(() => {});
+  }
+
   const contentType = response.headers.get("content-type") ?? "";
 
   if (!response.ok) {

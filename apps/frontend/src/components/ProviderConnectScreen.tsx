@@ -241,11 +241,11 @@ export default function ProviderConnectScreen({ onConnected }: Props) {
 
           {loading ? (
             <div className="py-12 text-center text-sm text-muted-foreground">Loading providers...</div>
-          ) : providers.length === 0 ? (
+          ) : !error && providers.length === 0 ? (
             <div className="py-12 text-center text-sm text-muted-foreground">
               No providers are currently available.
             </div>
-          ) : (
+          ) : providers.length > 0 ? (
             <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.12fr)]">
               <motion.div
                 initial={{ opacity: 0, x: -12 }}
@@ -538,6 +538,10 @@ export default function ProviderConnectScreen({ onConnected }: Props) {
                   </AnimatePresence>
                 </div>
               )}
+            </div>
+          ) : (
+            <div className="py-12 text-center text-sm text-muted-foreground">
+              We could not load providers yet.
             </div>
           )}
         </div>

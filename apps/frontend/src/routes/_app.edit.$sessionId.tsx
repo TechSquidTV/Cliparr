@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useCanGoBack } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { cliparrClient } from "../api/cliparrClient";
 import EditorScreen from "../components/EditorScreen";
@@ -11,6 +11,7 @@ function errorMessage(err: unknown, fallback: string) {
 
 function EditorRouteComponent() {
   const { sessionId } = Route.useParams();
+  const canGoBack = useCanGoBack();
   const [session, setSession] = useState<CurrentlyPlayingItem | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -84,6 +85,11 @@ function EditorRouteComponent() {
             <button
               type="button"
               onClick={() => {
+                if (canGoBack) {
+                  window.history.back();
+                  return;
+                }
+
                 void router.navigate({
                   to: "/dashboard",
                   replace: true,
@@ -107,6 +113,11 @@ function EditorRouteComponent() {
     <EditorScreen
       session={session}
       onBack={() => {
+        if (canGoBack) {
+          window.history.back();
+          return;
+        }
+
         void router.navigate({
           to: "/dashboard",
           replace: true,
