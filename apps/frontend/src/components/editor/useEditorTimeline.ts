@@ -14,8 +14,7 @@ import {
   timelinePixelToTime, 
   timelineTimeToPixel,
   type ClipTimelineData,
-  type ClipTimelineEffects,
-  type TimelineZoomLevel
+  type ClipTimelineEffects
 } from "./EditorUtils";
 
 interface UseEditorTimelineProps {
@@ -23,14 +22,8 @@ interface UseEditorTimelineProps {
   startTime: number;
   endTime: number;
   currentTime: number;
-  loadingPreview: boolean;
-  playing: boolean;
   sessionId: string;
   updateClipRange: (start: number, end: number) => void;
-  seekToTime: (time: number) => void;
-  setCurrentTime: (time: number) => void;
-  playbackTimeAtStartRef: React.MutableRefObject<number>;
-  pausePlayback: () => void;
 }
 
 export function useEditorTimeline({
@@ -38,14 +31,8 @@ export function useEditorTimeline({
   startTime,
   endTime,
   currentTime,
-  loadingPreview,
-  playing,
   sessionId,
   updateClipRange,
-  seekToTime,
-  setCurrentTime,
-  playbackTimeAtStartRef,
-  pausePlayback,
 }: UseEditorTimelineProps) {
   const timelineRef = useRef<TimelineState>(null);
   const timelineWheelRegionRef = useRef<HTMLDivElement>(null);

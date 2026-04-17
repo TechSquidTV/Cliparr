@@ -89,14 +89,8 @@ export default function EditorScreen({ session, onBack }: Props) {
     startTime,
     endTime,
     currentTime,
-    loadingPreview,
-    playing,
     sessionId: session.id,
     updateClipRange,
-    seekToTime,
-    setCurrentTime,
-    playbackTimeAtStartRef,
-    pausePlayback,
   });
 
   const handleExport = async () => {

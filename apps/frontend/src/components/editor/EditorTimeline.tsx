@@ -1,5 +1,6 @@
-import { useCallback, RefObject } from "react";
-import { Timeline } from "@xzdarcy/react-timeline-editor";
+import { useCallback } from "react";
+import { Timeline, type TimelineState } from "@xzdarcy/react-timeline-editor";
+import type { RefObject, WheelEvent as ReactWheelEvent } from "react";
 import { Scissors } from "lucide-react";
 import { 
   formatTime, 
@@ -11,7 +12,7 @@ import {
 } from "./EditorUtils";
 
 interface EditorTimelineProps {
-  timelineRef: RefObject<any>;
+  timelineRef: RefObject<TimelineState | null>;
   timelineWheelRegionRef: RefObject<HTMLDivElement | null>;
   timelineData: ClipTimelineData;
   timelineEffects: ClipTimelineEffects;
@@ -22,9 +23,9 @@ interface EditorTimelineProps {
   duration: number;
   handleTimelineScroll: (data: { scrollLeft: number }) => void;
   handleTimelineChange: (data: ClipTimelineData) => void;
-  handleTimelineWheel: (event: React.WheelEvent<HTMLDivElement>) => void;
+  handleTimelineWheel: (event: ReactWheelEvent<HTMLDivElement>) => void;
   isValidTimelineRange: (start: number, end: number) => boolean;
-  seekToTime: (time: number) => void;
+  seekToTime: (time: number) => Promise<void> | void;
   onCursorDragStart: () => void;
   onCursorDrag: (time: number) => void;
 }

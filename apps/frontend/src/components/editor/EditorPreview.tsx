@@ -1,5 +1,5 @@
 import { Play } from "lucide-react";
-import { RefObject } from "react";
+import type { RefObject } from "react";
 
 interface EditorPreviewProps {
   canvasRef: RefObject<HTMLCanvasElement | null>;

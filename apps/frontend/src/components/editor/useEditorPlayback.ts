@@ -11,6 +11,14 @@ interface UseEditorPlaybackProps {
   sessionId: string;
 }
 
+type WindowWithWebkitAudioContext = Window & {
+  webkitAudioContext?: typeof AudioContext;
+};
+
+function getAudioContextConstructor() {
+  return window.AudioContext ?? (window as WindowWithWebkitAudioContext).webkitAudioContext;
+}
+
 export function useEditorPlayback({
   mediaUrl,
   initialDuration,
@@ -347,7 +355,7 @@ export function useEditorPlayback({
 
     let audioContext = audioContextRef.current;
     if (!audioContext) {
-      const AudioContextConstructor = window.AudioContext ?? (window as any).webkitAudioContext;
+      const AudioContextConstructor = getAudioContextConstructor();
       if (!AudioContextConstructor) {
         throw new Error("This browser does not provide Web Audio.");
       }
@@ -484,7 +492,7 @@ export function useEditorPlayback({
         }
 
         if (audioTrack) {
-          const AudioContextConstructor = window.AudioContext ?? (window as any).webkitAudioContext;
+          const AudioContextConstructor = getAudioContextConstructor();
           if (!AudioContextConstructor) {
             throw new Error("This browser does not provide Web Audio.");
           }
