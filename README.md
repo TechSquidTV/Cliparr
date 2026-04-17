@@ -1,74 +1,89 @@
 # Cliparr
 
-![Cliparr](./.github/img/screenshot.png)
+<div align="center">
+  <img src="./.github/img/screenshot.png" alt="Cliparr Screenshot" width="800px" style="border-radius: 10px; box-shadow: 0 10px 30px rgba(0,0,0,0.5);" />
+  <br />
+  <br />
+  <h3>Instant media clipper for your personal media server.</h3>
+  <p>
+    <img src="https://img.shields.io/badge/Support-Plex-e5a00d?style=for-the-badge&logo=plex&logoColor=white" alt="Plex Support" />
+    <img src="https://img.shields.io/badge/Support-Jellyfin-00a4dc?style=for-the-badge&logo=jellyfin&logoColor=white" alt="Jellyfin Support" />
+    <img src="https://img.shields.io/github/license/techsquidtv/cliparr?style=for-the-badge" alt="License" />
+  </p>
+</div>
 
-Media clipper for pulling quick MP4s out of whatever is currently playing on your personal media server.
+---
 
-Cliparr connects to Plex, finds active playback sessions, lets you mark a clip range on a timeline, previews the original media in the browser, and exports an MP4 without setting up a heavyweight editing pipeline.
+**Cliparr** is a streamlined media clipper that allows you to quickly create and download clips from the media currently playing on your Plex or Jellyfin server.
 
-- Instantly loads your media player's currently playing file.
-- Intuitive single-track editor for selecting clip
-- Advanced metadata tagging. Clip will include rich exif data, like Season and Episode numbers, and timing data.
-- Select resolution; transcoding happens in-browser.
+## Features
 
-Built with [Mediabunny](https://mediabunny.dev/) and [`react-timeline-editor`](https://github.com/xzdarcy/react-timeline-editor).
+- **Instant Session Discovery**: Automatically loads your media player's currently playing file.
+- **Intuitive Timeline Editor**: Familiar UI based on common video editing interfaces.
+- **Local Transcoding**: Powered by [Mediabunny](https://mediabunny.dev/), video is transcoded in your browser.
+- **Rich Metadata Tagging**: Clips are exported with full EXIF data, including Season, Episode numbers, and timing metadata.
+- **Native Plex & Jellyfin Support**: Seamless integration with the most popular media server platforms.
 
+## Getting Started
 
-## Docker
+### Quick Start with Docker
 
-### GitHub Container Registry
+The fastest way to get Cliparr running is via the GitHub Container Registry.
 
-The easiest way to run Cliparr is using the official image from the GitHub Container Registry:
-
-```sh
-export APP_KEY="replace-with-a-stable-random-secret"
-
-docker run --rm -p 3000:3000 \
+```bash
+docker run -d \
+  --name cliparr \
+  -p 3000:3000 \
   -e APP_URL=http://localhost:3000 \
-  -e APP_KEY="$APP_KEY" \
+  -e APP_KEY="your-stable-random-secret" \
   -v cliparr-data:/data \
   ghcr.io/techsquidtv/cliparr:latest
 ```
 
-Cliparr requires SQLite storage for configured media sources and provider tokens. The container stores that database under `/data`, so mount it as a volume.
-`APP_KEY` is required and must stay the same for a given data directory because Cliparr uses it to encrypt persisted provider credentials at rest.
+> [!IMPORTANT]
+> **Stable APP_KEY Required**: Cliparr uses `APP_KEY` to encrypt your provider credentials at rest. You **must** use a stable, random secret. If you change this key later, you will need to re-authenticate your media servers.
 
-### Docker Compose
+### Using Docker Compose
 
-For local Docker usage, Compose will build the image and mount the database volume for you:
+For a persistent setup, we recommend using Docker Compose:
 
-```sh
-cp .env.example .env
-# Set APP_KEY in .env before starting the stack.
-docker compose up --build
+```yaml
+services:
+  cliparr:
+    image: ghcr.io/techsquidtv/cliparr:latest
+    container_name: cliparr
+    ports:
+      - "3000:3000"
+    environment:
+      - APP_URL=http://localhost:3000
+      - APP_KEY=replace-this-with-a-secure-random-string
+    volumes:
+      - cliparr-data:/data
+    restart: unless-stopped
+
+volumes:
+  cliparr-data:
 ```
 
-### Local Build
+## Configuration
 
-If you want to build the image locally:
+| Variable | Description | Default |
+| :--- | :--- | :--- |
+| `APP_URL` | Public base URL for auth callbacks. | `http://localhost:3000` |
+| `APP_KEY` | **Required** secret for credential encryption. | - |
+| `PORT` | Internal port for the Express server. | `3000` |
+| `CLIPARR_DATA_DIR` | Directory for SQLite storage. | `/data` |
 
-```sh
-docker build -t cliparr .
-```
+## Development
 
-And run it:
+We welcome contributions! To get started with a local development environment:
 
-```sh
-export APP_KEY="replace-with-a-stable-random-secret"
+1. **Clone**: `git clone https://github.com/techsquidtv/cliparr.git`
+2. **Setup**: `cp .env.example .env` (and fill in `APP_KEY`)
+3. **Install**: `pnpm install`
+4. **Run**: `pnpm dev`
 
-docker run --rm -p 3000:3000 \
-  -e APP_URL=http://localhost:3000 \
-  -e APP_KEY="$APP_KEY" \
-  -v cliparr-data:/data \
-  cliparr
-```
-
-
-## Contributing
-
-See [CONTRIBUTING.md](CONTRIBUTING.md) for local development and pull request guidance.
-
-Please report security concerns privately. See [SECURITY.md](SECURITY.md).
+See [CONTRIBUTING.md](CONTRIBUTING.md) for more detailed guidance.
 
 ## License
 
