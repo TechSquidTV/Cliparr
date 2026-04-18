@@ -3,10 +3,12 @@ import { MIN_CLIP_SECONDS, roundTimelineTime } from "./editor/EditorUtils";
 import { useEditorPlayback } from "./editor/useEditorPlayback";
 import { useEditorTimeline } from "./editor/useEditorTimeline";
 import { EditorHeader } from "./editor/EditorHeader";
+import { EditorExportDialog } from "./editor/EditorExportDialog";
 import { EditorPreview } from "./editor/EditorPreview";
 import { EditorControls } from "./editor/EditorControls";
 import { EditorTimeline } from "./editor/EditorTimeline";
 import type { CurrentlyPlayingItem } from "../providers/types";
+import type { ExportFormat, ExportResolution } from "../lib/exportClip";
 
 interface Props {
   session: CurrentlyPlayingItem;
@@ -30,9 +32,13 @@ function isInteractiveKeyboardTarget(target: EventTarget | null) {
 export default function EditorScreen({ session, onBack }: Props) {
   const [startTime, setStartTime] = useState(0);
   const [endTime, setEndTime] = useState(() => Math.min(10, Math.max(session.duration, 0)));
-  const [resolution, setResolution] = useState<"original" | "1080" | "720">("original");
+  const [resolution, setResolution] = useState<ExportResolution>("original");
+  const [exportFormat, setExportFormat] = useState<ExportFormat>("mp4");
+  const [includeAudio, setIncludeAudio] = useState(true);
+  const [exportDialogOpen, setExportDialogOpen] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [progress, setProgress] = useState(0);
+  const [exportError, setExportError] = useState<string | null>(null);
 
   const {
     canvasRef,
@@ -102,8 +108,39 @@ export default function EditorScreen({ session, onBack }: Props) {
     updateClipRange,
   });
 
-  const handleExport = async () => {
+  const handleOpenExportDialog = useCallback(() => {
+    setExportError(null);
+    setExportDialogOpen(true);
+  }, []);
+
+  const handleCloseExportDialog = useCallback(() => {
+    if (exporting) {
+      return;
+    }
+
+    setExportDialogOpen(false);
+  }, [exporting]);
+
+  const handleFormatChange = useCallback((nextFormat: ExportFormat) => {
+    setExportFormat(nextFormat);
+    setExportError(null);
+  }, []);
+
+  const handleResolutionChange = useCallback((nextResolution: ExportResolution) => {
+    setResolution(nextResolution);
+    setExportError(null);
+  }, []);
+
+  const handleAudioChange = useCallback((nextIncludeAudio: boolean) => {
+    setIncludeAudio(nextIncludeAudio);
+    setExportError(null);
+  }, []);
+
+  const handleExport = useCallback(async () => {
     if (!session.mediaUrl) return;
+    if (exporting) return;
+
+    setExportError(null);
     setExporting(true);
     setProgress(0);
 
@@ -113,7 +150,9 @@ export default function EditorScreen({ session, onBack }: Props) {
         mediaUrl: session.mediaUrl,
         startTime,
         endTime,
+        format: exportFormat,
         resolution,
+        includeAudio,
         metadata: session.exportMetadata,
         onProgress: setProgress,
       });
@@ -121,17 +160,29 @@ export default function EditorScreen({ session, onBack }: Props) {
 
       const a = document.createElement("a");
       a.href = url;
-      a.download = `${session.title.replace(/[^a-z0-9]/gi, "_").toLowerCase()}-clip.mp4`;
+      a.download = `${session.title.replace(/[^a-z0-9]/gi, "_").toLowerCase()}-clip.${exportFormat}`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
-      URL.revokeObjectURL(url);
+      window.setTimeout(() => URL.revokeObjectURL(url), 0);
+      setExportDialogOpen(false);
     } catch (err) {
       console.error(err);
+      setExportError(err instanceof Error ? err.message : "Export failed");
     } finally {
       setExporting(false);
     }
-  };
+  }, [
+    endTime,
+    exportFormat,
+    exporting,
+    includeAudio,
+    resolution,
+    session.exportMetadata,
+    session.mediaUrl,
+    session.title,
+    startTime,
+  ]);
 
   useEffect(() => {
     function handleKeyDown(event: KeyboardEvent) {
@@ -174,11 +225,9 @@ export default function EditorScreen({ session, onBack }: Props) {
       <EditorHeader
         title={session.title}
         onBack={onBack}
-        resolution={resolution}
-        setResolution={setResolution}
         exporting={exporting}
         progress={progress}
-        handleExport={handleExport}
+        onExportClick={handleOpenExportDialog}
       />
 
       <main className="min-h-0 flex-1 overflow-hidden p-3 sm:p-4">
@@ -248,6 +297,24 @@ export default function EditorScreen({ session, onBack }: Props) {
           </section>
         </div>
       </main>
+
+      <EditorExportDialog
+        isOpen={exportDialogOpen}
+        title={session.title}
+        clipStart={startTime}
+        clipEnd={endTime}
+        selectedFormat={exportFormat}
+        onFormatChange={handleFormatChange}
+        selectedResolution={resolution}
+        onResolutionChange={handleResolutionChange}
+        includeAudio={includeAudio}
+        onIncludeAudioChange={handleAudioChange}
+        exporting={exporting}
+        progress={progress}
+        error={exportError}
+        onClose={handleCloseExportDialog}
+        onExport={() => void handleExport()}
+      />
     </div>
   );
 }
