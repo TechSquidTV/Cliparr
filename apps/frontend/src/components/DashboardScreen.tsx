@@ -158,7 +158,17 @@ export default function DashboardScreen({ onSelectSession, onOpenSources, onLogo
               aria-label="View Cliparr on GitHub"
               title="View Cliparr on GitHub"
             >
-              <img src={githubIcon} alt="" aria-hidden="true" className="h-4 w-4" />
+              <div
+                className="h-4 w-4 bg-current"
+                style={{
+                  maskImage: `url(${githubIcon})`,
+                  WebkitMaskImage: `url(${githubIcon})`,
+                  maskRepeat: "no-repeat",
+                  maskPosition: "center",
+                  maskSize: "contain",
+                }}
+                aria-hidden="true"
+              />
               <span className="hidden sm:inline">GitHub</span>
             </a>
             <button
