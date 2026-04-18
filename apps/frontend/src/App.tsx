@@ -69,7 +69,7 @@ export default function App() {
           <img src="/logo-light.svg" alt="Cliparr Logo" className="h-16 w-16" />
           <div className="absolute -inset-4 animate-pulse rounded-full bg-primary/10 blur-xl" />
         </div>
-        <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground uppercase tracking-[0.2em]">
+        <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground uppercase tracking-[var(--tracking-caps-2xl)]">
           <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary/30 border-t-primary" />
           Loading Cliparr
         </div>

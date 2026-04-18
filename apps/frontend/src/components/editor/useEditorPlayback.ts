@@ -6,6 +6,7 @@ import type { PlaybackAudioSelection } from "../../providers/types";
 import { errorMessage, isAc3FamilyCodec, themeValue } from "./EditorUtils";
 
 interface UseEditorPlaybackProps {
+  previewUrl?: string;
   mediaUrl: string;
   initialDuration: number;
   startTime: number;
@@ -23,11 +24,88 @@ type WindowWithWebkitAudioContext = Window & {
   webkitAudioContext?: typeof AudioContext;
 };
 
+interface PlaybackSourceCandidate {
+  label: "preview stream" | "source stream";
+  url: string;
+}
+
+interface PlaybackLoadFailure {
+  label: PlaybackSourceCandidate["label"];
+  message: string;
+  classification: "hls-playlist" | "unknown";
+}
+
+const UNSUPPORTED_INPUT_FORMAT_ERROR = "Input has an unsupported or unrecognizable format.";
+
 function getAudioContextConstructor() {
   return window.AudioContext ?? (window as WindowWithWebkitAudioContext).webkitAudioContext;
 }
 
+function buildPlaybackSourceCandidates(previewUrl: string | undefined, mediaUrl: string) {
+  const candidates: PlaybackSourceCandidate[] = [];
+
+  if (previewUrl) {
+    candidates.push({ label: "preview stream", url: previewUrl });
+  }
+
+  if (mediaUrl && !candidates.some((candidate) => candidate.url === mediaUrl)) {
+    candidates.push({ label: "source stream", url: mediaUrl });
+  }
+
+  return candidates;
+}
+
+function classifyPlaybackUrl(url: string): PlaybackLoadFailure["classification"] {
+  return /\.m3u8(?:$|[?#])/i.test(url) ? "hls-playlist" : "unknown";
+}
+
+function buildPlaybackFailure(source: PlaybackSourceCandidate, err: unknown): PlaybackLoadFailure {
+  return {
+    label: source.label,
+    message: errorMessage(err),
+    classification: classifyPlaybackUrl(source.url),
+  };
+}
+
+function buildUnsupportedPreviewFailure(): PlaybackLoadFailure {
+  return {
+    label: "preview stream",
+    message: UNSUPPORTED_INPUT_FORMAT_ERROR,
+    classification: "hls-playlist",
+  };
+}
+
+function describePlaybackFailure(failure: PlaybackLoadFailure) {
+  const prefix = failure.label === "preview stream" ? "Preview stream" : "Source stream";
+
+  if (
+    failure.classification === "hls-playlist"
+    && failure.message === UNSUPPORTED_INPUT_FORMAT_ERROR
+  ) {
+    return `${prefix} looks like an HLS playlist, which Mediabunny cannot open directly (${failure.message}).`;
+  }
+
+  return `${prefix} failed: ${failure.message}`;
+}
+
+function formatPlaybackSourceLabel(label: PlaybackSourceCandidate["label"]) {
+  return label === "preview stream" ? "Preview stream" : "Source stream";
+}
+
+function buildPlaybackLoadError(failures: PlaybackLoadFailure[]) {
+  if (failures.length === 0) {
+    return "Preview could not be loaded.";
+  }
+
+  if (failures.length === 1) {
+    return describePlaybackFailure(failures[0]);
+  }
+
+  return `Cliparr could not open any playback stream. ${failures.map(describePlaybackFailure).join(" ")}`;
+}
+
 export function useEditorPlayback({
+  previewUrl,
   mediaUrl,
   initialDuration,
   startTime,
@@ -43,6 +121,7 @@ export function useEditorPlayback({
   const [volume, setVolume] = useState(0.8);
   const [muted, setMuted] = useState(false);
   const [error, setError] = useState("");
+  const [activeSourceLabel, setActiveSourceLabel] = useState("");
   const [sourceVideoDimensions, setSourceVideoDimensions] = useState<VideoDimensions | null>(null);
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -167,9 +246,10 @@ export function useEditorPlayback({
       canvas.width = 1280;
       canvas.height = 720;
     }
-    context.fillStyle = themeValue("--background", "oklch(0.1591 0 0)");
+    const bodyStyles = getComputedStyle(document.body);
+    context.fillStyle = themeValue("--editor-preview-stage", bodyStyles.backgroundColor);
     context.fillRect(0, 0, canvas.width, canvas.height);
-    context.fillStyle = themeValue("--muted-foreground", "oklch(0.6268 0 0)");
+    context.fillStyle = themeValue("--editor-preview-overlay-foreground", bodyStyles.color);
     context.font = "24px sans-serif";
     context.textAlign = "center";
     context.fillText(message, canvas.width / 2, canvas.height / 2);
@@ -269,8 +349,13 @@ export function useEditorPlayback({
     renderIntervalRef.current = window.setInterval(renderFrame, 500);
   }, [renderFrame, stopRenderLoop]);
 
-  const disposePreview = useCallback(() => {
-    generationRef.current++;
+  const resetPreview = useCallback((advanceGeneration = false, clearActiveSource = false) => {
+    if (advanceGeneration) {
+      generationRef.current++;
+    }
+    if (clearActiveSource) {
+      setActiveSourceLabel("");
+    }
     pausePlayback(false);
     stopRenderLoop();
     void videoFrameIteratorRef.current?.return();
@@ -286,6 +371,10 @@ export function useEditorPlayback({
     audioContextRef.current = null;
     gainNodeRef.current = null;
   }, [pausePlayback, stopRenderLoop]);
+
+  const disposePreview = useCallback(() => {
+    resetPreview(true, true);
+  }, [resetPreview]);
 
   const runAudioIterator = useCallback(async (generation: number) => {
     const iterator = audioBufferIteratorRef.current;
@@ -421,7 +510,18 @@ export function useEditorPlayback({
   }, [clampTime, endTimeRef, pausePlayback, playPreview, startVideoIterator]);
 
   useEffect(() => {
-    if (!mediaUrl) {
+    // Mediabunny cannot open HLS manifests yet, so skip `.m3u8` preview URLs and
+    // fall back to the source stream until upstream support lands:
+    // https://github.com/Vanilagy/mediabunny/pull/291
+    const unsupportedPreviewFailure =
+      previewUrl && classifyPlaybackUrl(previewUrl) === "hls-playlist"
+        ? buildUnsupportedPreviewFailure()
+        : null;
+    const playbackSources = buildPlaybackSourceCandidates(
+      unsupportedPreviewFailure ? undefined : previewUrl,
+      mediaUrl
+    );
+    if (playbackSources.length === 0) {
       return;
     }
 
@@ -430,106 +530,148 @@ export function useEditorPlayback({
     const generation = generationRef.current;
 
     async function loadPreview() {
+      const resetDuration = Math.max(initialDuration, 0);
       setLoadingPreview(true);
       setPreviewStatus("Loading preview...");
       setError("");
+      setActiveSourceLabel("");
+      setDuration(resetDuration);
+      durationRef.current = resetDuration;
       setSourceVideoDimensions(null);
       setCurrentTime(0);
       playbackTimeAtStartRef.current = 0;
 
       try {
-        await ensureMediabunnyCodecs();
-        const { ALL_FORMATS, AudioBufferSink, CanvasSink, Input, UrlSource } = await import("mediabunny");
+        const failures: PlaybackLoadFailure[] = unsupportedPreviewFailure ? [unsupportedPreviewFailure] : [];
 
-        if (cancelled || generation !== generationRef.current) {
-          return;
-        }
-
-        const input = new Input({
-          source: new UrlSource(mediaUrl),
-          formats: ALL_FORMATS,
-        });
-        inputRef.current = input;
-
-        const computedDuration = await input.computeDuration();
-        let videoTrack = await input.getPrimaryVideoTrack();
-        const audioTracks = await input.getAudioTracks();
-        let audioTrack = selectPreferredAudioTrack(audioTracks, selectedAudioTrack);
-        const warnings: string[] = [];
-
-        if (videoTrack) {
-          if (videoTrack.codec === null) {
-            warnings.push("Video codec is unknown.");
-            videoTrack = null;
-          } else if (!(await videoTrack.canDecode())) {
-            warnings.push(`Cannot decode ${videoTrack.codec} video in this browser.`);
-            videoTrack = null;
-          }
-        }
-
-        if (audioTrack) {
-          const audioCodec = audioTrack.codec;
-          if (audioCodec === null) {
-            warnings.push("Audio codec is unknown.");
-            audioTrack = null;
-          } else if (!(await audioTrack.canDecode()) && !isAc3FamilyCodec(audioCodec)) {
-            warnings.push(`Cannot decode ${audioCodec} audio in this browser.`);
-            audioTrack = null;
-          }
-        }
-
-        if (cancelled || generation !== generationRef.current) {
-          return;
-        }
-
-        if (!videoTrack && !audioTrack) {
-          throw new Error(warnings.join(" ") || "No decodable audio or video track found.");
-        }
-
-        const nextDuration = computedDuration > 0 ? computedDuration : Math.max(initialDuration, 0);
-        setDuration(nextDuration);
-        durationRef.current = nextDuration;
-        setCurrentTime(0);
-        playbackTimeAtStartRef.current = 0;
-
-        if (videoTrack) {
-          setSourceVideoDimensions({
-            width: videoTrack.displayWidth,
-            height: videoTrack.displayHeight,
-          });
-          const canvas = canvasRef.current;
-          if (canvas) {
-            canvas.width = videoTrack.displayWidth;
-            canvas.height = videoTrack.displayHeight;
-          }
-          videoSinkRef.current = new CanvasSink(videoTrack, {
-            poolSize: 2,
-            fit: "contain",
-            alpha: await videoTrack.canBeTransparent(),
+        if (unsupportedPreviewFailure) {
+          console.warn("Editor playback preview skipped", {
+            sessionId,
+            source: unsupportedPreviewFailure.label,
+            classification: unsupportedPreviewFailure.classification,
+            message: unsupportedPreviewFailure.message,
           });
         }
 
-        if (audioTrack) {
-          const AudioContextConstructor = getAudioContextConstructor();
-          if (!AudioContextConstructor) {
-            throw new Error("This browser does not provide Web Audio.");
+        for (const playbackSource of playbackSources) {
+          setPreviewStatus(
+            failures.length === 0
+              ? `Loading ${playbackSource.label}...`
+              : `${describePlaybackFailure(failures[failures.length - 1])} Retrying with ${playbackSource.label}...`
+          );
+
+          try {
+            await ensureMediabunnyCodecs();
+            const { ALL_FORMATS, AudioBufferSink, CanvasSink, Input, UrlSource } = await import("mediabunny");
+
+            if (cancelled || generation !== generationRef.current) {
+              return;
+            }
+
+            const input = new Input({
+              source: new UrlSource(playbackSource.url),
+              formats: ALL_FORMATS,
+            });
+            inputRef.current = input;
+
+            const computedDuration = await input.computeDuration();
+            let videoTrack = await input.getPrimaryVideoTrack();
+            const audioTracks = await input.getAudioTracks();
+            let audioTrack = selectPreferredAudioTrack(audioTracks, selectedAudioTrack);
+            const warnings: string[] = [];
+
+            if (videoTrack) {
+              if (videoTrack.codec === null) {
+                warnings.push("Video codec is unknown.");
+                videoTrack = null;
+              } else if (!(await videoTrack.canDecode())) {
+                warnings.push(`Cannot decode ${videoTrack.codec} video in this browser.`);
+                videoTrack = null;
+              }
+            }
+
+            if (audioTrack) {
+              const audioCodec = audioTrack.codec;
+              if (audioCodec === null) {
+                warnings.push("Audio codec is unknown.");
+                audioTrack = null;
+              } else if (!(await audioTrack.canDecode()) && !isAc3FamilyCodec(audioCodec)) {
+                warnings.push(`Cannot decode ${audioCodec} audio in this browser.`);
+                audioTrack = null;
+              }
+            }
+
+            if (cancelled || generation !== generationRef.current) {
+              return;
+            }
+
+            if (!videoTrack && !audioTrack) {
+              throw new Error(warnings.join(" ") || "No decodable audio or video track found.");
+            }
+
+            const nextDuration = computedDuration > 0 ? computedDuration : Math.max(initialDuration, 0);
+            setDuration(nextDuration);
+            durationRef.current = nextDuration;
+            setCurrentTime(0);
+            playbackTimeAtStartRef.current = 0;
+
+            if (videoTrack) {
+              setSourceVideoDimensions({
+                width: videoTrack.displayWidth,
+                height: videoTrack.displayHeight,
+              });
+              const canvas = canvasRef.current;
+              if (canvas) {
+                canvas.width = videoTrack.displayWidth;
+                canvas.height = videoTrack.displayHeight;
+              }
+              videoSinkRef.current = new CanvasSink(videoTrack, {
+                poolSize: 2,
+                fit: "contain",
+                alpha: await videoTrack.canBeTransparent(),
+              });
+            }
+
+            if (audioTrack) {
+              const AudioContextConstructor = getAudioContextConstructor();
+              if (!AudioContextConstructor) {
+                throw new Error("This browser does not provide Web Audio.");
+              }
+              const audioContext = new AudioContextConstructor({ sampleRate: audioTrack.sampleRate });
+              const gainNode = audioContext.createGain();
+              const actualVolume = mutedRef.current || volumeRef.current === 0 ? 0 : volumeRef.current;
+              gainNode.gain.value = actualVolume ** 2;
+              gainNode.connect(audioContext.destination);
+              audioContextRef.current = audioContext;
+              gainNodeRef.current = gainNode;
+              audioSinkRef.current = new AudioBufferSink(audioTrack);
+            }
+
+            await startVideoIterator();
+            startRenderLoop();
+            setActiveSourceLabel(formatPlaybackSourceLabel(playbackSource.label));
+            return;
+          } catch (err) {
+            const failure = buildPlaybackFailure(playbackSource, err);
+            failures.push(failure);
+
+            console.warn("Editor playback source failed", {
+              sessionId,
+              source: failure.label,
+              classification: failure.classification,
+              message: failure.message,
+            });
+
+            if (cancelled) {
+              return;
+            }
+
+            resetPreview(false);
           }
-          const audioContext = new AudioContextConstructor({ sampleRate: audioTrack.sampleRate });
-          const gainNode = audioContext.createGain();
-          const actualVolume = mutedRef.current || volumeRef.current === 0 ? 0 : volumeRef.current;
-          gainNode.gain.value = actualVolume ** 2;
-          gainNode.connect(audioContext.destination);
-          audioContextRef.current = audioContext;
-          gainNodeRef.current = gainNode;
-          audioSinkRef.current = new AudioBufferSink(audioTrack);
         }
 
-        await startVideoIterator();
-        startRenderLoop();
-      } catch (err) {
         if (!cancelled) {
-          disposePreview();
-          setError(errorMessage(err));
+          setError(buildPlaybackLoadError(failures));
           setSourceVideoDimensions(null);
         }
       } finally {
@@ -547,10 +689,12 @@ export function useEditorPlayback({
     };
   }, [
     mediaUrl,
+    previewUrl,
     initialDuration,
     selectedAudioTrack,
     sessionId,
     disposePreview,
+    resetPreview,
     startRenderLoop,
     startVideoIterator,
   ]);
@@ -563,6 +707,7 @@ export function useEditorPlayback({
     loadingPreview,
     previewStatus,
     error,
+    activeSourceLabel,
     sourceVideoDimensions,
     volume,
     muted,

@@ -63,6 +63,7 @@ export default function EditorScreen({ session, onBack }: Props) {
     loadingPreview,
     previewStatus,
     error,
+    activeSourceLabel,
     sourceVideoDimensions,
     volume,
     muted,
@@ -74,6 +75,7 @@ export default function EditorScreen({ session, onBack }: Props) {
     setCurrentTime,
     playbackTimeAtStartRef,
   } = useEditorPlayback({
+    previewUrl: session.previewUrl,
     mediaUrl: session.mediaUrl ?? "",
     initialDuration: session.duration,
     startTime,
@@ -298,6 +300,7 @@ export default function EditorScreen({ session, onBack }: Props) {
           <section className="flex min-h-0 flex-1 items-center justify-center overflow-hidden border border-border bg-card p-3">
             <EditorPreview
               canvasRef={canvasRef}
+              activeSourceLabel={activeSourceLabel}
               playing={playing}
               loadingPreview={loadingPreview}
               previewStatus={previewStatus}
