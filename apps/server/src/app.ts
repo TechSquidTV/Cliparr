@@ -1,6 +1,7 @@
 import express from "express";
 import path from "path";
 import { fileURLToPath } from "url";
+import { CLIPARR_VERSION } from "./config/version.js";
 import { checkDatabaseHealth, initializeDatabase } from "./db/database.js";
 import { errorHandler, notFoundHandler } from "./http/errors.js";
 import { mediaRouter } from "./routes/media.js";
@@ -28,7 +29,7 @@ export async function createApp() {
 
   app.get("/api/health", (_req, res) => {
     checkDatabaseHealth();
-    res.json({ status: "ok", database: "ok" });
+    res.json({ status: "ok", database: "ok", version: CLIPARR_VERSION });
   });
 
   app.use("/api/providers", providersRouter);
