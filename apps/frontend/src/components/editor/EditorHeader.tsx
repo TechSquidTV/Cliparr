@@ -26,9 +26,12 @@ export function EditorHeader({
         >
           <ArrowLeft className="h-4 w-4" />
         </button>
-        <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-          Edit
-        </span>
+        <div className="flex items-center gap-2 pl-1">
+          <img src="/logo-light.svg" alt="Cliparr Logo" className="h-5 w-5" />
+          <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+            Edit
+          </span>
+        </div>
       </div>
       <div className="min-w-0 text-center text-sm font-medium text-foreground">
         <div className="truncate">{title}</div>

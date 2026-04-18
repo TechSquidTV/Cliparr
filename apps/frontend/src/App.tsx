@@ -64,8 +64,15 @@ export default function App() {
 
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-background text-foreground">
-        Loading Cliparr...
+      <div className="flex min-h-screen flex-col items-center justify-center gap-6 bg-background text-foreground">
+        <div className="relative">
+          <img src="/logo-light.svg" alt="Cliparr Logo" className="h-16 w-16" />
+          <div className="absolute -inset-4 animate-pulse rounded-full bg-primary/10 blur-xl" />
+        </div>
+        <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground uppercase tracking-[0.2em]">
+          <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary/30 border-t-primary" />
+          Loading Cliparr
+        </div>
       </div>
     );
   }

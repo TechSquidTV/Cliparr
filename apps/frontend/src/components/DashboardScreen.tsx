@@ -111,9 +111,7 @@ export default function DashboardScreen({ onSelectSession, onOpenSources, onLogo
       <div className="max-w-5xl mx-auto">
         <header className="mb-10 flex flex-col gap-5 sm:mb-12 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-3">
-            <div className="bg-primary/10 p-2 rounded-lg">
-              <Video className="w-6 h-6 text-primary" />
-            </div>
+            <img src="/logo-light.svg" alt="Cliparr Logo" className="w-8 h-8" />
             <h1 className="text-2xl font-bold tracking-tight">Cliparr</h1>
           </div>
           <div className="flex flex-wrap items-center gap-3 sm:justify-end">
