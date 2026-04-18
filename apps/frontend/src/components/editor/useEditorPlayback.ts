@@ -246,9 +246,10 @@ export function useEditorPlayback({
       canvas.width = 1280;
       canvas.height = 720;
     }
-    context.fillStyle = themeValue("--background", "oklch(0.1591 0 0)");
+    const bodyStyles = getComputedStyle(document.body);
+    context.fillStyle = themeValue("--editor-preview-stage", bodyStyles.backgroundColor);
     context.fillRect(0, 0, canvas.width, canvas.height);
-    context.fillStyle = themeValue("--muted-foreground", "oklch(0.6268 0 0)");
+    context.fillStyle = themeValue("--editor-preview-overlay-foreground", bodyStyles.color);
     context.font = "24px sans-serif";
     context.textAlign = "center";
     context.fillText(message, canvas.width / 2, canvas.height / 2);

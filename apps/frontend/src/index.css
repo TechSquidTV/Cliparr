@@ -55,6 +55,18 @@
   --shadow-xl: 0px 0px 3px 0px hsl(0 0% 100% / 0.05), 0px 8px 10px -1px hsl(0 0% 100% / 0.05);
   --shadow-2xl: 0px 0px 3px 0px hsl(0 0% 100% / 0.13);
   --tracking-normal: 0rem;
+  --tracking-caps-sm: calc(var(--tracking-normal) + 0.12em);
+  --tracking-caps-md: calc(var(--tracking-normal) + 0.14em);
+  --tracking-caps-lg: calc(var(--tracking-normal) + 0.16em);
+  --tracking-caps-xl: calc(var(--tracking-normal) + 0.18em);
+  --tracking-caps-2xl: calc(var(--tracking-normal) + 0.2em);
+  --tracking-caps-3xl: calc(var(--tracking-normal) + 0.22em);
+  --radius-control: calc(var(--radius) - 2px);
+  --radius-panel: calc(var(--radius) * 7);
+  --editor-preview-stage: oklch(0 0 0);
+  --editor-preview-overlay: color-mix(in oklch, black 72%, transparent);
+  --editor-preview-overlay-border: color-mix(in oklch, white 12%, transparent);
+  --editor-preview-overlay-foreground: color-mix(in oklch, white 80%, transparent);
   --spacing: 0.25rem;
 }
 
@@ -151,6 +163,9 @@
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
+  --radius-2xl: calc(var(--radius) * 4);
+  --radius-3xl: calc(var(--radius) * 6);
+  --radius-4xl: calc(var(--radius) * 8);
   --shadow-2xs: var(--shadow-2xs);
   --shadow-xs: var(--shadow-xs);
   --shadow-sm: var(--shadow-sm);

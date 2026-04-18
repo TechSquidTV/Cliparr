@@ -288,7 +288,7 @@ export default function ProviderConnectFlow({
         <div className="min-w-0 flex-1">
           <div className="flex items-center justify-between gap-3">
             <div>
-              <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
+              <p className="text-xs font-medium uppercase tracking-[var(--tracking-caps-xl)] text-muted-foreground">
                 {details.eyebrow}
               </p>
               <h2 className="mt-1 text-lg font-semibold text-foreground">
@@ -302,12 +302,12 @@ export default function ProviderConnectFlow({
                   initial={{ opacity: 0, scale: 0.92 }}
                   animate={{ opacity: 1, scale: 1 }}
                   exit={{ opacity: 0, scale: 0.92 }}
-                  className="rounded-full border border-primary/30 bg-primary/10 px-2.5 py-1 text-[11px] font-medium uppercase tracking-[0.16em] text-primary"
+                  className="rounded-full border border-primary/30 bg-primary/10 px-2.5 py-1 text-[11px] font-medium uppercase tracking-[var(--tracking-caps-lg)] text-primary"
                 >
                   Selected
                 </motion.span>
               ) : (
-                <span className="rounded-full border border-primary/20 bg-primary/10 px-2.5 py-1 text-[11px] font-medium uppercase tracking-[0.16em] text-primary">
+                <span className="rounded-full border border-primary/20 bg-primary/10 px-2.5 py-1 text-[11px] font-medium uppercase tracking-[var(--tracking-caps-lg)] text-primary">
                   Selected
                 </span>
               )
@@ -317,7 +317,7 @@ export default function ProviderConnectFlow({
             {details.summary}
           </p>
           {isBusy && (
-            <p className="mt-3 text-xs font-medium uppercase tracking-[0.18em] text-primary">
+            <p className="mt-3 text-xs font-medium uppercase tracking-[var(--tracking-caps-xl)] text-primary">
               In progress
             </p>
           )}
@@ -442,7 +442,7 @@ export default function ProviderConnectFlow({
         }}
       >
         <div className="space-y-4">
-          <label className="block text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground">
+          <label className="block text-xs font-medium uppercase tracking-[var(--tracking-caps-lg)] text-muted-foreground">
             Server URL
             <input
               type="url"
@@ -509,7 +509,7 @@ export default function ProviderConnectFlow({
           )}
 
           <div className="grid gap-4 sm:grid-cols-2">
-            <label className="block text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground">
+            <label className="block text-xs font-medium uppercase tracking-[var(--tracking-caps-lg)] text-muted-foreground">
               Username
               <input
                 type="text"
@@ -522,7 +522,7 @@ export default function ProviderConnectFlow({
               />
             </label>
 
-            <label className="block text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground">
+            <label className="block text-xs font-medium uppercase tracking-[var(--tracking-caps-lg)] text-muted-foreground">
               Password
               <input
                 type="password"
@@ -646,7 +646,7 @@ export default function ProviderConnectFlow({
             </div>
           )}
           <div>
-            <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
+            <p className="text-xs font-medium uppercase tracking-[var(--tracking-caps-xl)] text-muted-foreground">
               {selectedProviderDetails?.eyebrow}
             </p>
             <h3 className="mt-1 text-2xl font-semibold tracking-tight text-foreground">
@@ -734,7 +734,7 @@ export default function ProviderConnectFlow({
 
     const providerList = (
       <>
-        <p className="text-xs font-medium uppercase tracking-[0.22em] text-muted-foreground">
+        <p className="text-xs font-medium uppercase tracking-[var(--tracking-caps-3xl)] text-muted-foreground">
           Choose A Provider
         </p>
 

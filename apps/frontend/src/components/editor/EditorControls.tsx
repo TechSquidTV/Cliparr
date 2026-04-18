@@ -80,7 +80,7 @@ export function EditorControls({
         <div className="flex flex-wrap items-center justify-end gap-x-4 gap-y-2 text-right sm:gap-x-6">
           {clipMetrics.map((metric) => (
             <div key={metric.label} className="flex items-center gap-2">
-              <span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+              <span className="text-[11px] font-semibold uppercase tracking-[var(--tracking-caps-lg)] text-muted-foreground">
                 {metric.label}
               </span>
               <span

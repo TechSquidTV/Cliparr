@@ -22,13 +22,13 @@ export function EditorHeader({
           type="button"
           onClick={onBack}
           aria-label="Back"
-          className="flex h-8 w-8 items-center justify-center rounded-[2px] border border-border bg-background text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+          className="flex h-8 w-8 items-center justify-center rounded-[var(--radius-control)] border border-border bg-background text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
         >
           <ArrowLeft className="h-4 w-4" />
         </button>
         <div className="flex items-center gap-2 pl-1">
           <img src="/logo-light.svg" alt="Cliparr Logo" className="h-5 w-5" />
-          <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+          <span className="text-[11px] font-semibold uppercase tracking-[var(--tracking-caps-xl)] text-muted-foreground">
             Edit
           </span>
         </div>
@@ -41,7 +41,7 @@ export function EditorHeader({
           type="button"
           onClick={onExportClick}
           disabled={exporting}
-          className="flex h-8 min-w-36 items-center justify-center gap-2 rounded-[2px] border border-primary bg-primary px-3 text-xs font-semibold uppercase tracking-[0.12em] text-primary-foreground transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50"
+          className="flex h-8 min-w-36 items-center justify-center gap-2 rounded-[var(--radius-control)] border border-primary bg-primary px-3 text-xs font-semibold uppercase tracking-[var(--tracking-caps-sm)] text-primary-foreground transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50"
         >
           {exporting ? (
             <span className="flex items-center gap-2">

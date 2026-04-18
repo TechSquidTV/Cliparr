@@ -19,7 +19,7 @@ export function EditorPreview({
   togglePlay,
 }: EditorPreviewProps) {
   return (
-    <div className="group relative aspect-video h-full max-h-full w-auto max-w-full overflow-hidden bg-black">
+    <div className="group relative aspect-video h-full max-h-full w-auto max-w-full overflow-hidden bg-[var(--editor-preview-stage)]">
       <canvas
         ref={canvasRef}
         className="h-full w-full object-contain"
@@ -33,7 +33,7 @@ export function EditorPreview({
             togglePlay();
           }}
           aria-label={playing ? "Pause preview" : "Play preview"}
-          className={`pointer-events-auto flex h-11 w-11 items-center justify-center border border-white/12 bg-card/92 text-foreground transition-all ${
+          className={`pointer-events-auto flex h-11 w-11 items-center justify-center border border-[var(--editor-preview-overlay-border)] bg-card/92 text-foreground transition-all ${
             playing ? "scale-95 opacity-0" : "scale-100 opacity-100 group-hover:bg-card"
           }`}
         >
@@ -41,12 +41,12 @@ export function EditorPreview({
         </button>
       </div>
       {activeSourceLabel && (
-        <div className="pointer-events-none absolute left-3 top-3 border border-white/12 bg-black/72 px-2 py-1 text-[11px] font-medium uppercase tracking-[0.14em] text-white/80">
+        <div className="pointer-events-none absolute left-3 top-3 border border-[var(--editor-preview-overlay-border)] bg-[var(--editor-preview-overlay)] px-2 py-1 text-[11px] font-medium uppercase tracking-[var(--tracking-caps-md)] text-[var(--editor-preview-overlay-foreground)]">
           {activeSourceLabel}
         </div>
       )}
       {loadingPreview && (
-        <div className="absolute inset-0 flex items-center justify-center bg-black/72 text-sm text-muted-foreground">
+        <div className="absolute inset-0 flex items-center justify-center bg-[var(--editor-preview-overlay)] text-sm text-[var(--editor-preview-overlay-foreground)]">
           {previewStatus}
         </div>
       )}

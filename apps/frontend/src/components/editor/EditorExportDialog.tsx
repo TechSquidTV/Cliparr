@@ -252,7 +252,7 @@ export function EditorExportDialog({
         <header className="border-b border-border bg-card px-4 py-3">
           <div className="flex items-start justify-between gap-3">
             <div className="space-y-1">
-              <h2 id="cliparr-export-dialog-title" className="text-sm font-semibold uppercase tracking-[0.14em] text-foreground">
+              <h2 id="cliparr-export-dialog-title" className="text-sm font-semibold uppercase tracking-[var(--tracking-caps-md)] text-foreground">
                 Export Clip
               </h2>
               <p className="text-xs text-muted-foreground">
@@ -282,13 +282,13 @@ export function EditorExportDialog({
 
             <section className="rounded-md border border-border bg-card">
               <div className="border-b border-border px-3 py-2">
-                <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+                <div className="text-[11px] font-semibold uppercase tracking-[var(--tracking-caps-lg)] text-muted-foreground">
                   Export Settings
                 </div>
               </div>
               <div className="grid gap-3 p-3 sm:grid-cols-3">
                 <label className="space-y-1.5">
-                  <span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+                  <span className="text-[11px] font-semibold uppercase tracking-[var(--tracking-caps-lg)] text-muted-foreground">
                     Format
                   </span>
                   <Select value={selectedFormat} onValueChange={(value) => onFormatChange(value as ExportFormat)}>
@@ -310,7 +310,7 @@ export function EditorExportDialog({
                 </label>
 
                 <label className="space-y-1.5">
-                  <span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+                  <span className="text-[11px] font-semibold uppercase tracking-[var(--tracking-caps-lg)] text-muted-foreground">
                     Resolution
                   </span>
                   <Select value={selectedResolution} onValueChange={(value) => onResolutionChange(value as ExportResolution)}>
@@ -334,7 +334,7 @@ export function EditorExportDialog({
                 </label>
 
                 <label className="space-y-1.5">
-                  <span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+                  <span className="text-[11px] font-semibold uppercase tracking-[var(--tracking-caps-lg)] text-muted-foreground">
                     Audio
                   </span>
                   <Select
@@ -361,14 +361,14 @@ export function EditorExportDialog({
 
             <section className="rounded-md border border-border bg-card">
               <div className="border-b border-border px-3 py-2">
-                <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+                <div className="text-[11px] font-semibold uppercase tracking-[var(--tracking-caps-lg)] text-muted-foreground">
                   Filename Template
                 </div>
               </div>
               <div className="space-y-3 p-3">
                 <div className="grid gap-3 sm:grid-cols-[12rem_auto] sm:items-end">
                   <label className="space-y-1.5">
-                    <span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+                    <span className="text-[11px] font-semibold uppercase tracking-[var(--tracking-caps-lg)] text-muted-foreground">
                       Template Set
                     </span>
                     <Select
@@ -401,7 +401,7 @@ export function EditorExportDialog({
                 </div>
 
                 <label className="block space-y-1.5">
-                  <span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+                  <span className="text-[11px] font-semibold uppercase tracking-[var(--tracking-caps-lg)] text-muted-foreground">
                     Pattern
                   </span>
                   <input
@@ -416,7 +416,7 @@ export function EditorExportDialog({
                 <p className="text-xs text-muted-foreground">{editingTemplateOption.description}</p>
 
                 <div className="rounded-md border border-border bg-background px-3 py-2">
-                  <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+                  <div className="text-[11px] font-semibold uppercase tracking-[var(--tracking-caps-lg)] text-muted-foreground">
                     Available Tokens
                   </div>
                   <div className="mt-2 flex flex-wrap gap-1.5">
@@ -436,7 +436,7 @@ export function EditorExportDialog({
 
           <aside className="space-y-3 rounded-md border border-border bg-card p-3">
             <div className="border-b border-border pb-2">
-              <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+              <div className="text-[11px] font-semibold uppercase tracking-[var(--tracking-caps-lg)] text-muted-foreground">
                 Summary
               </div>
             </div>
@@ -445,19 +445,19 @@ export function EditorExportDialog({
 
             <dl className="grid gap-2 text-sm">
               <div className="rounded-md border border-border bg-background px-3 py-2">
-                <dt className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">Clip</dt>
+                <dt className="text-[11px] font-semibold uppercase tracking-[var(--tracking-caps-lg)] text-muted-foreground">Clip</dt>
                 <dd className="mt-1 font-mono text-xs text-foreground">
                   {formatTime(clipStart)} to {formatTime(clipEnd)}
                 </dd>
               </div>
 
               <div className="rounded-md border border-border bg-background px-3 py-2">
-                <dt className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">Duration</dt>
+                <dt className="text-[11px] font-semibold uppercase tracking-[var(--tracking-caps-lg)] text-muted-foreground">Duration</dt>
                 <dd className="mt-1 font-mono text-xs text-foreground">{formatTime(clipLength)}</dd>
               </div>
 
               <div className="rounded-md border border-border bg-background px-3 py-2">
-                <dt className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">Output</dt>
+                <dt className="text-[11px] font-semibold uppercase tracking-[var(--tracking-caps-lg)] text-muted-foreground">Output</dt>
                 <dd className="mt-1 text-xs text-foreground">{selectedFormatOption.label}</dd>
                 <dd className="mt-1 font-mono text-[11px] text-foreground">
                   {outputDimensions ? `${outputDimensions.width} x ${outputDimensions.height}` : "Unknown size"}
@@ -465,15 +465,15 @@ export function EditorExportDialog({
               </div>
 
               <div className="rounded-md border border-border bg-background px-3 py-2">
-                <dt className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">Audio</dt>
+                <dt className="text-[11px] font-semibold uppercase tracking-[var(--tracking-caps-lg)] text-muted-foreground">Audio</dt>
                 <dd className="mt-1 text-xs text-foreground">
                   {includeAudio ? "Included when available" : "Video only"}
                 </dd>
               </div>
 
               <div className="rounded-md border border-border bg-background px-3 py-2">
-                <dt className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">Filename</dt>
-                <dd className="mt-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+                <dt className="text-[11px] font-semibold uppercase tracking-[var(--tracking-caps-lg)] text-muted-foreground">Filename</dt>
+                <dd className="mt-1 text-[11px] font-semibold uppercase tracking-[var(--tracking-caps-md)] text-muted-foreground">
                   {activeTemplateKind === "episode" ? "TV show template" : "Movie template"}
                 </dd>
                 <dd className="mt-1 break-all font-mono text-[11px] text-foreground">{fileNamePreview}</dd>
@@ -496,7 +496,7 @@ export function EditorExportDialog({
             type="button"
             onClick={onExport}
             disabled={exporting}
-            className="inline-flex h-8 items-center justify-center gap-2 rounded-md border border-primary bg-primary px-3 text-xs font-semibold uppercase tracking-[0.12em] text-primary-foreground transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-60"
+            className="inline-flex h-8 items-center justify-center gap-2 rounded-md border border-primary bg-primary px-3 text-xs font-semibold uppercase tracking-[var(--tracking-caps-sm)] text-primary-foreground transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-60"
           >
             {exporting ? (
               <>

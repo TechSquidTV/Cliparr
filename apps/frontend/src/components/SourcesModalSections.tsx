@@ -140,7 +140,7 @@ export function SourcesModalHeader({
     <header className="border-b border-border bg-[linear-gradient(135deg,color-mix(in_oklch,var(--primary)_16%,transparent),transparent_55%),linear-gradient(180deg,color-mix(in_oklch,var(--muted)_82%,var(--card)),var(--card))] px-5 py-5 sm:px-8 sm:py-7">
       <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
         <div className="space-y-3">
-          <div className={cn("inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground", elevatedGlassClasses)}>
+          <div className={cn("inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-medium uppercase tracking-[var(--tracking-caps-xl)] text-muted-foreground", elevatedGlassClasses)}>
             <Server className="h-3.5 w-3.5" />
             Source Control
           </div>
@@ -341,10 +341,10 @@ export function SourcesConnectSection({
   onConnected,
 }: SourcesConnectSectionProps) {
   return (
-    <section className="rounded-[1.75rem] border border-border bg-[linear-gradient(135deg,color-mix(in_oklch,var(--primary)_10%,transparent),transparent_52%),linear-gradient(180deg,color-mix(in_oklch,var(--muted)_78%,var(--background)),var(--background))] p-5 sm:p-6">
+    <section className="rounded-[var(--radius-panel)] border border-border bg-[linear-gradient(135deg,color-mix(in_oklch,var(--primary)_10%,transparent),transparent_52%),linear-gradient(180deg,color-mix(in_oklch,var(--muted)_78%,var(--background)),var(--background))] p-5 sm:p-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div className="space-y-2">
-          <div className={cn("inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground", elevatedGlassClasses)}>
+          <div className={cn("inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-medium uppercase tracking-[var(--tracking-caps-xl)] text-muted-foreground", elevatedGlassClasses)}>
             <Plus className="h-3.5 w-3.5" />
             Add Source
           </div>
@@ -385,7 +385,7 @@ interface SourcesEmptyStateProps {
 
 export function SourcesEmptyState({ title, description }: SourcesEmptyStateProps) {
   return (
-    <div className="rounded-[1.75rem] border border-dashed border-border bg-background/60 px-8 py-14 text-center">
+    <div className="rounded-[var(--radius-panel)] border border-dashed border-border bg-background/60 px-8 py-14 text-center">
       <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-muted">
         <Server className="h-6 w-6 text-muted-foreground" />
       </div>
@@ -448,7 +448,7 @@ export function SourceCard({
   return (
     <article
       className={cn(
-        "rounded-[1.75rem] border p-5 shadow-sm transition-colors",
+        "rounded-[var(--radius-panel)] border p-5 shadow-sm transition-colors",
         source.enabled
           ? "border-border bg-background/90"
           : "border-border bg-muted/40"
@@ -456,7 +456,7 @@ export function SourceCard({
     >
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="flex flex-wrap items-center gap-2">
-          <span className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-3 py-1 text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
+          <span className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-3 py-1 text-xs font-medium uppercase tracking-[var(--tracking-caps-xl)] text-muted-foreground">
             {formatProviderName(source.providerId)}
           </span>
           <span className={cn("inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-medium", status.className)}>
@@ -477,7 +477,7 @@ export function SourceCard({
       </div>
 
       <div className="mt-4 grid gap-3 lg:grid-cols-2">
-        <label className="block text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground">
+        <label className="block text-xs font-medium uppercase tracking-[var(--tracking-caps-lg)] text-muted-foreground">
           Display Name
           <input
             value={draftName}
@@ -488,7 +488,7 @@ export function SourceCard({
           />
         </label>
 
-        <label className="block text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground">
+        <label className="block text-xs font-medium uppercase tracking-[var(--tracking-caps-lg)] text-muted-foreground">
           Server URL
           <input
             value={draftBaseUrl}
@@ -502,11 +502,11 @@ export function SourceCard({
 
       <dl className="mt-4 grid gap-3 text-sm sm:grid-cols-2">
         <div className="rounded-2xl border border-border bg-card/80 px-4 py-3">
-          <dt className="text-xs uppercase tracking-[0.16em] text-muted-foreground">Saved URL</dt>
+          <dt className="text-xs uppercase tracking-[var(--tracking-caps-lg)] text-muted-foreground">Saved URL</dt>
           <dd className="mt-1 break-all font-medium text-foreground">{source.baseUrl}</dd>
         </div>
         <div className="rounded-2xl border border-border bg-card/80 px-4 py-3">
-          <dt className="text-xs uppercase tracking-[0.16em] text-muted-foreground">Details</dt>
+          <dt className="text-xs uppercase tracking-[var(--tracking-caps-lg)] text-muted-foreground">Details</dt>
           <dd className="mt-1 font-medium text-foreground">
             {[product, platform].filter(Boolean).join(" • ") || "No extra metadata"}
           </dd>
