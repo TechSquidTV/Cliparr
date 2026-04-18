@@ -3,12 +3,6 @@ import { index, integer, sqliteTable, text, uniqueIndex } from "drizzle-orm/sqli
 
 const nowIso = sql`(strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))`;
 
-export const schemaMigrations = sqliteTable("schema_migrations", {
-  id: integer("id").primaryKey(),
-  name: text("name").notNull().unique(),
-  appliedAt: text("applied_at").notNull().default(nowIso),
-});
-
 export const providerAccounts = sqliteTable(
   "provider_accounts",
   {

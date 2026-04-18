@@ -19,6 +19,7 @@ RUN pnpm install --frozen-lockfile
 
 COPY tsconfig.json tsconfig.base.json ./
 COPY apps/server/tsconfig.json apps/server/tsconfig.build.json apps/server/
+COPY apps/server/drizzle apps/server/drizzle
 COPY apps/server/src apps/server/src
 COPY apps/frontend/components.json apps/frontend/index.html apps/frontend/tsconfig.json apps/frontend/vite.config.js apps/frontend/
 COPY apps/frontend/public apps/frontend/public
@@ -36,6 +37,7 @@ ENV CLIPARR_DATA_DIR=/data
 WORKDIR /app
 
 COPY --from=build --chown=node:node /prod/apps/server ./apps/server
+COPY --from=build --chown=node:node /app/apps/server/drizzle ./apps/server/drizzle
 COPY --from=build --chown=node:node /app/apps/frontend/dist ./apps/frontend/dist
 
 RUN mkdir -p /data && chown node:node /data
