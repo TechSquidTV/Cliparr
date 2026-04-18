@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { AlertTriangle, LogOut, Play, RefreshCw, Settings2, Video } from "lucide-react";
+import githubIcon from "../assets/github.svg";
 import { cliparrClient } from "../api/cliparrClient";
 import { formatProviderName, ProviderGlyph } from "./ProviderGlyph";
 import type { CurrentlyPlayingItem, SourcePlaybackError, ViewerPlaybackGroup } from "../providers/types";
@@ -9,6 +10,8 @@ interface Props {
   onOpenSources: () => void;
   onLogout: () => Promise<void> | void;
 }
+
+const CLIPARR_GITHUB_URL = "https://github.com/TechSquidTV/Cliparr";
 
 function errorMessage(err: unknown, fallback: string) {
   return err instanceof Error && err.message ? err.message : fallback;
@@ -78,6 +81,7 @@ function WarningBanner({ sourceErrors }: { sourceErrors: SourcePlaybackError[] }
 export default function DashboardScreen({ onSelectSession, onOpenSources, onLogout }: Props) {
   const [viewers, setViewers] = useState<ViewerPlaybackGroup[]>([]);
   const [sourceErrors, setSourceErrors] = useState<SourcePlaybackError[]>([]);
+  const [appVersion, setAppVersion] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -101,10 +105,31 @@ export default function DashboardScreen({ onSelectSession, onOpenSources, onLogo
     void fetchSessions();
   }, []);
 
+  useEffect(() => {
+    let cancelled = false;
+
+    void cliparrClient.getHealth()
+      .then((health) => {
+        if (!cancelled) {
+          setAppVersion(health.version);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setAppVersion("");
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   const hasPlayback = viewers.length > 0;
   const emptyMessage = sourceErrors.length > 0
     ? "No active playback was found on the sources that responded."
     : "No one is currently watching anything.";
+  const versionLabel = appVersion ? `v${appVersion}` : "";
 
   return (
     <div className="min-h-screen bg-background p-4 text-foreground sm:p-8">
@@ -112,9 +137,30 @@ export default function DashboardScreen({ onSelectSession, onOpenSources, onLogo
         <header className="mb-10 flex flex-col gap-5 sm:mb-12 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-3">
             <img src="/logo-light.svg" alt="Cliparr Logo" className="w-8 h-8" />
-            <h1 className="text-2xl font-bold tracking-tight">Cliparr</h1>
+            <div className="space-y-1">
+              <div className="flex flex-wrap items-center gap-2">
+                <h1 className="text-2xl font-bold tracking-tight">Cliparr</h1>
+                {versionLabel && (
+                  <span className="rounded-full border border-border bg-card px-2 py-0.5 text-xs font-medium text-muted-foreground">
+                    {versionLabel}
+                  </span>
+                )}
+              </div>
+              <p className="text-sm text-muted-foreground">Export clips from active playback sessions.</p>
+            </div>
           </div>
           <div className="flex flex-wrap items-center gap-3 sm:justify-end">
+            <a
+              href={CLIPARR_GITHUB_URL}
+              target="_blank"
+              rel="noreferrer"
+              className="flex items-center gap-2 rounded-lg border border-border px-4 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+              aria-label="View Cliparr on GitHub"
+              title="View Cliparr on GitHub"
+            >
+              <img src={githubIcon} alt="" aria-hidden="true" className="h-4 w-4" />
+              <span className="hidden sm:inline">GitHub</span>
+            </a>
             <button
               type="button"
               onClick={onOpenSources}

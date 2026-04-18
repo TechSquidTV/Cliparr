@@ -1,5 +1,7 @@
 # syntax=docker/dockerfile:1.7
 
+ARG CLIPARR_VERSION=0.0.0
+
 FROM node:24-slim AS base
 
 ENV PNPM_HOME="/pnpm"
@@ -10,6 +12,9 @@ RUN corepack enable
 WORKDIR /app
 
 FROM base AS build
+
+ARG CLIPARR_VERSION
+ENV CLIPARR_VERSION=$CLIPARR_VERSION
 
 COPY .npmrc package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY apps/server/package.json apps/server/package.json
@@ -30,9 +35,12 @@ RUN pnpm --filter @cliparr/server deploy --legacy --prod /prod/apps/server
 
 FROM node:24-slim AS runner
 
+ARG CLIPARR_VERSION
+
 ENV NODE_ENV=production
 ENV PORT=3000
 ENV CLIPARR_DATA_DIR=/data
+ENV CLIPARR_VERSION=$CLIPARR_VERSION
 
 WORKDIR /app
 

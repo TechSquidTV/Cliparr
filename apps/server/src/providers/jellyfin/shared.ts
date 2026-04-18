@@ -1,13 +1,14 @@
 import { createHash, randomUUID } from "crypto";
 import { lookup } from "dns/promises";
 import { isIP } from "net";
+import { CLIPARR_VERSION } from "../../config/version.js";
 import type { MediaSource } from "../../db/mediaSourcesRepository.js";
 import { ApiError } from "../../http/errors.js";
 import { errorMessage, numberValue, stringValue, uniqueStrings } from "../shared/utils.js";
 
 const JELLYFIN_PRODUCT = "Cliparr";
 const JELLYFIN_DEVICE_NAME = "Cliparr";
-const JELLYFIN_VERSION = process.env.npm_package_version ?? "0.0.0";
+const JELLYFIN_VERSION = CLIPARR_VERSION;
 
 export const JELLYFIN_REQUEST_TIMEOUT_MS = 5000;
 const CURRENT_PLAYBACK_REQUEST_TIMEOUT_MS = 5000;

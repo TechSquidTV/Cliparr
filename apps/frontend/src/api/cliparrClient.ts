@@ -13,6 +13,12 @@ interface ResponseErrorDetails {
   message?: string;
 }
 
+interface HealthResponse {
+  status: string;
+  database: string;
+  version: string;
+}
+
 class CliparrRequestError extends Error {
   status: number;
   code?: string;
@@ -127,6 +133,10 @@ export function subscribeToAuthFailure(listener: () => void) {
 }
 
 export const cliparrClient = {
+  async getHealth() {
+    return request<HealthResponse>("/api/health");
+  },
+
   async listProviders() {
     const data = await request<{ providers: ProviderDefinition[] }>("/api/providers");
     return data.providers;
