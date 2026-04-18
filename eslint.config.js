@@ -96,8 +96,8 @@ export default tseslint.config(
   },
   {
     files: [
-      "apps/server/src/providers/jellyfin/provider.ts",
-      "apps/server/src/providers/plex/provider.ts",
+      "apps/server/src/providers/jellyfin/**/*.ts",
+      "apps/server/src/providers/plex/**/*.ts",
     ],
     rules: {
       "@typescript-eslint/no-explicit-any": "off",
