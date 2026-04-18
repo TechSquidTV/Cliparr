@@ -20,8 +20,11 @@ interface BuildExportFileNameOptions {
 
 const EXPORT_FILE_NAME_TEMPLATE_STORAGE_KEY = "cliparr.export.filename-templates.v1";
 
-export const DEFAULT_MOVIE_EXPORT_FILE_NAME_TEMPLATE = "{source_title} ({year}) - clip {clip_start} to {clip_end}";
-export const DEFAULT_EPISODE_EXPORT_FILE_NAME_TEMPLATE = "{show_title} - {episode_code} - {title} - clip {clip_start} to {clip_end}";
+const LEGACY_DEFAULT_MOVIE_EXPORT_FILE_NAME_TEMPLATE = "{source_title} ({year}) - clip {clip_start} to {clip_end}";
+const LEGACY_DEFAULT_EPISODE_EXPORT_FILE_NAME_TEMPLATE = "{show_title} - {episode_code} - {title} - clip {clip_start} to {clip_end}";
+
+export const DEFAULT_MOVIE_EXPORT_FILE_NAME_TEMPLATE = "{source_title} ({year}) [{clip_start}-{clip_end}]";
+export const DEFAULT_EPISODE_EXPORT_FILE_NAME_TEMPLATE = "{show_title} - {episode_code} - {title} [{clip_start}-{clip_end}]";
 
 export const EXPORT_FILE_NAME_TEMPLATE_TOKENS = [
   "title",
@@ -41,11 +44,58 @@ export const EXPORT_FILE_NAME_TEMPLATE_TOKENS = [
 ] as const;
 type ExportFileNameTemplateToken = (typeof EXPORT_FILE_NAME_TEMPLATE_TOKENS)[number];
 
+const MOVIE_EXPORT_FILE_NAME_TEMPLATE_TOKENS: readonly ExportFileNameTemplateToken[] = [
+  "title",
+  "source_title",
+  "year",
+  "clip_start",
+  "clip_end",
+  "clip_range",
+  "provider",
+  "item_type",
+  "format",
+];
+
+const EPISODE_EXPORT_FILE_NAME_TEMPLATE_TOKENS: readonly ExportFileNameTemplateToken[] = [
+  "title",
+  "source_title",
+  "show_title",
+  "season_title",
+  "season_number",
+  "episode_number",
+  "episode_code",
+  "year",
+  "clip_start",
+  "clip_end",
+  "clip_range",
+  "provider",
+  "item_type",
+  "format",
+];
+
 export function defaultExportFileNameTemplates(): ExportFileNameTemplateSettings {
   return {
     movie: DEFAULT_MOVIE_EXPORT_FILE_NAME_TEMPLATE,
     episode: DEFAULT_EPISODE_EXPORT_FILE_NAME_TEMPLATE,
   };
+}
+
+export function getExportFileNameTemplateTokens(kind: ExportFileNameTemplateKind) {
+  return kind === "episode"
+    ? EPISODE_EXPORT_FILE_NAME_TEMPLATE_TOKENS
+    : MOVIE_EXPORT_FILE_NAME_TEMPLATE_TOKENS;
+}
+
+function migrateStoredTemplate(
+  storedTemplate: string | undefined,
+  defaultTemplate: string,
+  legacyDefaultTemplate: string
+) {
+  if (typeof storedTemplate !== "string" || !storedTemplate.trim()) {
+    return defaultTemplate;
+  }
+
+  return storedTemplate === legacyDefaultTemplate ? defaultTemplate : storedTemplate;
 }
 
 export function loadExportFileNameTemplates(): ExportFileNameTemplateSettings {
@@ -64,8 +114,8 @@ export function loadExportFileNameTemplates(): ExportFileNameTemplateSettings {
     const parsed = JSON.parse(raw) as Partial<ExportFileNameTemplateSettings>;
 
     return {
-      movie: typeof parsed.movie === "string" && parsed.movie.trim() ? parsed.movie : defaults.movie,
-      episode: typeof parsed.episode === "string" && parsed.episode.trim() ? parsed.episode : defaults.episode,
+      movie: migrateStoredTemplate(parsed.movie, defaults.movie, LEGACY_DEFAULT_MOVIE_EXPORT_FILE_NAME_TEMPLATE),
+      episode: migrateStoredTemplate(parsed.episode, defaults.episode, LEGACY_DEFAULT_EPISODE_EXPORT_FILE_NAME_TEMPLATE),
     };
   } catch {
     return defaults;
@@ -184,15 +234,13 @@ function formatEpisodeCode(seasonNumber?: number, episodeNumber?: number) {
 }
 
 function formatTemplateTime(seconds: number) {
-  const totalMilliseconds = Math.max(0, Math.round(seconds * 1000));
-  const milliseconds = totalMilliseconds % 1000;
-  const totalSeconds = Math.floor(totalMilliseconds / 1000);
+  const totalSeconds = Math.max(0, Math.round(seconds));
   const hours = Math.floor(totalSeconds / 3600);
   const minutes = Math.floor((totalSeconds % 3600) / 60);
   const remainingSeconds = totalSeconds % 60;
 
   const hoursText = hours > 0 ? `${String(hours).padStart(2, "0")}h` : "";
-  return `${hoursText}${String(minutes).padStart(2, "0")}m${String(remainingSeconds).padStart(2, "0")}s${String(milliseconds).padStart(3, "0")}ms`;
+  return `${hoursText}${String(minutes).padStart(2, "0")}m${String(remainingSeconds).padStart(2, "0")}s`;
 }
 
 function sanitizeTemplateValue(value: string | undefined) {

@@ -23,6 +23,11 @@ interface Props {
   onBack: () => void;
 }
 
+interface VideoDimensions {
+  width: number;
+  height: number;
+}
+
 function isInteractiveKeyboardTarget(target: EventTarget | null) {
   if (!(target instanceof HTMLElement)) {
     return false;
@@ -44,6 +49,7 @@ export default function EditorScreen({ session, onBack }: Props) {
   const [exportFormat, setExportFormat] = useState<ExportFormat>("mp4");
   const [includeAudio, setIncludeAudio] = useState(true);
   const [fileNameTemplates, setFileNameTemplates] = useState<ExportFileNameTemplateSettings>(() => loadExportFileNameTemplates());
+  const [templateEditorKind, setTemplateEditorKind] = useState<ExportFileNameTemplateKind>("movie");
   const [exportDialogOpen, setExportDialogOpen] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -57,6 +63,7 @@ export default function EditorScreen({ session, onBack }: Props) {
     loadingPreview,
     previewStatus,
     error,
+    sourceVideoDimensions,
     volume,
     muted,
     setVolume,
@@ -127,14 +134,17 @@ export default function EditorScreen({ session, onBack }: Props) {
     templates: fileNameTemplates,
   });
 
+  const outputDimensions = getOutputDimensions(sourceVideoDimensions, resolution);
+
   useEffect(() => {
     saveExportFileNameTemplates(fileNameTemplates);
   }, [fileNameTemplates]);
 
   const handleOpenExportDialog = useCallback(() => {
     setExportError(null);
+    setTemplateEditorKind(fileName.templateKind);
     setExportDialogOpen(true);
-  }, []);
+  }, [fileName.templateKind]);
 
   const handleCloseExportDialog = useCallback(() => {
     if (exporting) {
@@ -357,7 +367,10 @@ export default function EditorScreen({ session, onBack }: Props) {
         progress={progress}
         error={exportError}
         fileNamePreview={fileName.fullName}
+        outputDimensions={outputDimensions}
         activeTemplateKind={fileName.templateKind}
+        editingTemplateKind={templateEditorKind}
+        onEditingTemplateKindChange={setTemplateEditorKind}
         fileNameTemplates={fileNameTemplates}
         onFileNameTemplateChange={handleFileNameTemplateChange}
         onResetFileNameTemplate={handleResetFileNameTemplate}
@@ -366,4 +379,26 @@ export default function EditorScreen({ session, onBack }: Props) {
       />
     </div>
   );
+}
+
+function getOutputDimensions(
+  sourceVideoDimensions: VideoDimensions | null,
+  resolution: ExportResolution
+) {
+  if (!sourceVideoDimensions || sourceVideoDimensions.width <= 0 || sourceVideoDimensions.height <= 0) {
+    return null;
+  }
+
+  if (resolution === "original") {
+    return sourceVideoDimensions;
+  }
+
+  const height = parseInt(resolution, 10);
+  if (!Number.isFinite(height) || height <= 0) {
+    return sourceVideoDimensions;
+  }
+
+  const width = Math.max(1, Math.round((sourceVideoDimensions.width / sourceVideoDimensions.height) * height));
+
+  return { width, height };
 }
