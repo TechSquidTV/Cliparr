@@ -508,7 +508,7 @@ export default function SourcesModal({ isOpen, onClose, onSourcesChanged }: Prop
 
   return (
     <div
-      className="fixed inset-0 z-50 bg-[color:color-mix(in_oklch,var(--foreground)_38%,transparent)] p-4 backdrop-blur-sm sm:p-6"
+      className="fixed inset-0 z-50 bg-[color-mix(in_oklch,var(--foreground)_38%,transparent)] p-4 backdrop-blur-sm sm:p-6"
       role="presentation"
       onClick={onClose}
     >
@@ -518,7 +518,7 @@ export default function SourcesModal({ isOpen, onClose, onSourcesChanged }: Prop
         aria-modal="true"
         aria-label="Manage sources"
         tabIndex={-1}
-        className="mx-auto flex h-full max-w-6xl flex-col overflow-hidden rounded-[2rem] border border-border bg-card text-card-foreground shadow-2xl"
+        className="mx-auto flex h-full max-w-6xl flex-col overflow-hidden rounded-4xl border border-border bg-card text-card-foreground shadow-2xl"
         onClick={(event) => event.stopPropagation()}
       >
         <header className="border-b border-border bg-[linear-gradient(135deg,color-mix(in_oklch,var(--primary)_16%,transparent),transparent_55%),linear-gradient(180deg,color-mix(in_oklch,var(--muted)_82%,var(--card)),var(--card))] px-5 py-5 sm:px-8 sm:py-7">
@@ -637,7 +637,7 @@ export default function SourcesModal({ isOpen, onClose, onSourcesChanged }: Prop
                         className={cn(
                           "rounded-full px-2 py-0.5 text-xs",
                           isActive
-                            ? "bg-[color:color-mix(in_oklch,var(--primary-foreground)_16%,transparent)] text-primary-foreground"
+                            ? "bg-[color-mix(in_oklch,var(--primary-foreground)_16%,transparent)] text-primary-foreground"
                             : "bg-muted text-foreground"
                         )}
                       >
@@ -676,7 +676,7 @@ export default function SourcesModal({ isOpen, onClose, onSourcesChanged }: Prop
                 {Array.from({ length: 4 }).map((_, index) => (
                   <div
                     key={index}
-                    className="h-72 animate-pulse rounded-[1.5rem] border border-border bg-muted/60"
+                    className="h-72 animate-pulse rounded-3xl border border-border bg-muted/60"
                   />
                 ))}
               </div>

@@ -87,6 +87,7 @@ export function EditorTimeline({
         onActionResizing={({ start, end }) => isValidTimelineRange(start, end)}
         onClickTimeArea={(time) => {
           void seekToTime(time);
+          return false;
         }}
         onCursorDragStart={onCursorDragStart}
         onCursorDrag={onCursorDrag}
