@@ -1,6 +1,11 @@
 import { Download, FileVideo, Volume2, VolumeX, X } from "lucide-react";
 import { useEffect, useRef } from "react";
 import type { ExportFormat, ExportResolution } from "../../lib/exportClip";
+import {
+  EXPORT_FILE_NAME_TEMPLATE_TOKENS,
+  type ExportFileNameTemplateKind,
+  type ExportFileNameTemplateSettings,
+} from "../../lib/exportFileName";
 import { cn } from "../../lib/utils";
 import { formatTime } from "./EditorUtils";
 
@@ -18,6 +23,11 @@ interface EditorExportDialogProps {
   exporting: boolean;
   progress: number;
   error: string | null;
+  fileNamePreview: string;
+  activeTemplateKind: ExportFileNameTemplateKind;
+  fileNameTemplates: ExportFileNameTemplateSettings;
+  onFileNameTemplateChange: (kind: ExportFileNameTemplateKind, template: string) => void;
+  onResetFileNameTemplate: (kind: ExportFileNameTemplateKind) => void;
   onClose: () => void;
   onExport: () => void;
 }
@@ -83,10 +93,6 @@ const resolutionOptions: ReadonlyArray<{
   },
 ];
 
-function sanitizeTitle(title: string) {
-  return title.replace(/[^a-z0-9]/gi, "_").toLowerCase();
-}
-
 export function EditorExportDialog({
   isOpen,
   title,
@@ -101,6 +107,11 @@ export function EditorExportDialog({
   exporting,
   progress,
   error,
+  fileNamePreview,
+  activeTemplateKind,
+  fileNameTemplates,
+  onFileNameTemplateChange,
+  onResetFileNameTemplate,
   onClose,
   onExport,
 }: EditorExportDialogProps) {
@@ -108,7 +119,6 @@ export function EditorExportDialog({
   const lastFocusedElementRef = useRef<HTMLElement | null>(null);
   const clipLength = Math.max(0, clipEnd - clipStart);
   const selectedFormatOption = formatOptions.find((option) => option.value === selectedFormat) ?? formatOptions[0];
-  const fileNamePreview = `${sanitizeTitle(title)}-clip.${selectedFormat}`;
 
   useEffect(() => {
     if (!isOpen) {
@@ -392,6 +402,97 @@ export function EditorExportDialog({
                 })}
               </div>
             </section>
+
+            <section className="space-y-4">
+              <div className="space-y-1">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                  Filename Templates
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  Templates are saved locally in this browser. The export extension is added automatically.
+                </p>
+              </div>
+
+              <div className="grid gap-3 lg:grid-cols-2">
+                {([
+                  {
+                    kind: "movie",
+                    label: "Movies",
+                    description: "Used for film-style items and anything that is not a TV episode.",
+                  },
+                  {
+                    kind: "episode",
+                    label: "TV Shows",
+                    description: "Used for episode exports with show and episode metadata.",
+                  },
+                ] as const).map((templateOption) => {
+                  const isActive = activeTemplateKind === templateOption.kind;
+
+                  return (
+                    <div
+                      key={templateOption.kind}
+                      className={cn(
+                        "rounded-[0.875rem] border p-4",
+                        isActive
+                          ? "border-primary bg-[color-mix(in_oklch,var(--primary)_12%,var(--card))]"
+                          : "border-border bg-background/75"
+                      )}
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2">
+                            <div className="text-sm font-semibold uppercase tracking-[0.12em]">{templateOption.label}</div>
+                            {isActive && (
+                              <span className="rounded-full border border-primary/30 bg-primary px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-primary-foreground">
+                                Used Now
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-sm text-muted-foreground">{templateOption.description}</p>
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={() => onResetFileNameTemplate(templateOption.kind)}
+                          className="rounded-[0.625rem] border border-border bg-card px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+                        >
+                          Reset
+                        </button>
+                      </div>
+
+                      <label className="mt-4 block space-y-2">
+                        <span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+                          Template
+                        </span>
+                        <input
+                          type="text"
+                          value={fileNameTemplates[templateOption.kind]}
+                          onChange={(event) => onFileNameTemplateChange(templateOption.kind, event.target.value)}
+                          className="h-11 w-full rounded-[0.75rem] border border-input bg-background px-3 font-mono text-sm text-foreground outline-none transition-colors focus:border-ring"
+                          spellCheck={false}
+                        />
+                      </label>
+                    </div>
+                  );
+                })}
+              </div>
+
+              <div className="rounded-[0.875rem] border border-border bg-background/70 p-4">
+                <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+                  Available Tokens
+                </div>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {EXPORT_FILE_NAME_TEMPLATE_TOKENS.map((token) => (
+                    <code
+                      key={token}
+                      className="rounded-[0.625rem] border border-border bg-card px-2.5 py-1 font-mono text-xs text-foreground"
+                    >
+                      {`{${token}}`}
+                    </code>
+                  ))}
+                </div>
+              </div>
+            </section>
           </div>
 
           <aside className="space-y-4 rounded-[1rem] border border-border bg-[linear-gradient(180deg,color-mix(in_oklch,var(--muted)_82%,var(--card)),var(--card))] p-5">
@@ -445,6 +546,9 @@ export function EditorExportDialog({
               <div className="rounded-[0.875rem] border border-border bg-background/75 px-4 py-3">
                 <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
                   Filename
+                </div>
+                <div className="mt-2 text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+                  {activeTemplateKind === "episode" ? "TV show template" : "Movie template"}
                 </div>
                 <div className="mt-2 break-all font-mono text-xs text-foreground">{fileNamePreview}</div>
               </div>

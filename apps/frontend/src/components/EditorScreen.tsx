@@ -9,6 +9,14 @@ import { EditorControls } from "./editor/EditorControls";
 import { EditorTimeline } from "./editor/EditorTimeline";
 import type { CurrentlyPlayingItem } from "../providers/types";
 import type { ExportFormat, ExportResolution } from "../lib/exportClip";
+import {
+  buildExportFileName,
+  defaultExportFileNameTemplates,
+  loadExportFileNameTemplates,
+  saveExportFileNameTemplates,
+  type ExportFileNameTemplateKind,
+  type ExportFileNameTemplateSettings,
+} from "../lib/exportFileName";
 
 interface Props {
   session: CurrentlyPlayingItem;
@@ -35,6 +43,7 @@ export default function EditorScreen({ session, onBack }: Props) {
   const [resolution, setResolution] = useState<ExportResolution>("original");
   const [exportFormat, setExportFormat] = useState<ExportFormat>("mp4");
   const [includeAudio, setIncludeAudio] = useState(true);
+  const [fileNameTemplates, setFileNameTemplates] = useState<ExportFileNameTemplateSettings>(() => loadExportFileNameTemplates());
   const [exportDialogOpen, setExportDialogOpen] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -108,6 +117,20 @@ export default function EditorScreen({ session, onBack }: Props) {
     updateClipRange,
   });
 
+  const fileName = buildExportFileName({
+    title: session.title,
+    sessionType: session.type,
+    metadata: session.exportMetadata,
+    startTime,
+    endTime,
+    format: exportFormat,
+    templates: fileNameTemplates,
+  });
+
+  useEffect(() => {
+    saveExportFileNameTemplates(fileNameTemplates);
+  }, [fileNameTemplates]);
+
   const handleOpenExportDialog = useCallback(() => {
     setExportError(null);
     setExportDialogOpen(true);
@@ -136,6 +159,27 @@ export default function EditorScreen({ session, onBack }: Props) {
     setExportError(null);
   }, []);
 
+  const handleFileNameTemplateChange = useCallback((
+    kind: ExportFileNameTemplateKind,
+    nextTemplate: string
+  ) => {
+    setFileNameTemplates((current) => ({
+      ...current,
+      [kind]: nextTemplate,
+    }));
+    setExportError(null);
+  }, []);
+
+  const handleResetFileNameTemplate = useCallback((kind: ExportFileNameTemplateKind) => {
+    const defaults = defaultExportFileNameTemplates();
+
+    setFileNameTemplates((current) => ({
+      ...current,
+      [kind]: defaults[kind],
+    }));
+    setExportError(null);
+  }, []);
+
   const handleExport = useCallback(async () => {
     if (!session.mediaUrl) return;
     if (exporting) return;
@@ -160,7 +204,7 @@ export default function EditorScreen({ session, onBack }: Props) {
 
       const a = document.createElement("a");
       a.href = url;
-      a.download = `${session.title.replace(/[^a-z0-9]/gi, "_").toLowerCase()}-clip.${exportFormat}`;
+      a.download = fileName.fullName;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -175,12 +219,12 @@ export default function EditorScreen({ session, onBack }: Props) {
   }, [
     endTime,
     exportFormat,
+    fileName.fullName,
     exporting,
     includeAudio,
     resolution,
     session.exportMetadata,
     session.mediaUrl,
-    session.title,
     startTime,
   ]);
 
@@ -312,6 +356,11 @@ export default function EditorScreen({ session, onBack }: Props) {
         exporting={exporting}
         progress={progress}
         error={exportError}
+        fileNamePreview={fileName.fullName}
+        activeTemplateKind={fileName.templateKind}
+        fileNameTemplates={fileNameTemplates}
+        onFileNameTemplateChange={handleFileNameTemplateChange}
+        onResetFileNameTemplate={handleResetFileNameTemplate}
         onClose={handleCloseExportDialog}
         onExport={() => void handleExport()}
       />
