@@ -14,7 +14,7 @@
 
 **Cliparr** is a streamlined media clipper that allows you to quickly create and download clips from the media currently playing on your Plex or Jellyfin server.
 
-<video src="https://github.com/user-attachments/assets/a31df072-7a0c-43d2-959f-51234468e4ce" width="100%" alt="Cliparr Demo" loop autoplay controls>
+<video src="https://github.com/user-attachments/assets/a31df072-7a0c-43d2-959f-51234468e4ce" width="100%" alt="Cliparr Demo">
 </video>
 
 
