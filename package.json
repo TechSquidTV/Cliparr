@@ -6,6 +6,9 @@
   "license": "MIT",
   "type": "module",
   "packageManager": "pnpm@10.8.0",
+  "engines": {
+    "node": ">=20.19"
+  },
   "repository": {
     "type": "git",
     "url": "https://github.com/techsquidtv/cliparr.git"

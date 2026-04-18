@@ -1,6 +1,6 @@
 import { RouterProvider } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { cliparrClient } from "./api/cliparrClient";
+import { cliparrClient, subscribeToAuthFailure } from "./api/cliparrClient";
 import { AuthProvider } from "./auth";
 import type { ProviderSession } from "./providers/types";
 import { router } from "./router";
@@ -41,6 +41,12 @@ export default function App() {
     return () => {
       cancelled = true;
     };
+  }, []);
+
+  useEffect(() => {
+    return subscribeToAuthFailure(() => {
+      setProviderSession(null);
+    });
   }, []);
 
   useEffect(() => {

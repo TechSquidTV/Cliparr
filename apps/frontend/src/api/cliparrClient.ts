@@ -8,17 +8,52 @@ import type {
   ProviderSession,
 } from "../providers/types";
 
-function responseErrorMessage(payload: unknown) {
+interface ResponseErrorDetails {
+  code?: string;
+  message?: string;
+}
+
+class CliparrRequestError extends Error {
+  status: number;
+  code?: string;
+
+  constructor(status: number, message: string, code?: string) {
+    super(message);
+    this.name = "CliparrRequestError";
+    this.status = status;
+    this.code = code;
+  }
+}
+
+const authFailureListeners = new Set<() => void>();
+let authFailureQueued = false;
+
+function responseErrorDetails(payload: unknown): ResponseErrorDetails {
   if (!payload || typeof payload !== "object") {
-    return undefined;
+    return {};
   }
 
   const error = "error" in payload ? payload.error : undefined;
   if (!error || typeof error !== "object") {
-    return undefined;
+    return {};
   }
 
-  return "message" in error && typeof error.message === "string" ? error.message : undefined;
+  return {
+    code: "code" in error && typeof error.code === "string" ? error.code : undefined,
+    message: "message" in error && typeof error.message === "string" ? error.message : undefined,
+  };
+}
+
+function queueAuthFailureNotification() {
+  if (authFailureQueued) {
+    return;
+  }
+
+  authFailureQueued = true;
+  queueMicrotask(() => {
+    authFailureQueued = false;
+    authFailureListeners.forEach((listener) => listener());
+  });
 }
 
 function followAppAuthRedirect(response: Response) {
@@ -56,8 +91,17 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
     const data: unknown = contentType.includes("application/json")
       ? await response.json().catch((): unknown => null)
       : null;
-    const message = responseErrorMessage(data) ?? `${response.status} ${response.statusText}`;
-    throw new Error(message);
+    const error = responseErrorDetails(data);
+
+    if (response.status === 401 && error.code === "not_authenticated") {
+      queueAuthFailureNotification();
+    }
+
+    throw new CliparrRequestError(
+      response.status,
+      error.message ?? `${response.status} ${response.statusText}`,
+      error.code,
+    );
   }
 
   if (response.status === 204) {
@@ -72,6 +116,14 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
 
   const data: unknown = await response.json();
   return data as T;
+}
+
+export function subscribeToAuthFailure(listener: () => void) {
+  authFailureListeners.add(listener);
+
+  return () => {
+    authFailureListeners.delete(listener);
+  };
 }
 
 export const cliparrClient = {
