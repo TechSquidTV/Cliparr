@@ -126,11 +126,11 @@ export function updateMediaSource(id: string, input: UpdateMediaSourceInput) {
   return getMediaSource(id);
 }
 
-function getMediaSource(id: string) {
+export function getMediaSource(id: string) {
   return getMediaSourceWhere(eq(mediaSources.id, id));
 }
 
-export function getMediaSourceForAccount(id: string, providerAccountId: string) {
+function getMediaSourceForAccount(id: string, providerAccountId: string) {
   const where = and(
     eq(mediaSources.id, id),
     eq(mediaSources.providerAccountId, providerAccountId)
