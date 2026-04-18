@@ -26,23 +26,21 @@ const LEGACY_DEFAULT_EPISODE_EXPORT_FILE_NAME_TEMPLATE = "{show_title} - {episod
 const DEFAULT_MOVIE_EXPORT_FILE_NAME_TEMPLATE = "{source_title} ({year}) [{clip_start}-{clip_end}]";
 const DEFAULT_EPISODE_EXPORT_FILE_NAME_TEMPLATE = "{show_title} - {episode_code} - {title} [{clip_start}-{clip_end}]";
 
-const EXPORT_FILE_NAME_TEMPLATE_TOKENS = [
-  "title",
-  "source_title",
-  "show_title",
-  "season_title",
-  "season_number",
-  "episode_number",
-  "episode_code",
-  "year",
-  "clip_start",
-  "clip_end",
-  "clip_range",
-  "provider",
-  "item_type",
-  "format",
-] as const;
-type ExportFileNameTemplateToken = (typeof EXPORT_FILE_NAME_TEMPLATE_TOKENS)[number];
+type ExportFileNameTemplateToken =
+  | "title"
+  | "source_title"
+  | "show_title"
+  | "season_title"
+  | "season_number"
+  | "episode_number"
+  | "episode_code"
+  | "year"
+  | "clip_start"
+  | "clip_end"
+  | "clip_range"
+  | "provider"
+  | "item_type"
+  | "format";
 
 const MOVIE_EXPORT_FILE_NAME_TEMPLATE_TOKENS: readonly ExportFileNameTemplateToken[] = [
   "title",

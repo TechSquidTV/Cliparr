@@ -10,6 +10,7 @@ import type {
   CurrentlyPlayingEntry,
   MediaExportMetadata,
   MediaHandle,
+  PlaybackAudioSelection,
   ProviderImplementation,
   ProviderResource,
 } from "../types.js";
@@ -682,6 +683,76 @@ function currentMediaSourceId(sessionInfo: any, item: any) {
     ?? stringValue(asArray(sessionInfo?.NowPlayingItem?.MediaSources)[0]?.Id);
 }
 
+function currentMediaSource(sessionInfo: any, item: any, mediaSourceId: string | undefined) {
+  const itemMediaSources = asArray(item?.MediaSources);
+  const sessionMediaSources = asArray(sessionInfo?.NowPlayingItem?.MediaSources);
+  const mediaSources = [...itemMediaSources, ...sessionMediaSources];
+
+  if (mediaSourceId) {
+    const matchingMediaSource = mediaSources.find((mediaSource) => stringValue(mediaSource?.Id) === mediaSourceId);
+    if (matchingMediaSource) {
+      return matchingMediaSource;
+    }
+  }
+
+  return mediaSources[0];
+}
+
+function isAudioMediaStream(stream: any) {
+  return String(stream?.Type ?? "").toLowerCase() === "audio";
+}
+
+function jellyfinAudioTrackTitle(stream: any) {
+  return stringValue(stream?.Title)
+    ?? stringValue(stream?.DisplayTitle);
+}
+
+function deriveSelectedAudioTrack(
+  sessionInfo: any,
+  item: any,
+  mediaSourceId: string | undefined
+): PlaybackAudioSelection | undefined {
+  const mediaSource = currentMediaSource(sessionInfo, item, mediaSourceId);
+  if (!mediaSource) {
+    return undefined;
+  }
+
+  const audioStreams = asArray(mediaSource?.MediaStreams).filter((stream) => isAudioMediaStream(stream));
+  if (audioStreams.length === 0) {
+    return undefined;
+  }
+
+  const selectedAudioStreamIndex = numberValue(sessionInfo?.PlayState?.AudioStreamIndex)
+    ?? numberValue(mediaSource?.DefaultAudioStreamIndex);
+
+  if (selectedAudioStreamIndex === undefined) {
+    if (audioStreams.length !== 1) {
+      return undefined;
+    }
+
+    const onlyAudioStream = audioStreams[0];
+    return {
+      trackNumber: 1,
+      languageCode: stringValue(onlyAudioStream?.Language),
+      title: jellyfinAudioTrackTitle(onlyAudioStream),
+    };
+  }
+
+  const selectedAudioTrackIndex = audioStreams.findIndex(
+    (stream) => numberValue(stream?.Index) === selectedAudioStreamIndex
+  );
+  if (selectedAudioTrackIndex < 0) {
+    return undefined;
+  }
+
+  const selectedAudioStream = audioStreams[selectedAudioTrackIndex];
+  return {
+    trackNumber: selectedAudioTrackIndex + 1,
+    languageCode: stringValue(selectedAudioStream?.Language),
+    title: jellyfinAudioTrackTitle(selectedAudioStream),
+  };
+}
+
 function buildStaticStreamPath(item: any, mediaSourceId: string | undefined, context: JellyfinSourceContext, playSessionId: string) {
   const itemId = stringValue(item?.Id);
   if (!itemId) {
@@ -971,6 +1042,7 @@ async function normalizeCurrentPlayback(
   const mediaPath = buildStaticStreamPath(enrichedItem, mediaSourceId, context, playSessionId);
   const previewPath = buildPreviewPath(enrichedItem, mediaSourceId, context, playSessionId);
   const imagePath = itemImagePath(enrichedItem);
+  const selectedAudioTrack = deriveSelectedAudioTrack(sessionInfo, enrichedItem, mediaSourceId);
   const playerState = sessionInfo?.PlayState?.IsPaused ? "paused" : "playing";
 
   return {
@@ -993,6 +1065,7 @@ async function normalizeCurrentPlayback(
       thumbUrl: imagePath ? createMediaHandle(session, context, imagePath) : undefined,
       mediaUrl: mediaPath ? createMediaHandle(session, context, mediaPath) : undefined,
       previewUrl: previewPath ? createMediaHandle(session, context, previewPath, { basePath: playlistBasePath(previewPath) }) : undefined,
+      selectedAudioTrack,
       exportMetadata: createExportMetadata(session, context, enrichedItem),
     },
   } satisfies CurrentlyPlayingEntry;
