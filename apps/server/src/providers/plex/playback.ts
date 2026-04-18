@@ -259,6 +259,53 @@ async function fetchCurrentlyPlayingData(source: MediaSource) {
   );
 }
 
+function playbackFallbackIdentity(item: any) {
+  const userId = idValue(item?.User?.id);
+  const playerId = stringValue(item?.Player?.machineIdentifier) ?? stringValue(item?.Player?.title);
+  const itemId = idValue(item?.ratingKey) ?? stringValue(item?.key) ?? metadataPath(item);
+  const parts = [userId, playerId, itemId].filter((value): value is string => Boolean(value));
+
+  return parts.length > 0 ? parts.join(":") : undefined;
+}
+
+function playbackDeduplicationKey(item: any) {
+  const sessionKey = idValue(item?.sessionKey);
+  if (sessionKey) {
+    return `session:${sessionKey}`;
+  }
+
+  const sessionId = idValue(item?.Session?.id);
+  if (sessionId) {
+    return `session-id:${sessionId}`;
+  }
+
+  const fallbackIdentity = playbackFallbackIdentity(item);
+  if (fallbackIdentity) {
+    return `fallback:${fallbackIdentity}`;
+  }
+
+  return undefined;
+}
+
+function dedupeCurrentlyPlayingMetadata(metadata: any[]) {
+  // Plex can emit duplicate rows for one live session, especially from web clients.
+  const seen = new Set<string>();
+
+  return metadata.filter((item) => {
+    const dedupeKey = playbackDeduplicationKey(item);
+    if (!dedupeKey) {
+      return true;
+    }
+
+    if (seen.has(dedupeKey)) {
+      return false;
+    }
+
+    seen.add(dedupeKey);
+    return true;
+  });
+}
+
 function tagValues(value: unknown) {
   return uniqueStrings(
     asArray(value as any).map((entry: any) => {
@@ -451,10 +498,9 @@ async function resolveMediaPath(
 
 function playbackSessionIdentity(item: any) {
   return String(
-    item?.Session?.id
-    ?? item?.ratingKey
-    ?? item?.key
-    ?? item?.Player?.machineIdentifier
+    item?.sessionKey
+    ?? item?.Session?.id
+    ?? playbackFallbackIdentity(item)
     ?? randomUUID()
   );
 }
@@ -481,7 +527,9 @@ async function normalizeCurrentPlayback(
     return [];
   }
 
-  return Promise.all(metadata.map(async (item: any) => {
+  const uniqueMetadata = dedupeCurrentlyPlayingMetadata(metadata);
+
+  return Promise.all(uniqueMetadata.map(async (item: any) => {
     const mediaSelection = deriveMediaSelection(item);
     const enrichedItem = await enrichMetadataItem(context, item);
     const mediaPath = await resolveMediaPath(context, item, enrichedItem, mediaSelection);

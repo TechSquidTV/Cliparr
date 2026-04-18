@@ -130,7 +130,7 @@ export function getMediaSource(id: string) {
   return getMediaSourceWhere(eq(mediaSources.id, id));
 }
 
-function getMediaSourceForAccount(id: string, providerAccountId: string) {
+export function getMediaSourceForAccount(id: string, providerAccountId: string) {
   const where = and(
     eq(mediaSources.id, id),
     eq(mediaSources.providerAccountId, providerAccountId)
