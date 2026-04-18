@@ -1,12 +1,12 @@
 import { Router } from "express";
 import {
   listMediaSources,
-  getMediaSource,
   deleteMediaSourceForAccount,
-  updateMediaSourceForAccount,
+  getMediaSourceForAccount,
   updateMediaSourceHealthForAccount,
   type MediaSource,
   type UpdateMediaSourceInput,
+  updateMediaSourceForAccount,
 } from "../db/mediaSourcesRepository.js";
 import { ApiError, asyncHandler } from "../http/errors.js";
 import { getProvider } from "../providers/registry.js";
@@ -29,8 +29,8 @@ function serializeSource(source: MediaSource) {
   };
 }
 
-function requireMediaSource(sourceId: string) {
-  const source = getMediaSource(sourceId);
+function requireMediaSource(sourceId: string, providerAccountId: string) {
+  const source = getMediaSourceForAccount(sourceId, providerAccountId);
   if (!source) {
     throw new ApiError(404, "source_not_found", "Source was not found");
   }
@@ -104,10 +104,12 @@ function parseSourceUpdate(body: unknown): UpdateMediaSourceInput {
 sourcesRouter.get(
   "/",
   asyncHandler(async (req, res) => {
-    requireAccountSession(req);
+    const session = requireAccountSession(req);
     setNoStore(res);
     res.json({
-      sources: listMediaSources().map(serializeSource),
+      sources: listMediaSources({
+        providerAccountId: session.providerAccountId,
+      }).map(serializeSource),
     });
   })
 );
@@ -115,9 +117,9 @@ sourcesRouter.get(
 sourcesRouter.get(
   "/:id",
   asyncHandler(async (req, res) => {
-    requireAccountSession(req);
+    const session = requireAccountSession(req);
     setNoStore(res);
-    const source = requireMediaSource(req.params.id as string);
+    const source = requireMediaSource(req.params.id as string, session.providerAccountId);
     res.json({ source: serializeSource(source) });
   })
 );
@@ -125,12 +127,12 @@ sourcesRouter.get(
 sourcesRouter.patch(
   "/:id",
   asyncHandler(async (req, res) => {
-    requireAccountSession(req);
+    const session = requireAccountSession(req);
     setNoStore(res);
-    const existingSource = requireMediaSource(req.params.id as string);
+    requireMediaSource(req.params.id as string, session.providerAccountId);
     const source = updateMediaSourceForAccount(
       req.params.id as string,
-      existingSource.providerAccountId,
+      session.providerAccountId,
       parseSourceUpdate(req.body)
     );
     if (!source) {
@@ -143,11 +145,9 @@ sourcesRouter.patch(
 sourcesRouter.delete(
   "/:id",
   asyncHandler(async (req, res) => {
-    requireAccountSession(req);
+    const session = requireAccountSession(req);
     setNoStore(res);
-    const source = requireMediaSource(req.params.id as string);
-
-    const deleted = deleteMediaSourceForAccount(source.id, source.providerAccountId);
+    const deleted = deleteMediaSourceForAccount(req.params.id as string, session.providerAccountId);
     if (!deleted) {
       throw new ApiError(404, "source_not_found", "Source was not found");
     }
@@ -159,10 +159,10 @@ sourcesRouter.delete(
 sourcesRouter.post(
   "/:id/check",
   asyncHandler(async (req, res) => {
-    requireAccountSession(req);
+    const session = requireAccountSession(req);
     setNoStore(res);
 
-    const source = requireMediaSource(req.params.id as string);
+    const source = requireMediaSource(req.params.id as string, session.providerAccountId);
     const provider = getProvider(source.providerId);
     if (!provider) {
       throw new ApiError(500, "provider_not_registered", "Source provider is not registered");
@@ -172,7 +172,7 @@ sourcesRouter.post(
     const result = await provider.checkSource(source);
 
     if (!result.ok) {
-      const updatedSource = updateMediaSourceHealthForAccount(source.id, source.providerAccountId, {
+      const updatedSource = updateMediaSourceHealthForAccount(source.id, session.providerAccountId, {
         lastCheckedAt: checkedAt,
         lastError: result.message,
       });
@@ -191,7 +191,7 @@ sourcesRouter.post(
       return;
     }
 
-    const updatedSource = updateMediaSourceForAccount(source.id, source.providerAccountId, {
+    const updatedSource = updateMediaSourceForAccount(source.id, session.providerAccountId, {
       ...(result.name !== undefined ? { name: result.name } : {}),
       ...(result.baseUrl !== undefined ? { baseUrl: result.baseUrl } : {}),
       ...(result.connection !== undefined ? { connection: result.connection } : {}),
