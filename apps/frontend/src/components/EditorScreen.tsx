@@ -3,14 +3,29 @@ import { MIN_CLIP_SECONDS, roundTimelineTime } from "./editor/EditorUtils";
 import { useEditorPlayback } from "./editor/useEditorPlayback";
 import { useEditorTimeline } from "./editor/useEditorTimeline";
 import { EditorHeader } from "./editor/EditorHeader";
+import { EditorExportDialog } from "./editor/EditorExportDialog";
 import { EditorPreview } from "./editor/EditorPreview";
 import { EditorControls } from "./editor/EditorControls";
 import { EditorTimeline } from "./editor/EditorTimeline";
 import type { CurrentlyPlayingItem } from "../providers/types";
+import type { ExportFormat, ExportResolution } from "../lib/exportClip";
+import {
+  buildExportFileName,
+  defaultExportFileNameTemplates,
+  loadExportFileNameTemplates,
+  saveExportFileNameTemplates,
+  type ExportFileNameTemplateKind,
+  type ExportFileNameTemplateSettings,
+} from "../lib/exportFileName";
 
 interface Props {
   session: CurrentlyPlayingItem;
   onBack: () => void;
+}
+
+interface VideoDimensions {
+  width: number;
+  height: number;
 }
 
 function isInteractiveKeyboardTarget(target: EventTarget | null) {
@@ -30,9 +45,15 @@ function isInteractiveKeyboardTarget(target: EventTarget | null) {
 export default function EditorScreen({ session, onBack }: Props) {
   const [startTime, setStartTime] = useState(0);
   const [endTime, setEndTime] = useState(() => Math.min(10, Math.max(session.duration, 0)));
-  const [resolution, setResolution] = useState<"original" | "1080" | "720">("original");
+  const [resolution, setResolution] = useState<ExportResolution>("original");
+  const [exportFormat, setExportFormat] = useState<ExportFormat>("mp4");
+  const [includeAudio, setIncludeAudio] = useState(true);
+  const [fileNameTemplates, setFileNameTemplates] = useState<ExportFileNameTemplateSettings>(() => loadExportFileNameTemplates());
+  const [templateEditorKind, setTemplateEditorKind] = useState<ExportFileNameTemplateKind>("movie");
+  const [exportDialogOpen, setExportDialogOpen] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [progress, setProgress] = useState(0);
+  const [exportError, setExportError] = useState<string | null>(null);
 
   const {
     canvasRef,
@@ -42,6 +63,7 @@ export default function EditorScreen({ session, onBack }: Props) {
     loadingPreview,
     previewStatus,
     error,
+    sourceVideoDimensions,
     volume,
     muted,
     setVolume,
@@ -103,8 +125,77 @@ export default function EditorScreen({ session, onBack }: Props) {
     updateClipRange,
   });
 
-  const handleExport = async () => {
+  const fileName = buildExportFileName({
+    title: session.title,
+    sessionType: session.type,
+    metadata: session.exportMetadata,
+    startTime,
+    endTime,
+    format: exportFormat,
+    templates: fileNameTemplates,
+  });
+
+  const outputDimensions = getOutputDimensions(sourceVideoDimensions, resolution);
+
+  useEffect(() => {
+    saveExportFileNameTemplates(fileNameTemplates);
+  }, [fileNameTemplates]);
+
+  const handleOpenExportDialog = useCallback(() => {
+    setExportError(null);
+    setTemplateEditorKind(fileName.templateKind);
+    setExportDialogOpen(true);
+  }, [fileName.templateKind]);
+
+  const handleCloseExportDialog = useCallback(() => {
+    if (exporting) {
+      return;
+    }
+
+    setExportDialogOpen(false);
+  }, [exporting]);
+
+  const handleFormatChange = useCallback((nextFormat: ExportFormat) => {
+    setExportFormat(nextFormat);
+    setExportError(null);
+  }, []);
+
+  const handleResolutionChange = useCallback((nextResolution: ExportResolution) => {
+    setResolution(nextResolution);
+    setExportError(null);
+  }, []);
+
+  const handleAudioChange = useCallback((nextIncludeAudio: boolean) => {
+    setIncludeAudio(nextIncludeAudio);
+    setExportError(null);
+  }, []);
+
+  const handleFileNameTemplateChange = useCallback((
+    kind: ExportFileNameTemplateKind,
+    nextTemplate: string
+  ) => {
+    setFileNameTemplates((current) => ({
+      ...current,
+      [kind]: nextTemplate,
+    }));
+    setExportError(null);
+  }, []);
+
+  const handleResetFileNameTemplate = useCallback((kind: ExportFileNameTemplateKind) => {
+    const defaults = defaultExportFileNameTemplates();
+
+    setFileNameTemplates((current) => ({
+      ...current,
+      [kind]: defaults[kind],
+    }));
+    setExportError(null);
+  }, []);
+
+  const handleExport = useCallback(async () => {
     if (!session.mediaUrl) return;
+    if (exporting) return;
+
+    setExportError(null);
     setExporting(true);
     setProgress(0);
 
@@ -114,7 +205,9 @@ export default function EditorScreen({ session, onBack }: Props) {
         mediaUrl: session.mediaUrl,
         startTime,
         endTime,
+        format: exportFormat,
         resolution,
+        includeAudio,
         selectedAudioTrack: session.selectedAudioTrack,
         metadata: session.exportMetadata,
         onProgress: setProgress,
@@ -123,17 +216,30 @@ export default function EditorScreen({ session, onBack }: Props) {
 
       const a = document.createElement("a");
       a.href = url;
-      a.download = `${session.title.replace(/[^a-z0-9]/gi, "_").toLowerCase()}-clip.mp4`;
+      a.download = fileName.fullName;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
-      URL.revokeObjectURL(url);
+      window.setTimeout(() => URL.revokeObjectURL(url), 0);
+      setExportDialogOpen(false);
     } catch (err) {
       console.error(err);
+      setExportError(err instanceof Error ? err.message : "Export failed");
     } finally {
       setExporting(false);
     }
-  };
+  }, [
+    endTime,
+    exportFormat,
+    fileName.fullName,
+    exporting,
+    includeAudio,
+    resolution,
+    session.exportMetadata,
+    session.mediaUrl,
+    session.selectedAudioTrack,
+    startTime,
+  ]);
 
   useEffect(() => {
     function handleKeyDown(event: KeyboardEvent) {
@@ -176,11 +282,9 @@ export default function EditorScreen({ session, onBack }: Props) {
       <EditorHeader
         title={session.title}
         onBack={onBack}
-        resolution={resolution}
-        setResolution={setResolution}
         exporting={exporting}
         progress={progress}
-        handleExport={handleExport}
+        onExportClick={handleOpenExportDialog}
       />
 
       <main className="min-h-0 flex-1 overflow-hidden p-3 sm:p-4">
@@ -250,6 +354,54 @@ export default function EditorScreen({ session, onBack }: Props) {
           </section>
         </div>
       </main>
+
+      <EditorExportDialog
+        isOpen={exportDialogOpen}
+        title={session.title}
+        clipStart={startTime}
+        clipEnd={endTime}
+        selectedFormat={exportFormat}
+        onFormatChange={handleFormatChange}
+        selectedResolution={resolution}
+        onResolutionChange={handleResolutionChange}
+        includeAudio={includeAudio}
+        onIncludeAudioChange={handleAudioChange}
+        exporting={exporting}
+        progress={progress}
+        error={exportError}
+        fileNamePreview={fileName.fullName}
+        outputDimensions={outputDimensions}
+        activeTemplateKind={fileName.templateKind}
+        editingTemplateKind={templateEditorKind}
+        onEditingTemplateKindChange={setTemplateEditorKind}
+        fileNameTemplates={fileNameTemplates}
+        onFileNameTemplateChange={handleFileNameTemplateChange}
+        onResetFileNameTemplate={handleResetFileNameTemplate}
+        onClose={handleCloseExportDialog}
+        onExport={() => void handleExport()}
+      />
     </div>
   );
+}
+
+function getOutputDimensions(
+  sourceVideoDimensions: VideoDimensions | null,
+  resolution: ExportResolution
+) {
+  if (!sourceVideoDimensions || sourceVideoDimensions.width <= 0 || sourceVideoDimensions.height <= 0) {
+    return null;
+  }
+
+  if (resolution === "original") {
+    return sourceVideoDimensions;
+  }
+
+  const height = parseInt(resolution, 10);
+  if (!Number.isFinite(height) || height <= 0) {
+    return sourceVideoDimensions;
+  }
+
+  const width = Math.max(1, Math.round((sourceVideoDimensions.width / sourceVideoDimensions.height) * height));
+
+  return { width, height };
 }

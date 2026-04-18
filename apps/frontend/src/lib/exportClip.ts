@@ -4,20 +4,31 @@ import {
   BufferTarget,
   Conversion,
   Input,
+  MkvOutputFormat,
+  MovOutputFormat,
   Mp4OutputFormat,
   Output,
   UrlSource,
+  WebMOutputFormat,
 } from "mediabunny";
 import type { ConversionOptions, DiscardedTrack, InputTrack, MetadataTags } from "mediabunny";
 import { ensureMediabunnyCodecs } from "./mediabunnyCodecs";
 import { selectPreferredAudioTrack } from "./selectPreferredAudioTrack";
 import type { MediaExportMetadata, PlaybackAudioSelection } from "../providers/types";
 
+export const EXPORT_FORMATS = ["mp4", "webm", "mov", "mkv"] as const;
+export type ExportFormat = (typeof EXPORT_FORMATS)[number];
+
+export const EXPORT_RESOLUTIONS = ["original", "1080", "720"] as const;
+export type ExportResolution = (typeof EXPORT_RESOLUTIONS)[number];
+
 interface ExportClipOptions {
   mediaUrl: string;
   startTime: number;
   endTime: number;
-  resolution: "original" | "1080" | "720";
+  format: ExportFormat;
+  resolution: ExportResolution;
+  includeAudio: boolean;
   selectedAudioTrack?: PlaybackAudioSelection;
   metadata?: MediaExportMetadata;
   onProgress: (progress: number) => void;
@@ -317,6 +328,23 @@ function buildMp4RawTags(
   return Object.keys(raw).length > 0 ? raw : undefined;
 }
 
+function isIsobmffExportFormat(format: ExportFormat) {
+  return format === "mp4" || format === "mov";
+}
+
+function createOutputFormat(format: ExportFormat) {
+  switch (format) {
+    case "mp4":
+      return new Mp4OutputFormat({ fastStart: "in-memory" });
+    case "webm":
+      return new WebMOutputFormat();
+    case "mov":
+      return new MovOutputFormat({ fastStart: "in-memory" });
+    case "mkv":
+      return new MkvOutputFormat();
+  }
+}
+
 function inferImageMimeType(url: string) {
   const pathname = new URL(url, window.location.href).pathname.toLowerCase();
   if (pathname.endsWith(".png")) return "image/png";
@@ -360,7 +388,8 @@ async function buildMetadataTags(
   metadata: MediaExportMetadata | undefined,
   startTime: number,
   endTime: number,
-  outputHeight: number | undefined
+  outputHeight: number | undefined,
+  format: ExportFormat
 ): Promise<MetadataTags | undefined> {
   if (!metadata) {
     return undefined;
@@ -388,7 +417,9 @@ async function buildMetadataTags(
     tags.images = [image];
   }
 
-  const raw = buildMp4RawTags(metadata, outputHeight, startTime, endTime);
+  const raw = isIsobmffExportFormat(format)
+    ? buildMp4RawTags(metadata, outputHeight, startTime, endTime)
+    : undefined;
   if (raw) {
     tags.raw = raw;
   }
@@ -396,7 +427,11 @@ async function buildMetadataTags(
   return Object.keys(tags).length > 0 ? tags : undefined;
 }
 
-async function assertExportHasAudio(blob: Blob, sourceAudioTracks: readonly InputTrack[]) {
+async function assertExportHasAudio(
+  blob: Blob,
+  sourceAudioTracks: readonly InputTrack[],
+  format: ExportFormat
+) {
   const outputInput = new Input({
     source: new BlobSource(blob),
     formats: ALL_FORMATS,
@@ -406,7 +441,7 @@ async function assertExportHasAudio(blob: Blob, sourceAudioTracks: readonly Inpu
     const outputAudioTracks = await outputInput.getAudioTracks();
     if (outputAudioTracks.length === 0) {
       const sourceDetails = sourceAudioTracks.map(describeTrack).join("; ");
-      throw new Error(`Export produced an MP4 without an audio track. Source audio: ${sourceDetails}.`);
+      throw new Error(`Export produced a ${format.toUpperCase()} file without an audio track. Source audio: ${sourceDetails}.`);
     }
   } finally {
     outputInput.dispose();
@@ -417,7 +452,9 @@ export async function exportClip({
   mediaUrl,
   startTime,
   endTime,
+  format,
   resolution,
+  includeAudio,
   selectedAudioTrack,
   metadata,
   onProgress,
@@ -436,10 +473,11 @@ export async function exportClip({
     const sourceHasAudio = sourceAudioTracks.length > 0;
     const outputHeight = resolution === "original" ? sourceVideoTracks[0]?.displayHeight : parseInt(resolution, 10);
 
+    const outputFormat = createOutputFormat(format);
     const target = new BufferTarget();
-    const metadataTags = await buildMetadataTags(metadata, startTime, endTime, outputHeight);
+    const metadataTags = await buildMetadataTags(metadata, startTime, endTime, outputHeight, format);
     const output = new Output({
-      format: new Mp4OutputFormat(),
+      format: outputFormat,
       target,
     });
 
@@ -453,12 +491,16 @@ export async function exportClip({
     const conversionOptions: ConversionOptions = {
       input,
       output,
-      audio: preferredAudioTrack
-        ? (track) => ({
-          ...baseAudioOptions,
-          discard: track.id !== preferredAudioTrack.id,
-        })
-        : baseAudioOptions,
+      audio: includeAudio
+        ? preferredAudioTrack
+          ? (track) => ({
+            ...baseAudioOptions,
+            discard: track.id !== preferredAudioTrack.id,
+          })
+          : baseAudioOptions
+        : {
+            discard: true,
+          },
       trim: {
         start: startTime,
         end: endTime,
@@ -486,7 +528,7 @@ export async function exportClip({
       throw new Error(`Conversion is invalid.${suffix}`);
     }
 
-    if (sourceHasAudio && utilizedAudioTracks.length === 0) {
+    if (includeAudio && sourceHasAudio && utilizedAudioTracks.length === 0) {
       throw buildAudioDroppedError(conversion.discardedTracks);
     }
 
@@ -498,11 +540,14 @@ export async function exportClip({
       throw new Error("Export did not produce a video buffer");
     }
 
-    patchMp4MetadataBoxes(new Uint8Array(target.buffer));
-    const blob = new Blob([target.buffer], { type: "video/mp4" });
+    if (isIsobmffExportFormat(format)) {
+      patchMp4MetadataBoxes(new Uint8Array(target.buffer));
+    }
 
-    if (sourceHasAudio) {
-      await assertExportHasAudio(blob, sourceAudioTracks);
+    const blob = new Blob([target.buffer], { type: outputFormat.mimeType });
+
+    if (includeAudio && sourceHasAudio) {
+      await assertExportHasAudio(blob, sourceAudioTracks, format);
     }
 
     return blob;

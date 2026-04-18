@@ -14,6 +14,11 @@ interface UseEditorPlaybackProps {
   selectedAudioTrack?: PlaybackAudioSelection;
 }
 
+interface VideoDimensions {
+  width: number;
+  height: number;
+}
+
 type WindowWithWebkitAudioContext = Window & {
   webkitAudioContext?: typeof AudioContext;
 };
@@ -38,6 +43,7 @@ export function useEditorPlayback({
   const [volume, setVolume] = useState(0.8);
   const [muted, setMuted] = useState(false);
   const [error, setError] = useState("");
+  const [sourceVideoDimensions, setSourceVideoDimensions] = useState<VideoDimensions | null>(null);
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const inputRef = useRef<Input | null>(null);
@@ -427,6 +433,7 @@ export function useEditorPlayback({
       setLoadingPreview(true);
       setPreviewStatus("Loading preview...");
       setError("");
+      setSourceVideoDimensions(null);
       setCurrentTime(0);
       playbackTimeAtStartRef.current = 0;
 
@@ -486,6 +493,10 @@ export function useEditorPlayback({
         playbackTimeAtStartRef.current = 0;
 
         if (videoTrack) {
+          setSourceVideoDimensions({
+            width: videoTrack.displayWidth,
+            height: videoTrack.displayHeight,
+          });
           const canvas = canvasRef.current;
           if (canvas) {
             canvas.width = videoTrack.displayWidth;
@@ -519,6 +530,7 @@ export function useEditorPlayback({
         if (!cancelled) {
           disposePreview();
           setError(errorMessage(err));
+          setSourceVideoDimensions(null);
         }
       } finally {
         if (!cancelled) {
@@ -551,6 +563,7 @@ export function useEditorPlayback({
     loadingPreview,
     previewStatus,
     error,
+    sourceVideoDimensions,
     volume,
     muted,
     setVolume,
