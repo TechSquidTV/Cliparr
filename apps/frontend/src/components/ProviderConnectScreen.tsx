@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
-import { ArrowRight, Check, ExternalLink, Server, Video } from "lucide-react";
+import { ArrowRight, Check, ExternalLink, Server } from "lucide-react";
 import { cliparrClient } from "../api/cliparrClient";
 import { ProviderGlyph } from "./ProviderGlyph";
 import type { ProviderDefinition, ProviderSession } from "../providers/types";
