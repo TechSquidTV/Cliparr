@@ -66,6 +66,12 @@ export interface MediaExportMetadata {
   imageUrl?: string;
 }
 
+export interface PlaybackAudioSelection {
+  trackNumber?: number;
+  languageCode?: string;
+  title?: string;
+}
+
 export interface PlaybackViewer {
   id: string;
   providerId: string;
@@ -91,6 +97,7 @@ export interface CurrentlyPlayingItem {
   thumbUrl?: string;
   mediaUrl?: string;
   previewUrl?: string;
+  selectedAudioTrack?: PlaybackAudioSelection;
   exportMetadata?: MediaExportMetadata;
 }
 

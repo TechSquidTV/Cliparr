@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { AudioBufferSink, CanvasSink, Input, WrappedAudioBuffer, WrappedCanvas } from "mediabunny";
 import { ensureMediabunnyCodecs } from "../../lib/mediabunnyCodecs";
+import { selectPreferredAudioTrack } from "../../lib/selectPreferredAudioTrack";
+import type { PlaybackAudioSelection } from "../../providers/types";
 import { errorMessage, isAc3FamilyCodec, themeValue } from "./EditorUtils";
 
 interface UseEditorPlaybackProps {
@@ -9,6 +11,7 @@ interface UseEditorPlaybackProps {
   startTime: number;
   endTime: number;
   sessionId: string;
+  selectedAudioTrack?: PlaybackAudioSelection;
 }
 
 type WindowWithWebkitAudioContext = Window & {
@@ -25,6 +28,7 @@ export function useEditorPlayback({
   startTime,
   endTime,
   sessionId,
+  selectedAudioTrack,
 }: UseEditorPlaybackProps) {
   const [duration, setDuration] = useState(() => Math.max(initialDuration, 0));
   const [currentTime, setCurrentTime] = useState(0);
@@ -442,7 +446,8 @@ export function useEditorPlayback({
 
         const computedDuration = await input.computeDuration();
         let videoTrack = await input.getPrimaryVideoTrack();
-        let audioTrack = await input.getPrimaryAudioTrack();
+        const audioTracks = await input.getAudioTracks();
+        let audioTrack = selectPreferredAudioTrack(audioTracks, selectedAudioTrack);
         const warnings: string[] = [];
 
         if (videoTrack) {
@@ -528,7 +533,15 @@ export function useEditorPlayback({
       cancelled = true;
       disposePreview();
     };
-  }, [mediaUrl, initialDuration, sessionId, disposePreview, startRenderLoop, startVideoIterator]);
+  }, [
+    mediaUrl,
+    initialDuration,
+    selectedAudioTrack,
+    sessionId,
+    disposePreview,
+    startRenderLoop,
+    startVideoIterator,
+  ]);
 
   return {
     canvasRef,

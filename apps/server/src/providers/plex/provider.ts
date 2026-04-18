@@ -9,6 +9,7 @@ import type {
   ProviderResource,
   MediaExportMetadata,
   MediaHandle,
+  PlaybackAudioSelection,
 } from "../types.js";
 import type { ProviderSessionRecord } from "../../session/store.js";
 
@@ -420,6 +421,10 @@ function partEntries(media: any) {
   return asArray(media?.Part);
 }
 
+function streamEntries(part: any) {
+  return asArray(part?.Stream);
+}
+
 function selectedIndex(entries: any[]) {
   const index = entries.findIndex((entry) => isSelectedEntry(entry));
   return index >= 0 ? index : 0;
@@ -707,6 +712,46 @@ function buildSourceTitle(item: any) {
   return uniqueStrings([showTitle, episodeCode, title]).join(" - ") || title;
 }
 
+function isAudioStream(stream: any) {
+  return numberValue(stream?.streamType) === 2;
+}
+
+function selectedAudioTrackTitle(stream: any) {
+  return stringValue(stream?.title)
+    ?? stringValue(stream?.extendedDisplayTitle)
+    ?? stringValue(stream?.displayTitle);
+}
+
+function deriveSelectedAudioTrack(
+  item: any,
+  selection?: PlexMediaSelection
+): PlaybackAudioSelection | undefined {
+  const part = resolveSelectedPart(item, selection)?.part;
+  if (!part) {
+    return undefined;
+  }
+
+  const audioStreams = streamEntries(part).filter((stream) => isAudioStream(stream));
+  if (audioStreams.length === 0) {
+    return undefined;
+  }
+
+  const selectedAudioIndex = audioStreams.findIndex((stream) => isSelectedEntry(stream));
+  if (selectedAudioIndex < 0 && audioStreams.length > 1) {
+    return undefined;
+  }
+
+  const trackIndex = selectedAudioIndex >= 0 ? selectedAudioIndex : 0;
+  const selectedAudioStream = audioStreams[trackIndex];
+
+  return {
+    trackNumber: trackIndex + 1,
+    languageCode: stringValue(selectedAudioStream?.languageCode)
+      ?? stringValue(selectedAudioStream?.languageTag),
+    title: selectedAudioTrackTitle(selectedAudioStream),
+  };
+}
+
 async function fetchMetadataItem(context: PlexSourceContext, item: any) {
   const path = metadataPath(item);
   if (!path) {
@@ -924,6 +969,7 @@ async function normalizeCurrentPlayback(
     const mediaPath = await resolveMediaPath(context, item, enrichedItem, mediaSelection);
     const previewPath = createPreviewPath(enrichedItem, mediaSelection);
     const thumbPath = metadataImagePath(enrichedItem);
+    const selectedAudioTrack = deriveSelectedAudioTrack(enrichedItem, mediaSelection);
     const sessionId = playbackSessionIdentity(item);
 
     return {
@@ -943,6 +989,7 @@ async function normalizeCurrentPlayback(
         thumbUrl: thumbPath ? createMediaHandle(session, context, thumbPath) : undefined,
         mediaUrl: mediaPath ? createMediaHandle(session, context, mediaPath) : undefined,
         previewUrl: previewPath ? createMediaHandle(session, context, previewPath) : undefined,
+        selectedAudioTrack,
         exportMetadata: createExportMetadata(session, context, enrichedItem),
       },
     };
