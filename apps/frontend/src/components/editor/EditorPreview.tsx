@@ -3,6 +3,7 @@ import type { RefObject } from "react";
 
 interface EditorPreviewProps {
   canvasRef: RefObject<HTMLCanvasElement | null>;
+  activeSourceLabel: string;
   playing: boolean;
   loadingPreview: boolean;
   previewStatus: string;
@@ -11,6 +12,7 @@ interface EditorPreviewProps {
 
 export function EditorPreview({
   canvasRef,
+  activeSourceLabel,
   playing,
   loadingPreview,
   previewStatus,
@@ -38,6 +40,11 @@ export function EditorPreview({
           <Play className="ml-0.5 h-5 w-5" />
         </button>
       </div>
+      {activeSourceLabel && (
+        <div className="pointer-events-none absolute left-3 top-3 border border-white/12 bg-black/72 px-2 py-1 text-[11px] font-medium uppercase tracking-[0.14em] text-white/80">
+          {activeSourceLabel}
+        </div>
+      )}
       {loadingPreview && (
         <div className="absolute inset-0 flex items-center justify-center bg-black/72 text-sm text-muted-foreground">
           {previewStatus}
