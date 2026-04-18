@@ -1,10 +1,8 @@
 # Cliparr
 
 <div align="center">
-  <img src="./.github/img/screenshot.png" alt="Cliparr Screenshot" width="800px" style="border-radius: 10px; box-shadow: 0 10px 30px rgba(0,0,0,0.5);" />
-  <br />
-  <br />
-  <h3>Instant media clipper for your personal media server.</h3>
+  <img src="./.github/img/logo.png" alt="Cliparr Logo" width="150px" />
+ <h3>Instant media clipper for your personal media server.</h3>
   <p>
     <img src="https://img.shields.io/badge/Support-Plex-e5a00d?style=for-the-badge&logo=plex&logoColor=white" alt="Plex Support" />
     <img src="https://img.shields.io/badge/Support-Jellyfin-00a4dc?style=for-the-badge&logo=jellyfin&logoColor=white" alt="Jellyfin Support" />
@@ -15,6 +13,8 @@
 ---
 
 **Cliparr** is a streamlined media clipper that allows you to quickly create and download clips from the media currently playing on your Plex or Jellyfin server.
+
+
 
 ## Features
 
