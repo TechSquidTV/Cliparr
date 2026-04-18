@@ -23,10 +23,10 @@ const EXPORT_FILE_NAME_TEMPLATE_STORAGE_KEY = "cliparr.export.filename-templates
 const LEGACY_DEFAULT_MOVIE_EXPORT_FILE_NAME_TEMPLATE = "{source_title} ({year}) - clip {clip_start} to {clip_end}";
 const LEGACY_DEFAULT_EPISODE_EXPORT_FILE_NAME_TEMPLATE = "{show_title} - {episode_code} - {title} - clip {clip_start} to {clip_end}";
 
-export const DEFAULT_MOVIE_EXPORT_FILE_NAME_TEMPLATE = "{source_title} ({year}) [{clip_start}-{clip_end}]";
-export const DEFAULT_EPISODE_EXPORT_FILE_NAME_TEMPLATE = "{show_title} - {episode_code} - {title} [{clip_start}-{clip_end}]";
+const DEFAULT_MOVIE_EXPORT_FILE_NAME_TEMPLATE = "{source_title} ({year}) [{clip_start}-{clip_end}]";
+const DEFAULT_EPISODE_EXPORT_FILE_NAME_TEMPLATE = "{show_title} - {episode_code} - {title} [{clip_start}-{clip_end}]";
 
-export const EXPORT_FILE_NAME_TEMPLATE_TOKENS = [
+const EXPORT_FILE_NAME_TEMPLATE_TOKENS = [
   "title",
   "source_title",
   "show_title",
@@ -134,7 +134,7 @@ export function saveExportFileNameTemplates(templates: ExportFileNameTemplateSet
   }
 }
 
-export function resolveExportFileNameTemplateKind(
+function resolveExportFileNameTemplateKind(
   sessionType: string | undefined,
   metadata: MediaExportMetadata | undefined
 ): ExportFileNameTemplateKind {
