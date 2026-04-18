@@ -211,9 +211,7 @@ export default function ProviderConnectScreen({ onConnected }: Props) {
 
         <div className="relative border-b border-border px-6 py-8 sm:px-8">
           <div className="mb-5 flex items-center justify-center">
-            <div className="rounded-full bg-primary/10 p-3">
-              <Video className="h-8 w-8 text-primary" />
-            </div>
+            <img src="/logo-light.svg" alt="Cliparr Logo" className="h-12 w-12" />
           </div>
           <h1 className="text-center text-3xl font-semibold tracking-tight">Connect A Provider</h1>
           <p className="mx-auto mt-3 max-w-2xl text-center text-sm leading-6 text-muted-foreground">

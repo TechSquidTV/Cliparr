@@ -16,9 +16,7 @@ export default function AuthCompleteScreen() {
     <div className="min-h-screen bg-background text-foreground flex items-center justify-center p-4">
       <div className="bg-card text-card-foreground border border-border p-8 rounded-lg w-full max-w-md shadow-2xl text-center">
         <div className="flex items-center justify-center mb-6">
-          <div className="bg-primary/10 p-3 rounded-full">
-            <CheckCircle2 className="w-8 h-8 text-primary" />
-          </div>
+          <img src="/logo-light.svg" alt="Cliparr Logo" className="w-12 h-12" />
         </div>
         <h1 className="text-2xl font-bold mb-2">Plex sign-in finished</h1>
         <p className="text-muted-foreground text-sm mb-6">
