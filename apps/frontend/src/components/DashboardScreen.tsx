@@ -2,12 +2,12 @@ import { useEffect, useState } from "react";
 import { AlertTriangle, LogOut, Play, RefreshCw, Settings2, Video } from "lucide-react";
 import { cliparrClient } from "../api/cliparrClient";
 import { formatProviderName, ProviderGlyph } from "./ProviderGlyph";
-import SourcesModal from "./SourcesModal";
 import type { CurrentlyPlayingItem, SourcePlaybackError, ViewerPlaybackGroup } from "../providers/types";
 
 interface Props {
   onSelectSession: (session: CurrentlyPlayingItem) => void;
-  onLogout: () => void;
+  onOpenSources: () => void;
+  onLogout: () => Promise<void> | void;
 }
 
 function errorMessage(err: unknown, fallback: string) {
@@ -75,12 +75,11 @@ function WarningBanner({ sourceErrors }: { sourceErrors: SourcePlaybackError[] }
   );
 }
 
-export default function SessionsScreen({ onSelectSession, onLogout }: Props) {
+export default function DashboardScreen({ onSelectSession, onOpenSources, onLogout }: Props) {
   const [viewers, setViewers] = useState<ViewerPlaybackGroup[]>([]);
   const [sourceErrors, setSourceErrors] = useState<SourcePlaybackError[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [showSources, setShowSources] = useState(false);
 
   const fetchSessions = async () => {
     setLoading(true);
@@ -120,7 +119,7 @@ export default function SessionsScreen({ onSelectSession, onLogout }: Props) {
           <div className="flex flex-wrap items-center gap-3 sm:justify-end">
             <button
               type="button"
-              onClick={() => setShowSources(true)}
+              onClick={onOpenSources}
               className="flex items-center gap-2 rounded-lg border border-border px-4 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
             >
               <Settings2 className="w-4 h-4" />
@@ -251,12 +250,6 @@ export default function SessionsScreen({ onSelectSession, onLogout }: Props) {
           </div>
         </div>
       </div>
-
-      <SourcesModal
-        isOpen={showSources}
-        onClose={() => setShowSources(false)}
-        onSourcesChanged={fetchSessions}
-      />
     </div>
   );
 }

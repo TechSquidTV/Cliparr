@@ -6,7 +6,7 @@ import { ProviderGlyph } from "./ProviderGlyph";
 import type { ProviderDefinition, ProviderSession } from "../providers/types";
 
 interface Props {
-  onLogin: (session: ProviderSession) => void;
+  onConnected: (session: ProviderSession) => void;
 }
 
 const devJellyfinUrl = typeof import.meta.env.VITE_CLIPARR_DEV_JELLYFIN_URL === "string"
@@ -71,7 +71,7 @@ function ProviderBadge({
   );
 }
 
-export default function LoginScreen({ onLogin }: Props) {
+export default function ProviderConnectScreen({ onConnected }: Props) {
   const [providers, setProviders] = useState<ProviderDefinition[]>([]);
   const [selectedProviderId, setSelectedProviderId] = useState("");
   const [authId, setAuthId] = useState("");
@@ -135,7 +135,7 @@ export default function LoginScreen({ onLogin }: Props) {
         const status = await cliparrClient.pollAuth(providerId, authId);
         if (status.status === "complete") {
           window.clearInterval(intervalId);
-          onLogin(await cliparrClient.getSession());
+          onConnected(await cliparrClient.getSession());
           return;
         }
 
@@ -155,7 +155,7 @@ export default function LoginScreen({ onLogin }: Props) {
     return () => {
       window.clearInterval(intervalId);
     };
-  }, [authId, onLogin, providerId, providerLabel]);
+  }, [authId, onConnected, providerId, providerLabel]);
 
   const startAuth = async (provider: ProviderDefinition) => {
     setError("");
@@ -185,7 +185,7 @@ export default function LoginScreen({ onLogin }: Props) {
         username,
         password,
       });
-      onLogin(session);
+      onConnected(session);
     } catch (err: unknown) {
       setAuthenticating(false);
       setProviderId("");
@@ -241,11 +241,11 @@ export default function LoginScreen({ onLogin }: Props) {
 
           {loading ? (
             <div className="py-12 text-center text-sm text-muted-foreground">Loading providers...</div>
-          ) : providers.length === 0 ? (
+          ) : !error && providers.length === 0 ? (
             <div className="py-12 text-center text-sm text-muted-foreground">
               No providers are currently available.
             </div>
-          ) : (
+          ) : providers.length > 0 ? (
             <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.12fr)]">
               <motion.div
                 initial={{ opacity: 0, x: -12 }}
@@ -538,6 +538,10 @@ export default function LoginScreen({ onLogin }: Props) {
                   </AnimatePresence>
                 </div>
               )}
+            </div>
+          ) : (
+            <div className="py-12 text-center text-sm text-muted-foreground">
+              We could not load providers yet.
             </div>
           )}
         </div>

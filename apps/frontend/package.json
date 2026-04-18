@@ -15,6 +15,7 @@
   "dependencies": {
     "@mediabunny/aac-encoder": "^1.40.1",
     "@mediabunny/ac3": "^1.40.1",
+    "@tanstack/react-router": "^1.168.22",
     "@xzdarcy/react-timeline-editor": "^1.0.0",
     "clsx": "^2.1.1",
     "lucide-react": "^1.8.0",
@@ -27,6 +28,7 @@
   },
   "devDependencies": {
     "@tailwindcss/vite": "^4.2.2",
+    "@tanstack/router-plugin": "^1.167.22",
     "@types/node": "^25.6.0",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",

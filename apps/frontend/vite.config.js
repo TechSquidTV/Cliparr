@@ -1,4 +1,5 @@
 import tailwindcss from '@tailwindcss/vite';
+import {tanstackRouter} from '@tanstack/router-plugin/vite';
 import react from '@vitejs/plugin-react';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -9,7 +10,14 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 export default defineConfig(({mode}) => {
   const env = loadEnv(mode, path.resolve(__dirname, '../..'), '');
   return {
-    plugins: [react(), tailwindcss()],
+    plugins: [
+      tanstackRouter({
+        target: 'react',
+        autoCodeSplitting: true,
+      }),
+      react(),
+      tailwindcss(),
+    ],
     build: {
       rollupOptions: {
         output: {
