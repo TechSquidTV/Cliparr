@@ -10,13 +10,15 @@ import {
 } from "mediabunny";
 import type { ConversionOptions, DiscardedTrack, InputTrack, MetadataTags } from "mediabunny";
 import { ensureMediabunnyCodecs } from "./mediabunnyCodecs";
-import type { MediaExportMetadata } from "../providers/types";
+import { selectPreferredAudioTrack } from "./selectPreferredAudioTrack";
+import type { MediaExportMetadata, PlaybackAudioSelection } from "../providers/types";
 
 interface ExportClipOptions {
   mediaUrl: string;
   startTime: number;
   endTime: number;
   resolution: "original" | "1080" | "720";
+  selectedAudioTrack?: PlaybackAudioSelection;
   metadata?: MediaExportMetadata;
   onProgress: (progress: number) => void;
 }
@@ -416,6 +418,7 @@ export async function exportClip({
   startTime,
   endTime,
   resolution,
+  selectedAudioTrack,
   metadata,
   onProgress,
 }: ExportClipOptions) {
@@ -429,6 +432,7 @@ export async function exportClip({
   try {
     const sourceAudioTracks = await input.getAudioTracks();
     const sourceVideoTracks = await input.getVideoTracks();
+    const preferredAudioTrack = selectPreferredAudioTrack(sourceAudioTracks, selectedAudioTrack);
     const sourceHasAudio = sourceAudioTracks.length > 0;
     const outputHeight = resolution === "original" ? sourceVideoTracks[0]?.displayHeight : parseInt(resolution, 10);
 
@@ -439,15 +443,22 @@ export async function exportClip({
       target,
     });
 
+    const baseAudioOptions = {
+      codec: "aac",
+      forceTranscode: true,
+      numberOfChannels: 2,
+      bitrate: 160_000,
+    } as const;
+
     const conversionOptions: ConversionOptions = {
       input,
       output,
-      audio: {
-        codec: "aac",
-        forceTranscode: true,
-        numberOfChannels: 2,
-        bitrate: 160_000,
-      },
+      audio: preferredAudioTrack
+        ? (track) => ({
+          ...baseAudioOptions,
+          discard: track.id !== preferredAudioTrack.id,
+        })
+        : baseAudioOptions,
       trim: {
         start: startTime,
         end: endTime,

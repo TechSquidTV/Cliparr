@@ -57,6 +57,7 @@ export default function EditorScreen({ session, onBack }: Props) {
     startTime,
     endTime,
     sessionId: session.id,
+    selectedAudioTrack: session.selectedAudioTrack,
   });
 
   const updateClipRange = useCallback((nextStart: number, nextEnd: number) => {
@@ -114,6 +115,7 @@ export default function EditorScreen({ session, onBack }: Props) {
         startTime,
         endTime,
         resolution,
+        selectedAudioTrack: session.selectedAudioTrack,
         metadata: session.exportMetadata,
         onProgress: setProgress,
       });
