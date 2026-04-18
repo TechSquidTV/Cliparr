@@ -41,11 +41,11 @@
     "@eslint/js": "^10.0.1",
     "@types/node": "^25.6.0",
     "concurrently": "^9.2.1",
-    "eslint": "^10.2.0",
-    "eslint-plugin-react-hooks": "^7.1.0",
+    "eslint": "^10.2.1",
+    "eslint-plugin-react-hooks": "^7.1.1",
     "globals": "^17.5.0",
     "knip": "^6.4.1",
-    "typescript": "~6.0.2",
+    "typescript": "~6.0.3",
     "typescript-eslint": "^8.58.2"
   }
 }
