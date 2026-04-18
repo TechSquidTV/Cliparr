@@ -1,7 +1,7 @@
 {
   "name": "cliparr",
   "private": true,
-  "version": "0.0.0",
+  "version": "0.2.0",
   "description": "Plex clipper for exporting MP4 clips from active playback sessions, featuring a React frontend and Express server.",
   "license": "MIT",
   "type": "module",
