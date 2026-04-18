@@ -3,6 +3,7 @@ import {
   AlertTriangle,
   CheckCircle2,
   Globe,
+  Plus,
   RefreshCw,
   Search,
   Server,
@@ -10,9 +11,11 @@ import {
   X,
 } from "lucide-react";
 import { cliparrClient } from "../api/cliparrClient";
+import { useAuth } from "../auth";
+import SourceConnectPanel from "./SourceConnectPanel";
 import { formatProviderName } from "./ProviderGlyph";
 import { cn } from "../lib/utils";
-import type { MediaSource } from "../providers/types";
+import type { MediaSource, ProviderSession } from "../providers/types";
 
 interface Props {
   isOpen: boolean;
@@ -101,7 +104,9 @@ function sortSources(sources: MediaSource[]) {
 }
 
 export default function SourcesModal({ isOpen, onClose, onSourcesChanged }: Props) {
+  const auth = useAuth();
   const [sources, setSources] = useState<MediaSource[]>([]);
+  const [draftBaseUrls, setDraftBaseUrls] = useState<Record<string, string>>({});
   const [draftNames, setDraftNames] = useState<Record<string, string>>({});
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<SourceFilter>("all");
@@ -112,6 +117,7 @@ export default function SourcesModal({ isOpen, onClose, onSourcesChanged }: Prop
   const [busyActions, setBusyActions] = useState<Record<string, string>>({});
   const [error, setError] = useState("");
   const [feedback, setFeedback] = useState<Feedback | null>(null);
+  const [showAddSource, setShowAddSource] = useState(false);
   const dialogRef = useRef<HTMLDivElement | null>(null);
   const searchInputRef = useRef<HTMLInputElement | null>(null);
   const lastFocusedElementRef = useRef<HTMLElement | null>(null);
@@ -125,6 +131,7 @@ export default function SourcesModal({ isOpen, onClose, onSourcesChanged }: Prop
     }
 
     setSources(nextSources);
+    setDraftBaseUrls(Object.fromEntries(nextSources.map((source) => [source.id, source.baseUrl])));
     setDraftNames(Object.fromEntries(nextSources.map((source) => [source.id, source.name])));
     return true;
   }, []);
@@ -151,6 +158,7 @@ export default function SourcesModal({ isOpen, onClose, onSourcesChanged }: Prop
 
       const message = err instanceof Error ? err.message : "Failed to load sources";
       setSources([]);
+      setDraftBaseUrls({});
       setDraftNames({});
       setError(message);
     } finally {
@@ -177,7 +185,14 @@ export default function SourcesModal({ isOpen, onClose, onSourcesChanged }: Prop
   }
 
   function upsertSource(source: MediaSource) {
-    setSources((current) => sortSources(current.map((item) => (item.id === source.id ? source : item))));
+    setSources((current) => {
+      const exists = current.some((item) => item.id === source.id);
+      return sortSources(exists ? current.map((item) => (item.id === source.id ? source : item)) : [...current, source]);
+    });
+    setDraftBaseUrls((current) => ({
+      ...current,
+      [source.id]: source.baseUrl,
+    }));
     setDraftNames((current) => ({
       ...current,
       [source.id]: source.name,
@@ -186,6 +201,11 @@ export default function SourcesModal({ isOpen, onClose, onSourcesChanged }: Prop
 
   function removeSource(sourceId: string) {
     setSources((current) => current.filter((source) => source.id !== sourceId));
+    setDraftBaseUrls((current) => {
+      const next = { ...current };
+      delete next[sourceId];
+      return next;
+    });
     setDraftNames((current) => {
       const next = { ...current };
       delete next[sourceId];
@@ -197,9 +217,24 @@ export default function SourcesModal({ isOpen, onClose, onSourcesChanged }: Prop
     await onSourcesChanged?.();
   }
 
-  async function saveSourceName(source: MediaSource) {
+  async function handleSourceConnected(session: ProviderSession) {
+    auth.setProviderSession(session);
+    setFeedback({
+      tone: "success",
+      message: "Source connected. Refreshing your library list now.",
+    });
+    setShowAddSource(false);
+    await loadSources("reload");
+    await refreshPlaybackView();
+  }
+
+  async function saveSourceEdits(source: MediaSource) {
     const nextName = (draftNames[source.id] ?? source.name).trim();
-    if (!nextName || nextName === source.name) {
+    const nextBaseUrl = (draftBaseUrls[source.id] ?? source.baseUrl).trim();
+    const hasNameChange = Boolean(nextName) && nextName !== source.name;
+    const hasBaseUrlChange = Boolean(nextBaseUrl) && nextBaseUrl !== source.baseUrl;
+
+    if (!hasNameChange && !hasBaseUrlChange) {
       return;
     }
 
@@ -208,15 +243,18 @@ export default function SourcesModal({ isOpen, onClose, onSourcesChanged }: Prop
     updateBusyAction(source.id, "Saving...");
 
     try {
-      const updatedSource = await cliparrClient.updateSource(source.id, { name: nextName });
+      const updatedSource = await cliparrClient.updateSource(source.id, {
+        ...(hasNameChange ? { name: nextName } : {}),
+        ...(hasBaseUrlChange ? { baseUrl: nextBaseUrl } : {}),
+      });
       upsertSource(updatedSource);
       setFeedback({
         tone: "success",
-        message: `Renamed ${updatedSource.name}.`,
+        message: `Updated ${updatedSource.name}.`,
       });
       await refreshPlaybackView();
     } catch (err) {
-      const message = err instanceof Error ? err.message : "Failed to rename source";
+      const message = err instanceof Error ? err.message : "Failed to update source";
       setError(message);
     } finally {
       updateBusyAction(source.id);
@@ -339,6 +377,7 @@ export default function SourcesModal({ isOpen, onClose, onSourcesChanged }: Prop
 
       const mergedSources = sortSources([...nextSources.values()]);
       setSources(mergedSources);
+      setDraftBaseUrls(Object.fromEntries(mergedSources.map((source) => [source.id, source.baseUrl])));
       setDraftNames(Object.fromEntries(mergedSources.map((source) => [source.id, source.name])));
 
       const summaryParts = [
@@ -372,12 +411,27 @@ export default function SourcesModal({ isOpen, onClose, onSourcesChanged }: Prop
 
   useEffect(() => {
     if (!isOpen) {
+      setShowAddSource(false);
       return;
     }
 
     setFeedback(null);
     void loadSources();
   }, [isOpen, loadSources]);
+
+  useEffect(() => {
+    if (!isOpen) {
+      return;
+    }
+
+    if (loading) {
+      return;
+    }
+
+    if (sources.length === 0) {
+      setShowAddSource(true);
+    }
+  }, [isOpen, loading, sources.length]);
 
   useEffect(() => {
     if (!isOpen) {
@@ -501,6 +555,8 @@ export default function SourcesModal({ isOpen, onClose, onSourcesChanged }: Prop
     });
   }, [providerFilter, query, sources, statusFilter]);
   const hasBusyActions = Object.keys(busyActions).length > 0;
+  const forceAddSourceOpen = !loading && sources.length === 0;
+  const showConnectPanel = showAddSource || forceAddSourceOpen;
 
   if (!isOpen) {
     return null;
@@ -531,7 +587,7 @@ export default function SourcesModal({ isOpen, onClose, onSourcesChanged }: Prop
               <div className="space-y-2">
                 <h2 className="text-2xl font-semibold tracking-tight sm:text-3xl">Manage Sources</h2>
                 <p className="max-w-2xl text-sm text-muted-foreground sm:text-base">
-                  Rename servers, pause noisy sources, run health checks, and clean up anything you no longer want Cliparr to query.
+                  Connect new servers, update saved source details, run health checks, and clean up anything you no longer want Cliparr to query.
                 </p>
               </div>
               <div className="flex flex-wrap gap-3 text-sm">
@@ -551,6 +607,16 @@ export default function SourcesModal({ isOpen, onClose, onSourcesChanged }: Prop
             </div>
 
             <div className="flex flex-wrap items-center gap-3">
+              {!forceAddSourceOpen && (
+                <button
+                  type="button"
+                  onClick={() => setShowAddSource((current) => !current)}
+                  className="inline-flex items-center gap-2 rounded-xl border border-border bg-background/80 px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-accent disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  <Plus className={cn("h-4 w-4 transition-transform", showConnectPanel && "rotate-45")} />
+                  {showConnectPanel ? "Hide Add Source" : "Add Source"}
+                </button>
+              )}
               <button
                 type="button"
                 onClick={() => void loadSources("reload")}
@@ -671,6 +737,43 @@ export default function SourcesModal({ isOpen, onClose, onSourcesChanged }: Prop
               </div>
             )}
 
+            {showConnectPanel && (
+              <section className="rounded-[1.75rem] border border-border bg-[linear-gradient(135deg,color-mix(in_oklch,var(--primary)_10%,transparent),transparent_52%),linear-gradient(180deg,color-mix(in_oklch,var(--muted)_78%,var(--background)),var(--background))] p-5 sm:p-6">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                  <div className="space-y-2">
+                    <div className={cn("inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground", elevatedGlassClasses)}>
+                      <Plus className="h-3.5 w-3.5" />
+                      Add Source
+                    </div>
+                    <div>
+                      <h3 className="text-xl font-semibold tracking-tight text-foreground">Connect another media server</h3>
+                      <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
+                        Add a new Jellyfin server or reconnect another provider without leaving source management.
+                      </p>
+                    </div>
+                  </div>
+
+                  {!forceAddSourceOpen && (
+                    <button
+                      type="button"
+                      onClick={() => setShowAddSource(false)}
+                      className="inline-flex items-center gap-2 rounded-xl border border-border bg-card px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-accent"
+                    >
+                      <X className="h-4 w-4" />
+                      Close Panel
+                    </button>
+                  )}
+                </div>
+
+                <div className="mt-5">
+                  <SourceConnectPanel
+                    onConnected={handleSourceConnected}
+                    onCancel={!forceAddSourceOpen ? () => setShowAddSource(false) : undefined}
+                  />
+                </div>
+              </section>
+            )}
+
             {loading ? (
               <div className="grid gap-4 lg:grid-cols-2">
                 {Array.from({ length: 4 }).map((_, index) => (
@@ -679,6 +782,16 @@ export default function SourcesModal({ isOpen, onClose, onSourcesChanged }: Prop
                     className="h-72 animate-pulse rounded-3xl border border-border bg-muted/60"
                   />
                 ))}
+              </div>
+            ) : sources.length === 0 ? (
+              <div className="rounded-[1.75rem] border border-dashed border-border bg-background/60 px-8 py-14 text-center">
+                <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-muted">
+                  <Server className="h-6 w-6 text-muted-foreground" />
+                </div>
+                <h3 className="text-lg font-semibold">No sources connected yet</h3>
+                <p className="mx-auto mt-2 max-w-md text-sm text-muted-foreground">
+                  Use the add-source panel above to connect your first Plex or Jellyfin server.
+                </p>
               </div>
             ) : filteredSources.length === 0 ? (
               <div className="rounded-[1.75rem] border border-dashed border-border bg-background/60 px-8 py-14 text-center">
@@ -696,9 +809,14 @@ export default function SourcesModal({ isOpen, onClose, onSourcesChanged }: Prop
                   const status = sourceStatus(source);
                   const StatusIcon = status.icon;
                   const draftName = draftNames[source.id] ?? source.name;
+                  const draftBaseUrl = draftBaseUrls[source.id] ?? source.baseUrl;
                   const trimmedName = draftName.trim();
+                  const trimmedBaseUrl = draftBaseUrl.trim();
                   const isBusy = Boolean(busyActions[source.id]) || refreshingAll;
-                  const canSaveName = Boolean(trimmedName) && trimmedName !== source.name && !isBusy;
+                  const canSaveEdits = Boolean(trimmedName)
+                    && Boolean(trimmedBaseUrl)
+                    && !isBusy
+                    && (trimmedName !== source.name || trimmedBaseUrl !== source.baseUrl);
                   const product = stringValue(source.metadata.product);
                   const platform = stringValue(source.metadata.platform);
 
@@ -734,11 +852,9 @@ export default function SourcesModal({ isOpen, onClose, onSourcesChanged }: Prop
                         </div>
                       </div>
 
-                      <div className="mt-4 space-y-2">
+                      <div className="mt-4 grid gap-3 lg:grid-cols-2">
                         <label className="block text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground">
                           Display Name
-                        </label>
-                        <div className="flex flex-col gap-2 sm:flex-row">
                           <input
                             value={draftName}
                             onChange={(event) => setDraftNames((current) => ({
@@ -746,28 +862,39 @@ export default function SourcesModal({ isOpen, onClose, onSourcesChanged }: Prop
                               [source.id]: event.target.value,
                             }))}
                             onKeyDown={(event) => {
-                              if (event.key === "Enter" && canSaveName) {
+                              if (event.key === "Enter" && canSaveEdits) {
                                 event.preventDefault();
-                                void saveSourceName(source);
+                                void saveSourceEdits(source);
                               }
                             }}
                             disabled={isBusy}
-                            className="h-11 flex-1 rounded-xl border border-input bg-card px-4 text-sm outline-none transition-colors focus:border-ring disabled:cursor-not-allowed disabled:opacity-60"
+                            className="mt-2 h-11 w-full rounded-xl border border-input bg-card px-4 text-sm text-foreground outline-none transition-colors focus:border-ring disabled:cursor-not-allowed disabled:opacity-60"
                           />
-                          <button
-                            type="button"
-                            onClick={() => void saveSourceName(source)}
-                            disabled={!canSaveName}
-                            className="h-11 rounded-xl border border-border bg-card px-4 text-sm font-medium text-foreground transition-colors hover:bg-accent disabled:cursor-not-allowed disabled:opacity-60"
-                          >
-                            Save Name
-                          </button>
-                        </div>
+                        </label>
+
+                        <label className="block text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground">
+                          Server URL
+                          <input
+                            value={draftBaseUrl}
+                            onChange={(event) => setDraftBaseUrls((current) => ({
+                              ...current,
+                              [source.id]: event.target.value,
+                            }))}
+                            onKeyDown={(event) => {
+                              if (event.key === "Enter" && canSaveEdits) {
+                                event.preventDefault();
+                                void saveSourceEdits(source);
+                              }
+                            }}
+                            disabled={isBusy}
+                            className="mt-2 h-11 w-full rounded-xl border border-input bg-card px-4 text-sm text-foreground outline-none transition-colors focus:border-ring disabled:cursor-not-allowed disabled:opacity-60"
+                          />
+                        </label>
                       </div>
 
                       <dl className="mt-4 grid gap-3 text-sm sm:grid-cols-2">
                         <div className="rounded-2xl border border-border bg-card/80 px-4 py-3">
-                          <dt className="text-xs uppercase tracking-[0.16em] text-muted-foreground">Base URL</dt>
+                          <dt className="text-xs uppercase tracking-[0.16em] text-muted-foreground">Saved URL</dt>
                           <dd className="mt-1 break-all font-medium text-foreground">{source.baseUrl}</dd>
                         </div>
                         <div className="rounded-2xl border border-border bg-card/80 px-4 py-3">
@@ -791,6 +918,14 @@ export default function SourcesModal({ isOpen, onClose, onSourcesChanged }: Prop
                       )}
 
                       <div className="mt-5 flex flex-wrap gap-2">
+                        <button
+                          type="button"
+                          onClick={() => void saveSourceEdits(source)}
+                          disabled={!canSaveEdits}
+                          className="rounded-xl border border-border bg-card px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-accent disabled:cursor-not-allowed disabled:opacity-60"
+                        >
+                          Save Changes
+                        </button>
                         <button
                           type="button"
                           onClick={() => void toggleSourceEnabled(source)}

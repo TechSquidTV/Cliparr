@@ -126,7 +126,7 @@ export function updateMediaSource(id: string, input: UpdateMediaSourceInput) {
   return getMediaSource(id);
 }
 
-function getMediaSource(id: string) {
+export function getMediaSource(id: string) {
   return getMediaSourceWhere(eq(mediaSources.id, id));
 }
 

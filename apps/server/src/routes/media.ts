@@ -61,7 +61,6 @@ mediaRouter.get(
     const sourceErrors: SourcePlaybackError[] = [];
     const sources = listMediaSources({
       enabledOnly: true,
-      providerAccountId: session.providerAccountId,
     })
       .flatMap((source) => {
         const provider = getProvider(source.providerId);

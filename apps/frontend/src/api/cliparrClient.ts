@@ -172,7 +172,7 @@ export const cliparrClient = {
     return data.source;
   },
 
-  async updateSource(sourceId: string, input: { name?: string; enabled?: boolean }) {
+  async updateSource(sourceId: string, input: { baseUrl?: string; name?: string; enabled?: boolean }) {
     const data = await request<{ source: MediaSource }>(`/api/sources/${sourceId}`, {
       method: "PATCH",
       body: JSON.stringify(input),
