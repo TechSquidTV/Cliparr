@@ -147,9 +147,7 @@ sourcesRouter.delete(
   asyncHandler(async (req, res) => {
     const session = requireAccountSession(req);
     setNoStore(res);
-    const source = requireMediaSource(req.params.id as string, session.providerAccountId);
-
-    const deleted = deleteMediaSourceForAccount(source.id, session.providerAccountId);
+    const deleted = deleteMediaSourceForAccount(req.params.id as string, session.providerAccountId);
     if (!deleted) {
       throw new ApiError(404, "source_not_found", "Source was not found");
     }
