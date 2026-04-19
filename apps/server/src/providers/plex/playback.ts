@@ -7,6 +7,8 @@ import type {
   CurrentlyPlayingEntry,
   MediaExportMetadata,
   PlaybackAudioSelection,
+  PlaybackSubtitleSelection,
+  PlaybackSubtitleTrack,
   ProviderConnection,
   ProviderResource,
 } from "../types.js";
@@ -14,6 +16,13 @@ import {
   createProviderMediaHandle,
   proxyUpstreamMediaResponse,
 } from "../shared/mediaProxy.js";
+import {
+  booleanFlag,
+  isTextSubtitleCodec,
+  normalizeSubtitleCodec,
+  subtitleContentFormat,
+  subtitleFileExtension,
+} from "../shared/subtitles.js";
 import {
   asArray,
   buildEpisodeSourceTitle,
@@ -344,10 +353,21 @@ function isAudioStream(stream: any) {
   return numberValue(stream?.streamType) === 2;
 }
 
+function isSubtitleStream(stream: any) {
+  return numberValue(stream?.streamType) === 3;
+}
+
 function selectedAudioTrackTitle(stream: any) {
   return stringValue(stream?.title)
     ?? stringValue(stream?.extendedDisplayTitle)
     ?? stringValue(stream?.displayTitle);
+}
+
+function selectedSubtitleTrackTitle(stream: any) {
+  return stringValue(stream?.title)
+    ?? stringValue(stream?.extendedDisplayTitle)
+    ?? stringValue(stream?.displayTitle)
+    ?? stringValue(stream?.language);
 }
 
 function deriveSelectedAudioTrack(
@@ -377,6 +397,105 @@ function deriveSelectedAudioTrack(
     languageCode: stringValue(selectedAudioStream?.languageCode)
       ?? stringValue(selectedAudioStream?.languageTag),
     title: selectedAudioTrackTitle(selectedAudioStream),
+  };
+}
+
+function buildPlexSubtitlePath(stream: any) {
+  const key = stringValue(stream?.key);
+  const streamId = idValue(stream?.id);
+  const codec = normalizeSubtitleCodec(stream?.codec);
+  const contentFormat = subtitleContentFormat(codec);
+  if (!contentFormat || (!streamId && !key)) {
+    return undefined;
+  }
+
+  const extension = subtitleFileExtension(codec, key);
+  if (!extension) {
+    return undefined;
+  }
+
+  const subtitlePath = key ?? (streamId ? `/library/streams/${encodeURIComponent(streamId)}` : undefined);
+  if (!subtitlePath) {
+    return undefined;
+  }
+
+  const relative = new URL(subtitlePath, "http://cliparr.local");
+
+  if (!relative.pathname.endsWith(`.${extension}`)) {
+    relative.pathname = `${relative.pathname}.${extension}`;
+  }
+
+  relative.searchParams.set("format", contentFormat);
+
+  return `${relative.pathname}${relative.search}`;
+}
+
+function plexSubtitleTrack(
+  session: ProviderSessionRecord,
+  context: PlexSourceContext,
+  stream: any
+): PlaybackSubtitleTrack {
+  const codec = normalizeSubtitleCodec(stream?.codec);
+  const subtitlePath = buildPlexSubtitlePath(stream);
+  const contentFormat = subtitleContentFormat(codec);
+
+  return {
+    streamId: idValue(stream?.id),
+    index: numberValue(stream?.index) ?? numberValue(stream?.streamIdentifier),
+    languageCode: stringValue(stream?.languageCode) ?? stringValue(stream?.languageTag),
+    title: selectedSubtitleTrackTitle(stream),
+    codec,
+    contentFormat,
+    isText: isTextSubtitleCodec(codec),
+    isDefault: booleanFlag(stream?.default),
+    isForced: booleanFlag(stream?.forced),
+    isHearingImpaired: booleanFlag(stream?.hearingImpaired),
+    contentUrl: subtitlePath ? createMediaHandle(session, context, subtitlePath) : undefined,
+  };
+}
+
+function deriveSubtitleTracks(
+  session: ProviderSessionRecord,
+  context: PlexSourceContext,
+  item: any,
+  selection?: PlexMediaSelection
+) {
+  const part = resolveSelectedPart(item, selection)?.part;
+  if (!part) {
+    return [];
+  }
+
+  return streamEntries(part)
+    .filter((stream) => isSubtitleStream(stream))
+    .map((stream) => plexSubtitleTrack(session, context, stream));
+}
+
+function deriveSelectedSubtitleTrack(
+  item: any,
+  selection?: PlexMediaSelection
+): PlaybackSubtitleSelection | undefined {
+  const part = resolveSelectedPart(item, selection)?.part;
+  if (!part) {
+    return undefined;
+  }
+
+  const selectedSubtitleStream = streamEntries(part)
+    .filter((stream) => isSubtitleStream(stream))
+    .find((stream) => isSelectedEntry(stream));
+  if (!selectedSubtitleStream) {
+    return undefined;
+  }
+
+  const codec = normalizeSubtitleCodec(selectedSubtitleStream?.codec);
+  return {
+    streamId: idValue(selectedSubtitleStream?.id),
+    index: numberValue(selectedSubtitleStream?.index) ?? numberValue(selectedSubtitleStream?.streamIdentifier),
+    languageCode: stringValue(selectedSubtitleStream?.languageCode)
+      ?? stringValue(selectedSubtitleStream?.languageTag),
+    title: selectedSubtitleTrackTitle(selectedSubtitleStream),
+    codec,
+    contentFormat: subtitleContentFormat(codec),
+    isText: isTextSubtitleCodec(codec),
   };
 }
 
@@ -536,6 +655,8 @@ async function normalizeCurrentPlayback(
     const previewPath = createPreviewPath(enrichedItem, mediaSelection);
     const thumbPath = metadataImagePath(enrichedItem);
     const selectedAudioTrack = deriveSelectedAudioTrack(enrichedItem, mediaSelection);
+    const selectedSubtitleTrack = deriveSelectedSubtitleTrack(enrichedItem, mediaSelection);
+    const subtitleTracks = deriveSubtitleTracks(session, context, enrichedItem, mediaSelection);
     const sessionId = playbackSessionIdentity(item);
 
     return {
@@ -556,6 +677,8 @@ async function normalizeCurrentPlayback(
         mediaUrl: mediaPath ? createMediaHandle(session, context, mediaPath) : undefined,
         previewUrl: previewPath ? createMediaHandle(session, context, previewPath) : undefined,
         selectedAudioTrack,
+        selectedSubtitleTrack,
+        subtitleTracks,
         exportMetadata: createExportMetadata(session, context, enrichedItem),
       },
     };

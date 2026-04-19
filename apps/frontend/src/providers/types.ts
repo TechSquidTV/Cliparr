@@ -72,6 +72,31 @@ export interface PlaybackAudioSelection {
   title?: string;
 }
 
+export interface PlaybackSubtitleTrack {
+  streamId?: string;
+  index?: number;
+  languageCode?: string;
+  title?: string;
+  codec?: string;
+  contentFormat?: string;
+  isText?: boolean;
+  isDefault?: boolean;
+  isForced?: boolean;
+  isHearingImpaired?: boolean;
+  isExternal?: boolean;
+  contentUrl?: string;
+}
+
+export interface PlaybackSubtitleSelection {
+  streamId?: string;
+  index?: number;
+  languageCode?: string;
+  title?: string;
+  codec?: string;
+  contentFormat?: string;
+  isText?: boolean;
+}
+
 export interface PlaybackViewer {
   id: string;
   providerId: string;
@@ -98,6 +123,8 @@ export interface CurrentlyPlayingItem {
   mediaUrl?: string;
   previewUrl?: string;
   selectedAudioTrack?: PlaybackAudioSelection;
+  selectedSubtitleTrack?: PlaybackSubtitleSelection;
+  subtitleTracks?: PlaybackSubtitleTrack[];
   exportMetadata?: MediaExportMetadata;
 }
 
