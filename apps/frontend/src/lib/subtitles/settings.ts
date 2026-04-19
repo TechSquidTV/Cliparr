@@ -35,7 +35,7 @@ function normalizeFontLabel(value: string) {
   return value.trim().replace(/^['"]+|['"]+$/g, "").toLowerCase();
 }
 
-export function subtitleFontLabelFromValue(fontFamily: string) {
+function subtitleFontLabelFromValue(fontFamily: string) {
   const trimmed = fontFamily.trim();
   if (!trimmed) {
     return "Custom Font";
@@ -123,7 +123,7 @@ export function loadLocalSubtitleFontOptions(): Promise<readonly SubtitleFontOpt
   return localSubtitleFontOptionsPromise;
 }
 
-export function defaultSubtitleStyleSettings(): SubtitleStyleSettings {
+function defaultSubtitleStyleSettings(): SubtitleStyleSettings {
   return {
     fontFamily: SUBTITLE_FONT_OPTIONS[0].value,
     fontSize: 42,
