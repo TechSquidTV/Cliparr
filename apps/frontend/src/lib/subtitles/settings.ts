@@ -2,16 +2,126 @@ import type { SubtitleStyleSettings } from "./types";
 
 const SUBTITLE_STYLE_SETTINGS_STORAGE_KEY = "cliparr.subtitle.style-settings.v1";
 
-export const SUBTITLE_FONT_OPTIONS = [
-  { label: "Arial", value: "Arial, sans-serif" },
-  { label: "Verdana", value: "Verdana, sans-serif" },
-  { label: "Trebuchet MS", value: "\"Trebuchet MS\", sans-serif" },
-  { label: "Tahoma", value: "Tahoma, sans-serif" },
-  { label: "Helvetica", value: "Helvetica, Arial, sans-serif" },
-  { label: "Georgia", value: "Georgia, serif" },
-  { label: "Times New Roman", value: "\"Times New Roman\", serif" },
-  { label: "Courier New", value: "\"Courier New\", monospace" },
-] as const;
+export type SubtitleFontOptionSource = "bundled" | "local" | "saved";
+
+export interface SubtitleFontOption {
+  label: string;
+  value: string;
+  source: SubtitleFontOptionSource;
+}
+
+interface LocalFontData {
+  family: string;
+}
+
+type LocalFontWindow = Window & {
+  queryLocalFonts?: () => Promise<readonly LocalFontData[]>;
+};
+
+let localSubtitleFontOptionsPromise: Promise<readonly SubtitleFontOption[]> | null = null;
+
+export const SUBTITLE_FONT_OPTIONS: readonly SubtitleFontOption[] = [
+  { label: "Arial", value: "Arial, sans-serif", source: "bundled" },
+  { label: "Verdana", value: "Verdana, sans-serif", source: "bundled" },
+  { label: "Trebuchet MS", value: "\"Trebuchet MS\", sans-serif", source: "bundled" },
+  { label: "Tahoma", value: "Tahoma, sans-serif", source: "bundled" },
+  { label: "Helvetica", value: "Helvetica, Arial, sans-serif", source: "bundled" },
+  { label: "Georgia", value: "Georgia, serif", source: "bundled" },
+  { label: "Times New Roman", value: "\"Times New Roman\", serif", source: "bundled" },
+  { label: "Courier New", value: "\"Courier New\", monospace", source: "bundled" },
+];
+
+function normalizeFontLabel(value: string) {
+  return value.trim().replace(/^['"]+|['"]+$/g, "").toLowerCase();
+}
+
+export function subtitleFontLabelFromValue(fontFamily: string) {
+  const trimmed = fontFamily.trim();
+  if (!trimmed) {
+    return "Custom Font";
+  }
+
+  const builtInOption = SUBTITLE_FONT_OPTIONS.find((option) => option.value === trimmed);
+  if (builtInOption) {
+    return builtInOption.label;
+  }
+
+  const firstFamily = trimmed.split(",")[0]?.trim() ?? "";
+  const normalized = firstFamily.replace(/^['"]+|['"]+$/g, "");
+
+  return normalized || trimmed;
+}
+
+export function createSubtitleFontOptionFromValue(
+  fontFamily: string,
+  existingOptions: readonly SubtitleFontOption[] = []
+): SubtitleFontOption | null {
+  const trimmed = fontFamily.trim();
+  if (!trimmed) {
+    return null;
+  }
+
+  if (existingOptions.some((option) => option.value === trimmed)) {
+    return null;
+  }
+
+  return {
+    label: `${subtitleFontLabelFromValue(trimmed)} (Current)`,
+    value: trimmed,
+    source: "saved",
+  };
+}
+
+export function loadLocalSubtitleFontOptions(): Promise<readonly SubtitleFontOption[]> {
+  if (typeof window === "undefined") {
+    return Promise.resolve([]);
+  }
+
+  if (localSubtitleFontOptionsPromise) {
+    return localSubtitleFontOptionsPromise;
+  }
+
+  const localFontWindow = window as LocalFontWindow;
+
+  if (typeof localFontWindow.queryLocalFonts !== "function") {
+    localSubtitleFontOptionsPromise = Promise.resolve([]);
+    return localSubtitleFontOptionsPromise;
+  }
+
+  const bundledLabels = new Set(
+    SUBTITLE_FONT_OPTIONS.map((option) => normalizeFontLabel(option.label))
+  );
+
+  localSubtitleFontOptionsPromise = localFontWindow.queryLocalFonts()
+    .then((fonts) => {
+      const seenLabels = new Set<string>();
+      const options: SubtitleFontOption[] = [];
+
+      for (const font of fonts) {
+        const family = font.family?.trim();
+        if (!family) {
+          continue;
+        }
+
+        const normalizedLabel = normalizeFontLabel(family);
+        if (!normalizedLabel || bundledLabels.has(normalizedLabel) || seenLabels.has(normalizedLabel)) {
+          continue;
+        }
+
+        seenLabels.add(normalizedLabel);
+        options.push({
+          label: family,
+          value: JSON.stringify(family),
+          source: "local",
+        });
+      }
+
+      return options.sort((left, right) => left.label.localeCompare(right.label));
+    })
+    .catch(() => []);
+
+  return localSubtitleFontOptionsPromise;
+}
 
 export function defaultSubtitleStyleSettings(): SubtitleStyleSettings {
   return {
