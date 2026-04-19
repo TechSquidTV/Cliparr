@@ -11,10 +11,10 @@ import {
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { subtitleTrackSupportsBurnIn } from "../../lib/selectPreferredSubtitleTrack";
-import { SUBTITLE_FONT_OPTIONS } from "../../lib/subtitles/settings";
 import type { SubtitleStyleSettings } from "../../lib/subtitles/types";
 import type { PlaybackSubtitleTrack } from "../../providers/types";
 import { EditorSubtitleStylePreview } from "./EditorSubtitleStylePreview";
+import { useSubtitleFontOptions } from "./useSubtitleFontOptions";
 
 interface EditorSubtitlePanelProps {
   subtitleTracks: readonly PlaybackSubtitleTrack[];
@@ -141,6 +141,13 @@ export function EditorSubtitlePanel({
 }: EditorSubtitlePanelProps) {
   const canEnableBurnIn = subtitleTrackSupportsBurnIn(selectedSubtitleTrack);
   const styleControlsDisabled = !subtitlesEnabled || !canEnableBurnIn;
+  const {
+    currentFontOption,
+    bundledFontOptions,
+    localFontOptions,
+    loadingLocalFonts,
+    requestLocalFonts,
+  } = useSubtitleFontOptions(subtitleStyleSettings.fontFamily);
   const subtitleStatus = subtitleTracks.length === 0
     ? "No subtitle tracks were exposed by this provider for the active session."
     : !selectedSubtitleTrack
@@ -273,28 +280,57 @@ export function EditorSubtitlePanel({
             <Select
               value={subtitleStyleSettings.fontFamily}
               onValueChange={(value) => updateStyleSetting("fontFamily", value)}
+              onOpenChange={(open) => {
+                if (open && !styleControlsDisabled) {
+                  requestLocalFonts();
+                }
+              }}
               disabled={styleControlsDisabled}
             >
               <SelectTrigger size="sm" className={compactSelectTriggerClassName()}>
                 <SelectValue placeholder="Select font" />
               </SelectTrigger>
               <SelectContent>
+                {currentFontOption && (
+                  <SelectGroup>
+                    <SelectLabel>Current Font</SelectLabel>
+                    <SelectItem value={currentFontOption.value}>
+                      {currentFontOption.label}
+                    </SelectItem>
+                  </SelectGroup>
+                )}
                 <SelectGroup>
-                  <SelectLabel>Fonts</SelectLabel>
-                  {SUBTITLE_FONT_OPTIONS.map((option) => (
+                  <SelectLabel>Included Fonts</SelectLabel>
+                  {bundledFontOptions.map((option) => (
                     <SelectItem key={option.value} value={option.value}>
                       {option.label}
                     </SelectItem>
                   ))}
                 </SelectGroup>
+                {localFontOptions.length > 0 && (
+                  <SelectGroup>
+                    <SelectLabel>Installed Fonts</SelectLabel>
+                    {localFontOptions.map((option) => (
+                      <SelectItem key={option.value} value={option.value}>
+                        {option.label}
+                      </SelectItem>
+                    ))}
+                  </SelectGroup>
+                )}
+                {loadingLocalFonts && (
+                  <div className="flex items-center gap-2 px-2 py-1.5 text-xs text-muted-foreground">
+                    <LoaderCircle className="h-3.5 w-3.5 animate-spin" />
+                    Looking for installed fonts...
+                  </div>
+                )}
               </SelectContent>
             </Select>
           </label>
 
-          <div className="max-w-32 text-[11px] text-muted-foreground">
+          <div className="max-w-36 text-[11px] text-muted-foreground">
             {styleControlsDisabled
               ? "Enable burn-in with a supported text track to tune the subtitle styling."
-              : "Changes update the live preview and export together."}
+              : "Changes update the live preview and export together. Installed fonts appear when supported browsers allow them."}
           </div>
         </div>
 
