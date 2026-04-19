@@ -6,6 +6,7 @@ import { EditorHeader } from "./editor/EditorHeader";
 import { EditorExportDialog } from "./editor/EditorExportDialog";
 import { EditorPreview } from "./editor/EditorPreview";
 import { EditorControls } from "./editor/EditorControls";
+import { EditorSidebar } from "./editor/EditorSidebar";
 import { EditorTimeline } from "./editor/EditorTimeline";
 import { EditorSubtitlePanel } from "./editor/EditorSubtitlePanel";
 import type { CurrentlyPlayingItem, PlaybackSubtitleTrack } from "../providers/types";
@@ -78,6 +79,7 @@ export default function EditorScreen({ session, onBack }: Props) {
   const [progress, setProgress] = useState(0);
   const [exportError, setExportError] = useState<string | null>(null);
   const [subtitleEnabled, setSubtitleEnabled] = useState(false);
+  const [subtitleSidebarOpen, setSubtitleSidebarOpen] = useState(false);
   const [selectedSubtitleTrackKey, setSelectedSubtitleTrackKey] = useState("none");
   const [subtitleCues, setSubtitleCues] = useState<SubtitleCue[]>([]);
   const [subtitleLoading, setSubtitleLoading] = useState(false);
@@ -524,7 +526,7 @@ export default function EditorScreen({ session, onBack }: Props) {
       />
 
       <main className="min-h-0 flex-1 overflow-hidden p-3 sm:p-4">
-        <div className="grid h-full min-h-0 gap-3 xl:grid-cols-[minmax(0,1fr)_21rem]">
+        <div className="grid h-full min-h-0 grid-cols-[minmax(0,1fr)_auto] gap-3">
           <div className="flex min-h-0 flex-col gap-3">
             {error && (
               <div className="border border-destructive/35 bg-destructive/10 px-3 py-2 text-sm text-destructive">
@@ -592,7 +594,13 @@ export default function EditorScreen({ session, onBack }: Props) {
             </section>
           </div>
 
-          <div className="min-h-0 overflow-hidden">
+          <EditorSidebar
+            open={subtitleSidebarOpen}
+            onOpenChange={setSubtitleSidebarOpen}
+            title="Subtitles"
+            description="Choose a subtitle track, tune its styling, and keep the inspector tucked away until you need it."
+            active={subtitleEnabled}
+          >
             <EditorSubtitlePanel
               subtitleTracks={subtitleTracks}
               selectedSubtitleTrackKey={selectedSubtitleTrackKey}
@@ -605,7 +613,7 @@ export default function EditorScreen({ session, onBack }: Props) {
               subtitleError={subtitleError}
               selectedSubtitleTrack={selectedSubtitleTrack}
             />
-          </div>
+          </EditorSidebar>
         </div>
       </main>
 
