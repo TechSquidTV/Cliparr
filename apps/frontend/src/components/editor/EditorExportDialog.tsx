@@ -38,6 +38,10 @@ interface EditorExportDialogProps {
   error: string | null;
   fileNamePreview: string;
   outputDimensions: VideoDimensions | null;
+  subtitleSummaryLabel: string;
+  subtitleSummaryDetail: string;
+  subtitleSummaryTone: "muted" | "ready" | "warning";
+  exportDisabledReason?: string | null;
   activeTemplateKind: ExportFileNameTemplateKind;
   editingTemplateKind: ExportFileNameTemplateKind;
   onEditingTemplateKindChange: (kind: ExportFileNameTemplateKind) => void;
@@ -139,6 +143,10 @@ export function EditorExportDialog({
   error,
   fileNamePreview,
   outputDimensions,
+  subtitleSummaryLabel,
+  subtitleSummaryDetail,
+  subtitleSummaryTone,
+  exportDisabledReason,
   activeTemplateKind,
   editingTemplateKind,
   onEditingTemplateKindChange,
@@ -154,6 +162,11 @@ export function EditorExportDialog({
   const selectedFormatOption = formatOptions.find((option) => option.value === selectedFormat) ?? formatOptions[0];
   const editingTemplateOption = templateOptions.find((option) => option.kind === editingTemplateKind) ?? templateOptions[0];
   const visibleTokens = getExportFileNameTemplateTokens(editingTemplateKind);
+  const subtitleSummaryClassName = subtitleSummaryTone === "ready"
+    ? "border-emerald-500/30 bg-emerald-500/8"
+    : subtitleSummaryTone === "warning"
+      ? "border-amber-500/30 bg-amber-500/8"
+      : "border-border bg-background";
 
   useEffect(() => {
     if (!isOpen) {
@@ -471,6 +484,12 @@ export function EditorExportDialog({
                 </dd>
               </div>
 
+              <div className={`rounded-md border px-3 py-2 ${subtitleSummaryClassName}`}>
+                <dt className="text-[11px] font-semibold uppercase tracking-[var(--tracking-caps-lg)] text-muted-foreground">Subtitles</dt>
+                <dd className="mt-1 text-xs font-medium text-foreground">{subtitleSummaryLabel}</dd>
+                <dd className="mt-1 text-[11px] text-muted-foreground">{subtitleSummaryDetail}</dd>
+              </div>
+
               <div className="rounded-md border border-border bg-background px-3 py-2">
                 <dt className="text-[11px] font-semibold uppercase tracking-[var(--tracking-caps-lg)] text-muted-foreground">Filename</dt>
                 <dd className="mt-1 text-[11px] font-semibold uppercase tracking-[var(--tracking-caps-md)] text-muted-foreground">
@@ -483,6 +502,12 @@ export function EditorExportDialog({
         </div>
 
         <footer className="flex flex-col-reverse gap-2 border-t border-border bg-card px-4 py-3 sm:flex-row sm:items-center sm:justify-end">
+          {exportDisabledReason && (
+            <div className="mr-auto text-xs text-muted-foreground">
+              {exportDisabledReason}
+            </div>
+          )}
+
           <button
             type="button"
             onClick={onClose}
@@ -495,7 +520,7 @@ export function EditorExportDialog({
           <button
             type="button"
             onClick={onExport}
-            disabled={exporting}
+            disabled={exporting || Boolean(exportDisabledReason)}
             className="inline-flex h-8 items-center justify-center gap-2 rounded-md border border-primary bg-primary px-3 text-xs font-semibold uppercase tracking-[var(--tracking-caps-sm)] text-primary-foreground transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-60"
           >
             {exporting ? (
