@@ -9,6 +9,9 @@ import type {
   WrappedAudioBuffer,
   WrappedCanvas,
 } from "mediabunny";
+import { getActiveSubtitleCue } from "../../lib/subtitles/getActiveSubtitleCue";
+import { renderSubtitleCue } from "../../lib/subtitles/renderSubtitleCue";
+import type { SubtitleCue, SubtitleStyleSettings } from "../../lib/subtitles/types";
 import { ensureMediabunnyCodecs } from "../../lib/mediabunnyCodecs";
 import { createCliparrInputFromUrl, isHlsPlaylistUrl } from "../../lib/mediabunnyInput";
 import {
@@ -33,6 +36,9 @@ interface UseEditorPlaybackProps {
   endTime: number;
   sessionId: string;
   selectedAudioTrack?: PlaybackAudioSelection;
+  subtitleCues?: readonly SubtitleCue[];
+  subtitlesEnabled?: boolean;
+  subtitleStyleSettings?: SubtitleStyleSettings;
 }
 
 interface VideoDimensions {
@@ -372,6 +378,9 @@ export function useEditorPlayback({
   endTime,
   sessionId,
   selectedAudioTrack,
+  subtitleCues = [],
+  subtitlesEnabled = false,
+  subtitleStyleSettings,
 }: UseEditorPlaybackProps) {
   const [duration, setDuration] = useState(() => Math.max(initialDuration, 0));
   const [currentTime, setCurrentTime] = useState(0);
@@ -394,6 +403,7 @@ export function useEditorPlayback({
   const videoFrameIteratorRef = useRef<AsyncGenerator<WrappedCanvas, void, unknown> | null>(null);
   const audioBufferIteratorRef = useRef<AsyncGenerator<WrappedAudioBuffer, void, unknown> | null>(null);
   const nextFrameRef = useRef<WrappedCanvas | null>(null);
+  const displayedFrameRef = useRef<WrappedCanvas | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
   const gainNodeRef = useRef<GainNode | null>(null);
   const queuedAudioNodesRef = useRef(new Set<AudioBufferSourceNode>());
@@ -423,6 +433,9 @@ export function useEditorPlayback({
   const endTimeRef = useRef(endTime);
   const volumeRef = useRef(volume);
   const mutedRef = useRef(muted);
+  const subtitleCuesRef = useRef<readonly SubtitleCue[]>(subtitleCues);
+  const subtitlesEnabledRef = useRef(subtitlesEnabled);
+  const subtitleStyleSettingsRef = useRef(subtitleStyleSettings);
 
   useEffect(() => {
     durationRef.current = duration;
@@ -452,6 +465,18 @@ export function useEditorPlayback({
       gainNodeRef.current.gain.value = actualVolume ** 2;
     }
   }, [volume, muted]);
+
+  useEffect(() => {
+    subtitleCuesRef.current = subtitleCues;
+  }, [subtitleCues]);
+
+  useEffect(() => {
+    subtitlesEnabledRef.current = subtitlesEnabled;
+  }, [subtitlesEnabled]);
+
+  useEffect(() => {
+    subtitleStyleSettingsRef.current = subtitleStyleSettings;
+  }, [subtitleStyleSettings]);
 
   const clampTime = useCallback((seconds: number) => {
     const maxDuration = durationRef.current;
@@ -519,6 +544,21 @@ export function useEditorPlayback({
     }
     context.clearRect(0, 0, canvas.width, canvas.height);
     context.drawImage(frame.canvas, 0, 0, canvas.width, canvas.height);
+
+    if (subtitlesEnabledRef.current && subtitleStyleSettingsRef.current) {
+      const cue = getActiveSubtitleCue(subtitleCuesRef.current, frame.timestamp);
+      if (cue) {
+        renderSubtitleCue(
+          context,
+          cue,
+          subtitleStyleSettingsRef.current,
+          canvas.width,
+          canvas.height
+        );
+      }
+    }
+
+    displayedFrameRef.current = frame;
   }, []);
 
   const drawPlaceholder = useCallback((message: string) => {
@@ -683,6 +723,7 @@ export function useEditorPlayback({
     skipLiveWaitRef.current = false;
     warmupPromiseRef.current = null;
     warmupTargetTimeRef.current = null;
+    displayedFrameRef.current = null;
     videoSinkRef.current = null;
     audioSinkRef.current = null;
     inputRef.current?.dispose();
@@ -692,6 +733,13 @@ export function useEditorPlayback({
     gainNodeRef.current = null;
     setPlaybackReadyRange(null);
   }, [cancelSelectionWarmup, pausePlayback, stopRenderLoop]);
+
+  useEffect(() => {
+    const displayedFrame = displayedFrameRef.current;
+    if (displayedFrame) {
+      drawFrame(displayedFrame);
+    }
+  }, [drawFrame, subtitleCues, subtitlesEnabled, subtitleStyleSettings]);
 
   const disposePreview = useCallback(() => {
     resetPreview(true, true);
