@@ -24,7 +24,7 @@
 - **Intuitive Timeline Editor**: Familiar UI based on common video editing interfaces.
 - **Local Transcoding**: Powered by [Mediabunny](https://mediabunny.dev/), video is transcoded in your browser.
 - **Rich Metadata Tagging**: Clips are exported with full EXIF data, including Season, Episode numbers, and timing metadata.
-- **Native Plex & Jellyfin Support**: Seamless integration with the most popular media server platforms.
+- **Subtitle Overlay**: Customizable subtitle overlay. Supports local fonts (Chromium).
 
 ## Getting Started
 

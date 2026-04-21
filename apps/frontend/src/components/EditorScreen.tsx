@@ -25,6 +25,7 @@ import {
   selectPreferredSubtitleTrack,
   subtitleTrackKey,
   subtitleTrackSupportsBurnIn,
+  subtitleTrackUnavailableMessage,
 } from "../lib/selectPreferredSubtitleTrack";
 import {
   loadSubtitleStyleSettings,
@@ -49,6 +50,8 @@ interface ResolvedExportSource {
   url: string;
   kind: ResolvedExportSourceKind;
 }
+
+const SUBTITLE_REQUEST_TIMEOUT_MS = 15_000;
 
 function isInteractiveKeyboardTarget(target: EventTarget | null) {
   if (!(target instanceof HTMLElement)) {
@@ -132,7 +135,8 @@ export default function EditorScreen({ session, onBack }: Props) {
     if (!subtitleTrackSupportsBurnIn(selectedSubtitleTrack)) {
       return {
         label: "Unsupported track",
-        detail: `${trackName} cannot be burned in yet because it is not an exposed text subtitle stream.`,
+        detail: subtitleTrackUnavailableMessage(selectedSubtitleTrack, session.source.providerId)
+          ?? `${trackName} cannot be burned in yet because it is not an exposed text subtitle stream.`,
         tone: "warning" as const,
         disabledReason: "Choose a supported text subtitle track or turn subtitle burn-in off.",
       };
@@ -344,6 +348,9 @@ export default function EditorScreen({ session, onBack }: Props) {
   useEffect(() => {
     let cancelled = false;
     const abortController = new AbortController();
+    const timeout = window.setTimeout(() => {
+      abortController.abort();
+    }, SUBTITLE_REQUEST_TIMEOUT_MS);
 
     async function loadSubtitleCues() {
       if (!subtitleEnabled || !selectedSubtitleTrack) {
@@ -356,7 +363,10 @@ export default function EditorScreen({ session, onBack }: Props) {
       if (!subtitleTrackSupportsBurnIn(selectedSubtitleTrack) || !selectedSubtitleTrack.contentUrl) {
         setSubtitleLoading(false);
         setSubtitleCues([]);
-        setSubtitleError("This subtitle track is not yet supported for styled burn-in.");
+        setSubtitleError(
+          subtitleTrackUnavailableMessage(selectedSubtitleTrack, session.source.providerId)
+            ?? "This subtitle track is not yet supported for styled burn-in."
+        );
         return;
       }
 
@@ -369,7 +379,29 @@ export default function EditorScreen({ session, onBack }: Props) {
           signal: abortController.signal,
         });
         if (!response.ok) {
-          throw new Error(`Subtitle download failed (${response.status})`);
+          let detail = "";
+
+          try {
+            const contentType = response.headers.get("content-type") ?? "";
+            if (contentType.toLowerCase().includes("application/json")) {
+              const payload = await response.json() as {
+                error?: {
+                  message?: string;
+                };
+              };
+              detail = payload.error?.message?.trim() ?? "";
+            } else {
+              detail = (await response.text()).replace(/\s+/g, " ").trim();
+            }
+          } catch {
+            detail = "";
+          }
+
+          throw new Error(
+            detail
+              ? `Subtitle download failed (${response.status}): ${detail}`
+              : `Subtitle download failed (${response.status})`
+          );
         }
 
         const subtitleText = await response.text();
@@ -386,6 +418,11 @@ export default function EditorScreen({ session, onBack }: Props) {
         setSubtitleError(parsedSubtitleCues.length === 0 ? "No subtitle cues were found in this track." : null);
       } catch (err) {
         if (cancelled || abortController.signal.aborted) {
+          if (!cancelled) {
+            setSubtitleCues([]);
+            setSubtitleError("Subtitle request timed out. Please try again.");
+            setSubtitleLoading(false);
+          }
           return;
         }
 
@@ -403,6 +440,7 @@ export default function EditorScreen({ session, onBack }: Props) {
 
     return () => {
       cancelled = true;
+      window.clearTimeout(timeout);
       abortController.abort();
     };
   }, [selectedSubtitleTrack, subtitleEnabled]);
@@ -692,6 +730,7 @@ export default function EditorScreen({ session, onBack }: Props) {
 
             <div className="min-h-[28rem] lg:hidden">
               <EditorSubtitlePanel
+                providerId={session.source.providerId}
                 subtitleTracks={subtitleTracks}
                 selectedSubtitleTrackKey={selectedSubtitleTrackKey}
                 onSelectedSubtitleTrackKeyChange={handleSelectedSubtitleTrackChange}
@@ -723,6 +762,7 @@ export default function EditorScreen({ session, onBack }: Props) {
                 />
                 <div className="min-h-[28rem] flex-1">
                   <EditorSubtitlePanel
+                    providerId={session.source.providerId}
                     subtitleTracks={subtitleTracks}
                     selectedSubtitleTrackKey={selectedSubtitleTrackKey}
                     onSelectedSubtitleTrackKeyChange={handleSelectedSubtitleTrackChange}

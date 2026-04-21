@@ -575,6 +575,8 @@ async function normalizeCurrentPlayback(
       thumbUrl,
       mediaUrl,
       hlsUrl,
+      previewUrl: hlsUrl,
+      previewFormat: previewPath ? "hls" : undefined,
       selectedAudioTrack,
       selectedSubtitleTrack,
       subtitleTracks,

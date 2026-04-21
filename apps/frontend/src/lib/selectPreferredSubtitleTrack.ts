@@ -21,6 +21,25 @@ export function subtitleTrackSupportsBurnIn(track: PlaybackSubtitleTrack | null 
   return Boolean(track?.isText && track?.contentUrl);
 }
 
+export function subtitleTrackUnavailableMessage(
+  track: PlaybackSubtitleTrack | null | undefined,
+  providerId?: string
+) {
+  if (!track || subtitleTrackSupportsBurnIn(track)) {
+    return undefined;
+  }
+
+  if (track.isText && providerId === "plex") {
+    return "Plex detected this text subtitle track, but it does not expose it as a downloadable subtitle stream for styled burn-in yet.";
+  }
+
+  if (track.isText) {
+    return "This text subtitle track is available, but the provider does not expose it as a downloadable subtitle stream for styled burn-in.";
+  }
+
+  return "This subtitle track exists, but it is not yet supported for styled burn-in.";
+}
+
 export function selectPreferredSubtitleTrack(
   subtitleTracks: readonly PlaybackSubtitleTrack[],
   selectedSubtitleTrack?: PlaybackSubtitleSelection
