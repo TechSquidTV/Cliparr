@@ -370,14 +370,6 @@ function selectedSubtitleTrackTitle(stream: any) {
     ?? stringValue(stream?.language);
 }
 
-function selectedSubtitleStreamId(part: any) {
-  const selectedSubtitleStream = streamEntries(part)
-    .filter((stream) => isSubtitleStream(stream))
-    .find((stream) => isSelectedEntry(stream));
-
-  return idValue(selectedSubtitleStream?.id);
-}
-
 function deriveSelectedAudioTrack(
   item: any,
   selection?: PlexMediaSelection

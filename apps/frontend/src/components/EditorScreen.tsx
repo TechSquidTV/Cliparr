@@ -161,6 +161,7 @@ export default function EditorScreen({ session, onBack }: Props) {
     };
   }, [
     selectedSubtitleTrack,
+    session.source.providerId,
     subtitleCues.length,
     subtitleEnabled,
     subtitleError,
@@ -376,7 +377,7 @@ export default function EditorScreen({ session, onBack }: Props) {
       window.clearTimeout(timeout);
       abortController.abort();
     };
-  }, [selectedSubtitleTrack, subtitleEnabled]);
+  }, [selectedSubtitleTrack, session.source.providerId, subtitleEnabled]);
 
   const handleSelectedSubtitleTrackChange = useCallback((value: string) => {
     setSelectedSubtitleTrackKey(value);
