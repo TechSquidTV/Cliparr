@@ -2,7 +2,7 @@ import type { SubtitleStyleSettings } from "./types";
 
 const SUBTITLE_STYLE_SETTINGS_STORAGE_KEY = "cliparr.subtitle.style-settings.v1";
 
-export type SubtitleFontOptionSource = "bundled" | "local" | "saved";
+type SubtitleFontOptionSource = "bundled" | "local" | "saved";
 
 export interface SubtitleFontOption {
   label: string;
