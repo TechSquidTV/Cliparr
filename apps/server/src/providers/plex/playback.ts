@@ -370,6 +370,14 @@ function selectedSubtitleTrackTitle(stream: any) {
     ?? stringValue(stream?.language);
 }
 
+function selectedSubtitleStreamId(part: any) {
+  const selectedSubtitleStream = streamEntries(part)
+    .filter((stream) => isSubtitleStream(stream))
+    .find((stream) => isSelectedEntry(stream));
+
+  return idValue(selectedSubtitleStream?.id);
+}
+
 function deriveSelectedAudioTrack(
   item: any,
   selection?: PlexMediaSelection
@@ -402,10 +410,9 @@ function deriveSelectedAudioTrack(
 
 function buildPlexSubtitlePath(stream: any) {
   const key = stringValue(stream?.key);
-  const streamId = idValue(stream?.id);
   const codec = normalizeSubtitleCodec(stream?.codec);
   const contentFormat = subtitleContentFormat(codec);
-  if (!contentFormat || (!streamId && !key)) {
+  if (!contentFormat || !key) {
     return undefined;
   }
 
@@ -414,12 +421,7 @@ function buildPlexSubtitlePath(stream: any) {
     return undefined;
   }
 
-  const subtitlePath = key ?? (streamId ? `/library/streams/${encodeURIComponent(streamId)}` : undefined);
-  if (!subtitlePath) {
-    return undefined;
-  }
-
-  const relative = new URL(subtitlePath, "http://cliparr.local");
+  const relative = new URL(key, "http://cliparr.local");
 
   if (!relative.pathname.endsWith(`.${extension}`)) {
     relative.pathname = `${relative.pathname}.${extension}`;
@@ -436,7 +438,8 @@ function plexSubtitleTrack(
   stream: any
 ): PlaybackSubtitleTrack {
   const codec = normalizeSubtitleCodec(stream?.codec);
-  const subtitlePath = buildPlexSubtitlePath(stream);
+  const directSubtitlePath = buildPlexSubtitlePath(stream);
+  const isText = isTextSubtitleCodec(codec);
   const contentFormat = subtitleContentFormat(codec);
 
   return {
@@ -446,11 +449,12 @@ function plexSubtitleTrack(
     title: selectedSubtitleTrackTitle(stream),
     codec,
     contentFormat,
-    isText: isTextSubtitleCodec(codec),
+    isText,
     isDefault: booleanFlag(stream?.default),
     isForced: booleanFlag(stream?.forced),
     isHearingImpaired: booleanFlag(stream?.hearingImpaired),
-    contentUrl: subtitlePath ? createMediaHandle(session, context, subtitlePath) : undefined,
+    isExternal: Boolean(stringValue(stream?.key)),
+    contentUrl: directSubtitlePath ? createMediaHandle(session, context, directSubtitlePath) : undefined,
   };
 }
 
@@ -460,7 +464,8 @@ function deriveSubtitleTracks(
   item: any,
   selection?: PlexMediaSelection
 ) {
-  const part = resolveSelectedPart(item, selection)?.part;
+  const resolvedPart = resolveSelectedPart(item, selection);
+  const part = resolvedPart?.part;
   if (!part) {
     return [];
   }
@@ -676,6 +681,7 @@ async function normalizeCurrentPlayback(
         thumbUrl: thumbPath ? createMediaHandle(session, context, thumbPath) : undefined,
         mediaUrl: mediaPath ? createMediaHandle(session, context, mediaPath) : undefined,
         previewUrl: previewPath ? createMediaHandle(session, context, previewPath) : undefined,
+        previewFormat: previewPath ? "hls" : undefined,
         selectedAudioTrack,
         selectedSubtitleTrack,
         subtitleTracks,
@@ -722,15 +728,25 @@ export async function proxyMedia(
     headers.set("X-Plex-Session-Identifier", playbackSessionId);
   }
 
-  const upstream = await fetch(url.toString(), { headers });
-  if (!upstream.ok && upstream.status !== 206) {
-    const detail = (await upstream.text()).slice(0, 400).replace(/\s+/g, " ").trim();
-    throw new ApiError(
-      upstream.status,
-      "plex_media_failed",
-      detail ? `Plex media request failed: ${detail}` : "Plex media request failed"
-    );
-  }
+  try {
+    const upstream = await fetch(url.toString(), { headers });
+    if (!upstream.ok && upstream.status !== 206) {
+      const detail = (await upstream.text()).slice(0, 400).replace(/\s+/g, " ").trim();
+      throw new ApiError(
+        upstream.status,
+        "plex_media_failed",
+        detail ? `Plex media request failed: ${detail}` : "Plex media request failed"
+      );
+    }
 
-  await proxyUpstreamMediaResponse(session, handle, upstream, res);
+    await proxyUpstreamMediaResponse(session, handle, upstream, res);
+  } catch (err) {
+    const details = err instanceof ApiError
+      ? `${err.status} ${err.code}: ${err.message}`
+      : errorMessage(err);
+    console.error(
+      `[plex media proxy] handle=${handleId} source=${handle.sourceId} path=${handle.path} ${details}`
+    );
+    throw err;
+  }
 }

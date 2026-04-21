@@ -122,6 +122,7 @@ export interface CurrentlyPlayingItem {
   thumbUrl?: string;
   mediaUrl?: string;
   previewUrl?: string;
+  previewFormat?: string;
   selectedAudioTrack?: PlaybackAudioSelection;
   selectedSubtitleTrack?: PlaybackSubtitleSelection;
   subtitleTracks?: PlaybackSubtitleTrack[];

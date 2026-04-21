@@ -41,6 +41,8 @@ export function errorHandler(
 
   if (!(err instanceof ApiError)) {
     console.error(err);
+  } else if (apiError.status >= 500) {
+    console.error(`${req.method} ${req.path} -> ${apiError.status} ${apiError.code}: ${apiError.message}`);
   }
 
   if (res.headersSent) {

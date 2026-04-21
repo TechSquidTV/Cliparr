@@ -10,13 +10,17 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
-import { subtitleTrackSupportsBurnIn } from "../../lib/selectPreferredSubtitleTrack";
+import {
+  subtitleTrackSupportsBurnIn,
+  subtitleTrackUnavailableMessage,
+} from "../../lib/selectPreferredSubtitleTrack";
 import type { SubtitleStyleSettings } from "../../lib/subtitles/types";
 import type { PlaybackSubtitleTrack } from "../../providers/types";
 import { EditorSubtitleStylePreview } from "./EditorSubtitleStylePreview";
 import { useSubtitleFontOptions } from "./useSubtitleFontOptions";
 
 interface EditorSubtitlePanelProps {
+  providerId?: string;
   subtitleTracks: readonly PlaybackSubtitleTrack[];
   selectedSubtitleTrackKey: string;
   onSelectedSubtitleTrackKeyChange: (value: string) => void;
@@ -128,6 +132,7 @@ function ColorControl({
 }
 
 export function EditorSubtitlePanel({
+  providerId,
   subtitleTracks,
   selectedSubtitleTrackKey,
   onSelectedSubtitleTrackKeyChange,
@@ -148,13 +153,14 @@ export function EditorSubtitlePanel({
     loadingLocalFonts,
     requestLocalFonts,
   } = useSubtitleFontOptions(subtitleStyleSettings.fontFamily);
+  const unavailableMessage = subtitleTrackUnavailableMessage(selectedSubtitleTrack, providerId);
   const subtitleStatus = subtitleTracks.length === 0
     ? "No subtitle tracks were exposed by this provider for the active session."
     : !selectedSubtitleTrack
       ? "Choose a subtitle track to preview and burn it into the clip."
       : canEnableBurnIn
         ? "Text subtitle track ready for styled burn-in."
-        : "This subtitle track exists, but it is not yet supported for styled burn-in.";
+        : unavailableMessage ?? "This subtitle track exists, but it is not yet supported for styled burn-in.";
 
   function updateStyleSetting<Key extends keyof SubtitleStyleSettings>(
     key: Key,

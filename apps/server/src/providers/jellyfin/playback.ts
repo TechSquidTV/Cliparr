@@ -501,6 +501,7 @@ async function normalizeCurrentPlayback(
       previewUrl: previewPath
         ? createMediaHandle(session, context, previewPath, { basePath: playlistBasePath(previewPath) })
         : undefined,
+      previewFormat: previewPath ? "hls" : undefined,
       selectedAudioTrack,
       selectedSubtitleTrack,
       subtitleTracks,
@@ -552,16 +553,26 @@ export async function proxyMedia(
     headers.set("Range", range);
   }
 
-  const upstream = await jellyfinFetch(buildJellyfinUrl(handle.baseUrl, handle.path).toString(), {
-    headers,
-  }, {
-    token: handle.token,
-    deviceId: handle.deviceId,
-    accept: req.header("accept") ?? undefined,
-    timeoutMs: JELLYFIN_REQUEST_TIMEOUT_MS,
-    errorCode: "jellyfin_media_failed",
-    failureMessage: "Jellyfin media request failed",
-  });
+  try {
+    const upstream = await jellyfinFetch(buildJellyfinUrl(handle.baseUrl, handle.path).toString(), {
+      headers,
+    }, {
+      token: handle.token,
+      deviceId: handle.deviceId,
+      accept: req.header("accept") ?? undefined,
+      timeoutMs: JELLYFIN_REQUEST_TIMEOUT_MS,
+      errorCode: "jellyfin_media_failed",
+      failureMessage: "Jellyfin media request failed",
+    });
 
-  await proxyUpstreamMediaResponse(session, handle, upstream, res);
+    await proxyUpstreamMediaResponse(session, handle, upstream, res);
+  } catch (err) {
+    const details = err instanceof ApiError
+      ? `${err.status} ${err.code}: ${err.message}`
+      : errorMessage(err);
+    console.error(
+      `[jellyfin media proxy] handle=${handleId} source=${handle.sourceId} path=${handle.path} ${details}`
+    );
+    throw err;
+  }
 }

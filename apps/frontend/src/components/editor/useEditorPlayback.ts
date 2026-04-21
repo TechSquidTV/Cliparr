@@ -10,6 +10,7 @@ import { errorMessage, isAc3FamilyCodec, themeValue } from "./EditorUtils";
 
 interface UseEditorPlaybackProps {
   previewUrl?: string;
+  previewFormat?: string;
   mediaUrl: string;
   initialDuration: number;
   startTime: number;
@@ -112,6 +113,7 @@ function buildPlaybackLoadError(failures: PlaybackLoadFailure[]) {
 
 export function useEditorPlayback({
   previewUrl,
+  previewFormat,
   mediaUrl,
   initialDuration,
   startTime,
@@ -562,7 +564,7 @@ export function useEditorPlayback({
     // fall back to the source stream until upstream support lands:
     // https://github.com/Vanilagy/mediabunny/pull/291
     const unsupportedPreviewFailure =
-      previewUrl && classifyPlaybackUrl(previewUrl) === "hls-playlist"
+      previewUrl && (previewFormat === "hls" || classifyPlaybackUrl(previewUrl) === "hls-playlist")
         ? buildUnsupportedPreviewFailure()
         : null;
     const playbackSources = buildPlaybackSourceCandidates(
@@ -738,6 +740,7 @@ export function useEditorPlayback({
   }, [
     mediaUrl,
     previewUrl,
+    previewFormat,
     initialDuration,
     selectedAudioTrack,
     sessionId,
