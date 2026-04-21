@@ -39,11 +39,11 @@ importers:
   apps/frontend:
     dependencies:
       '@mediabunny/aac-encoder':
-        specifier: ^1.40.1
-        version: 1.40.1(mediabunny@1.40.1)
+        specifier: 1.42.0-beta.4
+        version: 1.42.0-beta.4(mediabunny@1.42.0-beta.4)
       '@mediabunny/ac3':
-        specifier: ^1.40.1
-        version: 1.40.1(mediabunny@1.40.1)
+        specifier: 1.42.0-beta.4
+        version: 1.42.0-beta.4(mediabunny@1.42.0-beta.4)
       '@tanstack/react-router':
         specifier: ^1.168.22
         version: 1.168.22(react-dom@19.2.5(react@19.2.5))(react@19.2.5)
@@ -57,8 +57,8 @@ importers:
         specifier: ^1.8.0
         version: 1.8.0(react@19.2.5)
       mediabunny:
-        specifier: ^1.40.1
-        version: 1.40.1
+        specifier: 1.42.0-beta.4
+        version: 1.42.0-beta.4
       motion:
         specifier: ^12.38.0
         version: 12.38.0(react-dom@19.2.5(react@19.2.5))(react@19.2.5)
@@ -644,13 +644,13 @@ packages:
     resolution: {integrity: sha512-hloP58zRVCRSpgDxmqCWJNlizAlUgJFqG2ypq79DCvyv9tHjRYMDOcPFjzfl/A1/YxDvRCZz8wvZvmapQnKwFQ==}
     engines: {node: '>=12'}
 
-  '@mediabunny/aac-encoder@1.40.1':
-    resolution: {integrity: sha512-QWEZgEtCycnJA81xuEP7Lo/v56+5OOdeeXZbro4IY24VHiNISZlXBJRV1R5GYIKzW0ZXVJHSAHGUw5kZDep60g==}
+  '@mediabunny/aac-encoder@1.42.0-beta.4':
+    resolution: {integrity: sha512-LIRFJSPy/Sxdr5qbPaS9jDGPDYDC3wZ8WqHDn0P1t5t0E3WnZYG1TBnqxW6jP30bgVobmr/sU6DhCc0OM0VVlg==}
     peerDependencies:
       mediabunny: ^1.0.0
 
-  '@mediabunny/ac3@1.40.1':
-    resolution: {integrity: sha512-A9aUZnQ1tNia2i9TZjOzAPVi4sOXRsnozXtq3WMsoGbco6yBPgIZLOWPVugwpJMQglVSAPARlgH+chpzNAkHOg==}
+  '@mediabunny/ac3@1.42.0-beta.4':
+    resolution: {integrity: sha512-BF8+nkIfVh0Mp84TyIdRU36doEZ/49oZBqVm9zAWuH/x0tnj/iGu9EtyTOaUH+4Ohwd6lwZ6fFH/SGsknFez2w==}
     peerDependencies:
       mediabunny: ^1.0.0
 
@@ -2734,8 +2734,8 @@ packages:
     resolution: {integrity: sha512-aisnrDP4GNe06UcKFnV5bfMNPBUw4jsLGaWwWfnH3v02GnBuXX2MCVn5RbrWo0j3pczUilYblq7fQ7Nw2t5XKw==}
     engines: {node: '>= 0.8'}
 
-  mediabunny@1.40.1:
-    resolution: {integrity: sha512-HU/stGzAkdWaJIly6ypbUVgAUvT9kt39DIg0IaErR7/1fwtTmgUYs4i8uEPYcgcjPjbB9gtBmUXOLnXi6J2LDw==}
+  mediabunny@1.42.0-beta.4:
+    resolution: {integrity: sha512-y4S0KujyBX8mJ+bifVE6dEx5/ZcJlCifhpu5MPQ9lKAtRXOJbv3PFwD3mZgOme4vgXs/YUWBVza9rTKj+SATnQ==}
 
   merge-descriptors@2.0.0:
     resolution: {integrity: sha512-Snk314V5ayFLhp3fkUREub6WtjBfPdCPY1Ln8/8munuLuiYhsABgBVWsozAG+MWMbVEvcdcpbi9R7ww22l9Q3g==}
@@ -3698,13 +3698,13 @@ snapshots:
     dependencies:
       jsbi: 4.3.2
 
-  '@mediabunny/aac-encoder@1.40.1(mediabunny@1.40.1)':
+  '@mediabunny/aac-encoder@1.42.0-beta.4(mediabunny@1.42.0-beta.4)':
     dependencies:
-      mediabunny: 1.40.1
+      mediabunny: 1.42.0-beta.4
 
-  '@mediabunny/ac3@1.40.1(mediabunny@1.40.1)':
+  '@mediabunny/ac3@1.42.0-beta.4(mediabunny@1.42.0-beta.4)':
     dependencies:
-      mediabunny: 1.40.1
+      mediabunny: 1.42.0-beta.4
 
   '@napi-rs/wasm-runtime@1.1.4(@emnapi/core@1.9.2)(@emnapi/runtime@1.9.2)':
     dependencies:
@@ -5684,7 +5684,7 @@ snapshots:
 
   media-typer@1.1.0: {}
 
-  mediabunny@1.40.1:
+  mediabunny@1.42.0-beta.4:
     dependencies:
       '@types/dom-mediacapture-transform': 0.1.11
       '@types/dom-webcodecs': 0.1.13

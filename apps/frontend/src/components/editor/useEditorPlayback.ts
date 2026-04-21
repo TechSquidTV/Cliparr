@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { AudioBufferSink, CanvasSink, Input, WrappedAudioBuffer, WrappedCanvas } from "mediabunny";
+import type { AudioBufferSink, CanvasSink, Input, InputTrack, WrappedAudioBuffer, WrappedCanvas } from "mediabunny";
 import { ensureMediabunnyCodecs } from "../../lib/mediabunnyCodecs";
-import { selectPreferredAudioTrack } from "../../lib/selectPreferredAudioTrack";
+import { createCliparrInputFromUrl, isHlsPlaylistUrl } from "../../lib/mediabunnyInput";
+import { getAudioTrackSampleRate, getTrackCodec, getVideoTrackDimensions } from "../../lib/mediabunnyTrackAccess";
+import { selectPreferredPairableAudioTrack } from "../../lib/selectPreferredAudioTrack";
 import type { PlaybackAudioSelection } from "../../providers/types";
 import { errorMessage, isAc3FamilyCodec, themeValue } from "./EditorUtils";
 
@@ -35,8 +37,6 @@ interface PlaybackLoadFailure {
   classification: "hls-playlist" | "unknown";
 }
 
-const UNSUPPORTED_INPUT_FORMAT_ERROR = "Input has an unsupported or unrecognizable format.";
-
 function getAudioContextConstructor() {
   return window.AudioContext ?? (window as WindowWithWebkitAudioContext).webkitAudioContext;
 }
@@ -56,7 +56,7 @@ function buildPlaybackSourceCandidates(previewUrl: string | undefined, mediaUrl:
 }
 
 function classifyPlaybackUrl(url: string): PlaybackLoadFailure["classification"] {
-  return /\.m3u8(?:$|[?#])/i.test(url) ? "hls-playlist" : "unknown";
+  return isHlsPlaylistUrl(url) ? "hls-playlist" : "unknown";
 }
 
 function buildPlaybackFailure(source: PlaybackSourceCandidate, err: unknown): PlaybackLoadFailure {
@@ -67,29 +67,18 @@ function buildPlaybackFailure(source: PlaybackSourceCandidate, err: unknown): Pl
   };
 }
 
-function buildUnsupportedPreviewFailure(): PlaybackLoadFailure {
-  return {
-    label: "preview stream",
-    message: UNSUPPORTED_INPUT_FORMAT_ERROR,
-    classification: "hls-playlist",
-  };
-}
-
 function describePlaybackFailure(failure: PlaybackLoadFailure) {
   const prefix = failure.label === "preview stream" ? "Preview stream" : "Source stream";
-
-  if (
-    failure.classification === "hls-playlist"
-    && failure.message === UNSUPPORTED_INPUT_FORMAT_ERROR
-  ) {
-    return `${prefix} looks like an HLS playlist, which Mediabunny cannot open directly (${failure.message}).`;
-  }
 
   return `${prefix} failed: ${failure.message}`;
 }
 
 function formatPlaybackSourceLabel(label: PlaybackSourceCandidate["label"]) {
   return label === "preview stream" ? "Preview stream" : "Source stream";
+}
+
+function isPresent<T>(value: T | null | undefined): value is T {
+  return value !== null && value !== undefined;
 }
 
 function buildPlaybackLoadError(failures: PlaybackLoadFailure[]) {
@@ -510,17 +499,7 @@ export function useEditorPlayback({
   }, [clampTime, endTimeRef, pausePlayback, playPreview, startVideoIterator]);
 
   useEffect(() => {
-    // Mediabunny cannot open HLS manifests yet, so skip `.m3u8` preview URLs and
-    // fall back to the source stream until upstream support lands:
-    // https://github.com/Vanilagy/mediabunny/pull/291
-    const unsupportedPreviewFailure =
-      previewUrl && classifyPlaybackUrl(previewUrl) === "hls-playlist"
-        ? buildUnsupportedPreviewFailure()
-        : null;
-    const playbackSources = buildPlaybackSourceCandidates(
-      unsupportedPreviewFailure ? undefined : previewUrl,
-      mediaUrl
-    );
+    const playbackSources = buildPlaybackSourceCandidates(previewUrl, mediaUrl);
     if (playbackSources.length === 0) {
       return;
     }
@@ -542,16 +521,7 @@ export function useEditorPlayback({
       playbackTimeAtStartRef.current = 0;
 
       try {
-        const failures: PlaybackLoadFailure[] = unsupportedPreviewFailure ? [unsupportedPreviewFailure] : [];
-
-        if (unsupportedPreviewFailure) {
-          console.warn("Editor playback preview skipped", {
-            sessionId,
-            source: unsupportedPreviewFailure.label,
-            classification: unsupportedPreviewFailure.classification,
-            message: unsupportedPreviewFailure.message,
-          });
-        }
+        const failures: PlaybackLoadFailure[] = [];
 
         for (const playbackSource of playbackSources) {
           setPreviewStatus(
@@ -562,36 +532,47 @@ export function useEditorPlayback({
 
           try {
             await ensureMediabunnyCodecs();
-            const { ALL_FORMATS, AudioBufferSink, CanvasSink, Input, UrlSource } = await import("mediabunny");
+            const { AudioBufferSink, CanvasSink } = await import("mediabunny");
 
             if (cancelled || generation !== generationRef.current) {
               return;
             }
 
-            const input = new Input({
-              source: new UrlSource(playbackSource.url),
-              formats: ALL_FORMATS,
-            });
+            const input = await createCliparrInputFromUrl(playbackSource.url);
             inputRef.current = input;
 
-            const computedDuration = await input.computeDuration();
-            let videoTrack = await input.getPrimaryVideoTrack();
-            const audioTracks = await input.getAudioTracks();
-            let audioTrack = selectPreferredAudioTrack(audioTracks, selectedAudioTrack);
+            let videoTrack = await input.getPrimaryVideoTrack({
+              filter: async (track) => !(await track.hasOnlyKeyPackets()),
+            });
+            const fallbackAudioTracks = await input.getAudioTracks();
+            let audioTrack = await selectPreferredPairableAudioTrack(
+              videoTrack,
+              fallbackAudioTracks,
+              selectedAudioTrack
+            );
             const warnings: string[] = [];
 
+            const [videoTrackIsLive, audioTrackIsLive] = await Promise.all([
+              videoTrack?.isLive() ?? false,
+              audioTrack?.isLive() ?? false,
+            ]);
+            if (videoTrackIsLive || audioTrackIsLive) {
+              throw new Error("Live HLS streams are not supported in the editor yet.");
+            }
+
             if (videoTrack) {
-              if (videoTrack.codec === null) {
+              const videoCodec = await getTrackCodec(videoTrack);
+              if (videoCodec === null) {
                 warnings.push("Video codec is unknown.");
                 videoTrack = null;
               } else if (!(await videoTrack.canDecode())) {
-                warnings.push(`Cannot decode ${videoTrack.codec} video in this browser.`);
+                warnings.push(`Cannot decode ${videoCodec} video in this browser.`);
                 videoTrack = null;
               }
             }
 
             if (audioTrack) {
-              const audioCodec = audioTrack.codec;
+              const audioCodec = await getTrackCodec(audioTrack);
               if (audioCodec === null) {
                 warnings.push("Audio codec is unknown.");
                 audioTrack = null;
@@ -609,6 +590,12 @@ export function useEditorPlayback({
               throw new Error(warnings.join(" ") || "No decodable audio or video track found.");
             }
 
+            const durationTracks: InputTrack[] = [videoTrack, audioTrack].filter(isPresent);
+            const metadataDuration = await input.getDurationFromMetadata(durationTracks);
+            const computedDuration =
+              metadataDuration && metadataDuration > 0
+                ? metadataDuration
+                : await input.computeDuration(durationTracks);
             const nextDuration = computedDuration > 0 ? computedDuration : Math.max(initialDuration, 0);
             setDuration(nextDuration);
             durationRef.current = nextDuration;
@@ -616,14 +603,12 @@ export function useEditorPlayback({
             playbackTimeAtStartRef.current = 0;
 
             if (videoTrack) {
-              setSourceVideoDimensions({
-                width: videoTrack.displayWidth,
-                height: videoTrack.displayHeight,
-              });
+              const sourceDimensions = await getVideoTrackDimensions(videoTrack);
+              setSourceVideoDimensions(sourceDimensions);
               const canvas = canvasRef.current;
               if (canvas) {
-                canvas.width = videoTrack.displayWidth;
-                canvas.height = videoTrack.displayHeight;
+                canvas.width = sourceDimensions.width;
+                canvas.height = sourceDimensions.height;
               }
               videoSinkRef.current = new CanvasSink(videoTrack, {
                 poolSize: 2,
@@ -637,7 +622,9 @@ export function useEditorPlayback({
               if (!AudioContextConstructor) {
                 throw new Error("This browser does not provide Web Audio.");
               }
-              const audioContext = new AudioContextConstructor({ sampleRate: audioTrack.sampleRate });
+              const audioContext = new AudioContextConstructor({
+                sampleRate: await getAudioTrackSampleRate(audioTrack),
+              });
               const gainNode = audioContext.createGain();
               const actualVolume = mutedRef.current || volumeRef.current === 0 ? 0 : volumeRef.current;
               gainNode.gain.value = actualVolume ** 2;

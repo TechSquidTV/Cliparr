@@ -13,13 +13,13 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
-    "@mediabunny/aac-encoder": "^1.40.1",
-    "@mediabunny/ac3": "^1.40.1",
+    "@mediabunny/aac-encoder": "1.42.0-beta.4",
+    "@mediabunny/ac3": "1.42.0-beta.4",
     "@tanstack/react-router": "^1.168.22",
     "@xzdarcy/react-timeline-editor": "^1.0.0",
     "clsx": "^2.1.1",
     "lucide-react": "^1.8.0",
-    "mediabunny": "^1.40.1",
+    "mediabunny": "1.42.0-beta.4",
     "motion": "^12.38.0",
     "radix-ui": "^1.4.3",
     "react": "^19.2.5",
