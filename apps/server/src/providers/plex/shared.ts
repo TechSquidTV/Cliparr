@@ -4,6 +4,12 @@ import { ApiError } from "../../http/errors.js";
 import { normalizeMediaPath } from "../shared/mediaProxy.js";
 import { errorMessage, numberValue, stringValue } from "../shared/utils.js";
 import type { ProviderResource } from "../types.js";
+import {
+  plexBaseUrlMode,
+  PLEX_BASE_URL_MODE_AUTO,
+  PLEX_BASE_URL_MODE_MANUAL,
+  type PlexBaseUrlMode,
+} from "./connectionState.js";
 
 export const PLEX_PRODUCT = "Cliparr";
 export const PLEX_CLIENT_IDENTIFIER = process.env.PLEX_CLIENT_IDENTIFIER ?? `cliparr-${randomUUID()}`;
@@ -169,7 +175,7 @@ function connectionRank(connection: ProviderResource["connections"][number]) {
   return 2;
 }
 
-export function orderedConnections(resource: ProviderResource, preferredConnectionId: string) {
+function orderedConnections(resource: ProviderResource, preferredConnectionId: string) {
   return [...resource.connections].sort((left, right) => {
     if (left.id === preferredConnectionId) {
       return -1;
@@ -179,6 +185,25 @@ export function orderedConnections(resource: ProviderResource, preferredConnecti
     }
     return connectionRank(left) - connectionRank(right);
   });
+}
+
+export function candidateConnections(
+  resource: ProviderResource,
+  preferredConnectionId: string,
+  baseUrlMode: PlexBaseUrlMode
+) {
+  const ordered = orderedConnections(resource, preferredConnectionId);
+  return baseUrlMode === PLEX_BASE_URL_MODE_MANUAL ? ordered.slice(0, 1) : ordered;
+}
+
+export function unreachableConnectionMessage(
+  resource: ProviderResource,
+  failures: string[],
+  baseUrlMode: PlexBaseUrlMode
+) {
+  return baseUrlMode === PLEX_BASE_URL_MODE_MANUAL
+    ? `Cliparr could not reach the configured server URL for ${resource.name}. Tried: ${failures.join("; ")}`
+    : `Cliparr could not reach any discovered connection for ${resource.name}. Tried: ${failures.join("; ")}`;
 }
 
 function sourceConnections(source: MediaSource) {
@@ -207,6 +232,31 @@ function sourceConnections(source: MediaSource) {
   });
 }
 
+function manualConnectionId(sourceId: string) {
+  return `manual-base-url:${sourceId}`;
+}
+
+function manualConnection(source: MediaSource) {
+  if (plexBaseUrlMode(source.connection) !== PLEX_BASE_URL_MODE_MANUAL) {
+    return undefined;
+  }
+
+  const parsed = assertHttpUrl(source.baseUrl);
+  return {
+    id: manualConnectionId(source.id),
+    uri: source.baseUrl,
+    local: false,
+    relay: false,
+    protocol: parsed.protocol.replace(/:$/, ""),
+    address: parsed.hostname,
+    port: parsed.port
+      ? Number(parsed.port)
+      : parsed.protocol === "https:"
+        ? 443
+        : 80,
+  };
+}
+
 export function sourceResource(source: MediaSource) {
   const accessToken = stringValue(source.credentials.accessToken);
   if (!accessToken) {
@@ -222,8 +272,9 @@ export function sourceResource(source: MediaSource) {
     );
   }
 
+  const manual = manualConnection(source);
   const connections = sourceConnections(source);
-  if (connections.length === 0) {
+  if (connections.length === 0 && !manual) {
     throw new ApiError(500, "source_connections_missing", "Stored Plex source is missing connection details");
   }
 
@@ -232,13 +283,20 @@ export function sourceResource(source: MediaSource) {
     ? connections.find((candidate) => candidate.id === selectedConnectionId)
     : undefined;
   const matchingBaseUrl = connections.find((candidate) => candidate.uri === source.baseUrl);
-  const preferredConnectionId = matchingSelectedConnection?.id ?? matchingBaseUrl?.id ?? connections[0]?.id;
+  const resourceConnections = manual && !matchingBaseUrl ? [manual, ...connections] : connections;
+  const baseUrlMode: PlexBaseUrlMode = manual ? PLEX_BASE_URL_MODE_MANUAL : PLEX_BASE_URL_MODE_AUTO;
+  const preferredConnectionId = manual
+    ? matchingBaseUrl?.id ?? manual.id
+    : matchingSelectedConnection?.id ?? matchingBaseUrl?.id ?? connections[0]?.id;
 
   if (!preferredConnectionId) {
     throw new ApiError(500, "source_connections_missing", "Stored Plex source is missing connection details");
   }
 
   return {
+    baseUrlMode,
+    manualConnectionId: manual?.id,
+    persistedConnections: connections,
     preferredConnectionId,
     resource: {
       id: source.externalId ?? source.id,
@@ -248,7 +306,7 @@ export function sourceResource(source: MediaSource) {
       provides,
       owned: Boolean(source.metadata.owned),
       accessToken,
-      connections,
+      connections: resourceConnections,
     } satisfies ProviderResource,
   };
 }
@@ -288,10 +346,19 @@ async function probeConnection(resource: ProviderResource, connection: ProviderR
   }
 }
 
-export async function selectReachableConnection(resource: ProviderResource, preferredConnectionId: string) {
+export async function selectReachableConnection(
+  resource: ProviderResource,
+  preferredConnectionId: string,
+  options: { baseUrlMode?: PlexBaseUrlMode } = {}
+) {
   const failures: string[] = [];
+  const baseUrlMode = options.baseUrlMode ?? PLEX_BASE_URL_MODE_AUTO;
 
-  for (const connection of orderedConnections(resource, preferredConnectionId)) {
+  for (const connection of candidateConnections(
+    resource,
+    preferredConnectionId,
+    baseUrlMode
+  )) {
     const result = await probeConnection(resource, connection);
     if (result.ok) {
       return connection;
@@ -303,7 +370,7 @@ export async function selectReachableConnection(resource: ProviderResource, pref
   throw new ApiError(
     502,
     "plex_unreachable",
-    `Cliparr could not reach any discovered connection for ${resource.name}. Tried: ${failures.join("; ")}`
+    unreachableConnectionMessage(resource, failures, baseUrlMode)
   );
 }
 
