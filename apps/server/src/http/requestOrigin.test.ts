@@ -7,13 +7,30 @@ import {
 } from "./requestOrigin.js";
 import { getSessionCookieClearOptions, getSessionCookieOptions } from "../session/store.js";
 
-function makeRequest(secure: boolean, host?: string): Pick<Request, "get" | "secure"> {
+function makeRequest(
+  secure: boolean,
+  host?: string,
+  options?: {
+    forwardedHost?: string;
+    hostname?: string;
+  }
+): Pick<Request, "get" | "hostname" | "secure"> {
   return {
     secure,
+    hostname: options?.hostname ?? host?.split(":")[0] ?? "",
     get(name: string) {
-      return name.toLowerCase() === "host" ? host : undefined;
+      const normalized = name.toLowerCase();
+      if (normalized === "host") {
+        return host;
+      }
+
+      if (normalized === "x-forwarded-host") {
+        return options?.forwardedHost;
+      }
+
+      return undefined;
     },
-  } as Pick<Request, "get" | "secure">;
+  } as Pick<Request, "get" | "hostname" | "secure">;
 }
 
 void test("keeps proxied HTTPS requests secure", () => {
@@ -23,6 +40,18 @@ void test("keeps proxied HTTPS requests secure", () => {
   assert.equal(requestOriginIsPotentiallyTrustworthy(req), true);
   assert.equal(getSessionCookieOptions(req.secure).secure, true);
   assert.equal(getSessionCookieClearOptions(req.secure).secure, true);
+});
+
+void test("uses the trusted forwarded host for callback URLs when a proxy rewrites Host", () => {
+  const req = makeRequest(true, "cliparr:3000", {
+    forwardedHost: "cliparr.example.com:8443",
+    hostname: "cliparr.example.com",
+  });
+
+  assert.equal(
+    getRequestRouteUrl(req, "/auth/plex/complete"),
+    "https://cliparr.example.com:8443/auth/plex/complete"
+  );
 });
 
 void test("allows localhost HTTP requests", () => {
