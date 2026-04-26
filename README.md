@@ -71,11 +71,10 @@ volumes:
 | :--- | :--- | :--- |
 | `APP_KEY` | **Required** secret for credential encryption. | - |
 | `PORT` | Internal port for the Express server. | `3000` |
-| `CLIPARR_TRUST_PROXY` | Optional Express trust proxy override. Defaults to local/private proxy ranges. | `loopback, linklocal, uniquelocal` |
 | `CLIPARR_DATA_DIR` | Directory for SQLite storage. | `/data` |
 | `CLIPARR_ALLOW_LOOPBACK_JELLYFIN_URLS` | Allow Jellyfin URLs that resolve to `localhost`/loopback. Use only for trusted self-hosted setups. | `false` |
 
-When running behind a reverse proxy, preserve the `Host` header and pass `X-Forwarded-Proto`. Cliparr trusts loopback, link-local, and private-LAN proxy ranges by default, so typical Caddy/Nginx/Traefik setups on the same network do not need extra app configuration. Set `CLIPARR_TRUST_PROXY` only if you want to disable that behavior or override it with a custom Express trust proxy value. Caddy already forwards the needed headers.
+When running behind a reverse proxy, preserve the `Host` header and pass `X-Forwarded-Proto`. Cliparr trusts loopback, link-local, and private-LAN proxy ranges directly in the app, so typical Caddy/Nginx/Traefik setups on the same network do not need extra app configuration. Caddy already forwards the needed headers.
 
 ## Development
 

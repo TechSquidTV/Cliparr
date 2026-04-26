@@ -14,33 +14,14 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const workspaceRoot = path.resolve(__dirname, "../../..");
 const frontendRoot = path.join(workspaceRoot, "apps/frontend");
 const DEFAULT_DEV_FRONTEND_URL = "http://localhost:5173";
-const DEFAULT_TRUSTED_PROXY_SUBNETS = ["loopback", "linklocal", "uniquelocal"];
-
-function getTrustProxySetting() {
-  const configured = process.env.CLIPARR_TRUST_PROXY?.trim();
-  if (!configured) {
-    return DEFAULT_TRUSTED_PROXY_SUBNETS;
-  }
-
-  if (configured === "false") {
-    return false;
-  }
-
-  if (configured === "true") {
-    return true;
-  }
-
-  return /^\d+$/.test(configured)
-    ? Number.parseInt(configured, 10)
-    : configured;
-}
+const TRUSTED_PROXY_SUBNETS = ["loopback", "linklocal", "uniquelocal"];
 
 export async function createApp() {
   initializeDatabase();
 
   const app = express();
 
-  app.set("trust proxy", getTrustProxySetting());
+  app.set("trust proxy", TRUSTED_PROXY_SUBNETS);
   app.disable("x-powered-by");
   app.use(express.json());
   app.use((req, res, next) => {
