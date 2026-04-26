@@ -14,10 +14,15 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const workspaceRoot = path.resolve(__dirname, "../../..");
 const frontendRoot = path.join(workspaceRoot, "apps/frontend");
 const DEFAULT_DEV_FRONTEND_URL = "http://localhost:5173";
+const DEFAULT_TRUSTED_PROXY_SUBNETS = ["loopback", "linklocal", "uniquelocal"];
 
 function getTrustProxySetting() {
   const configured = process.env.CLIPARR_TRUST_PROXY?.trim();
-  if (!configured || configured === "false") {
+  if (!configured) {
+    return DEFAULT_TRUSTED_PROXY_SUBNETS;
+  }
+
+  if (configured === "false") {
     return false;
   }
 
