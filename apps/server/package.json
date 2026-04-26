@@ -9,6 +9,7 @@
     "lint": "pnpm lint:eslint && pnpm lint:types",
     "lint:eslint": "pnpm exec eslint \"src/**/*.ts\"",
     "lint:types": "tsc --noEmit",
+    "test": "node --import tsx --test src/**/*.test.ts",
     "db:generate": "drizzle-kit generate",
     "db:export": "drizzle-kit export --sql",
     "preview": "NODE_ENV=production tsx src/server.ts",

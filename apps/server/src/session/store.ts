@@ -1,5 +1,6 @@
 import { randomUUID } from "crypto";
 import { eq } from "drizzle-orm";
+import { publicAppUsesSecureTransport } from "../config/publicUrl.js";
 import { getDatabase } from "../db/database.js";
 import { providerSessions, type ProviderSessionRow } from "../db/schema.js";
 import type { MediaHandle } from "../providers/types.js";
@@ -124,14 +125,14 @@ export function getSessionCookieName() {
 }
 
 export function getSessionCookieHeader(sessionId: string) {
-  const secure = process.env.NODE_ENV === "production" ? "; Secure" : "";
+  const secure = publicAppUsesSecureTransport() ? "; Secure" : "";
   return `${SESSION_COOKIE}=${sessionId}; Path=/; HttpOnly; SameSite=Strict; Max-Age=${Math.floor(
     SESSION_TTL_MS / 1000
   )}${secure}`;
 }
 
 export function getClearSessionCookieHeader() {
-  const secure = process.env.NODE_ENV === "production" ? "; Secure" : "";
+  const secure = publicAppUsesSecureTransport() ? "; Secure" : "";
   return `${SESSION_COOKIE}=; Path=/; HttpOnly; SameSite=Strict; Max-Age=0${secure}`;
 }
 

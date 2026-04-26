@@ -1,6 +1,7 @@
 import express from "express";
 import path from "path";
 import { fileURLToPath } from "url";
+import { publicAppOriginIsPotentiallyTrustworthy } from "./config/publicUrl.js";
 import { CLIPARR_VERSION } from "./config/version.js";
 import { checkDatabaseHealth, initializeDatabase } from "./db/database.js";
 import { errorHandler, notFoundHandler } from "./http/errors.js";
@@ -18,12 +19,15 @@ export async function createApp() {
   initializeDatabase();
 
   const app = express();
+  const crossOriginIsolationEnabled = publicAppOriginIsPotentiallyTrustworthy();
 
   app.disable("x-powered-by");
   app.use(express.json());
   app.use((req, res, next) => {
-    res.setHeader("Cross-Origin-Opener-Policy", "same-origin");
-    res.setHeader("Cross-Origin-Embedder-Policy", "require-corp");
+    if (crossOriginIsolationEnabled) {
+      res.setHeader("Cross-Origin-Opener-Policy", "same-origin");
+      res.setHeader("Cross-Origin-Embedder-Policy", "require-corp");
+    }
     next();
   });
 
