@@ -4,6 +4,7 @@ import { fileURLToPath } from "url";
 import { CLIPARR_VERSION } from "./config/version.js";
 import { checkDatabaseHealth, initializeDatabase } from "./db/database.js";
 import { errorHandler, notFoundHandler } from "./http/errors.js";
+import { requestOriginIsPotentiallyTrustworthy } from "./http/requestOrigin.js";
 import { mediaRouter } from "./routes/media.js";
 import { providersRouter } from "./routes/providers.js";
 import { sessionRouter } from "./routes/session.js";
@@ -19,11 +20,17 @@ export async function createApp() {
 
   const app = express();
 
+  // Respect reverse-proxy protocol headers so auth callbacks and cookie policies
+  // follow the public request origin instead of the internal container hop.
+  app.set("trust proxy", true);
   app.disable("x-powered-by");
   app.use(express.json());
   app.use((req, res, next) => {
-    res.setHeader("Cross-Origin-Opener-Policy", "same-origin");
-    res.setHeader("Cross-Origin-Embedder-Policy", "require-corp");
+    if (requestOriginIsPotentiallyTrustworthy(req)) {
+      res.setHeader("Cross-Origin-Opener-Policy", "same-origin");
+      res.setHeader("Cross-Origin-Embedder-Policy", "require-corp");
+    }
+
     next();
   });
 

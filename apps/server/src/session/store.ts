@@ -123,16 +123,28 @@ export function getSessionCookieName() {
   return SESSION_COOKIE;
 }
 
-export function getSessionCookieHeader(sessionId: string) {
-  const secure = process.env.NODE_ENV === "production" ? "; Secure" : "";
-  return `${SESSION_COOKIE}=${sessionId}; Path=/; HttpOnly; SameSite=Strict; Max-Age=${Math.floor(
-    SESSION_TTL_MS / 1000
-  )}${secure}`;
+function buildSessionCookie(value: string, maxAgeSeconds: number, secure: boolean) {
+  const attributes = [
+    `${SESSION_COOKIE}=${value}`,
+    "Path=/",
+    "HttpOnly",
+    "SameSite=Strict",
+    `Max-Age=${maxAgeSeconds}`,
+  ];
+
+  if (secure) {
+    attributes.push("Secure");
+  }
+
+  return attributes.join("; ");
 }
 
-export function getClearSessionCookieHeader() {
-  const secure = process.env.NODE_ENV === "production" ? "; Secure" : "";
-  return `${SESSION_COOKIE}=; Path=/; HttpOnly; SameSite=Strict; Max-Age=0${secure}`;
+export function getSessionCookieHeader(sessionId: string, options: { secure: boolean }) {
+  return buildSessionCookie(sessionId, Math.floor(SESSION_TTL_MS / 1000), options.secure);
+}
+
+export function getClearSessionCookieHeader(options: { secure: boolean }) {
+  return buildSessionCookie("", 0, options.secure);
 }
 
 export function readCookie(cookieHeader: string | undefined, name: string) {

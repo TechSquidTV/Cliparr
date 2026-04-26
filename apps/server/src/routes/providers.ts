@@ -2,6 +2,7 @@ import { Router } from "express";
 import { persistProviderAuth } from "../db/providerPersistence.js";
 import { ApiError, asyncHandler } from "../http/errors.js";
 import { getProvider, listProviders } from "../providers/registry.js";
+import { requestUsesSecureTransport } from "../http/requestOrigin.js";
 import { createProviderSession, getSessionCookieHeader } from "../session/store.js";
 import { setNoStore } from "../session/request.js";
 
@@ -25,7 +26,7 @@ providersRouter.post(
       throw new ApiError(400, "provider_auth_not_supported", "This provider does not use browser PIN sign-in");
     }
 
-    res.json(await provider.startAuth());
+    res.json(await provider.startAuth(req));
   })
 );
 
@@ -64,7 +65,9 @@ providersRouter.get(
       userToken: authStatus.userToken,
     });
 
-    res.setHeader("Set-Cookie", getSessionCookieHeader(session.id));
+    res.setHeader("Set-Cookie", getSessionCookieHeader(session.id, {
+      secure: requestUsesSecureTransport(req),
+    }));
     res.json({ status: "complete" });
   })
 );
@@ -103,7 +106,9 @@ providersRouter.post(
       userToken: authResult.userToken,
     });
 
-    res.setHeader("Set-Cookie", getSessionCookieHeader(session.id));
+    res.setHeader("Set-Cookie", getSessionCookieHeader(session.id, {
+      secure: requestUsesSecureTransport(req),
+    }));
     res.json({
       session: provider.serializeSession(session),
     });

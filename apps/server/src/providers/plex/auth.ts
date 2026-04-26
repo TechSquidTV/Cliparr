@@ -1,8 +1,9 @@
+import type { Request } from "express";
 import { randomUUID } from "crypto";
+import { getRequestRouteUrl } from "../../http/requestOrigin.js";
 import { ApiError } from "../../http/errors.js";
 import {
   AUTH_TTL_MS,
-  getPlexAuthCompleteUrl,
   MAX_PENDING_AUTH_REQUESTS,
   normalizeResources,
   PLEX_CLIENT_IDENTIFIER,
@@ -13,6 +14,7 @@ import {
 } from "./shared.js";
 
 const authRequests = new Map<string, PlexAuthRequest>();
+const PLEX_AUTH_COMPLETE_PATH = "/auth/plex/complete";
 
 function pruneExpiredAuthRequests(now = Date.now()) {
   for (const [authId, authRequest] of authRequests.entries()) {
@@ -22,7 +24,7 @@ function pruneExpiredAuthRequests(now = Date.now()) {
   }
 }
 
-export async function startAuth() {
+export async function startAuth(req: Request) {
   pruneExpiredAuthRequests();
   if (authRequests.size >= MAX_PENDING_AUTH_REQUESTS) {
     throw new ApiError(503, "plex_auth_busy", "Too many pending Plex sign-ins. Wait a moment and try again.");
@@ -50,7 +52,7 @@ export async function startAuth() {
   authUrl.hash = `?${new URLSearchParams({
     clientID: PLEX_CLIENT_IDENTIFIER,
     code: data.code,
-    forwardUrl: getPlexAuthCompleteUrl(),
+    forwardUrl: getRequestRouteUrl(req, PLEX_AUTH_COMPLETE_PATH),
     "context[device][product]": PLEX_PRODUCT,
   }).toString()}`;
 

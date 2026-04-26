@@ -17,8 +17,6 @@ export const AUTH_TTL_MS = 1000 * 60 * 10;
 export const MAX_PENDING_AUTH_REQUESTS = 512;
 export const CURRENT_PLAYBACK_REQUEST_TIMEOUT_MS = 5000;
 
-const DEFAULT_APP_URL = "http://localhost:3000";
-const PLEX_AUTH_COMPLETE_PATH = "/auth/plex/complete";
 const CONNECTION_PROBE_TIMEOUT_MS = 2500;
 
 export interface PlexAuthRequest {
@@ -51,14 +49,6 @@ export interface PlexSourceContext {
   sourceId: string;
   baseUrl: string;
   token: string;
-}
-
-export function getPlexAuthCompleteUrl() {
-  const appUrl = new URL(process.env.APP_URL ?? DEFAULT_APP_URL);
-  appUrl.pathname = PLEX_AUTH_COMPLETE_PATH;
-  appUrl.search = "";
-  appUrl.hash = "";
-  return appUrl.toString();
 }
 
 function plexHeaders(init?: ConstructorParameters<typeof Headers>[0]) {

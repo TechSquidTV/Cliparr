@@ -24,6 +24,7 @@
     "lint": "pnpm lint:eslint && pnpm lint:types",
     "lint:eslint": "pnpm -r --if-present lint:eslint",
     "lint:types": "pnpm -r --if-present lint:types",
+    "test": "pnpm --filter @cliparr/server test",
     "knip": "knip",
     "preview": "pnpm --filter @cliparr/server preview",
     "start": "pnpm --filter @cliparr/server start",

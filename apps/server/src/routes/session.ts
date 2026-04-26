@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { ApiError, asyncHandler } from "../http/errors.js";
+import { requestUsesSecureTransport } from "../http/requestOrigin.js";
 import { getProvider } from "../providers/registry.js";
 import {
   deleteProviderSession,
@@ -31,6 +32,8 @@ sessionRouter.get(
 sessionRouter.delete("/", (req, res) => {
   setNoStore(res);
   deleteProviderSession(getRequestSessionId(req));
-  res.setHeader("Set-Cookie", getClearSessionCookieHeader());
+  res.setHeader("Set-Cookie", getClearSessionCookieHeader({
+    secure: requestUsesSecureTransport(req),
+  }));
   res.status(204).end();
 });
