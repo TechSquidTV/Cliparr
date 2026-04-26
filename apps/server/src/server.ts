@@ -1,6 +1,7 @@
 import "./config/loadEnv.js";
 import type { Server } from "node:http";
 import { createApp } from "./app.js";
+import { getServerPort } from "./config/appConfig.js";
 import { closeDatabase } from "./db/database.js";
 
 function hasCloseAllConnections(server: Server): server is Server & { closeAllConnections(): void } {
@@ -9,7 +10,7 @@ function hasCloseAllConnections(server: Server): server is Server & { closeAllCo
 
 async function startServer() {
   const { app } = await createApp();
-  const PORT = Number(process.env.PORT ?? 3000);
+  const PORT = getServerPort();
 
   const server = app.listen(PORT, "0.0.0.0", () => {
     console.log(`Server running on http://localhost:${PORT}`);

@@ -1,6 +1,6 @@
 import { randomUUID } from "crypto";
 import { eq } from "drizzle-orm";
-import { publicAppUsesSecureTransport } from "../config/publicUrl.js";
+import { publicAppUsesSecureTransport } from "../config/appConfig.js";
 import { getDatabase } from "../db/database.js";
 import { providerSessions, type ProviderSessionRow } from "../db/schema.js";
 import type { MediaHandle } from "../providers/types.js";

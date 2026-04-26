@@ -1,17 +1,30 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { publicAppOriginIsPotentiallyTrustworthy, publicAppUsesSecureTransport } from "./publicUrl.js";
+import {
+  DEFAULT_SERVER_PORT,
+  getPublicAppUrl,
+  getServerPort,
+  publicAppOriginIsPotentiallyTrustworthy,
+  publicAppUsesSecureTransport,
+} from "./appConfig.js";
 import { getClearSessionCookieHeader, getSessionCookieHeader } from "../session/store.js";
 
 const originalAppUrl = process.env.APP_URL;
+const originalPort = process.env.PORT;
 
 test.afterEach(() => {
   if (originalAppUrl === undefined) {
     delete process.env.APP_URL;
+  } else {
+    process.env.APP_URL = originalAppUrl;
+  }
+
+  if (originalPort === undefined) {
+    delete process.env.PORT;
     return;
   }
 
-  process.env.APP_URL = originalAppUrl;
+  process.env.PORT = originalPort;
 });
 
 void test("keeps HTTPS deployments secure", () => {
@@ -21,6 +34,22 @@ void test("keeps HTTPS deployments secure", () => {
   assert.equal(publicAppOriginIsPotentiallyTrustworthy(), true);
   assert.match(getSessionCookieHeader("session-123"), /; Secure$/);
   assert.match(getClearSessionCookieHeader(), /; Secure$/);
+});
+
+void test("derives the default public app URL from the configured port", () => {
+  delete process.env.APP_URL;
+  process.env.PORT = "4310";
+
+  assert.equal(getServerPort(), 4310);
+  assert.equal(getPublicAppUrl().toString(), "http://localhost:4310/");
+});
+
+void test("falls back to the shared default server port", () => {
+  delete process.env.APP_URL;
+  delete process.env.PORT;
+
+  assert.equal(getServerPort(), DEFAULT_SERVER_PORT);
+  assert.equal(getPublicAppUrl().toString(), `http://localhost:${DEFAULT_SERVER_PORT}/`);
 });
 
 void test("allows localhost HTTP during local setups", () => {

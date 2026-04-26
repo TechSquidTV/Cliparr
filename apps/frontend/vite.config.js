@@ -7,6 +7,23 @@ import {defineConfig, loadEnv} from 'vite';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
+function apiProxyTarget(env) {
+  if (env.CLIPARR_API_URL) {
+    return env.CLIPARR_API_URL;
+  }
+
+  if (env.APP_URL) {
+    const appUrl = new URL(env.APP_URL);
+    appUrl.pathname = '';
+    appUrl.search = '';
+    appUrl.hash = '';
+    return appUrl.toString();
+  }
+
+  const port = env.PORT || '3000';
+  return `http://localhost:${port}`;
+}
+
 export default defineConfig(({mode}) => {
   const env = loadEnv(mode, path.resolve(__dirname, '../..'), '');
   return {
@@ -44,7 +61,7 @@ export default defineConfig(({mode}) => {
       hmr: process.env.DISABLE_HMR !== 'true',
       proxy: {
         '/api': {
-          target: env.CLIPARR_API_URL || 'http://localhost:3000',
+          target: apiProxyTarget(env),
           changeOrigin: true,
         },
       },

@@ -1,5 +1,5 @@
 import { randomUUID } from "crypto";
-import { getPublicAppUrl } from "../../config/publicUrl.js";
+import { getPublicAppUrl } from "../../config/appConfig.js";
 import type { MediaSource } from "../../db/mediaSourcesRepository.js";
 import { ApiError } from "../../http/errors.js";
 import { normalizeMediaPath } from "../shared/mediaProxy.js";

@@ -1,7 +1,7 @@
 import express from "express";
 import path from "path";
 import { fileURLToPath } from "url";
-import { publicAppOriginIsPotentiallyTrustworthy } from "./config/publicUrl.js";
+import { publicAppOriginIsPotentiallyTrustworthy } from "./config/appConfig.js";
 import { CLIPARR_VERSION } from "./config/version.js";
 import { checkDatabaseHealth, initializeDatabase } from "./db/database.js";
 import { errorHandler, notFoundHandler } from "./http/errors.js";

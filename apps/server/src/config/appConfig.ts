@@ -1,4 +1,8 @@
-const DEFAULT_APP_URL = "http://localhost:3000";
+export const DEFAULT_SERVER_PORT = 3000;
+
+function defaultPublicAppUrl() {
+  return `http://localhost:${getServerPort()}`;
+}
 
 function normalizedHostname(hostname: string) {
   return hostname.replace(/^\[|\]$/g, "").toLowerCase();
@@ -11,7 +15,14 @@ function isLoopbackHostname(hostname: string) {
 }
 
 export function getPublicAppUrl() {
-  return new URL(process.env.APP_URL ?? DEFAULT_APP_URL);
+  return new URL(process.env.APP_URL ?? defaultPublicAppUrl());
+}
+
+export function getServerPort() {
+  const parsedPort = Number.parseInt(process.env.PORT ?? "", 10);
+  return Number.isInteger(parsedPort) && parsedPort > 0
+    ? parsedPort
+    : DEFAULT_SERVER_PORT;
 }
 
 export function publicAppUsesSecureTransport() {
