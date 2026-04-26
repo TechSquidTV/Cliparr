@@ -1,21 +1,38 @@
 import { ApiError } from "../../http/errors.js";
 import type { ProviderImplementation } from "../types.js";
 import { pollAuth, startAuth } from "./auth.js";
+import {
+  PLEX_BASE_URL_MODE_AUTO,
+  withPlexBaseUrlMode,
+} from "./connectionState.js";
 import { listCurrentlyPlaying, proxyMedia } from "./playback.js";
 import { selectReachableConnection, sourceResource, sourceSupportsCurrentlyPlaying } from "./shared.js";
 
 async function checkSource(source: Parameters<ProviderImplementation["checkSource"]>[0]) {
-  const { resource, preferredConnectionId } = sourceResource(source);
+  const {
+    baseUrlMode,
+    manualConnectionId,
+    persistedConnections,
+    preferredConnectionId,
+    resource,
+  } = sourceResource(source);
   try {
-    const selectedConnection = await selectReachableConnection(resource, preferredConnectionId);
+    const selectedConnection = await selectReachableConnection(resource, preferredConnectionId, {
+      baseUrlMode,
+    });
 
     return {
       ok: true as const,
-      baseUrl: selectedConnection.uri,
+      ...(baseUrlMode === PLEX_BASE_URL_MODE_AUTO ? { baseUrl: selectedConnection.uri } : {}),
       connection: {
-        ...source.connection,
-        connections: resource.connections,
-        selectedConnectionId: selectedConnection.id,
+        ...withPlexBaseUrlMode(
+          source.connection,
+          baseUrlMode
+        ),
+        connections: persistedConnections,
+        selectedConnectionId: selectedConnection.id === manualConnectionId
+          ? source.connection.selectedConnectionId
+          : selectedConnection.id,
       },
     };
   } catch (err) {
