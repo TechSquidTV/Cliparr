@@ -1,12 +1,17 @@
 import { Router } from "express";
 import { persistProviderAuth } from "../db/providerPersistence.js";
 import { ApiError, asyncHandler } from "../http/errors.js";
+import { getRequestRouteUrl } from "../http/requestOrigin.js";
 import { getProvider, listProviders } from "../providers/registry.js";
-import { requestUsesSecureTransport } from "../http/requestOrigin.js";
-import { createProviderSession, getSessionCookieHeader } from "../session/store.js";
+import {
+  createProviderSession,
+  getSessionCookieName,
+  getSessionCookieOptions,
+} from "../session/store.js";
 import { setNoStore } from "../session/request.js";
 
 export const providersRouter = Router();
+const PROVIDER_AUTH_COMPLETE_PATH = (providerId: string) => `/auth/${providerId}/complete`;
 
 providersRouter.get("/", (_req, res) => {
   setNoStore(res);
@@ -26,7 +31,7 @@ providersRouter.post(
       throw new ApiError(400, "provider_auth_not_supported", "This provider does not use browser PIN sign-in");
     }
 
-    res.json(await provider.startAuth(req));
+    res.json(await provider.startAuth(getRequestRouteUrl(req, PROVIDER_AUTH_COMPLETE_PATH(provider.definition.id))));
   })
 );
 
@@ -65,9 +70,7 @@ providersRouter.get(
       userToken: authStatus.userToken,
     });
 
-    res.setHeader("Set-Cookie", getSessionCookieHeader(session.id, {
-      secure: requestUsesSecureTransport(req),
-    }));
+    res.cookie(getSessionCookieName(), session.id, getSessionCookieOptions(req.secure));
     res.json({ status: "complete" });
   })
 );
@@ -106,9 +109,7 @@ providersRouter.post(
       userToken: authResult.userToken,
     });
 
-    res.setHeader("Set-Cookie", getSessionCookieHeader(session.id, {
-      secure: requestUsesSecureTransport(req),
-    }));
+    res.cookie(getSessionCookieName(), session.id, getSessionCookieOptions(req.secure));
     res.json({
       session: provider.serializeSession(session),
     });

@@ -123,28 +123,23 @@ export function getSessionCookieName() {
   return SESSION_COOKIE;
 }
 
-function buildSessionCookie(value: string, maxAgeSeconds: number, secure: boolean) {
-  const attributes = [
-    `${SESSION_COOKIE}=${value}`,
-    "Path=/",
-    "HttpOnly",
-    "SameSite=Strict",
-    `Max-Age=${maxAgeSeconds}`,
-  ];
-
-  if (secure) {
-    attributes.push("Secure");
-  }
-
-  return attributes.join("; ");
+export function getSessionCookieOptions(secure: boolean) {
+  return {
+    path: "/",
+    httpOnly: true,
+    sameSite: "strict" as const,
+    secure,
+    maxAge: SESSION_TTL_MS,
+  };
 }
 
-export function getSessionCookieHeader(sessionId: string, options: { secure: boolean }) {
-  return buildSessionCookie(sessionId, Math.floor(SESSION_TTL_MS / 1000), options.secure);
-}
-
-export function getClearSessionCookieHeader(options: { secure: boolean }) {
-  return buildSessionCookie("", 0, options.secure);
+export function getSessionCookieClearOptions(secure: boolean) {
+  return {
+    path: "/",
+    httpOnly: true,
+    sameSite: "strict" as const,
+    secure,
+  };
 }
 
 export function readCookie(cookieHeader: string | undefined, name: string) {

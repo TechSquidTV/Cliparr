@@ -155,7 +155,7 @@ export type ProviderSourceCheckResult =
 
 export interface ProviderImplementation {
   definition: ProviderDefinition;
-  startAuth?(req: Request): Promise<ProviderAuthStart>;
+  startAuth?(callbackUrl: string): Promise<ProviderAuthStart>;
   pollAuth?(authId: string): Promise<{
     status: ProviderAuthStatus["status"];
     userToken?: string;

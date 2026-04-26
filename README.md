@@ -71,10 +71,11 @@ volumes:
 | :--- | :--- | :--- |
 | `APP_KEY` | **Required** secret for credential encryption. | - |
 | `PORT` | Internal port for the Express server. | `3000` |
+| `CLIPARR_TRUST_PROXY` | Optional Express trust proxy setting. Use `1` behind one reverse proxy like Caddy. | unset |
 | `CLIPARR_DATA_DIR` | Directory for SQLite storage. | `/data` |
 | `CLIPARR_ALLOW_LOOPBACK_JELLYFIN_URLS` | Allow Jellyfin URLs that resolve to `localhost`/loopback. Use only for trusted self-hosted setups. | `false` |
 
-When running behind a reverse proxy, preserve the `Host` header and pass `X-Forwarded-Proto` so Cliparr can generate provider auth callbacks and cookie policy from the public request origin. Caddy does this by default.
+When running behind a reverse proxy, preserve the `Host` header, pass `X-Forwarded-Proto`, and set `CLIPARR_TRUST_PROXY=1` for a single proxy hop. Leave it unset when accessing Cliparr directly over localhost or a LAN IP. Caddy already forwards the needed headers.
 
 ## Development
 

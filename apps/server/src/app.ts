@@ -15,14 +15,27 @@ const workspaceRoot = path.resolve(__dirname, "../../..");
 const frontendRoot = path.join(workspaceRoot, "apps/frontend");
 const DEFAULT_DEV_FRONTEND_URL = "http://localhost:5173";
 
+function getTrustProxySetting() {
+  const configured = process.env.CLIPARR_TRUST_PROXY?.trim();
+  if (!configured || configured === "false") {
+    return false;
+  }
+
+  if (configured === "true") {
+    return true;
+  }
+
+  return /^\d+$/.test(configured)
+    ? Number.parseInt(configured, 10)
+    : configured;
+}
+
 export async function createApp() {
   initializeDatabase();
 
   const app = express();
 
-  // Respect reverse-proxy protocol headers so auth callbacks and cookie policies
-  // follow the public request origin instead of the internal container hop.
-  app.set("trust proxy", true);
+  app.set("trust proxy", getTrustProxySetting());
   app.disable("x-powered-by");
   app.use(express.json());
   app.use((req, res, next) => {
