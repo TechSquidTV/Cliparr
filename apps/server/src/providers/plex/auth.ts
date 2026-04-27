@@ -7,6 +7,7 @@ import {
   PLEX_CLIENT_IDENTIFIER,
   plexFetch,
   PLEX_PRODUCT,
+  requirePlexServerResources,
   type PlexAuthRequest,
   type PlexResourceResponse,
 } from "./shared.js";
@@ -88,7 +89,9 @@ export async function pollAuth(authId: string) {
       },
     }
   );
-  const resources = normalizeResources((await resourcesResponse.json()) as PlexResourceResponse[]);
+  const resources = requirePlexServerResources(
+    normalizeResources((await resourcesResponse.json()) as PlexResourceResponse[])
+  );
   authRequests.delete(authId);
 
   return {
