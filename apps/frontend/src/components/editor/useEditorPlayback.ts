@@ -1,5 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { AudioBufferSink, CanvasSink, Input, WrappedAudioBuffer, WrappedCanvas } from "mediabunny";
+import { getActiveSubtitleCue } from "../../lib/subtitles/getActiveSubtitleCue";
+import { renderSubtitleCue } from "../../lib/subtitles/renderSubtitleCue";
+import type { SubtitleCue, SubtitleStyleSettings } from "../../lib/subtitles/types";
 import { ensureMediabunnyCodecs } from "../../lib/mediabunnyCodecs";
 import { selectPreferredAudioTrack } from "../../lib/selectPreferredAudioTrack";
 import type { PlaybackAudioSelection } from "../../providers/types";
@@ -7,12 +10,16 @@ import { errorMessage, isAc3FamilyCodec, themeValue } from "./EditorUtils";
 
 interface UseEditorPlaybackProps {
   previewUrl?: string;
+  previewFormat?: string;
   mediaUrl: string;
   initialDuration: number;
   startTime: number;
   endTime: number;
   sessionId: string;
   selectedAudioTrack?: PlaybackAudioSelection;
+  subtitleCues?: readonly SubtitleCue[];
+  subtitlesEnabled?: boolean;
+  subtitleStyleSettings?: SubtitleStyleSettings;
 }
 
 interface VideoDimensions {
@@ -106,12 +113,16 @@ function buildPlaybackLoadError(failures: PlaybackLoadFailure[]) {
 
 export function useEditorPlayback({
   previewUrl,
+  previewFormat,
   mediaUrl,
   initialDuration,
   startTime,
   endTime,
   sessionId,
   selectedAudioTrack,
+  subtitleCues = [],
+  subtitlesEnabled = false,
+  subtitleStyleSettings,
 }: UseEditorPlaybackProps) {
   const [duration, setDuration] = useState(() => Math.max(initialDuration, 0));
   const [currentTime, setCurrentTime] = useState(0);
@@ -131,6 +142,7 @@ export function useEditorPlayback({
   const videoFrameIteratorRef = useRef<AsyncGenerator<WrappedCanvas, void, unknown> | null>(null);
   const audioBufferIteratorRef = useRef<AsyncGenerator<WrappedAudioBuffer, void, unknown> | null>(null);
   const nextFrameRef = useRef<WrappedCanvas | null>(null);
+  const displayedFrameRef = useRef<WrappedCanvas | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
   const gainNodeRef = useRef<GainNode | null>(null);
   const queuedAudioNodesRef = useRef(new Set<AudioBufferSourceNode>());
@@ -146,6 +158,9 @@ export function useEditorPlayback({
   const endTimeRef = useRef(endTime);
   const volumeRef = useRef(volume);
   const mutedRef = useRef(muted);
+  const subtitleCuesRef = useRef<readonly SubtitleCue[]>(subtitleCues);
+  const subtitlesEnabledRef = useRef(subtitlesEnabled);
+  const subtitleStyleSettingsRef = useRef(subtitleStyleSettings);
 
   useEffect(() => {
     durationRef.current = duration;
@@ -167,6 +182,18 @@ export function useEditorPlayback({
       gainNodeRef.current.gain.value = actualVolume ** 2;
     }
   }, [volume, muted]);
+
+  useEffect(() => {
+    subtitleCuesRef.current = subtitleCues;
+  }, [subtitleCues]);
+
+  useEffect(() => {
+    subtitlesEnabledRef.current = subtitlesEnabled;
+  }, [subtitlesEnabled]);
+
+  useEffect(() => {
+    subtitleStyleSettingsRef.current = subtitleStyleSettings;
+  }, [subtitleStyleSettings]);
 
   const clampTime = useCallback((seconds: number) => {
     const maxDuration = durationRef.current;
@@ -234,6 +261,21 @@ export function useEditorPlayback({
     }
     context.clearRect(0, 0, canvas.width, canvas.height);
     context.drawImage(frame.canvas, 0, 0, canvas.width, canvas.height);
+
+    if (subtitlesEnabledRef.current && subtitleStyleSettingsRef.current) {
+      const cue = getActiveSubtitleCue(subtitleCuesRef.current, frame.timestamp);
+      if (cue) {
+        renderSubtitleCue(
+          context,
+          cue,
+          subtitleStyleSettingsRef.current,
+          canvas.width,
+          canvas.height
+        );
+      }
+    }
+
+    displayedFrameRef.current = frame;
   }, []);
 
   const drawPlaceholder = useCallback((message: string) => {
@@ -363,6 +405,7 @@ export function useEditorPlayback({
     videoFrameIteratorRef.current = null;
     audioBufferIteratorRef.current = null;
     nextFrameRef.current = null;
+    displayedFrameRef.current = null;
     videoSinkRef.current = null;
     audioSinkRef.current = null;
     inputRef.current?.dispose();
@@ -371,6 +414,13 @@ export function useEditorPlayback({
     audioContextRef.current = null;
     gainNodeRef.current = null;
   }, [pausePlayback, stopRenderLoop]);
+
+  useEffect(() => {
+    const displayedFrame = displayedFrameRef.current;
+    if (displayedFrame) {
+      drawFrame(displayedFrame);
+    }
+  }, [drawFrame, subtitleCues, subtitlesEnabled, subtitleStyleSettings]);
 
   const disposePreview = useCallback(() => {
     resetPreview(true, true);
@@ -514,7 +564,7 @@ export function useEditorPlayback({
     // fall back to the source stream until upstream support lands:
     // https://github.com/Vanilagy/mediabunny/pull/291
     const unsupportedPreviewFailure =
-      previewUrl && classifyPlaybackUrl(previewUrl) === "hls-playlist"
+      previewUrl && (previewFormat === "hls" || classifyPlaybackUrl(previewUrl) === "hls-playlist")
         ? buildUnsupportedPreviewFailure()
         : null;
     const playbackSources = buildPlaybackSourceCandidates(
@@ -690,6 +740,7 @@ export function useEditorPlayback({
   }, [
     mediaUrl,
     previewUrl,
+    previewFormat,
     initialDuration,
     selectedAudioTrack,
     sessionId,

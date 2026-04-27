@@ -7,12 +7,19 @@ import type {
   CurrentlyPlayingEntry,
   MediaExportMetadata,
   PlaybackAudioSelection,
+  PlaybackSubtitleSelection,
+  PlaybackSubtitleTrack,
 } from "../types.js";
 import {
   createProviderMediaHandle,
   playlistBasePath,
   proxyUpstreamMediaResponse,
 } from "../shared/mediaProxy.js";
+import {
+  isTextSubtitleCodec,
+  normalizeSubtitleCodec,
+  subtitleContentFormat,
+} from "../shared/subtitles.js";
 import {
   asArray,
   buildEpisodeSourceTitle,
@@ -135,9 +142,19 @@ function isAudioMediaStream(stream: any) {
   return String(stream?.Type ?? "").toLowerCase() === "audio";
 }
 
+function isSubtitleMediaStream(stream: any) {
+  return String(stream?.Type ?? "").toLowerCase() === "subtitle";
+}
+
 function jellyfinAudioTrackTitle(stream: any) {
   return stringValue(stream?.Title)
     ?? stringValue(stream?.DisplayTitle);
+}
+
+function jellyfinSubtitleTrackTitle(stream: any) {
+  return stringValue(stream?.Title)
+    ?? stringValue(stream?.DisplayTitle)
+    ?? stringValue(stream?.Language);
 }
 
 function deriveSelectedAudioTrack(
@@ -183,6 +200,108 @@ function deriveSelectedAudioTrack(
     trackNumber: selectedAudioTrackIndex + 1,
     languageCode: stringValue(selectedAudioStream?.Language),
     title: jellyfinAudioTrackTitle(selectedAudioStream),
+  };
+}
+
+function buildJellyfinSubtitlePath(
+  itemId: string | undefined,
+  mediaSourceId: string | undefined,
+  subtitleIndex: number | undefined,
+  contentFormat: string | undefined
+) {
+  if (!itemId || !mediaSourceId || subtitleIndex === undefined || !contentFormat) {
+    return undefined;
+  }
+
+  return `/Videos/${encodeURIComponent(itemId)}/${encodeURIComponent(mediaSourceId)}/Subtitles/${subtitleIndex}/Stream.${encodeURIComponent(contentFormat)}`;
+}
+
+function jellyfinSubtitleTrack(
+  session: ProviderSessionRecord,
+  context: JellyfinSourceContext,
+  itemId: string | undefined,
+  mediaSourceId: string | undefined,
+  stream: any
+): PlaybackSubtitleTrack {
+  const codec = normalizeSubtitleCodec(stream?.Codec);
+  const isText = booleanValue(stream?.IsTextSubtitleStream) ?? isTextSubtitleCodec(codec);
+  const contentFormat = isText ? subtitleContentFormat(codec) ?? "vtt" : undefined;
+  const subtitleIndex = numberValue(stream?.Index);
+  const subtitlePath = buildJellyfinSubtitlePath(itemId, mediaSourceId, subtitleIndex, contentFormat);
+
+  return {
+    streamId: subtitleIndex === undefined ? undefined : String(subtitleIndex),
+    index: subtitleIndex,
+    languageCode: stringValue(stream?.Language),
+    title: jellyfinSubtitleTrackTitle(stream),
+    codec,
+    contentFormat,
+    isText,
+    isDefault: booleanValue(stream?.IsDefault),
+    isForced: booleanValue(stream?.IsForced),
+    isHearingImpaired: booleanValue(stream?.IsHearingImpaired),
+    isExternal: booleanValue(stream?.IsExternal),
+    contentUrl: subtitlePath ? createMediaHandle(session, context, subtitlePath) : undefined,
+  };
+}
+
+function deriveSubtitleTracks(
+  session: ProviderSessionRecord,
+  context: JellyfinSourceContext,
+  item: any,
+  mediaSourceId: string | undefined
+) {
+  const mediaSource = currentMediaSource(undefined, item, mediaSourceId);
+  if (!mediaSource) {
+    return [];
+  }
+
+  const itemId = stringValue(item?.Id);
+
+  return asArray(mediaSource?.MediaStreams)
+    .filter((stream) => isSubtitleMediaStream(stream))
+    .map((stream) => jellyfinSubtitleTrack(session, context, itemId, mediaSourceId, stream));
+}
+
+function deriveSelectedSubtitleTrack(
+  sessionInfo: any,
+  item: any,
+  mediaSourceId: string | undefined
+): PlaybackSubtitleSelection | undefined {
+  const mediaSource = currentMediaSource(sessionInfo, item, mediaSourceId);
+  if (!mediaSource) {
+    return undefined;
+  }
+
+  const subtitleStreams = asArray(mediaSource?.MediaStreams).filter((stream) => isSubtitleMediaStream(stream));
+  if (subtitleStreams.length === 0) {
+    return undefined;
+  }
+
+  const selectedSubtitleStreamIndex = numberValue(sessionInfo?.PlayState?.SubtitleStreamIndex)
+    ?? numberValue(mediaSource?.DefaultSubtitleStreamIndex);
+  if (selectedSubtitleStreamIndex === undefined) {
+    return undefined;
+  }
+
+  const selectedSubtitleStream = subtitleStreams.find(
+    (stream) => numberValue(stream?.Index) === selectedSubtitleStreamIndex
+  );
+  if (!selectedSubtitleStream) {
+    return undefined;
+  }
+
+  const codec = normalizeSubtitleCodec(selectedSubtitleStream?.Codec);
+  const isText = booleanValue(selectedSubtitleStream?.IsTextSubtitleStream) ?? isTextSubtitleCodec(codec);
+
+  return {
+    streamId: String(selectedSubtitleStreamIndex),
+    index: selectedSubtitleStreamIndex,
+    languageCode: stringValue(selectedSubtitleStream?.Language),
+    title: jellyfinSubtitleTrackTitle(selectedSubtitleStream),
+    codec,
+    contentFormat: isText ? subtitleContentFormat(codec) ?? "vtt" : undefined,
+    isText,
   };
 }
 
@@ -356,6 +475,8 @@ async function normalizeCurrentPlayback(
   const previewPath = buildPreviewPath(enrichedItem, mediaSourceId, context, playSessionId);
   const imagePath = itemImagePath(enrichedItem);
   const selectedAudioTrack = deriveSelectedAudioTrack(sessionInfo, enrichedItem, mediaSourceId);
+  const selectedSubtitleTrack = deriveSelectedSubtitleTrack(sessionInfo, enrichedItem, mediaSourceId);
+  const subtitleTracks = deriveSubtitleTracks(session, context, enrichedItem, mediaSourceId);
   const playerState = sessionInfo?.PlayState?.IsPaused ? "paused" : "playing";
 
   return {
@@ -380,7 +501,10 @@ async function normalizeCurrentPlayback(
       previewUrl: previewPath
         ? createMediaHandle(session, context, previewPath, { basePath: playlistBasePath(previewPath) })
         : undefined,
+      previewFormat: previewPath ? "hls" : undefined,
       selectedAudioTrack,
+      selectedSubtitleTrack,
+      subtitleTracks,
       exportMetadata: createExportMetadata(session, context, enrichedItem),
     },
   } satisfies CurrentlyPlayingEntry;
@@ -429,16 +553,26 @@ export async function proxyMedia(
     headers.set("Range", range);
   }
 
-  const upstream = await jellyfinFetch(buildJellyfinUrl(handle.baseUrl, handle.path).toString(), {
-    headers,
-  }, {
-    token: handle.token,
-    deviceId: handle.deviceId,
-    accept: req.header("accept") ?? undefined,
-    timeoutMs: JELLYFIN_REQUEST_TIMEOUT_MS,
-    errorCode: "jellyfin_media_failed",
-    failureMessage: "Jellyfin media request failed",
-  });
+  try {
+    const upstream = await jellyfinFetch(buildJellyfinUrl(handle.baseUrl, handle.path).toString(), {
+      headers,
+    }, {
+      token: handle.token,
+      deviceId: handle.deviceId,
+      accept: req.header("accept") ?? undefined,
+      timeoutMs: JELLYFIN_REQUEST_TIMEOUT_MS,
+      errorCode: "jellyfin_media_failed",
+      failureMessage: "Jellyfin media request failed",
+    });
 
-  await proxyUpstreamMediaResponse(session, handle, upstream, res);
+    await proxyUpstreamMediaResponse(session, handle, upstream, res);
+  } catch (err) {
+    const details = err instanceof ApiError
+      ? `${err.status} ${err.code}: ${err.message}`
+      : errorMessage(err);
+    console.error(
+      `[jellyfin media proxy] handle=${handleId} source=${handle.sourceId} path=${handle.path} ${details}`
+    );
+    throw err;
+  }
 }

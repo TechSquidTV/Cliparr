@@ -7,6 +7,8 @@ import type {
   CurrentlyPlayingEntry,
   MediaExportMetadata,
   PlaybackAudioSelection,
+  PlaybackSubtitleSelection,
+  PlaybackSubtitleTrack,
   ProviderConnection,
   ProviderResource,
 } from "../types.js";
@@ -14,6 +16,13 @@ import {
   createProviderMediaHandle,
   proxyUpstreamMediaResponse,
 } from "../shared/mediaProxy.js";
+import {
+  booleanFlag,
+  isTextSubtitleCodec,
+  normalizeSubtitleCodec,
+  subtitleContentFormat,
+  subtitleFileExtension,
+} from "../shared/subtitles.js";
 import {
   asArray,
   buildEpisodeSourceTitle,
@@ -380,10 +389,21 @@ function isAudioStream(stream: any) {
   return numberValue(stream?.streamType) === 2;
 }
 
+function isSubtitleStream(stream: any) {
+  return numberValue(stream?.streamType) === 3;
+}
+
 function selectedAudioTrackTitle(stream: any) {
   return stringValue(stream?.title)
     ?? stringValue(stream?.extendedDisplayTitle)
     ?? stringValue(stream?.displayTitle);
+}
+
+function selectedSubtitleTrackTitle(stream: any) {
+  return stringValue(stream?.title)
+    ?? stringValue(stream?.extendedDisplayTitle)
+    ?? stringValue(stream?.displayTitle)
+    ?? stringValue(stream?.language);
 }
 
 function deriveSelectedAudioTrack(
@@ -413,6 +433,102 @@ function deriveSelectedAudioTrack(
     languageCode: stringValue(selectedAudioStream?.languageCode)
       ?? stringValue(selectedAudioStream?.languageTag),
     title: selectedAudioTrackTitle(selectedAudioStream),
+  };
+}
+
+function buildPlexSubtitlePath(stream: any) {
+  const key = stringValue(stream?.key);
+  const codec = normalizeSubtitleCodec(stream?.codec);
+  const contentFormat = subtitleContentFormat(codec);
+  if (!contentFormat || !key) {
+    return undefined;
+  }
+
+  const extension = subtitleFileExtension(codec, key);
+  if (!extension) {
+    return undefined;
+  }
+
+  const relative = new URL(key, "http://cliparr.local");
+
+  if (!relative.pathname.endsWith(`.${extension}`)) {
+    relative.pathname = `${relative.pathname}.${extension}`;
+  }
+
+  relative.searchParams.set("format", contentFormat);
+
+  return `${relative.pathname}${relative.search}`;
+}
+
+function plexSubtitleTrack(
+  session: ProviderSessionRecord,
+  context: PlexSourceContext,
+  stream: any
+): PlaybackSubtitleTrack {
+  const codec = normalizeSubtitleCodec(stream?.codec);
+  const directSubtitlePath = buildPlexSubtitlePath(stream);
+  const isText = isTextSubtitleCodec(codec);
+  const contentFormat = subtitleContentFormat(codec);
+
+  return {
+    streamId: idValue(stream?.id),
+    index: numberValue(stream?.index) ?? numberValue(stream?.streamIdentifier),
+    languageCode: stringValue(stream?.languageCode) ?? stringValue(stream?.languageTag),
+    title: selectedSubtitleTrackTitle(stream),
+    codec,
+    contentFormat,
+    isText,
+    isDefault: booleanFlag(stream?.default),
+    isForced: booleanFlag(stream?.forced),
+    isHearingImpaired: booleanFlag(stream?.hearingImpaired),
+    isExternal: Boolean(stringValue(stream?.key)),
+    contentUrl: directSubtitlePath ? createMediaHandle(session, context, directSubtitlePath) : undefined,
+  };
+}
+
+function deriveSubtitleTracks(
+  session: ProviderSessionRecord,
+  context: PlexSourceContext,
+  item: any,
+  selection?: PlexMediaSelection
+) {
+  const resolvedPart = resolveSelectedPart(item, selection);
+  const part = resolvedPart?.part;
+  if (!part) {
+    return [];
+  }
+
+  return streamEntries(part)
+    .filter((stream) => isSubtitleStream(stream))
+    .map((stream) => plexSubtitleTrack(session, context, stream));
+}
+
+function deriveSelectedSubtitleTrack(
+  item: any,
+  selection?: PlexMediaSelection
+): PlaybackSubtitleSelection | undefined {
+  const part = resolveSelectedPart(item, selection)?.part;
+  if (!part) {
+    return undefined;
+  }
+
+  const selectedSubtitleStream = streamEntries(part)
+    .filter((stream) => isSubtitleStream(stream))
+    .find((stream) => isSelectedEntry(stream));
+  if (!selectedSubtitleStream) {
+    return undefined;
+  }
+
+  const codec = normalizeSubtitleCodec(selectedSubtitleStream?.codec);
+  return {
+    streamId: idValue(selectedSubtitleStream?.id),
+    index: numberValue(selectedSubtitleStream?.index) ?? numberValue(selectedSubtitleStream?.streamIdentifier),
+    languageCode: stringValue(selectedSubtitleStream?.languageCode)
+      ?? stringValue(selectedSubtitleStream?.languageTag),
+    title: selectedSubtitleTrackTitle(selectedSubtitleStream),
+    codec,
+    contentFormat: subtitleContentFormat(codec),
+    isText: isTextSubtitleCodec(codec),
   };
 }
 
@@ -572,6 +688,8 @@ async function normalizeCurrentPlayback(
     const previewPath = createPreviewPath(enrichedItem, mediaSelection);
     const thumbPath = metadataImagePath(enrichedItem);
     const selectedAudioTrack = deriveSelectedAudioTrack(enrichedItem, mediaSelection);
+    const selectedSubtitleTrack = deriveSelectedSubtitleTrack(enrichedItem, mediaSelection);
+    const subtitleTracks = deriveSubtitleTracks(session, context, enrichedItem, mediaSelection);
     const sessionId = playbackSessionIdentity(item);
 
     return {
@@ -591,7 +709,10 @@ async function normalizeCurrentPlayback(
         thumbUrl: thumbPath ? createMediaHandle(session, context, thumbPath) : undefined,
         mediaUrl: mediaPath ? createMediaHandle(session, context, mediaPath) : undefined,
         previewUrl: previewPath ? createMediaHandle(session, context, previewPath) : undefined,
+        previewFormat: previewPath ? "hls" : undefined,
         selectedAudioTrack,
+        selectedSubtitleTrack,
+        subtitleTracks,
         exportMetadata: createExportMetadata(session, context, enrichedItem),
       },
     };
@@ -635,15 +756,25 @@ export async function proxyMedia(
     headers.set("X-Plex-Session-Identifier", playbackSessionId);
   }
 
-  const upstream = await fetch(url.toString(), { headers });
-  if (!upstream.ok && upstream.status !== 206) {
-    const detail = (await upstream.text()).slice(0, 400).replace(/\s+/g, " ").trim();
-    throw new ApiError(
-      upstream.status,
-      "plex_media_failed",
-      detail ? `Plex media request failed: ${detail}` : "Plex media request failed"
-    );
-  }
+  try {
+    const upstream = await fetch(url.toString(), { headers });
+    if (!upstream.ok && upstream.status !== 206) {
+      const detail = (await upstream.text()).slice(0, 400).replace(/\s+/g, " ").trim();
+      throw new ApiError(
+        upstream.status,
+        "plex_media_failed",
+        detail ? `Plex media request failed: ${detail}` : "Plex media request failed"
+      );
+    }
 
-  await proxyUpstreamMediaResponse(session, handle, upstream, res);
+    await proxyUpstreamMediaResponse(session, handle, upstream, res);
+  } catch (err) {
+    const details = err instanceof ApiError
+      ? `${err.status} ${err.code}: ${err.message}`
+      : errorMessage(err);
+    console.error(
+      `[plex media proxy] handle=${handleId} source=${handle.sourceId} path=${handle.path} ${details}`
+    );
+    throw err;
+  }
 }

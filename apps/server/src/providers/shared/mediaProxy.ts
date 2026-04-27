@@ -1,5 +1,6 @@
 import { randomUUID } from "crypto";
 import { Readable } from "stream";
+import { pipeline } from "stream/promises";
 import type { ReadableStream as WebReadableStream } from "stream/web";
 import type { Response } from "express";
 import type { ProviderSessionRecord } from "../../session/store.js";
@@ -192,5 +193,13 @@ export async function proxyUpstreamMediaResponse(
     return;
   }
 
-  Readable.fromWeb(upstream.body as unknown as WebReadableStream<Uint8Array>).pipe(res);
+  const body = Readable.fromWeb(upstream.body as unknown as WebReadableStream<Uint8Array>);
+
+  try {
+    await pipeline(body, res);
+  } catch (err) {
+    if (!res.destroyed) {
+      res.destroy(err instanceof Error ? err : undefined);
+    }
+  }
 }
