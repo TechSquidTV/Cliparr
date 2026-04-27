@@ -13,11 +13,7 @@ function apiProxyTarget(env) {
   }
 
   if (env.APP_URL) {
-    const appUrl = new URL(env.APP_URL);
-    appUrl.pathname = '';
-    appUrl.search = '';
-    appUrl.hash = '';
-    return appUrl.toString();
+    return new URL(env.APP_URL).origin;
   }
 
   const port = env.PORT || '3000';

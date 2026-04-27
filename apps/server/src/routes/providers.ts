@@ -48,8 +48,12 @@ providersRouter.get(
       return;
     }
 
-    if (!authStatus.userToken || !authStatus.resources) {
-      throw new ApiError(502, "provider_auth_failed", "Provider auth did not return credentials");
+    if (
+      !authStatus.userToken
+      || !Array.isArray(authStatus.resources)
+      || authStatus.resources.length === 0
+    ) {
+      throw new ApiError(502, "provider_auth_failed", "Provider auth did not return any available servers");
     }
 
     const account = persistProviderAuth({
@@ -88,7 +92,7 @@ providersRouter.post(
       || !Array.isArray(authResult.resources)
       || authResult.resources.length === 0
     ) {
-      throw new ApiError(502, "provider_auth_failed", "Provider auth did not return credentials");
+      throw new ApiError(502, "provider_auth_failed", "Provider auth did not return any available servers");
     }
 
     const account = persistProviderAuth({
