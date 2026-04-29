@@ -106,7 +106,7 @@ export interface CurrentlyPlayingItem {
   playerState: string;
   thumbUrl?: string;
   mediaUrl?: string;
-  previewUrl?: string;
+  hlsUrl?: string;
   selectedAudioTrack?: PlaybackAudioSelection;
   exportMetadata?: MediaExportMetadata;
 }

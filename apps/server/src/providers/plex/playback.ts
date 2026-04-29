@@ -554,7 +554,7 @@ async function normalizeCurrentPlayback(
         playerState: String(item.Player?.state ?? "unknown"),
         thumbUrl: thumbPath ? createMediaHandle(session, context, thumbPath) : undefined,
         mediaUrl: mediaPath ? createMediaHandle(session, context, mediaPath) : undefined,
-        previewUrl: previewPath ? createMediaHandle(session, context, previewPath) : undefined,
+        hlsUrl: previewPath ? createMediaHandle(session, context, previewPath) : undefined,
         selectedAudioTrack,
         exportMetadata: createExportMetadata(session, context, enrichedItem),
       },

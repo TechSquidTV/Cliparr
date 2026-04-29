@@ -8,11 +8,10 @@ import {
   MovOutputFormat,
   Mp4OutputFormat,
   Output,
-  UrlSource,
   WebMOutputFormat,
 } from "mediabunny";
 import type { ConversionOptions, DiscardedTrack, InputTrack, MetadataTags } from "mediabunny";
-import { isHlsPlaylistUrl } from "./mediabunnyInput";
+import { createCliparrInputFromUrl } from "./mediabunnyInput";
 import { ensureMediabunnyCodecs } from "./mediabunnyCodecs";
 import { describeInputTrack, getVideoTrackDimensions } from "./mediabunnyTrackAccess";
 import { selectPreferredPairableAudioTrack } from "./selectPreferredAudioTrack";
@@ -459,14 +458,7 @@ export async function exportClip({
 }: ExportClipOptions) {
   await ensureMediabunnyCodecs();
 
-  if (isHlsPlaylistUrl(mediaUrl)) {
-    throw new Error("HLS playback is supported for preview, but exports still require the source media file.");
-  }
-
-  const input = new Input({
-    source: new UrlSource(mediaUrl),
-    formats: ALL_FORMATS,
-  });
+  const input = await createCliparrInputFromUrl(mediaUrl);
 
   try {
     const sourceVideoTrack = await input.getPrimaryVideoTrack({
@@ -479,6 +471,14 @@ export async function exportClip({
       selectedAudioTrack
     );
     const sourceHasAudio = sourceAudioTracks.length > 0;
+    const [sourceVideoIsLive, preferredAudioIsLive] = await Promise.all([
+      sourceVideoTrack?.isLive() ?? false,
+      preferredAudioTrack?.isLive() ?? false,
+    ]);
+
+    if (sourceVideoIsLive || preferredAudioIsLive) {
+      throw new Error("Live HLS streams are not supported for export yet.");
+    }
 
     const sourceVideoDimensions = sourceVideoTrack
       ? await getVideoTrackDimensions(sourceVideoTrack)

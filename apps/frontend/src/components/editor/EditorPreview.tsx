@@ -32,7 +32,7 @@ export function EditorPreview({
             event.stopPropagation();
             togglePlay();
           }}
-          aria-label={playing ? "Pause preview" : "Play preview"}
+          aria-label={playing ? "Pause playback" : "Play playback"}
           className={`pointer-events-auto flex h-11 w-11 items-center justify-center border border-[var(--editor-preview-overlay-border)] bg-card/92 text-foreground transition-all ${
             playing ? "scale-95 opacity-0" : "scale-100 opacity-100 group-hover:bg-card"
           }`}

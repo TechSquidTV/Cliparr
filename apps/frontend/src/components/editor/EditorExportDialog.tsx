@@ -38,6 +38,7 @@ interface EditorExportDialogProps {
   error: string | null;
   fileNamePreview: string;
   outputDimensions: VideoDimensions | null;
+  usingDirectSourceFallback: boolean;
   activeTemplateKind: ExportFileNameTemplateKind;
   editingTemplateKind: ExportFileNameTemplateKind;
   onEditingTemplateKindChange: (kind: ExportFileNameTemplateKind) => void;
@@ -139,6 +140,7 @@ export function EditorExportDialog({
   error,
   fileNamePreview,
   outputDimensions,
+  usingDirectSourceFallback,
   activeTemplateKind,
   editingTemplateKind,
   onEditingTemplateKindChange,
@@ -277,6 +279,13 @@ export function EditorExportDialog({
             {error && (
               <div className="rounded-md border border-destructive/35 bg-destructive/10 px-3 py-2 text-sm text-destructive">
                 {error}
+              </div>
+            )}
+
+            {usingDirectSourceFallback && (
+              <div className="rounded-md border border-primary/25 bg-primary/5 px-3 py-2 text-sm text-foreground">
+                HLS is the primary editing stream. This export is using the direct media source as a fallback because an
+                HLS stream was not available for this session.
               </div>
             )}
 
@@ -454,6 +463,13 @@ export function EditorExportDialog({
               <div className="rounded-md border border-border bg-background px-3 py-2">
                 <dt className="text-[11px] font-semibold uppercase tracking-[var(--tracking-caps-lg)] text-muted-foreground">Duration</dt>
                 <dd className="mt-1 font-mono text-xs text-foreground">{formatTime(clipLength)}</dd>
+              </div>
+
+              <div className="rounded-md border border-border bg-background px-3 py-2">
+                <dt className="text-[11px] font-semibold uppercase tracking-[var(--tracking-caps-lg)] text-muted-foreground">Source</dt>
+                <dd className="mt-1 text-xs text-foreground">
+                  {usingDirectSourceFallback ? "Direct source fallback" : "HLS stream"}
+                </dd>
               </div>
 
               <div className="rounded-md border border-border bg-background px-3 py-2">

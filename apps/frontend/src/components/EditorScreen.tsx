@@ -43,6 +43,8 @@ function isInteractiveKeyboardTarget(target: EventTarget | null) {
 }
 
 export default function EditorScreen({ session, onBack }: Props) {
+  const exportSourceUrl = session.hlsUrl ?? session.mediaUrl ?? "";
+  const usingDirectSourceFallback = !session.hlsUrl && Boolean(session.mediaUrl);
   const [startTime, setStartTime] = useState(0);
   const [endTime, setEndTime] = useState(() => Math.min(10, Math.max(session.duration, 0)));
   const [resolution, setResolution] = useState<ExportResolution>("original");
@@ -75,7 +77,7 @@ export default function EditorScreen({ session, onBack }: Props) {
     setCurrentTime,
     playbackTimeAtStartRef,
   } = useEditorPlayback({
-    previewUrl: session.previewUrl,
+    hlsUrl: session.hlsUrl,
     mediaUrl: session.mediaUrl ?? "",
     initialDuration: session.duration,
     startTime,
@@ -194,7 +196,7 @@ export default function EditorScreen({ session, onBack }: Props) {
   }, []);
 
   const handleExport = useCallback(async () => {
-    if (!session.mediaUrl) return;
+    if (!exportSourceUrl) return;
     if (exporting) return;
 
     setExportError(null);
@@ -204,7 +206,7 @@ export default function EditorScreen({ session, onBack }: Props) {
     try {
       const { exportClip } = await import("../lib/exportClip");
       const blob = await exportClip({
-        mediaUrl: session.mediaUrl,
+        mediaUrl: exportSourceUrl,
         startTime,
         endTime,
         format: exportFormat,
@@ -238,9 +240,9 @@ export default function EditorScreen({ session, onBack }: Props) {
     includeAudio,
     resolution,
     session.exportMetadata,
-    session.mediaUrl,
     session.selectedAudioTrack,
     startTime,
+    exportSourceUrl,
   ]);
 
   useEffect(() => {
@@ -268,11 +270,11 @@ export default function EditorScreen({ session, onBack }: Props) {
     };
   }, [togglePlay]);
 
-  if (!session.mediaUrl) {
+  if (!exportSourceUrl) {
     return (
       <div className="flex h-dvh items-center justify-center overflow-hidden bg-background p-8 text-foreground">
         <div className="text-center">
-          <p className="text-destructive mb-4">Could not find media file for this session.</p>
+          <p className="text-destructive mb-4">Could not find an exportable stream for this session.</p>
           <button onClick={onBack} className="text-primary hover:underline">Go Back</button>
         </div>
       </div>
@@ -374,6 +376,7 @@ export default function EditorScreen({ session, onBack }: Props) {
         error={exportError}
         fileNamePreview={fileName.fullName}
         outputDimensions={outputDimensions}
+        usingDirectSourceFallback={usingDirectSourceFallback}
         activeTemplateKind={fileName.templateKind}
         editingTemplateKind={templateEditorKind}
         onEditingTemplateKindChange={setTemplateEditorKind}

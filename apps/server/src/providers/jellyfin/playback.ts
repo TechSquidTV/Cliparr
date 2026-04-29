@@ -377,7 +377,7 @@ async function normalizeCurrentPlayback(
       playerState,
       thumbUrl: imagePath ? createMediaHandle(session, context, imagePath) : undefined,
       mediaUrl: mediaPath ? createMediaHandle(session, context, mediaPath) : undefined,
-      previewUrl: previewPath
+      hlsUrl: previewPath
         ? createMediaHandle(session, context, previewPath, { basePath: playlistBasePath(previewPath) })
         : undefined,
       selectedAudioTrack,

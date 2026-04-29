@@ -8,8 +8,8 @@ import type { PlaybackAudioSelection } from "../../providers/types";
 import { errorMessage, isAc3FamilyCodec, themeValue } from "./EditorUtils";
 
 interface UseEditorPlaybackProps {
-  previewUrl?: string;
-  mediaUrl: string;
+  hlsUrl?: string;
+  mediaUrl?: string;
   initialDuration: number;
   startTime: number;
   endTime: number;
@@ -27,7 +27,7 @@ type WindowWithWebkitAudioContext = Window & {
 };
 
 interface PlaybackSourceCandidate {
-  label: "preview stream" | "source stream";
+  label: "hls stream" | "direct source";
   url: string;
 }
 
@@ -41,15 +41,15 @@ function getAudioContextConstructor() {
   return window.AudioContext ?? (window as WindowWithWebkitAudioContext).webkitAudioContext;
 }
 
-function buildPlaybackSourceCandidates(previewUrl: string | undefined, mediaUrl: string) {
+function buildPlaybackSourceCandidates(hlsUrl: string | undefined, mediaUrl: string | undefined) {
   const candidates: PlaybackSourceCandidate[] = [];
 
-  if (previewUrl) {
-    candidates.push({ label: "preview stream", url: previewUrl });
+  if (hlsUrl) {
+    candidates.push({ label: "hls stream", url: hlsUrl });
   }
 
   if (mediaUrl && !candidates.some((candidate) => candidate.url === mediaUrl)) {
-    candidates.push({ label: "source stream", url: mediaUrl });
+    candidates.push({ label: "direct source", url: mediaUrl });
   }
 
   return candidates;
@@ -68,13 +68,13 @@ function buildPlaybackFailure(source: PlaybackSourceCandidate, err: unknown): Pl
 }
 
 function describePlaybackFailure(failure: PlaybackLoadFailure) {
-  const prefix = failure.label === "preview stream" ? "Preview stream" : "Source stream";
+  const prefix = failure.label === "hls stream" ? "HLS stream" : "Direct source";
 
   return `${prefix} failed: ${failure.message}`;
 }
 
 function formatPlaybackSourceLabel(label: PlaybackSourceCandidate["label"]) {
-  return label === "preview stream" ? "Preview stream" : "Source stream";
+  return label === "hls stream" ? "HLS stream" : "Direct source";
 }
 
 function isPresent<T>(value: T | null | undefined): value is T {
@@ -83,7 +83,7 @@ function isPresent<T>(value: T | null | undefined): value is T {
 
 function buildPlaybackLoadError(failures: PlaybackLoadFailure[]) {
   if (failures.length === 0) {
-    return "Preview could not be loaded.";
+    return "Playback could not be loaded.";
   }
 
   if (failures.length === 1) {
@@ -94,7 +94,7 @@ function buildPlaybackLoadError(failures: PlaybackLoadFailure[]) {
 }
 
 export function useEditorPlayback({
-  previewUrl,
+  hlsUrl,
   mediaUrl,
   initialDuration,
   startTime,
@@ -106,7 +106,7 @@ export function useEditorPlayback({
   const [currentTime, setCurrentTime] = useState(0);
   const [playing, setPlaying] = useState(false);
   const [loadingPreview, setLoadingPreview] = useState(true);
-  const [previewStatus, setPreviewStatus] = useState("Loading preview...");
+  const [previewStatus, setPreviewStatus] = useState("Loading stream...");
   const [volume, setVolume] = useState(0.8);
   const [muted, setMuted] = useState(false);
   const [error, setError] = useState("");
@@ -252,7 +252,7 @@ export function useEditorPlayback({
     nextFrameRef.current = null;
 
     if (!videoSink) {
-      drawPlaceholder("Audio preview");
+      drawPlaceholder("Audio only");
       return;
     }
 
@@ -499,7 +499,7 @@ export function useEditorPlayback({
   }, [clampTime, endTimeRef, pausePlayback, playPreview, startVideoIterator]);
 
   useEffect(() => {
-    const playbackSources = buildPlaybackSourceCandidates(previewUrl, mediaUrl);
+    const playbackSources = buildPlaybackSourceCandidates(hlsUrl, mediaUrl);
     if (playbackSources.length === 0) {
       return;
     }
@@ -511,7 +511,7 @@ export function useEditorPlayback({
     async function loadPreview() {
       const resetDuration = Math.max(initialDuration, 0);
       setLoadingPreview(true);
-      setPreviewStatus("Loading preview...");
+      setPreviewStatus("Loading stream...");
       setError("");
       setActiveSourceLabel("");
       setDuration(resetDuration);
@@ -676,7 +676,7 @@ export function useEditorPlayback({
     };
   }, [
     mediaUrl,
-    previewUrl,
+    hlsUrl,
     initialDuration,
     selectedAudioTrack,
     sessionId,
