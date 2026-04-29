@@ -123,16 +123,23 @@ export function getSessionCookieName() {
   return SESSION_COOKIE;
 }
 
-export function getSessionCookieHeader(sessionId: string) {
-  const secure = process.env.NODE_ENV === "production" ? "; Secure" : "";
-  return `${SESSION_COOKIE}=${sessionId}; Path=/; HttpOnly; SameSite=Strict; Max-Age=${Math.floor(
-    SESSION_TTL_MS / 1000
-  )}${secure}`;
+export function getSessionCookieOptions(secure: boolean) {
+  return {
+    path: "/",
+    httpOnly: true,
+    sameSite: "strict" as const,
+    secure,
+    maxAge: SESSION_TTL_MS,
+  };
 }
 
-export function getClearSessionCookieHeader() {
-  const secure = process.env.NODE_ENV === "production" ? "; Secure" : "";
-  return `${SESSION_COOKIE}=; Path=/; HttpOnly; SameSite=Strict; Max-Age=0${secure}`;
+export function getSessionCookieClearOptions(secure: boolean) {
+  return {
+    path: "/",
+    httpOnly: true,
+    sameSite: "strict" as const,
+    secure,
+  };
 }
 
 export function readCookie(cookieHeader: string | undefined, name: string) {

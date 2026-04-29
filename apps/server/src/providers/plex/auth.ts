@@ -2,12 +2,12 @@ import { randomUUID } from "crypto";
 import { ApiError } from "../../http/errors.js";
 import {
   AUTH_TTL_MS,
-  getPlexAuthCompleteUrl,
   MAX_PENDING_AUTH_REQUESTS,
   normalizeResources,
   PLEX_CLIENT_IDENTIFIER,
   plexFetch,
   PLEX_PRODUCT,
+  requirePlexServerResources,
   type PlexAuthRequest,
   type PlexResourceResponse,
 } from "./shared.js";
@@ -22,7 +22,7 @@ function pruneExpiredAuthRequests(now = Date.now()) {
   }
 }
 
-export async function startAuth() {
+export async function startAuth(callbackUrl: string) {
   pruneExpiredAuthRequests();
   if (authRequests.size >= MAX_PENDING_AUTH_REQUESTS) {
     throw new ApiError(503, "plex_auth_busy", "Too many pending Plex sign-ins. Wait a moment and try again.");
@@ -50,7 +50,7 @@ export async function startAuth() {
   authUrl.hash = `?${new URLSearchParams({
     clientID: PLEX_CLIENT_IDENTIFIER,
     code: data.code,
-    forwardUrl: getPlexAuthCompleteUrl(),
+    forwardUrl: callbackUrl,
     "context[device][product]": PLEX_PRODUCT,
   }).toString()}`;
 
@@ -89,7 +89,9 @@ export async function pollAuth(authId: string) {
       },
     }
   );
-  const resources = normalizeResources((await resourcesResponse.json()) as PlexResourceResponse[]);
+  const resources = requirePlexServerResources(
+    normalizeResources((await resourcesResponse.json()) as PlexResourceResponse[])
+  );
   authRequests.delete(authId);
 
   return {

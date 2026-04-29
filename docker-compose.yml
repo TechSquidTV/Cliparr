@@ -4,7 +4,6 @@ services:
     ports:
       - "3000:3000"
     environment:
-      APP_URL: "http://localhost:3000"
       APP_KEY: "${APP_KEY:?APP_KEY is required}"
       PORT: "3000"
       CLIPARR_DATA_DIR: "/data"

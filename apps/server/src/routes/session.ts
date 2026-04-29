@@ -3,7 +3,8 @@ import { ApiError, asyncHandler } from "../http/errors.js";
 import { getProvider } from "../providers/registry.js";
 import {
   deleteProviderSession,
-  getClearSessionCookieHeader,
+  getSessionCookieClearOptions,
+  getSessionCookieName,
   getProviderSession,
 } from "../session/store.js";
 import { getRequestSessionId, setNoStore } from "../session/request.js";
@@ -31,6 +32,6 @@ sessionRouter.get(
 sessionRouter.delete("/", (req, res) => {
   setNoStore(res);
   deleteProviderSession(getRequestSessionId(req));
-  res.setHeader("Set-Cookie", getClearSessionCookieHeader());
+  res.clearCookie(getSessionCookieName(), getSessionCookieClearOptions(req.secure));
   res.status(204).end();
 });

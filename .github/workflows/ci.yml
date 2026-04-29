@@ -38,6 +38,9 @@ jobs:
       - name: Lint
         run: pnpm lint
 
+      - name: Test
+        run: pnpm test
+
       - name: Knip
         run: pnpm knip
 
