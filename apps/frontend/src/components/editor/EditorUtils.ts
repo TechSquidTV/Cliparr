@@ -7,7 +7,7 @@ const MAX_TIMELINE_ZOOM_SCALE_COUNT = 2000;
 export const TIMELINE_ZOOM_WHEEL_STEP = 80;
 const TIMELINE_ZOOM_WIDTH_MULTIPLIERS = [0.64, 0.72, 0.8, 0.88, 0.96, 1.04, 1.12, 1.2] as const;
 
-export type TimelineZoomPreset = {
+type TimelineZoomPreset = {
   scale: number;
   scaleSplitCount: number;
   scaleWidth: number;

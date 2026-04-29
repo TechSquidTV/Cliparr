@@ -18,13 +18,13 @@
   },
   "dependencies": {
     "dotenv": "^17.4.2",
-    "drizzle-orm": "1.0.0-beta.22",
+    "drizzle-orm": "1.0.0-beta.23",
     "express": "^5.2.1"
   },
   "devDependencies": {
     "@types/express": "^5.0.6",
     "@types/node": "^25.6.0",
-    "drizzle-kit": "1.0.0-beta.22",
+    "drizzle-kit": "1.0.0-beta.23",
     "tsx": "^4.21.0",
     "typescript": "~6.0.3"
   }
