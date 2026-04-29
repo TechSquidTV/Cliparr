@@ -72,7 +72,7 @@ export interface PlaybackAudioSelection {
   title?: string;
 }
 
-export interface PlaybackViewer {
+interface PlaybackViewer {
   id: string;
   providerId: string;
   externalId?: string;
@@ -80,7 +80,7 @@ export interface PlaybackViewer {
   avatarUrl?: string;
 }
 
-export interface PlaybackSource {
+interface PlaybackSource {
   id: string;
   name: string;
   providerId: string;
