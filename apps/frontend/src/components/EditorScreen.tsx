@@ -43,8 +43,6 @@ function isInteractiveKeyboardTarget(target: EventTarget | null) {
 }
 
 export default function EditorScreen({ session, onBack }: Props) {
-  const exportSourceUrl = session.hlsUrl ?? session.mediaUrl ?? "";
-  const usingDirectSourceFallback = !session.hlsUrl && Boolean(session.mediaUrl);
   const [startTime, setStartTime] = useState(0);
   const [endTime, setEndTime] = useState(() => Math.min(10, Math.max(session.duration, 0)));
   const [resolution, setResolution] = useState<ExportResolution>("original");
@@ -66,6 +64,7 @@ export default function EditorScreen({ session, onBack }: Props) {
     previewStatus,
     error,
     activeSourceLabel,
+    exportFallbackSourceUrl,
     sourceVideoDimensions,
     volume,
     muted,
@@ -85,6 +84,9 @@ export default function EditorScreen({ session, onBack }: Props) {
     sessionId: session.id,
     selectedAudioTrack: session.selectedAudioTrack,
   });
+  const exportSourceUrl = exportFallbackSourceUrl ?? session.hlsUrl ?? session.mediaUrl ?? "";
+  const usingDirectSourceFallback = Boolean(exportFallbackSourceUrl)
+    || (!session.hlsUrl && Boolean(session.mediaUrl));
 
   const updateClipRange = useCallback((nextStart: number, nextEnd: number) => {
     if (!duration || duration <= 0) return;

@@ -35,6 +35,17 @@ interface PlaybackLoadFailure {
   label: PlaybackSourceCandidate["label"];
   message: string;
   classification: "hls-playlist" | "unknown";
+  category: "open-or-read" | "preview-only";
+}
+
+class PlaybackSourceError extends Error {
+  category: PlaybackLoadFailure["category"];
+
+  constructor(category: PlaybackLoadFailure["category"], message: string) {
+    super(message);
+    this.name = "PlaybackSourceError";
+    this.category = category;
+  }
 }
 
 function getAudioContextConstructor() {
@@ -64,6 +75,7 @@ function buildPlaybackFailure(source: PlaybackSourceCandidate, err: unknown): Pl
     label: source.label,
     message: errorMessage(err),
     classification: classifyPlaybackUrl(source.url),
+    category: err instanceof PlaybackSourceError ? err.category : "open-or-read",
   };
 }
 
@@ -111,6 +123,7 @@ export function useEditorPlayback({
   const [muted, setMuted] = useState(false);
   const [error, setError] = useState("");
   const [activeSourceLabel, setActiveSourceLabel] = useState("");
+  const [exportFallbackSourceUrl, setExportFallbackSourceUrl] = useState<string | undefined>(undefined);
   const [sourceVideoDimensions, setSourceVideoDimensions] = useState<VideoDimensions | null>(null);
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -500,6 +513,7 @@ export function useEditorPlayback({
 
   useEffect(() => {
     const playbackSources = buildPlaybackSourceCandidates(hlsUrl, mediaUrl);
+    const directSourceUrl = playbackSources.find((source) => source.label === "direct source")?.url;
     if (playbackSources.length === 0) {
       return;
     }
@@ -514,6 +528,7 @@ export function useEditorPlayback({
       setPreviewStatus("Loading stream...");
       setError("");
       setActiveSourceLabel("");
+      setExportFallbackSourceUrl(undefined);
       setDuration(resetDuration);
       durationRef.current = resetDuration;
       setSourceVideoDimensions(null);
@@ -522,6 +537,7 @@ export function useEditorPlayback({
 
       try {
         const failures: PlaybackLoadFailure[] = [];
+        let nextExportFallbackSourceUrl: string | undefined;
 
         for (const playbackSource of playbackSources) {
           setPreviewStatus(
@@ -557,7 +573,10 @@ export function useEditorPlayback({
               audioTrack?.isLive() ?? false,
             ]);
             if (videoTrackIsLive || audioTrackIsLive) {
-              throw new Error("Live HLS streams are not supported in the editor yet.");
+              throw new PlaybackSourceError(
+                "preview-only",
+                "Live HLS streams are not supported in the editor yet."
+              );
             }
 
             if (videoTrack) {
@@ -587,7 +606,10 @@ export function useEditorPlayback({
             }
 
             if (!videoTrack && !audioTrack) {
-              throw new Error(warnings.join(" ") || "No decodable audio or video track found.");
+              throw new PlaybackSourceError(
+                "preview-only",
+                warnings.join(" ") || "No decodable audio or video track found."
+              );
             }
 
             const durationTracks: InputTrack[] = [videoTrack, audioTrack].filter(isPresent);
@@ -602,50 +624,81 @@ export function useEditorPlayback({
             setCurrentTime(0);
             playbackTimeAtStartRef.current = 0;
 
-            if (videoTrack) {
-              const sourceDimensions = await getVideoTrackDimensions(videoTrack);
+            const sourceDimensions = videoTrack
+              ? await getVideoTrackDimensions(videoTrack)
+              : null;
+            const audioTrackSampleRate = audioTrack
+              ? await getAudioTrackSampleRate(audioTrack)
+              : undefined;
+
+            if (sourceDimensions) {
               setSourceVideoDimensions(sourceDimensions);
               const canvas = canvasRef.current;
               if (canvas) {
                 canvas.width = sourceDimensions.width;
                 canvas.height = sourceDimensions.height;
               }
-              videoSinkRef.current = new CanvasSink(videoTrack, {
-                poolSize: 2,
-                fit: "contain",
-                alpha: await videoTrack.canBeTransparent(),
-              });
             }
 
-            if (audioTrack) {
-              const AudioContextConstructor = getAudioContextConstructor();
-              if (!AudioContextConstructor) {
-                throw new Error("This browser does not provide Web Audio.");
+            try {
+              if (videoTrack) {
+                videoSinkRef.current = new CanvasSink(videoTrack, {
+                  poolSize: 2,
+                  fit: "contain",
+                  alpha: await videoTrack.canBeTransparent(),
+                });
               }
-              const audioContext = new AudioContextConstructor({
-                sampleRate: await getAudioTrackSampleRate(audioTrack),
-              });
-              const gainNode = audioContext.createGain();
-              const actualVolume = mutedRef.current || volumeRef.current === 0 ? 0 : volumeRef.current;
-              gainNode.gain.value = actualVolume ** 2;
-              gainNode.connect(audioContext.destination);
-              audioContextRef.current = audioContext;
-              gainNodeRef.current = gainNode;
-              audioSinkRef.current = new AudioBufferSink(audioTrack);
+
+              if (audioTrack) {
+                const AudioContextConstructor = getAudioContextConstructor();
+                if (!AudioContextConstructor) {
+                  throw new PlaybackSourceError(
+                    "preview-only",
+                    "This browser does not provide Web Audio."
+                  );
+                }
+                const audioContext = new AudioContextConstructor({
+                  sampleRate: audioTrackSampleRate,
+                });
+                const gainNode = audioContext.createGain();
+                const actualVolume = mutedRef.current || volumeRef.current === 0 ? 0 : volumeRef.current;
+                gainNode.gain.value = actualVolume ** 2;
+                gainNode.connect(audioContext.destination);
+                audioContextRef.current = audioContext;
+                gainNodeRef.current = gainNode;
+                audioSinkRef.current = new AudioBufferSink(audioTrack);
+              }
+
+              await startVideoIterator();
+            } catch (err) {
+              throw err instanceof PlaybackSourceError
+                ? err
+                : new PlaybackSourceError("preview-only", errorMessage(err));
             }
 
-            await startVideoIterator();
             startRenderLoop();
             setActiveSourceLabel(formatPlaybackSourceLabel(playbackSource.label));
+            setExportFallbackSourceUrl(
+              playbackSource.label === "direct source" ? nextExportFallbackSourceUrl : undefined
+            );
             return;
           } catch (err) {
             const failure = buildPlaybackFailure(playbackSource, err);
             failures.push(failure);
 
+            if (
+              failure.label === "hls stream"
+              && failure.category === "open-or-read"
+              && directSourceUrl
+            ) {
+              nextExportFallbackSourceUrl = directSourceUrl;
+            }
+
             console.warn("Editor playback source failed", {
               sessionId,
               source: failure.label,
               classification: failure.classification,
+              category: failure.category,
               message: failure.message,
             });
 
@@ -695,6 +748,7 @@ export function useEditorPlayback({
     previewStatus,
     error,
     activeSourceLabel,
+    exportFallbackSourceUrl,
     sourceVideoDimensions,
     volume,
     muted,
