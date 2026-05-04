@@ -17,11 +17,9 @@ import { describeInputTrack, getVideoTrackDimensions } from "./mediabunnyTrackAc
 import { selectPreferredPairableAudioTrack } from "./selectPreferredAudioTrack";
 import type { MediaExportMetadata, PlaybackAudioSelection } from "../providers/types";
 
-export const EXPORT_FORMATS = ["mp4", "webm", "mov", "mkv"] as const;
-export type ExportFormat = (typeof EXPORT_FORMATS)[number];
+export type ExportFormat = "mp4" | "webm" | "mov" | "mkv";
 
-export const EXPORT_RESOLUTIONS = ["original", "1080", "720"] as const;
-export type ExportResolution = (typeof EXPORT_RESOLUTIONS)[number];
+export type ExportResolution = "original" | "1080" | "720";
 
 interface ExportClipOptions {
   mediaUrl: string;

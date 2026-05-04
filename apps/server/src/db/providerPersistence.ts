@@ -1,7 +1,18 @@
 import { ApiError } from "../http/errors.js";
 import type { ProviderConnection, ProviderDefinition, ProviderResource } from "../providers/types.js";
-import { listMediaSources, updateMediaSource, upsertMediaSource } from "./mediaSourcesRepository.js";
+import {
+  getMediaSourceByProviderExternalId,
+  listMediaSources,
+  updateMediaSource,
+  upsertMediaSource,
+} from "./mediaSourcesRepository.js";
 import { upsertProviderAccountByAccessToken } from "./providerAccountsRepository.js";
+import {
+  plexBaseUrlMode,
+  PLEX_BASE_URL_MODE_AUTO,
+  PLEX_BASE_URL_MODE_MANUAL,
+  withPlexBaseUrlMode,
+} from "../providers/plex/connectionState.js";
 
 function connectionRank(connection: ProviderConnection) {
   if (connection.local && !connection.relay) {
@@ -71,10 +82,31 @@ function persistProviderResource(input: {
   resource: ProviderResource;
   selectedConnection?: ProviderConnection;
 }) {
+  const existingSource = getMediaSourceByProviderExternalId(
+    input.providerId,
+    input.providerAccountId,
+    input.resource.id
+  );
   const connection = preferredConnection(input.resource, input.selectedConnection);
   if (!connection) {
     return undefined;
   }
+
+  const baseUrlMode = input.providerId === "plex" && existingSource
+    ? plexBaseUrlMode(existingSource.connection)
+    : PLEX_BASE_URL_MODE_AUTO;
+  const nextBaseUrl = input.providerId === "plex" && baseUrlMode === PLEX_BASE_URL_MODE_MANUAL && existingSource
+    ? existingSource.baseUrl
+    : connection.uri;
+  const nextConnection = input.providerId === "plex"
+    ? withPlexBaseUrlMode({
+      connections: input.resource.connections,
+      selectedConnectionId: connection.id,
+    }, baseUrlMode)
+    : {
+      connections: input.resource.connections,
+      selectedConnectionId: connection.id,
+    };
 
   return upsertMediaSource({
     providerId: input.providerId,
@@ -82,11 +114,8 @@ function persistProviderResource(input: {
     externalId: input.resource.id,
     name: input.resource.name,
     enabled: true,
-    baseUrl: connection.uri,
-    connection: {
-      connections: input.resource.connections,
-      selectedConnectionId: connection.id,
-    },
+    baseUrl: nextBaseUrl,
+    connection: nextConnection,
     credentials: {
       ...(input.resource.credentials ?? {}),
       accessToken: input.resource.accessToken,

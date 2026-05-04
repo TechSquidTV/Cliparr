@@ -24,13 +24,20 @@ import {
 } from "../shared/utils.js";
 import {
   buildSourceContext,
+  candidateConnections,
   CURRENT_PLAYBACK_REQUEST_TIMEOUT_MS,
   fetchPmsJson,
-  orderedConnections,
   plexMediaHeaders,
   sourceResource,
+  unreachableConnectionMessage,
   type PlexSourceContext,
 } from "./shared.js";
+import {
+  PLEX_BASE_URL_MODE_AUTO,
+  PLEX_BASE_URL_MODE_MANUAL,
+  type PlexBaseUrlMode,
+  withPlexBaseUrlMode,
+} from "./connectionState.js";
 
 function createMediaHandle(
   session: ProviderSessionRecord,
@@ -210,9 +217,29 @@ function isRetryableConnectionError(err: unknown) {
 
 function persistWorkingSourceConnection(
   source: MediaSource,
-  resource: ProviderResource,
-  connection: ProviderConnection
+  connections: ProviderResource["connections"],
+  connection: ProviderConnection,
+  options: { baseUrlMode: PlexBaseUrlMode; manualConnectionId?: string }
 ) {
+  if (options.baseUrlMode === PLEX_BASE_URL_MODE_MANUAL) {
+    if (connection.id === options.manualConnectionId) {
+      return;
+    }
+
+    if (stringValue(source.connection.selectedConnectionId) === connection.id) {
+      return;
+    }
+
+    updateMediaSource(source.id, {
+      connection: {
+        ...withPlexBaseUrlMode(source.connection, PLEX_BASE_URL_MODE_MANUAL),
+        connections,
+        selectedConnectionId: connection.id,
+      },
+    });
+    return;
+  }
+
   if (
     source.baseUrl === connection.uri
     && stringValue(source.connection.selectedConnectionId) === connection.id
@@ -223,25 +250,34 @@ function persistWorkingSourceConnection(
   updateMediaSource(source.id, {
     baseUrl: connection.uri,
     connection: {
-      ...source.connection,
-      connections: resource.connections,
+      ...withPlexBaseUrlMode(source.connection, PLEX_BASE_URL_MODE_AUTO),
+      connections,
       selectedConnectionId: connection.id,
     },
   });
 }
 
 async function fetchCurrentlyPlayingData(source: MediaSource) {
-  const { resource, preferredConnectionId } = sourceResource(source);
+  const {
+    baseUrlMode,
+    manualConnectionId,
+    persistedConnections,
+    preferredConnectionId,
+    resource,
+  } = sourceResource(source);
   const failures: string[] = [];
 
-  for (const connection of orderedConnections(resource, preferredConnectionId)) {
+  for (const connection of candidateConnections(resource, preferredConnectionId, baseUrlMode)) {
     const context = buildSourceContext(source.id, resource.accessToken, connection);
 
     try {
       const data = await fetchPmsJson(context, "/status/sessions", {
         timeoutMs: CURRENT_PLAYBACK_REQUEST_TIMEOUT_MS,
       });
-      persistWorkingSourceConnection(source, resource, connection);
+      persistWorkingSourceConnection(source, persistedConnections, connection, {
+        baseUrlMode,
+        manualConnectionId,
+      });
       return { context, data };
     } catch (err) {
       if (!isRetryableConnectionError(err)) {
@@ -255,7 +291,7 @@ async function fetchCurrentlyPlayingData(source: MediaSource) {
   throw new ApiError(
     502,
     "plex_unreachable",
-    `Cliparr could not reach any discovered connection for ${resource.name}. Tried: ${failures.join("; ")}`
+    unreachableConnectionMessage(resource, failures, baseUrlMode)
   );
 }
 

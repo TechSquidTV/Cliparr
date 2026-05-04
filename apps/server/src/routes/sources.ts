@@ -9,6 +9,10 @@ import {
   updateMediaSourceForAccount,
 } from "../db/mediaSourcesRepository.js";
 import { ApiError, asyncHandler } from "../http/errors.js";
+import {
+  PLEX_BASE_URL_MODE_MANUAL,
+  withPlexBaseUrlMode,
+} from "../providers/plex/connectionState.js";
 import { getProvider } from "../providers/registry.js";
 import { requireAccountSession, setNoStore } from "../session/request.js";
 
@@ -129,11 +133,18 @@ sourcesRouter.patch(
   asyncHandler(async (req, res) => {
     const session = requireAccountSession(req);
     setNoStore(res);
-    requireMediaSource(req.params.id as string, session.providerAccountId);
+    const existingSource = requireMediaSource(req.params.id as string, session.providerAccountId);
+    const input = parseSourceUpdate(req.body);
+    const nextInput = existingSource.providerId === "plex" && input.baseUrl !== undefined
+      ? {
+        ...input,
+        connection: withPlexBaseUrlMode(existingSource.connection, PLEX_BASE_URL_MODE_MANUAL),
+      }
+      : input;
     const source = updateMediaSourceForAccount(
       req.params.id as string,
       session.providerAccountId,
-      parseSourceUpdate(req.body)
+      nextInput
     );
     if (!source) {
       throw new ApiError(404, "source_not_found", "Source was not found");

@@ -24,6 +24,7 @@
     "lint": "pnpm lint:eslint && pnpm lint:types",
     "lint:eslint": "pnpm -r --if-present lint:eslint",
     "lint:types": "pnpm -r --if-present lint:types",
+    "test": "pnpm --filter @cliparr/server test",
     "knip": "knip",
     "preview": "pnpm --filter @cliparr/server preview",
     "start": "pnpm --filter @cliparr/server start",
@@ -44,8 +45,8 @@
     "eslint": "^10.2.1",
     "eslint-plugin-react-hooks": "^7.1.1",
     "globals": "^17.5.0",
-    "knip": "^6.4.1",
+    "knip": "^6.9.0",
     "typescript": "~6.0.3",
-    "typescript-eslint": "^8.58.2"
+    "typescript-eslint": "^8.59.1"
   }
 }

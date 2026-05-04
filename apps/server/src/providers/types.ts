@@ -2,8 +2,8 @@ import type { Request, Response } from "express";
 import type { MediaSource } from "../db/mediaSourcesRepository.js";
 import type { ProviderSessionRecord } from "../session/store.js";
 
-export type ProviderId = string;
-export type ProviderAuthType = "pin" | "credentials";
+type ProviderId = string;
+type ProviderAuthType = "pin" | "credentials";
 
 export interface ProviderDefinition {
   id: ProviderId;
@@ -11,13 +11,13 @@ export interface ProviderDefinition {
   auth: ProviderAuthType;
 }
 
-export interface ProviderAuthStart {
+interface ProviderAuthStart {
   authId: string;
   authUrl: string;
   expiresAt: string;
 }
 
-export type ProviderAuthStatus =
+type ProviderAuthStatus =
   | { status: "pending" }
   | { status: "expired" }
   | { status: "complete" };
@@ -45,13 +45,13 @@ export interface ProviderResource {
   metadata?: Record<string, unknown>;
 }
 
-export interface ProviderSession {
+interface ProviderSession {
   id: string;
   providerId: ProviderId;
   expiresAt: string;
 }
 
-export interface PlaybackViewer {
+interface PlaybackViewer {
   id: string;
   providerId: ProviderId;
   externalId?: string;
@@ -59,7 +59,7 @@ export interface PlaybackViewer {
   avatarUrl?: string;
 }
 
-export interface PlaybackSource {
+interface PlaybackSource {
   id: string;
   name: string;
   providerId: ProviderId;
@@ -96,7 +96,7 @@ export interface PlaybackAudioSelection {
   title?: string;
 }
 
-export interface CurrentlyPlayingItem {
+interface CurrentlyPlayingItem {
   id: string;
   source: PlaybackSource;
   title: string;
@@ -140,7 +140,7 @@ export interface MediaHandle {
   lastAccessedAt: number;
 }
 
-export type ProviderSourceCheckResult =
+type ProviderSourceCheckResult =
   | {
       ok: true;
       name?: string;
@@ -155,7 +155,7 @@ export type ProviderSourceCheckResult =
 
 export interface ProviderImplementation {
   definition: ProviderDefinition;
-  startAuth?(): Promise<ProviderAuthStart>;
+  startAuth?(callbackUrl: string): Promise<ProviderAuthStart>;
   pollAuth?(authId: string): Promise<{
     status: ProviderAuthStatus["status"];
     userToken?: string;

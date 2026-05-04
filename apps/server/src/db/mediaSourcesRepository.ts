@@ -151,7 +151,7 @@ export function deleteMediaSourceForAccount(id: string, providerAccountId: strin
   return result.changes > 0;
 }
 
-function getMediaSourceByProviderExternalId(
+export function getMediaSourceByProviderExternalId(
   providerId: string,
   providerAccountId: string,
   externalId: string

@@ -36,7 +36,6 @@ The fastest way to get Cliparr running is via the GitHub Container Registry.
 docker run -d \
   --name cliparr \
   -p 3000:3000 \
-  -e APP_URL=http://localhost:3000 \
   -e APP_KEY="your-stable-random-secret" \
   -v cliparr-data:/data \
   ghcr.io/techsquidtv/cliparr:latest
@@ -57,7 +56,6 @@ services:
     ports:
       - "3000:3000"
     environment:
-      - APP_URL=http://localhost:3000
       - APP_KEY=replace-this-with-a-secure-random-string
     volumes:
       - cliparr-data:/data
@@ -71,11 +69,12 @@ volumes:
 
 | Variable | Description | Default |
 | :--- | :--- | :--- |
-| `APP_URL` | Public base URL for auth callbacks. | `http://localhost:3000` |
 | `APP_KEY` | **Required** secret for credential encryption. | - |
 | `PORT` | Internal port for the Express server. | `3000` |
 | `CLIPARR_DATA_DIR` | Directory for SQLite storage. | `/data` |
 | `CLIPARR_ALLOW_LOOPBACK_JELLYFIN_URLS` | Allow Jellyfin URLs that resolve to `localhost`/loopback. Use only for trusted self-hosted setups. | `false` |
+
+When running behind a reverse proxy, preserve the `Host` header and pass `X-Forwarded-Proto`. Cliparr trusts loopback, link-local, and private-LAN proxy ranges directly in the app, so typical Caddy/Nginx/Traefik setups on the same network do not need extra app configuration. Caddy already forwards the needed headers.
 
 ## Development
 

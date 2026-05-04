@@ -7,7 +7,10 @@ export function isHlsPlaylistUrl(url: string) {
 }
 
 export async function createCliparrInputFromUrl(url: string): Promise<Input> {
-  const { ALL_FORMATS, HLS_FORMATS, createInputFrom } = await import("mediabunny");
+  const { ALL_FORMATS, HLS_FORMATS, Input, UrlSource } = await import("mediabunny");
 
-  return createInputFrom(url, isHlsPlaylistUrl(url) ? HLS_FORMATS : ALL_FORMATS);
+  return new Input({
+    source: new UrlSource(url),
+    formats: isHlsPlaylistUrl(url) ? HLS_FORMATS : ALL_FORMATS,
+  });
 }
