@@ -1,0 +1,28 @@
+name: Discuss
+description: Share feedback, ask a question, or start a general discussion about Cliparr.
+title: "[Discuss]: "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this form for anything that does not fit the bug report or feature request templates.
+  - type: textarea
+    id: general-topic
+    attributes:
+      label: What would you like to share?
+      description: Tell us your question, feedback, note, or discussion topic.
+      placeholder: ex. I want to share feedback, ask a question, or mention something that does not fit the other forms.
+    validations:
+      required: true
+  - type: input
+    id: cliparr-version
+    attributes:
+      label: Cliparr version
+      description: If relevant, what version of Cliparr are you running?
+      placeholder: ex. 0.2.0 or ghcr.io/techsquidtv/cliparr:latest
+  - type: textarea
+    id: extra-details
+    attributes:
+      label: Extra details
+      description: Add any supporting details, screenshots, or links here if they are useful.
+      placeholder: Optional
