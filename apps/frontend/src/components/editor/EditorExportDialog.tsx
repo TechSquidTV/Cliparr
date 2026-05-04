@@ -285,7 +285,7 @@ export function EditorExportDialog({
             {usingDirectSourceFallback && (
               <div className="rounded-md border border-primary/25 bg-primary/5 px-3 py-2 text-sm text-foreground">
                 HLS is the primary editing stream. This export is using the direct media source as a fallback because an
-                HLS stream was unavailable or could not be loaded for this session.
+                HLS stream could not be used for this session.
               </div>
             )}
 

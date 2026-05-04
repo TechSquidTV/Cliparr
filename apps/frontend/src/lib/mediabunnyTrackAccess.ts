@@ -41,3 +41,34 @@ export async function getVideoTrackDimensions(track: InputVideoTrack): Promise<V
 export async function getAudioTrackSampleRate(track: InputAudioTrack) {
   return track.getSampleRate();
 }
+
+export async function getTrackTimelineOffsetSeconds(
+  tracks: ReadonlyArray<InputTrack | null | undefined>
+) {
+  const presentTracks = tracks.filter((track): track is InputTrack => track !== null && track !== undefined);
+  if (presentTracks.length === 0) {
+    return 0;
+  }
+
+  const usesUnixEpochTimeline = (await Promise.all(
+    presentTracks.map((track) => track.isRelativeToUnixEpoch())
+  )).some(Boolean);
+
+  if (!usesUnixEpochTimeline) {
+    return 0;
+  }
+
+  const firstTimestamps = await Promise.all(
+    presentTracks.map((track) => track.getFirstTimestamp())
+  );
+
+  return Math.min(...firstTimestamps);
+}
+
+export function toSourceTimelineTime(displayTimeSeconds: number, timelineOffsetSeconds: number) {
+  return displayTimeSeconds + timelineOffsetSeconds;
+}
+
+export function fromSourceTimelineTime(sourceTimeSeconds: number, timelineOffsetSeconds: number) {
+  return sourceTimeSeconds - timelineOffsetSeconds;
+}
