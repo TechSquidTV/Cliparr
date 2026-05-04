@@ -17,8 +17,14 @@ interface CreateMediaHandleOptions {
   basePath?: string;
 }
 
+const RELATIVE_MEDIA_BASE_URL = "http://cliparr.local";
+
+function isAbsoluteUrl(path: string) {
+  return /^[a-z][a-z0-9+.-]*:/i.test(path);
+}
+
 export function normalizeMediaPath(path: string) {
-  if (/^[a-z][a-z0-9+.-]*:/i.test(path)) {
+  if (isAbsoluteUrl(path)) {
     return path;
   }
 
@@ -76,17 +82,19 @@ export function playlistBasePath(path: string) {
 }
 
 function resolvePlaylistUri(basePath: string, uri: string) {
-  if (/^[a-z][a-z0-9+.-]*:/i.test(uri)) {
-    const parsed = new URL(uri);
+  const parsed = new URL(
+    uri,
+    isAbsoluteUrl(basePath)
+      ? basePath
+      : new URL(normalizeMediaPath(basePath), RELATIVE_MEDIA_BASE_URL),
+  );
+  parsed.hash = "";
+
+  if (parsed.origin === RELATIVE_MEDIA_BASE_URL) {
     return `${parsed.pathname}${parsed.search}`;
   }
 
-  if (uri.startsWith("/")) {
-    return uri;
-  }
-
-  const parsed = new URL(uri, `http://cliparr.local${basePath}`);
-  return `${parsed.pathname}${parsed.search}`;
+  return parsed.toString();
 }
 
 function rewritePlaylistUri(
