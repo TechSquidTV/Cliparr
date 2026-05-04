@@ -1,5 +1,14 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { AudioBufferSink, CanvasSink, Input, InputTrack, WrappedAudioBuffer, WrappedCanvas } from "mediabunny";
+import type {
+  AudioBufferSink,
+  CanvasSink,
+  Input,
+  InputAudioTrack,
+  InputTrack,
+  InputVideoTrack,
+  WrappedAudioBuffer,
+  WrappedCanvas,
+} from "mediabunny";
 import { ensureMediabunnyCodecs } from "../../lib/mediabunnyCodecs";
 import { createCliparrInputFromUrl, isHlsPlaylistUrl } from "../../lib/mediabunnyInput";
 import {
@@ -114,6 +123,94 @@ function buildPlaybackLoadError(failures: PlaybackLoadFailure[]) {
   }
 
   return `Cliparr could not open any playback stream. ${failures.map(describePlaybackFailure).join(" ")}`;
+}
+
+async function assessPreviewVideoTrack(track: InputVideoTrack | null) {
+  if (!track) {
+    return { track: null, warning: undefined };
+  }
+
+  const videoCodec = await getTrackCodec(track);
+  if (videoCodec === null) {
+    return {
+      track: null,
+      warning: "Video codec is unknown.",
+    };
+  }
+
+  if (!(await track.canDecode())) {
+    return {
+      track: null,
+      warning: `Cannot decode ${videoCodec} video in this browser.`,
+    };
+  }
+
+  return { track, warning: undefined };
+}
+
+async function selectPreviewVideoTrack(videoTracks: readonly InputVideoTrack[]) {
+  const sourceVideoTrack = videoTracks[0] ?? null;
+  if (!sourceVideoTrack) {
+    return {
+      sourceVideoTrack: null,
+      previewVideoTrack: null,
+      warnings: [] as string[],
+    };
+  }
+
+  const warnings: string[] = [];
+  const primaryAssessment = await assessPreviewVideoTrack(sourceVideoTrack);
+  if (primaryAssessment.track) {
+    return {
+      sourceVideoTrack,
+      previewVideoTrack: primaryAssessment.track,
+      warnings,
+    };
+  }
+
+  if (primaryAssessment.warning) {
+    warnings.push(primaryAssessment.warning);
+  }
+
+  for (const candidate of videoTracks.slice(1)) {
+    const candidateAssessment = await assessPreviewVideoTrack(candidate);
+    if (candidateAssessment.track) {
+      return {
+        sourceVideoTrack,
+        previewVideoTrack: candidateAssessment.track,
+        warnings,
+      };
+    }
+  }
+
+  return {
+    sourceVideoTrack,
+    previewVideoTrack: null,
+    warnings,
+  };
+}
+
+async function assessPreviewAudioTrack(track: InputAudioTrack | null) {
+  if (!track) {
+    return { track: null, warning: undefined };
+  }
+
+  const audioCodec = await getTrackCodec(track);
+  if (audioCodec === null) {
+    return {
+      track: null,
+      warning: "Audio codec is unknown.",
+    };
+  }
+
+  if (!(await track.canDecode()) && !isAc3FamilyCodec(audioCodec)) {
+    return {
+      track: null,
+      warning: `Cannot decode ${audioCodec} audio in this browser.`,
+    };
+  }
+
+  return { track, warning: undefined };
 }
 
 export function useEditorPlayback({
@@ -582,69 +679,67 @@ export function useEditorPlayback({
             const input = await createCliparrInputFromUrl(playbackSource.url);
             inputRef.current = input;
 
-            let videoTrack = await input.getPrimaryVideoTrack({
+            const videoTracks = await input.getVideoTracks({
               filter: async (track) => !(await track.hasOnlyKeyPackets()),
             });
-            const fallbackAudioTracks = await input.getAudioTracks();
-            let audioTrack = await selectPreferredPairableAudioTrack(
-              videoTrack,
-              fallbackAudioTracks,
+            const {
+              sourceVideoTrack,
+              previewVideoTrack,
+              warnings,
+            } = await selectPreviewVideoTrack(videoTracks);
+            const allAudioTracks = await input.getAudioTracks();
+            const sourceAudioTrack = await selectPreferredPairableAudioTrack(
+              sourceVideoTrack,
+              allAudioTracks,
               selectedAudioTrack
             );
-            const warnings: string[] = [];
-
-            const [videoTrackIsLive, audioTrackIsLive] = await Promise.all([
-              videoTrack?.isLive() ?? false,
-              audioTrack?.isLive() ?? false,
-            ]);
-            if (videoTrackIsLive || audioTrackIsLive) {
+            let previewAudioTrack = await selectPreferredPairableAudioTrack(
+              previewVideoTrack,
+              allAudioTracks,
+              selectedAudioTrack
+            );
+            const sourceTracks: InputTrack[] = [sourceVideoTrack, sourceAudioTrack].filter(isPresent);
+            const liveTracks = sourceTracks.length > 0
+              ? sourceTracks
+              : [previewVideoTrack, previewAudioTrack].filter(isPresent);
+            const trackLiveStates = await Promise.all(
+              liveTracks.map((track) => track.isLive())
+            );
+            if (trackLiveStates.some(Boolean)) {
               throw new PlaybackSourceError(
                 "shared-export-blocking",
                 "Live HLS streams are not supported in the editor or export yet."
               );
             }
 
-            if (videoTrack) {
-              const videoCodec = await getTrackCodec(videoTrack);
-              if (videoCodec === null) {
-                warnings.push("Video codec is unknown.");
-                videoTrack = null;
-              } else if (!(await videoTrack.canDecode())) {
-                warnings.push(`Cannot decode ${videoCodec} video in this browser.`);
-                videoTrack = null;
-              }
-            }
-
-            if (audioTrack) {
-              const audioCodec = await getTrackCodec(audioTrack);
-              if (audioCodec === null) {
-                warnings.push("Audio codec is unknown.");
-                audioTrack = null;
-              } else if (!(await audioTrack.canDecode()) && !isAc3FamilyCodec(audioCodec)) {
-                warnings.push(`Cannot decode ${audioCodec} audio in this browser.`);
-                audioTrack = null;
-              }
+            const previewAudioAssessment = await assessPreviewAudioTrack(previewAudioTrack);
+            previewAudioTrack = previewAudioAssessment.track;
+            if (previewAudioAssessment.warning) {
+              warnings.push(previewAudioAssessment.warning);
             }
 
             if (cancelled || generation !== generationRef.current) {
               return;
             }
 
-            if (!videoTrack && !audioTrack) {
+            if (!previewVideoTrack && !previewAudioTrack) {
               throw new PlaybackSourceError(
                 "preview-only",
                 warnings.join(" ") || "No decodable audio or video track found."
               );
             }
 
-            const durationTracks: InputTrack[] = [videoTrack, audioTrack].filter(isPresent);
+            const durationTracks = sourceTracks;
             const timelineOffsetSeconds = await getTrackTimelineOffsetSeconds(durationTracks);
             sourceTimelineOffsetRef.current = timelineOffsetSeconds;
-            const metadataDuration = await input.getDurationFromMetadata(durationTracks);
-            const sourceTimelineEnd =
-              metadataDuration && metadataDuration > 0
+            const metadataDuration = durationTracks.length > 0
+              ? await input.getDurationFromMetadata(durationTracks)
+              : null;
+            const sourceTimelineEnd = durationTracks.length > 0
+              ? metadataDuration && metadataDuration > 0
                 ? metadataDuration
-                : await input.computeDuration(durationTracks);
+                : await input.computeDuration(durationTracks)
+              : Math.max(initialDuration, 0);
             const nextDuration = Math.max(
               0,
               fromSourceTimelineTime(sourceTimelineEnd, timelineOffsetSeconds)
@@ -654,11 +749,11 @@ export function useEditorPlayback({
             setCurrentTime(0);
             playbackTimeAtStartRef.current = 0;
 
-            const sourceDimensions = videoTrack
-              ? await getVideoTrackDimensions(videoTrack)
+            const sourceDimensions = previewVideoTrack
+              ? await getVideoTrackDimensions(previewVideoTrack)
               : null;
-            const audioTrackSampleRate = audioTrack
-              ? await getAudioTrackSampleRate(audioTrack)
+            const audioTrackSampleRate = previewAudioTrack
+              ? await getAudioTrackSampleRate(previewAudioTrack)
               : undefined;
 
             if (sourceDimensions) {
@@ -671,15 +766,15 @@ export function useEditorPlayback({
             }
 
             try {
-              if (videoTrack) {
-                videoSinkRef.current = new CanvasSink(videoTrack, {
+              if (previewVideoTrack) {
+                videoSinkRef.current = new CanvasSink(previewVideoTrack, {
                   poolSize: 2,
                   fit: "contain",
-                  alpha: await videoTrack.canBeTransparent(),
+                  alpha: await previewVideoTrack.canBeTransparent(),
                 });
               }
 
-              if (audioTrack) {
+              if (previewAudioTrack) {
                 const AudioContextConstructor = getAudioContextConstructor();
                 if (!AudioContextConstructor) {
                   throw new PlaybackSourceError(
@@ -696,7 +791,7 @@ export function useEditorPlayback({
                 gainNode.connect(audioContext.destination);
                 audioContextRef.current = audioContext;
                 gainNodeRef.current = gainNode;
-                audioSinkRef.current = new AudioBufferSink(audioTrack);
+                audioSinkRef.current = new AudioBufferSink(previewAudioTrack);
               }
 
               await startVideoIterator();
