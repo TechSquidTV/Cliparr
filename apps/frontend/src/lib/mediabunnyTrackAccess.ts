@@ -1,6 +1,6 @@
 import type { InputAudioTrack, InputTrack, InputVideoTrack } from "mediabunny";
 
-export interface VideoTrackDimensions {
+interface VideoTrackDimensions {
   width: number;
   height: number;
 }

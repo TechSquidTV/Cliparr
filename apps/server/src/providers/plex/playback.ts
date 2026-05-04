@@ -187,7 +187,6 @@ function createPreviewPath(item: any, selection?: PlexMediaSelection) {
     mediaIndex: String(resolvedSelection?.mediaIndex ?? 0),
     partIndex: String(resolvedSelection?.partIndex ?? 0),
     audioChannelCount: "2",
-    subtitles: "none",
     videoQuality: "80",
     videoResolution: "1920x1080",
     videoBitrate: "12000",

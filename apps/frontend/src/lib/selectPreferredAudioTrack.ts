@@ -7,7 +7,7 @@ function normalizedText(value: string | null | undefined) {
   return trimmed ? trimmed : undefined;
 }
 
-export async function selectPreferredAudioTrack(
+async function selectPreferredAudioTrack(
   audioTracks: readonly InputAudioTrack[],
   selectedAudioTrack?: PlaybackAudioSelection
 ): Promise<InputAudioTrack | null> {
