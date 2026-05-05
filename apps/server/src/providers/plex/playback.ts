@@ -2,6 +2,7 @@ import { randomUUID } from "crypto";
 import type { Request, Response } from "express";
 import { updateMediaSource, type MediaSource } from "../../db/mediaSourcesRepository.js";
 import { ApiError } from "../../http/errors.js";
+import { getServerLogger } from "../../logging.js";
 import type { ProviderSessionRecord } from "../../session/store.js";
 import type {
   CurrentlyPlayingEntry,
@@ -38,6 +39,8 @@ import {
   type PlexBaseUrlMode,
   withPlexBaseUrlMode,
 } from "./connectionState.js";
+
+const logger = getServerLogger(["providers", "plex"]);
 
 function createMediaHandle(
   session: ProviderSessionRecord,
@@ -440,7 +443,12 @@ async function enrichMetadataItem(context: PlexSourceContext, item: any) {
       Session: item.Session,
     };
   } catch (err) {
-    console.warn(`Could not fetch metadata for ${metadataPath(item) ?? "Plex item"}:`, errorMessage(err));
+    logger.warn("Could not fetch Plex metadata for {metadataPath}.", {
+      metadataPath: metadataPath(item) ?? "Plex item",
+      sourceId: context.sourceId,
+      baseUrl: context.baseUrl,
+      errorMessage: errorMessage(err),
+    });
     return item;
   }
 }
@@ -526,7 +534,12 @@ async function resolveMediaPath(
     const fullItem = data?.MediaContainer?.Metadata?.[0];
     return fallbackPartPath(resolveSelectedPart(fullItem, selection)?.part);
   } catch (err) {
-    console.warn(`Could not resolve media part for ${path}:`, errorMessage(err));
+    logger.warn("Could not resolve Plex media part for {metadataPath}.", {
+      metadataPath: path,
+      sourceId: context.sourceId,
+      baseUrl: context.baseUrl,
+      errorMessage: errorMessage(err),
+    });
     return undefined;
   }
 }
@@ -634,9 +647,30 @@ export async function proxyMedia(
     headers.set("X-Plex-Session-Identifier", playbackSessionId);
   }
 
+  logger.debug("Fetching Plex media for handle {handleId}.", {
+    handleId: handle.id,
+    sessionId: session.id,
+    sourceId: handle.sourceId,
+    upstreamUrl: url.toString(),
+    hasRange: Boolean(range),
+    accept,
+    playbackSessionId,
+  });
+
   const upstream = await fetch(url.toString(), { headers });
   if (!upstream.ok && upstream.status !== 206) {
     const detail = (await upstream.text()).slice(0, 400).replace(/\s+/g, " ").trim();
+    logger.warn("Plex media request failed for handle {handleId}.", {
+      handleId: handle.id,
+      sessionId: session.id,
+      sourceId: handle.sourceId,
+      upstreamUrl: url.toString(),
+      statusCode: upstream.status,
+      detail,
+      hasRange: Boolean(range),
+      accept,
+      playbackSessionId,
+    });
     throw new ApiError(
       upstream.status,
       "plex_media_failed",

@@ -108,6 +108,9 @@ importers:
 
   apps/server:
     dependencies:
+      '@logtape/logtape':
+        specifier: ^2.0.7
+        version: 2.0.7
       dotenv:
         specifier: ^17.4.2
         version: 17.4.2
@@ -643,6 +646,9 @@ packages:
   '@js-temporal/polyfill@0.5.1':
     resolution: {integrity: sha512-hloP58zRVCRSpgDxmqCWJNlizAlUgJFqG2ypq79DCvyv9tHjRYMDOcPFjzfl/A1/YxDvRCZz8wvZvmapQnKwFQ==}
     engines: {node: '>=12'}
+
+  '@logtape/logtape@2.0.7':
+    resolution: {integrity: sha512-SUkjkEIfQ3zCadlLi8rfGfe4l/JRKNbp248bfLeowyUFs9KZME/k8y+5sugWYZet/gMYnmwCc9xa3J+kjDjSSQ==}
 
   '@mediabunny/aac-encoder@1.43.1':
     resolution: {integrity: sha512-ir8663c3ZfFUywx7em1JXqcljxgdZTJB5bg8w4Rg4n1sWIjzCfqaTz89TriJ7d6/Zerw5QtkryU0+rqLY7tEMA==}
@@ -3664,6 +3670,8 @@ snapshots:
   '@js-temporal/polyfill@0.5.1':
     dependencies:
       jsbi: 4.3.2
+
+  '@logtape/logtape@2.0.7': {}
 
   '@mediabunny/aac-encoder@1.43.1(mediabunny@1.43.1)':
     dependencies:

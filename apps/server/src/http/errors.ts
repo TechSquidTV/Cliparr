@@ -1,4 +1,7 @@
 import type { NextFunction, Request, Response } from "express";
+import { getServerLogger, serializeError } from "../logging.js";
+
+const logger = getServerLogger(["http", "error"]);
 
 export class ApiError extends Error {
   status: number;
@@ -40,7 +43,19 @@ export function errorHandler(
       : new ApiError(500, "internal_error", "Something went wrong");
 
   if (!(err instanceof ApiError)) {
-    console.error(err);
+    logger.error("Unhandled request error for {method} {originalUrl}.", {
+      ...serializeError(err),
+      method: req.method,
+      originalUrl: req.originalUrl,
+    });
+  } else if (apiError.status >= 500) {
+    logger.error("Request failed with API error {code} for {method} {originalUrl}.", {
+      statusCode: apiError.status,
+      code: apiError.code,
+      message: apiError.message,
+      method: req.method,
+      originalUrl: req.originalUrl,
+    });
   }
 
   if (res.headersSent) {

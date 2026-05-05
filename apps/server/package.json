@@ -17,6 +17,7 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
+    "@logtape/logtape": "^2.0.7",
     "dotenv": "^17.4.2",
     "drizzle-orm": "1.0.0-beta.23",
     "express": "^5.2.1"

@@ -1,12 +1,14 @@
 import { Router } from "express";
 import { listMediaSources } from "../db/mediaSourcesRepository.js";
 import { ApiError, asyncHandler } from "../http/errors.js";
+import { getServerLogger } from "../logging.js";
 import { getProvider } from "../providers/registry.js";
 import type { CurrentlyPlayingEntry, SourcePlaybackError, ViewerPlaybackGroup } from "../providers/types.js";
 import { requireAccountSession, setNoStore } from "../session/request.js";
 import { pruneSessionMediaHandles } from "../session/store.js";
 
 export const mediaRouter = Router();
+const logger = getServerLogger(["routes", "media"]);
 
 function compareStrings(left: string, right: string) {
   return left.localeCompare(right, undefined, { sensitivity: "base" });
@@ -57,7 +59,7 @@ mediaRouter.get(
   asyncHandler(async (req, res) => {
     setNoStore(res);
     const session = requireAccountSession(req);
-    pruneSessionMediaHandles(session);
+    const prunedCount = pruneSessionMediaHandles(session);
     const sourceErrors: SourcePlaybackError[] = [];
     const sources = listMediaSources({
       enabledOnly: true,
@@ -113,6 +115,18 @@ mediaRouter.get(
       });
     });
 
+    logger.debug("Listed currently playing media.", {
+      sessionId: session.id,
+      providerId: session.providerId,
+      providerAccountId: session.providerAccountId,
+      sourceCount: sources.length,
+      viewerCount: new Set(entries.map((entry) => entry.viewer.id)).size,
+      entryCount: entries.length,
+      sourceErrorCount: sourceErrors.length,
+      prunedHandleCount: prunedCount,
+      remainingHandleCount: session.mediaHandles.size,
+    });
+
     res.json({
       viewers: groupCurrentPlayback(entries),
       sourceErrors,
@@ -125,16 +139,40 @@ mediaRouter.get(
   asyncHandler(async (req, res) => {
     setNoStore(res);
     const session = requireAccountSession(req);
-    pruneSessionMediaHandles(session);
+    const prunedCount = pruneSessionMediaHandles(session);
     const handle = session.mediaHandles.get(req.params.handleId as string);
     if (!handle) {
+      logger.warn("Media handle {handleId} was not found in provider session {sessionId}.", {
+        handleId: req.params.handleId,
+        sessionId: session.id,
+        providerId: session.providerId,
+        providerAccountId: session.providerAccountId,
+        prunedHandleCount: prunedCount,
+        remainingHandleCount: session.mediaHandles.size,
+      });
       throw new ApiError(404, "media_not_found", "Media handle was not found or has expired");
     }
 
     const provider = getProvider(handle.providerId);
     if (!provider) {
+      logger.error("Provider {providerId} for media handle {handleId} is not registered.", {
+        handleId: handle.id,
+        sessionId: session.id,
+        providerId: handle.providerId,
+        sourceId: handle.sourceId,
+      });
       throw new ApiError(500, "provider_not_registered", "Session provider is not registered");
     }
+
+    logger.debug("Proxying media handle {handleId}.", {
+      handleId: handle.id,
+      sessionId: session.id,
+      providerId: handle.providerId,
+      sourceId: handle.sourceId,
+      path: handle.path,
+      basePath: handle.basePath,
+      prunedHandleCount: prunedCount,
+    });
 
     await provider.proxyMedia(session, req.params.handleId as string, req, res);
   })

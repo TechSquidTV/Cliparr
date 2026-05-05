@@ -2,6 +2,7 @@ import { randomUUID } from "crypto";
 import type { Request, Response } from "express";
 import type { MediaSource } from "../../db/mediaSourcesRepository.js";
 import { ApiError } from "../../http/errors.js";
+import { getServerLogger } from "../../logging.js";
 import type { ProviderSessionRecord } from "../../session/store.js";
 import type {
   CurrentlyPlayingEntry,
@@ -32,6 +33,8 @@ import {
   sourceContext,
   type JellyfinSourceContext,
 } from "./shared.js";
+
+const logger = getServerLogger(["providers", "jellyfin"]);
 
 function createMediaHandle(
   session: ProviderSessionRecord,
@@ -322,7 +325,12 @@ async function enrichMetadataItem(context: JellyfinSourceContext, item: any) {
       ...fullItem,
     };
   } catch (err) {
-    console.warn(`Could not fetch metadata for Jellyfin item ${itemId}:`, errorMessage(err));
+    logger.warn("Could not fetch Jellyfin metadata for item {itemId}.", {
+      itemId,
+      sourceId: context.sourceId,
+      baseUrl: context.baseUrl,
+      errorMessage: errorMessage(err),
+    });
     return item;
   }
 }
@@ -429,16 +437,42 @@ export async function proxyMedia(
     headers.set("Range", range);
   }
 
-  const upstream = await jellyfinFetch(buildJellyfinUrl(handle.baseUrl, handle.path).toString(), {
-    headers,
-  }, {
-    token: handle.token,
-    deviceId: handle.deviceId,
-    accept: req.header("accept") ?? undefined,
-    timeoutMs: JELLYFIN_REQUEST_TIMEOUT_MS,
-    errorCode: "jellyfin_media_failed",
-    failureMessage: "Jellyfin media request failed",
+  const upstreamUrl = buildJellyfinUrl(handle.baseUrl, handle.path).toString();
+  const accept = req.header("accept") ?? undefined;
+
+  logger.debug("Fetching Jellyfin media for handle {handleId}.", {
+    handleId: handle.id,
+    sessionId: session.id,
+    sourceId: handle.sourceId,
+    upstreamUrl,
+    hasRange: Boolean(range),
+    accept,
   });
+
+  let upstream;
+  try {
+    upstream = await jellyfinFetch(upstreamUrl, {
+      headers,
+    }, {
+      token: handle.token,
+      deviceId: handle.deviceId,
+      accept,
+      timeoutMs: JELLYFIN_REQUEST_TIMEOUT_MS,
+      errorCode: "jellyfin_media_failed",
+      failureMessage: "Jellyfin media request failed",
+    });
+  } catch (err) {
+    logger.warn("Jellyfin media request failed for handle {handleId}.", {
+      handleId: handle.id,
+      sessionId: session.id,
+      sourceId: handle.sourceId,
+      upstreamUrl,
+      hasRange: Boolean(range),
+      accept,
+      errorMessage: errorMessage(err),
+    });
+    throw err;
+  }
 
   await proxyUpstreamMediaResponse(session, handle, upstream, res);
 }

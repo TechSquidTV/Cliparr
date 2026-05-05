@@ -5,6 +5,7 @@ import { CLIPARR_VERSION } from "./config/version.js";
 import { checkDatabaseHealth, initializeDatabase } from "./db/database.js";
 import { errorHandler, notFoundHandler } from "./http/errors.js";
 import { requestOriginIsPotentiallyTrustworthy } from "./http/requestOrigin.js";
+import { configureLogging, requestLoggingMiddleware } from "./logging.js";
 import { mediaRouter } from "./routes/media.js";
 import { providersRouter } from "./routes/providers.js";
 import { sessionRouter } from "./routes/session.js";
@@ -17,12 +18,14 @@ const DEFAULT_DEV_FRONTEND_URL = "http://localhost:5173";
 const TRUSTED_PROXY_SUBNETS = ["loopback", "linklocal", "uniquelocal"];
 
 export async function createApp() {
+  await configureLogging();
   initializeDatabase();
 
   const app = express();
 
   app.set("trust proxy", TRUSTED_PROXY_SUBNETS);
   app.disable("x-powered-by");
+  app.use(requestLoggingMiddleware);
   app.use(express.json());
   app.use((req, res, next) => {
     if (requestOriginIsPotentiallyTrustworthy(req)) {

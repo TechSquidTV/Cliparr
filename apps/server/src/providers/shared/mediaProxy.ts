@@ -2,6 +2,7 @@ import { randomUUID } from "crypto";
 import { Readable } from "stream";
 import type { ReadableStream as WebReadableStream } from "stream/web";
 import type { Response } from "express";
+import { getServerLogger } from "../../logging.js";
 import type { ProviderSessionRecord } from "../../session/store.js";
 import type { MediaHandle } from "../types.js";
 
@@ -18,6 +19,7 @@ interface CreateMediaHandleOptions {
 }
 
 const RELATIVE_MEDIA_BASE_URL = "http://cliparr.local";
+const logger = getServerLogger(["providers", "media-proxy"]);
 
 function isAbsoluteUrl(path: string) {
   return /^[a-z][a-z0-9+.-]*:/i.test(path);
@@ -56,6 +58,14 @@ export function createProviderMediaHandle(
       && existingHandle.basePath === normalizedBasePath
     ) {
       existingHandle.lastAccessedAt = accessedAt;
+      logger.trace("Reused provider media handle {handleId}.", {
+        handleId: existingHandle.id,
+        sessionId: session.id,
+        providerId: context.providerId,
+        sourceId: context.sourceId,
+        path: normalizedPath,
+        basePath: normalizedBasePath,
+      });
       return `/api/media/${existingHandle.id}`;
     }
   }
@@ -72,6 +82,15 @@ export function createProviderMediaHandle(
     lastAccessedAt: accessedAt,
   };
   session.mediaHandles.set(handle.id, handle);
+  logger.debug("Created provider media handle {handleId}.", {
+    handleId: handle.id,
+    sessionId: session.id,
+    providerId: handle.providerId,
+    sourceId: handle.sourceId,
+    path: handle.path,
+    basePath: handle.basePath,
+    absolutePath: isAbsoluteUrl(handle.path),
+  });
   return `/api/media/${handle.id}`;
 }
 
@@ -122,8 +141,9 @@ async function rewriteHlsPlaylist(
 ) {
   const body = await upstream.text();
   const basePath = handle.basePath ?? playlistBasePath(handle.path);
+  let rewrittenUriCount = 0;
 
-  return body
+  const playlist = body
     .split("\n")
     .map((line) => {
       const trimmed = line.trim();
@@ -133,13 +153,27 @@ async function rewriteHlsPlaylist(
 
       if (trimmed.startsWith("#")) {
         return line.replace(/URI="([^"]+)"/g, (_match, uri: string) => {
+          rewrittenUriCount += 1;
           return `URI="${rewritePlaylistUri(session, handle, basePath, uri)}"`;
         });
       }
 
+      rewrittenUriCount += 1;
       return rewritePlaylistUri(session, handle, basePath, trimmed);
     })
     .join("\n");
+
+  logger.debug("Rewrote HLS playlist for media handle {handleId}.", {
+    handleId: handle.id,
+    sessionId: session.id,
+    providerId: handle.providerId,
+    path: handle.path,
+    basePath,
+    upstreamStatus: upstream.status,
+    rewrittenUriCount,
+  });
+
+  return playlist;
 }
 
 function copyProxyHeaders(upstream: globalThis.Response, res: Response) {
@@ -187,6 +221,15 @@ export async function proxyUpstreamMediaResponse(
   copyProxyHeaders(upstream, res);
 
   const contentType = upstream.headers.get("content-type") ?? "";
+  logger.debug("Proxying upstream media response for handle {handleId}.", {
+    handleId: handle.id,
+    sessionId: session.id,
+    providerId: handle.providerId,
+    path: handle.path,
+    upstreamStatus: upstream.status,
+    contentType,
+  });
+
   if (isHlsPlaylist(handle, contentType)) {
     const playlist = await rewriteHlsPlaylist(session, handle, upstream);
     res.setHeader("Content-Type", "application/vnd.apple.mpegurl");
