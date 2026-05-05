@@ -25,6 +25,7 @@ interface UseEditorTimelineProps {
   currentTime: number;
   sessionId: string;
   updateClipRange: (start: number, end: number) => void;
+  onClipRangeCommit?: (start: number, end: number) => void;
 }
 
 export function useEditorTimeline({
@@ -34,6 +35,7 @@ export function useEditorTimeline({
   currentTime,
   sessionId,
   updateClipRange,
+  onClipRangeCommit,
 }: UseEditorTimelineProps) {
   const timelineRef = useRef<TimelineState>(null);
   const timelineWheelRegionRef = useRef<HTMLDivElement>(null);
@@ -318,6 +320,42 @@ export function useEditorTimeline({
     updateClipRange(nextAction.start, nextAction.end);
   }, [updateClipRange]);
 
+  const commitClipRange = useCallback((start: number, end: number) => {
+    onClipRangeCommit?.(roundTimelineTime(start), roundTimelineTime(end));
+  }, [onClipRangeCommit]);
+
+  const handleTimelineActionMoveEnd = useCallback(({
+    action,
+    start,
+    end,
+  }: {
+    action: { id: string };
+    start: number;
+    end: number;
+  }) => {
+    if (action.id !== "selected-clip") {
+      return;
+    }
+
+    commitClipRange(start, end);
+  }, [commitClipRange]);
+
+  const handleTimelineActionResizeEnd = useCallback(({
+    action,
+    start,
+    end,
+  }: {
+    action: { id: string };
+    start: number;
+    end: number;
+  }) => {
+    if (action.id !== "selected-clip") {
+      return;
+    }
+
+    commitClipRange(start, end);
+  }, [commitClipRange]);
+
   return {
     timelineRef,
     timelineWheelRegionRef,
@@ -328,6 +366,8 @@ export function useEditorTimeline({
     handleTimelineScroll,
     handleTimelineWheel,
     handleTimelineChange,
+    handleTimelineActionMoveEnd,
+    handleTimelineActionResizeEnd,
     hasDuration,
   };
 }

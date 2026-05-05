@@ -23,6 +23,8 @@ interface EditorTimelineProps {
   playing: boolean;
   handleTimelineScroll: (data: { scrollLeft: number }) => void;
   handleTimelineChange: (data: ClipTimelineData) => void;
+  handleTimelineActionMoveEnd: (params: { action: { id: string }; start: number; end: number }) => void;
+  handleTimelineActionResizeEnd: (params: { action: { id: string }; start: number; end: number }) => void;
   handleTimelineWheel: (event: ReactWheelEvent<HTMLDivElement>) => void;
   isValidTimelineRange: (start: number, end: number) => boolean;
   seekToTime: (time: number) => Promise<void> | void;
@@ -41,6 +43,8 @@ export function EditorTimeline({
   playing,
   handleTimelineScroll,
   handleTimelineChange,
+  handleTimelineActionMoveEnd,
+  handleTimelineActionResizeEnd,
   handleTimelineWheel,
   isValidTimelineRange,
   seekToTime,
@@ -85,6 +89,8 @@ export function EditorTimeline({
         onChange={handleTimelineChange}
         onActionMoving={({ start, end }) => isValidTimelineRange(start, end)}
         onActionResizing={({ start, end }) => isValidTimelineRange(start, end)}
+        onActionMoveEnd={handleTimelineActionMoveEnd}
+        onActionResizeEnd={handleTimelineActionResizeEnd}
         onClickTimeArea={(time) => {
           void seekToTime(time);
           return false;

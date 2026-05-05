@@ -253,11 +253,15 @@ export function useEditorPlayback({
   const animationFrameRef = useRef<number | null>(null);
   const renderIntervalRef = useRef<number | null>(null);
   const generationRef = useRef(0);
+  const warmupGenerationRef = useRef(0);
+  const warmupPromiseRef = useRef<Promise<void> | null>(null);
+  const warmupTargetTimeRef = useRef<number | null>(null);
   const playingRef = useRef(false);
   const audioContextStartTimeRef = useRef<number | null>(null);
   const playbackTimeAtStartRef = useRef(0);
   const sourceTimelineOffsetRef = useRef(0);
   const skipLiveWaitRef = useRef(false);
+  const activeSourceLabelRef = useRef(activeSourceLabel);
   
   const durationRef = useRef(duration);
   const startTimeRef = useRef(startTime);
@@ -276,6 +280,10 @@ export function useEditorPlayback({
   useEffect(() => {
     endTimeRef.current = endTime;
   }, [endTime]);
+
+  useEffect(() => {
+    activeSourceLabelRef.current = activeSourceLabel;
+  }, [activeSourceLabel]);
 
   useEffect(() => {
     volumeRef.current = volume;
@@ -482,6 +490,7 @@ export function useEditorPlayback({
     if (advanceGeneration) {
       generationRef.current++;
     }
+    warmupGenerationRef.current++;
     if (clearActiveSource) {
       setActiveSourceLabel("");
     }
@@ -494,6 +503,8 @@ export function useEditorPlayback({
     nextFrameRef.current = null;
     sourceTimelineOffsetRef.current = 0;
     skipLiveWaitRef.current = false;
+    warmupPromiseRef.current = null;
+    warmupTargetTimeRef.current = null;
     videoSinkRef.current = null;
     audioSinkRef.current = null;
     inputRef.current?.dispose();
@@ -579,6 +590,19 @@ export function useEditorPlayback({
 
     const clipStart = clampTime(startTimeRef.current);
     const clipEnd = Math.min(endTimeRef.current || durationRef.current, durationRef.current);
+    const pendingWarmup = warmupPromiseRef.current;
+    const warmupTargetTime = warmupTargetTimeRef.current;
+    if (
+      pendingWarmup
+      && warmupTargetTime !== null
+      && Math.abs(warmupTargetTime - clipStart) < 1e-6
+    ) {
+      await pendingWarmup.catch(() => undefined);
+      if (!inputRef.current || loadingPreview) {
+        return;
+      }
+    }
+
     const playbackTime = getPlaybackTime();
     if (playbackTime < clipStart || playbackTime >= clipEnd) {
       playbackTimeAtStartRef.current = clipStart;
@@ -645,6 +669,69 @@ export function useEditorPlayback({
       void playPreview();
     }
   }, [clampTime, endTimeRef, pausePlayback, playPreview, startVideoIterator]);
+
+  const warmClipStart = useCallback(async (clipStart: number) => {
+    if (
+      loadingPreview ||
+      playingRef.current ||
+      activeSourceLabelRef.current !== "HLS stream"
+    ) {
+      return;
+    }
+
+    const videoSink = videoSinkRef.current;
+    const audioSink = audioSinkRef.current;
+    if (!videoSink && !audioSink) {
+      return;
+    }
+
+    const displayTimestamp = Number(clampTime(clipStart).toFixed(6));
+    if (!Number.isFinite(displayTimestamp)) {
+      return;
+    }
+    if (
+      warmupPromiseRef.current
+      && warmupTargetTimeRef.current !== null
+      && Math.abs(warmupTargetTimeRef.current - displayTimestamp) < 1e-6
+    ) {
+      return warmupPromiseRef.current;
+    }
+
+    const sourceTimestamp = toSourceTimelineTime(displayTimestamp, sourceTimelineOffsetRef.current);
+    const packetRetrievalOptions = skipLiveWaitRef.current ? { skipLiveWait: true } : undefined;
+    const warmupGeneration = ++warmupGenerationRef.current;
+    const playbackGeneration = generationRef.current;
+    warmupTargetTimeRef.current = displayTimestamp;
+
+    const warmupPromise = (async () => {
+      if (
+        warmupGeneration !== warmupGenerationRef.current ||
+        playbackGeneration !== generationRef.current ||
+        playingRef.current
+      ) {
+        return;
+      }
+
+      try {
+        await Promise.allSettled([
+          videoSink ? videoSink.getCanvas(sourceTimestamp, packetRetrievalOptions) : Promise.resolve(null),
+          audioSink ? audioSink.getBuffer(sourceTimestamp, packetRetrievalOptions) : Promise.resolve(null),
+        ]);
+      } catch {
+        // Warmup is opportunistic; playback still works without it.
+      }
+    })();
+
+    warmupPromiseRef.current = warmupPromise;
+    try {
+      await warmupPromise;
+    } finally {
+      if (warmupPromiseRef.current === warmupPromise) {
+        warmupPromiseRef.current = null;
+        warmupTargetTimeRef.current = null;
+      }
+    }
+  }, [clampTime, loadingPreview]);
 
   useEffect(() => {
     const playbackSources = buildPlaybackSourceCandidates(hlsUrl, mediaUrl);
@@ -913,6 +1000,7 @@ export function useEditorPlayback({
     togglePlay,
     pausePlayback,
     seekToTime,
+    warmClipStart,
     setCurrentTime,
     playbackTimeAtStartRef,
   };

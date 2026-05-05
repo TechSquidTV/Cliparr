@@ -78,6 +78,7 @@ export default function EditorScreen({ session, onBack }: Props) {
     togglePlay,
     pausePlayback,
     seekToTime,
+    warmClipStart,
     setCurrentTime,
     playbackTimeAtStartRef,
   } = useEditorPlayback({
@@ -136,6 +137,8 @@ export default function EditorScreen({ session, onBack }: Props) {
     handleTimelineScroll,
     handleTimelineWheel,
     handleTimelineChange,
+    handleTimelineActionMoveEnd,
+    handleTimelineActionResizeEnd,
     hasDuration,
   } = useEditorTimeline({
     duration,
@@ -144,6 +147,9 @@ export default function EditorScreen({ session, onBack }: Props) {
     currentTime,
     sessionId: session.id,
     updateClipRange,
+    onClipRangeCommit: (nextStart) => {
+      void warmClipStart(nextStart);
+    },
   });
 
   const fileName = buildExportFileName({
@@ -380,6 +386,8 @@ export default function EditorScreen({ session, onBack }: Props) {
                   playing={playing}
                   handleTimelineScroll={handleTimelineScroll}
                   handleTimelineChange={handleTimelineChange}
+                  handleTimelineActionMoveEnd={handleTimelineActionMoveEnd}
+                  handleTimelineActionResizeEnd={handleTimelineActionResizeEnd}
                   handleTimelineWheel={handleTimelineWheel}
                   isValidTimelineRange={isValidTimelineRange}
                   seekToTime={seekToTime}
