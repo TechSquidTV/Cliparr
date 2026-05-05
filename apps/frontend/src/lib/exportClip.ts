@@ -450,14 +450,6 @@ export async function exportClip({
       selectedAudioTrack
     );
     const sourceHasAudio = sourceAudioTracks.length > 0;
-    const [sourceVideoIsLive, preferredAudioIsLive] = await Promise.all([
-      sourceVideoTrack?.isLive() ?? false,
-      preferredAudioTrack?.isLive() ?? false,
-    ]);
-
-    if (sourceVideoIsLive || preferredAudioIsLive) {
-      throw new Error("Live HLS streams are not supported for export yet.");
-    }
 
     const timelineOffsetSeconds = await getTrackTimelineOffsetSeconds([
       sourceVideoTrack,

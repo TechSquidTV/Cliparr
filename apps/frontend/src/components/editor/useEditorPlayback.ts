@@ -54,6 +54,11 @@ interface PlaybackLoadFailure {
   category: "open-or-read" | "preview-only" | "shared-export-blocking";
 }
 
+export interface PlaybackFallbackInfo {
+  category: PlaybackLoadFailure["category"];
+  message: string;
+}
+
 class PlaybackSourceError extends Error {
   category: PlaybackLoadFailure["category"];
 
@@ -232,6 +237,7 @@ export function useEditorPlayback({
   const [error, setError] = useState("");
   const [activeSourceLabel, setActiveSourceLabel] = useState("");
   const [exportFallbackSourceUrl, setExportFallbackSourceUrl] = useState<string | undefined>(undefined);
+  const [hlsFallbackInfo, setHlsFallbackInfo] = useState<PlaybackFallbackInfo | null>(null);
   const [sourceVideoDimensions, setSourceVideoDimensions] = useState<VideoDimensions | null>(null);
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -251,6 +257,7 @@ export function useEditorPlayback({
   const audioContextStartTimeRef = useRef<number | null>(null);
   const playbackTimeAtStartRef = useRef(0);
   const sourceTimelineOffsetRef = useRef(0);
+  const skipLiveWaitRef = useRef(false);
   
   const durationRef = useRef(duration);
   const startTimeRef = useRef(startTime);
@@ -378,8 +385,11 @@ export function useEditorPlayback({
       return;
     }
 
+    const packetRetrievalOptions = skipLiveWaitRef.current ? { skipLiveWait: true } : undefined;
     videoFrameIteratorRef.current = videoSink.canvases(
-      toSourceTimelineTime(getPlaybackTime(), sourceTimelineOffsetRef.current)
+      toSourceTimelineTime(getPlaybackTime(), sourceTimelineOffsetRef.current),
+      Infinity,
+      packetRetrievalOptions,
     );
     const firstResult = await videoFrameIteratorRef.current.next();
     const secondResult = await videoFrameIteratorRef.current.next();
@@ -483,6 +493,7 @@ export function useEditorPlayback({
     audioBufferIteratorRef.current = null;
     nextFrameRef.current = null;
     sourceTimelineOffsetRef.current = 0;
+    skipLiveWaitRef.current = false;
     videoSinkRef.current = null;
     audioSinkRef.current = null;
     inputRef.current?.dispose();
@@ -595,8 +606,11 @@ export function useEditorPlayback({
 
     if (audioSinkRef.current) {
       void audioBufferIteratorRef.current?.return();
+      const packetRetrievalOptions = skipLiveWaitRef.current ? { skipLiveWait: true } : undefined;
       audioBufferIteratorRef.current = audioSinkRef.current.buffers(
-        toSourceTimelineTime(getPlaybackTime(), sourceTimelineOffsetRef.current)
+        toSourceTimelineTime(getPlaybackTime(), sourceTimelineOffsetRef.current),
+        Infinity,
+        packetRetrievalOptions,
       );
       void runAudioIterator(generationRef.current);
     }
@@ -650,16 +664,19 @@ export function useEditorPlayback({
       setError("");
       setActiveSourceLabel("");
       setExportFallbackSourceUrl(undefined);
+      setHlsFallbackInfo(null);
       setDuration(resetDuration);
       durationRef.current = resetDuration;
       setSourceVideoDimensions(null);
       setCurrentTime(0);
       playbackTimeAtStartRef.current = 0;
       sourceTimelineOffsetRef.current = 0;
+      skipLiveWaitRef.current = false;
 
       try {
         const failures: PlaybackLoadFailure[] = [];
         let nextExportFallbackSourceUrl: string | undefined;
+        let nextHlsFallbackInfo: PlaybackFallbackInfo | null = null;
 
         for (const playbackSource of playbackSources) {
           setPreviewStatus(
@@ -699,18 +716,14 @@ export function useEditorPlayback({
               selectedAudioTrack
             );
             const sourceTracks: InputTrack[] = [sourceVideoTrack, sourceAudioTrack].filter(isPresent);
-            const liveTracks = sourceTracks.length > 0
+            const timelineTracks = sourceTracks.length > 0
               ? sourceTracks
               : [previewVideoTrack, previewAudioTrack].filter(isPresent);
-            const trackLiveStates = await Promise.all(
-              liveTracks.map((track) => track.isLive())
+            const trackLiveRefreshIntervals = await Promise.all(
+              timelineTracks.map((track) => track.getLiveRefreshInterval())
             );
-            if (trackLiveStates.some(Boolean)) {
-              throw new PlaybackSourceError(
-                "shared-export-blocking",
-                "Live HLS streams are not supported in the editor or export yet."
-              );
-            }
+            const isLivePlayback = trackLiveRefreshIntervals.some((value) => value !== null);
+            skipLiveWaitRef.current = isLivePlayback;
 
             const previewAudioAssessment = await assessPreviewAudioTrack(previewAudioTrack);
             previewAudioTrack = previewAudioAssessment.track;
@@ -733,12 +746,18 @@ export function useEditorPlayback({
             const timelineOffsetSeconds = await getTrackTimelineOffsetSeconds(durationTracks);
             sourceTimelineOffsetRef.current = timelineOffsetSeconds;
             const metadataDuration = durationTracks.length > 0
-              ? await input.getDurationFromMetadata(durationTracks)
+              ? await input.getDurationFromMetadata(
+                durationTracks,
+                isLivePlayback ? { skipLiveWait: true } : undefined
+              )
               : null;
             const sourceTimelineEnd = durationTracks.length > 0
               ? metadataDuration && metadataDuration > 0
                 ? metadataDuration
-                : await input.computeDuration(durationTracks)
+                : await input.computeDuration(
+                  durationTracks,
+                  isLivePlayback ? { skipLiveWait: true } : undefined
+                )
               : Math.max(initialDuration, 0);
             const nextDuration = Math.max(
               0,
@@ -806,6 +825,9 @@ export function useEditorPlayback({
             setExportFallbackSourceUrl(
               playbackSource.label === "direct source" ? nextExportFallbackSourceUrl : undefined
             );
+            setHlsFallbackInfo(
+              playbackSource.label === "direct source" ? nextHlsFallbackInfo : null
+            );
             return;
           } catch (err) {
             const failure = buildPlaybackFailure(playbackSource, err);
@@ -817,6 +839,13 @@ export function useEditorPlayback({
               && directSourceUrl
             ) {
               nextExportFallbackSourceUrl = directSourceUrl;
+            }
+
+            if (failure.label === "hls stream") {
+              nextHlsFallbackInfo = {
+                category: failure.category,
+                message: failure.message,
+              };
             }
 
             console.warn("Editor playback source failed", {
@@ -837,6 +866,7 @@ export function useEditorPlayback({
 
         if (!cancelled) {
           setError(buildPlaybackLoadError(failures));
+          setHlsFallbackInfo(nextHlsFallbackInfo);
           setSourceVideoDimensions(null);
         }
       } finally {
@@ -874,6 +904,7 @@ export function useEditorPlayback({
     error,
     activeSourceLabel,
     exportFallbackSourceUrl,
+    hlsFallbackInfo,
     sourceVideoDimensions,
     volume,
     muted,

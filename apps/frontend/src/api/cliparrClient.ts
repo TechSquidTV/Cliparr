@@ -62,6 +62,12 @@ function queueAuthFailureNotification() {
   });
 }
 
+function buildUnexpectedApiResponseError() {
+  return new Error(
+    "Cliparr API returned HTML instead of JSON. Make sure the Cliparr server is running on the configured API URL and that another local app is not already serving that port."
+  );
+}
+
 function followAppAuthRedirect(response: Response) {
   if (typeof window === "undefined" || !response.redirected) {
     return false;
@@ -94,6 +100,10 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   const contentType = response.headers.get("content-type") ?? "";
 
   if (!response.ok) {
+    if (!contentType.includes("application/json")) {
+      throw buildUnexpectedApiResponseError();
+    }
+
     const data: unknown = contentType.includes("application/json")
       ? await response.json().catch((): unknown => null)
       : null;
@@ -115,9 +125,7 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   }
 
   if (!contentType.includes("application/json")) {
-    throw new Error(
-      "Cliparr API returned HTML instead of JSON. Open the app through the Cliparr server or configure the Vite API proxy."
-    );
+    throw buildUnexpectedApiResponseError();
   }
 
   const data: unknown = await response.json();

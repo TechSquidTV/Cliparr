@@ -50,11 +50,14 @@ export async function getTrackTimelineOffsetSeconds(
     return 0;
   }
 
-  const usesUnixEpochTimeline = (await Promise.all(
-    presentTracks.map((track) => track.isRelativeToUnixEpoch())
-  )).some(Boolean);
+  const [relativeToUnixEpochStates, liveStates] = await Promise.all([
+    Promise.all(presentTracks.map((track) => track.isRelativeToUnixEpoch())),
+    Promise.all(presentTracks.map((track) => track.isLive())),
+  ]);
+  const usesUnixEpochTimeline = relativeToUnixEpochStates.some(Boolean);
+  const usesLiveTimeline = liveStates.some(Boolean);
 
-  if (!usesUnixEpochTimeline) {
+  if (!usesUnixEpochTimeline && !usesLiveTimeline) {
     return 0;
   }
 
@@ -62,7 +65,7 @@ export async function getTrackTimelineOffsetSeconds(
     presentTracks.map((track) => track.getFirstTimestamp())
   );
 
-  return Math.min(...firstTimestamps);
+  return Math.max(0, Math.min(...firstTimestamps));
 }
 
 export function toSourceTimelineTime(displayTimeSeconds: number, timelineOffsetSeconds: number) {
