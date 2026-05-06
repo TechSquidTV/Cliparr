@@ -1,5 +1,6 @@
 import { randomUUID } from "crypto";
 import { Readable } from "stream";
+import { pipeline } from "stream/promises";
 import type { ReadableStream as WebReadableStream } from "stream/web";
 import type { Response } from "express";
 import { getServerLogger } from "../../logging.js";
@@ -211,6 +212,37 @@ function isHlsPlaylist(handle: MediaHandle, contentType: string) {
   }
 }
 
+function describeStreamFailure(err: unknown) {
+  if (err instanceof Error) {
+    const errorWithCause = err as Error & { code?: string; cause?: unknown };
+    const properties: Record<string, unknown> = {
+      errorName: err.name,
+      errorMessage: err.message,
+    };
+
+    if (errorWithCause.code) {
+      properties.errorCode = errorWithCause.code;
+    }
+
+    if (errorWithCause.cause instanceof Error) {
+      properties.causeName = errorWithCause.cause.name;
+      properties.causeMessage = errorWithCause.cause.message;
+      const causeWithCode = errorWithCause.cause as Error & { code?: string };
+      if (causeWithCode.code) {
+        properties.causeCode = causeWithCode.code;
+      }
+    } else if (errorWithCause.cause !== undefined) {
+      properties.causeType = typeof errorWithCause.cause;
+    }
+
+    return properties;
+  }
+
+  return {
+    errorValue: String(err),
+  };
+}
+
 export async function proxyUpstreamMediaResponse(
   session: ProviderSessionRecord,
   handle: MediaHandle,
@@ -243,5 +275,37 @@ export async function proxyUpstreamMediaResponse(
     return;
   }
 
-  Readable.fromWeb(upstream.body as unknown as WebReadableStream<Uint8Array>).pipe(res);
+  const upstreamBody = Readable.fromWeb(upstream.body as unknown as WebReadableStream<Uint8Array>);
+  const closeUpstreamBody = () => {
+    upstreamBody.destroy();
+  };
+
+  res.once("close", closeUpstreamBody);
+
+  try {
+    await pipeline(upstreamBody, res);
+  } catch (err) {
+    const responseClosed = res.destroyed || res.writableEnded || res.writableFinished;
+    const logMessage = "Streaming media proxy failed for handle {handleId}.";
+    const properties = {
+      handleId: handle.id,
+      sessionId: session.id,
+      providerId: handle.providerId,
+      path: handle.path,
+      responseClosed,
+      ...describeStreamFailure(err),
+    };
+
+    if (responseClosed) {
+      logger.debug(logMessage, properties);
+      return;
+    }
+
+    logger.warn(logMessage, properties);
+    if (!res.destroyed) {
+      res.destroy();
+    }
+  } finally {
+    res.off("close", closeUpstreamBody);
+  }
 }

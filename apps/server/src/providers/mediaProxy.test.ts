@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { PassThrough } from "node:stream";
 import test from "node:test";
 import type { Response } from "express";
 import type { ProviderSessionRecord } from "../session/store.js";
@@ -55,6 +56,35 @@ function createResponseRecorder() {
   };
 }
 
+function createStreamingResponseRecorder() {
+  const stream = new PassThrough();
+  const headers = new Map<string, string>();
+  let statusCode = 200;
+  stream.resume();
+
+  return Object.assign(stream, {
+    get statusCode() {
+      return statusCode;
+    },
+    set statusCode(value: number) {
+      statusCode = value;
+    },
+    headers,
+    status(code: number) {
+      statusCode = code;
+      return this;
+    },
+    setHeader(name: string, value: string | number) {
+      headers.set(name.toLowerCase(), String(value));
+      return this;
+    },
+    send(body: string) {
+      stream.end(body);
+      return this;
+    },
+  });
+}
+
 void test("preserves absolute HLS origins when rewriting nested playlist resources", async () => {
   const session = createSession();
   const rootHandle = createMediaHandle();
@@ -102,4 +132,38 @@ void test("preserves absolute HLS origins when rewriting nested playlist resourc
   const handlePaths = [...session.mediaHandles.values()].map((handle) => handle.path);
   assert(handlePaths.includes("https://cdn.example.com/hls/720p/key.key?sig=1"));
   assert(handlePaths.includes("https://cdn.example.com/hls/720p/segment0.ts"));
+});
+
+void test("does not throw when a proxied media stream terminates early", async () => {
+  const session = createSession();
+  const handle = createMediaHandle({
+    path: "/library/parts/1/file.mp4",
+  });
+  const response = createStreamingResponseRecorder();
+
+  const upstream = new globalThis.Response(
+    new ReadableStream<Uint8Array>({
+      start(controller) {
+        controller.enqueue(new Uint8Array([1, 2, 3]));
+        queueMicrotask(() => {
+          controller.error(new TypeError("terminated"));
+        });
+      },
+    }),
+    {
+      status: 200,
+      headers: {
+        "content-type": "video/mp4",
+      },
+    }
+  );
+
+  await assert.doesNotReject(async () => {
+    await proxyUpstreamMediaResponse(
+      session,
+      handle,
+      upstream,
+      response as unknown as Response
+    );
+  });
 });
