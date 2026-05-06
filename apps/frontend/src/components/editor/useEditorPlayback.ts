@@ -855,8 +855,8 @@ export function useEditorPlayback({
             setCurrentTime(0);
             playbackTimeAtStartRef.current = 0;
 
-            const sourceDimensions = previewVideoTrack
-              ? await getVideoTrackDimensions(previewVideoTrack)
+            const sourceDimensions = sourceVideoTrack
+              ? await getVideoTrackDimensions(sourceVideoTrack)
               : null;
             const audioTrackSampleRate = previewAudioTrack
               ? await getAudioTrackSampleRate(previewAudioTrack)

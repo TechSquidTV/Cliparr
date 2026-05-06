@@ -438,6 +438,7 @@ export default function EditorScreen({ session, onBack }: Props) {
         error={exportError}
         fileNamePreview={fileName.fullName}
         outputDimensions={outputDimensions}
+        hasHlsSource={Boolean(session.hlsUrl)}
         usingDirectSourceFallback={usingDirectSourceFallback}
         exportFallbackMessage={exportFallbackMessage}
         activeTemplateKind={fileName.templateKind}

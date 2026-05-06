@@ -38,6 +38,7 @@ interface EditorExportDialogProps {
   error: string | null;
   fileNamePreview: string;
   outputDimensions: VideoDimensions | null;
+  hasHlsSource: boolean;
   usingDirectSourceFallback: boolean;
   exportFallbackMessage: string | null;
   activeTemplateKind: ExportFileNameTemplateKind;
@@ -141,6 +142,7 @@ export function EditorExportDialog({
   error,
   fileNamePreview,
   outputDimensions,
+  hasHlsSource,
   usingDirectSourceFallback,
   exportFallbackMessage,
   activeTemplateKind,
@@ -286,8 +288,16 @@ export function EditorExportDialog({
 
             {usingDirectSourceFallback && (
               <div className="rounded-md border border-primary/25 bg-primary/5 px-3 py-2 text-sm text-foreground">
-                HLS is the primary editing stream. This export is using the direct media source as a fallback because an
-                HLS stream could not be used for this session.
+                {hasHlsSource ? (
+                  <>
+                    HLS is the primary editing stream. This export is using the direct media source as a fallback because an
+                    HLS stream could not be used for this session.
+                  </>
+                ) : (
+                  <>
+                    This session only exposed a direct media stream, so export will use that direct media path.
+                  </>
+                )}
                 {exportFallbackMessage ? (
                   <div className="mt-1 text-xs text-muted-foreground">
                     {exportFallbackMessage}
