@@ -44,6 +44,7 @@ export function useEditorTimeline({
   const pendingTimelineScrollLeftRef = useRef<number | null>(null);
   const timelineWheelDeltaRef = useRef(0);
   const hasUserAdjustedTimelineZoomRef = useRef(false);
+  const [timelineScrollLeft, setTimelineScrollLeft] = useState(0);
   const [timelineViewportWidth, setTimelineViewportWidth] = useState(0);
 
   const hasDuration = duration > 0;
@@ -166,6 +167,7 @@ export function useEditorTimeline({
     hasUserAdjustedTimelineZoomRef.current = false;
     timelineRef.current?.setScrollLeft(0);
     pendingTimelineScrollLeftRef.current = 0;
+    setTimelineScrollLeft(0);
   }, [defaultTimelineZoomIndex, sessionId]);
 
   useEffect(() => {
@@ -179,6 +181,7 @@ export function useEditorTimeline({
     timelineWheelDeltaRef.current = 0;
     timelineRef.current?.setScrollLeft(0);
     pendingTimelineScrollLeftRef.current = 0;
+    setTimelineScrollLeft(0);
   }, [fitTimelineZoomIndex, hasDuration, timelineViewportWidth]);
 
   useEffect(() => {
@@ -197,6 +200,7 @@ export function useEditorTimeline({
 
   const handleTimelineScroll = useCallback(({ scrollLeft }: { scrollLeft: number }) => {
     timelineScrollLeftRef.current = scrollLeft;
+    setTimelineScrollLeft(scrollLeft);
   }, []);
 
   const handleTimelineWheel = useCallback((event: ReactWheelEvent<HTMLDivElement>) => {
@@ -230,6 +234,7 @@ export function useEditorTimeline({
       );
       timelineRef.current?.setScrollLeft(nextScrollLeft);
       timelineScrollLeftRef.current = nextScrollLeft;
+      setTimelineScrollLeft(nextScrollLeft);
       return;
     }
 
@@ -303,6 +308,7 @@ export function useEditorTimeline({
     const nextScrollLeft = Math.min(nextMaxScrollLeft, Math.max(0, nextAnchorPixel - pointerX));
     pendingTimelineScrollLeftRef.current = nextScrollLeft;
     timelineScrollLeftRef.current = nextScrollLeft;
+    setTimelineScrollLeft(nextScrollLeft);
     timelineZoomIndexRef.current = nextZoomIndex;
     hasUserAdjustedTimelineZoomRef.current = true;
 
@@ -363,6 +369,8 @@ export function useEditorTimeline({
     timelineEffects,
     activeTimelineScale,
     timelineScaleCount,
+    timelineScrollLeft,
+    timelineViewportWidth,
     handleTimelineScroll,
     handleTimelineWheel,
     handleTimelineChange,

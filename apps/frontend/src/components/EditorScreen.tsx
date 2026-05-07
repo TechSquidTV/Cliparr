@@ -71,6 +71,7 @@ export default function EditorScreen({ session, onBack }: Props) {
     exportFallbackSourceUrl,
     hlsFallbackInfo,
     sourceVideoDimensions,
+    playbackReadyRange,
     volume,
     muted,
     setVolume,
@@ -78,7 +79,7 @@ export default function EditorScreen({ session, onBack }: Props) {
     togglePlay,
     pausePlayback,
     seekToTime,
-    warmClipStart,
+    warmClipSelection,
     setCurrentTime,
     playbackTimeAtStartRef,
   } = useEditorPlayback({
@@ -134,6 +135,8 @@ export default function EditorScreen({ session, onBack }: Props) {
     timelineEffects,
     activeTimelineScale,
     timelineScaleCount,
+    timelineScrollLeft,
+    timelineViewportWidth,
     handleTimelineScroll,
     handleTimelineWheel,
     handleTimelineChange,
@@ -147,8 +150,8 @@ export default function EditorScreen({ session, onBack }: Props) {
     currentTime,
     sessionId: session.id,
     updateClipRange,
-    onClipRangeCommit: (nextStart) => {
-      void warmClipStart(nextStart);
+    onClipRangeCommit: (nextStart, nextEnd) => {
+      void warmClipSelection(nextStart, nextEnd);
     },
   });
 
@@ -382,6 +385,9 @@ export default function EditorScreen({ session, onBack }: Props) {
                   timelineEffects={timelineEffects}
                   activeTimelineScale={activeTimelineScale}
                   timelineScaleCount={timelineScaleCount}
+                  timelineScrollLeft={timelineScrollLeft}
+                  timelineViewportWidth={timelineViewportWidth}
+                  playbackReadyRange={previewSourceLabel === "HLS stream" ? playbackReadyRange : null}
                   loadingPreview={loadingPreview}
                   playing={playing}
                   handleTimelineScroll={handleTimelineScroll}
