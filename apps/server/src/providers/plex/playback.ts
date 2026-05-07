@@ -172,17 +172,20 @@ function resolveSelectedPart(item: any, selection?: PlexMediaSelection) {
   };
 }
 
-function createPreviewPath(item: any, selection?: PlexMediaSelection) {
+export function createPreviewPath(
+  item: any,
+  playbackSessionId: string,
+  selection?: PlexMediaSelection
+) {
   const path = metadataPath(item);
   if (!path) {
     return undefined;
   }
 
   const resolvedSelection = resolveSelectedPart(item, selection);
-  const transcodeSessionId = randomUUID();
   const params = new URLSearchParams({
     path,
-    transcodeSessionId,
+    transcodeSessionId: playbackSessionId,
     protocol: "hls",
     directPlay: "0",
     directStream: "0",
@@ -578,13 +581,13 @@ async function normalizeCurrentPlayback(
   const uniqueMetadata = dedupeCurrentlyPlayingMetadata(metadata);
 
   return Promise.all(uniqueMetadata.map(async (item: any) => {
+    const sessionId = playbackSessionIdentity(item);
     const mediaSelection = deriveMediaSelection(item);
     const enrichedItem = await enrichMetadataItem(context, item);
     const mediaPath = await resolveMediaPath(context, item, enrichedItem, mediaSelection);
-    const previewPath = createPreviewPath(enrichedItem, mediaSelection);
+    const previewPath = createPreviewPath(enrichedItem, sessionId, mediaSelection);
     const thumbPath = metadataImagePath(enrichedItem);
     const selectedAudioTrack = deriveSelectedAudioTrack(enrichedItem, mediaSelection);
-    const sessionId = playbackSessionIdentity(item);
 
     return {
       viewer: playbackViewer(item, source.id, sessionId),
