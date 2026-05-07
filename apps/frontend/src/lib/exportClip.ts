@@ -25,6 +25,7 @@ export type ExportResolution = "original" | "1080" | "720";
 
 interface ExportClipOptions {
   mediaUrl: string;
+  hls?: boolean;
   startTime: number;
   endTime: number;
   format: ExportFormat;
@@ -426,6 +427,7 @@ async function buildMetadataTags(
 
 export async function exportClip({
   mediaUrl,
+  hls,
   startTime,
   endTime,
   format,
@@ -437,7 +439,7 @@ export async function exportClip({
 }: ExportClipOptions) {
   await ensureMediabunnyCodecs();
 
-  const input = await createCliparrInputFromUrl(mediaUrl);
+  const input = await createCliparrInputFromUrl(mediaUrl, { hls });
 
   try {
     const sourceVideoTrack = await input.getPrimaryVideoTrack({

@@ -11,8 +11,11 @@ import type {
 } from "../types.js";
 import {
   createProviderMediaHandle,
+  mediaHandleRequestUrl,
   playlistBasePath,
-  proxyUpstreamMediaResponse,
+  proxyProviderMediaResponse,
+  sanitizeLoggedMediaPath,
+  shouldAttachProviderAuth,
 } from "../shared/mediaProxy.js";
 import {
   asArray,
@@ -24,7 +27,6 @@ import {
 } from "../shared/utils.js";
 import {
   booleanValue,
-  buildJellyfinUrl,
   fetchItem,
   fetchSessions,
   jellyfinFetch,
@@ -427,52 +429,83 @@ export async function proxyMedia(
 
   handle.lastAccessedAt = Date.now();
 
-  const headers = jellyfinHeaders({
-    token: handle.token,
-    deviceId: handle.deviceId,
-    accept: req.header("accept") ?? undefined,
-  });
+  const accept = req.header("accept") ?? undefined;
+  const useProviderAuth = shouldAttachProviderAuth(handle);
+  const headers = useProviderAuth
+    ? jellyfinHeaders({
+        token: handle.token,
+        deviceId: handle.deviceId,
+        accept,
+      })
+    : new Headers(accept ? { Accept: accept } : undefined);
   const range = req.header("range");
   if (range) {
     headers.set("Range", range);
   }
 
-  const upstreamUrl = buildJellyfinUrl(handle.baseUrl, handle.path).toString();
-  const accept = req.header("accept") ?? undefined;
+  const upstreamUrl = mediaHandleRequestUrl(handle).toString();
 
   logger.debug("Fetching Jellyfin media for handle {handleId}.", {
     handleId: handle.id,
     sessionId: session.id,
     sourceId: handle.sourceId,
-    upstreamUrl,
+    upstreamUrl: sanitizeLoggedMediaPath(upstreamUrl),
+    useProviderAuth,
     hasRange: Boolean(range),
     accept,
   });
 
-  let upstream;
-  try {
-    upstream = await jellyfinFetch(upstreamUrl, {
-      headers,
-    }, {
-      token: handle.token,
-      deviceId: handle.deviceId,
+  await proxyProviderMediaResponse(
+    session,
+    handle,
+    {
       accept,
-      timeoutMs: JELLYFIN_REQUEST_TIMEOUT_MS,
-      errorCode: "jellyfin_media_failed",
-      failureMessage: "Jellyfin media request failed",
-    });
-  } catch (err) {
-    logger.warn("Jellyfin media request failed for handle {handleId}.", {
-      handleId: handle.id,
-      sessionId: session.id,
-      sourceId: handle.sourceId,
-      upstreamUrl,
-      hasRange: Boolean(range),
-      accept,
-      errorMessage: errorMessage(err),
-    });
-    throw err;
-  }
+      range: range ?? undefined,
+    },
+    async () => {
+      try {
+        if (!useProviderAuth) {
+          const upstream = await fetch(upstreamUrl, {
+            headers,
+            signal: AbortSignal.timeout(JELLYFIN_REQUEST_TIMEOUT_MS),
+          });
 
-  await proxyUpstreamMediaResponse(session, handle, upstream, res);
+          if (!upstream.ok && upstream.status !== 206) {
+            const detail = (await upstream.text()).slice(0, 400).replace(/\s+/g, " ").trim();
+            throw new ApiError(
+              upstream.status,
+              "jellyfin_media_failed",
+              detail ? `Jellyfin media request failed: ${detail}` : "Jellyfin media request failed",
+            );
+          }
+
+          return upstream;
+        }
+
+        return await jellyfinFetch(upstreamUrl, {
+          headers,
+        }, {
+          token: handle.token,
+          deviceId: handle.deviceId,
+          accept,
+          timeoutMs: JELLYFIN_REQUEST_TIMEOUT_MS,
+          errorCode: "jellyfin_media_failed",
+          failureMessage: "Jellyfin media request failed",
+        });
+      } catch (err) {
+        logger.warn("Jellyfin media request failed for handle {handleId}.", {
+          handleId: handle.id,
+          sessionId: session.id,
+          sourceId: handle.sourceId,
+          upstreamUrl: sanitizeLoggedMediaPath(upstreamUrl),
+          useProviderAuth,
+          hasRange: Boolean(range),
+          accept,
+          errorMessage: errorMessage(err),
+        });
+        throw err;
+      }
+    },
+    res,
+  );
 }

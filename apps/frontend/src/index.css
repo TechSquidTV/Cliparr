@@ -330,16 +330,11 @@
 
   .cliparr-timeline-ready-range {
     position: absolute;
-    top: 32px;
-    bottom: 0;
+    top: 64px;
+    height: 44px;
     z-index: 2;
     border-radius: 1px;
-    background:
-      linear-gradient(
-        90deg,
-        color-mix(in oklch, var(--secondary) 22%, transparent),
-        color-mix(in oklch, var(--secondary) 34%, transparent)
-      );
+    background: color-mix(in oklch, var(--secondary) 24%, transparent);
     box-shadow:
       inset 1px 0 0 color-mix(in oklch, var(--secondary) 54%, transparent),
       inset 0 0 0 1px color-mix(in oklch, var(--secondary) 22%, transparent);
@@ -347,30 +342,9 @@
   }
 
   .cliparr-timeline-ready-range[data-status="warming"] {
-    background:
-      repeating-linear-gradient(
-        135deg,
-        color-mix(in oklch, var(--secondary) 12%, transparent) 0 10px,
-        color-mix(in oklch, var(--secondary) 28%, transparent) 10px 20px
-      );
-    animation: cliparr-timeline-ready-scan 1.4s linear infinite;
+    background: color-mix(in oklch, var(--secondary) 18%, transparent);
   }
 
   .cliparr-timeline-ready-range[data-status="ready"] {
-    background:
-      linear-gradient(
-        90deg,
-        color-mix(in oklch, var(--secondary) 18%, transparent),
-        color-mix(in oklch, var(--secondary) 26%, transparent)
-      );
-  }
-
-  @keyframes cliparr-timeline-ready-scan {
-    from {
-      background-position: 0 0;
-    }
-
-    to {
-      background-position: 40px 0;
-    }
+    background: color-mix(in oklch, var(--secondary) 28%, transparent);
   }

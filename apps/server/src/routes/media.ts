@@ -3,6 +3,7 @@ import { listMediaSources } from "../db/mediaSourcesRepository.js";
 import { ApiError, asyncHandler } from "../http/errors.js";
 import { getServerLogger } from "../logging.js";
 import { getProvider } from "../providers/registry.js";
+import { sanitizeLoggedMediaPath } from "../providers/shared/mediaProxy.js";
 import type { CurrentlyPlayingEntry, SourcePlaybackError, ViewerPlaybackGroup } from "../providers/types.js";
 import { requireAccountSession, setNoStore } from "../session/request.js";
 import { pruneSessionMediaHandles } from "../session/store.js";
@@ -169,8 +170,8 @@ mediaRouter.get(
       sessionId: session.id,
       providerId: handle.providerId,
       sourceId: handle.sourceId,
-      path: handle.path,
-      basePath: handle.basePath,
+      path: sanitizeLoggedMediaPath(handle.path),
+      basePath: sanitizeLoggedMediaPath(handle.basePath),
       prunedHandleCount: prunedCount,
     });
 

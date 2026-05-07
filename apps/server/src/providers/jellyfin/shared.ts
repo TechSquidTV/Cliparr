@@ -237,7 +237,7 @@ export function jellyfinSourceName(serverName: unknown, baseUrl: string) {
   return `Jellyfin (${hostInfo.label})`;
 }
 
-export function buildJellyfinUrl(baseUrl: string, path: string) {
+function buildJellyfinUrl(baseUrl: string, path: string) {
   if (/^[a-z][a-z0-9+.-]*:/i.test(path)) {
     return assertHttpUrl(path);
   }

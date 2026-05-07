@@ -19,11 +19,47 @@ interface CreateMediaHandleOptions {
   basePath?: string;
 }
 
+interface ProxyMediaRequestOptions {
+  accept?: string;
+  range?: string;
+}
+
+interface CachedProxyMediaResponse {
+  status: number;
+  headers: [string, string][];
+  body: Buffer;
+}
+
 const RELATIVE_MEDIA_BASE_URL = "http://cliparr.local";
+const PROXY_HEADER_ALLOWLIST = [
+  "accept-ranges",
+  "cache-control",
+  "content-disposition",
+  "content-length",
+  "content-range",
+  "content-type",
+  "etag",
+  "last-modified",
+] as const;
+const HLS_PROXY_RESPONSE_CACHE_TTL_MS = 4_000;
+const HLS_PROXY_RESPONSE_CACHE_MAX_BYTES = 8 * 1024 * 1024;
 const logger = getServerLogger(["providers", "media-proxy"]);
+const cachedProxyResponses = new Map<string, {
+  expiresAt: number;
+  response: CachedProxyMediaResponse;
+}>();
+const inflightProxyResponses = new Map<string, Promise<CachedProxyMediaResponse>>();
 
 function isAbsoluteUrl(path: string) {
   return /^[a-z][a-z0-9+.-]*:/i.test(path);
+}
+
+function safeUrl(value: string, base?: string) {
+  try {
+    return base ? new URL(value, base) : new URL(value);
+  } catch {
+    return null;
+  }
 }
 
 export function normalizeMediaPath(path: string) {
@@ -36,6 +72,34 @@ export function normalizeMediaPath(path: string) {
   }
 
   return path;
+}
+
+export function mediaHandleRequestUrl(handle: Pick<MediaHandle, "baseUrl" | "path">) {
+  return new URL(handle.path, handle.baseUrl);
+}
+
+export function shouldAttachProviderAuth(handle: Pick<MediaHandle, "baseUrl" | "path">) {
+  const requestUrl = mediaHandleRequestUrl(handle);
+  const providerUrl = safeUrl(handle.baseUrl);
+  return providerUrl ? requestUrl.origin === providerUrl.origin : true;
+}
+
+export function sanitizeLoggedMediaPath(value: string | undefined) {
+  if (!value) {
+    return value;
+  }
+
+  const absoluteUrl = safeUrl(value);
+  if (absoluteUrl) {
+    return `${absoluteUrl.origin}${absoluteUrl.pathname}`;
+  }
+
+  const relativeUrl = safeUrl(normalizeMediaPath(value), RELATIVE_MEDIA_BASE_URL);
+  if (relativeUrl) {
+    return relativeUrl.pathname;
+  }
+
+  return value.split(/[?#]/, 1)[0] ?? value;
 }
 
 export function createProviderMediaHandle(
@@ -64,8 +128,8 @@ export function createProviderMediaHandle(
         sessionId: session.id,
         providerId: context.providerId,
         sourceId: context.sourceId,
-        path: normalizedPath,
-        basePath: normalizedBasePath,
+        path: sanitizeLoggedMediaPath(normalizedPath),
+        basePath: sanitizeLoggedMediaPath(normalizedBasePath),
       });
       return `/api/media/${existingHandle.id}`;
     }
@@ -88,8 +152,8 @@ export function createProviderMediaHandle(
     sessionId: session.id,
     providerId: handle.providerId,
     sourceId: handle.sourceId,
-    path: handle.path,
-    basePath: handle.basePath,
+    path: sanitizeLoggedMediaPath(handle.path),
+    basePath: sanitizeLoggedMediaPath(handle.basePath),
     absolutePath: isAbsoluteUrl(handle.path),
   });
   return `/api/media/${handle.id}`;
@@ -168,8 +232,8 @@ async function rewriteHlsPlaylist(
     handleId: handle.id,
     sessionId: session.id,
     providerId: handle.providerId,
-    path: handle.path,
-    basePath,
+    path: sanitizeLoggedMediaPath(handle.path),
+    basePath: sanitizeLoggedMediaPath(basePath),
     upstreamStatus: upstream.status,
     rewrittenUriCount,
   });
@@ -178,18 +242,7 @@ async function rewriteHlsPlaylist(
 }
 
 function copyProxyHeaders(upstream: globalThis.Response, res: Response) {
-  const allowed = [
-    "accept-ranges",
-    "cache-control",
-    "content-disposition",
-    "content-length",
-    "content-range",
-    "content-type",
-    "etag",
-    "last-modified",
-  ];
-
-  for (const header of allowed) {
+  for (const header of PROXY_HEADER_ALLOWLIST) {
     const value = upstream.headers.get(header);
     if (value) {
       res.setHeader(header, value);
@@ -210,6 +263,103 @@ function isHlsPlaylist(handle: MediaHandle, contentType: string) {
   } catch {
     return handle.path.split("?")[0].endsWith(".m3u8");
   }
+}
+
+function snapshotProxyHeaders(upstream: globalThis.Response) {
+  const headers: [string, string][] = [];
+
+  for (const header of PROXY_HEADER_ALLOWLIST) {
+    const value = upstream.headers.get(header);
+    if (value) {
+      headers.push([header, value]);
+    }
+  }
+
+  headers.push(["cross-origin-resource-policy", "same-origin"]);
+  return headers;
+}
+
+function applySnapshotHeaders(headers: readonly [string, string][], res: Response) {
+  for (const [name, value] of headers) {
+    res.setHeader(name, value);
+  }
+}
+
+function handlePathname(path: string) {
+  try {
+    return new URL(path, RELATIVE_MEDIA_BASE_URL).pathname.toLowerCase();
+  } catch {
+    return path.split("?")[0]?.toLowerCase() ?? path.toLowerCase();
+  }
+}
+
+function isHlsDerivedHandle(handle: MediaHandle) {
+  return Boolean(handle.basePath) || handlePathname(handle.path).endsWith(".m3u8");
+}
+
+function buildProxyCacheKey(handle: MediaHandle, request: ProxyMediaRequestOptions) {
+  if (request.range || !isHlsDerivedHandle(handle)) {
+    return null;
+  }
+
+  return `${handle.id}:${request.accept ?? ""}`;
+}
+
+function pruneCachedProxyResponses(now = Date.now()) {
+  for (const [cacheKey, entry] of cachedProxyResponses.entries()) {
+    if (entry.expiresAt <= now) {
+      cachedProxyResponses.delete(cacheKey);
+    }
+  }
+}
+
+function sendCachedProxyResponse(response: CachedProxyMediaResponse, res: Response) {
+  res.status(response.status);
+  applySnapshotHeaders(response.headers, res);
+  res.end(response.body);
+}
+
+async function createCachedProxyMediaResponse(
+  session: ProviderSessionRecord,
+  handle: MediaHandle,
+  upstream: globalThis.Response,
+) {
+  const contentType = upstream.headers.get("content-type") ?? "";
+  const headers = snapshotProxyHeaders(upstream);
+
+  if (isHlsPlaylist(handle, contentType)) {
+    const playlist = await rewriteHlsPlaylist(session, handle, upstream);
+    const body = Buffer.from(playlist);
+    const nextHeaders = headers
+      .filter(([name]) => name !== "content-type" && name !== "content-length")
+      .concat([
+        ["content-type", "application/vnd.apple.mpegurl"],
+        ["content-length", String(body.byteLength)],
+      ]);
+
+    return {
+      status: upstream.status,
+      headers: nextHeaders,
+      body,
+    } satisfies CachedProxyMediaResponse;
+  }
+
+  const body = Buffer.from(await upstream.arrayBuffer());
+  const nextHeaders = upstream.body
+    ? headers
+    : headers.filter(([name]) => name !== "content-length");
+
+  if (!upstream.body) {
+    nextHeaders.push(["content-length", "0"]);
+  } else if (!nextHeaders.some(([name]) => name === "content-length")) {
+    nextHeaders.push(["content-length", String(body.byteLength)]);
+  }
+
+  return {
+    status: upstream.status,
+    headers: nextHeaders,
+    body,
+  } satisfies CachedProxyMediaResponse;
 }
 
 function describeStreamFailure(err: unknown) {
@@ -257,7 +407,7 @@ export async function proxyUpstreamMediaResponse(
     handleId: handle.id,
     sessionId: session.id,
     providerId: handle.providerId,
-    path: handle.path,
+    path: sanitizeLoggedMediaPath(handle.path),
     upstreamStatus: upstream.status,
     contentType,
   });
@@ -291,7 +441,7 @@ export async function proxyUpstreamMediaResponse(
       handleId: handle.id,
       sessionId: session.id,
       providerId: handle.providerId,
-      path: handle.path,
+      path: sanitizeLoggedMediaPath(handle.path),
       responseClosed,
       ...describeStreamFailure(err),
     };
@@ -308,4 +458,68 @@ export async function proxyUpstreamMediaResponse(
   } finally {
     res.off("close", closeUpstreamBody);
   }
+}
+
+export async function proxyProviderMediaResponse(
+  session: ProviderSessionRecord,
+  handle: MediaHandle,
+  request: ProxyMediaRequestOptions,
+  fetchUpstream: () => Promise<globalThis.Response>,
+  res: Response,
+) {
+  const cacheKey = buildProxyCacheKey(handle, request);
+  if (!cacheKey) {
+    const upstream = await fetchUpstream();
+    await proxyUpstreamMediaResponse(session, handle, upstream, res);
+    return;
+  }
+
+  pruneCachedProxyResponses();
+
+  const cachedResponse = cachedProxyResponses.get(cacheKey);
+  if (cachedResponse && cachedResponse.expiresAt > Date.now()) {
+    logger.debug("Served cached proxied media response for handle {handleId}.", {
+      handleId: handle.id,
+      sessionId: session.id,
+      providerId: handle.providerId,
+      path: sanitizeLoggedMediaPath(handle.path),
+      cacheKey,
+    });
+    sendCachedProxyResponse(cachedResponse.response, res);
+    return;
+  }
+
+  let inflightResponse = inflightProxyResponses.get(cacheKey);
+  if (!inflightResponse) {
+    inflightResponse = (async () => {
+      const upstream = await fetchUpstream();
+      const response = await createCachedProxyMediaResponse(session, handle, upstream);
+
+      if (response.body.byteLength <= HLS_PROXY_RESPONSE_CACHE_MAX_BYTES) {
+        cachedProxyResponses.set(cacheKey, {
+          expiresAt: Date.now() + HLS_PROXY_RESPONSE_CACHE_TTL_MS,
+          response,
+        });
+      }
+
+      return response;
+    })();
+
+    inflightProxyResponses.set(cacheKey, inflightResponse);
+    void inflightResponse.finally(() => {
+      if (inflightProxyResponses.get(cacheKey) === inflightResponse) {
+        inflightProxyResponses.delete(cacheKey);
+      }
+    });
+  } else {
+    logger.debug("Waiting for in-flight proxied media response for handle {handleId}.", {
+      handleId: handle.id,
+      sessionId: session.id,
+      providerId: handle.providerId,
+      path: sanitizeLoggedMediaPath(handle.path),
+      cacheKey,
+    });
+  }
+
+  sendCachedProxyResponse(await inflightResponse, res);
 }

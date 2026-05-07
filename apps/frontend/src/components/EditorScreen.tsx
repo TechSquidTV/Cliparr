@@ -245,6 +245,7 @@ export default function EditorScreen({ session, onBack }: Props) {
       const { exportClip } = await import("../lib/exportClip");
       const blob = await exportClip({
         mediaUrl: exportSourceUrl,
+        hls: Boolean(session.hlsUrl) && exportSourceUrl === session.hlsUrl,
         startTime,
         endTime,
         format: exportFormat,
@@ -278,6 +279,7 @@ export default function EditorScreen({ session, onBack }: Props) {
     includeAudio,
     resolution,
     session.exportMetadata,
+    session.hlsUrl,
     session.selectedAudioTrack,
     startTime,
     exportSourceUrl,

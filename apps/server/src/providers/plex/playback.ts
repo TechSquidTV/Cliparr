@@ -13,7 +13,10 @@ import type {
 } from "../types.js";
 import {
   createProviderMediaHandle,
-  proxyUpstreamMediaResponse,
+  mediaHandleRequestUrl,
+  proxyProviderMediaResponse,
+  sanitizeLoggedMediaPath,
+  shouldAttachProviderAuth,
 } from "../shared/mediaProxy.js";
 import {
   asArray,
@@ -631,10 +634,13 @@ export async function proxyMedia(
 
   handle.lastAccessedAt = Date.now();
 
-  const url = new URL(handle.path, handle.baseUrl);
-  const headers = plexMediaHeaders({
-    "X-Plex-Token": handle.token,
-  });
+  const url = mediaHandleRequestUrl(handle);
+  const useProviderAuth = shouldAttachProviderAuth(handle);
+  const headers = useProviderAuth
+    ? plexMediaHeaders({
+        "X-Plex-Token": handle.token,
+      })
+    : new Headers();
 
   const accept = req.header("accept");
   const range = req.header("range");
@@ -645,7 +651,7 @@ export async function proxyMedia(
     headers.set("Range", range);
   }
 
-  const playbackSessionId = transcodeSessionId(handle.path);
+  const playbackSessionId = useProviderAuth ? transcodeSessionId(handle.path) : null;
   if (playbackSessionId) {
     headers.set("X-Plex-Session-Identifier", playbackSessionId);
   }
@@ -654,32 +660,45 @@ export async function proxyMedia(
     handleId: handle.id,
     sessionId: session.id,
     sourceId: handle.sourceId,
-    upstreamUrl: url.toString(),
+    upstreamUrl: sanitizeLoggedMediaPath(url.toString()),
+    useProviderAuth,
     hasRange: Boolean(range),
     accept,
     playbackSessionId,
   });
 
-  const upstream = await fetch(url.toString(), { headers });
-  if (!upstream.ok && upstream.status !== 206) {
-    const detail = (await upstream.text()).slice(0, 400).replace(/\s+/g, " ").trim();
-    logger.warn("Plex media request failed for handle {handleId}.", {
-      handleId: handle.id,
-      sessionId: session.id,
-      sourceId: handle.sourceId,
-      upstreamUrl: url.toString(),
-      statusCode: upstream.status,
-      detail,
-      hasRange: Boolean(range),
-      accept,
-      playbackSessionId,
-    });
-    throw new ApiError(
-      upstream.status,
-      "plex_media_failed",
-      detail ? `Plex media request failed: ${detail}` : "Plex media request failed"
-    );
-  }
+  await proxyProviderMediaResponse(
+    session,
+    handle,
+    {
+      accept: accept ?? undefined,
+      range: range ?? undefined,
+    },
+    async () => {
+      const upstream = await fetch(url.toString(), { headers });
+      if (!upstream.ok && upstream.status !== 206) {
+        const detail = (await upstream.text()).slice(0, 400).replace(/\s+/g, " ").trim();
+        logger.warn("Plex media request failed for handle {handleId}.", {
+          handleId: handle.id,
+          sessionId: session.id,
+          sourceId: handle.sourceId,
+          upstreamUrl: sanitizeLoggedMediaPath(url.toString()),
+          statusCode: upstream.status,
+          detail,
+          useProviderAuth,
+          hasRange: Boolean(range),
+          accept,
+          playbackSessionId,
+        });
+        throw new ApiError(
+          upstream.status,
+          "plex_media_failed",
+          detail ? `Plex media request failed: ${detail}` : "Plex media request failed"
+        );
+      }
 
-  await proxyUpstreamMediaResponse(session, handle, upstream, res);
+      return upstream;
+    },
+    res,
+  );
 }

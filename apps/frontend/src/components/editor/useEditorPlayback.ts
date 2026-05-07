@@ -42,6 +42,9 @@ type WindowWithWebkitAudioContext = Window & {
   webkitAudioContext?: typeof AudioContext;
 };
 
+const INITIAL_SELECTION_WARMUP_SECONDS = 8;
+const SEEK_SELECTION_EXTENSION_DELAY_MS = 900;
+
 interface PlaybackSourceCandidate {
   label: "hls stream" | "direct source";
   url: string;
@@ -64,6 +67,10 @@ export interface PlaybackReadyRange {
   endTime: number;
   readyUntilTime: number;
   status: "idle" | "warming" | "ready";
+}
+
+interface WarmClipSelectionOptions {
+  extendToSelectionEnd?: boolean;
 }
 
 class PlaybackSourceError extends Error {
@@ -280,6 +287,7 @@ export function useEditorPlayback({
   const selectionWarmupPromiseRef = useRef<Promise<void> | null>(null);
   const selectionWarmupVideoIteratorRef = useRef<AsyncGenerator<WrappedCanvas, void, unknown> | null>(null);
   const selectionWarmupAudioIteratorRef = useRef<AsyncGenerator<WrappedAudioBuffer, void, unknown> | null>(null);
+  const selectionWarmupExtensionTimeoutRef = useRef<number | null>(null);
   const autoWarmupSessionKeyRef = useRef<string | null>(null);
   const wasPlayingRef = useRef(false);
   const playingRef = useRef(false);
@@ -412,14 +420,22 @@ export function useEditorPlayback({
     context.fillText(message, canvas.width / 2, canvas.height / 2);
   }, []);
 
+  const cancelScheduledSelectionWarmupExtension = useCallback(() => {
+    if (selectionWarmupExtensionTimeoutRef.current !== null) {
+      window.clearTimeout(selectionWarmupExtensionTimeoutRef.current);
+      selectionWarmupExtensionTimeoutRef.current = null;
+    }
+  }, []);
+
   const cancelSelectionWarmup = useCallback(() => {
+    cancelScheduledSelectionWarmupExtension();
     selectionWarmupGenerationRef.current++;
     selectionWarmupPromiseRef.current = null;
     void selectionWarmupVideoIteratorRef.current?.return();
     void selectionWarmupAudioIteratorRef.current?.return();
     selectionWarmupVideoIteratorRef.current = null;
     selectionWarmupAudioIteratorRef.current = null;
-  }, []);
+  }, [cancelScheduledSelectionWarmupExtension]);
 
   const startVideoIterator = useCallback(async () => {
     const videoSink = videoSinkRef.current;
@@ -698,23 +714,6 @@ export function useEditorPlayback({
     });
   }, [pausePlayback, playPreview]);
 
-  const seekToTime = useCallback(async (seconds: number) => {
-    const nextTime = clampTime(seconds);
-    const wasPlaying = playingRef.current;
-
-    if (wasPlaying) {
-      pausePlayback();
-    }
-
-    playbackTimeAtStartRef.current = nextTime;
-    setCurrentTime(nextTime);
-    await startVideoIterator();
-
-    if (wasPlaying && nextTime < endTimeRef.current) {
-      void playPreview();
-    }
-  }, [clampTime, endTimeRef, pausePlayback, playPreview, startVideoIterator]);
-
   const warmClipStart = useCallback(async (clipStart: number) => {
     if (
       loadingPreview ||
@@ -778,7 +777,11 @@ export function useEditorPlayback({
     }
   }, [clampTime, loadingPreview]);
 
-  const warmClipSelection = useCallback(async (clipStart: number, clipEnd: number) => {
+  const warmClipSelection = useCallback(async (
+    clipStart: number,
+    clipEnd: number,
+    options: WarmClipSelectionOptions = {},
+  ) => {
     if (
       loadingPreview
       || playingRef.current
@@ -787,6 +790,7 @@ export function useEditorPlayback({
       return;
     }
 
+    const extendToSelectionEnd = options.extendToSelectionEnd ?? true;
     const videoSink = videoSinkRef.current;
     const audioSink = audioSinkRef.current;
     if (!videoSink && !audioSink) {
@@ -837,13 +841,14 @@ export function useEditorPlayback({
 
     cancelSelectionWarmup();
     const warmupGeneration = selectionWarmupGenerationRef.current;
-    const sourceStart = toSourceTimelineTime(normalizedStart, sourceTimelineOffsetRef.current);
-    const sourceEnd = toSourceTimelineTime(normalizedEnd, sourceTimelineOffsetRef.current);
     const packetRetrievalOptions = skipLiveWaitRef.current ? { skipLiveWait: true } : undefined;
+    const initialReadyEnd = Math.min(normalizedEnd, normalizedStart + INITIAL_SELECTION_WARMUP_SECONDS);
 
     let lastPublishedReadyUntil = normalizedStart;
     let videoReadyUntil = normalizedStart;
     let audioReadyUntil = normalizedStart;
+    let videoReachedSelectionEnd = !videoSink;
+    let audioReachedSelectionEnd = !audioSink;
 
     const computeReadyUntil = () => {
       const readyTimes = [
@@ -905,13 +910,18 @@ export function useEditorPlayback({
         || activeSourceLabelRef.current !== "HLS stream"
       );
 
-      const warmVideo = async () => {
-        if (!videoSink) {
-          return;
+      const warmVideoRange = async (rangeStart: number, rangeEnd: number) => {
+        if (!videoSink || rangeEnd <= rangeStart) {
+          return true;
         }
 
-        const iterator = videoSink.canvases(sourceStart, sourceEnd, packetRetrievalOptions);
+        const iterator = videoSink.canvases(
+          toSourceTimelineTime(rangeStart, sourceTimelineOffsetRef.current),
+          toSourceTimelineTime(rangeEnd, sourceTimelineOffsetRef.current),
+          packetRetrievalOptions,
+        );
         selectionWarmupVideoIteratorRef.current = iterator;
+        let completedRange = false;
 
         try {
           for await (const frame of iterator) {
@@ -925,7 +935,8 @@ export function useEditorPlayback({
             );
             publishReadyUntil(computeReadyUntil(), "warming");
 
-            if (videoReadyUntil >= normalizedEnd) {
+            if (videoReadyUntil >= rangeEnd) {
+              completedRange = true;
               break;
             }
           }
@@ -937,19 +948,33 @@ export function useEditorPlayback({
           }
         }
 
-        if (!isCancelled()) {
-          videoReadyUntil = normalizedEnd;
+        if (!isCancelled() && !completedRange && rangeEnd - videoReadyUntil <= 0.5) {
+          completedRange = true;
+        }
+
+        if (!isCancelled() && completedRange) {
+          videoReadyUntil = Math.max(videoReadyUntil, rangeEnd);
+          if (rangeEnd >= normalizedEnd) {
+            videoReachedSelectionEnd = true;
+          }
           publishReadyUntil(computeReadyUntil(), "warming", true);
         }
+
+        return completedRange;
       };
 
-      const warmAudio = async () => {
-        if (!audioSink) {
-          return;
+      const warmAudioRange = async (rangeStart: number, rangeEnd: number) => {
+        if (!audioSink || rangeEnd <= rangeStart) {
+          return true;
         }
 
-        const iterator = audioSink.buffers(sourceStart, sourceEnd, packetRetrievalOptions);
+        const iterator = audioSink.buffers(
+          toSourceTimelineTime(rangeStart, sourceTimelineOffsetRef.current),
+          toSourceTimelineTime(rangeEnd, sourceTimelineOffsetRef.current),
+          packetRetrievalOptions,
+        );
         selectionWarmupAudioIteratorRef.current = iterator;
+        let completedRange = false;
 
         try {
           for await (const { buffer, timestamp } of iterator) {
@@ -968,7 +993,8 @@ export function useEditorPlayback({
             );
             publishReadyUntil(computeReadyUntil(), "warming");
 
-            if (audioReadyUntil >= normalizedEnd) {
+            if (audioReadyUntil >= rangeEnd) {
+              completedRange = true;
               break;
             }
           }
@@ -980,16 +1006,41 @@ export function useEditorPlayback({
           }
         }
 
-        if (!isCancelled()) {
-          audioReadyUntil = normalizedEnd;
+        if (!isCancelled() && !completedRange && rangeEnd - audioReadyUntil <= 0.05) {
+          completedRange = true;
+        }
+
+        if (!isCancelled() && completedRange) {
+          audioReadyUntil = Math.max(audioReadyUntil, rangeEnd);
+          if (rangeEnd >= normalizedEnd) {
+            audioReachedSelectionEnd = true;
+          }
           publishReadyUntil(computeReadyUntil(), "warming", true);
         }
+
+        return completedRange;
       };
 
-      await Promise.allSettled([warmVideo(), warmAudio()]);
+      await Promise.allSettled([
+        warmVideoRange(normalizedStart, initialReadyEnd),
+        warmAudioRange(normalizedStart, initialReadyEnd),
+      ]);
+
+      if (!isCancelled() && extendToSelectionEnd && normalizedEnd > initialReadyEnd) {
+        await Promise.allSettled([
+          warmVideoRange(Math.max(videoReadyUntil, initialReadyEnd), normalizedEnd),
+          warmAudioRange(Math.max(audioReadyUntil, initialReadyEnd), normalizedEnd),
+        ]);
+      }
 
       if (!isCancelled()) {
-        publishReadyUntil(normalizedEnd, "ready", true);
+        publishReadyUntil(
+          videoReachedSelectionEnd && audioReachedSelectionEnd
+            ? normalizedEnd
+            : computeReadyUntil(),
+          videoReachedSelectionEnd && audioReachedSelectionEnd ? "ready" : "idle",
+          true,
+        );
       }
     })();
 
@@ -1002,6 +1053,79 @@ export function useEditorPlayback({
       }
     }
   }, [cancelSelectionWarmup, clampTime, loadingPreview, warmClipStart]);
+
+  const scheduleSelectionWarmupExtension = useCallback((clipStart: number, clipEnd: number) => {
+    cancelScheduledSelectionWarmupExtension();
+
+    if (
+      loadingPreview
+      || playingRef.current
+      || activeSourceLabelRef.current !== "HLS stream"
+    ) {
+      return;
+    }
+
+    const normalizedStart = Number(clampTime(clipStart).toFixed(6));
+    const normalizedEnd = Number(clampTime(clipEnd).toFixed(6));
+    if (!Number.isFinite(normalizedStart) || !Number.isFinite(normalizedEnd) || normalizedEnd <= normalizedStart) {
+      return;
+    }
+
+    selectionWarmupExtensionTimeoutRef.current = window.setTimeout(() => {
+      selectionWarmupExtensionTimeoutRef.current = null;
+
+      if (
+        loadingPreview
+        || playingRef.current
+        || activeSourceLabelRef.current !== "HLS stream"
+      ) {
+        return;
+      }
+
+      void warmClipSelection(normalizedStart, normalizedEnd);
+    }, SEEK_SELECTION_EXTENSION_DELAY_MS);
+  }, [cancelScheduledSelectionWarmupExtension, clampTime, loadingPreview, warmClipSelection]);
+
+  const seekToTime = useCallback(async (seconds: number) => {
+    const nextTime = clampTime(seconds);
+    const wasPlaying = playingRef.current;
+    const currentReadyRange = playbackReadyRangeRef.current;
+
+    if (wasPlaying) {
+      pausePlayback();
+    }
+
+    playbackTimeAtStartRef.current = nextTime;
+    setCurrentTime(nextTime);
+    await startVideoIterator();
+
+    if (
+      !wasPlaying
+      && activeSourceLabelRef.current === "HLS stream"
+      && (
+        !currentReadyRange
+        || nextTime < currentReadyRange.startTime
+        || nextTime > currentReadyRange.readyUntilTime
+      )
+    ) {
+      void warmClipSelection(nextTime, endTimeRef.current, {
+        extendToSelectionEnd: false,
+      });
+      scheduleSelectionWarmupExtension(nextTime, endTimeRef.current);
+    }
+
+    if (wasPlaying && nextTime < endTimeRef.current) {
+      void playPreview();
+    }
+  }, [
+    clampTime,
+    endTimeRef,
+    pausePlayback,
+    playPreview,
+    scheduleSelectionWarmupExtension,
+    startVideoIterator,
+    warmClipSelection,
+  ]);
 
   useEffect(() => {
     if (loadingPreview || activeSourceLabel !== "HLS stream") {
@@ -1028,14 +1152,26 @@ export function useEditorPlayback({
       samePlaybackRange(current, nextRange) ? current : nextRange
     ));
 
-    const warmupSessionKey = `${sessionId}:hls`;
+    const warmupSessionKey = `${sessionId}:hls:${normalizedStart}:${normalizedEnd}`;
     if (autoWarmupSessionKeyRef.current === warmupSessionKey) {
       return;
     }
 
     autoWarmupSessionKeyRef.current = warmupSessionKey;
-    void warmClipSelection(startTimeRef.current, endTimeRef.current);
-  }, [activeSourceLabel, clampTime, endTime, loadingPreview, sessionId, startTime, warmClipSelection]);
+    void warmClipSelection(startTimeRef.current, endTimeRef.current, {
+      extendToSelectionEnd: false,
+    });
+    scheduleSelectionWarmupExtension(startTimeRef.current, endTimeRef.current);
+  }, [
+    activeSourceLabel,
+    clampTime,
+    endTime,
+    loadingPreview,
+    scheduleSelectionWarmupExtension,
+    sessionId,
+    startTime,
+    warmClipSelection,
+  ]);
 
   useEffect(() => {
     if (
@@ -1046,12 +1182,26 @@ export function useEditorPlayback({
     ) {
       const currentReadyRange = playbackReadyRangeRef.current;
       if (currentReadyRange && currentReadyRange.status !== "ready") {
-        void warmClipSelection(startTimeRef.current, endTimeRef.current);
+        const resumeWarmStart = clampTime(currentTime);
+        if (resumeWarmStart < endTimeRef.current) {
+          void warmClipSelection(resumeWarmStart, endTimeRef.current, {
+            extendToSelectionEnd: false,
+          });
+          scheduleSelectionWarmupExtension(resumeWarmStart, endTimeRef.current);
+        }
       }
     }
 
     wasPlayingRef.current = playing;
-  }, [activeSourceLabel, loadingPreview, playing, warmClipSelection]);
+  }, [
+    activeSourceLabel,
+    clampTime,
+    currentTime,
+    loadingPreview,
+    playing,
+    scheduleSelectionWarmupExtension,
+    warmClipSelection,
+  ]);
 
   useEffect(() => {
     const playbackSources = buildPlaybackSourceCandidates(hlsUrl, mediaUrl);
@@ -1100,7 +1250,9 @@ export function useEditorPlayback({
               return;
             }
 
-            const input = await createCliparrInputFromUrl(playbackSource.url);
+            const input = await createCliparrInputFromUrl(playbackSource.url, {
+              hls: playbackSource.label === "hls stream",
+            });
             inputRef.current = input;
 
             const videoTracks = await input.getVideoTracks({
