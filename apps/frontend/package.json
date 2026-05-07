@@ -13,13 +13,13 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
-    "@mediabunny/aac-encoder": "^1.42.0",
-    "@mediabunny/ac3": "^1.42.0",
-    "@tanstack/react-router": "^1.168.25",
+    "@mediabunny/aac-encoder": "^1.43.1",
+    "@mediabunny/ac3": "^1.43.1",
+    "@tanstack/react-router": "^1.169.1",
     "@xzdarcy/react-timeline-editor": "^1.0.0",
     "clsx": "^2.1.1",
     "lucide-react": "^1.14.0",
-    "mediabunny": "^1.42.0",
+    "mediabunny": "^1.43.1",
     "motion": "^12.38.0",
     "radix-ui": "^1.4.3",
     "react": "^19.2.5",
@@ -29,7 +29,7 @@
   },
   "devDependencies": {
     "@tailwindcss/vite": "^4.2.4",
-    "@tanstack/router-plugin": "^1.167.28",
+    "@tanstack/router-plugin": "^1.167.33",
     "@types/node": "^25.6.0",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
