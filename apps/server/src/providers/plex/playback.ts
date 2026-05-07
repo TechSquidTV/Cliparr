@@ -656,7 +656,7 @@ export async function proxyMedia(
     headers.set("X-Plex-Session-Identifier", playbackSessionId);
   }
 
-  logger.debug("Fetching Plex media for handle {handleId}.", {
+  logger.trace("Fetching Plex media for handle {handleId}.", {
     handleId: handle.id,
     sessionId: session.id,
     sourceId: handle.sourceId,

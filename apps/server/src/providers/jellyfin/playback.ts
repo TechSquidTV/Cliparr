@@ -445,7 +445,7 @@ export async function proxyMedia(
 
   const upstreamUrl = mediaHandleRequestUrl(handle).toString();
 
-  logger.debug("Fetching Jellyfin media for handle {handleId}.", {
+  logger.trace("Fetching Jellyfin media for handle {handleId}.", {
     handleId: handle.id,
     sessionId: session.id,
     sourceId: handle.sourceId,

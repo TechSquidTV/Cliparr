@@ -72,7 +72,7 @@ export function requestLoggingMiddleware(req: Request, res: Response, next: Next
   }, () => {
     res.setHeader("X-Request-Id", requestId);
     res.once("finish", () => {
-      requestLogger.debug("Completed request {method} {originalUrl}.", {
+      requestLogger.trace("Completed request {method} {originalUrl}.", {
         statusCode: res.statusCode,
         durationMs: Date.now() - startedAt,
       });

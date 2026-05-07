@@ -116,7 +116,7 @@ mediaRouter.get(
       });
     });
 
-    logger.debug("Listed currently playing media.", {
+    logger.trace("Listed currently playing media.", {
       sessionId: session.id,
       providerId: session.providerId,
       providerAccountId: session.providerAccountId,
@@ -165,7 +165,7 @@ mediaRouter.get(
       throw new ApiError(500, "provider_not_registered", "Session provider is not registered");
     }
 
-    logger.debug("Proxying media handle {handleId}.", {
+    logger.trace("Proxying media handle {handleId}.", {
       handleId: handle.id,
       sessionId: session.id,
       providerId: handle.providerId,

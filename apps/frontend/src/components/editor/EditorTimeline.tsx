@@ -107,6 +107,8 @@ export function EditorTimeline({
       <div
         className="cliparr-timeline-ready-range"
         data-status={playbackReadyRange.status}
+        aria-label="Preview ready"
+        title="Preview ready for smooth playback"
         style={{
           left: `${clippedLeft}px`,
           width: `${width}px`,

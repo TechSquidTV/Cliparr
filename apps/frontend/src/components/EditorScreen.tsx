@@ -380,34 +380,44 @@ export default function EditorScreen({ session, onBack }: Props) {
               )}
 
               {hasDuration && (
-                <EditorTimeline
-                  timelineRef={timelineRef}
-                  timelineWheelRegionRef={timelineWheelRegionRef}
-                  timelineData={timelineData}
-                  timelineEffects={timelineEffects}
-                  activeTimelineScale={activeTimelineScale}
-                  timelineScaleCount={timelineScaleCount}
-                  timelineScrollLeft={timelineScrollLeft}
-                  timelineViewportWidth={timelineViewportWidth}
-                  playbackReadyRange={previewSourceLabel === "HLS stream" ? playbackReadyRange : null}
-                  loadingPreview={loadingPreview}
-                  playing={playing}
-                  handleTimelineScroll={handleTimelineScroll}
-                  handleTimelineChange={handleTimelineChange}
-                  handleTimelineActionMoveEnd={handleTimelineActionMoveEnd}
-                  handleTimelineActionResizeEnd={handleTimelineActionResizeEnd}
-                  handleTimelineWheel={handleTimelineWheel}
-                  isValidTimelineRange={isValidTimelineRange}
-                  seekToTime={seekToTime}
-                  onCursorDragStart={() => {
-                    if (playing) pausePlayback();
-                  }}
-                  onCursorDrag={(time) => {
-                    const nextTime = Math.min(Math.max(time, 0), duration);
-                    playbackTimeAtStartRef.current = nextTime;
-                    setCurrentTime(nextTime);
-                  }}
-                />
+                <>
+                  <EditorTimeline
+                    timelineRef={timelineRef}
+                    timelineWheelRegionRef={timelineWheelRegionRef}
+                    timelineData={timelineData}
+                    timelineEffects={timelineEffects}
+                    activeTimelineScale={activeTimelineScale}
+                    timelineScaleCount={timelineScaleCount}
+                    timelineScrollLeft={timelineScrollLeft}
+                    timelineViewportWidth={timelineViewportWidth}
+                    playbackReadyRange={previewSourceLabel === "HLS stream" ? playbackReadyRange : null}
+                    loadingPreview={loadingPreview}
+                    playing={playing}
+                    handleTimelineScroll={handleTimelineScroll}
+                    handleTimelineChange={handleTimelineChange}
+                    handleTimelineActionMoveEnd={handleTimelineActionMoveEnd}
+                    handleTimelineActionResizeEnd={handleTimelineActionResizeEnd}
+                    handleTimelineWheel={handleTimelineWheel}
+                    isValidTimelineRange={isValidTimelineRange}
+                    seekToTime={seekToTime}
+                    onCursorDragStart={() => {
+                      if (playing) pausePlayback();
+                    }}
+                    onCursorDrag={(time) => {
+                      const nextTime = Math.min(Math.max(time, 0), duration);
+                      playbackTimeAtStartRef.current = nextTime;
+                      setCurrentTime(nextTime);
+                    }}
+                  />
+                  {previewSourceLabel === "HLS stream" && (
+                    <div className="border-t border-border px-3 py-2 text-xs text-muted-foreground">
+                      <span className="font-medium text-foreground">Preview Ready</span>
+                      {" "}
+                      shows which parts of the selection are warmed for smoother preview playback.
+                      Export uses a separate read path.
+                    </div>
+                  )}
+                </>
               )}
             </section>
           </div>

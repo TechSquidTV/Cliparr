@@ -647,16 +647,20 @@ export function useEditorPlayback({
       return;
     }
 
-    cancelSelectionWarmup();
-
     const clipStart = clampTime(startTimeRef.current);
     const clipEnd = Math.min(endTimeRef.current || durationRef.current, durationRef.current);
+    const playbackTime = getPlaybackTime();
+    const playbackStartTarget = (
+      playbackTime < clipStart || playbackTime >= clipEnd
+        ? clipStart
+        : clampTime(playbackTime)
+    );
     const pendingWarmup = warmupPromiseRef.current;
     const warmupTargetTime = warmupTargetTimeRef.current;
     if (
       pendingWarmup
       && warmupTargetTime !== null
-      && Math.abs(warmupTargetTime - clipStart) < 1e-6
+      && Math.abs(warmupTargetTime - playbackStartTarget) < 1e-6
     ) {
       await pendingWarmup.catch(() => undefined);
       if (!inputRef.current || loadingPreview) {
@@ -664,7 +668,8 @@ export function useEditorPlayback({
       }
     }
 
-    const playbackTime = getPlaybackTime();
+    cancelSelectionWarmup();
+
     if (playbackTime < clipStart || playbackTime >= clipEnd) {
       playbackTimeAtStartRef.current = clipStart;
       setCurrentTime(playbackTimeAtStartRef.current);
@@ -1108,10 +1113,11 @@ export function useEditorPlayback({
         || nextTime > currentReadyRange.readyUntilTime
       )
     ) {
-      void warmClipSelection(nextTime, endTimeRef.current, {
+      void warmClipStart(nextTime);
+      void warmClipSelection(startTimeRef.current, endTimeRef.current, {
         extendToSelectionEnd: false,
       });
-      scheduleSelectionWarmupExtension(nextTime, endTimeRef.current);
+      scheduleSelectionWarmupExtension(startTimeRef.current, endTimeRef.current);
     }
 
     if (wasPlaying && nextTime < endTimeRef.current) {
@@ -1124,6 +1130,7 @@ export function useEditorPlayback({
     playPreview,
     scheduleSelectionWarmupExtension,
     startVideoIterator,
+    warmClipStart,
     warmClipSelection,
   ]);
 
@@ -1182,12 +1189,12 @@ export function useEditorPlayback({
     ) {
       const currentReadyRange = playbackReadyRangeRef.current;
       if (currentReadyRange && currentReadyRange.status !== "ready") {
-        const resumeWarmStart = clampTime(currentTime);
-        if (resumeWarmStart < endTimeRef.current) {
-          void warmClipSelection(resumeWarmStart, endTimeRef.current, {
+        const selectionStart = clampTime(startTimeRef.current);
+        if (selectionStart < endTimeRef.current) {
+          void warmClipSelection(selectionStart, endTimeRef.current, {
             extendToSelectionEnd: false,
           });
-          scheduleSelectionWarmupExtension(resumeWarmStart, endTimeRef.current);
+          scheduleSelectionWarmupExtension(selectionStart, endTimeRef.current);
         }
       }
     }
@@ -1202,6 +1209,38 @@ export function useEditorPlayback({
     scheduleSelectionWarmupExtension,
     warmClipSelection,
   ]);
+
+  useEffect(() => {
+    if (!playing || activeSourceLabel !== "HLS stream") {
+      return;
+    }
+
+    const normalizedCurrent = Number(clampTime(currentTime).toFixed(6));
+    setPlaybackReadyRange((current) => {
+      if (!current) {
+        return current;
+      }
+
+      const readyUntilTime = Math.max(
+        current.readyUntilTime,
+        Math.min(current.endTime, normalizedCurrent),
+      );
+      const status = readyUntilTime >= current.endTime ? "ready" : "warming";
+
+      if (
+        current.status === status
+        && Math.abs(current.readyUntilTime - readyUntilTime) < 1e-6
+      ) {
+        return current;
+      }
+
+      return {
+        ...current,
+        readyUntilTime,
+        status,
+      };
+    });
+  }, [activeSourceLabel, clampTime, currentTime, playing]);
 
   useEffect(() => {
     const playbackSources = buildPlaybackSourceCandidates(hlsUrl, mediaUrl);

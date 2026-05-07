@@ -147,7 +147,7 @@ export function createProviderMediaHandle(
     lastAccessedAt: accessedAt,
   };
   session.mediaHandles.set(handle.id, handle);
-  logger.debug("Created provider media handle {handleId}.", {
+  logger.trace("Created provider media handle {handleId}.", {
     handleId: handle.id,
     sessionId: session.id,
     providerId: handle.providerId,
@@ -228,7 +228,7 @@ async function rewriteHlsPlaylist(
     })
     .join("\n");
 
-  logger.debug("Rewrote HLS playlist for media handle {handleId}.", {
+  logger.trace("Rewrote HLS playlist for media handle {handleId}.", {
     handleId: handle.id,
     sessionId: session.id,
     providerId: handle.providerId,
@@ -403,7 +403,7 @@ export async function proxyUpstreamMediaResponse(
   copyProxyHeaders(upstream, res);
 
   const contentType = upstream.headers.get("content-type") ?? "";
-  logger.debug("Proxying upstream media response for handle {handleId}.", {
+  logger.trace("Proxying upstream media response for handle {handleId}.", {
     handleId: handle.id,
     sessionId: session.id,
     providerId: handle.providerId,
@@ -447,7 +447,7 @@ export async function proxyUpstreamMediaResponse(
     };
 
     if (responseClosed) {
-      logger.debug(logMessage, properties);
+      logger.trace(logMessage, properties);
       return;
     }
 
@@ -478,7 +478,7 @@ export async function proxyProviderMediaResponse(
 
   const cachedResponse = cachedProxyResponses.get(cacheKey);
   if (cachedResponse && cachedResponse.expiresAt > Date.now()) {
-    logger.debug("Served cached proxied media response for handle {handleId}.", {
+    logger.trace("Served cached proxied media response for handle {handleId}.", {
       handleId: handle.id,
       sessionId: session.id,
       providerId: handle.providerId,
@@ -512,7 +512,7 @@ export async function proxyProviderMediaResponse(
       }
     });
   } else {
-    logger.debug("Waiting for in-flight proxied media response for handle {handleId}.", {
+    logger.trace("Waiting for in-flight proxied media response for handle {handleId}.", {
       handleId: handle.id,
       sessionId: session.id,
       providerId: handle.providerId,

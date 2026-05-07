@@ -113,7 +113,7 @@ export function pruneSessionMediaHandles(session: ProviderSessionRecord, maxIdle
   }
 
   if (prunedCount > 0) {
-    logger.debug("Pruned stale media handles for provider session {sessionId}.", {
+    logger.trace("Pruned stale media handles for provider session {sessionId}.", {
       sessionId: session.id,
       providerId: session.providerId,
       providerAccountId: session.providerAccountId,
