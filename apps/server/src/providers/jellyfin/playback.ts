@@ -37,6 +37,7 @@ import {
 } from "./shared.js";
 
 const logger = getServerLogger(["providers", "jellyfin"]);
+const PLAYBACK_DIAGNOSTICS_ENABLED = process.env.CLIPARR_PLAYBACK_DIAGNOSTICS === "1";
 
 function createMediaHandle(
   session: ProviderSessionRecord,
@@ -362,11 +363,69 @@ async function normalizeCurrentPlayback(
   const enrichedItem = await enrichMetadataItem(context, nowPlayingItem);
   const playSessionId = stringValue(sessionInfo?.Id) ?? randomUUID();
   const mediaSourceId = currentMediaSourceId(sessionInfo, enrichedItem);
+  const mediaSource = currentMediaSource(sessionInfo, enrichedItem, mediaSourceId);
   const mediaPath = buildStaticStreamPath(enrichedItem, mediaSourceId, context, playSessionId);
   const previewPath = buildPreviewPath(enrichedItem, mediaSourceId, context, playSessionId);
   const imagePath = itemImagePath(enrichedItem);
   const selectedAudioTrack = deriveSelectedAudioTrack(sessionInfo, enrichedItem, mediaSourceId);
   const playerState = sessionInfo?.PlayState?.IsPaused ? "paused" : "playing";
+  const audioStreams = asArray(mediaSource?.MediaStreams).filter((stream) => isAudioMediaStream(stream));
+  const duration = ticksToSeconds(enrichedItem?.RunTimeTicks ?? nowPlayingItem?.RunTimeTicks);
+  const playerTitle = stringValue(sessionInfo?.DeviceName)
+    ?? stringValue(sessionInfo?.Client)
+    ?? stringValue(sessionInfo?.DeviceType)
+    ?? "Unknown Device";
+  const thumbUrl = imagePath ? createMediaHandle(session, context, imagePath) : undefined;
+  const mediaUrl = mediaPath ? createMediaHandle(session, context, mediaPath) : undefined;
+  const hlsUrl = previewPath
+    ? createMediaHandle(session, context, previewPath, { basePath: playlistBasePath(previewPath) })
+    : undefined;
+  const missingPreviewPath = !previewPath && String(enrichedItem?.MediaType ?? "").toLowerCase() !== "audio";
+  const unresolvedSelectedAudioTrack = !selectedAudioTrack && audioStreams.length > 1;
+  if (PLAYBACK_DIAGNOSTICS_ENABLED || missingPreviewPath || unresolvedSelectedAudioTrack) {
+    const playbackDiagnostics = {
+      sessionId: session.id,
+      sourceId: source.id,
+      providerAccountId: session.providerAccountId,
+      playSessionId,
+      currentlyPlayingItem: {
+        id: `${source.id}:${playSessionId}`,
+        title: itemTitle(enrichedItem),
+        type: itemType(enrichedItem).toLowerCase(),
+        duration,
+        playerTitle,
+        playerState,
+        mediaUrl: mediaUrl ?? null,
+        hlsUrl: hlsUrl ?? null,
+        selectedAudioTrack: selectedAudioTrack ?? null,
+      },
+      mediaSourceId: mediaSourceId ?? null,
+      audioStreamCount: audioStreams.length,
+      hasMultipleAudioStreams: audioStreams.length > 1,
+      audioStreams: audioStreams.map((stream, index) => ({
+        trackNumber: index + 1,
+        streamIndex: numberValue(stream?.Index) ?? null,
+        languageCode: stringValue(stream?.Language) ?? null,
+        title: jellyfinAudioTrackTitle(stream) ?? null,
+        codec: stringValue(stream?.Codec) ?? null,
+        isDefault: booleanValue(stream?.IsDefault) ?? null,
+      })),
+      playStateAudioStreamIndex: numberValue(sessionInfo?.PlayState?.AudioStreamIndex) ?? null,
+      defaultAudioStreamIndex: numberValue(mediaSource?.DefaultAudioStreamIndex) ?? null,
+    };
+
+    if (PLAYBACK_DIAGNOSTICS_ENABLED) {
+      logger.debug("Jellyfin playback diagnostics for currently playing item.", playbackDiagnostics);
+    }
+
+    if (missingPreviewPath) {
+      logger.debug("Jellyfin playback item did not produce an HLS preview path.", playbackDiagnostics);
+    }
+
+    if (unresolvedSelectedAudioTrack) {
+      logger.debug("Jellyfin playback item has multiple audio streams without a resolved selected audio track.", playbackDiagnostics);
+    }
+  }
 
   return {
     viewer: playbackViewer(source.id, playSessionId, sessionInfo),
@@ -379,17 +438,12 @@ async function normalizeCurrentPlayback(
       },
       title: itemTitle(enrichedItem),
       type: itemType(enrichedItem).toLowerCase(),
-      duration: ticksToSeconds(enrichedItem?.RunTimeTicks ?? nowPlayingItem?.RunTimeTicks),
-      playerTitle: stringValue(sessionInfo?.DeviceName)
-        ?? stringValue(sessionInfo?.Client)
-        ?? stringValue(sessionInfo?.DeviceType)
-        ?? "Unknown Device",
+      duration,
+      playerTitle,
       playerState,
-      thumbUrl: imagePath ? createMediaHandle(session, context, imagePath) : undefined,
-      mediaUrl: mediaPath ? createMediaHandle(session, context, mediaPath) : undefined,
-      hlsUrl: previewPath
-        ? createMediaHandle(session, context, previewPath, { basePath: playlistBasePath(previewPath) })
-        : undefined,
+      thumbUrl,
+      mediaUrl,
+      hlsUrl,
       selectedAudioTrack,
       exportMetadata: createExportMetadata(session, context, enrichedItem),
     },

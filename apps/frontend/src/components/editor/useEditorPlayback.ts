@@ -15,6 +15,8 @@ import {
   fromSourceTimelineTime,
   getAudioTrackSampleRate,
   getTrackCodec,
+  getTrackLanguageCode,
+  getTrackName,
   getTrackTimelineOffsetSeconds,
   getVideoTrackDimensions,
   toSourceTimelineTime,
@@ -71,6 +73,22 @@ export interface PlaybackReadyRange {
 
 interface WarmClipSelectionOptions {
   extendToSelectionEnd?: boolean;
+}
+
+interface PlaybackSourceAnalysisContext {
+  sessionId: string;
+  source: PlaybackSourceCandidate["label"];
+  url: string;
+  selectedAudioTrack?: PlaybackAudioSelection;
+  videoTracks: readonly InputVideoTrack[];
+  allAudioTracks: readonly InputAudioTrack[];
+  sourceVideoTrack: InputVideoTrack | null;
+  previewVideoTrack: InputVideoTrack | null;
+  sourceAudioTrack: InputAudioTrack | null;
+  previewAudioTrack: InputAudioTrack | null;
+  previewAudioWarning?: string;
+  warnings: string[];
+  isLivePlayback: boolean;
 }
 
 class PlaybackSourceError extends Error {
@@ -242,6 +260,83 @@ async function assessPreviewAudioTrack(track: InputAudioTrack | null) {
   }
 
   return { track, warning: undefined };
+}
+
+async function summarizeVideoTrackForDebug(track: InputVideoTrack | null) {
+  if (!track) {
+    return null;
+  }
+
+  const [codec, title, canDecode] = await Promise.all([
+    getTrackCodec(track),
+    getTrackName(track),
+    track.canDecode().catch(() => null),
+  ]);
+
+  return {
+    trackNumber: track.number,
+    codec: codec ?? null,
+    title: title ?? null,
+    canDecode,
+  };
+}
+
+async function summarizeAudioTrackForDebug(track: InputAudioTrack | null) {
+  if (!track) {
+    return null;
+  }
+
+  const [codec, title, languageCode, canDecode] = await Promise.all([
+    getTrackCodec(track),
+    getTrackName(track),
+    getTrackLanguageCode(track),
+    track.canDecode().catch(() => null),
+  ]);
+
+  return {
+    trackNumber: track.number,
+    codec: codec ?? null,
+    title: title ?? null,
+    languageCode: languageCode ?? null,
+    canDecode,
+  };
+}
+
+async function summarizeAudioTracksForDebug(tracks: readonly InputAudioTrack[]) {
+  return Promise.all(tracks.map((track) => summarizeAudioTrackForDebug(track)));
+}
+
+async function buildPlaybackSourceAnalysis(context: PlaybackSourceAnalysisContext) {
+  const [
+    allAudioTracks,
+    sourceVideoTrack,
+    previewVideoTrack,
+    sourceAudioTrack,
+    previewAudioTrack,
+  ] = await Promise.all([
+    summarizeAudioTracksForDebug(context.allAudioTracks),
+    summarizeVideoTrackForDebug(context.sourceVideoTrack),
+    summarizeVideoTrackForDebug(context.previewVideoTrack),
+    summarizeAudioTrackForDebug(context.sourceAudioTrack),
+    summarizeAudioTrackForDebug(context.previewAudioTrack),
+  ]);
+
+  return {
+    sessionId: context.sessionId,
+    source: context.source,
+    urlClassification: classifyPlaybackUrl(context.url),
+    selectedAudioTrack: context.selectedAudioTrack ?? null,
+    videoTrackCount: context.videoTracks.length,
+    audioTrackCount: context.allAudioTracks.length,
+    allAudioTracks,
+    sourceVideoTrack,
+    previewVideoTrack,
+    sourceAudioTrack,
+    previewAudioTrack,
+    previewAudioWarning: context.previewAudioWarning ?? null,
+    warnings: [...context.warnings],
+    isLivePlayback: context.isLivePlayback,
+  } satisfies Record<string, unknown>;
 }
 
 export function useEditorPlayback({
@@ -1275,6 +1370,7 @@ export function useEditorPlayback({
         let nextHlsFallbackInfo: PlaybackFallbackInfo | null = null;
 
         for (const playbackSource of playbackSources) {
+          let playbackSourceAnalysisContext: PlaybackSourceAnalysisContext | undefined;
           setPreviewStatus(
             failures.length === 0
               ? `Loading ${playbackSource.label}...`
@@ -1328,9 +1424,31 @@ export function useEditorPlayback({
             if (previewAudioAssessment.warning) {
               warnings.push(previewAudioAssessment.warning);
             }
+            playbackSourceAnalysisContext = {
+              sessionId,
+              source: playbackSource.label,
+              url: playbackSource.url,
+              selectedAudioTrack,
+              videoTracks,
+              allAudioTracks,
+              sourceVideoTrack,
+              previewVideoTrack,
+              sourceAudioTrack,
+              previewAudioTrack,
+              previewAudioWarning: previewAudioAssessment.warning,
+              warnings: [...warnings],
+              isLivePlayback,
+            };
 
             if (cancelled || generation !== generationRef.current) {
               return;
+            }
+
+            if (allAudioTracks.length > 0 && !previewAudioTrack && playbackSourceAnalysisContext) {
+              console.warn(
+                "Editor playback source loaded without preview audio",
+                await buildPlaybackSourceAnalysis(playbackSourceAnalysisContext),
+              );
             }
 
             if (!previewVideoTrack && !previewAudioTrack) {
@@ -1430,6 +1548,9 @@ export function useEditorPlayback({
           } catch (err) {
             const failure = buildPlaybackFailure(playbackSource, err);
             failures.push(failure);
+            const playbackSourceAnalysis = playbackSourceAnalysisContext
+              ? await buildPlaybackSourceAnalysis(playbackSourceAnalysisContext)
+              : undefined;
 
             if (
               failure.label === "hls stream"
@@ -1452,6 +1573,7 @@ export function useEditorPlayback({
               classification: failure.classification,
               category: failure.category,
               message: failure.message,
+              analysis: playbackSourceAnalysis,
             });
 
             if (cancelled) {
