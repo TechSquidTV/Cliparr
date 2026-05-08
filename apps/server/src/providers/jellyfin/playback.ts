@@ -37,7 +37,6 @@ import {
 } from "./shared.js";
 
 const logger = getServerLogger(["providers", "jellyfin"]);
-const PLAYBACK_DIAGNOSTICS_ENABLED = process.env.CLIPARR_PLAYBACK_DIAGNOSTICS === "1";
 
 function createMediaHandle(
   session: ProviderSessionRecord,
@@ -382,49 +381,45 @@ async function normalizeCurrentPlayback(
     : undefined;
   const missingPreviewPath = !previewPath && String(enrichedItem?.MediaType ?? "").toLowerCase() !== "audio";
   const unresolvedSelectedAudioTrack = !selectedAudioTrack && audioStreams.length > 1;
-  if (PLAYBACK_DIAGNOSTICS_ENABLED || missingPreviewPath || unresolvedSelectedAudioTrack) {
-    const playbackDiagnostics = {
-      sessionId: session.id,
-      sourceId: source.id,
-      providerAccountId: session.providerAccountId,
-      playSessionId,
-      currentlyPlayingItem: {
-        id: `${source.id}:${playSessionId}`,
-        title: itemTitle(enrichedItem),
-        type: itemType(enrichedItem).toLowerCase(),
-        duration,
-        playerTitle,
-        playerState,
-        mediaUrl: mediaUrl ?? null,
-        hlsUrl: hlsUrl ?? null,
-        selectedAudioTrack: selectedAudioTrack ?? null,
-      },
-      mediaSourceId: mediaSourceId ?? null,
-      audioStreamCount: audioStreams.length,
-      hasMultipleAudioStreams: audioStreams.length > 1,
-      audioStreams: audioStreams.map((stream, index) => ({
-        trackNumber: index + 1,
-        streamIndex: numberValue(stream?.Index) ?? null,
-        languageCode: stringValue(stream?.Language) ?? null,
-        title: jellyfinAudioTrackTitle(stream) ?? null,
-        codec: stringValue(stream?.Codec) ?? null,
-        isDefault: booleanValue(stream?.IsDefault) ?? null,
-      })),
-      playStateAudioStreamIndex: numberValue(sessionInfo?.PlayState?.AudioStreamIndex) ?? null,
-      defaultAudioStreamIndex: numberValue(mediaSource?.DefaultAudioStreamIndex) ?? null,
-    };
+  const playbackDiagnostics = {
+    sessionId: session.id,
+    sourceId: source.id,
+    providerAccountId: session.providerAccountId,
+    playSessionId,
+    currentlyPlayingItem: {
+      id: `${source.id}:${playSessionId}`,
+      title: itemTitle(enrichedItem),
+      type: itemType(enrichedItem).toLowerCase(),
+      duration,
+      playerTitle,
+      playerState,
+      mediaUrl: mediaUrl ?? null,
+      hlsUrl: hlsUrl ?? null,
+      selectedAudioTrack: selectedAudioTrack ?? null,
+    },
+    mediaSourceId: mediaSourceId ?? null,
+    audioStreamCount: audioStreams.length,
+    hasMultipleAudioStreams: audioStreams.length > 1,
+    audioStreams: audioStreams.map((stream, index) => ({
+      trackNumber: index + 1,
+      streamIndex: numberValue(stream?.Index) ?? null,
+      languageCode: stringValue(stream?.Language) ?? null,
+      title: jellyfinAudioTrackTitle(stream) ?? null,
+      codec: stringValue(stream?.Codec) ?? null,
+      isDefault: booleanValue(stream?.IsDefault) ?? null,
+    })),
+    playStateAudioStreamIndex: numberValue(sessionInfo?.PlayState?.AudioStreamIndex) ?? null,
+    defaultAudioStreamIndex: numberValue(mediaSource?.DefaultAudioStreamIndex) ?? null,
+  };
 
-    if (PLAYBACK_DIAGNOSTICS_ENABLED) {
-      logger.debug("Jellyfin playback diagnostics for currently playing item.", playbackDiagnostics);
-    }
+  logger.debug("Jellyfin playback diagnostics for currently playing item.", playbackDiagnostics);
 
-    if (missingPreviewPath) {
-      logger.debug("Jellyfin playback item did not produce an HLS preview path.", playbackDiagnostics);
-    }
+  if (missingPreviewPath) {
+    logger.debug("Jellyfin playback item did not produce an HLS preview path.", playbackDiagnostics);
+  }
 
-    if (unresolvedSelectedAudioTrack) {
-      logger.debug("Jellyfin playback item has multiple audio streams without a resolved selected audio track.", playbackDiagnostics);
-    }
+  if (unresolvedSelectedAudioTrack) {
+    logger.debug("Jellyfin playback item has multiple audio streams without a resolved selected audio track.", playbackDiagnostics);
   }
 
   return {

@@ -44,7 +44,6 @@ import {
 } from "./connectionState.js";
 
 const logger = getServerLogger(["providers", "plex"]);
-const PLAYBACK_DIAGNOSTICS_ENABLED = process.env.CLIPARR_PLAYBACK_DIAGNOSTICS === "1";
 
 function createMediaHandle(
   session: ProviderSessionRecord,
@@ -602,51 +601,47 @@ async function normalizeCurrentPlayback(
     const hlsUrl = previewPath ? createMediaHandle(session, context, previewPath) : undefined;
     const missingPreviewPath = !previewPath && String(enrichedItem?.type ?? "").toLowerCase() !== "track";
     const unresolvedSelectedAudioTrack = !selectedAudioTrack && audioStreams.length > 1;
-    if (PLAYBACK_DIAGNOSTICS_ENABLED || missingPreviewPath || unresolvedSelectedAudioTrack) {
-      const playbackDiagnostics = {
-        sessionId: session.id,
-        sourceId: source.id,
-        providerAccountId: session.providerAccountId,
-        playbackSessionId: sessionId,
-        currentlyPlayingItem: {
-          id: `${source.id}:${sessionId}`,
-          title: String(enrichedItem.title ?? "Untitled"),
-          type: String(enrichedItem.type ?? "video"),
-          duration,
-          playerTitle,
-          playerState,
-          mediaUrl: mediaUrl ?? null,
-          hlsUrl: hlsUrl ?? null,
-          selectedAudioTrack: selectedAudioTrack ?? null,
-        },
-        metadataPath: metadataPath(enrichedItem) ?? null,
-        mediaId: mediaSelection?.mediaId ?? null,
-        mediaIndex: mediaSelection?.mediaIndex ?? null,
-        partId: mediaSelection?.partId ?? null,
-        partIndex: mediaSelection?.partIndex ?? null,
-        audioStreamCount: audioStreams.length,
-        hasMultipleAudioStreams: audioStreams.length > 1,
-        audioStreams: audioStreams.map((stream, index) => ({
-          trackNumber: index + 1,
-          streamId: idValue(stream?.id) ?? null,
-          languageCode: stringValue(stream?.languageCode) ?? stringValue(stream?.languageTag) ?? null,
-          title: selectedAudioTrackTitle(stream) ?? null,
-          codec: stringValue(stream?.codec) ?? null,
-          selected: isSelectedEntry(stream),
-        })),
-      };
+    const playbackDiagnostics = {
+      sessionId: session.id,
+      sourceId: source.id,
+      providerAccountId: session.providerAccountId,
+      playbackSessionId: sessionId,
+      currentlyPlayingItem: {
+        id: `${source.id}:${sessionId}`,
+        title: String(enrichedItem.title ?? "Untitled"),
+        type: String(enrichedItem.type ?? "video"),
+        duration,
+        playerTitle,
+        playerState,
+        mediaUrl: mediaUrl ?? null,
+        hlsUrl: hlsUrl ?? null,
+        selectedAudioTrack: selectedAudioTrack ?? null,
+      },
+      metadataPath: metadataPath(enrichedItem) ?? null,
+      mediaId: mediaSelection?.mediaId ?? null,
+      mediaIndex: mediaSelection?.mediaIndex ?? null,
+      partId: mediaSelection?.partId ?? null,
+      partIndex: mediaSelection?.partIndex ?? null,
+      audioStreamCount: audioStreams.length,
+      hasMultipleAudioStreams: audioStreams.length > 1,
+      audioStreams: audioStreams.map((stream, index) => ({
+        trackNumber: index + 1,
+        streamId: idValue(stream?.id) ?? null,
+        languageCode: stringValue(stream?.languageCode) ?? stringValue(stream?.languageTag) ?? null,
+        title: selectedAudioTrackTitle(stream) ?? null,
+        codec: stringValue(stream?.codec) ?? null,
+        selected: isSelectedEntry(stream),
+      })),
+    };
 
-      if (PLAYBACK_DIAGNOSTICS_ENABLED) {
-        logger.debug("Plex playback diagnostics for currently playing item.", playbackDiagnostics);
-      }
+    logger.debug("Plex playback diagnostics for currently playing item.", playbackDiagnostics);
 
-      if (missingPreviewPath) {
-        logger.debug("Plex playback item did not produce an HLS preview path.", playbackDiagnostics);
-      }
+    if (missingPreviewPath) {
+      logger.debug("Plex playback item did not produce an HLS preview path.", playbackDiagnostics);
+    }
 
-      if (unresolvedSelectedAudioTrack) {
-        logger.debug("Plex playback item has multiple audio streams without a resolved selected audio track.", playbackDiagnostics);
-      }
+    if (unresolvedSelectedAudioTrack) {
+      logger.debug("Plex playback item has multiple audio streams without a resolved selected audio track.", playbackDiagnostics);
     }
 
     return {
