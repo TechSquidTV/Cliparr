@@ -1,8 +1,9 @@
 # Diagrams
 
-This file captures the current HLS playback, export, and proxy decision trees.
-It reflects the final branch behavior after the fallback, timeline, alternate
-track selection, playlist rewrite, and export memory fixes.
+This file captures the current HLS playback, preview-ready warmup, export, and
+proxy decision trees. It reflects the stable branch behavior after the fallback,
+timeline normalization, alternate track selection, playlist rewrite, proxy
+auth/cache handling, and export memory fixes.
 
 ## Playback Candidate Tree
 
@@ -93,6 +94,35 @@ flowchart TD
     O --> P["Show active source label"]
 ```
 
+## Preview Ready Warmup Tree
+
+```mermaid
+flowchart TD
+    A["Active preview source is HLS stream"] --> B["Set playbackReadyRange for selection"]
+    B --> C["Paused auto-warmup starts from selection start"]
+    C --> D["Warm exact playback/selection start first"]
+    D --> E["Warm an initial front window"]
+    E --> F["Publish readyUntilTime = min(videoReadyUntil, audioReadyUntil)"]
+    F --> G{"Still paused and selection not complete?"}
+    G -- "Yes" --> H["Schedule extension warmup toward selection end"]
+    G -- "No" --> I{"Both tracks reached selection end?"}
+    H --> I
+    I -- "Yes" --> J["Status = ready"]
+    I -- "No" --> K["Status = warming or idle"]
+
+    L["User presses Play"] --> M{"Matching start-target warmup in flight?"}
+    M -- "Yes" --> N["Wait for that exact warmup target first"]
+    M -- "No" --> O["Start playback immediately"]
+    N --> O
+    O --> P["Cancel background selection warmup"]
+    P --> Q["Preview Ready band advances with confirmed playback progress"]
+
+    R["Paused seek outside ready range"] --> S["Warm seek target silently"]
+    S --> T["Restart paused selection warmup from selection start/end"]
+
+    U["Playback pauses before selection is ready"] --> V["Resume paused selection warmup from selection start"]
+```
+
 ## Export Source Selection Tree
 
 ```mermaid
@@ -139,18 +169,43 @@ flowchart TD
     I --> J["Nested relative URIs continue from the correct host/path"]
 ```
 
+## Proxy Media Request Tree
+
+```mermaid
+flowchart TD
+    A["Client requests /api/media/:handleId"] --> B["Resolve handle request URL"]
+    B --> C{"Request origin matches provider baseUrl origin?"}
+    C -- "Yes" --> D["Attach provider auth/session headers"]
+    C -- "No" --> E["Do not attach provider auth headers"]
+
+    D --> F{"Range request or not HLS-derived?"}
+    E --> F
+
+    F -- "Yes" --> G["Fetch upstream and stream response directly"]
+    F -- "No" --> H["Build short-lived cache key"]
+    H --> I{"Cached response exists?"}
+    I -- "Yes" --> J["Serve cached response"]
+    I -- "No" --> K{"Matching in-flight response exists?"}
+    K -- "Yes" --> L["Wait for in-flight response and reuse it"]
+    K -- "No" --> M["Fetch upstream and snapshot response"]
+    M --> N{"Upstream response is HLS playlist?"}
+    N -- "Yes" --> O["Rewrite playlist body before caching/serving"]
+    N -- "No" --> P["Cache small media response body when eligible"]
+```
+
 ## Export Output Flow
 
 ```mermaid
 flowchart TD
-    A["User clicks Export"] --> B["Build Mediabunny input + Output(BufferTarget)"]
-    B --> C["Conversion.init validates selected tracks and audio plan"]
-    C --> D{"Conversion valid?"}
-    D -- "No" --> E["Surface conversion/discard error"]
-    D -- "Yes" --> F["Execute conversion"]
-    F --> G["Patch MP4 metadata boxes when needed"]
-    G --> H["Return Blob from target buffer"]
-    H --> I["Do not reopen the finished Blob just to recheck audio"]
+    A["User clicks Export"] --> B["Build fresh Mediabunny input from export source URL"]
+    B --> C["Create Output(BufferTarget)"]
+    C --> D["Conversion.init validates selected tracks and audio plan"]
+    D --> E{"Conversion valid?"}
+    E -- "No" --> F["Surface conversion/discard error"]
+    E -- "Yes" --> G["Execute conversion"]
+    G --> H["Patch MP4 metadata boxes when needed"]
+    H --> I["Return Blob from target buffer"]
+    I --> J["Do not reopen the finished Blob just to recheck audio"]
 ```
 
 ## End-To-End Summary
@@ -166,9 +221,12 @@ flowchart LR
     D --> I["Optional timelineOffsetSeconds"]
     D --> J["Source tracks for duration/export alignment"]
     D --> K["Preview tracks for browser playback"]
+    D --> L["Optional playbackReadyRange for HLS preview only"]
+    L --> M["EditorTimeline Preview Ready overlay and note"]
     B --> G["EditorScreen export source selection"]
     C --> G
     F --> G
     G --> H["exportClip input URL"]
-    I --> H
+    H --> N["exportClip builds a fresh input"]
+    I --> N
 ```
