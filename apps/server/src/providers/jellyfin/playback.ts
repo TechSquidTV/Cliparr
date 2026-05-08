@@ -140,6 +140,10 @@ function isAudioMediaStream(stream: any) {
   return String(stream?.Type ?? "").toLowerCase() === "audio";
 }
 
+function isVideoMediaStream(stream: any) {
+  return String(stream?.Type ?? "").toLowerCase() === "video";
+}
+
 function jellyfinAudioTrackTitle(stream: any) {
   return stringValue(stream?.Title)
     ?? stringValue(stream?.DisplayTitle);
@@ -369,6 +373,7 @@ async function normalizeCurrentPlayback(
   const selectedAudioTrack = deriveSelectedAudioTrack(sessionInfo, enrichedItem, mediaSourceId);
   const playerState = sessionInfo?.PlayState?.IsPaused ? "paused" : "playing";
   const audioStreams = asArray(mediaSource?.MediaStreams).filter((stream) => isAudioMediaStream(stream));
+  const videoStreams = asArray(mediaSource?.MediaStreams).filter((stream) => isVideoMediaStream(stream));
   const duration = ticksToSeconds(enrichedItem?.RunTimeTicks ?? nowPlayingItem?.RunTimeTicks);
   const playerTitle = stringValue(sessionInfo?.DeviceName)
     ?? stringValue(sessionInfo?.Client)
@@ -398,7 +403,17 @@ async function normalizeCurrentPlayback(
       selectedAudioTrack: selectedAudioTrack ?? null,
     },
     mediaSourceId: mediaSourceId ?? null,
+    videoStreamCount: videoStreams.length,
     audioStreamCount: audioStreams.length,
+    videoStreams: videoStreams.map((stream, index) => ({
+      trackNumber: index + 1,
+      streamIndex: numberValue(stream?.Index) ?? null,
+      title: stringValue(stream?.Title) ?? stringValue(stream?.DisplayTitle) ?? null,
+      codec: stringValue(stream?.Codec) ?? null,
+      width: numberValue(stream?.Width) ?? null,
+      height: numberValue(stream?.Height) ?? null,
+      isDefault: booleanValue(stream?.IsDefault) ?? null,
+    })),
     hasMultipleAudioStreams: audioStreams.length > 1,
     audioStreams: audioStreams.map((stream, index) => ({
       trackNumber: index + 1,

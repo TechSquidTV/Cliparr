@@ -388,6 +388,10 @@ function isAudioStream(stream: any) {
   return numberValue(stream?.streamType) === 2;
 }
 
+function isVideoStream(stream: any) {
+  return numberValue(stream?.streamType) === 1;
+}
+
 function selectedAudioTrackTitle(stream: any) {
   return stringValue(stream?.title)
     ?? stringValue(stream?.extendedDisplayTitle)
@@ -593,6 +597,7 @@ async function normalizeCurrentPlayback(
     const selectedAudioTrack = deriveSelectedAudioTrack(enrichedItem, mediaSelection);
     const selectedPart = resolveSelectedPart(enrichedItem, mediaSelection)?.part;
     const audioStreams = selectedPart ? streamEntries(selectedPart).filter((stream) => isAudioStream(stream)) : [];
+    const videoStreams = selectedPart ? streamEntries(selectedPart).filter((stream) => isVideoStream(stream)) : [];
     const duration = Number(enrichedItem.duration ?? asArray(enrichedItem.Media)[0]?.duration ?? 0) / 1000;
     const playerTitle = String(item.Player?.title ?? "Unknown Device");
     const playerState = String(item.Player?.state ?? "unknown");
@@ -622,7 +627,20 @@ async function normalizeCurrentPlayback(
       mediaIndex: mediaSelection?.mediaIndex ?? null,
       partId: mediaSelection?.partId ?? null,
       partIndex: mediaSelection?.partIndex ?? null,
+      videoStreamCount: videoStreams.length,
       audioStreamCount: audioStreams.length,
+      videoStreams: videoStreams.map((stream, index) => ({
+        trackNumber: index + 1,
+        streamId: idValue(stream?.id) ?? null,
+        title: stringValue(stream?.title)
+          ?? stringValue(stream?.extendedDisplayTitle)
+          ?? stringValue(stream?.displayTitle)
+          ?? null,
+        codec: stringValue(stream?.codec) ?? null,
+        width: numberValue(stream?.width) ?? null,
+        height: numberValue(stream?.height) ?? null,
+        selected: isSelectedEntry(stream),
+      })),
       hasMultipleAudioStreams: audioStreams.length > 1,
       audioStreams: audioStreams.map((stream, index) => ({
         trackNumber: index + 1,

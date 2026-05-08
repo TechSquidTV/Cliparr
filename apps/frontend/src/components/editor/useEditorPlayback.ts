@@ -1444,9 +1444,16 @@ export function useEditorPlayback({
               return;
             }
 
-            if (allAudioTracks.length > 0 && !previewAudioTrack && playbackSourceAnalysisContext) {
+            if (previewVideoTrack && allAudioTracks.length > 0 && !previewAudioTrack && playbackSourceAnalysisContext) {
               console.warn(
                 "Editor playback source loaded without preview audio",
+                await buildPlaybackSourceAnalysis(playbackSourceAnalysisContext),
+              );
+            }
+
+            if (!previewVideoTrack && previewAudioTrack && playbackSourceAnalysisContext) {
+              console.warn(
+                "Editor playback source loaded without preview video",
                 await buildPlaybackSourceAnalysis(playbackSourceAnalysisContext),
               );
             }
