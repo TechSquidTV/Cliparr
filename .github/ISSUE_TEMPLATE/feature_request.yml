@@ -1,0 +1,33 @@
+name: Feature request
+description: Suggest an improvement or new capability for Cliparr.
+title: "[Feature]: "
+labels:
+  - enhancement
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Share the feature idea below and a little context about why it would help.
+  - type: textarea
+    id: feature-summary
+    attributes:
+      label: What would you like to see?
+      description: Describe the feature or improvement you want.
+      placeholder: ex. Add a quicker way to duplicate the current clip selection.
+    validations:
+      required: true
+  - type: textarea
+    id: problem-or-goal
+    attributes:
+      label: What problem would this solve?
+      description: Tell us what is hard today or what goal this would help you reach.
+      placeholder: ex. I often need to create several clips with similar timing, and repeating the same setup is slow.
+    validations:
+      required: true
+  - type: textarea
+    id: extra-context
+    attributes:
+      label: Extra context
+      description: Add mockups, examples, or any other details that may help.
+      placeholder: Optional
+

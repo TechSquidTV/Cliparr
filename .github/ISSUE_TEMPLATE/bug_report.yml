@@ -1,0 +1,62 @@
+name: Bug report
+description: Report a bug in Cliparr.
+title: "[Bug]: "
+labels:
+  - bug
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Please share the basics below so we can triage the issue quickly.
+  - type: checkboxes
+    id: impacted-media-sources
+    attributes:
+      label: Impacted media sources
+      description: Which media source is affected?
+      options:
+        - label: Plex
+        - label: Jellyfin
+    validations:
+      required: true
+  - type: input
+    id: cliparr-version
+    attributes:
+      label: Cliparr version
+      description: What version of Cliparr are you running?
+      placeholder: ex. 0.2.0 or ghcr.io/techsquidtv/cliparr:latest
+    validations:
+      required: true
+  - type: input
+    id: browser-version
+    attributes:
+      label: Browser type and version
+      description: Which browser are you using, and what version is it?
+      placeholder: ex. Chrome 136, Firefox 138, Safari 18.4
+    validations:
+      required: true
+  - type: textarea
+    id: bug-summary
+    attributes:
+      label: What happened?
+      description: Tell us what went wrong.
+      placeholder: ex. The timeline loads, but exporting the clip fails after processing.
+    validations:
+      required: true
+  - type: textarea
+    id: steps-to-reproduce
+    attributes:
+      label: Steps to reproduce
+      description: Share the shortest set of steps that reproduces the bug.
+      placeholder: |
+        1. Open Cliparr
+        2. Connect your media server
+        3. Load the currently playing item
+        4. Try to create or export a clip
+    validations:
+      required: true
+  - type: textarea
+    id: extra-details
+    attributes:
+      label: Extra details
+      description: Include errors, screenshots, or anything else that may help.
+      placeholder: Optional
