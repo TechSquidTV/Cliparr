@@ -36,7 +36,7 @@ The fastest way to get Cliparr running is via the GitHub Container Registry.
 docker run -d \
   --name cliparr \
   -p 3000:3000 \
-  -e APP_KEY="your-stable-random-secret" \
+  -e APP_KEY="your-32-char-stable-random-secret" \
   -v cliparr-data:/data \
   ghcr.io/techsquidtv/cliparr:latest
 ```
@@ -56,7 +56,7 @@ services:
     ports:
       - "3000:3000"
     environment:
-      - APP_KEY=replace-this-with-a-secure-random-string
+      - APP_KEY=replace-this-with-a-32-character-secure-random-string
     volumes:
       - cliparr-data:/data
     restart: unless-stopped
@@ -69,7 +69,7 @@ volumes:
 
 | Variable | Description | Default |
 | :--- | :--- | :--- |
-| `APP_KEY` | **Required** secret for credential encryption. | - |
+| `APP_KEY` | **Required** secret for credential encryption. Must be at least 32 characters long. | - |
 | `PORT` | Internal port for the Express server. | `3000` |
 | `CLIPARR_DATA_DIR` | Directory for SQLite storage. | `/data` |
 | `CLIPARR_ALLOW_LOOPBACK_JELLYFIN_URLS` | Allow Jellyfin URLs that resolve to `localhost`/loopback. Use only for trusted self-hosted setups. | `false` |
