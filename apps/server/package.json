@@ -24,7 +24,7 @@
   },
   "devDependencies": {
     "@types/express": "^5.0.6",
-    "@types/node": "^25.6.0",
+    "@types/node": "^25.6.2",
     "drizzle-kit": "1.0.0-rc.2-203eab8",
     "tsx": "^4.21.0",
     "typescript": "~6.0.3"
