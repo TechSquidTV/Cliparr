@@ -3,9 +3,11 @@ import { Timeline, type TimelineState } from "@xzdarcy/react-timeline-editor";
 import "@xzdarcy/react-timeline-editor/dist/react-timeline-editor.css";
 import type { RefObject, WheelEvent as ReactWheelEvent } from "react";
 import { Scissors } from "lucide-react";
+import type { PlaybackReadyRange } from "./useEditorPlayback";
 import { 
   formatTime,
-  TIMELINE_START_LEFT, 
+  TIMELINE_START_LEFT,
+  timelineTimeToPixel,
   type ClipTimelineData, 
   type ClipTimelineEffects, 
   type ClipTimelineAction,
@@ -19,10 +21,15 @@ interface EditorTimelineProps {
   timelineEffects: ClipTimelineEffects;
   activeTimelineScale: TimelineZoomLevel;
   timelineScaleCount: number;
+  timelineScrollLeft: number;
+  timelineViewportWidth: number;
+  playbackReadyRange: PlaybackReadyRange | null;
   loadingPreview: boolean;
   playing: boolean;
   handleTimelineScroll: (data: { scrollLeft: number }) => void;
   handleTimelineChange: (data: ClipTimelineData) => void;
+  handleTimelineActionMoveEnd: (params: { action: { id: string }; start: number; end: number }) => void;
+  handleTimelineActionResizeEnd: (params: { action: { id: string }; start: number; end: number }) => void;
   handleTimelineWheel: (event: ReactWheelEvent<HTMLDivElement>) => void;
   isValidTimelineRange: (start: number, end: number) => boolean;
   seekToTime: (time: number) => Promise<void> | void;
@@ -37,10 +44,15 @@ export function EditorTimeline({
   timelineEffects,
   activeTimelineScale,
   timelineScaleCount,
+  timelineScrollLeft,
+  timelineViewportWidth,
+  playbackReadyRange,
   loadingPreview,
   playing,
   handleTimelineScroll,
   handleTimelineChange,
+  handleTimelineActionMoveEnd,
+  handleTimelineActionResizeEnd,
   handleTimelineWheel,
   isValidTimelineRange,
   seekToTime,
@@ -59,6 +71,51 @@ export function EditorTimeline({
       </div>
     );
   }, []);
+
+  const playbackReadyOverlay = (() => {
+    if (!playbackReadyRange || timelineViewportWidth <= 0) {
+      return null;
+    }
+
+    const readyStartPixel = timelineTimeToPixel(
+      playbackReadyRange.startTime,
+      activeTimelineScale.scale,
+      activeTimelineScale.scaleWidth,
+      TIMELINE_START_LEFT,
+    ) - timelineScrollLeft;
+    const readyEndPixel = timelineTimeToPixel(
+      playbackReadyRange.readyUntilTime,
+      activeTimelineScale.scale,
+      activeTimelineScale.scaleWidth,
+      TIMELINE_START_LEFT,
+    ) - timelineScrollLeft;
+    if (readyEndPixel <= TIMELINE_START_LEFT || readyStartPixel >= timelineViewportWidth) {
+      return null;
+    }
+    const clippedLeft = Math.max(TIMELINE_START_LEFT, readyStartPixel);
+    const clippedRight = Math.min(timelineViewportWidth, readyEndPixel);
+    const width = Math.max(
+      playbackReadyRange.status === "warming" ? 2 : 0,
+      clippedRight - clippedLeft,
+    );
+
+    if (width <= 0) {
+      return null;
+    }
+
+    return (
+      <div
+        className="cliparr-timeline-ready-range"
+        data-status={playbackReadyRange.status}
+        aria-label="Preview ready"
+        title="Preview ready for smooth playback"
+        style={{
+          left: `${clippedLeft}px`,
+          width: `${width}px`,
+        }}
+      />
+    );
+  })();
 
   return (
     <div
@@ -85,6 +142,8 @@ export function EditorTimeline({
         onChange={handleTimelineChange}
         onActionMoving={({ start, end }) => isValidTimelineRange(start, end)}
         onActionResizing={({ start, end }) => isValidTimelineRange(start, end)}
+        onActionMoveEnd={handleTimelineActionMoveEnd}
+        onActionResizeEnd={handleTimelineActionResizeEnd}
         onClickTimeArea={(time) => {
           void seekToTime(time);
           return false;
@@ -97,6 +156,7 @@ export function EditorTimeline({
         getScaleRender={formatTime}
         getActionRender={renderClipTimelineAction}
       />
+      {playbackReadyOverlay}
     </div>
   );
 }

@@ -2,6 +2,7 @@ import { randomUUID } from "crypto";
 import type { Request, Response } from "express";
 import { updateMediaSource, type MediaSource } from "../../db/mediaSourcesRepository.js";
 import { ApiError } from "../../http/errors.js";
+import { getServerLogger } from "../../logging.js";
 import type { ProviderSessionRecord } from "../../session/store.js";
 import type {
   CurrentlyPlayingEntry,
@@ -12,7 +13,10 @@ import type {
 } from "../types.js";
 import {
   createProviderMediaHandle,
-  proxyUpstreamMediaResponse,
+  mediaHandleRequestUrl,
+  proxyProviderMediaResponse,
+  sanitizeLoggedMediaPath,
+  shouldAttachProviderAuth,
 } from "../shared/mediaProxy.js";
 import {
   asArray,
@@ -38,6 +42,8 @@ import {
   type PlexBaseUrlMode,
   withPlexBaseUrlMode,
 } from "./connectionState.js";
+
+const logger = getServerLogger(["providers", "plex"]);
 
 function createMediaHandle(
   session: ProviderSessionRecord,
@@ -169,17 +175,20 @@ function resolveSelectedPart(item: any, selection?: PlexMediaSelection) {
   };
 }
 
-function createPreviewPath(item: any, selection?: PlexMediaSelection) {
+export function createPreviewPath(
+  item: any,
+  playbackSessionId: string,
+  selection?: PlexMediaSelection
+) {
   const path = metadataPath(item);
   if (!path) {
     return undefined;
   }
 
   const resolvedSelection = resolveSelectedPart(item, selection);
-  const transcodeSessionId = randomUUID();
   const params = new URLSearchParams({
     path,
-    transcodeSessionId,
+    transcodeSessionId: playbackSessionId,
     protocol: "hls",
     directPlay: "0",
     directStream: "0",
@@ -187,7 +196,6 @@ function createPreviewPath(item: any, selection?: PlexMediaSelection) {
     mediaIndex: String(resolvedSelection?.mediaIndex ?? 0),
     partIndex: String(resolvedSelection?.partIndex ?? 0),
     audioChannelCount: "2",
-    subtitles: "none",
     videoQuality: "80",
     videoResolution: "1920x1080",
     videoBitrate: "12000",
@@ -380,6 +388,10 @@ function isAudioStream(stream: any) {
   return numberValue(stream?.streamType) === 2;
 }
 
+function isVideoStream(stream: any) {
+  return numberValue(stream?.streamType) === 1;
+}
+
 function selectedAudioTrackTitle(stream: any) {
   return stringValue(stream?.title)
     ?? stringValue(stream?.extendedDisplayTitle)
@@ -441,7 +453,12 @@ async function enrichMetadataItem(context: PlexSourceContext, item: any) {
       Session: item.Session,
     };
   } catch (err) {
-    console.warn(`Could not fetch metadata for ${metadataPath(item) ?? "Plex item"}:`, errorMessage(err));
+    logger.warn("Could not fetch Plex metadata for {metadataPath}.", {
+      metadataPath: metadataPath(item) ?? "Plex item",
+      sourceId: context.sourceId,
+      baseUrl: context.baseUrl,
+      errorMessage: errorMessage(err),
+    });
     return item;
   }
 }
@@ -527,7 +544,12 @@ async function resolveMediaPath(
     const fullItem = data?.MediaContainer?.Metadata?.[0];
     return fallbackPartPath(resolveSelectedPart(fullItem, selection)?.part);
   } catch (err) {
-    console.warn(`Could not resolve media part for ${path}:`, errorMessage(err));
+    logger.warn("Could not resolve Plex media part for {metadataPath}.", {
+      metadataPath: path,
+      sourceId: context.sourceId,
+      baseUrl: context.baseUrl,
+      errorMessage: errorMessage(err),
+    });
     return undefined;
   }
 }
@@ -566,13 +588,79 @@ async function normalizeCurrentPlayback(
   const uniqueMetadata = dedupeCurrentlyPlayingMetadata(metadata);
 
   return Promise.all(uniqueMetadata.map(async (item: any) => {
+    const sessionId = playbackSessionIdentity(item);
     const mediaSelection = deriveMediaSelection(item);
     const enrichedItem = await enrichMetadataItem(context, item);
     const mediaPath = await resolveMediaPath(context, item, enrichedItem, mediaSelection);
-    const previewPath = createPreviewPath(enrichedItem, mediaSelection);
+    const previewPath = createPreviewPath(enrichedItem, sessionId, mediaSelection);
     const thumbPath = metadataImagePath(enrichedItem);
     const selectedAudioTrack = deriveSelectedAudioTrack(enrichedItem, mediaSelection);
-    const sessionId = playbackSessionIdentity(item);
+    const selectedPart = resolveSelectedPart(enrichedItem, mediaSelection)?.part;
+    const audioStreams = selectedPart ? streamEntries(selectedPart).filter((stream) => isAudioStream(stream)) : [];
+    const videoStreams = selectedPart ? streamEntries(selectedPart).filter((stream) => isVideoStream(stream)) : [];
+    const duration = Number(enrichedItem.duration ?? asArray(enrichedItem.Media)[0]?.duration ?? 0) / 1000;
+    const playerTitle = String(item.Player?.title ?? "Unknown Device");
+    const playerState = String(item.Player?.state ?? "unknown");
+    const thumbUrl = thumbPath ? createMediaHandle(session, context, thumbPath) : undefined;
+    const mediaUrl = mediaPath ? createMediaHandle(session, context, mediaPath) : undefined;
+    const hlsUrl = previewPath ? createMediaHandle(session, context, previewPath) : undefined;
+    const missingPreviewPath = !previewPath && String(enrichedItem?.type ?? "").toLowerCase() !== "track";
+    const unresolvedSelectedAudioTrack = !selectedAudioTrack && audioStreams.length > 1;
+    const playbackDiagnostics = {
+      sessionId: session.id,
+      sourceId: source.id,
+      providerAccountId: session.providerAccountId,
+      playbackSessionId: sessionId,
+      currentlyPlayingItem: {
+        id: `${source.id}:${sessionId}`,
+        title: String(enrichedItem.title ?? "Untitled"),
+        type: String(enrichedItem.type ?? "video"),
+        duration,
+        playerTitle,
+        playerState,
+        mediaUrl: mediaUrl ?? null,
+        hlsUrl: hlsUrl ?? null,
+        selectedAudioTrack: selectedAudioTrack ?? null,
+      },
+      metadataPath: metadataPath(enrichedItem) ?? null,
+      mediaId: mediaSelection?.mediaId ?? null,
+      mediaIndex: mediaSelection?.mediaIndex ?? null,
+      partId: mediaSelection?.partId ?? null,
+      partIndex: mediaSelection?.partIndex ?? null,
+      videoStreamCount: videoStreams.length,
+      audioStreamCount: audioStreams.length,
+      videoStreams: videoStreams.map((stream, index) => ({
+        trackNumber: index + 1,
+        streamId: idValue(stream?.id) ?? null,
+        title: stringValue(stream?.title)
+          ?? stringValue(stream?.extendedDisplayTitle)
+          ?? stringValue(stream?.displayTitle)
+          ?? null,
+        codec: stringValue(stream?.codec) ?? null,
+        width: numberValue(stream?.width) ?? null,
+        height: numberValue(stream?.height) ?? null,
+        selected: isSelectedEntry(stream),
+      })),
+      hasMultipleAudioStreams: audioStreams.length > 1,
+      audioStreams: audioStreams.map((stream, index) => ({
+        trackNumber: index + 1,
+        streamId: idValue(stream?.id) ?? null,
+        languageCode: stringValue(stream?.languageCode) ?? stringValue(stream?.languageTag) ?? null,
+        title: selectedAudioTrackTitle(stream) ?? null,
+        codec: stringValue(stream?.codec) ?? null,
+        selected: isSelectedEntry(stream),
+      })),
+    };
+
+    logger.debug("Plex playback diagnostics for currently playing item.", playbackDiagnostics);
+
+    if (missingPreviewPath) {
+      logger.debug("Plex playback item did not produce an HLS preview path.", playbackDiagnostics);
+    }
+
+    if (unresolvedSelectedAudioTrack) {
+      logger.debug("Plex playback item has multiple audio streams without a resolved selected audio track.", playbackDiagnostics);
+    }
 
     return {
       viewer: playbackViewer(item, source.id, sessionId),
@@ -585,12 +673,12 @@ async function normalizeCurrentPlayback(
         },
         title: String(enrichedItem.title ?? "Untitled"),
         type: String(enrichedItem.type ?? "video"),
-        duration: Number(enrichedItem.duration ?? asArray(enrichedItem.Media)[0]?.duration ?? 0) / 1000,
-        playerTitle: String(item.Player?.title ?? "Unknown Device"),
-        playerState: String(item.Player?.state ?? "unknown"),
-        thumbUrl: thumbPath ? createMediaHandle(session, context, thumbPath) : undefined,
-        mediaUrl: mediaPath ? createMediaHandle(session, context, mediaPath) : undefined,
-        previewUrl: previewPath ? createMediaHandle(session, context, previewPath) : undefined,
+        duration,
+        playerTitle,
+        playerState,
+        thumbUrl,
+        mediaUrl,
+        hlsUrl,
         selectedAudioTrack,
         exportMetadata: createExportMetadata(session, context, enrichedItem),
       },
@@ -616,10 +704,13 @@ export async function proxyMedia(
 
   handle.lastAccessedAt = Date.now();
 
-  const url = new URL(handle.path, handle.baseUrl);
-  const headers = plexMediaHeaders({
-    "X-Plex-Token": handle.token,
-  });
+  const url = mediaHandleRequestUrl(handle);
+  const useProviderAuth = shouldAttachProviderAuth(handle);
+  const headers = useProviderAuth
+    ? plexMediaHeaders({
+        "X-Plex-Token": handle.token,
+      })
+    : new Headers();
 
   const accept = req.header("accept");
   const range = req.header("range");
@@ -630,20 +721,54 @@ export async function proxyMedia(
     headers.set("Range", range);
   }
 
-  const playbackSessionId = transcodeSessionId(handle.path);
+  const playbackSessionId = useProviderAuth ? transcodeSessionId(handle.path) : null;
   if (playbackSessionId) {
     headers.set("X-Plex-Session-Identifier", playbackSessionId);
   }
 
-  const upstream = await fetch(url.toString(), { headers });
-  if (!upstream.ok && upstream.status !== 206) {
-    const detail = (await upstream.text()).slice(0, 400).replace(/\s+/g, " ").trim();
-    throw new ApiError(
-      upstream.status,
-      "plex_media_failed",
-      detail ? `Plex media request failed: ${detail}` : "Plex media request failed"
-    );
-  }
+  logger.trace("Fetching Plex media for handle {handleId}.", {
+    handleId: handle.id,
+    sessionId: session.id,
+    sourceId: handle.sourceId,
+    upstreamUrl: sanitizeLoggedMediaPath(url.toString()),
+    useProviderAuth,
+    hasRange: Boolean(range),
+    accept,
+    playbackSessionId,
+  });
 
-  await proxyUpstreamMediaResponse(session, handle, upstream, res);
+  await proxyProviderMediaResponse(
+    session,
+    handle,
+    {
+      accept: accept ?? undefined,
+      range: range ?? undefined,
+    },
+    async () => {
+      const upstream = await fetch(url.toString(), { headers });
+      if (!upstream.ok && upstream.status !== 206) {
+        const detail = (await upstream.text()).slice(0, 400).replace(/\s+/g, " ").trim();
+        logger.warn("Plex media request failed for handle {handleId}.", {
+          handleId: handle.id,
+          sessionId: session.id,
+          sourceId: handle.sourceId,
+          upstreamUrl: sanitizeLoggedMediaPath(url.toString()),
+          statusCode: upstream.status,
+          detail,
+          useProviderAuth,
+          hasRange: Boolean(range),
+          accept,
+          playbackSessionId,
+        });
+        throw new ApiError(
+          upstream.status,
+          "plex_media_failed",
+          detail ? `Plex media request failed: ${detail}` : "Plex media request failed"
+        );
+      }
+
+      return upstream;
+    },
+    res,
+  );
 }

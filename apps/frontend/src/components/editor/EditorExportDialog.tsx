@@ -1,4 +1,4 @@
-import { Download, X } from "lucide-react";
+import { Download, Info, X } from "lucide-react";
 import { useEffect, useRef } from "react";
 import {
   Select,
@@ -9,6 +9,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import type { ExportFormat, ExportResolution } from "../../lib/exportClip";
 import {
   getExportFileNameTemplateTokens,
@@ -22,6 +27,8 @@ interface VideoDimensions {
   height: number;
 }
 
+export type ExportSourcePreference = "auto" | "direct" | "hls";
+
 interface EditorExportDialogProps {
   isOpen: boolean;
   title: string;
@@ -31,6 +38,8 @@ interface EditorExportDialogProps {
   onFormatChange: (format: ExportFormat) => void;
   selectedResolution: ExportResolution;
   onResolutionChange: (resolution: ExportResolution) => void;
+  selectedSourcePreference: ExportSourcePreference;
+  onSourcePreferenceChange: (preference: ExportSourcePreference) => void;
   includeAudio: boolean;
   onIncludeAudioChange: (includeAudio: boolean) => void;
   exporting: boolean;
@@ -38,6 +47,11 @@ interface EditorExportDialogProps {
   error: string | null;
   fileNamePreview: string;
   outputDimensions: VideoDimensions | null;
+  hasHlsSource: boolean;
+  hasDirectSource: boolean;
+  exportSourceLabel: string;
+  exportSourceMessage: string | null;
+  exportSourceSummaryMessage: string | null;
   activeTemplateKind: ExportFileNameTemplateKind;
   editingTemplateKind: ExportFileNameTemplateKind;
   onEditingTemplateKindChange: (kind: ExportFileNameTemplateKind) => void;
@@ -102,6 +116,28 @@ const resolutionOptions: ReadonlyArray<{
   },
 ];
 
+const sourceOptions: ReadonlyArray<{
+  value: ExportSourcePreference;
+  label: string;
+  description: string;
+}> = [
+  {
+    value: "auto",
+    label: "Auto",
+    description: "Lets Cliparr choose the safest export path for this session.",
+  },
+  {
+    value: "direct",
+    label: "Direct/original",
+    description: "Uses the direct media path when available, usually best for preserving source quality.",
+  },
+  {
+    value: "hls",
+    label: "HLS playback",
+    description: "Uses the media server playback stream, which may include server-side transcoding.",
+  },
+];
+
 const templateOptions: ReadonlyArray<{
   kind: ExportFileNameTemplateKind;
   label: string;
@@ -132,6 +168,8 @@ export function EditorExportDialog({
   onFormatChange,
   selectedResolution,
   onResolutionChange,
+  selectedSourcePreference,
+  onSourcePreferenceChange,
   includeAudio,
   onIncludeAudioChange,
   exporting,
@@ -139,6 +177,11 @@ export function EditorExportDialog({
   error,
   fileNamePreview,
   outputDimensions,
+  hasHlsSource,
+  hasDirectSource,
+  exportSourceLabel,
+  exportSourceMessage,
+  exportSourceSummaryMessage,
   activeTemplateKind,
   editingTemplateKind,
   onEditingTemplateKindChange,
@@ -152,6 +195,7 @@ export function EditorExportDialog({
   const lastFocusedElementRef = useRef<HTMLElement | null>(null);
   const clipLength = Math.max(0, clipEnd - clipStart);
   const selectedFormatOption = formatOptions.find((option) => option.value === selectedFormat) ?? formatOptions[0];
+  const selectedSourceOption = sourceOptions.find((option) => option.value === selectedSourcePreference) ?? sourceOptions[0];
   const editingTemplateOption = templateOptions.find((option) => option.kind === editingTemplateKind) ?? templateOptions[0];
   const visibleTokens = getExportFileNameTemplateTokens(editingTemplateKind);
 
@@ -280,13 +324,19 @@ export function EditorExportDialog({
               </div>
             )}
 
+            {exportSourceMessage && (
+              <div className="rounded-md border border-primary/25 bg-primary/5 px-3 py-2 text-sm text-foreground">
+                {exportSourceMessage}
+              </div>
+            )}
+
             <section className="rounded-md border border-border bg-card">
               <div className="border-b border-border px-3 py-2">
                 <div className="text-[11px] font-semibold uppercase tracking-[var(--tracking-caps-lg)] text-muted-foreground">
                   Export Settings
                 </div>
               </div>
-              <div className="grid gap-3 p-3 sm:grid-cols-3">
+              <div className="grid gap-3 p-3 sm:grid-cols-2">
                 <label className="space-y-1.5">
                   <span className="text-[11px] font-semibold uppercase tracking-[var(--tracking-caps-lg)] text-muted-foreground">
                     Format
@@ -332,6 +382,54 @@ export function EditorExportDialog({
                     {resolutionOptions.find((option) => option.value === selectedResolution)?.description}
                   </p>
                 </label>
+
+                <div className="space-y-1.5">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-[11px] font-semibold uppercase tracking-[var(--tracking-caps-lg)] text-muted-foreground">
+                      Source
+                    </span>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <button
+                          type="button"
+                          aria-label="Export source details"
+                          className="inline-flex h-4 w-4 items-center justify-center rounded-full text-muted-foreground transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/50"
+                        >
+                          <Info className="h-3.5 w-3.5" />
+                        </button>
+                      </TooltipTrigger>
+                      <TooltipContent side="top" align="start">
+                        Track and timing detection can still use HLS metadata when Cliparr can read it. This only chooses which media path is used for the exported file.
+                      </TooltipContent>
+                    </Tooltip>
+                  </div>
+                  <Select
+                    value={selectedSourcePreference}
+                    onValueChange={(value) => onSourcePreferenceChange(value as ExportSourcePreference)}
+                  >
+                    <SelectTrigger size="sm" className={compactSelectTriggerClassName()}>
+                      <SelectValue placeholder="Select source" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectGroup>
+                        <SelectLabel>Sources</SelectLabel>
+                        {sourceOptions.map((option) => (
+                          <SelectItem
+                            key={option.value}
+                            value={option.value}
+                            disabled={
+                              (option.value === "direct" && !hasDirectSource)
+                              || (option.value === "hls" && !hasHlsSource)
+                            }
+                          >
+                            {option.label}
+                          </SelectItem>
+                        ))}
+                      </SelectGroup>
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground">{selectedSourceOption.description}</p>
+                </div>
 
                 <label className="space-y-1.5">
                   <span className="text-[11px] font-semibold uppercase tracking-[var(--tracking-caps-lg)] text-muted-foreground">
@@ -454,6 +552,18 @@ export function EditorExportDialog({
               <div className="rounded-md border border-border bg-background px-3 py-2">
                 <dt className="text-[11px] font-semibold uppercase tracking-[var(--tracking-caps-lg)] text-muted-foreground">Duration</dt>
                 <dd className="mt-1 font-mono text-xs text-foreground">{formatTime(clipLength)}</dd>
+              </div>
+
+              <div className="rounded-md border border-border bg-background px-3 py-2">
+                <dt className="text-[11px] font-semibold uppercase tracking-[var(--tracking-caps-lg)] text-muted-foreground">Source</dt>
+                <dd className="mt-1 text-xs text-foreground">
+                  {exportSourceLabel}
+                </dd>
+                {exportSourceSummaryMessage ? (
+                  <dd className="mt-1 text-xs leading-relaxed text-muted-foreground">
+                    {exportSourceSummaryMessage}
+                  </dd>
+                ) : null}
               </div>
 
               <div className="rounded-md border border-border bg-background px-3 py-2">

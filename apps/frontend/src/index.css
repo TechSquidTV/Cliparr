@@ -194,6 +194,7 @@
 }
 
   .cliparr-timeline {
+    position: relative;
     width: 100%;
   }
 
@@ -325,4 +326,25 @@
 
   .cliparr-timeline .timeline-editor-drag-line {
     border-left-color: color-mix(in oklch, var(--ring) 75%, transparent);
+  }
+
+  .cliparr-timeline-ready-range {
+    position: absolute;
+    top: 64px;
+    height: 44px;
+    z-index: 2;
+    border-radius: 1px;
+    background: color-mix(in oklch, var(--secondary) 24%, transparent);
+    box-shadow:
+      inset 1px 0 0 color-mix(in oklch, var(--secondary) 54%, transparent),
+      inset 0 0 0 1px color-mix(in oklch, var(--secondary) 22%, transparent);
+    pointer-events: none;
+  }
+
+  .cliparr-timeline-ready-range[data-status="warming"] {
+    background: color-mix(in oklch, var(--secondary) 18%, transparent);
+  }
+
+  .cliparr-timeline-ready-range[data-status="ready"] {
+    background: color-mix(in oklch, var(--secondary) 28%, transparent);
   }

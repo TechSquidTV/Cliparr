@@ -7,6 +7,7 @@ import { migrate } from "drizzle-orm/node-sqlite/migrator";
 import { prepareDatabaseForMigrations } from "./migrationState.js";
 import * as schema from "./schema.js";
 import { resolveConfiguredDataDir, workspaceRoot } from "../config/loadEnv.js";
+import { getServerLogger, serializeError } from "../logging.js";
 import { assertAppKeyConfigured } from "../security/secrets.js";
 
 const DEFAULT_DATABASE_FILE = "cliparr.sqlite";
@@ -19,13 +20,18 @@ let sqlite: DatabaseSync | undefined;
 let database: CliparrDatabase | undefined;
 let databasePath: string | undefined;
 let dataDir: string | undefined;
+const logger = getServerLogger("db");
 
 function enforcePermissions(targetPath: string, mode: number) {
   try {
     fs.chmodSync(targetPath, mode);
   } catch (err) {
     if (process.platform !== "win32") {
-      console.warn(`Could not set permissions on ${targetPath}:`, err);
+      logger.warn("Could not set permissions on {targetPath}.", {
+        targetPath,
+        mode,
+        ...serializeError(err),
+      });
     }
   }
 }

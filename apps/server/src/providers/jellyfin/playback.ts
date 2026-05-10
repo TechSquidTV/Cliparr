@@ -2,6 +2,7 @@ import { randomUUID } from "crypto";
 import type { Request, Response } from "express";
 import type { MediaSource } from "../../db/mediaSourcesRepository.js";
 import { ApiError } from "../../http/errors.js";
+import { getServerLogger } from "../../logging.js";
 import type { ProviderSessionRecord } from "../../session/store.js";
 import type {
   CurrentlyPlayingEntry,
@@ -10,8 +11,11 @@ import type {
 } from "../types.js";
 import {
   createProviderMediaHandle,
+  mediaHandleRequestUrl,
   playlistBasePath,
-  proxyUpstreamMediaResponse,
+  proxyProviderMediaResponse,
+  sanitizeLoggedMediaPath,
+  shouldAttachProviderAuth,
 } from "../shared/mediaProxy.js";
 import {
   asArray,
@@ -23,7 +27,6 @@ import {
 } from "../shared/utils.js";
 import {
   booleanValue,
-  buildJellyfinUrl,
   fetchItem,
   fetchSessions,
   jellyfinFetch,
@@ -32,6 +35,8 @@ import {
   sourceContext,
   type JellyfinSourceContext,
 } from "./shared.js";
+
+const logger = getServerLogger(["providers", "jellyfin"]);
 
 function createMediaHandle(
   session: ProviderSessionRecord,
@@ -133,6 +138,10 @@ function currentMediaSource(sessionInfo: any, item: any, mediaSourceId: string |
 
 function isAudioMediaStream(stream: any) {
   return String(stream?.Type ?? "").toLowerCase() === "audio";
+}
+
+function isVideoMediaStream(stream: any) {
+  return String(stream?.Type ?? "").toLowerCase() === "video";
 }
 
 function jellyfinAudioTrackTitle(stream: any) {
@@ -322,7 +331,12 @@ async function enrichMetadataItem(context: JellyfinSourceContext, item: any) {
       ...fullItem,
     };
   } catch (err) {
-    console.warn(`Could not fetch metadata for Jellyfin item ${itemId}:`, errorMessage(err));
+    logger.warn("Could not fetch Jellyfin metadata for item {itemId}.", {
+      itemId,
+      sourceId: context.sourceId,
+      baseUrl: context.baseUrl,
+      errorMessage: errorMessage(err),
+    });
     return item;
   }
 }
@@ -352,11 +366,76 @@ async function normalizeCurrentPlayback(
   const enrichedItem = await enrichMetadataItem(context, nowPlayingItem);
   const playSessionId = stringValue(sessionInfo?.Id) ?? randomUUID();
   const mediaSourceId = currentMediaSourceId(sessionInfo, enrichedItem);
+  const mediaSource = currentMediaSource(sessionInfo, enrichedItem, mediaSourceId);
   const mediaPath = buildStaticStreamPath(enrichedItem, mediaSourceId, context, playSessionId);
   const previewPath = buildPreviewPath(enrichedItem, mediaSourceId, context, playSessionId);
   const imagePath = itemImagePath(enrichedItem);
   const selectedAudioTrack = deriveSelectedAudioTrack(sessionInfo, enrichedItem, mediaSourceId);
   const playerState = sessionInfo?.PlayState?.IsPaused ? "paused" : "playing";
+  const audioStreams = asArray(mediaSource?.MediaStreams).filter((stream) => isAudioMediaStream(stream));
+  const videoStreams = asArray(mediaSource?.MediaStreams).filter((stream) => isVideoMediaStream(stream));
+  const duration = ticksToSeconds(enrichedItem?.RunTimeTicks ?? nowPlayingItem?.RunTimeTicks);
+  const playerTitle = stringValue(sessionInfo?.DeviceName)
+    ?? stringValue(sessionInfo?.Client)
+    ?? stringValue(sessionInfo?.DeviceType)
+    ?? "Unknown Device";
+  const thumbUrl = imagePath ? createMediaHandle(session, context, imagePath) : undefined;
+  const mediaUrl = mediaPath ? createMediaHandle(session, context, mediaPath) : undefined;
+  const hlsUrl = previewPath
+    ? createMediaHandle(session, context, previewPath, { basePath: playlistBasePath(previewPath) })
+    : undefined;
+  const missingPreviewPath = !previewPath && String(enrichedItem?.MediaType ?? "").toLowerCase() !== "audio";
+  const unresolvedSelectedAudioTrack = !selectedAudioTrack && audioStreams.length > 1;
+  const playbackDiagnostics = {
+    sessionId: session.id,
+    sourceId: source.id,
+    providerAccountId: session.providerAccountId,
+    playSessionId,
+    currentlyPlayingItem: {
+      id: `${source.id}:${playSessionId}`,
+      title: itemTitle(enrichedItem),
+      type: itemType(enrichedItem).toLowerCase(),
+      duration,
+      playerTitle,
+      playerState,
+      mediaUrl: mediaUrl ?? null,
+      hlsUrl: hlsUrl ?? null,
+      selectedAudioTrack: selectedAudioTrack ?? null,
+    },
+    mediaSourceId: mediaSourceId ?? null,
+    videoStreamCount: videoStreams.length,
+    audioStreamCount: audioStreams.length,
+    videoStreams: videoStreams.map((stream, index) => ({
+      trackNumber: index + 1,
+      streamIndex: numberValue(stream?.Index) ?? null,
+      title: stringValue(stream?.Title) ?? stringValue(stream?.DisplayTitle) ?? null,
+      codec: stringValue(stream?.Codec) ?? null,
+      width: numberValue(stream?.Width) ?? null,
+      height: numberValue(stream?.Height) ?? null,
+      isDefault: booleanValue(stream?.IsDefault) ?? null,
+    })),
+    hasMultipleAudioStreams: audioStreams.length > 1,
+    audioStreams: audioStreams.map((stream, index) => ({
+      trackNumber: index + 1,
+      streamIndex: numberValue(stream?.Index) ?? null,
+      languageCode: stringValue(stream?.Language) ?? null,
+      title: jellyfinAudioTrackTitle(stream) ?? null,
+      codec: stringValue(stream?.Codec) ?? null,
+      isDefault: booleanValue(stream?.IsDefault) ?? null,
+    })),
+    playStateAudioStreamIndex: numberValue(sessionInfo?.PlayState?.AudioStreamIndex) ?? null,
+    defaultAudioStreamIndex: numberValue(mediaSource?.DefaultAudioStreamIndex) ?? null,
+  };
+
+  logger.debug("Jellyfin playback diagnostics for currently playing item.", playbackDiagnostics);
+
+  if (missingPreviewPath) {
+    logger.debug("Jellyfin playback item did not produce an HLS preview path.", playbackDiagnostics);
+  }
+
+  if (unresolvedSelectedAudioTrack) {
+    logger.debug("Jellyfin playback item has multiple audio streams without a resolved selected audio track.", playbackDiagnostics);
+  }
 
   return {
     viewer: playbackViewer(source.id, playSessionId, sessionInfo),
@@ -369,17 +448,12 @@ async function normalizeCurrentPlayback(
       },
       title: itemTitle(enrichedItem),
       type: itemType(enrichedItem).toLowerCase(),
-      duration: ticksToSeconds(enrichedItem?.RunTimeTicks ?? nowPlayingItem?.RunTimeTicks),
-      playerTitle: stringValue(sessionInfo?.DeviceName)
-        ?? stringValue(sessionInfo?.Client)
-        ?? stringValue(sessionInfo?.DeviceType)
-        ?? "Unknown Device",
+      duration,
+      playerTitle,
       playerState,
-      thumbUrl: imagePath ? createMediaHandle(session, context, imagePath) : undefined,
-      mediaUrl: mediaPath ? createMediaHandle(session, context, mediaPath) : undefined,
-      previewUrl: previewPath
-        ? createMediaHandle(session, context, previewPath, { basePath: playlistBasePath(previewPath) })
-        : undefined,
+      thumbUrl,
+      mediaUrl,
+      hlsUrl,
       selectedAudioTrack,
       exportMetadata: createExportMetadata(session, context, enrichedItem),
     },
@@ -419,26 +493,83 @@ export async function proxyMedia(
 
   handle.lastAccessedAt = Date.now();
 
-  const headers = jellyfinHeaders({
-    token: handle.token,
-    deviceId: handle.deviceId,
-    accept: req.header("accept") ?? undefined,
-  });
+  const accept = req.header("accept") ?? undefined;
+  const useProviderAuth = shouldAttachProviderAuth(handle);
+  const headers = useProviderAuth
+    ? jellyfinHeaders({
+        token: handle.token,
+        deviceId: handle.deviceId,
+        accept,
+      })
+    : new Headers(accept ? { Accept: accept } : undefined);
   const range = req.header("range");
   if (range) {
     headers.set("Range", range);
   }
 
-  const upstream = await jellyfinFetch(buildJellyfinUrl(handle.baseUrl, handle.path).toString(), {
-    headers,
-  }, {
-    token: handle.token,
-    deviceId: handle.deviceId,
-    accept: req.header("accept") ?? undefined,
-    timeoutMs: JELLYFIN_REQUEST_TIMEOUT_MS,
-    errorCode: "jellyfin_media_failed",
-    failureMessage: "Jellyfin media request failed",
+  const upstreamUrl = mediaHandleRequestUrl(handle).toString();
+
+  logger.trace("Fetching Jellyfin media for handle {handleId}.", {
+    handleId: handle.id,
+    sessionId: session.id,
+    sourceId: handle.sourceId,
+    upstreamUrl: sanitizeLoggedMediaPath(upstreamUrl),
+    useProviderAuth,
+    hasRange: Boolean(range),
+    accept,
   });
 
-  await proxyUpstreamMediaResponse(session, handle, upstream, res);
+  await proxyProviderMediaResponse(
+    session,
+    handle,
+    {
+      accept,
+      range: range ?? undefined,
+    },
+    async () => {
+      try {
+        if (!useProviderAuth) {
+          const upstream = await fetch(upstreamUrl, {
+            headers,
+            signal: AbortSignal.timeout(JELLYFIN_REQUEST_TIMEOUT_MS),
+          });
+
+          if (!upstream.ok && upstream.status !== 206) {
+            const detail = (await upstream.text()).slice(0, 400).replace(/\s+/g, " ").trim();
+            throw new ApiError(
+              upstream.status,
+              "jellyfin_media_failed",
+              detail ? `Jellyfin media request failed: ${detail}` : "Jellyfin media request failed",
+            );
+          }
+
+          return upstream;
+        }
+
+        return await jellyfinFetch(upstreamUrl, {
+          headers,
+        }, {
+          token: handle.token,
+          deviceId: handle.deviceId,
+          accept,
+          timeoutMs: JELLYFIN_REQUEST_TIMEOUT_MS,
+          errorCode: "jellyfin_media_failed",
+          failureMessage: "Jellyfin media request failed",
+        });
+      } catch (err) {
+        logger.warn("Jellyfin media request failed for handle {handleId}.", {
+          handleId: handle.id,
+          sessionId: session.id,
+          sourceId: handle.sourceId,
+          upstreamUrl: sanitizeLoggedMediaPath(upstreamUrl),
+          useProviderAuth,
+          hasRange: Boolean(range),
+          accept,
+          errorMessage: errorMessage(err),
+        });
+        throw err;
+      }
+    },
+    res,
+  );
 }
