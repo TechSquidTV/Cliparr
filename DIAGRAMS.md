@@ -127,13 +127,20 @@ flowchart TD
 
 ```mermaid
 flowchart TD
-    A["User clicks Export"] --> B{"exportFallbackSourceUrl set?"}
-    B -- "Yes" --> C["Use direct source for export"]
-    B -- "No" --> D{"Session has HLS URL?"}
-    D -- "Yes" --> E["Use HLS URL for export"]
-    D -- "No" --> F{"Session has direct media URL?"}
-    F -- "Yes" --> G["Use direct source for export"]
-    F -- "No" --> H["No exportable stream"]
+    A["User opens Export"] --> B{"Export source preference"}
+    B -- "Direct/original" --> C{"Session has direct media URL?"}
+    C -- "Yes" --> D["Use direct source for export"]
+    C -- "No" --> E["No exportable stream"]
+
+    B -- "HLS playback" --> F{"Session has HLS URL?"}
+    F -- "Yes" --> G["Use HLS URL for export"]
+    F -- "No" --> E
+
+    B -- "Auto" --> H{"exportFallbackSourceUrl set?"}
+    H -- "Yes" --> D
+    H -- "No" --> I{"Session has HLS URL?"}
+    I -- "Yes" --> G
+    I -- "No" --> C
 ```
 
 ## Timeline Normalization Tree

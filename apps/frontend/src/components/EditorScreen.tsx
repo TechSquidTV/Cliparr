@@ -4,7 +4,7 @@ import { MIN_CLIP_SECONDS, roundTimelineTime } from "./editor/EditorUtils";
 import { useEditorPlayback, type PlaybackFallbackInfo } from "./editor/useEditorPlayback";
 import { useEditorTimeline } from "./editor/useEditorTimeline";
 import { EditorHeader } from "./editor/EditorHeader";
-import { EditorExportDialog } from "./editor/EditorExportDialog";
+import { EditorExportDialog, type ExportSourcePreference } from "./editor/EditorExportDialog";
 import { EditorPreview } from "./editor/EditorPreview";
 import { EditorControls } from "./editor/EditorControls";
 import { EditorSidebar } from "./editor/EditorSidebar";
@@ -31,6 +31,13 @@ interface VideoDimensions {
   height: number;
 }
 
+type ResolvedExportSourceKind = "hls" | "direct" | "none";
+
+interface ResolvedExportSource {
+  url: string;
+  kind: ResolvedExportSourceKind;
+}
+
 function isInteractiveKeyboardTarget(target: EventTarget | null) {
   if (!(target instanceof HTMLElement)) {
     return false;
@@ -50,6 +57,7 @@ export default function EditorScreen({ session, onBack }: Props) {
   const [endTime, setEndTime] = useState(() => Math.min(10, Math.max(session.duration, 0)));
   const [resolution, setResolution] = useState<ExportResolution>("original");
   const [exportFormat, setExportFormat] = useState<ExportFormat>("mp4");
+  const [exportSourcePreference, setExportSourcePreference] = useState<ExportSourcePreference>("auto");
   const [includeAudio, setIncludeAudio] = useState(true);
   const [fileNameTemplates, setFileNameTemplates] = useState<ExportFileNameTemplateSettings>(() => loadExportFileNameTemplates());
   const [templateEditorKind, setTemplateEditorKind] = useState<ExportFileNameTemplateKind>("movie");
@@ -58,6 +66,12 @@ export default function EditorScreen({ session, onBack }: Props) {
   const [exporting, setExporting] = useState(false);
   const [progress, setProgress] = useState(0);
   const [exportError, setExportError] = useState<string | null>(null);
+  const effectiveExportSourcePreference =
+    exportSourcePreference === "direct" && !session.mediaUrl
+      ? "auto"
+      : exportSourcePreference === "hls" && !session.hlsUrl
+        ? "auto"
+        : exportSourcePreference;
 
   const {
     canvasRef,
@@ -91,18 +105,34 @@ export default function EditorScreen({ session, onBack }: Props) {
     sessionId: session.id,
     selectedAudioTrack: session.selectedAudioTrack,
   });
-  const exportSourceUrl = exportFallbackSourceUrl ?? session.hlsUrl ?? session.mediaUrl ?? "";
-  const usingDirectSourceFallback = Boolean(exportFallbackSourceUrl)
-    || (!session.hlsUrl && Boolean(session.mediaUrl));
+  const exportSource = resolveExportSource({
+    preference: effectiveExportSourcePreference,
+    hlsUrl: session.hlsUrl,
+    mediaUrl: session.mediaUrl,
+    exportFallbackSourceUrl,
+  });
+  const exportSourceMessage = buildExportSourceMessage({
+    preference: effectiveExportSourcePreference,
+    resolvedSourceKind: exportSource.kind,
+    hlsUrl: session.hlsUrl,
+    mediaUrl: session.mediaUrl,
+    hlsFallbackInfo,
+  });
+  const exportSourceSummaryMessage = buildExportSourceSummaryMessage({
+    preference: effectiveExportSourcePreference,
+    resolvedSourceKind: exportSource.kind,
+    hlsUrl: session.hlsUrl,
+  });
+  const exportSourceLabel = buildExportSourceLabel({
+    preference: effectiveExportSourcePreference,
+    resolvedSourceKind: exportSource.kind,
+    exportFallbackSourceUrl,
+  });
   const playbackFallbackReason = buildPlaybackFallbackReason({
     activeSourceLabel,
     hlsUrl: session.hlsUrl,
     hlsFallbackInfo,
   });
-  const exportFallbackMessage = buildExportFallbackMessage(
-    hlsFallbackInfo,
-    Boolean(exportFallbackSourceUrl),
-  );
   const previewSourceLabel = activeSourceLabel || (loadingPreview ? "Resolving stream" : "Unavailable");
 
   const updateClipRange = useCallback((nextStart: number, nextEnd: number) => {
@@ -207,6 +237,11 @@ export default function EditorScreen({ session, onBack }: Props) {
     setExportError(null);
   }, []);
 
+  const handleExportSourceChange = useCallback((nextSourcePreference: ExportSourcePreference) => {
+    setExportSourcePreference(nextSourcePreference);
+    setExportError(null);
+  }, []);
+
   const handleAudioChange = useCallback((nextIncludeAudio: boolean) => {
     setIncludeAudio(nextIncludeAudio);
     setExportError(null);
@@ -234,7 +269,7 @@ export default function EditorScreen({ session, onBack }: Props) {
   }, []);
 
   const handleExport = useCallback(async () => {
-    if (!exportSourceUrl) return;
+    if (!exportSource.url) return;
     if (exporting) return;
 
     setExportError(null);
@@ -244,8 +279,8 @@ export default function EditorScreen({ session, onBack }: Props) {
     try {
       const { exportClip } = await import("../lib/exportClip");
       const blob = await exportClip({
-        mediaUrl: exportSourceUrl,
-        hls: Boolean(session.hlsUrl) && exportSourceUrl === session.hlsUrl,
+        mediaUrl: exportSource.url,
+        hls: exportSource.kind === "hls",
         startTime,
         endTime,
         format: exportFormat,
@@ -276,13 +311,13 @@ export default function EditorScreen({ session, onBack }: Props) {
     exportFormat,
     fileName.fullName,
     exporting,
+    exportSource.kind,
+    exportSource.url,
     includeAudio,
     resolution,
     session.exportMetadata,
-    session.hlsUrl,
     session.selectedAudioTrack,
     startTime,
-    exportSourceUrl,
   ]);
 
   useEffect(() => {
@@ -310,7 +345,7 @@ export default function EditorScreen({ session, onBack }: Props) {
     };
   }, [togglePlay]);
 
-  if (!exportSourceUrl) {
+  if (!exportSource.url) {
     return (
       <div className="flex h-dvh items-center justify-center overflow-hidden bg-background p-8 text-foreground">
         <div className="text-center">
@@ -449,6 +484,8 @@ export default function EditorScreen({ session, onBack }: Props) {
         onFormatChange={handleFormatChange}
         selectedResolution={resolution}
         onResolutionChange={handleResolutionChange}
+        selectedSourcePreference={effectiveExportSourcePreference}
+        onSourcePreferenceChange={handleExportSourceChange}
         includeAudio={includeAudio}
         onIncludeAudioChange={handleAudioChange}
         exporting={exporting}
@@ -457,8 +494,10 @@ export default function EditorScreen({ session, onBack }: Props) {
         fileNamePreview={fileName.fullName}
         outputDimensions={outputDimensions}
         hasHlsSource={Boolean(session.hlsUrl)}
-        usingDirectSourceFallback={usingDirectSourceFallback}
-        exportFallbackMessage={exportFallbackMessage}
+        hasDirectSource={Boolean(session.mediaUrl)}
+        exportSourceLabel={exportSourceLabel}
+        exportSourceMessage={exportSourceMessage}
+        exportSourceSummaryMessage={exportSourceSummaryMessage}
         activeTemplateKind={fileName.templateKind}
         editingTemplateKind={templateEditorKind}
         onEditingTemplateKindChange={setTemplateEditorKind}
@@ -494,6 +533,68 @@ function getOutputDimensions(
   return { width, height };
 }
 
+function resolveExportSource({
+  preference,
+  hlsUrl,
+  mediaUrl,
+  exportFallbackSourceUrl,
+}: {
+  preference: ExportSourcePreference;
+  hlsUrl?: string;
+  mediaUrl?: string;
+  exportFallbackSourceUrl?: string;
+}): ResolvedExportSource {
+  if (preference === "direct") {
+    return mediaUrl
+      ? { url: mediaUrl, kind: "direct" }
+      : { url: "", kind: "none" };
+  }
+
+  if (preference === "hls") {
+    return hlsUrl
+      ? { url: hlsUrl, kind: "hls" }
+      : { url: "", kind: "none" };
+  }
+
+  if (exportFallbackSourceUrl) {
+    return { url: exportFallbackSourceUrl, kind: "direct" };
+  }
+
+  if (hlsUrl) {
+    return { url: hlsUrl, kind: "hls" };
+  }
+
+  if (mediaUrl) {
+    return { url: mediaUrl, kind: "direct" };
+  }
+
+  return { url: "", kind: "none" };
+}
+
+function buildExportSourceLabel({
+  preference,
+  resolvedSourceKind,
+  exportFallbackSourceUrl,
+}: {
+  preference: ExportSourcePreference;
+  resolvedSourceKind: ResolvedExportSourceKind;
+  exportFallbackSourceUrl?: string;
+}) {
+  if (resolvedSourceKind === "hls") {
+    return preference === "auto" ? "Auto: HLS playback" : "HLS playback";
+  }
+
+  if (resolvedSourceKind === "direct") {
+    if (preference === "auto" && exportFallbackSourceUrl) {
+      return "Auto: direct fallback";
+    }
+
+    return preference === "auto" ? "Auto: direct/original" : "Direct/original";
+  }
+
+  return "Unavailable";
+}
+
 function buildPlaybackFallbackReason({
   activeSourceLabel,
   hlsUrl,
@@ -516,14 +617,40 @@ function buildPlaybackFallbackReason({
   return `${prefix}: ${hlsFallbackInfo.message}`;
 }
 
-function buildExportFallbackMessage(
-  hlsFallbackInfo: PlaybackFallbackInfo | null,
-  exportUsesDirectSource: boolean,
-) {
+function buildExportSourceMessage({
+  preference,
+  resolvedSourceKind,
+  hlsUrl,
+  mediaUrl,
+  hlsFallbackInfo,
+}: {
+  preference: ExportSourcePreference;
+  resolvedSourceKind: ResolvedExportSourceKind;
+  hlsUrl?: string;
+  mediaUrl?: string;
+  hlsFallbackInfo: PlaybackFallbackInfo | null;
+}) {
+  if (resolvedSourceKind === "none") {
+    return null;
+  }
+
+  if (preference === "hls" && resolvedSourceKind === "hls" && !hlsFallbackInfo) {
+    return "Export will use the HLS playback stream. This follows the media server playback path and can include server-side transcoding.";
+  }
+
+  if (resolvedSourceKind === "direct" && !hlsUrl && mediaUrl) {
+    return "This session only exposed a direct/original media path, so export will use that source.";
+  }
+
+  if (resolvedSourceKind === "direct" && preference !== "auto") {
+    return null;
+  }
+
   if (!hlsFallbackInfo) {
     return null;
   }
 
+  const exportUsesDirectSource = resolvedSourceKind === "direct";
   const prefix = exportUsesDirectSource
     ? ({
         "open-or-read": "Export is using the direct media source because Cliparr could not open or read the HLS stream",
@@ -537,4 +664,20 @@ function buildExportFallbackMessage(
       } as const)[hlsFallbackInfo.category];
 
   return `${prefix}: ${hlsFallbackInfo.message}`;
+}
+
+function buildExportSourceSummaryMessage({
+  preference,
+  resolvedSourceKind,
+  hlsUrl,
+}: {
+  preference: ExportSourcePreference;
+  resolvedSourceKind: ResolvedExportSourceKind;
+  hlsUrl?: string;
+}) {
+  if (preference === "direct" && resolvedSourceKind === "direct" && hlsUrl) {
+    return "Export will use the direct/original media path. Cliparr still uses playback metadata for track and timing hints when it is available.";
+  }
+
+  return null;
 }

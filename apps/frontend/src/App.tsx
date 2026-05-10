@@ -2,6 +2,7 @@ import { RouterProvider } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { cliparrClient, subscribeToAuthFailure } from "./api/cliparrClient";
 import { AuthProvider } from "./auth";
+import { TooltipProvider } from "./components/ui/tooltip";
 import type { ProviderSession } from "./providers/types";
 import { router } from "./router";
 
@@ -78,23 +79,25 @@ export default function App() {
   }
 
   return (
-    <AuthProvider
-      auth={{
-        providerSession,
-        setProviderSession,
-        logout,
-      }}
-    >
-      <RouterProvider
-        router={router}
-        context={{
-          auth: {
-            providerSession,
-            setProviderSession,
-            logout,
-          },
+    <TooltipProvider>
+      <AuthProvider
+        auth={{
+          providerSession,
+          setProviderSession,
+          logout,
         }}
-      />
-    </AuthProvider>
+      >
+        <RouterProvider
+          router={router}
+          context={{
+            auth: {
+              providerSession,
+              setProviderSession,
+              logout,
+            },
+          }}
+        />
+      </AuthProvider>
+    </TooltipProvider>
   );
 }
