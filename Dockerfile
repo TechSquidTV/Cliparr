@@ -2,7 +2,7 @@
 
 ARG CLIPARR_VERSION=0.0.0
 
-FROM node:24-slim AS base
+FROM node:26-slim AS base
 
 ENV PNPM_HOME="/pnpm"
 ENV PATH="$PNPM_HOME:$PATH"
@@ -33,7 +33,7 @@ COPY apps/frontend/src apps/frontend/src
 RUN pnpm build
 RUN pnpm --filter @cliparr/server deploy --legacy --prod /prod/apps/server
 
-FROM node:24-slim AS runner
+FROM node:26-slim AS runner
 
 ARG CLIPARR_VERSION
 
