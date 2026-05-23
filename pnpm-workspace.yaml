@@ -1,2 +1,17 @@
 packages:
   - "apps/*"
+
+autoInstallPeers: false
+
+allowBuilds:
+  esbuild: true
+
+overrides:
+  baseline-browser-mapping: 2.10.31
+  enhanced-resolve: 5.21.3
+  es-object-atoms: 1.1.1
+
+peerDependencyRules:
+  ignoreMissing:
+    - mssql
+    - "@types/mssql"
