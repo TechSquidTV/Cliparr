@@ -119,15 +119,15 @@ function buildPlaybackSourceCandidates(hlsUrl: string | undefined, mediaUrl: str
   return candidates;
 }
 
-function classifyPlaybackUrl(url: string): PlaybackLoadFailure["classification"] {
-  return isHlsPlaylistUrl(url) ? "hls-playlist" : "unknown";
+function classifyPlaybackSource(source: Pick<PlaybackSourceCandidate, "label" | "url">): PlaybackLoadFailure["classification"] {
+  return source.label === "hls stream" || isHlsPlaylistUrl(source.url) ? "hls-playlist" : "unknown";
 }
 
 function buildPlaybackFailure(source: PlaybackSourceCandidate, err: unknown): PlaybackLoadFailure {
   return {
     label: source.label,
     message: errorMessage(err),
-    classification: classifyPlaybackUrl(source.url),
+    classification: classifyPlaybackSource(source),
     category: err instanceof PlaybackSourceError ? err.category : "open-or-read",
   };
 }
@@ -171,7 +171,29 @@ function buildPlaybackLoadError(failures: PlaybackLoadFailure[]) {
     return describePlaybackFailure(failures[0]);
   }
 
+  const uniqueMessages = [...new Set(failures.map((failure) => failure.message))];
+  if (uniqueMessages.length === 1) {
+    return `Cliparr could not open any playback stream. ${uniqueMessages[0]}`;
+  }
+
   return `Cliparr could not open any playback stream. ${failures.map(describePlaybackFailure).join(" ")}`;
+}
+
+function browserDecoderEnvironmentWarning() {
+  const missingDecoders = [
+    "VideoDecoder" in window ? null : "video",
+    "AudioDecoder" in window ? null : "audio",
+  ].filter(isPresent);
+
+  if (missingDecoders.length === 0) {
+    return undefined;
+  }
+
+  if (!window.isSecureContext) {
+    return `Browser WebCodecs ${missingDecoders.join(" and ")} decoding is unavailable from ${window.location.origin}. Open Cliparr over HTTPS, localhost, or 127.0.0.1 so the editor can decode media. Jellyfin playback can still work on this origin because its native player does not use the same editor decoder APIs.`;
+  }
+
+  return `Browser WebCodecs ${missingDecoders.join(" and ")} decoding is unavailable in this browser.`;
 }
 
 async function assessPreviewVideoTrack(track: InputVideoTrack | null) {
@@ -324,7 +346,10 @@ async function buildPlaybackSourceAnalysis(context: PlaybackSourceAnalysisContex
   return {
     sessionId: context.sessionId,
     source: context.source,
-    urlClassification: classifyPlaybackUrl(context.url),
+    urlClassification: classifyPlaybackSource({
+      label: context.source,
+      url: context.url,
+    }),
     selectedAudioTrack: context.selectedAudioTrack ?? null,
     videoTrackCount: context.videoTracks.length,
     audioTrackCount: context.allAudioTracks.length,
@@ -1458,10 +1483,15 @@ export function useEditorPlayback({
               );
             }
 
+            const decoderEnvironmentWarning = browserDecoderEnvironmentWarning();
+            if (sourceVideoTrack && !previewVideoTrack && decoderEnvironmentWarning) {
+              throw new PlaybackSourceError("shared-export-blocking", decoderEnvironmentWarning);
+            }
+
             if (!previewVideoTrack && !previewAudioTrack) {
               throw new PlaybackSourceError(
-                "preview-only",
-                warnings.join(" ") || "No decodable audio or video track found."
+                decoderEnvironmentWarning ? "shared-export-blocking" : "preview-only",
+                decoderEnvironmentWarning ?? (warnings.join(" ") || "No decodable audio or video track found.")
               );
             }
 
