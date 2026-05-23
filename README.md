@@ -44,6 +44,9 @@ docker run -d \
 > [!IMPORTANT]
 > **Stable APP_KEY Required**: Cliparr uses `APP_KEY` to encrypt your provider credentials at rest. You **must** use a stable, random secret. If you change this key later, you will need to re-authenticate your media servers.
 
+> [!IMPORTANT]
+> **Use a secure browser context for editing**: Cliparr decodes video in the browser using WebCodecs. Chrome and other Chromium browsers only expose these decoder APIs in secure contexts. Use HTTPS for normal deployments, run Cliparr behind a reverse proxy with HTTPS enabled, or access local testing through `http://localhost:3000` / `http://127.0.0.1:3000`. Plain HTTP LAN IPs such as `http://10.0.0.24:3000` are not secure contexts and can prevent video from decoding in the editor.
+
 ### Using Docker Compose
 
 For a persistent setup, we recommend using Docker Compose:
