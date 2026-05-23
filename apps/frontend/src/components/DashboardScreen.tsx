@@ -43,6 +43,14 @@ function formatSourceLabel(source: { name: string; providerId: string }) {
   return formatProviderName(source.providerId);
 }
 
+function canEditSession(session: Pick<CurrentlyPlayingItem, "mediaUrl" | "hlsUrl">) {
+  return Boolean(session.hlsUrl || session.mediaUrl);
+}
+
+function sessionActionLabel(session: Pick<CurrentlyPlayingItem, "mediaUrl" | "hlsUrl">) {
+  return canEditSession(session) ? "Edit Clip" : "No exportable stream";
+}
+
 function ViewerAvatar({ name, avatarUrl }: { name: string; avatarUrl?: string }) {
   const [imageFailed, setImageFailed] = useState(false);
   const label = name.trim().charAt(0).toUpperCase() || "?";
@@ -248,7 +256,7 @@ export default function DashboardScreen({ onSelectSession, onOpenSources, onLogo
 
                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
                   {viewerGroup.items.map((mediaSession) => {
-                    const canEdit = Boolean(mediaSession.mediaUrl);
+                    const canEdit = canEditSession(mediaSession);
                     return (
                       <button
                         key={mediaSession.id}
@@ -296,7 +304,7 @@ export default function DashboardScreen({ onSelectSession, onOpenSources, onLogo
                             </div>
                           </div>
                           <div className="flex items-center justify-center w-full py-2 bg-primary/10 text-primary rounded-lg text-sm font-medium group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
-                            {canEdit ? "Edit Clip" : "No direct media file"}
+                            {sessionActionLabel(mediaSession)}
                           </div>
                         </div>
                       </button>

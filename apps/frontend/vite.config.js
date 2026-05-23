@@ -9,6 +9,8 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 export default defineConfig(({mode}) => {
   const env = loadEnv(mode, path.resolve(__dirname, '../..'), '');
+  const apiPort = env.PORT || '3000';
+  const apiTarget = env.CLIPARR_API_URL || `http://localhost:${apiPort}`;
   return {
     plugins: [
       tanstackRouter({
@@ -44,7 +46,7 @@ export default defineConfig(({mode}) => {
       hmr: process.env.DISABLE_HMR !== 'true',
       proxy: {
         '/api': {
-          target: env.CLIPARR_API_URL || 'http://localhost:3000',
+          target: apiTarget,
           changeOrigin: true,
         },
       },

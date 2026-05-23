@@ -44,6 +44,9 @@ docker run -d \
 > [!IMPORTANT]
 > **Stable APP_KEY Required**: Cliparr uses `APP_KEY` to encrypt your provider credentials at rest. You **must** use a stable, random secret. If you change this key later, you will need to re-authenticate your media servers.
 
+> [!IMPORTANT]
+> **Use HTTPS for editing**: Cliparr's editor uses browser WebCodecs. Supporting browsers require a secure context. Use an HTTPS reverse proxy like Caddy, or local `localhost` / `127.0.0.1`.
+
 ### Using Docker Compose
 
 For a persistent setup, we recommend using Docker Compose:

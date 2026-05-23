@@ -1,7 +1,7 @@
 {
   "name": "@cliparr/frontend",
   "private": true,
-  "version": "0.2.0",
+  "version": "0.4.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -13,14 +13,14 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
-    "@mediabunny/aac-encoder": "^1.45.2",
-    "@mediabunny/ac3": "^1.45.2",
-    "@tanstack/react-router": "^1.170.4",
+    "@mediabunny/aac-encoder": "^1.45.3",
+    "@mediabunny/ac3": "^1.45.3",
+    "@tanstack/react-router": "^1.170.7",
     "@xzdarcy/react-timeline-editor": "^1.0.0",
     "clsx": "^2.1.1",
     "lucide-react": "^1.16.0",
-    "mediabunny": "^1.45.2",
-    "motion": "^12.39.0",
+    "mediabunny": "^1.45.3",
+    "motion": "^12.40.0",
     "radix-ui": "^1.4.3",
     "react": "^19.2.6",
     "react-dom": "^19.2.6",
@@ -29,13 +29,13 @@
   },
   "devDependencies": {
     "@tailwindcss/vite": "^4.3.0",
-    "@tanstack/router-plugin": "^1.168.6",
-    "@types/node": "^25.9.0",
-    "@types/react": "^19.2.14",
+    "@tanstack/router-plugin": "^1.168.10",
+    "@types/node": "^25.9.1",
+    "@types/react": "^19.2.15",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^6.0.2",
     "tailwindcss": "^4.3.0",
     "typescript": "~6.0.3",
-    "vite": "^8.0.13"
+    "vite": "^8.0.14"
   }
 }

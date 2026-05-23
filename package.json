@@ -1,11 +1,11 @@
 {
   "name": "cliparr",
   "private": true,
-  "version": "0.2.0",
+  "version": "0.4.0",
   "description": "Plex clipper for exporting MP4 clips from active playback sessions, featuring a React frontend and Express server.",
   "license": "MIT",
   "type": "module",
-  "packageManager": "pnpm@10.8.0",
+  "packageManager": "pnpm@11.2.2",
   "engines": {
     "node": ">=20.19"
   },
@@ -30,22 +30,14 @@
     "start": "pnpm --filter @cliparr/server start",
     "clean": "pnpm -r clean"
   },
-  "pnpm": {
-    "peerDependencyRules": {
-      "ignoreMissing": [
-        "mssql",
-        "@types/mssql"
-      ]
-    }
-  },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
-    "@types/node": "^25.9.0",
+    "@types/node": "^25.9.1",
     "concurrently": "^9.2.1",
     "eslint": "^10.4.0",
     "eslint-plugin-react-hooks": "^7.1.1",
     "globals": "^17.6.0",
-    "knip": "^6.14.1",
+    "knip": "6.14.1",
     "typescript": "~6.0.3",
     "typescript-eslint": "^8.59.4"
   }

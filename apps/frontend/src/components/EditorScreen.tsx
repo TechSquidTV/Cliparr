@@ -1,11 +1,14 @@
 import { useCallback, useEffect, useState } from "react";
+import { Eye } from "lucide-react";
 import { MIN_CLIP_SECONDS, roundTimelineTime } from "./editor/EditorUtils";
-import { useEditorPlayback } from "./editor/useEditorPlayback";
+import { useEditorPlayback, type PlaybackFallbackInfo } from "./editor/useEditorPlayback";
 import { useEditorTimeline } from "./editor/useEditorTimeline";
 import { EditorHeader } from "./editor/EditorHeader";
-import { EditorExportDialog } from "./editor/EditorExportDialog";
+import { EditorExportDialog, type ExportSourcePreference } from "./editor/EditorExportDialog";
 import { EditorPreview } from "./editor/EditorPreview";
 import { EditorControls } from "./editor/EditorControls";
+import { EditorSidebar } from "./editor/EditorSidebar";
+import { EditorPlaybackSourcePanel } from "./editor/EditorPlaybackSourcePanel";
 import { EditorTimeline } from "./editor/EditorTimeline";
 import type { CurrentlyPlayingItem } from "../providers/types";
 import type { ExportFormat, ExportResolution } from "../lib/exportClip";
@@ -28,6 +31,13 @@ interface VideoDimensions {
   height: number;
 }
 
+type ResolvedExportSourceKind = "hls" | "direct" | "none";
+
+interface ResolvedExportSource {
+  url: string;
+  kind: ResolvedExportSourceKind;
+}
+
 function isInteractiveKeyboardTarget(target: EventTarget | null) {
   if (!(target instanceof HTMLElement)) {
     return false;
@@ -47,13 +57,21 @@ export default function EditorScreen({ session, onBack }: Props) {
   const [endTime, setEndTime] = useState(() => Math.min(10, Math.max(session.duration, 0)));
   const [resolution, setResolution] = useState<ExportResolution>("original");
   const [exportFormat, setExportFormat] = useState<ExportFormat>("mp4");
+  const [exportSourcePreference, setExportSourcePreference] = useState<ExportSourcePreference>("auto");
   const [includeAudio, setIncludeAudio] = useState(true);
   const [fileNameTemplates, setFileNameTemplates] = useState<ExportFileNameTemplateSettings>(() => loadExportFileNameTemplates());
   const [templateEditorKind, setTemplateEditorKind] = useState<ExportFileNameTemplateKind>("movie");
+  const [playbackSidebarOpen, setPlaybackSidebarOpen] = useState(true);
   const [exportDialogOpen, setExportDialogOpen] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [progress, setProgress] = useState(0);
   const [exportError, setExportError] = useState<string | null>(null);
+  const effectiveExportSourcePreference =
+    exportSourcePreference === "direct" && !session.mediaUrl
+      ? "auto"
+      : exportSourcePreference === "hls" && !session.hlsUrl
+        ? "auto"
+        : exportSourcePreference;
 
   const {
     canvasRef,
@@ -64,7 +82,10 @@ export default function EditorScreen({ session, onBack }: Props) {
     previewStatus,
     error,
     activeSourceLabel,
+    exportFallbackSourceUrl,
+    hlsFallbackInfo,
     sourceVideoDimensions,
+    playbackReadyRange,
     volume,
     muted,
     setVolume,
@@ -72,10 +93,11 @@ export default function EditorScreen({ session, onBack }: Props) {
     togglePlay,
     pausePlayback,
     seekToTime,
+    warmClipSelection,
     setCurrentTime,
     playbackTimeAtStartRef,
   } = useEditorPlayback({
-    previewUrl: session.previewUrl,
+    hlsUrl: session.hlsUrl,
     mediaUrl: session.mediaUrl ?? "",
     initialDuration: session.duration,
     startTime,
@@ -83,6 +105,35 @@ export default function EditorScreen({ session, onBack }: Props) {
     sessionId: session.id,
     selectedAudioTrack: session.selectedAudioTrack,
   });
+  const exportSource = resolveExportSource({
+    preference: effectiveExportSourcePreference,
+    hlsUrl: session.hlsUrl,
+    mediaUrl: session.mediaUrl,
+    exportFallbackSourceUrl,
+  });
+  const exportSourceMessage = buildExportSourceMessage({
+    preference: effectiveExportSourcePreference,
+    resolvedSourceKind: exportSource.kind,
+    hlsUrl: session.hlsUrl,
+    mediaUrl: session.mediaUrl,
+    hlsFallbackInfo,
+  });
+  const exportSourceSummaryMessage = buildExportSourceSummaryMessage({
+    preference: effectiveExportSourcePreference,
+    resolvedSourceKind: exportSource.kind,
+    hlsUrl: session.hlsUrl,
+  });
+  const exportSourceLabel = buildExportSourceLabel({
+    preference: effectiveExportSourcePreference,
+    resolvedSourceKind: exportSource.kind,
+    exportFallbackSourceUrl,
+  });
+  const playbackFallbackReason = buildPlaybackFallbackReason({
+    activeSourceLabel,
+    hlsUrl: session.hlsUrl,
+    hlsFallbackInfo,
+  });
+  const previewSourceLabel = activeSourceLabel || (loadingPreview ? "Resolving stream" : "Unavailable");
 
   const updateClipRange = useCallback((nextStart: number, nextEnd: number) => {
     if (!duration || duration <= 0) return;
@@ -114,9 +165,13 @@ export default function EditorScreen({ session, onBack }: Props) {
     timelineEffects,
     activeTimelineScale,
     timelineScaleCount,
+    timelineScrollLeft,
+    timelineViewportWidth,
     handleTimelineScroll,
     handleTimelineWheel,
     handleTimelineChange,
+    handleTimelineActionMoveEnd,
+    handleTimelineActionResizeEnd,
     hasDuration,
   } = useEditorTimeline({
     duration,
@@ -125,6 +180,9 @@ export default function EditorScreen({ session, onBack }: Props) {
     currentTime,
     sessionId: session.id,
     updateClipRange,
+    onClipRangeCommit: (nextStart, nextEnd) => {
+      void warmClipSelection(nextStart, nextEnd);
+    },
   });
 
   const fileName = buildExportFileName({
@@ -142,6 +200,18 @@ export default function EditorScreen({ session, onBack }: Props) {
   useEffect(() => {
     saveExportFileNameTemplates(fileNameTemplates);
   }, [fileNameTemplates]);
+
+  useEffect(() => {
+    if (!duration || duration <= 0) {
+      return;
+    }
+
+    if (isValidTimelineRange(startTime, endTime)) {
+      return;
+    }
+
+    updateClipRange(startTime, endTime);
+  }, [duration, endTime, isValidTimelineRange, startTime, updateClipRange]);
 
   const handleOpenExportDialog = useCallback(() => {
     setExportError(null);
@@ -164,6 +234,11 @@ export default function EditorScreen({ session, onBack }: Props) {
 
   const handleResolutionChange = useCallback((nextResolution: ExportResolution) => {
     setResolution(nextResolution);
+    setExportError(null);
+  }, []);
+
+  const handleExportSourceChange = useCallback((nextSourcePreference: ExportSourcePreference) => {
+    setExportSourcePreference(nextSourcePreference);
     setExportError(null);
   }, []);
 
@@ -194,7 +269,7 @@ export default function EditorScreen({ session, onBack }: Props) {
   }, []);
 
   const handleExport = useCallback(async () => {
-    if (!session.mediaUrl) return;
+    if (!exportSource.url) return;
     if (exporting) return;
 
     setExportError(null);
@@ -204,7 +279,8 @@ export default function EditorScreen({ session, onBack }: Props) {
     try {
       const { exportClip } = await import("../lib/exportClip");
       const blob = await exportClip({
-        mediaUrl: session.mediaUrl,
+        mediaUrl: exportSource.url,
+        hls: exportSource.kind === "hls",
         startTime,
         endTime,
         format: exportFormat,
@@ -235,10 +311,11 @@ export default function EditorScreen({ session, onBack }: Props) {
     exportFormat,
     fileName.fullName,
     exporting,
+    exportSource.kind,
+    exportSource.url,
     includeAudio,
     resolution,
     session.exportMetadata,
-    session.mediaUrl,
     session.selectedAudioTrack,
     startTime,
   ]);
@@ -268,11 +345,11 @@ export default function EditorScreen({ session, onBack }: Props) {
     };
   }, [togglePlay]);
 
-  if (!session.mediaUrl) {
+  if (!exportSource.url) {
     return (
       <div className="flex h-dvh items-center justify-center overflow-hidden bg-background p-8 text-foreground">
         <div className="text-center">
-          <p className="text-destructive mb-4">Could not find media file for this session.</p>
+          <p className="text-destructive mb-4">Could not find an exportable stream for this session.</p>
           <button onClick={onBack} className="text-primary hover:underline">Go Back</button>
         </div>
       </div>
@@ -290,71 +367,111 @@ export default function EditorScreen({ session, onBack }: Props) {
       />
 
       <main className="min-h-0 flex-1 overflow-hidden p-3 sm:p-4">
-        <div className="flex h-full min-h-0 flex-col gap-3">
-          {error && (
-            <div className="border border-destructive/35 bg-destructive/10 px-3 py-2 text-sm text-destructive">
-              {error}
-            </div>
-          )}
-
-          <section className="flex min-h-0 flex-1 items-center justify-center overflow-hidden border border-border bg-card p-3">
-            <EditorPreview
-              canvasRef={canvasRef}
-              activeSourceLabel={activeSourceLabel}
-              playing={playing}
-              loadingPreview={loadingPreview}
-              previewStatus={previewStatus}
-              togglePlay={togglePlay}
-            />
-          </section>
-
-          <section className="shrink-0 overflow-hidden border border-border bg-card text-card-foreground">
-            <EditorControls
-              playing={playing}
-              loadingPreview={loadingPreview}
-              togglePlay={togglePlay}
-              currentTime={currentTime}
-              duration={duration}
-              startTime={startTime}
-              endTime={endTime}
-              muted={muted}
-              setMuted={setMuted}
-              volume={volume}
-              setVolume={setVolume}
-            />
-
-            {!hasDuration && (
-              <div className="border-t border-border px-3 py-3 text-sm text-muted-foreground">
-                Waiting for media duration before clip controls can be adjusted.
+        <div className="flex h-full min-h-0 flex-col gap-3 lg:grid lg:grid-cols-[minmax(0,1fr)_auto]">
+          <div className="flex min-h-0 flex-col gap-3">
+            {error && (
+              <div className="border border-destructive/35 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+                {error}
               </div>
             )}
 
-            {hasDuration && (
-              <EditorTimeline
-                timelineRef={timelineRef}
-                timelineWheelRegionRef={timelineWheelRegionRef}
-                timelineData={timelineData}
-                timelineEffects={timelineEffects}
-                activeTimelineScale={activeTimelineScale}
-                timelineScaleCount={timelineScaleCount}
-                loadingPreview={loadingPreview}
-                playing={playing}
-                handleTimelineScroll={handleTimelineScroll}
-                handleTimelineChange={handleTimelineChange}
-                handleTimelineWheel={handleTimelineWheel}
-                isValidTimelineRange={isValidTimelineRange}
-                seekToTime={seekToTime}
-                onCursorDragStart={() => {
-                  if (playing) pausePlayback();
-                }}
-                onCursorDrag={(time) => {
-                  const nextTime = Math.min(Math.max(time, 0), duration);
-                  playbackTimeAtStartRef.current = nextTime;
-                  setCurrentTime(nextTime);
-                }}
+            <div className="lg:hidden">
+              <EditorPlaybackSourcePanel
+                previewSourceLabel={previewSourceLabel}
+                fallbackMessage={playbackFallbackReason}
+                hasHlsSource={Boolean(session.hlsUrl)}
               />
-            )}
-          </section>
+            </div>
+
+            <section className="flex min-h-0 flex-1 items-center justify-center overflow-hidden border border-border bg-card p-3">
+              <EditorPreview
+                canvasRef={canvasRef}
+                playing={playing}
+                loadingPreview={loadingPreview}
+                previewStatus={previewStatus}
+                togglePlay={togglePlay}
+              />
+            </section>
+
+            <section className="shrink-0 overflow-hidden border border-border bg-card text-card-foreground">
+              <EditorControls
+                playing={playing}
+                loadingPreview={loadingPreview}
+                togglePlay={togglePlay}
+                currentTime={currentTime}
+                duration={duration}
+                startTime={startTime}
+                endTime={endTime}
+                muted={muted}
+                setMuted={setMuted}
+                volume={volume}
+                setVolume={setVolume}
+              />
+
+              {!hasDuration && (
+                <div className="border-t border-border px-3 py-3 text-sm text-muted-foreground">
+                  Waiting for media duration before clip controls can be adjusted.
+                </div>
+              )}
+
+              {hasDuration && (
+                <>
+                  <EditorTimeline
+                    timelineRef={timelineRef}
+                    timelineWheelRegionRef={timelineWheelRegionRef}
+                    timelineData={timelineData}
+                    timelineEffects={timelineEffects}
+                    activeTimelineScale={activeTimelineScale}
+                    timelineScaleCount={timelineScaleCount}
+                    timelineScrollLeft={timelineScrollLeft}
+                    timelineViewportWidth={timelineViewportWidth}
+                    playbackReadyRange={previewSourceLabel === "HLS stream" ? playbackReadyRange : null}
+                    loadingPreview={loadingPreview}
+                    playing={playing}
+                    handleTimelineScroll={handleTimelineScroll}
+                    handleTimelineChange={handleTimelineChange}
+                    handleTimelineActionMoveEnd={handleTimelineActionMoveEnd}
+                    handleTimelineActionResizeEnd={handleTimelineActionResizeEnd}
+                    handleTimelineWheel={handleTimelineWheel}
+                    isValidTimelineRange={isValidTimelineRange}
+                    seekToTime={seekToTime}
+                    onCursorDragStart={() => {
+                      if (playing) pausePlayback();
+                    }}
+                    onCursorDrag={(time) => {
+                      const nextTime = Math.min(Math.max(time, 0), duration);
+                      playbackTimeAtStartRef.current = nextTime;
+                      setCurrentTime(nextTime);
+                    }}
+                  />
+                  {previewSourceLabel === "HLS stream" && (
+                    <div className="border-t border-border px-3 py-2 text-xs text-muted-foreground">
+                      <span className="font-medium text-foreground">Preview Ready</span>
+                      {" "}
+                      shows which parts of the selection are warmed for smoother preview playback.
+                      Export uses a separate read path.
+                    </div>
+                  )}
+                </>
+              )}
+            </section>
+          </div>
+
+          <div className="hidden min-h-0 lg:block">
+            <EditorSidebar
+              open={playbackSidebarOpen}
+              onOpenChange={setPlaybackSidebarOpen}
+              title="Properties"
+              icon={Eye}
+              active={previewSourceLabel === "Direct source" || Boolean(playbackFallbackReason)}
+            >
+              <EditorPlaybackSourcePanel
+                previewSourceLabel={previewSourceLabel}
+                fallbackMessage={playbackFallbackReason}
+                hasHlsSource={Boolean(session.hlsUrl)}
+              />
+            </EditorSidebar>
+          </div>
         </div>
       </main>
 
@@ -367,6 +484,8 @@ export default function EditorScreen({ session, onBack }: Props) {
         onFormatChange={handleFormatChange}
         selectedResolution={resolution}
         onResolutionChange={handleResolutionChange}
+        selectedSourcePreference={effectiveExportSourcePreference}
+        onSourcePreferenceChange={handleExportSourceChange}
         includeAudio={includeAudio}
         onIncludeAudioChange={handleAudioChange}
         exporting={exporting}
@@ -374,6 +493,11 @@ export default function EditorScreen({ session, onBack }: Props) {
         error={exportError}
         fileNamePreview={fileName.fullName}
         outputDimensions={outputDimensions}
+        hasHlsSource={Boolean(session.hlsUrl)}
+        hasDirectSource={Boolean(session.mediaUrl)}
+        exportSourceLabel={exportSourceLabel}
+        exportSourceMessage={exportSourceMessage}
+        exportSourceSummaryMessage={exportSourceSummaryMessage}
         activeTemplateKind={fileName.templateKind}
         editingTemplateKind={templateEditorKind}
         onEditingTemplateKindChange={setTemplateEditorKind}
@@ -407,4 +531,153 @@ function getOutputDimensions(
   const width = Math.max(1, Math.round((sourceVideoDimensions.width / sourceVideoDimensions.height) * height));
 
   return { width, height };
+}
+
+function resolveExportSource({
+  preference,
+  hlsUrl,
+  mediaUrl,
+  exportFallbackSourceUrl,
+}: {
+  preference: ExportSourcePreference;
+  hlsUrl?: string;
+  mediaUrl?: string;
+  exportFallbackSourceUrl?: string;
+}): ResolvedExportSource {
+  if (preference === "direct") {
+    return mediaUrl
+      ? { url: mediaUrl, kind: "direct" }
+      : { url: "", kind: "none" };
+  }
+
+  if (preference === "hls") {
+    return hlsUrl
+      ? { url: hlsUrl, kind: "hls" }
+      : { url: "", kind: "none" };
+  }
+
+  if (exportFallbackSourceUrl) {
+    return { url: exportFallbackSourceUrl, kind: "direct" };
+  }
+
+  if (hlsUrl) {
+    return { url: hlsUrl, kind: "hls" };
+  }
+
+  if (mediaUrl) {
+    return { url: mediaUrl, kind: "direct" };
+  }
+
+  return { url: "", kind: "none" };
+}
+
+function buildExportSourceLabel({
+  preference,
+  resolvedSourceKind,
+  exportFallbackSourceUrl,
+}: {
+  preference: ExportSourcePreference;
+  resolvedSourceKind: ResolvedExportSourceKind;
+  exportFallbackSourceUrl?: string;
+}) {
+  if (resolvedSourceKind === "hls") {
+    return preference === "auto" ? "Auto: HLS playback" : "HLS playback";
+  }
+
+  if (resolvedSourceKind === "direct") {
+    if (preference === "auto" && exportFallbackSourceUrl) {
+      return "Auto: direct fallback";
+    }
+
+    return preference === "auto" ? "Auto: direct/original" : "Direct/original";
+  }
+
+  return "Unavailable";
+}
+
+function buildPlaybackFallbackReason({
+  activeSourceLabel,
+  hlsUrl,
+  hlsFallbackInfo,
+}: {
+  activeSourceLabel: string;
+  hlsUrl?: string;
+  hlsFallbackInfo: PlaybackFallbackInfo | null;
+}) {
+  if (activeSourceLabel !== "Direct source" || !hlsUrl || !hlsFallbackInfo) {
+    return null;
+  }
+
+  const prefix = ({
+    "open-or-read": "Preview is using the direct source because Cliparr could not open or read the HLS stream",
+    "preview-only": "Preview is using the direct source because this browser could not preview the HLS stream",
+    "shared-export-blocking": "Preview is using the direct source because Cliparr cannot currently use this HLS stream for preview or export",
+  } as const)[hlsFallbackInfo.category];
+
+  return `${prefix}: ${hlsFallbackInfo.message}`;
+}
+
+function buildExportSourceMessage({
+  preference,
+  resolvedSourceKind,
+  hlsUrl,
+  mediaUrl,
+  hlsFallbackInfo,
+}: {
+  preference: ExportSourcePreference;
+  resolvedSourceKind: ResolvedExportSourceKind;
+  hlsUrl?: string;
+  mediaUrl?: string;
+  hlsFallbackInfo: PlaybackFallbackInfo | null;
+}) {
+  if (resolvedSourceKind === "none") {
+    return null;
+  }
+
+  if (preference === "hls" && resolvedSourceKind === "hls" && !hlsFallbackInfo) {
+    return "Export will use the HLS playback stream. This follows the media server playback path and can include server-side transcoding.";
+  }
+
+  if (resolvedSourceKind === "direct" && !hlsUrl && mediaUrl) {
+    return "This session only exposed a direct/original media path, so export will use that source.";
+  }
+
+  if (resolvedSourceKind === "direct" && preference !== "auto") {
+    return null;
+  }
+
+  if (!hlsFallbackInfo) {
+    return null;
+  }
+
+  const exportUsesDirectSource = resolvedSourceKind === "direct";
+  const prefix = exportUsesDirectSource
+    ? ({
+        "open-or-read": "Export is using the direct media source because Cliparr could not open or read the HLS stream",
+        "preview-only": "Export is using the direct media source because Cliparr could not use the HLS stream for this export path",
+        "shared-export-blocking": "Export is using the direct media source because Cliparr cannot currently use this HLS stream for export",
+      } as const)[hlsFallbackInfo.category]
+    : ({
+        "open-or-read": "Export will still try the HLS stream even though preview fell back while opening or reading it",
+        "preview-only": "Export will still try the HLS stream because this limitation only affects preview in the current browser",
+        "shared-export-blocking": "Export cannot currently use this HLS stream",
+      } as const)[hlsFallbackInfo.category];
+
+  return `${prefix}: ${hlsFallbackInfo.message}`;
+}
+
+function buildExportSourceSummaryMessage({
+  preference,
+  resolvedSourceKind,
+  hlsUrl,
+}: {
+  preference: ExportSourcePreference;
+  resolvedSourceKind: ResolvedExportSourceKind;
+  hlsUrl?: string;
+}) {
+  if (preference === "direct" && resolvedSourceKind === "direct" && hlsUrl) {
+    return "Export will use the direct/original media path. Cliparr still uses playback metadata for track and timing hints when it is available.";
+  }
+
+  return null;
 }
