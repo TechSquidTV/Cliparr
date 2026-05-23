@@ -19,13 +19,13 @@
   "dependencies": {
     "@logtape/logtape": "^2.1.1",
     "dotenv": "^17.4.2",
-    "drizzle-orm": "1.0.0-rc.3",
+    "drizzle-orm": "1.0.0-rc.4-273829f",
     "express": "^5.2.1"
   },
   "devDependencies": {
     "@types/express": "^5.0.6",
     "@types/node": "^25.9.1",
-    "drizzle-kit": "1.0.0-rc.3",
+    "drizzle-kit": "1.0.0-rc.4-273829f",
     "tsx": "^4.22.3",
     "typescript": "~6.0.3"
   }

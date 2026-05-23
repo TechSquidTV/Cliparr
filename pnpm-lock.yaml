@@ -32,8 +32,8 @@ importers:
         specifier: ^17.6.0
         version: 17.6.0
       knip:
-        specifier: 6.14.1
-        version: 6.14.1(@emnapi/core@1.10.0)(@emnapi/runtime@1.10.0)
+        specifier: 6.14.2
+        version: 6.14.2(@emnapi/core@1.10.0)(@emnapi/runtime@1.10.0)
       typescript:
         specifier: ~6.0.3
         version: 6.0.3
@@ -120,8 +120,8 @@ importers:
         specifier: ^17.4.2
         version: 17.4.2
       drizzle-orm:
-        specifier: 1.0.0-rc.3
-        version: 1.0.0-rc.3(zod@4.4.3)
+        specifier: 1.0.0-rc.4-273829f
+        version: 1.0.0-rc.4-273829f(zod@4.4.3)
       express:
         specifier: ^5.2.1
         version: 5.2.1
@@ -133,8 +133,8 @@ importers:
         specifier: ^25.9.1
         version: 25.9.1
       drizzle-kit:
-        specifier: 1.0.0-rc.3
-        version: 1.0.0-rc.3
+        specifier: 1.0.0-rc.4-273829f
+        version: 1.0.0-rc.4-273829f
       tsx:
         specifier: ^4.22.3
         version: 4.22.3
@@ -2166,12 +2166,12 @@ packages:
     resolution: {integrity: sha512-nI4U3TottKAcAD9LLud4Cb7b2QztQMUEfHbvhTH09bqXTxnSie8WnjPALV/WMCrJZ6UV/qHJ6L03OqO3LcdYZw==}
     engines: {node: '>=12'}
 
-  drizzle-kit@1.0.0-rc.3:
-    resolution: {integrity: sha512-lwGIi6GTlEYzrtac1Szecns+zrAxjaOoNysfBCKRQOXQE7nMJ8IU2I2S6ek3FHEm1N30dQb5YrTdqV7zNH6n7A==}
+  drizzle-kit@1.0.0-rc.4-273829f:
+    resolution: {integrity: sha512-VaF0Rlvk+0OScBWUbvk91wqlBPffPFE4dmZX//NTyzoC15BCeqiq0zP3xWXnAucOV10j+1Rb0T+b4SInzOMfNg==}
     hasBin: true
 
-  drizzle-orm@1.0.0-rc.3:
-    resolution: {integrity: sha512-akZOa5UxapFbdBG8IDkfBRpSZJpMHaOJtGgp7oi1oHaiU8S3KN92waHo2l5aRuv1D9tMGYpv3BQFOsiGcNjLTQ==}
+  drizzle-orm@1.0.0-rc.4-273829f:
+    resolution: {integrity: sha512-Ivv1KCkrSdgku9K3RGAqwlAqg3wLhv1NG40gOS3RROmL5tE/1p2+I7LJDHQiu8gYxQgTC068m7vRnCQCEAV7jw==}
     peerDependencies:
       '@aws-sdk/client-rds-data': '>=3'
       '@cloudflare/workers-types': '>=4'
@@ -2614,8 +2614,8 @@ packages:
   keyv@4.5.4:
     resolution: {integrity: sha512-oxVHkHR/EJf2CNXnWxRLW6mg7JyCCUcG0DtEGmL2ctUo1PNTin1PUil+r/+4r5MpVgC/fn1kjsx7mjSujKqIpw==}
 
-  knip@6.14.1:
-    resolution: {integrity: sha512-SN3Ly0ixzj5CQkY/rc4OPHpWrCC0XRIIjgdP76G9Cni5k72ur5jBYOyvJuF5oPTM14v8eHcMUgPbElHa+lnR0g==}
+  knip@6.14.2:
+    resolution: {integrity: sha512-Vg3JhIINjZew1I7qAFI4UHemW1mc4azP/BxJvsq9eGDfxpGO7oVCuD/bsWkog9TO/ZwwJeAeOMFZ1kd9jnY9+Q==}
     engines: {node: ^20.19.0 || >=22.12.0}
     hasBin: true
 
@@ -5091,7 +5091,7 @@ snapshots:
 
   dotenv@17.4.2: {}
 
-  drizzle-kit@1.0.0-rc.3:
+  drizzle-kit@1.0.0-rc.4-273829f:
     dependencies:
       '@drizzle-team/brocli': 0.11.0
       '@js-temporal/polyfill': 0.5.1
@@ -5099,7 +5099,7 @@ snapshots:
       get-tsconfig: 4.14.0
       jiti: 2.7.0
 
-  drizzle-orm@1.0.0-rc.3(zod@4.4.3):
+  drizzle-orm@1.0.0-rc.4-273829f(zod@4.4.3):
     optionalDependencies:
       zod: 4.4.3
 
@@ -5483,7 +5483,7 @@ snapshots:
     dependencies:
       json-buffer: 3.0.1
 
-  knip@6.14.1(@emnapi/core@1.10.0)(@emnapi/runtime@1.10.0):
+  knip@6.14.2(@emnapi/core@1.10.0)(@emnapi/runtime@1.10.0):
     dependencies:
       fdir: 6.5.0(picomatch@4.0.4)
       formatly: 0.3.0
