@@ -151,7 +151,7 @@ export default function DashboardScreen({ onSelectSession, onOpenSources, onLogo
   const emptyMessage = sourceErrors.length > 0
     ? "No active playback was found on the sources that responded."
     : "No one is currently watching anything.";
-  const versionLabel = appVersion ? `v${appVersion}` : "";
+  const versionLabel = appVersion;
 
   return (
     <div className="min-h-screen bg-background p-4 text-foreground sm:p-8">

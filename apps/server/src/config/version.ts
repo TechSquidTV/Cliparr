@@ -11,9 +11,7 @@ function normalizeVersion(value: string | undefined) {
     return undefined;
   }
 
-  return normalized.startsWith("v") && /^\d/.test(normalized.slice(1))
-    ? normalized.slice(1)
-    : normalized;
+  return normalized;
 }
 
 function readPackageVersion() {
@@ -28,8 +26,13 @@ function readPackageVersion() {
   }
 }
 
-export const CLIPARR_VERSION =
-  normalizeVersion(process.env.CLIPARR_VERSION) ??
-  normalizeVersion(process.env.npm_package_version) ??
-  readPackageVersion() ??
-  "0.0.0";
+export function resolveCliparrVersion(env: NodeJS.ProcessEnv = process.env) {
+  return (
+    normalizeVersion(env.CLIPARR_VERSION) ??
+    normalizeVersion(env.npm_package_version) ??
+    readPackageVersion() ??
+    "0.0.0"
+  );
+}
+
+export const CLIPARR_VERSION = resolveCliparrVersion();

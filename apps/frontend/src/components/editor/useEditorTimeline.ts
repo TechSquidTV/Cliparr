@@ -203,6 +203,84 @@ export function useEditorTimeline({
     setTimelineScrollLeft(scrollLeft);
   }, []);
 
+  const updateTimelineZoom = useCallback((zoomDelta: number, anchorClientX?: number) => {
+    if (!hasDuration || availableTimelineZoomLevels.length < 2 || zoomDelta === 0) {
+      return;
+    }
+
+    const timelineWheelRegion = timelineWheelRegionRef.current;
+    if (!timelineWheelRegion) return;
+
+    const currentZoomIndex = timelineZoomIndexRef.current;
+    const currentTimelineScale = getTimelineZoomLevel(
+      availableTimelineZoomLevels,
+      currentZoomIndex,
+      activeTimelineScale,
+    );
+    const currentScrollLeft = pendingTimelineScrollLeftRef.current ?? timelineScrollLeftRef.current;
+    const nextZoomIndex = Math.min(
+      availableTimelineZoomLevels.length - 1,
+      Math.max(0, currentZoomIndex + Math.sign(zoomDelta)),
+    );
+    if (nextZoomIndex === currentZoomIndex) {
+      timelineWheelDeltaRef.current = 0;
+      return;
+    }
+
+    const nextTimelineScale = getTimelineZoomLevel(
+      availableTimelineZoomLevels,
+      nextZoomIndex,
+      currentTimelineScale,
+    );
+    const regionRect = timelineWheelRegion.getBoundingClientRect();
+    const pointerX = typeof anchorClientX === "number"
+      ? Math.min(Math.max(anchorClientX - regionRect.left, 0), regionRect.width)
+      : regionRect.width / 2;
+    const anchorPixel = Math.max(TIMELINE_START_LEFT, currentScrollLeft + pointerX);
+    const anchorTime = Math.min(
+      duration,
+      Math.max(
+        0,
+        timelinePixelToTime(
+          anchorPixel,
+          currentTimelineScale.scale,
+          currentTimelineScale.scaleWidth,
+          TIMELINE_START_LEFT,
+        ),
+      ),
+    );
+    const nextAnchorPixel = timelineTimeToPixel(
+      anchorTime,
+      nextTimelineScale.scale,
+      nextTimelineScale.scaleWidth,
+      TIMELINE_START_LEFT,
+    );
+    const nextMaxScrollLeft = getTimelineMaxScrollLeft(
+      duration,
+      nextTimelineScale.scale,
+      nextTimelineScale.scaleWidth,
+      regionRect.width,
+    );
+    const nextScrollLeft = Math.min(nextMaxScrollLeft, Math.max(0, nextAnchorPixel - pointerX));
+    pendingTimelineScrollLeftRef.current = nextScrollLeft;
+    timelineScrollLeftRef.current = nextScrollLeft;
+    setTimelineScrollLeft(nextScrollLeft);
+    timelineZoomIndexRef.current = nextZoomIndex;
+    hasUserAdjustedTimelineZoomRef.current = true;
+
+    startTransition(() => {
+      setTimelineZoomIndex(nextZoomIndex);
+    });
+  }, [activeTimelineScale, availableTimelineZoomLevels, duration, hasDuration]);
+
+  const handleTimelineZoomIn = useCallback(() => {
+    updateTimelineZoom(-1);
+  }, [updateTimelineZoom]);
+
+  const handleTimelineZoomOut = useCallback(() => {
+    updateTimelineZoom(1);
+  }, [updateTimelineZoom]);
+
   const handleTimelineWheel = useCallback((event: ReactWheelEvent<HTMLDivElement>) => {
     if (!hasDuration) return;
 
@@ -255,67 +333,10 @@ export function useEditorTimeline({
     const accumulatedZoomDelta = Math.trunc(timelineWheelDeltaRef.current / TIMELINE_ZOOM_WHEEL_STEP);
     if (accumulatedZoomDelta === 0) return;
 
-    const currentZoomIndex = timelineZoomIndexRef.current;
-    const currentTimelineScale = getTimelineZoomLevel(
-      availableTimelineZoomLevels,
-      currentZoomIndex,
-      activeTimelineScale,
-    );
-    const currentScrollLeft = pendingTimelineScrollLeftRef.current ?? timelineScrollLeftRef.current;
     const zoomDelta = Math.sign(accumulatedZoomDelta);
     timelineWheelDeltaRef.current = 0;
-    const nextZoomIndex = Math.min(
-      availableTimelineZoomLevels.length - 1,
-      Math.max(0, currentZoomIndex + zoomDelta),
-    );
-    if (nextZoomIndex === currentZoomIndex) {
-      timelineWheelDeltaRef.current = 0;
-      return;
-    }
-
-    const nextTimelineScale = getTimelineZoomLevel(
-      availableTimelineZoomLevels,
-      nextZoomIndex,
-      currentTimelineScale,
-    );
-    const regionRect = timelineWheelRegion.getBoundingClientRect();
-    const pointerX = Math.min(Math.max(event.clientX - regionRect.left, 0), regionRect.width);
-    const anchorPixel = Math.max(TIMELINE_START_LEFT, currentScrollLeft + pointerX);
-    const anchorTime = Math.min(
-      duration,
-      Math.max(
-        0,
-        timelinePixelToTime(
-          anchorPixel,
-          currentTimelineScale.scale,
-          currentTimelineScale.scaleWidth,
-          TIMELINE_START_LEFT,
-        ),
-      ),
-    );
-    const nextAnchorPixel = timelineTimeToPixel(
-      anchorTime,
-      nextTimelineScale.scale,
-      nextTimelineScale.scaleWidth,
-      TIMELINE_START_LEFT,
-    );
-    const nextMaxScrollLeft = getTimelineMaxScrollLeft(
-      duration,
-      nextTimelineScale.scale,
-      nextTimelineScale.scaleWidth,
-      regionRect.width,
-    );
-    const nextScrollLeft = Math.min(nextMaxScrollLeft, Math.max(0, nextAnchorPixel - pointerX));
-    pendingTimelineScrollLeftRef.current = nextScrollLeft;
-    timelineScrollLeftRef.current = nextScrollLeft;
-    setTimelineScrollLeft(nextScrollLeft);
-    timelineZoomIndexRef.current = nextZoomIndex;
-    hasUserAdjustedTimelineZoomRef.current = true;
-
-    startTransition(() => {
-      setTimelineZoomIndex(nextZoomIndex);
-    });
-  }, [hasDuration, duration, activeTimelineScale, availableTimelineZoomLevels]);
+    updateTimelineZoom(zoomDelta, event.clientX);
+  }, [hasDuration, duration, activeTimelineScale, availableTimelineZoomLevels, updateTimelineZoom]);
 
   const handleTimelineChange = useCallback((nextData: ClipTimelineData) => {
     const nextAction = nextData
@@ -373,6 +394,10 @@ export function useEditorTimeline({
     timelineViewportWidth,
     handleTimelineScroll,
     handleTimelineWheel,
+    handleTimelineZoomIn,
+    handleTimelineZoomOut,
+    canZoomIn: hasDuration && timelineZoomIndex > 0,
+    canZoomOut: hasDuration && timelineZoomIndex < availableTimelineZoomLevels.length - 1,
     handleTimelineChange,
     handleTimelineActionMoveEnd,
     handleTimelineActionResizeEnd,

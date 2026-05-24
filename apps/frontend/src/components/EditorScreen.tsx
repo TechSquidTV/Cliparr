@@ -284,6 +284,10 @@ export default function EditorScreen({ session, onBack }: Props) {
     timelineViewportWidth,
     handleTimelineScroll,
     handleTimelineWheel,
+    handleTimelineZoomIn,
+    handleTimelineZoomOut,
+    canZoomIn,
+    canZoomOut,
     handleTimelineChange,
     handleTimelineActionMoveEnd,
     handleTimelineActionResizeEnd,
@@ -706,6 +710,10 @@ export default function EditorScreen({ session, onBack }: Props) {
                     handleTimelineActionMoveEnd={handleTimelineActionMoveEnd}
                     handleTimelineActionResizeEnd={handleTimelineActionResizeEnd}
                     handleTimelineWheel={handleTimelineWheel}
+                    handleTimelineZoomIn={handleTimelineZoomIn}
+                    handleTimelineZoomOut={handleTimelineZoomOut}
+                    canZoomIn={canZoomIn}
+                    canZoomOut={canZoomOut}
                     isValidTimelineRange={isValidTimelineRange}
                     seekToTime={seekToTime}
                     onCursorDragStart={() => {

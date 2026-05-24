@@ -30,6 +30,11 @@ jobs:
           node-version: 24
           cache: pnpm
 
+      - name: Resolve app version
+        run: |
+          ref_name="${GITHUB_HEAD_REF:-${GITHUB_REF_NAME}}"
+          echo "CLIPARR_VERSION=${ref_name}@${GITHUB_SHA::7}" >> "${GITHUB_ENV}"
+
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
