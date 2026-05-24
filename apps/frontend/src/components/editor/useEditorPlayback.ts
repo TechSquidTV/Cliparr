@@ -546,7 +546,10 @@ export function useEditorPlayback({
     context.drawImage(frame.canvas, 0, 0, canvas.width, canvas.height);
 
     if (subtitlesEnabledRef.current && subtitleStyleSettingsRef.current) {
-      const cue = getActiveSubtitleCue(subtitleCuesRef.current, frame.timestamp);
+      const cue = getActiveSubtitleCue(
+        subtitleCuesRef.current,
+        fromSourceTimelineTime(frame.timestamp, sourceTimelineOffsetRef.current)
+      );
       if (cue) {
         renderSubtitleCue(
           context,
