@@ -498,7 +498,7 @@ function buildSelectedPlexSubtitleTranscodePath(
   return `/video/:/transcode/universal/subtitles?${params.toString()}`;
 }
 
-export function plexSubtitleTrack(
+function plexSubtitleTrack(
   session: ProviderSessionRecord,
   context: PlexSourceContext,
   item: any,
