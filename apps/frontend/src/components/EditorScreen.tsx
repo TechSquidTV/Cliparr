@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Eye } from "lucide-react";
 import { MIN_CLIP_SECONDS, roundTimelineTime } from "./editor/EditorUtils";
 import { useEditorPlayback, type PlaybackFallbackInfo } from "./editor/useEditorPlayback";
@@ -10,7 +10,8 @@ import { EditorControls } from "./editor/EditorControls";
 import { EditorSidebar } from "./editor/EditorSidebar";
 import { EditorPlaybackSourcePanel } from "./editor/EditorPlaybackSourcePanel";
 import { EditorTimeline } from "./editor/EditorTimeline";
-import type { CurrentlyPlayingItem } from "../providers/types";
+import { EditorSubtitlePanel } from "./editor/EditorSubtitlePanel";
+import type { CurrentlyPlayingItem, PlaybackSubtitleTrack } from "../providers/types";
 import type { ExportFormat, ExportResolution } from "../lib/exportClip";
 import {
   buildExportFileName,
@@ -20,6 +21,19 @@ import {
   type ExportFileNameTemplateKind,
   type ExportFileNameTemplateSettings,
 } from "../lib/exportFileName";
+import {
+  selectPreferredSubtitleTrack,
+  subtitleTrackKey,
+  subtitleTrackSupportsBurnIn,
+  subtitleTrackUnavailableMessage,
+} from "../lib/selectPreferredSubtitleTrack";
+import {
+  loadSubtitleStyleSettings,
+  saveSubtitleStyleSettings,
+} from "../lib/subtitles/settings";
+import { parseSubtitleText } from "../lib/subtitles/parseSubtitleText";
+import { trimSubtitleCues } from "../lib/subtitles/trimSubtitleCues";
+import type { SubtitleCue } from "../lib/subtitles/types";
 
 interface Props {
   session: CurrentlyPlayingItem;
@@ -38,6 +52,8 @@ interface ResolvedExportSource {
   kind: ResolvedExportSourceKind;
 }
 
+const SUBTITLE_REQUEST_TIMEOUT_MS = 15_000;
+
 function isInteractiveKeyboardTarget(target: EventTarget | null) {
   if (!(target instanceof HTMLElement)) {
     return false;
@@ -52,6 +68,16 @@ function isInteractiveKeyboardTarget(target: EventTarget | null) {
   );
 }
 
+function subtitleTrackDisplayName(track: PlaybackSubtitleTrack | null) {
+  if (!track) {
+    return "No subtitle track selected";
+  }
+
+  return track.title?.trim()
+    || track.languageCode?.trim()?.toUpperCase()
+    || "Selected subtitle track";
+}
+
 export default function EditorScreen({ session, onBack }: Props) {
   const [startTime, setStartTime] = useState(0);
   const [endTime, setEndTime] = useState(() => Math.min(10, Math.max(session.duration, 0)));
@@ -60,18 +86,109 @@ export default function EditorScreen({ session, onBack }: Props) {
   const [exportSourcePreference, setExportSourcePreference] = useState<ExportSourcePreference>("auto");
   const [includeAudio, setIncludeAudio] = useState(true);
   const [fileNameTemplates, setFileNameTemplates] = useState<ExportFileNameTemplateSettings>(() => loadExportFileNameTemplates());
+  const [subtitleStyleSettings, setSubtitleStyleSettings] = useState(() => loadSubtitleStyleSettings());
   const [templateEditorKind, setTemplateEditorKind] = useState<ExportFileNameTemplateKind>("movie");
   const [playbackSidebarOpen, setPlaybackSidebarOpen] = useState(true);
   const [exportDialogOpen, setExportDialogOpen] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [progress, setProgress] = useState(0);
   const [exportError, setExportError] = useState<string | null>(null);
+  const [subtitleEnabled, setSubtitleEnabled] = useState(false);
+  const [selectedSubtitleTrackKey, setSelectedSubtitleTrackKey] = useState("none");
+  const [subtitleCues, setSubtitleCues] = useState<SubtitleCue[]>([]);
+  const [subtitleLoading, setSubtitleLoading] = useState(false);
+  const [subtitleError, setSubtitleError] = useState<string | null>(null);
   const effectiveExportSourcePreference =
     exportSourcePreference === "direct" && !session.mediaUrl
       ? "auto"
       : exportSourcePreference === "hls" && !session.hlsUrl
         ? "auto"
         : exportSourcePreference;
+
+  const subtitleTracks = useMemo<PlaybackSubtitleTrack[]>(
+    () => (session.subtitleTracks ?? []).filter((track) => subtitleTrackSupportsBurnIn(track)),
+    [session.subtitleTracks]
+  );
+  const selectedSubtitleTrack = useMemo(() => {
+    if (selectedSubtitleTrackKey === "none") {
+      return null;
+    }
+
+    return subtitleTracks.find((track) => subtitleTrackKey(track) === selectedSubtitleTrackKey) ?? null;
+  }, [selectedSubtitleTrackKey, subtitleTracks]);
+  const subtitlePreviewEnabled = subtitleEnabled
+    && subtitleTrackSupportsBurnIn(selectedSubtitleTrack)
+    && subtitleCues.length > 0;
+  const clippedSubtitleCues = useMemo(
+    () => subtitleEnabled ? trimSubtitleCues(subtitleCues, startTime, endTime) : [],
+    [endTime, startTime, subtitleCues, subtitleEnabled]
+  );
+  const subtitleExportSummary = useMemo(() => {
+    if (!selectedSubtitleTrack || !subtitleEnabled) {
+      return {
+        label: "Not included",
+        detail: subtitleTracks.length > 0
+          ? "Subtitle burn-in is currently turned off for this export."
+          : "No supported text subtitle tracks are available for this session.",
+        tone: "muted" as const,
+        disabledReason: null as string | null,
+      };
+    }
+
+    const trackName = subtitleTrackDisplayName(selectedSubtitleTrack);
+
+    if (!subtitleTrackSupportsBurnIn(selectedSubtitleTrack)) {
+      return {
+        label: "Unsupported track",
+        detail: subtitleTrackUnavailableMessage(selectedSubtitleTrack, session.source.providerId)
+          ?? `${trackName} cannot be burned in yet because it is not an exposed text subtitle stream.`,
+        tone: "warning" as const,
+        disabledReason: "Choose a supported text subtitle track or turn subtitle burn-in off.",
+      };
+    }
+
+    if (subtitleLoading) {
+      return {
+        label: "Loading cues",
+        detail: `${trackName} is still being prepared for burn-in.`,
+        tone: "warning" as const,
+        disabledReason: "Subtitles are still loading. Please wait for the cue list to finish loading.",
+      };
+    }
+
+    if (subtitleError) {
+      return {
+        label: "Subtitle issue",
+        detail: subtitleError,
+        tone: "warning" as const,
+        disabledReason: subtitleError,
+      };
+    }
+
+    if (clippedSubtitleCues.length === 0) {
+      return {
+        label: "No cues found",
+        detail: `${trackName} has no subtitle cues inside the selected clip range.`,
+        tone: "muted" as const,
+        disabledReason: null as string | null,
+      };
+    }
+
+    return {
+      label: "Burned in",
+      detail: `${trackName} will be rendered into the exported video frames.`,
+      tone: "ready" as const,
+      disabledReason: null as string | null,
+    };
+  }, [
+    selectedSubtitleTrack,
+    session.source.providerId,
+    clippedSubtitleCues.length,
+    subtitleEnabled,
+    subtitleError,
+    subtitleLoading,
+    subtitleTracks.length,
+  ]);
 
   const {
     canvasRef,
@@ -98,12 +215,15 @@ export default function EditorScreen({ session, onBack }: Props) {
     playbackTimeAtStartRef,
   } = useEditorPlayback({
     hlsUrl: session.hlsUrl,
-    mediaUrl: session.mediaUrl ?? "",
+    mediaUrl: session.mediaUrl,
     initialDuration: session.duration,
     startTime,
     endTime,
     sessionId: session.id,
     selectedAudioTrack: session.selectedAudioTrack,
+    subtitleCues,
+    subtitlesEnabled: subtitlePreviewEnabled,
+    subtitleStyleSettings,
   });
   const exportSource = resolveExportSource({
     preference: effectiveExportSourcePreference,
@@ -217,6 +337,138 @@ export default function EditorScreen({ session, onBack }: Props) {
     updateClipRange(startTime, endTime);
   }, [duration, endTime, isValidTimelineRange, startTime, updateClipRange]);
 
+  useEffect(() => {
+    saveSubtitleStyleSettings(subtitleStyleSettings);
+  }, [subtitleStyleSettings]);
+
+  useEffect(() => {
+    const preferredSubtitleTrack = selectPreferredSubtitleTrack(subtitleTracks, session.selectedSubtitleTrack);
+
+    setSelectedSubtitleTrackKey(preferredSubtitleTrack ? subtitleTrackKey(preferredSubtitleTrack) : "none");
+    setSubtitleEnabled(Boolean(preferredSubtitleTrack && subtitleTrackSupportsBurnIn(preferredSubtitleTrack)));
+    setSubtitleCues([]);
+    setSubtitleLoading(false);
+    setSubtitleError(null);
+  }, [
+    session.id,
+    session.selectedSubtitleTrack,
+    subtitleTracks,
+  ]);
+
+  useEffect(() => {
+    let cancelled = false;
+    const abortController = new AbortController();
+    const timeout = window.setTimeout(() => {
+      abortController.abort();
+    }, SUBTITLE_REQUEST_TIMEOUT_MS);
+
+    async function loadSubtitleCues() {
+      if (!subtitleEnabled || !selectedSubtitleTrack) {
+        setSubtitleLoading(false);
+        setSubtitleCues([]);
+        setSubtitleError(null);
+        return;
+      }
+
+      if (!subtitleTrackSupportsBurnIn(selectedSubtitleTrack) || !selectedSubtitleTrack.contentUrl) {
+        setSubtitleLoading(false);
+        setSubtitleCues([]);
+        setSubtitleError(
+          subtitleTrackUnavailableMessage(selectedSubtitleTrack, session.source.providerId)
+            ?? "This subtitle track is not yet supported for styled burn-in."
+        );
+        return;
+      }
+
+      setSubtitleCues([]);
+      setSubtitleLoading(true);
+      setSubtitleError(null);
+
+      try {
+        const response = await fetch(selectedSubtitleTrack.contentUrl, {
+          signal: abortController.signal,
+        });
+        if (!response.ok) {
+          let detail = "";
+
+          try {
+            const contentType = response.headers.get("content-type") ?? "";
+            if (contentType.toLowerCase().includes("application/json")) {
+              const payload = await response.json() as {
+                error?: {
+                  message?: string;
+                };
+              };
+              detail = payload.error?.message?.trim() ?? "";
+            } else {
+              detail = (await response.text()).replace(/\s+/g, " ").trim();
+            }
+          } catch {
+            detail = "";
+          }
+
+          throw new Error(
+            detail
+              ? `Subtitle download failed (${response.status}): ${detail}`
+              : `Subtitle download failed (${response.status})`
+          );
+        }
+
+        const subtitleText = await response.text();
+        const parsedSubtitleCues = parseSubtitleText(
+          subtitleText,
+          selectedSubtitleTrack.contentFormat
+        );
+
+        if (cancelled) {
+          return;
+        }
+
+        setSubtitleCues(parsedSubtitleCues);
+        setSubtitleError(parsedSubtitleCues.length === 0 ? "No subtitle cues were found in this track." : null);
+      } catch (err) {
+        if (cancelled || abortController.signal.aborted) {
+          if (!cancelled) {
+            setSubtitleCues([]);
+            setSubtitleError("Subtitle request timed out. Please try again.");
+            setSubtitleLoading(false);
+          }
+          return;
+        }
+
+        console.error("Could not load subtitle cues", err);
+        setSubtitleCues([]);
+        setSubtitleError(err instanceof Error ? err.message : "Could not load subtitle cues.");
+      } finally {
+        if (!cancelled) {
+          setSubtitleLoading(false);
+        }
+      }
+    }
+
+    void loadSubtitleCues();
+
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timeout);
+      abortController.abort();
+    };
+  }, [selectedSubtitleTrack, session.source.providerId, subtitleEnabled]);
+
+  const handleSelectedSubtitleTrackChange = useCallback((value: string) => {
+    setSelectedSubtitleTrackKey(value);
+    setSubtitleError(null);
+
+    if (value === "none") {
+      setSubtitleEnabled(false);
+      setSubtitleCues([]);
+      return;
+    }
+
+    const nextTrack = subtitleTracks.find((track) => subtitleTrackKey(track) === value) ?? null;
+    setSubtitleEnabled(Boolean(nextTrack && subtitleTrackSupportsBurnIn(nextTrack)));
+  }, [subtitleTracks]);
+
   const handleOpenExportDialog = useCallback(() => {
     setExportError(null);
     setTemplateEditorKind(fileName.templateKind);
@@ -276,6 +528,20 @@ export default function EditorScreen({ session, onBack }: Props) {
     if (!exportSource.url) return;
     if (exporting) return;
 
+    const shouldBurnSubtitles = subtitleEnabled
+      && selectedSubtitleTrack !== null
+      && clippedSubtitleCues.length > 0;
+
+    if (shouldBurnSubtitles && subtitleLoading) {
+      setExportError("Subtitles are still loading. Please wait a moment and try again.");
+      return;
+    }
+
+    if (shouldBurnSubtitles && !subtitleTrackSupportsBurnIn(selectedSubtitleTrack)) {
+      setExportError("This subtitle track cannot be burned in yet.");
+      return;
+    }
+
     setExportError(null);
     setExporting(true);
     setProgress(0);
@@ -292,6 +558,9 @@ export default function EditorScreen({ session, onBack }: Props) {
         includeAudio,
         selectedAudioTrack: session.selectedAudioTrack,
         metadata: session.exportMetadata,
+        includeBurnedSubtitles: shouldBurnSubtitles,
+        subtitleCues: clippedSubtitleCues,
+        subtitleStyleSettings,
         onProgress: setProgress,
       });
       const url = URL.createObjectURL(blob);
@@ -319,9 +588,14 @@ export default function EditorScreen({ session, onBack }: Props) {
     exportSource.url,
     includeAudio,
     resolution,
+    clippedSubtitleCues,
     session.exportMetadata,
     session.selectedAudioTrack,
     startTime,
+    subtitleEnabled,
+    subtitleLoading,
+    subtitleStyleSettings,
+    selectedSubtitleTrack,
   ]);
 
   useEffect(() => {
@@ -463,6 +737,22 @@ export default function EditorScreen({ session, onBack }: Props) {
                 </>
               )}
             </section>
+
+            <div className="min-h-[28rem] lg:hidden">
+              <EditorSubtitlePanel
+                providerId={session.source.providerId}
+                subtitleTracks={subtitleTracks}
+                selectedSubtitleTrackKey={selectedSubtitleTrackKey}
+                onSelectedSubtitleTrackKeyChange={handleSelectedSubtitleTrackChange}
+                subtitlesEnabled={subtitleEnabled}
+                onSubtitlesEnabledChange={setSubtitleEnabled}
+                subtitleStyleSettings={subtitleStyleSettings}
+                onSubtitleStyleSettingsChange={setSubtitleStyleSettings}
+                subtitleLoading={subtitleLoading}
+                subtitleError={subtitleError}
+                selectedSubtitleTrack={selectedSubtitleTrack}
+              />
+            </div>
           </div>
 
           <div className="hidden min-h-0 lg:block">
@@ -473,11 +763,29 @@ export default function EditorScreen({ session, onBack }: Props) {
               icon={Eye}
               active={previewSourceLabel === "Direct source" || Boolean(playbackFallbackReason)}
             >
-              <EditorPlaybackSourcePanel
-                previewSourceLabel={previewSourceLabel}
-                fallbackMessage={playbackFallbackReason}
-                hasHlsSource={Boolean(session.hlsUrl)}
-              />
+              <div className="flex h-full min-h-0 flex-col gap-3 overflow-y-auto p-3">
+                <EditorPlaybackSourcePanel
+                  previewSourceLabel={previewSourceLabel}
+                  fallbackMessage={playbackFallbackReason}
+                  hasHlsSource={Boolean(session.hlsUrl)}
+                  className="shrink-0 p-0"
+                />
+                <div className="min-h-[28rem] flex-1">
+                  <EditorSubtitlePanel
+                    providerId={session.source.providerId}
+                    subtitleTracks={subtitleTracks}
+                    selectedSubtitleTrackKey={selectedSubtitleTrackKey}
+                    onSelectedSubtitleTrackKeyChange={handleSelectedSubtitleTrackChange}
+                    subtitlesEnabled={subtitleEnabled}
+                    onSubtitlesEnabledChange={setSubtitleEnabled}
+                    subtitleStyleSettings={subtitleStyleSettings}
+                    onSubtitleStyleSettingsChange={setSubtitleStyleSettings}
+                    subtitleLoading={subtitleLoading}
+                    subtitleError={subtitleError}
+                    selectedSubtitleTrack={selectedSubtitleTrack}
+                  />
+                </div>
+              </div>
             </EditorSidebar>
           </div>
         </div>
@@ -506,6 +814,10 @@ export default function EditorScreen({ session, onBack }: Props) {
         exportSourceLabel={exportSourceLabel}
         exportSourceMessage={exportSourceMessage}
         exportSourceSummaryMessage={exportSourceSummaryMessage}
+        subtitleSummaryLabel={subtitleExportSummary.label}
+        subtitleSummaryDetail={subtitleExportSummary.detail}
+        subtitleSummaryTone={subtitleExportSummary.tone}
+        exportDisabledReason={subtitleExportSummary.disabledReason}
         activeTemplateKind={fileName.templateKind}
         editingTemplateKind={templateEditorKind}
         onEditingTemplateKindChange={setTemplateEditorKind}

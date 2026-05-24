@@ -8,6 +8,8 @@ import type {
   CurrentlyPlayingEntry,
   MediaExportMetadata,
   PlaybackAudioSelection,
+  PlaybackSubtitleSelection,
+  PlaybackSubtitleTrack,
 } from "../types.js";
 import {
   createProviderMediaHandle,
@@ -17,6 +19,11 @@ import {
   sanitizeLoggedMediaPath,
   shouldAttachProviderAuth,
 } from "../shared/mediaProxy.js";
+import {
+  isTextSubtitleCodec,
+  normalizeSubtitleCodec,
+  subtitleContentFormat,
+} from "../shared/subtitles.js";
 import {
   asArray,
   buildEpisodeSourceTitle,
@@ -144,9 +151,19 @@ function isVideoMediaStream(stream: any) {
   return String(stream?.Type ?? "").toLowerCase() === "video";
 }
 
+function isSubtitleMediaStream(stream: any) {
+  return String(stream?.Type ?? "").toLowerCase() === "subtitle";
+}
+
 function jellyfinAudioTrackTitle(stream: any) {
   return stringValue(stream?.Title)
     ?? stringValue(stream?.DisplayTitle);
+}
+
+function jellyfinSubtitleTrackTitle(stream: any) {
+  return stringValue(stream?.Title)
+    ?? stringValue(stream?.DisplayTitle)
+    ?? stringValue(stream?.Language);
 }
 
 function deriveSelectedAudioTrack(
@@ -195,6 +212,114 @@ function deriveSelectedAudioTrack(
   };
 }
 
+function buildJellyfinSubtitlePath(
+  itemId: string | undefined,
+  mediaSourceId: string | undefined,
+  subtitleIndex: number | undefined,
+  contentFormat: string | undefined
+) {
+  if (!itemId || !mediaSourceId || subtitleIndex === undefined || !contentFormat) {
+    return undefined;
+  }
+
+  return `/Videos/${encodeURIComponent(itemId)}/${encodeURIComponent(mediaSourceId)}/Subtitles/${subtitleIndex}/Stream.${encodeURIComponent(contentFormat)}`;
+}
+
+function jellyfinSubtitleTrack(
+  session: ProviderSessionRecord,
+  context: JellyfinSourceContext,
+  itemId: string | undefined,
+  mediaSourceId: string | undefined,
+  stream: any
+): PlaybackSubtitleTrack {
+  const codec = normalizeSubtitleCodec(stream?.Codec);
+  const isText = booleanValue(stream?.IsTextSubtitleStream) ?? isTextSubtitleCodec(codec);
+  const contentFormat = isText ? subtitleContentFormat(codec) ?? "vtt" : undefined;
+  const subtitleIndex = numberValue(stream?.Index);
+  const subtitlePath = buildJellyfinSubtitlePath(itemId, mediaSourceId, subtitleIndex, contentFormat);
+
+  return {
+    streamId: subtitleIndex === undefined ? undefined : String(subtitleIndex),
+    index: subtitleIndex,
+    languageCode: stringValue(stream?.Language),
+    title: jellyfinSubtitleTrackTitle(stream),
+    codec,
+    contentFormat,
+    isText,
+    isDefault: booleanValue(stream?.IsDefault),
+    isForced: booleanValue(stream?.IsForced),
+    isHearingImpaired: booleanValue(stream?.IsHearingImpaired),
+    isExternal: booleanValue(stream?.IsExternal),
+    contentUrl: subtitlePath ? createMediaHandle(session, context, subtitlePath) : undefined,
+  };
+}
+
+export function deriveSubtitleTracks(
+  session: ProviderSessionRecord,
+  context: JellyfinSourceContext,
+  item: any,
+  mediaSourceId: string | undefined,
+  sessionInfo?: any
+) {
+  const mediaSource = currentMediaSource(sessionInfo, item, mediaSourceId);
+  if (!mediaSource) {
+    return [];
+  }
+
+  const itemId = stringValue(item?.Id);
+  const resolvedMediaSourceId = stringValue(mediaSource?.Id) ?? mediaSourceId;
+
+  return asArray(mediaSource?.MediaStreams)
+    .filter((stream) => isSubtitleMediaStream(stream))
+    .map((stream) => jellyfinSubtitleTrack(session, context, itemId, resolvedMediaSourceId, stream));
+}
+
+export function deriveSelectedSubtitleTrack(
+  sessionInfo: any,
+  item: any,
+  mediaSourceId: string | undefined
+): PlaybackSubtitleSelection | undefined {
+  const mediaSource = currentMediaSource(sessionInfo, item, mediaSourceId);
+  if (!mediaSource) {
+    return undefined;
+  }
+
+  const subtitleStreams = asArray(mediaSource?.MediaStreams).filter((stream) => isSubtitleMediaStream(stream));
+  if (subtitleStreams.length === 0) {
+    return undefined;
+  }
+
+  const selectedSubtitleStreamIndex = numberValue(sessionInfo?.PlayState?.SubtitleStreamIndex)
+    ?? numberValue(mediaSource?.DefaultSubtitleStreamIndex);
+  if (selectedSubtitleStreamIndex === undefined) {
+    return undefined;
+  }
+
+  const selectedSubtitleStream = subtitleStreams.find(
+    (stream) => numberValue(stream?.Index) === selectedSubtitleStreamIndex
+  );
+  if (!selectedSubtitleStream) {
+    return undefined;
+  }
+
+  const codec = normalizeSubtitleCodec(selectedSubtitleStream?.Codec);
+  const isText = booleanValue(selectedSubtitleStream?.IsTextSubtitleStream) ?? isTextSubtitleCodec(codec);
+
+  return {
+    streamId: String(selectedSubtitleStreamIndex),
+    index: selectedSubtitleStreamIndex,
+    languageCode: stringValue(selectedSubtitleStream?.Language),
+    title: jellyfinSubtitleTrackTitle(selectedSubtitleStream),
+    codec,
+    contentFormat: isText ? subtitleContentFormat(codec) ?? "vtt" : undefined,
+    isText,
+  };
+}
+
+function subtitleTrackSupportsBurnIn(track: PlaybackSubtitleTrack) {
+  return Boolean(track.isText && track.contentUrl);
+}
+
 function buildStaticStreamPath(
   item: any,
   mediaSourceId: string | undefined,
@@ -221,7 +346,7 @@ function buildStaticStreamPath(
   return `${isAudio ? `/Audio/${encodeURIComponent(itemId)}/stream` : `/Videos/${encodeURIComponent(itemId)}/stream`}?${params.toString()}`;
 }
 
-function buildPreviewPath(
+export function buildPreviewPath(
   item: any,
   mediaSourceId: string | undefined,
   context: JellyfinSourceContext,
@@ -239,6 +364,7 @@ function buildPreviewPath(
     maxAudioChannels: "2",
     audioCodec: "aac",
     enableAdaptiveBitrateStreaming: "false",
+    alwaysBurnInSubtitleWhenTranscoding: "false",
   });
 
   return `/Videos/${encodeURIComponent(itemId)}/master.m3u8?${params.toString()}`;
@@ -371,6 +497,9 @@ async function normalizeCurrentPlayback(
   const previewPath = buildPreviewPath(enrichedItem, mediaSourceId, context, playSessionId);
   const imagePath = itemImagePath(enrichedItem);
   const selectedAudioTrack = deriveSelectedAudioTrack(sessionInfo, enrichedItem, mediaSourceId);
+  const selectedSubtitleTrack = deriveSelectedSubtitleTrack(sessionInfo, enrichedItem, mediaSourceId);
+  const subtitleTracks = deriveSubtitleTracks(session, context, enrichedItem, mediaSourceId, sessionInfo)
+    .filter((track) => subtitleTrackSupportsBurnIn(track));
   const playerState = sessionInfo?.PlayState?.IsPaused ? "paused" : "playing";
   const audioStreams = asArray(mediaSource?.MediaStreams).filter((stream) => isAudioMediaStream(stream));
   const videoStreams = asArray(mediaSource?.MediaStreams).filter((stream) => isVideoMediaStream(stream));
@@ -454,7 +583,11 @@ async function normalizeCurrentPlayback(
       thumbUrl,
       mediaUrl,
       hlsUrl,
+      previewUrl: hlsUrl,
+      previewFormat: previewPath ? "hls" : undefined,
       selectedAudioTrack,
+      selectedSubtitleTrack,
+      subtitleTracks,
       exportMetadata: createExportMetadata(session, context, enrichedItem),
     },
   } satisfies CurrentlyPlayingEntry;

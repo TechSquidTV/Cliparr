@@ -7,7 +7,7 @@ import {
   Output,
   WebMOutputFormat,
 } from "mediabunny";
-import type { ConversionOptions, DiscardedTrack, MetadataTags } from "mediabunny";
+import type { ConversionOptions, DiscardedTrack, MetadataTags, VideoSample } from "mediabunny";
 import { createCliparrInputFromUrl } from "./mediabunnyInput";
 import { ensureMediabunnyCodecs } from "./mediabunnyCodecs";
 import {
@@ -18,6 +18,10 @@ import {
 } from "./mediabunnyTrackAccess";
 import { selectPreferredPairableAudioTrack } from "./selectPreferredAudioTrack";
 import type { MediaExportMetadata, PlaybackAudioSelection } from "../providers/types";
+import { getActiveSubtitleCue } from "./subtitles/getActiveSubtitleCue";
+import { renderSubtitleCue } from "./subtitles/renderSubtitleCue";
+import { trimSubtitleCues } from "./subtitles/trimSubtitleCues";
+import type { SubtitleCue, SubtitleStyleSettings } from "./subtitles/types";
 
 export type ExportFormat = "mp4" | "webm" | "mov" | "mkv";
 
@@ -33,6 +37,9 @@ interface ExportClipOptions {
   includeAudio: boolean;
   selectedAudioTrack?: PlaybackAudioSelection;
   metadata?: MediaExportMetadata;
+  includeBurnedSubtitles?: boolean;
+  subtitleCues?: readonly SubtitleCue[];
+  subtitleStyleSettings?: SubtitleStyleSettings;
   onProgress: (progress: number) => void;
 }
 
@@ -425,6 +432,37 @@ async function buildMetadataTags(
   return Object.keys(tags).length > 0 ? tags : undefined;
 }
 
+function buildSubtitleBurnInProcessor(
+  cues: readonly SubtitleCue[],
+  styleSettings: SubtitleStyleSettings
+) {
+  const canvas = document.createElement("canvas");
+  const context = canvas.getContext("2d");
+  if (!context) {
+    throw new Error("Could not create a subtitle rendering canvas.");
+  }
+
+  return (sample: VideoSample) => {
+    const width = Math.max(1, sample.displayWidth);
+    const height = Math.max(1, sample.displayHeight);
+
+    if (canvas.width !== width || canvas.height !== height) {
+      canvas.width = width;
+      canvas.height = height;
+    }
+
+    context.clearRect(0, 0, width, height);
+    sample.draw(context, 0, 0, width, height);
+
+    const activeCue = getActiveSubtitleCue(cues, sample.timestamp);
+    if (activeCue) {
+      renderSubtitleCue(context, activeCue, styleSettings, width, height);
+    }
+
+    return canvas;
+  };
+}
+
 export async function exportClip({
   mediaUrl,
   hls,
@@ -435,6 +473,9 @@ export async function exportClip({
   includeAudio,
   selectedAudioTrack,
   metadata,
+  includeBurnedSubtitles = false,
+  subtitleCues = [],
+  subtitleStyleSettings,
   onProgress,
 }: ExportClipOptions) {
   await ensureMediabunnyCodecs();
@@ -464,6 +505,18 @@ export async function exportClip({
       ? await getVideoTrackDimensions(sourceVideoTrack)
       : null;
     const outputHeight = resolution === "original" ? sourceVideoDimensions?.height : parseInt(resolution, 10);
+    const clippedSubtitleCues = includeBurnedSubtitles && subtitleCues.length > 0
+      ? trimSubtitleCues(subtitleCues, startTime, endTime)
+      : [];
+    const shouldBurnSubtitles = clippedSubtitleCues.length > 0;
+
+    if (includeBurnedSubtitles && !subtitleStyleSettings) {
+      throw new Error("Subtitle burn-in was requested without style settings.");
+    }
+
+    if (includeBurnedSubtitles && !sourceVideoTrack) {
+      throw new Error("Subtitle burn-in requires a video track.");
+    }
 
     const outputFormat = createOutputFormat(format);
     const target = new BufferTarget();
@@ -512,6 +565,12 @@ export async function exportClip({
           ? {
               height: parseInt(resolution, 10),
               fit: "contain" as const,
+            }
+          : {}),
+        ...(shouldBurnSubtitles && subtitleStyleSettings
+          ? {
+              forceTranscode: true,
+              process: buildSubtitleBurnInProcessor(clippedSubtitleCues, subtitleStyleSettings),
             }
           : {}),
       });

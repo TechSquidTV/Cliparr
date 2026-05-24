@@ -7,7 +7,9 @@ services:
       - apk add --no-cache curl >/dev/null && sh /scripts/seed-media.sh
     environment:
       MEDIA_ROOT: /media
-      BBB_URL: https://download.blender.org/peach/bigbuckbunny_movies/BigBuckBunny_320x180.mp4
+      CI: ${CI:-false}
+      GITHUB_ACTIONS: ${GITHUB_ACTIONS:-false}
+      SINTEL_URL: https://download.blender.org/demo/movies/Sintel.2010.720p.mkv
     volumes:
       - ./docker:/scripts:ro
       - cliparr-dev-media:/media
@@ -95,7 +97,10 @@ services:
       - ./docker:/scripts:ro
 
   cliparr:
-    image: node:24-slim
+    build:
+      context: .
+      dockerfile: docker/dev.Dockerfile
+    image: cliparr-dev:local
     depends_on:
       media-seed:
         condition: service_completed_successfully
@@ -107,7 +112,7 @@ services:
     command:
       - /bin/sh
       - -lc
-      - corepack enable && pnpm install --frozen-lockfile && pnpm run dev:docker
+      - pnpm install --frozen-lockfile --config.confirmModulesPurge=false && pnpm run dev:docker
     environment:
       APP_KEY: cliparr-dev-only-not-secure-key-1234
       PORT: "3000"

@@ -20,6 +20,8 @@
   "scripts": {
     "dev": "concurrently -k -s first --handle-input -c \"cyan,magenta\" -n \"frontend,server\" \"pnpm --filter @cliparr/frontend dev\" \"pnpm --filter @cliparr/server dev\"",
     "dev:docker": "concurrently -k -s first --handle-input -c \"cyan,magenta\" -n \"frontend,server\" \"pnpm --filter @cliparr/frontend dev --host 0.0.0.0\" \"pnpm --filter @cliparr/server dev\"",
+    "docker:dev:build": "docker compose -f docker-compose.dev.yml build cliparr",
+    "docker:dev:up": "docker compose -f docker-compose.dev.yml up",
     "build": "pnpm -r build",
     "lint": "pnpm lint:eslint && pnpm lint:types",
     "lint:eslint": "pnpm -r --if-present lint:eslint",
@@ -37,7 +39,7 @@
     "eslint": "^10.4.0",
     "eslint-plugin-react-hooks": "^7.1.1",
     "globals": "^17.6.0",
-    "knip": "6.14.1",
+    "knip": "6.14.2",
     "typescript": "~6.0.3",
     "typescript-eslint": "^8.59.4"
   }

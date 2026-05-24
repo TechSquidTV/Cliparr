@@ -1,6 +1,25 @@
 import type { Request, Response } from "express";
+import type {
+  CurrentlyPlayingItem,
+  MediaExportMetadata,
+  PlaybackAudioSelection,
+  PlaybackSubtitleSelection,
+  PlaybackSubtitleTrack,
+  PlaybackViewer,
+  SourcePlaybackError,
+  ViewerPlaybackGroup,
+} from "@cliparr/shared/providers";
 import type { MediaSource } from "../db/mediaSourcesRepository.js";
 import type { ProviderSessionRecord } from "../session/store.js";
+
+export type {
+  MediaExportMetadata,
+  PlaybackAudioSelection,
+  PlaybackSubtitleSelection,
+  PlaybackSubtitleTrack,
+  SourcePlaybackError,
+  ViewerPlaybackGroup,
+};
 
 type ProviderId = string;
 type ProviderAuthType = "pin" | "credentials";
@@ -51,81 +70,9 @@ interface ProviderSession {
   expiresAt: string;
 }
 
-interface PlaybackViewer {
-  id: string;
-  providerId: ProviderId;
-  externalId?: string;
-  name: string;
-  avatarUrl?: string;
-}
-
-interface PlaybackSource {
-  id: string;
-  name: string;
-  providerId: ProviderId;
-}
-
-export interface MediaExportMetadata {
-  providerId: ProviderId;
-  itemType: string;
-  title?: string;
-  sourceTitle?: string;
-  showTitle?: string;
-  seasonTitle?: string;
-  seasonNumber?: number;
-  episodeNumber?: number;
-  year?: number;
-  date?: string;
-  description?: string;
-  tagline?: string;
-  studio?: string;
-  network?: string;
-  contentRating?: string;
-  genres?: string[];
-  directors?: string[];
-  writers?: string[];
-  actors?: string[];
-  guids?: string[];
-  ratingKey?: string;
-  imageUrl?: string;
-}
-
-export interface PlaybackAudioSelection {
-  trackNumber?: number;
-  languageCode?: string;
-  title?: string;
-}
-
-interface CurrentlyPlayingItem {
-  id: string;
-  source: PlaybackSource;
-  title: string;
-  type: string;
-  duration: number;
-  playerTitle: string;
-  playerState: string;
-  thumbUrl?: string;
-  mediaUrl?: string;
-  hlsUrl?: string;
-  selectedAudioTrack?: PlaybackAudioSelection;
-  exportMetadata?: MediaExportMetadata;
-}
-
 export interface CurrentlyPlayingEntry {
   viewer: PlaybackViewer;
   item: CurrentlyPlayingItem;
-}
-
-export interface ViewerPlaybackGroup {
-  viewer: PlaybackViewer;
-  items: CurrentlyPlayingItem[];
-}
-
-export interface SourcePlaybackError {
-  sourceId: string;
-  sourceName: string;
-  providerId: ProviderId;
-  message: string;
 }
 
 export interface MediaHandle {

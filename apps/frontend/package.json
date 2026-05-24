@@ -13,6 +13,7 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
+    "@cliparr/shared": "workspace:*",
     "@mediabunny/aac-encoder": "^1.45.3",
     "@mediabunny/ac3": "^1.45.3",
     "@tanstack/react-router": "^1.170.7",

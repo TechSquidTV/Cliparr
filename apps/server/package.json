@@ -17,6 +17,7 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
+    "@cliparr/shared": "workspace:*",
     "@logtape/logtape": "^2.1.1",
     "dotenv": "^17.4.2",
     "drizzle-orm": "1.0.0-rc.3",
