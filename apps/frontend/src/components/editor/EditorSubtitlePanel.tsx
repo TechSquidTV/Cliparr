@@ -1,5 +1,5 @@
 import type { Dispatch, SetStateAction } from "react";
-import { CheckCircle2, LoaderCircle, Sparkles } from "lucide-react";
+import { LoaderCircle, Sparkles } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -16,7 +16,6 @@ import {
 } from "../../lib/selectPreferredSubtitleTrack";
 import type { SubtitleStyleSettings } from "../../lib/subtitles/types";
 import type { PlaybackSubtitleTrack } from "../../providers/types";
-import { EditorSubtitleStylePreview } from "./EditorSubtitleStylePreview";
 import { useSubtitleFontOptions } from "./useSubtitleFontOptions";
 
 interface EditorSubtitlePanelProps {
@@ -154,13 +153,11 @@ export function EditorSubtitlePanel({
     requestLocalFonts,
   } = useSubtitleFontOptions(subtitleStyleSettings.fontFamily);
   const unavailableMessage = subtitleTrackUnavailableMessage(selectedSubtitleTrack, providerId);
-  const subtitleStatus = subtitleTracks.length === 0
+  const subtitleWarning = subtitleTracks.length === 0
     ? "No subtitle tracks were exposed by this provider for the active session."
     : !selectedSubtitleTrack
       ? "Choose a subtitle track to preview and burn it into the clip."
-      : canEnableBurnIn
-        ? "Text subtitle track ready for styled burn-in."
-        : unavailableMessage ?? "This subtitle track exists, but it is not yet supported for styled burn-in.";
+      : unavailableMessage ?? "This subtitle track exists, but it is not yet supported for styled burn-in.";
 
   function updateStyleSetting<Key extends keyof SubtitleStyleSettings>(
     key: Key,
@@ -173,12 +170,12 @@ export function EditorSubtitlePanel({
   }
 
   return (
-    <div className="min-h-0 flex-1 space-y-4 overflow-y-auto p-3">
-      <section className="space-y-3 border border-sidebar-border bg-[color-mix(in_oklch,var(--sidebar-accent)_72%,var(--sidebar))] p-3">
+    <div className="min-h-0 flex-1 overflow-y-auto p-3">
+      <section className="space-y-4 border border-sidebar-border bg-[color-mix(in_oklch,var(--sidebar-accent)_64%,var(--sidebar))] p-3">
         <div className="flex items-start justify-between gap-3">
           <div className="space-y-1">
             <div className="text-[11px] font-semibold uppercase tracking-[var(--tracking-caps-lg)] text-muted-foreground">
-              Burn-In
+              Subtitles
             </div>
             <p className="text-xs text-sidebar-foreground">
               Pull provider subtitles into the editor and render them directly into the exported clip.
@@ -227,33 +224,29 @@ export function EditorSubtitlePanel({
           </Select>
         </label>
 
-        <div className={cn(
-          "border px-3 py-2 text-xs",
-          canEnableBurnIn
-            ? "border-emerald-500/30 bg-emerald-500/8 text-emerald-700 dark:text-emerald-300"
-            : subtitleTracks.length === 0
+        {!canEnableBurnIn && (
+          <div className={cn(
+            "border px-3 py-2 text-xs",
+            subtitleTracks.length === 0
               ? "border-sidebar-border bg-sidebar text-muted-foreground"
               : "border-amber-500/30 bg-amber-500/8 text-amber-700 dark:text-amber-300"
-        )}>
-          <div className="flex items-start gap-2">
-            {canEnableBurnIn ? (
-              <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" />
-            ) : (
+          )}>
+            <div className="flex items-start gap-2">
               <Sparkles className="mt-0.5 h-4 w-4 shrink-0" />
-            )}
-            <div className="space-y-1">
-              <p>{subtitleStatus}</p>
-              {selectedSubtitleTrack && (
-                <p className="text-[11px] opacity-85">
-                  {selectedSubtitleTrack.codec?.toUpperCase() ?? "Unknown codec"}
-                  {selectedSubtitleTrack.languageCode ? ` · ${selectedSubtitleTrack.languageCode.toUpperCase()}` : ""}
-                  {selectedSubtitleTrack.isForced ? " · Forced" : ""}
-                  {selectedSubtitleTrack.isHearingImpaired ? " · SDH" : ""}
-                </p>
-              )}
+              <div className="space-y-1">
+                <p>{subtitleWarning}</p>
+                {selectedSubtitleTrack && (
+                  <p className="text-[11px] opacity-85">
+                    {selectedSubtitleTrack.codec?.toUpperCase() ?? "Unknown codec"}
+                    {selectedSubtitleTrack.languageCode ? ` · ${selectedSubtitleTrack.languageCode.toUpperCase()}` : ""}
+                    {selectedSubtitleTrack.isForced ? " · Forced" : ""}
+                    {selectedSubtitleTrack.isHearingImpaired ? " · SDH" : ""}
+                  </p>
+                )}
+              </div>
             </div>
           </div>
-        </div>
+        )}
 
         {subtitleLoading && (
           <div className="flex items-center gap-2 text-xs text-muted-foreground">
@@ -267,19 +260,19 @@ export function EditorSubtitlePanel({
             {subtitleError}
           </div>
         )}
-      </section>
 
-      <section
-        aria-disabled={styleControlsDisabled}
-        className={cn(
-          "space-y-3 border border-sidebar-border bg-[color-mix(in_oklch,var(--sidebar-accent)_56%,var(--sidebar))] p-3 transition-opacity",
-          styleControlsDisabled && "opacity-65"
-        )}
-      >
-        <EditorSubtitleStylePreview subtitleStyleSettings={subtitleStyleSettings} />
+        <div
+          aria-disabled={styleControlsDisabled}
+          className={cn(
+            "space-y-3 border-t border-sidebar-border pt-3 transition-opacity",
+            styleControlsDisabled && "opacity-65"
+          )}
+        >
+          <div className="text-[11px] font-semibold uppercase tracking-[var(--tracking-caps-lg)] text-muted-foreground">
+            Style
+          </div>
 
-        <div className="flex items-start justify-between gap-3">
-          <label className="min-w-0 flex-1 space-y-1.5">
+          <label className="block space-y-1.5">
             <span className="text-[11px] font-semibold uppercase tracking-[var(--tracking-caps-lg)] text-muted-foreground">
               Font
             </span>
@@ -333,85 +326,79 @@ export function EditorSubtitlePanel({
             </Select>
           </label>
 
-          <div className="max-w-36 text-[11px] text-muted-foreground">
-            {styleControlsDisabled
-              ? "Enable burn-in with a supported text track to tune the subtitle styling."
-              : "Changes update the live preview and export together. Installed fonts appear when supported browsers allow them."}
+          <div className="grid gap-3">
+            <ColorControl
+              label="Text Color"
+              value={subtitleStyleSettings.fontColor}
+              disabled={styleControlsDisabled}
+              onChange={(value) => updateStyleSetting("fontColor", value)}
+            />
+            <ColorControl
+              label="Shadow Color"
+              value={subtitleStyleSettings.shadowColor}
+              disabled={styleControlsDisabled}
+              onChange={(value) => updateStyleSetting("shadowColor", value)}
+            />
+            <ColorControl
+              label="Stroke Color"
+              value={subtitleStyleSettings.strokeColor}
+              disabled={styleControlsDisabled}
+              onChange={(value) => updateStyleSetting("strokeColor", value)}
+            />
           </div>
-        </div>
 
-        <div className="grid gap-3">
-          <ColorControl
-            label="Text Color"
-            value={subtitleStyleSettings.fontColor}
-            disabled={styleControlsDisabled}
-            onChange={(value) => updateStyleSetting("fontColor", value)}
-          />
-          <ColorControl
-            label="Shadow Color"
-            value={subtitleStyleSettings.shadowColor}
-            disabled={styleControlsDisabled}
-            onChange={(value) => updateStyleSetting("shadowColor", value)}
-          />
-          <ColorControl
-            label="Stroke Color"
-            value={subtitleStyleSettings.strokeColor}
-            disabled={styleControlsDisabled}
-            onChange={(value) => updateStyleSetting("strokeColor", value)}
-          />
-        </div>
-
-        <div className="space-y-3">
-          <NumberSlider
-            label="Font Size"
-            value={subtitleStyleSettings.fontSize}
-            min={16}
-            max={96}
-            step={1}
-            unit="px"
-            disabled={styleControlsDisabled}
-            onChange={(value) => updateStyleSetting("fontSize", value)}
-          />
-          <NumberSlider
-            label="Shadow Blur"
-            value={subtitleStyleSettings.shadowBlur}
-            min={0}
-            max={24}
-            step={1}
-            unit="px"
-            disabled={styleControlsDisabled}
-            onChange={(value) => updateStyleSetting("shadowBlur", value)}
-          />
-          <NumberSlider
-            label="Shadow Offset"
-            value={subtitleStyleSettings.shadowOffsetY}
-            min={-16}
-            max={24}
-            step={1}
-            unit="px"
-            disabled={styleControlsDisabled}
-            onChange={(value) => updateStyleSetting("shadowOffsetY", value)}
-          />
-          <NumberSlider
-            label="Stroke Width"
-            value={subtitleStyleSettings.strokeWidth}
-            min={0}
-            max={12}
-            step={0.5}
-            unit="px"
-            disabled={styleControlsDisabled}
-            onChange={(value) => updateStyleSetting("strokeWidth", value)}
-          />
-          <NumberSlider
-            label="Bottom Margin"
-            value={subtitleStyleSettings.bottomMargin}
-            min={0}
-            max={180}
-            step={1}
-            unit="px"
-            disabled={styleControlsDisabled}
-            onChange={(value) => updateStyleSetting("bottomMargin", value)}
-          />
+          <div className="space-y-3">
+            <NumberSlider
+              label="Font Size"
+              value={subtitleStyleSettings.fontSize}
+              min={16}
+              max={150}
+              step={1}
+              unit="px"
+              disabled={styleControlsDisabled}
+              onChange={(value) => updateStyleSetting("fontSize", value)}
+            />
+            <NumberSlider
+              label="Shadow Blur"
+              value={subtitleStyleSettings.shadowBlur}
+              min={0}
+              max={24}
+              step={1}
+              unit="px"
+              disabled={styleControlsDisabled}
+              onChange={(value) => updateStyleSetting("shadowBlur", value)}
+            />
+            <NumberSlider
+              label="Shadow Offset"
+              value={subtitleStyleSettings.shadowOffsetY}
+              min={-16}
+              max={24}
+              step={1}
+              unit="px"
+              disabled={styleControlsDisabled}
+              onChange={(value) => updateStyleSetting("shadowOffsetY", value)}
+            />
+            <NumberSlider
+              label="Stroke Width"
+              value={subtitleStyleSettings.strokeWidth}
+              min={0}
+              max={32}
+              step={0.5}
+              unit="px"
+              disabled={styleControlsDisabled}
+              onChange={(value) => updateStyleSetting("strokeWidth", value)}
+            />
+            <NumberSlider
+              label="Bottom Margin"
+              value={subtitleStyleSettings.bottomMargin}
+              min={0}
+              max={180}
+              step={1}
+              unit="px"
+              disabled={styleControlsDisabled}
+              onChange={(value) => updateStyleSetting("bottomMargin", value)}
+            />
+          </div>
         </div>
       </section>
     </div>

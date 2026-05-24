@@ -172,13 +172,13 @@ export function loadSubtitleStyleSettings(): SubtitleStyleSettings {
       fontFamily: typeof parsed.fontFamily === "string" && parsed.fontFamily.trim()
         ? parsed.fontFamily
         : defaults.fontFamily,
-      fontSize: clampNumber(parsed.fontSize, defaults.fontSize, 16, 120),
+      fontSize: clampNumber(parsed.fontSize, defaults.fontSize, 16, 150),
       fontColor: colorValue(parsed.fontColor, defaults.fontColor),
       shadowColor: colorValue(parsed.shadowColor, defaults.shadowColor),
       shadowBlur: clampNumber(parsed.shadowBlur, defaults.shadowBlur, 0, 24),
       shadowOffsetY: clampNumber(parsed.shadowOffsetY, defaults.shadowOffsetY, -16, 24),
       strokeColor: colorValue(parsed.strokeColor, defaults.strokeColor),
-      strokeWidth: clampNumber(parsed.strokeWidth, defaults.strokeWidth, 0, 16),
+      strokeWidth: clampNumber(parsed.strokeWidth, defaults.strokeWidth, 0, 32),
       bottomMargin: clampNumber(parsed.bottomMargin, defaults.bottomMargin, 0, 240),
       lineHeight: clampNumber(parsed.lineHeight, defaults.lineHeight, 1, 2),
     };
