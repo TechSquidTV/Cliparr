@@ -1,10 +1,13 @@
 import { Router } from "express";
 import { persistProviderAuth } from "../db/providerPersistence.js";
+import { createRememberedProviderSession } from "../db/rememberedProviderSessionsRepository.js";
 import { ApiError, asyncHandler } from "../http/errors.js";
 import { getRequestRouteUrl } from "../http/requestOrigin.js";
 import { getProvider, listProviders } from "../providers/registry.js";
 import {
   createProviderSession,
+  getRememberedProviderSessionCookieName,
+  getRememberedProviderSessionCookieOptions,
   getSessionCookieName,
   getSessionCookieOptions,
 } from "../session/store.js";
@@ -70,7 +73,14 @@ providersRouter.get(
       userToken: authStatus.userToken,
     });
 
+    const rememberedSession = createRememberedProviderSession(session.providerAccountId);
+
     res.cookie(getSessionCookieName(), session.id, getSessionCookieOptions(req.secure));
+    res.cookie(
+      getRememberedProviderSessionCookieName(),
+      rememberedSession.token,
+      getRememberedProviderSessionCookieOptions(req.secure)
+    );
     res.json({ status: "complete" });
   })
 );
@@ -109,7 +119,14 @@ providersRouter.post(
       userToken: authResult.userToken,
     });
 
+    const rememberedSession = createRememberedProviderSession(session.providerAccountId);
+
     res.cookie(getSessionCookieName(), session.id, getSessionCookieOptions(req.secure));
+    res.cookie(
+      getRememberedProviderSessionCookieName(),
+      rememberedSession.token,
+      getRememberedProviderSessionCookieOptions(req.secure)
+    );
     res.json({
       session: provider.serializeSession(session),
     });

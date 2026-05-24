@@ -1,12 +1,15 @@
 import { randomUUID } from "crypto";
 import { eq } from "drizzle-orm";
 import { getDatabase } from "../db/database.js";
+import { getProviderAccount } from "../db/providerAccountsRepository.js";
+import { REMEMBERED_PROVIDER_SESSION_TTL_MS } from "../db/rememberedProviderSessionsRepository.js";
 import { providerSessions, type ProviderSessionRow } from "../db/schema.js";
-import { getServerLogger } from "../logging.js";
+import { getServerLogger, serializeError } from "../logging.js";
 import type { MediaHandle } from "../providers/types.js";
 import { decryptSecret, encryptSecret } from "../security/secrets.js";
 
 const SESSION_COOKIE = "cliparr_session";
+const REMEMBERED_PROVIDER_SESSION_COOKIE = "cliparr_remember";
 const SESSION_TTL_MS = 1000 * 60 * 60 * 12;
 const MEDIA_HANDLE_IDLE_TTL_MS = 1000 * 60 * 15;
 const logger = getServerLogger(["session", "store"]);
@@ -99,6 +102,30 @@ export function getProviderSession(sessionId?: string) {
   return mapProviderSession(row);
 }
 
+export function restoreProviderSessionFromProviderAccount(providerAccountId?: string) {
+  if (!providerAccountId) {
+    return undefined;
+  }
+
+  try {
+    const account = getProviderAccount(providerAccountId);
+    if (!account?.accessToken) {
+      return undefined;
+    }
+
+    return createProviderSession({
+      providerId: account.providerId,
+      providerAccountId: account.id,
+      userToken: account.accessToken,
+    });
+  } catch (err) {
+    logger.warn("Failed to restore provider session from remembered provider account.", {
+      ...serializeError(err),
+    });
+    return undefined;
+  }
+}
+
 export function pruneSessionMediaHandles(session: ProviderSessionRecord, maxIdleMs = MEDIA_HANDLE_IDLE_TTL_MS) {
   const cutoff = Date.now() - maxIdleMs;
   let prunedCount = 0;
@@ -141,6 +168,10 @@ export function getSessionCookieName() {
   return SESSION_COOKIE;
 }
 
+export function getRememberedProviderSessionCookieName() {
+  return REMEMBERED_PROVIDER_SESSION_COOKIE;
+}
+
 export function getSessionCookieOptions(secure: boolean) {
   return {
     path: "/",
@@ -151,7 +182,26 @@ export function getSessionCookieOptions(secure: boolean) {
   };
 }
 
+export function getRememberedProviderSessionCookieOptions(secure: boolean) {
+  return {
+    path: "/",
+    httpOnly: true,
+    sameSite: "strict" as const,
+    secure,
+    maxAge: REMEMBERED_PROVIDER_SESSION_TTL_MS,
+  };
+}
+
 export function getSessionCookieClearOptions(secure: boolean) {
+  return {
+    path: "/",
+    httpOnly: true,
+    sameSite: "strict" as const,
+    secure,
+  };
+}
+
+export function getRememberedProviderSessionCookieClearOptions(secure: boolean) {
   return {
     path: "/",
     httpOnly: true,

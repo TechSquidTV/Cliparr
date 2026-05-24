@@ -4,6 +4,7 @@ const APP_TABLE_NAMES = [
   "provider_accounts",
   "media_sources",
   "provider_sessions",
+  "remembered_provider_sessions",
 ] as const;
 const DRIZZLE_MIGRATIONS_TABLE = "__drizzle_migrations";
 const LEGACY_MIGRATIONS_TABLE = "schema_migrations";

@@ -4,7 +4,7 @@ import { getDatabase } from "./database.js";
 import { providerAccounts, type ProviderAccountRow } from "./schema.js";
 import { decryptSecret, encryptSecret, hashSecret } from "../security/secrets.js";
 
-interface ProviderAccount {
+export interface ProviderAccount {
   id: string;
   providerId: string;
   label: string;
@@ -82,7 +82,7 @@ function updateProviderAccount(id: string, input: UpdateProviderAccountInput) {
   return getProviderAccount(id);
 }
 
-function getProviderAccount(id: string) {
+export function getProviderAccount(id: string) {
   const row = getDatabase()
     .select()
     .from(providerAccounts)
