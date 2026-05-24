@@ -505,10 +505,10 @@ export async function exportClip({
       ? await getVideoTrackDimensions(sourceVideoTrack)
       : null;
     const outputHeight = resolution === "original" ? sourceVideoDimensions?.height : parseInt(resolution, 10);
-    const shouldBurnSubtitles = includeBurnedSubtitles && subtitleCues.length > 0;
-    const clippedSubtitleCues = shouldBurnSubtitles
+    const clippedSubtitleCues = includeBurnedSubtitles && subtitleCues.length > 0
       ? trimSubtitleCues(subtitleCues, startTime, endTime)
       : [];
+    const shouldBurnSubtitles = clippedSubtitleCues.length > 0;
 
     if (includeBurnedSubtitles && !subtitleStyleSettings) {
       throw new Error("Subtitle burn-in was requested without style settings.");
