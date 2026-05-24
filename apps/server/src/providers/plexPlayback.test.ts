@@ -51,6 +51,7 @@ void test("uses a stable Plex transcode session id for repeated playback polls",
   assert.equal(firstPath, secondPath);
   assert.notEqual(firstPath, differentSessionPath);
   assert.match(firstPath ?? "", /transcodeSessionId=plex-session-1/);
+  assert.match(firstPath ?? "", /subtitles=none/);
 });
 
 void test("creates a direct content URL for Plex sidecar text subtitle streams", () => {
@@ -79,8 +80,8 @@ void test("creates a direct content URL for Plex sidecar text subtitle streams",
 
   assert.equal(tracks.length, 1);
   assert.equal(tracks[0]?.contentUrl, "/api/media/" + onlyMediaHandle(session).id);
-  assert.equal(tracks[0]?.contentFormat, "vtt");
-  assert.equal(onlyMediaHandle(session).path, "/library/streams/101.srt?format=vtt");
+  assert.equal(tracks[0]?.contentFormat, "srt");
+  assert.equal(onlyMediaHandle(session).path, "/library/streams/101.srt");
 });
 
 void test("creates a subtitle transcode content URL for the selected embedded Plex text subtitle", () => {
@@ -121,6 +122,40 @@ void test("creates a subtitle transcode content URL for the selected embedded Pl
   assert.equal(transcodeUrl.searchParams.get("subtitles"), "sidecar");
   assert.equal(transcodeUrl.searchParams.get("advancedSubtitles"), "text");
   assert.equal(transcodeUrl.searchParams.get("autoAdjustSubtitle"), "0");
+});
+
+void test("prefers direct raw SRT for the selected external Plex text subtitle", () => {
+  const session = createSession();
+  const context = createContext();
+  const item = {
+    ratingKey: "12345",
+    Media: [{
+      id: "media-1",
+      selected: 1,
+      Part: [{
+        id: "part-1",
+        selected: 1,
+        Stream: [{
+          id: "202",
+          index: 3,
+          streamType: 3,
+          codec: "srt",
+          languageCode: "eng",
+          key: "/library/streams/202",
+          selected: true,
+        }],
+      }],
+    }],
+  };
+
+  const tracks = deriveSubtitleTracks(session, context, item, "plex-session-1");
+  const handle = onlyMediaHandle(session);
+
+  assert.equal(tracks.length, 1);
+  assert.equal(tracks[0]?.isExternal, true);
+  assert.equal(tracks[0]?.contentUrl, `/api/media/${handle.id}`);
+  assert.equal(tracks[0]?.contentFormat, "srt");
+  assert.equal(handle.path, "/library/streams/202.srt");
 });
 
 void test("leaves unselected embedded Plex text subtitles visible but unsupported", () => {

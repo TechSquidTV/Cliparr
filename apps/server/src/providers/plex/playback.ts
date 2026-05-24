@@ -202,6 +202,7 @@ export function createPreviewPath(
     directPlay: "0",
     directStream: "0",
     directStreamAudio: "0",
+    subtitles: "none",
     mediaIndex: String(resolvedSelection?.mediaIndex ?? 0),
     partIndex: String(resolvedSelection?.partIndex ?? 0),
     audioChannelCount: "2",
@@ -451,8 +452,8 @@ function deriveSelectedAudioTrack(
 function buildPlexSubtitlePath(stream: any) {
   const key = stringValue(stream?.key);
   const codec = normalizeSubtitleCodec(stream?.codec);
-  const contentFormat = subtitleContentFormat(codec);
-  if (!contentFormat || !key) {
+  const directContentFormat = plexDirectSubtitleContentFormat(codec);
+  if (!directContentFormat || !key) {
     return undefined;
   }
 
@@ -467,9 +468,20 @@ function buildPlexSubtitlePath(stream: any) {
     relative.pathname = `${relative.pathname}.${extension}`;
   }
 
-  relative.searchParams.set("format", contentFormat);
+  if (directContentFormat === "vtt") {
+    relative.searchParams.set("format", directContentFormat);
+  }
 
   return `${relative.pathname}${relative.search}`;
+}
+
+function plexDirectSubtitleContentFormat(codec: unknown) {
+  const normalized = normalizeSubtitleCodec(codec);
+  if (normalized === "srt" || normalized === "subrip") {
+    return "srt";
+  }
+
+  return subtitleContentFormat(codec);
 }
 
 function buildSelectedPlexSubtitleTranscodePath(
@@ -513,7 +525,7 @@ function plexSubtitleTrack(
     ? undefined
     : buildSelectedPlexSubtitleTranscodePath(item, playbackSessionId, selection, stream);
   const contentFormat = directSubtitlePath
-    ? subtitleContentFormat(codec)
+    ? plexDirectSubtitleContentFormat(codec)
     : transcodeSubtitlePath
       ? "srt"
       : subtitleContentFormat(codec);
