@@ -105,7 +105,7 @@ export default function EditorScreen({ session, onBack }: Props) {
         : exportSourcePreference;
 
   const subtitleTracks = useMemo<PlaybackSubtitleTrack[]>(
-    () => session.subtitleTracks ?? [],
+    () => (session.subtitleTracks ?? []).filter((track) => subtitleTrackSupportsBurnIn(track)),
     [session.subtitleTracks]
   );
   const selectedSubtitleTrack = useMemo(() => {
@@ -124,7 +124,7 @@ export default function EditorScreen({ session, onBack }: Props) {
         label: "Not included",
         detail: subtitleTracks.length > 0
           ? "Subtitle burn-in is currently turned off for this export."
-          : "No provider subtitle tracks are available for this session.",
+          : "No supported text subtitle tracks are available for this session.",
         tone: "muted" as const,
         disabledReason: null as string | null,
       };

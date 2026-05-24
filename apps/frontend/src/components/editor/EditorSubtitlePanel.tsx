@@ -154,7 +154,7 @@ export function EditorSubtitlePanel({
   } = useSubtitleFontOptions(subtitleStyleSettings.fontFamily);
   const unavailableMessage = subtitleTrackUnavailableMessage(selectedSubtitleTrack, providerId);
   const subtitleWarning = subtitleTracks.length === 0
-    ? "No subtitle tracks were exposed by this provider for the active session."
+    ? "No supported text subtitle tracks are available for this session."
     : !selectedSubtitleTrack
       ? "Choose a subtitle track to preview and burn it into the clip."
       : unavailableMessage ?? "This subtitle track exists, but it is not yet supported for styled burn-in.";
