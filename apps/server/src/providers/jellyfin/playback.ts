@@ -254,7 +254,7 @@ function jellyfinSubtitleTrack(
   };
 }
 
-function deriveSubtitleTracks(
+export function deriveSubtitleTracks(
   session: ProviderSessionRecord,
   context: JellyfinSourceContext,
   item: any,
@@ -272,7 +272,7 @@ function deriveSubtitleTracks(
     .map((stream) => jellyfinSubtitleTrack(session, context, itemId, mediaSourceId, stream));
 }
 
-function deriveSelectedSubtitleTrack(
+export function deriveSelectedSubtitleTrack(
   sessionInfo: any,
   item: any,
   mediaSourceId: string | undefined
@@ -340,7 +340,7 @@ function buildStaticStreamPath(
   return `${isAudio ? `/Audio/${encodeURIComponent(itemId)}/stream` : `/Videos/${encodeURIComponent(itemId)}/stream`}?${params.toString()}`;
 }
 
-function buildPreviewPath(
+export function buildPreviewPath(
   item: any,
   mediaSourceId: string | undefined,
   context: JellyfinSourceContext,
@@ -358,6 +358,7 @@ function buildPreviewPath(
     maxAudioChannels: "2",
     audioCodec: "aac",
     enableAdaptiveBitrateStreaming: "false",
+    alwaysBurnInSubtitleWhenTranscoding: "false",
   });
 
   return `/Videos/${encodeURIComponent(itemId)}/master.m3u8?${params.toString()}`;
