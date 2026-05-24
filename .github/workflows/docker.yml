@@ -56,8 +56,12 @@ jobs:
       - name: Resolve app version
         id: version
         run: |
-          ref_name="${GITHUB_HEAD_REF:-${GITHUB_REF_NAME}}"
-          version="${ref_name}@${GITHUB_SHA::7}"
+          if [[ "${GITHUB_REF_TYPE}" == "tag" ]]; then
+            version="${GITHUB_REF_NAME}"
+          else
+            ref_name="${GITHUB_HEAD_REF:-${GITHUB_REF_NAME}}"
+            version="${ref_name}@${GITHUB_SHA::7}"
+          fi
           echo "value=${version}" >> "${GITHUB_OUTPUT}"
 
       - name: Build and push Docker image
