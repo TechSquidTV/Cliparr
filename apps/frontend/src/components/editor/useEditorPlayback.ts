@@ -168,6 +168,25 @@ function samePlaybackRange(
   );
 }
 
+function finiteNonNegativeDuration(value: number) {
+  return Number.isFinite(value) ? Math.max(0, value) : 0;
+}
+
+function resolvePlaybackDuration(
+  playbackSource: PlaybackSourceCandidate,
+  computedDuration: number,
+  initialDuration: number,
+) {
+  const fallbackDuration = finiteNonNegativeDuration(initialDuration);
+  const normalizedComputedDuration = finiteNonNegativeDuration(computedDuration);
+
+  if (playbackSource.label === "hls stream") {
+    return Math.max(fallbackDuration, normalizedComputedDuration);
+  }
+
+  return normalizedComputedDuration || fallbackDuration;
+}
+
 function buildPlaybackLoadError(failures: PlaybackLoadFailure[]) {
   if (failures.length === 0) {
     return "Playback could not be loaded.";
@@ -1563,10 +1582,12 @@ export function useEditorPlayback({
                   isLivePlayback ? { skipLiveWait: true } : undefined
                 )
               : Math.max(initialDuration, 0);
-            const nextDuration = Math.max(
-              0,
-              fromSourceTimelineTime(sourceTimelineEnd, timelineOffsetSeconds)
-            ) || Math.max(initialDuration, 0);
+            const computedDuration = fromSourceTimelineTime(sourceTimelineEnd, timelineOffsetSeconds);
+            const nextDuration = resolvePlaybackDuration(
+              playbackSource,
+              computedDuration,
+              initialDuration,
+            );
             setDuration(nextDuration);
             durationRef.current = nextDuration;
             setCurrentTime(0);

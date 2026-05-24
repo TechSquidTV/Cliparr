@@ -559,7 +559,7 @@ export default function EditorScreen({ session, onBack }: Props) {
         selectedAudioTrack: session.selectedAudioTrack,
         metadata: session.exportMetadata,
         includeBurnedSubtitles: shouldBurnSubtitles,
-        subtitleCues: clippedSubtitleCues,
+        subtitleCues,
         subtitleStyleSettings,
         onProgress: setProgress,
       });
@@ -592,6 +592,7 @@ export default function EditorScreen({ session, onBack }: Props) {
     session.exportMetadata,
     session.selectedAudioTrack,
     startTime,
+    subtitleCues,
     subtitleEnabled,
     subtitleLoading,
     subtitleStyleSettings,
