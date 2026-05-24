@@ -109,7 +109,7 @@ services:
     command:
       - /bin/sh
       - -lc
-      - corepack enable && pnpm install --frozen-lockfile && pnpm run dev:docker
+      - apt-get update && apt-get install -y --no-install-recommends procps && rm -rf /var/lib/apt/lists/* && corepack enable && pnpm install --frozen-lockfile --config.confirmModulesPurge=false && pnpm run dev:docker
     environment:
       APP_KEY: cliparr-dev-only-not-secure-key-1234
       PORT: "3000"
