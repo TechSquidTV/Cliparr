@@ -97,7 +97,10 @@ services:
       - ./docker:/scripts:ro
 
   cliparr:
-    image: node:24-slim
+    build:
+      context: .
+      dockerfile: docker/dev.Dockerfile
+    image: cliparr-dev:local
     depends_on:
       media-seed:
         condition: service_completed_successfully
@@ -109,7 +112,7 @@ services:
     command:
       - /bin/sh
       - -lc
-      - apt-get update && apt-get install -y --no-install-recommends procps && rm -rf /var/lib/apt/lists/* && corepack enable && pnpm install --frozen-lockfile --config.confirmModulesPurge=false && pnpm run dev:docker
+      - pnpm install --frozen-lockfile --config.confirmModulesPurge=false && pnpm run dev:docker
     environment:
       APP_KEY: cliparr-dev-only-not-secure-key-1234
       PORT: "3000"
