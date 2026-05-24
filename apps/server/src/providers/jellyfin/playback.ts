@@ -258,9 +258,10 @@ export function deriveSubtitleTracks(
   session: ProviderSessionRecord,
   context: JellyfinSourceContext,
   item: any,
-  mediaSourceId: string | undefined
+  mediaSourceId: string | undefined,
+  sessionInfo?: any
 ) {
-  const mediaSource = currentMediaSource(undefined, item, mediaSourceId);
+  const mediaSource = currentMediaSource(sessionInfo, item, mediaSourceId);
   if (!mediaSource) {
     return [];
   }
@@ -492,7 +493,7 @@ async function normalizeCurrentPlayback(
   const imagePath = itemImagePath(enrichedItem);
   const selectedAudioTrack = deriveSelectedAudioTrack(sessionInfo, enrichedItem, mediaSourceId);
   const selectedSubtitleTrack = deriveSelectedSubtitleTrack(sessionInfo, enrichedItem, mediaSourceId);
-  const subtitleTracks = deriveSubtitleTracks(session, context, enrichedItem, mediaSourceId);
+  const subtitleTracks = deriveSubtitleTracks(session, context, enrichedItem, mediaSourceId, sessionInfo);
   const playerState = sessionInfo?.PlayState?.IsPaused ? "paused" : "playing";
   const audioStreams = asArray(mediaSource?.MediaStreams).filter((stream) => isAudioMediaStream(stream));
   const videoStreams = asArray(mediaSource?.MediaStreams).filter((stream) => isVideoMediaStream(stream));

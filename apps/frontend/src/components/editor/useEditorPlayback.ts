@@ -30,7 +30,7 @@ import { errorMessage, isAc3FamilyCodec, themeValue } from "./EditorUtils";
 
 interface UseEditorPlaybackProps {
   hlsUrl?: string;
-  mediaUrl: string;
+  mediaUrl?: string;
   initialDuration: number;
   startTime: number;
   endTime: number;

@@ -210,7 +210,7 @@ export default function EditorScreen({ session, onBack }: Props) {
     playbackTimeAtStartRef,
   } = useEditorPlayback({
     hlsUrl: session.hlsUrl,
-    mediaUrl: session.mediaUrl ?? "",
+    mediaUrl: session.mediaUrl,
     initialDuration: session.duration,
     startTime,
     endTime,

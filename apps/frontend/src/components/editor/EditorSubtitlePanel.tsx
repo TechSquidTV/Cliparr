@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import {
+  subtitleTrackKey,
   subtitleTrackSupportsBurnIn,
   subtitleTrackUnavailableMessage,
 } from "../../lib/selectPreferredSubtitleTrack";
@@ -211,14 +212,15 @@ export function EditorSubtitlePanel({
               <SelectGroup>
                 <SelectLabel>Subtitle Tracks</SelectLabel>
                 <SelectItem value="none">No subtitles</SelectItem>
-                {subtitleTracks.map((track) => (
-                  <SelectItem
-                    key={`${track.streamId ?? "stream"}:${track.index ?? "index"}`}
-                    value={track.streamId ? `stream:${track.streamId}` : `index:${track.index ?? "unknown"}`}
-                  >
-                    {subtitleTrackLabel(track)}
-                  </SelectItem>
-                ))}
+                {subtitleTracks.map((track) => {
+                  const trackKey = subtitleTrackKey(track);
+
+                  return (
+                    <SelectItem key={trackKey} value={trackKey}>
+                      {subtitleTrackLabel(track)}
+                    </SelectItem>
+                  );
+                })}
               </SelectGroup>
             </SelectContent>
           </Select>
