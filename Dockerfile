@@ -19,10 +19,12 @@ ENV CLIPARR_VERSION=$CLIPARR_VERSION
 COPY .npmrc package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY apps/server/package.json apps/server/package.json
 COPY apps/frontend/package.json apps/frontend/package.json
+COPY packages/shared/package.json packages/shared/package.json
 
 RUN pnpm install --frozen-lockfile
 
 COPY tsconfig.json tsconfig.base.json ./
+COPY packages/shared/src packages/shared/src
 COPY apps/server/tsconfig.json apps/server/tsconfig.build.json apps/server/
 COPY apps/server/drizzle apps/server/drizzle
 COPY apps/server/src apps/server/src
