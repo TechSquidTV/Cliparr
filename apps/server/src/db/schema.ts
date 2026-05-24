@@ -68,6 +68,25 @@ export const providerSessions = sqliteTable(
   ]
 );
 
+export const rememberedProviderSessions = sqliteTable(
+  "remembered_provider_sessions",
+  {
+    id: text("id").primaryKey(),
+    providerAccountId: text("provider_account_id").notNull().references(() => providerAccounts.id, { onDelete: "cascade" }),
+    tokenHash: text("token_hash").notNull(),
+    createdAt: integer("created_at").notNull(),
+    expiresAt: integer("expires_at").notNull(),
+    revokedAt: integer("revoked_at"),
+    updatedAt: text("updated_at").notNull().default(nowIso),
+  },
+  (table) => [
+    uniqueIndex("remembered_provider_sessions_token_hash_idx").on(table.tokenHash),
+    index("remembered_provider_sessions_provider_account_id_idx").on(table.providerAccountId),
+    index("remembered_provider_sessions_expires_at_idx").on(table.expiresAt),
+  ]
+);
+
 export type ProviderAccountRow = typeof providerAccounts.$inferSelect;
 export type MediaSourceRow = typeof mediaSources.$inferSelect;
 export type ProviderSessionRow = typeof providerSessions.$inferSelect;
+export type RememberedProviderSessionRow = typeof rememberedProviderSessions.$inferSelect;
