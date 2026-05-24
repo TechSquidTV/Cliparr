@@ -13,7 +13,6 @@ import type { MediaSource } from "../db/mediaSourcesRepository.js";
 import type { ProviderSessionRecord } from "../session/store.js";
 
 export type {
-  CurrentlyPlayingItem,
   MediaExportMetadata,
   PlaybackAudioSelection,
   PlaybackSubtitleSelection,
