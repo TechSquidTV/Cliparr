@@ -1,0 +1,100 @@
+export interface MediaExportMetadata {
+  providerId: string;
+  itemType: string;
+  title?: string;
+  sourceTitle?: string;
+  showTitle?: string;
+  seasonTitle?: string;
+  seasonNumber?: number;
+  episodeNumber?: number;
+  year?: number;
+  date?: string;
+  description?: string;
+  tagline?: string;
+  studio?: string;
+  network?: string;
+  contentRating?: string;
+  genres?: string[];
+  directors?: string[];
+  writers?: string[];
+  actors?: string[];
+  guids?: string[];
+  ratingKey?: string;
+  imageUrl?: string;
+}
+
+export interface PlaybackAudioSelection {
+  trackNumber?: number;
+  languageCode?: string;
+  title?: string;
+}
+
+export interface PlaybackSubtitleTrack {
+  streamId?: string;
+  index?: number;
+  languageCode?: string;
+  title?: string;
+  codec?: string;
+  contentFormat?: string;
+  isText?: boolean;
+  isDefault?: boolean;
+  isForced?: boolean;
+  isHearingImpaired?: boolean;
+  isExternal?: boolean;
+  contentUrl?: string;
+}
+
+export interface PlaybackSubtitleSelection {
+  streamId?: string;
+  index?: number;
+  languageCode?: string;
+  title?: string;
+  codec?: string;
+  contentFormat?: string;
+  isText?: boolean;
+}
+
+export interface PlaybackViewer {
+  id: string;
+  providerId: string;
+  externalId?: string;
+  name: string;
+  avatarUrl?: string;
+}
+
+export interface PlaybackSource {
+  id: string;
+  name: string;
+  providerId: string;
+}
+
+export interface CurrentlyPlayingItem {
+  id: string;
+  source: PlaybackSource;
+  title: string;
+  type: string;
+  duration: number;
+  playerTitle: string;
+  playerState: string;
+  thumbUrl?: string;
+  mediaUrl?: string;
+  hlsUrl?: string;
+  previewUrl?: string;
+  previewFormat?: string;
+  selectedAudioTrack?: PlaybackAudioSelection;
+  selectedSubtitleTrack?: PlaybackSubtitleSelection;
+  subtitleTracks?: PlaybackSubtitleTrack[];
+  exportMetadata?: MediaExportMetadata;
+}
+
+export interface ViewerPlaybackGroup {
+  viewer: PlaybackViewer;
+  items: CurrentlyPlayingItem[];
+}
+
+export interface SourcePlaybackError {
+  sourceId: string;
+  sourceName: string;
+  providerId: string;
+  message: string;
+}

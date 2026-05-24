@@ -43,6 +43,9 @@ importers:
 
   apps/frontend:
     dependencies:
+      '@cliparr/shared':
+        specifier: workspace:*
+        version: link:../../packages/shared
       '@mediabunny/aac-encoder':
         specifier: ^1.45.3
         version: 1.45.3(mediabunny@1.45.3)
@@ -113,6 +116,9 @@ importers:
 
   apps/server:
     dependencies:
+      '@cliparr/shared':
+        specifier: workspace:*
+        version: link:../../packages/shared
       '@logtape/logtape':
         specifier: ^2.1.1
         version: 2.1.1
@@ -141,6 +147,8 @@ importers:
       typescript:
         specifier: ~6.0.3
         version: 6.0.3
+
+  packages/shared: {}
 
 packages:
 
