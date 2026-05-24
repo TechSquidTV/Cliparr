@@ -7,7 +7,9 @@ services:
       - apk add --no-cache curl >/dev/null && sh /scripts/seed-media.sh
     environment:
       MEDIA_ROOT: /media
-      BBB_URL: https://download.blender.org/peach/bigbuckbunny_movies/BigBuckBunny_320x180.mp4
+      CI: ${CI:-false}
+      GITHUB_ACTIONS: ${GITHUB_ACTIONS:-false}
+      SINTEL_URL: https://download.blender.org/demo/movies/Sintel.2010.720p.mkv
     volumes:
       - ./docker:/scripts:ro
       - cliparr-dev-media:/media
