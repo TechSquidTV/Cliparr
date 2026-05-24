@@ -615,6 +615,10 @@ export function deriveSelectedSubtitleTrack(
   };
 }
 
+function subtitleTrackSupportsBurnIn(track: PlaybackSubtitleTrack) {
+  return Boolean(track.isText && track.contentUrl);
+}
+
 async function fetchMetadataItem(context: PlexSourceContext, item: any) {
   const path = metadataPath(item);
   if (!path) {
@@ -783,7 +787,8 @@ async function normalizeCurrentPlayback(
     const thumbPath = metadataImagePath(enrichedItem);
     const selectedAudioTrack = deriveSelectedAudioTrack(enrichedItem, mediaSelection);
     const selectedSubtitleTrack = deriveSelectedSubtitleTrack(enrichedItem, mediaSelection);
-    const subtitleTracks = deriveSubtitleTracks(session, context, enrichedItem, sessionId, mediaSelection);
+    const subtitleTracks = deriveSubtitleTracks(session, context, enrichedItem, sessionId, mediaSelection)
+      .filter((track) => subtitleTrackSupportsBurnIn(track));
     const selectedPart = resolveSelectedPart(enrichedItem, mediaSelection)?.part;
     const audioStreams = selectedPart ? streamEntries(selectedPart).filter((stream) => isAudioStream(stream)) : [];
     const videoStreams = selectedPart ? streamEntries(selectedPart).filter((stream) => isVideoStream(stream)) : [];

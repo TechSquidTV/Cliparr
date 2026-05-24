@@ -316,6 +316,10 @@ export function deriveSelectedSubtitleTrack(
   };
 }
 
+function subtitleTrackSupportsBurnIn(track: PlaybackSubtitleTrack) {
+  return Boolean(track.isText && track.contentUrl);
+}
+
 function buildStaticStreamPath(
   item: any,
   mediaSourceId: string | undefined,
@@ -494,7 +498,8 @@ async function normalizeCurrentPlayback(
   const imagePath = itemImagePath(enrichedItem);
   const selectedAudioTrack = deriveSelectedAudioTrack(sessionInfo, enrichedItem, mediaSourceId);
   const selectedSubtitleTrack = deriveSelectedSubtitleTrack(sessionInfo, enrichedItem, mediaSourceId);
-  const subtitleTracks = deriveSubtitleTracks(session, context, enrichedItem, mediaSourceId, sessionInfo);
+  const subtitleTracks = deriveSubtitleTracks(session, context, enrichedItem, mediaSourceId, sessionInfo)
+    .filter((track) => subtitleTrackSupportsBurnIn(track));
   const playerState = sessionInfo?.PlayState?.IsPaused ? "paused" : "playing";
   const audioStreams = asArray(mediaSource?.MediaStreams).filter((stream) => isAudioMediaStream(stream));
   const videoStreams = asArray(mediaSource?.MediaStreams).filter((stream) => isVideoMediaStream(stream));
