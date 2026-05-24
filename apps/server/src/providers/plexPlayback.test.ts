@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import type { ProviderSessionRecord } from "../session/store.js";
-import { createPreviewPath, deriveSubtitleTracks } from "./plex/playback.js";
+import { createPreviewPath, deriveSelectedSubtitleTrack, deriveSubtitleTracks } from "./plex/playback.js";
 import type { PlexSourceContext } from "./plex/shared.js";
 
 function createSession(): ProviderSessionRecord {
@@ -156,6 +156,59 @@ void test("prefers direct raw SRT for the selected external Plex text subtitle",
   assert.equal(tracks[0]?.contentUrl, `/api/media/${handle.id}`);
   assert.equal(tracks[0]?.contentFormat, "srt");
   assert.equal(handle.path, "/library/streams/202.srt");
+});
+
+void test("reports selected external Plex SRT content format consistently", () => {
+  const item = {
+    ratingKey: "12345",
+    Media: [{
+      id: "media-1",
+      selected: 1,
+      Part: [{
+        id: "part-1",
+        selected: 1,
+        Stream: [{
+          id: "203",
+          index: 3,
+          streamType: 3,
+          codec: "subrip",
+          languageCode: "eng",
+          key: "/library/streams/203",
+          selected: true,
+        }],
+      }],
+    }],
+  };
+
+  const selectedTrack = deriveSelectedSubtitleTrack(item);
+
+  assert.equal(selectedTrack?.contentFormat, "srt");
+});
+
+void test("reports selected embedded Plex text subtitle transcode format", () => {
+  const item = {
+    ratingKey: "12345",
+    Media: [{
+      id: "media-1",
+      selected: 1,
+      Part: [{
+        id: "part-1",
+        selected: 1,
+        Stream: [{
+          id: "204",
+          index: 4,
+          streamType: 3,
+          codec: "srt",
+          languageCode: "eng",
+          selected: true,
+        }],
+      }],
+    }],
+  };
+
+  const selectedTrack = deriveSelectedSubtitleTrack(item);
+
+  assert.equal(selectedTrack?.contentFormat, "srt");
 });
 
 void test("leaves unselected embedded Plex text subtitles visible but unsupported", () => {

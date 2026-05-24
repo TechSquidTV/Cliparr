@@ -492,7 +492,7 @@ function buildSelectedPlexSubtitleTranscodePath(
 ) {
   const path = metadataPath(item);
   const codec = normalizeSubtitleCodec(stream?.codec);
-  if (!path || !isSelectedEntry(stream) || !isTextSubtitleCodec(codec)) {
+  if (!path || !canTranscodeSelectedPlexSubtitle(codec, stream)) {
     return undefined;
   }
 
@@ -510,6 +510,26 @@ function buildSelectedPlexSubtitleTranscodePath(
   return `/video/:/transcode/universal/subtitles?${params.toString()}`;
 }
 
+function canTranscodeSelectedPlexSubtitle(codec: unknown, stream: any) {
+  return isSelectedEntry(stream) && isTextSubtitleCodec(codec);
+}
+
+function plexSubtitleContentFormat(
+  codec: unknown,
+  directSubtitlePath: string | undefined,
+  transcodeSubtitleAvailable: boolean
+) {
+  if (directSubtitlePath) {
+    return plexDirectSubtitleContentFormat(codec);
+  }
+
+  if (transcodeSubtitleAvailable) {
+    return "srt";
+  }
+
+  return subtitleContentFormat(codec);
+}
+
 function plexSubtitleTrack(
   session: ProviderSessionRecord,
   context: PlexSourceContext,
@@ -521,14 +541,11 @@ function plexSubtitleTrack(
   const codec = normalizeSubtitleCodec(stream?.codec);
   const directSubtitlePath = buildPlexSubtitlePath(stream);
   const isText = isTextSubtitleCodec(codec);
+  const transcodeSubtitleAvailable = Boolean(metadataPath(item)) && canTranscodeSelectedPlexSubtitle(codec, stream);
   const transcodeSubtitlePath = directSubtitlePath
     ? undefined
     : buildSelectedPlexSubtitleTranscodePath(item, playbackSessionId, selection, stream);
-  const contentFormat = directSubtitlePath
-    ? plexDirectSubtitleContentFormat(codec)
-    : transcodeSubtitlePath
-      ? "srt"
-      : subtitleContentFormat(codec);
+  const contentFormat = plexSubtitleContentFormat(codec, directSubtitlePath, transcodeSubtitleAvailable);
   const contentPath = directSubtitlePath ?? transcodeSubtitlePath;
 
   return {
@@ -565,7 +582,7 @@ export function deriveSubtitleTracks(
     .map((stream) => plexSubtitleTrack(session, context, item, playbackSessionId, selection, stream));
 }
 
-function deriveSelectedSubtitleTrack(
+export function deriveSelectedSubtitleTrack(
   item: any,
   selection?: PlexMediaSelection
 ): PlaybackSubtitleSelection | undefined {
@@ -582,6 +599,10 @@ function deriveSelectedSubtitleTrack(
   }
 
   const codec = normalizeSubtitleCodec(selectedSubtitleStream?.codec);
+  const directSubtitlePath = buildPlexSubtitlePath(selectedSubtitleStream);
+  const transcodeSubtitleAvailable = Boolean(metadataPath(item))
+    && canTranscodeSelectedPlexSubtitle(codec, selectedSubtitleStream);
+
   return {
     streamId: idValue(selectedSubtitleStream?.id),
     index: numberValue(selectedSubtitleStream?.index) ?? numberValue(selectedSubtitleStream?.streamIdentifier),
@@ -589,7 +610,7 @@ function deriveSelectedSubtitleTrack(
       ?? stringValue(selectedSubtitleStream?.languageTag),
     title: selectedSubtitleTrackTitle(selectedSubtitleStream),
     codec,
-    contentFormat: subtitleContentFormat(codec),
+    contentFormat: plexSubtitleContentFormat(codec, directSubtitlePath, transcodeSubtitleAvailable),
     isText: isTextSubtitleCodec(codec),
   };
 }

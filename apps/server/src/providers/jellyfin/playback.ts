@@ -267,10 +267,11 @@ export function deriveSubtitleTracks(
   }
 
   const itemId = stringValue(item?.Id);
+  const resolvedMediaSourceId = stringValue(mediaSource?.Id) ?? mediaSourceId;
 
   return asArray(mediaSource?.MediaStreams)
     .filter((stream) => isSubtitleMediaStream(stream))
-    .map((stream) => jellyfinSubtitleTrack(session, context, itemId, mediaSourceId, stream));
+    .map((stream) => jellyfinSubtitleTrack(session, context, itemId, resolvedMediaSourceId, stream));
 }
 
 export function deriveSelectedSubtitleTrack(

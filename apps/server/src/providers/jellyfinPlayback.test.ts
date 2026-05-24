@@ -120,6 +120,33 @@ void test("uses Jellyfin session media sources for subtitle track discovery", ()
   assert.equal(handle.path, "/Videos/item-1/session-media-source-1/Subtitles/5/Stream.vtt");
 });
 
+void test("uses resolved Jellyfin media source id for subtitle content URLs", () => {
+  const session = createSession();
+  const context = createContext();
+  const item = {
+    Id: "item-1",
+    MediaSources: [{
+      Id: "resolved-media-source-1",
+      MediaStreams: [{
+        Type: "Subtitle",
+        Index: 6,
+        Codec: "srt",
+        Language: "eng",
+        Title: "Resolved English",
+        IsTextSubtitleStream: true,
+      }],
+    }],
+  };
+
+  const tracks = deriveSubtitleTracks(session, context, item, undefined);
+  const handle = onlyMediaHandle(session);
+
+  assert.equal(tracks.length, 1);
+  assert.equal(tracks[0]?.streamId, "6");
+  assert.equal(tracks[0]?.contentUrl, `/api/media/${handle.id}`);
+  assert.equal(handle.path, "/Videos/item-1/resolved-media-source-1/Subtitles/6/Stream.vtt");
+});
+
 void test("uses Jellyfin PlayState subtitle stream index for selected subtitle matching", () => {
   const item = {
     Id: "item-1",
