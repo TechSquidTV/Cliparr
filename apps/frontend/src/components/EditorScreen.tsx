@@ -32,6 +32,7 @@ import {
   saveSubtitleStyleSettings,
 } from "../lib/subtitles/settings";
 import { parseSubtitleText } from "../lib/subtitles/parseSubtitleText";
+import { trimSubtitleCues } from "../lib/subtitles/trimSubtitleCues";
 import type { SubtitleCue } from "../lib/subtitles/types";
 
 interface Props {
@@ -118,6 +119,10 @@ export default function EditorScreen({ session, onBack }: Props) {
   const subtitlePreviewEnabled = subtitleEnabled
     && subtitleTrackSupportsBurnIn(selectedSubtitleTrack)
     && subtitleCues.length > 0;
+  const clippedSubtitleCues = useMemo(
+    () => subtitleEnabled ? trimSubtitleCues(subtitleCues, startTime, endTime) : [],
+    [endTime, startTime, subtitleCues, subtitleEnabled]
+  );
   const subtitleExportSummary = useMemo(() => {
     if (!selectedSubtitleTrack || !subtitleEnabled) {
       return {
@@ -160,12 +165,12 @@ export default function EditorScreen({ session, onBack }: Props) {
       };
     }
 
-    if (subtitleCues.length === 0) {
+    if (clippedSubtitleCues.length === 0) {
       return {
         label: "No cues found",
-        detail: `${trackName} did not provide any subtitle cues for burn-in.`,
-        tone: "warning" as const,
-        disabledReason: "No subtitle cues are available for export.",
+        detail: `${trackName} has no subtitle cues inside the selected clip range.`,
+        tone: "muted" as const,
+        disabledReason: null as string | null,
       };
     }
 
@@ -178,7 +183,7 @@ export default function EditorScreen({ session, onBack }: Props) {
   }, [
     selectedSubtitleTrack,
     session.source.providerId,
-    subtitleCues.length,
+    clippedSubtitleCues.length,
     subtitleEnabled,
     subtitleError,
     subtitleLoading,
@@ -523,7 +528,9 @@ export default function EditorScreen({ session, onBack }: Props) {
     if (!exportSource.url) return;
     if (exporting) return;
 
-    const shouldBurnSubtitles = subtitleEnabled && selectedSubtitleTrack !== null;
+    const shouldBurnSubtitles = subtitleEnabled
+      && selectedSubtitleTrack !== null
+      && clippedSubtitleCues.length > 0;
 
     if (shouldBurnSubtitles && subtitleLoading) {
       setExportError("Subtitles are still loading. Please wait a moment and try again.");
@@ -532,11 +539,6 @@ export default function EditorScreen({ session, onBack }: Props) {
 
     if (shouldBurnSubtitles && !subtitleTrackSupportsBurnIn(selectedSubtitleTrack)) {
       setExportError("This subtitle track cannot be burned in yet.");
-      return;
-    }
-
-    if (shouldBurnSubtitles && subtitleCues.length === 0) {
-      setExportError(subtitleError ?? "No subtitle cues are available for export.");
       return;
     }
 
@@ -557,7 +559,7 @@ export default function EditorScreen({ session, onBack }: Props) {
         selectedAudioTrack: session.selectedAudioTrack,
         metadata: session.exportMetadata,
         includeBurnedSubtitles: shouldBurnSubtitles,
-        subtitleCues,
+        subtitleCues: clippedSubtitleCues,
         subtitleStyleSettings,
         onProgress: setProgress,
       });
@@ -586,12 +588,11 @@ export default function EditorScreen({ session, onBack }: Props) {
     exportSource.url,
     includeAudio,
     resolution,
+    clippedSubtitleCues,
     session.exportMetadata,
     session.selectedAudioTrack,
     startTime,
-    subtitleCues,
     subtitleEnabled,
-    subtitleError,
     subtitleLoading,
     subtitleStyleSettings,
     selectedSubtitleTrack,
