@@ -472,15 +472,52 @@ function buildPlexSubtitlePath(stream: any) {
   return `${relative.pathname}${relative.search}`;
 }
 
-function plexSubtitleTrack(
+function buildSelectedPlexSubtitleTranscodePath(
+  item: any,
+  playbackSessionId: string,
+  selection: PlexMediaSelection | undefined,
+  stream: any
+) {
+  const path = metadataPath(item);
+  const codec = normalizeSubtitleCodec(stream?.codec);
+  if (!path || !isSelectedEntry(stream) || !isTextSubtitleCodec(codec)) {
+    return undefined;
+  }
+
+  const resolvedSelection = resolveSelectedPart(item, selection);
+  const params = new URLSearchParams({
+    path,
+    transcodeSessionId: playbackSessionId,
+    mediaIndex: String(resolvedSelection?.mediaIndex ?? 0),
+    partIndex: String(resolvedSelection?.partIndex ?? 0),
+    subtitles: "sidecar",
+    advancedSubtitles: "text",
+    autoAdjustSubtitle: "0",
+  });
+
+  return `/video/:/transcode/universal/subtitles?${params.toString()}`;
+}
+
+export function plexSubtitleTrack(
   session: ProviderSessionRecord,
   context: PlexSourceContext,
+  item: any,
+  playbackSessionId: string,
+  selection: PlexMediaSelection | undefined,
   stream: any
 ): PlaybackSubtitleTrack {
   const codec = normalizeSubtitleCodec(stream?.codec);
   const directSubtitlePath = buildPlexSubtitlePath(stream);
   const isText = isTextSubtitleCodec(codec);
-  const contentFormat = subtitleContentFormat(codec);
+  const transcodeSubtitlePath = directSubtitlePath
+    ? undefined
+    : buildSelectedPlexSubtitleTranscodePath(item, playbackSessionId, selection, stream);
+  const contentFormat = directSubtitlePath
+    ? subtitleContentFormat(codec)
+    : transcodeSubtitlePath
+      ? "srt"
+      : subtitleContentFormat(codec);
+  const contentPath = directSubtitlePath ?? transcodeSubtitlePath;
 
   return {
     streamId: idValue(stream?.id),
@@ -494,14 +531,15 @@ function plexSubtitleTrack(
     isForced: booleanFlag(stream?.forced),
     isHearingImpaired: booleanFlag(stream?.hearingImpaired),
     isExternal: Boolean(stringValue(stream?.key)),
-    contentUrl: directSubtitlePath ? createMediaHandle(session, context, directSubtitlePath) : undefined,
+    contentUrl: contentPath ? createMediaHandle(session, context, contentPath) : undefined,
   };
 }
 
-function deriveSubtitleTracks(
+export function deriveSubtitleTracks(
   session: ProviderSessionRecord,
   context: PlexSourceContext,
   item: any,
+  playbackSessionId: string,
   selection?: PlexMediaSelection
 ) {
   const resolvedPart = resolveSelectedPart(item, selection);
@@ -512,7 +550,7 @@ function deriveSubtitleTracks(
 
   return streamEntries(part)
     .filter((stream) => isSubtitleStream(stream))
-    .map((stream) => plexSubtitleTrack(session, context, stream));
+    .map((stream) => plexSubtitleTrack(session, context, item, playbackSessionId, selection, stream));
 }
 
 function deriveSelectedSubtitleTrack(
@@ -712,7 +750,7 @@ async function normalizeCurrentPlayback(
     const thumbPath = metadataImagePath(enrichedItem);
     const selectedAudioTrack = deriveSelectedAudioTrack(enrichedItem, mediaSelection);
     const selectedSubtitleTrack = deriveSelectedSubtitleTrack(enrichedItem, mediaSelection);
-    const subtitleTracks = deriveSubtitleTracks(session, context, enrichedItem, mediaSelection);
+    const subtitleTracks = deriveSubtitleTracks(session, context, enrichedItem, sessionId, mediaSelection);
     const selectedPart = resolveSelectedPart(enrichedItem, mediaSelection)?.part;
     const audioStreams = selectedPart ? streamEntries(selectedPart).filter((stream) => isAudioStream(stream)) : [];
     const videoStreams = selectedPart ? streamEntries(selectedPart).filter((stream) => isVideoStream(stream)) : [];

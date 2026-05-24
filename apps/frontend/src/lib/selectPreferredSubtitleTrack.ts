@@ -30,7 +30,7 @@ export function subtitleTrackUnavailableMessage(
   }
 
   if (track.isText && providerId === "plex") {
-    return "Plex detected this text subtitle track, but it does not expose it as a downloadable subtitle stream for styled burn-in yet.";
+    return "Plex detected this embedded text subtitle track, but only the currently selected embedded subtitle can be fetched for styled burn-in.";
   }
 
   if (track.isText) {
