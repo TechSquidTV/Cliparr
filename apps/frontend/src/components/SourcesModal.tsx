@@ -14,6 +14,7 @@ import {
   SourcesModalHeader,
   stringValue,
 } from "./SourcesModalSections";
+import { useModalFocusTrap } from "./useModalFocusTrap";
 
 interface Props {
   isOpen: boolean;
@@ -38,7 +39,6 @@ export default function SourcesModal({ isOpen, onClose, onSourcesChanged }: Prop
   const [showAddSource, setShowAddSource] = useState(false);
   const dialogRef = useRef<HTMLDivElement | null>(null);
   const searchInputRef = useRef<HTMLInputElement | null>(null);
-  const lastFocusedElementRef = useRef<HTMLElement | null>(null);
   const latestLoadRequestIdRef = useRef(0);
   const isOpenRef = useRef(isOpen);
 
@@ -351,71 +351,12 @@ export default function SourcesModal({ isOpen, onClose, onSourcesChanged }: Prop
     }
   }, [isOpen, loading, sources.length]);
 
-  useEffect(() => {
-    if (!isOpen) {
-      return;
-    }
-
-    lastFocusedElementRef.current = document.activeElement instanceof HTMLElement
-      ? document.activeElement
-      : null;
-    const frameId = window.requestAnimationFrame(() => {
-      searchInputRef.current?.focus();
-    });
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-
-    function onKeyDown(event: KeyboardEvent) {
-      if (event.key === "Escape") {
-        onClose();
-        return;
-      }
-
-      if (event.key !== "Tab") {
-        return;
-      }
-
-      const dialog = dialogRef.current;
-      if (!dialog) {
-        return;
-      }
-
-      const focusable = [...dialog.querySelectorAll<HTMLElement>(
-        'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])'
-      )].filter((element) => element.getAttribute("aria-hidden") !== "true");
-
-      if (focusable.length === 0) {
-        event.preventDefault();
-        dialog.focus();
-        return;
-      }
-
-      const firstFocusable = focusable[0];
-      const lastFocusable = focusable[focusable.length - 1];
-      const activeElement = document.activeElement;
-
-      if (event.shiftKey) {
-        if (activeElement === firstFocusable || !dialog.contains(activeElement)) {
-          event.preventDefault();
-          lastFocusable?.focus();
-        }
-        return;
-      }
-
-      if (activeElement === lastFocusable) {
-        event.preventDefault();
-        firstFocusable?.focus();
-      }
-    }
-
-    window.addEventListener("keydown", onKeyDown);
-    return () => {
-      window.cancelAnimationFrame(frameId);
-      window.removeEventListener("keydown", onKeyDown);
-      document.body.style.overflow = previousOverflow;
-      lastFocusedElementRef.current?.focus();
-    };
-  }, [isOpen, onClose]);
+  useModalFocusTrap({
+    isOpen,
+    dialogRef,
+    initialFocusRef: searchInputRef,
+    onEscape: onClose,
+  });
 
   const providerOptions = useMemo(() => {
     const providers = [...new Set(sources.map((source) => source.providerId))];

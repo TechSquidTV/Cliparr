@@ -1,5 +1,5 @@
 import { Download, Info, X } from "lucide-react";
-import { useEffect, useRef } from "react";
+import { useRef } from "react";
 import {
   Select,
   SelectContent,
@@ -20,6 +20,7 @@ import {
   type ExportFileNameTemplateKind,
   type ExportFileNameTemplateSettings,
 } from "../../lib/exportFileName";
+import { useModalFocusTrap } from "../useModalFocusTrap";
 import { formatTime } from "./EditorUtils";
 
 interface VideoDimensions {
@@ -200,7 +201,6 @@ export function EditorExportDialog({
   onExport,
 }: EditorExportDialogProps) {
   const dialogRef = useRef<HTMLDivElement | null>(null);
-  const lastFocusedElementRef = useRef<HTMLElement | null>(null);
   const clipLength = Math.max(0, clipEnd - clipStart);
   const selectedFormatOption = formatOptions.find((option) => option.value === selectedFormat) ?? formatOptions[0];
   const selectedSourceOption = sourceOptions.find((option) => option.value === selectedSourcePreference) ?? sourceOptions[0];
@@ -212,76 +212,11 @@ export function EditorExportDialog({
       ? "border-amber-500/30 bg-amber-500/8"
       : "border-border bg-background";
 
-  useEffect(() => {
-    if (!isOpen) {
-      return;
-    }
-
-    lastFocusedElementRef.current = document.activeElement instanceof HTMLElement
-      ? document.activeElement
-      : null;
-
-    const frameId = window.requestAnimationFrame(() => {
-      dialogRef.current?.focus();
-    });
-
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-
-    function onKeyDown(event: KeyboardEvent) {
-      if (event.key === "Escape") {
-        if (!exporting) {
-          onClose();
-        }
-        return;
-      }
-
-      if (event.key !== "Tab") {
-        return;
-      }
-
-      const dialog = dialogRef.current;
-      if (!dialog) {
-        return;
-      }
-
-      const focusable = [...dialog.querySelectorAll<HTMLElement>(
-        'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])'
-      )].filter((element) => element.getAttribute("aria-hidden") !== "true");
-
-      if (focusable.length === 0) {
-        event.preventDefault();
-        dialog.focus();
-        return;
-      }
-
-      const firstFocusable = focusable[0];
-      const lastFocusable = focusable[focusable.length - 1];
-      const activeElement = document.activeElement;
-
-      if (event.shiftKey) {
-        if (activeElement === firstFocusable || !dialog.contains(activeElement)) {
-          event.preventDefault();
-          lastFocusable?.focus();
-        }
-        return;
-      }
-
-      if (activeElement === lastFocusable) {
-        event.preventDefault();
-        firstFocusable?.focus();
-      }
-    }
-
-    window.addEventListener("keydown", onKeyDown);
-
-    return () => {
-      window.cancelAnimationFrame(frameId);
-      window.removeEventListener("keydown", onKeyDown);
-      document.body.style.overflow = previousOverflow;
-      lastFocusedElementRef.current?.focus();
-    };
-  }, [exporting, isOpen, onClose]);
+  useModalFocusTrap({
+    isOpen,
+    dialogRef,
+    onEscape: exporting ? undefined : onClose,
+  });
 
   if (!isOpen) {
     return null;
