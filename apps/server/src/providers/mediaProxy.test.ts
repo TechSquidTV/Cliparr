@@ -198,6 +198,7 @@ void test("rejects cross-origin HLS media handles to private addresses", async (
       err instanceof ApiError
       && err.status === 400
       && err.code === "media_proxy_unsafe_url"
+      && err.message === "Media URL points at an unsafe internal address"
   );
 });
 
@@ -227,6 +228,80 @@ void test("validates cross-origin media redirects before following them", async 
         && err.code === "media_proxy_unsafe_url"
     );
     assert.equal(redirectMode, "manual");
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+void test("validates same-origin media redirects before following them", async () => {
+  const originalFetch = globalThis.fetch;
+  let redirectMode: unknown;
+
+  globalThis.fetch = (async (_input, init) => {
+    redirectMode = init?.redirect;
+    return new Response(null, {
+      status: 302,
+      headers: {
+        location: "http://127.0.0.1/admin",
+      },
+    });
+  }) as typeof fetch;
+
+  try {
+    await assert.rejects(
+      () => fetchMediaHandleRequest(createMediaHandle({
+        baseUrl: "http://192.168.1.10:32400",
+        path: "/library/parts/1/file.mp4",
+      })),
+      (err: unknown) =>
+        err instanceof ApiError
+        && err.status === 400
+        && err.code === "media_proxy_unsafe_url"
+    );
+    assert.equal(redirectMode, "manual");
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+void test("strips provider auth headers from cross-origin media redirects", async () => {
+  const originalFetch = globalThis.fetch;
+  const requestHeaders: Headers[] = [];
+
+  globalThis.fetch = (async (_input, init) => {
+    requestHeaders.push(new Headers(init?.headers));
+    if (requestHeaders.length === 1) {
+      return new Response(null, {
+        status: 302,
+        headers: {
+          location: "http://1.1.1.1/hls/segment.ts",
+        },
+      });
+    }
+
+    return new Response(new Uint8Array([1, 2, 3]), {
+      status: 200,
+    });
+  }) as typeof fetch;
+
+  try {
+    const response = await fetchMediaHandleRequest(createMediaHandle({
+      baseUrl: "http://192.168.1.10:32400",
+      path: "/video/master.m3u8",
+    }), {
+      headers: {
+        accept: "video/mp2t",
+        authorization: "MediaBrowser Token=secret",
+        "x-plex-token": "secret",
+      },
+    });
+
+    assert.equal(response.status, 200);
+    assert.equal(requestHeaders.length, 2);
+    assert.equal(requestHeaders[0]?.get("x-plex-token"), "secret");
+    assert.equal(requestHeaders[1]?.get("x-plex-token"), null);
+    assert.equal(requestHeaders[1]?.get("authorization"), null);
+    assert.equal(requestHeaders[1]?.get("accept"), "video/mp2t");
   } finally {
     globalThis.fetch = originalFetch;
   }

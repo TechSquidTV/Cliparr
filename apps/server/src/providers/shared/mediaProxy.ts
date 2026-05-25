@@ -33,6 +33,11 @@ interface CachedProxyMediaResponse {
   body: Buffer;
 }
 
+interface ResolvedHostnameCacheEntry {
+  expiresAt: number;
+  addresses: string[];
+}
+
 const RELATIVE_MEDIA_BASE_URL = "http://cliparr.local";
 const PROXY_HEADER_ALLOWLIST = [
   "accept-ranges",
@@ -47,6 +52,7 @@ const PROXY_HEADER_ALLOWLIST = [
 const HLS_PROXY_RESPONSE_CACHE_TTL_MS = 4_000;
 const HLS_PROXY_RESPONSE_CACHE_MAX_BYTES = 8 * 1024 * 1024;
 const MEDIA_PROXY_MAX_REDIRECTS = 5;
+const DNS_VALIDATION_CACHE_TTL_MS = 60_000;
 const DISALLOWED_MEDIA_HOSTNAMES = new Set([
   "metadata",
   "metadata.azure.internal",
@@ -58,6 +64,8 @@ const cachedProxyResponses = new Map<string, {
   response: CachedProxyMediaResponse;
 }>();
 const inflightProxyResponses = new Map<string, Promise<CachedProxyMediaResponse>>();
+const resolvedHostnameCache = new Map<string, ResolvedHostnameCacheEntry>();
+const inflightHostnameResolutions = new Map<string, Promise<string[]>>();
 
 function isAbsoluteUrl(path: string) {
   return /^[a-z][a-z0-9+.-]*:/i.test(path);
@@ -161,27 +169,51 @@ async function resolveHostnameAddresses(hostname: string) {
     return [];
   }
 
-  try {
-    const records = await lookup(normalized, {
-      all: true,
-      verbatim: true,
-    });
-
-    return [...new Set(records.map((record) => normalizeIpCandidate(record.address)))];
-  } catch {
-    throw new ApiError(
-      502,
-      "media_proxy_unsafe_url",
-      "Media playlist URL hostname could not be resolved for security validation"
-    );
+  const now = Date.now();
+  const cached = resolvedHostnameCache.get(normalized);
+  if (cached && cached.expiresAt > now) {
+    return cached.addresses;
   }
+
+  let inflight = inflightHostnameResolutions.get(normalized);
+  if (!inflight) {
+    inflight = (async () => {
+      try {
+        const records = await lookup(normalized, {
+          all: true,
+          verbatim: true,
+        });
+        const addresses = [...new Set(records.map((record) => normalizeIpCandidate(record.address)))];
+        resolvedHostnameCache.set(normalized, {
+          addresses,
+          expiresAt: Date.now() + DNS_VALIDATION_CACHE_TTL_MS,
+        });
+        return addresses;
+      } catch {
+        throw new ApiError(
+          502,
+          "media_proxy_unsafe_url",
+          "Media URL hostname could not be resolved for security validation"
+        );
+      }
+    })();
+    inflightHostnameResolutions.set(normalized, inflight);
+    const cleanupInflight = () => {
+      if (inflightHostnameResolutions.get(normalized) === inflight) {
+        inflightHostnameResolutions.delete(normalized);
+      }
+    };
+    void inflight.then(cleanupInflight, cleanupInflight);
+  }
+
+  return inflight;
 }
 
 function throwUnsafeMediaUrl() {
   throw new ApiError(
     400,
     "media_proxy_unsafe_url",
-    "Media playlist URL points at an unsafe internal address"
+    "Media URL points at an unsafe internal address"
   );
 }
 
@@ -193,7 +225,7 @@ export async function assertAllowedMediaHandleRequestUrl(
     throw new ApiError(
       400,
       "media_proxy_unsafe_url",
-      "Media playlist URL must use HTTP or HTTPS"
+      "Media URL must use HTTP or HTTPS"
     );
   }
 
@@ -225,19 +257,26 @@ function isRedirectStatus(status: number) {
     || status === 308;
 }
 
-export async function fetchMediaHandleRequest(handle: MediaHandle, init: RequestInit = {}) {
-  const providerUrl = safeUrl(handle.baseUrl);
-  let requestUrl = mediaHandleRequestUrl(handle);
+function removeSensitiveRedirectHeaders(init: RequestInit) {
+  const headers = new Headers(init.headers);
+  headers.delete("authorization");
+  headers.delete("cookie");
+  headers.delete("x-plex-token");
+  return {
+    ...init,
+    headers,
+  };
+}
 
-  if (providerUrl && requestUrl.origin === providerUrl.origin) {
-    return fetch(requestUrl.toString(), init);
-  }
+export async function fetchMediaHandleRequest(handle: MediaHandle, init: RequestInit = {}) {
+  let requestUrl = mediaHandleRequestUrl(handle);
+  let requestInit = init;
 
   for (let redirectCount = 0; redirectCount <= MEDIA_PROXY_MAX_REDIRECTS; redirectCount += 1) {
     await assertAllowedMediaHandleRequestUrl(handle, requestUrl);
 
     const response = await fetch(requestUrl.toString(), {
-      ...init,
+      ...requestInit,
       redirect: "manual",
     });
     const location = response.headers.get("location");
@@ -245,13 +284,17 @@ export async function fetchMediaHandleRequest(handle: MediaHandle, init: Request
       return response;
     }
 
-    requestUrl = new URL(location, requestUrl);
+    const nextUrl = new URL(location, requestUrl);
+    if (nextUrl.origin !== requestUrl.origin) {
+      requestInit = removeSensitiveRedirectHeaders(requestInit);
+    }
+    requestUrl = nextUrl;
   }
 
   throw new ApiError(
     502,
     "media_proxy_redirect_limit",
-    "Media playlist URL redirected too many times"
+    "Media URL redirected too many times"
   );
 }
 
