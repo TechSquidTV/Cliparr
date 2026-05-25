@@ -34,6 +34,7 @@ interface ProviderAuthStart {
   authId: string;
   authUrl: string;
   expiresAt: string;
+  pollToken: string;
 }
 
 type ProviderAuthStatus =
@@ -103,7 +104,7 @@ type ProviderSourceCheckResult =
 export interface ProviderImplementation {
   definition: ProviderDefinition;
   startAuth?(callbackUrl: string): Promise<ProviderAuthStart>;
-  pollAuth?(authId: string): Promise<{
+  pollAuth?(authId: string, pollToken: string): Promise<{
     status: ProviderAuthStatus["status"];
     userToken?: string;
     resources?: ProviderResource[];

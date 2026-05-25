@@ -1,7 +1,13 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import type { Request, Response } from "express";
 import type { ProviderSessionRecord } from "../session/store.js";
-import { buildPreviewPath, deriveSelectedSubtitleTrack, deriveSubtitleTracks } from "./jellyfin/playback.js";
+import {
+  buildPreviewPath,
+  deriveSelectedSubtitleTrack,
+  deriveSubtitleTracks,
+  proxyMedia,
+} from "./jellyfin/playback.js";
 import type { JellyfinSourceContext } from "./jellyfin/shared.js";
 
 function createSession(): ProviderSessionRecord {
@@ -31,6 +37,34 @@ function onlyMediaHandle(session: ProviderSessionRecord) {
   const handle = [...session.mediaHandles.values()][0];
   assert(handle);
   return handle;
+}
+
+function createRequest(headers: Record<string, string> = {}) {
+  return {
+    header(name: string) {
+      return headers[name.toLowerCase()];
+    },
+  } as Pick<Request, "header">;
+}
+
+function createResponseRecorder() {
+  return {
+    statusCode: 200,
+    headers: new Map<string, string>(),
+    ended: false,
+    status(code: number) {
+      this.statusCode = code;
+      return this;
+    },
+    setHeader(name: string, value: string | number) {
+      this.headers.set(name.toLowerCase(), String(value));
+      return this;
+    },
+    end() {
+      this.ended = true;
+      return this;
+    },
+  };
 }
 
 void test("disables Jellyfin subtitle burn-in on HLS previews", () => {
@@ -217,4 +251,53 @@ void test("leaves Jellyfin image subtitle streams visible but unsupported for bu
   assert.equal(tracks[0]?.contentUrl, undefined);
   assert.equal(tracks[0]?.contentFormat, undefined);
   assert.equal(session.mediaHandles.size, 0);
+});
+
+void test("strips Jellyfin auth headers from cross-origin media redirects", async () => {
+  const session = createSession();
+  session.mediaHandles.set("handle-1", {
+    id: "handle-1",
+    providerId: "jellyfin",
+    sourceId: "source-1",
+    baseUrl: "http://jellyfin.local:8096",
+    path: "/Videos/item-1/stream",
+    token: "provider-token",
+    deviceId: "cliparr-device-1",
+    lastAccessedAt: 0,
+  });
+
+  const originalFetch = globalThis.fetch;
+  const requestHeaders: Headers[] = [];
+
+  globalThis.fetch = (async (_input, init) => {
+    requestHeaders.push(new Headers(init?.headers));
+    if (requestHeaders.length === 1) {
+      return new Response(null, {
+        status: 302,
+        headers: {
+          location: "http://1.1.1.1/video.mp4",
+        },
+      });
+    }
+
+    return new Response(null, { status: 200 });
+  }) as typeof fetch;
+
+  try {
+    const response = createResponseRecorder();
+    await proxyMedia(
+      session,
+      "handle-1",
+      createRequest({ accept: "video/mp4" }) as Request,
+      response as unknown as Response
+    );
+
+    assert.equal(response.statusCode, 200);
+    assert.equal(response.ended, true);
+    assert.match(requestHeaders[0]?.get("authorization") ?? "", /Token="provider-token"/);
+    assert.equal(requestHeaders[1]?.get("authorization"), null);
+    assert.equal(requestHeaders[1]?.get("accept"), "video/mp4");
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
 });

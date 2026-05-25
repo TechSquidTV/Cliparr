@@ -15,6 +15,7 @@ import type {
 } from "../types.js";
 import {
   createProviderMediaHandle,
+  fetchMediaHandleRequest,
   mediaHandleRequestUrl,
   proxyProviderMediaResponse,
   sanitizeLoggedMediaPath,
@@ -943,7 +944,7 @@ export async function proxyMedia(
       range: range ?? undefined,
     },
     async () => {
-      const upstream = await fetch(url.toString(), { headers });
+      const upstream = await fetchMediaHandleRequest(handle, { headers });
       if (!upstream.ok && upstream.status !== 206) {
         const detail = (await upstream.text()).slice(0, 400).replace(/\s+/g, " ").trim();
         logger.warn("Plex media request failed for handle {handleId}.", {
