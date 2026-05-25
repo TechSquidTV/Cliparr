@@ -8,7 +8,7 @@
     "lint": "pnpm lint:eslint && pnpm lint:types",
     "lint:eslint": "pnpm exec eslint \"src/**/*.{ts,tsx}\" vite.config.js",
     "lint:types": "tsc --noEmit",
-    "test": "node --import tsx --test src/**/*.test.ts",
+    "test": "node --import tsx --test \"src/**/*.test.ts\"",
     "preview": "vite preview",
     "clean": "rm -rf dist"
   },

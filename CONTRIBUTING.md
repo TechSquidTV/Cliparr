@@ -31,6 +31,8 @@ Before opening a pull request, run:
 
 ```sh
 pnpm lint
+pnpm test
+pnpm knip
 pnpm build
 ```
 

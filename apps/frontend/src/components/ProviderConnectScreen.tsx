@@ -1,11 +1,13 @@
+import { FolderOpen } from "lucide-react";
 import ProviderConnectFlow from "./ProviderConnectFlow";
 import type { ProviderSession } from "../providers/types";
 
 interface Props {
   onConnected: (session: ProviderSession) => Promise<void> | void;
+  onOpenLocalVideo: () => void;
 }
 
-export default function ProviderConnectScreen({ onConnected }: Props) {
+export default function ProviderConnectScreen({ onConnected, onOpenLocalVideo }: Props) {
   return (
     <div className="flex min-h-screen items-start justify-center bg-background p-4 pt-6 text-foreground sm:items-center">
       <div className="relative w-full max-w-5xl overflow-hidden rounded-4xl border border-border bg-card text-card-foreground shadow-2xl">
@@ -23,6 +25,16 @@ export default function ProviderConnectScreen({ onConnected }: Props) {
           <p className="mx-auto mt-3 max-w-2xl text-center text-sm leading-6 text-muted-foreground">
             Select a provider. You will be able to add more providers later.
           </p>
+          <div className="mt-5 flex justify-center">
+            <button
+              type="button"
+              onClick={onOpenLocalVideo}
+              className="inline-flex h-9 items-center justify-center gap-2 rounded-md border border-border bg-background px-4 text-xs font-semibold uppercase tracking-[var(--tracking-caps-sm)] text-foreground transition-colors hover:bg-accent"
+            >
+              <FolderOpen className="h-4 w-4" />
+              Open Video
+            </button>
+          </div>
         </div>
 
         <div className="relative px-6 py-6 sm:px-8">

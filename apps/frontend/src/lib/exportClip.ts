@@ -8,7 +8,8 @@ import {
   WebMOutputFormat,
 } from "mediabunny";
 import type { ConversionOptions, DiscardedTrack, VideoSample } from "mediabunny";
-import { createCliparrInputFromUrl } from "./mediabunnyInput";
+import type { EditorMediaSource } from "./editorMedia";
+import { createCliparrInputFromSource } from "./mediabunnyInput";
 import { ensureMediabunnyCodecs } from "./mediabunnyCodecs";
 import {
   getTrackTimelineOffsetSeconds,
@@ -32,7 +33,7 @@ import type { SubtitleCue, SubtitleStyleSettings } from "./subtitles/types";
 export type { ExportFormat, ExportResolution } from "./exportTypes";
 
 interface ExportClipOptions {
-  mediaUrl: string;
+  mediaSource: EditorMediaSource;
   hls?: boolean;
   startTime: number;
   endTime: number;
@@ -99,7 +100,7 @@ function buildSubtitleBurnInProcessor(
 }
 
 export async function exportClip({
-  mediaUrl,
+  mediaSource,
   hls,
   startTime,
   endTime,
@@ -115,7 +116,7 @@ export async function exportClip({
 }: ExportClipOptions) {
   await ensureMediabunnyCodecs();
 
-  const input = await createCliparrInputFromUrl(mediaUrl, { hls });
+  const input = await createCliparrInputFromSource(mediaSource, { hls });
 
   try {
     const sourceVideoTrack = await input.getPrimaryVideoTrack({

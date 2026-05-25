@@ -14,6 +14,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as ProvidersConnectRouteImport } from './routes/providers.connect'
 import { Route as AppSourcesRouteImport } from './routes/_app.sources'
 import { Route as AppDashboardRouteImport } from './routes/_app.dashboard'
+import { Route as LocalEditSessionIdRouteImport } from './routes/local.edit.$sessionId'
 import { Route as AuthPlexCompleteRouteImport } from './routes/auth.plex.complete'
 import { Route as AppEditSessionIdRouteImport } from './routes/_app.edit.$sessionId'
 
@@ -41,6 +42,11 @@ const AppDashboardRoute = AppDashboardRouteImport.update({
   path: '/dashboard',
   getParentRoute: () => AppRoute,
 } as any)
+const LocalEditSessionIdRoute = LocalEditSessionIdRouteImport.update({
+  id: '/local/edit/$sessionId',
+  path: '/local/edit/$sessionId',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthPlexCompleteRoute = AuthPlexCompleteRouteImport.update({
   id: '/auth/plex/complete',
   path: '/auth/plex/complete',
@@ -59,6 +65,7 @@ export interface FileRoutesByFullPath {
   '/providers/connect': typeof ProvidersConnectRoute
   '/edit/$sessionId': typeof AppEditSessionIdRoute
   '/auth/plex/complete': typeof AuthPlexCompleteRoute
+  '/local/edit/$sessionId': typeof LocalEditSessionIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -67,6 +74,7 @@ export interface FileRoutesByTo {
   '/providers/connect': typeof ProvidersConnectRoute
   '/edit/$sessionId': typeof AppEditSessionIdRoute
   '/auth/plex/complete': typeof AuthPlexCompleteRoute
+  '/local/edit/$sessionId': typeof LocalEditSessionIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -77,6 +85,7 @@ export interface FileRoutesById {
   '/providers/connect': typeof ProvidersConnectRoute
   '/_app/edit/$sessionId': typeof AppEditSessionIdRoute
   '/auth/plex/complete': typeof AuthPlexCompleteRoute
+  '/local/edit/$sessionId': typeof LocalEditSessionIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -87,6 +96,7 @@ export interface FileRouteTypes {
     | '/providers/connect'
     | '/edit/$sessionId'
     | '/auth/plex/complete'
+    | '/local/edit/$sessionId'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -95,6 +105,7 @@ export interface FileRouteTypes {
     | '/providers/connect'
     | '/edit/$sessionId'
     | '/auth/plex/complete'
+    | '/local/edit/$sessionId'
   id:
     | '__root__'
     | '/'
@@ -104,6 +115,7 @@ export interface FileRouteTypes {
     | '/providers/connect'
     | '/_app/edit/$sessionId'
     | '/auth/plex/complete'
+    | '/local/edit/$sessionId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -111,6 +123,7 @@ export interface RootRouteChildren {
   AppRoute: typeof AppRouteWithChildren
   ProvidersConnectRoute: typeof ProvidersConnectRoute
   AuthPlexCompleteRoute: typeof AuthPlexCompleteRoute
+  LocalEditSessionIdRoute: typeof LocalEditSessionIdRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -150,6 +163,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppDashboardRouteImport
       parentRoute: typeof AppRoute
     }
+    '/local/edit/$sessionId': {
+      id: '/local/edit/$sessionId'
+      path: '/local/edit/$sessionId'
+      fullPath: '/local/edit/$sessionId'
+      preLoaderRoute: typeof LocalEditSessionIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/auth/plex/complete': {
       id: '/auth/plex/complete'
       path: '/auth/plex/complete'
@@ -186,6 +206,7 @@ const rootRouteChildren: RootRouteChildren = {
   AppRoute: AppRouteWithChildren,
   ProvidersConnectRoute: ProvidersConnectRoute,
   AuthPlexCompleteRoute: AuthPlexCompleteRoute,
+  LocalEditSessionIdRoute: LocalEditSessionIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

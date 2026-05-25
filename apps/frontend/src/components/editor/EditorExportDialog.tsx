@@ -40,6 +40,8 @@ interface EditorExportDialogProps {
   outputDimensions: VideoDimensions | null;
   hasHlsSource: boolean;
   hasDirectSource: boolean;
+  directSourceLabel: string;
+  hlsSourceLabel: string;
   exportSourceLabel: string;
   exportSourceMessage: string | null;
   exportSourceSummaryMessage: string | null;
@@ -77,6 +79,8 @@ export function EditorExportDialog({
   outputDimensions,
   hasHlsSource,
   hasDirectSource,
+  directSourceLabel,
+  hlsSourceLabel,
   exportSourceLabel,
   exportSourceMessage,
   exportSourceSummaryMessage,
@@ -173,6 +177,8 @@ export function EditorExportDialog({
               onIncludeAudioChange={onIncludeAudioChange}
               hasHlsSource={hasHlsSource}
               hasDirectSource={hasDirectSource}
+              directSourceLabel={directSourceLabel}
+              hlsSourceLabel={hlsSourceLabel}
             />
 
             <EditorFilenameTemplateSection

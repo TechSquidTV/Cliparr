@@ -1,11 +1,12 @@
 import { useEffect, useState } from "react";
-import { AlertTriangle, LogOut, Play, RefreshCw, Settings2, Video } from "lucide-react";
+import { AlertTriangle, FolderOpen, LogOut, Play, RefreshCw, Settings2, Video } from "lucide-react";
 import { cliparrClient } from "../api/cliparrClient";
 import { formatProviderName, ProviderGlyph } from "./ProviderGlyph";
 import type { CurrentlyPlayingItem, SourcePlaybackError, ViewerPlaybackGroup } from "../providers/types";
 
 interface Props {
   onSelectSession: (session: CurrentlyPlayingItem) => void;
+  onOpenLocalVideo: () => void;
   onOpenSources: () => void;
   onLogout: () => Promise<void> | void;
 }
@@ -100,7 +101,7 @@ function WarningBanner({ sourceErrors }: { sourceErrors: SourcePlaybackError[] }
   );
 }
 
-export default function DashboardScreen({ onSelectSession, onOpenSources, onLogout }: Props) {
+export default function DashboardScreen({ onSelectSession, onOpenLocalVideo, onOpenSources, onLogout }: Props) {
   const [viewers, setViewers] = useState<ViewerPlaybackGroup[]>([]);
   const [sourceErrors, setSourceErrors] = useState<SourcePlaybackError[]>([]);
   const [appVersion, setAppVersion] = useState("");
@@ -183,6 +184,14 @@ export default function DashboardScreen({ onSelectSession, onOpenSources, onLogo
               <GithubIcon className="h-4 w-4" />
               <span className="hidden sm:inline">GitHub</span>
             </a>
+            <button
+              type="button"
+              onClick={onOpenLocalVideo}
+              className="flex items-center gap-2 rounded-lg border border-border px-4 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+            >
+              <FolderOpen className="w-4 h-4" />
+              Open Video
+            </button>
             <button
               type="button"
               onClick={onOpenSources}

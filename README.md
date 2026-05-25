@@ -12,7 +12,7 @@
 
 ---
 
-**Cliparr** is a streamlined media clipper that allows you to quickly create and download clips from the media currently playing on your Plex or Jellyfin server.
+**Cliparr** is a streamlined media clipper that allows you to quickly create and download clips from the media currently playing on your Plex or Jellyfin server, or from a local video file opened directly in your browser.
 
 <video src="https://github.com/user-attachments/assets/4f9d5f6b-8016-4068-b375-f050d57de534" width="100%" alt="Cliparr Demo">
 </video>
@@ -21,6 +21,7 @@
 ## Features
 
 - **Instant Session Discovery**: Automatically loads your media player's currently playing file.
+- **Local Video Opening**: Open a local file or direct media URL before or after connecting a provider.
 - **Intuitive Timeline Editor**: Familiar UI based on common video editing interfaces.
 - **Local Transcoding**: Powered by [Mediabunny](https://mediabunny.dev/), video is transcoded in your browser.
 - **Rich Metadata Tagging**: Clips are exported with full EXIF data, including Season, Episode numbers, and timing metadata.
@@ -46,6 +47,12 @@ docker run -d \
 
 > [!IMPORTANT]
 > **Use HTTPS for editing**: Cliparr's editor uses browser WebCodecs. Supporting browsers require a secure context. Use an HTTPS reverse proxy like Caddy, or local `localhost` / `127.0.0.1`.
+
+### Local Videos
+
+Use **Open Video** on the connect screen or dashboard to open a file from your device or a direct media URL. Files are read by the browser with Mediabunny and are not uploaded to the Cliparr server. Browsers that support persistent file handles can reopen the selected file after refresh once you grant permission again; other file input and drag-and-drop sessions stay available only while the tab is open.
+
+URL media is also read by the browser, so the remote server must allow CORS and byte-range requests. HLS `.m3u8` URLs can be opened when their playlist and segment URLs are browser-readable.
 
 ### Using Docker Compose
 

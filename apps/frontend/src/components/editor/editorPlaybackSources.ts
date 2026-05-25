@@ -1,5 +1,10 @@
 import type { InputAudioTrack, InputVideoTrack } from "mediabunny";
-import { isHlsPlaylistUrl } from "../../lib/mediabunnyInput";
+import {
+  editorMediaSourcesEqual,
+  isHlsEditorMediaSource,
+  sourceDisplayLabel,
+  type EditorMediaSource,
+} from "../../lib/editorMedia";
 import {
   getTrackCodec,
   getTrackLanguageCode,
@@ -8,9 +13,11 @@ import {
 import type { PlaybackAudioSelection } from "../../providers/types";
 import { errorMessage, isAc3FamilyCodec } from "./EditorUtils";
 
+type PlaybackSourceLabel = "hls stream" | "direct source" | "local file" | "url" | "hls url";
+
 export interface PlaybackSourceCandidate {
-  label: "hls stream" | "direct source";
-  url: string;
+  label: PlaybackSourceLabel;
+  source: EditorMediaSource;
 }
 
 export interface PlaybackLoadFailure {
@@ -28,7 +35,7 @@ export interface PlaybackFallbackInfo {
 export interface PlaybackSourceAnalysisContext {
   sessionId: string;
   source: PlaybackSourceCandidate["label"];
-  url: string;
+  mediaSource: EditorMediaSource;
   selectedAudioTrack?: PlaybackAudioSelection;
   videoTracks: readonly InputVideoTrack[];
   allAudioTracks: readonly InputAudioTrack[];
@@ -51,22 +58,45 @@ export class PlaybackSourceError extends Error {
   }
 }
 
-export function buildPlaybackSourceCandidates(hlsUrl: string | undefined, mediaUrl: string | undefined) {
-  const candidates: PlaybackSourceCandidate[] = [];
-
-  if (hlsUrl) {
-    candidates.push({ label: "hls stream", url: hlsUrl });
+function playbackLabelForSource(source: EditorMediaSource, role: "hls" | "direct") {
+  if (source.role === "local-file") {
+    return "local file" satisfies PlaybackSourceLabel;
   }
 
-  if (mediaUrl && !candidates.some((candidate) => candidate.url === mediaUrl)) {
-    candidates.push({ label: "direct source", url: mediaUrl });
+  if (source.role === "direct-url") {
+    return isHlsEditorMediaSource(source)
+      ? "hls url" satisfies PlaybackSourceLabel
+      : "url" satisfies PlaybackSourceLabel;
+  }
+
+  return role === "hls"
+    ? "hls stream" satisfies PlaybackSourceLabel
+    : "direct source" satisfies PlaybackSourceLabel;
+}
+
+export function buildPlaybackSourceCandidates(
+  hlsSource: EditorMediaSource | undefined,
+  directSource: EditorMediaSource | undefined,
+) {
+  const candidates: PlaybackSourceCandidate[] = [];
+
+  if (hlsSource) {
+    candidates.push({ label: playbackLabelForSource(hlsSource, "hls"), source: hlsSource });
+  }
+
+  if (directSource && !candidates.some((candidate) => editorMediaSourcesEqual(candidate.source, directSource))) {
+    candidates.push({ label: playbackLabelForSource(directSource, "direct"), source: directSource });
   }
 
   return candidates;
 }
 
-function classifyPlaybackSource(source: Pick<PlaybackSourceCandidate, "label" | "url">): PlaybackLoadFailure["classification"] {
-  return source.label === "hls stream" || isHlsPlaylistUrl(source.url) ? "hls-playlist" : "unknown";
+function classifyPlaybackSource(source: Pick<PlaybackSourceCandidate, "label" | "source">): PlaybackLoadFailure["classification"] {
+  return source.label === "hls stream"
+    || source.label === "hls url"
+    || isHlsEditorMediaSource(source.source)
+    ? "hls-playlist"
+    : "unknown";
 }
 
 export function buildPlaybackFailure(source: PlaybackSourceCandidate, err: unknown): PlaybackLoadFailure {
@@ -83,13 +113,24 @@ export function shouldUseExportFallback(failure: PlaybackLoadFailure) {
 }
 
 export function describePlaybackFailure(failure: PlaybackLoadFailure) {
-  const prefix = failure.label === "hls stream" ? "HLS stream" : "Direct source";
+  const prefix = formatPlaybackSourceLabel(failure.label);
 
   return `${prefix} failed: ${failure.message}`;
 }
 
 export function formatPlaybackSourceLabel(label: PlaybackSourceCandidate["label"]) {
-  return label === "hls stream" ? "HLS stream" : "Direct source";
+  switch (label) {
+    case "hls stream":
+      return "HLS stream";
+    case "direct source":
+      return "Direct source";
+    case "local file":
+      return "Local file";
+    case "hls url":
+      return "HLS URL";
+    case "url":
+      return "URL";
+  }
 }
 
 export function isPresent<T>(value: T | null | undefined): value is T {
@@ -108,7 +149,7 @@ export function resolvePlaybackDuration(
   const fallbackDuration = finiteNonNegativeDuration(initialDuration);
   const normalizedComputedDuration = finiteNonNegativeDuration(computedDuration);
 
-  if (playbackSource.label === "hls stream") {
+  if (playbackSource.label === "hls stream" || playbackSource.label === "hls url") {
     return Math.max(fallbackDuration, normalizedComputedDuration);
   }
 
@@ -301,8 +342,9 @@ export async function buildPlaybackSourceAnalysis(context: PlaybackSourceAnalysi
     source: context.source,
     urlClassification: classifyPlaybackSource({
       label: context.source,
-      url: context.url,
+      source: context.mediaSource,
     }),
+    sourceLabel: sourceDisplayLabel(context.mediaSource),
     selectedAudioTrack: context.selectedAudioTrack ?? null,
     videoTrackCount: context.videoTracks.length,
     audioTrackCount: context.allAudioTracks.length,
