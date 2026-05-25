@@ -1,8 +1,11 @@
 import { randomUUID } from "crypto";
+import { lookup } from "dns/promises";
+import { isIP } from "net";
 import { Readable } from "stream";
 import { pipeline } from "stream/promises";
 import type { ReadableStream as WebReadableStream } from "stream/web";
 import type { Response } from "express";
+import { ApiError } from "../../http/errors.js";
 import { getServerLogger } from "../../logging.js";
 import type { ProviderSessionRecord } from "../../session/store.js";
 import type { MediaHandle } from "../types.js";
@@ -43,6 +46,12 @@ const PROXY_HEADER_ALLOWLIST = [
 ] as const;
 const HLS_PROXY_RESPONSE_CACHE_TTL_MS = 4_000;
 const HLS_PROXY_RESPONSE_CACHE_MAX_BYTES = 8 * 1024 * 1024;
+const MEDIA_PROXY_MAX_REDIRECTS = 5;
+const DISALLOWED_MEDIA_HOSTNAMES = new Set([
+  "metadata",
+  "metadata.azure.internal",
+  "metadata.google.internal",
+]);
 const logger = getServerLogger(["providers", "media-proxy"]);
 const cachedProxyResponses = new Map<string, {
   expiresAt: number;
@@ -82,6 +91,168 @@ export function shouldAttachProviderAuth(handle: Pick<MediaHandle, "baseUrl" | "
   const requestUrl = mediaHandleRequestUrl(handle);
   const providerUrl = safeUrl(handle.baseUrl);
   return providerUrl ? requestUrl.origin === providerUrl.origin : true;
+}
+
+function normalizeIpCandidate(value: string) {
+  const normalized = value.toLowerCase();
+  if (normalized.startsWith("[") && normalized.endsWith("]")) {
+    return normalized.slice(1, -1);
+  }
+
+  return normalized.startsWith("::ffff:") ? normalized.slice(7) : normalized;
+}
+
+function normalizeHostname(value: string) {
+  return normalizeIpCandidate(value.trim()).replace(/\.+$/, "");
+}
+
+function ipv4Octets(hostname: string) {
+  const parts = hostname.split(".");
+  if (parts.length !== 4) {
+    return undefined;
+  }
+
+  const octets = parts.map((part) => Number(part));
+  if (octets.some((octet) => !Number.isInteger(octet) || octet < 0 || octet > 255)) {
+    return undefined;
+  }
+
+  return octets as [number, number, number, number];
+}
+
+function isUnsafeIpv4Host(hostname: string) {
+  const octets = ipv4Octets(hostname);
+  if (!octets) {
+    return false;
+  }
+
+  const [first, second] = octets;
+  return first === 0
+    || first === 10
+    || first === 127
+    || (first === 100 && second >= 64 && second <= 127)
+    || (first === 169 && second === 254)
+    || (first === 172 && second >= 16 && second <= 31)
+    || (first === 192 && second === 168)
+    || first >= 224;
+}
+
+function isUnsafeIpv6Host(hostname: string) {
+  return hostname === "::"
+    || hostname === "::1"
+    || hostname === "0:0:0:0:0:0:0:1"
+    || /^f[cd][0-9a-f]{2}:/i.test(hostname)
+    || /^fe[89ab][0-9a-f]:/i.test(hostname)
+    || /^ff[0-9a-f]{2}:/i.test(hostname);
+}
+
+function isUnsafeMediaHostname(hostname: string) {
+  const normalized = normalizeHostname(hostname);
+  return normalized === "localhost"
+    || normalized.endsWith(".localhost")
+    || DISALLOWED_MEDIA_HOSTNAMES.has(normalized)
+    || isUnsafeIpv4Host(normalized)
+    || isUnsafeIpv6Host(normalized);
+}
+
+async function resolveHostnameAddresses(hostname: string) {
+  const normalized = normalizeHostname(hostname);
+  if (isIP(normalized)) {
+    return [];
+  }
+
+  try {
+    const records = await lookup(normalized, {
+      all: true,
+      verbatim: true,
+    });
+
+    return [...new Set(records.map((record) => normalizeIpCandidate(record.address)))];
+  } catch {
+    throw new ApiError(
+      502,
+      "media_proxy_unsafe_url",
+      "Media playlist URL hostname could not be resolved for security validation"
+    );
+  }
+}
+
+function throwUnsafeMediaUrl() {
+  throw new ApiError(
+    400,
+    "media_proxy_unsafe_url",
+    "Media playlist URL points at an unsafe internal address"
+  );
+}
+
+export async function assertAllowedMediaHandleRequestUrl(
+  handle: Pick<MediaHandle, "baseUrl" | "path">,
+  requestUrl = mediaHandleRequestUrl(handle)
+) {
+  if (requestUrl.protocol !== "http:" && requestUrl.protocol !== "https:") {
+    throw new ApiError(
+      400,
+      "media_proxy_unsafe_url",
+      "Media playlist URL must use HTTP or HTTPS"
+    );
+  }
+
+  if (requestUrl.username || requestUrl.password) {
+    throwUnsafeMediaUrl();
+  }
+
+  const providerUrl = safeUrl(handle.baseUrl);
+  if (providerUrl && requestUrl.origin === providerUrl.origin) {
+    return;
+  }
+
+  if (isUnsafeMediaHostname(requestUrl.hostname)) {
+    throwUnsafeMediaUrl();
+  }
+
+  for (const address of await resolveHostnameAddresses(requestUrl.hostname)) {
+    if (isUnsafeMediaHostname(address)) {
+      throwUnsafeMediaUrl();
+    }
+  }
+}
+
+function isRedirectStatus(status: number) {
+  return status === 301
+    || status === 302
+    || status === 303
+    || status === 307
+    || status === 308;
+}
+
+export async function fetchMediaHandleRequest(handle: MediaHandle, init: RequestInit = {}) {
+  const providerUrl = safeUrl(handle.baseUrl);
+  let requestUrl = mediaHandleRequestUrl(handle);
+
+  if (providerUrl && requestUrl.origin === providerUrl.origin) {
+    return fetch(requestUrl.toString(), init);
+  }
+
+  for (let redirectCount = 0; redirectCount <= MEDIA_PROXY_MAX_REDIRECTS; redirectCount += 1) {
+    await assertAllowedMediaHandleRequestUrl(handle, requestUrl);
+
+    const response = await fetch(requestUrl.toString(), {
+      ...init,
+      redirect: "manual",
+    });
+    const location = response.headers.get("location");
+    if (!isRedirectStatus(response.status) || !location) {
+      return response;
+    }
+
+    requestUrl = new URL(location, requestUrl);
+  }
+
+  throw new ApiError(
+    502,
+    "media_proxy_redirect_limit",
+    "Media playlist URL redirected too many times"
+  );
 }
 
 export function sanitizeLoggedMediaPath(value: string | undefined) {

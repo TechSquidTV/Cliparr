@@ -13,6 +13,7 @@ import type {
 } from "../types.js";
 import {
   createProviderMediaHandle,
+  fetchMediaHandleRequest,
   mediaHandleRequestUrl,
   playlistBasePath,
   proxyProviderMediaResponse,
@@ -662,7 +663,7 @@ export async function proxyMedia(
     async () => {
       try {
         if (!useProviderAuth) {
-          const upstream = await fetch(upstreamUrl, {
+          const upstream = await fetchMediaHandleRequest(handle, {
             headers,
             signal: AbortSignal.timeout(JELLYFIN_REQUEST_TIMEOUT_MS),
           });

@@ -2,9 +2,12 @@ import assert from "node:assert/strict";
 import { PassThrough } from "node:stream";
 import test from "node:test";
 import type { Response } from "express";
+import { ApiError } from "../http/errors.js";
 import type { ProviderSessionRecord } from "../session/store.js";
 import type { MediaHandle } from "./types.js";
 import {
+  assertAllowedMediaHandleRequestUrl,
+  fetchMediaHandleRequest,
   proxyProviderMediaResponse,
   proxyUpstreamMediaResponse,
   sanitizeLoggedMediaPath,
@@ -174,6 +177,59 @@ void test("does not attach provider auth to cross-origin absolute media handles"
     path: "https://cdn.example.com/hls/segment0.ts?sig=secret",
     basePath: "https://cdn.example.com/hls/",
   })), false);
+});
+
+void test("allows configured provider origins even when they are private", async () => {
+  await assert.doesNotReject(async () => {
+    await assertAllowedMediaHandleRequestUrl(createMediaHandle({
+      baseUrl: "http://192.168.1.10:32400",
+      path: "/video/master.m3u8",
+    }));
+  });
+});
+
+void test("rejects cross-origin HLS media handles to private addresses", async () => {
+  await assert.rejects(
+    () => assertAllowedMediaHandleRequestUrl(createMediaHandle({
+      path: "http://127.0.0.1:8080/admin",
+      basePath: "http://1.1.1.1/hls/",
+    })),
+    (err: unknown) =>
+      err instanceof ApiError
+      && err.status === 400
+      && err.code === "media_proxy_unsafe_url"
+  );
+});
+
+void test("validates cross-origin media redirects before following them", async () => {
+  const originalFetch = globalThis.fetch;
+  let redirectMode: unknown;
+
+  globalThis.fetch = (async (_input, init) => {
+    redirectMode = init?.redirect;
+    return new Response(null, {
+      status: 302,
+      headers: {
+        location: "http://127.0.0.1/admin",
+      },
+    });
+  }) as typeof fetch;
+
+  try {
+    await assert.rejects(
+      () => fetchMediaHandleRequest(createMediaHandle({
+        path: "http://1.1.1.1/hls/segment.ts",
+        basePath: "http://1.1.1.1/hls/",
+      })),
+      (err: unknown) =>
+        err instanceof ApiError
+        && err.status === 400
+        && err.code === "media_proxy_unsafe_url"
+    );
+    assert.equal(redirectMode, "manual");
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
 });
 
 void test("sanitizes logged media paths by stripping query strings", () => {
