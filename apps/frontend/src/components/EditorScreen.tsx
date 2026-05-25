@@ -2,9 +2,10 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { Eye } from "lucide-react";
 import { MIN_CLIP_SECONDS, roundTimelineTime } from "./editor/EditorUtils";
 import { useEditorPlayback, type PlaybackFallbackInfo } from "./editor/useEditorPlayback";
+import { useEditorExport } from "./editor/useEditorExport";
 import { useEditorTimeline } from "./editor/useEditorTimeline";
 import { EditorHeader } from "./editor/EditorHeader";
-import { EditorExportDialog, type ExportSourcePreference } from "./editor/EditorExportDialog";
+import { EditorExportDialog } from "./editor/EditorExportDialog";
 import { EditorPreview } from "./editor/EditorPreview";
 import { EditorControls } from "./editor/EditorControls";
 import { EditorSidebar } from "./editor/EditorSidebar";
@@ -14,15 +15,6 @@ import { EditorSubtitlePanel } from "./editor/EditorSubtitlePanel";
 import { buildSubtitleExportSummary } from "./editor/subtitleExportSummary";
 import { useSubtitleCues } from "./editor/useSubtitleCues";
 import type { CurrentlyPlayingItem, PlaybackSubtitleTrack } from "../providers/types";
-import type { ExportFormat, ExportResolution } from "../lib/exportClip";
-import {
-  buildExportFileName,
-  defaultExportFileNameTemplates,
-  loadExportFileNameTemplates,
-  saveExportFileNameTemplates,
-  type ExportFileNameTemplateKind,
-  type ExportFileNameTemplateSettings,
-} from "../lib/exportFileName";
 import {
   selectPreferredSubtitleTrack,
   subtitleTrackKey,
@@ -37,18 +29,6 @@ import { trimSubtitleCues } from "../lib/subtitles/trimSubtitleCues";
 interface Props {
   session: CurrentlyPlayingItem;
   onBack: () => void;
-}
-
-interface VideoDimensions {
-  width: number;
-  height: number;
-}
-
-type ResolvedExportSourceKind = "hls" | "direct" | "none";
-
-interface ResolvedExportSource {
-  url: string;
-  kind: ResolvedExportSourceKind;
 }
 
 function isInteractiveKeyboardTarget(target: EventTarget | null) {
@@ -68,26 +48,10 @@ function isInteractiveKeyboardTarget(target: EventTarget | null) {
 export default function EditorScreen({ session, onBack }: Props) {
   const [startTime, setStartTime] = useState(0);
   const [endTime, setEndTime] = useState(() => Math.min(10, Math.max(session.duration, 0)));
-  const [resolution, setResolution] = useState<ExportResolution>("original");
-  const [exportFormat, setExportFormat] = useState<ExportFormat>("mp4");
-  const [exportSourcePreference, setExportSourcePreference] = useState<ExportSourcePreference>("auto");
-  const [includeAudio, setIncludeAudio] = useState(true);
-  const [fileNameTemplates, setFileNameTemplates] = useState<ExportFileNameTemplateSettings>(() => loadExportFileNameTemplates());
   const [subtitleStyleSettings, setSubtitleStyleSettings] = useState(() => loadSubtitleStyleSettings());
-  const [templateEditorKind, setTemplateEditorKind] = useState<ExportFileNameTemplateKind>("movie");
   const [playbackSidebarOpen, setPlaybackSidebarOpen] = useState(true);
-  const [exportDialogOpen, setExportDialogOpen] = useState(false);
-  const [exporting, setExporting] = useState(false);
-  const [progress, setProgress] = useState(0);
-  const [exportError, setExportError] = useState<string | null>(null);
   const [subtitleEnabled, setSubtitleEnabled] = useState(false);
   const [selectedSubtitleTrackKey, setSelectedSubtitleTrackKey] = useState("none");
-  const effectiveExportSourcePreference =
-    exportSourcePreference === "direct" && !session.mediaUrl
-      ? "auto"
-      : exportSourcePreference === "hls" && !session.hlsUrl
-        ? "auto"
-        : exportSourcePreference;
 
   const subtitleTracks = useMemo<PlaybackSubtitleTrack[]>(
     () => (session.subtitleTracks ?? []).filter((track) => subtitleTrackSupportsBurnIn(track)),
@@ -171,28 +135,46 @@ export default function EditorScreen({ session, onBack }: Props) {
     subtitlesEnabled: subtitlePreviewEnabled,
     subtitleStyleSettings,
   });
-  const exportSource = resolveExportSource({
-    preference: effectiveExportSourcePreference,
-    hlsUrl: session.hlsUrl,
-    mediaUrl: session.mediaUrl,
+  const {
+    resolution,
+    exportFormat,
+    effectiveExportSourcePreference,
+    includeAudio,
+    fileNameTemplates,
+    templateEditorKind,
+    setTemplateEditorKind,
+    exportDialogOpen,
+    exporting,
+    progress,
+    exportError,
+    fileName,
+    outputDimensions,
+    exportSource,
+    exportSourceMessage,
+    exportSourceSummaryMessage,
+    exportSourceLabel,
+    handleOpenExportDialog,
+    handleCloseExportDialog,
+    handleFormatChange,
+    handleResolutionChange,
+    handleExportSourceChange,
+    handleAudioChange,
+    handleFileNameTemplateChange,
+    handleResetFileNameTemplate,
+    handleExport,
+  } = useEditorExport({
+    session,
+    startTime,
+    endTime,
+    sourceVideoDimensions,
     exportFallbackSourceUrl,
-  });
-  const exportSourceMessage = buildExportSourceMessage({
-    preference: effectiveExportSourcePreference,
-    resolvedSourceKind: exportSource.kind,
-    hlsUrl: session.hlsUrl,
-    mediaUrl: session.mediaUrl,
     hlsFallbackInfo,
-  });
-  const exportSourceSummaryMessage = buildExportSourceSummaryMessage({
-    preference: effectiveExportSourcePreference,
-    resolvedSourceKind: exportSource.kind,
-    hlsUrl: session.hlsUrl,
-  });
-  const exportSourceLabel = buildExportSourceLabel({
-    preference: effectiveExportSourcePreference,
-    resolvedSourceKind: exportSource.kind,
-    exportFallbackSourceUrl,
+    subtitleEnabled,
+    selectedSubtitleTrack,
+    clippedSubtitleCues,
+    subtitleLoading,
+    subtitleCues,
+    subtitleStyleSettings,
   });
   const playbackFallbackReason = buildPlaybackFallbackReason({
     activeSourceLabel,
@@ -255,22 +237,6 @@ export default function EditorScreen({ session, onBack }: Props) {
     },
   });
 
-  const fileName = buildExportFileName({
-    title: session.title,
-    sessionType: session.type,
-    metadata: session.exportMetadata,
-    startTime,
-    endTime,
-    format: exportFormat,
-    templates: fileNameTemplates,
-  });
-
-  const outputDimensions = getOutputDimensions(sourceVideoDimensions, resolution);
-
-  useEffect(() => {
-    saveExportFileNameTemplates(fileNameTemplates);
-  }, [fileNameTemplates]);
-
   useEffect(() => {
     if (!duration || duration <= 0) {
       return;
@@ -313,136 +279,6 @@ export default function EditorScreen({ session, onBack }: Props) {
     const nextTrack = subtitleTracks.find((track) => subtitleTrackKey(track) === value) ?? null;
     setSubtitleEnabled(Boolean(nextTrack && subtitleTrackSupportsBurnIn(nextTrack)));
   }, [clearSubtitleError, resetSubtitleCues, subtitleTracks]);
-
-  const handleOpenExportDialog = useCallback(() => {
-    setExportError(null);
-    setTemplateEditorKind(fileName.templateKind);
-    setExportDialogOpen(true);
-  }, [fileName.templateKind]);
-
-  const handleCloseExportDialog = useCallback(() => {
-    if (exporting) {
-      return;
-    }
-
-    setExportDialogOpen(false);
-  }, [exporting]);
-
-  const handleFormatChange = useCallback((nextFormat: ExportFormat) => {
-    setExportFormat(nextFormat);
-    setExportError(null);
-  }, []);
-
-  const handleResolutionChange = useCallback((nextResolution: ExportResolution) => {
-    setResolution(nextResolution);
-    setExportError(null);
-  }, []);
-
-  const handleExportSourceChange = useCallback((nextSourcePreference: ExportSourcePreference) => {
-    setExportSourcePreference(nextSourcePreference);
-    setExportError(null);
-  }, []);
-
-  const handleAudioChange = useCallback((nextIncludeAudio: boolean) => {
-    setIncludeAudio(nextIncludeAudio);
-    setExportError(null);
-  }, []);
-
-  const handleFileNameTemplateChange = useCallback((
-    kind: ExportFileNameTemplateKind,
-    nextTemplate: string
-  ) => {
-    setFileNameTemplates((current) => ({
-      ...current,
-      [kind]: nextTemplate,
-    }));
-    setExportError(null);
-  }, []);
-
-  const handleResetFileNameTemplate = useCallback((kind: ExportFileNameTemplateKind) => {
-    const defaults = defaultExportFileNameTemplates();
-
-    setFileNameTemplates((current) => ({
-      ...current,
-      [kind]: defaults[kind],
-    }));
-    setExportError(null);
-  }, []);
-
-  const handleExport = useCallback(async () => {
-    if (!exportSource.url) return;
-    if (exporting) return;
-
-    const shouldBurnSubtitles = subtitleEnabled
-      && selectedSubtitleTrack !== null
-      && clippedSubtitleCues.length > 0;
-
-    if (shouldBurnSubtitles && subtitleLoading) {
-      setExportError("Subtitles are still loading. Please wait a moment and try again.");
-      return;
-    }
-
-    if (shouldBurnSubtitles && !subtitleTrackSupportsBurnIn(selectedSubtitleTrack)) {
-      setExportError("This subtitle track cannot be burned in yet.");
-      return;
-    }
-
-    setExportError(null);
-    setExporting(true);
-    setProgress(0);
-
-    try {
-      const { exportClip } = await import("../lib/exportClip");
-      const blob = await exportClip({
-        mediaUrl: exportSource.url,
-        hls: exportSource.kind === "hls",
-        startTime,
-        endTime,
-        format: exportFormat,
-        resolution,
-        includeAudio,
-        selectedAudioTrack: session.selectedAudioTrack,
-        metadata: session.exportMetadata,
-        includeBurnedSubtitles: shouldBurnSubtitles,
-        subtitleCues,
-        subtitleStyleSettings,
-        onProgress: setProgress,
-      });
-      const url = URL.createObjectURL(blob);
-
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = fileName.fullName;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      window.setTimeout(() => URL.revokeObjectURL(url), 0);
-      setExportDialogOpen(false);
-    } catch (err) {
-      console.error(err);
-      setExportError(err instanceof Error ? err.message : "Export failed");
-    } finally {
-      setExporting(false);
-    }
-  }, [
-    endTime,
-    exportFormat,
-    fileName.fullName,
-    exporting,
-    exportSource.kind,
-    exportSource.url,
-    includeAudio,
-    resolution,
-    clippedSubtitleCues,
-    session.exportMetadata,
-    session.selectedAudioTrack,
-    startTime,
-    subtitleCues,
-    subtitleEnabled,
-    subtitleLoading,
-    subtitleStyleSettings,
-    selectedSubtitleTrack,
-  ]);
 
   useEffect(() => {
     function handleKeyDown(event: KeyboardEvent) {
@@ -677,90 +513,6 @@ export default function EditorScreen({ session, onBack }: Props) {
   );
 }
 
-function getOutputDimensions(
-  sourceVideoDimensions: VideoDimensions | null,
-  resolution: ExportResolution
-) {
-  if (!sourceVideoDimensions || sourceVideoDimensions.width <= 0 || sourceVideoDimensions.height <= 0) {
-    return null;
-  }
-
-  if (resolution === "original") {
-    return sourceVideoDimensions;
-  }
-
-  const height = parseInt(resolution, 10);
-  if (!Number.isFinite(height) || height <= 0) {
-    return sourceVideoDimensions;
-  }
-
-  const width = Math.max(1, Math.round((sourceVideoDimensions.width / sourceVideoDimensions.height) * height));
-
-  return { width, height };
-}
-
-function resolveExportSource({
-  preference,
-  hlsUrl,
-  mediaUrl,
-  exportFallbackSourceUrl,
-}: {
-  preference: ExportSourcePreference;
-  hlsUrl?: string;
-  mediaUrl?: string;
-  exportFallbackSourceUrl?: string;
-}): ResolvedExportSource {
-  if (preference === "direct") {
-    return mediaUrl
-      ? { url: mediaUrl, kind: "direct" }
-      : { url: "", kind: "none" };
-  }
-
-  if (preference === "hls") {
-    return hlsUrl
-      ? { url: hlsUrl, kind: "hls" }
-      : { url: "", kind: "none" };
-  }
-
-  if (exportFallbackSourceUrl) {
-    return { url: exportFallbackSourceUrl, kind: "direct" };
-  }
-
-  if (hlsUrl) {
-    return { url: hlsUrl, kind: "hls" };
-  }
-
-  if (mediaUrl) {
-    return { url: mediaUrl, kind: "direct" };
-  }
-
-  return { url: "", kind: "none" };
-}
-
-function buildExportSourceLabel({
-  preference,
-  resolvedSourceKind,
-  exportFallbackSourceUrl,
-}: {
-  preference: ExportSourcePreference;
-  resolvedSourceKind: ResolvedExportSourceKind;
-  exportFallbackSourceUrl?: string;
-}) {
-  if (resolvedSourceKind === "hls") {
-    return preference === "auto" ? "Auto: HLS playback" : "HLS playback";
-  }
-
-  if (resolvedSourceKind === "direct") {
-    if (preference === "auto" && exportFallbackSourceUrl) {
-      return "Auto: direct fallback";
-    }
-
-    return preference === "auto" ? "Auto: direct/original" : "Direct/original";
-  }
-
-  return "Unavailable";
-}
-
 function buildPlaybackFallbackReason({
   activeSourceLabel,
   hlsUrl,
@@ -781,69 +533,4 @@ function buildPlaybackFallbackReason({
   } as const)[hlsFallbackInfo.category];
 
   return `${prefix}: ${hlsFallbackInfo.message}`;
-}
-
-function buildExportSourceMessage({
-  preference,
-  resolvedSourceKind,
-  hlsUrl,
-  mediaUrl,
-  hlsFallbackInfo,
-}: {
-  preference: ExportSourcePreference;
-  resolvedSourceKind: ResolvedExportSourceKind;
-  hlsUrl?: string;
-  mediaUrl?: string;
-  hlsFallbackInfo: PlaybackFallbackInfo | null;
-}) {
-  if (resolvedSourceKind === "none") {
-    return null;
-  }
-
-  if (preference === "hls" && resolvedSourceKind === "hls" && !hlsFallbackInfo) {
-    return "Export will use the HLS playback stream. This follows the media server playback path and can include server-side transcoding.";
-  }
-
-  if (resolvedSourceKind === "direct" && !hlsUrl && mediaUrl) {
-    return "This session only exposed a direct/original media path, so export will use that source.";
-  }
-
-  if (resolvedSourceKind === "direct" && preference !== "auto") {
-    return null;
-  }
-
-  if (!hlsFallbackInfo) {
-    return null;
-  }
-
-  const exportUsesDirectSource = resolvedSourceKind === "direct";
-  const prefix = exportUsesDirectSource
-    ? ({
-        "open-or-read": "Export is using the direct media source because Cliparr could not open or read the HLS stream",
-        "preview-only": "Export is using the direct media source because Cliparr could not use the HLS stream for this export path",
-        "shared-export-blocking": "Export is using the direct media source because Cliparr cannot currently use this HLS stream for export",
-      } as const)[hlsFallbackInfo.category]
-    : ({
-        "open-or-read": "Export will still try the HLS stream even though preview fell back while opening or reading it",
-        "preview-only": "Export will still try the HLS stream because this limitation only affects preview in the current browser",
-        "shared-export-blocking": "Export cannot currently use this HLS stream",
-      } as const)[hlsFallbackInfo.category];
-
-  return `${prefix}: ${hlsFallbackInfo.message}`;
-}
-
-function buildExportSourceSummaryMessage({
-  preference,
-  resolvedSourceKind,
-  hlsUrl,
-}: {
-  preference: ExportSourcePreference;
-  resolvedSourceKind: ResolvedExportSourceKind;
-  hlsUrl?: string;
-}) {
-  if (preference === "direct" && resolvedSourceKind === "direct" && hlsUrl) {
-    return "Export will use the direct/original media path. Cliparr still uses playback metadata for track and timing hints when it is available.";
-  }
-
-  return null;
 }
