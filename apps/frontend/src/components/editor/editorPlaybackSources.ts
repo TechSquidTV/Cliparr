@@ -65,7 +65,7 @@ export function buildPlaybackSourceCandidates(hlsUrl: string | undefined, mediaU
   return candidates;
 }
 
-export function classifyPlaybackSource(source: Pick<PlaybackSourceCandidate, "label" | "url">): PlaybackLoadFailure["classification"] {
+function classifyPlaybackSource(source: Pick<PlaybackSourceCandidate, "label" | "url">): PlaybackLoadFailure["classification"] {
   return source.label === "hls stream" || isHlsPlaylistUrl(source.url) ? "hls-playlist" : "unknown";
 }
 

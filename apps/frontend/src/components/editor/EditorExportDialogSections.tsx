@@ -33,7 +33,7 @@ interface ExportOption<T extends string> {
   description: string;
 }
 
-export const formatOptions: ReadonlyArray<ExportOption<ExportFormat> & {
+const formatOptions: ReadonlyArray<ExportOption<ExportFormat> & {
   extension: string;
 }> = [
   {
