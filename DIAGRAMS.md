@@ -3,7 +3,38 @@
 This file captures the current HLS playback, preview-ready warmup, export, and
 proxy decision trees. It reflects the stable branch behavior after the fallback,
 timeline normalization, alternate track selection, playlist rewrite, proxy
-auth/cache handling, and export memory fixes.
+auth/cache handling, export memory fixes, and the frontend refactor that split
+large editor workflows into focused hooks/helpers.
+
+## Frontend Responsibility Map
+
+```mermaid
+flowchart TD
+    A["EditorScreen"] --> B["useEditorPlayback"]
+    A --> C["useEditorExport"]
+    A --> D["useEditorTimeline"]
+    A --> E["useEditorKeyboardShortcuts"]
+
+    B --> B1["editorPlaybackSources"]
+    B --> B2["useEditorPlaybackRenderLoop"]
+    B --> B3["editorPlaybackAudio"]
+    B --> B4["editorPlaybackSinks"]
+    B --> B5["useEditorPlaybackWarmup"]
+    B5 --> B6["useEditorPlaybackSelectionWarmup"]
+
+    C --> C1["exportClip"]
+    C --> C2["exportFileName"]
+    C1 --> C3["exportMetadata"]
+    C1 --> C4["subtitle burn-in processor"]
+
+    D --> D1["timelineZoom helpers"]
+
+    F["SourcesModal"] --> F1["useSourcesModalState"]
+    F --> F2["SourcesModalSections"]
+
+    G["ProviderConnectFlow"] --> G1["useProviderConnectFlow"]
+    G --> G2["ProviderConnectFlowSections"]
+```
 
 ## Playback Candidate Tree
 
@@ -98,10 +129,10 @@ flowchart TD
 
 ```mermaid
 flowchart TD
-    A["Active preview source is HLS stream"] --> B["Set playbackReadyRange for selection"]
+    A["Active preview source is HLS stream"] --> B["useEditorPlaybackSelectionWarmup sets playbackReadyRange"]
     B --> C["Paused auto-warmup starts from selection start"]
-    C --> D["Warm exact playback/selection start first"]
-    D --> E["Warm an initial front window"]
+    C --> D["useEditorPlaybackWarmup warms exact playback/selection start first"]
+    D --> E["Selection warmup warms an initial front window"]
     E --> F["Publish readyUntilTime = min(videoReadyUntil, audioReadyUntil)"]
     F --> G{"Still paused and selection not complete?"}
     G -- "Yes" --> H["Schedule extension warmup toward selection end"]
@@ -204,15 +235,17 @@ flowchart TD
 
 ```mermaid
 flowchart TD
-    A["User clicks Export"] --> B["Build fresh Mediabunny input from export source URL"]
-    B --> C["Create Output(BufferTarget)"]
-    C --> D["Conversion.init validates selected tracks and audio plan"]
-    D --> E{"Conversion valid?"}
-    E -- "No" --> F["Surface conversion/discard error"]
-    E -- "Yes" --> G["Execute conversion"]
-    G --> H["Patch MP4 metadata boxes when needed"]
-    H --> I["Return Blob from target buffer"]
-    I --> J["Do not reopen the finished Blob just to recheck audio"]
+    A["User clicks Export"] --> B["useEditorExport resolves source/options and lazy-loads exportClip"]
+    B --> C["exportClip builds fresh Mediabunny input from export source URL"]
+    C --> D["exportMetadata builds tags and artwork when metadata exists"]
+    D --> E["Create Output(BufferTarget)"]
+    E --> F["Conversion.init validates selected tracks and audio plan"]
+    F --> G{"Conversion valid?"}
+    G -- "No" --> H["Surface conversion/discard error"]
+    G -- "Yes" --> I["Execute conversion"]
+    I --> J["Patch MP4 metadata boxes when needed"]
+    J --> K["Return Blob from target buffer"]
+    K --> L["Do not reopen the finished Blob just to recheck audio"]
 ```
 
 ## End-To-End Summary
@@ -230,10 +263,11 @@ flowchart LR
     D --> K["Preview tracks for browser playback"]
     D --> L["Optional playbackReadyRange for HLS preview only"]
     L --> M["EditorTimeline Preview Ready overlay and note"]
-    B --> G["EditorScreen export source selection"]
+    B --> G["useEditorExport source selection"]
     C --> G
     F --> G
     G --> H["exportClip input URL"]
     H --> N["exportClip builds a fresh input"]
     I --> N
+    N --> O["exportMetadata applies tags/artwork/MP4 metadata patching"]
 ```
