@@ -1,7 +1,8 @@
 import { randomBytes, randomUUID } from "crypto";
-import { eq, sql } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { getDatabase } from "./database.js";
 import { rememberedProviderSessions, type RememberedProviderSessionRow } from "./schema.js";
+import { currentTimestampSql } from "./timestamps.js";
 import { hashSecret } from "../security/secrets.js";
 
 export const REMEMBERED_PROVIDER_SESSION_TTL_MS = 1000 * 60 * 60 * 24 * 365;
@@ -87,7 +88,7 @@ export function revokeRememberedProviderSession(token?: string) {
     .update(rememberedProviderSessions)
     .set({
       revokedAt: now,
-      updatedAt: sql`strftime('%Y-%m-%dT%H:%M:%fZ', 'now')`,
+      updatedAt: currentTimestampSql(),
     })
     .where(eq(rememberedProviderSessions.tokenHash, hashSecret(token)))
     .run();

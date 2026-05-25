@@ -1,7 +1,8 @@
 import { randomUUID } from "crypto";
-import { and, asc, eq, sql, type SQL } from "drizzle-orm";
+import { and, asc, eq, type SQL } from "drizzle-orm";
 import { getDatabase } from "./database.js";
 import { mediaSources, type MediaSourceRow } from "./schema.js";
+import { currentTimestampSql } from "./timestamps.js";
 import { decryptJsonSecrets, encryptJsonSecrets } from "../security/secrets.js";
 
 export interface MediaSource {
@@ -118,7 +119,7 @@ export function updateMediaSource(id: string, input: UpdateMediaSourceInput) {
       ...(input.metadata !== undefined ? { metadata: input.metadata } : {}),
       ...(input.lastCheckedAt !== undefined ? { lastCheckedAt: input.lastCheckedAt } : {}),
       ...(input.lastError !== undefined ? { lastError: input.lastError } : {}),
-      updatedAt: sql`strftime('%Y-%m-%dT%H:%M:%fZ', 'now')`,
+      updatedAt: currentTimestampSql(),
     })
     .where(eq(mediaSources.id, id))
     .run();
@@ -194,7 +195,7 @@ export function upsertMediaSource(input: CreateMediaSourceInput) {
         ...(input.connection !== undefined ? { connection: encryptJsonSecrets(input.connection) } : {}),
         ...(input.credentials !== undefined ? { credentials: encryptJsonSecrets(input.credentials) } : {}),
         ...(input.metadata !== undefined ? { metadata: input.metadata } : {}),
-        updatedAt: sql`strftime('%Y-%m-%dT%H:%M:%fZ', 'now')`,
+        updatedAt: currentTimestampSql(),
       },
     })
     .run();
@@ -243,7 +244,7 @@ export function updateMediaSourceForAccount(id: string, providerAccountId: strin
       ...(input.metadata !== undefined ? { metadata: input.metadata } : {}),
       ...(input.lastCheckedAt !== undefined ? { lastCheckedAt: input.lastCheckedAt } : {}),
       ...(input.lastError !== undefined ? { lastError: input.lastError } : {}),
-      updatedAt: sql`strftime('%Y-%m-%dT%H:%M:%fZ', 'now')`,
+      updatedAt: currentTimestampSql(),
     })
     .where(and(
       eq(mediaSources.id, id),
@@ -264,7 +265,7 @@ export function updateMediaSourceHealthForAccount(
     .set({
       lastCheckedAt: input.lastCheckedAt,
       lastError: input.lastError ?? null,
-      updatedAt: sql`strftime('%Y-%m-%dT%H:%M:%fZ', 'now')`,
+      updatedAt: currentTimestampSql(),
     })
     .where(and(
       eq(mediaSources.id, id),

@@ -2,6 +2,7 @@ import { randomUUID } from "crypto";
 import { and, eq, isNotNull, isNull, sql } from "drizzle-orm";
 import { getDatabase } from "./database.js";
 import { providerAccounts, type ProviderAccountRow } from "./schema.js";
+import { currentTimestampSql } from "./timestamps.js";
 import { decryptSecret, encryptSecret, hashSecret } from "../security/secrets.js";
 
 export interface ProviderAccount {
@@ -74,7 +75,7 @@ function updateProviderAccount(id: string, input: UpdateProviderAccountInput) {
         }
         : {}),
       ...(input.metadata !== undefined ? { metadata: input.metadata } : {}),
-      updatedAt: sql`strftime('%Y-%m-%dT%H:%M:%fZ', 'now')`,
+      updatedAt: currentTimestampSql(),
     })
     .where(eq(providerAccounts.id, id))
     .run();
@@ -152,7 +153,7 @@ export function upsertProviderAccountByAccessToken(input: CreateProviderAccountI
         accessToken: encryptSecret(input.accessToken),
         accessTokenHash: hashSecret(input.accessToken),
         ...(input.metadata !== undefined ? { metadata: input.metadata } : {}),
-        updatedAt: sql`strftime('%Y-%m-%dT%H:%M:%fZ', 'now')`,
+        updatedAt: currentTimestampSql(),
       },
     })
     .run();
