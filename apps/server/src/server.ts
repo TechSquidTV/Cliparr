@@ -75,7 +75,7 @@ async function startServer() {
 
 
 startServer().catch((err: unknown) => {
-  logger.fatal("Failed to start server.", serializeError(err));
+  logger.fatal("Failed to start server: {errorMessage}", serializeError(err));
   closeDatabase();
   process.exit(1);
 });
