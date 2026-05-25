@@ -153,7 +153,7 @@ export default function ProviderConnectFlow({
       return;
     }
 
-    const intervalId = window.setInterval(async () => {
+    const pollAuthStatus = async () => {
       try {
         const status = await cliparrClient.pollAuth(providerId, authId);
         if (status.status === "complete") {
@@ -174,6 +174,9 @@ export default function ProviderConnectFlow({
         resetProviderState();
         setError(errorMessage(err, `Failed to finish ${providerLabel(providerId)} sign-in`));
       }
+    };
+    const intervalId = window.setInterval(() => {
+      void pollAuthStatus();
     }, 1500);
 
     return () => {
