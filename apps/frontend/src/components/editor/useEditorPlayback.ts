@@ -7,8 +7,6 @@ import type {
   WrappedAudioBuffer,
   WrappedCanvas,
 } from "mediabunny";
-import { getActiveSubtitleCue } from "../../lib/subtitles/getActiveSubtitleCue";
-import { renderSubtitleCue } from "../../lib/subtitles/renderSubtitleCue";
 import type { SubtitleCue, SubtitleStyleSettings } from "../../lib/subtitles/types";
 import { ensureMediabunnyCodecs } from "../../lib/mediabunnyCodecs";
 import { createCliparrInputFromUrl } from "../../lib/mediabunnyInput";
@@ -21,7 +19,7 @@ import {
 } from "../../lib/mediabunnyTrackAccess";
 import { selectPreferredPairableAudioTrack } from "../../lib/selectPreferredAudioTrack";
 import type { PlaybackAudioSelection } from "../../providers/types";
-import { errorMessage, themeValue } from "./EditorUtils";
+import { errorMessage } from "./EditorUtils";
 import {
   assessPreviewAudioTrack,
   browserDecoderEnvironmentWarning,
@@ -40,6 +38,7 @@ import {
   type PlaybackLoadFailure,
   type PlaybackSourceAnalysisContext,
 } from "./editorPlaybackSources";
+import { useEditorPlaybackRenderLoop } from "./useEditorPlaybackRenderLoop";
 
 export type { PlaybackFallbackInfo } from "./editorPlaybackSources";
 
@@ -250,63 +249,37 @@ export function useEditorPlayback({
     stopAudioNodes();
   }, [getPlaybackTime, stopAudioNodes]);
 
-  const stopRenderLoop = useCallback(() => {
-    if (animationFrameRef.current !== null) {
-      cancelAnimationFrame(animationFrameRef.current);
-      animationFrameRef.current = null;
-    }
-    if (renderIntervalRef.current !== null) {
-      window.clearInterval(renderIntervalRef.current);
-      renderIntervalRef.current = null;
-    }
-  }, []);
-
-  const drawFrame = useCallback((frame: WrappedCanvas) => {
-    const canvas = canvasRef.current;
-    const context = canvas?.getContext("2d");
-    if (!canvas || !context) {
-      return;
-    }
-    context.clearRect(0, 0, canvas.width, canvas.height);
-    context.drawImage(frame.canvas, 0, 0, canvas.width, canvas.height);
-
-    if (subtitlesEnabledRef.current && subtitleStyleSettingsRef.current) {
-      const cue = getActiveSubtitleCue(
-        subtitleCuesRef.current,
-        fromSourceTimelineTime(frame.timestamp, sourceTimelineOffsetRef.current)
-      );
-      if (cue) {
-        renderSubtitleCue(
-          context,
-          cue,
-          subtitleStyleSettingsRef.current,
-          canvas.width,
-          canvas.height
-        );
-      }
-    }
-
-    displayedFrameRef.current = frame;
-  }, []);
-
-  const drawPlaceholder = useCallback((message: string) => {
-    const canvas = canvasRef.current;
-    const context = canvas?.getContext("2d");
-    if (!canvas || !context) {
-      return;
-    }
-    if (!canvas.width || !canvas.height) {
-      canvas.width = 1280;
-      canvas.height = 720;
-    }
-    const bodyStyles = getComputedStyle(document.body);
-    context.fillStyle = themeValue("--editor-preview-stage", bodyStyles.backgroundColor);
-    context.fillRect(0, 0, canvas.width, canvas.height);
-    context.fillStyle = themeValue("--editor-preview-overlay-foreground", bodyStyles.color);
-    context.font = "24px sans-serif";
-    context.textAlign = "center";
-    context.fillText(message, canvas.width / 2, canvas.height / 2);
-  }, []);
+  const {
+    drawFrame,
+    startVideoIterator,
+    startRenderLoop,
+    stopRenderLoop,
+  } = useEditorPlaybackRenderLoop({
+    canvasRef,
+    inputRef,
+    videoSinkRef,
+    videoFrameIteratorRef,
+    nextFrameRef,
+    displayedFrameRef,
+    animationFrameRef,
+    renderIntervalRef,
+    generationRef,
+    playingRef,
+    playbackTimeAtStartRef,
+    sourceTimelineOffsetRef,
+    skipLiveWaitRef,
+    durationRef,
+    startTimeRef,
+    endTimeRef,
+    subtitleCuesRef,
+    subtitlesEnabledRef,
+    subtitleStyleSettingsRef,
+    getPlaybackTime,
+    clampTime,
+    pausePlayback,
+    setCurrentTime,
+    setError,
+  });
 
   const cancelScheduledSelectionWarmupExtension = useCallback(() => {
     if (selectionWarmupExtensionTimeoutRef.current !== null) {
@@ -324,111 +297,6 @@ export function useEditorPlayback({
     selectionWarmupVideoIteratorRef.current = null;
     selectionWarmupAudioIteratorRef.current = null;
   }, [cancelScheduledSelectionWarmupExtension]);
-
-  const startVideoIterator = useCallback(async () => {
-    const videoSink = videoSinkRef.current;
-    const generation = ++generationRef.current;
-    void videoFrameIteratorRef.current?.return();
-    videoFrameIteratorRef.current = null;
-    nextFrameRef.current = null;
-
-    if (!videoSink) {
-      drawPlaceholder("Audio only");
-      return;
-    }
-
-    const packetRetrievalOptions = skipLiveWaitRef.current ? { skipLiveWait: true } : undefined;
-    videoFrameIteratorRef.current = videoSink.canvases(
-      toSourceTimelineTime(getPlaybackTime(), sourceTimelineOffsetRef.current),
-      Infinity,
-      packetRetrievalOptions,
-    );
-    const firstResult = await videoFrameIteratorRef.current.next();
-    const secondResult = await videoFrameIteratorRef.current.next();
-    const firstFrame = firstResult.done ? null : (firstResult.value as WrappedCanvas);
-    const secondFrame = secondResult.done ? null : (secondResult.value as WrappedCanvas);
-
-    if (generation !== generationRef.current) {
-      return;
-    }
-
-    nextFrameRef.current = secondFrame;
-    if (firstFrame) {
-      drawFrame(firstFrame);
-    }
-  }, [drawFrame, drawPlaceholder, getPlaybackTime]);
-
-  const updateNextFrame = useCallback(async (generation: number) => {
-    const iterator = videoFrameIteratorRef.current;
-    if (!iterator) {
-      return;
-    }
-
-    try {
-      while (generation === generationRef.current) {
-        const result = await iterator.next();
-        const newNextFrame = result.done ? null : (result.value as WrappedCanvas);
-        if (!newNextFrame || generation !== generationRef.current) {
-          break;
-        }
-
-        const playbackTime = getPlaybackTime();
-        if (
-          fromSourceTimelineTime(newNextFrame.timestamp, sourceTimelineOffsetRef.current)
-            <= playbackTime
-        ) {
-          drawFrame(newNextFrame);
-        } else {
-          nextFrameRef.current = newNextFrame;
-          break;
-        }
-      }
-    } catch (err) {
-      if (generation === generationRef.current) {
-        setError(errorMessage(err));
-      }
-    }
-  }, [drawFrame, getPlaybackTime]);
-
-  const renderFrame = useCallback(() => {
-    if (!inputRef.current) {
-      return;
-    }
-
-    const playbackTime = getPlaybackTime();
-    const clipEnd = Math.min(endTimeRef.current || durationRef.current, durationRef.current);
-
-    if (playingRef.current && playbackTime >= clipEnd) {
-      pausePlayback(false);
-      const nextTime = clampTime(startTimeRef.current);
-      playbackTimeAtStartRef.current = nextTime;
-      setCurrentTime(nextTime);
-      void startVideoIterator();
-      return;
-    }
-
-    const nextFrame = nextFrameRef.current;
-    if (
-      nextFrame
-      && fromSourceTimelineTime(nextFrame.timestamp, sourceTimelineOffsetRef.current) <= playbackTime
-    ) {
-      drawFrame(nextFrame);
-      nextFrameRef.current = null;
-      void updateNextFrame(generationRef.current);
-    }
-
-    setCurrentTime(playbackTime);
-  }, [clampTime, drawFrame, getPlaybackTime, pausePlayback, startVideoIterator, updateNextFrame]);
-
-  const startRenderLoop = useCallback(() => {
-    stopRenderLoop();
-    const tick = () => {
-      renderFrame();
-      animationFrameRef.current = requestAnimationFrame(tick);
-    };
-    animationFrameRef.current = requestAnimationFrame(tick);
-    renderIntervalRef.current = window.setInterval(renderFrame, 500);
-  }, [renderFrame, stopRenderLoop]);
 
   const resetPreview = useCallback((advanceGeneration = false, clearActiveSource = false) => {
     if (advanceGeneration) {
