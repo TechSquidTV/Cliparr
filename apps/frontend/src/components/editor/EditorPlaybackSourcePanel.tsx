@@ -25,9 +25,10 @@ export function EditorPlaybackSourcePanel({
   hasHlsSource,
   className,
 }: EditorPlaybackSourcePanelProps) {
-  const sourceNote = !hasHlsSource
-    ? "This session did not expose an HLS stream, so Cliparr is using the direct media path."
-    : fallbackMessage;
+  const sourceNote = fallbackMessage
+    ?? (!hasHlsSource && previewSourceLabel === "Direct source"
+      ? "This session did not expose an HLS stream, so Cliparr is using the direct media path."
+      : null);
 
   return (
     <section className={cn("flex min-h-0 flex-col gap-3 p-3", className)}>

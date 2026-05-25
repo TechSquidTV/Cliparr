@@ -15,7 +15,8 @@ import { EditorTimeline } from "./editor/EditorTimeline";
 import { EditorSubtitlePanel } from "./editor/EditorSubtitlePanel";
 import { buildSubtitleExportSummary } from "./editor/subtitleExportSummary";
 import { useSubtitleCues } from "./editor/useSubtitleCues";
-import type { CurrentlyPlayingItem, PlaybackSubtitleTrack } from "../providers/types";
+import type { PlaybackSubtitleTrack } from "../providers/types";
+import { sourceDisplayLabel, type EditorSession } from "../lib/editorMedia";
 import {
   selectPreferredSubtitleTrack,
   subtitleTrackKey,
@@ -28,7 +29,7 @@ import {
 import { trimSubtitleCues } from "../lib/subtitles/trimSubtitleCues";
 
 interface Props {
-  session: CurrentlyPlayingItem;
+  session: EditorSession;
   onBack: () => void;
 }
 
@@ -41,8 +42,10 @@ export default function EditorScreen({ session, onBack }: Props) {
   const [selectedSubtitleTrackKey, setSelectedSubtitleTrackKey] = useState("none");
 
   const subtitleTracks = useMemo<PlaybackSubtitleTrack[]>(
-    () => (session.subtitleTracks ?? []).filter((track) => subtitleTrackSupportsBurnIn(track)),
-    [session.subtitleTracks]
+    () => session.local
+      ? []
+      : (session.subtitleTracks ?? []).filter((track) => subtitleTrackSupportsBurnIn(track)),
+    [session.local, session.subtitleTracks]
   );
   const selectedSubtitleTrack = useMemo(() => {
     if (selectedSubtitleTrackKey === "none") {
@@ -96,7 +99,7 @@ export default function EditorScreen({ session, onBack }: Props) {
     previewStatus,
     error,
     activeSourceLabel,
-    exportFallbackSourceUrl,
+    exportFallbackSource,
     hlsFallbackInfo,
     sourceVideoDimensions,
     playbackReadyRange,
@@ -111,8 +114,8 @@ export default function EditorScreen({ session, onBack }: Props) {
     setCurrentTime,
     playbackTimeAtStartRef,
   } = useEditorPlayback({
-    hlsUrl: session.hlsUrl,
-    mediaUrl: session.mediaUrl,
+    hlsSource: session.hlsSource,
+    directSource: session.directSource,
     initialDuration: session.duration,
     startTime,
     endTime,
@@ -154,7 +157,7 @@ export default function EditorScreen({ session, onBack }: Props) {
     startTime,
     endTime,
     sourceVideoDimensions,
-    exportFallbackSourceUrl,
+    exportFallbackSource,
     hlsFallbackInfo,
     subtitleEnabled,
     selectedSubtitleTrack,
@@ -165,10 +168,11 @@ export default function EditorScreen({ session, onBack }: Props) {
   });
   const playbackFallbackReason = buildPlaybackFallbackReason({
     activeSourceLabel,
-    hlsUrl: session.hlsUrl,
+    hasHlsSource: Boolean(session.hlsSource),
     hlsFallbackInfo,
   });
   const previewSourceLabel = activeSourceLabel || (loadingPreview ? "Resolving stream" : "Unavailable");
+  const isHlsPreviewSource = previewSourceLabel === "HLS stream" || previewSourceLabel === "HLS URL";
 
   const updateClipRange = useCallback((nextStart: number, nextEnd: number) => {
     if (!duration || duration <= 0) return;
@@ -269,7 +273,7 @@ export default function EditorScreen({ session, onBack }: Props) {
 
   useEditorKeyboardShortcuts({ togglePlay });
 
-  if (!exportSource.url) {
+  if (!exportSource.source) {
     return (
       <div className="flex h-dvh items-center justify-center overflow-hidden bg-background p-8 text-foreground">
         <div className="text-center">
@@ -303,7 +307,7 @@ export default function EditorScreen({ session, onBack }: Props) {
               <EditorPlaybackSourcePanel
                 previewSourceLabel={previewSourceLabel}
                 fallbackMessage={playbackFallbackReason}
-                hasHlsSource={Boolean(session.hlsUrl)}
+                hasHlsSource={Boolean(session.hlsSource)}
               />
             </div>
 
@@ -353,7 +357,7 @@ export default function EditorScreen({ session, onBack }: Props) {
                     timelineScaleCount={timelineScaleCount}
                     timelineScrollLeft={timelineScrollLeft}
                     timelineViewportWidth={timelineViewportWidth}
-                    playbackReadyRange={previewSourceLabel === "HLS stream" ? playbackReadyRange : null}
+                    playbackReadyRange={isHlsPreviewSource ? playbackReadyRange : null}
                     loadingPreview={loadingPreview}
                     playing={playing}
                     handleTimelineScroll={handleTimelineScroll}
@@ -376,21 +380,23 @@ export default function EditorScreen({ session, onBack }: Props) {
               )}
             </section>
 
-            <div className="min-h-[28rem] lg:hidden">
-              <EditorSubtitlePanel
-                providerId={session.source.providerId}
-                subtitleTracks={subtitleTracks}
-                selectedSubtitleTrackKey={selectedSubtitleTrackKey}
-                onSelectedSubtitleTrackKeyChange={handleSelectedSubtitleTrackChange}
-                subtitlesEnabled={subtitleEnabled}
-                onSubtitlesEnabledChange={setSubtitleEnabled}
-                subtitleStyleSettings={subtitleStyleSettings}
-                onSubtitleStyleSettingsChange={setSubtitleStyleSettings}
-                subtitleLoading={subtitleLoading}
-                subtitleError={subtitleError}
-                selectedSubtitleTrack={selectedSubtitleTrack}
-              />
-            </div>
+            {!session.local && (
+              <div className="min-h-[28rem] lg:hidden">
+                <EditorSubtitlePanel
+                  providerId={session.source.providerId}
+                  subtitleTracks={subtitleTracks}
+                  selectedSubtitleTrackKey={selectedSubtitleTrackKey}
+                  onSelectedSubtitleTrackKeyChange={handleSelectedSubtitleTrackChange}
+                  subtitlesEnabled={subtitleEnabled}
+                  onSubtitlesEnabledChange={setSubtitleEnabled}
+                  subtitleStyleSettings={subtitleStyleSettings}
+                  onSubtitleStyleSettingsChange={setSubtitleStyleSettings}
+                  subtitleLoading={subtitleLoading}
+                  subtitleError={subtitleError}
+                  selectedSubtitleTrack={selectedSubtitleTrack}
+                />
+              </div>
+            )}
           </div>
 
           <div className="hidden min-h-0 lg:block">
@@ -405,24 +411,26 @@ export default function EditorScreen({ session, onBack }: Props) {
                 <EditorPlaybackSourcePanel
                   previewSourceLabel={previewSourceLabel}
                   fallbackMessage={playbackFallbackReason}
-                  hasHlsSource={Boolean(session.hlsUrl)}
+                  hasHlsSource={Boolean(session.hlsSource)}
                   className="shrink-0 p-0"
                 />
-                <div className="min-h-[28rem] flex-1">
-                  <EditorSubtitlePanel
-                    providerId={session.source.providerId}
-                    subtitleTracks={subtitleTracks}
-                    selectedSubtitleTrackKey={selectedSubtitleTrackKey}
-                    onSelectedSubtitleTrackKeyChange={handleSelectedSubtitleTrackChange}
-                    subtitlesEnabled={subtitleEnabled}
-                    onSubtitlesEnabledChange={setSubtitleEnabled}
-                    subtitleStyleSettings={subtitleStyleSettings}
-                    onSubtitleStyleSettingsChange={setSubtitleStyleSettings}
-                    subtitleLoading={subtitleLoading}
-                    subtitleError={subtitleError}
-                    selectedSubtitleTrack={selectedSubtitleTrack}
-                  />
-                </div>
+                {!session.local && (
+                  <div className="min-h-[28rem] flex-1">
+                    <EditorSubtitlePanel
+                      providerId={session.source.providerId}
+                      subtitleTracks={subtitleTracks}
+                      selectedSubtitleTrackKey={selectedSubtitleTrackKey}
+                      onSelectedSubtitleTrackKeyChange={handleSelectedSubtitleTrackChange}
+                      subtitlesEnabled={subtitleEnabled}
+                      onSubtitlesEnabledChange={setSubtitleEnabled}
+                      subtitleStyleSettings={subtitleStyleSettings}
+                      onSubtitleStyleSettingsChange={setSubtitleStyleSettings}
+                      subtitleLoading={subtitleLoading}
+                      subtitleError={subtitleError}
+                      selectedSubtitleTrack={selectedSubtitleTrack}
+                    />
+                  </div>
+                )}
               </div>
             </EditorSidebar>
           </div>
@@ -447,8 +455,10 @@ export default function EditorScreen({ session, onBack }: Props) {
         error={exportError}
         fileNamePreview={fileName.fullName}
         outputDimensions={outputDimensions}
-        hasHlsSource={Boolean(session.hlsUrl)}
-        hasDirectSource={Boolean(session.mediaUrl)}
+        hasHlsSource={Boolean(session.hlsSource)}
+        hasDirectSource={Boolean(session.directSource)}
+        directSourceLabel={session.directSource ? sourceDisplayLabel(session.directSource) : "Direct/original"}
+        hlsSourceLabel={session.hlsSource ? sourceDisplayLabel(session.hlsSource) : "HLS playback"}
         exportSourceLabel={exportSourceLabel}
         exportSourceMessage={exportSourceMessage}
         exportSourceSummaryMessage={exportSourceSummaryMessage}
@@ -471,14 +481,18 @@ export default function EditorScreen({ session, onBack }: Props) {
 
 function buildPlaybackFallbackReason({
   activeSourceLabel,
-  hlsUrl,
+  hasHlsSource,
   hlsFallbackInfo,
 }: {
   activeSourceLabel: string;
-  hlsUrl?: string;
+  hasHlsSource: boolean;
   hlsFallbackInfo: PlaybackFallbackInfo | null;
 }) {
-  if (activeSourceLabel !== "Direct source" || !hlsUrl || !hlsFallbackInfo) {
+  if (
+    (activeSourceLabel !== "Direct source" && activeSourceLabel !== "Local file" && activeSourceLabel !== "URL")
+    || !hasHlsSource
+    || !hlsFallbackInfo
+  ) {
     return null;
   }
 

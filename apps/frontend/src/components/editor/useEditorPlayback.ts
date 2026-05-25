@@ -8,8 +8,9 @@ import type {
   WrappedCanvas,
 } from "mediabunny";
 import type { SubtitleCue, SubtitleStyleSettings } from "../../lib/subtitles/types";
+import type { EditorMediaSource } from "../../lib/editorMedia";
 import { ensureMediabunnyCodecs } from "../../lib/mediabunnyCodecs";
-import { createCliparrInputFromUrl } from "../../lib/mediabunnyInput";
+import { createCliparrInputFromSource } from "../../lib/mediabunnyInput";
 import {
   fromSourceTimelineTime,
   getAudioTrackSampleRate,
@@ -58,8 +59,8 @@ export type { PlaybackFallbackInfo } from "./editorPlaybackSources";
 export type { PlaybackReadyRange } from "./useEditorPlaybackWarmup";
 
 interface UseEditorPlaybackProps {
-  hlsUrl?: string;
-  mediaUrl?: string;
+  hlsSource?: EditorMediaSource;
+  directSource?: EditorMediaSource;
   initialDuration: number;
   startTime: number;
   endTime: number;
@@ -76,8 +77,8 @@ interface VideoDimensions {
 }
 
 export function useEditorPlayback({
-  hlsUrl,
-  mediaUrl,
+  hlsSource,
+  directSource,
   initialDuration,
   startTime,
   endTime,
@@ -96,7 +97,7 @@ export function useEditorPlayback({
   const [muted, setMuted] = useState(false);
   const [error, setError] = useState("");
   const [activeSourceLabel, setActiveSourceLabel] = useState("");
-  const [exportFallbackSourceUrl, setExportFallbackSourceUrl] = useState<string | undefined>(undefined);
+  const [exportFallbackSource, setExportFallbackSource] = useState<EditorMediaSource | undefined>(undefined);
   const [hlsFallbackInfo, setHlsFallbackInfo] = useState<PlaybackFallbackInfo | null>(null);
   const [sourceVideoDimensions, setSourceVideoDimensions] = useState<VideoDimensions | null>(null);
   const [playbackReadyRange, setPlaybackReadyRange] = useState<PlaybackReadyRange | null>(null);
@@ -444,7 +445,7 @@ export function useEditorPlayback({
 
     if (
       !wasPlaying
-      && activeSourceLabelRef.current === "HLS stream"
+      && (activeSourceLabelRef.current === "HLS stream" || activeSourceLabelRef.current === "HLS URL")
       && (
         !currentReadyRange
         || nextTime < currentReadyRange.startTime
@@ -473,8 +474,12 @@ export function useEditorPlayback({
   ]);
 
   useEffect(() => {
-    const playbackSources = buildPlaybackSourceCandidates(hlsUrl, mediaUrl);
-    const directSourceUrl = playbackSources.find((source) => source.label === "direct source")?.url;
+    const playbackSources = buildPlaybackSourceCandidates(hlsSource, directSource);
+    const fallbackDirectSource = playbackSources.find((source) =>
+      source.label === "direct source"
+      || source.label === "local file"
+      || source.label === "url"
+    )?.source;
     if (playbackSources.length === 0) {
       return;
     }
@@ -489,7 +494,7 @@ export function useEditorPlayback({
       setPreviewStatus("Loading stream...");
       setError("");
       setActiveSourceLabel("");
-      setExportFallbackSourceUrl(undefined);
+      setExportFallbackSource(undefined);
       setHlsFallbackInfo(null);
       setDuration(resetDuration);
       durationRef.current = resetDuration;
@@ -501,7 +506,7 @@ export function useEditorPlayback({
 
       try {
         const failures: PlaybackLoadFailure[] = [];
-        let nextExportFallbackSourceUrl: string | undefined;
+        let nextExportFallbackSource: EditorMediaSource | undefined;
         let nextHlsFallbackInfo: PlaybackFallbackInfo | null = null;
 
         for (const playbackSource of playbackSources) {
@@ -520,8 +525,8 @@ export function useEditorPlayback({
               return;
             }
 
-            const input = await createCliparrInputFromUrl(playbackSource.url, {
-              hls: playbackSource.label === "hls stream",
+            const input = await createCliparrInputFromSource(playbackSource.source, {
+              hls: playbackSource.label === "hls stream" || playbackSource.label === "hls url",
             });
             inputRef.current = input;
 
@@ -562,7 +567,7 @@ export function useEditorPlayback({
             playbackSourceAnalysisContext = {
               sessionId,
               source: playbackSource.label,
-              url: playbackSource.url,
+              mediaSource: playbackSource.source,
               selectedAudioTrack,
               videoTracks,
               allAudioTracks,
@@ -674,11 +679,19 @@ export function useEditorPlayback({
 
             startRenderLoop();
             setActiveSourceLabel(formatPlaybackSourceLabel(playbackSource.label));
-            setExportFallbackSourceUrl(
-              playbackSource.label === "direct source" ? nextExportFallbackSourceUrl : undefined
+            setExportFallbackSource(
+              playbackSource.label === "direct source"
+              || playbackSource.label === "local file"
+              || playbackSource.label === "url"
+                ? nextExportFallbackSource
+                : undefined
             );
             setHlsFallbackInfo(
-              playbackSource.label === "direct source" ? nextHlsFallbackInfo : null
+              playbackSource.label === "direct source"
+              || playbackSource.label === "local file"
+              || playbackSource.label === "url"
+                ? nextHlsFallbackInfo
+                : null
             );
             return;
           } catch (err) {
@@ -689,14 +702,17 @@ export function useEditorPlayback({
               : undefined;
 
             if (
-              failure.label === "hls stream"
+              (failure.label === "hls stream" || failure.label === "hls url")
               && shouldUseExportFallback(failure)
-              && directSourceUrl
+              && fallbackDirectSource
             ) {
-              nextExportFallbackSourceUrl = directSourceUrl;
+              nextExportFallbackSource = fallbackDirectSource;
             }
 
-            if (failure.label === "hls stream") {
+            if (
+              failure.label === "hls stream"
+              || failure.label === "hls url"
+            ) {
               nextHlsFallbackInfo = {
                 category: failure.category,
                 message: failure.message,
@@ -739,8 +755,8 @@ export function useEditorPlayback({
       disposePreview();
     };
   }, [
-    mediaUrl,
-    hlsUrl,
+    directSource,
+    hlsSource,
     initialDuration,
     selectedAudioTrack,
     sessionId,
@@ -759,7 +775,7 @@ export function useEditorPlayback({
     previewStatus,
     error,
     activeSourceLabel,
-    exportFallbackSourceUrl,
+    exportFallbackSource,
     hlsFallbackInfo,
     sourceVideoDimensions,
     playbackReadyRange,

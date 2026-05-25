@@ -8,9 +8,15 @@ import {
   type ExportFileNameTemplateKind,
   type ExportFileNameTemplateSettings,
 } from "../../lib/exportFileName";
+import {
+  isHlsEditorMediaSource,
+  sourceDisplayLabel,
+  type EditorMediaSource,
+  type EditorSession,
+} from "../../lib/editorMedia";
 import { subtitleTrackSupportsBurnIn } from "../../lib/selectPreferredSubtitleTrack";
 import type { SubtitleCue, SubtitleStyleSettings } from "../../lib/subtitles/types";
-import type { CurrentlyPlayingItem, PlaybackSubtitleTrack } from "../../providers/types";
+import type { PlaybackSubtitleTrack } from "../../providers/types";
 import type { ExportSourcePreference } from "./EditorExportDialog";
 import type { PlaybackFallbackInfo } from "./useEditorPlayback";
 
@@ -22,16 +28,16 @@ interface VideoDimensions {
 type ResolvedExportSourceKind = "hls" | "direct" | "none";
 
 interface ResolvedExportSource {
-  url: string;
+  source: EditorMediaSource | null;
   kind: ResolvedExportSourceKind;
 }
 
 interface UseEditorExportProps {
-  session: CurrentlyPlayingItem;
+  session: EditorSession;
   startTime: number;
   endTime: number;
   sourceVideoDimensions: VideoDimensions | null;
-  exportFallbackSourceUrl?: string;
+  exportFallbackSource?: EditorMediaSource;
   hlsFallbackInfo: PlaybackFallbackInfo | null;
   subtitleEnabled: boolean;
   selectedSubtitleTrack: PlaybackSubtitleTrack | null;
@@ -46,7 +52,7 @@ export function useEditorExport({
   startTime,
   endTime,
   sourceVideoDimensions,
-  exportFallbackSourceUrl,
+  exportFallbackSource,
   hlsFallbackInfo,
   subtitleEnabled,
   selectedSubtitleTrack,
@@ -67,56 +73,62 @@ export function useEditorExport({
   const [exportError, setExportError] = useState<string | null>(null);
 
   const effectiveExportSourcePreference =
-    exportSourcePreference === "direct" && !session.mediaUrl
+    exportSourcePreference === "direct" && !session.directSource
       ? "auto"
-      : exportSourcePreference === "hls" && !session.hlsUrl
+      : exportSourcePreference === "hls" && !session.hlsSource
         ? "auto"
         : exportSourcePreference;
 
   const exportSource = useMemo(() => resolveExportSource({
     preference: effectiveExportSourcePreference,
-    hlsUrl: session.hlsUrl,
-    mediaUrl: session.mediaUrl,
-    exportFallbackSourceUrl,
+    hlsSource: session.hlsSource,
+    directSource: session.directSource,
+    exportFallbackSource,
   }), [
     effectiveExportSourcePreference,
-    exportFallbackSourceUrl,
-    session.hlsUrl,
-    session.mediaUrl,
+    exportFallbackSource,
+    session.directSource,
+    session.hlsSource,
   ]);
 
   const exportSourceMessage = useMemo(() => buildExportSourceMessage({
     preference: effectiveExportSourcePreference,
     resolvedSourceKind: exportSource.kind,
-    hlsUrl: session.hlsUrl,
-    mediaUrl: session.mediaUrl,
+    resolvedSource: exportSource.source,
+    hlsSource: session.hlsSource,
+    directSource: session.directSource,
     hlsFallbackInfo,
   }), [
     effectiveExportSourcePreference,
     exportSource.kind,
+    exportSource.source,
     hlsFallbackInfo,
-    session.hlsUrl,
-    session.mediaUrl,
+    session.directSource,
+    session.hlsSource,
   ]);
 
   const exportSourceSummaryMessage = useMemo(() => buildExportSourceSummaryMessage({
     preference: effectiveExportSourcePreference,
     resolvedSourceKind: exportSource.kind,
-    hlsUrl: session.hlsUrl,
+    resolvedSource: exportSource.source,
+    hlsSource: session.hlsSource,
   }), [
     effectiveExportSourcePreference,
     exportSource.kind,
-    session.hlsUrl,
+    exportSource.source,
+    session.hlsSource,
   ]);
 
   const exportSourceLabel = useMemo(() => buildExportSourceLabel({
     preference: effectiveExportSourcePreference,
     resolvedSourceKind: exportSource.kind,
-    exportFallbackSourceUrl,
+    resolvedSource: exportSource.source,
+    exportFallbackSource,
   }), [
     effectiveExportSourcePreference,
-    exportFallbackSourceUrl,
+    exportFallbackSource,
     exportSource.kind,
+    exportSource.source,
   ]);
 
   const fileName = useMemo(() => buildExportFileName({
@@ -202,7 +214,7 @@ export function useEditorExport({
   }, []);
 
   const handleExport = useCallback(async () => {
-    if (!exportSource.url) return;
+    if (!exportSource.source) return;
     if (exporting) return;
 
     const shouldBurnSubtitles = subtitleEnabled
@@ -226,7 +238,7 @@ export function useEditorExport({
     try {
       const { exportClip } = await import("../../lib/exportClip");
       const blob = await exportClip({
-        mediaUrl: exportSource.url,
+        mediaSource: exportSource.source,
         hls: exportSource.kind === "hls",
         startTime,
         endTime,
@@ -261,7 +273,7 @@ export function useEditorExport({
     endTime,
     exportFormat,
     exportSource.kind,
-    exportSource.url,
+    exportSource.source,
     exporting,
     fileName.fullName,
     includeAudio,
@@ -328,90 +340,102 @@ function getOutputDimensions(
   return { width, height };
 }
 
-function resolveExportSource({
+export function resolveExportSource({
   preference,
-  hlsUrl,
-  mediaUrl,
-  exportFallbackSourceUrl,
+  hlsSource,
+  directSource,
+  exportFallbackSource,
 }: {
   preference: ExportSourcePreference;
-  hlsUrl?: string;
-  mediaUrl?: string;
-  exportFallbackSourceUrl?: string;
+  hlsSource?: EditorMediaSource;
+  directSource?: EditorMediaSource;
+  exportFallbackSource?: EditorMediaSource;
 }): ResolvedExportSource {
   if (preference === "direct") {
-    return mediaUrl
-      ? { url: mediaUrl, kind: "direct" }
-      : { url: "", kind: "none" };
+    return directSource
+      ? { source: directSource, kind: "direct" }
+      : { source: null, kind: "none" };
   }
 
   if (preference === "hls") {
-    return hlsUrl
-      ? { url: hlsUrl, kind: "hls" }
-      : { url: "", kind: "none" };
+    return hlsSource
+      ? { source: hlsSource, kind: "hls" }
+      : { source: null, kind: "none" };
   }
 
-  if (exportFallbackSourceUrl) {
-    return { url: exportFallbackSourceUrl, kind: "direct" };
+  if (exportFallbackSource) {
+    return { source: exportFallbackSource, kind: isHlsEditorMediaSource(exportFallbackSource) ? "hls" : "direct" };
   }
 
-  if (hlsUrl) {
-    return { url: hlsUrl, kind: "hls" };
+  if (hlsSource) {
+    return { source: hlsSource, kind: "hls" };
   }
 
-  if (mediaUrl) {
-    return { url: mediaUrl, kind: "direct" };
+  if (directSource) {
+    return { source: directSource, kind: "direct" };
   }
 
-  return { url: "", kind: "none" };
+  return { source: null, kind: "none" };
 }
 
 function buildExportSourceLabel({
   preference,
   resolvedSourceKind,
-  exportFallbackSourceUrl,
+  resolvedSource,
+  exportFallbackSource,
 }: {
   preference: ExportSourcePreference;
   resolvedSourceKind: ResolvedExportSourceKind;
-  exportFallbackSourceUrl?: string;
+  resolvedSource: EditorMediaSource | null;
+  exportFallbackSource?: EditorMediaSource;
 }) {
-  if (resolvedSourceKind === "hls") {
-    return preference === "auto" ? "Auto: HLS playback" : "HLS playback";
+  if (!resolvedSource || resolvedSourceKind === "none") {
+    return "Unavailable";
   }
 
-  if (resolvedSourceKind === "direct") {
-    if (preference === "auto" && exportFallbackSourceUrl) {
-      return "Auto: direct fallback";
-    }
+  const label = sourceDisplayLabel(resolvedSource);
 
-    return preference === "auto" ? "Auto: direct/original" : "Direct/original";
+  if (preference === "auto" && exportFallbackSource) {
+    return `Auto: ${label} fallback`;
   }
 
-  return "Unavailable";
+  return preference === "auto" ? `Auto: ${label}` : label;
 }
 
 function buildExportSourceMessage({
   preference,
   resolvedSourceKind,
-  hlsUrl,
-  mediaUrl,
+  resolvedSource,
+  hlsSource,
+  directSource,
   hlsFallbackInfo,
 }: {
   preference: ExportSourcePreference;
   resolvedSourceKind: ResolvedExportSourceKind;
-  hlsUrl?: string;
-  mediaUrl?: string;
+  resolvedSource: EditorMediaSource | null;
+  hlsSource?: EditorMediaSource;
+  directSource?: EditorMediaSource;
   hlsFallbackInfo: PlaybackFallbackInfo | null;
 }) {
-  if (resolvedSourceKind === "none") {
+  if (resolvedSourceKind === "none" || !resolvedSource) {
     return null;
+  }
+
+  if (resolvedSource.role === "local-file") {
+    return "Export will read the selected local file directly in this browser. The file is not uploaded to the Cliparr server.";
+  }
+
+  if (resolvedSource.role === "local-url") {
+    return isHlsEditorMediaSource(resolvedSource)
+      ? "Export will read the HLS URL directly in this browser. The Cliparr server is not used as a proxy."
+      : "Export will read the media URL directly in this browser. The Cliparr server is not used as a proxy.";
   }
 
   if (preference === "hls" && resolvedSourceKind === "hls" && !hlsFallbackInfo) {
     return "Export will use the HLS playback stream. This follows the media server playback path and can include server-side transcoding.";
   }
 
-  if (resolvedSourceKind === "direct" && !hlsUrl && mediaUrl) {
+  if (resolvedSourceKind === "direct" && !hlsSource && directSource) {
     return "This session only exposed a direct/original media path, so export will use that source.";
   }
 
@@ -442,13 +466,20 @@ function buildExportSourceMessage({
 function buildExportSourceSummaryMessage({
   preference,
   resolvedSourceKind,
-  hlsUrl,
+  resolvedSource,
+  hlsSource,
 }: {
   preference: ExportSourcePreference;
   resolvedSourceKind: ResolvedExportSourceKind;
-  hlsUrl?: string;
+  resolvedSource: EditorMediaSource | null;
+  hlsSource?: EditorMediaSource;
 }) {
-  if (preference === "direct" && resolvedSourceKind === "direct" && hlsUrl) {
+  if (
+    preference === "direct"
+    && resolvedSourceKind === "direct"
+    && resolvedSource?.role === "direct"
+    && hlsSource
+  ) {
     return "Export will use the direct/original media path. Cliparr still uses playback metadata for track and timing hints when it is available.";
   }
 

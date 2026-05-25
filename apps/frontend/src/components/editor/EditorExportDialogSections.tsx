@@ -80,24 +80,6 @@ const resolutionOptions: ReadonlyArray<ExportOption<ExportResolution>> = [
   },
 ];
 
-const sourceOptions: ReadonlyArray<ExportOption<ExportSourcePreference>> = [
-  {
-    value: "auto",
-    label: "Auto",
-    description: "Lets Cliparr choose the safest export path for this session.",
-  },
-  {
-    value: "direct",
-    label: "Direct/original",
-    description: "Uses the direct media path when available, usually best for preserving source quality.",
-  },
-  {
-    value: "hls",
-    label: "HLS playback",
-    description: "Uses the media server playback stream, which may include server-side transcoding.",
-  },
-];
-
 const templateOptions: ReadonlyArray<{
   kind: ExportFileNameTemplateKind;
   label: string;
@@ -131,7 +113,34 @@ function resolutionOptionFor(resolution: ExportResolution) {
   return resolutionOptions.find((option) => option.value === resolution) ?? resolutionOptions[0];
 }
 
-function sourceOptionFor(preference: ExportSourcePreference) {
+function sourceOptionsFor(labels: {
+  directSourceLabel: string;
+  hlsSourceLabel: string;
+}): ReadonlyArray<ExportOption<ExportSourcePreference>> {
+  return [
+    {
+      value: "auto",
+      label: "Auto",
+      description: "Lets Cliparr choose the safest export path for this session.",
+    },
+    {
+      value: "direct",
+      label: labels.directSourceLabel,
+      description: "Uses the direct media path when available, usually best for preserving source quality.",
+    },
+    {
+      value: "hls",
+      label: labels.hlsSourceLabel,
+      description: "Uses the playback stream or HLS playlist for this export.",
+    },
+  ];
+}
+
+function sourceOptionFor(
+  preference: ExportSourcePreference,
+  labels: { directSourceLabel: string; hlsSourceLabel: string },
+) {
+  const sourceOptions = sourceOptionsFor(labels);
   return sourceOptions.find((option) => option.value === preference) ?? sourceOptions[0];
 }
 
@@ -160,6 +169,8 @@ interface EditorExportSettingsSectionProps {
   onIncludeAudioChange: (includeAudio: boolean) => void;
   hasHlsSource: boolean;
   hasDirectSource: boolean;
+  directSourceLabel: string;
+  hlsSourceLabel: string;
 }
 
 export function EditorExportSettingsSection({
@@ -173,7 +184,11 @@ export function EditorExportSettingsSection({
   onIncludeAudioChange,
   hasHlsSource,
   hasDirectSource,
+  directSourceLabel,
+  hlsSourceLabel,
 }: EditorExportSettingsSectionProps) {
+  const sourceOptions = sourceOptionsFor({ directSourceLabel, hlsSourceLabel });
+
   return (
     <section className="rounded-md border border-border bg-card">
       <SectionHeader>Export Settings</SectionHeader>
@@ -269,7 +284,9 @@ export function EditorExportSettingsSection({
               </SelectGroup>
             </SelectContent>
           </Select>
-          <p className="text-xs text-muted-foreground">{sourceOptionFor(selectedSourcePreference).description}</p>
+          <p className="text-xs text-muted-foreground">
+            {sourceOptionFor(selectedSourcePreference, { directSourceLabel, hlsSourceLabel }).description}
+          </p>
         </div>
 
         <label className="space-y-1.5">

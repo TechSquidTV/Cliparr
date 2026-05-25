@@ -2,7 +2,7 @@ import { createFileRoute, useCanGoBack } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { cliparrClient } from "../api/cliparrClient";
 import EditorScreen from "../components/EditorScreen";
-import type { CurrentlyPlayingItem } from "../providers/types";
+import { editorSessionFromCurrentlyPlaying, type EditorSession } from "../lib/editorMedia";
 import { router } from "../router";
 
 function errorMessage(err: unknown, fallback: string) {
@@ -12,7 +12,7 @@ function errorMessage(err: unknown, fallback: string) {
 function EditorRouteComponent() {
   const { sessionId } = Route.useParams();
   const canGoBack = useCanGoBack();
-  const [session, setSession] = useState<CurrentlyPlayingItem | null>(null);
+  const [session, setSession] = useState<EditorSession | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [attempt, setAttempt] = useState(0);
@@ -41,7 +41,7 @@ function EditorRouteComponent() {
         }
 
         if (!cancelled) {
-          setSession(activeSession);
+          setSession(editorSessionFromCurrentlyPlaying(activeSession));
         }
       } catch (err: unknown) {
         if (!cancelled) {
