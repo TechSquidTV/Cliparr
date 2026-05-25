@@ -1,27 +1,17 @@
-import { Download, Info, X } from "lucide-react";
+import { Download, X } from "lucide-react";
 import { useRef } from "react";
-import {
-  Select,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-  SelectLabel,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
 import type { ExportFormat, ExportResolution } from "../../lib/exportClip";
 import {
-  getExportFileNameTemplateTokens,
   type ExportFileNameTemplateKind,
   type ExportFileNameTemplateSettings,
 } from "../../lib/exportFileName";
 import { useModalFocusTrap } from "../useModalFocusTrap";
-import { formatTime } from "./EditorUtils";
+import {
+  EditorExportSettingsSection,
+  EditorExportSummaryPanel,
+  EditorFilenameTemplateSection,
+  formatOptionFor,
+} from "./EditorExportDialogSections";
 
 interface VideoDimensions {
   width: number;
@@ -67,103 +57,6 @@ interface EditorExportDialogProps {
   onExport: () => void;
 }
 
-const formatOptions: ReadonlyArray<{
-  value: ExportFormat;
-  label: string;
-  extension: string;
-  description: string;
-}> = [
-  {
-    value: "mp4",
-    label: "MP4",
-    extension: ".mp4",
-    description: "Best for everyday sharing, browser playback, and platform uploads.",
-  },
-  {
-    value: "webm",
-    label: "WEBM",
-    extension: ".webm",
-    description: "Modern web-first delivery with efficient browser-friendly playback.",
-  },
-  {
-    value: "mov",
-    label: "MOV",
-    extension: ".mov",
-    description: "A professional container that fits Adobe-style editorial workflows.",
-  },
-  {
-    value: "mkv",
-    label: "MKV",
-    extension: ".mkv",
-    description: "A flexible container for preserving a wider range of stream layouts.",
-  },
-];
-
-const resolutionOptions: ReadonlyArray<{
-  value: ExportResolution;
-  label: string;
-  description: string;
-}> = [
-  {
-    value: "original",
-    label: "Original",
-    description: "Keeps the source dimensions when possible.",
-  },
-  {
-    value: "1080",
-    label: "1080p",
-    description: "Balanced delivery size for full HD exports.",
-  },
-  {
-    value: "720",
-    label: "720p",
-    description: "Lighter output for faster downloads and sharing.",
-  },
-];
-
-const sourceOptions: ReadonlyArray<{
-  value: ExportSourcePreference;
-  label: string;
-  description: string;
-}> = [
-  {
-    value: "auto",
-    label: "Auto",
-    description: "Lets Cliparr choose the safest export path for this session.",
-  },
-  {
-    value: "direct",
-    label: "Direct/original",
-    description: "Uses the direct media path when available, usually best for preserving source quality.",
-  },
-  {
-    value: "hls",
-    label: "HLS playback",
-    description: "Uses the media server playback stream, which may include server-side transcoding.",
-  },
-];
-
-const templateOptions: ReadonlyArray<{
-  kind: ExportFileNameTemplateKind;
-  label: string;
-  description: string;
-}> = [
-  {
-    kind: "movie",
-    label: "Movies",
-    description: "Used for films and non-episode items.",
-  },
-  {
-    kind: "episode",
-    label: "TV Shows",
-    description: "Used for episode exports with series metadata.",
-  },
-];
-
-function compactSelectTriggerClassName() {
-  return "h-8 w-full min-w-0 rounded-md border-border bg-background px-2.5 text-xs font-medium shadow-none focus-visible:ring-2";
-}
-
 export function EditorExportDialog({
   isOpen,
   title,
@@ -201,16 +94,7 @@ export function EditorExportDialog({
   onExport,
 }: EditorExportDialogProps) {
   const dialogRef = useRef<HTMLDivElement | null>(null);
-  const clipLength = Math.max(0, clipEnd - clipStart);
-  const selectedFormatOption = formatOptions.find((option) => option.value === selectedFormat) ?? formatOptions[0];
-  const selectedSourceOption = sourceOptions.find((option) => option.value === selectedSourcePreference) ?? sourceOptions[0];
-  const editingTemplateOption = templateOptions.find((option) => option.kind === editingTemplateKind) ?? templateOptions[0];
-  const visibleTokens = getExportFileNameTemplateTokens(editingTemplateKind);
-  const subtitleSummaryClassName = subtitleSummaryTone === "ready"
-    ? "border-emerald-500/30 bg-emerald-500/8"
-    : subtitleSummaryTone === "warning"
-      ? "border-amber-500/30 bg-amber-500/8"
-      : "border-border bg-background";
+  const selectedFormatOption = formatOptionFor(selectedFormat);
 
   useModalFocusTrap({
     isOpen,
@@ -278,272 +162,43 @@ export function EditorExportDialog({
               </div>
             )}
 
-            <section className="rounded-md border border-border bg-card">
-              <div className="border-b border-border px-3 py-2">
-                <div className="text-[11px] font-semibold uppercase tracking-[var(--tracking-caps-lg)] text-muted-foreground">
-                  Export Settings
-                </div>
-              </div>
-              <div className="grid gap-3 p-3 sm:grid-cols-2">
-                <label className="space-y-1.5">
-                  <span className="text-[11px] font-semibold uppercase tracking-[var(--tracking-caps-lg)] text-muted-foreground">
-                    Format
-                  </span>
-                  <Select value={selectedFormat} onValueChange={(value) => onFormatChange(value as ExportFormat)}>
-                    <SelectTrigger size="sm" className={compactSelectTriggerClassName()}>
-                      <SelectValue placeholder="Select format" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectGroup>
-                        <SelectLabel>Formats</SelectLabel>
-                        {formatOptions.map((option) => (
-                          <SelectItem key={option.value} value={option.value}>
-                            {option.label} {option.extension}
-                          </SelectItem>
-                        ))}
-                      </SelectGroup>
-                    </SelectContent>
-                  </Select>
-                  <p className="text-xs text-muted-foreground">{selectedFormatOption.description}</p>
-                </label>
+            <EditorExportSettingsSection
+              selectedFormat={selectedFormat}
+              onFormatChange={onFormatChange}
+              selectedResolution={selectedResolution}
+              onResolutionChange={onResolutionChange}
+              selectedSourcePreference={selectedSourcePreference}
+              onSourcePreferenceChange={onSourcePreferenceChange}
+              includeAudio={includeAudio}
+              onIncludeAudioChange={onIncludeAudioChange}
+              hasHlsSource={hasHlsSource}
+              hasDirectSource={hasDirectSource}
+            />
 
-                <label className="space-y-1.5">
-                  <span className="text-[11px] font-semibold uppercase tracking-[var(--tracking-caps-lg)] text-muted-foreground">
-                    Resolution
-                  </span>
-                  <Select value={selectedResolution} onValueChange={(value) => onResolutionChange(value as ExportResolution)}>
-                    <SelectTrigger size="sm" className={compactSelectTriggerClassName()}>
-                      <SelectValue placeholder="Select resolution" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectGroup>
-                        <SelectLabel>Resolutions</SelectLabel>
-                        {resolutionOptions.map((option) => (
-                          <SelectItem key={option.value} value={option.value}>
-                            {option.label}
-                          </SelectItem>
-                        ))}
-                      </SelectGroup>
-                    </SelectContent>
-                  </Select>
-                  <p className="text-xs text-muted-foreground">
-                    {resolutionOptions.find((option) => option.value === selectedResolution)?.description}
-                  </p>
-                </label>
-
-                <div className="space-y-1.5">
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-[11px] font-semibold uppercase tracking-[var(--tracking-caps-lg)] text-muted-foreground">
-                      Source
-                    </span>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <button
-                          type="button"
-                          aria-label="Export source details"
-                          className="inline-flex h-4 w-4 items-center justify-center rounded-full text-muted-foreground transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/50"
-                        >
-                          <Info className="h-3.5 w-3.5" />
-                        </button>
-                      </TooltipTrigger>
-                      <TooltipContent side="top" align="start">
-                        Track and timing detection can still use HLS metadata when Cliparr can read it. This only chooses which media path is used for the exported file.
-                      </TooltipContent>
-                    </Tooltip>
-                  </div>
-                  <Select
-                    value={selectedSourcePreference}
-                    onValueChange={(value) => onSourcePreferenceChange(value as ExportSourcePreference)}
-                  >
-                    <SelectTrigger size="sm" className={compactSelectTriggerClassName()}>
-                      <SelectValue placeholder="Select source" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectGroup>
-                        <SelectLabel>Sources</SelectLabel>
-                        {sourceOptions.map((option) => (
-                          <SelectItem
-                            key={option.value}
-                            value={option.value}
-                            disabled={
-                              (option.value === "direct" && !hasDirectSource)
-                              || (option.value === "hls" && !hasHlsSource)
-                            }
-                          >
-                            {option.label}
-                          </SelectItem>
-                        ))}
-                      </SelectGroup>
-                    </SelectContent>
-                  </Select>
-                  <p className="text-xs text-muted-foreground">{selectedSourceOption.description}</p>
-                </div>
-
-                <label className="space-y-1.5">
-                  <span className="text-[11px] font-semibold uppercase tracking-[var(--tracking-caps-lg)] text-muted-foreground">
-                    Audio
-                  </span>
-                  <Select
-                    value={includeAudio ? "included" : "video-only"}
-                    onValueChange={(value) => onIncludeAudioChange(value === "included")}
-                  >
-                    <SelectTrigger size="sm" className={compactSelectTriggerClassName()}>
-                      <SelectValue placeholder="Select audio option" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectGroup>
-                        <SelectLabel>Audio</SelectLabel>
-                        <SelectItem value="included">Include Audio</SelectItem>
-                        <SelectItem value="video-only">Video Only</SelectItem>
-                      </SelectGroup>
-                    </SelectContent>
-                  </Select>
-                  <p className="text-xs text-muted-foreground">
-                    {includeAudio ? "Keeps a stereo mix when source audio exists." : "Exports without an audio track."}
-                  </p>
-                </label>
-              </div>
-            </section>
-
-            <section className="rounded-md border border-border bg-card">
-              <div className="border-b border-border px-3 py-2">
-                <div className="text-[11px] font-semibold uppercase tracking-[var(--tracking-caps-lg)] text-muted-foreground">
-                  Filename Template
-                </div>
-              </div>
-              <div className="space-y-3 p-3">
-                <div className="grid gap-3 sm:grid-cols-[12rem_auto] sm:items-end">
-                  <label className="space-y-1.5">
-                    <span className="text-[11px] font-semibold uppercase tracking-[var(--tracking-caps-lg)] text-muted-foreground">
-                      Template Set
-                    </span>
-                    <Select
-                      value={editingTemplateKind}
-                      onValueChange={(value) => onEditingTemplateKindChange(value as ExportFileNameTemplateKind)}
-                    >
-                      <SelectTrigger size="sm" className={compactSelectTriggerClassName()}>
-                        <SelectValue placeholder="Select template set" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectGroup>
-                          <SelectLabel>Templates</SelectLabel>
-                          {templateOptions.map((option) => (
-                            <SelectItem key={option.kind} value={option.kind}>
-                              {option.label}
-                            </SelectItem>
-                          ))}
-                        </SelectGroup>
-                      </SelectContent>
-                    </Select>
-                  </label>
-
-                  <button
-                    type="button"
-                    onClick={() => onResetFileNameTemplate(editingTemplateKind)}
-                    className="inline-flex h-8 items-center justify-center rounded-md border border-border bg-background px-3 text-xs font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
-                  >
-                    Reset
-                  </button>
-                </div>
-
-                <label className="block space-y-1.5">
-                  <span className="text-[11px] font-semibold uppercase tracking-[var(--tracking-caps-lg)] text-muted-foreground">
-                    Pattern
-                  </span>
-                  <input
-                    type="text"
-                    value={fileNameTemplates[editingTemplateKind]}
-                    onChange={(event) => onFileNameTemplateChange(editingTemplateKind, event.target.value)}
-                    className="h-8 w-full rounded-md border border-input bg-background px-2.5 font-mono text-xs text-foreground outline-none transition-colors focus:border-ring focus:ring-2 focus:ring-ring/40"
-                    spellCheck={false}
-                  />
-                </label>
-
-                <p className="text-xs text-muted-foreground">{editingTemplateOption.description}</p>
-
-                <div className="rounded-md border border-border bg-background px-3 py-2">
-                  <div className="text-[11px] font-semibold uppercase tracking-[var(--tracking-caps-lg)] text-muted-foreground">
-                    Available Tokens
-                  </div>
-                  <div className="mt-2 flex flex-wrap gap-1.5">
-                    {visibleTokens.map((token) => (
-                      <code
-                        key={token}
-                        className="rounded-md border border-border bg-card px-2 py-0.5 font-mono text-[11px] text-foreground"
-                      >
-                        {`{${token}}`}
-                      </code>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </section>
+            <EditorFilenameTemplateSection
+              editingTemplateKind={editingTemplateKind}
+              onEditingTemplateKindChange={onEditingTemplateKindChange}
+              fileNameTemplates={fileNameTemplates}
+              onFileNameTemplateChange={onFileNameTemplateChange}
+              onResetFileNameTemplate={onResetFileNameTemplate}
+            />
           </div>
 
-          <aside className="space-y-3 rounded-md border border-border bg-card p-3">
-            <div className="border-b border-border pb-2">
-              <div className="text-[11px] font-semibold uppercase tracking-[var(--tracking-caps-lg)] text-muted-foreground">
-                Summary
-              </div>
-            </div>
-
-            <div className="text-sm font-medium text-foreground">{title}</div>
-
-            <dl className="grid gap-2 text-sm">
-              <div className="rounded-md border border-border bg-background px-3 py-2">
-                <dt className="text-[11px] font-semibold uppercase tracking-[var(--tracking-caps-lg)] text-muted-foreground">Clip</dt>
-                <dd className="mt-1 font-mono text-xs text-foreground">
-                  {formatTime(clipStart)} to {formatTime(clipEnd)}
-                </dd>
-              </div>
-
-              <div className="rounded-md border border-border bg-background px-3 py-2">
-                <dt className="text-[11px] font-semibold uppercase tracking-[var(--tracking-caps-lg)] text-muted-foreground">Duration</dt>
-                <dd className="mt-1 font-mono text-xs text-foreground">{formatTime(clipLength)}</dd>
-              </div>
-
-              <div className="rounded-md border border-border bg-background px-3 py-2">
-                <dt className="text-[11px] font-semibold uppercase tracking-[var(--tracking-caps-lg)] text-muted-foreground">Source</dt>
-                <dd className="mt-1 text-xs text-foreground">
-                  {exportSourceLabel}
-                </dd>
-                {exportSourceSummaryMessage ? (
-                  <dd className="mt-1 text-xs leading-relaxed text-muted-foreground">
-                    {exportSourceSummaryMessage}
-                  </dd>
-                ) : null}
-              </div>
-
-              <div className="rounded-md border border-border bg-background px-3 py-2">
-                <dt className="text-[11px] font-semibold uppercase tracking-[var(--tracking-caps-lg)] text-muted-foreground">Output</dt>
-                <dd className="mt-1 text-xs text-foreground">{selectedFormatOption.label}</dd>
-                <dd className="mt-1 font-mono text-[11px] text-foreground">
-                  {outputDimensions ? `${outputDimensions.width} x ${outputDimensions.height}` : "Unknown size"}
-                </dd>
-              </div>
-
-              <div className="rounded-md border border-border bg-background px-3 py-2">
-                <dt className="text-[11px] font-semibold uppercase tracking-[var(--tracking-caps-lg)] text-muted-foreground">Audio</dt>
-                <dd className="mt-1 text-xs text-foreground">
-                  {includeAudio ? "Included when available" : "Video only"}
-                </dd>
-              </div>
-
-              <div className={`rounded-md border px-3 py-2 ${subtitleSummaryClassName}`}>
-                <dt className="text-[11px] font-semibold uppercase tracking-[var(--tracking-caps-lg)] text-muted-foreground">Subtitles</dt>
-                <dd className="mt-1 text-xs font-medium text-foreground">{subtitleSummaryLabel}</dd>
-                <dd className="mt-1 text-[11px] text-muted-foreground">{subtitleSummaryDetail}</dd>
-              </div>
-
-              <div className="rounded-md border border-border bg-background px-3 py-2">
-                <dt className="text-[11px] font-semibold uppercase tracking-[var(--tracking-caps-lg)] text-muted-foreground">Filename</dt>
-                <dd className="mt-1 text-[11px] font-semibold uppercase tracking-[var(--tracking-caps-md)] text-muted-foreground">
-                  {activeTemplateKind === "episode" ? "TV show template" : "Movie template"}
-                </dd>
-                <dd className="mt-1 break-all font-mono text-[11px] text-foreground">{fileNamePreview}</dd>
-              </div>
-            </dl>
-          </aside>
+          <EditorExportSummaryPanel
+            title={title}
+            clipStart={clipStart}
+            clipEnd={clipEnd}
+            selectedFormat={selectedFormat}
+            outputDimensions={outputDimensions}
+            exportSourceLabel={exportSourceLabel}
+            exportSourceSummaryMessage={exportSourceSummaryMessage}
+            includeAudio={includeAudio}
+            subtitleSummaryLabel={subtitleSummaryLabel}
+            subtitleSummaryDetail={subtitleSummaryDetail}
+            subtitleSummaryTone={subtitleSummaryTone}
+            activeTemplateKind={activeTemplateKind}
+            fileNamePreview={fileNamePreview}
+          />
         </div>
 
         <footer className="flex flex-col-reverse gap-2 border-t border-border bg-card px-4 py-3 sm:flex-row sm:items-center sm:justify-end">
