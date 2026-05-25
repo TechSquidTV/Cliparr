@@ -283,6 +283,8 @@
     background: color-mix(in oklch, var(--ring) 44%, var(--background));
     color: var(--foreground);
     box-shadow: none;
+    user-select: none;
+    -webkit-user-select: none;
   }
 
   .cliparr-timeline .timeline-editor-action-effect-source {
@@ -322,6 +324,8 @@
     overflow: hidden;
     padding: 0 12px;
     white-space: nowrap;
+    user-select: none;
+    -webkit-user-select: none;
   }
 
   .cliparr-timeline-action-label {
