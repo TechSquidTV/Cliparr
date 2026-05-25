@@ -12,6 +12,7 @@ import { EditorPlaybackSourcePanel } from "./editor/EditorPlaybackSourcePanel";
 import { EditorTimeline } from "./editor/EditorTimeline";
 import { EditorSubtitlePanel } from "./editor/EditorSubtitlePanel";
 import { buildSubtitleExportSummary } from "./editor/subtitleExportSummary";
+import { useSubtitleCues } from "./editor/useSubtitleCues";
 import type { CurrentlyPlayingItem, PlaybackSubtitleTrack } from "../providers/types";
 import type { ExportFormat, ExportResolution } from "../lib/exportClip";
 import {
@@ -26,15 +27,12 @@ import {
   selectPreferredSubtitleTrack,
   subtitleTrackKey,
   subtitleTrackSupportsBurnIn,
-  subtitleTrackUnavailableMessage,
 } from "../lib/selectPreferredSubtitleTrack";
 import {
   loadSubtitleStyleSettings,
   saveSubtitleStyleSettings,
 } from "../lib/subtitles/settings";
-import { parseSubtitleText } from "../lib/subtitles/parseSubtitleText";
 import { trimSubtitleCues } from "../lib/subtitles/trimSubtitleCues";
-import type { SubtitleCue } from "../lib/subtitles/types";
 
 interface Props {
   session: CurrentlyPlayingItem;
@@ -52,8 +50,6 @@ interface ResolvedExportSource {
   url: string;
   kind: ResolvedExportSourceKind;
 }
-
-const SUBTITLE_REQUEST_TIMEOUT_MS = 15_000;
 
 function isInteractiveKeyboardTarget(target: EventTarget | null) {
   if (!(target instanceof HTMLElement)) {
@@ -86,9 +82,6 @@ export default function EditorScreen({ session, onBack }: Props) {
   const [exportError, setExportError] = useState<string | null>(null);
   const [subtitleEnabled, setSubtitleEnabled] = useState(false);
   const [selectedSubtitleTrackKey, setSelectedSubtitleTrackKey] = useState("none");
-  const [subtitleCues, setSubtitleCues] = useState<SubtitleCue[]>([]);
-  const [subtitleLoading, setSubtitleLoading] = useState(false);
-  const [subtitleError, setSubtitleError] = useState<string | null>(null);
   const effectiveExportSourcePreference =
     exportSourcePreference === "direct" && !session.mediaUrl
       ? "auto"
@@ -107,6 +100,17 @@ export default function EditorScreen({ session, onBack }: Props) {
 
     return subtitleTracks.find((track) => subtitleTrackKey(track) === selectedSubtitleTrackKey) ?? null;
   }, [selectedSubtitleTrackKey, subtitleTracks]);
+  const {
+    subtitleCues,
+    subtitleLoading,
+    subtitleError,
+    resetSubtitleCues,
+    clearSubtitleError,
+  } = useSubtitleCues({
+    selectedSubtitleTrack,
+    subtitleEnabled,
+    providerId: session.source.providerId,
+  });
   const subtitlePreviewEnabled = subtitleEnabled
     && subtitleTrackSupportsBurnIn(selectedSubtitleTrack)
     && subtitleCues.length > 0;
@@ -288,128 +292,27 @@ export default function EditorScreen({ session, onBack }: Props) {
 
     setSelectedSubtitleTrackKey(preferredSubtitleTrack ? subtitleTrackKey(preferredSubtitleTrack) : "none");
     setSubtitleEnabled(Boolean(preferredSubtitleTrack && subtitleTrackSupportsBurnIn(preferredSubtitleTrack)));
-    setSubtitleCues([]);
-    setSubtitleLoading(false);
-    setSubtitleError(null);
+    resetSubtitleCues();
   }, [
     session.id,
     session.selectedSubtitleTrack,
     subtitleTracks,
+    resetSubtitleCues,
   ]);
-
-  useEffect(() => {
-    let cancelled = false;
-    const abortController = new AbortController();
-    const timeout = window.setTimeout(() => {
-      abortController.abort();
-    }, SUBTITLE_REQUEST_TIMEOUT_MS);
-
-    async function loadSubtitleCues() {
-      if (!subtitleEnabled || !selectedSubtitleTrack) {
-        setSubtitleLoading(false);
-        setSubtitleCues([]);
-        setSubtitleError(null);
-        return;
-      }
-
-      if (!subtitleTrackSupportsBurnIn(selectedSubtitleTrack) || !selectedSubtitleTrack.contentUrl) {
-        setSubtitleLoading(false);
-        setSubtitleCues([]);
-        setSubtitleError(
-          subtitleTrackUnavailableMessage(selectedSubtitleTrack, session.source.providerId)
-            ?? "This subtitle track is not yet supported for styled burn-in."
-        );
-        return;
-      }
-
-      setSubtitleCues([]);
-      setSubtitleLoading(true);
-      setSubtitleError(null);
-
-      try {
-        const response = await fetch(selectedSubtitleTrack.contentUrl, {
-          signal: abortController.signal,
-        });
-        if (!response.ok) {
-          let detail = "";
-
-          try {
-            const contentType = response.headers.get("content-type") ?? "";
-            if (contentType.toLowerCase().includes("application/json")) {
-              const payload = await response.json() as {
-                error?: {
-                  message?: string;
-                };
-              };
-              detail = payload.error?.message?.trim() ?? "";
-            } else {
-              detail = (await response.text()).replace(/\s+/g, " ").trim();
-            }
-          } catch {
-            detail = "";
-          }
-
-          throw new Error(
-            detail
-              ? `Subtitle download failed (${response.status}): ${detail}`
-              : `Subtitle download failed (${response.status})`
-          );
-        }
-
-        const subtitleText = await response.text();
-        const parsedSubtitleCues = parseSubtitleText(
-          subtitleText,
-          selectedSubtitleTrack.contentFormat
-        );
-
-        if (cancelled) {
-          return;
-        }
-
-        setSubtitleCues(parsedSubtitleCues);
-        setSubtitleError(parsedSubtitleCues.length === 0 ? "No subtitle cues were found in this track." : null);
-      } catch (err) {
-        if (cancelled || abortController.signal.aborted) {
-          if (!cancelled) {
-            setSubtitleCues([]);
-            setSubtitleError("Subtitle request timed out. Please try again.");
-            setSubtitleLoading(false);
-          }
-          return;
-        }
-
-        console.error("Could not load subtitle cues", err);
-        setSubtitleCues([]);
-        setSubtitleError(err instanceof Error ? err.message : "Could not load subtitle cues.");
-      } finally {
-        if (!cancelled) {
-          setSubtitleLoading(false);
-        }
-      }
-    }
-
-    void loadSubtitleCues();
-
-    return () => {
-      cancelled = true;
-      window.clearTimeout(timeout);
-      abortController.abort();
-    };
-  }, [selectedSubtitleTrack, session.source.providerId, subtitleEnabled]);
 
   const handleSelectedSubtitleTrackChange = useCallback((value: string) => {
     setSelectedSubtitleTrackKey(value);
-    setSubtitleError(null);
+    clearSubtitleError();
 
     if (value === "none") {
       setSubtitleEnabled(false);
-      setSubtitleCues([]);
+      resetSubtitleCues();
       return;
     }
 
     const nextTrack = subtitleTracks.find((track) => subtitleTrackKey(track) === value) ?? null;
     setSubtitleEnabled(Boolean(nextTrack && subtitleTrackSupportsBurnIn(nextTrack)));
-  }, [subtitleTracks]);
+  }, [clearSubtitleError, resetSubtitleCues, subtitleTracks]);
 
   const handleOpenExportDialog = useCallback(() => {
     setExportError(null);
