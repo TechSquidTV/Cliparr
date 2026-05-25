@@ -21,6 +21,12 @@ import { selectPreferredPairableAudioTrack } from "../../lib/selectPreferredAudi
 import type { PlaybackAudioSelection } from "../../providers/types";
 import { errorMessage } from "./EditorUtils";
 import {
+  applyPlaybackGain,
+  playbackGainValue,
+  runPlaybackAudioIterator,
+  stopQueuedAudioNodes,
+} from "./editorPlaybackAudio";
+import {
   assessPreviewAudioTrack,
   browserDecoderEnvironmentWarning,
   buildPlaybackFailure,
@@ -184,10 +190,7 @@ export function useEditorPlayback({
   useEffect(() => {
     volumeRef.current = volume;
     mutedRef.current = muted;
-    if (gainNodeRef.current) {
-      const actualVolume = muted || volume === 0 ? 0 : volume;
-      gainNodeRef.current.gain.value = actualVolume ** 2;
-    }
+    applyPlaybackGain(gainNodeRef.current, volume, muted);
   }, [volume, muted]);
 
   useEffect(() => {
@@ -226,14 +229,7 @@ export function useEditorPlayback({
   }, [clampTime]);
 
   const stopAudioNodes = useCallback(() => {
-    for (const node of queuedAudioNodesRef.current) {
-      try {
-        node.stop();
-      } catch {
-        // The node may have already ended.
-      }
-    }
-    queuedAudioNodesRef.current.clear();
+    stopQueuedAudioNodes(queuedAudioNodesRef.current);
   }, []);
 
   const pausePlayback = useCallback((storeCurrentTime = true) => {
@@ -342,68 +338,23 @@ export function useEditorPlayback({
   }, [resetPreview]);
 
   const runAudioIterator = useCallback(async (generation: number) => {
-    const iterator = audioBufferIteratorRef.current;
-    const audioContext = audioContextRef.current;
-    const gainNode = gainNodeRef.current;
-    if (!iterator || !audioContext || !gainNode) {
-      return;
-    }
-
-    try {
-      for await (const { buffer, timestamp } of iterator) {
-        if (generation !== generationRef.current || !playingRef.current) {
-          break;
-        }
-
-        const node = audioContext.createBufferSource();
-        node.buffer = buffer;
-        node.connect(gainNode);
-        const displayTimestamp = fromSourceTimelineTime(timestamp, sourceTimelineOffsetRef.current);
-
-        const startTimestamp = (
-          audioContextStartTimeRef.current ?? audioContext.currentTime
-        ) + displayTimestamp - playbackTimeAtStartRef.current;
-
-        let started = false;
-        if (startTimestamp >= audioContext.currentTime) {
-          node.start(startTimestamp);
-          started = true;
-        } else {
-          const offset = audioContext.currentTime - startTimestamp;
-          if (offset < buffer.duration) {
-            node.start(audioContext.currentTime, offset);
-            started = true;
-          }
-        }
-
-        if (started) {
-          queuedAudioNodesRef.current.add(node);
-          node.onended = () => {
-            queuedAudioNodesRef.current.delete(node);
-          };
-        }
-
-        if (displayTimestamp - getPlaybackTime() >= 1) {
-          await new Promise<void>((resolve) => {
-            const intervalId = window.setInterval(() => {
-              if (
-                generation !== generationRef.current ||
-                !playingRef.current ||
-                displayTimestamp - getPlaybackTime() < 1
-              ) {
-                window.clearInterval(intervalId);
-                resolve();
-              }
-            }, 100);
-          });
-        }
-      }
-    } catch (err) {
-      if (generation === generationRef.current) {
+    await runPlaybackAudioIterator({
+      iterator: audioBufferIteratorRef.current,
+      audioContext: audioContextRef.current,
+      gainNode: gainNodeRef.current,
+      queuedAudioNodes: queuedAudioNodesRef.current,
+      generation,
+      generationRef,
+      playingRef,
+      audioContextStartTimeRef,
+      playbackTimeAtStartRef,
+      sourceTimelineOffsetRef,
+      getPlaybackTime,
+      onError: (err) => {
         setError(errorMessage(err));
         pausePlayback();
-      }
-    }
+      },
+    });
   }, [getPlaybackTime, pausePlayback]);
 
   const playPreview = useCallback(async () => {
@@ -1204,8 +1155,7 @@ export function useEditorPlayback({
                   sampleRate: audioTrackSampleRate,
                 });
                 const gainNode = audioContext.createGain();
-                const actualVolume = mutedRef.current || volumeRef.current === 0 ? 0 : volumeRef.current;
-                gainNode.gain.value = actualVolume ** 2;
+                gainNode.gain.value = playbackGainValue(volumeRef.current, mutedRef.current);
                 gainNode.connect(audioContext.destination);
                 audioContextRef.current = audioContext;
                 gainNodeRef.current = gainNode;
