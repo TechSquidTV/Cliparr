@@ -19,6 +19,7 @@ interface ResolveTimelineZoomUpdateOptions {
   regionLeft: number;
   regionWidth: number;
   anchorClientX?: number;
+  anchorTime?: number;
 }
 
 interface TimelineZoomUpdate {
@@ -54,6 +55,7 @@ export function resolveTimelineZoomUpdate({
   regionLeft,
   regionWidth,
   anchorClientX,
+  anchorTime,
 }: ResolveTimelineZoomUpdateOptions): TimelineZoomUpdate | null {
   if (availableTimelineZoomLevels.length < 2 || zoomDelta === 0) {
     return null;
@@ -81,20 +83,22 @@ export function resolveTimelineZoomUpdate({
     ? Math.min(Math.max(anchorClientX - regionLeft, 0), regionWidth)
     : regionWidth / 2;
   const anchorPixel = Math.max(TIMELINE_START_LEFT, currentScrollLeft + pointerX);
-  const anchorTime = Math.min(
+  const resolvedAnchorTime = Math.min(
     duration,
     Math.max(
       0,
-      timelinePixelToTime(
-        anchorPixel,
-        currentTimelineScale.scale,
-        currentTimelineScale.scaleWidth,
-        TIMELINE_START_LEFT,
-      ),
+      typeof anchorTime === "number"
+        ? anchorTime
+        : timelinePixelToTime(
+          anchorPixel,
+          currentTimelineScale.scale,
+          currentTimelineScale.scaleWidth,
+          TIMELINE_START_LEFT,
+        ),
     ),
   );
   const nextAnchorPixel = timelineTimeToPixel(
-    anchorTime,
+    resolvedAnchorTime,
     nextTimelineScale.scale,
     nextTimelineScale.scaleWidth,
     TIMELINE_START_LEFT,

@@ -290,8 +290,8 @@ export default function EditorScreen({ session, onBack }: Props) {
         onExportClick={handleOpenExportDialog}
       />
 
-      <main className="min-h-0 flex-1 overflow-hidden p-3 sm:p-4">
-        <div className="flex h-full min-h-0 flex-col gap-3 lg:grid lg:grid-cols-[minmax(0,1fr)_auto]">
+      <main className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto p-3 sm:p-4 lg:overflow-hidden">
+        <div className="flex min-h-full flex-col gap-3 lg:grid lg:h-full lg:min-h-0 lg:grid-cols-[minmax(0,1fr)_auto]">
           <div className="flex min-h-0 flex-col gap-3">
             {error && (
               <div className="border border-destructive/35 bg-destructive/10 px-3 py-2 text-sm text-destructive">
@@ -307,7 +307,7 @@ export default function EditorScreen({ session, onBack }: Props) {
               />
             </div>
 
-            <section className="flex min-h-0 flex-1 items-center justify-center overflow-hidden border border-border bg-card p-3">
+            <section className="flex min-h-[12rem] flex-none items-center justify-center overflow-hidden border border-border bg-card p-3 sm:min-h-[16rem] lg:min-h-0 lg:flex-1">
               <EditorPreview
                 canvasRef={canvasRef}
                 playing={playing}

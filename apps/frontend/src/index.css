@@ -196,11 +196,13 @@
   .cliparr-timeline {
     position: relative;
     width: 100%;
+    padding-top: 30px;
+    background: var(--card);
   }
 
   .cliparr-timeline-zoom-controls {
     position: absolute;
-    top: 4px;
+    top: 3px;
     right: 6px;
     z-index: 5;
     display: flex;
@@ -369,7 +371,7 @@
 
   .cliparr-timeline-ready-range {
     position: absolute;
-    top: 64px;
+    top: 94px;
     height: 44px;
     z-index: 2;
     border-radius: 1px;

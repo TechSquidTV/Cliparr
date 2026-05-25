@@ -2,7 +2,11 @@
 
 import assert from "node:assert/strict";
 import test from "node:test";
-import type { TimelineZoomLevel } from "./EditorUtils";
+import {
+  formatTime,
+  getFocusedTimelineZoomIndex,
+  type TimelineZoomLevel,
+} from "./EditorUtils";
 import {
   accumulateTimelineWheelZoomDelta,
   resolveTimelineScrollWheelUpdate,
@@ -33,6 +37,25 @@ void test("keeps the cursor-anchored time stable when changing timeline zoom", (
   });
 });
 
+void test("keeps an explicit zoom anchor time visible when changing timeline zoom", () => {
+  const update = resolveTimelineZoomUpdate({
+    availableTimelineZoomLevels: zoomLevels,
+    currentZoomIndex: 1,
+    fallbackTimelineScale: zoomLevels[1],
+    zoomDelta: -1,
+    currentScrollLeft: 50,
+    duration: 100,
+    regionLeft: 100,
+    regionWidth: 200,
+    anchorTime: 0,
+  });
+
+  assert.deepEqual(update, {
+    nextZoomIndex: 0,
+    nextScrollLeft: 0,
+  });
+});
+
 void test("does not zoom past the available timeline levels", () => {
   assert.equal(resolveTimelineZoomUpdate({
     availableTimelineZoomLevels: zoomLevels,
@@ -44,6 +67,22 @@ void test("does not zoom past the available timeline levels", () => {
     regionLeft: 0,
     regionWidth: 200,
   }), null);
+});
+
+void test("chooses an initial timeline zoom that keeps short selections editable", () => {
+  const focusedLevels = [
+    { scale: 1, scaleSplitCount: 10, scaleWidth: 160 },
+    { scale: 5, scaleSplitCount: 5, scaleWidth: 120 },
+    { scale: 600, scaleSplitCount: 5, scaleWidth: 152 },
+  ] satisfies TimelineZoomLevel[];
+
+  assert.equal(getFocusedTimelineZoomIndex(focusedLevels, 10, 900), 1);
+  assert.equal(getFocusedTimelineZoomIndex(focusedLevels, 1, 900), 0);
+});
+
+void test("formats editor time with hours and sub-second precision when needed", () => {
+  assert.equal(formatTime(7425), "2:03:45");
+  assert.equal(formatTime(0.1), "0:00.10");
 });
 
 void test("combines horizontal and vertical wheel deltas for timeline scrolling", () => {
