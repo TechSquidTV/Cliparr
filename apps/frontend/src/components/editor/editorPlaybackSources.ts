@@ -63,7 +63,7 @@ function playbackLabelForSource(source: EditorMediaSource, role: "hls" | "direct
     return "local file" satisfies PlaybackSourceLabel;
   }
 
-  if (source.role === "local-url") {
+  if (source.role === "direct-url") {
     return isHlsEditorMediaSource(source)
       ? "hls url" satisfies PlaybackSourceLabel
       : "url" satisfies PlaybackSourceLabel;

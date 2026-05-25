@@ -20,7 +20,7 @@ export interface BrowserFileHandle {
   requestPermission?: (descriptor?: { mode?: "read" }) => Promise<BrowserFilePermissionState>;
 }
 
-export type EditorMediaSourceRole = "hls" | "direct" | "local-file" | "local-url";
+export type EditorMediaSourceRole = "hls" | "direct" | "local-file" | "direct-url";
 
 interface BaseEditorMediaSource {
   role: EditorMediaSourceRole;
@@ -165,7 +165,7 @@ export function sourceDisplayLabel(source: EditorMediaSource) {
     return "Local file";
   }
 
-  if (source.role === "local-url") {
+  if (source.role === "direct-url") {
     return isHlsEditorMediaSource(source) ? "HLS URL" : "URL";
   }
 

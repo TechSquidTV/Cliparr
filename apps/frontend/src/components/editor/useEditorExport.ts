@@ -429,7 +429,7 @@ function buildExportSourceMessage({
     return "Export will read the selected local file directly in this browser. The file is not uploaded to the Cliparr server.";
   }
 
-  if (resolvedSource.role === "local-url") {
+  if (resolvedSource.role === "direct-url") {
     return isHlsEditorMediaSource(resolvedSource)
       ? "Export will read the HLS URL directly in this browser. The Cliparr server is not used as a proxy."
       : "Export will read the media URL directly in this browser. The Cliparr server is not used as a proxy.";

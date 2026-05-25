@@ -44,7 +44,7 @@ void test("builds local file and URL playback candidates", () => {
   const fileSource = localFileSource();
   const urlSource = {
     kind: "url",
-    role: "local-url",
+    role: "direct-url",
     label: "URL",
     url: "https://example.com/movie.mp4",
     hls: false,

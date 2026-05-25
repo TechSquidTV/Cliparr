@@ -189,7 +189,7 @@ function createFileHandleSource(record: StoredFileHandleRecord): EditorFileHandl
 function createUrlSource(record: StoredUrlRecord): EditorUrlMediaSource {
   return {
     kind: "url",
-    role: "local-url",
+    role: "direct-url",
     label: record.hls ? "HLS URL" : "URL",
     url: record.url,
     hls: record.hls,
