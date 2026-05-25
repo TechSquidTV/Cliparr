@@ -11,6 +11,7 @@ import { EditorSidebar } from "./editor/EditorSidebar";
 import { EditorPlaybackSourcePanel } from "./editor/EditorPlaybackSourcePanel";
 import { EditorTimeline } from "./editor/EditorTimeline";
 import { EditorSubtitlePanel } from "./editor/EditorSubtitlePanel";
+import { buildSubtitleExportSummary } from "./editor/subtitleExportSummary";
 import type { CurrentlyPlayingItem, PlaybackSubtitleTrack } from "../providers/types";
 import type { ExportFormat, ExportResolution } from "../lib/exportClip";
 import {
@@ -68,16 +69,6 @@ function isInteractiveKeyboardTarget(target: EventTarget | null) {
   );
 }
 
-function subtitleTrackDisplayName(track: PlaybackSubtitleTrack | null) {
-  if (!track) {
-    return "No subtitle track selected";
-  }
-
-  return track.title?.trim()
-    || track.languageCode?.trim()?.toUpperCase()
-    || "Selected subtitle track";
-}
-
 export default function EditorScreen({ session, onBack }: Props) {
   const [startTime, setStartTime] = useState(0);
   const [endTime, setEndTime] = useState(() => Math.min(10, Math.max(session.duration, 0)));
@@ -123,71 +114,22 @@ export default function EditorScreen({ session, onBack }: Props) {
     () => subtitleEnabled ? trimSubtitleCues(subtitleCues, startTime, endTime) : [],
     [endTime, startTime, subtitleCues, subtitleEnabled]
   );
-  const subtitleExportSummary = useMemo(() => {
-    if (!selectedSubtitleTrack || !subtitleEnabled) {
-      return {
-        label: "Not included",
-        detail: subtitleTracks.length > 0
-          ? "Subtitle burn-in is currently turned off for this export."
-          : "No supported text subtitle tracks are available for this session.",
-        tone: "muted" as const,
-        disabledReason: null as string | null,
-      };
-    }
-
-    const trackName = subtitleTrackDisplayName(selectedSubtitleTrack);
-
-    if (!subtitleTrackSupportsBurnIn(selectedSubtitleTrack)) {
-      return {
-        label: "Unsupported track",
-        detail: subtitleTrackUnavailableMessage(selectedSubtitleTrack, session.source.providerId)
-          ?? `${trackName} cannot be burned in yet because it is not an exposed text subtitle stream.`,
-        tone: "warning" as const,
-        disabledReason: "Choose a supported text subtitle track or turn subtitle burn-in off.",
-      };
-    }
-
-    if (subtitleLoading) {
-      return {
-        label: "Loading cues",
-        detail: `${trackName} is still being prepared for burn-in.`,
-        tone: "warning" as const,
-        disabledReason: "Subtitles are still loading. Please wait for the cue list to finish loading.",
-      };
-    }
-
-    if (subtitleError) {
-      return {
-        label: "Subtitle issue",
-        detail: subtitleError,
-        tone: "warning" as const,
-        disabledReason: subtitleError,
-      };
-    }
-
-    if (clippedSubtitleCues.length === 0) {
-      return {
-        label: "No cues found",
-        detail: `${trackName} has no subtitle cues inside the selected clip range.`,
-        tone: "muted" as const,
-        disabledReason: null as string | null,
-      };
-    }
-
-    return {
-      label: "Burned in",
-      detail: `${trackName} will be rendered into the exported video frames.`,
-      tone: "ready" as const,
-      disabledReason: null as string | null,
-    };
-  }, [
+  const subtitleExportSummary = useMemo(() => buildSubtitleExportSummary({
     selectedSubtitleTrack,
-    session.source.providerId,
-    clippedSubtitleCues.length,
     subtitleEnabled,
-    subtitleError,
+    subtitleTrackCount: subtitleTracks.length,
+    clippedSubtitleCueCount: clippedSubtitleCues.length,
     subtitleLoading,
+    subtitleError,
+    providerId: session.source.providerId,
+  }), [
+    selectedSubtitleTrack,
+    subtitleEnabled,
     subtitleTracks.length,
+    clippedSubtitleCues.length,
+    subtitleLoading,
+    subtitleError,
+    session.source.providerId,
   ]);
 
   const {
