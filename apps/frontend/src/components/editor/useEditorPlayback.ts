@@ -3,30 +3,59 @@ import type {
   AudioBufferSink,
   CanvasSink,
   Input,
-  InputAudioTrack,
   InputTrack,
-  InputVideoTrack,
   WrappedAudioBuffer,
   WrappedCanvas,
 } from "mediabunny";
-import { getActiveSubtitleCue } from "../../lib/subtitles/getActiveSubtitleCue";
-import { renderSubtitleCue } from "../../lib/subtitles/renderSubtitleCue";
 import type { SubtitleCue, SubtitleStyleSettings } from "../../lib/subtitles/types";
 import { ensureMediabunnyCodecs } from "../../lib/mediabunnyCodecs";
-import { createCliparrInputFromUrl, isHlsPlaylistUrl } from "../../lib/mediabunnyInput";
+import { createCliparrInputFromUrl } from "../../lib/mediabunnyInput";
 import {
   fromSourceTimelineTime,
   getAudioTrackSampleRate,
-  getTrackCodec,
-  getTrackLanguageCode,
-  getTrackName,
   getTrackTimelineOffsetSeconds,
   getVideoTrackDimensions,
   toSourceTimelineTime,
 } from "../../lib/mediabunnyTrackAccess";
 import { selectPreferredPairableAudioTrack } from "../../lib/selectPreferredAudioTrack";
 import type { PlaybackAudioSelection } from "../../providers/types";
-import { errorMessage, isAc3FamilyCodec, themeValue } from "./EditorUtils";
+import { errorMessage } from "./EditorUtils";
+import {
+  applyPlaybackGain,
+  runPlaybackAudioIterator,
+  stopQueuedAudioNodes,
+} from "./editorPlaybackAudio";
+import {
+  assessPreviewAudioTrack,
+  browserDecoderEnvironmentWarning,
+  buildPlaybackFailure,
+  buildPlaybackLoadError,
+  buildPlaybackSourceAnalysis,
+  buildPlaybackSourceCandidates,
+  describePlaybackFailure,
+  formatPlaybackSourceLabel,
+  isPresent,
+  PlaybackSourceError,
+  resolvePlaybackDuration,
+  selectPreviewVideoTrack,
+  shouldUseExportFallback,
+  type PlaybackFallbackInfo,
+  type PlaybackLoadFailure,
+  type PlaybackSourceAnalysisContext,
+} from "./editorPlaybackSources";
+import {
+  createPlaybackSinkResources,
+  disposePlaybackSinkResources,
+  getAudioContextConstructor,
+} from "./editorPlaybackSinks";
+import { useEditorPlaybackRenderLoop } from "./useEditorPlaybackRenderLoop";
+import {
+  useEditorPlaybackWarmup,
+  type PlaybackReadyRange,
+} from "./useEditorPlaybackWarmup";
+
+export type { PlaybackFallbackInfo } from "./editorPlaybackSources";
+export type { PlaybackReadyRange } from "./useEditorPlaybackWarmup";
 
 interface UseEditorPlaybackProps {
   hlsUrl?: string;
@@ -44,349 +73,6 @@ interface UseEditorPlaybackProps {
 interface VideoDimensions {
   width: number;
   height: number;
-}
-
-type WindowWithWebkitAudioContext = Window & {
-  webkitAudioContext?: typeof AudioContext;
-};
-
-const INITIAL_SELECTION_WARMUP_SECONDS = 8;
-const SEEK_SELECTION_EXTENSION_DELAY_MS = 900;
-
-interface PlaybackSourceCandidate {
-  label: "hls stream" | "direct source";
-  url: string;
-}
-
-interface PlaybackLoadFailure {
-  label: PlaybackSourceCandidate["label"];
-  message: string;
-  classification: "hls-playlist" | "unknown";
-  category: "open-or-read" | "preview-only" | "shared-export-blocking";
-}
-
-export interface PlaybackFallbackInfo {
-  category: PlaybackLoadFailure["category"];
-  message: string;
-}
-
-export interface PlaybackReadyRange {
-  startTime: number;
-  endTime: number;
-  readyUntilTime: number;
-  status: "idle" | "warming" | "ready";
-}
-
-interface WarmClipSelectionOptions {
-  extendToSelectionEnd?: boolean;
-}
-
-interface PlaybackSourceAnalysisContext {
-  sessionId: string;
-  source: PlaybackSourceCandidate["label"];
-  url: string;
-  selectedAudioTrack?: PlaybackAudioSelection;
-  videoTracks: readonly InputVideoTrack[];
-  allAudioTracks: readonly InputAudioTrack[];
-  sourceVideoTrack: InputVideoTrack | null;
-  previewVideoTrack: InputVideoTrack | null;
-  sourceAudioTrack: InputAudioTrack | null;
-  previewAudioTrack: InputAudioTrack | null;
-  previewAudioWarning?: string;
-  warnings: string[];
-  isLivePlayback: boolean;
-}
-
-class PlaybackSourceError extends Error {
-  category: PlaybackLoadFailure["category"];
-
-  constructor(category: PlaybackLoadFailure["category"], message: string) {
-    super(message);
-    this.name = "PlaybackSourceError";
-    this.category = category;
-  }
-}
-
-function getAudioContextConstructor() {
-  return window.AudioContext ?? (window as WindowWithWebkitAudioContext).webkitAudioContext;
-}
-
-function buildPlaybackSourceCandidates(hlsUrl: string | undefined, mediaUrl: string | undefined) {
-  const candidates: PlaybackSourceCandidate[] = [];
-
-  if (hlsUrl) {
-    candidates.push({ label: "hls stream", url: hlsUrl });
-  }
-
-  if (mediaUrl && !candidates.some((candidate) => candidate.url === mediaUrl)) {
-    candidates.push({ label: "direct source", url: mediaUrl });
-  }
-
-  return candidates;
-}
-
-function classifyPlaybackSource(source: Pick<PlaybackSourceCandidate, "label" | "url">): PlaybackLoadFailure["classification"] {
-  return source.label === "hls stream" || isHlsPlaylistUrl(source.url) ? "hls-playlist" : "unknown";
-}
-
-function buildPlaybackFailure(source: PlaybackSourceCandidate, err: unknown): PlaybackLoadFailure {
-  return {
-    label: source.label,
-    message: errorMessage(err),
-    classification: classifyPlaybackSource(source),
-    category: err instanceof PlaybackSourceError ? err.category : "open-or-read",
-  };
-}
-
-function shouldUseExportFallback(failure: PlaybackLoadFailure) {
-  return failure.category === "open-or-read" || failure.category === "shared-export-blocking";
-}
-
-function describePlaybackFailure(failure: PlaybackLoadFailure) {
-  const prefix = failure.label === "hls stream" ? "HLS stream" : "Direct source";
-
-  return `${prefix} failed: ${failure.message}`;
-}
-
-function formatPlaybackSourceLabel(label: PlaybackSourceCandidate["label"]) {
-  return label === "hls stream" ? "HLS stream" : "Direct source";
-}
-
-function isPresent<T>(value: T | null | undefined): value is T {
-  return value !== null && value !== undefined;
-}
-
-function samePlaybackRange(
-  left: Pick<PlaybackReadyRange, "startTime" | "endTime"> | null | undefined,
-  right: Pick<PlaybackReadyRange, "startTime" | "endTime">,
-) {
-  return (
-    left !== null
-    && left !== undefined
-    && Math.abs(left.startTime - right.startTime) < 1e-6
-    && Math.abs(left.endTime - right.endTime) < 1e-6
-  );
-}
-
-function finiteNonNegativeDuration(value: number) {
-  return Number.isFinite(value) ? Math.max(0, value) : 0;
-}
-
-function resolvePlaybackDuration(
-  playbackSource: PlaybackSourceCandidate,
-  computedDuration: number,
-  initialDuration: number,
-) {
-  const fallbackDuration = finiteNonNegativeDuration(initialDuration);
-  const normalizedComputedDuration = finiteNonNegativeDuration(computedDuration);
-
-  if (playbackSource.label === "hls stream") {
-    return Math.max(fallbackDuration, normalizedComputedDuration);
-  }
-
-  return normalizedComputedDuration || fallbackDuration;
-}
-
-function buildPlaybackLoadError(failures: PlaybackLoadFailure[]) {
-  if (failures.length === 0) {
-    return "Playback could not be loaded.";
-  }
-
-  if (failures.length === 1) {
-    return describePlaybackFailure(failures[0]);
-  }
-
-  const uniqueMessages = [...new Set(failures.map((failure) => failure.message))];
-  if (uniqueMessages.length === 1) {
-    return `Cliparr could not open any playback stream. ${uniqueMessages[0]}`;
-  }
-
-  return `Cliparr could not open any playback stream. ${failures.map(describePlaybackFailure).join(" ")}`;
-}
-
-function browserDecoderEnvironmentWarning() {
-  const missingDecoders = [
-    "VideoDecoder" in window ? null : "video",
-    "AudioDecoder" in window ? null : "audio",
-  ].filter(isPresent);
-
-  if (missingDecoders.length === 0) {
-    return undefined;
-  }
-
-  if (!window.isSecureContext) {
-    return `Browser WebCodecs ${missingDecoders.join(" and ")} decoding is unavailable from ${window.location.origin}. Open Cliparr over HTTPS, localhost, or 127.0.0.1 so the editor can decode media. Jellyfin playback can still work on this origin because its native player does not use the same editor decoder APIs.`;
-  }
-
-  return `Browser WebCodecs ${missingDecoders.join(" and ")} decoding is unavailable in this browser.`;
-}
-
-async function assessPreviewVideoTrack(track: InputVideoTrack | null) {
-  if (!track) {
-    return { track: null, warning: undefined };
-  }
-
-  const videoCodec = await getTrackCodec(track);
-  if (videoCodec === null) {
-    return {
-      track: null,
-      warning: "Video codec is unknown.",
-    };
-  }
-
-  if (!(await track.canDecode())) {
-    return {
-      track: null,
-      warning: `Cannot decode ${videoCodec} video in this browser.`,
-    };
-  }
-
-  return { track, warning: undefined };
-}
-
-async function selectPreviewVideoTrack(videoTracks: readonly InputVideoTrack[]) {
-  const sourceVideoTrack = videoTracks[0] ?? null;
-  if (!sourceVideoTrack) {
-    return {
-      sourceVideoTrack: null,
-      previewVideoTrack: null,
-      warnings: [] as string[],
-    };
-  }
-
-  const warnings: string[] = [];
-  const primaryAssessment = await assessPreviewVideoTrack(sourceVideoTrack);
-  if (primaryAssessment.track) {
-    return {
-      sourceVideoTrack,
-      previewVideoTrack: primaryAssessment.track,
-      warnings,
-    };
-  }
-
-  if (primaryAssessment.warning) {
-    warnings.push(primaryAssessment.warning);
-  }
-
-  for (const candidate of videoTracks.slice(1)) {
-    const candidateAssessment = await assessPreviewVideoTrack(candidate);
-    if (candidateAssessment.track) {
-      return {
-        sourceVideoTrack,
-        previewVideoTrack: candidateAssessment.track,
-        warnings,
-      };
-    }
-  }
-
-  return {
-    sourceVideoTrack,
-    previewVideoTrack: null,
-    warnings,
-  };
-}
-
-async function assessPreviewAudioTrack(track: InputAudioTrack | null) {
-  if (!track) {
-    return { track: null, warning: undefined };
-  }
-
-  const audioCodec = await getTrackCodec(track);
-  if (audioCodec === null) {
-    return {
-      track: null,
-      warning: "Audio codec is unknown.",
-    };
-  }
-
-  if (!(await track.canDecode()) && !isAc3FamilyCodec(audioCodec)) {
-    return {
-      track: null,
-      warning: `Cannot decode ${audioCodec} audio in this browser.`,
-    };
-  }
-
-  return { track, warning: undefined };
-}
-
-async function summarizeVideoTrackForDebug(track: InputVideoTrack | null) {
-  if (!track) {
-    return null;
-  }
-
-  const [codec, title, canDecode] = await Promise.all([
-    getTrackCodec(track),
-    getTrackName(track),
-    track.canDecode().catch(() => null),
-  ]);
-
-  return {
-    trackNumber: track.number,
-    codec: codec ?? null,
-    title: title ?? null,
-    canDecode,
-  };
-}
-
-async function summarizeAudioTrackForDebug(track: InputAudioTrack | null) {
-  if (!track) {
-    return null;
-  }
-
-  const [codec, title, languageCode, canDecode] = await Promise.all([
-    getTrackCodec(track),
-    getTrackName(track),
-    getTrackLanguageCode(track),
-    track.canDecode().catch(() => null),
-  ]);
-
-  return {
-    trackNumber: track.number,
-    codec: codec ?? null,
-    title: title ?? null,
-    languageCode: languageCode ?? null,
-    canDecode,
-  };
-}
-
-async function summarizeAudioTracksForDebug(tracks: readonly InputAudioTrack[]) {
-  return Promise.all(tracks.map((track) => summarizeAudioTrackForDebug(track)));
-}
-
-async function buildPlaybackSourceAnalysis(context: PlaybackSourceAnalysisContext) {
-  const [
-    allAudioTracks,
-    sourceVideoTrack,
-    previewVideoTrack,
-    sourceAudioTrack,
-    previewAudioTrack,
-  ] = await Promise.all([
-    summarizeAudioTracksForDebug(context.allAudioTracks),
-    summarizeVideoTrackForDebug(context.sourceVideoTrack),
-    summarizeVideoTrackForDebug(context.previewVideoTrack),
-    summarizeAudioTrackForDebug(context.sourceAudioTrack),
-    summarizeAudioTrackForDebug(context.previewAudioTrack),
-  ]);
-
-  return {
-    sessionId: context.sessionId,
-    source: context.source,
-    urlClassification: classifyPlaybackSource({
-      label: context.source,
-      url: context.url,
-    }),
-    selectedAudioTrack: context.selectedAudioTrack ?? null,
-    videoTrackCount: context.videoTracks.length,
-    audioTrackCount: context.allAudioTracks.length,
-    allAudioTracks,
-    sourceVideoTrack,
-    previewVideoTrack,
-    sourceAudioTrack,
-    previewAudioTrack,
-    previewAudioWarning: context.previewAudioWarning ?? null,
-    warnings: [...context.warnings],
-    isLivePlayback: context.isLivePlayback,
-  } satisfies Record<string, unknown>;
 }
 
 export function useEditorPlayback({
@@ -479,10 +165,7 @@ export function useEditorPlayback({
   useEffect(() => {
     volumeRef.current = volume;
     mutedRef.current = muted;
-    if (gainNodeRef.current) {
-      const actualVolume = muted || volume === 0 ? 0 : volume;
-      gainNodeRef.current.gain.value = actualVolume ** 2;
-    }
+    applyPlaybackGain(gainNodeRef.current, volume, muted);
   }, [volume, muted]);
 
   useEffect(() => {
@@ -521,14 +204,7 @@ export function useEditorPlayback({
   }, [clampTime]);
 
   const stopAudioNodes = useCallback(() => {
-    for (const node of queuedAudioNodesRef.current) {
-      try {
-        node.stop();
-      } catch {
-        // The node may have already ended.
-      }
-    }
-    queuedAudioNodesRef.current.clear();
+    stopQueuedAudioNodes(queuedAudioNodesRef.current);
   }, []);
 
   const pausePlayback = useCallback((storeCurrentTime = true) => {
@@ -544,185 +220,74 @@ export function useEditorPlayback({
     stopAudioNodes();
   }, [getPlaybackTime, stopAudioNodes]);
 
-  const stopRenderLoop = useCallback(() => {
-    if (animationFrameRef.current !== null) {
-      cancelAnimationFrame(animationFrameRef.current);
-      animationFrameRef.current = null;
-    }
-    if (renderIntervalRef.current !== null) {
-      window.clearInterval(renderIntervalRef.current);
-      renderIntervalRef.current = null;
-    }
-  }, []);
+  const {
+    drawFrame,
+    startVideoIterator,
+    startRenderLoop,
+    stopRenderLoop,
+  } = useEditorPlaybackRenderLoop({
+    canvasRef,
+    inputRef,
+    videoSinkRef,
+    videoFrameIteratorRef,
+    nextFrameRef,
+    displayedFrameRef,
+    animationFrameRef,
+    renderIntervalRef,
+    generationRef,
+    playingRef,
+    playbackTimeAtStartRef,
+    sourceTimelineOffsetRef,
+    skipLiveWaitRef,
+    durationRef,
+    startTimeRef,
+    endTimeRef,
+    subtitleCuesRef,
+    subtitlesEnabledRef,
+    subtitleStyleSettingsRef,
+    getPlaybackTime,
+    clampTime,
+    pausePlayback,
+    setCurrentTime,
+    setError,
+  });
 
-  const drawFrame = useCallback((frame: WrappedCanvas) => {
-    const canvas = canvasRef.current;
-    const context = canvas?.getContext("2d");
-    if (!canvas || !context) {
-      return;
-    }
-    context.clearRect(0, 0, canvas.width, canvas.height);
-    context.drawImage(frame.canvas, 0, 0, canvas.width, canvas.height);
-
-    if (subtitlesEnabledRef.current && subtitleStyleSettingsRef.current) {
-      const cue = getActiveSubtitleCue(
-        subtitleCuesRef.current,
-        fromSourceTimelineTime(frame.timestamp, sourceTimelineOffsetRef.current)
-      );
-      if (cue) {
-        renderSubtitleCue(
-          context,
-          cue,
-          subtitleStyleSettingsRef.current,
-          canvas.width,
-          canvas.height
-        );
-      }
-    }
-
-    displayedFrameRef.current = frame;
-  }, []);
-
-  const drawPlaceholder = useCallback((message: string) => {
-    const canvas = canvasRef.current;
-    const context = canvas?.getContext("2d");
-    if (!canvas || !context) {
-      return;
-    }
-    if (!canvas.width || !canvas.height) {
-      canvas.width = 1280;
-      canvas.height = 720;
-    }
-    const bodyStyles = getComputedStyle(document.body);
-    context.fillStyle = themeValue("--editor-preview-stage", bodyStyles.backgroundColor);
-    context.fillRect(0, 0, canvas.width, canvas.height);
-    context.fillStyle = themeValue("--editor-preview-overlay-foreground", bodyStyles.color);
-    context.font = "24px sans-serif";
-    context.textAlign = "center";
-    context.fillText(message, canvas.width / 2, canvas.height / 2);
-  }, []);
-
-  const cancelScheduledSelectionWarmupExtension = useCallback(() => {
-    if (selectionWarmupExtensionTimeoutRef.current !== null) {
-      window.clearTimeout(selectionWarmupExtensionTimeoutRef.current);
-      selectionWarmupExtensionTimeoutRef.current = null;
-    }
-  }, []);
-
-  const cancelSelectionWarmup = useCallback(() => {
-    cancelScheduledSelectionWarmupExtension();
-    selectionWarmupGenerationRef.current++;
-    selectionWarmupPromiseRef.current = null;
-    void selectionWarmupVideoIteratorRef.current?.return();
-    void selectionWarmupAudioIteratorRef.current?.return();
-    selectionWarmupVideoIteratorRef.current = null;
-    selectionWarmupAudioIteratorRef.current = null;
-  }, [cancelScheduledSelectionWarmupExtension]);
-
-  const startVideoIterator = useCallback(async () => {
-    const videoSink = videoSinkRef.current;
-    const generation = ++generationRef.current;
-    void videoFrameIteratorRef.current?.return();
-    videoFrameIteratorRef.current = null;
-    nextFrameRef.current = null;
-
-    if (!videoSink) {
-      drawPlaceholder("Audio only");
-      return;
-    }
-
-    const packetRetrievalOptions = skipLiveWaitRef.current ? { skipLiveWait: true } : undefined;
-    videoFrameIteratorRef.current = videoSink.canvases(
-      toSourceTimelineTime(getPlaybackTime(), sourceTimelineOffsetRef.current),
-      Infinity,
-      packetRetrievalOptions,
-    );
-    const firstResult = await videoFrameIteratorRef.current.next();
-    const secondResult = await videoFrameIteratorRef.current.next();
-    const firstFrame = firstResult.done ? null : (firstResult.value as WrappedCanvas);
-    const secondFrame = secondResult.done ? null : (secondResult.value as WrappedCanvas);
-
-    if (generation !== generationRef.current) {
-      return;
-    }
-
-    nextFrameRef.current = secondFrame;
-    if (firstFrame) {
-      drawFrame(firstFrame);
-    }
-  }, [drawFrame, drawPlaceholder, getPlaybackTime]);
-
-  const updateNextFrame = useCallback(async (generation: number) => {
-    const iterator = videoFrameIteratorRef.current;
-    if (!iterator) {
-      return;
-    }
-
-    try {
-      while (generation === generationRef.current) {
-        const result = await iterator.next();
-        const newNextFrame = result.done ? null : (result.value as WrappedCanvas);
-        if (!newNextFrame || generation !== generationRef.current) {
-          break;
-        }
-
-        const playbackTime = getPlaybackTime();
-        if (
-          fromSourceTimelineTime(newNextFrame.timestamp, sourceTimelineOffsetRef.current)
-            <= playbackTime
-        ) {
-          drawFrame(newNextFrame);
-        } else {
-          nextFrameRef.current = newNextFrame;
-          break;
-        }
-      }
-    } catch (err) {
-      if (generation === generationRef.current) {
-        setError(errorMessage(err));
-      }
-    }
-  }, [drawFrame, getPlaybackTime]);
-
-  const renderFrame = useCallback(() => {
-    if (!inputRef.current) {
-      return;
-    }
-
-    const playbackTime = getPlaybackTime();
-    const clipEnd = Math.min(endTimeRef.current || durationRef.current, durationRef.current);
-
-    if (playingRef.current && playbackTime >= clipEnd) {
-      pausePlayback(false);
-      const nextTime = clampTime(startTimeRef.current);
-      playbackTimeAtStartRef.current = nextTime;
-      setCurrentTime(nextTime);
-      void startVideoIterator();
-      return;
-    }
-
-    const nextFrame = nextFrameRef.current;
-    if (
-      nextFrame
-      && fromSourceTimelineTime(nextFrame.timestamp, sourceTimelineOffsetRef.current) <= playbackTime
-    ) {
-      drawFrame(nextFrame);
-      nextFrameRef.current = null;
-      void updateNextFrame(generationRef.current);
-    }
-
-    setCurrentTime(playbackTime);
-  }, [clampTime, drawFrame, getPlaybackTime, pausePlayback, startVideoIterator, updateNextFrame]);
-
-  const startRenderLoop = useCallback(() => {
-    stopRenderLoop();
-    const tick = () => {
-      renderFrame();
-      animationFrameRef.current = requestAnimationFrame(tick);
-    };
-    animationFrameRef.current = requestAnimationFrame(tick);
-    renderIntervalRef.current = window.setInterval(renderFrame, 500);
-  }, [renderFrame, stopRenderLoop]);
+  const {
+    cancelSelectionWarmup,
+    warmClipStart,
+    warmClipSelection,
+    scheduleSelectionWarmupExtension,
+  } = useEditorPlaybackWarmup({
+    loadingPreview,
+    activeSourceLabel,
+    playing,
+    currentTime,
+    startTime,
+    endTime,
+    sessionId,
+    videoSinkRef,
+    audioSinkRef,
+    generationRef,
+    warmupGenerationRef,
+    warmupPromiseRef,
+    warmupTargetTimeRef,
+    selectionWarmupGenerationRef,
+    selectionWarmupPromiseRef,
+    selectionWarmupVideoIteratorRef,
+    selectionWarmupAudioIteratorRef,
+    selectionWarmupExtensionTimeoutRef,
+    autoWarmupSessionKeyRef,
+    wasPlayingRef,
+    playingRef,
+    activeSourceLabelRef,
+    playbackReadyRangeRef,
+    sourceTimelineOffsetRef,
+    skipLiveWaitRef,
+    startTimeRef,
+    endTimeRef,
+    clampTime,
+    setPlaybackReadyRange,
+  });
 
   const resetPreview = useCallback((advanceGeneration = false, clearActiveSource = false) => {
     if (advanceGeneration) {
@@ -746,13 +311,13 @@ export function useEditorPlayback({
     warmupPromiseRef.current = null;
     warmupTargetTimeRef.current = null;
     displayedFrameRef.current = null;
-    videoSinkRef.current = null;
-    audioSinkRef.current = null;
-    inputRef.current?.dispose();
-    inputRef.current = null;
-    void audioContextRef.current?.close().catch(() => undefined);
-    audioContextRef.current = null;
-    gainNodeRef.current = null;
+    disposePlaybackSinkResources({
+      inputRef,
+      videoSinkRef,
+      audioSinkRef,
+      audioContextRef,
+      gainNodeRef,
+    });
     setPlaybackReadyRange(null);
   }, [cancelSelectionWarmup, pausePlayback, stopRenderLoop]);
 
@@ -768,68 +333,23 @@ export function useEditorPlayback({
   }, [resetPreview]);
 
   const runAudioIterator = useCallback(async (generation: number) => {
-    const iterator = audioBufferIteratorRef.current;
-    const audioContext = audioContextRef.current;
-    const gainNode = gainNodeRef.current;
-    if (!iterator || !audioContext || !gainNode) {
-      return;
-    }
-
-    try {
-      for await (const { buffer, timestamp } of iterator) {
-        if (generation !== generationRef.current || !playingRef.current) {
-          break;
-        }
-
-        const node = audioContext.createBufferSource();
-        node.buffer = buffer;
-        node.connect(gainNode);
-        const displayTimestamp = fromSourceTimelineTime(timestamp, sourceTimelineOffsetRef.current);
-
-        const startTimestamp = (
-          audioContextStartTimeRef.current ?? audioContext.currentTime
-        ) + displayTimestamp - playbackTimeAtStartRef.current;
-
-        let started = false;
-        if (startTimestamp >= audioContext.currentTime) {
-          node.start(startTimestamp);
-          started = true;
-        } else {
-          const offset = audioContext.currentTime - startTimestamp;
-          if (offset < buffer.duration) {
-            node.start(audioContext.currentTime, offset);
-            started = true;
-          }
-        }
-
-        if (started) {
-          queuedAudioNodesRef.current.add(node);
-          node.onended = () => {
-            queuedAudioNodesRef.current.delete(node);
-          };
-        }
-
-        if (displayTimestamp - getPlaybackTime() >= 1) {
-          await new Promise<void>((resolve) => {
-            const intervalId = window.setInterval(() => {
-              if (
-                generation !== generationRef.current ||
-                !playingRef.current ||
-                displayTimestamp - getPlaybackTime() < 1
-              ) {
-                window.clearInterval(intervalId);
-                resolve();
-              }
-            }, 100);
-          });
-        }
-      }
-    } catch (err) {
-      if (generation === generationRef.current) {
+    await runPlaybackAudioIterator({
+      iterator: audioBufferIteratorRef.current,
+      audioContext: audioContextRef.current,
+      gainNode: gainNodeRef.current,
+      queuedAudioNodes: queuedAudioNodesRef.current,
+      generation,
+      generationRef,
+      playingRef,
+      audioContextStartTimeRef,
+      playbackTimeAtStartRef,
+      sourceTimelineOffsetRef,
+      getPlaybackTime,
+      onError: (err) => {
         setError(errorMessage(err));
         pausePlayback();
-      }
-    }
+      },
+    });
   }, [getPlaybackTime, pausePlayback]);
 
   const playPreview = useCallback(async () => {
@@ -909,378 +429,6 @@ export function useEditorPlayback({
     });
   }, [pausePlayback, playPreview]);
 
-  const warmClipStart = useCallback(async (clipStart: number) => {
-    if (
-      loadingPreview ||
-      playingRef.current ||
-      activeSourceLabelRef.current !== "HLS stream"
-    ) {
-      return;
-    }
-
-    const videoSink = videoSinkRef.current;
-    const audioSink = audioSinkRef.current;
-    if (!videoSink && !audioSink) {
-      return;
-    }
-
-    const displayTimestamp = Number(clampTime(clipStart).toFixed(6));
-    if (!Number.isFinite(displayTimestamp)) {
-      return;
-    }
-    if (
-      warmupPromiseRef.current
-      && warmupTargetTimeRef.current !== null
-      && Math.abs(warmupTargetTimeRef.current - displayTimestamp) < 1e-6
-    ) {
-      return warmupPromiseRef.current;
-    }
-
-    const sourceTimestamp = toSourceTimelineTime(displayTimestamp, sourceTimelineOffsetRef.current);
-    const packetRetrievalOptions = skipLiveWaitRef.current ? { skipLiveWait: true } : undefined;
-    const warmupGeneration = ++warmupGenerationRef.current;
-    const playbackGeneration = generationRef.current;
-    warmupTargetTimeRef.current = displayTimestamp;
-
-    const warmupPromise = (async () => {
-      if (
-        warmupGeneration !== warmupGenerationRef.current ||
-        playbackGeneration !== generationRef.current ||
-        playingRef.current
-      ) {
-        return;
-      }
-
-      try {
-        await Promise.allSettled([
-          videoSink ? videoSink.getCanvas(sourceTimestamp, packetRetrievalOptions) : Promise.resolve(null),
-          audioSink ? audioSink.getBuffer(sourceTimestamp, packetRetrievalOptions) : Promise.resolve(null),
-        ]);
-      } catch {
-        // Warmup is opportunistic; playback still works without it.
-      }
-    })();
-
-    warmupPromiseRef.current = warmupPromise;
-    try {
-      await warmupPromise;
-    } finally {
-      if (warmupPromiseRef.current === warmupPromise) {
-        warmupPromiseRef.current = null;
-        warmupTargetTimeRef.current = null;
-      }
-    }
-  }, [clampTime, loadingPreview]);
-
-  const warmClipSelection = useCallback(async (
-    clipStart: number,
-    clipEnd: number,
-    options: WarmClipSelectionOptions = {},
-  ) => {
-    if (
-      loadingPreview
-      || playingRef.current
-      || activeSourceLabelRef.current !== "HLS stream"
-    ) {
-      return;
-    }
-
-    const extendToSelectionEnd = options.extendToSelectionEnd ?? true;
-    const videoSink = videoSinkRef.current;
-    const audioSink = audioSinkRef.current;
-    if (!videoSink && !audioSink) {
-      return;
-    }
-
-    const normalizedStart = Number(clampTime(clipStart).toFixed(6));
-    const normalizedEnd = Number(clampTime(clipEnd).toFixed(6));
-    if (!Number.isFinite(normalizedStart) || !Number.isFinite(normalizedEnd) || normalizedEnd <= normalizedStart) {
-      return;
-    }
-
-    const nextRange: PlaybackReadyRange = {
-      startTime: normalizedStart,
-      endTime: normalizedEnd,
-      readyUntilTime: normalizedStart,
-      status: "warming",
-    };
-    const currentReadyRange = playbackReadyRangeRef.current;
-    if (
-      samePlaybackRange(currentReadyRange, nextRange)
-      && currentReadyRange?.status === "ready"
-      && currentReadyRange.readyUntilTime >= normalizedEnd
-    ) {
-      return;
-    }
-
-    setPlaybackReadyRange((current) => {
-      if (samePlaybackRange(current, nextRange) && current) {
-        return {
-          ...current,
-          status: current.status === "ready" ? "ready" : "warming",
-        };
-      }
-
-      return nextRange;
-    });
-
-    await warmClipStart(normalizedStart);
-
-    if (
-      loadingPreview
-      || playingRef.current
-      || activeSourceLabelRef.current !== "HLS stream"
-    ) {
-      return;
-    }
-
-    cancelSelectionWarmup();
-    const warmupGeneration = selectionWarmupGenerationRef.current;
-    const packetRetrievalOptions = skipLiveWaitRef.current ? { skipLiveWait: true } : undefined;
-    const initialReadyEnd = Math.min(normalizedEnd, normalizedStart + INITIAL_SELECTION_WARMUP_SECONDS);
-
-    let lastPublishedReadyUntil = normalizedStart;
-    let videoReadyUntil = normalizedStart;
-    let audioReadyUntil = normalizedStart;
-    let videoReachedSelectionEnd = !videoSink;
-    let audioReachedSelectionEnd = !audioSink;
-
-    const computeReadyUntil = () => {
-      const readyTimes = [
-        videoSink ? videoReadyUntil : null,
-        audioSink ? audioReadyUntil : null,
-      ].filter(isPresent);
-
-      return readyTimes.length > 0 ? Math.min(...readyTimes) : normalizedStart;
-    };
-
-    const publishReadyUntil = (
-      nextReadyUntil: number,
-      status: PlaybackReadyRange["status"],
-      force = false,
-    ) => {
-      const clampedReadyUntil = Math.max(
-        normalizedStart,
-        Math.min(normalizedEnd, Number(nextReadyUntil.toFixed(6))),
-      );
-
-      if (
-        !force
-        && clampedReadyUntil < normalizedEnd
-        && clampedReadyUntil - lastPublishedReadyUntil < 0.25
-      ) {
-        return;
-      }
-
-      lastPublishedReadyUntil = Math.max(lastPublishedReadyUntil, clampedReadyUntil);
-      setPlaybackReadyRange((current) => {
-        const baseRange: PlaybackReadyRange = samePlaybackRange(current, nextRange) && current
-          ? current
-          : {
-              ...nextRange,
-              status: "idle",
-            };
-        const readyUntilTime = Math.max(baseRange.readyUntilTime, clampedReadyUntil);
-
-        if (
-          baseRange.status === status
-          && Math.abs(baseRange.readyUntilTime - readyUntilTime) < 1e-6
-        ) {
-          return current ?? baseRange;
-        }
-
-        return {
-          startTime: normalizedStart,
-          endTime: normalizedEnd,
-          readyUntilTime,
-          status,
-        };
-      });
-    };
-
-    const selectionWarmupPromise = (async () => {
-      const isCancelled = () => (
-        warmupGeneration !== selectionWarmupGenerationRef.current
-        || playingRef.current
-        || activeSourceLabelRef.current !== "HLS stream"
-      );
-
-      const warmVideoRange = async (rangeStart: number, rangeEnd: number) => {
-        if (!videoSink || rangeEnd <= rangeStart) {
-          return true;
-        }
-
-        const iterator = videoSink.canvases(
-          toSourceTimelineTime(rangeStart, sourceTimelineOffsetRef.current),
-          toSourceTimelineTime(rangeEnd, sourceTimelineOffsetRef.current),
-          packetRetrievalOptions,
-        );
-        selectionWarmupVideoIteratorRef.current = iterator;
-        let completedRange = false;
-
-        try {
-          for await (const frame of iterator) {
-            if (isCancelled()) {
-              break;
-            }
-
-            videoReadyUntil = Math.max(
-              videoReadyUntil,
-              clampTime(fromSourceTimelineTime(frame.timestamp, sourceTimelineOffsetRef.current)),
-            );
-            publishReadyUntil(computeReadyUntil(), "warming");
-
-            if (videoReadyUntil >= rangeEnd) {
-              completedRange = true;
-              break;
-            }
-          }
-        } catch {
-          // Selection warmup is best-effort; playback still works without it.
-        } finally {
-          if (selectionWarmupVideoIteratorRef.current === iterator) {
-            selectionWarmupVideoIteratorRef.current = null;
-          }
-        }
-
-        if (!isCancelled() && !completedRange && rangeEnd - videoReadyUntil <= 0.5) {
-          completedRange = true;
-        }
-
-        if (!isCancelled() && completedRange) {
-          videoReadyUntil = Math.max(videoReadyUntil, rangeEnd);
-          if (rangeEnd >= normalizedEnd) {
-            videoReachedSelectionEnd = true;
-          }
-          publishReadyUntil(computeReadyUntil(), "warming", true);
-        }
-
-        return completedRange;
-      };
-
-      const warmAudioRange = async (rangeStart: number, rangeEnd: number) => {
-        if (!audioSink || rangeEnd <= rangeStart) {
-          return true;
-        }
-
-        const iterator = audioSink.buffers(
-          toSourceTimelineTime(rangeStart, sourceTimelineOffsetRef.current),
-          toSourceTimelineTime(rangeEnd, sourceTimelineOffsetRef.current),
-          packetRetrievalOptions,
-        );
-        selectionWarmupAudioIteratorRef.current = iterator;
-        let completedRange = false;
-
-        try {
-          for await (const { buffer, timestamp } of iterator) {
-            if (isCancelled()) {
-              break;
-            }
-
-            audioReadyUntil = Math.max(
-              audioReadyUntil,
-              clampTime(
-                fromSourceTimelineTime(
-                  timestamp + buffer.duration,
-                  sourceTimelineOffsetRef.current,
-                ),
-              ),
-            );
-            publishReadyUntil(computeReadyUntil(), "warming");
-
-            if (audioReadyUntil >= rangeEnd) {
-              completedRange = true;
-              break;
-            }
-          }
-        } catch {
-          // Selection warmup is best-effort; playback still works without it.
-        } finally {
-          if (selectionWarmupAudioIteratorRef.current === iterator) {
-            selectionWarmupAudioIteratorRef.current = null;
-          }
-        }
-
-        if (!isCancelled() && !completedRange && rangeEnd - audioReadyUntil <= 0.05) {
-          completedRange = true;
-        }
-
-        if (!isCancelled() && completedRange) {
-          audioReadyUntil = Math.max(audioReadyUntil, rangeEnd);
-          if (rangeEnd >= normalizedEnd) {
-            audioReachedSelectionEnd = true;
-          }
-          publishReadyUntil(computeReadyUntil(), "warming", true);
-        }
-
-        return completedRange;
-      };
-
-      await Promise.allSettled([
-        warmVideoRange(normalizedStart, initialReadyEnd),
-        warmAudioRange(normalizedStart, initialReadyEnd),
-      ]);
-
-      if (!isCancelled() && extendToSelectionEnd && normalizedEnd > initialReadyEnd) {
-        await Promise.allSettled([
-          warmVideoRange(Math.max(videoReadyUntil, initialReadyEnd), normalizedEnd),
-          warmAudioRange(Math.max(audioReadyUntil, initialReadyEnd), normalizedEnd),
-        ]);
-      }
-
-      if (!isCancelled()) {
-        publishReadyUntil(
-          videoReachedSelectionEnd && audioReachedSelectionEnd
-            ? normalizedEnd
-            : computeReadyUntil(),
-          videoReachedSelectionEnd && audioReachedSelectionEnd ? "ready" : "idle",
-          true,
-        );
-      }
-    })();
-
-    selectionWarmupPromiseRef.current = selectionWarmupPromise;
-    try {
-      await selectionWarmupPromise;
-    } finally {
-      if (selectionWarmupPromiseRef.current === selectionWarmupPromise) {
-        selectionWarmupPromiseRef.current = null;
-      }
-    }
-  }, [cancelSelectionWarmup, clampTime, loadingPreview, warmClipStart]);
-
-  const scheduleSelectionWarmupExtension = useCallback((clipStart: number, clipEnd: number) => {
-    cancelScheduledSelectionWarmupExtension();
-
-    if (
-      loadingPreview
-      || playingRef.current
-      || activeSourceLabelRef.current !== "HLS stream"
-    ) {
-      return;
-    }
-
-    const normalizedStart = Number(clampTime(clipStart).toFixed(6));
-    const normalizedEnd = Number(clampTime(clipEnd).toFixed(6));
-    if (!Number.isFinite(normalizedStart) || !Number.isFinite(normalizedEnd) || normalizedEnd <= normalizedStart) {
-      return;
-    }
-
-    selectionWarmupExtensionTimeoutRef.current = window.setTimeout(() => {
-      selectionWarmupExtensionTimeoutRef.current = null;
-
-      if (
-        loadingPreview
-        || playingRef.current
-        || activeSourceLabelRef.current !== "HLS stream"
-      ) {
-        return;
-      }
-
-      void warmClipSelection(normalizedStart, normalizedEnd);
-    }, SEEK_SELECTION_EXTENSION_DELAY_MS);
-  }, [cancelScheduledSelectionWarmupExtension, clampTime, loadingPreview, warmClipSelection]);
-
   const seekToTime = useCallback(async (seconds: number) => {
     const nextTime = clampTime(seconds);
     const wasPlaying = playingRef.current;
@@ -1323,114 +471,6 @@ export function useEditorPlayback({
     warmClipStart,
     warmClipSelection,
   ]);
-
-  useEffect(() => {
-    if (loadingPreview || activeSourceLabel !== "HLS stream") {
-      autoWarmupSessionKeyRef.current = null;
-      setPlaybackReadyRange(null);
-      return;
-    }
-
-    const normalizedStart = Number(clampTime(startTime).toFixed(6));
-    const normalizedEnd = Number(clampTime(endTime).toFixed(6));
-    if (!Number.isFinite(normalizedStart) || !Number.isFinite(normalizedEnd) || normalizedEnd <= normalizedStart) {
-      setPlaybackReadyRange(null);
-      return;
-    }
-
-    const nextRange: PlaybackReadyRange = {
-      startTime: normalizedStart,
-      endTime: normalizedEnd,
-      readyUntilTime: normalizedStart,
-      status: "idle",
-    };
-
-    setPlaybackReadyRange((current) => (
-      samePlaybackRange(current, nextRange) ? current : nextRange
-    ));
-
-    const warmupSessionKey = `${sessionId}:hls:${normalizedStart}:${normalizedEnd}`;
-    if (autoWarmupSessionKeyRef.current === warmupSessionKey) {
-      return;
-    }
-
-    autoWarmupSessionKeyRef.current = warmupSessionKey;
-    void warmClipSelection(startTimeRef.current, endTimeRef.current, {
-      extendToSelectionEnd: false,
-    });
-    scheduleSelectionWarmupExtension(startTimeRef.current, endTimeRef.current);
-  }, [
-    activeSourceLabel,
-    clampTime,
-    endTime,
-    loadingPreview,
-    scheduleSelectionWarmupExtension,
-    sessionId,
-    startTime,
-    warmClipSelection,
-  ]);
-
-  useEffect(() => {
-    if (
-      wasPlayingRef.current
-      && !playing
-      && !loadingPreview
-      && activeSourceLabel === "HLS stream"
-    ) {
-      const currentReadyRange = playbackReadyRangeRef.current;
-      if (currentReadyRange && currentReadyRange.status !== "ready") {
-        const selectionStart = clampTime(startTimeRef.current);
-        if (selectionStart < endTimeRef.current) {
-          void warmClipSelection(selectionStart, endTimeRef.current, {
-            extendToSelectionEnd: false,
-          });
-          scheduleSelectionWarmupExtension(selectionStart, endTimeRef.current);
-        }
-      }
-    }
-
-    wasPlayingRef.current = playing;
-  }, [
-    activeSourceLabel,
-    clampTime,
-    currentTime,
-    loadingPreview,
-    playing,
-    scheduleSelectionWarmupExtension,
-    warmClipSelection,
-  ]);
-
-  useEffect(() => {
-    if (!playing || activeSourceLabel !== "HLS stream") {
-      return;
-    }
-
-    const normalizedCurrent = Number(clampTime(currentTime).toFixed(6));
-    setPlaybackReadyRange((current) => {
-      if (!current) {
-        return current;
-      }
-
-      const readyUntilTime = Math.max(
-        current.readyUntilTime,
-        Math.min(current.endTime, normalizedCurrent),
-      );
-      const status = readyUntilTime >= current.endTime ? "ready" : "warming";
-
-      if (
-        current.status === status
-        && Math.abs(current.readyUntilTime - readyUntilTime) < 1e-6
-      ) {
-        return current;
-      }
-
-      return {
-        ...current,
-        readyUntilTime,
-        status,
-      };
-    });
-  }, [activeSourceLabel, clampTime, currentTime, playing]);
 
   useEffect(() => {
     const playbackSources = buildPlaybackSourceCandidates(hlsUrl, mediaUrl);
@@ -1610,33 +650,20 @@ export function useEditorPlayback({
             }
 
             try {
-              if (previewVideoTrack) {
-                videoSinkRef.current = new CanvasSink(previewVideoTrack, {
-                  poolSize: 2,
-                  fit: "contain",
-                  alpha: await previewVideoTrack.canBeTransparent(),
-                });
-              }
+              const sinkResources = await createPlaybackSinkResources({
+                CanvasSinkConstructor: CanvasSink,
+                AudioBufferSinkConstructor: AudioBufferSink,
+                previewVideoTrack,
+                previewAudioTrack,
+                audioTrackSampleRate,
+                volume: volumeRef.current,
+                muted: mutedRef.current,
+              });
 
-              if (previewAudioTrack) {
-                const AudioContextConstructor = getAudioContextConstructor();
-                if (!AudioContextConstructor) {
-                  throw new PlaybackSourceError(
-                    "preview-only",
-                    "This browser does not provide Web Audio."
-                  );
-                }
-                const audioContext = new AudioContextConstructor({
-                  sampleRate: audioTrackSampleRate,
-                });
-                const gainNode = audioContext.createGain();
-                const actualVolume = mutedRef.current || volumeRef.current === 0 ? 0 : volumeRef.current;
-                gainNode.gain.value = actualVolume ** 2;
-                gainNode.connect(audioContext.destination);
-                audioContextRef.current = audioContext;
-                gainNodeRef.current = gainNode;
-                audioSinkRef.current = new AudioBufferSink(previewAudioTrack);
-              }
+              videoSinkRef.current = sinkResources.videoSink;
+              audioSinkRef.current = sinkResources.audioSink;
+              audioContextRef.current = sinkResources.audioContext;
+              gainNodeRef.current = sinkResources.gainNode;
 
               await startVideoIterator();
             } catch (err) {
