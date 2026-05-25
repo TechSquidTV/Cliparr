@@ -236,6 +236,37 @@
     background: var(--card);
   }
 
+  .cliparr-timeline .timeline-editor-edit-area .ReactVirtualized__Grid {
+    overflow-x: scroll !important;
+    overflow-y: hidden !important;
+    scrollbar-color:
+      color-mix(in oklch, var(--muted-foreground) 44%, transparent)
+      color-mix(in oklch, var(--muted) 70%, var(--card));
+    scrollbar-gutter: stable;
+    scrollbar-width: thin;
+  }
+
+  .cliparr-timeline .timeline-editor:hover .timeline-editor-edit-area .ReactVirtualized__Grid::-webkit-scrollbar,
+  .cliparr-timeline .timeline-editor-edit-area .ReactVirtualized__Grid::-webkit-scrollbar {
+    width: 0;
+    height: 10px;
+  }
+
+  .cliparr-timeline .timeline-editor-edit-area .ReactVirtualized__Grid::-webkit-scrollbar-track {
+    background: color-mix(in oklch, var(--muted) 70%, var(--card)) !important;
+  }
+
+  .cliparr-timeline .timeline-editor-edit-area .ReactVirtualized__Grid::-webkit-scrollbar-thumb {
+    min-width: 44px;
+    border: 2px solid color-mix(in oklch, var(--muted) 70%, var(--card));
+    border-radius: 999px;
+    background: color-mix(in oklch, var(--muted-foreground) 44%, transparent);
+  }
+
+  .cliparr-timeline .timeline-editor-edit-area .ReactVirtualized__Grid::-webkit-scrollbar-thumb:hover {
+    background: color-mix(in oklch, var(--foreground) 44%, transparent);
+  }
+
   .cliparr-timeline .timeline-editor-edit-row {
     background-image:
       linear-gradient(

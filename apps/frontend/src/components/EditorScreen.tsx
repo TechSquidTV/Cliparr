@@ -372,14 +372,6 @@ export default function EditorScreen({ session, onBack }: Props) {
                       setCurrentTime(nextTime);
                     }}
                   />
-                  {previewSourceLabel === "HLS stream" && (
-                    <div className="border-t border-border px-3 py-2 text-xs text-muted-foreground">
-                      <span className="font-medium text-foreground">Preview Ready</span>
-                      {" "}
-                      shows which parts of the selection are warmed for smoother preview playback.
-                      Export uses a separate read path.
-                    </div>
-                  )}
                 </>
               )}
             </section>
