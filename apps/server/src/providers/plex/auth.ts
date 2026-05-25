@@ -1,4 +1,4 @@
-import { randomUUID } from "crypto";
+import { createHash, randomBytes, randomUUID, timingSafeEqual } from "crypto";
 import { ApiError } from "../../http/errors.js";
 import {
   AUTH_TTL_MS,
@@ -13,6 +13,21 @@ import {
 } from "./shared.js";
 
 const authRequests = new Map<string, PlexAuthRequest>();
+const AUTH_POLL_TOKEN_BYTES = 32;
+
+function createAuthPollToken() {
+  return randomBytes(AUTH_POLL_TOKEN_BYTES).toString("base64url");
+}
+
+function hashAuthPollToken(token: string) {
+  return createHash("sha256").update(token).digest("hex");
+}
+
+function authPollTokenMatches(expectedHash: string, token: string) {
+  const expected = Buffer.from(expectedHash, "hex");
+  const actual = Buffer.from(hashAuthPollToken(token), "hex");
+  return expected.length === actual.length && timingSafeEqual(expected, actual);
+}
 
 function pruneExpiredAuthRequests(now = Date.now()) {
   for (const [authId, authRequest] of authRequests.entries()) {
@@ -38,11 +53,13 @@ export async function startAuth(callbackUrl: string) {
   }
 
   const authId = randomUUID();
+  const pollToken = createAuthPollToken();
   const expiresAt = Date.now() + (data.expiresIn ? data.expiresIn * 1000 : AUTH_TTL_MS);
   authRequests.set(authId, {
     authId,
     pinId: data.id,
     code: data.code,
+    pollTokenHash: hashAuthPollToken(pollToken),
     expiresAt,
   });
 
@@ -58,10 +75,11 @@ export async function startAuth(callbackUrl: string) {
     authId,
     authUrl: authUrl.toString(),
     expiresAt: new Date(expiresAt).toISOString(),
+    pollToken,
   };
 }
 
-export async function pollAuth(authId: string) {
+export async function pollAuth(authId: string, pollToken: string) {
   pruneExpiredAuthRequests();
   const authRequest = authRequests.get(authId);
   if (!authRequest) {
@@ -71,6 +89,14 @@ export async function pollAuth(authId: string) {
   if (authRequest.expiresAt <= Date.now()) {
     authRequests.delete(authId);
     return { status: "expired" as const };
+  }
+
+  if (!authPollTokenMatches(authRequest.pollTokenHash, pollToken)) {
+    throw new ApiError(
+      401,
+      "invalid_plex_auth_session",
+      "Plex sign-in must be completed from the browser that started it"
+    );
   }
 
   const response = await plexFetch(`https://plex.tv/api/v2/pins/${authRequest.pinId}`);

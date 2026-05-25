@@ -23,6 +23,7 @@ export interface PlexAuthRequest {
   authId: string;
   pinId: number;
   code: string;
+  pollTokenHash: string;
   expiresAt: number;
 }
 

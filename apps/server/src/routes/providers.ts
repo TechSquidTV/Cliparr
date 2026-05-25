@@ -10,11 +10,84 @@ import {
   getRememberedProviderSessionCookieOptions,
   getSessionCookieName,
   getSessionCookieOptions,
+  readCookie,
 } from "../session/store.js";
 import { setNoStore } from "../session/request.js";
 
 export const providersRouter = Router();
 const PROVIDER_AUTH_COMPLETE_PATH = (providerId: string) => `/auth/${providerId}/complete`;
+const PROVIDER_AUTH_COOKIE = "cliparr_provider_auth";
+
+interface ProviderAuthCookie {
+  providerId: string;
+  authId: string;
+  pollToken: string;
+}
+
+function providerAuthCookieOptions(secure: boolean, expiresAt: string) {
+  return {
+    path: "/api/providers",
+    httpOnly: true,
+    sameSite: "strict" as const,
+    secure,
+    maxAge: Math.max(0, new Date(expiresAt).getTime() - Date.now()),
+  };
+}
+
+function providerAuthCookieClearOptions(secure: boolean) {
+  return {
+    path: "/api/providers",
+    httpOnly: true,
+    sameSite: "strict" as const,
+    secure,
+  };
+}
+
+function encodeProviderAuthCookie(payload: ProviderAuthCookie) {
+  return Buffer.from(JSON.stringify(payload), "utf8").toString("base64url");
+}
+
+function decodeProviderAuthCookie(value: string | undefined): ProviderAuthCookie | undefined {
+  if (!value) {
+    return undefined;
+  }
+
+  try {
+    const payload = JSON.parse(Buffer.from(value, "base64url").toString("utf8")) as Partial<ProviderAuthCookie>;
+    if (
+      typeof payload.providerId === "string"
+      && typeof payload.authId === "string"
+      && typeof payload.pollToken === "string"
+    ) {
+      return {
+        providerId: payload.providerId,
+        authId: payload.authId,
+        pollToken: payload.pollToken,
+      };
+    }
+  } catch {
+    return undefined;
+  }
+
+  return undefined;
+}
+
+function requireProviderAuthCookie(
+  cookieHeader: string | undefined,
+  providerId: string,
+  authId: string
+) {
+  const authCookie = decodeProviderAuthCookie(readCookie(cookieHeader, PROVIDER_AUTH_COOKIE));
+  if (authCookie?.providerId !== providerId || authCookie.authId !== authId) {
+    throw new ApiError(
+      401,
+      "invalid_provider_auth_session",
+      "Provider sign-in must be completed from the browser that started it"
+    );
+  }
+
+  return authCookie;
+}
 
 providersRouter.get("/", (_req, res) => {
   setNoStore(res);
@@ -34,7 +107,25 @@ providersRouter.post(
       throw new ApiError(400, "provider_auth_not_supported", "This provider does not use browser PIN sign-in");
     }
 
-    res.json(await provider.startAuth(getRequestRouteUrl(req, PROVIDER_AUTH_COMPLETE_PATH(provider.definition.id))));
+    const authStart = await provider.startAuth(
+      getRequestRouteUrl(req, PROVIDER_AUTH_COMPLETE_PATH(provider.definition.id))
+    );
+
+    res.cookie(
+      PROVIDER_AUTH_COOKIE,
+      encodeProviderAuthCookie({
+        providerId: provider.definition.id,
+        authId: authStart.authId,
+        pollToken: authStart.pollToken,
+      }),
+      providerAuthCookieOptions(req.secure, authStart.expiresAt)
+    );
+
+    res.json({
+      authId: authStart.authId,
+      authUrl: authStart.authUrl,
+      expiresAt: authStart.expiresAt,
+    });
   })
 );
 
@@ -51,8 +142,13 @@ providersRouter.get(
       throw new ApiError(400, "provider_auth_not_supported", "This provider does not use browser PIN sign-in");
     }
 
-    const authStatus = await provider.pollAuth(req.params.authId as string);
+    const authId = req.params.authId as string;
+    const authCookie = requireProviderAuthCookie(req.header("cookie"), provider.definition.id, authId);
+    const authStatus = await provider.pollAuth(authId, authCookie.pollToken);
     if (authStatus.status !== "complete") {
+      if (authStatus.status === "expired") {
+        res.clearCookie(PROVIDER_AUTH_COOKIE, providerAuthCookieClearOptions(req.secure));
+      }
       res.json({ status: authStatus.status });
       return;
     }
@@ -75,6 +171,7 @@ providersRouter.get(
 
     const rememberedSession = createRememberedProviderSession(session.providerAccountId);
 
+    res.clearCookie(PROVIDER_AUTH_COOKIE, providerAuthCookieClearOptions(req.secure));
     res.cookie(getSessionCookieName(), session.id, getSessionCookieOptions(req.secure));
     res.cookie(
       getRememberedProviderSessionCookieName(),
