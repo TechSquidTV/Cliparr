@@ -2,7 +2,7 @@ import { useCallback } from "react";
 import { Timeline, type TimelineState } from "@xzdarcy/react-timeline-editor";
 import "@xzdarcy/react-timeline-editor/dist/react-timeline-editor.css";
 import type { RefObject, WheelEvent as ReactWheelEvent } from "react";
-import { Scissors, ZoomIn, ZoomOut } from "lucide-react";
+import { Scissors } from "lucide-react";
 import type { PlaybackReadyRange } from "./useEditorPlayback";
 import { 
   formatTime,
@@ -31,10 +31,6 @@ interface EditorTimelineProps {
   handleTimelineActionMoveEnd: (params: { action: { id: string }; start: number; end: number }) => void;
   handleTimelineActionResizeEnd: (params: { action: { id: string }; start: number; end: number }) => void;
   handleTimelineWheel: (event: ReactWheelEvent<HTMLDivElement>) => void;
-  handleTimelineZoomIn: () => void;
-  handleTimelineZoomOut: () => void;
-  canZoomIn: boolean;
-  canZoomOut: boolean;
   isValidTimelineRange: (start: number, end: number) => boolean;
   seekToTime: (time: number) => Promise<void> | void;
   onCursorDragStart: () => void;
@@ -58,10 +54,6 @@ export function EditorTimeline({
   handleTimelineActionMoveEnd,
   handleTimelineActionResizeEnd,
   handleTimelineWheel,
-  handleTimelineZoomIn,
-  handleTimelineZoomOut,
-  canZoomIn,
-  canZoomOut,
   isValidTimelineRange,
   seekToTime,
   onCursorDragStart,
@@ -131,28 +123,6 @@ export function EditorTimeline({
       className="cliparr-timeline"
       onWheelCapture={handleTimelineWheel}
     >
-      <div className="cliparr-timeline-zoom-controls" aria-label="Timeline zoom controls">
-        <button
-          type="button"
-          onClick={handleTimelineZoomOut}
-          disabled={!canZoomOut}
-          className="cliparr-timeline-zoom-button"
-          aria-label="Zoom timeline out"
-          title="Zoom timeline out"
-        >
-          <ZoomOut className="h-3.5 w-3.5" />
-        </button>
-        <button
-          type="button"
-          onClick={handleTimelineZoomIn}
-          disabled={!canZoomIn}
-          className="cliparr-timeline-zoom-button"
-          aria-label="Zoom timeline in"
-          title="Zoom timeline in"
-        >
-          <ZoomIn className="h-3.5 w-3.5" />
-        </button>
-      </div>
       <Timeline
         ref={timelineRef}
         editorData={timelineData}
@@ -177,6 +147,16 @@ export function EditorTimeline({
         onClickTimeArea={(time) => {
           void seekToTime(time);
           return false;
+        }}
+        onClickRow={(event, { time }) => {
+          if (event.target instanceof HTMLElement && event.target.closest(".timeline-editor-action")) {
+            return;
+          }
+
+          void seekToTime(time);
+        }}
+        onClickActionOnly={(_, { time }) => {
+          void seekToTime(time);
         }}
         onCursorDragStart={onCursorDragStart}
         onCursorDrag={onCursorDrag}

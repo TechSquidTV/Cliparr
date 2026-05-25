@@ -5,6 +5,8 @@ export const MIN_CLIP_SECONDS = 0.1;
 export const TIMELINE_START_LEFT = 24;
 const MAX_TIMELINE_ZOOM_SCALE_COUNT = 2000;
 export const TIMELINE_ZOOM_WHEEL_STEP = 80;
+const MIN_FOCUSED_TIMELINE_SELECTION_PIXELS = 96;
+const MAX_FOCUSED_TIMELINE_SELECTION_PIXELS = 280;
 const TIMELINE_ZOOM_WIDTH_MULTIPLIERS = [0.64, 0.72, 0.8, 0.88, 0.96, 1.04, 1.12, 1.2] as const;
 
 type TimelineZoomPreset = {
@@ -37,9 +39,23 @@ export function formatTime(seconds: number) {
     return "0:00";
   }
 
-  const minutes = Math.floor(seconds / 60);
-  const remainingSeconds = Math.floor(seconds % 60);
-  return `${minutes}:${remainingSeconds.toString().padStart(2, "0")}`;
+  const roundedCentiseconds = Math.max(0, Math.round(seconds * 100));
+  const totalSeconds = Math.floor(roundedCentiseconds / 100);
+  const centiseconds = roundedCentiseconds % 100;
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const remainingSeconds = totalSeconds % 60;
+  const fraction = centiseconds > 0 ? `.${centiseconds.toString().padStart(2, "0")}` : "";
+
+  if (hours > 0) {
+    return [
+      hours,
+      minutes.toString().padStart(2, "0"),
+      remainingSeconds.toString().padStart(2, "0"),
+    ].join(":") + fraction;
+  }
+
+  return `${minutes}:${remainingSeconds.toString().padStart(2, "0")}${fraction}`;
 }
 
 export function errorMessage(err: unknown) {
@@ -137,20 +153,47 @@ export function getClosestTimelineZoomIndex(levels: readonly TimelineZoomLevel[]
   }, 0);
 }
 
-export function getFittingTimelineZoomIndex(
+export function getFocusedTimelineZoomIndex(
   levels: readonly TimelineZoomLevel[],
-  duration: number,
+  focusDuration: number,
   viewportWidth: number,
 ) {
-  const fittingIndex = levels.findIndex((level) => (
-    getTimelineMaxScrollLeft(duration, level.scale, level.scaleWidth, viewportWidth) <= 0
-  ));
-
-  if (fittingIndex !== -1) {
-    return fittingIndex;
+  if (levels.length === 0) {
+    return 0;
   }
 
-  return Math.max(levels.length - 1, 0);
+  const safeFocusDuration = Math.max(focusDuration, MIN_CLIP_SECONDS);
+  const editableWidth = Math.max(1, viewportWidth - TIMELINE_START_LEFT);
+  const targetSelectionPixels = Math.min(
+    Math.max(MIN_FOCUSED_TIMELINE_SELECTION_PIXELS, editableWidth * 0.32),
+    Math.min(MAX_FOCUSED_TIMELINE_SELECTION_PIXELS, editableWidth * 0.72),
+  );
+  const maximumComfortableSelectionPixels = Math.max(
+    targetSelectionPixels,
+    editableWidth * 0.85,
+  );
+
+  return levels.reduce((bestIndex, level, index) => {
+    const bestLevel = levels[bestIndex];
+    const scoreLevel = (candidate: TimelineZoomLevel) => {
+      const selectionPixels = (safeFocusDuration / candidate.scale) * candidate.scaleWidth;
+      const targetDistance = Math.abs(
+        Math.log2(Math.max(selectionPixels, 1) / targetSelectionPixels),
+      );
+      const undersizedPenalty = Math.max(
+        0,
+        MIN_FOCUSED_TIMELINE_SELECTION_PIXELS - selectionPixels,
+      ) / MIN_FOCUSED_TIMELINE_SELECTION_PIXELS;
+      const oversizedPenalty = Math.max(
+        0,
+        selectionPixels - maximumComfortableSelectionPixels,
+      ) / maximumComfortableSelectionPixels;
+
+      return targetDistance + undersizedPenalty * 3 + oversizedPenalty * 1.5;
+    };
+
+    return scoreLevel(level) < scoreLevel(bestLevel) ? index : bestIndex;
+  }, 0);
 }
 
 export function timelinePixelToTime(pixel: number, scale: number, scaleWidth: number, startLeft: number) {

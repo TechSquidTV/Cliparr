@@ -22,6 +22,7 @@ export function serializeError(error: unknown) {
   }
 
   return {
+    errorMessage: String(error),
     errorValue: String(error),
   };
 }
@@ -47,7 +48,7 @@ export function configureLogging() {
         lowestLevel,
       },
       {
-        category: "logtape",
+        category: ["logtape", "meta"],
         sinks: ["console"],
         lowestLevel: "warning",
       },
