@@ -38,7 +38,11 @@ export async function createApp() {
 
   app.get("/api/health", (_req, res) => {
     checkDatabaseHealth();
-    res.json({ status: "ok", database: "ok", version: CLIPARR_VERSION });
+    res.json({
+      status: "ok",
+      database: "ok",
+      ...(CLIPARR_VERSION ? { version: CLIPARR_VERSION } : {}),
+    });
   });
 
   app.use("/api/providers", providersRouter);

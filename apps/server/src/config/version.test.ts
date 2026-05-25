@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { resolveCliparrVersion } from "./version.js";
+import { resolveCliparrClientVersion, resolveCliparrVersion } from "./version.js";
 
 void test("uses CI build identity exactly as provided", () => {
   assert.equal(
@@ -14,18 +14,28 @@ void test("uses CI build identity exactly as provided", () => {
 void test("preserves release tags as display-ready values", () => {
   assert.equal(
     resolveCliparrVersion({
-      CLIPARR_VERSION: "v0.4.0",
+      CLIPARR_VERSION: "v1.2.3",
     }),
-    "v0.4.0"
+    "v1.2.3"
   );
 });
 
-void test("falls back to the package version when environment values are empty", () => {
+void test("omits the display version when CI has not injected one", () => {
   assert.equal(
     resolveCliparrVersion({
       CLIPARR_VERSION: " ",
-      npm_package_version: "",
+      npm_package_version: "9.9.9",
     }),
-    "0.4.0"
+    undefined
+  );
+});
+
+void test("uses an explicit local client version when CI has not injected one", () => {
+  assert.equal(
+    resolveCliparrClientVersion({
+      CLIPARR_VERSION: "",
+      npm_package_version: "9.9.9",
+    }),
+    "dev"
   );
 });
