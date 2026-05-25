@@ -196,47 +196,7 @@
   .cliparr-timeline {
     position: relative;
     width: 100%;
-    padding-top: 30px;
     background: var(--card);
-  }
-
-  .cliparr-timeline-zoom-controls {
-    position: absolute;
-    top: 3px;
-    right: 6px;
-    z-index: 5;
-    display: flex;
-    align-items: center;
-    overflow: hidden;
-    border: 1px solid var(--border);
-    background: color-mix(in oklch, var(--background) 92%, transparent);
-  }
-
-  .cliparr-timeline-zoom-button {
-    display: flex;
-    width: 26px;
-    height: 24px;
-    align-items: center;
-    justify-content: center;
-    color: var(--muted-foreground);
-    transition:
-      background-color 150ms ease,
-      color 150ms ease,
-      opacity 150ms ease;
-  }
-
-  .cliparr-timeline-zoom-button + .cliparr-timeline-zoom-button {
-    border-left: 1px solid var(--border);
-  }
-
-  .cliparr-timeline-zoom-button:hover:not(:disabled) {
-    background: var(--accent);
-    color: var(--foreground);
-  }
-
-  .cliparr-timeline-zoom-button:disabled {
-    cursor: not-allowed;
-    opacity: 0.45;
   }
 
   .cliparr-timeline .timeline-editor {
@@ -371,7 +331,7 @@
 
   .cliparr-timeline-ready-range {
     position: absolute;
-    top: 94px;
+    top: 64px;
     height: 44px;
     z-index: 2;
     border-radius: 1px;

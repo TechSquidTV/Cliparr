@@ -330,6 +330,10 @@ export default function EditorScreen({ session, onBack }: Props) {
                 setMuted={setMuted}
                 volume={volume}
                 setVolume={setVolume}
+                handleTimelineZoomIn={handleTimelineZoomIn}
+                handleTimelineZoomOut={handleTimelineZoomOut}
+                canZoomIn={canZoomIn}
+                canZoomOut={canZoomOut}
               />
 
               {!hasDuration && (
@@ -357,10 +361,6 @@ export default function EditorScreen({ session, onBack }: Props) {
                     handleTimelineActionMoveEnd={handleTimelineActionMoveEnd}
                     handleTimelineActionResizeEnd={handleTimelineActionResizeEnd}
                     handleTimelineWheel={handleTimelineWheel}
-                    handleTimelineZoomIn={handleTimelineZoomIn}
-                    handleTimelineZoomOut={handleTimelineZoomOut}
-                    canZoomIn={canZoomIn}
-                    canZoomOut={canZoomOut}
                     isValidTimelineRange={isValidTimelineRange}
                     seekToTime={seekToTime}
                     onCursorDragStart={() => {

@@ -1,4 +1,4 @@
-import { Pause, Play, Volume2, VolumeX } from "lucide-react";
+import { Pause, Play, Volume2, VolumeX, ZoomIn, ZoomOut } from "lucide-react";
 import { formatTime } from "./EditorUtils";
 
 interface EditorControlsProps {
@@ -13,6 +13,10 @@ interface EditorControlsProps {
   setMuted: (muted: boolean | ((prev: boolean) => boolean)) => void;
   volume: number;
   setVolume: (volume: number) => void;
+  handleTimelineZoomIn: () => void;
+  handleTimelineZoomOut: () => void;
+  canZoomIn: boolean;
+  canZoomOut: boolean;
 }
 
 export function EditorControls({
@@ -27,6 +31,10 @@ export function EditorControls({
   setMuted,
   volume,
   setVolume,
+  handleTimelineZoomIn,
+  handleTimelineZoomOut,
+  canZoomIn,
+  canZoomOut,
 }: EditorControlsProps) {
   const clipDuration = Math.max(0, endTime - startTime);
   const clipMetrics = [
@@ -75,6 +83,28 @@ export function EditorControls({
             className="w-24 accent-primary sm:w-28"
             aria-label="Preview volume"
           />
+          <div className="ml-1 flex items-center overflow-hidden border border-border bg-background">
+            <button
+              type="button"
+              onClick={handleTimelineZoomOut}
+              disabled={!canZoomOut}
+              className="flex h-8 w-8 items-center justify-center text-muted-foreground transition-colors hover:bg-accent hover:text-foreground disabled:cursor-not-allowed disabled:opacity-45"
+              aria-label="Zoom timeline out"
+              title="Zoom timeline out"
+            >
+              <ZoomOut className="h-4 w-4" />
+            </button>
+            <button
+              type="button"
+              onClick={handleTimelineZoomIn}
+              disabled={!canZoomIn}
+              className="flex h-8 w-8 items-center justify-center border-l border-border text-muted-foreground transition-colors hover:bg-accent hover:text-foreground disabled:cursor-not-allowed disabled:opacity-45"
+              aria-label="Zoom timeline in"
+              title="Zoom timeline in"
+            >
+              <ZoomIn className="h-4 w-4" />
+            </button>
+          </div>
         </div>
         <div className="min-w-0 flex-1" />
         <div className="flex flex-wrap items-center justify-end gap-x-4 gap-y-2 text-right sm:gap-x-6">
