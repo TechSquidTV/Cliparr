@@ -178,6 +178,16 @@ export function EditorTimeline({
           void seekToTime(time);
           return false;
         }}
+        onClickRow={(event, { time }) => {
+          if (event.target instanceof HTMLElement && event.target.closest(".timeline-editor-action")) {
+            return;
+          }
+
+          void seekToTime(time);
+        }}
+        onClickActionOnly={(_, { time }) => {
+          void seekToTime(time);
+        }}
         onCursorDragStart={onCursorDragStart}
         onCursorDrag={onCursorDrag}
         onCursorDragEnd={(time) => {
