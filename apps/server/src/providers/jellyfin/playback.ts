@@ -37,7 +37,6 @@ import {
   booleanValue,
   fetchItem,
   fetchSessions,
-  jellyfinFetch,
   jellyfinHeaders,
   JELLYFIN_REQUEST_TIMEOUT_MS,
   sourceContext,
@@ -662,34 +661,21 @@ export async function proxyMedia(
     },
     async () => {
       try {
-        if (!useProviderAuth) {
-          const upstream = await fetchMediaHandleRequest(handle, {
-            headers,
-            signal: AbortSignal.timeout(JELLYFIN_REQUEST_TIMEOUT_MS),
-          });
+        const upstream = await fetchMediaHandleRequest(handle, {
+          headers,
+          signal: AbortSignal.timeout(JELLYFIN_REQUEST_TIMEOUT_MS),
+        });
 
-          if (!upstream.ok && upstream.status !== 206) {
-            const detail = (await upstream.text()).slice(0, 400).replace(/\s+/g, " ").trim();
-            throw new ApiError(
-              upstream.status,
-              "jellyfin_media_failed",
-              detail ? `Jellyfin media request failed: ${detail}` : "Jellyfin media request failed",
-            );
-          }
-
-          return upstream;
+        if (!upstream.ok && upstream.status !== 206) {
+          const detail = (await upstream.text()).slice(0, 400).replace(/\s+/g, " ").trim();
+          throw new ApiError(
+            upstream.status,
+            "jellyfin_media_failed",
+            detail ? `Jellyfin media request failed: ${detail}` : "Jellyfin media request failed",
+          );
         }
 
-        return await jellyfinFetch(upstreamUrl, {
-          headers,
-        }, {
-          token: handle.token,
-          deviceId: handle.deviceId,
-          accept,
-          timeoutMs: JELLYFIN_REQUEST_TIMEOUT_MS,
-          errorCode: "jellyfin_media_failed",
-          failureMessage: "Jellyfin media request failed",
-        });
+        return upstream;
       } catch (err) {
         logger.warn("Jellyfin media request failed for handle {handleId}.", {
           handleId: handle.id,
