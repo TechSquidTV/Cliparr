@@ -22,7 +22,6 @@ import type { PlaybackAudioSelection } from "../../providers/types";
 import { errorMessage } from "./EditorUtils";
 import {
   applyPlaybackGain,
-  playbackGainValue,
   runPlaybackAudioIterator,
   stopQueuedAudioNodes,
 } from "./editorPlaybackAudio";
@@ -44,6 +43,11 @@ import {
   type PlaybackLoadFailure,
   type PlaybackSourceAnalysisContext,
 } from "./editorPlaybackSources";
+import {
+  createPlaybackSinkResources,
+  disposePlaybackSinkResources,
+  getAudioContextConstructor,
+} from "./editorPlaybackSinks";
 import { useEditorPlaybackRenderLoop } from "./useEditorPlaybackRenderLoop";
 
 export type { PlaybackFallbackInfo } from "./editorPlaybackSources";
@@ -66,16 +70,8 @@ interface VideoDimensions {
   height: number;
 }
 
-type WindowWithWebkitAudioContext = Window & {
-  webkitAudioContext?: typeof AudioContext;
-};
-
 const INITIAL_SELECTION_WARMUP_SECONDS = 8;
 const SEEK_SELECTION_EXTENSION_DELAY_MS = 900;
-
-function getAudioContextConstructor() {
-  return window.AudioContext ?? (window as WindowWithWebkitAudioContext).webkitAudioContext;
-}
 
 export interface PlaybackReadyRange {
   startTime: number;
@@ -316,13 +312,13 @@ export function useEditorPlayback({
     warmupPromiseRef.current = null;
     warmupTargetTimeRef.current = null;
     displayedFrameRef.current = null;
-    videoSinkRef.current = null;
-    audioSinkRef.current = null;
-    inputRef.current?.dispose();
-    inputRef.current = null;
-    void audioContextRef.current?.close().catch(() => undefined);
-    audioContextRef.current = null;
-    gainNodeRef.current = null;
+    disposePlaybackSinkResources({
+      inputRef,
+      videoSinkRef,
+      audioSinkRef,
+      audioContextRef,
+      gainNodeRef,
+    });
     setPlaybackReadyRange(null);
   }, [cancelSelectionWarmup, pausePlayback, stopRenderLoop]);
 
@@ -1135,32 +1131,20 @@ export function useEditorPlayback({
             }
 
             try {
-              if (previewVideoTrack) {
-                videoSinkRef.current = new CanvasSink(previewVideoTrack, {
-                  poolSize: 2,
-                  fit: "contain",
-                  alpha: await previewVideoTrack.canBeTransparent(),
-                });
-              }
+              const sinkResources = await createPlaybackSinkResources({
+                CanvasSinkConstructor: CanvasSink,
+                AudioBufferSinkConstructor: AudioBufferSink,
+                previewVideoTrack,
+                previewAudioTrack,
+                audioTrackSampleRate,
+                volume: volumeRef.current,
+                muted: mutedRef.current,
+              });
 
-              if (previewAudioTrack) {
-                const AudioContextConstructor = getAudioContextConstructor();
-                if (!AudioContextConstructor) {
-                  throw new PlaybackSourceError(
-                    "preview-only",
-                    "This browser does not provide Web Audio."
-                  );
-                }
-                const audioContext = new AudioContextConstructor({
-                  sampleRate: audioTrackSampleRate,
-                });
-                const gainNode = audioContext.createGain();
-                gainNode.gain.value = playbackGainValue(volumeRef.current, mutedRef.current);
-                gainNode.connect(audioContext.destination);
-                audioContextRef.current = audioContext;
-                gainNodeRef.current = gainNode;
-                audioSinkRef.current = new AudioBufferSink(previewAudioTrack);
-              }
+              videoSinkRef.current = sinkResources.videoSink;
+              audioSinkRef.current = sinkResources.audioSink;
+              audioContextRef.current = sinkResources.audioContext;
+              gainNodeRef.current = sinkResources.gainNode;
 
               await startVideoIterator();
             } catch (err) {
