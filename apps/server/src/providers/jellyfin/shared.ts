@@ -306,7 +306,7 @@ export function jellyfinHeaders(options: {
   return headers;
 }
 
-export async function jellyfinFetch(
+async function jellyfinFetch(
   url: string,
   init: RequestInit = {},
   options: {
