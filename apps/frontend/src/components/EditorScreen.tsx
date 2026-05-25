@@ -3,6 +3,7 @@ import { Eye } from "lucide-react";
 import { MIN_CLIP_SECONDS, roundTimelineTime } from "./editor/EditorUtils";
 import { useEditorPlayback, type PlaybackFallbackInfo } from "./editor/useEditorPlayback";
 import { useEditorExport } from "./editor/useEditorExport";
+import { useEditorKeyboardShortcuts } from "./editor/useEditorKeyboardShortcuts";
 import { useEditorTimeline } from "./editor/useEditorTimeline";
 import { EditorHeader } from "./editor/EditorHeader";
 import { EditorExportDialog } from "./editor/EditorExportDialog";
@@ -29,20 +30,6 @@ import { trimSubtitleCues } from "../lib/subtitles/trimSubtitleCues";
 interface Props {
   session: CurrentlyPlayingItem;
   onBack: () => void;
-}
-
-function isInteractiveKeyboardTarget(target: EventTarget | null) {
-  if (!(target instanceof HTMLElement)) {
-    return false;
-  }
-
-  if (target.isContentEditable) {
-    return true;
-  }
-
-  return Boolean(
-    target.closest("input, textarea, select, button, [contenteditable=\"true\"], [role=\"slider\"]"),
-  );
 }
 
 export default function EditorScreen({ session, onBack }: Props) {
@@ -280,30 +267,7 @@ export default function EditorScreen({ session, onBack }: Props) {
     setSubtitleEnabled(Boolean(nextTrack && subtitleTrackSupportsBurnIn(nextTrack)));
   }, [clearSubtitleError, resetSubtitleCues, subtitleTracks]);
 
-  useEffect(() => {
-    function handleKeyDown(event: KeyboardEvent) {
-      if (event.code !== "Space") {
-        return;
-      }
-
-      if (event.repeat || event.metaKey || event.ctrlKey || event.altKey) {
-        return;
-      }
-
-      if (isInteractiveKeyboardTarget(event.target)) {
-        return;
-      }
-
-      event.preventDefault();
-      togglePlay();
-    }
-
-    window.addEventListener("keydown", handleKeyDown);
-
-    return () => {
-      window.removeEventListener("keydown", handleKeyDown);
-    };
-  }, [togglePlay]);
+  useEditorKeyboardShortcuts({ togglePlay });
 
   if (!exportSource.url) {
     return (
