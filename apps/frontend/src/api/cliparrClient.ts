@@ -16,7 +16,7 @@ interface ResponseErrorDetails {
 interface HealthResponse {
   status: string;
   database: string;
-  version: string;
+  version?: string;
 }
 
 class CliparrRequestError extends Error {

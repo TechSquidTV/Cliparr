@@ -133,7 +133,7 @@ export default function DashboardScreen({ onSelectSession, onOpenSources, onLogo
     void cliparrClient.getHealth()
       .then((health) => {
         if (!cancelled) {
-          setAppVersion(health.version);
+          setAppVersion(health.version ?? "");
         }
       })
       .catch(() => {

@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1.7
 
-ARG CLIPARR_VERSION=0.0.0
+ARG CLIPARR_VERSION
 
 FROM node:24-slim AS base
 
