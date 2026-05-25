@@ -76,7 +76,7 @@ export function useModalFocusTrap({
         return;
       }
 
-      if (activeElement === lastFocusable) {
+      if (activeElement === lastFocusable || !dialog.contains(activeElement)) {
         event.preventDefault();
         firstFocusable?.focus();
       }
