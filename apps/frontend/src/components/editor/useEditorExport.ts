@@ -216,6 +216,10 @@ export function useEditorExport({
   const handleExport = useCallback(async () => {
     if (!exportSource.source) return;
     if (exporting) return;
+    if (endTime <= startTime) {
+      setExportError("Waiting for media duration before export is available.");
+      return;
+    }
 
     const shouldBurnSubtitles = subtitleEnabled
       && selectedSubtitleTrack !== null

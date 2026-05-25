@@ -5,6 +5,7 @@ interface EditorHeaderProps {
   onBack: () => void;
   exporting: boolean;
   progress: number;
+  exportDisabledReason?: string | null;
   onExportClick: () => void;
 }
 
@@ -13,8 +14,11 @@ export function EditorHeader({
   onBack,
   exporting,
   progress,
+  exportDisabledReason,
   onExportClick,
 }: EditorHeaderProps) {
+  const exportDisabled = exporting || Boolean(exportDisabledReason);
+
   return (
     <header className="grid grid-cols-[auto_1fr_auto] items-center gap-3 border-b border-border bg-card px-3 py-2">
       <div className="flex items-center gap-2">
@@ -40,7 +44,8 @@ export function EditorHeader({
         <button
           type="button"
           onClick={onExportClick}
-          disabled={exporting}
+          disabled={exportDisabled}
+          title={exportDisabledReason ?? undefined}
           className="flex h-8 min-w-36 items-center justify-center gap-2 rounded-[var(--radius-control)] border border-primary bg-primary px-3 text-xs font-semibold uppercase tracking-[var(--tracking-caps-sm)] text-primary-foreground transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50"
         >
           {exporting ? (

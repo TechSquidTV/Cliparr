@@ -273,6 +273,11 @@ export default function EditorScreen({ session, onBack }: Props) {
 
   useEditorKeyboardShortcuts({ togglePlay });
 
+  const durationExportDisabledReason = !hasDuration
+    ? "Waiting for media duration before export is available."
+    : null;
+  const exportDisabledReason = durationExportDisabledReason ?? subtitleExportSummary.disabledReason;
+
   if (!exportSource.source) {
     return (
       <div className="flex h-dvh items-center justify-center overflow-hidden bg-background p-8 text-foreground">
@@ -291,6 +296,7 @@ export default function EditorScreen({ session, onBack }: Props) {
         onBack={onBack}
         exporting={exporting}
         progress={progress}
+        exportDisabledReason={exportDisabledReason}
         onExportClick={handleOpenExportDialog}
       />
 
@@ -465,7 +471,7 @@ export default function EditorScreen({ session, onBack }: Props) {
         subtitleSummaryLabel={subtitleExportSummary.label}
         subtitleSummaryDetail={subtitleExportSummary.detail}
         subtitleSummaryTone={subtitleExportSummary.tone}
-        exportDisabledReason={subtitleExportSummary.disabledReason}
+        exportDisabledReason={exportDisabledReason}
         activeTemplateKind={fileName.templateKind}
         editingTemplateKind={templateEditorKind}
         onEditingTemplateKindChange={setTemplateEditorKind}

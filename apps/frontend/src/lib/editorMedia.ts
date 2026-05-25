@@ -84,7 +84,7 @@ export function titleFromUrl(url: string) {
   try {
     const parsed = new URL(url);
     const finalSegment = decodeURIComponent(parsed.pathname.split("/").filter(Boolean).pop() ?? "");
-    return titleFromFileName(finalSegment) || parsed.hostname || "URL video";
+    return finalSegment ? titleFromFileName(finalSegment) : parsed.hostname || "URL video";
   } catch {
     return "URL video";
   }
