@@ -153,22 +153,6 @@ export function getClosestTimelineZoomIndex(levels: readonly TimelineZoomLevel[]
   }, 0);
 }
 
-export function getFittingTimelineZoomIndex(
-  levels: readonly TimelineZoomLevel[],
-  duration: number,
-  viewportWidth: number,
-) {
-  const fittingIndex = levels.findIndex((level) => (
-    getTimelineMaxScrollLeft(duration, level.scale, level.scaleWidth, viewportWidth) <= 0
-  ));
-
-  if (fittingIndex !== -1) {
-    return fittingIndex;
-  }
-
-  return Math.max(levels.length - 1, 0);
-}
-
 export function getFocusedTimelineZoomIndex(
   levels: readonly TimelineZoomLevel[],
   focusDuration: number,
