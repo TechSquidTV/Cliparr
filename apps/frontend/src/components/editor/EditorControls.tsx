@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import { Pause, Play, Volume2, VolumeX, ZoomIn, ZoomOut } from "lucide-react";
 import { formatTime } from "./EditorUtils";
 
@@ -36,12 +37,21 @@ export function EditorControls({
   canZoomIn,
   canZoomOut,
 }: EditorControlsProps) {
-  const clipDuration = Math.max(0, endTime - startTime);
-  const clipMetrics = [
-    { label: "In", value: formatTime(startTime) },
-    { label: "Out", value: formatTime(endTime) },
-    { label: "Duration", value: formatTime(clipDuration), emphasized: true },
-  ];
+  const currentTimeCode = formatTime(currentTime);
+  const durationTimeCode = useMemo(() => formatTime(duration), [duration]);
+  const previewTimeCodeWidth = useMemo(() => {
+    const wholeDurationWidth = durationTimeCode.split(".")[0].length;
+    return `${Math.max("0:00.00".length, wholeDurationWidth + ".00".length)}ch`;
+  }, [durationTimeCode]);
+  const clipMetrics = useMemo(() => {
+    const clipDuration = Math.max(0, endTime - startTime);
+
+    return [
+      { label: "In", value: formatTime(startTime) },
+      { label: "Out", value: formatTime(endTime) },
+      { label: "Duration", value: formatTime(clipDuration), emphasized: true },
+    ];
+  }, [endTime, startTime]);
 
   return (
     <div className="border-b border-border px-3 py-2">
@@ -55,8 +65,17 @@ export function EditorControls({
           >
             {playing ? <Pause className="h-4 w-4" /> : <Play className="ml-0.5 h-4 w-4" />}
           </button>
-          <div className="font-mono text-sm font-semibold text-foreground">
-            {formatTime(currentTime)} / {formatTime(duration)}
+          <div className="flex shrink-0 items-center whitespace-nowrap font-mono text-sm font-semibold tabular-nums text-foreground">
+            <span className="inline-block text-right" style={{ width: previewTimeCodeWidth }}>
+              {currentTimeCode}
+            </span>
+            <span className="sr-only"> of </span>
+            <span className="px-1.5 text-muted-foreground" aria-hidden="true">
+              /
+            </span>
+            <span className="inline-block text-left" style={{ width: previewTimeCodeWidth }}>
+              {durationTimeCode}
+            </span>
           </div>
         </div>
         <div className="h-5 w-px bg-border" />
