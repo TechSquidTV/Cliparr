@@ -41,7 +41,7 @@ export function EditorEditableTimecode({
   const [editing, setEditing] = useState(false);
   const [draftValue, setDraftValue] = useState("");
   const [invalid, setInvalid] = useState(false);
-  const [measuredInputWidth, setMeasuredInputWidth] = useState<string | undefined>(undefined);
+  const [reservedWidth, setReservedWidth] = useState<string | undefined>(undefined);
   const formattedValue = formatTimecodeInput(value);
   const accessibleValue = valueLabel ?? formattedValue;
   const descriptionId = useId();
@@ -76,7 +76,7 @@ export function EditorEditableTimecode({
     }
 
     const buttonWidth = buttonRef.current?.getBoundingClientRect().width ?? 0;
-    setMeasuredInputWidth(buttonWidth > 0 ? `${Math.ceil(buttonWidth)}px` : undefined);
+    setReservedWidth(buttonWidth > 0 ? `${buttonWidth.toFixed(3)}px` : undefined);
     setDraftValue(formattedValue);
     setInvalid(false);
     setEditing(true);
@@ -130,9 +130,9 @@ export function EditorEditableTimecode({
     }
   }
 
-  if (editing) {
-    return (
-      <>
+  return (
+    <span className="inline-flex min-w-0" style={{ width: editing ? reservedWidth : undefined }}>
+      {editing ? (
         <input
           ref={inputRef}
           aria-describedby={describedBy}
@@ -153,35 +153,34 @@ export function EditorEditableTimecode({
           }}
           onKeyDown={handleInputKeyDown}
           spellCheck={false}
-          style={{
-            minWidth: measuredInputWidth,
-            width: inputWidth ?? measuredInputWidth,
-          }}
+          style={{ width: inputWidth ?? "100%" }}
           type="text"
           value={draftValue}
         />
-        <span id={hintId} className="sr-only">
-          Enter seconds, minutes and seconds, or hours minutes and seconds. Press Enter to apply or Escape to cancel.
-        </span>
-        {invalid && (
-          <span id={errorId} className="sr-only" role="alert">
-            Invalid timecode. Use seconds, m:ss, or h:mm:ss.
+      ) : (
+        <button
+          ref={buttonRef}
+          aria-label={disabled ? `${ariaLabel}: ${accessibleValue}` : `Edit ${ariaLabel}: ${accessibleValue}`}
+          className={`inline-flex min-w-0 items-center border-0 bg-transparent p-0 text-left outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring/45 disabled:cursor-default disabled:opacity-100 ${buttonClassName}`}
+          disabled={disabled}
+          onClick={startEditing}
+          type="button"
+        >
+          {children}
+        </button>
+      )}
+      {editing && (
+        <>
+          <span id={hintId} className="sr-only">
+            Enter seconds, minutes and seconds, or hours minutes and seconds. Press Enter to apply or Escape to cancel.
           </span>
-        )}
-      </>
-    );
-  }
-
-  return (
-    <button
-      ref={buttonRef}
-      aria-label={disabled ? `${ariaLabel}: ${accessibleValue}` : `Edit ${ariaLabel}: ${accessibleValue}`}
-      className={`inline-flex min-w-0 items-center border-0 bg-transparent p-0 text-left outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring/45 disabled:cursor-default disabled:opacity-100 ${buttonClassName}`}
-      disabled={disabled}
-      onClick={startEditing}
-      type="button"
-    >
-      {children}
-    </button>
+          {invalid && (
+            <span id={errorId} className="sr-only" role="alert">
+              Invalid timecode. Use seconds, m:ss, or h:mm:ss.
+            </span>
+          )}
+        </>
+      )}
+    </span>
   );
 }
