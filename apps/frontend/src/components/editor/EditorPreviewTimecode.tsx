@@ -7,6 +7,7 @@ import {
 } from "react";
 
 interface EditorPreviewTimecodeProps {
+  ariaHidden?: boolean;
   currentTime: number;
   duration: number;
 }
@@ -111,7 +112,8 @@ function arePreviewTimecodePropsEqual(
   next: EditorPreviewTimecodeProps,
 ) {
   return (
-    getPreviewCentiseconds(previous.currentTime) === getPreviewCentiseconds(next.currentTime)
+    previous.ariaHidden === next.ariaHidden
+    && getPreviewCentiseconds(previous.currentTime) === getPreviewCentiseconds(next.currentTime)
     && getPreviewCentiseconds(previous.duration) === getPreviewCentiseconds(next.duration)
   );
 }
@@ -140,10 +142,11 @@ const TimecodeShell = memo(function TimecodeShell({
 });
 
 export const EditorPreviewTimecode = memo(function EditorPreviewTimecode({
+  ariaHidden = false,
   currentTime,
   duration,
 }: EditorPreviewTimecodeProps) {
-  const containerRef = useRef<HTMLDivElement>(null);
+  const containerRef = useRef<HTMLSpanElement>(null);
   const currentSlotRefs = useTimecodeSlotRefs();
   const durationSlotRefs = useTimecodeSlotRefs();
   const currentCentiseconds = getPreviewCentiseconds(currentTime);
@@ -164,11 +167,16 @@ export const EditorPreviewTimecode = memo(function EditorPreviewTimecode({
 
     updateTimecodeSlots(currentSlotRefs, currentParts);
     updateTimecodeSlots(durationSlotRefs, durationParts);
-    containerRef.current?.setAttribute(
-      "aria-label",
-      `${currentParts.label} of ${durationParts.label}`,
-    );
+    if (ariaHidden) {
+      containerRef.current?.removeAttribute("aria-label");
+    } else {
+      containerRef.current?.setAttribute(
+        "aria-label",
+        `${currentParts.label} of ${durationParts.label}`,
+      );
+    }
   }, [
+    ariaHidden,
     currentCentiseconds,
     currentSlotRefs,
     durationParts,
@@ -177,8 +185,9 @@ export const EditorPreviewTimecode = memo(function EditorPreviewTimecode({
   ]);
 
   return (
-    <div
+    <span
       ref={containerRef}
+      aria-hidden={ariaHidden || undefined}
       className="flex shrink-0 items-center whitespace-nowrap font-mono text-sm font-semibold tabular-nums text-foreground"
       style={{ contain: "layout style paint" }}
     >
@@ -197,6 +206,6 @@ export const EditorPreviewTimecode = memo(function EditorPreviewTimecode({
           slotRefs={durationSlotRefs}
         />
       </span>
-    </div>
+    </span>
   );
 }, arePreviewTimecodePropsEqual);

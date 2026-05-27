@@ -1,7 +1,8 @@
 import { useMemo } from "react";
 import { Pause, Play, Volume2, VolumeX, ZoomIn, ZoomOut } from "lucide-react";
+import { EditorEditableTimecode } from "./EditorEditableTimecode";
 import { EditorPreviewTimecode } from "./EditorPreviewTimecode";
-import { formatTime } from "./EditorUtils";
+import { formatTime, formatTimecodeInput } from "./EditorUtils";
 
 interface EditorControlsProps {
   playing: boolean;
@@ -19,6 +20,9 @@ interface EditorControlsProps {
   handleTimelineZoomOut: () => void;
   canZoomIn: boolean;
   canZoomOut: boolean;
+  onPreviewTimeCommit: (time: number) => void | Promise<void>;
+  onStartTimeCommit: (time: number) => void | Promise<void>;
+  onEndTimeCommit: (time: number) => void | Promise<void>;
 }
 
 export function EditorControls({
@@ -37,16 +41,28 @@ export function EditorControls({
   handleTimelineZoomOut,
   canZoomIn,
   canZoomOut,
+  onPreviewTimeCommit,
+  onStartTimeCommit,
+  onEndTimeCommit,
 }: EditorControlsProps) {
+  const hasDuration = duration > 0;
+  const canEditPreviewTime = !loadingPreview && hasDuration;
+  const canEditClipRange = !loadingPreview && !playing && hasDuration;
+  const previewInputWidth = useMemo(() => {
+    const currentValueLength = formatTimecodeInput(currentTime).length;
+    const durationValueLength = formatTimecodeInput(duration).length;
+
+    return `${Math.max(currentValueLength, durationValueLength, "0:00.00".length) + 1}ch`;
+  }, [currentTime, duration]);
   const clipMetrics = useMemo(() => {
     const clipDuration = Math.max(0, endTime - startTime);
 
     return [
-      { label: "In", value: formatTime(startTime) },
-      { label: "Out", value: formatTime(endTime) },
-      { label: "Duration", value: formatTime(clipDuration), emphasized: true },
+      { label: "In", value: startTime, onCommit: onStartTimeCommit },
+      { label: "Out", value: endTime, onCommit: onEndTimeCommit },
+      { label: "Duration", value: clipDuration, emphasized: true },
     ];
-  }, [endTime, startTime]);
+  }, [endTime, onEndTimeCommit, onStartTimeCommit, startTime]);
 
   return (
     <div className="border-b border-border px-3 py-2">
@@ -60,7 +76,17 @@ export function EditorControls({
           >
             {playing ? <Pause className="h-4 w-4" /> : <Play className="ml-0.5 h-4 w-4" />}
           </button>
-          <EditorPreviewTimecode currentTime={currentTime} duration={duration} />
+          <EditorEditableTimecode
+            ariaLabel="preview time"
+            buttonClassName="text-foreground"
+            disabled={!canEditPreviewTime}
+            inputWidth={previewInputWidth}
+            onCommit={onPreviewTimeCommit}
+            value={currentTime}
+            valueLabel={`${formatTimecodeInput(currentTime)} of ${formatTimecodeInput(duration)}`}
+          >
+            <EditorPreviewTimecode ariaHidden currentTime={currentTime} duration={duration} />
+          </EditorEditableTimecode>
         </div>
         <div className="h-5 w-px bg-border" />
         <div className="flex items-center gap-2">
@@ -116,13 +142,26 @@ export function EditorControls({
               <span className="text-[11px] font-semibold uppercase tracking-[var(--tracking-caps-lg)] text-muted-foreground">
                 {metric.label}
               </span>
-              <span
-                className={`font-mono text-sm font-semibold ${
-                  metric.emphasized ? "text-foreground" : "text-muted-foreground"
-                }`}
-              >
-                {metric.value}
-              </span>
+              {metric.onCommit ? (
+                <EditorEditableTimecode
+                  ariaLabel={`${metric.label} time`}
+                  buttonClassName="font-mono text-sm font-semibold text-muted-foreground hover:text-foreground"
+                  disabled={!canEditClipRange}
+                  inputWidth={`${Math.max(formatTimecodeInput(metric.value).length, "0:00.00".length) + 1}ch`}
+                  onCommit={metric.onCommit}
+                  value={metric.value}
+                >
+                  <span>{formatTime(metric.value)}</span>
+                </EditorEditableTimecode>
+              ) : (
+                <span
+                  className={`font-mono text-sm font-semibold ${
+                    metric.emphasized ? "text-foreground" : "text-muted-foreground"
+                  }`}
+                >
+                  {formatTime(metric.value)}
+                </span>
+              )}
             </div>
           ))}
         </div>
