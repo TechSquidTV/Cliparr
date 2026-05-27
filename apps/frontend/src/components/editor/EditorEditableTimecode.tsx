@@ -41,6 +41,7 @@ export function EditorEditableTimecode({
   const [editing, setEditing] = useState(false);
   const [draftValue, setDraftValue] = useState("");
   const [invalid, setInvalid] = useState(false);
+  const [measuredInputWidth, setMeasuredInputWidth] = useState<string | undefined>(undefined);
   const formattedValue = formatTimecodeInput(value);
   const accessibleValue = valueLabel ?? formattedValue;
   const descriptionId = useId();
@@ -74,6 +75,8 @@ export function EditorEditableTimecode({
       return;
     }
 
+    const buttonWidth = buttonRef.current?.getBoundingClientRect().width ?? 0;
+    setMeasuredInputWidth(buttonWidth > 0 ? `${Math.ceil(buttonWidth)}px` : undefined);
     setDraftValue(formattedValue);
     setInvalid(false);
     setEditing(true);
@@ -150,7 +153,10 @@ export function EditorEditableTimecode({
           }}
           onKeyDown={handleInputKeyDown}
           spellCheck={false}
-          style={inputWidth ? { width: inputWidth } : undefined}
+          style={{
+            minWidth: measuredInputWidth,
+            width: inputWidth ?? measuredInputWidth,
+          }}
           type="text"
           value={draftValue}
         />

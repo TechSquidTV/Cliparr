@@ -48,12 +48,6 @@ export function EditorControls({
   const hasDuration = duration > 0;
   const canEditPreviewTime = !loadingPreview && hasDuration;
   const canEditClipRange = !loadingPreview && !playing && hasDuration;
-  const previewInputWidth = useMemo(() => {
-    const currentValueLength = formatTimecodeInput(currentTime).length;
-    const durationValueLength = formatTimecodeInput(duration).length;
-
-    return `${Math.max(currentValueLength, durationValueLength, "0:00.00".length) + 1}ch`;
-  }, [currentTime, duration]);
   const clipMetrics = useMemo(() => {
     const clipDuration = Math.max(0, endTime - startTime);
 
@@ -80,7 +74,6 @@ export function EditorControls({
             ariaLabel="preview time"
             buttonClassName="text-foreground"
             disabled={!canEditPreviewTime}
-            inputWidth={previewInputWidth}
             onCommit={onPreviewTimeCommit}
             value={currentTime}
             valueLabel={`${formatTimecodeInput(currentTime)} of ${formatTimecodeInput(duration)}`}
@@ -147,7 +140,6 @@ export function EditorControls({
                   ariaLabel={`${metric.label} time`}
                   buttonClassName="font-mono text-sm font-semibold text-muted-foreground hover:text-foreground"
                   disabled={!canEditClipRange}
-                  inputWidth={`${Math.max(formatTimecodeInput(metric.value).length, "0:00.00".length) + 1}ch`}
                   onCommit={metric.onCommit}
                   value={metric.value}
                 >
