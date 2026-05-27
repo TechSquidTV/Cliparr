@@ -1,5 +1,6 @@
 import { useMemo } from "react";
 import { Pause, Play, Volume2, VolumeX, ZoomIn, ZoomOut } from "lucide-react";
+import { EditorPreviewTimecode } from "./EditorPreviewTimecode";
 import { formatTime } from "./EditorUtils";
 
 interface EditorControlsProps {
@@ -37,12 +38,6 @@ export function EditorControls({
   canZoomIn,
   canZoomOut,
 }: EditorControlsProps) {
-  const currentTimeCode = formatTime(currentTime);
-  const durationTimeCode = useMemo(() => formatTime(duration), [duration]);
-  const previewTimeCodeWidth = useMemo(() => {
-    const wholeDurationWidth = durationTimeCode.split(".")[0].length;
-    return `${Math.max("0:00.00".length, wholeDurationWidth + ".00".length)}ch`;
-  }, [durationTimeCode]);
   const clipMetrics = useMemo(() => {
     const clipDuration = Math.max(0, endTime - startTime);
 
@@ -65,18 +60,7 @@ export function EditorControls({
           >
             {playing ? <Pause className="h-4 w-4" /> : <Play className="ml-0.5 h-4 w-4" />}
           </button>
-          <div className="flex shrink-0 items-center whitespace-nowrap font-mono text-sm font-semibold tabular-nums text-foreground">
-            <span className="inline-block text-right" style={{ width: previewTimeCodeWidth }}>
-              {currentTimeCode}
-            </span>
-            <span className="sr-only"> of </span>
-            <span className="px-1.5 text-muted-foreground" aria-hidden="true">
-              /
-            </span>
-            <span className="inline-block text-left" style={{ width: previewTimeCodeWidth }}>
-              {durationTimeCode}
-            </span>
-          </div>
+          <EditorPreviewTimecode currentTime={currentTime} duration={duration} />
         </div>
         <div className="h-5 w-px bg-border" />
         <div className="flex items-center gap-2">
