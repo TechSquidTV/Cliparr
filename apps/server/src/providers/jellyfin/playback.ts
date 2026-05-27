@@ -64,7 +64,7 @@ function createMediaHandle(
   }, path, options);
 }
 
-function ticksToSeconds(value: unknown) {
+function ticksToSeconds(value: number | null | undefined) {
   const ticks = Number(value);
   if (!Number.isFinite(ticks) || ticks <= 0) {
     return 0;
@@ -175,7 +175,7 @@ function currentMediaSource(
   return mediaSources[0];
 }
 
-function normalizedString(value: unknown) {
+function normalizedString(value: string | null | undefined) {
   return stringValue(value)?.toLowerCase() ?? "";
 }
 
@@ -435,7 +435,7 @@ function providerGuids(item: JellyfinItem) {
   }
 
   return uniqueStrings(
-    Object.entries(providerIds as Record<string, unknown>).map(([provider, id]) => {
+    Object.entries(providerIds).map(([provider, id]) => {
       const normalizedId = stringValue(id);
       return normalizedId ? `${provider.toLowerCase()}://${normalizedId}` : undefined;
     })

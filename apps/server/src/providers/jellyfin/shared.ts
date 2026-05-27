@@ -29,97 +29,119 @@ export interface JellyfinSourceContext {
   deviceId: string;
 }
 
-export type JellyfinApiList<T> = T | T[] | null;
-
 export interface JellyfinImageTags {
-  Primary?: unknown;
-  Thumb?: unknown;
+  [key: string]: string | undefined;
+  Primary?: string;
+  Thumb?: string;
 }
 
 export interface JellyfinPerson {
-  Name?: unknown;
-  Type?: unknown;
+  Name?: string | null;
+  Type?: string;
 }
 
 export interface JellyfinStudio {
-  Name?: unknown;
-  name?: unknown;
+  Name?: string | null;
+  name?: string | null;
 }
 
 export interface JellyfinMediaStream {
-  Type?: unknown;
-  Index?: unknown;
-  Codec?: unknown;
-  Language?: unknown;
-  Title?: unknown;
-  DisplayTitle?: unknown;
-  Width?: unknown;
-  Height?: unknown;
-  IsDefault?: unknown;
-  IsForced?: unknown;
-  IsHearingImpaired?: unknown;
-  IsExternal?: unknown;
-  IsTextSubtitleStream?: unknown;
+  Type?: string;
+  Index?: number;
+  Codec?: string | null;
+  Language?: string | null;
+  Title?: string | null;
+  DisplayTitle?: string | null;
+  Width?: number | null;
+  Height?: number | null;
+  IsDefault?: boolean;
+  IsForced?: boolean;
+  IsHearingImpaired?: boolean;
+  IsExternal?: boolean;
+  IsTextSubtitleStream?: boolean;
 }
 
 export interface JellyfinMediaSource {
-  Id?: unknown;
-  DefaultAudioStreamIndex?: unknown;
-  DefaultSubtitleStreamIndex?: unknown;
-  MediaStreams?: JellyfinApiList<JellyfinMediaStream>;
+  Id?: string | null;
+  DefaultAudioStreamIndex?: number | null;
+  DefaultSubtitleStreamIndex?: number | null;
+  MediaStreams?: JellyfinMediaStream[] | null;
 }
 
 export interface JellyfinItem {
-  Id?: unknown;
-  Type?: unknown;
-  MediaType?: unknown;
-  Name?: unknown;
-  EpisodeTitle?: unknown;
-  SeriesName?: unknown;
-  SeasonName?: unknown;
-  ParentIndexNumber?: unknown;
-  IndexNumber?: unknown;
-  RunTimeTicks?: unknown;
-  ProductionYear?: unknown;
-  PremiereDate?: unknown;
-  Overview?: unknown;
-  SeriesStudio?: unknown;
-  ChannelName?: unknown;
-  OfficialRating?: unknown;
-  ParentThumbItemId?: unknown;
-  ParentThumbImageTag?: unknown;
-  SeriesId?: unknown;
-  SeriesPrimaryImageTag?: unknown;
+  Id?: string;
+  Type?: string;
+  MediaType?: string;
+  Name?: string | null;
+  EpisodeTitle?: string | null;
+  SeriesName?: string | null;
+  SeasonName?: string | null;
+  ParentIndexNumber?: number | null;
+  IndexNumber?: number | null;
+  RunTimeTicks?: number | null;
+  ProductionYear?: number | null;
+  PremiereDate?: string | null;
+  Overview?: string | null;
+  SeriesStudio?: string | null;
+  ChannelName?: string | null;
+  OfficialRating?: string | null;
+  ParentThumbItemId?: string | null;
+  ParentThumbImageTag?: string | null;
+  SeriesId?: string | null;
+  SeriesPrimaryImageTag?: string | null;
   ImageTags?: JellyfinImageTags | null;
-  MediaSources?: JellyfinApiList<JellyfinMediaSource>;
-  Taglines?: JellyfinApiList<string>;
-  Genres?: JellyfinApiList<string>;
-  People?: JellyfinApiList<JellyfinPerson>;
-  Studios?: JellyfinApiList<JellyfinStudio>;
-  ProviderIds?: unknown;
+  MediaSources?: JellyfinMediaSource[] | null;
+  Taglines?: string[] | null;
+  Genres?: string[] | null;
+  People?: JellyfinPerson[] | null;
+  Studios?: JellyfinStudio[] | null;
+  ProviderIds?: Record<string, string | null> | null;
 }
 
 export interface JellyfinPlayState {
-  MediaSourceId?: unknown;
-  AudioStreamIndex?: unknown;
-  SubtitleStreamIndex?: unknown;
-  IsPaused?: unknown;
+  MediaSourceId?: string | null;
+  AudioStreamIndex?: number | null;
+  SubtitleStreamIndex?: number | null;
+  IsPaused?: boolean;
 }
 
 export interface JellyfinSessionInfo {
-  Id?: unknown;
-  UserId?: unknown;
-  UserName?: unknown;
-  DeviceName?: unknown;
-  Client?: unknown;
-  DeviceType?: unknown;
+  Id?: string | null;
+  UserId?: string;
+  UserName?: string | null;
+  DeviceName?: string | null;
+  Client?: string | null;
+  DeviceType?: string | null;
   PlayState?: JellyfinPlayState | null;
   NowPlayingItem?: JellyfinItem | null;
 }
 
 export interface JellyfinPlaybackInfo {
-  PlaySessionId?: unknown;
-  MediaSources?: JellyfinApiList<JellyfinMediaSource>;
+  PlaySessionId?: string | null;
+  MediaSources?: JellyfinMediaSource[];
+}
+
+export interface JellyfinPublicSystemInfo {
+  Id?: string | null;
+  ServerName?: string | null;
+  ProductName?: string | null;
+  Version?: string | null;
+}
+
+export interface JellyfinUserPolicy {
+  IsAdministrator?: boolean;
+}
+
+export interface JellyfinUser {
+  Id?: string;
+  Name?: string | null;
+  Policy?: JellyfinUserPolicy | null;
+}
+
+export interface JellyfinAuthenticationResult {
+  AccessToken?: string | null;
+  ServerId?: string | null;
+  User?: JellyfinUser | null;
 }
 
 export function booleanValue(value: unknown) {
@@ -316,7 +338,7 @@ function looksLikeGeneratedServerName(value: string) {
   return /^[a-f0-9]{12,64}$/i.test(value.trim());
 }
 
-export function jellyfinSourceName(serverName: unknown, baseUrl: string) {
+export function jellyfinSourceName(serverName: string | null | undefined, baseUrl: string) {
   const normalizedServerName = stringValue(serverName);
   if (normalizedServerName && !looksLikeGeneratedServerName(normalizedServerName)) {
     return normalizedServerName;
@@ -556,7 +578,7 @@ export function sourceContext(source: MediaSource): JellyfinSourceContext {
 }
 
 export async function fetchCurrentUser(context: JellyfinSourceContext) {
-  return jellyfinJson<any>(context.baseUrl, "/Users/Me", {
+  return jellyfinJson<JellyfinUser>(context.baseUrl, "/Users/Me", {
     token: context.token,
     deviceId: context.deviceId,
     timeoutMs: JELLYFIN_REQUEST_TIMEOUT_MS,
