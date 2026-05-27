@@ -4,6 +4,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   formatTime,
+  getTimelineFillPercentages,
   getFocusedTimelineZoomIndex,
   type TimelineZoomLevel,
 } from "./EditorUtils";
@@ -83,6 +84,40 @@ void test("chooses an initial timeline zoom that keeps short selections editable
 void test("formats editor time with hours and sub-second precision when needed", () => {
   assert.equal(formatTime(7425), "2:03:45");
   assert.equal(formatTime(0.1), "0:00.10");
+});
+
+void test("maps buffered timeline fill into action-relative percentages", () => {
+  assert.deepEqual(getTimelineFillPercentages({
+    trackStart: 10,
+    trackEnd: 30,
+    fillStart: 15,
+    fillEnd: 25,
+  }), {
+    leftPercent: 25,
+    widthPercent: 50,
+  });
+});
+
+void test("clamps buffered timeline fill to the action bounds", () => {
+  assert.deepEqual(getTimelineFillPercentages({
+    trackStart: 10,
+    trackEnd: 30,
+    fillStart: 0,
+    fillEnd: 40,
+  }), {
+    leftPercent: 0,
+    widthPercent: 100,
+  });
+
+  assert.deepEqual(getTimelineFillPercentages({
+    trackStart: 10,
+    trackEnd: 30,
+    fillStart: 10,
+    fillEnd: 10,
+  }), {
+    leftPercent: 0,
+    widthPercent: 0,
+  });
 });
 
 void test("combines horizontal and vertical wheel deltas for timeline scrolling", () => {

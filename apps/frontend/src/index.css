@@ -316,6 +316,7 @@
 
   .cliparr-timeline-action-content {
     display: flex;
+    position: relative;
     height: 100%;
     min-width: 0;
     align-items: center;
@@ -328,8 +329,32 @@
     -webkit-user-select: none;
   }
 
+  .cliparr-timeline-action-ready-fill {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    z-index: 0;
+    border-radius: 1px;
+    background: color-mix(in oklch, var(--secondary) 24%, transparent);
+    box-shadow:
+      inset 1px 0 0 color-mix(in oklch, var(--secondary) 54%, transparent),
+      inset 0 0 0 1px color-mix(in oklch, var(--secondary) 22%, transparent);
+    pointer-events: none;
+  }
+
+  .cliparr-timeline-action-ready-fill[data-status="warming"] {
+    min-width: 2px;
+    background: color-mix(in oklch, var(--secondary) 18%, transparent);
+  }
+
+  .cliparr-timeline-action-ready-fill[data-status="ready"] {
+    background: color-mix(in oklch, var(--secondary) 28%, transparent);
+  }
+
   .cliparr-timeline-action-label {
     display: inline-flex;
+    position: relative;
+    z-index: 1;
     min-width: 0;
     align-items: center;
     gap: 6px;
@@ -362,25 +387,4 @@
 
   .cliparr-timeline .timeline-editor-drag-line {
     border-left-color: color-mix(in oklch, var(--ring) 75%, transparent);
-  }
-
-  .cliparr-timeline-ready-range {
-    position: absolute;
-    top: 64px;
-    height: 44px;
-    z-index: 2;
-    border-radius: 1px;
-    background: color-mix(in oklch, var(--secondary) 24%, transparent);
-    box-shadow:
-      inset 1px 0 0 color-mix(in oklch, var(--secondary) 54%, transparent),
-      inset 0 0 0 1px color-mix(in oklch, var(--secondary) 22%, transparent);
-    pointer-events: none;
-  }
-
-  .cliparr-timeline-ready-range[data-status="warming"] {
-    background: color-mix(in oklch, var(--secondary) 18%, transparent);
-  }
-
-  .cliparr-timeline-ready-range[data-status="ready"] {
-    background: color-mix(in oklch, var(--secondary) 28%, transparent);
   }
