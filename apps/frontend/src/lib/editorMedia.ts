@@ -62,6 +62,7 @@ export interface EditorSession {
   title: string;
   type: string;
   duration: number;
+  initialPlayheadSeconds?: number;
   playerTitle: string;
   playerState: string;
   thumbUrl?: string;
@@ -110,6 +111,7 @@ export function editorSessionFromCurrentlyPlaying(item: CurrentlyPlayingItem): E
     title: item.title,
     type: item.type,
     duration: item.duration,
+    initialPlayheadSeconds: item.playheadSeconds,
     playerTitle: item.playerTitle,
     playerState: item.playerState,
     thumbUrl: item.thumbUrl,

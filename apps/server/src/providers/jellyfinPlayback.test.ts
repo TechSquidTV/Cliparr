@@ -8,6 +8,7 @@ import {
   deriveSelectedSubtitleTrack,
   deriveSubtitleTracks,
   listCurrentlyPlaying,
+  playheadSecondsFromPositionTicks,
   proxyMedia,
 } from "./jellyfin/playback.js";
 import type { JellyfinSourceContext } from "./jellyfin/shared.js";
@@ -170,6 +171,7 @@ function createJellyfinPlaybackFetch(options: {
           MediaSourceId: mediaSourceId,
           IsPaused: true,
           AudioStreamIndex: 1,
+          PositionTicks: 1_234_560_000,
         },
         NowPlayingItem: item,
       }]);
@@ -209,6 +211,14 @@ void test("disables Jellyfin subtitle burn-in on HLS previews", () => {
   assert.equal(url.searchParams.has("subtitleStreamIndex"), false);
 });
 
+void test("converts Jellyfin PositionTicks into playhead seconds", () => {
+  assert.equal(playheadSecondsFromPositionTicks(1234560000), 123.456);
+  assert.equal(playheadSecondsFromPositionTicks(0), 0);
+  assert.equal(playheadSecondsFromPositionTicks(-1), undefined);
+  assert.equal(playheadSecondsFromPositionTicks(null), undefined);
+  assert.equal(playheadSecondsFromPositionTicks(undefined), undefined);
+});
+
 void test("uses Jellyfin PlaybackInfo play session ids for currently playing streams", async () => {
   const session = createSession();
   const originalFetch = globalThis.fetch;
@@ -223,6 +233,7 @@ void test("uses Jellyfin PlaybackInfo play session ids for currently playing str
 
     assert.equal(entries.length, 1);
     assert.equal(entries[0]?.item.id, "source-1:client-session-1:item-1:media-source-1");
+    assert.equal(entries[0]?.item.playheadSeconds, 123.456);
     assert(entries[0]?.item.mediaUrl);
     assert(entries[0]?.item.hlsUrl);
 

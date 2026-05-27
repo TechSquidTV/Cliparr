@@ -1,7 +1,12 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import type { ProviderSessionRecord } from "../session/store.js";
-import { createPreviewPath, deriveSelectedSubtitleTrack, deriveSubtitleTracks } from "./plex/playback.js";
+import {
+  createPreviewPath,
+  deriveSelectedSubtitleTrack,
+  deriveSubtitleTracks,
+  playheadSecondsFromViewOffset,
+} from "./plex/playback.js";
 import type { PlexSourceContext } from "./plex/shared.js";
 
 function createSession(): ProviderSessionRecord {
@@ -61,6 +66,16 @@ void test("does not create Plex HLS preview paths for audio tracks", () => {
   };
 
   assert.equal(createPreviewPath(item, "plex-session-1"), undefined);
+});
+
+void test("converts Plex viewOffset milliseconds into playhead seconds", () => {
+  assert.equal(playheadSecondsFromViewOffset(123456), 123.456);
+  assert.equal(playheadSecondsFromViewOffset("123456"), 123.456);
+  assert.equal(playheadSecondsFromViewOffset(0), 0);
+  assert.equal(playheadSecondsFromViewOffset(-1), undefined);
+  assert.equal(playheadSecondsFromViewOffset(null), undefined);
+  assert.equal(playheadSecondsFromViewOffset(undefined), undefined);
+  assert.equal(playheadSecondsFromViewOffset("nope"), undefined);
 });
 
 void test("creates a direct content URL for Plex sidecar text subtitle streams", () => {

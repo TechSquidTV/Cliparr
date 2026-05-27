@@ -104,6 +104,7 @@ interface JellyfinPlayState {
   MediaSourceId?: string | null;
   AudioStreamIndex?: number | null;
   SubtitleStreamIndex?: number | null;
+  PositionTicks?: number | null;
   IsPaused?: boolean;
 }
 
