@@ -29,18 +29,18 @@ export interface JellyfinSourceContext {
   deviceId: string;
 }
 
-export interface JellyfinImageTags {
+interface JellyfinImageTags {
   [key: string]: string | undefined;
   Primary?: string;
   Thumb?: string;
 }
 
-export interface JellyfinPerson {
+interface JellyfinPerson {
   Name?: string | null;
   Type?: string;
 }
 
-export interface JellyfinStudio {
+interface JellyfinStudio {
   Name?: string | null;
   name?: string | null;
 }
@@ -61,7 +61,7 @@ export interface JellyfinMediaStream {
   IsTextSubtitleStream?: boolean;
 }
 
-export interface JellyfinMediaSource {
+interface JellyfinMediaSource {
   Id?: string | null;
   DefaultAudioStreamIndex?: number | null;
   DefaultSubtitleStreamIndex?: number | null;
@@ -98,7 +98,7 @@ export interface JellyfinItem {
   ProviderIds?: Record<string, string | null> | null;
 }
 
-export interface JellyfinPlayState {
+interface JellyfinPlayState {
   MediaSourceId?: string | null;
   AudioStreamIndex?: number | null;
   SubtitleStreamIndex?: number | null;
@@ -128,7 +128,7 @@ export interface JellyfinPublicSystemInfo {
   Version?: string | null;
 }
 
-export interface JellyfinUserPolicy {
+interface JellyfinUserPolicy {
   IsAdministrator?: boolean;
 }
 
