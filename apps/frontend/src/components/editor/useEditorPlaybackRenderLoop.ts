@@ -313,6 +313,7 @@ export function useEditorPlaybackRenderLoop({
   }, [animationFrameRef, renderFrame, renderIntervalRef, stopRenderLoop]);
 
   return {
+    drawCanvasFrame,
     drawFrame,
     drawPlaceholder,
     startVideoIterator,

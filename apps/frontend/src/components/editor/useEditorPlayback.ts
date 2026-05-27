@@ -277,6 +277,7 @@ export function useEditorPlayback({
   }, [getPlaybackTime, stopAudioNodes]);
 
   const {
+    drawCanvasFrame,
     drawFrame,
     startVideoIterator,
     startRenderLoop,
@@ -392,14 +393,9 @@ export function useEditorPlayback({
 
     const displayedStaticFrame = displayedStaticFrameRef.current;
     if (displayedStaticFrame) {
-      const canvas = canvasRef.current;
-      const context = canvas?.getContext("2d");
-      if (canvas && context) {
-        context.clearRect(0, 0, canvas.width, canvas.height);
-        context.drawImage(displayedStaticFrame.canvas, 0, 0, canvas.width, canvas.height);
-      }
+      drawCanvasFrame(displayedStaticFrame);
     }
-  }, [canvasRef, drawFrame, subtitleCues, subtitlesEnabled, subtitleStyleSettings]);
+  }, [drawCanvasFrame, drawFrame, subtitleCues, subtitlesEnabled, subtitleStyleSettings]);
 
   const disposePreview = useCallback(() => {
     resetPreview(true, true);
