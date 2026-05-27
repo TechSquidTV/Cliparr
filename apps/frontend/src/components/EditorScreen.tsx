@@ -89,6 +89,7 @@ export default function EditorScreen({ session, onBack }: Props) {
     subtitleError,
     session.source.providerId,
   ]);
+  const posterImageUrl = session.exportMetadata?.imageUrl ?? session.thumbUrl;
 
   const {
     canvasRef,
@@ -102,6 +103,7 @@ export default function EditorScreen({ session, onBack }: Props) {
     exportFallbackSource,
     hlsFallbackInfo,
     sourceVideoDimensions,
+    previewVideoDimensions,
     playbackReadyRange,
     volume,
     muted,
@@ -121,6 +123,7 @@ export default function EditorScreen({ session, onBack }: Props) {
     endTime,
     sessionId: session.id,
     selectedAudioTrack: session.selectedAudioTrack,
+    posterImageUrl,
     subtitleCues,
     subtitlesEnabled: subtitlePreviewEnabled,
     subtitleStyleSettings,
@@ -318,6 +321,7 @@ export default function EditorScreen({ session, onBack }: Props) {
             <section className="flex min-h-[12rem] flex-none items-center justify-center overflow-hidden border border-border bg-card p-3 sm:min-h-[16rem] lg:min-h-0 lg:flex-1">
               <EditorPreview
                 canvasRef={canvasRef}
+                videoDimensions={previewVideoDimensions}
                 playing={playing}
                 loadingPreview={loadingPreview}
                 previewStatus={previewStatus}

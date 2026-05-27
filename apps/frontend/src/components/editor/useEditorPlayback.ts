@@ -66,6 +66,7 @@ interface UseEditorPlaybackProps {
   endTime: number;
   sessionId: string;
   selectedAudioTrack?: PlaybackAudioSelection;
+  posterImageUrl?: string;
   subtitleCues?: readonly SubtitleCue[];
   subtitlesEnabled?: boolean;
   subtitleStyleSettings?: SubtitleStyleSettings;
@@ -76,6 +77,57 @@ interface VideoDimensions {
   height: number;
 }
 
+interface StaticVideoFrame {
+  canvas: HTMLCanvasElement;
+  dimensions: VideoDimensions;
+}
+
+const MAX_STATIC_VIDEO_FRAME_SIZE = 1920;
+
+function scaledStaticFrameDimensions(width: number, height: number): VideoDimensions {
+  const safeWidth = Number.isFinite(width) && width > 0 ? width : 1280;
+  const safeHeight = Number.isFinite(height) && height > 0 ? height : 720;
+  const scale = Math.min(1, MAX_STATIC_VIDEO_FRAME_SIZE / Math.max(safeWidth, safeHeight));
+
+  return {
+    width: Math.max(1, Math.round(safeWidth * scale)),
+    height: Math.max(1, Math.round(safeHeight * scale)),
+  };
+}
+
+function loadImageElement(url: string) {
+  return new Promise<HTMLImageElement>((resolve, reject) => {
+    const image = new Image();
+    image.crossOrigin = "anonymous";
+    image.decoding = "async";
+    image.onload = () => resolve(image);
+    image.onerror = () => reject(new Error("Could not load artwork image."));
+    image.src = url;
+  });
+}
+
+async function loadStaticVideoFrame(url: string): Promise<StaticVideoFrame> {
+  const image = await loadImageElement(url);
+  const dimensions = scaledStaticFrameDimensions(image.naturalWidth, image.naturalHeight);
+  const canvas = document.createElement("canvas");
+  canvas.width = dimensions.width;
+  canvas.height = dimensions.height;
+
+  const context = canvas.getContext("2d");
+  if (!context) {
+    throw new Error("Could not create an artwork rendering canvas.");
+  }
+
+  context.imageSmoothingEnabled = true;
+  context.imageSmoothingQuality = "high";
+  context.drawImage(image, 0, 0, dimensions.width, dimensions.height);
+
+  return {
+    canvas,
+    dimensions,
+  };
+}
+
 export function useEditorPlayback({
   hlsSource,
   directSource,
@@ -84,6 +136,7 @@ export function useEditorPlayback({
   endTime,
   sessionId,
   selectedAudioTrack,
+  posterImageUrl,
   subtitleCues = [],
   subtitlesEnabled = false,
   subtitleStyleSettings,
@@ -100,16 +153,19 @@ export function useEditorPlayback({
   const [exportFallbackSource, setExportFallbackSource] = useState<EditorMediaSource | undefined>(undefined);
   const [hlsFallbackInfo, setHlsFallbackInfo] = useState<PlaybackFallbackInfo | null>(null);
   const [sourceVideoDimensions, setSourceVideoDimensions] = useState<VideoDimensions | null>(null);
+  const [previewVideoDimensions, setPreviewVideoDimensions] = useState<VideoDimensions | null>(null);
   const [playbackReadyRange, setPlaybackReadyRange] = useState<PlaybackReadyRange | null>(null);
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const inputRef = useRef<Input | null>(null);
   const videoSinkRef = useRef<CanvasSink | null>(null);
   const audioSinkRef = useRef<AudioBufferSink | null>(null);
+  const staticVideoFrameRef = useRef<HTMLCanvasElement | null>(null);
   const videoFrameIteratorRef = useRef<AsyncGenerator<WrappedCanvas, void, unknown> | null>(null);
   const audioBufferIteratorRef = useRef<AsyncGenerator<WrappedAudioBuffer, void, unknown> | null>(null);
   const nextFrameRef = useRef<WrappedCanvas | null>(null);
   const displayedFrameRef = useRef<WrappedCanvas | null>(null);
+  const displayedStaticFrameRef = useRef<{ canvas: HTMLCanvasElement; timestamp: number } | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
   const gainNodeRef = useRef<GainNode | null>(null);
   const queuedAudioNodesRef = useRef(new Set<AudioBufferSourceNode>());
@@ -230,9 +286,11 @@ export function useEditorPlayback({
     canvasRef,
     inputRef,
     videoSinkRef,
+    staticVideoFrameRef,
     videoFrameIteratorRef,
     nextFrameRef,
     displayedFrameRef,
+    displayedStaticFrameRef,
     animationFrameRef,
     renderIntervalRef,
     generationRef,
@@ -300,6 +358,8 @@ export function useEditorPlayback({
     if (clearActiveSource) {
       setActiveSourceLabel("");
     }
+    setSourceVideoDimensions(null);
+    setPreviewVideoDimensions(null);
     pausePlayback(false);
     stopRenderLoop();
     void videoFrameIteratorRef.current?.return();
@@ -307,11 +367,13 @@ export function useEditorPlayback({
     videoFrameIteratorRef.current = null;
     audioBufferIteratorRef.current = null;
     nextFrameRef.current = null;
+    staticVideoFrameRef.current = null;
     sourceTimelineOffsetRef.current = 0;
     skipLiveWaitRef.current = false;
     warmupPromiseRef.current = null;
     warmupTargetTimeRef.current = null;
     displayedFrameRef.current = null;
+    displayedStaticFrameRef.current = null;
     disposePlaybackSinkResources({
       inputRef,
       videoSinkRef,
@@ -326,8 +388,19 @@ export function useEditorPlayback({
     const displayedFrame = displayedFrameRef.current;
     if (displayedFrame) {
       drawFrame(displayedFrame);
+      return;
     }
-  }, [drawFrame, subtitleCues, subtitlesEnabled, subtitleStyleSettings]);
+
+    const displayedStaticFrame = displayedStaticFrameRef.current;
+    if (displayedStaticFrame) {
+      const canvas = canvasRef.current;
+      const context = canvas?.getContext("2d");
+      if (canvas && context) {
+        context.clearRect(0, 0, canvas.width, canvas.height);
+        context.drawImage(displayedStaticFrame.canvas, 0, 0, canvas.width, canvas.height);
+      }
+    }
+  }, [canvasRef, drawFrame, subtitleCues, subtitlesEnabled, subtitleStyleSettings]);
 
   const disposePreview = useCallback(() => {
     resetPreview(true, true);
@@ -499,6 +572,7 @@ export function useEditorPlayback({
       setDuration(resetDuration);
       durationRef.current = resetDuration;
       setSourceVideoDimensions(null);
+      setPreviewVideoDimensions(null);
       setCurrentTime(0);
       playbackTimeAtStartRef.current = 0;
       sourceTimelineOffsetRef.current = 0;
@@ -564,6 +638,16 @@ export function useEditorPlayback({
             if (previewAudioAssessment.warning) {
               warnings.push(previewAudioAssessment.warning);
             }
+            const staticVideoFrame = !sourceVideoTrack && previewAudioTrack && posterImageUrl
+              ? await loadStaticVideoFrame(posterImageUrl).catch((err: unknown) => {
+                  console.warn("Could not load editor artwork for audio-only preview", {
+                    sessionId,
+                    posterImageUrl,
+                    errorMessage: errorMessage(err),
+                  });
+                  return null;
+                })
+              : null;
             playbackSourceAnalysisContext = {
               sessionId,
               source: playbackSource.label,
@@ -584,6 +668,8 @@ export function useEditorPlayback({
               return;
             }
 
+            staticVideoFrameRef.current = staticVideoFrame?.canvas ?? null;
+
             if (previewVideoTrack && allAudioTracks.length > 0 && !previewAudioTrack && playbackSourceAnalysisContext) {
               console.warn(
                 "Editor playback source loaded without preview audio",
@@ -591,7 +677,7 @@ export function useEditorPlayback({
               );
             }
 
-            if (!previewVideoTrack && previewAudioTrack && playbackSourceAnalysisContext) {
+            if (!previewVideoTrack && previewAudioTrack && !staticVideoFrame && playbackSourceAnalysisContext) {
               console.warn(
                 "Editor playback source loaded without preview video",
                 await buildPlaybackSourceAnalysis(playbackSourceAnalysisContext),
@@ -641,16 +727,21 @@ export function useEditorPlayback({
             const sourceDimensions = sourceVideoTrack
               ? await getVideoTrackDimensions(sourceVideoTrack)
               : null;
+            const previewDimensions = sourceDimensions ?? staticVideoFrame?.dimensions ?? null;
             const audioTrackSampleRate = previewAudioTrack
               ? await getAudioTrackSampleRate(previewAudioTrack)
               : undefined;
 
             if (sourceDimensions) {
               setSourceVideoDimensions(sourceDimensions);
+            }
+
+            if (previewDimensions) {
+              setPreviewVideoDimensions(previewDimensions);
               const canvas = canvasRef.current;
               if (canvas) {
-                canvas.width = sourceDimensions.width;
-                canvas.height = sourceDimensions.height;
+                canvas.width = previewDimensions.width;
+                canvas.height = previewDimensions.height;
               }
             }
 
@@ -740,6 +831,7 @@ export function useEditorPlayback({
           setError(buildPlaybackLoadError(failures));
           setHlsFallbackInfo(nextHlsFallbackInfo);
           setSourceVideoDimensions(null);
+          setPreviewVideoDimensions(null);
         }
       } finally {
         if (!cancelled) {
@@ -758,6 +850,7 @@ export function useEditorPlayback({
     directSource,
     hlsSource,
     initialDuration,
+    posterImageUrl,
     selectedAudioTrack,
     sessionId,
     disposePreview,
@@ -778,6 +871,7 @@ export function useEditorPlayback({
     exportFallbackSource,
     hlsFallbackInfo,
     sourceVideoDimensions,
+    previewVideoDimensions,
     playbackReadyRange,
     volume,
     muted,

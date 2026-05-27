@@ -3,6 +3,10 @@ import type { RefObject } from "react";
 
 interface EditorPreviewProps {
   canvasRef: RefObject<HTMLCanvasElement | null>;
+  videoDimensions?: {
+    width: number;
+    height: number;
+  } | null;
   playing: boolean;
   loadingPreview: boolean;
   previewStatus: string;
@@ -11,13 +15,21 @@ interface EditorPreviewProps {
 
 export function EditorPreview({
   canvasRef,
+  videoDimensions,
   playing,
   loadingPreview,
   previewStatus,
   togglePlay,
 }: EditorPreviewProps) {
+  const aspectRatio = videoDimensions && videoDimensions.width > 0 && videoDimensions.height > 0
+    ? `${videoDimensions.width} / ${videoDimensions.height}`
+    : undefined;
+
   return (
-    <div className="group relative aspect-video h-full max-h-full w-auto max-w-full overflow-hidden bg-[var(--editor-preview-stage)]">
+    <div
+      className="group relative aspect-video h-full max-h-full w-auto max-w-full overflow-hidden bg-[var(--editor-preview-stage)]"
+      style={aspectRatio ? { aspectRatio } : undefined}
+    >
       <canvas
         ref={canvasRef}
         className="h-full w-full object-contain"

@@ -48,6 +48,8 @@ import {
 } from "./shared.js";
 
 const logger = getServerLogger(["providers", "jellyfin"]);
+const HD_ARTWORK_SIZE = 1920;
+const HD_ARTWORK_QUALITY = 96;
 
 function createMediaHandle(
   session: ProviderSessionRecord,
@@ -98,8 +100,17 @@ function buildSourceTitle(item: JellyfinItem) {
 function itemImagePath(item: JellyfinItem) {
   const itemId = stringValue(item?.Id);
   const imageTags = item?.ImageTags ?? {};
+  const type = itemType(item).toLowerCase();
 
-  if (itemType(item) === "Episode") {
+  if (type === "audio") {
+    const albumId = stringValue(item?.AlbumId);
+    const albumTag = stringValue(item?.AlbumPrimaryImageTag);
+    if (albumId && albumTag) {
+      return `/Items/${encodeURIComponent(albumId)}/Images/Primary?tag=${encodeURIComponent(albumTag)}`;
+    }
+  }
+
+  if (type === "episode") {
     const parentThumbItemId = stringValue(item?.ParentThumbItemId);
     const parentThumbTag = stringValue(item?.ParentThumbImageTag);
     if (parentThumbItemId && parentThumbTag) {
@@ -124,6 +135,20 @@ function itemImagePath(item: JellyfinItem) {
   }
 
   return undefined;
+}
+
+function withHdImageOptions(path: string) {
+  const url = new URL(path, "http://cliparr.local");
+  url.searchParams.set("maxWidth", String(HD_ARTWORK_SIZE));
+  url.searchParams.set("maxHeight", String(HD_ARTWORK_SIZE));
+  url.searchParams.set("quality", String(HD_ARTWORK_QUALITY));
+
+  return `${url.pathname}${url.search}`;
+}
+
+function itemHdImagePath(item: JellyfinItem) {
+  const imagePath = itemImagePath(item);
+  return imagePath ? withHdImageOptions(imagePath) : undefined;
 }
 
 function playbackMediaSources(
@@ -451,7 +476,7 @@ function createExportMetadata(
   context: JellyfinSourceContext,
   item: JellyfinItem
 ): MediaExportMetadata {
-  const imagePath = itemImagePath(item);
+  const imagePath = itemHdImagePath(item) ?? itemImagePath(item);
 
   return {
     providerId: "jellyfin",

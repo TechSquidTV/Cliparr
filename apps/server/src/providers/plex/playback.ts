@@ -54,6 +54,7 @@ import {
 } from "./connectionState.js";
 
 const logger = getServerLogger(["providers", "plex"]);
+const HD_ARTWORK_SIZE = 1920;
 
 function createMediaHandle(
   session: ProviderSessionRecord,
@@ -378,7 +379,28 @@ function metadataImagePath(item: any) {
     return stringValue(item.grandparentThumb) ?? stringValue(item.parentThumb) ?? stringValue(item.thumb);
   }
 
+  if (item?.type === "track") {
+    return stringValue(item?.thumb) ?? stringValue(item?.parentThumb) ?? stringValue(item?.grandparentThumb);
+  }
+
   return stringValue(item?.thumb) ?? stringValue(item?.grandparentThumb) ?? stringValue(item?.parentThumb);
+}
+
+function metadataHdImagePath(item: any) {
+  const imagePath = metadataImagePath(item);
+  if (!imagePath) {
+    return undefined;
+  }
+
+  const params = new URLSearchParams({
+    url: imagePath,
+    width: String(HD_ARTWORK_SIZE),
+    height: String(HD_ARTWORK_SIZE),
+    quality: "-1",
+    upscale: "0",
+  });
+
+  return `/photo/:/transcode?${params.toString()}`;
 }
 
 function buildSourceTitle(item: any) {
@@ -660,7 +682,7 @@ function createExportMetadata(
   context: PlexSourceContext,
   item: any
 ): MediaExportMetadata {
-  const imagePath = metadataImagePath(item);
+  const imagePath = metadataHdImagePath(item) ?? metadataImagePath(item);
   const guid = stringValue(item?.guid);
 
   return {

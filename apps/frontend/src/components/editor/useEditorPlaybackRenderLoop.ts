@@ -10,13 +10,20 @@ type RefValue<T> = {
   current: T;
 };
 
+interface StaticVideoFrame {
+  canvas: HTMLCanvasElement;
+  timestamp: number;
+}
+
 interface UseEditorPlaybackRenderLoopOptions {
   canvasRef: RefValue<HTMLCanvasElement | null>;
   inputRef: RefValue<Input | null>;
   videoSinkRef: RefValue<CanvasSink | null>;
+  staticVideoFrameRef: RefValue<HTMLCanvasElement | null>;
   videoFrameIteratorRef: RefValue<AsyncGenerator<WrappedCanvas, void, unknown> | null>;
   nextFrameRef: RefValue<WrappedCanvas | null>;
   displayedFrameRef: RefValue<WrappedCanvas | null>;
+  displayedStaticFrameRef: RefValue<StaticVideoFrame | null>;
   animationFrameRef: RefValue<number | null>;
   renderIntervalRef: RefValue<number | null>;
   generationRef: RefValue<number>;
@@ -41,9 +48,11 @@ export function useEditorPlaybackRenderLoop({
   canvasRef,
   inputRef,
   videoSinkRef,
+  staticVideoFrameRef,
   videoFrameIteratorRef,
   nextFrameRef,
   displayedFrameRef,
+  displayedStaticFrameRef,
   animationFrameRef,
   renderIntervalRef,
   generationRef,
@@ -63,7 +72,7 @@ export function useEditorPlaybackRenderLoop({
   setCurrentTime,
   setError,
 }: UseEditorPlaybackRenderLoopOptions) {
-  const drawFrame = useCallback((frame: WrappedCanvas) => {
+  const drawCanvasFrame = useCallback((frame: Pick<WrappedCanvas, "canvas" | "timestamp">) => {
     const canvas = canvasRef.current;
     const context = canvas?.getContext("2d");
     if (!canvas || !context) {
@@ -87,15 +96,45 @@ export function useEditorPlaybackRenderLoop({
         );
       }
     }
-
-    displayedFrameRef.current = frame;
   }, [
     canvasRef,
-    displayedFrameRef,
     sourceTimelineOffsetRef,
     subtitleCuesRef,
     subtitleStyleSettingsRef,
     subtitlesEnabledRef,
+  ]);
+
+  const drawFrame = useCallback((frame: WrappedCanvas) => {
+    drawCanvasFrame(frame);
+    displayedFrameRef.current = frame;
+    displayedStaticFrameRef.current = null;
+  }, [
+    displayedFrameRef,
+    displayedStaticFrameRef,
+    drawCanvasFrame,
+  ]);
+
+  const drawStaticFrame = useCallback(() => {
+    const staticFrameCanvas = staticVideoFrameRef.current;
+    if (!staticFrameCanvas) {
+      return false;
+    }
+
+    const frame = {
+      canvas: staticFrameCanvas,
+      timestamp: toSourceTimelineTime(getPlaybackTime(), sourceTimelineOffsetRef.current),
+    };
+    drawCanvasFrame(frame);
+    displayedFrameRef.current = null;
+    displayedStaticFrameRef.current = frame;
+    return true;
+  }, [
+    displayedFrameRef,
+    displayedStaticFrameRef,
+    drawCanvasFrame,
+    getPlaybackTime,
+    sourceTimelineOffsetRef,
+    staticVideoFrameRef,
   ]);
 
   const drawPlaceholder = useCallback((message: string) => {
@@ -115,7 +154,9 @@ export function useEditorPlaybackRenderLoop({
     context.font = "24px sans-serif";
     context.textAlign = "center";
     context.fillText(message, canvas.width / 2, canvas.height / 2);
-  }, [canvasRef]);
+    displayedFrameRef.current = null;
+    displayedStaticFrameRef.current = null;
+  }, [canvasRef, displayedFrameRef, displayedStaticFrameRef]);
 
   const startVideoIterator = useCallback(async () => {
     const videoSink = videoSinkRef.current;
@@ -125,7 +166,9 @@ export function useEditorPlaybackRenderLoop({
     nextFrameRef.current = null;
 
     if (!videoSink) {
-      drawPlaceholder("Audio only");
+      if (!drawStaticFrame()) {
+        drawPlaceholder("Audio only");
+      }
       return;
     }
 
@@ -150,6 +193,7 @@ export function useEditorPlaybackRenderLoop({
     }
   }, [
     drawFrame,
+    drawStaticFrame,
     drawPlaceholder,
     generationRef,
     getPlaybackTime,
