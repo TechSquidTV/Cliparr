@@ -66,7 +66,7 @@ interface UseEditorPlaybackProps {
   endTime: number;
   sessionId: string;
   selectedAudioTrack?: PlaybackAudioSelection;
-  posterImageUrls?: readonly string[];
+  posterImageUrl?: string;
   subtitleCues?: readonly SubtitleCue[];
   subtitlesEnabled?: boolean;
   subtitleStyleSettings?: SubtitleStyleSettings;
@@ -83,7 +83,6 @@ interface StaticVideoFrame {
 }
 
 const MAX_STATIC_VIDEO_FRAME_SIZE = 1920;
-const STATIC_VIDEO_FRAME_LOAD_TIMEOUT_MS = 2500;
 
 function scaledStaticFrameDimensions(width: number, height: number): VideoDimensions {
   const safeWidth = Number.isFinite(width) && width > 0 ? width : 1280;
@@ -106,27 +105,8 @@ function loadImageElement(url: string) {
   });
 }
 
-function loadImageElementWithTimeout(url: string) {
-  return new Promise<HTMLImageElement>((resolve, reject) => {
-    const timeout = window.setTimeout(() => {
-      reject(new Error("Timed out loading artwork image."));
-    }, STATIC_VIDEO_FRAME_LOAD_TIMEOUT_MS);
-
-    loadImageElement(url).then(
-      (image) => {
-        window.clearTimeout(timeout);
-        resolve(image);
-      },
-      (err: unknown) => {
-        window.clearTimeout(timeout);
-        reject(err instanceof Error ? err : new Error(String(err)));
-      },
-    );
-  });
-}
-
 async function loadStaticVideoFrame(url: string): Promise<StaticVideoFrame> {
-  const image = await loadImageElementWithTimeout(url);
+  const image = await loadImageElement(url);
   const dimensions = scaledStaticFrameDimensions(image.naturalWidth, image.naturalHeight);
   const canvas = document.createElement("canvas");
   canvas.width = dimensions.width;
@@ -147,21 +127,6 @@ async function loadStaticVideoFrame(url: string): Promise<StaticVideoFrame> {
   };
 }
 
-async function loadFirstStaticVideoFrame(urls: readonly string[]) {
-  for (const url of urls) {
-    try {
-      return await loadStaticVideoFrame(url);
-    } catch (err) {
-      console.warn("Could not load editor artwork for audio-only preview", {
-        posterImageUrl: url,
-        errorMessage: errorMessage(err),
-      });
-    }
-  }
-
-  return null;
-}
-
 export function useEditorPlayback({
   hlsSource,
   directSource,
@@ -170,7 +135,7 @@ export function useEditorPlayback({
   endTime,
   sessionId,
   selectedAudioTrack,
-  posterImageUrls = [],
+  posterImageUrl,
   subtitleCues = [],
   subtitlesEnabled = false,
   subtitleStyleSettings,
@@ -672,8 +637,15 @@ export function useEditorPlayback({
             if (previewAudioAssessment.warning) {
               warnings.push(previewAudioAssessment.warning);
             }
-            const staticVideoFrame = !sourceVideoTrack && previewAudioTrack && posterImageUrls.length > 0
-              ? await loadFirstStaticVideoFrame(posterImageUrls)
+            const staticVideoFrame = !sourceVideoTrack && previewAudioTrack && posterImageUrl
+              ? await loadStaticVideoFrame(posterImageUrl).catch((err: unknown) => {
+                  console.warn("Could not load editor artwork for audio-only preview", {
+                    sessionId,
+                    posterImageUrl,
+                    errorMessage: errorMessage(err),
+                  });
+                  return null;
+                })
               : null;
             playbackSourceAnalysisContext = {
               sessionId,
@@ -877,7 +849,7 @@ export function useEditorPlayback({
     directSource,
     hlsSource,
     initialDuration,
-    posterImageUrls,
+    posterImageUrl,
     selectedAudioTrack,
     sessionId,
     disposePreview,
