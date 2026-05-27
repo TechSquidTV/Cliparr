@@ -509,7 +509,13 @@ async function enrichMetadataItem(context: JellyfinSourceContext, item: Jellyfin
 async function loadPlaybackInfo(context: JellyfinSourceContext, itemId: string) {
   try {
     return await fetchPlaybackInfo(context, itemId);
-  } catch {
+  } catch (err) {
+    logger.warn("Could not fetch Jellyfin playback info for item {itemId}.", {
+      itemId,
+      sourceId: context.sourceId,
+      baseUrl: context.baseUrl,
+      errorMessage: errorMessage(err),
+    });
     return undefined;
   }
 }
