@@ -495,3 +495,17 @@ export async function fetchItem(context: JellyfinSourceContext, itemId: string) 
     }
   );
 }
+
+export async function fetchPlaybackInfo(context: JellyfinSourceContext, itemId: string) {
+  return jellyfinJson<any>(
+    context.baseUrl,
+    `/Items/${encodeURIComponent(itemId)}/PlaybackInfo?userId=${encodeURIComponent(context.userId)}`,
+    {
+      token: context.token,
+      deviceId: context.deviceId,
+      timeoutMs: CURRENT_PLAYBACK_REQUEST_TIMEOUT_MS,
+      errorCode: "jellyfin_playback_info_failed",
+      failureMessage: "Jellyfin playback info request failed",
+    }
+  );
+}
