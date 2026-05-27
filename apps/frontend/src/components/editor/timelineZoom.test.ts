@@ -3,9 +3,14 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
+  clampClipEndTime,
+  clampClipStartTime,
+  clampPlaybackTime,
   formatTime,
+  formatTimecodeInput,
   getTimelineFillPercentages,
   getFocusedTimelineZoomIndex,
+  parseTimecodeInput,
   type TimelineZoomLevel,
 } from "./EditorUtils";
 import {
@@ -84,6 +89,40 @@ void test("chooses an initial timeline zoom that keeps short selections editable
 void test("formats editor time with hours and sub-second precision when needed", () => {
   assert.equal(formatTime(7425), "2:03:45");
   assert.equal(formatTime(0.1), "0:00.10");
+  assert.equal(formatTimecodeInput(7425), "2:03:45.00");
+  assert.equal(formatTimecodeInput(0), "0:00.00");
+});
+
+void test("parses flexible editor timecode input", () => {
+  assert.equal(parseTimecodeInput("90"), 90);
+  assert.equal(parseTimecodeInput("90.5"), 90.5);
+  assert.equal(parseTimecodeInput("1:30"), 90);
+  assert.equal(parseTimecodeInput("1:30.25"), 90.25);
+  assert.equal(parseTimecodeInput("1:02:03.04"), 3723.04);
+  assert.equal(parseTimecodeInput("90:00"), 5400);
+  assert.equal(parseTimecodeInput("0.105"), 0.11);
+});
+
+void test("rejects malformed editor timecode input", () => {
+  assert.equal(parseTimecodeInput(""), null);
+  assert.equal(parseTimecodeInput("-1"), null);
+  assert.equal(parseTimecodeInput("1:"), null);
+  assert.equal(parseTimecodeInput(":30"), null);
+  assert.equal(parseTimecodeInput("1::30"), null);
+  assert.equal(parseTimecodeInput("1:02:03:04"), null);
+  assert.equal(parseTimecodeInput("1:60"), null);
+  assert.equal(parseTimecodeInput("1:02:60"), null);
+  assert.equal(parseTimecodeInput("1:60:00"), null);
+});
+
+void test("clamps direct timecode commits", () => {
+  assert.equal(clampPlaybackTime(-1, 100), 0);
+  assert.equal(clampPlaybackTime(101, 100), 100);
+  assert.equal(clampPlaybackTime(0.105, 100), 0.11);
+  assert.equal(clampClipStartTime(-1, 10, 100), 0);
+  assert.equal(clampClipStartTime(9.95, 10, 100), 9.9);
+  assert.equal(clampClipEndTime(5, 5, 100), 5.1);
+  assert.equal(clampClipEndTime(120, 5, 100), 100);
 });
 
 void test("maps buffered timeline fill into action-relative percentages", () => {

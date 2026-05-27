@@ -1,6 +1,12 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Eye } from "lucide-react";
-import { MIN_CLIP_SECONDS, roundTimelineTime } from "./editor/EditorUtils";
+import {
+  clampClipEndTime,
+  clampClipStartTime,
+  clampPlaybackTime,
+  MIN_CLIP_SECONDS,
+  roundTimelineTime,
+} from "./editor/EditorUtils";
 import { useEditorPlayback, type PlaybackFallbackInfo } from "./editor/useEditorPlayback";
 import { useEditorExport } from "./editor/useEditorExport";
 import { useEditorKeyboardShortcuts } from "./editor/useEditorKeyboardShortcuts";
@@ -202,6 +208,25 @@ export default function EditorScreen({ session, onBack }: Props) {
       nextEnd - nextStart >= minClipLength
     );
   }, [duration]);
+  const handlePreviewTimeCommit = useCallback((nextTime: number) => {
+    if (!duration || duration <= 0) return;
+
+    void seekToTime(clampPlaybackTime(nextTime, duration));
+  }, [duration, seekToTime]);
+  const handleStartTimeCommit = useCallback((nextStart: number) => {
+    if (!duration || duration <= 0) return;
+
+    const nextClampedStart = clampClipStartTime(nextStart, endTime, duration);
+    updateClipRange(nextClampedStart, endTime);
+    void warmClipSelection(nextClampedStart, endTime);
+  }, [duration, endTime, updateClipRange, warmClipSelection]);
+  const handleEndTimeCommit = useCallback((nextEnd: number) => {
+    if (!duration || duration <= 0) return;
+
+    const nextClampedEnd = clampClipEndTime(nextEnd, startTime, duration);
+    updateClipRange(startTime, nextClampedEnd);
+    void warmClipSelection(startTime, nextClampedEnd);
+  }, [duration, startTime, updateClipRange, warmClipSelection]);
 
   const {
     timelineRef,
@@ -349,6 +374,9 @@ export default function EditorScreen({ session, onBack }: Props) {
                 handleTimelineZoomOut={handleTimelineZoomOut}
                 canZoomIn={canZoomIn}
                 canZoomOut={canZoomOut}
+                onPreviewTimeCommit={handlePreviewTimeCommit}
+                onStartTimeCommit={handleStartTimeCommit}
+                onEndTimeCommit={handleEndTimeCommit}
               />
 
               {!hasDuration && (
