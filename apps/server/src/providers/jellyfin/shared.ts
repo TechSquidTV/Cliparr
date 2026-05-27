@@ -89,6 +89,8 @@ export interface JellyfinItem {
   ParentThumbImageTag?: string | null;
   SeriesId?: string | null;
   SeriesPrimaryImageTag?: string | null;
+  AlbumId?: string | null;
+  AlbumPrimaryImageTag?: string | null;
   ImageTags?: JellyfinImageTags | null;
   MediaSources?: JellyfinMediaSource[] | null;
   Taglines?: string[] | null;

@@ -54,6 +54,15 @@ void test("uses a stable Plex transcode session id for repeated playback polls",
   assert.match(firstPath ?? "", /subtitles=none/);
 });
 
+void test("does not create Plex HLS preview paths for audio tracks", () => {
+  const item = {
+    type: "track",
+    ratingKey: "12345",
+  };
+
+  assert.equal(createPreviewPath(item, "plex-session-1"), undefined);
+});
+
 void test("creates a direct content URL for Plex sidecar text subtitle streams", () => {
   const session = createSession();
   const context = createContext();
