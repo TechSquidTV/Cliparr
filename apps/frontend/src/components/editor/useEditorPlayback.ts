@@ -62,6 +62,7 @@ interface UseEditorPlaybackProps {
   hlsSource?: EditorMediaSource;
   directSource?: EditorMediaSource;
   initialDuration: number;
+  initialCurrentTime?: number;
   startTime: number;
   endTime: number;
   sessionId: string;
@@ -127,10 +128,21 @@ async function loadStaticVideoFrame(url: string): Promise<StaticVideoFrame> {
   };
 }
 
+function initialPlaybackTime(seconds: number | null | undefined, duration: number) {
+  const safeDuration = Math.max(Number.isFinite(duration) ? duration : 0, 0);
+  const safeSeconds = Number(seconds);
+  if (!Number.isFinite(safeSeconds) || safeSeconds < 0 || safeDuration <= 0) {
+    return 0;
+  }
+
+  return Math.min(safeSeconds, safeDuration);
+}
+
 export function useEditorPlayback({
   hlsSource,
   directSource,
   initialDuration,
+  initialCurrentTime,
   startTime,
   endTime,
   sessionId,
@@ -141,7 +153,7 @@ export function useEditorPlayback({
   subtitleStyleSettings,
 }: UseEditorPlaybackProps) {
   const [duration, setDuration] = useState(() => Math.max(initialDuration, 0));
-  const [currentTime, setCurrentTime] = useState(0);
+  const [currentTime, setCurrentTime] = useState(() => initialPlaybackTime(initialCurrentTime, initialDuration));
   const [playing, setPlaying] = useState(false);
   const [loadingPreview, setLoadingPreview] = useState(true);
   const [previewStatus, setPreviewStatus] = useState("Loading stream...");
@@ -183,7 +195,7 @@ export function useEditorPlayback({
   const wasPlayingRef = useRef(false);
   const playingRef = useRef(false);
   const audioContextStartTimeRef = useRef<number | null>(null);
-  const playbackTimeAtStartRef = useRef(0);
+  const playbackTimeAtStartRef = useRef(initialPlaybackTime(initialCurrentTime, initialDuration));
   const sourceTimelineOffsetRef = useRef(0);
   const skipLiveWaitRef = useRef(false);
   const activeSourceLabelRef = useRef(activeSourceLabel);
@@ -568,8 +580,9 @@ export function useEditorPlayback({
       durationRef.current = resetDuration;
       setSourceVideoDimensions(null);
       setPreviewVideoDimensions(null);
-      setCurrentTime(0);
-      playbackTimeAtStartRef.current = 0;
+      const resetCurrentTime = initialPlaybackTime(initialCurrentTime, resetDuration);
+      setCurrentTime(resetCurrentTime);
+      playbackTimeAtStartRef.current = resetCurrentTime;
       sourceTimelineOffsetRef.current = 0;
       skipLiveWaitRef.current = false;
 
@@ -716,8 +729,9 @@ export function useEditorPlayback({
             );
             setDuration(nextDuration);
             durationRef.current = nextDuration;
-            setCurrentTime(0);
-            playbackTimeAtStartRef.current = 0;
+            const nextCurrentTime = initialPlaybackTime(initialCurrentTime, nextDuration);
+            setCurrentTime(nextCurrentTime);
+            playbackTimeAtStartRef.current = nextCurrentTime;
 
             const sourceDimensions = sourceVideoTrack
               ? await getVideoTrackDimensions(sourceVideoTrack)
@@ -844,6 +858,7 @@ export function useEditorPlayback({
   }, [
     directSource,
     hlsSource,
+    initialCurrentTime,
     initialDuration,
     posterImageUrl,
     selectedAudioTrack,

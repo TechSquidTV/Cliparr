@@ -75,6 +75,19 @@ function ticksToSeconds(value: number | null | undefined) {
   return ticks / 10_000_000;
 }
 
+export function playheadSecondsFromPositionTicks(value: number | null | undefined) {
+  if (value === null || value === undefined) {
+    return undefined;
+  }
+
+  const ticks = Number(value);
+  if (!Number.isFinite(ticks) || ticks < 0) {
+    return undefined;
+  }
+
+  return ticks / 10_000_000;
+}
+
 function itemType(item: JellyfinItem) {
   return stringValue(item?.Type) ?? stringValue(item?.MediaType) ?? "Video";
 }
@@ -608,6 +621,7 @@ async function normalizeCurrentPlayback(
   const audioStreams = asArray(mediaSource?.MediaStreams).filter((stream) => isAudioMediaStream(stream));
   const videoStreams = asArray(mediaSource?.MediaStreams).filter((stream) => isVideoMediaStream(stream));
   const duration = ticksToSeconds(enrichedItem?.RunTimeTicks ?? nowPlayingItem?.RunTimeTicks);
+  const playheadSeconds = playheadSecondsFromPositionTicks(sessionInfo?.PlayState?.PositionTicks);
   const playerTitle = stringValue(sessionInfo?.DeviceName)
     ?? stringValue(sessionInfo?.Client)
     ?? stringValue(sessionInfo?.DeviceType)
@@ -630,6 +644,7 @@ async function normalizeCurrentPlayback(
       title: itemTitle(enrichedItem),
       type: itemType(enrichedItem).toLowerCase(),
       duration,
+      playheadSeconds: playheadSeconds ?? null,
       playerTitle,
       playerState,
       mediaUrl: mediaUrl ?? null,
@@ -683,6 +698,7 @@ async function normalizeCurrentPlayback(
       title: itemTitle(enrichedItem),
       type: itemType(enrichedItem).toLowerCase(),
       duration,
+      playheadSeconds,
       playerTitle,
       playerState,
       thumbUrl,

@@ -70,9 +70,49 @@ function createMediaHandle(
   }, path, options);
 }
 
-function metadataPath(item: any) {
-  if (item?.ratingKey) {
-    return `/library/metadata/${item.ratingKey}`;
+type PlexIdValue = string | number | null | undefined;
+type PlexViewOffsetValue = number | string | null | undefined;
+
+interface PlexMetadataPathItem {
+  ratingKey?: PlexIdValue;
+  key?: string | null;
+}
+
+interface PlexPlaybackUser {
+  id?: PlexIdValue;
+  thumb?: string | null;
+  title?: string | null;
+}
+
+interface PlexPlaybackPlayer {
+  machineIdentifier?: string | null;
+  state?: string | null;
+  title?: string | null;
+}
+
+interface PlexPlaybackSession {
+  id?: PlexIdValue;
+}
+
+interface PlexCurrentlyPlayingMetadata extends PlexMetadataPathItem {
+  Media?: unknown[] | null;
+  Player?: PlexPlaybackPlayer | null;
+  Session?: PlexPlaybackSession | null;
+  User?: PlexPlaybackUser | null;
+  sessionKey?: PlexIdValue;
+  viewOffset?: PlexViewOffsetValue;
+}
+
+interface PlexCurrentlyPlayingData {
+  MediaContainer?: {
+    Metadata?: PlexCurrentlyPlayingMetadata[] | null;
+  } | null;
+}
+
+function metadataPath(item: PlexMetadataPathItem | null | undefined) {
+  const ratingKey = idValue(item?.ratingKey);
+  if (ratingKey) {
+    return `/library/metadata/${ratingKey}`;
   }
   if (typeof item?.key === "string" && item.key.startsWith("/library/metadata/")) {
     return item.key;
@@ -119,6 +159,19 @@ function streamEntries(part: any) {
 function selectedIndex(entries: any[]) {
   const index = entries.findIndex((entry) => isSelectedEntry(entry));
   return index >= 0 ? index : 0;
+}
+
+export function playheadSecondsFromViewOffset(value: PlexViewOffsetValue) {
+  if (value === null || value === undefined) {
+    return undefined;
+  }
+
+  const milliseconds = Number(value);
+  if (!Number.isFinite(milliseconds) || milliseconds < 0) {
+    return undefined;
+  }
+
+  return milliseconds / 1000;
 }
 
 function deriveMediaSelection(item: any): PlexMediaSelection | undefined {
@@ -297,7 +350,7 @@ async function fetchCurrentlyPlayingData(source: MediaSource) {
     try {
       const data = await fetchPmsJson(context, "/status/sessions", {
         timeoutMs: CURRENT_PLAYBACK_REQUEST_TIMEOUT_MS,
-      });
+      }) as PlexCurrentlyPlayingData;
       persistWorkingSourceConnection(source, persistedConnections, connection, {
         baseUrlMode,
         manualConnectionId,
@@ -319,7 +372,7 @@ async function fetchCurrentlyPlayingData(source: MediaSource) {
   );
 }
 
-function playbackFallbackIdentity(item: any) {
+function playbackFallbackIdentity(item: PlexCurrentlyPlayingMetadata) {
   const userId = idValue(item?.User?.id);
   const playerId = stringValue(item?.Player?.machineIdentifier) ?? stringValue(item?.Player?.title);
   const itemId = idValue(item?.ratingKey) ?? stringValue(item?.key) ?? metadataPath(item);
@@ -328,7 +381,7 @@ function playbackFallbackIdentity(item: any) {
   return parts.length > 0 ? parts.join(":") : undefined;
 }
 
-function playbackDeduplicationKey(item: any) {
+function playbackDeduplicationKey(item: PlexCurrentlyPlayingMetadata) {
   const sessionKey = idValue(item?.sessionKey);
   if (sessionKey) {
     return `session:${sessionKey}`;
@@ -347,7 +400,7 @@ function playbackDeduplicationKey(item: any) {
   return undefined;
 }
 
-function dedupeCurrentlyPlayingMetadata(metadata: any[]) {
+function dedupeCurrentlyPlayingMetadata(metadata: PlexCurrentlyPlayingMetadata[]) {
   // Plex can emit duplicate rows for one live session, especially from web clients.
   const seen = new Set<string>();
 
@@ -777,7 +830,7 @@ async function resolveMediaPath(
   }
 }
 
-function playbackSessionIdentity(item: any) {
+function playbackSessionIdentity(item: PlexCurrentlyPlayingMetadata) {
   return String(
     item?.sessionKey
     ?? item?.Session?.id
@@ -786,7 +839,7 @@ function playbackSessionIdentity(item: any) {
   );
 }
 
-function playbackViewer(item: any, sourceId: string, sessionId: string) {
+function playbackViewer(item: PlexCurrentlyPlayingMetadata, sourceId: string, sessionId: string) {
   const externalId = stringValue(item?.User?.id);
   return {
     id: externalId ? `plex:user:${externalId}` : `plex:synthetic:${sourceId}:${sessionId}`,
@@ -801,7 +854,7 @@ async function normalizeCurrentPlayback(
   session: ProviderSessionRecord,
   source: MediaSource,
   context: PlexSourceContext,
-  data: any
+  data: PlexCurrentlyPlayingData
 ): Promise<CurrentlyPlayingEntry[]> {
   const metadata = data?.MediaContainer?.Metadata;
   if (!Array.isArray(metadata)) {
@@ -810,7 +863,7 @@ async function normalizeCurrentPlayback(
 
   const uniqueMetadata = dedupeCurrentlyPlayingMetadata(metadata);
 
-  return Promise.all(uniqueMetadata.map(async (item: any) => {
+  return Promise.all(uniqueMetadata.map(async (item) => {
     const sessionId = playbackSessionIdentity(item);
     const mediaSelection = deriveMediaSelection(item);
     const enrichedItem = await enrichMetadataItem(context, item);
@@ -825,6 +878,7 @@ async function normalizeCurrentPlayback(
     const audioStreams = selectedPart ? streamEntries(selectedPart).filter((stream) => isAudioStream(stream)) : [];
     const videoStreams = selectedPart ? streamEntries(selectedPart).filter((stream) => isVideoStream(stream)) : [];
     const duration = Number(enrichedItem.duration ?? asArray(enrichedItem.Media)[0]?.duration ?? 0) / 1000;
+    const playheadSeconds = playheadSecondsFromViewOffset(item?.viewOffset);
     const playerTitle = String(item.Player?.title ?? "Unknown Device");
     const playerState = String(item.Player?.state ?? "unknown");
     const thumbUrl = thumbPath ? createMediaHandle(session, context, thumbPath) : undefined;
@@ -842,6 +896,7 @@ async function normalizeCurrentPlayback(
         title: String(enrichedItem.title ?? "Untitled"),
         type: String(enrichedItem.type ?? "video"),
         duration,
+        playheadSeconds: playheadSeconds ?? null,
         playerTitle,
         playerState,
         mediaUrl: mediaUrl ?? null,
@@ -900,6 +955,7 @@ async function normalizeCurrentPlayback(
         title: String(enrichedItem.title ?? "Untitled"),
         type: String(enrichedItem.type ?? "video"),
         duration,
+        playheadSeconds,
         playerTitle,
         playerState,
         thumbUrl,

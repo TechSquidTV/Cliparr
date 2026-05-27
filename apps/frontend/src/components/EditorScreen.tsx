@@ -14,6 +14,7 @@ import { EditorPlaybackSourcePanel } from "./editor/EditorPlaybackSourcePanel";
 import { EditorTimeline } from "./editor/EditorTimeline";
 import { EditorSubtitlePanel } from "./editor/EditorSubtitlePanel";
 import { buildSubtitleExportSummary } from "./editor/subtitleExportSummary";
+import { buildInitialClipRange } from "./editor/initialClipRange";
 import { useSubtitleCues } from "./editor/useSubtitleCues";
 import type { PlaybackSubtitleTrack } from "../providers/types";
 import { sourceDisplayLabel, type EditorSession } from "../lib/editorMedia";
@@ -34,8 +35,9 @@ interface Props {
 }
 
 export default function EditorScreen({ session, onBack }: Props) {
-  const [startTime, setStartTime] = useState(0);
-  const [endTime, setEndTime] = useState(() => Math.min(10, Math.max(session.duration, 0)));
+  const initialClipRange = buildInitialClipRange(session.duration, session.initialPlayheadSeconds);
+  const [startTime, setStartTime] = useState(() => initialClipRange.startTime);
+  const [endTime, setEndTime] = useState(() => initialClipRange.endTime);
   const [subtitleStyleSettings, setSubtitleStyleSettings] = useState(() => loadSubtitleStyleSettings());
   const [playbackSidebarOpen, setPlaybackSidebarOpen] = useState(true);
   const [subtitleEnabled, setSubtitleEnabled] = useState(false);
@@ -119,6 +121,7 @@ export default function EditorScreen({ session, onBack }: Props) {
     hlsSource: session.hlsSource,
     directSource: session.directSource,
     initialDuration: session.duration,
+    initialCurrentTime: initialClipRange.startTime,
     startTime,
     endTime,
     sessionId: session.id,

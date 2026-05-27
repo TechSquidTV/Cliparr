@@ -74,6 +74,7 @@ export interface CurrentlyPlayingItem {
   title: string;
   type: string;
   duration: number;
+  playheadSeconds?: number;
   playerTitle: string;
   playerState: string;
   thumbUrl?: string;
