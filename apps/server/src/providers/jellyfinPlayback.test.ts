@@ -1,11 +1,13 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import type { Request, Response } from "express";
+import type { MediaSource } from "../db/mediaSourcesRepository.js";
 import type { ProviderSessionRecord } from "../session/store.js";
 import {
   buildPreviewPath,
   deriveSelectedSubtitleTrack,
   deriveSubtitleTracks,
+  listCurrentlyPlaying,
   proxyMedia,
 } from "./jellyfin/playback.js";
 import type { JellyfinSourceContext } from "./jellyfin/shared.js";
@@ -29,6 +31,26 @@ function createContext(): JellyfinSourceContext {
     token: "provider-token",
     userId: "user-1",
     deviceId: "cliparr-device-1",
+  };
+}
+
+function createSource(): MediaSource {
+  return {
+    id: "source-1",
+    providerId: "jellyfin",
+    providerAccountId: "account-1",
+    name: "Jellyfin",
+    enabled: true,
+    baseUrl: "http://jellyfin.local:8096",
+    connection: {},
+    credentials: {
+      accessToken: "provider-token",
+      userId: "user-1",
+      deviceId: "cliparr-device-1",
+    },
+    metadata: {},
+    createdAt: new Date(0).toISOString(),
+    updatedAt: new Date(0).toISOString(),
   };
 }
 
@@ -67,6 +89,107 @@ function createResponseRecorder() {
   };
 }
 
+function jsonResponse(data: unknown, status = 200) {
+  return new Response(JSON.stringify(data), {
+    status,
+    headers: {
+      "Content-Type": "application/json",
+    },
+  });
+}
+
+function fetchInputUrl(input: Parameters<typeof fetch>[0]) {
+  if (typeof input === "string") {
+    return new URL(input);
+  }
+
+  if (input instanceof URL) {
+    return input;
+  }
+
+  return new URL(input.url);
+}
+
+function createJellyfinPlaybackFetch(options: {
+  itemId: string;
+  playSessionId?: string | null;
+  clientSessionId?: string;
+  mediaSourceId?: string;
+  title?: string;
+}) {
+  const {
+    itemId,
+    playSessionId = "playback-info-session-1",
+    clientSessionId = "client-session-1",
+    mediaSourceId = "media-source-1",
+    title = "Chapter 1: The Dark Revenge",
+  } = options;
+  const mediaSource = {
+    Id: mediaSourceId,
+    DefaultAudioStreamIndex: 1,
+    MediaStreams: [
+      {
+        Type: "Video",
+        Index: 0,
+        Codec: "h264",
+        Width: 1920,
+        Height: 1080,
+      },
+      {
+        Type: "Audio",
+        Index: 1,
+        Codec: "aac",
+        Language: "eng",
+        Title: "English",
+        IsDefault: true,
+      },
+    ],
+  };
+  const item = {
+    Id: itemId,
+    Name: title,
+    Type: "Episode",
+    MediaType: "Video",
+    RunTimeTicks: 1_698_000_0000,
+    MediaSources: [{
+      Id: "stale-session-media-source",
+      MediaStreams: [],
+    }],
+  };
+
+  return (async (input) => {
+    const url = fetchInputUrl(input);
+
+    if (url.pathname === "/Sessions") {
+      return jsonResponse([{
+        Id: clientSessionId,
+        UserId: "user-1",
+        UserName: "Rick",
+        DeviceName: "Chrome",
+        PlayState: {
+          MediaSourceId: mediaSourceId,
+          IsPaused: true,
+          AudioStreamIndex: 1,
+        },
+        NowPlayingItem: item,
+      }]);
+    }
+
+    if (url.pathname === `/Items/${itemId}`) {
+      return jsonResponse(item);
+    }
+
+    if (url.pathname === `/Items/${itemId}/PlaybackInfo`) {
+      return jsonResponse({
+        ...(playSessionId ? { PlaySessionId: playSessionId } : {}),
+        MediaSources: [mediaSource],
+      });
+    }
+
+    return jsonResponse({ message: `Unexpected URL: ${url.toString()}` }, 404);
+  }) as typeof fetch;
+}
+
 void test("disables Jellyfin subtitle burn-in on HLS previews", () => {
   const path = buildPreviewPath(
     { Id: "item-1", MediaType: "Video" },
@@ -84,6 +207,91 @@ void test("disables Jellyfin subtitle burn-in on HLS previews", () => {
   assert.equal(url.searchParams.get("playSessionId"), "play-session-1");
   assert.equal(url.searchParams.get("alwaysBurnInSubtitleWhenTranscoding"), "false");
   assert.equal(url.searchParams.has("subtitleStreamIndex"), false);
+});
+
+void test("uses Jellyfin PlaybackInfo play session ids for currently playing streams", async () => {
+  const session = createSession();
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = createJellyfinPlaybackFetch({
+    itemId: "item-1",
+    playSessionId: "playback-info-session-1",
+    clientSessionId: "client-session-1",
+  });
+
+  try {
+    const entries = await listCurrentlyPlaying(session, createSource());
+
+    assert.equal(entries.length, 1);
+    assert.equal(entries[0]?.item.id, "source-1:client-session-1:item-1:media-source-1");
+    assert(entries[0]?.item.mediaUrl);
+    assert(entries[0]?.item.hlsUrl);
+
+    const streamHandle = [...session.mediaHandles.values()].find((handle) =>
+      handle.path.includes("/stream?")
+    );
+    const hlsHandle = [...session.mediaHandles.values()].find((handle) =>
+      handle.path.includes("/master.m3u8?")
+    );
+    assert(streamHandle);
+    assert(hlsHandle);
+
+    const streamUrl = new URL(streamHandle.path, "http://cliparr.local");
+    const hlsUrl = new URL(hlsHandle.path, "http://cliparr.local");
+    assert.equal(streamUrl.searchParams.get("playSessionId"), "playback-info-session-1");
+    assert.equal(hlsUrl.searchParams.get("playSessionId"), "playback-info-session-1");
+    assert.notEqual(streamUrl.searchParams.get("playSessionId"), "client-session-1");
+    assert.notEqual(hlsUrl.searchParams.get("playSessionId"), "client-session-1");
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+void test("keeps Jellyfin currently playing item ids stable and item-scoped", async () => {
+  const originalFetch = globalThis.fetch;
+
+  try {
+    globalThis.fetch = createJellyfinPlaybackFetch({
+      itemId: "item-1",
+      clientSessionId: "client-session-1",
+    });
+    const firstEntries = await listCurrentlyPlaying(createSession(), createSource());
+    const secondEntries = await listCurrentlyPlaying(createSession(), createSource());
+
+    globalThis.fetch = createJellyfinPlaybackFetch({
+      itemId: "item-2",
+      clientSessionId: "client-session-1",
+    });
+    const differentItemEntries = await listCurrentlyPlaying(createSession(), createSource());
+
+    assert.equal(firstEntries[0]?.item.id, secondEntries[0]?.item.id);
+    assert.notEqual(firstEntries[0]?.item.id, differentItemEntries[0]?.item.id);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+void test("omits Jellyfin stream URLs when PlaybackInfo has no play session id", async () => {
+  const session = createSession();
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = createJellyfinPlaybackFetch({
+    itemId: "item-1",
+    playSessionId: null,
+    clientSessionId: "client-session-1",
+  });
+
+  try {
+    const entries = await listCurrentlyPlaying(session, createSource());
+
+    assert.equal(entries.length, 1);
+    assert.equal(entries[0]?.item.id, "source-1:client-session-1:item-1:media-source-1");
+    assert.equal(entries[0]?.item.mediaUrl, undefined);
+    assert.equal(entries[0]?.item.hlsUrl, undefined);
+    assert.equal(entries[0]?.item.previewUrl, undefined);
+    assert.equal(entries[0]?.item.previewFormat, undefined);
+    assert.equal(session.mediaHandles.size, 0);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
 });
 
 void test("creates a downloadable content URL for Jellyfin text subtitle streams", () => {

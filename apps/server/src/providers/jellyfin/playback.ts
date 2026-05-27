@@ -1,4 +1,3 @@
-import { randomUUID } from "crypto";
 import type { Request, Response } from "express";
 import type { MediaSource } from "../../db/mediaSourcesRepository.js";
 import { ApiError } from "../../http/errors.js";
@@ -36,10 +35,15 @@ import {
 import {
   booleanValue,
   fetchItem,
+  fetchPlaybackInfo,
   fetchSessions,
   jellyfinHeaders,
   JELLYFIN_REQUEST_TIMEOUT_MS,
   sourceContext,
+  type JellyfinItem,
+  type JellyfinMediaStream,
+  type JellyfinPlaybackInfo,
+  type JellyfinSessionInfo,
   type JellyfinSourceContext,
 } from "./shared.js";
 
@@ -60,7 +64,7 @@ function createMediaHandle(
   }, path, options);
 }
 
-function ticksToSeconds(value: unknown) {
+function ticksToSeconds(value: number | null | undefined) {
   const ticks = Number(value);
   if (!Number.isFinite(ticks) || ticks <= 0) {
     return 0;
@@ -69,15 +73,15 @@ function ticksToSeconds(value: unknown) {
   return ticks / 10_000_000;
 }
 
-function itemType(item: any) {
+function itemType(item: JellyfinItem) {
   return stringValue(item?.Type) ?? stringValue(item?.MediaType) ?? "Video";
 }
 
-function itemTitle(item: any) {
+function itemTitle(item: JellyfinItem) {
   return stringValue(item?.Name) ?? stringValue(item?.EpisodeTitle) ?? "Untitled";
 }
 
-function buildSourceTitle(item: any) {
+function buildSourceTitle(item: JellyfinItem) {
   const title = itemTitle(item);
   if (itemType(item) !== "Episode") {
     return title;
@@ -91,7 +95,7 @@ function buildSourceTitle(item: any) {
   }) ?? title;
 }
 
-function itemImagePath(item: any) {
+function itemImagePath(item: JellyfinItem) {
   const itemId = stringValue(item?.Id);
   const imageTags = item?.ImageTags ?? {};
 
@@ -122,17 +126,45 @@ function itemImagePath(item: any) {
   return undefined;
 }
 
-function currentMediaSourceId(sessionInfo: any, item: any) {
-  return stringValue(sessionInfo?.PlayState?.MediaSourceId)
+function playbackMediaSources(
+  sessionInfo: JellyfinSessionInfo | undefined,
+  item: JellyfinItem,
+  playbackInfo?: JellyfinPlaybackInfo
+) {
+  return [
+    ...asArray(playbackInfo?.MediaSources),
+    ...asArray(item?.MediaSources),
+    ...asArray(sessionInfo?.NowPlayingItem?.MediaSources),
+  ];
+}
+
+function currentMediaSourceId(
+  sessionInfo: JellyfinSessionInfo,
+  item: JellyfinItem,
+  playbackInfo?: JellyfinPlaybackInfo
+) {
+  const playbackInfoMediaSources = asArray(playbackInfo?.MediaSources);
+  const playStateMediaSourceId = stringValue(sessionInfo?.PlayState?.MediaSourceId);
+  if (
+    playStateMediaSourceId
+    && playbackInfoMediaSources.some((mediaSource) => stringValue(mediaSource?.Id) === playStateMediaSourceId)
+  ) {
+    return playStateMediaSourceId;
+  }
+
+  return stringValue(playbackInfoMediaSources[0]?.Id)
+    ?? playStateMediaSourceId
     ?? stringValue(asArray(item?.MediaSources)[0]?.Id)
     ?? stringValue(asArray(sessionInfo?.NowPlayingItem?.MediaSources)[0]?.Id);
 }
 
-function currentMediaSource(sessionInfo: any, item: any, mediaSourceId: string | undefined) {
-  const itemMediaSources = asArray(item?.MediaSources);
-  const sessionMediaSources = asArray(sessionInfo?.NowPlayingItem?.MediaSources);
-  const mediaSources = [...itemMediaSources, ...sessionMediaSources];
-
+function currentMediaSource(
+  sessionInfo: JellyfinSessionInfo | undefined,
+  item: JellyfinItem,
+  mediaSourceId: string | undefined,
+  playbackInfo?: JellyfinPlaybackInfo
+) {
+  const mediaSources = playbackMediaSources(sessionInfo, item, playbackInfo);
   if (mediaSourceId) {
     const matchingMediaSource = mediaSources.find((mediaSource) => stringValue(mediaSource?.Id) === mediaSourceId);
     if (matchingMediaSource) {
@@ -143,35 +175,40 @@ function currentMediaSource(sessionInfo: any, item: any, mediaSourceId: string |
   return mediaSources[0];
 }
 
-function isAudioMediaStream(stream: any) {
-  return String(stream?.Type ?? "").toLowerCase() === "audio";
+function normalizedString(value: string | null | undefined) {
+  return stringValue(value)?.toLowerCase() ?? "";
 }
 
-function isVideoMediaStream(stream: any) {
-  return String(stream?.Type ?? "").toLowerCase() === "video";
+function isAudioMediaStream(stream: JellyfinMediaStream) {
+  return normalizedString(stream?.Type) === "audio";
 }
 
-function isSubtitleMediaStream(stream: any) {
-  return String(stream?.Type ?? "").toLowerCase() === "subtitle";
+function isVideoMediaStream(stream: JellyfinMediaStream) {
+  return normalizedString(stream?.Type) === "video";
 }
 
-function jellyfinAudioTrackTitle(stream: any) {
+function isSubtitleMediaStream(stream: JellyfinMediaStream) {
+  return normalizedString(stream?.Type) === "subtitle";
+}
+
+function jellyfinAudioTrackTitle(stream: JellyfinMediaStream) {
   return stringValue(stream?.Title)
     ?? stringValue(stream?.DisplayTitle);
 }
 
-function jellyfinSubtitleTrackTitle(stream: any) {
+function jellyfinSubtitleTrackTitle(stream: JellyfinMediaStream) {
   return stringValue(stream?.Title)
     ?? stringValue(stream?.DisplayTitle)
     ?? stringValue(stream?.Language);
 }
 
 function deriveSelectedAudioTrack(
-  sessionInfo: any,
-  item: any,
-  mediaSourceId: string | undefined
+  sessionInfo: JellyfinSessionInfo,
+  item: JellyfinItem,
+  mediaSourceId: string | undefined,
+  playbackInfo?: JellyfinPlaybackInfo
 ): PlaybackAudioSelection | undefined {
-  const mediaSource = currentMediaSource(sessionInfo, item, mediaSourceId);
+  const mediaSource = currentMediaSource(sessionInfo, item, mediaSourceId, playbackInfo);
   if (!mediaSource) {
     return undefined;
   }
@@ -230,7 +267,7 @@ function jellyfinSubtitleTrack(
   context: JellyfinSourceContext,
   itemId: string | undefined,
   mediaSourceId: string | undefined,
-  stream: any
+  stream: JellyfinMediaStream
 ): PlaybackSubtitleTrack {
   const codec = normalizeSubtitleCodec(stream?.Codec);
   const isText = booleanValue(stream?.IsTextSubtitleStream) ?? isTextSubtitleCodec(codec);
@@ -257,11 +294,12 @@ function jellyfinSubtitleTrack(
 export function deriveSubtitleTracks(
   session: ProviderSessionRecord,
   context: JellyfinSourceContext,
-  item: any,
+  item: JellyfinItem,
   mediaSourceId: string | undefined,
-  sessionInfo?: any
+  sessionInfo?: JellyfinSessionInfo,
+  playbackInfo?: JellyfinPlaybackInfo
 ) {
-  const mediaSource = currentMediaSource(sessionInfo, item, mediaSourceId);
+  const mediaSource = currentMediaSource(sessionInfo, item, mediaSourceId, playbackInfo);
   if (!mediaSource) {
     return [];
   }
@@ -275,11 +313,12 @@ export function deriveSubtitleTracks(
 }
 
 export function deriveSelectedSubtitleTrack(
-  sessionInfo: any,
-  item: any,
-  mediaSourceId: string | undefined
+  sessionInfo: JellyfinSessionInfo,
+  item: JellyfinItem,
+  mediaSourceId: string | undefined,
+  playbackInfo?: JellyfinPlaybackInfo
 ): PlaybackSubtitleSelection | undefined {
-  const mediaSource = currentMediaSource(sessionInfo, item, mediaSourceId);
+  const mediaSource = currentMediaSource(sessionInfo, item, mediaSourceId, playbackInfo);
   if (!mediaSource) {
     return undefined;
   }
@@ -321,7 +360,7 @@ function subtitleTrackSupportsBurnIn(track: PlaybackSubtitleTrack) {
 }
 
 function buildStaticStreamPath(
-  item: any,
+  item: JellyfinItem,
   mediaSourceId: string | undefined,
   context: JellyfinSourceContext,
   playSessionId: string
@@ -331,7 +370,7 @@ function buildStaticStreamPath(
     return undefined;
   }
 
-  const isAudio = String(item?.MediaType ?? "").toLowerCase() === "audio";
+  const isAudio = normalizedString(item?.MediaType) === "audio";
   const params = new URLSearchParams({
     static: "true",
     deviceId: context.deviceId,
@@ -347,13 +386,13 @@ function buildStaticStreamPath(
 }
 
 export function buildPreviewPath(
-  item: any,
+  item: JellyfinItem,
   mediaSourceId: string | undefined,
   context: JellyfinSourceContext,
   playSessionId: string
 ) {
   const itemId = stringValue(item?.Id);
-  if (!itemId || String(item?.MediaType ?? "").toLowerCase() === "audio" || !mediaSourceId) {
+  if (!itemId || normalizedString(item?.MediaType) === "audio" || !mediaSourceId) {
     return undefined;
   }
 
@@ -370,9 +409,9 @@ export function buildPreviewPath(
   return `/Videos/${encodeURIComponent(itemId)}/master.m3u8?${params.toString()}`;
 }
 
-function peopleNames(item: any, kind: string) {
+function peopleNames(item: JellyfinItem, kind: string) {
   return uniqueStrings(
-    asArray(item?.People).flatMap((person: any) => {
+    asArray(item?.People).flatMap((person) => {
       if (stringValue(person?.Type) !== kind) {
         return [];
       }
@@ -383,34 +422,34 @@ function peopleNames(item: any, kind: string) {
   );
 }
 
-function studios(item: any) {
+function studios(item: JellyfinItem) {
   return uniqueStrings(
-    asArray(item?.Studios).map((entry: any) => stringValue(entry?.Name) ?? stringValue(entry?.name))
+    asArray(item?.Studios).map((entry) => stringValue(entry?.Name) ?? stringValue(entry?.name))
   );
 }
 
-function providerGuids(item: any) {
+function providerGuids(item: JellyfinItem) {
   const providerIds = item?.ProviderIds;
   if (!providerIds || typeof providerIds !== "object" || Array.isArray(providerIds)) {
     return [];
   }
 
   return uniqueStrings(
-    Object.entries(providerIds as Record<string, unknown>).map(([provider, id]) => {
+    Object.entries(providerIds).map(([provider, id]) => {
       const normalizedId = stringValue(id);
       return normalizedId ? `${provider.toLowerCase()}://${normalizedId}` : undefined;
     })
   );
 }
 
-function firstTagline(item: any) {
+function firstTagline(item: JellyfinItem) {
   return uniqueStrings(asArray(item?.Taglines).map((value) => stringValue(value)))[0];
 }
 
 function createExportMetadata(
   session: ProviderSessionRecord,
   context: JellyfinSourceContext,
-  item: any
+  item: JellyfinItem
 ): MediaExportMetadata {
   const imagePath = itemImagePath(item);
 
@@ -444,7 +483,7 @@ function createExportMetadata(
   };
 }
 
-async function enrichMetadataItem(context: JellyfinSourceContext, item: any) {
+async function enrichMetadataItem(context: JellyfinSourceContext, item: JellyfinItem) {
   const itemId = stringValue(item?.Id);
   if (!itemId) {
     return item;
@@ -467,7 +506,35 @@ async function enrichMetadataItem(context: JellyfinSourceContext, item: any) {
   }
 }
 
-function playbackViewer(sourceId: string, sessionId: string, sessionInfo: any) {
+async function loadPlaybackInfo(context: JellyfinSourceContext, itemId: string) {
+  try {
+    return await fetchPlaybackInfo(context, itemId);
+  } catch (err) {
+    logger.warn("Could not fetch Jellyfin playback info for item {itemId}.", {
+      itemId,
+      sourceId: context.sourceId,
+      baseUrl: context.baseUrl,
+      errorMessage: errorMessage(err),
+    });
+    return undefined;
+  }
+}
+
+function playbackItemIdentity(
+  sourceId: string,
+  clientSessionId: string | undefined,
+  itemId: string,
+  mediaSourceId: string | undefined
+) {
+  return [
+    sourceId,
+    clientSessionId ?? "unknown-session",
+    itemId,
+    mediaSourceId ?? "unknown-media-source",
+  ].join(":");
+}
+
+function playbackViewer(sourceId: string, sessionId: string, sessionInfo: JellyfinSessionInfo) {
   const externalId = stringValue(sessionInfo?.UserId);
   return {
     id: externalId ? `jellyfin:user:${externalId}` : `jellyfin:synthetic:${sourceId}:${sessionId}`,
@@ -481,24 +548,36 @@ async function normalizeCurrentPlayback(
   session: ProviderSessionRecord,
   source: MediaSource,
   context: JellyfinSourceContext,
-  sessionInfo: any
+  sessionInfo: JellyfinSessionInfo
 ): Promise<CurrentlyPlayingEntry | undefined> {
   const nowPlayingItem = sessionInfo?.NowPlayingItem;
-  const itemId = stringValue(nowPlayingItem?.Id);
+  if (!nowPlayingItem) {
+    return undefined;
+  }
+
+  const itemId = stringValue(nowPlayingItem.Id);
   if (!itemId) {
     return undefined;
   }
 
-  const enrichedItem = await enrichMetadataItem(context, nowPlayingItem);
-  const playSessionId = stringValue(sessionInfo?.Id) ?? randomUUID();
-  const mediaSourceId = currentMediaSourceId(sessionInfo, enrichedItem);
-  const mediaSource = currentMediaSource(sessionInfo, enrichedItem, mediaSourceId);
-  const mediaPath = buildStaticStreamPath(enrichedItem, mediaSourceId, context, playSessionId);
-  const previewPath = buildPreviewPath(enrichedItem, mediaSourceId, context, playSessionId);
+  const [enrichedItem, playbackInfo] = await Promise.all([
+    enrichMetadataItem(context, nowPlayingItem),
+    loadPlaybackInfo(context, itemId),
+  ]);
+  const playSessionId = stringValue(playbackInfo?.PlaySessionId);
+  const clientSessionId = stringValue(sessionInfo?.Id);
+  const mediaSourceId = currentMediaSourceId(sessionInfo, enrichedItem, playbackInfo);
+  const mediaSource = currentMediaSource(sessionInfo, enrichedItem, mediaSourceId, playbackInfo);
+  const mediaPath = playSessionId
+    ? buildStaticStreamPath(enrichedItem, mediaSourceId, context, playSessionId)
+    : undefined;
+  const previewPath = playSessionId
+    ? buildPreviewPath(enrichedItem, mediaSourceId, context, playSessionId)
+    : undefined;
   const imagePath = itemImagePath(enrichedItem);
-  const selectedAudioTrack = deriveSelectedAudioTrack(sessionInfo, enrichedItem, mediaSourceId);
-  const selectedSubtitleTrack = deriveSelectedSubtitleTrack(sessionInfo, enrichedItem, mediaSourceId);
-  const subtitleTracks = deriveSubtitleTracks(session, context, enrichedItem, mediaSourceId, sessionInfo)
+  const selectedAudioTrack = deriveSelectedAudioTrack(sessionInfo, enrichedItem, mediaSourceId, playbackInfo);
+  const selectedSubtitleTrack = deriveSelectedSubtitleTrack(sessionInfo, enrichedItem, mediaSourceId, playbackInfo);
+  const subtitleTracks = deriveSubtitleTracks(session, context, enrichedItem, mediaSourceId, sessionInfo, playbackInfo)
     .filter((track) => subtitleTrackSupportsBurnIn(track));
   const playerState = sessionInfo?.PlayState?.IsPaused ? "paused" : "playing";
   const audioStreams = asArray(mediaSource?.MediaStreams).filter((stream) => isAudioMediaStream(stream));
@@ -513,7 +592,8 @@ async function normalizeCurrentPlayback(
   const hlsUrl = previewPath
     ? createMediaHandle(session, context, previewPath, { basePath: playlistBasePath(previewPath) })
     : undefined;
-  const missingPreviewPath = !previewPath && String(enrichedItem?.MediaType ?? "").toLowerCase() !== "audio";
+  const playbackItemId = playbackItemIdentity(source.id, clientSessionId, itemId, mediaSourceId);
+  const missingPreviewPath = !previewPath && normalizedString(enrichedItem?.MediaType) !== "audio";
   const unresolvedSelectedAudioTrack = !selectedAudioTrack && audioStreams.length > 1;
   const playbackDiagnostics = {
     sessionId: session.id,
@@ -521,7 +601,7 @@ async function normalizeCurrentPlayback(
     providerAccountId: session.providerAccountId,
     playSessionId,
     currentlyPlayingItem: {
-      id: `${source.id}:${playSessionId}`,
+      id: playbackItemId,
       title: itemTitle(enrichedItem),
       type: itemType(enrichedItem).toLowerCase(),
       duration,
@@ -567,9 +647,9 @@ async function normalizeCurrentPlayback(
   }
 
   return {
-    viewer: playbackViewer(source.id, playSessionId, sessionInfo),
+    viewer: playbackViewer(source.id, clientSessionId ?? itemId, sessionInfo),
     item: {
-      id: `${source.id}:${playSessionId}`,
+      id: playbackItemId,
       source: {
         id: source.id,
         name: source.name,

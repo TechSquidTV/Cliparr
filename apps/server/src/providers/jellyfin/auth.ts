@@ -13,6 +13,8 @@ import {
   normalizeBaseUrl,
   resolveCredentialServerUrl,
   sourceContext,
+  type JellyfinAuthenticationResult,
+  type JellyfinPublicSystemInfo,
 } from "./shared.js";
 
 async function parseCredentialsInput(body: unknown) {
@@ -49,7 +51,7 @@ async function parseCredentialsInput(body: unknown) {
 
 export async function authenticateWithCredentials(body: unknown) {
   const { serverUrl, username, password } = await parseCredentialsInput(body);
-  const publicInfo = await jellyfinJson<any>(serverUrl, "/System/Info/Public", {
+  const publicInfo = await jellyfinJson<JellyfinPublicSystemInfo>(serverUrl, "/System/Info/Public", {
     deviceId: JELLYFIN_DEVICE_ID,
     timeoutMs: JELLYFIN_REQUEST_TIMEOUT_MS,
     errorCode: "jellyfin_server_unreachable",
@@ -57,9 +59,9 @@ export async function authenticateWithCredentials(body: unknown) {
     exposeFailureDetail: false,
   });
 
-  let authResult: any;
+  let authResult: JellyfinAuthenticationResult;
   try {
-    authResult = await jellyfinJson<any>(serverUrl, "/Users/AuthenticateByName", {
+    authResult = await jellyfinJson<JellyfinAuthenticationResult>(serverUrl, "/Users/AuthenticateByName", {
       deviceId: JELLYFIN_DEVICE_ID,
       timeoutMs: JELLYFIN_REQUEST_TIMEOUT_MS,
       method: "POST",
@@ -134,7 +136,7 @@ export async function checkSource(source: MediaSource) {
   try {
     const context = sourceContext(source);
     const [publicInfo, currentUser] = await Promise.all([
-      jellyfinJson<any>(context.baseUrl, "/System/Info/Public", {
+      jellyfinJson<JellyfinPublicSystemInfo>(context.baseUrl, "/System/Info/Public", {
         deviceId: context.deviceId,
         timeoutMs: JELLYFIN_REQUEST_TIMEOUT_MS,
         errorCode: "jellyfin_server_unreachable",
