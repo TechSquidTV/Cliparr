@@ -191,6 +191,10 @@ export function createPreviewPath(
   playbackSessionId: string,
   selection?: PlexMediaSelection
 ) {
+  if (String(item?.type ?? "").toLowerCase() === "track") {
+    return undefined;
+  }
+
   const path = metadataPath(item);
   if (!path) {
     return undefined;
@@ -386,14 +390,19 @@ function metadataImagePath(item: any) {
   return stringValue(item?.thumb) ?? stringValue(item?.grandparentThumb) ?? stringValue(item?.parentThumb);
 }
 
-function metadataHdImagePath(item: any) {
+function appendPlexTokenToImagePath(path: string, token: string) {
+  const separator = path.includes("?") ? "&" : "?";
+  return `${path}${separator}X-Plex-Token=${encodeURIComponent(token)}`;
+}
+
+function metadataHdImagePath(item: any, context: PlexSourceContext) {
   const imagePath = metadataImagePath(item);
   if (!imagePath) {
     return undefined;
   }
 
   const params = new URLSearchParams({
-    url: imagePath,
+    url: appendPlexTokenToImagePath(imagePath, context.token),
     width: String(HD_ARTWORK_SIZE),
     height: String(HD_ARTWORK_SIZE),
     quality: "-1",
@@ -682,7 +691,7 @@ function createExportMetadata(
   context: PlexSourceContext,
   item: any
 ): MediaExportMetadata {
-  const imagePath = metadataHdImagePath(item) ?? metadataImagePath(item);
+  const imagePath = metadataHdImagePath(item, context) ?? metadataImagePath(item);
   const guid = stringValue(item?.guid);
 
   return {

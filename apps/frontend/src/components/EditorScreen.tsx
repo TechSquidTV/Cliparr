@@ -89,7 +89,15 @@ export default function EditorScreen({ session, onBack }: Props) {
     subtitleError,
     session.source.providerId,
   ]);
-  const posterImageUrl = session.exportMetadata?.imageUrl ?? session.thumbUrl;
+  const posterImageUrls = useMemo(
+    () => [
+      session.exportMetadata?.imageUrl,
+      session.thumbUrl,
+    ].filter((url, index, urls): url is string =>
+      Boolean(url) && urls.indexOf(url) === index
+    ),
+    [session.exportMetadata?.imageUrl, session.thumbUrl]
+  );
 
   const {
     canvasRef,
@@ -123,7 +131,7 @@ export default function EditorScreen({ session, onBack }: Props) {
     endTime,
     sessionId: session.id,
     selectedAudioTrack: session.selectedAudioTrack,
-    posterImageUrl,
+    posterImageUrls,
     subtitleCues,
     subtitlesEnabled: subtitlePreviewEnabled,
     subtitleStyleSettings,
