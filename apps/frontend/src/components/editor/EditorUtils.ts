@@ -204,6 +204,40 @@ export function timelineTimeToPixel(time: number, scale: number, scaleWidth: num
   return startLeft + (time / scale) * scaleWidth;
 }
 
+export function getTimelineFillPercentages({
+  trackStart,
+  trackEnd,
+  fillStart,
+  fillEnd,
+}: {
+  trackStart: number;
+  trackEnd: number;
+  fillStart: number;
+  fillEnd: number;
+}) {
+  if (
+    !Number.isFinite(trackStart)
+    || !Number.isFinite(trackEnd)
+    || !Number.isFinite(fillStart)
+    || !Number.isFinite(fillEnd)
+    || trackEnd <= trackStart
+    || fillEnd < fillStart
+    || fillEnd < trackStart
+    || fillStart > trackEnd
+  ) {
+    return null;
+  }
+
+  const trackDuration = trackEnd - trackStart;
+  const clampedStart = Math.min(Math.max(fillStart, trackStart), trackEnd);
+  const clampedEnd = Math.min(Math.max(fillEnd, trackStart), trackEnd);
+
+  return {
+    leftPercent: ((clampedStart - trackStart) / trackDuration) * 100,
+    widthPercent: ((clampedEnd - clampedStart) / trackDuration) * 100,
+  };
+}
+
 export function normalizeWheelDelta(
   deltaY: number,
   deltaMode: number,

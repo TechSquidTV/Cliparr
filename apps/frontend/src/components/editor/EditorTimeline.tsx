@@ -1,13 +1,13 @@
 import { useCallback } from "react";
 import { Timeline, type TimelineState } from "@xzdarcy/react-timeline-editor";
 import "@xzdarcy/react-timeline-editor/dist/react-timeline-editor.css";
-import type { RefObject, WheelEvent as ReactWheelEvent } from "react";
+import type { CSSProperties, RefObject, WheelEvent as ReactWheelEvent } from "react";
 import { Scissors } from "lucide-react";
 import type { PlaybackReadyRange } from "./useEditorPlayback";
 import { 
   formatTime,
+  getTimelineFillPercentages,
   TIMELINE_START_LEFT,
-  timelineTimeToPixel,
   type ClipTimelineData, 
   type ClipTimelineEffects, 
   type ClipTimelineAction,
@@ -21,8 +21,6 @@ interface EditorTimelineProps {
   timelineEffects: ClipTimelineEffects;
   activeTimelineScale: TimelineZoomLevel;
   timelineScaleCount: number;
-  timelineScrollLeft: number;
-  timelineViewportWidth: number;
   playbackReadyRange: PlaybackReadyRange | null;
   loadingPreview: boolean;
   playing: boolean;
@@ -44,8 +42,6 @@ export function EditorTimeline({
   timelineEffects,
   activeTimelineScale,
   timelineScaleCount,
-  timelineScrollLeft,
-  timelineViewportWidth,
   playbackReadyRange,
   loadingPreview,
   playing,
@@ -59,63 +55,48 @@ export function EditorTimeline({
   onCursorDragStart,
   onCursorDrag,
 }: EditorTimelineProps) {
+  const getReadyFillStyle = useCallback((action: ClipTimelineAction): CSSProperties | null => {
+    if (action.effectId !== "clip" || !playbackReadyRange) {
+      return null;
+    }
+
+    const fill = getTimelineFillPercentages({
+      trackStart: action.start,
+      trackEnd: action.end,
+      fillStart: playbackReadyRange.startTime,
+      fillEnd: Math.min(playbackReadyRange.readyUntilTime, playbackReadyRange.endTime),
+    });
+    if (!fill || (fill.widthPercent <= 0 && playbackReadyRange.status !== "warming")) {
+      return null;
+    }
+
+    return {
+      left: `${fill.leftPercent}%`,
+      width: `${fill.widthPercent}%`,
+    };
+  }, [playbackReadyRange]);
+
   const renderClipTimelineAction = useCallback((action: ClipTimelineAction) => {
     const isSource = action.effectId === "source";
+    const readyFillStyle = getReadyFillStyle(action);
 
     return (
       <div className="cliparr-timeline-action-content">
+        {readyFillStyle && playbackReadyRange && (
+          <span
+            className="cliparr-timeline-action-ready-fill"
+            data-status={playbackReadyRange.status}
+            style={readyFillStyle}
+            aria-hidden="true"
+          />
+        )}
         <span className="cliparr-timeline-action-label">
           {!isSource && <Scissors className="h-3.5 w-3.5" />}
           {isSource ? "Source" : "Selection"}
         </span>
       </div>
     );
-  }, []);
-
-  const playbackReadyOverlay = (() => {
-    if (!playbackReadyRange || timelineViewportWidth <= 0) {
-      return null;
-    }
-
-    const readyStartPixel = timelineTimeToPixel(
-      playbackReadyRange.startTime,
-      activeTimelineScale.scale,
-      activeTimelineScale.scaleWidth,
-      TIMELINE_START_LEFT,
-    ) - timelineScrollLeft;
-    const readyEndPixel = timelineTimeToPixel(
-      playbackReadyRange.readyUntilTime,
-      activeTimelineScale.scale,
-      activeTimelineScale.scaleWidth,
-      TIMELINE_START_LEFT,
-    ) - timelineScrollLeft;
-    if (readyEndPixel <= TIMELINE_START_LEFT || readyStartPixel >= timelineViewportWidth) {
-      return null;
-    }
-    const clippedLeft = Math.max(TIMELINE_START_LEFT, readyStartPixel);
-    const clippedRight = Math.min(timelineViewportWidth, readyEndPixel);
-    const width = Math.max(
-      playbackReadyRange.status === "warming" ? 2 : 0,
-      clippedRight - clippedLeft,
-    );
-
-    if (width <= 0) {
-      return null;
-    }
-
-    return (
-      <div
-        className="cliparr-timeline-ready-range"
-        data-status={playbackReadyRange.status}
-        aria-label="Preview ready"
-        title="Preview ready for smooth playback"
-        style={{
-          left: `${clippedLeft}px`,
-          width: `${width}px`,
-        }}
-      />
-    );
-  })();
+  }, [getReadyFillStyle, playbackReadyRange]);
 
   return (
     <div
@@ -166,7 +147,6 @@ export function EditorTimeline({
         getScaleRender={formatTime}
         getActionRender={renderClipTimelineAction}
       />
-      {playbackReadyOverlay}
     </div>
   );
 }

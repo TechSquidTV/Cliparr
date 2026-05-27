@@ -204,8 +204,6 @@ export default function EditorScreen({ session, onBack }: Props) {
     timelineEffects,
     activeTimelineScale,
     timelineScaleCount,
-    timelineScrollLeft,
-    timelineViewportWidth,
     handleTimelineScroll,
     handleTimelineWheel,
     handleTimelineZoomIn,
@@ -361,8 +359,6 @@ export default function EditorScreen({ session, onBack }: Props) {
                     timelineEffects={timelineEffects}
                     activeTimelineScale={activeTimelineScale}
                     timelineScaleCount={timelineScaleCount}
-                    timelineScrollLeft={timelineScrollLeft}
-                    timelineViewportWidth={timelineViewportWidth}
                     playbackReadyRange={isHlsPreviewSource ? playbackReadyRange : null}
                     loadingPreview={loadingPreview}
                     playing={playing}
