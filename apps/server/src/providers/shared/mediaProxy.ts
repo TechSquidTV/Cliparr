@@ -457,6 +457,10 @@ async function rewriteHlsPlaylist(
 
 function copyProxyHeaders(upstream: globalThis.Response, res: Response) {
   for (const header of PROXY_HEADER_ALLOWLIST) {
+    if (header === "content-length") {
+      continue;
+    }
+
     const value = upstream.headers.get(header);
     if (value) {
       res.setHeader(header, value);
@@ -559,13 +563,11 @@ async function createCachedProxyMediaResponse(
   }
 
   const body = Buffer.from(await upstream.arrayBuffer());
-  const nextHeaders = upstream.body
-    ? headers
-    : headers.filter(([name]) => name !== "content-length");
+  const nextHeaders = headers.filter(([name]) => name !== "content-length");
 
   if (!upstream.body) {
     nextHeaders.push(["content-length", "0"]);
-  } else if (!nextHeaders.some(([name]) => name === "content-length")) {
+  } else {
     nextHeaders.push(["content-length", String(body.byteLength)]);
   }
 
@@ -614,7 +616,6 @@ export async function proxyUpstreamMediaResponse(
   res: Response
 ) {
   res.status(upstream.status);
-  copyProxyHeaders(upstream, res);
 
   const contentType = upstream.headers.get("content-type") ?? "";
   logger.trace("Proxying upstream media response for handle {handleId}.", {
@@ -628,6 +629,7 @@ export async function proxyUpstreamMediaResponse(
 
   if (isHlsPlaylist(handle, contentType)) {
     const playlist = await rewriteHlsPlaylist(session, handle, upstream);
+    copyProxyHeaders(upstream, res);
     res.setHeader("Content-Type", "application/vnd.apple.mpegurl");
     res.setHeader("Content-Length", Buffer.byteLength(playlist));
     res.send(playlist);
@@ -635,10 +637,13 @@ export async function proxyUpstreamMediaResponse(
   }
 
   if (!upstream.body) {
+    copyProxyHeaders(upstream, res);
+    res.setHeader("Content-Length", "0");
     res.end();
     return;
   }
 
+  copyProxyHeaders(upstream, res);
   const upstreamBody = Readable.fromWeb(upstream.body as unknown as WebReadableStream<Uint8Array>);
   const closeUpstreamBody = () => {
     upstreamBody.destroy();
