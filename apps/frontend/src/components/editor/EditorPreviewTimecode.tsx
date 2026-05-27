@@ -1,21 +1,21 @@
-import { memo, useMemo } from "react";
+import {
+  memo,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  type RefObject,
+} from "react";
 
 interface EditorPreviewTimecodeProps {
   currentTime: number;
   duration: number;
 }
 
-interface SegmentedTimecodeProps {
-  parts: PreviewTimecodeParts;
+interface TimecodeShellProps {
   hoursWidth: string;
   minutesWidth: string;
   showHours: boolean;
-}
-
-interface TimecodeSlotProps {
-  className?: string;
-  value: string;
-  width: string;
+  slotRefs: TimecodeSlotRefs;
 }
 
 interface PreviewTimecodeParts {
@@ -26,9 +26,15 @@ interface PreviewTimecodeParts {
   seconds: string;
 }
 
+type TimecodeSlotRefs = Record<
+  "fraction" | "hours" | "minutes" | "seconds",
+  RefObject<HTMLSpanElement | null>
+>;
+
 const CENTISECONDS_PER_SECOND = 100;
 const CENTISECONDS_PER_MINUTE = 60 * CENTISECONDS_PER_SECOND;
 const CENTISECONDS_PER_HOUR = 60 * CENTISECONDS_PER_MINUTE;
+const FIXED_DIGIT_WIDTH = "2ch";
 
 function getPreviewCentiseconds(seconds: number) {
   if (!Number.isFinite(seconds)) {
@@ -63,37 +69,72 @@ function getPreviewTimecodeParts(centiseconds: number, showHours: boolean): Prev
   };
 }
 
-const TimecodeSlot = memo(function TimecodeSlot({
-  className = "",
-  value,
-  width,
-}: TimecodeSlotProps) {
-  return (
-    <span className={`inline-block ${className}`} style={{ width }}>
-      {value}
-    </span>
-  );
-});
+function setSlotText(ref: RefObject<HTMLSpanElement | null>, value: string) {
+  const slot = ref.current;
 
-const SegmentedTimecode = memo(function SegmentedTimecode({
-  parts,
+  if (slot && slot.textContent !== value) {
+    slot.textContent = value;
+  }
+}
+
+function updateTimecodeSlots(slotRefs: TimecodeSlotRefs, parts: PreviewTimecodeParts) {
+  setSlotText(slotRefs.hours, parts.hours);
+  setSlotText(slotRefs.minutes, parts.minutes);
+  setSlotText(slotRefs.seconds, parts.seconds);
+  setSlotText(slotRefs.fraction, parts.fraction);
+}
+
+function useTimecodeSlotRefs(): TimecodeSlotRefs {
+  const hours = useRef<HTMLSpanElement>(null);
+  const minutes = useRef<HTMLSpanElement>(null);
+  const seconds = useRef<HTMLSpanElement>(null);
+  const fraction = useRef<HTMLSpanElement>(null);
+
+  return useMemo(() => ({
+    fraction,
+    hours,
+    minutes,
+    seconds,
+  }), []);
+}
+
+function getHoursWidth(durationParts: PreviewTimecodeParts) {
+  return `${Math.max(1, durationParts.hours.length)}ch`;
+}
+
+function getMinutesWidth(durationParts: PreviewTimecodeParts, showHours: boolean) {
+  return `${Math.max(showHours ? 2 : 1, durationParts.minutes.length)}ch`;
+}
+
+function arePreviewTimecodePropsEqual(
+  previous: EditorPreviewTimecodeProps,
+  next: EditorPreviewTimecodeProps,
+) {
+  return (
+    getPreviewCentiseconds(previous.currentTime) === getPreviewCentiseconds(next.currentTime)
+    && getPreviewCentiseconds(previous.duration) === getPreviewCentiseconds(next.duration)
+  );
+}
+
+const TimecodeShell = memo(function TimecodeShell({
   hoursWidth,
   minutesWidth,
   showHours,
-}: SegmentedTimecodeProps) {
+  slotRefs,
+}: TimecodeShellProps) {
   return (
     <span className="inline-flex items-baseline">
       {showHours && (
         <>
-          <TimecodeSlot className="text-right" value={parts.hours} width={hoursWidth} />
+          <span ref={slotRefs.hours} className="inline-block text-right" style={{ width: hoursWidth }} />
           <span>:</span>
         </>
       )}
-      <TimecodeSlot className="text-right" value={parts.minutes} width={minutesWidth} />
+      <span ref={slotRefs.minutes} className="inline-block text-right" style={{ width: minutesWidth }} />
       <span>:</span>
-      <TimecodeSlot className="text-right" value={parts.seconds} width="2ch" />
+      <span ref={slotRefs.seconds} className="inline-block text-right" style={{ width: FIXED_DIGIT_WIDTH }} />
       <span>.</span>
-      <TimecodeSlot className="text-left" value={parts.fraction} width="2ch" />
+      <span ref={slotRefs.fraction} className="inline-block text-left" style={{ width: FIXED_DIGIT_WIDTH }} />
     </span>
   );
 });
@@ -102,44 +143,60 @@ export const EditorPreviewTimecode = memo(function EditorPreviewTimecode({
   currentTime,
   duration,
 }: EditorPreviewTimecodeProps) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const currentSlotRefs = useTimecodeSlotRefs();
+  const durationSlotRefs = useTimecodeSlotRefs();
   const currentCentiseconds = getPreviewCentiseconds(currentTime);
   const durationCentiseconds = getPreviewCentiseconds(duration);
   const showHours = durationCentiseconds >= CENTISECONDS_PER_HOUR;
-  const currentParts = useMemo(
-    () => getPreviewTimecodeParts(currentCentiseconds, showHours),
-    [currentCentiseconds, showHours],
-  );
   const durationParts = useMemo(
     () => getPreviewTimecodeParts(durationCentiseconds, showHours),
     [durationCentiseconds, showHours],
   );
-  const hoursWidth = useMemo(() => {
-    return `${Math.max(1, durationParts.hours.length)}ch`;
-  }, [durationParts.hours.length]);
-  const minutesWidth = useMemo(() => {
-    return `${Math.max(showHours ? 2 : 1, durationParts.minutes.length)}ch`;
-  }, [durationParts.minutes.length, showHours]);
+  const hoursWidth = useMemo(() => getHoursWidth(durationParts), [durationParts]);
+  const minutesWidth = useMemo(
+    () => getMinutesWidth(durationParts, showHours),
+    [durationParts, showHours],
+  );
+
+  useLayoutEffect(() => {
+    const currentParts = getPreviewTimecodeParts(currentCentiseconds, showHours);
+
+    updateTimecodeSlots(currentSlotRefs, currentParts);
+    updateTimecodeSlots(durationSlotRefs, durationParts);
+    containerRef.current?.setAttribute(
+      "aria-label",
+      `${currentParts.label} of ${durationParts.label}`,
+    );
+  }, [
+    currentCentiseconds,
+    currentSlotRefs,
+    durationParts,
+    durationSlotRefs,
+    showHours,
+  ]);
 
   return (
     <div
+      ref={containerRef}
       className="flex shrink-0 items-center whitespace-nowrap font-mono text-sm font-semibold tabular-nums text-foreground"
-      aria-label={`${currentParts.label} of ${durationParts.label}`}
+      style={{ contain: "layout style paint" }}
     >
       <span aria-hidden="true" className="inline-flex items-baseline">
-        <SegmentedTimecode
+        <TimecodeShell
           hoursWidth={hoursWidth}
           minutesWidth={minutesWidth}
-          parts={currentParts}
           showHours={showHours}
+          slotRefs={currentSlotRefs}
         />
         <span className="px-1.5 text-muted-foreground">/</span>
-        <SegmentedTimecode
+        <TimecodeShell
           hoursWidth={hoursWidth}
           minutesWidth={minutesWidth}
-          parts={durationParts}
           showHours={showHours}
+          slotRefs={durationSlotRefs}
         />
       </span>
     </div>
   );
-});
+}, arePreviewTimecodePropsEqual);
