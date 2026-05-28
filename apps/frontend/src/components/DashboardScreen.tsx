@@ -173,17 +173,6 @@ export default function DashboardScreen({ onSelectSession, onOpenLocalVideo, onO
             </div>
           </div>
           <div className="flex flex-wrap items-center gap-3 sm:justify-end">
-            <a
-              href={CLIPARR_GITHUB_URL}
-              target="_blank"
-              rel="noreferrer"
-              className="flex items-center gap-2 rounded-lg border border-border px-4 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
-              aria-label="View Cliparr on GitHub"
-              title="View Cliparr on GitHub"
-            >
-              <GithubIcon className="h-4 w-4" />
-              <span className="hidden sm:inline">GitHub</span>
-            </a>
             <button
               type="button"
               onClick={onOpenLocalVideo}
@@ -208,6 +197,16 @@ export default function DashboardScreen({ onSelectSession, onOpenLocalVideo, onO
             >
               <RefreshCw className={`w-5 h-5 ${loading ? "animate-spin text-primary" : ""}`} />
             </button>
+            <a
+              href={CLIPARR_GITHUB_URL}
+              target="_blank"
+              rel="noreferrer"
+              className="p-2 text-muted-foreground hover:text-foreground hover:bg-accent rounded-lg transition-colors"
+              aria-label="View Cliparr on GitHub"
+              title="View Cliparr on GitHub"
+            >
+              <GithubIcon className="h-5 w-5" />
+            </a>
             <button
               type="button"
               onClick={onLogout}
