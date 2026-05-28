@@ -20,7 +20,10 @@ import { EditorPlaybackSourcePanel } from "./editor/EditorPlaybackSourcePanel";
 import { EditorTimeline } from "./editor/EditorTimeline";
 import { EditorSubtitlePanel } from "./editor/EditorSubtitlePanel";
 import { buildSubtitleExportSummary } from "./editor/subtitleExportSummary";
-import { buildInitialClipRange } from "./editor/initialClipRange";
+import {
+  buildClipRangeAfterDurationDiscovery,
+  buildInitialClipRange,
+} from "./editor/initialClipRange";
 import { useSubtitleCues } from "./editor/useSubtitleCues";
 import type { PlaybackSubtitleTrack } from "../providers/types";
 import { sourceDisplayLabel, type EditorSession } from "../lib/editorMedia";
@@ -262,12 +265,32 @@ export default function EditorScreen({ session, onBack }: Props) {
       return;
     }
 
+    const discoveredInitialRange = buildClipRangeAfterDurationDiscovery({
+      initialDuration: session.duration,
+      currentStartTime: startTime,
+      currentEndTime: endTime,
+      discoveredDuration: duration,
+      playheadSeconds: session.initialPlayheadSeconds,
+    });
+    if (discoveredInitialRange) {
+      updateClipRange(discoveredInitialRange.startTime, discoveredInitialRange.endTime);
+      return;
+    }
+
     if (isValidTimelineRange(startTime, endTime)) {
       return;
     }
 
     updateClipRange(startTime, endTime);
-  }, [duration, endTime, isValidTimelineRange, startTime, updateClipRange]);
+  }, [
+    duration,
+    endTime,
+    isValidTimelineRange,
+    session.duration,
+    session.initialPlayheadSeconds,
+    startTime,
+    updateClipRange,
+  ]);
 
   useEffect(() => {
     saveSubtitleStyleSettings(subtitleStyleSettings);

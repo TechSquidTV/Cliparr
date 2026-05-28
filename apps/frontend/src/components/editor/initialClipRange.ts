@@ -7,6 +7,14 @@ export interface InitialClipRange {
   endTime: number;
 }
 
+interface DiscoveredDurationClipRangeInput {
+  initialDuration: number;
+  currentStartTime: number;
+  currentEndTime: number;
+  discoveredDuration: number;
+  playheadSeconds?: number;
+}
+
 function finiteNonNegativeSeconds(value: number | null | undefined) {
   const seconds = Number(value);
   return Number.isFinite(seconds) && seconds >= 0 ? seconds : 0;
@@ -41,4 +49,23 @@ export function buildInitialClipRange(duration: number, playheadSeconds?: number
     startTime,
     endTime,
   };
+}
+
+export function buildClipRangeAfterDurationDiscovery({
+  initialDuration,
+  currentStartTime,
+  currentEndTime,
+  discoveredDuration,
+  playheadSeconds,
+}: DiscoveredDurationClipRangeInput): InitialClipRange | null {
+  if (
+    finiteNonNegativeSeconds(initialDuration) > 0
+    || finiteNonNegativeSeconds(discoveredDuration) <= 0
+    || currentStartTime !== 0
+    || currentEndTime !== 0
+  ) {
+    return null;
+  }
+
+  return buildInitialClipRange(discoveredDuration, playheadSeconds);
 }
