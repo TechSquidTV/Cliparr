@@ -23,7 +23,7 @@ export default function ProviderConnectScreen({ onConnected, onOpenLocalVideo }:
           </div>
           <h1 className="text-center text-3xl font-semibold tracking-tight">Connect A Provider</h1>
           <p className="mx-auto mt-3 max-w-2xl text-center text-sm leading-6 text-muted-foreground">
-            Select a provider. You will be able to add more providers later.
+            Choose a provider to get started.
           </p>
           <div className="mt-5 flex justify-center">
             <button

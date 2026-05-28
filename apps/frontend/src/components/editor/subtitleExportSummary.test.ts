@@ -23,7 +23,7 @@ void test("summarizes disabled subtitle burn-in with and without available track
     providerId: "plex",
   }), {
     label: "Not included",
-    detail: "Subtitle burn-in is currently turned off for this export.",
+    detail: "Subtitles are off.",
     tone: "muted",
     disabledReason: null,
   });
@@ -38,7 +38,7 @@ void test("summarizes disabled subtitle burn-in with and without available track
     providerId: "plex",
   }), {
     label: "Not included",
-    detail: "No supported text subtitle tracks are available for this session.",
+    detail: "No supported subtitles found.",
     tone: "muted",
     disabledReason: null,
   });
@@ -58,10 +58,10 @@ void test("blocks export when the selected subtitle track is unsupported", () =>
     subtitleError: null,
     providerId: "plex",
   }), {
-    label: "Unsupported track",
-    detail: "Plex detected this embedded text subtitle track, but only the currently selected embedded subtitle can be fetched for styled burn-in.",
+    label: "Not supported",
+    detail: "Select this embedded subtitle in Plex first.",
     tone: "warning",
-    disabledReason: "Choose a supported text subtitle track or turn subtitle burn-in off.",
+    disabledReason: "Choose another subtitle track or turn subtitles off.",
   });
 });
 
@@ -75,10 +75,10 @@ void test("blocks export while subtitle cues are loading or errored", () => {
     subtitleError: null,
     providerId: "jellyfin",
   }), {
-    label: "Loading cues",
-    detail: "English SDH is still being prepared for burn-in.",
+    label: "Loading",
+    detail: "Preparing subtitles.",
     tone: "warning",
-    disabledReason: "Subtitles are still loading. Please wait for the cue list to finish loading.",
+    disabledReason: "Subtitles are still loading.",
   });
 
   assert.deepEqual(buildSubtitleExportSummary({
@@ -87,13 +87,13 @@ void test("blocks export while subtitle cues are loading or errored", () => {
     subtitleTrackCount: 1,
     clippedSubtitleCueCount: 0,
     subtitleLoading: false,
-    subtitleError: "Subtitle request timed out. Please try again.",
+    subtitleError: "Subtitles timed out. Try again.",
     providerId: "jellyfin",
   }), {
-    label: "Subtitle issue",
-    detail: "Subtitle request timed out. Please try again.",
+    label: "Issue",
+    detail: "Subtitles timed out. Try again.",
     tone: "warning",
-    disabledReason: "Subtitle request timed out. Please try again.",
+    disabledReason: "Subtitles timed out. Try again.",
   });
 });
 
@@ -107,8 +107,8 @@ void test("summarizes empty and ready cue states", () => {
     subtitleError: null,
     providerId: "jellyfin",
   }), {
-    label: "No cues found",
-    detail: "English SDH has no subtitle cues inside the selected clip range.",
+    label: "None in range",
+    detail: "No subtitles in the selected range.",
     tone: "muted",
     disabledReason: null,
   });
@@ -122,8 +122,8 @@ void test("summarizes empty and ready cue states", () => {
     subtitleError: null,
     providerId: "jellyfin",
   }), {
-    label: "Burned in",
-    detail: "English SDH will be rendered into the exported video frames.",
+    label: "Included",
+    detail: "English SDH will be burned in.",
     tone: "ready",
     disabledReason: null,
   });

@@ -398,14 +398,14 @@ export async function resolveLocalMediaSession(
   } catch {
     return {
       status: "unavailable",
-      message: "Local media storage is unavailable. Reopen the file or URL to continue.",
+      message: "Reopen this file or URL to continue.",
     };
   }
 
   if (!storedRecord) {
     return {
       status: "missing",
-      message: "This local video is no longer available in this tab. Reopen it to continue.",
+      message: "This local video is no longer available. Reopen it to continue.",
     };
   }
 
@@ -421,7 +421,7 @@ export async function resolveLocalMediaSession(
         status: "permission-needed",
         id: storedRecord.id,
         title: storedRecord.title,
-        message: "Cliparr needs permission to reopen this local file.",
+        message: "Allow access to reopen this file.",
       };
     }
 
@@ -444,14 +444,14 @@ export async function resolveLocalMediaSession(
         status: "permission-needed",
         id: storedRecord.id,
         title: storedRecord.title,
-        message: "Cliparr needs permission to reopen this local file.",
+        message: "Allow access to reopen this file.",
       };
     }
 
     return {
       status: "unavailable",
       title: storedRecord.title,
-      message: "This local file could not be reopened. It may have moved or changed permissions.",
+      message: "Could not reopen this file.",
     };
   }
 }

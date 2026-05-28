@@ -1,5 +1,10 @@
-import { useMemo } from "react";
+import { useMemo, type ReactElement } from "react";
 import { Pause, Play, Volume2, VolumeX, ZoomIn, ZoomOut } from "lucide-react";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { EditorEditableTimecode } from "./EditorEditableTimecode";
 import { EditorPreviewTimecode } from "./EditorPreviewTimecode";
 import { formatTime, formatTimecodeInput } from "./EditorUtils";
@@ -23,6 +28,31 @@ interface EditorControlsProps {
   onPreviewTimeCommit: (time: number) => void | Promise<void>;
   onStartTimeCommit: (time: number) => void | Promise<void>;
   onEndTimeCommit: (time: number) => void | Promise<void>;
+}
+
+function ControlTooltip({
+  label,
+  disabled = false,
+  children,
+}: {
+  label: string;
+  disabled?: boolean;
+  children: ReactElement;
+}) {
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        {disabled ? (
+          <span className="inline-flex" tabIndex={0}>
+            {children}
+          </span>
+        ) : children}
+      </TooltipTrigger>
+      <TooltipContent side="bottom">
+        {label}
+      </TooltipContent>
+    </Tooltip>
+  );
 }
 
 export function EditorControls({
@@ -62,14 +92,16 @@ export function EditorControls({
     <div className="border-b border-border px-3 py-2">
       <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
         <div className="flex items-center gap-2.5">
-          <button
-            onClick={togglePlay}
-            disabled={loadingPreview}
-            aria-label={playing ? "Pause preview" : "Play preview"}
-            className="flex h-8 w-8 items-center justify-center border border-border bg-accent text-foreground transition-colors hover:bg-accent/80 disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            {playing ? <Pause className="h-4 w-4" /> : <Play className="ml-0.5 h-4 w-4" />}
-          </button>
+          <ControlTooltip label={loadingPreview ? "Preview is loading." : playing ? "Pause preview" : "Play preview"} disabled={loadingPreview}>
+            <button
+              onClick={togglePlay}
+              disabled={loadingPreview}
+              aria-label={playing ? "Pause preview" : "Play preview"}
+              className="flex h-8 w-8 items-center justify-center border border-border bg-accent text-foreground transition-colors hover:bg-accent/80 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {playing ? <Pause className="h-4 w-4" /> : <Play className="ml-0.5 h-4 w-4" />}
+            </button>
+          </ControlTooltip>
           <EditorEditableTimecode
             ariaLabel="preview time"
             buttonClassName="text-foreground"
@@ -83,14 +115,16 @@ export function EditorControls({
         </div>
         <div className="h-5 w-px bg-border" />
         <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={() => setMuted((current) => !current)}
-            className="flex h-8 w-8 items-center justify-center border border-border bg-background text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
-            aria-label={muted || volume === 0 ? "Unmute preview" : "Mute preview"}
-          >
-            {muted || volume === 0 ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
-          </button>
+          <ControlTooltip label={muted || volume === 0 ? "Unmute preview" : "Mute preview"}>
+            <button
+              type="button"
+              onClick={() => setMuted((current) => !current)}
+              className="flex h-8 w-8 items-center justify-center border border-border bg-background text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+              aria-label={muted || volume === 0 ? "Unmute preview" : "Mute preview"}
+            >
+              {muted || volume === 0 ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
+            </button>
+          </ControlTooltip>
           <input
             type="range"
             min={0}
@@ -106,26 +140,28 @@ export function EditorControls({
             aria-label="Preview volume"
           />
           <div className="ml-1 flex items-center overflow-hidden border border-border bg-background">
-            <button
-              type="button"
-              onClick={handleTimelineZoomOut}
-              disabled={!canZoomOut}
-              className="flex h-8 w-8 items-center justify-center text-muted-foreground transition-colors hover:bg-accent hover:text-foreground disabled:cursor-not-allowed disabled:opacity-45"
-              aria-label="Zoom timeline out"
-              title="Zoom timeline out"
-            >
-              <ZoomOut className="h-4 w-4" />
-            </button>
-            <button
-              type="button"
-              onClick={handleTimelineZoomIn}
-              disabled={!canZoomIn}
-              className="flex h-8 w-8 items-center justify-center border-l border-border text-muted-foreground transition-colors hover:bg-accent hover:text-foreground disabled:cursor-not-allowed disabled:opacity-45"
-              aria-label="Zoom timeline in"
-              title="Zoom timeline in"
-            >
-              <ZoomIn className="h-4 w-4" />
-            </button>
+            <ControlTooltip label={canZoomOut ? "Zoom timeline out" : "Already fully zoomed out"} disabled={!canZoomOut}>
+              <button
+                type="button"
+                onClick={handleTimelineZoomOut}
+                disabled={!canZoomOut}
+                className="flex h-8 w-8 items-center justify-center text-muted-foreground transition-colors hover:bg-accent hover:text-foreground disabled:cursor-not-allowed disabled:opacity-45"
+                aria-label="Zoom timeline out"
+              >
+                <ZoomOut className="h-4 w-4" />
+              </button>
+            </ControlTooltip>
+            <ControlTooltip label={canZoomIn ? "Zoom timeline in" : "Already fully zoomed in"} disabled={!canZoomIn}>
+              <button
+                type="button"
+                onClick={handleTimelineZoomIn}
+                disabled={!canZoomIn}
+                className="flex h-8 w-8 items-center justify-center border-l border-border text-muted-foreground transition-colors hover:bg-accent hover:text-foreground disabled:cursor-not-allowed disabled:opacity-45"
+                aria-label="Zoom timeline in"
+              >
+                <ZoomIn className="h-4 w-4" />
+              </button>
+            </ControlTooltip>
           </div>
         </div>
         <div className="min-w-0 flex-1" />
