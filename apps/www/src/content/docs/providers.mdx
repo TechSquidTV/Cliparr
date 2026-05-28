@@ -1,0 +1,32 @@
+---
+title: Providers
+description: How Cliparr connects to Plex and Jellyfin sources.
+order: 40
+---
+
+import Callout from "../../components/Callout.astro";
+import { providers } from "../../data/product";
+
+Cliparr uses provider sources to discover active playback sessions, load playable streams, and attach useful metadata to exported clips.
+
+{providers.map((provider) => (
+  <section>
+    <h2>{provider.name}</h2>
+    <p>{provider.setup}</p>
+    {provider.name === "Plex" ? (
+      <p>Use a Plex account that owns the server you want to connect. Cliparr uses that account to find servers and active playback sessions.</p>
+    ) : (
+      <p>Use a Jellyfin administrator account. Cliparr needs administrator access to read active sessions across the server.</p>
+    )}
+  </section>
+))}
+
+Provider-backed clips can include media-server metadata in the exported file, such as title, show, season, episode, artwork, rating, and timing details when the source provides them.
+
+<Callout title="Credentials stay encrypted" tone="info">
+  Provider credentials are persisted so Cliparr can refresh sessions later. Keep `APP_KEY` stable so those credentials remain decryptable.
+</Callout>
+
+## Multiple sources
+
+You can add more than one source, then disable or reconnect sources from source management. Cliparr shows available sessions from enabled sources and surfaces source-specific errors without blocking the rest of the dashboard.

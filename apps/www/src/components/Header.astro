@@ -1,0 +1,50 @@
+---
+import { site } from "../data/product";
+
+const links = [
+  { href: "/#features", label: "Features" },
+  { href: "/docs", label: "Docs" },
+  { href: site.githubUrl, label: "GitHub" },
+];
+---
+
+<header class="sticky top-0 z-30 border-b border-border bg-background/88 backdrop-blur-xl">
+  <div class="container-page flex min-h-16 items-center justify-between gap-2 min-[380px]:gap-3">
+    <a href="/" aria-label="Cliparr home" class="focus-ring flex shrink-0 items-center gap-3 rounded-md">
+      <img src={site.logo} alt="" class="site-logo h-8 w-8 shrink-0" />
+      <span class="hidden text-lg font-semibold min-[380px]:inline">{site.name}</span>
+    </a>
+    <nav aria-label="Primary navigation" class="flex min-w-0 items-center gap-1 sm:gap-2">
+      {links.map((link) => (
+        <a
+          href={link.href}
+          class="focus-ring rounded-full px-1.5 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground min-[380px]:px-2.5 sm:px-3"
+          target={link.href.startsWith("http") ? "_blank" : undefined}
+          rel={link.href.startsWith("http") ? "noreferrer" : undefined}
+        >
+          {link.label}
+        </a>
+      ))}
+      <button
+        type="button"
+        data-theme-toggle
+        aria-label="Toggle color theme"
+        title="Toggle color theme"
+        class="focus-ring inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-border bg-card text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+      >
+        <svg class="theme-toggle-icon theme-toggle-icon-moon h-4 w-4" viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M21 14.2A8.5 8.5 0 0 1 9.8 3a7 7 0 1 0 11.2 11.2Z" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+        </svg>
+        <svg class="theme-toggle-icon theme-toggle-icon-sun h-4 w-4" viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M12 4V2m0 20v-2m8-8h2M2 12h2m14.95-6.95 1.42-1.42M3.63 20.37l1.42-1.42m0-13.9L3.63 3.63m16.74 16.74-1.42-1.42M16 12a4 4 0 1 1-8 0 4 4 0 0 1 8 0Z" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+        </svg>
+      </button>
+      <a
+        href="/docs/getting-started"
+        class="focus-ring hidden min-h-9 items-center justify-center rounded-full bg-foreground px-4 text-sm font-semibold text-background transition-colors hover:bg-primary sm:inline-flex"
+      >
+        Get started
+      </a>
+    </nav>
+  </div>
+</header>

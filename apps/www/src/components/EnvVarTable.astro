@@ -1,0 +1,27 @@
+---
+import { envVars } from "../data/product";
+---
+
+<div class="my-6 overflow-x-auto rounded-lg border border-border">
+  <table class="min-w-full divide-y divide-border text-left text-sm">
+    <thead class="bg-muted text-foreground">
+      <tr>
+        <th class="px-4 py-3 font-semibold" scope="col">Variable</th>
+        <th class="px-4 py-3 font-semibold" scope="col">Description</th>
+        <th class="px-4 py-3 font-semibold" scope="col">Default</th>
+      </tr>
+    </thead>
+    <tbody class="divide-y divide-border bg-background">
+      {envVars.map((item) => (
+        <tr>
+          <td class="whitespace-nowrap px-4 py-3 font-mono text-xs text-foreground">{item.name}</td>
+          <td class="min-w-80 px-4 py-3 text-muted-foreground">
+            {item.description}
+            {item.required && <span class="ml-2 font-medium text-primary">Required</span>}
+          </td>
+          <td class="whitespace-nowrap px-4 py-3 font-mono text-xs text-muted-foreground">{item.defaultValue}</td>
+        </tr>
+      ))}
+    </tbody>
+  </table>
+</div>

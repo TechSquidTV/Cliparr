@@ -1,0 +1,151 @@
+---
+import Footer from "./Footer.astro";
+import Header from "./Header.astro";
+import { site } from "../data/product";
+import "../styles/global.css";
+
+interface Props {
+  title?: string;
+  description?: string;
+}
+
+const { title, description = site.description } = Astro.props;
+const pageTitle = title ? `${title} | ${site.name}` : `${site.name} | ${site.description}`;
+const canonicalUrl = new URL(Astro.url.pathname, site.url).toString();
+const socialImageUrl = new URL(site.ogImage, site.url).toString();
+const homepageSchema =
+  Astro.url.pathname === "/"
+    ? {
+        "@context": "https://schema.org",
+        "@id": `${site.url}/#software`,
+        "@type": "SoftwareApplication",
+        name: site.name,
+        description: site.description,
+        url: site.url,
+        image: socialImageUrl,
+        applicationCategory: "MultimediaApplication",
+        operatingSystem: "Docker, Linux",
+        isAccessibleForFree: true,
+        license: `${site.githubUrl}/blob/main/LICENSE`,
+        sameAs: [site.githubUrl],
+        offers: {
+          "@type": "Offer",
+          price: "0",
+          priceCurrency: "USD",
+        },
+      }
+    : null;
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content={description} />
+    <meta name="robots" content="index,follow" />
+    <link rel="canonical" href={canonicalUrl} />
+    <link rel="sitemap" href="/sitemap-index.xml" />
+    <meta property="og:title" content={pageTitle} />
+    <meta property="og:description" content={description} />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content={canonicalUrl} />
+    <meta property="og:site_name" content={site.name} />
+    <meta property="og:image" content={socialImageUrl} />
+    <meta property="og:image:secure_url" content={socialImageUrl} />
+    <meta property="og:image:type" content={site.ogImageType} />
+    <meta property="og:image:width" content={String(site.ogImageWidth)} />
+    <meta property="og:image:height" content={String(site.ogImageHeight)} />
+    <meta property="og:image:alt" content={site.ogImageAlt} />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={pageTitle} />
+    <meta name="twitter:description" content={description} />
+    <meta name="twitter:image" content={socialImageUrl} />
+    <meta name="twitter:image:alt" content={site.ogImageAlt} />
+    <link rel="icon" href="/favicon.png" />
+    <title>{pageTitle}</title>
+    {homepageSchema && <script is:inline type="application/ld+json" set:html={JSON.stringify(homepageSchema)} />}
+    <script is:inline>
+      (() => {
+        const storageKey = "cliparr-theme";
+        const query = window.matchMedia("(prefers-color-scheme: dark)");
+
+        const getStoredTheme = () => {
+          try {
+            const value = window.localStorage.getItem(storageKey);
+            return value === "dark" || value === "light" ? value : null;
+          } catch {
+            return null;
+          }
+        };
+
+        const getTheme = () => getStoredTheme() ?? (query.matches ? "dark" : "light");
+        const getSource = () => getStoredTheme() ? "user" : "system";
+
+        const updateControls = () => {
+          const theme = getTheme();
+          const nextTheme = theme === "dark" ? "light" : "dark";
+          const source = getSource();
+
+          document.querySelectorAll("[data-theme-toggle]").forEach((button) => {
+            button.setAttribute("aria-label", `Switch to ${nextTheme} theme`);
+            button.setAttribute("aria-pressed", theme === "dark" ? "true" : "false");
+            button.setAttribute("title", `Switch to ${nextTheme} theme`);
+            button.setAttribute("data-theme-toggle-state", theme);
+            button.setAttribute("data-theme-source", source);
+          });
+        };
+
+        const applyTheme = () => {
+          const theme = getTheme();
+          document.documentElement.dataset.theme = theme;
+          document.documentElement.dataset.themeSource = getSource();
+          document.documentElement.style.colorScheme = theme;
+        };
+
+        const setTheme = (theme) => {
+          try {
+            window.localStorage.setItem(storageKey, theme);
+          } catch {
+          }
+          applyTheme();
+          updateControls();
+        };
+
+        const toggleTheme = () => {
+          setTheme(getTheme() === "dark" ? "light" : "dark");
+        };
+
+        applyTheme();
+        document.addEventListener("DOMContentLoaded", updateControls, { once: true });
+        document.addEventListener("click", (event) => {
+          if (!(event.target instanceof Element)) {
+            return;
+          }
+
+          const button = event.target.closest("[data-theme-toggle]");
+          if (!button) {
+            return;
+          }
+
+          event.preventDefault();
+          toggleTheme();
+        });
+
+        query.addEventListener("change", () => {
+          if (!getStoredTheme()) {
+            applyTheme();
+            updateControls();
+          }
+        });
+      })();
+    </script>
+  </head>
+  <body>
+    <Header />
+    <main>
+      <slot />
+    </main>
+    <Footer />
+  </body>
+</html>

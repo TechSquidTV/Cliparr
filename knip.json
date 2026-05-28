@@ -6,6 +6,10 @@
       "ignoreBinaries": ["eslint"],
       "project": ["src/**/*.{ts,tsx}"]
     },
+    "apps/www": {
+      "ignoreDependencies": ["@fontsource-variable/outfit", "tailwindcss"],
+      "project": ["src/**/*.{astro,mdx,ts}", "scripts/**/*.ts"]
+    },
     "apps/server": {
       "ignoreBinaries": ["eslint"],
       "project": ["src/**/*.ts"]

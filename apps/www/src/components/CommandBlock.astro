@@ -1,0 +1,20 @@
+---
+import { Code } from "astro:components";
+
+interface Props {
+  code: string;
+  lang?: "bash" | "yaml";
+  label?: string;
+}
+
+const { code, label, lang = "bash" } = Astro.props;
+---
+
+<figure class="my-6 overflow-hidden rounded-lg border border-border bg-black shadow-2xl shadow-black/30">
+  {label && (
+    <figcaption class="border-b border-white/10 px-4 py-2 text-xs font-medium text-white/58">{label}</figcaption>
+  )}
+  <div class="command-code">
+    <Code code={code} lang={lang} theme="github-dark" />
+  </div>
+</figure>

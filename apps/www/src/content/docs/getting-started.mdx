@@ -1,0 +1,33 @@
+---
+title: Getting started
+description: Run Cliparr with Docker, keep settings persistent, and open the app for the first time.
+order: 10
+---
+
+import Callout from "../../components/Callout.astro";
+import CommandBlock from "../../components/CommandBlock.astro";
+import { dockerComposeExample, dockerRunCommand } from "../../data/product";
+
+Run Cliparr in Docker, then open the app and connect Plex, Jellyfin, or a local video. Mount `/data` before connecting media servers so settings and encrypted credentials survive updates.
+
+<CommandBlock code={dockerRunCommand} label="Docker quick start" lang="bash" />
+
+Open `http://localhost:3000`, connect Plex or Jellyfin, or choose **Open Video** for a local file.
+
+<Callout title="Stable APP_KEY required" tone="warning">
+  Use a stable random `APP_KEY` at least 32 characters long. If it changes later, Cliparr cannot decrypt the stored provider credentials and you will need to reconnect sources.
+</Callout>
+
+<Callout title="Use HTTPS for editing" tone="warning">
+  Cliparr uses browser WebCodecs in the editor. Use an HTTPS reverse proxy for remote access, or open the app through `localhost` or `127.0.0.1` while testing locally.
+</Callout>
+
+## Docker Compose
+
+For a persistent setup, keep the same `APP_KEY` and volume across updates.
+
+<CommandBlock code={dockerComposeExample} label="docker-compose.yml" lang="yaml" />
+
+## Next steps
+
+When a playable source is available, Cliparr opens the timeline editor. Pick the range you want to save, then export the clip.
