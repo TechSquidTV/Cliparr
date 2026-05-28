@@ -192,6 +192,44 @@
     @apply rounded-sm border border-border bg-muted px-1.5 py-0.5 text-[0.88em] text-foreground;
   }
 
+  .release-notes {
+    @apply text-sm leading-7 text-muted-foreground;
+  }
+
+  .release-notes h3,
+  .release-notes h4,
+  .release-notes h5 {
+    @apply mt-7 text-base font-semibold text-foreground;
+  }
+
+  .release-notes p {
+    @apply mt-3;
+  }
+
+  .release-notes strong {
+    @apply font-semibold text-foreground;
+  }
+
+  .release-notes em {
+    @apply italic text-foreground;
+  }
+
+  .release-notes ul {
+    @apply mt-3 list-disc space-y-2 pl-5;
+  }
+
+  .release-notes a {
+    @apply font-medium text-foreground underline decoration-border transition-colors hover:decoration-primary;
+  }
+
+  .release-notes :not(pre) > code {
+    @apply rounded-sm border border-border bg-muted px-1.5 py-0.5 text-[0.88em] text-foreground;
+  }
+
+  .release-notes pre {
+    @apply mt-3 overflow-x-auto rounded-lg border border-border bg-black p-4 text-sm text-white;
+  }
+
   .command-code .astro-code {
     margin: 0;
     overflow-x: auto;
