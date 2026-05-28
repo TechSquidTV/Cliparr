@@ -431,8 +431,8 @@ function buildExportSourceMessage({
 
   if (resolvedSource.role === "direct-url") {
     return isHlsEditorMediaSource(resolvedSource)
-      ? "Export will read the HLS URL directly in this browser. The Cliparr server is not used as a proxy."
-      : "Export will read the media URL directly in this browser. The Cliparr server is not used as a proxy.";
+      ? "Export will read the HLS URL through Cliparr so remote CORS settings do not block the browser."
+      : "Export will read the media URL through Cliparr so remote CORS settings do not block the browser.";
   }
 
   if (preference === "hls" && resolvedSourceKind === "hls" && !hlsFallbackInfo) {

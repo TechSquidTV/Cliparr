@@ -30,6 +30,7 @@ interface BaseEditorMediaSource {
 export interface EditorUrlMediaSource extends BaseEditorMediaSource {
   kind: "url";
   url: string;
+  originalUrl?: string;
   hls?: boolean;
 }
 

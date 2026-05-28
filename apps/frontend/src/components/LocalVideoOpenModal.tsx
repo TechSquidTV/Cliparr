@@ -148,7 +148,7 @@ export function LocalVideoOpenModal({ isOpen, onClose, onOpened }: LocalVideoOpe
               Open Video
             </h2>
             <p className="text-xs text-muted-foreground">
-              Local files stay in your browser. URL media must allow browser reads.
+              Local files stay in your browser. URL media is read through Cliparr.
             </p>
           </div>
           <button
@@ -262,7 +262,7 @@ export function LocalVideoOpenModal({ isOpen, onClose, onOpened }: LocalVideoOpe
                 />
               </label>
               <p className="text-xs leading-5 text-muted-foreground">
-                Direct media files and HLS playlists can work when the remote server permits CORS and byte-range requests from this browser.
+                Direct media files and HLS playlists can work when the remote server permits server-side reads and byte-range requests.
               </p>
               <div className="flex justify-end">
                 <button

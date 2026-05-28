@@ -11,6 +11,41 @@ import {
   validateLocalMediaUrl,
 } from "./localMediaRegistry";
 
+async function withMockedLocalMediaUrl<T>(callback: () => Promise<T>) {
+  const originalFetch = globalThis.fetch;
+  let requestCount = 0;
+
+  globalThis.fetch = (async (input, init) => {
+    assert.equal(input, "/api/media/local-url");
+    assert.equal(init?.method, "POST");
+    requestCount += 1;
+
+    const requestBody = init?.body;
+    assert.equal(typeof requestBody, "string");
+    if (typeof requestBody !== "string") {
+      throw new Error("Expected JSON request body.");
+    }
+    const body = JSON.parse(requestBody) as { url?: string };
+    assert.equal(body.url, "https://example.com/video.mp4");
+
+    return new Response(JSON.stringify({
+      mediaUrl: `/api/media/local-url/proxy-${requestCount}`,
+      hls: false,
+    }), {
+      status: 201,
+      headers: {
+        "content-type": "application/json",
+      },
+    });
+  }) as typeof fetch;
+
+  try {
+    return await callback();
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+}
+
 void test("validates local media URLs", () => {
   assert.deepEqual(validateLocalMediaUrl(""), {
     ok: false,
@@ -39,16 +74,27 @@ void test("creates and resolves memory-backed local file sessions", async () => 
 });
 
 void test("creates and resolves memory-backed URL sessions when IndexedDB is unavailable", async () => {
-  const result = await createLocalSessionFromUrl("https://example.com/video.mp4");
+  await withMockedLocalMediaUrl(async () => {
+    const result = await createLocalSessionFromUrl("https://example.com/video.mp4");
 
-  assert.equal(result.status, "ready");
-  assert.equal(result.status === "ready" ? result.session.directSource?.kind : null, "url");
+    assert.equal(result.status, "ready");
+    assert.equal(result.status === "ready" ? result.session.directSource?.kind : null, "url");
+    assert.equal(result.status === "ready" && result.session.directSource?.kind === "url"
+      ? result.session.directSource.url
+      : null, "/api/media/local-url/proxy-1");
+    assert.equal(result.status === "ready" && result.session.directSource?.kind === "url"
+      ? result.session.directSource.originalUrl
+      : null, "https://example.com/video.mp4");
 
-  const resolved = result.status === "ready"
-    ? await resolveLocalMediaSession(result.session.id)
-    : null;
-  assert.equal(resolved?.status, "ready");
-  assert.equal(resolved?.status === "ready" ? resolved.session.directSource?.kind : null, "url");
+    const resolved = result.status === "ready"
+      ? await resolveLocalMediaSession(result.session.id)
+      : null;
+    assert.equal(resolved?.status, "ready");
+    assert.equal(resolved?.status === "ready" ? resolved.session.directSource?.kind : null, "url");
+    assert.equal(resolved?.status === "ready" && resolved.session.directSource?.kind === "url"
+      ? resolved.session.directSource.url
+      : null, "/api/media/local-url/proxy-2");
+  });
 });
 
 void test("resolves file handle permission states", async () => {

@@ -19,6 +19,11 @@ interface HealthResponse {
   version?: string;
 }
 
+interface LocalMediaUrlResponse {
+  mediaUrl: string;
+  hls: boolean;
+}
+
 class CliparrRequestError extends Error {
   status: number;
   code?: string;
@@ -212,5 +217,12 @@ export const cliparrClient = {
 
   async getCurrentlyPlaying() {
     return request<CurrentlyPlayingResponse>("/api/media/currently-playing");
+  },
+
+  async createLocalMediaUrl(url: string) {
+    return request<LocalMediaUrlResponse>("/api/media/local-url", {
+      method: "POST",
+      body: JSON.stringify({ url }),
+    });
   },
 };
