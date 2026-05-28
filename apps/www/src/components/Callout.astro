@@ -1,0 +1,18 @@
+---
+interface Props {
+  title: string;
+  tone?: "info" | "warning";
+}
+
+const { title, tone = "info" } = Astro.props;
+const toneClass = tone === "warning"
+  ? "border-primary/40 bg-primary/10"
+  : "border-secondary/35 bg-secondary/10";
+---
+
+<aside class={`my-6 rounded-lg border p-4 ${toneClass}`}>
+  <p class="text-sm font-semibold text-foreground">{title}</p>
+  <div class="mt-2 text-sm leading-6 text-muted-foreground">
+    <slot />
+  </div>
+</aside>

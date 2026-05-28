@@ -1,0 +1,30 @@
+---
+import BaseLayout from "./BaseLayout.astro";
+import DocsNav from "./DocsNav.astro";
+
+interface Props {
+  title: string;
+  description: string;
+  currentSlug?: string;
+}
+
+const { title, description, currentSlug } = Astro.props;
+---
+
+<BaseLayout title={title} description={description}>
+  <section class="border-b border-border bg-background">
+    <div class="container-page py-12">
+      <p class="section-eyebrow">Documentation</p>
+      <h1 class="mt-5 max-w-3xl text-4xl font-semibold text-foreground sm:text-5xl">{title}</h1>
+      <p class="mt-4 max-w-3xl text-base leading-7 text-muted-foreground">{description}</p>
+    </div>
+  </section>
+  <div class="container-page grid gap-8 py-10 lg:grid-cols-[16rem_minmax(0,1fr)]">
+    <aside class="lg:sticky lg:top-24 lg:self-start">
+      <DocsNav currentSlug={currentSlug} />
+    </aside>
+    <article class="prose-docs min-w-0">
+      <slot />
+    </article>
+  </div>
+</BaseLayout>

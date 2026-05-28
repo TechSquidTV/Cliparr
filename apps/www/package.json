@@ -1,0 +1,30 @@
+{
+  "name": "@cliparr/www",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview",
+    "lint": "pnpm lint:types",
+    "lint:types": "astro check && tsc --noEmit --project tsconfig.scripts.json",
+    "docs:sync": "tsx scripts/sync-readme.ts --write",
+    "docs:check": "tsx scripts/sync-readme.ts --check",
+    "clean": "rm -rf dist .astro"
+  },
+  "dependencies": {
+    "@astrojs/mdx": "^5.0.6",
+    "@astrojs/sitemap": "^3.7.2",
+    "@fontsource-variable/outfit": "^5.2.8",
+    "@tailwindcss/vite": "^4.3.0",
+    "astro": "^6.3.6",
+    "tailwindcss": "^4.3.0"
+  },
+  "devDependencies": {
+    "@astrojs/check": "^0.9.9",
+    "@types/node": "^25.9.1",
+    "tsx": "^4.22.3",
+    "typescript": "~6.0.3",
+    "vite": "^7.3.3"
+  }
+}

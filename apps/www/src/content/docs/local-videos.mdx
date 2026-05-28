@@ -1,0 +1,23 @@
+---
+title: Local videos
+description: Open browser-local files or direct media URLs.
+order: 30
+---
+
+Cliparr can work without a connected media server when you use **Open Video** from the connect screen or dashboard.
+
+## Local files
+
+Local files stay in your browser. They are read with Mediabunny and are not uploaded to the Cliparr server.
+
+Browsers that support persistent file handles can reopen the selected file after refresh once you grant permission again. Other file input and drag-and-drop sessions stay available only while the tab remains open.
+
+## Direct media URLs
+
+Direct media URLs stream through Cliparr's media proxy. The URL must use HTTP or HTTPS, be reachable from the Cliparr server, and not point at a blocked internal address.
+
+For smooth seeking and clipping, use URLs that support byte-range requests. HLS `.m3u8` URLs can be opened when Cliparr can fetch the playlist and its segment URLs.
+
+## When to use local videos
+
+Use local videos when you already have a file on the device running the browser, want to clip a direct media URL, or do not need active playback discovery from Plex or Jellyfin.

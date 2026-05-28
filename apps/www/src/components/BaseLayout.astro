@@ -1,0 +1,138 @@
+---
+import { ClientRouter, fade } from "astro:transitions";
+import Footer from "./Footer.astro";
+import Header from "./Header.astro";
+import { site } from "../data/product";
+import "../styles/global.css";
+
+interface Props {
+  title?: string;
+  description?: string;
+}
+
+const { title, description = site.description } = Astro.props;
+const pageTitle = title ? `${title} | ${site.name}` : `${site.name} | ${site.description}`;
+const pageTransition = fade({
+  duration: "180ms",
+});
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content={description} />
+    <meta property="og:title" content={pageTitle} />
+    <meta property="og:description" content={description} />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content={new URL(Astro.url.pathname, site.url).toString()} />
+    <meta property="og:image" content={new URL(site.screenshot, site.url).toString()} />
+    <link rel="icon" href="/favicon.png" />
+    <title>{pageTitle}</title>
+    <script is:inline>
+      (() => {
+        if (window.__cliparrTheme?.ready) {
+          window.__cliparrTheme.applyTheme();
+          return;
+        }
+
+        const storageKey = "cliparr-theme";
+        const query = window.matchMedia("(prefers-color-scheme: dark)");
+
+        const storedTheme = () => {
+          try {
+            const value = window.localStorage.getItem(storageKey);
+            return value === "dark" || value === "light" ? value : null;
+          } catch {
+            return null;
+          }
+        };
+
+        const systemTheme = () => query.matches ? "dark" : "light";
+        const resolvedTheme = () => storedTheme() ?? systemTheme();
+        const themeSource = () => storedTheme() ? "user" : "system";
+
+        const updateControls = () => {
+          const theme = resolvedTheme();
+          const nextTheme = theme === "dark" ? "light" : "dark";
+          const source = themeSource();
+
+          document.querySelectorAll("[data-theme-toggle]").forEach((button) => {
+            button.setAttribute("aria-label", `Switch to ${nextTheme} theme`);
+            button.setAttribute("aria-pressed", theme === "dark" ? "true" : "false");
+            button.setAttribute("title", `Switch to ${nextTheme} theme`);
+            button.setAttribute("data-theme-toggle-state", theme);
+            button.setAttribute("data-theme-source", source);
+          });
+        };
+
+        const applyTheme = () => {
+          const theme = resolvedTheme();
+          document.documentElement.dataset.theme = theme;
+          document.documentElement.dataset.themeSource = themeSource();
+          document.documentElement.style.colorScheme = theme;
+          updateControls();
+        };
+
+        const setTheme = (theme) => {
+          try {
+            window.localStorage.setItem(storageKey, theme);
+          } catch {
+            // Keep the toggle usable in restricted storage contexts.
+          }
+          applyTheme();
+        };
+
+        const toggleTheme = () => {
+          setTheme(resolvedTheme() === "dark" ? "light" : "dark");
+        };
+
+        document.addEventListener("click", (event) => {
+          if (!(event.target instanceof Element)) {
+            return;
+          }
+
+          const button = event.target.closest("[data-theme-toggle]");
+          if (!button) {
+            return;
+          }
+
+          event.preventDefault();
+          toggleTheme();
+        });
+
+        document.addEventListener("astro:before-swap", (event) => {
+          const theme = resolvedTheme();
+          event.newDocument.documentElement.dataset.theme = theme;
+          event.newDocument.documentElement.dataset.themeSource = themeSource();
+          event.newDocument.documentElement.style.colorScheme = theme;
+        });
+
+        document.addEventListener("astro:page-load", updateControls);
+        query.addEventListener("change", () => {
+          if (!storedTheme()) {
+            applyTheme();
+          }
+        });
+
+        window.__cliparrTheme = {
+          ready: true,
+          applyTheme,
+          setTheme,
+          toggleTheme,
+        };
+
+        applyTheme();
+      })();
+    </script>
+    <ClientRouter />
+  </head>
+  <body>
+    <Header />
+    <main transition:name="page-content" transition:animate={pageTransition}>
+      <slot />
+    </main>
+    <Footer />
+  </body>
+</html>

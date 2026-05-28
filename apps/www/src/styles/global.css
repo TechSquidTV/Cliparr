@@ -1,0 +1,236 @@
+@import "@fontsource-variable/outfit/wght.css";
+@import "tailwindcss";
+
+:root {
+  color-scheme: light;
+  --background: oklch(0.975 0 0);
+  --foreground: oklch(0.16 0 0);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.16 0 0);
+  --muted: oklch(0.925 0 0);
+  --muted-foreground: oklch(0.43 0 0);
+  --primary: oklch(0.735 0.15 62);
+  --primary-foreground: oklch(0.145 0 0);
+  --secondary: oklch(0.55 0.105 204);
+  --secondary-foreground: oklch(1 0 0);
+  --accent: oklch(0.9 0 0);
+  --accent-foreground: oklch(0.16 0 0);
+  --destructive: oklch(0.5783 0.2301 28.5639);
+  --border: color-mix(in oklch, black 14%, transparent);
+  --ring: var(--secondary);
+  --font-ui: "Outfit Variable", ui-sans-serif, sans-serif, system-ui;
+  --font-mono: IBM Plex Mono, ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  --radius: 0.5rem;
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --background: oklch(0.112 0 0);
+  --foreground: oklch(0.985 0 0);
+  --card: oklch(0.166 0 0);
+  --card-foreground: oklch(0.985 0 0);
+  --muted: oklch(0.205 0 0);
+  --muted-foreground: oklch(0.72 0 0);
+  --secondary: oklch(0.715 0.082 204);
+  --accent: oklch(0.245 0 0);
+  --accent-foreground: oklch(0.985 0 0);
+  --border: color-mix(in oklch, white 14%, transparent);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --background: oklch(0.112 0 0);
+    --foreground: oklch(0.985 0 0);
+    --card: oklch(0.166 0 0);
+    --card-foreground: oklch(0.985 0 0);
+    --muted: oklch(0.205 0 0);
+    --muted-foreground: oklch(0.72 0 0);
+    --secondary: oklch(0.715 0.082 204);
+    --accent: oklch(0.245 0 0);
+    --accent-foreground: oklch(0.985 0 0);
+    --border: color-mix(in oklch, white 14%, transparent);
+  }
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-ring: var(--ring);
+  --font-sans: var(--font-ui);
+  --font-mono: var(--font-mono);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    @apply bg-background font-sans text-foreground antialiased;
+    letter-spacing: 0;
+    display: flex;
+    min-height: 100svh;
+    flex-direction: column;
+  }
+
+  body > main {
+    flex: 1 0 auto;
+  }
+
+  a {
+    text-decoration-thickness: 1px;
+    text-underline-offset: 3px;
+  }
+
+  code,
+  pre {
+    font-family: var(--font-mono);
+  }
+}
+
+@layer components {
+  .container-page {
+    @apply mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8;
+  }
+
+  .focus-ring {
+    @apply focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring;
+  }
+
+  .prose-docs {
+    @apply text-base leading-7 text-foreground;
+  }
+
+  .prose-docs h2 {
+    @apply mt-10 border-t border-border pt-8 text-2xl font-semibold;
+  }
+
+  .prose-docs h3 {
+    @apply mt-8 text-xl font-semibold;
+  }
+
+  .prose-docs p {
+    @apply mt-4 text-muted-foreground;
+  }
+
+  .prose-docs ul,
+  .prose-docs ol {
+    @apply mt-4 space-y-2 pl-5 text-muted-foreground;
+  }
+
+  .prose-docs ul {
+    @apply list-disc;
+  }
+
+  .prose-docs ol {
+    @apply list-decimal;
+  }
+
+  .prose-docs strong {
+    @apply font-semibold text-foreground;
+  }
+
+  .prose-docs a {
+    @apply font-medium text-foreground underline decoration-border transition-colors hover:decoration-primary;
+  }
+
+  .prose-docs table {
+    @apply mt-5 block w-full overflow-x-auto rounded-lg border border-border text-sm;
+    border-spacing: 0;
+  }
+
+  .prose-docs thead {
+    @apply bg-muted text-foreground;
+  }
+
+  .prose-docs tbody {
+    @apply divide-y divide-border;
+  }
+
+  .prose-docs th,
+  .prose-docs td {
+    @apply min-w-40 px-4 py-3 text-left align-top;
+  }
+
+  .prose-docs th {
+    @apply font-semibold;
+  }
+
+  .prose-docs td {
+    @apply text-muted-foreground;
+  }
+
+  .prose-docs :not(pre) > code {
+    @apply rounded-sm border border-border bg-muted px-1.5 py-0.5 text-[0.88em] text-foreground;
+  }
+
+  .command-code .astro-code {
+    margin: 0;
+    overflow-x: auto;
+    background: black !important;
+    padding: 1rem;
+    font-size: 0.875rem;
+    line-height: 1.65;
+  }
+
+  .section-eyebrow {
+    @apply inline-flex rounded-full border border-border bg-muted px-3 py-1 text-xs font-semibold uppercase text-primary;
+  }
+
+  .site-logo,
+  .provider-logo {
+    filter: invert(1);
+  }
+
+  .theme-toggle-icon-sun {
+    display: none;
+  }
+
+  :root[data-theme="dark"] .site-logo,
+  :root[data-theme="dark"] .provider-logo {
+    filter: none;
+  }
+
+  :root[data-theme="dark"] .theme-toggle-icon-sun {
+    display: block;
+  }
+
+  :root[data-theme="dark"] .theme-toggle-icon-moon {
+    display: none;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) .site-logo,
+    :root:not([data-theme="light"]) .provider-logo {
+      filter: none;
+    }
+
+    :root:not([data-theme="light"]) .theme-toggle-icon-sun {
+      display: block;
+    }
+
+    :root:not([data-theme="light"]) .theme-toggle-icon-moon {
+      display: none;
+    }
+  }
+}

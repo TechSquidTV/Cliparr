@@ -47,5 +47,8 @@ jobs:
       - name: Knip
         run: pnpm knip
 
+      - name: Docs check
+        run: pnpm docs:check
+
       - name: Build
         run: pnpm build
