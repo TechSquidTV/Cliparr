@@ -25,6 +25,7 @@ interface ChangelogReleaseData extends Record<string, unknown> {
   title: string;
   prerelease: boolean;
   publishedAt: string;
+  unavailable: boolean;
 }
 
 function releaseId(release: GitHubRelease) {
@@ -82,11 +83,49 @@ async function fetchGitHubReleases() {
   return await response.json() as GitHubRelease[];
 }
 
+function unavailableReleaseData(): ChangelogReleaseData {
+  return {
+    releaseId: 0,
+    url: `${site.githubUrl}/releases`,
+    tagName: "GitHub Releases",
+    name: "GitHub Releases",
+    title: "Release notes live on GitHub",
+    prerelease: false,
+    publishedAt: "1970-01-01T00:00:00.000Z",
+    unavailable: true,
+  };
+}
+
 export function githubReleasesLoader(): Loader {
   return {
     name: "cliparr-github-releases",
-    async load({ generateDigest, parseData, renderMarkdown, store }) {
-      const releases = await fetchGitHubReleases();
+    async load({ generateDigest, logger, parseData, renderMarkdown, store }) {
+      let releases: GitHubRelease[];
+
+      try {
+        releases = await fetchGitHubReleases();
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        const tokenHint = process.env.GITHUB_TOKEN || process.env.GH_TOKEN
+          ? ""
+          : " Set GITHUB_TOKEN or GH_TOKEN in the build environment to avoid unauthenticated GitHub API rate limits.";
+
+        logger.warn(`Skipping changelog mirror: ${message}.${tokenHint}`);
+        store.clear();
+        const data = await parseData<ChangelogReleaseData>({
+          id: "github-releases-unavailable",
+          data: unavailableReleaseData(),
+        });
+
+        store.set({
+          id: "github-releases-unavailable",
+          data,
+          body: "",
+          rendered: await renderMarkdown(""),
+          digest: generateDigest({ data, body: "" }),
+        });
+        return;
+      }
 
       store.clear();
 
@@ -107,6 +146,7 @@ export function githubReleasesLoader(): Loader {
             title: releaseTitle(release),
             prerelease: release.prerelease,
             publishedAt: release.published_at,
+            unavailable: false,
           },
         });
 
