@@ -21,5 +21,11 @@
 /*.svg
   Cache-Control: public, max-age=604800
 
+/*.webm
+  Cache-Control: public, max-age=604800
+
+/*.mp4
+  Cache-Control: public, max-age=604800
+
 /providers/*
   Cache-Control: public, max-age=604800

@@ -205,6 +205,20 @@
     @apply inline-flex rounded-full border border-border bg-muted px-3 py-1 text-xs font-semibold uppercase text-primary;
   }
 
+  .editor-preview-video {
+    opacity: 0;
+    transition: opacity 180ms ease;
+  }
+
+  .editor-preview picture,
+  .editor-preview img {
+    display: block;
+  }
+
+  .editor-preview[data-playing="true"] .editor-preview-video {
+    opacity: 1;
+  }
+
   .site-logo,
   .provider-logo {
     filter: invert(1);

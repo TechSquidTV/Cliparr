@@ -34,20 +34,35 @@ import { dockerRunCommand, productIntro, providers, site } from "../data/product
           <div class="border-b border-white/10 px-3 py-2 text-xs text-white/70">
             <span>Cliparr editor</span>
           </div>
-          <Picture
-            src={screenshotImage}
-            alt="Cliparr editor showing a video preview, playback controls, and timeline clip selection."
-            formats={["avif", "webp"]}
-            fallbackFormat="jpg"
-            width={1600}
-            widths={[640, 960, 1280, 1600]}
-            sizes="(min-width: 80rem) 1024px, (min-width: 64rem) calc(100vw - 4rem), calc(100vw - 2rem)"
-            quality={72}
-            loading="eager"
-            decoding="async"
-            fetchpriority="high"
-            class="w-full rounded-md"
-          />
+          <div class="editor-preview relative overflow-hidden rounded-md bg-[#0A0A0A]" data-editor-preview>
+            <Picture
+              src={screenshotImage}
+              alt="Cliparr editor showing a video preview, playback controls, and timeline clip selection."
+              formats={["avif", "webp"]}
+              fallbackFormat="jpg"
+              width={1600}
+              height={986}
+              widths={[640, 960, 1280, 1600]}
+              sizes="(min-width: 80rem) 1024px, (min-width: 64rem) calc(100vw - 4rem), calc(100vw - 2rem)"
+              quality={72}
+              loading="eager"
+              decoding="async"
+              fetchpriority="high"
+              class="block w-full rounded-md"
+            />
+            <video
+              class="editor-preview-video absolute inset-0 h-full w-full rounded-md object-contain"
+              muted
+              loop
+              playsinline
+              preload="none"
+              aria-hidden="true"
+              data-editor-preview-video
+            >
+              <source data-src="/preview.webm" type="video/webm" />
+              <source data-src="/preview.mp4" type="video/mp4" />
+            </video>
+          </div>
         </div>
       </div>
     </div>
@@ -105,5 +120,74 @@ import { dockerRunCommand, productIntro, providers, site } from "../data/product
       </div>
     </div>
   </section>
+
+<script is:inline>
+  (() => {
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      return;
+    }
+
+    document.querySelectorAll("[data-editor-preview]").forEach((preview) => {
+      const video = preview.querySelector("[data-editor-preview-video]");
+
+      if (!(video instanceof HTMLVideoElement)) {
+        return;
+      }
+
+      let hasLoadedSources = false;
+      const loadSources = () => {
+        if (hasLoadedSources) {
+          return;
+        }
+
+        video.querySelectorAll("source[data-src]").forEach((source) => {
+          const src = source.getAttribute("data-src");
+
+          if (src) {
+            source.setAttribute("src", src);
+          }
+        });
+
+        video.load();
+        hasLoadedSources = true;
+      };
+
+      let wantsPreview = false;
+
+      const playPreview = async () => {
+        wantsPreview = true;
+        loadSources();
+
+        try {
+          await video.play();
+          if (wantsPreview) {
+            preview.setAttribute("data-playing", "true");
+          }
+        } catch {
+          preview.removeAttribute("data-playing");
+        }
+      };
+
+      const stopPreview = () => {
+        wantsPreview = false;
+        video.pause();
+
+        if (video.readyState > 0) {
+          video.currentTime = 0;
+        }
+
+        preview.removeAttribute("data-playing");
+      };
+
+      video.addEventListener("playing", () => {
+        if (wantsPreview) {
+          preview.setAttribute("data-playing", "true");
+        }
+      });
+      preview.addEventListener("pointerenter", playPreview);
+      preview.addEventListener("pointerleave", stopPreview);
+    });
+  })();
+</script>
 
 </BaseLayout>
