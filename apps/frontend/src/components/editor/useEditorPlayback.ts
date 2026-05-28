@@ -9,7 +9,6 @@ import type {
 } from "mediabunny";
 import type { SubtitleCue, SubtitleStyleSettings } from "../../lib/subtitles/types";
 import type { EditorMediaSource } from "../../lib/editorMedia";
-import { ensureMediabunnyCodecs } from "../../lib/mediabunnyCodecs";
 import { createCliparrInputFromSource } from "../../lib/mediabunnyInput";
 import {
   fromSourceTimelineTime,
@@ -136,6 +135,11 @@ function initialPlaybackTime(seconds: number | null | undefined, duration: numbe
   }
 
   return Math.min(safeSeconds, safeDuration);
+}
+
+async function ensurePlaybackCodecs() {
+  const { ensureMediabunnyCodecs } = await import("../../lib/mediabunnyCodecs");
+  await ensureMediabunnyCodecs();
 }
 
 export function useEditorPlayback({
@@ -600,7 +604,7 @@ export function useEditorPlayback({
           );
 
           try {
-            await ensureMediabunnyCodecs();
+            await ensurePlaybackCodecs();
             const { AudioBufferSink, CanvasSink } = await import("mediabunny");
 
             if (cancelled || generation !== generationRef.current) {

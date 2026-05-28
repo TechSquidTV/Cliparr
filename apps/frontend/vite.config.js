@@ -21,6 +21,8 @@ export default defineConfig(({mode}) => {
       tailwindcss(),
     ],
     build: {
+      // Lazy codec extension chunks are intentionally larger than Vite's default 500 kB warning.
+      chunkSizeWarningLimit: 1200,
       rollupOptions: {
         output: {
           manualChunks(id) {

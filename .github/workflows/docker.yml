@@ -76,6 +76,58 @@ jobs:
           fi
           echo "value=${version}" >> "${GITHUB_OUTPUT}"
 
+      - name: Build smoke-test image
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: ./Dockerfile
+          platforms: linux/amd64
+          pull: true
+          load: true
+          build-args: |
+            CLIPARR_VERSION=${{ steps.version.outputs.value }}
+          tags: cliparr:smoke
+          cache-from: type=gha
+
+      - name: Smoke test image
+        run: |
+          set -euo pipefail
+
+          health_file="${RUNNER_TEMP}/cliparr-health.json"
+          index_file="${RUNNER_TEMP}/cliparr-index.html"
+
+          docker run \
+            --detach \
+            --name cliparr-smoke \
+            --publish 3000:3000 \
+            --env APP_KEY="cliparr-smoke-test-key-with-at-least-32-characters" \
+            --volume cliparr-smoke-data:/data \
+            cliparr:smoke
+
+          for attempt in {1..30}; do
+            if curl --fail --silent --show-error http://127.0.0.1:3000/api/health > "${health_file}"; then
+              break
+            fi
+            sleep 1
+          done
+
+          cat "${health_file}"
+          grep -q '"status":"ok"' "${health_file}"
+          grep -q '"database":"ok"' "${health_file}"
+
+          curl --fail --silent --show-error http://127.0.0.1:3000/ > "${index_file}"
+          grep -q '<div id="root"></div>' "${index_file}"
+
+      - name: Show smoke-test logs
+        if: failure()
+        run: docker logs cliparr-smoke || true
+
+      - name: Stop smoke-test container
+        if: always()
+        run: |
+          docker rm -f cliparr-smoke || true
+          docker volume rm cliparr-smoke-data || true
+
       - name: Build and push Docker image
         uses: docker/build-push-action@v7
         with:

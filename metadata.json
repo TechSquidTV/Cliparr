@@ -1,6 +1,6 @@
 {
   "name": "Cliparr",
-  "description": "Plex video clipper",
+  "description": "Personal media clipper for Plex, Jellyfin, and local video files",
   "requestFramePermissions": [],
   "majorCapabilities": []
 }
