@@ -5,7 +5,7 @@ export const site = {
   githubUrl: "https://github.com/TechSquidTV/Cliparr",
   ogImage: "/og.jpg",
   ogImageAlt: "Cliparr editor showing a video preview, playback controls, and timeline clip selection.",
-  ogImageHeight: 630,
+  ogImageHeight: 742,
   ogImageType: "image/jpeg",
   ogImageWidth: 1200,
   logo: "/logo-light.svg",
