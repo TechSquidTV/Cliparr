@@ -3,43 +3,67 @@ import BaseLayout from "../components/BaseLayout.astro";
 import { getChangelogReleases } from "../lib/githubReleases";
 
 const releases = await getChangelogReleases();
+const latestRelease = releases[0];
 const dateFormatter = new Intl.DateTimeFormat("en", {
   dateStyle: "medium",
   timeZone: "UTC",
 });
 ---
 
-<BaseLayout title="Changelog" description="Cliparr release notes mirrored from GitHub Releases.">
+<BaseLayout title="Changelog" description="See what changed in Cliparr, including new features, fixes, Docker tags, and upgrade notes.">
   <section class="container-page py-14 sm:py-18">
-    <div class="max-w-3xl">
-      <p class="section-eyebrow">Changelog</p>
-      <h1 class="mt-5 text-4xl font-semibold tracking-normal sm:text-5xl">Release notes</h1>
+    <div class="mx-auto max-w-4xl">
+      <p class="section-eyebrow">Releases</p>
+      <h1 class="mt-5 text-4xl font-semibold tracking-normal sm:text-5xl">What&apos;s new in Cliparr</h1>
       <p class="mt-4 text-lg leading-8 text-muted-foreground">
-        New versions, Docker tags, fixes, and upgrade notes from GitHub Releases.
+        Track new features, fixes, Docker image tags, and upgrade notes for each version.
       </p>
+
+      {latestRelease && (
+        <div class="mt-6 flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
+          <span class="rounded-full border border-border bg-card px-3 py-1 font-medium text-foreground">
+            Latest version {latestRelease.tagName}
+          </span>
+          <span>Published {dateFormatter.format(latestRelease.publishedAt)}</span>
+          <a class="focus-ring rounded-md font-medium text-foreground underline decoration-border hover:decoration-primary" href={latestRelease.url} target="_blank" rel="noreferrer">
+            View on GitHub
+          </a>
+        </div>
+      )}
     </div>
 
-    <div class="mt-10 space-y-6">
-      {releases.map((release) => (
+    <div class="mx-auto mt-10 max-w-4xl space-y-5">
+      {releases.map((release, index) => (
         <article class="rounded-lg border border-border bg-card p-5 sm:p-6">
-          <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+          <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
             <div>
-              <h2 class="text-2xl font-semibold">
+              <div class="flex flex-wrap items-center gap-2">
+                {index === 0 && (
+                  <span class="rounded-full border border-primary/40 bg-primary/10 px-2.5 py-1 text-xs font-semibold text-primary">
+                    Latest
+                  </span>
+                )}
+                <span class="rounded-full border border-border bg-muted px-2.5 py-1 text-xs font-semibold text-muted-foreground">
+                  {release.tagName}
+                </span>
+                {release.prerelease && (
+                  <span class="rounded-full border border-secondary/40 bg-secondary/10 px-2.5 py-1 text-xs font-semibold text-secondary">
+                    Prerelease
+                  </span>
+                )}
+              </div>
+              <h2 class="mt-4 text-2xl font-semibold">
                 <a class="focus-ring rounded-md no-underline hover:underline" href={release.url} target="_blank" rel="noreferrer">
-                  {release.name}
+                  {release.title}
                 </a>
               </h2>
               <p class="mt-2 text-sm text-muted-foreground">
                 <time datetime={release.publishedAt.toISOString()}>{dateFormatter.format(release.publishedAt)}</time>
-                <span aria-hidden="true"> · </span>
-                <span>{release.tagName}</span>
               </p>
             </div>
-            {release.prerelease && (
-              <span class="w-fit rounded-full border border-secondary/40 bg-secondary/10 px-3 py-1 text-xs font-semibold text-secondary">
-                Prerelease
-              </span>
-            )}
+            <a class="focus-ring w-fit rounded-full border border-border px-3 py-2 text-sm font-semibold text-foreground no-underline transition-colors hover:bg-accent" href={release.url} target="_blank" rel="noreferrer">
+              View release
+            </a>
           </div>
           <div class="release-notes mt-6" set:html={release.htmlBody} />
         </article>

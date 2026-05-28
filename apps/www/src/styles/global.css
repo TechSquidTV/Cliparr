@@ -199,7 +199,13 @@
   .release-notes h3,
   .release-notes h4,
   .release-notes h5 {
-    @apply mt-7 text-base font-semibold text-foreground;
+    @apply mt-6 text-base font-semibold text-foreground;
+  }
+
+  .release-notes h3:first-child,
+  .release-notes h4:first-child,
+  .release-notes h5:first-child {
+    @apply mt-0;
   }
 
   .release-notes p {
@@ -215,7 +221,11 @@
   }
 
   .release-notes ul {
-    @apply mt-3 list-disc space-y-2 pl-5;
+    @apply mt-3 list-disc space-y-1.5 pl-5;
+  }
+
+  .release-notes li {
+    @apply pl-1;
   }
 
   .release-notes a {

@@ -5,7 +5,7 @@ const links = [
   { href: "/#features", label: "Features" },
   { href: "/docs", label: "Docs" },
   { href: "/changelog", label: "Releases" },
-  { href: site.githubUrl, label: "GitHub" },
+  { href: site.githubUrl, label: "GitHub", className: "hidden sm:inline-flex" },
 ];
 ---
 
@@ -19,7 +19,7 @@ const links = [
       {links.map((link) => (
         <a
           href={link.href}
-          class="focus-ring rounded-full px-1.5 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground min-[380px]:px-2.5 sm:px-3"
+          class={`focus-ring rounded-full px-1.5 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground min-[380px]:px-2.5 sm:px-3 ${link.className ?? ""}`}
           target={link.href.startsWith("http") ? "_blank" : undefined}
           rel={link.href.startsWith("http") ? "noreferrer" : undefined}
         >

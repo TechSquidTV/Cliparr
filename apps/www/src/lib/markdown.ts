@@ -3,6 +3,9 @@ const inlineCodePattern = /`([^`]+)`/gu;
 const boldPattern = /\*\*([^*]+)\*\*/gu;
 const italicPattern = /(^|[\s(])_([^_\n]+)_/gu;
 const autoLinkPattern = /(?<!["(])(https?:\/\/[^\s<]+)/gu;
+const pullRequestUrlPattern = / by @([^ ]+) in https:\/\/github\.com\/TechSquidTV\/Cliparr\/pull\/(\d+)/gu;
+const fullChangelogPattern = /^\*\*Full Changelog\*\*: (https:\/\/github\.com\/TechSquidTV\/Cliparr\/(?:compare|commits)\/\S+)$/u;
+const bareAttachmentPattern = /^https:\/\/github\.com\/user-attachments\/assets\/\S+$/u;
 
 function escapeHtml(value: string) {
   return value
@@ -13,8 +16,24 @@ function escapeHtml(value: string) {
     .replaceAll("'", "&#39;");
 }
 
+function normalizeLine(value: string) {
+  const fullChangelog = fullChangelogPattern.exec(value);
+
+  if (fullChangelog) {
+    return `[Compare changes](${fullChangelog[1]})`;
+  }
+
+  if (bareAttachmentPattern.test(value)) {
+    return `[Release media](${value})`;
+  }
+
+  return value
+    .replaceAll("[codex] ", "")
+    .replace(pullRequestUrlPattern, " ([#$2](https://github.com/TechSquidTV/Cliparr/pull/$2))");
+}
+
 function renderInline(value: string) {
-  return escapeHtml(value)
+  return escapeHtml(normalizeLine(value))
     .replace(linkPattern, '<a href="$2" target="_blank" rel="noreferrer">$1</a>')
     .replace(boldPattern, "<strong>$1</strong>")
     .replace(italicPattern, "$1<em>$2</em>")
