@@ -3,7 +3,11 @@ export const site = {
   url: "https://cliparr.dev",
   description: "Instant media clipper for Plex, Jellyfin, and local video files.",
   githubUrl: "https://github.com/TechSquidTV/Cliparr",
-  screenshot: "/screenshot.png",
+  ogImage: "/og.jpg",
+  ogImageAlt: "Cliparr editor showing a video preview, playback controls, and timeline clip selection.",
+  ogImageHeight: 630,
+  ogImageType: "image/jpeg",
+  ogImageWidth: 1200,
   logo: "/logo-light.svg",
 };
 

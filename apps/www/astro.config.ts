@@ -11,7 +11,17 @@ export default defineConfig({
       theme: "github-dark",
     },
   },
-  integrations: [mdx(), sitemap()],
+  integrations: [
+    mdx(),
+    sitemap({
+      namespaces: {
+        news: false,
+        xhtml: false,
+        image: false,
+        video: false,
+      },
+    }),
+  ],
   vite: {
     plugins: [tailwindcss()],
   },

@@ -2,6 +2,8 @@
 import BaseLayout from "../components/BaseLayout.astro";
 import CommandBlock from "../components/CommandBlock.astro";
 import FeatureGrid from "../components/FeatureGrid.astro";
+import { Picture } from "astro:assets";
+import screenshotImage from "../assets/screenshot.webp";
 import { dockerRunCommand, productIntro, providers, site } from "../data/product";
 ---
 
@@ -32,9 +34,18 @@ import { dockerRunCommand, productIntro, providers, site } from "../data/product
           <div class="border-b border-border px-3 py-2 text-xs text-muted-foreground">
             <span>Cliparr editor</span>
           </div>
-          <img
-            src={site.screenshot}
+          <Picture
+            src={screenshotImage}
             alt="Cliparr editor showing a video preview, playback controls, and timeline clip selection."
+            formats={["avif", "webp"]}
+            fallbackFormat="jpg"
+            width={1600}
+            widths={[640, 960, 1280, 1600]}
+            sizes="(min-width: 80rem) 1024px, (min-width: 64rem) calc(100vw - 4rem), calc(100vw - 2rem)"
+            quality={72}
+            loading="eager"
+            decoding="async"
+            fetchpriority="high"
             class="w-full rounded-md"
           />
         </div>
