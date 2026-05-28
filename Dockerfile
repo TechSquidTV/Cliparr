@@ -39,6 +39,11 @@ FROM node:24-slim AS runner
 
 ARG CLIPARR_VERSION
 
+LABEL org.opencontainers.image.title="Cliparr" \
+  org.opencontainers.image.description="Instant media clipper for Plex and Jellyfin servers." \
+  org.opencontainers.image.source="https://github.com/techsquidtv/cliparr" \
+  org.opencontainers.image.licenses="MIT"
+
 ENV NODE_ENV=production
 ENV PORT=3000
 ENV CLIPARR_DATA_DIR=/data
