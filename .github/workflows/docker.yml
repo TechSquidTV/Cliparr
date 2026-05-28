@@ -93,17 +93,15 @@ jobs:
         run: |
           set -euo pipefail
 
-          data_dir="${RUNNER_TEMP}/cliparr-smoke-data"
           health_file="${RUNNER_TEMP}/cliparr-health.json"
           index_file="${RUNNER_TEMP}/cliparr-index.html"
 
-          mkdir -p "${data_dir}"
           docker run \
             --detach \
             --name cliparr-smoke \
             --publish 3000:3000 \
             --env APP_KEY="cliparr-smoke-test-key-with-at-least-32-characters" \
-            --volume "${data_dir}:/data" \
+            --volume cliparr-smoke-data:/data \
             cliparr:smoke
 
           for attempt in {1..30}; do
@@ -126,7 +124,9 @@ jobs:
 
       - name: Stop smoke-test container
         if: always()
-        run: docker rm -f cliparr-smoke || true
+        run: |
+          docker rm -f cliparr-smoke || true
+          docker volume rm cliparr-smoke-data || true
 
       - name: Build and push Docker image
         uses: docker/build-push-action@v7
