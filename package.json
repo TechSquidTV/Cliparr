@@ -31,6 +31,9 @@
     "knip": "knip",
     "docs:sync": "pnpm --filter @cliparr/www docs:sync",
     "docs:check": "pnpm --filter @cliparr/www docs:check",
+    "cf:deploy": "wrangler deploy",
+    "cf:upload-version": "wrangler versions upload",
+    "deploy:web": "pnpm build:web && pnpm cf:deploy",
     "preview": "pnpm --filter @cliparr/server preview",
     "start": "pnpm --filter @cliparr/server start",
     "clean": "pnpm -r clean"
@@ -44,6 +47,7 @@
     "globals": "^17.6.0",
     "knip": "6.14.2",
     "typescript": "~6.0.3",
-    "typescript-eslint": "^8.60.0"
+    "typescript-eslint": "^8.60.0",
+    "wrangler": "^4.95.0"
   }
 }
