@@ -1,4 +1,4 @@
-import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useState } from "react";
 import { Eye } from "lucide-react";
 import {
   clampClipEndTime,
@@ -18,24 +18,12 @@ import { EditorSidebar } from "./editor/EditorSidebar";
 import { EditorPlaybackSourcePanel } from "./editor/EditorPlaybackSourcePanel";
 import { EditorTimeline } from "./editor/EditorTimeline";
 import { EditorSubtitlePanel } from "./editor/EditorSubtitlePanel";
-import { buildSubtitleExportSummary } from "./editor/subtitleExportSummary";
 import {
   buildClipRangeAfterDurationDiscovery,
   buildInitialClipRange,
 } from "./editor/initialClipRange";
-import { useSubtitleCues } from "./editor/useSubtitleCues";
-import type { PlaybackSubtitleTrack } from "../providers/types";
+import { useEditorSubtitles } from "./editor/useEditorSubtitles";
 import { sourceDisplayLabel, type EditorSession } from "../lib/editorMedia";
-import {
-  selectPreferredSubtitleTrack,
-  subtitleTrackKey,
-  subtitleTrackSupportsBurnIn,
-} from "../lib/selectPreferredSubtitleTrack";
-import {
-  loadSubtitleStyleSettings,
-  saveSubtitleStyleSettings,
-} from "../lib/subtitles/settings";
-import { trimSubtitleCues } from "../lib/subtitles/trimSubtitleCues";
 
 const EditorExportDialog = lazy(() =>
   import("./editor/EditorExportDialog").then((module) => ({
@@ -52,59 +40,27 @@ export default function EditorScreen({ session, onBack }: Props) {
   const initialClipRange = buildInitialClipRange(session.duration, session.initialPlayheadSeconds);
   const [startTime, setStartTime] = useState(() => initialClipRange.startTime);
   const [endTime, setEndTime] = useState(() => initialClipRange.endTime);
-  const [subtitleStyleSettings, setSubtitleStyleSettings] = useState(() => loadSubtitleStyleSettings());
   const [playbackSidebarOpen, setPlaybackSidebarOpen] = useState(true);
-  const [subtitleEnabled, setSubtitleEnabled] = useState(false);
-  const [selectedSubtitleTrackKey, setSelectedSubtitleTrackKey] = useState("none");
-
-  const subtitleTracks = useMemo<PlaybackSubtitleTrack[]>(
-    () => session.local
-      ? []
-      : (session.subtitleTracks ?? []).filter((track) => subtitleTrackSupportsBurnIn(track)),
-    [session.local, session.subtitleTracks]
-  );
-  const selectedSubtitleTrack = useMemo(() => {
-    if (selectedSubtitleTrackKey === "none") {
-      return null;
-    }
-
-    return subtitleTracks.find((track) => subtitleTrackKey(track) === selectedSubtitleTrackKey) ?? null;
-  }, [selectedSubtitleTrackKey, subtitleTracks]);
   const {
+    subtitleTracks,
+    selectedSubtitleTrack,
+    selectedSubtitleTrackKey,
+    subtitleEnabled,
+    setSubtitleEnabled,
+    subtitleStyleSettings,
+    setSubtitleStyleSettings,
     subtitleCues,
     subtitleLoading,
     subtitleError,
-    resetSubtitleCues,
-    clearSubtitleError,
-  } = useSubtitleCues({
-    selectedSubtitleTrack,
-    subtitleEnabled,
-    providerId: session.source.providerId,
+    subtitlePreviewEnabled,
+    clippedSubtitleCues,
+    subtitleExportSummary,
+    handleSelectedSubtitleTrackChange,
+  } = useEditorSubtitles({
+    session,
+    startTime,
+    endTime,
   });
-  const subtitlePreviewEnabled = subtitleEnabled
-    && subtitleTrackSupportsBurnIn(selectedSubtitleTrack)
-    && subtitleCues.length > 0;
-  const clippedSubtitleCues = useMemo(
-    () => subtitleEnabled ? trimSubtitleCues(subtitleCues, startTime, endTime) : [],
-    [endTime, startTime, subtitleCues, subtitleEnabled]
-  );
-  const subtitleExportSummary = useMemo(() => buildSubtitleExportSummary({
-    selectedSubtitleTrack,
-    subtitleEnabled,
-    subtitleTrackCount: subtitleTracks.length,
-    clippedSubtitleCueCount: clippedSubtitleCues.length,
-    subtitleLoading,
-    subtitleError,
-    providerId: session.source.providerId,
-  }), [
-    selectedSubtitleTrack,
-    subtitleEnabled,
-    subtitleTracks.length,
-    clippedSubtitleCues.length,
-    subtitleLoading,
-    subtitleError,
-    session.source.providerId,
-  ]);
   const posterImageUrl = session.thumbUrl;
 
   const {
@@ -296,37 +252,6 @@ export default function EditorScreen({ session, onBack }: Props) {
     startTime,
     updateClipRange,
   ]);
-
-  useEffect(() => {
-    saveSubtitleStyleSettings(subtitleStyleSettings);
-  }, [subtitleStyleSettings]);
-
-  useEffect(() => {
-    const preferredSubtitleTrack = selectPreferredSubtitleTrack(subtitleTracks, session.selectedSubtitleTrack);
-
-    setSelectedSubtitleTrackKey(preferredSubtitleTrack ? subtitleTrackKey(preferredSubtitleTrack) : "none");
-    setSubtitleEnabled(Boolean(preferredSubtitleTrack && subtitleTrackSupportsBurnIn(preferredSubtitleTrack)));
-    resetSubtitleCues();
-  }, [
-    session.id,
-    session.selectedSubtitleTrack,
-    subtitleTracks,
-    resetSubtitleCues,
-  ]);
-
-  const handleSelectedSubtitleTrackChange = useCallback((value: string) => {
-    setSelectedSubtitleTrackKey(value);
-    clearSubtitleError();
-
-    if (value === "none") {
-      setSubtitleEnabled(false);
-      resetSubtitleCues();
-      return;
-    }
-
-    const nextTrack = subtitleTracks.find((track) => subtitleTrackKey(track) === value) ?? null;
-    setSubtitleEnabled(Boolean(nextTrack && subtitleTrackSupportsBurnIn(nextTrack)));
-  }, [clearSubtitleError, resetSubtitleCues, subtitleTracks]);
 
   useEditorKeyboardShortcuts({ togglePlay });
 
