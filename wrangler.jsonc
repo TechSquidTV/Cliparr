@@ -1,0 +1,10 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "cliparr",
+  "compatibility_date": "2026-05-28",
+  "assets": {
+    "directory": "./apps/www/dist",
+    "html_handling": "auto-trailing-slash",
+    "not_found_handling": "404-page"
+  }
+}

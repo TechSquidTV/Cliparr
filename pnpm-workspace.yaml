@@ -7,6 +7,7 @@ autoInstallPeers: false
 allowBuilds:
   esbuild: true
   sharp: true
+  workerd: true
 
 overrides:
   baseline-browser-mapping: 2.10.31
