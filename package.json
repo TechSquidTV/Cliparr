@@ -1,7 +1,7 @@
 {
   "name": "cliparr",
   "private": true,
-  "description": "Plex clipper for exporting MP4 clips from active playback sessions, featuring a React frontend and Express server.",
+  "description": "Personal media clipper for Plex, Jellyfin, and local video files, featuring a React frontend and Express server.",
   "license": "MIT",
   "type": "module",
   "packageManager": "pnpm@11.2.2",
