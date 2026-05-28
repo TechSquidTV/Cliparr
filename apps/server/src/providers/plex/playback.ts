@@ -20,6 +20,7 @@ import {
   proxyProviderMediaResponse,
   sanitizeLoggedMediaPath,
   shouldAttachProviderAuth,
+  shouldForwardMediaRange,
 } from "../shared/mediaProxy.js";
 import {
   booleanFlag,
@@ -999,7 +1000,8 @@ export async function proxyMedia(
     : new Headers();
 
   const accept = req.header("accept");
-  const range = req.header("range");
+  const requestedRange = req.header("range") ?? undefined;
+  const range = shouldForwardMediaRange(handle, requestedRange);
   if (accept) {
     headers.set("Accept", accept);
   }

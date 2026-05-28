@@ -18,6 +18,7 @@ import {
   proxyProviderMediaResponse,
   sanitizeLoggedMediaPath,
   shouldAttachProviderAuth,
+  shouldForwardMediaRange,
 } from "../shared/mediaProxy.js";
 import {
   isTextSubtitleCodec,
@@ -756,7 +757,8 @@ export async function proxyMedia(
         accept,
       })
     : new Headers(accept ? { Accept: accept } : undefined);
-  const range = req.header("range");
+  const requestedRange = req.header("range") ?? undefined;
+  const range = shouldForwardMediaRange(handle, requestedRange);
   if (range) {
     headers.set("Range", range);
   }
