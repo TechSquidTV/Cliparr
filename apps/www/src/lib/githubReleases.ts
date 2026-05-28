@@ -1,4 +1,4 @@
-import { renderReleaseMarkdown } from "./markdown";
+import type { Loader } from "astro/loaders";
 import { site } from "../data/product";
 
 interface GitHubRelease {
@@ -12,18 +12,24 @@ interface GitHubRelease {
   published_at: string | null;
 }
 
-export interface ChangelogRelease {
-  id: number;
+const releasesApiUrl = "https://api.github.com/repos/TechSquidTV/Cliparr/releases?per_page=20";
+const pullRequestUrlPattern = / by @([^ ]+) in https:\/\/github\.com\/TechSquidTV\/Cliparr\/pull\/(\d+)/gu;
+const fullChangelogPattern = /^\*\*Full Changelog\*\*: (https:\/\/github\.com\/TechSquidTV\/Cliparr\/(?:compare|commits)\/\S+)$/u;
+const bareAttachmentPattern = /^https:\/\/github\.com\/user-attachments\/assets\/\S+$/u;
+
+interface ChangelogReleaseData extends Record<string, unknown> {
+  releaseId: number;
   url: string;
   tagName: string;
   name: string;
   title: string;
-  htmlBody: string;
   prerelease: boolean;
-  publishedAt: Date;
+  publishedAt: string;
 }
 
-const releasesApiUrl = "https://api.github.com/repos/TechSquidTV/Cliparr/releases?per_page=20";
+function releaseId(release: GitHubRelease) {
+  return release.tag_name.replaceAll("/", "-");
+}
 
 function releaseTitle(release: GitHubRelease) {
   const name = release.name?.trim() || release.tag_name;
@@ -33,8 +39,33 @@ function releaseTitle(release: GitHubRelease) {
   return title || release.tag_name;
 }
 
-export async function getChangelogReleases(): Promise<ChangelogRelease[]> {
-  const token = import.meta.env.GITHUB_TOKEN;
+function normalizeReleaseLine(value: string) {
+  const fullChangelog = fullChangelogPattern.exec(value);
+
+  if (fullChangelog) {
+    return `[Compare changes](${fullChangelog[1]})`;
+  }
+
+  if (bareAttachmentPattern.test(value)) {
+    return `[Release media](${value})`;
+  }
+
+  return value
+    .replaceAll("[codex] ", "")
+    .replace(pullRequestUrlPattern, " ([#$2](https://github.com/TechSquidTV/Cliparr/pull/$2))");
+}
+
+function normalizeReleaseBody(markdown: string) {
+  return markdown
+    .replace(/\r\n/g, "\n")
+    .split("\n")
+    .map((line) => normalizeReleaseLine(line.trimEnd()))
+    .join("\n")
+    .trim();
+}
+
+async function fetchGitHubReleases() {
+  const token = process.env.GITHUB_TOKEN ?? process.env.GH_TOKEN;
   const response = await fetch(releasesApiUrl, {
     headers: {
       "Accept": "application/vnd.github+json",
@@ -48,18 +79,45 @@ export async function getChangelogReleases(): Promise<ChangelogRelease[]> {
     throw new Error(`Failed to load GitHub releases for ${site.name}: ${response.status} ${await response.text()}`);
   }
 
-  const releases = await response.json() as GitHubRelease[];
+  return await response.json() as GitHubRelease[];
+}
 
-  return releases
-    .filter((release) => !release.draft && release.published_at)
-    .map((release) => ({
-      id: release.id,
-      url: release.html_url,
-      tagName: release.tag_name,
-      name: release.name?.trim() || release.tag_name,
-      title: releaseTitle(release),
-      htmlBody: renderReleaseMarkdown(release.body ?? ""),
-      prerelease: release.prerelease,
-      publishedAt: new Date(release.published_at ?? ""),
-    }));
+export function githubReleasesLoader(): Loader {
+  return {
+    name: "cliparr-github-releases",
+    async load({ generateDigest, parseData, renderMarkdown, store }) {
+      const releases = await fetchGitHubReleases();
+
+      store.clear();
+
+      for (const release of releases) {
+        if (release.draft || !release.published_at) {
+          continue;
+        }
+
+        const id = releaseId(release);
+        const body = normalizeReleaseBody(release.body ?? "");
+        const data = await parseData<ChangelogReleaseData>({
+          id,
+          data: {
+            releaseId: release.id,
+            url: release.html_url,
+            tagName: release.tag_name,
+            name: release.name?.trim() || release.tag_name,
+            title: releaseTitle(release),
+            prerelease: release.prerelease,
+            publishedAt: release.published_at,
+          },
+        });
+
+        store.set({
+          id,
+          data,
+          body,
+          rendered: await renderMarkdown(body),
+          digest: generateDigest({ data, body }),
+        });
+      }
+    },
+  };
 }

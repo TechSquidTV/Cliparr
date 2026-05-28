@@ -1,6 +1,7 @@
 import { defineCollection } from "astro:content";
 import { glob } from "astro/loaders";
 import { z } from "astro/zod";
+import { githubReleasesLoader } from "./lib/githubReleases";
 
 const docs = defineCollection({
   loader: glob({
@@ -14,4 +15,17 @@ const docs = defineCollection({
   }),
 });
 
-export const collections = { docs };
+const releases = defineCollection({
+  loader: githubReleasesLoader(),
+  schema: z.object({
+    releaseId: z.number(),
+    url: z.url(),
+    tagName: z.string(),
+    name: z.string(),
+    title: z.string(),
+    prerelease: z.boolean(),
+    publishedAt: z.iso.datetime(),
+  }),
+});
+
+export const collections = { docs, releases };

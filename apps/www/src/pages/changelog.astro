@@ -1,8 +1,21 @@
 ---
+import { getCollection, render } from "astro:content";
 import BaseLayout from "../components/BaseLayout.astro";
-import { getChangelogReleases } from "../lib/githubReleases";
 
-const releases = await getChangelogReleases();
+const releaseEntries = (await getCollection("releases")).sort(
+  (a, b) => Date.parse(b.data.publishedAt) - Date.parse(a.data.publishedAt),
+);
+const releases = await Promise.all(
+  releaseEntries.map(async (entry) => {
+    const { Content } = await render(entry);
+
+    return {
+      ...entry.data,
+      Content,
+      publishedAt: new Date(entry.data.publishedAt),
+    };
+  }),
+);
 const latestRelease = releases[0];
 const dateFormatter = new Intl.DateTimeFormat("en", {
   dateStyle: "medium",
@@ -65,7 +78,9 @@ const dateFormatter = new Intl.DateTimeFormat("en", {
               View release
             </a>
           </div>
-          <div class="release-notes mt-6" set:html={release.htmlBody} />
+          <div class="release-notes mt-6">
+            <release.Content />
+          </div>
         </article>
       ))}
     </div>
