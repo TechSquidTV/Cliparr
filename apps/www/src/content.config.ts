@@ -25,7 +25,6 @@ const releases = defineCollection({
     title: z.string(),
     prerelease: z.boolean(),
     publishedAt: z.iso.datetime(),
-    unavailable: z.boolean(),
   }),
 });
 

@@ -58,7 +58,7 @@ Release-impacting title types:
 
 GitHub Releases are the canonical changelog. The `Release` workflow is run manually from `main`, computes the next SemVer version from merged pull request titles, publishes Docker images to GHCR, creates the GitHub Release, and triggers a Cloudflare Pages rebuild so `cliparr.dev/changelog` mirrors the latest release notes.
 
-Before running a real release, make sure `CLOUDFLARE_PAGES_DEPLOY_HOOK_URL` is configured as a repository secret. Cloudflare Pages production builds should also have a read-only `GITHUB_TOKEN` or `GH_TOKEN` environment variable so the changelog mirror does not hit unauthenticated GitHub API rate limits. Use the workflow's dry-run mode first when validating a release.
+Before running a real release, make sure `CLOUDFLARE_PAGES_DEPLOY_HOOK_URL` is configured as a repository secret. Cloudflare Pages builds require a read-only `GITHUB_TOKEN` or `GH_TOKEN` environment variable so the changelog mirror does not hit unauthenticated GitHub API rate limits. Use the workflow's dry-run mode first when validating a release.
 
 ## Security
 
