@@ -352,6 +352,59 @@ void test("does not throw when a proxied media stream terminates early", async (
   });
 });
 
+void test("does not forward upstream content length for streamed media responses", async () => {
+  const session = createSession();
+  const handle = createMediaHandle({
+    path: "/library/parts/1/file.mp4",
+  });
+  const response = createStreamingResponseRecorder();
+
+  await proxyUpstreamMediaResponse(
+    session,
+    handle,
+    new globalThis.Response(new Uint8Array([1, 2, 3, 4]), {
+      status: 200,
+      headers: {
+        "content-length": "1",
+        "content-type": "video/mp4",
+      },
+    }),
+    response as unknown as Response
+  );
+
+  assert.equal(response.headers.get("content-length"), undefined);
+  assert.equal(response.headers.get("content-type"), "video/mp4");
+});
+
+void test("uses buffered byte length for cached HLS-derived media responses", async () => {
+  const session = createSession();
+  const handle = createMediaHandle({
+    id: "length-handle",
+    path: "https://cdn.example.com/hls/segment0.ts",
+    basePath: "https://cdn.example.com/hls/",
+  });
+  const response = createBinaryResponseRecorder();
+
+  await proxyProviderMediaResponse(
+    session,
+    handle,
+    {
+      accept: "video/mp2t",
+    },
+    async () => new globalThis.Response(new Uint8Array([1, 2, 3, 4]), {
+      status: 200,
+      headers: {
+        "content-length": "1",
+        "content-type": "video/mp2t",
+      },
+    }),
+    response as unknown as Response,
+  );
+
+  assert.equal(response.headers.get("content-length"), "4");
+  assert.deepEqual(response.body, Buffer.from([1, 2, 3, 4]));
+});
+
 void test("dedupes concurrent HLS-derived media requests for the same handle", async () => {
   const session = createSession();
   const handle = createMediaHandle({
