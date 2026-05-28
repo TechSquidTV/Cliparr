@@ -421,24 +421,30 @@ async function rewriteHlsPlaylist(
   const body = await upstream.text();
   const basePath = handle.basePath ?? playlistBasePath(handle.path);
   let rewrittenUriCount = 0;
+  let strippedStartHintCount = 0;
 
   const playlist = body
     .split("\n")
-    .map((line) => {
+    .flatMap((line) => {
       const trimmed = line.trim();
       if (!trimmed) {
-        return line;
+        return [line];
       }
 
       if (trimmed.startsWith("#")) {
-        return line.replace(/URI="([^"]+)"/g, (_match, uri: string) => {
+        if (trimmed.toUpperCase().startsWith("#EXT-X-START:")) {
+          strippedStartHintCount += 1;
+          return [];
+        }
+
+        return [line.replace(/URI="([^"]+)"/g, (_match, uri: string) => {
           rewrittenUriCount += 1;
           return `URI="${rewritePlaylistUri(session, handle, basePath, uri)}"`;
-        });
+        })];
       }
 
       rewrittenUriCount += 1;
-      return rewritePlaylistUri(session, handle, basePath, trimmed);
+      return [rewritePlaylistUri(session, handle, basePath, trimmed)];
     })
     .join("\n");
 
@@ -450,6 +456,7 @@ async function rewriteHlsPlaylist(
     basePath: sanitizeLoggedMediaPath(basePath),
     upstreamStatus: upstream.status,
     rewrittenUriCount,
+    strippedStartHintCount,
   });
 
   return playlist;
@@ -481,6 +488,14 @@ function isHlsPlaylist(handle: MediaHandle, contentType: string) {
   } catch {
     return handle.path.split("?")[0].endsWith(".m3u8");
   }
+}
+
+export function shouldForwardMediaRange(handle: MediaHandle, range: string | undefined) {
+  if (!range || isHlsPlaylist(handle, "")) {
+    return undefined;
+  }
+
+  return range;
 }
 
 function snapshotProxyHeaders(upstream: globalThis.Response) {

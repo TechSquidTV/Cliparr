@@ -12,6 +12,7 @@ import {
   proxyUpstreamMediaResponse,
   sanitizeLoggedMediaPath,
   shouldAttachProviderAuth,
+  shouldForwardMediaRange,
 } from "./shared/mediaProxy.js";
 
 function createSession(): ProviderSessionRecord {
@@ -166,6 +167,56 @@ void test("preserves absolute HLS origins when rewriting nested playlist resourc
   const handlePaths = [...session.mediaHandles.values()].map((handle) => handle.path);
   assert(handlePaths.includes("https://cdn.example.com/hls/720p/key.key?sig=1"));
   assert(handlePaths.includes("https://cdn.example.com/hls/720p/segment0.ts"));
+});
+
+void test("strips HLS start hints so editor seeks control playback position", async () => {
+  const session = createSession();
+  const handle = createMediaHandle();
+  const response = createResponseRecorder();
+
+  await proxyUpstreamMediaResponse(
+    session,
+    handle,
+    new globalThis.Response(
+      [
+        "#EXTM3U",
+        "#EXT-X-TARGETDURATION:1",
+        "#EXT-X-START:TIME-OFFSET=1054.000000",
+        "#EXTINF:1, nodesc",
+        "segment0.ts",
+        "#EXT-X-ENDLIST",
+        "",
+      ].join("\n"),
+      {
+        status: 200,
+        headers: {
+          "content-type": "application/vnd.apple.mpegurl",
+        },
+      }
+    ),
+    response as unknown as Response
+  );
+
+  assert.doesNotMatch(response.body, /#EXT-X-START/);
+  assert.match(response.body, /#EXT-X-TARGETDURATION:1/);
+  assert.match(response.body, /#EXTINF:1, nodesc/);
+  assert.match(response.body, /\/api\/media\//);
+  assert.equal(session.mediaHandles.size, 1);
+});
+
+void test("does not forward range requests for HLS playlists that Cliparr rewrites", () => {
+  assert.equal(
+    shouldForwardMediaRange(createMediaHandle({
+      path: "/video/:/transcode/universal/start.m3u8?session=1",
+    }), "bytes=148-"),
+    undefined,
+  );
+  assert.equal(
+    shouldForwardMediaRange(createMediaHandle({
+      path: "/library/parts/1/file.mp4",
+    }), "bytes=148-"),
+    "bytes=148-",
+  );
 });
 
 void test("does not attach provider auth to cross-origin absolute media handles", () => {
