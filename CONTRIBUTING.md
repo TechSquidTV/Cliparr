@@ -39,9 +39,26 @@ pnpm build
 ## Pull Requests
 
 - Keep changes focused and explain the user-visible behavior they affect.
+- Use a Conventional Commit pull request title, such as `feat: add subtitle presets`, `fix: preserve Jellyfin session ids`, or `ci: update release automation`.
+- Use `!` for breaking changes, for example `feat!: replace export settings format`.
 - Include screenshots or short screen recordings for UI changes when helpful.
 - Note any Plex setup needed to reproduce provider/session behavior.
 - Avoid committing generated output such as `dist`, `node_modules`, `.pnpm-store`, or TypeScript build info files.
+
+Cliparr uses squash merges, and the squash commit title comes from the pull request title. The release workflow uses those titles to choose the next SemVer version and build release notes.
+
+Release-impacting title types:
+
+- `feat` creates a minor release.
+- `fix`, `perf`, `security`, and `build(deps)` create a patch release.
+- A breaking `!` creates a major release.
+- `docs`, `ci`, `chore`, `refactor`, `test`, `style`, and other `build` changes are included in notes but do not trigger a release by themselves.
+
+## Releases
+
+GitHub Releases are the canonical changelog. The `Release` workflow is run manually from `main`, computes the next SemVer version from merged pull request titles, publishes Docker images to GHCR, creates the GitHub Release, and triggers a Cloudflare Pages rebuild so `cliparr.dev/changelog` mirrors the latest release notes.
+
+Before running a real release, make sure `CLOUDFLARE_PAGES_DEPLOY_HOOK_URL` is configured as a repository secret. Cloudflare Pages builds require a read-only `GITHUB_TOKEN` or `GH_TOKEN` environment variable so the changelog mirror does not hit unauthenticated GitHub API rate limits. Use the workflow's dry-run mode first when validating a release.
 
 ## Security
 
