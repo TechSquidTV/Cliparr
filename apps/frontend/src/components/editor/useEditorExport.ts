@@ -431,8 +431,8 @@ function buildExportSourceMessage({
 
   if (resolvedSource.role === "direct-url") {
     return isHlsEditorMediaSource(resolvedSource)
-      ? "Export reads this HLS URL in your browser."
-      : "Export reads this media URL in your browser.";
+      ? "Export reads this HLS URL through Cliparr."
+      : "Export reads this media URL through Cliparr.";
   }
 
   if (preference === "hls" && resolvedSourceKind === "hls" && !hlsFallbackInfo) {

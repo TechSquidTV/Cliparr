@@ -148,7 +148,7 @@ export function LocalVideoOpenModal({ isOpen, onClose, onOpened }: LocalVideoOpe
               Open Video
             </h2>
             <p className="text-xs text-muted-foreground">
-              Local files stay in your browser.
+              Local files stay in your browser. URLs stream through Cliparr.
             </p>
           </div>
           <button

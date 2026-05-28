@@ -9,6 +9,7 @@ import {
   titleFromFileName,
   titleFromUrl,
 } from "./editorMedia";
+import { cliparrClient } from "../api/cliparrClient";
 import { isHlsPlaylistUrl } from "./mediabunnyInput";
 
 const DATABASE_NAME = "cliparr-local-media";
@@ -186,17 +187,24 @@ function createFileHandleSource(record: StoredFileHandleRecord): EditorFileHandl
   };
 }
 
-function createUrlSource(record: StoredUrlRecord): EditorUrlMediaSource {
+function errorMessage(err: unknown, fallback: string) {
+  return err instanceof Error && err.message ? err.message : fallback;
+}
+
+async function createUrlSource(record: StoredUrlRecord): Promise<EditorUrlMediaSource> {
+  const proxied = await cliparrClient.createLocalMediaUrl(record.url);
+
   return {
     kind: "url",
     role: "direct-url",
     label: record.hls ? "HLS URL" : "URL",
-    url: record.url,
-    hls: record.hls,
+    url: proxied.mediaUrl,
+    originalUrl: record.url,
+    hls: record.hls || proxied.hls,
   };
 }
 
-function sessionFromRecord(record: LocalMediaRecord) {
+async function sessionFromRecord(record: LocalMediaRecord) {
   if (record.kind === "memory-file") {
     return buildLocalEditorSession({
       id: record.id,
@@ -216,7 +224,7 @@ function sessionFromRecord(record: LocalMediaRecord) {
   return buildLocalEditorSession({
     id: record.id,
     title: record.title,
-    source: createUrlSource(record),
+    source: await createUrlSource(record),
   });
 }
 
@@ -340,7 +348,7 @@ export async function createLocalSessionFromPicker() {
 
     return {
       status: "ready" as const,
-      session: sessionFromRecord(record),
+      session: await sessionFromRecord(record),
     };
   } catch (err) {
     if (err instanceof DOMException && err.name === "AbortError") {
@@ -374,12 +382,22 @@ export async function createLocalSessionFromUrl(value: string) {
     updatedAt: timestamps,
   };
 
+  let session: EditorSession;
+  try {
+    session = await sessionFromRecord(record);
+  } catch (err) {
+    return {
+      status: "invalid" as const,
+      message: errorMessage(err, "Could not open that URL."),
+    };
+  }
+
   memoryRecords.set(record.id, record);
   await putStoredRecord(record).catch(() => undefined);
 
   return {
     status: "ready" as const,
-    session: sessionFromRecord(record),
+    session,
   };
 }
 
@@ -389,7 +407,15 @@ export async function resolveLocalMediaSession(
 ): Promise<LocalMediaResolution> {
   const memoryRecord = memoryRecords.get(id);
   if (memoryRecord) {
-    return { status: "ready", session: sessionFromRecord(memoryRecord) };
+    try {
+      return { status: "ready", session: await sessionFromRecord(memoryRecord) };
+    } catch (err) {
+      return {
+        status: "unavailable",
+        title: memoryRecord.title,
+        message: errorMessage(err, "This local video URL could not be opened."),
+      };
+    }
   }
 
   let storedRecord: StoredLocalMediaRecord | undefined;
@@ -410,7 +436,15 @@ export async function resolveLocalMediaSession(
   }
 
   if (storedRecord.kind === "url") {
-    return { status: "ready", session: sessionFromRecord(storedRecord) };
+    try {
+      return { status: "ready", session: await sessionFromRecord(storedRecord) };
+    } catch (err) {
+      return {
+        status: "unavailable",
+        title: storedRecord.title,
+        message: errorMessage(err, "This local video URL could not be opened."),
+      };
+    }
   }
 
   try {
@@ -437,7 +471,7 @@ export async function resolveLocalMediaSession(
 
     await putStoredRecord(nextRecord).catch(() => undefined);
 
-    return { status: "ready", session: sessionFromRecord(nextRecord) };
+    return { status: "ready", session: await sessionFromRecord(nextRecord) };
   } catch (err) {
     if (err instanceof DOMException && err.name === "NotAllowedError") {
       return {

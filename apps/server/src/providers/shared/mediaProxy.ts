@@ -27,6 +27,15 @@ interface ProxyMediaRequestOptions {
   range?: string;
 }
 
+interface ProxyMediaResponseOptions {
+  createMediaHandleUrl?: (
+    session: ProviderSessionRecord,
+    handle: MediaHandle,
+    nextPath: string,
+    basePath: string,
+  ) => string;
+}
+
 interface CachedProxyMediaResponse {
   status: number;
   headers: [string, string][];
@@ -399,9 +408,14 @@ function rewritePlaylistUri(
   session: ProviderSessionRecord,
   handle: MediaHandle,
   basePath: string,
-  uri: string
+  uri: string,
+  options: ProxyMediaResponseOptions = {},
 ) {
   const nextPath = resolvePlaylistUri(basePath, uri);
+  if (options.createMediaHandleUrl) {
+    return options.createMediaHandleUrl(session, handle, nextPath, playlistBasePath(nextPath));
+  }
+
   return createProviderMediaHandle(session, {
     providerId: handle.providerId,
     sourceId: handle.sourceId,
@@ -416,7 +430,8 @@ function rewritePlaylistUri(
 async function rewriteHlsPlaylist(
   session: ProviderSessionRecord,
   handle: MediaHandle,
-  upstream: globalThis.Response
+  upstream: globalThis.Response,
+  options: ProxyMediaResponseOptions = {},
 ) {
   const body = await upstream.text();
   const basePath = handle.basePath ?? playlistBasePath(handle.path);
@@ -439,12 +454,12 @@ async function rewriteHlsPlaylist(
 
         return [line.replace(/URI="([^"]+)"/g, (_match, uri: string) => {
           rewrittenUriCount += 1;
-          return `URI="${rewritePlaylistUri(session, handle, basePath, uri)}"`;
+          return `URI="${rewritePlaylistUri(session, handle, basePath, uri, options)}"`;
         })];
       }
 
       rewrittenUriCount += 1;
-      return [rewritePlaylistUri(session, handle, basePath, trimmed)];
+      return [rewritePlaylistUri(session, handle, basePath, trimmed, options)];
     })
     .join("\n");
 
@@ -556,12 +571,13 @@ async function createCachedProxyMediaResponse(
   session: ProviderSessionRecord,
   handle: MediaHandle,
   upstream: globalThis.Response,
+  options: ProxyMediaResponseOptions = {},
 ) {
   const contentType = upstream.headers.get("content-type") ?? "";
   const headers = snapshotProxyHeaders(upstream);
 
   if (isHlsPlaylist(handle, contentType)) {
-    const playlist = await rewriteHlsPlaylist(session, handle, upstream);
+    const playlist = await rewriteHlsPlaylist(session, handle, upstream, options);
     const body = Buffer.from(playlist);
     const nextHeaders = headers
       .filter(([name]) => name !== "content-type" && name !== "content-length")
@@ -628,7 +644,8 @@ export async function proxyUpstreamMediaResponse(
   session: ProviderSessionRecord,
   handle: MediaHandle,
   upstream: globalThis.Response,
-  res: Response
+  res: Response,
+  options: ProxyMediaResponseOptions = {},
 ) {
   res.status(upstream.status);
 
@@ -643,7 +660,7 @@ export async function proxyUpstreamMediaResponse(
   });
 
   if (isHlsPlaylist(handle, contentType)) {
-    const playlist = await rewriteHlsPlaylist(session, handle, upstream);
+    const playlist = await rewriteHlsPlaylist(session, handle, upstream, options);
     copyProxyHeaders(upstream, res);
     res.setHeader("Content-Type", "application/vnd.apple.mpegurl");
     res.setHeader("Content-Length", Buffer.byteLength(playlist));
@@ -700,6 +717,7 @@ export async function proxyProviderMediaResponse(
   request: ProxyMediaRequestOptions,
   fetchUpstream: () => Promise<globalThis.Response>,
   res: Response,
+  options: ProxyMediaResponseOptions = {},
 ) {
   const cacheKey = buildProxyCacheKey(handle, request);
   if (!cacheKey) {
@@ -727,7 +745,7 @@ export async function proxyProviderMediaResponse(
   if (!inflightResponse) {
     inflightResponse = (async () => {
       const upstream = await fetchUpstream();
-      const response = await createCachedProxyMediaResponse(session, handle, upstream);
+      const response = await createCachedProxyMediaResponse(session, handle, upstream, options);
 
       if (response.body.byteLength <= HLS_PROXY_RESPONSE_CACHE_MAX_BYTES) {
         cachedProxyResponses.set(cacheKey, {

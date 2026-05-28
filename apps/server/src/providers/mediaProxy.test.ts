@@ -169,6 +169,50 @@ void test("preserves absolute HLS origins when rewriting nested playlist resourc
   assert(handlePaths.includes("https://cdn.example.com/hls/720p/segment0.ts"));
 });
 
+void test("uses custom media handle URLs when rewriting HLS playlists", async () => {
+  const session = createSession();
+  const rootHandle = createMediaHandle({
+    path: "https://cdn.example.com/hls/master.m3u8",
+    basePath: "https://cdn.example.com/hls/",
+  });
+  const response = createResponseRecorder();
+  const createdHandles: Array<{ nextPath: string; basePath: string }> = [];
+
+  await proxyUpstreamMediaResponse(
+    session,
+    rootHandle,
+    new globalThis.Response(
+      "#EXTM3U\n#EXT-X-KEY:METHOD=AES-128,URI=\"key.key?sig=1\"\nsegment0.ts\n",
+      {
+        status: 200,
+        headers: {
+          "content-type": "application/vnd.apple.mpegurl",
+        },
+      }
+    ),
+    response as unknown as Response,
+    {
+      createMediaHandleUrl: (_session, _handle, nextPath, basePath) => {
+        createdHandles.push({ nextPath, basePath });
+        return `/api/media/local-url/${createdHandles.length}`;
+      },
+    }
+  );
+
+  assert.match(response.body, /\/api\/media\/local-url\/1/);
+  assert.match(response.body, /\/api\/media\/local-url\/2/);
+  assert.deepEqual(createdHandles, [
+    {
+      nextPath: "https://cdn.example.com/hls/key.key?sig=1",
+      basePath: "https://cdn.example.com/hls/",
+    },
+    {
+      nextPath: "https://cdn.example.com/hls/segment0.ts",
+      basePath: "https://cdn.example.com/hls/",
+    },
+  ]);
+});
+
 void test("strips HLS start hints so editor seeks control playback position", async () => {
   const session = createSession();
   const handle = createMediaHandle();
