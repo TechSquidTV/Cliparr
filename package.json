@@ -23,6 +23,7 @@
     "docker:dev:build": "docker compose -f docker-compose.dev.yml build cliparr",
     "docker:dev:up": "docker compose -f docker-compose.dev.yml up",
     "build": "pnpm -r build",
+    "build:web": "pnpm docs:check && pnpm --filter @cliparr/www build",
     "lint": "pnpm lint:eslint && pnpm lint:types",
     "lint:eslint": "pnpm -r --if-present lint:eslint",
     "lint:types": "pnpm -r --if-present lint:types",
