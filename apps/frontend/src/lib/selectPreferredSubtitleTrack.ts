@@ -30,14 +30,14 @@ export function subtitleTrackUnavailableMessage(
   }
 
   if (track.isText && providerId === "plex") {
-    return "Plex detected this embedded text subtitle track, but only the currently selected embedded subtitle can be fetched for styled burn-in.";
+    return "Select this embedded subtitle in Plex first.";
   }
 
   if (track.isText) {
-    return "This text subtitle track is available, but the provider does not expose it as a downloadable subtitle stream for styled burn-in.";
+    return "This provider cannot download this subtitle track.";
   }
 
-  return "This subtitle track exists, but it is not yet supported for styled burn-in.";
+  return "Only text subtitle tracks are supported.";
 }
 
 export function selectPreferredSubtitleTrack(

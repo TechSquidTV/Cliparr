@@ -69,7 +69,7 @@ function queueAuthFailureNotification() {
 
 function buildUnexpectedApiResponseError() {
   return new Error(
-    "Cliparr API returned HTML instead of JSON. Make sure the Cliparr server is running on the configured API URL and that another local app is not already serving that port."
+    "Cliparr API returned the app page instead of JSON. Check the API URL."
   );
 }
 

@@ -12,20 +12,20 @@ export function providerPresentation(
       return {
         eyebrow: "Browser Sign-In",
         summary: variant === "panel"
-          ? "Authenticate with Plex in a separate tab, then Cliparr will discover and keep those servers available here."
-          : "Authenticate with Plex in a separate tab, then Cliparr will discover the Plex servers tied to that account.",
+          ? "Sign in with Plex, then choose a server."
+          : "Sign in with Plex to find your servers.",
         action: "Continue with Plex",
       };
     case "jellyfin":
       return {
         eyebrow: "Direct Server Login",
-        summary: "Connect directly to a Jellyfin server with its base URL and an administrator account.",
+        summary: "Connect with your Jellyfin server URL and account.",
         action: "Connect Jellyfin",
       };
     default:
       return {
         eyebrow: "Provider Setup",
-        summary: `Connect ${provider.name} to start pulling active sessions into Cliparr.`,
+        summary: `Connect ${provider.name} to import active sessions.`,
         action: `Continue with ${provider.name}`,
       };
   }

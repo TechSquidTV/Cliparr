@@ -49,7 +49,7 @@ function canEditSession(session: Pick<CurrentlyPlayingItem, "mediaUrl" | "hlsUrl
 }
 
 function sessionActionLabel(session: Pick<CurrentlyPlayingItem, "mediaUrl" | "hlsUrl">) {
-  return canEditSession(session) ? "Edit Clip" : "No exportable stream";
+  return canEditSession(session) ? "Edit Clip" : "No stream";
 }
 
 function ViewerAvatar({ name, avatarUrl }: { name: string; avatarUrl?: string }) {
@@ -82,7 +82,7 @@ function WarningBanner({ sourceErrors }: { sourceErrors: SourcePlaybackError[] }
       <div className="flex items-start gap-3">
         <AlertTriangle className="w-5 h-5 shrink-0 mt-0.5" />
         <div className="space-y-2 text-sm">
-          <p className="font-medium">Some sources could not be reached. Showing results from the sources that responded.</p>
+          <p className="font-medium">Some sources are unavailable. Showing the rest.</p>
           <div className="space-y-1">
             {sourceErrors.map((sourceError) => (
               <p key={sourceError.sourceId}>
@@ -116,7 +116,7 @@ export default function DashboardScreen({ onSelectSession, onOpenLocalVideo, onO
       setViewers(playback.viewers);
       setSourceErrors(playback.sourceErrors);
     } catch (err: unknown) {
-      setError(errorMessage(err, "Failed to fetch sessions"));
+      setError(errorMessage(err, "Could not load sessions."));
       setViewers([]);
       setSourceErrors([]);
     } finally {
@@ -150,7 +150,7 @@ export default function DashboardScreen({ onSelectSession, onOpenLocalVideo, onO
 
   const hasPlayback = viewers.length > 0;
   const emptyMessage = sourceErrors.length > 0
-    ? "No active playback was found on the sources that responded."
+    ? "No active playback on the available sources."
     : "No one is currently watching anything.";
   const versionLabel = appVersion;
 
@@ -223,7 +223,7 @@ export default function DashboardScreen({ onSelectSession, onOpenLocalVideo, onO
           <div>
             <h2 className="text-xl font-semibold mb-2">Currently Playing</h2>
             <p className="text-muted-foreground text-sm">
-              See what everyone is watching across your enabled sources.
+              Active sessions across enabled sources.
             </p>
           </div>
 

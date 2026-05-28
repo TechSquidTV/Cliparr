@@ -35,7 +35,7 @@ export function useProviderConnectFlow({
         }
       } catch (err: unknown) {
         if (!cancelled) {
-          setError(errorMessage(err, "Failed to load providers"));
+          setError(errorMessage(err, "Could not load providers."));
         }
       } finally {
         if (!cancelled) {
@@ -91,12 +91,12 @@ export function useProviderConnectFlow({
         if (status.status === "expired") {
           window.clearInterval(intervalId);
           resetProviderState();
-          setError(`That ${providerLabel(providerId)} sign-in expired. Start again when you're ready.`);
+          setError(`${providerLabel(providerId)} sign-in expired.`);
         }
       } catch (err: unknown) {
         window.clearInterval(intervalId);
         resetProviderState();
-        setError(errorMessage(err, `Failed to finish ${providerLabel(providerId)} sign-in`));
+        setError(errorMessage(err, `Could not finish ${providerLabel(providerId)} sign-in.`));
       }
     };
     const intervalId = window.setInterval(() => {
@@ -120,7 +120,7 @@ export function useProviderConnectFlow({
       window.open(auth.authUrl, "_blank", "noopener,noreferrer");
     } catch (err: unknown) {
       resetProviderState();
-      setError(errorMessage(err, `Failed to start ${provider.name} sign-in`));
+      setError(errorMessage(err, `Could not start ${provider.name} sign-in.`));
     }
   }, [resetProviderState]);
 
@@ -142,7 +142,7 @@ export function useProviderConnectFlow({
       setUsername("");
     } catch (err: unknown) {
       resetProviderState();
-      setError(errorMessage(err, `Failed to connect ${provider.name}`));
+      setError(errorMessage(err, `Could not connect ${provider.name}.`));
     }
   }, [onConnected, password, resetProviderState, serverUrl, username]);
 

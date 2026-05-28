@@ -49,11 +49,8 @@ async function downloadSubtitleCues(
   const response = await fetch(contentUrl, { signal });
   if (!response.ok) {
     const detail = await subtitleDownloadErrorDetail(response);
-    throw new Error(
-      detail
-        ? `Subtitle download failed (${response.status}): ${detail}`
-        : `Subtitle download failed (${response.status})`
-    );
+    console.error("Subtitle download failed", { status: response.status, detail });
+    throw new Error(`Could not load subtitles (${response.status}).`);
   }
 
   return parseSubtitleText(await response.text(), track.contentFormat);
@@ -97,7 +94,7 @@ export function useSubtitleCues({
         setSubtitleCues([]);
         setSubtitleError(
           subtitleTrackUnavailableMessage(selectedSubtitleTrack, providerId)
-            ?? "This subtitle track is not yet supported for styled burn-in."
+            ?? "This subtitle track is not supported."
         );
         return;
       }
@@ -118,12 +115,12 @@ export function useSubtitleCues({
         }
 
         setSubtitleCues(parsedSubtitleCues);
-        setSubtitleError(parsedSubtitleCues.length === 0 ? "No subtitle cues were found in this track." : null);
+        setSubtitleError(parsedSubtitleCues.length === 0 ? "No subtitles found in this track." : null);
       } catch (err) {
         if (cancelled || abortController.signal.aborted) {
           if (!cancelled) {
             setSubtitleCues([]);
-            setSubtitleError("Subtitle request timed out. Please try again.");
+            setSubtitleError("Subtitles timed out. Try again.");
             setSubtitleLoading(false);
           }
           return;
@@ -131,7 +128,7 @@ export function useSubtitleCues({
 
         console.error("Could not load subtitle cues", err);
         setSubtitleCues([]);
-        setSubtitleError(err instanceof Error ? err.message : "Could not load subtitle cues.");
+        setSubtitleError(err instanceof Error ? err.message : "Could not load subtitles.");
       } finally {
         if (!cancelled) {
           setSubtitleLoading(false);

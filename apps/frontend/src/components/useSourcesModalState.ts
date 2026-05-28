@@ -85,7 +85,7 @@ export function useSourcesModalState({
         return;
       }
 
-      const message = err instanceof Error ? err.message : "Failed to load sources";
+      const message = err instanceof Error ? err.message : "Could not load sources.";
       setSources([]);
       setDraftBaseUrls({});
       setDraftNames({});
@@ -178,7 +178,7 @@ export function useSourcesModalState({
     auth.setProviderSession(session);
     setFeedback({
       tone: "success",
-      message: "Source connected. Refreshing your library list now.",
+      message: "Source connected.",
     });
     setShowAddSource(false);
     await loadSources("reload");
@@ -195,7 +195,7 @@ export function useSourcesModalState({
       return;
     }
 
-    await runSourceAction(source, "Saving...", "Failed to update source", async () => {
+    await runSourceAction(source, "Saving...", "Could not update source.", async () => {
       const updatedSource = await cliparrClient.updateSource(source.id, {
         ...(hasNameChange ? { name: nextName } : {}),
         ...(hasBaseUrlChange ? { baseUrl: nextBaseUrl } : {}),
@@ -215,7 +215,7 @@ export function useSourcesModalState({
     await runSourceAction(
       source,
       source.enabled ? "Disabling..." : "Enabling...",
-      "Failed to update source",
+      "Could not update source.",
       async () => {
         const updatedSource = await cliparrClient.updateSource(source.id, { enabled: !source.enabled });
 
@@ -231,7 +231,7 @@ export function useSourcesModalState({
   }
 
   async function checkSource(source: MediaSource) {
-    await runSourceAction(source, "Refreshing...", "Failed to refresh source", async () => {
+    await runSourceAction(source, "Refreshing...", "Could not refresh source.", async () => {
       const result = await cliparrClient.checkSource(source.id);
 
       return {
@@ -239,7 +239,7 @@ export function useSourcesModalState({
         feedback: {
           tone: result.ok ? "success" : "warning",
           message: result.ok
-            ? `${result.source.name} passed its health check.`
+            ? `${result.source.name} is healthy.`
             : `${result.source.name} still needs attention.`,
         },
       };
@@ -248,13 +248,13 @@ export function useSourcesModalState({
 
   async function deleteSource(source: MediaSource) {
     const confirmed = window.confirm(
-      `Remove ${source.name}? Cliparr will stop querying it until it is reconnected.`
+      `Remove ${source.name}? It can be reconnected later.`
     );
     if (!confirmed) {
       return;
     }
 
-    await runSourceAction(source, "Removing...", "Failed to remove source", async () => {
+    await runSourceAction(source, "Removing...", "Could not remove source.", async () => {
       await cliparrClient.deleteSource(source.id);
 
       return {
@@ -317,16 +317,16 @@ export function useSourcesModalState({
         `${attentionCount} need attention`,
       ];
       if (failedCount > 0) {
-        summaryParts.push(`${failedCount} failed to refresh`);
+        summaryParts.push(`${failedCount} failed`);
       }
 
       setFeedback({
         tone: attentionCount > 0 || failedCount > 0 ? "warning" : "success",
-        message: `Refreshed ${sources.length} source${sources.length === 1 ? "" : "s"}: ${summaryParts.join(", ")}.`,
+        message: `Refreshed ${sources.length} source${sources.length === 1 ? "" : "s"}. ${summaryParts.join(", ")}.`,
       });
       await refreshPlaybackView();
     } catch (err) {
-      const message = err instanceof Error ? err.message : "Failed to refresh sources";
+      const message = err instanceof Error ? err.message : "Could not refresh sources.";
       setError(message);
     } finally {
       setRefreshingAll(false);

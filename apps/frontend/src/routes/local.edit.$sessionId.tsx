@@ -51,7 +51,7 @@ function LocalEditorRouteComponent() {
   }
 
   const title = resolution?.title ?? "Local video";
-  const message = resolution?.message ?? "This local video could not be opened.";
+  const message = resolution?.message ?? "Could not open this video.";
   const needsPermission = resolution?.status === "permission-needed";
 
   return (

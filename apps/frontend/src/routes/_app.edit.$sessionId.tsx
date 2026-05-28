@@ -46,7 +46,7 @@ function EditorRouteComponent() {
       } catch (err: unknown) {
         if (!cancelled) {
           setSession(null);
-          setError(errorMessage(err, "Failed to load this playback session."));
+          setError(errorMessage(err, "Could not load this session."));
         }
       } finally {
         if (!cancelled) {

@@ -217,7 +217,7 @@ export function useEditorExport({
     if (!exportSource.source) return;
     if (exporting) return;
     if (endTime <= startTime) {
-      setExportError("Waiting for media duration before export is available.");
+      setExportError("Waiting for media duration.");
       return;
     }
 
@@ -226,12 +226,12 @@ export function useEditorExport({
       && clippedSubtitleCues.length > 0;
 
     if (shouldBurnSubtitles && subtitleLoading) {
-      setExportError("Subtitles are still loading. Please wait a moment and try again.");
+      setExportError("Subtitles are still loading.");
       return;
     }
 
     if (shouldBurnSubtitles && !subtitleTrackSupportsBurnIn(selectedSubtitleTrack)) {
-      setExportError("This subtitle track cannot be burned in yet.");
+      setExportError("This subtitle track is not supported.");
       return;
     }
 
@@ -426,21 +426,21 @@ function buildExportSourceMessage({
   }
 
   if (resolvedSource.role === "local-file") {
-    return "Export will read the selected local file directly in this browser. The file is not uploaded to the Cliparr server.";
+    return "Export reads this local file in your browser.";
   }
 
   if (resolvedSource.role === "direct-url") {
     return isHlsEditorMediaSource(resolvedSource)
-      ? "Export will read the HLS URL through Cliparr so remote CORS settings do not block the browser."
-      : "Export will read the media URL through Cliparr so remote CORS settings do not block the browser.";
+      ? "Export reads this HLS URL through Cliparr."
+      : "Export reads this media URL through Cliparr.";
   }
 
   if (preference === "hls" && resolvedSourceKind === "hls" && !hlsFallbackInfo) {
-    return "Export will use the HLS playback stream. This follows the media server playback path and can include server-side transcoding.";
+    return "Export uses the HLS playback stream.";
   }
 
   if (resolvedSourceKind === "direct" && !hlsSource && directSource) {
-    return "This session only exposed a direct/original media path, so export will use that source.";
+    return "Export uses direct media.";
   }
 
   if (resolvedSourceKind === "direct" && preference !== "auto") {
@@ -453,16 +453,10 @@ function buildExportSourceMessage({
 
   const exportUsesDirectSource = resolvedSourceKind === "direct";
   const prefix = exportUsesDirectSource
-    ? ({
-        "open-or-read": "Export is using the direct media source because Cliparr could not open or read the HLS stream",
-        "preview-only": "Export is using the direct media source because Cliparr could not use the HLS stream for this export path",
-        "shared-export-blocking": "Export is using the direct media source because Cliparr cannot currently use this HLS stream for export",
-      } as const)[hlsFallbackInfo.category]
-    : ({
-        "open-or-read": "Export will still try the HLS stream even though preview fell back while opening or reading it",
-        "preview-only": "Export will still try the HLS stream because this limitation only affects preview in the current browser",
-        "shared-export-blocking": "Export cannot currently use this HLS stream",
-      } as const)[hlsFallbackInfo.category];
+    ? "Export switched to direct media"
+    : hlsFallbackInfo.category === "shared-export-blocking"
+      ? "Export cannot use this HLS stream"
+      : "Trying HLS";
 
   return `${prefix}: ${hlsFallbackInfo.message}`;
 }
@@ -484,7 +478,7 @@ function buildExportSourceSummaryMessage({
     && resolvedSource?.role === "direct"
     && hlsSource
   ) {
-    return "Export will use the direct/original media path. Cliparr still uses playback metadata for track and timing hints when it is available.";
+    return "Using direct media.";
   }
 
   return null;
