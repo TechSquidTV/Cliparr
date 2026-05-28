@@ -25,4 +25,21 @@ Before opening a pull request, run:
 
 <CommandBlock code={preflightCommands} label="Preflight" lang="bash" />
 
+Use a Conventional Commit pull request title, such as `feat: add subtitle presets`, `fix: preserve Jellyfin session ids`, or `ci: update release automation`.
+
+Cliparr uses squash merges with the pull request title as the squash commit title. Release automation uses merged pull request titles to choose the next SemVer version and generate release notes.
+
+Release-impacting title types:
+
+- `feat` creates a minor release.
+- `fix`, `perf`, `security`, and `build(deps)` create a patch release.
+- A breaking `!` creates a major release.
+- `docs`, `ci`, `chore`, `refactor`, `test`, `style`, and other `build` changes are included in notes but do not trigger a release by themselves.
+
+## Releases
+
+GitHub Releases are the canonical changelog. The manual `Release` workflow runs from `main`, publishes Docker images to GHCR, creates the GitHub Release, and triggers a Cloudflare Pages rebuild so `/changelog` mirrors the latest release notes.
+
+Use the workflow's dry-run mode before publishing. Real releases require the `CLOUDFLARE_PAGES_DEPLOY_HOOK_URL` repository secret.
+
 Do not include Plex tokens, Jellyfin credentials, server URLs, local media paths, or other private account details in issues, logs, screenshots, or pull requests.
