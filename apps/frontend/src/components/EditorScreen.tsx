@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import { Eye } from "lucide-react";
 import {
   clampClipEndTime,
@@ -12,7 +12,6 @@ import { useEditorExport } from "./editor/useEditorExport";
 import { useEditorKeyboardShortcuts } from "./editor/useEditorKeyboardShortcuts";
 import { useEditorTimeline } from "./editor/useEditorTimeline";
 import { EditorHeader } from "./editor/EditorHeader";
-import { EditorExportDialog } from "./editor/EditorExportDialog";
 import { EditorPreview } from "./editor/EditorPreview";
 import { EditorControls } from "./editor/EditorControls";
 import { EditorSidebar } from "./editor/EditorSidebar";
@@ -37,6 +36,12 @@ import {
   saveSubtitleStyleSettings,
 } from "../lib/subtitles/settings";
 import { trimSubtitleCues } from "../lib/subtitles/trimSubtitleCues";
+
+const EditorExportDialog = lazy(() =>
+  import("./editor/EditorExportDialog").then((module) => ({
+    default: module.EditorExportDialog,
+  }))
+);
 
 interface Props {
   session: EditorSession;
@@ -497,44 +502,48 @@ export default function EditorScreen({ session, onBack }: Props) {
         </div>
       </main>
 
-      <EditorExportDialog
-        isOpen={exportDialogOpen}
-        title={session.title}
-        clipStart={startTime}
-        clipEnd={endTime}
-        selectedFormat={exportFormat}
-        onFormatChange={handleFormatChange}
-        selectedResolution={resolution}
-        onResolutionChange={handleResolutionChange}
-        selectedSourcePreference={effectiveExportSourcePreference}
-        onSourcePreferenceChange={handleExportSourceChange}
-        includeAudio={includeAudio}
-        onIncludeAudioChange={handleAudioChange}
-        exporting={exporting}
-        progress={progress}
-        error={exportError}
-        fileNamePreview={fileName.fullName}
-        outputDimensions={outputDimensions}
-        hasHlsSource={Boolean(session.hlsSource)}
-        hasDirectSource={Boolean(session.directSource)}
-        directSourceLabel={session.directSource ? sourceDisplayLabel(session.directSource) : "Direct/original"}
-        hlsSourceLabel={session.hlsSource ? sourceDisplayLabel(session.hlsSource) : "HLS playback"}
-        exportSourceLabel={exportSourceLabel}
-        exportSourceMessage={exportSourceMessage}
-        exportSourceSummaryMessage={exportSourceSummaryMessage}
-        subtitleSummaryLabel={subtitleExportSummary.label}
-        subtitleSummaryDetail={subtitleExportSummary.detail}
-        subtitleSummaryTone={subtitleExportSummary.tone}
-        exportDisabledReason={exportDisabledReason}
-        activeTemplateKind={fileName.templateKind}
-        editingTemplateKind={templateEditorKind}
-        onEditingTemplateKindChange={setTemplateEditorKind}
-        fileNameTemplates={fileNameTemplates}
-        onFileNameTemplateChange={handleFileNameTemplateChange}
-        onResetFileNameTemplate={handleResetFileNameTemplate}
-        onClose={handleCloseExportDialog}
-        onExport={() => void handleExport()}
-      />
+      {exportDialogOpen && (
+        <Suspense fallback={null}>
+          <EditorExportDialog
+            isOpen={exportDialogOpen}
+            title={session.title}
+            clipStart={startTime}
+            clipEnd={endTime}
+            selectedFormat={exportFormat}
+            onFormatChange={handleFormatChange}
+            selectedResolution={resolution}
+            onResolutionChange={handleResolutionChange}
+            selectedSourcePreference={effectiveExportSourcePreference}
+            onSourcePreferenceChange={handleExportSourceChange}
+            includeAudio={includeAudio}
+            onIncludeAudioChange={handleAudioChange}
+            exporting={exporting}
+            progress={progress}
+            error={exportError}
+            fileNamePreview={fileName.fullName}
+            outputDimensions={outputDimensions}
+            hasHlsSource={Boolean(session.hlsSource)}
+            hasDirectSource={Boolean(session.directSource)}
+            directSourceLabel={session.directSource ? sourceDisplayLabel(session.directSource) : "Direct/original"}
+            hlsSourceLabel={session.hlsSource ? sourceDisplayLabel(session.hlsSource) : "HLS playback"}
+            exportSourceLabel={exportSourceLabel}
+            exportSourceMessage={exportSourceMessage}
+            exportSourceSummaryMessage={exportSourceSummaryMessage}
+            subtitleSummaryLabel={subtitleExportSummary.label}
+            subtitleSummaryDetail={subtitleExportSummary.detail}
+            subtitleSummaryTone={subtitleExportSummary.tone}
+            exportDisabledReason={exportDisabledReason}
+            activeTemplateKind={fileName.templateKind}
+            editingTemplateKind={templateEditorKind}
+            onEditingTemplateKindChange={setTemplateEditorKind}
+            fileNameTemplates={fileNameTemplates}
+            onFileNameTemplateChange={handleFileNameTemplateChange}
+            onResetFileNameTemplate={handleResetFileNameTemplate}
+            onClose={handleCloseExportDialog}
+            onExport={() => void handleExport()}
+          />
+        </Suspense>
+      )}
     </div>
   );
 }
