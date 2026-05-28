@@ -43,9 +43,11 @@ export function buildSubtitleExportSummary({
   if (!selectedSubtitleTrack || !subtitleEnabled) {
     return {
       label: "Not included",
-      detail: subtitleTrackCount > 0
-        ? "Subtitle burn-in is currently turned off for this export."
-        : "No supported text subtitle tracks are available for this session.",
+      detail: !selectedSubtitleTrack
+        ? subtitleTrackCount > 0
+          ? "No subtitle track selected."
+          : "No supported subtitles found."
+        : "Subtitles are off.",
       tone: "muted",
       disabledReason: null,
     };
@@ -55,26 +57,26 @@ export function buildSubtitleExportSummary({
 
   if (!subtitleTrackSupportsBurnIn(selectedSubtitleTrack)) {
     return {
-      label: "Unsupported track",
+      label: "Not supported",
       detail: subtitleTrackUnavailableMessage(selectedSubtitleTrack, providerId)
-        ?? `${trackName} cannot be burned in yet because it is not an exposed text subtitle stream.`,
+        ?? "This subtitle track is not supported.",
       tone: "warning",
-      disabledReason: "Choose a supported text subtitle track or turn subtitle burn-in off.",
+      disabledReason: "Choose another subtitle track or turn subtitles off.",
     };
   }
 
   if (subtitleLoading) {
     return {
-      label: "Loading cues",
-      detail: `${trackName} is still being prepared for burn-in.`,
+      label: "Loading",
+      detail: "Preparing subtitles.",
       tone: "warning",
-      disabledReason: "Subtitles are still loading. Please wait for the cue list to finish loading.",
+      disabledReason: "Subtitles are still loading.",
     };
   }
 
   if (subtitleError) {
     return {
-      label: "Subtitle issue",
+      label: "Issue",
       detail: subtitleError,
       tone: "warning",
       disabledReason: subtitleError,
@@ -83,16 +85,16 @@ export function buildSubtitleExportSummary({
 
   if (clippedSubtitleCueCount === 0) {
     return {
-      label: "No cues found",
-      detail: `${trackName} has no subtitle cues inside the selected clip range.`,
+      label: "None in range",
+      detail: "No subtitles in the selected range.",
       tone: "muted",
       disabledReason: null,
     };
   }
 
   return {
-    label: "Burned in",
-    detail: `${trackName} will be rendered into the exported video frames.`,
+    label: "Included",
+    detail: `${trackName} will be burned in.`,
     tone: "ready",
     disabledReason: null,
   };

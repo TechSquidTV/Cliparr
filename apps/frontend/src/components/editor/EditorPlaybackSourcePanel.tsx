@@ -27,7 +27,7 @@ export function EditorPlaybackSourcePanel({
 }: EditorPlaybackSourcePanelProps) {
   const sourceNote = fallbackMessage
     ?? (!hasHlsSource && previewSourceLabel === "Direct source"
-      ? "This session did not expose an HLS stream, so Cliparr is using the direct media path."
+      ? "Direct media only."
       : null);
 
   return (

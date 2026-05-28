@@ -303,7 +303,7 @@ export default function EditorScreen({ session, onBack }: Props) {
   useEditorKeyboardShortcuts({ togglePlay });
 
   const durationExportDisabledReason = !hasDuration
-    ? "Waiting for media duration before export is available."
+    ? "Waiting for media duration."
     : null;
   const exportDisabledReason = durationExportDisabledReason ?? subtitleExportSummary.disabledReason;
 
@@ -311,7 +311,7 @@ export default function EditorScreen({ session, onBack }: Props) {
     return (
       <div className="flex h-dvh items-center justify-center overflow-hidden bg-background p-8 text-foreground">
         <div className="text-center">
-          <p className="text-destructive mb-4">Could not find an exportable stream for this session.</p>
+          <p className="text-destructive mb-4">No exportable stream found.</p>
           <button onClick={onBack} className="text-primary hover:underline">Go Back</button>
         </div>
       </div>
@@ -381,7 +381,7 @@ export default function EditorScreen({ session, onBack }: Props) {
 
               {!hasDuration && (
                 <div className="border-t border-border px-3 py-3 text-sm text-muted-foreground">
-                  Waiting for media duration before clip controls can be adjusted.
+                  Waiting for media duration.
                 </div>
               )}
 
@@ -533,11 +533,9 @@ function buildPlaybackFallbackReason({
     return null;
   }
 
-  const prefix = ({
-    "open-or-read": "Preview is using the direct source because Cliparr could not open or read the HLS stream",
-    "preview-only": "Preview is using the direct source because this browser could not preview the HLS stream",
-    "shared-export-blocking": "Preview is using the direct source because Cliparr cannot currently use this HLS stream for preview or export",
-  } as const)[hlsFallbackInfo.category];
+  const prefix = hlsFallbackInfo.category === "preview-only"
+    ? "Preview switched sources"
+    : "Using direct media";
 
   return `${prefix}: ${hlsFallbackInfo.message}`;
 }

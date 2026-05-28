@@ -36,29 +36,29 @@ interface ExportOption<T extends string> {
 const formatOptions: ReadonlyArray<ExportOption<ExportFormat> & {
   extension: string;
 }> = [
-  {
-    value: "mp4",
-    label: "MP4",
-    extension: ".mp4",
-    description: "Best for everyday sharing, browser playback, and platform uploads.",
+    {
+      value: "mp4",
+      label: "MP4",
+      extension: ".mp4",
+      description: "Best for sharing and uploads.",
   },
   {
-    value: "webm",
-    label: "WEBM",
-    extension: ".webm",
-    description: "Modern web-first delivery with efficient browser-friendly playback.",
+      value: "webm",
+      label: "WEBM",
+      extension: ".webm",
+      description: "Efficient web playback.",
   },
   {
-    value: "mov",
-    label: "MOV",
-    extension: ".mov",
-    description: "A professional container that fits Adobe-style editorial workflows.",
+      value: "mov",
+      label: "MOV",
+      extension: ".mov",
+      description: "Good for editing workflows.",
   },
   {
-    value: "mkv",
-    label: "MKV",
-    extension: ".mkv",
-    description: "A flexible container for preserving a wider range of stream layouts.",
+      value: "mkv",
+      label: "MKV",
+      extension: ".mkv",
+      description: "Flexible container support.",
   },
 ];
 
@@ -121,17 +121,17 @@ function sourceOptionsFor(labels: {
     {
       value: "auto",
       label: "Auto",
-      description: "Lets Cliparr choose the safest export path for this session.",
+      description: "Chooses the best available path.",
     },
     {
       value: "direct",
       label: labels.directSourceLabel,
-      description: "Uses the direct media path when available, usually best for preserving source quality.",
+      description: "Uses direct media when available.",
     },
     {
       value: "hls",
       label: labels.hlsSourceLabel,
-      description: "Uses the playback stream or HLS playlist for this export.",
+      description: "Uses the playback stream.",
     },
   ];
 }
@@ -255,7 +255,7 @@ export function EditorExportSettingsSection({
                 </button>
               </TooltipTrigger>
               <TooltipContent side="top" align="start">
-                Track and timing detection can still use HLS metadata when Cliparr can read it. This only chooses which media path is used for the exported file.
+                Chooses the media path used for export.
               </TooltipContent>
             </Tooltip>
           </div>

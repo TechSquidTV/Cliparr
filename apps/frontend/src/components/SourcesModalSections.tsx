@@ -11,6 +11,11 @@ import {
   X,
 } from "lucide-react";
 import { cn } from "../lib/utils";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import type { MediaSource, ProviderSession } from "../providers/types";
 import { formatProviderName } from "./ProviderGlyph";
 import SourceConnectPanel from "./SourceConnectPanel";
@@ -20,6 +25,31 @@ export type SourceFilter = "all" | "enabled" | "disabled" | "attention";
 export interface Feedback {
   tone: "error" | "success" | "warning";
   message: string;
+}
+
+function TooltipWrap({
+  message,
+  children,
+}: {
+  message: string | null;
+  children: React.ReactElement;
+}) {
+  if (!message) {
+    return children;
+  }
+
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <span className="inline-flex" tabIndex={0}>
+          {children}
+        </span>
+      </TooltipTrigger>
+      <TooltipContent side="top">
+        {message}
+      </TooltipContent>
+    </Tooltip>
+  );
 }
 
 interface SourceCounts {
@@ -136,6 +166,19 @@ export function SourcesModalHeader({
   onRefreshAll,
   onClose,
 }: SourcesModalHeaderProps) {
+  const reloadDisabledReason = loading || reloading
+    ? "Source list is already loading."
+    : refreshingAll
+      ? "Wait for refresh to finish."
+      : null;
+  const refreshAllDisabledReason = counts.all === 0
+    ? "No sources to refresh."
+    : hasBusyActions || refreshingAll
+      ? "Wait for the current action to finish."
+      : loading || reloading
+        ? "Source list is still loading."
+        : null;
+
   return (
     <header className="border-b border-border bg-[linear-gradient(135deg,color-mix(in_oklch,var(--primary)_16%,transparent),transparent_55%),linear-gradient(180deg,color-mix(in_oklch,var(--muted)_82%,var(--card)),var(--card))] px-5 py-5 sm:px-8 sm:py-7">
       <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
@@ -147,7 +190,7 @@ export function SourcesModalHeader({
           <div className="space-y-2">
             <h2 className="text-2xl font-semibold tracking-tight sm:text-3xl">Manage Sources</h2>
             <p className="max-w-2xl text-sm text-muted-foreground sm:text-base">
-              Connect new servers, update saved source details, run health checks, and clean up anything you no longer want Cliparr to query.
+              Connect servers, edit details, and run health checks.
             </p>
           </div>
           <div className="flex flex-wrap gap-3 text-sm">
@@ -174,27 +217,31 @@ export function SourcesModalHeader({
               className="inline-flex items-center gap-2 rounded-xl border border-border bg-background/80 px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-accent disabled:cursor-not-allowed disabled:opacity-60"
             >
               <Plus className={cn("h-4 w-4 transition-transform", showConnectPanel && "rotate-45")} />
-              {showConnectPanel ? "Hide Add Source" : "Add Source"}
+              {showConnectPanel ? "Hide" : "Add Source"}
             </button>
           )}
-          <button
-            type="button"
-            onClick={onReloadList}
-            disabled={loading || reloading || refreshingAll}
-            className="inline-flex items-center gap-2 rounded-xl border border-border bg-background/80 px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-accent disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            <RefreshCw className={cn("h-4 w-4", (reloading || loading) && "animate-spin")} />
-            Reload List
-          </button>
-          <button
-            type="button"
-            onClick={onRefreshAll}
-            disabled={loading || reloading || refreshingAll || hasBusyActions || counts.all === 0}
-            className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            <RefreshCw className={cn("h-4 w-4", refreshingAll && "animate-spin")} />
-            Refresh All
-          </button>
+          <TooltipWrap message={reloadDisabledReason}>
+            <button
+              type="button"
+              onClick={onReloadList}
+              disabled={loading || reloading || refreshingAll}
+              className="inline-flex items-center gap-2 rounded-xl border border-border bg-background/80 px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-accent disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              <RefreshCw className={cn("h-4 w-4", (reloading || loading) && "animate-spin")} />
+              Reload
+            </button>
+          </TooltipWrap>
+          <TooltipWrap message={refreshAllDisabledReason}>
+            <button
+              type="button"
+              onClick={onRefreshAll}
+              disabled={loading || reloading || refreshingAll || hasBusyActions || counts.all === 0}
+              className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              <RefreshCw className={cn("h-4 w-4", refreshingAll && "animate-spin")} />
+              Refresh All
+            </button>
+          </TooltipWrap>
           <button
             type="button"
             onClick={onClose}
@@ -363,7 +410,7 @@ export function SourcesConnectSection({
             className="inline-flex items-center gap-2 rounded-xl border border-border bg-card px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-accent"
           >
             <X className="h-4 w-4" />
-            Close Panel
+            Close
           </button>
         )}
       </div>
@@ -433,6 +480,16 @@ export function SourceCard({
     && Boolean(trimmedBaseUrl)
     && !isBusy
     && (trimmedName !== source.name || trimmedBaseUrl !== source.baseUrl);
+  const saveDisabledReason = isBusy
+    ? "Wait for the current action to finish."
+    : !trimmedName
+      ? "Enter a display name."
+      : !trimmedBaseUrl
+        ? "Enter a server URL."
+        : trimmedName === source.name && trimmedBaseUrl === source.baseUrl
+          ? "No changes to save."
+          : null;
+  const busyDisabledReason = isBusy ? "Wait for the current action to finish." : null;
   const product = stringValue(source.metadata.product);
   const platform = stringValue(source.metadata.platform);
 
@@ -526,45 +583,53 @@ export function SourceCard({
       )}
 
       <div className="mt-5 flex flex-wrap gap-2">
-        <button
-          type="button"
-          onClick={() => void onSave()}
-          disabled={!canSaveEdits}
-          className="rounded-xl border border-border bg-card px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-accent disabled:cursor-not-allowed disabled:opacity-60"
-        >
-          Save Changes
-        </button>
-        <button
-          type="button"
-          onClick={() => void onToggleEnabled()}
-          disabled={isBusy}
-          className={cn(
-            "rounded-xl px-4 py-2 text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-60",
-            source.enabled
-              ? "bg-muted text-foreground hover:bg-accent"
-              : "bg-primary text-primary-foreground hover:bg-primary/90"
-          )}
-        >
-          {source.enabled ? "Disable" : "Enable"}
-        </button>
-        <button
-          type="button"
-          onClick={() => void onRefresh()}
-          disabled={isBusy}
-          className="inline-flex items-center gap-2 rounded-xl border border-border bg-card px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-accent disabled:cursor-not-allowed disabled:opacity-60"
-        >
-          <RefreshCw className={cn("h-4 w-4", busyAction === "Refreshing..." && "animate-spin")} />
-          Refresh
-        </button>
-        <button
-          type="button"
-          onClick={() => void onRemove()}
-          disabled={isBusy}
-          className="inline-flex items-center gap-2 rounded-xl border border-destructive/20 bg-destructive/10 px-4 py-2 text-sm font-medium text-destructive transition-colors hover:bg-destructive hover:text-destructive-foreground disabled:cursor-not-allowed disabled:opacity-60"
-        >
-          <Trash2 className="h-4 w-4" />
-          Remove
-        </button>
+        <TooltipWrap message={!canSaveEdits ? saveDisabledReason : null}>
+          <button
+            type="button"
+            onClick={() => void onSave()}
+            disabled={!canSaveEdits}
+            className="rounded-xl border border-border bg-card px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-accent disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            Save Changes
+          </button>
+        </TooltipWrap>
+        <TooltipWrap message={busyDisabledReason}>
+          <button
+            type="button"
+            onClick={() => void onToggleEnabled()}
+            disabled={isBusy}
+            className={cn(
+              "rounded-xl px-4 py-2 text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-60",
+              source.enabled
+                ? "bg-muted text-foreground hover:bg-accent"
+                : "bg-primary text-primary-foreground hover:bg-primary/90"
+            )}
+          >
+            {source.enabled ? "Disable" : "Enable"}
+          </button>
+        </TooltipWrap>
+        <TooltipWrap message={busyDisabledReason}>
+          <button
+            type="button"
+            onClick={() => void onRefresh()}
+            disabled={isBusy}
+            className="inline-flex items-center gap-2 rounded-xl border border-border bg-card px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-accent disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            <RefreshCw className={cn("h-4 w-4", busyAction === "Refreshing..." && "animate-spin")} />
+            Refresh
+          </button>
+        </TooltipWrap>
+        <TooltipWrap message={busyDisabledReason}>
+          <button
+            type="button"
+            onClick={() => void onRemove()}
+            disabled={isBusy}
+            className="inline-flex items-center gap-2 rounded-xl border border-destructive/20 bg-destructive/10 px-4 py-2 text-sm font-medium text-destructive transition-colors hover:bg-destructive hover:text-destructive-foreground disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            <Trash2 className="h-4 w-4" />
+            Remove
+          </button>
+        </TooltipWrap>
       </div>
     </article>
   );

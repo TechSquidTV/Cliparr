@@ -158,7 +158,7 @@ export function resolvePlaybackDuration(
 
 export function buildPlaybackLoadError(failures: PlaybackLoadFailure[]) {
   if (failures.length === 0) {
-    return "Playback could not be loaded.";
+    return "Playback failed.";
   }
 
   if (failures.length === 1) {
@@ -167,10 +167,10 @@ export function buildPlaybackLoadError(failures: PlaybackLoadFailure[]) {
 
   const uniqueMessages = [...new Set(failures.map((failure) => failure.message))];
   if (uniqueMessages.length === 1) {
-    return `Cliparr could not open any playback stream. ${uniqueMessages[0]}`;
+    return `Playback failed. ${uniqueMessages[0]}`;
   }
 
-  return `Cliparr could not open any playback stream. ${failures.map(describePlaybackFailure).join(" ")}`;
+  return `Playback failed. ${failures.map(describePlaybackFailure).join(" ")}`;
 }
 
 export function browserDecoderEnvironmentWarning() {
@@ -184,10 +184,10 @@ export function browserDecoderEnvironmentWarning() {
   }
 
   if (!window.isSecureContext) {
-    return `Browser WebCodecs ${missingDecoders.join(" and ")} decoding is unavailable from ${window.location.origin}. Open Cliparr over HTTPS, localhost, or 127.0.0.1 so the editor can decode media. Jellyfin playback can still work on this origin because its native player does not use the same editor decoder APIs.`;
+    return `Browser decoding is blocked on ${window.location.origin}. Open Cliparr over HTTPS, localhost, or 127.0.0.1.`;
   }
 
-  return `Browser WebCodecs ${missingDecoders.join(" and ")} decoding is unavailable in this browser.`;
+  return `Browser ${missingDecoders.join(" and ")} decoding is unavailable.`;
 }
 
 async function assessPreviewVideoTrack(track: InputVideoTrack | null) {

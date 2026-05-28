@@ -136,7 +136,7 @@ export function EditorExportDialog({
                 Export Clip
               </h2>
               <p className="text-xs text-muted-foreground">
-                Configure export settings and review the output filename before download.
+                Review settings before download.
               </p>
             </div>
 

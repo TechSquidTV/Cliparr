@@ -9,6 +9,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import {
   subtitleTrackKey,
@@ -155,10 +160,16 @@ export function EditorSubtitlePanel({
   } = useSubtitleFontOptions(subtitleStyleSettings.fontFamily);
   const unavailableMessage = subtitleTrackUnavailableMessage(selectedSubtitleTrack, providerId);
   const subtitleWarning = subtitleTracks.length === 0
-    ? "No supported text subtitle tracks are available for this session."
+    ? "No supported subtitles found."
     : !selectedSubtitleTrack
-      ? "Choose a subtitle track to preview and burn it into the clip."
-      : unavailableMessage ?? "This subtitle track exists, but it is not yet supported for styled burn-in.";
+      ? "Choose a subtitle track."
+      : unavailableMessage ?? "This subtitle track is not supported.";
+  const subtitleToggleTooltip = !canEnableBurnIn ? subtitleWarning : null;
+  const styleTooltip = styleControlsDisabled
+    ? subtitlesEnabled
+      ? subtitleWarning
+      : "Turn subtitles on to edit style."
+    : null;
 
   function updateStyleSetting<Key extends keyof SubtitleStyleSettings>(
     key: Key,
@@ -178,26 +189,48 @@ export function EditorSubtitlePanel({
             <div className="text-[11px] font-semibold uppercase tracking-[var(--tracking-caps-lg)] text-muted-foreground">
               Subtitles
             </div>
-            <p className="text-xs text-sidebar-foreground">
-              Pull provider subtitles into the editor and render them directly into the exported clip.
-            </p>
           </div>
 
-          <label className={cn(
-            "inline-flex items-center gap-2 rounded-[var(--radius-control)] border px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[var(--tracking-caps-lg)]",
-            subtitlesEnabled && canEnableBurnIn
-              ? "border-primary/35 bg-primary/10 text-primary"
-              : "border-sidebar-border bg-sidebar text-muted-foreground"
-          )}>
-            <input
-              type="checkbox"
-              checked={subtitlesEnabled}
-              disabled={!canEnableBurnIn}
-              onChange={(event) => onSubtitlesEnabledChange(event.target.checked)}
-              className="h-3.5 w-3.5 accent-primary"
-            />
-            Enabled
-          </label>
+          {subtitleToggleTooltip ? (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span className="inline-flex" tabIndex={0}>
+                  <label className={cn(
+                    "inline-flex items-center gap-2 rounded-[var(--radius-control)] border px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[var(--tracking-caps-lg)]",
+                    "border-sidebar-border bg-sidebar text-muted-foreground"
+                  )}>
+                    <input
+                      type="checkbox"
+                      checked={subtitlesEnabled}
+                      disabled={!canEnableBurnIn}
+                      onChange={(event) => onSubtitlesEnabledChange(event.target.checked)}
+                      className="h-3.5 w-3.5 accent-primary"
+                    />
+                    Enabled
+                  </label>
+                </span>
+              </TooltipTrigger>
+              <TooltipContent side="left">
+                {subtitleToggleTooltip}
+              </TooltipContent>
+            </Tooltip>
+          ) : (
+            <label className={cn(
+              "inline-flex items-center gap-2 rounded-[var(--radius-control)] border px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[var(--tracking-caps-lg)]",
+              subtitlesEnabled && canEnableBurnIn
+                ? "border-primary/35 bg-primary/10 text-primary"
+                : "border-sidebar-border bg-sidebar text-muted-foreground"
+            )}>
+              <input
+                type="checkbox"
+                checked={subtitlesEnabled}
+                disabled={!canEnableBurnIn}
+                onChange={(event) => onSubtitlesEnabledChange(event.target.checked)}
+                className="h-3.5 w-3.5 accent-primary"
+              />
+              Enabled
+            </label>
+          )}
         </div>
 
         <label className="space-y-1.5">
@@ -253,7 +286,7 @@ export function EditorSubtitlePanel({
         {subtitleLoading && (
           <div className="flex items-center gap-2 text-xs text-muted-foreground">
             <LoaderCircle className="h-3.5 w-3.5 animate-spin" />
-            Loading subtitle cues...
+            Loading subtitles...
           </div>
         )}
 
@@ -270,9 +303,22 @@ export function EditorSubtitlePanel({
             styleControlsDisabled && "opacity-65"
           )}
         >
-          <div className="text-[11px] font-semibold uppercase tracking-[var(--tracking-caps-lg)] text-muted-foreground">
-            Style
-          </div>
+          {styleTooltip ? (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div className="w-fit text-[11px] font-semibold uppercase tracking-[var(--tracking-caps-lg)] text-muted-foreground">
+                  Style
+                </div>
+              </TooltipTrigger>
+              <TooltipContent side="top" align="start">
+                {styleTooltip}
+              </TooltipContent>
+            </Tooltip>
+          ) : (
+            <div className="text-[11px] font-semibold uppercase tracking-[var(--tracking-caps-lg)] text-muted-foreground">
+              Style
+            </div>
+          )}
 
           <label className="block space-y-1.5">
             <span className="text-[11px] font-semibold uppercase tracking-[var(--tracking-caps-lg)] text-muted-foreground">
@@ -321,7 +367,7 @@ export function EditorSubtitlePanel({
                 {loadingLocalFonts && (
                   <div className="flex items-center gap-2 px-2 py-1.5 text-xs text-muted-foreground">
                     <LoaderCircle className="h-3.5 w-3.5 animate-spin" />
-                    Looking for installed fonts...
+                    Loading installed fonts...
                   </div>
                 )}
               </SelectContent>

@@ -132,12 +132,12 @@ export default function SourcesModal({ isOpen, onClose, onSourcesChanged }: Prop
             ) : sources.length === 0 ? (
               <SourcesEmptyState
                 title="No sources connected yet"
-                description="Use the add-source panel above to connect your first Plex or Jellyfin server."
+                description="Connect a Plex or Jellyfin server to get started."
               />
             ) : filteredSources.length === 0 ? (
               <SourcesEmptyState
                 title="No sources match this view"
-                description="Try a different filter, clear your search, or reconnect a provider to discover additional media servers."
+                description="Try another filter or search."
               />
             ) : (
               <div className="grid gap-4 xl:grid-cols-2">

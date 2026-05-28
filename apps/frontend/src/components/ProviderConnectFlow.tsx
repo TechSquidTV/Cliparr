@@ -74,11 +74,11 @@ export default function ProviderConnectFlow({
       return (
         <div className="space-y-4">
           <div className="rounded-2xl border border-border bg-card px-4 py-4 text-sm text-muted-foreground">
-            Cliparr will open the provider sign-in page in a new tab and keep polling here until the auth completes.
+            A new tab will open for sign-in.
           </div>
 
           <div className="rounded-2xl border border-border bg-card px-4 py-4 text-sm text-muted-foreground">
-            Connected providers stay available from this Sources screen, so you can keep adding servers over time.
+            Connected servers stay in Sources.
           </div>
 
           <div className="flex flex-wrap gap-3 pt-1">
@@ -113,11 +113,11 @@ export default function ProviderConnectFlow({
       <div className="flex h-full flex-col justify-between gap-6">
         <div className="space-y-4">
           <div className="rounded-2xl border border-border bg-card px-4 py-4 text-sm text-muted-foreground">
-            Cliparr will open the provider sign-in page in a new tab and keep polling here until the auth completes.
+            A new tab will open for sign-in.
           </div>
 
           <div className="rounded-2xl border border-border bg-card px-4 py-4 text-sm text-muted-foreground">
-            Once this account is connected, Cliparr can discover Plex servers now and you can add more sources later from the Sources screen.
+            Add more sources later from Sources.
           </div>
         </div>
 
@@ -135,7 +135,7 @@ export default function ProviderConnectFlow({
           </button>
 
           <p className="text-center text-xs leading-6 text-muted-foreground">
-            The provider picker stays here, so you can switch to another source option without the whole window jumping around.
+            You can switch providers any time.
           </p>
         </div>
       </div>
@@ -184,7 +184,7 @@ export default function ProviderConnectFlow({
               )}
             >
               <p className="leading-6">
-                Running the Docker dev setup? Cliparr can reach Jellyfin at{" "}
+                Docker Jellyfin URL:{" "}
                 <span className="font-mono text-foreground">{devJellyfinUrl}</span>.
               </p>
 
@@ -210,7 +210,7 @@ export default function ProviderConnectFlow({
 
                 {isScreen && isUsingDevJellyfinUrl && (
                   <span className="text-xs text-muted-foreground">
-                    The input above is already set to the Docker service URL.
+                    Already selected.
                   </span>
                 )}
               </div>
@@ -220,8 +220,7 @@ export default function ProviderConnectFlow({
           {jellyfinLoopbackWarning && (
             <div className="rounded-2xl border border-primary/25 bg-primary/10 px-4 py-3 text-sm text-foreground">
               <p className="leading-6">
-                In this Docker setup, <span className="font-mono">localhost</span> points at the Cliparr container. Cliparr will translate this to{" "}
-                <span className="font-mono">{devJellyfinUrl}</span> when it talks to Jellyfin.
+                Docker will use <span className="font-mono">{devJellyfinUrl}</span> for this localhost URL.
               </p>
             </div>
           )}
@@ -255,7 +254,7 @@ export default function ProviderConnectFlow({
           </div>
 
           <p className="text-xs leading-6 text-muted-foreground">
-            Cliparr stores the access token Jellyfin returns after sign-in. Your password is only used for this connection step.
+            Your password is only used to request a Jellyfin token.
           </p>
         </div>
 
@@ -273,7 +272,7 @@ export default function ProviderConnectFlow({
             </button>
 
             <p className="text-center text-xs leading-6 text-muted-foreground">
-              Connect one server now, then add more Plex or Jellyfin sources later from the Sources screen.
+              Add more servers later from Sources.
             </p>
           </div>
         ) : (
@@ -310,7 +309,7 @@ export default function ProviderConnectFlow({
       return null;
     }
 
-    const content = `Finish sign-in in the ${providerLabel(providerId)} tab. This screen will continue automatically.`;
+    const content = `Finish sign-in in the ${providerLabel(providerId)} tab.`;
 
     if (!isScreen) {
       return (
@@ -422,7 +421,7 @@ export default function ProviderConnectFlow({
     if (!error && providers.length === 0) {
       return (
         <ProviderStatusMessage isScreen={isScreen}>
-          No providers are currently available.
+          No providers available.
         </ProviderStatusMessage>
       );
     }
@@ -430,7 +429,7 @@ export default function ProviderConnectFlow({
     if (providers.length === 0) {
       return (
         <ProviderStatusMessage isScreen={isScreen}>
-          We could not load providers yet.
+          Could not load providers.
         </ProviderStatusMessage>
       );
     }

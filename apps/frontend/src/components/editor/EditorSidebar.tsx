@@ -1,6 +1,11 @@
 import type { CSSProperties, ReactNode } from "react";
 import { PanelRightClose, PanelRightOpen, type LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 interface EditorSidebarProps {
   open: boolean;
@@ -46,14 +51,21 @@ export function EditorSidebar({
             "flex gap-3 border-b border-sidebar-border p-3",
             description ? "items-start" : "items-center",
           )}>
-            <button
-              type="button"
-              onClick={() => onOpenChange(false)}
-              className={cn(sidebarControlClassName(), "shrink-0")}
-              aria-label={`Collapse ${title.toLowerCase()} sidebar`}
-            >
-              <PanelRightClose className="h-4 w-4" />
-            </button>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  type="button"
+                  onClick={() => onOpenChange(false)}
+                  className={cn(sidebarControlClassName(), "shrink-0")}
+                  aria-label={`Collapse ${title.toLowerCase()} sidebar`}
+                >
+                  <PanelRightClose className="h-4 w-4" />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent side="left">
+                Collapse {title.toLowerCase()}
+              </TooltipContent>
+            </Tooltip>
 
             <div className={cn(
               "min-w-0 flex-1",
@@ -76,14 +88,21 @@ export function EditorSidebar({
         </div>
       ) : (
         <>
-          <button
-            type="button"
-            onClick={() => onOpenChange(true)}
-            className={cn(sidebarControlClassName(), "absolute left-2 top-3 z-10")}
-            aria-label={`Expand ${title.toLowerCase()} sidebar`}
-          >
-            <PanelRightOpen className="h-4 w-4" />
-          </button>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                type="button"
+                onClick={() => onOpenChange(true)}
+                className={cn(sidebarControlClassName(), "absolute left-2 top-3 z-10")}
+                aria-label={`Expand ${title.toLowerCase()} sidebar`}
+              >
+                <PanelRightOpen className="h-4 w-4" />
+              </button>
+            </TooltipTrigger>
+            <TooltipContent side="left">
+              Expand {title.toLowerCase()}
+            </TooltipContent>
+          </Tooltip>
 
           <div className="flex w-full flex-col items-center justify-between pt-14 pb-3">
           <div className="flex flex-col items-center gap-3">

@@ -121,6 +121,6 @@ void test("deduplicates playback load errors that share the same underlying mess
 
   assert.equal(
     buildPlaybackLoadError(failures),
-    "Cliparr could not open any playback stream. Network denied",
+    "Playback failed. Network denied",
   );
 });
