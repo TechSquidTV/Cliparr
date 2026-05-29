@@ -1,4 +1,5 @@
 ---
+import { ClientRouter, fade } from "astro:transitions";
 import Footer from "./Footer.astro";
 import Header from "./Header.astro";
 import { site } from "../data/product";
@@ -11,6 +12,9 @@ interface Props {
 
 const { title, description = site.description } = Astro.props;
 const pageTitle = title ? `${title} | ${site.name}` : `${site.name} | ${site.description}`;
+const pageTransition = fade({
+  duration: "180ms",
+});
 const canonicalUrl = new URL(Astro.url.pathname, site.url).toString();
 const socialImageUrl = new URL(site.ogImage, site.url).toString();
 const homepageSchema =
@@ -67,6 +71,11 @@ const homepageSchema =
     {homepageSchema && <script is:inline type="application/ld+json" set:html={JSON.stringify(homepageSchema)} />}
     <script is:inline>
       (() => {
+        if (window.__cliparrTheme?.ready) {
+          window.__cliparrTheme.syncTheme();
+          return;
+        }
+
         const storageKey = "cliparr-theme";
         const query = window.matchMedia("(prefers-color-scheme: dark)");
 
@@ -96,11 +105,16 @@ const homepageSchema =
           });
         };
 
-        const applyTheme = () => {
+        const applyTheme = (root = document.documentElement) => {
           const theme = getTheme();
-          document.documentElement.dataset.theme = theme;
-          document.documentElement.dataset.themeSource = getSource();
-          document.documentElement.style.colorScheme = theme;
+          root.dataset.theme = theme;
+          root.dataset.themeSource = getSource();
+          root.style.colorScheme = theme;
+        };
+
+        const syncTheme = () => {
+          applyTheme();
+          updateControls();
         };
 
         const setTheme = (theme) => {
@@ -108,8 +122,7 @@ const homepageSchema =
             window.localStorage.setItem(storageKey, theme);
           } catch {
           }
-          applyTheme();
-          updateControls();
+          syncTheme();
         };
 
         const toggleTheme = () => {
@@ -132,18 +145,30 @@ const homepageSchema =
           toggleTheme();
         });
 
+        document.addEventListener("astro:before-swap", (event) => {
+          applyTheme(event.newDocument.documentElement);
+        });
+
+        document.addEventListener("astro:page-load", syncTheme);
         query.addEventListener("change", () => {
           if (!getStoredTheme()) {
-            applyTheme();
-            updateControls();
+            syncTheme();
           }
         });
+
+        window.__cliparrTheme = {
+          ready: true,
+          syncTheme,
+          setTheme,
+          toggleTheme,
+        };
       })();
     </script>
+    <ClientRouter />
   </head>
   <body>
     <Header />
-    <main>
+    <main transition:name="page-content" transition:animate={pageTransition}>
       <slot />
     </main>
     <Footer />
