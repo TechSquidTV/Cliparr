@@ -1,11 +1,11 @@
 import type { MediaSource, MediaSourceCheckResult } from "../providers/types";
 import type { Feedback, SourceFilter } from "./SourcesModalSections";
 
-export function compareStrings(left: string, right: string) {
+function compareStrings(left: string, right: string) {
   return left.localeCompare(right, undefined, { sensitivity: "base" });
 }
 
-export function stringValue(value: unknown) {
+function stringValue(value: unknown) {
   return typeof value === "string" && value.trim() ? value.trim() : undefined;
 }
 
