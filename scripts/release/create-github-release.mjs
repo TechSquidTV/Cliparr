@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 import { appendFileSync, readFileSync } from "node:fs";
+import { pathToFileURL } from "node:url";
 
-function parseArgs(argv) {
+export function parseArgs(argv) {
   const args = {
     dryRun: false,
     prerelease: false,
@@ -27,7 +28,7 @@ function parseArgs(argv) {
     ) {
       const value = argv[index + 1];
 
-      if (!value) {
+      if (value === undefined) {
         throw new Error(`${arg} requires a value.`);
       }
 
@@ -75,7 +76,7 @@ function readDockerTags(filePath) {
     .filter(Boolean);
 }
 
-function composeReleaseBody({ generatedBody, imageName, imageDigest, dockerTags }) {
+export function composeReleaseBody({ generatedBody, imageName, imageDigest, dockerTags }) {
   const pullTag = dockerTags.find((tag) => !tag.endsWith(":latest") && !/:sha-[a-f0-9]+$/u.test(tag)) ?? dockerTags[0];
   const dockerLines = [
     "## Docker image",
@@ -107,8 +108,8 @@ function writeGithubOutput(outputs) {
   appendFileSync(outputFile, `${Object.entries(outputs).map(([key, value]) => `${key}=${value}`).join("\n")}\n`);
 }
 
-try {
-  const args = parseArgs(process.argv.slice(2));
+export async function main(argv = process.argv.slice(2)) {
+  const args = parseArgs(argv);
   const token = process.env.GITHUB_TOKEN ?? process.env.GH_TOKEN;
 
   if (!token) {
@@ -155,7 +156,13 @@ try {
 
   console.log(`Created release ${release.html_url}`);
   writeGithubOutput({ html_url: release.html_url });
-} catch (error) {
-  console.error(error instanceof Error ? error.message : error);
-  process.exit(1);
+}
+
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+  try {
+    await main();
+  } catch (error) {
+    console.error(error instanceof Error ? error.message : error);
+    process.exit(1);
+  }
 }
