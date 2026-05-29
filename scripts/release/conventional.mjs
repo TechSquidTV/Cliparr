@@ -218,8 +218,10 @@ export function extractReleaseTitleFromCommitMessage(message) {
 
 export function extractPullRequestNumberFromCommitMessage(message) {
   const subject = message.replace(/\r\n/g, "\n").split("\n")[0]?.trim() ?? "";
-  const match = /^Merge pull request #(?<number>\d+) /u.exec(subject);
-  return match?.groups?.number ? Number(match.groups.number) : undefined;
+  const match = /^(?:Merge pull request #(?<mergeNumber>\d+) |\S[\s\S]* \(#(?<squashNumber>\d+)\)$)/u.exec(subject);
+  const number = match?.groups?.mergeNumber ?? match?.groups?.squashNumber;
+
+  return number ? Number(number) : undefined;
 }
 
 export function parseGitLogMessages(logOutput) {
