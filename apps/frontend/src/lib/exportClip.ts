@@ -7,7 +7,7 @@ import {
   Output,
   WebMOutputFormat,
 } from "mediabunny";
-import type { ConversionOptions, DiscardedTrack, VideoSample } from "mediabunny";
+import type { ConversionOptions, VideoSample } from "mediabunny";
 import type { EditorMediaSource } from "./editorMedia";
 import { createCliparrInputFromSource } from "./mediabunnyInput";
 import { ensureMediabunnyCodecs } from "./mediabunnyCodecs";
@@ -48,11 +48,20 @@ interface ExportClipOptions {
   onProgress: (progress: number) => void;
 }
 
-async function buildAudioDroppedError(discardedTracks: readonly DiscardedTrack[]) {
-  const discardedDetails = await describeDiscardedTracks(discardedTracks);
-  const suffix = discardedDetails ? ` ${discardedDetails}` : " Mediabunny did not report a discarded-track reason.";
-
-  return new Error(`Export would drop the source audio track.${suffix}`);
+interface ExportClipRuntime {
+  ensureMediabunnyCodecs: typeof ensureMediabunnyCodecs;
+  createCliparrInputFromSource: typeof createCliparrInputFromSource;
+  selectPreferredPairableAudioTrack: typeof selectPreferredPairableAudioTrack;
+  getTrackTimelineOffsetSeconds: typeof getTrackTimelineOffsetSeconds;
+  getVideoTrackDimensions: typeof getVideoTrackDimensions;
+  buildMetadataTags: typeof buildMetadataTags;
+  describeDiscardedTracks: typeof describeDiscardedTracks;
+  patchMp4MetadataBoxes: typeof patchMp4MetadataBoxes;
+  createOutputFormat: typeof createOutputFormat;
+  createBufferTarget: () => BufferTarget;
+  createOutput: (options: ConstructorParameters<typeof Output>[0]) => Output;
+  initConversion: typeof Conversion.init;
+  buildSubtitleBurnInProcessor: typeof buildSubtitleBurnInProcessor;
 }
 
 function createOutputFormat(format: ExportFormat) {
@@ -114,23 +123,71 @@ export async function exportClip({
   subtitleStyleSettings,
   onProgress,
 }: ExportClipOptions) {
-  await ensureMediabunnyCodecs();
+  return exportClipWithRuntime({
+    mediaSource,
+    hls,
+    startTime,
+    endTime,
+    format,
+    resolution,
+    includeAudio,
+    selectedAudioTrack,
+    metadata,
+    includeBurnedSubtitles,
+    subtitleCues,
+    subtitleStyleSettings,
+    onProgress,
+  }, defaultExportClipRuntime);
+}
 
-  const input = await createCliparrInputFromSource(mediaSource, { hls });
+const defaultExportClipRuntime: ExportClipRuntime = {
+  ensureMediabunnyCodecs,
+  createCliparrInputFromSource,
+  selectPreferredPairableAudioTrack,
+  getTrackTimelineOffsetSeconds,
+  getVideoTrackDimensions,
+  buildMetadataTags,
+  describeDiscardedTracks,
+  patchMp4MetadataBoxes,
+  createOutputFormat,
+  createBufferTarget: () => new BufferTarget(),
+  createOutput: (options) => new Output(options),
+  initConversion: (options) => Conversion.init(options),
+  buildSubtitleBurnInProcessor,
+};
+
+export async function exportClipWithRuntime({
+  mediaSource,
+  hls,
+  startTime,
+  endTime,
+  format,
+  resolution,
+  includeAudio,
+  selectedAudioTrack,
+  metadata,
+  includeBurnedSubtitles = false,
+  subtitleCues = [],
+  subtitleStyleSettings,
+  onProgress,
+}: ExportClipOptions, runtime: ExportClipRuntime) {
+  await runtime.ensureMediabunnyCodecs();
+
+  const input = await runtime.createCliparrInputFromSource(mediaSource, { hls });
 
   try {
     const sourceVideoTrack = await input.getPrimaryVideoTrack({
       filter: async (track) => !(await track.hasOnlyKeyPackets()),
     });
     const sourceAudioTracks = await input.getAudioTracks();
-    const preferredAudioTrack = await selectPreferredPairableAudioTrack(
+    const preferredAudioTrack = await runtime.selectPreferredPairableAudioTrack(
       sourceVideoTrack,
       sourceAudioTracks,
       selectedAudioTrack
     );
     const sourceHasAudio = sourceAudioTracks.length > 0;
 
-    const timelineOffsetSeconds = await getTrackTimelineOffsetSeconds([
+    const timelineOffsetSeconds = await runtime.getTrackTimelineOffsetSeconds([
       sourceVideoTrack,
       includeAudio ? preferredAudioTrack : undefined,
     ]);
@@ -138,7 +195,7 @@ export async function exportClip({
     const trimEnd = toSourceTimelineTime(endTime, timelineOffsetSeconds);
 
     const sourceVideoDimensions = sourceVideoTrack
-      ? await getVideoTrackDimensions(sourceVideoTrack)
+      ? await runtime.getVideoTrackDimensions(sourceVideoTrack)
       : null;
     const outputHeight = resolution === "original" ? sourceVideoDimensions?.height : parseInt(resolution, 10);
     const clippedSubtitleCues = includeBurnedSubtitles && subtitleCues.length > 0
@@ -154,10 +211,10 @@ export async function exportClip({
       throw new Error("Subtitle burn-in requires a video track.");
     }
 
-    const outputFormat = createOutputFormat(format);
-    const target = new BufferTarget();
-    const metadataTags = await buildMetadataTags(metadata, startTime, endTime, outputHeight, format);
-    const output = new Output({
+    const outputFormat = runtime.createOutputFormat(format);
+    const target = runtime.createBufferTarget();
+    const metadataTags = await runtime.buildMetadataTags(metadata, startTime, endTime, outputHeight, format);
+    const output = runtime.createOutput({
       format: outputFormat,
       target,
     });
@@ -206,7 +263,7 @@ export async function exportClip({
         ...(shouldBurnSubtitles && subtitleStyleSettings
           ? {
               forceTranscode: true,
-              process: buildSubtitleBurnInProcessor(clippedSubtitleCues, subtitleStyleSettings),
+              process: runtime.buildSubtitleBurnInProcessor(clippedSubtitleCues, subtitleStyleSettings),
             }
           : {}),
       });
@@ -217,17 +274,19 @@ export async function exportClip({
       };
     }
 
-    const conversion = await Conversion.init(conversionOptions);
+    const conversion = await runtime.initConversion(conversionOptions);
     const utilizedAudioTracks = conversion.utilizedTracks.filter((track) => track.isAudioTrack());
 
     if (!conversion.isValid) {
-      const discardedDetails = await describeDiscardedTracks(conversion.discardedTracks);
+      const discardedDetails = await runtime.describeDiscardedTracks(conversion.discardedTracks);
       const suffix = discardedDetails ? ` ${discardedDetails}` : "";
       throw new Error(`Conversion is invalid.${suffix}`);
     }
 
     if (includeAudio && sourceHasAudio && utilizedAudioTracks.length === 0) {
-      throw await buildAudioDroppedError(conversion.discardedTracks);
+      const discardedDetails = await runtime.describeDiscardedTracks(conversion.discardedTracks);
+      const suffix = discardedDetails ? ` ${discardedDetails}` : " Mediabunny did not report a discarded-track reason.";
+      throw new Error(`Export would drop the source audio track.${suffix}`);
     }
 
     conversion.onProgress = onProgress;
@@ -239,7 +298,7 @@ export async function exportClip({
     }
 
     if (isIsobmffExportFormat(format)) {
-      patchMp4MetadataBoxes(new Uint8Array(target.buffer));
+      runtime.patchMp4MetadataBoxes(new Uint8Array(target.buffer));
     }
 
     // Conversion.init already proved that at least one audio track made it into the
