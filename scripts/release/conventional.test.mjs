@@ -69,3 +69,10 @@ feat: add cliparr.dev website`;
   assert.equal(extractReleaseTitleFromCommitMessage(message), "feat: add cliparr.dev website");
   assert.equal(extractPullRequestNumberFromCommitMessage(message), 82);
 });
+
+void test("extracts pull request numbers from squash commits", () => {
+  const message = `[codex] Prepare Cloudflare Worker deploy (#83)`;
+
+  assert.equal(extractReleaseTitleFromCommitMessage(message), message);
+  assert.equal(extractPullRequestNumberFromCommitMessage(message), 83);
+});
