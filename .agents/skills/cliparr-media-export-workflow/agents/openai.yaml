@@ -1,0 +1,4 @@
+interface:
+  display_name: "Cliparr Media Export Workflow"
+  short_description: "Cliparr editor, HLS, and export workflow"
+  default_prompt: "Use $cliparr-media-export-workflow to change Cliparr editor, HLS, or export behavior."
