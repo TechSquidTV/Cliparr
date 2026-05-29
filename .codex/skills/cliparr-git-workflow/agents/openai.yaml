@@ -1,0 +1,4 @@
+interface:
+  display_name: "Cliparr Git Workflow"
+  short_description: "Cliparr git, gh, and preflight workflow"
+  default_prompt: "Use $cliparr-git-workflow to commit, push, and open a Cliparr PR."
