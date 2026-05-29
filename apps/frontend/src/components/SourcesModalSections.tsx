@@ -75,11 +75,7 @@ const secondarySurfaceClasses =
 const elevatedGlassClasses =
   "border-[color:color-mix(in_oklch,var(--foreground)_10%,transparent)] bg-[color:color-mix(in_oklch,var(--card)_72%,transparent)]";
 
-export function compareStrings(left: string, right: string) {
-  return left.localeCompare(right, undefined, { sensitivity: "base" });
-}
-
-export function stringValue(value: unknown) {
+function stringValue(value: unknown) {
   return typeof value === "string" && value.trim() ? value.trim() : undefined;
 }
 
@@ -129,14 +125,6 @@ function sourceStatus(source: MediaSource) {
     className: secondarySurfaceClasses,
     icon: Globe,
   };
-}
-
-export function sortSources(sources: MediaSource[]) {
-  return [...sources].sort((left, right) =>
-    compareStrings(formatProviderName(left.providerId), formatProviderName(right.providerId))
-    || compareStrings(left.name, right.name)
-    || compareStrings(left.id, right.id)
-  );
 }
 
 interface SourcesModalHeaderProps {

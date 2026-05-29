@@ -32,6 +32,17 @@ interface ResolvedExportSource {
   kind: ResolvedExportSourceKind;
 }
 
+interface ExportReadinessInput {
+  exportSource: ResolvedExportSource;
+  exporting: boolean;
+  startTime: number;
+  endTime: number;
+  subtitleEnabled: boolean;
+  selectedSubtitleTrack: PlaybackSubtitleTrack | null;
+  clippedSubtitleCues: readonly SubtitleCue[];
+  subtitleLoading: boolean;
+}
+
 interface UseEditorExportProps {
   session: EditorSession;
   startTime: number;
@@ -214,26 +225,27 @@ export function useEditorExport({
   }, []);
 
   const handleExport = useCallback(async () => {
-    if (!exportSource.source) return;
-    if (exporting) return;
-    if (endTime <= startTime) {
-      setExportError("Waiting for media duration.");
+    const readiness = getEditorExportReadiness({
+      exportSource,
+      exporting,
+      startTime,
+      endTime,
+      subtitleEnabled,
+      selectedSubtitleTrack,
+      clippedSubtitleCues,
+      subtitleLoading,
+    });
+
+    if (readiness.state === "idle") {
       return;
     }
 
-    const shouldBurnSubtitles = subtitleEnabled
-      && selectedSubtitleTrack !== null
-      && clippedSubtitleCues.length > 0;
-
-    if (shouldBurnSubtitles && subtitleLoading) {
-      setExportError("Subtitles are still loading.");
+    if (readiness.state === "blocked") {
+      setExportError(readiness.message);
       return;
     }
 
-    if (shouldBurnSubtitles && !subtitleTrackSupportsBurnIn(selectedSubtitleTrack)) {
-      setExportError("This subtitle track is not supported.");
-      return;
-    }
+    const shouldBurnSubtitles = readiness.shouldBurnSubtitles;
 
     setExportError(null);
     setExporting(true);
@@ -242,8 +254,8 @@ export function useEditorExport({
     try {
       const { exportClip } = await import("../../lib/exportClip");
       const blob = await exportClip({
-        mediaSource: exportSource.source,
-        hls: exportSource.kind === "hls",
+        mediaSource: readiness.source,
+        hls: readiness.sourceKind === "hls",
         startTime,
         endTime,
         format: exportFormat,
@@ -276,8 +288,7 @@ export function useEditorExport({
     clippedSubtitleCues,
     endTime,
     exportFormat,
-    exportSource.kind,
-    exportSource.source,
+    exportSource,
     exporting,
     fileName.fullName,
     includeAudio,
@@ -322,7 +333,7 @@ export function useEditorExport({
   };
 }
 
-function getOutputDimensions(
+export function getOutputDimensions(
   sourceVideoDimensions: VideoDimensions | null,
   resolution: ExportResolution
 ) {
@@ -342,6 +353,59 @@ function getOutputDimensions(
   const width = Math.max(1, Math.round((sourceVideoDimensions.width / sourceVideoDimensions.height) * height));
 
   return { width, height };
+}
+
+export function getEditorExportReadiness({
+  exportSource,
+  exporting,
+  startTime,
+  endTime,
+  subtitleEnabled,
+  selectedSubtitleTrack,
+  clippedSubtitleCues,
+  subtitleLoading,
+}: ExportReadinessInput) {
+  if (!exportSource.source || exporting) {
+    return {
+      state: "idle" as const,
+      shouldBurnSubtitles: false,
+    };
+  }
+
+  if (endTime <= startTime) {
+    return {
+      state: "blocked" as const,
+      message: "Waiting for media duration.",
+      shouldBurnSubtitles: false,
+    };
+  }
+
+  const shouldBurnSubtitles = subtitleEnabled
+    && selectedSubtitleTrack !== null
+    && clippedSubtitleCues.length > 0;
+
+  if (shouldBurnSubtitles && subtitleLoading) {
+    return {
+      state: "blocked" as const,
+      message: "Subtitles are still loading.",
+      shouldBurnSubtitles,
+    };
+  }
+
+  if (shouldBurnSubtitles && !subtitleTrackSupportsBurnIn(selectedSubtitleTrack)) {
+    return {
+      state: "blocked" as const,
+      message: "This subtitle track is not supported.",
+      shouldBurnSubtitles,
+    };
+  }
+
+  return {
+    state: "ready" as const,
+    source: exportSource.source,
+    sourceKind: exportSource.kind,
+    shouldBurnSubtitles,
+  };
 }
 
 export function resolveExportSource({
@@ -382,7 +446,7 @@ export function resolveExportSource({
   return { source: null, kind: "none" };
 }
 
-function buildExportSourceLabel({
+export function buildExportSourceLabel({
   preference,
   resolvedSourceKind,
   resolvedSource,
@@ -406,7 +470,7 @@ function buildExportSourceLabel({
   return preference === "auto" ? `Auto: ${label}` : label;
 }
 
-function buildExportSourceMessage({
+export function buildExportSourceMessage({
   preference,
   resolvedSourceKind,
   resolvedSource,
@@ -461,7 +525,7 @@ function buildExportSourceMessage({
   return `${prefix}: ${hlsFallbackInfo.message}`;
 }
 
-function buildExportSourceSummaryMessage({
+export function buildExportSourceSummaryMessage({
   preference,
   resolvedSourceKind,
   resolvedSource,
