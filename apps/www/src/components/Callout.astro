@@ -5,9 +5,10 @@ interface Props {
 }
 
 const { title, tone = "info" } = Astro.props;
-const toneClass = tone === "warning"
-  ? "border-primary/40 bg-primary/10"
-  : "border-secondary/35 bg-secondary/10";
+const toneClass =
+  tone === "warning"
+    ? "border-primary/40 bg-primary/10"
+    : "border-secondary/35 bg-secondary/10";
 ---
 
 <aside class={`my-6 rounded-lg border p-4 ${toneClass}`}>

@@ -13,7 +13,12 @@ import {
 import type { PlaybackAudioSelection } from "../../providers/types";
 import { errorMessage, isAc3FamilyCodec } from "./EditorUtils";
 
-type PlaybackSourceLabel = "hls stream" | "direct source" | "local file" | "url" | "hls url";
+type PlaybackSourceLabel =
+  | "hls stream"
+  | "direct source"
+  | "local file"
+  | "url"
+  | "hls url";
 
 export interface PlaybackSourceCandidate {
   label: PlaybackSourceLabel;
@@ -58,20 +63,23 @@ export class PlaybackSourceError extends Error {
   }
 }
 
-function playbackLabelForSource(source: EditorMediaSource, role: "hls" | "direct") {
+function playbackLabelForSource(
+  source: EditorMediaSource,
+  role: "hls" | "direct",
+) {
   if (source.role === "local-file") {
     return "local file" satisfies PlaybackSourceLabel;
   }
 
   if (source.role === "direct-url") {
     return isHlsEditorMediaSource(source)
-      ? "hls url" satisfies PlaybackSourceLabel
-      : "url" satisfies PlaybackSourceLabel;
+      ? ("hls url" satisfies PlaybackSourceLabel)
+      : ("url" satisfies PlaybackSourceLabel);
   }
 
   return role === "hls"
-    ? "hls stream" satisfies PlaybackSourceLabel
-    : "direct source" satisfies PlaybackSourceLabel;
+    ? ("hls stream" satisfies PlaybackSourceLabel)
+    : ("direct source" satisfies PlaybackSourceLabel);
 }
 
 export function buildPlaybackSourceCandidates(
@@ -81,35 +89,55 @@ export function buildPlaybackSourceCandidates(
   const candidates: PlaybackSourceCandidate[] = [];
 
   if (hlsSource) {
-    candidates.push({ label: playbackLabelForSource(hlsSource, "hls"), source: hlsSource });
+    candidates.push({
+      label: playbackLabelForSource(hlsSource, "hls"),
+      source: hlsSource,
+    });
   }
 
-  if (directSource && !candidates.some((candidate) => editorMediaSourcesEqual(candidate.source, directSource))) {
-    candidates.push({ label: playbackLabelForSource(directSource, "direct"), source: directSource });
+  if (
+    directSource &&
+    !candidates.some((candidate) =>
+      editorMediaSourcesEqual(candidate.source, directSource),
+    )
+  ) {
+    candidates.push({
+      label: playbackLabelForSource(directSource, "direct"),
+      source: directSource,
+    });
   }
 
   return candidates;
 }
 
-function classifyPlaybackSource(source: Pick<PlaybackSourceCandidate, "label" | "source">): PlaybackLoadFailure["classification"] {
-  return source.label === "hls stream"
-    || source.label === "hls url"
-    || isHlsEditorMediaSource(source.source)
+function classifyPlaybackSource(
+  source: Pick<PlaybackSourceCandidate, "label" | "source">,
+): PlaybackLoadFailure["classification"] {
+  return source.label === "hls stream" ||
+    source.label === "hls url" ||
+    isHlsEditorMediaSource(source.source)
     ? "hls-playlist"
     : "unknown";
 }
 
-export function buildPlaybackFailure(source: PlaybackSourceCandidate, err: unknown): PlaybackLoadFailure {
+export function buildPlaybackFailure(
+  source: PlaybackSourceCandidate,
+  err: unknown,
+): PlaybackLoadFailure {
   return {
     label: source.label,
     message: errorMessage(err),
     classification: classifyPlaybackSource(source),
-    category: err instanceof PlaybackSourceError ? err.category : "open-or-read",
+    category:
+      err instanceof PlaybackSourceError ? err.category : "open-or-read",
   };
 }
 
 export function shouldUseExportFallback(failure: PlaybackLoadFailure) {
-  return failure.category === "open-or-read" || failure.category === "shared-export-blocking";
+  return (
+    failure.category === "open-or-read" ||
+    failure.category === "shared-export-blocking"
+  );
 }
 
 export function describePlaybackFailure(failure: PlaybackLoadFailure) {
@@ -118,7 +146,9 @@ export function describePlaybackFailure(failure: PlaybackLoadFailure) {
   return `${prefix} failed: ${failure.message}`;
 }
 
-export function formatPlaybackSourceLabel(label: PlaybackSourceCandidate["label"]) {
+export function formatPlaybackSourceLabel(
+  label: PlaybackSourceCandidate["label"],
+) {
   switch (label) {
     case "hls stream":
       return "HLS stream";
@@ -147,9 +177,13 @@ export function resolvePlaybackDuration(
   initialDuration: number,
 ) {
   const fallbackDuration = finiteNonNegativeDuration(initialDuration);
-  const normalizedComputedDuration = finiteNonNegativeDuration(computedDuration);
+  const normalizedComputedDuration =
+    finiteNonNegativeDuration(computedDuration);
 
-  if (playbackSource.label === "hls stream" || playbackSource.label === "hls url") {
+  if (
+    playbackSource.label === "hls stream" ||
+    playbackSource.label === "hls url"
+  ) {
     return Math.max(fallbackDuration, normalizedComputedDuration);
   }
 
@@ -165,7 +199,9 @@ export function buildPlaybackLoadError(failures: PlaybackLoadFailure[]) {
     return describePlaybackFailure(failures[0]);
   }
 
-  const uniqueMessages = [...new Set(failures.map((failure) => failure.message))];
+  const uniqueMessages = [
+    ...new Set(failures.map((failure) => failure.message)),
+  ];
   if (uniqueMessages.length === 1) {
     return `Playback failed. ${uniqueMessages[0]}`;
   }
@@ -213,7 +249,9 @@ async function assessPreviewVideoTrack(track: InputVideoTrack | null) {
   return { track, warning: undefined };
 }
 
-export async function selectPreviewVideoTrack(videoTracks: readonly InputVideoTrack[]) {
+export async function selectPreviewVideoTrack(
+  videoTracks: readonly InputVideoTrack[],
+) {
   const sourceVideoTrack = videoTracks[0] ?? null;
   if (!sourceVideoTrack) {
     return {
@@ -318,11 +356,15 @@ async function summarizeAudioTrackForDebug(track: InputAudioTrack | null) {
   };
 }
 
-async function summarizeAudioTracksForDebug(tracks: readonly InputAudioTrack[]) {
+async function summarizeAudioTracksForDebug(
+  tracks: readonly InputAudioTrack[],
+) {
   return Promise.all(tracks.map((track) => summarizeAudioTrackForDebug(track)));
 }
 
-export async function buildPlaybackSourceAnalysis(context: PlaybackSourceAnalysisContext) {
+export async function buildPlaybackSourceAnalysis(
+  context: PlaybackSourceAnalysisContext,
+) {
   const [
     allAudioTracks,
     sourceVideoTrack,

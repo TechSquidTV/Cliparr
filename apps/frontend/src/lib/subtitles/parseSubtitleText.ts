@@ -12,7 +12,7 @@ function decodeEntities(text: string) {
     .replace(/&amp;/gi, "&")
     .replace(/&lt;/gi, "<")
     .replace(/&gt;/gi, ">")
-    .replace(/&quot;/gi, "\"")
+    .replace(/&quot;/gi, '"')
     .replace(/&#39;/gi, "'");
 }
 
@@ -38,11 +38,15 @@ function parseTimestamp(timestamp: string) {
   const seconds = Number(wholeAndFraction[0]);
   const milliseconds = Number(wholeAndFraction[1].padEnd(3, "0").slice(0, 3));
 
-  if (![hours, minutes, seconds, milliseconds].every((value) => Number.isFinite(value))) {
+  if (
+    ![hours, minutes, seconds, milliseconds].every((value) =>
+      Number.isFinite(value),
+    )
+  ) {
     return undefined;
   }
 
-  return (hours * 3600) + (minutes * 60) + seconds + (milliseconds / 1000);
+  return hours * 3600 + minutes * 60 + seconds + milliseconds / 1000;
 }
 
 function cueFromLines(lines: string[]): SubtitleCue | undefined {
@@ -60,11 +64,16 @@ function cueFromLines(lines: string[]): SubtitleCue | undefined {
 
   const startTime = parseTimestamp(match[1]);
   const endTime = parseTimestamp(match[2]);
-  if (startTime === undefined || endTime === undefined || endTime <= startTime) {
+  if (
+    startTime === undefined ||
+    endTime === undefined ||
+    endTime <= startTime
+  ) {
     return undefined;
   }
 
-  const cueId = timingIndex > 0 ? trimmedLines[0].trim() || undefined : undefined;
+  const cueId =
+    timingIndex > 0 ? trimmedLines[0].trim() || undefined : undefined;
   const textLines = trimmedLines
     .slice(timingIndex + 1)
     .map((line) => cleanCueText(line))
@@ -97,7 +106,13 @@ function parseVtt(text: string) {
     }
 
     const firstLine = lines[0]?.trim();
-    if (!firstLine || firstLine === "WEBVTT" || firstLine.startsWith("NOTE") || firstLine === "STYLE" || firstLine === "REGION") {
+    if (
+      !firstLine ||
+      firstLine === "WEBVTT" ||
+      firstLine.startsWith("NOTE") ||
+      firstLine === "STYLE" ||
+      firstLine === "REGION"
+    ) {
       continue;
     }
 
@@ -137,15 +152,19 @@ function detectSubtitleTextFormat(text: string): SubtitleTextFormat {
   return normalizeSubtitleText(text).startsWith("WEBVTT") ? "vtt" : "srt";
 }
 
-export function parseSubtitleText(text: string, format?: string): SubtitleCue[] {
+export function parseSubtitleText(
+  text: string,
+  format?: string,
+): SubtitleCue[] {
   const normalizedFormat = format?.trim().toLowerCase();
-  const cues = normalizedFormat === "vtt" || normalizedFormat === "webvtt"
-    ? parseVtt(text)
-    : normalizedFormat === "srt" || normalizedFormat === "subrip"
-      ? parseSrt(text)
-      : detectSubtitleTextFormat(text) === "vtt"
-        ? parseVtt(text)
-        : parseSrt(text);
+  const cues =
+    normalizedFormat === "vtt" || normalizedFormat === "webvtt"
+      ? parseVtt(text)
+      : normalizedFormat === "srt" || normalizedFormat === "subrip"
+        ? parseSrt(text)
+        : detectSubtitleTextFormat(text) === "vtt"
+          ? parseVtt(text)
+          : parseSrt(text);
 
   return cues.sort((left, right) => left.startTime - right.startTime);
 }

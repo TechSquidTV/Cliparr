@@ -78,20 +78,20 @@ const DISALLOWED_MEDIA_HOSTNAMES = new Set([
   "metadata.google.internal",
 ]);
 const RETRYABLE_MEDIA_STATUS_CODES = new Set([
-  408,
-  425,
-  429,
-  500,
-  502,
-  503,
-  504,
+  408, 425, 429, 500, 502, 503, 504,
 ]);
 const logger = getServerLogger(["providers", "media-proxy"]);
-const cachedProxyResponses = new Map<string, {
-  expiresAt: number;
-  response: CachedProxyMediaResponse;
-}>();
-const inflightProxyResponses = new Map<string, Promise<CachedProxyMediaResponse>>();
+const cachedProxyResponses = new Map<
+  string,
+  {
+    expiresAt: number;
+    response: CachedProxyMediaResponse;
+  }
+>();
+const inflightProxyResponses = new Map<
+  string,
+  Promise<CachedProxyMediaResponse>
+>();
 const resolvedHostnameCache = new Map<string, ResolvedHostnameCacheEntry>();
 const inflightHostnameResolutions = new Map<string, Promise<string[]>>();
 
@@ -119,11 +119,15 @@ export function normalizeMediaPath(path: string) {
   return path;
 }
 
-export function mediaHandleRequestUrl(handle: Pick<MediaHandle, "baseUrl" | "path">) {
+export function mediaHandleRequestUrl(
+  handle: Pick<MediaHandle, "baseUrl" | "path">,
+) {
   return new URL(handle.path, handle.baseUrl);
 }
 
-export function shouldAttachProviderAuth(handle: Pick<MediaHandle, "baseUrl" | "path">) {
+export function shouldAttachProviderAuth(
+  handle: Pick<MediaHandle, "baseUrl" | "path">,
+) {
   const requestUrl = mediaHandleRequestUrl(handle);
   const providerUrl = safeUrl(handle.baseUrl);
   return providerUrl ? requestUrl.origin === providerUrl.origin : true;
@@ -149,7 +153,9 @@ function ipv4Octets(hostname: string) {
   }
 
   const octets = parts.map((part) => Number(part));
-  if (octets.some((octet) => !Number.isInteger(octet) || octet < 0 || octet > 255)) {
+  if (
+    octets.some((octet) => !Number.isInteger(octet) || octet < 0 || octet > 255)
+  ) {
     return undefined;
   }
 
@@ -163,32 +169,38 @@ function isUnsafeIpv4Host(hostname: string) {
   }
 
   const [first, second] = octets;
-  return first === 0
-    || first === 10
-    || first === 127
-    || (first === 100 && second >= 64 && second <= 127)
-    || (first === 169 && second === 254)
-    || (first === 172 && second >= 16 && second <= 31)
-    || (first === 192 && second === 168)
-    || first >= 224;
+  return (
+    first === 0 ||
+    first === 10 ||
+    first === 127 ||
+    (first === 100 && second >= 64 && second <= 127) ||
+    (first === 169 && second === 254) ||
+    (first === 172 && second >= 16 && second <= 31) ||
+    (first === 192 && second === 168) ||
+    first >= 224
+  );
 }
 
 function isUnsafeIpv6Host(hostname: string) {
-  return hostname === "::"
-    || hostname === "::1"
-    || hostname === "0:0:0:0:0:0:0:1"
-    || /^f[cd][0-9a-f]{2}:/i.test(hostname)
-    || /^fe[89ab][0-9a-f]:/i.test(hostname)
-    || /^ff[0-9a-f]{2}:/i.test(hostname);
+  return (
+    hostname === "::" ||
+    hostname === "::1" ||
+    hostname === "0:0:0:0:0:0:0:1" ||
+    /^f[cd][0-9a-f]{2}:/i.test(hostname) ||
+    /^fe[89ab][0-9a-f]:/i.test(hostname) ||
+    /^ff[0-9a-f]{2}:/i.test(hostname)
+  );
 }
 
 function isUnsafeMediaHostname(hostname: string) {
   const normalized = normalizeHostname(hostname);
-  return normalized === "localhost"
-    || normalized.endsWith(".localhost")
-    || DISALLOWED_MEDIA_HOSTNAMES.has(normalized)
-    || isUnsafeIpv4Host(normalized)
-    || isUnsafeIpv6Host(normalized);
+  return (
+    normalized === "localhost" ||
+    normalized.endsWith(".localhost") ||
+    DISALLOWED_MEDIA_HOSTNAMES.has(normalized) ||
+    isUnsafeIpv4Host(normalized) ||
+    isUnsafeIpv6Host(normalized)
+  );
 }
 
 async function resolveHostnameAddresses(hostname: string) {
@@ -211,7 +223,11 @@ async function resolveHostnameAddresses(hostname: string) {
           all: true,
           verbatim: true,
         });
-        const addresses = [...new Set(records.map((record) => normalizeIpCandidate(record.address)))];
+        const addresses = [
+          ...new Set(
+            records.map((record) => normalizeIpCandidate(record.address)),
+          ),
+        ];
         resolvedHostnameCache.set(normalized, {
           addresses,
           expiresAt: Date.now() + DNS_VALIDATION_CACHE_TTL_MS,
@@ -221,7 +237,7 @@ async function resolveHostnameAddresses(hostname: string) {
         throw new ApiError(
           502,
           "media_proxy_unsafe_url",
-          "Media URL hostname could not be resolved for security validation"
+          "Media URL hostname could not be resolved for security validation",
         );
       }
     })();
@@ -241,19 +257,19 @@ function throwUnsafeMediaUrl() {
   throw new ApiError(
     400,
     "media_proxy_unsafe_url",
-    "Media URL points at an unsafe internal address"
+    "Media URL points at an unsafe internal address",
   );
 }
 
 export async function assertAllowedMediaHandleRequestUrl(
   handle: Pick<MediaHandle, "baseUrl" | "path">,
-  requestUrl = mediaHandleRequestUrl(handle)
+  requestUrl = mediaHandleRequestUrl(handle),
 ) {
   if (requestUrl.protocol !== "http:" && requestUrl.protocol !== "https:") {
     throw new ApiError(
       400,
       "media_proxy_unsafe_url",
-      "Media URL must use HTTP or HTTPS"
+      "Media URL must use HTTP or HTTPS",
     );
   }
 
@@ -278,11 +294,13 @@ export async function assertAllowedMediaHandleRequestUrl(
 }
 
 function isRedirectStatus(status: number) {
-  return status === 301
-    || status === 302
-    || status === 303
-    || status === 307
-    || status === 308;
+  return (
+    status === 301 ||
+    status === 302 ||
+    status === 303 ||
+    status === 307 ||
+    status === 308
+  );
 }
 
 function removeSensitiveRedirectHeaders(init: RequestInit) {
@@ -299,7 +317,7 @@ function removeSensitiveRedirectHeaders(init: RequestInit) {
 function retryDelayMs(attemptIndex: number, baseDelayMs: number) {
   return Math.min(
     MEDIA_PROXY_FETCH_RETRY_MAX_DELAY_MS,
-    Math.max(0, baseDelayMs) * (2 ** attemptIndex),
+    Math.max(0, baseDelayMs) * 2 ** attemptIndex,
   );
 }
 
@@ -343,7 +361,9 @@ function createAttemptRequestInit(
 
   if (timeoutMs && timeoutMs > 0) {
     timeout = setTimeout(() => {
-      controller.abort(new DOMException("Media proxy request timed out", "TimeoutError"));
+      controller.abort(
+        new DOMException("Media proxy request timed out", "TimeoutError"),
+      );
     }, timeoutMs);
   }
 
@@ -362,11 +382,16 @@ function createAttemptRequestInit(
 }
 
 function isAbortLikeError(err: unknown) {
-  return err instanceof DOMException
-    && (err.name === "AbortError" || err.name === "TimeoutError");
+  return (
+    err instanceof DOMException &&
+    (err.name === "AbortError" || err.name === "TimeoutError")
+  );
 }
 
-function isRetryableMediaFetchError(err: unknown, sourceSignal: AbortSignal | null | undefined) {
+function isRetryableMediaFetchError(
+  err: unknown,
+  sourceSignal: AbortSignal | null | undefined,
+) {
   if (sourceSignal?.aborted) {
     return false;
   }
@@ -378,9 +403,14 @@ function isRetryableMediaFetchError(err: unknown, sourceSignal: AbortSignal | nu
   return err instanceof Error || isAbortLikeError(err);
 }
 
-function isRetryableMediaResponse(handle: MediaHandle, response: globalThis.Response) {
-  return RETRYABLE_MEDIA_STATUS_CODES.has(response.status)
-    || (response.status === 404 && isHlsDerivedHandle(handle));
+function isRetryableMediaResponse(
+  handle: MediaHandle,
+  response: globalThis.Response,
+) {
+  return (
+    RETRYABLE_MEDIA_STATUS_CODES.has(response.status) ||
+    (response.status === 404 && isHlsDerivedHandle(handle))
+  );
 }
 
 async function closeRetryableResponse(response: globalThis.Response) {
@@ -391,11 +421,18 @@ async function closeRetryableResponse(response: globalThis.Response) {
   }
 }
 
-async function fetchMediaHandleRequestOnce(handle: MediaHandle, init: RequestInit = {}) {
+async function fetchMediaHandleRequestOnce(
+  handle: MediaHandle,
+  init: RequestInit = {},
+) {
   let requestUrl = mediaHandleRequestUrl(handle);
   let requestInit = init;
 
-  for (let redirectCount = 0; redirectCount <= MEDIA_PROXY_MAX_REDIRECTS; redirectCount += 1) {
+  for (
+    let redirectCount = 0;
+    redirectCount <= MEDIA_PROXY_MAX_REDIRECTS;
+    redirectCount += 1
+  ) {
     await assertAllowedMediaHandleRequestUrl(handle, requestUrl);
 
     const response = await fetch(requestUrl.toString(), {
@@ -417,11 +454,14 @@ async function fetchMediaHandleRequestOnce(handle: MediaHandle, init: RequestIni
   throw new ApiError(
     502,
     "media_proxy_redirect_limit",
-    "Media URL redirected too many times"
+    "Media URL redirected too many times",
   );
 }
 
-export async function fetchMediaHandleRequest(handle: MediaHandle, init: FetchMediaHandleRequestInit = {}) {
+export async function fetchMediaHandleRequest(
+  handle: MediaHandle,
+  init: FetchMediaHandleRequestInit = {},
+) {
   const {
     retryAttempts = MEDIA_PROXY_FETCH_ATTEMPTS,
     retryBaseDelayMs = MEDIA_PROXY_FETCH_RETRY_BASE_DELAY_MS,
@@ -438,40 +478,55 @@ export async function fetchMediaHandleRequest(handle: MediaHandle, init: FetchMe
   for (let attemptIndex = 0; attemptIndex < totalAttempts; attemptIndex += 1) {
     const attemptNumber = attemptIndex + 1;
     const isFinalAttempt = attemptNumber >= totalAttempts;
-    const { init: attemptInit, cleanup } = createAttemptRequestInit(requestInit, timeoutMs);
+    const { init: attemptInit, cleanup } = createAttemptRequestInit(
+      requestInit,
+      timeoutMs,
+    );
 
     try {
-      const response = await fetchMediaHandleRequestOnce(handle, attemptInit).finally(cleanup);
+      const response = await fetchMediaHandleRequestOnce(
+        handle,
+        attemptInit,
+      ).finally(cleanup);
       if (!isRetryableMediaResponse(handle, response) || isFinalAttempt) {
         return response;
       }
 
       await closeRetryableResponse(response);
-      logger.trace("Retrying media request after retryable upstream status for handle {handleId}.", {
-        handleId: handle.id,
-        providerId: handle.providerId,
-        sourceId: handle.sourceId,
-        path: sanitizeLoggedMediaPath(handle.path),
-        statusCode: response.status,
-        attempt: attemptNumber,
-        maxAttempts: totalAttempts,
-      });
+      logger.trace(
+        "Retrying media request after retryable upstream status for handle {handleId}.",
+        {
+          handleId: handle.id,
+          providerId: handle.providerId,
+          sourceId: handle.sourceId,
+          path: sanitizeLoggedMediaPath(handle.path),
+          statusCode: response.status,
+          attempt: attemptNumber,
+          maxAttempts: totalAttempts,
+        },
+      );
     } catch (err) {
       cleanup();
       lastError = err;
-      if (isFinalAttempt || !isRetryableMediaFetchError(err, requestInit.signal)) {
+      if (
+        isFinalAttempt ||
+        !isRetryableMediaFetchError(err, requestInit.signal)
+      ) {
         throw err;
       }
 
-      logger.trace("Retrying media request after fetch failure for handle {handleId}.", {
-        handleId: handle.id,
-        providerId: handle.providerId,
-        sourceId: handle.sourceId,
-        path: sanitizeLoggedMediaPath(handle.path),
-        attempt: attemptNumber,
-        maxAttempts: totalAttempts,
-        errorMessage: err instanceof Error ? err.message : String(err),
-      });
+      logger.trace(
+        "Retrying media request after fetch failure for handle {handleId}.",
+        {
+          handleId: handle.id,
+          providerId: handle.providerId,
+          sourceId: handle.sourceId,
+          path: sanitizeLoggedMediaPath(handle.path),
+          attempt: attemptNumber,
+          maxAttempts: totalAttempts,
+          errorMessage: err instanceof Error ? err.message : String(err),
+        },
+      );
     }
 
     await delay(retryDelayMs(attemptIndex, retryBaseDelayMs));
@@ -490,7 +545,10 @@ export function sanitizeLoggedMediaPath(value: string | undefined) {
     return `${absoluteUrl.origin}${absoluteUrl.pathname}`;
   }
 
-  const relativeUrl = safeUrl(normalizeMediaPath(value), RELATIVE_MEDIA_BASE_URL);
+  const relativeUrl = safeUrl(
+    normalizeMediaPath(value),
+    RELATIVE_MEDIA_BASE_URL,
+  );
   if (relativeUrl) {
     return relativeUrl.pathname;
   }
@@ -502,21 +560,23 @@ export function createProviderMediaHandle(
   session: ProviderSessionRecord,
   context: MediaHandleContext,
   path: string,
-  options: CreateMediaHandleOptions = {}
+  options: CreateMediaHandleOptions = {},
 ) {
   const normalizedPath = normalizeMediaPath(path);
-  const normalizedBasePath = options.basePath ? normalizeMediaPath(options.basePath) : undefined;
+  const normalizedBasePath = options.basePath
+    ? normalizeMediaPath(options.basePath)
+    : undefined;
   const accessedAt = Date.now();
 
   for (const existingHandle of session.mediaHandles.values()) {
     if (
-      existingHandle.providerId === context.providerId
-      && existingHandle.sourceId === context.sourceId
-      && existingHandle.baseUrl === context.baseUrl
-      && existingHandle.path === normalizedPath
-      && existingHandle.token === context.token
-      && existingHandle.deviceId === context.deviceId
-      && existingHandle.basePath === normalizedBasePath
+      existingHandle.providerId === context.providerId &&
+      existingHandle.sourceId === context.sourceId &&
+      existingHandle.baseUrl === context.baseUrl &&
+      existingHandle.path === normalizedPath &&
+      existingHandle.token === context.token &&
+      existingHandle.deviceId === context.deviceId &&
+      existingHandle.basePath === normalizedBasePath
     ) {
       existingHandle.lastAccessedAt = accessedAt;
       logger.trace("Reused provider media handle {handleId}.", {
@@ -586,18 +646,28 @@ function rewritePlaylistUri(
 ) {
   const nextPath = resolvePlaylistUri(basePath, uri);
   if (options.createMediaHandleUrl) {
-    return options.createMediaHandleUrl(session, handle, nextPath, playlistBasePath(nextPath));
+    return options.createMediaHandleUrl(
+      session,
+      handle,
+      nextPath,
+      playlistBasePath(nextPath),
+    );
   }
 
-  return createProviderMediaHandle(session, {
-    providerId: handle.providerId,
-    sourceId: handle.sourceId,
-    baseUrl: handle.baseUrl,
-    token: handle.token,
-    deviceId: handle.deviceId,
-  }, nextPath, {
-    basePath: playlistBasePath(nextPath),
-  });
+  return createProviderMediaHandle(
+    session,
+    {
+      providerId: handle.providerId,
+      sourceId: handle.sourceId,
+      baseUrl: handle.baseUrl,
+      token: handle.token,
+      deviceId: handle.deviceId,
+    },
+    nextPath,
+    {
+      basePath: playlistBasePath(nextPath),
+    },
+  );
 }
 
 async function rewriteHlsPlaylist(
@@ -625,10 +695,12 @@ async function rewriteHlsPlaylist(
           return [];
         }
 
-        return [line.replace(/URI="([^"]+)"/g, (_match, uri: string) => {
-          rewrittenUriCount += 1;
-          return `URI="${rewritePlaylistUri(session, handle, basePath, uri, options)}"`;
-        })];
+        return [
+          line.replace(/URI="([^"]+)"/g, (_match, uri: string) => {
+            rewrittenUriCount += 1;
+            return `URI="${rewritePlaylistUri(session, handle, basePath, uri, options)}"`;
+          }),
+        ];
       }
 
       rewrittenUriCount += 1;
@@ -672,13 +744,18 @@ function isHlsPlaylist(handle: MediaHandle, contentType: string) {
   }
 
   try {
-    return new URL(handle.path, "http://cliparr.local").pathname.endsWith(".m3u8");
+    return new URL(handle.path, "http://cliparr.local").pathname.endsWith(
+      ".m3u8",
+    );
   } catch {
     return handle.path.split("?")[0].endsWith(".m3u8");
   }
 }
 
-export function shouldForwardMediaRange(handle: MediaHandle, range: string | undefined) {
+export function shouldForwardMediaRange(
+  handle: MediaHandle,
+  range: string | undefined,
+) {
   if (!range || isHlsPlaylist(handle, "")) {
     return undefined;
   }
@@ -700,7 +777,10 @@ function snapshotProxyHeaders(upstream: globalThis.Response) {
   return headers;
 }
 
-function applySnapshotHeaders(headers: readonly [string, string][], res: Response) {
+function applySnapshotHeaders(
+  headers: readonly [string, string][],
+  res: Response,
+) {
   for (const [name, value] of headers) {
     res.setHeader(name, value);
   }
@@ -715,10 +795,15 @@ function handlePathname(path: string) {
 }
 
 function isHlsDerivedHandle(handle: MediaHandle) {
-  return Boolean(handle.basePath) || handlePathname(handle.path).endsWith(".m3u8");
+  return (
+    Boolean(handle.basePath) || handlePathname(handle.path).endsWith(".m3u8")
+  );
 }
 
-function buildProxyCacheKey(handle: MediaHandle, request: ProxyMediaRequestOptions) {
+function buildProxyCacheKey(
+  handle: MediaHandle,
+  request: ProxyMediaRequestOptions,
+) {
   if (request.range || !isHlsDerivedHandle(handle)) {
     return null;
   }
@@ -734,7 +819,10 @@ function pruneCachedProxyResponses(now = Date.now()) {
   }
 }
 
-function sendCachedProxyResponse(response: CachedProxyMediaResponse, res: Response) {
+function sendCachedProxyResponse(
+  response: CachedProxyMediaResponse,
+  res: Response,
+) {
   res.status(response.status);
   applySnapshotHeaders(response.headers, res);
   res.end(response.body);
@@ -750,7 +838,12 @@ async function createCachedProxyMediaResponse(
   const headers = snapshotProxyHeaders(upstream);
 
   if (isHlsPlaylist(handle, contentType)) {
-    const playlist = await rewriteHlsPlaylist(session, handle, upstream, options);
+    const playlist = await rewriteHlsPlaylist(
+      session,
+      handle,
+      upstream,
+      options,
+    );
     const body = Buffer.from(playlist);
     const nextHeaders = headers
       .filter(([name]) => name !== "content-type" && name !== "content-length")
@@ -833,7 +926,12 @@ export async function proxyUpstreamMediaResponse(
   });
 
   if (isHlsPlaylist(handle, contentType)) {
-    const playlist = await rewriteHlsPlaylist(session, handle, upstream, options);
+    const playlist = await rewriteHlsPlaylist(
+      session,
+      handle,
+      upstream,
+      options,
+    );
     copyProxyHeaders(upstream, res);
     res.setHeader("Content-Type", "application/vnd.apple.mpegurl");
     res.setHeader("Content-Length", Buffer.byteLength(playlist));
@@ -849,7 +947,9 @@ export async function proxyUpstreamMediaResponse(
   }
 
   copyProxyHeaders(upstream, res);
-  const upstreamBody = Readable.fromWeb(upstream.body as unknown as WebReadableStream<Uint8Array>);
+  const upstreamBody = Readable.fromWeb(
+    upstream.body as unknown as WebReadableStream<Uint8Array>,
+  );
   const closeUpstreamBody = () => {
     upstreamBody.destroy();
   };
@@ -859,7 +959,8 @@ export async function proxyUpstreamMediaResponse(
   try {
     await pipeline(upstreamBody, res);
   } catch (err) {
-    const responseClosed = res.destroyed || res.writableEnded || res.writableFinished;
+    const responseClosed =
+      res.destroyed || res.writableEnded || res.writableFinished;
     const logMessage = "Streaming media proxy failed for handle {handleId}.";
     const properties = {
       handleId: handle.id,
@@ -903,13 +1004,16 @@ export async function proxyProviderMediaResponse(
 
   const cachedResponse = cachedProxyResponses.get(cacheKey);
   if (cachedResponse && cachedResponse.expiresAt > Date.now()) {
-    logger.trace("Served cached proxied media response for handle {handleId}.", {
-      handleId: handle.id,
-      sessionId: session.id,
-      providerId: handle.providerId,
-      path: sanitizeLoggedMediaPath(handle.path),
-      cacheKey,
-    });
+    logger.trace(
+      "Served cached proxied media response for handle {handleId}.",
+      {
+        handleId: handle.id,
+        sessionId: session.id,
+        providerId: handle.providerId,
+        path: sanitizeLoggedMediaPath(handle.path),
+        cacheKey,
+      },
+    );
     sendCachedProxyResponse(cachedResponse.response, res);
     return;
   }
@@ -918,7 +1022,12 @@ export async function proxyProviderMediaResponse(
   if (!inflightResponse) {
     inflightResponse = (async () => {
       const upstream = await fetchUpstream();
-      const response = await createCachedProxyMediaResponse(session, handle, upstream, options);
+      const response = await createCachedProxyMediaResponse(
+        session,
+        handle,
+        upstream,
+        options,
+      );
 
       if (response.body.byteLength <= HLS_PROXY_RESPONSE_CACHE_MAX_BYTES) {
         cachedProxyResponses.set(cacheKey, {
@@ -937,13 +1046,16 @@ export async function proxyProviderMediaResponse(
       }
     });
   } else {
-    logger.trace("Waiting for in-flight proxied media response for handle {handleId}.", {
-      handleId: handle.id,
-      sessionId: session.id,
-      providerId: handle.providerId,
-      path: sanitizeLoggedMediaPath(handle.path),
-      cacheKey,
-    });
+    logger.trace(
+      "Waiting for in-flight proxied media response for handle {handleId}.",
+      {
+        handleId: handle.id,
+        sessionId: session.id,
+        providerId: handle.providerId,
+        path: sanitizeLoggedMediaPath(handle.path),
+        cacheKey,
+      },
+    );
   }
 
   sendCachedProxyResponse(await inflightResponse, res);

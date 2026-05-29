@@ -24,7 +24,10 @@ function roundTimeWithinUpperBound(seconds: number, upperBound: number) {
   return Math.min(roundTimelineTime(seconds), upperBound);
 }
 
-export function buildInitialClipRange(duration: number, playheadSeconds?: number): InitialClipRange {
+export function buildInitialClipRange(
+  duration: number,
+  playheadSeconds?: number,
+): InitialClipRange {
   const safeDuration = finiteNonNegativeSeconds(duration);
   if (safeDuration <= 0) {
     return {
@@ -37,12 +40,15 @@ export function buildInitialClipRange(duration: number, playheadSeconds?: number
   const maximumStart = Math.max(safeDuration - minimumClipLength, 0);
   const startTime = roundTimeWithinUpperBound(
     Math.min(finiteNonNegativeSeconds(playheadSeconds), maximumStart),
-    maximumStart
+    maximumStart,
   );
   const preferredEnd = startTime + DEFAULT_INITIAL_CLIP_SECONDS;
   const endTime = roundTimeWithinUpperBound(
-    Math.min(Math.max(preferredEnd, startTime + minimumClipLength), safeDuration),
-    safeDuration
+    Math.min(
+      Math.max(preferredEnd, startTime + minimumClipLength),
+      safeDuration,
+    ),
+    safeDuration,
   );
 
   return {
@@ -59,10 +65,10 @@ export function buildClipRangeAfterDurationDiscovery({
   playheadSeconds,
 }: DiscoveredDurationClipRangeInput): InitialClipRange | null {
   if (
-    finiteNonNegativeSeconds(initialDuration) > 0
-    || finiteNonNegativeSeconds(discoveredDuration) <= 0
-    || currentStartTime !== 0
-    || currentEndTime !== 0
+    finiteNonNegativeSeconds(initialDuration) > 0 ||
+    finiteNonNegativeSeconds(discoveredDuration) <= 0 ||
+    currentStartTime !== 0 ||
+    currentEndTime !== 0
   ) {
     return null;
   }

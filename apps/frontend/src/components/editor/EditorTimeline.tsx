@@ -5,14 +5,14 @@ import type { CSSProperties, RefObject } from "react";
 import { Scissors } from "lucide-react";
 import type { PlaybackReadyRange } from "./useEditorPlayback";
 import { isPlaybackReadyRangeVisible } from "./editorPlaybackWarmupRange";
-import { 
+import {
   formatTime,
   getTimelineFillPercentages,
   TIMELINE_START_LEFT,
-  type ClipTimelineData, 
-  type ClipTimelineEffects, 
+  type ClipTimelineData,
+  type ClipTimelineEffects,
   type ClipTimelineAction,
-  type TimelineZoomLevel
+  type TimelineZoomLevel,
 } from "./EditorUtils";
 
 interface EditorTimelineProps {
@@ -27,8 +27,16 @@ interface EditorTimelineProps {
   playing: boolean;
   handleTimelineScroll: (data: { scrollLeft: number }) => void;
   handleTimelineChange: (data: ClipTimelineData) => void;
-  handleTimelineActionMoveEnd: (params: { action: { id: string }; start: number; end: number }) => void;
-  handleTimelineActionResizeEnd: (params: { action: { id: string }; start: number; end: number }) => void;
+  handleTimelineActionMoveEnd: (params: {
+    action: { id: string };
+    start: number;
+    end: number;
+  }) => void;
+  handleTimelineActionResizeEnd: (params: {
+    action: { id: string };
+    start: number;
+    end: number;
+  }) => void;
   isValidTimelineRange: (start: number, end: number) => boolean;
   seekToTime: (time: number) => Promise<void> | void;
   onCursorDragStart: () => void;
@@ -54,58 +62,67 @@ export function EditorTimeline({
   onCursorDragStart,
   onCursorDrag,
 }: EditorTimelineProps) {
-  const getReadyFillStyle = useCallback((action: ClipTimelineAction): CSSProperties | null => {
-    if (
-      action.effectId !== "clip"
-      || !playbackReadyRange
-      || !isPlaybackReadyRangeVisible(playbackReadyRange)
-    ) {
-      return null;
-    }
+  const getReadyFillStyle = useCallback(
+    (action: ClipTimelineAction): CSSProperties | null => {
+      if (
+        action.effectId !== "clip" ||
+        !playbackReadyRange ||
+        !isPlaybackReadyRangeVisible(playbackReadyRange)
+      ) {
+        return null;
+      }
 
-    const fill = getTimelineFillPercentages({
-      trackStart: action.start,
-      trackEnd: action.end,
-      fillStart: playbackReadyRange.startTime,
-      fillEnd: Math.min(playbackReadyRange.readyUntilTime, playbackReadyRange.endTime),
-    });
-    if (!fill || (fill.widthPercent <= 0 && playbackReadyRange.status !== "warming")) {
-      return null;
-    }
+      const fill = getTimelineFillPercentages({
+        trackStart: action.start,
+        trackEnd: action.end,
+        fillStart: playbackReadyRange.startTime,
+        fillEnd: Math.min(
+          playbackReadyRange.readyUntilTime,
+          playbackReadyRange.endTime,
+        ),
+      });
+      if (
+        !fill ||
+        (fill.widthPercent <= 0 && playbackReadyRange.status !== "warming")
+      ) {
+        return null;
+      }
 
-    return {
-      left: `${fill.leftPercent}%`,
-      width: `${fill.widthPercent}%`,
-    };
-  }, [playbackReadyRange]);
+      return {
+        left: `${fill.leftPercent}%`,
+        width: `${fill.widthPercent}%`,
+      };
+    },
+    [playbackReadyRange],
+  );
 
-  const renderClipTimelineAction = useCallback((action: ClipTimelineAction) => {
-    const isSource = action.effectId === "source";
-    const readyFillStyle = getReadyFillStyle(action);
+  const renderClipTimelineAction = useCallback(
+    (action: ClipTimelineAction) => {
+      const isSource = action.effectId === "source";
+      const readyFillStyle = getReadyFillStyle(action);
 
-    return (
-      <div className="cliparr-timeline-action-content">
-        {readyFillStyle && playbackReadyRange && (
-          <span
-            className="cliparr-timeline-action-ready-fill"
-            data-status={playbackReadyRange.status}
-            style={readyFillStyle}
-            aria-hidden="true"
-          />
-        )}
-        <span className="cliparr-timeline-action-label">
-          {!isSource && <Scissors className="h-3.5 w-3.5" />}
-          {isSource ? "Source" : "Selection"}
-        </span>
-      </div>
-    );
-  }, [getReadyFillStyle, playbackReadyRange]);
+      return (
+        <div className="cliparr-timeline-action-content">
+          {readyFillStyle && playbackReadyRange && (
+            <span
+              className="cliparr-timeline-action-ready-fill"
+              data-status={playbackReadyRange.status}
+              style={readyFillStyle}
+              aria-hidden="true"
+            />
+          )}
+          <span className="cliparr-timeline-action-label">
+            {!isSource && <Scissors className="h-3.5 w-3.5" />}
+            {isSource ? "Source" : "Selection"}
+          </span>
+        </div>
+      );
+    },
+    [getReadyFillStyle, playbackReadyRange],
+  );
 
   return (
-    <div
-      ref={timelineWheelRegionRef}
-      className="cliparr-timeline"
-    >
+    <div ref={timelineWheelRegionRef} className="cliparr-timeline">
       <Timeline
         ref={timelineRef}
         editorData={timelineData}
@@ -132,7 +149,10 @@ export function EditorTimeline({
           return false;
         }}
         onClickRow={(event, { time }) => {
-          if (event.target instanceof HTMLElement && event.target.closest(".timeline-editor-action")) {
+          if (
+            event.target instanceof HTMLElement &&
+            event.target.closest(".timeline-editor-action")
+          ) {
             return;
           }
 

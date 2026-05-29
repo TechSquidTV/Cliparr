@@ -3,7 +3,7 @@ import type { SubtitleCue } from "./types";
 export function trimSubtitleCues(
   cues: readonly SubtitleCue[],
   clipStart: number,
-  clipEnd: number
+  clipEnd: number,
 ) {
   const clipDuration = Math.max(0, clipEnd - clipStart);
 
@@ -15,11 +15,13 @@ export function trimSubtitleCues(
       return [];
     }
 
-    return [{
-      ...cue,
-      startTime,
-      endTime,
-      lines: [...cue.lines],
-    }];
+    return [
+      {
+        ...cue,
+        startTime,
+        endTime,
+        lines: [...cue.lines],
+      },
+    ];
   });
 }

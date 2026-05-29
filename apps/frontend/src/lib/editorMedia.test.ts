@@ -11,7 +11,10 @@ void test("uses the URL host as the title when no path segment is present", () =
 });
 
 void test("uses the final URL path segment as the title when present", () => {
-  assert.equal(titleFromUrl("https://example.com/media/example%20clip.mp4"), "example clip");
+  assert.equal(
+    titleFromUrl("https://example.com/media/example%20clip.mp4"),
+    "example clip",
+  );
 });
 
 void test("passes provider playhead seconds into editor sessions", () => {
@@ -31,5 +34,8 @@ void test("passes provider playhead seconds into editor sessions", () => {
     mediaUrl: "/api/media/direct",
   };
 
-  assert.equal(editorSessionFromCurrentlyPlaying(item).initialPlayheadSeconds, 123.456);
+  assert.equal(
+    editorSessionFromCurrentlyPlaying(item).initialPlayheadSeconds,
+    123.456,
+  );
 });

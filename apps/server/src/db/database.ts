@@ -12,7 +12,10 @@ import { assertAppKeyConfigured } from "../security/secrets.js";
 
 const DEFAULT_DATABASE_FILE = "cliparr.sqlite";
 const DEFAULT_DEVELOPMENT_DATA_DIR = ".cliparr-data";
-const MIGRATIONS_FOLDER = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../drizzle");
+const MIGRATIONS_FOLDER = path.resolve(
+  path.dirname(fileURLToPath(import.meta.url)),
+  "../../drizzle",
+);
 
 type CliparrDatabase = NodeSQLiteDatabase<typeof schema>;
 
@@ -43,7 +46,9 @@ function resolveDataDir() {
   }
 
   if (process.env.NODE_ENV === "production") {
-    throw new Error("CLIPARR_DATA_DIR is required in production so the SQLite database has a persistent home.");
+    throw new Error(
+      "CLIPARR_DATA_DIR is required in production so the SQLite database has a persistent home.",
+    );
   }
 
   return path.join(workspaceRoot, DEFAULT_DEVELOPMENT_DATA_DIR);

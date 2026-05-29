@@ -1,8 +1,20 @@
 import { useEffect, useState } from "react";
-import { AlertTriangle, FolderOpen, LogOut, Play, RefreshCw, Settings2, Video } from "lucide-react";
+import {
+  AlertTriangle,
+  FolderOpen,
+  LogOut,
+  Play,
+  RefreshCw,
+  Settings2,
+  Video,
+} from "lucide-react";
 import { cliparrClient } from "../api/cliparrClient";
 import { formatProviderName, ProviderGlyph } from "./ProviderGlyph";
-import type { CurrentlyPlayingItem, SourcePlaybackError, ViewerPlaybackGroup } from "../providers/types";
+import type {
+  CurrentlyPlayingItem,
+  SourcePlaybackError,
+  ViewerPlaybackGroup,
+} from "../providers/types";
 
 interface Props {
   onSelectSession: (session: CurrentlyPlayingItem) => void;
@@ -44,15 +56,25 @@ function formatSourceLabel(source: { name: string; providerId: string }) {
   return formatProviderName(source.providerId);
 }
 
-function canEditSession(session: Pick<CurrentlyPlayingItem, "mediaUrl" | "hlsUrl">) {
+function canEditSession(
+  session: Pick<CurrentlyPlayingItem, "mediaUrl" | "hlsUrl">,
+) {
   return Boolean(session.hlsUrl || session.mediaUrl);
 }
 
-function sessionActionLabel(session: Pick<CurrentlyPlayingItem, "mediaUrl" | "hlsUrl">) {
+function sessionActionLabel(
+  session: Pick<CurrentlyPlayingItem, "mediaUrl" | "hlsUrl">,
+) {
   return canEditSession(session) ? "Edit Clip" : "No stream";
 }
 
-function ViewerAvatar({ name, avatarUrl }: { name: string; avatarUrl?: string }) {
+function ViewerAvatar({
+  name,
+  avatarUrl,
+}: {
+  name: string;
+  avatarUrl?: string;
+}) {
   const [imageFailed, setImageFailed] = useState(false);
   const label = name.trim().charAt(0).toUpperCase() || "?";
 
@@ -72,7 +94,11 @@ function ViewerAvatar({ name, avatarUrl }: { name: string; avatarUrl?: string })
   );
 }
 
-function WarningBanner({ sourceErrors }: { sourceErrors: SourcePlaybackError[] }) {
+function WarningBanner({
+  sourceErrors,
+}: {
+  sourceErrors: SourcePlaybackError[];
+}) {
   if (sourceErrors.length === 0) {
     return null;
   }
@@ -82,7 +108,9 @@ function WarningBanner({ sourceErrors }: { sourceErrors: SourcePlaybackError[] }
       <div className="flex items-start gap-3">
         <AlertTriangle className="w-5 h-5 shrink-0 mt-0.5" />
         <div className="space-y-2 text-sm">
-          <p className="font-medium">Some sources are unavailable. Showing the rest.</p>
+          <p className="font-medium">
+            Some sources are unavailable. Showing the rest.
+          </p>
           <div className="space-y-1">
             {sourceErrors.map((sourceError) => (
               <p key={sourceError.sourceId}>
@@ -91,7 +119,8 @@ function WarningBanner({ sourceErrors }: { sourceErrors: SourcePlaybackError[] }
                     name: sourceError.sourceName,
                     providerId: sourceError.providerId,
                   })}
-                </span>: {sourceError.message}
+                </span>
+                : {sourceError.message}
               </p>
             ))}
           </div>
@@ -101,7 +130,12 @@ function WarningBanner({ sourceErrors }: { sourceErrors: SourcePlaybackError[] }
   );
 }
 
-export default function DashboardScreen({ onSelectSession, onOpenLocalVideo, onOpenSources, onLogout }: Props) {
+export default function DashboardScreen({
+  onSelectSession,
+  onOpenLocalVideo,
+  onOpenSources,
+  onLogout,
+}: Props) {
   const [viewers, setViewers] = useState<ViewerPlaybackGroup[]>([]);
   const [sourceErrors, setSourceErrors] = useState<SourcePlaybackError[]>([]);
   const [appVersion, setAppVersion] = useState("");
@@ -131,7 +165,8 @@ export default function DashboardScreen({ onSelectSession, onOpenLocalVideo, onO
   useEffect(() => {
     let cancelled = false;
 
-    void cliparrClient.getHealth()
+    void cliparrClient
+      .getHealth()
       .then((health) => {
         if (!cancelled) {
           setAppVersion(health.version ?? "");
@@ -149,9 +184,10 @@ export default function DashboardScreen({ onSelectSession, onOpenLocalVideo, onO
   }, []);
 
   const hasPlayback = viewers.length > 0;
-  const emptyMessage = sourceErrors.length > 0
-    ? "No active playback on the available sources."
-    : "No one is currently watching anything.";
+  const emptyMessage =
+    sourceErrors.length > 0
+      ? "No active playback on the available sources."
+      : "No one is currently watching anything.";
   const versionLabel = appVersion;
 
   return (
@@ -169,7 +205,9 @@ export default function DashboardScreen({ onSelectSession, onOpenLocalVideo, onO
                   </span>
                 )}
               </div>
-              <p className="text-sm text-muted-foreground">Export clips from active playback sessions.</p>
+              <p className="text-sm text-muted-foreground">
+                Export clips from active playback sessions.
+              </p>
             </div>
           </div>
           <div className="flex flex-wrap items-center gap-3 sm:justify-end">
@@ -195,7 +233,9 @@ export default function DashboardScreen({ onSelectSession, onOpenLocalVideo, onO
               className="p-2 text-muted-foreground hover:text-foreground hover:bg-accent rounded-lg transition-colors"
               title="Refresh"
             >
-              <RefreshCw className={`w-5 h-5 ${loading ? "animate-spin text-primary" : ""}`} />
+              <RefreshCw
+                className={`w-5 h-5 ${loading ? "animate-spin text-primary" : ""}`}
+              />
             </button>
             <a
               href={CLIPARR_GITHUB_URL}
@@ -239,7 +279,9 @@ export default function DashboardScreen({ onSelectSession, onOpenLocalVideo, onO
               <div className="bg-background w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
                 <Play className="w-6 h-6 text-muted-foreground" />
               </div>
-              <h3 className="text-lg font-medium mb-2">Nothing is playing right now</h3>
+              <h3 className="text-lg font-medium mb-2">
+                Nothing is playing right now
+              </h3>
               <p className="text-muted-foreground text-sm max-w-sm mx-auto">
                 {emptyMessage}
               </p>
@@ -255,9 +297,12 @@ export default function DashboardScreen({ onSelectSession, onOpenLocalVideo, onO
                     avatarUrl={viewerGroup.viewer.avatarUrl}
                   />
                   <div>
-                    <h3 className="text-lg font-semibold">{viewerGroup.viewer.name}</h3>
+                    <h3 className="text-lg font-semibold">
+                      {viewerGroup.viewer.name}
+                    </h3>
                     <p className="text-sm text-muted-foreground">
-                      {viewerGroup.items.length} active {viewerGroup.items.length === 1 ? "session" : "sessions"}
+                      {viewerGroup.items.length} active{" "}
+                      {viewerGroup.items.length === 1 ? "session" : "sessions"}
                     </p>
                   </div>
                 </div>
@@ -293,22 +338,32 @@ export default function DashboardScreen({ onSelectSession, onOpenLocalVideo, onO
                             <span className="inline-flex items-center gap-1.5 rounded-full bg-card/90 px-2.5 py-1 text-[11px] font-medium uppercase tracking-wide text-muted-foreground shadow-sm backdrop-blur-sm">
                               <ProviderGlyph
                                 providerId={mediaSession.source.providerId}
-                                providerName={formatSourceLabel(mediaSession.source)}
+                                providerName={formatSourceLabel(
+                                  mediaSession.source,
+                                )}
                                 className="h-3.5 w-3.5"
                               />
                               {formatSourceLabel(mediaSession.source)}
                             </span>
                           </div>
                           <div className="absolute bottom-3 left-3 right-3">
-                            <div className="text-xs font-medium text-primary mb-1">{mediaSession.type.toUpperCase()}</div>
-                            <h4 className="font-semibold truncate">{mediaSession.title}</h4>
+                            <div className="text-xs font-medium text-primary mb-1">
+                              {mediaSession.type.toUpperCase()}
+                            </div>
+                            <h4 className="font-semibold truncate">
+                              {mediaSession.title}
+                            </h4>
                           </div>
                         </div>
                         <div className="p-4 flex-1 flex flex-col justify-between gap-4">
                           <div className="space-y-2 text-sm text-muted-foreground">
                             <div className="flex items-center justify-between gap-3">
-                              <span className="truncate">{mediaSession.playerTitle}</span>
-                              <span className="shrink-0 capitalize">{mediaSession.playerState}</span>
+                              <span className="truncate">
+                                {mediaSession.playerTitle}
+                              </span>
+                              <span className="shrink-0 capitalize">
+                                {mediaSession.playerState}
+                              </span>
                             </div>
                           </div>
                           <div className="flex items-center justify-center w-full py-2 bg-primary/10 text-primary rounded-lg text-sm font-medium group-hover:bg-primary group-hover:text-primary-foreground transition-colors">

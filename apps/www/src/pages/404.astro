@@ -2,20 +2,33 @@
 import BaseLayout from "../components/BaseLayout.astro";
 ---
 
-<BaseLayout title="Page not found" description="The Cliparr page you requested could not be found.">
-  <section class="border-b border-border bg-background py-20 text-foreground sm:py-24">
+<BaseLayout
+  title="Page not found"
+  description="The Cliparr page you requested could not be found."
+>
+  <section
+    class="border-b border-border bg-background py-20 text-foreground sm:py-24"
+  >
     <div class="container-page">
       <div class="mx-auto max-w-2xl text-center">
         <p class="section-eyebrow">404</p>
-        <h1 class="mt-5 text-4xl font-semibold leading-tight sm:text-5xl">Page not found.</h1>
+        <h1 class="mt-5 text-4xl font-semibold leading-tight sm:text-5xl">
+          Page not found.
+        </h1>
         <p class="mt-5 text-base leading-7 text-muted-foreground">
           The page may have moved, or the link might be out of date.
         </p>
         <div class="mt-7 flex flex-wrap justify-center gap-3">
-          <a href="/" class="focus-ring inline-flex min-h-11 items-center justify-center rounded-full bg-foreground px-6 text-sm font-semibold text-background transition-colors hover:bg-primary">
+          <a
+            href="/"
+            class="focus-ring inline-flex min-h-11 items-center justify-center rounded-full bg-foreground px-6 text-sm font-semibold text-background transition-colors hover:bg-primary"
+          >
             Go home
           </a>
-          <a href="/docs/getting-started" class="focus-ring inline-flex min-h-11 items-center justify-center rounded-full border border-border bg-card px-6 text-sm font-semibold text-foreground transition-colors hover:bg-accent">
+          <a
+            href="/docs/getting-started"
+            class="focus-ring inline-flex min-h-11 items-center justify-center rounded-full border border-border bg-card px-6 text-sm font-semibold text-foreground transition-colors hover:bg-accent"
+          >
             Read docs
           </a>
         </div>

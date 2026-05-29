@@ -5,15 +5,16 @@ import { ProviderGlyph } from "./ProviderGlyph";
 
 export function providerPresentation(
   provider: ProviderDefinition,
-  variant: "panel" | "screen"
+  variant: "panel" | "screen",
 ) {
   switch (provider.id) {
     case "plex":
       return {
         eyebrow: "Browser Sign-In",
-        summary: variant === "panel"
-          ? "Sign in with Plex, then choose a server."
-          : "Sign in with Plex to find your servers.",
+        summary:
+          variant === "panel"
+            ? "Sign in with Plex, then choose a server."
+            : "Sign in with Plex to find your servers.",
         action: "Continue with Plex",
       };
     case "jellyfin":
@@ -46,7 +47,7 @@ export function ProviderBadge({
     <div
       className={cn(
         "rounded-2xl p-3 transition-colors",
-        selected ? "bg-primary/15" : "bg-card"
+        selected ? "bg-primary/15" : "bg-card",
       )}
     >
       <ProviderGlyph
@@ -104,12 +105,14 @@ export function ProviderStatusMessage({
   isScreen: boolean;
 }) {
   return (
-    <div className={cn(
-      "text-center text-sm text-muted-foreground",
-      isScreen
-        ? "py-12"
-        : "rounded-3xl border border-border bg-background/60 px-6 py-10"
-    )}>
+    <div
+      className={cn(
+        "text-center text-sm text-muted-foreground",
+        isScreen
+          ? "py-12"
+          : "rounded-3xl border border-border bg-background/60 px-6 py-10",
+      )}
+    >
       {children}
     </div>
   );
@@ -144,7 +147,7 @@ export function ProviderOption({
         ? isScreen
           ? "border-primary/40 bg-primary/10 shadow-lg"
           : "border-primary/30 bg-primary/10"
-        : "border-border bg-background hover:bg-accent/60"
+        : "border-border bg-background hover:bg-accent/60",
     ),
   };
 
@@ -165,8 +168,8 @@ export function ProviderOption({
               {provider.name}
             </h2>
           </div>
-          {isSelected && (
-            isScreen ? (
+          {isSelected &&
+            (isScreen ? (
               <motion.span
                 layout
                 initial={{ opacity: 0, scale: 0.92 }}
@@ -180,8 +183,7 @@ export function ProviderOption({
               <span className="rounded-full border border-primary/20 bg-primary/10 px-2.5 py-1 text-[11px] font-medium uppercase tracking-[var(--tracking-caps-lg)] text-primary">
                 Selected
               </span>
-            )
-          )}
+            ))}
         </div>
         <p className="mt-2 text-sm leading-6 text-muted-foreground">
           {details.summary}
@@ -196,11 +198,7 @@ export function ProviderOption({
   );
 
   if (!isScreen) {
-    return (
-      <button {...commonProps}>
-        {content}
-      </button>
-    );
+    return <button {...commonProps}>{content}</button>;
   }
 
   return (

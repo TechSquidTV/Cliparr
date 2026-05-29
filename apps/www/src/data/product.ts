@@ -1,10 +1,12 @@
 export const site = {
   name: "Cliparr",
   url: "https://cliparr.dev",
-  description: "Instant media clipper for Plex, Jellyfin, and local video files.",
+  description:
+    "Instant media clipper for Plex, Jellyfin, and local video files.",
   githubUrl: "https://github.com/TechSquidTV/Cliparr",
   ogImage: "/og.jpg",
-  ogImageAlt: "Cliparr editor showing a video preview, playback controls, and timeline clip selection.",
+  ogImageAlt:
+    "Cliparr editor showing a video preview, playback controls, and timeline clip selection.",
   ogImageHeight: 739,
   ogImageType: "image/jpeg",
   ogImageWidth: 1200,
@@ -17,11 +19,13 @@ export const productIntro =
 export const features = [
   {
     title: "Instant session discovery",
-    description: "Automatically loads your media player's currently playing file.",
+    description:
+      "Automatically loads your media player's currently playing file.",
   },
   {
     title: "Open local videos",
-    description: "Open a local file or direct media URL before or after connecting a provider.",
+    description:
+      "Open a local file or direct media URL before or after connecting a provider.",
   },
   {
     title: "Intuitive timeline editor",
@@ -33,11 +37,13 @@ export const features = [
   },
   {
     title: "Metadata included",
-    description: "Exports can include season, episode, and timing metadata from your source.",
+    description:
+      "Exports can include season, episode, and timing metadata from your source.",
   },
   {
     title: "Subtitle burn-in",
-    description: "Burn in supported subtitles with customizable styling and local font support in Chromium.",
+    description:
+      "Burn in supported subtitles with customizable styling and local font support in Chromium.",
   },
 ] as const;
 
@@ -45,12 +51,14 @@ export const providers = [
   {
     name: "Plex",
     iconPath: "/providers/plex.svg",
-    setup: "Connect your Plex account, choose a server, and clip from active playback sessions.",
+    setup:
+      "Connect your Plex account, choose a server, and clip from active playback sessions.",
   },
   {
     name: "Jellyfin",
     iconPath: "/providers/jellyfin.svg",
-    setup: "Connect your Jellyfin server with an administrator account and clip from active sessions across your library.",
+    setup:
+      "Connect your Jellyfin server with an administrator account and clip from active sessions across your library.",
   },
 ] as const;
 
@@ -82,10 +90,7 @@ cp .env.example .env
 pnpm install
 pnpm dev`;
 
-export const preflightCommands = `pnpm lint
-pnpm test
-pnpm knip
-pnpm build`;
+export const preflightCommands = `pnpm preflight`;
 
 export const warnings = [
   {
@@ -101,7 +106,8 @@ export const warnings = [
 export const envVars = [
   {
     name: "APP_KEY",
-    description: "Required secret for credential encryption. Must be at least 32 characters long.",
+    description:
+      "Required secret for credential encryption. Must be at least 32 characters long.",
     defaultValue: "-",
     required: true,
   },
@@ -119,7 +125,8 @@ export const envVars = [
   },
   {
     name: "CLIPARR_ALLOW_LOOPBACK_JELLYFIN_URLS",
-    description: "Allow Jellyfin URLs that resolve to localhost or loopback. Use only for trusted self-hosted setups.",
+    description:
+      "Allow Jellyfin URLs that resolve to localhost or loopback. Use only for trusted self-hosted setups.",
     defaultValue: "false",
     required: false,
   },

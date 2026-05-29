@@ -13,7 +13,10 @@ import {
   sourceProviderOptions,
 } from "./sourcesModalStateUtils";
 
-function source(overrides: Partial<MediaSource> & Pick<MediaSource, "id" | "name" | "providerId">): MediaSource {
+function source(
+  overrides: Partial<MediaSource> &
+    Pick<MediaSource, "id" | "name" | "providerId">,
+): MediaSource {
   return {
     enabled: true,
     baseUrl: `https://${overrides.id}.example.test`,
@@ -71,56 +74,89 @@ void test("builds source drafts, counts, and provider options", () => {
 });
 
 void test("filters sources by provider, status, and query metadata", () => {
-  assert.deepEqual(filterSources({
-    sources,
-    providerFilter: "demo",
-    statusFilter: "all",
-    query: "",
-  }).map((item) => item.id), ["gamma", "alpha"]);
+  assert.deepEqual(
+    filterSources({
+      sources,
+      providerFilter: "demo",
+      statusFilter: "all",
+      query: "",
+    }).map((item) => item.id),
+    ["gamma", "alpha"],
+  );
 
-  assert.deepEqual(filterSources({
-    sources,
-    providerFilter: "all",
-    statusFilter: "disabled",
-    query: "",
-  }).map((item) => item.id), ["beta"]);
+  assert.deepEqual(
+    filterSources({
+      sources,
+      providerFilter: "all",
+      statusFilter: "disabled",
+      query: "",
+    }).map((item) => item.id),
+    ["beta"],
+  );
 
-  assert.deepEqual(filterSources({
-    sources,
-    providerFilter: "all",
-    statusFilter: "attention",
-    query: "",
-  }).map((item) => item.id), ["gamma"]);
+  assert.deepEqual(
+    filterSources({
+      sources,
+      providerFilter: "all",
+      statusFilter: "attention",
+      query: "",
+    }).map((item) => item.id),
+    ["gamma"],
+  );
 
-  assert.deepEqual(filterSources({
-    sources,
-    providerFilter: "all",
-    statusFilter: "enabled",
-    query: "macos",
-  }).map((item) => item.id), ["alpha"]);
+  assert.deepEqual(
+    filterSources({
+      sources,
+      providerFilter: "all",
+      statusFilter: "enabled",
+      query: "macos",
+    }).map((item) => item.id),
+    ["alpha"],
+  );
 });
 
 void test("builds trimmed source edit payloads only for changed fields", () => {
-  assert.deepEqual(buildSourceEditInput(alpha, {
-    alpha: " Alpha ",
-  }, {
-    alpha: `${alpha.baseUrl}   `,
-  }), {});
+  assert.deepEqual(
+    buildSourceEditInput(
+      alpha,
+      {
+        alpha: " Alpha ",
+      },
+      {
+        alpha: `${alpha.baseUrl}   `,
+      },
+    ),
+    {},
+  );
 
-  assert.deepEqual(buildSourceEditInput(alpha, {
-    alpha: "  Alpha Renamed  ",
-  }, {
-    alpha: " https://alpha-new.example.test ",
-  }), {
-    name: "Alpha Renamed",
-    baseUrl: "https://alpha-new.example.test",
-  });
+  assert.deepEqual(
+    buildSourceEditInput(
+      alpha,
+      {
+        alpha: "  Alpha Renamed  ",
+      },
+      {
+        alpha: " https://alpha-new.example.test ",
+      },
+    ),
+    {
+      name: "Alpha Renamed",
+      baseUrl: "https://alpha-new.example.test",
+    },
+  );
 
-  assert.deepEqual(buildSourceEditInput(alpha, {
-    alpha: "   ",
-  }, {
-    alpha: "   ",
-  }), {});
+  assert.deepEqual(
+    buildSourceEditInput(
+      alpha,
+      {
+        alpha: "   ",
+      },
+      {
+        alpha: "   ",
+      },
+    ),
+    {},
+  );
 });
 
 void test("merges refresh-all results and summarizes partial failures", () => {
@@ -135,7 +171,12 @@ void test("merges refresh-all results and summarizes partial failures", () => {
     lastError: "Still offline",
     lastCheckedAt: "2026-01-02T00:00:00.000Z",
   };
-  const results: Array<PromiseSettledResult<{ source: MediaSource; result: MediaSourceCheckResult }>> = [
+  const results: Array<
+    PromiseSettledResult<{
+      source: MediaSource;
+      result: MediaSourceCheckResult;
+    }>
+  > = [
     {
       status: "fulfilled",
       value: {
@@ -167,11 +208,10 @@ void test("merges refresh-all results and summarizes partial failures", () => {
 
   const merged = mergeRefreshAllSourceResults(sources, results);
 
-  assert.deepEqual(merged.sources.map((item) => item.name), [
-    "Alpha Healthy",
-    "Gamma",
-    "Beta",
-  ]);
+  assert.deepEqual(
+    merged.sources.map((item) => item.name),
+    ["Alpha Healthy", "Gamma", "Beta"],
+  );
   assert.deepEqual(merged.feedback, {
     tone: "warning",
     message: "Refreshed 3 sources. 1 healthy, 1 need attention, 1 failed.",

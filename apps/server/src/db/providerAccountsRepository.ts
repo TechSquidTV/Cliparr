@@ -3,7 +3,11 @@ import { and, eq, isNotNull, isNull, sql } from "drizzle-orm";
 import { getDatabase } from "./database.js";
 import { providerAccounts, type ProviderAccountRow } from "./schema.js";
 import { currentTimestampSql } from "./timestamps.js";
-import { decryptSecret, encryptSecret, hashSecret } from "../security/secrets.js";
+import {
+  decryptSecret,
+  encryptSecret,
+  hashSecret,
+} from "../security/secrets.js";
 
 export interface ProviderAccount {
   id: string;
@@ -37,7 +41,8 @@ function mapProviderAccount(row: ProviderAccountRow): ProviderAccount {
     id: row.id,
     providerId: row.providerId,
     label: row.label,
-    accessToken: row.accessToken != null ? decryptSecret(row.accessToken) : undefined,
+    accessToken:
+      row.accessToken != null ? decryptSecret(row.accessToken) : undefined,
     metadata: row.metadata,
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
@@ -49,20 +54,25 @@ function createProviderAccount(input: CreateProviderAccountInput) {
   const id = randomUUID();
   const accessToken = normalizeAccessToken(input.accessToken);
 
-  db.insert(providerAccounts).values({
-    id,
-    providerId: input.providerId,
-    label: input.label,
-    accessToken: accessToken ? encryptSecret(accessToken) : null,
-    accessTokenHash: accessToken ? hashSecret(accessToken) : null,
-    metadata: input.metadata ?? {},
-  }).run();
+  db.insert(providerAccounts)
+    .values({
+      id,
+      providerId: input.providerId,
+      label: input.label,
+      accessToken: accessToken ? encryptSecret(accessToken) : null,
+      accessTokenHash: accessToken ? hashSecret(accessToken) : null,
+      metadata: input.metadata ?? {},
+    })
+    .run();
 
   return getProviderAccount(id);
 }
 
 function updateProviderAccount(id: string, input: UpdateProviderAccountInput) {
-  const accessToken = input.accessToken !== undefined ? normalizeAccessToken(input.accessToken) : undefined;
+  const accessToken =
+    input.accessToken !== undefined
+      ? normalizeAccessToken(input.accessToken)
+      : undefined;
 
   getDatabase()
     .update(providerAccounts)
@@ -70,9 +80,9 @@ function updateProviderAccount(id: string, input: UpdateProviderAccountInput) {
       ...(input.label !== undefined ? { label: input.label } : {}),
       ...(accessToken !== undefined
         ? {
-          accessToken: accessToken ? encryptSecret(accessToken) : null,
-          accessTokenHash: accessToken ? hashSecret(accessToken) : null,
-        }
+            accessToken: accessToken ? encryptSecret(accessToken) : null,
+            accessTokenHash: accessToken ? hashSecret(accessToken) : null,
+          }
         : {}),
       ...(input.metadata !== undefined ? { metadata: input.metadata } : {}),
       updatedAt: currentTimestampSql(),
@@ -93,13 +103,21 @@ export function getProviderAccount(id: string) {
   return row ? mapProviderAccount(row) : undefined;
 }
 
-function getProviderAccountByAccessToken(providerId: string, accessToken: string) {
+function getProviderAccountByAccessToken(
+  providerId: string,
+  accessToken: string,
+) {
   const db = getDatabase();
   const tokenHash = hashSecret(accessToken);
   const row = db
     .select()
     .from(providerAccounts)
-    .where(and(eq(providerAccounts.providerId, providerId), eq(providerAccounts.accessTokenHash, tokenHash)))
+    .where(
+      and(
+        eq(providerAccounts.providerId, providerId),
+        eq(providerAccounts.accessTokenHash, tokenHash),
+      ),
+    )
     .get();
 
   if (row) {
@@ -109,23 +127,34 @@ function getProviderAccountByAccessToken(providerId: string, accessToken: string
   const fallback = db
     .select()
     .from(providerAccounts)
-    .where(and(
-      eq(providerAccounts.providerId, providerId),
-      isNull(providerAccounts.accessTokenHash),
-      isNotNull(providerAccounts.accessToken)
-    ))
+    .where(
+      and(
+        eq(providerAccounts.providerId, providerId),
+        isNull(providerAccounts.accessTokenHash),
+        isNotNull(providerAccounts.accessToken),
+      ),
+    )
     .all()
-    .find((candidate) => candidate.accessToken != null && decryptSecret(candidate.accessToken) === accessToken);
+    .find(
+      (candidate) =>
+        candidate.accessToken != null &&
+        decryptSecret(candidate.accessToken) === accessToken,
+    );
 
   return fallback ? mapProviderAccount(fallback) : undefined;
 }
 
-export function upsertProviderAccountByAccessToken(input: CreateProviderAccountInput) {
+export function upsertProviderAccountByAccessToken(
+  input: CreateProviderAccountInput,
+) {
   if (!input.accessToken) {
     return createProviderAccount(input);
   }
 
-  const existing = getProviderAccountByAccessToken(input.providerId, input.accessToken);
+  const existing = getProviderAccountByAccessToken(
+    input.providerId,
+    input.accessToken,
+  );
   if (existing) {
     return updateProviderAccount(existing.id, {
       label: input.label,

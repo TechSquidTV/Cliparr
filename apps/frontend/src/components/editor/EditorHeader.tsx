@@ -23,7 +23,8 @@ export function EditorHeader({
   onExportClick,
 }: EditorHeaderProps) {
   const exportDisabled = exporting || Boolean(exportDisabledReason);
-  const exportTooltip = exportDisabledReason ?? (exporting ? "Export in progress." : null);
+  const exportTooltip =
+    exportDisabledReason ?? (exporting ? "Export in progress." : null);
   const exportButton = (
     <button
       type="button"
@@ -59,9 +60,7 @@ export function EditorHeader({
               <ArrowLeft className="h-4 w-4" />
             </button>
           </TooltipTrigger>
-          <TooltipContent side="bottom">
-            Back
-          </TooltipContent>
+          <TooltipContent side="bottom">Back</TooltipContent>
         </Tooltip>
         <div className="flex items-center gap-2 pl-1">
           <img src="/logo-light.svg" alt="Cliparr Logo" className="h-5 w-5" />
@@ -85,7 +84,9 @@ export function EditorHeader({
               {exportTooltip}
             </TooltipContent>
           </Tooltip>
-        ) : exportButton}
+        ) : (
+          exportButton
+        )}
       </div>
     </header>
   );

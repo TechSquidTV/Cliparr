@@ -32,14 +32,24 @@ export function resolvePreviewPlaybackPlan({
 }: PreviewPlaybackPlanOptions): PreviewPlaybackPlan {
   const safeDuration = finiteNonNegative(duration);
   const safeClipStart = clamp(finiteNonNegative(clipStart), 0, safeDuration);
-  const safeClipEnd = clamp(finiteNonNegative(clipEnd || safeDuration), safeClipStart, safeDuration);
-  const safeCurrentTime = clamp(finiteNonNegative(currentTime), 0, safeDuration);
+  const safeClipEnd = clamp(
+    finiteNonNegative(clipEnd || safeDuration),
+    safeClipStart,
+    safeDuration,
+  );
+  const safeCurrentTime = clamp(
+    finiteNonNegative(currentTime),
+    0,
+    safeDuration,
+  );
   const hasSelection = safeClipEnd > safeClipStart;
-  const nearSelectionStart = hasSelection
-    && Math.abs(safeCurrentTime - safeClipStart) <= CLIP_START_PLAY_SNAP_SECONDS;
-  const insideSelection = hasSelection
-    && safeCurrentTime >= safeClipStart
-    && safeCurrentTime < safeClipEnd;
+  const nearSelectionStart =
+    hasSelection &&
+    Math.abs(safeCurrentTime - safeClipStart) <= CLIP_START_PLAY_SNAP_SECONDS;
+  const insideSelection =
+    hasSelection &&
+    safeCurrentTime >= safeClipStart &&
+    safeCurrentTime < safeClipEnd;
 
   if (hasSelection && (nearSelectionStart || insideSelection)) {
     return {

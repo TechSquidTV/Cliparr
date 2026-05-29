@@ -102,7 +102,9 @@ export function getProviderSession(sessionId?: string) {
   return mapProviderSession(row);
 }
 
-export function restoreProviderSessionFromProviderAccount(providerAccountId?: string) {
+export function restoreProviderSessionFromProviderAccount(
+  providerAccountId?: string,
+) {
   if (!providerAccountId) {
     return undefined;
   }
@@ -119,14 +121,20 @@ export function restoreProviderSessionFromProviderAccount(providerAccountId?: st
       userToken: account.accessToken,
     });
   } catch (err) {
-    logger.warn("Failed to restore provider session from remembered provider account.", {
-      ...serializeError(err),
-    });
+    logger.warn(
+      "Failed to restore provider session from remembered provider account.",
+      {
+        ...serializeError(err),
+      },
+    );
     return undefined;
   }
 }
 
-export function pruneSessionMediaHandles(session: ProviderSessionRecord, maxIdleMs = MEDIA_HANDLE_IDLE_TTL_MS) {
+export function pruneSessionMediaHandles(
+  session: ProviderSessionRecord,
+  maxIdleMs = MEDIA_HANDLE_IDLE_TTL_MS,
+) {
   const cutoff = Date.now() - maxIdleMs;
   let prunedCount = 0;
 
@@ -140,15 +148,18 @@ export function pruneSessionMediaHandles(session: ProviderSessionRecord, maxIdle
   }
 
   if (prunedCount > 0) {
-    logger.trace("Pruned stale media handles for provider session {sessionId}.", {
-      sessionId: session.id,
-      providerId: session.providerId,
-      providerAccountId: session.providerAccountId,
-      prunedCount,
-      remainingHandleCount: session.mediaHandles.size,
-      maxIdleMs,
-      cutoff,
-    });
+    logger.trace(
+      "Pruned stale media handles for provider session {sessionId}.",
+      {
+        sessionId: session.id,
+        providerId: session.providerId,
+        providerAccountId: session.providerAccountId,
+        prunedCount,
+        remainingHandleCount: session.mediaHandles.size,
+        maxIdleMs,
+        cutoff,
+      },
+    );
   }
 
   return prunedCount;
@@ -201,7 +212,9 @@ export function getSessionCookieClearOptions(secure: boolean) {
   };
 }
 
-export function getRememberedProviderSessionCookieClearOptions(secure: boolean) {
+export function getRememberedProviderSessionCookieClearOptions(
+  secure: boolean,
+) {
   return {
     path: "/",
     httpOnly: true,

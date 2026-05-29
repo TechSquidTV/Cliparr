@@ -6,21 +6,28 @@ import path from "node:path";
 import test from "node:test";
 
 const TEST_APP_KEY = "session-store-test-key-with-at-least-32-characters";
-const MISMATCHED_APP_KEY = "session-store-test-key-with-a-different-32-char-secret";
+const MISMATCHED_APP_KEY =
+  "session-store-test-key-with-a-different-32-char-secret";
 
 const appModuleUrl = new URL("../app.js", import.meta.url).href;
 const databaseModuleUrl = new URL("../db/database.js", import.meta.url).href;
-const providerAccountsRepositoryModuleUrl = new URL("../db/providerAccountsRepository.js", import.meta.url).href;
+const providerAccountsRepositoryModuleUrl = new URL(
+  "../db/providerAccountsRepository.js",
+  import.meta.url,
+).href;
 const rememberedProviderSessionsRepositoryModuleUrl = new URL(
   "../db/rememberedProviderSessionsRepository.js",
-  import.meta.url
+  import.meta.url,
 ).href;
 const storeModuleUrl = new URL("./store.js", import.meta.url).href;
 
-function runStoreScript(script: string, options: {
-  dataDir: string;
-  appKey?: string;
-}) {
+function runStoreScript(
+  script: string,
+  options: {
+    dataDir: string;
+    appKey?: string;
+  },
+) {
   const child = spawnSync(
     process.execPath,
     ["--import", "tsx", "--input-type=module", "--eval", script],
@@ -32,13 +39,13 @@ function runStoreScript(script: string, options: {
         CLIPARR_DATA_DIR: options.dataDir,
       },
       encoding: "utf8",
-    }
+    },
   );
 
   assert.equal(
     child.status,
     0,
-    `child process failed with status ${child.status}\nstdout:\n${child.stdout}\nstderr:\n${child.stderr}`
+    `child process failed with status ${child.status}\nstdout:\n${child.stdout}\nstderr:\n${child.stderr}`,
   );
   assert.equal(child.signal, null);
 
@@ -46,10 +53,13 @@ function runStoreScript(script: string, options: {
 }
 
 void test("restores a provider session from an opaque remembered provider session token", () => {
-  const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), "cliparr-session-store-"));
+  const dataDir = fs.mkdtempSync(
+    path.join(os.tmpdir(), "cliparr-session-store-"),
+  );
 
   try {
-    runStoreScript(`
+    runStoreScript(
+      `
       import assert from "node:assert/strict";
 
       const { initializeDatabase, closeDatabase } = await import(${JSON.stringify(databaseModuleUrl)});
@@ -94,17 +104,22 @@ void test("restores a provider session from an opaque remembered provider sessio
       } finally {
         closeDatabase();
       }
-    `, { dataDir });
+    `,
+      { dataDir },
+    );
   } finally {
     fs.rmSync(dataDir, { recursive: true, force: true });
   }
 });
 
 void test("remembered provider session tokens are not reusable after APP_KEY changes", () => {
-  const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), "cliparr-session-store-"));
+  const dataDir = fs.mkdtempSync(
+    path.join(os.tmpdir(), "cliparr-session-store-"),
+  );
 
   try {
-    const token = runStoreScript(`
+    const token = runStoreScript(
+      `
       const { initializeDatabase, closeDatabase } = await import(${JSON.stringify(databaseModuleUrl)});
       const { upsertProviderAccountByAccessToken } = await import(${JSON.stringify(providerAccountsRepositoryModuleUrl)});
       const { createRememberedProviderSession } = await import(${JSON.stringify(rememberedProviderSessionsRepositoryModuleUrl)});
@@ -123,9 +138,12 @@ void test("remembered provider session tokens are not reusable after APP_KEY cha
       } finally {
         closeDatabase();
       }
-    `, { dataDir });
+    `,
+      { dataDir },
+    );
 
-    runStoreScript(`
+    runStoreScript(
+      `
       import assert from "node:assert/strict";
 
       const { initializeDatabase, closeDatabase } = await import(${JSON.stringify(databaseModuleUrl)});
@@ -137,20 +155,25 @@ void test("remembered provider session tokens are not reusable after APP_KEY cha
       } finally {
         closeDatabase();
       }
-    `, {
-      dataDir,
-      appKey: MISMATCHED_APP_KEY,
-    });
+    `,
+      {
+        dataDir,
+        appKey: MISMATCHED_APP_KEY,
+      },
+    );
   } finally {
     fs.rmSync(dataDir, { recursive: true, force: true });
   }
 });
 
 void test("restores /api/session from a remembered provider session cookie", () => {
-  const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), "cliparr-session-route-"));
+  const dataDir = fs.mkdtempSync(
+    path.join(os.tmpdir(), "cliparr-session-route-"),
+  );
 
   try {
-    runStoreScript(`
+    runStoreScript(
+      `
       import assert from "node:assert/strict";
 
       const { createApp } = await import(${JSON.stringify(appModuleUrl)});
@@ -195,17 +218,22 @@ void test("restores /api/session from a remembered provider session cookie", () 
         await new Promise((resolve, reject) => server.close((err) => err ? reject(err) : resolve(undefined)));
         closeDatabase();
       }
-    `, { dataDir });
+    `,
+      { dataDir },
+    );
   } finally {
     fs.rmSync(dataDir, { recursive: true, force: true });
   }
 });
 
 void test("clears invalid remembered provider session cookies from /api/session", () => {
-  const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), "cliparr-session-route-"));
+  const dataDir = fs.mkdtempSync(
+    path.join(os.tmpdir(), "cliparr-session-route-"),
+  );
 
   try {
-    runStoreScript(`
+    runStoreScript(
+      `
       import assert from "node:assert/strict";
 
       const { createApp } = await import(${JSON.stringify(appModuleUrl)});
@@ -239,17 +267,22 @@ void test("clears invalid remembered provider session cookies from /api/session"
         await new Promise((resolve, reject) => server.close((err) => err ? reject(err) : resolve(undefined)));
         closeDatabase();
       }
-    `, { dataDir });
+    `,
+      { dataDir },
+    );
   } finally {
     fs.rmSync(dataDir, { recursive: true, force: true });
   }
 });
 
 void test("logout revokes the remembered provider session token", () => {
-  const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), "cliparr-session-route-"));
+  const dataDir = fs.mkdtempSync(
+    path.join(os.tmpdir(), "cliparr-session-route-"),
+  );
 
   try {
-    runStoreScript(`
+    runStoreScript(
+      `
       import assert from "node:assert/strict";
 
       const { createApp } = await import(${JSON.stringify(appModuleUrl)});
@@ -315,7 +348,9 @@ void test("logout revokes the remembered provider session token", () => {
         await new Promise((resolve, reject) => server.close((err) => err ? reject(err) : resolve(undefined)));
         closeDatabase();
       }
-    `, { dataDir });
+    `,
+      { dataDir },
+    );
   } finally {
     fs.rmSync(dataDir, { recursive: true, force: true });
   }

@@ -4,7 +4,9 @@ interface UseEditorKeyboardShortcutsProps {
   togglePlay: () => void;
 }
 
-export function useEditorKeyboardShortcuts({ togglePlay }: UseEditorKeyboardShortcutsProps) {
+export function useEditorKeyboardShortcuts({
+  togglePlay,
+}: UseEditorKeyboardShortcutsProps) {
   useEffect(() => {
     function handleKeyDown(event: KeyboardEvent) {
       if (event.code !== "Space") {
@@ -41,6 +43,8 @@ function isInteractiveKeyboardTarget(target: EventTarget | null) {
   }
 
   return Boolean(
-    target.closest("input, textarea, select, button, [contenteditable=\"true\"], [role=\"slider\"]"),
+    target.closest(
+      'input, textarea, select, button, [contenteditable="true"], [role="slider"]',
+    ),
   );
 }

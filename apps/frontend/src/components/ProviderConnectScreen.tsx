@@ -7,7 +7,10 @@ interface Props {
   onOpenLocalVideo: () => void;
 }
 
-export default function ProviderConnectScreen({ onConnected, onOpenLocalVideo }: Props) {
+export default function ProviderConnectScreen({
+  onConnected,
+  onOpenLocalVideo,
+}: Props) {
   return (
     <div className="flex min-h-screen items-start justify-center bg-background p-4 pt-6 text-foreground sm:items-center">
       <div className="relative w-full max-w-5xl overflow-hidden rounded-4xl border border-border bg-card text-card-foreground shadow-2xl">
@@ -19,9 +22,15 @@ export default function ProviderConnectScreen({ onConnected, onOpenLocalVideo }:
 
         <div className="relative border-b border-border px-6 py-8 sm:px-8">
           <div className="mb-5 flex items-center justify-center">
-            <img src="/logo-light.svg" alt="Cliparr Logo" className="h-12 w-12" />
+            <img
+              src="/logo-light.svg"
+              alt="Cliparr Logo"
+              className="h-12 w-12"
+            />
           </div>
-          <h1 className="text-center text-3xl font-semibold tracking-tight">Connect A Provider</h1>
+          <h1 className="text-center text-3xl font-semibold tracking-tight">
+            Connect A Provider
+          </h1>
           <p className="mx-auto mt-3 max-w-2xl text-center text-sm leading-6 text-muted-foreground">
             Choose a provider to get started.
           </p>

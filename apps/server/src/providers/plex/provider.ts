@@ -6,9 +6,15 @@ import {
   withPlexBaseUrlMode,
 } from "./connectionState.js";
 import { listCurrentlyPlaying, proxyMedia } from "./playback.js";
-import { selectReachableConnection, sourceResource, sourceSupportsCurrentlyPlaying } from "./shared.js";
+import {
+  selectReachableConnection,
+  sourceResource,
+  sourceSupportsCurrentlyPlaying,
+} from "./shared.js";
 
-async function checkSource(source: Parameters<ProviderImplementation["checkSource"]>[0]) {
+async function checkSource(
+  source: Parameters<ProviderImplementation["checkSource"]>[0],
+) {
   const {
     baseUrlMode,
     manualConnectionId,
@@ -17,22 +23,26 @@ async function checkSource(source: Parameters<ProviderImplementation["checkSourc
     resource,
   } = sourceResource(source);
   try {
-    const selectedConnection = await selectReachableConnection(resource, preferredConnectionId, {
-      baseUrlMode,
-    });
+    const selectedConnection = await selectReachableConnection(
+      resource,
+      preferredConnectionId,
+      {
+        baseUrlMode,
+      },
+    );
 
     return {
       ok: true as const,
-      ...(baseUrlMode === PLEX_BASE_URL_MODE_AUTO ? { baseUrl: selectedConnection.uri } : {}),
+      ...(baseUrlMode === PLEX_BASE_URL_MODE_AUTO
+        ? { baseUrl: selectedConnection.uri }
+        : {}),
       connection: {
-        ...withPlexBaseUrlMode(
-          source.connection,
-          baseUrlMode
-        ),
+        ...withPlexBaseUrlMode(source.connection, baseUrlMode),
         connections: persistedConnections,
-        selectedConnectionId: selectedConnection.id === manualConnectionId
-          ? source.connection.selectedConnectionId
-          : selectedConnection.id,
+        selectedConnectionId:
+          selectedConnection.id === manualConnectionId
+            ? source.connection.selectedConnectionId
+            : selectedConnection.id,
       },
     };
   } catch (err) {

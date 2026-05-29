@@ -1,7 +1,10 @@
 import { randomBytes, randomUUID } from "crypto";
 import { eq } from "drizzle-orm";
 import { getDatabase } from "./database.js";
-import { rememberedProviderSessions, type RememberedProviderSessionRow } from "./schema.js";
+import {
+  rememberedProviderSessions,
+  type RememberedProviderSessionRow,
+} from "./schema.js";
 import { currentTimestampSql } from "./timestamps.js";
 import { hashSecret } from "../security/secrets.js";
 
@@ -23,7 +26,9 @@ function createRememberToken() {
   return randomBytes(32).toString("base64url");
 }
 
-function mapRememberedProviderSession(row: RememberedProviderSessionRow): RememberedProviderSession {
+function mapRememberedProviderSession(
+  row: RememberedProviderSessionRow,
+): RememberedProviderSession {
   return {
     id: row.id,
     providerAccountId: row.providerAccountId,
@@ -33,7 +38,9 @@ function mapRememberedProviderSession(row: RememberedProviderSessionRow): Rememb
   };
 }
 
-export function createRememberedProviderSession(providerAccountId: string): CreatedRememberedProviderSession {
+export function createRememberedProviderSession(
+  providerAccountId: string,
+): CreatedRememberedProviderSession {
   const now = Date.now();
   const id = randomUUID();
   const token = createRememberToken();

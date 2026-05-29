@@ -12,10 +12,14 @@ interface GitHubRelease {
   published_at: string | null;
 }
 
-const releasesApiUrl = "https://api.github.com/repos/TechSquidTV/Cliparr/releases?per_page=20";
-const pullRequestUrlPattern = / by @([^ ]+) in https:\/\/github\.com\/TechSquidTV\/Cliparr\/pull\/(\d+)/gu;
-const fullChangelogPattern = /^\*\*Full Changelog\*\*: (https:\/\/github\.com\/TechSquidTV\/Cliparr\/(?:compare|commits)\/\S+)$/u;
-const bareAttachmentPattern = /^https:\/\/github\.com\/user-attachments\/assets\/\S+$/u;
+const releasesApiUrl =
+  "https://api.github.com/repos/TechSquidTV/Cliparr/releases?per_page=20";
+const pullRequestUrlPattern =
+  / by @([^ ]+) in https:\/\/github\.com\/TechSquidTV\/Cliparr\/pull\/(\d+)/gu;
+const fullChangelogPattern =
+  /^\*\*Full Changelog\*\*: (https:\/\/github\.com\/TechSquidTV\/Cliparr\/(?:compare|commits)\/\S+)$/u;
+const bareAttachmentPattern =
+  /^https:\/\/github\.com\/user-attachments\/assets\/\S+$/u;
 
 interface ChangelogReleaseData extends Record<string, unknown> {
   releaseId: number;
@@ -33,7 +37,10 @@ function releaseId(release: GitHubRelease) {
 
 function releaseTitle(release: GitHubRelease) {
   const name = release.name?.trim() || release.tag_name;
-  const tagPattern = new RegExp(`^${release.tag_name.replace(/[.*+?^${}()|[\]\\]/gu, "\\$&")}(?:\\s+-\\s+|\\s+)?`, "u");
+  const tagPattern = new RegExp(
+    `^${release.tag_name.replace(/[.*+?^${}()|[\]\\]/gu, "\\$&")}(?:\\s+-\\s+|\\s+)?`,
+    "u",
+  );
   const title = name.replace(tagPattern, "").trim();
 
   return title || release.tag_name;
@@ -52,7 +59,10 @@ function normalizeReleaseLine(value: string) {
 
   return value
     .replaceAll("[codex] ", "")
-    .replace(pullRequestUrlPattern, " ([#$2](https://github.com/TechSquidTV/Cliparr/pull/$2))");
+    .replace(
+      pullRequestUrlPattern,
+      " ([#$2](https://github.com/TechSquidTV/Cliparr/pull/$2))",
+    );
 }
 
 function normalizeReleaseBody(markdown: string) {
@@ -68,23 +78,27 @@ async function fetchGitHubReleases() {
   const token = process.env.GITHUB_TOKEN ?? process.env.GH_TOKEN;
 
   if (process.env.CF_PAGES && !token) {
-    throw new Error("GITHUB_TOKEN or GH_TOKEN is required for Cloudflare Pages builds that mirror GitHub Releases.");
+    throw new Error(
+      "GITHUB_TOKEN or GH_TOKEN is required for Cloudflare Pages builds that mirror GitHub Releases.",
+    );
   }
 
   const response = await fetch(releasesApiUrl, {
     headers: {
-      "Accept": "application/vnd.github+json",
+      Accept: "application/vnd.github+json",
       "User-Agent": "cliparr-dev-site",
       "X-GitHub-Api-Version": "2022-11-28",
-      ...(token ? { "Authorization": `Bearer ${token}` } : {}),
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
     },
   });
 
   if (!response.ok) {
-    throw new Error(`Failed to load GitHub releases for ${site.name}: ${response.status} ${await response.text()}`);
+    throw new Error(
+      `Failed to load GitHub releases for ${site.name}: ${response.status} ${await response.text()}`,
+    );
   }
 
-  return await response.json() as GitHubRelease[];
+  return (await response.json()) as GitHubRelease[];
 }
 
 export function githubReleasesLoader(): Loader {

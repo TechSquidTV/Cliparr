@@ -25,22 +25,32 @@ export function useEditorSubtitles({
   startTime,
   endTime,
 }: UseEditorSubtitlesProps) {
-  const [subtitleStyleSettings, setSubtitleStyleSettings] = useState(() => loadSubtitleStyleSettings());
+  const [subtitleStyleSettings, setSubtitleStyleSettings] = useState(() =>
+    loadSubtitleStyleSettings(),
+  );
   const [subtitleEnabled, setSubtitleEnabled] = useState(false);
-  const [selectedSubtitleTrackKey, setSelectedSubtitleTrackKey] = useState("none");
+  const [selectedSubtitleTrackKey, setSelectedSubtitleTrackKey] =
+    useState("none");
 
   const subtitleTracks = useMemo<PlaybackSubtitleTrack[]>(
-    () => session.local
-      ? []
-      : (session.subtitleTracks ?? []).filter((track) => subtitleTrackSupportsBurnIn(track)),
-    [session.local, session.subtitleTracks]
+    () =>
+      session.local
+        ? []
+        : (session.subtitleTracks ?? []).filter((track) =>
+            subtitleTrackSupportsBurnIn(track),
+          ),
+    [session.local, session.subtitleTracks],
   );
   const selectedSubtitleTrack = useMemo(() => {
     if (selectedSubtitleTrackKey === "none") {
       return null;
     }
 
-    return subtitleTracks.find((track) => subtitleTrackKey(track) === selectedSubtitleTrackKey) ?? null;
+    return (
+      subtitleTracks.find(
+        (track) => subtitleTrackKey(track) === selectedSubtitleTrackKey,
+      ) ?? null
+    );
   }, [selectedSubtitleTrackKey, subtitleTracks]);
   const {
     subtitleCues,
@@ -53,40 +63,58 @@ export function useEditorSubtitles({
     subtitleEnabled,
     providerId: session.source.providerId,
   });
-  const subtitlePreviewEnabled = subtitleEnabled
-    && subtitleTrackSupportsBurnIn(selectedSubtitleTrack)
-    && subtitleCues.length > 0;
+  const subtitlePreviewEnabled =
+    subtitleEnabled &&
+    subtitleTrackSupportsBurnIn(selectedSubtitleTrack) &&
+    subtitleCues.length > 0;
   const clippedSubtitleCues = useMemo(
-    () => subtitleEnabled ? trimSubtitleCues(subtitleCues, startTime, endTime) : [],
-    [endTime, startTime, subtitleCues, subtitleEnabled]
+    () =>
+      subtitleEnabled ? trimSubtitleCues(subtitleCues, startTime, endTime) : [],
+    [endTime, startTime, subtitleCues, subtitleEnabled],
   );
-  const subtitleExportSummary = useMemo(() => buildSubtitleExportSummary({
-    selectedSubtitleTrack,
-    subtitleEnabled,
-    subtitleTrackCount: subtitleTracks.length,
-    clippedSubtitleCueCount: clippedSubtitleCues.length,
-    subtitleLoading,
-    subtitleError,
-    providerId: session.source.providerId,
-  }), [
-    selectedSubtitleTrack,
-    subtitleEnabled,
-    subtitleTracks.length,
-    clippedSubtitleCues.length,
-    subtitleLoading,
-    subtitleError,
-    session.source.providerId,
-  ]);
+  const subtitleExportSummary = useMemo(
+    () =>
+      buildSubtitleExportSummary({
+        selectedSubtitleTrack,
+        subtitleEnabled,
+        subtitleTrackCount: subtitleTracks.length,
+        clippedSubtitleCueCount: clippedSubtitleCues.length,
+        subtitleLoading,
+        subtitleError,
+        providerId: session.source.providerId,
+      }),
+    [
+      selectedSubtitleTrack,
+      subtitleEnabled,
+      subtitleTracks.length,
+      clippedSubtitleCues.length,
+      subtitleLoading,
+      subtitleError,
+      session.source.providerId,
+    ],
+  );
 
   useEffect(() => {
     saveSubtitleStyleSettings(subtitleStyleSettings);
   }, [subtitleStyleSettings]);
 
   useEffect(() => {
-    const preferredSubtitleTrack = selectPreferredSubtitleTrack(subtitleTracks, session.selectedSubtitleTrack);
+    const preferredSubtitleTrack = selectPreferredSubtitleTrack(
+      subtitleTracks,
+      session.selectedSubtitleTrack,
+    );
 
-    setSelectedSubtitleTrackKey(preferredSubtitleTrack ? subtitleTrackKey(preferredSubtitleTrack) : "none");
-    setSubtitleEnabled(Boolean(preferredSubtitleTrack && subtitleTrackSupportsBurnIn(preferredSubtitleTrack)));
+    setSelectedSubtitleTrackKey(
+      preferredSubtitleTrack
+        ? subtitleTrackKey(preferredSubtitleTrack)
+        : "none",
+    );
+    setSubtitleEnabled(
+      Boolean(
+        preferredSubtitleTrack &&
+        subtitleTrackSupportsBurnIn(preferredSubtitleTrack),
+      ),
+    );
     resetSubtitleCues();
   }, [
     session.id,
@@ -95,19 +123,26 @@ export function useEditorSubtitles({
     resetSubtitleCues,
   ]);
 
-  const handleSelectedSubtitleTrackChange = useCallback((value: string) => {
-    setSelectedSubtitleTrackKey(value);
-    clearSubtitleError();
+  const handleSelectedSubtitleTrackChange = useCallback(
+    (value: string) => {
+      setSelectedSubtitleTrackKey(value);
+      clearSubtitleError();
 
-    if (value === "none") {
-      setSubtitleEnabled(false);
-      resetSubtitleCues();
-      return;
-    }
+      if (value === "none") {
+        setSubtitleEnabled(false);
+        resetSubtitleCues();
+        return;
+      }
 
-    const nextTrack = subtitleTracks.find((track) => subtitleTrackKey(track) === value) ?? null;
-    setSubtitleEnabled(Boolean(nextTrack && subtitleTrackSupportsBurnIn(nextTrack)));
-  }, [clearSubtitleError, resetSubtitleCues, subtitleTracks]);
+      const nextTrack =
+        subtitleTracks.find((track) => subtitleTrackKey(track) === value) ??
+        null;
+      setSubtitleEnabled(
+        Boolean(nextTrack && subtitleTrackSupportsBurnIn(nextTrack)),
+      );
+    },
+    [clearSubtitleError, resetSubtitleCues, subtitleTracks],
+  );
 
   return {
     subtitleTracks,

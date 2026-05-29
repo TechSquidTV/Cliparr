@@ -24,7 +24,11 @@ function parseAuthority(authority: string, errorCode: string) {
 
   const url = new URL(`http://${authority}`);
   if (url.username || url.password) {
-    throw new ApiError(400, "invalid_request_origin", "Request origin is invalid");
+    throw new ApiError(
+      400,
+      "invalid_request_origin",
+      "Request origin is invalid",
+    );
   }
 
   return url;
@@ -33,7 +37,11 @@ function parseAuthority(authority: string, errorCode: string) {
 function getRequestHost(req: OriginAwareRequest) {
   const host = firstHeaderValue(req.get("host"));
   if (!host) {
-    throw new ApiError(400, "invalid_request_host", "Request host header is required");
+    throw new ApiError(
+      400,
+      "invalid_request_host",
+      "Request host header is required",
+    );
   }
 
   return parseAuthority(host, "invalid_request_host");
@@ -49,18 +57,27 @@ function buildOriginUrl(req: OriginAwareRequest, hostname: string, port = "") {
 function getRequestOriginUrl(req: OriginAwareRequest) {
   const trustedHostname = req.hostname?.trim();
   if (!trustedHostname) {
-    throw new ApiError(400, "invalid_request_host", "Request host header is required");
+    throw new ApiError(
+      400,
+      "invalid_request_host",
+      "Request host header is required",
+    );
   }
 
   const hostUrl = getRequestHost(req);
-  if (normalizedHostname(hostUrl.hostname) === normalizedHostname(trustedHostname)) {
+  if (
+    normalizedHostname(hostUrl.hostname) === normalizedHostname(trustedHostname)
+  ) {
     return buildOriginUrl(req, hostUrl.hostname, hostUrl.port);
   }
 
   const forwardedHost = firstHeaderValue(req.get("x-forwarded-host"));
   if (forwardedHost) {
     const forwardedUrl = parseAuthority(forwardedHost, "invalid_request_host");
-    if (normalizedHostname(forwardedUrl.hostname) === normalizedHostname(trustedHostname)) {
+    if (
+      normalizedHostname(forwardedUrl.hostname) ===
+      normalizedHostname(trustedHostname)
+    ) {
       return buildOriginUrl(req, forwardedUrl.hostname, forwardedUrl.port);
     }
   }

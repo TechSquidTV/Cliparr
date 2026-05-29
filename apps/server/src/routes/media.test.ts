@@ -19,7 +19,7 @@ async function withMediaApp<T>(callback: (baseUrl: string) => Promise<T>) {
     return await callback(`http://127.0.0.1:${address.port}`);
   } finally {
     await new Promise((resolve, reject) => {
-      server.close((err) => err ? reject(err) : resolve(undefined));
+      server.close((err) => (err ? reject(err) : resolve(undefined)));
     });
   }
 }
@@ -37,17 +37,21 @@ void test("creates and proxies local URL media handles", async () => {
     });
 
     assert.equal(createResponse.status, 201);
-    const created = await createResponse.json() as { mediaUrl?: string; hls?: boolean };
+    const created = (await createResponse.json()) as {
+      mediaUrl?: string;
+      hls?: boolean;
+    };
     assert.match(created.mediaUrl ?? "", /^\/api\/media\/local-url\//);
     assert.equal(created.hls, false);
 
     const originalFetch = globalThis.fetch;
     globalThis.fetch = (async (input, init) => {
-      const requestUrl = typeof input === "string"
-        ? input
-        : input instanceof URL
-          ? input.toString()
-          : input.url;
+      const requestUrl =
+        typeof input === "string"
+          ? input
+          : input instanceof URL
+            ? input.toString()
+            : input.url;
 
       if (requestUrl.startsWith(baseUrl)) {
         return originalFetch(input, init);
@@ -69,15 +73,21 @@ void test("creates and proxies local URL media handles", async () => {
     }) as typeof fetch;
 
     try {
-      const proxyResponse = await originalFetch(`${baseUrl}${created.mediaUrl}`, {
-        headers: {
-          accept: "video/mp4",
-          range: "bytes=0-3",
+      const proxyResponse = await originalFetch(
+        `${baseUrl}${created.mediaUrl}`,
+        {
+          headers: {
+            accept: "video/mp4",
+            range: "bytes=0-3",
+          },
         },
-      });
+      );
       assert.equal(proxyResponse.status, 206);
       assert.equal(proxyResponse.headers.get("content-type"), "video/mp4");
-      assert.deepEqual(new Uint8Array(await proxyResponse.arrayBuffer()), new Uint8Array([1, 2, 3, 4]));
+      assert.deepEqual(
+        new Uint8Array(await proxyResponse.arrayBuffer()),
+        new Uint8Array([1, 2, 3, 4]),
+      );
     } finally {
       globalThis.fetch = originalFetch;
     }
@@ -97,7 +107,7 @@ void test("rejects local URL media handles for internal addresses", async () => 
     });
 
     assert.equal(response.status, 400);
-    const body = await response.json() as { error?: { code?: string } };
+    const body = (await response.json()) as { error?: { code?: string } };
     assert.equal(body.error?.code, "media_proxy_unsafe_url");
   });
 });

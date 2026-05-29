@@ -2,7 +2,10 @@
 
 import assert from "node:assert/strict";
 import test from "node:test";
-import { createProviderUrlSource, type EditorMediaSource } from "../../lib/editorMedia";
+import {
+  createProviderUrlSource,
+  type EditorMediaSource,
+} from "../../lib/editorMedia";
 import {
   buildPlaybackFailure,
   buildPlaybackLoadError,
@@ -35,9 +38,10 @@ void test("builds playback source candidates in fallback order without duplicate
   ]);
 
   const duplicateHlsSource = createProviderUrlSource("/media/movie.mp4", "hls");
-  assert.deepEqual(buildPlaybackSourceCandidates(duplicateHlsSource, directSource), [
-    { label: "hls stream", source: duplicateHlsSource },
-  ]);
+  assert.deepEqual(
+    buildPlaybackSourceCandidates(duplicateHlsSource, directSource),
+    [{ label: "hls stream", source: duplicateHlsSource }],
+  );
 });
 
 void test("builds local file and URL playback candidates", () => {
@@ -69,28 +73,40 @@ void test("preserves server duration for HLS and uses computed direct duration w
   const hlsSource = createProviderUrlSource("/playback/master.m3u8", "hls");
   const directSource = createProviderUrlSource("/media/movie.mp4", "direct");
 
-  assert.equal(resolvePlaybackDuration(
-    { label: "hls stream", source: hlsSource },
-    95,
+  assert.equal(
+    resolvePlaybackDuration(
+      { label: "hls stream", source: hlsSource },
+      95,
+      100,
+    ),
     100,
-  ), 100);
+  );
 
-  assert.equal(resolvePlaybackDuration(
-    { label: "direct source", source: directSource },
+  assert.equal(
+    resolvePlaybackDuration(
+      { label: "direct source", source: directSource },
+      95,
+      100,
+    ),
     95,
-    100,
-  ), 95);
+  );
 
-  assert.equal(resolvePlaybackDuration(
-    { label: "direct source", source: directSource },
-    Number.NaN,
+  assert.equal(
+    resolvePlaybackDuration(
+      { label: "direct source", source: directSource },
+      Number.NaN,
+      100,
+    ),
     100,
-  ), 100);
+  );
 });
 
 void test("classifies source failures and export fallback eligibility", () => {
   const failure = buildPlaybackFailure(
-    { label: "hls stream", source: createProviderUrlSource("/playback/master.m3u8", "hls") },
+    {
+      label: "hls stream",
+      source: createProviderUrlSource("/playback/master.m3u8", "hls"),
+    },
     new PlaybackSourceError("shared-export-blocking", "Decoder unavailable"),
   );
 

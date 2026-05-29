@@ -32,7 +32,9 @@ interface EditorSubtitlePanelProps {
   subtitlesEnabled: boolean;
   onSubtitlesEnabledChange: (value: boolean) => void;
   subtitleStyleSettings: SubtitleStyleSettings;
-  onSubtitleStyleSettingsChange: Dispatch<SetStateAction<SubtitleStyleSettings>>;
+  onSubtitleStyleSettingsChange: Dispatch<
+    SetStateAction<SubtitleStyleSettings>
+  >;
   subtitleLoading: boolean;
   subtitleError: string | null;
   selectedSubtitleTrack: PlaybackSubtitleTrack | null;
@@ -57,9 +59,15 @@ function subtitleTrackLabel(track: PlaybackSubtitleTrack) {
   ].filter(Boolean);
 
   const baseLabel = parts[0] ?? parts[1] ?? "Unnamed subtitle track";
-  const detailParts = [parts[0] && parts[1] ? parts[1] : null, codec, flags.join(" · ")].filter(Boolean);
+  const detailParts = [
+    parts[0] && parts[1] ? parts[1] : null,
+    codec,
+    flags.join(" · "),
+  ].filter(Boolean);
 
-  return detailParts.length > 0 ? `${baseLabel} (${detailParts.join(" | ")})` : baseLabel;
+  return detailParts.length > 0
+    ? `${baseLabel} (${detailParts.join(" | ")})`
+    : baseLabel;
 }
 
 function NumberSlider({
@@ -88,7 +96,8 @@ function NumberSlider({
           {label}
         </span>
         <span className="font-mono text-[11px] text-muted-foreground">
-          {value}{unit}
+          {value}
+          {unit}
         </span>
       </div>
       <input
@@ -130,7 +139,9 @@ function ColorControl({
           className="h-7 w-10 cursor-pointer rounded-[var(--radius-control)] border-0 bg-transparent p-0 disabled:cursor-not-allowed disabled:opacity-60"
           aria-label={label}
         />
-        <span className="font-mono text-xs text-sidebar-foreground">{value.toUpperCase()}</span>
+        <span className="font-mono text-xs text-sidebar-foreground">
+          {value.toUpperCase()}
+        </span>
       </div>
     </label>
   );
@@ -158,12 +169,16 @@ export function EditorSubtitlePanel({
     loadingLocalFonts,
     requestLocalFonts,
   } = useSubtitleFontOptions(subtitleStyleSettings.fontFamily);
-  const unavailableMessage = subtitleTrackUnavailableMessage(selectedSubtitleTrack, providerId);
-  const subtitleWarning = subtitleTracks.length === 0
-    ? "No supported subtitles found."
-    : !selectedSubtitleTrack
-      ? "Choose a subtitle track."
-      : unavailableMessage ?? "This subtitle track is not supported.";
+  const unavailableMessage = subtitleTrackUnavailableMessage(
+    selectedSubtitleTrack,
+    providerId,
+  );
+  const subtitleWarning =
+    subtitleTracks.length === 0
+      ? "No supported subtitles found."
+      : !selectedSubtitleTrack
+        ? "Choose a subtitle track."
+        : (unavailableMessage ?? "This subtitle track is not supported.");
   const subtitleToggleTooltip = !canEnableBurnIn ? subtitleWarning : null;
   const styleTooltip = styleControlsDisabled
     ? subtitlesEnabled
@@ -173,7 +188,7 @@ export function EditorSubtitlePanel({
 
   function updateStyleSetting<Key extends keyof SubtitleStyleSettings>(
     key: Key,
-    value: SubtitleStyleSettings[Key]
+    value: SubtitleStyleSettings[Key],
   ) {
     onSubtitleStyleSettingsChange((current) => ({
       ...current,
@@ -195,15 +210,19 @@ export function EditorSubtitlePanel({
             <Tooltip>
               <TooltipTrigger asChild>
                 <span className="inline-flex" tabIndex={0}>
-                  <label className={cn(
-                    "inline-flex items-center gap-2 rounded-[var(--radius-control)] border px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[var(--tracking-caps-lg)]",
-                    "border-sidebar-border bg-sidebar text-muted-foreground"
-                  )}>
+                  <label
+                    className={cn(
+                      "inline-flex items-center gap-2 rounded-[var(--radius-control)] border px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[var(--tracking-caps-lg)]",
+                      "border-sidebar-border bg-sidebar text-muted-foreground",
+                    )}
+                  >
                     <input
                       type="checkbox"
                       checked={subtitlesEnabled}
                       disabled={!canEnableBurnIn}
-                      onChange={(event) => onSubtitlesEnabledChange(event.target.checked)}
+                      onChange={(event) =>
+                        onSubtitlesEnabledChange(event.target.checked)
+                      }
                       className="h-3.5 w-3.5 accent-primary"
                     />
                     Enabled
@@ -215,17 +234,21 @@ export function EditorSubtitlePanel({
               </TooltipContent>
             </Tooltip>
           ) : (
-            <label className={cn(
-              "inline-flex items-center gap-2 rounded-[var(--radius-control)] border px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[var(--tracking-caps-lg)]",
-              subtitlesEnabled && canEnableBurnIn
-                ? "border-primary/35 bg-primary/10 text-primary"
-                : "border-sidebar-border bg-sidebar text-muted-foreground"
-            )}>
+            <label
+              className={cn(
+                "inline-flex items-center gap-2 rounded-[var(--radius-control)] border px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[var(--tracking-caps-lg)]",
+                subtitlesEnabled && canEnableBurnIn
+                  ? "border-primary/35 bg-primary/10 text-primary"
+                  : "border-sidebar-border bg-sidebar text-muted-foreground",
+              )}
+            >
               <input
                 type="checkbox"
                 checked={subtitlesEnabled}
                 disabled={!canEnableBurnIn}
-                onChange={(event) => onSubtitlesEnabledChange(event.target.checked)}
+                onChange={(event) =>
+                  onSubtitlesEnabledChange(event.target.checked)
+                }
                 className="h-3.5 w-3.5 accent-primary"
               />
               Enabled
@@ -237,8 +260,14 @@ export function EditorSubtitlePanel({
           <span className="text-[11px] font-semibold uppercase tracking-[var(--tracking-caps-lg)] text-muted-foreground">
             Track
           </span>
-          <Select value={selectedSubtitleTrackKey} onValueChange={onSelectedSubtitleTrackKeyChange}>
-            <SelectTrigger size="sm" className={compactSelectTriggerClassName()}>
+          <Select
+            value={selectedSubtitleTrackKey}
+            onValueChange={onSelectedSubtitleTrackKeyChange}
+          >
+            <SelectTrigger
+              size="sm"
+              className={compactSelectTriggerClassName()}
+            >
               <SelectValue placeholder="Select subtitle track" />
             </SelectTrigger>
             <SelectContent>
@@ -260,20 +289,25 @@ export function EditorSubtitlePanel({
         </label>
 
         {!canEnableBurnIn && (
-          <div className={cn(
-            "border px-3 py-2 text-xs",
-            subtitleTracks.length === 0
-              ? "border-sidebar-border bg-sidebar text-muted-foreground"
-              : "border-amber-500/30 bg-amber-500/8 text-amber-700 dark:text-amber-300"
-          )}>
+          <div
+            className={cn(
+              "border px-3 py-2 text-xs",
+              subtitleTracks.length === 0
+                ? "border-sidebar-border bg-sidebar text-muted-foreground"
+                : "border-amber-500/30 bg-amber-500/8 text-amber-700 dark:text-amber-300",
+            )}
+          >
             <div className="flex items-start gap-2">
               <Sparkles className="mt-0.5 h-4 w-4 shrink-0" />
               <div className="space-y-1">
                 <p>{subtitleWarning}</p>
                 {selectedSubtitleTrack && (
                   <p className="text-[11px] opacity-85">
-                    {selectedSubtitleTrack.codec?.toUpperCase() ?? "Unknown codec"}
-                    {selectedSubtitleTrack.languageCode ? ` · ${selectedSubtitleTrack.languageCode.toUpperCase()}` : ""}
+                    {selectedSubtitleTrack.codec?.toUpperCase() ??
+                      "Unknown codec"}
+                    {selectedSubtitleTrack.languageCode
+                      ? ` · ${selectedSubtitleTrack.languageCode.toUpperCase()}`
+                      : ""}
                     {selectedSubtitleTrack.isForced ? " · Forced" : ""}
                     {selectedSubtitleTrack.isHearingImpaired ? " · SDH" : ""}
                   </p>
@@ -300,7 +334,7 @@ export function EditorSubtitlePanel({
           aria-disabled={styleControlsDisabled}
           className={cn(
             "space-y-3 border-t border-sidebar-border pt-3 transition-opacity",
-            styleControlsDisabled && "opacity-65"
+            styleControlsDisabled && "opacity-65",
           )}
         >
           {styleTooltip ? (
@@ -334,7 +368,10 @@ export function EditorSubtitlePanel({
               }}
               disabled={styleControlsDisabled}
             >
-              <SelectTrigger size="sm" className={compactSelectTriggerClassName()}>
+              <SelectTrigger
+                size="sm"
+                className={compactSelectTriggerClassName()}
+              >
                 <SelectValue placeholder="Select font" />
               </SelectTrigger>
               <SelectContent>

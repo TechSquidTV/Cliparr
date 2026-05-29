@@ -14,7 +14,11 @@ export function getRequestSessionId(req: Request) {
 function requireSession(req: Request): ProviderSessionRecord {
   const session = getProviderSession(getRequestSessionId(req));
   if (!session) {
-    throw new ApiError(401, "not_authenticated", "Sign in with a provider first");
+    throw new ApiError(
+      401,
+      "not_authenticated",
+      "Sign in with a provider first",
+    );
   }
   return session;
 }

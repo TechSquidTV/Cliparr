@@ -38,7 +38,10 @@ void test("omits the digest line when no image digest exists", () => {
     generatedBody: "## What's Changed\n\n- fix release dry runs",
     imageName: "ghcr.io/techsquidtv/cliparr",
     imageDigest: "",
-    dockerTags: ["ghcr.io/techsquidtv/cliparr:0.6.1", "ghcr.io/techsquidtv/cliparr:latest"],
+    dockerTags: [
+      "ghcr.io/techsquidtv/cliparr:0.6.1",
+      "ghcr.io/techsquidtv/cliparr:latest",
+    ],
   });
 
   assert.match(body, /docker pull ghcr\.io\/techsquidtv\/cliparr:0\.6\.1/u);

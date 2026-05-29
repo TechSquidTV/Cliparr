@@ -8,12 +8,16 @@ import type { EditorMediaSource } from "./editorMedia";
 import type { SubtitleStyleSettings } from "./subtitles/types";
 
 type ExportRuntime = Parameters<typeof exportClipWithRuntime>[1];
-type CliparrInput = Awaited<ReturnType<ExportRuntime["createCliparrInputFromSource"]>>;
+type CliparrInput = Awaited<
+  ReturnType<ExportRuntime["createCliparrInputFromSource"]>
+>;
 type ConversionResult = Awaited<ReturnType<ExportRuntime["initConversion"]>>;
 type OutputFormat = ReturnType<ExportRuntime["createOutputFormat"]>;
 type BufferTargetResult = ReturnType<ExportRuntime["createBufferTarget"]>;
 type OutputResult = ReturnType<ExportRuntime["createOutput"]>;
-type SubtitleProcessor = ReturnType<ExportRuntime["buildSubtitleBurnInProcessor"]>;
+type SubtitleProcessor = ReturnType<
+  ExportRuntime["buildSubtitleBurnInProcessor"]
+>;
 
 const mediaSource = {
   kind: "url",
@@ -47,7 +51,11 @@ function createRuntime(overrides: Partial<ExportRuntime> = {}) {
   let disposed = false;
 
   const input = {
-    async getPrimaryVideoTrack({ filter }: { filter: (track: typeof videoTrack) => Promise<boolean> }) {
+    async getPrimaryVideoTrack({
+      filter,
+    }: {
+      filter: (track: typeof videoTrack) => Promise<boolean>;
+    }) {
       assert.equal(await filter(videoTrack), true);
       return videoTrack;
     },
@@ -62,22 +70,26 @@ function createRuntime(overrides: Partial<ExportRuntime> = {}) {
   const runtime = {
     ensureMediabunnyCodecs: async () => undefined,
     createCliparrInputFromSource: async () => input,
-    selectPreferredPairableAudioTrack: async (_videoTrack, audioTracks) => audioTracks[0] ?? null,
+    selectPreferredPairableAudioTrack: async (_videoTrack, audioTracks) =>
+      audioTracks[0] ?? null,
     getTrackTimelineOffsetSeconds: async () => 5,
     getVideoTrackDimensions: async () => ({ width: 1920, height: 1080 }),
     buildMetadataTags: async () => ({ title: "Clip" }),
     describeDiscardedTracks: async () => "",
     patchMp4MetadataBoxes: () => undefined,
-    createOutputFormat: () => ({ mimeType: "video/mp4" }) as unknown as OutputFormat,
+    createOutputFormat: () =>
+      ({ mimeType: "video/mp4" }) as unknown as OutputFormat,
     createBufferTarget: () => target as unknown as BufferTargetResult,
     createOutput: (options) => ({ options }) as unknown as OutputResult,
-    initConversion: async () => createConversion({
-      target,
-      bytes: [1, 2, 3],
-      utilizedAudio: true,
-      progress: 0.5,
-    }),
-    buildSubtitleBurnInProcessor: () => (() => ({})) as unknown as SubtitleProcessor,
+    initConversion: async () =>
+      createConversion({
+        target,
+        bytes: [1, 2, 3],
+        utilizedAudio: true,
+        progress: 0.5,
+      }),
+    buildSubtitleBurnInProcessor: () =>
+      (() => ({})) as unknown as SubtitleProcessor,
     ...overrides,
   } satisfies ExportRuntime;
 
@@ -150,21 +162,24 @@ void test("builds and executes a trimmed conversion with selected audio and meta
     patchedBytes = [...bytes];
   };
 
-  const blob = await exportClipWithRuntime({
-    mediaSource,
-    hls: true,
-    startTime: 10,
-    endTime: 15,
-    format: "mp4",
-    resolution: "720",
-    includeAudio: true,
-    metadata: {
-      providerId: "plex",
-      itemType: "movie",
-      title: "Movie",
+  const blob = await exportClipWithRuntime(
+    {
+      mediaSource,
+      hls: true,
+      startTime: 10,
+      endTime: 15,
+      format: "mp4",
+      resolution: "720",
+      includeAudio: true,
+      metadata: {
+        providerId: "plex",
+        itemType: "movie",
+        title: "Movie",
+      },
+      onProgress: (value) => progress.push(value),
     },
-    onProgress: (value) => progress.push(value),
-  }, context.runtime);
+    context.runtime,
+  );
 
   assert.equal(capturedHls, true);
   assert.equal(capturedOptions?.trim?.start, 15);
@@ -182,11 +197,11 @@ void test("builds and executes a trimmed conversion with selected audio and meta
   }
   const selectedAudioOptions = audioOptionsForTrack(
     { id: "audio-1" } as unknown as Parameters<typeof audioOptionsForTrack>[0],
-    1
+    1,
   ) as { discard: boolean };
   const otherAudioOptions = audioOptionsForTrack(
     { id: "audio-2" } as unknown as Parameters<typeof audioOptionsForTrack>[0],
-    2
+    2,
   ) as { discard: boolean };
   assert.equal(selectedAudioOptions.discard, false);
   assert.equal(otherAudioOptions.discard, true);
@@ -198,11 +213,11 @@ void test("builds and executes a trimmed conversion with selected audio and meta
   }
   const selectedVideoOptions = videoOptionsForTrack(
     { id: "video-1" } as unknown as Parameters<typeof videoOptionsForTrack>[0],
-    1
+    1,
   ) as { discard: boolean; height?: number };
   const otherVideoOptions = videoOptionsForTrack(
     { id: "video-2" } as unknown as Parameters<typeof videoOptionsForTrack>[0],
-    2
+    2,
   ) as { discard: boolean; height?: number };
   assert.equal(selectedVideoOptions.discard, false);
   assert.equal(selectedVideoOptions.height, 720);
@@ -212,27 +227,32 @@ void test("builds and executes a trimmed conversion with selected audio and meta
 void test("fails before execution when conversion would drop source audio", async () => {
   const context = createRuntime({
     describeDiscardedTracks: async () => "Codec unsupported.",
-    initConversion: async () => ({
-      isValid: true,
-      utilizedTracks: [],
-      discardedTracks: [{}],
-      execute: async () => {
-        throw new Error("execute should not run");
-      },
-    }) as unknown as ConversionResult,
+    initConversion: async () =>
+      ({
+        isValid: true,
+        utilizedTracks: [],
+        discardedTracks: [{}],
+        execute: async () => {
+          throw new Error("execute should not run");
+        },
+      }) as unknown as ConversionResult,
   });
 
   await assert.rejects(
-    () => exportClipWithRuntime({
-      mediaSource,
-      startTime: 0,
-      endTime: 10,
-      format: "webm",
-      resolution: "original",
-      includeAudio: true,
-      onProgress: () => undefined,
-    }, context.runtime),
-    /Export would drop the source audio track\. Codec unsupported\./
+    () =>
+      exportClipWithRuntime(
+        {
+          mediaSource,
+          startTime: 0,
+          endTime: 10,
+          format: "webm",
+          resolution: "original",
+          includeAudio: true,
+          onProgress: () => undefined,
+        },
+        context.runtime,
+      ),
+    /Export would drop the source audio track\. Codec unsupported\./,
   );
   assert.equal(context.disposed, true);
 });
@@ -257,7 +277,33 @@ void test("validates subtitle burn-in inputs and wires the burn-in processor", a
   });
 
   await assert.rejects(
-    () => exportClipWithRuntime({
+    () =>
+      exportClipWithRuntime(
+        {
+          mediaSource,
+          startTime: 0,
+          endTime: 10,
+          format: "mp4",
+          resolution: "original",
+          includeAudio: true,
+          includeBurnedSubtitles: true,
+          subtitleCues: [
+            {
+              startTime: 1,
+              endTime: 2,
+              text: "Hello",
+              lines: ["Hello"],
+            },
+          ],
+          onProgress: () => undefined,
+        },
+        context.runtime,
+      ),
+    /Subtitle burn-in was requested without style settings/,
+  );
+
+  const blob = await exportClipWithRuntime(
+    {
       mediaSource,
       startTime: 0,
       endTime: 10,
@@ -265,34 +311,19 @@ void test("validates subtitle burn-in inputs and wires the burn-in processor", a
       resolution: "original",
       includeAudio: true,
       includeBurnedSubtitles: true,
-      subtitleCues: [{
-        startTime: 1,
-        endTime: 2,
-        text: "Hello",
-        lines: ["Hello"],
-      }],
+      subtitleStyleSettings: subtitleStyle,
+      subtitleCues: [
+        {
+          startTime: 1,
+          endTime: 2,
+          text: "Hello",
+          lines: ["Hello"],
+        },
+      ],
       onProgress: () => undefined,
-    }, context.runtime),
-    /Subtitle burn-in was requested without style settings/
+    },
+    context.runtime,
   );
-
-  const blob = await exportClipWithRuntime({
-    mediaSource,
-    startTime: 0,
-    endTime: 10,
-    format: "mp4",
-    resolution: "original",
-    includeAudio: true,
-    includeBurnedSubtitles: true,
-    subtitleStyleSettings: subtitleStyle,
-    subtitleCues: [{
-      startTime: 1,
-      endTime: 2,
-      text: "Hello",
-      lines: ["Hello"],
-    }],
-    onProgress: () => undefined,
-  }, context.runtime);
 
   assert.equal(blob.size, 1);
   const videoOptionsForTrack = capturedOptions?.video;
@@ -302,7 +333,7 @@ void test("validates subtitle burn-in inputs and wires the burn-in processor", a
   }
   const videoOptions = videoOptionsForTrack(
     { id: "video-1" } as unknown as Parameters<typeof videoOptionsForTrack>[0],
-    1
+    1,
   ) as { process?: unknown };
   assert.equal(processorCueCount, 1);
   assert.equal(videoOptions.process, processor);

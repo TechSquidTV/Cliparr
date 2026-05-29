@@ -6,21 +6,25 @@ import type { ExportFormat } from "./exportTypes";
 const discardReasonLabels: Record<DiscardedTrack["reason"], string> = {
   discarded_by_user: "discarded by configuration",
   max_track_count_reached: "the output track limit was reached",
-  max_track_count_of_type_reached: "the output cannot contain another track of this type",
+  max_track_count_of_type_reached:
+    "the output cannot contain another track of this type",
   unknown_source_codec: "the source codec is unknown",
   undecodable_source_codec: "the source codec could not be decoded",
   no_encodable_target_codec: "no compatible output codec could be encoded",
 };
 
-export async function describeDiscardedTracks(discardedTracks: readonly DiscardedTrack[]) {
+export async function describeDiscardedTracks(
+  discardedTracks: readonly DiscardedTrack[],
+) {
   if (discardedTracks.length === 0) {
     return "";
   }
 
   const details = await Promise.all(
-    discardedTracks.map(async ({ track, reason }) =>
-      `${await describeInputTrack(track)}: ${discardReasonLabels[reason]}`
-    )
+    discardedTracks.map(
+      async ({ track, reason }) =>
+        `${await describeInputTrack(track)}: ${discardReasonLabels[reason]}`,
+    ),
   );
 
   return details.join("; ");
@@ -38,7 +42,9 @@ function firstText(...values: Array<string | undefined>) {
 }
 
 function nonNegativeInteger(value: number | undefined) {
-  return typeof value === "number" && Number.isInteger(value) && value >= 0 ? value : undefined;
+  return typeof value === "number" && Number.isInteger(value) && value >= 0
+    ? value
+    : undefined;
 }
 
 function parseMetadataDate(date: string | undefined, year: number | undefined) {
@@ -80,11 +86,13 @@ function formatMetadataTimecode(seconds: number) {
   const minutes = Math.floor((wholeSeconds % 3600) / 60);
   const remainingSeconds = wholeSeconds % 60;
 
-  return [
-    hours.toString().padStart(2, "0"),
-    minutes.toString().padStart(2, "0"),
-    remainingSeconds.toString().padStart(2, "0"),
-  ].join(":") + `.${milliseconds.toString().padStart(3, "0")}`;
+  return (
+    [
+      hours.toString().padStart(2, "0"),
+      minutes.toString().padStart(2, "0"),
+      remainingSeconds.toString().padStart(2, "0"),
+    ].join(":") + `.${milliseconds.toString().padStart(3, "0")}`
+  );
 }
 
 function formatMetadataSeconds(seconds: number) {
@@ -118,10 +126,10 @@ const mp4IntegerMetadataDataTypes: Record<string, number> = {
 
 function readUint32(bytes: Uint8Array, offset: number) {
   return (
-    bytes[offset] * 2 ** 24
-    + bytes[offset + 1] * 2 ** 16
-    + bytes[offset + 2] * 2 ** 8
-    + bytes[offset + 3]
+    bytes[offset] * 2 ** 24 +
+    bytes[offset + 1] * 2 ** 16 +
+    bytes[offset + 2] * 2 ** 8 +
+    bytes[offset + 3]
   );
 }
 
@@ -133,7 +141,12 @@ function writeUint32(bytes: Uint8Array, offset: number, value: number) {
 }
 
 function readBoxType(bytes: Uint8Array, offset: number) {
-  return String.fromCharCode(bytes[offset], bytes[offset + 1], bytes[offset + 2], bytes[offset + 3]);
+  return String.fromCharCode(
+    bytes[offset],
+    bytes[offset + 1],
+    bytes[offset + 2],
+    bytes[offset + 3],
+  );
 }
 
 function boxBounds(bytes: Uint8Array, offset: number, end: number) {
@@ -161,7 +174,12 @@ function boxBounds(bytes: Uint8Array, offset: number, end: number) {
   return { headerSize, end: boxEnd };
 }
 
-function patchIlstItemDataType(bytes: Uint8Array, start: number, end: number, dataType: number) {
+function patchIlstItemDataType(
+  bytes: Uint8Array,
+  start: number,
+  end: number,
+  dataType: number,
+) {
   let offset = start;
 
   while (offset + 8 <= end) {
@@ -183,7 +201,12 @@ function patchIlstItemDataType(bytes: Uint8Array, start: number, end: number, da
   }
 }
 
-export function patchMp4MetadataBoxes(bytes: Uint8Array, start = 0, end = bytes.length, parentType?: string) {
+export function patchMp4MetadataBoxes(
+  bytes: Uint8Array,
+  start = 0,
+  end = bytes.length,
+  parentType?: string,
+) {
   let offset = start;
 
   while (offset + 8 <= end) {
@@ -206,7 +229,12 @@ export function patchMp4MetadataBoxes(bytes: Uint8Array, start = 0, end = bytes.
       contentStart += 4;
     }
 
-    if (type === "moov" || type === "udta" || type === "meta" || type === "ilst") {
+    if (
+      type === "moov" ||
+      type === "udta" ||
+      type === "meta" ||
+      type === "ilst"
+    ) {
       patchMp4MetadataBoxes(bytes, contentStart, bounds.end, type);
     }
 
@@ -227,7 +255,7 @@ function buildMp4RawTags(
   metadata: MediaExportMetadata,
   outputHeight: number | undefined,
   startTime: number,
-  endTime: number
+  endTime: number,
 ): MetadataTags["raw"] | undefined {
   const raw: MetadataTags["raw"] = {};
   const itemType = metadata.itemType.toLowerCase();
@@ -299,7 +327,9 @@ function inferImageMimeType(url: string) {
   return "image/jpeg";
 }
 
-async function fetchAttachedImage(url: string | undefined): Promise<NonNullable<MetadataTags["images"]>[number] | undefined> {
+async function fetchAttachedImage(
+  url: string | undefined,
+): Promise<NonNullable<MetadataTags["images"]>[number] | undefined> {
   if (!url) {
     return undefined;
   }
@@ -310,8 +340,14 @@ async function fetchAttachedImage(url: string | undefined): Promise<NonNullable<
       return undefined;
     }
 
-    const contentType = response.headers.get("content-type")?.split(";")[0]?.trim().toLowerCase();
-    const mimeType = contentType?.startsWith("image/") ? contentType : inferImageMimeType(url);
+    const contentType = response.headers
+      .get("content-type")
+      ?.split(";")[0]
+      ?.trim()
+      .toLowerCase();
+    const mimeType = contentType?.startsWith("image/")
+      ? contentType
+      : inferImageMimeType(url);
     const data = new Uint8Array(await response.arrayBuffer());
 
     if (data.length === 0) {
@@ -334,7 +370,7 @@ export async function buildMetadataTags(
   startTime: number,
   endTime: number,
   outputHeight: number | undefined,
-  format: ExportFormat
+  format: ExportFormat,
 ): Promise<MetadataTags | undefined> {
   if (!metadata) {
     return undefined;
@@ -353,7 +389,12 @@ export async function buildMetadataTags(
   const date = parseMetadataDate(metadata.date, metadata.year);
   if (date) tags.date = date;
 
-  const source = firstText(metadata.sourceTitle, metadata.title, sourceTitle, "source media");
+  const source = firstText(
+    metadata.sourceTitle,
+    metadata.title,
+    sourceTitle,
+    "source media",
+  );
   const contentRating = firstText(metadata.contentRating);
   tags.comment = `Clip from ${source}, ${clipRange}.${contentRating ? ` Content rating: ${contentRating}.` : ""}`;
 

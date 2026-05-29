@@ -19,7 +19,10 @@ import type {
   ViewerPlaybackGroup,
 } from "../providers/types.js";
 import { requireAccountSession, setNoStore } from "../session/request.js";
-import { pruneSessionMediaHandles, type ProviderSessionRecord } from "../session/store.js";
+import {
+  pruneSessionMediaHandles,
+  type ProviderSessionRecord,
+} from "../session/store.js";
 
 export const mediaRouter = Router();
 const logger = getServerLogger(["routes", "media"]);
@@ -42,7 +45,9 @@ function compareStrings(left: string, right: string) {
   return left.localeCompare(right, undefined, { sensitivity: "base" });
 }
 
-function groupCurrentPlayback(entries: CurrentlyPlayingEntry[]): ViewerPlaybackGroup[] {
+function groupCurrentPlayback(
+  entries: CurrentlyPlayingEntry[],
+): ViewerPlaybackGroup[] {
   const groups = new Map<string, ViewerPlaybackGroup>();
 
   for (const entry of entries) {
@@ -61,16 +66,18 @@ function groupCurrentPlayback(entries: CurrentlyPlayingEntry[]): ViewerPlaybackG
   return [...groups.values()]
     .map((group) => ({
       ...group,
-      items: [...group.items].sort((left, right) =>
-        compareStrings(left.source.name, right.source.name)
-        || compareStrings(left.playerTitle, right.playerTitle)
-        || compareStrings(left.title, right.title)
-        || compareStrings(left.id, right.id)
+      items: [...group.items].sort(
+        (left, right) =>
+          compareStrings(left.source.name, right.source.name) ||
+          compareStrings(left.playerTitle, right.playerTitle) ||
+          compareStrings(left.title, right.title) ||
+          compareStrings(left.id, right.id),
       ),
     }))
-    .sort((left, right) =>
-      compareStrings(left.viewer.name, right.viewer.name)
-      || compareStrings(left.viewer.id, right.viewer.id)
+    .sort(
+      (left, right) =>
+        compareStrings(left.viewer.name, right.viewer.name) ||
+        compareStrings(left.viewer.id, right.viewer.id),
     );
 }
 
@@ -83,7 +90,8 @@ function errorMessage(err: unknown) {
 }
 
 function bodyUrl(value: unknown) {
-  const body = value && typeof value === "object" ? value as { url?: unknown } : null;
+  const body =
+    value && typeof value === "object" ? (value as { url?: unknown }) : null;
   if (typeof body?.url !== "string") {
     throw new ApiError(400, "local_media_url_invalid", "Media URL is required");
   }
@@ -101,11 +109,19 @@ function parseLocalMediaUrl(value: string) {
   try {
     parsed = new URL(trimmed);
   } catch {
-    throw new ApiError(400, "local_media_url_invalid", "Enter a valid absolute media URL");
+    throw new ApiError(
+      400,
+      "local_media_url_invalid",
+      "Enter a valid absolute media URL",
+    );
   }
 
   if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
-    throw new ApiError(400, "local_media_url_invalid", "Media URL must use HTTP or HTTPS");
+    throw new ApiError(
+      400,
+      "local_media_url_invalid",
+      "Media URL must use HTTP or HTTPS",
+    );
   }
 
   return parsed;
@@ -119,7 +135,10 @@ function isHlsPlaylistUrl(url: string) {
   return HLS_PLAYLIST_PATTERN.test(url);
 }
 
-function buildLocalUrlMediaHandle(value: string, basePath?: string): MediaHandle {
+function buildLocalUrlMediaHandle(
+  value: string,
+  basePath?: string,
+): MediaHandle {
   const url = parseLocalMediaUrl(value);
 
   return {
@@ -168,7 +187,7 @@ mediaRouter.post(
       mediaUrl,
       hls: isHlsPlaylistUrl(handle.path),
     });
-  })
+  }),
 );
 
 mediaRouter.get(
@@ -178,7 +197,11 @@ mediaRouter.get(
     const prunedCount = pruneSessionMediaHandles(localUrlSession);
     const handle = localUrlMediaHandles.get(req.params.handleId as string);
     if (!handle) {
-      throw new ApiError(404, "local_media_url_not_found", "URL media handle was not found or has expired");
+      throw new ApiError(
+        404,
+        "local_media_url_not_found",
+        "URL media handle was not found or has expired",
+      );
     }
 
     handle.lastAccessedAt = Date.now();
@@ -211,11 +234,16 @@ mediaRouter.get(
         try {
           const upstream = await fetchMediaHandleRequest(handle, { headers });
           if (!upstream.ok && upstream.status !== 206) {
-            const detail = (await upstream.text()).slice(0, 400).replace(/\s+/g, " ").trim();
+            const detail = (await upstream.text())
+              .slice(0, 400)
+              .replace(/\s+/g, " ")
+              .trim();
             throw new ApiError(
               upstream.status,
               "local_media_url_failed",
-              detail ? `URL media request failed: ${detail}` : "URL media request failed"
+              detail
+                ? `URL media request failed: ${detail}`
+                : "URL media request failed",
             );
           }
 
@@ -233,7 +261,11 @@ mediaRouter.get(
             throw err;
           }
 
-          throw new ApiError(502, "local_media_url_failed", `URL media request failed: ${errorMessage(err)}`);
+          throw new ApiError(
+            502,
+            "local_media_url_failed",
+            `URL media request failed: ${errorMessage(err)}`,
+          );
         }
       },
       res,
@@ -241,7 +273,7 @@ mediaRouter.get(
         createMediaHandleUrl: createLocalUrlMediaHandleUrl,
       },
     );
-  })
+  }),
 );
 
 mediaRouter.get(
@@ -254,33 +286,34 @@ mediaRouter.get(
     const sources = listMediaSources({
       enabledOnly: true,
       providerAccountId: session.providerAccountId,
-    })
-      .flatMap((source) => {
-        const provider = getProvider(source.providerId);
-        if (!provider) {
-          sourceErrors.push({
-            sourceId: source.id,
-            sourceName: source.name,
-            providerId: source.providerId,
-            message: "Source provider is not registered",
-          });
-          return [];
-        }
+    }).flatMap((source) => {
+      const provider = getProvider(source.providerId);
+      if (!provider) {
+        sourceErrors.push({
+          sourceId: source.id,
+          sourceName: source.name,
+          providerId: source.providerId,
+          message: "Source provider is not registered",
+        });
+        return [];
+      }
 
-        if (!(provider.supportsCurrentlyPlayingSource?.(source) ?? true)) {
-          return [];
-        }
+      if (!(provider.supportsCurrentlyPlayingSource?.(source) ?? true)) {
+        return [];
+      }
 
-        return [{
+      return [
+        {
           source,
           provider,
-        }];
-      });
+        },
+      ];
+    });
     const settledResults = await Promise.allSettled(
       sources.map(async ({ source, provider }) => ({
         source,
         entries: await provider.listCurrentlyPlaying(session, source),
-      }))
+      })),
     );
 
     const entries: CurrentlyPlayingEntry[] = [];
@@ -321,7 +354,7 @@ mediaRouter.get(
       viewers: groupCurrentPlayback(entries),
       sourceErrors,
     });
-  })
+  }),
 );
 
 mediaRouter.get(
@@ -332,26 +365,40 @@ mediaRouter.get(
     const prunedCount = pruneSessionMediaHandles(session);
     const handle = session.mediaHandles.get(req.params.handleId as string);
     if (!handle) {
-      logger.warn("Media handle {handleId} was not found in provider session {sessionId}.", {
-        handleId: req.params.handleId,
-        sessionId: session.id,
-        providerId: session.providerId,
-        providerAccountId: session.providerAccountId,
-        prunedHandleCount: prunedCount,
-        remainingHandleCount: session.mediaHandles.size,
-      });
-      throw new ApiError(404, "media_not_found", "Media handle was not found or has expired");
+      logger.warn(
+        "Media handle {handleId} was not found in provider session {sessionId}.",
+        {
+          handleId: req.params.handleId,
+          sessionId: session.id,
+          providerId: session.providerId,
+          providerAccountId: session.providerAccountId,
+          prunedHandleCount: prunedCount,
+          remainingHandleCount: session.mediaHandles.size,
+        },
+      );
+      throw new ApiError(
+        404,
+        "media_not_found",
+        "Media handle was not found or has expired",
+      );
     }
 
     const provider = getProvider(handle.providerId);
     if (!provider) {
-      logger.error("Provider {providerId} for media handle {handleId} is not registered.", {
-        handleId: handle.id,
-        sessionId: session.id,
-        providerId: handle.providerId,
-        sourceId: handle.sourceId,
-      });
-      throw new ApiError(500, "provider_not_registered", "Session provider is not registered");
+      logger.error(
+        "Provider {providerId} for media handle {handleId} is not registered.",
+        {
+          handleId: handle.id,
+          sessionId: session.id,
+          providerId: handle.providerId,
+          sourceId: handle.sourceId,
+        },
+      );
+      throw new ApiError(
+        500,
+        "provider_not_registered",
+        "Session provider is not registered",
+      );
     }
 
     logger.trace("Proxying media handle {handleId}.", {
@@ -365,5 +412,5 @@ mediaRouter.get(
     });
 
     await provider.proxyMedia(session, req.params.handleId as string, req, res);
-  })
+  }),
 );

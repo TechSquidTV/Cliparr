@@ -37,28 +37,37 @@ void test("keeps rounded initial clip range within odd sub-second bounds", () =>
 });
 
 void test("rebuilds initial clip range when duration is discovered later", () => {
-  assert.deepEqual(buildClipRangeAfterDurationDiscovery({
-    initialDuration: 0,
-    currentStartTime: 0,
-    currentEndTime: 0,
-    discoveredDuration: 120,
-  }), {
-    startTime: 0,
-    endTime: 10,
-  });
+  assert.deepEqual(
+    buildClipRangeAfterDurationDiscovery({
+      initialDuration: 0,
+      currentStartTime: 0,
+      currentEndTime: 0,
+      discoveredDuration: 120,
+    }),
+    {
+      startTime: 0,
+      endTime: 10,
+    },
+  );
 });
 
 void test("does not replace an existing clip range when duration is discovered later", () => {
-  assert.equal(buildClipRangeAfterDurationDiscovery({
-    initialDuration: 0,
-    currentStartTime: 0,
-    currentEndTime: 0.1,
-    discoveredDuration: 120,
-  }), null);
-  assert.equal(buildClipRangeAfterDurationDiscovery({
-    initialDuration: 120,
-    currentStartTime: 0,
-    currentEndTime: 10,
-    discoveredDuration: 120,
-  }), null);
+  assert.equal(
+    buildClipRangeAfterDurationDiscovery({
+      initialDuration: 0,
+      currentStartTime: 0,
+      currentEndTime: 0.1,
+      discoveredDuration: 120,
+    }),
+    null,
+  );
+  assert.equal(
+    buildClipRangeAfterDurationDiscovery({
+      initialDuration: 120,
+      currentStartTime: 0,
+      currentEndTime: 10,
+      discoveredDuration: 120,
+    }),
+    null,
+  );
 });

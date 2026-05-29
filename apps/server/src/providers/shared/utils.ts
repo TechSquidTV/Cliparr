@@ -56,8 +56,14 @@ export function errorMessage(err: unknown) {
 }
 
 function formatEpisodeCode(seasonNumber?: number, episodeNumber?: number) {
-  const season = seasonNumber === undefined ? undefined : `S${String(seasonNumber).padStart(2, "0")}`;
-  const episode = episodeNumber === undefined ? undefined : `E${String(episodeNumber).padStart(2, "0")}`;
+  const season =
+    seasonNumber === undefined
+      ? undefined
+      : `S${String(seasonNumber).padStart(2, "0")}`;
+  const episode =
+    episodeNumber === undefined
+      ? undefined
+      : `E${String(episodeNumber).padStart(2, "0")}`;
 
   if (season && episode) {
     return `${season}${episode}`;
@@ -67,6 +73,12 @@ function formatEpisodeCode(seasonNumber?: number, episodeNumber?: number) {
 }
 
 export function buildEpisodeSourceTitle(input: EpisodeSourceTitleInput) {
-  const episodeCode = formatEpisodeCode(input.seasonNumber, input.episodeNumber);
-  return uniqueStrings([input.seriesTitle, episodeCode, input.title]).join(" - ") || input.title;
+  const episodeCode = formatEpisodeCode(
+    input.seasonNumber,
+    input.episodeNumber,
+  );
+  return (
+    uniqueStrings([input.seriesTitle, episodeCode, input.title]).join(" - ") ||
+    input.title
+  );
 }

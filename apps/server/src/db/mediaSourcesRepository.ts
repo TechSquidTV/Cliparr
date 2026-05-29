@@ -66,19 +66,13 @@ function mapMediaSource(row: MediaSourceRow): MediaSource {
 }
 
 function getMediaSourceWhere(where: SQL<unknown>) {
-  const row = getDatabase()
-    .select()
-    .from(mediaSources)
-    .where(where)
-    .get();
+  const row = getDatabase().select().from(mediaSources).where(where).get();
 
   return row ? mapMediaSource(row) : undefined;
 }
 
 function listMediaSourcesWhere(where?: SQL<unknown>) {
-  const query = getDatabase()
-    .select()
-    .from(mediaSources);
+  const query = getDatabase().select().from(mediaSources);
   const rows = where
     ? query.where(where).orderBy(asc(mediaSources.name)).all()
     : query.orderBy(asc(mediaSources.name)).all();
@@ -90,18 +84,20 @@ function createMediaSource(input: CreateMediaSourceInput) {
   const db = getDatabase();
   const id = randomUUID();
 
-  db.insert(mediaSources).values({
-    id,
-    providerId: input.providerId,
-    providerAccountId: input.providerAccountId,
-    externalId: input.externalId ?? null,
-    name: input.name,
-    enabled: input.enabled ?? true,
-    baseUrl: input.baseUrl,
-    connection: encryptJsonSecrets(input.connection ?? {}),
-    credentials: encryptJsonSecrets(input.credentials ?? {}),
-    metadata: input.metadata ?? {},
-  }).run();
+  db.insert(mediaSources)
+    .values({
+      id,
+      providerId: input.providerId,
+      providerAccountId: input.providerAccountId,
+      externalId: input.externalId ?? null,
+      name: input.name,
+      enabled: input.enabled ?? true,
+      baseUrl: input.baseUrl,
+      connection: encryptJsonSecrets(input.connection ?? {}),
+      credentials: encryptJsonSecrets(input.credentials ?? {}),
+      metadata: input.metadata ?? {},
+    })
+    .run();
 
   return getMediaSource(id);
 }
@@ -110,14 +106,22 @@ export function updateMediaSource(id: string, input: UpdateMediaSourceInput) {
   getDatabase()
     .update(mediaSources)
     .set({
-      ...(input.externalId !== undefined ? { externalId: input.externalId } : {}),
+      ...(input.externalId !== undefined
+        ? { externalId: input.externalId }
+        : {}),
       ...(input.name !== undefined ? { name: input.name } : {}),
       ...(input.enabled !== undefined ? { enabled: input.enabled } : {}),
       ...(input.baseUrl !== undefined ? { baseUrl: input.baseUrl } : {}),
-      ...(input.connection !== undefined ? { connection: encryptJsonSecrets(input.connection) } : {}),
-      ...(input.credentials !== undefined ? { credentials: encryptJsonSecrets(input.credentials) } : {}),
+      ...(input.connection !== undefined
+        ? { connection: encryptJsonSecrets(input.connection) }
+        : {}),
+      ...(input.credentials !== undefined
+        ? { credentials: encryptJsonSecrets(input.credentials) }
+        : {}),
       ...(input.metadata !== undefined ? { metadata: input.metadata } : {}),
-      ...(input.lastCheckedAt !== undefined ? { lastCheckedAt: input.lastCheckedAt } : {}),
+      ...(input.lastCheckedAt !== undefined
+        ? { lastCheckedAt: input.lastCheckedAt }
+        : {}),
       ...(input.lastError !== undefined ? { lastError: input.lastError } : {}),
       updatedAt: currentTimestampSql(),
     })
@@ -131,22 +135,30 @@ function getMediaSource(id: string) {
   return getMediaSourceWhere(eq(mediaSources.id, id));
 }
 
-export function getMediaSourceForAccount(id: string, providerAccountId: string) {
+export function getMediaSourceForAccount(
+  id: string,
+  providerAccountId: string,
+) {
   const where = and(
     eq(mediaSources.id, id),
-    eq(mediaSources.providerAccountId, providerAccountId)
+    eq(mediaSources.providerAccountId, providerAccountId),
   );
 
   return where ? getMediaSourceWhere(where) : undefined;
 }
 
-export function deleteMediaSourceForAccount(id: string, providerAccountId: string) {
+export function deleteMediaSourceForAccount(
+  id: string,
+  providerAccountId: string,
+) {
   const result = getDatabase()
     .delete(mediaSources)
-    .where(and(
-      eq(mediaSources.id, id),
-      eq(mediaSources.providerAccountId, providerAccountId)
-    ))
+    .where(
+      and(
+        eq(mediaSources.id, id),
+        eq(mediaSources.providerAccountId, providerAccountId),
+      ),
+    )
     .run();
 
   return result.changes > 0;
@@ -155,12 +167,12 @@ export function deleteMediaSourceForAccount(id: string, providerAccountId: strin
 export function getMediaSourceByProviderExternalId(
   providerId: string,
   providerAccountId: string,
-  externalId: string
+  externalId: string,
 ) {
   const where = and(
     eq(mediaSources.providerId, providerId),
     eq(mediaSources.providerAccountId, providerAccountId),
-    eq(mediaSources.externalId, externalId)
+    eq(mediaSources.externalId, externalId),
   );
 
   return where ? getMediaSourceWhere(where) : undefined;
@@ -187,27 +199,41 @@ export function upsertMediaSource(input: CreateMediaSourceInput) {
       metadata: input.metadata ?? {},
     })
     .onConflictDoUpdate({
-      target: [mediaSources.providerId, mediaSources.providerAccountId, mediaSources.externalId],
+      target: [
+        mediaSources.providerId,
+        mediaSources.providerAccountId,
+        mediaSources.externalId,
+      ],
       set: {
         name: input.name,
         ...(input.enabled !== undefined ? { enabled: input.enabled } : {}),
         baseUrl: input.baseUrl,
-        ...(input.connection !== undefined ? { connection: encryptJsonSecrets(input.connection) } : {}),
-        ...(input.credentials !== undefined ? { credentials: encryptJsonSecrets(input.credentials) } : {}),
+        ...(input.connection !== undefined
+          ? { connection: encryptJsonSecrets(input.connection) }
+          : {}),
+        ...(input.credentials !== undefined
+          ? { credentials: encryptJsonSecrets(input.credentials) }
+          : {}),
         ...(input.metadata !== undefined ? { metadata: input.metadata } : {}),
         updatedAt: currentTimestampSql(),
       },
     })
     .run();
 
-  return getMediaSourceByProviderExternalId(input.providerId, input.providerAccountId, input.externalId);
+  return getMediaSourceByProviderExternalId(
+    input.providerId,
+    input.providerAccountId,
+    input.externalId,
+  );
 }
 
-export function listMediaSources(options: {
-  enabledOnly?: boolean;
-  providerId?: string;
-  providerAccountId?: string;
-} = {}) {
+export function listMediaSources(
+  options: {
+    enabledOnly?: boolean;
+    providerId?: string;
+    providerAccountId?: string;
+  } = {},
+) {
   const filters: SQL<unknown>[] = [];
 
   if (options.enabledOnly) {
@@ -222,34 +248,49 @@ export function listMediaSources(options: {
     filters.push(eq(mediaSources.providerAccountId, options.providerAccountId));
   }
 
-  const where = filters.length === 0
-    ? undefined
-    : filters.length === 1
-      ? filters[0]
-      : and(...filters);
+  const where =
+    filters.length === 0
+      ? undefined
+      : filters.length === 1
+        ? filters[0]
+        : and(...filters);
 
   return listMediaSourcesWhere(where);
 }
 
-export function updateMediaSourceForAccount(id: string, providerAccountId: string, input: UpdateMediaSourceInput) {
+export function updateMediaSourceForAccount(
+  id: string,
+  providerAccountId: string,
+  input: UpdateMediaSourceInput,
+) {
   getDatabase()
     .update(mediaSources)
     .set({
-      ...(input.externalId !== undefined ? { externalId: input.externalId } : {}),
+      ...(input.externalId !== undefined
+        ? { externalId: input.externalId }
+        : {}),
       ...(input.name !== undefined ? { name: input.name } : {}),
       ...(input.enabled !== undefined ? { enabled: input.enabled } : {}),
       ...(input.baseUrl !== undefined ? { baseUrl: input.baseUrl } : {}),
-      ...(input.connection !== undefined ? { connection: encryptJsonSecrets(input.connection) } : {}),
-      ...(input.credentials !== undefined ? { credentials: encryptJsonSecrets(input.credentials) } : {}),
+      ...(input.connection !== undefined
+        ? { connection: encryptJsonSecrets(input.connection) }
+        : {}),
+      ...(input.credentials !== undefined
+        ? { credentials: encryptJsonSecrets(input.credentials) }
+        : {}),
       ...(input.metadata !== undefined ? { metadata: input.metadata } : {}),
-      ...(input.lastCheckedAt !== undefined ? { lastCheckedAt: input.lastCheckedAt } : {}),
+      ...(input.lastCheckedAt !== undefined
+        ? { lastCheckedAt: input.lastCheckedAt }
+        : {}),
       ...(input.lastError !== undefined ? { lastError: input.lastError } : {}),
       updatedAt: currentTimestampSql(),
     })
-    .where(and(
-      eq(mediaSources.id, id),
-      eq(mediaSources.providerAccountId, providerAccountId)
-    ))
+    .where(
+      and(
+        eq(mediaSources.id, id),
+        eq(mediaSources.providerAccountId, providerAccountId),
+      ),
+    )
     .run();
 
   return getMediaSourceForAccount(id, providerAccountId);
@@ -258,7 +299,7 @@ export function updateMediaSourceForAccount(id: string, providerAccountId: strin
 export function updateMediaSourceHealthForAccount(
   id: string,
   providerAccountId: string,
-  input: { lastCheckedAt: string; lastError?: string }
+  input: { lastCheckedAt: string; lastError?: string },
 ) {
   getDatabase()
     .update(mediaSources)
@@ -267,10 +308,12 @@ export function updateMediaSourceHealthForAccount(
       lastError: input.lastError ?? null,
       updatedAt: currentTimestampSql(),
     })
-    .where(and(
-      eq(mediaSources.id, id),
-      eq(mediaSources.providerAccountId, providerAccountId)
-    ))
+    .where(
+      and(
+        eq(mediaSources.id, id),
+        eq(mediaSources.providerAccountId, providerAccountId),
+      ),
+    )
     .run();
 
   return getMediaSourceForAccount(id, providerAccountId);

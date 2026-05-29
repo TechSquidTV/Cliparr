@@ -1,9 +1,15 @@
 import { useCallback } from "react";
 import type { CanvasSink, Input, WrappedCanvas } from "mediabunny";
-import { fromSourceTimelineTime, toSourceTimelineTime } from "../../lib/mediabunnyTrackAccess";
+import {
+  fromSourceTimelineTime,
+  toSourceTimelineTime,
+} from "../../lib/mediabunnyTrackAccess";
 import { getActiveSubtitleCue } from "../../lib/subtitles/getActiveSubtitleCue";
 import { renderSubtitleCue } from "../../lib/subtitles/renderSubtitleCue";
-import type { SubtitleCue, SubtitleStyleSettings } from "../../lib/subtitles/types";
+import type {
+  SubtitleCue,
+  SubtitleStyleSettings,
+} from "../../lib/subtitles/types";
 import { errorMessage, themeValue } from "./EditorUtils";
 
 type RefValue<T> = {
@@ -20,7 +26,11 @@ interface UseEditorPlaybackRenderLoopOptions {
   inputRef: RefValue<Input | null>;
   videoSinkRef: RefValue<CanvasSink | null>;
   staticVideoFrameRef: RefValue<HTMLCanvasElement | null>;
-  videoFrameIteratorRef: RefValue<AsyncGenerator<WrappedCanvas, void, unknown> | null>;
+  videoFrameIteratorRef: RefValue<AsyncGenerator<
+    WrappedCanvas,
+    void,
+    unknown
+  > | null>;
   nextFrameRef: RefValue<WrappedCanvas | null>;
   displayedFrameRef: RefValue<WrappedCanvas | null>;
   displayedStaticFrameRef: RefValue<StaticVideoFrame | null>;
@@ -74,47 +84,52 @@ export function useEditorPlaybackRenderLoop({
   setCurrentTime,
   setError,
 }: UseEditorPlaybackRenderLoopOptions) {
-  const drawCanvasFrame = useCallback((frame: Pick<WrappedCanvas, "canvas" | "timestamp">) => {
-    const canvas = canvasRef.current;
-    const context = canvas?.getContext("2d");
-    if (!canvas || !context) {
-      return;
-    }
-    context.clearRect(0, 0, canvas.width, canvas.height);
-    context.drawImage(frame.canvas, 0, 0, canvas.width, canvas.height);
-
-    if (subtitlesEnabledRef.current && subtitleStyleSettingsRef.current) {
-      const cue = getActiveSubtitleCue(
-        subtitleCuesRef.current,
-        fromSourceTimelineTime(frame.timestamp, sourceTimelineOffsetRef.current)
-      );
-      if (cue) {
-        renderSubtitleCue(
-          context,
-          cue,
-          subtitleStyleSettingsRef.current,
-          canvas.width,
-          canvas.height
-        );
+  const drawCanvasFrame = useCallback(
+    (frame: Pick<WrappedCanvas, "canvas" | "timestamp">) => {
+      const canvas = canvasRef.current;
+      const context = canvas?.getContext("2d");
+      if (!canvas || !context) {
+        return;
       }
-    }
-  }, [
-    canvasRef,
-    sourceTimelineOffsetRef,
-    subtitleCuesRef,
-    subtitleStyleSettingsRef,
-    subtitlesEnabledRef,
-  ]);
+      context.clearRect(0, 0, canvas.width, canvas.height);
+      context.drawImage(frame.canvas, 0, 0, canvas.width, canvas.height);
 
-  const drawFrame = useCallback((frame: WrappedCanvas) => {
-    drawCanvasFrame(frame);
-    displayedFrameRef.current = frame;
-    displayedStaticFrameRef.current = null;
-  }, [
-    displayedFrameRef,
-    displayedStaticFrameRef,
-    drawCanvasFrame,
-  ]);
+      if (subtitlesEnabledRef.current && subtitleStyleSettingsRef.current) {
+        const cue = getActiveSubtitleCue(
+          subtitleCuesRef.current,
+          fromSourceTimelineTime(
+            frame.timestamp,
+            sourceTimelineOffsetRef.current,
+          ),
+        );
+        if (cue) {
+          renderSubtitleCue(
+            context,
+            cue,
+            subtitleStyleSettingsRef.current,
+            canvas.width,
+            canvas.height,
+          );
+        }
+      }
+    },
+    [
+      canvasRef,
+      sourceTimelineOffsetRef,
+      subtitleCuesRef,
+      subtitleStyleSettingsRef,
+      subtitlesEnabledRef,
+    ],
+  );
+
+  const drawFrame = useCallback(
+    (frame: WrappedCanvas) => {
+      drawCanvasFrame(frame);
+      displayedFrameRef.current = frame;
+      displayedStaticFrameRef.current = null;
+    },
+    [displayedFrameRef, displayedStaticFrameRef, drawCanvasFrame],
+  );
 
   const drawStaticFrame = useCallback(() => {
     const staticFrameCanvas = staticVideoFrameRef.current;
@@ -124,7 +139,10 @@ export function useEditorPlaybackRenderLoop({
 
     const frame = {
       canvas: staticFrameCanvas,
-      timestamp: toSourceTimelineTime(getPlaybackTime(), sourceTimelineOffsetRef.current),
+      timestamp: toSourceTimelineTime(
+        getPlaybackTime(),
+        sourceTimelineOffsetRef.current,
+      ),
     };
     drawCanvasFrame(frame);
     displayedFrameRef.current = null;
@@ -139,26 +157,35 @@ export function useEditorPlaybackRenderLoop({
     staticVideoFrameRef,
   ]);
 
-  const drawPlaceholder = useCallback((message: string) => {
-    const canvas = canvasRef.current;
-    const context = canvas?.getContext("2d");
-    if (!canvas || !context) {
-      return;
-    }
-    if (!canvas.width || !canvas.height) {
-      canvas.width = 1280;
-      canvas.height = 720;
-    }
-    const bodyStyles = getComputedStyle(document.body);
-    context.fillStyle = themeValue("--editor-preview-stage", bodyStyles.backgroundColor);
-    context.fillRect(0, 0, canvas.width, canvas.height);
-    context.fillStyle = themeValue("--editor-preview-overlay-foreground", bodyStyles.color);
-    context.font = "24px sans-serif";
-    context.textAlign = "center";
-    context.fillText(message, canvas.width / 2, canvas.height / 2);
-    displayedFrameRef.current = null;
-    displayedStaticFrameRef.current = null;
-  }, [canvasRef, displayedFrameRef, displayedStaticFrameRef]);
+  const drawPlaceholder = useCallback(
+    (message: string) => {
+      const canvas = canvasRef.current;
+      const context = canvas?.getContext("2d");
+      if (!canvas || !context) {
+        return;
+      }
+      if (!canvas.width || !canvas.height) {
+        canvas.width = 1280;
+        canvas.height = 720;
+      }
+      const bodyStyles = getComputedStyle(document.body);
+      context.fillStyle = themeValue(
+        "--editor-preview-stage",
+        bodyStyles.backgroundColor,
+      );
+      context.fillRect(0, 0, canvas.width, canvas.height);
+      context.fillStyle = themeValue(
+        "--editor-preview-overlay-foreground",
+        bodyStyles.color,
+      );
+      context.font = "24px sans-serif";
+      context.textAlign = "center";
+      context.fillText(message, canvas.width / 2, canvas.height / 2);
+      displayedFrameRef.current = null;
+      displayedStaticFrameRef.current = null;
+    },
+    [canvasRef, displayedFrameRef, displayedStaticFrameRef],
+  );
 
   const startVideoIterator = useCallback(async () => {
     const videoSink = videoSinkRef.current;
@@ -174,7 +201,9 @@ export function useEditorPlaybackRenderLoop({
       return;
     }
 
-    const packetRetrievalOptions = skipLiveWaitRef.current ? { skipLiveWait: true } : undefined;
+    const packetRetrievalOptions = skipLiveWaitRef.current
+      ? { skipLiveWait: true }
+      : undefined;
     videoFrameIteratorRef.current = videoSink.canvases(
       toSourceTimelineTime(getPlaybackTime(), sourceTimelineOffsetRef.current),
       Infinity,
@@ -182,8 +211,12 @@ export function useEditorPlaybackRenderLoop({
     );
     const firstResult = await videoFrameIteratorRef.current.next();
     const secondResult = await videoFrameIteratorRef.current.next();
-    const firstFrame = firstResult.done ? null : (firstResult.value as WrappedCanvas);
-    const secondFrame = secondResult.done ? null : (secondResult.value as WrappedCanvas);
+    const firstFrame = firstResult.done
+      ? null
+      : (firstResult.value as WrappedCanvas);
+    const secondFrame = secondResult.done
+      ? null
+      : (secondResult.value as WrappedCanvas);
 
     if (generation !== generationRef.current) {
       return;
@@ -206,45 +239,52 @@ export function useEditorPlaybackRenderLoop({
     videoSinkRef,
   ]);
 
-  const updateNextFrame = useCallback(async (generation: number) => {
-    const iterator = videoFrameIteratorRef.current;
-    if (!iterator) {
-      return;
-    }
+  const updateNextFrame = useCallback(
+    async (generation: number) => {
+      const iterator = videoFrameIteratorRef.current;
+      if (!iterator) {
+        return;
+      }
 
-    try {
-      while (generation === generationRef.current) {
-        const result = await iterator.next();
-        const newNextFrame = result.done ? null : (result.value as WrappedCanvas);
-        if (!newNextFrame || generation !== generationRef.current) {
-          break;
+      try {
+        while (generation === generationRef.current) {
+          const result = await iterator.next();
+          const newNextFrame = result.done
+            ? null
+            : (result.value as WrappedCanvas);
+          if (!newNextFrame || generation !== generationRef.current) {
+            break;
+          }
+
+          const playbackTime = getPlaybackTime();
+          if (
+            fromSourceTimelineTime(
+              newNextFrame.timestamp,
+              sourceTimelineOffsetRef.current,
+            ) <= playbackTime
+          ) {
+            drawFrame(newNextFrame);
+          } else {
+            nextFrameRef.current = newNextFrame;
+            break;
+          }
         }
-
-        const playbackTime = getPlaybackTime();
-        if (
-          fromSourceTimelineTime(newNextFrame.timestamp, sourceTimelineOffsetRef.current)
-            <= playbackTime
-        ) {
-          drawFrame(newNextFrame);
-        } else {
-          nextFrameRef.current = newNextFrame;
-          break;
+      } catch (err) {
+        if (generation === generationRef.current) {
+          setError(errorMessage(err));
         }
       }
-    } catch (err) {
-      if (generation === generationRef.current) {
-        setError(errorMessage(err));
-      }
-    }
-  }, [
-    drawFrame,
-    generationRef,
-    getPlaybackTime,
-    nextFrameRef,
-    setError,
-    sourceTimelineOffsetRef,
-    videoFrameIteratorRef,
-  ]);
+    },
+    [
+      drawFrame,
+      generationRef,
+      getPlaybackTime,
+      nextFrameRef,
+      setError,
+      sourceTimelineOffsetRef,
+      videoFrameIteratorRef,
+    ],
+  );
 
   const renderFrame = useCallback(() => {
     if (!inputRef.current) {
@@ -253,8 +293,9 @@ export function useEditorPlaybackRenderLoop({
 
     const playbackTime = getPlaybackTime();
     const duration = durationRef.current;
-    const stopTime = playbackStopTimeRef.current
-      ?? Math.min(endTimeRef.current || duration, duration);
+    const stopTime =
+      playbackStopTimeRef.current ??
+      Math.min(endTimeRef.current || duration, duration);
 
     if (playingRef.current && playbackTime >= stopTime) {
       pausePlayback(false);
@@ -271,8 +312,11 @@ export function useEditorPlaybackRenderLoop({
 
     const nextFrame = nextFrameRef.current;
     if (
-      nextFrame
-      && fromSourceTimelineTime(nextFrame.timestamp, sourceTimelineOffsetRef.current) <= playbackTime
+      nextFrame &&
+      fromSourceTimelineTime(
+        nextFrame.timestamp,
+        sourceTimelineOffsetRef.current,
+      ) <= playbackTime
     ) {
       drawFrame(nextFrame);
       nextFrameRef.current = null;

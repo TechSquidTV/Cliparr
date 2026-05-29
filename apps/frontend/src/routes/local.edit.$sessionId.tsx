@@ -12,7 +12,9 @@ import { router } from "../router";
 function LocalEditorRouteComponent() {
   const { sessionId } = Route.useParams();
   const canGoBack = useCanGoBack();
-  const [resolution, setResolution] = useState<LocalMediaResolution | null>(null);
+  const [resolution, setResolution] = useState<LocalMediaResolution | null>(
+    null,
+  );
   const [loading, setLoading] = useState(true);
   const [openDialog, setOpenDialog] = useState(false);
 
@@ -25,14 +27,19 @@ function LocalEditorRouteComponent() {
     void router.navigate({ to: "/", replace: true });
   }, [canGoBack]);
 
-  const loadSession = useCallback(async (requestPermission = false) => {
-    setLoading(true);
-    try {
-      setResolution(await resolveLocalMediaSession(sessionId, { requestPermission }));
-    } finally {
-      setLoading(false);
-    }
-  }, [sessionId]);
+  const loadSession = useCallback(
+    async (requestPermission = false) => {
+      setLoading(true);
+      try {
+        setResolution(
+          await resolveLocalMediaSession(sessionId, { requestPermission }),
+        );
+      } finally {
+        setLoading(false);
+      }
+    },
+    [sessionId],
+  );
 
   useEffect(() => {
     void loadSession();

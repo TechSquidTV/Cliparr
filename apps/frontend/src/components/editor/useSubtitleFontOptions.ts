@@ -15,9 +15,11 @@ interface UseSubtitleFontOptionsResult {
 }
 
 export function useSubtitleFontOptions(
-  selectedFontFamily: string
+  selectedFontFamily: string,
 ): UseSubtitleFontOptionsResult {
-  const [localFontOptions, setLocalFontOptions] = useState<readonly SubtitleFontOption[]>([]);
+  const [localFontOptions, setLocalFontOptions] = useState<
+    readonly SubtitleFontOption[]
+  >([]);
   const [localFontsRequested, setLocalFontsRequested] = useState(false);
   const [loadingLocalFonts, setLoadingLocalFonts] = useState(false);
 
@@ -47,10 +49,10 @@ export function useSubtitleFontOptions(
     };
   }, [localFontsRequested]);
 
-  const currentFontOption = createSubtitleFontOptionFromValue(selectedFontFamily, [
-    ...SUBTITLE_FONT_OPTIONS,
-    ...localFontOptions,
-  ]);
+  const currentFontOption = createSubtitleFontOptionFromValue(
+    selectedFontFamily,
+    [...SUBTITLE_FONT_OPTIONS, ...localFontOptions],
+  );
 
   return {
     currentFontOption,

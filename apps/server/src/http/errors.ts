@@ -15,7 +15,11 @@ export class ApiError extends Error {
 }
 
 export function asyncHandler(
-  handler: (req: Request, res: Response, next: NextFunction) => Promise<unknown>
+  handler: (
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ) => Promise<unknown>,
 ) {
   return (req: Request, res: Response, next: NextFunction) => {
     void handler(req, res, next).catch(next);
@@ -35,7 +39,7 @@ export function errorHandler(
   err: unknown,
   req: Request,
   res: Response,
-  _next: NextFunction
+  _next: NextFunction,
 ) {
   const apiError =
     err instanceof ApiError
@@ -49,13 +53,16 @@ export function errorHandler(
       originalUrl: req.originalUrl,
     });
   } else if (apiError.status >= 500) {
-    logger.error("Request failed with API error {code} for {method} {originalUrl}.", {
-      statusCode: apiError.status,
-      code: apiError.code,
-      message: apiError.message,
-      method: req.method,
-      originalUrl: req.originalUrl,
-    });
+    logger.error(
+      "Request failed with API error {code} for {method} {originalUrl}.",
+      {
+        statusCode: apiError.status,
+        code: apiError.code,
+        message: apiError.message,
+        method: req.method,
+        originalUrl: req.originalUrl,
+      },
+    );
   }
 
   if (res.headersSent) {

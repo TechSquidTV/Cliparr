@@ -40,14 +40,18 @@ function onlyMediaHandle(session: ProviderSessionRecord) {
 void test("uses a stable Plex transcode session id for repeated playback polls", () => {
   const item = {
     ratingKey: "12345",
-    Media: [{
-      id: "media-1",
-      selected: 1,
-      Part: [{
-        id: "part-1",
+    Media: [
+      {
+        id: "media-1",
         selected: 1,
-      }],
-    }],
+        Part: [
+          {
+            id: "part-1",
+            selected: 1,
+          },
+        ],
+      },
+    ],
   };
 
   const firstPath = createPreviewPath(item, "plex-session-1");
@@ -61,10 +65,22 @@ void test("uses a stable Plex transcode session id for repeated playback polls",
 });
 
 void test("creates a Cliparr-owned Plex transcode session id", () => {
-  const firstId = createCliparrPlexTranscodeSessionId("source-1", "plex-session-1");
-  const secondId = createCliparrPlexTranscodeSessionId("source-1", "plex-session-1");
-  const differentPlaybackId = createCliparrPlexTranscodeSessionId("source-1", "plex-session-2");
-  const differentSourceId = createCliparrPlexTranscodeSessionId("source-2", "plex-session-1");
+  const firstId = createCliparrPlexTranscodeSessionId(
+    "source-1",
+    "plex-session-1",
+  );
+  const secondId = createCliparrPlexTranscodeSessionId(
+    "source-1",
+    "plex-session-1",
+  );
+  const differentPlaybackId = createCliparrPlexTranscodeSessionId(
+    "source-1",
+    "plex-session-2",
+  );
+  const differentSourceId = createCliparrPlexTranscodeSessionId(
+    "source-2",
+    "plex-session-1",
+  );
 
   assert.equal(firstId, secondId);
   assert.notEqual(firstId, differentPlaybackId);
@@ -96,27 +112,36 @@ void test("creates a direct content URL for Plex sidecar text subtitle streams",
   const context = createContext();
   const item = {
     ratingKey: "12345",
-    Media: [{
-      id: "media-1",
-      selected: 1,
-      Part: [{
-        id: "part-1",
+    Media: [
+      {
+        id: "media-1",
         selected: 1,
-        Stream: [{
-          id: "101",
-          streamType: 3,
-          codec: "subrip",
-          languageCode: "eng",
-          key: "/library/streams/101",
-        }],
-      }],
-    }],
+        Part: [
+          {
+            id: "part-1",
+            selected: 1,
+            Stream: [
+              {
+                id: "101",
+                streamType: 3,
+                codec: "subrip",
+                languageCode: "eng",
+                key: "/library/streams/101",
+              },
+            ],
+          },
+        ],
+      },
+    ],
   };
 
   const tracks = deriveSubtitleTracks(session, context, item, "plex-session-1");
 
   assert.equal(tracks.length, 1);
-  assert.equal(tracks[0]?.contentUrl, "/api/media/" + onlyMediaHandle(session).id);
+  assert.equal(
+    tracks[0]?.contentUrl,
+    "/api/media/" + onlyMediaHandle(session).id,
+  );
   assert.equal(tracks[0]?.contentFormat, "srt");
   assert.equal(onlyMediaHandle(session).path, "/library/streams/101.srt");
 });
@@ -126,22 +151,28 @@ void test("creates a subtitle transcode content URL for the selected embedded Pl
   const context = createContext();
   const item = {
     ratingKey: "12345",
-    Media: [{
-      id: "media-1",
-      selected: 1,
-      Part: [{
-        id: "part-1",
+    Media: [
+      {
+        id: "media-1",
         selected: 1,
-        Stream: [{
-          id: "201",
-          index: 2,
-          streamType: 3,
-          codec: "subrip",
-          languageCode: "eng",
-          selected: true,
-        }],
-      }],
-    }],
+        Part: [
+          {
+            id: "part-1",
+            selected: 1,
+            Stream: [
+              {
+                id: "201",
+                index: 2,
+                streamType: 3,
+                codec: "subrip",
+                languageCode: "eng",
+                selected: true,
+              },
+            ],
+          },
+        ],
+      },
+    ],
   };
 
   const tracks = deriveSubtitleTracks(session, context, item, "plex-session-1");
@@ -151,9 +182,18 @@ void test("creates a subtitle transcode content URL for the selected embedded Pl
   assert.equal(tracks.length, 1);
   assert.equal(tracks[0]?.contentUrl, `/api/media/${handle.id}`);
   assert.equal(tracks[0]?.contentFormat, "srt");
-  assert.equal(handle.path.startsWith("/video/:/transcode/universal/subtitles?"), true);
-  assert.equal(transcodeUrl.searchParams.get("path"), "/library/metadata/12345");
-  assert.equal(transcodeUrl.searchParams.get("transcodeSessionId"), "plex-session-1");
+  assert.equal(
+    handle.path.startsWith("/video/:/transcode/universal/subtitles?"),
+    true,
+  );
+  assert.equal(
+    transcodeUrl.searchParams.get("path"),
+    "/library/metadata/12345",
+  );
+  assert.equal(
+    transcodeUrl.searchParams.get("transcodeSessionId"),
+    "plex-session-1",
+  );
   assert.equal(transcodeUrl.searchParams.get("mediaIndex"), "0");
   assert.equal(transcodeUrl.searchParams.get("partIndex"), "0");
   assert.equal(transcodeUrl.searchParams.get("subtitles"), "sidecar");
@@ -166,23 +206,29 @@ void test("prefers direct raw SRT for the selected external Plex text subtitle",
   const context = createContext();
   const item = {
     ratingKey: "12345",
-    Media: [{
-      id: "media-1",
-      selected: 1,
-      Part: [{
-        id: "part-1",
+    Media: [
+      {
+        id: "media-1",
         selected: 1,
-        Stream: [{
-          id: "202",
-          index: 3,
-          streamType: 3,
-          codec: "srt",
-          languageCode: "eng",
-          key: "/library/streams/202",
-          selected: true,
-        }],
-      }],
-    }],
+        Part: [
+          {
+            id: "part-1",
+            selected: 1,
+            Stream: [
+              {
+                id: "202",
+                index: 3,
+                streamType: 3,
+                codec: "srt",
+                languageCode: "eng",
+                key: "/library/streams/202",
+                selected: true,
+              },
+            ],
+          },
+        ],
+      },
+    ],
   };
 
   const tracks = deriveSubtitleTracks(session, context, item, "plex-session-1");
@@ -198,23 +244,29 @@ void test("prefers direct raw SRT for the selected external Plex text subtitle",
 void test("reports selected external Plex SRT content format consistently", () => {
   const item = {
     ratingKey: "12345",
-    Media: [{
-      id: "media-1",
-      selected: 1,
-      Part: [{
-        id: "part-1",
+    Media: [
+      {
+        id: "media-1",
         selected: 1,
-        Stream: [{
-          id: "203",
-          index: 3,
-          streamType: 3,
-          codec: "subrip",
-          languageCode: "eng",
-          key: "/library/streams/203",
-          selected: true,
-        }],
-      }],
-    }],
+        Part: [
+          {
+            id: "part-1",
+            selected: 1,
+            Stream: [
+              {
+                id: "203",
+                index: 3,
+                streamType: 3,
+                codec: "subrip",
+                languageCode: "eng",
+                key: "/library/streams/203",
+                selected: true,
+              },
+            ],
+          },
+        ],
+      },
+    ],
   };
 
   const selectedTrack = deriveSelectedSubtitleTrack(item);
@@ -225,22 +277,28 @@ void test("reports selected external Plex SRT content format consistently", () =
 void test("reports selected embedded Plex text subtitle transcode format", () => {
   const item = {
     ratingKey: "12345",
-    Media: [{
-      id: "media-1",
-      selected: 1,
-      Part: [{
-        id: "part-1",
+    Media: [
+      {
+        id: "media-1",
         selected: 1,
-        Stream: [{
-          id: "204",
-          index: 4,
-          streamType: 3,
-          codec: "srt",
-          languageCode: "eng",
-          selected: true,
-        }],
-      }],
-    }],
+        Part: [
+          {
+            id: "part-1",
+            selected: 1,
+            Stream: [
+              {
+                id: "204",
+                index: 4,
+                streamType: 3,
+                codec: "srt",
+                languageCode: "eng",
+                selected: true,
+              },
+            ],
+          },
+        ],
+      },
+    ],
   };
 
   const selectedTrack = deriveSelectedSubtitleTrack(item);
@@ -253,21 +311,27 @@ void test("leaves unselected embedded Plex text subtitles visible but unsupporte
   const context = createContext();
   const item = {
     ratingKey: "12345",
-    Media: [{
-      id: "media-1",
-      selected: 1,
-      Part: [{
-        id: "part-1",
+    Media: [
+      {
+        id: "media-1",
         selected: 1,
-        Stream: [{
-          id: "301",
-          index: 3,
-          streamType: 3,
-          codec: "srt",
-          languageCode: "eng",
-        }],
-      }],
-    }],
+        Part: [
+          {
+            id: "part-1",
+            selected: 1,
+            Stream: [
+              {
+                id: "301",
+                index: 3,
+                streamType: 3,
+                codec: "srt",
+                languageCode: "eng",
+              },
+            ],
+          },
+        ],
+      },
+    ],
   };
 
   const tracks = deriveSubtitleTracks(session, context, item, "plex-session-1");
@@ -283,22 +347,28 @@ void test("leaves Plex image subtitle streams unsupported for burn-in", () => {
   const context = createContext();
   const item = {
     ratingKey: "12345",
-    Media: [{
-      id: "media-1",
-      selected: 1,
-      Part: [{
-        id: "part-1",
+    Media: [
+      {
+        id: "media-1",
         selected: 1,
-        Stream: [{
-          id: "401",
-          index: 4,
-          streamType: 3,
-          codec: "pgs",
-          languageCode: "eng",
-          selected: true,
-        }],
-      }],
-    }],
+        Part: [
+          {
+            id: "part-1",
+            selected: 1,
+            Stream: [
+              {
+                id: "401",
+                index: 4,
+                streamType: 3,
+                codec: "pgs",
+                languageCode: "eng",
+                selected: true,
+              },
+            ],
+          },
+        ],
+      },
+    ],
   };
 
   const tracks = deriveSubtitleTracks(session, context, item, "plex-session-1");

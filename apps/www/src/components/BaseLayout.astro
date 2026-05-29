@@ -11,7 +11,9 @@ interface Props {
 }
 
 const { title, description = site.description } = Astro.props;
-const pageTitle = title ? `${title} | ${site.name}` : `${site.name} | ${site.description}`;
+const pageTitle = title
+  ? `${title} | ${site.name}`
+  : `${site.name} | ${site.description}`;
 const pageTransition = fade({
   duration: "180ms",
 });
@@ -68,7 +70,15 @@ const homepageSchema =
     <meta name="twitter:image:alt" content={site.ogImageAlt} />
     <link rel="icon" href="/favicon.png" />
     <title>{pageTitle}</title>
-    {homepageSchema && <script is:inline type="application/ld+json" set:html={JSON.stringify(homepageSchema)} />}
+    {
+      homepageSchema && (
+        <script
+          is:inline
+          type="application/ld+json"
+          set:html={JSON.stringify(homepageSchema)}
+        />
+      )
+    }
     <script is:inline>
       (() => {
         if (window.__cliparrTheme?.ready) {
@@ -88,8 +98,9 @@ const homepageSchema =
           }
         };
 
-        const getTheme = () => getStoredTheme() ?? (query.matches ? "dark" : "light");
-        const getSource = () => getStoredTheme() ? "user" : "system";
+        const getTheme = () =>
+          getStoredTheme() ?? (query.matches ? "dark" : "light");
+        const getSource = () => (getStoredTheme() ? "user" : "system");
 
         const updateControls = () => {
           const theme = getTheme();
@@ -98,7 +109,10 @@ const homepageSchema =
 
           document.querySelectorAll("[data-theme-toggle]").forEach((button) => {
             button.setAttribute("aria-label", `Switch to ${nextTheme} theme`);
-            button.setAttribute("aria-pressed", theme === "dark" ? "true" : "false");
+            button.setAttribute(
+              "aria-pressed",
+              theme === "dark" ? "true" : "false",
+            );
             button.setAttribute("title", `Switch to ${nextTheme} theme`);
             button.setAttribute("data-theme-toggle-state", theme);
             button.setAttribute("data-theme-source", source);
@@ -120,8 +134,7 @@ const homepageSchema =
         const setTheme = (theme) => {
           try {
             window.localStorage.setItem(storageKey, theme);
-          } catch {
-          }
+          } catch {}
           syncTheme();
         };
 
@@ -130,7 +143,9 @@ const homepageSchema =
         };
 
         applyTheme();
-        document.addEventListener("DOMContentLoaded", updateControls, { once: true });
+        document.addEventListener("DOMContentLoaded", updateControls, {
+          once: true,
+        });
         document.addEventListener("click", (event) => {
           if (!(event.target instanceof Element)) {
             return;

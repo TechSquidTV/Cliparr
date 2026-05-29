@@ -14,7 +14,11 @@ function scaledValue(value: number, canvasHeight: number) {
   return value * (canvasHeight / 1080);
 }
 
-function wrapLine(context: CanvasRenderingContext2D, line: string, maxWidth: number) {
+function wrapLine(
+  context: CanvasRenderingContext2D,
+  line: string,
+  maxWidth: number,
+) {
   const words = line.split(/\s+/).filter(Boolean);
   if (words.length === 0) {
     return [""];
@@ -44,7 +48,7 @@ function cueLayoutKey(
   canvasWidth: number,
   canvasHeight: number,
   fontSize: number,
-  maxWidth: number
+  maxWidth: number,
 ) {
   return JSON.stringify([
     cue.id,
@@ -67,9 +71,16 @@ function cachedSubtitleLayout(
   canvasWidth: number,
   canvasHeight: number,
   fontSize: number,
-  maxWidth: number
+  maxWidth: number,
 ) {
-  const key = cueLayoutKey(cue, style, canvasWidth, canvasHeight, fontSize, maxWidth);
+  const key = cueLayoutKey(
+    cue,
+    style,
+    canvasWidth,
+    canvasHeight,
+    fontSize,
+    maxWidth,
+  );
   const cached = subtitleLayoutCache.get(key);
   if (cached) {
     return cached;
@@ -77,7 +88,9 @@ function cachedSubtitleLayout(
 
   const font = `700 ${fontSize}px ${style.fontFamily}`;
   context.font = font;
-  const wrappedLines = cue.lines.flatMap((line) => wrapLine(context, line, maxWidth));
+  const wrappedLines = cue.lines.flatMap((line) =>
+    wrapLine(context, line, maxWidth),
+  );
   const layout: SubtitleLayout = {
     font,
     fontSize,
@@ -101,15 +114,26 @@ export function renderSubtitleCue(
   cue: SubtitleCue,
   style: SubtitleStyleSettings,
   canvasWidth: number,
-  canvasHeight: number
+  canvasHeight: number,
 ) {
   const fontSize = Math.max(12, scaledValue(style.fontSize, canvasHeight));
   const strokeWidth = Math.max(0, scaledValue(style.strokeWidth, canvasHeight));
   const shadowBlur = Math.max(0, scaledValue(style.shadowBlur, canvasHeight));
   const shadowOffsetY = scaledValue(style.shadowOffsetY, canvasHeight);
-  const bottomMargin = Math.max(0, scaledValue(style.bottomMargin, canvasHeight));
+  const bottomMargin = Math.max(
+    0,
+    scaledValue(style.bottomMargin, canvasHeight),
+  );
   const maxWidth = canvasWidth * 0.84;
-  const layout = cachedSubtitleLayout(context, cue, style, canvasWidth, canvasHeight, fontSize, maxWidth);
+  const layout = cachedSubtitleLayout(
+    context,
+    cue,
+    style,
+    canvasWidth,
+    canvasHeight,
+    fontSize,
+    maxWidth,
+  );
 
   context.save();
   context.font = layout.font;
@@ -133,7 +157,7 @@ export function renderSubtitleCue(
     context.shadowColor = "transparent";
 
     layout.wrappedLines.forEach((line, index) => {
-      context.strokeText(line, x, startY + (layout.lineHeight * index));
+      context.strokeText(line, x, startY + layout.lineHeight * index);
     });
   }
 
@@ -144,7 +168,7 @@ export function renderSubtitleCue(
   context.shadowOffsetY = shadowOffsetY;
 
   layout.wrappedLines.forEach((line, index) => {
-    context.fillText(line, x, startY + (layout.lineHeight * index));
+    context.fillText(line, x, startY + layout.lineHeight * index);
   });
 
   context.restore();

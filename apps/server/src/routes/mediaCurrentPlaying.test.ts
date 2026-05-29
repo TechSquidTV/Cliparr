@@ -4,7 +4,10 @@ import os from "node:os";
 import path from "node:path";
 import test from "node:test";
 import { closeDatabase } from "../db/database.js";
-import { upsertMediaSource, type MediaSource } from "../db/mediaSourcesRepository.js";
+import {
+  upsertMediaSource,
+  type MediaSource,
+} from "../db/mediaSourcesRepository.js";
 import { upsertProviderAccountByAccessToken } from "../db/providerAccountsRepository.js";
 import { createApp } from "../app.js";
 import { plexProvider } from "../providers/plex/provider.js";
@@ -26,7 +29,9 @@ function restoreEnv(name: string, value: string | undefined) {
 }
 
 async function withTestApp<T>(callback: (baseUrl: string) => Promise<T>) {
-  const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), "cliparr-media-currently-playing-"));
+  const dataDir = fs.mkdtempSync(
+    path.join(os.tmpdir(), "cliparr-media-currently-playing-"),
+  );
   const previousAppKey = process.env.APP_KEY;
   const previousDataDir = process.env.CLIPARR_DATA_DIR;
 
@@ -43,7 +48,7 @@ async function withTestApp<T>(callback: (baseUrl: string) => Promise<T>) {
     return await callback(`http://127.0.0.1:${address.port}`);
   } finally {
     await new Promise((resolve, reject) => {
-      server.close((err) => err ? reject(err) : resolve(undefined));
+      server.close((err) => (err ? reject(err) : resolve(undefined)));
     });
     closeDatabase();
     restoreEnv("APP_KEY", previousAppKey);
@@ -52,7 +57,12 @@ async function withTestApp<T>(callback: (baseUrl: string) => Promise<T>) {
   }
 }
 
-function createSource(providerAccountId: string, name: string, providerId = "plex", enabled = true) {
+function createSource(
+  providerAccountId: string,
+  name: string,
+  providerId = "plex",
+  enabled = true,
+) {
   const source = upsertMediaSource({
     providerId,
     providerAccountId,
@@ -65,7 +75,11 @@ function createSource(providerAccountId: string, name: string, providerId = "ple
   return source;
 }
 
-function playbackEntry(source: MediaSource, viewer: { id: string; name: string }, itemId: string): CurrentlyPlayingEntry {
+function playbackEntry(
+  source: MediaSource,
+  viewer: { id: string; name: string },
+  itemId: string,
+): CurrentlyPlayingEntry {
   return {
     viewer: {
       id: viewer.id,
@@ -111,11 +125,14 @@ void test("aggregates currently playing results across enabled sources with part
       userToken: "user-token",
     });
 
-    const originalListCurrentlyPlaying = plexProvider.listCurrentlyPlaying.bind(plexProvider);
-    const originalSupportsCurrentlyPlayingSource = plexProvider.supportsCurrentlyPlayingSource?.bind(plexProvider);
+    const originalListCurrentlyPlaying =
+      plexProvider.listCurrentlyPlaying.bind(plexProvider);
+    const originalSupportsCurrentlyPlayingSource =
+      plexProvider.supportsCurrentlyPlayingSource?.bind(plexProvider);
     const calls: string[] = [];
 
-    plexProvider.supportsCurrentlyPlayingSource = (source) => source.name !== "Unsupported";
+    plexProvider.supportsCurrentlyPlayingSource = (source) =>
+      source.name !== "Unsupported";
     plexProvider.listCurrentlyPlaying = async (_session, source) => {
       calls.push(source.name);
       if (source.name === "Failure") {
@@ -123,13 +140,27 @@ void test("aggregates currently playing results across enabled sources with part
       }
 
       if (source.id === alpha.id) {
-        return [playbackEntry(source, { id: "viewer-alice", name: "Alice" }, "alpha-item")];
+        return [
+          playbackEntry(
+            source,
+            { id: "viewer-alice", name: "Alice" },
+            "alpha-item",
+          ),
+        ];
       }
 
       if (source.id === zeta.id) {
         return [
-          playbackEntry(source, { id: "viewer-bob", name: "Bob" }, "zeta-bob-item"),
-          playbackEntry(source, { id: "viewer-alice", name: "Alice" }, "zeta-alice-item"),
+          playbackEntry(
+            source,
+            { id: "viewer-bob", name: "Bob" },
+            "zeta-bob-item",
+          ),
+          playbackEntry(
+            source,
+            { id: "viewer-alice", name: "Alice" },
+            "zeta-alice-item",
+          ),
         ];
       }
 
@@ -144,20 +175,37 @@ void test("aggregates currently playing results across enabled sources with part
       });
 
       assert.equal(response.status, 200);
-      const body = await response.json() as {
-        viewers?: Array<{ viewer: { name: string }; items: Array<{ source: { name: string } }> }>;
-        sourceErrors?: Array<{ sourceName: string; providerId: string; message: string }>;
+      const body = (await response.json()) as {
+        viewers?: Array<{
+          viewer: { name: string };
+          items: Array<{ source: { name: string } }>;
+        }>;
+        sourceErrors?: Array<{
+          sourceName: string;
+          providerId: string;
+          message: string;
+        }>;
       };
 
       assert.deepEqual(calls, ["Alpha", "Failure", "Zeta"]);
-      assert.deepEqual(body.viewers?.map((group) => group.viewer.name), ["Alice", "Bob"]);
-      assert.deepEqual(body.viewers?.[0]?.items.map((item) => item.source.name), ["Alpha", "Zeta"]);
       assert.deepEqual(
-        body.sourceErrors?.map((error) => ({
-          sourceName: error.sourceName,
-          providerId: error.providerId,
-          message: error.message,
-        })).sort((left, right) => left.sourceName.localeCompare(right.sourceName)),
+        body.viewers?.map((group) => group.viewer.name),
+        ["Alice", "Bob"],
+      );
+      assert.deepEqual(
+        body.viewers?.[0]?.items.map((item) => item.source.name),
+        ["Alpha", "Zeta"],
+      );
+      assert.deepEqual(
+        body.sourceErrors
+          ?.map((error) => ({
+            sourceName: error.sourceName,
+            providerId: error.providerId,
+            message: error.message,
+          }))
+          .sort((left, right) =>
+            left.sourceName.localeCompare(right.sourceName),
+          ),
         [
           {
             sourceName: "Failure",
@@ -169,11 +217,12 @@ void test("aggregates currently playing results across enabled sources with part
             providerId: "missing-provider",
             message: "Source provider is not registered",
           },
-        ]
+        ],
       );
     } finally {
       plexProvider.listCurrentlyPlaying = originalListCurrentlyPlaying;
-      plexProvider.supportsCurrentlyPlayingSource = originalSupportsCurrentlyPlayingSource;
+      plexProvider.supportsCurrentlyPlayingSource =
+        originalSupportsCurrentlyPlayingSource;
     }
   });
 });

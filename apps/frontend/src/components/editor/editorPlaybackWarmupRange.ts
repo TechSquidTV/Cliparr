@@ -66,9 +66,9 @@ export function samePlaybackReadyRange(
   right: Pick<PlaybackReadyRange, "startTime" | "endTime">,
 ) {
   return (
-    left !== null
-    && left !== undefined
-    && Math.abs(left.startTime - right.startTime) < READY_RANGE_EPSILON
-    && Math.abs(left.endTime - right.endTime) < READY_RANGE_EPSILON
+    left !== null &&
+    left !== undefined &&
+    Math.abs(left.startTime - right.startTime) < READY_RANGE_EPSILON &&
+    Math.abs(left.endTime - right.endTime) < READY_RANGE_EPSILON
   );
 }

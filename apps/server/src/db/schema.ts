@@ -1,5 +1,11 @@
 import { sql } from "drizzle-orm";
-import { index, integer, sqliteTable, text, uniqueIndex } from "drizzle-orm/sqlite-core";
+import {
+  index,
+  integer,
+  sqliteTable,
+  text,
+  uniqueIndex,
+} from "drizzle-orm/sqlite-core";
 
 const nowIso = sql`(strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))`;
 
@@ -11,7 +17,10 @@ export const providerAccounts = sqliteTable(
     label: text("label").notNull(),
     accessToken: text("access_token"),
     accessTokenHash: text("access_token_hash"),
-    metadata: text("metadata_json", { mode: "json" }).$type<Record<string, unknown>>().notNull().default({}),
+    metadata: text("metadata_json", { mode: "json" })
+      .$type<Record<string, unknown>>()
+      .notNull()
+      .default({}),
     createdAt: text("created_at").notNull().default(nowIso),
     updatedAt: text("updated_at").notNull().default(nowIso),
   },
@@ -20,7 +29,7 @@ export const providerAccounts = sqliteTable(
     uniqueIndex("provider_accounts_provider_access_token_hash_idx")
       .on(table.providerId, table.accessTokenHash)
       .where(sql`${table.accessTokenHash} IS NOT NULL`),
-  ]
+  ],
 );
 
 export const mediaSources = sqliteTable(
@@ -28,14 +37,25 @@ export const mediaSources = sqliteTable(
   {
     id: text("id").primaryKey(),
     providerId: text("provider_id").notNull(),
-    providerAccountId: text("provider_account_id").notNull().references(() => providerAccounts.id, { onDelete: "cascade" }),
+    providerAccountId: text("provider_account_id")
+      .notNull()
+      .references(() => providerAccounts.id, { onDelete: "cascade" }),
     externalId: text("external_id"),
     name: text("name").notNull(),
     enabled: integer("enabled", { mode: "boolean" }).notNull().default(true),
     baseUrl: text("base_url").notNull(),
-    connection: text("connection_json", { mode: "json" }).$type<Record<string, unknown>>().notNull().default({}),
-    credentials: text("credentials_json", { mode: "json" }).$type<Record<string, unknown>>().notNull().default({}),
-    metadata: text("metadata_json", { mode: "json" }).$type<Record<string, unknown>>().notNull().default({}),
+    connection: text("connection_json", { mode: "json" })
+      .$type<Record<string, unknown>>()
+      .notNull()
+      .default({}),
+    credentials: text("credentials_json", { mode: "json" })
+      .$type<Record<string, unknown>>()
+      .notNull()
+      .default({}),
+    metadata: text("metadata_json", { mode: "json" })
+      .$type<Record<string, unknown>>()
+      .notNull()
+      .default({}),
     lastCheckedAt: text("last_checked_at"),
     lastError: text("last_error"),
     createdAt: text("created_at").notNull().default(nowIso),
@@ -45,9 +65,12 @@ export const mediaSources = sqliteTable(
     index("media_sources_enabled_idx").on(table.enabled),
     index("media_sources_provider_id_idx").on(table.providerId),
     index("media_sources_provider_account_id_idx").on(table.providerAccountId),
-    uniqueIndex("media_sources_provider_external_id_idx")
-      .on(table.providerId, table.providerAccountId, table.externalId),
-  ]
+    uniqueIndex("media_sources_provider_external_id_idx").on(
+      table.providerId,
+      table.providerAccountId,
+      table.externalId,
+    ),
+  ],
 );
 
 export const providerSessions = sqliteTable(
@@ -55,7 +78,9 @@ export const providerSessions = sqliteTable(
   {
     id: text("id").primaryKey(),
     providerId: text("provider_id").notNull(),
-    providerAccountId: text("provider_account_id").notNull().references(() => providerAccounts.id, { onDelete: "cascade" }),
+    providerAccountId: text("provider_account_id")
+      .notNull()
+      .references(() => providerAccounts.id, { onDelete: "cascade" }),
     userToken: text("user_token").notNull(),
     createdAt: integer("created_at").notNull(),
     expiresAt: integer("expires_at").notNull(),
@@ -63,16 +88,20 @@ export const providerSessions = sqliteTable(
   },
   (table) => [
     index("provider_sessions_provider_id_idx").on(table.providerId),
-    index("provider_sessions_provider_account_id_idx").on(table.providerAccountId),
+    index("provider_sessions_provider_account_id_idx").on(
+      table.providerAccountId,
+    ),
     index("provider_sessions_expires_at_idx").on(table.expiresAt),
-  ]
+  ],
 );
 
 export const rememberedProviderSessions = sqliteTable(
   "remembered_provider_sessions",
   {
     id: text("id").primaryKey(),
-    providerAccountId: text("provider_account_id").notNull().references(() => providerAccounts.id, { onDelete: "cascade" }),
+    providerAccountId: text("provider_account_id")
+      .notNull()
+      .references(() => providerAccounts.id, { onDelete: "cascade" }),
     tokenHash: text("token_hash").notNull(),
     createdAt: integer("created_at").notNull(),
     expiresAt: integer("expires_at").notNull(),
@@ -80,13 +109,18 @@ export const rememberedProviderSessions = sqliteTable(
     updatedAt: text("updated_at").notNull().default(nowIso),
   },
   (table) => [
-    uniqueIndex("remembered_provider_sessions_token_hash_idx").on(table.tokenHash),
-    index("remembered_provider_sessions_provider_account_id_idx").on(table.providerAccountId),
+    uniqueIndex("remembered_provider_sessions_token_hash_idx").on(
+      table.tokenHash,
+    ),
+    index("remembered_provider_sessions_provider_account_id_idx").on(
+      table.providerAccountId,
+    ),
     index("remembered_provider_sessions_expires_at_idx").on(table.expiresAt),
-  ]
+  ],
 );
 
 export type ProviderAccountRow = typeof providerAccounts.$inferSelect;
 export type MediaSourceRow = typeof mediaSources.$inferSelect;
 export type ProviderSessionRow = typeof providerSessions.$inferSelect;
-export type RememberedProviderSessionRow = typeof rememberedProviderSessions.$inferSelect;
+export type RememberedProviderSessionRow =
+  typeof rememberedProviderSessions.$inferSelect;

@@ -9,7 +9,7 @@ function normalizedText(value: string | null | undefined) {
 
 async function selectPreferredAudioTrack(
   audioTracks: readonly InputAudioTrack[],
-  selectedAudioTrack?: PlaybackAudioSelection
+  selectedAudioTrack?: PlaybackAudioSelection,
 ): Promise<InputAudioTrack | null> {
   const fallbackTrack: InputAudioTrack | null = audioTracks[0] ?? null;
   if (!selectedAudioTrack) {
@@ -17,7 +17,9 @@ async function selectPreferredAudioTrack(
   }
 
   if (selectedAudioTrack.trackNumber !== undefined) {
-    const matchingTrack = audioTracks.find((track) => track.number === selectedAudioTrack.trackNumber);
+    const matchingTrack = audioTracks.find(
+      (track) => track.number === selectedAudioTrack.trackNumber,
+    );
     if (matchingTrack) {
       return matchingTrack;
     }
@@ -30,13 +32,14 @@ async function selectPreferredAudioTrack(
       track,
       title: normalizedText(await getTrackName(track)),
       languageCode: normalizedText(await getTrackLanguageCode(track)),
-    }))
+    })),
   );
 
   if (selectedLanguageCode && selectedTitle) {
-    const exactMatch = tracks.find((track) =>
-      track.languageCode === selectedLanguageCode
-      && track.title === selectedTitle
+    const exactMatch = tracks.find(
+      (track) =>
+        track.languageCode === selectedLanguageCode &&
+        track.title === selectedTitle,
     )?.track;
     if (exactMatch) {
       return exactMatch;
@@ -44,7 +47,9 @@ async function selectPreferredAudioTrack(
   }
 
   if (selectedTitle) {
-    const matchingTitleTrack = tracks.find((track) => track.title === selectedTitle)?.track;
+    const matchingTitleTrack = tracks.find(
+      (track) => track.title === selectedTitle,
+    )?.track;
     if (matchingTitleTrack) {
       return matchingTitleTrack;
     }
@@ -65,7 +70,7 @@ async function selectPreferredAudioTrack(
 export async function selectPreferredPairableAudioTrack(
   videoTrack: InputVideoTrack | null,
   audioTracks: readonly InputAudioTrack[],
-  selectedAudioTrack?: PlaybackAudioSelection
+  selectedAudioTrack?: PlaybackAudioSelection,
 ): Promise<InputAudioTrack | null> {
   if (!videoTrack) {
     return selectPreferredAudioTrack(audioTracks, selectedAudioTrack);
@@ -76,7 +81,10 @@ export async function selectPreferredPairableAudioTrack(
     return selectPreferredAudioTrack(audioTracks, selectedAudioTrack);
   }
 
-  const selectedPairableTrack = await selectPreferredAudioTrack(pairableAudioTracks, selectedAudioTrack);
+  const selectedPairableTrack = await selectPreferredAudioTrack(
+    pairableAudioTracks,
+    selectedAudioTrack,
+  );
   if (selectedPairableTrack) {
     return selectedPairableTrack;
   }

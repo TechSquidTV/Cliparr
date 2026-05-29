@@ -1,4 +1,7 @@
-import type { SourcePlaybackError, ViewerPlaybackGroup } from "@cliparr/shared/providers";
+import type {
+  SourcePlaybackError,
+  ViewerPlaybackGroup,
+} from "@cliparr/shared/providers";
 
 export type {
   CurrentlyPlayingItem,

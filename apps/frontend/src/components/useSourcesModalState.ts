@@ -31,7 +31,9 @@ export function useSourcesModalState({
 }: UseSourcesModalStateOptions) {
   const auth = useAuth();
   const [sources, setSources] = useState<MediaSource[]>([]);
-  const [draftBaseUrls, setDraftBaseUrls] = useState<Record<string, string>>({});
+  const [draftBaseUrls, setDraftBaseUrls] = useState<Record<string, string>>(
+    {},
+  );
   const [draftNames, setDraftNames] = useState<Record<string, string>>({});
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<SourceFilter>("all");
@@ -52,51 +54,59 @@ export function useSourcesModalState({
     setDraftNames(draftNamesFor(nextSources));
   }, []);
 
-  const applyLoadedSources = useCallback(async (requestId: number) => {
-    const nextSources = sortSources(await cliparrClient.listSources());
-    if (requestId !== latestLoadRequestIdRef.current || !isOpenRef.current) {
-      return false;
-    }
-
-    replaceSources(nextSources);
-    return true;
-  }, [replaceSources]);
-
-  const loadSources = useCallback(async (mode: "initial" | "reload" = "initial") => {
-    const requestId = latestLoadRequestIdRef.current + 1;
-    latestLoadRequestIdRef.current = requestId;
-    const isCurrentRequest = () => requestId === latestLoadRequestIdRef.current && isOpenRef.current;
-
-    if (mode === "initial") {
-      setLoading(true);
-    } else {
-      setReloading(true);
-    }
-
-    setError("");
-
-    try {
-      await applyLoadedSources(requestId);
-    } catch (err) {
-      if (!isCurrentRequest()) {
-        return;
+  const applyLoadedSources = useCallback(
+    async (requestId: number) => {
+      const nextSources = sortSources(await cliparrClient.listSources());
+      if (requestId !== latestLoadRequestIdRef.current || !isOpenRef.current) {
+        return false;
       }
 
-      const message = err instanceof Error ? err.message : "Could not load sources.";
-      setSources([]);
-      setDraftBaseUrls({});
-      setDraftNames({});
-      setError(message);
-    } finally {
-      if (isCurrentRequest()) {
-        if (mode === "initial") {
-          setLoading(false);
-        } else {
-          setReloading(false);
+      replaceSources(nextSources);
+      return true;
+    },
+    [replaceSources],
+  );
+
+  const loadSources = useCallback(
+    async (mode: "initial" | "reload" = "initial") => {
+      const requestId = latestLoadRequestIdRef.current + 1;
+      latestLoadRequestIdRef.current = requestId;
+      const isCurrentRequest = () =>
+        requestId === latestLoadRequestIdRef.current && isOpenRef.current;
+
+      if (mode === "initial") {
+        setLoading(true);
+      } else {
+        setReloading(true);
+      }
+
+      setError("");
+
+      try {
+        await applyLoadedSources(requestId);
+      } catch (err) {
+        if (!isCurrentRequest()) {
+          return;
+        }
+
+        const message =
+          err instanceof Error ? err.message : "Could not load sources.";
+        setSources([]);
+        setDraftBaseUrls({});
+        setDraftNames({});
+        setError(message);
+      } finally {
+        if (isCurrentRequest()) {
+          if (mode === "initial") {
+            setLoading(false);
+          } else {
+            setReloading(false);
+          }
         }
       }
-    }
-  }, [applyLoadedSources]);
+    },
+    [applyLoadedSources],
+  );
 
   function updateBusyAction(sourceId: string, action?: string) {
     setBusyActions((current) => {
@@ -113,7 +123,11 @@ export function useSourcesModalState({
   function upsertSource(source: MediaSource) {
     setSources((current) => {
       const exists = current.some((item) => item.id === source.id);
-      return sortSources(exists ? current.map((item) => (item.id === source.id ? source : item)) : [...current, source]);
+      return sortSources(
+        exists
+          ? current.map((item) => (item.id === source.id ? source : item))
+          : [...current, source],
+      );
     });
     setDraftBaseUrls((current) => ({
       ...current,
@@ -147,7 +161,7 @@ export function useSourcesModalState({
     source: MediaSource,
     busyAction: string,
     fallbackError: string,
-    action: () => Promise<SourceActionResult>
+    action: () => Promise<SourceActionResult>,
   ) {
     setFeedback(null);
     setError("");
@@ -189,17 +203,25 @@ export function useSourcesModalState({
       return;
     }
 
-    await runSourceAction(source, "Saving...", "Could not update source.", async () => {
-      const updatedSource = await cliparrClient.updateSource(source.id, input);
+    await runSourceAction(
+      source,
+      "Saving...",
+      "Could not update source.",
+      async () => {
+        const updatedSource = await cliparrClient.updateSource(
+          source.id,
+          input,
+        );
 
-      return {
-        source: updatedSource,
-        feedback: {
-          tone: "success",
-          message: `Updated ${updatedSource.name}.`,
-        },
-      };
-    });
+        return {
+          source: updatedSource,
+          feedback: {
+            tone: "success",
+            message: `Updated ${updatedSource.name}.`,
+          },
+        };
+      },
+    );
   }
 
   async function toggleSourceEnabled(source: MediaSource) {
@@ -208,7 +230,9 @@ export function useSourcesModalState({
       source.enabled ? "Disabling..." : "Enabling...",
       "Could not update source.",
       async () => {
-        const updatedSource = await cliparrClient.updateSource(source.id, { enabled: !source.enabled });
+        const updatedSource = await cliparrClient.updateSource(source.id, {
+          enabled: !source.enabled,
+        });
 
         return {
           source: updatedSource,
@@ -222,40 +246,50 @@ export function useSourcesModalState({
   }
 
   async function checkSource(source: MediaSource) {
-    await runSourceAction(source, "Refreshing...", "Could not refresh source.", async () => {
-      const result = await cliparrClient.checkSource(source.id);
+    await runSourceAction(
+      source,
+      "Refreshing...",
+      "Could not refresh source.",
+      async () => {
+        const result = await cliparrClient.checkSource(source.id);
 
-      return {
-        source: result.source,
-        feedback: {
-          tone: result.ok ? "success" : "warning",
-          message: result.ok
-            ? `${result.source.name} is healthy.`
-            : `${result.source.name} still needs attention.`,
-        },
-      };
-    });
+        return {
+          source: result.source,
+          feedback: {
+            tone: result.ok ? "success" : "warning",
+            message: result.ok
+              ? `${result.source.name} is healthy.`
+              : `${result.source.name} still needs attention.`,
+          },
+        };
+      },
+    );
   }
 
   async function deleteSource(source: MediaSource) {
     const confirmed = window.confirm(
-      `Remove ${source.name}? It can be reconnected later.`
+      `Remove ${source.name}? It can be reconnected later.`,
     );
     if (!confirmed) {
       return;
     }
 
-    await runSourceAction(source, "Removing...", "Could not remove source.", async () => {
-      await cliparrClient.deleteSource(source.id);
+    await runSourceAction(
+      source,
+      "Removing...",
+      "Could not remove source.",
+      async () => {
+        await cliparrClient.deleteSource(source.id);
 
-      return {
-        removeSourceId: source.id,
-        feedback: {
-          tone: "success",
-          message: `Removed ${source.name}.`,
-        },
-      };
-    });
+        return {
+          removeSourceId: source.id,
+          feedback: {
+            tone: "success",
+            message: `Removed ${source.name}.`,
+          },
+        };
+      },
+    );
   }
 
   async function refreshAllSources() {
@@ -266,14 +300,16 @@ export function useSourcesModalState({
     setFeedback(null);
     setError("");
     setRefreshingAll(true);
-    setBusyActions(Object.fromEntries(sources.map((source) => [source.id, "Refreshing..."])));
+    setBusyActions(
+      Object.fromEntries(sources.map((source) => [source.id, "Refreshing..."])),
+    );
 
     try {
       const results = await Promise.allSettled(
         sources.map(async (source) => {
           const result = await cliparrClient.checkSource(source.id);
           return { source, result };
-        })
+        }),
       );
 
       const merged = mergeRefreshAllSourceResults(sources, results);
@@ -282,7 +318,8 @@ export function useSourcesModalState({
       setFeedback(merged.feedback);
       await refreshPlaybackView();
     } catch (err) {
-      const message = err instanceof Error ? err.message : "Could not refresh sources.";
+      const message =
+        err instanceof Error ? err.message : "Could not refresh sources.";
       setError(message);
     } finally {
       setRefreshingAll(false);
@@ -317,7 +354,10 @@ export function useSourcesModalState({
     }
   }, [isOpen, loading, sources.length]);
 
-  const providerOptions = useMemo(() => sourceProviderOptions(sources), [sources]);
+  const providerOptions = useMemo(
+    () => sourceProviderOptions(sources),
+    [sources],
+  );
 
   useEffect(() => {
     if (providerFilter === "all" || providerOptions.includes(providerFilter)) {
@@ -329,12 +369,16 @@ export function useSourcesModalState({
 
   const counts = useMemo(() => sourceCounts(sources), [sources]);
 
-  const filteredSources = useMemo(() => filterSources({
-    sources,
-    providerFilter,
-    statusFilter,
-    query,
-  }), [providerFilter, query, sources, statusFilter]);
+  const filteredSources = useMemo(
+    () =>
+      filterSources({
+        sources,
+        providerFilter,
+        statusFilter,
+        query,
+      }),
+    [providerFilter, query, sources, statusFilter],
+  );
 
   const updateDraftName = useCallback((sourceId: string, value: string) => {
     setDraftNames((current) => ({

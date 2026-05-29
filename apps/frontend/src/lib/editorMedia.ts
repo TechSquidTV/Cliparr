@@ -16,11 +16,19 @@ export interface BrowserFileHandle {
   kind?: "file";
   name: string;
   getFile: () => Promise<File>;
-  queryPermission?: (descriptor?: { mode?: "read" }) => Promise<BrowserFilePermissionState>;
-  requestPermission?: (descriptor?: { mode?: "read" }) => Promise<BrowserFilePermissionState>;
+  queryPermission?: (descriptor?: {
+    mode?: "read";
+  }) => Promise<BrowserFilePermissionState>;
+  requestPermission?: (descriptor?: {
+    mode?: "read";
+  }) => Promise<BrowserFilePermissionState>;
 }
 
-export type EditorMediaSourceRole = "hls" | "direct" | "local-file" | "direct-url";
+export type EditorMediaSourceRole =
+  | "hls"
+  | "direct"
+  | "local-file"
+  | "direct-url";
 
 interface BaseEditorMediaSource {
   role: EditorMediaSourceRole;
@@ -85,8 +93,12 @@ export function titleFromFileName(fileName: string) {
 export function titleFromUrl(url: string) {
   try {
     const parsed = new URL(url);
-    const finalSegment = decodeURIComponent(parsed.pathname.split("/").filter(Boolean).pop() ?? "");
-    return finalSegment ? titleFromFileName(finalSegment) : parsed.hostname || "URL video";
+    const finalSegment = decodeURIComponent(
+      parsed.pathname.split("/").filter(Boolean).pop() ?? "",
+    );
+    return finalSegment
+      ? titleFromFileName(finalSegment)
+      : parsed.hostname || "URL video";
   } catch {
     return "URL video";
   }
@@ -105,7 +117,9 @@ export function createProviderUrlSource(
   };
 }
 
-export function editorSessionFromCurrentlyPlaying(item: CurrentlyPlayingItem): EditorSession {
+export function editorSessionFromCurrentlyPlaying(
+  item: CurrentlyPlayingItem,
+): EditorSession {
   return {
     id: item.id,
     source: item.source,
@@ -116,8 +130,12 @@ export function editorSessionFromCurrentlyPlaying(item: CurrentlyPlayingItem): E
     playerTitle: item.playerTitle,
     playerState: item.playerState,
     thumbUrl: item.thumbUrl,
-    directSource: item.mediaUrl ? createProviderUrlSource(item.mediaUrl, "direct") : undefined,
-    hlsSource: item.hlsUrl ? createProviderUrlSource(item.hlsUrl, "hls") : undefined,
+    directSource: item.mediaUrl
+      ? createProviderUrlSource(item.mediaUrl, "direct")
+      : undefined,
+    hlsSource: item.hlsUrl
+      ? createProviderUrlSource(item.hlsUrl, "hls")
+      : undefined,
     selectedAudioTrack: item.selectedAudioTrack,
     selectedSubtitleTrack: item.selectedSubtitleTrack,
     subtitleTracks: item.subtitleTracks,
@@ -160,7 +178,10 @@ export function buildLocalEditorSession(input: {
 }
 
 export function isHlsEditorMediaSource(source: EditorMediaSource) {
-  return source.kind === "url" && (source.hls === true || isHlsPlaylistUrl(source.url));
+  return (
+    source.kind === "url" &&
+    (source.hls === true || isHlsPlaylistUrl(source.url))
+  );
 }
 
 export function sourceDisplayLabel(source: EditorMediaSource) {
@@ -175,7 +196,10 @@ export function sourceDisplayLabel(source: EditorMediaSource) {
   return source.label;
 }
 
-export function editorMediaSourcesEqual(left: EditorMediaSource, right: EditorMediaSource) {
+export function editorMediaSourcesEqual(
+  left: EditorMediaSource,
+  right: EditorMediaSource,
+) {
   if (left.kind !== right.kind) {
     return false;
   }

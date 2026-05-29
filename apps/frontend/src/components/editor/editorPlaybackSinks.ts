@@ -23,7 +23,7 @@ interface CanvasSinkConstructor {
       poolSize: number;
       fit: "contain";
       alpha: boolean;
-    }
+    },
   ): CanvasSink;
 }
 
@@ -50,7 +50,10 @@ interface DisposePlaybackSinkResourcesOptions {
 }
 
 export function getAudioContextConstructor() {
-  return window.AudioContext ?? (window as WindowWithWebkitAudioContext).webkitAudioContext;
+  return (
+    window.AudioContext ??
+    (window as WindowWithWebkitAudioContext).webkitAudioContext
+  );
 }
 
 export async function createPlaybackSinkResources({
@@ -83,7 +86,7 @@ export async function createPlaybackSinkResources({
   if (!AudioContextConstructor) {
     throw new PlaybackSourceError(
       "preview-only",
-      "This browser does not provide Web Audio."
+      "This browser does not provide Web Audio.",
     );
   }
 

@@ -29,7 +29,9 @@ export async function getTrackCodec(track: InputTrack) {
   return track.getCodec();
 }
 
-export async function getVideoTrackDimensions(track: InputVideoTrack): Promise<VideoTrackDimensions> {
+export async function getVideoTrackDimensions(
+  track: InputVideoTrack,
+): Promise<VideoTrackDimensions> {
   const [width, height] = await Promise.all([
     track.getDisplayWidth(),
     track.getDisplayHeight(),
@@ -43,9 +45,11 @@ export async function getAudioTrackSampleRate(track: InputAudioTrack) {
 }
 
 export async function getTrackTimelineOffsetSeconds(
-  tracks: ReadonlyArray<InputTrack | null | undefined>
+  tracks: ReadonlyArray<InputTrack | null | undefined>,
 ) {
-  const presentTracks = tracks.filter((track): track is InputTrack => track !== null && track !== undefined);
+  const presentTracks = tracks.filter(
+    (track): track is InputTrack => track !== null && track !== undefined,
+  );
   if (presentTracks.length === 0) {
     return 0;
   }
@@ -62,16 +66,22 @@ export async function getTrackTimelineOffsetSeconds(
   }
 
   const firstTimestamps = await Promise.all(
-    presentTracks.map((track) => track.getFirstTimestamp())
+    presentTracks.map((track) => track.getFirstTimestamp()),
   );
 
   return Math.max(0, Math.min(...firstTimestamps));
 }
 
-export function toSourceTimelineTime(displayTimeSeconds: number, timelineOffsetSeconds: number) {
+export function toSourceTimelineTime(
+  displayTimeSeconds: number,
+  timelineOffsetSeconds: number,
+) {
   return displayTimeSeconds + timelineOffsetSeconds;
 }
 
-export function fromSourceTimelineTime(sourceTimeSeconds: number, timelineOffsetSeconds: number) {
+export function fromSourceTimelineTime(
+  sourceTimeSeconds: number,
+  timelineOffsetSeconds: number,
+) {
   return sourceTimeSeconds - timelineOffsetSeconds;
 }

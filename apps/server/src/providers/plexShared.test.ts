@@ -2,7 +2,10 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { ApiError } from "../http/errors.js";
 import type { ProviderResource } from "./types.js";
-import { normalizeResources, requirePlexServerResources } from "./plex/shared.js";
+import {
+  normalizeResources,
+  requirePlexServerResources,
+} from "./plex/shared.js";
 
 void test("normalizes Plex server resources when Plex flags are strings", () => {
   const resources = normalizeResources([
@@ -12,14 +15,16 @@ void test("normalizes Plex server resources when Plex flags are strings", () => 
       owned: "1",
       accessToken: "server-token",
       clientIdentifier: "server-1",
-      connections: [{
-        uri: "http://192.168.1.10:32400",
-        local: "1",
-        relay: "0",
-        protocol: "http",
-        address: "192.168.1.10",
-        port: 32400,
-      }],
+      connections: [
+        {
+          uri: "http://192.168.1.10:32400",
+          local: "1",
+          relay: "0",
+          protocol: "http",
+          address: "192.168.1.10",
+          port: 32400,
+        },
+      ],
     },
     {
       name: "Shared Server",
@@ -27,14 +32,16 @@ void test("normalizes Plex server resources when Plex flags are strings", () => 
       owned: "0",
       accessToken: "shared-token",
       clientIdentifier: "server-2",
-      connections: [{
-        uri: "https://example.com:32400",
-        local: "0",
-        relay: "1",
-        protocol: "https",
-        address: "example.com",
-        port: 32400,
-      }],
+      connections: [
+        {
+          uri: "https://example.com:32400",
+          local: "0",
+          relay: "1",
+          protocol: "https",
+          address: "example.com",
+          port: 32400,
+        },
+      ],
     },
   ]);
 
@@ -50,25 +57,30 @@ void test("requires at least one discovered Plex server resource", () => {
   assert.throws(
     () => requirePlexServerResources([]),
     (error: unknown) =>
-      error instanceof ApiError
-      && error.status === 403
-      && error.code === "plex_server_required"
-      && error.message === "Cliparr needs a Plex account that owns at least one Plex Media Server"
+      error instanceof ApiError &&
+      error.status === 403 &&
+      error.code === "plex_server_required" &&
+      error.message ===
+        "Cliparr needs a Plex account that owns at least one Plex Media Server",
   );
 });
 
 void test("keeps discovered Plex server resources when at least one exists", () => {
-  const resources: ProviderResource[] = [{
-    id: "plex-server-1",
-    name: "Plex Media Server",
-    accessToken: "token",
-    connections: [{
-      id: "connection-1",
-      uri: "http://plex.local:32400",
-      local: true,
-      relay: false,
-    }],
-  }];
+  const resources: ProviderResource[] = [
+    {
+      id: "plex-server-1",
+      name: "Plex Media Server",
+      accessToken: "token",
+      connections: [
+        {
+          id: "connection-1",
+          uri: "http://plex.local:32400",
+          local: true,
+          relay: false,
+        },
+      ],
+    },
+  ];
 
   assert.equal(requirePlexServerResources(resources), resources);
 });

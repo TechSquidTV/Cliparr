@@ -1,5 +1,11 @@
 import { FileVideo, FolderOpen, Link, Upload, X } from "lucide-react";
-import { useCallback, useRef, useState, type DragEvent, type FormEvent } from "react";
+import {
+  useCallback,
+  useRef,
+  useState,
+  type DragEvent,
+  type FormEvent,
+} from "react";
 import {
   createLocalSessionFromFile,
   createLocalSessionFromPicker,
@@ -21,7 +27,11 @@ function errorMessage(err: unknown, fallback: string) {
   return err instanceof Error && err.message ? err.message : fallback;
 }
 
-export function LocalVideoOpenModal({ isOpen, onClose, onOpened }: LocalVideoOpenModalProps) {
+export function LocalVideoOpenModal({
+  isOpen,
+  onClose,
+  onOpened,
+}: LocalVideoOpenModalProps) {
   const dialogRef = useRef<HTMLDivElement | null>(null);
   const initialFocusRef = useRef<HTMLButtonElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -38,29 +48,35 @@ export function LocalVideoOpenModal({ isOpen, onClose, onOpened }: LocalVideoOpe
     onEscape: opening ? undefined : onClose,
   });
 
-  const completeOpen = useCallback((sessionId: string) => {
-    setError("");
-    setUrlValue("");
-    onClose();
-    onOpened(sessionId);
-  }, [onClose, onOpened]);
+  const completeOpen = useCallback(
+    (sessionId: string) => {
+      setError("");
+      setUrlValue("");
+      onClose();
+      onOpened(sessionId);
+    },
+    [onClose, onOpened],
+  );
 
-  const openFile = useCallback(async (file: File | null | undefined) => {
-    if (!file) {
-      return;
-    }
+  const openFile = useCallback(
+    async (file: File | null | undefined) => {
+      if (!file) {
+        return;
+      }
 
-    setOpening(true);
-    setError("");
-    try {
-      const session = await createLocalSessionFromFile(file);
-      completeOpen(session.id);
-    } catch (err) {
-      setError(errorMessage(err, "Could not open that file."));
-    } finally {
-      setOpening(false);
-    }
-  }, [completeOpen]);
+      setOpening(true);
+      setError("");
+      try {
+        const session = await createLocalSessionFromFile(file);
+        completeOpen(session.id);
+      } catch (err) {
+        setError(errorMessage(err, "Could not open that file."));
+      } finally {
+        setOpening(false);
+      }
+    },
+    [completeOpen],
+  );
 
   const handleChooseFile = useCallback(async () => {
     setError("");
@@ -93,31 +109,37 @@ export function LocalVideoOpenModal({ isOpen, onClose, onOpened }: LocalVideoOpe
     }
   }, [completeOpen]);
 
-  const handleDrop = useCallback((event: DragEvent<HTMLDivElement>) => {
-    event.preventDefault();
-    setDragActive(false);
-    void openFile(event.dataTransfer.files.item(0));
-  }, [openFile]);
+  const handleDrop = useCallback(
+    (event: DragEvent<HTMLDivElement>) => {
+      event.preventDefault();
+      setDragActive(false);
+      void openFile(event.dataTransfer.files.item(0));
+    },
+    [openFile],
+  );
 
-  const handleUrlSubmit = useCallback(async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    setOpening(true);
-    setError("");
+  const handleUrlSubmit = useCallback(
+    async (event: FormEvent<HTMLFormElement>) => {
+      event.preventDefault();
+      setOpening(true);
+      setError("");
 
-    try {
-      const result = await createLocalSessionFromUrl(urlValue);
-      if (result.status === "ready") {
-        completeOpen(result.session.id);
-        return;
+      try {
+        const result = await createLocalSessionFromUrl(urlValue);
+        if (result.status === "ready") {
+          completeOpen(result.session.id);
+          return;
+        }
+
+        setError(result.message);
+      } catch (err) {
+        setError(errorMessage(err, "Could not open that URL."));
+      } finally {
+        setOpening(false);
       }
-
-      setError(result.message);
-    } catch (err) {
-      setError(errorMessage(err, "Could not open that URL."));
-    } finally {
-      setOpening(false);
-    }
-  }, [completeOpen, urlValue]);
+    },
+    [completeOpen, urlValue],
+  );
 
   if (!isOpen) {
     return null;
@@ -144,7 +166,10 @@ export function LocalVideoOpenModal({ isOpen, onClose, onOpened }: LocalVideoOpe
       >
         <header className="flex items-start justify-between gap-3 border-b border-border px-4 py-3">
           <div className="space-y-1">
-            <h2 id="cliparr-local-open-title" className="text-sm font-semibold uppercase tracking-[var(--tracking-caps-md)] text-foreground">
+            <h2
+              id="cliparr-local-open-title"
+              className="text-sm font-semibold uppercase tracking-[var(--tracking-caps-md)] text-foreground"
+            >
               Open Video
             </h2>
             <p className="text-xs text-muted-foreground">
@@ -234,8 +259,12 @@ export function LocalVideoOpenModal({ isOpen, onClose, onOpened }: LocalVideoOpe
                 <Upload className="h-5 w-5" />
               </div>
               <div className="space-y-1">
-                <p className="text-sm font-medium text-foreground">Drop a video file here</p>
-                <p className="text-xs text-muted-foreground">MP4, MOV, MKV, WebM, Ogg video, and MPEG-TS are supported.</p>
+                <p className="text-sm font-medium text-foreground">
+                  Drop a video file here
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  MP4, MOV, MKV, WebM, Ogg video, and MPEG-TS are supported.
+                </p>
               </div>
               <button
                 type="button"
@@ -248,7 +277,10 @@ export function LocalVideoOpenModal({ isOpen, onClose, onOpened }: LocalVideoOpe
               </button>
             </div>
           ) : (
-            <form className="space-y-4" onSubmit={(event) => void handleUrlSubmit(event)}>
+            <form
+              className="space-y-4"
+              onSubmit={(event) => void handleUrlSubmit(event)}
+            >
               <label className="block space-y-1.5">
                 <span className="text-[11px] font-semibold uppercase tracking-[var(--tracking-caps-lg)] text-muted-foreground">
                   Media URL
