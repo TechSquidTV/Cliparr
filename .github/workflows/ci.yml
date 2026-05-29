@@ -51,4 +51,6 @@ jobs:
         run: pnpm docs:check
 
       - name: Build
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
         run: pnpm build

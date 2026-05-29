@@ -88,6 +88,7 @@ jobs:
       - name: Build
         env:
           CLIPARR_VERSION: ${{ steps.plan.outputs.tag }}
+          GITHUB_TOKEN: ${{ github.token }}
         run: pnpm build
 
       - name: Set up QEMU
