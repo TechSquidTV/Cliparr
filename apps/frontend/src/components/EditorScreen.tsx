@@ -69,7 +69,9 @@ export default function EditorScreen({ session, onBack }: Props) {
     duration,
     playing,
     loadingPreview,
+    loadingPreviewFrame,
     previewStatus,
+    previewFrameStatus,
     error,
     activeSourceLabel,
     exportFallbackSource,
@@ -200,7 +202,6 @@ export default function EditorScreen({ session, onBack }: Props) {
     activeTimelineScale,
     timelineScaleCount,
     handleTimelineScroll,
-    handleTimelineWheel,
     handleTimelineZoomIn,
     handleTimelineZoomOut,
     canZoomIn,
@@ -305,7 +306,9 @@ export default function EditorScreen({ session, onBack }: Props) {
                 videoDimensions={previewVideoDimensions}
                 playing={playing}
                 loadingPreview={loadingPreview}
+                loadingPreviewFrame={loadingPreviewFrame}
                 previewStatus={previewStatus}
+                previewFrameStatus={previewFrameStatus}
                 togglePlay={togglePlay}
               />
             </section>
@@ -354,7 +357,6 @@ export default function EditorScreen({ session, onBack }: Props) {
                     handleTimelineChange={handleTimelineChange}
                     handleTimelineActionMoveEnd={handleTimelineActionMoveEnd}
                     handleTimelineActionResizeEnd={handleTimelineActionResizeEnd}
-                    handleTimelineWheel={handleTimelineWheel}
                     isValidTimelineRange={isValidTimelineRange}
                     seekToTime={seekToTime}
                     onCursorDragStart={() => {

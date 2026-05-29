@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import type { ProviderSessionRecord } from "../session/store.js";
 import {
+  createCliparrPlexTranscodeSessionId,
   createPreviewPath,
   deriveSelectedSubtitleTrack,
   deriveSubtitleTracks,
@@ -57,6 +58,18 @@ void test("uses a stable Plex transcode session id for repeated playback polls",
   assert.notEqual(firstPath, differentSessionPath);
   assert.match(firstPath ?? "", /transcodeSessionId=plex-session-1/);
   assert.match(firstPath ?? "", /subtitles=none/);
+});
+
+void test("creates a Cliparr-owned Plex transcode session id", () => {
+  const firstId = createCliparrPlexTranscodeSessionId("source-1", "plex-session-1");
+  const secondId = createCliparrPlexTranscodeSessionId("source-1", "plex-session-1");
+  const differentPlaybackId = createCliparrPlexTranscodeSessionId("source-1", "plex-session-2");
+  const differentSourceId = createCliparrPlexTranscodeSessionId("source-2", "plex-session-1");
+
+  assert.equal(firstId, secondId);
+  assert.notEqual(firstId, differentPlaybackId);
+  assert.notEqual(firstId, differentSourceId);
+  assert.match(firstId, /^cliparr-source-1-[a-f0-9]{16}$/);
 });
 
 void test("does not create Plex HLS preview paths for audio tracks", () => {

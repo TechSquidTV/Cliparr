@@ -9,6 +9,12 @@ import {
   fromSourceTimelineTime,
   toSourceTimelineTime,
 } from "../../lib/mediabunnyTrackAccess";
+import {
+  createIdlePlaybackReadyRange,
+  isPlaybackReadyRangeVisible,
+  markPlaybackReadyRangeFresh,
+  samePlaybackReadyRange,
+} from "./editorPlaybackWarmupRange";
 import { isPresent } from "./editorPlaybackSources";
 import type {
   PlaybackReadyRange,
@@ -125,27 +131,28 @@ export function useEditorPlaybackSelectionWarmup({
       return;
     }
 
-    const nextRange: PlaybackReadyRange = {
+    const nextRange = markPlaybackReadyRangeFresh({
       startTime: normalizedStart,
       endTime: normalizedEnd,
       readyUntilTime: normalizedStart,
       status: "warming",
-    };
+    });
     const currentReadyRange = playbackReadyRangeRef.current;
     if (
-      samePlaybackRange(currentReadyRange, nextRange)
+      samePlaybackReadyRange(currentReadyRange, nextRange)
       && currentReadyRange?.status === "ready"
       && currentReadyRange.readyUntilTime >= normalizedEnd
+      && isPlaybackReadyRangeVisible(currentReadyRange)
     ) {
       return;
     }
 
     setPlaybackReadyRange((current) => {
-      if (samePlaybackRange(current, nextRange) && current) {
-        return {
+      if (samePlaybackReadyRange(current, nextRange) && current) {
+        return markPlaybackReadyRangeFresh({
           ...current,
           status: current.status === "ready" ? "ready" : "warming",
-        };
+        });
       }
 
       return nextRange;
@@ -201,7 +208,7 @@ export function useEditorPlaybackSelectionWarmup({
 
       lastPublishedReadyUntil = Math.max(lastPublishedReadyUntil, clampedReadyUntil);
       setPlaybackReadyRange((current) => {
-        const baseRange: PlaybackReadyRange = samePlaybackRange(current, nextRange) && current
+        const baseRange: PlaybackReadyRange = samePlaybackReadyRange(current, nextRange) && current
           ? current
           : {
               ...nextRange,
@@ -216,12 +223,12 @@ export function useEditorPlaybackSelectionWarmup({
           return current ?? baseRange;
         }
 
-        return {
+        return markPlaybackReadyRangeFresh({
           startTime: normalizedStart,
           endTime: normalizedEnd,
           readyUntilTime,
           status,
-        };
+        });
       });
     };
 
@@ -447,15 +454,10 @@ export function useEditorPlaybackSelectionWarmup({
       return;
     }
 
-    const nextRange: PlaybackReadyRange = {
-      startTime: normalizedStart,
-      endTime: normalizedEnd,
-      readyUntilTime: normalizedStart,
-      status: "idle",
-    };
+    const nextRange = createIdlePlaybackReadyRange(normalizedStart, normalizedEnd);
 
     setPlaybackReadyRange((current) => (
-      samePlaybackRange(current, nextRange) ? current : nextRange
+      samePlaybackReadyRange(current, nextRange) ? current : nextRange
     ));
 
     const warmupSessionKey = `${sessionId}:hls:${normalizedStart}:${normalizedEnd}`;
@@ -524,13 +526,17 @@ export function useEditorPlaybackSelectionWarmup({
 
     const normalizedCurrent = Number(clampTime(currentTime).toFixed(6));
     setPlaybackReadyRange((current) => {
-      if (!current) {
+      if (
+        !current
+        || normalizedCurrent < current.startTime
+        || normalizedCurrent > current.endTime
+      ) {
         return current;
       }
 
       const readyUntilTime = Math.max(
         current.readyUntilTime,
-        Math.min(current.endTime, normalizedCurrent),
+        normalizedCurrent,
       );
       const status = readyUntilTime >= current.endTime ? "ready" : "warming";
 
@@ -541,11 +547,11 @@ export function useEditorPlaybackSelectionWarmup({
         return current;
       }
 
-      return {
+      return markPlaybackReadyRangeFresh({
         ...current,
         readyUntilTime,
         status,
-      };
+      });
     });
   }, [activeSourceLabel, clampTime, currentTime, playing, setPlaybackReadyRange]);
 
@@ -554,16 +560,4 @@ export function useEditorPlaybackSelectionWarmup({
     warmClipSelection,
     scheduleSelectionWarmupExtension,
   };
-}
-
-function samePlaybackRange(
-  left: Pick<PlaybackReadyRange, "startTime" | "endTime"> | null | undefined,
-  right: Pick<PlaybackReadyRange, "startTime" | "endTime">,
-) {
-  return (
-    left !== null
-    && left !== undefined
-    && Math.abs(left.startTime - right.startTime) < 1e-6
-    && Math.abs(left.endTime - right.endTime) < 1e-6
-  );
 }

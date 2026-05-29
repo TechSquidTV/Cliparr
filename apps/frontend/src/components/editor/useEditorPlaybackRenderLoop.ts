@@ -29,10 +29,11 @@ interface UseEditorPlaybackRenderLoopOptions {
   generationRef: RefValue<number>;
   playingRef: RefValue<boolean>;
   playbackTimeAtStartRef: RefValue<number>;
+  playbackStopTimeRef: RefValue<number | null>;
+  playbackResetTimeRef: RefValue<number | null>;
   sourceTimelineOffsetRef: RefValue<number>;
   skipLiveWaitRef: RefValue<boolean>;
   durationRef: RefValue<number>;
-  startTimeRef: RefValue<number>;
   endTimeRef: RefValue<number>;
   subtitleCuesRef: RefValue<readonly SubtitleCue[]>;
   subtitlesEnabledRef: RefValue<boolean>;
@@ -58,10 +59,11 @@ export function useEditorPlaybackRenderLoop({
   generationRef,
   playingRef,
   playbackTimeAtStartRef,
+  playbackStopTimeRef,
+  playbackResetTimeRef,
   sourceTimelineOffsetRef,
   skipLiveWaitRef,
   durationRef,
-  startTimeRef,
   endTimeRef,
   subtitleCuesRef,
   subtitlesEnabledRef,
@@ -250,14 +252,20 @@ export function useEditorPlaybackRenderLoop({
     }
 
     const playbackTime = getPlaybackTime();
-    const clipEnd = Math.min(endTimeRef.current || durationRef.current, durationRef.current);
+    const duration = durationRef.current;
+    const stopTime = playbackStopTimeRef.current
+      ?? Math.min(endTimeRef.current || duration, duration);
 
-    if (playingRef.current && playbackTime >= clipEnd) {
+    if (playingRef.current && playbackTime >= stopTime) {
       pausePlayback(false);
-      const nextTime = clampTime(startTimeRef.current);
+      const nextTime = clampTime(playbackResetTimeRef.current ?? stopTime);
       playbackTimeAtStartRef.current = nextTime;
       setCurrentTime(nextTime);
-      void startVideoIterator();
+      playbackStopTimeRef.current = null;
+      playbackResetTimeRef.current = null;
+      if (nextTime < duration) {
+        void startVideoIterator();
+      }
       return;
     }
 
@@ -282,11 +290,12 @@ export function useEditorPlaybackRenderLoop({
     inputRef,
     nextFrameRef,
     pausePlayback,
+    playbackResetTimeRef,
+    playbackStopTimeRef,
     playbackTimeAtStartRef,
     playingRef,
     setCurrentTime,
     sourceTimelineOffsetRef,
-    startTimeRef,
     startVideoIterator,
     updateNextFrame,
   ]);

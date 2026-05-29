@@ -7,6 +7,8 @@ export interface PlaybackReadyRange {
   endTime: number;
   readyUntilTime: number;
   status: "idle" | "warming" | "ready";
+  updatedAtMs?: number;
+  expiresAtMs?: number;
 }
 
 export interface WarmClipSelectionOptions {
