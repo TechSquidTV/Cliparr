@@ -1,6 +1,6 @@
 ---
 name: cliparr-git-workflow
-description: Cliparr repository Git workflow for naming branches, commits, pull requests, preflight validation, and publish flows with package-scoped Conventional Commit syntax. Use when Codex is creating or suggesting branch names, commit messages, PR titles, PR descriptions, or using git/gh to publish local Cliparr changes, especially for squash-merge release notes and semantic PR title validation.
+description: Cliparr repository Git workflow for naming branches, commits, pull requests, preflight validation, and publish flows with package-scoped Conventional Commit syntax. Use when an agent is creating or suggesting branch names, commit messages, PR titles, PR descriptions, or using git/gh to publish local Cliparr changes, especially for squash-merge release notes and semantic PR title validation.
 ---
 
 # Cliparr Git Workflow
