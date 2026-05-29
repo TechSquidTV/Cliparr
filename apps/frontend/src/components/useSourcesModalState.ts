@@ -4,10 +4,15 @@ import { useAuth } from "../auth";
 import type { MediaSource, ProviderSession } from "../providers/types";
 import type { Feedback, SourceFilter } from "./SourcesModalSections";
 import {
-  compareStrings,
+  buildSourceEditInput,
+  draftBaseUrlsFor,
+  draftNamesFor,
+  filterSources,
+  mergeRefreshAllSourceResults,
+  sourceCounts,
+  sourceProviderOptions,
   sortSources,
-  stringValue,
-} from "./SourcesModalSections";
+} from "./sourcesModalStateUtils";
 
 interface UseSourcesModalStateOptions {
   isOpen: boolean;
@@ -18,14 +23,6 @@ interface SourceActionResult {
   feedback: Feedback;
   source?: MediaSource;
   removeSourceId?: string;
-}
-
-function draftBaseUrlsFor(sources: readonly MediaSource[]) {
-  return Object.fromEntries(sources.map((source) => [source.id, source.baseUrl]));
-}
-
-function draftNamesFor(sources: readonly MediaSource[]) {
-  return Object.fromEntries(sources.map((source) => [source.id, source.name]));
 }
 
 export function useSourcesModalState({
@@ -186,20 +183,14 @@ export function useSourcesModalState({
   }
 
   async function saveSourceEdits(source: MediaSource) {
-    const nextName = (draftNames[source.id] ?? source.name).trim();
-    const nextBaseUrl = (draftBaseUrls[source.id] ?? source.baseUrl).trim();
-    const hasNameChange = Boolean(nextName) && nextName !== source.name;
-    const hasBaseUrlChange = Boolean(nextBaseUrl) && nextBaseUrl !== source.baseUrl;
+    const input = buildSourceEditInput(source, draftNames, draftBaseUrls);
 
-    if (!hasNameChange && !hasBaseUrlChange) {
+    if (Object.keys(input).length === 0) {
       return;
     }
 
     await runSourceAction(source, "Saving...", "Could not update source.", async () => {
-      const updatedSource = await cliparrClient.updateSource(source.id, {
-        ...(hasNameChange ? { name: nextName } : {}),
-        ...(hasBaseUrlChange ? { baseUrl: nextBaseUrl } : {}),
-      });
+      const updatedSource = await cliparrClient.updateSource(source.id, input);
 
       return {
         source: updatedSource,
@@ -285,45 +276,10 @@ export function useSourcesModalState({
         })
       );
 
-      const nextSources = new Map(sources.map((source) => [source.id, source]));
-      let healthyCount = 0;
-      let attentionCount = 0;
-      let failedCount = 0;
+      const merged = mergeRefreshAllSourceResults(sources, results);
+      replaceSources(merged.sources);
 
-      results.forEach((entry, index) => {
-        const currentSource = sources[index];
-        if (!currentSource) {
-          return;
-        }
-
-        if (entry.status === "fulfilled") {
-          nextSources.set(entry.value.result.source.id, entry.value.result.source);
-          if (entry.value.result.ok) {
-            healthyCount += 1;
-          } else {
-            attentionCount += 1;
-          }
-          return;
-        }
-
-        failedCount += 1;
-      });
-
-      const mergedSources = sortSources([...nextSources.values()]);
-      replaceSources(mergedSources);
-
-      const summaryParts = [
-        `${healthyCount} healthy`,
-        `${attentionCount} need attention`,
-      ];
-      if (failedCount > 0) {
-        summaryParts.push(`${failedCount} failed`);
-      }
-
-      setFeedback({
-        tone: attentionCount > 0 || failedCount > 0 ? "warning" : "success",
-        message: `Refreshed ${sources.length} source${sources.length === 1 ? "" : "s"}. ${summaryParts.join(", ")}.`,
-      });
+      setFeedback(merged.feedback);
       await refreshPlaybackView();
     } catch (err) {
       const message = err instanceof Error ? err.message : "Could not refresh sources.";
@@ -361,10 +317,7 @@ export function useSourcesModalState({
     }
   }, [isOpen, loading, sources.length]);
 
-  const providerOptions = useMemo(() => {
-    const providers = [...new Set(sources.map((source) => source.providerId))];
-    return providers.sort(compareStrings);
-  }, [sources]);
+  const providerOptions = useMemo(() => sourceProviderOptions(sources), [sources]);
 
   useEffect(() => {
     if (providerFilter === "all" || providerOptions.includes(providerFilter)) {
@@ -374,48 +327,14 @@ export function useSourcesModalState({
     setProviderFilter("all");
   }, [providerFilter, providerOptions]);
 
-  const counts = useMemo(() => ({
-    all: sources.length,
-    enabled: sources.filter((source) => source.enabled).length,
-    disabled: sources.filter((source) => !source.enabled).length,
-    attention: sources.filter((source) => Boolean(source.lastError)).length,
-  }), [sources]);
+  const counts = useMemo(() => sourceCounts(sources), [sources]);
 
-  const filteredSources = useMemo(() => {
-    const normalizedQuery = query.trim().toLowerCase();
-
-    return sources.filter((source) => {
-      if (providerFilter !== "all" && source.providerId !== providerFilter) {
-        return false;
-      }
-
-      if (statusFilter === "enabled" && !source.enabled) {
-        return false;
-      }
-
-      if (statusFilter === "disabled" && source.enabled) {
-        return false;
-      }
-
-      if (statusFilter === "attention" && !source.lastError) {
-        return false;
-      }
-
-      if (!normalizedQuery) {
-        return true;
-      }
-
-      const haystack = [
-        source.name,
-        source.baseUrl,
-        source.providerId,
-        stringValue(source.metadata.product),
-        stringValue(source.metadata.platform),
-      ].filter(Boolean).join(" ").toLowerCase();
-
-      return haystack.includes(normalizedQuery);
-    });
-  }, [providerFilter, query, sources, statusFilter]);
+  const filteredSources = useMemo(() => filterSources({
+    sources,
+    providerFilter,
+    statusFilter,
+    query,
+  }), [providerFilter, query, sources, statusFilter]);
 
   const updateDraftName = useCallback((sourceId: string, value: string) => {
     setDraftNames((current) => ({
