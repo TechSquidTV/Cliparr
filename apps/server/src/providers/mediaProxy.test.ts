@@ -402,6 +402,118 @@ void test("strips provider auth headers from cross-origin media redirects", asyn
   }
 });
 
+void test("retries transient media fetch failures", async () => {
+  const originalFetch = globalThis.fetch;
+  let fetchCount = 0;
+
+  globalThis.fetch = (async () => {
+    fetchCount += 1;
+    if (fetchCount === 1) {
+      throw new TypeError("fetch failed");
+    }
+
+    return new Response("ok", {
+      status: 200,
+    });
+  }) as typeof fetch;
+
+  try {
+    const response = await fetchMediaHandleRequest(createMediaHandle({
+      path: "/library/parts/1/file.mp4",
+    }), {
+      retryBaseDelayMs: 0,
+    });
+
+    assert.equal(response.status, 200);
+    assert.equal(await response.text(), "ok");
+    assert.equal(fetchCount, 2);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+void test("retries retryable upstream media responses", async () => {
+  const originalFetch = globalThis.fetch;
+  let fetchCount = 0;
+
+  globalThis.fetch = (async () => {
+    fetchCount += 1;
+
+    return new Response(fetchCount === 1 ? "busy" : "ok", {
+      status: fetchCount === 1 ? 503 : 200,
+    });
+  }) as typeof fetch;
+
+  try {
+    const response = await fetchMediaHandleRequest(createMediaHandle({
+      path: "/library/parts/1/file.mp4",
+    }), {
+      retryBaseDelayMs: 0,
+    });
+
+    assert.equal(response.status, 200);
+    assert.equal(await response.text(), "ok");
+    assert.equal(fetchCount, 2);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+void test("does not retry non-transient upstream media responses", async () => {
+  const originalFetch = globalThis.fetch;
+  let fetchCount = 0;
+
+  globalThis.fetch = (async () => {
+    fetchCount += 1;
+
+    return new Response("missing", {
+      status: 404,
+    });
+  }) as typeof fetch;
+
+  try {
+    const response = await fetchMediaHandleRequest(createMediaHandle({
+      path: "/library/parts/1/file.mp4",
+    }), {
+      retryBaseDelayMs: 0,
+    });
+
+    assert.equal(response.status, 404);
+    assert.equal(await response.text(), "missing");
+    assert.equal(fetchCount, 1);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+void test("retries not-yet-generated HLS-derived media responses", async () => {
+  const originalFetch = globalThis.fetch;
+  let fetchCount = 0;
+
+  globalThis.fetch = (async () => {
+    fetchCount += 1;
+
+    return new Response(fetchCount < 3 ? "missing" : "ok", {
+      status: fetchCount < 3 ? 404 : 200,
+    });
+  }) as typeof fetch;
+
+  try {
+    const response = await fetchMediaHandleRequest(createMediaHandle({
+      path: "/hls/segment0.ts",
+      basePath: "/hls/",
+    }), {
+      retryBaseDelayMs: 0,
+    });
+
+    assert.equal(response.status, 200);
+    assert.equal(await response.text(), "ok");
+    assert.equal(fetchCount, 3);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
 void test("sanitizes logged media paths by stripping query strings", () => {
   assert.equal(
     sanitizeLoggedMediaPath("https://cdn.example.com/hls/segment0.ts?sig=secret#frag"),

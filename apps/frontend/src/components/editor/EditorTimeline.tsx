@@ -1,9 +1,10 @@
 import { useCallback } from "react";
 import { Timeline, type TimelineState } from "@xzdarcy/react-timeline-editor";
 import "@xzdarcy/react-timeline-editor/dist/react-timeline-editor.css";
-import type { CSSProperties, RefObject, WheelEvent as ReactWheelEvent } from "react";
+import type { CSSProperties, RefObject } from "react";
 import { Scissors } from "lucide-react";
 import type { PlaybackReadyRange } from "./useEditorPlayback";
+import { isPlaybackReadyRangeVisible } from "./editorPlaybackWarmupRange";
 import { 
   formatTime,
   getTimelineFillPercentages,
@@ -28,7 +29,6 @@ interface EditorTimelineProps {
   handleTimelineChange: (data: ClipTimelineData) => void;
   handleTimelineActionMoveEnd: (params: { action: { id: string }; start: number; end: number }) => void;
   handleTimelineActionResizeEnd: (params: { action: { id: string }; start: number; end: number }) => void;
-  handleTimelineWheel: (event: ReactWheelEvent<HTMLDivElement>) => void;
   isValidTimelineRange: (start: number, end: number) => boolean;
   seekToTime: (time: number) => Promise<void> | void;
   onCursorDragStart: () => void;
@@ -49,14 +49,17 @@ export function EditorTimeline({
   handleTimelineChange,
   handleTimelineActionMoveEnd,
   handleTimelineActionResizeEnd,
-  handleTimelineWheel,
   isValidTimelineRange,
   seekToTime,
   onCursorDragStart,
   onCursorDrag,
 }: EditorTimelineProps) {
   const getReadyFillStyle = useCallback((action: ClipTimelineAction): CSSProperties | null => {
-    if (action.effectId !== "clip" || !playbackReadyRange) {
+    if (
+      action.effectId !== "clip"
+      || !playbackReadyRange
+      || !isPlaybackReadyRangeVisible(playbackReadyRange)
+    ) {
       return null;
     }
 
@@ -102,7 +105,6 @@ export function EditorTimeline({
     <div
       ref={timelineWheelRegionRef}
       className="cliparr-timeline"
-      onWheelCapture={handleTimelineWheel}
     >
       <Timeline
         ref={timelineRef}

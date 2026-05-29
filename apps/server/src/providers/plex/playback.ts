@@ -1,4 +1,4 @@
-import { randomUUID } from "crypto";
+import { createHash, randomUUID } from "crypto";
 import type { Request, Response } from "express";
 import { updateMediaSource, type MediaSource } from "../../db/mediaSourcesRepository.js";
 import { ApiError } from "../../http/errors.js";
@@ -56,6 +56,7 @@ import {
 
 const logger = getServerLogger(["providers", "plex"]);
 const HD_ARTWORK_SIZE = 1920;
+const PLEX_TRANSCODE_SOURCE_ID_MAX_LENGTH = 16;
 
 function createMediaHandle(
   session: ProviderSessionRecord,
@@ -242,7 +243,7 @@ function resolveSelectedPart(item: any, selection?: PlexMediaSelection) {
 
 export function createPreviewPath(
   item: any,
-  playbackSessionId: string,
+  transcodeSessionId: string,
   selection?: PlexMediaSelection
 ) {
   if (String(item?.type ?? "").toLowerCase() === "track") {
@@ -257,7 +258,7 @@ export function createPreviewPath(
   const resolvedSelection = resolveSelectedPart(item, selection);
   const params = new URLSearchParams({
     path,
-    transcodeSessionId: playbackSessionId,
+    transcodeSessionId,
     protocol: "hls",
     directPlay: "0",
     directStream: "0",
@@ -275,6 +276,19 @@ export function createPreviewPath(
   });
 
   return `/video/:/transcode/universal/start.m3u8?${params.toString()}`;
+}
+
+export function createCliparrPlexTranscodeSessionId(sourceId: string, playbackSessionId: string) {
+  const safeSourceId = sourceId
+    .replace(/[^a-z0-9_-]+/gi, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, PLEX_TRANSCODE_SOURCE_ID_MAX_LENGTH) || "source";
+  const digest = createHash("sha256")
+    .update(`${sourceId}:${playbackSessionId}`)
+    .digest("hex")
+    .slice(0, 16);
+
+  return `cliparr-${safeSourceId}-${digest}`;
 }
 
 function transcodeSessionId(path: string) {
@@ -866,14 +880,15 @@ async function normalizeCurrentPlayback(
 
   return Promise.all(uniqueMetadata.map(async (item) => {
     const sessionId = playbackSessionIdentity(item);
+    const transcodeSessionId = createCliparrPlexTranscodeSessionId(source.id, sessionId);
     const mediaSelection = deriveMediaSelection(item);
     const enrichedItem = await enrichMetadataItem(context, item);
     const mediaPath = await resolveMediaPath(context, item, enrichedItem, mediaSelection);
-    const previewPath = createPreviewPath(enrichedItem, sessionId, mediaSelection);
+    const previewPath = createPreviewPath(enrichedItem, transcodeSessionId, mediaSelection);
     const thumbPath = metadataImagePath(enrichedItem);
     const selectedAudioTrack = deriveSelectedAudioTrack(enrichedItem, mediaSelection);
     const selectedSubtitleTrack = deriveSelectedSubtitleTrack(enrichedItem, mediaSelection);
-    const subtitleTracks = deriveSubtitleTracks(session, context, enrichedItem, sessionId, mediaSelection)
+    const subtitleTracks = deriveSubtitleTracks(session, context, enrichedItem, transcodeSessionId, mediaSelection)
       .filter((track) => subtitleTrackSupportsBurnIn(track));
     const selectedPart = resolveSelectedPart(enrichedItem, mediaSelection)?.part;
     const audioStreams = selectedPart ? streamEntries(selectedPart).filter((stream) => isAudioStream(stream)) : [];
@@ -892,6 +907,7 @@ async function normalizeCurrentPlayback(
       sourceId: source.id,
       providerAccountId: session.providerAccountId,
       playbackSessionId: sessionId,
+      transcodeSessionId,
       currentlyPlayingItem: {
         id: `${source.id}:${sessionId}`,
         title: String(enrichedItem.title ?? "Untitled"),

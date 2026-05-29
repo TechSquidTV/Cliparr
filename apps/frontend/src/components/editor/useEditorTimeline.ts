@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState, startTransition, type WheelEvent as ReactWheelEvent } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, startTransition } from "react";
 import type { TimelineState } from "@xzdarcy/react-timeline-editor";
 import { 
   getTimelineZoomLevels, 
@@ -348,7 +348,7 @@ export function useEditorTimeline({
     updateTimelineZoom(1, { anchorTime: getTimelineZoomAnchorTime() });
   }, [getTimelineZoomAnchorTime, updateTimelineZoom]);
 
-  const handleTimelineWheel = useCallback((event: ReactWheelEvent<HTMLDivElement>) => {
+  const handleTimelineWheel = useCallback((event: WheelEvent) => {
     if (!hasDuration) return;
 
     const timelineWheelRegion = timelineWheelRegionRef.current;
@@ -395,6 +395,17 @@ export function useEditorTimeline({
     if (zoomDelta === 0) return;
     updateTimelineZoom(zoomDelta, { anchorClientX: event.clientX });
   }, [hasDuration, duration, activeTimelineScale, availableTimelineZoomLevels, updateTimelineZoom]);
+
+  useEffect(() => {
+    const timelineWheelRegion = timelineWheelRegionRef.current;
+    if (!timelineWheelRegion) return;
+
+    timelineWheelRegion.addEventListener("wheel", handleTimelineWheel, { passive: false });
+
+    return () => {
+      timelineWheelRegion.removeEventListener("wheel", handleTimelineWheel);
+    };
+  }, [handleTimelineWheel]);
 
   const handleTimelineChange = useCallback((nextData: ClipTimelineData) => {
     const nextAction = nextData
@@ -451,7 +462,6 @@ export function useEditorTimeline({
     timelineScrollLeft,
     timelineViewportWidth,
     handleTimelineScroll,
-    handleTimelineWheel,
     handleTimelineZoomIn,
     handleTimelineZoomOut,
     canZoomIn: hasDuration && timelineZoomIndex > 0,

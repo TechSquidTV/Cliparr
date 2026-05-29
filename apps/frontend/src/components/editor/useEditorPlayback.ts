@@ -53,6 +53,8 @@ import {
   useEditorPlaybackWarmup,
   type PlaybackReadyRange,
 } from "./useEditorPlaybackWarmup";
+import { resolvePreviewPlaybackPlan } from "./editorPlaybackPlan";
+import { resetPlaybackReadyRangeWarmState } from "./editorPlaybackWarmupRange";
 
 export type { PlaybackFallbackInfo } from "./editorPlaybackSources";
 export type { PlaybackReadyRange } from "./useEditorPlaybackWarmup";
@@ -161,6 +163,8 @@ export function useEditorPlayback({
   const [playing, setPlaying] = useState(false);
   const [loadingPreview, setLoadingPreview] = useState(true);
   const [previewStatus, setPreviewStatus] = useState("Loading stream...");
+  const [loadingPreviewFrame, setLoadingPreviewFrame] = useState(false);
+  const [previewFrameStatus, setPreviewFrameStatus] = useState("Loading preview frame...");
   const [volume, setVolume] = useState(0.8);
   const [muted, setMuted] = useState(false);
   const [error, setError] = useState("");
@@ -190,6 +194,9 @@ export function useEditorPlayback({
   const warmupGenerationRef = useRef(0);
   const warmupPromiseRef = useRef<Promise<void> | null>(null);
   const warmupTargetTimeRef = useRef<number | null>(null);
+  const previewFrameLoadGenerationRef = useRef(0);
+  const previewFrameLoadPromiseRef = useRef<Promise<void> | null>(null);
+  const previewFrameLoadTargetTimeRef = useRef<number | null>(null);
   const selectionWarmupGenerationRef = useRef(0);
   const selectionWarmupPromiseRef = useRef<Promise<void> | null>(null);
   const selectionWarmupVideoIteratorRef = useRef<AsyncGenerator<WrappedCanvas, void, unknown> | null>(null);
@@ -200,6 +207,8 @@ export function useEditorPlayback({
   const playingRef = useRef(false);
   const audioContextStartTimeRef = useRef<number | null>(null);
   const playbackTimeAtStartRef = useRef(initialPlaybackTime(initialCurrentTime, initialDuration));
+  const playbackStopTimeRef = useRef<number | null>(null);
+  const playbackResetTimeRef = useRef<number | null>(null);
   const sourceTimelineOffsetRef = useRef(0);
   const skipLiveWaitRef = useRef(false);
   const activeSourceLabelRef = useRef(activeSourceLabel);
@@ -232,6 +241,51 @@ export function useEditorPlayback({
 
   useEffect(() => {
     playbackReadyRangeRef.current = playbackReadyRange;
+  }, [playbackReadyRange]);
+
+  const clearSelectionWarmState = useCallback(() => {
+    setPlaybackReadyRange((current) => {
+      if (!current) {
+        playbackReadyRangeRef.current = null;
+        return current;
+      }
+
+      const next = resetPlaybackReadyRangeWarmState(current);
+      playbackReadyRangeRef.current = next;
+      return next;
+    });
+  }, []);
+
+  const setPlaybackError = useCallback((message: string) => {
+    clearSelectionWarmState();
+    setError(message);
+  }, [clearSelectionWarmState]);
+
+  useEffect(() => {
+    if (
+      !playbackReadyRange
+      || playbackReadyRange.status === "idle"
+      || playbackReadyRange.expiresAtMs === undefined
+    ) {
+      return;
+    }
+
+    const expiresAtMs = playbackReadyRange.expiresAtMs;
+    const timeoutId = window.setTimeout(() => {
+      setPlaybackReadyRange((current) => {
+        if (!current || current.expiresAtMs !== expiresAtMs) {
+          return current;
+        }
+
+        const next = resetPlaybackReadyRangeWarmState(current);
+        playbackReadyRangeRef.current = next;
+        return next;
+      });
+    }, Math.max(0, expiresAtMs - Date.now()));
+
+    return () => {
+      window.clearTimeout(timeoutId);
+    };
   }, [playbackReadyRange]);
 
   useEffect(() => {
@@ -312,10 +366,11 @@ export function useEditorPlayback({
     generationRef,
     playingRef,
     playbackTimeAtStartRef,
+    playbackStopTimeRef,
+    playbackResetTimeRef,
     sourceTimelineOffsetRef,
     skipLiveWaitRef,
     durationRef,
-    startTimeRef,
     endTimeRef,
     subtitleCuesRef,
     subtitlesEnabledRef,
@@ -324,7 +379,7 @@ export function useEditorPlayback({
     clampTime,
     pausePlayback,
     setCurrentTime,
-    setError,
+    setError: setPlaybackError,
   });
 
   const {
@@ -364,6 +419,46 @@ export function useEditorPlayback({
     setPlaybackReadyRange,
   });
 
+  const clearPreviewFrameLoad = useCallback(() => {
+    previewFrameLoadGenerationRef.current++;
+    previewFrameLoadPromiseRef.current = null;
+    previewFrameLoadTargetTimeRef.current = null;
+    setLoadingPreviewFrame(false);
+  }, []);
+
+  const loadPreviewFrameAtPlaybackTime = useCallback(async (
+    status = "Loading preview frame...",
+  ) => {
+    const targetTime = Number(clampTime(playbackTimeAtStartRef.current).toFixed(6));
+    const pendingLoad = previewFrameLoadPromiseRef.current;
+    const pendingTargetTime = previewFrameLoadTargetTimeRef.current;
+    if (
+      pendingLoad
+      && pendingTargetTime !== null
+      && Math.abs(pendingTargetTime - targetTime) < 1e-6
+    ) {
+      return pendingLoad;
+    }
+
+    const frameLoadGeneration = ++previewFrameLoadGenerationRef.current;
+    setPreviewFrameStatus(status);
+    setLoadingPreviewFrame(true);
+
+    const frameLoadPromise = startVideoIterator();
+    previewFrameLoadPromiseRef.current = frameLoadPromise;
+    previewFrameLoadTargetTimeRef.current = targetTime;
+
+    try {
+      await frameLoadPromise;
+    } finally {
+      if (frameLoadGeneration === previewFrameLoadGenerationRef.current) {
+        previewFrameLoadPromiseRef.current = null;
+        previewFrameLoadTargetTimeRef.current = null;
+        setLoadingPreviewFrame(false);
+      }
+    }
+  }, [clampTime, startVideoIterator]);
+
   const resetPreview = useCallback((advanceGeneration = false, clearActiveSource = false) => {
     if (advanceGeneration) {
       generationRef.current++;
@@ -386,8 +481,11 @@ export function useEditorPlayback({
     staticVideoFrameRef.current = null;
     sourceTimelineOffsetRef.current = 0;
     skipLiveWaitRef.current = false;
+    playbackStopTimeRef.current = null;
+    playbackResetTimeRef.current = null;
     warmupPromiseRef.current = null;
     warmupTargetTimeRef.current = null;
+    clearPreviewFrameLoad();
     displayedFrameRef.current = null;
     displayedStaticFrameRef.current = null;
     disposePlaybackSinkResources({
@@ -398,7 +496,7 @@ export function useEditorPlayback({
       gainNodeRef,
     });
     setPlaybackReadyRange(null);
-  }, [cancelSelectionWarmup, pausePlayback, stopRenderLoop]);
+  }, [cancelSelectionWarmup, clearPreviewFrameLoad, pausePlayback, stopRenderLoop]);
 
   useEffect(() => {
     const displayedFrame = displayedFrameRef.current;
@@ -431,11 +529,11 @@ export function useEditorPlayback({
       sourceTimelineOffsetRef,
       getPlaybackTime,
       onError: (err) => {
-        setError(errorMessage(err));
+        setPlaybackError(errorMessage(err));
         pausePlayback();
       },
     });
-  }, [getPlaybackTime, pausePlayback]);
+  }, [getPlaybackTime, pausePlayback, setPlaybackError]);
 
   const playPreview = useCallback(async () => {
     if (!inputRef.current || loadingPreview) {
@@ -445,11 +543,16 @@ export function useEditorPlayback({
     const clipStart = clampTime(startTimeRef.current);
     const clipEnd = Math.min(endTimeRef.current || durationRef.current, durationRef.current);
     const playbackTime = getPlaybackTime();
-    const playbackStartTarget = (
-      playbackTime < clipStart || playbackTime >= clipEnd
-        ? clipStart
-        : clampTime(playbackTime)
-    );
+    const playbackPlan = resolvePreviewPlaybackPlan({
+      currentTime: playbackTime,
+      clipStart,
+      clipEnd,
+      duration: durationRef.current,
+    });
+    if (playbackPlan.mode === "source") {
+      clearSelectionWarmState();
+    }
+    const playbackStartTarget = clampTime(playbackPlan.startTime);
     const pendingWarmup = warmupPromiseRef.current;
     const warmupTargetTime = warmupTargetTimeRef.current;
     if (
@@ -463,12 +566,32 @@ export function useEditorPlayback({
       }
     }
 
+    const pendingFrameLoad = previewFrameLoadPromiseRef.current;
+    const pendingFrameTargetTime = previewFrameLoadTargetTimeRef.current;
+    if (
+      pendingFrameLoad
+      && pendingFrameTargetTime !== null
+      && Math.abs(pendingFrameTargetTime - playbackStartTarget) < 1e-6
+    ) {
+      await pendingFrameLoad;
+      if (!inputRef.current || loadingPreview) {
+        return;
+      }
+    }
+
     cancelSelectionWarmup();
 
-    if (playbackTime < clipStart || playbackTime >= clipEnd) {
-      playbackTimeAtStartRef.current = clipStart;
+    playbackStopTimeRef.current = playbackPlan.stopTime;
+    playbackResetTimeRef.current = playbackPlan.resetTime;
+
+    if (Math.abs(playbackTime - playbackStartTarget) > 1e-6) {
+      playbackTimeAtStartRef.current = playbackStartTarget;
       setCurrentTime(playbackTimeAtStartRef.current);
-      await startVideoIterator();
+      await loadPreviewFrameAtPlaybackTime();
+    }
+
+    if (playingRef.current) {
+      return;
     }
 
     let audioContext = audioContextRef.current;
@@ -499,7 +622,15 @@ export function useEditorPlayback({
       );
       void runAudioIterator(generationRef.current);
     }
-  }, [cancelSelectionWarmup, clampTime, getPlaybackTime, loadingPreview, runAudioIterator, startVideoIterator]);
+  }, [
+    cancelSelectionWarmup,
+    clampTime,
+    clearSelectionWarmState,
+    getPlaybackTime,
+    loadPreviewFrameAtPlaybackTime,
+    loadingPreview,
+    runAudioIterator,
+  ]);
 
   const togglePlay = useCallback(() => {
     if (playingRef.current) {
@@ -510,22 +641,39 @@ export function useEditorPlayback({
     void playPreview().catch((err) => {
       setPlaying(false);
       playingRef.current = false;
-      setError(errorMessage(err));
+      setPlaybackError(errorMessage(err));
     });
-  }, [pausePlayback, playPreview]);
+  }, [pausePlayback, playPreview, setPlaybackError]);
 
   const seekToTime = useCallback(async (seconds: number) => {
     const nextTime = clampTime(seconds);
     const wasPlaying = playingRef.current;
     const currentReadyRange = playbackReadyRangeRef.current;
+    const seekPlaybackPlan = resolvePreviewPlaybackPlan({
+      currentTime: nextTime,
+      clipStart: startTimeRef.current,
+      clipEnd: endTimeRef.current,
+      duration: durationRef.current,
+    });
 
     if (wasPlaying) {
       pausePlayback();
     }
 
+    if (seekPlaybackPlan.mode === "source") {
+      clearSelectionWarmState();
+    }
+
+    playbackStopTimeRef.current = null;
+    playbackResetTimeRef.current = null;
     playbackTimeAtStartRef.current = nextTime;
     setCurrentTime(nextTime);
-    await startVideoIterator();
+    try {
+      await loadPreviewFrameAtPlaybackTime();
+    } catch (err) {
+      setPlaybackError(errorMessage(err));
+      return;
+    }
 
     if (
       !wasPlaying
@@ -537,22 +685,28 @@ export function useEditorPlayback({
       )
     ) {
       void warmClipStart(nextTime);
-      void warmClipSelection(startTimeRef.current, endTimeRef.current, {
-        extendToSelectionEnd: false,
-      });
-      scheduleSelectionWarmupExtension(startTimeRef.current, endTimeRef.current);
+      if (seekPlaybackPlan.mode === "selection") {
+        void warmClipSelection(startTimeRef.current, endTimeRef.current, {
+          extendToSelectionEnd: false,
+        });
+        scheduleSelectionWarmupExtension(startTimeRef.current, endTimeRef.current);
+      } else {
+        cancelSelectionWarmup();
+      }
     }
 
-    if (wasPlaying && nextTime < endTimeRef.current) {
+    if (wasPlaying && nextTime < durationRef.current && !playingRef.current) {
       void playPreview();
     }
   }, [
+    cancelSelectionWarmup,
     clampTime,
-    endTimeRef,
+    clearSelectionWarmState,
+    loadPreviewFrameAtPlaybackTime,
     pausePlayback,
     playPreview,
     scheduleSelectionWarmupExtension,
-    startVideoIterator,
+    setPlaybackError,
     warmClipStart,
     warmClipSelection,
   ]);
@@ -589,6 +743,8 @@ export function useEditorPlayback({
       playbackTimeAtStartRef.current = resetCurrentTime;
       sourceTimelineOffsetRef.current = 0;
       skipLiveWaitRef.current = false;
+      playbackStopTimeRef.current = null;
+      playbackResetTimeRef.current = null;
 
       try {
         const failures: PlaybackLoadFailure[] = [];
@@ -841,7 +997,7 @@ export function useEditorPlayback({
         }
 
         if (!cancelled) {
-          setError(buildPlaybackLoadError(failures));
+          setPlaybackError(buildPlaybackLoadError(failures));
           setHlsFallbackInfo(nextHlsFallbackInfo);
           setSourceVideoDimensions(null);
           setPreviewVideoDimensions(null);
@@ -869,6 +1025,7 @@ export function useEditorPlayback({
     sessionId,
     disposePreview,
     resetPreview,
+    setPlaybackError,
     startRenderLoop,
     startVideoIterator,
   ]);
@@ -879,7 +1036,9 @@ export function useEditorPlayback({
     duration,
     playing,
     loadingPreview,
+    loadingPreviewFrame,
     previewStatus,
+    previewFrameStatus,
     error,
     activeSourceLabel,
     exportFallbackSource,

@@ -36,6 +36,12 @@ interface ProxyMediaResponseOptions {
   ) => string;
 }
 
+interface FetchMediaHandleRequestInit extends RequestInit {
+  retryAttempts?: number;
+  retryBaseDelayMs?: number;
+  timeoutMs?: number;
+}
+
 interface CachedProxyMediaResponse {
   status: number;
   headers: [string, string][];
@@ -61,11 +67,24 @@ const PROXY_HEADER_ALLOWLIST = [
 const HLS_PROXY_RESPONSE_CACHE_TTL_MS = 4_000;
 const HLS_PROXY_RESPONSE_CACHE_MAX_BYTES = 8 * 1024 * 1024;
 const MEDIA_PROXY_MAX_REDIRECTS = 5;
+const MEDIA_PROXY_FETCH_ATTEMPTS = 3;
+const HLS_MEDIA_PROXY_FETCH_ATTEMPTS = 5;
+const MEDIA_PROXY_FETCH_RETRY_BASE_DELAY_MS = 150;
+const MEDIA_PROXY_FETCH_RETRY_MAX_DELAY_MS = 1_000;
 const DNS_VALIDATION_CACHE_TTL_MS = 60_000;
 const DISALLOWED_MEDIA_HOSTNAMES = new Set([
   "metadata",
   "metadata.azure.internal",
   "metadata.google.internal",
+]);
+const RETRYABLE_MEDIA_STATUS_CODES = new Set([
+  408,
+  425,
+  429,
+  500,
+  502,
+  503,
+  504,
 ]);
 const logger = getServerLogger(["providers", "media-proxy"]);
 const cachedProxyResponses = new Map<string, {
@@ -277,7 +296,102 @@ function removeSensitiveRedirectHeaders(init: RequestInit) {
   };
 }
 
-export async function fetchMediaHandleRequest(handle: MediaHandle, init: RequestInit = {}) {
+function retryDelayMs(attemptIndex: number, baseDelayMs: number) {
+  return Math.min(
+    MEDIA_PROXY_FETCH_RETRY_MAX_DELAY_MS,
+    Math.max(0, baseDelayMs) * (2 ** attemptIndex),
+  );
+}
+
+function delay(ms: number) {
+  if (ms <= 0) {
+    return Promise.resolve();
+  }
+
+  return new Promise((resolve) => {
+    setTimeout(resolve, ms);
+  });
+}
+
+function abortReason(signal: AbortSignal): unknown {
+  const signalWithReason = signal as AbortSignal & { reason?: unknown };
+  return signalWithReason.reason;
+}
+
+function createAttemptRequestInit(
+  init: RequestInit,
+  timeoutMs: number | undefined,
+) {
+  if (!timeoutMs && !init.signal) {
+    return {
+      init,
+      cleanup: () => undefined,
+    };
+  }
+
+  const controller = new AbortController();
+  let timeout: ReturnType<typeof setTimeout> | null = null;
+  const abortFromSource = () => {
+    controller.abort(init.signal ? abortReason(init.signal) : undefined);
+  };
+
+  if (init.signal?.aborted) {
+    abortFromSource();
+  } else {
+    init.signal?.addEventListener("abort", abortFromSource, { once: true });
+  }
+
+  if (timeoutMs && timeoutMs > 0) {
+    timeout = setTimeout(() => {
+      controller.abort(new DOMException("Media proxy request timed out", "TimeoutError"));
+    }, timeoutMs);
+  }
+
+  return {
+    init: {
+      ...init,
+      signal: controller.signal,
+    },
+    cleanup: () => {
+      if (timeout) {
+        clearTimeout(timeout);
+      }
+      init.signal?.removeEventListener("abort", abortFromSource);
+    },
+  };
+}
+
+function isAbortLikeError(err: unknown) {
+  return err instanceof DOMException
+    && (err.name === "AbortError" || err.name === "TimeoutError");
+}
+
+function isRetryableMediaFetchError(err: unknown, sourceSignal: AbortSignal | null | undefined) {
+  if (sourceSignal?.aborted) {
+    return false;
+  }
+
+  if (err instanceof ApiError) {
+    return false;
+  }
+
+  return err instanceof Error || isAbortLikeError(err);
+}
+
+function isRetryableMediaResponse(handle: MediaHandle, response: globalThis.Response) {
+  return RETRYABLE_MEDIA_STATUS_CODES.has(response.status)
+    || (response.status === 404 && isHlsDerivedHandle(handle));
+}
+
+async function closeRetryableResponse(response: globalThis.Response) {
+  try {
+    await response.body?.cancel();
+  } catch {
+    // The response body is discarded before retrying; cleanup failure is non-fatal.
+  }
+}
+
+async function fetchMediaHandleRequestOnce(handle: MediaHandle, init: RequestInit = {}) {
   let requestUrl = mediaHandleRequestUrl(handle);
   let requestInit = init;
 
@@ -305,6 +419,65 @@ export async function fetchMediaHandleRequest(handle: MediaHandle, init: Request
     "media_proxy_redirect_limit",
     "Media URL redirected too many times"
   );
+}
+
+export async function fetchMediaHandleRequest(handle: MediaHandle, init: FetchMediaHandleRequestInit = {}) {
+  const {
+    retryAttempts = MEDIA_PROXY_FETCH_ATTEMPTS,
+    retryBaseDelayMs = MEDIA_PROXY_FETCH_RETRY_BASE_DELAY_MS,
+    timeoutMs,
+    ...requestInit
+  } = init;
+  const totalAttempts = Math.max(
+    1,
+    Math.floor(retryAttempts),
+    isHlsDerivedHandle(handle) ? HLS_MEDIA_PROXY_FETCH_ATTEMPTS : 1,
+  );
+  let lastError: unknown;
+
+  for (let attemptIndex = 0; attemptIndex < totalAttempts; attemptIndex += 1) {
+    const attemptNumber = attemptIndex + 1;
+    const isFinalAttempt = attemptNumber >= totalAttempts;
+    const { init: attemptInit, cleanup } = createAttemptRequestInit(requestInit, timeoutMs);
+
+    try {
+      const response = await fetchMediaHandleRequestOnce(handle, attemptInit).finally(cleanup);
+      if (!isRetryableMediaResponse(handle, response) || isFinalAttempt) {
+        return response;
+      }
+
+      await closeRetryableResponse(response);
+      logger.trace("Retrying media request after retryable upstream status for handle {handleId}.", {
+        handleId: handle.id,
+        providerId: handle.providerId,
+        sourceId: handle.sourceId,
+        path: sanitizeLoggedMediaPath(handle.path),
+        statusCode: response.status,
+        attempt: attemptNumber,
+        maxAttempts: totalAttempts,
+      });
+    } catch (err) {
+      cleanup();
+      lastError = err;
+      if (isFinalAttempt || !isRetryableMediaFetchError(err, requestInit.signal)) {
+        throw err;
+      }
+
+      logger.trace("Retrying media request after fetch failure for handle {handleId}.", {
+        handleId: handle.id,
+        providerId: handle.providerId,
+        sourceId: handle.sourceId,
+        path: sanitizeLoggedMediaPath(handle.path),
+        attempt: attemptNumber,
+        maxAttempts: totalAttempts,
+        errorMessage: err instanceof Error ? err.message : String(err),
+      });
+    }
+
+    await delay(retryDelayMs(attemptIndex, retryBaseDelayMs));
+  }
+
+  throw lastError;
 }
 
 export function sanitizeLoggedMediaPath(value: string | undefined) {

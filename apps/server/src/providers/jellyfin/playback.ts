@@ -786,7 +786,7 @@ export async function proxyMedia(
       try {
         const upstream = await fetchMediaHandleRequest(handle, {
           headers,
-          signal: AbortSignal.timeout(JELLYFIN_REQUEST_TIMEOUT_MS),
+          timeoutMs: JELLYFIN_REQUEST_TIMEOUT_MS,
         });
 
         if (!upstream.ok && upstream.status !== 206) {
