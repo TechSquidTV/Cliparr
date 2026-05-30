@@ -1,6 +1,7 @@
 ---
 import type { CollectionEntry } from "astro:content";
 import { getCollection } from "astro:content";
+import { docsForSection, docsSections } from "@/data/docs";
 
 interface Props {
   currentSlug?: string;
@@ -9,9 +10,7 @@ interface Props {
 type DocsEntry = CollectionEntry<"docs">;
 
 const { currentSlug = "" } = Astro.props;
-const docs = ((await getCollection("docs")) as DocsEntry[]).sort(
-  (a, b) => a.data.order - b.data.order,
-);
+const docs = (await getCollection("docs")) as DocsEntry[];
 ---
 
 <nav
@@ -27,15 +26,28 @@ const docs = ((await getCollection("docs")) as DocsEntry[]).sort(
   </a>
   <div class="mt-2 space-y-1">
     {
-      docs.map((entry) => (
-        <a
-          href={`/docs/${entry.id}`}
-          aria-current={currentSlug === entry.id ? "page" : undefined}
-          class={`focus-ring block rounded-md px-3 py-2 text-sm font-medium transition-colors ${currentSlug === entry.id ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-accent hover:text-foreground"}`}
-        >
-          {entry.data.title}
-        </a>
-      ))
+      docsSections.map((section) => {
+        const sectionDocs = docsForSection(docs, section.id);
+
+        return sectionDocs.length > 0 ? (
+          <section class="pt-3">
+            <h2 class="px-3 text-xs font-semibold uppercase tracking-normal text-muted-foreground">
+              {section.title}
+            </h2>
+            <div class="mt-1 space-y-1">
+              {sectionDocs.map((entry) => (
+                <a
+                  href={`/docs/${entry.id}`}
+                  aria-current={currentSlug === entry.id ? "page" : undefined}
+                  class={`focus-ring block rounded-md px-3 py-2 text-sm font-medium transition-colors ${currentSlug === entry.id ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-accent hover:text-foreground"}`}
+                >
+                  {entry.data.title}
+                </a>
+              ))}
+            </div>
+          </section>
+        ) : null;
+      })
     }
   </div>
 </nav>

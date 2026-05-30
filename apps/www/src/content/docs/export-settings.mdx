@@ -1,7 +1,8 @@
 ---
 title: Export settings
 description: Choose clip format, resolution, source, audio, filenames, and metadata.
-order: 45
+section: editing-export
+order: 10
 ---
 
 import Callout from "../../components/Callout.astro";
@@ -91,7 +92,7 @@ Unsupported or missing token values resolve to empty text, and Cliparr sanitizes
 
 ## Metadata
 
-Provider-backed clips can include title, show, season, episode, artwork, rating, and Cliparr timing metadata when the source provides it. Local files and direct URLs include only best-effort metadata. See [Configuration](/docs/configuration#clip-metadata) for the full metadata table.
+Provider-backed clips can include title, show, season, episode, artwork, rating, and Cliparr timing metadata when the source provides it. Local files and direct URLs include only best-effort metadata. See [Export metadata](/docs/export-metadata) for the full metadata table.
 
 <Callout title="Exports use browser resources" tone="info">
   Longer clips, higher resolutions, subtitle burn-in, and large source files

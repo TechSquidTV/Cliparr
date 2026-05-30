@@ -1,0 +1,47 @@
+---
+title: Export metadata
+description: Review the provider metadata Cliparr can embed into exported clips.
+section: editing-export
+order: 30
+---
+
+Cliparr passes metadata to Mediabunny during export when the selected source includes `exportMetadata`. Local files and direct URLs may not have source metadata, so these fields are best-effort.
+
+## Standard export tags
+
+These tags are sent for every export format when the source field is available.
+
+| Tag           | Source                                                           | Value written                                                                                                                     |
+| :------------ | :--------------------------------------------------------------- | :-------------------------------------------------------------------------------------------------------------------------------- |
+| `title`       | `title`, then `sourceTitle`                                      | First non-empty value.                                                                                                            |
+| `description` | `description`, then `tagline`                                    | First non-empty value.                                                                                                            |
+| `genre`       | `genres`                                                         | Genres joined with `, `.                                                                                                          |
+| `date`        | `date`, then `year`                                              | Parsed date. If only `year` exists, Cliparr writes `YYYY-01-01`. Invalid dates are skipped.                                       |
+| `comment`     | `sourceTitle`, `title`, `showTitle`, `contentRating`, clip range | `Clip from {source}, {start} to {end}.` Adds `Content rating: {rating}.` when available.                                          |
+| `images`      | `imageUrl`                                                       | Cover art as `coverFront` when the image fetch succeeds. MIME type comes from the response, URL extension, or falls back to JPEG. |
+
+## MP4 and MOV tags
+
+MP4 and MOV exports also receive the current raw container keys below. Cliparr patches integer MP4 boxes so `hdvd`, `stik`, `tves`, and `tvsn` are stored as numeric metadata.
+
+| Raw tag | Applies to        | Source                          | Value written                                                                                  |
+| :------ | :---------------- | :------------------------------ | :--------------------------------------------------------------------------------------------- |
+| `ldes`  | MP4, MOV          | `description`, then `tagline`   | Long description.                                                                              |
+| `©dir`  | MP4, MOV          | `directors`                     | Directors joined with `, `.                                                                    |
+| `hdvd`  | MP4, MOV          | Output height                   | `1` when output height is at least 720p, otherwise `0`. Skipped when output height is unknown. |
+| `©TIM`  | MP4, MOV          | Clip start time                 | Cliparr timing key containing the source start time as `HH:MM:SS.mmm`.                         |
+| `csta`  | MP4, MOV          | Clip start time                 | Source start seconds with three decimals.                                                      |
+| `cend`  | MP4, MOV          | Clip end time                   | Source end seconds with three decimals.                                                        |
+| `cdur`  | MP4, MOV          | Clip duration                   | Clip duration seconds with three decimals.                                                     |
+| `clpr`  | MP4, MOV          | Clip start, end, duration       | JSON with `sourceStartSeconds`, `sourceEndSeconds`, and `sourceDurationSeconds`.               |
+| `stik`  | MP4, MOV episodes | `itemType`                      | `10` for episodes.                                                                             |
+| `tvsh`  | MP4, MOV episodes | `showTitle`                     | Show title.                                                                                    |
+| `tvsn`  | MP4, MOV episodes | `seasonNumber`                  | Non-negative integer season number.                                                            |
+| `tves`  | MP4, MOV episodes | `episodeNumber`                 | Non-negative integer episode number.                                                           |
+| `tven`  | MP4, MOV episodes | `seasonNumber`, `episodeNumber` | Episode code as `S##E##` when both numbers exist.                                              |
+| `tvnn`  | MP4, MOV episodes | `network`, then `studio`        | Network name, falling back to studio.                                                          |
+| `stik`  | MP4, MOV movies   | `itemType`                      | `9` for movies.                                                                                |
+
+Source metadata can include additional fields that are not embedded in exported media today, including `providerId`, `seasonTitle`, `writers`, `actors`, `guids`, and `ratingKey`. `itemType` only affects the MP4/MOV `stik` value, and `studio` is only embedded as the fallback for `tvnn`.
+
+The timing keys `©TIM`, `csta`, `cend`, `cdur`, and `clpr` should be treated as Cliparr-specific metadata. They are useful for preserving clip provenance, but may not be displayed by general media library tools.

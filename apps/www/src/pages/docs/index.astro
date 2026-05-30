@@ -2,12 +2,11 @@
 import type { CollectionEntry } from "astro:content";
 import { getCollection } from "astro:content";
 import DocsLayout from "@/components/DocsLayout.astro";
+import { docsForSection, docsSections } from "@/data/docs";
 
 type DocsEntry = CollectionEntry<"docs">;
 
-const docs = ((await getCollection("docs")) as DocsEntry[]).sort(
-  (a, b) => a.data.order - b.data.order,
-);
+const docs = (await getCollection("docs")) as DocsEntry[];
 ---
 
 <DocsLayout
@@ -15,21 +14,40 @@ const docs = ((await getCollection("docs")) as DocsEntry[]).sort(
   description="Small, practical guides for installing, configuring, and using Cliparr."
   currentSlug=""
 >
-  <div class="grid gap-4 sm:grid-cols-2">
+  <div class="space-y-10">
     {
-      docs.map((entry) => (
-        <a
-          class="focus-ring rounded-lg border border-border bg-card p-5 no-underline transition-colors hover:bg-accent hover:no-underline"
-          href={`/docs/${entry.id}`}
-        >
-          <h2 class="mt-0 border-0 p-0 text-lg font-semibold">
-            {entry.data.title}
-          </h2>
-          <p class="mt-3 text-sm leading-6 text-muted-foreground">
-            {entry.data.description}
-          </p>
-        </a>
-      ))
+      docsSections.map((section) => {
+        const sectionDocs = docsForSection(docs, section.id);
+
+        return sectionDocs.length > 0 ? (
+          <section aria-labelledby={`docs-section-${section.id}`}>
+            <h2
+              id={`docs-section-${section.id}`}
+              class="mt-0 border-0 p-0 text-2xl font-semibold"
+            >
+              {section.title}
+            </h2>
+            <p class="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
+              {section.description}
+            </p>
+            <div class="mt-4 grid gap-4 sm:grid-cols-2">
+              {sectionDocs.map((entry) => (
+                <a
+                  class="focus-ring rounded-lg border border-border bg-card p-5 no-underline transition-colors hover:bg-accent hover:no-underline"
+                  href={`/docs/${entry.id}`}
+                >
+                  <h3 class="mt-0 border-0 p-0 text-lg font-semibold">
+                    {entry.data.title}
+                  </h3>
+                  <p class="mt-3 text-sm leading-6 text-muted-foreground">
+                    {entry.data.description}
+                  </p>
+                </a>
+              ))}
+            </div>
+          </section>
+        ) : null;
+      })
     }
   </div>
 </DocsLayout>
