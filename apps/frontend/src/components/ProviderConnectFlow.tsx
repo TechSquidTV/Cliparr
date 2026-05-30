@@ -1,5 +1,6 @@
 import { AnimatePresence, motion } from "motion/react";
 import { ArrowRight, Check, ExternalLink, Server } from "lucide-react";
+import type { ReactNode } from "react";
 import { cn } from "../lib/utils";
 import {
   ProviderBadge,
@@ -74,6 +75,15 @@ export default function ProviderConnectFlow({
   } = useProviderConnectFlow({
     onConnected,
   });
+
+  function handleSelectProvider(nextProviderId: string) {
+    if (!nextProviderId) {
+      return;
+    }
+
+    setSelectedProviderId(nextProviderId);
+    setError("");
+  }
 
   function renderPinContent(provider: ProviderDefinition) {
     const providerDetails = providerPresentation(provider, variant);
@@ -421,20 +431,12 @@ export default function ProviderConnectFlow({
     );
   }
 
-  function renderSelectedProvider() {
+  function renderScreenSelectedProvider() {
     if (!selectedProvider) {
       return null;
     }
 
     const innerContent = renderSelectedProviderContent(selectedProvider);
-
-    if (!isScreen) {
-      return (
-        <div className="rounded-lg border border-border bg-background p-4">
-          {innerContent}
-        </div>
-      );
-    }
 
     return (
       <div className="relative min-h-152 overflow-hidden rounded-3xl border border-border bg-background/80 shadow-xl">
@@ -479,100 +481,26 @@ export default function ProviderConnectFlow({
       );
     }
 
-    if (!isScreen) {
+    if (isScreen) {
       return (
-        <Tabs
-          value={selectedProvider?.id ?? providers[0]?.id ?? ""}
-          onValueChange={(nextProviderId) => {
-            if (typeof nextProviderId !== "string" || !nextProviderId) {
-              return;
-            }
-
-            setSelectedProviderId(nextProviderId);
-            setError("");
-          }}
-          className="space-y-3"
-        >
-          <p className="text-xs font-medium uppercase tracking-[var(--tracking-caps-md)] text-muted-foreground">
-            Choose A Provider
-          </p>
-
-          <TabsList
-            className="grid w-full"
-            style={{
-              gridTemplateColumns: `repeat(${providers.length}, minmax(0, 1fr))`,
-            }}
-          >
-            {providers.map((provider) => (
-              <TabsTab
-                key={provider.id}
-                value={provider.id}
-                className="min-w-0 px-2"
-              >
-                <ProviderGlyph
-                  providerId={provider.id}
-                  providerName={provider.name}
-                  className="h-4 w-4"
-                />
-                <span className="truncate">{provider.name}</span>
-              </TabsTab>
-            ))}
-          </TabsList>
-
-          <TabsPanels
-            mode="layout"
-            className="cliparr-editor-scrollbar h-source-provider-panel overflow-y-auto rounded-lg border border-border bg-background p-4"
-          >
-            {providers.map((provider) => (
-              <TabsPanel
-                key={provider.id}
-                value={provider.id}
-                className="h-full"
-              >
-                {renderSelectedProviderContent(provider)}
-              </TabsPanel>
-            ))}
-          </TabsPanels>
-        </Tabs>
+        <ProviderConnectScreenLayout
+          providers={providers}
+          selectedProvider={selectedProvider ?? undefined}
+          authenticating={authenticating}
+          authenticatingProviderId={providerId}
+          onSelectProvider={handleSelectProvider}
+          renderSelectedProvider={renderScreenSelectedProvider}
+        />
       );
     }
 
-    const providerList = (
-      <>
-        <p className="text-xs font-medium uppercase tracking-[var(--tracking-caps-3xl)] text-muted-foreground">
-          Choose A Provider
-        </p>
-
-        {providers.map((provider) => (
-          <ProviderOption
-            key={provider.id}
-            provider={provider}
-            selectedProvider={selectedProvider}
-            authenticating={authenticating}
-            authenticatingProviderId={providerId}
-            variant={variant}
-            onSelect={(nextProviderId) => {
-              setSelectedProviderId(nextProviderId);
-              setError("");
-            }}
-          />
-        ))}
-      </>
-    );
-
     return (
-      <div className="grid gap-6 lg:grid-cols-provider-connect">
-        <motion.div
-          initial={{ opacity: 0, x: -12 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.24, ease: "easeOut" }}
-          className="space-y-3"
-        >
-          {providerList}
-        </motion.div>
-
-        {renderSelectedProvider()}
-      </div>
+      <ProviderConnectPanelLayout
+        providers={providers}
+        selectedProviderId={selectedProvider?.id ?? providers[0]?.id ?? ""}
+        onSelectProvider={handleSelectProvider}
+        renderProviderContent={renderSelectedProviderContent}
+      />
     );
   }
 
@@ -594,5 +522,113 @@ export default function ProviderConnectFlow({
       )}
       {renderContent()}
     </>
+  );
+}
+
+interface ProviderConnectPanelLayoutProps {
+  providers: ProviderDefinition[];
+  selectedProviderId: string;
+  onSelectProvider: (providerId: string) => void;
+  renderProviderContent: (provider: ProviderDefinition) => ReactNode;
+}
+
+function ProviderConnectPanelLayout({
+  providers,
+  selectedProviderId,
+  onSelectProvider,
+  renderProviderContent,
+}: ProviderConnectPanelLayoutProps) {
+  return (
+    <Tabs
+      value={selectedProviderId}
+      onValueChange={(nextProviderId) => {
+        if (typeof nextProviderId !== "string") {
+          return;
+        }
+
+        onSelectProvider(nextProviderId);
+      }}
+      className="space-y-3"
+    >
+      <p className="text-xs font-medium uppercase tracking-[var(--tracking-caps-md)] text-muted-foreground">
+        Choose A Provider
+      </p>
+
+      <TabsList
+        className="grid w-full"
+        style={{
+          gridTemplateColumns: `repeat(${providers.length}, minmax(0, 1fr))`,
+        }}
+      >
+        {providers.map((provider) => (
+          <TabsTab key={provider.id} value={provider.id} className="min-w-0 px-2">
+            <ProviderGlyph
+              providerId={provider.id}
+              providerName={provider.name}
+              className="h-4 w-4"
+            />
+            <span className="truncate">{provider.name}</span>
+          </TabsTab>
+        ))}
+      </TabsList>
+
+      <TabsPanels
+        mode="layout"
+        className="cliparr-editor-scrollbar h-source-provider-panel overflow-y-auto rounded-lg border border-border bg-background p-4"
+      >
+        {providers.map((provider) => (
+          <TabsPanel key={provider.id} value={provider.id} className="h-full">
+            {renderProviderContent(provider)}
+          </TabsPanel>
+        ))}
+      </TabsPanels>
+    </Tabs>
+  );
+}
+
+interface ProviderConnectScreenLayoutProps {
+  providers: ProviderDefinition[];
+  selectedProvider: ProviderDefinition | undefined;
+  authenticating: boolean;
+  authenticatingProviderId: string;
+  onSelectProvider: (providerId: string) => void;
+  renderSelectedProvider: () => ReactNode;
+}
+
+function ProviderConnectScreenLayout({
+  providers,
+  selectedProvider,
+  authenticating,
+  authenticatingProviderId,
+  onSelectProvider,
+  renderSelectedProvider,
+}: ProviderConnectScreenLayoutProps) {
+  return (
+    <div className="grid gap-6 lg:grid-cols-provider-connect">
+      <motion.div
+        initial={{ opacity: 0, x: -12 }}
+        animate={{ opacity: 1, x: 0 }}
+        transition={{ duration: 0.24, ease: "easeOut" }}
+        className="space-y-3"
+      >
+        <p className="text-xs font-medium uppercase tracking-[var(--tracking-caps-3xl)] text-muted-foreground">
+          Choose A Provider
+        </p>
+
+        {providers.map((provider) => (
+          <ProviderOption
+            key={provider.id}
+            provider={provider}
+            selectedProvider={selectedProvider}
+            authenticating={authenticating}
+            authenticatingProviderId={authenticatingProviderId}
+            variant="screen"
+            onSelect={onSelectProvider}
+          />
+        ))}
+      </motion.div>
+
+      {renderSelectedProvider()}
+    </div>
   );
 }
