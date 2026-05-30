@@ -1,4 +1,4 @@
-import type { CSSProperties, Dispatch, ReactNode, SetStateAction } from "react";
+import type { Dispatch, SetStateAction } from "react";
 import { LoaderCircle, Sparkles } from "lucide-react";
 import {
   Select,
@@ -23,6 +23,14 @@ import {
 } from "../../lib/selectPreferredSubtitleTrack";
 import type { SubtitleStyleSettings } from "../../lib/subtitles/types";
 import type { PlaybackSubtitleTrack } from "../../providers/types";
+import {
+  EditorColorControl,
+  EditorPropertyRow,
+  EditorPropertySection,
+  EditorRangeControl,
+  editorPropertyLabelClassName,
+  editorPropertySelectTriggerClassName,
+} from "./EditorPropertyUi";
 import { useSubtitleFontOptions } from "./useSubtitleFontOptions";
 
 interface EditorSubtitlePanelProps {
@@ -39,10 +47,6 @@ interface EditorSubtitlePanelProps {
   subtitleLoading: boolean;
   subtitleError: string | null;
   selectedSubtitleTrack: PlaybackSubtitleTrack | null;
-}
-
-function compactSelectTriggerClassName() {
-  return "h-8 w-full min-w-0 rounded-[var(--radius-control)] border-editor-border bg-editor-control px-2.5 text-xs font-medium text-sidebar-foreground shadow-none hover:bg-editor-control-hover focus-visible:ring-2 focus-visible:ring-editor-accent/35";
 }
 
 function subtitleTrackLabel(track: PlaybackSubtitleTrack) {
@@ -69,154 +73,6 @@ function subtitleTrackLabel(track: PlaybackSubtitleTrack) {
   return detailParts.length > 0
     ? `${baseLabel} (${detailParts.join(" | ")})`
     : baseLabel;
-}
-
-function propertyLabelClassName() {
-  return "text-ui-micro font-semibold uppercase tracking-[var(--tracking-caps-md)] text-muted-foreground";
-}
-
-function EditorPropertySection({
-  title,
-  action,
-  children,
-}: {
-  title: string;
-  action?: ReactNode;
-  children: ReactNode;
-}) {
-  return (
-    <section className="border-b border-editor-border/80 px-3 py-3 last:border-b-0">
-      <div className="flex min-h-7 items-center justify-between gap-3">
-        <div className={propertyLabelClassName()}>{title}</div>
-        {action}
-      </div>
-      <div className="mt-2.5 space-y-2.5">{children}</div>
-    </section>
-  );
-}
-
-function EditorPropertyRow({
-  label,
-  value,
-  children,
-  align = "center",
-}: {
-  label: string;
-  value?: ReactNode;
-  children: ReactNode;
-  align?: "center" | "start";
-}) {
-  return (
-    <div
-      className={cn(
-        "grid min-h-8 grid-cols-editor-property-row gap-3",
-        align === "start" ? "items-start" : "items-center",
-      )}
-    >
-      <span
-        className={cn(propertyLabelClassName(), align === "start" && "pt-2")}
-      >
-        {label}
-      </span>
-      <span className="min-w-0">
-        {value ? (
-          <span className="mb-1 flex justify-end font-mono text-ui-micro text-muted-foreground">
-            {value}
-          </span>
-        ) : null}
-        {children}
-      </span>
-    </div>
-  );
-}
-
-function EditorRangeControl({
-  label,
-  value,
-  min,
-  max,
-  step,
-  unit = "",
-  disabled = false,
-  onChange,
-}: {
-  label: string;
-  value: number;
-  min: number;
-  max: number;
-  step: number;
-  unit?: string;
-  disabled?: boolean;
-  onChange: (value: number) => void;
-}) {
-  const rangeFillPercent =
-    max > min ? Math.min(Math.max((value - min) / (max - min), 0), 1) * 100 : 0;
-
-  return (
-    <EditorPropertyRow
-      label={label}
-      value={
-        <>
-          {value}
-          {unit}
-        </>
-      }
-      align="start"
-    >
-      <input
-        type="range"
-        min={min}
-        max={max}
-        step={step}
-        value={value}
-        disabled={disabled}
-        onChange={(event) => onChange(Number(event.target.value))}
-        className="cliparr-editor-range w-full"
-        style={
-          {
-            "--cliparr-range-fill": `${rangeFillPercent}%`,
-          } as CSSProperties
-        }
-      />
-    </EditorPropertyRow>
-  );
-}
-
-function EditorColorControl({
-  label,
-  value,
-  disabled = false,
-  onChange,
-}: {
-  label: string;
-  value: string;
-  disabled?: boolean;
-  onChange: (value: string) => void;
-}) {
-  return (
-    <EditorPropertyRow label={label}>
-      <span className="flex h-8 min-w-0 items-center gap-2 rounded-[var(--radius-control)] border border-editor-border bg-editor-control px-2">
-        <span className="relative h-4 w-6 shrink-0">
-          <span
-            aria-hidden="true"
-            className="absolute inset-0 border border-editor-border"
-            style={{ backgroundColor: value }}
-          />
-          <input
-            type="color"
-            value={value}
-            disabled={disabled}
-            onChange={(event) => onChange(event.target.value)}
-            className="absolute inset-0 h-full w-full cursor-pointer border-0 bg-transparent p-0 opacity-0 disabled:cursor-not-allowed"
-            aria-label={label}
-          />
-        </span>
-        <span className="min-w-0 truncate font-mono text-ui-label text-sidebar-foreground">
-          {value.toUpperCase()}
-        </span>
-      </span>
-    </EditorPropertyRow>
-  );
 }
 
 export function EditorSubtitlePanel({
@@ -323,7 +179,7 @@ export function EditorSubtitlePanel({
           >
             <SelectTrigger
               size="sm"
-              className={compactSelectTriggerClassName()}
+              className={editorPropertySelectTriggerClassName()}
             >
               <SelectValue placeholder="Select subtitle track" />
             </SelectTrigger>
@@ -387,7 +243,7 @@ export function EditorSubtitlePanel({
             styleTooltip ? (
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <span className="text-ui-micro font-semibold uppercase tracking-[var(--tracking-caps-md)] text-muted-foreground">
+                  <span className={editorPropertyLabelClassName()}>
                     Locked
                   </span>
                 </TooltipTrigger>
@@ -411,7 +267,7 @@ export function EditorSubtitlePanel({
             >
               <SelectTrigger
                 size="sm"
-                className={compactSelectTriggerClassName()}
+                className={editorPropertySelectTriggerClassName()}
               >
                 <SelectValue placeholder="Select font" />
               </SelectTrigger>
