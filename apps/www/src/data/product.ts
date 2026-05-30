@@ -124,6 +124,48 @@ export const envVars = [
     required: false,
   },
   {
+    name: "CLIPARR_LOG_LEVEL",
+    description:
+      "Server log level. Supports trace, debug, info, warning, error, and fatal. Defaults to debug in development and info in production.",
+    defaultValue: "debug/info",
+    required: false,
+  },
+  {
+    name: "CLIPARR_LOG_FORMAT",
+    description:
+      "Server console log format. Use json or logfmt to expose structured fields.",
+    defaultValue: "pretty",
+    required: false,
+  },
+  {
+    name: "CLIPARR_LOG_FILE",
+    description:
+      "Optional path for a rotating server log file. Relative paths resolve from the server working directory.",
+    defaultValue: "-",
+    required: false,
+  },
+  {
+    name: "CLIPARR_LOG_FILE_FORMAT",
+    description:
+      "Optional log file format. Defaults to CLIPARR_LOG_FORMAT when set, otherwise json.",
+    defaultValue: "json",
+    required: false,
+  },
+  {
+    name: "CLIPARR_LOG_FILE_MAX_SIZE",
+    description:
+      "Maximum size for each rotating server log file. Supports kb, mb, and gb suffixes.",
+    defaultValue: "10mb",
+    required: false,
+  },
+  {
+    name: "CLIPARR_LOG_FILE_MAX_FILES",
+    description:
+      "Total number of rotating server log files to keep, including the active file.",
+    defaultValue: "5",
+    required: false,
+  },
+  {
     name: "CLIPARR_ALLOW_LOOPBACK_JELLYFIN_URLS",
     description:
       "Allow Jellyfin URLs that resolve to localhost or loopback. Use only for trusted self-hosted setups.",

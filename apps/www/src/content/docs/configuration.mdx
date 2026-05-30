@@ -28,6 +28,12 @@ The editor uses browser WebCodecs. Supporting browsers require a secure context,
 
 The default container data directory is `/data`. In production, mount that path to a volume so SQLite state and encrypted provider credentials survive updates.
 
+## Logging
+
+Server logs default to readable terminal output. Set `CLIPARR_LOG_FORMAT=json` or `CLIPARR_LOG_FORMAT=logfmt` when you want each console line to include the structured event fields used by Cliparr's LogTape events.
+
+Set `CLIPARR_LOG_FILE` to write a second, rotating server log file. File logs default to JSON when no explicit format is configured, rotate at `CLIPARR_LOG_FILE_MAX_SIZE`, and keep `CLIPARR_LOG_FILE_MAX_FILES` total files including the active file.
+
 ## Clip metadata
 
 Cliparr passes metadata to Mediabunny during export when the selected source includes `exportMetadata`. Local files and direct URLs may not have source metadata, so these fields are best-effort.
