@@ -36,6 +36,79 @@ When Cliparr is behind a reverse proxy, preserve the `Host` header and pass `X-F
 
 Use HTTPS for remote access. The editor relies on browser WebCodecs, and supporting browsers require a secure context outside `localhost` or `127.0.0.1`.
 
+## Caddy basic auth example
+
+Caddy can put a simple username and password in front of Cliparr with `basic_auth`. Use this only over HTTPS, and make sure users cannot bypass Caddy by reaching Cliparr's container port directly.
+
+First, generate a hashed password:
+
+```bash
+docker run --rm -it caddy:2 caddy hash-password
+```
+
+Then use the generated hash in a `Caddyfile`:
+
+```caddyfile
+cliparr.example.com {
+    encode zstd gzip
+
+    basic_auth {
+        cliparr_user REPLACE_WITH_CADDY_HASH
+    }
+
+    reverse_proxy cliparr:3000 {
+        header_up Host {host}
+        header_up X-Forwarded-Proto {scheme}
+    }
+}
+```
+
+If Cliparr and Caddy run in the same Docker Compose project, expose Cliparr only to the Compose network and publish ports from Caddy:
+
+```yaml
+services:
+  cliparr:
+    image: ghcr.io/techsquidtv/cliparr:latest
+    environment:
+      - APP_KEY=replace-this-with-a-32-character-secure-random-string
+    expose:
+      - "3000"
+    volumes:
+      - cliparr-data:/data
+    restart: unless-stopped
+
+  caddy:
+    image: caddy:2
+    depends_on:
+      - cliparr
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    restart: unless-stopped
+
+volumes:
+  cliparr-data:
+  caddy-data:
+  caddy-config:
+```
+
+If you run Cliparr outside Docker Compose, bind Cliparr to localhost and proxy to that local address:
+
+```bash
+docker run -d \
+  --name cliparr \
+  -p 127.0.0.1:3000:3000 \
+  -e APP_KEY="your-32-char-stable-random-secret" \
+  -v cliparr-data:/data \
+  ghcr.io/techsquidtv/cliparr:latest
+```
+
+Then use `reverse_proxy 127.0.0.1:3000` in the Caddyfile instead of `reverse_proxy cliparr:3000`.
+
 ## What to protect
 
 Protect every Cliparr route with the same access policy, including:
