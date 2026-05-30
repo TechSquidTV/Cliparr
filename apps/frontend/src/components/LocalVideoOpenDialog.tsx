@@ -29,7 +29,7 @@ import {
 } from "../lib/localMediaRegistry";
 import { cn } from "../lib/utils";
 
-interface LocalVideoOpenModalProps {
+interface LocalVideoOpenDialogProps {
   isOpen: boolean;
   onClose: () => void;
   onOpened: (sessionId: string) => void;
@@ -41,11 +41,11 @@ function errorMessage(err: unknown, fallback: string) {
   return err instanceof Error && err.message ? err.message : fallback;
 }
 
-export function LocalVideoOpenModal({
+export function LocalVideoOpenDialog({
   isOpen,
   onClose,
   onOpened,
-}: LocalVideoOpenModalProps) {
+}: LocalVideoOpenDialogProps) {
   const initialFocusRef = useRef<HTMLElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [activeTab, setActiveTab] = useState<LocalOpenTab>("file");

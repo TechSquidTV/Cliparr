@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { useAuth } from "../auth";
 import DashboardScreen from "../components/DashboardScreen";
-import { LocalVideoOpenModal } from "../components/LocalVideoOpenModal";
+import { LocalVideoOpenDialog } from "../components/LocalVideoOpenDialog";
 import { router } from "../router";
 
 function DashboardRouteComponent() {
@@ -26,7 +26,7 @@ function DashboardRouteComponent() {
         }}
         onLogout={auth.logout}
       />
-      <LocalVideoOpenModal
+      <LocalVideoOpenDialog
         isOpen={localVideoOpen}
         onClose={() => setLocalVideoOpen(false)}
         onOpened={(sessionId) => {

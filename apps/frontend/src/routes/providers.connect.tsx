@@ -1,7 +1,7 @@
 import { createFileRoute, redirect } from "@tanstack/react-router";
 import { useState } from "react";
 import { useAuth } from "../auth";
-import { LocalVideoOpenModal } from "../components/LocalVideoOpenModal";
+import { LocalVideoOpenDialog } from "../components/LocalVideoOpenDialog";
 import ProviderConnectScreen from "../components/ProviderConnectScreen";
 import { router } from "../router";
 
@@ -15,7 +15,7 @@ function ProviderConnectRouteComponent() {
         onConnected={auth.setProviderSession}
         onOpenLocalVideo={() => setLocalVideoOpen(true)}
       />
-      <LocalVideoOpenModal
+      <LocalVideoOpenDialog
         isOpen={localVideoOpen}
         onClose={() => setLocalVideoOpen(false)}
         onOpened={(sessionId) => {

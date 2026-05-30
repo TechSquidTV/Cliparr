@@ -5,7 +5,7 @@ import test from "node:test";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import AuthCompleteScreen from "./AuthCompleteScreen";
-import { LocalVideoOpenModal } from "./LocalVideoOpenModal";
+import { LocalVideoOpenDialog } from "./LocalVideoOpenDialog";
 
 void test("renders the provider auth completion screen", () => {
   const markup = renderToStaticMarkup(createElement(AuthCompleteScreen));
@@ -16,7 +16,7 @@ void test("renders the provider auth completion screen", () => {
 
 void test("renders local video modal file picker workflow", () => {
   const markup = renderToStaticMarkup(
-    createElement(LocalVideoOpenModal, {
+    createElement(LocalVideoOpenDialog, {
       isOpen: true,
       onClose: () => undefined,
       onOpened: () => undefined,

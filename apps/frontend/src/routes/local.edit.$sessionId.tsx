@@ -2,7 +2,7 @@ import { createFileRoute, useCanGoBack } from "@tanstack/react-router";
 import { FolderOpen, ShieldCheck, TriangleAlert } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import EditorScreen from "../components/editor/EditorScreen";
-import { LocalVideoOpenModal } from "../components/LocalVideoOpenModal";
+import { LocalVideoOpenDialog } from "../components/LocalVideoOpenDialog";
 import {
   primaryButtonClasses,
   secondaryButtonClasses,
@@ -109,7 +109,7 @@ function LocalEditorRouteComponent() {
         </div>
       </div>
 
-      <LocalVideoOpenModal
+      <LocalVideoOpenDialog
         isOpen={openDialog}
         onClose={() => setOpenDialog(false)}
         onOpened={(nextSessionId) => {
