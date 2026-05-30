@@ -14,6 +14,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
 import {
   subtitleTrackKey,
@@ -126,40 +127,6 @@ function EditorPropertyRow({
         {children}
       </span>
     </div>
-  );
-}
-
-function EditorToggle({
-  checked,
-  disabled = false,
-  onCheckedChange,
-}: {
-  checked: boolean;
-  disabled?: boolean;
-  onCheckedChange: (checked: boolean) => void;
-}) {
-  return (
-    <button
-      type="button"
-      role="switch"
-      aria-checked={checked}
-      disabled={disabled}
-      onClick={() => onCheckedChange(!checked)}
-      className={cn(
-        "relative h-5 w-9 rounded-full border border-editor-border bg-editor-control transition-colors focus-visible:ring-2 focus-visible:ring-editor-accent/35 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-55",
-        checked &&
-          !disabled &&
-          "border-editor-accent/55 bg-editor-control-active",
-      )}
-    >
-      <span
-        aria-hidden="true"
-        className={cn(
-          "absolute top-1/2 left-1 h-3 w-3 -translate-y-1/2 rounded-full bg-muted-foreground transition-transform",
-          checked && "translate-x-4 bg-editor-accent",
-        )}
-      />
-    </button>
   );
 }
 
@@ -302,10 +269,12 @@ export function EditorSubtitlePanel({
   }
 
   const subtitleToggle = (
-    <EditorToggle
+    <Switch
+      aria-label={subtitlesEnabled ? "Disable subtitles" : "Enable subtitles"}
       checked={subtitlesEnabled}
       disabled={!canEnableBurnIn}
       onCheckedChange={onSubtitlesEnabledChange}
+      variant="editor"
     />
   );
 

@@ -16,6 +16,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { Switch } from "@/components/ui/switch";
 import type { MediaSource, ProviderSession } from "../providers/types";
 import { formatProviderName } from "./ProviderGlyph";
 import SourceConnectPanel from "./SourceConnectPanel";
@@ -651,21 +652,24 @@ export function SourceCard({
             Save Changes
           </button>
         </TooltipWrap>
-        <TooltipWrap message={busyDisabledReason}>
-          <button
-            type="button"
-            onClick={() => void onToggleEnabled()}
-            disabled={isBusy}
-            className={cn(
-              "rounded-xl px-4 py-2 text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-60",
-              source.enabled
-                ? "bg-muted text-foreground hover:bg-accent"
-                : "bg-primary text-primary-foreground hover:bg-primary/90",
-            )}
-          >
-            {source.enabled ? "Disable" : "Enable"}
-          </button>
-        </TooltipWrap>
+        <div
+          className={cn(
+            "inline-flex h-10 items-center gap-3 rounded-xl border border-border bg-card px-3 text-sm font-medium text-foreground transition-opacity",
+            isBusy && "opacity-60",
+          )}
+        >
+          <span>{source.enabled ? "Enabled" : "Disabled"}</span>
+          <TooltipWrap message={busyDisabledReason}>
+            <Switch
+              aria-label={`${source.enabled ? "Disable" : "Enable"} ${
+                source.name
+              }`}
+              checked={source.enabled}
+              disabled={isBusy}
+              onCheckedChange={() => void onToggleEnabled()}
+            />
+          </TooltipWrap>
+        </div>
         <TooltipWrap message={busyDisabledReason}>
           <button
             type="button"
