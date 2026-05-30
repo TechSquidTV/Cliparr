@@ -169,7 +169,7 @@
   }
 
   .prose-docs table {
-    @apply mt-5 block w-full overflow-x-auto rounded-lg border border-border text-sm;
+    @apply mt-5 w-full overflow-hidden rounded-lg border border-border text-sm;
     border-spacing: 0;
   }
 
