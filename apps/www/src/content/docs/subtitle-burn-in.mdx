@@ -9,7 +9,7 @@ import { Picture } from "astro:assets";
 import Callout from "../../components/Callout.astro";
 import subtitlePanelImage from "../../../public/docs/subtitle-panel.webp";
 
-Cliparr can burn supported subtitle tracks directly into the exported video. Burned-in subtitles become part of the video pixels, so the exported file does not need a separate subtitle track or sidecar file.
+Cliparr supports burning in supported subtitle tracks provided by your media player. Customize position, style, and use any font on your system.
 
 <figure class="my-6 overflow-hidden rounded-lg border border-border bg-card">
   <Picture
@@ -37,6 +37,8 @@ Image-based subtitle formats, such as PGS or VobSub, are visible when the provid
 Jellyfin can usually expose downloadable text subtitle tracks directly from the selected media source.
 
 Plex sidecar text subtitles can usually be downloaded directly. Some embedded Plex text subtitles must be selected in Plex first so Plex exposes a subtitle content stream that Cliparr can fetch.
+
+[Plex: Adding Local Subtitles to Your Media](https://support.plex.tv/articles/200471133-adding-local-subtitles-to-your-media/)
 
 <Callout title="Unsupported tracks stay selectable for context" tone="info">
   Cliparr may still show unsupported subtitle tracks so you can see what the
