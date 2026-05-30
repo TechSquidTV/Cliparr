@@ -84,6 +84,27 @@ export const dockerComposeExample = `services:
 volumes:
   cliparr-data:`;
 
+export const structuredConsoleLoggingCommand = `docker run -d \\
+  --name cliparr \\
+  -p 3000:3000 \\
+  -e APP_KEY="your-32-char-stable-random-secret" \\
+  -e CLIPARR_LOG_FORMAT=json \\
+  -v cliparr-data:/data \\
+  ghcr.io/techsquidtv/cliparr:latest`;
+
+export const rotatingFileLoggingCompose = `services:
+  cliparr:
+    image: ghcr.io/techsquidtv/cliparr:latest
+    environment:
+      - APP_KEY=replace-this-with-a-32-character-secure-random-string
+      - CLIPARR_LOG_FORMAT=pretty
+      - CLIPARR_LOG_FILE=/data/logs/cliparr.log
+      - CLIPARR_LOG_FILE_FORMAT=json
+      - CLIPARR_LOG_FILE_MAX_SIZE=10mb
+      - CLIPARR_LOG_FILE_MAX_FILES=5
+    volumes:
+      - cliparr-data:/data`;
+
 export const developmentSetupCommands = `git clone https://github.com/techsquidtv/cliparr.git
 cd cliparr
 cp .env.example .env
