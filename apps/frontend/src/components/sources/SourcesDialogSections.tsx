@@ -18,11 +18,7 @@ import {
 } from "@/components/ui/tooltip";
 import { Switch } from "@/components/ui/switch";
 import {
-  compactPrimaryButtonClasses as primaryButtonClasses,
-  compactSecondaryButtonClasses as secondaryButtonClasses,
   destructiveAlertClasses,
-  destructiveButtonClasses,
-  fieldLabelClasses as labelClasses,
   iconButtonClasses,
   textInputClasses as inputClasses,
 } from "@/components/ui/control-styles";
@@ -68,8 +64,24 @@ const sourceFilterOptions = [
   ["attention", "Needs attention"],
 ] as const satisfies readonly [SourceFilter, string][];
 
+function joinClassNames(...classes: Array<string | false | null | undefined>) {
+  return classes.filter(Boolean).join(" ");
+}
+
+const sourcePrimaryButtonClasses =
+  "inline-flex h-8 items-center justify-center gap-2 rounded-md border border-primary bg-primary px-3 text-xs font-medium normal-case tracking-normal text-primary-foreground transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-60";
+const sourceSecondaryButtonClasses =
+  "inline-flex h-8 items-center justify-center gap-2 rounded-md border border-border bg-background px-3 text-xs font-medium normal-case tracking-normal text-foreground transition-colors hover:bg-accent disabled:cursor-not-allowed disabled:opacity-60";
+const sourceDestructiveButtonClasses =
+  "inline-flex h-8 items-center justify-center gap-2 rounded-md border border-destructive/30 bg-destructive/10 px-3 text-xs font-medium normal-case tracking-normal text-destructive transition-colors hover:bg-destructive hover:text-destructive-foreground disabled:cursor-not-allowed disabled:opacity-60";
+const sourceFieldLabelClasses =
+  "text-ui-label font-normal normal-case tracking-normal text-muted-foreground";
+const sourceMetaLabelClasses =
+  "text-ui-micro font-normal normal-case tracking-normal text-muted-foreground";
 const statusBadgeClasses =
-  "inline-flex h-6 items-center gap-1.5 rounded-md border px-2 text-ui-label font-semibold uppercase tracking-[var(--tracking-caps-sm)]";
+  "inline-flex h-6 items-center gap-1.5 rounded-md border px-2 text-ui-label font-medium normal-case tracking-normal";
+const sourceFilterButtonClasses =
+  "inline-flex h-7 items-center gap-1.5 rounded-[var(--radius-control)] px-2 text-ui-label font-medium normal-case tracking-normal transition-colors";
 const healthySurfaceClasses = "border-primary/30 bg-primary/10 text-foreground";
 const attentionSurfaceClasses =
   "border-destructive/30 bg-destructive/10 text-destructive";
@@ -195,7 +207,7 @@ export function SourcesDialogHeader({
           </div>
           <div className="min-w-0 space-y-2">
             <div>
-              <h2 className="text-sm font-semibold uppercase tracking-[var(--tracking-caps-md)] text-foreground">
+              <h2 className="text-sm font-semibold text-foreground">
                 Source Control
               </h2>
               <p className="mt-1 text-xs text-muted-foreground">
@@ -226,7 +238,7 @@ export function SourcesDialogHeader({
             <button
               type="button"
               onClick={onToggleAddSource}
-              className={secondaryButtonClasses}
+              className={sourceSecondaryButtonClasses}
             >
               <Plus
                 className={cn(
@@ -242,7 +254,7 @@ export function SourcesDialogHeader({
               type="button"
               onClick={onReloadList}
               disabled={loading || reloading || refreshingAll}
-              className={secondaryButtonClasses}
+              className={sourceSecondaryButtonClasses}
             >
               <RefreshCw
                 className={cn(
@@ -264,7 +276,7 @@ export function SourcesDialogHeader({
                 hasBusyActions ||
                 counts.all === 0
               }
-              className={primaryButtonClasses}
+              className={sourcePrimaryButtonClasses}
             >
               <RefreshCw
                 className={cn("h-4 w-4", refreshingAll && "animate-spin")}
@@ -325,9 +337,7 @@ export function SourcesDialogFilters({
           </label>
 
           <label className="flex h-9 items-center gap-3 rounded-md border border-input bg-background px-3 text-sm text-muted-foreground">
-            <span className="text-ui-label font-semibold uppercase tracking-[var(--tracking-caps-md)]">
-              Provider
-            </span>
+            <span className={sourceFieldLabelClasses}>Provider</span>
             <select
               value={providerFilter}
               onChange={(event) => onProviderFilterChange(event.target.value)}
@@ -351,8 +361,8 @@ export function SourcesDialogFilters({
                 key={value}
                 type="button"
                 onClick={() => onStatusFilterChange(value)}
-                className={cn(
-                  "inline-flex h-7 items-center gap-1.5 rounded-[var(--radius-control)] px-2 text-ui-label font-semibold uppercase tracking-[var(--tracking-caps-sm)] transition-colors",
+                className={joinClassNames(
+                  sourceFilterButtonClasses,
                   isActive
                     ? "bg-primary text-primary-foreground"
                     : "text-muted-foreground hover:bg-accent hover:text-foreground",
@@ -417,7 +427,7 @@ export function SourcesConnectSection({
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <div>
-            <h3 className="text-sm font-semibold uppercase tracking-[var(--tracking-caps-md)] text-foreground">
+            <h3 className="text-sm font-semibold text-foreground">
               Connect another media server
             </h3>
             <p className="mt-1 max-w-2xl text-xs text-muted-foreground">
@@ -431,7 +441,7 @@ export function SourcesConnectSection({
           <button
             type="button"
             onClick={onClosePanel}
-            className={secondaryButtonClasses}
+            className={sourceSecondaryButtonClasses}
           >
             <X className="h-4 w-4" />
             Close
@@ -463,9 +473,7 @@ export function SourcesEmptyState({
       <div className="mx-auto mb-3 flex h-10 w-10 items-center justify-center rounded-md border border-border bg-card">
         <Server className="h-5 w-5 text-muted-foreground" />
       </div>
-      <h3 className="text-sm font-semibold uppercase tracking-[var(--tracking-caps-md)]">
-        {title}
-      </h3>
+      <h3 className="text-sm font-semibold">{title}</h3>
       <p className="mx-auto mt-2 max-w-md text-xs text-muted-foreground">
         {description}
       </p>
@@ -546,20 +554,22 @@ export function SourceCard({
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="flex flex-wrap items-center gap-2">
           <span
-            className={cn(
+            className={joinClassNames(
               statusBadgeClasses,
               "border-border bg-card text-muted-foreground",
             )}
           >
             {formatProviderName(source.providerId)}
           </span>
-          <span className={cn(statusBadgeClasses, status.className)}>
+          <span
+            className={joinClassNames(statusBadgeClasses, status.className)}
+          >
             <StatusIcon className="h-3.5 w-3.5" />
             {status.label}
           </span>
           {busyAction && (
             <span
-              className={cn(
+              className={joinClassNames(
                 statusBadgeClasses,
                 "border-primary/30 bg-primary/10 text-primary",
               )}
@@ -576,7 +586,7 @@ export function SourceCard({
       </div>
 
       <div className="mt-4 grid gap-3 lg:grid-cols-2">
-        <label className={labelClasses}>
+        <label className={sourceFieldLabelClasses}>
           Display Name
           <input
             value={draftName}
@@ -587,7 +597,7 @@ export function SourceCard({
           />
         </label>
 
-        <label className={labelClasses}>
+        <label className={sourceFieldLabelClasses}>
           Server URL
           <input
             value={draftBaseUrl}
@@ -601,17 +611,13 @@ export function SourceCard({
 
       <dl className="mt-3 grid gap-2 text-sm sm:grid-cols-2">
         <div className="rounded-md border border-border bg-card px-3 py-2">
-          <dt className="text-ui-micro font-semibold uppercase tracking-[var(--tracking-caps-md)] text-muted-foreground">
-            Saved URL
-          </dt>
+          <dt className={sourceMetaLabelClasses}>Saved URL</dt>
           <dd className="mt-1 break-all text-xs font-medium text-foreground">
             {source.baseUrl}
           </dd>
         </div>
         <div className="rounded-md border border-border bg-card px-3 py-2">
-          <dt className="text-ui-micro font-semibold uppercase tracking-[var(--tracking-caps-md)] text-muted-foreground">
-            Details
-          </dt>
+          <dt className={sourceMetaLabelClasses}>Details</dt>
           <dd className="mt-1 text-xs font-medium text-foreground">
             {[product, platform].filter(Boolean).join(" • ") ||
               "No extra metadata"}
@@ -642,14 +648,14 @@ export function SourceCard({
             type="button"
             onClick={() => void onSave()}
             disabled={!canSaveEdits}
-            className={secondaryButtonClasses}
+            className={sourceSecondaryButtonClasses}
           >
             Save Changes
           </button>
         </TooltipWrap>
         <div
-          className={cn(
-            "inline-flex h-8 items-center gap-3 rounded-md border border-border bg-card px-3 text-xs font-semibold uppercase tracking-[var(--tracking-caps-sm)] text-foreground transition-opacity",
+          className={joinClassNames(
+            "inline-flex h-8 items-center gap-3 rounded-md border border-border bg-card px-3 text-xs font-medium normal-case tracking-normal text-foreground transition-opacity",
             isBusy && "opacity-60",
           )}
         >
@@ -670,7 +676,7 @@ export function SourceCard({
             type="button"
             onClick={() => void onRefresh()}
             disabled={isBusy}
-            className={secondaryButtonClasses}
+            className={sourceSecondaryButtonClasses}
           >
             <RefreshCw
               className={cn(
@@ -686,7 +692,7 @@ export function SourceCard({
             type="button"
             onClick={() => void onRemove()}
             disabled={isBusy}
-            className={destructiveButtonClasses}
+            className={sourceDestructiveButtonClasses}
           >
             <Trash2 className="h-4 w-4" />
             Remove
