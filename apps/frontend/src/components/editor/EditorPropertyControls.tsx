@@ -2,7 +2,7 @@ import type { CSSProperties, ReactNode } from "react";
 import { cn } from "@/lib/utils";
 
 export function editorPropertyLabelClassName() {
-  return "text-ui-micro font-semibold uppercase tracking-[var(--tracking-caps-md)] text-muted-foreground";
+  return "text-ui-micro font-normal normal-case tracking-normal text-muted-foreground";
 }
 
 export function editorPropertySelectTriggerClassName() {
