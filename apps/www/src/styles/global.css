@@ -198,6 +198,17 @@
     @apply rounded-sm border border-border bg-muted px-1.5 py-0.5 text-[0.88em] text-foreground;
   }
 
+  .prose-docs pre.astro-code {
+    @apply mt-5 overflow-x-auto rounded-lg border border-border bg-black p-4 text-sm shadow-2xl shadow-black/30;
+    background: black !important;
+    line-height: 1.65;
+  }
+
+  .prose-docs pre.astro-code code {
+    display: block;
+    min-width: max-content;
+  }
+
   .release-notes {
     @apply text-sm leading-7 text-muted-foreground;
   }
