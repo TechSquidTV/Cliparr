@@ -50,7 +50,7 @@ export default defineConfig({
               tertiaryTextColor: "#f8fafc",
             },
           },
-          strategy: "inline-svg",
+          strategy: "pre-mermaid",
         },
       ],
     ],

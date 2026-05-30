@@ -1,6 +1,7 @@
 ---
 import BaseLayout from "@/components/BaseLayout.astro";
 import DocsNav from "@/components/DocsNav.astro";
+import MermaidRenderer from "@/components/MermaidRenderer.astro";
 
 interface Props {
   title: string;
@@ -35,4 +36,5 @@ const { title, description, currentSlug } = Astro.props;
       <slot />
     </article>
   </div>
+  <MermaidRenderer />
 </BaseLayout>
