@@ -1,15 +1,15 @@
 import { createHash, randomUUID } from "crypto";
 import { lookup } from "dns/promises";
 import { isIP } from "net";
-import { CLIPARR_CLIENT_VERSION } from "#/config/version.js";
-import type { MediaSource } from "#/db/mediaSourcesRepository.js";
-import { ApiError } from "#/http/errors.js";
+import { CLIPARR_CLIENT_VERSION } from "@/config/version";
+import type { MediaSource } from "@/db/mediaSourcesRepository";
+import { ApiError } from "@/http/errors";
 import {
   errorMessage,
   numberValue,
   stringValue,
   uniqueStrings,
-} from "#/providers/shared/utils.js";
+} from "@/providers/shared/utils";
 
 const JELLYFIN_PRODUCT = "Cliparr";
 const JELLYFIN_DEVICE_NAME = "Cliparr";

@@ -1,6 +1,6 @@
 import type { NextFunction, Request, Response } from "express";
 import { logErrorFields, logEventFields } from "@cliparr/shared/logging";
-import { errorWithError, getServerLogger } from "#/logging.js";
+import { errorWithError, getServerLogger } from "@/logging";
 
 const logger = getServerLogger(["http", "error"]);
 

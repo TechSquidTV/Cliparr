@@ -1,5 +1,5 @@
 import { createHash, randomBytes, randomUUID, timingSafeEqual } from "crypto";
-import { ApiError } from "#/http/errors.js";
+import { ApiError } from "@/http/errors";
 import {
   AUTH_TTL_MS,
   MAX_PENDING_AUTH_REQUESTS,
@@ -10,7 +10,7 @@ import {
   requirePlexServerResources,
   type PlexAuthRequest,
   type PlexResourceResponse,
-} from "#/providers/plex/shared.js";
+} from "@/providers/plex/shared";
 
 const authRequests = new Map<string, PlexAuthRequest>();
 const AUTH_POLL_TOKEN_BYTES = 32;

@@ -1,14 +1,13 @@
 {
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
-    "module": "NodeNext",
-    "moduleResolution": "NodeNext",
-    "customConditions": ["cliparr-source"],
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
     "paths": {
-      "#/*.js": ["./src/*.ts"]
+      "@/*": ["./src/*"]
     },
     "types": ["node"],
     "noEmit": true
   },
-  "include": ["src"]
+  "include": ["src", "drizzle.config.ts", "tsdown.config.ts"]
 }

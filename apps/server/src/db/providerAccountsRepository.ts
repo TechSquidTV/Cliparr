@@ -1,13 +1,9 @@
 import { randomUUID } from "crypto";
 import { and, eq, isNotNull, isNull, sql } from "drizzle-orm";
-import { getDatabase } from "#/db/database.js";
-import { providerAccounts, type ProviderAccountRow } from "#/db/schema.js";
-import { currentTimestampSql } from "#/db/timestamps.js";
-import {
-  decryptSecret,
-  encryptSecret,
-  hashSecret,
-} from "#/security/secrets.js";
+import { getDatabase } from "@/db/database";
+import { providerAccounts, type ProviderAccountRow } from "@/db/schema";
+import { currentTimestampSql } from "@/db/timestamps";
+import { decryptSecret, encryptSecret, hashSecret } from "@/security/secrets";
 
 export interface ProviderAccount {
   id: string;

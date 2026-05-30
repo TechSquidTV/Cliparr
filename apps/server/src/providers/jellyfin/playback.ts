@@ -4,17 +4,17 @@ import {
   logEventFields,
   sanitizeUrlForLog,
 } from "@cliparr/shared/logging";
-import type { MediaSource } from "#/db/mediaSourcesRepository.js";
-import { ApiError } from "#/http/errors.js";
-import { getServerLogger } from "#/logging.js";
-import type { ProviderSessionRecord } from "#/session/store.js";
+import type { MediaSource } from "@/db/mediaSourcesRepository";
+import { ApiError } from "@/http/errors";
+import { getServerLogger } from "@/logging";
+import type { ProviderSessionRecord } from "@/session/store";
 import type {
   CurrentlyPlayingEntry,
   MediaExportMetadata,
   PlaybackAudioSelection,
   PlaybackSubtitleSelection,
   PlaybackSubtitleTrack,
-} from "#/providers/types.js";
+} from "@/providers/types";
 import {
   createProviderMediaHandle,
   fetchMediaHandleRequest,
@@ -24,12 +24,12 @@ import {
   sanitizeLoggedMediaPath,
   shouldAttachProviderAuth,
   shouldForwardMediaRange,
-} from "#/providers/shared/mediaProxy.js";
+} from "@/providers/shared/mediaProxy";
 import {
   isTextSubtitleCodec,
   normalizeSubtitleCodec,
   subtitleContentFormat,
-} from "#/providers/shared/subtitles.js";
+} from "@/providers/shared/subtitles";
 import {
   asArray,
   buildEpisodeSourceTitle,
@@ -37,7 +37,7 @@ import {
   numberValue,
   stringValue,
   uniqueStrings,
-} from "#/providers/shared/utils.js";
+} from "@/providers/shared/utils";
 import {
   booleanValue,
   fetchItem,
@@ -51,7 +51,7 @@ import {
   type JellyfinPlaybackInfo,
   type JellyfinSessionInfo,
   type JellyfinSourceContext,
-} from "#/providers/jellyfin/shared.js";
+} from "@/providers/jellyfin/shared";
 
 const logger = getServerLogger(["provider", "jellyfin", "playback"]);
 const HD_ARTWORK_SIZE = 1920;

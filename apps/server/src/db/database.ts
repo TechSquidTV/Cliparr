@@ -1,22 +1,22 @@
 import fs from "fs";
 import path from "path";
 import { DatabaseSync } from "node:sqlite";
-import { fileURLToPath } from "url";
 import { drizzle, type NodeSQLiteDatabase } from "drizzle-orm/node-sqlite";
 import { migrate } from "drizzle-orm/node-sqlite/migrator";
 import { logErrorFields } from "@cliparr/shared/logging";
-import { prepareDatabaseForMigrations } from "#/db/migrationState.js";
-import * as schema from "#/db/schema.js";
-import { resolveConfiguredDataDir, workspaceRoot } from "#/config/loadEnv.js";
-import { getServerLogger } from "#/logging.js";
-import { assertAppKeyConfigured } from "#/security/secrets.js";
+import { prepareDatabaseForMigrations } from "@/db/migrationState";
+import * as schema from "@/db/schema";
+import {
+  resolveConfiguredDataDir,
+  serverRoot,
+  workspaceRoot,
+} from "@/config/loadEnv";
+import { getServerLogger } from "@/logging";
+import { assertAppKeyConfigured } from "@/security/secrets";
 
 const DEFAULT_DATABASE_FILE = "cliparr.sqlite";
 const DEFAULT_DEVELOPMENT_DATA_DIR = ".cliparr-data";
-const MIGRATIONS_FOLDER = path.resolve(
-  path.dirname(fileURLToPath(import.meta.url)),
-  "../../drizzle",
-);
+const MIGRATIONS_FOLDER = path.join(serverRoot, "drizzle");
 
 type CliparrDatabase = NodeSQLiteDatabase<typeof schema>;
 

@@ -1,16 +1,16 @@
-import { ApiError } from "#/http/errors.js";
-import type { ProviderImplementation } from "#/providers/types.js";
-import { pollAuth, startAuth } from "#/providers/plex/auth.js";
+import { ApiError } from "@/http/errors";
+import type { ProviderImplementation } from "@/providers/types";
+import { pollAuth, startAuth } from "@/providers/plex/auth";
 import {
   PLEX_BASE_URL_MODE_AUTO,
   withPlexBaseUrlMode,
-} from "#/providers/plex/connectionState.js";
-import { listCurrentlyPlaying, proxyMedia } from "#/providers/plex/playback.js";
+} from "@/providers/plex/connectionState";
+import { listCurrentlyPlaying, proxyMedia } from "@/providers/plex/playback";
 import {
   selectReachableConnection,
   sourceResource,
   sourceSupportsCurrentlyPlaying,
-} from "#/providers/plex/shared.js";
+} from "@/providers/plex/shared";
 
 async function checkSource(
   source: Parameters<ProviderImplementation["checkSource"]>[0],

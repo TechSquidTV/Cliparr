@@ -11,10 +11,10 @@
       "project": ["src/**/*.{astro,mdx,ts}", "scripts/**/*.ts"]
     },
     "apps/server": {
+      "drizzle": false,
       "ignoreBinaries": ["eslint"],
       "paths": {
-        "#/*.js": ["./src/*.ts"],
-        "#/*": ["./src/*"]
+        "@/*": ["./src/*"]
       },
       "project": ["src/**/*.ts"]
     }

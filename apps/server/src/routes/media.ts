@@ -6,10 +6,10 @@ import {
   logErrorFields,
   logEventFields,
 } from "@cliparr/shared/logging";
-import { listMediaSources } from "#/db/mediaSourcesRepository.js";
-import { ApiError, asyncHandler } from "#/http/errors.js";
-import { getServerLogger, warnWithError } from "#/logging.js";
-import { getProvider } from "#/providers/registry.js";
+import { listMediaSources } from "@/db/mediaSourcesRepository";
+import { ApiError, asyncHandler } from "@/http/errors";
+import { getServerLogger, warnWithError } from "@/logging";
+import { getProvider } from "@/providers/registry";
 import {
   assertAllowedMediaHandleRequestUrl,
   fetchMediaHandleRequest,
@@ -17,18 +17,18 @@ import {
   proxyProviderMediaResponse,
   sanitizeLoggedMediaPath,
   shouldForwardMediaRange,
-} from "#/providers/shared/mediaProxy.js";
+} from "@/providers/shared/mediaProxy";
 import type {
   CurrentlyPlayingEntry,
   MediaHandle,
   SourcePlaybackError,
   ViewerPlaybackGroup,
-} from "#/providers/types.js";
-import { requireAccountSession, setNoStore } from "#/session/request.js";
+} from "@/providers/types";
+import { requireAccountSession, setNoStore } from "@/session/request";
 import {
   pruneSessionMediaHandles,
   type ProviderSessionRecord,
-} from "#/session/store.js";
+} from "@/session/store";
 
 export const mediaRouter = Router();
 const mediaLogger = getServerLogger("media");

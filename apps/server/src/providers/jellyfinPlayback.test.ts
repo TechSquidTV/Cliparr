@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import type { Request, Response } from "express";
-import type { MediaSource } from "#/db/mediaSourcesRepository.js";
-import type { ProviderSessionRecord } from "#/session/store.js";
+import type { MediaSource } from "@/db/mediaSourcesRepository";
+import type { ProviderSessionRecord } from "@/session/store";
 import {
   buildPreviewPath,
   deriveSelectedSubtitleTrack,
@@ -10,8 +10,8 @@ import {
   listCurrentlyPlaying,
   playheadSecondsFromPositionTicks,
   proxyMedia,
-} from "#/providers/jellyfin/playback.js";
-import type { JellyfinSourceContext } from "#/providers/jellyfin/shared.js";
+} from "@/providers/jellyfin/playback";
+import type { JellyfinSourceContext } from "@/providers/jellyfin/shared";
 
 function createSession(): ProviderSessionRecord {
   return {

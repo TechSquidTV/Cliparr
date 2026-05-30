@@ -25,7 +25,7 @@ RUN pnpm install --frozen-lockfile
 
 COPY tsconfig.json tsconfig.base.json ./
 COPY packages/shared/src packages/shared/src
-COPY apps/server/tsconfig.json apps/server/tsconfig.build.json apps/server/
+COPY apps/server/tsconfig.json apps/server/tsconfig.build.json apps/server/tsdown.config.ts apps/server/
 COPY apps/server/drizzle apps/server/drizzle
 COPY apps/server/src apps/server/src
 COPY apps/frontend/components.json apps/frontend/index.html apps/frontend/tsconfig.json apps/frontend/vite.config.js apps/frontend/
@@ -33,7 +33,6 @@ COPY apps/frontend/public apps/frontend/public
 COPY apps/frontend/src apps/frontend/src
 
 RUN pnpm build
-RUN pnpm --filter @cliparr/server deploy --legacy --prod /prod/apps/server
 
 FROM node:24-slim AS runner
 
@@ -51,7 +50,8 @@ ENV CLIPARR_VERSION=$CLIPARR_VERSION
 
 WORKDIR /app
 
-COPY --from=build --chown=node:node /prod/apps/server ./apps/server
+COPY --from=build --chown=node:node /app/apps/server/package.json ./apps/server/package.json
+COPY --from=build --chown=node:node /app/apps/server/dist ./apps/server/dist
 COPY --from=build --chown=node:node /app/apps/server/drizzle ./apps/server/drizzle
 COPY --from=build --chown=node:node /app/apps/frontend/dist ./apps/frontend/dist
 

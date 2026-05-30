@@ -9,13 +9,13 @@ const TEST_APP_KEY = "session-store-test-key-with-at-least-32-characters";
 const MISMATCHED_APP_KEY =
   "session-store-test-key-with-a-different-32-char-secret";
 
-const appModuleSpecifier = "#/app.js";
-const databaseModuleSpecifier = "#/db/database.js";
+const appModuleSpecifier = "@/app";
+const databaseModuleSpecifier = "@/db/database";
 const providerAccountsRepositoryModuleSpecifier =
-  "#/db/providerAccountsRepository.js";
+  "@/db/providerAccountsRepository";
 const rememberedProviderSessionsRepositoryModuleSpecifier =
-  "#/db/rememberedProviderSessionsRepository.js";
-const storeModuleSpecifier = "#/session/store.js";
+  "@/db/rememberedProviderSessionsRepository";
+const storeModuleSpecifier = "@/session/store";
 
 function runStoreScript(
   script: string,
@@ -26,14 +26,7 @@ function runStoreScript(
 ) {
   const child = spawnSync(
     process.execPath,
-    [
-      "--conditions=cliparr-source",
-      "--import",
-      "tsx",
-      "--input-type=module",
-      "--eval",
-      script,
-    ],
+    ["--import", "tsx", "--input-type=module", "--eval", script],
     {
       cwd: process.cwd(),
       env: {

@@ -1,6 +1,6 @@
-import type { ProviderImplementation } from "#/providers/types.js";
-import { jellyfinProvider } from "#/providers/jellyfin/provider.js";
-import { plexProvider } from "#/providers/plex/provider.js";
+import type { ProviderImplementation } from "@/providers/types";
+import { jellyfinProvider } from "@/providers/jellyfin/provider";
+import { plexProvider } from "@/providers/plex/provider";
 
 const providers = new Map<string, ProviderImplementation>();
 

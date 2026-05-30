@@ -1,6 +1,6 @@
 import { isIP } from "node:net";
 import type { Request } from "express";
-import { ApiError } from "#/http/errors.js";
+import { ApiError } from "@/http/errors";
 
 type OriginAwareRequest = Pick<Request, "get" | "hostname" | "secure">;
 

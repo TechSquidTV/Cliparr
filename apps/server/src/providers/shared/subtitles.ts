@@ -1,4 +1,4 @@
-import { stringValue } from "#/providers/shared/utils.js";
+import { stringValue } from "@/providers/shared/utils";
 
 const TEXT_SUBTITLE_CODECS = new Set([
   "ass",

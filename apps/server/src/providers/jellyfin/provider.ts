@@ -1,13 +1,13 @@
-import type { ProviderImplementation } from "#/providers/types.js";
+import type { ProviderImplementation } from "@/providers/types";
 import {
   authenticateWithCredentials,
   checkSource,
-} from "#/providers/jellyfin/auth.js";
+} from "@/providers/jellyfin/auth";
 import {
   listCurrentlyPlaying,
   proxyMedia,
   sourceSupportsCurrentlyPlaying,
-} from "#/providers/jellyfin/playback.js";
+} from "@/providers/jellyfin/playback";
 
 export const jellyfinProvider: ProviderImplementation = {
   definition: {
