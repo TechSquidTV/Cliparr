@@ -6,7 +6,7 @@ dist/
 coverage/
 .cliparr-data/
 apps/server/.cliparr-data/
-.DS_Store
+**/.DS_Store
 *.log
 *.tsbuildinfo
 .env*
