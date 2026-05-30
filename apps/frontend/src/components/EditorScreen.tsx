@@ -54,6 +54,7 @@ export default function EditorScreen({ session, onBack }: Props) {
   const [startTime, setStartTime] = useState(() => initialClipRange.startTime);
   const [endTime, setEndTime] = useState(() => initialClipRange.endTime);
   const [playbackSidebarOpen, setPlaybackSidebarOpen] = useState(true);
+  const [exportDialogMounted, setExportDialogMounted] = useState(false);
   const {
     subtitleTracks,
     selectedSubtitleTrack,
@@ -166,6 +167,12 @@ export default function EditorScreen({ session, onBack }: Props) {
     activeSourceLabel || (loadingPreview ? "Resolving stream" : "Unavailable");
   const isHlsPreviewSource =
     previewSourceLabel === "HLS stream" || previewSourceLabel === "HLS URL";
+
+  useEffect(() => {
+    if (exportDialogOpen) {
+      setExportDialogMounted(true);
+    }
+  }, [exportDialogOpen]);
 
   const updateClipRange = useCallback(
     (nextStart: number, nextEnd: number) => {
@@ -637,7 +644,7 @@ export default function EditorScreen({ session, onBack }: Props) {
         )}
       </main>
 
-      {exportDialogOpen && (
+      {exportDialogMounted && (
         <Suspense fallback={null}>
           <EditorExportDialog
             isOpen={exportDialogOpen}

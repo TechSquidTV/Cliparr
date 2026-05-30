@@ -13,6 +13,7 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
+    "@base-ui/react": "^1.5.0",
     "@cliparr/shared": "workspace:*",
     "@mediabunny/aac-encoder": "^1.45.4",
     "@mediabunny/ac3": "^1.45.4",
