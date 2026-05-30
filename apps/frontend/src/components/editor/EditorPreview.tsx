@@ -11,6 +11,7 @@ interface EditorPreviewProps {
   loadingPreview: boolean;
   loadingPreviewFrame: boolean;
   posterImageUrl?: string;
+  posterViewTransitionName?: string;
   previewStatus: string;
   previewFrameStatus: string;
   togglePlay: () => void;
@@ -23,6 +24,7 @@ export function EditorPreview({
   loadingPreview,
   loadingPreviewFrame,
   posterImageUrl,
+  posterViewTransitionName,
   previewStatus,
   previewFrameStatus,
   togglePlay,
@@ -55,6 +57,11 @@ export function EditorPreview({
           className={`pointer-events-none absolute inset-0 h-full w-full scale-105 object-cover blur-sm transition-opacity duration-200 ease-out ${
             showLoadingOverlay ? "opacity-75" : "opacity-0"
           }`}
+          style={
+            posterViewTransitionName
+              ? { viewTransitionName: posterViewTransitionName }
+              : undefined
+          }
         />
       )}
       {!showLoadingOverlay && (

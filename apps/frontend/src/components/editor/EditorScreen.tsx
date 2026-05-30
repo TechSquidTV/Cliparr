@@ -32,6 +32,7 @@ import {
 } from "./EditorLayout";
 import { useEditorSubtitles } from "./useEditorSubtitles";
 import { sourceDisplayLabel, type EditorSession } from "../../lib/editorMedia";
+import { EDITOR_THUMBNAIL_VIEW_TRANSITION_NAME } from "../../lib/viewTransitions";
 
 const EditorExportDialog = lazy(() =>
   import("./EditorExportDialog").then((module) => ({
@@ -322,6 +323,9 @@ export default function EditorScreen({ session, onBack }: Props) {
         loadingPreview={loadingPreview}
         loadingPreviewFrame={loadingPreviewFrame}
         posterImageUrl={posterImageUrl}
+        posterViewTransitionName={
+          posterImageUrl ? EDITOR_THUMBNAIL_VIEW_TRANSITION_NAME : undefined
+        }
         previewStatus={previewStatus}
         previewFrameStatus={previewFrameStatus}
         togglePlay={togglePlay}

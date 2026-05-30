@@ -161,6 +161,8 @@
   --editor-sidebar-max-width: 85vw;
   --editor-preview-fallback-font-size: 1.5rem;
   --text-editor-preview-fallback: var(--editor-preview-fallback-font-size);
+  --editor-view-transition-duration: 280ms;
+  --editor-view-transition-easing: cubic-bezier(0.2, 0, 0, 1);
   --status-warning: color-mix(in oklch, var(--primary) 14%, var(--background));
   --status-warning-border: color-mix(in oklch, var(--primary) 28%, transparent);
   --status-warning-foreground: color-mix(
@@ -481,6 +483,20 @@
   body {
     @apply bg-background text-foreground;
     letter-spacing: var(--tracking-normal);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  ::view-transition-group(cliparr-editor-thumbnail),
+  ::view-transition-old(cliparr-editor-thumbnail),
+  ::view-transition-new(cliparr-editor-thumbnail) {
+    animation-duration: var(--editor-view-transition-duration);
+    animation-timing-function: var(--editor-view-transition-easing);
+  }
+
+  ::view-transition-old(cliparr-editor-thumbnail),
+  ::view-transition-new(cliparr-editor-thumbnail) {
+    mix-blend-mode: normal;
   }
 }
 

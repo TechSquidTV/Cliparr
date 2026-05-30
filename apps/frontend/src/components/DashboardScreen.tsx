@@ -9,6 +9,7 @@ import {
   Video,
 } from "lucide-react";
 import { cliparrClient } from "../api/cliparrClient";
+import { EDITOR_THUMBNAIL_VIEW_TRANSITION_NAME } from "../lib/viewTransitions";
 import { formatProviderName, ProviderGlyph } from "./providers/ProviderGlyph";
 import type {
   CurrentlyPlayingItem,
@@ -17,6 +18,7 @@ import type {
 } from "../providers/types";
 
 interface Props {
+  activeViewTransitionSessionId?: string | null;
   onSelectSession: (session: CurrentlyPlayingItem) => void;
   onOpenLocalVideo: () => void;
   onOpenSources: () => void;
@@ -131,6 +133,7 @@ function WarningBanner({
 }
 
 export default function DashboardScreen({
+  activeViewTransitionSessionId,
   onSelectSession,
   onOpenLocalVideo,
   onOpenSources,
@@ -310,6 +313,12 @@ export default function DashboardScreen({
                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
                   {viewerGroup.items.map((mediaSession) => {
                     const canEdit = canEditSession(mediaSession);
+                    const thumbnailViewTransitionName =
+                      mediaSession.thumbUrl &&
+                      mediaSession.id === activeViewTransitionSessionId
+                        ? EDITOR_THUMBNAIL_VIEW_TRANSITION_NAME
+                        : undefined;
+
                     return (
                       <button
                         key={mediaSession.id}
@@ -327,6 +336,14 @@ export default function DashboardScreen({
                               src={mediaSession.thumbUrl}
                               alt={mediaSession.title}
                               className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity"
+                              style={
+                                thumbnailViewTransitionName
+                                  ? {
+                                      viewTransitionName:
+                                        thumbnailViewTransitionName,
+                                    }
+                                  : undefined
+                              }
                             />
                           ) : (
                             <div className="w-full h-full flex items-center justify-center">

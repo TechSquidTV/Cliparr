@@ -1,11 +1,12 @@
 import { createFileRoute, useCanGoBack } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { cliparrClient } from "../api/cliparrClient";
 import EditorScreen from "../components/editor/EditorScreen";
 import {
   editorSessionFromCurrentlyPlaying,
   type EditorSession,
 } from "../lib/editorMedia";
+import { getPendingEditorTransitionSession } from "../lib/viewTransitions";
 import { router } from "../router";
 
 function errorMessage(err: unknown, fallback: string) {
@@ -15,16 +16,33 @@ function errorMessage(err: unknown, fallback: string) {
 function EditorRouteComponent() {
   const { sessionId } = Route.useParams();
   const canGoBack = useCanGoBack();
-  const [session, setSession] = useState<EditorSession | null>(null);
-  const [loading, setLoading] = useState(true);
+  const transitionSession = getPendingEditorTransitionSession(sessionId);
+  const [session, setSession] = useState<EditorSession | null>(
+    () => transitionSession,
+  );
+  const [loading, setLoading] = useState(() => !transitionSession);
   const [error, setError] = useState("");
   const [attempt, setAttempt] = useState(0);
+  const sessionRef = useRef(session);
+
+  useEffect(() => {
+    sessionRef.current = session;
+  }, [session]);
 
   useEffect(() => {
     let cancelled = false;
+    const transitionSession = getPendingEditorTransitionSession(sessionId);
+    const hasWarmSession =
+      Boolean(transitionSession) || sessionRef.current?.id === sessionId;
+
+    if (transitionSession) {
+      setSession(transitionSession);
+    }
 
     async function loadSession() {
-      setLoading(true);
+      if (!hasWarmSession) {
+        setLoading(true);
+      }
       setError("");
 
       try {

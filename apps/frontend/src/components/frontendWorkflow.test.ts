@@ -7,6 +7,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import AuthCompleteScreen from "./AuthCompleteScreen";
 import { EditorPreview } from "./editor/EditorPreview";
 import { LocalVideoOpenDialog } from "./local-media/LocalVideoOpenDialog";
+import { EDITOR_THUMBNAIL_VIEW_TRANSITION_NAME } from "../lib/viewTransitions";
 
 void test("renders the provider auth completion screen", () => {
   const markup = renderToStaticMarkup(createElement(AuthCompleteScreen));
@@ -67,4 +68,25 @@ void test("keeps the editor thumbnail mounted after preview load for fade out", 
   assert.match(markup, /\/api\/media\/thumb\.jpg/);
   assert.match(markup, /transition-opacity/);
   assert.match(markup, /opacity-0/);
+});
+
+void test("renders editor poster with the shared thumbnail view transition", () => {
+  const markup = renderToStaticMarkup(
+    createElement(EditorPreview, {
+      canvasRef: createRef<HTMLCanvasElement>(),
+      playing: false,
+      loadingPreview: true,
+      loadingPreviewFrame: false,
+      posterImageUrl: "/api/media/thumb.jpg",
+      posterViewTransitionName: EDITOR_THUMBNAIL_VIEW_TRANSITION_NAME,
+      previewStatus: "Loading HLS stream...",
+      previewFrameStatus: "",
+      togglePlay: () => undefined,
+    }),
+  );
+
+  assert.match(
+    markup,
+    new RegExp(`view-transition-name:${EDITOR_THUMBNAIL_VIEW_TRANSITION_NAME}`),
+  );
 });
