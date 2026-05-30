@@ -24,17 +24,21 @@ const docs = (await getCollection("docs")) as DocsEntry[];
   >
     Docs home
   </a>
-  <div class="mt-2 space-y-1">
+  <div class="mt-4 space-y-4">
     {
-      docsSections.map((section) => {
+      docsSections.map((section, sectionIndex) => {
         const sectionDocs = docsForSection(docs, section.id);
 
         return sectionDocs.length > 0 ? (
-          <section class="pt-3">
-            <h2 class="px-3 text-xs font-semibold uppercase tracking-normal text-muted-foreground">
+          <section
+            class={
+              sectionIndex === 0 ? undefined : "border-t border-border pt-4"
+            }
+          >
+            <h2 class="px-3 text-sm font-semibold leading-5 text-foreground/75">
               {section.title}
             </h2>
-            <div class="mt-1 space-y-1">
+            <div class="mt-2 space-y-1">
               {sectionDocs.map((entry) => (
                 <a
                   href={`/docs/${entry.id}`}
