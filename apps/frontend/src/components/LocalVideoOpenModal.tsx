@@ -165,7 +165,7 @@ export function LocalVideoOpenModal({
           setError("");
         }}
       >
-        <div className="border-b border-border px-4 pt-3">
+        <div className="border-b border-border px-4 py-3">
           <TabsList className="grid grid-cols-2">
             <TabsTab ref={initialFocusRef} value="file">
               <FileVideo className="h-4 w-4" />
