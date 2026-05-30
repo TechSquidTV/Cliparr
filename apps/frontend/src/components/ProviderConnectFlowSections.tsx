@@ -185,12 +185,12 @@ export function ProviderOption({
                 initial={{ opacity: 0, scale: 0.92 }}
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.92 }}
-                className="rounded-full border border-primary/30 bg-primary/10 px-2.5 py-1 text-[11px] font-medium uppercase tracking-[var(--tracking-caps-lg)] text-primary"
+                className="rounded-full border border-primary/30 bg-primary/10 px-2.5 py-1 text-ui-label font-medium uppercase tracking-[var(--tracking-caps-lg)] text-primary"
               >
                 Selected
               </motion.span>
             ) : (
-              <span className="rounded-md border border-primary/20 bg-primary/10 px-2 py-1 text-[10px] font-semibold uppercase tracking-[var(--tracking-caps-md)] text-primary">
+              <span className="rounded-md border border-primary/20 bg-primary/10 px-2 py-1 text-ui-micro font-semibold uppercase tracking-[var(--tracking-caps-md)] text-primary">
                 Selected
               </span>
             ))}

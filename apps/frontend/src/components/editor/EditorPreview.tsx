@@ -64,7 +64,7 @@ export function EditorPreview({
         </div>
       )}
       {showLoadingOverlay && (
-        <div className="absolute inset-0 flex items-center justify-center gap-2 bg-[var(--editor-preview-overlay)] text-sm text-[var(--editor-preview-overlay-foreground)]">
+        <div className="absolute inset-0 flex items-center justify-center gap-2 bg-editor-preview-overlay text-sm text-editor-preview-overlay-foreground">
           <LoaderCircle className="h-4 w-4 animate-spin" />
           <span>{loadingStatus}</span>
         </div>

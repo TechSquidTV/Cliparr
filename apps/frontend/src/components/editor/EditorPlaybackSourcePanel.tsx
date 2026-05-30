@@ -35,7 +35,7 @@ export function EditorPlaybackSourcePanel({
     <section className={cn("flex min-h-0 flex-col", className)}>
       <div className="overflow-hidden border border-editor-border bg-editor-panel-raised">
         <div className="border-b border-editor-border bg-editor-panel-muted px-3 py-2">
-          <div className="text-[10px] font-semibold uppercase tracking-[var(--tracking-caps-md)] text-muted-foreground">
+          <div className="text-ui-micro font-semibold uppercase tracking-[var(--tracking-caps-md)] text-muted-foreground">
             Preview Source
           </div>
         </div>

@@ -239,7 +239,7 @@ export function LocalVideoOpenModal({
                 onSubmit={(event) => void handleUrlSubmit(event)}
               >
                 <label className="block space-y-1.5">
-                  <span className="text-[11px] font-semibold uppercase tracking-[var(--tracking-caps-lg)] text-muted-foreground">
+                  <span className="text-ui-label font-semibold uppercase tracking-[var(--tracking-caps-lg)] text-muted-foreground">
                     Media URL
                   </span>
                   <input

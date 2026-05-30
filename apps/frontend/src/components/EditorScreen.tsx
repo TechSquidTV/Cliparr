@@ -30,10 +30,13 @@ import {
   buildClipRangeAfterDurationDiscovery,
   buildInitialClipRange,
 } from "./editor/initialClipRange";
+import {
+  EDITOR_DESKTOP_LAYOUT_QUERY,
+  EDITOR_PANEL_SIZES,
+  EDITOR_RESIZE_TARGET_MINIMUM_SIZE,
+} from "./editor/editorLayoutSizing";
 import { useEditorSubtitles } from "./editor/useEditorSubtitles";
 import { sourceDisplayLabel, type EditorSession } from "../lib/editorMedia";
-
-const DESKTOP_EDITOR_LAYOUT_QUERY = "(min-width: 1024px)";
 
 const EditorExportDialog = lazy(() =>
   import("./editor/EditorExportDialog").then((module) => ({
@@ -339,24 +342,28 @@ export default function EditorScreen({ session, onBack }: Props) {
           <ResizablePanelGroup
             id="cliparr-editor-root-panels"
             orientation="horizontal"
-            resizeTargetMinimumSize={{ coarse: 36, fine: 8 }}
+            resizeTargetMinimumSize={EDITOR_RESIZE_TARGET_MINIMUM_SIZE}
             className="h-full min-h-0"
           >
             <ResizablePanel
               id="cliparr-editor-primary-panel"
-              defaultSize={playbackSidebarOpen ? "73%" : "97%"}
-              minSize="40rem"
+              defaultSize={
+                playbackSidebarOpen
+                  ? EDITOR_PANEL_SIZES.primaryOpen
+                  : EDITOR_PANEL_SIZES.primaryClosed
+              }
+              minSize={EDITOR_PANEL_SIZES.primaryMin}
             >
               <ResizablePanelGroup
                 id="cliparr-editor-primary-stack"
                 orientation="vertical"
-                resizeTargetMinimumSize={{ coarse: 36, fine: 8 }}
+                resizeTargetMinimumSize={EDITOR_RESIZE_TARGET_MINIMUM_SIZE}
                 className="h-full min-h-0"
               >
                 <ResizablePanel
                   id="cliparr-editor-preview-panel"
-                  defaultSize="68%"
-                  minSize="10rem"
+                  defaultSize={EDITOR_PANEL_SIZES.previewDefault}
+                  minSize={EDITOR_PANEL_SIZES.previewMin}
                 >
                   <div className="flex h-full min-h-0 flex-col gap-3">
                     {error && (
@@ -384,9 +391,9 @@ export default function EditorScreen({ session, onBack }: Props) {
 
                 <ResizablePanel
                   id="cliparr-editor-timeline-panel"
-                  defaultSize="32%"
-                  minSize="13rem"
-                  maxSize="60%"
+                  defaultSize={EDITOR_PANEL_SIZES.timelineDefault}
+                  minSize={EDITOR_PANEL_SIZES.timelineMin}
+                  maxSize={EDITOR_PANEL_SIZES.timelineMax}
                 >
                   <section className="flex h-full min-h-0 flex-col overflow-hidden border border-editor-border bg-editor-panel text-foreground">
                     <EditorControls
@@ -464,9 +471,9 @@ export default function EditorScreen({ session, onBack }: Props) {
                 <ResizableHandle withHandle />
                 <ResizablePanel
                   id="cliparr-editor-properties-panel"
-                  defaultSize="27%"
-                  minSize="18rem"
-                  maxSize="34rem"
+                  defaultSize={EDITOR_PANEL_SIZES.propertiesDefault}
+                  minSize={EDITOR_PANEL_SIZES.propertiesMin}
+                  maxSize={EDITOR_PANEL_SIZES.propertiesMax}
                   groupResizeBehavior="preserve-pixel-size"
                 >
                   <EditorSidebar
@@ -488,7 +495,7 @@ export default function EditorScreen({ session, onBack }: Props) {
                         className="shrink-0 p-0"
                       />
                       {!session.local && (
-                        <div className="min-h-[28rem] flex-1">
+                        <div className="min-h-editor-properties-min flex-1">
                           <EditorSubtitlePanel
                             providerId={session.source.providerId}
                             subtitleTracks={subtitleTracks}
@@ -515,9 +522,9 @@ export default function EditorScreen({ session, onBack }: Props) {
             ) : (
               <ResizablePanel
                 id="cliparr-editor-properties-rail"
-                defaultSize="3rem"
-                minSize="3rem"
-                maxSize="3rem"
+                defaultSize={EDITOR_PANEL_SIZES.propertiesRail}
+                minSize={EDITOR_PANEL_SIZES.propertiesRail}
+                maxSize={EDITOR_PANEL_SIZES.propertiesRail}
                 disabled
                 groupResizeBehavior="preserve-pixel-size"
               >
@@ -550,7 +557,7 @@ export default function EditorScreen({ session, onBack }: Props) {
               hasHlsSource={Boolean(session.hlsSource)}
             />
 
-            <section className="flex min-h-[12rem] flex-none items-center justify-center overflow-hidden border border-editor-border bg-editor-monitor p-2 sm:min-h-[16rem]">
+            <section className="flex min-h-editor-preview-min flex-none items-center justify-center overflow-hidden border border-editor-border bg-editor-monitor p-2 sm:min-h-editor-preview-sm-min">
               <EditorPreview
                 canvasRef={canvasRef}
                 videoDimensions={previewVideoDimensions}
@@ -623,7 +630,7 @@ export default function EditorScreen({ session, onBack }: Props) {
             </section>
 
             {!session.local && (
-              <div className="min-h-[28rem]">
+              <div className="min-h-editor-properties-min">
                 <EditorSubtitlePanel
                   providerId={session.source.providerId}
                   subtitleTracks={subtitleTracks}
@@ -700,14 +707,16 @@ export default function EditorScreen({ session, onBack }: Props) {
 }
 
 function useEditorDesktopLayout() {
-  const [isDesktopLayout, setIsDesktopLayout] = useState(() =>
-    typeof window === "undefined"
-      ? false
-      : window.matchMedia(DESKTOP_EDITOR_LAYOUT_QUERY).matches,
-  );
+  const [isDesktopLayout, setIsDesktopLayout] = useState(() => {
+    if (typeof window === "undefined") {
+      return false;
+    }
+
+    return window.matchMedia(EDITOR_DESKTOP_LAYOUT_QUERY).matches;
+  });
 
   useEffect(() => {
-    const query = window.matchMedia(DESKTOP_EDITOR_LAYOUT_QUERY);
+    const query = window.matchMedia(EDITOR_DESKTOP_LAYOUT_QUERY);
     const updateLayout = () => setIsDesktopLayout(query.matches);
 
     updateLayout();

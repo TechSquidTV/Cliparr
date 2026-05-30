@@ -66,9 +66,9 @@ const sourceFilterOptions = [
 ] as const satisfies readonly [SourceFilter, string][];
 
 const labelClasses =
-  "text-[11px] font-semibold uppercase tracking-[var(--tracking-caps-md)] text-muted-foreground";
+  "text-ui-label font-semibold uppercase tracking-[var(--tracking-caps-md)] text-muted-foreground";
 const statusBadgeClasses =
-  "inline-flex h-6 items-center gap-1.5 rounded-md border px-2 text-[11px] font-semibold uppercase tracking-[var(--tracking-caps-sm)]";
+  "inline-flex h-6 items-center gap-1.5 rounded-md border px-2 text-ui-label font-semibold uppercase tracking-[var(--tracking-caps-sm)]";
 const secondaryButtonClasses =
   "inline-flex h-8 items-center justify-center gap-2 rounded-md border border-border bg-background px-3 text-xs font-semibold uppercase tracking-[var(--tracking-caps-sm)] text-foreground transition-colors hover:bg-accent disabled:cursor-not-allowed disabled:opacity-60";
 const primaryButtonClasses =
@@ -332,7 +332,7 @@ export function SourcesModalFilters({
           </label>
 
           <label className="flex h-9 items-center gap-3 rounded-md border border-input bg-background px-3 text-sm text-muted-foreground">
-            <span className="text-[11px] font-semibold uppercase tracking-[var(--tracking-caps-md)]">
+            <span className="text-ui-label font-semibold uppercase tracking-[var(--tracking-caps-md)]">
               Provider
             </span>
             <select
@@ -359,14 +359,14 @@ export function SourcesModalFilters({
                 type="button"
                 onClick={() => onStatusFilterChange(value)}
                 className={cn(
-                  "inline-flex h-7 items-center gap-1.5 rounded-[var(--radius-control)] px-2 text-[11px] font-semibold uppercase tracking-[var(--tracking-caps-sm)] transition-colors",
+                  "inline-flex h-7 items-center gap-1.5 rounded-[var(--radius-control)] px-2 text-ui-label font-semibold uppercase tracking-[var(--tracking-caps-sm)] transition-colors",
                   isActive
                     ? "bg-primary text-primary-foreground"
                     : "text-muted-foreground hover:bg-accent hover:text-foreground",
                 )}
               >
                 {label}
-                <span className="font-mono text-[10px] opacity-80">
+                <span className="font-mono text-ui-micro opacity-80">
                   {counts[value]}
                 </span>
               </button>
@@ -612,7 +612,7 @@ export function SourceCard({
 
       <dl className="mt-3 grid gap-2 text-sm sm:grid-cols-2">
         <div className="rounded-md border border-border bg-card px-3 py-2">
-          <dt className="text-[10px] font-semibold uppercase tracking-[var(--tracking-caps-md)] text-muted-foreground">
+          <dt className="text-ui-micro font-semibold uppercase tracking-[var(--tracking-caps-md)] text-muted-foreground">
             Saved URL
           </dt>
           <dd className="mt-1 break-all text-xs font-medium text-foreground">
@@ -620,7 +620,7 @@ export function SourceCard({
           </dd>
         </div>
         <div className="rounded-md border border-border bg-card px-3 py-2">
-          <dt className="text-[10px] font-semibold uppercase tracking-[var(--tracking-caps-md)] text-muted-foreground">
+          <dt className="text-ui-micro font-semibold uppercase tracking-[var(--tracking-caps-md)] text-muted-foreground">
             Details
           </dt>
           <dd className="mt-1 text-xs font-medium text-foreground">

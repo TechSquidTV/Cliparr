@@ -104,7 +104,7 @@ function compactSelectTriggerClassName() {
 }
 
 function sectionLabelClassName() {
-  return "text-[11px] font-semibold uppercase tracking-[var(--tracking-caps-lg)] text-muted-foreground";
+  return "text-ui-label font-semibold uppercase tracking-[var(--tracking-caps-lg)] text-muted-foreground";
 }
 
 export function formatOptionFor(format: ExportFormat) {
@@ -377,7 +377,7 @@ export function EditorFilenameTemplateSection({
     <section className="rounded-md border border-border bg-card">
       <SectionHeader>Filename Template</SectionHeader>
       <div className="space-y-3 p-3">
-        <div className="grid gap-3 sm:grid-cols-[12rem_auto] sm:items-end">
+        <div className="grid gap-3 sm:grid-cols-editor-export-template sm:items-end">
           <label className="space-y-1.5">
             <span className={sectionLabelClassName()}>Template Set</span>
             <Select
@@ -437,7 +437,7 @@ export function EditorFilenameTemplateSection({
             {visibleTokens.map((token) => (
               <code
                 key={token}
-                className="rounded-md border border-border bg-card px-2 py-0.5 font-mono text-[11px] text-foreground"
+                className="rounded-md border border-border bg-card px-2 py-0.5 font-mono text-ui-label text-foreground"
               >
                 {`{${token}}`}
               </code>
@@ -484,9 +484,9 @@ export function EditorExportSummaryPanel({
   const selectedFormatOption = formatOptionFor(selectedFormat);
   const subtitleSummaryClassName =
     subtitleSummaryTone === "ready"
-      ? "border-emerald-500/30 bg-emerald-500/8"
+      ? "border-status-ready-border bg-status-ready"
       : subtitleSummaryTone === "warning"
-        ? "border-amber-500/30 bg-amber-500/8"
+        ? "border-status-warning-border bg-status-warning"
         : "border-border bg-background";
 
   return (
@@ -527,7 +527,7 @@ export function EditorExportSummaryPanel({
           <dd className="mt-1 text-xs text-foreground">
             {selectedFormatOption.label}
           </dd>
-          <dd className="mt-1 font-mono text-[11px] text-foreground">
+          <dd className="mt-1 font-mono text-ui-label text-foreground">
             {outputDimensions
               ? `${outputDimensions.width} x ${outputDimensions.height}`
               : "Unknown size"}
@@ -548,19 +548,19 @@ export function EditorExportSummaryPanel({
           <dd className="mt-1 text-xs font-medium text-foreground">
             {subtitleSummaryLabel}
           </dd>
-          <dd className="mt-1 text-[11px] text-muted-foreground">
+          <dd className="mt-1 text-ui-label text-muted-foreground">
             {subtitleSummaryDetail}
           </dd>
         </div>
 
         <div className="rounded-md border border-border bg-background px-3 py-2">
           <dt className={sectionLabelClassName()}>Filename</dt>
-          <dd className="mt-1 text-[11px] font-semibold uppercase tracking-[var(--tracking-caps-md)] text-muted-foreground">
+          <dd className="mt-1 text-ui-label font-semibold uppercase tracking-[var(--tracking-caps-md)] text-muted-foreground">
             {activeTemplateKind === "episode"
               ? "TV show template"
               : "Movie template"}
           </dd>
-          <dd className="mt-1 break-all font-mono text-[11px] text-foreground">
+          <dd className="mt-1 break-all font-mono text-ui-label text-foreground">
             {fileNamePreview}
           </dd>
         </div>

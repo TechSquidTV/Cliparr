@@ -72,7 +72,7 @@ function subtitleTrackLabel(track: PlaybackSubtitleTrack) {
 }
 
 function propertyLabelClassName() {
-  return "text-[10px] font-semibold uppercase tracking-[var(--tracking-caps-md)] text-muted-foreground";
+  return "text-ui-micro font-semibold uppercase tracking-[var(--tracking-caps-md)] text-muted-foreground";
 }
 
 function EditorPropertySection({
@@ -109,7 +109,7 @@ function EditorPropertyRow({
   return (
     <div
       className={cn(
-        "grid min-h-8 grid-cols-[minmax(4.75rem,0.72fr)_minmax(0,1.28fr)] gap-3",
+        "grid min-h-8 grid-cols-editor-property-row gap-3",
         align === "start" ? "items-start" : "items-center",
       )}
     >
@@ -120,7 +120,7 @@ function EditorPropertyRow({
       </span>
       <span className="min-w-0">
         {value ? (
-          <span className="mb-1 flex justify-end font-mono text-[10px] text-muted-foreground">
+          <span className="mb-1 flex justify-end font-mono text-ui-micro text-muted-foreground">
             {value}
           </span>
         ) : null}
@@ -211,7 +211,7 @@ function EditorColorControl({
             aria-label={label}
           />
         </span>
-        <span className="min-w-0 truncate font-mono text-[11px] text-sidebar-foreground">
+        <span className="min-w-0 truncate font-mono text-ui-label text-sidebar-foreground">
           {value.toUpperCase()}
         </span>
       </span>
@@ -352,7 +352,7 @@ export function EditorSubtitlePanel({
               <div className="space-y-1">
                 <p>{subtitleWarning}</p>
                 {selectedSubtitleTrack && (
-                  <p className="text-[11px] text-muted-foreground">
+                  <p className="text-ui-label text-muted-foreground">
                     {selectedSubtitleTrack.codec?.toUpperCase() ??
                       "Unknown codec"}
                     {selectedSubtitleTrack.languageCode
@@ -387,7 +387,7 @@ export function EditorSubtitlePanel({
             styleTooltip ? (
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <span className="text-[10px] font-semibold uppercase tracking-[var(--tracking-caps-md)] text-muted-foreground">
+                  <span className="text-ui-micro font-semibold uppercase tracking-[var(--tracking-caps-md)] text-muted-foreground">
                     Locked
                   </span>
                 </TooltipTrigger>

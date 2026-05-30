@@ -47,7 +47,7 @@ export function EditorHeader({
   );
 
   return (
-    <header className="grid grid-cols-[auto_1fr_auto] items-center gap-3 border-b border-editor-border bg-editor-panel px-3 py-2">
+    <header className="grid grid-cols-editor-header items-center gap-3 border-b border-editor-border bg-editor-panel px-3 py-2">
       <div className="flex items-center gap-2">
         <Tooltip>
           <TooltipTrigger asChild>
@@ -64,7 +64,7 @@ export function EditorHeader({
         </Tooltip>
         <div className="flex items-center gap-2 pl-1">
           <img src="/logo-light.svg" alt="Cliparr Logo" className="h-5 w-5" />
-          <span className="text-[11px] font-semibold uppercase tracking-[var(--tracking-caps-md)] text-muted-foreground">
+          <span className="text-ui-label font-semibold uppercase tracking-[var(--tracking-caps-md)] text-muted-foreground">
             Edit
           </span>
         </div>

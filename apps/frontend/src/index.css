@@ -156,6 +156,35 @@
     var(--muted-foreground)
   );
   --editor-range-thumb: var(--editor-range-fill);
+  --editor-sidebar-open-width: 22rem;
+  --editor-sidebar-rail-width: 3rem;
+  --editor-sidebar-max-width: 85vw;
+  --editor-preview-fallback-font-size: 1.5rem;
+  --text-editor-preview-fallback: var(--editor-preview-fallback-font-size);
+  --status-warning: color-mix(in oklch, var(--primary) 14%, var(--background));
+  --status-warning-border: color-mix(in oklch, var(--primary) 28%, transparent);
+  --status-warning-foreground: color-mix(
+    in oklch,
+    var(--foreground) 88%,
+    var(--primary)
+  );
+  --status-danger: color-mix(
+    in oklch,
+    var(--destructive) 10%,
+    var(--background)
+  );
+  --status-danger-border: color-mix(
+    in oklch,
+    var(--destructive) 24%,
+    transparent
+  );
+  --status-danger-foreground: color-mix(
+    in oklch,
+    var(--destructive) 72%,
+    var(--foreground)
+  );
+  --status-ready: color-mix(in oklch, var(--secondary) 10%, var(--background));
+  --status-ready-border: color-mix(in oklch, var(--secondary) 28%, transparent);
   --spacing: 0.25rem;
 }
 
@@ -287,6 +316,30 @@
     var(--muted-foreground)
   );
   --editor-range-thumb: var(--editor-range-fill);
+  --status-warning: color-mix(in oklch, var(--primary) 12%, var(--background));
+  --status-warning-border: color-mix(in oklch, var(--primary) 30%, transparent);
+  --status-warning-foreground: color-mix(
+    in oklch,
+    var(--foreground) 90%,
+    var(--primary)
+  );
+  --status-danger: color-mix(
+    in oklch,
+    var(--destructive) 10%,
+    var(--background)
+  );
+  --status-danger-border: color-mix(
+    in oklch,
+    var(--destructive) 26%,
+    transparent
+  );
+  --status-danger-foreground: color-mix(
+    in oklch,
+    var(--destructive) 70%,
+    var(--foreground)
+  );
+  --status-ready: color-mix(in oklch, var(--secondary) 8%, var(--background));
+  --status-ready-border: color-mix(in oklch, var(--secondary) 26%, transparent);
 }
 
 @theme inline {
@@ -336,11 +389,24 @@
   --color-editor-monitor: var(--editor-monitor);
   --color-editor-warning: var(--editor-warning);
   --color-editor-warning-foreground: var(--editor-warning-foreground);
+  --color-editor-preview-overlay: var(--editor-preview-overlay);
+  --color-editor-preview-overlay-border: var(--editor-preview-overlay-border);
+  --color-editor-preview-overlay-foreground: var(
+    --editor-preview-overlay-foreground
+  );
   --color-editor-scrollbar: var(--editor-scrollbar);
   --color-editor-range-track: var(--editor-range-track);
   --color-editor-range-track-border: var(--editor-range-track-border);
   --color-editor-range-fill: var(--editor-range-fill);
   --color-editor-range-thumb: var(--editor-range-thumb);
+  --color-status-warning: var(--status-warning);
+  --color-status-warning-border: var(--status-warning-border);
+  --color-status-warning-foreground: var(--status-warning-foreground);
+  --color-status-danger: var(--status-danger);
+  --color-status-danger-border: var(--status-danger-border);
+  --color-status-danger-foreground: var(--status-danger-foreground);
+  --color-status-ready: var(--status-ready);
+  --color-status-ready-border: var(--status-ready-border);
   --font-sans: var(--font-sans);
   --font-mono: var(--font-mono);
   --font-serif: var(--font-serif);
@@ -365,6 +431,46 @@
   --tracking-wide: calc(var(--tracking-normal) + 0.025em);
   --tracking-wider: calc(var(--tracking-normal) + 0.05em);
   --tracking-widest: calc(var(--tracking-normal) + 0.1em);
+  --text-ui-micro: 0.625rem;
+  --text-ui-micro--line-height: calc(0.875 / 0.625);
+  --text-ui-label: 0.6875rem;
+  --text-ui-label--line-height: calc(1 / 0.6875);
+  --text-editor-preview-fallback: var(--editor-preview-fallback-font-size);
+  --spacing-source-provider-panel: 22rem;
+  --spacing-editor-properties-min: 28rem;
+  --spacing-editor-preview-min: 12rem;
+  --spacing-editor-preview-sm-min: 16rem;
+  --spacing-editor-export-sidebar: 18rem;
+  --spacing-editor-export-template-label: 12rem;
+  --spacing-editor-property-label: 4.75rem;
+  --spacing-editor-sidebar-open: var(--editor-sidebar-open-width);
+  --spacing-editor-sidebar-rail: var(--editor-sidebar-rail-width);
+  --spacing-editor-sidebar-max: var(--editor-sidebar-max-width);
+  --spacing-select-content-min: 8rem;
+}
+
+@utility grid-cols-editor-header {
+  grid-template-columns: auto minmax(0, 1fr) auto;
+}
+
+@utility grid-cols-provider-connect {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.12fr);
+}
+
+@utility grid-cols-editor-export {
+  grid-template-columns:
+    minmax(0, 1fr)
+    var(--spacing-editor-export-sidebar);
+}
+
+@utility grid-cols-editor-export-template {
+  grid-template-columns: var(--spacing-editor-export-template-label) auto;
+}
+
+@utility grid-cols-editor-property-row {
+  grid-template-columns:
+    minmax(var(--spacing-editor-property-label), 0.72fr)
+    minmax(0, 1.28fr);
 }
 
 @layer base {

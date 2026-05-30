@@ -104,7 +104,7 @@ function WarningBanner({
   }
 
   return (
-    <div className="rounded-xl border border-[color-mix(in_oklch,var(--destructive)_24%,transparent)] bg-[color-mix(in_oklch,var(--destructive)_12%,var(--background))] p-4 text-[color-mix(in_oklch,var(--destructive)_72%,var(--foreground))]">
+    <div className="rounded-xl border border-status-warning-border bg-status-warning p-4 text-status-warning-foreground">
       <div className="flex items-start gap-3">
         <AlertTriangle className="w-5 h-5 shrink-0 mt-0.5" />
         <div className="space-y-2 text-sm">
@@ -335,7 +335,7 @@ export default function DashboardScreen({
                           )}
                           <div className="absolute inset-0 bg-linear-to-t from-card/95 via-card/20 to-transparent" />
                           <div className="absolute top-3 left-3">
-                            <span className="inline-flex items-center gap-1.5 rounded-full bg-card/90 px-2.5 py-1 text-[11px] font-medium uppercase tracking-wide text-muted-foreground shadow-sm backdrop-blur-sm">
+                            <span className="inline-flex items-center gap-1.5 rounded-full bg-card/90 px-2.5 py-1 text-ui-label font-medium uppercase tracking-wide text-muted-foreground shadow-sm backdrop-blur-sm">
                               <ProviderGlyph
                                 providerId={mediaSession.source.providerId}
                                 providerName={formatSourceLabel(

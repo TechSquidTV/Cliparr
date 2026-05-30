@@ -1,4 +1,4 @@
-import type { CSSProperties, ReactNode } from "react";
+import type { ReactNode } from "react";
 import { PanelRightClose, PanelRightOpen, type LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -18,11 +18,6 @@ interface EditorSidebarProps {
   resizable?: boolean;
 }
 
-const SIDEBAR_STYLE = {
-  "--editor-sidebar-width": "22rem",
-  "--editor-sidebar-rail-width": "3rem",
-} as CSSProperties;
-
 function sidebarControlClassName() {
   return "inline-flex h-8 w-8 items-center justify-center rounded-[var(--radius-control)] border border-editor-border bg-editor-control text-muted-foreground transition-colors hover:bg-editor-control-hover hover:text-foreground focus-visible:ring-2 focus-visible:ring-editor-accent/35 focus-visible:outline-none";
 }
@@ -39,14 +34,13 @@ export function EditorSidebar({
 }: EditorSidebarProps) {
   return (
     <aside
-      style={SIDEBAR_STYLE}
       className={cn(
         "relative flex h-full min-h-0 shrink-0 border border-editor-border bg-editor-panel text-sidebar-foreground transition-[width] duration-200 ease-linear",
         resizable
           ? "w-full"
           : open
-            ? "w-[min(var(--editor-sidebar-width),85vw)]"
-            : "w-[var(--editor-sidebar-rail-width)]",
+            ? "w-editor-sidebar-open max-w-editor-sidebar-max"
+            : "w-editor-sidebar-rail",
       )}
     >
       {open ? (
@@ -126,7 +120,7 @@ export function EditorSidebar({
                 <Icon className="h-4 w-4" />
               </div>
 
-              <span className="rotate-180 text-[10px] font-semibold uppercase tracking-[var(--tracking-caps-md)] text-muted-foreground [writing-mode:vertical-rl]">
+              <span className="rotate-180 text-ui-micro font-semibold uppercase tracking-[var(--tracking-caps-md)] text-muted-foreground [writing-mode:vertical-rl]">
                 {title}
               </span>
             </div>

@@ -520,7 +520,7 @@ export default function ProviderConnectFlow({
 
           <TabsPanels
             mode="layout"
-            className="cliparr-editor-scrollbar h-[22rem] overflow-y-auto rounded-lg border border-border bg-background p-4"
+            className="cliparr-editor-scrollbar h-source-provider-panel overflow-y-auto rounded-lg border border-border bg-background p-4"
           >
             {providers.map((provider) => (
               <TabsPanel
@@ -560,7 +560,7 @@ export default function ProviderConnectFlow({
     );
 
     return (
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.12fr)]">
+      <div className="grid gap-6 lg:grid-cols-provider-connect">
         <motion.div
           initial={{ opacity: 0, x: -12 }}
           animate={{ opacity: 1, x: 0 }}
