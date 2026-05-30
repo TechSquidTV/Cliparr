@@ -26,8 +26,8 @@ import {
   createLocalSessionFromUrl,
   LOCAL_VIDEO_FILE_ACCEPT,
   localMediaPickerSupported,
-} from "../lib/localMediaRegistry";
-import { cn } from "../lib/utils";
+} from "../../lib/localMediaRegistry";
+import { cn } from "../../lib/utils";
 
 interface LocalVideoOpenDialogProps {
   isOpen: boolean;

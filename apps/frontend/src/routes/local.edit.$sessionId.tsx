@@ -2,7 +2,7 @@ import { createFileRoute, useCanGoBack } from "@tanstack/react-router";
 import { FolderOpen, ShieldCheck, TriangleAlert } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import EditorScreen from "../components/editor/EditorScreen";
-import { LocalVideoOpenDialog } from "../components/LocalVideoOpenDialog";
+import { LocalVideoOpenDialog } from "../components/local-media/LocalVideoOpenDialog";
 import {
   primaryButtonClasses,
   secondaryButtonClasses,

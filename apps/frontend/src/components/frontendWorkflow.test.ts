@@ -5,7 +5,7 @@ import test from "node:test";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import AuthCompleteScreen from "./AuthCompleteScreen";
-import { LocalVideoOpenDialog } from "./LocalVideoOpenDialog";
+import { LocalVideoOpenDialog } from "./local-media/LocalVideoOpenDialog";
 
 void test("renders the provider auth completion screen", () => {
   const markup = renderToStaticMarkup(createElement(AuthCompleteScreen));
@@ -14,7 +14,7 @@ void test("renders the provider auth completion screen", () => {
   assert.match(markup, /Close this tab/);
 });
 
-void test("renders local video modal file picker workflow", () => {
+void test("renders local video dialog file picker workflow", () => {
   const markup = renderToStaticMarkup(
     createElement(LocalVideoOpenDialog, {
       isOpen: true,

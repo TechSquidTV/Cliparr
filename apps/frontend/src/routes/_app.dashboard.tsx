@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { useAuth } from "../auth";
 import DashboardScreen from "../components/DashboardScreen";
-import { LocalVideoOpenDialog } from "../components/LocalVideoOpenDialog";
+import { LocalVideoOpenDialog } from "../components/local-media/LocalVideoOpenDialog";
 import { router } from "../router";
 
 function DashboardRouteComponent() {
