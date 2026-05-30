@@ -53,7 +53,7 @@ import {
   type JellyfinSourceContext,
 } from "./shared.js";
 
-const logger = getServerLogger(["providers", "jellyfin"]);
+const logger = getServerLogger(["provider", "jellyfin", "playback"]);
 const HD_ARTWORK_SIZE = 1920;
 const HD_ARTWORK_QUALITY = 96;
 

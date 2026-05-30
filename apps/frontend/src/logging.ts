@@ -6,7 +6,9 @@ import {
   type Logger,
 } from "@logtape/logtape";
 
-const LOG_CATEGORY_PREFIX = ["cliparr", "frontend"];
+const FRONTEND_LOG_CATEGORY_PREFIX = ["cliparr", "frontend"] as const;
+// LogTape reserves this category for its own configuration and sink diagnostics.
+const LOGTAPE_META_CATEGORY = ["logtape", "meta"] as const;
 
 let loggingConfigured: Promise<void> | undefined;
 
@@ -17,7 +19,7 @@ interface ViteLoggingEnv {
 
 export function getFrontendLogger(category: string | readonly string[]) {
   const parts = typeof category === "string" ? [category] : [...category];
-  return getLogger([...LOG_CATEGORY_PREFIX, ...parts]);
+  return getLogger([...FRONTEND_LOG_CATEGORY_PREFIX, ...parts]);
 }
 
 export function warnWithError(
@@ -54,12 +56,12 @@ export function configureFrontendLogging() {
     },
     loggers: [
       {
-        category: LOG_CATEGORY_PREFIX,
+        category: [...FRONTEND_LOG_CATEGORY_PREFIX],
         sinks: ["console"],
         lowestLevel,
       },
       {
-        category: ["logtape", "meta"],
+        category: [...LOGTAPE_META_CATEGORY],
         sinks: ["console"],
         lowestLevel: "warning",
       },

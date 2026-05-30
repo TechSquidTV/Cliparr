@@ -15,14 +15,16 @@ import {
   logEventFields,
 } from "@cliparr/shared/logging";
 
-const LOG_CATEGORY_PREFIX = ["cliparr"];
+const SERVER_LOG_CATEGORY_PREFIX = ["cliparr", "server"] as const;
+// LogTape reserves this category for its own configuration and sink diagnostics.
+const LOGTAPE_META_CATEGORY = ["logtape", "meta"] as const;
 const SLOW_REQUEST_WARNING_MS = 10_000;
 
 let loggingConfigured: Promise<void> | undefined;
 
 export function getServerLogger(category: string | readonly string[]) {
   const parts = typeof category === "string" ? [category] : [...category];
-  return getLogger([...LOG_CATEGORY_PREFIX, ...parts]);
+  return getLogger([...SERVER_LOG_CATEGORY_PREFIX, ...parts]);
 }
 
 export function warnWithError(
@@ -86,12 +88,12 @@ export function configureLogging() {
     },
     loggers: [
       {
-        category: "cliparr",
+        category: [...SERVER_LOG_CATEGORY_PREFIX],
         sinks: ["console"],
         lowestLevel,
       },
       {
-        category: ["logtape", "meta"],
+        category: [...LOGTAPE_META_CATEGORY],
         sinks: ["console"],
         lowestLevel: "warning",
       },

@@ -9,7 +9,7 @@ import {
   getServerLogger,
 } from "./logging.js";
 
-const logger = getServerLogger("server");
+const logger = getServerLogger("lifecycle");
 
 function hasCloseAllConnections(
   server: Server,

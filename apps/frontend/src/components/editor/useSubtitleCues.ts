@@ -21,7 +21,7 @@ interface UseSubtitleCuesOptions {
 }
 
 const subtitleRequestTimeoutMs = 15_000;
-const logger = getFrontendLogger(["editor", "subtitles"]);
+const logger = getFrontendLogger(["editor", "subtitle"]);
 
 interface SubtitleDownloadFailure {
   status: number;

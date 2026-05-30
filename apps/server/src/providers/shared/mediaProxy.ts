@@ -81,7 +81,7 @@ const DISALLOWED_MEDIA_HOSTNAMES = new Set([
 const RETRYABLE_MEDIA_STATUS_CODES = new Set([
   408, 425, 429, 500, 502, 503, 504,
 ]);
-const logger = getServerLogger(["providers", "media-proxy"]);
+const logger = getServerLogger(["media", "proxy"]);
 const cachedProxyResponses = new Map<
   string,
   {

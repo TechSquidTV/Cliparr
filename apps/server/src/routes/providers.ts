@@ -22,7 +22,7 @@ import {
 import { setNoStore } from "../session/request.js";
 
 export const providersRouter = Router();
-const logger = getServerLogger(["routes", "providers"]);
+const logger = getServerLogger(["provider", "auth"]);
 const PROVIDER_AUTH_COMPLETE_PATH = (providerId: string) =>
   `/auth/${providerId}/complete`;
 const PROVIDER_AUTH_COOKIE = "cliparr_provider_auth";

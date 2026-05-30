@@ -25,7 +25,7 @@ import { requireAccountSession, setNoStore } from "../session/request.js";
 import { getServerLogger, warnWithError } from "../logging.js";
 
 export const sourcesRouter = Router();
-const logger = getServerLogger(["routes", "sources"]);
+const logger = getServerLogger("source");
 
 function serializeSource(source: MediaSource) {
   return {

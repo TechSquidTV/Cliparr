@@ -27,7 +27,7 @@ import { getRequestSessionId, setNoStore } from "../session/request.js";
 import { getServerLogger } from "../logging.js";
 
 export const sessionRouter = Router();
-const logger = getServerLogger(["routes", "session"]);
+const logger = getServerLogger("session");
 
 sessionRouter.get(
   "/",

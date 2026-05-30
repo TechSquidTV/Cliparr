@@ -5,7 +5,7 @@ import { describeInputTrack } from "./mediabunnyTrackAccess";
 import type { ExportFormat } from "./exportTypes";
 import { getFrontendLogger, warnWithError } from "../logging";
 
-const logger = getFrontendLogger(["editor", "metadata"]);
+const logger = getFrontendLogger(["editor", "artwork"]);
 
 const discardReasonLabels: Record<DiscardedTrack["reason"], string> = {
   discarded_by_user: "discarded by configuration",

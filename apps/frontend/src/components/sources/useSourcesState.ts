@@ -31,7 +31,7 @@ interface SourceActionResult {
   removeSourceId?: string;
 }
 
-const logger = getFrontendLogger(["sources"]);
+const logger = getFrontendLogger("source");
 
 export function useSourcesState({
   isOpen,

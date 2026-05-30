@@ -31,7 +31,10 @@ import {
 } from "../session/store.js";
 
 export const mediaRouter = Router();
-const logger = getServerLogger(["routes", "media"]);
+const mediaLogger = getServerLogger("media");
+const localUrlLogger = mediaLogger.getChild("local_url");
+const discoveryLogger = mediaLogger.getChild("discovery");
+const proxyLogger = mediaLogger.getChild("proxy");
 const LOCAL_URL_PROVIDER_ID = "local-url";
 const LOCAL_URL_SOURCE_ID = "remote-url";
 const LOCAL_URL_MEDIA_BASE_URL = "http://cliparr.local";
@@ -185,7 +188,7 @@ mediaRouter.post(
       await assertAllowedMediaHandleRequestUrl(handle);
       const mediaUrl = storeLocalUrlMediaHandle(handle);
 
-      logger.trace("Created local URL media handle.", {
+      localUrlLogger.trace("Created local URL media handle.", {
         ...logEventFields("media.local_url.handle", "created"),
         "media.handle.id": handle.id,
         "upstream.url": sanitizeLoggedMediaPath(handle.path),
@@ -197,7 +200,7 @@ mediaRouter.post(
         hls: isHlsPlaylistUrl(handle.path),
       });
 
-      logger.info("Local URL media handle created.", {
+      localUrlLogger.info("Local URL media handle created.", {
         ...logEventFields("media.local_url.create", "success"),
         ...logDurationFields(startedAt),
         "media.handle.id": handle.id,
@@ -207,7 +210,7 @@ mediaRouter.post(
       });
     } catch (err) {
       warnWithError(
-        logger,
+        localUrlLogger,
         err,
         "Local URL media handle creation failed.",
         compactLogFields({
@@ -247,7 +250,7 @@ mediaRouter.get(
     }
 
     const upstreamUrl = mediaHandleRequestUrl(handle).toString();
-    logger.trace("Fetching local URL media.", {
+    localUrlLogger.trace("Fetching local URL media.", {
       "media.handle.id": handle.id,
       "upstream.url": sanitizeLoggedMediaPath(upstreamUrl),
       "media.range.present": Boolean(range),
@@ -281,7 +284,7 @@ mediaRouter.get(
 
           return upstream;
         } catch (err) {
-          logger.warn("Local URL media request failed.", {
+          localUrlLogger.warn("Local URL media request failed.", {
             ...logEventFields("media.local_url.fetch", "failure"),
             "media.handle.id": handle.id,
             "upstream.url": sanitizeLoggedMediaPath(upstreamUrl),
@@ -390,14 +393,19 @@ mediaRouter.get(
     };
 
     if (sourceErrors.length > 0) {
-      logger.warn("Listed currently playing media with source errors.", {
-        ...summaryFields,
-        "source.error.provider_ids": [
-          ...new Set(sourceErrors.map((sourceError) => sourceError.providerId)),
-        ],
-      });
+      discoveryLogger.warn(
+        "Listed currently playing media with source errors.",
+        {
+          ...summaryFields,
+          "source.error.provider_ids": [
+            ...new Set(
+              sourceErrors.map((sourceError) => sourceError.providerId),
+            ),
+          ],
+        },
+      );
     } else {
-      logger.info("Listed currently playing media.", summaryFields);
+      discoveryLogger.info("Listed currently playing media.", summaryFields);
     }
 
     res.json({
@@ -415,7 +423,7 @@ mediaRouter.get(
     const prunedCount = pruneSessionMediaHandles(session);
     const handle = session.mediaHandles.get(req.params.handleId as string);
     if (!handle) {
-      logger.warn("Media handle was not found in provider session.", {
+      proxyLogger.warn("Media handle was not found in provider session.", {
         ...logEventFields("media.proxy", "missing_handle"),
         "media.handle.id": req.params.handleId,
         "session.id": session.id,
@@ -433,7 +441,7 @@ mediaRouter.get(
 
     const provider = getProvider(handle.providerId);
     if (!provider) {
-      logger.error("Provider for media handle is not registered.", {
+      proxyLogger.error("Provider for media handle is not registered.", {
         ...logEventFields("media.proxy", "provider_not_registered"),
         "media.handle.id": handle.id,
         "session.id": session.id,
@@ -447,7 +455,7 @@ mediaRouter.get(
       );
     }
 
-    logger.trace("Proxying media handle.", {
+    proxyLogger.trace("Proxying media handle.", {
       "media.handle.id": handle.id,
       "session.id": session.id,
       "provider.id": handle.providerId,

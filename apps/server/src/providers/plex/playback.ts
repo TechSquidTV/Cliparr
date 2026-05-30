@@ -62,7 +62,7 @@ import {
   withPlexBaseUrlMode,
 } from "./connectionState.js";
 
-const logger = getServerLogger(["providers", "plex"]);
+const logger = getServerLogger(["provider", "plex", "playback"]);
 const HD_ARTWORK_SIZE = 1920;
 const PLEX_TRANSCODE_SOURCE_ID_MAX_LENGTH = 16;
 
