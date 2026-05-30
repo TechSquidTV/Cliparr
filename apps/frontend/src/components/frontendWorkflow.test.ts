@@ -45,5 +45,26 @@ void test("renders the editor thumbnail behind loading preview state", () => {
 
   assert.match(markup, /\/api\/media\/thumb\.jpg/);
   assert.match(markup, /blur-sm/);
+  assert.match(markup, /transition-opacity/);
+  assert.match(markup, /opacity-75/);
   assert.match(markup, /Loading HLS stream/);
+});
+
+void test("keeps the editor thumbnail mounted after preview load for fade out", () => {
+  const markup = renderToStaticMarkup(
+    createElement(EditorPreview, {
+      canvasRef: createRef<HTMLCanvasElement>(),
+      playing: false,
+      loadingPreview: false,
+      loadingPreviewFrame: false,
+      posterImageUrl: "/api/media/thumb.jpg",
+      previewStatus: "Loading HLS stream...",
+      previewFrameStatus: "",
+      togglePlay: () => undefined,
+    }),
+  );
+
+  assert.match(markup, /\/api\/media\/thumb\.jpg/);
+  assert.match(markup, /transition-opacity/);
+  assert.match(markup, /opacity-0/);
 });

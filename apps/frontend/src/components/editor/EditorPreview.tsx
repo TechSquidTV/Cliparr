@@ -32,7 +32,7 @@ export function EditorPreview({
       ? `${videoDimensions.width} / ${videoDimensions.height}`
       : undefined;
   const showLoadingOverlay = loadingPreview || loadingPreviewFrame;
-  const showLoadingPoster = showLoadingOverlay && Boolean(posterImageUrl);
+  const hasPosterImage = Boolean(posterImageUrl);
   const loadingStatus = loadingPreviewFrame
     ? previewFrameStatus
     : previewStatus;
@@ -47,12 +47,14 @@ export function EditorPreview({
         className="h-full w-full object-contain"
         onClick={togglePlay}
       />
-      {showLoadingPoster && (
+      {posterImageUrl && (
         <img
           src={posterImageUrl}
           alt=""
           aria-hidden="true"
-          className="absolute inset-0 h-full w-full scale-105 object-cover opacity-75 blur-sm"
+          className={`pointer-events-none absolute inset-0 h-full w-full scale-105 object-cover blur-sm transition-opacity duration-200 ease-out ${
+            showLoadingOverlay ? "opacity-75" : "opacity-0"
+          }`}
         />
       )}
       {!showLoadingOverlay && (
@@ -74,18 +76,19 @@ export function EditorPreview({
           </button>
         </div>
       )}
-      {showLoadingOverlay && (
-        <div
-          className={`absolute inset-0 flex items-center justify-center gap-2 text-sm text-editor-preview-overlay-foreground ${
-            showLoadingPoster
-              ? "bg-editor-preview-overlay/70"
-              : "bg-editor-preview-overlay"
-          }`}
-        >
-          <LoaderCircle className="h-4 w-4 animate-spin" />
-          <span>{loadingStatus}</span>
-        </div>
-      )}
+      <div
+        aria-hidden={!showLoadingOverlay}
+        className={`pointer-events-none absolute inset-0 flex items-center justify-center gap-2 text-sm text-editor-preview-overlay-foreground transition-opacity duration-200 ease-out ${
+          showLoadingOverlay ? "opacity-100" : "opacity-0"
+        } ${
+          hasPosterImage
+            ? "bg-editor-preview-overlay/70"
+            : "bg-editor-preview-overlay"
+        }`}
+      >
+        <LoaderCircle className="h-4 w-4 animate-spin" />
+        <span>{loadingStatus}</span>
+      </div>
     </div>
   );
 }
