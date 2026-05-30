@@ -14,6 +14,19 @@ export interface FramegrabImageQualityOption {
   quality: number;
 }
 
+export interface ResolveFramegrabCloneDimensionsOptions {
+  sourceWidth: number;
+  sourceHeight: number;
+  renderedWidth?: number;
+  renderedHeight?: number;
+  devicePixelRatio?: number;
+}
+
+export interface FramegrabCloneDimensions {
+  width: number;
+  height: number;
+}
+
 export const DEFAULT_FRAMEGRAB_IMAGE_QUALITY: FramegrabImageQuality = "high";
 
 export const framegrabImageFormatOptions: readonly FramegrabImageFormatOption[] =
@@ -79,20 +92,55 @@ export function framegrabQualityOptionFor(quality: FramegrabImageQuality) {
   );
 }
 
+export function resolveFramegrabCloneDimensions({
+  sourceWidth,
+  sourceHeight,
+  renderedWidth,
+  renderedHeight,
+  devicePixelRatio,
+}: ResolveFramegrabCloneDimensionsOptions): FramegrabCloneDimensions {
+  const fallbackDimensions = {
+    width: Math.max(0, Math.round(sourceWidth)),
+    height: Math.max(0, Math.round(sourceHeight)),
+  };
+  const displayWidth = positiveFiniteNumber(renderedWidth);
+  const displayHeight = positiveFiniteNumber(renderedHeight);
+  if (!displayWidth || !displayHeight) {
+    return fallbackDimensions;
+  }
+
+  const pixelRatio = Math.max(1, positiveFiniteNumber(devicePixelRatio) ?? 1);
+  const width = Math.max(1, Math.round(displayWidth * pixelRatio));
+  const height = Math.max(1, Math.round(displayHeight * pixelRatio));
+
+  return { width, height };
+}
+
 export function cloneCanvasFrame(sourceCanvas: HTMLCanvasElement) {
   if (sourceCanvas.width <= 0 || sourceCanvas.height <= 0) {
     throw new Error("No preview frame is available yet.");
   }
 
+  const displayBounds = sourceCanvas.getBoundingClientRect();
+  const dimensions = resolveFramegrabCloneDimensions({
+    sourceWidth: sourceCanvas.width,
+    sourceHeight: sourceCanvas.height,
+    renderedWidth: displayBounds.width,
+    renderedHeight: displayBounds.height,
+    devicePixelRatio:
+      typeof window === "undefined" ? undefined : window.devicePixelRatio,
+  });
   const canvas = document.createElement("canvas");
-  canvas.width = sourceCanvas.width;
-  canvas.height = sourceCanvas.height;
+  canvas.width = dimensions.width;
+  canvas.height = dimensions.height;
 
   const context = canvas.getContext("2d");
   if (!context) {
     throw new Error("Could not create a framegrab canvas.");
   }
 
+  context.imageSmoothingEnabled = true;
+  context.imageSmoothingQuality = "high";
   context.drawImage(sourceCanvas, 0, 0, canvas.width, canvas.height);
   return canvas;
 }
@@ -143,4 +191,10 @@ export async function copyFramegrabCanvasToClipboard(
       [blob.type]: blob,
     }),
   ]);
+}
+
+function positiveFiniteNumber(value: number | undefined) {
+  return typeof value === "number" && Number.isFinite(value) && value > 0
+    ? value
+    : undefined;
 }
