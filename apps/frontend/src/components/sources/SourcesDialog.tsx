@@ -4,11 +4,11 @@ import {
   SourceCard,
   SourcesConnectSection,
   SourcesEmptyState,
-  SourcesModalAlerts,
-  SourcesModalFilters,
-  SourcesModalHeader,
-} from "./SourcesModalSections";
-import { useSourcesModalState } from "./useSourcesModalState";
+  SourcesDialogAlerts,
+  SourcesDialogFilters,
+  SourcesDialogHeader,
+} from "./SourcesDialogSections";
+import { useSourcesState } from "./useSourcesState";
 
 interface Props {
   isOpen: boolean;
@@ -16,7 +16,7 @@ interface Props {
   onSourcesChanged?: () => Promise<void> | void;
 }
 
-export default function SourcesModal({
+export default function SourcesDialog({
   isOpen,
   onClose,
   onSourcesChanged,
@@ -54,7 +54,7 @@ export default function SourcesModal({
     deleteSource,
     updateDraftName,
     updateDraftBaseUrl,
-  } = useSourcesModalState({
+  } = useSourcesState({
     isOpen,
     onSourcesChanged,
   });
@@ -68,7 +68,7 @@ export default function SourcesModal({
       portalClassName="p-4 sm:p-6"
       popupClassName="h-full max-w-6xl rounded-lg"
     >
-      <SourcesModalHeader
+      <SourcesDialogHeader
         counts={counts}
         forceAddSourceOpen={forceAddSourceOpen}
         showConnectPanel={showConnectPanel}
@@ -82,7 +82,7 @@ export default function SourcesModal({
         onClose={onClose}
       />
 
-      <SourcesModalFilters
+      <SourcesDialogFilters
         searchInputRef={searchInputRef}
         query={query}
         providerFilter={providerFilter}
@@ -96,7 +96,7 @@ export default function SourcesModal({
 
       <div className="cliparr-editor-scrollbar flex-1 overflow-y-auto px-4 py-4 sm:px-5">
         <div className="space-y-3">
-          <SourcesModalAlerts error={error} feedback={feedback} />
+          <SourcesDialogAlerts error={error} feedback={feedback} />
 
           {showConnectPanel && (
             <SourcesConnectSection

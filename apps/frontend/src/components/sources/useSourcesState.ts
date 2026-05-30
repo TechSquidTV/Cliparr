@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { cliparrClient } from "../api/cliparrClient";
-import { useAuth } from "../auth";
-import type { MediaSource, ProviderSession } from "../providers/types";
-import type { Feedback, SourceFilter } from "./sourcesModalTypes";
+import { cliparrClient } from "../../api/cliparrClient";
+import { useAuth } from "../../auth";
+import type { MediaSource, ProviderSession } from "../../providers/types";
+import type { Feedback, SourceFilter } from "./sourcesTypes";
 import {
   buildSourceEditInput,
   draftBaseUrlsFor,
@@ -12,9 +12,9 @@ import {
   sourceCounts,
   sourceProviderOptions,
   sortSources,
-} from "./sourcesModalStateUtils";
+} from "./sourcesStateUtils";
 
-interface UseSourcesModalStateOptions {
+interface UseSourcesStateOptions {
   isOpen: boolean;
   onSourcesChanged?: () => Promise<void> | void;
 }
@@ -25,10 +25,10 @@ interface SourceActionResult {
   removeSourceId?: string;
 }
 
-export function useSourcesModalState({
+export function useSourcesState({
   isOpen,
   onSourcesChanged,
-}: UseSourcesModalStateOptions) {
+}: UseSourcesStateOptions) {
   const auth = useAuth();
   const [sources, setSources] = useState<MediaSource[]>([]);
   const [draftBaseUrls, setDraftBaseUrls] = useState<Record<string, string>>(

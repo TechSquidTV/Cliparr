@@ -1,12 +1,12 @@
 import { createFileRoute, useCanGoBack } from "@tanstack/react-router";
-import SourcesModal from "../components/SourcesModal";
+import SourcesDialog from "../components/sources/SourcesDialog";
 import { router } from "../router";
 
 function SourcesRouteComponent() {
   const canGoBack = useCanGoBack();
 
   return (
-    <SourcesModal
+    <SourcesDialog
       isOpen
       onClose={() => {
         if (canGoBack) {

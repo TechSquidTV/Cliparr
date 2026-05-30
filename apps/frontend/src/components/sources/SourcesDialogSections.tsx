@@ -10,7 +10,7 @@ import {
   Trash2,
   X,
 } from "lucide-react";
-import { cn } from "../lib/utils";
+import { cn } from "../../lib/utils";
 import {
   Tooltip,
   TooltipContent,
@@ -26,10 +26,10 @@ import {
   iconButtonClasses,
   textInputClasses as inputClasses,
 } from "@/components/ui/controlClasses";
-import type { MediaSource, ProviderSession } from "../providers/types";
-import { formatProviderName } from "./ProviderGlyph";
+import type { MediaSource, ProviderSession } from "../../providers/types";
+import { formatProviderName } from "../ProviderGlyph";
 import SourceConnectPanel from "./SourceConnectPanel";
-import type { Feedback, SourceFilter } from "./sourcesModalTypes";
+import type { Feedback, SourceFilter } from "./sourcesTypes";
 
 function TooltipWrap({
   message,
@@ -127,7 +127,7 @@ function sourceStatus(source: MediaSource) {
   };
 }
 
-interface SourcesModalHeaderProps {
+interface SourcesDialogHeaderProps {
   counts: SourceCounts;
   forceAddSourceOpen: boolean;
   showConnectPanel: boolean;
@@ -141,7 +141,7 @@ interface SourcesModalHeaderProps {
   onClose: () => void;
 }
 
-export function SourcesModalHeader({
+export function SourcesDialogHeader({
   counts,
   forceAddSourceOpen,
   showConnectPanel,
@@ -153,7 +153,7 @@ export function SourcesModalHeader({
   onReloadList,
   onRefreshAll,
   onClose,
-}: SourcesModalHeaderProps) {
+}: SourcesDialogHeaderProps) {
   const reloadDisabledReason =
     loading || reloading
       ? "Source list is already loading."
@@ -286,7 +286,7 @@ export function SourcesModalHeader({
   );
 }
 
-interface SourcesModalFiltersProps {
+interface SourcesDialogFiltersProps {
   searchInputRef: RefObject<HTMLInputElement | null>;
   query: string;
   providerFilter: string;
@@ -298,7 +298,7 @@ interface SourcesModalFiltersProps {
   onStatusFilterChange: (value: SourceFilter) => void;
 }
 
-export function SourcesModalFilters({
+export function SourcesDialogFilters({
   searchInputRef,
   query,
   providerFilter,
@@ -308,7 +308,7 @@ export function SourcesModalFilters({
   onQueryChange,
   onProviderFilterChange,
   onStatusFilterChange,
-}: SourcesModalFiltersProps) {
+}: SourcesDialogFiltersProps) {
   return (
     <div className="border-b border-border bg-background px-4 py-3 sm:px-5">
       <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
@@ -371,15 +371,15 @@ export function SourcesModalFilters({
   );
 }
 
-interface SourcesModalAlertsProps {
+interface SourcesDialogAlertsProps {
   error: string;
   feedback: Feedback | null;
 }
 
-export function SourcesModalAlerts({
+export function SourcesDialogAlerts({
   error,
   feedback,
-}: SourcesModalAlertsProps) {
+}: SourcesDialogAlertsProps) {
   return (
     <>
       {error && <div className={destructiveAlertClasses}>{error}</div>}
