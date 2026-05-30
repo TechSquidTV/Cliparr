@@ -267,6 +267,24 @@
     line-height: 1.65;
   }
 
+  .prose-docs > svg[id^="mermaid-"] {
+    @apply mt-5 h-auto w-full rounded-lg border border-border bg-card p-4 shadow-2xl shadow-black/20 sm:p-6;
+    display: block;
+    max-width: 100% !important;
+  }
+
+  .prose-docs > pre.mermaid {
+    @apply mt-5 overflow-x-auto rounded-lg border border-border bg-card p-4 text-center text-sm shadow-2xl shadow-black/20 sm:p-6;
+  }
+
+  .prose-docs > pre.mermaid svg {
+    @apply h-auto w-full;
+    display: block;
+    min-width: 36rem;
+    max-width: 100%;
+    margin-inline: auto;
+  }
+
   .section-eyebrow {
     @apply inline-flex rounded-full border border-border bg-muted px-3 py-1 text-xs font-semibold uppercase text-primary;
   }

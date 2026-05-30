@@ -5,7 +5,6 @@ order: 25
 ---
 
 import Callout from "../../components/Callout.astro";
-import DocsImagePlaceholder from "../../components/DocsImagePlaceholder.astro";
 
 Cliparr can remember provider connections, but it does not have a full user system with app-level accounts, roles, or permissions. Treat access to the Cliparr web app as access to the connected sources and active media sessions.
 
@@ -18,11 +17,24 @@ Cliparr can remember provider connections, but it does not have a full user syst
 
 Keep Cliparr on `localhost`, a trusted private network, a VPN, or behind an authenticated reverse proxy. If you expose Cliparr outside a trusted network, put authentication in front of it with the proxy or access gateway you already trust.
 
-<DocsImagePlaceholder
-  title="Network diagram showing Browser to auth proxy to Cliparr to Plex or Jellyfin"
-  target="apps/www/public/docs/access-control-proxy.png"
-  caption="Suggested diagram slot for the recommended deployment shape."
-/>
+```mermaid
+flowchart LR
+browser[Browser]
+
+subgraph trusted[Trusted network]
+gateway[Auth proxy or VPN]
+cliparr[Cliparr app]
+plex[Plex]
+jellyfin[Jellyfin]
+end
+
+browser -->|HTTPS + login| gateway
+gateway -->|authenticated request| cliparr
+cliparr -->|provider API + media| plex
+cliparr -->|provider API + media| jellyfin
+```
+
+Put the auth or VPN boundary before Cliparr. Plex and Jellyfin login only lets Cliparr connect to those sources; it does not protect the Cliparr web app.
 
 Common options include:
 
