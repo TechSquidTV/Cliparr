@@ -15,6 +15,7 @@ interface EditorSidebarProps {
   children: ReactNode;
   active?: boolean;
   icon: LucideIcon;
+  resizable?: boolean;
 }
 
 const SIDEBAR_STYLE = {
@@ -34,15 +35,18 @@ export function EditorSidebar({
   children,
   active = false,
   icon: Icon,
+  resizable = false,
 }: EditorSidebarProps) {
   return (
     <aside
       style={SIDEBAR_STYLE}
       className={cn(
         "relative flex h-full min-h-0 shrink-0 border border-editor-border bg-editor-panel text-sidebar-foreground transition-[width] duration-200 ease-linear",
-        open
-          ? "w-[min(var(--editor-sidebar-width),85vw)]"
-          : "w-[var(--editor-sidebar-rail-width)]",
+        resizable
+          ? "w-full"
+          : open
+            ? "w-[min(var(--editor-sidebar-width),85vw)]"
+            : "w-[var(--editor-sidebar-rail-width)]",
       )}
     >
       {open ? (
