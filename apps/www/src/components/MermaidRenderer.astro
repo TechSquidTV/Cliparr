@@ -1,0 +1,45 @@
+<script>
+  async function renderMermaid() {
+    const diagrams = document.querySelectorAll<HTMLPreElement>("pre.mermaid");
+
+    if (diagrams.length === 0) {
+      return;
+    }
+
+    const { default: mermaid } = await import("mermaid");
+
+    mermaid.initialize({
+      flowchart: {
+        curve: "basis",
+        htmlLabels: false,
+      },
+      fontFamily: "Outfit Variable, ui-sans-serif, sans-serif",
+      startOnLoad: false,
+      theme: "base",
+      themeVariables: {
+        background: "#111111",
+        clusterBkg: "#141414",
+        clusterBorder: "#4b5563",
+        edgeLabelBackground: "#111111",
+        lineColor: "#cbd5e1",
+        mainBkg: "#1f2937",
+        nodeBorder: "#6b7280",
+        primaryBorderColor: "#6b7280",
+        primaryColor: "#1f2937",
+        primaryTextColor: "#f8fafc",
+        secondaryBorderColor: "#6b7280",
+        secondaryColor: "#111827",
+        secondaryTextColor: "#f8fafc",
+        textColor: "#f8fafc",
+        tertiaryBorderColor: "#6b7280",
+        tertiaryColor: "#111827",
+        tertiaryTextColor: "#f8fafc",
+      },
+    });
+
+    await mermaid.run({ nodes: diagrams });
+  }
+
+  document.addEventListener("astro:page-load", renderMermaid);
+  void renderMermaid();
+</script>

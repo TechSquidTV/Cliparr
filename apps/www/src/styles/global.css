@@ -168,34 +168,46 @@
     @apply font-medium text-foreground underline decoration-border transition-colors hover:decoration-primary;
   }
 
-  .prose-docs table {
-    @apply mt-5 block w-full overflow-x-auto rounded-lg border border-border text-sm;
+  .prose-docs > table {
+    @apply mt-5 w-full overflow-hidden rounded-lg bg-background text-sm;
     border-spacing: 0;
+    box-shadow: 0 0 0 1px var(--border);
   }
 
-  .prose-docs thead {
+  .prose-docs > table thead {
     @apply bg-muted text-foreground;
   }
 
-  .prose-docs tbody {
-    @apply divide-y divide-border;
+  .prose-docs > table tbody {
+    @apply divide-y divide-border border-t border-border;
   }
 
-  .prose-docs th,
-  .prose-docs td {
+  .prose-docs > table th,
+  .prose-docs > table td {
     @apply min-w-40 px-4 py-3 text-left align-top;
   }
 
-  .prose-docs th {
+  .prose-docs > table th {
     @apply font-semibold;
   }
 
-  .prose-docs td {
+  .prose-docs > table td {
     @apply text-muted-foreground;
   }
 
   .prose-docs :not(pre) > code {
     @apply rounded-sm border border-border bg-muted px-1.5 py-0.5 text-[0.88em] text-foreground;
+  }
+
+  .prose-docs > pre.astro-code {
+    @apply mt-5 overflow-x-auto rounded-lg border border-border bg-black p-4 text-sm shadow-2xl shadow-black/30;
+    background: black !important;
+    line-height: 1.65;
+  }
+
+  .prose-docs > pre.astro-code code {
+    display: block;
+    min-width: max-content;
   }
 
   .release-notes {
@@ -253,6 +265,24 @@
     padding: 1rem;
     font-size: 0.875rem;
     line-height: 1.65;
+  }
+
+  .prose-docs > svg[id^="mermaid-"] {
+    @apply mt-5 h-auto w-full rounded-lg border border-border bg-card p-4 shadow-2xl shadow-black/20 sm:p-6;
+    display: block;
+    max-width: 100% !important;
+  }
+
+  .prose-docs > pre.mermaid {
+    @apply mt-5 overflow-x-auto rounded-lg border border-border bg-card p-4 text-center text-sm shadow-2xl shadow-black/20 sm:p-6;
+  }
+
+  .prose-docs > pre.mermaid svg {
+    @apply h-auto w-full;
+    display: block;
+    min-width: 36rem;
+    max-width: 100%;
+    margin-inline: auto;
   }
 
   .section-eyebrow {

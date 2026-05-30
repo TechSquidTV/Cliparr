@@ -33,7 +33,8 @@ export const features = [
   },
   {
     title: "Browser transcoding",
-    description: "Powered by Mediabunny, video is transcoded in your browser.",
+    description:
+      'Powered by <a href="https://mediabunny.dev/" target="_blank" rel="noreferrer">Mediabunny</a>, video is transcoded in your browser.',
   },
   {
     title: "Metadata included",

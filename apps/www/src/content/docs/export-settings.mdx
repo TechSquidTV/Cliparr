@@ -1,0 +1,110 @@
+---
+title: Export settings
+description: Choose clip format, resolution, source, audio, filenames, and metadata.
+section: editing-export
+order: 10
+---
+
+import { Picture } from "astro:assets";
+import Callout from "../../components/Callout.astro";
+import exportDialogImage from "../../../public/docs/export-dialog.webp";
+
+Cliparr exports clips in the browser with Mediabunny. Open the export dialog from the editor after choosing a clip range, then review the output settings before saving the file.
+
+<figure class="my-6 overflow-hidden rounded-lg border border-border bg-card">
+  <Picture
+    src={exportDialogImage}
+    alt="Cliparr export dialog showing format, resolution, source, audio, filename template, and export summary."
+    formats={["avif", "webp"]}
+    fallbackFormat="webp"
+    widths={[640, 960, 1280, 1600, 2200]}
+    sizes="(min-width: 80rem) 896px, (min-width: 64rem) calc(100vw - 22rem), calc(100vw - 2rem)"
+    quality={78}
+    loading="lazy"
+    decoding="async"
+    class="block w-full"
+  />
+</figure>
+
+## Format
+
+| Format | Best for                                                  |
+| :----- | :-------------------------------------------------------- |
+| `MP4`  | Sharing, uploads, and general compatibility.              |
+| `WEBM` | Efficient web playback.                                   |
+| `MOV`  | Editing workflows that prefer QuickTime-style containers. |
+| `MKV`  | Flexible container support.                               |
+
+Codec availability depends on the browser and source media. If an export cannot keep the selected audio or video track in the chosen container, Cliparr stops the export and shows the reason instead of silently dropping important media.
+
+## Resolution
+
+| Resolution | Behavior                                                             |
+| :--------- | :------------------------------------------------------------------- |
+| `Original` | Keeps the source dimensions when possible.                           |
+| `1080p`    | Scales the output to 1080 pixels tall while preserving aspect ratio. |
+| `720p`     | Scales the output to 720 pixels tall while preserving aspect ratio.  |
+
+Use `Original` when you want the closest match to the source. Use `1080p` or `720p` when you want a smaller export for sharing or faster downloads.
+
+## Source
+
+Cliparr may have more than one media path for the same item. The export source chooses which path Mediabunny reads when creating the final file.
+
+| Source            | Behavior                                                                                                |
+| :---------------- | :------------------------------------------------------------------------------------------------------ |
+| `Auto`            | Chooses the best available path. It can use a direct fallback when HLS playback is not export-friendly. |
+| `Direct/original` | Uses provider direct media, a local file, or a direct media URL when available.                         |
+| `HLS playback`    | Uses the playback stream. This is useful when the playback stream is the only available export source.  |
+
+For most clips, leave source on `Auto`. Choose a specific source when troubleshooting an export or when you intentionally want the playback stream rather than direct media.
+
+## Audio
+
+Use `Include Audio` for normal clips. Cliparr keeps a stereo mix when source audio exists. Use `Video Only` when you want a silent clip or when the source audio is not needed.
+
+## Filename templates
+
+Filename templates are stored in your browser. Cliparr keeps separate defaults for movies and episodes, then fills available tokens from provider metadata and the selected clip range.
+
+Default movie template:
+
+```text
+{source_title} ({year}) [{clip_start}-{clip_end}]
+```
+
+Default episode template:
+
+```text
+{show_title} - {episode_code} - {title} [{clip_start}-{clip_end}]
+```
+
+Available tokens:
+
+| Token              | Notes                                               |
+| :----------------- | :-------------------------------------------------- |
+| `{title}`          | Item or clip title.                                 |
+| `{source_title}`   | Source item title.                                  |
+| `{show_title}`     | Series title for episode exports.                   |
+| `{season_title}`   | Season title when available.                        |
+| `{season_number}`  | Two-digit season number.                            |
+| `{episode_number}` | Two-digit episode number.                           |
+| `{episode_code}`   | Episode code such as `S02E05`.                      |
+| `{year}`           | Source year when available.                         |
+| `{clip_start}`     | Rounded clip start, formatted for filenames.        |
+| `{clip_end}`       | Rounded clip end, formatted for filenames.          |
+| `{clip_range}`     | Start and end together.                             |
+| `{provider}`       | Provider id such as `plex`, `jellyfin`, or `local`. |
+| `{item_type}`      | Item type such as `movie`, `episode`, or `video`.   |
+| `{format}`         | Selected export format.                             |
+
+Unsupported or missing token values resolve to empty text, and Cliparr sanitizes generated filenames for filesystem compatibility.
+
+## Metadata
+
+Provider-backed clips can include title, show, season, episode, artwork, rating, and Cliparr timing metadata when the source provides it. Local files and direct URLs include only best-effort metadata. See [Export metadata](/docs/export-metadata) for the full metadata table.
+
+<Callout title="Exports use browser resources" tone="info">
+  Longer clips, higher resolutions, subtitle burn-in, and large source files
+  need more CPU and memory in the browser tab.
+</Callout>

@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import {
   AlertTriangle,
   FolderOpen,
+  Globe,
   LogOut,
   Play,
   RefreshCw,
@@ -28,6 +29,7 @@ interface Props {
   onLogout: () => Promise<void> | void;
 }
 
+const CLIPARR_WEBSITE_URL = "https://cliparr.dev/";
 const CLIPARR_GITHUB_URL = "https://github.com/TechSquidTV/Cliparr";
 
 function GithubIcon({ className }: { className?: string }) {
@@ -243,6 +245,16 @@ export default function DashboardScreen({
                 className={`w-5 h-5 ${loading ? "animate-spin text-primary" : ""}`}
               />
             </button>
+            <a
+              href={CLIPARR_WEBSITE_URL}
+              target="_blank"
+              rel="noreferrer"
+              className="p-2 text-muted-foreground hover:text-foreground hover:bg-accent rounded-lg transition-colors"
+              aria-label="Open Cliparr website"
+              title="Open Cliparr website"
+            >
+              <Globe className="h-5 w-5" />
+            </a>
             <a
               href={CLIPARR_GITHUB_URL}
               target="_blank"

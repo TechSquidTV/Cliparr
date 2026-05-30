@@ -24,7 +24,7 @@
 - **Instant session discovery**: Automatically loads your media player's currently playing file.
 - **Open local videos**: Open a local file or direct media URL before or after connecting a provider.
 - **Intuitive timeline editor**: Familiar editing controls for choosing the exact clip range.
-- **Browser transcoding**: Powered by Mediabunny, video is transcoded in your browser.
+- **Browser transcoding**: Powered by <a href="https://mediabunny.dev/" target="_blank" rel="noreferrer">Mediabunny</a>, video is transcoded in your browser.
 - **Metadata included**: Exports can include season, episode, and timing metadata from your source.
 - **Subtitle burn-in**: Burn in supported subtitles with customizable styling and local font support in Chromium.
 <!-- CLIPARR_DOCS_SYNC:features:end -->
@@ -101,6 +101,8 @@ volumes:
 <!-- CLIPARR_DOCS_SYNC:configuration:end -->
 
 When running behind a reverse proxy, preserve the `Host` header and pass `X-Forwarded-Proto`. Cliparr trusts loopback, link-local, and private-LAN proxy ranges directly in the app, so typical Caddy/Nginx/Traefik setups on the same network do not need extra app configuration. Caddy already forwards the needed headers.
+
+Cliparr does not include a full app-level user or permission system. If you need to limit who can open the app, keep it on a trusted network or put it behind an authenticated reverse proxy. See the [access control guide](https://cliparr.dev/docs/access-control) for recommended deployment patterns.
 
 ## Development
 
