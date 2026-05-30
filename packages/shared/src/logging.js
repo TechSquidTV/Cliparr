@@ -1,12 +1,10 @@
-export type LogFields = Record<string, unknown>;
-
-export function compactLogFields(fields: LogFields): LogFields {
+export function compactLogFields(fields) {
   return Object.fromEntries(
     Object.entries(fields).filter((entry) => entry[1] !== undefined),
   );
 }
 
-export function logEventFields(name: string, outcome?: string): LogFields {
+export function logEventFields(name, outcome) {
   return compactLogFields({
     "event.name": name,
     "event.outcome": outcome,
@@ -14,23 +12,21 @@ export function logEventFields(name: string, outcome?: string): LogFields {
 }
 
 export function logDurationFields(
-  startedAtMs: number,
+  startedAtMs,
   nowMs = Date.now(),
   fieldName = "event.duration.ms",
-): LogFields {
+) {
   return {
     [fieldName]: Math.max(0, nowMs - startedAtMs),
   };
 }
 
-export function logErrorFields(error: unknown): LogFields {
+export function logErrorFields(error) {
   if (error instanceof Error) {
-    const errorWithCode = error as Error & { code?: unknown };
     return compactLogFields({
       "error.name": error.name,
       "error.message": error.message,
-      "error.code":
-        typeof errorWithCode.code === "string" ? errorWithCode.code : undefined,
+      "error.code": typeof error.code === "string" ? error.code : undefined,
     });
   }
 
@@ -39,7 +35,7 @@ export function logErrorFields(error: unknown): LogFields {
   };
 }
 
-export function sanitizeUrlForLog(value: string | undefined) {
+export function sanitizeUrlForLog(value) {
   if (!value) {
     return value;
   }

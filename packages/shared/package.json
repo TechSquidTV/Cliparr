@@ -5,8 +5,8 @@
   "types": "./src/providers.ts",
   "exports": {
     "./logging": {
-      "types": "./src/logging.ts",
-      "default": "./src/logging.ts"
+      "types": "./src/logging.d.ts",
+      "default": "./src/logging.js"
     },
     "./providers": {
       "types": "./src/providers.ts",
