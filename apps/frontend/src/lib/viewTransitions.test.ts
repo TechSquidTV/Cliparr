@@ -2,13 +2,13 @@
 
 import assert from "node:assert/strict";
 import test from "node:test";
-import type { EditorSession } from "./editorMedia";
+import type { EditorSession } from "@/lib/editorMedia";
 import {
   clearPendingEditorTransitionSession,
   EDITOR_THUMBNAIL_VIEW_TRANSITION_NAME,
   getPendingEditorTransitionSession,
   setPendingEditorTransitionSession,
-} from "./viewTransitions";
+} from "@/lib/viewTransitions";
 
 function buildEditorSession(id: string): EditorSession {
   return {

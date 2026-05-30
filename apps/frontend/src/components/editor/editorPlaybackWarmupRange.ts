@@ -1,4 +1,4 @@
-import type { PlaybackReadyRange } from "./editorPlaybackWarmupTypes";
+import type { PlaybackReadyRange } from "@/components/editor/editorPlaybackWarmupTypes";
 
 export const PLAYBACK_READY_RANGE_FRESH_MS = 30_000;
 

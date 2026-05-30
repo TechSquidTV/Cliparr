@@ -20,9 +20,9 @@ import {
   subtitleTrackKey,
   subtitleTrackSupportsBurnIn,
   subtitleTrackUnavailableMessage,
-} from "../../lib/selectPreferredSubtitleTrack";
-import type { SubtitleStyleSettings } from "../../lib/subtitles/types";
-import type { PlaybackSubtitleTrack } from "../../providers/types";
+} from "@/lib/selectPreferredSubtitleTrack";
+import type { SubtitleStyleSettings } from "@/lib/subtitles/types";
+import type { PlaybackSubtitleTrack } from "@/providers/types";
 import {
   EditorColorControl,
   EditorPropertyRow,
@@ -30,8 +30,8 @@ import {
   EditorRangeControl,
   editorPropertyLabelClassName,
   editorPropertySelectTriggerClassName,
-} from "./EditorPropertyControls";
-import { useSubtitleFontOptions } from "./useSubtitleFontOptions";
+} from "@/components/editor/EditorPropertyControls";
+import { useSubtitleFontOptions } from "@/components/editor/useSubtitleFontOptions";
 
 interface EditorSubtitlePanelProps {
   providerId?: string;

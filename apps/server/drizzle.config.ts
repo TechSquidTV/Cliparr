@@ -1,10 +1,7 @@
-import "./src/config/loadEnv.ts";
+import "#/config/loadEnv.js";
 import path from "path";
 import { defineConfig } from "drizzle-kit";
-import {
-  resolveConfiguredDataDir,
-  workspaceRoot,
-} from "./src/config/loadEnv.ts";
+import { resolveConfiguredDataDir, workspaceRoot } from "#/config/loadEnv.js";
 
 const configuredDataDir = process.env.CLIPARR_DATA_DIR?.trim();
 const dataDir = configuredDataDir

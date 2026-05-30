@@ -1,5 +1,5 @@
 import type { WrappedAudioBuffer } from "mediabunny";
-import { fromSourceTimelineTime } from "../../lib/mediabunnyTrackAccess";
+import { fromSourceTimelineTime } from "@/lib/mediabunnyTrackAccess";
 
 type RefValue<T> = {
   current: T;

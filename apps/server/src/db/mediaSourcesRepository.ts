@@ -1,9 +1,9 @@
 import { randomUUID } from "crypto";
 import { and, asc, eq, type SQL } from "drizzle-orm";
-import { getDatabase } from "./database.js";
-import { mediaSources, type MediaSourceRow } from "./schema.js";
-import { currentTimestampSql } from "./timestamps.js";
-import { decryptJsonSecrets, encryptJsonSecrets } from "../security/secrets.js";
+import { getDatabase } from "#/db/database.js";
+import { mediaSources, type MediaSourceRow } from "#/db/schema.js";
+import { currentTimestampSql } from "#/db/timestamps.js";
+import { decryptJsonSecrets, encryptJsonSecrets } from "#/security/secrets.js";
 
 export interface MediaSource {
   id: string;

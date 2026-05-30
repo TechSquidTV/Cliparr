@@ -1,16 +1,16 @@
 import { AnimatePresence, motion } from "motion/react";
 import { ArrowRight, Check, ExternalLink, Server } from "lucide-react";
 import type { ReactNode } from "react";
-import { cn } from "../../lib/utils";
+import { cn } from "@/lib/utils";
 import {
   ProviderBadge,
   ProviderConnectError,
   ProviderOption,
   ProviderStatusMessage,
   providerPresentation,
-} from "./ProviderConnectFlowSections";
-import { ProviderGlyph } from "../providers/ProviderGlyph";
-import { useProviderConnectFlow } from "./useProviderConnectFlow";
+} from "@/components/provider-connect/ProviderConnectFlowSections";
+import { ProviderGlyph } from "@/components/providers/ProviderGlyph";
+import { useProviderConnectFlow } from "@/components/provider-connect/useProviderConnectFlow";
 import {
   Tabs,
   TabsList,
@@ -25,10 +25,7 @@ import {
   screenTextInputClasses as baseScreenInputClasses,
   textInputClasses,
 } from "@/components/ui/control-styles";
-import type {
-  ProviderDefinition,
-  ProviderSession,
-} from "../../providers/types";
+import type { ProviderDefinition, ProviderSession } from "@/providers/types";
 
 interface Props {
   onConnected: (session: ProviderSession) => Promise<void> | void;

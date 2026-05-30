@@ -4,7 +4,7 @@ import {
   logErrorFields,
   logEventFields,
 } from "@cliparr/shared/logging";
-import type { ExportFormat, ExportResolution } from "../../lib/exportClip";
+import type { ExportFormat, ExportResolution } from "@/lib/exportClip";
 import {
   buildExportFileName,
   defaultExportFileNameTemplates,
@@ -12,22 +12,19 @@ import {
   saveExportFileNameTemplates,
   type ExportFileNameTemplateKind,
   type ExportFileNameTemplateSettings,
-} from "../../lib/exportFileName";
+} from "@/lib/exportFileName";
 import {
   isHlsEditorMediaSource,
   sourceDisplayLabel,
   type EditorMediaSource,
   type EditorSession,
-} from "../../lib/editorMedia";
-import { subtitleTrackSupportsBurnIn } from "../../lib/selectPreferredSubtitleTrack";
-import type {
-  SubtitleCue,
-  SubtitleStyleSettings,
-} from "../../lib/subtitles/types";
-import type { PlaybackSubtitleTrack } from "../../providers/types";
-import type { ExportSourcePreference } from "./EditorExportDialog";
-import type { PlaybackFallbackInfo } from "./useEditorPlayback";
-import { getFrontendLogger, warnWithError } from "../../logging";
+} from "@/lib/editorMedia";
+import { subtitleTrackSupportsBurnIn } from "@/lib/selectPreferredSubtitleTrack";
+import type { SubtitleCue, SubtitleStyleSettings } from "@/lib/subtitles/types";
+import type { PlaybackSubtitleTrack } from "@/providers/types";
+import type { ExportSourcePreference } from "@/components/editor/EditorExportDialog";
+import type { PlaybackFallbackInfo } from "@/components/editor/useEditorPlayback";
+import { getFrontendLogger, warnWithError } from "@/logging";
 
 interface VideoDimensions {
   width: number;
@@ -324,7 +321,7 @@ export function useEditorExport({
     });
 
     try {
-      const { exportClip } = await import("../../lib/exportClip");
+      const { exportClip } = await import("@/lib/exportClip");
       const blob = await exportClip({
         mediaSource: readiness.source,
         hls: readiness.sourceKind === "hls",

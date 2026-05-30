@@ -1,5 +1,5 @@
-import type { MediaExportMetadata } from "../providers/types";
-import type { ExportFormat } from "./exportClip";
+import type { MediaExportMetadata } from "@/providers/types";
+import type { ExportFormat } from "@/lib/exportClip";
 
 export type ExportFileNameTemplateKind = "movie" | "episode";
 

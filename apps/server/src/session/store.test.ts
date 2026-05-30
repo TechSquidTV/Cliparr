@@ -9,17 +9,13 @@ const TEST_APP_KEY = "session-store-test-key-with-at-least-32-characters";
 const MISMATCHED_APP_KEY =
   "session-store-test-key-with-a-different-32-char-secret";
 
-const appModuleUrl = new URL("../app.js", import.meta.url).href;
-const databaseModuleUrl = new URL("../db/database.js", import.meta.url).href;
-const providerAccountsRepositoryModuleUrl = new URL(
-  "../db/providerAccountsRepository.js",
-  import.meta.url,
-).href;
-const rememberedProviderSessionsRepositoryModuleUrl = new URL(
-  "../db/rememberedProviderSessionsRepository.js",
-  import.meta.url,
-).href;
-const storeModuleUrl = new URL("./store.js", import.meta.url).href;
+const appModuleSpecifier = "#/app.js";
+const databaseModuleSpecifier = "#/db/database.js";
+const providerAccountsRepositoryModuleSpecifier =
+  "#/db/providerAccountsRepository.js";
+const rememberedProviderSessionsRepositoryModuleSpecifier =
+  "#/db/rememberedProviderSessionsRepository.js";
+const storeModuleSpecifier = "#/session/store.js";
 
 function runStoreScript(
   script: string,
@@ -30,7 +26,14 @@ function runStoreScript(
 ) {
   const child = spawnSync(
     process.execPath,
-    ["--import", "tsx", "--input-type=module", "--eval", script],
+    [
+      "--conditions=cliparr-source",
+      "--import",
+      "tsx",
+      "--input-type=module",
+      "--eval",
+      script,
+    ],
     {
       cwd: process.cwd(),
       env: {
@@ -62,14 +65,14 @@ void test("restores a provider session from an opaque remembered provider sessio
       `
       import assert from "node:assert/strict";
 
-      const { initializeDatabase, closeDatabase } = await import(${JSON.stringify(databaseModuleUrl)});
-      const { upsertProviderAccountByAccessToken } = await import(${JSON.stringify(providerAccountsRepositoryModuleUrl)});
+      const { initializeDatabase, closeDatabase } = await import(${JSON.stringify(databaseModuleSpecifier)});
+      const { upsertProviderAccountByAccessToken } = await import(${JSON.stringify(providerAccountsRepositoryModuleSpecifier)});
       const {
         createRememberedProviderSession,
         getRememberedProviderSession,
         revokeRememberedProviderSession,
-      } = await import(${JSON.stringify(rememberedProviderSessionsRepositoryModuleUrl)});
-      const { restoreProviderSessionFromProviderAccount } = await import(${JSON.stringify(storeModuleUrl)});
+      } = await import(${JSON.stringify(rememberedProviderSessionsRepositoryModuleSpecifier)});
+      const { restoreProviderSessionFromProviderAccount } = await import(${JSON.stringify(storeModuleSpecifier)});
 
       try {
         initializeDatabase();
@@ -120,9 +123,9 @@ void test("remembered provider session tokens are not reusable after APP_KEY cha
   try {
     const token = runStoreScript(
       `
-      const { initializeDatabase, closeDatabase } = await import(${JSON.stringify(databaseModuleUrl)});
-      const { upsertProviderAccountByAccessToken } = await import(${JSON.stringify(providerAccountsRepositoryModuleUrl)});
-      const { createRememberedProviderSession } = await import(${JSON.stringify(rememberedProviderSessionsRepositoryModuleUrl)});
+      const { initializeDatabase, closeDatabase } = await import(${JSON.stringify(databaseModuleSpecifier)});
+      const { upsertProviderAccountByAccessToken } = await import(${JSON.stringify(providerAccountsRepositoryModuleSpecifier)});
+      const { createRememberedProviderSession } = await import(${JSON.stringify(rememberedProviderSessionsRepositoryModuleSpecifier)});
 
       try {
         initializeDatabase();
@@ -146,8 +149,8 @@ void test("remembered provider session tokens are not reusable after APP_KEY cha
       `
       import assert from "node:assert/strict";
 
-      const { initializeDatabase, closeDatabase } = await import(${JSON.stringify(databaseModuleUrl)});
-      const { getRememberedProviderSession } = await import(${JSON.stringify(rememberedProviderSessionsRepositoryModuleUrl)});
+      const { initializeDatabase, closeDatabase } = await import(${JSON.stringify(databaseModuleSpecifier)});
+      const { getRememberedProviderSession } = await import(${JSON.stringify(rememberedProviderSessionsRepositoryModuleSpecifier)});
 
       try {
         initializeDatabase();
@@ -176,11 +179,11 @@ void test("restores /api/session from a remembered provider session cookie", () 
       `
       import assert from "node:assert/strict";
 
-      const { createApp } = await import(${JSON.stringify(appModuleUrl)});
-      const { closeDatabase } = await import(${JSON.stringify(databaseModuleUrl)});
-      const { upsertProviderAccountByAccessToken } = await import(${JSON.stringify(providerAccountsRepositoryModuleUrl)});
-      const { createRememberedProviderSession } = await import(${JSON.stringify(rememberedProviderSessionsRepositoryModuleUrl)});
-      const { getRememberedProviderSessionCookieName, getSessionCookieName } = await import(${JSON.stringify(storeModuleUrl)});
+      const { createApp } = await import(${JSON.stringify(appModuleSpecifier)});
+      const { closeDatabase } = await import(${JSON.stringify(databaseModuleSpecifier)});
+      const { upsertProviderAccountByAccessToken } = await import(${JSON.stringify(providerAccountsRepositoryModuleSpecifier)});
+      const { createRememberedProviderSession } = await import(${JSON.stringify(rememberedProviderSessionsRepositoryModuleSpecifier)});
+      const { getRememberedProviderSessionCookieName, getSessionCookieName } = await import(${JSON.stringify(storeModuleSpecifier)});
 
       const { app } = await createApp();
       const server = app.listen(0, "127.0.0.1");
@@ -236,9 +239,9 @@ void test("clears invalid remembered provider session cookies from /api/session"
       `
       import assert from "node:assert/strict";
 
-      const { createApp } = await import(${JSON.stringify(appModuleUrl)});
-      const { closeDatabase } = await import(${JSON.stringify(databaseModuleUrl)});
-      const { getRememberedProviderSessionCookieName } = await import(${JSON.stringify(storeModuleUrl)});
+      const { createApp } = await import(${JSON.stringify(appModuleSpecifier)});
+      const { closeDatabase } = await import(${JSON.stringify(databaseModuleSpecifier)});
+      const { getRememberedProviderSessionCookieName } = await import(${JSON.stringify(storeModuleSpecifier)});
 
       const { app } = await createApp();
       const server = app.listen(0, "127.0.0.1");
@@ -285,18 +288,18 @@ void test("logout revokes the remembered provider session token", () => {
       `
       import assert from "node:assert/strict";
 
-      const { createApp } = await import(${JSON.stringify(appModuleUrl)});
-      const { closeDatabase } = await import(${JSON.stringify(databaseModuleUrl)});
-      const { upsertProviderAccountByAccessToken } = await import(${JSON.stringify(providerAccountsRepositoryModuleUrl)});
+      const { createApp } = await import(${JSON.stringify(appModuleSpecifier)});
+      const { closeDatabase } = await import(${JSON.stringify(databaseModuleSpecifier)});
+      const { upsertProviderAccountByAccessToken } = await import(${JSON.stringify(providerAccountsRepositoryModuleSpecifier)});
       const {
         createRememberedProviderSession,
         getRememberedProviderSession,
-      } = await import(${JSON.stringify(rememberedProviderSessionsRepositoryModuleUrl)});
+      } = await import(${JSON.stringify(rememberedProviderSessionsRepositoryModuleSpecifier)});
       const {
         createProviderSession,
         getRememberedProviderSessionCookieName,
         getSessionCookieName,
-      } = await import(${JSON.stringify(storeModuleUrl)});
+      } = await import(${JSON.stringify(storeModuleSpecifier)});
 
       const { app } = await createApp();
       const server = app.listen(0, "127.0.0.1");

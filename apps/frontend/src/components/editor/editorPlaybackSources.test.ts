@@ -5,7 +5,7 @@ import test from "node:test";
 import {
   createProviderUrlSource,
   type EditorMediaSource,
-} from "../../lib/editorMedia";
+} from "@/lib/editorMedia";
 import {
   buildPlaybackFailure,
   buildPlaybackLoadError,
@@ -14,7 +14,7 @@ import {
   resolvePlaybackDuration,
   shouldUseExportFallback,
   type PlaybackLoadFailure,
-} from "./editorPlaybackSources";
+} from "@/components/editor/editorPlaybackSources";
 
 function localFileSource(label = "movie.mp4") {
   return {

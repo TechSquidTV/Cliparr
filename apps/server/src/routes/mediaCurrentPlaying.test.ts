@@ -3,19 +3,19 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import test from "node:test";
-import { closeDatabase } from "../db/database.js";
+import { closeDatabase } from "#/db/database.js";
 import {
   upsertMediaSource,
   type MediaSource,
-} from "../db/mediaSourcesRepository.js";
-import { upsertProviderAccountByAccessToken } from "../db/providerAccountsRepository.js";
-import { createApp } from "../app.js";
-import { plexProvider } from "../providers/plex/provider.js";
-import type { CurrentlyPlayingEntry } from "../providers/types.js";
+} from "#/db/mediaSourcesRepository.js";
+import { upsertProviderAccountByAccessToken } from "#/db/providerAccountsRepository.js";
+import { createApp } from "#/app.js";
+import { plexProvider } from "#/providers/plex/provider.js";
+import type { CurrentlyPlayingEntry } from "#/providers/types.js";
 import {
   createProviderSession,
   getSessionCookieName,
-} from "../session/store.js";
+} from "#/session/store.js";
 
 const TEST_APP_KEY = "media-currently-playing-test-key-with-32-chars";
 

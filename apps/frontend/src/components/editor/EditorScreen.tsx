@@ -5,37 +5,37 @@ import {
   clampPlaybackTime,
   MIN_CLIP_SECONDS,
   roundTimelineTime,
-} from "./editorUtils";
+} from "@/components/editor/editorUtils";
 import {
   useEditorPlayback,
   type PlaybackFallbackInfo,
-} from "./useEditorPlayback";
-import { useEditorExport } from "./useEditorExport";
-import { useEditorKeyboardShortcuts } from "./useEditorKeyboardShortcuts";
-import { useEditorTimeline } from "./useEditorTimeline";
-import { EditorHeader } from "./EditorHeader";
-import { EditorPreview } from "./EditorPreview";
-import { EditorControls } from "./EditorControls";
-import { EditorPlaybackSourcePanel } from "./EditorPlaybackSourcePanel";
-import { EditorTimeline } from "./EditorTimeline";
-import { EditorSubtitlePanel } from "./EditorSubtitlePanel";
+} from "@/components/editor/useEditorPlayback";
+import { useEditorExport } from "@/components/editor/useEditorExport";
+import { useEditorKeyboardShortcuts } from "@/components/editor/useEditorKeyboardShortcuts";
+import { useEditorTimeline } from "@/components/editor/useEditorTimeline";
+import { EditorHeader } from "@/components/editor/EditorHeader";
+import { EditorPreview } from "@/components/editor/EditorPreview";
+import { EditorControls } from "@/components/editor/EditorControls";
+import { EditorPlaybackSourcePanel } from "@/components/editor/EditorPlaybackSourcePanel";
+import { EditorTimeline } from "@/components/editor/EditorTimeline";
+import { EditorSubtitlePanel } from "@/components/editor/EditorSubtitlePanel";
 import {
   buildClipRangeAfterDurationDiscovery,
   buildInitialClipRange,
-} from "./initialClipRange";
-import { EDITOR_DESKTOP_LAYOUT_QUERY } from "./editorLayoutSizing";
+} from "@/components/editor/initialClipRange";
+import { EDITOR_DESKTOP_LAYOUT_QUERY } from "@/components/editor/editorLayoutSizing";
 import {
   EditorDesktopLayout,
   EditorMobileLayout,
   EditorPreviewPane,
   EditorTimelinePane,
-} from "./EditorLayout";
-import { useEditorSubtitles } from "./useEditorSubtitles";
-import { sourceDisplayLabel, type EditorSession } from "../../lib/editorMedia";
-import { EDITOR_THUMBNAIL_VIEW_TRANSITION_NAME } from "../../lib/viewTransitions";
+} from "@/components/editor/EditorLayout";
+import { useEditorSubtitles } from "@/components/editor/useEditorSubtitles";
+import { sourceDisplayLabel, type EditorSession } from "@/lib/editorMedia";
+import { EDITOR_THUMBNAIL_VIEW_TRANSITION_NAME } from "@/lib/viewTransitions";
 
 const EditorExportDialog = lazy(() =>
-  import("./EditorExportDialog").then((module) => ({
+  import("@/components/editor/EditorExportDialog").then((module) => ({
     default: module.EditorExportDialog,
   })),
 );

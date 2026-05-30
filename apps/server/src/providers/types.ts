@@ -9,8 +9,8 @@ import type {
   SourcePlaybackError,
   ViewerPlaybackGroup,
 } from "@cliparr/shared/providers";
-import type { MediaSource } from "../db/mediaSourcesRepository.js";
-import type { ProviderSessionRecord } from "../session/store.js";
+import type { MediaSource } from "#/db/mediaSourcesRepository.js";
+import type { ProviderSessionRecord } from "#/session/store.js";
 
 export type {
   MediaExportMetadata,

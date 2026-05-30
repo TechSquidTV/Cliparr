@@ -4,6 +4,9 @@
   "description": "Personal media clipper for Plex, Jellyfin, and local video files, featuring a React frontend and Express server.",
   "license": "MIT",
   "type": "module",
+  "imports": {
+    "#release/*.mjs": "./scripts/release/*.mjs"
+  },
   "packageManager": "pnpm@11.2.2",
   "engines": {
     "node": ">=20.19"

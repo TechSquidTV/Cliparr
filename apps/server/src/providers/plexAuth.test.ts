@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { ApiError } from "../http/errors.js";
-import { pollAuth, startAuth } from "./plex/auth.js";
+import { ApiError } from "#/http/errors.js";
+import { pollAuth, startAuth } from "#/providers/plex/auth.js";
 
 function jsonResponse(value: unknown) {
   return new Response(JSON.stringify(value), {

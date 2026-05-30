@@ -1,12 +1,12 @@
 import { randomBytes, randomUUID } from "crypto";
 import { eq } from "drizzle-orm";
-import { getDatabase } from "./database.js";
+import { getDatabase } from "#/db/database.js";
 import {
   rememberedProviderSessions,
   type RememberedProviderSessionRow,
-} from "./schema.js";
-import { currentTimestampSql } from "./timestamps.js";
-import { hashSecret } from "../security/secrets.js";
+} from "#/db/schema.js";
+import { currentTimestampSql } from "#/db/timestamps.js";
+import { hashSecret } from "#/security/secrets.js";
 
 export const REMEMBERED_PROVIDER_SESSION_TTL_MS = 1000 * 60 * 60 * 24 * 365;
 

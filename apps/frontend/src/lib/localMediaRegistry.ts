@@ -8,9 +8,9 @@ import {
   type EditorUrlMediaSource,
   titleFromFileName,
   titleFromUrl,
-} from "./editorMedia";
-import { cliparrClient } from "../api/cliparrClient";
-import { isHlsPlaylistUrl } from "./mediabunnyInput";
+} from "@/lib/editorMedia";
+import { cliparrClient } from "@/api/cliparrClient";
+import { isHlsPlaylistUrl } from "@/lib/mediabunnyInput";
 
 const DATABASE_NAME = "cliparr-local-media";
 const DATABASE_VERSION = 1;

@@ -1,13 +1,13 @@
-import "./config/loadEnv.js";
+import "#/config/loadEnv.js";
 import type { Server } from "node:http";
 import { logErrorFields, logEventFields } from "@cliparr/shared/logging";
-import { createApp } from "./app.js";
-import { closeDatabase } from "./db/database.js";
+import { createApp } from "#/app.js";
+import { closeDatabase } from "#/db/database.js";
 import {
   configureLogging,
   fatalWithError,
   getServerLogger,
-} from "./logging.js";
+} from "#/logging.js";
 
 const logger = getServerLogger("lifecycle");
 

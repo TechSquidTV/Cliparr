@@ -8,8 +8,8 @@ import {
 import {
   EDITOR_PANEL_SIZES,
   EDITOR_RESIZE_TARGET_MINIMUM_SIZE,
-} from "./editorLayoutSizing";
-import { EditorSidebar } from "./EditorSidebar";
+} from "@/components/editor/editorLayoutSizing";
+import { EditorSidebar } from "@/components/editor/EditorSidebar";
 
 export type EditorLayoutVariant = "desktop" | "mobile";
 

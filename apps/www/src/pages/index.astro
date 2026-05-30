@@ -1,15 +1,15 @@
 ---
-import BaseLayout from "../components/BaseLayout.astro";
-import CommandBlock from "../components/CommandBlock.astro";
-import FeatureGrid from "../components/FeatureGrid.astro";
+import BaseLayout from "@/components/BaseLayout.astro";
+import CommandBlock from "@/components/CommandBlock.astro";
+import FeatureGrid from "@/components/FeatureGrid.astro";
 import { Picture } from "astro:assets";
-import screenshotImage from "../assets/screenshot.webp";
+import screenshotImage from "@/assets/screenshot.webp";
 import {
   dockerRunCommand,
   productIntro,
   providers,
   site,
-} from "../data/product";
+} from "@/data/product";
 ---
 
 <BaseLayout description={productIntro}>

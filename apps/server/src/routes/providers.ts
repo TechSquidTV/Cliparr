@@ -5,12 +5,12 @@ import {
   logErrorFields,
   logEventFields,
 } from "@cliparr/shared/logging";
-import { persistProviderAuth } from "../db/providerPersistence.js";
-import { createRememberedProviderSession } from "../db/rememberedProviderSessionsRepository.js";
-import { ApiError, asyncHandler } from "../http/errors.js";
-import { getRequestRouteUrl } from "../http/requestOrigin.js";
-import { getProvider, listProviders } from "../providers/registry.js";
-import { getServerLogger, warnWithError } from "../logging.js";
+import { persistProviderAuth } from "#/db/providerPersistence.js";
+import { createRememberedProviderSession } from "#/db/rememberedProviderSessionsRepository.js";
+import { ApiError, asyncHandler } from "#/http/errors.js";
+import { getRequestRouteUrl } from "#/http/requestOrigin.js";
+import { getProvider, listProviders } from "#/providers/registry.js";
+import { getServerLogger, warnWithError } from "#/logging.js";
 import {
   createProviderSession,
   getRememberedProviderSessionCookieName,
@@ -18,8 +18,8 @@ import {
   getSessionCookieName,
   getSessionCookieOptions,
   readCookie,
-} from "../session/store.js";
-import { setNoStore } from "../session/request.js";
+} from "#/session/store.js";
+import { setNoStore } from "#/session/request.js";
 
 export const providersRouter = Router();
 const logger = getServerLogger(["provider", "auth"]);

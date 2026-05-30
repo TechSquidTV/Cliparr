@@ -3,7 +3,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import type { MetadataTags } from "mediabunny";
-import { buildMetadataTags, patchMp4MetadataBoxes } from "./exportMetadata";
+import { buildMetadataTags, patchMp4MetadataBoxes } from "@/lib/exportMetadata";
 
 function bytes(...values: number[]) {
   return new Uint8Array(values);

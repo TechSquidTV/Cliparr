@@ -1,4 +1,4 @@
-import type { SubtitleCue, SubtitleStyleSettings } from "./types";
+import type { SubtitleCue, SubtitleStyleSettings } from "@/lib/subtitles/types";
 
 interface SubtitleLayout {
   font: string;

@@ -14,15 +14,15 @@ import {
   type MediaSource,
   type UpdateMediaSourceInput,
   updateMediaSourceForAccount,
-} from "../db/mediaSourcesRepository.js";
-import { ApiError, asyncHandler } from "../http/errors.js";
+} from "#/db/mediaSourcesRepository.js";
+import { ApiError, asyncHandler } from "#/http/errors.js";
 import {
   PLEX_BASE_URL_MODE_MANUAL,
   withPlexBaseUrlMode,
-} from "../providers/plex/connectionState.js";
-import { getProvider } from "../providers/registry.js";
-import { requireAccountSession, setNoStore } from "../session/request.js";
-import { getServerLogger, warnWithError } from "../logging.js";
+} from "#/providers/plex/connectionState.js";
+import { getProvider } from "#/providers/registry.js";
+import { requireAccountSession, setNoStore } from "#/session/request.js";
+import { getServerLogger, warnWithError } from "#/logging.js";
 
 export const sourcesRouter = Router();
 const logger = getServerLogger("source");

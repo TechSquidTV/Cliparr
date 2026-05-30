@@ -20,12 +20,12 @@ import {
   timelineTimeToPixel,
   type ClipTimelineData,
   type ClipTimelineEffects,
-} from "./editorUtils";
+} from "@/components/editor/editorUtils";
 import {
   accumulateTimelineWheelZoomDelta,
   resolveTimelineScrollWheelUpdate,
   resolveTimelineZoomUpdate,
-} from "./timelineZoom";
+} from "@/components/editor/timelineZoom";
 
 interface UseEditorTimelineProps {
   duration: number;

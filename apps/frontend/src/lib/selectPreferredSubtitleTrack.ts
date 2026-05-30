@@ -1,7 +1,7 @@
 import type {
   PlaybackSubtitleSelection,
   PlaybackSubtitleTrack,
-} from "../providers/types";
+} from "@/providers/types";
 
 function normalizedText(value: string | null | undefined) {
   const trimmed = value?.trim().toLowerCase();

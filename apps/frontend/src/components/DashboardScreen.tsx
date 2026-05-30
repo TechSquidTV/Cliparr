@@ -8,14 +8,17 @@ import {
   Settings2,
   Video,
 } from "lucide-react";
-import { cliparrClient } from "../api/cliparrClient";
-import { EDITOR_THUMBNAIL_VIEW_TRANSITION_NAME } from "../lib/viewTransitions";
-import { formatProviderName, ProviderGlyph } from "./providers/ProviderGlyph";
+import { cliparrClient } from "@/api/cliparrClient";
+import { EDITOR_THUMBNAIL_VIEW_TRANSITION_NAME } from "@/lib/viewTransitions";
+import {
+  formatProviderName,
+  ProviderGlyph,
+} from "@/components/providers/ProviderGlyph";
 import type {
   CurrentlyPlayingItem,
   SourcePlaybackError,
   ViewerPlaybackGroup,
-} from "../providers/types";
+} from "@/providers/types";
 
 interface Props {
   activeViewTransitionSessionId?: string | null;

@@ -3,8 +3,8 @@ import { Timeline, type TimelineState } from "@xzdarcy/react-timeline-editor";
 import "@xzdarcy/react-timeline-editor/dist/react-timeline-editor.css";
 import type { CSSProperties, RefObject } from "react";
 import { Scissors } from "lucide-react";
-import type { PlaybackReadyRange } from "./useEditorPlayback";
-import { isPlaybackReadyRangeVisible } from "./editorPlaybackWarmupRange";
+import type { PlaybackReadyRange } from "@/components/editor/useEditorPlayback";
+import { isPlaybackReadyRangeVisible } from "@/components/editor/editorPlaybackWarmupRange";
 import {
   formatTime,
   getTimelineFillPercentages,
@@ -13,7 +13,7 @@ import {
   type ClipTimelineEffects,
   type ClipTimelineAction,
   type TimelineZoomLevel,
-} from "./editorUtils";
+} from "@/components/editor/editorUtils";
 
 interface EditorTimelineProps {
   timelineRef: RefObject<TimelineState | null>;

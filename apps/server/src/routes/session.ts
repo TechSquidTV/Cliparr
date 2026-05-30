@@ -8,9 +8,9 @@ import {
   createRememberedProviderSession,
   getRememberedProviderSession,
   revokeRememberedProviderSession,
-} from "../db/rememberedProviderSessionsRepository.js";
-import { ApiError, asyncHandler } from "../http/errors.js";
-import { getProvider } from "../providers/registry.js";
+} from "#/db/rememberedProviderSessionsRepository.js";
+import { ApiError, asyncHandler } from "#/http/errors.js";
+import { getProvider } from "#/providers/registry.js";
 import {
   deleteProviderSession,
   getRememberedProviderSessionCookieClearOptions,
@@ -22,9 +22,9 @@ import {
   getProviderSession,
   readCookie,
   restoreProviderSessionFromProviderAccount,
-} from "../session/store.js";
-import { getRequestSessionId, setNoStore } from "../session/request.js";
-import { getServerLogger } from "../logging.js";
+} from "#/session/store.js";
+import { getRequestSessionId, setNoStore } from "#/session/request.js";
+import { getServerLogger } from "#/logging.js";
 
 export const sessionRouter = Router();
 const logger = getServerLogger("session");

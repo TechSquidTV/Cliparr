@@ -2,14 +2,14 @@
 
 import assert from "node:assert/strict";
 import test from "node:test";
-import type { BrowserFileHandle } from "./editorMedia";
+import type { BrowserFileHandle } from "@/lib/editorMedia";
 import {
   createLocalSessionFromFile,
   createLocalSessionFromUrl,
   resolveFileHandleReadPermission,
   resolveLocalMediaSession,
   validateLocalMediaUrl,
-} from "./localMediaRegistry";
+} from "@/lib/localMediaRegistry";
 
 async function withMockedLocalMediaUrl<T>(callback: () => Promise<T>) {
   const originalFetch = globalThis.fetch;

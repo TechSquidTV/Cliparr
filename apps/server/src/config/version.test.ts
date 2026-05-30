@@ -3,7 +3,7 @@ import test from "node:test";
 import {
   resolveCliparrClientVersion,
   resolveCliparrVersion,
-} from "./version.js";
+} from "#/config/version.js";
 
 void test("uses CI build identity exactly as provided", () => {
   assert.equal(

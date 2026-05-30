@@ -4,11 +4,11 @@ import type { Request } from "express";
 import {
   getRequestRouteUrl,
   requestOriginIsPotentiallyTrustworthy,
-} from "./requestOrigin.js";
+} from "#/http/requestOrigin.js";
 import {
   getSessionCookieClearOptions,
   getSessionCookieOptions,
-} from "../session/store.js";
+} from "#/session/store.js";
 
 function makeRequest(
   secure: boolean,

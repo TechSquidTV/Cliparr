@@ -13,14 +13,14 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import type { ExportFormat, ExportResolution } from "../../lib/exportClip";
+import type { ExportFormat, ExportResolution } from "@/lib/exportClip";
 import {
   getExportFileNameTemplateTokens,
   type ExportFileNameTemplateKind,
   type ExportFileNameTemplateSettings,
-} from "../../lib/exportFileName";
-import type { ExportSourcePreference } from "./EditorExportDialog";
-import { formatTime } from "./editorUtils";
+} from "@/lib/exportFileName";
+import type { ExportSourcePreference } from "@/components/editor/EditorExportDialog";
+import { formatTime } from "@/components/editor/editorUtils";
 
 interface VideoDimensions {
   width: number;

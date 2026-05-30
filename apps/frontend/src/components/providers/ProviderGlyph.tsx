@@ -1,7 +1,7 @@
 import { Film, Server } from "lucide-react";
-import plexLogoUrl from "../../assets/providers/plex.svg";
-import jellyfinLogoUrl from "../../assets/providers/jellyfin.svg";
-import { cn } from "../../lib/utils";
+import plexLogoUrl from "@/assets/providers/plex.svg";
+import jellyfinLogoUrl from "@/assets/providers/jellyfin.svg";
+import { cn } from "@/lib/utils";
 
 export function formatProviderName(providerId: string) {
   return providerId

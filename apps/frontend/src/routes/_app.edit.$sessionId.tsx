@@ -1,13 +1,13 @@
 import { createFileRoute, useCanGoBack } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
-import { cliparrClient } from "../api/cliparrClient";
-import EditorScreen from "../components/editor/EditorScreen";
+import { cliparrClient } from "@/api/cliparrClient";
+import EditorScreen from "@/components/editor/EditorScreen";
 import {
   editorSessionFromCurrentlyPlaying,
   type EditorSession,
-} from "../lib/editorMedia";
-import { getPendingEditorTransitionSession } from "../lib/viewTransitions";
-import { router } from "../router";
+} from "@/lib/editorMedia";
+import { getPendingEditorTransitionSession } from "@/lib/viewTransitions";
+import { router } from "@/router";
 
 function errorMessage(err: unknown, fallback: string) {
   return err instanceof Error && err.message ? err.message : fallback;

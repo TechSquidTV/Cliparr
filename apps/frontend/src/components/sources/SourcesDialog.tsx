@@ -7,8 +7,8 @@ import {
   SourcesDialogAlerts,
   SourcesDialogFilters,
   SourcesDialogHeader,
-} from "./SourcesDialogSections";
-import { useSourcesState } from "./useSourcesState";
+} from "@/components/sources/SourcesDialogSections";
+import { useSourcesState } from "@/components/sources/useSourcesState";
 
 interface Props {
   isOpen: boolean;

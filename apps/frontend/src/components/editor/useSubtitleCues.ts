@@ -5,14 +5,14 @@ import {
   logErrorFields,
   logEventFields,
 } from "@cliparr/shared/logging";
-import type { PlaybackSubtitleTrack } from "../../providers/types";
+import type { PlaybackSubtitleTrack } from "@/providers/types";
 import {
   subtitleTrackSupportsBurnIn,
   subtitleTrackUnavailableMessage,
-} from "../../lib/selectPreferredSubtitleTrack";
-import { parseSubtitleText } from "../../lib/subtitles/parseSubtitleText";
-import type { SubtitleCue } from "../../lib/subtitles/types";
-import { getFrontendLogger, warnWithError } from "../../logging";
+} from "@/lib/selectPreferredSubtitleTrack";
+import { parseSubtitleText } from "@/lib/subtitles/parseSubtitleText";
+import type { SubtitleCue } from "@/lib/subtitles/types";
+import { getFrontendLogger, warnWithError } from "@/logging";
 
 interface UseSubtitleCuesOptions {
   selectedSubtitleTrack: PlaybackSubtitleTrack | null;

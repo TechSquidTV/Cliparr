@@ -8,32 +8,32 @@ import {
   WebMOutputFormat,
 } from "mediabunny";
 import type { ConversionOptions, VideoSample } from "mediabunny";
-import type { EditorMediaSource } from "./editorMedia";
-import { createCliparrInputFromSource } from "./mediabunnyInput";
-import { ensureMediabunnyCodecs } from "./mediabunnyCodecs";
+import type { EditorMediaSource } from "@/lib/editorMedia";
+import { createCliparrInputFromSource } from "@/lib/mediabunnyInput";
+import { ensureMediabunnyCodecs } from "@/lib/mediabunnyCodecs";
 import {
   getTrackTimelineOffsetSeconds,
   getVideoTrackDimensions,
   toSourceTimelineTime,
-} from "./mediabunnyTrackAccess";
-import { selectPreferredPairableAudioTrack } from "./selectPreferredAudioTrack";
+} from "@/lib/mediabunnyTrackAccess";
+import { selectPreferredPairableAudioTrack } from "@/lib/selectPreferredAudioTrack";
 import type {
   MediaExportMetadata,
   PlaybackAudioSelection,
-} from "../providers/types";
+} from "@/providers/types";
 import {
   buildMetadataTags,
   describeDiscardedTracks,
   isIsobmffExportFormat,
   patchMp4MetadataBoxes,
-} from "./exportMetadata";
-import type { ExportFormat, ExportResolution } from "./exportTypes";
-import { getActiveSubtitleCue } from "./subtitles/getActiveSubtitleCue";
-import { renderSubtitleCue } from "./subtitles/renderSubtitleCue";
-import { trimSubtitleCues } from "./subtitles/trimSubtitleCues";
-import type { SubtitleCue, SubtitleStyleSettings } from "./subtitles/types";
+} from "@/lib/exportMetadata";
+import type { ExportFormat, ExportResolution } from "@/lib/exportTypes";
+import { getActiveSubtitleCue } from "@/lib/subtitles/getActiveSubtitleCue";
+import { renderSubtitleCue } from "@/lib/subtitles/renderSubtitleCue";
+import { trimSubtitleCues } from "@/lib/subtitles/trimSubtitleCues";
+import type { SubtitleCue, SubtitleStyleSettings } from "@/lib/subtitles/types";
 
-export type { ExportFormat, ExportResolution } from "./exportTypes";
+export type { ExportFormat, ExportResolution } from "@/lib/exportTypes";
 
 interface ExportClipOptions {
   mediaSource: EditorMediaSource;

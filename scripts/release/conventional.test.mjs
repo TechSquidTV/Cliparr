@@ -10,7 +10,7 @@ import {
   nextPrereleaseNumber,
   parseConventionalTitle,
   releaseTypeForChange,
-} from "./conventional.mjs";
+} from "#release/conventional.mjs";
 
 void test("classifies conventional PR titles into release levels", () => {
   assert.equal(

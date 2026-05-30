@@ -1,8 +1,8 @@
 import { createFileRoute, useCanGoBack } from "@tanstack/react-router";
 import { FolderOpen, ShieldCheck, TriangleAlert } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
-import EditorScreen from "../components/editor/EditorScreen";
-import { LocalVideoOpenDialog } from "../components/local-media/LocalVideoOpenDialog";
+import EditorScreen from "@/components/editor/EditorScreen";
+import { LocalVideoOpenDialog } from "@/components/local-media/LocalVideoOpenDialog";
 import {
   primaryButtonClasses,
   secondaryButtonClasses,
@@ -11,8 +11,8 @@ import {
 import {
   resolveLocalMediaSession,
   type LocalMediaResolution,
-} from "../lib/localMediaRegistry";
-import { router } from "../router";
+} from "@/lib/localMediaRegistry";
+import { router } from "@/router";
 
 function LocalEditorRouteComponent() {
   const { sessionId } = Route.useParams();

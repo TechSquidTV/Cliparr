@@ -1,11 +1,11 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { ApiError } from "../http/errors.js";
-import type { ProviderResource } from "./types.js";
+import { ApiError } from "#/http/errors.js";
+import type { ProviderResource } from "#/providers/types.js";
 import {
   normalizeResources,
   requirePlexServerResources,
-} from "./plex/shared.js";
+} from "#/providers/plex/shared.js";
 
 void test("normalizes Plex server resources when Plex flags are strings", () => {
   const resources = normalizeResources([

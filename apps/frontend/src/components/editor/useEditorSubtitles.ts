@@ -1,18 +1,18 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import type { EditorSession } from "../../lib/editorMedia";
+import type { EditorSession } from "@/lib/editorMedia";
 import {
   selectPreferredSubtitleTrack,
   subtitleTrackKey,
   subtitleTrackSupportsBurnIn,
-} from "../../lib/selectPreferredSubtitleTrack";
+} from "@/lib/selectPreferredSubtitleTrack";
 import {
   loadSubtitleStyleSettings,
   saveSubtitleStyleSettings,
-} from "../../lib/subtitles/settings";
-import { trimSubtitleCues } from "../../lib/subtitles/trimSubtitleCues";
-import type { PlaybackSubtitleTrack } from "../../providers/types";
-import { buildSubtitleExportSummary } from "./subtitleExportSummary";
-import { useSubtitleCues } from "./useSubtitleCues";
+} from "@/lib/subtitles/settings";
+import { trimSubtitleCues } from "@/lib/subtitles/trimSubtitleCues";
+import type { PlaybackSubtitleTrack } from "@/providers/types";
+import { buildSubtitleExportSummary } from "@/components/editor/subtitleExportSummary";
+import { useSubtitleCues } from "@/components/editor/useSubtitleCues";
 
 interface UseEditorSubtitlesProps {
   session: EditorSession;

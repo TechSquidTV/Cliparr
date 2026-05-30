@@ -3,6 +3,10 @@
   "compilerOptions": {
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
+    "customConditions": ["cliparr-source"],
+    "paths": {
+      "#/*.js": ["./src/*.ts"]
+    },
     "types": ["node"],
     "noEmit": true
   },

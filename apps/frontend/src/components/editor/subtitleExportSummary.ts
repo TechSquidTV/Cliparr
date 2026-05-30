@@ -1,8 +1,8 @@
-import type { PlaybackSubtitleTrack } from "../../providers/types";
+import type { PlaybackSubtitleTrack } from "@/providers/types";
 import {
   subtitleTrackSupportsBurnIn,
   subtitleTrackUnavailableMessage,
-} from "../../lib/selectPreferredSubtitleTrack";
+} from "@/lib/selectPreferredSubtitleTrack";
 
 interface BuildSubtitleExportSummaryOptions {
   selectedSubtitleTrack: PlaybackSubtitleTrack | null;

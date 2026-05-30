@@ -12,12 +12,12 @@ import {
   getFocusedTimelineZoomIndex,
   parseTimecodeInput,
   type TimelineZoomLevel,
-} from "./editorUtils";
+} from "@/components/editor/editorUtils";
 import {
   accumulateTimelineWheelZoomDelta,
   resolveTimelineScrollWheelUpdate,
   resolveTimelineZoomUpdate,
-} from "./timelineZoom";
+} from "@/components/editor/timelineZoom";
 
 const zoomLevels = [
   { scale: 5, scaleSplitCount: 5, scaleWidth: 100 },

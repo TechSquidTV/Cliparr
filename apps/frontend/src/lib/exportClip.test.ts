@@ -3,9 +3,9 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import type { ConversionOptions } from "mediabunny";
-import { exportClipWithRuntime } from "./exportClip";
-import type { EditorMediaSource } from "./editorMedia";
-import type { SubtitleStyleSettings } from "./subtitles/types";
+import { exportClipWithRuntime } from "@/lib/exportClip";
+import type { EditorMediaSource } from "@/lib/editorMedia";
+import type { SubtitleStyleSettings } from "@/lib/subtitles/types";
 
 type ExportRuntime = Parameters<typeof exportClipWithRuntime>[1];
 type CliparrInput = Awaited<

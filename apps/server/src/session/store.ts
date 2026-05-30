@@ -1,13 +1,13 @@
 import { randomUUID } from "crypto";
 import { eq } from "drizzle-orm";
 import { logErrorFields, logEventFields } from "@cliparr/shared/logging";
-import { getDatabase } from "../db/database.js";
-import { getProviderAccount } from "../db/providerAccountsRepository.js";
-import { REMEMBERED_PROVIDER_SESSION_TTL_MS } from "../db/rememberedProviderSessionsRepository.js";
-import { providerSessions, type ProviderSessionRow } from "../db/schema.js";
-import { getServerLogger } from "../logging.js";
-import type { MediaHandle } from "../providers/types.js";
-import { decryptSecret, encryptSecret } from "../security/secrets.js";
+import { getDatabase } from "#/db/database.js";
+import { getProviderAccount } from "#/db/providerAccountsRepository.js";
+import { REMEMBERED_PROVIDER_SESSION_TTL_MS } from "#/db/rememberedProviderSessionsRepository.js";
+import { providerSessions, type ProviderSessionRow } from "#/db/schema.js";
+import { getServerLogger } from "#/logging.js";
+import type { MediaHandle } from "#/providers/types.js";
+import { decryptSecret, encryptSecret } from "#/security/secrets.js";
 
 const SESSION_COOKIE = "cliparr_session";
 const REMEMBERED_PROVIDER_SESSION_COOKIE = "cliparr_remember";

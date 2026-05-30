@@ -12,6 +12,10 @@
     },
     "apps/server": {
       "ignoreBinaries": ["eslint"],
+      "paths": {
+        "#/*.js": ["./src/*.ts"],
+        "#/*": ["./src/*"]
+      },
       "project": ["src/**/*.ts"]
     }
   }

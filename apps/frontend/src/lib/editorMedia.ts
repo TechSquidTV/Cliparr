@@ -5,8 +5,8 @@ import type {
   PlaybackSource,
   PlaybackSubtitleSelection,
   PlaybackSubtitleTrack,
-} from "../providers/types";
-import { isHlsPlaylistUrl } from "./mediabunnyInput";
+} from "@/providers/types";
+import { isHlsPlaylistUrl } from "@/lib/mediabunnyInput";
 
 const LOCAL_PROVIDER_ID = "local";
 
