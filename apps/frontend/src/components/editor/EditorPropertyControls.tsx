@@ -40,6 +40,9 @@ export function EditorPropertyRow({
   children: ReactNode;
   align?: "center" | "start";
 }) {
+  const labelClassName =
+    editorPropertyLabelClassName() + (align === "start" ? " pt-2" : "");
+
   return (
     <div
       className={cn(
@@ -47,14 +50,7 @@ export function EditorPropertyRow({
         align === "start" ? "items-start" : "items-center",
       )}
     >
-      <span
-        className={cn(
-          editorPropertyLabelClassName(),
-          align === "start" && "pt-2",
-        )}
-      >
-        {label}
-      </span>
+      <span className={labelClassName}>{label}</span>
       <span className="min-w-0">
         {value ? (
           <span className="mb-1 flex justify-end font-mono text-ui-micro text-muted-foreground">
