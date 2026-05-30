@@ -1,0 +1,43 @@
+---
+title: Editor shortcuts
+description: Keyboard behavior for preview playback and editable timecodes.
+order: 47
+---
+
+import DocsImagePlaceholder from "../../components/DocsImagePlaceholder.astro";
+
+The editor keeps keyboard shortcuts intentionally small so browser, form, and media controls stay predictable.
+
+<DocsImagePlaceholder
+  title="Editor controls screenshot showing playback, timecodes, volume, zoom, and clip range"
+  target="apps/www/public/docs/editor-controls.png"
+  caption="Suggested screenshot slot for the editor control bar."
+/>
+
+## Preview playback
+
+| Shortcut | Action                     |
+| :------- | :------------------------- |
+| `Space`  | Play or pause the preview. |
+
+`Space` only controls preview playback when focus is not inside an interactive control. It is ignored while typing in inputs, using selects, pressing buttons, or adjusting sliders.
+
+## Editable timecodes
+
+Click the preview time, `In`, or `Out` timecode to type an exact time.
+
+| Shortcut | Action                                      |
+| :------- | :------------------------------------------ |
+| `Enter`  | Apply the typed timecode.                   |
+| `Escape` | Cancel editing and keep the previous value. |
+
+Timecode fields accept seconds, minutes and seconds, or hours, minutes, and seconds. Examples include `90`, `1:30`, and `1:02:03`.
+
+## Pointer controls
+
+Most editor actions are controlled directly on screen:
+
+- Drag the timeline selection to move the clip range.
+- Drag selection edges to adjust `In` and `Out`.
+- Use the zoom buttons to change timeline scale.
+- Use the volume slider and mute button to control preview audio.
