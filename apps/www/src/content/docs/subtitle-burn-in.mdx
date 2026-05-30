@@ -5,16 +5,26 @@ section: editing-export
 order: 20
 ---
 
+import { Picture } from "astro:assets";
 import Callout from "../../components/Callout.astro";
-import DocsImagePlaceholder from "../../components/DocsImagePlaceholder.astro";
+import subtitlePanelImage from "../../../public/docs/subtitle-panel.webp";
 
 Cliparr can burn supported subtitle tracks directly into the exported video. Burned-in subtitles become part of the video pixels, so the exported file does not need a separate subtitle track or sidecar file.
 
-<DocsImagePlaceholder
-  title="Subtitle panel screenshot showing track selection and style controls"
-  target="apps/www/public/docs/subtitle-panel.png"
-  caption="Suggested screenshot slot for subtitle track and style controls."
-/>
+<figure class="my-6 overflow-hidden rounded-lg border border-border bg-card">
+  <Picture
+    src={subtitlePanelImage}
+    alt="Cliparr subtitle panel showing track selection and burn-in style controls."
+    formats={["avif", "webp"]}
+    fallbackFormat="webp"
+    widths={[640, 960, 1280, 1600]}
+    sizes="(min-width: 80rem) 896px, (min-width: 64rem) calc(100vw - 22rem), calc(100vw - 2rem)"
+    quality={78}
+    loading="lazy"
+    decoding="async"
+    class="block w-full"
+  />
+</figure>
 
 ## Supported tracks
 

@@ -5,16 +5,26 @@ section: editing-export
 order: 10
 ---
 
+import { Picture } from "astro:assets";
 import Callout from "../../components/Callout.astro";
-import DocsImagePlaceholder from "../../components/DocsImagePlaceholder.astro";
+import exportDialogImage from "../../../public/docs/export-dialog.webp";
 
 Cliparr exports clips in the browser with Mediabunny. Open the export dialog from the editor after choosing a clip range, then review the output settings before saving the file.
 
-<DocsImagePlaceholder
-  title="Export dialog screenshot showing format, resolution, source, audio, filename template, and summary"
-  target="apps/www/public/docs/export-dialog.png"
-  caption="Suggested screenshot slot for the full export dialog."
-/>
+<figure class="my-6 overflow-hidden rounded-lg border border-border bg-card">
+  <Picture
+    src={exportDialogImage}
+    alt="Cliparr export dialog showing format, resolution, source, audio, filename template, and export summary."
+    formats={["avif", "webp"]}
+    fallbackFormat="webp"
+    widths={[640, 960, 1280, 1600, 2200]}
+    sizes="(min-width: 80rem) 896px, (min-width: 64rem) calc(100vw - 22rem), calc(100vw - 2rem)"
+    quality={78}
+    loading="lazy"
+    decoding="async"
+    class="block w-full"
+  />
+</figure>
 
 ## Format
 
