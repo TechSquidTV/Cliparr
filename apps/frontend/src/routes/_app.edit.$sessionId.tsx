@@ -1,7 +1,7 @@
 import { createFileRoute, useCanGoBack } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { cliparrClient } from "../api/cliparrClient";
-import EditorScreen from "../components/EditorScreen";
+import EditorScreen from "../components/editor/EditorScreen";
 import {
   editorSessionFromCurrentlyPlaying,
   type EditorSession,
