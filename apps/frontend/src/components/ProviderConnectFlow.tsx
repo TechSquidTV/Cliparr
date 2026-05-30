@@ -561,7 +561,11 @@ function ProviderConnectPanelLayout({
         }}
       >
         {providers.map((provider) => (
-          <TabsTab key={provider.id} value={provider.id} className="min-w-0 px-2">
+          <TabsTab
+            key={provider.id}
+            value={provider.id}
+            className="min-w-0 px-2"
+          >
             <ProviderGlyph
               providerId={provider.id}
               providerName={provider.name}

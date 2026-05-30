@@ -124,9 +124,7 @@ export function EditorExportDialog({
     >
       <div className="grid min-h-0 flex-1 gap-4 overflow-y-auto p-4 lg:grid-cols-editor-export">
         <div className="space-y-4">
-          {error && (
-            <div className={destructiveAlertClasses}>{error}</div>
-          )}
+          {error && <div className={destructiveAlertClasses}>{error}</div>}
 
           {exportSourceMessage && (
             <div className={primaryAlertClasses}>{exportSourceMessage}</div>

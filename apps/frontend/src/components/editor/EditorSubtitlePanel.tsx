@@ -243,9 +243,7 @@ export function EditorSubtitlePanel({
             styleTooltip ? (
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <span className={editorPropertyLabelClassName()}>
-                    Locked
-                  </span>
+                  <span className={editorPropertyLabelClassName()}>Locked</span>
                 </TooltipTrigger>
                 <TooltipContent side="top" align="end">
                   {styleTooltip}

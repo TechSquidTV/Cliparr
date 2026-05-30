@@ -187,9 +187,7 @@ export function LocalVideoOpenModal({
 
         <div className="min-h-0 overflow-y-auto p-4">
           {error && (
-            <div className={cn(destructiveAlertClasses, "mb-4")}>
-              {error}
-            </div>
+            <div className={cn(destructiveAlertClasses, "mb-4")}>{error}</div>
           )}
 
           <TabsPanels>

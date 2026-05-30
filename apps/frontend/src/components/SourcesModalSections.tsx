@@ -382,9 +382,7 @@ export function SourcesModalAlerts({
 }: SourcesModalAlertsProps) {
   return (
     <>
-      {error && (
-        <div className={destructiveAlertClasses}>{error}</div>
-      )}
+      {error && <div className={destructiveAlertClasses}>{error}</div>}
 
       {feedback && (
         <div
