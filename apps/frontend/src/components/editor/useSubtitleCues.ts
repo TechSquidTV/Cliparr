@@ -23,14 +23,26 @@ interface UseSubtitleCuesOptions {
 const subtitleRequestTimeoutMs = 15_000;
 const logger = getFrontendLogger(["editor", "subtitles"]);
 
-class SubtitleDownloadError extends Error {
+interface SubtitleDownloadFailure {
   status: number;
+  message: string;
+}
 
-  constructor(status: number) {
-    super(`Could not load subtitles (${status}).`);
-    this.name = "SubtitleDownloadError";
-    this.status = status;
-  }
+type SubtitleDownloadResult =
+  | {
+      ok: true;
+      cues: SubtitleCue[];
+    }
+  | {
+      ok: false;
+      failure: SubtitleDownloadFailure;
+    };
+
+function subtitleDownloadFailure(status: number): SubtitleDownloadFailure {
+  return {
+    status,
+    message: `Could not load subtitles (${status}).`,
+  };
 }
 
 function subtitleTrackLogFields(
@@ -52,13 +64,19 @@ async function downloadSubtitleCues(
   track: PlaybackSubtitleTrack,
   contentUrl: string,
   signal: AbortSignal,
-) {
+): Promise<SubtitleDownloadResult> {
   const response = await fetch(contentUrl, { signal });
   if (!response.ok) {
-    throw new SubtitleDownloadError(response.status);
+    return {
+      ok: false,
+      failure: subtitleDownloadFailure(response.status),
+    };
   }
 
-  return parseSubtitleText(await response.text(), track.contentFormat);
+  return {
+    ok: true,
+    cues: parseSubtitleText(await response.text(), track.contentFormat),
+  };
 }
 
 export function useSubtitleCues({
@@ -110,7 +128,7 @@ export function useSubtitleCues({
 
       const startedAt = Date.now();
       try {
-        const parsedSubtitleCues = await downloadSubtitleCues(
+        const downloadResult = await downloadSubtitleCues(
           selectedSubtitleTrack,
           contentUrl,
           abortController.signal,
@@ -120,6 +138,22 @@ export function useSubtitleCues({
           return;
         }
 
+        if (!downloadResult.ok) {
+          logger.warn("Could not load subtitle cues.", {
+            ...logEventFields("editor.subtitle.load", "failure"),
+            ...logDurationFields(startedAt),
+            ...subtitleTrackLogFields(selectedSubtitleTrack, providerId),
+            "subtitle.timeout": false,
+            "http.status_code": downloadResult.failure.status,
+            "error.name": "SubtitleDownloadFailure",
+            "error.message": downloadResult.failure.message,
+          });
+          setSubtitleCues([]);
+          setSubtitleError(downloadResult.failure.message);
+          return;
+        }
+
+        const parsedSubtitleCues = downloadResult.cues;
         setSubtitleCues(parsedSubtitleCues);
         setSubtitleError(
           parsedSubtitleCues.length === 0
@@ -155,8 +189,6 @@ export function useSubtitleCues({
           ...logErrorFields(err),
           ...subtitleTrackLogFields(selectedSubtitleTrack, providerId),
           "subtitle.timeout": false,
-          "http.status_code":
-            err instanceof SubtitleDownloadError ? err.status : undefined,
         });
         setSubtitleCues([]);
         setSubtitleError(
