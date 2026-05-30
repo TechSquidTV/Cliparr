@@ -1,8 +1,13 @@
 ---
+import type { CollectionEntry } from "astro:content";
 import { getCollection, render } from "astro:content";
 import BaseLayout from "../components/BaseLayout.astro";
 
-const releaseEntries = (await getCollection("releases")).sort(
+type ReleaseEntry = CollectionEntry<"releases">;
+
+const releaseEntries = (
+  (await getCollection("releases")) as ReleaseEntry[]
+).sort(
   (a, b) => Date.parse(b.data.publishedAt) - Date.parse(a.data.publishedAt),
 );
 const releases = await Promise.all(

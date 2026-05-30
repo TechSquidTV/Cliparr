@@ -1,12 +1,15 @@
 ---
+import type { CollectionEntry } from "astro:content";
 import { getCollection } from "astro:content";
 
 interface Props {
   currentSlug?: string;
 }
 
+type DocsEntry = CollectionEntry<"docs">;
+
 const { currentSlug = "" } = Astro.props;
-const docs = (await getCollection("docs")).sort(
+const docs = ((await getCollection("docs")) as DocsEntry[]).sort(
   (a, b) => a.data.order - b.data.order,
 );
 ---
