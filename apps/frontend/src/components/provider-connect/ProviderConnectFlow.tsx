@@ -25,7 +25,10 @@ import {
   screenTextInputClasses as baseScreenInputClasses,
   textInputClasses,
 } from "@/components/ui/control-styles";
-import type { ProviderDefinition, ProviderSession } from "../../providers/types";
+import type {
+  ProviderDefinition,
+  ProviderSession,
+} from "../../providers/types";
 
 interface Props {
   onConnected: (session: ProviderSession) => Promise<void> | void;
