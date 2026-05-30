@@ -30,7 +30,7 @@ import {
   EditorRangeControl,
   editorPropertyLabelClassName,
   editorPropertySelectTriggerClassName,
-} from "./EditorPropertyUi";
+} from "./EditorPropertyControls";
 import { useSubtitleFontOptions } from "./useSubtitleFontOptions";
 
 interface EditorSubtitlePanelProps {
