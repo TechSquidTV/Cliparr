@@ -11,7 +11,7 @@ import {
   getTrackName,
 } from "../../lib/mediabunnyTrackAccess";
 import type { PlaybackAudioSelection } from "../../providers/types";
-import { errorMessage, isAc3FamilyCodec } from "./EditorUtils";
+import { errorMessage, isAc3FamilyCodec } from "./editorUtils";
 
 type PlaybackSourceLabel =
   | "hls stream"

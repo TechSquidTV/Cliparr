@@ -1,24 +1,43 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
+import { flushSync } from "react-dom";
 import { useAuth } from "../auth";
 import DashboardScreen from "../components/DashboardScreen";
-import { LocalVideoOpenModal } from "../components/LocalVideoOpenModal";
+import { LocalVideoOpenDialog } from "../components/local-media/LocalVideoOpenDialog";
+import { editorSessionFromCurrentlyPlaying } from "../lib/editorMedia";
+import {
+  runViewTransition,
+  setPendingEditorTransitionSession,
+} from "../lib/viewTransitions";
 import { router } from "../router";
 
 function DashboardRouteComponent() {
   const auth = useAuth();
   const [localVideoOpen, setLocalVideoOpen] = useState(false);
+  const [transitionSessionId, setTransitionSessionId] = useState<string | null>(
+    null,
+  );
 
   return (
     <>
       <DashboardScreen
+        activeViewTransitionSessionId={transitionSessionId}
         onSelectSession={(session) => {
-          void router.navigate({
-            to: "/edit/$sessionId",
-            params: {
-              sessionId: session.id,
-            },
+          flushSync(() => {
+            setTransitionSessionId(session.id);
+            setPendingEditorTransitionSession(
+              editorSessionFromCurrentlyPlaying(session),
+            );
           });
+
+          void runViewTransition(() =>
+            router.navigate({
+              to: "/edit/$sessionId",
+              params: {
+                sessionId: session.id,
+              },
+            }),
+          );
         }}
         onOpenLocalVideo={() => setLocalVideoOpen(true)}
         onOpenSources={() => {
@@ -26,7 +45,7 @@ function DashboardRouteComponent() {
         }}
         onLogout={auth.logout}
       />
-      <LocalVideoOpenModal
+      <LocalVideoOpenDialog
         isOpen={localVideoOpen}
         onClose={() => setLocalVideoOpen(false)}
         onOpened={(sessionId) => {

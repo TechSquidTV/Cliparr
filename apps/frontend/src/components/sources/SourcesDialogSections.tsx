@@ -10,22 +10,22 @@ import {
   Trash2,
   X,
 } from "lucide-react";
-import { cn } from "../lib/utils";
+import { cn } from "../../lib/utils";
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import type { MediaSource, ProviderSession } from "../providers/types";
-import { formatProviderName } from "./ProviderGlyph";
+import { Switch } from "@/components/ui/switch";
+import {
+  destructiveAlertClasses,
+  iconButtonClasses,
+  textInputClasses as inputClasses,
+} from "@/components/ui/control-styles";
+import type { MediaSource, ProviderSession } from "../../providers/types";
+import { formatProviderName } from "../providers/ProviderGlyph";
 import SourceConnectPanel from "./SourceConnectPanel";
-
-export type SourceFilter = "all" | "enabled" | "disabled" | "attention";
-
-export interface Feedback {
-  tone: "error" | "success" | "warning";
-  message: string;
-}
+import type { Feedback, SourceFilter } from "./sourcesTypes";
 
 function TooltipWrap({
   message,
@@ -64,14 +64,28 @@ const sourceFilterOptions = [
   ["attention", "Needs attention"],
 ] as const satisfies readonly [SourceFilter, string][];
 
-const healthySurfaceClasses =
-  "border-[color:color-mix(in_oklch,var(--primary)_24%,transparent)] bg-[color:color-mix(in_oklch,var(--primary)_12%,var(--background))] text-[color:color-mix(in_oklch,var(--primary)_78%,var(--foreground))]";
+function joinClassNames(...classes: Array<string | false | null | undefined>) {
+  return classes.filter(Boolean).join(" ");
+}
+
+const sourcePrimaryButtonClasses =
+  "inline-flex h-8 items-center justify-center gap-2 rounded-md border border-primary bg-primary px-3 text-xs font-medium normal-case tracking-normal text-primary-foreground transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-60";
+const sourceSecondaryButtonClasses =
+  "inline-flex h-8 items-center justify-center gap-2 rounded-md border border-border bg-background px-3 text-xs font-medium normal-case tracking-normal text-foreground transition-colors hover:bg-accent disabled:cursor-not-allowed disabled:opacity-60";
+const sourceDestructiveButtonClasses =
+  "inline-flex h-8 items-center justify-center gap-2 rounded-md border border-destructive/30 bg-destructive/10 px-3 text-xs font-medium normal-case tracking-normal text-destructive transition-colors hover:bg-destructive hover:text-destructive-foreground disabled:cursor-not-allowed disabled:opacity-60";
+const sourceFieldLabelClasses =
+  "text-ui-label font-normal normal-case tracking-normal text-muted-foreground";
+const sourceMetaLabelClasses =
+  "text-ui-micro font-normal normal-case tracking-normal text-muted-foreground";
+const statusBadgeClasses =
+  "inline-flex h-6 items-center gap-1.5 rounded-md border px-2 text-ui-label font-medium normal-case tracking-normal";
+const sourceFilterButtonClasses =
+  "inline-flex h-7 items-center gap-1.5 rounded-[var(--radius-control)] px-2 text-ui-label font-medium normal-case tracking-normal transition-colors";
+const healthySurfaceClasses = "border-primary/30 bg-primary/10 text-foreground";
 const attentionSurfaceClasses =
-  "border-[color:color-mix(in_oklch,var(--destructive)_24%,transparent)] bg-[color:color-mix(in_oklch,var(--destructive)_12%,var(--background))] text-[color:color-mix(in_oklch,var(--destructive)_72%,var(--foreground))]";
-const secondarySurfaceClasses =
-  "border-[color:color-mix(in_oklch,var(--secondary)_24%,transparent)] bg-[color:color-mix(in_oklch,var(--secondary)_12%,var(--background))] text-[color:color-mix(in_oklch,var(--secondary)_64%,var(--foreground))]";
-const elevatedGlassClasses =
-  "border-[color:color-mix(in_oklch,var(--foreground)_10%,transparent)] bg-[color:color-mix(in_oklch,var(--card)_72%,transparent)]";
+  "border-destructive/30 bg-destructive/10 text-destructive";
+const secondarySurfaceClasses = "border-border bg-muted text-muted-foreground";
 
 function stringValue(value: unknown) {
   return typeof value === "string" && value.trim() ? value.trim() : undefined;
@@ -125,7 +139,7 @@ function sourceStatus(source: MediaSource) {
   };
 }
 
-interface SourcesModalHeaderProps {
+interface SourcesDialogHeaderProps {
   counts: SourceCounts;
   forceAddSourceOpen: boolean;
   showConnectPanel: boolean;
@@ -139,7 +153,7 @@ interface SourcesModalHeaderProps {
   onClose: () => void;
 }
 
-export function SourcesModalHeader({
+export function SourcesDialogHeader({
   counts,
   forceAddSourceOpen,
   showConnectPanel,
@@ -151,7 +165,7 @@ export function SourcesModalHeader({
   onReloadList,
   onRefreshAll,
   onClose,
-}: SourcesModalHeaderProps) {
+}: SourcesDialogHeaderProps) {
   const reloadDisabledReason =
     loading || reloading
       ? "Source list is already loading."
@@ -166,60 +180,65 @@ export function SourcesModalHeader({
         : loading || reloading
           ? "Source list is still loading."
           : null;
+  const headerMetrics = [
+    {
+      label: "Total",
+      value: counts.all,
+      className: "border-border bg-background",
+    },
+    {
+      label: "Enabled",
+      value: counts.enabled,
+      className: healthySurfaceClasses,
+    },
+    {
+      label: "Attention",
+      value: counts.attention,
+      className: attentionSurfaceClasses,
+    },
+  ];
 
   return (
-    <header className="border-b border-border bg-[linear-gradient(135deg,color-mix(in_oklch,var(--primary)_16%,transparent),transparent_55%),linear-gradient(180deg,color-mix(in_oklch,var(--muted)_82%,var(--card)),var(--card))] px-5 py-5 sm:px-8 sm:py-7">
-      <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
-        <div className="space-y-3">
-          <div
-            className={cn(
-              "inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-medium uppercase tracking-[var(--tracking-caps-xl)] text-muted-foreground",
-              elevatedGlassClasses,
-            )}
-          >
+    <header className="border-b border-border bg-card px-4 py-3 sm:px-5">
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+        <div className="flex min-w-0 items-start gap-3">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md border border-border bg-background text-muted-foreground">
             <Server className="h-3.5 w-3.5" />
-            Source Control
           </div>
-          <div className="space-y-2">
-            <h2 className="text-2xl font-semibold tracking-tight sm:text-3xl">
-              Manage Sources
-            </h2>
-            <p className="max-w-2xl text-sm text-muted-foreground sm:text-base">
-              Connect servers, edit details, and run health checks.
-            </p>
-          </div>
-          <div className="flex flex-wrap gap-3 text-sm">
-            <div className="rounded-2xl border border-border bg-background/70 px-4 py-3">
-              <div className="text-muted-foreground">Total</div>
-              <div className="text-lg font-semibold">{counts.all}</div>
+          <div className="min-w-0 space-y-2">
+            <div>
+              <h2 className="text-sm font-semibold text-foreground">
+                Source Control
+              </h2>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Connect servers, edit details, and run health checks.
+              </p>
             </div>
-            <div
-              className={cn(
-                "rounded-2xl border px-4 py-3",
-                healthySurfaceClasses,
-              )}
-            >
-              <div className="opacity-80">Enabled</div>
-              <div className="text-lg font-semibold">{counts.enabled}</div>
-            </div>
-            <div
-              className={cn(
-                "rounded-2xl border px-4 py-3",
-                attentionSurfaceClasses,
-              )}
-            >
-              <div className="opacity-80">Needs Attention</div>
-              <div className="text-lg font-semibold">{counts.attention}</div>
+            <div className="flex flex-wrap items-center gap-2">
+              {headerMetrics.map(({ label, value, className }) => (
+                <div
+                  key={label}
+                  className={cn(
+                    "inline-flex h-7 items-center gap-2 rounded-md border px-2.5 text-xs",
+                    className,
+                  )}
+                >
+                  <span className="text-muted-foreground">{label}</span>
+                  <span className="font-mono font-semibold tabular-nums text-foreground">
+                    {value}
+                  </span>
+                </div>
+              ))}
             </div>
           </div>
         </div>
 
-        <div className="flex flex-wrap items-center gap-3">
+        <div className="flex flex-wrap items-center gap-2">
           {!forceAddSourceOpen && (
             <button
               type="button"
               onClick={onToggleAddSource}
-              className="inline-flex items-center gap-2 rounded-xl border border-border bg-background/80 px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-accent disabled:cursor-not-allowed disabled:opacity-60"
+              className={sourceSecondaryButtonClasses}
             >
               <Plus
                 className={cn(
@@ -235,7 +254,7 @@ export function SourcesModalHeader({
               type="button"
               onClick={onReloadList}
               disabled={loading || reloading || refreshingAll}
-              className="inline-flex items-center gap-2 rounded-xl border border-border bg-background/80 px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-accent disabled:cursor-not-allowed disabled:opacity-60"
+              className={sourceSecondaryButtonClasses}
             >
               <RefreshCw
                 className={cn(
@@ -257,7 +276,7 @@ export function SourcesModalHeader({
                 hasBusyActions ||
                 counts.all === 0
               }
-              className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-60"
+              className={sourcePrimaryButtonClasses}
             >
               <RefreshCw
                 className={cn("h-4 w-4", refreshingAll && "animate-spin")}
@@ -268,10 +287,10 @@ export function SourcesModalHeader({
           <button
             type="button"
             onClick={onClose}
-            className="inline-flex items-center gap-2 rounded-xl border border-border bg-background/80 px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+            aria-label="Close source control"
+            className={iconButtonClasses}
           >
             <X className="h-4 w-4" />
-            Close
           </button>
         </div>
       </div>
@@ -279,7 +298,7 @@ export function SourcesModalHeader({
   );
 }
 
-interface SourcesModalFiltersProps {
+interface SourcesDialogFiltersProps {
   searchInputRef: RefObject<HTMLInputElement | null>;
   query: string;
   providerFilter: string;
@@ -291,7 +310,7 @@ interface SourcesModalFiltersProps {
   onStatusFilterChange: (value: SourceFilter) => void;
 }
 
-export function SourcesModalFilters({
+export function SourcesDialogFilters({
   searchInputRef,
   query,
   providerFilter,
@@ -301,11 +320,11 @@ export function SourcesModalFilters({
   onQueryChange,
   onProviderFilterChange,
   onStatusFilterChange,
-}: SourcesModalFiltersProps) {
+}: SourcesDialogFiltersProps) {
   return (
-    <div className="border-b border-border px-5 py-4 sm:px-8">
-      <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
-        <div className="flex flex-1 flex-col gap-3 lg:flex-row">
+    <div className="border-b border-border bg-background px-4 py-3 sm:px-5">
+      <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
+        <div className="flex flex-1 flex-col gap-2 lg:flex-row">
           <label className="relative flex-1">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <input
@@ -313,16 +332,16 @@ export function SourcesModalFilters({
               value={query}
               onChange={(event) => onQueryChange(event.target.value)}
               placeholder="Search by source name, URL, provider, or platform"
-              className="h-11 w-full rounded-xl border border-input bg-background pl-10 pr-4 text-sm outline-none transition-colors focus:border-ring"
+              className={cn(inputClasses, "pl-9")}
             />
           </label>
 
-          <label className="flex items-center gap-3 rounded-xl border border-input bg-background px-4 text-sm text-muted-foreground">
-            <span>Provider</span>
+          <label className="flex h-9 items-center gap-3 rounded-md border border-input bg-background px-3 text-sm text-muted-foreground">
+            <span className={sourceFieldLabelClasses}>Provider</span>
             <select
               value={providerFilter}
               onChange={(event) => onProviderFilterChange(event.target.value)}
-              className="h-11 bg-transparent text-foreground outline-none"
+              className="h-full min-w-0 bg-transparent text-sm text-foreground outline-none"
             >
               <option value="all">All providers</option>
               {providerOptions.map((providerId) => (
@@ -334,7 +353,7 @@ export function SourcesModalFilters({
           </label>
         </div>
 
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-1 rounded-md border border-border bg-card p-1">
           {sourceFilterOptions.map(([value, label]) => {
             const isActive = statusFilter === value;
             return (
@@ -342,22 +361,15 @@ export function SourcesModalFilters({
                 key={value}
                 type="button"
                 onClick={() => onStatusFilterChange(value)}
-                className={cn(
-                  "inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-sm font-medium transition-colors",
+                className={joinClassNames(
+                  sourceFilterButtonClasses,
                   isActive
-                    ? "border-primary bg-primary text-primary-foreground"
-                    : "border-border bg-background text-muted-foreground hover:bg-accent hover:text-foreground",
+                    ? "bg-primary text-primary-foreground"
+                    : "text-muted-foreground hover:bg-accent hover:text-foreground",
                 )}
               >
                 {label}
-                <span
-                  className={cn(
-                    "rounded-full px-2 py-0.5 text-xs",
-                    isActive
-                      ? "bg-[color-mix(in_oklch,var(--primary-foreground)_16%,transparent)] text-primary-foreground"
-                      : "bg-muted text-foreground",
-                  )}
-                >
+                <span className="font-mono text-ui-micro opacity-80">
                   {counts[value]}
                 </span>
               </button>
@@ -369,29 +381,25 @@ export function SourcesModalFilters({
   );
 }
 
-interface SourcesModalAlertsProps {
+interface SourcesDialogAlertsProps {
   error: string;
   feedback: Feedback | null;
 }
 
-export function SourcesModalAlerts({
+export function SourcesDialogAlerts({
   error,
   feedback,
-}: SourcesModalAlertsProps) {
+}: SourcesDialogAlertsProps) {
   return (
     <>
-      {error && (
-        <div className="rounded-2xl border border-destructive/20 bg-destructive/10 px-4 py-3 text-sm text-destructive">
-          {error}
-        </div>
-      )}
+      {error && <div className={destructiveAlertClasses}>{error}</div>}
 
       {feedback && (
         <div
           className={cn(
-            "rounded-2xl border px-4 py-3 text-sm",
+            "rounded-md border px-3 py-2 text-sm",
             feedback.tone === "error" &&
-              "border-destructive/20 bg-destructive/10 text-destructive",
+              "border-destructive/30 bg-destructive/10 text-destructive",
             feedback.tone === "success" && healthySurfaceClasses,
             feedback.tone === "warning" && attentionSurfaceClasses,
           )}
@@ -415,23 +423,14 @@ export function SourcesConnectSection({
   onConnected,
 }: SourcesConnectSectionProps) {
   return (
-    <section className="rounded-[var(--radius-panel)] border border-border bg-[linear-gradient(135deg,color-mix(in_oklch,var(--primary)_10%,transparent),transparent_52%),linear-gradient(180deg,color-mix(in_oklch,var(--muted)_78%,var(--background)),var(--background))] p-5 sm:p-6">
+    <section className="rounded-lg border border-border bg-card p-4 sm:p-5">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <div className="space-y-2">
-          <div
-            className={cn(
-              "inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-medium uppercase tracking-[var(--tracking-caps-xl)] text-muted-foreground",
-              elevatedGlassClasses,
-            )}
-          >
-            <Plus className="h-3.5 w-3.5" />
-            Add Source
-          </div>
+        <div>
           <div>
-            <h3 className="text-xl font-semibold tracking-tight text-foreground">
+            <h3 className="text-sm font-semibold text-foreground">
               Connect another media server
             </h3>
-            <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
+            <p className="mt-1 max-w-2xl text-xs text-muted-foreground">
               Add a new Jellyfin server or reconnect another provider without
               leaving source management.
             </p>
@@ -442,7 +441,7 @@ export function SourcesConnectSection({
           <button
             type="button"
             onClick={onClosePanel}
-            className="inline-flex items-center gap-2 rounded-xl border border-border bg-card px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-accent"
+            className={sourceSecondaryButtonClasses}
           >
             <X className="h-4 w-4" />
             Close
@@ -450,7 +449,7 @@ export function SourcesConnectSection({
         )}
       </div>
 
-      <div className="mt-5">
+      <div className="mt-4">
         <SourceConnectPanel
           onConnected={onConnected}
           onCancel={!forceAddSourceOpen ? onClosePanel : undefined}
@@ -470,12 +469,12 @@ export function SourcesEmptyState({
   description,
 }: SourcesEmptyStateProps) {
   return (
-    <div className="rounded-[var(--radius-panel)] border border-dashed border-border bg-background/60 px-8 py-14 text-center">
-      <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-muted">
-        <Server className="h-6 w-6 text-muted-foreground" />
+    <div className="rounded-lg border border-dashed border-border bg-background px-6 py-10 text-center">
+      <div className="mx-auto mb-3 flex h-10 w-10 items-center justify-center rounded-md border border-border bg-card">
+        <Server className="h-5 w-5 text-muted-foreground" />
       </div>
-      <h3 className="text-lg font-semibold">{title}</h3>
-      <p className="mx-auto mt-2 max-w-md text-sm text-muted-foreground">
+      <h3 className="text-sm font-semibold">{title}</h3>
+      <p className="mx-auto mt-2 max-w-md text-xs text-muted-foreground">
         {description}
       </p>
     </div>
@@ -546,28 +545,35 @@ export function SourceCard({
   return (
     <article
       className={cn(
-        "rounded-[var(--radius-panel)] border p-5 shadow-sm transition-colors",
+        "rounded-lg border p-4 transition-colors",
         source.enabled
-          ? "border-border bg-background/90"
+          ? "border-border bg-background"
           : "border-border bg-muted/40",
       )}
     >
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="flex flex-wrap items-center gap-2">
-          <span className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-3 py-1 text-xs font-medium uppercase tracking-[var(--tracking-caps-xl)] text-muted-foreground">
+          <span
+            className={joinClassNames(
+              statusBadgeClasses,
+              "border-border bg-card text-muted-foreground",
+            )}
+          >
             {formatProviderName(source.providerId)}
           </span>
           <span
-            className={cn(
-              "inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-medium",
-              status.className,
-            )}
+            className={joinClassNames(statusBadgeClasses, status.className)}
           >
             <StatusIcon className="h-3.5 w-3.5" />
             {status.label}
           </span>
           {busyAction && (
-            <span className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
+            <span
+              className={joinClassNames(
+                statusBadgeClasses,
+                "border-primary/30 bg-primary/10 text-primary",
+              )}
+            >
               <RefreshCw className="h-3.5 w-3.5 animate-spin" />
               {busyAction}
             </span>
@@ -580,43 +586,39 @@ export function SourceCard({
       </div>
 
       <div className="mt-4 grid gap-3 lg:grid-cols-2">
-        <label className="block text-xs font-medium uppercase tracking-[var(--tracking-caps-lg)] text-muted-foreground">
+        <label className={sourceFieldLabelClasses}>
           Display Name
           <input
             value={draftName}
             onChange={(event) => onDraftNameChange(event.target.value)}
             onKeyDown={handleKeyDown}
             disabled={isBusy}
-            className="mt-2 h-11 w-full rounded-xl border border-input bg-card px-4 text-sm text-foreground outline-none transition-colors focus:border-ring disabled:cursor-not-allowed disabled:opacity-60"
+            className={cn(inputClasses, "mt-1.5")}
           />
         </label>
 
-        <label className="block text-xs font-medium uppercase tracking-[var(--tracking-caps-lg)] text-muted-foreground">
+        <label className={sourceFieldLabelClasses}>
           Server URL
           <input
             value={draftBaseUrl}
             onChange={(event) => onDraftBaseUrlChange(event.target.value)}
             onKeyDown={handleKeyDown}
             disabled={isBusy}
-            className="mt-2 h-11 w-full rounded-xl border border-input bg-card px-4 text-sm text-foreground outline-none transition-colors focus:border-ring disabled:cursor-not-allowed disabled:opacity-60"
+            className={cn(inputClasses, "mt-1.5")}
           />
         </label>
       </div>
 
-      <dl className="mt-4 grid gap-3 text-sm sm:grid-cols-2">
-        <div className="rounded-2xl border border-border bg-card/80 px-4 py-3">
-          <dt className="text-xs uppercase tracking-[var(--tracking-caps-lg)] text-muted-foreground">
-            Saved URL
-          </dt>
-          <dd className="mt-1 break-all font-medium text-foreground">
+      <dl className="mt-3 grid gap-2 text-sm sm:grid-cols-2">
+        <div className="rounded-md border border-border bg-card px-3 py-2">
+          <dt className={sourceMetaLabelClasses}>Saved URL</dt>
+          <dd className="mt-1 break-all text-xs font-medium text-foreground">
             {source.baseUrl}
           </dd>
         </div>
-        <div className="rounded-2xl border border-border bg-card/80 px-4 py-3">
-          <dt className="text-xs uppercase tracking-[var(--tracking-caps-lg)] text-muted-foreground">
-            Details
-          </dt>
-          <dd className="mt-1 font-medium text-foreground">
+        <div className="rounded-md border border-border bg-card px-3 py-2">
+          <dt className={sourceMetaLabelClasses}>Details</dt>
+          <dd className="mt-1 text-xs font-medium text-foreground">
             {[product, platform].filter(Boolean).join(" • ") ||
               "No extra metadata"}
           </dd>
@@ -626,7 +628,7 @@ export function SourceCard({
       {source.lastError && (
         <div
           className={cn(
-            "mt-4 rounded-2xl border px-4 py-3 text-sm",
+            "mt-3 rounded-md border px-3 py-2 text-sm",
             attentionSurfaceClasses,
           )}
         >
@@ -640,38 +642,41 @@ export function SourceCard({
         </div>
       )}
 
-      <div className="mt-5 flex flex-wrap gap-2">
+      <div className="mt-4 flex flex-wrap gap-2">
         <TooltipWrap message={!canSaveEdits ? saveDisabledReason : null}>
           <button
             type="button"
             onClick={() => void onSave()}
             disabled={!canSaveEdits}
-            className="rounded-xl border border-border bg-card px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-accent disabled:cursor-not-allowed disabled:opacity-60"
+            className={sourceSecondaryButtonClasses}
           >
             Save Changes
           </button>
         </TooltipWrap>
-        <TooltipWrap message={busyDisabledReason}>
-          <button
-            type="button"
-            onClick={() => void onToggleEnabled()}
-            disabled={isBusy}
-            className={cn(
-              "rounded-xl px-4 py-2 text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-60",
-              source.enabled
-                ? "bg-muted text-foreground hover:bg-accent"
-                : "bg-primary text-primary-foreground hover:bg-primary/90",
-            )}
-          >
-            {source.enabled ? "Disable" : "Enable"}
-          </button>
-        </TooltipWrap>
+        <div
+          className={joinClassNames(
+            "inline-flex h-8 items-center gap-3 rounded-md border border-border bg-card px-3 text-xs font-medium normal-case tracking-normal text-foreground transition-opacity",
+            isBusy && "opacity-60",
+          )}
+        >
+          <span>{source.enabled ? "Enabled" : "Disabled"}</span>
+          <TooltipWrap message={busyDisabledReason}>
+            <Switch
+              aria-label={`${source.enabled ? "Disable" : "Enable"} ${
+                source.name
+              }`}
+              checked={source.enabled}
+              disabled={isBusy}
+              onCheckedChange={() => void onToggleEnabled()}
+            />
+          </TooltipWrap>
+        </div>
         <TooltipWrap message={busyDisabledReason}>
           <button
             type="button"
             onClick={() => void onRefresh()}
             disabled={isBusy}
-            className="inline-flex items-center gap-2 rounded-xl border border-border bg-card px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-accent disabled:cursor-not-allowed disabled:opacity-60"
+            className={sourceSecondaryButtonClasses}
           >
             <RefreshCw
               className={cn(
@@ -687,7 +692,7 @@ export function SourceCard({
             type="button"
             onClick={() => void onRemove()}
             disabled={isBusy}
-            className="inline-flex items-center gap-2 rounded-xl border border-destructive/20 bg-destructive/10 px-4 py-2 text-sm font-medium text-destructive transition-colors hover:bg-destructive hover:text-destructive-foreground disabled:cursor-not-allowed disabled:opacity-60"
+            className={sourceDestructiveButtonClasses}
           >
             <Trash2 className="h-4 w-4" />
             Remove

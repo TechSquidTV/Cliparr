@@ -13,7 +13,7 @@ import {
   type ClipTimelineEffects,
   type ClipTimelineAction,
   type TimelineZoomLevel,
-} from "./EditorUtils";
+} from "./editorUtils";
 
 interface EditorTimelineProps {
   timelineRef: RefObject<TimelineState | null>;

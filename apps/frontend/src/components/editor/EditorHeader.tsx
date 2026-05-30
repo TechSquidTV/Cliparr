@@ -30,7 +30,7 @@ export function EditorHeader({
       type="button"
       onClick={onExportClick}
       disabled={exportDisabled}
-      className="flex h-8 min-w-36 items-center justify-center gap-2 rounded-[var(--radius-control)] border border-primary bg-primary px-3 text-xs font-semibold uppercase tracking-[var(--tracking-caps-sm)] text-primary-foreground transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50"
+      className="flex h-8 min-w-36 items-center justify-center gap-2 rounded-[var(--radius-control)] border border-primary bg-primary px-3 text-xs font-semibold uppercase tracking-[var(--tracking-caps-sm)] text-primary-foreground transition-[background-color,border-color,color,opacity] duration-150 hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50"
     >
       {exporting ? (
         <span className="flex items-center gap-2">
@@ -47,7 +47,7 @@ export function EditorHeader({
   );
 
   return (
-    <header className="grid grid-cols-[auto_1fr_auto] items-center gap-3 border-b border-border bg-card px-3 py-2">
+    <header className="grid grid-cols-editor-header items-center gap-3 border-b border-editor-border bg-editor-panel px-3 py-2">
       <div className="flex items-center gap-2">
         <Tooltip>
           <TooltipTrigger asChild>
@@ -55,7 +55,7 @@ export function EditorHeader({
               type="button"
               onClick={onBack}
               aria-label="Back"
-              className="flex h-8 w-8 items-center justify-center rounded-[var(--radius-control)] border border-border bg-background text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+              className="flex h-8 w-8 items-center justify-center rounded-[var(--radius-control)] border border-editor-border bg-editor-control text-muted-foreground transition-colors hover:bg-editor-control-hover hover:text-foreground focus-visible:ring-2 focus-visible:ring-editor-accent/35 focus-visible:outline-none"
             >
               <ArrowLeft className="h-4 w-4" />
             </button>
@@ -64,7 +64,7 @@ export function EditorHeader({
         </Tooltip>
         <div className="flex items-center gap-2 pl-1">
           <img src="/logo-light.svg" alt="Cliparr Logo" className="h-5 w-5" />
-          <span className="text-[11px] font-semibold uppercase tracking-[var(--tracking-caps-xl)] text-muted-foreground">
+          <span className="text-ui-label font-semibold uppercase tracking-[var(--tracking-caps-md)] text-muted-foreground">
             Edit
           </span>
         </div>
@@ -73,20 +73,18 @@ export function EditorHeader({
         <div className="truncate">{title}</div>
       </div>
       <div className="flex items-center justify-self-end">
-        {exportTooltip ? (
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <span className="inline-flex" tabIndex={exportDisabled ? 0 : -1}>
-                {exportButton}
-              </span>
-            </TooltipTrigger>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <span className="inline-flex" tabIndex={exportDisabled ? 0 : -1}>
+              {exportButton}
+            </span>
+          </TooltipTrigger>
+          {exportTooltip ? (
             <TooltipContent side="bottom" align="end">
               {exportTooltip}
             </TooltipContent>
-          </Tooltip>
-        ) : (
-          exportButton
-        )}
+          ) : null}
+        </Tooltip>
       </div>
     </header>
   );

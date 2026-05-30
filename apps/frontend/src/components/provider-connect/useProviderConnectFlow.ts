@@ -1,6 +1,9 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { cliparrClient } from "../api/cliparrClient";
-import type { ProviderDefinition, ProviderSession } from "../providers/types";
+import { cliparrClient } from "../../api/cliparrClient";
+import type {
+  ProviderDefinition,
+  ProviderSession,
+} from "../../providers/types";
 
 interface UseProviderConnectFlowOptions {
   onConnected: (session: ProviderSession) => Promise<void> | void;

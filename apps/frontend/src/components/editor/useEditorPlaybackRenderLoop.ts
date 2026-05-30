@@ -10,7 +10,7 @@ import type {
   SubtitleCue,
   SubtitleStyleSettings,
 } from "../../lib/subtitles/types";
-import { errorMessage, themeValue } from "./EditorUtils";
+import { errorMessage, themeValue } from "./editorUtils";
 
 type RefValue<T> = {
   current: T;
@@ -178,7 +178,10 @@ export function useEditorPlaybackRenderLoop({
         "--editor-preview-overlay-foreground",
         bodyStyles.color,
       );
-      context.font = "24px sans-serif";
+      context.font = `${themeValue(
+        "--text-editor-preview-fallback",
+        bodyStyles.fontSize,
+      )} ${themeValue("--font-sans", bodyStyles.fontFamily)}`;
       context.textAlign = "center";
       context.fillText(message, canvas.width / 2, canvas.height / 2);
       displayedFrameRef.current = null;

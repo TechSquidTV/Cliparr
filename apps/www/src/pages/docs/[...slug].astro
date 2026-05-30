@@ -8,7 +8,7 @@ type Props = {
 };
 
 export async function getStaticPaths() {
-  const docs = await getCollection("docs");
+  const docs = (await getCollection("docs")) as CollectionEntry<"docs">[];
   return docs.map((entry) => ({
     params: { slug: entry.id },
     props: { entry },

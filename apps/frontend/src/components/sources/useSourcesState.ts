@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { cliparrClient } from "../api/cliparrClient";
-import { useAuth } from "../auth";
-import type { MediaSource, ProviderSession } from "../providers/types";
-import type { Feedback, SourceFilter } from "./SourcesModalSections";
+import { cliparrClient } from "../../api/cliparrClient";
+import { useAuth } from "../../auth";
+import type { MediaSource, ProviderSession } from "../../providers/types";
+import type { Feedback, SourceFilter } from "./sourcesTypes";
 import {
   buildSourceEditInput,
   draftBaseUrlsFor,
@@ -12,9 +12,9 @@ import {
   sourceCounts,
   sourceProviderOptions,
   sortSources,
-} from "./sourcesModalStateUtils";
+} from "./sourcesStateUtils";
 
-interface UseSourcesModalStateOptions {
+interface UseSourcesStateOptions {
   isOpen: boolean;
   onSourcesChanged?: () => Promise<void> | void;
 }
@@ -25,10 +25,10 @@ interface SourceActionResult {
   removeSourceId?: string;
 }
 
-export function useSourcesModalState({
+export function useSourcesState({
   isOpen,
   onSourcesChanged,
-}: UseSourcesModalStateOptions) {
+}: UseSourcesStateOptions) {
   const auth = useAuth();
   const [sources, setSources] = useState<MediaSource[]>([]);
   const [draftBaseUrls, setDraftBaseUrls] = useState<Record<string, string>>(
@@ -45,6 +45,7 @@ export function useSourcesModalState({
   const [error, setError] = useState("");
   const [feedback, setFeedback] = useState<Feedback | null>(null);
   const [showAddSource, setShowAddSource] = useState(false);
+  const [initialSourcesLoaded, setInitialSourcesLoaded] = useState(false);
   const latestLoadRequestIdRef = useRef(0);
   const isOpenRef = useRef(isOpen);
 
@@ -75,6 +76,7 @@ export function useSourcesModalState({
         requestId === latestLoadRequestIdRef.current && isOpenRef.current;
 
       if (mode === "initial") {
+        setInitialSourcesLoaded(false);
         setLoading(true);
       } else {
         setReloading(true);
@@ -99,6 +101,7 @@ export function useSourcesModalState({
         if (isCurrentRequest()) {
           if (mode === "initial") {
             setLoading(false);
+            setInitialSourcesLoaded(true);
           } else {
             setReloading(false);
           }
@@ -337,6 +340,7 @@ export function useSourcesModalState({
   useEffect(() => {
     if (!isOpen) {
       setShowAddSource(false);
+      setInitialSourcesLoaded(false);
       return;
     }
 
@@ -345,14 +349,14 @@ export function useSourcesModalState({
   }, [isOpen, loadSources]);
 
   useEffect(() => {
-    if (!isOpen || loading) {
+    if (!isOpen || loading || !initialSourcesLoaded) {
       return;
     }
 
     if (sources.length === 0) {
       setShowAddSource(true);
     }
-  }, [isOpen, loading, sources.length]);
+  }, [initialSourcesLoaded, isOpen, loading, sources.length]);
 
   const providerOptions = useMemo(
     () => sourceProviderOptions(sources),

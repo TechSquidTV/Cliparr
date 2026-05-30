@@ -1,6 +1,7 @@
 import { AnimatePresence, motion } from "motion/react";
 import { ArrowRight, Check, ExternalLink, Server } from "lucide-react";
-import { cn } from "../lib/utils";
+import type { ReactNode } from "react";
+import { cn } from "../../lib/utils";
 import {
   ProviderBadge,
   ProviderConnectError,
@@ -8,9 +9,26 @@ import {
   ProviderStatusMessage,
   providerPresentation,
 } from "./ProviderConnectFlowSections";
-import { ProviderGlyph } from "./ProviderGlyph";
+import { ProviderGlyph } from "../providers/ProviderGlyph";
 import { useProviderConnectFlow } from "./useProviderConnectFlow";
-import type { ProviderSession } from "../providers/types";
+import {
+  Tabs,
+  TabsList,
+  TabsPanel,
+  TabsPanels,
+  TabsTab,
+} from "@/components/ui/tabs";
+import {
+  compactSecondaryButtonClasses,
+  densePrimaryButtonClasses as panelPrimaryButtonClasses,
+  denseSecondaryButtonClasses as panelSecondaryButtonClasses,
+  screenTextInputClasses as baseScreenInputClasses,
+  textInputClasses,
+} from "@/components/ui/control-styles";
+import type {
+  ProviderDefinition,
+  ProviderSession,
+} from "../../providers/types";
 
 interface Props {
   onConnected: (session: ProviderSession) => Promise<void> | void;
@@ -28,6 +46,9 @@ function isLoopbackUrl(value: string) {
     value.trim(),
   );
 }
+
+const panelInputClasses = cn(textInputClasses, "mt-1.5");
+const screenInputClasses = cn(baseScreenInputClasses, "mt-2");
 
 export default function ProviderConnectFlow({
   onConnected,
@@ -57,46 +78,41 @@ export default function ProviderConnectFlow({
   } = useProviderConnectFlow({
     onConnected,
   });
-  const selectedProviderDetails = selectedProvider
-    ? providerPresentation(selectedProvider, variant)
-    : undefined;
 
-  const jellyfinLoopbackWarning =
-    selectedProvider?.id === "jellyfin" &&
-    Boolean(devJellyfinUrl) &&
-    isLoopbackUrl(serverUrl);
-  const isUsingDevJellyfinUrl =
-    selectedProvider?.id === "jellyfin" &&
-    Boolean(devJellyfinUrl) &&
-    serverUrl.trim() === devJellyfinUrl;
-
-  function renderPinContent() {
-    if (!selectedProvider) {
-      return null;
+  function handleSelectProvider(nextProviderId: string) {
+    if (!nextProviderId) {
+      return;
     }
+
+    setSelectedProviderId(nextProviderId);
+    setError("");
+  }
+
+  function renderPinContent(provider: ProviderDefinition) {
+    const providerDetails = providerPresentation(provider, variant);
 
     if (!isScreen) {
       return (
-        <div className="space-y-4">
-          <div className="rounded-2xl border border-border bg-card px-4 py-4 text-sm text-muted-foreground">
+        <div className="space-y-3">
+          <div className="rounded-md border border-border bg-card px-3 py-2.5 text-sm text-muted-foreground">
             A new tab will open for sign-in.
           </div>
 
-          <div className="rounded-2xl border border-border bg-card px-4 py-4 text-sm text-muted-foreground">
+          <div className="rounded-md border border-border bg-card px-3 py-2.5 text-sm text-muted-foreground">
             Connected servers stay in Sources.
           </div>
 
-          <div className="flex flex-wrap gap-3 pt-1">
+          <div className="flex flex-wrap gap-2 pt-1">
             <button
               type="button"
-              onClick={() => void startAuth(selectedProvider)}
+              onClick={() => void startAuth(provider)}
               disabled={authenticating}
-              className="inline-flex flex-1 items-center justify-center gap-2 rounded-2xl bg-primary px-4 py-3 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-60"
+              className={cn(panelPrimaryButtonClasses, "flex-1")}
             >
               <ExternalLink className="h-4 w-4" />
-              {authenticating && providerId === selectedProvider.id
-                ? `Waiting for ${selectedProvider.name}...`
-                : selectedProviderDetails?.action}
+              {authenticating && providerId === provider.id
+                ? `Waiting for ${provider.name}...`
+                : providerDetails.action}
             </button>
 
             {onCancel && (
@@ -104,7 +120,7 @@ export default function ProviderConnectFlow({
                 type="button"
                 onClick={onCancel}
                 disabled={authenticating}
-                className="inline-flex items-center justify-center rounded-2xl border border-border bg-card px-4 py-3 text-sm font-medium text-foreground transition-colors hover:bg-accent disabled:cursor-not-allowed disabled:opacity-60"
+                className={panelSecondaryButtonClasses}
               >
                 Cancel
               </button>
@@ -129,14 +145,14 @@ export default function ProviderConnectFlow({
         <div className="space-y-4">
           <button
             type="button"
-            onClick={() => void startAuth(selectedProvider)}
+            onClick={() => void startAuth(provider)}
             disabled={authenticating}
             className="flex w-full items-center justify-center gap-2 rounded-2xl bg-primary px-4 py-3 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-60"
           >
             <ExternalLink className="h-4 w-4" />
-            {authenticating && providerId === selectedProvider.id
-              ? `Waiting for ${selectedProvider.name}...`
-              : selectedProviderDetails?.action}
+            {authenticating && providerId === provider.id
+              ? `Waiting for ${provider.name}...`
+              : providerDetails.action}
           </button>
 
           <p className="text-center text-xs leading-6 text-muted-foreground">
@@ -147,21 +163,27 @@ export default function ProviderConnectFlow({
     );
   }
 
-  function renderCredentialsContent() {
-    if (!selectedProvider) {
-      return null;
-    }
+  function renderCredentialsContent(provider: ProviderDefinition) {
+    const providerDetails = providerPresentation(provider, variant);
+    const jellyfinLoopbackWarning =
+      provider.id === "jellyfin" &&
+      Boolean(devJellyfinUrl) &&
+      isLoopbackUrl(serverUrl);
+    const isUsingDevJellyfinUrl =
+      provider.id === "jellyfin" &&
+      Boolean(devJellyfinUrl) &&
+      serverUrl.trim() === devJellyfinUrl;
 
     const formClasses = isScreen
       ? "flex h-full flex-col justify-between gap-6"
-      : "space-y-4";
+      : "space-y-3";
 
     return (
       <form
         className={formClasses}
         onSubmit={(event) => {
           event.preventDefault();
-          void loginWithCredentials(selectedProvider);
+          void loginWithCredentials(provider);
         }}
       >
         <div className="space-y-4">
@@ -177,14 +199,15 @@ export default function ProviderConnectFlow({
                 devJellyfinUrl || "https://media.example.com/jellyfin"
               }
               disabled={authenticating}
-              className="mt-2 h-11 w-full rounded-2xl border border-input bg-card px-4 text-sm text-foreground outline-none transition-colors focus:border-ring disabled:cursor-not-allowed disabled:opacity-60"
+              className={isScreen ? screenInputClasses : panelInputClasses}
             />
           </label>
 
           {devJellyfinUrl && (
             <div
               className={cn(
-                "rounded-2xl border px-4 py-3 text-sm",
+                "border text-sm",
+                isScreen ? "rounded-2xl px-4 py-3" : "rounded-md px-3 py-2",
                 isUsingDevJellyfinUrl
                   ? "border-primary/25 bg-primary/10 text-foreground"
                   : "border-border bg-card text-muted-foreground",
@@ -203,7 +226,7 @@ export default function ProviderConnectFlow({
                   type="button"
                   onClick={() => setServerUrl(devJellyfinUrl)}
                   disabled={authenticating || isUsingDevJellyfinUrl}
-                  className="inline-flex items-center gap-2 rounded-xl border border-border bg-background px-3 py-2 text-xs font-medium text-foreground transition-colors hover:bg-accent disabled:cursor-not-allowed disabled:opacity-60"
+                  className={compactSecondaryButtonClasses}
                 >
                   {isUsingDevJellyfinUrl ? (
                     <>
@@ -228,7 +251,12 @@ export default function ProviderConnectFlow({
           )}
 
           {jellyfinLoopbackWarning && (
-            <div className="rounded-2xl border border-primary/25 bg-primary/10 px-4 py-3 text-sm text-foreground">
+            <div
+              className={cn(
+                "border border-primary/25 bg-primary/10 text-sm text-foreground",
+                isScreen ? "rounded-2xl px-4 py-3" : "rounded-md px-3 py-2",
+              )}
+            >
               <p className="leading-6">
                 Docker will use{" "}
                 <span className="font-mono">{devJellyfinUrl}</span> for this
@@ -247,7 +275,7 @@ export default function ProviderConnectFlow({
                 onChange={(event) => setUsername(event.target.value)}
                 placeholder="admin"
                 disabled={authenticating}
-                className="mt-2 h-11 w-full rounded-2xl border border-input bg-card px-4 text-sm text-foreground outline-none transition-colors focus:border-ring disabled:cursor-not-allowed disabled:opacity-60"
+                className={isScreen ? screenInputClasses : panelInputClasses}
               />
             </label>
 
@@ -260,7 +288,7 @@ export default function ProviderConnectFlow({
                 onChange={(event) => setPassword(event.target.value)}
                 placeholder="Leave blank for passwordless users"
                 disabled={authenticating}
-                className="mt-2 h-11 w-full rounded-2xl border border-input bg-card px-4 text-sm text-foreground outline-none transition-colors focus:border-ring disabled:cursor-not-allowed disabled:opacity-60"
+                className={isScreen ? screenInputClasses : panelInputClasses}
               />
             </label>
           </div>
@@ -278,9 +306,9 @@ export default function ProviderConnectFlow({
               className="flex w-full items-center justify-center gap-2 rounded-2xl bg-primary px-4 py-3 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-60"
             >
               <Server className="h-4 w-4" />
-              {authenticating && providerId === selectedProvider.id
-                ? `Connecting to ${selectedProvider.name}...`
-                : selectedProviderDetails?.action}
+              {authenticating && providerId === provider.id
+                ? `Connecting to ${provider.name}...`
+                : providerDetails.action}
             </button>
 
             <p className="text-center text-xs leading-6 text-muted-foreground">
@@ -288,16 +316,16 @@ export default function ProviderConnectFlow({
             </p>
           </div>
         ) : (
-          <div className="flex flex-wrap gap-3 pt-1">
+          <div className="flex flex-wrap gap-2 pt-1">
             <button
               type="submit"
               disabled={authenticating || !serverUrl.trim() || !username.trim()}
-              className="inline-flex flex-1 items-center justify-center gap-2 rounded-2xl bg-primary px-4 py-3 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-60"
+              className={cn(panelPrimaryButtonClasses, "flex-1")}
             >
               <Server className="h-4 w-4" />
-              {authenticating && providerId === selectedProvider.id
-                ? `Connecting to ${selectedProvider.name}...`
-                : selectedProviderDetails?.action}
+              {authenticating && providerId === provider.id
+                ? `Connecting to ${provider.name}...`
+                : providerDetails.action}
             </button>
 
             {onCancel && (
@@ -305,7 +333,7 @@ export default function ProviderConnectFlow({
                 type="button"
                 onClick={onCancel}
                 disabled={authenticating}
-                className="inline-flex items-center justify-center rounded-2xl border border-border bg-card px-4 py-3 text-sm font-medium text-foreground transition-colors hover:bg-accent disabled:cursor-not-allowed disabled:opacity-60"
+                className={panelSecondaryButtonClasses}
               >
                 Cancel
               </button>
@@ -316,13 +344,8 @@ export default function ProviderConnectFlow({
     );
   }
 
-  function renderAuthProgress() {
-    if (
-      !selectedProvider ||
-      !authenticating ||
-      !authId ||
-      providerId !== selectedProvider.id
-    ) {
+  function renderAuthProgress(provider: ProviderDefinition) {
+    if (!authenticating || !authId || providerId !== provider.id) {
       return null;
     }
 
@@ -354,26 +377,24 @@ export default function ProviderConnectFlow({
     );
   }
 
-  function renderSelectedProvider() {
-    if (!selectedProvider) {
-      return null;
-    }
+  function renderSelectedProviderContent(provider: ProviderDefinition) {
+    const providerDetails = providerPresentation(provider, variant);
 
-    const innerContent = (
+    return (
       <>
         <div className="flex items-start gap-4">
           {isScreen ? (
             <ProviderBadge
-              providerId={selectedProvider.id}
-              name={selectedProvider.name}
+              providerId={provider.id}
+              name={provider.name}
               selected={true}
               large
             />
           ) : (
-            <div className="rounded-2xl border border-border bg-card p-3">
+            <div className="rounded-md border border-border bg-card p-2">
               <ProviderGlyph
-                providerId={selectedProvider.id}
-                providerName={selectedProvider.name}
+                providerId={provider.id}
+                providerName={provider.name}
                 className="h-6 w-6"
                 fallbackClassName="text-primary"
               />
@@ -381,34 +402,44 @@ export default function ProviderConnectFlow({
           )}
           <div>
             <p className="text-xs font-medium uppercase tracking-[var(--tracking-caps-xl)] text-muted-foreground">
-              {selectedProviderDetails?.eyebrow}
+              {providerDetails.eyebrow}
             </p>
-            <h3 className="mt-1 text-2xl font-semibold tracking-tight text-foreground">
-              {selectedProvider.name}
+            <h3
+              className={cn(
+                "mt-1 font-semibold tracking-tight text-foreground",
+                isScreen ? "text-2xl" : "text-base",
+              )}
+            >
+              {provider.name}
             </h3>
-            <p className="mt-2 text-sm leading-6 text-muted-foreground">
-              {selectedProviderDetails?.summary}
+            <p
+              className={cn(
+                "mt-2 text-sm text-muted-foreground",
+                isScreen ? "leading-6" : "leading-5",
+              )}
+            >
+              {providerDetails.summary}
             </p>
           </div>
         </div>
 
         <div className={cn("mt-6", isScreen && "flex-1")}>
-          {selectedProvider.auth === "pin"
-            ? renderPinContent()
-            : renderCredentialsContent()}
+          {provider.auth === "pin"
+            ? renderPinContent(provider)
+            : renderCredentialsContent(provider)}
         </div>
 
-        {renderAuthProgress()}
+        {renderAuthProgress(provider)}
       </>
     );
+  }
 
-    if (!isScreen) {
-      return (
-        <div className="rounded-3xl border border-border bg-background/80 p-5 shadow-sm sm:p-6">
-          {innerContent}
-        </div>
-      );
+  function renderScreenSelectedProvider() {
+    if (!selectedProvider) {
+      return null;
     }
+
+    const innerContent = renderSelectedProviderContent(selectedProvider);
 
     return (
       <div className="relative min-h-152 overflow-hidden rounded-3xl border border-border bg-background/80 shadow-xl">
@@ -453,59 +484,32 @@ export default function ProviderConnectFlow({
       );
     }
 
-    const providerList = (
-      <>
-        <p className="text-xs font-medium uppercase tracking-[var(--tracking-caps-3xl)] text-muted-foreground">
-          Choose A Provider
-        </p>
-
-        {providers.map((provider) => (
-          <ProviderOption
-            key={provider.id}
-            provider={provider}
-            selectedProvider={selectedProvider}
-            authenticating={authenticating}
-            authenticatingProviderId={providerId}
-            variant={variant}
-            onSelect={(nextProviderId) => {
-              setSelectedProviderId(nextProviderId);
-              setError("");
-            }}
-          />
-        ))}
-      </>
-    );
+    if (isScreen) {
+      return (
+        <ProviderConnectScreenLayout
+          providers={providers}
+          selectedProvider={selectedProvider ?? undefined}
+          authenticating={authenticating}
+          authenticatingProviderId={providerId}
+          onSelectProvider={handleSelectProvider}
+          renderSelectedProvider={renderScreenSelectedProvider}
+        />
+      );
+    }
 
     return (
-      <div
-        className={cn(
-          "grid",
-          isScreen
-            ? "gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.12fr)]"
-            : "gap-4 xl:grid-cols-[minmax(0,0.92fr)_minmax(0,1.08fr)]",
-        )}
-      >
-        {isScreen ? (
-          <motion.div
-            initial={{ opacity: 0, x: -12 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.24, ease: "easeOut" }}
-            className="space-y-3"
-          >
-            {providerList}
-          </motion.div>
-        ) : (
-          <div className="space-y-3">{providerList}</div>
-        )}
-
-        {renderSelectedProvider()}
-      </div>
+      <ProviderConnectPanelLayout
+        providers={providers}
+        selectedProviderId={selectedProvider?.id ?? providers[0]?.id ?? ""}
+        onSelectProvider={handleSelectProvider}
+        renderProviderContent={renderSelectedProviderContent}
+      />
     );
   }
 
   if (!isScreen) {
     return (
-      <div className="space-y-5">
+      <div className="space-y-4">
         <ProviderConnectError error={error} isScreen={isScreen} />
         {renderContent()}
       </div>
@@ -521,5 +525,117 @@ export default function ProviderConnectFlow({
       )}
       {renderContent()}
     </>
+  );
+}
+
+interface ProviderConnectPanelLayoutProps {
+  providers: ProviderDefinition[];
+  selectedProviderId: string;
+  onSelectProvider: (providerId: string) => void;
+  renderProviderContent: (provider: ProviderDefinition) => ReactNode;
+}
+
+function ProviderConnectPanelLayout({
+  providers,
+  selectedProviderId,
+  onSelectProvider,
+  renderProviderContent,
+}: ProviderConnectPanelLayoutProps) {
+  return (
+    <Tabs
+      value={selectedProviderId}
+      onValueChange={(nextProviderId) => {
+        if (typeof nextProviderId !== "string") {
+          return;
+        }
+
+        onSelectProvider(nextProviderId);
+      }}
+      className="space-y-3"
+    >
+      <p className="text-xs font-medium uppercase tracking-[var(--tracking-caps-md)] text-muted-foreground">
+        Choose A Provider
+      </p>
+
+      <TabsList
+        className="grid w-full"
+        style={{
+          gridTemplateColumns: `repeat(${providers.length}, minmax(0, 1fr))`,
+        }}
+      >
+        {providers.map((provider) => (
+          <TabsTab
+            key={provider.id}
+            value={provider.id}
+            className="min-w-0 px-2"
+          >
+            <ProviderGlyph
+              providerId={provider.id}
+              providerName={provider.name}
+              className="h-4 w-4"
+            />
+            <span className="truncate">{provider.name}</span>
+          </TabsTab>
+        ))}
+      </TabsList>
+
+      <TabsPanels
+        mode="layout"
+        className="cliparr-editor-scrollbar h-source-provider-panel overflow-y-auto rounded-lg border border-border bg-background p-4"
+      >
+        {providers.map((provider) => (
+          <TabsPanel key={provider.id} value={provider.id} className="h-full">
+            {renderProviderContent(provider)}
+          </TabsPanel>
+        ))}
+      </TabsPanels>
+    </Tabs>
+  );
+}
+
+interface ProviderConnectScreenLayoutProps {
+  providers: ProviderDefinition[];
+  selectedProvider: ProviderDefinition | undefined;
+  authenticating: boolean;
+  authenticatingProviderId: string;
+  onSelectProvider: (providerId: string) => void;
+  renderSelectedProvider: () => ReactNode;
+}
+
+function ProviderConnectScreenLayout({
+  providers,
+  selectedProvider,
+  authenticating,
+  authenticatingProviderId,
+  onSelectProvider,
+  renderSelectedProvider,
+}: ProviderConnectScreenLayoutProps) {
+  return (
+    <div className="grid gap-6 lg:grid-cols-provider-connect">
+      <motion.div
+        initial={{ opacity: 0, x: -12 }}
+        animate={{ opacity: 1, x: 0 }}
+        transition={{ duration: 0.24, ease: "easeOut" }}
+        className="space-y-3"
+      >
+        <p className="text-xs font-medium uppercase tracking-[var(--tracking-caps-3xl)] text-muted-foreground">
+          Choose A Provider
+        </p>
+
+        {providers.map((provider) => (
+          <ProviderOption
+            key={provider.id}
+            provider={provider}
+            selectedProvider={selectedProvider}
+            authenticating={authenticating}
+            authenticatingProviderId={authenticatingProviderId}
+            variant="screen"
+            onSelect={onSelectProvider}
+          />
+        ))}
+      </motion.div>
+
+      {renderSelectedProvider()}
+    </div>
   );
 }

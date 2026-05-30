@@ -9,7 +9,8 @@ import {
   Video,
 } from "lucide-react";
 import { cliparrClient } from "../api/cliparrClient";
-import { formatProviderName, ProviderGlyph } from "./ProviderGlyph";
+import { EDITOR_THUMBNAIL_VIEW_TRANSITION_NAME } from "../lib/viewTransitions";
+import { formatProviderName, ProviderGlyph } from "./providers/ProviderGlyph";
 import type {
   CurrentlyPlayingItem,
   SourcePlaybackError,
@@ -17,6 +18,7 @@ import type {
 } from "../providers/types";
 
 interface Props {
+  activeViewTransitionSessionId?: string | null;
   onSelectSession: (session: CurrentlyPlayingItem) => void;
   onOpenLocalVideo: () => void;
   onOpenSources: () => void;
@@ -104,7 +106,7 @@ function WarningBanner({
   }
 
   return (
-    <div className="rounded-xl border border-[color-mix(in_oklch,var(--destructive)_24%,transparent)] bg-[color-mix(in_oklch,var(--destructive)_12%,var(--background))] p-4 text-[color-mix(in_oklch,var(--destructive)_72%,var(--foreground))]">
+    <div className="rounded-xl border border-status-warning-border bg-status-warning p-4 text-status-warning-foreground">
       <div className="flex items-start gap-3">
         <AlertTriangle className="w-5 h-5 shrink-0 mt-0.5" />
         <div className="space-y-2 text-sm">
@@ -131,6 +133,7 @@ function WarningBanner({
 }
 
 export default function DashboardScreen({
+  activeViewTransitionSessionId,
   onSelectSession,
   onOpenLocalVideo,
   onOpenSources,
@@ -310,6 +313,12 @@ export default function DashboardScreen({
                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
                   {viewerGroup.items.map((mediaSession) => {
                     const canEdit = canEditSession(mediaSession);
+                    const thumbnailViewTransitionName =
+                      mediaSession.thumbUrl &&
+                      mediaSession.id === activeViewTransitionSessionId
+                        ? EDITOR_THUMBNAIL_VIEW_TRANSITION_NAME
+                        : undefined;
+
                     return (
                       <button
                         key={mediaSession.id}
@@ -327,6 +336,14 @@ export default function DashboardScreen({
                               src={mediaSession.thumbUrl}
                               alt={mediaSession.title}
                               className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity"
+                              style={
+                                thumbnailViewTransitionName
+                                  ? {
+                                      viewTransitionName:
+                                        thumbnailViewTransitionName,
+                                    }
+                                  : undefined
+                              }
                             />
                           ) : (
                             <div className="w-full h-full flex items-center justify-center">
@@ -335,7 +352,7 @@ export default function DashboardScreen({
                           )}
                           <div className="absolute inset-0 bg-linear-to-t from-card/95 via-card/20 to-transparent" />
                           <div className="absolute top-3 left-3">
-                            <span className="inline-flex items-center gap-1.5 rounded-full bg-card/90 px-2.5 py-1 text-[11px] font-medium uppercase tracking-wide text-muted-foreground shadow-sm backdrop-blur-sm">
+                            <span className="inline-flex items-center gap-1.5 rounded-full bg-card/90 px-2.5 py-1 text-ui-label font-medium uppercase tracking-wide text-muted-foreground shadow-sm backdrop-blur-sm">
                               <ProviderGlyph
                                 providerId={mediaSession.source.providerId}
                                 providerName={formatSourceLabel(

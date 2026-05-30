@@ -20,7 +20,7 @@ import {
   timelineTimeToPixel,
   type ClipTimelineData,
   type ClipTimelineEffects,
-} from "./EditorUtils";
+} from "./editorUtils";
 import {
   accumulateTimelineWheelZoomDelta,
   resolveTimelineScrollWheelUpdate,

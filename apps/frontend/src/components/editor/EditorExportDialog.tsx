@@ -1,11 +1,20 @@
-import { Download, X } from "lucide-react";
-import { useRef } from "react";
+import { Download } from "lucide-react";
 import type { ExportFormat, ExportResolution } from "../../lib/exportClip";
 import {
   type ExportFileNameTemplateKind,
   type ExportFileNameTemplateSettings,
 } from "../../lib/exportFileName";
-import { useModalFocusTrap } from "../useModalFocusTrap";
+import {
+  DialogClose,
+  DialogFooter,
+  DialogWindow,
+} from "@/components/ui/dialog";
+import {
+  compactPrimaryButtonClasses,
+  compactSecondaryButtonClasses,
+  destructiveAlertClasses,
+  primaryAlertClasses,
+} from "@/components/ui/control-styles";
 import {
   EditorExportSettingsSection,
   EditorExportSummaryPanel,
@@ -100,155 +109,101 @@ export function EditorExportDialog({
   onClose,
   onExport,
 }: EditorExportDialogProps) {
-  const dialogRef = useRef<HTMLDivElement | null>(null);
   const selectedFormatOption = formatOptionFor(selectedFormat);
 
-  useModalFocusTrap({
-    isOpen,
-    dialogRef,
-    onEscape: exporting ? undefined : onClose,
-  });
-
-  if (!isOpen) {
-    return null;
-  }
-
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-[color-mix(in_oklch,var(--foreground)_40%,transparent)] p-4 backdrop-blur-sm"
-      role="presentation"
-      onClick={() => {
-        if (!exporting) {
-          onClose();
-        }
-      }}
+    <DialogWindow
+      open={isOpen}
+      onClose={onClose}
+      closeDisabled={exporting}
+      closeLabel="Close export dialog"
+      title="Export Clip"
+      description="Review settings before download."
+      popupClassName="max-w-4xl"
+      headerClassName="bg-card"
     >
-      <div
-        ref={dialogRef}
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="cliparr-export-dialog-title"
-        tabIndex={-1}
-        className="mx-auto flex max-h-full w-full max-w-4xl flex-col overflow-hidden rounded-lg border border-border bg-card text-card-foreground shadow-lg"
-        onClick={(event) => event.stopPropagation()}
-      >
-        <header className="border-b border-border bg-card px-4 py-3">
-          <div className="flex items-start justify-between gap-3">
-            <div className="space-y-1">
-              <h2
-                id="cliparr-export-dialog-title"
-                className="text-sm font-semibold uppercase tracking-[var(--tracking-caps-md)] text-foreground"
-              >
-                Export Clip
-              </h2>
-              <p className="text-xs text-muted-foreground">
-                Review settings before download.
-              </p>
-            </div>
+      <div className="grid min-h-0 flex-1 gap-4 overflow-y-auto p-4 lg:grid-cols-editor-export">
+        <div className="space-y-4">
+          {error && <div className={destructiveAlertClasses}>{error}</div>}
 
-            <button
-              type="button"
-              onClick={onClose}
-              disabled={exporting}
-              aria-label="Close export dialog"
-              className="flex h-8 w-8 items-center justify-center rounded-md border border-border bg-background text-muted-foreground transition-colors hover:bg-accent hover:text-foreground disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              <X className="h-4 w-4" />
-            </button>
-          </div>
-        </header>
+          {exportSourceMessage && (
+            <div className={primaryAlertClasses}>{exportSourceMessage}</div>
+          )}
 
-        <div className="grid min-h-0 flex-1 gap-4 overflow-y-auto p-4 lg:grid-cols-[minmax(0,1fr)_18rem]">
-          <div className="space-y-4">
-            {error && (
-              <div className="rounded-md border border-destructive/35 bg-destructive/10 px-3 py-2 text-sm text-destructive">
-                {error}
-              </div>
-            )}
-
-            {exportSourceMessage && (
-              <div className="rounded-md border border-primary/25 bg-primary/5 px-3 py-2 text-sm text-foreground">
-                {exportSourceMessage}
-              </div>
-            )}
-
-            <EditorExportSettingsSection
-              selectedFormat={selectedFormat}
-              onFormatChange={onFormatChange}
-              selectedResolution={selectedResolution}
-              onResolutionChange={onResolutionChange}
-              selectedSourcePreference={selectedSourcePreference}
-              onSourcePreferenceChange={onSourcePreferenceChange}
-              includeAudio={includeAudio}
-              onIncludeAudioChange={onIncludeAudioChange}
-              hasHlsSource={hasHlsSource}
-              hasDirectSource={hasDirectSource}
-              directSourceLabel={directSourceLabel}
-              hlsSourceLabel={hlsSourceLabel}
-            />
-
-            <EditorFilenameTemplateSection
-              editingTemplateKind={editingTemplateKind}
-              onEditingTemplateKindChange={onEditingTemplateKindChange}
-              fileNameTemplates={fileNameTemplates}
-              onFileNameTemplateChange={onFileNameTemplateChange}
-              onResetFileNameTemplate={onResetFileNameTemplate}
-            />
-          </div>
-
-          <EditorExportSummaryPanel
-            title={title}
-            clipStart={clipStart}
-            clipEnd={clipEnd}
+          <EditorExportSettingsSection
             selectedFormat={selectedFormat}
-            outputDimensions={outputDimensions}
-            exportSourceLabel={exportSourceLabel}
-            exportSourceSummaryMessage={exportSourceSummaryMessage}
+            onFormatChange={onFormatChange}
+            selectedResolution={selectedResolution}
+            onResolutionChange={onResolutionChange}
+            selectedSourcePreference={selectedSourcePreference}
+            onSourcePreferenceChange={onSourcePreferenceChange}
             includeAudio={includeAudio}
-            subtitleSummaryLabel={subtitleSummaryLabel}
-            subtitleSummaryDetail={subtitleSummaryDetail}
-            subtitleSummaryTone={subtitleSummaryTone}
-            activeTemplateKind={activeTemplateKind}
-            fileNamePreview={fileNamePreview}
+            onIncludeAudioChange={onIncludeAudioChange}
+            hasHlsSource={hasHlsSource}
+            hasDirectSource={hasDirectSource}
+            directSourceLabel={directSourceLabel}
+            hlsSourceLabel={hlsSourceLabel}
+          />
+
+          <EditorFilenameTemplateSection
+            editingTemplateKind={editingTemplateKind}
+            onEditingTemplateKindChange={onEditingTemplateKindChange}
+            fileNameTemplates={fileNameTemplates}
+            onFileNameTemplateChange={onFileNameTemplateChange}
+            onResetFileNameTemplate={onResetFileNameTemplate}
           />
         </div>
 
-        <footer className="flex flex-col-reverse gap-2 border-t border-border bg-card px-4 py-3 sm:flex-row sm:items-center sm:justify-end">
-          {exportDisabledReason && (
-            <div className="mr-auto text-xs text-muted-foreground">
-              {exportDisabledReason}
-            </div>
-          )}
-
-          <button
-            type="button"
-            onClick={onClose}
-            disabled={exporting}
-            className="inline-flex h-8 items-center justify-center rounded-md border border-border bg-background px-3 text-xs font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            Cancel
-          </button>
-
-          <button
-            type="button"
-            onClick={onExport}
-            disabled={exporting || Boolean(exportDisabledReason)}
-            className="inline-flex h-8 items-center justify-center gap-2 rounded-md border border-primary bg-primary px-3 text-xs font-semibold uppercase tracking-[var(--tracking-caps-sm)] text-primary-foreground transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            {exporting ? (
-              <>
-                <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary-foreground/30 border-t-primary-foreground" />
-                Exporting {Math.round(progress * 100)}%
-              </>
-            ) : (
-              <>
-                <Download className="h-4 w-4" />
-                Export {selectedFormatOption.label}
-              </>
-            )}
-          </button>
-        </footer>
+        <EditorExportSummaryPanel
+          title={title}
+          clipStart={clipStart}
+          clipEnd={clipEnd}
+          selectedFormat={selectedFormat}
+          outputDimensions={outputDimensions}
+          exportSourceLabel={exportSourceLabel}
+          exportSourceSummaryMessage={exportSourceSummaryMessage}
+          includeAudio={includeAudio}
+          subtitleSummaryLabel={subtitleSummaryLabel}
+          subtitleSummaryDetail={subtitleSummaryDetail}
+          subtitleSummaryTone={subtitleSummaryTone}
+          activeTemplateKind={activeTemplateKind}
+          fileNamePreview={fileNamePreview}
+        />
       </div>
-    </div>
+
+      <DialogFooter className="border-t border-border bg-card px-4 py-3">
+        {exportDisabledReason && (
+          <div className="mr-auto text-xs text-muted-foreground">
+            {exportDisabledReason}
+          </div>
+        )}
+
+        <DialogClose
+          disabled={exporting}
+          className={compactSecondaryButtonClasses}
+        >
+          Cancel
+        </DialogClose>
+
+        <button
+          type="button"
+          onClick={onExport}
+          disabled={exporting || Boolean(exportDisabledReason)}
+          className={compactPrimaryButtonClasses}
+        >
+          {exporting ? (
+            <>
+              <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary-foreground/30 border-t-primary-foreground" />
+              Exporting {Math.round(progress * 100)}%
+            </>
+          ) : (
+            <>
+              <Download className="h-4 w-4" />
+              Export {selectedFormatOption.label}
+            </>
+          )}
+        </button>
+      </DialogFooter>
+    </DialogWindow>
   );
 }

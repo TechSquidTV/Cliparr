@@ -1,8 +1,13 @@
 import { createFileRoute, useCanGoBack } from "@tanstack/react-router";
 import { FolderOpen, ShieldCheck, TriangleAlert } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
-import EditorScreen from "../components/EditorScreen";
-import { LocalVideoOpenModal } from "../components/LocalVideoOpenModal";
+import EditorScreen from "../components/editor/EditorScreen";
+import { LocalVideoOpenDialog } from "../components/local-media/LocalVideoOpenDialog";
+import {
+  primaryButtonClasses,
+  secondaryButtonClasses,
+  subtleButtonClasses,
+} from "@/components/ui/control-styles";
 import {
   resolveLocalMediaSession,
   type LocalMediaResolution,
@@ -80,7 +85,7 @@ function LocalEditorRouteComponent() {
             <button
               type="button"
               onClick={() => void loadSession(true)}
-              className="inline-flex h-9 items-center justify-center gap-2 rounded-md border border-primary bg-primary px-4 text-xs font-semibold uppercase tracking-[var(--tracking-caps-sm)] text-primary-foreground transition-colors hover:bg-primary/90"
+              className={primaryButtonClasses}
             >
               <ShieldCheck className="h-4 w-4" />
               Grant Access
@@ -89,7 +94,7 @@ function LocalEditorRouteComponent() {
           <button
             type="button"
             onClick={() => setOpenDialog(true)}
-            className="inline-flex h-9 items-center justify-center gap-2 rounded-md border border-border bg-background px-4 text-xs font-semibold uppercase tracking-[var(--tracking-caps-sm)] text-foreground transition-colors hover:bg-accent"
+            className={secondaryButtonClasses}
           >
             <FolderOpen className="h-4 w-4" />
             Open Video
@@ -97,14 +102,14 @@ function LocalEditorRouteComponent() {
           <button
             type="button"
             onClick={navigateHome}
-            className="inline-flex h-9 items-center justify-center rounded-md px-3 text-xs font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+            className={subtleButtonClasses}
           >
             Back
           </button>
         </div>
       </div>
 
-      <LocalVideoOpenModal
+      <LocalVideoOpenDialog
         isOpen={openDialog}
         onClose={() => setOpenDialog(false)}
         onOpened={(nextSessionId) => {

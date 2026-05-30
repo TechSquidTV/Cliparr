@@ -73,14 +73,120 @@
   --tracking-caps-3xl: calc(var(--tracking-normal) + 0.22em);
   --radius-control: calc(var(--radius) - 2px);
   --radius-panel: calc(var(--radius) * 7);
-  --editor-preview-stage: oklch(0 0 0);
-  --editor-preview-overlay: color-mix(in oklch, black 72%, transparent);
-  --editor-preview-overlay-border: color-mix(in oklch, white 12%, transparent);
-  --editor-preview-overlay-foreground: color-mix(
+  --editor-preview-stage: var(--editor-monitor);
+  --editor-preview-overlay: color-mix(
     in oklch,
-    white 80%,
+    var(--editor-monitor) 76%,
     transparent
   );
+  --editor-preview-overlay-border: color-mix(
+    in oklch,
+    var(--foreground) 12%,
+    transparent
+  );
+  --editor-preview-overlay-foreground: color-mix(
+    in oklch,
+    var(--foreground) 80%,
+    var(--background)
+  );
+  --editor-workspace: color-mix(
+    in oklch,
+    var(--background) 90%,
+    var(--foreground)
+  );
+  --editor-panel: color-mix(in oklch, var(--card) 92%, var(--foreground));
+  --editor-panel-muted: color-mix(
+    in oklch,
+    var(--muted) 88%,
+    var(--foreground)
+  );
+  --editor-panel-raised: color-mix(
+    in oklch,
+    var(--card) 96%,
+    var(--background)
+  );
+  --editor-border: color-mix(in oklch, var(--border) 72%, var(--foreground));
+  --editor-control: color-mix(in oklch, var(--muted) 86%, var(--background));
+  --editor-control-hover: color-mix(
+    in oklch,
+    var(--accent) 82%,
+    var(--foreground)
+  );
+  --editor-control-active: color-mix(
+    in oklch,
+    var(--editor-control-hover) 70%,
+    var(--editor-control)
+  );
+  --editor-accent: var(--primary);
+  --editor-selection: color-mix(
+    in oklch,
+    var(--editor-control-hover) 62%,
+    var(--editor-panel)
+  );
+  --editor-playhead: var(--editor-accent);
+  --editor-monitor: color-mix(
+    in oklch,
+    var(--foreground) 92%,
+    var(--background)
+  );
+  --editor-warning: color-mix(in oklch, var(--primary) 16%, var(--background));
+  --editor-warning-foreground: color-mix(
+    in oklch,
+    var(--foreground) 86%,
+    var(--primary)
+  );
+  --editor-scrollbar: color-mix(
+    in oklch,
+    var(--muted-foreground) 42%,
+    transparent
+  );
+  --editor-range-track: color-mix(
+    in oklch,
+    var(--muted-foreground) 66%,
+    var(--editor-control)
+  );
+  --editor-range-track-border: color-mix(
+    in oklch,
+    var(--muted-foreground) 64%,
+    var(--editor-border)
+  );
+  --editor-range-fill: color-mix(
+    in oklch,
+    var(--foreground) 78%,
+    var(--muted-foreground)
+  );
+  --editor-range-thumb: var(--editor-range-fill);
+  --editor-sidebar-open-width: 22rem;
+  --editor-sidebar-rail-width: 3rem;
+  --editor-sidebar-max-width: 85vw;
+  --editor-preview-fallback-font-size: 1.5rem;
+  --text-editor-preview-fallback: var(--editor-preview-fallback-font-size);
+  --editor-view-transition-duration: 280ms;
+  --editor-view-transition-easing: cubic-bezier(0.2, 0, 0, 1);
+  --status-warning: color-mix(in oklch, var(--primary) 14%, var(--background));
+  --status-warning-border: color-mix(in oklch, var(--primary) 28%, transparent);
+  --status-warning-foreground: color-mix(
+    in oklch,
+    var(--foreground) 88%,
+    var(--primary)
+  );
+  --status-danger: color-mix(
+    in oklch,
+    var(--destructive) 10%,
+    var(--background)
+  );
+  --status-danger-border: color-mix(
+    in oklch,
+    var(--destructive) 24%,
+    transparent
+  );
+  --status-danger-foreground: color-mix(
+    in oklch,
+    var(--destructive) 72%,
+    var(--foreground)
+  );
+  --status-ready: color-mix(in oklch, var(--secondary) 10%, var(--background));
+  --status-ready-border: color-mix(in oklch, var(--secondary) 28%, transparent);
   --spacing: 0.25rem;
 }
 
@@ -145,6 +251,97 @@
     0px 0px 3px 0px hsl(0 0% 5.098% / 0.05),
     0px 8px 10px -1px hsl(0 0% 5.098% / 0.05);
   --shadow-2xl: 0px 0px 3px 0px hsl(0 0% 5.098% / 0.13);
+  --editor-workspace: color-mix(
+    in oklch,
+    var(--background) 94%,
+    var(--foreground)
+  );
+  --editor-panel: color-mix(in oklch, var(--card) 92%, var(--background));
+  --editor-panel-muted: color-mix(
+    in oklch,
+    var(--muted) 82%,
+    var(--background)
+  );
+  --editor-panel-raised: color-mix(
+    in oklch,
+    var(--card) 90%,
+    var(--foreground)
+  );
+  --editor-border: color-mix(in oklch, var(--border) 78%, var(--background));
+  --editor-control: color-mix(in oklch, var(--input) 82%, var(--background));
+  --editor-control-hover: color-mix(
+    in oklch,
+    var(--accent) 78%,
+    var(--foreground)
+  );
+  --editor-control-active: color-mix(
+    in oklch,
+    var(--editor-control-hover) 70%,
+    var(--editor-control)
+  );
+  --editor-accent: var(--primary);
+  --editor-selection: color-mix(
+    in oklch,
+    var(--editor-control-hover) 62%,
+    var(--editor-panel)
+  );
+  --editor-playhead: var(--editor-accent);
+  --editor-monitor: color-mix(
+    in oklch,
+    var(--background) 94%,
+    var(--foreground)
+  );
+  --editor-warning: color-mix(in oklch, var(--primary) 14%, var(--background));
+  --editor-warning-foreground: color-mix(
+    in oklch,
+    var(--foreground) 88%,
+    var(--primary)
+  );
+  --editor-scrollbar: color-mix(
+    in oklch,
+    var(--muted-foreground) 46%,
+    transparent
+  );
+  --editor-range-track: color-mix(
+    in oklch,
+    var(--muted-foreground) 66%,
+    var(--editor-control)
+  );
+  --editor-range-track-border: color-mix(
+    in oklch,
+    var(--muted-foreground) 66%,
+    var(--editor-border)
+  );
+  --editor-range-fill: color-mix(
+    in oklch,
+    var(--foreground) 78%,
+    var(--muted-foreground)
+  );
+  --editor-range-thumb: var(--editor-range-fill);
+  --status-warning: color-mix(in oklch, var(--primary) 12%, var(--background));
+  --status-warning-border: color-mix(in oklch, var(--primary) 30%, transparent);
+  --status-warning-foreground: color-mix(
+    in oklch,
+    var(--foreground) 90%,
+    var(--primary)
+  );
+  --status-danger: color-mix(
+    in oklch,
+    var(--destructive) 10%,
+    var(--background)
+  );
+  --status-danger-border: color-mix(
+    in oklch,
+    var(--destructive) 26%,
+    transparent
+  );
+  --status-danger-foreground: color-mix(
+    in oklch,
+    var(--destructive) 70%,
+    var(--foreground)
+  );
+  --status-ready: color-mix(in oklch, var(--secondary) 8%, var(--background));
+  --status-ready-border: color-mix(in oklch, var(--secondary) 26%, transparent);
 }
 
 @theme inline {
@@ -180,6 +377,38 @@
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
+  --color-editor-workspace: var(--editor-workspace);
+  --color-editor-panel: var(--editor-panel);
+  --color-editor-panel-muted: var(--editor-panel-muted);
+  --color-editor-panel-raised: var(--editor-panel-raised);
+  --color-editor-border: var(--editor-border);
+  --color-editor-control: var(--editor-control);
+  --color-editor-control-hover: var(--editor-control-hover);
+  --color-editor-control-active: var(--editor-control-active);
+  --color-editor-accent: var(--editor-accent);
+  --color-editor-selection: var(--editor-selection);
+  --color-editor-playhead: var(--editor-playhead);
+  --color-editor-monitor: var(--editor-monitor);
+  --color-editor-warning: var(--editor-warning);
+  --color-editor-warning-foreground: var(--editor-warning-foreground);
+  --color-editor-preview-overlay: var(--editor-preview-overlay);
+  --color-editor-preview-overlay-border: var(--editor-preview-overlay-border);
+  --color-editor-preview-overlay-foreground: var(
+    --editor-preview-overlay-foreground
+  );
+  --color-editor-scrollbar: var(--editor-scrollbar);
+  --color-editor-range-track: var(--editor-range-track);
+  --color-editor-range-track-border: var(--editor-range-track-border);
+  --color-editor-range-fill: var(--editor-range-fill);
+  --color-editor-range-thumb: var(--editor-range-thumb);
+  --color-status-warning: var(--status-warning);
+  --color-status-warning-border: var(--status-warning-border);
+  --color-status-warning-foreground: var(--status-warning-foreground);
+  --color-status-danger: var(--status-danger);
+  --color-status-danger-border: var(--status-danger-border);
+  --color-status-danger-foreground: var(--status-danger-foreground);
+  --color-status-ready: var(--status-ready);
+  --color-status-ready-border: var(--status-ready-border);
   --font-sans: var(--font-sans);
   --font-mono: var(--font-mono);
   --font-serif: var(--font-serif);
@@ -204,6 +433,46 @@
   --tracking-wide: calc(var(--tracking-normal) + 0.025em);
   --tracking-wider: calc(var(--tracking-normal) + 0.05em);
   --tracking-widest: calc(var(--tracking-normal) + 0.1em);
+  --text-ui-micro: 0.625rem;
+  --text-ui-micro--line-height: calc(0.875 / 0.625);
+  --text-ui-label: 0.6875rem;
+  --text-ui-label--line-height: calc(1 / 0.6875);
+  --text-editor-preview-fallback: var(--editor-preview-fallback-font-size);
+  --spacing-source-provider-panel: 22rem;
+  --spacing-editor-properties-min: 28rem;
+  --spacing-editor-preview-min: 12rem;
+  --spacing-editor-preview-sm-min: 16rem;
+  --spacing-editor-export-sidebar: 18rem;
+  --spacing-editor-export-template-label: 12rem;
+  --spacing-editor-property-label: 4.75rem;
+  --spacing-editor-sidebar-open: var(--editor-sidebar-open-width);
+  --spacing-editor-sidebar-rail: var(--editor-sidebar-rail-width);
+  --spacing-editor-sidebar-max: var(--editor-sidebar-max-width);
+  --spacing-select-content-min: 8rem;
+}
+
+@utility grid-cols-editor-header {
+  grid-template-columns: auto minmax(0, 1fr) auto;
+}
+
+@utility grid-cols-provider-connect {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.12fr);
+}
+
+@utility grid-cols-editor-export {
+  grid-template-columns:
+    minmax(0, 1fr)
+    var(--spacing-editor-export-sidebar);
+}
+
+@utility grid-cols-editor-export-template {
+  grid-template-columns: var(--spacing-editor-export-template-label) auto;
+}
+
+@utility grid-cols-editor-property-row {
+  grid-template-columns:
+    minmax(var(--spacing-editor-property-label), 0.72fr)
+    minmax(0, 1.28fr);
 }
 
 @layer base {
@@ -217,20 +486,128 @@
   }
 }
 
+@media (prefers-reduced-motion: no-preference) {
+  ::view-transition-group(cliparr-editor-thumbnail),
+  ::view-transition-old(cliparr-editor-thumbnail),
+  ::view-transition-new(cliparr-editor-thumbnail) {
+    animation-duration: var(--editor-view-transition-duration);
+    animation-timing-function: var(--editor-view-transition-easing);
+  }
+
+  ::view-transition-old(cliparr-editor-thumbnail),
+  ::view-transition-new(cliparr-editor-thumbnail) {
+    mix-blend-mode: normal;
+  }
+}
+
+.cliparr-editor-scrollbar {
+  scrollbar-color: var(--editor-scrollbar) transparent;
+  scrollbar-width: thin;
+}
+
+.cliparr-editor-scrollbar::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+.cliparr-editor-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.cliparr-editor-scrollbar::-webkit-scrollbar-thumb {
+  border: 3px solid transparent;
+  border-radius: 999px;
+  background: var(--editor-scrollbar);
+  background-clip: padding-box;
+}
+
+.cliparr-editor-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: color-mix(
+    in oklch,
+    var(--editor-scrollbar) 74%,
+    var(--foreground)
+  );
+  background-clip: padding-box;
+}
+
+.cliparr-editor-range {
+  height: 1.125rem;
+  cursor: pointer;
+  appearance: none;
+  background: transparent;
+  accent-color: var(--editor-accent);
+}
+
+.cliparr-editor-range:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.cliparr-editor-range::-webkit-slider-runnable-track {
+  height: 5px;
+  border-radius: 999px;
+  background: linear-gradient(
+    90deg,
+    var(--editor-range-fill) 0 var(--cliparr-range-fill, 0%),
+    var(--editor-range-track) var(--cliparr-range-fill, 0%) 100%
+  );
+  box-shadow: inset 0 0 0 1px var(--editor-range-track-border);
+}
+
+.cliparr-editor-range::-webkit-slider-thumb {
+  width: 16px;
+  height: 16px;
+  margin-top: -5.5px;
+  appearance: none;
+  border: 0;
+  border-radius: 999px;
+  background: var(--editor-range-thumb);
+  box-shadow: 0 1px 3px color-mix(in oklch, var(--foreground) 28%, transparent);
+}
+
+.cliparr-editor-range:focus-visible::-webkit-slider-thumb {
+  box-shadow: 0 0 0 4px
+    color-mix(in oklch, var(--editor-accent) 42%, transparent);
+}
+
+.cliparr-editor-range::-moz-range-track {
+  height: 5px;
+  border: 1px solid var(--editor-range-track-border);
+  border-radius: 999px;
+  background: var(--editor-range-track);
+}
+
+.cliparr-editor-range::-moz-range-progress {
+  height: 5px;
+  border-radius: 999px;
+  background: var(--editor-range-fill);
+}
+
+.cliparr-editor-range::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--editor-range-thumb);
+  box-shadow: 0 1px 3px color-mix(in oklch, var(--foreground) 28%, transparent);
+}
+
 .cliparr-timeline {
   position: relative;
   width: 100%;
-  background: var(--card);
+  height: 100%;
+  min-height: 154px;
+  background: var(--editor-panel);
 }
 
 .cliparr-timeline .timeline-editor {
   width: 100%;
-  height: 154px;
+  height: 100%;
   min-height: 154px;
   overflow: hidden;
   border: none;
   border-radius: 0;
-  background: var(--card);
+  background: var(--editor-panel);
   color: var(--foreground);
   font-family: var(--font-sans);
   box-shadow: none;
@@ -238,14 +615,14 @@
 
 .cliparr-timeline .timeline-editor-time-area {
   height: 32px;
-  border-bottom: 1px solid var(--border);
-  background: color-mix(in oklch, var(--muted) 72%, var(--card));
+  border-bottom: 1px solid var(--editor-border);
+  background: var(--editor-panel-muted);
 }
 
 .cliparr-timeline .timeline-editor-time-unit {
   border-right-color: color-mix(
     in oklch,
-    var(--muted-foreground) 32%,
+    var(--muted-foreground) 24%,
     transparent
   );
 }
@@ -261,14 +638,13 @@
 
 .cliparr-timeline .timeline-editor-edit-area {
   margin-top: 0;
-  background: var(--card);
+  background: var(--editor-panel);
 }
 
 .cliparr-timeline .timeline-editor-edit-area .ReactVirtualized__Grid {
   overflow-x: scroll !important;
   overflow-y: hidden !important;
-  scrollbar-color: color-mix(in oklch, var(--muted-foreground) 44%, transparent)
-    color-mix(in oklch, var(--muted) 70%, var(--card));
+  scrollbar-color: var(--editor-scrollbar) transparent;
   scrollbar-gutter: stable;
   scrollbar-width: thin;
 }
@@ -287,42 +663,49 @@
 .cliparr-timeline
   .timeline-editor-edit-area
   .ReactVirtualized__Grid::-webkit-scrollbar-track {
-  background: color-mix(in oklch, var(--muted) 70%, var(--card)) !important;
+  background: transparent !important;
 }
 
 .cliparr-timeline
   .timeline-editor-edit-area
   .ReactVirtualized__Grid::-webkit-scrollbar-thumb {
   min-width: 44px;
-  border: 2px solid color-mix(in oklch, var(--muted) 70%, var(--card));
+  border: 3px solid transparent;
   border-radius: 999px;
-  background: color-mix(in oklch, var(--muted-foreground) 44%, transparent);
+  background: var(--editor-scrollbar);
+  background-clip: padding-box;
 }
 
 .cliparr-timeline
   .timeline-editor-edit-area
   .ReactVirtualized__Grid::-webkit-scrollbar-thumb:hover {
-  background: color-mix(in oklch, var(--foreground) 44%, transparent);
+  background: color-mix(
+    in oklch,
+    var(--editor-scrollbar) 74%,
+    var(--foreground)
+  );
+  background-clip: padding-box;
 }
 
 .cliparr-timeline .timeline-editor-edit-row {
   background-image:
     linear-gradient(
-      color-mix(in oklch, var(--card) 82%, var(--background)),
-      color-mix(in oklch, var(--card) 82%, var(--background))
+      color-mix(in oklch, var(--editor-panel) 86%, var(--editor-workspace)),
+      color-mix(in oklch, var(--editor-panel) 86%, var(--editor-workspace))
     ),
     linear-gradient(
       90deg,
-      color-mix(in oklch, var(--muted-foreground) 12%, transparent) 1px,
+      color-mix(in oklch, var(--muted-foreground) 10%, transparent) 1px,
       transparent 0
     );
 }
 
 .cliparr-timeline .timeline-editor-action {
   overflow: hidden;
-  border: 1px solid color-mix(in oklch, var(--ring) 72%, var(--foreground));
+  border: 1px solid
+    color-mix(in oklch, var(--muted-foreground) 52%, var(--editor-border));
   border-radius: 2px;
-  background: color-mix(in oklch, var(--ring) 44%, var(--background));
+  background: var(--editor-selection);
   color: var(--foreground);
   box-shadow: none;
   user-select: none;
@@ -332,8 +715,8 @@
 .cliparr-timeline .timeline-editor-action-effect-source {
   top: 7px !important;
   height: 18px !important;
-  border-color: color-mix(in oklch, var(--border) 84%, var(--foreground));
-  background: color-mix(in oklch, var(--muted) 82%, var(--card));
+  border-color: var(--editor-border);
+  background: var(--editor-control);
   color: var(--muted-foreground);
   box-shadow: none;
 }
@@ -349,7 +732,7 @@
   .timeline-editor-action-right-stretch {
   width: 12px;
   border-radius: 0;
-  background: color-mix(in oklch, var(--foreground) 10%, transparent);
+  background: color-mix(in oklch, var(--foreground) 14%, transparent);
 }
 
 .cliparr-timeline
@@ -358,8 +741,8 @@
 .cliparr-timeline
   .timeline-editor-action
   .timeline-editor-action-right-stretch::after {
-  border-left-color: color-mix(in oklch, var(--foreground) 34%, transparent);
-  border-right-color: color-mix(in oklch, var(--foreground) 34%, transparent);
+  border-left-color: color-mix(in oklch, var(--foreground) 42%, transparent);
+  border-right-color: color-mix(in oklch, var(--foreground) 42%, transparent);
 }
 
 .cliparr-timeline-action-content {
@@ -383,20 +766,21 @@
   bottom: 0;
   z-index: 0;
   border-radius: 1px;
-  background: color-mix(in oklch, var(--secondary) 24%, transparent);
+  background: color-mix(in oklch, var(--muted-foreground) 24%, transparent);
   box-shadow:
-    inset 1px 0 0 color-mix(in oklch, var(--secondary) 54%, transparent),
-    inset 0 0 0 1px color-mix(in oklch, var(--secondary) 22%, transparent);
+    inset 1px 0 0 color-mix(in oklch, var(--muted-foreground) 54%, transparent),
+    inset 0 0 0 1px
+      color-mix(in oklch, var(--muted-foreground) 22%, transparent);
   pointer-events: none;
 }
 
 .cliparr-timeline-action-ready-fill[data-status="warming"] {
   min-width: 2px;
-  background: color-mix(in oklch, var(--secondary) 18%, transparent);
+  background: color-mix(in oklch, var(--muted-foreground) 18%, transparent);
 }
 
 .cliparr-timeline-action-ready-fill[data-status="ready"] {
-  background: color-mix(in oklch, var(--secondary) 28%, transparent);
+  background: color-mix(in oklch, var(--muted-foreground) 28%, transparent);
 }
 
 .cliparr-timeline-action-label {
@@ -425,14 +809,18 @@
 .cliparr-timeline .timeline-editor-cursor {
   top: 32px;
   height: calc(100% - 32px);
-  border-right-color: var(--ring);
-  border-left-color: var(--ring);
+  border-right-color: var(--editor-playhead);
+  border-left-color: var(--editor-playhead);
 }
 
 .cliparr-timeline .timeline-editor-cursor-top path {
-  fill: var(--ring);
+  fill: var(--editor-playhead);
 }
 
 .cliparr-timeline .timeline-editor-drag-line {
-  border-left-color: color-mix(in oklch, var(--ring) 75%, transparent);
+  border-left-color: color-mix(
+    in oklch,
+    var(--editor-playhead) 75%,
+    transparent
+  );
 }
