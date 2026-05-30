@@ -24,7 +24,7 @@
 - **Instant session discovery**: Automatically loads your media player's currently playing file.
 - **Open local videos**: Open a local file or direct media URL before or after connecting a provider.
 - **Intuitive timeline editor**: Familiar editing controls for choosing the exact clip range.
-- **Browser transcoding**: Powered by Mediabunny, video is transcoded in your browser.
+- **Browser transcoding**: Powered by <a href="https://mediabunny.dev/" target="_blank" rel="noreferrer">Mediabunny</a>, video is transcoded in your browser.
 - **Metadata included**: Exports can include season, episode, and timing metadata from your source.
 - **Subtitle burn-in**: Burn in supported subtitles with customizable styling and local font support in Chromium.
 <!-- CLIPARR_DOCS_SYNC:features:end -->
