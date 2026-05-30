@@ -26,9 +26,9 @@ Keep Cliparr on `localhost`, a trusted private network, a VPN, or behind an auth
 
 Common options include:
 
-- Caddy, Nginx, or Traefik with an external auth service.
-- Authentik, Authelia, or another identity-aware reverse proxy.
-- Cloudflare Access, Tailscale, WireGuard, or another private-access layer.
+- Caddy, Nginx, or Traefik with Authelia, Authentik, or another identity-aware auth service.
+- Tailscale, WireGuard, or another private-access layer that keeps Cliparr off the public internet.
+- Cloudflare Access or another hosted access gateway when Cliparr is already behind that provider.
 
 ## Reverse proxy basics
 
@@ -36,24 +36,38 @@ When Cliparr is behind a reverse proxy, preserve the `Host` header and pass `X-F
 
 Use HTTPS for remote access. The editor relies on browser WebCodecs, and supporting browsers require a secure context outside `localhost` or `127.0.0.1`.
 
-## Caddy basic auth example
+## Authelia with Caddy
 
-Caddy can put a simple username and password in front of Cliparr with `basic_auth`. Use this only over HTTPS, and make sure users cannot bypass Caddy by reaching Cliparr's container port directly.
+Authelia is a common self-hosted choice when you want real login sessions, multi-factor authentication, per-domain policies, and reusable users in front of apps that do not have their own user system. With Caddy, use `forward_auth` to ask Authelia whether each request should continue to Cliparr.
 
-First, generate a hashed password:
+This example assumes:
 
-```bash
-docker run --rm -it caddy:2 caddy hash-password
+- `auth.example.com` points to Authelia.
+- `cliparr.example.com` points to Cliparr through Caddy.
+- Caddy, Authelia, and Cliparr share a Docker network.
+- Authelia is already configured with users, session cookies, storage, and an authz endpoint named `forward-auth`.
+
+Authelia needs a forward-auth authorization endpoint in its configuration:
+
+```yaml
+server:
+  endpoints:
+    authz:
+      forward-auth:
+        implementation: ForwardAuth
 ```
 
-Then use the generated hash in a `Caddyfile`:
+Then protect Cliparr from Caddy:
 
 ```caddyfile
-cliparr.example.com {
-    encode zstd gzip
+auth.example.com {
+    reverse_proxy authelia:9091
+}
 
-    basic_auth {
-        cliparr_user REPLACE_WITH_CADDY_HASH
+cliparr.example.com {
+    forward_auth authelia:9091 {
+        uri /api/authz/forward-auth
+        copy_headers Remote-User Remote-Groups Remote-Email Remote-Name
     }
 
     reverse_proxy cliparr:3000 {
@@ -63,7 +77,7 @@ cliparr.example.com {
 }
 ```
 
-If Cliparr and Caddy run in the same Docker Compose project, expose Cliparr only to the Compose network and publish ports from Caddy:
+Expose Cliparr only to the Compose network and publish ports from Caddy:
 
 ```yaml
 services:
@@ -80,6 +94,7 @@ services:
   caddy:
     image: caddy:2
     depends_on:
+      - authelia
       - cliparr
     ports:
       - "80:80"
@@ -90,13 +105,27 @@ services:
       - caddy-config:/config
     restart: unless-stopped
 
+  authelia:
+    image: authelia/authelia:latest
+    expose:
+      - "9091"
+    volumes:
+      - ./authelia:/config
+    restart: unless-stopped
+
 volumes:
   cliparr-data:
   caddy-data:
   caddy-config:
 ```
 
-If you run Cliparr outside Docker Compose, bind Cliparr to localhost and proxy to that local address:
+Authelia configuration has more moving parts than a Caddyfile. Follow Authelia's Caddy integration guide and keep the `auth.example.com`, cookie domain, storage, notifier, and access-control policy aligned with your real domain.
+
+## Tailscale or WireGuard
+
+For many home setups, the safest access control is no public Cliparr endpoint at all. Put Cliparr on a private VPN and let only trusted devices reach it.
+
+With Tailscale, bind Cliparr to localhost and share it only inside your tailnet:
 
 ```bash
 docker run -d \
@@ -107,7 +136,37 @@ docker run -d \
   ghcr.io/techsquidtv/cliparr:latest
 ```
 
-Then use `reverse_proxy 127.0.0.1:3000` in the Caddyfile instead of `reverse_proxy cliparr:3000`.
+Then run Tailscale Serve on the same host:
+
+```bash
+tailscale serve --bg localhost:3000
+```
+
+Tailscale will give the service a tailnet-only HTTPS URL on the machine's MagicDNS name. Do not use Tailscale Funnel for Cliparr unless you intentionally want to expose it to the public internet.
+
+With WireGuard, keep the same idea: do not publish Cliparr to the public interface. Bind it to a WireGuard-only address or place Caddy on the host and allow the Caddy port only from the WireGuard interface or VPN subnet.
+
+For example, if the Cliparr host has WireGuard address `10.8.0.1`, bind Docker to that address instead of every interface:
+
+```bash
+docker run -d \
+  --name cliparr \
+  -p 10.8.0.1:3000:3000 \
+  -e APP_KEY="your-32-char-stable-random-secret" \
+  -v cliparr-data:/data \
+  ghcr.io/techsquidtv/cliparr:latest
+```
+
+If you use Caddy inside the VPN, serve Cliparr on an internal name and restrict firewall access to VPN clients:
+
+```caddyfile
+cliparr.home.arpa {
+    reverse_proxy 127.0.0.1:3000 {
+        header_up Host {host}
+        header_up X-Forwarded-Proto {scheme}
+    }
+}
+```
 
 ## What to protect
 
