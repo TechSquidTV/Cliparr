@@ -1,16 +1,8 @@
-import {
-  lazy,
-  Suspense,
-  useCallback,
-  useEffect,
-  useMemo,
-  useState,
-} from "react";
+import { lazy, Suspense, useCallback, useEffect, useState } from "react";
 import {
   clampClipEndTime,
   clampClipStartTime,
   clampPlaybackTime,
-  errorMessage,
   MIN_CLIP_SECONDS,
   roundTimelineTime,
 } from "@/components/editor/editorUtils";
@@ -38,16 +30,9 @@ import {
   EditorPreviewPane,
   EditorTimelinePane,
 } from "@/components/editor/EditorLayout";
+import { useEditorFramegrab } from "@/components/editor/useEditorFramegrab";
 import { useEditorSubtitles } from "@/components/editor/useEditorSubtitles";
 import { sourceDisplayLabel, type EditorSession } from "@/lib/editorMedia";
-import { buildFramegrabFileName } from "@/lib/exportFileName";
-import { downloadBlob } from "@/lib/downloadBlob";
-import {
-  cloneCanvasFrame,
-  copyFramegrabCanvasToClipboard,
-  encodeFramegrabCanvas,
-  type FramegrabImageFormat,
-} from "@/lib/framegrab";
 import { EDITOR_THUMBNAIL_VIEW_TRANSITION_NAME } from "@/lib/viewTransitions";
 
 const EditorExportDialog = lazy(() =>
@@ -67,17 +52,6 @@ interface Props {
   onBack: () => void;
 }
 
-interface CapturedFramegrab {
-  canvas: HTMLCanvasElement;
-  time: number;
-  dimensions: {
-    width: number;
-    height: number;
-  };
-}
-
-type FramegrabAction = "copy" | "download";
-
 export default function EditorScreen({ session, onBack }: Props) {
   const initialClipRange = buildInitialClipRange(
     session.duration,
@@ -87,16 +61,6 @@ export default function EditorScreen({ session, onBack }: Props) {
   const [endTime, setEndTime] = useState(() => initialClipRange.endTime);
   const [playbackSidebarOpen, setPlaybackSidebarOpen] = useState(true);
   const [exportDialogMounted, setExportDialogMounted] = useState(false);
-  const [framegrabDialogMounted, setFramegrabDialogMounted] = useState(false);
-  const [capturedFramegrab, setCapturedFramegrab] =
-    useState<CapturedFramegrab | null>(null);
-  const [framegrabDialogOpen, setFramegrabDialogOpen] = useState(false);
-  const [framegrabFormat, setFramegrabFormat] =
-    useState<FramegrabImageFormat>("png");
-  const [framegrabAction, setFramegrabAction] =
-    useState<FramegrabAction | null>(null);
-  const [framegrabError, setFramegrabError] = useState<string | null>(null);
-  const [framegrabMessage, setFramegrabMessage] = useState<string | null>(null);
   const {
     subtitleTracks,
     selectedSubtitleTrack,
@@ -200,6 +164,17 @@ export default function EditorScreen({ session, onBack }: Props) {
     subtitleCues,
     subtitleStyleSettings,
   });
+  const framegrab = useEditorFramegrab({
+    session,
+    canvasRef,
+    currentTime,
+    loadingPreview,
+    loadingPreviewFrame,
+    previewVideoDimensions,
+    subtitleEnabled,
+    subtitleLoading,
+    subtitleError,
+  });
   const playbackFallbackReason = buildPlaybackFallbackReason({
     activeSourceLabel,
     hasHlsSource: Boolean(session.hlsSource),
@@ -215,150 +190,6 @@ export default function EditorScreen({ session, onBack }: Props) {
       setExportDialogMounted(true);
     }
   }, [exportDialogOpen]);
-
-  useEffect(() => {
-    if (framegrabDialogOpen) {
-      setFramegrabDialogMounted(true);
-    }
-  }, [framegrabDialogOpen]);
-
-  const framegrabFileName = useMemo(
-    () =>
-      buildFramegrabFileName({
-        title: session.title,
-        sessionType: session.type,
-        metadata: session.exportMetadata,
-        frameTime: capturedFramegrab?.time ?? currentTime,
-        format: framegrabFormat,
-      }),
-    [
-      capturedFramegrab?.time,
-      currentTime,
-      framegrabFormat,
-      session.exportMetadata,
-      session.title,
-      session.type,
-    ],
-  );
-
-  const framegrabDisabledReason = useMemo(() => {
-    if (loadingPreview || loadingPreviewFrame) {
-      return "Preview frame is loading.";
-    }
-
-    if (subtitleEnabled && subtitleLoading) {
-      return "Subtitles are still loading.";
-    }
-
-    if (subtitleEnabled && subtitleError) {
-      return subtitleError;
-    }
-
-    if (!previewVideoDimensions) {
-      return "No preview frame available.";
-    }
-
-    return null;
-  }, [
-    loadingPreview,
-    loadingPreviewFrame,
-    previewVideoDimensions,
-    subtitleEnabled,
-    subtitleError,
-    subtitleLoading,
-  ]);
-
-  const handleOpenFramegrabDialog = useCallback(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) {
-      setFramegrabError("No preview frame is available yet.");
-      return;
-    }
-
-    try {
-      const clonedCanvas = cloneCanvasFrame(canvas);
-      setCapturedFramegrab({
-        canvas: clonedCanvas,
-        time: currentTime,
-        dimensions: {
-          width: clonedCanvas.width,
-          height: clonedCanvas.height,
-        },
-      });
-      setFramegrabError(null);
-      setFramegrabMessage(null);
-      setFramegrabDialogOpen(true);
-    } catch (err) {
-      setFramegrabError(errorMessage(err));
-    }
-  }, [canvasRef, currentTime]);
-
-  const handleCloseFramegrabDialog = useCallback(() => {
-    if (framegrabAction) {
-      return;
-    }
-
-    setFramegrabDialogOpen(false);
-    setCapturedFramegrab(null);
-    setFramegrabError(null);
-    setFramegrabMessage(null);
-  }, [framegrabAction]);
-
-  const handleFramegrabFormatChange = useCallback(
-    (nextFormat: FramegrabImageFormat) => {
-      setFramegrabFormat(nextFormat);
-      setFramegrabError(null);
-      setFramegrabMessage(null);
-    },
-    [],
-  );
-
-  const handleCopyFramegrab = useCallback(async () => {
-    if (!capturedFramegrab || framegrabAction) {
-      return;
-    }
-
-    setFramegrabAction("copy");
-    setFramegrabError(null);
-    setFramegrabMessage(null);
-
-    try {
-      await copyFramegrabCanvasToClipboard(capturedFramegrab.canvas);
-      setFramegrabMessage("Copied to clipboard.");
-    } catch (err) {
-      setFramegrabError(errorMessage(err));
-    } finally {
-      setFramegrabAction(null);
-    }
-  }, [capturedFramegrab, framegrabAction]);
-
-  const handleDownloadFramegrab = useCallback(async () => {
-    if (!capturedFramegrab || framegrabAction) {
-      return;
-    }
-
-    setFramegrabAction("download");
-    setFramegrabError(null);
-    setFramegrabMessage(null);
-
-    try {
-      const blob = await encodeFramegrabCanvas(
-        capturedFramegrab.canvas,
-        framegrabFormat,
-      );
-      downloadBlob(blob, framegrabFileName.fullName);
-      setFramegrabMessage("Download started.");
-    } catch (err) {
-      setFramegrabError(errorMessage(err));
-    } finally {
-      setFramegrabAction(null);
-    }
-  }, [
-    capturedFramegrab,
-    framegrabAction,
-    framegrabFileName.fullName,
-    framegrabFormat,
-  ]);
 
   const updateClipRange = useCallback(
     (nextStart: number, nextEnd: number) => {
@@ -536,8 +367,8 @@ export default function EditorScreen({ session, onBack }: Props) {
       handleTimelineZoomOut={handleTimelineZoomOut}
       canZoomIn={canZoomIn}
       canZoomOut={canZoomOut}
-      onFramegrabClick={handleOpenFramegrabDialog}
-      framegrabDisabledReason={framegrabDisabledReason}
+      onFramegrabClick={framegrab.openDialog}
+      framegrabDisabledReason={framegrab.disabledReason}
       onPreviewTimeCommit={handlePreviewTimeCommit}
       onStartTimeCommit={handleStartTimeCommit}
       onEndTimeCommit={handleEndTimeCommit}
@@ -718,22 +549,22 @@ export default function EditorScreen({ session, onBack }: Props) {
         </Suspense>
       )}
 
-      {framegrabDialogMounted && capturedFramegrab && (
+      {framegrab.dialogMounted && framegrab.capturedFramegrab && (
         <Suspense fallback={null}>
           <EditorFramegrabDialog
-            isOpen={framegrabDialogOpen}
+            isOpen={framegrab.dialogOpen}
             title={session.title}
-            frameTime={capturedFramegrab.time}
-            dimensions={capturedFramegrab.dimensions}
-            selectedFormat={framegrabFormat}
-            onFormatChange={handleFramegrabFormatChange}
-            fileNamePreview={framegrabFileName.fullName}
-            processingAction={framegrabAction}
-            error={framegrabError}
-            message={framegrabMessage}
-            onClose={handleCloseFramegrabDialog}
-            onCopy={() => void handleCopyFramegrab()}
-            onDownload={() => void handleDownloadFramegrab()}
+            frameTime={framegrab.capturedFramegrab.time}
+            dimensions={framegrab.capturedFramegrab.dimensions}
+            selectedFormat={framegrab.format}
+            onFormatChange={framegrab.handleFormatChange}
+            fileNamePreview={framegrab.fileName.fullName}
+            processingAction={framegrab.action}
+            error={framegrab.error}
+            message={framegrab.message}
+            onClose={framegrab.closeDialog}
+            onCopy={() => void framegrab.copyFramegrab()}
+            onDownload={() => void framegrab.downloadFramegrab()}
           />
         </Suspense>
       )}
