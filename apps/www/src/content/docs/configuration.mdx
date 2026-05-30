@@ -5,7 +5,29 @@ order: 20
 ---
 
 import Callout from "@/components/Callout.astro";
+import CommandBlock from "@/components/CommandBlock.astro";
 import EnvVarTable from "@/components/EnvVarTable.astro";
+
+const structuredConsoleLoggingCommand = `docker run -d \\
+  --name cliparr \\
+  -p 3000:3000 \\
+  -e APP_KEY="your-32-char-stable-random-secret" \\
+  -e CLIPARR_LOG_FORMAT=json \\
+  -v cliparr-data:/data \\
+  ghcr.io/techsquidtv/cliparr:latest`;
+
+const rotatingFileLoggingCompose = `services:
+  cliparr:
+    image: ghcr.io/techsquidtv/cliparr:latest
+    environment:
+      - APP_KEY=replace-this-with-a-32-character-secure-random-string
+      - CLIPARR_LOG_FORMAT=pretty
+      - CLIPARR_LOG_FILE=/data/logs/cliparr.log
+      - CLIPARR_LOG_FILE_FORMAT=json
+      - CLIPARR_LOG_FILE_MAX_SIZE=10mb
+      - CLIPARR_LOG_FILE_MAX_FILES=5
+    volumes:
+      - cliparr-data:/data`;
 
 Cliparr only needs a few settings in production: a stable `APP_KEY` and a persistent data directory.
 
@@ -30,9 +52,38 @@ The default container data directory is `/data`. In production, mount that path 
 
 ## Logging
 
-Server logs default to readable terminal output. Set `CLIPARR_LOG_FORMAT=json` or `CLIPARR_LOG_FORMAT=logfmt` when you want each console line to include the structured event fields used by Cliparr's LogTape events.
+Server logs default to `pretty`, the readable terminal format used during local development. Pretty logs show the timestamp, level, category, and message. They are easy to scan, but they intentionally do not print every structured field attached to the event.
 
-Set `CLIPARR_LOG_FILE` to write a second, rotating server log file. File logs default to JSON when no explicit format is configured, rotate at `CLIPARR_LOG_FILE_MAX_SIZE`, and keep `CLIPARR_LOG_FILE_MAX_FILES` total files including the active file.
+Set `CLIPARR_LOG_FORMAT=json` or `CLIPARR_LOG_FORMAT=logfmt` when you want each console line to include Cliparr's structured LogTape fields, such as `event.name`, `event.outcome`, request data, provider IDs, media handle IDs, counts, durations, and error details. JSON is best for log collectors. logfmt is compact and readable in plain terminals.
+
+<CommandBlock
+  code={structuredConsoleLoggingCommand}
+  label="Structured console logs"
+  lang="bash"
+/>
+
+`CLIPARR_LOG_LEVEL` controls how much the server emits. Development defaults to `debug`; production defaults to `info`. Use `trace` only while chasing detailed media proxy or playback behavior because it can be noisy.
+
+### File logging
+
+Set `CLIPARR_LOG_FILE` to write a second server log destination in addition to the console. File logging is opt-in and rotates by size so diagnostics do not grow forever on long-running installs.
+
+<CommandBlock
+  code={rotatingFileLoggingCompose}
+  label="Rotating file logs"
+  lang="yaml"
+/>
+
+Relative file paths resolve from the server working directory. In containers, prefer a path under `/data` so logs persist with the Cliparr volume. File logs default to JSON unless `CLIPARR_LOG_FILE_FORMAT` is set. If `CLIPARR_LOG_FILE_FORMAT` is omitted but `CLIPARR_LOG_FORMAT` is set, the file uses the console format.
+
+`CLIPARR_LOG_FILE_MAX_SIZE` accepts byte sizes with optional `b`, `kb`, `mb`, `gb`, `kib`, `mib`, or `gib` suffixes and defaults to `10mb`. `CLIPARR_LOG_FILE_MAX_FILES` defaults to `5` and includes the active file, so the default keeps `cliparr.log` plus up to four rotated files.
+
+<Callout title="Sharing logs" tone="info">
+  Cliparr avoids logging tokens, credentials, raw auth URLs, subtitle text, and
+  full media metadata by default. Logs can still include source IDs, media
+  handle IDs, request paths, durations, status codes, and sanitized upstream
+  paths, so review them before posting publicly.
+</Callout>
 
 ## Clip metadata
 
