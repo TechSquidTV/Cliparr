@@ -17,6 +17,15 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { Switch } from "@/components/ui/switch";
+import {
+  compactPrimaryButtonClasses as primaryButtonClasses,
+  compactSecondaryButtonClasses as secondaryButtonClasses,
+  destructiveAlertClasses,
+  destructiveButtonClasses,
+  fieldLabelClasses as labelClasses,
+  iconButtonClasses,
+  textInputClasses as inputClasses,
+} from "@/components/ui/controlClasses";
 import type { MediaSource, ProviderSession } from "../providers/types";
 import { formatProviderName } from "./ProviderGlyph";
 import SourceConnectPanel from "./SourceConnectPanel";
@@ -59,18 +68,8 @@ const sourceFilterOptions = [
   ["attention", "Needs attention"],
 ] as const satisfies readonly [SourceFilter, string][];
 
-const labelClasses =
-  "text-ui-label font-semibold uppercase tracking-[var(--tracking-caps-md)] text-muted-foreground";
 const statusBadgeClasses =
   "inline-flex h-6 items-center gap-1.5 rounded-md border px-2 text-ui-label font-semibold uppercase tracking-[var(--tracking-caps-sm)]";
-const secondaryButtonClasses =
-  "inline-flex h-8 items-center justify-center gap-2 rounded-md border border-border bg-background px-3 text-xs font-semibold uppercase tracking-[var(--tracking-caps-sm)] text-foreground transition-colors hover:bg-accent disabled:cursor-not-allowed disabled:opacity-60";
-const primaryButtonClasses =
-  "inline-flex h-8 items-center justify-center gap-2 rounded-md border border-primary bg-primary px-3 text-xs font-semibold uppercase tracking-[var(--tracking-caps-sm)] text-primary-foreground transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-60";
-const iconButtonClasses =
-  "inline-flex h-8 w-8 items-center justify-center rounded-md border border-border bg-background text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:ring-2 focus-visible:ring-primary/35 focus-visible:outline-none";
-const inputClasses =
-  "h-9 w-full rounded-md border border-input bg-background px-3 text-sm text-foreground outline-none transition-colors focus:border-primary focus:ring-2 focus:ring-primary/30 disabled:cursor-not-allowed disabled:opacity-60";
 const healthySurfaceClasses = "border-primary/30 bg-primary/10 text-foreground";
 const attentionSurfaceClasses =
   "border-destructive/30 bg-destructive/10 text-destructive";
@@ -384,9 +383,7 @@ export function SourcesModalAlerts({
   return (
     <>
       {error && (
-        <div className="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
-          {error}
-        </div>
+        <div className={destructiveAlertClasses}>{error}</div>
       )}
 
       {feedback && (
@@ -691,7 +688,7 @@ export function SourceCard({
             type="button"
             onClick={() => void onRemove()}
             disabled={isBusy}
-            className="inline-flex h-8 items-center justify-center gap-2 rounded-md border border-destructive/30 bg-destructive/10 px-3 text-xs font-semibold uppercase tracking-[var(--tracking-caps-sm)] text-destructive transition-colors hover:bg-destructive hover:text-destructive-foreground disabled:cursor-not-allowed disabled:opacity-60"
+            className={destructiveButtonClasses}
           >
             <Trash2 className="h-4 w-4" />
             Remove

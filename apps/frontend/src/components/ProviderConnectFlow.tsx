@@ -17,6 +17,13 @@ import {
   TabsPanels,
   TabsTab,
 } from "@/components/ui/tabs";
+import {
+  compactSecondaryButtonClasses,
+  densePrimaryButtonClasses as panelPrimaryButtonClasses,
+  denseSecondaryButtonClasses as panelSecondaryButtonClasses,
+  screenTextInputClasses as baseScreenInputClasses,
+  textInputClasses,
+} from "@/components/ui/controlClasses";
 import type { ProviderDefinition, ProviderSession } from "../providers/types";
 
 interface Props {
@@ -36,14 +43,8 @@ function isLoopbackUrl(value: string) {
   );
 }
 
-const panelPrimaryButtonClasses =
-  "inline-flex h-9 items-center justify-center gap-2 rounded-md border border-primary bg-primary px-3 text-xs font-semibold uppercase tracking-[var(--tracking-caps-sm)] text-primary-foreground transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-60";
-const panelSecondaryButtonClasses =
-  "inline-flex h-9 items-center justify-center rounded-md border border-border bg-background px-3 text-xs font-semibold uppercase tracking-[var(--tracking-caps-sm)] text-foreground transition-colors hover:bg-accent disabled:cursor-not-allowed disabled:opacity-60";
-const panelInputClasses =
-  "mt-1.5 h-9 w-full rounded-md border border-input bg-background px-3 text-sm text-foreground outline-none transition-colors focus:border-primary focus:ring-2 focus:ring-primary/30 disabled:cursor-not-allowed disabled:opacity-60";
-const screenInputClasses =
-  "mt-2 h-11 w-full rounded-2xl border border-input bg-card px-4 text-sm text-foreground outline-none transition-colors focus:border-ring disabled:cursor-not-allowed disabled:opacity-60";
+const panelInputClasses = cn(textInputClasses, "mt-1.5");
+const screenInputClasses = cn(baseScreenInputClasses, "mt-2");
 
 export default function ProviderConnectFlow({
   onConnected,
@@ -212,7 +213,7 @@ export default function ProviderConnectFlow({
                   type="button"
                   onClick={() => setServerUrl(devJellyfinUrl)}
                   disabled={authenticating || isUsingDevJellyfinUrl}
-                  className="inline-flex h-8 items-center gap-2 rounded-md border border-border bg-background px-3 text-xs font-semibold uppercase tracking-[var(--tracking-caps-sm)] text-foreground transition-colors hover:bg-accent disabled:cursor-not-allowed disabled:opacity-60"
+                  className={compactSecondaryButtonClasses}
                 >
                   {isUsingDevJellyfinUrl ? (
                     <>

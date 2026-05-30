@@ -15,12 +15,19 @@ import {
   TabsTab,
 } from "@/components/ui/tabs";
 import {
+  destructiveAlertClasses,
+  fieldLabelWideClasses,
+  largeTextInputClasses,
+  primaryButtonClasses,
+} from "@/components/ui/controlClasses";
+import {
   createLocalSessionFromFile,
   createLocalSessionFromPicker,
   createLocalSessionFromUrl,
   LOCAL_VIDEO_FILE_ACCEPT,
   localMediaPickerSupported,
 } from "../lib/localMediaRegistry";
+import { cn } from "../lib/utils";
 
 interface LocalVideoOpenModalProps {
   isOpen: boolean;
@@ -180,7 +187,7 @@ export function LocalVideoOpenModal({
 
         <div className="min-h-0 overflow-y-auto p-4">
           {error && (
-            <div className="mb-4 rounded-md border border-destructive/35 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+            <div className={cn(destructiveAlertClasses, "mb-4")}>
               {error}
             </div>
           )}
@@ -226,7 +233,7 @@ export function LocalVideoOpenModal({
                   type="button"
                   onClick={() => void handleChooseFile()}
                   disabled={opening}
-                  className="mt-5 inline-flex h-9 items-center justify-center gap-2 rounded-md border border-primary bg-primary px-4 text-xs font-semibold uppercase tracking-[var(--tracking-caps-sm)] text-primary-foreground transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-60"
+                  className={cn(primaryButtonClasses, "mt-5")}
                 >
                   <FolderOpen className="h-4 w-4" />
                   {opening ? "Opening" : "Choose File"}
@@ -239,15 +246,13 @@ export function LocalVideoOpenModal({
                 onSubmit={(event) => void handleUrlSubmit(event)}
               >
                 <label className="block space-y-1.5">
-                  <span className="text-ui-label font-semibold uppercase tracking-[var(--tracking-caps-lg)] text-muted-foreground">
-                    Media URL
-                  </span>
+                  <span className={fieldLabelWideClasses}>Media URL</span>
                   <input
                     type="url"
                     value={urlValue}
                     onChange={(event) => setUrlValue(event.target.value)}
                     placeholder="https://example.com/video.mp4"
-                    className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm text-foreground outline-none transition-colors focus:border-ring focus:ring-2 focus:ring-ring/40"
+                    className={largeTextInputClasses}
                   />
                 </label>
                 <p className="text-xs leading-5 text-muted-foreground">
@@ -257,7 +262,7 @@ export function LocalVideoOpenModal({
                   <button
                     type="submit"
                     disabled={opening}
-                    className="inline-flex h-9 items-center justify-center gap-2 rounded-md border border-primary bg-primary px-4 text-xs font-semibold uppercase tracking-[var(--tracking-caps-sm)] text-primary-foreground transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-60"
+                    className={primaryButtonClasses}
                   >
                     <Link className="h-4 w-4" />
                     {opening ? "Opening" : "Open URL"}

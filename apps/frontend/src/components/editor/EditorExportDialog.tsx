@@ -10,6 +10,12 @@ import {
   DialogWindow,
 } from "@/components/ui/dialog";
 import {
+  compactPrimaryButtonClasses,
+  compactSecondaryButtonClasses,
+  destructiveAlertClasses,
+  primaryAlertClasses,
+} from "@/components/ui/controlClasses";
+import {
   EditorExportSettingsSection,
   EditorExportSummaryPanel,
   EditorFilenameTemplateSection,
@@ -119,15 +125,11 @@ export function EditorExportDialog({
       <div className="grid min-h-0 flex-1 gap-4 overflow-y-auto p-4 lg:grid-cols-editor-export">
         <div className="space-y-4">
           {error && (
-            <div className="rounded-md border border-destructive/35 bg-destructive/10 px-3 py-2 text-sm text-destructive">
-              {error}
-            </div>
+            <div className={destructiveAlertClasses}>{error}</div>
           )}
 
           {exportSourceMessage && (
-            <div className="rounded-md border border-primary/25 bg-primary/5 px-3 py-2 text-sm text-foreground">
-              {exportSourceMessage}
-            </div>
+            <div className={primaryAlertClasses}>{exportSourceMessage}</div>
           )}
 
           <EditorExportSettingsSection
@@ -180,7 +182,7 @@ export function EditorExportDialog({
 
         <DialogClose
           disabled={exporting}
-          className="inline-flex h-8 items-center justify-center rounded-md border border-border bg-background px-3 text-xs font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground disabled:cursor-not-allowed disabled:opacity-60"
+          className={compactSecondaryButtonClasses}
         >
           Cancel
         </DialogClose>
@@ -189,7 +191,7 @@ export function EditorExportDialog({
           type="button"
           onClick={onExport}
           disabled={exporting || Boolean(exportDisabledReason)}
-          className="inline-flex h-8 items-center justify-center gap-2 rounded-md border border-primary bg-primary px-3 text-xs font-semibold uppercase tracking-[var(--tracking-caps-sm)] text-primary-foreground transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-60"
+          className={compactPrimaryButtonClasses}
         >
           {exporting ? (
             <>
