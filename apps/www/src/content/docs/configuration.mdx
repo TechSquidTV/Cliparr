@@ -25,6 +25,12 @@ Cliparr only needs a few settings in production: a stable `APP_KEY` and a persis
 
 When running behind Caddy, Nginx, Traefik, or another reverse proxy, preserve the `Host` header and pass `X-Forwarded-Proto`. Cliparr trusts loopback, link-local, and private-LAN proxy ranges directly in the app, so typical same-network proxy setups do not need extra app configuration.
 
+<Callout title="Add authentication at the proxy" tone="info">
+  Cliparr does not include a full user or permission system. Use an
+  authenticated reverse proxy or private-access layer when you need to limit who
+  can open the app.
+</Callout>
+
 ## HTTPS and browser APIs
 
 The editor uses browser WebCodecs. Supporting browsers require a secure context, which means HTTPS in production. Local development on `localhost` and `127.0.0.1` also counts as secure for this browser requirement.

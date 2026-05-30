@@ -1,0 +1,50 @@
+---
+title: Access control
+description: Protect Cliparr with a trusted network or an authenticated reverse proxy.
+order: 25
+---
+
+import Callout from "../../components/Callout.astro";
+import DocsImagePlaceholder from "../../components/DocsImagePlaceholder.astro";
+
+Cliparr can remember provider connections, but it does not have a full user system with app-level accounts, roles, or permissions. Treat access to the Cliparr web app as access to the connected sources and active media sessions.
+
+<Callout title="Provider login is not Cliparr access control" tone="warning">
+  Plex and Jellyfin authentication lets Cliparr connect to those sources. It
+  does not limit who can open the Cliparr app once they can reach it.
+</Callout>
+
+## Recommended deployment
+
+Keep Cliparr on `localhost`, a trusted private network, a VPN, or behind an authenticated reverse proxy. If you expose Cliparr outside a trusted network, put authentication in front of it with the proxy or access gateway you already trust.
+
+<DocsImagePlaceholder
+  title="Network diagram showing Browser to auth proxy to Cliparr to Plex or Jellyfin"
+  target="apps/www/public/docs/access-control-proxy.png"
+  caption="Suggested diagram slot for the recommended deployment shape."
+/>
+
+Common options include:
+
+- Caddy, Nginx, or Traefik with an external auth service.
+- Authentik, Authelia, or another identity-aware reverse proxy.
+- Cloudflare Access, Tailscale, WireGuard, or another private-access layer.
+
+## Reverse proxy basics
+
+When Cliparr is behind a reverse proxy, preserve the `Host` header and pass `X-Forwarded-Proto`. See [Configuration](/docs/configuration) for the core reverse proxy and HTTPS requirements.
+
+Use HTTPS for remote access. The editor relies on browser WebCodecs, and supporting browsers require a secure context outside `localhost` or `127.0.0.1`.
+
+## What to protect
+
+Protect every Cliparr route with the same access policy, including:
+
+- The web app.
+- `/api/*` routes.
+- Provider connection and callback routes.
+- Media proxy routes used while previewing and exporting clips.
+
+## Credential storage
+
+Provider credentials and remembered provider sessions are stored under the Cliparr data directory and encrypted or signed with `APP_KEY`. Keep `APP_KEY` stable, private, and backed up with the matching data directory.
