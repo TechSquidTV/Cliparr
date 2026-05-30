@@ -9,7 +9,7 @@ import {
   Video,
 } from "lucide-react";
 import { cliparrClient } from "../api/cliparrClient";
-import { formatProviderName, ProviderGlyph } from "./ProviderGlyph";
+import { formatProviderName, ProviderGlyph } from "./providers/ProviderGlyph";
 import type {
   CurrentlyPlayingItem,
   SourcePlaybackError,

@@ -27,7 +27,7 @@ import {
   textInputClasses as inputClasses,
 } from "@/components/ui/controlClasses";
 import type { MediaSource, ProviderSession } from "../../providers/types";
-import { formatProviderName } from "../ProviderGlyph";
+import { formatProviderName } from "../providers/ProviderGlyph";
 import SourceConnectPanel from "./SourceConnectPanel";
 import type { Feedback, SourceFilter } from "./sourcesTypes";
 

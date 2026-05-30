@@ -1,4 +1,4 @@
-import ProviderConnectFlow from "../ProviderConnectFlow";
+import ProviderConnectFlow from "../provider-connect/ProviderConnectFlow";
 import type { ProviderSession } from "../../providers/types";
 
 interface Props {

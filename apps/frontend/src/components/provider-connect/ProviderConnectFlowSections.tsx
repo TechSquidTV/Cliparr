@@ -1,7 +1,7 @@
 import { AnimatePresence, motion } from "motion/react";
-import { cn } from "../lib/utils";
-import type { ProviderDefinition } from "../providers/types";
-import { ProviderGlyph } from "./ProviderGlyph";
+import { cn } from "../../lib/utils";
+import type { ProviderDefinition } from "../../providers/types";
+import { ProviderGlyph } from "../providers/ProviderGlyph";
 
 export function providerPresentation(
   provider: ProviderDefinition,

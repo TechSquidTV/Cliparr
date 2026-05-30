@@ -1,7 +1,7 @@
 import { FolderOpen } from "lucide-react";
 import ProviderConnectFlow from "./ProviderConnectFlow";
 import { secondaryButtonClasses } from "@/components/ui/controlClasses";
-import type { ProviderSession } from "../providers/types";
+import type { ProviderSession } from "../../providers/types";
 
 interface Props {
   onConnected: (session: ProviderSession) => Promise<void> | void;
