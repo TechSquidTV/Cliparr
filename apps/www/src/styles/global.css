@@ -168,29 +168,30 @@
     @apply font-medium text-foreground underline decoration-border transition-colors hover:decoration-primary;
   }
 
-  .prose-docs table {
-    @apply mt-5 w-full overflow-hidden rounded-lg border border-border text-sm;
+  .prose-docs > table {
+    @apply mt-5 w-full overflow-hidden rounded-lg bg-background text-sm;
     border-spacing: 0;
+    box-shadow: 0 0 0 1px var(--border);
   }
 
-  .prose-docs thead {
+  .prose-docs > table thead {
     @apply bg-muted text-foreground;
   }
 
-  .prose-docs tbody {
-    @apply divide-y divide-border;
+  .prose-docs > table tbody {
+    @apply divide-y divide-border border-t border-border;
   }
 
-  .prose-docs th,
-  .prose-docs td {
+  .prose-docs > table th,
+  .prose-docs > table td {
     @apply min-w-40 px-4 py-3 text-left align-top;
   }
 
-  .prose-docs th {
+  .prose-docs > table th {
     @apply font-semibold;
   }
 
-  .prose-docs td {
+  .prose-docs > table td {
     @apply text-muted-foreground;
   }
 
