@@ -1,6 +1,7 @@
 import {
   configure,
   getConsoleSink,
+  getJsonLinesFormatter,
   getLogger,
   isLogLevel,
   type Logger,
@@ -12,7 +13,9 @@ const LOGTAPE_META_CATEGORY = ["logtape", "meta"] as const;
 
 let loggingConfigured: Promise<void> | undefined;
 
-interface ViteLoggingEnv {
+type FrontendLogFormat = "pretty" | "json";
+
+export interface ViteLoggingEnv {
   readonly VITE_CLIPARR_LOG_LEVEL?: string;
   readonly PROD: boolean;
 }
@@ -36,6 +39,22 @@ export function warnWithError(
   logger.warn(message, properties);
 }
 
+export function resolveFrontendConsoleLogFormat(
+  viteEnv: ViteLoggingEnv,
+): FrontendLogFormat {
+  return viteEnv.PROD ? "pretty" : "json";
+}
+
+function frontendConsoleSink(viteEnv: ViteLoggingEnv) {
+  if (resolveFrontendConsoleLogFormat(viteEnv) === "json") {
+    return getConsoleSink({
+      formatter: getJsonLinesFormatter({ properties: "flatten" }),
+    });
+  }
+
+  return getConsoleSink();
+}
+
 export function configureFrontendLogging() {
   if (loggingConfigured) {
     return loggingConfigured;
@@ -52,7 +71,7 @@ export function configureFrontendLogging() {
 
   loggingConfigured = configure({
     sinks: {
-      console: getConsoleSink(),
+      console: frontendConsoleSink(viteEnv),
     },
     loggers: [
       {

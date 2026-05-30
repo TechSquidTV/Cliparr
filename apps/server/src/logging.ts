@@ -107,6 +107,16 @@ export function resolveServerLogFormat(value: string | undefined) {
   return "pretty";
 }
 
+export function resolveServerConsoleLogFormat(
+  env: NodeJS.ProcessEnv = process.env,
+) {
+  if (env.NODE_ENV !== "production") {
+    return "json";
+  }
+
+  return resolveServerLogFormat(env.CLIPARR_LOG_FORMAT);
+}
+
 export function resolveLogFileMaxBytes(value: string | undefined) {
   const trimmed = value?.trim().toLowerCase();
   if (!trimmed) {
@@ -262,7 +272,7 @@ function rotatingFileSink(config: ServerLogFileConfig) {
 
 function serverLogSinks(env: NodeJS.ProcessEnv = process.env) {
   const sinks: Record<string, Sink> = {
-    console: serverConsoleSink(resolveServerLogFormat(env.CLIPARR_LOG_FORMAT)),
+    console: serverConsoleSink(resolveServerConsoleLogFormat(env)),
   };
   const sinkNames = ["console"];
   const fileConfig = resolveServerLogFileConfig(env);
