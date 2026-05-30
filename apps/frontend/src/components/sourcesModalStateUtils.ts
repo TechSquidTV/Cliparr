@@ -18,15 +18,21 @@ function formatProviderNameForSort(providerId: string) {
 }
 
 export function sortSources(sources: MediaSource[]) {
-  return [...sources].sort((left, right) =>
-    compareStrings(formatProviderNameForSort(left.providerId), formatProviderNameForSort(right.providerId))
-    || compareStrings(left.name, right.name)
-    || compareStrings(left.id, right.id)
+  return [...sources].sort(
+    (left, right) =>
+      compareStrings(
+        formatProviderNameForSort(left.providerId),
+        formatProviderNameForSort(right.providerId),
+      ) ||
+      compareStrings(left.name, right.name) ||
+      compareStrings(left.id, right.id),
   );
 }
 
 export function draftBaseUrlsFor(sources: readonly MediaSource[]) {
-  return Object.fromEntries(sources.map((source) => [source.id, source.baseUrl]));
+  return Object.fromEntries(
+    sources.map((source) => [source.id, source.baseUrl]),
+  );
 }
 
 export function draftNamesFor(sources: readonly MediaSource[]) {
@@ -36,12 +42,13 @@ export function draftNamesFor(sources: readonly MediaSource[]) {
 export function buildSourceEditInput(
   source: MediaSource,
   draftNames: Record<string, string>,
-  draftBaseUrls: Record<string, string>
+  draftBaseUrls: Record<string, string>,
 ) {
   const nextName = (draftNames[source.id] ?? source.name).trim();
   const nextBaseUrl = (draftBaseUrls[source.id] ?? source.baseUrl).trim();
   const hasNameChange = Boolean(nextName) && nextName !== source.name;
-  const hasBaseUrlChange = Boolean(nextBaseUrl) && nextBaseUrl !== source.baseUrl;
+  const hasBaseUrlChange =
+    Boolean(nextBaseUrl) && nextBaseUrl !== source.baseUrl;
 
   return {
     ...(hasNameChange ? { name: nextName } : {}),
@@ -103,7 +110,10 @@ export function filterSources({
       source.providerId,
       stringValue(source.metadata.product),
       stringValue(source.metadata.platform),
-    ].filter(Boolean).join(" ").toLowerCase();
+    ]
+      .filter(Boolean)
+      .join(" ")
+      .toLowerCase();
 
     return haystack.includes(normalizedQuery);
   });
@@ -114,7 +124,7 @@ export function mergeRefreshAllSourceResults(
   results: readonly PromiseSettledResult<{
     source: MediaSource;
     result: MediaSourceCheckResult;
-  }>[]
+  }>[],
 ) {
   const nextSources = new Map(sources.map((source) => [source.id, source]));
   let healthyCount = 0;

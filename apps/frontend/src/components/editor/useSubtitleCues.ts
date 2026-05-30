@@ -21,7 +21,12 @@ function responseErrorMessage(payload: unknown) {
   }
 
   const error = payload.error;
-  if (!error || typeof error !== "object" || !("message" in error) || typeof error.message !== "string") {
+  if (
+    !error ||
+    typeof error !== "object" ||
+    !("message" in error) ||
+    typeof error.message !== "string"
+  ) {
     return "";
   }
 
@@ -44,12 +49,15 @@ async function subtitleDownloadErrorDetail(response: Response) {
 async function downloadSubtitleCues(
   track: PlaybackSubtitleTrack,
   contentUrl: string,
-  signal: AbortSignal
+  signal: AbortSignal,
 ) {
   const response = await fetch(contentUrl, { signal });
   if (!response.ok) {
     const detail = await subtitleDownloadErrorDetail(response);
-    console.error("Subtitle download failed", { status: response.status, detail });
+    console.error("Subtitle download failed", {
+      status: response.status,
+      detail,
+    });
     throw new Error(`Could not load subtitles (${response.status}).`);
   }
 
@@ -93,8 +101,8 @@ export function useSubtitleCues({
         setSubtitleLoading(false);
         setSubtitleCues([]);
         setSubtitleError(
-          subtitleTrackUnavailableMessage(selectedSubtitleTrack, providerId)
-            ?? "This subtitle track is not supported."
+          subtitleTrackUnavailableMessage(selectedSubtitleTrack, providerId) ??
+            "This subtitle track is not supported.",
         );
         return;
       }
@@ -107,7 +115,7 @@ export function useSubtitleCues({
         const parsedSubtitleCues = await downloadSubtitleCues(
           selectedSubtitleTrack,
           contentUrl,
-          abortController.signal
+          abortController.signal,
         );
 
         if (cancelled) {
@@ -115,7 +123,11 @@ export function useSubtitleCues({
         }
 
         setSubtitleCues(parsedSubtitleCues);
-        setSubtitleError(parsedSubtitleCues.length === 0 ? "No subtitles found in this track." : null);
+        setSubtitleError(
+          parsedSubtitleCues.length === 0
+            ? "No subtitles found in this track."
+            : null,
+        );
       } catch (err) {
         if (cancelled || abortController.signal.aborted) {
           if (!cancelled) {
@@ -128,7 +140,9 @@ export function useSubtitleCues({
 
         console.error("Could not load subtitle cues", err);
         setSubtitleCues([]);
-        setSubtitleError(err instanceof Error ? err.message : "Could not load subtitles.");
+        setSubtitleError(
+          err instanceof Error ? err.message : "Could not load subtitles.",
+        );
       } finally {
         if (!cancelled) {
           setSubtitleLoading(false);

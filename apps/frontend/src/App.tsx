@@ -9,7 +9,8 @@ import { router } from "./router";
 const PLEX_AUTH_COMPLETE_PATH = "/auth/plex/complete";
 
 export default function App() {
-  const [providerSession, setProviderSession] = useState<ProviderSession | null>(null);
+  const [providerSession, setProviderSession] =
+    useState<ProviderSession | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {

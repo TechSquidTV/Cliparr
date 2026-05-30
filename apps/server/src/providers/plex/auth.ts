@@ -40,21 +40,34 @@ function pruneExpiredAuthRequests(now = Date.now()) {
 export async function startAuth(callbackUrl: string) {
   pruneExpiredAuthRequests();
   if (authRequests.size >= MAX_PENDING_AUTH_REQUESTS) {
-    throw new ApiError(503, "plex_auth_busy", "Too many pending Plex sign-ins. Wait a moment and try again.");
+    throw new ApiError(
+      503,
+      "plex_auth_busy",
+      "Too many pending Plex sign-ins. Wait a moment and try again.",
+    );
   }
 
   const response = await plexFetch("https://plex.tv/api/v2/pins?strong=true", {
     method: "POST",
   });
-  const data = (await response.json()) as { id: number; code: string; expiresIn?: number };
+  const data = (await response.json()) as {
+    id: number;
+    code: string;
+    expiresIn?: number;
+  };
 
   if (!data.id || !data.code) {
-    throw new ApiError(502, "plex_auth_start_failed", "Plex did not return a PIN");
+    throw new ApiError(
+      502,
+      "plex_auth_start_failed",
+      "Plex did not return a PIN",
+    );
   }
 
   const authId = randomUUID();
   const pollToken = createAuthPollToken();
-  const expiresAt = Date.now() + (data.expiresIn ? data.expiresIn * 1000 : AUTH_TTL_MS);
+  const expiresAt =
+    Date.now() + (data.expiresIn ? data.expiresIn * 1000 : AUTH_TTL_MS);
   authRequests.set(authId, {
     authId,
     pinId: data.id,
@@ -95,12 +108,17 @@ export async function pollAuth(authId: string, pollToken: string) {
     throw new ApiError(
       401,
       "invalid_plex_auth_session",
-      "Plex sign-in must be completed from the browser that started it"
+      "Plex sign-in must be completed from the browser that started it",
     );
   }
 
-  const response = await plexFetch(`https://plex.tv/api/v2/pins/${authRequest.pinId}`);
-  const data = (await response.json()) as { authToken?: string; auth_token?: string };
+  const response = await plexFetch(
+    `https://plex.tv/api/v2/pins/${authRequest.pinId}`,
+  );
+  const data = (await response.json()) as {
+    authToken?: string;
+    auth_token?: string;
+  };
   const userToken = data.authToken ?? data.auth_token;
 
   if (!userToken) {
@@ -113,10 +131,12 @@ export async function pollAuth(authId: string, pollToken: string) {
       headers: {
         "X-Plex-Token": userToken,
       },
-    }
+    },
   );
   const resources = requirePlexServerResources(
-    normalizeResources((await resourcesResponse.json()) as PlexResourceResponse[])
+    normalizeResources(
+      (await resourcesResponse.json()) as PlexResourceResponse[],
+    ),
   );
   authRequests.delete(authId);
 

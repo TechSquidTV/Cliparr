@@ -26,9 +26,11 @@ function subtitleTrackDisplayName(track: PlaybackSubtitleTrack | null) {
     return "No subtitle track selected";
   }
 
-  return track.title?.trim()
-    || track.languageCode?.trim()?.toUpperCase()
-    || "Selected subtitle track";
+  return (
+    track.title?.trim() ||
+    track.languageCode?.trim()?.toUpperCase() ||
+    "Selected subtitle track"
+  );
 }
 
 export function buildSubtitleExportSummary({
@@ -58,8 +60,9 @@ export function buildSubtitleExportSummary({
   if (!subtitleTrackSupportsBurnIn(selectedSubtitleTrack)) {
     return {
       label: "Not supported",
-      detail: subtitleTrackUnavailableMessage(selectedSubtitleTrack, providerId)
-        ?? "This subtitle track is not supported.",
+      detail:
+        subtitleTrackUnavailableMessage(selectedSubtitleTrack, providerId) ??
+        "This subtitle track is not supported.",
       tone: "warning",
       disabledReason: "Choose another subtitle track or turn subtitles off.",
     };

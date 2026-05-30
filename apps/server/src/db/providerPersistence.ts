@@ -1,5 +1,9 @@
 import { ApiError } from "../http/errors.js";
-import type { ProviderConnection, ProviderDefinition, ProviderResource } from "../providers/types.js";
+import type {
+  ProviderConnection,
+  ProviderDefinition,
+  ProviderResource,
+} from "../providers/types.js";
 import {
   getMediaSourceByProviderExternalId,
   listMediaSources,
@@ -24,12 +28,17 @@ function connectionRank(connection: ProviderConnection) {
   return 2;
 }
 
-function preferredConnection(resource: ProviderResource, selectedConnection?: ProviderConnection) {
+function preferredConnection(
+  resource: ProviderResource,
+  selectedConnection?: ProviderConnection,
+) {
   if (selectedConnection) {
     return selectedConnection;
   }
 
-  return [...resource.connections].sort((left, right) => connectionRank(left) - connectionRank(right))[0];
+  return [...resource.connections].sort(
+    (left, right) => connectionRank(left) - connectionRank(right),
+  )[0];
 }
 
 export function persistProviderAuth(input: {
@@ -48,17 +57,24 @@ export function persistProviderAuth(input: {
   });
 
   if (!account) {
-    throw new ApiError(500, "provider_account_not_saved", "Provider account could not be saved");
+    throw new ApiError(
+      500,
+      "provider_account_not_saved",
+      "Provider account could not be saved",
+    );
   }
 
-  const activeResourceIds = new Set(input.resources.map((resource) => resource.id));
+  const activeResourceIds = new Set(
+    input.resources.map((resource) => resource.id),
+  );
   const staleSources = listMediaSources({
     providerId: input.provider.id,
     providerAccountId: account.id,
-  }).filter((source) =>
-    typeof source.externalId === "string"
-    && !activeResourceIds.has(source.externalId)
-    && source.enabled
+  }).filter(
+    (source) =>
+      typeof source.externalId === "string" &&
+      !activeResourceIds.has(source.externalId) &&
+      source.enabled,
   );
 
   for (const source of staleSources) {
@@ -85,28 +101,39 @@ function persistProviderResource(input: {
   const existingSource = getMediaSourceByProviderExternalId(
     input.providerId,
     input.providerAccountId,
-    input.resource.id
+    input.resource.id,
   );
-  const connection = preferredConnection(input.resource, input.selectedConnection);
+  const connection = preferredConnection(
+    input.resource,
+    input.selectedConnection,
+  );
   if (!connection) {
     return undefined;
   }
 
-  const baseUrlMode = input.providerId === "plex" && existingSource
-    ? plexBaseUrlMode(existingSource.connection)
-    : PLEX_BASE_URL_MODE_AUTO;
-  const nextBaseUrl = input.providerId === "plex" && baseUrlMode === PLEX_BASE_URL_MODE_MANUAL && existingSource
-    ? existingSource.baseUrl
-    : connection.uri;
-  const nextConnection = input.providerId === "plex"
-    ? withPlexBaseUrlMode({
-      connections: input.resource.connections,
-      selectedConnectionId: connection.id,
-    }, baseUrlMode)
-    : {
-      connections: input.resource.connections,
-      selectedConnectionId: connection.id,
-    };
+  const baseUrlMode =
+    input.providerId === "plex" && existingSource
+      ? plexBaseUrlMode(existingSource.connection)
+      : PLEX_BASE_URL_MODE_AUTO;
+  const nextBaseUrl =
+    input.providerId === "plex" &&
+    baseUrlMode === PLEX_BASE_URL_MODE_MANUAL &&
+    existingSource
+      ? existingSource.baseUrl
+      : connection.uri;
+  const nextConnection =
+    input.providerId === "plex"
+      ? withPlexBaseUrlMode(
+          {
+            connections: input.resource.connections,
+            selectedConnectionId: connection.id,
+          },
+          baseUrlMode,
+        )
+      : {
+          connections: input.resource.connections,
+          selectedConnectionId: connection.id,
+        };
 
   return upsertMediaSource({
     providerId: input.providerId,

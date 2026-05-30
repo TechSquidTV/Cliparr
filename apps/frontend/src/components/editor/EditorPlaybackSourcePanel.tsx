@@ -25,8 +25,9 @@ export function EditorPlaybackSourcePanel({
   hasHlsSource,
   className,
 }: EditorPlaybackSourcePanelProps) {
-  const sourceNote = fallbackMessage
-    ?? (!hasHlsSource && previewSourceLabel === "Direct source"
+  const sourceNote =
+    fallbackMessage ??
+    (!hasHlsSource && previewSourceLabel === "Direct source"
       ? "Direct media only."
       : null);
 

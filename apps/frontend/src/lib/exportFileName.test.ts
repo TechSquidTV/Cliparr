@@ -11,12 +11,14 @@ import {
   type ExportFileNameTemplateSettings,
 } from "./exportFileName";
 
-const legacyMovieTemplate = "{source_title} ({year}) - clip {clip_start} to {clip_end}";
-const legacyEpisodeTemplate = "{show_title} - {episode_code} - {title} - clip {clip_start} to {clip_end}";
+const legacyMovieTemplate =
+  "{source_title} ({year}) - clip {clip_start} to {clip_end}";
+const legacyEpisodeTemplate =
+  "{show_title} - {episode_code} - {title} - clip {clip_start} to {clip_end}";
 
 function withWindowStorage<T>(
   initialValue: string | null,
-  callback: (storage: Map<string, string>) => T
+  callback: (storage: Map<string, string>) => T,
 ) {
   const originalWindow = Object.getOwnPropertyDescriptor(globalThis, "window");
   const storage = new Map<string, string>();
@@ -75,68 +77,81 @@ void test("builds sanitized movie filenames from metadata templates", () => {
 void test("builds episode filenames and falls back when episode numbers are absent", () => {
   const templates = {
     movie: "{source_title}",
-    episode: "{show_title} - {episode_code} - {title} - {provider} - {format} - {unknown}",
+    episode:
+      "{show_title} - {episode_code} - {title} - {provider} - {format} - {unknown}",
   } satisfies ExportFileNameTemplateSettings;
 
-  assert.deepEqual(buildExportFileName({
-    title: "Pilot",
-    sessionType: "episode",
-    metadata: {
-      providerId: "demo",
-      itemType: "episode",
+  assert.deepEqual(
+    buildExportFileName({
       title: "Pilot",
-      showTitle: "Example Show",
-      seasonNumber: 1,
-      episodeNumber: 2,
+      sessionType: "episode",
+      metadata: {
+        providerId: "demo",
+        itemType: "episode",
+        title: "Pilot",
+        showTitle: "Example Show",
+        seasonNumber: 1,
+        episodeNumber: 2,
+      },
+      startTime: 0,
+      endTime: 10,
+      format: "webm",
+      templates,
+    }),
+    {
+      baseName: "Example Show - S01E02 - Pilot - demo - webm -",
+      fullName: "Example Show - S01E02 - Pilot - demo - webm -.webm",
+      templateKind: "episode",
     },
-    startTime: 0,
-    endTime: 10,
-    format: "webm",
-    templates,
-  }), {
-    baseName: "Example Show - S01E02 - Pilot - demo - webm -",
-    fullName: "Example Show - S01E02 - Pilot - demo - webm -.webm",
-    templateKind: "episode",
-  });
+  );
 
-  assert.deepEqual(buildExportFileName({
-    title: "Standalone",
-    sessionType: "episode",
-    metadata: {
-      providerId: "demo",
-      itemType: "episode",
+  assert.deepEqual(
+    buildExportFileName({
       title: "Standalone",
-      showTitle: "Example Show",
+      sessionType: "episode",
+      metadata: {
+        providerId: "demo",
+        itemType: "episode",
+        title: "Standalone",
+        showTitle: "Example Show",
+      },
+      startTime: 0,
+      endTime: 10,
+      format: "mkv",
+      templates,
+    }),
+    {
+      baseName: "Example Show - Standalone - demo - mkv -",
+      fullName: "Example Show - Standalone - demo - mkv -.mkv",
+      templateKind: "episode",
     },
-    startTime: 0,
-    endTime: 10,
-    format: "mkv",
-    templates,
-  }), {
-    baseName: "Example Show - Standalone - demo - mkv -",
-    fullName: "Example Show - Standalone - demo - mkv -.mkv",
-    templateKind: "episode",
-  });
+  );
 });
 
 void test("loads, migrates, and saves filename templates through local storage", () => {
-  withWindowStorage(JSON.stringify({
-    movie: legacyMovieTemplate,
-    episode: legacyEpisodeTemplate,
-  }), (storage) => {
-    assert.deepEqual(loadExportFileNameTemplates(), defaultExportFileNameTemplates());
+  withWindowStorage(
+    JSON.stringify({
+      movie: legacyMovieTemplate,
+      episode: legacyEpisodeTemplate,
+    }),
+    (storage) => {
+      assert.deepEqual(
+        loadExportFileNameTemplates(),
+        defaultExportFileNameTemplates(),
+      );
 
-    const templates = {
-      movie: "{title} custom",
-      episode: "{show_title} custom",
-    } satisfies ExportFileNameTemplateSettings;
-    saveExportFileNameTemplates(templates);
+      const templates = {
+        movie: "{title} custom",
+        episode: "{show_title} custom",
+      } satisfies ExportFileNameTemplateSettings;
+      saveExportFileNameTemplates(templates);
 
-    assert.deepEqual(
-      JSON.parse(storage.get("cliparr.export.filename-templates.v1") ?? ""),
-      templates
-    );
-  });
+      assert.deepEqual(
+        JSON.parse(storage.get("cliparr.export.filename-templates.v1") ?? ""),
+        templates,
+      );
+    },
+  );
 });
 
 void test("exposes expected template tokens by media kind", () => {

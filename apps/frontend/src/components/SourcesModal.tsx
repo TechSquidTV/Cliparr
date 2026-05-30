@@ -16,7 +16,11 @@ interface Props {
   onSourcesChanged?: () => Promise<void> | void;
 }
 
-export default function SourcesModal({ isOpen, onClose, onSourcesChanged }: Props) {
+export default function SourcesModal({
+  isOpen,
+  onClose,
+  onSourcesChanged,
+}: Props) {
   const dialogRef = useRef<HTMLDivElement | null>(null);
   const searchInputRef = useRef<HTMLInputElement | null>(null);
   const {
@@ -149,8 +153,12 @@ export default function SourcesModal({ isOpen, onClose, onSourcesChanged }: Prop
                     draftBaseUrl={draftBaseUrls[source.id] ?? source.baseUrl}
                     busyAction={busyActions[source.id]}
                     refreshingAll={refreshingAll}
-                    onDraftNameChange={(value) => updateDraftName(source.id, value)}
-                    onDraftBaseUrlChange={(value) => updateDraftBaseUrl(source.id, value)}
+                    onDraftNameChange={(value) =>
+                      updateDraftName(source.id, value)
+                    }
+                    onDraftBaseUrlChange={(value) =>
+                      updateDraftBaseUrl(source.id, value)
+                    }
                     onSave={() => saveSourceEdits(source)}
                     onToggleEnabled={() => toggleSourceEnabled(source)}
                     onRefresh={() => checkSource(source)}

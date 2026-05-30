@@ -17,7 +17,10 @@ import {
   toSourceTimelineTime,
 } from "./mediabunnyTrackAccess";
 import { selectPreferredPairableAudioTrack } from "./selectPreferredAudioTrack";
-import type { MediaExportMetadata, PlaybackAudioSelection } from "../providers/types";
+import type {
+  MediaExportMetadata,
+  PlaybackAudioSelection,
+} from "../providers/types";
 import {
   buildMetadataTags,
   describeDiscardedTracks,
@@ -79,7 +82,7 @@ function createOutputFormat(format: ExportFormat) {
 
 function buildSubtitleBurnInProcessor(
   cues: readonly SubtitleCue[],
-  styleSettings: SubtitleStyleSettings
+  styleSettings: SubtitleStyleSettings,
 ) {
   const canvas = document.createElement("canvas");
   const context = canvas.getContext("2d");
@@ -123,21 +126,24 @@ export async function exportClip({
   subtitleStyleSettings,
   onProgress,
 }: ExportClipOptions) {
-  return exportClipWithRuntime({
-    mediaSource,
-    hls,
-    startTime,
-    endTime,
-    format,
-    resolution,
-    includeAudio,
-    selectedAudioTrack,
-    metadata,
-    includeBurnedSubtitles,
-    subtitleCues,
-    subtitleStyleSettings,
-    onProgress,
-  }, defaultExportClipRuntime);
+  return exportClipWithRuntime(
+    {
+      mediaSource,
+      hls,
+      startTime,
+      endTime,
+      format,
+      resolution,
+      includeAudio,
+      selectedAudioTrack,
+      metadata,
+      includeBurnedSubtitles,
+      subtitleCues,
+      subtitleStyleSettings,
+      onProgress,
+    },
+    defaultExportClipRuntime,
+  );
 }
 
 const defaultExportClipRuntime: ExportClipRuntime = {
@@ -156,24 +162,29 @@ const defaultExportClipRuntime: ExportClipRuntime = {
   buildSubtitleBurnInProcessor,
 };
 
-export async function exportClipWithRuntime({
-  mediaSource,
-  hls,
-  startTime,
-  endTime,
-  format,
-  resolution,
-  includeAudio,
-  selectedAudioTrack,
-  metadata,
-  includeBurnedSubtitles = false,
-  subtitleCues = [],
-  subtitleStyleSettings,
-  onProgress,
-}: ExportClipOptions, runtime: ExportClipRuntime) {
+export async function exportClipWithRuntime(
+  {
+    mediaSource,
+    hls,
+    startTime,
+    endTime,
+    format,
+    resolution,
+    includeAudio,
+    selectedAudioTrack,
+    metadata,
+    includeBurnedSubtitles = false,
+    subtitleCues = [],
+    subtitleStyleSettings,
+    onProgress,
+  }: ExportClipOptions,
+  runtime: ExportClipRuntime,
+) {
   await runtime.ensureMediabunnyCodecs();
 
-  const input = await runtime.createCliparrInputFromSource(mediaSource, { hls });
+  const input = await runtime.createCliparrInputFromSource(mediaSource, {
+    hls,
+  });
 
   try {
     const sourceVideoTrack = await input.getPrimaryVideoTrack({
@@ -183,7 +194,7 @@ export async function exportClipWithRuntime({
     const preferredAudioTrack = await runtime.selectPreferredPairableAudioTrack(
       sourceVideoTrack,
       sourceAudioTracks,
-      selectedAudioTrack
+      selectedAudioTrack,
     );
     const sourceHasAudio = sourceAudioTracks.length > 0;
 
@@ -197,10 +208,14 @@ export async function exportClipWithRuntime({
     const sourceVideoDimensions = sourceVideoTrack
       ? await runtime.getVideoTrackDimensions(sourceVideoTrack)
       : null;
-    const outputHeight = resolution === "original" ? sourceVideoDimensions?.height : parseInt(resolution, 10);
-    const clippedSubtitleCues = includeBurnedSubtitles && subtitleCues.length > 0
-      ? trimSubtitleCues(subtitleCues, startTime, endTime)
-      : [];
+    const outputHeight =
+      resolution === "original"
+        ? sourceVideoDimensions?.height
+        : parseInt(resolution, 10);
+    const clippedSubtitleCues =
+      includeBurnedSubtitles && subtitleCues.length > 0
+        ? trimSubtitleCues(subtitleCues, startTime, endTime)
+        : [];
     const shouldBurnSubtitles = clippedSubtitleCues.length > 0;
 
     if (includeBurnedSubtitles && !subtitleStyleSettings) {
@@ -213,7 +228,13 @@ export async function exportClipWithRuntime({
 
     const outputFormat = runtime.createOutputFormat(format);
     const target = runtime.createBufferTarget();
-    const metadataTags = await runtime.buildMetadataTags(metadata, startTime, endTime, outputHeight, format);
+    const metadataTags = await runtime.buildMetadataTags(
+      metadata,
+      startTime,
+      endTime,
+      outputHeight,
+      format,
+    );
     const output = runtime.createOutput({
       format: outputFormat,
       target,
@@ -233,9 +254,9 @@ export async function exportClipWithRuntime({
       audio: includeAudio
         ? preferredAudioTrack
           ? (track) => ({
-            ...baseAudioOptions,
-            discard: track.id !== preferredAudioTrack.id,
-          })
+              ...baseAudioOptions,
+              discard: track.id !== preferredAudioTrack.id,
+            })
           : baseAudioOptions
         : {
             discard: true,
@@ -263,7 +284,10 @@ export async function exportClipWithRuntime({
         ...(shouldBurnSubtitles && subtitleStyleSettings
           ? {
               forceTranscode: true,
-              process: runtime.buildSubtitleBurnInProcessor(clippedSubtitleCues, subtitleStyleSettings),
+              process: runtime.buildSubtitleBurnInProcessor(
+                clippedSubtitleCues,
+                subtitleStyleSettings,
+              ),
             }
           : {}),
       });
@@ -275,17 +299,25 @@ export async function exportClipWithRuntime({
     }
 
     const conversion = await runtime.initConversion(conversionOptions);
-    const utilizedAudioTracks = conversion.utilizedTracks.filter((track) => track.isAudioTrack());
+    const utilizedAudioTracks = conversion.utilizedTracks.filter((track) =>
+      track.isAudioTrack(),
+    );
 
     if (!conversion.isValid) {
-      const discardedDetails = await runtime.describeDiscardedTracks(conversion.discardedTracks);
+      const discardedDetails = await runtime.describeDiscardedTracks(
+        conversion.discardedTracks,
+      );
       const suffix = discardedDetails ? ` ${discardedDetails}` : "";
       throw new Error(`Conversion is invalid.${suffix}`);
     }
 
     if (includeAudio && sourceHasAudio && utilizedAudioTracks.length === 0) {
-      const discardedDetails = await runtime.describeDiscardedTracks(conversion.discardedTracks);
-      const suffix = discardedDetails ? ` ${discardedDetails}` : " Mediabunny did not report a discarded-track reason.";
+      const discardedDetails = await runtime.describeDiscardedTracks(
+        conversion.discardedTracks,
+      );
+      const suffix = discardedDetails
+        ? ` ${discardedDetails}`
+        : " Mediabunny did not report a discarded-track reason.";
       throw new Error(`Export would drop the source audio track.${suffix}`);
     }
 

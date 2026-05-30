@@ -7,7 +7,9 @@ const MAX_TIMELINE_ZOOM_SCALE_COUNT = 2000;
 export const TIMELINE_ZOOM_WHEEL_STEP = 80;
 const MIN_FOCUSED_TIMELINE_SELECTION_PIXELS = 96;
 const MAX_FOCUSED_TIMELINE_SELECTION_PIXELS = 280;
-const TIMELINE_ZOOM_WIDTH_MULTIPLIERS = [0.64, 0.72, 0.8, 0.88, 0.96, 1.04, 1.12, 1.2] as const;
+const TIMELINE_ZOOM_WIDTH_MULTIPLIERS = [
+  0.64, 0.72, 0.8, 0.88, 0.96, 1.04, 1.12, 1.2,
+] as const;
 
 type TimelineZoomPreset = {
   scale: number;
@@ -45,14 +47,17 @@ export function formatTime(seconds: number) {
   const hours = Math.floor(totalSeconds / 3600);
   const minutes = Math.floor((totalSeconds % 3600) / 60);
   const remainingSeconds = totalSeconds % 60;
-  const fraction = centiseconds > 0 ? `.${centiseconds.toString().padStart(2, "0")}` : "";
+  const fraction =
+    centiseconds > 0 ? `.${centiseconds.toString().padStart(2, "0")}` : "";
 
   if (hours > 0) {
-    return [
-      hours,
-      minutes.toString().padStart(2, "0"),
-      remainingSeconds.toString().padStart(2, "0"),
-    ].join(":") + fraction;
+    return (
+      [
+        hours,
+        minutes.toString().padStart(2, "0"),
+        remainingSeconds.toString().padStart(2, "0"),
+      ].join(":") + fraction
+    );
   }
 
   return `${minutes}:${remainingSeconds.toString().padStart(2, "0")}${fraction}`;
@@ -71,11 +76,13 @@ export function formatTimecodeInput(seconds: number) {
   const fraction = centiseconds.toString().padStart(2, "0");
 
   if (hours > 0) {
-    return [
-      hours,
-      minutes.toString().padStart(2, "0"),
-      remainingSeconds.toString().padStart(2, "0"),
-    ].join(":") + `.${fraction}`;
+    return (
+      [
+        hours,
+        minutes.toString().padStart(2, "0"),
+        remainingSeconds.toString().padStart(2, "0"),
+      ].join(":") + `.${fraction}`
+    );
   }
 
   return `${minutes}:${remainingSeconds.toString().padStart(2, "0")}.${fraction}`;
@@ -104,9 +111,9 @@ export function parseTimecodeInput(value: string) {
     ? parts
     : ["0", parts[0], parts[1]];
   if (
-    !/^\d+$/.test(hoursPart)
-    || !/^\d+$/.test(minutesPart)
-    || !numberPattern.test(secondsPart)
+    !/^\d+$/.test(hoursPart) ||
+    !/^\d+$/.test(minutesPart) ||
+    !numberPattern.test(secondsPart)
   ) {
     return null;
   }
@@ -115,16 +122,16 @@ export function parseTimecodeInput(value: string) {
   const minutes = Number(minutesPart);
   const seconds = Number(secondsPart);
   if (
-    !Number.isFinite(hours)
-    || !Number.isFinite(minutes)
-    || !Number.isFinite(seconds)
-    || (hasHours && minutes >= 60)
-    || seconds >= 60
+    !Number.isFinite(hours) ||
+    !Number.isFinite(minutes) ||
+    !Number.isFinite(seconds) ||
+    (hasHours && minutes >= 60) ||
+    seconds >= 60
   ) {
     return null;
   }
 
-  return roundTimelineTime((hours * 3600) + (minutes * 60) + seconds);
+  return roundTimelineTime(hours * 3600 + minutes * 60 + seconds);
 }
 
 export function errorMessage(err: unknown) {
@@ -144,15 +151,28 @@ export function roundTimelineTime(seconds: number) {
 }
 
 export function clampPlaybackTime(seconds: number, duration: number) {
-  if (!Number.isFinite(seconds) || !Number.isFinite(duration) || duration <= 0) {
+  if (
+    !Number.isFinite(seconds) ||
+    !Number.isFinite(duration) ||
+    duration <= 0
+  ) {
     return 0;
   }
 
   return roundTimelineTime(Math.min(Math.max(seconds, 0), duration));
 }
 
-export function clampClipStartTime(nextStart: number, currentEnd: number, duration: number) {
-  if (!Number.isFinite(nextStart) || !Number.isFinite(currentEnd) || !Number.isFinite(duration) || duration <= 0) {
+export function clampClipStartTime(
+  nextStart: number,
+  currentEnd: number,
+  duration: number,
+) {
+  if (
+    !Number.isFinite(nextStart) ||
+    !Number.isFinite(currentEnd) ||
+    !Number.isFinite(duration) ||
+    duration <= 0
+  ) {
     return 0;
   }
 
@@ -163,13 +183,25 @@ export function clampClipStartTime(nextStart: number, currentEnd: number, durati
   return roundTimelineTime(Math.min(Math.max(nextStart, 0), maxStart));
 }
 
-export function clampClipEndTime(nextEnd: number, currentStart: number, duration: number) {
-  if (!Number.isFinite(nextEnd) || !Number.isFinite(currentStart) || !Number.isFinite(duration) || duration <= 0) {
+export function clampClipEndTime(
+  nextEnd: number,
+  currentStart: number,
+  duration: number,
+) {
+  if (
+    !Number.isFinite(nextEnd) ||
+    !Number.isFinite(currentStart) ||
+    !Number.isFinite(duration) ||
+    duration <= 0
+  ) {
     return 0;
   }
 
   const minClipLength = Math.min(MIN_CLIP_SECONDS, duration);
-  const boundedStart = Math.min(Math.max(currentStart, 0), Math.max(duration - minClipLength, 0));
+  const boundedStart = Math.min(
+    Math.max(currentStart, 0),
+    Math.max(duration - minClipLength, 0),
+  );
   const minEnd = boundedStart + minClipLength;
 
   return roundTimelineTime(Math.min(Math.max(nextEnd, minEnd), duration));
@@ -195,7 +227,10 @@ function getTimelineZoomWidthLevels(preset: TimelineZoomPreset) {
   return TIMELINE_ZOOM_WIDTH_MULTIPLIERS.map((widthMultiplier) => ({
     scale: preset.scale,
     scaleSplitCount: preset.scaleSplitCount,
-    scaleWidth: Math.max(72, Math.round((preset.scaleWidth * widthMultiplier) / 4) * 4),
+    scaleWidth: Math.max(
+      72,
+      Math.round((preset.scaleWidth * widthMultiplier) / 4) * 4,
+    ),
   }));
 }
 
@@ -204,7 +239,9 @@ export function getTimelineZoomLevels(seconds: number) {
   const availableLevels = new Map<string, TimelineZoomLevel>();
 
   for (const preset of TIMELINE_ZOOM_PRESETS) {
-    if (Math.ceil(safeDuration / preset.scale) > MAX_TIMELINE_ZOOM_SCALE_COUNT) {
+    if (
+      Math.ceil(safeDuration / preset.scale) > MAX_TIMELINE_ZOOM_SCALE_COUNT
+    ) {
       continue;
     }
 
@@ -217,8 +254,12 @@ export function getTimelineZoomLevels(seconds: number) {
   }
 
   if (availableLevels.size === 0) {
-    const fallbackPreset = TIMELINE_ZOOM_PRESETS[TIMELINE_ZOOM_PRESETS.length - 1];
-    const minimumSafeScale = Math.max(1, Math.ceil(safeDuration / MAX_TIMELINE_ZOOM_SCALE_COUNT));
+    const fallbackPreset =
+      TIMELINE_ZOOM_PRESETS[TIMELINE_ZOOM_PRESETS.length - 1];
+    const minimumSafeScale = Math.max(
+      1,
+      Math.ceil(safeDuration / MAX_TIMELINE_ZOOM_SCALE_COUNT),
+    );
     return getTimelineZoomWidthLevels({
       scale: Math.max(fallbackPreset.scale, minimumSafeScale),
       scaleSplitCount: fallbackPreset.scaleSplitCount,
@@ -227,7 +268,8 @@ export function getTimelineZoomLevels(seconds: number) {
   }
 
   return [...availableLevels.values()].sort((left, right) => {
-    const zoomDensityDifference = (right.scaleWidth / right.scale) - (left.scaleWidth / left.scale);
+    const zoomDensityDifference =
+      right.scaleWidth / right.scale - left.scaleWidth / left.scale;
     if (zoomDensityDifference !== 0) {
       return zoomDensityDifference;
     }
@@ -236,19 +278,30 @@ export function getTimelineZoomLevels(seconds: number) {
   });
 }
 
-export function getClosestTimelineZoomIndex(levels: readonly TimelineZoomLevel[], targetScale: TimelineZoomPreset) {
+export function getClosestTimelineZoomIndex(
+  levels: readonly TimelineZoomLevel[],
+  targetScale: TimelineZoomPreset,
+) {
   const targetZoomDensity = targetScale.scaleWidth / targetScale.scale;
 
   return levels.reduce((closestIndex, level, index) => {
     const closestLevel = levels[closestIndex];
-    const closestDensityDistance = Math.abs((closestLevel.scaleWidth / closestLevel.scale) - targetZoomDensity);
-    const nextDensityDistance = Math.abs((level.scaleWidth / level.scale) - targetZoomDensity);
+    const closestDensityDistance = Math.abs(
+      closestLevel.scaleWidth / closestLevel.scale - targetZoomDensity,
+    );
+    const nextDensityDistance = Math.abs(
+      level.scaleWidth / level.scale - targetZoomDensity,
+    );
 
     if (nextDensityDistance !== closestDensityDistance) {
-      return nextDensityDistance < closestDensityDistance ? index : closestIndex;
+      return nextDensityDistance < closestDensityDistance
+        ? index
+        : closestIndex;
     }
 
-    const closestScaleDistance = Math.abs(closestLevel.scale - targetScale.scale);
+    const closestScaleDistance = Math.abs(
+      closestLevel.scale - targetScale.scale,
+    );
     const nextScaleDistance = Math.abs(level.scale - targetScale.scale);
     return nextScaleDistance < closestScaleDistance ? index : closestIndex;
   }, 0);
@@ -277,18 +330,17 @@ export function getFocusedTimelineZoomIndex(
   return levels.reduce((bestIndex, level, index) => {
     const bestLevel = levels[bestIndex];
     const scoreLevel = (candidate: TimelineZoomLevel) => {
-      const selectionPixels = (safeFocusDuration / candidate.scale) * candidate.scaleWidth;
+      const selectionPixels =
+        (safeFocusDuration / candidate.scale) * candidate.scaleWidth;
       const targetDistance = Math.abs(
         Math.log2(Math.max(selectionPixels, 1) / targetSelectionPixels),
       );
-      const undersizedPenalty = Math.max(
-        0,
-        MIN_FOCUSED_TIMELINE_SELECTION_PIXELS - selectionPixels,
-      ) / MIN_FOCUSED_TIMELINE_SELECTION_PIXELS;
-      const oversizedPenalty = Math.max(
-        0,
-        selectionPixels - maximumComfortableSelectionPixels,
-      ) / maximumComfortableSelectionPixels;
+      const undersizedPenalty =
+        Math.max(0, MIN_FOCUSED_TIMELINE_SELECTION_PIXELS - selectionPixels) /
+        MIN_FOCUSED_TIMELINE_SELECTION_PIXELS;
+      const oversizedPenalty =
+        Math.max(0, selectionPixels - maximumComfortableSelectionPixels) /
+        maximumComfortableSelectionPixels;
 
       return targetDistance + undersizedPenalty * 3 + oversizedPenalty * 1.5;
     };
@@ -297,11 +349,21 @@ export function getFocusedTimelineZoomIndex(
   }, 0);
 }
 
-export function timelinePixelToTime(pixel: number, scale: number, scaleWidth: number, startLeft: number) {
+export function timelinePixelToTime(
+  pixel: number,
+  scale: number,
+  scaleWidth: number,
+  startLeft: number,
+) {
   return ((pixel - startLeft) / scaleWidth) * scale;
 }
 
-export function timelineTimeToPixel(time: number, scale: number, scaleWidth: number, startLeft: number) {
+export function timelineTimeToPixel(
+  time: number,
+  scale: number,
+  scaleWidth: number,
+  startLeft: number,
+) {
   return startLeft + (time / scale) * scaleWidth;
 }
 
@@ -317,14 +379,14 @@ export function getTimelineFillPercentages({
   fillEnd: number;
 }) {
   if (
-    !Number.isFinite(trackStart)
-    || !Number.isFinite(trackEnd)
-    || !Number.isFinite(fillStart)
-    || !Number.isFinite(fillEnd)
-    || trackEnd <= trackStart
-    || fillEnd < fillStart
-    || fillEnd < trackStart
-    || fillStart > trackEnd
+    !Number.isFinite(trackStart) ||
+    !Number.isFinite(trackEnd) ||
+    !Number.isFinite(fillStart) ||
+    !Number.isFinite(fillEnd) ||
+    trackEnd <= trackStart ||
+    fillEnd < fillStart ||
+    fillEnd < trackStart ||
+    fillStart > trackEnd
   ) {
     return null;
   }
@@ -362,9 +424,9 @@ export function getTimelineMaxScrollLeft(
 ) {
   return Math.max(
     0,
-    Math.ceil(Math.max(duration, MIN_CLIP_SECONDS) / scale) * scaleWidth
-    + TIMELINE_START_LEFT
-    - viewportWidth,
+    Math.ceil(Math.max(duration, MIN_CLIP_SECONDS) / scale) * scaleWidth +
+      TIMELINE_START_LEFT -
+      viewportWidth,
   );
 }
 
@@ -377,5 +439,8 @@ export function getTimelineZoomLevel(
 }
 
 export function themeValue(name: string, fallback: string) {
-  return getComputedStyle(document.documentElement).getPropertyValue(name).trim() || fallback;
+  return (
+    getComputedStyle(document.documentElement).getPropertyValue(name).trim() ||
+    fallback
+  );
 }

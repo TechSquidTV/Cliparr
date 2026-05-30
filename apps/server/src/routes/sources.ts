@@ -43,18 +43,30 @@ function requireMediaSource(sourceId: string, providerAccountId: string) {
 
 function parseSourceBaseUrl(value: unknown) {
   if (typeof value !== "string" || !value.trim()) {
-    throw new ApiError(400, "invalid_source_base_url", "Source URL must be a non-empty string");
+    throw new ApiError(
+      400,
+      "invalid_source_base_url",
+      "Source URL must be a non-empty string",
+    );
   }
 
   let parsed: URL;
   try {
     parsed = new URL(value.trim());
   } catch {
-    throw new ApiError(400, "invalid_source_base_url", "Source URL must be a valid HTTP or HTTPS URL");
+    throw new ApiError(
+      400,
+      "invalid_source_base_url",
+      "Source URL must be a valid HTTP or HTTPS URL",
+    );
   }
 
   if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
-    throw new ApiError(400, "invalid_source_base_url", "Source URL must use HTTP or HTTPS");
+    throw new ApiError(
+      400,
+      "invalid_source_base_url",
+      "Source URL must use HTTP or HTTPS",
+    );
   }
 
   parsed.search = "";
@@ -66,7 +78,11 @@ function parseSourceBaseUrl(value: unknown) {
 
 function parseSourceUpdate(body: unknown): UpdateMediaSourceInput {
   if (!body || typeof body !== "object" || Array.isArray(body)) {
-    throw new ApiError(400, "invalid_source_update", "Provide a JSON object with editable source fields");
+    throw new ApiError(
+      400,
+      "invalid_source_update",
+      "Provide a JSON object with editable source fields",
+    );
   }
 
   const allowedFields = new Set(["baseUrl", "enabled", "name"]);
@@ -74,7 +90,11 @@ function parseSourceUpdate(body: unknown): UpdateMediaSourceInput {
 
   for (const key of Object.keys(record)) {
     if (!allowedFields.has(key)) {
-      throw new ApiError(400, "source_field_not_editable", `${key} cannot be updated here`);
+      throw new ApiError(
+        400,
+        "source_field_not_editable",
+        `${key} cannot be updated here`,
+      );
     }
   }
 
@@ -82,7 +102,11 @@ function parseSourceUpdate(body: unknown): UpdateMediaSourceInput {
 
   if ("name" in record) {
     if (typeof record.name !== "string" || !record.name.trim()) {
-      throw new ApiError(400, "invalid_source_name", "Source name must be a non-empty string");
+      throw new ApiError(
+        400,
+        "invalid_source_name",
+        "Source name must be a non-empty string",
+      );
     }
     input.name = record.name.trim();
   }
@@ -93,13 +117,21 @@ function parseSourceUpdate(body: unknown): UpdateMediaSourceInput {
 
   if ("enabled" in record) {
     if (typeof record.enabled !== "boolean") {
-      throw new ApiError(400, "invalid_source_enabled", "Source enabled must be true or false");
+      throw new ApiError(
+        400,
+        "invalid_source_enabled",
+        "Source enabled must be true or false",
+      );
     }
     input.enabled = record.enabled;
   }
 
   if (Object.keys(input).length === 0) {
-    throw new ApiError(400, "empty_source_update", "Provide at least one editable source field");
+    throw new ApiError(
+      400,
+      "empty_source_update",
+      "Provide at least one editable source field",
+    );
   }
 
   return input;
@@ -115,7 +147,7 @@ sourcesRouter.get(
         providerAccountId: session.providerAccountId,
       }).map(serializeSource),
     });
-  })
+  }),
 );
 
 sourcesRouter.get(
@@ -123,9 +155,12 @@ sourcesRouter.get(
   asyncHandler(async (req, res) => {
     const session = requireAccountSession(req);
     setNoStore(res);
-    const source = requireMediaSource(req.params.id as string, session.providerAccountId);
+    const source = requireMediaSource(
+      req.params.id as string,
+      session.providerAccountId,
+    );
     res.json({ source: serializeSource(source) });
-  })
+  }),
 );
 
 sourcesRouter.patch(
@@ -133,24 +168,31 @@ sourcesRouter.patch(
   asyncHandler(async (req, res) => {
     const session = requireAccountSession(req);
     setNoStore(res);
-    const existingSource = requireMediaSource(req.params.id as string, session.providerAccountId);
+    const existingSource = requireMediaSource(
+      req.params.id as string,
+      session.providerAccountId,
+    );
     const input = parseSourceUpdate(req.body);
-    const nextInput = existingSource.providerId === "plex" && input.baseUrl !== undefined
-      ? {
-        ...input,
-        connection: withPlexBaseUrlMode(existingSource.connection, PLEX_BASE_URL_MODE_MANUAL),
-      }
-      : input;
+    const nextInput =
+      existingSource.providerId === "plex" && input.baseUrl !== undefined
+        ? {
+            ...input,
+            connection: withPlexBaseUrlMode(
+              existingSource.connection,
+              PLEX_BASE_URL_MODE_MANUAL,
+            ),
+          }
+        : input;
     const source = updateMediaSourceForAccount(
       req.params.id as string,
       session.providerAccountId,
-      nextInput
+      nextInput,
     );
     if (!source) {
       throw new ApiError(404, "source_not_found", "Source was not found");
     }
     res.json({ source: serializeSource(source) });
-  })
+  }),
 );
 
 sourcesRouter.delete(
@@ -158,13 +200,16 @@ sourcesRouter.delete(
   asyncHandler(async (req, res) => {
     const session = requireAccountSession(req);
     setNoStore(res);
-    const deleted = deleteMediaSourceForAccount(req.params.id as string, session.providerAccountId);
+    const deleted = deleteMediaSourceForAccount(
+      req.params.id as string,
+      session.providerAccountId,
+    );
     if (!deleted) {
       throw new ApiError(404, "source_not_found", "Source was not found");
     }
 
     res.status(204).end();
-  })
+  }),
 );
 
 sourcesRouter.post(
@@ -173,20 +218,31 @@ sourcesRouter.post(
     const session = requireAccountSession(req);
     setNoStore(res);
 
-    const source = requireMediaSource(req.params.id as string, session.providerAccountId);
+    const source = requireMediaSource(
+      req.params.id as string,
+      session.providerAccountId,
+    );
     const provider = getProvider(source.providerId);
     if (!provider) {
-      throw new ApiError(500, "provider_not_registered", "Source provider is not registered");
+      throw new ApiError(
+        500,
+        "provider_not_registered",
+        "Source provider is not registered",
+      );
     }
 
     const checkedAt = new Date().toISOString();
     const result = await provider.checkSource(source);
 
     if (!result.ok) {
-      const updatedSource = updateMediaSourceHealthForAccount(source.id, session.providerAccountId, {
-        lastCheckedAt: checkedAt,
-        lastError: result.message,
-      });
+      const updatedSource = updateMediaSourceHealthForAccount(
+        source.id,
+        session.providerAccountId,
+        {
+          lastCheckedAt: checkedAt,
+          lastError: result.message,
+        },
+      );
 
       if (!updatedSource) {
         throw new ApiError(404, "source_not_found", "Source was not found");
@@ -202,14 +258,20 @@ sourcesRouter.post(
       return;
     }
 
-    const updatedSource = updateMediaSourceForAccount(source.id, session.providerAccountId, {
-      ...(result.name !== undefined ? { name: result.name } : {}),
-      ...(result.baseUrl !== undefined ? { baseUrl: result.baseUrl } : {}),
-      ...(result.connection !== undefined ? { connection: result.connection } : {}),
-      ...(result.metadata !== undefined ? { metadata: result.metadata } : {}),
-      lastCheckedAt: checkedAt,
-      lastError: null,
-    });
+    const updatedSource = updateMediaSourceForAccount(
+      source.id,
+      session.providerAccountId,
+      {
+        ...(result.name !== undefined ? { name: result.name } : {}),
+        ...(result.baseUrl !== undefined ? { baseUrl: result.baseUrl } : {}),
+        ...(result.connection !== undefined
+          ? { connection: result.connection }
+          : {}),
+        ...(result.metadata !== undefined ? { metadata: result.metadata } : {}),
+        lastCheckedAt: checkedAt,
+        lastError: null,
+      },
+    );
 
     if (!updatedSource) {
       throw new ApiError(404, "source_not_found", "Source was not found");
@@ -219,5 +281,5 @@ sourcesRouter.post(
       ok: true,
       source: serializeSource(updatedSource),
     });
-  })
+  }),
 );

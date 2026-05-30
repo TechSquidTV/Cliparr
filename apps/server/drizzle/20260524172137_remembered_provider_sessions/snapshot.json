@@ -2,9 +2,7 @@
   "version": "7",
   "dialect": "sqlite",
   "id": "72cf1bff-c329-43f8-9122-c57650329b74",
-  "prevIds": [
-    "5cb53d7c-208f-412f-8544-99f25f221859"
-  ],
+  "prevIds": ["5cb53d7c-208f-412f-8544-99f25f221859"],
   "ddl": [
     {
       "name": "media_sources",
@@ -383,13 +381,9 @@
       "table": "remembered_provider_sessions"
     },
     {
-      "columns": [
-        "provider_account_id"
-      ],
+      "columns": ["provider_account_id"],
       "tableTo": "provider_accounts",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "nameExplicit": false,
@@ -398,13 +392,9 @@
       "table": "media_sources"
     },
     {
-      "columns": [
-        "provider_account_id"
-      ],
+      "columns": ["provider_account_id"],
       "tableTo": "provider_accounts",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "nameExplicit": false,
@@ -413,13 +403,9 @@
       "table": "provider_sessions"
     },
     {
-      "columns": [
-        "provider_account_id"
-      ],
+      "columns": ["provider_account_id"],
       "tableTo": "provider_accounts",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "nameExplicit": false,
@@ -428,36 +414,28 @@
       "table": "remembered_provider_sessions"
     },
     {
-      "columns": [
-        "id"
-      ],
+      "columns": ["id"],
       "nameExplicit": false,
       "name": "media_sources_pk",
       "table": "media_sources",
       "entityType": "pks"
     },
     {
-      "columns": [
-        "id"
-      ],
+      "columns": ["id"],
       "nameExplicit": false,
       "name": "provider_accounts_pk",
       "table": "provider_accounts",
       "entityType": "pks"
     },
     {
-      "columns": [
-        "id"
-      ],
+      "columns": ["id"],
       "nameExplicit": false,
       "name": "provider_sessions_pk",
       "table": "provider_sessions",
       "entityType": "pks"
     },
     {
-      "columns": [
-        "id"
-      ],
+      "columns": ["id"],
       "nameExplicit": false,
       "name": "remembered_provider_sessions_pk",
       "table": "remembered_provider_sessions",

@@ -12,18 +12,28 @@ export function isHlsPlaylistUrl(url: string) {
 }
 
 function isHlsMediaSource(source: EditorMediaSource) {
-  return source.kind === "url" && (source.hls === true || isHlsPlaylistUrl(source.url));
+  return (
+    source.kind === "url" &&
+    (source.hls === true || isHlsPlaylistUrl(source.url))
+  );
 }
 
 export async function createCliparrInputFromSource(
   source: EditorMediaSource,
   options: { hls?: boolean } = {},
 ): Promise<Input> {
-  const { ALL_FORMATS, BlobSource, HLS_FORMATS, Input, UrlSource } = await import("mediabunny");
+  const { ALL_FORMATS, BlobSource, HLS_FORMATS, Input, UrlSource } =
+    await import("mediabunny");
   const isHlsSource = options.hls ?? isHlsMediaSource(source);
-  const inputSource = source.kind === "url"
-    ? new UrlSource(source.url, isHlsSource ? HLS_URL_SOURCE_OPTIONS : undefined)
-    : new BlobSource(source.kind === "file" ? source.file : await source.handle.getFile());
+  const inputSource =
+    source.kind === "url"
+      ? new UrlSource(
+          source.url,
+          isHlsSource ? HLS_URL_SOURCE_OPTIONS : undefined,
+        )
+      : new BlobSource(
+          source.kind === "file" ? source.file : await source.handle.getFile(),
+        );
 
   return new Input({
     source: inputSource,

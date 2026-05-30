@@ -25,11 +25,14 @@ export function EditorPreview({
   previewFrameStatus,
   togglePlay,
 }: EditorPreviewProps) {
-  const aspectRatio = videoDimensions && videoDimensions.width > 0 && videoDimensions.height > 0
-    ? `${videoDimensions.width} / ${videoDimensions.height}`
-    : undefined;
+  const aspectRatio =
+    videoDimensions && videoDimensions.width > 0 && videoDimensions.height > 0
+      ? `${videoDimensions.width} / ${videoDimensions.height}`
+      : undefined;
   const showLoadingOverlay = loadingPreview || loadingPreviewFrame;
-  const loadingStatus = loadingPreviewFrame ? previewFrameStatus : previewStatus;
+  const loadingStatus = loadingPreviewFrame
+    ? previewFrameStatus
+    : previewStatus;
 
   return (
     <div
@@ -51,7 +54,9 @@ export function EditorPreview({
             }}
             aria-label={playing ? "Pause playback" : "Play playback"}
             className={`pointer-events-auto flex h-11 w-11 items-center justify-center border border-[var(--editor-preview-overlay-border)] bg-card/92 text-foreground transition-all ${
-              playing ? "scale-95 opacity-0" : "scale-100 opacity-100 group-hover:bg-card"
+              playing
+                ? "scale-95 opacity-0"
+                : "scale-100 opacity-100 group-hover:bg-card"
             }`}
           >
             <Play className="ml-0.5 h-5 w-5" />

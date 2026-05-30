@@ -18,13 +18,18 @@ interface BuildExportFileNameOptions {
   templates: ExportFileNameTemplateSettings;
 }
 
-const EXPORT_FILE_NAME_TEMPLATE_STORAGE_KEY = "cliparr.export.filename-templates.v1";
+const EXPORT_FILE_NAME_TEMPLATE_STORAGE_KEY =
+  "cliparr.export.filename-templates.v1";
 
-const LEGACY_DEFAULT_MOVIE_EXPORT_FILE_NAME_TEMPLATE = "{source_title} ({year}) - clip {clip_start} to {clip_end}";
-const LEGACY_DEFAULT_EPISODE_EXPORT_FILE_NAME_TEMPLATE = "{show_title} - {episode_code} - {title} - clip {clip_start} to {clip_end}";
+const LEGACY_DEFAULT_MOVIE_EXPORT_FILE_NAME_TEMPLATE =
+  "{source_title} ({year}) - clip {clip_start} to {clip_end}";
+const LEGACY_DEFAULT_EPISODE_EXPORT_FILE_NAME_TEMPLATE =
+  "{show_title} - {episode_code} - {title} - clip {clip_start} to {clip_end}";
 
-const DEFAULT_MOVIE_EXPORT_FILE_NAME_TEMPLATE = "{source_title} ({year}) [{clip_start}-{clip_end}]";
-const DEFAULT_EPISODE_EXPORT_FILE_NAME_TEMPLATE = "{show_title} - {episode_code} - {title} [{clip_start}-{clip_end}]";
+const DEFAULT_MOVIE_EXPORT_FILE_NAME_TEMPLATE =
+  "{source_title} ({year}) [{clip_start}-{clip_end}]";
+const DEFAULT_EPISODE_EXPORT_FILE_NAME_TEMPLATE =
+  "{show_title} - {episode_code} - {title} [{clip_start}-{clip_end}]";
 
 type ExportFileNameTemplateToken =
   | "title"
@@ -42,34 +47,36 @@ type ExportFileNameTemplateToken =
   | "item_type"
   | "format";
 
-const MOVIE_EXPORT_FILE_NAME_TEMPLATE_TOKENS: readonly ExportFileNameTemplateToken[] = [
-  "title",
-  "source_title",
-  "year",
-  "clip_start",
-  "clip_end",
-  "clip_range",
-  "provider",
-  "item_type",
-  "format",
-];
+const MOVIE_EXPORT_FILE_NAME_TEMPLATE_TOKENS: readonly ExportFileNameTemplateToken[] =
+  [
+    "title",
+    "source_title",
+    "year",
+    "clip_start",
+    "clip_end",
+    "clip_range",
+    "provider",
+    "item_type",
+    "format",
+  ];
 
-const EPISODE_EXPORT_FILE_NAME_TEMPLATE_TOKENS: readonly ExportFileNameTemplateToken[] = [
-  "title",
-  "source_title",
-  "show_title",
-  "season_title",
-  "season_number",
-  "episode_number",
-  "episode_code",
-  "year",
-  "clip_start",
-  "clip_end",
-  "clip_range",
-  "provider",
-  "item_type",
-  "format",
-];
+const EPISODE_EXPORT_FILE_NAME_TEMPLATE_TOKENS: readonly ExportFileNameTemplateToken[] =
+  [
+    "title",
+    "source_title",
+    "show_title",
+    "season_title",
+    "season_number",
+    "episode_number",
+    "episode_code",
+    "year",
+    "clip_start",
+    "clip_end",
+    "clip_range",
+    "provider",
+    "item_type",
+    "format",
+  ];
 
 export function defaultExportFileNameTemplates(): ExportFileNameTemplateSettings {
   return {
@@ -78,7 +85,9 @@ export function defaultExportFileNameTemplates(): ExportFileNameTemplateSettings
   };
 }
 
-export function getExportFileNameTemplateTokens(kind: ExportFileNameTemplateKind) {
+export function getExportFileNameTemplateTokens(
+  kind: ExportFileNameTemplateKind,
+) {
   return kind === "episode"
     ? EPISODE_EXPORT_FILE_NAME_TEMPLATE_TOKENS
     : MOVIE_EXPORT_FILE_NAME_TEMPLATE_TOKENS;
@@ -87,13 +96,15 @@ export function getExportFileNameTemplateTokens(kind: ExportFileNameTemplateKind
 function migrateStoredTemplate(
   storedTemplate: string | undefined,
   defaultTemplate: string,
-  legacyDefaultTemplate: string
+  legacyDefaultTemplate: string,
 ) {
   if (typeof storedTemplate !== "string" || !storedTemplate.trim()) {
     return defaultTemplate;
   }
 
-  return storedTemplate === legacyDefaultTemplate ? defaultTemplate : storedTemplate;
+  return storedTemplate === legacyDefaultTemplate
+    ? defaultTemplate
+    : storedTemplate;
 }
 
 export function loadExportFileNameTemplates(): ExportFileNameTemplateSettings {
@@ -104,7 +115,9 @@ export function loadExportFileNameTemplates(): ExportFileNameTemplateSettings {
   }
 
   try {
-    const raw = window.localStorage.getItem(EXPORT_FILE_NAME_TEMPLATE_STORAGE_KEY);
+    const raw = window.localStorage.getItem(
+      EXPORT_FILE_NAME_TEMPLATE_STORAGE_KEY,
+    );
     if (!raw) {
       return defaults;
     }
@@ -112,21 +125,34 @@ export function loadExportFileNameTemplates(): ExportFileNameTemplateSettings {
     const parsed = JSON.parse(raw) as Partial<ExportFileNameTemplateSettings>;
 
     return {
-      movie: migrateStoredTemplate(parsed.movie, defaults.movie, LEGACY_DEFAULT_MOVIE_EXPORT_FILE_NAME_TEMPLATE),
-      episode: migrateStoredTemplate(parsed.episode, defaults.episode, LEGACY_DEFAULT_EPISODE_EXPORT_FILE_NAME_TEMPLATE),
+      movie: migrateStoredTemplate(
+        parsed.movie,
+        defaults.movie,
+        LEGACY_DEFAULT_MOVIE_EXPORT_FILE_NAME_TEMPLATE,
+      ),
+      episode: migrateStoredTemplate(
+        parsed.episode,
+        defaults.episode,
+        LEGACY_DEFAULT_EPISODE_EXPORT_FILE_NAME_TEMPLATE,
+      ),
     };
   } catch {
     return defaults;
   }
 }
 
-export function saveExportFileNameTemplates(templates: ExportFileNameTemplateSettings) {
+export function saveExportFileNameTemplates(
+  templates: ExportFileNameTemplateSettings,
+) {
   if (typeof window === "undefined") {
     return;
   }
 
   try {
-    window.localStorage.setItem(EXPORT_FILE_NAME_TEMPLATE_STORAGE_KEY, JSON.stringify(templates));
+    window.localStorage.setItem(
+      EXPORT_FILE_NAME_TEMPLATE_STORAGE_KEY,
+      JSON.stringify(templates),
+    );
   } catch {
     // Best-effort persistence only.
   }
@@ -134,9 +160,12 @@ export function saveExportFileNameTemplates(templates: ExportFileNameTemplateSet
 
 function resolveExportFileNameTemplateKind(
   sessionType: string | undefined,
-  metadata: MediaExportMetadata | undefined
+  metadata: MediaExportMetadata | undefined,
 ): ExportFileNameTemplateKind {
-  const normalizedType = firstText(metadata?.itemType, sessionType)?.toLowerCase();
+  const normalizedType = firstText(
+    metadata?.itemType,
+    sessionType,
+  )?.toLowerCase();
   return normalizedType === "episode" ? "episode" : "movie";
 }
 
@@ -150,7 +179,9 @@ export function buildExportFileName({
   templates,
 }: BuildExportFileNameOptions) {
   const templateKind = resolveExportFileNameTemplateKind(sessionType, metadata);
-  const template = templates[templateKind].trim() || defaultExportFileNameTemplates()[templateKind];
+  const template =
+    templates[templateKind].trim() ||
+    defaultExportFileNameTemplates()[templateKind];
   const values = templateValues({
     title,
     sessionType,
@@ -161,12 +192,15 @@ export function buildExportFileName({
   });
   const resolved = template.replace(/\{([a-z_]+)\}/gi, (_, token: string) => {
     const normalizedToken = token.toLowerCase() as ExportFileNameTemplateToken;
-    const replacement = Object.hasOwn(values, normalizedToken) ? values[normalizedToken] : "";
+    const replacement = Object.hasOwn(values, normalizedToken)
+      ? values[normalizedToken]
+      : "";
 
     return replacement ?? "";
   });
 
-  const baseName = sanitizeFileName(cleanupResolvedTemplate(resolved)) || "cliparr export";
+  const baseName =
+    sanitizeFileName(cleanupResolvedTemplate(resolved)) || "cliparr export";
 
   return {
     baseName,
@@ -182,19 +216,37 @@ function templateValues({
   startTime,
   endTime,
   format,
-}: Omit<BuildExportFileNameOptions, "templates">): Record<ExportFileNameTemplateToken, string> {
+}: Omit<BuildExportFileNameOptions, "templates">): Record<
+  ExportFileNameTemplateToken,
+  string
+> {
   const seasonNumber = nonNegativeInteger(metadata?.seasonNumber);
   const episodeNumber = nonNegativeInteger(metadata?.episodeNumber);
-  const itemType = firstText(metadata?.itemType, sessionType)?.toLowerCase() ?? "video";
+  const itemType =
+    firstText(metadata?.itemType, sessionType)?.toLowerCase() ?? "video";
 
   return {
     title: sanitizeTemplateValue(firstText(metadata?.title, title, "Clip")),
-    source_title: sanitizeTemplateValue(firstText(metadata?.sourceTitle, metadata?.title, title, "Clip")),
-    show_title: sanitizeTemplateValue(firstText(metadata?.showTitle, metadata?.sourceTitle, metadata?.title, title, "Clip")),
+    source_title: sanitizeTemplateValue(
+      firstText(metadata?.sourceTitle, metadata?.title, title, "Clip"),
+    ),
+    show_title: sanitizeTemplateValue(
+      firstText(
+        metadata?.showTitle,
+        metadata?.sourceTitle,
+        metadata?.title,
+        title,
+        "Clip",
+      ),
+    ),
     season_title: sanitizeTemplateValue(firstText(metadata?.seasonTitle)),
-    season_number: seasonNumber === undefined ? "" : String(seasonNumber).padStart(2, "0"),
-    episode_number: episodeNumber === undefined ? "" : String(episodeNumber).padStart(2, "0"),
-    episode_code: sanitizeTemplateValue(formatEpisodeCode(seasonNumber, episodeNumber) ?? "Episode"),
+    season_number:
+      seasonNumber === undefined ? "" : String(seasonNumber).padStart(2, "0"),
+    episode_number:
+      episodeNumber === undefined ? "" : String(episodeNumber).padStart(2, "0"),
+    episode_code: sanitizeTemplateValue(
+      formatEpisodeCode(seasonNumber, episodeNumber) ?? "Episode",
+    ),
     year: metadata?.year === undefined ? "" : String(metadata.year),
     clip_start: formatTemplateTime(startTime),
     clip_end: formatTemplateTime(endTime),
@@ -217,12 +269,20 @@ function firstText(...values: Array<string | undefined>) {
 }
 
 function nonNegativeInteger(value: number | undefined) {
-  return typeof value === "number" && Number.isInteger(value) && value >= 0 ? value : undefined;
+  return typeof value === "number" && Number.isInteger(value) && value >= 0
+    ? value
+    : undefined;
 }
 
 function formatEpisodeCode(seasonNumber?: number, episodeNumber?: number) {
-  const season = seasonNumber === undefined ? undefined : `S${String(seasonNumber).padStart(2, "0")}`;
-  const episode = episodeNumber === undefined ? undefined : `E${String(episodeNumber).padStart(2, "0")}`;
+  const season =
+    seasonNumber === undefined
+      ? undefined
+      : `S${String(seasonNumber).padStart(2, "0")}`;
+  const episode =
+    episodeNumber === undefined
+      ? undefined
+      : `E${String(episodeNumber).padStart(2, "0")}`;
 
   if (season && episode) {
     return `${season}${episode}`;
@@ -271,8 +331,10 @@ function sanitizeFileName(value: string) {
 }
 
 function stripControlCharacters(value: string) {
-  return Array.from(value).filter((char) => {
-    const code = char.codePointAt(0) ?? 0;
-    return code >= 32;
-  }).join("");
+  return Array.from(value)
+    .filter((char) => {
+      const code = char.codePointAt(0) ?? 0;
+      return code >= 32;
+    })
+    .join("");
 }

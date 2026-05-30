@@ -63,16 +63,19 @@ void test("keeps an explicit zoom anchor time visible when changing timeline zoo
 });
 
 void test("does not zoom past the available timeline levels", () => {
-  assert.equal(resolveTimelineZoomUpdate({
-    availableTimelineZoomLevels: zoomLevels,
-    currentZoomIndex: 0,
-    fallbackTimelineScale: zoomLevels[0],
-    zoomDelta: -1,
-    currentScrollLeft: 0,
-    duration: 100,
-    regionLeft: 0,
-    regionWidth: 200,
-  }), null);
+  assert.equal(
+    resolveTimelineZoomUpdate({
+      availableTimelineZoomLevels: zoomLevels,
+      currentZoomIndex: 0,
+      fallbackTimelineScale: zoomLevels[0],
+      zoomDelta: -1,
+      currentScrollLeft: 0,
+      duration: 100,
+      regionLeft: 0,
+      regionWidth: 200,
+    }),
+    null,
+  );
 });
 
 void test("chooses an initial timeline zoom that keeps short selections editable", () => {
@@ -126,82 +129,103 @@ void test("clamps direct timecode commits", () => {
 });
 
 void test("maps buffered timeline fill into action-relative percentages", () => {
-  assert.deepEqual(getTimelineFillPercentages({
-    trackStart: 10,
-    trackEnd: 30,
-    fillStart: 15,
-    fillEnd: 25,
-  }), {
-    leftPercent: 25,
-    widthPercent: 50,
-  });
+  assert.deepEqual(
+    getTimelineFillPercentages({
+      trackStart: 10,
+      trackEnd: 30,
+      fillStart: 15,
+      fillEnd: 25,
+    }),
+    {
+      leftPercent: 25,
+      widthPercent: 50,
+    },
+  );
 });
 
 void test("clamps buffered timeline fill to the action bounds", () => {
-  assert.deepEqual(getTimelineFillPercentages({
-    trackStart: 10,
-    trackEnd: 30,
-    fillStart: 0,
-    fillEnd: 40,
-  }), {
-    leftPercent: 0,
-    widthPercent: 100,
-  });
+  assert.deepEqual(
+    getTimelineFillPercentages({
+      trackStart: 10,
+      trackEnd: 30,
+      fillStart: 0,
+      fillEnd: 40,
+    }),
+    {
+      leftPercent: 0,
+      widthPercent: 100,
+    },
+  );
 
-  assert.deepEqual(getTimelineFillPercentages({
-    trackStart: 10,
-    trackEnd: 30,
-    fillStart: 10,
-    fillEnd: 10,
-  }), {
-    leftPercent: 0,
-    widthPercent: 0,
-  });
+  assert.deepEqual(
+    getTimelineFillPercentages({
+      trackStart: 10,
+      trackEnd: 30,
+      fillStart: 10,
+      fillEnd: 10,
+    }),
+    {
+      leftPercent: 0,
+      widthPercent: 0,
+    },
+  );
 });
 
 void test("combines horizontal and vertical wheel deltas for timeline scrolling", () => {
-  assert.equal(resolveTimelineScrollWheelUpdate({
-    deltaX: 20,
-    deltaY: 30,
-    deltaMode: 0,
-    containerWidth: 200,
-    containerHeight: 100,
-    currentScrollLeft: 10,
-    duration: 100,
-    timelineScale: zoomLevels[1],
-  }), 60);
+  assert.equal(
+    resolveTimelineScrollWheelUpdate({
+      deltaX: 20,
+      deltaY: 30,
+      deltaMode: 0,
+      containerWidth: 200,
+      containerHeight: 100,
+      currentScrollLeft: 10,
+      duration: 100,
+      timelineScale: zoomLevels[1],
+    }),
+    60,
+  );
 });
 
 void test("accumulates wheel zoom until the threshold is crossed", () => {
-  assert.deepEqual(accumulateTimelineWheelZoomDelta({
-    currentWheelDelta: 30,
-    deltaY: 40,
-    deltaMode: 0,
-    containerHeight: 100,
-  }), {
-    accumulatedWheelDelta: 70,
-    zoomDelta: 0,
-  });
+  assert.deepEqual(
+    accumulateTimelineWheelZoomDelta({
+      currentWheelDelta: 30,
+      deltaY: 40,
+      deltaMode: 0,
+      containerHeight: 100,
+    }),
+    {
+      accumulatedWheelDelta: 70,
+      zoomDelta: 0,
+    },
+  );
 
-  assert.deepEqual(accumulateTimelineWheelZoomDelta({
-    currentWheelDelta: 70,
-    deltaY: 20,
-    deltaMode: 0,
-    containerHeight: 100,
-  }), {
-    accumulatedWheelDelta: 0,
-    zoomDelta: 1,
-  });
+  assert.deepEqual(
+    accumulateTimelineWheelZoomDelta({
+      currentWheelDelta: 70,
+      deltaY: 20,
+      deltaMode: 0,
+      containerHeight: 100,
+    }),
+    {
+      accumulatedWheelDelta: 0,
+      zoomDelta: 1,
+    },
+  );
 });
 
 void test("resets accumulated wheel zoom when direction changes", () => {
-  assert.deepEqual(accumulateTimelineWheelZoomDelta({
-    currentWheelDelta: 50,
-    deltaY: -20,
-    deltaMode: 0,
-    containerHeight: 100,
-  }), {
-    accumulatedWheelDelta: -20,
-    zoomDelta: 0,
-  });
+  assert.deepEqual(
+    accumulateTimelineWheelZoomDelta({
+      currentWheelDelta: 50,
+      deltaY: -20,
+      deltaMode: 0,
+      containerHeight: 100,
+    }),
+    {
+      accumulatedWheelDelta: -20,
+      zoomDelta: 0,
+    },
+  );
 });

@@ -1,10 +1,4 @@
-import {
-  memo,
-  useLayoutEffect,
-  useMemo,
-  useRef,
-  type RefObject,
-} from "react";
+import { memo, useLayoutEffect, useMemo, useRef, type RefObject } from "react";
 
 interface EditorPreviewTimecodeProps {
   ariaHidden?: boolean;
@@ -45,16 +39,23 @@ function getPreviewCentiseconds(seconds: number) {
   return Math.max(0, Math.round(seconds * CENTISECONDS_PER_SECOND));
 }
 
-function getPreviewTimecodeParts(centiseconds: number, showHours: boolean): PreviewTimecodeParts {
+function getPreviewTimecodeParts(
+  centiseconds: number,
+  showHours: boolean,
+): PreviewTimecodeParts {
   const hours = Math.floor(centiseconds / CENTISECONDS_PER_HOUR);
   const remainingAfterHours = centiseconds % CENTISECONDS_PER_HOUR;
   const minutes = Math.floor(remainingAfterHours / CENTISECONDS_PER_MINUTE);
   const totalMinutes = Math.floor(centiseconds / CENTISECONDS_PER_MINUTE);
-  const seconds = Math.floor((centiseconds % CENTISECONDS_PER_MINUTE) / CENTISECONDS_PER_SECOND);
+  const seconds = Math.floor(
+    (centiseconds % CENTISECONDS_PER_MINUTE) / CENTISECONDS_PER_SECOND,
+  );
   const fraction = centiseconds % CENTISECONDS_PER_SECOND;
 
   const hoursText = hours.toString();
-  const minutesText = showHours ? minutes.toString().padStart(2, "0") : totalMinutes.toString();
+  const minutesText = showHours
+    ? minutes.toString().padStart(2, "0")
+    : totalMinutes.toString();
   const secondsText = seconds.toString().padStart(2, "0");
   const fractionText = fraction.toString().padStart(2, "0");
   const label = showHours
@@ -78,7 +79,10 @@ function setSlotText(ref: RefObject<HTMLSpanElement | null>, value: string) {
   }
 }
 
-function updateTimecodeSlots(slotRefs: TimecodeSlotRefs, parts: PreviewTimecodeParts) {
+function updateTimecodeSlots(
+  slotRefs: TimecodeSlotRefs,
+  parts: PreviewTimecodeParts,
+) {
   setSlotText(slotRefs.hours, parts.hours);
   setSlotText(slotRefs.minutes, parts.minutes);
   setSlotText(slotRefs.seconds, parts.seconds);
@@ -91,19 +95,25 @@ function useTimecodeSlotRefs(): TimecodeSlotRefs {
   const seconds = useRef<HTMLSpanElement>(null);
   const fraction = useRef<HTMLSpanElement>(null);
 
-  return useMemo(() => ({
-    fraction,
-    hours,
-    minutes,
-    seconds,
-  }), []);
+  return useMemo(
+    () => ({
+      fraction,
+      hours,
+      minutes,
+      seconds,
+    }),
+    [],
+  );
 }
 
 function getHoursWidth(durationParts: PreviewTimecodeParts) {
   return `${Math.max(1, durationParts.hours.length)}ch`;
 }
 
-function getMinutesWidth(durationParts: PreviewTimecodeParts, showHours: boolean) {
+function getMinutesWidth(
+  durationParts: PreviewTimecodeParts,
+  showHours: boolean,
+) {
   return `${Math.max(showHours ? 2 : 1, durationParts.minutes.length)}ch`;
 }
 
@@ -112,9 +122,11 @@ function arePreviewTimecodePropsEqual(
   next: EditorPreviewTimecodeProps,
 ) {
   return (
-    previous.ariaHidden === next.ariaHidden
-    && getPreviewCentiseconds(previous.currentTime) === getPreviewCentiseconds(next.currentTime)
-    && getPreviewCentiseconds(previous.duration) === getPreviewCentiseconds(next.duration)
+    previous.ariaHidden === next.ariaHidden &&
+    getPreviewCentiseconds(previous.currentTime) ===
+      getPreviewCentiseconds(next.currentTime) &&
+    getPreviewCentiseconds(previous.duration) ===
+      getPreviewCentiseconds(next.duration)
   );
 }
 
@@ -128,15 +140,31 @@ const TimecodeShell = memo(function TimecodeShell({
     <span className="inline-flex items-baseline">
       {showHours && (
         <>
-          <span ref={slotRefs.hours} className="inline-block text-right" style={{ width: hoursWidth }} />
+          <span
+            ref={slotRefs.hours}
+            className="inline-block text-right"
+            style={{ width: hoursWidth }}
+          />
           <span>:</span>
         </>
       )}
-      <span ref={slotRefs.minutes} className="inline-block text-right" style={{ width: minutesWidth }} />
+      <span
+        ref={slotRefs.minutes}
+        className="inline-block text-right"
+        style={{ width: minutesWidth }}
+      />
       <span>:</span>
-      <span ref={slotRefs.seconds} className="inline-block text-right" style={{ width: FIXED_DIGIT_WIDTH }} />
+      <span
+        ref={slotRefs.seconds}
+        className="inline-block text-right"
+        style={{ width: FIXED_DIGIT_WIDTH }}
+      />
       <span>.</span>
-      <span ref={slotRefs.fraction} className="inline-block text-left" style={{ width: FIXED_DIGIT_WIDTH }} />
+      <span
+        ref={slotRefs.fraction}
+        className="inline-block text-left"
+        style={{ width: FIXED_DIGIT_WIDTH }}
+      />
     </span>
   );
 });
@@ -156,14 +184,20 @@ export const EditorPreviewTimecode = memo(function EditorPreviewTimecode({
     () => getPreviewTimecodeParts(durationCentiseconds, showHours),
     [durationCentiseconds, showHours],
   );
-  const hoursWidth = useMemo(() => getHoursWidth(durationParts), [durationParts]);
+  const hoursWidth = useMemo(
+    () => getHoursWidth(durationParts),
+    [durationParts],
+  );
   const minutesWidth = useMemo(
     () => getMinutesWidth(durationParts, showHours),
     [durationParts, showHours],
   );
 
   useLayoutEffect(() => {
-    const currentParts = getPreviewTimecodeParts(currentCentiseconds, showHours);
+    const currentParts = getPreviewTimecodeParts(
+      currentCentiseconds,
+      showHours,
+    );
 
     updateTimecodeSlots(currentSlotRefs, currentParts);
     updateTimecodeSlots(durationSlotRefs, durationParts);

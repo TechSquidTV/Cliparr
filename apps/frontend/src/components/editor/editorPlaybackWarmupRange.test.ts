@@ -17,26 +17,41 @@ void test("does not show idle selection readiness", () => {
 });
 
 void test("shows active warmup even before progress advances", () => {
-  const range = markPlaybackReadyRangeFresh({
-    startTime: 10,
-    endTime: 20,
-    readyUntilTime: 10,
-    status: "warming",
-  }, 1_000);
+  const range = markPlaybackReadyRangeFresh(
+    {
+      startTime: 10,
+      endTime: 20,
+      readyUntilTime: 10,
+      status: "warming",
+    },
+    1_000,
+  );
 
   assert.equal(isPlaybackReadyRangeVisible(range, 1_000), true);
 });
 
 void test("hides readiness after the freshness window expires", () => {
-  const range = markPlaybackReadyRangeFresh({
-    startTime: 10,
-    endTime: 20,
-    readyUntilTime: 20,
-    status: "ready",
-  }, 1_000);
+  const range = markPlaybackReadyRangeFresh(
+    {
+      startTime: 10,
+      endTime: 20,
+      readyUntilTime: 20,
+      status: "ready",
+    },
+    1_000,
+  );
 
-  assert.equal(isPlaybackReadyRangeVisible(range, 1_000 + PLAYBACK_READY_RANGE_FRESH_MS - 1), true);
-  assert.equal(isPlaybackReadyRangeVisible(range, 1_000 + PLAYBACK_READY_RANGE_FRESH_MS), false);
+  assert.equal(
+    isPlaybackReadyRangeVisible(
+      range,
+      1_000 + PLAYBACK_READY_RANGE_FRESH_MS - 1,
+    ),
+    true,
+  );
+  assert.equal(
+    isPlaybackReadyRangeVisible(range, 1_000 + PLAYBACK_READY_RANGE_FRESH_MS),
+    false,
+  );
 });
 
 void test("resetting warm state removes prior progress", () => {

@@ -17,10 +17,10 @@
 <video src="https://github.com/user-attachments/assets/4f9d5f6b-8016-4068-b375-f050d57de534" width="100%" alt="Cliparr Demo">
 </video>
 
-
 ## Features
 
 <!-- CLIPARR_DOCS_SYNC:features:start -->
+
 - **Instant session discovery**: Automatically loads your media player's currently playing file.
 - **Open local videos**: Open a local file or direct media URL before or after connecting a provider.
 - **Intuitive timeline editor**: Familiar editing controls for choosing the exact clip range.
@@ -34,6 +34,7 @@
 ### Quick Start with Docker
 
 <!-- CLIPARR_DOCS_SYNC:docker-quick-start:start -->
+
 The fastest way to get Cliparr running is via the GitHub Container Registry.
 
 ```bash
@@ -50,6 +51,7 @@ docker run -d \
 
 > [!IMPORTANT]
 > **Use HTTPS for editing**: Cliparr's editor uses browser WebCodecs. Supporting browsers require a secure context, so use HTTPS through a reverse proxy or open Cliparr on localhost or 127.0.0.1.
+
 <!-- CLIPARR_DOCS_SYNC:docker-quick-start:end -->
 
 ### Local Videos
@@ -82,12 +84,14 @@ volumes:
 ## Configuration
 
 <!-- CLIPARR_DOCS_SYNC:configuration:start -->
-| Variable | Description | Default |
-| :--- | :--- | :--- |
-| `APP_KEY` | Required secret for credential encryption. Must be at least 32 characters long. | `-` |
-| `PORT` | Internal port for the Express server. | `3000` |
-| `CLIPARR_DATA_DIR` | Directory for SQLite storage. | `/data` |
+
+| Variable                               | Description                                                                                         | Default |
+| :------------------------------------- | :-------------------------------------------------------------------------------------------------- | :------ |
+| `APP_KEY`                              | Required secret for credential encryption. Must be at least 32 characters long.                     | `-`     |
+| `PORT`                                 | Internal port for the Express server.                                                               | `3000`  |
+| `CLIPARR_DATA_DIR`                     | Directory for SQLite storage.                                                                       | `/data` |
 | `CLIPARR_ALLOW_LOOPBACK_JELLYFIN_URLS` | Allow Jellyfin URLs that resolve to localhost or loopback. Use only for trusted self-hosted setups. | `false` |
+
 <!-- CLIPARR_DOCS_SYNC:configuration:end -->
 
 When running behind a reverse proxy, preserve the `Host` header and pass `X-Forwarded-Proto`. Cliparr trusts loopback, link-local, and private-LAN proxy ranges directly in the app, so typical Caddy/Nginx/Traefik setups on the same network do not need extra app configuration. Caddy already forwards the needed headers.

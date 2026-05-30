@@ -7,7 +7,10 @@ import {
   MIN_CLIP_SECONDS,
   roundTimelineTime,
 } from "./editor/EditorUtils";
-import { useEditorPlayback, type PlaybackFallbackInfo } from "./editor/useEditorPlayback";
+import {
+  useEditorPlayback,
+  type PlaybackFallbackInfo,
+} from "./editor/useEditorPlayback";
 import { useEditorExport } from "./editor/useEditorExport";
 import { useEditorKeyboardShortcuts } from "./editor/useEditorKeyboardShortcuts";
 import { useEditorTimeline } from "./editor/useEditorTimeline";
@@ -28,7 +31,7 @@ import { sourceDisplayLabel, type EditorSession } from "../lib/editorMedia";
 const EditorExportDialog = lazy(() =>
   import("./editor/EditorExportDialog").then((module) => ({
     default: module.EditorExportDialog,
-  }))
+  })),
 );
 
 interface Props {
@@ -37,7 +40,10 @@ interface Props {
 }
 
 export default function EditorScreen({ session, onBack }: Props) {
-  const initialClipRange = buildInitialClipRange(session.duration, session.initialPlayheadSeconds);
+  const initialClipRange = buildInitialClipRange(
+    session.duration,
+    session.initialPlayheadSeconds,
+  );
   const [startTime, setStartTime] = useState(() => initialClipRange.startTime);
   const [endTime, setEndTime] = useState(() => initialClipRange.endTime);
   const [playbackSidebarOpen, setPlaybackSidebarOpen] = useState(true);
@@ -149,50 +155,73 @@ export default function EditorScreen({ session, onBack }: Props) {
     hasHlsSource: Boolean(session.hlsSource),
     hlsFallbackInfo,
   });
-  const previewSourceLabel = activeSourceLabel || (loadingPreview ? "Resolving stream" : "Unavailable");
-  const isHlsPreviewSource = previewSourceLabel === "HLS stream" || previewSourceLabel === "HLS URL";
+  const previewSourceLabel =
+    activeSourceLabel || (loadingPreview ? "Resolving stream" : "Unavailable");
+  const isHlsPreviewSource =
+    previewSourceLabel === "HLS stream" || previewSourceLabel === "HLS URL";
 
-  const updateClipRange = useCallback((nextStart: number, nextEnd: number) => {
-    if (!duration || duration <= 0) return;
+  const updateClipRange = useCallback(
+    (nextStart: number, nextEnd: number) => {
+      if (!duration || duration <= 0) return;
 
-    const minClipLength = Math.min(MIN_CLIP_SECONDS, duration);
-    const boundedStart = Math.min(Math.max(nextStart, 0), Math.max(duration - minClipLength, 0));
-    const boundedEnd = Math.min(Math.max(nextEnd, boundedStart + minClipLength), duration);
-    const roundedStart = roundTimelineTime(boundedStart);
-    const roundedEnd = roundTimelineTime(boundedEnd);
+      const minClipLength = Math.min(MIN_CLIP_SECONDS, duration);
+      const boundedStart = Math.min(
+        Math.max(nextStart, 0),
+        Math.max(duration - minClipLength, 0),
+      );
+      const boundedEnd = Math.min(
+        Math.max(nextEnd, boundedStart + minClipLength),
+        duration,
+      );
+      const roundedStart = roundTimelineTime(boundedStart);
+      const roundedEnd = roundTimelineTime(boundedEnd);
 
-    setStartTime(roundedStart);
-    setEndTime(roundedEnd);
-  }, [duration]);
+      setStartTime(roundedStart);
+      setEndTime(roundedEnd);
+    },
+    [duration],
+  );
 
-  const isValidTimelineRange = useCallback((nextStart: number, nextEnd: number) => {
-    const minClipLength = Math.min(MIN_CLIP_SECONDS, duration);
-    return (
-      duration > 0 &&
-      nextStart >= 0 &&
-      nextEnd <= duration &&
-      nextEnd - nextStart >= minClipLength
-    );
-  }, [duration]);
-  const handlePreviewTimeCommit = useCallback((nextTime: number) => {
-    if (!duration || duration <= 0) return;
+  const isValidTimelineRange = useCallback(
+    (nextStart: number, nextEnd: number) => {
+      const minClipLength = Math.min(MIN_CLIP_SECONDS, duration);
+      return (
+        duration > 0 &&
+        nextStart >= 0 &&
+        nextEnd <= duration &&
+        nextEnd - nextStart >= minClipLength
+      );
+    },
+    [duration],
+  );
+  const handlePreviewTimeCommit = useCallback(
+    (nextTime: number) => {
+      if (!duration || duration <= 0) return;
 
-    void seekToTime(clampPlaybackTime(nextTime, duration));
-  }, [duration, seekToTime]);
-  const handleStartTimeCommit = useCallback((nextStart: number) => {
-    if (!duration || duration <= 0) return;
+      void seekToTime(clampPlaybackTime(nextTime, duration));
+    },
+    [duration, seekToTime],
+  );
+  const handleStartTimeCommit = useCallback(
+    (nextStart: number) => {
+      if (!duration || duration <= 0) return;
 
-    const nextClampedStart = clampClipStartTime(nextStart, endTime, duration);
-    updateClipRange(nextClampedStart, endTime);
-    void warmClipSelection(nextClampedStart, endTime);
-  }, [duration, endTime, updateClipRange, warmClipSelection]);
-  const handleEndTimeCommit = useCallback((nextEnd: number) => {
-    if (!duration || duration <= 0) return;
+      const nextClampedStart = clampClipStartTime(nextStart, endTime, duration);
+      updateClipRange(nextClampedStart, endTime);
+      void warmClipSelection(nextClampedStart, endTime);
+    },
+    [duration, endTime, updateClipRange, warmClipSelection],
+  );
+  const handleEndTimeCommit = useCallback(
+    (nextEnd: number) => {
+      if (!duration || duration <= 0) return;
 
-    const nextClampedEnd = clampClipEndTime(nextEnd, startTime, duration);
-    updateClipRange(startTime, nextClampedEnd);
-    void warmClipSelection(startTime, nextClampedEnd);
-  }, [duration, startTime, updateClipRange, warmClipSelection]);
+      const nextClampedEnd = clampClipEndTime(nextEnd, startTime, duration);
+      updateClipRange(startTime, nextClampedEnd);
+      void warmClipSelection(startTime, nextClampedEnd);
+    },
+    [duration, startTime, updateClipRange, warmClipSelection],
+  );
 
   const {
     timelineRef,
@@ -235,7 +264,10 @@ export default function EditorScreen({ session, onBack }: Props) {
       playheadSeconds: session.initialPlayheadSeconds,
     });
     if (discoveredInitialRange) {
-      updateClipRange(discoveredInitialRange.startTime, discoveredInitialRange.endTime);
+      updateClipRange(
+        discoveredInitialRange.startTime,
+        discoveredInitialRange.endTime,
+      );
       return;
     }
 
@@ -259,14 +291,17 @@ export default function EditorScreen({ session, onBack }: Props) {
   const durationExportDisabledReason = !hasDuration
     ? "Waiting for media duration."
     : null;
-  const exportDisabledReason = durationExportDisabledReason ?? subtitleExportSummary.disabledReason;
+  const exportDisabledReason =
+    durationExportDisabledReason ?? subtitleExportSummary.disabledReason;
 
   if (!exportSource.source) {
     return (
       <div className="flex h-dvh items-center justify-center overflow-hidden bg-background p-8 text-foreground">
         <div className="text-center">
           <p className="text-destructive mb-4">No exportable stream found.</p>
-          <button onClick={onBack} className="text-primary hover:underline">Go Back</button>
+          <button onClick={onBack} className="text-primary hover:underline">
+            Go Back
+          </button>
         </div>
       </div>
     );
@@ -350,13 +385,17 @@ export default function EditorScreen({ session, onBack }: Props) {
                     timelineEffects={timelineEffects}
                     activeTimelineScale={activeTimelineScale}
                     timelineScaleCount={timelineScaleCount}
-                    playbackReadyRange={isHlsPreviewSource ? playbackReadyRange : null}
+                    playbackReadyRange={
+                      isHlsPreviewSource ? playbackReadyRange : null
+                    }
                     loadingPreview={loadingPreview}
                     playing={playing}
                     handleTimelineScroll={handleTimelineScroll}
                     handleTimelineChange={handleTimelineChange}
                     handleTimelineActionMoveEnd={handleTimelineActionMoveEnd}
-                    handleTimelineActionResizeEnd={handleTimelineActionResizeEnd}
+                    handleTimelineActionResizeEnd={
+                      handleTimelineActionResizeEnd
+                    }
                     isValidTimelineRange={isValidTimelineRange}
                     seekToTime={seekToTime}
                     onCursorDragStart={() => {
@@ -378,7 +417,9 @@ export default function EditorScreen({ session, onBack }: Props) {
                   providerId={session.source.providerId}
                   subtitleTracks={subtitleTracks}
                   selectedSubtitleTrackKey={selectedSubtitleTrackKey}
-                  onSelectedSubtitleTrackKeyChange={handleSelectedSubtitleTrackChange}
+                  onSelectedSubtitleTrackKeyChange={
+                    handleSelectedSubtitleTrackChange
+                  }
                   subtitlesEnabled={subtitleEnabled}
                   onSubtitlesEnabledChange={setSubtitleEnabled}
                   subtitleStyleSettings={subtitleStyleSettings}
@@ -397,7 +438,10 @@ export default function EditorScreen({ session, onBack }: Props) {
               onOpenChange={setPlaybackSidebarOpen}
               title="Properties"
               icon={Eye}
-              active={previewSourceLabel === "Direct source" || Boolean(playbackFallbackReason)}
+              active={
+                previewSourceLabel === "Direct source" ||
+                Boolean(playbackFallbackReason)
+              }
             >
               <div className="flex h-full min-h-0 flex-col gap-3 overflow-y-auto p-3">
                 <EditorPlaybackSourcePanel
@@ -412,7 +456,9 @@ export default function EditorScreen({ session, onBack }: Props) {
                       providerId={session.source.providerId}
                       subtitleTracks={subtitleTracks}
                       selectedSubtitleTrackKey={selectedSubtitleTrackKey}
-                      onSelectedSubtitleTrackKeyChange={handleSelectedSubtitleTrackChange}
+                      onSelectedSubtitleTrackKeyChange={
+                        handleSelectedSubtitleTrackChange
+                      }
                       subtitlesEnabled={subtitleEnabled}
                       onSubtitlesEnabledChange={setSubtitleEnabled}
                       subtitleStyleSettings={subtitleStyleSettings}
@@ -451,8 +497,16 @@ export default function EditorScreen({ session, onBack }: Props) {
             outputDimensions={outputDimensions}
             hasHlsSource={Boolean(session.hlsSource)}
             hasDirectSource={Boolean(session.directSource)}
-            directSourceLabel={session.directSource ? sourceDisplayLabel(session.directSource) : "Direct/original"}
-            hlsSourceLabel={session.hlsSource ? sourceDisplayLabel(session.hlsSource) : "HLS playback"}
+            directSourceLabel={
+              session.directSource
+                ? sourceDisplayLabel(session.directSource)
+                : "Direct/original"
+            }
+            hlsSourceLabel={
+              session.hlsSource
+                ? sourceDisplayLabel(session.hlsSource)
+                : "HLS playback"
+            }
             exportSourceLabel={exportSourceLabel}
             exportSourceMessage={exportSourceMessage}
             exportSourceSummaryMessage={exportSourceSummaryMessage}
@@ -485,16 +539,19 @@ function buildPlaybackFallbackReason({
   hlsFallbackInfo: PlaybackFallbackInfo | null;
 }) {
   if (
-    (activeSourceLabel !== "Direct source" && activeSourceLabel !== "Local file" && activeSourceLabel !== "URL")
-    || !hasHlsSource
-    || !hlsFallbackInfo
+    (activeSourceLabel !== "Direct source" &&
+      activeSourceLabel !== "Local file" &&
+      activeSourceLabel !== "URL") ||
+    !hasHlsSource ||
+    !hlsFallbackInfo
   ) {
     return null;
   }
 
-  const prefix = hlsFallbackInfo.category === "preview-only"
-    ? "Preview switched sources"
-    : "Using direct media";
+  const prefix =
+    hlsFallbackInfo.category === "preview-only"
+      ? "Preview switched sources"
+      : "Using direct media";
 
   return `${prefix}: ${hlsFallbackInfo.message}`;
 }

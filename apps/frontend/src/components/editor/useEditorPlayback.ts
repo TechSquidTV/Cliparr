@@ -7,7 +7,10 @@ import type {
   WrappedAudioBuffer,
   WrappedCanvas,
 } from "mediabunny";
-import type { SubtitleCue, SubtitleStyleSettings } from "../../lib/subtitles/types";
+import type {
+  SubtitleCue,
+  SubtitleStyleSettings,
+} from "../../lib/subtitles/types";
 import type { EditorMediaSource } from "../../lib/editorMedia";
 import { createCliparrInputFromSource } from "../../lib/mediabunnyInput";
 import {
@@ -86,10 +89,16 @@ interface StaticVideoFrame {
 
 const MAX_STATIC_VIDEO_FRAME_SIZE = 1920;
 
-function scaledStaticFrameDimensions(width: number, height: number): VideoDimensions {
+function scaledStaticFrameDimensions(
+  width: number,
+  height: number,
+): VideoDimensions {
   const safeWidth = Number.isFinite(width) && width > 0 ? width : 1280;
   const safeHeight = Number.isFinite(height) && height > 0 ? height : 720;
-  const scale = Math.min(1, MAX_STATIC_VIDEO_FRAME_SIZE / Math.max(safeWidth, safeHeight));
+  const scale = Math.min(
+    1,
+    MAX_STATIC_VIDEO_FRAME_SIZE / Math.max(safeWidth, safeHeight),
+  );
 
   return {
     width: Math.max(1, Math.round(safeWidth * scale)),
@@ -109,7 +118,10 @@ function loadImageElement(url: string) {
 
 async function loadStaticVideoFrame(url: string): Promise<StaticVideoFrame> {
   const image = await loadImageElement(url);
-  const dimensions = scaledStaticFrameDimensions(image.naturalWidth, image.naturalHeight);
+  const dimensions = scaledStaticFrameDimensions(
+    image.naturalWidth,
+    image.naturalHeight,
+  );
   const canvas = document.createElement("canvas");
   canvas.width = dimensions.width;
   canvas.height = dimensions.height;
@@ -129,7 +141,10 @@ async function loadStaticVideoFrame(url: string): Promise<StaticVideoFrame> {
   };
 }
 
-function initialPlaybackTime(seconds: number | null | undefined, duration: number) {
+function initialPlaybackTime(
+  seconds: number | null | undefined,
+  duration: number,
+) {
   const safeDuration = Math.max(Number.isFinite(duration) ? duration : 0, 0);
   const safeSeconds = Number(seconds);
   if (!Number.isFinite(safeSeconds) || safeSeconds < 0 || safeDuration <= 0) {
@@ -159,32 +174,53 @@ export function useEditorPlayback({
   subtitleStyleSettings,
 }: UseEditorPlaybackProps) {
   const [duration, setDuration] = useState(() => Math.max(initialDuration, 0));
-  const [currentTime, setCurrentTime] = useState(() => initialPlaybackTime(initialCurrentTime, initialDuration));
+  const [currentTime, setCurrentTime] = useState(() =>
+    initialPlaybackTime(initialCurrentTime, initialDuration),
+  );
   const [playing, setPlaying] = useState(false);
   const [loadingPreview, setLoadingPreview] = useState(true);
   const [previewStatus, setPreviewStatus] = useState("Loading stream...");
   const [loadingPreviewFrame, setLoadingPreviewFrame] = useState(false);
-  const [previewFrameStatus, setPreviewFrameStatus] = useState("Loading preview frame...");
+  const [previewFrameStatus, setPreviewFrameStatus] = useState(
+    "Loading preview frame...",
+  );
   const [volume, setVolume] = useState(0.8);
   const [muted, setMuted] = useState(false);
   const [error, setError] = useState("");
   const [activeSourceLabel, setActiveSourceLabel] = useState("");
-  const [exportFallbackSource, setExportFallbackSource] = useState<EditorMediaSource | undefined>(undefined);
-  const [hlsFallbackInfo, setHlsFallbackInfo] = useState<PlaybackFallbackInfo | null>(null);
-  const [sourceVideoDimensions, setSourceVideoDimensions] = useState<VideoDimensions | null>(null);
-  const [previewVideoDimensions, setPreviewVideoDimensions] = useState<VideoDimensions | null>(null);
-  const [playbackReadyRange, setPlaybackReadyRange] = useState<PlaybackReadyRange | null>(null);
+  const [exportFallbackSource, setExportFallbackSource] = useState<
+    EditorMediaSource | undefined
+  >(undefined);
+  const [hlsFallbackInfo, setHlsFallbackInfo] =
+    useState<PlaybackFallbackInfo | null>(null);
+  const [sourceVideoDimensions, setSourceVideoDimensions] =
+    useState<VideoDimensions | null>(null);
+  const [previewVideoDimensions, setPreviewVideoDimensions] =
+    useState<VideoDimensions | null>(null);
+  const [playbackReadyRange, setPlaybackReadyRange] =
+    useState<PlaybackReadyRange | null>(null);
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const inputRef = useRef<Input | null>(null);
   const videoSinkRef = useRef<CanvasSink | null>(null);
   const audioSinkRef = useRef<AudioBufferSink | null>(null);
   const staticVideoFrameRef = useRef<HTMLCanvasElement | null>(null);
-  const videoFrameIteratorRef = useRef<AsyncGenerator<WrappedCanvas, void, unknown> | null>(null);
-  const audioBufferIteratorRef = useRef<AsyncGenerator<WrappedAudioBuffer, void, unknown> | null>(null);
+  const videoFrameIteratorRef = useRef<AsyncGenerator<
+    WrappedCanvas,
+    void,
+    unknown
+  > | null>(null);
+  const audioBufferIteratorRef = useRef<AsyncGenerator<
+    WrappedAudioBuffer,
+    void,
+    unknown
+  > | null>(null);
   const nextFrameRef = useRef<WrappedCanvas | null>(null);
   const displayedFrameRef = useRef<WrappedCanvas | null>(null);
-  const displayedStaticFrameRef = useRef<{ canvas: HTMLCanvasElement; timestamp: number } | null>(null);
+  const displayedStaticFrameRef = useRef<{
+    canvas: HTMLCanvasElement;
+    timestamp: number;
+  } | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
   const gainNodeRef = useRef<GainNode | null>(null);
   const queuedAudioNodesRef = useRef(new Set<AudioBufferSourceNode>());
@@ -199,21 +235,31 @@ export function useEditorPlayback({
   const previewFrameLoadTargetTimeRef = useRef<number | null>(null);
   const selectionWarmupGenerationRef = useRef(0);
   const selectionWarmupPromiseRef = useRef<Promise<void> | null>(null);
-  const selectionWarmupVideoIteratorRef = useRef<AsyncGenerator<WrappedCanvas, void, unknown> | null>(null);
-  const selectionWarmupAudioIteratorRef = useRef<AsyncGenerator<WrappedAudioBuffer, void, unknown> | null>(null);
+  const selectionWarmupVideoIteratorRef = useRef<AsyncGenerator<
+    WrappedCanvas,
+    void,
+    unknown
+  > | null>(null);
+  const selectionWarmupAudioIteratorRef = useRef<AsyncGenerator<
+    WrappedAudioBuffer,
+    void,
+    unknown
+  > | null>(null);
   const selectionWarmupExtensionTimeoutRef = useRef<number | null>(null);
   const autoWarmupSessionKeyRef = useRef<string | null>(null);
   const wasPlayingRef = useRef(false);
   const playingRef = useRef(false);
   const audioContextStartTimeRef = useRef<number | null>(null);
-  const playbackTimeAtStartRef = useRef(initialPlaybackTime(initialCurrentTime, initialDuration));
+  const playbackTimeAtStartRef = useRef(
+    initialPlaybackTime(initialCurrentTime, initialDuration),
+  );
   const playbackStopTimeRef = useRef<number | null>(null);
   const playbackResetTimeRef = useRef<number | null>(null);
   const sourceTimelineOffsetRef = useRef(0);
   const skipLiveWaitRef = useRef(false);
   const activeSourceLabelRef = useRef(activeSourceLabel);
   const playbackReadyRangeRef = useRef<PlaybackReadyRange | null>(null);
-  
+
   const durationRef = useRef(duration);
   const startTimeRef = useRef(startTime);
   const endTimeRef = useRef(endTime);
@@ -256,32 +302,38 @@ export function useEditorPlayback({
     });
   }, []);
 
-  const setPlaybackError = useCallback((message: string) => {
-    clearSelectionWarmState();
-    setError(message);
-  }, [clearSelectionWarmState]);
+  const setPlaybackError = useCallback(
+    (message: string) => {
+      clearSelectionWarmState();
+      setError(message);
+    },
+    [clearSelectionWarmState],
+  );
 
   useEffect(() => {
     if (
-      !playbackReadyRange
-      || playbackReadyRange.status === "idle"
-      || playbackReadyRange.expiresAtMs === undefined
+      !playbackReadyRange ||
+      playbackReadyRange.status === "idle" ||
+      playbackReadyRange.expiresAtMs === undefined
     ) {
       return;
     }
 
     const expiresAtMs = playbackReadyRange.expiresAtMs;
-    const timeoutId = window.setTimeout(() => {
-      setPlaybackReadyRange((current) => {
-        if (!current || current.expiresAtMs !== expiresAtMs) {
-          return current;
-        }
+    const timeoutId = window.setTimeout(
+      () => {
+        setPlaybackReadyRange((current) => {
+          if (!current || current.expiresAtMs !== expiresAtMs) {
+            return current;
+          }
 
-        const next = resetPlaybackReadyRangeWarmState(current);
-        playbackReadyRangeRef.current = next;
-        return next;
-      });
-    }, Math.max(0, expiresAtMs - Date.now()));
+          const next = resetPlaybackReadyRangeWarmState(current);
+          playbackReadyRangeRef.current = next;
+          return next;
+        });
+      },
+      Math.max(0, expiresAtMs - Date.now()),
+    );
 
     return () => {
       window.clearTimeout(timeoutId);
@@ -323,7 +375,7 @@ export function useEditorPlayback({
       return clampTime(
         audioContextRef.current.currentTime -
           audioContextStartTimeRef.current +
-          playbackTimeAtStartRef.current
+          playbackTimeAtStartRef.current,
       );
     }
     return clampTime(playbackTimeAtStartRef.current);
@@ -333,18 +385,21 @@ export function useEditorPlayback({
     stopQueuedAudioNodes(queuedAudioNodesRef.current);
   }, []);
 
-  const pausePlayback = useCallback((storeCurrentTime = true) => {
-    if (storeCurrentTime) {
-      const nextTime = getPlaybackTime();
-      playbackTimeAtStartRef.current = nextTime;
-      setCurrentTime(nextTime);
-    }
-    playingRef.current = false;
-    setPlaying(false);
-    void audioBufferIteratorRef.current?.return();
-    audioBufferIteratorRef.current = null;
-    stopAudioNodes();
-  }, [getPlaybackTime, stopAudioNodes]);
+  const pausePlayback = useCallback(
+    (storeCurrentTime = true) => {
+      if (storeCurrentTime) {
+        const nextTime = getPlaybackTime();
+        playbackTimeAtStartRef.current = nextTime;
+        setCurrentTime(nextTime);
+      }
+      playingRef.current = false;
+      setPlaying(false);
+      void audioBufferIteratorRef.current?.return();
+      audioBufferIteratorRef.current = null;
+      stopAudioNodes();
+    },
+    [getPlaybackTime, stopAudioNodes],
+  );
 
   const {
     drawCanvasFrame,
@@ -426,77 +481,88 @@ export function useEditorPlayback({
     setLoadingPreviewFrame(false);
   }, []);
 
-  const loadPreviewFrameAtPlaybackTime = useCallback(async (
-    status = "Loading preview frame...",
-  ) => {
-    const targetTime = Number(clampTime(playbackTimeAtStartRef.current).toFixed(6));
-    const pendingLoad = previewFrameLoadPromiseRef.current;
-    const pendingTargetTime = previewFrameLoadTargetTimeRef.current;
-    if (
-      pendingLoad
-      && pendingTargetTime !== null
-      && Math.abs(pendingTargetTime - targetTime) < 1e-6
-    ) {
-      return pendingLoad;
-    }
-
-    const frameLoadGeneration = ++previewFrameLoadGenerationRef.current;
-    setPreviewFrameStatus(status);
-    setLoadingPreviewFrame(true);
-
-    const frameLoadPromise = startVideoIterator();
-    previewFrameLoadPromiseRef.current = frameLoadPromise;
-    previewFrameLoadTargetTimeRef.current = targetTime;
-
-    try {
-      await frameLoadPromise;
-    } finally {
-      if (frameLoadGeneration === previewFrameLoadGenerationRef.current) {
-        previewFrameLoadPromiseRef.current = null;
-        previewFrameLoadTargetTimeRef.current = null;
-        setLoadingPreviewFrame(false);
+  const loadPreviewFrameAtPlaybackTime = useCallback(
+    async (status = "Loading preview frame...") => {
+      const targetTime = Number(
+        clampTime(playbackTimeAtStartRef.current).toFixed(6),
+      );
+      const pendingLoad = previewFrameLoadPromiseRef.current;
+      const pendingTargetTime = previewFrameLoadTargetTimeRef.current;
+      if (
+        pendingLoad &&
+        pendingTargetTime !== null &&
+        Math.abs(pendingTargetTime - targetTime) < 1e-6
+      ) {
+        return pendingLoad;
       }
-    }
-  }, [clampTime, startVideoIterator]);
 
-  const resetPreview = useCallback((advanceGeneration = false, clearActiveSource = false) => {
-    if (advanceGeneration) {
-      generationRef.current++;
-    }
-    warmupGenerationRef.current++;
-    cancelSelectionWarmup();
-    autoWarmupSessionKeyRef.current = null;
-    if (clearActiveSource) {
-      setActiveSourceLabel("");
-    }
-    setSourceVideoDimensions(null);
-    setPreviewVideoDimensions(null);
-    pausePlayback(false);
-    stopRenderLoop();
-    void videoFrameIteratorRef.current?.return();
-    void audioBufferIteratorRef.current?.return();
-    videoFrameIteratorRef.current = null;
-    audioBufferIteratorRef.current = null;
-    nextFrameRef.current = null;
-    staticVideoFrameRef.current = null;
-    sourceTimelineOffsetRef.current = 0;
-    skipLiveWaitRef.current = false;
-    playbackStopTimeRef.current = null;
-    playbackResetTimeRef.current = null;
-    warmupPromiseRef.current = null;
-    warmupTargetTimeRef.current = null;
-    clearPreviewFrameLoad();
-    displayedFrameRef.current = null;
-    displayedStaticFrameRef.current = null;
-    disposePlaybackSinkResources({
-      inputRef,
-      videoSinkRef,
-      audioSinkRef,
-      audioContextRef,
-      gainNodeRef,
-    });
-    setPlaybackReadyRange(null);
-  }, [cancelSelectionWarmup, clearPreviewFrameLoad, pausePlayback, stopRenderLoop]);
+      const frameLoadGeneration = ++previewFrameLoadGenerationRef.current;
+      setPreviewFrameStatus(status);
+      setLoadingPreviewFrame(true);
+
+      const frameLoadPromise = startVideoIterator();
+      previewFrameLoadPromiseRef.current = frameLoadPromise;
+      previewFrameLoadTargetTimeRef.current = targetTime;
+
+      try {
+        await frameLoadPromise;
+      } finally {
+        if (frameLoadGeneration === previewFrameLoadGenerationRef.current) {
+          previewFrameLoadPromiseRef.current = null;
+          previewFrameLoadTargetTimeRef.current = null;
+          setLoadingPreviewFrame(false);
+        }
+      }
+    },
+    [clampTime, startVideoIterator],
+  );
+
+  const resetPreview = useCallback(
+    (advanceGeneration = false, clearActiveSource = false) => {
+      if (advanceGeneration) {
+        generationRef.current++;
+      }
+      warmupGenerationRef.current++;
+      cancelSelectionWarmup();
+      autoWarmupSessionKeyRef.current = null;
+      if (clearActiveSource) {
+        setActiveSourceLabel("");
+      }
+      setSourceVideoDimensions(null);
+      setPreviewVideoDimensions(null);
+      pausePlayback(false);
+      stopRenderLoop();
+      void videoFrameIteratorRef.current?.return();
+      void audioBufferIteratorRef.current?.return();
+      videoFrameIteratorRef.current = null;
+      audioBufferIteratorRef.current = null;
+      nextFrameRef.current = null;
+      staticVideoFrameRef.current = null;
+      sourceTimelineOffsetRef.current = 0;
+      skipLiveWaitRef.current = false;
+      playbackStopTimeRef.current = null;
+      playbackResetTimeRef.current = null;
+      warmupPromiseRef.current = null;
+      warmupTargetTimeRef.current = null;
+      clearPreviewFrameLoad();
+      displayedFrameRef.current = null;
+      displayedStaticFrameRef.current = null;
+      disposePlaybackSinkResources({
+        inputRef,
+        videoSinkRef,
+        audioSinkRef,
+        audioContextRef,
+        gainNodeRef,
+      });
+      setPlaybackReadyRange(null);
+    },
+    [
+      cancelSelectionWarmup,
+      clearPreviewFrameLoad,
+      pausePlayback,
+      stopRenderLoop,
+    ],
+  );
 
   useEffect(() => {
     const displayedFrame = displayedFrameRef.current;
@@ -509,31 +575,40 @@ export function useEditorPlayback({
     if (displayedStaticFrame) {
       drawCanvasFrame(displayedStaticFrame);
     }
-  }, [drawCanvasFrame, drawFrame, subtitleCues, subtitlesEnabled, subtitleStyleSettings]);
+  }, [
+    drawCanvasFrame,
+    drawFrame,
+    subtitleCues,
+    subtitlesEnabled,
+    subtitleStyleSettings,
+  ]);
 
   const disposePreview = useCallback(() => {
     resetPreview(true, true);
   }, [resetPreview]);
 
-  const runAudioIterator = useCallback(async (generation: number) => {
-    await runPlaybackAudioIterator({
-      iterator: audioBufferIteratorRef.current,
-      audioContext: audioContextRef.current,
-      gainNode: gainNodeRef.current,
-      queuedAudioNodes: queuedAudioNodesRef.current,
-      generation,
-      generationRef,
-      playingRef,
-      audioContextStartTimeRef,
-      playbackTimeAtStartRef,
-      sourceTimelineOffsetRef,
-      getPlaybackTime,
-      onError: (err) => {
-        setPlaybackError(errorMessage(err));
-        pausePlayback();
-      },
-    });
-  }, [getPlaybackTime, pausePlayback, setPlaybackError]);
+  const runAudioIterator = useCallback(
+    async (generation: number) => {
+      await runPlaybackAudioIterator({
+        iterator: audioBufferIteratorRef.current,
+        audioContext: audioContextRef.current,
+        gainNode: gainNodeRef.current,
+        queuedAudioNodes: queuedAudioNodesRef.current,
+        generation,
+        generationRef,
+        playingRef,
+        audioContextStartTimeRef,
+        playbackTimeAtStartRef,
+        sourceTimelineOffsetRef,
+        getPlaybackTime,
+        onError: (err) => {
+          setPlaybackError(errorMessage(err));
+          pausePlayback();
+        },
+      });
+    },
+    [getPlaybackTime, pausePlayback, setPlaybackError],
+  );
 
   const playPreview = useCallback(async () => {
     if (!inputRef.current || loadingPreview) {
@@ -541,7 +616,10 @@ export function useEditorPlayback({
     }
 
     const clipStart = clampTime(startTimeRef.current);
-    const clipEnd = Math.min(endTimeRef.current || durationRef.current, durationRef.current);
+    const clipEnd = Math.min(
+      endTimeRef.current || durationRef.current,
+      durationRef.current,
+    );
     const playbackTime = getPlaybackTime();
     const playbackPlan = resolvePreviewPlaybackPlan({
       currentTime: playbackTime,
@@ -556,9 +634,9 @@ export function useEditorPlayback({
     const pendingWarmup = warmupPromiseRef.current;
     const warmupTargetTime = warmupTargetTimeRef.current;
     if (
-      pendingWarmup
-      && warmupTargetTime !== null
-      && Math.abs(warmupTargetTime - playbackStartTarget) < 1e-6
+      pendingWarmup &&
+      warmupTargetTime !== null &&
+      Math.abs(warmupTargetTime - playbackStartTarget) < 1e-6
     ) {
       await pendingWarmup.catch(() => undefined);
       if (!inputRef.current || loadingPreview) {
@@ -569,9 +647,9 @@ export function useEditorPlayback({
     const pendingFrameLoad = previewFrameLoadPromiseRef.current;
     const pendingFrameTargetTime = previewFrameLoadTargetTimeRef.current;
     if (
-      pendingFrameLoad
-      && pendingFrameTargetTime !== null
-      && Math.abs(pendingFrameTargetTime - playbackStartTarget) < 1e-6
+      pendingFrameLoad &&
+      pendingFrameTargetTime !== null &&
+      Math.abs(pendingFrameTargetTime - playbackStartTarget) < 1e-6
     ) {
       await pendingFrameLoad;
       if (!inputRef.current || loadingPreview) {
@@ -614,9 +692,14 @@ export function useEditorPlayback({
 
     if (audioSinkRef.current) {
       void audioBufferIteratorRef.current?.return();
-      const packetRetrievalOptions = skipLiveWaitRef.current ? { skipLiveWait: true } : undefined;
+      const packetRetrievalOptions = skipLiveWaitRef.current
+        ? { skipLiveWait: true }
+        : undefined;
       audioBufferIteratorRef.current = audioSinkRef.current.buffers(
-        toSourceTimelineTime(getPlaybackTime(), sourceTimelineOffsetRef.current),
+        toSourceTimelineTime(
+          getPlaybackTime(),
+          sourceTimelineOffsetRef.current,
+        ),
         Infinity,
         packetRetrievalOptions,
       );
@@ -645,78 +728,87 @@ export function useEditorPlayback({
     });
   }, [pausePlayback, playPreview, setPlaybackError]);
 
-  const seekToTime = useCallback(async (seconds: number) => {
-    const nextTime = clampTime(seconds);
-    const wasPlaying = playingRef.current;
-    const currentReadyRange = playbackReadyRangeRef.current;
-    const seekPlaybackPlan = resolvePreviewPlaybackPlan({
-      currentTime: nextTime,
-      clipStart: startTimeRef.current,
-      clipEnd: endTimeRef.current,
-      duration: durationRef.current,
-    });
+  const seekToTime = useCallback(
+    async (seconds: number) => {
+      const nextTime = clampTime(seconds);
+      const wasPlaying = playingRef.current;
+      const currentReadyRange = playbackReadyRangeRef.current;
+      const seekPlaybackPlan = resolvePreviewPlaybackPlan({
+        currentTime: nextTime,
+        clipStart: startTimeRef.current,
+        clipEnd: endTimeRef.current,
+        duration: durationRef.current,
+      });
 
-    if (wasPlaying) {
-      pausePlayback();
-    }
-
-    if (seekPlaybackPlan.mode === "source") {
-      clearSelectionWarmState();
-    }
-
-    playbackStopTimeRef.current = null;
-    playbackResetTimeRef.current = null;
-    playbackTimeAtStartRef.current = nextTime;
-    setCurrentTime(nextTime);
-    try {
-      await loadPreviewFrameAtPlaybackTime();
-    } catch (err) {
-      setPlaybackError(errorMessage(err));
-      return;
-    }
-
-    if (
-      !wasPlaying
-      && (activeSourceLabelRef.current === "HLS stream" || activeSourceLabelRef.current === "HLS URL")
-      && (
-        !currentReadyRange
-        || nextTime < currentReadyRange.startTime
-        || nextTime > currentReadyRange.readyUntilTime
-      )
-    ) {
-      void warmClipStart(nextTime);
-      if (seekPlaybackPlan.mode === "selection") {
-        void warmClipSelection(startTimeRef.current, endTimeRef.current, {
-          extendToSelectionEnd: false,
-        });
-        scheduleSelectionWarmupExtension(startTimeRef.current, endTimeRef.current);
-      } else {
-        cancelSelectionWarmup();
+      if (wasPlaying) {
+        pausePlayback();
       }
-    }
 
-    if (wasPlaying && nextTime < durationRef.current && !playingRef.current) {
-      void playPreview();
-    }
-  }, [
-    cancelSelectionWarmup,
-    clampTime,
-    clearSelectionWarmState,
-    loadPreviewFrameAtPlaybackTime,
-    pausePlayback,
-    playPreview,
-    scheduleSelectionWarmupExtension,
-    setPlaybackError,
-    warmClipStart,
-    warmClipSelection,
-  ]);
+      if (seekPlaybackPlan.mode === "source") {
+        clearSelectionWarmState();
+      }
+
+      playbackStopTimeRef.current = null;
+      playbackResetTimeRef.current = null;
+      playbackTimeAtStartRef.current = nextTime;
+      setCurrentTime(nextTime);
+      try {
+        await loadPreviewFrameAtPlaybackTime();
+      } catch (err) {
+        setPlaybackError(errorMessage(err));
+        return;
+      }
+
+      if (
+        !wasPlaying &&
+        (activeSourceLabelRef.current === "HLS stream" ||
+          activeSourceLabelRef.current === "HLS URL") &&
+        (!currentReadyRange ||
+          nextTime < currentReadyRange.startTime ||
+          nextTime > currentReadyRange.readyUntilTime)
+      ) {
+        void warmClipStart(nextTime);
+        if (seekPlaybackPlan.mode === "selection") {
+          void warmClipSelection(startTimeRef.current, endTimeRef.current, {
+            extendToSelectionEnd: false,
+          });
+          scheduleSelectionWarmupExtension(
+            startTimeRef.current,
+            endTimeRef.current,
+          );
+        } else {
+          cancelSelectionWarmup();
+        }
+      }
+
+      if (wasPlaying && nextTime < durationRef.current && !playingRef.current) {
+        void playPreview();
+      }
+    },
+    [
+      cancelSelectionWarmup,
+      clampTime,
+      clearSelectionWarmState,
+      loadPreviewFrameAtPlaybackTime,
+      pausePlayback,
+      playPreview,
+      scheduleSelectionWarmupExtension,
+      setPlaybackError,
+      warmClipStart,
+      warmClipSelection,
+    ],
+  );
 
   useEffect(() => {
-    const playbackSources = buildPlaybackSourceCandidates(hlsSource, directSource);
-    const fallbackDirectSource = playbackSources.find((source) =>
-      source.label === "direct source"
-      || source.label === "local file"
-      || source.label === "url"
+    const playbackSources = buildPlaybackSourceCandidates(
+      hlsSource,
+      directSource,
+    );
+    const fallbackDirectSource = playbackSources.find(
+      (source) =>
+        source.label === "direct source" ||
+        source.label === "local file" ||
+        source.label === "url",
     )?.source;
     if (playbackSources.length === 0) {
       return;
@@ -738,7 +830,10 @@ export function useEditorPlayback({
       durationRef.current = resetDuration;
       setSourceVideoDimensions(null);
       setPreviewVideoDimensions(null);
-      const resetCurrentTime = initialPlaybackTime(initialCurrentTime, resetDuration);
+      const resetCurrentTime = initialPlaybackTime(
+        initialCurrentTime,
+        resetDuration,
+      );
       setCurrentTime(resetCurrentTime);
       playbackTimeAtStartRef.current = resetCurrentTime;
       sourceTimelineOffsetRef.current = 0;
@@ -752,11 +847,13 @@ export function useEditorPlayback({
         let nextHlsFallbackInfo: PlaybackFallbackInfo | null = null;
 
         for (const playbackSource of playbackSources) {
-          let playbackSourceAnalysisContext: PlaybackSourceAnalysisContext | undefined;
+          let playbackSourceAnalysisContext:
+            | PlaybackSourceAnalysisContext
+            | undefined;
           setPreviewStatus(
             failures.length === 0
               ? `Loading ${playbackSource.label}...`
-              : `${describePlaybackFailure(failures[failures.length - 1])} Retrying with ${playbackSource.label}...`
+              : `${describePlaybackFailure(failures[failures.length - 1])} Retrying with ${playbackSource.label}...`,
           );
 
           try {
@@ -767,55 +864,70 @@ export function useEditorPlayback({
               return;
             }
 
-            const input = await createCliparrInputFromSource(playbackSource.source, {
-              hls: playbackSource.label === "hls stream" || playbackSource.label === "hls url",
-            });
+            const input = await createCliparrInputFromSource(
+              playbackSource.source,
+              {
+                hls:
+                  playbackSource.label === "hls stream" ||
+                  playbackSource.label === "hls url",
+              },
+            );
             inputRef.current = input;
 
             const videoTracks = await input.getVideoTracks({
               filter: async (track) => !(await track.hasOnlyKeyPackets()),
             });
-            const {
-              sourceVideoTrack,
-              previewVideoTrack,
-              warnings,
-            } = await selectPreviewVideoTrack(videoTracks);
+            const { sourceVideoTrack, previewVideoTrack, warnings } =
+              await selectPreviewVideoTrack(videoTracks);
             const allAudioTracks = await input.getAudioTracks();
             const sourceAudioTrack = await selectPreferredPairableAudioTrack(
               sourceVideoTrack,
               allAudioTracks,
-              selectedAudioTrack
+              selectedAudioTrack,
             );
             let previewAudioTrack = await selectPreferredPairableAudioTrack(
               previewVideoTrack,
               allAudioTracks,
-              selectedAudioTrack
+              selectedAudioTrack,
             );
-            const sourceTracks: InputTrack[] = [sourceVideoTrack, sourceAudioTrack].filter(isPresent);
-            const timelineTracks = sourceTracks.length > 0
-              ? sourceTracks
-              : [previewVideoTrack, previewAudioTrack].filter(isPresent);
+            const sourceTracks: InputTrack[] = [
+              sourceVideoTrack,
+              sourceAudioTrack,
+            ].filter(isPresent);
+            const timelineTracks =
+              sourceTracks.length > 0
+                ? sourceTracks
+                : [previewVideoTrack, previewAudioTrack].filter(isPresent);
             const trackLiveRefreshIntervals = await Promise.all(
-              timelineTracks.map((track) => track.getLiveRefreshInterval())
+              timelineTracks.map((track) => track.getLiveRefreshInterval()),
             );
-            const isLivePlayback = trackLiveRefreshIntervals.some((value) => value !== null);
+            const isLivePlayback = trackLiveRefreshIntervals.some(
+              (value) => value !== null,
+            );
             skipLiveWaitRef.current = isLivePlayback;
 
-            const previewAudioAssessment = await assessPreviewAudioTrack(previewAudioTrack);
+            const previewAudioAssessment =
+              await assessPreviewAudioTrack(previewAudioTrack);
             previewAudioTrack = previewAudioAssessment.track;
             if (previewAudioAssessment.warning) {
               warnings.push(previewAudioAssessment.warning);
             }
-            const staticVideoFrame = !sourceVideoTrack && previewAudioTrack && posterImageUrl
-              ? await loadStaticVideoFrame(posterImageUrl).catch((err: unknown) => {
-                  console.warn("Could not load editor artwork for audio-only preview", {
-                    sessionId,
-                    posterImageUrl,
-                    errorMessage: errorMessage(err),
-                  });
-                  return null;
-                })
-              : null;
+            const staticVideoFrame =
+              !sourceVideoTrack && previewAudioTrack && posterImageUrl
+                ? await loadStaticVideoFrame(posterImageUrl).catch(
+                    (err: unknown) => {
+                      console.warn(
+                        "Could not load editor artwork for audio-only preview",
+                        {
+                          sessionId,
+                          posterImageUrl,
+                          errorMessage: errorMessage(err),
+                        },
+                      );
+                      return null;
+                    },
+                  )
+                : null;
             playbackSourceAnalysisContext = {
               sessionId,
               source: playbackSource.label,
@@ -838,50 +950,82 @@ export function useEditorPlayback({
 
             staticVideoFrameRef.current = staticVideoFrame?.canvas ?? null;
 
-            if (previewVideoTrack && allAudioTracks.length > 0 && !previewAudioTrack && playbackSourceAnalysisContext) {
+            if (
+              previewVideoTrack &&
+              allAudioTracks.length > 0 &&
+              !previewAudioTrack &&
+              playbackSourceAnalysisContext
+            ) {
               console.warn(
                 "Editor playback source loaded without preview audio",
-                await buildPlaybackSourceAnalysis(playbackSourceAnalysisContext),
+                await buildPlaybackSourceAnalysis(
+                  playbackSourceAnalysisContext,
+                ),
               );
             }
 
-            if (!previewVideoTrack && previewAudioTrack && !staticVideoFrame && playbackSourceAnalysisContext) {
+            if (
+              !previewVideoTrack &&
+              previewAudioTrack &&
+              !staticVideoFrame &&
+              playbackSourceAnalysisContext
+            ) {
               console.warn(
                 "Editor playback source loaded without preview video",
-                await buildPlaybackSourceAnalysis(playbackSourceAnalysisContext),
+                await buildPlaybackSourceAnalysis(
+                  playbackSourceAnalysisContext,
+                ),
               );
             }
 
-            const decoderEnvironmentWarning = browserDecoderEnvironmentWarning();
-            if (sourceVideoTrack && !previewVideoTrack && decoderEnvironmentWarning) {
-              throw new PlaybackSourceError("shared-export-blocking", decoderEnvironmentWarning);
+            const decoderEnvironmentWarning =
+              browserDecoderEnvironmentWarning();
+            if (
+              sourceVideoTrack &&
+              !previewVideoTrack &&
+              decoderEnvironmentWarning
+            ) {
+              throw new PlaybackSourceError(
+                "shared-export-blocking",
+                decoderEnvironmentWarning,
+              );
             }
 
             if (!previewVideoTrack && !previewAudioTrack) {
               throw new PlaybackSourceError(
-                decoderEnvironmentWarning ? "shared-export-blocking" : "preview-only",
-                decoderEnvironmentWarning ?? (warnings.join(" ") || "No decodable audio or video track found.")
+                decoderEnvironmentWarning
+                  ? "shared-export-blocking"
+                  : "preview-only",
+                decoderEnvironmentWarning ??
+                  (warnings.join(" ") ||
+                    "No decodable audio or video track found."),
               );
             }
 
             const durationTracks = sourceTracks;
-            const timelineOffsetSeconds = await getTrackTimelineOffsetSeconds(durationTracks);
+            const timelineOffsetSeconds =
+              await getTrackTimelineOffsetSeconds(durationTracks);
             sourceTimelineOffsetRef.current = timelineOffsetSeconds;
-            const metadataDuration = durationTracks.length > 0
-              ? await input.getDurationFromMetadata(
-                durationTracks,
-                isLivePlayback ? { skipLiveWait: true } : undefined
-              )
-              : null;
-            const sourceTimelineEnd = durationTracks.length > 0
-              ? metadataDuration && metadataDuration > 0
-                ? metadataDuration
-                : await input.computeDuration(
-                  durationTracks,
-                  isLivePlayback ? { skipLiveWait: true } : undefined
-                )
-              : Math.max(initialDuration, 0);
-            const computedDuration = fromSourceTimelineTime(sourceTimelineEnd, timelineOffsetSeconds);
+            const metadataDuration =
+              durationTracks.length > 0
+                ? await input.getDurationFromMetadata(
+                    durationTracks,
+                    isLivePlayback ? { skipLiveWait: true } : undefined,
+                  )
+                : null;
+            const sourceTimelineEnd =
+              durationTracks.length > 0
+                ? metadataDuration && metadataDuration > 0
+                  ? metadataDuration
+                  : await input.computeDuration(
+                      durationTracks,
+                      isLivePlayback ? { skipLiveWait: true } : undefined,
+                    )
+                : Math.max(initialDuration, 0);
+            const computedDuration = fromSourceTimelineTime(
+              sourceTimelineEnd,
+              timelineOffsetSeconds,
+            );
             const nextDuration = resolvePlaybackDuration(
               playbackSource,
               computedDuration,
@@ -889,14 +1033,18 @@ export function useEditorPlayback({
             );
             setDuration(nextDuration);
             durationRef.current = nextDuration;
-            const nextCurrentTime = initialPlaybackTime(initialCurrentTime, nextDuration);
+            const nextCurrentTime = initialPlaybackTime(
+              initialCurrentTime,
+              nextDuration,
+            );
             setCurrentTime(nextCurrentTime);
             playbackTimeAtStartRef.current = nextCurrentTime;
 
             const sourceDimensions = sourceVideoTrack
               ? await getVideoTrackDimensions(sourceVideoTrack)
               : null;
-            const previewDimensions = sourceDimensions ?? staticVideoFrame?.dimensions ?? null;
+            const previewDimensions =
+              sourceDimensions ?? staticVideoFrame?.dimensions ?? null;
             const audioTrackSampleRate = previewAudioTrack
               ? await getAudioTrackSampleRate(previewAudioTrack)
               : undefined;
@@ -938,20 +1086,22 @@ export function useEditorPlayback({
             }
 
             startRenderLoop();
-            setActiveSourceLabel(formatPlaybackSourceLabel(playbackSource.label));
+            setActiveSourceLabel(
+              formatPlaybackSourceLabel(playbackSource.label),
+            );
             setExportFallbackSource(
-              playbackSource.label === "direct source"
-              || playbackSource.label === "local file"
-              || playbackSource.label === "url"
+              playbackSource.label === "direct source" ||
+                playbackSource.label === "local file" ||
+                playbackSource.label === "url"
                 ? nextExportFallbackSource
-                : undefined
+                : undefined,
             );
             setHlsFallbackInfo(
-              playbackSource.label === "direct source"
-              || playbackSource.label === "local file"
-              || playbackSource.label === "url"
+              playbackSource.label === "direct source" ||
+                playbackSource.label === "local file" ||
+                playbackSource.label === "url"
                 ? nextHlsFallbackInfo
-                : null
+                : null,
             );
             return;
           } catch (err) {
@@ -962,17 +1112,14 @@ export function useEditorPlayback({
               : undefined;
 
             if (
-              (failure.label === "hls stream" || failure.label === "hls url")
-              && shouldUseExportFallback(failure)
-              && fallbackDirectSource
+              (failure.label === "hls stream" || failure.label === "hls url") &&
+              shouldUseExportFallback(failure) &&
+              fallbackDirectSource
             ) {
               nextExportFallbackSource = fallbackDirectSource;
             }
 
-            if (
-              failure.label === "hls stream"
-              || failure.label === "hls url"
-            ) {
+            if (failure.label === "hls stream" || failure.label === "hls url") {
               nextHlsFallbackInfo = {
                 category: failure.category,
                 message: failure.message,

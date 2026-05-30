@@ -10,6 +10,7 @@ import { providers } from "../../data/product";
 Cliparr uses provider sources to discover active playback sessions, load playable streams, and attach useful metadata to exported clips.
 
 {providers.map((provider) => (
+
   <section>
     <h2>{provider.name}</h2>
     <p>{provider.setup}</p>
@@ -24,7 +25,8 @@ Cliparr uses provider sources to discover active playback sessions, load playabl
 Provider-backed clips can include media-server metadata in the exported file, such as title, show, season, episode, artwork, rating, and timing details when the source provides them.
 
 <Callout title="Credentials stay encrypted" tone="info">
-  Provider credentials are persisted so Cliparr can refresh sessions later. Keep `APP_KEY` stable so those credentials remain decryptable.
+  Provider credentials are persisted so Cliparr can refresh sessions later. Keep
+  `APP_KEY` stable so those credentials remain decryptable.
 </Callout>
 
 ## Multiple sources

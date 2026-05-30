@@ -18,12 +18,15 @@ interface Props {
   variant?: "panel" | "screen";
 }
 
-const devJellyfinUrl = typeof import.meta.env.VITE_CLIPARR_DEV_JELLYFIN_URL === "string"
-  ? import.meta.env.VITE_CLIPARR_DEV_JELLYFIN_URL.trim()
-  : "";
+const devJellyfinUrl =
+  typeof import.meta.env.VITE_CLIPARR_DEV_JELLYFIN_URL === "string"
+    ? import.meta.env.VITE_CLIPARR_DEV_JELLYFIN_URL.trim()
+    : "";
 
 function isLoopbackUrl(value: string) {
-  return /^https?:\/\/(?:localhost|127(?:\.\d{1,3}){3}|\[::1\]|::1)(?:[:/]|$)/i.test(value.trim());
+  return /^https?:\/\/(?:localhost|127(?:\.\d{1,3}){3}|\[::1\]|::1)(?:[:/]|$)/i.test(
+    value.trim(),
+  );
 }
 
 export default function ProviderConnectFlow({
@@ -58,12 +61,14 @@ export default function ProviderConnectFlow({
     ? providerPresentation(selectedProvider, variant)
     : undefined;
 
-  const jellyfinLoopbackWarning = selectedProvider?.id === "jellyfin"
-    && Boolean(devJellyfinUrl)
-    && isLoopbackUrl(serverUrl);
-  const isUsingDevJellyfinUrl = selectedProvider?.id === "jellyfin"
-    && Boolean(devJellyfinUrl)
-    && serverUrl.trim() === devJellyfinUrl;
+  const jellyfinLoopbackWarning =
+    selectedProvider?.id === "jellyfin" &&
+    Boolean(devJellyfinUrl) &&
+    isLoopbackUrl(serverUrl);
+  const isUsingDevJellyfinUrl =
+    selectedProvider?.id === "jellyfin" &&
+    Boolean(devJellyfinUrl) &&
+    serverUrl.trim() === devJellyfinUrl;
 
   function renderPinContent() {
     if (!selectedProvider) {
@@ -168,7 +173,9 @@ export default function ProviderConnectFlow({
               inputMode="url"
               value={serverUrl}
               onChange={(event) => setServerUrl(event.target.value)}
-              placeholder={devJellyfinUrl || "https://media.example.com/jellyfin"}
+              placeholder={
+                devJellyfinUrl || "https://media.example.com/jellyfin"
+              }
               disabled={authenticating}
               className="mt-2 h-11 w-full rounded-2xl border border-input bg-card px-4 text-sm text-foreground outline-none transition-colors focus:border-ring disabled:cursor-not-allowed disabled:opacity-60"
             />
@@ -180,12 +187,15 @@ export default function ProviderConnectFlow({
                 "rounded-2xl border px-4 py-3 text-sm",
                 isUsingDevJellyfinUrl
                   ? "border-primary/25 bg-primary/10 text-foreground"
-                  : "border-border bg-card text-muted-foreground"
+                  : "border-border bg-card text-muted-foreground",
               )}
             >
               <p className="leading-6">
                 Docker Jellyfin URL:{" "}
-                <span className="font-mono text-foreground">{devJellyfinUrl}</span>.
+                <span className="font-mono text-foreground">
+                  {devJellyfinUrl}
+                </span>
+                .
               </p>
 
               <div className="mt-3 flex flex-wrap items-center gap-2">
@@ -220,7 +230,9 @@ export default function ProviderConnectFlow({
           {jellyfinLoopbackWarning && (
             <div className="rounded-2xl border border-primary/25 bg-primary/10 px-4 py-3 text-sm text-foreground">
               <p className="leading-6">
-                Docker will use <span className="font-mono">{devJellyfinUrl}</span> for this localhost URL.
+                Docker will use{" "}
+                <span className="font-mono">{devJellyfinUrl}</span> for this
+                localhost URL.
               </p>
             </div>
           )}
@@ -305,7 +317,12 @@ export default function ProviderConnectFlow({
   }
 
   function renderAuthProgress() {
-    if (!selectedProvider || !authenticating || !authId || providerId !== selectedProvider.id) {
+    if (
+      !selectedProvider ||
+      !authenticating ||
+      !authId ||
+      providerId !== selectedProvider.id
+    ) {
       return null;
     }
 
@@ -376,7 +393,9 @@ export default function ProviderConnectFlow({
         </div>
 
         <div className={cn("mt-6", isScreen && "flex-1")}>
-          {selectedProvider.auth === "pin" ? renderPinContent() : renderCredentialsContent()}
+          {selectedProvider.auth === "pin"
+            ? renderPinContent()
+            : renderCredentialsContent()}
         </div>
 
         {renderAuthProgress()}
@@ -458,12 +477,14 @@ export default function ProviderConnectFlow({
     );
 
     return (
-      <div className={cn(
-        "grid",
-        isScreen
-          ? "gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.12fr)]"
-          : "gap-4 xl:grid-cols-[minmax(0,0.92fr)_minmax(0,1.08fr)]"
-      )}>
+      <div
+        className={cn(
+          "grid",
+          isScreen
+            ? "gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.12fr)]"
+            : "gap-4 xl:grid-cols-[minmax(0,0.92fr)_minmax(0,1.08fr)]",
+        )}
+      >
         {isScreen ? (
           <motion.div
             initial={{ opacity: 0, x: -12 }}
@@ -474,9 +495,7 @@ export default function ProviderConnectFlow({
             {providerList}
           </motion.div>
         ) : (
-          <div className="space-y-3">
-            {providerList}
-          </div>
+          <div className="space-y-3">{providerList}</div>
         )}
 
         {renderSelectedProvider()}

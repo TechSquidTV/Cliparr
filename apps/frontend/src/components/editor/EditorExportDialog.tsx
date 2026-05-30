@@ -53,7 +53,10 @@ interface EditorExportDialogProps {
   editingTemplateKind: ExportFileNameTemplateKind;
   onEditingTemplateKindChange: (kind: ExportFileNameTemplateKind) => void;
   fileNameTemplates: ExportFileNameTemplateSettings;
-  onFileNameTemplateChange: (kind: ExportFileNameTemplateKind, template: string) => void;
+  onFileNameTemplateChange: (
+    kind: ExportFileNameTemplateKind,
+    template: string,
+  ) => void;
   onResetFileNameTemplate: (kind: ExportFileNameTemplateKind) => void;
   onClose: () => void;
   onExport: () => void;
@@ -132,7 +135,10 @@ export function EditorExportDialog({
         <header className="border-b border-border bg-card px-4 py-3">
           <div className="flex items-start justify-between gap-3">
             <div className="space-y-1">
-              <h2 id="cliparr-export-dialog-title" className="text-sm font-semibold uppercase tracking-[var(--tracking-caps-md)] text-foreground">
+              <h2
+                id="cliparr-export-dialog-title"
+                className="text-sm font-semibold uppercase tracking-[var(--tracking-caps-md)] text-foreground"
+              >
                 Export Clip
               </h2>
               <p className="text-xs text-muted-foreground">

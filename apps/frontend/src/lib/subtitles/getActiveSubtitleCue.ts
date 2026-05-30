@@ -1,6 +1,9 @@
 import type { SubtitleCue } from "./types";
 
-export function getActiveSubtitleCue(cues: readonly SubtitleCue[], time: number) {
+export function getActiveSubtitleCue(
+  cues: readonly SubtitleCue[],
+  time: number,
+) {
   let low = 0;
   let high = cues.length - 1;
 

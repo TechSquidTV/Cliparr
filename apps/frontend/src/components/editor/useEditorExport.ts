@@ -15,7 +15,10 @@ import {
   type EditorSession,
 } from "../../lib/editorMedia";
 import { subtitleTrackSupportsBurnIn } from "../../lib/selectPreferredSubtitleTrack";
-import type { SubtitleCue, SubtitleStyleSettings } from "../../lib/subtitles/types";
+import type {
+  SubtitleCue,
+  SubtitleStyleSettings,
+} from "../../lib/subtitles/types";
 import type { PlaybackSubtitleTrack } from "../../providers/types";
 import type { ExportSourcePreference } from "./EditorExportDialog";
 import type { PlaybackFallbackInfo } from "./useEditorPlayback";
@@ -74,10 +77,15 @@ export function useEditorExport({
 }: UseEditorExportProps) {
   const [resolution, setResolution] = useState<ExportResolution>("original");
   const [exportFormat, setExportFormat] = useState<ExportFormat>("mp4");
-  const [exportSourcePreference, setExportSourcePreference] = useState<ExportSourcePreference>("auto");
+  const [exportSourcePreference, setExportSourcePreference] =
+    useState<ExportSourcePreference>("auto");
   const [includeAudio, setIncludeAudio] = useState(true);
-  const [fileNameTemplates, setFileNameTemplates] = useState<ExportFileNameTemplateSettings>(() => loadExportFileNameTemplates());
-  const [templateEditorKind, setTemplateEditorKind] = useState<ExportFileNameTemplateKind>("movie");
+  const [fileNameTemplates, setFileNameTemplates] =
+    useState<ExportFileNameTemplateSettings>(() =>
+      loadExportFileNameTemplates(),
+    );
+  const [templateEditorKind, setTemplateEditorKind] =
+    useState<ExportFileNameTemplateKind>("movie");
   const [exportDialogOpen, setExportDialogOpen] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -90,75 +98,95 @@ export function useEditorExport({
         ? "auto"
         : exportSourcePreference;
 
-  const exportSource = useMemo(() => resolveExportSource({
-    preference: effectiveExportSourcePreference,
-    hlsSource: session.hlsSource,
-    directSource: session.directSource,
-    exportFallbackSource,
-  }), [
-    effectiveExportSourcePreference,
-    exportFallbackSource,
-    session.directSource,
-    session.hlsSource,
-  ]);
+  const exportSource = useMemo(
+    () =>
+      resolveExportSource({
+        preference: effectiveExportSourcePreference,
+        hlsSource: session.hlsSource,
+        directSource: session.directSource,
+        exportFallbackSource,
+      }),
+    [
+      effectiveExportSourcePreference,
+      exportFallbackSource,
+      session.directSource,
+      session.hlsSource,
+    ],
+  );
 
-  const exportSourceMessage = useMemo(() => buildExportSourceMessage({
-    preference: effectiveExportSourcePreference,
-    resolvedSourceKind: exportSource.kind,
-    resolvedSource: exportSource.source,
-    hlsSource: session.hlsSource,
-    directSource: session.directSource,
-    hlsFallbackInfo,
-  }), [
-    effectiveExportSourcePreference,
-    exportSource.kind,
-    exportSource.source,
-    hlsFallbackInfo,
-    session.directSource,
-    session.hlsSource,
-  ]);
+  const exportSourceMessage = useMemo(
+    () =>
+      buildExportSourceMessage({
+        preference: effectiveExportSourcePreference,
+        resolvedSourceKind: exportSource.kind,
+        resolvedSource: exportSource.source,
+        hlsSource: session.hlsSource,
+        directSource: session.directSource,
+        hlsFallbackInfo,
+      }),
+    [
+      effectiveExportSourcePreference,
+      exportSource.kind,
+      exportSource.source,
+      hlsFallbackInfo,
+      session.directSource,
+      session.hlsSource,
+    ],
+  );
 
-  const exportSourceSummaryMessage = useMemo(() => buildExportSourceSummaryMessage({
-    preference: effectiveExportSourcePreference,
-    resolvedSourceKind: exportSource.kind,
-    resolvedSource: exportSource.source,
-    hlsSource: session.hlsSource,
-  }), [
-    effectiveExportSourcePreference,
-    exportSource.kind,
-    exportSource.source,
-    session.hlsSource,
-  ]);
+  const exportSourceSummaryMessage = useMemo(
+    () =>
+      buildExportSourceSummaryMessage({
+        preference: effectiveExportSourcePreference,
+        resolvedSourceKind: exportSource.kind,
+        resolvedSource: exportSource.source,
+        hlsSource: session.hlsSource,
+      }),
+    [
+      effectiveExportSourcePreference,
+      exportSource.kind,
+      exportSource.source,
+      session.hlsSource,
+    ],
+  );
 
-  const exportSourceLabel = useMemo(() => buildExportSourceLabel({
-    preference: effectiveExportSourcePreference,
-    resolvedSourceKind: exportSource.kind,
-    resolvedSource: exportSource.source,
-    exportFallbackSource,
-  }), [
-    effectiveExportSourcePreference,
-    exportFallbackSource,
-    exportSource.kind,
-    exportSource.source,
-  ]);
+  const exportSourceLabel = useMemo(
+    () =>
+      buildExportSourceLabel({
+        preference: effectiveExportSourcePreference,
+        resolvedSourceKind: exportSource.kind,
+        resolvedSource: exportSource.source,
+        exportFallbackSource,
+      }),
+    [
+      effectiveExportSourcePreference,
+      exportFallbackSource,
+      exportSource.kind,
+      exportSource.source,
+    ],
+  );
 
-  const fileName = useMemo(() => buildExportFileName({
-    title: session.title,
-    sessionType: session.type,
-    metadata: session.exportMetadata,
-    startTime,
-    endTime,
-    format: exportFormat,
-    templates: fileNameTemplates,
-  }), [
-    endTime,
-    exportFormat,
-    fileNameTemplates,
-    session.exportMetadata,
-    session.title,
-    session.type,
-    startTime,
-  ]);
+  const fileName = useMemo(
+    () =>
+      buildExportFileName({
+        title: session.title,
+        sessionType: session.type,
+        metadata: session.exportMetadata,
+        startTime,
+        endTime,
+        format: exportFormat,
+        templates: fileNameTemplates,
+      }),
+    [
+      endTime,
+      exportFormat,
+      fileNameTemplates,
+      session.exportMetadata,
+      session.title,
+      session.type,
+      startTime,
+    ],
+  );
 
   const outputDimensions = useMemo(
     () => getOutputDimensions(sourceVideoDimensions, resolution),
@@ -188,41 +216,50 @@ export function useEditorExport({
     setExportError(null);
   }, []);
 
-  const handleResolutionChange = useCallback((nextResolution: ExportResolution) => {
-    setResolution(nextResolution);
-    setExportError(null);
-  }, []);
+  const handleResolutionChange = useCallback(
+    (nextResolution: ExportResolution) => {
+      setResolution(nextResolution);
+      setExportError(null);
+    },
+    [],
+  );
 
-  const handleExportSourceChange = useCallback((nextSourcePreference: ExportSourcePreference) => {
-    setExportSourcePreference(nextSourcePreference);
-    setExportError(null);
-  }, []);
+  const handleExportSourceChange = useCallback(
+    (nextSourcePreference: ExportSourcePreference) => {
+      setExportSourcePreference(nextSourcePreference);
+      setExportError(null);
+    },
+    [],
+  );
 
   const handleAudioChange = useCallback((nextIncludeAudio: boolean) => {
     setIncludeAudio(nextIncludeAudio);
     setExportError(null);
   }, []);
 
-  const handleFileNameTemplateChange = useCallback((
-    kind: ExportFileNameTemplateKind,
-    nextTemplate: string
-  ) => {
-    setFileNameTemplates((current) => ({
-      ...current,
-      [kind]: nextTemplate,
-    }));
-    setExportError(null);
-  }, []);
+  const handleFileNameTemplateChange = useCallback(
+    (kind: ExportFileNameTemplateKind, nextTemplate: string) => {
+      setFileNameTemplates((current) => ({
+        ...current,
+        [kind]: nextTemplate,
+      }));
+      setExportError(null);
+    },
+    [],
+  );
 
-  const handleResetFileNameTemplate = useCallback((kind: ExportFileNameTemplateKind) => {
-    const defaults = defaultExportFileNameTemplates();
+  const handleResetFileNameTemplate = useCallback(
+    (kind: ExportFileNameTemplateKind) => {
+      const defaults = defaultExportFileNameTemplates();
 
-    setFileNameTemplates((current) => ({
-      ...current,
-      [kind]: defaults[kind],
-    }));
-    setExportError(null);
-  }, []);
+      setFileNameTemplates((current) => ({
+        ...current,
+        [kind]: defaults[kind],
+      }));
+      setExportError(null);
+    },
+    [],
+  );
 
   const handleExport = useCallback(async () => {
     const readiness = getEditorExportReadiness({
@@ -335,9 +372,13 @@ export function useEditorExport({
 
 export function getOutputDimensions(
   sourceVideoDimensions: VideoDimensions | null,
-  resolution: ExportResolution
+  resolution: ExportResolution,
 ) {
-  if (!sourceVideoDimensions || sourceVideoDimensions.width <= 0 || sourceVideoDimensions.height <= 0) {
+  if (
+    !sourceVideoDimensions ||
+    sourceVideoDimensions.width <= 0 ||
+    sourceVideoDimensions.height <= 0
+  ) {
     return null;
   }
 
@@ -350,7 +391,12 @@ export function getOutputDimensions(
     return sourceVideoDimensions;
   }
 
-  const width = Math.max(1, Math.round((sourceVideoDimensions.width / sourceVideoDimensions.height) * height));
+  const width = Math.max(
+    1,
+    Math.round(
+      (sourceVideoDimensions.width / sourceVideoDimensions.height) * height,
+    ),
+  );
 
   return { width, height };
 }
@@ -380,9 +426,10 @@ export function getEditorExportReadiness({
     };
   }
 
-  const shouldBurnSubtitles = subtitleEnabled
-    && selectedSubtitleTrack !== null
-    && clippedSubtitleCues.length > 0;
+  const shouldBurnSubtitles =
+    subtitleEnabled &&
+    selectedSubtitleTrack !== null &&
+    clippedSubtitleCues.length > 0;
 
   if (shouldBurnSubtitles && subtitleLoading) {
     return {
@@ -392,7 +439,10 @@ export function getEditorExportReadiness({
     };
   }
 
-  if (shouldBurnSubtitles && !subtitleTrackSupportsBurnIn(selectedSubtitleTrack)) {
+  if (
+    shouldBurnSubtitles &&
+    !subtitleTrackSupportsBurnIn(selectedSubtitleTrack)
+  ) {
     return {
       state: "blocked" as const,
       message: "This subtitle track is not supported.",
@@ -432,7 +482,10 @@ export function resolveExportSource({
   }
 
   if (exportFallbackSource) {
-    return { source: exportFallbackSource, kind: isHlsEditorMediaSource(exportFallbackSource) ? "hls" : "direct" };
+    return {
+      source: exportFallbackSource,
+      kind: isHlsEditorMediaSource(exportFallbackSource) ? "hls" : "direct",
+    };
   }
 
   if (hlsSource) {
@@ -499,7 +552,11 @@ export function buildExportSourceMessage({
       : "Export reads this media URL through Cliparr.";
   }
 
-  if (preference === "hls" && resolvedSourceKind === "hls" && !hlsFallbackInfo) {
+  if (
+    preference === "hls" &&
+    resolvedSourceKind === "hls" &&
+    !hlsFallbackInfo
+  ) {
     return "Export uses the HLS playback stream.";
   }
 
@@ -537,10 +594,10 @@ export function buildExportSourceSummaryMessage({
   hlsSource?: EditorMediaSource;
 }) {
   if (
-    preference === "direct"
-    && resolvedSourceKind === "direct"
-    && resolvedSource?.role === "direct"
-    && hlsSource
+    preference === "direct" &&
+    resolvedSourceKind === "direct" &&
+    resolvedSource?.role === "direct" &&
+    hlsSource
   ) {
     return "Using direct media.";
   }

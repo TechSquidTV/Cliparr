@@ -2,7 +2,10 @@ import { createFileRoute, useCanGoBack } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { cliparrClient } from "../api/cliparrClient";
 import EditorScreen from "../components/EditorScreen";
-import { editorSessionFromCurrentlyPlaying, type EditorSession } from "../lib/editorMedia";
+import {
+  editorSessionFromCurrentlyPlaying,
+  type EditorSession,
+} from "../lib/editorMedia";
 import { router } from "../router";
 
 function errorMessage(err: unknown, fallback: string) {

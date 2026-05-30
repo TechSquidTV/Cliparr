@@ -20,8 +20,10 @@ const releaseTypeByCommitType = new Map([
   ["feat", "minor"],
 ]);
 
-const conventionalTitlePattern = /^(?<type>[a-z]+)(?:\((?<scope>[^)]+)\))?(?<breaking>!)?: (?<subject>.+)$/;
-const semverTagPattern = /^v(?<major>0|[1-9]\d*)\.(?<minor>0|[1-9]\d*)\.(?<patch>0|[1-9]\d*)(?:-(?<channel>beta|rc)\.(?<prereleaseNumber>0|[1-9]\d*))?$/;
+const conventionalTitlePattern =
+  /^(?<type>[a-z]+)(?:\((?<scope>[^)]+)\))?(?<breaking>!)?: (?<subject>.+)$/;
+const semverTagPattern =
+  /^v(?<major>0|[1-9]\d*)\.(?<minor>0|[1-9]\d*)\.(?<patch>0|[1-9]\d*)(?:-(?<channel>beta|rc)\.(?<prereleaseNumber>0|[1-9]\d*))?$/;
 
 export function parseConventionalTitle(title) {
   const trimmed = title.trim();
@@ -31,7 +33,8 @@ export function parseConventionalTitle(title) {
     return {
       valid: false,
       title: trimmed,
-      error: "Title must match Conventional Commits, for example `feat: add local previews`.",
+      error:
+        "Title must match Conventional Commits, for example `feat: add local previews`.",
     };
   }
 
@@ -82,7 +85,8 @@ export function releaseTypeForChange(change) {
 export function maxReleaseType(changes) {
   return changes.reduce((maxType, change) => {
     const nextType = releaseTypeForChange(change);
-    return releaseTypeOrder.indexOf(nextType) > releaseTypeOrder.indexOf(maxType)
+    return releaseTypeOrder.indexOf(nextType) >
+      releaseTypeOrder.indexOf(maxType)
       ? nextType
       : maxType;
   }, "none");
@@ -102,9 +106,10 @@ export function parseSemverTag(tag) {
     minor: Number(match.groups.minor),
     patch: Number(match.groups.patch),
     channel: match.groups.channel,
-    prereleaseNumber: match.groups.prereleaseNumber === undefined
-      ? undefined
-      : Number(match.groups.prereleaseNumber),
+    prereleaseNumber:
+      match.groups.prereleaseNumber === undefined
+        ? undefined
+        : Number(match.groups.prereleaseNumber),
   };
 }
 
@@ -131,7 +136,9 @@ export function compareSemverTags(leftTag, rightTag) {
   }
 
   if (left.channel !== right.channel) {
-    return String(left.channel ?? "").localeCompare(String(right.channel ?? ""));
+    return String(left.channel ?? "").localeCompare(
+      String(right.channel ?? ""),
+    );
   }
 
   return (left.prereleaseNumber ?? 0) - (right.prereleaseNumber ?? 0);
@@ -213,12 +220,20 @@ export function extractReleaseTitleFromCommitMessage(message) {
     return subject;
   }
 
-  return lines.slice(1).find((line) => line.trim().length > 0)?.trim() ?? subject;
+  return (
+    lines
+      .slice(1)
+      .find((line) => line.trim().length > 0)
+      ?.trim() ?? subject
+  );
 }
 
 export function extractPullRequestNumberFromCommitMessage(message) {
   const subject = message.replace(/\r\n/g, "\n").split("\n")[0]?.trim() ?? "";
-  const match = /^(?:Merge pull request #(?<mergeNumber>\d+) |\S[\s\S]* \(#(?<squashNumber>\d+)\)$)/u.exec(subject);
+  const match =
+    /^(?:Merge pull request #(?<mergeNumber>\d+) |\S[\s\S]* \(#(?<squashNumber>\d+)\)$)/u.exec(
+      subject,
+    );
   const number = match?.groups?.mergeNumber ?? match?.groups?.squashNumber;
 
   return number ? Number(number) : undefined;
@@ -240,6 +255,8 @@ export function summarizeChanges(titles) {
     changes,
     invalidChanges,
     releaseType,
-    releasableChanges: changes.filter((change) => releaseTypeForChange(change) !== "none"),
+    releasableChanges: changes.filter(
+      (change) => releaseTypeForChange(change) !== "none",
+    ),
   };
 }

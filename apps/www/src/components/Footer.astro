@@ -5,12 +5,25 @@ const year = new Date().getFullYear();
 ---
 
 <footer class="border-t border-border bg-card">
-  <div class="container-page flex flex-col gap-4 py-8 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
+  <div
+    class="container-page flex flex-col gap-4 py-8 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between"
+  >
     <p>&copy; {year} Cliparr. Released under the MIT License.</p>
     <div class="flex flex-wrap items-center gap-4">
-      <a class="focus-ring rounded-md underline decoration-border hover:decoration-primary" href="/docs">Docs</a>
-      <a class="focus-ring rounded-md underline decoration-border hover:decoration-primary" href="/changelog">Changelog</a>
-      <a class="focus-ring rounded-md underline decoration-border hover:decoration-primary" href={site.githubUrl} target="_blank" rel="noreferrer">GitHub</a>
+      <a
+        class="focus-ring rounded-md underline decoration-border hover:decoration-primary"
+        href="/docs">Docs</a
+      >
+      <a
+        class="focus-ring rounded-md underline decoration-border hover:decoration-primary"
+        href="/changelog">Changelog</a
+      >
+      <a
+        class="focus-ring rounded-md underline decoration-border hover:decoration-primary"
+        href={site.githubUrl}
+        target="_blank"
+        rel="noreferrer">GitHub</a
+      >
     </div>
   </div>
 </footer>

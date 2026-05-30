@@ -40,7 +40,9 @@ function parseArgs(argv) {
         throw new Error(`${arg} requires a value.`);
       }
 
-      args[arg.slice(2).replace(/-([a-z])/g, (_, letter) => letter.toUpperCase())] = value;
+      args[
+        arg.slice(2).replace(/-([a-z])/g, (_, letter) => letter.toUpperCase())
+      ] = value;
       index += 1;
       continue;
     }
@@ -49,7 +51,9 @@ function parseArgs(argv) {
   }
 
   if (!validChannels.has(args.channel)) {
-    throw new Error(`Invalid release channel ${args.channel}. Use stable, rc, or beta.`);
+    throw new Error(
+      `Invalid release channel ${args.channel}. Use stable, rc, or beta.`,
+    );
   }
 
   return args;
@@ -68,26 +72,33 @@ async function githubApi(path) {
 
   if (!token) {
     try {
-      return JSON.parse(execFileSync("gh", ["api", `repos/${repository}${path}`], {
-        encoding: "utf8",
-        stdio: ["ignore", "pipe", "ignore"],
-      }));
+      return JSON.parse(
+        execFileSync("gh", ["api", `repos/${repository}${path}`], {
+          encoding: "utf8",
+          stdio: ["ignore", "pipe", "ignore"],
+        }),
+      );
     } catch {
       return undefined;
     }
   }
 
-  const response = await fetch(`https://api.github.com/repos/${repository}${path}`, {
-    headers: {
-      "Accept": "application/vnd.github+json",
-      "Authorization": `Bearer ${token}`,
-      "User-Agent": "cliparr-release-planner",
-      "X-GitHub-Api-Version": "2022-11-28",
+  const response = await fetch(
+    `https://api.github.com/repos/${repository}${path}`,
+    {
+      headers: {
+        Accept: "application/vnd.github+json",
+        Authorization: `Bearer ${token}`,
+        "User-Agent": "cliparr-release-planner",
+        "X-GitHub-Api-Version": "2022-11-28",
+      },
     },
-  });
+  );
 
   if (!response.ok) {
-    throw new Error(`GitHub API GET ${path} failed: ${response.status} ${await response.text()}`);
+    throw new Error(
+      `GitHub API GET ${path} failed: ${response.status} ${await response.text()}`,
+    );
   }
 
   return response.json();
@@ -109,10 +120,7 @@ function getShortSha(target) {
 }
 
 function buildDockerTags({ imageName, version, channel, shortSha }) {
-  const tags = [
-    `${imageName}:${version}`,
-    `${imageName}:sha-${shortSha}`,
-  ];
+  const tags = [`${imageName}:${version}`, `${imageName}:sha-${shortSha}`];
 
   if (channel === "stable") {
     const [major, minor] = version.split(".");
@@ -164,13 +172,17 @@ async function planRelease(args) {
   const previousStableTag = latestStableTag(tags);
 
   if (!previousStableTag) {
-    throw new Error("No stable release tag found. Expected at least one tag like v0.1.0.");
+    throw new Error(
+      "No stable release tag found. Expected at least one tag like v0.1.0.",
+    );
   }
 
   const previousStableVersion = parseSemverTag(previousStableTag);
 
   if (!previousStableVersion) {
-    throw new Error(`Could not parse previous stable tag ${previousStableTag}.`);
+    throw new Error(
+      `Could not parse previous stable tag ${previousStableTag}.`,
+    );
   }
 
   const messages = getCommitMessages(previousStableTag, args.target);
@@ -181,14 +193,20 @@ async function planRelease(args) {
     const invalidTitles = summary.invalidChanges
       .map((change) => `- ${change.title}: ${change.error}`)
       .join("\n");
-    throw new Error(`Release contains non-conventional PR or commit titles:\n${invalidTitles}`);
+    throw new Error(
+      `Release contains non-conventional PR or commit titles:\n${invalidTitles}`,
+    );
   }
 
   if (summary.releaseType === "none") {
-    throw new Error("No releasable changes found since the previous stable release.");
+    throw new Error(
+      "No releasable changes found since the previous stable release.",
+    );
   }
 
-  const baseVersion = formatVersion(bumpVersion(previousStableVersion, summary.releaseType));
+  const baseVersion = formatVersion(
+    bumpVersion(previousStableVersion, summary.releaseType),
+  );
   const isPrerelease = args.channel !== "stable";
   const version = isPrerelease
     ? `${baseVersion}-${args.channel}.${nextPrereleaseNumber(tags, baseVersion, args.channel)}`

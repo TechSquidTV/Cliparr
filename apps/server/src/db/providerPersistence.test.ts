@@ -24,7 +24,9 @@ function restoreEnv(name: string, value: string | undefined) {
 }
 
 function withDatabase<T>(callback: () => T) {
-  const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), "cliparr-provider-persistence-"));
+  const dataDir = fs.mkdtempSync(
+    path.join(os.tmpdir(), "cliparr-provider-persistence-"),
+  );
   const previousAppKey = process.env.APP_KEY;
   const previousDataDir = process.env.CLIPARR_DATA_DIR;
 
@@ -58,28 +60,36 @@ void test("preserves manual Plex source URLs and disables stale resources", () =
           id: "kept-server",
           name: "Kept Server",
           accessToken: "server-token-before",
-          connections: [{
-            id: "auto-connection",
-            uri: "http://auto-before.example:32400",
-            local: true,
-            relay: false,
-          }],
+          connections: [
+            {
+              id: "auto-connection",
+              uri: "http://auto-before.example:32400",
+              local: true,
+              relay: false,
+            },
+          ],
         },
         {
           id: "stale-server",
           name: "Stale Server",
           accessToken: "stale-token",
-          connections: [{
-            id: "stale-connection",
-            uri: "http://stale.example:32400",
-            local: true,
-            relay: false,
-          }],
+          connections: [
+            {
+              id: "stale-connection",
+              uri: "http://stale.example:32400",
+              local: true,
+              relay: false,
+            },
+          ],
         },
       ],
     });
 
-    const keptBefore = getMediaSourceByProviderExternalId("plex", account.id, "kept-server");
+    const keptBefore = getMediaSourceByProviderExternalId(
+      "plex",
+      account.id,
+      "kept-server",
+    );
     assert(keptBefore);
     updateMediaSource(keptBefore.id, {
       baseUrl: "http://manual.example:32400",
@@ -92,21 +102,33 @@ void test("preserves manual Plex source URLs and disables stale resources", () =
     persistProviderAuth({
       provider,
       userToken: "user-token",
-      resources: [{
-        id: "kept-server",
-        name: "Kept Server Renamed",
-        accessToken: "server-token-after",
-        connections: [{
-          id: "auto-connection-after",
-          uri: "http://auto-after.example:32400",
-          local: false,
-          relay: false,
-        }],
-      }],
+      resources: [
+        {
+          id: "kept-server",
+          name: "Kept Server Renamed",
+          accessToken: "server-token-after",
+          connections: [
+            {
+              id: "auto-connection-after",
+              uri: "http://auto-after.example:32400",
+              local: false,
+              relay: false,
+            },
+          ],
+        },
+      ],
     });
 
-    const keptAfter = getMediaSourceByProviderExternalId("plex", account.id, "kept-server");
-    const staleAfter = getMediaSourceByProviderExternalId("plex", account.id, "stale-server");
+    const keptAfter = getMediaSourceByProviderExternalId(
+      "plex",
+      account.id,
+      "kept-server",
+    );
+    const staleAfter = getMediaSourceByProviderExternalId(
+      "plex",
+      account.id,
+      "stale-server",
+    );
     assert(keptAfter);
     assert(staleAfter);
 

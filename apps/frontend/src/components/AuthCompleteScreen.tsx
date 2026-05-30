@@ -19,7 +19,8 @@ export default function AuthCompleteScreen() {
         </div>
         <h1 className="text-2xl font-bold mb-2">Plex sign-in finished</h1>
         <p className="text-muted-foreground text-sm mb-6">
-          Return to your original Cliparr tab. You can close this one if it stays open.
+          Return to your original Cliparr tab. You can close this one if it
+          stays open.
         </p>
         <button
           type="button"

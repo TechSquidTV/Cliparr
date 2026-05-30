@@ -1,5 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
+import prettier from "prettier";
 import {
   dockerRunCommand,
   envVars,
@@ -12,7 +13,11 @@ const readmePath = path.join(rootDir, "README.md");
 
 type SectionName = "features" | "docker-quick-start" | "configuration";
 
-const sectionOrder: SectionName[] = ["features", "docker-quick-start", "configuration"];
+const sectionOrder: SectionName[] = [
+  "features",
+  "docker-quick-start",
+  "configuration",
+];
 
 function marker(name: SectionName, edge: "start" | "end") {
   return `<!-- CLIPARR_DOCS_SYNC:${name}:${edge} -->`;
@@ -49,7 +54,9 @@ const renderers: Record<SectionName, () => string> = {
 function replaceSection(readme: string, name: SectionName) {
   const start = marker(name, "start");
   const end = marker(name, "end");
-  const pattern = new RegExp(`${escapeRegExp(start)}\\n[\\s\\S]*?\\n${escapeRegExp(end)}`);
+  const pattern = new RegExp(
+    `${escapeRegExp(start)}\\n[\\s\\S]*?\\n${escapeRegExp(end)}`,
+  );
 
   if (!pattern.test(readme)) {
     throw new Error(`README.md is missing generated docs markers for ${name}.`);
@@ -63,12 +70,19 @@ function escapeRegExp(value: string) {
 }
 
 function syncedReadme(readme: string) {
-  return sectionOrder.reduce((next, section) => replaceSection(next, section), readme);
+  return sectionOrder.reduce(
+    (next, section) => replaceSection(next, section),
+    readme,
+  );
 }
 
 const mode = process.argv.includes("--write") ? "write" : "check";
 const readme = fs.readFileSync(readmePath, "utf8");
-const nextReadme = syncedReadme(readme);
+const prettierConfig = await prettier.resolveConfig(readmePath);
+const nextReadme = await prettier.format(syncedReadme(readme), {
+  ...prettierConfig,
+  filepath: readmePath,
+});
 
 if (mode === "write") {
   if (nextReadme !== readme) {

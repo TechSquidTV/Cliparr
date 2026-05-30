@@ -57,5 +57,13 @@ export function ProviderGlyph({
     );
   }
 
-  return <Icon className={cn("h-5 w-5 text-muted-foreground", fallbackClassName, className)} />;
+  return (
+    <Icon
+      className={cn(
+        "h-5 w-5 text-muted-foreground",
+        fallbackClassName,
+        className,
+      )}
+    />
+  );
 }

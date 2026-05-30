@@ -35,7 +35,9 @@ export function applyPlaybackGain(
   }
 }
 
-export function stopQueuedAudioNodes(queuedAudioNodes: Set<AudioBufferSourceNode>) {
+export function stopQueuedAudioNodes(
+  queuedAudioNodes: Set<AudioBufferSourceNode>,
+) {
   for (const node of queuedAudioNodes) {
     try {
       node.stop();
@@ -73,11 +75,15 @@ export async function runPlaybackAudioIterator({
       const node = audioContext.createBufferSource();
       node.buffer = buffer;
       node.connect(gainNode);
-      const displayTimestamp = fromSourceTimelineTime(timestamp, sourceTimelineOffsetRef.current);
+      const displayTimestamp = fromSourceTimelineTime(
+        timestamp,
+        sourceTimelineOffsetRef.current,
+      );
 
-      const startTimestamp = (
-        audioContextStartTimeRef.current ?? audioContext.currentTime
-      ) + displayTimestamp - playbackTimeAtStartRef.current;
+      const startTimestamp =
+        (audioContextStartTimeRef.current ?? audioContext.currentTime) +
+        displayTimestamp -
+        playbackTimeAtStartRef.current;
 
       let started = false;
       if (startTimestamp >= audioContext.currentTime) {

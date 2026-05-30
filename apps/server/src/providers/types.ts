@@ -104,7 +104,10 @@ type ProviderSourceCheckResult =
 export interface ProviderImplementation {
   definition: ProviderDefinition;
   startAuth?(callbackUrl: string): Promise<ProviderAuthStart>;
-  pollAuth?(authId: string, pollToken: string): Promise<{
+  pollAuth?(
+    authId: string,
+    pollToken: string,
+  ): Promise<{
     status: ProviderAuthStatus["status"];
     userToken?: string;
     resources?: ProviderResource[];
@@ -115,7 +118,15 @@ export interface ProviderImplementation {
   }>;
   supportsCurrentlyPlayingSource?(source: MediaSource): boolean;
   checkSource(source: MediaSource): Promise<ProviderSourceCheckResult>;
-  listCurrentlyPlaying(session: ProviderSessionRecord, source: MediaSource): Promise<CurrentlyPlayingEntry[]>;
-  proxyMedia(session: ProviderSessionRecord, handleId: string, req: Request, res: Response): Promise<void>;
+  listCurrentlyPlaying(
+    session: ProviderSessionRecord,
+    source: MediaSource,
+  ): Promise<CurrentlyPlayingEntry[]>;
+  proxyMedia(
+    session: ProviderSessionRecord,
+    handleId: string,
+    req: Request,
+    res: Response,
+  ): Promise<void>;
   serializeSession(session: ProviderSessionRecord): ProviderSession;
 }

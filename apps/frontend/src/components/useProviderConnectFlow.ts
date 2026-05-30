@@ -57,13 +57,20 @@ export function useProviderConnectFlow({
   }, [providers, selectedProviderId]);
 
   const selectedProvider = useMemo(
-    () => providers.find((provider) => provider.id === selectedProviderId) ?? providers[0],
-    [providers, selectedProviderId]
+    () =>
+      providers.find((provider) => provider.id === selectedProviderId) ??
+      providers[0],
+    [providers, selectedProviderId],
   );
 
-  const providerLabel = useCallback((id: string) => {
-    return providers.find((provider) => provider.id === id)?.name ?? "provider";
-  }, [providers]);
+  const providerLabel = useCallback(
+    (id: string) => {
+      return (
+        providers.find((provider) => provider.id === id)?.name ?? "provider"
+      );
+    },
+    [providers],
+  );
 
   const resetProviderState = useCallback(() => {
     setAuthenticating(false);
@@ -96,7 +103,12 @@ export function useProviderConnectFlow({
       } catch (err: unknown) {
         window.clearInterval(intervalId);
         resetProviderState();
-        setError(errorMessage(err, `Could not finish ${providerLabel(providerId)} sign-in.`));
+        setError(
+          errorMessage(
+            err,
+            `Could not finish ${providerLabel(providerId)} sign-in.`,
+          ),
+        );
       }
     };
     const intervalId = window.setInterval(() => {
@@ -108,43 +120,51 @@ export function useProviderConnectFlow({
     };
   }, [authId, onConnected, providerId, providerLabel, resetProviderState]);
 
-  const startAuth = useCallback(async (provider: ProviderDefinition) => {
-    setError("");
-    setAuthId("");
-    setProviderId(provider.id);
-    setAuthenticating(true);
+  const startAuth = useCallback(
+    async (provider: ProviderDefinition) => {
+      setError("");
+      setAuthId("");
+      setProviderId(provider.id);
+      setAuthenticating(true);
 
-    try {
-      const auth = await cliparrClient.startAuth(provider.id);
-      setAuthId(auth.authId);
-      window.open(auth.authUrl, "_blank", "noopener,noreferrer");
-    } catch (err: unknown) {
-      resetProviderState();
-      setError(errorMessage(err, `Could not start ${provider.name} sign-in.`));
-    }
-  }, [resetProviderState]);
+      try {
+        const auth = await cliparrClient.startAuth(provider.id);
+        setAuthId(auth.authId);
+        window.open(auth.authUrl, "_blank", "noopener,noreferrer");
+      } catch (err: unknown) {
+        resetProviderState();
+        setError(
+          errorMessage(err, `Could not start ${provider.name} sign-in.`),
+        );
+      }
+    },
+    [resetProviderState],
+  );
 
-  const loginWithCredentials = useCallback(async (provider: ProviderDefinition) => {
-    setError("");
-    setAuthId("");
-    setProviderId(provider.id);
-    setAuthenticating(true);
+  const loginWithCredentials = useCallback(
+    async (provider: ProviderDefinition) => {
+      setError("");
+      setAuthId("");
+      setProviderId(provider.id);
+      setAuthenticating(true);
 
-    try {
-      const session = await cliparrClient.loginWithCredentials(provider.id, {
-        serverUrl,
-        username,
-        password,
-      });
-      await onConnected(session);
-      resetProviderState();
-      setServerUrl("");
-      setUsername("");
-    } catch (err: unknown) {
-      resetProviderState();
-      setError(errorMessage(err, `Could not connect ${provider.name}.`));
-    }
-  }, [onConnected, password, resetProviderState, serverUrl, username]);
+      try {
+        const session = await cliparrClient.loginWithCredentials(provider.id, {
+          serverUrl,
+          username,
+          password,
+        });
+        await onConnected(session);
+        resetProviderState();
+        setServerUrl("");
+        setUsername("");
+      } catch (err: unknown) {
+        resetProviderState();
+        setError(errorMessage(err, `Could not connect ${provider.name}.`));
+      }
+    },
+    [onConnected, password, resetProviderState, serverUrl, username],
+  );
 
   return {
     providers,

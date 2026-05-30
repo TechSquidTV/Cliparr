@@ -4,7 +4,12 @@ import { isIP } from "net";
 import { CLIPARR_CLIENT_VERSION } from "../../config/version.js";
 import type { MediaSource } from "../../db/mediaSourcesRepository.js";
 import { ApiError } from "../../http/errors.js";
-import { errorMessage, numberValue, stringValue, uniqueStrings } from "../shared/utils.js";
+import {
+  errorMessage,
+  numberValue,
+  stringValue,
+  uniqueStrings,
+} from "../shared/utils.js";
 
 const JELLYFIN_PRODUCT = "Cliparr";
 const JELLYFIN_DEVICE_NAME = "Cliparr";
@@ -14,7 +19,9 @@ export const JELLYFIN_REQUEST_TIMEOUT_MS = 5000;
 const CURRENT_PLAYBACK_REQUEST_TIMEOUT_MS = 5000;
 
 const JELLYFIN_DEV_BASE_URL = stringValue(process.env.CLIPARR_DEV_JELLYFIN_URL);
-const ALLOW_LOOPBACK_JELLYFIN_URLS = booleanEnv(process.env.CLIPARR_ALLOW_LOOPBACK_JELLYFIN_URLS);
+const ALLOW_LOOPBACK_JELLYFIN_URLS = booleanEnv(
+  process.env.CLIPARR_ALLOW_LOOPBACK_JELLYFIN_URLS,
+);
 const DISALLOWED_JELLYFIN_HOSTNAMES = new Set([
   "metadata",
   "metadata.azure.internal",
@@ -153,7 +160,12 @@ export function booleanValue(value: unknown) {
 
 function booleanEnv(value: string | undefined) {
   const normalized = value?.trim().toLowerCase();
-  return normalized === "1" || normalized === "true" || normalized === "yes" || normalized === "on";
+  return (
+    normalized === "1" ||
+    normalized === "true" ||
+    normalized === "yes" ||
+    normalized === "on"
+  );
 }
 
 function deriveJellyfinDeviceId() {
@@ -175,7 +187,11 @@ export const JELLYFIN_DEVICE_ID = deriveJellyfinDeviceId();
 function assertHttpUrl(uri: string) {
   const parsed = new URL(uri);
   if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
-    throw new ApiError(400, "invalid_connection_url", "Jellyfin connection must use HTTP or HTTPS");
+    throw new ApiError(
+      400,
+      "invalid_connection_url",
+      "Jellyfin connection must use HTTP or HTTPS",
+    );
   }
 
   return parsed;
@@ -242,30 +258,40 @@ async function resolveHostnameAddresses(hostname: string) {
       verbatim: true,
     });
 
-    return uniqueStrings(records.map((record) => normalizeIpCandidate(record.address)));
+    return uniqueStrings(
+      records.map((record) => normalizeIpCandidate(record.address)),
+    );
   } catch {
     throw new ApiError(
       400,
       "invalid_jellyfin_server_url",
-      "Jellyfin serverUrl hostname could not be resolved for security validation"
+      "Jellyfin serverUrl hostname could not be resolved for security validation",
     );
   }
 }
 
 function assertAllowedResolvedAddress(address: string) {
-  if (isUnspecifiedHost(address) || isLinkLocalHost(address) || isMulticastHost(address)) {
+  if (
+    isUnspecifiedHost(address) ||
+    isLinkLocalHost(address) ||
+    isMulticastHost(address)
+  ) {
     throw new ApiError(
       400,
       "invalid_jellyfin_server_url",
-      "Jellyfin serverUrl resolved to an unsafe address"
+      "Jellyfin serverUrl resolved to an unsafe address",
     );
   }
 
-  if (isLoopbackHost(address) && !ALLOW_LOOPBACK_JELLYFIN_URLS && !JELLYFIN_DEV_BASE_URL) {
+  if (
+    isLoopbackHost(address) &&
+    !ALLOW_LOOPBACK_JELLYFIN_URLS &&
+    !JELLYFIN_DEV_BASE_URL
+  ) {
     throw new ApiError(
       400,
       "invalid_jellyfin_server_url",
-      "For security, localhost Jellyfin URLs are disabled unless CLIPARR_ALLOW_LOOPBACK_JELLYFIN_URLS is enabled"
+      "For security, localhost Jellyfin URLs are disabled unless CLIPARR_ALLOW_LOOPBACK_JELLYFIN_URLS is enabled",
     );
   }
 }
@@ -278,15 +304,19 @@ async function assertAllowedJellyfinServerUrl(url: string) {
     throw new ApiError(
       400,
       "invalid_jellyfin_server_url",
-      "Jellyfin serverUrl must point at your Jellyfin server, not a cloud metadata hostname"
+      "Jellyfin serverUrl must point at your Jellyfin server, not a cloud metadata hostname",
     );
   }
 
-  if (isUnspecifiedHost(hostname) || isLinkLocalHost(hostname) || isMulticastHost(hostname)) {
+  if (
+    isUnspecifiedHost(hostname) ||
+    isLinkLocalHost(hostname) ||
+    isMulticastHost(hostname)
+  ) {
     throw new ApiError(
       400,
       "invalid_jellyfin_server_url",
-      "Jellyfin serverUrl must point at your Jellyfin server, not an unspecified, link-local, or multicast host"
+      "Jellyfin serverUrl must point at your Jellyfin server, not an unspecified, link-local, or multicast host",
     );
   }
 
@@ -300,7 +330,9 @@ async function assertAllowedJellyfinServerUrl(url: string) {
 }
 
 export async function resolveCredentialServerUrl(serverUrl: string) {
-  return resolveJellyfinBaseUrl((await assertAllowedJellyfinServerUrl(serverUrl)).toString());
+  return resolveJellyfinBaseUrl(
+    (await assertAllowedJellyfinServerUrl(serverUrl)).toString(),
+  );
 }
 
 function resolveJellyfinBaseUrl(url: string) {
@@ -325,11 +357,14 @@ function sourceHostInfo(baseUrl: string) {
   }
 
   const port = parsed.port ? numberValue(parsed.port) : undefined;
-  const isDefaultHttp = parsed.protocol === "http:" && (port === undefined || port === 80);
-  const isDefaultHttps = parsed.protocol === "https:" && (port === undefined || port === 443);
-  const label = port === undefined || isDefaultHttp || isDefaultHttps
-    ? hostname
-    : `${hostname}:${port}`;
+  const isDefaultHttp =
+    parsed.protocol === "http:" && (port === undefined || port === 80);
+  const isDefaultHttps =
+    parsed.protocol === "https:" && (port === undefined || port === 443);
+  const label =
+    port === undefined || isDefaultHttp || isDefaultHttps
+      ? hostname
+      : `${hostname}:${port}`;
 
   return {
     hostname,
@@ -341,14 +376,24 @@ function looksLikeGeneratedServerName(value: string) {
   return /^[a-f0-9]{12,64}$/i.test(value.trim());
 }
 
-export function jellyfinSourceName(serverName: string | null | undefined, baseUrl: string) {
+export function jellyfinSourceName(
+  serverName: string | null | undefined,
+  baseUrl: string,
+) {
   const normalizedServerName = stringValue(serverName);
-  if (normalizedServerName && !looksLikeGeneratedServerName(normalizedServerName)) {
+  if (
+    normalizedServerName &&
+    !looksLikeGeneratedServerName(normalizedServerName)
+  ) {
     return normalizedServerName;
   }
 
   const hostInfo = sourceHostInfo(baseUrl);
-  if (!hostInfo || hostInfo.hostname.toLowerCase() === "jellyfin" || isLoopbackHost(hostInfo.hostname)) {
+  if (
+    !hostInfo ||
+    hostInfo.hostname.toLowerCase() === "jellyfin" ||
+    isLoopbackHost(hostInfo.hostname)
+  ) {
     return "Jellyfin";
   }
 
@@ -362,7 +407,8 @@ function buildJellyfinUrl(baseUrl: string, path: string) {
 
   const base = assertHttpUrl(baseUrl);
   const relative = new URL(path, "http://cliparr.local");
-  const basePath = base.pathname === "/" ? "" : base.pathname.replace(/\/+$/, "");
+  const basePath =
+    base.pathname === "/" ? "" : base.pathname.replace(/\/+$/, "");
   const next = new URL(base.origin);
   next.pathname = `${basePath}${relative.pathname.startsWith("/") ? relative.pathname : `/${relative.pathname}`}`;
   next.search = relative.search;
@@ -372,13 +418,15 @@ function buildJellyfinUrl(baseUrl: string, path: string) {
 
 function isLocalConnection(url: URL) {
   const host = url.hostname.toLowerCase();
-  return host === "localhost"
-    || host === "::1"
-    || host === "[::1]"
-    || host.startsWith("127.")
-    || host.startsWith("10.")
-    || host.startsWith("192.168.")
-    || /^172\.(1[6-9]|2\d|3[0-1])\./.test(host);
+  return (
+    host === "localhost" ||
+    host === "::1" ||
+    host === "[::1]" ||
+    host.startsWith("127.") ||
+    host.startsWith("10.") ||
+    host.startsWith("192.168.") ||
+    /^172\.(1[6-9]|2\d|3[0-1])\./.test(host)
+  );
 }
 
 export function connectionInfo(baseUrl: string) {
@@ -400,7 +448,7 @@ function jellyfinAuthorization(token?: string, deviceId = JELLYFIN_DEVICE_ID) {
     ["Device", JELLYFIN_DEVICE_NAME],
     ["DeviceId", deviceId],
     ["Version", JELLYFIN_VERSION],
-    ...(token ? [["Token", token]] as const : []),
+    ...(token ? ([["Token", token]] as const) : []),
   ];
 
   return `MediaBrowser ${fields
@@ -415,7 +463,10 @@ export function jellyfinHeaders(options: {
   accept?: string;
 }) {
   const headers = new Headers(options.headers);
-  headers.set("Authorization", jellyfinAuthorization(options.token, options.deviceId));
+  headers.set(
+    "Authorization",
+    jellyfinAuthorization(options.token, options.deviceId),
+  );
 
   if (options.accept) {
     headers.set("Accept", options.accept);
@@ -435,10 +486,13 @@ async function jellyfinFetch(
     errorCode?: string;
     failureMessage?: string;
     exposeFailureDetail?: boolean;
-  } = {}
+  } = {},
 ) {
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), options.timeoutMs ?? JELLYFIN_REQUEST_TIMEOUT_MS);
+  const timeout = setTimeout(
+    () => controller.abort(),
+    options.timeoutMs ?? JELLYFIN_REQUEST_TIMEOUT_MS,
+  );
   const headers = jellyfinHeaders({
     headers: init.headers,
     token: options.token,
@@ -454,7 +508,8 @@ async function jellyfinFetch(
     });
 
     if (!response.ok && response.status !== 206) {
-      const failureMessage = options.failureMessage ?? "Jellyfin request failed";
+      const failureMessage =
+        options.failureMessage ?? "Jellyfin request failed";
       const exposeFailureDetail = options.exposeFailureDetail ?? true;
       const detail = (await response.text().catch(() => ""))
         .slice(0, 400)
@@ -468,7 +523,7 @@ async function jellyfinFetch(
           ? failureMessage
           : detail
             ? `${failureMessage}: ${detail}`
-            : `${failureMessage}: ${response.status} ${response.statusText}`
+            : `${failureMessage}: ${response.status} ${response.statusText}`,
       );
     }
 
@@ -482,7 +537,7 @@ async function jellyfinFetch(
       throw new ApiError(
         504,
         options.errorCode ?? "jellyfin_request_failed",
-        options.failureMessage ?? "Jellyfin request timed out"
+        options.failureMessage ?? "Jellyfin request timed out",
       );
     }
 
@@ -491,7 +546,7 @@ async function jellyfinFetch(
       throw new ApiError(
         502,
         options.errorCode ?? "jellyfin_request_failed",
-        `${options.failureMessage ?? "Could not reach that Jellyfin server"}. Cliparr is running in Docker, so localhost points at the Cliparr container. Use ${JELLYFIN_DEV_BASE_URL} for this dev setup.`
+        `${options.failureMessage ?? "Could not reach that Jellyfin server"}. Cliparr is running in Docker, so localhost points at the Cliparr container. Use ${JELLYFIN_DEV_BASE_URL} for this dev setup.`,
       );
     }
 
@@ -499,8 +554,8 @@ async function jellyfinFetch(
       502,
       options.errorCode ?? "jellyfin_request_failed",
       options.exposeFailureDetail === false
-        ? options.failureMessage ?? "Jellyfin request failed"
-        : `${options.failureMessage ?? "Jellyfin request failed"}: ${errorMessage(err)}`
+        ? (options.failureMessage ?? "Jellyfin request failed")
+        : `${options.failureMessage ?? "Jellyfin request failed"}: ${errorMessage(err)}`,
     );
   } finally {
     clearTimeout(timeout);
@@ -519,47 +574,56 @@ export async function jellyfinJson<T>(
     errorCode?: string;
     failureMessage?: string;
     exposeFailureDetail?: boolean;
-  } = {}
+  } = {},
 ) {
   const url = buildJellyfinUrl(baseUrl, path);
-  const response = await jellyfinFetch(url.toString(), {
-    method: options.method,
-    body: options.body,
-    headers: options.body ? { "Content-Type": "application/json" } : undefined,
-  }, {
-    ...options,
-    accept: "application/json",
-  });
+  const response = await jellyfinFetch(
+    url.toString(),
+    {
+      method: options.method,
+      body: options.body,
+      headers: options.body
+        ? { "Content-Type": "application/json" }
+        : undefined,
+    },
+    {
+      ...options,
+      accept: "application/json",
+    },
+  );
   const contentType = response.headers.get("content-type") ?? "";
   if (!contentType.toLowerCase().includes("json")) {
     throw new ApiError(
       502,
       options.errorCode ?? "jellyfin_invalid_response",
-      "That URL did not return the Jellyfin API. Make sure it points at your Jellyfin server base URL."
+      "That URL did not return the Jellyfin API. Make sure it points at your Jellyfin server base URL.",
     );
   }
 
   try {
-    return await response.json() as T;
+    return (await response.json()) as T;
   } catch {
     throw new ApiError(
       502,
       options.errorCode ?? "jellyfin_invalid_response",
-      "Jellyfin returned an unreadable response. Make sure the server URL is correct and not a login page."
+      "Jellyfin returned an unreadable response. Make sure the server URL is correct and not a login page.",
     );
   }
 }
 
 export function sourceContext(source: MediaSource): JellyfinSourceContext {
   const token = stringValue(source.credentials.accessToken);
-  const userId = stringValue(source.credentials.userId) ?? stringValue(source.metadata.userId);
-  const deviceId = stringValue(source.credentials.deviceId) ?? JELLYFIN_DEVICE_ID;
+  const userId =
+    stringValue(source.credentials.userId) ??
+    stringValue(source.metadata.userId);
+  const deviceId =
+    stringValue(source.credentials.deviceId) ?? JELLYFIN_DEVICE_ID;
 
   if (!token) {
     throw new ApiError(
       500,
       "source_credentials_missing",
-      "Stored Jellyfin source is missing its access token"
+      "Stored Jellyfin source is missing its access token",
     );
   }
 
@@ -567,7 +631,7 @@ export function sourceContext(source: MediaSource): JellyfinSourceContext {
     throw new ApiError(
       500,
       "source_credentials_missing",
-      "Stored Jellyfin source is missing its Jellyfin user id"
+      "Stored Jellyfin source is missing its Jellyfin user id",
     );
   }
 
@@ -591,16 +655,23 @@ export async function fetchCurrentUser(context: JellyfinSourceContext) {
 }
 
 export async function fetchSessions(context: JellyfinSourceContext) {
-  return jellyfinJson<JellyfinSessionInfo[]>(context.baseUrl, "/Sessions?activeWithinSeconds=300", {
-    token: context.token,
-    deviceId: context.deviceId,
-    timeoutMs: CURRENT_PLAYBACK_REQUEST_TIMEOUT_MS,
-    errorCode: "jellyfin_sessions_failed",
-    failureMessage: "Jellyfin sessions request failed",
-  });
+  return jellyfinJson<JellyfinSessionInfo[]>(
+    context.baseUrl,
+    "/Sessions?activeWithinSeconds=300",
+    {
+      token: context.token,
+      deviceId: context.deviceId,
+      timeoutMs: CURRENT_PLAYBACK_REQUEST_TIMEOUT_MS,
+      errorCode: "jellyfin_sessions_failed",
+      failureMessage: "Jellyfin sessions request failed",
+    },
+  );
 }
 
-export async function fetchItem(context: JellyfinSourceContext, itemId: string) {
+export async function fetchItem(
+  context: JellyfinSourceContext,
+  itemId: string,
+) {
   return jellyfinJson<JellyfinItem>(
     context.baseUrl,
     `/Items/${encodeURIComponent(itemId)}?userId=${encodeURIComponent(context.userId)}`,
@@ -610,11 +681,14 @@ export async function fetchItem(context: JellyfinSourceContext, itemId: string) 
       timeoutMs: CURRENT_PLAYBACK_REQUEST_TIMEOUT_MS,
       errorCode: "jellyfin_item_failed",
       failureMessage: "Jellyfin item request failed",
-    }
+    },
   );
 }
 
-export async function fetchPlaybackInfo(context: JellyfinSourceContext, itemId: string) {
+export async function fetchPlaybackInfo(
+  context: JellyfinSourceContext,
+  itemId: string,
+) {
   return jellyfinJson<JellyfinPlaybackInfo>(
     context.baseUrl,
     `/Items/${encodeURIComponent(itemId)}/PlaybackInfo?userId=${encodeURIComponent(context.userId)}`,
@@ -624,6 +698,6 @@ export async function fetchPlaybackInfo(context: JellyfinSourceContext, itemId: 
       timeoutMs: CURRENT_PLAYBACK_REQUEST_TIMEOUT_MS,
       errorCode: "jellyfin_playback_info_failed",
       failureMessage: "Jellyfin playback info request failed",
-    }
+    },
   );
 }

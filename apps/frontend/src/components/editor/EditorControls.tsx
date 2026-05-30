@@ -46,11 +46,11 @@ function ControlTooltip({
           <span className="inline-flex" tabIndex={0}>
             {children}
           </span>
-        ) : children}
+        ) : (
+          children
+        )}
       </TooltipTrigger>
-      <TooltipContent side="bottom">
-        {label}
-      </TooltipContent>
+      <TooltipContent side="bottom">{label}</TooltipContent>
     </Tooltip>
   );
 }
@@ -92,14 +92,27 @@ export function EditorControls({
     <div className="border-b border-border px-3 py-2">
       <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
         <div className="flex items-center gap-2.5">
-          <ControlTooltip label={loadingPreview ? "Preview is loading." : playing ? "Pause preview" : "Play preview"} disabled={loadingPreview}>
+          <ControlTooltip
+            label={
+              loadingPreview
+                ? "Preview is loading."
+                : playing
+                  ? "Pause preview"
+                  : "Play preview"
+            }
+            disabled={loadingPreview}
+          >
             <button
               onClick={togglePlay}
               disabled={loadingPreview}
               aria-label={playing ? "Pause preview" : "Play preview"}
               className="flex h-8 w-8 items-center justify-center border border-border bg-accent text-foreground transition-colors hover:bg-accent/80 disabled:cursor-not-allowed disabled:opacity-50"
             >
-              {playing ? <Pause className="h-4 w-4" /> : <Play className="ml-0.5 h-4 w-4" />}
+              {playing ? (
+                <Pause className="h-4 w-4" />
+              ) : (
+                <Play className="ml-0.5 h-4 w-4" />
+              )}
             </button>
           </ControlTooltip>
           <EditorEditableTimecode
@@ -110,19 +123,31 @@ export function EditorControls({
             value={currentTime}
             valueLabel={`${formatTimecodeInput(currentTime)} of ${formatTimecodeInput(duration)}`}
           >
-            <EditorPreviewTimecode ariaHidden currentTime={currentTime} duration={duration} />
+            <EditorPreviewTimecode
+              ariaHidden
+              currentTime={currentTime}
+              duration={duration}
+            />
           </EditorEditableTimecode>
         </div>
         <div className="h-5 w-px bg-border" />
         <div className="flex items-center gap-2">
-          <ControlTooltip label={muted || volume === 0 ? "Unmute preview" : "Mute preview"}>
+          <ControlTooltip
+            label={muted || volume === 0 ? "Unmute preview" : "Mute preview"}
+          >
             <button
               type="button"
               onClick={() => setMuted((current) => !current)}
               className="flex h-8 w-8 items-center justify-center border border-border bg-background text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
-              aria-label={muted || volume === 0 ? "Unmute preview" : "Mute preview"}
+              aria-label={
+                muted || volume === 0 ? "Unmute preview" : "Mute preview"
+              }
             >
-              {muted || volume === 0 ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
+              {muted || volume === 0 ? (
+                <VolumeX className="h-4 w-4" />
+              ) : (
+                <Volume2 className="h-4 w-4" />
+              )}
             </button>
           </ControlTooltip>
           <input
@@ -140,7 +165,12 @@ export function EditorControls({
             aria-label="Preview volume"
           />
           <div className="ml-1 flex items-center overflow-hidden border border-border bg-background">
-            <ControlTooltip label={canZoomOut ? "Zoom timeline out" : "Already fully zoomed out"} disabled={!canZoomOut}>
+            <ControlTooltip
+              label={
+                canZoomOut ? "Zoom timeline out" : "Already fully zoomed out"
+              }
+              disabled={!canZoomOut}
+            >
               <button
                 type="button"
                 onClick={handleTimelineZoomOut}
@@ -151,7 +181,10 @@ export function EditorControls({
                 <ZoomOut className="h-4 w-4" />
               </button>
             </ControlTooltip>
-            <ControlTooltip label={canZoomIn ? "Zoom timeline in" : "Already fully zoomed in"} disabled={!canZoomIn}>
+            <ControlTooltip
+              label={canZoomIn ? "Zoom timeline in" : "Already fully zoomed in"}
+              disabled={!canZoomIn}
+            >
               <button
                 type="button"
                 onClick={handleTimelineZoomIn}
@@ -184,7 +217,9 @@ export function EditorControls({
               ) : (
                 <span
                   className={`font-mono text-sm font-semibold ${
-                    metric.emphasized ? "text-foreground" : "text-muted-foreground"
+                    metric.emphasized
+                      ? "text-foreground"
+                      : "text-muted-foreground"
                   }`}
                 >
                   {formatTime(metric.value)}

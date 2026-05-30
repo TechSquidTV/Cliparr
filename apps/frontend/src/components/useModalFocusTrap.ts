@@ -13,7 +13,7 @@ const focusableSelector = [
   "textarea:not([disabled])",
   "input:not([disabled])",
   "select:not([disabled])",
-  "[tabindex]:not([tabindex=\"-1\"])",
+  '[tabindex]:not([tabindex="-1"])',
 ].join(", ");
 
 export function useModalFocusTrap({
@@ -29,9 +29,10 @@ export function useModalFocusTrap({
       return;
     }
 
-    lastFocusedElementRef.current = document.activeElement instanceof HTMLElement
-      ? document.activeElement
-      : null;
+    lastFocusedElementRef.current =
+      document.activeElement instanceof HTMLElement
+        ? document.activeElement
+        : null;
 
     const frameId = window.requestAnimationFrame(() => {
       (initialFocusRef?.current ?? dialogRef.current)?.focus();
@@ -55,8 +56,9 @@ export function useModalFocusTrap({
         return;
       }
 
-      const focusable = [...dialog.querySelectorAll<HTMLElement>(focusableSelector)]
-        .filter((element) => element.getAttribute("aria-hidden") !== "true");
+      const focusable = [
+        ...dialog.querySelectorAll<HTMLElement>(focusableSelector),
+      ].filter((element) => element.getAttribute("aria-hidden") !== "true");
 
       if (focusable.length === 0) {
         event.preventDefault();
@@ -69,7 +71,10 @@ export function useModalFocusTrap({
       const activeElement = document.activeElement;
 
       if (event.shiftKey) {
-        if (activeElement === firstFocusable || !dialog.contains(activeElement)) {
+        if (
+          activeElement === firstFocusable ||
+          !dialog.contains(activeElement)
+        ) {
           event.preventDefault();
           lastFocusable?.focus();
         }

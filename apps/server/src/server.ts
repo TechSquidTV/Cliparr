@@ -2,12 +2,21 @@ import "./config/loadEnv.js";
 import type { Server } from "node:http";
 import { createApp } from "./app.js";
 import { closeDatabase } from "./db/database.js";
-import { configureLogging, getServerLogger, serializeError } from "./logging.js";
+import {
+  configureLogging,
+  getServerLogger,
+  serializeError,
+} from "./logging.js";
 
 const logger = getServerLogger("server");
 
-function hasCloseAllConnections(server: Server): server is Server & { closeAllConnections(): void } {
-  return "closeAllConnections" in server && typeof server.closeAllConnections === "function";
+function hasCloseAllConnections(
+  server: Server,
+): server is Server & { closeAllConnections(): void } {
+  return (
+    "closeAllConnections" in server &&
+    typeof server.closeAllConnections === "function"
+  );
 }
 
 async function startServer() {
@@ -71,8 +80,6 @@ async function startServer() {
     void shutdown();
   });
 }
-
-
 
 startServer().catch((err: unknown) => {
   logger.fatal("Failed to start server: {errorMessage}", serializeError(err));

@@ -13,7 +13,9 @@ export function resolveCliparrVersion(env: NodeJS.ProcessEnv = process.env) {
   return normalizeVersion(env.CLIPARR_VERSION);
 }
 
-export function resolveCliparrClientVersion(env: NodeJS.ProcessEnv = process.env) {
+export function resolveCliparrClientVersion(
+  env: NodeJS.ProcessEnv = process.env,
+) {
   return resolveCliparrVersion(env) ?? LOCAL_CLIENT_VERSION;
 }
 

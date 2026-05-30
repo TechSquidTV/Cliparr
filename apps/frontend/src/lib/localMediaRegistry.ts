@@ -16,14 +16,26 @@ const DATABASE_NAME = "cliparr-local-media";
 const DATABASE_VERSION = 1;
 const STORE_NAME = "media";
 
-const VIDEO_PICKER_TYPES = [{
-  description: "Video files",
-  accept: {
-    "video/*": [".mp4", ".m4v", ".mov", ".mkv", ".webm", ".ogv", ".ts", ".m2ts", ".mts"],
-    "application/x-matroska": [".mkv"],
-    "video/mp2t": [".ts", ".m2ts", ".mts"],
+const VIDEO_PICKER_TYPES = [
+  {
+    description: "Video files",
+    accept: {
+      "video/*": [
+        ".mp4",
+        ".m4v",
+        ".mov",
+        ".mkv",
+        ".webm",
+        ".ogv",
+        ".ts",
+        ".m2ts",
+        ".mts",
+      ],
+      "application/x-matroska": [".mkv"],
+      "video/mp2t": [".ts", ".m2ts", ".mts"],
+    },
   },
-}] as const;
+] as const;
 
 export const LOCAL_VIDEO_FILE_ACCEPT = [
   "video/*",
@@ -93,7 +105,10 @@ interface BrowserWithFilePicker extends Window {
 const memoryRecords = new Map<string, LocalMediaRecord>();
 
 function createId() {
-  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+  if (
+    typeof crypto !== "undefined" &&
+    typeof crypto.randomUUID === "function"
+  ) {
     return crypto.randomUUID();
   }
 
@@ -110,7 +125,9 @@ function canUseIndexedDb() {
 
 function openDatabase(): Promise<IDBDatabase> {
   if (!canUseIndexedDb()) {
-    return Promise.reject(new Error("IndexedDB is unavailable in this browser."));
+    return Promise.reject(
+      new Error("IndexedDB is unavailable in this browser."),
+    );
   }
 
   return new Promise((resolve, reject) => {
@@ -124,7 +141,8 @@ function openDatabase(): Promise<IDBDatabase> {
     };
 
     request.onsuccess = () => resolve(request.result);
-    request.onerror = () => reject(request.error ?? new Error("Could not open local media storage."));
+    request.onerror = () =>
+      reject(request.error ?? new Error("Could not open local media storage."));
   });
 }
 
@@ -132,23 +150,35 @@ function withStore<T>(
   mode: IDBTransactionMode,
   callback: (store: IDBObjectStore) => IDBRequest<T>,
 ): Promise<T> {
-  return openDatabase().then((database) => new Promise<T>((resolve, reject) => {
-    const transaction = database.transaction(STORE_NAME, mode);
-    const store = transaction.objectStore(STORE_NAME);
-    const request = callback(store);
+  return openDatabase().then(
+    (database) =>
+      new Promise<T>((resolve, reject) => {
+        const transaction = database.transaction(STORE_NAME, mode);
+        const store = transaction.objectStore(STORE_NAME);
+        const request = callback(store);
 
-    request.onsuccess = () => resolve(request.result);
-    request.onerror = () => reject(request.error ?? new Error("Local media storage request failed."));
-    transaction.oncomplete = () => database.close();
-    transaction.onerror = () => {
-      database.close();
-      reject(transaction.error ?? new Error("Local media storage transaction failed."));
-    };
-    transaction.onabort = () => {
-      database.close();
-      reject(transaction.error ?? new Error("Local media storage transaction was aborted."));
-    };
-  }));
+        request.onsuccess = () => resolve(request.result);
+        request.onerror = () =>
+          reject(
+            request.error ?? new Error("Local media storage request failed."),
+          );
+        transaction.oncomplete = () => database.close();
+        transaction.onerror = () => {
+          database.close();
+          reject(
+            transaction.error ??
+              new Error("Local media storage transaction failed."),
+          );
+        };
+        transaction.onabort = () => {
+          database.close();
+          reject(
+            transaction.error ??
+              new Error("Local media storage transaction was aborted."),
+          );
+        };
+      }),
+  );
 }
 
 async function putStoredRecord(record: StoredLocalMediaRecord) {
@@ -156,12 +186,15 @@ async function putStoredRecord(record: StoredLocalMediaRecord) {
 }
 
 async function getStoredRecord(id: string) {
-  return withStore<StoredLocalMediaRecord | undefined>("readonly", (store) =>
-    store.get(id) as IDBRequest<StoredLocalMediaRecord | undefined>
+  return withStore<StoredLocalMediaRecord | undefined>(
+    "readonly",
+    (store) => store.get(id) as IDBRequest<StoredLocalMediaRecord | undefined>,
   );
 }
 
-function createMemoryFileSource(record: MemoryFileRecord): EditorFileMediaSource {
+function createMemoryFileSource(
+  record: MemoryFileRecord,
+): EditorFileMediaSource {
   return {
     kind: "file",
     role: "local-file",
@@ -174,7 +207,9 @@ function createMemoryFileSource(record: MemoryFileRecord): EditorFileMediaSource
   };
 }
 
-function createFileHandleSource(record: StoredFileHandleRecord): EditorFileHandleMediaSource {
+function createFileHandleSource(
+  record: StoredFileHandleRecord,
+): EditorFileHandleMediaSource {
   return {
     kind: "file-handle",
     role: "local-file",
@@ -191,7 +226,9 @@ function errorMessage(err: unknown, fallback: string) {
   return err instanceof Error && err.message ? err.message : fallback;
 }
 
-async function createUrlSource(record: StoredUrlRecord): Promise<EditorUrlMediaSource> {
+async function createUrlSource(
+  record: StoredUrlRecord,
+): Promise<EditorUrlMediaSource> {
   const proxied = await cliparrClient.createLocalMediaUrl(record.url);
 
   return {
@@ -276,7 +313,10 @@ export function validateLocalMediaUrl(value: string) {
   }
 
   if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
-    return { ok: false as const, message: "Media URLs must use HTTP or HTTPS." };
+    return {
+      ok: false as const,
+      message: "Media URLs must use HTTP or HTTPS.",
+    };
   }
 
   return {
@@ -287,8 +327,10 @@ export function validateLocalMediaUrl(value: string) {
 }
 
 export function localMediaPickerSupported() {
-  return typeof window !== "undefined"
-    && typeof (window as BrowserWithFilePicker).showOpenFilePicker === "function";
+  return (
+    typeof window !== "undefined" &&
+    typeof (window as BrowserWithFilePicker).showOpenFilePicker === "function"
+  );
 }
 
 export async function createLocalSessionFromFile(file: File) {
@@ -310,9 +352,10 @@ export async function createLocalSessionFromFile(file: File) {
 }
 
 export async function createLocalSessionFromPicker() {
-  const picker = typeof window !== "undefined"
-    ? (window as BrowserWithFilePicker).showOpenFilePicker
-    : undefined;
+  const picker =
+    typeof window !== "undefined"
+      ? (window as BrowserWithFilePicker).showOpenFilePicker
+      : undefined;
 
   if (!picker) {
     return { status: "unsupported" as const };
@@ -408,7 +451,10 @@ export async function resolveLocalMediaSession(
   const memoryRecord = memoryRecords.get(id);
   if (memoryRecord) {
     try {
-      return { status: "ready", session: await sessionFromRecord(memoryRecord) };
+      return {
+        status: "ready",
+        session: await sessionFromRecord(memoryRecord),
+      };
     } catch (err) {
       return {
         status: "unavailable",
@@ -431,13 +477,17 @@ export async function resolveLocalMediaSession(
   if (!storedRecord) {
     return {
       status: "missing",
-      message: "This local video is no longer available. Reopen it to continue.",
+      message:
+        "This local video is no longer available. Reopen it to continue.",
     };
   }
 
   if (storedRecord.kind === "url") {
     try {
-      return { status: "ready", session: await sessionFromRecord(storedRecord) };
+      return {
+        status: "ready",
+        session: await sessionFromRecord(storedRecord),
+      };
     } catch (err) {
       return {
         status: "unavailable",
@@ -448,7 +498,10 @@ export async function resolveLocalMediaSession(
   }
 
   try {
-    const permission = await resolveFileHandleReadPermission(storedRecord.handle, options);
+    const permission = await resolveFileHandleReadPermission(
+      storedRecord.handle,
+      options,
+    );
 
     if (permission !== "granted") {
       return {

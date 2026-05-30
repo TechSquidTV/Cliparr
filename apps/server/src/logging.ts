@@ -1,7 +1,13 @@
 import { randomUUID } from "node:crypto";
 import { AsyncLocalStorage } from "node:async_hooks";
 import type { NextFunction, Request, Response } from "express";
-import { configure, getConsoleSink, getLogger, isLogLevel, withContext } from "@logtape/logtape";
+import {
+  configure,
+  getConsoleSink,
+  getLogger,
+  isLogLevel,
+  withContext,
+} from "@logtape/logtape";
 
 const LOG_CATEGORY_PREFIX = ["cliparr"];
 
@@ -33,9 +39,12 @@ export function configureLogging() {
   }
 
   const configuredLevel = process.env.CLIPARR_LOG_LEVEL?.trim();
-  const lowestLevel = configuredLevel && isLogLevel(configuredLevel)
-    ? configuredLevel
-    : (process.env.NODE_ENV === "production" ? "info" : "debug");
+  const lowestLevel =
+    configuredLevel && isLogLevel(configuredLevel)
+      ? configuredLevel
+      : process.env.NODE_ENV === "production"
+        ? "info"
+        : "debug";
 
   loggingConfigured = configure({
     sinks: {
@@ -61,24 +70,31 @@ export function configureLogging() {
 
 const requestLogger = getServerLogger(["http", "request"]);
 
-export function requestLoggingMiddleware(req: Request, res: Response, next: NextFunction) {
+export function requestLoggingMiddleware(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) {
   const requestId = randomUUID();
   const startedAt = Date.now();
 
-  withContext({
-    requestId,
-    method: req.method,
-    path: req.path,
-    originalUrl: req.originalUrl,
-  }, () => {
-    res.setHeader("X-Request-Id", requestId);
-    res.once("finish", () => {
-      requestLogger.trace("Completed request {method} {originalUrl}.", {
-        statusCode: res.statusCode,
-        durationMs: Date.now() - startedAt,
+  withContext(
+    {
+      requestId,
+      method: req.method,
+      path: req.path,
+      originalUrl: req.originalUrl,
+    },
+    () => {
+      res.setHeader("X-Request-Id", requestId);
+      res.once("finish", () => {
+        requestLogger.trace("Completed request {method} {originalUrl}.", {
+          statusCode: res.statusCode,
+          durationMs: Date.now() - startedAt,
+        });
       });
-    });
 
-    next();
-  });
+      next();
+    },
+  );
 }

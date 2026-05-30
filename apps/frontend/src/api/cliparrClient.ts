@@ -50,8 +50,14 @@ function responseErrorDetails(payload: unknown): ResponseErrorDetails {
   }
 
   return {
-    code: "code" in error && typeof error.code === "string" ? error.code : undefined,
-    message: "message" in error && typeof error.message === "string" ? error.message : undefined,
+    code:
+      "code" in error && typeof error.code === "string"
+        ? error.code
+        : undefined,
+    message:
+      "message" in error && typeof error.message === "string"
+        ? error.message
+        : undefined,
   };
 }
 
@@ -69,7 +75,7 @@ function queueAuthFailureNotification() {
 
 function buildUnexpectedApiResponseError() {
   return new Error(
-    "Cliparr API returned the app page instead of JSON. Check the API URL."
+    "Cliparr API returned the app page instead of JSON. Check the API URL.",
   );
 }
 
@@ -151,28 +157,38 @@ export const cliparrClient = {
   },
 
   async listProviders() {
-    const data = await request<{ providers: ProviderDefinition[] }>("/api/providers");
+    const data = await request<{ providers: ProviderDefinition[] }>(
+      "/api/providers",
+    );
     return data.providers;
   },
 
   async startAuth(providerId: string) {
-    return request<ProviderAuthStart>(`/api/providers/${providerId}/auth/start`, {
-      method: "POST",
-    });
+    return request<ProviderAuthStart>(
+      `/api/providers/${providerId}/auth/start`,
+      {
+        method: "POST",
+      },
+    );
   },
 
   async pollAuth(providerId: string, authId: string) {
-    return request<ProviderAuthStatus>(`/api/providers/${providerId}/auth/${authId}`);
+    return request<ProviderAuthStatus>(
+      `/api/providers/${providerId}/auth/${authId}`,
+    );
   },
 
   async loginWithCredentials(
     providerId: string,
-    input: { serverUrl: string; username: string; password: string }
+    input: { serverUrl: string; username: string; password: string },
   ) {
-    const data = await request<{ session: ProviderSession }>(`/api/providers/${providerId}/auth/login`, {
-      method: "POST",
-      body: JSON.stringify(input),
-    });
+    const data = await request<{ session: ProviderSession }>(
+      `/api/providers/${providerId}/auth/login`,
+      {
+        method: "POST",
+        body: JSON.stringify(input),
+      },
+    );
     return data.session;
   },
 
@@ -191,15 +207,23 @@ export const cliparrClient = {
   },
 
   async getSource(sourceId: string) {
-    const data = await request<{ source: MediaSource }>(`/api/sources/${sourceId}`);
+    const data = await request<{ source: MediaSource }>(
+      `/api/sources/${sourceId}`,
+    );
     return data.source;
   },
 
-  async updateSource(sourceId: string, input: { baseUrl?: string; name?: string; enabled?: boolean }) {
-    const data = await request<{ source: MediaSource }>(`/api/sources/${sourceId}`, {
-      method: "PATCH",
-      body: JSON.stringify(input),
-    });
+  async updateSource(
+    sourceId: string,
+    input: { baseUrl?: string; name?: string; enabled?: boolean },
+  ) {
+    const data = await request<{ source: MediaSource }>(
+      `/api/sources/${sourceId}`,
+      {
+        method: "PATCH",
+        body: JSON.stringify(input),
+      },
+    );
     return data.source;
   },
 

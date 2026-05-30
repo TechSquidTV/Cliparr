@@ -28,28 +28,40 @@ sessionRouter.get(
     setNoStore(res);
     const rememberedToken = readCookie(
       req.header("cookie"),
-      getRememberedProviderSessionCookieName()
+      getRememberedProviderSessionCookieName(),
     );
     const rememberedSession = getRememberedProviderSession(rememberedToken);
-    const session = getProviderSession(getRequestSessionId(req))
-      ?? restoreProviderSessionFromProviderAccount(rememberedSession?.providerAccountId);
+    const session =
+      getProviderSession(getRequestSessionId(req)) ??
+      restoreProviderSessionFromProviderAccount(
+        rememberedSession?.providerAccountId,
+      );
     if (!session) {
       if (rememberedToken) {
         revokeRememberedProviderSession(rememberedToken);
         res.clearCookie(
           getRememberedProviderSessionCookieName(),
-          getRememberedProviderSessionCookieClearOptions(req.secure)
+          getRememberedProviderSessionCookieClearOptions(req.secure),
         );
       }
-      throw new ApiError(401, "not_authenticated", "Sign in with a provider first");
+      throw new ApiError(
+        401,
+        "not_authenticated",
+        "Sign in with a provider first",
+      );
     }
 
     const provider = getProvider(session.providerId);
     if (!provider) {
-      throw new ApiError(500, "provider_not_registered", "Session provider is not registered");
+      throw new ApiError(
+        500,
+        "provider_not_registered",
+        "Session provider is not registered",
+      );
     }
 
-    const rememberedSessionMatches = rememberedSession?.providerAccountId === session.providerAccountId;
+    const rememberedSessionMatches =
+      rememberedSession?.providerAccountId === session.providerAccountId;
     const nextRememberedSession = rememberedSessionMatches
       ? undefined
       : createRememberedProviderSession(session.providerAccountId);
@@ -57,29 +69,35 @@ sessionRouter.get(
       revokeRememberedProviderSession(rememberedToken);
     }
 
-    res.cookie(getSessionCookieName(), session.id, getSessionCookieOptions(req.secure));
+    res.cookie(
+      getSessionCookieName(),
+      session.id,
+      getSessionCookieOptions(req.secure),
+    );
     if (nextRememberedSession) {
       res.cookie(
         getRememberedProviderSessionCookieName(),
         nextRememberedSession.token,
-        getRememberedProviderSessionCookieOptions(req.secure)
+        getRememberedProviderSessionCookieOptions(req.secure),
       );
     }
     res.json({ session: provider.serializeSession(session) });
-  })
+  }),
 );
 
 sessionRouter.delete("/", (req, res) => {
   setNoStore(res);
-  revokeRememberedProviderSession(readCookie(
-    req.header("cookie"),
-    getRememberedProviderSessionCookieName()
-  ));
+  revokeRememberedProviderSession(
+    readCookie(req.header("cookie"), getRememberedProviderSessionCookieName()),
+  );
   deleteProviderSession(getRequestSessionId(req));
-  res.clearCookie(getSessionCookieName(), getSessionCookieClearOptions(req.secure));
+  res.clearCookie(
+    getSessionCookieName(),
+    getSessionCookieClearOptions(req.secure),
+  );
   res.clearCookie(
     getRememberedProviderSessionCookieName(),
-    getRememberedProviderSessionCookieClearOptions(req.secure)
+    getRememberedProviderSessionCookieClearOptions(req.secure),
   );
   res.status(204).end();
 });

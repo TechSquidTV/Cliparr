@@ -32,7 +32,10 @@ for (const envPath of envPaths) {
     process.env[key] = value;
   }
 
-  if (initialCliparrDataDir === undefined && parsed.CLIPARR_DATA_DIR !== undefined) {
+  if (
+    initialCliparrDataDir === undefined &&
+    parsed.CLIPARR_DATA_DIR !== undefined
+  ) {
     configuredDataDirBaseDir = path.dirname(resolvedPath);
   }
 

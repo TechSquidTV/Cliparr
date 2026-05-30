@@ -33,32 +33,34 @@ interface ExportOption<T extends string> {
   description: string;
 }
 
-const formatOptions: ReadonlyArray<ExportOption<ExportFormat> & {
-  extension: string;
-}> = [
-    {
-      value: "mp4",
-      label: "MP4",
-      extension: ".mp4",
-      description: "Best for sharing and uploads.",
+const formatOptions: ReadonlyArray<
+  ExportOption<ExportFormat> & {
+    extension: string;
+  }
+> = [
+  {
+    value: "mp4",
+    label: "MP4",
+    extension: ".mp4",
+    description: "Best for sharing and uploads.",
   },
   {
-      value: "webm",
-      label: "WEBM",
-      extension: ".webm",
-      description: "Efficient web playback.",
+    value: "webm",
+    label: "WEBM",
+    extension: ".webm",
+    description: "Efficient web playback.",
   },
   {
-      value: "mov",
-      label: "MOV",
-      extension: ".mov",
-      description: "Good for editing workflows.",
+    value: "mov",
+    label: "MOV",
+    extension: ".mov",
+    description: "Good for editing workflows.",
   },
   {
-      value: "mkv",
-      label: "MKV",
-      extension: ".mkv",
-      description: "Flexible container support.",
+    value: "mkv",
+    label: "MKV",
+    extension: ".mkv",
+    description: "Flexible container support.",
   },
 ];
 
@@ -106,11 +108,16 @@ function sectionLabelClassName() {
 }
 
 export function formatOptionFor(format: ExportFormat) {
-  return formatOptions.find((option) => option.value === format) ?? formatOptions[0];
+  return (
+    formatOptions.find((option) => option.value === format) ?? formatOptions[0]
+  );
 }
 
 function resolutionOptionFor(resolution: ExportResolution) {
-  return resolutionOptions.find((option) => option.value === resolution) ?? resolutionOptions[0];
+  return (
+    resolutionOptions.find((option) => option.value === resolution) ??
+    resolutionOptions[0]
+  );
 }
 
 function sourceOptionsFor(labels: {
@@ -141,19 +148,22 @@ function sourceOptionFor(
   labels: { directSourceLabel: string; hlsSourceLabel: string },
 ) {
   const sourceOptions = sourceOptionsFor(labels);
-  return sourceOptions.find((option) => option.value === preference) ?? sourceOptions[0];
+  return (
+    sourceOptions.find((option) => option.value === preference) ??
+    sourceOptions[0]
+  );
 }
 
 function templateOptionFor(kind: ExportFileNameTemplateKind) {
-  return templateOptions.find((option) => option.kind === kind) ?? templateOptions[0];
+  return (
+    templateOptions.find((option) => option.kind === kind) ?? templateOptions[0]
+  );
 }
 
 function SectionHeader({ children }: { children: string }) {
   return (
     <div className="border-b border-border px-3 py-2">
-      <div className={sectionLabelClassName()}>
-        {children}
-      </div>
+      <div className={sectionLabelClassName()}>{children}</div>
     </div>
   );
 }
@@ -194,11 +204,15 @@ export function EditorExportSettingsSection({
       <SectionHeader>Export Settings</SectionHeader>
       <div className="grid gap-3 p-3 sm:grid-cols-2">
         <label className="space-y-1.5">
-          <span className={sectionLabelClassName()}>
-            Format
-          </span>
-          <Select value={selectedFormat} onValueChange={(value) => onFormatChange(value as ExportFormat)}>
-            <SelectTrigger size="sm" className={compactSelectTriggerClassName()}>
+          <span className={sectionLabelClassName()}>Format</span>
+          <Select
+            value={selectedFormat}
+            onValueChange={(value) => onFormatChange(value as ExportFormat)}
+          >
+            <SelectTrigger
+              size="sm"
+              className={compactSelectTriggerClassName()}
+            >
               <SelectValue placeholder="Select format" />
             </SelectTrigger>
             <SelectContent>
@@ -212,15 +226,23 @@ export function EditorExportSettingsSection({
               </SelectGroup>
             </SelectContent>
           </Select>
-          <p className="text-xs text-muted-foreground">{formatOptionFor(selectedFormat).description}</p>
+          <p className="text-xs text-muted-foreground">
+            {formatOptionFor(selectedFormat).description}
+          </p>
         </label>
 
         <label className="space-y-1.5">
-          <span className={sectionLabelClassName()}>
-            Resolution
-          </span>
-          <Select value={selectedResolution} onValueChange={(value) => onResolutionChange(value as ExportResolution)}>
-            <SelectTrigger size="sm" className={compactSelectTriggerClassName()}>
+          <span className={sectionLabelClassName()}>Resolution</span>
+          <Select
+            value={selectedResolution}
+            onValueChange={(value) =>
+              onResolutionChange(value as ExportResolution)
+            }
+          >
+            <SelectTrigger
+              size="sm"
+              className={compactSelectTriggerClassName()}
+            >
               <SelectValue placeholder="Select resolution" />
             </SelectTrigger>
             <SelectContent>
@@ -241,9 +263,7 @@ export function EditorExportSettingsSection({
 
         <div className="space-y-1.5">
           <div className="flex items-center gap-1.5">
-            <span className={sectionLabelClassName()}>
-              Source
-            </span>
+            <span className={sectionLabelClassName()}>Source</span>
             <Tooltip>
               <TooltipTrigger asChild>
                 <button
@@ -261,9 +281,14 @@ export function EditorExportSettingsSection({
           </div>
           <Select
             value={selectedSourcePreference}
-            onValueChange={(value) => onSourcePreferenceChange(value as ExportSourcePreference)}
+            onValueChange={(value) =>
+              onSourcePreferenceChange(value as ExportSourcePreference)
+            }
           >
-            <SelectTrigger size="sm" className={compactSelectTriggerClassName()}>
+            <SelectTrigger
+              size="sm"
+              className={compactSelectTriggerClassName()}
+            >
               <SelectValue placeholder="Select source" />
             </SelectTrigger>
             <SelectContent>
@@ -274,8 +299,8 @@ export function EditorExportSettingsSection({
                     key={option.value}
                     value={option.value}
                     disabled={
-                      (option.value === "direct" && !hasDirectSource)
-                      || (option.value === "hls" && !hasHlsSource)
+                      (option.value === "direct" && !hasDirectSource) ||
+                      (option.value === "hls" && !hasHlsSource)
                     }
                   >
                     {option.label}
@@ -285,19 +310,27 @@ export function EditorExportSettingsSection({
             </SelectContent>
           </Select>
           <p className="text-xs text-muted-foreground">
-            {sourceOptionFor(selectedSourcePreference, { directSourceLabel, hlsSourceLabel }).description}
+            {
+              sourceOptionFor(selectedSourcePreference, {
+                directSourceLabel,
+                hlsSourceLabel,
+              }).description
+            }
           </p>
         </div>
 
         <label className="space-y-1.5">
-          <span className={sectionLabelClassName()}>
-            Audio
-          </span>
+          <span className={sectionLabelClassName()}>Audio</span>
           <Select
             value={includeAudio ? "included" : "video-only"}
-            onValueChange={(value) => onIncludeAudioChange(value === "included")}
+            onValueChange={(value) =>
+              onIncludeAudioChange(value === "included")
+            }
           >
-            <SelectTrigger size="sm" className={compactSelectTriggerClassName()}>
+            <SelectTrigger
+              size="sm"
+              className={compactSelectTriggerClassName()}
+            >
               <SelectValue placeholder="Select audio option" />
             </SelectTrigger>
             <SelectContent>
@@ -309,7 +342,9 @@ export function EditorExportSettingsSection({
             </SelectContent>
           </Select>
           <p className="text-xs text-muted-foreground">
-            {includeAudio ? "Keeps a stereo mix when source audio exists." : "Exports without an audio track."}
+            {includeAudio
+              ? "Keeps a stereo mix when source audio exists."
+              : "Exports without an audio track."}
           </p>
         </label>
       </div>
@@ -321,7 +356,10 @@ interface EditorFilenameTemplateSectionProps {
   editingTemplateKind: ExportFileNameTemplateKind;
   onEditingTemplateKindChange: (kind: ExportFileNameTemplateKind) => void;
   fileNameTemplates: ExportFileNameTemplateSettings;
-  onFileNameTemplateChange: (kind: ExportFileNameTemplateKind, template: string) => void;
+  onFileNameTemplateChange: (
+    kind: ExportFileNameTemplateKind,
+    template: string,
+  ) => void;
   onResetFileNameTemplate: (kind: ExportFileNameTemplateKind) => void;
 }
 
@@ -341,14 +379,17 @@ export function EditorFilenameTemplateSection({
       <div className="space-y-3 p-3">
         <div className="grid gap-3 sm:grid-cols-[12rem_auto] sm:items-end">
           <label className="space-y-1.5">
-            <span className={sectionLabelClassName()}>
-              Template Set
-            </span>
+            <span className={sectionLabelClassName()}>Template Set</span>
             <Select
               value={editingTemplateKind}
-              onValueChange={(value) => onEditingTemplateKindChange(value as ExportFileNameTemplateKind)}
+              onValueChange={(value) =>
+                onEditingTemplateKindChange(value as ExportFileNameTemplateKind)
+              }
             >
-              <SelectTrigger size="sm" className={compactSelectTriggerClassName()}>
+              <SelectTrigger
+                size="sm"
+                className={compactSelectTriggerClassName()}
+              >
                 <SelectValue placeholder="Select template set" />
               </SelectTrigger>
               <SelectContent>
@@ -374,24 +415,24 @@ export function EditorFilenameTemplateSection({
         </div>
 
         <label className="block space-y-1.5">
-          <span className={sectionLabelClassName()}>
-            Pattern
-          </span>
+          <span className={sectionLabelClassName()}>Pattern</span>
           <input
             type="text"
             value={fileNameTemplates[editingTemplateKind]}
-            onChange={(event) => onFileNameTemplateChange(editingTemplateKind, event.target.value)}
+            onChange={(event) =>
+              onFileNameTemplateChange(editingTemplateKind, event.target.value)
+            }
             className="h-8 w-full rounded-md border border-input bg-background px-2.5 font-mono text-xs text-foreground outline-none transition-colors focus:border-ring focus:ring-2 focus:ring-ring/40"
             spellCheck={false}
           />
         </label>
 
-        <p className="text-xs text-muted-foreground">{editingTemplateOption.description}</p>
+        <p className="text-xs text-muted-foreground">
+          {editingTemplateOption.description}
+        </p>
 
         <div className="rounded-md border border-border bg-background px-3 py-2">
-          <div className={sectionLabelClassName()}>
-            Available Tokens
-          </div>
+          <div className={sectionLabelClassName()}>Available Tokens</div>
           <div className="mt-2 flex flex-wrap gap-1.5">
             {visibleTokens.map((token) => (
               <code
@@ -441,18 +482,17 @@ export function EditorExportSummaryPanel({
 }: EditorExportSummaryPanelProps) {
   const clipLength = Math.max(0, clipEnd - clipStart);
   const selectedFormatOption = formatOptionFor(selectedFormat);
-  const subtitleSummaryClassName = subtitleSummaryTone === "ready"
-    ? "border-emerald-500/30 bg-emerald-500/8"
-    : subtitleSummaryTone === "warning"
-      ? "border-amber-500/30 bg-amber-500/8"
-      : "border-border bg-background";
+  const subtitleSummaryClassName =
+    subtitleSummaryTone === "ready"
+      ? "border-emerald-500/30 bg-emerald-500/8"
+      : subtitleSummaryTone === "warning"
+        ? "border-amber-500/30 bg-amber-500/8"
+        : "border-border bg-background";
 
   return (
     <aside className="space-y-3 rounded-md border border-border bg-card p-3">
       <div className="border-b border-border pb-2">
-        <div className={sectionLabelClassName()}>
-          Summary
-        </div>
+        <div className={sectionLabelClassName()}>Summary</div>
       </div>
 
       <div className="text-sm font-medium text-foreground">{title}</div>
@@ -467,14 +507,14 @@ export function EditorExportSummaryPanel({
 
         <div className="rounded-md border border-border bg-background px-3 py-2">
           <dt className={sectionLabelClassName()}>Duration</dt>
-          <dd className="mt-1 font-mono text-xs text-foreground">{formatTime(clipLength)}</dd>
+          <dd className="mt-1 font-mono text-xs text-foreground">
+            {formatTime(clipLength)}
+          </dd>
         </div>
 
         <div className="rounded-md border border-border bg-background px-3 py-2">
           <dt className={sectionLabelClassName()}>Source</dt>
-          <dd className="mt-1 text-xs text-foreground">
-            {exportSourceLabel}
-          </dd>
+          <dd className="mt-1 text-xs text-foreground">{exportSourceLabel}</dd>
           {exportSourceSummaryMessage ? (
             <dd className="mt-1 text-xs leading-relaxed text-muted-foreground">
               {exportSourceSummaryMessage}
@@ -484,9 +524,13 @@ export function EditorExportSummaryPanel({
 
         <div className="rounded-md border border-border bg-background px-3 py-2">
           <dt className={sectionLabelClassName()}>Output</dt>
-          <dd className="mt-1 text-xs text-foreground">{selectedFormatOption.label}</dd>
+          <dd className="mt-1 text-xs text-foreground">
+            {selectedFormatOption.label}
+          </dd>
           <dd className="mt-1 font-mono text-[11px] text-foreground">
-            {outputDimensions ? `${outputDimensions.width} x ${outputDimensions.height}` : "Unknown size"}
+            {outputDimensions
+              ? `${outputDimensions.width} x ${outputDimensions.height}`
+              : "Unknown size"}
           </dd>
         </div>
 
@@ -497,18 +541,28 @@ export function EditorExportSummaryPanel({
           </dd>
         </div>
 
-        <div className={`rounded-md border px-3 py-2 ${subtitleSummaryClassName}`}>
+        <div
+          className={`rounded-md border px-3 py-2 ${subtitleSummaryClassName}`}
+        >
           <dt className={sectionLabelClassName()}>Subtitles</dt>
-          <dd className="mt-1 text-xs font-medium text-foreground">{subtitleSummaryLabel}</dd>
-          <dd className="mt-1 text-[11px] text-muted-foreground">{subtitleSummaryDetail}</dd>
+          <dd className="mt-1 text-xs font-medium text-foreground">
+            {subtitleSummaryLabel}
+          </dd>
+          <dd className="mt-1 text-[11px] text-muted-foreground">
+            {subtitleSummaryDetail}
+          </dd>
         </div>
 
         <div className="rounded-md border border-border bg-background px-3 py-2">
           <dt className={sectionLabelClassName()}>Filename</dt>
           <dd className="mt-1 text-[11px] font-semibold uppercase tracking-[var(--tracking-caps-md)] text-muted-foreground">
-            {activeTemplateKind === "episode" ? "TV show template" : "Movie template"}
+            {activeTemplateKind === "episode"
+              ? "TV show template"
+              : "Movie template"}
           </dd>
-          <dd className="mt-1 break-all font-mono text-[11px] text-foreground">{fileNamePreview}</dd>
+          <dd className="mt-1 break-all font-mono text-[11px] text-foreground">
+            {fileNamePreview}
+          </dd>
         </div>
       </dl>
     </aside>

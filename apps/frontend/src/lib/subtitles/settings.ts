@@ -1,6 +1,7 @@
 import type { SubtitleStyleSettings } from "./types";
 
-const SUBTITLE_STYLE_SETTINGS_STORAGE_KEY = "cliparr.subtitle.style-settings.v1";
+const SUBTITLE_STYLE_SETTINGS_STORAGE_KEY =
+  "cliparr.subtitle.style-settings.v1";
 
 type SubtitleFontOptionSource = "bundled" | "local" | "saved";
 
@@ -18,21 +19,42 @@ type LocalFontWindow = Window & {
   queryLocalFonts?: () => Promise<readonly LocalFontData[]>;
 };
 
-let localSubtitleFontOptionsPromise: Promise<readonly SubtitleFontOption[]> | null = null;
+let localSubtitleFontOptionsPromise: Promise<
+  readonly SubtitleFontOption[]
+> | null = null;
 
 export const SUBTITLE_FONT_OPTIONS: readonly SubtitleFontOption[] = [
   { label: "Arial", value: "Arial, sans-serif", source: "bundled" },
   { label: "Verdana", value: "Verdana, sans-serif", source: "bundled" },
-  { label: "Trebuchet MS", value: "\"Trebuchet MS\", sans-serif", source: "bundled" },
+  {
+    label: "Trebuchet MS",
+    value: '"Trebuchet MS", sans-serif',
+    source: "bundled",
+  },
   { label: "Tahoma", value: "Tahoma, sans-serif", source: "bundled" },
-  { label: "Helvetica", value: "Helvetica, Arial, sans-serif", source: "bundled" },
+  {
+    label: "Helvetica",
+    value: "Helvetica, Arial, sans-serif",
+    source: "bundled",
+  },
   { label: "Georgia", value: "Georgia, serif", source: "bundled" },
-  { label: "Times New Roman", value: "\"Times New Roman\", serif", source: "bundled" },
-  { label: "Courier New", value: "\"Courier New\", monospace", source: "bundled" },
+  {
+    label: "Times New Roman",
+    value: '"Times New Roman", serif',
+    source: "bundled",
+  },
+  {
+    label: "Courier New",
+    value: '"Courier New", monospace',
+    source: "bundled",
+  },
 ];
 
 function normalizeFontLabel(value: string) {
-  return value.trim().replace(/^['"]+|['"]+$/g, "").toLowerCase();
+  return value
+    .trim()
+    .replace(/^['"]+|['"]+$/g, "")
+    .toLowerCase();
 }
 
 function subtitleFontLabelFromValue(fontFamily: string) {
@@ -41,7 +63,9 @@ function subtitleFontLabelFromValue(fontFamily: string) {
     return "Custom Font";
   }
 
-  const builtInOption = SUBTITLE_FONT_OPTIONS.find((option) => option.value === trimmed);
+  const builtInOption = SUBTITLE_FONT_OPTIONS.find(
+    (option) => option.value === trimmed,
+  );
   if (builtInOption) {
     return builtInOption.label;
   }
@@ -54,7 +78,7 @@ function subtitleFontLabelFromValue(fontFamily: string) {
 
 export function createSubtitleFontOptionFromValue(
   fontFamily: string,
-  existingOptions: readonly SubtitleFontOption[] = []
+  existingOptions: readonly SubtitleFontOption[] = [],
 ): SubtitleFontOption | null {
   const trimmed = fontFamily.trim();
   if (!trimmed) {
@@ -72,7 +96,9 @@ export function createSubtitleFontOptionFromValue(
   };
 }
 
-export function loadLocalSubtitleFontOptions(): Promise<readonly SubtitleFontOption[]> {
+export function loadLocalSubtitleFontOptions(): Promise<
+  readonly SubtitleFontOption[]
+> {
   if (typeof window === "undefined") {
     return Promise.resolve([]);
   }
@@ -89,10 +115,11 @@ export function loadLocalSubtitleFontOptions(): Promise<readonly SubtitleFontOpt
   }
 
   const bundledLabels = new Set(
-    SUBTITLE_FONT_OPTIONS.map((option) => normalizeFontLabel(option.label))
+    SUBTITLE_FONT_OPTIONS.map((option) => normalizeFontLabel(option.label)),
   );
 
-  localSubtitleFontOptionsPromise = localFontWindow.queryLocalFonts()
+  localSubtitleFontOptionsPromise = localFontWindow
+    .queryLocalFonts()
     .then((fonts) => {
       const seenLabels = new Set<string>();
       const options: SubtitleFontOption[] = [];
@@ -104,7 +131,11 @@ export function loadLocalSubtitleFontOptions(): Promise<readonly SubtitleFontOpt
         }
 
         const normalizedLabel = normalizeFontLabel(family);
-        if (!normalizedLabel || bundledLabels.has(normalizedLabel) || seenLabels.has(normalizedLabel)) {
+        if (
+          !normalizedLabel ||
+          bundledLabels.has(normalizedLabel) ||
+          seenLabels.has(normalizedLabel)
+        ) {
           continue;
         }
 
@@ -116,7 +147,9 @@ export function loadLocalSubtitleFontOptions(): Promise<readonly SubtitleFontOpt
         });
       }
 
-      return options.sort((left, right) => left.label.localeCompare(right.label));
+      return options.sort((left, right) =>
+        left.label.localeCompare(right.label),
+      );
     })
     .catch(() => []);
 
@@ -138,7 +171,12 @@ function defaultSubtitleStyleSettings(): SubtitleStyleSettings {
   };
 }
 
-function clampNumber(value: unknown, fallback: number, min: number, max: number) {
+function clampNumber(
+  value: unknown,
+  fallback: number,
+  min: number,
+  max: number,
+) {
   const parsed = typeof value === "number" ? value : Number(value);
   if (!Number.isFinite(parsed)) {
     return fallback;
@@ -161,7 +199,9 @@ export function loadSubtitleStyleSettings(): SubtitleStyleSettings {
   }
 
   try {
-    const raw = window.localStorage.getItem(SUBTITLE_STYLE_SETTINGS_STORAGE_KEY);
+    const raw = window.localStorage.getItem(
+      SUBTITLE_STYLE_SETTINGS_STORAGE_KEY,
+    );
     if (!raw) {
       return defaults;
     }
@@ -169,17 +209,28 @@ export function loadSubtitleStyleSettings(): SubtitleStyleSettings {
     const parsed = JSON.parse(raw) as Partial<SubtitleStyleSettings>;
 
     return {
-      fontFamily: typeof parsed.fontFamily === "string" && parsed.fontFamily.trim()
-        ? parsed.fontFamily
-        : defaults.fontFamily,
+      fontFamily:
+        typeof parsed.fontFamily === "string" && parsed.fontFamily.trim()
+          ? parsed.fontFamily
+          : defaults.fontFamily,
       fontSize: clampNumber(parsed.fontSize, defaults.fontSize, 16, 150),
       fontColor: colorValue(parsed.fontColor, defaults.fontColor),
       shadowColor: colorValue(parsed.shadowColor, defaults.shadowColor),
       shadowBlur: clampNumber(parsed.shadowBlur, defaults.shadowBlur, 0, 24),
-      shadowOffsetY: clampNumber(parsed.shadowOffsetY, defaults.shadowOffsetY, -16, 24),
+      shadowOffsetY: clampNumber(
+        parsed.shadowOffsetY,
+        defaults.shadowOffsetY,
+        -16,
+        24,
+      ),
       strokeColor: colorValue(parsed.strokeColor, defaults.strokeColor),
       strokeWidth: clampNumber(parsed.strokeWidth, defaults.strokeWidth, 0, 32),
-      bottomMargin: clampNumber(parsed.bottomMargin, defaults.bottomMargin, 0, 240),
+      bottomMargin: clampNumber(
+        parsed.bottomMargin,
+        defaults.bottomMargin,
+        0,
+        240,
+      ),
       lineHeight: clampNumber(parsed.lineHeight, defaults.lineHeight, 1, 2),
     };
   } catch {
@@ -193,7 +244,10 @@ export function saveSubtitleStyleSettings(settings: SubtitleStyleSettings) {
   }
 
   try {
-    window.localStorage.setItem(SUBTITLE_STYLE_SETTINGS_STORAGE_KEY, JSON.stringify(settings));
+    window.localStorage.setItem(
+      SUBTITLE_STYLE_SETTINGS_STORAGE_KEY,
+      JSON.stringify(settings),
+    );
   } catch {
     // Best-effort persistence only.
   }

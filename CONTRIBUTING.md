@@ -30,10 +30,7 @@ Open the app at http://localhost:5173. The API server runs on http://localhost:3
 Before opening a pull request, run:
 
 ```sh
-pnpm lint
-pnpm test
-pnpm knip
-pnpm build
+pnpm preflight
 ```
 
 ## Pull Requests

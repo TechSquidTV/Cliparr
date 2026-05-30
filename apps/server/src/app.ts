@@ -52,14 +52,17 @@ export async function createApp() {
   app.use("/api", notFoundHandler);
 
   if (process.env.NODE_ENV !== "production") {
-    const frontendUrl = new URL(process.env.CLIPARR_FRONTEND_URL ?? DEFAULT_DEV_FRONTEND_URL);
+    const frontendUrl = new URL(
+      process.env.CLIPARR_FRONTEND_URL ?? DEFAULT_DEV_FRONTEND_URL,
+    );
     app.get(/^(?!\/api(?:\/|$)).*/, (req, res) => {
       const redirectUrl = new URL(frontendUrl);
       const safePath = req.path.replace(/^\/+/, "/");
       const queryIndex = req.originalUrl.indexOf("?");
 
       redirectUrl.pathname = safePath;
-      redirectUrl.search = queryIndex >= 0 ? req.originalUrl.slice(queryIndex) : "";
+      redirectUrl.search =
+        queryIndex >= 0 ? req.originalUrl.slice(queryIndex) : "";
 
       res.redirect(307, redirectUrl.toString());
     });

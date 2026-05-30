@@ -135,9 +135,9 @@ void test("preserves absolute HLS origins when rewriting nested playlist resourc
         headers: {
           "content-type": "application/vnd.apple.mpegurl",
         },
-      }
+      },
     ),
-    rootResponse as unknown as Response
+    rootResponse as unknown as Response,
   );
 
   assert.match(rootResponse.body, /\/api\/media\//);
@@ -145,27 +145,37 @@ void test("preserves absolute HLS origins when rewriting nested playlist resourc
 
   const childPlaylistHandle = [...session.mediaHandles.values()][0];
   assert(childPlaylistHandle);
-  assert.equal(childPlaylistHandle.path, "https://cdn.example.com/hls/720p/prog_index.m3u8?token=abc");
-  assert.equal(childPlaylistHandle.basePath, "https://cdn.example.com/hls/720p/");
+  assert.equal(
+    childPlaylistHandle.path,
+    "https://cdn.example.com/hls/720p/prog_index.m3u8?token=abc",
+  );
+  assert.equal(
+    childPlaylistHandle.basePath,
+    "https://cdn.example.com/hls/720p/",
+  );
 
   const childResponse = createResponseRecorder();
   await proxyUpstreamMediaResponse(
     session,
     childPlaylistHandle,
     new globalThis.Response(
-      "#EXTM3U\n#EXT-X-KEY:METHOD=AES-128,URI=\"key.key?sig=1\"\nsegment0.ts\n",
+      '#EXTM3U\n#EXT-X-KEY:METHOD=AES-128,URI="key.key?sig=1"\nsegment0.ts\n',
       {
         status: 200,
         headers: {
           "content-type": "application/vnd.apple.mpegurl",
         },
-      }
+      },
     ),
-    childResponse as unknown as Response
+    childResponse as unknown as Response,
   );
 
-  const handlePaths = [...session.mediaHandles.values()].map((handle) => handle.path);
-  assert(handlePaths.includes("https://cdn.example.com/hls/720p/key.key?sig=1"));
+  const handlePaths = [...session.mediaHandles.values()].map(
+    (handle) => handle.path,
+  );
+  assert(
+    handlePaths.includes("https://cdn.example.com/hls/720p/key.key?sig=1"),
+  );
   assert(handlePaths.includes("https://cdn.example.com/hls/720p/segment0.ts"));
 });
 
@@ -182,13 +192,13 @@ void test("uses custom media handle URLs when rewriting HLS playlists", async ()
     session,
     rootHandle,
     new globalThis.Response(
-      "#EXTM3U\n#EXT-X-KEY:METHOD=AES-128,URI=\"key.key?sig=1\"\nsegment0.ts\n",
+      '#EXTM3U\n#EXT-X-KEY:METHOD=AES-128,URI="key.key?sig=1"\nsegment0.ts\n',
       {
         status: 200,
         headers: {
           "content-type": "application/vnd.apple.mpegurl",
         },
-      }
+      },
     ),
     response as unknown as Response,
     {
@@ -196,7 +206,7 @@ void test("uses custom media handle URLs when rewriting HLS playlists", async ()
         createdHandles.push({ nextPath, basePath });
         return `/api/media/local-url/${createdHandles.length}`;
       },
-    }
+    },
   );
 
   assert.match(response.body, /\/api\/media\/local-url\/1/);
@@ -236,9 +246,9 @@ void test("strips HLS start hints so editor seeks control playback position", as
         headers: {
           "content-type": "application/vnd.apple.mpegurl",
         },
-      }
+      },
     ),
-    response as unknown as Response
+    response as unknown as Response,
   );
 
   assert.doesNotMatch(response.body, /#EXT-X-START/);
@@ -250,50 +260,71 @@ void test("strips HLS start hints so editor seeks control playback position", as
 
 void test("does not forward range requests for HLS playlists that Cliparr rewrites", () => {
   assert.equal(
-    shouldForwardMediaRange(createMediaHandle({
-      path: "/video/:/transcode/universal/start.m3u8?session=1",
-    }), "bytes=148-"),
+    shouldForwardMediaRange(
+      createMediaHandle({
+        path: "/video/:/transcode/universal/start.m3u8?session=1",
+      }),
+      "bytes=148-",
+    ),
     undefined,
   );
   assert.equal(
-    shouldForwardMediaRange(createMediaHandle({
-      path: "/library/parts/1/file.mp4",
-    }), "bytes=148-"),
+    shouldForwardMediaRange(
+      createMediaHandle({
+        path: "/library/parts/1/file.mp4",
+      }),
+      "bytes=148-",
+    ),
     "bytes=148-",
   );
 });
 
 void test("does not attach provider auth to cross-origin absolute media handles", () => {
-  assert.equal(shouldAttachProviderAuth(createMediaHandle({
-    path: "/library/parts/1/file.mp4",
-  })), true);
+  assert.equal(
+    shouldAttachProviderAuth(
+      createMediaHandle({
+        path: "/library/parts/1/file.mp4",
+      }),
+    ),
+    true,
+  );
 
-  assert.equal(shouldAttachProviderAuth(createMediaHandle({
-    path: "https://cdn.example.com/hls/segment0.ts?sig=secret",
-    basePath: "https://cdn.example.com/hls/",
-  })), false);
+  assert.equal(
+    shouldAttachProviderAuth(
+      createMediaHandle({
+        path: "https://cdn.example.com/hls/segment0.ts?sig=secret",
+        basePath: "https://cdn.example.com/hls/",
+      }),
+    ),
+    false,
+  );
 });
 
 void test("allows configured provider origins even when they are private", async () => {
   await assert.doesNotReject(async () => {
-    await assertAllowedMediaHandleRequestUrl(createMediaHandle({
-      baseUrl: "http://192.168.1.10:32400",
-      path: "/video/master.m3u8",
-    }));
+    await assertAllowedMediaHandleRequestUrl(
+      createMediaHandle({
+        baseUrl: "http://192.168.1.10:32400",
+        path: "/video/master.m3u8",
+      }),
+    );
   });
 });
 
 void test("rejects cross-origin HLS media handles to private addresses", async () => {
   await assert.rejects(
-    () => assertAllowedMediaHandleRequestUrl(createMediaHandle({
-      path: "http://127.0.0.1:8080/admin",
-      basePath: "http://1.1.1.1/hls/",
-    })),
+    () =>
+      assertAllowedMediaHandleRequestUrl(
+        createMediaHandle({
+          path: "http://127.0.0.1:8080/admin",
+          basePath: "http://1.1.1.1/hls/",
+        }),
+      ),
     (err: unknown) =>
-      err instanceof ApiError
-      && err.status === 400
-      && err.code === "media_proxy_unsafe_url"
-      && err.message === "Media URL points at an unsafe internal address"
+      err instanceof ApiError &&
+      err.status === 400 &&
+      err.code === "media_proxy_unsafe_url" &&
+      err.message === "Media URL points at an unsafe internal address",
   );
 });
 
@@ -313,14 +344,17 @@ void test("validates cross-origin media redirects before following them", async 
 
   try {
     await assert.rejects(
-      () => fetchMediaHandleRequest(createMediaHandle({
-        path: "http://1.1.1.1/hls/segment.ts",
-        basePath: "http://1.1.1.1/hls/",
-      })),
+      () =>
+        fetchMediaHandleRequest(
+          createMediaHandle({
+            path: "http://1.1.1.1/hls/segment.ts",
+            basePath: "http://1.1.1.1/hls/",
+          }),
+        ),
       (err: unknown) =>
-        err instanceof ApiError
-        && err.status === 400
-        && err.code === "media_proxy_unsafe_url"
+        err instanceof ApiError &&
+        err.status === 400 &&
+        err.code === "media_proxy_unsafe_url",
     );
     assert.equal(redirectMode, "manual");
   } finally {
@@ -344,14 +378,17 @@ void test("validates same-origin media redirects before following them", async (
 
   try {
     await assert.rejects(
-      () => fetchMediaHandleRequest(createMediaHandle({
-        baseUrl: "http://192.168.1.10:32400",
-        path: "/library/parts/1/file.mp4",
-      })),
+      () =>
+        fetchMediaHandleRequest(
+          createMediaHandle({
+            baseUrl: "http://192.168.1.10:32400",
+            path: "/library/parts/1/file.mp4",
+          }),
+        ),
       (err: unknown) =>
-        err instanceof ApiError
-        && err.status === 400
-        && err.code === "media_proxy_unsafe_url"
+        err instanceof ApiError &&
+        err.status === 400 &&
+        err.code === "media_proxy_unsafe_url",
     );
     assert.equal(redirectMode, "manual");
   } finally {
@@ -380,16 +417,19 @@ void test("strips provider auth headers from cross-origin media redirects", asyn
   }) as typeof fetch;
 
   try {
-    const response = await fetchMediaHandleRequest(createMediaHandle({
-      baseUrl: "http://192.168.1.10:32400",
-      path: "/video/master.m3u8",
-    }), {
-      headers: {
-        accept: "video/mp2t",
-        authorization: "MediaBrowser Token=secret",
-        "x-plex-token": "secret",
+    const response = await fetchMediaHandleRequest(
+      createMediaHandle({
+        baseUrl: "http://192.168.1.10:32400",
+        path: "/video/master.m3u8",
+      }),
+      {
+        headers: {
+          accept: "video/mp2t",
+          authorization: "MediaBrowser Token=secret",
+          "x-plex-token": "secret",
+        },
       },
-    });
+    );
 
     assert.equal(response.status, 200);
     assert.equal(requestHeaders.length, 2);
@@ -418,11 +458,14 @@ void test("retries transient media fetch failures", async () => {
   }) as typeof fetch;
 
   try {
-    const response = await fetchMediaHandleRequest(createMediaHandle({
-      path: "/library/parts/1/file.mp4",
-    }), {
-      retryBaseDelayMs: 0,
-    });
+    const response = await fetchMediaHandleRequest(
+      createMediaHandle({
+        path: "/library/parts/1/file.mp4",
+      }),
+      {
+        retryBaseDelayMs: 0,
+      },
+    );
 
     assert.equal(response.status, 200);
     assert.equal(await response.text(), "ok");
@@ -445,11 +488,14 @@ void test("retries retryable upstream media responses", async () => {
   }) as typeof fetch;
 
   try {
-    const response = await fetchMediaHandleRequest(createMediaHandle({
-      path: "/library/parts/1/file.mp4",
-    }), {
-      retryBaseDelayMs: 0,
-    });
+    const response = await fetchMediaHandleRequest(
+      createMediaHandle({
+        path: "/library/parts/1/file.mp4",
+      }),
+      {
+        retryBaseDelayMs: 0,
+      },
+    );
 
     assert.equal(response.status, 200);
     assert.equal(await response.text(), "ok");
@@ -472,11 +518,14 @@ void test("does not retry non-transient upstream media responses", async () => {
   }) as typeof fetch;
 
   try {
-    const response = await fetchMediaHandleRequest(createMediaHandle({
-      path: "/library/parts/1/file.mp4",
-    }), {
-      retryBaseDelayMs: 0,
-    });
+    const response = await fetchMediaHandleRequest(
+      createMediaHandle({
+        path: "/library/parts/1/file.mp4",
+      }),
+      {
+        retryBaseDelayMs: 0,
+      },
+    );
 
     assert.equal(response.status, 404);
     assert.equal(await response.text(), "missing");
@@ -499,12 +548,15 @@ void test("retries not-yet-generated HLS-derived media responses", async () => {
   }) as typeof fetch;
 
   try {
-    const response = await fetchMediaHandleRequest(createMediaHandle({
-      path: "/hls/segment0.ts",
-      basePath: "/hls/",
-    }), {
-      retryBaseDelayMs: 0,
-    });
+    const response = await fetchMediaHandleRequest(
+      createMediaHandle({
+        path: "/hls/segment0.ts",
+        basePath: "/hls/",
+      }),
+      {
+        retryBaseDelayMs: 0,
+      },
+    );
 
     assert.equal(response.status, 200);
     assert.equal(await response.text(), "ok");
@@ -516,7 +568,9 @@ void test("retries not-yet-generated HLS-derived media responses", async () => {
 
 void test("sanitizes logged media paths by stripping query strings", () => {
   assert.equal(
-    sanitizeLoggedMediaPath("https://cdn.example.com/hls/segment0.ts?sig=secret#frag"),
+    sanitizeLoggedMediaPath(
+      "https://cdn.example.com/hls/segment0.ts?sig=secret#frag",
+    ),
     "https://cdn.example.com/hls/segment0.ts",
   );
   assert.equal(
@@ -546,7 +600,7 @@ void test("does not throw when a proxied media stream terminates early", async (
       headers: {
         "content-type": "video/mp4",
       },
-    }
+    },
   );
 
   await assert.doesNotReject(async () => {
@@ -554,7 +608,7 @@ void test("does not throw when a proxied media stream terminates early", async (
       session,
       handle,
       upstream,
-      response as unknown as Response
+      response as unknown as Response,
     );
   });
 });
@@ -576,7 +630,7 @@ void test("does not forward upstream content length for streamed media responses
         "content-type": "video/mp4",
       },
     }),
-    response as unknown as Response
+    response as unknown as Response,
   );
 
   assert.equal(response.headers.get("content-length"), undefined);
@@ -598,13 +652,14 @@ void test("uses buffered byte length for cached HLS-derived media responses", as
     {
       accept: "video/mp2t",
     },
-    async () => new globalThis.Response(new Uint8Array([1, 2, 3, 4]), {
-      status: 200,
-      headers: {
-        "content-length": "1",
-        "content-type": "video/mp2t",
-      },
-    }),
+    async () =>
+      new globalThis.Response(new Uint8Array([1, 2, 3, 4]), {
+        status: 200,
+        headers: {
+          "content-length": "1",
+          "content-type": "video/mp2t",
+        },
+      }),
     response as unknown as Response,
   );
 

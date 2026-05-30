@@ -15,11 +15,13 @@ void test("renders the provider auth completion screen", () => {
 });
 
 void test("renders local video modal file picker workflow", () => {
-  const markup = renderToStaticMarkup(createElement(LocalVideoOpenModal, {
-    isOpen: true,
-    onClose: () => undefined,
-    onOpened: () => undefined,
-  }));
+  const markup = renderToStaticMarkup(
+    createElement(LocalVideoOpenModal, {
+      isOpen: true,
+      onClose: () => undefined,
+      onOpened: () => undefined,
+    }),
+  );
 
   assert.match(markup, /Open Video/);
   assert.match(markup, /Local files stay in your browser/);

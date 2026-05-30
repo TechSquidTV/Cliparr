@@ -13,13 +13,44 @@ import {
 } from "./conventional.mjs";
 
 void test("classifies conventional PR titles into release levels", () => {
-  assert.equal(releaseTypeForChange(parseConventionalTitle("fix: keep HLS seeking stable")), "patch");
-  assert.equal(releaseTypeForChange(parseConventionalTitle("perf: reduce preview startup work")), "patch");
-  assert.equal(releaseTypeForChange(parseConventionalTitle("security: tighten URL validation")), "patch");
-  assert.equal(releaseTypeForChange(parseConventionalTitle("build(deps): bump npm dependencies")), "patch");
-  assert.equal(releaseTypeForChange(parseConventionalTitle("feat: add provider presets")), "minor");
-  assert.equal(releaseTypeForChange(parseConventionalTitle("feat!: replace export settings format")), "major");
-  assert.equal(releaseTypeForChange(parseConventionalTitle("docs: clarify Docker setup")), "none");
+  assert.equal(
+    releaseTypeForChange(
+      parseConventionalTitle("fix: keep HLS seeking stable"),
+    ),
+    "patch",
+  );
+  assert.equal(
+    releaseTypeForChange(
+      parseConventionalTitle("perf: reduce preview startup work"),
+    ),
+    "patch",
+  );
+  assert.equal(
+    releaseTypeForChange(
+      parseConventionalTitle("security: tighten URL validation"),
+    ),
+    "patch",
+  );
+  assert.equal(
+    releaseTypeForChange(
+      parseConventionalTitle("build(deps): bump npm dependencies"),
+    ),
+    "patch",
+  );
+  assert.equal(
+    releaseTypeForChange(parseConventionalTitle("feat: add provider presets")),
+    "minor",
+  );
+  assert.equal(
+    releaseTypeForChange(
+      parseConventionalTitle("feat!: replace export settings format"),
+    ),
+    "major",
+  );
+  assert.equal(
+    releaseTypeForChange(parseConventionalTitle("docs: clarify Docker setup")),
+    "none",
+  );
 });
 
 void test("chooses the highest release level in a change set", () => {
@@ -66,7 +97,10 @@ void test("extracts pull request titles from merge commits", () => {
 
 feat: add cliparr.dev website`;
 
-  assert.equal(extractReleaseTitleFromCommitMessage(message), "feat: add cliparr.dev website");
+  assert.equal(
+    extractReleaseTitleFromCommitMessage(message),
+    "feat: add cliparr.dev website",
+  );
   assert.equal(extractPullRequestNumberFromCommitMessage(message), 82);
 });
 

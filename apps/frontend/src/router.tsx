@@ -1,6 +1,6 @@
-import {createRouter} from '@tanstack/react-router';
-import type { ProviderSession } from './providers/types';
-import {routeTree} from './routeTree.gen';
+import { createRouter } from "@tanstack/react-router";
+import type { ProviderSession } from "./providers/types";
+import { routeTree } from "./routeTree.gen";
 
 export interface RouterAuthContext {
   providerSession: ProviderSession | null;
@@ -19,8 +19,8 @@ export const router = createRouter({
   },
 });
 
-declare module '@tanstack/react-router' {
+declare module "@tanstack/react-router" {
   interface Register {
-    router: typeof router
+    router: typeof router;
   }
 }

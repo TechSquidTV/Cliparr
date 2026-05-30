@@ -45,9 +45,7 @@ function TooltipWrap({
           {children}
         </span>
       </TooltipTrigger>
-      <TooltipContent side="top">
-        {message}
-      </TooltipContent>
+      <TooltipContent side="top">{message}</TooltipContent>
     </Tooltip>
   );
 }
@@ -154,29 +152,38 @@ export function SourcesModalHeader({
   onRefreshAll,
   onClose,
 }: SourcesModalHeaderProps) {
-  const reloadDisabledReason = loading || reloading
-    ? "Source list is already loading."
-    : refreshingAll
-      ? "Wait for refresh to finish."
-      : null;
-  const refreshAllDisabledReason = counts.all === 0
-    ? "No sources to refresh."
-    : hasBusyActions || refreshingAll
-      ? "Wait for the current action to finish."
-      : loading || reloading
-        ? "Source list is still loading."
+  const reloadDisabledReason =
+    loading || reloading
+      ? "Source list is already loading."
+      : refreshingAll
+        ? "Wait for refresh to finish."
         : null;
+  const refreshAllDisabledReason =
+    counts.all === 0
+      ? "No sources to refresh."
+      : hasBusyActions || refreshingAll
+        ? "Wait for the current action to finish."
+        : loading || reloading
+          ? "Source list is still loading."
+          : null;
 
   return (
     <header className="border-b border-border bg-[linear-gradient(135deg,color-mix(in_oklch,var(--primary)_16%,transparent),transparent_55%),linear-gradient(180deg,color-mix(in_oklch,var(--muted)_82%,var(--card)),var(--card))] px-5 py-5 sm:px-8 sm:py-7">
       <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
         <div className="space-y-3">
-          <div className={cn("inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-medium uppercase tracking-[var(--tracking-caps-xl)] text-muted-foreground", elevatedGlassClasses)}>
+          <div
+            className={cn(
+              "inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-medium uppercase tracking-[var(--tracking-caps-xl)] text-muted-foreground",
+              elevatedGlassClasses,
+            )}
+          >
             <Server className="h-3.5 w-3.5" />
             Source Control
           </div>
           <div className="space-y-2">
-            <h2 className="text-2xl font-semibold tracking-tight sm:text-3xl">Manage Sources</h2>
+            <h2 className="text-2xl font-semibold tracking-tight sm:text-3xl">
+              Manage Sources
+            </h2>
             <p className="max-w-2xl text-sm text-muted-foreground sm:text-base">
               Connect servers, edit details, and run health checks.
             </p>
@@ -186,11 +193,21 @@ export function SourcesModalHeader({
               <div className="text-muted-foreground">Total</div>
               <div className="text-lg font-semibold">{counts.all}</div>
             </div>
-            <div className={cn("rounded-2xl border px-4 py-3", healthySurfaceClasses)}>
+            <div
+              className={cn(
+                "rounded-2xl border px-4 py-3",
+                healthySurfaceClasses,
+              )}
+            >
               <div className="opacity-80">Enabled</div>
               <div className="text-lg font-semibold">{counts.enabled}</div>
             </div>
-            <div className={cn("rounded-2xl border px-4 py-3", attentionSurfaceClasses)}>
+            <div
+              className={cn(
+                "rounded-2xl border px-4 py-3",
+                attentionSurfaceClasses,
+              )}
+            >
               <div className="opacity-80">Needs Attention</div>
               <div className="text-lg font-semibold">{counts.attention}</div>
             </div>
@@ -204,7 +221,12 @@ export function SourcesModalHeader({
               onClick={onToggleAddSource}
               className="inline-flex items-center gap-2 rounded-xl border border-border bg-background/80 px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-accent disabled:cursor-not-allowed disabled:opacity-60"
             >
-              <Plus className={cn("h-4 w-4 transition-transform", showConnectPanel && "rotate-45")} />
+              <Plus
+                className={cn(
+                  "h-4 w-4 transition-transform",
+                  showConnectPanel && "rotate-45",
+                )}
+              />
               {showConnectPanel ? "Hide" : "Add Source"}
             </button>
           )}
@@ -215,7 +237,12 @@ export function SourcesModalHeader({
               disabled={loading || reloading || refreshingAll}
               className="inline-flex items-center gap-2 rounded-xl border border-border bg-background/80 px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-accent disabled:cursor-not-allowed disabled:opacity-60"
             >
-              <RefreshCw className={cn("h-4 w-4", (reloading || loading) && "animate-spin")} />
+              <RefreshCw
+                className={cn(
+                  "h-4 w-4",
+                  (reloading || loading) && "animate-spin",
+                )}
+              />
               Reload
             </button>
           </TooltipWrap>
@@ -223,10 +250,18 @@ export function SourcesModalHeader({
             <button
               type="button"
               onClick={onRefreshAll}
-              disabled={loading || reloading || refreshingAll || hasBusyActions || counts.all === 0}
+              disabled={
+                loading ||
+                reloading ||
+                refreshingAll ||
+                hasBusyActions ||
+                counts.all === 0
+              }
               className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-60"
             >
-              <RefreshCw className={cn("h-4 w-4", refreshingAll && "animate-spin")} />
+              <RefreshCw
+                className={cn("h-4 w-4", refreshingAll && "animate-spin")}
+              />
               Refresh All
             </button>
           </TooltipWrap>
@@ -311,7 +346,7 @@ export function SourcesModalFilters({
                   "inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-sm font-medium transition-colors",
                   isActive
                     ? "border-primary bg-primary text-primary-foreground"
-                    : "border-border bg-background text-muted-foreground hover:bg-accent hover:text-foreground"
+                    : "border-border bg-background text-muted-foreground hover:bg-accent hover:text-foreground",
                 )}
               >
                 {label}
@@ -320,7 +355,7 @@ export function SourcesModalFilters({
                     "rounded-full px-2 py-0.5 text-xs",
                     isActive
                       ? "bg-[color-mix(in_oklch,var(--primary-foreground)_16%,transparent)] text-primary-foreground"
-                      : "bg-muted text-foreground"
+                      : "bg-muted text-foreground",
                   )}
                 >
                   {counts[value]}
@@ -339,7 +374,10 @@ interface SourcesModalAlertsProps {
   feedback: Feedback | null;
 }
 
-export function SourcesModalAlerts({ error, feedback }: SourcesModalAlertsProps) {
+export function SourcesModalAlerts({
+  error,
+  feedback,
+}: SourcesModalAlertsProps) {
   return (
     <>
       {error && (
@@ -352,9 +390,10 @@ export function SourcesModalAlerts({ error, feedback }: SourcesModalAlertsProps)
         <div
           className={cn(
             "rounded-2xl border px-4 py-3 text-sm",
-            feedback.tone === "error" && "border-destructive/20 bg-destructive/10 text-destructive",
+            feedback.tone === "error" &&
+              "border-destructive/20 bg-destructive/10 text-destructive",
             feedback.tone === "success" && healthySurfaceClasses,
-            feedback.tone === "warning" && attentionSurfaceClasses
+            feedback.tone === "warning" && attentionSurfaceClasses,
           )}
         >
           {feedback.message}
@@ -379,14 +418,22 @@ export function SourcesConnectSection({
     <section className="rounded-[var(--radius-panel)] border border-border bg-[linear-gradient(135deg,color-mix(in_oklch,var(--primary)_10%,transparent),transparent_52%),linear-gradient(180deg,color-mix(in_oklch,var(--muted)_78%,var(--background)),var(--background))] p-5 sm:p-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div className="space-y-2">
-          <div className={cn("inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-medium uppercase tracking-[var(--tracking-caps-xl)] text-muted-foreground", elevatedGlassClasses)}>
+          <div
+            className={cn(
+              "inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-medium uppercase tracking-[var(--tracking-caps-xl)] text-muted-foreground",
+              elevatedGlassClasses,
+            )}
+          >
             <Plus className="h-3.5 w-3.5" />
             Add Source
           </div>
           <div>
-            <h3 className="text-xl font-semibold tracking-tight text-foreground">Connect another media server</h3>
+            <h3 className="text-xl font-semibold tracking-tight text-foreground">
+              Connect another media server
+            </h3>
             <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
-              Add a new Jellyfin server or reconnect another provider without leaving source management.
+              Add a new Jellyfin server or reconnect another provider without
+              leaving source management.
             </p>
           </div>
         </div>
@@ -418,7 +465,10 @@ interface SourcesEmptyStateProps {
   description: string;
 }
 
-export function SourcesEmptyState({ title, description }: SourcesEmptyStateProps) {
+export function SourcesEmptyState({
+  title,
+  description,
+}: SourcesEmptyStateProps) {
   return (
     <div className="rounded-[var(--radius-panel)] border border-dashed border-border bg-background/60 px-8 py-14 text-center">
       <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-muted">
@@ -464,10 +514,11 @@ export function SourceCard({
   const trimmedName = draftName.trim();
   const trimmedBaseUrl = draftBaseUrl.trim();
   const isBusy = Boolean(busyAction) || refreshingAll;
-  const canSaveEdits = Boolean(trimmedName)
-    && Boolean(trimmedBaseUrl)
-    && !isBusy
-    && (trimmedName !== source.name || trimmedBaseUrl !== source.baseUrl);
+  const canSaveEdits =
+    Boolean(trimmedName) &&
+    Boolean(trimmedBaseUrl) &&
+    !isBusy &&
+    (trimmedName !== source.name || trimmedBaseUrl !== source.baseUrl);
   const saveDisabledReason = isBusy
     ? "Wait for the current action to finish."
     : !trimmedName
@@ -477,7 +528,9 @@ export function SourceCard({
         : trimmedName === source.name && trimmedBaseUrl === source.baseUrl
           ? "No changes to save."
           : null;
-  const busyDisabledReason = isBusy ? "Wait for the current action to finish." : null;
+  const busyDisabledReason = isBusy
+    ? "Wait for the current action to finish."
+    : null;
   const product = stringValue(source.metadata.product);
   const platform = stringValue(source.metadata.platform);
 
@@ -496,7 +549,7 @@ export function SourceCard({
         "rounded-[var(--radius-panel)] border p-5 shadow-sm transition-colors",
         source.enabled
           ? "border-border bg-background/90"
-          : "border-border bg-muted/40"
+          : "border-border bg-muted/40",
       )}
     >
       <div className="flex flex-wrap items-start justify-between gap-3">
@@ -504,7 +557,12 @@ export function SourceCard({
           <span className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-3 py-1 text-xs font-medium uppercase tracking-[var(--tracking-caps-xl)] text-muted-foreground">
             {formatProviderName(source.providerId)}
           </span>
-          <span className={cn("inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-medium", status.className)}>
+          <span
+            className={cn(
+              "inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-medium",
+              status.className,
+            )}
+          >
             <StatusIcon className="h-3.5 w-3.5" />
             {status.label}
           </span>
@@ -547,19 +605,31 @@ export function SourceCard({
 
       <dl className="mt-4 grid gap-3 text-sm sm:grid-cols-2">
         <div className="rounded-2xl border border-border bg-card/80 px-4 py-3">
-          <dt className="text-xs uppercase tracking-[var(--tracking-caps-lg)] text-muted-foreground">Saved URL</dt>
-          <dd className="mt-1 break-all font-medium text-foreground">{source.baseUrl}</dd>
+          <dt className="text-xs uppercase tracking-[var(--tracking-caps-lg)] text-muted-foreground">
+            Saved URL
+          </dt>
+          <dd className="mt-1 break-all font-medium text-foreground">
+            {source.baseUrl}
+          </dd>
         </div>
         <div className="rounded-2xl border border-border bg-card/80 px-4 py-3">
-          <dt className="text-xs uppercase tracking-[var(--tracking-caps-lg)] text-muted-foreground">Details</dt>
+          <dt className="text-xs uppercase tracking-[var(--tracking-caps-lg)] text-muted-foreground">
+            Details
+          </dt>
           <dd className="mt-1 font-medium text-foreground">
-            {[product, platform].filter(Boolean).join(" • ") || "No extra metadata"}
+            {[product, platform].filter(Boolean).join(" • ") ||
+              "No extra metadata"}
           </dd>
         </div>
       </dl>
 
       {source.lastError && (
-        <div className={cn("mt-4 rounded-2xl border px-4 py-3 text-sm", attentionSurfaceClasses)}>
+        <div
+          className={cn(
+            "mt-4 rounded-2xl border px-4 py-3 text-sm",
+            attentionSurfaceClasses,
+          )}
+        >
           <div className="flex items-start gap-2">
             <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
             <div>
@@ -590,7 +660,7 @@ export function SourceCard({
               "rounded-xl px-4 py-2 text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-60",
               source.enabled
                 ? "bg-muted text-foreground hover:bg-accent"
-                : "bg-primary text-primary-foreground hover:bg-primary/90"
+                : "bg-primary text-primary-foreground hover:bg-primary/90",
             )}
           >
             {source.enabled ? "Disable" : "Enable"}
@@ -603,7 +673,12 @@ export function SourceCard({
             disabled={isBusy}
             className="inline-flex items-center gap-2 rounded-xl border border-border bg-card px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-accent disabled:cursor-not-allowed disabled:opacity-60"
           >
-            <RefreshCw className={cn("h-4 w-4", busyAction === "Refreshing..." && "animate-spin")} />
+            <RefreshCw
+              className={cn(
+                "h-4 w-4",
+                busyAction === "Refreshing..." && "animate-spin",
+              )}
+            />
             Refresh
           </button>
         </TooltipWrap>

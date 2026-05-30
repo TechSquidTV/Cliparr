@@ -79,10 +79,14 @@ export function resolveTimelineZoomUpdate({
     nextZoomIndex,
     currentTimelineScale,
   );
-  const pointerX = typeof anchorClientX === "number"
-    ? Math.min(Math.max(anchorClientX - regionLeft, 0), regionWidth)
-    : regionWidth / 2;
-  const anchorPixel = Math.max(TIMELINE_START_LEFT, currentScrollLeft + pointerX);
+  const pointerX =
+    typeof anchorClientX === "number"
+      ? Math.min(Math.max(anchorClientX - regionLeft, 0), regionWidth)
+      : regionWidth / 2;
+  const anchorPixel = Math.max(
+    TIMELINE_START_LEFT,
+    currentScrollLeft + pointerX,
+  );
   const resolvedAnchorTime = Math.min(
     duration,
     Math.max(
@@ -90,11 +94,11 @@ export function resolveTimelineZoomUpdate({
       typeof anchorTime === "number"
         ? anchorTime
         : timelinePixelToTime(
-          anchorPixel,
-          currentTimelineScale.scale,
-          currentTimelineScale.scaleWidth,
-          TIMELINE_START_LEFT,
-        ),
+            anchorPixel,
+            currentTimelineScale.scale,
+            currentTimelineScale.scaleWidth,
+            TIMELINE_START_LEFT,
+          ),
     ),
   );
   const nextAnchorPixel = timelineTimeToPixel(
@@ -112,7 +116,10 @@ export function resolveTimelineZoomUpdate({
 
   return {
     nextZoomIndex,
-    nextScrollLeft: Math.min(nextMaxScrollLeft, Math.max(0, nextAnchorPixel - pointerX)),
+    nextScrollLeft: Math.min(
+      nextMaxScrollLeft,
+      Math.max(0, nextAnchorPixel - pointerX),
+    ),
   };
 }
 
@@ -126,8 +133,16 @@ export function resolveTimelineScrollWheelUpdate({
   duration,
   timelineScale,
 }: ResolveTimelineScrollWheelUpdateOptions) {
-  const horizontalWheelDelta = normalizeWheelDelta(deltaX, deltaMode, containerWidth);
-  const verticalWheelDelta = normalizeWheelDelta(deltaY, deltaMode, containerHeight);
+  const horizontalWheelDelta = normalizeWheelDelta(
+    deltaX,
+    deltaMode,
+    containerWidth,
+  );
+  const verticalWheelDelta = normalizeWheelDelta(
+    deltaY,
+    deltaMode,
+    containerHeight,
+  );
   const nextScrollDelta = horizontalWheelDelta + verticalWheelDelta;
   const maxScrollLeft = getTimelineMaxScrollLeft(
     duration,
@@ -152,21 +167,27 @@ export function accumulateTimelineWheelZoomDelta({
   deltaMode,
   containerHeight,
 }: AccumulateTimelineWheelZoomDeltaOptions) {
-  const normalizedDeltaY = normalizeWheelDelta(deltaY, deltaMode, containerHeight);
+  const normalizedDeltaY = normalizeWheelDelta(
+    deltaY,
+    deltaMode,
+    containerHeight,
+  );
   if (normalizedDeltaY === 0) {
     return { accumulatedWheelDelta: currentWheelDelta, zoomDelta: 0 };
   }
 
   let accumulatedWheelDelta = currentWheelDelta;
   if (
-    accumulatedWheelDelta !== 0
-    && Math.sign(accumulatedWheelDelta) !== Math.sign(normalizedDeltaY)
+    accumulatedWheelDelta !== 0 &&
+    Math.sign(accumulatedWheelDelta) !== Math.sign(normalizedDeltaY)
   ) {
     accumulatedWheelDelta = 0;
   }
 
   accumulatedWheelDelta += normalizedDeltaY;
-  const accumulatedZoomDelta = Math.trunc(accumulatedWheelDelta / TIMELINE_ZOOM_WHEEL_STEP);
+  const accumulatedZoomDelta = Math.trunc(
+    accumulatedWheelDelta / TIMELINE_ZOOM_WHEEL_STEP,
+  );
   if (accumulatedZoomDelta === 0) {
     return { accumulatedWheelDelta, zoomDelta: 0 };
   }

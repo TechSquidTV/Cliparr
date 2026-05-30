@@ -6,10 +6,15 @@ interface Props {
 }
 
 const { currentSlug = "" } = Astro.props;
-const docs = (await getCollection("docs")).sort((a, b) => a.data.order - b.data.order);
+const docs = (await getCollection("docs")).sort(
+  (a, b) => a.data.order - b.data.order,
+);
 ---
 
-<nav aria-label="Documentation navigation" class="rounded-lg border border-border bg-card p-3">
+<nav
+  aria-label="Documentation navigation"
+  class="rounded-lg border border-border bg-card p-3"
+>
   <a
     href="/docs"
     aria-current={currentSlug === "" ? "page" : undefined}
@@ -18,14 +23,16 @@ const docs = (await getCollection("docs")).sort((a, b) => a.data.order - b.data.
     Docs home
   </a>
   <div class="mt-2 space-y-1">
-    {docs.map((entry) => (
-      <a
-        href={`/docs/${entry.id}`}
-        aria-current={currentSlug === entry.id ? "page" : undefined}
-        class={`focus-ring block rounded-md px-3 py-2 text-sm font-medium transition-colors ${currentSlug === entry.id ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-accent hover:text-foreground"}`}
-      >
-        {entry.data.title}
-      </a>
-    ))}
+    {
+      docs.map((entry) => (
+        <a
+          href={`/docs/${entry.id}`}
+          aria-current={currentSlug === entry.id ? "page" : undefined}
+          class={`focus-ring block rounded-md px-3 py-2 text-sm font-medium transition-colors ${currentSlug === entry.id ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-accent hover:text-foreground"}`}
+        >
+          {entry.data.title}
+        </a>
+      ))
+    }
   </div>
 </nav>
