@@ -19,7 +19,7 @@ import {
   fieldLabelWideClasses,
   largeTextInputClasses,
   primaryButtonClasses,
-} from "@/components/ui/controlClasses";
+} from "@/components/ui/control-styles";
 import {
   createLocalSessionFromFile,
   createLocalSessionFromPicker,

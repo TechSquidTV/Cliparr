@@ -14,7 +14,7 @@ import {
   compactSecondaryButtonClasses,
   destructiveAlertClasses,
   primaryAlertClasses,
-} from "@/components/ui/controlClasses";
+} from "@/components/ui/control-styles";
 import {
   EditorExportSettingsSection,
   EditorExportSummaryPanel,

@@ -25,7 +25,7 @@ import {
   fieldLabelClasses as labelClasses,
   iconButtonClasses,
   textInputClasses as inputClasses,
-} from "@/components/ui/controlClasses";
+} from "@/components/ui/control-styles";
 import type { MediaSource, ProviderSession } from "../../providers/types";
 import { formatProviderName } from "../providers/ProviderGlyph";
 import SourceConnectPanel from "./SourceConnectPanel";

@@ -7,7 +7,7 @@ import {
   primaryButtonClasses,
   secondaryButtonClasses,
   subtleButtonClasses,
-} from "@/components/ui/controlClasses";
+} from "@/components/ui/control-styles";
 import {
   resolveLocalMediaSession,
   type LocalMediaResolution,

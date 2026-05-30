@@ -1,6 +1,6 @@
 import { FolderOpen } from "lucide-react";
 import ProviderConnectFlow from "./ProviderConnectFlow";
-import { secondaryButtonClasses } from "@/components/ui/controlClasses";
+import { secondaryButtonClasses } from "@/components/ui/control-styles";
 import type { ProviderSession } from "../../providers/types";
 
 interface Props {

@@ -24,7 +24,7 @@ import {
   denseSecondaryButtonClasses as panelSecondaryButtonClasses,
   screenTextInputClasses as baseScreenInputClasses,
   textInputClasses,
-} from "@/components/ui/controlClasses";
+} from "@/components/ui/control-styles";
 import type { ProviderDefinition, ProviderSession } from "../../providers/types";
 
 interface Props {
