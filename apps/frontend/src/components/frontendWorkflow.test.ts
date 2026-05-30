@@ -125,6 +125,14 @@ void test("renders the editor framegrab camera control", () => {
   );
 
   assert.match(markup, /Export current preview frame/);
+  assert(
+    markup.indexOf('aria-label="Zoom timeline out"') <
+      markup.indexOf('aria-label="Zoom timeline in"'),
+  );
+  assert(
+    markup.indexOf('aria-label="Zoom timeline in"') <
+      markup.indexOf('aria-label="Export current preview frame"'),
+  );
 });
 
 void test("renders the framegrab export dialog actions", () => {
