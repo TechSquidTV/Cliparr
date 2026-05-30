@@ -139,10 +139,12 @@ void test("renders the framegrab export dialog actions", () => {
       },
       selectedFormat: "png",
       onFormatChange: () => undefined,
-      fileNamePreview: "Example Movie [frame 01m01s].png",
+      selectedQuality: "high",
+      onQualityChange: () => undefined,
+      fileNamePreview: "Example Movie [01m01s].png",
       processingAction: null,
       error: null,
-      message: null,
+      message: "Copied to clipboard.",
       onClose: () => undefined,
       onCopy: () => undefined,
       onDownload: () => undefined,
@@ -151,7 +153,14 @@ void test("renders the framegrab export dialog actions", () => {
 
   assert.match(markup, /Export Frame/);
   assert.match(markup, /Image Type/);
+  assert.match(markup, /Quality/);
   assert.match(markup, /Copy Image/);
   assert.match(markup, /Download PNG/);
-  assert.match(markup, /Example Movie \[frame 01m01s\]\.png/);
+  assert.doesNotMatch(markup, />Cancel</);
+  assert.match(markup, /w-44/);
+  assert.match(markup, /role="status"/);
+  assert.match(markup, /aria-live="polite"/);
+  assert.doesNotMatch(markup, /sr-only/);
+  assert.match(markup, /Copied to clipboard\./);
+  assert.match(markup, /Example Movie \[01m01s\]\.png/);
 });

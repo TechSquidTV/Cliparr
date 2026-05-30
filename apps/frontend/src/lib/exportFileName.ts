@@ -54,9 +54,9 @@ const DEFAULT_EPISODE_EXPORT_FILE_NAME_TEMPLATE =
   "{show_title} - {episode_code} - {title} [{clip_start}-{clip_end}]";
 
 const DEFAULT_MOVIE_FRAMEGRAB_FILE_NAME_TEMPLATE =
-  "{source_title} ({year}) [frame {frame_time}]";
+  "{source_title} ({year}) [{frame_time}]";
 const DEFAULT_EPISODE_FRAMEGRAB_FILE_NAME_TEMPLATE =
-  "{show_title} - {episode_code} - {title} [frame {frame_time}]";
+  "{show_title} - {episode_code} - {title} [{frame_time}]";
 
 type ExportFileNameTemplateToken =
   | "title"

@@ -7,8 +7,10 @@ import { buildFramegrabFileName } from "@/lib/exportFileName";
 import {
   cloneCanvasFrame,
   copyFramegrabCanvasToClipboard,
+  DEFAULT_FRAMEGRAB_IMAGE_QUALITY,
   encodeFramegrabCanvas,
   type FramegrabImageFormat,
+  type FramegrabImageQuality,
 } from "@/lib/framegrab";
 
 interface VideoDimensions {
@@ -52,6 +54,9 @@ export function useEditorFramegrab({
     useState<CapturedFramegrab | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [format, setFormat] = useState<FramegrabImageFormat>("png");
+  const [quality, setQuality] = useState<FramegrabImageQuality>(
+    DEFAULT_FRAMEGRAB_IMAGE_QUALITY,
+  );
   const [action, setAction] = useState<FramegrabAction | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
@@ -150,6 +155,15 @@ export function useEditorFramegrab({
     setMessage(null);
   }, []);
 
+  const handleQualityChange = useCallback(
+    (nextQuality: FramegrabImageQuality) => {
+      setQuality(nextQuality);
+      setError(null);
+      setMessage(null);
+    },
+    [],
+  );
+
   const copyFramegrab = useCallback(async () => {
     if (!capturedFramegrab || action) {
       return;
@@ -182,6 +196,7 @@ export function useEditorFramegrab({
       const blob = await encodeFramegrabCanvas(
         capturedFramegrab.canvas,
         format,
+        quality,
       );
       downloadBlob(blob, fileName.fullName);
       setMessage("Download started.");
@@ -190,13 +205,14 @@ export function useEditorFramegrab({
     } finally {
       setAction(null);
     }
-  }, [action, capturedFramegrab, fileName.fullName, format]);
+  }, [action, capturedFramegrab, fileName.fullName, format, quality]);
 
   return {
     dialogMounted,
     capturedFramegrab,
     dialogOpen,
     format,
+    quality,
     action,
     error,
     message,
@@ -205,6 +221,7 @@ export function useEditorFramegrab({
     openDialog,
     closeDialog,
     handleFormatChange,
+    handleQualityChange,
     copyFramegrab,
     downloadFramegrab,
   };

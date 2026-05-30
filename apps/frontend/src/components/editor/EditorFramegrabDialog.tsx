@@ -1,19 +1,18 @@
 import { Copy, Download, LoaderCircle } from "lucide-react";
-import type { FramegrabImageFormat } from "@/lib/framegrab";
+import type {
+  FramegrabImageFormat,
+  FramegrabImageQuality,
+} from "@/lib/framegrab";
 import {
   framegrabFormatOptionFor,
   framegrabImageFormatOptions,
+  framegrabImageQualityOptions,
 } from "@/lib/framegrab";
-import {
-  DialogClose,
-  DialogFooter,
-  DialogWindow,
-} from "@/components/ui/dialog";
+import { DialogFooter, DialogWindow } from "@/components/ui/dialog";
 import {
   compactPrimaryButtonClasses,
   compactSecondaryButtonClasses,
   destructiveAlertClasses,
-  primaryAlertClasses,
 } from "@/components/ui/control-styles";
 import {
   compactSelectTriggerClassName,
@@ -42,6 +41,8 @@ interface EditorFramegrabDialogProps {
   };
   selectedFormat: FramegrabImageFormat;
   onFormatChange: (format: FramegrabImageFormat) => void;
+  selectedQuality: FramegrabImageQuality;
+  onQualityChange: (quality: FramegrabImageQuality) => void;
   fileNamePreview: string;
   processingAction: FramegrabAction | null;
   error: string | null;
@@ -58,6 +59,8 @@ export function EditorFramegrabDialog({
   dimensions,
   selectedFormat,
   onFormatChange,
+  selectedQuality,
+  onQualityChange,
   fileNamePreview,
   processingAction,
   error,
@@ -68,6 +71,7 @@ export function EditorFramegrabDialog({
 }: EditorFramegrabDialogProps) {
   const selectedFormatOption = framegrabFormatOptionFor(selectedFormat);
   const busy = processingAction !== null;
+  const qualityDisabled = selectedFormat === "png";
 
   return (
     <DialogWindow
@@ -82,7 +86,6 @@ export function EditorFramegrabDialog({
     >
       <div className="space-y-4 overflow-y-auto p-4">
         {error ? <div className={destructiveAlertClasses}>{error}</div> : null}
-        {message ? <div className={primaryAlertClasses}>{message}</div> : null}
 
         <section className="rounded-md border border-border bg-card">
           <div className="border-b border-border px-3 py-2">
@@ -91,32 +94,62 @@ export function EditorFramegrabDialog({
           <div className="space-y-3 p-3">
             <div className="text-sm font-medium text-foreground">{title}</div>
 
-            <label className="block space-y-1.5">
-              <span className={sectionLabelClassName()}>Image Type</span>
-              <Select
-                value={selectedFormat}
-                onValueChange={(value) =>
-                  onFormatChange(value as FramegrabImageFormat)
-                }
-              >
-                <SelectTrigger
-                  size="sm"
-                  className={compactSelectTriggerClassName()}
+            <div className="grid gap-3 sm:grid-cols-2">
+              <label className="block space-y-1.5">
+                <span className={sectionLabelClassName()}>Image Type</span>
+                <Select
+                  value={selectedFormat}
+                  onValueChange={(value) =>
+                    onFormatChange(value as FramegrabImageFormat)
+                  }
                 >
-                  <SelectValue placeholder="Select image type" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectGroup>
-                    <SelectLabel>Image Types</SelectLabel>
-                    {framegrabImageFormatOptions.map((option) => (
-                      <SelectItem key={option.value} value={option.value}>
-                        {option.label} {option.extension}
-                      </SelectItem>
-                    ))}
-                  </SelectGroup>
-                </SelectContent>
-              </Select>
-            </label>
+                  <SelectTrigger
+                    size="sm"
+                    className={compactSelectTriggerClassName()}
+                  >
+                    <SelectValue placeholder="Select image type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectGroup>
+                      <SelectLabel>Image Types</SelectLabel>
+                      {framegrabImageFormatOptions.map((option) => (
+                        <SelectItem key={option.value} value={option.value}>
+                          {option.label} {option.extension}
+                        </SelectItem>
+                      ))}
+                    </SelectGroup>
+                  </SelectContent>
+                </Select>
+              </label>
+
+              <label className="block space-y-1.5">
+                <span className={sectionLabelClassName()}>Quality</span>
+                <Select
+                  value={selectedQuality}
+                  onValueChange={(value) =>
+                    onQualityChange(value as FramegrabImageQuality)
+                  }
+                  disabled={qualityDisabled}
+                >
+                  <SelectTrigger
+                    size="sm"
+                    className={compactSelectTriggerClassName()}
+                  >
+                    <SelectValue placeholder="Select quality" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectGroup>
+                      <SelectLabel>Quality</SelectLabel>
+                      {framegrabImageQualityOptions.map((option) => (
+                        <SelectItem key={option.value} value={option.value}>
+                          {option.label}
+                        </SelectItem>
+                      ))}
+                    </SelectGroup>
+                  </SelectContent>
+                </Select>
+              </label>
+            </div>
 
             <dl className="grid gap-2 text-sm sm:grid-cols-2">
               <div className="rounded-md border border-border bg-background px-3 py-2">
@@ -144,9 +177,13 @@ export function EditorFramegrabDialog({
       </div>
 
       <DialogFooter className="border-t border-border bg-card px-4 py-3">
-        <DialogClose disabled={busy} className={compactSecondaryButtonClasses}>
-          Cancel
-        </DialogClose>
+        <span
+          role="status"
+          aria-live="polite"
+          className="flex min-h-8 min-w-0 flex-1 items-center truncate text-xs text-muted-foreground"
+        >
+          {message}
+        </span>
 
         <button
           type="button"
@@ -166,7 +203,7 @@ export function EditorFramegrabDialog({
           type="button"
           onClick={onDownload}
           disabled={busy}
-          className={compactPrimaryButtonClasses}
+          className={`${compactPrimaryButtonClasses} w-44`}
         >
           {processingAction === "download" ? (
             <LoaderCircle className="h-4 w-4 animate-spin" />

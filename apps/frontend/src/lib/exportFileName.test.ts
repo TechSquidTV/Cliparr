@@ -144,8 +144,8 @@ void test("builds framegrab filenames with shared metadata cleanup", () => {
       format: "png",
     }),
     {
-      baseName: "Movie With Bad Characters (1999) [frame 01m01s]",
-      fullName: "Movie With Bad Characters (1999) [frame 01m01s].png",
+      baseName: "Movie With Bad Characters (1999) [01m01s]",
+      fullName: "Movie With Bad Characters (1999) [01m01s].png",
       templateKind: "movie",
     },
   );
@@ -166,8 +166,8 @@ void test("builds framegrab filenames with shared metadata cleanup", () => {
       format: "jpg",
     }),
     {
-      baseName: "Example Show - S01E02 - Pilot [frame 01h01m02s]",
-      fullName: "Example Show - S01E02 - Pilot [frame 01h01m02s].jpg",
+      baseName: "Example Show - S01E02 - Pilot [01h01m02s]",
+      fullName: "Example Show - S01E02 - Pilot [01h01m02s].jpg",
       templateKind: "episode",
     },
   );
@@ -180,7 +180,7 @@ void test("builds framegrab filenames with shared metadata cleanup", () => {
       frameTime: 0,
       format: "webp",
     }).fullName,
-    "Still [frame 00m00s].webp",
+    "Still [00m00s].webp",
   );
 });
 

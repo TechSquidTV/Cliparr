@@ -3,15 +3,17 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
-  FRAMEGRAB_IMAGE_QUALITY,
+  DEFAULT_FRAMEGRAB_IMAGE_QUALITY,
   framegrabExtensionFor,
   framegrabFormatOptionFor,
   framegrabImageFormatOptions,
+  framegrabImageQualityOptions,
   framegrabMimeTypeFor,
+  framegrabQualityOptionFor,
 } from "@/lib/framegrab";
 
 void test("exposes framegrab image format metadata", () => {
-  assert.equal(FRAMEGRAB_IMAGE_QUALITY, 0.92);
+  assert.equal(DEFAULT_FRAMEGRAB_IMAGE_QUALITY, "high");
   assert.deepEqual(
     framegrabImageFormatOptions.map((option) => option.value),
     ["png", "jpg", "webp"],
@@ -26,4 +28,18 @@ void test("exposes framegrab image format metadata", () => {
     extension: ".webp",
     mimeType: "image/webp",
   });
+});
+
+void test("exposes framegrab quality metadata", () => {
+  assert.deepEqual(
+    framegrabImageQualityOptions.map((option) => option.value),
+    ["high", "balanced", "compact"],
+  );
+  assert.deepEqual(framegrabQualityOptionFor("high"), {
+    value: "high",
+    label: "High",
+    quality: 0.92,
+  });
+  assert.equal(framegrabQualityOptionFor("balanced").quality, 0.82);
+  assert.equal(framegrabQualityOptionFor("compact").quality, 0.68);
 });

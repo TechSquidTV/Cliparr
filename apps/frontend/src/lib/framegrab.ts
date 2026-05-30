@@ -1,4 +1,5 @@
 export type FramegrabImageFormat = "png" | "jpg" | "webp";
+export type FramegrabImageQuality = "high" | "balanced" | "compact";
 
 export interface FramegrabImageFormatOption {
   value: FramegrabImageFormat;
@@ -7,7 +8,13 @@ export interface FramegrabImageFormatOption {
   mimeType: string;
 }
 
-export const FRAMEGRAB_IMAGE_QUALITY = 0.92;
+export interface FramegrabImageQualityOption {
+  value: FramegrabImageQuality;
+  label: string;
+  quality: number;
+}
+
+export const DEFAULT_FRAMEGRAB_IMAGE_QUALITY: FramegrabImageQuality = "high";
 
 export const framegrabImageFormatOptions: readonly FramegrabImageFormatOption[] =
   [
@@ -31,6 +38,25 @@ export const framegrabImageFormatOptions: readonly FramegrabImageFormatOption[] 
     },
   ];
 
+export const framegrabImageQualityOptions: readonly FramegrabImageQualityOption[] =
+  [
+    {
+      value: "high",
+      label: "High",
+      quality: 0.92,
+    },
+    {
+      value: "balanced",
+      label: "Balanced",
+      quality: 0.82,
+    },
+    {
+      value: "compact",
+      label: "Compact",
+      quality: 0.68,
+    },
+  ];
+
 export function framegrabFormatOptionFor(format: FramegrabImageFormat) {
   return (
     framegrabImageFormatOptions.find((option) => option.value === format) ??
@@ -44,6 +70,13 @@ export function framegrabMimeTypeFor(format: FramegrabImageFormat) {
 
 export function framegrabExtensionFor(format: FramegrabImageFormat) {
   return framegrabFormatOptionFor(format).extension;
+}
+
+export function framegrabQualityOptionFor(quality: FramegrabImageQuality) {
+  return (
+    framegrabImageQualityOptions.find((option) => option.value === quality) ??
+    framegrabImageQualityOptions[0]
+  );
 }
 
 export function cloneCanvasFrame(sourceCanvas: HTMLCanvasElement) {
@@ -67,10 +100,14 @@ export function cloneCanvasFrame(sourceCanvas: HTMLCanvasElement) {
 export function encodeFramegrabCanvas(
   canvas: HTMLCanvasElement,
   format: FramegrabImageFormat,
+  imageQuality: FramegrabImageQuality = DEFAULT_FRAMEGRAB_IMAGE_QUALITY,
 ) {
   return new Promise<Blob>((resolve, reject) => {
     const mimeType = framegrabMimeTypeFor(format);
-    const quality = format === "png" ? undefined : FRAMEGRAB_IMAGE_QUALITY;
+    const quality =
+      format === "png"
+        ? undefined
+        : framegrabQualityOptionFor(imageQuality).quality;
 
     canvas.toBlob(
       (blob) => {

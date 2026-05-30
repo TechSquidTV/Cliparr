@@ -558,6 +558,8 @@ export default function EditorScreen({ session, onBack }: Props) {
             dimensions={framegrab.capturedFramegrab.dimensions}
             selectedFormat={framegrab.format}
             onFormatChange={framegrab.handleFormatChange}
+            selectedQuality={framegrab.quality}
+            onQualityChange={framegrab.handleQualityChange}
             fileNamePreview={framegrab.fileName.fullName}
             processingAction={framegrab.action}
             error={framegrab.error}
