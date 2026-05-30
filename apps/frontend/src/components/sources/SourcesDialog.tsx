@@ -107,7 +107,7 @@ export default function SourcesDialog({
           )}
 
           {loading ? (
-            <div className="grid gap-3 lg:grid-cols-2">
+            <div className="flex flex-col gap-3">
               {Array.from({ length: 4 }).map((_, index) => (
                 <div
                   key={index}
@@ -126,7 +126,7 @@ export default function SourcesDialog({
               description="Try another filter or search."
             />
           ) : (
-            <div className="grid gap-3 xl:grid-cols-2">
+            <div className="flex flex-col gap-3">
               {filteredSources.map((source) => (
                 <SourceCard
                   key={source.id}
