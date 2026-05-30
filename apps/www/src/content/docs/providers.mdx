@@ -12,7 +12,12 @@ Cliparr uses provider sources to discover active playback sessions, load playabl
 {providers.map((provider) => (
 
   <section>
-    <h2>{provider.name}</h2>
+    <h2 class="flex items-center gap-3">
+      <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-border bg-muted p-2">
+        <img src={provider.iconPath} alt="" class="provider-logo h-full w-full" />
+      </span>
+      <span>{provider.name}</span>
+    </h2>
     <p>{provider.setup}</p>
     {provider.name === "Plex" ? (
       <p>Use a Plex account that owns the server you want to connect. Cliparr uses that account to find servers and active playback sessions.</p>
