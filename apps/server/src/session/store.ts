@@ -1,10 +1,11 @@
 import { randomUUID } from "crypto";
 import { eq } from "drizzle-orm";
+import { logErrorFields, logEventFields } from "@cliparr/shared/logging";
 import { getDatabase } from "../db/database.js";
 import { getProviderAccount } from "../db/providerAccountsRepository.js";
 import { REMEMBERED_PROVIDER_SESSION_TTL_MS } from "../db/rememberedProviderSessionsRepository.js";
 import { providerSessions, type ProviderSessionRow } from "../db/schema.js";
-import { getServerLogger, serializeError } from "../logging.js";
+import { getServerLogger } from "../logging.js";
 import type { MediaHandle } from "../providers/types.js";
 import { decryptSecret, encryptSecret } from "../security/secrets.js";
 
@@ -124,7 +125,9 @@ export function restoreProviderSessionFromProviderAccount(
     logger.warn(
       "Failed to restore provider session from remembered provider account.",
       {
-        ...serializeError(err),
+        ...logEventFields("session.restore", "failure"),
+        ...logErrorFields(err),
+        "provider.account.id": providerAccountId,
       },
     );
     return undefined;
@@ -148,18 +151,15 @@ export function pruneSessionMediaHandles(
   }
 
   if (prunedCount > 0) {
-    logger.trace(
-      "Pruned stale media handles for provider session {sessionId}.",
-      {
-        sessionId: session.id,
-        providerId: session.providerId,
-        providerAccountId: session.providerAccountId,
-        prunedCount,
-        remainingHandleCount: session.mediaHandles.size,
-        maxIdleMs,
-        cutoff,
-      },
-    );
+    logger.trace("Pruned stale media handles for provider session.", {
+      "session.id": session.id,
+      "provider.id": session.providerId,
+      "provider.account.id": session.providerAccountId,
+      "media.handle.pruned_count": prunedCount,
+      "media.handle.remaining_count": session.mediaHandles.size,
+      "media.handle.max_idle_ms": maxIdleMs,
+      "media.handle.cutoff_ms": cutoff,
+    });
   }
 
   return prunedCount;

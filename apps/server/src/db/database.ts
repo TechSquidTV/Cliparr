@@ -4,10 +4,11 @@ import { DatabaseSync } from "node:sqlite";
 import { fileURLToPath } from "url";
 import { drizzle, type NodeSQLiteDatabase } from "drizzle-orm/node-sqlite";
 import { migrate } from "drizzle-orm/node-sqlite/migrator";
+import { logErrorFields } from "@cliparr/shared/logging";
 import { prepareDatabaseForMigrations } from "./migrationState.js";
 import * as schema from "./schema.js";
 import { resolveConfiguredDataDir, workspaceRoot } from "../config/loadEnv.js";
-import { getServerLogger, serializeError } from "../logging.js";
+import { getServerLogger } from "../logging.js";
 import { assertAppKeyConfigured } from "../security/secrets.js";
 
 const DEFAULT_DATABASE_FILE = "cliparr.sqlite";
@@ -30,10 +31,10 @@ function enforcePermissions(targetPath: string, mode: number) {
     fs.chmodSync(targetPath, mode);
   } catch (err) {
     if (process.platform !== "win32") {
-      logger.warn("Could not set permissions on {targetPath}.", {
-        targetPath,
+      logger.warn("Could not set filesystem permissions.", {
+        "file.path": targetPath,
         mode,
-        ...serializeError(err),
+        ...logErrorFields(err),
       });
     }
   }

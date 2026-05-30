@@ -1,4 +1,9 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import {
+  logDurationFields,
+  logErrorFields,
+  logEventFields,
+} from "@cliparr/shared/logging";
 import type { ExportFormat, ExportResolution } from "../../lib/exportClip";
 import {
   buildExportFileName,
@@ -22,6 +27,7 @@ import type {
 import type { PlaybackSubtitleTrack } from "../../providers/types";
 import type { ExportSourcePreference } from "./EditorExportDialog";
 import type { PlaybackFallbackInfo } from "./useEditorPlayback";
+import { getFrontendLogger, warnWithError } from "../../logging";
 
 interface VideoDimensions {
   width: number;
@@ -61,6 +67,8 @@ interface UseEditorExportProps {
   subtitleStyleSettings: SubtitleStyleSettings;
 }
 
+const logger = getFrontendLogger(["editor", "export"]);
+
 export function useEditorExport({
   session,
   startTime,
@@ -90,6 +98,10 @@ export function useEditorExport({
   const [exporting, setExporting] = useState(false);
   const [progress, setProgress] = useState(0);
   const [exportError, setExportError] = useState<string | null>(null);
+  const exportLogger = useMemo(
+    () => logger.with({ "editor.session.id": session.id }),
+    [session.id],
+  );
 
   const effectiveExportSourcePreference =
     exportSourcePreference === "direct" && !session.directSource
@@ -288,6 +300,29 @@ export function useEditorExport({
     setExporting(true);
     setProgress(0);
 
+    const startedAt = Date.now();
+    const baseFields = {
+      "export.format": exportFormat,
+      "export.resolution": resolution,
+      "export.source.kind": readiness.sourceKind,
+      "export.source.role": readiness.source.role,
+      "export.range.start_seconds": startTime,
+      "export.range.end_seconds": endTime,
+      "export.range.duration_seconds": Math.max(0, endTime - startTime),
+      "export.include_audio": includeAudio,
+      "export.subtitle.burn_in": shouldBurnSubtitles,
+      "export.subtitle.cue_count": shouldBurnSubtitles
+        ? clippedSubtitleCues.length
+        : 0,
+      "export.output.width": outputDimensions?.width,
+      "export.output.height": outputDimensions?.height,
+    };
+
+    exportLogger.info("Editor export started.", {
+      ...logEventFields("editor.export", "started"),
+      ...baseFields,
+    });
+
     try {
       const { exportClip } = await import("../../lib/exportClip");
       const blob = await exportClip({
@@ -315,8 +350,20 @@ export function useEditorExport({
       document.body.removeChild(a);
       window.setTimeout(() => URL.revokeObjectURL(url), 0);
       setExportDialogOpen(false);
+
+      exportLogger.info("Editor export completed.", {
+        ...logEventFields("editor.export", "success"),
+        ...logDurationFields(startedAt),
+        ...baseFields,
+        "export.output.bytes": blob.size,
+      });
     } catch (err) {
-      console.error(err);
+      warnWithError(exportLogger, err, "Editor export failed.", {
+        ...logEventFields("editor.export", "failure"),
+        ...logDurationFields(startedAt),
+        ...logErrorFields(err),
+        ...baseFields,
+      });
       setExportError(err instanceof Error ? err.message : "Export failed");
     } finally {
       setExporting(false);
@@ -325,10 +372,12 @@ export function useEditorExport({
     clippedSubtitleCues,
     endTime,
     exportFormat,
+    exportLogger,
     exportSource,
     exporting,
     fileName.fullName,
     includeAudio,
+    outputDimensions,
     resolution,
     selectedSubtitleTrack,
     session.exportMetadata,

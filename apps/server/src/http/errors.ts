@@ -1,5 +1,6 @@
 import type { NextFunction, Request, Response } from "express";
-import { getServerLogger, serializeError } from "../logging.js";
+import { logErrorFields, logEventFields } from "@cliparr/shared/logging";
+import { errorWithError, getServerLogger } from "../logging.js";
 
 const logger = getServerLogger(["http", "error"]);
 
@@ -47,22 +48,21 @@ export function errorHandler(
       : new ApiError(500, "internal_error", "Something went wrong");
 
   if (!(err instanceof ApiError)) {
-    logger.error("Unhandled request error for {method} {originalUrl}.", {
-      ...serializeError(err),
-      method: req.method,
-      originalUrl: req.originalUrl,
+    errorWithError(logger, err, "Unhandled request error.", {
+      ...logEventFields("http.request", "unhandled_error"),
+      ...logErrorFields(err),
+      "http.method": req.method,
+      "http.original_url": req.originalUrl,
     });
   } else if (apiError.status >= 500) {
-    logger.error(
-      "Request failed with API error {code} for {method} {originalUrl}.",
-      {
-        statusCode: apiError.status,
-        code: apiError.code,
-        message: apiError.message,
-        method: req.method,
-        originalUrl: req.originalUrl,
-      },
-    );
+    logger.error(apiError, {
+      ...logEventFields("http.request", "api_error"),
+      "http.status_code": apiError.status,
+      "error.code": apiError.code,
+      "error.message": apiError.message,
+      "http.method": req.method,
+      "http.original_url": req.originalUrl,
+    });
   }
 
   if (res.headersSent) {

@@ -1,4 +1,10 @@
 import { useCallback, useEffect, useState } from "react";
+import {
+  compactLogFields,
+  logDurationFields,
+  logErrorFields,
+  logEventFields,
+} from "@cliparr/shared/logging";
 import type { PlaybackSubtitleTrack } from "../../providers/types";
 import {
   subtitleTrackSupportsBurnIn,
@@ -6,6 +12,7 @@ import {
 } from "../../lib/selectPreferredSubtitleTrack";
 import { parseSubtitleText } from "../../lib/subtitles/parseSubtitleText";
 import type { SubtitleCue } from "../../lib/subtitles/types";
+import { getFrontendLogger, warnWithError } from "../../logging";
 
 interface UseSubtitleCuesOptions {
   selectedSubtitleTrack: PlaybackSubtitleTrack | null;
@@ -14,54 +21,62 @@ interface UseSubtitleCuesOptions {
 }
 
 const subtitleRequestTimeoutMs = 15_000;
+const logger = getFrontendLogger(["editor", "subtitle"]);
 
-function responseErrorMessage(payload: unknown) {
-  if (!payload || typeof payload !== "object" || !("error" in payload)) {
-    return "";
-  }
-
-  const error = payload.error;
-  if (
-    !error ||
-    typeof error !== "object" ||
-    !("message" in error) ||
-    typeof error.message !== "string"
-  ) {
-    return "";
-  }
-
-  return error.message.trim();
+interface SubtitleDownloadFailure {
+  status: number;
+  message: string;
 }
 
-async function subtitleDownloadErrorDetail(response: Response) {
-  try {
-    const contentType = response.headers.get("content-type") ?? "";
-    if (contentType.toLowerCase().includes("application/json")) {
-      return responseErrorMessage(await response.json());
+type SubtitleDownloadResult =
+  | {
+      ok: true;
+      cues: SubtitleCue[];
     }
+  | {
+      ok: false;
+      failure: SubtitleDownloadFailure;
+    };
 
-    return (await response.text()).replace(/\s+/g, " ").trim();
-  } catch {
-    return "";
-  }
+function subtitleDownloadFailure(status: number): SubtitleDownloadFailure {
+  return {
+    status,
+    message: `Could not load subtitles (${status}).`,
+  };
+}
+
+function subtitleTrackLogFields(
+  track: PlaybackSubtitleTrack,
+  providerId: string,
+) {
+  return compactLogFields({
+    "provider.id": providerId,
+    "subtitle.track.id": track.streamId,
+    "subtitle.track.index": track.index,
+    "subtitle.format": track.contentFormat,
+    "subtitle.codec": track.codec,
+    "subtitle.text": track.isText,
+    "subtitle.external": track.isExternal,
+  });
 }
 
 async function downloadSubtitleCues(
   track: PlaybackSubtitleTrack,
   contentUrl: string,
   signal: AbortSignal,
-) {
+): Promise<SubtitleDownloadResult> {
   const response = await fetch(contentUrl, { signal });
   if (!response.ok) {
-    const detail = await subtitleDownloadErrorDetail(response);
-    console.error("Subtitle download failed", {
-      status: response.status,
-      detail,
-    });
-    throw new Error(`Could not load subtitles (${response.status}).`);
+    return {
+      ok: false,
+      failure: subtitleDownloadFailure(response.status),
+    };
   }
 
-  return parseSubtitleText(await response.text(), track.contentFormat);
+  return {
+    ok: true,
+    cues: parseSubtitleText(await response.text(), track.contentFormat),
+  };
 }
 
 export function useSubtitleCues({
@@ -111,8 +126,9 @@ export function useSubtitleCues({
       setSubtitleLoading(true);
       setSubtitleError(null);
 
+      const startedAt = Date.now();
       try {
-        const parsedSubtitleCues = await downloadSubtitleCues(
+        const downloadResult = await downloadSubtitleCues(
           selectedSubtitleTrack,
           contentUrl,
           abortController.signal,
@@ -122,23 +138,58 @@ export function useSubtitleCues({
           return;
         }
 
+        if (!downloadResult.ok) {
+          logger.warn("Could not load subtitle cues.", {
+            ...logEventFields("editor.subtitle.load", "failure"),
+            ...logDurationFields(startedAt),
+            ...subtitleTrackLogFields(selectedSubtitleTrack, providerId),
+            "subtitle.timeout": false,
+            "http.status_code": downloadResult.failure.status,
+            "error.name": "SubtitleDownloadFailure",
+            "error.message": downloadResult.failure.message,
+          });
+          setSubtitleCues([]);
+          setSubtitleError(downloadResult.failure.message);
+          return;
+        }
+
+        const parsedSubtitleCues = downloadResult.cues;
         setSubtitleCues(parsedSubtitleCues);
         setSubtitleError(
           parsedSubtitleCues.length === 0
             ? "No subtitles found in this track."
             : null,
         );
+        logger.info("Subtitle cues loaded.", {
+          ...logEventFields("editor.subtitle.load", "success"),
+          ...logDurationFields(startedAt),
+          ...subtitleTrackLogFields(selectedSubtitleTrack, providerId),
+          "subtitle.cue.count": parsedSubtitleCues.length,
+        });
       } catch (err) {
         if (cancelled || abortController.signal.aborted) {
           if (!cancelled) {
             setSubtitleCues([]);
             setSubtitleError("Subtitles timed out. Try again.");
             setSubtitleLoading(false);
+            logger.warn("Subtitle cue load timed out.", {
+              ...logEventFields("editor.subtitle.load", "failure"),
+              ...logDurationFields(startedAt),
+              ...subtitleTrackLogFields(selectedSubtitleTrack, providerId),
+              "subtitle.timeout": true,
+              "subtitle.timeout.ms": subtitleRequestTimeoutMs,
+            });
           }
           return;
         }
 
-        console.error("Could not load subtitle cues", err);
+        warnWithError(logger, err, "Could not load subtitle cues.", {
+          ...logEventFields("editor.subtitle.load", "failure"),
+          ...logDurationFields(startedAt),
+          ...logErrorFields(err),
+          ...subtitleTrackLogFields(selectedSubtitleTrack, providerId),
+          "subtitle.timeout": false,
+        });
         setSubtitleCues([]);
         setSubtitleError(
           err instanceof Error ? err.message : "Could not load subtitles.",

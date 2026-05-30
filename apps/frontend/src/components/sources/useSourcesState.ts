@@ -1,4 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  logDurationFields,
+  logErrorFields,
+  logEventFields,
+} from "@cliparr/shared/logging";
 import { cliparrClient } from "../../api/cliparrClient";
 import { useAuth } from "../../auth";
 import type { MediaSource, ProviderSession } from "../../providers/types";
@@ -13,6 +18,7 @@ import {
   sourceProviderOptions,
   sortSources,
 } from "./sourcesStateUtils";
+import { getFrontendLogger, warnWithError } from "../../logging";
 
 interface UseSourcesStateOptions {
   isOpen: boolean;
@@ -24,6 +30,8 @@ interface SourceActionResult {
   source?: MediaSource;
   removeSourceId?: string;
 }
+
+const logger = getFrontendLogger("source");
 
 export function useSourcesState({
   isOpen,
@@ -48,6 +56,13 @@ export function useSourcesState({
   const [initialSourcesLoaded, setInitialSourcesLoaded] = useState(false);
   const latestLoadRequestIdRef = useRef(0);
   const isOpenRef = useRef(isOpen);
+  const sourceLogger = useMemo(
+    () =>
+      logger.with({
+        "provider.id": auth.providerSession?.providerId,
+      }),
+    [auth.providerSession?.providerId],
+  );
 
   const replaceSources = useCallback((nextSources: MediaSource[]) => {
     setSources(nextSources);
@@ -300,6 +315,7 @@ export function useSourcesState({
       return;
     }
 
+    const startedAt = Date.now();
     setFeedback(null);
     setError("");
     setRefreshingAll(true);
@@ -320,9 +336,39 @@ export function useSourcesState({
 
       setFeedback(merged.feedback);
       await refreshPlaybackView();
+
+      const fulfilled = results.filter(
+        (result) => result.status === "fulfilled",
+      );
+      const healthy = fulfilled.filter((result) => result.value.result.ok);
+      const allSourcesHealthy =
+        healthy.length === sources.length &&
+        fulfilled.length === results.length;
+      const fields = {
+        ...logEventFields(
+          "source.refresh_all",
+          allSourcesHealthy ? "success" : "partial",
+        ),
+        ...logDurationFields(startedAt),
+        "source.count": sources.length,
+        "source.health.ok_count": healthy.length,
+        "source.health.error_count": fulfilled.length - healthy.length,
+        "source.refresh.rejected_count": results.length - fulfilled.length,
+      };
+      if (allSourcesHealthy) {
+        sourceLogger.info("Refreshed all media sources.", fields);
+      } else {
+        sourceLogger.warn("Refreshed all media sources with errors.", fields);
+      }
     } catch (err) {
       const message =
         err instanceof Error ? err.message : "Could not refresh sources.";
+      warnWithError(sourceLogger, err, "Could not refresh sources.", {
+        ...logEventFields("source.refresh_all", "failure"),
+        ...logDurationFields(startedAt),
+        ...logErrorFields(err),
+        "source.count": sources.length,
+      });
       setError(message);
     } finally {
       setRefreshingAll(false);

@@ -1,4 +1,10 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  compactLogFields,
+  logDurationFields,
+  logErrorFields,
+  logEventFields,
+} from "@cliparr/shared/logging";
 import type {
   AudioBufferSink,
   CanvasSink,
@@ -33,7 +39,6 @@ import {
   browserDecoderEnvironmentWarning,
   buildPlaybackFailure,
   buildPlaybackLoadError,
-  buildPlaybackSourceAnalysis,
   buildPlaybackSourceCandidates,
   describePlaybackFailure,
   formatPlaybackSourceLabel,
@@ -44,6 +49,7 @@ import {
   shouldUseExportFallback,
   type PlaybackFallbackInfo,
   type PlaybackLoadFailure,
+  type PlaybackSourceCandidate,
   type PlaybackSourceAnalysisContext,
 } from "./editorPlaybackSources";
 import {
@@ -58,6 +64,7 @@ import {
 } from "./useEditorPlaybackWarmup";
 import { resolvePreviewPlaybackPlan } from "./editorPlaybackPlan";
 import { resetPlaybackReadyRangeWarmState } from "./editorPlaybackWarmupRange";
+import { getFrontendLogger, warnWithError } from "../../logging";
 
 export type { PlaybackFallbackInfo } from "./editorPlaybackSources";
 export type { PlaybackReadyRange } from "./useEditorPlaybackWarmup";
@@ -88,6 +95,34 @@ interface StaticVideoFrame {
 }
 
 const MAX_STATIC_VIDEO_FRAME_SIZE = 1920;
+const logger = getFrontendLogger(["editor", "playback"]);
+
+function playbackSourceLogFields(
+  playbackSource: PlaybackSourceCandidate,
+  context?: PlaybackSourceAnalysisContext,
+) {
+  return compactLogFields({
+    "playback.source.kind": playbackSource.source.kind,
+    "playback.source.role": playbackSource.source.role,
+    "playback.source.label": playbackSource.label,
+    "playback.video.track_count": context?.videoTracks.length,
+    "playback.audio.track_count": context?.allAudioTracks.length,
+    "playback.video.preview.present": context
+      ? Boolean(context.previewVideoTrack)
+      : undefined,
+    "playback.audio.preview.present": context
+      ? Boolean(context.previewAudioTrack)
+      : undefined,
+    "playback.audio.source.present": context
+      ? Boolean(context.sourceAudioTrack)
+      : undefined,
+    "playback.video.source.present": context
+      ? Boolean(context.sourceVideoTrack)
+      : undefined,
+    "playback.warning.count": context?.warnings.length,
+    "playback.live": context?.isLivePlayback,
+  });
+}
 
 function scaledStaticFrameDimensions(
   width: number,
@@ -199,6 +234,10 @@ export function useEditorPlayback({
     useState<VideoDimensions | null>(null);
   const [playbackReadyRange, setPlaybackReadyRange] =
     useState<PlaybackReadyRange | null>(null);
+  const playbackLogger = useMemo(
+    () => logger.with({ "editor.session.id": sessionId }),
+    [sessionId],
+  );
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const inputRef = useRef<Input | null>(null);
@@ -847,6 +886,7 @@ export function useEditorPlayback({
         let nextHlsFallbackInfo: PlaybackFallbackInfo | null = null;
 
         for (const playbackSource of playbackSources) {
+          const attemptStartedAt = Date.now();
           let playbackSourceAnalysisContext:
             | PlaybackSourceAnalysisContext
             | undefined;
@@ -916,12 +956,17 @@ export function useEditorPlayback({
               !sourceVideoTrack && previewAudioTrack && posterImageUrl
                 ? await loadStaticVideoFrame(posterImageUrl).catch(
                     (err: unknown) => {
-                      console.warn(
-                        "Could not load editor artwork for audio-only preview",
+                      warnWithError(
+                        playbackLogger,
+                        err,
+                        "Could not load editor artwork for audio-only preview.",
                         {
-                          sessionId,
-                          posterImageUrl,
-                          errorMessage: errorMessage(err),
+                          ...logEventFields(
+                            "editor.playback.artwork_load",
+                            "failure",
+                          ),
+                          ...logErrorFields(err),
+                          "media.artwork.present": Boolean(posterImageUrl),
                         },
                       );
                       return null;
@@ -956,11 +1001,20 @@ export function useEditorPlayback({
               !previewAudioTrack &&
               playbackSourceAnalysisContext
             ) {
-              console.warn(
-                "Editor playback source loaded without preview audio",
-                await buildPlaybackSourceAnalysis(
-                  playbackSourceAnalysisContext,
-                ),
+              playbackLogger.warn(
+                "Editor playback source has no preview audio.",
+                {
+                  ...logEventFields(
+                    "editor.playback.source_attempt",
+                    "degraded",
+                  ),
+                  ...logDurationFields(attemptStartedAt),
+                  ...playbackSourceLogFields(
+                    playbackSource,
+                    playbackSourceAnalysisContext,
+                  ),
+                  "playback.degraded.reason": "missing_preview_audio",
+                },
               );
             }
 
@@ -970,11 +1024,20 @@ export function useEditorPlayback({
               !staticVideoFrame &&
               playbackSourceAnalysisContext
             ) {
-              console.warn(
-                "Editor playback source loaded without preview video",
-                await buildPlaybackSourceAnalysis(
-                  playbackSourceAnalysisContext,
-                ),
+              playbackLogger.warn(
+                "Editor playback source has no preview video.",
+                {
+                  ...logEventFields(
+                    "editor.playback.source_attempt",
+                    "degraded",
+                  ),
+                  ...logDurationFields(attemptStartedAt),
+                  ...playbackSourceLogFields(
+                    playbackSource,
+                    playbackSourceAnalysisContext,
+                  ),
+                  "playback.degraded.reason": "missing_preview_video",
+                },
               );
             }
 
@@ -1103,13 +1166,23 @@ export function useEditorPlayback({
                 ? nextHlsFallbackInfo
                 : null,
             );
+            playbackLogger.info("Editor playback source loaded.", {
+              ...logEventFields("editor.playback.source_attempt", "success"),
+              ...logDurationFields(attemptStartedAt),
+              ...playbackSourceLogFields(
+                playbackSource,
+                playbackSourceAnalysisContext,
+              ),
+              "playback.fallback.used": failures.length > 0,
+              "playback.video.width": previewDimensions?.width,
+              "playback.video.height": previewDimensions?.height,
+              "playback.audio.sample_rate": audioTrackSampleRate,
+              "playback.duration.seconds": nextDuration,
+            });
             return;
           } catch (err) {
             const failure = buildPlaybackFailure(playbackSource, err);
             failures.push(failure);
-            const playbackSourceAnalysis = playbackSourceAnalysisContext
-              ? await buildPlaybackSourceAnalysis(playbackSourceAnalysisContext)
-              : undefined;
 
             if (
               (failure.label === "hls stream" || failure.label === "hls url") &&
@@ -1126,14 +1199,25 @@ export function useEditorPlayback({
               };
             }
 
-            console.warn("Editor playback source failed", {
-              sessionId,
-              source: failure.label,
-              classification: failure.classification,
-              category: failure.category,
-              message: failure.message,
-              analysis: playbackSourceAnalysis,
-            });
+            warnWithError(
+              playbackLogger,
+              err,
+              "Editor playback source failed.",
+              {
+                ...logEventFields("editor.playback.source_attempt", "failure"),
+                ...logDurationFields(attemptStartedAt),
+                ...logErrorFields(err),
+                ...playbackSourceLogFields(
+                  playbackSource,
+                  playbackSourceAnalysisContext,
+                ),
+                "playback.failure.classification": failure.classification,
+                "playback.failure.category": failure.category,
+                "playback.failure.message": failure.message,
+                "playback.fallback.available": Boolean(fallbackDirectSource),
+                "playback.fallback.used": Boolean(nextExportFallbackSource),
+              },
+            );
 
             if (cancelled) {
               return;
@@ -1167,6 +1251,7 @@ export function useEditorPlayback({
     hlsSource,
     initialCurrentTime,
     initialDuration,
+    playbackLogger,
     posterImageUrl,
     selectedAudioTrack,
     sessionId,

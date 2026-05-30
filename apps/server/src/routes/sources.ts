@@ -1,5 +1,12 @@
 import { Router } from "express";
 import {
+  compactLogFields,
+  logDurationFields,
+  logErrorFields,
+  logEventFields,
+  sanitizeUrlForLog,
+} from "@cliparr/shared/logging";
+import {
   listMediaSources,
   deleteMediaSourceForAccount,
   getMediaSourceForAccount,
@@ -15,8 +22,10 @@ import {
 } from "../providers/plex/connectionState.js";
 import { getProvider } from "../providers/registry.js";
 import { requireAccountSession, setNoStore } from "../session/request.js";
+import { getServerLogger, warnWithError } from "../logging.js";
 
 export const sourcesRouter = Router();
+const logger = getServerLogger("source");
 
 function serializeSource(source: MediaSource) {
   return {
@@ -137,6 +146,10 @@ function parseSourceUpdate(body: unknown): UpdateMediaSourceInput {
   return input;
 }
 
+function changedSourceFields(input: UpdateMediaSourceInput) {
+  return Object.keys(input).sort();
+}
+
 sourcesRouter.get(
   "/",
   asyncHandler(async (req, res) => {
@@ -168,30 +181,60 @@ sourcesRouter.patch(
   asyncHandler(async (req, res) => {
     const session = requireAccountSession(req);
     setNoStore(res);
-    const existingSource = requireMediaSource(
-      req.params.id as string,
-      session.providerAccountId,
-    );
-    const input = parseSourceUpdate(req.body);
-    const nextInput =
-      existingSource.providerId === "plex" && input.baseUrl !== undefined
-        ? {
-            ...input,
-            connection: withPlexBaseUrlMode(
-              existingSource.connection,
-              PLEX_BASE_URL_MODE_MANUAL,
-            ),
-          }
-        : input;
-    const source = updateMediaSourceForAccount(
-      req.params.id as string,
-      session.providerAccountId,
-      nextInput,
-    );
-    if (!source) {
-      throw new ApiError(404, "source_not_found", "Source was not found");
+    const startedAt = Date.now();
+    const sourceId = req.params.id as string;
+
+    try {
+      const existingSource = requireMediaSource(
+        sourceId,
+        session.providerAccountId,
+      );
+      const input = parseSourceUpdate(req.body);
+      const nextInput =
+        existingSource.providerId === "plex" && input.baseUrl !== undefined
+          ? {
+              ...input,
+              connection: withPlexBaseUrlMode(
+                existingSource.connection,
+                PLEX_BASE_URL_MODE_MANUAL,
+              ),
+            }
+          : input;
+      const source = updateMediaSourceForAccount(
+        sourceId,
+        session.providerAccountId,
+        nextInput,
+      );
+      if (!source) {
+        throw new ApiError(404, "source_not_found", "Source was not found");
+      }
+      res.json({ source: serializeSource(source) });
+
+      logger.info("Media source updated.", {
+        ...logEventFields("source.update", "success"),
+        ...logDurationFields(startedAt),
+        "source.id": source.id,
+        "provider.id": source.providerId,
+        "provider.account.id": session.providerAccountId,
+        "source.changed_fields": changedSourceFields(input),
+        "source.base_url": sanitizeUrlForLog(input.baseUrl),
+      });
+    } catch (err) {
+      warnWithError(
+        logger,
+        err,
+        "Media source update failed.",
+        compactLogFields({
+          ...logEventFields("source.update", "failure"),
+          ...logDurationFields(startedAt),
+          ...logErrorFields(err),
+          "source.id": sourceId,
+          "provider.account.id": session.providerAccountId,
+          "http.status_code": err instanceof ApiError ? err.status : undefined,
+        }),
+      );
+      throw err;
     }
-    res.json({ source: serializeSource(source) });
   }),
 );
 
@@ -200,15 +243,44 @@ sourcesRouter.delete(
   asyncHandler(async (req, res) => {
     const session = requireAccountSession(req);
     setNoStore(res);
-    const deleted = deleteMediaSourceForAccount(
-      req.params.id as string,
-      session.providerAccountId,
-    );
-    if (!deleted) {
-      throw new ApiError(404, "source_not_found", "Source was not found");
-    }
+    const startedAt = Date.now();
+    const sourceId = req.params.id as string;
 
-    res.status(204).end();
+    try {
+      const source = requireMediaSource(sourceId, session.providerAccountId);
+      const deleted = deleteMediaSourceForAccount(
+        sourceId,
+        session.providerAccountId,
+      );
+      if (!deleted) {
+        throw new ApiError(404, "source_not_found", "Source was not found");
+      }
+
+      res.status(204).end();
+
+      logger.info("Media source deleted.", {
+        ...logEventFields("source.delete", "success"),
+        ...logDurationFields(startedAt),
+        "source.id": source.id,
+        "provider.id": source.providerId,
+        "provider.account.id": session.providerAccountId,
+      });
+    } catch (err) {
+      warnWithError(
+        logger,
+        err,
+        "Media source delete failed.",
+        compactLogFields({
+          ...logEventFields("source.delete", "failure"),
+          ...logDurationFields(startedAt),
+          ...logErrorFields(err),
+          "source.id": sourceId,
+          "provider.account.id": session.providerAccountId,
+          "http.status_code": err instanceof ApiError ? err.status : undefined,
+        }),
+      );
+      throw err;
+    }
   }),
 );
 
@@ -217,30 +289,71 @@ sourcesRouter.post(
   asyncHandler(async (req, res) => {
     const session = requireAccountSession(req);
     setNoStore(res);
+    const startedAt = Date.now();
+    const sourceId = req.params.id as string;
 
-    const source = requireMediaSource(
-      req.params.id as string,
-      session.providerAccountId,
-    );
-    const provider = getProvider(source.providerId);
-    if (!provider) {
-      throw new ApiError(
-        500,
-        "provider_not_registered",
-        "Source provider is not registered",
-      );
-    }
+    try {
+      const source = requireMediaSource(sourceId, session.providerAccountId);
+      const provider = getProvider(source.providerId);
+      if (!provider) {
+        throw new ApiError(
+          500,
+          "provider_not_registered",
+          "Source provider is not registered",
+        );
+      }
 
-    const checkedAt = new Date().toISOString();
-    const result = await provider.checkSource(source);
+      const checkedAt = new Date().toISOString();
+      const result = await provider.checkSource(source);
 
-    if (!result.ok) {
-      const updatedSource = updateMediaSourceHealthForAccount(
+      if (!result.ok) {
+        const updatedSource = updateMediaSourceHealthForAccount(
+          source.id,
+          session.providerAccountId,
+          {
+            lastCheckedAt: checkedAt,
+            lastError: result.message,
+          },
+        );
+
+        if (!updatedSource) {
+          throw new ApiError(404, "source_not_found", "Source was not found");
+        }
+
+        res.json({
+          ok: false,
+          error: {
+            message: result.message,
+          },
+          source: serializeSource(updatedSource),
+        });
+
+        logger.warn("Media source health check failed.", {
+          ...logEventFields("source.check", "failure"),
+          ...logDurationFields(startedAt),
+          "source.id": source.id,
+          "provider.id": source.providerId,
+          "provider.account.id": session.providerAccountId,
+          "source.health.ok": false,
+          "error.message": result.message,
+        });
+        return;
+      }
+
+      const updatedSource = updateMediaSourceForAccount(
         source.id,
         session.providerAccountId,
         {
+          ...(result.name !== undefined ? { name: result.name } : {}),
+          ...(result.baseUrl !== undefined ? { baseUrl: result.baseUrl } : {}),
+          ...(result.connection !== undefined
+            ? { connection: result.connection }
+            : {}),
+          ...(result.metadata !== undefined
+            ? { metadata: result.metadata }
+            : {}),
           lastCheckedAt: checkedAt,
-          lastError: result.message,
+          lastError: null,
         },
       );
 
@@ -249,37 +362,34 @@ sourcesRouter.post(
       }
 
       res.json({
-        ok: false,
-        error: {
-          message: result.message,
-        },
+        ok: true,
         source: serializeSource(updatedSource),
       });
-      return;
+
+      logger.info("Media source health check completed.", {
+        ...logEventFields("source.check", "success"),
+        ...logDurationFields(startedAt),
+        "source.id": source.id,
+        "provider.id": source.providerId,
+        "provider.account.id": session.providerAccountId,
+        "source.health.ok": true,
+        "source.base_url": sanitizeUrlForLog(result.baseUrl),
+      });
+    } catch (err) {
+      warnWithError(
+        logger,
+        err,
+        "Media source health check failed.",
+        compactLogFields({
+          ...logEventFields("source.check", "failure"),
+          ...logDurationFields(startedAt),
+          ...logErrorFields(err),
+          "source.id": sourceId,
+          "provider.account.id": session.providerAccountId,
+          "http.status_code": err instanceof ApiError ? err.status : undefined,
+        }),
+      );
+      throw err;
     }
-
-    const updatedSource = updateMediaSourceForAccount(
-      source.id,
-      session.providerAccountId,
-      {
-        ...(result.name !== undefined ? { name: result.name } : {}),
-        ...(result.baseUrl !== undefined ? { baseUrl: result.baseUrl } : {}),
-        ...(result.connection !== undefined
-          ? { connection: result.connection }
-          : {}),
-        ...(result.metadata !== undefined ? { metadata: result.metadata } : {}),
-        lastCheckedAt: checkedAt,
-        lastError: null,
-      },
-    );
-
-    if (!updatedSource) {
-      throw new ApiError(404, "source_not_found", "Source was not found");
-    }
-
-    res.json({
-      ok: true,
-      source: serializeSource(updatedSource),
-    });
   }),
 );

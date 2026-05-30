@@ -88,10 +88,12 @@ if (mode === "write") {
   if (nextReadme !== readme) {
     fs.writeFileSync(readmePath, nextReadme);
   }
-  console.log("README docs blocks are synced.");
+  process.stdout.write("README docs blocks are synced.\n");
 } else if (nextReadme !== readme) {
-  console.error("README docs blocks are out of sync. Run `pnpm docs:sync`.");
+  process.stderr.write(
+    "README docs blocks are out of sync. Run `pnpm docs:sync`.\n",
+  );
   process.exit(1);
 } else {
-  console.log("README docs blocks are synced.");
+  process.stdout.write("README docs blocks are synced.\n");
 }

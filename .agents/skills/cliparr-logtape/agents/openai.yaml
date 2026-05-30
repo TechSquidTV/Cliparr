@@ -1,0 +1,4 @@
+interface:
+  display_name: "Cliparr LogTape"
+  short_description: "Cliparr LogTape categories and wide-event logging"
+  default_prompt: "Use $cliparr-logtape when changing Cliparr logging."

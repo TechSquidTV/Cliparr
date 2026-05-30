@@ -1,14 +1,15 @@
 import "./config/loadEnv.js";
 import type { Server } from "node:http";
+import { logErrorFields, logEventFields } from "@cliparr/shared/logging";
 import { createApp } from "./app.js";
 import { closeDatabase } from "./db/database.js";
 import {
   configureLogging,
+  fatalWithError,
   getServerLogger,
-  serializeError,
 } from "./logging.js";
 
-const logger = getServerLogger("server");
+const logger = getServerLogger("lifecycle");
 
 function hasCloseAllConnections(
   server: Server,
@@ -66,7 +67,8 @@ async function startServer() {
     // Force exit after 1s if things hang
     setTimeout(() => {
       logger.warn("Force exiting after shutdown timeout.", {
-        timeoutMs: 1000,
+        ...logEventFields("server.shutdown", "timeout"),
+        "server.shutdown.timeout_ms": 1000,
       });
       closeDatabaseOnce();
       process.exit(1);
@@ -82,7 +84,10 @@ async function startServer() {
 }
 
 startServer().catch((err: unknown) => {
-  logger.fatal("Failed to start server: {errorMessage}", serializeError(err));
+  fatalWithError(logger, err, "Failed to start server.", {
+    ...logEventFields("server.start", "failure"),
+    ...logErrorFields(err),
+  });
   closeDatabase();
   process.exit(1);
 });
