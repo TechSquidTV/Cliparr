@@ -277,6 +277,23 @@ export function EditorSubtitlePanel({
       variant="editor"
     />
   );
+  const subtitleAction = (
+    <div className="flex items-center gap-2">
+      <span className="relative h-3.5 w-3.5 shrink-0 text-muted-foreground">
+        <LoaderCircle
+          aria-hidden={!subtitleLoading}
+          className={cn(
+            "absolute inset-0 h-3.5 w-3.5 transition-opacity duration-150",
+            subtitleLoading ? "animate-spin opacity-100" : "opacity-0",
+          )}
+        />
+        <span className="sr-only" aria-live="polite" role="status">
+          {subtitleLoading ? "Loading subtitles." : ""}
+        </span>
+      </span>
+      {subtitleToggle}
+    </div>
+  );
 
   return (
     <div className="cliparr-editor-scrollbar min-h-0 flex-1 overflow-y-auto bg-editor-panel text-sidebar-foreground">
@@ -287,7 +304,7 @@ export function EditorSubtitlePanel({
             <Tooltip>
               <TooltipTrigger asChild>
                 <span className="inline-flex" tabIndex={0}>
-                  {subtitleToggle}
+                  {subtitleAction}
                 </span>
               </TooltipTrigger>
               <TooltipContent side="left">
@@ -295,7 +312,7 @@ export function EditorSubtitlePanel({
               </TooltipContent>
             </Tooltip>
           ) : (
-            subtitleToggle
+            subtitleAction
           )
         }
       >
@@ -347,13 +364,6 @@ export function EditorSubtitlePanel({
                 )}
               </div>
             </div>
-          </div>
-        )}
-
-        {subtitleLoading && (
-          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-            <LoaderCircle className="h-3.5 w-3.5 animate-spin" />
-            Loading subtitles...
           </div>
         )}
 

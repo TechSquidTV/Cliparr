@@ -30,7 +30,7 @@ export function EditorHeader({
       type="button"
       onClick={onExportClick}
       disabled={exportDisabled}
-      className="flex h-8 min-w-36 items-center justify-center gap-2 rounded-[var(--radius-control)] border border-primary bg-primary px-3 text-xs font-semibold uppercase tracking-[var(--tracking-caps-sm)] text-primary-foreground transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50"
+      className="flex h-8 min-w-36 items-center justify-center gap-2 rounded-[var(--radius-control)] border border-primary bg-primary px-3 text-xs font-semibold uppercase tracking-[var(--tracking-caps-sm)] text-primary-foreground transition-[background-color,border-color,color,opacity] duration-150 hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50"
     >
       {exporting ? (
         <span className="flex items-center gap-2">
@@ -73,20 +73,18 @@ export function EditorHeader({
         <div className="truncate">{title}</div>
       </div>
       <div className="flex items-center justify-self-end">
-        {exportTooltip ? (
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <span className="inline-flex" tabIndex={exportDisabled ? 0 : -1}>
-                {exportButton}
-              </span>
-            </TooltipTrigger>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <span className="inline-flex" tabIndex={exportDisabled ? 0 : -1}>
+              {exportButton}
+            </span>
+          </TooltipTrigger>
+          {exportTooltip ? (
             <TooltipContent side="bottom" align="end">
               {exportTooltip}
             </TooltipContent>
-          </Tooltip>
-        ) : (
-          exportButton
-        )}
+          ) : null}
+        </Tooltip>
       </div>
     </header>
   );

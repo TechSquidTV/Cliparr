@@ -308,6 +308,7 @@ export default function EditorScreen({ session, onBack }: Props) {
     : null;
   const exportDisabledReason =
     durationExportDisabledReason ?? subtitleExportSummary.disabledReason;
+  const headerExportDisabledReason = durationExportDisabledReason;
 
   if (!exportSource.source) {
     return (
@@ -329,7 +330,7 @@ export default function EditorScreen({ session, onBack }: Props) {
         onBack={onBack}
         exporting={exporting}
         progress={progress}
-        exportDisabledReason={exportDisabledReason}
+        exportDisabledReason={headerExportDisabledReason}
         onExportClick={handleOpenExportDialog}
       />
 
