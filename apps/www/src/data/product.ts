@@ -84,6 +84,27 @@ export const dockerComposeExample = `services:
 volumes:
   cliparr-data:`;
 
+export const structuredConsoleLoggingCommand = `docker run -d \\
+  --name cliparr \\
+  -p 3000:3000 \\
+  -e APP_KEY="your-32-char-stable-random-secret" \\
+  -e CLIPARR_LOG_FORMAT=json \\
+  -v cliparr-data:/data \\
+  ghcr.io/techsquidtv/cliparr:latest`;
+
+export const rotatingFileLoggingCompose = `services:
+  cliparr:
+    image: ghcr.io/techsquidtv/cliparr:latest
+    environment:
+      - APP_KEY=replace-this-with-a-32-character-secure-random-string
+      - CLIPARR_LOG_FORMAT=pretty
+      - CLIPARR_LOG_FILE=/data/logs/cliparr.log
+      - CLIPARR_LOG_FILE_FORMAT=json
+      - CLIPARR_LOG_FILE_MAX_SIZE=10mb
+      - CLIPARR_LOG_FILE_MAX_FILES=5
+    volumes:
+      - cliparr-data:/data`;
+
 export const developmentSetupCommands = `git clone https://github.com/techsquidtv/cliparr.git
 cd cliparr
 cp .env.example .env
@@ -121,6 +142,48 @@ export const envVars = [
     name: "CLIPARR_DATA_DIR",
     description: "Directory for SQLite storage.",
     defaultValue: "/data",
+    required: false,
+  },
+  {
+    name: "CLIPARR_LOG_LEVEL",
+    description:
+      "Server log level. Supports trace, debug, info, warning, error, and fatal. Defaults to debug in development and info in production.",
+    defaultValue: "debug/info",
+    required: false,
+  },
+  {
+    name: "CLIPARR_LOG_FORMAT",
+    description:
+      "Server console log format. Use json or logfmt to expose structured fields.",
+    defaultValue: "pretty",
+    required: false,
+  },
+  {
+    name: "CLIPARR_LOG_FILE",
+    description:
+      "Optional path for a rotating server log file. Relative paths resolve from the server working directory.",
+    defaultValue: "-",
+    required: false,
+  },
+  {
+    name: "CLIPARR_LOG_FILE_FORMAT",
+    description:
+      "Optional log file format. Defaults to CLIPARR_LOG_FORMAT when set, otherwise json.",
+    defaultValue: "json",
+    required: false,
+  },
+  {
+    name: "CLIPARR_LOG_FILE_MAX_SIZE",
+    description:
+      "Maximum size for each rotating server log file. Supports kb, mb, and gb suffixes.",
+    defaultValue: "10mb",
+    required: false,
+  },
+  {
+    name: "CLIPARR_LOG_FILE_MAX_FILES",
+    description:
+      "Total number of rotating server log files to keep, including the active file.",
+    defaultValue: "5",
     required: false,
   },
   {

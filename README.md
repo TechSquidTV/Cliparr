@@ -85,12 +85,18 @@ volumes:
 
 <!-- CLIPARR_DOCS_SYNC:configuration:start -->
 
-| Variable                               | Description                                                                                         | Default |
-| :------------------------------------- | :-------------------------------------------------------------------------------------------------- | :------ |
-| `APP_KEY`                              | Required secret for credential encryption. Must be at least 32 characters long.                     | `-`     |
-| `PORT`                                 | Internal port for the Express server.                                                               | `3000`  |
-| `CLIPARR_DATA_DIR`                     | Directory for SQLite storage.                                                                       | `/data` |
-| `CLIPARR_ALLOW_LOOPBACK_JELLYFIN_URLS` | Allow Jellyfin URLs that resolve to localhost or loopback. Use only for trusted self-hosted setups. | `false` |
+| Variable                               | Description                                                                                                                        | Default      |
+| :------------------------------------- | :--------------------------------------------------------------------------------------------------------------------------------- | :----------- |
+| `APP_KEY`                              | Required secret for credential encryption. Must be at least 32 characters long.                                                    | `-`          |
+| `PORT`                                 | Internal port for the Express server.                                                                                              | `3000`       |
+| `CLIPARR_DATA_DIR`                     | Directory for SQLite storage.                                                                                                      | `/data`      |
+| `CLIPARR_LOG_LEVEL`                    | Server log level. Supports trace, debug, info, warning, error, and fatal. Defaults to debug in development and info in production. | `debug/info` |
+| `CLIPARR_LOG_FORMAT`                   | Server console log format. Use json or logfmt to expose structured fields.                                                         | `pretty`     |
+| `CLIPARR_LOG_FILE`                     | Optional path for a rotating server log file. Relative paths resolve from the server working directory.                            | `-`          |
+| `CLIPARR_LOG_FILE_FORMAT`              | Optional log file format. Defaults to CLIPARR_LOG_FORMAT when set, otherwise json.                                                 | `json`       |
+| `CLIPARR_LOG_FILE_MAX_SIZE`            | Maximum size for each rotating server log file. Supports kb, mb, and gb suffixes.                                                  | `10mb`       |
+| `CLIPARR_LOG_FILE_MAX_FILES`           | Total number of rotating server log files to keep, including the active file.                                                      | `5`          |
+| `CLIPARR_ALLOW_LOOPBACK_JELLYFIN_URLS` | Allow Jellyfin URLs that resolve to localhost or loopback. Use only for trusted self-hosted setups.                                | `false`      |
 
 <!-- CLIPARR_DOCS_SYNC:configuration:end -->
 
