@@ -1,4 +1,11 @@
-import { lazy, Suspense, useCallback, useEffect, useState } from "react";
+import {
+  lazy,
+  Suspense,
+  useCallback,
+  useEffect,
+  useState,
+  type ReactNode,
+} from "react";
 import { Eye } from "lucide-react";
 import {
   clampClipEndTime,
@@ -312,6 +319,126 @@ export default function EditorScreen({ session, onBack }: Props) {
   const exportDisabledReason =
     durationExportDisabledReason ?? subtitleExportSummary.disabledReason;
   const headerExportDisabledReason = durationExportDisabledReason;
+  const layoutVariant = isDesktopLayout ? "desktop" : "mobile";
+  const propertiesActive =
+    previewSourceLabel === "Direct source" || Boolean(playbackFallbackReason);
+  const previewPane = (
+    <EditorPreviewPane
+      error={isDesktopLayout ? error : null}
+      variant={layoutVariant}
+    >
+      <EditorPreview
+        canvasRef={canvasRef}
+        videoDimensions={previewVideoDimensions}
+        playing={playing}
+        loadingPreview={loadingPreview}
+        loadingPreviewFrame={loadingPreviewFrame}
+        previewStatus={previewStatus}
+        previewFrameStatus={previewFrameStatus}
+        togglePlay={togglePlay}
+      />
+    </EditorPreviewPane>
+  );
+  const editorControls = (
+    <EditorControls
+      playing={playing}
+      loadingPreview={loadingPreview}
+      togglePlay={togglePlay}
+      currentTime={currentTime}
+      duration={duration}
+      startTime={startTime}
+      endTime={endTime}
+      muted={muted}
+      setMuted={setMuted}
+      volume={volume}
+      setVolume={setVolume}
+      handleTimelineZoomIn={handleTimelineZoomIn}
+      handleTimelineZoomOut={handleTimelineZoomOut}
+      canZoomIn={canZoomIn}
+      canZoomOut={canZoomOut}
+      onPreviewTimeCommit={handlePreviewTimeCommit}
+      onStartTimeCommit={handleStartTimeCommit}
+      onEndTimeCommit={handleEndTimeCommit}
+    />
+  );
+  const editorTimeline = hasDuration ? (
+    <EditorTimeline
+      timelineRef={timelineRef}
+      timelineWheelRegionRef={timelineWheelRegionRef}
+      timelineData={timelineData}
+      timelineEffects={timelineEffects}
+      activeTimelineScale={activeTimelineScale}
+      timelineScaleCount={timelineScaleCount}
+      playbackReadyRange={isHlsPreviewSource ? playbackReadyRange : null}
+      loadingPreview={loadingPreview}
+      playing={playing}
+      handleTimelineScroll={handleTimelineScroll}
+      handleTimelineChange={handleTimelineChange}
+      handleTimelineActionMoveEnd={handleTimelineActionMoveEnd}
+      handleTimelineActionResizeEnd={handleTimelineActionResizeEnd}
+      isValidTimelineRange={isValidTimelineRange}
+      seekToTime={seekToTime}
+      onCursorDragStart={() => {
+        if (playing) pausePlayback();
+      }}
+      onCursorDrag={(time) => {
+        const nextTime = Math.min(Math.max(time, 0), duration);
+        playbackTimeAtStartRef.current = nextTime;
+        setCurrentTime(nextTime);
+      }}
+    />
+  ) : null;
+  const timelinePane = (
+    <EditorTimelinePane
+      variant={layoutVariant}
+      controls={editorControls}
+      hasDuration={hasDuration}
+      timeline={editorTimeline}
+    />
+  );
+  const mobilePlaybackSourcePanel = (
+    <EditorPlaybackSourcePanel
+      previewSourceLabel={previewSourceLabel}
+      fallbackMessage={playbackFallbackReason}
+      hasHlsSource={Boolean(session.hlsSource)}
+    />
+  );
+
+  function renderSubtitlePanel(className: string) {
+    if (session.local) {
+      return null;
+    }
+
+    return (
+      <div className={className}>
+        <EditorSubtitlePanel
+          providerId={session.source.providerId}
+          subtitleTracks={subtitleTracks}
+          selectedSubtitleTrackKey={selectedSubtitleTrackKey}
+          onSelectedSubtitleTrackKeyChange={handleSelectedSubtitleTrackChange}
+          subtitlesEnabled={subtitleEnabled}
+          onSubtitlesEnabledChange={setSubtitleEnabled}
+          subtitleStyleSettings={subtitleStyleSettings}
+          onSubtitleStyleSettingsChange={setSubtitleStyleSettings}
+          subtitleLoading={subtitleLoading}
+          subtitleError={subtitleError}
+          selectedSubtitleTrack={selectedSubtitleTrack}
+        />
+      </div>
+    );
+  }
+
+  const propertiesContent = (
+    <div className="cliparr-editor-scrollbar flex h-full min-h-0 flex-col gap-3 overflow-y-auto p-3">
+      <EditorPlaybackSourcePanel
+        previewSourceLabel={previewSourceLabel}
+        fallbackMessage={playbackFallbackReason}
+        hasHlsSource={Boolean(session.hlsSource)}
+        className="shrink-0 p-0"
+      />
+      {renderSubtitlePanel("min-h-editor-properties-min flex-1")}
+    </div>
+  );
 
   if (!exportSource.source) {
     return (
@@ -339,316 +466,22 @@ export default function EditorScreen({ session, onBack }: Props) {
 
       <main className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto p-2.5 sm:p-3 lg:overflow-hidden">
         {isDesktopLayout ? (
-          <ResizablePanelGroup
-            id="cliparr-editor-root-panels"
-            orientation="horizontal"
-            resizeTargetMinimumSize={EDITOR_RESIZE_TARGET_MINIMUM_SIZE}
-            className="h-full min-h-0"
-          >
-            <ResizablePanel
-              id="cliparr-editor-primary-panel"
-              defaultSize={
-                playbackSidebarOpen
-                  ? EDITOR_PANEL_SIZES.primaryOpen
-                  : EDITOR_PANEL_SIZES.primaryClosed
-              }
-              minSize={EDITOR_PANEL_SIZES.primaryMin}
-            >
-              <ResizablePanelGroup
-                id="cliparr-editor-primary-stack"
-                orientation="vertical"
-                resizeTargetMinimumSize={EDITOR_RESIZE_TARGET_MINIMUM_SIZE}
-                className="h-full min-h-0"
-              >
-                <ResizablePanel
-                  id="cliparr-editor-preview-panel"
-                  defaultSize={EDITOR_PANEL_SIZES.previewDefault}
-                  minSize={EDITOR_PANEL_SIZES.previewMin}
-                >
-                  <div className="flex h-full min-h-0 flex-col gap-3">
-                    {error && (
-                      <div className="shrink-0 border border-destructive/35 bg-destructive/10 px-3 py-2 text-sm text-destructive">
-                        {error}
-                      </div>
-                    )}
-
-                    <section className="flex min-h-0 flex-1 items-center justify-center overflow-hidden border border-editor-border bg-editor-monitor p-2">
-                      <EditorPreview
-                        canvasRef={canvasRef}
-                        videoDimensions={previewVideoDimensions}
-                        playing={playing}
-                        loadingPreview={loadingPreview}
-                        loadingPreviewFrame={loadingPreviewFrame}
-                        previewStatus={previewStatus}
-                        previewFrameStatus={previewFrameStatus}
-                        togglePlay={togglePlay}
-                      />
-                    </section>
-                  </div>
-                </ResizablePanel>
-
-                <ResizableHandle withHandle />
-
-                <ResizablePanel
-                  id="cliparr-editor-timeline-panel"
-                  defaultSize={EDITOR_PANEL_SIZES.timelineDefault}
-                  minSize={EDITOR_PANEL_SIZES.timelineMin}
-                  maxSize={EDITOR_PANEL_SIZES.timelineMax}
-                >
-                  <section className="flex h-full min-h-0 flex-col overflow-hidden border border-editor-border bg-editor-panel text-foreground">
-                    <EditorControls
-                      playing={playing}
-                      loadingPreview={loadingPreview}
-                      togglePlay={togglePlay}
-                      currentTime={currentTime}
-                      duration={duration}
-                      startTime={startTime}
-                      endTime={endTime}
-                      muted={muted}
-                      setMuted={setMuted}
-                      volume={volume}
-                      setVolume={setVolume}
-                      handleTimelineZoomIn={handleTimelineZoomIn}
-                      handleTimelineZoomOut={handleTimelineZoomOut}
-                      canZoomIn={canZoomIn}
-                      canZoomOut={canZoomOut}
-                      onPreviewTimeCommit={handlePreviewTimeCommit}
-                      onStartTimeCommit={handleStartTimeCommit}
-                      onEndTimeCommit={handleEndTimeCommit}
-                    />
-
-                    {!hasDuration && (
-                      <div className="border-t border-editor-border px-3 py-3 text-sm text-muted-foreground">
-                        Waiting for media duration.
-                      </div>
-                    )}
-
-                    {hasDuration && (
-                      <div className="min-h-0 flex-1">
-                        <EditorTimeline
-                          timelineRef={timelineRef}
-                          timelineWheelRegionRef={timelineWheelRegionRef}
-                          timelineData={timelineData}
-                          timelineEffects={timelineEffects}
-                          activeTimelineScale={activeTimelineScale}
-                          timelineScaleCount={timelineScaleCount}
-                          playbackReadyRange={
-                            isHlsPreviewSource ? playbackReadyRange : null
-                          }
-                          loadingPreview={loadingPreview}
-                          playing={playing}
-                          handleTimelineScroll={handleTimelineScroll}
-                          handleTimelineChange={handleTimelineChange}
-                          handleTimelineActionMoveEnd={
-                            handleTimelineActionMoveEnd
-                          }
-                          handleTimelineActionResizeEnd={
-                            handleTimelineActionResizeEnd
-                          }
-                          isValidTimelineRange={isValidTimelineRange}
-                          seekToTime={seekToTime}
-                          onCursorDragStart={() => {
-                            if (playing) pausePlayback();
-                          }}
-                          onCursorDrag={(time) => {
-                            const nextTime = Math.min(
-                              Math.max(time, 0),
-                              duration,
-                            );
-                            playbackTimeAtStartRef.current = nextTime;
-                            setCurrentTime(nextTime);
-                          }}
-                        />
-                      </div>
-                    )}
-                  </section>
-                </ResizablePanel>
-              </ResizablePanelGroup>
-            </ResizablePanel>
-
-            {playbackSidebarOpen ? (
-              <>
-                <ResizableHandle withHandle />
-                <ResizablePanel
-                  id="cliparr-editor-properties-panel"
-                  defaultSize={EDITOR_PANEL_SIZES.propertiesDefault}
-                  minSize={EDITOR_PANEL_SIZES.propertiesMin}
-                  maxSize={EDITOR_PANEL_SIZES.propertiesMax}
-                  groupResizeBehavior="preserve-pixel-size"
-                >
-                  <EditorSidebar
-                    open={playbackSidebarOpen}
-                    onOpenChange={setPlaybackSidebarOpen}
-                    title="Properties"
-                    icon={Eye}
-                    active={
-                      previewSourceLabel === "Direct source" ||
-                      Boolean(playbackFallbackReason)
-                    }
-                    resizable
-                  >
-                    <div className="cliparr-editor-scrollbar flex h-full min-h-0 flex-col gap-3 overflow-y-auto p-3">
-                      <EditorPlaybackSourcePanel
-                        previewSourceLabel={previewSourceLabel}
-                        fallbackMessage={playbackFallbackReason}
-                        hasHlsSource={Boolean(session.hlsSource)}
-                        className="shrink-0 p-0"
-                      />
-                      {!session.local && (
-                        <div className="min-h-editor-properties-min flex-1">
-                          <EditorSubtitlePanel
-                            providerId={session.source.providerId}
-                            subtitleTracks={subtitleTracks}
-                            selectedSubtitleTrackKey={selectedSubtitleTrackKey}
-                            onSelectedSubtitleTrackKeyChange={
-                              handleSelectedSubtitleTrackChange
-                            }
-                            subtitlesEnabled={subtitleEnabled}
-                            onSubtitlesEnabledChange={setSubtitleEnabled}
-                            subtitleStyleSettings={subtitleStyleSettings}
-                            onSubtitleStyleSettingsChange={
-                              setSubtitleStyleSettings
-                            }
-                            subtitleLoading={subtitleLoading}
-                            subtitleError={subtitleError}
-                            selectedSubtitleTrack={selectedSubtitleTrack}
-                          />
-                        </div>
-                      )}
-                    </div>
-                  </EditorSidebar>
-                </ResizablePanel>
-              </>
-            ) : (
-              <ResizablePanel
-                id="cliparr-editor-properties-rail"
-                defaultSize={EDITOR_PANEL_SIZES.propertiesRail}
-                minSize={EDITOR_PANEL_SIZES.propertiesRail}
-                maxSize={EDITOR_PANEL_SIZES.propertiesRail}
-                disabled
-                groupResizeBehavior="preserve-pixel-size"
-              >
-                <EditorSidebar
-                  open={playbackSidebarOpen}
-                  onOpenChange={setPlaybackSidebarOpen}
-                  title="Properties"
-                  icon={Eye}
-                  active={
-                    previewSourceLabel === "Direct source" ||
-                    Boolean(playbackFallbackReason)
-                  }
-                >
-                  <div />
-                </EditorSidebar>
-              </ResizablePanel>
-            )}
-          </ResizablePanelGroup>
+          <EditorDesktopLayout
+            playbackSidebarOpen={playbackSidebarOpen}
+            onPlaybackSidebarOpenChange={setPlaybackSidebarOpen}
+            propertiesActive={propertiesActive}
+            previewPane={previewPane}
+            timelinePane={timelinePane}
+            propertiesContent={propertiesContent}
+          />
         ) : (
-          <div className="flex min-h-full flex-col gap-3">
-            {error && (
-              <div className="border border-destructive/35 bg-destructive/10 px-3 py-2 text-sm text-destructive">
-                {error}
-              </div>
-            )}
-
-            <EditorPlaybackSourcePanel
-              previewSourceLabel={previewSourceLabel}
-              fallbackMessage={playbackFallbackReason}
-              hasHlsSource={Boolean(session.hlsSource)}
-            />
-
-            <section className="flex min-h-editor-preview-min flex-none items-center justify-center overflow-hidden border border-editor-border bg-editor-monitor p-2 sm:min-h-editor-preview-sm-min">
-              <EditorPreview
-                canvasRef={canvasRef}
-                videoDimensions={previewVideoDimensions}
-                playing={playing}
-                loadingPreview={loadingPreview}
-                loadingPreviewFrame={loadingPreviewFrame}
-                previewStatus={previewStatus}
-                previewFrameStatus={previewFrameStatus}
-                togglePlay={togglePlay}
-              />
-            </section>
-
-            <section className="shrink-0 overflow-hidden border border-editor-border bg-editor-panel text-foreground">
-              <EditorControls
-                playing={playing}
-                loadingPreview={loadingPreview}
-                togglePlay={togglePlay}
-                currentTime={currentTime}
-                duration={duration}
-                startTime={startTime}
-                endTime={endTime}
-                muted={muted}
-                setMuted={setMuted}
-                volume={volume}
-                setVolume={setVolume}
-                handleTimelineZoomIn={handleTimelineZoomIn}
-                handleTimelineZoomOut={handleTimelineZoomOut}
-                canZoomIn={canZoomIn}
-                canZoomOut={canZoomOut}
-                onPreviewTimeCommit={handlePreviewTimeCommit}
-                onStartTimeCommit={handleStartTimeCommit}
-                onEndTimeCommit={handleEndTimeCommit}
-              />
-
-              {!hasDuration && (
-                <div className="border-t border-editor-border px-3 py-3 text-sm text-muted-foreground">
-                  Waiting for media duration.
-                </div>
-              )}
-
-              {hasDuration && (
-                <EditorTimeline
-                  timelineRef={timelineRef}
-                  timelineWheelRegionRef={timelineWheelRegionRef}
-                  timelineData={timelineData}
-                  timelineEffects={timelineEffects}
-                  activeTimelineScale={activeTimelineScale}
-                  timelineScaleCount={timelineScaleCount}
-                  playbackReadyRange={
-                    isHlsPreviewSource ? playbackReadyRange : null
-                  }
-                  loadingPreview={loadingPreview}
-                  playing={playing}
-                  handleTimelineScroll={handleTimelineScroll}
-                  handleTimelineChange={handleTimelineChange}
-                  handleTimelineActionMoveEnd={handleTimelineActionMoveEnd}
-                  handleTimelineActionResizeEnd={handleTimelineActionResizeEnd}
-                  isValidTimelineRange={isValidTimelineRange}
-                  seekToTime={seekToTime}
-                  onCursorDragStart={() => {
-                    if (playing) pausePlayback();
-                  }}
-                  onCursorDrag={(time) => {
-                    const nextTime = Math.min(Math.max(time, 0), duration);
-                    playbackTimeAtStartRef.current = nextTime;
-                    setCurrentTime(nextTime);
-                  }}
-                />
-              )}
-            </section>
-
-            {!session.local && (
-              <div className="min-h-editor-properties-min">
-                <EditorSubtitlePanel
-                  providerId={session.source.providerId}
-                  subtitleTracks={subtitleTracks}
-                  selectedSubtitleTrackKey={selectedSubtitleTrackKey}
-                  onSelectedSubtitleTrackKeyChange={
-                    handleSelectedSubtitleTrackChange
-                  }
-                  subtitlesEnabled={subtitleEnabled}
-                  onSubtitlesEnabledChange={setSubtitleEnabled}
-                  subtitleStyleSettings={subtitleStyleSettings}
-                  onSubtitleStyleSettingsChange={setSubtitleStyleSettings}
-                  subtitleLoading={subtitleLoading}
-                  subtitleError={subtitleError}
-                  selectedSubtitleTrack={selectedSubtitleTrack}
-                />
-              </div>
-            )}
-          </div>
+          <EditorMobileLayout
+            error={error}
+            playbackSourcePanel={mobilePlaybackSourcePanel}
+            previewPane={previewPane}
+            timelinePane={timelinePane}
+            subtitlePanel={renderSubtitlePanel("min-h-editor-properties-min")}
+          />
         )}
       </main>
 
@@ -702,6 +535,238 @@ export default function EditorScreen({ session, onBack }: Props) {
           />
         </Suspense>
       )}
+    </div>
+  );
+}
+
+type EditorLayoutVariant = "desktop" | "mobile";
+
+function EditorPreviewPane({
+  error,
+  variant,
+  children,
+}: {
+  error: string | null;
+  variant: EditorLayoutVariant;
+  children: ReactNode;
+}) {
+  const previewStage = (
+    <section
+      className={
+        variant === "desktop"
+          ? "flex min-h-0 flex-1 items-center justify-center overflow-hidden border border-editor-border bg-editor-monitor p-2"
+          : "flex min-h-editor-preview-min flex-none items-center justify-center overflow-hidden border border-editor-border bg-editor-monitor p-2 sm:min-h-editor-preview-sm-min"
+      }
+    >
+      {children}
+    </section>
+  );
+
+  if (variant === "mobile") {
+    return previewStage;
+  }
+
+  return (
+    <div className="flex h-full min-h-0 flex-col gap-3">
+      {error && (
+        <div className="shrink-0 border border-destructive/35 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+          {error}
+        </div>
+      )}
+      {previewStage}
+    </div>
+  );
+}
+
+function EditorTimelinePane({
+  variant,
+  controls,
+  hasDuration,
+  timeline,
+}: {
+  variant: EditorLayoutVariant;
+  controls: ReactNode;
+  hasDuration: boolean;
+  timeline: ReactNode;
+}) {
+  return (
+    <section
+      className={
+        variant === "desktop"
+          ? "flex h-full min-h-0 flex-col overflow-hidden border border-editor-border bg-editor-panel text-foreground"
+          : "shrink-0 overflow-hidden border border-editor-border bg-editor-panel text-foreground"
+      }
+    >
+      {controls}
+
+      {!hasDuration && (
+        <div className="border-t border-editor-border px-3 py-3 text-sm text-muted-foreground">
+          Waiting for media duration.
+        </div>
+      )}
+
+      {hasDuration &&
+        (variant === "desktop" ? (
+          <div className="min-h-0 flex-1">{timeline}</div>
+        ) : (
+          timeline
+        ))}
+    </section>
+  );
+}
+
+function EditorPropertiesPanel({
+  open,
+  onOpenChange,
+  active,
+  resizable = false,
+  children,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  active: boolean;
+  resizable?: boolean;
+  children: ReactNode;
+}) {
+  return (
+    <EditorSidebar
+      open={open}
+      onOpenChange={onOpenChange}
+      title="Properties"
+      icon={Eye}
+      active={active}
+      resizable={resizable}
+    >
+      {children}
+    </EditorSidebar>
+  );
+}
+
+function EditorDesktopLayout({
+  playbackSidebarOpen,
+  onPlaybackSidebarOpenChange,
+  propertiesActive,
+  previewPane,
+  timelinePane,
+  propertiesContent,
+}: {
+  playbackSidebarOpen: boolean;
+  onPlaybackSidebarOpenChange: (open: boolean) => void;
+  propertiesActive: boolean;
+  previewPane: ReactNode;
+  timelinePane: ReactNode;
+  propertiesContent: ReactNode;
+}) {
+  return (
+    <ResizablePanelGroup
+      id="cliparr-editor-root-panels"
+      orientation="horizontal"
+      resizeTargetMinimumSize={EDITOR_RESIZE_TARGET_MINIMUM_SIZE}
+      className="h-full min-h-0"
+    >
+      <ResizablePanel
+        id="cliparr-editor-primary-panel"
+        defaultSize={
+          playbackSidebarOpen
+            ? EDITOR_PANEL_SIZES.primaryOpen
+            : EDITOR_PANEL_SIZES.primaryClosed
+        }
+        minSize={EDITOR_PANEL_SIZES.primaryMin}
+      >
+        <ResizablePanelGroup
+          id="cliparr-editor-primary-stack"
+          orientation="vertical"
+          resizeTargetMinimumSize={EDITOR_RESIZE_TARGET_MINIMUM_SIZE}
+          className="h-full min-h-0"
+        >
+          <ResizablePanel
+            id="cliparr-editor-preview-panel"
+            defaultSize={EDITOR_PANEL_SIZES.previewDefault}
+            minSize={EDITOR_PANEL_SIZES.previewMin}
+          >
+            {previewPane}
+          </ResizablePanel>
+
+          <ResizableHandle withHandle />
+
+          <ResizablePanel
+            id="cliparr-editor-timeline-panel"
+            defaultSize={EDITOR_PANEL_SIZES.timelineDefault}
+            minSize={EDITOR_PANEL_SIZES.timelineMin}
+            maxSize={EDITOR_PANEL_SIZES.timelineMax}
+          >
+            {timelinePane}
+          </ResizablePanel>
+        </ResizablePanelGroup>
+      </ResizablePanel>
+
+      {playbackSidebarOpen ? (
+        <>
+          <ResizableHandle withHandle />
+          <ResizablePanel
+            id="cliparr-editor-properties-panel"
+            defaultSize={EDITOR_PANEL_SIZES.propertiesDefault}
+            minSize={EDITOR_PANEL_SIZES.propertiesMin}
+            maxSize={EDITOR_PANEL_SIZES.propertiesMax}
+            groupResizeBehavior="preserve-pixel-size"
+          >
+            <EditorPropertiesPanel
+              open={playbackSidebarOpen}
+              onOpenChange={onPlaybackSidebarOpenChange}
+              active={propertiesActive}
+              resizable
+            >
+              {propertiesContent}
+            </EditorPropertiesPanel>
+          </ResizablePanel>
+        </>
+      ) : (
+        <ResizablePanel
+          id="cliparr-editor-properties-rail"
+          defaultSize={EDITOR_PANEL_SIZES.propertiesRail}
+          minSize={EDITOR_PANEL_SIZES.propertiesRail}
+          maxSize={EDITOR_PANEL_SIZES.propertiesRail}
+          disabled
+          groupResizeBehavior="preserve-pixel-size"
+        >
+          <EditorPropertiesPanel
+            open={playbackSidebarOpen}
+            onOpenChange={onPlaybackSidebarOpenChange}
+            active={propertiesActive}
+          >
+            <div />
+          </EditorPropertiesPanel>
+        </ResizablePanel>
+      )}
+    </ResizablePanelGroup>
+  );
+}
+
+function EditorMobileLayout({
+  error,
+  playbackSourcePanel,
+  previewPane,
+  timelinePane,
+  subtitlePanel,
+}: {
+  error: string | null;
+  playbackSourcePanel: ReactNode;
+  previewPane: ReactNode;
+  timelinePane: ReactNode;
+  subtitlePanel: ReactNode;
+}) {
+  return (
+    <div className="flex min-h-full flex-col gap-3">
+      {error && (
+        <div className="border border-destructive/35 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+          {error}
+        </div>
+      )}
+
+      {playbackSourcePanel}
+      {previewPane}
+      {timelinePane}
+      {subtitlePanel}
     </div>
   );
 }
