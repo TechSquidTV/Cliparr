@@ -155,8 +155,8 @@ export const envVars = [
   {
     name: "CLIPARR_LOG_FORMAT",
     description:
-      "Server console log format. Use json or logfmt to expose structured fields.",
-    defaultValue: "pretty",
+      "Production server console log format. Development console logs are always JSON.",
+    defaultValue: "json dev / pretty prod",
     required: false,
   },
   {

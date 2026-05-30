@@ -3,6 +3,7 @@ import test from "node:test";
 import {
   resolveLogFileMaxBytes,
   resolveLogFileMaxFiles,
+  resolveServerConsoleLogFormat,
   resolveServerLogFileConfig,
   resolveServerLogFormat,
 } from "@/logging";
@@ -16,6 +17,41 @@ void test("resolves supported server log formats", () => {
 void test("falls back to pretty for invalid server log formats", () => {
   assert.equal(resolveServerLogFormat(undefined), "pretty");
   assert.equal(resolveServerLogFormat("verbose"), "pretty");
+});
+
+void test("uses JSON console logs outside production", () => {
+  assert.equal(resolveServerConsoleLogFormat({}), "json");
+  assert.equal(
+    resolveServerConsoleLogFormat({
+      NODE_ENV: "development",
+      CLIPARR_LOG_FORMAT: "pretty",
+    }),
+    "json",
+  );
+  assert.equal(
+    resolveServerConsoleLogFormat({
+      NODE_ENV: "test",
+      CLIPARR_LOG_FORMAT: "logfmt",
+    }),
+    "json",
+  );
+});
+
+void test("uses configured console log format in production", () => {
+  assert.equal(
+    resolveServerConsoleLogFormat({
+      NODE_ENV: "production",
+      CLIPARR_LOG_FORMAT: "logfmt",
+    }),
+    "logfmt",
+  );
+  assert.equal(
+    resolveServerConsoleLogFormat({
+      NODE_ENV: "production",
+      CLIPARR_LOG_FORMAT: "verbose",
+    }),
+    "pretty",
+  );
 });
 
 void test("resolves rotating log file size limits", () => {
