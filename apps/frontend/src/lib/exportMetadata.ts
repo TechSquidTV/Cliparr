@@ -1,7 +1,11 @@
 import type { DiscardedTrack, MetadataTags } from "mediabunny";
+import { logErrorFields, logEventFields } from "@cliparr/shared/logging";
 import type { MediaExportMetadata } from "../providers/types";
 import { describeInputTrack } from "./mediabunnyTrackAccess";
 import type { ExportFormat } from "./exportTypes";
+import { getFrontendLogger, warnWithError } from "../logging";
+
+const logger = getFrontendLogger(["editor", "metadata"]);
 
 const discardReasonLabels: Record<DiscardedTrack["reason"], string> = {
   discarded_by_user: "discarded by configuration",
@@ -337,6 +341,10 @@ async function fetchAttachedImage(
   try {
     const response = await fetch(url);
     if (!response.ok) {
+      logger.warn("Could not fetch clip artwork.", {
+        ...logEventFields("editor.artwork.load", "failure"),
+        "http.status_code": response.status,
+      });
       return undefined;
     }
 
@@ -360,7 +368,10 @@ async function fetchAttachedImage(
       kind: "coverFront",
     };
   } catch (err) {
-    console.warn("Could not embed clip artwork:", err);
+    warnWithError(logger, err, "Could not embed clip artwork.", {
+      ...logEventFields("editor.artwork.load", "failure"),
+      ...logErrorFields(err),
+    });
     return undefined;
   }
 }

@@ -21,6 +21,11 @@ export default tseslint.config(
     },
   },
   js.configs.recommended,
+  {
+    rules: {
+      "no-console": "error",
+    },
+  },
   ...tseslint.configs.recommendedTypeChecked,
   {
     files: ["**/*.{ts,tsx}"],

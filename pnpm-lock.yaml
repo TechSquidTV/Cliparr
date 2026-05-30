@@ -58,6 +58,9 @@ importers:
       '@cliparr/shared':
         specifier: workspace:*
         version: link:../../packages/shared
+      '@logtape/logtape':
+        specifier: ^2.1.1
+        version: 2.1.1
       '@mediabunny/aac-encoder':
         specifier: ^1.45.4
         version: 1.45.4(mediabunny@1.45.4)

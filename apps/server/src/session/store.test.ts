@@ -134,7 +134,7 @@ void test("remembered provider session tokens are not reusable after APP_KEY cha
         });
 
         const rememberedSession = createRememberedProviderSession(account.id);
-        console.log(rememberedSession.token);
+        process.stdout.write(rememberedSession.token);
       } finally {
         closeDatabase();
       }

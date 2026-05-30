@@ -5,6 +5,7 @@ import { Readable } from "stream";
 import { pipeline } from "stream/promises";
 import type { ReadableStream as WebReadableStream } from "stream/web";
 import type { Response } from "express";
+import { logErrorFields, logEventFields } from "@cliparr/shared/logging";
 import { ApiError } from "../../http/errors.js";
 import { getServerLogger } from "../../logging.js";
 import type { ProviderSessionRecord } from "../../session/store.js";
@@ -253,7 +254,29 @@ async function resolveHostnameAddresses(hostname: string) {
   return inflight;
 }
 
-function throwUnsafeMediaUrl() {
+function unsafeMediaUrlFields(
+  handle: Pick<MediaHandle, "baseUrl" | "path">,
+  requestUrl: URL,
+  reason: string,
+) {
+  return {
+    ...logEventFields("media.proxy.url_validation", "failure"),
+    "media.path": sanitizeLoggedMediaPath(requestUrl.toString()),
+    "media.base_path": sanitizeLoggedMediaPath(handle.baseUrl),
+    "media.url.hostname": requestUrl.hostname,
+    "media.url.reason": reason,
+  };
+}
+
+function throwUnsafeMediaUrl(
+  handle: Pick<MediaHandle, "baseUrl" | "path">,
+  requestUrl: URL,
+  reason: string,
+) {
+  logger.warn(
+    "Rejected unsafe media URL.",
+    unsafeMediaUrlFields(handle, requestUrl, reason),
+  );
   throw new ApiError(
     400,
     "media_proxy_unsafe_url",
@@ -266,6 +289,10 @@ export async function assertAllowedMediaHandleRequestUrl(
   requestUrl = mediaHandleRequestUrl(handle),
 ) {
   if (requestUrl.protocol !== "http:" && requestUrl.protocol !== "https:") {
+    logger.warn(
+      "Rejected media URL with unsupported protocol.",
+      unsafeMediaUrlFields(handle, requestUrl, "protocol"),
+    );
     throw new ApiError(
       400,
       "media_proxy_unsafe_url",
@@ -274,7 +301,7 @@ export async function assertAllowedMediaHandleRequestUrl(
   }
 
   if (requestUrl.username || requestUrl.password) {
-    throwUnsafeMediaUrl();
+    throwUnsafeMediaUrl(handle, requestUrl, "credentials");
   }
 
   const providerUrl = safeUrl(handle.baseUrl);
@@ -283,12 +310,23 @@ export async function assertAllowedMediaHandleRequestUrl(
   }
 
   if (isUnsafeMediaHostname(requestUrl.hostname)) {
-    throwUnsafeMediaUrl();
+    throwUnsafeMediaUrl(handle, requestUrl, "hostname");
   }
 
-  for (const address of await resolveHostnameAddresses(requestUrl.hostname)) {
+  let addresses: string[];
+  try {
+    addresses = await resolveHostnameAddresses(requestUrl.hostname);
+  } catch (err) {
+    logger.warn("Media URL hostname validation failed.", {
+      ...unsafeMediaUrlFields(handle, requestUrl, "dns_resolution"),
+      ...logErrorFields(err),
+    });
+    throw err;
+  }
+
+  for (const address of addresses) {
     if (isUnsafeMediaHostname(address)) {
-      throwUnsafeMediaUrl();
+      throwUnsafeMediaUrl(handle, requestUrl, "resolved_address");
     }
   }
 }
@@ -493,18 +531,15 @@ export async function fetchMediaHandleRequest(
       }
 
       await closeRetryableResponse(response);
-      logger.trace(
-        "Retrying media request after retryable upstream status for handle {handleId}.",
-        {
-          handleId: handle.id,
-          providerId: handle.providerId,
-          sourceId: handle.sourceId,
-          path: sanitizeLoggedMediaPath(handle.path),
-          statusCode: response.status,
-          attempt: attemptNumber,
-          maxAttempts: totalAttempts,
-        },
-      );
+      logger.trace("Retrying media request after retryable upstream status.", {
+        "media.handle.id": handle.id,
+        "provider.id": handle.providerId,
+        "source.id": handle.sourceId,
+        "media.path": sanitizeLoggedMediaPath(handle.path),
+        "upstream.status_code": response.status,
+        "retry.attempt": attemptNumber,
+        "retry.max_attempts": totalAttempts,
+      });
     } catch (err) {
       cleanup();
       lastError = err;
@@ -515,18 +550,15 @@ export async function fetchMediaHandleRequest(
         throw err;
       }
 
-      logger.trace(
-        "Retrying media request after fetch failure for handle {handleId}.",
-        {
-          handleId: handle.id,
-          providerId: handle.providerId,
-          sourceId: handle.sourceId,
-          path: sanitizeLoggedMediaPath(handle.path),
-          attempt: attemptNumber,
-          maxAttempts: totalAttempts,
-          errorMessage: err instanceof Error ? err.message : String(err),
-        },
-      );
+      logger.trace("Retrying media request after fetch failure.", {
+        "media.handle.id": handle.id,
+        "provider.id": handle.providerId,
+        "source.id": handle.sourceId,
+        "media.path": sanitizeLoggedMediaPath(handle.path),
+        "retry.attempt": attemptNumber,
+        "retry.max_attempts": totalAttempts,
+        "error.message": err instanceof Error ? err.message : String(err),
+      });
     }
 
     await delay(retryDelayMs(attemptIndex, retryBaseDelayMs));
@@ -579,13 +611,14 @@ export function createProviderMediaHandle(
       existingHandle.basePath === normalizedBasePath
     ) {
       existingHandle.lastAccessedAt = accessedAt;
-      logger.trace("Reused provider media handle {handleId}.", {
-        handleId: existingHandle.id,
-        sessionId: session.id,
-        providerId: context.providerId,
-        sourceId: context.sourceId,
-        path: sanitizeLoggedMediaPath(normalizedPath),
-        basePath: sanitizeLoggedMediaPath(normalizedBasePath),
+      logger.trace("Reused provider media handle.", {
+        ...logEventFields("media.handle", "reused"),
+        "media.handle.id": existingHandle.id,
+        "session.id": session.id,
+        "provider.id": context.providerId,
+        "source.id": context.sourceId,
+        "media.path": sanitizeLoggedMediaPath(normalizedPath),
+        "media.base_path": sanitizeLoggedMediaPath(normalizedBasePath),
       });
       return `/api/media/${existingHandle.id}`;
     }
@@ -603,14 +636,15 @@ export function createProviderMediaHandle(
     lastAccessedAt: accessedAt,
   };
   session.mediaHandles.set(handle.id, handle);
-  logger.trace("Created provider media handle {handleId}.", {
-    handleId: handle.id,
-    sessionId: session.id,
-    providerId: handle.providerId,
-    sourceId: handle.sourceId,
-    path: sanitizeLoggedMediaPath(handle.path),
-    basePath: sanitizeLoggedMediaPath(handle.basePath),
-    absolutePath: isAbsoluteUrl(handle.path),
+  logger.trace("Created provider media handle.", {
+    ...logEventFields("media.handle", "created"),
+    "media.handle.id": handle.id,
+    "session.id": session.id,
+    "provider.id": handle.providerId,
+    "source.id": handle.sourceId,
+    "media.path": sanitizeLoggedMediaPath(handle.path),
+    "media.base_path": sanitizeLoggedMediaPath(handle.basePath),
+    "media.path.absolute": isAbsoluteUrl(handle.path),
   });
   return `/api/media/${handle.id}`;
 }
@@ -708,15 +742,16 @@ async function rewriteHlsPlaylist(
     })
     .join("\n");
 
-  logger.trace("Rewrote HLS playlist for media handle {handleId}.", {
-    handleId: handle.id,
-    sessionId: session.id,
-    providerId: handle.providerId,
-    path: sanitizeLoggedMediaPath(handle.path),
-    basePath: sanitizeLoggedMediaPath(basePath),
-    upstreamStatus: upstream.status,
-    rewrittenUriCount,
-    strippedStartHintCount,
+  logger.trace("Rewrote HLS playlist for media handle.", {
+    ...logEventFields("media.hls.playlist_rewrite", "success"),
+    "media.handle.id": handle.id,
+    "session.id": session.id,
+    "provider.id": handle.providerId,
+    "media.path": sanitizeLoggedMediaPath(handle.path),
+    "media.base_path": sanitizeLoggedMediaPath(basePath),
+    "upstream.status_code": upstream.status,
+    "media.hls.rewritten_uri_count": rewrittenUriCount,
+    "media.hls.stripped_start_hint_count": strippedStartHintCount,
   });
 
   return playlist;
@@ -879,30 +914,30 @@ function describeStreamFailure(err: unknown) {
   if (err instanceof Error) {
     const errorWithCause = err as Error & { code?: string; cause?: unknown };
     const properties: Record<string, unknown> = {
-      errorName: err.name,
-      errorMessage: err.message,
+      "error.name": err.name,
+      "error.message": err.message,
     };
 
     if (errorWithCause.code) {
-      properties.errorCode = errorWithCause.code;
+      properties["error.code"] = errorWithCause.code;
     }
 
     if (errorWithCause.cause instanceof Error) {
-      properties.causeName = errorWithCause.cause.name;
-      properties.causeMessage = errorWithCause.cause.message;
+      properties["error.cause.name"] = errorWithCause.cause.name;
+      properties["error.cause.message"] = errorWithCause.cause.message;
       const causeWithCode = errorWithCause.cause as Error & { code?: string };
       if (causeWithCode.code) {
-        properties.causeCode = causeWithCode.code;
+        properties["error.cause.code"] = causeWithCode.code;
       }
     } else if (errorWithCause.cause !== undefined) {
-      properties.causeType = typeof errorWithCause.cause;
+      properties["error.cause.type"] = typeof errorWithCause.cause;
     }
 
     return properties;
   }
 
   return {
-    errorValue: String(err),
+    "error.value": String(err),
   };
 }
 
@@ -916,13 +951,13 @@ export async function proxyUpstreamMediaResponse(
   res.status(upstream.status);
 
   const contentType = upstream.headers.get("content-type") ?? "";
-  logger.trace("Proxying upstream media response for handle {handleId}.", {
-    handleId: handle.id,
-    sessionId: session.id,
-    providerId: handle.providerId,
-    path: sanitizeLoggedMediaPath(handle.path),
-    upstreamStatus: upstream.status,
-    contentType,
+  logger.trace("Proxying upstream media response.", {
+    "media.handle.id": handle.id,
+    "session.id": session.id,
+    "provider.id": handle.providerId,
+    "media.path": sanitizeLoggedMediaPath(handle.path),
+    "upstream.status_code": upstream.status,
+    "upstream.content_type": contentType,
   });
 
   if (isHlsPlaylist(handle, contentType)) {
@@ -961,13 +996,14 @@ export async function proxyUpstreamMediaResponse(
   } catch (err) {
     const responseClosed =
       res.destroyed || res.writableEnded || res.writableFinished;
-    const logMessage = "Streaming media proxy failed for handle {handleId}.";
+    const logMessage = "Streaming media proxy failed.";
     const properties = {
-      handleId: handle.id,
-      sessionId: session.id,
-      providerId: handle.providerId,
-      path: sanitizeLoggedMediaPath(handle.path),
-      responseClosed,
+      ...logEventFields("media.proxy.stream", "failure"),
+      "media.handle.id": handle.id,
+      "session.id": session.id,
+      "provider.id": handle.providerId,
+      "media.path": sanitizeLoggedMediaPath(handle.path),
+      "http.response.closed": responseClosed,
       ...describeStreamFailure(err),
     };
 
@@ -1004,16 +1040,14 @@ export async function proxyProviderMediaResponse(
 
   const cachedResponse = cachedProxyResponses.get(cacheKey);
   if (cachedResponse && cachedResponse.expiresAt > Date.now()) {
-    logger.trace(
-      "Served cached proxied media response for handle {handleId}.",
-      {
-        handleId: handle.id,
-        sessionId: session.id,
-        providerId: handle.providerId,
-        path: sanitizeLoggedMediaPath(handle.path),
-        cacheKey,
-      },
-    );
+    logger.trace("Served cached proxied media response.", {
+      ...logEventFields("media.proxy.cache", "hit"),
+      "media.handle.id": handle.id,
+      "session.id": session.id,
+      "provider.id": handle.providerId,
+      "media.path": sanitizeLoggedMediaPath(handle.path),
+      "media.cache.key": cacheKey,
+    });
     sendCachedProxyResponse(cachedResponse.response, res);
     return;
   }
@@ -1046,16 +1080,14 @@ export async function proxyProviderMediaResponse(
       }
     });
   } else {
-    logger.trace(
-      "Waiting for in-flight proxied media response for handle {handleId}.",
-      {
-        handleId: handle.id,
-        sessionId: session.id,
-        providerId: handle.providerId,
-        path: sanitizeLoggedMediaPath(handle.path),
-        cacheKey,
-      },
-    );
+    logger.trace("Waiting for in-flight proxied media response.", {
+      ...logEventFields("media.proxy.cache", "wait"),
+      "media.handle.id": handle.id,
+      "session.id": session.id,
+      "provider.id": handle.providerId,
+      "media.path": sanitizeLoggedMediaPath(handle.path),
+      "media.cache.key": cacheKey,
+    });
   }
 
   sendCachedProxyResponse(await inflightResponse, res);

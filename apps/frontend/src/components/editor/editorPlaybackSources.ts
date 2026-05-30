@@ -2,14 +2,9 @@ import type { InputAudioTrack, InputVideoTrack } from "mediabunny";
 import {
   editorMediaSourcesEqual,
   isHlsEditorMediaSource,
-  sourceDisplayLabel,
   type EditorMediaSource,
 } from "../../lib/editorMedia";
-import {
-  getTrackCodec,
-  getTrackLanguageCode,
-  getTrackName,
-} from "../../lib/mediabunnyTrackAccess";
+import { getTrackCodec } from "../../lib/mediabunnyTrackAccess";
 import type { PlaybackAudioSelection } from "../../providers/types";
 import { errorMessage, isAc3FamilyCodec } from "./editorUtils";
 
@@ -314,89 +309,4 @@ export async function assessPreviewAudioTrack(track: InputAudioTrack | null) {
   }
 
   return { track, warning: undefined };
-}
-
-async function summarizeVideoTrackForDebug(track: InputVideoTrack | null) {
-  if (!track) {
-    return null;
-  }
-
-  const [codec, title, canDecode] = await Promise.all([
-    getTrackCodec(track),
-    getTrackName(track),
-    track.canDecode().catch(() => null),
-  ]);
-
-  return {
-    trackNumber: track.number,
-    codec: codec ?? null,
-    title: title ?? null,
-    canDecode,
-  };
-}
-
-async function summarizeAudioTrackForDebug(track: InputAudioTrack | null) {
-  if (!track) {
-    return null;
-  }
-
-  const [codec, title, languageCode, canDecode] = await Promise.all([
-    getTrackCodec(track),
-    getTrackName(track),
-    getTrackLanguageCode(track),
-    track.canDecode().catch(() => null),
-  ]);
-
-  return {
-    trackNumber: track.number,
-    codec: codec ?? null,
-    title: title ?? null,
-    languageCode: languageCode ?? null,
-    canDecode,
-  };
-}
-
-async function summarizeAudioTracksForDebug(
-  tracks: readonly InputAudioTrack[],
-) {
-  return Promise.all(tracks.map((track) => summarizeAudioTrackForDebug(track)));
-}
-
-export async function buildPlaybackSourceAnalysis(
-  context: PlaybackSourceAnalysisContext,
-) {
-  const [
-    allAudioTracks,
-    sourceVideoTrack,
-    previewVideoTrack,
-    sourceAudioTrack,
-    previewAudioTrack,
-  ] = await Promise.all([
-    summarizeAudioTracksForDebug(context.allAudioTracks),
-    summarizeVideoTrackForDebug(context.sourceVideoTrack),
-    summarizeVideoTrackForDebug(context.previewVideoTrack),
-    summarizeAudioTrackForDebug(context.sourceAudioTrack),
-    summarizeAudioTrackForDebug(context.previewAudioTrack),
-  ]);
-
-  return {
-    sessionId: context.sessionId,
-    source: context.source,
-    urlClassification: classifyPlaybackSource({
-      label: context.source,
-      source: context.mediaSource,
-    }),
-    sourceLabel: sourceDisplayLabel(context.mediaSource),
-    selectedAudioTrack: context.selectedAudioTrack ?? null,
-    videoTrackCount: context.videoTracks.length,
-    audioTrackCount: context.allAudioTracks.length,
-    allAudioTracks,
-    sourceVideoTrack,
-    previewVideoTrack,
-    sourceAudioTrack,
-    previewAudioTrack,
-    previewAudioWarning: context.previewAudioWarning ?? null,
-    warnings: [...context.warnings],
-    isLivePlayback: context.isLivePlayback,
-  } satisfies Record<string, unknown>;
 }

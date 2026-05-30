@@ -250,8 +250,10 @@ try {
     writeGithubOutput(plan);
   }
 
-  console.log(JSON.stringify(plan, null, 2));
+  process.stdout.write(`${JSON.stringify(plan, null, 2)}\n`);
 } catch (error) {
-  console.error(error instanceof Error ? error.message : error);
+  process.stderr.write(
+    `${error instanceof Error ? error.message : String(error)}\n`,
+  );
   process.exit(1);
 }

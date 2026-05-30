@@ -1,6 +1,11 @@
 import { createHash, randomUUID } from "crypto";
 import type { Request, Response } from "express";
 import {
+  logErrorFields,
+  logEventFields,
+  sanitizeUrlForLog,
+} from "@cliparr/shared/logging";
+import {
   updateMediaSource,
   type MediaSource,
 } from "../../db/mediaSourcesRepository.js";
@@ -848,11 +853,11 @@ async function enrichMetadataItem(context: PlexSourceContext, item: any) {
       Session: item.Session,
     };
   } catch (err) {
-    logger.warn("Could not fetch Plex metadata for {metadataPath}.", {
-      metadataPath: metadataPath(item) ?? "Plex item",
-      sourceId: context.sourceId,
-      baseUrl: context.baseUrl,
-      errorMessage: errorMessage(err),
+    logger.warn("Could not fetch Plex metadata.", {
+      ...logErrorFields(err),
+      "metadata.path": metadataPath(item) ?? "Plex item",
+      "source.id": context.sourceId,
+      "source.base_url": sanitizeUrlForLog(context.baseUrl),
     });
     return item;
   }
@@ -947,11 +952,11 @@ async function resolveMediaPath(
     const fullItem = data?.MediaContainer?.Metadata?.[0];
     return fallbackPartPath(resolveSelectedPart(fullItem, selection)?.part);
   } catch (err) {
-    logger.warn("Could not resolve Plex media part for {metadataPath}.", {
-      metadataPath: path,
-      sourceId: context.sourceId,
-      baseUrl: context.baseUrl,
-      errorMessage: errorMessage(err),
+    logger.warn("Could not resolve Plex media part.", {
+      ...logErrorFields(err),
+      "metadata.path": path,
+      "source.id": context.sourceId,
+      "source.base_url": sanitizeUrlForLog(context.baseUrl),
     });
     return undefined;
   }
@@ -1216,15 +1221,15 @@ export async function proxyMedia(
     headers.set("X-Plex-Session-Identifier", playbackSessionId);
   }
 
-  logger.trace("Fetching Plex media for handle {handleId}.", {
-    handleId: handle.id,
-    sessionId: session.id,
-    sourceId: handle.sourceId,
-    upstreamUrl: sanitizeLoggedMediaPath(url.toString()),
-    useProviderAuth,
-    hasRange: Boolean(range),
-    accept,
-    playbackSessionId,
+  logger.trace("Fetching Plex media.", {
+    "media.handle.id": handle.id,
+    "session.id": session.id,
+    "source.id": handle.sourceId,
+    "upstream.url": sanitizeLoggedMediaPath(url.toString()),
+    "provider.auth.attached": useProviderAuth,
+    "media.range.present": Boolean(range),
+    "http.accept": accept,
+    "plex.playback_session.id": playbackSessionId,
   });
 
   await proxyProviderMediaResponse(
@@ -1241,17 +1246,18 @@ export async function proxyMedia(
           .slice(0, 400)
           .replace(/\s+/g, " ")
           .trim();
-        logger.warn("Plex media request failed for handle {handleId}.", {
-          handleId: handle.id,
-          sessionId: session.id,
-          sourceId: handle.sourceId,
-          upstreamUrl: sanitizeLoggedMediaPath(url.toString()),
-          statusCode: upstream.status,
-          detail,
-          useProviderAuth,
-          hasRange: Boolean(range),
-          accept,
-          playbackSessionId,
+        logger.warn("Plex media request failed.", {
+          ...logEventFields("media.proxy.upstream", "failure"),
+          "media.handle.id": handle.id,
+          "session.id": session.id,
+          "source.id": handle.sourceId,
+          "upstream.url": sanitizeLoggedMediaPath(url.toString()),
+          "upstream.status_code": upstream.status,
+          "upstream.detail": detail,
+          "provider.auth.attached": useProviderAuth,
+          "media.range.present": Boolean(range),
+          "http.accept": accept,
+          "plex.playback_session.id": playbackSessionId,
         });
         throw new ApiError(
           upstream.status,

@@ -15,6 +15,7 @@
   "dependencies": {
     "@base-ui/react": "^1.5.0",
     "@cliparr/shared": "workspace:*",
+    "@logtape/logtape": "^2.1.1",
     "@mediabunny/aac-encoder": "^1.45.4",
     "@mediabunny/ac3": "^1.45.4",
     "@tanstack/react-router": "^1.170.8",

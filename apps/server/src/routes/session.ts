@@ -1,5 +1,10 @@
 import { Router } from "express";
 import {
+  compactLogFields,
+  logDurationFields,
+  logEventFields,
+} from "@cliparr/shared/logging";
+import {
   createRememberedProviderSession,
   getRememberedProviderSession,
   revokeRememberedProviderSession,
@@ -19,20 +24,25 @@ import {
   restoreProviderSessionFromProviderAccount,
 } from "../session/store.js";
 import { getRequestSessionId, setNoStore } from "../session/request.js";
+import { getServerLogger } from "../logging.js";
 
 export const sessionRouter = Router();
+const logger = getServerLogger(["routes", "session"]);
 
 sessionRouter.get(
   "/",
   asyncHandler(async (req, res) => {
     setNoStore(res);
+    const startedAt = Date.now();
     const rememberedToken = readCookie(
       req.header("cookie"),
       getRememberedProviderSessionCookieName(),
     );
     const rememberedSession = getRememberedProviderSession(rememberedToken);
+    const requestSessionId = getRequestSessionId(req);
+    const cookieSession = getProviderSession(requestSessionId);
     const session =
-      getProviderSession(getRequestSessionId(req)) ??
+      cookieSession ??
       restoreProviderSessionFromProviderAccount(
         rememberedSession?.providerAccountId,
       );
@@ -43,6 +53,11 @@ sessionRouter.get(
           getRememberedProviderSessionCookieName(),
           getRememberedProviderSessionCookieClearOptions(req.secure),
         );
+        logger.info("Remembered provider session was revoked.", {
+          ...logEventFields("session.restore", "failure"),
+          ...logDurationFields(startedAt),
+          "session.remembered.present": true,
+        });
       }
       throw new ApiError(
         401,
@@ -82,14 +97,27 @@ sessionRouter.get(
       );
     }
     res.json({ session: provider.serializeSession(session) });
+
+    if (!cookieSession && rememberedSession) {
+      logger.info("Provider session restored.", {
+        ...logEventFields("session.restore", "success"),
+        ...logDurationFields(startedAt),
+        "provider.id": session.providerId,
+        "provider.account.id": session.providerAccountId,
+        "session.id": session.id,
+      });
+    }
   }),
 );
 
 sessionRouter.delete("/", (req, res) => {
   setNoStore(res);
-  revokeRememberedProviderSession(
-    readCookie(req.header("cookie"), getRememberedProviderSessionCookieName()),
+  const session = getProviderSession(getRequestSessionId(req));
+  const rememberedToken = readCookie(
+    req.header("cookie"),
+    getRememberedProviderSessionCookieName(),
   );
+  revokeRememberedProviderSession(rememberedToken);
   deleteProviderSession(getRequestSessionId(req));
   res.clearCookie(
     getSessionCookieName(),
@@ -100,4 +128,14 @@ sessionRouter.delete("/", (req, res) => {
     getRememberedProviderSessionCookieClearOptions(req.secure),
   );
   res.status(204).end();
+
+  logger.info("Provider session logged out.", {
+    ...logEventFields("session.logout", "success"),
+    ...compactLogFields({
+      "provider.id": session?.providerId,
+      "provider.account.id": session?.providerAccountId,
+      "session.id": session?.id,
+      "session.remembered.present": Boolean(rememberedToken),
+    }),
+  });
 });

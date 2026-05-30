@@ -1,8 +1,14 @@
 import { randomUUID } from "crypto";
 import { Router } from "express";
+import {
+  compactLogFields,
+  logDurationFields,
+  logErrorFields,
+  logEventFields,
+} from "@cliparr/shared/logging";
 import { listMediaSources } from "../db/mediaSourcesRepository.js";
 import { ApiError, asyncHandler } from "../http/errors.js";
-import { getServerLogger } from "../logging.js";
+import { getServerLogger, warnWithError } from "../logging.js";
 import { getProvider } from "../providers/registry.js";
 import {
   assertAllowedMediaHandleRequestUrl,
@@ -171,22 +177,48 @@ mediaRouter.post(
   "/local-url",
   asyncHandler(async (req, res) => {
     setNoStore(res);
-    pruneSessionMediaHandles(localUrlSession);
+    const startedAt = Date.now();
 
-    const handle = buildLocalUrlMediaHandle(bodyUrl(req.body));
-    await assertAllowedMediaHandleRequestUrl(handle);
-    const mediaUrl = storeLocalUrlMediaHandle(handle);
+    try {
+      const prunedCount = pruneSessionMediaHandles(localUrlSession);
+      const handle = buildLocalUrlMediaHandle(bodyUrl(req.body));
+      await assertAllowedMediaHandleRequestUrl(handle);
+      const mediaUrl = storeLocalUrlMediaHandle(handle);
 
-    logger.trace("Created local URL media handle {handleId}.", {
-      handleId: handle.id,
-      upstreamUrl: sanitizeLoggedMediaPath(handle.path),
-      hls: isHlsPlaylistUrl(handle.path),
-    });
+      logger.trace("Created local URL media handle.", {
+        ...logEventFields("media.local_url.handle", "created"),
+        "media.handle.id": handle.id,
+        "upstream.url": sanitizeLoggedMediaPath(handle.path),
+        "media.hls": isHlsPlaylistUrl(handle.path),
+      });
 
-    res.status(201).json({
-      mediaUrl,
-      hls: isHlsPlaylistUrl(handle.path),
-    });
+      res.status(201).json({
+        mediaUrl,
+        hls: isHlsPlaylistUrl(handle.path),
+      });
+
+      logger.info("Local URL media handle created.", {
+        ...logEventFields("media.local_url.create", "success"),
+        ...logDurationFields(startedAt),
+        "media.handle.id": handle.id,
+        "upstream.url": sanitizeLoggedMediaPath(handle.path),
+        "media.hls": isHlsPlaylistUrl(handle.path),
+        "media.handle.pruned_count": prunedCount,
+      });
+    } catch (err) {
+      warnWithError(
+        logger,
+        err,
+        "Local URL media handle creation failed.",
+        compactLogFields({
+          ...logEventFields("media.local_url.create", "failure"),
+          ...logDurationFields(startedAt),
+          ...logErrorFields(err),
+          "http.status_code": err instanceof ApiError ? err.status : undefined,
+        }),
+      );
+      throw err;
+    }
   }),
 );
 
@@ -215,12 +247,12 @@ mediaRouter.get(
     }
 
     const upstreamUrl = mediaHandleRequestUrl(handle).toString();
-    logger.trace("Fetching local URL media for handle {handleId}.", {
-      handleId: handle.id,
-      upstreamUrl: sanitizeLoggedMediaPath(upstreamUrl),
-      hasRange: Boolean(range),
+    logger.trace("Fetching local URL media.", {
+      "media.handle.id": handle.id,
+      "upstream.url": sanitizeLoggedMediaPath(upstreamUrl),
+      "media.range.present": Boolean(range),
       accept,
-      prunedCount,
+      "media.handle.pruned_count": prunedCount,
     });
 
     await proxyProviderMediaResponse(
@@ -249,12 +281,13 @@ mediaRouter.get(
 
           return upstream;
         } catch (err) {
-          logger.warn("Local URL media request failed for handle {handleId}.", {
-            handleId: handle.id,
-            upstreamUrl: sanitizeLoggedMediaPath(upstreamUrl),
-            hasRange: Boolean(range),
+          logger.warn("Local URL media request failed.", {
+            ...logEventFields("media.local_url.fetch", "failure"),
+            "media.handle.id": handle.id,
+            "upstream.url": sanitizeLoggedMediaPath(upstreamUrl),
+            "media.range.present": Boolean(range),
             accept,
-            errorMessage: errorMessage(err),
+            "error.message": errorMessage(err),
           });
 
           if (err instanceof ApiError) {
@@ -280,6 +313,7 @@ mediaRouter.get(
   "/currently-playing",
   asyncHandler(async (req, res) => {
     setNoStore(res);
+    const startedAt = Date.now();
     const session = requireAccountSession(req);
     const prunedCount = pruneSessionMediaHandles(session);
     const sourceErrors: SourcePlaybackError[] = [];
@@ -338,17 +372,33 @@ mediaRouter.get(
       });
     });
 
-    logger.trace("Listed currently playing media.", {
-      sessionId: session.id,
-      providerId: session.providerId,
-      providerAccountId: session.providerAccountId,
-      sourceCount: sources.length,
-      viewerCount: new Set(entries.map((entry) => entry.viewer.id)).size,
-      entryCount: entries.length,
-      sourceErrorCount: sourceErrors.length,
-      prunedHandleCount: prunedCount,
-      remainingHandleCount: session.mediaHandles.size,
-    });
+    const summaryFields = {
+      ...logEventFields(
+        "playback.currently_playing",
+        sourceErrors.length > 0 ? "partial" : "success",
+      ),
+      ...logDurationFields(startedAt),
+      "session.id": session.id,
+      "provider.id": session.providerId,
+      "provider.account.id": session.providerAccountId,
+      "source.count": sources.length,
+      "viewer.count": new Set(entries.map((entry) => entry.viewer.id)).size,
+      "playback.item.count": entries.length,
+      "source.error.count": sourceErrors.length,
+      "media.handle.pruned_count": prunedCount,
+      "media.handle.remaining_count": session.mediaHandles.size,
+    };
+
+    if (sourceErrors.length > 0) {
+      logger.warn("Listed currently playing media with source errors.", {
+        ...summaryFields,
+        "source.error.provider_ids": [
+          ...new Set(sourceErrors.map((sourceError) => sourceError.providerId)),
+        ],
+      });
+    } else {
+      logger.info("Listed currently playing media.", summaryFields);
+    }
 
     res.json({
       viewers: groupCurrentPlayback(entries),
@@ -365,17 +415,15 @@ mediaRouter.get(
     const prunedCount = pruneSessionMediaHandles(session);
     const handle = session.mediaHandles.get(req.params.handleId as string);
     if (!handle) {
-      logger.warn(
-        "Media handle {handleId} was not found in provider session {sessionId}.",
-        {
-          handleId: req.params.handleId,
-          sessionId: session.id,
-          providerId: session.providerId,
-          providerAccountId: session.providerAccountId,
-          prunedHandleCount: prunedCount,
-          remainingHandleCount: session.mediaHandles.size,
-        },
-      );
+      logger.warn("Media handle was not found in provider session.", {
+        ...logEventFields("media.proxy", "missing_handle"),
+        "media.handle.id": req.params.handleId,
+        "session.id": session.id,
+        "provider.id": session.providerId,
+        "provider.account.id": session.providerAccountId,
+        "media.handle.pruned_count": prunedCount,
+        "media.handle.remaining_count": session.mediaHandles.size,
+      });
       throw new ApiError(
         404,
         "media_not_found",
@@ -385,15 +433,13 @@ mediaRouter.get(
 
     const provider = getProvider(handle.providerId);
     if (!provider) {
-      logger.error(
-        "Provider {providerId} for media handle {handleId} is not registered.",
-        {
-          handleId: handle.id,
-          sessionId: session.id,
-          providerId: handle.providerId,
-          sourceId: handle.sourceId,
-        },
-      );
+      logger.error("Provider for media handle is not registered.", {
+        ...logEventFields("media.proxy", "provider_not_registered"),
+        "media.handle.id": handle.id,
+        "session.id": session.id,
+        "provider.id": handle.providerId,
+        "source.id": handle.sourceId,
+      });
       throw new ApiError(
         500,
         "provider_not_registered",
@@ -401,14 +447,14 @@ mediaRouter.get(
       );
     }
 
-    logger.trace("Proxying media handle {handleId}.", {
-      handleId: handle.id,
-      sessionId: session.id,
-      providerId: handle.providerId,
-      sourceId: handle.sourceId,
-      path: sanitizeLoggedMediaPath(handle.path),
-      basePath: sanitizeLoggedMediaPath(handle.basePath),
-      prunedHandleCount: prunedCount,
+    logger.trace("Proxying media handle.", {
+      "media.handle.id": handle.id,
+      "session.id": session.id,
+      "provider.id": handle.providerId,
+      "source.id": handle.sourceId,
+      "media.path": sanitizeLoggedMediaPath(handle.path),
+      "media.base_path": sanitizeLoggedMediaPath(handle.basePath),
+      "media.handle.pruned_count": prunedCount,
     });
 
     await provider.proxyMedia(session, req.params.handleId as string, req, res);

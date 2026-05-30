@@ -166,8 +166,8 @@ export async function main(argv = process.argv.slice(2)) {
   });
 
   if (args.dryRun) {
-    console.log(`# ${args.name}\n`);
-    console.log(body);
+    process.stdout.write(`# ${args.name}\n\n`);
+    process.stdout.write(`${body}\n`);
     writeGithubOutput({ html_url: "" });
     process.exit(0);
   }
@@ -186,7 +186,7 @@ export async function main(argv = process.argv.slice(2)) {
     },
   });
 
-  console.log(`Created release ${release.html_url}`);
+  process.stdout.write(`Created release ${release.html_url}\n`);
   writeGithubOutput({ html_url: release.html_url });
 }
 
@@ -197,7 +197,9 @@ if (
   try {
     await main();
   } catch (error) {
-    console.error(error instanceof Error ? error.message : error);
+    process.stderr.write(
+      `${error instanceof Error ? error.message : String(error)}\n`,
+    );
     process.exit(1);
   }
 }

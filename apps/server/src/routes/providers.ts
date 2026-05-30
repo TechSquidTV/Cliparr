@@ -1,9 +1,16 @@
 import { Router } from "express";
+import {
+  compactLogFields,
+  logDurationFields,
+  logErrorFields,
+  logEventFields,
+} from "@cliparr/shared/logging";
 import { persistProviderAuth } from "../db/providerPersistence.js";
 import { createRememberedProviderSession } from "../db/rememberedProviderSessionsRepository.js";
 import { ApiError, asyncHandler } from "../http/errors.js";
 import { getRequestRouteUrl } from "../http/requestOrigin.js";
 import { getProvider, listProviders } from "../providers/registry.js";
+import { getServerLogger, warnWithError } from "../logging.js";
 import {
   createProviderSession,
   getRememberedProviderSessionCookieName,
@@ -15,6 +22,7 @@ import {
 import { setNoStore } from "../session/request.js";
 
 export const providersRouter = Router();
+const logger = getServerLogger(["routes", "providers"]);
 const PROVIDER_AUTH_COMPLETE_PATH = (providerId: string) =>
   `/auth/${providerId}/complete`;
 const PROVIDER_AUTH_COOKIE = "cliparr_provider_auth";
@@ -118,12 +126,25 @@ providersRouter.post(
       );
     }
 
-    const authStart = await provider.startAuth(
-      getRequestRouteUrl(
-        req,
-        PROVIDER_AUTH_COMPLETE_PATH(provider.definition.id),
-      ),
-    );
+    const startedAt = Date.now();
+    let authStart: Awaited<ReturnType<NonNullable<typeof provider.startAuth>>>;
+    try {
+      authStart = await provider.startAuth(
+        getRequestRouteUrl(
+          req,
+          PROVIDER_AUTH_COMPLETE_PATH(provider.definition.id),
+        ),
+      );
+    } catch (err) {
+      logger.warn("Provider auth start failed.", {
+        ...logEventFields("provider.auth.start", "failure"),
+        ...logDurationFields(startedAt),
+        ...logErrorFields(err),
+        "provider.id": provider.definition.id,
+        "provider.auth.method": "pin",
+      });
+      throw err;
+    }
 
     res.cookie(
       PROVIDER_AUTH_COOKIE,
@@ -139,6 +160,13 @@ providersRouter.post(
       authId: authStart.authId,
       authUrl: authStart.authUrl,
       expiresAt: authStart.expiresAt,
+    });
+
+    logger.info("Provider auth started.", {
+      ...logEventFields("provider.auth.start", "success"),
+      ...logDurationFields(startedAt),
+      "provider.id": provider.definition.id,
+      "provider.auth.method": "pin",
     });
   }),
 );
@@ -161,66 +189,101 @@ providersRouter.get(
     }
 
     const authId = req.params.authId as string;
-    const authCookie = requireProviderAuthCookie(
-      req.header("cookie"),
-      provider.definition.id,
-      authId,
-    );
-    const authStatus = await provider.pollAuth(authId, authCookie.pollToken);
-    if (authStatus.status !== "complete") {
-      if (authStatus.status === "expired") {
-        res.clearCookie(
-          PROVIDER_AUTH_COOKIE,
-          providerAuthCookieClearOptions(req.secure),
+    const startedAt = Date.now();
+
+    try {
+      const authCookie = requireProviderAuthCookie(
+        req.header("cookie"),
+        provider.definition.id,
+        authId,
+      );
+      const authStatus = await provider.pollAuth(authId, authCookie.pollToken);
+      if (authStatus.status !== "complete") {
+        if (authStatus.status === "expired") {
+          res.clearCookie(
+            PROVIDER_AUTH_COOKIE,
+            providerAuthCookieClearOptions(req.secure),
+          );
+          logger.info("Provider auth expired.", {
+            ...logEventFields("provider.auth.poll", "expired"),
+            ...logDurationFields(startedAt),
+            "provider.id": provider.definition.id,
+            "provider.auth.method": "pin",
+          });
+        }
+        res.json({ status: authStatus.status });
+        return;
+      }
+
+      if (
+        !authStatus.userToken ||
+        !Array.isArray(authStatus.resources) ||
+        authStatus.resources.length === 0
+      ) {
+        throw new ApiError(
+          502,
+          "provider_auth_failed",
+          "Provider auth did not return any available servers",
         );
       }
-      res.json({ status: authStatus.status });
-      return;
-    }
 
-    if (
-      !authStatus.userToken ||
-      !Array.isArray(authStatus.resources) ||
-      authStatus.resources.length === 0
-    ) {
-      throw new ApiError(
-        502,
-        "provider_auth_failed",
-        "Provider auth did not return any available servers",
+      const account = persistProviderAuth({
+        provider: provider.definition,
+        userToken: authStatus.userToken,
+        resources: authStatus.resources,
+      });
+
+      const session = createProviderSession({
+        providerId: provider.definition.id,
+        providerAccountId: account.id,
+        userToken: authStatus.userToken,
+      });
+
+      const rememberedSession = createRememberedProviderSession(
+        session.providerAccountId,
       );
+
+      res.clearCookie(
+        PROVIDER_AUTH_COOKIE,
+        providerAuthCookieClearOptions(req.secure),
+      );
+      res.cookie(
+        getSessionCookieName(),
+        session.id,
+        getSessionCookieOptions(req.secure),
+      );
+      res.cookie(
+        getRememberedProviderSessionCookieName(),
+        rememberedSession.token,
+        getRememberedProviderSessionCookieOptions(req.secure),
+      );
+      res.json({ status: "complete" });
+
+      logger.info("Provider auth completed.", {
+        ...logEventFields("provider.auth.poll", "success"),
+        ...logDurationFields(startedAt),
+        "provider.id": provider.definition.id,
+        "provider.auth.method": "pin",
+        "provider.account.id": account.id,
+        "provider.resource.count": authStatus.resources.length,
+        "session.id": session.id,
+      });
+    } catch (err) {
+      warnWithError(
+        logger,
+        err,
+        "Provider auth poll failed.",
+        compactLogFields({
+          ...logEventFields("provider.auth.poll", "failure"),
+          ...logDurationFields(startedAt),
+          ...logErrorFields(err),
+          "provider.id": provider.definition.id,
+          "provider.auth.method": "pin",
+          "http.status_code": err instanceof ApiError ? err.status : undefined,
+        }),
+      );
+      throw err;
     }
-
-    const account = persistProviderAuth({
-      provider: provider.definition,
-      userToken: authStatus.userToken,
-      resources: authStatus.resources,
-    });
-
-    const session = createProviderSession({
-      providerId: provider.definition.id,
-      providerAccountId: account.id,
-      userToken: authStatus.userToken,
-    });
-
-    const rememberedSession = createRememberedProviderSession(
-      session.providerAccountId,
-    );
-
-    res.clearCookie(
-      PROVIDER_AUTH_COOKIE,
-      providerAuthCookieClearOptions(req.secure),
-    );
-    res.cookie(
-      getSessionCookieName(),
-      session.id,
-      getSessionCookieOptions(req.secure),
-    );
-    res.cookie(
-      getRememberedProviderSessionCookieName(),
-      rememberedSession.token,
-      getRememberedProviderSessionCookieOptions(req.secure),
-    );
-    res.json({ status: "complete" });
   }),
 );
 
@@ -244,47 +307,76 @@ providersRouter.post(
       );
     }
 
-    const authResult = await provider.authenticateWithCredentials(req.body);
-    if (
-      !authResult.userToken ||
-      !Array.isArray(authResult.resources) ||
-      authResult.resources.length === 0
-    ) {
-      throw new ApiError(
-        502,
-        "provider_auth_failed",
-        "Provider auth did not return any available servers",
+    const startedAt = Date.now();
+
+    try {
+      const authResult = await provider.authenticateWithCredentials(req.body);
+      if (
+        !authResult.userToken ||
+        !Array.isArray(authResult.resources) ||
+        authResult.resources.length === 0
+      ) {
+        throw new ApiError(
+          502,
+          "provider_auth_failed",
+          "Provider auth did not return any available servers",
+        );
+      }
+
+      const account = persistProviderAuth({
+        provider: provider.definition,
+        userToken: authResult.userToken,
+        resources: authResult.resources,
+      });
+
+      const session = createProviderSession({
+        providerId: provider.definition.id,
+        providerAccountId: account.id,
+        userToken: authResult.userToken,
+      });
+
+      const rememberedSession = createRememberedProviderSession(
+        session.providerAccountId,
       );
+
+      res.cookie(
+        getSessionCookieName(),
+        session.id,
+        getSessionCookieOptions(req.secure),
+      );
+      res.cookie(
+        getRememberedProviderSessionCookieName(),
+        rememberedSession.token,
+        getRememberedProviderSessionCookieOptions(req.secure),
+      );
+      res.json({
+        session: provider.serializeSession(session),
+      });
+
+      logger.info("Provider credential login completed.", {
+        ...logEventFields("provider.auth.login", "success"),
+        ...logDurationFields(startedAt),
+        "provider.id": provider.definition.id,
+        "provider.auth.method": "credentials",
+        "provider.account.id": account.id,
+        "provider.resource.count": authResult.resources.length,
+        "session.id": session.id,
+      });
+    } catch (err) {
+      warnWithError(
+        logger,
+        err,
+        "Provider credential login failed.",
+        compactLogFields({
+          ...logEventFields("provider.auth.login", "failure"),
+          ...logDurationFields(startedAt),
+          ...logErrorFields(err),
+          "provider.id": provider.definition.id,
+          "provider.auth.method": "credentials",
+          "http.status_code": err instanceof ApiError ? err.status : undefined,
+        }),
+      );
+      throw err;
     }
-
-    const account = persistProviderAuth({
-      provider: provider.definition,
-      userToken: authResult.userToken,
-      resources: authResult.resources,
-    });
-
-    const session = createProviderSession({
-      providerId: provider.definition.id,
-      providerAccountId: account.id,
-      userToken: authResult.userToken,
-    });
-
-    const rememberedSession = createRememberedProviderSession(
-      session.providerAccountId,
-    );
-
-    res.cookie(
-      getSessionCookieName(),
-      session.id,
-      getSessionCookieOptions(req.secure),
-    );
-    res.cookie(
-      getRememberedProviderSessionCookieName(),
-      rememberedSession.token,
-      getRememberedProviderSessionCookieOptions(req.secure),
-    );
-    res.json({
-      session: provider.serializeSession(session),
-    });
   }),
 );

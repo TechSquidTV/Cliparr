@@ -4,6 +4,10 @@
   "type": "module",
   "types": "./src/providers.ts",
   "exports": {
+    "./logging": {
+      "types": "./src/logging.ts",
+      "default": "./src/logging.ts"
+    },
     "./providers": {
       "types": "./src/providers.ts",
       "default": "./src/providers.ts"

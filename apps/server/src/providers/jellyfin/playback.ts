@@ -1,4 +1,9 @@
 import type { Request, Response } from "express";
+import {
+  logErrorFields,
+  logEventFields,
+  sanitizeUrlForLog,
+} from "@cliparr/shared/logging";
 import type { MediaSource } from "../../db/mediaSourcesRepository.js";
 import { ApiError } from "../../http/errors.js";
 import { getServerLogger } from "../../logging.js";
@@ -625,11 +630,11 @@ async function enrichMetadataItem(
       ...fullItem,
     };
   } catch (err) {
-    logger.warn("Could not fetch Jellyfin metadata for item {itemId}.", {
-      itemId,
-      sourceId: context.sourceId,
-      baseUrl: context.baseUrl,
-      errorMessage: errorMessage(err),
+    logger.warn("Could not fetch Jellyfin metadata.", {
+      ...logErrorFields(err),
+      "metadata.item.id": itemId,
+      "source.id": context.sourceId,
+      "source.base_url": sanitizeUrlForLog(context.baseUrl),
     });
     return item;
   }
@@ -642,11 +647,11 @@ async function loadPlaybackInfo(
   try {
     return await fetchPlaybackInfo(context, itemId);
   } catch (err) {
-    logger.warn("Could not fetch Jellyfin playback info for item {itemId}.", {
-      itemId,
-      sourceId: context.sourceId,
-      baseUrl: context.baseUrl,
-      errorMessage: errorMessage(err),
+    logger.warn("Could not fetch Jellyfin playback info.", {
+      ...logErrorFields(err),
+      "metadata.item.id": itemId,
+      "source.id": context.sourceId,
+      "source.base_url": sanitizeUrlForLog(context.baseUrl),
     });
     return undefined;
   }
@@ -936,14 +941,14 @@ export async function proxyMedia(
 
   const upstreamUrl = mediaHandleRequestUrl(handle).toString();
 
-  logger.trace("Fetching Jellyfin media for handle {handleId}.", {
-    handleId: handle.id,
-    sessionId: session.id,
-    sourceId: handle.sourceId,
-    upstreamUrl: sanitizeLoggedMediaPath(upstreamUrl),
-    useProviderAuth,
-    hasRange: Boolean(range),
-    accept,
+  logger.trace("Fetching Jellyfin media.", {
+    "media.handle.id": handle.id,
+    "session.id": session.id,
+    "source.id": handle.sourceId,
+    "upstream.url": sanitizeLoggedMediaPath(upstreamUrl),
+    "provider.auth.attached": useProviderAuth,
+    "media.range.present": Boolean(range),
+    "http.accept": accept,
   });
 
   await proxyProviderMediaResponse(
@@ -976,15 +981,17 @@ export async function proxyMedia(
 
         return upstream;
       } catch (err) {
-        logger.warn("Jellyfin media request failed for handle {handleId}.", {
-          handleId: handle.id,
-          sessionId: session.id,
-          sourceId: handle.sourceId,
-          upstreamUrl: sanitizeLoggedMediaPath(upstreamUrl),
-          useProviderAuth,
-          hasRange: Boolean(range),
-          accept,
-          errorMessage: errorMessage(err),
+        logger.warn("Jellyfin media request failed.", {
+          ...logEventFields("media.proxy.upstream", "failure"),
+          ...logErrorFields(err),
+          "media.handle.id": handle.id,
+          "session.id": session.id,
+          "source.id": handle.sourceId,
+          "upstream.url": sanitizeLoggedMediaPath(upstreamUrl),
+          "provider.auth.attached": useProviderAuth,
+          "media.range.present": Boolean(range),
+          "http.accept": accept,
+          "error.message": errorMessage(err),
         });
         throw err;
       }
