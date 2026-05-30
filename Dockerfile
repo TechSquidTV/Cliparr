@@ -32,7 +32,7 @@ COPY apps/frontend/components.json apps/frontend/index.html apps/frontend/tsconf
 COPY apps/frontend/public apps/frontend/public
 COPY apps/frontend/src apps/frontend/src
 
-RUN pnpm build
+RUN CLIPARR_SERVER_SOURCEMAP=false pnpm build
 
 FROM node:24-slim AS runner
 

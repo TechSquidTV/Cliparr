@@ -3,6 +3,7 @@ import { fileURLToPath } from "node:url";
 import { defineConfig } from "tsdown";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const includeSourceMap = process.env.CLIPARR_SERVER_SOURCEMAP !== "false";
 
 export default defineConfig({
   entry: {
@@ -13,7 +14,7 @@ export default defineConfig({
   target: "node24",
   outDir: "dist",
   clean: true,
-  sourcemap: true,
+  sourcemap: includeSourceMap,
   fixedExtension: false,
   alias: {
     "@": path.resolve(__dirname, "src"),
