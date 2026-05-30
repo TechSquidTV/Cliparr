@@ -5,8 +5,11 @@ import test from "node:test";
 import { createElement, createRef } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import AuthCompleteScreen from "@/components/AuthCompleteScreen";
+import { EditorControls } from "@/components/editor/EditorControls";
+import { EditorFramegrabDialog } from "@/components/editor/EditorFramegrabDialog";
 import { EditorPreview } from "@/components/editor/EditorPreview";
 import { LocalVideoOpenDialog } from "@/components/local-media/LocalVideoOpenDialog";
+import { TooltipProvider } from "@/components/ui/tooltip";
 import { EDITOR_THUMBNAIL_VIEW_TRANSITION_NAME } from "@/lib/viewTransitions";
 
 void test("renders the provider auth completion screen", () => {
@@ -89,4 +92,66 @@ void test("renders editor poster with the shared thumbnail view transition", () 
     markup,
     new RegExp(`view-transition-name:${EDITOR_THUMBNAIL_VIEW_TRANSITION_NAME}`),
   );
+});
+
+void test("renders the editor framegrab camera control", () => {
+  const markup = renderToStaticMarkup(
+    createElement(
+      TooltipProvider,
+      null,
+      createElement(EditorControls, {
+        playing: false,
+        loadingPreview: false,
+        togglePlay: () => undefined,
+        currentTime: 12,
+        duration: 120,
+        startTime: 10,
+        endTime: 20,
+        muted: false,
+        setMuted: () => undefined,
+        volume: 1,
+        setVolume: () => undefined,
+        handleTimelineZoomIn: () => undefined,
+        handleTimelineZoomOut: () => undefined,
+        canZoomIn: true,
+        canZoomOut: true,
+        onFramegrabClick: () => undefined,
+        framegrabDisabledReason: null,
+        onPreviewTimeCommit: () => undefined,
+        onStartTimeCommit: () => undefined,
+        onEndTimeCommit: () => undefined,
+      }),
+    ),
+  );
+
+  assert.match(markup, /Export current preview frame/);
+});
+
+void test("renders the framegrab export dialog actions", () => {
+  const markup = renderToStaticMarkup(
+    createElement(EditorFramegrabDialog, {
+      isOpen: true,
+      title: "Example Movie",
+      frameTime: 61.2,
+      dimensions: {
+        width: 1920,
+        height: 1080,
+      },
+      selectedFormat: "png",
+      onFormatChange: () => undefined,
+      fileNamePreview: "Example Movie [frame 01m01s].png",
+      processingAction: null,
+      error: null,
+      message: null,
+      onClose: () => undefined,
+      onCopy: () => undefined,
+      onDownload: () => undefined,
+    }),
+  );
+
+  assert.match(markup, /Export Frame/);
+  assert.match(markup, /Image Type/);
+  assert.match(markup, /Copy Image/);
+  assert.match(markup, /Download PNG/);
+  assert.match(markup, /Example Movie \[frame 01m01s\]\.png/);
 });

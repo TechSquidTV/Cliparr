@@ -1,5 +1,6 @@
 import type { MediaExportMetadata } from "@/providers/types";
-import type { ExportFormat } from "@/lib/exportClip";
+import type { ExportFormat } from "@/lib/exportTypes";
+import type { FramegrabImageFormat } from "@/lib/framegrab";
 
 export type ExportFileNameTemplateKind = "movie" | "episode";
 
@@ -18,6 +19,24 @@ interface BuildExportFileNameOptions {
   templates: ExportFileNameTemplateSettings;
 }
 
+interface BuildFramegrabFileNameOptions {
+  title: string;
+  sessionType?: string;
+  metadata?: MediaExportMetadata;
+  frameTime: number;
+  format: FramegrabImageFormat;
+}
+
+interface TemplateValuesOptions {
+  title: string;
+  sessionType?: string;
+  metadata?: MediaExportMetadata;
+  startTime: number;
+  endTime: number;
+  frameTime?: number;
+  format: string;
+}
+
 const EXPORT_FILE_NAME_TEMPLATE_STORAGE_KEY =
   "cliparr.export.filename-templates.v1";
 
@@ -31,6 +50,11 @@ const DEFAULT_MOVIE_EXPORT_FILE_NAME_TEMPLATE =
 const DEFAULT_EPISODE_EXPORT_FILE_NAME_TEMPLATE =
   "{show_title} - {episode_code} - {title} [{clip_start}-{clip_end}]";
 
+const DEFAULT_MOVIE_FRAMEGRAB_FILE_NAME_TEMPLATE =
+  "{source_title} ({year}) [frame {frame_time}]";
+const DEFAULT_EPISODE_FRAMEGRAB_FILE_NAME_TEMPLATE =
+  "{show_title} - {episode_code} - {title} [frame {frame_time}]";
+
 type ExportFileNameTemplateToken =
   | "title"
   | "source_title"
@@ -43,6 +67,7 @@ type ExportFileNameTemplateToken =
   | "clip_start"
   | "clip_end"
   | "clip_range"
+  | "frame_time"
   | "provider"
   | "item_type"
   | "format";
@@ -190,14 +215,7 @@ export function buildExportFileName({
     endTime,
     format,
   });
-  const resolved = template.replace(/\{([a-z_]+)\}/gi, (_, token: string) => {
-    const normalizedToken = token.toLowerCase() as ExportFileNameTemplateToken;
-    const replacement = Object.hasOwn(values, normalizedToken)
-      ? values[normalizedToken]
-      : "";
-
-    return replacement ?? "";
-  });
+  const resolved = resolveTemplate(template, values);
 
   const baseName =
     sanitizeFileName(cleanupResolvedTemplate(resolved)) || "cliparr export";
@@ -209,17 +227,61 @@ export function buildExportFileName({
   };
 }
 
+export function buildFramegrabFileName({
+  title,
+  sessionType,
+  metadata,
+  frameTime,
+  format,
+}: BuildFramegrabFileNameOptions) {
+  const templateKind = resolveExportFileNameTemplateKind(sessionType, metadata);
+  const template =
+    templateKind === "episode"
+      ? DEFAULT_EPISODE_FRAMEGRAB_FILE_NAME_TEMPLATE
+      : DEFAULT_MOVIE_FRAMEGRAB_FILE_NAME_TEMPLATE;
+  const values = templateValues({
+    title,
+    sessionType,
+    metadata,
+    startTime: frameTime,
+    endTime: frameTime,
+    frameTime,
+    format,
+  });
+  const resolved = resolveTemplate(template, values);
+  const baseName =
+    sanitizeFileName(cleanupResolvedTemplate(resolved)) || "cliparr frame";
+
+  return {
+    baseName,
+    fullName: `${baseName}.${format}`,
+    templateKind,
+  };
+}
+
+function resolveTemplate(
+  template: string,
+  values: Record<ExportFileNameTemplateToken, string>,
+) {
+  return template.replace(/\{([a-z_]+)\}/gi, (_, token: string) => {
+    const normalizedToken = token.toLowerCase() as ExportFileNameTemplateToken;
+    const replacement = Object.hasOwn(values, normalizedToken)
+      ? values[normalizedToken]
+      : "";
+
+    return replacement ?? "";
+  });
+}
+
 function templateValues({
   title,
   sessionType,
   metadata,
   startTime,
   endTime,
+  frameTime,
   format,
-}: Omit<BuildExportFileNameOptions, "templates">): Record<
-  ExportFileNameTemplateToken,
-  string
-> {
+}: TemplateValuesOptions): Record<ExportFileNameTemplateToken, string> {
   const seasonNumber = nonNegativeInteger(metadata?.seasonNumber);
   const episodeNumber = nonNegativeInteger(metadata?.episodeNumber);
   const itemType =
@@ -251,6 +313,7 @@ function templateValues({
     clip_start: formatTemplateTime(startTime),
     clip_end: formatTemplateTime(endTime),
     clip_range: `${formatTemplateTime(startTime)} to ${formatTemplateTime(endTime)}`,
+    frame_time: formatTemplateTime(frameTime ?? startTime),
     provider: sanitizeTemplateValue(firstText(metadata?.providerId)),
     item_type: sanitizeTemplateValue(itemType),
     format: sanitizeTemplateValue(format),

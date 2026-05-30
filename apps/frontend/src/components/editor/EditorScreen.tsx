@@ -1,8 +1,16 @@
-import { lazy, Suspense, useCallback, useEffect, useState } from "react";
+import {
+  lazy,
+  Suspense,
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 import {
   clampClipEndTime,
   clampClipStartTime,
   clampPlaybackTime,
+  errorMessage,
   MIN_CLIP_SECONDS,
   roundTimelineTime,
 } from "@/components/editor/editorUtils";
@@ -32,6 +40,13 @@ import {
 } from "@/components/editor/EditorLayout";
 import { useEditorSubtitles } from "@/components/editor/useEditorSubtitles";
 import { sourceDisplayLabel, type EditorSession } from "@/lib/editorMedia";
+import { buildFramegrabFileName } from "@/lib/exportFileName";
+import {
+  cloneCanvasFrame,
+  copyFramegrabCanvasToClipboard,
+  encodeFramegrabCanvas,
+  type FramegrabImageFormat,
+} from "@/lib/framegrab";
 import { EDITOR_THUMBNAIL_VIEW_TRANSITION_NAME } from "@/lib/viewTransitions";
 
 const EditorExportDialog = lazy(() =>
@@ -40,10 +55,27 @@ const EditorExportDialog = lazy(() =>
   })),
 );
 
+const EditorFramegrabDialog = lazy(() =>
+  import("@/components/editor/EditorFramegrabDialog").then((module) => ({
+    default: module.EditorFramegrabDialog,
+  })),
+);
+
 interface Props {
   session: EditorSession;
   onBack: () => void;
 }
+
+interface CapturedFramegrab {
+  canvas: HTMLCanvasElement;
+  time: number;
+  dimensions: {
+    width: number;
+    height: number;
+  };
+}
+
+type FramegrabAction = "copy" | "download";
 
 export default function EditorScreen({ session, onBack }: Props) {
   const initialClipRange = buildInitialClipRange(
@@ -54,6 +86,16 @@ export default function EditorScreen({ session, onBack }: Props) {
   const [endTime, setEndTime] = useState(() => initialClipRange.endTime);
   const [playbackSidebarOpen, setPlaybackSidebarOpen] = useState(true);
   const [exportDialogMounted, setExportDialogMounted] = useState(false);
+  const [framegrabDialogMounted, setFramegrabDialogMounted] = useState(false);
+  const [capturedFramegrab, setCapturedFramegrab] =
+    useState<CapturedFramegrab | null>(null);
+  const [framegrabDialogOpen, setFramegrabDialogOpen] = useState(false);
+  const [framegrabFormat, setFramegrabFormat] =
+    useState<FramegrabImageFormat>("png");
+  const [framegrabAction, setFramegrabAction] =
+    useState<FramegrabAction | null>(null);
+  const [framegrabError, setFramegrabError] = useState<string | null>(null);
+  const [framegrabMessage, setFramegrabMessage] = useState<string | null>(null);
   const {
     subtitleTracks,
     selectedSubtitleTrack,
@@ -172,6 +214,157 @@ export default function EditorScreen({ session, onBack }: Props) {
       setExportDialogMounted(true);
     }
   }, [exportDialogOpen]);
+
+  useEffect(() => {
+    if (framegrabDialogOpen) {
+      setFramegrabDialogMounted(true);
+    }
+  }, [framegrabDialogOpen]);
+
+  const framegrabFileName = useMemo(
+    () =>
+      buildFramegrabFileName({
+        title: session.title,
+        sessionType: session.type,
+        metadata: session.exportMetadata,
+        frameTime: capturedFramegrab?.time ?? currentTime,
+        format: framegrabFormat,
+      }),
+    [
+      capturedFramegrab?.time,
+      currentTime,
+      framegrabFormat,
+      session.exportMetadata,
+      session.title,
+      session.type,
+    ],
+  );
+
+  const framegrabDisabledReason = useMemo(() => {
+    if (loadingPreview || loadingPreviewFrame) {
+      return "Preview frame is loading.";
+    }
+
+    if (subtitleEnabled && subtitleLoading) {
+      return "Subtitles are still loading.";
+    }
+
+    if (subtitleEnabled && subtitleError) {
+      return subtitleError;
+    }
+
+    if (!previewVideoDimensions) {
+      return "No preview frame available.";
+    }
+
+    return null;
+  }, [
+    loadingPreview,
+    loadingPreviewFrame,
+    previewVideoDimensions,
+    subtitleEnabled,
+    subtitleError,
+    subtitleLoading,
+  ]);
+
+  const handleOpenFramegrabDialog = useCallback(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) {
+      setFramegrabError("No preview frame is available yet.");
+      return;
+    }
+
+    try {
+      const clonedCanvas = cloneCanvasFrame(canvas);
+      setCapturedFramegrab({
+        canvas: clonedCanvas,
+        time: currentTime,
+        dimensions: {
+          width: clonedCanvas.width,
+          height: clonedCanvas.height,
+        },
+      });
+      setFramegrabError(null);
+      setFramegrabMessage(null);
+      setFramegrabDialogOpen(true);
+    } catch (err) {
+      setFramegrabError(errorMessage(err));
+    }
+  }, [canvasRef, currentTime]);
+
+  const handleCloseFramegrabDialog = useCallback(() => {
+    if (framegrabAction) {
+      return;
+    }
+
+    setFramegrabDialogOpen(false);
+    setCapturedFramegrab(null);
+    setFramegrabError(null);
+    setFramegrabMessage(null);
+  }, [framegrabAction]);
+
+  const handleFramegrabFormatChange = useCallback(
+    (nextFormat: FramegrabImageFormat) => {
+      setFramegrabFormat(nextFormat);
+      setFramegrabError(null);
+      setFramegrabMessage(null);
+    },
+    [],
+  );
+
+  const handleCopyFramegrab = useCallback(async () => {
+    if (!capturedFramegrab || framegrabAction) {
+      return;
+    }
+
+    setFramegrabAction("copy");
+    setFramegrabError(null);
+    setFramegrabMessage(null);
+
+    try {
+      await copyFramegrabCanvasToClipboard(capturedFramegrab.canvas);
+      setFramegrabMessage("Copied to clipboard.");
+    } catch (err) {
+      setFramegrabError(errorMessage(err));
+    } finally {
+      setFramegrabAction(null);
+    }
+  }, [capturedFramegrab, framegrabAction]);
+
+  const handleDownloadFramegrab = useCallback(async () => {
+    if (!capturedFramegrab || framegrabAction) {
+      return;
+    }
+
+    setFramegrabAction("download");
+    setFramegrabError(null);
+    setFramegrabMessage(null);
+
+    try {
+      const blob = await encodeFramegrabCanvas(
+        capturedFramegrab.canvas,
+        framegrabFormat,
+      );
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = framegrabFileName.fullName;
+      document.body.append(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      setFramegrabMessage("Download started.");
+    } catch (err) {
+      setFramegrabError(errorMessage(err));
+    } finally {
+      setFramegrabAction(null);
+    }
+  }, [
+    capturedFramegrab,
+    framegrabAction,
+    framegrabFileName.fullName,
+    framegrabFormat,
+  ]);
 
   const updateClipRange = useCallback(
     (nextStart: number, nextEnd: number) => {
@@ -349,6 +542,8 @@ export default function EditorScreen({ session, onBack }: Props) {
       handleTimelineZoomOut={handleTimelineZoomOut}
       canZoomIn={canZoomIn}
       canZoomOut={canZoomOut}
+      onFramegrabClick={handleOpenFramegrabDialog}
+      framegrabDisabledReason={framegrabDisabledReason}
       onPreviewTimeCommit={handlePreviewTimeCommit}
       onStartTimeCommit={handleStartTimeCommit}
       onEndTimeCommit={handleEndTimeCommit}
@@ -525,6 +720,26 @@ export default function EditorScreen({ session, onBack }: Props) {
             onResetFileNameTemplate={handleResetFileNameTemplate}
             onClose={handleCloseExportDialog}
             onExport={() => void handleExport()}
+          />
+        </Suspense>
+      )}
+
+      {framegrabDialogMounted && capturedFramegrab && (
+        <Suspense fallback={null}>
+          <EditorFramegrabDialog
+            isOpen={framegrabDialogOpen}
+            title={session.title}
+            frameTime={capturedFramegrab.time}
+            dimensions={capturedFramegrab.dimensions}
+            selectedFormat={framegrabFormat}
+            onFormatChange={handleFramegrabFormatChange}
+            fileNamePreview={framegrabFileName.fullName}
+            processingAction={framegrabAction}
+            error={framegrabError}
+            message={framegrabMessage}
+            onClose={handleCloseFramegrabDialog}
+            onCopy={() => void handleCopyFramegrab()}
+            onDownload={() => void handleDownloadFramegrab()}
           />
         </Suspense>
       )}

@@ -27,6 +27,10 @@ flowchart TD
     C1 --> C3["exportMetadata"]
     C1 --> C4["subtitle burn-in processor"]
 
+    A --> H["EditorFramegrabDialog"]
+    H --> H1["framegrab canvas helpers"]
+    H --> C2
+
     D --> D1["timelineZoom helpers"]
 
     F["SourcesModal"] --> F1["useSourcesModalState"]
@@ -263,6 +267,9 @@ flowchart LR
     D --> K["Preview tracks for browser playback"]
     D --> L["Optional playbackReadyRange for HLS preview only"]
     L --> M["EditorTimeline Preview Ready overlay and note"]
+    D --> P["Preview canvas with optional subtitles"]
+    P --> Q["Framegrab dialog"]
+    Q --> R["PNG clipboard or image download"]
     B --> G["useEditorExport source selection"]
     C --> G
     F --> G

@@ -1,5 +1,13 @@
 import { useMemo, type CSSProperties, type ReactElement } from "react";
-import { Pause, Play, Volume2, VolumeX, ZoomIn, ZoomOut } from "lucide-react";
+import {
+  Camera,
+  Pause,
+  Play,
+  Volume2,
+  VolumeX,
+  ZoomIn,
+  ZoomOut,
+} from "lucide-react";
 import {
   Tooltip,
   TooltipContent,
@@ -28,6 +36,8 @@ interface EditorControlsProps {
   handleTimelineZoomOut: () => void;
   canZoomIn: boolean;
   canZoomOut: boolean;
+  onFramegrabClick: () => void;
+  framegrabDisabledReason: string | null;
   onPreviewTimeCommit: (time: number) => void | Promise<void>;
   onStartTimeCommit: (time: number) => void | Promise<void>;
   onEndTimeCommit: (time: number) => void | Promise<void>;
@@ -74,6 +84,8 @@ export function EditorControls({
   handleTimelineZoomOut,
   canZoomIn,
   canZoomOut,
+  onFramegrabClick,
+  framegrabDisabledReason,
   onPreviewTimeCommit,
   onStartTimeCommit,
   onEndTimeCommit,
@@ -93,6 +105,7 @@ export function EditorControls({
   const volumeRangeFillPercent = `${
     Math.min(Math.max(muted ? 0 : volume, 0), 1) * 100
   }%`;
+  const framegrabDisabled = Boolean(framegrabDisabledReason);
 
   return (
     <div className="border-b border-editor-border bg-editor-panel px-3 py-2">
@@ -208,6 +221,20 @@ export function EditorControls({
               </button>
             </ControlTooltip>
           </div>
+          <ControlTooltip
+            label={framegrabDisabledReason ?? "Export current frame"}
+            disabled={framegrabDisabled}
+          >
+            <button
+              type="button"
+              onClick={onFramegrabClick}
+              disabled={framegrabDisabled}
+              className="flex h-8 w-8 items-center justify-center rounded-[var(--radius-control)] border border-editor-border bg-editor-control text-muted-foreground transition-colors hover:bg-editor-control-hover hover:text-foreground focus-visible:ring-2 focus-visible:ring-editor-accent/35 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-45"
+              aria-label="Export current preview frame"
+            >
+              <Camera className="h-4 w-4" />
+            </button>
+          </ControlTooltip>
         </div>
         <div className="min-w-0 flex-1" />
         <div className="flex flex-wrap items-center justify-end gap-x-4 gap-y-2 text-right sm:gap-x-6">
