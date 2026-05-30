@@ -37,16 +37,19 @@ export function ProviderBadge({
   name,
   selected,
   large = false,
+  compact = false,
 }: {
   providerId: string;
   name: string;
   selected: boolean;
   large?: boolean;
+  compact?: boolean;
 }) {
   return (
     <div
       className={cn(
-        "rounded-2xl p-3 transition-colors",
+        compact ? "rounded-md p-2" : "rounded-2xl p-3",
+        "transition-colors",
         selected ? "bg-primary/15" : "bg-card",
       )}
     >
@@ -73,7 +76,7 @@ export function ProviderConnectError({
 
   if (!isScreen) {
     return (
-      <div className="rounded-2xl border border-destructive/20 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+      <div className="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
         {error}
       </div>
     );
@@ -110,7 +113,7 @@ export function ProviderStatusMessage({
         "text-center text-sm text-muted-foreground",
         isScreen
           ? "py-12"
-          : "rounded-3xl border border-border bg-background/60 px-6 py-10",
+          : "rounded-lg border border-border bg-background px-4 py-8",
       )}
     >
       {children}
@@ -142,7 +145,8 @@ export function ProviderOption({
     onClick: () => onSelect(provider.id),
     disabled: authenticating && !isBusy,
     className: cn(
-      "w-full rounded-2xl border px-4 py-4 text-left transition-colors disabled:cursor-not-allowed disabled:opacity-60",
+      "w-full border text-left transition-colors disabled:cursor-not-allowed disabled:opacity-60",
+      isScreen ? "rounded-2xl px-4 py-4" : "rounded-lg px-3 py-3",
       isSelected
         ? isScreen
           ? "border-primary/40 bg-primary/10 shadow-lg"
@@ -152,11 +156,12 @@ export function ProviderOption({
   };
 
   const content = (
-    <div className="flex items-start gap-4">
+    <div className={cn("flex items-start", isScreen ? "gap-4" : "gap-3")}>
       <ProviderBadge
         providerId={provider.id}
         name={provider.name}
         selected={isSelected}
+        compact={!isScreen}
       />
       <div className="min-w-0 flex-1">
         <div className="flex items-center justify-between gap-3">
@@ -164,7 +169,12 @@ export function ProviderOption({
             <p className="text-xs font-medium uppercase tracking-[var(--tracking-caps-xl)] text-muted-foreground">
               {details.eyebrow}
             </p>
-            <h2 className="mt-1 text-lg font-semibold text-foreground">
+            <h2
+              className={cn(
+                "mt-1 font-semibold text-foreground",
+                isScreen ? "text-lg" : "text-sm",
+              )}
+            >
               {provider.name}
             </h2>
           </div>
@@ -180,12 +190,17 @@ export function ProviderOption({
                 Selected
               </motion.span>
             ) : (
-              <span className="rounded-full border border-primary/20 bg-primary/10 px-2.5 py-1 text-[11px] font-medium uppercase tracking-[var(--tracking-caps-lg)] text-primary">
+              <span className="rounded-md border border-primary/20 bg-primary/10 px-2 py-1 text-[10px] font-semibold uppercase tracking-[var(--tracking-caps-md)] text-primary">
                 Selected
               </span>
             ))}
         </div>
-        <p className="mt-2 text-sm leading-6 text-muted-foreground">
+        <p
+          className={cn(
+            "mt-2 text-sm text-muted-foreground",
+            isScreen ? "leading-6" : "leading-5",
+          )}
+        >
           {details.summary}
         </p>
         {isBusy && (

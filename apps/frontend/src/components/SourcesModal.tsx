@@ -66,7 +66,7 @@ export default function SourcesModal({
       ariaLabel="Manage sources"
       initialFocus={searchInputRef}
       portalClassName="p-4 sm:p-6"
-      popupClassName="h-full max-w-6xl rounded-4xl"
+      popupClassName="h-full max-w-6xl rounded-lg"
     >
       <SourcesModalHeader
         counts={counts}
@@ -94,8 +94,8 @@ export default function SourcesModal({
         onStatusFilterChange={setStatusFilter}
       />
 
-      <div className="flex-1 overflow-y-auto px-5 py-5 sm:px-8 sm:py-6">
-        <div className="space-y-4">
+      <div className="cliparr-editor-scrollbar flex-1 overflow-y-auto px-4 py-4 sm:px-5">
+        <div className="space-y-3">
           <SourcesModalAlerts error={error} feedback={feedback} />
 
           {showConnectPanel && (
@@ -107,11 +107,11 @@ export default function SourcesModal({
           )}
 
           {loading ? (
-            <div className="grid gap-4 lg:grid-cols-2">
+            <div className="grid gap-3 lg:grid-cols-2">
               {Array.from({ length: 4 }).map((_, index) => (
                 <div
                   key={index}
-                  className="h-72 animate-pulse rounded-3xl border border-border bg-muted/60"
+                  className="h-56 animate-pulse rounded-lg border border-border bg-muted/60"
                 />
               ))}
             </div>
@@ -126,7 +126,7 @@ export default function SourcesModal({
               description="Try another filter or search."
             />
           ) : (
-            <div className="grid gap-4 xl:grid-cols-2">
+            <div className="grid gap-3 xl:grid-cols-2">
               {filteredSources.map((source) => (
                 <SourceCard
                   key={source.id}
