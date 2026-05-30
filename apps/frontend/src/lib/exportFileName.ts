@@ -1,6 +1,9 @@
 import type { MediaExportMetadata } from "@/providers/types";
 import type { ExportFormat } from "@/lib/exportTypes";
-import type { FramegrabImageFormat } from "@/lib/framegrab";
+import {
+  framegrabExtensionFor,
+  type FramegrabImageFormat,
+} from "@/lib/framegrab";
 
 export type ExportFileNameTemplateKind = "movie" | "episode";
 
@@ -254,7 +257,7 @@ export function buildFramegrabFileName({
 
   return {
     baseName,
-    fullName: `${baseName}.${format}`,
+    fullName: `${baseName}${framegrabExtensionFor(format)}`,
     templateKind,
   };
 }
