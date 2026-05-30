@@ -147,10 +147,10 @@ export function EditorEditableTimecode({
           aria-invalid={invalid || undefined}
           aria-label={`Edit ${ariaLabel}`}
           autoComplete="off"
-          className={`h-7 border bg-background px-1.5 font-mono text-sm font-semibold text-foreground outline-none transition-colors focus:ring-2 ${
+          className={`h-7 border bg-editor-control px-1.5 font-mono text-sm font-semibold text-foreground outline-none transition-colors focus:ring-2 ${
             invalid
               ? "border-destructive focus:border-destructive focus:ring-destructive/20"
-              : "border-input focus:border-ring focus:ring-ring/40"
+              : "border-editor-border focus:border-editor-accent focus:ring-editor-accent/35"
           } ${inputClassName}`}
           inputMode="text"
           onBlur={() =>
@@ -174,7 +174,7 @@ export function EditorEditableTimecode({
               ? `${ariaLabel}: ${accessibleValue}`
               : `Edit ${ariaLabel}: ${accessibleValue}`
           }
-          className={`inline-flex min-w-0 items-center border-0 bg-transparent p-0 text-left outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring/45 disabled:cursor-default disabled:opacity-100 ${buttonClassName}`}
+          className={`inline-flex min-w-0 items-center border-0 bg-transparent p-0 text-left outline-none transition-colors focus-visible:ring-2 focus-visible:ring-editor-accent/35 disabled:cursor-default disabled:opacity-100 ${buttonClassName}`}
           disabled={disabled}
           onClick={startEditing}
           type="button"

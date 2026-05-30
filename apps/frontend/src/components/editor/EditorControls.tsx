@@ -1,4 +1,4 @@
-import { useMemo, type ReactElement } from "react";
+import { useMemo, type CSSProperties, type ReactElement } from "react";
 import { Pause, Play, Volume2, VolumeX, ZoomIn, ZoomOut } from "lucide-react";
 import {
   Tooltip,
@@ -87,9 +87,12 @@ export function EditorControls({
       { label: "Duration", value: clipDuration, emphasized: true },
     ];
   }, [endTime, onEndTimeCommit, onStartTimeCommit, startTime]);
+  const volumeRangeFillPercent = `${
+    Math.min(Math.max(muted ? 0 : volume, 0), 1) * 100
+  }%`;
 
   return (
-    <div className="border-b border-border px-3 py-2">
+    <div className="border-b border-editor-border bg-editor-panel px-3 py-2">
       <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
         <div className="flex items-center gap-2.5">
           <ControlTooltip
@@ -103,10 +106,11 @@ export function EditorControls({
             disabled={loadingPreview}
           >
             <button
+              type="button"
               onClick={togglePlay}
               disabled={loadingPreview}
               aria-label={playing ? "Pause preview" : "Play preview"}
-              className="flex h-8 w-8 items-center justify-center border border-border bg-accent text-foreground transition-colors hover:bg-accent/80 disabled:cursor-not-allowed disabled:opacity-50"
+              className="flex h-8 w-8 items-center justify-center rounded-[var(--radius-control)] border border-editor-border bg-editor-control text-muted-foreground transition-colors hover:bg-editor-control-hover hover:text-foreground focus-visible:ring-2 focus-visible:ring-editor-accent/35 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50"
             >
               {playing ? (
                 <Pause className="h-4 w-4" />
@@ -117,7 +121,7 @@ export function EditorControls({
           </ControlTooltip>
           <EditorEditableTimecode
             ariaLabel="preview time"
-            buttonClassName="text-foreground"
+            buttonClassName="rounded-[var(--radius-control)] px-1 text-foreground hover:bg-editor-control-hover focus-visible:ring-editor-accent/35"
             disabled={!canEditPreviewTime}
             onCommit={onPreviewTimeCommit}
             value={currentTime}
@@ -130,7 +134,7 @@ export function EditorControls({
             />
           </EditorEditableTimecode>
         </div>
-        <div className="h-5 w-px bg-border" />
+        <div className="h-5 w-px bg-editor-border" />
         <div className="flex items-center gap-2">
           <ControlTooltip
             label={muted || volume === 0 ? "Unmute preview" : "Mute preview"}
@@ -138,7 +142,7 @@ export function EditorControls({
             <button
               type="button"
               onClick={() => setMuted((current) => !current)}
-              className="flex h-8 w-8 items-center justify-center border border-border bg-background text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+              className="flex h-8 w-8 items-center justify-center rounded-[var(--radius-control)] border border-editor-border bg-editor-control text-muted-foreground transition-colors hover:bg-editor-control-hover hover:text-foreground focus-visible:ring-2 focus-visible:ring-editor-accent/35 focus-visible:outline-none"
               aria-label={
                 muted || volume === 0 ? "Unmute preview" : "Mute preview"
               }
@@ -161,10 +165,15 @@ export function EditorControls({
               setVolume(nextVolume);
               setMuted(nextVolume === 0);
             }}
-            className="w-24 accent-primary sm:w-28"
+            className="cliparr-editor-range w-24 sm:w-28"
             aria-label="Preview volume"
+            style={
+              {
+                "--cliparr-range-fill": volumeRangeFillPercent,
+              } as CSSProperties
+            }
           />
-          <div className="ml-1 flex items-center overflow-hidden border border-border bg-background">
+          <div className="ml-1 flex items-center overflow-hidden rounded-[var(--radius-control)] border border-editor-border bg-editor-control">
             <ControlTooltip
               label={
                 canZoomOut ? "Zoom timeline out" : "Already fully zoomed out"
@@ -175,7 +184,7 @@ export function EditorControls({
                 type="button"
                 onClick={handleTimelineZoomOut}
                 disabled={!canZoomOut}
-                className="flex h-8 w-8 items-center justify-center text-muted-foreground transition-colors hover:bg-accent hover:text-foreground disabled:cursor-not-allowed disabled:opacity-45"
+                className="flex h-8 w-8 items-center justify-center text-muted-foreground transition-colors hover:bg-editor-control-hover hover:text-foreground focus-visible:ring-2 focus-visible:ring-editor-accent/35 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-45"
                 aria-label="Zoom timeline out"
               >
                 <ZoomOut className="h-4 w-4" />
@@ -189,7 +198,7 @@ export function EditorControls({
                 type="button"
                 onClick={handleTimelineZoomIn}
                 disabled={!canZoomIn}
-                className="flex h-8 w-8 items-center justify-center border-l border-border text-muted-foreground transition-colors hover:bg-accent hover:text-foreground disabled:cursor-not-allowed disabled:opacity-45"
+                className="flex h-8 w-8 items-center justify-center border-l border-editor-border text-muted-foreground transition-colors hover:bg-editor-control-hover hover:text-foreground focus-visible:ring-2 focus-visible:ring-editor-accent/35 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-45"
                 aria-label="Zoom timeline in"
               >
                 <ZoomIn className="h-4 w-4" />
@@ -207,7 +216,7 @@ export function EditorControls({
               {metric.onCommit ? (
                 <EditorEditableTimecode
                   ariaLabel={`${metric.label} time`}
-                  buttonClassName="font-mono text-sm font-semibold text-muted-foreground hover:text-foreground"
+                  buttonClassName="rounded-[var(--radius-control)] px-1 font-mono text-sm font-semibold text-muted-foreground hover:bg-editor-control-hover hover:text-foreground focus-visible:ring-editor-accent/35"
                   disabled={!canEditClipRange}
                   onCommit={metric.onCommit}
                   value={metric.value}

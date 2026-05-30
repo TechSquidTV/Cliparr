@@ -32,21 +32,21 @@ export function EditorPlaybackSourcePanel({
       : null);
 
   return (
-    <section className={cn("flex min-h-0 flex-col gap-3 p-3", className)}>
-      <div className="overflow-hidden rounded-md border border-sidebar-border bg-card">
-        <div className="border-b border-sidebar-border px-3 py-2">
-          <div className="text-[11px] font-semibold uppercase tracking-[var(--tracking-caps-lg)] text-muted-foreground">
+    <section className={cn("flex min-h-0 flex-col", className)}>
+      <div className="overflow-hidden border border-editor-border bg-editor-panel-raised">
+        <div className="border-b border-editor-border bg-editor-panel-muted px-3 py-2">
+          <div className="text-[10px] font-semibold uppercase tracking-[var(--tracking-caps-md)] text-muted-foreground">
             Preview Source
           </div>
         </div>
 
-        <div className="p-3">
+        <div className="px-3 py-2.5">
           <div className="text-sm font-medium text-sidebar-foreground">
             {displaySourceLabel(previewSourceLabel)}
           </div>
 
           {sourceNote && (
-            <p className="mt-3 border-t border-sidebar-border pt-3 text-xs leading-5 text-muted-foreground">
+            <p className="mt-2.5 border-t border-editor-border pt-2.5 text-xs leading-5 text-muted-foreground">
               {sourceNote}
             </p>
           )}

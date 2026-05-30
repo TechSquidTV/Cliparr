@@ -1,4 +1,4 @@
-import type { Dispatch, SetStateAction } from "react";
+import type { CSSProperties, Dispatch, ReactNode, SetStateAction } from "react";
 import { LoaderCircle, Sparkles } from "lucide-react";
 import {
   Select,
@@ -41,7 +41,7 @@ interface EditorSubtitlePanelProps {
 }
 
 function compactSelectTriggerClassName() {
-  return "h-8 w-full min-w-0 rounded-[var(--radius-control)] border-sidebar-border bg-sidebar text-xs font-medium text-sidebar-foreground shadow-none focus-visible:ring-2";
+  return "h-8 w-full min-w-0 rounded-[var(--radius-control)] border-editor-border bg-editor-control px-2.5 text-xs font-medium text-sidebar-foreground shadow-none hover:bg-editor-control-hover focus-visible:ring-2 focus-visible:ring-editor-accent/35";
 }
 
 function subtitleTrackLabel(track: PlaybackSubtitleTrack) {
@@ -70,7 +70,100 @@ function subtitleTrackLabel(track: PlaybackSubtitleTrack) {
     : baseLabel;
 }
 
-function NumberSlider({
+function propertyLabelClassName() {
+  return "text-[10px] font-semibold uppercase tracking-[var(--tracking-caps-md)] text-muted-foreground";
+}
+
+function EditorPropertySection({
+  title,
+  action,
+  children,
+}: {
+  title: string;
+  action?: ReactNode;
+  children: ReactNode;
+}) {
+  return (
+    <section className="border-b border-editor-border/80 px-3 py-3 last:border-b-0">
+      <div className="flex min-h-7 items-center justify-between gap-3">
+        <div className={propertyLabelClassName()}>{title}</div>
+        {action}
+      </div>
+      <div className="mt-2.5 space-y-2.5">{children}</div>
+    </section>
+  );
+}
+
+function EditorPropertyRow({
+  label,
+  value,
+  children,
+  align = "center",
+}: {
+  label: string;
+  value?: ReactNode;
+  children: ReactNode;
+  align?: "center" | "start";
+}) {
+  return (
+    <div
+      className={cn(
+        "grid min-h-8 grid-cols-[minmax(4.75rem,0.72fr)_minmax(0,1.28fr)] gap-3",
+        align === "start" ? "items-start" : "items-center",
+      )}
+    >
+      <span
+        className={cn(propertyLabelClassName(), align === "start" && "pt-2")}
+      >
+        {label}
+      </span>
+      <span className="min-w-0">
+        {value ? (
+          <span className="mb-1 flex justify-end font-mono text-[10px] text-muted-foreground">
+            {value}
+          </span>
+        ) : null}
+        {children}
+      </span>
+    </div>
+  );
+}
+
+function EditorToggle({
+  checked,
+  disabled = false,
+  onCheckedChange,
+}: {
+  checked: boolean;
+  disabled?: boolean;
+  onCheckedChange: (checked: boolean) => void;
+}) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={checked}
+      disabled={disabled}
+      onClick={() => onCheckedChange(!checked)}
+      className={cn(
+        "relative h-5 w-9 rounded-full border border-editor-border bg-editor-control transition-colors focus-visible:ring-2 focus-visible:ring-editor-accent/35 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-55",
+        checked &&
+          !disabled &&
+          "border-editor-accent/55 bg-editor-control-active",
+      )}
+    >
+      <span
+        aria-hidden="true"
+        className={cn(
+          "absolute top-1/2 left-1 h-3 w-3 -translate-y-1/2 rounded-full bg-muted-foreground transition-transform",
+          checked && "translate-x-4 bg-editor-accent",
+        )}
+      />
+    </button>
+  );
+}
+
+function EditorRangeControl({
   label,
   value,
   min,
@@ -89,17 +182,20 @@ function NumberSlider({
   disabled?: boolean;
   onChange: (value: number) => void;
 }) {
+  const rangeFillPercent =
+    max > min ? Math.min(Math.max((value - min) / (max - min), 0), 1) * 100 : 0;
+
   return (
-    <label className="space-y-1.5">
-      <div className="flex items-center justify-between gap-2">
-        <span className="text-[11px] font-semibold uppercase tracking-[var(--tracking-caps-lg)] text-muted-foreground">
-          {label}
-        </span>
-        <span className="font-mono text-[11px] text-muted-foreground">
+    <EditorPropertyRow
+      label={label}
+      value={
+        <>
           {value}
           {unit}
-        </span>
-      </div>
+        </>
+      }
+      align="start"
+    >
       <input
         type="range"
         min={min}
@@ -108,13 +204,18 @@ function NumberSlider({
         value={value}
         disabled={disabled}
         onChange={(event) => onChange(Number(event.target.value))}
-        className="w-full accent-primary disabled:cursor-not-allowed disabled:opacity-60"
+        className="cliparr-editor-range w-full"
+        style={
+          {
+            "--cliparr-range-fill": `${rangeFillPercent}%`,
+          } as CSSProperties
+        }
       />
-    </label>
+    </EditorPropertyRow>
   );
 }
 
-function ColorControl({
+function EditorColorControl({
   label,
   value,
   disabled = false,
@@ -126,24 +227,28 @@ function ColorControl({
   onChange: (value: string) => void;
 }) {
   return (
-    <label className="space-y-1.5">
-      <span className="text-[11px] font-semibold uppercase tracking-[var(--tracking-caps-lg)] text-muted-foreground">
-        {label}
-      </span>
-      <div className="flex items-center gap-2 rounded-[var(--radius-control)] border border-sidebar-border bg-sidebar px-2.5 py-2">
-        <input
-          type="color"
-          value={value}
-          disabled={disabled}
-          onChange={(event) => onChange(event.target.value)}
-          className="h-7 w-10 cursor-pointer rounded-[var(--radius-control)] border-0 bg-transparent p-0 disabled:cursor-not-allowed disabled:opacity-60"
-          aria-label={label}
-        />
-        <span className="font-mono text-xs text-sidebar-foreground">
+    <EditorPropertyRow label={label}>
+      <span className="flex h-8 min-w-0 items-center gap-2 rounded-[var(--radius-control)] border border-editor-border bg-editor-control px-2">
+        <span className="relative h-4 w-6 shrink-0">
+          <span
+            aria-hidden="true"
+            className="absolute inset-0 border border-editor-border"
+            style={{ backgroundColor: value }}
+          />
+          <input
+            type="color"
+            value={value}
+            disabled={disabled}
+            onChange={(event) => onChange(event.target.value)}
+            className="absolute inset-0 h-full w-full cursor-pointer border-0 bg-transparent p-0 opacity-0 disabled:cursor-not-allowed"
+            aria-label={label}
+          />
+        </span>
+        <span className="min-w-0 truncate font-mono text-[11px] text-sidebar-foreground">
           {value.toUpperCase()}
         </span>
-      </div>
-    </label>
+      </span>
+    </EditorPropertyRow>
   );
 }
 
@@ -196,37 +301,24 @@ export function EditorSubtitlePanel({
     }));
   }
 
-  return (
-    <div className="min-h-0 flex-1 overflow-y-auto p-3">
-      <section className="space-y-4 border border-sidebar-border bg-[color-mix(in_oklch,var(--sidebar-accent)_64%,var(--sidebar))] p-3">
-        <div className="flex items-start justify-between gap-3">
-          <div className="space-y-1">
-            <div className="text-[11px] font-semibold uppercase tracking-[var(--tracking-caps-lg)] text-muted-foreground">
-              Subtitles
-            </div>
-          </div>
+  const subtitleToggle = (
+    <EditorToggle
+      checked={subtitlesEnabled}
+      disabled={!canEnableBurnIn}
+      onCheckedChange={onSubtitlesEnabledChange}
+    />
+  );
 
-          {subtitleToggleTooltip ? (
+  return (
+    <div className="cliparr-editor-scrollbar min-h-0 flex-1 overflow-y-auto bg-editor-panel text-sidebar-foreground">
+      <EditorPropertySection
+        title="Subtitles"
+        action={
+          subtitleToggleTooltip ? (
             <Tooltip>
               <TooltipTrigger asChild>
                 <span className="inline-flex" tabIndex={0}>
-                  <label
-                    className={cn(
-                      "inline-flex items-center gap-2 rounded-[var(--radius-control)] border px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[var(--tracking-caps-lg)]",
-                      "border-sidebar-border bg-sidebar text-muted-foreground",
-                    )}
-                  >
-                    <input
-                      type="checkbox"
-                      checked={subtitlesEnabled}
-                      disabled={!canEnableBurnIn}
-                      onChange={(event) =>
-                        onSubtitlesEnabledChange(event.target.checked)
-                      }
-                      className="h-3.5 w-3.5 accent-primary"
-                    />
-                    Enabled
-                  </label>
+                  {subtitleToggle}
                 </span>
               </TooltipTrigger>
               <TooltipContent side="left">
@@ -234,32 +326,11 @@ export function EditorSubtitlePanel({
               </TooltipContent>
             </Tooltip>
           ) : (
-            <label
-              className={cn(
-                "inline-flex items-center gap-2 rounded-[var(--radius-control)] border px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[var(--tracking-caps-lg)]",
-                subtitlesEnabled && canEnableBurnIn
-                  ? "border-primary/35 bg-primary/10 text-primary"
-                  : "border-sidebar-border bg-sidebar text-muted-foreground",
-              )}
-            >
-              <input
-                type="checkbox"
-                checked={subtitlesEnabled}
-                disabled={!canEnableBurnIn}
-                onChange={(event) =>
-                  onSubtitlesEnabledChange(event.target.checked)
-                }
-                className="h-3.5 w-3.5 accent-primary"
-              />
-              Enabled
-            </label>
-          )}
-        </div>
-
-        <label className="space-y-1.5">
-          <span className="text-[11px] font-semibold uppercase tracking-[var(--tracking-caps-lg)] text-muted-foreground">
-            Track
-          </span>
+            subtitleToggle
+          )
+        }
+      >
+        <EditorPropertyRow label="Track">
           <Select
             value={selectedSubtitleTrackKey}
             onValueChange={onSelectedSubtitleTrackKeyChange}
@@ -286,23 +357,16 @@ export function EditorSubtitlePanel({
               </SelectGroup>
             </SelectContent>
           </Select>
-        </label>
+        </EditorPropertyRow>
 
         {!canEnableBurnIn && (
-          <div
-            className={cn(
-              "border px-3 py-2 text-xs",
-              subtitleTracks.length === 0
-                ? "border-sidebar-border bg-sidebar text-muted-foreground"
-                : "border-amber-500/30 bg-amber-500/8 text-amber-700 dark:text-amber-300",
-            )}
-          >
+          <div className="border border-editor-border bg-editor-warning px-2.5 py-2 text-xs text-editor-warning-foreground">
             <div className="flex items-start gap-2">
-              <Sparkles className="mt-0.5 h-4 w-4 shrink-0" />
+              <Sparkles className="mt-0.5 h-3.5 w-3.5 shrink-0" />
               <div className="space-y-1">
                 <p>{subtitleWarning}</p>
                 {selectedSubtitleTrack && (
-                  <p className="text-[11px] opacity-85">
+                  <p className="text-[11px] text-muted-foreground">
                     {selectedSubtitleTrack.codec?.toUpperCase() ??
                       "Unknown codec"}
                     {selectedSubtitleTrack.languageCode
@@ -325,39 +389,37 @@ export function EditorSubtitlePanel({
         )}
 
         {subtitleError && (
-          <div className="border border-destructive/35 bg-destructive/10 px-3 py-2 text-xs text-destructive">
+          <div className="border border-destructive/35 bg-destructive/10 px-2.5 py-2 text-xs text-destructive">
             {subtitleError}
           </div>
         )}
+      </EditorPropertySection>
 
-        <div
-          aria-disabled={styleControlsDisabled}
-          className={cn(
-            "space-y-3 border-t border-sidebar-border pt-3 transition-opacity",
-            styleControlsDisabled && "opacity-65",
-          )}
+      <div
+        aria-disabled={styleControlsDisabled}
+        className={cn(
+          "transition-opacity",
+          styleControlsDisabled && "opacity-60",
+        )}
+      >
+        <EditorPropertySection
+          title="Text"
+          action={
+            styleTooltip ? (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span className="text-[10px] font-semibold uppercase tracking-[var(--tracking-caps-md)] text-muted-foreground">
+                    Locked
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent side="top" align="end">
+                  {styleTooltip}
+                </TooltipContent>
+              </Tooltip>
+            ) : null
+          }
         >
-          {styleTooltip ? (
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <div className="w-fit text-[11px] font-semibold uppercase tracking-[var(--tracking-caps-lg)] text-muted-foreground">
-                  Style
-                </div>
-              </TooltipTrigger>
-              <TooltipContent side="top" align="start">
-                {styleTooltip}
-              </TooltipContent>
-            </Tooltip>
-          ) : (
-            <div className="text-[11px] font-semibold uppercase tracking-[var(--tracking-caps-lg)] text-muted-foreground">
-              Style
-            </div>
-          )}
-
-          <label className="block space-y-1.5">
-            <span className="text-[11px] font-semibold uppercase tracking-[var(--tracking-caps-lg)] text-muted-foreground">
-              Font
-            </span>
+          <EditorPropertyRow label="Font">
             <Select
               value={subtitleStyleSettings.fontFamily}
               onValueChange={(value) => updateStyleSetting("fontFamily", value)}
@@ -409,83 +471,87 @@ export function EditorSubtitlePanel({
                 )}
               </SelectContent>
             </Select>
-          </label>
+          </EditorPropertyRow>
 
-          <div className="grid gap-3">
-            <ColorControl
-              label="Text Color"
-              value={subtitleStyleSettings.fontColor}
-              disabled={styleControlsDisabled}
-              onChange={(value) => updateStyleSetting("fontColor", value)}
-            />
-            <ColorControl
-              label="Shadow Color"
-              value={subtitleStyleSettings.shadowColor}
-              disabled={styleControlsDisabled}
-              onChange={(value) => updateStyleSetting("shadowColor", value)}
-            />
-            <ColorControl
-              label="Stroke Color"
-              value={subtitleStyleSettings.strokeColor}
-              disabled={styleControlsDisabled}
-              onChange={(value) => updateStyleSetting("strokeColor", value)}
-            />
-          </div>
+          <EditorColorControl
+            label="Color"
+            value={subtitleStyleSettings.fontColor}
+            disabled={styleControlsDisabled}
+            onChange={(value) => updateStyleSetting("fontColor", value)}
+          />
+          <EditorRangeControl
+            label="Size"
+            value={subtitleStyleSettings.fontSize}
+            min={16}
+            max={150}
+            step={1}
+            unit="px"
+            disabled={styleControlsDisabled}
+            onChange={(value) => updateStyleSetting("fontSize", value)}
+          />
+        </EditorPropertySection>
 
-          <div className="space-y-3">
-            <NumberSlider
-              label="Font Size"
-              value={subtitleStyleSettings.fontSize}
-              min={16}
-              max={150}
-              step={1}
-              unit="px"
-              disabled={styleControlsDisabled}
-              onChange={(value) => updateStyleSetting("fontSize", value)}
-            />
-            <NumberSlider
-              label="Shadow Blur"
-              value={subtitleStyleSettings.shadowBlur}
-              min={0}
-              max={24}
-              step={1}
-              unit="px"
-              disabled={styleControlsDisabled}
-              onChange={(value) => updateStyleSetting("shadowBlur", value)}
-            />
-            <NumberSlider
-              label="Shadow Offset"
-              value={subtitleStyleSettings.shadowOffsetY}
-              min={-16}
-              max={24}
-              step={1}
-              unit="px"
-              disabled={styleControlsDisabled}
-              onChange={(value) => updateStyleSetting("shadowOffsetY", value)}
-            />
-            <NumberSlider
-              label="Stroke Width"
-              value={subtitleStyleSettings.strokeWidth}
-              min={0}
-              max={32}
-              step={0.5}
-              unit="px"
-              disabled={styleControlsDisabled}
-              onChange={(value) => updateStyleSetting("strokeWidth", value)}
-            />
-            <NumberSlider
-              label="Bottom Margin"
-              value={subtitleStyleSettings.bottomMargin}
-              min={0}
-              max={180}
-              step={1}
-              unit="px"
-              disabled={styleControlsDisabled}
-              onChange={(value) => updateStyleSetting("bottomMargin", value)}
-            />
-          </div>
-        </div>
-      </section>
+        <EditorPropertySection title="Shadow">
+          <EditorColorControl
+            label="Color"
+            value={subtitleStyleSettings.shadowColor}
+            disabled={styleControlsDisabled}
+            onChange={(value) => updateStyleSetting("shadowColor", value)}
+          />
+          <EditorRangeControl
+            label="Blur"
+            value={subtitleStyleSettings.shadowBlur}
+            min={0}
+            max={24}
+            step={1}
+            unit="px"
+            disabled={styleControlsDisabled}
+            onChange={(value) => updateStyleSetting("shadowBlur", value)}
+          />
+          <EditorRangeControl
+            label="Offset"
+            value={subtitleStyleSettings.shadowOffsetY}
+            min={-16}
+            max={24}
+            step={1}
+            unit="px"
+            disabled={styleControlsDisabled}
+            onChange={(value) => updateStyleSetting("shadowOffsetY", value)}
+          />
+        </EditorPropertySection>
+
+        <EditorPropertySection title="Stroke">
+          <EditorColorControl
+            label="Color"
+            value={subtitleStyleSettings.strokeColor}
+            disabled={styleControlsDisabled}
+            onChange={(value) => updateStyleSetting("strokeColor", value)}
+          />
+          <EditorRangeControl
+            label="Width"
+            value={subtitleStyleSettings.strokeWidth}
+            min={0}
+            max={32}
+            step={0.5}
+            unit="px"
+            disabled={styleControlsDisabled}
+            onChange={(value) => updateStyleSetting("strokeWidth", value)}
+          />
+        </EditorPropertySection>
+
+        <EditorPropertySection title="Position">
+          <EditorRangeControl
+            label="Bottom"
+            value={subtitleStyleSettings.bottomMargin}
+            min={0}
+            max={180}
+            step={1}
+            unit="px"
+            disabled={styleControlsDisabled}
+            onChange={(value) => updateStyleSetting("bottomMargin", value)}
+          />
+        </EditorPropertySection>
+      </div>
     </div>
   );
 }

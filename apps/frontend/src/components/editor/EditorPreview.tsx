@@ -36,7 +36,7 @@ export function EditorPreview({
 
   return (
     <div
-      className="group relative aspect-video h-full max-h-full w-auto max-w-full overflow-hidden bg-[var(--editor-preview-stage)]"
+      className="group relative aspect-video h-full max-h-full w-auto max-w-full overflow-hidden bg-editor-monitor"
       style={aspectRatio ? { aspectRatio } : undefined}
     >
       <canvas
@@ -53,10 +53,10 @@ export function EditorPreview({
               togglePlay();
             }}
             aria-label={playing ? "Pause playback" : "Play playback"}
-            className={`pointer-events-auto flex h-11 w-11 items-center justify-center border border-[var(--editor-preview-overlay-border)] bg-card/92 text-foreground transition-all ${
+            className={`pointer-events-auto flex h-11 w-11 items-center justify-center rounded-[var(--radius-control)] border border-editor-border bg-editor-panel/92 text-foreground transition-all focus-visible:ring-2 focus-visible:ring-editor-accent/35 focus-visible:outline-none ${
               playing
                 ? "scale-95 opacity-0"
-                : "scale-100 opacity-100 group-hover:bg-card"
+                : "scale-100 opacity-100 group-hover:bg-editor-panel-raised"
             }`}
           >
             <Play className="ml-0.5 h-5 w-5" />

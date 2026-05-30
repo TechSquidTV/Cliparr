@@ -308,7 +308,7 @@ export default function EditorScreen({ session, onBack }: Props) {
   }
 
   return (
-    <div className="flex h-dvh flex-col overflow-hidden bg-background text-foreground">
+    <div className="flex h-dvh flex-col overflow-hidden bg-editor-workspace text-foreground">
       <EditorHeader
         title={session.title}
         onBack={onBack}
@@ -318,7 +318,7 @@ export default function EditorScreen({ session, onBack }: Props) {
         onExportClick={handleOpenExportDialog}
       />
 
-      <main className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto p-3 sm:p-4 lg:overflow-hidden">
+      <main className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto p-2.5 sm:p-3 lg:overflow-hidden">
         <div className="flex min-h-full flex-col gap-3 lg:grid lg:h-full lg:min-h-0 lg:grid-cols-[minmax(0,1fr)_auto]">
           <div className="flex min-h-0 flex-col gap-3">
             {error && (
@@ -335,7 +335,7 @@ export default function EditorScreen({ session, onBack }: Props) {
               />
             </div>
 
-            <section className="flex min-h-[12rem] flex-none items-center justify-center overflow-hidden border border-border bg-card p-3 sm:min-h-[16rem] lg:min-h-0 lg:flex-1">
+            <section className="flex min-h-[12rem] flex-none items-center justify-center overflow-hidden border border-editor-border bg-editor-monitor p-2 sm:min-h-[16rem] lg:min-h-0 lg:flex-1">
               <EditorPreview
                 canvasRef={canvasRef}
                 videoDimensions={previewVideoDimensions}
@@ -348,7 +348,7 @@ export default function EditorScreen({ session, onBack }: Props) {
               />
             </section>
 
-            <section className="shrink-0 overflow-hidden border border-border bg-card text-card-foreground">
+            <section className="shrink-0 overflow-hidden border border-editor-border bg-editor-panel text-foreground">
               <EditorControls
                 playing={playing}
                 loadingPreview={loadingPreview}
@@ -371,7 +371,7 @@ export default function EditorScreen({ session, onBack }: Props) {
               />
 
               {!hasDuration && (
-                <div className="border-t border-border px-3 py-3 text-sm text-muted-foreground">
+                <div className="border-t border-editor-border px-3 py-3 text-sm text-muted-foreground">
                   Waiting for media duration.
                 </div>
               )}
@@ -443,7 +443,7 @@ export default function EditorScreen({ session, onBack }: Props) {
                 Boolean(playbackFallbackReason)
               }
             >
-              <div className="flex h-full min-h-0 flex-col gap-3 overflow-y-auto p-3">
+              <div className="cliparr-editor-scrollbar flex h-full min-h-0 flex-col gap-3 overflow-y-auto p-3">
                 <EditorPlaybackSourcePanel
                   previewSourceLabel={previewSourceLabel}
                   fallbackMessage={playbackFallbackReason}
