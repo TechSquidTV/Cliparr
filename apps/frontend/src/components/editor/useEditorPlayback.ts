@@ -22,7 +22,7 @@ import {
 } from "../../lib/mediabunnyTrackAccess";
 import { selectPreferredPairableAudioTrack } from "../../lib/selectPreferredAudioTrack";
 import type { PlaybackAudioSelection } from "../../providers/types";
-import { errorMessage } from "./EditorUtils";
+import { errorMessage } from "./editorUtils";
 import {
   applyPlaybackGain,
   runPlaybackAudioIterator,

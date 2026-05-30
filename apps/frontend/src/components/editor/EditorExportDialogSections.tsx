@@ -20,7 +20,7 @@ import {
   type ExportFileNameTemplateSettings,
 } from "../../lib/exportFileName";
 import type { ExportSourcePreference } from "./EditorExportDialog";
-import { formatTime } from "./EditorUtils";
+import { formatTime } from "./editorUtils";
 
 interface VideoDimensions {
   width: number;

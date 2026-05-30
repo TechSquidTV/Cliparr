@@ -12,7 +12,7 @@ import {
   getFocusedTimelineZoomIndex,
   parseTimecodeInput,
   type TimelineZoomLevel,
-} from "./EditorUtils";
+} from "./editorUtils";
 import {
   accumulateTimelineWheelZoomDelta,
   resolveTimelineScrollWheelUpdate,

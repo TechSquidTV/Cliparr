@@ -7,7 +7,7 @@ import {
   type KeyboardEvent,
   type ReactNode,
 } from "react";
-import { formatTimecodeInput, parseTimecodeInput } from "./EditorUtils";
+import { formatTimecodeInput, parseTimecodeInput } from "./editorUtils";
 
 interface EditorEditableTimecodeProps {
   ariaLabel: string;

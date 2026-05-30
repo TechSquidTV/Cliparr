@@ -10,7 +10,7 @@ import type {
   SubtitleCue,
   SubtitleStyleSettings,
 } from "../../lib/subtitles/types";
-import { errorMessage, themeValue } from "./EditorUtils";
+import { errorMessage, themeValue } from "./editorUtils";
 
 type RefValue<T> = {
   current: T;

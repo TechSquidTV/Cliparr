@@ -5,7 +5,7 @@ import {
   clampPlaybackTime,
   MIN_CLIP_SECONDS,
   roundTimelineTime,
-} from "./EditorUtils";
+} from "./editorUtils";
 import {
   useEditorPlayback,
   type PlaybackFallbackInfo,
