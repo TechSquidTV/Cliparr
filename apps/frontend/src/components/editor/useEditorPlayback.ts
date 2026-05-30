@@ -13,27 +13,24 @@ import type {
   WrappedAudioBuffer,
   WrappedCanvas,
 } from "mediabunny";
-import type {
-  SubtitleCue,
-  SubtitleStyleSettings,
-} from "../../lib/subtitles/types";
-import type { EditorMediaSource } from "../../lib/editorMedia";
-import { createCliparrInputFromSource } from "../../lib/mediabunnyInput";
+import type { SubtitleCue, SubtitleStyleSettings } from "@/lib/subtitles/types";
+import type { EditorMediaSource } from "@/lib/editorMedia";
+import { createCliparrInputFromSource } from "@/lib/mediabunnyInput";
 import {
   fromSourceTimelineTime,
   getAudioTrackSampleRate,
   getTrackTimelineOffsetSeconds,
   getVideoTrackDimensions,
   toSourceTimelineTime,
-} from "../../lib/mediabunnyTrackAccess";
-import { selectPreferredPairableAudioTrack } from "../../lib/selectPreferredAudioTrack";
-import type { PlaybackAudioSelection } from "../../providers/types";
-import { errorMessage } from "./editorUtils";
+} from "@/lib/mediabunnyTrackAccess";
+import { selectPreferredPairableAudioTrack } from "@/lib/selectPreferredAudioTrack";
+import type { PlaybackAudioSelection } from "@/providers/types";
+import { errorMessage } from "@/components/editor/editorUtils";
 import {
   applyPlaybackGain,
   runPlaybackAudioIterator,
   stopQueuedAudioNodes,
-} from "./editorPlaybackAudio";
+} from "@/components/editor/editorPlaybackAudio";
 import {
   assessPreviewAudioTrack,
   browserDecoderEnvironmentWarning,
@@ -51,23 +48,23 @@ import {
   type PlaybackLoadFailure,
   type PlaybackSourceCandidate,
   type PlaybackSourceAnalysisContext,
-} from "./editorPlaybackSources";
+} from "@/components/editor/editorPlaybackSources";
 import {
   createPlaybackSinkResources,
   disposePlaybackSinkResources,
   getAudioContextConstructor,
-} from "./editorPlaybackSinks";
-import { useEditorPlaybackRenderLoop } from "./useEditorPlaybackRenderLoop";
+} from "@/components/editor/editorPlaybackSinks";
+import { useEditorPlaybackRenderLoop } from "@/components/editor/useEditorPlaybackRenderLoop";
 import {
   useEditorPlaybackWarmup,
   type PlaybackReadyRange,
-} from "./useEditorPlaybackWarmup";
-import { resolvePreviewPlaybackPlan } from "./editorPlaybackPlan";
-import { resetPlaybackReadyRangeWarmState } from "./editorPlaybackWarmupRange";
-import { getFrontendLogger, warnWithError } from "../../logging";
+} from "@/components/editor/useEditorPlaybackWarmup";
+import { resolvePreviewPlaybackPlan } from "@/components/editor/editorPlaybackPlan";
+import { resetPlaybackReadyRangeWarmState } from "@/components/editor/editorPlaybackWarmupRange";
+import { getFrontendLogger, warnWithError } from "@/logging";
 
-export type { PlaybackFallbackInfo } from "./editorPlaybackSources";
-export type { PlaybackReadyRange } from "./useEditorPlaybackWarmup";
+export type { PlaybackFallbackInfo } from "@/components/editor/editorPlaybackSources";
+export type { PlaybackReadyRange } from "@/components/editor/useEditorPlaybackWarmup";
 
 interface UseEditorPlaybackProps {
   hlsSource?: EditorMediaSource;
@@ -190,7 +187,7 @@ function initialPlaybackTime(
 }
 
 async function ensurePlaybackCodecs() {
-  const { ensureMediabunnyCodecs } = await import("../../lib/mediabunnyCodecs");
+  const { ensureMediabunnyCodecs } = await import("@/lib/mediabunnyCodecs");
   await ensureMediabunnyCodecs();
 }
 

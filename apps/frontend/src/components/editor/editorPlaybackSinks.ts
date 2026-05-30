@@ -5,8 +5,8 @@ import type {
   InputAudioTrack,
   InputVideoTrack,
 } from "mediabunny";
-import { playbackGainValue } from "./editorPlaybackAudio";
-import { PlaybackSourceError } from "./editorPlaybackSources";
+import { playbackGainValue } from "@/components/editor/editorPlaybackAudio";
+import { PlaybackSourceError } from "@/components/editor/editorPlaybackSources";
 
 type RefValue<T> = {
   current: T;

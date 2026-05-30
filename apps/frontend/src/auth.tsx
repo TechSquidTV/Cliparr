@@ -1,5 +1,5 @@
 import { createContext, useContext } from "react";
-import type { RouterAuthContext } from "./router";
+import type { RouterAuthContext } from "@/router";
 
 const AuthContext = createContext<RouterAuthContext | null>(null);
 

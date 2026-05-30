@@ -4,14 +4,14 @@
   "type": "module",
   "scripts": {
     "dev": "node --watch-path=./src --import tsx ./src/server.ts",
-    "build": "tsc -p tsconfig.build.json",
+    "build": "tsdown",
     "lint": "pnpm lint:eslint && pnpm lint:types",
     "lint:eslint": "pnpm exec eslint \"src/**/*.ts\"",
     "lint:types": "tsc --noEmit",
     "test": "node --import tsx --test src/**/*.test.ts",
     "db:generate": "drizzle-kit generate",
     "db:export": "drizzle-kit export --sql",
-    "preview": "NODE_ENV=production tsx src/server.ts",
+    "preview": "NODE_ENV=production node --import tsx src/server.ts",
     "start": "NODE_ENV=production node dist/server.js",
     "clean": "rm -rf dist"
   },
@@ -26,6 +26,7 @@
     "@types/express": "^5.0.6",
     "@types/node": "^25.9.1",
     "drizzle-kit": "1.0.0-rc.4-273829f",
+    "tsdown": "^0.22.1",
     "tsx": "^4.22.3",
     "typescript": "~6.0.3"
   }

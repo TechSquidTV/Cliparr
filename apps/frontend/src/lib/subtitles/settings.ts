@@ -1,4 +1,4 @@
-import type { SubtitleStyleSettings } from "./types";
+import type { SubtitleStyleSettings } from "@/lib/subtitles/types";
 
 const SUBTITLE_STYLE_SETTINGS_STORAGE_KEY =
   "cliparr.subtitle.style-settings.v1";

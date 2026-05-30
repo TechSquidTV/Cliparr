@@ -5,11 +5,14 @@ import type {
   WrappedAudioBuffer,
   WrappedCanvas,
 } from "mediabunny";
-import { toSourceTimelineTime } from "../../lib/mediabunnyTrackAccess";
-import { useEditorPlaybackSelectionWarmup } from "./useEditorPlaybackSelectionWarmup";
-import type { PlaybackReadyRange, RefValue } from "./editorPlaybackWarmupTypes";
+import { toSourceTimelineTime } from "@/lib/mediabunnyTrackAccess";
+import { useEditorPlaybackSelectionWarmup } from "@/components/editor/useEditorPlaybackSelectionWarmup";
+import type {
+  PlaybackReadyRange,
+  RefValue,
+} from "@/components/editor/editorPlaybackWarmupTypes";
 
-export type { PlaybackReadyRange } from "./editorPlaybackWarmupTypes";
+export type { PlaybackReadyRange } from "@/components/editor/editorPlaybackWarmupTypes";
 
 interface UseEditorPlaybackWarmupOptions {
   loadingPreview: boolean;

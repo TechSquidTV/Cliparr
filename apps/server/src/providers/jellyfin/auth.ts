@@ -1,7 +1,7 @@
-import type { MediaSource } from "../../db/mediaSourcesRepository.js";
-import { ApiError } from "../../http/errors.js";
-import type { ProviderResource } from "../types.js";
-import { stringValue } from "../shared/utils.js";
+import type { MediaSource } from "@/db/mediaSourcesRepository";
+import { ApiError } from "@/http/errors";
+import type { ProviderResource } from "@/providers/types";
+import { stringValue } from "@/providers/shared/utils";
 import {
   connectionInfo,
   fetchCurrentUser,
@@ -15,7 +15,7 @@ import {
   sourceContext,
   type JellyfinAuthenticationResult,
   type JellyfinPublicSystemInfo,
-} from "./shared.js";
+} from "@/providers/jellyfin/shared";
 
 async function parseCredentialsInput(body: unknown) {
   if (!body || typeof body !== "object" || Array.isArray(body)) {

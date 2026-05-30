@@ -2,7 +2,7 @@
 
 import assert from "node:assert/strict";
 import test from "node:test";
-import { resolvePreviewPlaybackPlan } from "./editorPlaybackPlan";
+import { resolvePreviewPlaybackPlan } from "@/components/editor/editorPlaybackPlan";
 
 void test("snaps to the selection start when the playhead is close", () => {
   assert.deepEqual(

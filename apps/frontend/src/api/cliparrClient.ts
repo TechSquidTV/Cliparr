@@ -6,7 +6,7 @@ import type {
   ProviderAuthStatus,
   ProviderDefinition,
   ProviderSession,
-} from "../providers/types";
+} from "@/providers/types";
 
 interface ResponseErrorDetails {
   code?: string;

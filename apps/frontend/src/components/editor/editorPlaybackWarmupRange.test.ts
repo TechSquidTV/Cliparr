@@ -8,7 +8,7 @@ import {
   markPlaybackReadyRangeFresh,
   PLAYBACK_READY_RANGE_FRESH_MS,
   resetPlaybackReadyRangeWarmState,
-} from "./editorPlaybackWarmupRange";
+} from "@/components/editor/editorPlaybackWarmupRange";
 
 void test("does not show idle selection readiness", () => {
   const range = createIdlePlaybackReadyRange(10, 20);

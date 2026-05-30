@@ -8,10 +8,10 @@ import {
 import {
   updateMediaSource,
   type MediaSource,
-} from "../../db/mediaSourcesRepository.js";
-import { ApiError } from "../../http/errors.js";
-import { getServerLogger } from "../../logging.js";
-import type { ProviderSessionRecord } from "../../session/store.js";
+} from "@/db/mediaSourcesRepository";
+import { ApiError } from "@/http/errors";
+import { getServerLogger } from "@/logging";
+import type { ProviderSessionRecord } from "@/session/store";
 import type {
   CurrentlyPlayingEntry,
   MediaExportMetadata,
@@ -20,7 +20,7 @@ import type {
   PlaybackSubtitleTrack,
   ProviderConnection,
   ProviderResource,
-} from "../types.js";
+} from "@/providers/types";
 import {
   createProviderMediaHandle,
   fetchMediaHandleRequest,
@@ -29,14 +29,14 @@ import {
   sanitizeLoggedMediaPath,
   shouldAttachProviderAuth,
   shouldForwardMediaRange,
-} from "../shared/mediaProxy.js";
+} from "@/providers/shared/mediaProxy";
 import {
   booleanFlag,
   isTextSubtitleCodec,
   normalizeSubtitleCodec,
   subtitleContentFormat,
   subtitleFileExtension,
-} from "../shared/subtitles.js";
+} from "@/providers/shared/subtitles";
 import {
   asArray,
   buildEpisodeSourceTitle,
@@ -44,7 +44,7 @@ import {
   numberValue,
   stringValue,
   uniqueStrings,
-} from "../shared/utils.js";
+} from "@/providers/shared/utils";
 import {
   buildSourceContext,
   candidateConnections,
@@ -54,13 +54,13 @@ import {
   sourceResource,
   unreachableConnectionMessage,
   type PlexSourceContext,
-} from "./shared.js";
+} from "@/providers/plex/shared";
 import {
   PLEX_BASE_URL_MODE_AUTO,
   PLEX_BASE_URL_MODE_MANUAL,
   type PlexBaseUrlMode,
   withPlexBaseUrlMode,
-} from "./connectionState.js";
+} from "@/providers/plex/connectionState";
 
 const logger = getServerLogger(["provider", "plex", "playback"]);
 const HD_ARTWORK_SIZE = 1920;

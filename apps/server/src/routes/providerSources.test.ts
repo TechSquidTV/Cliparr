@@ -3,20 +3,17 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import test from "node:test";
-import { closeDatabase } from "../db/database.js";
+import { closeDatabase } from "@/db/database";
 import {
   getMediaSourceByProviderExternalId,
   getMediaSourceForAccount,
   listMediaSources,
   upsertMediaSource,
-} from "../db/mediaSourcesRepository.js";
-import { upsertProviderAccountByAccessToken } from "../db/providerAccountsRepository.js";
-import { createApp } from "../app.js";
-import {
-  createProviderSession,
-  getSessionCookieName,
-} from "../session/store.js";
-import { PLEX_BASE_URL_MODE_MANUAL } from "../providers/plex/connectionState.js";
+} from "@/db/mediaSourcesRepository";
+import { upsertProviderAccountByAccessToken } from "@/db/providerAccountsRepository";
+import { createApp } from "@/app";
+import { createProviderSession, getSessionCookieName } from "@/session/store";
+import { PLEX_BASE_URL_MODE_MANUAL } from "@/providers/plex/connectionState";
 
 const TEST_APP_KEY = "provider-routes-test-key-with-at-least-32-characters";
 

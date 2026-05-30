@@ -1,7 +1,7 @@
 import { defineCollection } from "astro:content";
 import { glob } from "astro/loaders";
 import { z } from "astro/zod";
-import { githubReleasesLoader } from "./lib/githubReleases";
+import { githubReleasesLoader } from "@/lib/githubReleases";
 
 const docs = defineCollection({
   loader: glob({

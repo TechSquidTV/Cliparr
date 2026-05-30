@@ -2,7 +2,7 @@
 
 import assert from "node:assert/strict";
 import test from "node:test";
-import { cliparrClient, subscribeToAuthFailure } from "./cliparrClient";
+import { cliparrClient, subscribeToAuthFailure } from "@/api/cliparrClient";
 
 function jsonResponse(value: unknown, init: ResponseInit = {}) {
   return new Response(JSON.stringify(value), {

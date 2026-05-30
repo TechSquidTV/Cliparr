@@ -1,4 +1,7 @@
-import { MIN_CLIP_SECONDS, roundTimelineTime } from "./editorUtils";
+import {
+  MIN_CLIP_SECONDS,
+  roundTimelineTime,
+} from "@/components/editor/editorUtils";
 
 const DEFAULT_INITIAL_CLIP_SECONDS = 10;
 

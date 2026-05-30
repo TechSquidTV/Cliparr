@@ -24,6 +24,25 @@ export default tseslint.config(
   {
     rules: {
       "no-console": "error",
+      "no-restricted-imports": [
+        "error",
+        {
+          patterns: [
+            {
+              group: ["./*", "../*"],
+              message:
+                "Use the package alias instead of a relative import path.",
+            },
+          ],
+        },
+      ],
+      "no-restricted-syntax": [
+        "error",
+        {
+          selector: "ImportExpression[source.value=/^\\.{1,2}\\//]",
+          message: "Use the package alias instead of a relative import path.",
+        },
+      ],
     },
   },
   ...tseslint.configs.recommendedTypeChecked,

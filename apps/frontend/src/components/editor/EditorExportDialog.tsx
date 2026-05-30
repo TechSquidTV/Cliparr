@@ -1,9 +1,9 @@
 import { Download } from "lucide-react";
-import type { ExportFormat, ExportResolution } from "../../lib/exportClip";
+import type { ExportFormat, ExportResolution } from "@/lib/exportClip";
 import {
   type ExportFileNameTemplateKind,
   type ExportFileNameTemplateSettings,
-} from "../../lib/exportFileName";
+} from "@/lib/exportFileName";
 import {
   DialogClose,
   DialogFooter,
@@ -20,7 +20,7 @@ import {
   EditorExportSummaryPanel,
   EditorFilenameTemplateSection,
   formatOptionFor,
-} from "./EditorExportDialogSections";
+} from "@/components/editor/EditorExportDialogSections";
 
 interface VideoDimensions {
   width: number;

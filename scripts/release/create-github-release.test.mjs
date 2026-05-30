@@ -1,6 +1,9 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { composeReleaseBody, parseArgs } from "./create-github-release.mjs";
+import {
+  composeReleaseBody,
+  parseArgs,
+} from "#release/create-github-release.mjs";
 
 const requiredArgs = [
   "--repository",

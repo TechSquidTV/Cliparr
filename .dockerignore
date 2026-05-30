@@ -11,7 +11,7 @@ apps/server/.cliparr-data
 
 .git
 .github
-.DS_Store
+**/.DS_Store
 *.log
 
 .env

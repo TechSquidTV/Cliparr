@@ -1,15 +1,15 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { flushSync } from "react-dom";
-import { useAuth } from "../auth";
-import DashboardScreen from "../components/DashboardScreen";
-import { LocalVideoOpenDialog } from "../components/local-media/LocalVideoOpenDialog";
-import { editorSessionFromCurrentlyPlaying } from "../lib/editorMedia";
+import { useAuth } from "@/auth";
+import DashboardScreen from "@/components/DashboardScreen";
+import { LocalVideoOpenDialog } from "@/components/local-media/LocalVideoOpenDialog";
+import { editorSessionFromCurrentlyPlaying } from "@/lib/editorMedia";
 import {
   runViewTransition,
   setPendingEditorTransitionSession,
-} from "../lib/viewTransitions";
-import { router } from "../router";
+} from "@/lib/viewTransitions";
+import { router } from "@/router";
 
 function DashboardRouteComponent() {
   const auth = useAuth();

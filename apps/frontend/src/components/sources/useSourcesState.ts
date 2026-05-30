@@ -4,10 +4,10 @@ import {
   logErrorFields,
   logEventFields,
 } from "@cliparr/shared/logging";
-import { cliparrClient } from "../../api/cliparrClient";
-import { useAuth } from "../../auth";
-import type { MediaSource, ProviderSession } from "../../providers/types";
-import type { Feedback, SourceFilter } from "./sourcesTypes";
+import { cliparrClient } from "@/api/cliparrClient";
+import { useAuth } from "@/auth";
+import type { MediaSource, ProviderSession } from "@/providers/types";
+import type { Feedback, SourceFilter } from "@/components/sources/sourcesTypes";
 import {
   buildSourceEditInput,
   draftBaseUrlsFor,
@@ -17,8 +17,8 @@ import {
   sourceCounts,
   sourceProviderOptions,
   sortSources,
-} from "./sourcesStateUtils";
-import { getFrontendLogger, warnWithError } from "../../logging";
+} from "@/components/sources/sourcesStateUtils";
+import { getFrontendLogger, warnWithError } from "@/logging";
 
 interface UseSourcesStateOptions {
   isOpen: boolean;

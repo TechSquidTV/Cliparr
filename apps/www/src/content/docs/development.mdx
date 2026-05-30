@@ -4,11 +4,8 @@ description: Set up the local workspace and run the checks before opening a pull
 order: 50
 ---
 
-import CommandBlock from "../../components/CommandBlock.astro";
-import {
-  developmentSetupCommands,
-  preflightCommands,
-} from "../../data/product";
+import CommandBlock from "@/components/CommandBlock.astro";
+import { developmentSetupCommands, preflightCommands } from "@/data/product";
 
 Development uses the root pnpm workspace. You need Node.js 24 or newer and pnpm 11.2.2 via Corepack.
 

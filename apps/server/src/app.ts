@@ -1,15 +1,15 @@
 import express from "express";
 import path from "path";
 import { fileURLToPath } from "url";
-import { CLIPARR_VERSION } from "./config/version.js";
-import { checkDatabaseHealth, initializeDatabase } from "./db/database.js";
-import { errorHandler, notFoundHandler } from "./http/errors.js";
-import { requestOriginIsPotentiallyTrustworthy } from "./http/requestOrigin.js";
-import { configureLogging, requestLoggingMiddleware } from "./logging.js";
-import { mediaRouter } from "./routes/media.js";
-import { providersRouter } from "./routes/providers.js";
-import { sessionRouter } from "./routes/session.js";
-import { sourcesRouter } from "./routes/sources.js";
+import { CLIPARR_VERSION } from "@/config/version";
+import { checkDatabaseHealth, initializeDatabase } from "@/db/database";
+import { errorHandler, notFoundHandler } from "@/http/errors";
+import { requestOriginIsPotentiallyTrustworthy } from "@/http/requestOrigin";
+import { configureLogging, requestLoggingMiddleware } from "@/logging";
+import { mediaRouter } from "@/routes/media";
+import { providersRouter } from "@/routes/providers";
+import { sessionRouter } from "@/routes/session";
+import { sourcesRouter } from "@/routes/sources";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const workspaceRoot = path.resolve(__dirname, "../../..");

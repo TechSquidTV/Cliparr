@@ -5,7 +5,7 @@ import test from "node:test";
 import {
   createProviderUrlSource,
   type EditorMediaSource,
-} from "../../lib/editorMedia";
+} from "@/lib/editorMedia";
 import {
   buildExportSourceLabel,
   buildExportSourceMessage,
@@ -13,7 +13,7 @@ import {
   getEditorExportReadiness,
   getOutputDimensions,
   resolveExportSource,
-} from "./useEditorExport";
+} from "@/components/editor/useEditorExport";
 
 const localFileSource = {
   kind: "file",

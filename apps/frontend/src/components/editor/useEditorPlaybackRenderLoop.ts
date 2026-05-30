@@ -3,14 +3,11 @@ import type { CanvasSink, Input, WrappedCanvas } from "mediabunny";
 import {
   fromSourceTimelineTime,
   toSourceTimelineTime,
-} from "../../lib/mediabunnyTrackAccess";
-import { getActiveSubtitleCue } from "../../lib/subtitles/getActiveSubtitleCue";
-import { renderSubtitleCue } from "../../lib/subtitles/renderSubtitleCue";
-import type {
-  SubtitleCue,
-  SubtitleStyleSettings,
-} from "../../lib/subtitles/types";
-import { errorMessage, themeValue } from "./editorUtils";
+} from "@/lib/mediabunnyTrackAccess";
+import { getActiveSubtitleCue } from "@/lib/subtitles/getActiveSubtitleCue";
+import { renderSubtitleCue } from "@/lib/subtitles/renderSubtitleCue";
+import type { SubtitleCue, SubtitleStyleSettings } from "@/lib/subtitles/types";
+import { errorMessage, themeValue } from "@/components/editor/editorUtils";
 
 type RefValue<T> = {
   current: T;

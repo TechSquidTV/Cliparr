@@ -7,7 +7,7 @@ import {
   timelinePixelToTime,
   timelineTimeToPixel,
   type TimelineZoomLevel,
-} from "./editorUtils";
+} from "@/components/editor/editorUtils";
 
 interface ResolveTimelineZoomUpdateOptions {
   availableTimelineZoomLevels: readonly TimelineZoomLevel[];

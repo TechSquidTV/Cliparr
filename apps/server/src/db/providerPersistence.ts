@@ -1,22 +1,22 @@
-import { ApiError } from "../http/errors.js";
+import { ApiError } from "@/http/errors";
 import type {
   ProviderConnection,
   ProviderDefinition,
   ProviderResource,
-} from "../providers/types.js";
+} from "@/providers/types";
 import {
   getMediaSourceByProviderExternalId,
   listMediaSources,
   updateMediaSource,
   upsertMediaSource,
-} from "./mediaSourcesRepository.js";
-import { upsertProviderAccountByAccessToken } from "./providerAccountsRepository.js";
+} from "@/db/mediaSourcesRepository";
+import { upsertProviderAccountByAccessToken } from "@/db/providerAccountsRepository";
 import {
   plexBaseUrlMode,
   PLEX_BASE_URL_MODE_AUTO,
   PLEX_BASE_URL_MODE_MANUAL,
   withPlexBaseUrlMode,
-} from "../providers/plex/connectionState.js";
+} from "@/providers/plex/connectionState";
 
 function connectionRank(connection: ProviderConnection) {
   if (connection.local && !connection.relay) {

@@ -4,7 +4,7 @@ import {
   loadLocalSubtitleFontOptions,
   SUBTITLE_FONT_OPTIONS,
   type SubtitleFontOption,
-} from "../../lib/subtitles/settings";
+} from "@/lib/subtitles/settings";
 
 interface UseSubtitleFontOptionsResult {
   currentFontOption: SubtitleFontOption | null;

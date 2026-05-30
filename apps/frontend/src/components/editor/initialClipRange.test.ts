@@ -5,7 +5,7 @@ import test from "node:test";
 import {
   buildClipRangeAfterDurationDiscovery,
   buildInitialClipRange,
-} from "./initialClipRange";
+} from "@/components/editor/initialClipRange";
 
 void test("starts initial clip range at zero when no playhead is available", () => {
   assert.deepEqual(buildInitialClipRange(120), {

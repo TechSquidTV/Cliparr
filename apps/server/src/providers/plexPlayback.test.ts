@@ -1,14 +1,14 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import type { ProviderSessionRecord } from "../session/store.js";
+import type { ProviderSessionRecord } from "@/session/store";
 import {
   createCliparrPlexTranscodeSessionId,
   createPreviewPath,
   deriveSelectedSubtitleTrack,
   deriveSubtitleTracks,
   playheadSecondsFromViewOffset,
-} from "./plex/playback.js";
-import type { PlexSourceContext } from "./plex/shared.js";
+} from "@/providers/plex/playback";
+import type { PlexSourceContext } from "@/providers/plex/shared";
 
 function createSession(): ProviderSessionRecord {
   return {

@@ -1,6 +1,6 @@
 import { createRouter } from "@tanstack/react-router";
-import type { ProviderSession } from "./providers/types";
-import { routeTree } from "./routeTree.gen";
+import type { ProviderSession } from "@/providers/types";
+import { routeTree } from "@/routeTree.gen";
 
 export interface RouterAuthContext {
   providerSession: ProviderSession | null;

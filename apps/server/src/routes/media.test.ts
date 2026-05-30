@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import express from "express";
-import { errorHandler } from "../http/errors.js";
-import { mediaRouter } from "./media.js";
+import { errorHandler } from "@/http/errors";
+import { mediaRouter } from "@/routes/media";
 
 async function withMediaApp<T>(callback: (baseUrl: string) => Promise<T>) {
   const app = express();

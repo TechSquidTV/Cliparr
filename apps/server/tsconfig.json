@@ -1,10 +1,13 @@
 {
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
-    "module": "NodeNext",
-    "moduleResolution": "NodeNext",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "paths": {
+      "@/*": ["./src/*"]
+    },
     "types": ["node"],
     "noEmit": true
   },
-  "include": ["src"]
+  "include": ["src", "drizzle.config.ts", "tsdown.config.ts"]
 }

@@ -1,4 +1,4 @@
-import type { SubtitleCue } from "./types";
+import type { SubtitleCue } from "@/lib/subtitles/types";
 
 type SubtitleTextFormat = "vtt" | "srt";
 

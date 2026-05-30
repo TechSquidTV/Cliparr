@@ -4,10 +4,10 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { createElement, createRef } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import AuthCompleteScreen from "./AuthCompleteScreen";
-import { EditorPreview } from "./editor/EditorPreview";
-import { LocalVideoOpenDialog } from "./local-media/LocalVideoOpenDialog";
-import { EDITOR_THUMBNAIL_VIEW_TRANSITION_NAME } from "../lib/viewTransitions";
+import AuthCompleteScreen from "@/components/AuthCompleteScreen";
+import { EditorPreview } from "@/components/editor/EditorPreview";
+import { LocalVideoOpenDialog } from "@/components/local-media/LocalVideoOpenDialog";
+import { EDITOR_THUMBNAIL_VIEW_TRANSITION_NAME } from "@/lib/viewTransitions";
 
 void test("renders the provider auth completion screen", () => {
   const markup = renderToStaticMarkup(createElement(AuthCompleteScreen));

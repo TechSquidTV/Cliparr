@@ -1,12 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import prettier from "prettier";
-import {
-  dockerRunCommand,
-  envVars,
-  features,
-  warnings,
-} from "../src/data/product";
+import { dockerRunCommand, envVars, features, warnings } from "@/data/product";
 
 const rootDir = path.resolve(import.meta.dirname, "../../..");
 const readmePath = path.join(rootDir, "README.md");

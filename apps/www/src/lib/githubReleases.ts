@@ -1,5 +1,5 @@
 import type { Loader } from "astro/loaders";
-import { site } from "../data/product";
+import { site } from "@/data/product";
 
 interface GitHubRelease {
   id: number;

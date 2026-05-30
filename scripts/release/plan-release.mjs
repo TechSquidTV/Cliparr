@@ -13,7 +13,7 @@ import {
   parseGitLogMessages,
   parseSemverTag,
   summarizeChanges,
-} from "./conventional.mjs";
+} from "#release/conventional.mjs";
 
 const validChannels = new Set(["stable", "rc", "beta"]);
 

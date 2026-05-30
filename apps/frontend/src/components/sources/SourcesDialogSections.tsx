@@ -10,7 +10,7 @@ import {
   Trash2,
   X,
 } from "lucide-react";
-import { cn } from "../../lib/utils";
+import { cn } from "@/lib/utils";
 import {
   Tooltip,
   TooltipContent,
@@ -22,10 +22,10 @@ import {
   iconButtonClasses,
   textInputClasses as inputClasses,
 } from "@/components/ui/control-styles";
-import type { MediaSource, ProviderSession } from "../../providers/types";
-import { formatProviderName } from "../providers/ProviderGlyph";
-import SourceConnectPanel from "./SourceConnectPanel";
-import type { Feedback, SourceFilter } from "./sourcesTypes";
+import type { MediaSource, ProviderSession } from "@/providers/types";
+import { formatProviderName } from "@/components/providers/ProviderGlyph";
+import SourceConnectPanel from "@/components/sources/SourceConnectPanel";
+import type { Feedback, SourceFilter } from "@/components/sources/sourcesTypes";
 
 function TooltipWrap({
   message,

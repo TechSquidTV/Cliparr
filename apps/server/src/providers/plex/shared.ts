@@ -1,15 +1,19 @@
 import { randomUUID } from "crypto";
-import type { MediaSource } from "../../db/mediaSourcesRepository.js";
-import { ApiError } from "../../http/errors.js";
-import { normalizeMediaPath } from "../shared/mediaProxy.js";
-import { errorMessage, numberValue, stringValue } from "../shared/utils.js";
-import type { ProviderResource } from "../types.js";
+import type { MediaSource } from "@/db/mediaSourcesRepository";
+import { ApiError } from "@/http/errors";
+import { normalizeMediaPath } from "@/providers/shared/mediaProxy";
+import {
+  errorMessage,
+  numberValue,
+  stringValue,
+} from "@/providers/shared/utils";
+import type { ProviderResource } from "@/providers/types";
 import {
   plexBaseUrlMode,
   PLEX_BASE_URL_MODE_AUTO,
   PLEX_BASE_URL_MODE_MANUAL,
   type PlexBaseUrlMode,
-} from "./connectionState.js";
+} from "@/providers/plex/connectionState";
 
 export const PLEX_PRODUCT = "Cliparr";
 export const PLEX_CLIENT_IDENTIFIER =

@@ -3,10 +3,13 @@ import {
   editorMediaSourcesEqual,
   isHlsEditorMediaSource,
   type EditorMediaSource,
-} from "../../lib/editorMedia";
-import { getTrackCodec } from "../../lib/mediabunnyTrackAccess";
-import type { PlaybackAudioSelection } from "../../providers/types";
-import { errorMessage, isAc3FamilyCodec } from "./editorUtils";
+} from "@/lib/editorMedia";
+import { getTrackCodec } from "@/lib/mediabunnyTrackAccess";
+import type { PlaybackAudioSelection } from "@/providers/types";
+import {
+  errorMessage,
+  isAc3FamilyCodec,
+} from "@/components/editor/editorUtils";
 
 type PlaybackSourceLabel =
   | "hls stream"

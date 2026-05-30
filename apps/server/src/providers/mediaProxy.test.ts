@@ -2,9 +2,9 @@ import assert from "node:assert/strict";
 import { PassThrough } from "node:stream";
 import test from "node:test";
 import type { Response } from "express";
-import { ApiError } from "../http/errors.js";
-import type { ProviderSessionRecord } from "../session/store.js";
-import type { MediaHandle } from "./types.js";
+import { ApiError } from "@/http/errors";
+import type { ProviderSessionRecord } from "@/session/store";
+import type { MediaHandle } from "@/providers/types";
 import {
   assertAllowedMediaHandleRequestUrl,
   fetchMediaHandleRequest,
@@ -13,7 +13,7 @@ import {
   sanitizeLoggedMediaPath,
   shouldAttachProviderAuth,
   shouldForwardMediaRange,
-} from "./shared/mediaProxy.js";
+} from "@/providers/shared/mediaProxy";
 
 function createSession(): ProviderSessionRecord {
   return {

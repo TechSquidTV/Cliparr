@@ -13,19 +13,19 @@ import type {
 import {
   fromSourceTimelineTime,
   toSourceTimelineTime,
-} from "../../lib/mediabunnyTrackAccess";
+} from "@/lib/mediabunnyTrackAccess";
 import {
   createIdlePlaybackReadyRange,
   isPlaybackReadyRangeVisible,
   markPlaybackReadyRangeFresh,
   samePlaybackReadyRange,
-} from "./editorPlaybackWarmupRange";
-import { isPresent } from "./editorPlaybackSources";
+} from "@/components/editor/editorPlaybackWarmupRange";
+import { isPresent } from "@/components/editor/editorPlaybackSources";
 import type {
   PlaybackReadyRange,
   RefValue,
   WarmClipSelectionOptions,
-} from "./editorPlaybackWarmupTypes";
+} from "@/components/editor/editorPlaybackWarmupTypes";
 
 interface UseEditorPlaybackSelectionWarmupOptions {
   loadingPreview: boolean;

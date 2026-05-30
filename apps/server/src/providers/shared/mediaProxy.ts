@@ -6,10 +6,10 @@ import { pipeline } from "stream/promises";
 import type { ReadableStream as WebReadableStream } from "stream/web";
 import type { Response } from "express";
 import { logErrorFields, logEventFields } from "@cliparr/shared/logging";
-import { ApiError } from "../../http/errors.js";
-import { getServerLogger } from "../../logging.js";
-import type { ProviderSessionRecord } from "../../session/store.js";
-import type { MediaHandle } from "../types.js";
+import { ApiError } from "@/http/errors";
+import { getServerLogger } from "@/logging";
+import type { ProviderSessionRecord } from "@/session/store";
+import type { MediaHandle } from "@/providers/types";
 
 interface MediaHandleContext {
   providerId: MediaHandle["providerId"];

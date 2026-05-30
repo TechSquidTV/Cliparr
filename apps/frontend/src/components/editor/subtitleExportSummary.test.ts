@@ -2,8 +2,8 @@
 
 import assert from "node:assert/strict";
 import test from "node:test";
-import type { PlaybackSubtitleTrack } from "../../providers/types";
-import { buildSubtitleExportSummary } from "./subtitleExportSummary";
+import type { PlaybackSubtitleTrack } from "@/providers/types";
+import { buildSubtitleExportSummary } from "@/components/editor/subtitleExportSummary";
 
 const supportedTrack = {
   title: "English SDH",

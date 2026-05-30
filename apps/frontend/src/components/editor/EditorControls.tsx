@@ -5,9 +5,12 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { EditorEditableTimecode } from "./EditorEditableTimecode";
-import { EditorPreviewTimecode } from "./EditorPreviewTimecode";
-import { formatTime, formatTimecodeInput } from "./editorUtils";
+import { EditorEditableTimecode } from "@/components/editor/EditorEditableTimecode";
+import { EditorPreviewTimecode } from "@/components/editor/EditorPreviewTimecode";
+import {
+  formatTime,
+  formatTimecodeInput,
+} from "@/components/editor/editorUtils";
 
 interface EditorControlsProps {
   playing: boolean;

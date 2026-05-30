@@ -2,8 +2,11 @@
 
 import assert from "node:assert/strict";
 import test from "node:test";
-import { editorSessionFromCurrentlyPlaying, titleFromUrl } from "./editorMedia";
-import type { CurrentlyPlayingItem } from "../providers/types";
+import {
+  editorSessionFromCurrentlyPlaying,
+  titleFromUrl,
+} from "@/lib/editorMedia";
+import type { CurrentlyPlayingItem } from "@/providers/types";
 
 void test("uses the URL host as the title when no path segment is present", () => {
   assert.equal(titleFromUrl("https://example.com/"), "example.com");

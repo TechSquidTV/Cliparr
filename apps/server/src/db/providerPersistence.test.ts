@@ -3,14 +3,14 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import test from "node:test";
-import { closeDatabase, initializeDatabase } from "./database.js";
+import { closeDatabase, initializeDatabase } from "@/db/database";
 import {
   getMediaSourceByProviderExternalId,
   listMediaSources,
   updateMediaSource,
-} from "./mediaSourcesRepository.js";
-import { persistProviderAuth } from "./providerPersistence.js";
-import { PLEX_BASE_URL_MODE_MANUAL } from "../providers/plex/connectionState.js";
+} from "@/db/mediaSourcesRepository";
+import { persistProviderAuth } from "@/db/providerPersistence";
+import { PLEX_BASE_URL_MODE_MANUAL } from "@/providers/plex/connectionState";
 
 const TEST_APP_KEY = "provider-persistence-test-key-with-32-characters";
 
