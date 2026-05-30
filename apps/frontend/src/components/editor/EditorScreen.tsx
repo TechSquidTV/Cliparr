@@ -321,6 +321,7 @@ export default function EditorScreen({ session, onBack }: Props) {
         playing={playing}
         loadingPreview={loadingPreview}
         loadingPreviewFrame={loadingPreviewFrame}
+        posterImageUrl={posterImageUrl}
         previewStatus={previewStatus}
         previewFrameStatus={previewFrameStatus}
         togglePlay={togglePlay}

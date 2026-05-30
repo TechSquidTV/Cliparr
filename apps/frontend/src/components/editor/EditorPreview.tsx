@@ -10,6 +10,7 @@ interface EditorPreviewProps {
   playing: boolean;
   loadingPreview: boolean;
   loadingPreviewFrame: boolean;
+  posterImageUrl?: string;
   previewStatus: string;
   previewFrameStatus: string;
   togglePlay: () => void;
@@ -21,6 +22,7 @@ export function EditorPreview({
   playing,
   loadingPreview,
   loadingPreviewFrame,
+  posterImageUrl,
   previewStatus,
   previewFrameStatus,
   togglePlay,
@@ -30,6 +32,7 @@ export function EditorPreview({
       ? `${videoDimensions.width} / ${videoDimensions.height}`
       : undefined;
   const showLoadingOverlay = loadingPreview || loadingPreviewFrame;
+  const showLoadingPoster = showLoadingOverlay && Boolean(posterImageUrl);
   const loadingStatus = loadingPreviewFrame
     ? previewFrameStatus
     : previewStatus;
@@ -44,6 +47,14 @@ export function EditorPreview({
         className="h-full w-full object-contain"
         onClick={togglePlay}
       />
+      {showLoadingPoster && (
+        <img
+          src={posterImageUrl}
+          alt=""
+          aria-hidden="true"
+          className="absolute inset-0 h-full w-full scale-105 object-cover opacity-75 blur-sm"
+        />
+      )}
       {!showLoadingOverlay && (
         <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
           <button
@@ -64,7 +75,13 @@ export function EditorPreview({
         </div>
       )}
       {showLoadingOverlay && (
-        <div className="absolute inset-0 flex items-center justify-center gap-2 bg-editor-preview-overlay text-sm text-editor-preview-overlay-foreground">
+        <div
+          className={`absolute inset-0 flex items-center justify-center gap-2 text-sm text-editor-preview-overlay-foreground ${
+            showLoadingPoster
+              ? "bg-editor-preview-overlay/70"
+              : "bg-editor-preview-overlay"
+          }`}
+        >
           <LoaderCircle className="h-4 w-4 animate-spin" />
           <span>{loadingStatus}</span>
         </div>
