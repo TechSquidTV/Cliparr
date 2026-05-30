@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { cliparrClient } from "../api/cliparrClient";
 import { useAuth } from "../auth";
 import type { MediaSource, ProviderSession } from "../providers/types";
-import type { Feedback, SourceFilter } from "./SourcesModalSections";
+import type { Feedback, SourceFilter } from "./sourcesModalTypes";
 import {
   buildSourceEditInput,
   draftBaseUrlsFor,

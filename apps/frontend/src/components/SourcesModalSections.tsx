@@ -20,13 +20,7 @@ import { Switch } from "@/components/ui/switch";
 import type { MediaSource, ProviderSession } from "../providers/types";
 import { formatProviderName } from "./ProviderGlyph";
 import SourceConnectPanel from "./SourceConnectPanel";
-
-export type SourceFilter = "all" | "enabled" | "disabled" | "attention";
-
-export interface Feedback {
-  tone: "error" | "success" | "warning";
-  message: string;
-}
+import type { Feedback, SourceFilter } from "./sourcesModalTypes";
 
 function TooltipWrap({
   message,
