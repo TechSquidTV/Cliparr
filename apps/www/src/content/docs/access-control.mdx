@@ -37,11 +37,14 @@ cliparr -->|provider API + media| jellyfin
 
 Put the auth or VPN boundary before Cliparr. Plex and Jellyfin login only lets Cliparr connect to those sources; it does not protect the Cliparr web app.
 
-Common options include:
+## Choose an access pattern
 
-- Caddy, Nginx, or Traefik with Authelia, Authentik, or another identity-aware auth service.
-- Tailscale, WireGuard, or another private-access layer that keeps Cliparr off the public internet.
-- Cloudflare Access or another hosted access gateway when Cliparr is already behind that provider.
+| Pattern                                                   | Best for                                                                                               | Public endpoint                     | Notes                                                                                               |
+| :-------------------------------------------------------- | :----------------------------------------------------------------------------------------------------- | :---------------------------------- | :-------------------------------------------------------------------------------------------------- |
+| Auth proxy with Authelia, Authentik, or a similar service | Browser access through a normal domain with reusable users, sessions, and multi-factor authentication. | Yes, protected by the auth gateway. | Works well when you already run Caddy, Nginx, or Traefik and want a login page in front of Cliparr. |
+| Tailscale                                                 | Personal or small-team access from trusted devices without opening Cliparr to the public internet.     | No.                                 | Tailscale Serve can give Cliparr a tailnet-only HTTPS URL.                                          |
+| WireGuard                                                 | Traditional VPN access with explicit network and firewall control.                                     | No.                                 | Bind Cliparr to the VPN interface or restrict the proxy to VPN clients.                             |
+| Hosted access gateway                                     | Installations already fronted by Cloudflare Access or another hosted identity-aware proxy.             | Yes, protected by that provider.    | Useful when the provider is already your public edge and identity layer.                            |
 
 ## Reverse proxy basics
 
