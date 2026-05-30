@@ -41,6 +41,7 @@ import {
 import { useEditorSubtitles } from "@/components/editor/useEditorSubtitles";
 import { sourceDisplayLabel, type EditorSession } from "@/lib/editorMedia";
 import { buildFramegrabFileName } from "@/lib/exportFileName";
+import { downloadBlob } from "@/lib/downloadBlob";
 import {
   cloneCanvasFrame,
   copyFramegrabCanvasToClipboard,
@@ -345,14 +346,7 @@ export default function EditorScreen({ session, onBack }: Props) {
         capturedFramegrab.canvas,
         framegrabFormat,
       );
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = framegrabFileName.fullName;
-      document.body.append(a);
-      a.click();
-      a.remove();
-      URL.revokeObjectURL(url);
+      downloadBlob(blob, framegrabFileName.fullName);
       setFramegrabMessage("Download started.");
     } catch (err) {
       setFramegrabError(errorMessage(err));
