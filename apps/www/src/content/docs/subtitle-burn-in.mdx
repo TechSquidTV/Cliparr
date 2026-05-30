@@ -1,0 +1,54 @@
+---
+title: Subtitle burn-in
+description: Choose supported text subtitles and style how they render into exported clips.
+order: 46
+---
+
+import Callout from "../../components/Callout.astro";
+import DocsImagePlaceholder from "../../components/DocsImagePlaceholder.astro";
+
+Cliparr can burn supported subtitle tracks directly into the exported video. Burned-in subtitles become part of the video pixels, so the exported file does not need a separate subtitle track or sidecar file.
+
+<DocsImagePlaceholder
+  title="Subtitle panel screenshot showing track selection and style controls"
+  target="apps/www/public/docs/subtitle-panel.png"
+  caption="Suggested screenshot slot for subtitle track and style controls."
+/>
+
+## Supported tracks
+
+Cliparr supports subtitle burn-in when the selected track is a downloadable text subtitle track. Supported text formats include SRT/SubRip, WebVTT, ASS/SSA, TTML, SMI, and related text tracks exposed by Plex or Jellyfin.
+
+Image-based subtitle formats, such as PGS or VobSub, are visible when the provider reports them, but they cannot be burned in today.
+
+## Provider notes
+
+Jellyfin can usually expose downloadable text subtitle tracks directly from the selected media source.
+
+Plex sidecar text subtitles can usually be downloaded directly. Some embedded Plex text subtitles must be selected in Plex first so Plex exposes a subtitle content stream that Cliparr can fetch.
+
+<Callout title="Unsupported tracks stay selectable for context" tone="info">
+  Cliparr may still show unsupported subtitle tracks so you can see what the
+  provider reported. The export button remains blocked when burn-in is enabled
+  for an unsupported track.
+</Callout>
+
+## Styling
+
+When burn-in is enabled, the subtitle panel controls how text is rendered into the exported video:
+
+- Font family.
+- Font color and size.
+- Shadow color, blur, and vertical offset.
+- Stroke color and width.
+- Bottom margin.
+
+Style settings are saved in your browser. They apply to future exports from the same browser profile.
+
+## Local fonts
+
+Cliparr includes a small set of common font options. Browsers that support local font access can also offer installed fonts after you grant permission. Local font availability depends on the browser, operating system, and site permissions.
+
+## Export behavior
+
+Subtitle cues are trimmed to the selected clip range before export. If subtitles are still loading, or if the selected track does not expose downloadable text cues, Cliparr waits or blocks the export with a message instead of producing a clip with missing subtitles.
