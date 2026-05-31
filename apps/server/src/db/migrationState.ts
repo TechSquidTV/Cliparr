@@ -12,6 +12,10 @@ const PRE_V1_DATABASE_ERROR =
   "Detected a pre-v1.0.0 Cliparr database. Delete the existing data directory and start again so the first-release schema can be created cleanly.";
 export const V1_BASELINE_MIGRATION_NAME = "20260531000000_v1_0_0_baseline";
 
+function sqliteIdentifier(name: string) {
+  return `"${name.replaceAll('"', '""')}"`;
+}
+
 function listUserTables(db: DatabaseSync) {
   const rows = db
     .prepare(
@@ -28,9 +32,9 @@ function listUserTables(db: DatabaseSync) {
 }
 
 function hasColumn(db: DatabaseSync, tableName: string, columnName: string) {
-  const rows = db.prepare(`PRAGMA table_info(${tableName})`).all() as Array<{
-    name: string;
-  }>;
+  const rows = db
+    .prepare(`PRAGMA table_info(${sqliteIdentifier(tableName)})`)
+    .all() as Array<{ name: string }>;
 
   return rows.some((row) => row.name === columnName);
 }
@@ -44,7 +48,7 @@ function listDrizzleMigrationNames(db: DatabaseSync) {
     .prepare(
       `
     SELECT name
-    FROM __drizzle_migrations
+    FROM ${sqliteIdentifier(DRIZZLE_MIGRATIONS_TABLE)}
     WHERE name IS NOT NULL
   `,
     )
