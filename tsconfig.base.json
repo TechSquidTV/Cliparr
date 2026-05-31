@@ -8,6 +8,7 @@
     "skipLibCheck": true,
     "moduleDetection": "force",
     "strict": true,
+    "noImplicitAny": true,
     "noFallthroughCasesInSwitch": true,
     "useUnknownInCatchVariables": true
   }

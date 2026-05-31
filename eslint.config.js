@@ -136,7 +136,13 @@ export default tseslint.config(
       "@typescript-eslint/no-array-delete": "error",
       "@typescript-eslint/no-base-to-string": "error",
       "@typescript-eslint/no-confusing-void-expression": "off",
-      "@typescript-eslint/no-explicit-any": "error",
+      "@typescript-eslint/no-explicit-any": [
+        "error",
+        {
+          fixToUnknown: false,
+          ignoreRestArgs: false,
+        },
+      ],
       "@typescript-eslint/no-floating-promises": [
         "error",
         {
@@ -159,6 +165,12 @@ export default tseslint.config(
       "@typescript-eslint/no-unnecessary-type-assertion": "off",
       "@typescript-eslint/no-unnecessary-type-conversion": "off",
       "@typescript-eslint/no-unnecessary-boolean-literal-compare": "error",
+      "@typescript-eslint/no-redundant-type-constituents": "error",
+      "@typescript-eslint/no-unsafe-argument": "error",
+      "@typescript-eslint/no-unsafe-assignment": "error",
+      "@typescript-eslint/no-unsafe-call": "error",
+      "@typescript-eslint/no-unsafe-member-access": "error",
+      "@typescript-eslint/no-unsafe-return": "error",
       "@typescript-eslint/only-throw-error": "error",
       "@typescript-eslint/prefer-includes": "error",
       "@typescript-eslint/prefer-promise-reject-errors": "error",
@@ -208,20 +220,6 @@ export default tseslint.config(
         ...globals.node,
         ...globals.es2024,
       },
-    },
-  },
-  {
-    files: [
-      "apps/server/src/providers/jellyfin/**/*.ts",
-      "apps/server/src/providers/plex/**/*.ts",
-    ],
-    rules: {
-      "@typescript-eslint/no-explicit-any": "off",
-      "@typescript-eslint/no-unsafe-argument": "off",
-      "@typescript-eslint/no-unsafe-assignment": "off",
-      "@typescript-eslint/no-unsafe-call": "off",
-      "@typescript-eslint/no-unsafe-member-access": "off",
-      "@typescript-eslint/no-unsafe-return": "off",
     },
   },
   {
