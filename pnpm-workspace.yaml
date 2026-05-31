@@ -3,6 +3,8 @@ packages:
   - "packages/*"
 
 autoInstallPeers: false
+minimumReleaseAge: 1440
+minimumReleaseAgeStrict: true
 
 allowBuilds:
   esbuild: true
