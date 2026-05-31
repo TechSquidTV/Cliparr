@@ -253,11 +253,15 @@ const groupId = `command-${hashCommandBlockId(
 <script>
   function preferredCommandShell() {
     const nav = window.navigator;
-    const userAgentData =
-      "userAgentData" in nav
-        ? (nav.userAgentData as { platform?: string })
+    const userAgentData = Reflect.get(nav, "userAgentData");
+    const userAgentPlatform =
+      userAgentData && typeof userAgentData === "object"
+        ? Reflect.get(userAgentData, "platform")
         : undefined;
-    const platform = userAgentData?.platform ?? nav.platform ?? "";
+    const platform =
+      typeof userAgentPlatform === "string"
+        ? userAgentPlatform
+        : (nav.platform ?? "");
     const userAgent = nav.userAgent ?? "";
 
     return /win/i.test(`${platform} ${userAgent}`) ? "powershell" : "bash";
@@ -267,26 +271,17 @@ const groupId = `command-${hashCommandBlockId(
     const preferredShell = preferredCommandShell();
 
     for (const tabs of document.querySelectorAll("[data-command-tabs]")) {
-      const input = tabs.querySelector<HTMLInputElement>(
+      const input = tabs.querySelector(
         `[data-command-shell="${preferredShell}"]`,
       );
 
-      if (input) {
+      if (input instanceof HTMLInputElement) {
         input.checked = true;
       }
     }
   }
 
-  async function writeClipboardText(value: string) {
-    if (navigator.clipboard) {
-      try {
-        await navigator.clipboard.writeText(value);
-        return;
-      } catch {
-        // Fall back for browsers that expose Clipboard API but deny it here.
-      }
-    }
-
+  function writeClipboardTextFallback(value = "") {
     const textarea = document.createElement("textarea");
     textarea.value = value;
     textarea.setAttribute("readonly", "");
@@ -297,15 +292,26 @@ const groupId = `command-${hashCommandBlockId(
     textarea.select();
 
     try {
-      if (!document.execCommand("copy")) {
-        throw new Error("Copy command was rejected.");
-      }
+      return document.execCommand("copy");
     } finally {
       textarea.remove();
     }
   }
 
-  async function copyCommand(button: HTMLButtonElement) {
+  async function writeClipboardText(value = "") {
+    if (writeClipboardTextFallback(value)) {
+      return;
+    }
+
+    if (navigator.clipboard) {
+      await navigator.clipboard.writeText(value);
+      return;
+    }
+
+    throw new Error("Copy command was rejected.");
+  }
+
+  async function copyCommand(button = document.createElement("button")) {
     const panel = button.closest(".command-panel, .command-panel-single");
     const code = panel?.querySelector("code")?.textContent;
 
@@ -326,24 +332,26 @@ const groupId = `command-${hashCommandBlockId(
   }
 
   function bindCommandCopyButtons() {
-    for (const button of document.querySelectorAll<HTMLButtonElement>(
-      "[data-command-copy]",
-    )) {
-      if (button.dataset.copyBound) {
+    for (const item of document.querySelectorAll("button[data-command-copy]")) {
+      if (!(item instanceof HTMLButtonElement)) {
         continue;
       }
 
-      button.dataset.copyBound = "true";
-      button.addEventListener("click", () => {
-        void copyCommand(button).catch(() => {
-          button.dataset.copyState = "failed";
-          button.setAttribute("aria-label", "Copy failed");
-          button.title = "Copy failed";
+      if (item.dataset.copyBound) {
+        continue;
+      }
+
+      item.dataset.copyBound = "true";
+      item.addEventListener("click", () => {
+        void copyCommand(item).catch(() => {
+          item.dataset.copyState = "failed";
+          item.setAttribute("aria-label", "Copy failed");
+          item.title = "Copy failed";
 
           window.setTimeout(() => {
-            button.setAttribute("aria-label", "Copy command");
-            button.title = "Copy command";
-            delete button.dataset.copyState;
+            item.setAttribute("aria-label", "Copy command");
+            item.title = "Copy command";
+            delete item.dataset.copyState;
           }, 1600);
         });
       });
@@ -352,6 +360,10 @@ const groupId = `command-${hashCommandBlockId(
 
   selectPreferredCommandTabs();
   bindCommandCopyButtons();
-  document.addEventListener("astro:page-load", selectPreferredCommandTabs);
-  document.addEventListener("astro:page-load", bindCommandCopyButtons);
+
+  if (!document.documentElement.dataset.cliparrCommandBlockInit) {
+    document.documentElement.dataset.cliparrCommandBlockInit = "true";
+    document.addEventListener("astro:page-load", selectPreferredCommandTabs);
+    document.addEventListener("astro:page-load", bindCommandCopyButtons);
+  }
 </script>
