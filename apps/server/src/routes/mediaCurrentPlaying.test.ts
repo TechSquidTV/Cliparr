@@ -116,10 +116,17 @@ void test("aggregates currently playing results across enabled sources with part
       label: "Plex Account",
       accessToken: "user-token",
     });
+    const otherAccount = upsertProviderAccountByAccessToken({
+      providerId: "plex",
+      label: "Other Plex Account",
+      accessToken: "other-token",
+    });
     assert(account);
+    assert(otherAccount);
 
     const alpha = createSource(account.id, "Alpha");
     const zeta = createSource(account.id, "Zeta");
+    const omega = createSource(otherAccount.id, "Omega");
     createSource(account.id, "Failure");
     createSource(account.id, "Ghost", "missing-provider");
     createSource(account.id, "Unsupported");
@@ -170,6 +177,16 @@ void test("aggregates currently playing results across enabled sources with part
         ];
       }
 
+      if (source.id === omega.id) {
+        return [
+          playbackEntry(
+            source,
+            { id: "viewer-carol", name: "Carol" },
+            "omega-item",
+          ),
+        ];
+      }
+
       return [];
     };
 
@@ -193,10 +210,10 @@ void test("aggregates currently playing results across enabled sources with part
         }>;
       };
 
-      assert.deepEqual(calls, ["Alpha", "Failure", "Zeta"]);
+      assert.deepEqual(calls, ["Alpha", "Failure", "Omega", "Zeta"]);
       assert.deepEqual(
         body.viewers?.map((group) => group.viewer.name),
-        ["Alice", "Bob"],
+        ["Alice", "Bob", "Carol"],
       );
       assert.deepEqual(
         body.viewers?.[0]?.items.map((item) => item.source.name),

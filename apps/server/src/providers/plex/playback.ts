@@ -1094,7 +1094,7 @@ async function normalizeCurrentPlayback(
       const playbackDiagnostics = {
         sessionId: session.id,
         sourceId: source.id,
-        providerAccountId: session.providerAccountId,
+        providerAccountId: source.providerAccountId,
         playbackSessionId: sessionId,
         transcodeSessionId,
         currentlyPlayingItem: {

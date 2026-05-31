@@ -131,7 +131,7 @@ export function updateMediaSource(id: string, input: UpdateMediaSourceInput) {
   return getMediaSource(id);
 }
 
-function getMediaSource(id: string) {
+export function getMediaSource(id: string) {
   return getMediaSourceWhere(eq(mediaSources.id, id));
 }
 
@@ -147,18 +147,10 @@ export function getMediaSourceForAccount(
   return where ? getMediaSourceWhere(where) : undefined;
 }
 
-export function deleteMediaSourceForAccount(
-  id: string,
-  providerAccountId: string,
-) {
+export function deleteMediaSource(id: string) {
   const result = getDatabase()
     .delete(mediaSources)
-    .where(
-      and(
-        eq(mediaSources.id, id),
-        eq(mediaSources.providerAccountId, providerAccountId),
-      ),
-    )
+    .where(eq(mediaSources.id, id))
     .run();
 
   return result.changes > 0;
@@ -256,65 +248,4 @@ export function listMediaSources(
         : and(...filters);
 
   return listMediaSourcesWhere(where);
-}
-
-export function updateMediaSourceForAccount(
-  id: string,
-  providerAccountId: string,
-  input: UpdateMediaSourceInput,
-) {
-  getDatabase()
-    .update(mediaSources)
-    .set({
-      ...(input.externalId !== undefined
-        ? { externalId: input.externalId }
-        : {}),
-      ...(input.name !== undefined ? { name: input.name } : {}),
-      ...(input.enabled !== undefined ? { enabled: input.enabled } : {}),
-      ...(input.baseUrl !== undefined ? { baseUrl: input.baseUrl } : {}),
-      ...(input.connection !== undefined
-        ? { connection: encryptJsonSecrets(input.connection) }
-        : {}),
-      ...(input.credentials !== undefined
-        ? { credentials: encryptJsonSecrets(input.credentials) }
-        : {}),
-      ...(input.metadata !== undefined ? { metadata: input.metadata } : {}),
-      ...(input.lastCheckedAt !== undefined
-        ? { lastCheckedAt: input.lastCheckedAt }
-        : {}),
-      ...(input.lastError !== undefined ? { lastError: input.lastError } : {}),
-      updatedAt: currentTimestampSql(),
-    })
-    .where(
-      and(
-        eq(mediaSources.id, id),
-        eq(mediaSources.providerAccountId, providerAccountId),
-      ),
-    )
-    .run();
-
-  return getMediaSourceForAccount(id, providerAccountId);
-}
-
-export function updateMediaSourceHealthForAccount(
-  id: string,
-  providerAccountId: string,
-  input: { lastCheckedAt: string; lastError?: string },
-) {
-  getDatabase()
-    .update(mediaSources)
-    .set({
-      lastCheckedAt: input.lastCheckedAt,
-      lastError: input.lastError ?? null,
-      updatedAt: currentTimestampSql(),
-    })
-    .where(
-      and(
-        eq(mediaSources.id, id),
-        eq(mediaSources.providerAccountId, providerAccountId),
-      ),
-    )
-    .run();
-
-  return getMediaSourceForAccount(id, providerAccountId);
 }
