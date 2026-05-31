@@ -43,6 +43,7 @@ function createCliparrRequestError(
 
 const authFailureListeners = new Set<() => void>();
 let authFailureQueued = false;
+let currentlyPlayingRequest: Promise<CurrentlyPlayingResponse> | null = null;
 
 function responseErrorDetails(payload: unknown): ResponseErrorDetails {
   if (!payload || typeof payload !== "object") {
@@ -244,8 +245,13 @@ export const cliparrClient = {
     });
   },
 
-  async getCurrentlyPlaying() {
-    return request<CurrentlyPlayingResponse>("/api/media/currently-playing");
+  getCurrentlyPlaying() {
+    currentlyPlayingRequest ??= request<CurrentlyPlayingResponse>(
+      "/api/media/currently-playing",
+    ).finally(() => {
+      currentlyPlayingRequest = null;
+    });
+    return currentlyPlayingRequest;
   },
 
   async createLocalMediaUrl(url: string) {

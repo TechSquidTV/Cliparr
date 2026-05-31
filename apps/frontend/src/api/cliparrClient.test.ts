@@ -110,6 +110,37 @@ void test("surfaces JSON API errors and coalesces auth failure notifications", a
   );
 });
 
+void test("coalesces in-flight currently playing requests only", async () => {
+  let fetchCount = 0;
+  let releaseFetch: (() => void) | undefined;
+
+  await withMockedFetch(
+    async (input) => {
+      assert.equal(input, "/api/media/currently-playing");
+      fetchCount += 1;
+      await new Promise<void>((resolve) => {
+        releaseFetch = resolve;
+      });
+      return jsonResponse({ sourceErrors: [], viewers: [] });
+    },
+    async () => {
+      const firstRequest = cliparrClient.getCurrentlyPlaying();
+      const secondRequest = cliparrClient.getCurrentlyPlaying();
+
+      assert.equal(fetchCount, 1);
+      releaseFetch?.();
+      assert.deepEqual(await firstRequest, { sourceErrors: [], viewers: [] });
+      assert.deepEqual(await secondRequest, { sourceErrors: [], viewers: [] });
+      assert.equal(fetchCount, 1);
+
+      const thirdRequest = cliparrClient.getCurrentlyPlaying();
+      assert.equal(fetchCount, 2);
+      releaseFetch?.();
+      assert.deepEqual(await thirdRequest, { sourceErrors: [], viewers: [] });
+    },
+  );
+});
+
 void test("follows app auth redirects with the current browser location", async () => {
   const originalWindow = Object.getOwnPropertyDescriptor(globalThis, "window");
   let assignedUrl = "";
