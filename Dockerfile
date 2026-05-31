@@ -1,8 +1,9 @@
 # syntax=docker/dockerfile:1.7
 
 ARG CLIPARR_VERSION
+ARG NODE_VERSION=24
 
-FROM node:24-slim AS base
+FROM node:${NODE_VERSION}-slim AS base
 
 ENV PNPM_HOME="/pnpm"
 ENV PATH="$PNPM_HOME:$PATH"
@@ -34,7 +35,9 @@ COPY apps/frontend/src apps/frontend/src
 
 RUN CLIPARR_SERVER_SOURCEMAP=false pnpm build
 
-FROM node:24-slim AS runner
+RUN mkdir -p /runtime/data && chown 65532:65532 /runtime/data
+
+FROM gcr.io/distroless/nodejs${NODE_VERSION}-debian13:nonroot AS runner
 
 ARG CLIPARR_VERSION
 
@@ -50,20 +53,19 @@ ENV CLIPARR_VERSION=$CLIPARR_VERSION
 
 WORKDIR /app
 
-COPY --from=build --chown=node:node /app/apps/server/package.json ./apps/server/package.json
-COPY --from=build --chown=node:node /app/apps/server/dist ./apps/server/dist
-COPY --from=build --chown=node:node /app/apps/server/drizzle ./apps/server/drizzle
-COPY --from=build --chown=node:node /app/apps/frontend/dist ./apps/frontend/dist
+COPY --from=build --chown=65532:65532 /runtime/data /data
+COPY --from=build --chown=65532:65532 /app/apps/server/package.json ./apps/server/package.json
+COPY --from=build --chown=65532:65532 /app/apps/server/dist ./apps/server/dist
+COPY --from=build --chown=65532:65532 /app/apps/server/drizzle ./apps/server/drizzle
+COPY --from=build --chown=65532:65532 /app/apps/frontend/dist ./apps/frontend/dist
 
-RUN mkdir -p /data && chown node:node /data
-
-USER node
+USER 65532:65532
 
 VOLUME ["/data"]
 
 EXPOSE 7171
 
 HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \
-  CMD ["node", "-e", "fetch('http://127.0.0.1:' + (process.env.PORT || 7171) + '/api/health').then((response) => process.exit(response.ok ? 0 : 1)).catch(() => process.exit(1))"]
+  CMD ["/nodejs/bin/node", "-e", "fetch('http://127.0.0.1:' + (process.env.PORT || 7171) + '/api/health').then((response) => process.exit(response.ok ? 0 : 1)).catch(() => process.exit(1))"]
 
-CMD ["node", "apps/server/dist/server.js"]
+CMD ["apps/server/dist/server.js"]
