@@ -7,7 +7,7 @@ export const site = {
   ogImage: "/og.jpg",
   ogImageAlt:
     "Cliparr editor showing a video preview, playback controls, and timeline clip selection.",
-  ogImageHeight: 739,
+  ogImageHeight: 630,
   ogImageType: "image/jpeg",
   ogImageWidth: 1200,
   logo: "/logo-light.svg",
