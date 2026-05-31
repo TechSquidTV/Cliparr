@@ -549,27 +549,28 @@ export default function EditorScreen({ session, onBack }: Props) {
         </Suspense>
       )}
 
-      {framegrab.dialogMounted && framegrab.capturedFramegrab && (
-        <Suspense fallback={null}>
-          <EditorFramegrabDialog
-            isOpen={framegrab.dialogOpen}
-            title={session.title}
-            frameTime={framegrab.capturedFramegrab.time}
-            dimensions={framegrab.capturedFramegrab.dimensions}
-            selectedFormat={framegrab.format}
-            onFormatChange={framegrab.handleFormatChange}
-            selectedQuality={framegrab.quality}
-            onQualityChange={framegrab.handleQualityChange}
-            fileNamePreview={framegrab.fileName.fullName}
-            processingAction={framegrab.action}
-            error={framegrab.error}
-            message={framegrab.message}
-            onClose={framegrab.closeDialog}
-            onCopy={() => void framegrab.copyFramegrab()}
-            onDownload={() => void framegrab.downloadFramegrab()}
-          />
-        </Suspense>
-      )}
+      {framegrab.dialogMounted &&
+        (framegrab.capturedFramegrab || framegrab.error) && (
+          <Suspense fallback={null}>
+            <EditorFramegrabDialog
+              isOpen={framegrab.dialogOpen}
+              title={session.title}
+              frameTime={framegrab.capturedFramegrab?.time ?? currentTime}
+              dimensions={framegrab.capturedFramegrab?.dimensions ?? null}
+              selectedFormat={framegrab.format}
+              onFormatChange={framegrab.handleFormatChange}
+              selectedQuality={framegrab.quality}
+              onQualityChange={framegrab.handleQualityChange}
+              fileNamePreview={framegrab.fileName.fullName}
+              processingAction={framegrab.action}
+              error={framegrab.error}
+              message={framegrab.message}
+              onClose={framegrab.closeDialog}
+              onCopy={() => void framegrab.copyFramegrab()}
+              onDownload={() => void framegrab.downloadFramegrab()}
+            />
+          </Suspense>
+        )}
     </div>
   );
 }

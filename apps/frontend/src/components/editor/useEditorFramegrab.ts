@@ -99,12 +99,19 @@ export function useEditorFramegrab({
       return subtitleError;
     }
 
-    if (!previewVideoDimensions) {
+    const canvas = canvasRef.current;
+    if (
+      !previewVideoDimensions ||
+      !canvas ||
+      canvas.width <= 0 ||
+      canvas.height <= 0
+    ) {
       return "No preview frame available.";
     }
 
     return null;
   }, [
+    canvasRef,
     loadingPreview,
     loadingPreviewFrame,
     previewVideoDimensions,
@@ -116,7 +123,11 @@ export function useEditorFramegrab({
   const openDialog = useCallback(() => {
     const canvas = canvasRef.current;
     if (!canvas) {
+      setCapturedFramegrab(null);
       setError("No preview frame is available yet.");
+      setMessage(null);
+      setDialogMounted(true);
+      setDialogOpen(true);
       return;
     }
 
@@ -134,7 +145,11 @@ export function useEditorFramegrab({
       setMessage(null);
       setDialogOpen(true);
     } catch (err) {
+      setCapturedFramegrab(null);
       setError(errorMessage(err));
+      setMessage(null);
+      setDialogMounted(true);
+      setDialogOpen(true);
     }
   }, [canvasRef, currentTime]);
 

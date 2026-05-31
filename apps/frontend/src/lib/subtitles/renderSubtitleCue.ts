@@ -103,13 +103,22 @@ function cachedSubtitleLayout(
   }
 
   const font = `700 ${fontSize}px ${style.fontFamily}`;
-  context.font = font;
-  const wrappedLines = cue.lines.flatMap((line) =>
-    wrapLine(context, line, maxWidth),
-  );
-  const lineWidths = wrappedLines.map(
-    (line) => context.measureText(line).width,
-  );
+  const { wrappedLines, lineWidths } = (() => {
+    context.save();
+    try {
+      context.font = font;
+      const wrappedLines = cue.lines.flatMap((line) =>
+        wrapLine(context, line, maxWidth),
+      );
+      return {
+        wrappedLines,
+        lineWidths: wrappedLines.map((line) => context.measureText(line).width),
+      };
+    } finally {
+      context.restore();
+    }
+  })();
+
   const layout: SubtitleLayout = {
     font,
     fontSize,

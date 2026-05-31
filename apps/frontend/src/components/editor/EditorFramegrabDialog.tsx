@@ -38,7 +38,7 @@ interface EditorFramegrabDialogProps {
   dimensions: {
     width: number;
     height: number;
-  };
+  } | null;
   selectedFormat: FramegrabImageFormat;
   onFormatChange: (format: FramegrabImageFormat) => void;
   selectedQuality: FramegrabImageQuality;
@@ -71,6 +71,7 @@ export function EditorFramegrabDialog({
 }: EditorFramegrabDialogProps) {
   const selectedFormatOption = framegrabFormatOptionFor(selectedFormat);
   const busy = processingAction !== null;
+  const hasFrame = dimensions !== null;
   const qualityDisabled = selectedFormat === "png";
 
   return (
@@ -153,7 +154,7 @@ export function EditorFramegrabDialog({
 
             <dl className="grid gap-2 text-sm sm:grid-cols-2">
               <div className="rounded-md border border-border bg-background px-3 py-2">
-                <dt className={sectionLabelClassName()}>Frame</dt>
+                <dt className={sectionLabelClassName()}>Time</dt>
                 <dd className="mt-1 font-mono text-xs text-foreground">
                   {formatTime(frameTime)}
                 </dd>
@@ -161,7 +162,9 @@ export function EditorFramegrabDialog({
               <div className="rounded-md border border-border bg-background px-3 py-2">
                 <dt className={sectionLabelClassName()}>Size</dt>
                 <dd className="mt-1 font-mono text-xs text-foreground">
-                  {dimensions.width} x {dimensions.height}
+                  {dimensions
+                    ? `${dimensions.width} x ${dimensions.height}`
+                    : "Unavailable"}
                 </dd>
               </div>
             </dl>
@@ -188,7 +191,7 @@ export function EditorFramegrabDialog({
         <button
           type="button"
           onClick={onCopy}
-          disabled={busy}
+          disabled={busy || !hasFrame}
           className={compactSecondaryButtonClasses}
         >
           {processingAction === "copy" ? (
@@ -202,7 +205,7 @@ export function EditorFramegrabDialog({
         <button
           type="button"
           onClick={onDownload}
-          disabled={busy}
+          disabled={busy || !hasFrame}
           className={`${compactPrimaryButtonClasses} w-44`}
         >
           {processingAction === "download" ? (

@@ -162,6 +162,7 @@ void test("renders the framegrab export dialog actions", () => {
   assert.match(markup, /Export Frame/);
   assert.match(markup, /Image Type/);
   assert.match(markup, /Quality/);
+  assert.match(markup, />Time</);
   assert.match(markup, /Copy Image/);
   assert.match(markup, /Download PNG/);
   assert.doesNotMatch(markup, />Cancel</);
@@ -171,4 +172,30 @@ void test("renders the framegrab export dialog actions", () => {
   assert.doesNotMatch(markup, /sr-only/);
   assert.match(markup, /Copied to clipboard\./);
   assert.match(markup, /Example Movie \[01m01s\]\.png/);
+});
+
+void test("renders framegrab capture errors without a captured canvas", () => {
+  const markup = renderToStaticMarkup(
+    createElement(EditorFramegrabDialog, {
+      isOpen: true,
+      title: "Example Movie",
+      frameTime: 61.2,
+      dimensions: null,
+      selectedFormat: "png",
+      onFormatChange: () => undefined,
+      selectedQuality: "high",
+      onQualityChange: () => undefined,
+      fileNamePreview: "Example Movie [01m01s].png",
+      processingAction: null,
+      error: "No preview frame is available yet.",
+      message: null,
+      onClose: () => undefined,
+      onCopy: () => undefined,
+      onDownload: () => undefined,
+    }),
+  );
+
+  assert.match(markup, /No preview frame is available yet\./);
+  assert.match(markup, /Unavailable/);
+  assert.match(markup, /disabled/);
 });
