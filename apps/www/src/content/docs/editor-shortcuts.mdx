@@ -1,11 +1,13 @@
 ---
 title: Editor shortcuts
-description: Keyboard behavior for preview playback and editable timecodes.
+description: Keyboard and pointer shortcuts for playback, marking, seeking, frame stepping, timeline zoom, and editable timecodes.
 section: editing-export
 order: 40
 ---
 
-The editor keeps keyboard shortcuts intentionally small so browser, form, and media controls stay predictable.
+The editor keeps keyboard shortcuts focused on preview playback, range marking, seeking, and timeline navigation so browser, form, and media controls stay predictable.
+
+Shortcuts only control the editor when focus is not inside an interactive control or dialog. They are ignored while typing in inputs, using selects, pressing buttons, adjusting sliders, or working inside export and framegrab dialogs.
 
 ## Preview playback
 
@@ -13,7 +15,37 @@ The editor keeps keyboard shortcuts intentionally small so browser, form, and me
 | :------- | :------------------------- |
 | `Space`  | Play or pause the preview. |
 
-`Space` only controls preview playback when focus is not inside an interactive control. It is ignored while typing in inputs, using selects, pressing buttons, or adjusting sliders.
+## Marking and seeking
+
+| Shortcut                | Action                                |
+| :---------------------- | :------------------------------------ |
+| `I` or `[`              | Set `In` to the current playhead.     |
+| `O` or `]`              | Set `Out` to the current playhead.    |
+| `Shift` + `I`           | Jump to `In`.                         |
+| `Shift` + `O`           | Jump to `Out`.                        |
+| `Left Arrow`            | Move the playhead back 30 seconds.    |
+| `Right Arrow`           | Move the playhead forward 30 seconds. |
+| `Shift` + `Left Arrow`  | Move the playhead back 5 seconds.     |
+| `Shift` + `Right Arrow` | Move the playhead forward 5 seconds.  |
+
+`I`, `O`, `Shift` + `I`, and `Shift` + `O` match Premiere-style mark and jump behavior. Bracket keys and arrow-key seeking are Cliparr conveniences.
+
+Setting `In` or `Out` clamps the range to the media duration and keeps Cliparr's minimum clip length intact. Second-based seeking stays inside the media duration and resumes playback when the preview was already playing.
+
+## Frame stepping and zoom
+
+| Shortcut       | Action                  |
+| :------------- | :---------------------- |
+| `Page Up`      | Step back one frame.    |
+| `Page Down`    | Step forward one frame. |
+| Hold `K` + `J` | Step back one frame.    |
+| Hold `K` + `L` | Step forward one frame. |
+| `-`            | Zoom the timeline out.  |
+| `=`            | Zoom the timeline in.   |
+
+`K` + `J`, `K` + `L`, `-`, and `=` preserve Premiere muscle memory. `Page Up` and `Page Down` are Cliparr-specific aliases for single-frame stepping.
+
+Frame stepping pauses the preview and moves by the active source video frame rate when Cliparr can detect it. If the frame rate is unavailable, Cliparr falls back to a 30 fps step.
 
 ## Editable timecodes
 
@@ -33,4 +65,6 @@ Most editor actions are controlled directly on screen:
 - Drag the timeline selection to move the clip range.
 - Drag selection edges to adjust `In` and `Out`.
 - Use the zoom buttons to change timeline scale.
+- Scroll the timeline to move horizontally.
+- Use `Ctrl`/`Cmd` + scroll over the timeline to zoom around the pointer.
 - Use the volume slider and mute button to control preview audio.
