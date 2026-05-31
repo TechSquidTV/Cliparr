@@ -1,0 +1,81 @@
+name: Update Plex PMS SDK
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "17 10 * * *"
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: update-plex-pms-sdk
+  cancel-in-progress: false
+
+jobs:
+  update:
+    name: Update Plex PMS SDK
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v6
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Update Plex PMS SDK
+        run: pnpm plex:sdk:update
+
+      - name: Check generated Plex PMS SDK
+        run: pnpm plex:sdk:check
+
+      - name: Open pull request
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BRANCH_NAME: codex/update-plex-pms-sdk
+          PR_BODY: |
+            Updates the committed Plex PMS OpenAPI snapshot and generated TypeScript SDK from https://developer.plex.tv/pms/.
+
+            This PR was created by the scheduled Plex PMS SDK update workflow.
+        run: |
+          set -euo pipefail
+
+          if [[ -z "$(git status --porcelain -- apps/server/src/providers/plex/openapi apps/server/src/providers/plex/generated)" ]]; then
+            echo "Plex PMS SDK is already up to date."
+            exit 0
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git switch --create "${BRANCH_NAME}"
+          git add apps/server/src/providers/plex/openapi apps/server/src/providers/plex/generated
+          git commit -m "chore(plex): update PMS OpenAPI SDK"
+          git push --force-with-lease origin "${BRANCH_NAME}"
+
+          if gh pr view "${BRANCH_NAME}" --json number >/dev/null 2>&1; then
+            gh pr edit "${BRANCH_NAME}" \
+              --title "chore(plex): update PMS OpenAPI SDK" \
+              --body "${PR_BODY}"
+            exit 0
+          fi
+
+          gh pr create \
+            --base main \
+            --head "${BRANCH_NAME}" \
+            --title "chore(plex): update PMS OpenAPI SDK" \
+            --body "${PR_BODY}"

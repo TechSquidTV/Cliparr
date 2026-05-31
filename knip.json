@@ -13,6 +13,7 @@
     "apps/server": {
       "drizzle": false,
       "ignoreBinaries": ["eslint"],
+      "ignore": ["src/providers/plex/generated/**"],
       "paths": {
         "@/*": ["./src/*"]
       },

@@ -15,7 +15,11 @@ export default tseslint.config(
       "**/*.d.ts",
       "**/*.tsbuildinfo",
       "**/routeTree.gen.ts",
+      "**/providers/plex/generated/**",
+      "apps/server/src/providers/plex/generated/**",
     ],
+  },
+  {
     linterOptions: {
       reportUnusedDisableDirectives: "error",
     },

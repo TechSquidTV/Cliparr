@@ -9,7 +9,7 @@
   },
   "packageManager": "pnpm@11.2.2",
   "engines": {
-    "node": ">=20.19"
+    "node": ">=24.0.0"
   },
   "repository": {
     "type": "git",
@@ -32,9 +32,12 @@
     "lint:types": "pnpm -r --if-present lint:types",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
+    "plex:sdk:update": "node scripts/plex/update-sdk.mjs",
+    "plex:sdk:check": "node scripts/plex/check-sdk.mjs",
     "preflight": "pnpm format:check && pnpm lint && pnpm knip && pnpm test",
-    "test": "pnpm test:release && pnpm --filter @cliparr/server test && pnpm --filter @cliparr/frontend test",
+    "test": "pnpm plex:sdk:check && pnpm test:release && pnpm test:plex-sdk && pnpm --filter @cliparr/server test && pnpm --filter @cliparr/frontend test",
     "test:release": "node --test scripts/release/*.test.mjs",
+    "test:plex-sdk": "node --test scripts/plex/*.test.mjs",
     "release:plan": "node scripts/release/plan-release.mjs",
     "knip": "knip",
     "docs:sync": "pnpm --filter @cliparr/www docs:sync",
@@ -48,6 +51,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
+    "@hey-api/openapi-ts": "~0.97.3",
     "@types/node": "^25.9.1",
     "concurrently": "^10.0.0",
     "eslint": "^10.4.1",
