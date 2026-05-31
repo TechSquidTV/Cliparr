@@ -1,36 +1,109 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
+import {
+  resolveEditorShortcutCommand,
+  type EditorShortcutCommand,
+} from "@/components/editor/editorShortcutCommands";
 
 interface UseEditorKeyboardShortcutsProps {
   togglePlay: () => void;
+  markIn?: () => void;
+  markOut?: () => void;
+  jumpToIn?: () => void;
+  jumpToOut?: () => void;
+  seekBackwardLarge?: () => void;
+  seekForwardLarge?: () => void;
+  seekBackwardSmall?: () => void;
+  seekForwardSmall?: () => void;
+  stepFrameBackward?: () => void;
+  stepFrameForward?: () => void;
+  zoomOut?: () => void;
+  zoomIn?: () => void;
 }
 
 export function useEditorKeyboardShortcuts({
   togglePlay,
+  markIn,
+  markOut,
+  jumpToIn,
+  jumpToOut,
+  seekBackwardLarge,
+  seekForwardLarge,
+  seekBackwardSmall,
+  seekForwardSmall,
+  stepFrameBackward,
+  stepFrameForward,
+  zoomOut,
+  zoomIn,
 }: UseEditorKeyboardShortcutsProps) {
+  const commandHandlersRef = useRef<
+    Partial<Record<EditorShortcutCommand, () => void>>
+  >({});
+
   useEffect(() => {
+    commandHandlersRef.current = {
+      "toggle-play": togglePlay,
+      "mark-in": markIn,
+      "mark-out": markOut,
+      "jump-to-in": jumpToIn,
+      "jump-to-out": jumpToOut,
+      "seek-backward-large": seekBackwardLarge,
+      "seek-forward-large": seekForwardLarge,
+      "seek-backward-small": seekBackwardSmall,
+      "seek-forward-small": seekForwardSmall,
+      "step-frame-backward": stepFrameBackward,
+      "step-frame-forward": stepFrameForward,
+      "zoom-out": zoomOut,
+      "zoom-in": zoomIn,
+    };
+  });
+
+  useEffect(() => {
+    const pressedCodes = new Set<string>();
+
     function handleKeyDown(event: KeyboardEvent) {
-      if (event.code !== "Space") {
+      if (isInteractiveKeyboardTarget(event.target) || isModalDialogOpen()) {
         return;
       }
 
-      if (event.repeat || event.metaKey || event.ctrlKey || event.altKey) {
-        return;
-      }
+      pressedCodes.add(event.code);
+      const command = resolveEditorShortcutCommand({
+        code: event.code,
+        repeat: event.repeat,
+        shiftKey: event.shiftKey,
+        altKey: event.altKey,
+        ctrlKey: event.ctrlKey,
+        metaKey: event.metaKey,
+        pressedCodes,
+      });
+      const handler = command ? commandHandlersRef.current[command] : undefined;
 
-      if (isInteractiveKeyboardTarget(event.target)) {
+      if (!handler) {
         return;
       }
 
       event.preventDefault();
-      togglePlay();
+      event.stopPropagation();
+      handler();
+    }
+
+    function handleKeyUp(event: KeyboardEvent) {
+      pressedCodes.delete(event.code);
+    }
+
+    function handleBlur() {
+      pressedCodes.clear();
     }
 
     window.addEventListener("keydown", handleKeyDown);
+    window.addEventListener("keyup", handleKeyUp);
+    window.addEventListener("blur", handleBlur);
 
     return () => {
       window.removeEventListener("keydown", handleKeyDown);
+      window.removeEventListener("keyup", handleKeyUp);
+      window.removeEventListener("blur", handleBlur);
     };
-  }, [togglePlay]);
+  }, []);
 }
 
 function isInteractiveKeyboardTarget(target: EventTarget | null) {
@@ -44,7 +117,19 @@ function isInteractiveKeyboardTarget(target: EventTarget | null) {
 
   return Boolean(
     target.closest(
-      'input, textarea, select, button, [contenteditable="true"], [role="slider"]',
+      'input, textarea, select, button, [contenteditable="true"], [role="slider"], [role="dialog"], [role="alertdialog"], dialog',
+    ),
+  );
+}
+
+function isModalDialogOpen() {
+  if (typeof document === "undefined") {
+    return false;
+  }
+
+  return Boolean(
+    document.querySelector(
+      '[role="dialog"][aria-modal="true"], [role="alertdialog"][aria-modal="true"], dialog[open]',
     ),
   );
 }
