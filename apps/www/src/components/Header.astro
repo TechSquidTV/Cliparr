@@ -5,11 +5,14 @@ const links = [
   { href: "/#features", label: "Features" },
   { href: "/docs", label: "Docs" },
   { href: "/changelog", label: "Releases" },
-  { href: site.githubUrl, label: "GitHub", className: "hidden sm:inline-flex" },
+  { href: site.githubUrl, label: "GitHub" },
 ];
+
+const mobileMenuId = "site-mobile-menu";
 ---
 
 <header
+  data-site-header
   class="sticky top-0 z-30 border-b border-border bg-background/88 backdrop-blur-xl"
 >
   <div
@@ -25,15 +28,84 @@ const links = [
         >{site.name}</span
       >
     </a>
+    <div class="flex items-center gap-2 sm:hidden">
+      <button
+        type="button"
+        data-theme-toggle
+        aria-label="Toggle color theme"
+        title="Toggle color theme"
+        class="focus-ring inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-border bg-card text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+      >
+        <svg
+          class="theme-toggle-icon theme-toggle-icon-moon h-4 w-4"
+          viewBox="0 0 24 24"
+          aria-hidden="true"
+        >
+          <path
+            d="M21 14.2A8.5 8.5 0 0 1 9.8 3a7 7 0 1 0 11.2 11.2Z"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"></path>
+        </svg>
+        <svg
+          class="theme-toggle-icon theme-toggle-icon-sun h-4 w-4"
+          viewBox="0 0 24 24"
+          aria-hidden="true"
+        >
+          <path
+            d="M12 4V2m0 20v-2m8-8h2M2 12h2m14.95-6.95 1.42-1.42M3.63 20.37l1.42-1.42m0-13.9L3.63 3.63m16.74 16.74-1.42-1.42M16 12a4 4 0 1 1-8 0 4 4 0 0 1 8 0Z"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"></path>
+        </svg>
+      </button>
+      <button
+        type="button"
+        data-mobile-nav-toggle
+        aria-label="Open navigation menu"
+        aria-controls={mobileMenuId}
+        aria-expanded="false"
+        class="focus-ring inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-border bg-card text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+      >
+        <svg
+          class="site-mobile-menu-icon-menu h-4 w-4"
+          viewBox="0 0 24 24"
+          aria-hidden="true"
+        >
+          <path
+            d="M4 7h16M4 12h16M4 17h16"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"></path>
+        </svg>
+        <svg
+          class="site-mobile-menu-icon-close h-4 w-4"
+          viewBox="0 0 24 24"
+          aria-hidden="true"
+        >
+          <path
+            d="m6 6 12 12M18 6 6 18"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"></path>
+        </svg>
+      </button>
+    </div>
     <nav
       aria-label="Primary navigation"
-      class="flex min-w-0 items-center gap-1 sm:gap-2"
+      class="hidden min-w-0 items-center gap-2 sm:flex"
     >
       {
         links.map((link) => (
           <a
             href={link.href}
-            class={`focus-ring rounded-full px-1.5 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground min-[380px]:px-2.5 sm:px-3 ${link.className ?? ""}`}
+            class="focus-ring rounded-full px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
             target={link.href.startsWith("http") ? "_blank" : undefined}
             rel={link.href.startsWith("http") ? "noreferrer" : undefined}
           >
@@ -83,4 +155,117 @@ const links = [
       </a>
     </nav>
   </div>
+  <div
+    id={mobileMenuId}
+    data-mobile-nav
+    hidden
+    class="border-t border-border bg-background/95 sm:hidden"
+  >
+    <nav aria-label="Mobile navigation" class="container-page grid gap-1 py-3">
+      {
+        links.map((link) => (
+          <a
+            href={link.href}
+            class="focus-ring flex min-h-11 items-center justify-between rounded-lg px-3 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+            target={link.href.startsWith("http") ? "_blank" : undefined}
+            rel={link.href.startsWith("http") ? "noreferrer" : undefined}
+          >
+            {link.label}
+            {link.href.startsWith("http") ? (
+              <svg
+                class="h-3.5 w-3.5 text-muted-foreground"
+                viewBox="0 0 24 24"
+                aria-hidden="true"
+              >
+                <path
+                  d="M7 17 17 7M9 7h8v8"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                />
+              </svg>
+            ) : null}
+          </a>
+        ))
+      }
+      <a
+        href="/docs/getting-started"
+        class="focus-ring mt-1 flex min-h-11 items-center justify-center rounded-lg bg-foreground px-4 text-sm font-semibold text-background transition-colors hover:bg-primary"
+      >
+        Get started
+      </a>
+    </nav>
+  </div>
 </header>
+
+<script is:inline>
+  (() => {
+    const initMobileNav = () => {
+      const header = document.querySelector("[data-site-header]");
+      if (!header) return;
+
+      const button = header.querySelector("[data-mobile-nav-toggle]");
+      const menu = header.querySelector("[data-mobile-nav]");
+      if (
+        !(button instanceof HTMLButtonElement) ||
+        !(menu instanceof HTMLElement)
+      ) {
+        return;
+      }
+
+      if (button.dataset.mobileNavBound === "true") {
+        menu.hidden = true;
+        button.setAttribute("aria-expanded", "false");
+        header.removeAttribute("data-mobile-nav-open");
+        return;
+      }
+
+      const setOpen = (open) => {
+        menu.hidden = !open;
+        button.setAttribute("aria-expanded", open ? "true" : "false");
+        button.setAttribute(
+          "aria-label",
+          open ? "Close navigation menu" : "Open navigation menu",
+        );
+        header.toggleAttribute("data-mobile-nav-open", open);
+      };
+
+      button.dataset.mobileNavBound = "true";
+      button.addEventListener("click", () => {
+        setOpen(button.getAttribute("aria-expanded") !== "true");
+      });
+      menu.addEventListener("click", (event) => {
+        if (event.target instanceof Element && event.target.closest("a")) {
+          setOpen(false);
+        }
+      });
+      document.addEventListener("keydown", (event) => {
+        if (event.key === "Escape") {
+          setOpen(false);
+        }
+      });
+      document.addEventListener("click", (event) => {
+        if (
+          button.getAttribute("aria-expanded") === "true" &&
+          event.target instanceof Node &&
+          !header.contains(event.target)
+        ) {
+          setOpen(false);
+        }
+      });
+      setOpen(false);
+    };
+
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", initMobileNav, {
+        once: true,
+      });
+    } else {
+      initMobileNav();
+    }
+
+    document.addEventListener("astro:page-load", initMobileNav);
+  })();
+</script>

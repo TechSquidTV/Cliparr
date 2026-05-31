@@ -427,6 +427,7 @@ export default function EditorScreen({ session, onBack }: Props) {
   );
   const editorControls = (
     <EditorControls
+      variant={layoutVariant}
       playing={playing}
       loadingPreview={loadingPreview}
       togglePlay={togglePlay}
