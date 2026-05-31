@@ -49,7 +49,8 @@ import {
   buildSourceContext,
   candidateConnections,
   CURRENT_PLAYBACK_REQUEST_TIMEOUT_MS,
-  fetchPmsJson,
+  fetchPmsCurrentSessions,
+  fetchPmsMetadata,
   plexMediaHeaders,
   sourceResource,
   unreachableConnectionMessage,
@@ -65,6 +66,7 @@ import {
 const logger = getServerLogger(["provider", "plex", "playback"]);
 const HD_ARTWORK_SIZE = 1920;
 const PLEX_TRANSCODE_SOURCE_ID_MAX_LENGTH = 16;
+const PLEX_METADATA_PATH_PREFIX = "/library/metadata/";
 
 function createMediaHandle(
   session: ProviderSessionRecord,
@@ -127,15 +129,33 @@ interface PlexCurrentlyPlayingData {
 function metadataPath(item: PlexMetadataPathItem | null | undefined) {
   const ratingKey = idValue(item?.ratingKey);
   if (ratingKey) {
-    return `/library/metadata/${ratingKey}`;
+    return `${PLEX_METADATA_PATH_PREFIX}${ratingKey}`;
   }
   if (
     typeof item?.key === "string" &&
-    item.key.startsWith("/library/metadata/")
+    item.key.startsWith(PLEX_METADATA_PATH_PREFIX)
   ) {
     return item.key;
   }
   return undefined;
+}
+
+function metadataId(item: PlexMetadataPathItem | null | undefined) {
+  const ratingKey = idValue(item?.ratingKey);
+  if (ratingKey) {
+    return ratingKey;
+  }
+
+  const path = metadataPath(item);
+  if (!path) {
+    return undefined;
+  }
+
+  const parsed = new URL(path, "http://cliparr.local");
+  const id = parsed.pathname
+    .slice(PLEX_METADATA_PATH_PREFIX.length)
+    .split("/")[0];
+  return idValue(id);
 }
 
 interface PlexMediaSelection {
@@ -407,7 +427,7 @@ async function fetchCurrentlyPlayingData(source: MediaSource) {
     );
 
     try {
-      const data = (await fetchPmsJson(context, "/status/sessions", {
+      const data = (await fetchPmsCurrentSessions(context, {
         timeoutMs: CURRENT_PLAYBACK_REQUEST_TIMEOUT_MS,
       })) as PlexCurrentlyPlayingData;
       persistWorkingSourceConnection(source, persistedConnections, connection, {
@@ -829,12 +849,12 @@ function subtitleTrackSupportsBurnIn(track: PlaybackSubtitleTrack) {
 }
 
 async function fetchMetadataItem(context: PlexSourceContext, item: any) {
-  const path = metadataPath(item);
-  if (!path) {
+  const id = metadataId(item);
+  if (!id) {
     return undefined;
   }
 
-  const data = (await fetchPmsJson(context, path)) as any;
+  const data = (await fetchPmsMetadata(context, [id])) as any;
   return data?.MediaContainer?.Metadata?.[0];
 }
 
@@ -942,13 +962,14 @@ async function resolveMediaPath(
     return enrichedPath;
   }
 
+  const id = metadataId(item);
   const path = metadataPath(item);
-  if (!path) {
+  if (!id) {
     return undefined;
   }
 
   try {
-    const data = (await fetchPmsJson(context, path)) as any;
+    const data = (await fetchPmsMetadata(context, [id])) as any;
     const fullItem = data?.MediaContainer?.Metadata?.[0];
     return fallbackPartPath(resolveSelectedPart(fullItem, selection)?.part);
   } catch (err) {

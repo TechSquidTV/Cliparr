@@ -108,7 +108,7 @@ function safeUrl(value: string, base?: string) {
   }
 }
 
-export function normalizeMediaPath(path: string) {
+function normalizeMediaPath(path: string) {
   if (isAbsoluteUrl(path)) {
     return path;
   }

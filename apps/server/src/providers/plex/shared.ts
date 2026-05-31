@@ -1,7 +1,6 @@
 import { randomUUID } from "crypto";
 import type { MediaSource } from "@/db/mediaSourcesRepository";
 import { createApiError } from "@/http/errors";
-import { normalizeMediaPath } from "@/providers/shared/mediaProxy";
 import {
   errorMessage,
   numberValue,
@@ -14,6 +13,12 @@ import {
   PLEX_BASE_URL_MODE_MANUAL,
   type PlexBaseUrlMode,
 } from "@/providers/plex/connectionState";
+import {
+  plexPmsResponseStatusMessage,
+  requestPlexPmsCurrentSessions,
+  requestPlexPmsIdentity,
+  requestPlexPmsMetadata,
+} from "@/providers/plex/pmsClient";
 
 export const PLEX_PRODUCT = "Cliparr";
 export const PLEX_CLIENT_IDENTIFIER =
@@ -401,37 +406,56 @@ async function probeConnection(
   resource: ProviderResource,
   connection: ProviderResource["connections"][number],
 ) {
-  const controller = new AbortController();
-  const timeout = setTimeout(
-    () => controller.abort(),
-    CONNECTION_PROBE_TIMEOUT_MS,
-  );
-
   try {
-    const url = new URL("/identity", connection.uri);
-    const response = await fetch(url.toString(), {
-      headers: plexHeaders({
-        "X-Plex-Token": resource.accessToken,
-      }),
-      signal: controller.signal,
-    });
-
-    if (!response.ok) {
-      return {
-        ok: false as const,
-        message: `${response.status} ${response.statusText}`,
-      };
-    }
+    await requestPlexPmsIdentity(
+      {
+        baseUrl: connection.uri,
+        token: resource.accessToken,
+      },
+      plexPmsRequestOptions(CONNECTION_PROBE_TIMEOUT_MS),
+    );
 
     return { ok: true as const };
   } catch (err) {
     return {
       ok: false as const,
-      message: errorMessage(err),
+      message: plexPmsResponseStatusMessage(err) ?? errorMessage(err),
     };
-  } finally {
-    clearTimeout(timeout);
   }
+}
+
+function plexPmsRequestOptions(timeoutMs: number) {
+  return {
+    clientIdentifier: PLEX_CLIENT_IDENTIFIER,
+    product: PLEX_PRODUCT,
+    timeoutMs,
+  };
+}
+
+export function fetchPmsCurrentSessions(
+  context: PlexSourceContext,
+  options: { timeoutMs?: number } = {},
+) {
+  return requestPlexPmsCurrentSessions(
+    context,
+    plexPmsRequestOptions(
+      options.timeoutMs ?? CURRENT_PLAYBACK_REQUEST_TIMEOUT_MS,
+    ),
+  );
+}
+
+export function fetchPmsMetadata(
+  context: PlexSourceContext,
+  ids: string[],
+  options: { timeoutMs?: number } = {},
+) {
+  return requestPlexPmsMetadata(
+    context,
+    ids,
+    plexPmsRequestOptions(
+      options.timeoutMs ?? CURRENT_PLAYBACK_REQUEST_TIMEOUT_MS,
+    ),
+  );
 }
 
 export async function selectReachableConnection(
@@ -472,29 +496,4 @@ export function buildSourceContext(
     baseUrl: connection.uri,
     token,
   };
-}
-
-export async function fetchPmsJson(
-  context: PlexSourceContext,
-  path: string,
-  options: { timeoutMs?: number } = {},
-) {
-  const url = new URL(normalizeMediaPath(path), context.baseUrl);
-  const controller = new AbortController();
-  const timeout = setTimeout(
-    () => controller.abort(),
-    options.timeoutMs ?? CURRENT_PLAYBACK_REQUEST_TIMEOUT_MS,
-  );
-
-  try {
-    const response = await plexFetch(url.toString(), {
-      headers: {
-        "X-Plex-Token": context.token,
-      },
-      signal: controller.signal,
-    });
-    return response.json();
-  } finally {
-    clearTimeout(timeout);
-  }
 }
