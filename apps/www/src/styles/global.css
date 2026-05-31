@@ -312,6 +312,18 @@
     display: none;
   }
 
+  .site-mobile-menu-icon-close {
+    display: none;
+  }
+
+  [data-mobile-nav-toggle][aria-expanded="true"] .site-mobile-menu-icon-menu {
+    display: none;
+  }
+
+  [data-mobile-nav-toggle][aria-expanded="true"] .site-mobile-menu-icon-close {
+    display: block;
+  }
+
   :root[data-theme="dark"] .site-logo,
   :root[data-theme="dark"] .provider-logo {
     filter: none;

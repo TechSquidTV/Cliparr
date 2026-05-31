@@ -5,6 +5,7 @@ import test from "node:test";
 import { createElement, createRef } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import AuthCompleteScreen from "@/components/AuthCompleteScreen";
+import { DashboardMobileMenu } from "@/components/DashboardMobileMenu";
 import { EditorControls } from "@/components/editor/EditorControls";
 import { EditorFramegrabDialog } from "@/components/editor/EditorFramegrabDialog";
 import { EditorPreview } from "@/components/editor/EditorPreview";
@@ -31,6 +32,17 @@ void test("renders local video dialog file picker workflow", () => {
   assert.match(markup, /Open Video/);
   assert.match(markup, /Local files stay in your browser/);
   assert.match(markup, /Choose File/);
+});
+
+void test("renders dashboard mobile menu trigger", () => {
+  const markup = renderToStaticMarkup(
+    createElement(DashboardMobileMenu, {
+      appVersion: "1.2.3",
+      onLogout: () => undefined,
+    }),
+  );
+
+  assert.match(markup, /Open dashboard menu/);
 });
 
 void test("renders the editor thumbnail behind loading preview state", () => {
@@ -71,6 +83,43 @@ void test("keeps the editor thumbnail mounted after preview load for fade out", 
   assert.match(markup, /\/api\/media\/thumb\.jpg/);
   assert.match(markup, /transition-opacity/);
   assert.match(markup, /opacity-0/);
+});
+
+void test("renders mobile editor controls trigger and compact range summary", () => {
+  const markup = renderToStaticMarkup(
+    createElement(
+      TooltipProvider,
+      null,
+      createElement(EditorControls, {
+        variant: "mobile",
+        playing: false,
+        loadingPreview: false,
+        togglePlay: () => undefined,
+        currentTime: 12,
+        duration: 120,
+        startTime: 10,
+        endTime: 20,
+        muted: false,
+        setMuted: () => undefined,
+        volume: 1,
+        setVolume: () => undefined,
+        handleTimelineZoomIn: () => undefined,
+        handleTimelineZoomOut: () => undefined,
+        canZoomIn: true,
+        canZoomOut: true,
+        onFramegrabClick: () => undefined,
+        framegrabDisabledReason: null,
+        onPreviewTimeCommit: () => undefined,
+        onStartTimeCommit: () => undefined,
+        onEndTimeCommit: () => undefined,
+      }),
+    ),
+  );
+
+  assert.match(markup, /More clip controls/);
+  assert.match(markup, />In</);
+  assert.match(markup, />Out</);
+  assert.match(markup, />Duration</);
 });
 
 void test("renders editor poster with the shared thumbnail view transition", () => {
