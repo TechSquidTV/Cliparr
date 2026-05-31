@@ -232,9 +232,15 @@ void test("logs into Jellyfin with credentials and stores a remembered provider 
             : input instanceof URL
               ? input.toString()
               : input.url;
+        const requestBody =
+          typeof init?.body === "string"
+            ? init.body
+            : input instanceof Request
+              ? await input.clone().text()
+              : undefined;
         upstreamRequests.push({
           url: requestUrl,
-          body: typeof init?.body === "string" ? init.body : undefined,
+          body: requestBody || undefined,
         });
 
         if (requestUrl === "http://1.1.1.1:8096/jellyfin/System/Info/Public") {
