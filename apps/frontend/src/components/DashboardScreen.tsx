@@ -10,6 +10,7 @@ import {
   Video,
 } from "lucide-react";
 import { cliparrClient } from "@/api/cliparrClient";
+import { cn } from "@/lib/utils";
 import { EDITOR_THUMBNAIL_VIEW_TRANSITION_NAME } from "@/lib/viewTransitions";
 import {
   formatProviderName,
@@ -21,6 +22,11 @@ import {
   DashboardMobileMenu,
   GithubIcon,
 } from "@/components/DashboardMobileMenu";
+import {
+  flattenDashboardPlaybackItems,
+  formatViewerSessionCount,
+} from "@/components/dashboardPlaybackItems";
+import type { DashboardPlaybackCardItem } from "@/components/dashboardPlaybackItems";
 import type {
   CurrentlyPlayingItem,
   SourcePlaybackError,
@@ -66,15 +72,22 @@ function sessionActionLabel(
 function ViewerAvatar({
   name,
   avatarUrl,
+  size = "md",
 }: {
   name: string;
   avatarUrl?: string;
+  size?: "sm" | "md";
 }) {
   const [imageFailed, setImageFailed] = useState(false);
   const label = name.trim().charAt(0).toUpperCase() || "?";
 
   return (
-    <div className="w-12 h-12 rounded-full bg-primary/10 text-primary flex items-center justify-center overflow-hidden text-lg font-semibold">
+    <div
+      className={cn(
+        "flex items-center justify-center overflow-hidden rounded-full bg-primary/10 font-semibold text-primary",
+        size === "sm" ? "h-8 w-8 text-sm" : "h-12 w-12 text-lg",
+      )}
+    >
       {avatarUrl && !imageFailed ? (
         <img
           src={avatarUrl}
@@ -86,6 +99,116 @@ function ViewerAvatar({
         label
       )}
     </div>
+  );
+}
+
+function ViewerChip({
+  viewer,
+  sessionCount,
+  playerState,
+}: {
+  viewer: ViewerPlaybackGroup["viewer"];
+  sessionCount: number;
+  playerState: string;
+}) {
+  return (
+    <div className="flex min-w-0 items-center gap-2.5">
+      <ViewerAvatar name={viewer.name} avatarUrl={viewer.avatarUrl} size="sm" />
+      <div className="min-w-0">
+        <div className="truncate text-sm font-semibold text-foreground">
+          {viewer.name}
+        </div>
+        <div className="truncate text-xs text-muted-foreground">
+          <span className="capitalize">{playerState}</span>
+          <span aria-hidden="true"> · </span>
+          {formatViewerSessionCount(sessionCount)}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export function DashboardPlaybackCard({
+  card,
+  activeViewTransitionSessionId,
+  onSelectSession,
+}: {
+  card: DashboardPlaybackCardItem;
+  activeViewTransitionSessionId?: string | null;
+  onSelectSession: (session: CurrentlyPlayingItem) => void;
+}) {
+  const { session: mediaSession, viewer, viewerSessionCount } = card;
+  const canEdit = canEditSession(mediaSession);
+  const sourceLabel = formatSourceLabel(mediaSession.source);
+  const thumbnailViewTransitionName =
+    mediaSession.thumbUrl && mediaSession.id === activeViewTransitionSessionId
+      ? EDITOR_THUMBNAIL_VIEW_TRANSITION_NAME
+      : undefined;
+
+  return (
+    <button
+      type="button"
+      onClick={() => {
+        if (canEdit) {
+          onSelectSession(mediaSession);
+        }
+      }}
+      disabled={!canEdit}
+      className="group relative flex flex-col overflow-hidden rounded-lg border border-border bg-card text-left text-card-foreground transition-all hover:border-primary/50 disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:border-border"
+    >
+      <div className="relative aspect-video w-full bg-background">
+        {mediaSession.thumbUrl ? (
+          <img
+            src={mediaSession.thumbUrl}
+            alt={mediaSession.title}
+            className="h-full w-full object-cover opacity-80 transition-opacity group-hover:opacity-100"
+            style={
+              thumbnailViewTransitionName
+                ? {
+                    viewTransitionName: thumbnailViewTransitionName,
+                  }
+                : undefined
+            }
+          />
+        ) : (
+          <div className="flex h-full w-full items-center justify-center">
+            <Video className="h-8 w-8 text-muted-foreground/50" />
+          </div>
+        )}
+        <div className="absolute inset-0 bg-linear-to-t from-card via-card/35 to-transparent" />
+        <div className="absolute top-3 left-3">
+          <span className="inline-flex max-w-[calc(100vw-7rem)] items-center gap-1.5 rounded-full bg-card/90 px-2.5 py-1 text-ui-label font-medium tracking-wide text-muted-foreground uppercase shadow-sm backdrop-blur-sm">
+            <ProviderGlyph
+              providerId={mediaSession.source.providerId}
+              providerName={sourceLabel}
+              className="h-3.5 w-3.5 shrink-0"
+            />
+            <span className="truncate">{sourceLabel}</span>
+          </span>
+        </div>
+        <div className="absolute bottom-3 left-3 right-3">
+          <div className="mb-1 text-xs font-medium text-primary">
+            {mediaSession.type.toUpperCase()}
+          </div>
+          <h3 className="truncate text-xl font-semibold md:text-base">
+            {mediaSession.title}
+          </h3>
+        </div>
+      </div>
+      <div className="flex flex-1 flex-col gap-3 p-3 md:p-4">
+        <ViewerChip
+          viewer={viewer}
+          sessionCount={viewerSessionCount}
+          playerState={mediaSession.playerState}
+        />
+        <div className="flex items-center justify-between gap-3 text-sm text-muted-foreground">
+          <span className="truncate">{mediaSession.playerTitle}</span>
+        </div>
+        <div className="flex w-full items-center justify-center rounded-lg bg-primary/10 py-2 text-sm font-medium text-primary transition-colors group-hover:bg-primary group-hover:text-primary-foreground">
+          {sessionActionLabel(mediaSession)}
+        </div>
+      </div>
+    </button>
   );
 }
 
@@ -179,7 +302,8 @@ export default function DashboardScreen({
     };
   }, []);
 
-  const hasPlayback = viewers.length > 0;
+  const playbackCards = flattenDashboardPlaybackItems(viewers);
+  const hasPlaybackCards = playbackCards.length > 0;
   const emptyMessage =
     sourceErrors.length > 0
       ? "No active playback on the available sources."
@@ -189,7 +313,7 @@ export default function DashboardScreen({
   return (
     <div className="min-h-screen bg-background p-4 text-foreground sm:p-8">
       <div className="max-w-5xl mx-auto">
-        <header className="mb-8 space-y-4 sm:mb-12 sm:flex sm:items-center sm:justify-between sm:space-y-0">
+        <header className="mb-5 space-y-4 sm:mb-12 sm:flex sm:items-center sm:justify-between sm:space-y-0">
           <div className="flex items-start justify-between gap-3">
             <div className="flex items-center gap-3">
               <img
@@ -304,8 +428,10 @@ export default function DashboardScreen({
           </div>
         </header>
 
-        <div className="space-y-6">
-          <div>
+        <div
+          className={hasPlaybackCards ? "space-y-4 sm:space-y-6" : "space-y-6"}
+        >
+          <div className={hasPlaybackCards ? "sr-only" : ""}>
             <h2 className="text-xl font-semibold mb-2">Currently Playing</h2>
             <p className="text-muted-foreground text-sm">
               Active sessions across enabled sources.
@@ -320,7 +446,7 @@ export default function DashboardScreen({
 
           {!error && <WarningBanner sourceErrors={sourceErrors} />}
 
-          {!loading && !hasPlayback && !error && (
+          {!loading && !hasPlaybackCards && !error && (
             <div className="bg-card text-card-foreground border border-border rounded-2xl p-12 text-center">
               <div className="bg-background w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
                 <Play className="w-6 h-6 text-muted-foreground" />
@@ -334,109 +460,18 @@ export default function DashboardScreen({
             </div>
           )}
 
-          <div className="space-y-8">
-            {viewers.map((viewerGroup) => (
-              <section key={viewerGroup.viewer.id} className="space-y-4">
-                <div className="flex items-center gap-4">
-                  <ViewerAvatar
-                    name={viewerGroup.viewer.name}
-                    avatarUrl={viewerGroup.viewer.avatarUrl}
-                  />
-                  <div>
-                    <h3 className="text-lg font-semibold">
-                      {viewerGroup.viewer.name}
-                    </h3>
-                    <p className="text-sm text-muted-foreground">
-                      {viewerGroup.items.length} active{" "}
-                      {viewerGroup.items.length === 1 ? "session" : "sessions"}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-                  {viewerGroup.items.map((mediaSession) => {
-                    const canEdit = canEditSession(mediaSession);
-                    const thumbnailViewTransitionName =
-                      mediaSession.thumbUrl &&
-                      mediaSession.id === activeViewTransitionSessionId
-                        ? EDITOR_THUMBNAIL_VIEW_TRANSITION_NAME
-                        : undefined;
-
-                    return (
-                      <button
-                        key={mediaSession.id}
-                        onClick={() => {
-                          if (canEdit) {
-                            onSelectSession(mediaSession);
-                          }
-                        }}
-                        disabled={!canEdit}
-                        className="group relative bg-card text-card-foreground border border-border rounded-lg overflow-hidden hover:border-primary/50 transition-all text-left flex flex-col disabled:opacity-60 disabled:hover:border-border disabled:cursor-not-allowed"
-                      >
-                        <div className="aspect-video w-full bg-background relative">
-                          {mediaSession.thumbUrl ? (
-                            <img
-                              src={mediaSession.thumbUrl}
-                              alt={mediaSession.title}
-                              className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity"
-                              style={
-                                thumbnailViewTransitionName
-                                  ? {
-                                      viewTransitionName:
-                                        thumbnailViewTransitionName,
-                                    }
-                                  : undefined
-                              }
-                            />
-                          ) : (
-                            <div className="w-full h-full flex items-center justify-center">
-                              <Video className="w-8 h-8 text-muted-foreground/50" />
-                            </div>
-                          )}
-                          <div className="absolute inset-0 bg-linear-to-t from-card/95 via-card/20 to-transparent" />
-                          <div className="absolute top-3 left-3">
-                            <span className="inline-flex items-center gap-1.5 rounded-full bg-card/90 px-2.5 py-1 text-ui-label font-medium uppercase tracking-wide text-muted-foreground shadow-sm backdrop-blur-sm">
-                              <ProviderGlyph
-                                providerId={mediaSession.source.providerId}
-                                providerName={formatSourceLabel(
-                                  mediaSession.source,
-                                )}
-                                className="h-3.5 w-3.5"
-                              />
-                              {formatSourceLabel(mediaSession.source)}
-                            </span>
-                          </div>
-                          <div className="absolute bottom-3 left-3 right-3">
-                            <div className="text-xs font-medium text-primary mb-1">
-                              {mediaSession.type.toUpperCase()}
-                            </div>
-                            <h4 className="font-semibold truncate">
-                              {mediaSession.title}
-                            </h4>
-                          </div>
-                        </div>
-                        <div className="p-4 flex-1 flex flex-col justify-between gap-4">
-                          <div className="space-y-2 text-sm text-muted-foreground">
-                            <div className="flex items-center justify-between gap-3">
-                              <span className="truncate">
-                                {mediaSession.playerTitle}
-                              </span>
-                              <span className="shrink-0 capitalize">
-                                {mediaSession.playerState}
-                              </span>
-                            </div>
-                          </div>
-                          <div className="flex items-center justify-center w-full py-2 bg-primary/10 text-primary rounded-lg text-sm font-medium group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
-                            {sessionActionLabel(mediaSession)}
-                          </div>
-                        </div>
-                      </button>
-                    );
-                  })}
-                </div>
-              </section>
-            ))}
-          </div>
+          {hasPlaybackCards && (
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-2 md:gap-4 xl:grid-cols-3">
+              {playbackCards.map((card) => (
+                <DashboardPlaybackCard
+                  key={card.session.id}
+                  card={card}
+                  activeViewTransitionSessionId={activeViewTransitionSessionId}
+                  onSelectSession={onSelectSession}
+                />
+              ))}
+            </div>
+          )}
         </div>
       </div>
     </div>

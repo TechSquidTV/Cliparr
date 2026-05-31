@@ -4,7 +4,12 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { createElement, createRef } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
+import {
+  flattenDashboardPlaybackItems,
+  formatViewerSessionCount,
+} from "@/components/dashboardPlaybackItems";
 import AuthCompleteScreen from "@/components/AuthCompleteScreen";
+import { DashboardPlaybackCard } from "@/components/DashboardScreen";
 import { DashboardMobileMenu } from "@/components/DashboardMobileMenu";
 import { EditorControls } from "@/components/editor/EditorControls";
 import { EditorFramegrabDialog } from "@/components/editor/EditorFramegrabDialog";
@@ -12,6 +17,54 @@ import { EditorPreview } from "@/components/editor/EditorPreview";
 import { LocalVideoOpenDialog } from "@/components/local-media/LocalVideoOpenDialog";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { EDITOR_THUMBNAIL_VIEW_TRANSITION_NAME } from "@/lib/viewTransitions";
+import type { ViewerPlaybackGroup } from "@/providers/types";
+
+const dashboardPlaybackGroups: ViewerPlaybackGroup[] = [
+  {
+    viewer: {
+      id: "viewer-a",
+      providerId: "plex",
+      name: "TechSquidTV",
+    },
+    items: [
+      {
+        id: "session-a",
+        source: {
+          id: "source-a",
+          name: "Plex",
+          providerId: "plex",
+        },
+        title: "The Recordist",
+        type: "episode",
+        duration: 3600,
+        playerTitle: "Living Room",
+        playerState: "playing",
+      },
+    ],
+  },
+  {
+    viewer: {
+      id: "viewer-b",
+      providerId: "jellyfin",
+      name: "Guest",
+    },
+    items: [
+      {
+        id: "session-b",
+        source: {
+          id: "source-b",
+          name: "Jellyfin",
+          providerId: "jellyfin",
+        },
+        title: "Example Movie",
+        type: "movie",
+        duration: 5400,
+        playerTitle: "Phone",
+        playerState: "paused",
+      },
+    ],
+  },
+];
 
 void test("renders the provider auth completion screen", () => {
   const markup = renderToStaticMarkup(createElement(AuthCompleteScreen));
@@ -43,6 +96,42 @@ void test("renders dashboard mobile menu trigger", () => {
   );
 
   assert.match(markup, /Open dashboard menu/);
+});
+
+void test("flattens dashboard playback cards with viewer context", () => {
+  const cards = flattenDashboardPlaybackItems(dashboardPlaybackGroups);
+
+  assert.deepEqual(
+    cards.map((card) => [
+      card.viewer.name,
+      card.viewerSessionCount,
+      card.session.title,
+    ]),
+    [
+      ["TechSquidTV", 1, "The Recordist"],
+      ["Guest", 1, "Example Movie"],
+    ],
+  );
+  assert.equal(formatViewerSessionCount(1), "1 active session");
+  assert.equal(formatViewerSessionCount(2), "2 active sessions");
+});
+
+void test("renders dashboard playback cards with viewer context", () => {
+  const card = flattenDashboardPlaybackItems(dashboardPlaybackGroups)[0];
+  assert.ok(card);
+
+  const markup = renderToStaticMarkup(
+    createElement(DashboardPlaybackCard, {
+      card,
+      activeViewTransitionSessionId: null,
+      onSelectSession: () => undefined,
+    }),
+  );
+
+  assert.match(markup, /TechSquidTV/);
+  assert.match(markup, /playing/);
+  assert.match(markup, /1 active session/);
+  assert.match(markup, /Living Room/);
 });
 
 void test("renders the editor thumbnail behind loading preview state", () => {
