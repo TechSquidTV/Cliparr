@@ -140,7 +140,7 @@ void test("creates a direct content URL for Plex sidecar text subtitle streams",
   assert.equal(tracks.length, 1);
   assert.equal(
     tracks[0]?.contentUrl,
-    "/api/media/" + onlyMediaHandle(session).id,
+    `/api/media/${onlyMediaHandle(session).id}`,
   );
   assert.equal(tracks[0]?.contentFormat, "srt");
   assert.equal(onlyMediaHandle(session).path, "/library/streams/101.srt");

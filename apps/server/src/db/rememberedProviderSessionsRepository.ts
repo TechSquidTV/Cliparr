@@ -78,7 +78,11 @@ export function getRememberedProviderSession(token?: string) {
     .where(eq(rememberedProviderSessions.tokenHash, hashSecret(token)))
     .get();
 
-  if (!row || row.revokedAt != null || row.expiresAt <= Date.now()) {
+  if (
+    !row ||
+    (row.revokedAt !== null && row.revokedAt !== undefined) ||
+    row.expiresAt <= Date.now()
+  ) {
     return undefined;
   }
 

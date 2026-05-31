@@ -23,6 +23,29 @@ export default tseslint.config(
   js.configs.recommended,
   {
     rules: {
+      curly: ["error", "all"],
+      eqeqeq: ["error", "always"],
+      "no-else-return": ["error", { allowElseIf: false }],
+      "no-implicit-coercion": "error",
+      "no-param-reassign": [
+        "error",
+        {
+          ignorePropertyModificationsFor: [
+            "bytes",
+            "context",
+            "event",
+            "gainNode",
+            "target",
+          ],
+          ignorePropertyModificationsForRegex: ["Ref$"],
+          props: true,
+        },
+      ],
+      "no-return-assign": ["error", "always"],
+      "no-sequences": "error",
+      "no-unneeded-ternary": "error",
+      "no-useless-concat": "error",
+      "no-var": "error",
       "no-console": "error",
       "no-restricted-imports": [
         "error",
@@ -62,6 +85,9 @@ export default tseslint.config(
           message: "Use the package alias instead of a relative import path.",
         },
       ],
+      "object-shorthand": "error",
+      "prefer-const": ["error", { destructuring: "all" }],
+      "prefer-template": "error",
     },
   },
   ...tseslint.configs.recommendedTypeChecked,
@@ -80,8 +106,17 @@ export default tseslint.config(
           fixStyle: "separate-type-imports",
         },
       ],
+      "@typescript-eslint/no-array-delete": "error",
+      "@typescript-eslint/no-base-to-string": "error",
       "@typescript-eslint/no-confusing-void-expression": "off",
       "@typescript-eslint/no-explicit-any": "error",
+      "@typescript-eslint/no-floating-promises": [
+        "error",
+        {
+          ignoreIIFE: true,
+          ignoreVoid: true,
+        },
+      ],
       "@typescript-eslint/no-invalid-void-type": "off",
       "@typescript-eslint/no-misused-promises": [
         "error",
@@ -95,6 +130,9 @@ export default tseslint.config(
       "@typescript-eslint/no-unnecessary-type-arguments": "off",
       "@typescript-eslint/no-unnecessary-type-assertion": "off",
       "@typescript-eslint/no-unnecessary-type-conversion": "off",
+      "@typescript-eslint/no-unnecessary-boolean-literal-compare": "error",
+      "@typescript-eslint/only-throw-error": "error",
+      "@typescript-eslint/prefer-promise-reject-errors": "error",
       "@typescript-eslint/require-await": "off",
       "@typescript-eslint/restrict-template-expressions": [
         "error",
