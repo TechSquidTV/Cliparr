@@ -10,11 +10,13 @@ import {
 } from "@/components/dashboardPlaybackItems";
 import AuthCompleteScreen from "@/components/AuthCompleteScreen";
 import { DashboardPlaybackCard } from "@/components/DashboardScreen";
+import DashboardScreen from "@/components/DashboardScreen";
 import { DashboardMobileMenu } from "@/components/DashboardMobileMenu";
 import { EditorControls } from "@/components/editor/EditorControls";
 import { EditorFramegrabDialog } from "@/components/editor/EditorFramegrabDialog";
 import { EditorPreview } from "@/components/editor/EditorPreview";
 import { LocalVideoOpenDialog } from "@/components/local-media/LocalVideoOpenDialog";
+import { MobilePwaInstallNudgeCard } from "@/components/MobilePwaInstallNudge";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { EDITOR_THUMBNAIL_VIEW_TRANSITION_NAME } from "@/lib/viewTransitions";
 import type { ViewerPlaybackGroup } from "@/providers/types";
@@ -96,6 +98,46 @@ void test("renders dashboard mobile menu trigger", () => {
   );
 
   assert.match(markup, /Open dashboard menu/);
+});
+
+void test("renders mobile PWA install nudge for native install state", () => {
+  const markup = renderToStaticMarkup(
+    createElement(MobilePwaInstallNudgeCard, {
+      mode: "native",
+      onDismiss: () => undefined,
+      onInstall: () => undefined,
+    }),
+  );
+
+  assert.match(markup, /Add Cliparr to your home screen/);
+  assert.match(markup, /data-pwa-install-mode="native"/);
+  assert.match(markup, />Install</);
+});
+
+void test("hides mobile PWA install nudge by default", () => {
+  const markup = renderToStaticMarkup(
+    createElement(MobilePwaInstallNudgeCard, {
+      mode: "hidden",
+      onDismiss: () => undefined,
+      onInstall: () => undefined,
+    }),
+  );
+
+  assert.equal(markup, "");
+});
+
+void test("does not render dashboard PWA nudge in default server markup", () => {
+  const markup = renderToStaticMarkup(
+    createElement(DashboardScreen, {
+      activeViewTransitionSessionId: null,
+      onSelectSession: () => undefined,
+      onOpenLocalVideo: () => undefined,
+      onOpenSources: () => undefined,
+      onLogout: () => undefined,
+    }),
+  );
+
+  assert.doesNotMatch(markup, /Add Cliparr to your home screen/);
 });
 
 void test("flattens dashboard playback cards with viewer context", () => {
