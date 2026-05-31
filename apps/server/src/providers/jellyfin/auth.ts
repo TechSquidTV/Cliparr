@@ -3,18 +3,17 @@ import { createApiError, isApiError } from "@/http/errors";
 import type { ProviderResource } from "@/providers/types";
 import { stringValue } from "@/providers/shared/utils";
 import {
+  authenticateJellyfinUser,
   connectionInfo,
   fetchCurrentUser,
+  fetchPublicSystemInfo,
   fetchSessions,
   JELLYFIN_DEVICE_ID,
   JELLYFIN_REQUEST_TIMEOUT_MS,
-  jellyfinJson,
   jellyfinSourceName,
   normalizeBaseUrl,
   resolveCredentialServerUrl,
   sourceContext,
-  type JellyfinAuthenticationResult,
-  type JellyfinPublicSystemInfo,
 } from "@/providers/jellyfin/shared";
 
 async function parseCredentialsInput(body: unknown) {
@@ -63,36 +62,27 @@ async function parseCredentialsInput(body: unknown) {
 
 export async function authenticateWithCredentials(body: unknown) {
   const { serverUrl, username, password } = await parseCredentialsInput(body);
-  const publicInfo = await jellyfinJson<JellyfinPublicSystemInfo>(
-    serverUrl,
-    "/System/Info/Public",
-    {
+  const publicInfo = await fetchPublicSystemInfo({
+    baseUrl: serverUrl,
+    deviceId: JELLYFIN_DEVICE_ID,
+    timeoutMs: JELLYFIN_REQUEST_TIMEOUT_MS,
+    errorCode: "jellyfin_server_unreachable",
+    failureMessage: "Could not reach that Jellyfin server",
+    exposeFailureDetail: false,
+  });
+
+  let authResult: Awaited<ReturnType<typeof authenticateJellyfinUser>>;
+  try {
+    authResult = await authenticateJellyfinUser({
+      baseUrl: serverUrl,
+      username,
+      password,
       deviceId: JELLYFIN_DEVICE_ID,
       timeoutMs: JELLYFIN_REQUEST_TIMEOUT_MS,
-      errorCode: "jellyfin_server_unreachable",
-      failureMessage: "Could not reach that Jellyfin server",
+      errorCode: "jellyfin_auth_failed",
+      failureMessage: "Jellyfin sign-in failed",
       exposeFailureDetail: false,
-    },
-  );
-
-  let authResult: JellyfinAuthenticationResult;
-  try {
-    authResult = await jellyfinJson<JellyfinAuthenticationResult>(
-      serverUrl,
-      "/Users/AuthenticateByName",
-      {
-        deviceId: JELLYFIN_DEVICE_ID,
-        timeoutMs: JELLYFIN_REQUEST_TIMEOUT_MS,
-        method: "POST",
-        body: JSON.stringify({
-          Username: username,
-          Pw: password,
-        }),
-        errorCode: "jellyfin_auth_failed",
-        failureMessage: "Jellyfin sign-in failed",
-        exposeFailureDetail: false,
-      },
-    );
+    });
   } catch (err) {
     if (isApiError(err) && err.status === 401) {
       throw createApiError(
@@ -163,16 +153,13 @@ export async function checkSource(source: MediaSource) {
   try {
     const context = sourceContext(source);
     const [publicInfo, currentUser] = await Promise.all([
-      jellyfinJson<JellyfinPublicSystemInfo>(
-        context.baseUrl,
-        "/System/Info/Public",
-        {
-          deviceId: context.deviceId,
-          timeoutMs: JELLYFIN_REQUEST_TIMEOUT_MS,
-          errorCode: "jellyfin_server_unreachable",
-          failureMessage: "Could not reach that Jellyfin server",
-        },
-      ),
+      fetchPublicSystemInfo({
+        baseUrl: context.baseUrl,
+        deviceId: context.deviceId,
+        timeoutMs: JELLYFIN_REQUEST_TIMEOUT_MS,
+        errorCode: "jellyfin_server_unreachable",
+        failureMessage: "Could not reach that Jellyfin server",
+      }),
       fetchCurrentUser(context),
     ]);
 

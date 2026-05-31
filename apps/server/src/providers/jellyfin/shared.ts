@@ -1,6 +1,26 @@
 import { createHash, randomUUID } from "crypto";
 import { lookup } from "dns/promises";
 import { isIP } from "net";
+import axios, { type AxiosResponse, type RawAxiosRequestConfig } from "axios";
+import { Jellyfin } from "@jellyfin/sdk";
+import type {
+  AuthenticationResult,
+  BaseItemDto,
+  MediaSourceInfo,
+  MediaStream,
+  PlaybackInfoResponse,
+  PublicSystemInfo,
+  SessionInfoDto,
+  UserDto,
+} from "@jellyfin/sdk/lib/generated-client/models/index.js";
+import {
+  getMediaInfoApi,
+  getSessionApi,
+  getSystemApi,
+  getUserApi,
+  getUserLibraryApi,
+} from "@jellyfin/sdk/lib/utils/api/index.js";
+import { getAuthorizationHeader } from "@jellyfin/sdk/lib/utils/authentication.js";
 import { CLIPARR_CLIENT_VERSION } from "@/config/version";
 import type { MediaSource } from "@/db/mediaSourcesRepository";
 import { createApiError, isApiError } from "@/http/errors";
@@ -36,123 +56,48 @@ export interface JellyfinSourceContext {
   deviceId: string;
 }
 
-interface JellyfinImageTags {
-  [key: string]: string | undefined;
-  Primary?: string;
-  Thumb?: string;
-}
-
-interface JellyfinPerson {
-  Name?: string | null;
+export type JellyfinMediaStream = Omit<MediaStream, "Type"> & {
   Type?: string;
-}
+};
 
-interface JellyfinStudio {
-  Name?: string | null;
-  name?: string | null;
-}
-
-export interface JellyfinMediaStream {
-  Type?: string;
-  Index?: number;
-  Codec?: string | null;
-  Language?: string | null;
-  Title?: string | null;
-  DisplayTitle?: string | null;
-  Width?: number | null;
-  Height?: number | null;
-  IsDefault?: boolean;
-  IsForced?: boolean;
-  IsHearingImpaired?: boolean;
-  IsExternal?: boolean;
-  IsTextSubtitleStream?: boolean;
-}
-
-interface JellyfinMediaSource {
-  Id?: string | null;
-  DefaultAudioStreamIndex?: number | null;
-  DefaultSubtitleStreamIndex?: number | null;
+type JellyfinMediaSource = Omit<MediaSourceInfo, "MediaStreams"> & {
   MediaStreams?: JellyfinMediaStream[] | null;
-}
+};
 
-export interface JellyfinItem {
-  Id?: string;
-  Type?: string;
-  MediaType?: string;
-  Name?: string | null;
-  EpisodeTitle?: string | null;
-  SeriesName?: string | null;
-  SeasonName?: string | null;
-  ParentIndexNumber?: number | null;
-  IndexNumber?: number | null;
-  RunTimeTicks?: number | null;
-  ProductionYear?: number | null;
-  PremiereDate?: string | null;
-  Overview?: string | null;
-  SeriesStudio?: string | null;
-  ChannelName?: string | null;
-  OfficialRating?: string | null;
-  ParentThumbItemId?: string | null;
-  ParentThumbImageTag?: string | null;
-  SeriesId?: string | null;
-  SeriesPrimaryImageTag?: string | null;
-  AlbumId?: string | null;
-  AlbumPrimaryImageTag?: string | null;
-  ImageTags?: JellyfinImageTags | null;
+type JellyfinStudio = NonNullable<
+  NonNullable<BaseItemDto["Studios"]>[number]
+> & {
+  name?: string | null;
+};
+
+export type JellyfinItem = Omit<
+  BaseItemDto,
+  "MediaSources" | "MediaType" | "Studios" | "Type"
+> & {
   MediaSources?: JellyfinMediaSource[] | null;
-  Taglines?: string[] | null;
-  Genres?: string[] | null;
-  People?: JellyfinPerson[] | null;
+  MediaType?: string;
   Studios?: JellyfinStudio[] | null;
-  ProviderIds?: Record<string, string | null> | null;
-}
+  Type?: string;
+};
 
-interface JellyfinPlayState {
-  MediaSourceId?: string | null;
-  AudioStreamIndex?: number | null;
-  SubtitleStreamIndex?: number | null;
-  PositionTicks?: number | null;
-  IsPaused?: boolean;
-}
-
-export interface JellyfinSessionInfo {
-  Id?: string | null;
-  UserId?: string;
-  UserName?: string | null;
-  DeviceName?: string | null;
-  Client?: string | null;
-  DeviceType?: string | null;
-  PlayState?: JellyfinPlayState | null;
+export type JellyfinSessionInfo = Omit<
+  SessionInfoDto,
+  "NowPlayingItem" | "PlayState"
+> & {
   NowPlayingItem?: JellyfinItem | null;
-}
+  PlayState?: SessionInfoDto["PlayState"] | null;
+};
 
-export interface JellyfinPlaybackInfo {
-  PlaySessionId?: string | null;
+export type JellyfinPlaybackInfo = Omit<
+  PlaybackInfoResponse,
+  "MediaSources"
+> & {
   MediaSources?: JellyfinMediaSource[];
-}
+};
 
-export interface JellyfinPublicSystemInfo {
-  Id?: string | null;
-  ServerName?: string | null;
-  ProductName?: string | null;
-  Version?: string | null;
-}
-
-interface JellyfinUserPolicy {
-  IsAdministrator?: boolean;
-}
-
-export interface JellyfinUser {
-  Id?: string;
-  Name?: string | null;
-  Policy?: JellyfinUserPolicy | null;
-}
-
-export interface JellyfinAuthenticationResult {
-  AccessToken?: string | null;
-  ServerId?: string | null;
-  User?: JellyfinUser | null;
-}
+export type JellyfinPublicSystemInfo = PublicSystemInfo;
+export type JellyfinUser = UserDto;
+export type JellyfinAuthenticationResult = AuthenticationResult;
 
 export function booleanValue(value: unknown) {
   return typeof value === "boolean" ? value : undefined;
@@ -400,22 +345,6 @@ export function jellyfinSourceName(
   return `Jellyfin (${hostInfo.label})`;
 }
 
-function buildJellyfinUrl(baseUrl: string, path: string) {
-  if (/^[a-z][a-z0-9+.-]*:/i.test(path)) {
-    return assertHttpUrl(path);
-  }
-
-  const base = assertHttpUrl(baseUrl);
-  const relative = new URL(path, "http://cliparr.local");
-  const basePath =
-    base.pathname === "/" ? "" : base.pathname.replace(/\/+$/, "");
-  const next = new URL(base.origin);
-  next.pathname = `${basePath}${relative.pathname.startsWith("/") ? relative.pathname : `/${relative.pathname}`}`;
-  next.search = relative.search;
-  next.hash = "";
-  return next;
-}
-
 function isLocalConnection(url: URL) {
   const host = url.hostname.toLowerCase();
   return (
@@ -442,18 +371,37 @@ export function connectionInfo(baseUrl: string) {
   };
 }
 
-function jellyfinAuthorization(token?: string, deviceId = JELLYFIN_DEVICE_ID) {
-  const fields = [
-    ["Client", JELLYFIN_PRODUCT],
-    ["Device", JELLYFIN_DEVICE_NAME],
-    ["DeviceId", deviceId],
-    ["Version", JELLYFIN_VERSION],
-    ...(token ? ([["Token", token]] as const) : []),
-  ];
+const JELLYFIN_CLIENT_INFO = {
+  name: JELLYFIN_PRODUCT,
+  version: JELLYFIN_VERSION,
+};
 
-  return `MediaBrowser ${fields
-    .map(([key, value]) => `${key}="${encodeURIComponent(value)}"`)
-    .join(", ")}`;
+const jellyfinAxios = axios.create({
+  adapter: "fetch",
+});
+
+function jellyfinDeviceInfo(deviceId = JELLYFIN_DEVICE_ID) {
+  return {
+    name: JELLYFIN_DEVICE_NAME,
+    id: deviceId,
+  };
+}
+
+function createJellyfinApi(options: {
+  baseUrl: string;
+  token?: string;
+  deviceId?: string;
+}) {
+  const jellyfin = new Jellyfin({
+    clientInfo: JELLYFIN_CLIENT_INFO,
+    deviceInfo: jellyfinDeviceInfo(options.deviceId),
+  });
+
+  return jellyfin.createApi(
+    normalizeBaseUrl(options.baseUrl),
+    options.token,
+    jellyfinAxios,
+  );
 }
 
 export function jellyfinHeaders(options: {
@@ -465,7 +413,11 @@ export function jellyfinHeaders(options: {
   const headers = new Headers(options.headers);
   headers.set(
     "Authorization",
-    jellyfinAuthorization(options.token, options.deviceId),
+    getAuthorizationHeader(
+      JELLYFIN_CLIENT_INFO,
+      jellyfinDeviceInfo(options.deviceId),
+      options.token,
+    ),
   );
 
   if (options.accept) {
@@ -475,139 +427,188 @@ export function jellyfinHeaders(options: {
   return headers;
 }
 
-async function jellyfinFetch(
-  url: string,
-  init: RequestInit = {},
-  options: {
-    token?: string;
-    deviceId?: string;
-    accept?: string;
-    timeoutMs?: number;
-    errorCode?: string;
-    failureMessage?: string;
-    exposeFailureDetail?: boolean;
-  } = {},
-) {
-  const controller = new AbortController();
-  const timeout = setTimeout(
-    () => controller.abort(),
-    options.timeoutMs ?? JELLYFIN_REQUEST_TIMEOUT_MS,
-  );
-  const headers = jellyfinHeaders({
-    headers: init.headers,
-    token: options.token,
-    deviceId: options.deviceId,
-    accept: options.accept,
-  });
+interface JellyfinSdkRequestOptions {
+  token?: string;
+  deviceId?: string;
+  timeoutMs?: number;
+  errorCode?: string;
+  failureMessage?: string;
+  exposeFailureDetail?: boolean;
+}
 
+function jellyfinSdkRequestConfig(
+  timeoutMs = JELLYFIN_REQUEST_TIMEOUT_MS,
+): RawAxiosRequestConfig {
+  return {
+    timeout: timeoutMs,
+    headers: {
+      Accept: "application/json",
+    },
+  };
+}
+
+function responseHeader<T>(
+  response: AxiosResponse<T>,
+  name: string,
+): string | undefined {
+  function stringifyHeaderValue(value: unknown) {
+    if (value === undefined || value === null) {
+      return undefined;
+    }
+
+    if (Array.isArray(value)) {
+      return value
+        .filter(
+          (item): item is boolean | number | string =>
+            typeof item === "boolean" ||
+            typeof item === "number" ||
+            typeof item === "string",
+        )
+        .join(", ");
+    }
+
+    if (
+      typeof value === "boolean" ||
+      typeof value === "number" ||
+      typeof value === "string"
+    ) {
+      return String(value);
+    }
+
+    return undefined;
+  }
+
+  const headers = response.headers;
+  if (typeof headers.get === "function") {
+    return stringifyHeaderValue(headers.get(name));
+  }
+
+  const value =
+    headers[name] ?? headers[name.toLowerCase()] ?? headers[name.toUpperCase()];
+  return stringifyHeaderValue(value);
+}
+
+function responseDetail(data: unknown) {
+  const detail =
+    typeof data === "string"
+      ? data
+      : data === undefined
+        ? ""
+        : JSON.stringify(data);
+
+  return detail.slice(0, 400).replace(/\s+/g, " ").trim();
+}
+
+function axiosRequestUrl(err: unknown, fallbackBaseUrl: string) {
+  if (!axios.isAxiosError(err)) {
+    return new URL(fallbackBaseUrl);
+  }
+
+  const requestUrl = err.config?.url;
   try {
-    const response = await fetch(url, {
-      ...init,
-      headers,
-      signal: controller.signal,
-    });
-
-    if (!response.ok && response.status !== 206) {
-      const failureMessage =
-        options.failureMessage ?? "Jellyfin request failed";
-      const exposeFailureDetail = options.exposeFailureDetail ?? true;
-      const detail = (await response.text().catch(() => ""))
-        .slice(0, 400)
-        .replace(/\s+/g, " ")
-        .trim();
-
-      throw createApiError(
-        !exposeFailureDetail && response.status !== 401 ? 502 : response.status,
-        options.errorCode ?? "jellyfin_request_failed",
-        !exposeFailureDetail
-          ? failureMessage
-          : detail
-            ? `${failureMessage}: ${detail}`
-            : `${failureMessage}: ${response.status} ${response.statusText}`,
-      );
-    }
-
-    return response;
-  } catch (err) {
-    if (isApiError(err)) {
-      throw err;
-    }
-
-    if (err instanceof Error && err.name === "AbortError") {
-      throw createApiError(
-        504,
-        options.errorCode ?? "jellyfin_request_failed",
-        options.failureMessage ?? "Jellyfin request timed out",
-      );
-    }
-
-    const parsed = new URL(url);
-    if (JELLYFIN_DEV_BASE_URL && isLoopbackHost(parsed.hostname)) {
-      throw createApiError(
-        502,
-        options.errorCode ?? "jellyfin_request_failed",
-        `${options.failureMessage ?? "Could not reach that Jellyfin server"}. Cliparr is running in Docker, so localhost points at the Cliparr container. Use ${JELLYFIN_DEV_BASE_URL} for this dev setup.`,
-      );
-    }
-
-    throw createApiError(
-      502,
-      options.errorCode ?? "jellyfin_request_failed",
-      options.exposeFailureDetail === false
-        ? (options.failureMessage ?? "Jellyfin request failed")
-        : `${options.failureMessage ?? "Jellyfin request failed"}: ${errorMessage(err)}`,
-    );
-  } finally {
-    clearTimeout(timeout);
+    return new URL(requestUrl ?? "", err.config?.baseURL ?? fallbackBaseUrl);
+  } catch {
+    return new URL(fallbackBaseUrl);
   }
 }
 
-export async function jellyfinJson<T>(
-  baseUrl: string,
-  path: string,
-  options: {
-    token?: string;
-    deviceId?: string;
-    timeoutMs?: number;
-    method?: string;
-    body?: string;
-    errorCode?: string;
-    failureMessage?: string;
-    exposeFailureDetail?: boolean;
-  } = {},
-) {
-  const url = buildJellyfinUrl(baseUrl, path);
-  const response = await jellyfinFetch(
-    url.toString(),
-    {
-      method: options.method,
-      body: options.body,
-      headers: options.body
-        ? { "Content-Type": "application/json" }
-        : undefined,
-    },
-    {
-      ...options,
-      accept: "application/json",
-    },
+function isAxiosTimeout(err: unknown) {
+  return (
+    axios.isAxiosError(err) &&
+    (err.code === "ETIMEDOUT" ||
+      err.code === "ECONNABORTED" ||
+      /timeout/i.test(err.message))
   );
-  const contentType = response.headers.get("content-type") ?? "";
-  if (!contentType.toLowerCase().includes("json")) {
-    throw createApiError(
-      502,
-      options.errorCode ?? "jellyfin_invalid_response",
-      "That URL did not return the Jellyfin API. Make sure it points at your Jellyfin server base URL.",
+}
+
+function toJellyfinSdkError(
+  err: unknown,
+  baseUrl: string,
+  options: JellyfinSdkRequestOptions,
+) {
+  if (isApiError(err)) {
+    return err;
+  }
+
+  const errorCode = options.errorCode ?? "jellyfin_request_failed";
+  const failureMessage = options.failureMessage ?? "Jellyfin request failed";
+
+  if (axios.isAxiosError(err) && err.response) {
+    const exposeFailureDetail = options.exposeFailureDetail ?? true;
+    const detail = responseDetail(err.response.data);
+    return createApiError(
+      !exposeFailureDetail && err.response.status !== 401
+        ? 502
+        : err.response.status,
+      errorCode,
+      !exposeFailureDetail
+        ? failureMessage
+        : detail
+          ? `${failureMessage}: ${detail}`
+          : `${failureMessage}: ${err.response.status} ${err.response.statusText}`,
     );
   }
 
-  try {
-    return (await response.json()) as T;
-  } catch {
-    throw createApiError(
+  if (isAxiosTimeout(err)) {
+    return createApiError(504, errorCode, `${failureMessage} timed out`);
+  }
+
+  const parsed = axiosRequestUrl(err, baseUrl);
+  if (JELLYFIN_DEV_BASE_URL && isLoopbackHost(parsed.hostname)) {
+    return createApiError(
       502,
-      options.errorCode ?? "jellyfin_invalid_response",
-      "Jellyfin returned an unreadable response. Make sure the server URL is correct and not a login page.",
+      errorCode,
+      `${options.failureMessage ?? "Could not reach that Jellyfin server"}. Cliparr is running in Docker, so localhost points at the Cliparr container. Use ${JELLYFIN_DEV_BASE_URL} for this dev setup.`,
     );
+  }
+
+  return createApiError(
+    502,
+    errorCode,
+    options.exposeFailureDetail === false
+      ? failureMessage
+      : `${failureMessage}: ${errorMessage(err)}`,
+  );
+}
+
+async function jellyfinSdkJson<T>(
+  baseUrl: string,
+  request: (
+    api: ReturnType<typeof createJellyfinApi>,
+    config: RawAxiosRequestConfig,
+  ) => Promise<AxiosResponse<T>>,
+  options: JellyfinSdkRequestOptions = {},
+) {
+  try {
+    const response = await request(
+      createJellyfinApi({
+        baseUrl,
+        token: options.token,
+        deviceId: options.deviceId,
+      }),
+      jellyfinSdkRequestConfig(options.timeoutMs),
+    );
+
+    const contentType = responseHeader(response, "content-type") ?? "";
+    if (!contentType.toLowerCase().includes("json")) {
+      throw createApiError(
+        502,
+        options.errorCode ?? "jellyfin_invalid_response",
+        "That URL did not return the Jellyfin API. Make sure it points at your Jellyfin server base URL.",
+      );
+    }
+
+    if (response.data === null || typeof response.data !== "object") {
+      throw createApiError(
+        502,
+        options.errorCode ?? "jellyfin_invalid_response",
+        "Jellyfin returned an unreadable response. Make sure the server URL is correct and not a login page.",
+      );
+    }
+
+    return response.data;
+  } catch (err) {
+    throw toJellyfinSdkError(err, baseUrl, options);
   }
 }
 
@@ -645,19 +646,82 @@ export function sourceContext(source: MediaSource): JellyfinSourceContext {
 }
 
 export async function fetchCurrentUser(context: JellyfinSourceContext) {
-  return jellyfinJson<JellyfinUser>(context.baseUrl, "/Users/Me", {
-    token: context.token,
-    deviceId: context.deviceId,
-    timeoutMs: JELLYFIN_REQUEST_TIMEOUT_MS,
-    errorCode: "jellyfin_auth_failed",
-    failureMessage: "Jellyfin authentication failed",
-  });
+  return jellyfinSdkJson<JellyfinUser>(
+    context.baseUrl,
+    (api, config) => getUserApi(api).getCurrentUser(config),
+    {
+      token: context.token,
+      deviceId: context.deviceId,
+      timeoutMs: JELLYFIN_REQUEST_TIMEOUT_MS,
+      errorCode: "jellyfin_auth_failed",
+      failureMessage: "Jellyfin authentication failed",
+    },
+  );
+}
+
+export async function fetchPublicSystemInfo(options: {
+  baseUrl: string;
+  deviceId?: string;
+  timeoutMs?: number;
+  errorCode?: string;
+  failureMessage?: string;
+  exposeFailureDetail?: boolean;
+}) {
+  return jellyfinSdkJson<JellyfinPublicSystemInfo>(
+    options.baseUrl,
+    (api, config) => getSystemApi(api).getPublicSystemInfo(config),
+    {
+      deviceId: options.deviceId,
+      timeoutMs: options.timeoutMs,
+      errorCode: options.errorCode,
+      failureMessage: options.failureMessage,
+      exposeFailureDetail: options.exposeFailureDetail,
+    },
+  );
+}
+
+export async function authenticateJellyfinUser(options: {
+  baseUrl: string;
+  username: string;
+  password: string;
+  deviceId?: string;
+  timeoutMs?: number;
+  errorCode?: string;
+  failureMessage?: string;
+  exposeFailureDetail?: boolean;
+}) {
+  return jellyfinSdkJson<JellyfinAuthenticationResult>(
+    options.baseUrl,
+    (api, config) =>
+      getUserApi(api).authenticateUserByName(
+        {
+          authenticateUserByName: {
+            Username: options.username,
+            Pw: options.password,
+          },
+        },
+        config,
+      ),
+    {
+      deviceId: options.deviceId,
+      timeoutMs: options.timeoutMs,
+      errorCode: options.errorCode,
+      failureMessage: options.failureMessage,
+      exposeFailureDetail: options.exposeFailureDetail,
+    },
+  );
 }
 
 export async function fetchSessions(context: JellyfinSourceContext) {
-  return jellyfinJson<JellyfinSessionInfo[]>(
+  return jellyfinSdkJson<JellyfinSessionInfo[]>(
     context.baseUrl,
-    "/Sessions?activeWithinSeconds=300",
+    (api, config) =>
+      getSessionApi(api).getSessions(
+        {
+          activeWithinSeconds: 300,
+        },
+        config,
+      ),
     {
       token: context.token,
       deviceId: context.deviceId,
@@ -672,9 +736,16 @@ export async function fetchItem(
   context: JellyfinSourceContext,
   itemId: string,
 ) {
-  return jellyfinJson<JellyfinItem>(
+  return jellyfinSdkJson<JellyfinItem>(
     context.baseUrl,
-    `/Items/${encodeURIComponent(itemId)}?userId=${encodeURIComponent(context.userId)}`,
+    (api, config) =>
+      getUserLibraryApi(api).getItem(
+        {
+          itemId,
+          userId: context.userId,
+        },
+        config,
+      ),
     {
       token: context.token,
       deviceId: context.deviceId,
@@ -689,9 +760,16 @@ export async function fetchPlaybackInfo(
   context: JellyfinSourceContext,
   itemId: string,
 ) {
-  return jellyfinJson<JellyfinPlaybackInfo>(
+  return jellyfinSdkJson<JellyfinPlaybackInfo>(
     context.baseUrl,
-    `/Items/${encodeURIComponent(itemId)}/PlaybackInfo?userId=${encodeURIComponent(context.userId)}`,
+    (api, config) =>
+      getMediaInfoApi(api).getPlaybackInfo(
+        {
+          itemId,
+          userId: context.userId,
+        },
+        config,
+      ),
     {
       token: context.token,
       deviceId: context.deviceId,
