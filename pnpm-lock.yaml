@@ -144,7 +144,7 @@ importers:
         specifier: workspace:*
         version: link:../../packages/shared
       '@jellyfin/sdk':
-        specifier: 0.13.0
+        specifier: ^0.13.0
         version: 0.13.0(axios@1.16.1)
       '@logtape/logtape':
         specifier: ^2.1.1
