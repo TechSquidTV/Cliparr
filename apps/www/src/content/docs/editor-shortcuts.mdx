@@ -1,19 +1,19 @@
 ---
 title: Editor shortcuts
-description: Keyboard behavior for preview playback and editable timecodes.
+description: Keyboard and pointer shortcuts for playback, marking, seeking, frame stepping, timeline zoom, and editable timecodes.
 section: editing-export
 order: 40
 ---
 
 The editor keeps keyboard shortcuts focused on preview playback, range marking, seeking, and timeline navigation so browser, form, and media controls stay predictable.
 
+Shortcuts only control the editor when focus is not inside an interactive control or dialog. They are ignored while typing in inputs, using selects, pressing buttons, adjusting sliders, or working inside export and framegrab dialogs.
+
 ## Preview playback
 
 | Shortcut | Action                     |
 | :------- | :------------------------- |
 | `Space`  | Play or pause the preview. |
-
-Shortcuts only control the editor when focus is not inside an interactive control or dialog. They are ignored while typing in inputs, using selects, pressing buttons, or adjusting sliders.
 
 ## Marking and seeking
 
@@ -30,6 +30,8 @@ Shortcuts only control the editor when focus is not inside an interactive contro
 
 `I`, `O`, `Shift` + `I`, and `Shift` + `O` match Premiere-style mark and jump behavior. Bracket keys and arrow-key seeking are Cliparr conveniences.
 
+Setting `In` or `Out` clamps the range to the media duration and keeps Cliparr's minimum clip length intact. Second-based seeking stays inside the media duration and resumes playback when the preview was already playing.
+
 ## Frame stepping and zoom
 
 | Shortcut       | Action                  |
@@ -42,6 +44,8 @@ Shortcuts only control the editor when focus is not inside an interactive contro
 | `=`            | Zoom the timeline in.   |
 
 `K` + `J`, `K` + `L`, `-`, and `=` preserve Premiere muscle memory. `Page Up` and `Page Down` are Cliparr-specific aliases for single-frame stepping.
+
+Frame stepping pauses the preview and moves by the active source video frame rate when Cliparr can detect it. If the frame rate is unavailable, Cliparr falls back to a 30 fps step.
 
 ## Editable timecodes
 
