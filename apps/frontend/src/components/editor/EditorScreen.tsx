@@ -7,6 +7,11 @@ import {
   roundTimelineTime,
 } from "@/components/editor/editorUtils";
 import {
+  EDITOR_LARGE_SEEK_SECONDS,
+  EDITOR_SMALL_SEEK_SECONDS,
+  resolveRelativeSeekTime,
+} from "@/components/editor/editorShortcutCommands";
+import {
   useEditorPlayback,
   type PlaybackFallbackInfo,
 } from "@/components/editor/useEditorPlayback";
@@ -253,7 +258,44 @@ export default function EditorScreen({ session, onBack }: Props) {
     },
     [duration, startTime, updateClipRange, warmClipSelection],
   );
+  const handleMarkInShortcut = useCallback(() => {
+    if (!duration || duration <= 0) return;
 
+    const nextStart = clampClipStartTime(currentTime, endTime, duration);
+    updateClipRange(nextStart, endTime);
+    void warmClipSelection(nextStart, endTime);
+  }, [currentTime, duration, endTime, updateClipRange, warmClipSelection]);
+  const handleMarkOutShortcut = useCallback(() => {
+    if (!duration || duration <= 0) return;
+
+    const nextEnd = clampClipEndTime(currentTime, startTime, duration);
+    updateClipRange(startTime, nextEnd);
+    void warmClipSelection(startTime, nextEnd);
+  }, [currentTime, duration, startTime, updateClipRange, warmClipSelection]);
+  const handleJumpToInShortcut = useCallback(() => {
+    if (!duration || duration <= 0) return;
+
+    void seekToTime(clampPlaybackTime(startTime, duration));
+  }, [duration, seekToTime, startTime]);
+  const handleJumpToOutShortcut = useCallback(() => {
+    if (!duration || duration <= 0) return;
+
+    void seekToTime(clampPlaybackTime(endTime, duration));
+  }, [duration, endTime, seekToTime]);
+  const seekByShortcut = useCallback(
+    (deltaSeconds: number) => {
+      if (!duration || duration <= 0) return;
+
+      void seekToTime(
+        resolveRelativeSeekTime({
+          currentTime,
+          deltaSeconds,
+          duration,
+        }),
+      );
+    },
+    [currentTime, duration, seekToTime],
+  );
   const {
     timelineRef,
     timelineWheelRegionRef,
@@ -317,7 +359,23 @@ export default function EditorScreen({ session, onBack }: Props) {
     updateClipRange,
   ]);
 
-  useEditorKeyboardShortcuts({ togglePlay });
+  useEditorKeyboardShortcuts({
+    togglePlay,
+    markIn: handleMarkInShortcut,
+    markOut: handleMarkOutShortcut,
+    jumpToIn: handleJumpToInShortcut,
+    jumpToOut: handleJumpToOutShortcut,
+    seekBackwardLarge: () => seekByShortcut(-EDITOR_LARGE_SEEK_SECONDS),
+    seekForwardLarge: () => seekByShortcut(EDITOR_LARGE_SEEK_SECONDS),
+    seekBackwardSmall: () => seekByShortcut(-EDITOR_SMALL_SEEK_SECONDS),
+    seekForwardSmall: () => seekByShortcut(EDITOR_SMALL_SEEK_SECONDS),
+    zoomOut: () => {
+      if (canZoomOut) handleTimelineZoomOut();
+    },
+    zoomIn: () => {
+      if (canZoomIn) handleTimelineZoomIn();
+    },
+  });
   const isDesktopLayout = useEditorDesktopLayout();
 
   const durationExportDisabledReason = !hasDuration
