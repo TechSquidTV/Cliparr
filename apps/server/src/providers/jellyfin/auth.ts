@@ -71,7 +71,7 @@ export async function authenticateWithCredentials(body: unknown) {
     exposeFailureDetail: false,
   });
 
-  let authResult;
+  let authResult: Awaited<ReturnType<typeof authenticateJellyfinUser>>;
   try {
     authResult = await authenticateJellyfinUser({
       baseUrl: serverUrl,
