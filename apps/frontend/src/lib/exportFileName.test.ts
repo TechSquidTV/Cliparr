@@ -4,6 +4,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   buildExportFileName,
+  buildFramegrabFileName,
   defaultExportFileNameTemplates,
   getExportFileNameTemplateTokens,
   loadExportFileNameTemplates,
@@ -125,6 +126,61 @@ void test("builds episode filenames and falls back when episode numbers are abse
       fullName: "Example Show - Standalone - demo - mkv -.mkv",
       templateKind: "episode",
     },
+  );
+});
+
+void test("builds framegrab filenames with shared metadata cleanup", () => {
+  assert.deepEqual(
+    buildFramegrabFileName({
+      title: "Fallback: Title",
+      sessionType: "movie",
+      metadata: {
+        providerId: "local",
+        itemType: "movie",
+        sourceTitle: "Movie / With: Bad * Characters?",
+        year: 1999,
+      },
+      frameTime: 61.2,
+      format: "png",
+    }),
+    {
+      baseName: "Movie With Bad Characters (1999) [01m01s]",
+      fullName: "Movie With Bad Characters (1999) [01m01s].png",
+      templateKind: "movie",
+    },
+  );
+
+  assert.deepEqual(
+    buildFramegrabFileName({
+      title: "Pilot",
+      sessionType: "episode",
+      metadata: {
+        providerId: "demo",
+        itemType: "episode",
+        title: "Pilot",
+        showTitle: "Example Show",
+        seasonNumber: 1,
+        episodeNumber: 2,
+      },
+      frameTime: 3661.6,
+      format: "jpg",
+    }),
+    {
+      baseName: "Example Show - S01E02 - Pilot [01h01m02s]",
+      fullName: "Example Show - S01E02 - Pilot [01h01m02s].jpg",
+      templateKind: "episode",
+    },
+  );
+
+  assert.equal(
+    buildFramegrabFileName({
+      title: "Still",
+      sessionType: "video",
+      metadata: undefined,
+      frameTime: 0,
+      format: "webp",
+    }).fullName,
+    "Still [00m00s].webp",
   );
 });
 

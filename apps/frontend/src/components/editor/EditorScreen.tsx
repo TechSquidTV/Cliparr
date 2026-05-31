@@ -30,6 +30,7 @@ import {
   EditorPreviewPane,
   EditorTimelinePane,
 } from "@/components/editor/EditorLayout";
+import { useEditorFramegrab } from "@/components/editor/useEditorFramegrab";
 import { useEditorSubtitles } from "@/components/editor/useEditorSubtitles";
 import { sourceDisplayLabel, type EditorSession } from "@/lib/editorMedia";
 import { EDITOR_THUMBNAIL_VIEW_TRANSITION_NAME } from "@/lib/viewTransitions";
@@ -37,6 +38,12 @@ import { EDITOR_THUMBNAIL_VIEW_TRANSITION_NAME } from "@/lib/viewTransitions";
 const EditorExportDialog = lazy(() =>
   import("@/components/editor/EditorExportDialog").then((module) => ({
     default: module.EditorExportDialog,
+  })),
+);
+
+const EditorFramegrabDialog = lazy(() =>
+  import("@/components/editor/EditorFramegrabDialog").then((module) => ({
+    default: module.EditorFramegrabDialog,
   })),
 );
 
@@ -156,6 +163,17 @@ export default function EditorScreen({ session, onBack }: Props) {
     subtitleLoading,
     subtitleCues,
     subtitleStyleSettings,
+  });
+  const framegrab = useEditorFramegrab({
+    session,
+    canvasRef,
+    currentTime,
+    loadingPreview,
+    loadingPreviewFrame,
+    previewVideoDimensions,
+    subtitleEnabled,
+    subtitleLoading,
+    subtitleError,
   });
   const playbackFallbackReason = buildPlaybackFallbackReason({
     activeSourceLabel,
@@ -349,6 +367,8 @@ export default function EditorScreen({ session, onBack }: Props) {
       handleTimelineZoomOut={handleTimelineZoomOut}
       canZoomIn={canZoomIn}
       canZoomOut={canZoomOut}
+      onFramegrabClick={framegrab.openDialog}
+      framegrabDisabledReason={framegrab.disabledReason}
       onPreviewTimeCommit={handlePreviewTimeCommit}
       onStartTimeCommit={handleStartTimeCommit}
       onEndTimeCommit={handleEndTimeCommit}
@@ -528,6 +548,29 @@ export default function EditorScreen({ session, onBack }: Props) {
           />
         </Suspense>
       )}
+
+      {framegrab.dialogMounted &&
+        (framegrab.capturedFramegrab || framegrab.error) && (
+          <Suspense fallback={null}>
+            <EditorFramegrabDialog
+              isOpen={framegrab.dialogOpen}
+              title={session.title}
+              frameTime={framegrab.capturedFramegrab?.time ?? currentTime}
+              dimensions={framegrab.capturedFramegrab?.dimensions ?? null}
+              selectedFormat={framegrab.format}
+              onFormatChange={framegrab.handleFormatChange}
+              selectedQuality={framegrab.quality}
+              onQualityChange={framegrab.handleQualityChange}
+              fileNamePreview={framegrab.fileName.fullName}
+              processingAction={framegrab.action}
+              error={framegrab.error}
+              message={framegrab.message}
+              onClose={framegrab.closeDialog}
+              onCopy={() => void framegrab.copyFramegrab()}
+              onDownload={() => void framegrab.downloadFramegrab()}
+            />
+          </Suspense>
+        )}
     </div>
   );
 }

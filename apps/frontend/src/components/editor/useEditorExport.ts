@@ -13,6 +13,7 @@ import {
   type ExportFileNameTemplateKind,
   type ExportFileNameTemplateSettings,
 } from "@/lib/exportFileName";
+import { downloadBlob } from "@/lib/downloadBlob";
 import {
   isHlsEditorMediaSource,
   sourceDisplayLabel,
@@ -337,15 +338,7 @@ export function useEditorExport({
         subtitleStyleSettings,
         onProgress: setProgress,
       });
-      const url = URL.createObjectURL(blob);
-
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = fileName.fullName;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      window.setTimeout(() => URL.revokeObjectURL(url), 0);
+      downloadBlob(blob, fileName.fullName);
       setExportDialogOpen(false);
 
       exportLogger.info("Editor export completed.", {
