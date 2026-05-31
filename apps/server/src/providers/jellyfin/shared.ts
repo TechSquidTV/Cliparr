@@ -161,11 +161,19 @@ function isLoopbackHost(hostname: string) {
 
 function normalizeIpCandidate(value: string) {
   const normalized = value.toLowerCase();
-  if (normalized.startsWith("[") && normalized.endsWith("]")) {
-    return normalized.slice(1, -1);
+  const unwrapped =
+    normalized.startsWith("[") && normalized.endsWith("]")
+      ? normalized.slice(1, -1)
+      : normalized;
+
+  const mappedIpv4Prefix = "::ffff:";
+  if (!unwrapped.startsWith(mappedIpv4Prefix)) {
+    return unwrapped;
   }
 
-  return normalized.startsWith("::ffff:") ? normalized.slice(7) : normalized;
+  return (
+    mappedIpv4Address(unwrapped.slice(mappedIpv4Prefix.length)) ?? unwrapped
+  );
 }
 
 function normalizeHostname(value: string) {
@@ -196,6 +204,34 @@ function ipv4Octets(hostname: string) {
   }
 
   return octets as [number, number, number, number];
+}
+
+function mappedIpv4Address(hostname: string) {
+  const octets = ipv4Octets(hostname);
+  if (octets) {
+    return octets.join(".");
+  }
+
+  const words = hostname.split(":");
+  if (words.length !== 2) {
+    return undefined;
+  }
+
+  const parsedWords = words.map((word) => Number.parseInt(word, 16));
+  if (
+    words.some(
+      (word, index) =>
+        !/^[0-9a-f]{1,4}$/i.test(word) ||
+        !Number.isInteger(parsedWords[index]) ||
+        parsedWords[index] < 0 ||
+        parsedWords[index] > 0xffff,
+    )
+  ) {
+    return undefined;
+  }
+
+  const [high, low] = parsedWords as [number, number];
+  return [high >> 8, high & 0xff, low >> 8, low & 0xff].join(".");
 }
 
 function isPrivateHost(hostname: string) {

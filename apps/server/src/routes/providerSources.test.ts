@@ -344,7 +344,7 @@ void test("rejects Jellyfin credential-login redirects to loopback before connec
           return new Response(null, {
             status: 302,
             headers: {
-              location: "http://127.0.0.1:8096/System/Info/Public",
+              location: "http://[::ffff:127.0.0.1]:8096/System/Info/Public",
             },
           });
         }
