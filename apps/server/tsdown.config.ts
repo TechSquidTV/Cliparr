@@ -23,7 +23,9 @@ export default defineConfig({
     onlyBundle: false,
     alwaysBundle: [
       /^@cliparr\/shared(?:\/.*)?$/,
+      /^@jellyfin\/sdk(?:\/.*)?$/,
       /^@logtape\/logtape(?:\/.*)?$/,
+      /^axios(?:\/.*)?$/,
       /^dotenv(?:\/.*)?$/,
       /^drizzle-orm(?:\/.*)?$/,
       /^express(?:\/.*)?$/,
