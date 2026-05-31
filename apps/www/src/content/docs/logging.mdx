@@ -9,7 +9,7 @@ import Callout from "@/components/Callout.astro";
 import CommandBlock from "@/components/CommandBlock.astro";
 import {
   rotatingFileLoggingCompose,
-  structuredConsoleLoggingCommand,
+  structuredConsoleLoggingCommandVariants,
 } from "@/data/product";
 
 Development server logs are emitted as JSON Lines so every local console line includes Cliparr's structured LogTape fields. Frontend development logs use the same JSON format in the browser console.
@@ -17,9 +17,8 @@ Development server logs are emitted as JSON Lines so every local console line in
 Production server logs default to `pretty`, the readable terminal format that shows the timestamp, level, category, and message. Set `CLIPARR_LOG_FORMAT=json` or `CLIPARR_LOG_FORMAT=logfmt` in production when you want each console line to include structured fields such as `event.name`, `event.outcome`, request data, provider IDs, media handle IDs, counts, durations, and error details. JSON is best for log collectors. logfmt is compact and readable in plain terminals.
 
 <CommandBlock
-  code={structuredConsoleLoggingCommand}
+  variants={structuredConsoleLoggingCommandVariants}
   label="Structured console logs"
-  lang="bash"
 />
 
 `CLIPARR_LOG_LEVEL` controls how much the server emits. Development defaults to `debug`; production defaults to `info`. Use `trace` only while chasing detailed media proxy or playback behavior because it can be noisy.

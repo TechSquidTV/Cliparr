@@ -1,13 +1,53 @@
 ---
 import { Code } from "astro:components";
+import type {
+  CommandExampleLanguage,
+  CommandExampleVariant,
+} from "@/data/product";
 
 interface Props {
-  code: string;
-  lang?: "bash" | "yaml";
+  code?: string;
+  lang?: CommandExampleLanguage;
   label?: string;
+  variants?: readonly CommandExampleVariant[];
 }
 
-const { code, label, lang = "bash" } = Astro.props;
+const { code, label, lang = "bash", variants } = Astro.props;
+
+const commandVariants =
+  variants ??
+  (code
+    ? ([
+        {
+          code,
+          label: "Command",
+          lang,
+        },
+      ] satisfies readonly CommandExampleVariant[])
+    : []);
+
+if (commandVariants.length === 0) {
+  throw new Error("CommandBlock requires either code or variants.");
+}
+
+const hasTabs = commandVariants.length > 1;
+
+function hashCommandBlockId(value: string) {
+  let hash = 0;
+
+  for (let index = 0; index < value.length; index += 1) {
+    hash = (hash << 5) - hash + value.charCodeAt(index);
+    hash |= 0;
+  }
+
+  return Math.abs(hash).toString(36);
+}
+
+const groupId = `command-${hashCommandBlockId(
+  `${label ?? ""}:${commandVariants
+    .map((variant) => `${variant.label}:${variant.lang}:${variant.code}`)
+    .join("|")}`,
+)}`;
 ---
 
 <figure
@@ -20,7 +60,309 @@ const { code, label, lang = "bash" } = Astro.props;
       </figcaption>
     )
   }
-  <div class="command-code">
-    <Code code={code} lang={lang} theme="github-dark" />
-  </div>
+  {
+    hasTabs ? (
+      <div
+        class="command-tabs"
+        data-command-tabs
+        style={`--tab-count: ${commandVariants.length}`}
+      >
+        {commandVariants.map((variant, index) => {
+          const optionId = `${groupId}-${index}`;
+
+          return (
+            <>
+              <input
+                checked={index === 0}
+                class="command-tab-input"
+                data-command-shell={variant.lang}
+                id={optionId}
+                name={groupId}
+                type="radio"
+              />
+              <label
+                class="command-tab-label"
+                for={optionId}
+                style={`grid-column: ${index + 1}`}
+              >
+                {variant.label}
+              </label>
+              <div class="command-panel">
+                <button
+                  aria-label="Copy command"
+                  class="command-copy-button"
+                  data-command-copy
+                  title="Copy command"
+                  type="button"
+                >
+                  <svg
+                    aria-hidden="true"
+                    class="command-copy-icon command-copy-icon-copy"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                  >
+                    <rect
+                      height="14"
+                      rx="2"
+                      stroke="currentColor"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      width="14"
+                      x="8"
+                      y="8"
+                    />
+                    <path
+                      d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"
+                      stroke="currentColor"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                    />
+                  </svg>
+                  <svg
+                    aria-hidden="true"
+                    class="command-copy-icon command-copy-icon-copied"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      d="M20 6 9 17l-5-5"
+                      stroke="currentColor"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                    />
+                  </svg>
+                  <svg
+                    aria-hidden="true"
+                    class="command-copy-icon command-copy-icon-failed"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      d="m18 6-12 12"
+                      stroke="currentColor"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                    />
+                    <path
+                      d="m6 6 12 12"
+                      stroke="currentColor"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                    />
+                  </svg>
+                </button>
+                <div class="command-code">
+                  <Code
+                    code={variant.code}
+                    lang={variant.lang}
+                    theme="github-dark"
+                  />
+                </div>
+              </div>
+            </>
+          );
+        })}
+      </div>
+    ) : (
+      <div class="command-panel-single">
+        <button
+          aria-label="Copy command"
+          class="command-copy-button"
+          data-command-copy
+          title="Copy command"
+          type="button"
+        >
+          <svg
+            aria-hidden="true"
+            class="command-copy-icon command-copy-icon-copy"
+            fill="none"
+            viewBox="0 0 24 24"
+          >
+            <rect
+              height="14"
+              rx="2"
+              stroke="currentColor"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              width="14"
+              x="8"
+              y="8"
+            />
+            <path
+              d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"
+              stroke="currentColor"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+            />
+          </svg>
+          <svg
+            aria-hidden="true"
+            class="command-copy-icon command-copy-icon-copied"
+            fill="none"
+            viewBox="0 0 24 24"
+          >
+            <path
+              d="M20 6 9 17l-5-5"
+              stroke="currentColor"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+            />
+          </svg>
+          <svg
+            aria-hidden="true"
+            class="command-copy-icon command-copy-icon-failed"
+            fill="none"
+            viewBox="0 0 24 24"
+          >
+            <path
+              d="m18 6-12 12"
+              stroke="currentColor"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+            />
+            <path
+              d="m6 6 12 12"
+              stroke="currentColor"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+            />
+          </svg>
+        </button>
+        <div class="command-code">
+          <Code
+            code={commandVariants[0].code}
+            lang={commandVariants[0].lang}
+            theme="github-dark"
+          />
+        </div>
+      </div>
+    )
+  }
 </figure>
+
+<script>
+  function preferredCommandShell() {
+    const nav = window.navigator;
+    const userAgentData = Reflect.get(nav, "userAgentData");
+    const userAgentPlatform =
+      userAgentData && typeof userAgentData === "object"
+        ? Reflect.get(userAgentData, "platform")
+        : undefined;
+    const platform =
+      typeof userAgentPlatform === "string"
+        ? userAgentPlatform
+        : (nav.platform ?? "");
+    const userAgent = nav.userAgent ?? "";
+
+    return /win/i.test(`${platform} ${userAgent}`) ? "powershell" : "bash";
+  }
+
+  function selectPreferredCommandTabs() {
+    const preferredShell = preferredCommandShell();
+
+    for (const tabs of document.querySelectorAll("[data-command-tabs]")) {
+      const input = tabs.querySelector(
+        `[data-command-shell="${preferredShell}"]`,
+      );
+
+      if (input instanceof HTMLInputElement) {
+        input.checked = true;
+      }
+    }
+  }
+
+  function writeClipboardTextFallback(value = "") {
+    const textarea = document.createElement("textarea");
+    textarea.value = value;
+    textarea.setAttribute("readonly", "");
+    textarea.style.position = "fixed";
+    textarea.style.top = "0";
+    textarea.style.left = "-9999px";
+    document.body.append(textarea);
+    textarea.select();
+
+    try {
+      return document.execCommand("copy");
+    } finally {
+      textarea.remove();
+    }
+  }
+
+  async function writeClipboardText(value = "") {
+    if (writeClipboardTextFallback(value)) {
+      return;
+    }
+
+    if (navigator.clipboard) {
+      await navigator.clipboard.writeText(value);
+      return;
+    }
+
+    throw new Error("Copy command was rejected.");
+  }
+
+  async function copyCommand(button = document.createElement("button")) {
+    const panel = button.closest(".command-panel, .command-panel-single");
+    const code = panel?.querySelector("code")?.textContent;
+
+    if (!code) {
+      return;
+    }
+
+    await writeClipboardText(code.trimEnd());
+    button.dataset.copyState = "copied";
+    button.setAttribute("aria-label", "Copied");
+    button.title = "Copied";
+
+    window.setTimeout(() => {
+      button.setAttribute("aria-label", "Copy command");
+      button.title = "Copy command";
+      delete button.dataset.copyState;
+    }, 1600);
+  }
+
+  function bindCommandCopyButtons() {
+    for (const item of document.querySelectorAll("button[data-command-copy]")) {
+      if (!(item instanceof HTMLButtonElement)) {
+        continue;
+      }
+
+      if (item.dataset.copyBound) {
+        continue;
+      }
+
+      item.dataset.copyBound = "true";
+      item.addEventListener("click", () => {
+        void copyCommand(item).catch(() => {
+          item.dataset.copyState = "failed";
+          item.setAttribute("aria-label", "Copy failed");
+          item.title = "Copy failed";
+
+          window.setTimeout(() => {
+            item.setAttribute("aria-label", "Copy command");
+            item.title = "Copy command";
+            delete item.dataset.copyState;
+          }, 1600);
+        });
+      });
+    }
+  }
+
+  if (!document.documentElement.dataset.cliparrCommandBlockInit) {
+    document.documentElement.dataset.cliparrCommandBlockInit = "true";
+    selectPreferredCommandTabs();
+    bindCommandCopyButtons();
+    document.addEventListener("astro:page-load", selectPreferredCommandTabs);
+    document.addEventListener("astro:page-load", bindCommandCopyButtons);
+  }
+</script>

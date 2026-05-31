@@ -6,11 +6,14 @@ order: 10
 ---
 
 import CommandBlock from "@/components/CommandBlock.astro";
-import { developmentSetupCommands, preflightCommands } from "@/data/product";
+import {
+  developmentSetupCommandVariants,
+  preflightCommands,
+} from "@/data/product";
 
 Development uses the root pnpm workspace. You need Node.js 24 or newer and pnpm 11.2.2 via Corepack.
 
-<CommandBlock code={developmentSetupCommands} label="Local setup" lang="bash" />
+<CommandBlock variants={developmentSetupCommandVariants} label="Local setup" />
 
 The frontend runs on `http://localhost:5173`. The API server runs on `http://localhost:3000` and redirects auth callback pages back to the Vite frontend during development.
 

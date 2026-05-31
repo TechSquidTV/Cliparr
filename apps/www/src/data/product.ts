@@ -63,12 +63,35 @@ export const providers = [
   },
 ] as const;
 
+export type CommandExampleLanguage = "bash" | "powershell" | "yaml";
+
+export interface CommandExampleVariant {
+  label: string;
+  code: string;
+  lang: CommandExampleLanguage;
+}
+
 export const dockerRunCommand = `docker run -d \\
   --name cliparr \\
   -p 7171:7171 \\
   -e APP_KEY="your-32-char-stable-random-secret" \\
   -v cliparr-data:/data \\
   ghcr.io/techsquidtv/cliparr:latest`;
+
+export const dockerRunPowerShellCommand = `docker run -d \`
+  --name cliparr \`
+  -p 7171:7171 \`
+  -e APP_KEY="your-32-char-stable-random-secret" \`
+  -v cliparr-data:/data \`
+  ghcr.io/techsquidtv/cliparr:latest`;
+
+export const dockerRunCommandVariants = [
+  { label: "macOS / Linux", code: dockerRunCommand, lang: "bash" },
+  { label: "PowerShell", code: dockerRunPowerShellCommand, lang: "powershell" },
+] satisfies readonly CommandExampleVariant[];
+
+export const dockerLinuxContainerNote =
+  "On Windows, run this from Docker Desktop or another Docker engine using Linux containers. Cliparr publishes Linux container images for linux/amd64 and linux/arm64.";
 
 export const dockerComposeExample = `services:
   cliparr:
@@ -85,13 +108,80 @@ export const dockerComposeExample = `services:
 volumes:
   cliparr-data:`;
 
-export const structuredConsoleLoggingCommand = `docker run -d \\
+const structuredConsoleLoggingCommand = `docker run -d \\
   --name cliparr \\
   -p 7171:7171 \\
   -e APP_KEY="your-32-char-stable-random-secret" \\
   -e CLIPARR_LOG_FORMAT=json \\
   -v cliparr-data:/data \\
   ghcr.io/techsquidtv/cliparr:latest`;
+
+const structuredConsoleLoggingPowerShellCommand = `docker run -d \`
+  --name cliparr \`
+  -p 7171:7171 \`
+  -e APP_KEY="your-32-char-stable-random-secret" \`
+  -e CLIPARR_LOG_FORMAT=json \`
+  -v cliparr-data:/data \`
+  ghcr.io/techsquidtv/cliparr:latest`;
+
+export const structuredConsoleLoggingCommandVariants = [
+  {
+    label: "macOS / Linux",
+    code: structuredConsoleLoggingCommand,
+    lang: "bash",
+  },
+  {
+    label: "PowerShell",
+    code: structuredConsoleLoggingPowerShellCommand,
+    lang: "powershell",
+  },
+] satisfies readonly CommandExampleVariant[];
+
+const tailscaleDockerRunCommand = `docker run -d \\
+  --name cliparr \\
+  -p 127.0.0.1:7171:7171 \\
+  -e APP_KEY="your-32-char-stable-random-secret" \\
+  -v cliparr-data:/data \\
+  ghcr.io/techsquidtv/cliparr:latest`;
+
+const tailscaleDockerRunPowerShellCommand = `docker run -d \`
+  --name cliparr \`
+  -p 127.0.0.1:7171:7171 \`
+  -e APP_KEY="your-32-char-stable-random-secret" \`
+  -v cliparr-data:/data \`
+  ghcr.io/techsquidtv/cliparr:latest`;
+
+export const tailscaleDockerRunCommandVariants = [
+  { label: "macOS / Linux", code: tailscaleDockerRunCommand, lang: "bash" },
+  {
+    label: "PowerShell",
+    code: tailscaleDockerRunPowerShellCommand,
+    lang: "powershell",
+  },
+] satisfies readonly CommandExampleVariant[];
+
+const wireguardDockerRunCommand = `docker run -d \\
+  --name cliparr \\
+  -p 10.8.0.1:7171:7171 \\
+  -e APP_KEY="your-32-char-stable-random-secret" \\
+  -v cliparr-data:/data \\
+  ghcr.io/techsquidtv/cliparr:latest`;
+
+const wireguardDockerRunPowerShellCommand = `docker run -d \`
+  --name cliparr \`
+  -p 10.8.0.1:7171:7171 \`
+  -e APP_KEY="your-32-char-stable-random-secret" \`
+  -v cliparr-data:/data \`
+  ghcr.io/techsquidtv/cliparr:latest`;
+
+export const wireguardDockerRunCommandVariants = [
+  { label: "macOS / Linux", code: wireguardDockerRunCommand, lang: "bash" },
+  {
+    label: "PowerShell",
+    code: wireguardDockerRunPowerShellCommand,
+    lang: "powershell",
+  },
+] satisfies readonly CommandExampleVariant[];
 
 export const rotatingFileLoggingCompose = `services:
   cliparr:
@@ -106,11 +196,26 @@ export const rotatingFileLoggingCompose = `services:
     volumes:
       - cliparr-data:/data`;
 
-export const developmentSetupCommands = `git clone https://github.com/techsquidtv/cliparr.git
+const developmentSetupCommands = `git clone https://github.com/techsquidtv/cliparr.git
 cd cliparr
 cp .env.example .env
 pnpm install
 pnpm dev`;
+
+const developmentSetupPowerShellCommands = `git clone https://github.com/techsquidtv/cliparr.git
+Set-Location cliparr
+Copy-Item .env.example .env
+pnpm install
+pnpm dev`;
+
+export const developmentSetupCommandVariants = [
+  { label: "macOS / Linux", code: developmentSetupCommands, lang: "bash" },
+  {
+    label: "PowerShell",
+    code: developmentSetupPowerShellCommands,
+    lang: "powershell",
+  },
+] satisfies readonly CommandExampleVariant[];
 
 export const preflightCommands = `pnpm preflight`;
 

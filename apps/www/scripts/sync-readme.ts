@@ -1,7 +1,14 @@
 import fs from "node:fs";
 import path from "node:path";
 import prettier from "prettier";
-import { dockerRunCommand, envVars, features, warnings } from "@/data/product";
+import {
+  dockerLinuxContainerNote,
+  dockerRunCommand,
+  dockerRunPowerShellCommand,
+  envVars,
+  features,
+  warnings,
+} from "@/data/product";
 
 const rootDir = path.resolve(import.meta.dirname, "../../..");
 const readmePath = path.join(rootDir, "README.md");
@@ -29,7 +36,7 @@ function renderDockerQuickStart() {
     .map((warning) => `> [!IMPORTANT]\n> **${warning.title}**: ${warning.body}`)
     .join("\n\n");
 
-  return `The fastest way to get Cliparr running is via the GitHub Container Registry.\n\n\`\`\`bash\n${dockerRunCommand}\n\`\`\`\n\n${warningBlocks}`;
+  return `The fastest way to get Cliparr running is via the GitHub Container Registry.\n\n**macOS / Linux**\n\n\`\`\`bash\n${dockerRunCommand}\n\`\`\`\n\n**PowerShell**\n\n\`\`\`powershell\n${dockerRunPowerShellCommand}\n\`\`\`\n\n${dockerLinuxContainerNote}\n\n${warningBlocks}`;
 }
 
 function renderConfiguration() {
