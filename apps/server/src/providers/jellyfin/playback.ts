@@ -56,6 +56,14 @@ import {
 const logger = getServerLogger(["provider", "jellyfin", "playback"]);
 const HD_ARTWORK_SIZE = 1920;
 const HD_ARTWORK_QUALITY = 96;
+const PLAYBACK_INFO_CACHE_TTL_MS = 1000 * 60 * 15;
+
+interface CachedPlaybackInfo {
+  expiresAt: number;
+  playbackInfo: JellyfinPlaybackInfo;
+}
+
+const playbackInfoCache = new Map<string, CachedPlaybackInfo>();
 
 function createMediaHandle(
   session: ProviderSessionRecord,
@@ -641,11 +649,30 @@ async function enrichMetadataItem(
 }
 
 async function loadPlaybackInfo(
+  session: ProviderSessionRecord,
   context: JellyfinSourceContext,
+  sessionInfo: JellyfinSessionInfo,
   itemId: string,
 ) {
+  const cacheKey = playbackInfoCacheKey(session, context, sessionInfo, itemId);
+  const cached = playbackInfoCache.get(cacheKey);
+  const now = Date.now();
+  if (cached && cached.expiresAt > now) {
+    cached.expiresAt = now + PLAYBACK_INFO_CACHE_TTL_MS;
+    return cached.playbackInfo;
+  }
+
+  prunePlaybackInfoCache(now);
+
   try {
-    return await fetchPlaybackInfo(context, itemId);
+    const playbackInfo = await fetchPlaybackInfo(context, itemId);
+    if (stringValue(playbackInfo?.PlaySessionId)) {
+      playbackInfoCache.set(cacheKey, {
+        expiresAt: Date.now() + PLAYBACK_INFO_CACHE_TTL_MS,
+        playbackInfo,
+      });
+    }
+    return playbackInfo;
   } catch (err) {
     logger.warn("Could not fetch Jellyfin playback info.", {
       ...logErrorFields(err),
@@ -654,6 +681,30 @@ async function loadPlaybackInfo(
       "source.base_url": sanitizeUrlForLog(context.baseUrl),
     });
     return undefined;
+  }
+}
+
+function playbackInfoCacheKey(
+  session: ProviderSessionRecord,
+  context: JellyfinSourceContext,
+  sessionInfo: JellyfinSessionInfo,
+  itemId: string,
+) {
+  return [
+    session.id,
+    context.sourceId,
+    stringValue(sessionInfo?.Id) ?? "unknown-session",
+    itemId,
+    stringValue(sessionInfo?.PlayState?.MediaSourceId) ??
+      "unknown-media-source",
+  ].join(":");
+}
+
+function prunePlaybackInfoCache(now = Date.now()) {
+  for (const [cacheKey, cached] of playbackInfoCache.entries()) {
+    if (cached.expiresAt <= now) {
+      playbackInfoCache.delete(cacheKey);
+    }
   }
 }
 
@@ -705,7 +756,7 @@ async function normalizeCurrentPlayback(
 
   const [enrichedItem, playbackInfo] = await Promise.all([
     enrichMetadataItem(context, nowPlayingItem),
-    loadPlaybackInfo(context, itemId),
+    loadPlaybackInfo(session, context, sessionInfo, itemId),
   ]);
   const playSessionId = stringValue(playbackInfo?.PlaySessionId);
   const clientSessionId = stringValue(sessionInfo?.Id);
