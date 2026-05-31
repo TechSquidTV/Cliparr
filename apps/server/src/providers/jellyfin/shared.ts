@@ -483,8 +483,11 @@ function responseHeader<T>(
     return stringifyHeaderValue(headers.get(name));
   }
 
+  const headerRecord = headers as Record<string, unknown>;
   const value =
-    headers[name] ?? headers[name.toLowerCase()] ?? headers[name.toUpperCase()];
+    headerRecord[name] ??
+    headerRecord[name.toLowerCase()] ??
+    headerRecord[name.toUpperCase()];
   return stringifyHeaderValue(value);
 }
 

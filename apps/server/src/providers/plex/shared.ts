@@ -266,11 +266,16 @@ export function unreachableConnectionMessage(
 }
 
 function sourceConnections(source: MediaSource) {
-  const rawConnections = Array.isArray(source.connection.connections)
+  const rawConnections: unknown[] = Array.isArray(source.connection.connections)
     ? source.connection.connections
     : [];
   return rawConnections.flatMap((candidate) => {
-    const uri = stringValue((candidate as any)?.uri);
+    if (!candidate || typeof candidate !== "object") {
+      return [];
+    }
+
+    const connection = candidate as Record<string, unknown>;
+    const uri = stringValue(connection.uri);
     if (!uri) {
       return [];
     }
@@ -283,13 +288,13 @@ function sourceConnections(source: MediaSource) {
 
     return [
       {
-        id: stringValue((candidate as any)?.id) ?? randomUUID(),
+        id: stringValue(connection.id) ?? randomUUID(),
         uri,
-        local: Boolean((candidate as any)?.local),
-        relay: Boolean((candidate as any)?.relay),
-        protocol: stringValue((candidate as any)?.protocol),
-        address: stringValue((candidate as any)?.address),
-        port: numberValue((candidate as any)?.port),
+        local: Boolean(connection.local),
+        relay: Boolean(connection.relay),
+        protocol: stringValue(connection.protocol),
+        address: stringValue(connection.address),
+        port: numberValue(connection.port),
       },
     ];
   });

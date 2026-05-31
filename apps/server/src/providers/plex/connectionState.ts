@@ -10,8 +10,7 @@ export type PlexBaseUrlMode =
 export function plexBaseUrlMode(
   connection: Record<string, unknown>,
 ): PlexBaseUrlMode {
-  return stringValue((connection as any)?.baseUrlMode) ===
-    PLEX_BASE_URL_MODE_MANUAL
+  return stringValue(connection.baseUrlMode) === PLEX_BASE_URL_MODE_MANUAL
     ? PLEX_BASE_URL_MODE_MANUAL
     : PLEX_BASE_URL_MODE_AUTO;
 }
