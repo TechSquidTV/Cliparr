@@ -13,9 +13,12 @@ import {
 } from "@/providers/jellyfin/playback";
 import type { JellyfinSourceContext } from "@/providers/jellyfin/shared";
 
+let sessionIndex = 0;
+
 function createSession(): ProviderSessionRecord {
+  sessionIndex += 1;
   return {
-    id: "session-1",
+    id: `session-${sessionIndex}`,
     providerId: "jellyfin",
     providerAccountId: "account-1",
     userToken: "user-token",
@@ -115,7 +118,7 @@ function fetchInputUrl(input: Parameters<typeof fetch>[0]) {
 
 function createJellyfinPlaybackFetch(options: {
   itemId: string;
-  playSessionId?: string | null;
+  playSessionId?: string | null | (() => string | null);
   clientSessionId?: string;
   mediaSourceId?: string;
   title?: string;
@@ -188,8 +191,12 @@ function createJellyfinPlaybackFetch(options: {
     }
 
     if (url.pathname === `/Items/${itemId}/PlaybackInfo`) {
+      const resolvedPlaySessionId =
+        typeof playSessionId === "function" ? playSessionId() : playSessionId;
       return jsonResponse({
-        ...(playSessionId ? { PlaySessionId: playSessionId } : {}),
+        ...(resolvedPlaySessionId
+          ? { PlaySessionId: resolvedPlaySessionId }
+          : {}),
         MediaSources: [mediaSource],
       });
     }
@@ -275,6 +282,56 @@ void test("uses Jellyfin PlaybackInfo play session ids for currently playing str
     assert.notEqual(
       hlsUrl.searchParams.get("playSessionId"),
       "client-session-1",
+    );
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+void test("reuses Jellyfin playback info for stable currently playing handles", async () => {
+  const session = createSession();
+  const originalFetch = globalThis.fetch;
+  let playbackInfoRequestCount = 0;
+  globalThis.fetch = createJellyfinPlaybackFetch({
+    itemId: "item-1",
+    playSessionId: () => {
+      playbackInfoRequestCount += 1;
+      return `playback-info-session-${playbackInfoRequestCount}`;
+    },
+    clientSessionId: "client-session-1",
+  });
+
+  try {
+    const firstEntries = await listCurrentlyPlaying(session, createSource());
+    const handleCount = session.mediaHandles.size;
+    const secondEntries = await listCurrentlyPlaying(session, createSource());
+
+    assert.equal(playbackInfoRequestCount, 1);
+    assert.equal(session.mediaHandles.size, handleCount);
+    assert.equal(
+      firstEntries[0]?.item.mediaUrl,
+      secondEntries[0]?.item.mediaUrl,
+    );
+    assert.equal(firstEntries[0]?.item.hlsUrl, secondEntries[0]?.item.hlsUrl);
+
+    const streamHandle = [...session.mediaHandles.values()].find((handle) =>
+      handle.path.includes("/stream?"),
+    );
+    const hlsHandle = [...session.mediaHandles.values()].find((handle) =>
+      handle.path.includes("/master.m3u8?"),
+    );
+    assert(streamHandle);
+    assert(hlsHandle);
+
+    const streamUrl = new URL(streamHandle.path, "http://cliparr.local");
+    const hlsUrl = new URL(hlsHandle.path, "http://cliparr.local");
+    assert.equal(
+      streamUrl.searchParams.get("playSessionId"),
+      "playback-info-session-1",
+    );
+    assert.equal(
+      hlsUrl.searchParams.get("playSessionId"),
+      "playback-info-session-1",
     );
   } finally {
     globalThis.fetch = originalFetch;
