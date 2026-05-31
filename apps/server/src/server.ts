@@ -2,6 +2,7 @@ import "@/config/loadEnv";
 import type { Server } from "node:http";
 import { logErrorFields, logEventFields } from "@cliparr/shared/logging";
 import { createApp } from "@/app";
+import { resolveServerPort } from "@/config/serverPort";
 import { closeDatabase } from "@/db/database";
 import { configureLogging, fatalWithError, getServerLogger } from "@/logging";
 
@@ -19,7 +20,7 @@ function hasCloseAllConnections(
 async function startServer() {
   await configureLogging();
   const { app } = await createApp();
-  const PORT = Number(process.env.PORT ?? 3000);
+  const PORT = resolveServerPort();
 
   const server = app.listen(PORT, "0.0.0.0", () => {
     logger.info("Server listening on {url}.", {

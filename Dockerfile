@@ -44,7 +44,7 @@ LABEL org.opencontainers.image.title="Cliparr" \
   org.opencontainers.image.licenses="MIT"
 
 ENV NODE_ENV=production
-ENV PORT=3000
+ENV PORT=7171
 ENV CLIPARR_DATA_DIR=/data
 ENV CLIPARR_VERSION=$CLIPARR_VERSION
 
@@ -61,9 +61,9 @@ USER node
 
 VOLUME ["/data"]
 
-EXPOSE 3000
+EXPOSE 7171
 
 HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \
-  CMD ["node", "-e", "fetch('http://127.0.0.1:' + (process.env.PORT || 3000) + '/api/health').then((response) => process.exit(response.ok ? 0 : 1)).catch(() => process.exit(1))"]
+  CMD ["node", "-e", "fetch('http://127.0.0.1:' + (process.env.PORT || 7171) + '/api/health').then((response) => process.exit(response.ok ? 0 : 1)).catch(() => process.exit(1))"]
 
 CMD ["node", "apps/server/dist/server.js"]

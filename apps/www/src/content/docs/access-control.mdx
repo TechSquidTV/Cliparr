@@ -86,7 +86,7 @@ cliparr.example.com {
         copy_headers Remote-User Remote-Groups Remote-Email Remote-Name
     }
 
-    reverse_proxy cliparr:3000 {
+    reverse_proxy cliparr:7171 {
         header_up Host {host}
         header_up X-Forwarded-Proto {scheme}
     }
@@ -102,7 +102,7 @@ services:
     environment:
       - APP_KEY=replace-this-with-a-32-character-secure-random-string
     expose:
-      - "3000"
+      - "7171"
     volumes:
       - cliparr-data:/data
     restart: unless-stopped
@@ -146,7 +146,7 @@ With Tailscale, bind Cliparr to localhost and share it only inside your tailnet:
 ```bash
 docker run -d \
   --name cliparr \
-  -p 127.0.0.1:3000:3000 \
+  -p 127.0.0.1:7171:7171 \
   -e APP_KEY="your-32-char-stable-random-secret" \
   -v cliparr-data:/data \
   ghcr.io/techsquidtv/cliparr:latest
@@ -155,7 +155,7 @@ docker run -d \
 Then run Tailscale Serve on the same host:
 
 ```bash
-tailscale serve --bg localhost:3000
+tailscale serve --bg localhost:7171
 ```
 
 Tailscale will give the service a tailnet-only HTTPS URL on the machine's MagicDNS name. Do not use Tailscale Funnel for Cliparr unless you intentionally want to expose it to the public internet.
@@ -167,7 +167,7 @@ For example, if the Cliparr host has WireGuard address `10.8.0.1`, bind Docker t
 ```bash
 docker run -d \
   --name cliparr \
-  -p 10.8.0.1:3000:3000 \
+  -p 10.8.0.1:7171:7171 \
   -e APP_KEY="your-32-char-stable-random-secret" \
   -v cliparr-data:/data \
   ghcr.io/techsquidtv/cliparr:latest
@@ -177,7 +177,7 @@ If you use Caddy inside the VPN, serve Cliparr on an internal name and restrict 
 
 ```caddyfile
 cliparr.home.arpa {
-    reverse_proxy 127.0.0.1:3000 {
+    reverse_proxy 127.0.0.1:7171 {
         header_up Host {host}
         header_up X-Forwarded-Proto {scheme}
     }

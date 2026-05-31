@@ -2,10 +2,10 @@ services:
   cliparr:
     build: .
     ports:
-      - "3000:3000"
+      - "7171:7171"
     environment:
       APP_KEY: "${APP_KEY:?APP_KEY is required}"
-      PORT: "3000"
+      PORT: "7171"
       CLIPARR_DATA_DIR: "/data"
     volumes:
       - cliparr-data:/data

@@ -123,13 +123,13 @@ jobs:
           docker run \
             --detach \
             --name cliparr-smoke \
-            --publish 3000:3000 \
+            --publish 7171:7171 \
             --env APP_KEY="cliparr-smoke-test-key-with-at-least-32-characters" \
             --volume cliparr-smoke-data:/data \
             cliparr:smoke
 
           for attempt in {1..30}; do
-            if curl --fail --silent --show-error http://127.0.0.1:3000/api/health > "${health_file}"; then
+            if curl --fail --silent --show-error http://127.0.0.1:7171/api/health > "${health_file}"; then
               break
             fi
             sleep 1
@@ -140,7 +140,7 @@ jobs:
           grep -q '"database":"ok"' "${health_file}"
           grep -q '"version":"${{ steps.plan.outputs.tag }}"' "${health_file}"
 
-          curl --fail --silent --show-error http://127.0.0.1:3000/ > "${index_file}"
+          curl --fail --silent --show-error http://127.0.0.1:7171/ > "${index_file}"
           grep -q '<div id="root"></div>' "${index_file}"
 
       - name: Show smoke-test logs
