@@ -10,7 +10,7 @@ import {
   buildPlaybackFailure,
   buildPlaybackLoadError,
   buildPlaybackSourceCandidates,
-  PlaybackSourceError,
+  createPlaybackSourceError,
   resolvePlaybackDuration,
   shouldUseExportFallback,
   type PlaybackLoadFailure,
@@ -107,7 +107,7 @@ void test("classifies source failures and export fallback eligibility", () => {
       label: "hls stream",
       source: createProviderUrlSource("/playback/master.m3u8", "hls"),
     },
-    new PlaybackSourceError("shared-export-blocking", "Decoder unavailable"),
+    createPlaybackSourceError("shared-export-blocking", "Decoder unavailable"),
   );
 
   assert.deepEqual(failure, {

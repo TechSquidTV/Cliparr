@@ -39,6 +39,25 @@ export default tseslint.config(
       "no-restricted-syntax": [
         "error",
         {
+          selector: "ClassDeclaration, ClassExpression",
+          message:
+            "Use functions and plain objects instead of classes in Cliparr code.",
+        },
+        {
+          selector: "ThisExpression",
+          message:
+            "Avoid `this`; close over explicit values or pass state as data.",
+        },
+        {
+          selector: "Super",
+          message: "Use functional composition instead of class inheritance.",
+        },
+        {
+          selector: "MemberExpression[property.name='prototype']",
+          message:
+            "Do not mutate prototypes; use functions and plain objects instead.",
+        },
+        {
           selector: "ImportExpression[source.value=/^\\.{1,2}\\//]",
           message: "Use the package alias instead of a relative import path.",
         },

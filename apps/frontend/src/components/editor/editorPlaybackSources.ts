@@ -51,14 +51,32 @@ export interface PlaybackSourceAnalysisContext {
   isLivePlayback: boolean;
 }
 
-export class PlaybackSourceError extends Error {
+export interface PlaybackSourceError extends Error {
   category: PlaybackLoadFailure["category"];
+}
 
-  constructor(category: PlaybackLoadFailure["category"], message: string) {
-    super(message);
-    this.name = "PlaybackSourceError";
-    this.category = category;
-  }
+export function createPlaybackSourceError(
+  category: PlaybackLoadFailure["category"],
+  message: string,
+): PlaybackSourceError {
+  return Object.assign(new Error(message), {
+    name: "PlaybackSourceError",
+    category,
+  });
+}
+
+export function isPlaybackSourceError(
+  err: unknown,
+): err is PlaybackSourceError {
+  const candidate = err as Partial<PlaybackSourceError>;
+
+  return (
+    err instanceof Error &&
+    candidate.name === "PlaybackSourceError" &&
+    (candidate.category === "open-or-read" ||
+      candidate.category === "preview-only" ||
+      candidate.category === "shared-export-blocking")
+  );
 }
 
 function playbackLabelForSource(
@@ -126,8 +144,7 @@ export function buildPlaybackFailure(
     label: source.label,
     message: errorMessage(err),
     classification: classifyPlaybackSource(source),
-    category:
-      err instanceof PlaybackSourceError ? err.category : "open-or-read",
+    category: isPlaybackSourceError(err) ? err.category : "open-or-read",
   };
 }
 

@@ -1,6 +1,6 @@
 import { randomUUID } from "crypto";
 import type { MediaSource } from "@/db/mediaSourcesRepository";
-import { ApiError } from "@/http/errors";
+import { createApiError } from "@/http/errors";
 import { normalizeMediaPath } from "@/providers/shared/mediaProxy";
 import {
   errorMessage,
@@ -86,7 +86,7 @@ export async function plexFetch(url: string, init: RequestInit = {}) {
   });
 
   if (!response.ok) {
-    throw new ApiError(
+    throw createApiError(
       response.status,
       "plex_request_failed",
       `Plex request failed: ${response.status} ${response.statusText}`,
@@ -99,7 +99,7 @@ export async function plexFetch(url: string, init: RequestInit = {}) {
 function assertHttpUrl(uri: string) {
   const parsed = new URL(uri);
   if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
-    throw new ApiError(
+    throw createApiError(
       400,
       "invalid_connection_url",
       "Plex connection must use HTTP or HTTPS",
@@ -207,7 +207,7 @@ export function requirePlexServerResources(resources: ProviderResource[]) {
     return resources;
   }
 
-  throw new ApiError(
+  throw createApiError(
     403,
     "plex_server_required",
     "Cliparr needs a Plex account that owns at least one Plex Media Server",
@@ -318,7 +318,7 @@ function manualConnection(source: MediaSource) {
 export function sourceResource(source: MediaSource) {
   const accessToken = stringValue(source.credentials.accessToken);
   if (!accessToken) {
-    throw new ApiError(
+    throw createApiError(
       500,
       "source_credentials_missing",
       "Stored Plex source is missing its access token",
@@ -327,7 +327,7 @@ export function sourceResource(source: MediaSource) {
 
   const provides = normalizeProvides(source.metadata.provides);
   if (source.metadata.owned !== true || !provides.includes("server")) {
-    throw new ApiError(
+    throw createApiError(
       500,
       "source_configuration_invalid",
       "Stored Plex source must be an owned server resource",
@@ -337,7 +337,7 @@ export function sourceResource(source: MediaSource) {
   const manual = manualConnection(source);
   const connections = sourceConnections(source);
   if (connections.length === 0 && !manual) {
-    throw new ApiError(
+    throw createApiError(
       500,
       "source_connections_missing",
       "Stored Plex source is missing connection details",
@@ -365,7 +365,7 @@ export function sourceResource(source: MediaSource) {
       connections[0]?.id);
 
   if (!preferredConnectionId) {
-    throw new ApiError(
+    throw createApiError(
       500,
       "source_connections_missing",
       "Stored Plex source is missing connection details",
@@ -455,7 +455,7 @@ export async function selectReachableConnection(
     failures.push(`${connection.uri}: ${result.message}`);
   }
 
-  throw new ApiError(
+  throw createApiError(
     502,
     "plex_unreachable",
     unreachableConnectionMessage(resource, failures, baseUrlMode),

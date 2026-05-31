@@ -1,4 +1,4 @@
-import { ApiError } from "@/http/errors";
+import { createApiError } from "@/http/errors";
 import type {
   ProviderConnection,
   ProviderDefinition,
@@ -57,7 +57,7 @@ export function persistProviderAuth(input: {
   });
 
   if (!account) {
-    throw new ApiError(
+    throw createApiError(
       500,
       "provider_account_not_saved",
       "Provider account could not be saved",

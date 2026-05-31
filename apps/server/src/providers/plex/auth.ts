@@ -1,5 +1,5 @@
 import { createHash, randomBytes, randomUUID, timingSafeEqual } from "crypto";
-import { ApiError } from "@/http/errors";
+import { createApiError } from "@/http/errors";
 import {
   AUTH_TTL_MS,
   MAX_PENDING_AUTH_REQUESTS,
@@ -40,7 +40,7 @@ function pruneExpiredAuthRequests(now = Date.now()) {
 export async function startAuth(callbackUrl: string) {
   pruneExpiredAuthRequests();
   if (authRequests.size >= MAX_PENDING_AUTH_REQUESTS) {
-    throw new ApiError(
+    throw createApiError(
       503,
       "plex_auth_busy",
       "Too many pending Plex sign-ins. Wait a moment and try again.",
@@ -57,7 +57,7 @@ export async function startAuth(callbackUrl: string) {
   };
 
   if (!data.id || !data.code) {
-    throw new ApiError(
+    throw createApiError(
       502,
       "plex_auth_start_failed",
       "Plex did not return a PIN",
@@ -105,7 +105,7 @@ export async function pollAuth(authId: string, pollToken: string) {
   }
 
   if (!authPollTokenMatches(authRequest.pollTokenHash, pollToken)) {
-    throw new ApiError(
+    throw createApiError(
       401,
       "invalid_plex_auth_session",
       "Plex sign-in must be completed from the browser that started it",

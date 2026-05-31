@@ -6,7 +6,7 @@ import type {
   InputVideoTrack,
 } from "mediabunny";
 import { playbackGainValue } from "@/components/editor/editorPlaybackAudio";
-import { PlaybackSourceError } from "@/components/editor/editorPlaybackSources";
+import { createPlaybackSourceError } from "@/components/editor/editorPlaybackSources";
 
 type RefValue<T> = {
   current: T;
@@ -84,7 +84,7 @@ export async function createPlaybackSinkResources({
 
   const AudioContextConstructor = getAudioContextConstructor();
   if (!AudioContextConstructor) {
-    throw new PlaybackSourceError(
+    throw createPlaybackSourceError(
       "preview-only",
       "This browser does not provide Web Audio.",
     );

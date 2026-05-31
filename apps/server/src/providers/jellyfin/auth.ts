@@ -1,5 +1,5 @@
 import type { MediaSource } from "@/db/mediaSourcesRepository";
-import { ApiError } from "@/http/errors";
+import { createApiError, isApiError } from "@/http/errors";
 import type { ProviderResource } from "@/providers/types";
 import { stringValue } from "@/providers/shared/utils";
 import {
@@ -19,7 +19,7 @@ import {
 
 async function parseCredentialsInput(body: unknown) {
   if (!body || typeof body !== "object" || Array.isArray(body)) {
-    throw new ApiError(
+    throw createApiError(
       400,
       "invalid_jellyfin_credentials",
       "Provide a JSON object with Jellyfin serverUrl, username, and password",
@@ -31,7 +31,7 @@ async function parseCredentialsInput(body: unknown) {
   const username = stringValue(record.username);
 
   if (!serverUrl) {
-    throw new ApiError(
+    throw createApiError(
       400,
       "invalid_jellyfin_server_url",
       "Jellyfin serverUrl must be a non-empty string",
@@ -39,7 +39,7 @@ async function parseCredentialsInput(body: unknown) {
   }
 
   if (!username) {
-    throw new ApiError(
+    throw createApiError(
       400,
       "invalid_jellyfin_username",
       "Jellyfin username must be a non-empty string",
@@ -47,7 +47,7 @@ async function parseCredentialsInput(body: unknown) {
   }
 
   if (typeof record.password !== "string") {
-    throw new ApiError(
+    throw createApiError(
       400,
       "invalid_jellyfin_password",
       "Jellyfin password must be a string",
@@ -94,8 +94,8 @@ export async function authenticateWithCredentials(body: unknown) {
       },
     );
   } catch (err) {
-    if (err instanceof ApiError && err.status === 401) {
-      throw new ApiError(
+    if (isApiError(err) && err.status === 401) {
+      throw createApiError(
         401,
         "invalid_jellyfin_credentials",
         "Incorrect Jellyfin username or password",
@@ -113,7 +113,7 @@ export async function authenticateWithCredentials(body: unknown) {
     stringValue(authResult?.ServerId) ?? stringValue(publicInfo?.Id);
 
   if (!accessToken || !userId || !serverId) {
-    throw new ApiError(
+    throw createApiError(
       502,
       "jellyfin_auth_failed",
       "Jellyfin did not return the server or user details Cliparr needs",
@@ -121,7 +121,7 @@ export async function authenticateWithCredentials(body: unknown) {
   }
 
   if (!isAdministrator) {
-    throw new ApiError(
+    throw createApiError(
       403,
       "jellyfin_admin_required",
       "Cliparr needs a Jellyfin administrator account so it can view active sessions across the server",
@@ -215,7 +215,7 @@ export async function checkSource(source: MediaSource) {
       },
     };
   } catch (err) {
-    if (err instanceof ApiError) {
+    if (isApiError(err)) {
       return {
         ok: false as const,
         message: err.message,

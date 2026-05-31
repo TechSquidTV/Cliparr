@@ -1,5 +1,5 @@
 import type { Request, Response } from "express";
-import { ApiError } from "@/http/errors";
+import { createApiError } from "@/http/errors";
 import {
   getProviderSession,
   getSessionCookieName,
@@ -14,7 +14,7 @@ export function getRequestSessionId(req: Request) {
 function requireSession(req: Request): ProviderSessionRecord {
   const session = getProviderSession(getRequestSessionId(req));
   if (!session) {
-    throw new ApiError(
+    throw createApiError(
       401,
       "not_authenticated",
       "Sign in with a provider first",

@@ -1,4 +1,4 @@
-import { ApiError } from "@/http/errors";
+import { isApiError } from "@/http/errors";
 import type { ProviderImplementation } from "@/providers/types";
 import { pollAuth, startAuth } from "@/providers/plex/auth";
 import {
@@ -46,7 +46,7 @@ async function checkSource(
       },
     };
   } catch (err) {
-    if (err instanceof ApiError && err.code === "plex_unreachable") {
+    if (isApiError(err) && err.code === "plex_unreachable") {
       return {
         ok: false as const,
         message: err.message,

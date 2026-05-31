@@ -5,7 +5,7 @@ import {
   sanitizeUrlForLog,
 } from "@cliparr/shared/logging";
 import type { MediaSource } from "@/db/mediaSourcesRepository";
-import { ApiError } from "@/http/errors";
+import { createApiError } from "@/http/errors";
 import { getServerLogger } from "@/logging";
 import type { ProviderSessionRecord } from "@/session/store";
 import type {
@@ -915,7 +915,7 @@ export async function proxyMedia(
 ) {
   const handle = session.mediaHandles.get(handleId);
   if (!handle) {
-    throw new ApiError(
+    throw createApiError(
       404,
       "media_not_found",
       "Media handle was not found or has expired",
@@ -970,7 +970,7 @@ export async function proxyMedia(
             .slice(0, 400)
             .replace(/\s+/g, " ")
             .trim();
-          throw new ApiError(
+          throw createApiError(
             upstream.status,
             "jellyfin_media_failed",
             detail

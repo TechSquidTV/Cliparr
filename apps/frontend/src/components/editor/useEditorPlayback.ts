@@ -38,10 +38,11 @@ import {
   buildPlaybackFailure,
   buildPlaybackLoadError,
   buildPlaybackSourceCandidates,
+  createPlaybackSourceError,
   describePlaybackFailure,
   formatPlaybackSourceLabel,
+  isPlaybackSourceError,
   isPresent,
-  PlaybackSourceError,
   resolvePlaybackDuration,
   selectPreviewVideoTrack,
   shouldUseExportFallback,
@@ -1070,14 +1071,14 @@ export function useEditorPlayback({
               !previewVideoTrack &&
               decoderEnvironmentWarning
             ) {
-              throw new PlaybackSourceError(
+              throw createPlaybackSourceError(
                 "shared-export-blocking",
                 decoderEnvironmentWarning,
               );
             }
 
             if (!previewVideoTrack && !previewAudioTrack) {
-              throw new PlaybackSourceError(
+              throw createPlaybackSourceError(
                 decoderEnvironmentWarning
                   ? "shared-export-blocking"
                   : "preview-only",
@@ -1187,9 +1188,9 @@ export function useEditorPlayback({
 
               await startVideoIterator();
             } catch (err) {
-              throw err instanceof PlaybackSourceError
+              throw isPlaybackSourceError(err)
                 ? err
-                : new PlaybackSourceError("preview-only", errorMessage(err));
+                : createPlaybackSourceError("preview-only", errorMessage(err));
             }
 
             startRenderLoop();

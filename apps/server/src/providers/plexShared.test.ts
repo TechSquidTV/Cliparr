@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { ApiError } from "@/http/errors";
+import { isApiError } from "@/http/errors";
 import type { ProviderResource } from "@/providers/types";
 import {
   normalizeResources,
@@ -57,7 +57,7 @@ void test("requires at least one discovered Plex server resource", () => {
   assert.throws(
     () => requirePlexServerResources([]),
     (error: unknown) =>
-      error instanceof ApiError &&
+      isApiError(error) &&
       error.status === 403 &&
       error.code === "plex_server_required" &&
       error.message ===

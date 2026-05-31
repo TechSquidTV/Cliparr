@@ -9,7 +9,7 @@ import {
   updateMediaSource,
   type MediaSource,
 } from "@/db/mediaSourcesRepository";
-import { ApiError } from "@/http/errors";
+import { createApiError, isApiError } from "@/http/errors";
 import { getServerLogger } from "@/logging";
 import type { ProviderSessionRecord } from "@/session/store";
 import type {
@@ -332,7 +332,7 @@ function transcodeSessionId(path: string) {
 }
 
 function isRetryableConnectionError(err: unknown) {
-  if (!(err instanceof ApiError)) {
+  if (!isApiError(err)) {
     return true;
   }
 
@@ -424,7 +424,7 @@ async function fetchCurrentlyPlayingData(source: MediaSource) {
     }
   }
 
-  throw new ApiError(
+  throw createApiError(
     502,
     "plex_unreachable",
     unreachableConnectionMessage(resource, failures, baseUrlMode),
@@ -1187,7 +1187,7 @@ export async function proxyMedia(
 ) {
   const handle = session.mediaHandles.get(handleId);
   if (!handle) {
-    throw new ApiError(
+    throw createApiError(
       404,
       "media_not_found",
       "Media handle was not found or has expired",
@@ -1259,7 +1259,7 @@ export async function proxyMedia(
           "http.accept": accept,
           "plex.playback_session.id": playbackSessionId,
         });
-        throw new ApiError(
+        throw createApiError(
           upstream.status,
           "plex_media_failed",
           detail

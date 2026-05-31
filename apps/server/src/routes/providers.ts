@@ -7,7 +7,7 @@ import {
 } from "@cliparr/shared/logging";
 import { persistProviderAuth } from "@/db/providerPersistence";
 import { createRememberedProviderSession } from "@/db/rememberedProviderSessionsRepository";
-import { ApiError, asyncHandler } from "@/http/errors";
+import { asyncHandler, createApiError, isApiError } from "@/http/errors";
 import { getRequestRouteUrl } from "@/http/requestOrigin";
 import { getProvider, listProviders } from "@/providers/registry";
 import { getServerLogger, warnWithError } from "@/logging";
@@ -94,7 +94,7 @@ function requireProviderAuthCookie(
     readCookie(cookieHeader, PROVIDER_AUTH_COOKIE),
   );
   if (authCookie?.providerId !== providerId || authCookie.authId !== authId) {
-    throw new ApiError(
+    throw createApiError(
       401,
       "invalid_provider_auth_session",
       "Provider sign-in must be completed from the browser that started it",
@@ -115,11 +115,11 @@ providersRouter.post(
     setNoStore(res);
     const provider = getProvider(req.params.providerId as string);
     if (!provider) {
-      throw new ApiError(404, "provider_not_found", "Provider was not found");
+      throw createApiError(404, "provider_not_found", "Provider was not found");
     }
 
     if (provider.definition.auth !== "pin" || !provider.startAuth) {
-      throw new ApiError(
+      throw createApiError(
         400,
         "provider_auth_not_supported",
         "This provider does not use browser PIN sign-in",
@@ -177,11 +177,11 @@ providersRouter.get(
     setNoStore(res);
     const provider = getProvider(req.params.providerId as string);
     if (!provider) {
-      throw new ApiError(404, "provider_not_found", "Provider was not found");
+      throw createApiError(404, "provider_not_found", "Provider was not found");
     }
 
     if (provider.definition.auth !== "pin" || !provider.pollAuth) {
-      throw new ApiError(
+      throw createApiError(
         400,
         "provider_auth_not_supported",
         "This provider does not use browser PIN sign-in",
@@ -220,7 +220,7 @@ providersRouter.get(
         !Array.isArray(authStatus.resources) ||
         authStatus.resources.length === 0
       ) {
-        throw new ApiError(
+        throw createApiError(
           502,
           "provider_auth_failed",
           "Provider auth did not return any available servers",
@@ -279,7 +279,7 @@ providersRouter.get(
           ...logErrorFields(err),
           "provider.id": provider.definition.id,
           "provider.auth.method": "pin",
-          "http.status_code": err instanceof ApiError ? err.status : undefined,
+          "http.status_code": isApiError(err) ? err.status : undefined,
         }),
       );
       throw err;
@@ -293,14 +293,14 @@ providersRouter.post(
     setNoStore(res);
     const provider = getProvider(req.params.providerId as string);
     if (!provider) {
-      throw new ApiError(404, "provider_not_found", "Provider was not found");
+      throw createApiError(404, "provider_not_found", "Provider was not found");
     }
 
     if (
       provider.definition.auth !== "credentials" ||
       !provider.authenticateWithCredentials
     ) {
-      throw new ApiError(
+      throw createApiError(
         400,
         "provider_auth_not_supported",
         "This provider does not use direct credential sign-in",
@@ -316,7 +316,7 @@ providersRouter.post(
         !Array.isArray(authResult.resources) ||
         authResult.resources.length === 0
       ) {
-        throw new ApiError(
+        throw createApiError(
           502,
           "provider_auth_failed",
           "Provider auth did not return any available servers",
@@ -373,7 +373,7 @@ providersRouter.post(
           ...logErrorFields(err),
           "provider.id": provider.definition.id,
           "provider.auth.method": "credentials",
-          "http.status_code": err instanceof ApiError ? err.status : undefined,
+          "http.status_code": isApiError(err) ? err.status : undefined,
         }),
       );
       throw err;
