@@ -330,7 +330,6 @@ mediaRouter.get(
     const sourceErrors: SourcePlaybackError[] = [];
     const sources = listMediaSources({
       enabledOnly: true,
-      providerAccountId: session.providerAccountId,
     }).flatMap((source) => {
       const provider = getProvider(source.providerId);
       if (!provider) {
@@ -390,8 +389,14 @@ mediaRouter.get(
       ),
       ...logDurationFields(startedAt),
       "session.id": session.id,
-      "provider.id": session.providerId,
-      "provider.account.id": session.providerAccountId,
+      "session.provider.id": session.providerId,
+      "session.provider.account.id": session.providerAccountId,
+      "source.provider.ids": [
+        ...new Set(sources.map(({ source }) => source.providerId)),
+      ],
+      "provider.account.count": new Set(
+        sources.map(({ source }) => source.providerAccountId),
+      ).size,
       "source.count": sources.length,
       "viewer.count": new Set(entries.map((entry) => entry.viewer.id)).size,
       "playback.item.count": entries.length,

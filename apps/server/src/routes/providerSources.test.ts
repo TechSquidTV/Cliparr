@@ -323,7 +323,7 @@ void test("logs into Jellyfin with credentials and stores a remembered provider 
   });
 });
 
-void test("updates sources with account isolation and preserves Plex manual URL mode", async () => {
+void test("updates sources across connected accounts and preserves Plex manual URL mode", async () => {
   await withTestApp(async (baseUrl, fetchLocal) => {
     const account = upsertProviderAccountByAccessToken({
       providerId: "plex",
@@ -335,8 +335,14 @@ void test("updates sources with account isolation and preserves Plex manual URL 
       label: "Other Plex Account",
       accessToken: "other-token",
     });
+    const jellyfinAccount = upsertProviderAccountByAccessToken({
+      providerId: "jellyfin",
+      label: "Jellyfin Account",
+      accessToken: "jellyfin-user-token",
+    });
     assert(account);
     assert(otherAccount);
+    assert(jellyfinAccount);
 
     const source = upsertMediaSource({
       providerId: "plex",
@@ -359,8 +365,16 @@ void test("updates sources with account isolation and preserves Plex manual URL 
       name: "Other Plex",
       baseUrl: "http://other.example:32400",
     });
+    const jellyfinSource = upsertMediaSource({
+      providerId: "jellyfin",
+      providerAccountId: jellyfinAccount.id,
+      externalId: "jellyfin-server-1",
+      name: "Jelly Lab",
+      baseUrl: "http://jelly.example:8096",
+    });
     assert(source);
     assert(otherSource);
+    assert(jellyfinSource);
 
     const session = createProviderSession({
       providerId: "plex",
@@ -369,15 +383,20 @@ void test("updates sources with account isolation and preserves Plex manual URL 
     });
     const sessionCookie = `${getSessionCookieName()}=${session.id}`;
 
-    const isolatedResponse = await fetchLocal(
-      `${baseUrl}/api/sources/${otherSource.id}`,
+    const crossAccountResponse = await fetchLocal(
+      `${baseUrl}/api/sources/${jellyfinSource.id}`,
       {
         headers: {
           cookie: sessionCookie,
         },
       },
     );
-    assert.equal(isolatedResponse.status, 404);
+    assert.equal(crossAccountResponse.status, 200);
+    const crossAccountBody = (await crossAccountResponse.json()) as {
+      source?: { id?: string; providerId?: string };
+    };
+    assert.equal(crossAccountBody.source?.id, jellyfinSource.id);
+    assert.equal(crossAccountBody.source?.providerId, "jellyfin");
 
     const rejectedPatchResponse = await fetchLocal(
       `${baseUrl}/api/sources/${source.id}`,
@@ -435,8 +454,8 @@ void test("updates sources with account isolation and preserves Plex manual URL 
       sources?: Array<{ id: string }>;
     };
     assert.deepEqual(
-      listed.sources?.map((item) => item.id),
-      [source.id],
+      listed.sources?.map((item) => item.id).sort(),
+      [jellyfinSource.id, otherSource.id, source.id].sort(),
     );
   });
 });
