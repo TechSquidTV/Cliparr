@@ -10,6 +10,7 @@ import type {
   CanvasSink,
   Input,
   InputTrack,
+  InputVideoTrack,
   WrappedAudioBuffer,
   WrappedCanvas,
 } from "mediabunny";
@@ -61,6 +62,10 @@ import {
 } from "@/components/editor/useEditorPlaybackWarmup";
 import { resolvePreviewPlaybackPlan } from "@/components/editor/editorPlaybackPlan";
 import { resetPlaybackReadyRangeWarmState } from "@/components/editor/editorPlaybackWarmupRange";
+import {
+  DEFAULT_EDITOR_FRAME_STEP_SECONDS,
+  frameStepSecondsFromFrameRate,
+} from "@/components/editor/editorShortcutCommands";
 import { getFrontendLogger, warnWithError } from "@/logging";
 
 export type { PlaybackFallbackInfo } from "@/components/editor/editorPlaybackSources";
@@ -191,6 +196,22 @@ async function ensurePlaybackCodecs() {
   await ensureMediabunnyCodecs();
 }
 
+async function detectFrameStepSeconds(
+  sourceVideoTrack: InputVideoTrack | null,
+  isLivePlayback: boolean,
+) {
+  if (!sourceVideoTrack) {
+    return DEFAULT_EDITOR_FRAME_STEP_SECONDS;
+  }
+
+  const stats = await sourceVideoTrack.computePacketStats(
+    120,
+    isLivePlayback ? { skipLiveWait: true } : undefined,
+  );
+
+  return frameStepSecondsFromFrameRate(stats.averagePacketRate);
+}
+
 export function useEditorPlayback({
   hlsSource,
   directSource,
@@ -229,6 +250,9 @@ export function useEditorPlayback({
     useState<VideoDimensions | null>(null);
   const [previewVideoDimensions, setPreviewVideoDimensions] =
     useState<VideoDimensions | null>(null);
+  const [frameStepSeconds, setFrameStepSeconds] = useState(
+    DEFAULT_EDITOR_FRAME_STEP_SECONDS,
+  );
   const [playbackReadyRange, setPlaybackReadyRange] =
     useState<PlaybackReadyRange | null>(null);
   const playbackLogger = useMemo(
@@ -866,6 +890,7 @@ export function useEditorPlayback({
       durationRef.current = resetDuration;
       setSourceVideoDimensions(null);
       setPreviewVideoDimensions(null);
+      setFrameStepSeconds(DEFAULT_EDITOR_FRAME_STEP_SECONDS);
       const resetCurrentTime = initialPlaybackTime(
         initialCurrentTime,
         resetDuration,
@@ -1100,9 +1125,30 @@ export function useEditorPlayback({
             setCurrentTime(nextCurrentTime);
             playbackTimeAtStartRef.current = nextCurrentTime;
 
-            const sourceDimensions = sourceVideoTrack
-              ? await getVideoTrackDimensions(sourceVideoTrack)
-              : null;
+            const [sourceDimensions, detectedFrameStepSeconds] =
+              await Promise.all([
+                sourceVideoTrack
+                  ? getVideoTrackDimensions(sourceVideoTrack)
+                  : Promise.resolve(null),
+                detectFrameStepSeconds(sourceVideoTrack, isLivePlayback).catch(
+                  (err: unknown) => {
+                    warnWithError(
+                      playbackLogger,
+                      err,
+                      "Could not detect editor playback frame rate.",
+                      {
+                        ...logEventFields(
+                          "editor.playback.frame_rate_detect",
+                          "failure",
+                        ),
+                        ...logErrorFields(err),
+                        "playback.source.label": playbackSource.label,
+                      },
+                    );
+                    return DEFAULT_EDITOR_FRAME_STEP_SECONDS;
+                  },
+                ),
+              ]);
             const previewDimensions =
               sourceDimensions ?? staticVideoFrame?.dimensions ?? null;
             const audioTrackSampleRate = previewAudioTrack
@@ -1112,6 +1158,7 @@ export function useEditorPlayback({
             if (sourceDimensions) {
               setSourceVideoDimensions(sourceDimensions);
             }
+            setFrameStepSeconds(detectedFrameStepSeconds);
 
             if (previewDimensions) {
               setPreviewVideoDimensions(previewDimensions);
@@ -1274,6 +1321,7 @@ export function useEditorPlayback({
     hlsFallbackInfo,
     sourceVideoDimensions,
     previewVideoDimensions,
+    frameStepSeconds,
     playbackReadyRange,
     volume,
     muted,

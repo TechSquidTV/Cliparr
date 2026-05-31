@@ -103,6 +103,7 @@ export default function EditorScreen({ session, onBack }: Props) {
     hlsFallbackInfo,
     sourceVideoDimensions,
     previewVideoDimensions,
+    frameStepSeconds,
     playbackReadyRange,
     volume,
     muted,
@@ -296,6 +297,20 @@ export default function EditorScreen({ session, onBack }: Props) {
     },
     [currentTime, duration, seekToTime],
   );
+  const stepFrameByShortcut = useCallback(
+    (direction: -1 | 1) => {
+      if (!duration || duration <= 0) return;
+
+      const nextTime = resolveRelativeSeekTime({
+        currentTime,
+        deltaSeconds: frameStepSeconds * direction,
+        duration,
+      });
+      pausePlayback();
+      void seekToTime(nextTime);
+    },
+    [currentTime, duration, frameStepSeconds, pausePlayback, seekToTime],
+  );
   const {
     timelineRef,
     timelineWheelRegionRef,
@@ -369,6 +384,8 @@ export default function EditorScreen({ session, onBack }: Props) {
     seekForwardLarge: () => seekByShortcut(EDITOR_LARGE_SEEK_SECONDS),
     seekBackwardSmall: () => seekByShortcut(-EDITOR_SMALL_SEEK_SECONDS),
     seekForwardSmall: () => seekByShortcut(EDITOR_SMALL_SEEK_SECONDS),
+    stepFrameBackward: () => stepFrameByShortcut(-1),
+    stepFrameForward: () => stepFrameByShortcut(1),
     zoomOut: () => {
       if (canZoomOut) handleTimelineZoomOut();
     },
