@@ -4,9 +4,11 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   isIosLikeDevice,
+  promptForPwaInstall,
   readPwaInstallDismissed,
   resolveMobilePwaInstallMode,
   writePwaInstallDismissed,
+  type BeforeInstallPromptEvent,
   type PwaInstallEnvironment,
 } from "@/lib/pwa";
 
@@ -128,4 +130,30 @@ void test("persists PWA install dismissal state", () => {
   assert.equal(readPwaInstallDismissed(storage), true);
   writePwaInstallDismissed(false, storage);
   assert.equal(readPwaInstallDismissed(storage), false);
+});
+
+void test("returns the PWA install user choice after prompting", async () => {
+  let prompted = false;
+  const choice = { outcome: "accepted" as const, platform: "web" };
+  const installPrompt = {
+    userChoice: Promise.resolve(choice),
+    async prompt() {
+      prompted = true;
+    },
+  } as BeforeInstallPromptEvent;
+
+  assert.equal(await promptForPwaInstall(installPrompt), choice);
+  assert.equal(prompted, true);
+});
+
+void test("returns null when a PWA install prompt has no user choice", async () => {
+  let prompted = false;
+  const installPrompt = {
+    async prompt() {
+      prompted = true;
+    },
+  } as BeforeInstallPromptEvent;
+
+  assert.equal(await promptForPwaInstall(installPrompt), null);
+  assert.equal(prompted, true);
 });

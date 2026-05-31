@@ -190,7 +190,12 @@ export function MobilePwaInstallNudge({ className }: { className?: string }) {
     try {
       const result = await promptForPwaInstall(installPrompt);
       setInstallPrompt(null);
-      if (result?.outcome !== "accepted") {
+      if (!result) {
+        refreshMode(null);
+        return;
+      }
+
+      if (result.outcome !== "accepted") {
         writePwaInstallDismissed(true);
         setDismissed(true);
         refreshMode(null, true);

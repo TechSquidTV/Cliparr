@@ -18,10 +18,7 @@ export interface BeforeInstallPromptEvent extends Event {
     outcome: "accepted" | "dismissed";
     platform: string;
   }>;
-  prompt: () => Promise<{
-    outcome: "accepted" | "dismissed";
-    platform: string;
-  }>;
+  prompt: () => Promise<void>;
 }
 
 export interface PwaInstallEnvironment {
@@ -105,19 +102,23 @@ export function startPwaInstallPromptHandling() {
 }
 
 export async function promptForPwaInstall(
-  installPrompt = deferredInstallPrompt,
+  installPrompt: BeforeInstallPromptEvent | null = deferredInstallPrompt,
 ) {
   if (!installPrompt) {
     return null;
   }
 
-  const result = await installPrompt.prompt();
-  if (installPrompt === deferredInstallPrompt) {
-    deferredInstallPrompt = null;
-    notifyInstallPromptListeners();
+  try {
+    await installPrompt.prompt();
+    return (await installPrompt.userChoice?.catch(() => null)) ?? null;
+  } catch {
+    return null;
+  } finally {
+    if (installPrompt === deferredInstallPrompt) {
+      deferredInstallPrompt = null;
+      notifyInstallPromptListeners();
+    }
   }
-
-  return result;
 }
 
 export function readPwaInstallDismissed(storage = safeLocalStorage()) {
