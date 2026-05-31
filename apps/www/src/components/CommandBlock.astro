@@ -281,34 +281,12 @@ const groupId = `command-${hashCommandBlockId(
     }
   }
 
-  function writeClipboardTextFallback(value = "") {
-    const textarea = document.createElement("textarea");
-    textarea.value = value;
-    textarea.setAttribute("readonly", "");
-    textarea.style.position = "fixed";
-    textarea.style.top = "0";
-    textarea.style.left = "-9999px";
-    document.body.append(textarea);
-    textarea.select();
-
-    try {
-      return document.execCommand("copy");
-    } finally {
-      textarea.remove();
-    }
-  }
-
   async function writeClipboardText(value = "") {
-    if (writeClipboardTextFallback(value)) {
-      return;
-    }
-
     if (navigator.clipboard) {
       await navigator.clipboard.writeText(value);
-      return;
+    } else {
+      throw new Error("Clipboard API not available.");
     }
-
-    throw new Error("Copy command was rejected.");
   }
 
   async function copyCommand(button = document.createElement("button")) {
