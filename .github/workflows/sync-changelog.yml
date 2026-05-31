@@ -1,0 +1,22 @@
+name: Sync Changelog
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  sync:
+    name: Sync
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger Cloudflare Pages deploy
+        env:
+          CLOUDFLARE_PAGES_DEPLOY_HOOK_URL: ${{ secrets.CLOUDFLARE_PAGES_DEPLOY_HOOK_URL }}
+        run: |
+          if [[ -z "${CLOUDFLARE_PAGES_DEPLOY_HOOK_URL}" ]]; then
+            echo "Error: CLOUDFLARE_PAGES_DEPLOY_HOOK_URL is not set." >&2
+            exit 1
+          fi
+          curl --fail --silent --show-error --request POST "${CLOUDFLARE_PAGES_DEPLOY_HOOK_URL}"

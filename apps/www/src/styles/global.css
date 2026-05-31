@@ -250,6 +250,13 @@
     @apply font-medium text-foreground underline decoration-border transition-colors hover:decoration-primary;
   }
 
+  .release-notes img,
+  .release-notes video {
+    @apply mt-4 rounded-lg border border-border bg-card shadow-sm;
+    max-width: 100%;
+    height: auto;
+  }
+
   .release-notes :not(pre) > code {
     @apply rounded-sm border border-border bg-muted px-1.5 py-0.5 text-[0.88em] text-foreground;
   }
