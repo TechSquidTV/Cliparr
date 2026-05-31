@@ -1,13 +1,53 @@
 ---
 import { Code } from "astro:components";
+import type {
+  CommandExampleLanguage,
+  CommandExampleVariant,
+} from "@/data/product";
 
 interface Props {
-  code: string;
-  lang?: "bash" | "yaml";
+  code?: string;
+  lang?: CommandExampleLanguage;
   label?: string;
+  variants?: readonly CommandExampleVariant[];
 }
 
-const { code, label, lang = "bash" } = Astro.props;
+const { code, label, lang = "bash", variants } = Astro.props;
+
+const commandVariants =
+  variants ??
+  (code
+    ? ([
+        {
+          code,
+          label: "Command",
+          lang,
+        },
+      ] satisfies readonly CommandExampleVariant[])
+    : []);
+
+if (commandVariants.length === 0) {
+  throw new Error("CommandBlock requires either code or variants.");
+}
+
+const hasTabs = commandVariants.length > 1;
+
+function hashCommandBlockId(value: string) {
+  let hash = 0;
+
+  for (let index = 0; index < value.length; index += 1) {
+    hash = (hash << 5) - hash + value.charCodeAt(index);
+    hash |= 0;
+  }
+
+  return Math.abs(hash).toString(36);
+}
+
+const groupId = `command-${hashCommandBlockId(
+  `${label ?? ""}:${commandVariants
+    .map((variant) => `${variant.label}:${variant.lang}:${variant.code}`)
+    .join("|")}`,
+)}`;
 ---
 
 <figure
@@ -20,7 +60,85 @@ const { code, label, lang = "bash" } = Astro.props;
       </figcaption>
     )
   }
-  <div class="command-code">
-    <Code code={code} lang={lang} theme="github-dark" />
-  </div>
+  {
+    hasTabs ? (
+      <div
+        class="command-tabs"
+        data-command-tabs
+        style={`--tab-count: ${commandVariants.length}`}
+      >
+        {commandVariants.map((variant, index) => {
+          const optionId = `${groupId}-${index}`;
+
+          return (
+            <>
+              <input
+                checked={index === 0}
+                class="command-tab-input"
+                data-command-shell={variant.lang}
+                id={optionId}
+                name={groupId}
+                type="radio"
+              />
+              <label
+                class="command-tab-label"
+                for={optionId}
+                style={`grid-column: ${index + 1}`}
+              >
+                {variant.label}
+              </label>
+              <div class="command-panel">
+                <div class="command-code">
+                  <Code
+                    code={variant.code}
+                    lang={variant.lang}
+                    theme="github-dark"
+                  />
+                </div>
+              </div>
+            </>
+          );
+        })}
+      </div>
+    ) : (
+      <div class="command-code">
+        <Code
+          code={commandVariants[0].code}
+          lang={commandVariants[0].lang}
+          theme="github-dark"
+        />
+      </div>
+    )
+  }
 </figure>
+
+<script>
+  function preferredCommandShell() {
+    const nav = window.navigator;
+    const userAgentData =
+      "userAgentData" in nav
+        ? (nav.userAgentData as { platform?: string })
+        : undefined;
+    const platform = userAgentData?.platform ?? nav.platform ?? "";
+    const userAgent = nav.userAgent ?? "";
+
+    return /win/i.test(`${platform} ${userAgent}`) ? "powershell" : "bash";
+  }
+
+  function selectPreferredCommandTabs() {
+    const preferredShell = preferredCommandShell();
+
+    for (const tabs of document.querySelectorAll("[data-command-tabs]")) {
+      const input = tabs.querySelector<HTMLInputElement>(
+        `[data-command-shell="${preferredShell}"]`,
+      );
+
+      if (input) {
+        input.checked = true;
+      }
+    }
+  }
+
+  selectPreferredCommandTabs();
+  document.addEventListener("astro:page-load", selectPreferredCommandTabs);
+</script>

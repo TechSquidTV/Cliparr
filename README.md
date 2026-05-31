@@ -36,6 +36,8 @@
 
 The fastest way to get Cliparr running is via the GitHub Container Registry.
 
+**macOS / Linux**
+
 ```bash
 docker run -d \
   --name cliparr \
@@ -44,6 +46,19 @@ docker run -d \
   -v cliparr-data:/data \
   ghcr.io/techsquidtv/cliparr:latest
 ```
+
+**PowerShell**
+
+```powershell
+docker run -d `
+  --name cliparr `
+  -p 7171:7171 `
+  -e APP_KEY="your-32-char-stable-random-secret" `
+  -v cliparr-data:/data `
+  ghcr.io/techsquidtv/cliparr:latest
+```
+
+On Windows, run this from Docker Desktop or another Docker engine using Linux containers. Cliparr publishes Linux container images for linux/amd64 and linux/arm64.
 
 > [!IMPORTANT]
 > **Stable APP_KEY required**: Cliparr uses APP_KEY to encrypt provider credentials at rest. Use a stable random secret at least 32 characters long. If you change it later, you will need to re-authenticate your media servers.

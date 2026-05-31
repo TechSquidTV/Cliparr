@@ -5,7 +5,7 @@ import FeatureGrid from "@/components/FeatureGrid.astro";
 import { Picture } from "astro:assets";
 import screenshotImage from "@/assets/screenshot.webp";
 import {
-  dockerRunCommand,
+  dockerRunCommandVariants,
   productIntro,
   providers,
   site,
@@ -124,7 +124,7 @@ import {
           clips whenever something worth saving is playing.
         </p>
       </div>
-      <CommandBlock code={dockerRunCommand} label="Docker" lang="bash" />
+      <CommandBlock variants={dockerRunCommandVariants} label="Docker" />
     </div>
   </section>
 

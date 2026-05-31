@@ -7,11 +7,17 @@ order: 10
 
 import Callout from "@/components/Callout.astro";
 import CommandBlock from "@/components/CommandBlock.astro";
-import { dockerComposeExample, dockerRunCommand } from "@/data/product";
+import {
+  dockerComposeExample,
+  dockerLinuxContainerNote,
+  dockerRunCommandVariants,
+} from "@/data/product";
 
 Run Cliparr in Docker, then open the app and connect Plex, Jellyfin, or a local video. Mount `/data` before connecting media servers so settings and encrypted credentials survive updates.
 
-<CommandBlock code={dockerRunCommand} label="Docker quick start" lang="bash" />
+<CommandBlock variants={dockerRunCommandVariants} label="Docker quick start" />
+
+{dockerLinuxContainerNote}
 
 Open `http://localhost:7171`, connect Plex or Jellyfin, or choose **Open Video** for a local file.
 

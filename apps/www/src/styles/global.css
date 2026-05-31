@@ -267,6 +267,69 @@
     line-height: 1.65;
   }
 
+  .command-tabs {
+    display: grid;
+    grid-template-columns: repeat(var(--tab-count), max-content) minmax(0, 1fr);
+    background: black;
+  }
+
+  .command-tab-input {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  .command-tab-label {
+    grid-row: 1;
+    border-right: 1px solid rgb(255 255 255 / 0.1);
+    color: rgb(255 255 255 / 0.58);
+    cursor: pointer;
+    font-size: 0.75rem;
+    font-weight: 500;
+    line-height: 1rem;
+    padding: 0.625rem 1rem;
+    transition:
+      background-color 160ms ease,
+      color 160ms ease;
+    user-select: none;
+  }
+
+  .command-tab-label:hover,
+  .command-tab-input:focus-visible + .command-tab-label {
+    background: rgb(255 255 255 / 0.08);
+    color: white;
+  }
+
+  .command-tab-input:checked + .command-tab-label {
+    background: rgb(255 255 255 / 0.1);
+    color: white;
+  }
+
+  .command-panel {
+    display: none;
+    grid-column: 1 / -1;
+    grid-row: 2;
+    min-width: 0;
+    border-top: 1px solid rgb(255 255 255 / 0.1);
+  }
+
+  .command-tab-input:checked + .command-tab-label + .command-panel {
+    display: block;
+  }
+
+  @media (max-width: 36rem) {
+    .command-tabs {
+      grid-template-columns: repeat(var(--tab-count), minmax(0, 1fr));
+    }
+
+    .command-tab-label {
+      padding-inline: 0.75rem;
+      text-align: center;
+    }
+  }
+
   .prose-docs > svg[id^="mermaid-"] {
     @apply mt-5 h-auto w-full rounded-lg border border-border bg-card p-4 shadow-2xl shadow-black/20 sm:p-6;
     display: block;

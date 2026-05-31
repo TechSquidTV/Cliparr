@@ -5,7 +5,12 @@ section: install-operate
 order: 30
 ---
 
-import Callout from "../../components/Callout.astro";
+import Callout from "@/components/Callout.astro";
+import CommandBlock from "@/components/CommandBlock.astro";
+import {
+  tailscaleDockerRunCommandVariants,
+  wireguardDockerRunCommandVariants,
+} from "@/data/product";
 
 Cliparr can remember provider connections, but it does not have a full user system with app-level accounts, roles, or permissions. Treat access to the Cliparr web app as access to the connected sources and active media sessions.
 
@@ -143,14 +148,10 @@ For many home setups, the safest access control is no public Cliparr endpoint at
 
 With Tailscale, bind Cliparr to localhost and share it only inside your tailnet:
 
-```bash
-docker run -d \
-  --name cliparr \
-  -p 127.0.0.1:7171:7171 \
-  -e APP_KEY="your-32-char-stable-random-secret" \
-  -v cliparr-data:/data \
-  ghcr.io/techsquidtv/cliparr:latest
-```
+<CommandBlock
+  variants={tailscaleDockerRunCommandVariants}
+  label="Bind Cliparr to localhost"
+/>
 
 Then run Tailscale Serve on the same host:
 
@@ -164,14 +165,10 @@ With WireGuard, keep the same idea: do not publish Cliparr to the public interfa
 
 For example, if the Cliparr host has WireGuard address `10.8.0.1`, bind Docker to that address instead of every interface:
 
-```bash
-docker run -d \
-  --name cliparr \
-  -p 10.8.0.1:7171:7171 \
-  -e APP_KEY="your-32-char-stable-random-secret" \
-  -v cliparr-data:/data \
-  ghcr.io/techsquidtv/cliparr:latest
-```
+<CommandBlock
+  variants={wireguardDockerRunCommandVariants}
+  label="Bind Cliparr to WireGuard"
+/>
 
 If you use Caddy inside the VPN, serve Cliparr on an internal name and restrict firewall access to VPN clients:
 
