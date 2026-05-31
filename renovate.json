@@ -1,6 +1,10 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "extends": ["config:recommended", ":dependencyDashboard"],
+  "extends": [
+    "config:recommended",
+    ":dependencyDashboard",
+    "security:minimumReleaseAgeNpm"
+  ],
   "timezone": "America/New_York",
   "configMigration": true,
   "semanticCommits": "enabled",
