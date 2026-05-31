@@ -262,7 +262,7 @@
     margin: 0;
     overflow-x: auto;
     background: black !important;
-    padding: 1rem;
+    padding: 2.75rem 1rem 1rem;
     font-size: 0.875rem;
     line-height: 1.65;
   }
@@ -312,10 +312,68 @@
     grid-column: 1 / -1;
     grid-row: 2;
     min-width: 0;
+    position: relative;
     border-top: 1px solid rgb(255 255 255 / 0.1);
   }
 
   .command-tab-input:checked + .command-tab-label + .command-panel {
+    display: block;
+  }
+
+  .command-panel-single {
+    position: relative;
+  }
+
+  .command-copy-button {
+    position: absolute;
+    top: 0.625rem;
+    right: 0.625rem;
+    z-index: 1;
+    display: inline-grid;
+    width: 2.25rem;
+    height: 2.25rem;
+    place-items: center;
+    border: 1px solid rgb(255 255 255 / 0.14);
+    border-radius: 0.375rem;
+    background: rgb(255 255 255 / 0.08);
+    color: rgb(255 255 255 / 0.72);
+    cursor: pointer;
+    padding: 0;
+    transition:
+      background-color 160ms ease,
+      border-color 160ms ease,
+      color 160ms ease;
+  }
+
+  .command-copy-button:hover,
+  .command-copy-button:focus-visible,
+  .command-copy-button[data-copy-state="copied"] {
+    background: rgb(255 255 255 / 0.14);
+    border-color: rgb(255 255 255 / 0.22);
+    color: white;
+  }
+
+  .command-copy-button[data-copy-state="failed"] {
+    background: color-mix(in oklch, var(--destructive) 28%, black);
+    border-color: color-mix(in oklch, var(--destructive) 68%, white);
+    color: white;
+  }
+
+  .command-copy-icon {
+    grid-area: 1 / 1;
+    width: 1rem;
+    height: 1rem;
+  }
+
+  .command-copy-icon-copied,
+  .command-copy-icon-failed,
+  .command-copy-button[data-copy-state="copied"] .command-copy-icon-copy,
+  .command-copy-button[data-copy-state="failed"] .command-copy-icon-copy {
+    display: none;
+  }
+
+  .command-copy-button[data-copy-state="copied"] .command-copy-icon-copied,
+  .command-copy-button[data-copy-state="failed"] .command-copy-icon-failed {
     display: block;
   }
 
