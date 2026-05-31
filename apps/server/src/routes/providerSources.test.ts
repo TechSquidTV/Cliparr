@@ -60,13 +60,22 @@ async function withTestApp<T>(
   const originalFetch = globalThis.fetch;
 
   try {
-    await new Promise((resolve) => server.once("listening", resolve));
+    await new Promise((resolve) => {
+      server.once("listening", resolve);
+    });
     const address = server.address();
     assert(address && typeof address === "object");
     return await callback(`http://127.0.0.1:${address.port}`, originalFetch);
   } finally {
     await new Promise((resolve, reject) => {
-      server.close((err) => (err ? reject(err) : resolve(undefined)));
+      server.close((err) => {
+        if (err) {
+          reject(err);
+          return;
+        }
+
+        resolve(undefined);
+      });
     });
     globalThis.fetch = originalFetch;
     closeDatabase();

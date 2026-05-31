@@ -23,10 +23,17 @@ export default tseslint.config(
   js.configs.recommended,
   {
     rules: {
+      complexity: ["error", { max: 70 }],
       curly: ["error", "all"],
+      "default-case-last": "error",
       eqeqeq: ["error", "always"],
+      "max-depth": ["error", 5],
+      "max-params": ["error", 7],
       "no-else-return": ["error", { allowElseIf: false }],
+      "no-eval": "error",
       "no-implicit-coercion": "error",
+      "no-implied-eval": "error",
+      "no-new-func": "error",
       "no-param-reassign": [
         "error",
         {
@@ -41,8 +48,12 @@ export default tseslint.config(
           props: true,
         },
       ],
+      "no-promise-executor-return": "error",
       "no-return-assign": ["error", "always"],
       "no-sequences": "error",
+      "no-template-curly-in-string": "error",
+      "no-unmodified-loop-condition": "error",
+      "no-unreachable-loop": "error",
       "no-unneeded-ternary": "error",
       "no-useless-concat": "error",
       "no-var": "error",
@@ -55,6 +66,18 @@ export default tseslint.config(
               group: ["./*", "../*"],
               message:
                 "Use the package alias instead of a relative import path.",
+            },
+            {
+              group: [
+                "@cliparr/frontend",
+                "@cliparr/frontend/*",
+                "@cliparr/server",
+                "@cliparr/server/*",
+                "apps/frontend/*",
+                "apps/server/*",
+              ],
+              message:
+                "Do not import app internals across workspace boundaries.",
             },
           ],
         },
@@ -117,6 +140,7 @@ export default tseslint.config(
           ignoreVoid: true,
         },
       ],
+      "@typescript-eslint/no-for-in-array": "error",
       "@typescript-eslint/no-invalid-void-type": "off",
       "@typescript-eslint/no-misused-promises": [
         "error",
@@ -132,7 +156,13 @@ export default tseslint.config(
       "@typescript-eslint/no-unnecessary-type-conversion": "off",
       "@typescript-eslint/no-unnecessary-boolean-literal-compare": "error",
       "@typescript-eslint/only-throw-error": "error",
+      "@typescript-eslint/prefer-includes": "error",
       "@typescript-eslint/prefer-promise-reject-errors": "error",
+      "@typescript-eslint/prefer-string-starts-ends-with": "error",
+      "@typescript-eslint/require-array-sort-compare": [
+        "error",
+        { ignoreStringArrays: true },
+      ],
       "@typescript-eslint/require-await": "off",
       "@typescript-eslint/restrict-template-expressions": [
         "error",
@@ -141,6 +171,7 @@ export default tseslint.config(
           allowNumber: true,
         },
       ],
+      "@typescript-eslint/switch-exhaustiveness-check": "error",
       "@typescript-eslint/no-unused-vars": [
         "error",
         {
