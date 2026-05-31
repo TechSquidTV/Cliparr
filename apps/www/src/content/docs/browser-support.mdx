@@ -1,0 +1,50 @@
+---
+title: Browser support
+description: Which browsers work best for editing, export, and mobile installs.
+section: install-operate
+order: 35
+---
+
+Cliparr runs entirely in your browser. This means its speed, video playback, and export capabilities depend on the features your browser allows.
+
+For the best experience, use a **modern, stable browser** and always access Cliparr over **HTTPS**. (Local `localhost` access also works for testing).
+
+| Browser                | Experience   | Key Note                                                      |
+| :--------------------- | :----------- | :------------------------------------------------------------ |
+| **Chrome / Edge**      | 🟢 **Best**  | Most mature support for in-browser video processing.          |
+| **Firefox**            | 🟡 **Good**  | Reliable and stable for most editing and export tasks.        |
+| **Safari (macOS/iOS)** | 🟠 **Mixed** | Fully supported, but sensitive to high-bitrate video formats. |
+
+## Safari & iOS Considerations
+
+### Video Processing (WebCodecs)
+
+Cliparr uses a technology called WebCodecs to process your clips directly in the browser.
+
+- **Chromium/Firefox:** Support is very stable.
+- **Safari:** While modern Safari supports these features, it can be more sensitive to specific video formats. If an export fails in Safari, try Chrome or Edge on the same machine.
+
+### Installing as an App (PWA)
+
+- **Android:** Chrome and Edge can install Cliparr with a single tap using a native prompt.
+- **iOS/iPadOS:** Apple requires you to use the **Share** button and then select **Add to Home Screen**. Cliparr will show you a small guide on how to do this when it detects you are on an iPhone or iPad.
+- **Desktop Safari:** You can install Cliparr as a "Web App" by going to `File > Add to Dock`.
+
+## Technical Feature Map
+
+Cliparr uses feature detection to decide what to show you. If a feature isn't supported by your browser, Cliparr will either provide a fallback or hide the option to prevent errors.
+
+| Feature              | How Cliparr uses it                                     | Safari Status                                                              |
+| :------------------- | :------------------------------------------------------ | :------------------------------------------------------------------------- |
+| **Video Processing** | Powering the editor and exports via WebCodecs.          | Supported in 16.4+, but occasionally buggy with high-bitrate source files. |
+| **App Install**      | Making Cliparr feel like a native app on your phone.    | Requires manual "Add to Home Screen" on iOS.                               |
+| **Service Workers**  | Making the app load instantly by caching files.         | Fully supported since Safari 11.1.                                         |
+| **WebM Video**       | Serving smaller, faster video previews on the homepage. | Supported in Safari 14.1+ on macOS, and iOS 17.4+.                         |
+
+## Troubleshooting
+
+If the editor won't load or exports keep failing:
+
+1. **Update your browser:** Ensure you are on the latest stable version.
+2. **Check your connection:** Browser media features often require a "Secure Context" (HTTPS).
+3. **Try Chrome/Edge:** If you are having trouble in Safari or Firefox, testing in a Chromium-based browser is the best way to determine if the issue is browser-specific.

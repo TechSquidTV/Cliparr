@@ -1,0 +1,4 @@
+interface:
+  display_name: "Cliparr Website Assets Workflow"
+  short_description: "Updating homepage marketing videos and screenshots"
+  default_prompt: "Use $cliparr-www-assets to update or optimize homepage videos and images."

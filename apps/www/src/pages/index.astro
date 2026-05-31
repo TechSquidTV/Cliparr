@@ -3,6 +3,7 @@ import BaseLayout from "@/components/BaseLayout.astro";
 import CommandBlock from "@/components/CommandBlock.astro";
 import FeatureGrid from "@/components/FeatureGrid.astro";
 import { Picture } from "astro:assets";
+import mobilePreviewImage from "@/assets/mobile-pwa-preview.webp";
 import screenshotImage from "@/assets/screenshot.webp";
 import {
   dockerRunCommandVariants,
@@ -106,6 +107,86 @@ import {
       </div>
       <div class="mt-8">
         <FeatureGrid />
+      </div>
+    </div>
+  </section>
+
+  <section class="border-y border-border bg-muted/40 py-16 sm:py-20">
+    <div
+      class="container-page grid gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(20rem,28rem)] lg:items-center"
+    >
+      <div class="max-w-2xl">
+        <p class="section-eyebrow">Mobile PWA</p>
+        <h2 class="mt-5 text-3xl font-semibold sm:text-5xl">
+          A mobile workspace that feels installed.
+        </h2>
+        <p class="mt-5 text-base leading-7 text-muted-foreground">
+          Open Cliparr from a phone, install it to your home screen, and keep a
+          focused clipping workspace close to the media you are already
+          watching.
+        </p>
+        <div class="mt-8 grid gap-5 sm:grid-cols-3">
+          <div class="border-t border-border pt-4">
+            <h3 class="text-base font-semibold">Home screen ready</h3>
+            <p class="mt-2 text-sm leading-6 text-muted-foreground">
+              Manifest icons, shortcuts, and standalone display support make the
+              app feel at home outside the browser chrome.
+            </p>
+          </div>
+          <div class="border-t border-border pt-4">
+            <h3 class="text-base font-semibold">Touch-first controls</h3>
+            <p class="mt-2 text-sm leading-6 text-muted-foreground">
+              Source selection, playback, and export flows stay reachable on a
+              small screen without losing the desktop workflow.
+            </p>
+          </div>
+          <div class="border-t border-border pt-4">
+            <h3 class="text-base font-semibold">Ready when you come back</h3>
+            <p class="mt-2 text-sm leading-6 text-muted-foreground">
+              Cliparr keeps the main interface quick to reopen, then refreshes
+              your media sessions and source details live.
+            </p>
+          </div>
+        </div>
+        <a
+          href="/docs/browser-support"
+          class="focus-ring mt-8 inline-flex min-h-11 items-center justify-center rounded-full border border-border bg-card px-5 text-sm font-semibold text-foreground transition-colors hover:bg-accent"
+        >
+          Browser support
+        </a>
+      </div>
+
+      <div class="flex justify-center lg:justify-end">
+        <div class="mobile-phone-preview">
+          <div class="editor-preview mobile-phone-screen" data-editor-preview>
+            <Picture
+              src={mobilePreviewImage}
+              alt="Cliparr running in a narrow mobile layout with a dashboard, source controls, and playback actions."
+              formats={["avif", "webp"]}
+              fallbackFormat="jpg"
+              width={402}
+              height={874}
+              widths={[201, 302, 402]}
+              sizes="(min-width: 64rem) 22rem, min(78vw, 22rem)"
+              quality={72}
+              loading="lazy"
+              decoding="async"
+              class="h-full w-full object-cover"
+            />
+            <video
+              class="editor-preview-video absolute inset-0 h-full w-full object-cover"
+              muted
+              loop
+              playsinline
+              preload="none"
+              aria-hidden="true"
+              data-editor-preview-video
+            >
+              <source data-src="/mobile-pwa-preview.webm" type="video/webm" />
+              <source data-src="/mobile-pwa-preview.mp4" type="video/mp4" />
+            </video>
+          </div>
+        </div>
       </div>
     </div>
   </section>
