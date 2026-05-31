@@ -65,7 +65,7 @@ export const providers = [
 
 export const dockerRunCommand = `docker run -d \\
   --name cliparr \\
-  -p 3000:3000 \\
+  -p 7171:7171 \\
   -e APP_KEY="your-32-char-stable-random-secret" \\
   -v cliparr-data:/data \\
   ghcr.io/techsquidtv/cliparr:latest`;
@@ -75,7 +75,7 @@ export const dockerComposeExample = `services:
     image: ghcr.io/techsquidtv/cliparr:latest
     container_name: cliparr
     ports:
-      - "3000:3000"
+      - "7171:7171"
     environment:
       - APP_KEY=replace-this-with-a-32-character-secure-random-string
     volumes:
@@ -87,7 +87,7 @@ volumes:
 
 export const structuredConsoleLoggingCommand = `docker run -d \\
   --name cliparr \\
-  -p 3000:3000 \\
+  -p 7171:7171 \\
   -e APP_KEY="your-32-char-stable-random-secret" \\
   -e CLIPARR_LOG_FORMAT=json \\
   -v cliparr-data:/data \\
@@ -136,7 +136,7 @@ export const envVars = [
   {
     name: "PORT",
     description: "Internal port for the Express server.",
-    defaultValue: "3000",
+    defaultValue: "7171 prod / 3000 dev",
     required: false,
   },
   {

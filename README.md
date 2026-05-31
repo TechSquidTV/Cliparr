@@ -39,7 +39,7 @@ The fastest way to get Cliparr running is via the GitHub Container Registry.
 ```bash
 docker run -d \
   --name cliparr \
-  -p 3000:3000 \
+  -p 7171:7171 \
   -e APP_KEY="your-32-char-stable-random-secret" \
   -v cliparr-data:/data \
   ghcr.io/techsquidtv/cliparr:latest
@@ -69,7 +69,7 @@ services:
     image: ghcr.io/techsquidtv/cliparr:latest
     container_name: cliparr
     ports:
-      - "3000:3000"
+      - "7171:7171"
     environment:
       - APP_KEY=replace-this-with-a-32-character-secure-random-string
     volumes:
@@ -87,7 +87,7 @@ volumes:
 | Variable                               | Description                                                                                                                        | Default                  |
 | :------------------------------------- | :--------------------------------------------------------------------------------------------------------------------------------- | :----------------------- |
 | `APP_KEY`                              | Required secret for credential encryption. Must be at least 32 characters long.                                                    | `-`                      |
-| `PORT`                                 | Internal port for the Express server.                                                                                              | `3000`                   |
+| `PORT`                                 | Internal port for the Express server.                                                                                              | `7171 prod / 3000 dev`   |
 | `CLIPARR_DATA_DIR`                     | Directory for SQLite storage.                                                                                                      | `/data`                  |
 | `CLIPARR_LOG_LEVEL`                    | Server log level. Supports trace, debug, info, warning, error, and fatal. Defaults to debug in development and info in production. | `debug/info`             |
 | `CLIPARR_LOG_FORMAT`                   | Production server console log format. Development console logs are always JSON.                                                    | `json dev / pretty prod` |
