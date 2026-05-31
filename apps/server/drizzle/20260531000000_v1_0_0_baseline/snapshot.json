@@ -2,7 +2,7 @@
   "version": "7",
   "dialect": "sqlite",
   "id": "72cf1bff-c329-43f8-9122-c57650329b74",
-  "prevIds": ["5cb53d7c-208f-412f-8544-99f25f221859"],
+  "prevIds": ["00000000-0000-0000-0000-000000000000"],
   "ddl": [
     {
       "name": "media_sources",
