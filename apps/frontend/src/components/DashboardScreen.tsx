@@ -22,6 +22,7 @@ import {
   DashboardMobileMenu,
   GithubIcon,
 } from "@/components/DashboardMobileMenu";
+import { MobilePwaInstallNudge } from "@/components/MobilePwaInstallNudge";
 import {
   flattenDashboardPlaybackItems,
   formatViewerSessionCount,
@@ -369,6 +370,7 @@ export default function DashboardScreen({
               />
             </button>
           </div>
+          <MobilePwaInstallNudge />
           <div className="hidden flex-wrap items-center gap-3 sm:flex sm:justify-end">
             <button
               type="button"

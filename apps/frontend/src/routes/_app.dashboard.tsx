@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { flushSync } from "react-dom";
 import { useAuth } from "@/auth";
 import DashboardScreen from "@/components/DashboardScreen";
@@ -17,6 +17,22 @@ function DashboardRouteComponent() {
   const [transitionSessionId, setTransitionSessionId] = useState<string | null>(
     null,
   );
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("openVideo") !== "1") {
+      return;
+    }
+
+    setLocalVideoOpen(true);
+    params.delete("openVideo");
+
+    const nextSearch = params.toString();
+    const nextUrl = `${window.location.pathname}${
+      nextSearch ? `?${nextSearch}` : ""
+    }${window.location.hash}`;
+    window.history.replaceState(window.history.state, "", nextUrl);
+  }, []);
 
   return (
     <>
