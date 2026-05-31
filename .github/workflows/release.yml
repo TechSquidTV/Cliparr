@@ -3,15 +3,11 @@ name: Release
 on:
   workflow_dispatch:
     inputs:
-      channel:
-        description: Release channel
+      rc:
+        description: Create as Release Candidate (pre-release)
         required: true
-        default: stable
-        type: choice
-        options:
-          - stable
-          - rc
-          - beta
+        default: false
+        type: boolean
       dry_run:
         description: Plan, check, and generate notes without publishing
         required: true
@@ -64,8 +60,13 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          CHANNEL="stable"
+          if [[ "${{ inputs.rc }}" == "true" ]]; then
+            CHANNEL="rc"
+          fi
+
           node scripts/release/plan-release.mjs \
-            --channel "${{ inputs.channel }}" \
+            --channel "${CHANNEL}" \
             --target "${GITHUB_SHA}" \
             --image-name "${IMAGE_NAME}" \
             --github-output
