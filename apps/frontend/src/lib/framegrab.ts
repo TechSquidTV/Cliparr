@@ -116,6 +116,11 @@ export function encodeFramegrabCanvas(
           return;
         }
 
+        if (blob.type.toLowerCase() !== mimeType) {
+          reject(new Error(`Could not encode the frame image as ${mimeType}.`));
+          return;
+        }
+
         resolve(blob);
       },
       mimeType,
