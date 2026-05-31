@@ -38,7 +38,9 @@ function mapProviderAccount(row: ProviderAccountRow): ProviderAccount {
     providerId: row.providerId,
     label: row.label,
     accessToken:
-      row.accessToken != null ? decryptSecret(row.accessToken) : undefined,
+      row.accessToken !== null && row.accessToken !== undefined
+        ? decryptSecret(row.accessToken)
+        : undefined,
     metadata: row.metadata,
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
@@ -133,7 +135,8 @@ function getProviderAccountByAccessToken(
     .all()
     .find(
       (candidate) =>
-        candidate.accessToken != null &&
+        candidate.accessToken !== null &&
+        candidate.accessToken !== undefined &&
         decryptSecret(candidate.accessToken) === accessToken,
     );
 

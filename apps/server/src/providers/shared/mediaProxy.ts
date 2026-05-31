@@ -6,7 +6,7 @@ import { pipeline } from "stream/promises";
 import type { ReadableStream as WebReadableStream } from "stream/web";
 import type { Response } from "express";
 import { logErrorFields, logEventFields } from "@cliparr/shared/logging";
-import { ApiError } from "@/http/errors";
+import { createApiError, isApiError } from "@/http/errors";
 import { getServerLogger } from "@/logging";
 import type { ProviderSessionRecord } from "@/session/store";
 import type { MediaHandle } from "@/providers/types";
@@ -235,7 +235,7 @@ async function resolveHostnameAddresses(hostname: string) {
         });
         return addresses;
       } catch {
-        throw new ApiError(
+        throw createApiError(
           502,
           "media_proxy_unsafe_url",
           "Media URL hostname could not be resolved for security validation",
@@ -277,7 +277,7 @@ function throwUnsafeMediaUrl(
     "Rejected unsafe media URL.",
     unsafeMediaUrlFields(handle, requestUrl, reason),
   );
-  throw new ApiError(
+  throw createApiError(
     400,
     "media_proxy_unsafe_url",
     "Media URL points at an unsafe internal address",
@@ -293,7 +293,7 @@ export async function assertAllowedMediaHandleRequestUrl(
       "Rejected media URL with unsupported protocol.",
       unsafeMediaUrlFields(handle, requestUrl, "protocol"),
     );
-    throw new ApiError(
+    throw createApiError(
       400,
       "media_proxy_unsafe_url",
       "Media URL must use HTTP or HTTPS",
@@ -434,7 +434,7 @@ function isRetryableMediaFetchError(
     return false;
   }
 
-  if (err instanceof ApiError) {
+  if (isApiError(err)) {
     return false;
   }
 
@@ -489,7 +489,7 @@ async function fetchMediaHandleRequestOnce(
     requestUrl = nextUrl;
   }
 
-  throw new ApiError(
+  throw createApiError(
     502,
     "media_proxy_redirect_limit",
     "Media URL redirected too many times",

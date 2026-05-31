@@ -23,6 +23,40 @@ export default tseslint.config(
   js.configs.recommended,
   {
     rules: {
+      complexity: ["error", { max: 70 }],
+      curly: ["error", "all"],
+      "default-case-last": "error",
+      eqeqeq: ["error", "always"],
+      "max-depth": ["error", 5],
+      "max-params": ["error", 7],
+      "no-else-return": ["error", { allowElseIf: false }],
+      "no-eval": "error",
+      "no-implicit-coercion": "error",
+      "no-implied-eval": "error",
+      "no-new-func": "error",
+      "no-param-reassign": [
+        "error",
+        {
+          ignorePropertyModificationsFor: [
+            "bytes",
+            "context",
+            "event",
+            "gainNode",
+            "target",
+          ],
+          ignorePropertyModificationsForRegex: ["Ref$"],
+          props: true,
+        },
+      ],
+      "no-promise-executor-return": "error",
+      "no-return-assign": ["error", "always"],
+      "no-sequences": "error",
+      "no-template-curly-in-string": "error",
+      "no-unmodified-loop-condition": "error",
+      "no-unreachable-loop": "error",
+      "no-unneeded-ternary": "error",
+      "no-useless-concat": "error",
+      "no-var": "error",
       "no-console": "error",
       "no-restricted-imports": [
         "error",
@@ -33,16 +67,50 @@ export default tseslint.config(
               message:
                 "Use the package alias instead of a relative import path.",
             },
+            {
+              group: [
+                "@cliparr/frontend",
+                "@cliparr/frontend/*",
+                "@cliparr/server",
+                "@cliparr/server/*",
+                "apps/frontend/*",
+                "apps/server/*",
+              ],
+              message:
+                "Do not import app internals across workspace boundaries.",
+            },
           ],
         },
       ],
       "no-restricted-syntax": [
         "error",
         {
+          selector: "ClassDeclaration, ClassExpression",
+          message:
+            "Use functions and plain objects instead of classes in Cliparr code.",
+        },
+        {
+          selector: "ThisExpression",
+          message:
+            "Avoid `this`; close over explicit values or pass state as data.",
+        },
+        {
+          selector: "Super",
+          message: "Use functional composition instead of class inheritance.",
+        },
+        {
+          selector: "MemberExpression[property.name='prototype']",
+          message:
+            "Do not mutate prototypes; use functions and plain objects instead.",
+        },
+        {
           selector: "ImportExpression[source.value=/^\\.{1,2}\\//]",
           message: "Use the package alias instead of a relative import path.",
         },
       ],
+      "object-shorthand": "error",
+      "prefer-const": ["error", { destructuring: "all" }],
+      "prefer-template": "error",
     },
   },
   ...tseslint.configs.recommendedTypeChecked,
@@ -61,8 +129,18 @@ export default tseslint.config(
           fixStyle: "separate-type-imports",
         },
       ],
+      "@typescript-eslint/no-array-delete": "error",
+      "@typescript-eslint/no-base-to-string": "error",
       "@typescript-eslint/no-confusing-void-expression": "off",
       "@typescript-eslint/no-explicit-any": "error",
+      "@typescript-eslint/no-floating-promises": [
+        "error",
+        {
+          ignoreIIFE: true,
+          ignoreVoid: true,
+        },
+      ],
+      "@typescript-eslint/no-for-in-array": "error",
       "@typescript-eslint/no-invalid-void-type": "off",
       "@typescript-eslint/no-misused-promises": [
         "error",
@@ -76,6 +154,15 @@ export default tseslint.config(
       "@typescript-eslint/no-unnecessary-type-arguments": "off",
       "@typescript-eslint/no-unnecessary-type-assertion": "off",
       "@typescript-eslint/no-unnecessary-type-conversion": "off",
+      "@typescript-eslint/no-unnecessary-boolean-literal-compare": "error",
+      "@typescript-eslint/only-throw-error": "error",
+      "@typescript-eslint/prefer-includes": "error",
+      "@typescript-eslint/prefer-promise-reject-errors": "error",
+      "@typescript-eslint/prefer-string-starts-ends-with": "error",
+      "@typescript-eslint/require-array-sort-compare": [
+        "error",
+        { ignoreStringArrays: true },
+      ],
       "@typescript-eslint/require-await": "off",
       "@typescript-eslint/restrict-template-expressions": [
         "error",
@@ -84,6 +171,7 @@ export default tseslint.config(
           allowNumber: true,
         },
       ],
+      "@typescript-eslint/switch-exhaustiveness-check": "error",
       "@typescript-eslint/no-unused-vars": [
         "error",
         {

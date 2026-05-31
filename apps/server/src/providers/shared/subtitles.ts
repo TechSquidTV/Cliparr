@@ -38,8 +38,12 @@ export function booleanFlag(value: unknown) {
   }
 
   if (typeof value === "number") {
-    if (value === 1) return true;
-    if (value === 0) return false;
+    if (value === 1) {
+      return true;
+    }
+    if (value === 0) {
+      return false;
+    }
   }
 
   if (typeof value === "string") {

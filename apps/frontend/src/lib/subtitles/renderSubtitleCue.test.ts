@@ -8,70 +8,96 @@ import {
 } from "@/lib/subtitles/renderSubtitleCue";
 import type { SubtitleStyleSettings } from "@/lib/subtitles/types";
 
-class FakeCanvasContext {
-  canvas: { ownerDocument: { createElement: () => FakeCanvas } };
-  fillStyle = "";
-  font = "10px initial";
-  imageSmoothingEnabled = false;
-  imageSmoothingQuality = "low";
-  lineJoin = "miter";
-  lineWidth = 1;
-  miterLimit = 10;
-  shadowBlur = 0;
-  shadowColor = "";
-  shadowOffsetX = 0;
-  shadowOffsetY = 0;
-  strokeStyle = "";
-  textAlign = "start";
-  textBaseline = "alphabetic";
-  private stateStack: string[] = [];
-
-  constructor(ownerDocument: { createElement: () => FakeCanvas }) {
-    this.canvas = { ownerDocument };
-  }
-
-  save() {
-    this.stateStack.push(this.font);
-  }
-
-  restore() {
-    const font = this.stateStack.pop();
-    if (font) {
-      this.font = font;
-    }
-  }
-
-  measureText(text: string) {
-    return { width: text.length * 12 };
-  }
-
-  drawImage() {
-    return undefined;
-  }
-
-  fillText() {
-    return undefined;
-  }
-
-  strokeText() {
-    return undefined;
-  }
+interface FakeCanvas {
+  width: number;
+  height: number;
+  getContext: () => FakeCanvasContext;
 }
 
-class FakeCanvas {
-  width = 0;
-  height = 0;
-  private ownerDocument: { createElement: () => FakeCanvas };
+interface FakeCanvasContext {
+  canvas: { ownerDocument: { createElement: () => FakeCanvas } };
+  fillStyle: string;
+  font: string;
+  imageSmoothingEnabled: boolean;
+  imageSmoothingQuality: string;
+  lineJoin: string;
+  lineWidth: number;
+  miterLimit: number;
+  shadowBlur: number;
+  shadowColor: string;
+  shadowOffsetX: number;
+  shadowOffsetY: number;
+  strokeStyle: string;
+  textAlign: string;
+  textBaseline: string;
+  save: () => void;
+  restore: () => void;
+  measureText: (text: string) => { width: number };
+  drawImage: () => undefined;
+  fillText: () => undefined;
+  strokeText: () => undefined;
+}
 
-  constructor(ownerDocument?: { createElement: () => FakeCanvas }) {
-    this.ownerDocument = ownerDocument ?? {
-      createElement: () => new FakeCanvas(),
-    };
-  }
+function createFakeCanvasContext(ownerDocument: {
+  createElement: () => FakeCanvas;
+}): FakeCanvasContext {
+  const stateStack: string[] = [];
+  const context: FakeCanvasContext = {
+    canvas: { ownerDocument },
+    fillStyle: "",
+    font: "10px initial",
+    imageSmoothingEnabled: false,
+    imageSmoothingQuality: "low",
+    lineJoin: "miter",
+    lineWidth: 1,
+    miterLimit: 10,
+    shadowBlur: 0,
+    shadowColor: "",
+    shadowOffsetX: 0,
+    shadowOffsetY: 0,
+    strokeStyle: "",
+    textAlign: "start",
+    textBaseline: "alphabetic",
+    save() {
+      stateStack.push(context.font);
+    },
+    restore() {
+      const font = stateStack.pop();
+      if (font) {
+        context.font = font;
+      }
+    },
+    measureText(text) {
+      return { width: text.length * 12 };
+    },
+    drawImage() {
+      return undefined;
+    },
+    fillText() {
+      return undefined;
+    },
+    strokeText() {
+      return undefined;
+    },
+  };
 
-  getContext() {
-    return new FakeCanvasContext(this.ownerDocument);
-  }
+  return context;
+}
+
+function createFakeCanvas(ownerDocument?: {
+  createElement: () => FakeCanvas;
+}): FakeCanvas {
+  const resolvedOwnerDocument = ownerDocument ?? {
+    createElement: () => createFakeCanvas(),
+  };
+
+  return {
+    width: 0,
+    height: 0,
+    getContext() {
+      return createFakeCanvasContext(resolvedOwnerDocument);
+    },
+  };
 }
 
 const subtitleStyle: SubtitleStyleSettings = {
@@ -132,8 +158,10 @@ void test("clamps subtitle supersampling bounds to the target canvas", () => {
 });
 
 void test("rendering subtitles preserves the caller canvas font", () => {
-  const ownerDocument = { createElement: () => new FakeCanvas(ownerDocument) };
-  const context = new FakeCanvasContext(ownerDocument);
+  const ownerDocument = {
+    createElement: () => createFakeCanvas(ownerDocument),
+  };
+  const context = createFakeCanvasContext(ownerDocument);
   context.font = "16px caller";
 
   renderSubtitleCue(

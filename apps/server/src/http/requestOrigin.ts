@@ -1,6 +1,6 @@
 import { isIP } from "node:net";
 import type { Request } from "express";
-import { ApiError } from "@/http/errors";
+import { createApiError } from "@/http/errors";
 
 type OriginAwareRequest = Pick<Request, "get" | "hostname" | "secure">;
 
@@ -19,12 +19,12 @@ function firstHeaderValue(value: string | undefined) {
 
 function parseAuthority(authority: string, errorCode: string) {
   if (!isValidRequestHost(authority)) {
-    throw new ApiError(400, errorCode, "Request host header is invalid");
+    throw createApiError(400, errorCode, "Request host header is invalid");
   }
 
   const url = new URL(`http://${authority}`);
   if (url.username || url.password) {
-    throw new ApiError(
+    throw createApiError(
       400,
       "invalid_request_origin",
       "Request origin is invalid",
@@ -37,7 +37,7 @@ function parseAuthority(authority: string, errorCode: string) {
 function getRequestHost(req: OriginAwareRequest) {
   const host = firstHeaderValue(req.get("host"));
   if (!host) {
-    throw new ApiError(
+    throw createApiError(
       400,
       "invalid_request_host",
       "Request host header is required",
@@ -57,7 +57,7 @@ function buildOriginUrl(req: OriginAwareRequest, hostname: string, port = "") {
 function getRequestOriginUrl(req: OriginAwareRequest) {
   const trustedHostname = req.hostname?.trim();
   if (!trustedHostname) {
-    throw new ApiError(
+    throw createApiError(
       400,
       "invalid_request_host",
       "Request host header is required",

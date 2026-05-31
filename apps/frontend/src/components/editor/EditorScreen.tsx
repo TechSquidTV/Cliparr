@@ -199,7 +199,9 @@ export default function EditorScreen({ session, onBack }: Props) {
 
   const updateClipRange = useCallback(
     (nextStart: number, nextEnd: number) => {
-      if (!duration || duration <= 0) return;
+      if (!duration || duration <= 0) {
+        return;
+      }
 
       const minClipLength = Math.min(MIN_CLIP_SECONDS, duration);
       const boundedStart = Math.min(
@@ -233,7 +235,9 @@ export default function EditorScreen({ session, onBack }: Props) {
   );
   const handlePreviewTimeCommit = useCallback(
     (nextTime: number) => {
-      if (!duration || duration <= 0) return;
+      if (!duration || duration <= 0) {
+        return;
+      }
 
       void seekToTime(clampPlaybackTime(nextTime, duration));
     },
@@ -241,7 +245,9 @@ export default function EditorScreen({ session, onBack }: Props) {
   );
   const handleStartTimeCommit = useCallback(
     (nextStart: number) => {
-      if (!duration || duration <= 0) return;
+      if (!duration || duration <= 0) {
+        return;
+      }
 
       const nextClampedStart = clampClipStartTime(nextStart, endTime, duration);
       updateClipRange(nextClampedStart, endTime);
@@ -251,7 +257,9 @@ export default function EditorScreen({ session, onBack }: Props) {
   );
   const handleEndTimeCommit = useCallback(
     (nextEnd: number) => {
-      if (!duration || duration <= 0) return;
+      if (!duration || duration <= 0) {
+        return;
+      }
 
       const nextClampedEnd = clampClipEndTime(nextEnd, startTime, duration);
       updateClipRange(startTime, nextClampedEnd);
@@ -260,32 +268,42 @@ export default function EditorScreen({ session, onBack }: Props) {
     [duration, startTime, updateClipRange, warmClipSelection],
   );
   const handleMarkInShortcut = useCallback(() => {
-    if (!duration || duration <= 0) return;
+    if (!duration || duration <= 0) {
+      return;
+    }
 
     const nextStart = clampClipStartTime(currentTime, endTime, duration);
     updateClipRange(nextStart, endTime);
     void warmClipSelection(nextStart, endTime);
   }, [currentTime, duration, endTime, updateClipRange, warmClipSelection]);
   const handleMarkOutShortcut = useCallback(() => {
-    if (!duration || duration <= 0) return;
+    if (!duration || duration <= 0) {
+      return;
+    }
 
     const nextEnd = clampClipEndTime(currentTime, startTime, duration);
     updateClipRange(startTime, nextEnd);
     void warmClipSelection(startTime, nextEnd);
   }, [currentTime, duration, startTime, updateClipRange, warmClipSelection]);
   const handleJumpToInShortcut = useCallback(() => {
-    if (!duration || duration <= 0) return;
+    if (!duration || duration <= 0) {
+      return;
+    }
 
     void seekToTime(clampPlaybackTime(startTime, duration));
   }, [duration, seekToTime, startTime]);
   const handleJumpToOutShortcut = useCallback(() => {
-    if (!duration || duration <= 0) return;
+    if (!duration || duration <= 0) {
+      return;
+    }
 
     void seekToTime(clampPlaybackTime(endTime, duration));
   }, [duration, endTime, seekToTime]);
   const seekByShortcut = useCallback(
     (deltaSeconds: number) => {
-      if (!duration || duration <= 0) return;
+      if (!duration || duration <= 0) {
+        return;
+      }
 
       void seekToTime(
         resolveRelativeSeekTime({
@@ -299,7 +317,9 @@ export default function EditorScreen({ session, onBack }: Props) {
   );
   const stepFrameByShortcut = useCallback(
     (direction: -1 | 1) => {
-      if (!duration || duration <= 0) return;
+      if (!duration || duration <= 0) {
+        return;
+      }
 
       const nextTime = resolveRelativeSeekTime({
         currentTime,
@@ -387,10 +407,14 @@ export default function EditorScreen({ session, onBack }: Props) {
     stepFrameBackward: () => stepFrameByShortcut(-1),
     stepFrameForward: () => stepFrameByShortcut(1),
     zoomOut: () => {
-      if (canZoomOut) handleTimelineZoomOut();
+      if (canZoomOut) {
+        handleTimelineZoomOut();
+      }
     },
     zoomIn: () => {
-      if (canZoomIn) handleTimelineZoomIn();
+      if (canZoomIn) {
+        handleTimelineZoomIn();
+      }
     },
   });
   const isDesktopLayout = useEditorDesktopLayout();
@@ -468,7 +492,9 @@ export default function EditorScreen({ session, onBack }: Props) {
       isValidTimelineRange={isValidTimelineRange}
       seekToTime={seekToTime}
       onCursorDragStart={() => {
-        if (playing) pausePlayback();
+        if (playing) {
+          pausePlayback();
+        }
       }}
       onCursorDrag={(time) => {
         const nextTime = Math.min(Math.max(time, 0), duration);

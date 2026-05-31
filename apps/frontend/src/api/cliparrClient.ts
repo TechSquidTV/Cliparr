@@ -24,16 +24,21 @@ interface LocalMediaUrlResponse {
   hls: boolean;
 }
 
-class CliparrRequestError extends Error {
+interface CliparrRequestError extends Error {
   status: number;
   code?: string;
+}
 
-  constructor(status: number, message: string, code?: string) {
-    super(message);
-    this.name = "CliparrRequestError";
-    this.status = status;
-    this.code = code;
-  }
+function createCliparrRequestError(
+  status: number,
+  message: string,
+  code?: string,
+): CliparrRequestError {
+  return Object.assign(new Error(message), {
+    name: "CliparrRequestError",
+    status,
+    code,
+  });
 }
 
 const authFailureListeners = new Set<() => void>();
@@ -124,7 +129,7 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
       queueAuthFailureNotification();
     }
 
-    throw new CliparrRequestError(
+    throw createCliparrRequestError(
       response.status,
       error.message ?? `${response.status} ${response.statusText}`,
       error.code,

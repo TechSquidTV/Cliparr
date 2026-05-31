@@ -30,7 +30,9 @@ export default defineConfig(({ mode }) => {
               return;
             }
 
-            if (id.includes("/codec-data.js")) return "mediabunny-codec-data";
+            if (id.includes("/codec-data.js")) {
+              return "mediabunny-codec-data";
+            }
             if (
               id.includes("/media-sink.js") ||
               id.includes("/media-source.js") ||

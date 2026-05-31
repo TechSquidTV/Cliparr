@@ -90,13 +90,11 @@ function formatMetadataTimecode(seconds: number) {
   const minutes = Math.floor((wholeSeconds % 3600) / 60);
   const remainingSeconds = wholeSeconds % 60;
 
-  return (
-    [
-      hours.toString().padStart(2, "0"),
-      minutes.toString().padStart(2, "0"),
-      remainingSeconds.toString().padStart(2, "0"),
-    ].join(":") + `.${milliseconds.toString().padStart(3, "0")}`
-  );
+  return `${[
+    hours.toString().padStart(2, "0"),
+    minutes.toString().padStart(2, "0"),
+    remainingSeconds.toString().padStart(2, "0"),
+  ].join(":")}.${milliseconds.toString().padStart(3, "0")}`;
 }
 
 function formatMetadataSeconds(seconds: number) {
@@ -251,7 +249,9 @@ function inferHdVideoFlag(height: number | undefined) {
     return undefined;
   }
 
-  if (height >= 720) return 1;
+  if (height >= 720) {
+    return 1;
+  }
   return 0;
 }
 
@@ -324,10 +324,18 @@ export function isIsobmffExportFormat(format: ExportFormat) {
 
 function inferImageMimeType(url: string) {
   const pathname = new URL(url, window.location.href).pathname.toLowerCase();
-  if (pathname.endsWith(".png")) return "image/png";
-  if (pathname.endsWith(".webp")) return "image/webp";
-  if (pathname.endsWith(".gif")) return "image/gif";
-  if (pathname.endsWith(".bmp")) return "image/bmp";
+  if (pathname.endsWith(".png")) {
+    return "image/png";
+  }
+  if (pathname.endsWith(".webp")) {
+    return "image/webp";
+  }
+  if (pathname.endsWith(".gif")) {
+    return "image/gif";
+  }
+  if (pathname.endsWith(".bmp")) {
+    return "image/bmp";
+  }
   return "image/jpeg";
 }
 
@@ -393,12 +401,20 @@ export async function buildMetadataTags(
   const clipRange = `${formatMetadataTime(startTime)} to ${formatMetadataTime(endTime)}`;
   const tags: MetadataTags = {};
 
-  if (title) tags.title = title;
-  if (description) tags.description = description;
-  if (metadata.genres?.length) tags.genre = metadata.genres.join(", ");
+  if (title) {
+    tags.title = title;
+  }
+  if (description) {
+    tags.description = description;
+  }
+  if (metadata.genres?.length) {
+    tags.genre = metadata.genres.join(", ");
+  }
 
   const date = parseMetadataDate(metadata.date, metadata.year);
-  if (date) tags.date = date;
+  if (date) {
+    tags.date = date;
+  }
 
   const source = firstText(
     metadata.sourceTitle,

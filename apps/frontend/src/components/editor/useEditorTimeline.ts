@@ -240,7 +240,9 @@ export function useEditorTimeline({
 
   useEffect(() => {
     const timelineWheelRegion = timelineWheelRegionRef.current;
-    if (!timelineWheelRegion) return;
+    if (!timelineWheelRegion) {
+      return;
+    }
 
     const updateViewportWidth = () => {
       setTimelineViewportWidth(timelineWheelRegion.clientWidth || 0);
@@ -320,7 +322,9 @@ export function useEditorTimeline({
 
   useEffect(() => {
     const pendingScrollLeft = pendingTimelineScrollLeftRef.current;
-    if (pendingScrollLeft === null) return;
+    if (pendingScrollLeft === null) {
+      return;
+    }
 
     timelineRef.current?.setScrollLeft(pendingScrollLeft);
     timelineScrollLeftRef.current = pendingScrollLeft;
@@ -328,7 +332,9 @@ export function useEditorTimeline({
   }, [activeTimelineScale.scale, activeTimelineScale.scaleWidth]);
 
   useEffect(() => {
-    if (!timelineRef.current || !hasDuration) return;
+    if (!timelineRef.current || !hasDuration) {
+      return;
+    }
     timelineRef.current.setTime(currentTime);
   }, [currentTime, hasDuration]);
 
@@ -359,7 +365,9 @@ export function useEditorTimeline({
       }
 
       const timelineWheelRegion = timelineWheelRegionRef.current;
-      if (!timelineWheelRegion) return;
+      if (!timelineWheelRegion) {
+        return;
+      }
 
       const currentZoomIndex = timelineZoomIndexRef.current;
       const currentScrollLeft =
@@ -406,10 +414,14 @@ export function useEditorTimeline({
 
   const handleTimelineWheel = useCallback(
     (event: WheelEvent) => {
-      if (!hasDuration) return;
+      if (!hasDuration) {
+        return;
+      }
 
       const timelineWheelRegion = timelineWheelRegionRef.current;
-      if (!timelineWheelRegion) return;
+      if (!timelineWheelRegion) {
+        return;
+      }
 
       const containerHeight = timelineWheelRegion.clientHeight || 1;
       const containerWidth = timelineWheelRegion.clientWidth || 1;
@@ -426,7 +438,9 @@ export function useEditorTimeline({
           duration,
           timelineScale: activeTimelineScale,
         });
-        if (nextScrollLeft === null) return;
+        if (nextScrollLeft === null) {
+          return;
+        }
 
         event.preventDefault();
         event.stopPropagation();
@@ -440,7 +454,9 @@ export function useEditorTimeline({
       event.preventDefault();
       event.stopPropagation();
 
-      if (availableTimelineZoomLevels.length < 2) return;
+      if (availableTimelineZoomLevels.length < 2) {
+        return;
+      }
 
       const { accumulatedWheelDelta, zoomDelta } =
         accumulateTimelineWheelZoomDelta({
@@ -450,7 +466,9 @@ export function useEditorTimeline({
           containerHeight,
         });
       timelineWheelDeltaRef.current = accumulatedWheelDelta;
-      if (zoomDelta === 0) return;
+      if (zoomDelta === 0) {
+        return;
+      }
       updateTimelineZoom(zoomDelta, { anchorClientX: event.clientX });
     },
     [
@@ -464,7 +482,9 @@ export function useEditorTimeline({
 
   useEffect(() => {
     const timelineWheelRegion = timelineWheelRegionRef.current;
-    if (!timelineWheelRegion) return;
+    if (!timelineWheelRegion) {
+      return;
+    }
 
     timelineWheelRegion.addEventListener("wheel", handleTimelineWheel, {
       passive: false,
@@ -480,7 +500,9 @@ export function useEditorTimeline({
       const nextAction = nextData
         .flatMap((row) => row.actions)
         .find((action) => action.id === "selected-clip");
-      if (!nextAction) return false;
+      if (!nextAction) {
+        return false;
+      }
 
       updateClipRange(nextAction.start, nextAction.end);
     },

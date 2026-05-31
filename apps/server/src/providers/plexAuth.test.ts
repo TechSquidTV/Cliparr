@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { ApiError } from "@/http/errors";
+import { isApiError } from "@/http/errors";
 import { pollAuth, startAuth } from "@/providers/plex/auth";
 
 function jsonResponse(value: unknown) {
@@ -82,7 +82,7 @@ void test("requires the starter poll token before completing Plex auth", async (
       await assert.rejects(
         () => pollAuth(auth.authId, "wrong-token"),
         (err: unknown) =>
-          err instanceof ApiError &&
+          isApiError(err) &&
           err.status === 401 &&
           err.code === "invalid_plex_auth_session",
       );

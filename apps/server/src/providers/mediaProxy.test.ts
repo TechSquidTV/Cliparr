@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { PassThrough } from "node:stream";
 import test from "node:test";
 import type { Response } from "express";
-import { ApiError } from "@/http/errors";
+import { isApiError } from "@/http/errors";
 import type { ProviderSessionRecord } from "@/session/store";
 import type { MediaHandle } from "@/providers/types";
 import {
@@ -41,28 +41,30 @@ function createMediaHandle(overrides: Partial<MediaHandle> = {}): MediaHandle {
 }
 
 function createResponseRecorder() {
-  return {
+  const recorder = {
     statusCode: 200,
     headers: new Map<string, string>(),
     body: "",
     ended: false,
     status(code: number) {
-      this.statusCode = code;
-      return this;
+      recorder.statusCode = code;
+      return recorder;
     },
     setHeader(name: string, value: string | number) {
-      this.headers.set(name.toLowerCase(), String(value));
-      return this;
+      recorder.headers.set(name.toLowerCase(), String(value));
+      return recorder;
     },
     send(body: string) {
-      this.body = body;
-      return this;
+      recorder.body = body;
+      return recorder;
     },
     end() {
-      this.ended = true;
-      return this;
+      recorder.ended = true;
+      return recorder;
     },
   };
+
+  return recorder;
 }
 
 function createStreamingResponseRecorder() {
@@ -71,7 +73,7 @@ function createStreamingResponseRecorder() {
   let statusCode = 200;
   stream.resume();
 
-  return Object.assign(stream, {
+  const recorder = Object.assign(stream, {
     get statusCode() {
       return statusCode;
     },
@@ -81,43 +83,47 @@ function createStreamingResponseRecorder() {
     headers,
     status(code: number) {
       statusCode = code;
-      return this;
+      return recorder;
     },
     setHeader(name: string, value: string | number) {
       headers.set(name.toLowerCase(), String(value));
-      return this;
+      return recorder;
     },
     send(body: string) {
       stream.end(body);
-      return this;
+      return recorder;
     },
   });
+
+  return recorder;
 }
 
 function createBinaryResponseRecorder() {
-  return {
+  const recorder = {
     statusCode: 200,
     headers: new Map<string, string>(),
     body: Buffer.alloc(0),
     ended: false,
     status(code: number) {
-      this.statusCode = code;
-      return this;
+      recorder.statusCode = code;
+      return recorder;
     },
     setHeader(name: string, value: string | number) {
-      this.headers.set(name.toLowerCase(), String(value));
-      return this;
+      recorder.headers.set(name.toLowerCase(), String(value));
+      return recorder;
     },
     end(chunk?: string | Uint8Array) {
       if (typeof chunk === "string") {
-        this.body = Buffer.from(chunk);
+        recorder.body = Buffer.from(chunk);
       } else if (chunk) {
-        this.body = Buffer.from(chunk);
+        recorder.body = Buffer.from(chunk);
       }
-      this.ended = true;
-      return this;
+      recorder.ended = true;
+      return recorder;
     },
   };
+
+  return recorder;
 }
 
 void test("preserves absolute HLS origins when rewriting nested playlist resources", async () => {
@@ -321,7 +327,7 @@ void test("rejects cross-origin HLS media handles to private addresses", async (
         }),
       ),
     (err: unknown) =>
-      err instanceof ApiError &&
+      isApiError(err) &&
       err.status === 400 &&
       err.code === "media_proxy_unsafe_url" &&
       err.message === "Media URL points at an unsafe internal address",
@@ -352,7 +358,7 @@ void test("validates cross-origin media redirects before following them", async 
           }),
         ),
       (err: unknown) =>
-        err instanceof ApiError &&
+        isApiError(err) &&
         err.status === 400 &&
         err.code === "media_proxy_unsafe_url",
     );
@@ -386,7 +392,7 @@ void test("validates same-origin media redirects before following them", async (
           }),
         ),
       (err: unknown) =>
-        err instanceof ApiError &&
+        isApiError(err) &&
         err.status === 400 &&
         err.code === "media_proxy_unsafe_url",
     );

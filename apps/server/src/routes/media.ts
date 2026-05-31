@@ -7,7 +7,7 @@ import {
   logEventFields,
 } from "@cliparr/shared/logging";
 import { listMediaSources } from "@/db/mediaSourcesRepository";
-import { ApiError, asyncHandler } from "@/http/errors";
+import { asyncHandler, createApiError, isApiError } from "@/http/errors";
 import { getServerLogger, warnWithError } from "@/logging";
 import { getProvider } from "@/providers/registry";
 import {
@@ -102,7 +102,11 @@ function bodyUrl(value: unknown) {
   const body =
     value && typeof value === "object" ? (value as { url?: unknown }) : null;
   if (typeof body?.url !== "string") {
-    throw new ApiError(400, "local_media_url_invalid", "Media URL is required");
+    throw createApiError(
+      400,
+      "local_media_url_invalid",
+      "Media URL is required",
+    );
   }
 
   return body.url;
@@ -111,14 +115,18 @@ function bodyUrl(value: unknown) {
 function parseLocalMediaUrl(value: string) {
   const trimmed = value.trim();
   if (!trimmed) {
-    throw new ApiError(400, "local_media_url_invalid", "Media URL is required");
+    throw createApiError(
+      400,
+      "local_media_url_invalid",
+      "Media URL is required",
+    );
   }
 
   let parsed: URL;
   try {
     parsed = new URL(trimmed);
   } catch {
-    throw new ApiError(
+    throw createApiError(
       400,
       "local_media_url_invalid",
       "Enter a valid absolute media URL",
@@ -126,7 +134,7 @@ function parseLocalMediaUrl(value: string) {
   }
 
   if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
-    throw new ApiError(
+    throw createApiError(
       400,
       "local_media_url_invalid",
       "Media URL must use HTTP or HTTPS",
@@ -217,7 +225,7 @@ mediaRouter.post(
           ...logEventFields("media.local_url.create", "failure"),
           ...logDurationFields(startedAt),
           ...logErrorFields(err),
-          "http.status_code": err instanceof ApiError ? err.status : undefined,
+          "http.status_code": isApiError(err) ? err.status : undefined,
         }),
       );
       throw err;
@@ -232,7 +240,7 @@ mediaRouter.get(
     const prunedCount = pruneSessionMediaHandles(localUrlSession);
     const handle = localUrlMediaHandles.get(req.params.handleId as string);
     if (!handle) {
-      throw new ApiError(
+      throw createApiError(
         404,
         "local_media_url_not_found",
         "URL media handle was not found or has expired",
@@ -273,7 +281,7 @@ mediaRouter.get(
               .slice(0, 400)
               .replace(/\s+/g, " ")
               .trim();
-            throw new ApiError(
+            throw createApiError(
               upstream.status,
               "local_media_url_failed",
               detail
@@ -293,11 +301,11 @@ mediaRouter.get(
             "error.message": errorMessage(err),
           });
 
-          if (err instanceof ApiError) {
+          if (isApiError(err)) {
             throw err;
           }
 
-          throw new ApiError(
+          throw createApiError(
             502,
             "local_media_url_failed",
             `URL media request failed: ${errorMessage(err)}`,
@@ -432,7 +440,7 @@ mediaRouter.get(
         "media.handle.pruned_count": prunedCount,
         "media.handle.remaining_count": session.mediaHandles.size,
       });
-      throw new ApiError(
+      throw createApiError(
         404,
         "media_not_found",
         "Media handle was not found or has expired",
@@ -448,7 +456,7 @@ mediaRouter.get(
         "provider.id": handle.providerId,
         "source.id": handle.sourceId,
       });
-      throw new ApiError(
+      throw createApiError(
         500,
         "provider_not_registered",
         "Session provider is not registered",

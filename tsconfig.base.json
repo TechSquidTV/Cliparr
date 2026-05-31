@@ -6,6 +6,9 @@
     "module": "ESNext",
     "lib": ["ES2022"],
     "skipLibCheck": true,
-    "moduleDetection": "force"
+    "moduleDetection": "force",
+    "strict": true,
+    "noFallthroughCasesInSwitch": true,
+    "useUnknownInCatchVariables": true
   }
 }

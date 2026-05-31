@@ -71,23 +71,25 @@ function createRequest(headers: Record<string, string> = {}) {
 }
 
 function createResponseRecorder() {
-  return {
+  const recorder = {
     statusCode: 200,
     headers: new Map<string, string>(),
     ended: false,
     status(code: number) {
-      this.statusCode = code;
-      return this;
+      recorder.statusCode = code;
+      return recorder;
     },
     setHeader(name: string, value: string | number) {
-      this.headers.set(name.toLowerCase(), String(value));
-      return this;
+      recorder.headers.set(name.toLowerCase(), String(value));
+      return recorder;
     },
     end() {
-      this.ended = true;
-      return this;
+      recorder.ended = true;
+      return recorder;
     },
   };
+
+  return recorder;
 }
 
 function jsonResponse(data: unknown, status = 200) {

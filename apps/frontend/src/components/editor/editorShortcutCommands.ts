@@ -52,10 +52,14 @@ export function resolveEditorShortcutCommand({
     case "Space":
       return repeat || shiftKey ? null : "toggle-play";
     case "KeyI":
-      if (repeat) return null;
+      if (repeat) {
+        return null;
+      }
       return shiftKey ? "jump-to-in" : "mark-in";
     case "KeyO":
-      if (repeat) return null;
+      if (repeat) {
+        return null;
+      }
       return shiftKey ? "jump-to-out" : "mark-out";
     case "BracketLeft":
       return repeat || shiftKey ? null : "mark-in";

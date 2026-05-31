@@ -3,7 +3,7 @@ import { lookup } from "dns/promises";
 import { isIP } from "net";
 import { CLIPARR_CLIENT_VERSION } from "@/config/version";
 import type { MediaSource } from "@/db/mediaSourcesRepository";
-import { ApiError } from "@/http/errors";
+import { createApiError, isApiError } from "@/http/errors";
 import {
   errorMessage,
   numberValue,
@@ -187,7 +187,7 @@ export const JELLYFIN_DEVICE_ID = deriveJellyfinDeviceId();
 function assertHttpUrl(uri: string) {
   const parsed = new URL(uri);
   if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
-    throw new ApiError(
+    throw createApiError(
       400,
       "invalid_connection_url",
       "Jellyfin connection must use HTTP or HTTPS",
@@ -262,7 +262,7 @@ async function resolveHostnameAddresses(hostname: string) {
       records.map((record) => normalizeIpCandidate(record.address)),
     );
   } catch {
-    throw new ApiError(
+    throw createApiError(
       400,
       "invalid_jellyfin_server_url",
       "Jellyfin serverUrl hostname could not be resolved for security validation",
@@ -276,7 +276,7 @@ function assertAllowedResolvedAddress(address: string) {
     isLinkLocalHost(address) ||
     isMulticastHost(address)
   ) {
-    throw new ApiError(
+    throw createApiError(
       400,
       "invalid_jellyfin_server_url",
       "Jellyfin serverUrl resolved to an unsafe address",
@@ -288,7 +288,7 @@ function assertAllowedResolvedAddress(address: string) {
     !ALLOW_LOOPBACK_JELLYFIN_URLS &&
     !JELLYFIN_DEV_BASE_URL
   ) {
-    throw new ApiError(
+    throw createApiError(
       400,
       "invalid_jellyfin_server_url",
       "For security, localhost Jellyfin URLs are disabled unless CLIPARR_ALLOW_LOOPBACK_JELLYFIN_URLS is enabled",
@@ -301,7 +301,7 @@ async function assertAllowedJellyfinServerUrl(url: string) {
   const hostname = normalizeHostname(parsed.hostname);
 
   if (DISALLOWED_JELLYFIN_HOSTNAMES.has(hostname)) {
-    throw new ApiError(
+    throw createApiError(
       400,
       "invalid_jellyfin_server_url",
       "Jellyfin serverUrl must point at your Jellyfin server, not a cloud metadata hostname",
@@ -313,7 +313,7 @@ async function assertAllowedJellyfinServerUrl(url: string) {
     isLinkLocalHost(hostname) ||
     isMulticastHost(hostname)
   ) {
-    throw new ApiError(
+    throw createApiError(
       400,
       "invalid_jellyfin_server_url",
       "Jellyfin serverUrl must point at your Jellyfin server, not an unspecified, link-local, or multicast host",
@@ -516,7 +516,7 @@ async function jellyfinFetch(
         .replace(/\s+/g, " ")
         .trim();
 
-      throw new ApiError(
+      throw createApiError(
         !exposeFailureDetail && response.status !== 401 ? 502 : response.status,
         options.errorCode ?? "jellyfin_request_failed",
         !exposeFailureDetail
@@ -529,12 +529,12 @@ async function jellyfinFetch(
 
     return response;
   } catch (err) {
-    if (err instanceof ApiError) {
+    if (isApiError(err)) {
       throw err;
     }
 
     if (err instanceof Error && err.name === "AbortError") {
-      throw new ApiError(
+      throw createApiError(
         504,
         options.errorCode ?? "jellyfin_request_failed",
         options.failureMessage ?? "Jellyfin request timed out",
@@ -543,14 +543,14 @@ async function jellyfinFetch(
 
     const parsed = new URL(url);
     if (JELLYFIN_DEV_BASE_URL && isLoopbackHost(parsed.hostname)) {
-      throw new ApiError(
+      throw createApiError(
         502,
         options.errorCode ?? "jellyfin_request_failed",
         `${options.failureMessage ?? "Could not reach that Jellyfin server"}. Cliparr is running in Docker, so localhost points at the Cliparr container. Use ${JELLYFIN_DEV_BASE_URL} for this dev setup.`,
       );
     }
 
-    throw new ApiError(
+    throw createApiError(
       502,
       options.errorCode ?? "jellyfin_request_failed",
       options.exposeFailureDetail === false
@@ -593,7 +593,7 @@ export async function jellyfinJson<T>(
   );
   const contentType = response.headers.get("content-type") ?? "";
   if (!contentType.toLowerCase().includes("json")) {
-    throw new ApiError(
+    throw createApiError(
       502,
       options.errorCode ?? "jellyfin_invalid_response",
       "That URL did not return the Jellyfin API. Make sure it points at your Jellyfin server base URL.",
@@ -603,7 +603,7 @@ export async function jellyfinJson<T>(
   try {
     return (await response.json()) as T;
   } catch {
-    throw new ApiError(
+    throw createApiError(
       502,
       options.errorCode ?? "jellyfin_invalid_response",
       "Jellyfin returned an unreadable response. Make sure the server URL is correct and not a login page.",
@@ -620,7 +620,7 @@ export function sourceContext(source: MediaSource): JellyfinSourceContext {
     stringValue(source.credentials.deviceId) ?? JELLYFIN_DEVICE_ID;
 
   if (!token) {
-    throw new ApiError(
+    throw createApiError(
       500,
       "source_credentials_missing",
       "Stored Jellyfin source is missing its access token",
@@ -628,7 +628,7 @@ export function sourceContext(source: MediaSource): JellyfinSourceContext {
   }
 
   if (!userId) {
-    throw new ApiError(
+    throw createApiError(
       500,
       "source_credentials_missing",
       "Stored Jellyfin source is missing its Jellyfin user id",

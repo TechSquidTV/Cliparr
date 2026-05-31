@@ -4,15 +4,32 @@ import { errorWithError, getServerLogger } from "@/logging";
 
 const logger = getServerLogger(["http", "error"]);
 
-export class ApiError extends Error {
+export interface ApiError extends Error {
   status: number;
   code: string;
+}
 
-  constructor(status: number, code: string, message: string) {
-    super(message);
-    this.status = status;
-    this.code = code;
-  }
+export function createApiError(
+  status: number,
+  code: string,
+  message: string,
+): ApiError {
+  return Object.assign(new Error(message), {
+    name: "ApiError",
+    status,
+    code,
+  });
+}
+
+export function isApiError(err: unknown): err is ApiError {
+  const candidate = err as Partial<ApiError>;
+
+  return (
+    err instanceof Error &&
+    candidate.name === "ApiError" &&
+    typeof candidate.status === "number" &&
+    typeof candidate.code === "string"
+  );
 }
 
 export function asyncHandler(
@@ -42,12 +59,11 @@ export function errorHandler(
   res: Response,
   _next: NextFunction,
 ) {
-  const apiError =
-    err instanceof ApiError
-      ? err
-      : new ApiError(500, "internal_error", "Something went wrong");
+  const apiError = isApiError(err)
+    ? err
+    : createApiError(500, "internal_error", "Something went wrong");
 
-  if (!(err instanceof ApiError)) {
+  if (!isApiError(err)) {
     errorWithError(logger, err, "Unhandled request error.", {
       ...logEventFields("http.request", "unhandled_error"),
       ...logErrorFields(err),

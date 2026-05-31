@@ -15,7 +15,7 @@ import {
   type UpdateMediaSourceInput,
   updateMediaSourceForAccount,
 } from "@/db/mediaSourcesRepository";
-import { ApiError, asyncHandler } from "@/http/errors";
+import { asyncHandler, createApiError, isApiError } from "@/http/errors";
 import {
   PLEX_BASE_URL_MODE_MANUAL,
   withPlexBaseUrlMode,
@@ -45,14 +45,14 @@ function serializeSource(source: MediaSource) {
 function requireMediaSource(sourceId: string, providerAccountId: string) {
   const source = getMediaSourceForAccount(sourceId, providerAccountId);
   if (!source) {
-    throw new ApiError(404, "source_not_found", "Source was not found");
+    throw createApiError(404, "source_not_found", "Source was not found");
   }
   return source;
 }
 
 function parseSourceBaseUrl(value: unknown) {
   if (typeof value !== "string" || !value.trim()) {
-    throw new ApiError(
+    throw createApiError(
       400,
       "invalid_source_base_url",
       "Source URL must be a non-empty string",
@@ -63,7 +63,7 @@ function parseSourceBaseUrl(value: unknown) {
   try {
     parsed = new URL(value.trim());
   } catch {
-    throw new ApiError(
+    throw createApiError(
       400,
       "invalid_source_base_url",
       "Source URL must be a valid HTTP or HTTPS URL",
@@ -71,7 +71,7 @@ function parseSourceBaseUrl(value: unknown) {
   }
 
   if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
-    throw new ApiError(
+    throw createApiError(
       400,
       "invalid_source_base_url",
       "Source URL must use HTTP or HTTPS",
@@ -87,7 +87,7 @@ function parseSourceBaseUrl(value: unknown) {
 
 function parseSourceUpdate(body: unknown): UpdateMediaSourceInput {
   if (!body || typeof body !== "object" || Array.isArray(body)) {
-    throw new ApiError(
+    throw createApiError(
       400,
       "invalid_source_update",
       "Provide a JSON object with editable source fields",
@@ -99,7 +99,7 @@ function parseSourceUpdate(body: unknown): UpdateMediaSourceInput {
 
   for (const key of Object.keys(record)) {
     if (!allowedFields.has(key)) {
-      throw new ApiError(
+      throw createApiError(
         400,
         "source_field_not_editable",
         `${key} cannot be updated here`,
@@ -111,7 +111,7 @@ function parseSourceUpdate(body: unknown): UpdateMediaSourceInput {
 
   if ("name" in record) {
     if (typeof record.name !== "string" || !record.name.trim()) {
-      throw new ApiError(
+      throw createApiError(
         400,
         "invalid_source_name",
         "Source name must be a non-empty string",
@@ -126,7 +126,7 @@ function parseSourceUpdate(body: unknown): UpdateMediaSourceInput {
 
   if ("enabled" in record) {
     if (typeof record.enabled !== "boolean") {
-      throw new ApiError(
+      throw createApiError(
         400,
         "invalid_source_enabled",
         "Source enabled must be true or false",
@@ -136,7 +136,7 @@ function parseSourceUpdate(body: unknown): UpdateMediaSourceInput {
   }
 
   if (Object.keys(input).length === 0) {
-    throw new ApiError(
+    throw createApiError(
       400,
       "empty_source_update",
       "Provide at least one editable source field",
@@ -206,7 +206,7 @@ sourcesRouter.patch(
         nextInput,
       );
       if (!source) {
-        throw new ApiError(404, "source_not_found", "Source was not found");
+        throw createApiError(404, "source_not_found", "Source was not found");
       }
       res.json({ source: serializeSource(source) });
 
@@ -230,7 +230,7 @@ sourcesRouter.patch(
           ...logErrorFields(err),
           "source.id": sourceId,
           "provider.account.id": session.providerAccountId,
-          "http.status_code": err instanceof ApiError ? err.status : undefined,
+          "http.status_code": isApiError(err) ? err.status : undefined,
         }),
       );
       throw err;
@@ -253,7 +253,7 @@ sourcesRouter.delete(
         session.providerAccountId,
       );
       if (!deleted) {
-        throw new ApiError(404, "source_not_found", "Source was not found");
+        throw createApiError(404, "source_not_found", "Source was not found");
       }
 
       res.status(204).end();
@@ -276,7 +276,7 @@ sourcesRouter.delete(
           ...logErrorFields(err),
           "source.id": sourceId,
           "provider.account.id": session.providerAccountId,
-          "http.status_code": err instanceof ApiError ? err.status : undefined,
+          "http.status_code": isApiError(err) ? err.status : undefined,
         }),
       );
       throw err;
@@ -296,7 +296,7 @@ sourcesRouter.post(
       const source = requireMediaSource(sourceId, session.providerAccountId);
       const provider = getProvider(source.providerId);
       if (!provider) {
-        throw new ApiError(
+        throw createApiError(
           500,
           "provider_not_registered",
           "Source provider is not registered",
@@ -317,7 +317,7 @@ sourcesRouter.post(
         );
 
         if (!updatedSource) {
-          throw new ApiError(404, "source_not_found", "Source was not found");
+          throw createApiError(404, "source_not_found", "Source was not found");
         }
 
         res.json({
@@ -358,7 +358,7 @@ sourcesRouter.post(
       );
 
       if (!updatedSource) {
-        throw new ApiError(404, "source_not_found", "Source was not found");
+        throw createApiError(404, "source_not_found", "Source was not found");
       }
 
       res.json({
@@ -386,7 +386,7 @@ sourcesRouter.post(
           ...logErrorFields(err),
           "source.id": sourceId,
           "provider.account.id": session.providerAccountId,
-          "http.status_code": err instanceof ApiError ? err.status : undefined,
+          "http.status_code": isApiError(err) ? err.status : undefined,
         }),
       );
       throw err;

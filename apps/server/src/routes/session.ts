@@ -9,7 +9,7 @@ import {
   getRememberedProviderSession,
   revokeRememberedProviderSession,
 } from "@/db/rememberedProviderSessionsRepository";
-import { ApiError, asyncHandler } from "@/http/errors";
+import { asyncHandler, createApiError } from "@/http/errors";
 import { getProvider } from "@/providers/registry";
 import {
   deleteProviderSession,
@@ -59,7 +59,7 @@ sessionRouter.get(
           "session.remembered.present": true,
         });
       }
-      throw new ApiError(
+      throw createApiError(
         401,
         "not_authenticated",
         "Sign in with a provider first",
@@ -68,7 +68,7 @@ sessionRouter.get(
 
     const provider = getProvider(session.providerId);
     if (!provider) {
-      throw new ApiError(
+      throw createApiError(
         500,
         "provider_not_registered",
         "Session provider is not registered",

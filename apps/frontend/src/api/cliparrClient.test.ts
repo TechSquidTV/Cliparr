@@ -99,7 +99,9 @@ void test("surfaces JSON API errors and coalesces auth failure notifications", a
         assert.equal(error?.status, 401);
         assert.equal(error?.code, "not_authenticated");
 
-        await new Promise<void>((resolve) => queueMicrotask(() => resolve()));
+        await new Promise<void>((resolve) => {
+          queueMicrotask(() => resolve());
+        });
         assert.equal(authFailureCount, 1);
       } finally {
         unsubscribe();
@@ -137,7 +139,9 @@ void test("follows app auth redirects with the current browser location", async 
       },
       async () => {
         void cliparrClient.getHealth();
-        await new Promise<void>((resolve) => queueMicrotask(() => resolve()));
+        await new Promise<void>((resolve) => {
+          queueMicrotask(() => resolve());
+        });
         assert.equal(
           assignedUrl,
           "http://cliparr.test/api/auth/plex?state=abc&redirectUrl=%2Fdashboard%3Ftab%3Dsources%23top",
