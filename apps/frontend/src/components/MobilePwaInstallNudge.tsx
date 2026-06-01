@@ -161,10 +161,6 @@ export function MobilePwaInstallNudge({ className }: { className?: string }) {
   }, [refreshMode]);
 
   useEffect(() => {
-    refreshMode();
-  }, [refreshMode]);
-
-  useEffect(() => {
     const refresh = () => refreshMode();
     const cleanups = [
       addMediaQueryChangeListener(MOBILE_INSTALL_MEDIA_QUERY, refresh),
