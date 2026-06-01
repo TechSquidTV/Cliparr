@@ -16,6 +16,7 @@ import { EditorControls } from "@/components/editor/EditorControls";
 import { EditorFramegrabDialog } from "@/components/editor/EditorFramegrabDialog";
 import { EditorPreview } from "@/components/editor/EditorPreview";
 import { LocalVideoOpenDialog } from "@/components/local-media/LocalVideoOpenDialog";
+import ProviderConnectScreen from "@/components/provider-connect/ProviderConnectScreen";
 import {
   MobilePwaInstallNudge,
   MobilePwaInstallNudgeCard,
@@ -203,6 +204,18 @@ void test("renders local video dialog file picker workflow", () => {
   assert.match(markup, /Open Video/);
   assert.match(markup, /Local files stay in your browser/);
   assert.match(markup, /Choose File/);
+});
+
+void test("reserves provider connect layout before providers load", () => {
+  const markup = renderToStaticMarkup(
+    createElement(ProviderConnectScreen, {
+      onConnected: () => undefined,
+      onOpenLocalVideo: () => undefined,
+    }),
+  );
+
+  assert.match(markup, /data-provider-connect-loading-layout/);
+  assert.match(markup, /data-provider-connect-selected-skeleton/);
 });
 
 void test("renders dashboard mobile menu trigger", () => {

@@ -33,10 +33,12 @@ interface Props {
   variant?: "panel" | "screen";
 }
 
+const importMetaEnv = import.meta.env as
+  | { VITE_CLIPARR_DEV_JELLYFIN_URL?: unknown }
+  | undefined;
+const devJellyfinUrlValue = importMetaEnv?.VITE_CLIPARR_DEV_JELLYFIN_URL;
 const devJellyfinUrl =
-  typeof import.meta.env.VITE_CLIPARR_DEV_JELLYFIN_URL === "string"
-    ? import.meta.env.VITE_CLIPARR_DEV_JELLYFIN_URL.trim()
-    : "";
+  typeof devJellyfinUrlValue === "string" ? devJellyfinUrlValue.trim() : "";
 
 function isLoopbackUrl(value: string) {
   return /^https?:\/\/(?:localhost|127(?:\.\d{1,3}){3}|\[::1\]|::1)(?:[:/]|$)/i.test(
@@ -458,6 +460,10 @@ export default function ProviderConnectFlow({
 
   function renderContent() {
     if (loading) {
+      if (isScreen) {
+        return <ProviderConnectScreenLoadingLayout />;
+      }
+
       return (
         <ProviderStatusMessage isScreen={isScreen}>
           Loading providers...
@@ -587,6 +593,67 @@ function ProviderConnectPanelLayout({
         ))}
       </TabsPanels>
     </Tabs>
+  );
+}
+
+function ProviderConnectScreenLoadingLayout() {
+  return (
+    <div
+      className="grid gap-6 lg:grid-cols-provider-connect"
+      aria-hidden="true"
+      data-provider-connect-loading-layout
+    >
+      <div className="space-y-3">
+        <div className="h-3 w-36 rounded bg-background" />
+        <div className="rounded-2xl border border-border bg-background px-4 py-4">
+          <div className="flex items-start gap-4">
+            <div className="h-11 w-11 rounded-2xl bg-card" />
+            <div className="min-w-0 flex-1 space-y-3">
+              <div className="h-3 w-28 rounded bg-card" />
+              <div className="h-5 w-32 rounded bg-card" />
+              <div className="h-4 w-full rounded bg-card" />
+            </div>
+          </div>
+        </div>
+        <div className="rounded-2xl border border-border bg-background px-4 py-4">
+          <div className="flex items-start gap-4">
+            <div className="h-11 w-11 rounded-2xl bg-card" />
+            <div className="min-w-0 flex-1 space-y-3">
+              <div className="h-3 w-32 rounded bg-card" />
+              <div className="h-5 w-36 rounded bg-card" />
+              <div className="h-4 w-full rounded bg-card" />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div
+        className="relative min-h-152 overflow-hidden rounded-3xl border border-border bg-background/80 shadow-xl"
+        data-provider-connect-selected-skeleton
+      >
+        <div className="absolute inset-0 flex flex-col p-5 sm:p-6">
+          <div className="flex items-start gap-4">
+            <div className="h-12 w-12 rounded-2xl bg-card" />
+            <div className="min-w-0 flex-1 space-y-3">
+              <div className="h-3 w-32 rounded bg-card" />
+              <div className="h-7 w-40 rounded bg-card" />
+              <div className="h-4 w-full rounded bg-card" />
+              <div className="h-4 w-2/3 rounded bg-card" />
+            </div>
+          </div>
+          <div className="mt-6 flex flex-1 flex-col justify-between gap-6">
+            <div className="space-y-4">
+              <div className="h-18 rounded-2xl border border-border bg-card" />
+              <div className="h-18 rounded-2xl border border-border bg-card" />
+            </div>
+            <div className="space-y-4">
+              <div className="h-12 rounded-2xl bg-primary/10" />
+              <div className="mx-auto h-3 w-44 rounded bg-card" />
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }
 
