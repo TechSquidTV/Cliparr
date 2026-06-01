@@ -213,6 +213,32 @@ export function DashboardPlaybackCard({
   );
 }
 
+function DashboardPlaybackCardSkeleton({ className }: { className?: string }) {
+  return (
+    <div
+      className={cn(
+        "flex flex-col overflow-hidden rounded-lg border border-border bg-card text-card-foreground",
+        className,
+      )}
+      aria-hidden="true"
+      data-dashboard-playback-skeleton
+    >
+      <div className="aspect-video w-full bg-background" />
+      <div className="flex flex-1 flex-col gap-3 p-3 md:p-4">
+        <div className="flex min-w-0 items-center gap-2.5">
+          <div className="h-8 w-8 shrink-0 rounded-full bg-background" />
+          <div className="min-w-0 flex-1 space-y-2">
+            <div className="h-3 w-28 rounded bg-background" />
+            <div className="h-2.5 w-36 rounded bg-background" />
+          </div>
+        </div>
+        <div className="h-4 w-24 rounded bg-background" />
+        <div className="h-9 w-full rounded-lg bg-primary/10" />
+      </div>
+    </div>
+  );
+}
+
 function WarningBanner({
   sourceErrors,
 }: {
@@ -305,6 +331,7 @@ export default function DashboardScreen({
 
   const playbackCards = flattenDashboardPlaybackItems(viewers);
   const hasPlaybackCards = playbackCards.length > 0;
+  const showPlaybackGrid = loading || hasPlaybackCards;
   const emptyMessage =
     sourceErrors.length > 0
       ? "No active playback on the available sources."
@@ -431,9 +458,9 @@ export default function DashboardScreen({
         </header>
 
         <div
-          className={hasPlaybackCards ? "space-y-4 sm:space-y-6" : "space-y-6"}
+          className={showPlaybackGrid ? "space-y-4 sm:space-y-6" : "space-y-6"}
         >
-          <div className={hasPlaybackCards ? "sr-only" : ""}>
+          <div className={showPlaybackGrid ? "sr-only" : ""}>
             <h2 className="text-xl font-semibold mb-2">Currently Playing</h2>
             <p className="text-muted-foreground text-sm">
               Active sessions across enabled sources.
@@ -462,7 +489,18 @@ export default function DashboardScreen({
             </div>
           )}
 
-          {hasPlaybackCards && (
+          {loading && !error && (
+            <div
+              className="grid grid-cols-1 gap-3 md:grid-cols-2 md:gap-4 xl:grid-cols-3"
+              data-dashboard-loading-grid
+            >
+              <DashboardPlaybackCardSkeleton />
+              <DashboardPlaybackCardSkeleton className="hidden md:flex" />
+              <DashboardPlaybackCardSkeleton className="hidden xl:flex" />
+            </div>
+          )}
+
+          {!loading && hasPlaybackCards && (
             <div className="grid grid-cols-1 gap-3 md:grid-cols-2 md:gap-4 xl:grid-cols-3">
               {playbackCards.map((card) => (
                 <DashboardPlaybackCard

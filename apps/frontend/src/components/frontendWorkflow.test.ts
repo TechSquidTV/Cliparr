@@ -256,6 +256,21 @@ void test("does not render dashboard PWA nudge in default server markup", () => 
   assert.doesNotMatch(markup, /Add Cliparr to your home screen/);
 });
 
+void test("reserves dashboard playback card space before sessions load", () => {
+  const markup = renderToStaticMarkup(
+    createElement(DashboardScreen, {
+      activeViewTransitionSessionId: null,
+      onSelectSession: () => undefined,
+      onOpenLocalVideo: () => undefined,
+      onOpenSources: () => undefined,
+      onLogout: () => undefined,
+    }),
+  );
+
+  assert.match(markup, /data-dashboard-loading-grid/);
+  assert.match(markup, /data-dashboard-playback-skeleton/);
+});
+
 void test("renders mobile PWA install nudge on the initial eligible browser pass", () => {
   withMobilePwaBrowserEnvironment(() => {
     const markup = renderToStaticMarkup(createElement(MobilePwaInstallNudge));
