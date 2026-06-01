@@ -60,7 +60,7 @@ export type JellyfinMediaStream = Omit<MediaStream, "Type"> & {
   Type?: string;
 };
 
-type JellyfinMediaSource = Omit<MediaSourceInfo, "MediaStreams"> & {
+export type JellyfinMediaSource = Omit<MediaSourceInfo, "MediaStreams"> & {
   MediaStreams?: JellyfinMediaStream[] | null;
 };
 

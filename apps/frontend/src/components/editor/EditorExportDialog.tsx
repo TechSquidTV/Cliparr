@@ -1,6 +1,12 @@
 import { Download } from "lucide-react";
 import type { ExportFormat, ExportResolution } from "@/lib/exportClip";
 import {
+  formatExportByteSize,
+  type ExportSizeEstimate,
+  type GifExportPreset,
+  type GifExportSettings,
+} from "@/lib/exportTypes";
+import {
   type ExportFileNameTemplateKind,
   type ExportFileNameTemplateSettings,
 } from "@/lib/exportFileName";
@@ -36,12 +42,18 @@ interface EditorExportDialogProps {
   clipEnd: number;
   selectedFormat: ExportFormat;
   onFormatChange: (format: ExportFormat) => void;
+  selectedGifPreset: GifExportPreset;
+  onGifPresetChange: (preset: GifExportPreset) => void;
+  gifSettings?: GifExportSettings | null;
+  outputSizeEstimate: ExportSizeEstimate;
+  projectedOutputBytes?: number | null;
   selectedResolution: ExportResolution;
   onResolutionChange: (resolution: ExportResolution) => void;
   selectedSourcePreference: ExportSourcePreference;
   onSourcePreferenceChange: (preference: ExportSourcePreference) => void;
   includeAudio: boolean;
   onIncludeAudioChange: (includeAudio: boolean) => void;
+  audioDisabledReason?: string | null;
   exporting: boolean;
   progress: number;
   error: string | null;
@@ -78,12 +90,18 @@ export function EditorExportDialog({
   clipEnd,
   selectedFormat,
   onFormatChange,
+  selectedGifPreset,
+  onGifPresetChange,
+  gifSettings,
+  outputSizeEstimate,
+  projectedOutputBytes,
   selectedResolution,
   onResolutionChange,
   selectedSourcePreference,
   onSourcePreferenceChange,
   includeAudio,
   onIncludeAudioChange,
+  audioDisabledReason,
   exporting,
   progress,
   error,
@@ -110,6 +128,14 @@ export function EditorExportDialog({
   onExport,
 }: EditorExportDialogProps) {
   const selectedFormatOption = formatOptionFor(selectedFormat);
+  const displayedEstimateBytes =
+    selectedFormat === "gif" && typeof projectedOutputBytes === "number"
+      ? projectedOutputBytes
+      : outputSizeEstimate.bytes;
+  const displayedEstimateLabel =
+    typeof displayedEstimateBytes === "number"
+      ? `~${formatExportByteSize(displayedEstimateBytes)}`
+      : "Unavailable";
 
   return (
     <DialogWindow
@@ -133,12 +159,15 @@ export function EditorExportDialog({
           <EditorExportSettingsSection
             selectedFormat={selectedFormat}
             onFormatChange={onFormatChange}
+            selectedGifPreset={selectedGifPreset}
+            onGifPresetChange={onGifPresetChange}
             selectedResolution={selectedResolution}
             onResolutionChange={onResolutionChange}
             selectedSourcePreference={selectedSourcePreference}
             onSourcePreferenceChange={onSourcePreferenceChange}
             includeAudio={includeAudio}
             onIncludeAudioChange={onIncludeAudioChange}
+            audioDisabledReason={audioDisabledReason}
             hasHlsSource={hasHlsSource}
             hasDirectSource={hasDirectSource}
             directSourceLabel={directSourceLabel}
@@ -159,6 +188,7 @@ export function EditorExportDialog({
           clipStart={clipStart}
           clipEnd={clipEnd}
           selectedFormat={selectedFormat}
+          gifSettings={gifSettings}
           outputDimensions={outputDimensions}
           exportSourceLabel={exportSourceLabel}
           exportSourceSummaryMessage={exportSourceSummaryMessage}
@@ -168,6 +198,7 @@ export function EditorExportDialog({
           subtitleSummaryTone={subtitleSummaryTone}
           activeTemplateKind={activeTemplateKind}
           fileNamePreview={fileNamePreview}
+          estimatedSizeLabel={displayedEstimateLabel}
         />
       </div>
 

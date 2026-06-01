@@ -2,7 +2,7 @@
 
 import assert from "node:assert/strict";
 import test from "node:test";
-import { createElement, createRef } from "react";
+import { createElement, createRef, type ComponentProps } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import {
   flattenDashboardPlaybackItems,
@@ -13,11 +13,13 @@ import { DashboardPlaybackCard } from "@/components/DashboardScreen";
 import DashboardScreen from "@/components/DashboardScreen";
 import { DashboardMobileMenu } from "@/components/DashboardMobileMenu";
 import { EditorControls } from "@/components/editor/EditorControls";
+import { EditorExportDialog } from "@/components/editor/EditorExportDialog";
 import { EditorFramegrabDialog } from "@/components/editor/EditorFramegrabDialog";
 import { EditorPreview } from "@/components/editor/EditorPreview";
 import { LocalVideoOpenDialog } from "@/components/local-media/LocalVideoOpenDialog";
 import { MobilePwaInstallNudgeCard } from "@/components/MobilePwaInstallNudge";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { gifExportSettingsForPreset } from "@/lib/exportTypes";
 import { EDITOR_THUMBNAIL_VIEW_TRANSITION_NAME } from "@/lib/viewTransitions";
 import type { ViewerPlaybackGroup } from "@/providers/types";
 
@@ -67,6 +69,67 @@ const dashboardPlaybackGroups: ViewerPlaybackGroup[] = [
     ],
   },
 ];
+
+function renderExportDialogMarkup(
+  overrides: Partial<ComponentProps<typeof EditorExportDialog>> = {},
+) {
+  const props = {
+    isOpen: true,
+    title: "Example Movie",
+    clipStart: 10,
+    clipEnd: 20,
+    selectedFormat: "mp4",
+    onFormatChange: () => undefined,
+    selectedGifPreset: "balanced",
+    onGifPresetChange: () => undefined,
+    gifSettings: null,
+    outputSizeEstimate: { bytes: 7_029_750, basis: "codec-heuristic" },
+    projectedOutputBytes: null,
+    selectedResolution: "original",
+    onResolutionChange: () => undefined,
+    selectedSourcePreference: "auto",
+    onSourcePreferenceChange: () => undefined,
+    includeAudio: true,
+    onIncludeAudioChange: () => undefined,
+    audioDisabledReason: null,
+    exporting: false,
+    progress: 0,
+    error: null,
+    fileNamePreview: "Example Movie [00m10s-00m20s].mp4",
+    outputDimensions: { width: 1920, height: 1080 },
+    hasHlsSource: true,
+    hasDirectSource: true,
+    directSourceLabel: "Direct/original",
+    hlsSourceLabel: "HLS playback",
+    exportSourceLabel: "Auto: HLS playback",
+    exportSourceMessage: null,
+    exportSourceSummaryMessage: null,
+    subtitleSummaryLabel: "Off",
+    subtitleSummaryDetail: "No subtitles will be burned in.",
+    subtitleSummaryTone: "muted",
+    exportDisabledReason: null,
+    activeTemplateKind: "movie",
+    editingTemplateKind: "movie",
+    onEditingTemplateKindChange: () => undefined,
+    fileNameTemplates: {
+      movie: "{title} [{start}-{end}]",
+      episode: "{series} - {episodeTitle} [{start}-{end}]",
+    },
+    onFileNameTemplateChange: () => undefined,
+    onResetFileNameTemplate: () => undefined,
+    onClose: () => undefined,
+    onExport: () => undefined,
+    ...overrides,
+  } satisfies ComponentProps<typeof EditorExportDialog>;
+
+  return renderToStaticMarkup(
+    createElement(
+      TooltipProvider,
+      null,
+      createElement(EditorExportDialog, props),
+    ),
+  );
+}
 
 void test("renders the provider auth completion screen", () => {
   const markup = renderToStaticMarkup(createElement(AuthCompleteScreen));
@@ -352,6 +415,59 @@ void test("renders the framegrab export dialog actions", () => {
   assert.doesNotMatch(markup, /sr-only/);
   assert.match(markup, /Copied to clipboard\./);
   assert.match(markup, /Example Movie \[01m01s\]\.png/);
+});
+
+void test("renders GIF preset controls and live projected size", () => {
+  const markup = renderExportDialogMarkup({
+    selectedFormat: "gif",
+    selectedGifPreset: "balanced",
+    gifSettings: gifExportSettingsForPreset("balanced"),
+    outputSizeEstimate: { bytes: 1_025_984, basis: "gif-heuristic" },
+    projectedOutputBytes: 1_572_864,
+    includeAudio: false,
+    audioDisabledReason: "GIF exports are video only.",
+    fileNamePreview: "Example Movie [00m10s-00m20s].gif",
+    outputDimensions: { width: 853, height: 480 },
+  });
+
+  assert.match(markup, /GIF Preset/);
+  assert.match(markup, /480p max, 12 fps, 128 colors, stable palette\./);
+  assert.match(markup, /12 fps \/ 128 colors \/ stable palette/);
+  assert.match(markup, /Filename[\s\S]*Estimated size/);
+  assert.match(markup, /~1\.5 MB/);
+  assert.match(markup, /GIF exports are video only\./);
+  assert.match(markup, /role="note"/);
+  assert.match(
+    markup,
+    /GIF is a legacy animated image format\. Use WebM when your destination supports it; choose GIF only for platforms that require it\./,
+  );
+});
+
+void test("hides GIF-only export details for video formats", () => {
+  const markup = renderExportDialogMarkup({
+    selectedFormat: "mp4",
+    gifSettings: gifExportSettingsForPreset("balanced"),
+    projectedOutputBytes: 1_572_864,
+  });
+
+  assert.doesNotMatch(markup, /GIF Preset/);
+  assert.match(markup, /Filename[\s\S]*Estimated size/);
+  assert.match(markup, /~6\.7 MB/);
+  assert.doesNotMatch(markup, /~1\.5 MB/);
+  assert.doesNotMatch(markup, /12 fps \/ 128 colors \/ stable palette/);
+  assert.doesNotMatch(markup, /invisible border-transparent/);
+  assert.doesNotMatch(markup, /sm:w-36/);
+  assert.doesNotMatch(markup, /Size Estimate/);
+});
+
+void test("renders unavailable summary estimate when size inputs are missing", () => {
+  const markup = renderExportDialogMarkup({
+    outputDimensions: null,
+    outputSizeEstimate: { bytes: null, basis: "unavailable" },
+  });
+
+  assert.match(markup, /Filename[\s\S]*Estimated size/);
+  assert.match(markup, /Unavailable/);
 });
 
 void test("renders framegrab capture errors without a captured canvas", () => {

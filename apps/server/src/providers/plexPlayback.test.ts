@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import type { ProviderSessionRecord } from "@/session/store";
 import {
+  createPlexExportEstimateMetadata,
   createCliparrPlexTranscodeSessionId,
   createPreviewPath,
   deriveSelectedSubtitleTrack,
@@ -105,6 +106,57 @@ void test("converts Plex viewOffset milliseconds into playhead seconds", () => {
   assert.equal(playheadSecondsFromViewOffset(null), undefined);
   assert.equal(playheadSecondsFromViewOffset(undefined), undefined);
   assert.equal(playheadSecondsFromViewOffset("nope"), undefined);
+});
+
+void test("extracts Plex export size estimate metadata from selected media", () => {
+  const item = {
+    duration: 600_000,
+    Media: [
+      {
+        id: "media-1",
+        bitrate: 1_600,
+        width: 1920,
+        height: 1080,
+        selected: 1,
+        Part: [
+          {
+            id: "part-1",
+            selected: 1,
+            size: 120_000_000,
+            duration: 600_000,
+            Stream: [
+              {
+                id: "video-1",
+                streamType: 1,
+                width: 1920,
+                height: 1080,
+                bitrate: 1_400,
+                frameRate: 23.976,
+                selected: 1,
+              },
+              {
+                id: "audio-1",
+                streamType: 2,
+                bitrate: 160,
+                selected: 1,
+              },
+            ],
+          },
+        ],
+      },
+    ],
+  };
+
+  assert.deepEqual(createPlexExportEstimateMetadata(item, undefined, 600), {
+    sourceSizeBytes: 120_000_000,
+    sourceDurationSeconds: 600,
+    sourceBitrateKbps: 1_600,
+    videoBitrateKbps: 1_400,
+    audioBitrateKbps: 160,
+    width: 1920,
+    height: 1080,
+    frameRate: 23.976,
+  });
 });
 
 void test("creates a direct content URL for Plex sidecar text subtitle streams", () => {

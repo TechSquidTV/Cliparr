@@ -5,6 +5,7 @@ import test from "node:test";
 import type { ConversionOptions } from "mediabunny";
 import { exportClipWithRuntime } from "@/lib/exportClip";
 import type { EditorMediaSource } from "@/lib/editorMedia";
+import { gifExportSettingsForPreset } from "@/lib/exportTypes";
 import type { SubtitleStyleSettings } from "@/lib/subtitles/types";
 
 type ExportRuntime = Parameters<typeof exportClipWithRuntime>[1];
@@ -44,6 +45,7 @@ function createRuntime(overrides: Partial<ExportRuntime> = {}) {
   const videoTrack = {
     id: "video-1",
     hasOnlyKeyPackets: async () => false,
+    canBeTransparent: async () => false,
   };
   const audioTrack = {
     id: "audio-1",
@@ -81,6 +83,33 @@ function createRuntime(overrides: Partial<ExportRuntime> = {}) {
       ({ mimeType: "video/mp4" }) as unknown as OutputFormat,
     createBufferTarget: () => target as unknown as BufferTargetResult,
     createOutput: (options) => ({ options }) as unknown as OutputResult,
+    createCanvasSink: () =>
+      ({
+        getCanvas: async () => null,
+      }) as unknown as ReturnType<ExportRuntime["createCanvasSink"]>,
+    createGifCanvas: () =>
+      ({
+        canvas: {},
+        context: {
+          clearRect: () => undefined,
+          drawImage: () => undefined,
+          getImageData: () => ({
+            data: new Uint8ClampedArray(4),
+          }),
+        },
+      }) as unknown as ReturnType<ExportRuntime["createGifCanvas"]>,
+    createGifEncoder: () =>
+      ({
+        bytes: () => new Uint8Array([71, 73, 70]),
+        bytesView: () => new Uint8Array([71, 73, 70]),
+        finish: () => undefined,
+        reset: () => undefined,
+        writeFrame: () => undefined,
+      }) as unknown as ReturnType<ExportRuntime["createGifEncoder"]>,
+    quantizeGifFrame: () => [[0, 0, 0]],
+    applyGifPalette: () => new Uint8Array([0]),
+    getActiveSubtitleCue: () => undefined,
+    renderSubtitleCue: () => undefined,
     initConversion: async () =>
       createConversion({
         target,
@@ -337,4 +366,289 @@ void test("validates subtitle burn-in inputs and wires the burn-in processor", a
   ) as { process?: unknown };
   assert.equal(processorCueCount, 1);
   assert.equal(videoOptions.process, processor);
+});
+
+void test("exports GIF frames through the browser encoder path", async () => {
+  const gifSettings = gifExportSettingsForPreset("compact");
+  const timestamps: string[] = [];
+  const progress: Array<{
+    encodedBytes?: number;
+    encodedFrames?: number;
+    progress: number;
+    projectedBytes?: number;
+    totalFrames?: number;
+  }> = [];
+  const writtenFrames: Array<{
+    delay?: number;
+    height: number;
+    width: number;
+  }> = [];
+  const quantizeCalls: Array<{ byteLength: number; maxColors: number }> = [];
+  const globalPalette = [
+    [0, 0, 0],
+    [255, 255, 255],
+  ] satisfies Array<[number, number, number]>;
+  const gifContext = {
+    imageSmoothingEnabled: false,
+    imageSmoothingQuality: "low",
+    clearRect: () => undefined,
+    drawImage: () => undefined,
+    getImageData: () => ({
+      data: new Uint8ClampedArray(4 * 4 * 4),
+    }),
+  };
+  let canvasSinkOptions: { fit?: string; height?: number } | undefined;
+  let gifByteLength = 0;
+  let finished = false;
+  const context = createRuntime({
+    buildMetadataTags: async () => {
+      throw new Error("metadata should not be built for GIF exports");
+    },
+    createOutputFormat: () => {
+      throw new Error("Mediabunny output format should not be used for GIFs");
+    },
+    getVideoTrackDimensions: async () => ({ width: 4, height: 4 }),
+    createCanvasSink: (_track, options) => {
+      canvasSinkOptions = options;
+      return {
+        getCanvas: async (timestamp: number) => {
+          timestamps.push(timestamp.toFixed(4));
+          return {
+            canvas: {},
+            timestamp,
+            duration: 1 / gifSettings.frameRate,
+          };
+        },
+      } as unknown as ReturnType<ExportRuntime["createCanvasSink"]>;
+    },
+    createGifCanvas: (width, height) =>
+      ({
+        canvas: { height, width },
+        context: gifContext,
+      }) as unknown as ReturnType<ExportRuntime["createGifCanvas"]>,
+    createGifEncoder: () =>
+      ({
+        bytes: () => new Uint8Array(gifByteLength),
+        bytesView: () => new Uint8Array(gifByteLength),
+        finish: () => {
+          finished = true;
+        },
+        reset: () => undefined,
+        writeFrame: (
+          _index: Uint8Array,
+          width: number,
+          height: number,
+          options?: { delay?: number },
+        ) => {
+          writtenFrames.push({
+            delay: options?.delay,
+            height,
+            width,
+          });
+          gifByteLength += 4;
+        },
+      }) as unknown as ReturnType<ExportRuntime["createGifEncoder"]>,
+    quantizeGifFrame: (rgba, maxColors) => {
+      quantizeCalls.push({ byteLength: rgba.length, maxColors });
+      return globalPalette;
+    },
+    applyGifPalette: (rgba, palette) => {
+      assert.equal(rgba.length, 4 * 4 * 4);
+      assert.equal(palette, globalPalette);
+      return new Uint8Array(4 * 4);
+    },
+    initConversion: async () => {
+      throw new Error("Mediabunny conversion should not run for GIFs");
+    },
+  });
+
+  const blob = await exportClipWithRuntime(
+    {
+      mediaSource,
+      startTime: 10,
+      endTime: 10 + 2 / gifSettings.frameRate,
+      format: "gif",
+      resolution: "original",
+      gifSettings,
+      includeAudio: true,
+      metadata: {
+        providerId: "plex",
+        itemType: "movie",
+        title: "Movie",
+      },
+      onProgress: (value, stats) =>
+        progress.push({ progress: value, ...stats }),
+    },
+    context.runtime,
+  );
+
+  assert.equal(blob.type, "image/gif");
+  assert.equal(blob.size, 8);
+  assert.deepEqual(timestamps, ["15.0000", "15.1000", "15.0000", "15.1000"]);
+  assert.deepEqual(quantizeCalls, [
+    {
+      byteLength: 2 * 4 * 4 * 4,
+      maxColors: gifSettings.maxColors,
+    },
+  ]);
+  assert.deepEqual(progress, [
+    {
+      encodedBytes: 4,
+      encodedFrames: 1,
+      progress: 0.5,
+      projectedBytes: 8,
+      totalFrames: 2,
+    },
+    {
+      encodedBytes: 8,
+      encodedFrames: 2,
+      progress: 1,
+      projectedBytes: 8,
+      totalFrames: 2,
+    },
+  ]);
+  assert.equal(canvasSinkOptions?.fit, "contain");
+  assert.equal(canvasSinkOptions?.height, 4);
+  assert.equal(gifContext.imageSmoothingEnabled, true);
+  assert.equal(gifContext.imageSmoothingQuality, "high");
+  assert.deepEqual(writtenFrames, [
+    {
+      delay: 1000 / gifSettings.frameRate,
+      height: 4,
+      width: 4,
+    },
+    {
+      delay: 1000 / gifSettings.frameRate,
+      height: 4,
+      width: 4,
+    },
+  ]);
+  assert.equal(finished, true);
+  assert.equal(context.disposed, true);
+});
+
+void test("uses per-frame GIF palettes for the sharp preset", async () => {
+  const gifSettings = gifExportSettingsForPreset("sharp");
+  const timestamps: string[] = [];
+  const quantizeCalls: Array<{ byteLength: number; maxColors: number }> = [];
+  const context = createRuntime({
+    getVideoTrackDimensions: async () => ({ width: 4, height: 4 }),
+    createCanvasSink: () =>
+      ({
+        getCanvas: async (timestamp: number) => {
+          timestamps.push(timestamp.toFixed(4));
+          return {
+            canvas: {},
+            timestamp,
+            duration: 1 / gifSettings.frameRate,
+          };
+        },
+      }) as unknown as ReturnType<ExportRuntime["createCanvasSink"]>,
+    createGifCanvas: (width, height) =>
+      ({
+        canvas: { height, width },
+        context: {
+          clearRect: () => undefined,
+          drawImage: () => undefined,
+          getImageData: () => ({
+            data: new Uint8ClampedArray(width * height * 4),
+          }),
+        },
+      }) as unknown as ReturnType<ExportRuntime["createGifCanvas"]>,
+    quantizeGifFrame: (rgba, maxColors) => {
+      quantizeCalls.push({ byteLength: rgba.length, maxColors });
+      return [[0, 0, 0]];
+    },
+  });
+
+  await exportClipWithRuntime(
+    {
+      mediaSource,
+      startTime: 10,
+      endTime: 10 + 2 / gifSettings.frameRate,
+      format: "gif",
+      resolution: "original",
+      gifSettings,
+      includeAudio: false,
+      onProgress: () => undefined,
+    },
+    context.runtime,
+  );
+
+  assert.deepEqual(timestamps, ["15.0000", "15.0667"]);
+  assert.deepEqual(quantizeCalls, [
+    {
+      byteLength: 4 * 4 * 4,
+      maxColors: gifSettings.maxColors,
+    },
+    {
+      byteLength: 4 * 4 * 4,
+      maxColors: gifSettings.maxColors,
+    },
+  ]);
+});
+
+void test("renders subtitles when burning cues into GIF frames", async () => {
+  const gifSettings = gifExportSettingsForPreset("sharp");
+  let renderedSubtitleCount = 0;
+  let activeSubtitleTimestamp: number | undefined;
+  const context = createRuntime({
+    getVideoTrackDimensions: async () => ({ width: 4, height: 4 }),
+    createCanvasSink: () =>
+      ({
+        getCanvas: async () => ({
+          canvas: {},
+          timestamp: 5,
+          duration: 1 / gifSettings.frameRate,
+        }),
+      }) as unknown as ReturnType<ExportRuntime["createCanvasSink"]>,
+    createGifCanvas: (width, height) =>
+      ({
+        canvas: { height, width },
+        context: {
+          clearRect: () => undefined,
+          drawImage: () => undefined,
+          getImageData: () => ({
+            data: new Uint8ClampedArray(width * height * 4),
+          }),
+        },
+      }) as unknown as ReturnType<ExportRuntime["createGifCanvas"]>,
+    getActiveSubtitleCue: (cues, timestamp) => {
+      activeSubtitleTimestamp = timestamp;
+      return cues[0];
+    },
+    renderSubtitleCue: (_context, cue, _styleSettings, width, height) => {
+      assert.equal(cue.text, "Hello");
+      assert.equal(width, 4);
+      assert.equal(height, 4);
+      renderedSubtitleCount += 1;
+    },
+  });
+
+  await exportClipWithRuntime(
+    {
+      mediaSource,
+      startTime: 10,
+      endTime: 10 + 1 / gifSettings.frameRate,
+      format: "gif",
+      resolution: "original",
+      gifSettings,
+      includeAudio: false,
+      includeBurnedSubtitles: true,
+      subtitleStyleSettings: subtitleStyle,
+      subtitleCues: [
+        {
+          startTime: 10,
+          endTime: 11,
+          text: "Hello",
+          lines: ["Hello"],
+        },
+      ],
+      onProgress: () => undefined,
+    },
+    context.runtime,
+  );
+
+  assert.equal(activeSubtitleTimestamp, 0);
+  assert.equal(renderedSubtitleCount, 1);
 });

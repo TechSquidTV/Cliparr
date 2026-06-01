@@ -1,10 +1,23 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
+  compactLogFields,
   logDurationFields,
   logErrorFields,
   logEventFields,
 } from "@cliparr/shared/logging";
 import type { ExportFormat, ExportResolution } from "@/lib/exportClip";
+import {
+  DEFAULT_GIF_EXPORT_PRESET,
+  estimateExportOutputSize,
+  gifExportSettingsForPreset,
+  exportFormatDurationDisabledReason,
+  exportFormatSupportsAudio,
+  resolveExportOutputDimensions,
+  type ExportSizeEstimate,
+  type ExportProgressStats,
+  type GifExportPreset,
+  type GifExportSettings,
+} from "@/lib/exportTypes";
 import {
   buildExportFileName,
   defaultExportFileNameTemplates,
@@ -20,6 +33,10 @@ import {
   type EditorMediaSource,
   type EditorSession,
 } from "@/lib/editorMedia";
+import {
+  fetchHlsExportEstimateMetadata,
+  type HlsExportEstimateMetadata,
+} from "@/lib/hlsExportEstimate";
 import { subtitleTrackSupportsBurnIn } from "@/lib/selectPreferredSubtitleTrack";
 import type { SubtitleCue, SubtitleStyleSettings } from "@/lib/subtitles/types";
 import type { PlaybackSubtitleTrack } from "@/providers/types";
@@ -41,6 +58,7 @@ interface ResolvedExportSource {
 
 interface ExportReadinessInput {
   exportSource: ResolvedExportSource;
+  format: ExportFormat;
   exporting: boolean;
   startTime: number;
   endTime: number;
@@ -83,6 +101,9 @@ export function useEditorExport({
 }: UseEditorExportProps) {
   const [resolution, setResolution] = useState<ExportResolution>("original");
   const [exportFormat, setExportFormat] = useState<ExportFormat>("mp4");
+  const [gifPreset, setGifPreset] = useState<GifExportPreset>(
+    DEFAULT_GIF_EXPORT_PRESET,
+  );
   const [exportSourcePreference, setExportSourcePreference] =
     useState<ExportSourcePreference>("auto");
   const [includeAudio, setIncludeAudio] = useState(true);
@@ -95,11 +116,24 @@ export function useEditorExport({
   const [exportDialogOpen, setExportDialogOpen] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [progress, setProgress] = useState(0);
+  const [projectedOutputBytes, setProjectedOutputBytes] = useState<
+    number | null
+  >(null);
+  const [hlsEstimateMetadata, setHlsEstimateMetadata] =
+    useState<HlsExportEstimateMetadata | null>(null);
   const [exportError, setExportError] = useState<string | null>(null);
   const exportLogger = useMemo(
     () => logger.with({ "editor.session.id": session.id }),
     [session.id],
   );
+  const gifSettings = useMemo(
+    () => gifExportSettingsForPreset(gifPreset),
+    [gifPreset],
+  );
+  const audioDisabledReason = exportFormatSupportsAudio(exportFormat)
+    ? null
+    : "GIF exports are video only.";
+  const effectiveIncludeAudio = audioDisabledReason ? false : includeAudio;
 
   const effectiveExportSourcePreference =
     exportSourcePreference === "direct" && !session.directSource
@@ -199,16 +233,167 @@ export function useEditorExport({
   );
 
   const outputDimensions = useMemo(
-    () => getOutputDimensions(sourceVideoDimensions, resolution),
-    [resolution, sourceVideoDimensions],
+    () =>
+      getOutputDimensions(
+        sourceVideoDimensions,
+        resolution,
+        exportFormat,
+        exportFormat === "gif" ? gifSettings : undefined,
+      ),
+    [exportFormat, gifSettings, resolution, sourceVideoDimensions],
+  );
+
+  const shouldEstimateBurnedSubtitles =
+    subtitleEnabled &&
+    !subtitleLoading &&
+    Boolean(selectedSubtitleTrack) &&
+    selectedSubtitleTrack !== null &&
+    subtitleTrackSupportsBurnIn(selectedSubtitleTrack) &&
+    clippedSubtitleCues.length > 0;
+  const sourceSizeBytes =
+    exportSource.kind === "direct"
+      ? (exportSourceSizeBytes(exportSource.source) ??
+        session.exportEstimateMetadata?.sourceSizeBytes)
+      : null;
+  const sourceDurationSeconds =
+    exportSource.kind === "direct"
+      ? (session.exportEstimateMetadata?.sourceDurationSeconds ??
+        session.duration)
+      : session.duration;
+  const sourceBitrateKbps =
+    exportSource.kind !== "none"
+      ? session.exportEstimateMetadata?.sourceBitrateKbps
+      : null;
+  const videoBitrateKbps =
+    exportSource.kind !== "none"
+      ? session.exportEstimateMetadata?.videoBitrateKbps
+      : null;
+  const audioBitrateKbps =
+    exportSource.kind !== "none"
+      ? session.exportEstimateMetadata?.audioBitrateKbps
+      : null;
+  const hlsManifestBitrateKbps =
+    exportSource.kind === "hls" ? hlsEstimateMetadata?.bitrateKbps : null;
+  const hlsManifestBitrateBasis =
+    exportSource.kind === "hls" ? hlsEstimateMetadata?.bitrateBasis : null;
+  const estimateSourceBitrateKbps =
+    exportSource.kind === "direct" ? sourceBitrateKbps : null;
+  const estimateVideoBitrateKbps =
+    exportSource.kind === "direct" ? videoBitrateKbps : null;
+  const estimateAudioBitrateKbps =
+    exportSource.kind === "direct" ? audioBitrateKbps : null;
+  const outputSizeEstimate = useMemo(
+    () =>
+      estimateExportOutputSize({
+        format: exportFormat,
+        durationSeconds: Math.max(0, endTime - startTime),
+        outputDimensions,
+        includeAudio: effectiveIncludeAudio,
+        resolution,
+        gifSettings: exportFormat === "gif" ? gifSettings : null,
+        sourceSizeBytes,
+        sourceDurationSeconds,
+        sourceBitrateKbps: estimateSourceBitrateKbps,
+        videoBitrateKbps: estimateVideoBitrateKbps,
+        audioBitrateKbps: estimateAudioBitrateKbps,
+        hlsManifestBitrateKbps,
+        hlsManifestBitrateBasis,
+        includeBurnedSubtitles: shouldEstimateBurnedSubtitles,
+      }),
+    [
+      effectiveIncludeAudio,
+      endTime,
+      estimateAudioBitrateKbps,
+      estimateSourceBitrateKbps,
+      estimateVideoBitrateKbps,
+      exportFormat,
+      gifSettings,
+      hlsManifestBitrateBasis,
+      hlsManifestBitrateKbps,
+      outputDimensions,
+      resolution,
+      shouldEstimateBurnedSubtitles,
+      sourceDurationSeconds,
+      sourceSizeBytes,
+      startTime,
+    ],
+  );
+
+  const exportFormatDisabledReason = useMemo(
+    () => exportFormatDurationDisabledReason(exportFormat, startTime, endTime),
+    [endTime, exportFormat, startTime],
   );
 
   useEffect(() => {
     saveExportFileNameTemplates(fileNameTemplates);
   }, [fileNameTemplates]);
 
+  useEffect(() => {
+    setHlsEstimateMetadata(null);
+
+    if (
+      !exportDialogOpen ||
+      exportFormat === "gif" ||
+      exportSource.kind !== "hls" ||
+      exportSource.source?.kind !== "url"
+    ) {
+      return;
+    }
+
+    const controller = new AbortController();
+
+    fetchHlsExportEstimateMetadata(
+      exportSource.source.url,
+      outputDimensions,
+      controller.signal,
+    )
+      .then((metadata) => {
+        if (!controller.signal.aborted) {
+          setHlsEstimateMetadata(metadata);
+        }
+      })
+      .catch((error: unknown) => {
+        const isAbortError =
+          error instanceof Error && error.name === "AbortError";
+        if (!controller.signal.aborted && !isAbortError) {
+          setHlsEstimateMetadata(null);
+        }
+      });
+
+    return () => {
+      controller.abort();
+    };
+  }, [
+    exportDialogOpen,
+    exportFormat,
+    exportSource.kind,
+    exportSource.source,
+    outputDimensions,
+  ]);
+
+  useEffect(() => {
+    setProjectedOutputBytes(null);
+  }, [
+    clippedSubtitleCues,
+    effectiveExportSourcePreference,
+    endTime,
+    exportFormat,
+    exportSource.kind,
+    exportSource.source,
+    gifPreset,
+    includeAudio,
+    resolution,
+    selectedSubtitleTrack,
+    startTime,
+    subtitleEnabled,
+    subtitleStyleSettings,
+  ]);
+
   const handleOpenExportDialog = useCallback(() => {
     setExportError(null);
+    setProjectedOutputBytes(null);
+    setHlsEstimateMetadata(null);
+    setProgress(0);
     setTemplateEditorKind(fileName.templateKind);
     setExportDialogOpen(true);
   }, [fileName.templateKind]);
@@ -219,16 +404,28 @@ export function useEditorExport({
     }
 
     setExportDialogOpen(false);
+    setProjectedOutputBytes(null);
+    setHlsEstimateMetadata(null);
   }, [exporting]);
 
   const handleFormatChange = useCallback((nextFormat: ExportFormat) => {
     setExportFormat(nextFormat);
+    setProjectedOutputBytes(null);
+    setHlsEstimateMetadata(null);
+    setExportError(null);
+  }, []);
+
+  const handleGifPresetChange = useCallback((nextPreset: GifExportPreset) => {
+    setGifPreset(nextPreset);
+    setProjectedOutputBytes(null);
     setExportError(null);
   }, []);
 
   const handleResolutionChange = useCallback(
     (nextResolution: ExportResolution) => {
       setResolution(nextResolution);
+      setProjectedOutputBytes(null);
+      setHlsEstimateMetadata(null);
       setExportError(null);
     },
     [],
@@ -237,6 +434,8 @@ export function useEditorExport({
   const handleExportSourceChange = useCallback(
     (nextSourcePreference: ExportSourcePreference) => {
       setExportSourcePreference(nextSourcePreference);
+      setProjectedOutputBytes(null);
+      setHlsEstimateMetadata(null);
       setExportError(null);
     },
     [],
@@ -244,6 +443,7 @@ export function useEditorExport({
 
   const handleAudioChange = useCallback((nextIncludeAudio: boolean) => {
     setIncludeAudio(nextIncludeAudio);
+    setProjectedOutputBytes(null);
     setExportError(null);
   }, []);
 
@@ -274,6 +474,7 @@ export function useEditorExport({
   const handleExport = useCallback(async () => {
     const readiness = getEditorExportReadiness({
       exportSource,
+      format: exportFormat,
       exporting,
       startTime,
       endTime,
@@ -297,8 +498,18 @@ export function useEditorExport({
     setExportError(null);
     setExporting(true);
     setProgress(0);
+    setProjectedOutputBytes(null);
 
     const startedAt = Date.now();
+    const estimateFields = buildExportEstimateLogFields({
+      estimate: outputSizeEstimate,
+      hlsEstimateMetadata,
+      sourceSizeBytes,
+      sourceDurationSeconds,
+      sourceBitrateKbps,
+      videoBitrateKbps,
+      audioBitrateKbps,
+    });
     const baseFields = {
       "export.format": exportFormat,
       "export.resolution": resolution,
@@ -307,13 +518,14 @@ export function useEditorExport({
       "export.range.start_seconds": startTime,
       "export.range.end_seconds": endTime,
       "export.range.duration_seconds": Math.max(0, endTime - startTime),
-      "export.include_audio": includeAudio,
+      "export.include_audio": effectiveIncludeAudio,
       "export.subtitle.burn_in": shouldBurnSubtitles,
       "export.subtitle.cue_count": shouldBurnSubtitles
         ? clippedSubtitleCues.length
         : 0,
       "export.output.width": outputDimensions?.width,
       "export.output.height": outputDimensions?.height,
+      ...estimateFields,
     };
 
     exportLogger.info("Editor export started.", {
@@ -323,6 +535,16 @@ export function useEditorExport({
 
     try {
       const { exportClip } = await import("@/lib/exportClip");
+      const handleProgress = (
+        nextProgress: number,
+        stats?: ExportProgressStats,
+      ) => {
+        setProgress(nextProgress);
+
+        if (typeof stats?.projectedBytes === "number") {
+          setProjectedOutputBytes(stats.projectedBytes);
+        }
+      };
       const blob = await exportClip({
         mediaSource: readiness.source,
         hls: readiness.sourceKind === "hls",
@@ -330,13 +552,14 @@ export function useEditorExport({
         endTime,
         format: exportFormat,
         resolution,
-        includeAudio,
+        gifSettings: exportFormat === "gif" ? gifSettings : undefined,
+        includeAudio: effectiveIncludeAudio,
         selectedAudioTrack: session.selectedAudioTrack,
         metadata: session.exportMetadata,
         includeBurnedSubtitles: shouldBurnSubtitles,
         subtitleCues,
         subtitleStyleSettings,
-        onProgress: setProgress,
+        onProgress: handleProgress,
       });
       downloadBlob(blob, fileName.fullName);
       setExportDialogOpen(false);
@@ -346,6 +569,7 @@ export function useEditorExport({
         ...logDurationFields(startedAt),
         ...baseFields,
         "export.output.bytes": blob.size,
+        ...buildExportEstimateActualLogFields(outputSizeEstimate, blob.size),
       });
     } catch (err) {
       warnWithError(exportLogger, err, "Editor export failed.", {
@@ -361,18 +585,26 @@ export function useEditorExport({
   }, [
     clippedSubtitleCues,
     endTime,
+    effectiveIncludeAudio,
     exportFormat,
     exportLogger,
     exportSource,
     exporting,
     fileName.fullName,
-    includeAudio,
+    gifSettings,
     outputDimensions,
+    outputSizeEstimate,
     resolution,
     selectedSubtitleTrack,
+    hlsEstimateMetadata,
     session.exportMetadata,
     session.selectedAudioTrack,
+    sourceBitrateKbps,
+    sourceDurationSeconds,
+    sourceSizeBytes,
     startTime,
+    videoBitrateKbps,
+    audioBitrateKbps,
     subtitleCues,
     subtitleEnabled,
     subtitleLoading,
@@ -382,17 +614,23 @@ export function useEditorExport({
   return {
     resolution,
     exportFormat,
+    gifPreset,
+    gifSettings,
     effectiveExportSourcePreference,
-    includeAudio,
+    includeAudio: effectiveIncludeAudio,
+    audioDisabledReason,
     fileNameTemplates,
     templateEditorKind,
     setTemplateEditorKind,
     exportDialogOpen,
     exporting,
     progress,
+    projectedOutputBytes,
     exportError,
     fileName,
     outputDimensions,
+    outputSizeEstimate,
+    exportFormatDisabledReason,
     exportSource,
     exportSourceMessage,
     exportSourceSummaryMessage,
@@ -400,6 +638,7 @@ export function useEditorExport({
     handleOpenExportDialog,
     handleCloseExportDialog,
     handleFormatChange,
+    handleGifPresetChange,
     handleResolutionChange,
     handleExportSourceChange,
     handleAudioChange,
@@ -412,36 +651,87 @@ export function useEditorExport({
 export function getOutputDimensions(
   sourceVideoDimensions: VideoDimensions | null,
   resolution: ExportResolution,
+  format: ExportFormat = "mp4",
+  gifSettings?: GifExportSettings | null,
 ) {
-  if (
-    !sourceVideoDimensions ||
-    sourceVideoDimensions.width <= 0 ||
-    sourceVideoDimensions.height <= 0
-  ) {
+  return resolveExportOutputDimensions(
+    sourceVideoDimensions,
+    resolution,
+    format,
+    gifSettings,
+  );
+}
+
+function exportSourceSizeBytes(source: EditorMediaSource | null) {
+  if (!source) {
     return null;
   }
 
-  if (resolution === "original") {
-    return sourceVideoDimensions;
+  if (source.kind === "file") {
+    return source.size ?? source.file.size;
   }
 
-  const height = parseInt(resolution, 10);
-  if (!Number.isFinite(height) || height <= 0) {
-    return sourceVideoDimensions;
+  if (source.kind === "file-handle") {
+    return source.size ?? null;
   }
 
-  const width = Math.max(
-    1,
-    Math.round(
-      (sourceVideoDimensions.width / sourceVideoDimensions.height) * height,
+  return null;
+}
+
+export function buildExportEstimateLogFields({
+  estimate,
+  hlsEstimateMetadata,
+  sourceSizeBytes,
+  sourceDurationSeconds,
+  sourceBitrateKbps,
+  videoBitrateKbps,
+  audioBitrateKbps,
+}: {
+  estimate: ExportSizeEstimate;
+  hlsEstimateMetadata: HlsExportEstimateMetadata | null;
+  sourceSizeBytes?: number | null;
+  sourceDurationSeconds?: number | null;
+  sourceBitrateKbps?: number | null;
+  videoBitrateKbps?: number | null;
+  audioBitrateKbps?: number | null;
+}) {
+  return compactLogFields({
+    "export.estimate.bytes": estimate.bytes ?? undefined,
+    "export.estimate.basis": estimate.basis,
+    "export.estimate.hls.bitrate_kbps": hlsEstimateMetadata?.bitrateKbps,
+    "export.estimate.hls.bitrate_basis": hlsEstimateMetadata?.bitrateBasis,
+    "export.estimate.hls.variant.width": hlsEstimateMetadata?.width,
+    "export.estimate.hls.variant.height": hlsEstimateMetadata?.height,
+    "export.estimate.hls.variant.frame_rate": hlsEstimateMetadata?.frameRate,
+    "export.estimate.hls.variant.count": hlsEstimateMetadata?.variantCount,
+    "export.estimate.source.size_bytes": sourceSizeBytes ?? undefined,
+    "export.estimate.source.duration_seconds":
+      sourceDurationSeconds ?? undefined,
+    "export.estimate.source.bitrate_kbps": sourceBitrateKbps ?? undefined,
+    "export.estimate.source.video_bitrate_kbps": videoBitrateKbps ?? undefined,
+    "export.estimate.source.audio_bitrate_kbps": audioBitrateKbps ?? undefined,
+  });
+}
+
+export function buildExportEstimateActualLogFields(
+  estimate: ExportSizeEstimate,
+  actualBytes: number,
+) {
+  if (typeof estimate.bytes !== "number" || estimate.bytes <= 0) {
+    return {};
+  }
+
+  return {
+    "export.estimate.actual.delta_bytes": actualBytes - estimate.bytes,
+    "export.estimate.actual.ratio": Number(
+      (actualBytes / estimate.bytes).toFixed(3),
     ),
-  );
-
-  return { width, height };
+  };
 }
 
 export function getEditorExportReadiness({
   exportSource,
+  format,
   exporting,
   startTime,
   endTime,
@@ -461,6 +751,19 @@ export function getEditorExportReadiness({
     return {
       state: "blocked" as const,
       message: "Waiting for media duration.",
+      shouldBurnSubtitles: false,
+    };
+  }
+
+  const formatDisabledReason = exportFormatDurationDisabledReason(
+    format,
+    startTime,
+    endTime,
+  );
+  if (formatDisabledReason) {
+    return {
+      state: "blocked" as const,
+      message: formatDisabledReason,
       shouldBurnSubtitles: false,
     };
   }

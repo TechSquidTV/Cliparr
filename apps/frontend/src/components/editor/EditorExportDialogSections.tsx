@@ -15,6 +15,11 @@ import {
 } from "@/components/ui/tooltip";
 import type { ExportFormat, ExportResolution } from "@/lib/exportClip";
 import {
+  gifExportPresetOptions,
+  type GifExportPreset,
+  type GifExportSettings,
+} from "@/lib/exportTypes";
+import {
   getExportFileNameTemplateTokens,
   type ExportFileNameTemplateKind,
   type ExportFileNameTemplateSettings,
@@ -52,7 +57,13 @@ const formatOptions: ReadonlyArray<
     value: "webm",
     label: "WEBM",
     extension: ".webm",
-    description: "Efficient web playback.",
+    description: "Modern animated web playback.",
+  },
+  {
+    value: "gif",
+    label: "GIF",
+    extension: ".gif",
+    description: "Animated image export for short clips.",
   },
   {
     value: "mov",
@@ -103,6 +114,9 @@ const templateOptions: ReadonlyArray<{
   },
 ];
 
+const stableHelperTextClassName =
+  "min-h-9 text-xs leading-relaxed text-muted-foreground";
+
 export function formatOptionFor(format: ExportFormat) {
   return (
     formatOptions.find((option) => option.value === format) ?? formatOptions[0]
@@ -113,6 +127,13 @@ function resolutionOptionFor(resolution: ExportResolution) {
   return (
     resolutionOptions.find((option) => option.value === resolution) ??
     resolutionOptions[0]
+  );
+}
+
+function gifPresetOptionFor(preset: GifExportPreset) {
+  return (
+    gifExportPresetOptions.find((option) => option.value === preset) ??
+    gifExportPresetOptions[0]
   );
 }
 
@@ -167,12 +188,15 @@ function SectionHeader({ children }: { children: string }) {
 interface EditorExportSettingsSectionProps {
   selectedFormat: ExportFormat;
   onFormatChange: (format: ExportFormat) => void;
+  selectedGifPreset: GifExportPreset;
+  onGifPresetChange: (preset: GifExportPreset) => void;
   selectedResolution: ExportResolution;
   onResolutionChange: (resolution: ExportResolution) => void;
   selectedSourcePreference: ExportSourcePreference;
   onSourcePreferenceChange: (preference: ExportSourcePreference) => void;
   includeAudio: boolean;
   onIncludeAudioChange: (includeAudio: boolean) => void;
+  audioDisabledReason?: string | null;
   hasHlsSource: boolean;
   hasDirectSource: boolean;
   directSourceLabel: string;
@@ -182,18 +206,24 @@ interface EditorExportSettingsSectionProps {
 export function EditorExportSettingsSection({
   selectedFormat,
   onFormatChange,
+  selectedGifPreset,
+  onGifPresetChange,
   selectedResolution,
   onResolutionChange,
   selectedSourcePreference,
   onSourcePreferenceChange,
   includeAudio,
   onIncludeAudioChange,
+  audioDisabledReason,
   hasHlsSource,
   hasDirectSource,
   directSourceLabel,
   hlsSourceLabel,
 }: EditorExportSettingsSectionProps) {
   const sourceOptions = sourceOptionsFor({ directSourceLabel, hlsSourceLabel });
+  const selectedGifPresetOption = gifPresetOptionFor(selectedGifPreset);
+  const gifLegacyWarning =
+    "GIF is a legacy animated image format. Use WebM when your destination supports it; choose GIF only for platforms that require it.";
 
   return (
     <section className="rounded-md border border-border bg-card">
@@ -222,7 +252,7 @@ export function EditorExportSettingsSection({
               </SelectGroup>
             </SelectContent>
           </Select>
-          <p className="text-xs text-muted-foreground">
+          <p className={stableHelperTextClassName}>
             {formatOptionFor(selectedFormat).description}
           </p>
         </label>
@@ -252,7 +282,7 @@ export function EditorExportSettingsSection({
               </SelectGroup>
             </SelectContent>
           </Select>
-          <p className="text-xs text-muted-foreground">
+          <p className={stableHelperTextClassName}>
             {resolutionOptionFor(selectedResolution).description}
           </p>
         </label>
@@ -305,7 +335,7 @@ export function EditorExportSettingsSection({
               </SelectGroup>
             </SelectContent>
           </Select>
-          <p className="text-xs text-muted-foreground">
+          <p className={stableHelperTextClassName}>
             {
               sourceOptionFor(selectedSourcePreference, {
                 directSourceLabel,
@@ -319,6 +349,7 @@ export function EditorExportSettingsSection({
           <span className={sectionLabelClassName()}>Audio</span>
           <Select
             value={includeAudio ? "included" : "video-only"}
+            disabled={Boolean(audioDisabledReason)}
             onValueChange={(value) =>
               onIncludeAudioChange(value === "included")
             }
@@ -337,13 +368,54 @@ export function EditorExportSettingsSection({
               </SelectGroup>
             </SelectContent>
           </Select>
-          <p className="text-xs text-muted-foreground">
-            {includeAudio
-              ? "Keeps a stereo mix when source audio exists."
-              : "Exports without an audio track."}
+          <p className={stableHelperTextClassName}>
+            {audioDisabledReason ??
+              (includeAudio
+                ? "Keeps a stereo mix when source audio exists."
+                : "Exports without an audio track.")}
           </p>
         </label>
       </div>
+      {selectedFormat === "gif" && (
+        <div className="grid gap-3 border-t border-border px-3 py-3 sm:grid-cols-2">
+          <label className="space-y-1.5">
+            <span className={sectionLabelClassName()}>GIF Preset</span>
+            <Select
+              value={selectedGifPreset}
+              onValueChange={(value) =>
+                onGifPresetChange(value as GifExportPreset)
+              }
+            >
+              <SelectTrigger
+                size="sm"
+                className={compactSelectTriggerClassName()}
+              >
+                <SelectValue placeholder="Select GIF preset" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectGroup>
+                  <SelectLabel>GIF Presets</SelectLabel>
+                  {gifExportPresetOptions.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectGroup>
+              </SelectContent>
+            </Select>
+            <p className={stableHelperTextClassName}>
+              {selectedGifPresetOption.description}
+            </p>
+          </label>
+
+          <div
+            role="note"
+            className="self-start rounded-md border border-status-warning-border bg-status-warning px-3 py-2 text-xs leading-relaxed text-foreground"
+          >
+            {gifLegacyWarning}
+          </div>
+        </div>
+      )}
     </section>
   );
 }
@@ -423,7 +495,7 @@ export function EditorFilenameTemplateSection({
           />
         </label>
 
-        <p className="text-xs text-muted-foreground">
+        <p className={stableHelperTextClassName}>
           {editingTemplateOption.description}
         </p>
 
@@ -450,6 +522,7 @@ interface EditorExportSummaryPanelProps {
   clipStart: number;
   clipEnd: number;
   selectedFormat: ExportFormat;
+  gifSettings?: GifExportSettings | null;
   outputDimensions: VideoDimensions | null;
   exportSourceLabel: string;
   exportSourceSummaryMessage: string | null;
@@ -459,6 +532,7 @@ interface EditorExportSummaryPanelProps {
   subtitleSummaryTone: "muted" | "ready" | "warning";
   activeTemplateKind: ExportFileNameTemplateKind;
   fileNamePreview: string;
+  estimatedSizeLabel: string;
 }
 
 export function EditorExportSummaryPanel({
@@ -466,6 +540,7 @@ export function EditorExportSummaryPanel({
   clipStart,
   clipEnd,
   selectedFormat,
+  gifSettings,
   outputDimensions,
   exportSourceLabel,
   exportSourceSummaryMessage,
@@ -475,9 +550,18 @@ export function EditorExportSummaryPanel({
   subtitleSummaryTone,
   activeTemplateKind,
   fileNamePreview,
+  estimatedSizeLabel,
 }: EditorExportSummaryPanelProps) {
   const clipLength = Math.max(0, clipEnd - clipStart);
   const selectedFormatOption = formatOptionFor(selectedFormat);
+  const outputDetail =
+    selectedFormat === "gif" && gifSettings
+      ? `${gifSettings.frameRate} fps / ${gifSettings.maxColors} colors / ${
+          gifSettings.paletteMode === "global"
+            ? "stable palette"
+            : "per-frame palette"
+        }`
+      : null;
   const subtitleSummaryClassName =
     subtitleSummaryTone === "ready"
       ? "border-status-ready-border bg-status-ready"
@@ -511,11 +595,11 @@ export function EditorExportSummaryPanel({
         <div className="rounded-md border border-border bg-background px-3 py-2">
           <dt className={sectionLabelClassName()}>Source</dt>
           <dd className="mt-1 text-xs text-foreground">{exportSourceLabel}</dd>
-          {exportSourceSummaryMessage ? (
-            <dd className="mt-1 text-xs leading-relaxed text-muted-foreground">
+          {exportSourceSummaryMessage && (
+            <dd className="mt-1 text-ui-label text-muted-foreground">
               {exportSourceSummaryMessage}
             </dd>
-          ) : null}
+          )}
         </div>
 
         <div className="rounded-md border border-border bg-background px-3 py-2">
@@ -528,6 +612,11 @@ export function EditorExportSummaryPanel({
               ? `${outputDimensions.width} x ${outputDimensions.height}`
               : "Unknown size"}
           </dd>
+          {outputDetail && (
+            <dd className="mt-1 text-ui-label text-muted-foreground">
+              {outputDetail}
+            </dd>
+          )}
         </div>
 
         <div className="rounded-md border border-border bg-background px-3 py-2">
@@ -558,6 +647,16 @@ export function EditorExportSummaryPanel({
           </dd>
           <dd className="mt-1 break-all font-mono text-ui-label text-foreground">
             {fileNamePreview}
+          </dd>
+        </div>
+
+        <div
+          aria-live="polite"
+          className="rounded-md border border-border bg-background px-3 py-2"
+        >
+          <dt className={sectionLabelClassName()}>Estimated size</dt>
+          <dd className="mt-1 font-mono text-xs tabular-nums text-foreground">
+            {estimatedSizeLabel}
           </dd>
         </div>
       </dl>

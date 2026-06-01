@@ -7,6 +7,7 @@ export type {
   CurrentlyPlayingItem,
   MediaExportMetadata,
   PlaybackAudioSelection,
+  PlaybackExportEstimateMetadata,
   PlaybackSource,
   PlaybackSubtitleSelection,
   PlaybackSubtitleTrack,

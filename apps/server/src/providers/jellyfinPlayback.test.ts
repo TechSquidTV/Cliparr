@@ -5,6 +5,7 @@ import type { MediaSource } from "@/db/mediaSourcesRepository";
 import type { ProviderSessionRecord } from "@/session/store";
 import {
   buildPreviewPath,
+  createJellyfinExportEstimateMetadata,
   deriveSelectedSubtitleTrack,
   deriveSubtitleTracks,
   listCurrentlyPlaying,
@@ -225,6 +226,40 @@ void test("disables Jellyfin subtitle burn-in on HLS previews", () => {
     "false",
   );
   assert.equal(url.searchParams.has("subtitleStreamIndex"), false);
+});
+
+void test("extracts Jellyfin export size estimate metadata from media sources", () => {
+  const mediaSource = {
+    Size: 120_000_000,
+    RunTimeTicks: 6_000_000_000,
+    Bitrate: 1_600_000,
+    MediaStreams: [
+      {
+        Type: "Video",
+        BitRate: 1_400_000,
+        Width: 1920,
+        Height: 1080,
+        AverageFrameRate: 23.976,
+        IsDefault: true,
+      },
+      {
+        Type: "Audio",
+        BitRate: 160_000,
+        IsDefault: true,
+      },
+    ],
+  };
+
+  assert.deepEqual(createJellyfinExportEstimateMetadata(mediaSource, 0), {
+    sourceSizeBytes: 120_000_000,
+    sourceDurationSeconds: 600,
+    sourceBitrateKbps: 1_600,
+    videoBitrateKbps: 1_400,
+    audioBitrateKbps: 160,
+    width: 1920,
+    height: 1080,
+    frameRate: 23.976,
+  });
 });
 
 void test("converts Jellyfin PositionTicks into playhead seconds", () => {

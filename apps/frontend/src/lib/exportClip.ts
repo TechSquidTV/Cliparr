@@ -1,5 +1,6 @@
 import {
   BufferTarget,
+  CanvasSink,
   Conversion,
   MkvOutputFormat,
   MovOutputFormat,
@@ -7,7 +8,13 @@ import {
   Output,
   WebMOutputFormat,
 } from "mediabunny";
-import type { ConversionOptions, VideoSample } from "mediabunny";
+import type {
+  CanvasSinkOptions,
+  ConversionOptions,
+  InputVideoTrack,
+  VideoSample,
+} from "mediabunny";
+import { GIFEncoder, applyPalette, quantize } from "gifenc/dist/gifenc.esm.js";
 import type { EditorMediaSource } from "@/lib/editorMedia";
 import { createCliparrInputFromSource } from "@/lib/mediabunnyInput";
 import { ensureMediabunnyCodecs } from "@/lib/mediabunnyCodecs";
@@ -27,7 +34,16 @@ import {
   isIsobmffExportFormat,
   patchMp4MetadataBoxes,
 } from "@/lib/exportMetadata";
-import type { ExportFormat, ExportResolution } from "@/lib/exportTypes";
+import {
+  DEFAULT_GIF_EXPORT_PRESET,
+  exportFormatDurationDisabledReason,
+  gifExportSettingsForPreset,
+  resolveExportOutputDimensions,
+  type ExportProgressStats,
+  type ExportFormat,
+  type ExportResolution,
+  type GifExportSettings,
+} from "@/lib/exportTypes";
 import { getActiveSubtitleCue } from "@/lib/subtitles/getActiveSubtitleCue";
 import { renderSubtitleCue } from "@/lib/subtitles/renderSubtitleCue";
 import { trimSubtitleCues } from "@/lib/subtitles/trimSubtitleCues";
@@ -42,13 +58,14 @@ interface ExportClipOptions {
   endTime: number;
   format: ExportFormat;
   resolution: ExportResolution;
+  gifSettings?: GifExportSettings;
   includeAudio: boolean;
   selectedAudioTrack?: PlaybackAudioSelection;
   metadata?: MediaExportMetadata;
   includeBurnedSubtitles?: boolean;
   subtitleCues?: readonly SubtitleCue[];
   subtitleStyleSettings?: SubtitleStyleSettings;
-  onProgress: (progress: number) => void;
+  onProgress: (progress: number, stats?: ExportProgressStats) => void;
 }
 
 interface ExportClipRuntime {
@@ -63,9 +80,29 @@ interface ExportClipRuntime {
   createOutputFormat: typeof createOutputFormat;
   createBufferTarget: () => BufferTarget;
   createOutput: (options: ConstructorParameters<typeof Output>[0]) => Output;
+  createCanvasSink: (
+    track: InputVideoTrack,
+    options: CanvasSinkOptions,
+  ) => CanvasSink;
+  createGifCanvas: typeof createGifCanvas;
+  createGifEncoder: typeof GIFEncoder;
+  quantizeGifFrame: typeof quantize;
+  applyGifPalette: typeof applyPalette;
+  getActiveSubtitleCue: typeof getActiveSubtitleCue;
+  renderSubtitleCue: typeof renderSubtitleCue;
   initConversion: typeof Conversion.init;
   buildSubtitleBurnInProcessor: typeof buildSubtitleBurnInProcessor;
 }
+
+interface GifCanvasResources {
+  canvas: HTMLCanvasElement;
+  context: CanvasRenderingContext2D;
+}
+
+type GifPalette = ReturnType<ExportClipRuntime["quantizeGifFrame"]>;
+
+const GIF_GLOBAL_PALETTE_SAMPLE_FRAME_LIMIT = 24;
+const GIF_GLOBAL_PALETTE_MAX_SAMPLE_PIXELS = 120_000;
 
 function createOutputFormat(format: ExportFormat) {
   switch (format) {
@@ -77,7 +114,131 @@ function createOutputFormat(format: ExportFormat) {
       return new MovOutputFormat({ fastStart: "in-memory" });
     case "mkv":
       return new MkvOutputFormat();
+    case "gif":
+      throw new Error("GIF export uses a dedicated encoder.");
   }
+}
+
+function createGifCanvas(width: number, height: number): GifCanvasResources {
+  const canvas = document.createElement("canvas");
+  canvas.width = width;
+  canvas.height = height;
+
+  const context = canvas.getContext("2d");
+  if (!context) {
+    throw new Error("Could not create a GIF rendering canvas.");
+  }
+
+  return { canvas, context };
+}
+
+function configureGifCanvasContext(context: CanvasRenderingContext2D) {
+  context.imageSmoothingEnabled = true;
+  context.imageSmoothingQuality = "high";
+}
+
+function selectGifPaletteSampleFrameIndexes(frameCount: number) {
+  if (frameCount <= GIF_GLOBAL_PALETTE_SAMPLE_FRAME_LIMIT) {
+    return Array.from({ length: frameCount }, (_value, index) => index);
+  }
+
+  const lastFrameIndex = frameCount - 1;
+  return Array.from(
+    { length: GIF_GLOBAL_PALETTE_SAMPLE_FRAME_LIMIT },
+    (_value, sampleIndex) =>
+      Math.round(
+        (sampleIndex * lastFrameIndex) /
+          (GIF_GLOBAL_PALETTE_SAMPLE_FRAME_LIMIT - 1),
+      ),
+  );
+}
+
+function appendGifPaletteSample(
+  target: Uint8ClampedArray,
+  byteOffset: number,
+  imageData: ImageData,
+  maxPixels: number,
+) {
+  const source = imageData.data;
+  const sourcePixelCount = Math.floor(source.length / 4);
+  const availablePixels = Math.floor((target.length - byteOffset) / 4);
+  const samplePixelCount = Math.min(
+    sourcePixelCount,
+    maxPixels,
+    availablePixels,
+  );
+
+  if (samplePixelCount <= 0) {
+    return byteOffset;
+  }
+
+  const stride = Math.max(1, Math.floor(sourcePixelCount / samplePixelCount));
+  let writtenPixels = 0;
+  let nextByteOffset = byteOffset;
+
+  for (
+    let sourcePixelIndex = 0;
+    sourcePixelIndex < sourcePixelCount && writtenPixels < samplePixelCount;
+    sourcePixelIndex += stride
+  ) {
+    const sourceOffset = sourcePixelIndex * 4;
+    target[nextByteOffset] = source[sourceOffset] ?? 0;
+    target[nextByteOffset + 1] = source[sourceOffset + 1] ?? 0;
+    target[nextByteOffset + 2] = source[sourceOffset + 2] ?? 0;
+    target[nextByteOffset + 3] = source[sourceOffset + 3] ?? 255;
+    nextByteOffset += 4;
+    writtenPixels += 1;
+  }
+
+  return nextByteOffset;
+}
+
+async function buildGifGlobalPalette({
+  frameCount,
+  maxColors,
+  readFrameImageData,
+  runtime,
+}: {
+  frameCount: number;
+  maxColors: number;
+  readFrameImageData: (frameIndex: number) => Promise<ImageData | null>;
+  runtime: ExportClipRuntime;
+}): Promise<GifPalette | null> {
+  const sampleFrameIndexes = selectGifPaletteSampleFrameIndexes(frameCount);
+  const maxPixelsPerFrame = Math.max(
+    1,
+    Math.floor(
+      GIF_GLOBAL_PALETTE_MAX_SAMPLE_PIXELS / sampleFrameIndexes.length,
+    ),
+  );
+  const sampledPixels = new Uint8ClampedArray(
+    GIF_GLOBAL_PALETTE_MAX_SAMPLE_PIXELS * 4,
+  );
+  let sampleByteOffset = 0;
+
+  for (const frameIndex of sampleFrameIndexes) {
+    const imageData = await readFrameImageData(frameIndex);
+
+    if (!imageData) {
+      continue;
+    }
+
+    sampleByteOffset = appendGifPaletteSample(
+      sampledPixels,
+      sampleByteOffset,
+      imageData,
+      maxPixelsPerFrame,
+    );
+  }
+
+  if (sampleByteOffset === 0) {
+    return null;
+  }
+
+  return runtime.quantizeGifFrame(
+    sampledPixels.subarray(0, sampleByteOffset),
+    maxColors,
+  );
 }
 
 function buildSubtitleBurnInProcessor(
@@ -118,6 +279,7 @@ export async function exportClip({
   endTime,
   format,
   resolution,
+  gifSettings,
   includeAudio,
   selectedAudioTrack,
   metadata,
@@ -134,6 +296,7 @@ export async function exportClip({
       endTime,
       format,
       resolution,
+      gifSettings,
       includeAudio,
       selectedAudioTrack,
       metadata,
@@ -158,6 +321,13 @@ const defaultExportClipRuntime: ExportClipRuntime = {
   createOutputFormat,
   createBufferTarget: () => new BufferTarget(),
   createOutput: (options) => new Output(options),
+  createCanvasSink: (track, options) => new CanvasSink(track, options),
+  createGifCanvas,
+  createGifEncoder: GIFEncoder,
+  quantizeGifFrame: quantize,
+  applyGifPalette: applyPalette,
+  getActiveSubtitleCue,
+  renderSubtitleCue,
   initConversion: (options) => Conversion.init(options),
   buildSubtitleBurnInProcessor,
 };
@@ -170,6 +340,7 @@ export async function exportClipWithRuntime(
     endTime,
     format,
     resolution,
+    gifSettings,
     includeAudio,
     selectedAudioTrack,
     metadata,
@@ -180,6 +351,27 @@ export async function exportClipWithRuntime(
   }: ExportClipOptions,
   runtime: ExportClipRuntime,
 ) {
+  const options = {
+    mediaSource,
+    hls,
+    startTime,
+    endTime,
+    format,
+    resolution,
+    gifSettings,
+    includeAudio,
+    selectedAudioTrack,
+    metadata,
+    includeBurnedSubtitles,
+    subtitleCues,
+    subtitleStyleSettings,
+    onProgress,
+  };
+
+  if (format === "gif") {
+    return exportGifClipWithRuntime(options, runtime);
+  }
+
   await runtime.ensureMediabunnyCodecs();
 
   const input = await runtime.createCliparrInputFromSource(mediaSource, {
@@ -208,10 +400,12 @@ export async function exportClipWithRuntime(
     const sourceVideoDimensions = sourceVideoTrack
       ? await runtime.getVideoTrackDimensions(sourceVideoTrack)
       : null;
-    const outputHeight =
-      resolution === "original"
-        ? sourceVideoDimensions?.height
-        : parseInt(resolution, 10);
+    const outputDimensions = resolveExportOutputDimensions(
+      sourceVideoDimensions,
+      resolution,
+      format,
+    );
+    const outputHeight = outputDimensions?.height;
     const clippedSubtitleCues =
       includeBurnedSubtitles && subtitleCues.length > 0
         ? trimSubtitleCues(subtitleCues, startTime, endTime)
@@ -321,7 +515,7 @@ export async function exportClipWithRuntime(
       throw new Error(`Export would drop the source audio track.${suffix}`);
     }
 
-    conversion.onProgress = onProgress;
+    conversion.onProgress = (progress) => onProgress(progress);
 
     await conversion.execute();
 
@@ -338,6 +532,201 @@ export async function exportClipWithRuntime(
     const blob = new Blob([target.buffer], { type: outputFormat.mimeType });
 
     return blob;
+  } finally {
+    input.dispose();
+  }
+}
+
+async function exportGifClipWithRuntime(
+  {
+    mediaSource,
+    hls,
+    startTime,
+    endTime,
+    resolution,
+    gifSettings,
+    includeBurnedSubtitles = false,
+    subtitleCues = [],
+    subtitleStyleSettings,
+    onProgress,
+  }: ExportClipOptions,
+  runtime: ExportClipRuntime,
+) {
+  const durationDisabledReason = exportFormatDurationDisabledReason(
+    "gif",
+    startTime,
+    endTime,
+  );
+  if (durationDisabledReason) {
+    throw new Error(durationDisabledReason);
+  }
+
+  await runtime.ensureMediabunnyCodecs();
+  const resolvedGifSettings =
+    gifSettings ?? gifExportSettingsForPreset(DEFAULT_GIF_EXPORT_PRESET);
+
+  const input = await runtime.createCliparrInputFromSource(mediaSource, {
+    hls,
+  });
+
+  try {
+    const sourceVideoTrack = await input.getPrimaryVideoTrack({
+      filter: async (track) => !(await track.hasOnlyKeyPackets()),
+    });
+
+    if (!sourceVideoTrack) {
+      throw new Error("GIF export requires a video track.");
+    }
+
+    if (includeBurnedSubtitles && !subtitleStyleSettings) {
+      throw new Error("Subtitle burn-in was requested without style settings.");
+    }
+
+    const sourceVideoDimensions =
+      await runtime.getVideoTrackDimensions(sourceVideoTrack);
+    const outputDimensions = resolveExportOutputDimensions(
+      sourceVideoDimensions,
+      resolution,
+      "gif",
+      resolvedGifSettings,
+    );
+    if (!outputDimensions) {
+      throw new Error("GIF export could not determine the video dimensions.");
+    }
+
+    const timelineOffsetSeconds = await runtime.getTrackTimelineOffsetSeconds([
+      sourceVideoTrack,
+    ]);
+    const trimStart = toSourceTimelineTime(startTime, timelineOffsetSeconds);
+    const trimEnd = toSourceTimelineTime(endTime, timelineOffsetSeconds);
+    const clippedSubtitleCues =
+      includeBurnedSubtitles && subtitleCues.length > 0
+        ? trimSubtitleCues(subtitleCues, startTime, endTime)
+        : [];
+    const shouldBurnSubtitles = clippedSubtitleCues.length > 0;
+    const frameCount = Math.max(
+      1,
+      Math.ceil((endTime - startTime) * resolvedGifSettings.frameRate),
+    );
+    const frameDelayMs = 1000 / resolvedGifSettings.frameRate;
+    const videoSink = runtime.createCanvasSink(sourceVideoTrack, {
+      poolSize: 2,
+      fit: "contain",
+      alpha: await sourceVideoTrack.canBeTransparent(),
+      height: outputDimensions.height,
+    });
+    const { context } = runtime.createGifCanvas(
+      outputDimensions.width,
+      outputDimensions.height,
+    );
+    configureGifCanvasContext(context);
+    const gif = runtime.createGifEncoder();
+    let encodedFrameCount = 0;
+    let latestStats: ExportProgressStats | undefined;
+
+    const readRenderedFrameImageData = async (frameIndex: number) => {
+      const clipTimestamp = frameIndex / resolvedGifSettings.frameRate;
+      const displayTimestamp = startTime + clipTimestamp;
+      const sourceTimestamp = Math.min(trimEnd, trimStart + clipTimestamp);
+      const frame = await videoSink.getCanvas(sourceTimestamp);
+
+      if (!frame) {
+        return null;
+      }
+
+      context.clearRect(0, 0, outputDimensions.width, outputDimensions.height);
+      context.drawImage(
+        frame.canvas,
+        0,
+        0,
+        outputDimensions.width,
+        outputDimensions.height,
+      );
+
+      if (shouldBurnSubtitles && subtitleStyleSettings) {
+        const activeCue = runtime.getActiveSubtitleCue(
+          clippedSubtitleCues,
+          displayTimestamp - startTime,
+        );
+
+        if (activeCue) {
+          runtime.renderSubtitleCue(
+            context,
+            activeCue,
+            subtitleStyleSettings,
+            outputDimensions.width,
+            outputDimensions.height,
+          );
+        }
+      }
+
+      return context.getImageData(
+        0,
+        0,
+        outputDimensions.width,
+        outputDimensions.height,
+      );
+    };
+
+    const globalPalette =
+      resolvedGifSettings.paletteMode === "global"
+        ? await buildGifGlobalPalette({
+            frameCount,
+            maxColors: resolvedGifSettings.maxColors,
+            readFrameImageData: readRenderedFrameImageData,
+            runtime,
+          })
+        : null;
+
+    for (let frameIndex = 0; frameIndex < frameCount; frameIndex += 1) {
+      const imageData = await readRenderedFrameImageData(frameIndex);
+
+      if (!imageData) {
+        onProgress((frameIndex + 1) / frameCount, latestStats);
+        continue;
+      }
+
+      const palette =
+        globalPalette ??
+        runtime.quantizeGifFrame(imageData.data, resolvedGifSettings.maxColors);
+      const indexedPixels = runtime.applyGifPalette(imageData.data, palette);
+      gif.writeFrame(
+        indexedPixels,
+        outputDimensions.width,
+        outputDimensions.height,
+        {
+          palette,
+          delay: frameDelayMs,
+          repeat: 0,
+        },
+      );
+      encodedFrameCount += 1;
+      const encodedBytes = gif.bytesView().byteLength;
+      latestStats = {
+        encodedBytes,
+        encodedFrames: encodedFrameCount,
+        totalFrames: frameCount,
+        projectedBytes: Math.ceil(
+          (encodedBytes / encodedFrameCount) * frameCount,
+        ),
+      };
+      onProgress((frameIndex + 1) / frameCount, latestStats);
+    }
+
+    if (encodedFrameCount === 0) {
+      throw new Error("GIF export did not produce any frames.");
+    }
+
+    gif.finish();
+    const bytes = gif.bytes();
+    if (bytes.length === 0) {
+      throw new Error("GIF export did not produce an image buffer.");
+    }
+
+    const gifBuffer = new ArrayBuffer(bytes.byteLength);
+    new Uint8Array(gifBuffer).set(bytes);
+
+    return new Blob([gifBuffer], { type: "image/gif" });
   } finally {
     input.dispose();
   }
