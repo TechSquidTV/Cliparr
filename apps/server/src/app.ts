@@ -16,8 +16,20 @@ const workspaceRoot = path.resolve(__dirname, "../../..");
 const frontendRoot = path.join(workspaceRoot, "apps/frontend");
 const DEFAULT_DEV_FRONTEND_URL = "http://localhost:5173";
 const TRUSTED_PROXY_SUBNETS = ["loopback", "linklocal", "uniquelocal"];
+const IMMUTABLE_FRONTEND_ASSET_CACHE_CONTROL =
+  "public, max-age=31536000, immutable";
+const FRONTEND_DOCUMENT_CACHE_CONTROL = "no-cache";
 
-export async function createApp() {
+export interface CreateAppOptions {
+  frontendDistPath?: string;
+}
+
+function isHashedFrontendAsset(filePath: string) {
+  const normalizedFilePath = filePath.replaceAll(path.sep, "/");
+  return /(?:^|\/)assets\/.+-[\dA-Za-z_-]{8,}\.[^/]+$/.test(normalizedFilePath);
+}
+
+export async function createApp(options: CreateAppOptions = {}) {
   await configureLogging();
   initializeDatabase();
 
@@ -67,9 +79,22 @@ export async function createApp() {
       res.redirect(307, redirectUrl.toString());
     });
   } else {
-    const distPath = path.join(frontendRoot, "dist");
-    app.use(express.static(distPath));
+    const distPath =
+      options.frontendDistPath ?? path.join(frontendRoot, "dist");
+    app.use(
+      express.static(distPath, {
+        setHeaders(res, filePath) {
+          if (isHashedFrontendAsset(filePath)) {
+            res.setHeader(
+              "Cache-Control",
+              IMMUTABLE_FRONTEND_ASSET_CACHE_CONTROL,
+            );
+          }
+        },
+      }),
+    );
     app.get(/^(?!\/api(?:\/|$)).*/, (_req, res) => {
+      res.setHeader("Cache-Control", FRONTEND_DOCUMENT_CACHE_CONTROL);
       res.sendFile(path.join(distPath, "index.html"));
     });
   }
