@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   AlertTriangle,
   FolderOpen,
@@ -132,7 +132,7 @@ function ViewerChip({
   );
 }
 
-export function DashboardPlaybackCard({
+export const DashboardPlaybackCard = memo(function DashboardPlaybackCard({
   card,
   activeViewTransitionSessionId,
   onSelectSession,
@@ -217,7 +217,7 @@ export function DashboardPlaybackCard({
       </div>
     </button>
   );
-}
+});
 
 function DashboardPlaybackCardSkeleton({ className }: { className?: string }) {
   return (
@@ -292,11 +292,19 @@ export default function DashboardScreen({
   const [sourceErrors, setSourceErrors] = useState<SourcePlaybackError[]>([]);
   const [appVersion, setAppVersion] = useState("");
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState("");
+  const hasFetchedSessionsRef = useRef(false);
 
-  const fetchSessions = async () => {
-    setLoading(true);
+  const fetchSessions = useCallback(async () => {
+    const isInitialFetch = !hasFetchedSessionsRef.current;
+    if (isInitialFetch) {
+      setLoading(true);
+    } else {
+      setRefreshing(true);
+    }
     setError("");
+
     try {
       const playback = await cliparrClient.getCurrentlyPlaying();
       setViewers(playback.viewers);
@@ -306,13 +314,15 @@ export default function DashboardScreen({
       setViewers([]);
       setSourceErrors([]);
     } finally {
+      hasFetchedSessionsRef.current = true;
       setLoading(false);
+      setRefreshing(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     void fetchSessions();
-  }, []);
+  }, [fetchSessions]);
 
   useEffect(() => {
     let cancelled = false;
@@ -335,7 +345,10 @@ export default function DashboardScreen({
     };
   }, []);
 
-  const playbackCards = flattenDashboardPlaybackItems(viewers);
+  const playbackCards = useMemo(
+    () => flattenDashboardPlaybackItems(viewers),
+    [viewers],
+  );
   const hasPlaybackCards = playbackCards.length > 0;
   const showPlaybackGrid = loading || hasPlaybackCards;
   const emptyMessage =
@@ -407,7 +420,7 @@ export default function DashboardScreen({
               title="Refresh"
             >
               <RefreshCw
-                className={`h-5 w-5 ${loading ? "animate-spin text-primary" : ""}`}
+                className={`h-5 w-5 ${loading || refreshing ? "animate-spin text-primary" : ""}`}
               />
             </button>
           </div>
@@ -437,7 +450,7 @@ export default function DashboardScreen({
               title="Refresh"
             >
               <RefreshCw
-                className={`w-5 h-5 ${loading ? "animate-spin text-primary" : ""}`}
+                className={`w-5 h-5 ${loading || refreshing ? "animate-spin text-primary" : ""}`}
               />
             </button>
             <a
