@@ -1,3 +1,4 @@
+import { memo } from "react";
 import { Info } from "lucide-react";
 import {
   Select,
@@ -203,7 +204,7 @@ interface EditorExportSettingsSectionProps {
   hlsSourceLabel: string;
 }
 
-export function EditorExportSettingsSection({
+function EditorExportSettingsSectionComponent({
   selectedFormat,
   onFormatChange,
   selectedGifPreset,
@@ -420,6 +421,10 @@ export function EditorExportSettingsSection({
   );
 }
 
+export const EditorExportSettingsSection = memo(
+  EditorExportSettingsSectionComponent,
+);
+
 interface EditorFilenameTemplateSectionProps {
   editingTemplateKind: ExportFileNameTemplateKind;
   onEditingTemplateKindChange: (kind: ExportFileNameTemplateKind) => void;
@@ -431,7 +436,7 @@ interface EditorFilenameTemplateSectionProps {
   onResetFileNameTemplate: (kind: ExportFileNameTemplateKind) => void;
 }
 
-export function EditorFilenameTemplateSection({
+function EditorFilenameTemplateSectionComponent({
   editingTemplateKind,
   onEditingTemplateKindChange,
   fileNameTemplates,
@@ -517,6 +522,10 @@ export function EditorFilenameTemplateSection({
   );
 }
 
+export const EditorFilenameTemplateSection = memo(
+  EditorFilenameTemplateSectionComponent,
+);
+
 interface EditorExportSummaryPanelProps {
   title: string;
   clipStart: number;
@@ -535,7 +544,7 @@ interface EditorExportSummaryPanelProps {
   estimatedSizeLabel: string;
 }
 
-export function EditorExportSummaryPanel({
+function EditorExportSummaryPanelComponent({
   title,
   clipStart,
   clipEnd,
@@ -650,10 +659,7 @@ export function EditorExportSummaryPanel({
           </dd>
         </div>
 
-        <div
-          aria-live="polite"
-          className="rounded-md border border-border bg-background px-3 py-2"
-        >
+        <div className="rounded-md border border-border bg-background px-3 py-2">
           <dt className={sectionLabelClassName()}>Estimated size</dt>
           <dd className="mt-1 font-mono text-xs tabular-nums text-foreground">
             {estimatedSizeLabel}
@@ -663,3 +669,5 @@ export function EditorExportSummaryPanel({
     </aside>
   );
 }
+
+export const EditorExportSummaryPanel = memo(EditorExportSummaryPanelComponent);

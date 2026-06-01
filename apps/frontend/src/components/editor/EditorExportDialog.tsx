@@ -46,7 +46,6 @@ interface EditorExportDialogProps {
   onGifPresetChange: (preset: GifExportPreset) => void;
   gifSettings?: GifExportSettings | null;
   outputSizeEstimate: ExportSizeEstimate;
-  projectedOutputBytes?: number | null;
   selectedResolution: ExportResolution;
   onResolutionChange: (resolution: ExportResolution) => void;
   selectedSourcePreference: ExportSourcePreference;
@@ -94,7 +93,6 @@ export function EditorExportDialog({
   onGifPresetChange,
   gifSettings,
   outputSizeEstimate,
-  projectedOutputBytes,
   selectedResolution,
   onResolutionChange,
   selectedSourcePreference,
@@ -128,13 +126,9 @@ export function EditorExportDialog({
   onExport,
 }: EditorExportDialogProps) {
   const selectedFormatOption = formatOptionFor(selectedFormat);
-  const displayedEstimateBytes =
-    selectedFormat === "gif" && typeof projectedOutputBytes === "number"
-      ? projectedOutputBytes
-      : outputSizeEstimate.bytes;
   const displayedEstimateLabel =
-    typeof displayedEstimateBytes === "number"
-      ? `~${formatExportByteSize(displayedEstimateBytes)}`
+    typeof outputSizeEstimate.bytes === "number"
+      ? `~${formatExportByteSize(outputSizeEstimate.bytes)}`
       : "Unavailable";
 
   return (

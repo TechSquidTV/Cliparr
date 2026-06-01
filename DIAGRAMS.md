@@ -324,10 +324,9 @@ flowchart TD
     F --> G{"Preset uses a stable sampled palette?"}
     G -- "Yes" --> G1["Sample frames first and quantize one shared palette"]
     G -- "No" --> G2["Quantize each encoded frame independently"]
-    G1 --> G3["Encode frames with gifenc"]
+    G1 --> G3["Encode frames with gifenc and report encoding progress"]
     G2 --> G3
-    G3 --> G4["Report live projected bytes from encoded frame bytes and replace the summary estimate"]
-    G4 --> G5["Return image/gif Blob"]
+    G3 --> G4["Return image/gif Blob"]
 
     C -- "No" --> H["exportClip builds fresh Mediabunny input from export source URL"]
     H --> I["exportMetadata builds tags and artwork when metadata exists"]

@@ -143,7 +143,6 @@ export default function EditorScreen({ session, onBack }: Props) {
     exportDialogOpen,
     exporting,
     progress,
-    projectedOutputBytes,
     exportError,
     fileName,
     outputDimensions,
@@ -622,7 +621,6 @@ export default function EditorScreen({ session, onBack }: Props) {
             onGifPresetChange={handleGifPresetChange}
             gifSettings={gifSettings}
             outputSizeEstimate={outputSizeEstimate}
-            projectedOutputBytes={projectedOutputBytes}
             selectedResolution={resolution}
             onResolutionChange={handleResolutionChange}
             selectedSourcePreference={effectiveExportSourcePreference}

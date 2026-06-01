@@ -470,6 +470,25 @@ void test("uses HLS manifest bitrate when available for provider HLS estimates",
   );
 });
 
+void test("removes audio bitrate from HLS manifest estimates for video-only exports", () => {
+  assert.deepEqual(
+    estimateExportOutputSize({
+      format: "mp4",
+      durationSeconds: 10,
+      outputDimensions: { width: 1920, height: 1072 },
+      includeAudio: false,
+      resolution: "original",
+      hlsManifestBitrateKbps: 5_400,
+      hlsManifestBitrateBasis: "average-bandwidth",
+      audioBitrateKbps: 160,
+    }),
+    {
+      bytes: 6_746_500,
+      basis: "hls-manifest",
+    },
+  );
+});
+
 void test("caps peak HLS bandwidth estimates at the output codec heuristic", () => {
   assert.deepEqual(
     estimateExportOutputSize({

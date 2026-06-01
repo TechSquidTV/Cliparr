@@ -372,11 +372,7 @@ void test("exports GIF frames through the browser encoder path", async () => {
   const gifSettings = gifExportSettingsForPreset("compact");
   const timestamps: string[] = [];
   const progress: Array<{
-    encodedBytes?: number;
-    encodedFrames?: number;
     progress: number;
-    projectedBytes?: number;
-    totalFrames?: number;
   }> = [];
   const writtenFrames: Array<{
     delay?: number;
@@ -476,8 +472,7 @@ void test("exports GIF frames through the browser encoder path", async () => {
         itemType: "movie",
         title: "Movie",
       },
-      onProgress: (value, stats) =>
-        progress.push({ progress: value, ...stats }),
+      onProgress: (value) => progress.push({ progress: value }),
     },
     context.runtime,
   );
@@ -493,18 +488,16 @@ void test("exports GIF frames through the browser encoder path", async () => {
   ]);
   assert.deepEqual(progress, [
     {
-      encodedBytes: 4,
-      encodedFrames: 1,
-      progress: 0.5,
-      projectedBytes: 8,
-      totalFrames: 2,
+      progress: 0.06,
     },
     {
-      encodedBytes: 8,
-      encodedFrames: 2,
+      progress: 0.12,
+    },
+    {
+      progress: 0.56,
+    },
+    {
       progress: 1,
-      projectedBytes: 8,
-      totalFrames: 2,
     },
   ]);
   assert.equal(canvasSinkOptions?.fit, "contain");

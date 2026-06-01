@@ -20,13 +20,6 @@ export interface GifExportSettings {
   paletteMode: GifPaletteMode;
 }
 
-export interface ExportProgressStats {
-  encodedBytes?: number;
-  encodedFrames?: number;
-  totalFrames?: number;
-  projectedBytes?: number;
-}
-
 type ExportSizeEstimateBasis =
   | "codec-heuristic"
   | "hls-manifest"
@@ -276,8 +269,14 @@ export function estimateExportOutputSize({
     typeof hlsManifestBitrateKbps === "number" &&
     hlsManifestBitrateKbps > 0
   ) {
+    const adjustedHlsBitrateKbps = includeAudio
+      ? hlsManifestBitrateKbps
+      : Math.max(
+          1,
+          hlsManifestBitrateKbps - audioEstimateBitrateKbps(audioBitrateKbps),
+        );
     const hlsEstimate = estimateFromBitrateKbps(
-      hlsManifestBitrateKbps,
+      adjustedHlsBitrateKbps,
       durationSeconds,
       "hls-manifest",
     );
@@ -360,6 +359,12 @@ function targetOutputBitrateKbps(
     targetVideoBitrateKbps(format, height) +
     (includeAudio ? AUDIO_EXPORT_BITRATE_KBPS : 0)
   );
+}
+
+function audioEstimateBitrateKbps(audioBitrateKbps: number | null | undefined) {
+  return typeof audioBitrateKbps === "number" && audioBitrateKbps > 0
+    ? audioBitrateKbps
+    : AUDIO_EXPORT_BITRATE_KBPS;
 }
 
 function targetVideoBitrateKbps(

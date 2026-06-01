@@ -84,7 +84,6 @@ function renderExportDialogMarkup(
     onGifPresetChange: () => undefined,
     gifSettings: null,
     outputSizeEstimate: { bytes: 7_029_750, basis: "codec-heuristic" },
-    projectedOutputBytes: null,
     selectedResolution: "original",
     onResolutionChange: () => undefined,
     selectedSourcePreference: "auto",
@@ -417,13 +416,12 @@ void test("renders the framegrab export dialog actions", () => {
   assert.match(markup, /Example Movie \[01m01s\]\.png/);
 });
 
-void test("renders GIF preset controls and live projected size", () => {
+void test("renders GIF preset controls and immediate estimated size", () => {
   const markup = renderExportDialogMarkup({
     selectedFormat: "gif",
     selectedGifPreset: "balanced",
     gifSettings: gifExportSettingsForPreset("balanced"),
-    outputSizeEstimate: { bytes: 1_025_984, basis: "gif-heuristic" },
-    projectedOutputBytes: 1_572_864,
+    outputSizeEstimate: { bytes: 1_572_864, basis: "gif-heuristic" },
     includeAudio: false,
     audioDisabledReason: "GIF exports are video only.",
     fileNamePreview: "Example Movie [00m10s-00m20s].gif",
@@ -437,6 +435,7 @@ void test("renders GIF preset controls and live projected size", () => {
   assert.match(markup, /~1\.5 MB/);
   assert.match(markup, /GIF exports are video only\./);
   assert.match(markup, /role="note"/);
+  assert.doesNotMatch(markup, /aria-live="polite"/);
   assert.match(
     markup,
     /GIF is a legacy animated image format\. Use WebM when your destination supports it; choose GIF only for platforms that require it\./,
@@ -447,7 +446,6 @@ void test("hides GIF-only export details for video formats", () => {
   const markup = renderExportDialogMarkup({
     selectedFormat: "mp4",
     gifSettings: gifExportSettingsForPreset("balanced"),
-    projectedOutputBytes: 1_572_864,
   });
 
   assert.doesNotMatch(markup, /GIF Preset/);

@@ -39,7 +39,6 @@ import {
   exportFormatDurationDisabledReason,
   gifExportSettingsForPreset,
   resolveExportOutputDimensions,
-  type ExportProgressStats,
   type ExportFormat,
   type ExportResolution,
   type GifExportSettings,
@@ -65,7 +64,7 @@ interface ExportClipOptions {
   includeBurnedSubtitles?: boolean;
   subtitleCues?: readonly SubtitleCue[];
   subtitleStyleSettings?: SubtitleStyleSettings;
-  onProgress: (progress: number, stats?: ExportProgressStats) => void;
+  onProgress: (progress: number) => void;
 }
 
 interface ExportClipRuntime {
@@ -196,11 +195,13 @@ function appendGifPaletteSample(
 async function buildGifGlobalPalette({
   frameCount,
   maxColors,
+  onSampleProgress,
   readFrameImageData,
   runtime,
 }: {
   frameCount: number;
   maxColors: number;
+  onSampleProgress?: (sampledFrames: number, totalSampleFrames: number) => void;
   readFrameImageData: (frameIndex: number) => Promise<ImageData | null>;
   runtime: ExportClipRuntime;
 }): Promise<GifPalette | null> {
@@ -215,11 +216,14 @@ async function buildGifGlobalPalette({
     GIF_GLOBAL_PALETTE_MAX_SAMPLE_PIXELS * 4,
   );
   let sampleByteOffset = 0;
+  let sampledFrameCount = 0;
 
   for (const frameIndex of sampleFrameIndexes) {
     const imageData = await readFrameImageData(frameIndex);
+    sampledFrameCount += 1;
 
     if (!imageData) {
+      onSampleProgress?.(sampledFrameCount, sampleFrameIndexes.length);
       continue;
     }
 
@@ -229,6 +233,7 @@ async function buildGifGlobalPalette({
       imageData,
       maxPixelsPerFrame,
     );
+    onSampleProgress?.(sampledFrameCount, sampleFrameIndexes.length);
   }
 
   if (sampleByteOffset === 0) {
@@ -622,7 +627,8 @@ async function exportGifClipWithRuntime(
     configureGifCanvasContext(context);
     const gif = runtime.createGifEncoder();
     let encodedFrameCount = 0;
-    let latestStats: ExportProgressStats | undefined;
+    const paletteProgressShare =
+      resolvedGifSettings.paletteMode === "global" ? 0.12 : 0;
 
     const readRenderedFrameImageData = async (frameIndex: number) => {
       const clipTimestamp = frameIndex / resolvedGifSettings.frameRate;
@@ -673,6 +679,11 @@ async function exportGifClipWithRuntime(
         ? await buildGifGlobalPalette({
             frameCount,
             maxColors: resolvedGifSettings.maxColors,
+            onSampleProgress: (sampledFrames, totalSampleFrames) => {
+              onProgress(
+                (sampledFrames / totalSampleFrames) * paletteProgressShare,
+              );
+            },
             readFrameImageData: readRenderedFrameImageData,
             runtime,
           })
@@ -680,9 +691,12 @@ async function exportGifClipWithRuntime(
 
     for (let frameIndex = 0; frameIndex < frameCount; frameIndex += 1) {
       const imageData = await readRenderedFrameImageData(frameIndex);
+      const progress =
+        paletteProgressShare +
+        ((frameIndex + 1) / frameCount) * (1 - paletteProgressShare);
 
       if (!imageData) {
-        onProgress((frameIndex + 1) / frameCount, latestStats);
+        onProgress(progress);
         continue;
       }
 
@@ -701,16 +715,7 @@ async function exportGifClipWithRuntime(
         },
       );
       encodedFrameCount += 1;
-      const encodedBytes = gif.bytesView().byteLength;
-      latestStats = {
-        encodedBytes,
-        encodedFrames: encodedFrameCount,
-        totalFrames: frameCount,
-        projectedBytes: Math.ceil(
-          (encodedBytes / encodedFrameCount) * frameCount,
-        ),
-      };
-      onProgress((frameIndex + 1) / frameCount, latestStats);
+      onProgress(progress);
     }
 
     if (encodedFrameCount === 0) {

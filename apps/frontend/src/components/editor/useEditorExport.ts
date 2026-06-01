@@ -14,7 +14,6 @@ import {
   exportFormatSupportsAudio,
   resolveExportOutputDimensions,
   type ExportSizeEstimate,
-  type ExportProgressStats,
   type GifExportPreset,
   type GifExportSettings,
 } from "@/lib/exportTypes";
@@ -116,9 +115,6 @@ export function useEditorExport({
   const [exportDialogOpen, setExportDialogOpen] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [progress, setProgress] = useState(0);
-  const [projectedOutputBytes, setProjectedOutputBytes] = useState<
-    number | null
-  >(null);
   const [hlsEstimateMetadata, setHlsEstimateMetadata] =
     useState<HlsExportEstimateMetadata | null>(null);
   const [exportError, setExportError] = useState<string | null>(null);
@@ -281,7 +277,7 @@ export function useEditorExport({
   const estimateVideoBitrateKbps =
     exportSource.kind === "direct" ? videoBitrateKbps : null;
   const estimateAudioBitrateKbps =
-    exportSource.kind === "direct" ? audioBitrateKbps : null;
+    exportSource.kind !== "none" ? audioBitrateKbps : null;
   const outputSizeEstimate = useMemo(
     () =>
       estimateExportOutputSize({
@@ -357,6 +353,19 @@ export function useEditorExport({
           error instanceof Error && error.name === "AbortError";
         if (!controller.signal.aborted && !isAbortError) {
           setHlsEstimateMetadata(null);
+          warnWithError(
+            exportLogger,
+            error,
+            "Could not fetch HLS export estimate metadata.",
+            {
+              ...logEventFields("editor.export.hls_estimate", "failure"),
+              "export.format": exportFormat,
+              "export.source.kind": exportSource.kind,
+              "export.source.role": exportSource.source?.role,
+              "export.output.width": outputDimensions?.width,
+              "export.output.height": outputDimensions?.height,
+            },
+          );
         }
       });
 
@@ -365,33 +374,15 @@ export function useEditorExport({
     };
   }, [
     exportDialogOpen,
+    exportLogger,
     exportFormat,
     exportSource.kind,
     exportSource.source,
     outputDimensions,
   ]);
 
-  useEffect(() => {
-    setProjectedOutputBytes(null);
-  }, [
-    clippedSubtitleCues,
-    effectiveExportSourcePreference,
-    endTime,
-    exportFormat,
-    exportSource.kind,
-    exportSource.source,
-    gifPreset,
-    includeAudio,
-    resolution,
-    selectedSubtitleTrack,
-    startTime,
-    subtitleEnabled,
-    subtitleStyleSettings,
-  ]);
-
   const handleOpenExportDialog = useCallback(() => {
     setExportError(null);
-    setProjectedOutputBytes(null);
     setHlsEstimateMetadata(null);
     setProgress(0);
     setTemplateEditorKind(fileName.templateKind);
@@ -404,27 +395,23 @@ export function useEditorExport({
     }
 
     setExportDialogOpen(false);
-    setProjectedOutputBytes(null);
     setHlsEstimateMetadata(null);
   }, [exporting]);
 
   const handleFormatChange = useCallback((nextFormat: ExportFormat) => {
     setExportFormat(nextFormat);
-    setProjectedOutputBytes(null);
     setHlsEstimateMetadata(null);
     setExportError(null);
   }, []);
 
   const handleGifPresetChange = useCallback((nextPreset: GifExportPreset) => {
     setGifPreset(nextPreset);
-    setProjectedOutputBytes(null);
     setExportError(null);
   }, []);
 
   const handleResolutionChange = useCallback(
     (nextResolution: ExportResolution) => {
       setResolution(nextResolution);
-      setProjectedOutputBytes(null);
       setHlsEstimateMetadata(null);
       setExportError(null);
     },
@@ -434,7 +421,6 @@ export function useEditorExport({
   const handleExportSourceChange = useCallback(
     (nextSourcePreference: ExportSourcePreference) => {
       setExportSourcePreference(nextSourcePreference);
-      setProjectedOutputBytes(null);
       setHlsEstimateMetadata(null);
       setExportError(null);
     },
@@ -443,7 +429,6 @@ export function useEditorExport({
 
   const handleAudioChange = useCallback((nextIncludeAudio: boolean) => {
     setIncludeAudio(nextIncludeAudio);
-    setProjectedOutputBytes(null);
     setExportError(null);
   }, []);
 
@@ -498,7 +483,6 @@ export function useEditorExport({
     setExportError(null);
     setExporting(true);
     setProgress(0);
-    setProjectedOutputBytes(null);
 
     const startedAt = Date.now();
     const estimateFields = buildExportEstimateLogFields({
@@ -535,15 +519,15 @@ export function useEditorExport({
 
     try {
       const { exportClip } = await import("@/lib/exportClip");
-      const handleProgress = (
-        nextProgress: number,
-        stats?: ExportProgressStats,
-      ) => {
-        setProgress(nextProgress);
+      const handleProgress = (nextProgress: number) => {
+        setProgress((currentProgress) => {
+          const nextPercent = Math.round(nextProgress * 100);
+          const currentPercent = Math.round(currentProgress * 100);
 
-        if (typeof stats?.projectedBytes === "number") {
-          setProjectedOutputBytes(stats.projectedBytes);
-        }
+          return nextProgress >= 1 || nextPercent !== currentPercent
+            ? nextProgress
+            : currentProgress;
+        });
       };
       const blob = await exportClip({
         mediaSource: readiness.source,
@@ -625,7 +609,6 @@ export function useEditorExport({
     exportDialogOpen,
     exporting,
     progress,
-    projectedOutputBytes,
     exportError,
     fileName,
     outputDimensions,
