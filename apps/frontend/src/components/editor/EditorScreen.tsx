@@ -1,4 +1,11 @@
-import { lazy, Suspense, useCallback, useEffect, useState } from "react";
+import {
+  lazy,
+  Suspense,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import {
   clampClipEndTime,
   clampClipStartTime,
@@ -66,6 +73,12 @@ export default function EditorScreen({ session, onBack }: Props) {
   const [endTime, setEndTime] = useState(() => initialClipRange.endTime);
   const [playbackSidebarOpen, setPlaybackSidebarOpen] = useState(true);
   const [exportDialogMounted, setExportDialogMounted] = useState(false);
+  const playbackTimeUpdateRef = useRef<((seconds: number) => void) | null>(
+    null,
+  );
+  const handlePlaybackTimeUpdate = useCallback((seconds: number) => {
+    playbackTimeUpdateRef.current?.(seconds);
+  }, []);
   const {
     subtitleTracks,
     selectedSubtitleTrack,
@@ -114,6 +127,7 @@ export default function EditorScreen({ session, onBack }: Props) {
     seekToTime,
     warmClipSelection,
     setCurrentTime,
+    getPlaybackTime,
     playbackTimeAtStartRef,
   } = useEditorPlayback({
     hlsSource: session.hlsSource,
@@ -128,6 +142,7 @@ export default function EditorScreen({ session, onBack }: Props) {
     subtitleCues,
     subtitlesEnabled: subtitlePreviewEnabled,
     subtitleStyleSettings,
+    onPlaybackTimeUpdate: handlePlaybackTimeUpdate,
   });
   const {
     resolution,
@@ -180,6 +195,7 @@ export default function EditorScreen({ session, onBack }: Props) {
     subtitleEnabled,
     subtitleLoading,
     subtitleError,
+    getCurrentTime: getPlaybackTime,
   });
   const playbackFallbackReason = buildPlaybackFallbackReason({
     activeSourceLabel,
@@ -272,19 +288,25 @@ export default function EditorScreen({ session, onBack }: Props) {
       return;
     }
 
-    const nextStart = clampClipStartTime(currentTime, endTime, duration);
+    const nextStart = clampClipStartTime(getPlaybackTime(), endTime, duration);
     updateClipRange(nextStart, endTime);
     void warmClipSelection(nextStart, endTime);
-  }, [currentTime, duration, endTime, updateClipRange, warmClipSelection]);
+  }, [duration, endTime, getPlaybackTime, updateClipRange, warmClipSelection]);
   const handleMarkOutShortcut = useCallback(() => {
     if (!duration || duration <= 0) {
       return;
     }
 
-    const nextEnd = clampClipEndTime(currentTime, startTime, duration);
+    const nextEnd = clampClipEndTime(getPlaybackTime(), startTime, duration);
     updateClipRange(startTime, nextEnd);
     void warmClipSelection(startTime, nextEnd);
-  }, [currentTime, duration, startTime, updateClipRange, warmClipSelection]);
+  }, [
+    duration,
+    getPlaybackTime,
+    startTime,
+    updateClipRange,
+    warmClipSelection,
+  ]);
   const handleJumpToInShortcut = useCallback(() => {
     if (!duration || duration <= 0) {
       return;
@@ -307,13 +329,13 @@ export default function EditorScreen({ session, onBack }: Props) {
 
       void seekToTime(
         resolveRelativeSeekTime({
-          currentTime,
+          currentTime: getPlaybackTime(),
           deltaSeconds,
           duration,
         }),
       );
     },
-    [currentTime, duration, seekToTime],
+    [duration, getPlaybackTime, seekToTime],
   );
   const stepFrameByShortcut = useCallback(
     (direction: -1 | 1) => {
@@ -322,14 +344,14 @@ export default function EditorScreen({ session, onBack }: Props) {
       }
 
       const nextTime = resolveRelativeSeekTime({
-        currentTime,
+        currentTime: getPlaybackTime(),
         deltaSeconds: frameStepSeconds * direction,
         duration,
       });
       pausePlayback();
       void seekToTime(nextTime);
     },
-    [currentTime, duration, frameStepSeconds, pausePlayback, seekToTime],
+    [duration, frameStepSeconds, getPlaybackTime, pausePlayback, seekToTime],
   );
   const {
     timelineRef,
@@ -346,6 +368,7 @@ export default function EditorScreen({ session, onBack }: Props) {
     handleTimelineChange,
     handleTimelineActionMoveEnd,
     handleTimelineActionResizeEnd,
+    setTimelineCurrentTime,
     hasDuration,
   } = useEditorTimeline({
     duration,
@@ -358,6 +381,7 @@ export default function EditorScreen({ session, onBack }: Props) {
       void warmClipSelection(nextStart, nextEnd);
     },
   });
+  playbackTimeUpdateRef.current = setTimelineCurrentTime;
 
   useEffect(() => {
     if (!duration || duration <= 0) {

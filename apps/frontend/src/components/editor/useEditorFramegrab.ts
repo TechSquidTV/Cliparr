@@ -36,6 +36,7 @@ interface UseEditorFramegrabProps {
   subtitleEnabled: boolean;
   subtitleLoading: boolean;
   subtitleError: string | null;
+  getCurrentTime?: () => number;
 }
 
 export function useEditorFramegrab({
@@ -48,6 +49,7 @@ export function useEditorFramegrab({
   subtitleEnabled,
   subtitleLoading,
   subtitleError,
+  getCurrentTime,
 }: UseEditorFramegrabProps) {
   const [dialogMounted, setDialogMounted] = useState(false);
   const [capturedFramegrab, setCapturedFramegrab] =
@@ -133,9 +135,10 @@ export function useEditorFramegrab({
 
     try {
       const clonedCanvas = cloneCanvasFrame(canvas);
+      const frameTime = getCurrentTime?.() ?? currentTime;
       setCapturedFramegrab({
         canvas: clonedCanvas,
-        time: currentTime,
+        time: frameTime,
         dimensions: {
           width: clonedCanvas.width,
           height: clonedCanvas.height,
@@ -151,7 +154,7 @@ export function useEditorFramegrab({
       setDialogMounted(true);
       setDialogOpen(true);
     }
-  }, [canvasRef, currentTime]);
+  }, [canvasRef, currentTime, getCurrentTime]);
 
   const closeDialog = useCallback(() => {
     if (action) {

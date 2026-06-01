@@ -49,6 +49,8 @@ interface UseEditorPlaybackRenderLoopOptions {
   clampTime: (seconds: number) => number;
   pausePlayback: (storeCurrentTime?: boolean) => void;
   setCurrentTime: (seconds: number) => void;
+  setCurrentTimeDuringPlayback: (seconds: number) => void;
+  onPlaybackTimeUpdate?: (seconds: number) => void;
   setError: (message: string) => void;
 }
 
@@ -79,6 +81,8 @@ export function useEditorPlaybackRenderLoop({
   clampTime,
   pausePlayback,
   setCurrentTime,
+  setCurrentTimeDuringPlayback,
+  onPlaybackTimeUpdate,
   setError,
 }: UseEditorPlaybackRenderLoopOptions) {
   const drawCanvasFrame = useCallback(
@@ -292,6 +296,7 @@ export function useEditorPlaybackRenderLoop({
     }
 
     const playbackTime = getPlaybackTime();
+    onPlaybackTimeUpdate?.(playbackTime);
     const duration = durationRef.current;
     const stopTime =
       playbackStopTimeRef.current ??
@@ -323,7 +328,7 @@ export function useEditorPlaybackRenderLoop({
       void updateNextFrame(generationRef.current);
     }
 
-    setCurrentTime(playbackTime);
+    setCurrentTimeDuringPlayback(playbackTime);
   }, [
     clampTime,
     drawFrame,
@@ -338,7 +343,9 @@ export function useEditorPlaybackRenderLoop({
     playbackStopTimeRef,
     playbackTimeAtStartRef,
     playingRef,
+    onPlaybackTimeUpdate,
     setCurrentTime,
+    setCurrentTimeDuringPlayback,
     sourceTimelineOffsetRef,
     startVideoIterator,
     updateNextFrame,

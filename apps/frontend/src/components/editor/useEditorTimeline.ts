@@ -331,12 +331,23 @@ export function useEditorTimeline({
     pendingTimelineScrollLeftRef.current = null;
   }, [activeTimelineScale.scale, activeTimelineScale.scaleWidth]);
 
+  const setTimelineCurrentTime = useCallback(
+    (time: number) => {
+      if (!hasDuration) {
+        return;
+      }
+
+      timelineRef.current?.setTime(time);
+    },
+    [hasDuration],
+  );
+
   useEffect(() => {
     if (!timelineRef.current || !hasDuration) {
       return;
     }
-    timelineRef.current.setTime(currentTime);
-  }, [currentTime, hasDuration]);
+    setTimelineCurrentTime(currentTime);
+  }, [currentTime, hasDuration, setTimelineCurrentTime]);
 
   const handleTimelineScroll = useCallback(
     ({ scrollLeft }: { scrollLeft: number }) => {
@@ -572,6 +583,7 @@ export function useEditorTimeline({
     handleTimelineChange,
     handleTimelineActionMoveEnd,
     handleTimelineActionResizeEnd,
+    setTimelineCurrentTime,
     hasDuration,
   };
 }
