@@ -115,6 +115,12 @@ export function EditorControls({
       { label: "Duration", value: clipDuration, emphasized: true },
     ];
   }, [endTime, onEndTimeCommit, onStartTimeCommit, startTime]);
+  const clipMetricTimeStyle = useMemo<CSSProperties>(
+    () => ({
+      width: `${Math.max(7, formatTimecodeInput(duration).length)}ch`,
+    }),
+    [duration],
+  );
   const volumeRangeFillPercent = `${
     Math.min(Math.max(muted ? 0 : volume, 0), 1) * 100
   }%`;
@@ -258,18 +264,24 @@ export function EditorControls({
           {metric.onCommit ? (
             <EditorEditableTimecode
               ariaLabel={`${metric.label} time`}
-              buttonClassName="rounded-[var(--radius-control)] px-1 font-mono text-sm font-semibold text-muted-foreground hover:bg-editor-control-hover hover:text-foreground focus-visible:ring-editor-accent/35"
+              buttonClassName="w-full justify-end rounded-[var(--radius-control)] px-1 font-mono text-sm font-semibold tabular-nums text-muted-foreground hover:bg-editor-control-hover hover:text-foreground focus-visible:ring-editor-accent/35"
+              className="justify-end"
               disabled={!canEditClipRange}
+              inputClassName="text-right"
               onCommit={metric.onCommit}
+              style={clipMetricTimeStyle}
               value={metric.value}
             >
-              <span>{formatTime(metric.value)}</span>
+              <span className="block w-full text-right">
+                {formatTime(metric.value)}
+              </span>
             </EditorEditableTimecode>
           ) : (
             <span
-              className={`font-mono text-sm font-semibold ${
+              className={`inline-block text-right font-mono text-sm font-semibold tabular-nums ${
                 metric.emphasized ? "text-foreground" : "text-muted-foreground"
               }`}
+              style={clipMetricTimeStyle}
             >
               {formatTime(metric.value)}
             </span>
