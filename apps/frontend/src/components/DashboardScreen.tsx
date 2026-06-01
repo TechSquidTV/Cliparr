@@ -94,6 +94,9 @@ function ViewerAvatar({
           src={avatarUrl}
           alt={name}
           className="w-full h-full object-cover"
+          width={size === "sm" ? 32 : 48}
+          height={size === "sm" ? 32 : 48}
+          decoding="async"
           onError={() => setImageFailed(true)}
         />
       ) : (
@@ -163,6 +166,9 @@ export function DashboardPlaybackCard({
             src={mediaSession.thumbUrl}
             alt={mediaSession.title}
             className="h-full w-full object-cover opacity-80 transition-opacity group-hover:opacity-100"
+            width="640"
+            height="360"
+            decoding="async"
             style={
               thumbnailViewTransitionName
                 ? {
@@ -348,6 +354,9 @@ export default function DashboardScreen({
                 src="/logo-light.svg"
                 alt="Cliparr Logo"
                 className="w-8 h-8"
+                width="32"
+                height="32"
+                decoding="async"
               />
               <div className="space-y-1">
                 <div className="flex flex-wrap items-center gap-2">

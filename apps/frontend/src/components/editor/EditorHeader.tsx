@@ -63,7 +63,14 @@ export function EditorHeader({
           <TooltipContent side="bottom">Back</TooltipContent>
         </Tooltip>
         <div className="flex items-center gap-2 pl-1">
-          <img src="/logo-light.svg" alt="Cliparr Logo" className="h-5 w-5" />
+          <img
+            src="/logo-light.svg"
+            alt="Cliparr Logo"
+            className="h-5 w-5"
+            width="20"
+            height="20"
+            decoding="async"
+          />
           <span className="text-ui-label font-semibold uppercase tracking-[var(--tracking-caps-md)] text-muted-foreground">
             Edit
           </span>
