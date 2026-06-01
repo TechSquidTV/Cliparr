@@ -16,8 +16,15 @@ import { EditorControls } from "@/components/editor/EditorControls";
 import { EditorFramegrabDialog } from "@/components/editor/EditorFramegrabDialog";
 import { EditorPreview } from "@/components/editor/EditorPreview";
 import { LocalVideoOpenDialog } from "@/components/local-media/LocalVideoOpenDialog";
-import { MobilePwaInstallNudgeCard } from "@/components/MobilePwaInstallNudge";
+import {
+  MobilePwaInstallNudge,
+  MobilePwaInstallNudgeCard,
+} from "@/components/MobilePwaInstallNudge";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import {
+  COARSE_POINTER_MEDIA_QUERY,
+  MOBILE_INSTALL_MEDIA_QUERY,
+} from "@/lib/pwa";
 import { EDITOR_THUMBNAIL_VIEW_TRANSITION_NAME } from "@/lib/viewTransitions";
 import type { ViewerPlaybackGroup } from "@/providers/types";
 
@@ -67,6 +74,115 @@ const dashboardPlaybackGroups: ViewerPlaybackGroup[] = [
     ],
   },
 ];
+
+function restoreGlobalProperty(
+  name: string,
+  descriptor: PropertyDescriptor | undefined,
+) {
+  const globalObject = globalThis as typeof globalThis &
+    Record<string, unknown>;
+
+  if (descriptor) {
+    Object.defineProperty(globalObject, name, descriptor);
+    return;
+  }
+
+  delete globalObject[name];
+}
+
+function withMobilePwaBrowserEnvironment(callback: () => void) {
+  const globalObject = globalThis as typeof globalThis &
+    Record<string, unknown>;
+  const previousWindow = Object.getOwnPropertyDescriptor(
+    globalObject,
+    "window",
+  );
+  const previousNavigator = Object.getOwnPropertyDescriptor(
+    globalObject,
+    "navigator",
+  );
+  const previousLocalStorage = Object.getOwnPropertyDescriptor(
+    globalObject,
+    "localStorage",
+  );
+  const matchingQueries = new Set([
+    COARSE_POINTER_MEDIA_QUERY,
+    MOBILE_INSTALL_MEDIA_QUERY,
+  ]);
+  const localStorage = {
+    length: 0,
+    clear() {
+      return undefined;
+    },
+    getItem() {
+      return null;
+    },
+    key() {
+      return null;
+    },
+    removeItem() {
+      return undefined;
+    },
+    setItem() {
+      return undefined;
+    },
+  } satisfies Storage;
+
+  Object.defineProperty(globalObject, "window", {
+    configurable: true,
+    value: {
+      addEventListener() {
+        return undefined;
+      },
+      isSecureContext: true,
+      matchMedia(query: string): MediaQueryList {
+        return {
+          addEventListener() {
+            return undefined;
+          },
+          addListener() {
+            return undefined;
+          },
+          dispatchEvent() {
+            return false;
+          },
+          matches: matchingQueries.has(query),
+          media: query,
+          onchange: null,
+          removeEventListener() {
+            return undefined;
+          },
+          removeListener() {
+            return undefined;
+          },
+        };
+      },
+      removeEventListener() {
+        return undefined;
+      },
+    },
+  });
+  Object.defineProperty(globalObject, "navigator", {
+    configurable: true,
+    value: {
+      maxTouchPoints: 5,
+      userAgent:
+        "Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 Version/17.5 Mobile/15E148 Safari/604.1",
+    },
+  });
+  Object.defineProperty(globalObject, "localStorage", {
+    configurable: true,
+    value: localStorage,
+  });
+
+  try {
+    callback();
+  } finally {
+    restoreGlobalProperty("window", previousWindow);
+    restoreGlobalProperty("navigator", previousNavigator);
+    restoreGlobalProperty("localStorage", previousLocalStorage);
+  }
+}
 
 void test("renders the provider auth completion screen", () => {
   const markup = renderToStaticMarkup(createElement(AuthCompleteScreen));
@@ -138,6 +254,15 @@ void test("does not render dashboard PWA nudge in default server markup", () => 
   );
 
   assert.doesNotMatch(markup, /Add Cliparr to your home screen/);
+});
+
+void test("renders mobile PWA install nudge on the initial eligible browser pass", () => {
+  withMobilePwaBrowserEnvironment(() => {
+    const markup = renderToStaticMarkup(createElement(MobilePwaInstallNudge));
+
+    assert.match(markup, /Add Cliparr to your home screen/);
+    assert.match(markup, /data-pwa-install-mode="ios"/);
+  });
 });
 
 void test("flattens dashboard playback cards with viewer context", () => {

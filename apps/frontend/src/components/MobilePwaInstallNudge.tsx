@@ -48,6 +48,20 @@ function addMediaQueryChangeListener(query: string, onChange: () => void) {
   return () => mediaQuery.removeListener(listener);
 }
 
+function getCurrentMobilePwaInstallMode(
+  installPrompt: BeforeInstallPromptEvent | null,
+  dismissed: boolean,
+): PwaInstallMode {
+  if (typeof window === "undefined" || typeof navigator === "undefined") {
+    return "hidden";
+  }
+
+  return resolveMobilePwaInstallMode({
+    ...getPwaInstallEnvironment(installPrompt),
+    dismissed,
+  });
+}
+
 export function MobilePwaInstallNudgeCard({
   mode,
   prompting = false,
@@ -124,22 +138,17 @@ export function MobilePwaInstallNudge({ className }: { className?: string }) {
       getDeferredPwaInstallPrompt(),
     );
   const [dismissed, setDismissed] = useState(() => readPwaInstallDismissed());
-  const [mode, setMode] = useState<PwaInstallMode>("hidden");
+  const [mode, setMode] = useState<PwaInstallMode>(() =>
+    getCurrentMobilePwaInstallMode(
+      getDeferredPwaInstallPrompt(),
+      readPwaInstallDismissed(),
+    ),
+  );
   const [prompting, setPrompting] = useState(false);
 
   const refreshMode = useCallback(
     (nextInstallPrompt = installPrompt, nextDismissed = dismissed) => {
-      if (typeof window === "undefined") {
-        setMode("hidden");
-        return;
-      }
-
-      setMode(
-        resolveMobilePwaInstallMode({
-          ...getPwaInstallEnvironment(nextInstallPrompt),
-          dismissed: nextDismissed,
-        }),
-      );
+      setMode(getCurrentMobilePwaInstallMode(nextInstallPrompt, nextDismissed));
     },
     [dismissed, installPrompt],
   );
