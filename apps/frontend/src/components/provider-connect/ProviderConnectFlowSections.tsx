@@ -178,22 +178,27 @@ export function ProviderOption({
               {provider.name}
             </h2>
           </div>
-          {isSelected &&
-            (isScreen ? (
-              <motion.span
-                layout
-                initial={{ opacity: 0, scale: 0.92 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.92 }}
-                className="rounded-full border border-primary/30 bg-primary/10 px-2.5 py-1 text-ui-label font-medium uppercase tracking-[var(--tracking-caps-lg)] text-primary"
-              >
-                Selected
-              </motion.span>
-            ) : (
-              <span className="rounded-md border border-primary/20 bg-primary/10 px-2 py-1 text-ui-micro font-semibold uppercase tracking-[var(--tracking-caps-md)] text-primary">
-                Selected
-              </span>
-            ))}
+          {isScreen ? (
+            <span
+              aria-hidden={!isSelected}
+              className={cn(
+                "rounded-full border border-primary/30 bg-primary/10 px-2.5 py-1 text-ui-label font-medium uppercase tracking-[var(--tracking-caps-lg)] text-primary",
+                !isSelected && "invisible",
+              )}
+            >
+              Selected
+            </span>
+          ) : (
+            <span
+              aria-hidden={!isSelected}
+              className={cn(
+                "rounded-md border border-primary/20 bg-primary/10 px-2 py-1 text-ui-micro font-semibold uppercase tracking-[var(--tracking-caps-md)] text-primary",
+                !isSelected && "invisible",
+              )}
+            >
+              Selected
+            </span>
+          )}
         </div>
         <p
           className={cn(
@@ -203,11 +208,15 @@ export function ProviderOption({
         >
           {details.summary}
         </p>
-        {isBusy && (
-          <p className="mt-3 text-xs font-medium uppercase tracking-[var(--tracking-caps-xl)] text-primary">
-            In progress
-          </p>
-        )}
+        <p
+          aria-hidden={!isBusy}
+          className={cn(
+            "mt-3 h-4 text-xs font-medium uppercase tracking-[var(--tracking-caps-xl)] text-primary",
+            !isBusy && "invisible",
+          )}
+        >
+          In progress
+        </p>
       </div>
     </div>
   );
