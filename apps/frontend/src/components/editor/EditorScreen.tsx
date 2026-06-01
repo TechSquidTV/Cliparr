@@ -381,7 +381,13 @@ export default function EditorScreen({ session, onBack }: Props) {
       void warmClipSelection(nextStart, nextEnd);
     },
   });
-  playbackTimeUpdateRef.current = setTimelineCurrentTime;
+
+  useEffect(() => {
+    playbackTimeUpdateRef.current = setTimelineCurrentTime;
+    return () => {
+      playbackTimeUpdateRef.current = null;
+    };
+  }, [setTimelineCurrentTime]);
 
   useEffect(() => {
     if (!duration || duration <= 0) {
