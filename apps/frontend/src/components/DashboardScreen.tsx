@@ -352,11 +352,16 @@ export default function DashboardScreen({
               <div className="space-y-1">
                 <div className="flex flex-wrap items-center gap-2">
                   <h1 className="text-2xl font-bold tracking-tight">Cliparr</h1>
-                  {versionLabel && (
-                    <span className="hidden rounded-full border border-border bg-card px-2 py-0.5 text-xs font-medium text-muted-foreground sm:inline-flex">
-                      {versionLabel}
-                    </span>
-                  )}
+                  <span
+                    className={cn(
+                      "hidden min-h-5 min-w-15 items-center justify-center rounded-full border border-border bg-card px-2 py-0.5 text-xs font-medium text-muted-foreground sm:inline-flex",
+                      !versionLabel && "invisible",
+                    )}
+                    aria-hidden={!versionLabel}
+                    data-dashboard-version-badge
+                  >
+                    {versionLabel || "0.0.0"}
+                  </span>
                 </div>
                 <p className="text-sm text-muted-foreground">
                   Export clips from active playback sessions.
