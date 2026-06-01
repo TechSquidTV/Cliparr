@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import type { RefObject } from "react";
 import { errorMessage } from "@/components/editor/editorUtils";
 import type { EditorSession } from "@/lib/editorMedia";
@@ -51,7 +51,6 @@ export function useEditorFramegrab({
   subtitleError,
   getCurrentTime,
 }: UseEditorFramegrabProps) {
-  const [dialogMounted, setDialogMounted] = useState(false);
   const [capturedFramegrab, setCapturedFramegrab] =
     useState<CapturedFramegrab | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -62,12 +61,6 @@ export function useEditorFramegrab({
   const [action, setAction] = useState<FramegrabAction | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (dialogOpen) {
-      setDialogMounted(true);
-    }
-  }, [dialogOpen]);
 
   const fileName = useMemo(
     () =>
@@ -128,7 +121,6 @@ export function useEditorFramegrab({
       setCapturedFramegrab(null);
       setError("No preview frame is available yet.");
       setMessage(null);
-      setDialogMounted(true);
       setDialogOpen(true);
       return;
     }
@@ -151,7 +143,6 @@ export function useEditorFramegrab({
       setCapturedFramegrab(null);
       setError(errorMessage(err));
       setMessage(null);
-      setDialogMounted(true);
       setDialogOpen(true);
     }
   }, [canvasRef, currentTime, getCurrentTime]);
@@ -226,7 +217,7 @@ export function useEditorFramegrab({
   }, [action, capturedFramegrab, fileName.fullName, format, quality]);
 
   return {
-    dialogMounted,
+    dialogMounted: dialogOpen || Boolean(capturedFramegrab || error),
     capturedFramegrab,
     dialogOpen,
     format,
