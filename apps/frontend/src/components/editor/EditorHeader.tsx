@@ -30,12 +30,15 @@ export function EditorHeader({
       type="button"
       onClick={onExportClick}
       disabled={exportDisabled}
-      className="flex h-8 min-w-36 items-center justify-center gap-2 rounded-[var(--radius-control)] border border-primary bg-primary px-3 text-xs font-semibold uppercase tracking-[var(--tracking-caps-sm)] text-primary-foreground transition-[background-color,border-color,color,opacity] duration-150 hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50"
+      className="flex h-8 w-40 shrink-0 items-center justify-center gap-2 rounded-[var(--radius-control)] border border-primary bg-primary px-3 text-xs font-semibold uppercase tracking-[var(--tracking-caps-sm)] text-primary-foreground transition-[background-color,border-color,color,opacity] duration-150 hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50"
     >
       {exporting ? (
         <span className="flex items-center gap-2">
-          <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary-foreground/30 border-t-primary-foreground" />
-          Exporting {Math.round(progress * 100)}%
+          <div className="h-4 w-4 shrink-0 animate-spin rounded-full border-2 border-primary-foreground/30 border-t-primary-foreground" />
+          <span>Exporting</span>
+          <span className="inline-block w-[4ch] text-right font-mono tabular-nums">
+            {Math.round(progress * 100)}%
+          </span>
         </span>
       ) : (
         <>
