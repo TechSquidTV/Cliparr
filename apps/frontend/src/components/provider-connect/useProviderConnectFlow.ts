@@ -50,12 +50,6 @@ export function useProviderConnectFlow({
     };
   }, []);
 
-  useEffect(() => {
-    if (!selectedProviderId && providers[0]) {
-      setSelectedProviderId(providers[0].id);
-    }
-  }, [providers, selectedProviderId]);
-
   const selectedProvider = useMemo(
     () =>
       providers.find((provider) => provider.id === selectedProviderId) ??

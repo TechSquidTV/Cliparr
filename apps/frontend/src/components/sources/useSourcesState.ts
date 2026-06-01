@@ -409,13 +409,10 @@ export function useSourcesState({
     [sources],
   );
 
-  useEffect(() => {
-    if (providerFilter === "all" || providerOptions.includes(providerFilter)) {
-      return;
-    }
-
-    setProviderFilter("all");
-  }, [providerFilter, providerOptions]);
+  const activeProviderFilter =
+    providerFilter === "all" || providerOptions.includes(providerFilter)
+      ? providerFilter
+      : "all";
 
   const counts = useMemo(() => sourceCounts(sources), [sources]);
 
@@ -423,11 +420,11 @@ export function useSourcesState({
     () =>
       filterSources({
         sources,
-        providerFilter,
+        providerFilter: activeProviderFilter,
         statusFilter,
         query,
       }),
-    [providerFilter, query, sources, statusFilter],
+    [activeProviderFilter, query, sources, statusFilter],
   );
 
   const updateDraftName = useCallback((sourceId: string, value: string) => {
@@ -457,7 +454,7 @@ export function useSourcesState({
     setQuery,
     statusFilter,
     setStatusFilter,
-    providerFilter,
+    providerFilter: activeProviderFilter,
     setProviderFilter,
     providerOptions,
     loading,
