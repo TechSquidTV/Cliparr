@@ -93,3 +93,13 @@ void test("keeps the app shell revalidatable in production", async () => {
     assert.match(await response.text(), /id="root"/);
   });
 });
+
+void test("keeps directly served frontend documents revalidatable", async () => {
+  await withProductionStaticApp(async (baseUrl) => {
+    const response = await fetch(`${baseUrl}/index.html`);
+
+    assert.equal(response.status, 200);
+    assert.equal(response.headers.get("cache-control"), "no-cache");
+    assert.match(await response.text(), /id="root"/);
+  });
+});

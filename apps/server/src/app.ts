@@ -29,6 +29,10 @@ function isHashedFrontendAsset(filePath: string) {
   return /(?:^|\/)assets\/.+-[\dA-Za-z_-]{8,}\.[^/]+$/.test(normalizedFilePath);
 }
 
+function isFrontendDocument(filePath: string) {
+  return path.extname(filePath).toLowerCase() === ".html";
+}
+
 export async function createApp(options: CreateAppOptions = {}) {
   await configureLogging();
   initializeDatabase();
@@ -89,6 +93,11 @@ export async function createApp(options: CreateAppOptions = {}) {
               "Cache-Control",
               IMMUTABLE_FRONTEND_ASSET_CACHE_CONTROL,
             );
+            return;
+          }
+
+          if (isFrontendDocument(filePath)) {
+            res.setHeader("Cache-Control", FRONTEND_DOCUMENT_CACHE_CONTROL);
           }
         },
       }),
