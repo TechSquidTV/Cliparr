@@ -77,6 +77,33 @@ const dashboardPlaybackGroups: ViewerPlaybackGroup[] = [
   },
 ];
 
+const dashboardMusicPlaybackGroups: ViewerPlaybackGroup[] = [
+  {
+    viewer: {
+      id: "viewer-music",
+      providerId: "plex",
+      name: "Music Listener",
+    },
+    items: [
+      {
+        id: "session-music",
+        source: {
+          id: "source-music",
+          name: "Plex",
+          providerId: "plex",
+        },
+        title: "A Square Album Cover",
+        type: "track",
+        duration: 240,
+        playerTitle: "Office Speaker",
+        playerState: "playing",
+        thumbUrl: "/api/media/music-thumb.jpg",
+        hlsUrl: "/api/media/music.m3u8",
+      },
+    ],
+  },
+];
+
 function restoreGlobalProperty(
   name: string,
   descriptor: PropertyDescriptor | undefined,
@@ -282,7 +309,11 @@ void test("reserves dashboard playback card space before sessions load", () => {
   );
 
   assert.match(markup, /data-dashboard-loading-grid/);
+  assert.match(markup, /role="status"/);
+  assert.match(markup, /aria-live="polite"/);
+  assert.match(markup, /aria-label="Loading currently playing sessions"/);
   assert.match(markup, /data-dashboard-playback-skeleton/);
+  assert.match(markup, /aspect-\[2\/3\]/);
 });
 
 void test("reserves dashboard version badge space before health loads", () => {
@@ -343,6 +374,30 @@ void test("renders dashboard playback cards with viewer context", () => {
   assert.match(markup, /playing/);
   assert.match(markup, /1 active session/);
   assert.match(markup, /Living Room/);
+  assert.match(markup, /aspect-\[2\/3\]/);
+  assert.match(markup, /mt-auto/);
+});
+
+void test("renders music playback cards inside the video-style card frame", () => {
+  const card = flattenDashboardPlaybackItems(dashboardMusicPlaybackGroups)[0];
+  assert.ok(card);
+
+  const markup = renderToStaticMarkup(
+    createElement(DashboardPlaybackCard, {
+      card,
+      activeViewTransitionSessionId: null,
+      onSelectSession: () => undefined,
+    }),
+  );
+
+  assert.match(markup, /A Square Album Cover/);
+  assert.match(markup, /TRACK/);
+  assert.match(
+    markup,
+    /relative aspect-\[2\/3\] w-full shrink-0 overflow-hidden/,
+  );
+  assert.match(markup, /absolute inset-0 h-full w-full object-cover/);
+  assert.match(markup, /mt-auto/);
 });
 
 void test("renders the editor thumbnail behind loading preview state", () => {
