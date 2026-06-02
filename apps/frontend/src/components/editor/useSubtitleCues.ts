@@ -10,7 +10,7 @@ import {
   subtitleTrackSupportsBurnIn,
   subtitleTrackUnavailableMessage,
 } from "@/lib/selectPreferredSubtitleTrack";
-import { parseSubtitleText } from "@/lib/subtitles/parseSubtitleText";
+import { parseSubtitleTextAsync } from "@/lib/subtitles/parseSubtitleTextAsync";
 import type { SubtitleCue } from "@/lib/subtitles/types";
 import { getFrontendLogger, warnWithError } from "@/logging";
 
@@ -75,7 +75,11 @@ async function downloadSubtitleCues(
 
   return {
     ok: true,
-    cues: parseSubtitleText(await response.text(), track.contentFormat),
+    cues: await parseSubtitleTextAsync(
+      await response.text(),
+      track.contentFormat,
+      signal,
+    ),
   };
 }
 

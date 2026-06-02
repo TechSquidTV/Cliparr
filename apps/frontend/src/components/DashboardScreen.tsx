@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   AlertTriangle,
   FolderOpen,
@@ -94,6 +94,9 @@ function ViewerAvatar({
           src={avatarUrl}
           alt={name}
           className="w-full h-full object-cover"
+          width={size === "sm" ? 32 : 48}
+          height={size === "sm" ? 32 : 48}
+          decoding="async"
           onError={() => setImageFailed(true)}
         />
       ) : (
@@ -129,7 +132,7 @@ function ViewerChip({
   );
 }
 
-export function DashboardPlaybackCard({
+export const DashboardPlaybackCard = memo(function DashboardPlaybackCard({
   card,
   activeViewTransitionSessionId,
   onSelectSession,
@@ -163,6 +166,9 @@ export function DashboardPlaybackCard({
             src={mediaSession.thumbUrl}
             alt={mediaSession.title}
             className="h-full w-full object-cover opacity-80 transition-opacity group-hover:opacity-100"
+            width="640"
+            height="360"
+            decoding="async"
             style={
               thumbnailViewTransitionName
                 ? {
@@ -210,6 +216,32 @@ export function DashboardPlaybackCard({
         </div>
       </div>
     </button>
+  );
+});
+
+function DashboardPlaybackCardSkeleton({ className }: { className?: string }) {
+  return (
+    <div
+      className={cn(
+        "flex flex-col overflow-hidden rounded-lg border border-border bg-card text-card-foreground",
+        className,
+      )}
+      aria-hidden="true"
+      data-dashboard-playback-skeleton
+    >
+      <div className="aspect-video w-full bg-background" />
+      <div className="flex flex-1 flex-col gap-3 p-3 md:p-4">
+        <div className="flex min-w-0 items-center gap-2.5">
+          <div className="h-8 w-8 shrink-0 rounded-full bg-background" />
+          <div className="min-w-0 flex-1 space-y-2">
+            <div className="h-3 w-28 rounded bg-background" />
+            <div className="h-2.5 w-36 rounded bg-background" />
+          </div>
+        </div>
+        <div className="h-4 w-24 rounded bg-background" />
+        <div className="h-9 w-full rounded-lg bg-primary/10" />
+      </div>
+    </div>
   );
 }
 
@@ -260,11 +292,19 @@ export default function DashboardScreen({
   const [sourceErrors, setSourceErrors] = useState<SourcePlaybackError[]>([]);
   const [appVersion, setAppVersion] = useState("");
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState("");
+  const hasFetchedSessionsRef = useRef(false);
 
-  const fetchSessions = async () => {
-    setLoading(true);
+  const fetchSessions = useCallback(async () => {
+    const isInitialFetch = !hasFetchedSessionsRef.current;
+    if (isInitialFetch) {
+      setLoading(true);
+    } else {
+      setRefreshing(true);
+    }
     setError("");
+
     try {
       const playback = await cliparrClient.getCurrentlyPlaying();
       setViewers(playback.viewers);
@@ -274,13 +314,15 @@ export default function DashboardScreen({
       setViewers([]);
       setSourceErrors([]);
     } finally {
+      hasFetchedSessionsRef.current = true;
       setLoading(false);
+      setRefreshing(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     void fetchSessions();
-  }, []);
+  }, [fetchSessions]);
 
   useEffect(() => {
     let cancelled = false;
@@ -303,8 +345,12 @@ export default function DashboardScreen({
     };
   }, []);
 
-  const playbackCards = flattenDashboardPlaybackItems(viewers);
+  const playbackCards = useMemo(
+    () => flattenDashboardPlaybackItems(viewers),
+    [viewers],
+  );
   const hasPlaybackCards = playbackCards.length > 0;
+  const showPlaybackGrid = loading || hasPlaybackCards;
   const emptyMessage =
     sourceErrors.length > 0
       ? "No active playback on the available sources."
@@ -321,15 +367,23 @@ export default function DashboardScreen({
                 src="/logo-light.svg"
                 alt="Cliparr Logo"
                 className="w-8 h-8"
+                width="32"
+                height="32"
+                decoding="async"
               />
               <div className="space-y-1">
                 <div className="flex flex-wrap items-center gap-2">
                   <h1 className="text-2xl font-bold tracking-tight">Cliparr</h1>
-                  {versionLabel && (
-                    <span className="hidden rounded-full border border-border bg-card px-2 py-0.5 text-xs font-medium text-muted-foreground sm:inline-flex">
-                      {versionLabel}
-                    </span>
-                  )}
+                  <span
+                    className={cn(
+                      "hidden min-h-5 min-w-15 items-center justify-center rounded-full border border-border bg-card px-2 py-0.5 text-xs font-medium text-muted-foreground sm:inline-flex",
+                      !versionLabel && "invisible",
+                    )}
+                    aria-hidden={!versionLabel}
+                    data-dashboard-version-badge
+                  >
+                    {versionLabel || "0.0.0"}
+                  </span>
                 </div>
                 <p className="text-sm text-muted-foreground">
                   Export clips from active playback sessions.
@@ -366,7 +420,7 @@ export default function DashboardScreen({
               title="Refresh"
             >
               <RefreshCw
-                className={`h-5 w-5 ${loading ? "animate-spin text-primary" : ""}`}
+                className={`h-5 w-5 ${loading || refreshing ? "animate-spin text-primary" : ""}`}
               />
             </button>
           </div>
@@ -396,7 +450,7 @@ export default function DashboardScreen({
               title="Refresh"
             >
               <RefreshCw
-                className={`w-5 h-5 ${loading ? "animate-spin text-primary" : ""}`}
+                className={`w-5 h-5 ${loading || refreshing ? "animate-spin text-primary" : ""}`}
               />
             </button>
             <a
@@ -431,9 +485,9 @@ export default function DashboardScreen({
         </header>
 
         <div
-          className={hasPlaybackCards ? "space-y-4 sm:space-y-6" : "space-y-6"}
+          className={showPlaybackGrid ? "space-y-4 sm:space-y-6" : "space-y-6"}
         >
-          <div className={hasPlaybackCards ? "sr-only" : ""}>
+          <div className={showPlaybackGrid ? "sr-only" : ""}>
             <h2 className="text-xl font-semibold mb-2">Currently Playing</h2>
             <p className="text-muted-foreground text-sm">
               Active sessions across enabled sources.
@@ -462,7 +516,18 @@ export default function DashboardScreen({
             </div>
           )}
 
-          {hasPlaybackCards && (
+          {loading && !error && (
+            <div
+              className="grid grid-cols-1 gap-3 md:grid-cols-2 md:gap-4 xl:grid-cols-3"
+              data-dashboard-loading-grid
+            >
+              <DashboardPlaybackCardSkeleton />
+              <DashboardPlaybackCardSkeleton className="hidden md:flex" />
+              <DashboardPlaybackCardSkeleton className="hidden xl:flex" />
+            </div>
+          )}
+
+          {!loading && hasPlaybackCards && (
             <div className="grid grid-cols-1 gap-3 md:grid-cols-2 md:gap-4 xl:grid-cols-3">
               {playbackCards.map((card) => (
                 <DashboardPlaybackCard

@@ -14,10 +14,19 @@ import DashboardScreen from "@/components/DashboardScreen";
 import { DashboardMobileMenu } from "@/components/DashboardMobileMenu";
 import { EditorControls } from "@/components/editor/EditorControls";
 import { EditorFramegrabDialog } from "@/components/editor/EditorFramegrabDialog";
+import { EditorHeader } from "@/components/editor/EditorHeader";
 import { EditorPreview } from "@/components/editor/EditorPreview";
 import { LocalVideoOpenDialog } from "@/components/local-media/LocalVideoOpenDialog";
-import { MobilePwaInstallNudgeCard } from "@/components/MobilePwaInstallNudge";
+import ProviderConnectScreen from "@/components/provider-connect/ProviderConnectScreen";
+import {
+  MobilePwaInstallNudge,
+  MobilePwaInstallNudgeCard,
+} from "@/components/MobilePwaInstallNudge";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import {
+  COARSE_POINTER_MEDIA_QUERY,
+  MOBILE_INSTALL_MEDIA_QUERY,
+} from "@/lib/pwa";
 import { EDITOR_THUMBNAIL_VIEW_TRANSITION_NAME } from "@/lib/viewTransitions";
 import type { ViewerPlaybackGroup } from "@/providers/types";
 
@@ -68,6 +77,115 @@ const dashboardPlaybackGroups: ViewerPlaybackGroup[] = [
   },
 ];
 
+function restoreGlobalProperty(
+  name: string,
+  descriptor: PropertyDescriptor | undefined,
+) {
+  const globalObject = globalThis as typeof globalThis &
+    Record<string, unknown>;
+
+  if (descriptor) {
+    Object.defineProperty(globalObject, name, descriptor);
+    return;
+  }
+
+  delete globalObject[name];
+}
+
+function withMobilePwaBrowserEnvironment(callback: () => void) {
+  const globalObject = globalThis as typeof globalThis &
+    Record<string, unknown>;
+  const previousWindow = Object.getOwnPropertyDescriptor(
+    globalObject,
+    "window",
+  );
+  const previousNavigator = Object.getOwnPropertyDescriptor(
+    globalObject,
+    "navigator",
+  );
+  const previousLocalStorage = Object.getOwnPropertyDescriptor(
+    globalObject,
+    "localStorage",
+  );
+  const matchingQueries = new Set([
+    COARSE_POINTER_MEDIA_QUERY,
+    MOBILE_INSTALL_MEDIA_QUERY,
+  ]);
+  const localStorage = {
+    length: 0,
+    clear() {
+      return undefined;
+    },
+    getItem() {
+      return null;
+    },
+    key() {
+      return null;
+    },
+    removeItem() {
+      return undefined;
+    },
+    setItem() {
+      return undefined;
+    },
+  } satisfies Storage;
+
+  Object.defineProperty(globalObject, "window", {
+    configurable: true,
+    value: {
+      addEventListener() {
+        return undefined;
+      },
+      isSecureContext: true,
+      matchMedia(query: string): MediaQueryList {
+        return {
+          addEventListener() {
+            return undefined;
+          },
+          addListener() {
+            return undefined;
+          },
+          dispatchEvent() {
+            return false;
+          },
+          matches: matchingQueries.has(query),
+          media: query,
+          onchange: null,
+          removeEventListener() {
+            return undefined;
+          },
+          removeListener() {
+            return undefined;
+          },
+        };
+      },
+      removeEventListener() {
+        return undefined;
+      },
+    },
+  });
+  Object.defineProperty(globalObject, "navigator", {
+    configurable: true,
+    value: {
+      maxTouchPoints: 5,
+      userAgent:
+        "Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 Version/17.5 Mobile/15E148 Safari/604.1",
+    },
+  });
+  Object.defineProperty(globalObject, "localStorage", {
+    configurable: true,
+    value: localStorage,
+  });
+
+  try {
+    callback();
+  } finally {
+    restoreGlobalProperty("window", previousWindow);
+    restoreGlobalProperty("navigator", previousNavigator);
+    restoreGlobalProperty("localStorage", previousLocalStorage);
+  }
+}
+
 void test("renders the provider auth completion screen", () => {
   const markup = renderToStaticMarkup(createElement(AuthCompleteScreen));
 
@@ -87,6 +205,18 @@ void test("renders local video dialog file picker workflow", () => {
   assert.match(markup, /Open Video/);
   assert.match(markup, /Local files stay in your browser/);
   assert.match(markup, /Choose File/);
+});
+
+void test("reserves provider connect layout before providers load", () => {
+  const markup = renderToStaticMarkup(
+    createElement(ProviderConnectScreen, {
+      onConnected: () => undefined,
+      onOpenLocalVideo: () => undefined,
+    }),
+  );
+
+  assert.match(markup, /data-provider-connect-loading-layout/);
+  assert.match(markup, /data-provider-connect-selected-skeleton/);
 });
 
 void test("renders dashboard mobile menu trigger", () => {
@@ -138,6 +268,45 @@ void test("does not render dashboard PWA nudge in default server markup", () => 
   );
 
   assert.doesNotMatch(markup, /Add Cliparr to your home screen/);
+});
+
+void test("reserves dashboard playback card space before sessions load", () => {
+  const markup = renderToStaticMarkup(
+    createElement(DashboardScreen, {
+      activeViewTransitionSessionId: null,
+      onSelectSession: () => undefined,
+      onOpenLocalVideo: () => undefined,
+      onOpenSources: () => undefined,
+      onLogout: () => undefined,
+    }),
+  );
+
+  assert.match(markup, /data-dashboard-loading-grid/);
+  assert.match(markup, /data-dashboard-playback-skeleton/);
+});
+
+void test("reserves dashboard version badge space before health loads", () => {
+  const markup = renderToStaticMarkup(
+    createElement(DashboardScreen, {
+      activeViewTransitionSessionId: null,
+      onSelectSession: () => undefined,
+      onOpenLocalVideo: () => undefined,
+      onOpenSources: () => undefined,
+      onLogout: () => undefined,
+    }),
+  );
+
+  assert.match(markup, /data-dashboard-version-badge/);
+  assert.match(markup, /invisible/);
+});
+
+void test("renders mobile PWA install nudge on the initial eligible browser pass", () => {
+  withMobilePwaBrowserEnvironment(() => {
+    const markup = renderToStaticMarkup(createElement(MobilePwaInstallNudge));
+
+    assert.match(markup, /Add Cliparr to your home screen/);
+    assert.match(markup, /data-pwa-install-mode="ios"/);
+  });
 });
 
 void test("flattens dashboard playback cards with viewer context", () => {
@@ -313,6 +482,27 @@ void test("renders the editor framegrab camera control", () => {
     markup.indexOf('aria-label="Zoom timeline in"') <
       markup.indexOf('aria-label="Export current preview frame"'),
   );
+});
+
+void test("reserves editor export progress label width", () => {
+  const markup = renderToStaticMarkup(
+    createElement(
+      TooltipProvider,
+      null,
+      createElement(EditorHeader, {
+        title: "Example Movie",
+        onBack: () => undefined,
+        exporting: true,
+        progress: 0.07,
+        exportDisabledReason: null,
+        onExportClick: () => undefined,
+      }),
+    ),
+  );
+
+  assert.match(markup, /w-40/);
+  assert.match(markup, /w-\[4ch\]/);
+  assert.match(markup, />7%<\/span>/);
 });
 
 void test("renders the framegrab export dialog actions", () => {

@@ -53,7 +53,6 @@ export function useSourcesState({
   const [error, setError] = useState("");
   const [feedback, setFeedback] = useState<Feedback | null>(null);
   const [showAddSource, setShowAddSource] = useState(false);
-  const [initialSourcesLoaded, setInitialSourcesLoaded] = useState(false);
   const latestLoadRequestIdRef = useRef(0);
   const isOpenRef = useRef(isOpen);
   const sourceLogger = useMemo(
@@ -91,7 +90,6 @@ export function useSourcesState({
         requestId === latestLoadRequestIdRef.current && isOpenRef.current;
 
       if (mode === "initial") {
-        setInitialSourcesLoaded(false);
         setLoading(true);
       } else {
         setReloading(true);
@@ -116,7 +114,6 @@ export function useSourcesState({
         if (isCurrentRequest()) {
           if (mode === "initial") {
             setLoading(false);
-            setInitialSourcesLoaded(true);
           } else {
             setReloading(false);
           }
@@ -386,7 +383,6 @@ export function useSourcesState({
   useEffect(() => {
     if (!isOpen) {
       setShowAddSource(false);
-      setInitialSourcesLoaded(false);
       return;
     }
 
@@ -394,28 +390,15 @@ export function useSourcesState({
     void loadSources();
   }, [isOpen, loadSources]);
 
-  useEffect(() => {
-    if (!isOpen || loading || !initialSourcesLoaded) {
-      return;
-    }
-
-    if (sources.length === 0) {
-      setShowAddSource(true);
-    }
-  }, [initialSourcesLoaded, isOpen, loading, sources.length]);
-
   const providerOptions = useMemo(
     () => sourceProviderOptions(sources),
     [sources],
   );
 
-  useEffect(() => {
-    if (providerFilter === "all" || providerOptions.includes(providerFilter)) {
-      return;
-    }
-
-    setProviderFilter("all");
-  }, [providerFilter, providerOptions]);
+  const activeProviderFilter =
+    providerFilter === "all" || providerOptions.includes(providerFilter)
+      ? providerFilter
+      : "all";
 
   const counts = useMemo(() => sourceCounts(sources), [sources]);
 
@@ -423,11 +406,11 @@ export function useSourcesState({
     () =>
       filterSources({
         sources,
-        providerFilter,
+        providerFilter: activeProviderFilter,
         statusFilter,
         query,
       }),
-    [providerFilter, query, sources, statusFilter],
+    [activeProviderFilter, query, sources, statusFilter],
   );
 
   const updateDraftName = useCallback((sourceId: string, value: string) => {
@@ -457,7 +440,7 @@ export function useSourcesState({
     setQuery,
     statusFilter,
     setStatusFilter,
-    providerFilter,
+    providerFilter: activeProviderFilter,
     setProviderFilter,
     providerOptions,
     loading,

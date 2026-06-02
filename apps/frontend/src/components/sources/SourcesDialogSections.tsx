@@ -224,7 +224,7 @@ export function SourcesDialogHeader({
                   )}
                 >
                   <span className="text-muted-foreground">{label}</span>
-                  <span className="font-mono font-semibold tabular-nums text-foreground">
+                  <span className="inline-block min-w-[3ch] text-right font-mono font-semibold tabular-nums text-foreground">
                     {value}
                   </span>
                 </div>
@@ -238,7 +238,7 @@ export function SourcesDialogHeader({
             <button
               type="button"
               onClick={onToggleAddSource}
-              className={sourceSecondaryButtonClasses}
+              className={cn(sourceSecondaryButtonClasses, "w-28")}
             >
               <Plus
                 className={cn(
@@ -369,7 +369,7 @@ export function SourcesDialogFilters({
                 )}
               >
                 {label}
-                <span className="font-mono text-ui-micro opacity-80">
+                <span className="inline-block min-w-[3ch] text-right font-mono text-ui-micro tabular-nums opacity-80">
                   {counts[value]}
                 </span>
               </button>
@@ -562,7 +562,11 @@ export function SourceCard({
             {formatProviderName(source.providerId)}
           </span>
           <span
-            className={joinClassNames(statusBadgeClasses, status.className)}
+            className={joinClassNames(
+              statusBadgeClasses,
+              "min-w-36 justify-center",
+              status.className,
+            )}
           >
             <StatusIcon className="h-3.5 w-3.5" />
             {status.label}
@@ -571,7 +575,7 @@ export function SourceCard({
             <span
               className={joinClassNames(
                 statusBadgeClasses,
-                "border-primary/30 bg-primary/10 text-primary",
+                "w-32 justify-center border-primary/30 bg-primary/10 text-primary",
               )}
             >
               <RefreshCw className="h-3.5 w-3.5 animate-spin" />

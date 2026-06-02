@@ -105,7 +105,6 @@ export function useEditorTimeline({
   const timelineWheelDeltaRef = useRef(0);
   const hasUserAdjustedTimelineZoomRef = useRef(false);
   const hasPositionedTimelineViewRef = useRef(false);
-  const [timelineScrollLeft, setTimelineScrollLeft] = useState(0);
   const [timelineViewportWidth, setTimelineViewportWidth] = useState(0);
 
   const hasDuration = duration > 0;
@@ -270,7 +269,6 @@ export function useEditorTimeline({
     hasPositionedTimelineViewRef.current = false;
     timelineRef.current?.setScrollLeft(0);
     pendingTimelineScrollLeftRef.current = 0;
-    setTimelineScrollLeft(0);
   }, [defaultTimelineZoomIndex, sessionId]);
 
   useEffect(() => {
@@ -307,7 +305,6 @@ export function useEditorTimeline({
     hasPositionedTimelineViewRef.current = true;
     timelineRef.current?.setScrollLeft(nextScrollLeft);
     pendingTimelineScrollLeftRef.current = nextScrollLeft;
-    setTimelineScrollLeft(nextScrollLeft);
   }, [
     availableTimelineZoomLevels,
     defaultTimelineScale,
@@ -331,17 +328,27 @@ export function useEditorTimeline({
     pendingTimelineScrollLeftRef.current = null;
   }, [activeTimelineScale.scale, activeTimelineScale.scaleWidth]);
 
+  const setTimelineCurrentTime = useCallback(
+    (time: number) => {
+      if (!hasDuration) {
+        return;
+      }
+
+      timelineRef.current?.setTime(time);
+    },
+    [hasDuration],
+  );
+
   useEffect(() => {
     if (!timelineRef.current || !hasDuration) {
       return;
     }
-    timelineRef.current.setTime(currentTime);
-  }, [currentTime, hasDuration]);
+    setTimelineCurrentTime(currentTime);
+  }, [currentTime, hasDuration, setTimelineCurrentTime]);
 
   const handleTimelineScroll = useCallback(
     ({ scrollLeft }: { scrollLeft: number }) => {
       timelineScrollLeftRef.current = scrollLeft;
-      setTimelineScrollLeft(scrollLeft);
     },
     [],
   );
@@ -393,7 +400,6 @@ export function useEditorTimeline({
       const { nextZoomIndex, nextScrollLeft } = zoomUpdate;
       pendingTimelineScrollLeftRef.current = nextScrollLeft;
       timelineScrollLeftRef.current = nextScrollLeft;
-      setTimelineScrollLeft(nextScrollLeft);
       timelineZoomIndexRef.current = nextZoomIndex;
       hasUserAdjustedTimelineZoomRef.current = true;
 
@@ -447,7 +453,6 @@ export function useEditorTimeline({
 
         timelineRef.current?.setScrollLeft(nextScrollLeft);
         timelineScrollLeftRef.current = nextScrollLeft;
-        setTimelineScrollLeft(nextScrollLeft);
         return;
       }
 
@@ -561,7 +566,6 @@ export function useEditorTimeline({
     timelineEffects,
     activeTimelineScale,
     timelineScaleCount,
-    timelineScrollLeft,
     timelineViewportWidth,
     handleTimelineScroll,
     handleTimelineZoomIn,
@@ -572,6 +576,7 @@ export function useEditorTimeline({
     handleTimelineChange,
     handleTimelineActionMoveEnd,
     handleTimelineActionResizeEnd,
+    setTimelineCurrentTime,
     hasDuration,
   };
 }
