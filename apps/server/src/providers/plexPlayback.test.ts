@@ -3,6 +3,7 @@ import test from "node:test";
 import type { ProviderSessionRecord } from "@/session/store";
 import {
   createCliparrPlexTranscodeSessionId,
+  createPlexViewerAvatarUrl,
   createPreviewPath,
   deriveSelectedSubtitleTrack,
   deriveSubtitleTracks,
@@ -144,6 +145,24 @@ void test("creates a direct content URL for Plex sidecar text subtitle streams",
   );
   assert.equal(tracks[0]?.contentFormat, "srt");
   assert.equal(onlyMediaHandle(session).path, "/library/streams/101.srt");
+});
+
+void test("proxies Plex viewer avatar URLs through provider media handles", () => {
+  const session = createSession();
+  const context = createContext();
+  const item = {
+    User: {
+      id: "user-1",
+      title: "Alice",
+      thumb: "https://plex.tv/users/user-1/avatar?c=123",
+    },
+  };
+
+  const avatarUrl = createPlexViewerAvatarUrl(session, context, item);
+  const handle = onlyMediaHandle(session);
+
+  assert.equal(avatarUrl, `/api/media/${handle.id}`);
+  assert.equal(handle.path, "https://plex.tv/users/user-1/avatar?c=123");
 });
 
 void test("creates a subtitle transcode content URL for the selected embedded Plex text subtitle", () => {
