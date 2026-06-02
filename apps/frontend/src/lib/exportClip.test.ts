@@ -568,7 +568,7 @@ void test("uses per-frame GIF palettes for the sharp preset", async () => {
     context.runtime,
   );
 
-  assert.deepEqual(timestamps, ["15.0000", "15.0667"]);
+  assert.deepEqual(timestamps, ["15.0000", "15.0556"]);
   assert.deepEqual(quantizeCalls, [
     {
       byteLength: 4 * 4 * 4,

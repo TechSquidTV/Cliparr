@@ -25,6 +25,7 @@ import {
   type ExportFileNameTemplateKind,
   type ExportFileNameTemplateSettings,
 } from "@/lib/exportFileName";
+import { cn } from "@/lib/utils";
 import type { ExportSourcePreference } from "@/components/editor/EditorExportDialog";
 import {
   compactSelectTriggerClassName,
@@ -223,8 +224,6 @@ function EditorExportSettingsSectionComponent({
 }: EditorExportSettingsSectionProps) {
   const sourceOptions = sourceOptionsFor({ directSourceLabel, hlsSourceLabel });
   const selectedGifPresetOption = gifPresetOptionFor(selectedGifPreset);
-  const gifLegacyWarning =
-    "GIF is a legacy animated image format. Use WebM when your destination supports it; choose GIF only for platforms that require it.";
 
   return (
     <section className="rounded-md border border-border bg-card">
@@ -378,42 +377,39 @@ function EditorExportSettingsSectionComponent({
         </label>
       </div>
       {selectedFormat === "gif" && (
-        <div className="grid gap-3 border-t border-border px-3 py-3 sm:grid-cols-2">
-          <label className="space-y-1.5">
+        <div className="border-t border-border px-3 py-3">
+          <div className="space-y-1.5">
             <span className={sectionLabelClassName()}>GIF Preset</span>
-            <Select
-              value={selectedGifPreset}
-              onValueChange={(value) =>
-                onGifPresetChange(value as GifExportPreset)
-              }
+            <div
+              role="radiogroup"
+              aria-label="GIF Preset"
+              className="grid grid-cols-3 gap-1 rounded-md border border-border bg-background p-1"
             >
-              <SelectTrigger
-                size="sm"
-                className={compactSelectTriggerClassName()}
-              >
-                <SelectValue placeholder="Select GIF preset" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectGroup>
-                  <SelectLabel>GIF Presets</SelectLabel>
-                  {gifExportPresetOptions.map((option) => (
-                    <SelectItem key={option.value} value={option.value}>
-                      {option.label}
-                    </SelectItem>
-                  ))}
-                </SelectGroup>
-              </SelectContent>
-            </Select>
+              {gifExportPresetOptions.map((option) => {
+                const isSelected = option.value === selectedGifPreset;
+
+                return (
+                  <button
+                    key={option.value}
+                    type="button"
+                    role="radio"
+                    aria-checked={isSelected}
+                    onClick={() => onGifPresetChange(option.value)}
+                    className={cn(
+                      "h-8 rounded-sm px-2 text-ui-label font-semibold uppercase tracking-[var(--tracking-caps-sm)] transition-colors focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none",
+                      isSelected
+                        ? "bg-primary text-primary-foreground"
+                        : "text-muted-foreground hover:bg-accent hover:text-foreground",
+                    )}
+                  >
+                    {option.label}
+                  </button>
+                );
+              })}
+            </div>
             <p className={stableHelperTextClassName}>
               {selectedGifPresetOption.description}
             </p>
-          </label>
-
-          <div
-            role="note"
-            className="self-start rounded-md border border-status-warning-border bg-status-warning px-3 py-2 text-xs leading-relaxed text-foreground"
-          >
-            {gifLegacyWarning}
           </div>
         </div>
       )}
@@ -565,11 +561,9 @@ function EditorExportSummaryPanelComponent({
   const selectedFormatOption = formatOptionFor(selectedFormat);
   const outputDetail =
     selectedFormat === "gif" && gifSettings
-      ? `${gifSettings.frameRate} fps / ${gifSettings.maxColors} colors / ${
-          gifSettings.paletteMode === "global"
-            ? "stable palette"
-            : "per-frame palette"
-        }`
+      ? `${gifPresetOptionFor(gifSettings.preset).label} GIF / ${
+          gifSettings.frameRate
+        } fps`
       : null;
   const subtitleSummaryClassName =
     subtitleSummaryTone === "ready"

@@ -429,17 +429,14 @@ void test("renders GIF preset controls and immediate estimated size", () => {
   });
 
   assert.match(markup, /GIF Preset/);
-  assert.match(markup, /480p max, 12 fps, 128 colors, stable palette\./);
-  assert.match(markup, /12 fps \/ 128 colors \/ stable palette/);
+  assert.match(markup, /role="radiogroup"/);
+  assert.match(markup, /Default quality\/size tradeoff\./);
+  assert.match(markup, /Balanced GIF \/ 12 fps/);
   assert.match(markup, /Filename[\s\S]*Estimated size/);
   assert.match(markup, /~1\.5 MB/);
   assert.match(markup, /GIF exports are video only\./);
-  assert.match(markup, /role="note"/);
+  assert.doesNotMatch(markup, /role="note"/);
   assert.doesNotMatch(markup, /aria-live="polite"/);
-  assert.match(
-    markup,
-    /GIF is a legacy animated image format\. Use WebM when your destination supports it; choose GIF only for platforms that require it\./,
-  );
 });
 
 void test("hides GIF-only export details for video formats", () => {
@@ -452,7 +449,7 @@ void test("hides GIF-only export details for video formats", () => {
   assert.match(markup, /Filename[\s\S]*Estimated size/);
   assert.match(markup, /~6\.7 MB/);
   assert.doesNotMatch(markup, /~1\.5 MB/);
-  assert.doesNotMatch(markup, /12 fps \/ 128 colors \/ stable palette/);
+  assert.doesNotMatch(markup, /Balanced GIF \/ 12 fps/);
   assert.doesNotMatch(markup, /invisible border-transparent/);
   assert.doesNotMatch(markup, /sm:w-36/);
   assert.doesNotMatch(markup, /Size Estimate/);

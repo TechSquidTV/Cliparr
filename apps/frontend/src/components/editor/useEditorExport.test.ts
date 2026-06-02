@@ -248,7 +248,7 @@ void test("defines GIF export presets and balanced default", () => {
       {
         value: "sharp",
         maxHeight: 720,
-        frameRate: 15,
+        frameRate: 18,
         maxColors: 256,
         paletteMode: "per-frame",
       },

@@ -62,7 +62,7 @@ export const gifExportPresetOptions: ReadonlyArray<{
   {
     value: "compact",
     label: "Compact",
-    description: "360p max, 10 fps, 64 colors, stable palette.",
+    description: "Smallest file, lighter motion/detail.",
     settings: {
       preset: "compact",
       maxHeight: 360,
@@ -74,7 +74,7 @@ export const gifExportPresetOptions: ReadonlyArray<{
   {
     value: "balanced",
     label: "Balanced",
-    description: "480p max, 12 fps, 128 colors, stable palette.",
+    description: "Default quality/size tradeoff.",
     settings: {
       preset: "balanced",
       maxHeight: 480,
@@ -86,11 +86,11 @@ export const gifExportPresetOptions: ReadonlyArray<{
   {
     value: "sharp",
     label: "Sharp",
-    description: "720p max, 15 fps, 256 colors, per-frame palette.",
+    description: "Smoother, highest-detail GIF.",
     settings: {
       preset: "sharp",
       maxHeight: 720,
-      frameRate: 15,
+      frameRate: 18,
       maxColors: 256,
       paletteMode: "per-frame",
     },
