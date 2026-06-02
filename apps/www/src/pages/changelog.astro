@@ -16,7 +16,9 @@ const releases = await Promise.all(
 
     return {
       ...entry.data,
+      anchorId: entry.id,
       Content,
+      pageUrl: `/changelog/#${entry.id}`,
       publishedAt: new Date(entry.data.publishedAt),
     };
   }),
@@ -46,9 +48,12 @@ const dateFormatter = new Intl.DateTimeFormat("en", {
       {
         latestRelease && (
           <div class="mt-6 flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
-            <span class="rounded-full border border-border bg-card px-3 py-1 font-medium text-foreground">
+            <a
+              class="focus-ring rounded-full border border-border bg-card px-3 py-1 font-medium text-foreground no-underline transition-colors hover:bg-accent"
+              href={latestRelease.pageUrl}
+            >
               Latest version {latestRelease.tagName}
-            </span>
+            </a>
             <span>
               Published {dateFormatter.format(latestRelease.publishedAt)}
             </span>
@@ -68,7 +73,11 @@ const dateFormatter = new Intl.DateTimeFormat("en", {
     <div class="mx-auto mt-10 max-w-4xl space-y-5">
       {
         releases.map((release, index) => (
-          <article class="rounded-lg border border-border bg-card p-5 sm:p-6">
+          <article
+            id={release.anchorId}
+            data-release-card
+            class="scroll-mt-24 rounded-lg border border-border bg-card p-5 transition-colors target:border-primary/60 target:bg-primary/[0.04] sm:p-6"
+          >
             <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
               <div>
                 <div class="flex flex-wrap items-center gap-2">
@@ -77,9 +86,13 @@ const dateFormatter = new Intl.DateTimeFormat("en", {
                       Latest
                     </span>
                   )}
-                  <span class="rounded-full border border-border bg-muted px-2.5 py-1 text-xs font-semibold text-muted-foreground">
+                  <a
+                    class="focus-ring rounded-full border border-border bg-muted px-2.5 py-1 text-xs font-semibold text-muted-foreground no-underline transition-colors hover:bg-accent hover:text-foreground"
+                    href={release.pageUrl}
+                    aria-label={`Link to ${release.tagName} on this page`}
+                  >
                     {release.tagName}
-                  </span>
+                  </a>
                   {release.prerelease && (
                     <span class="rounded-full border border-secondary/40 bg-secondary/10 px-2.5 py-1 text-xs font-semibold text-secondary">
                       Prerelease
@@ -89,9 +102,7 @@ const dateFormatter = new Intl.DateTimeFormat("en", {
                 <h2 class="mt-4 text-2xl font-semibold">
                   <a
                     class="focus-ring rounded-md no-underline hover:underline"
-                    href={release.url}
-                    target="_blank"
-                    rel="noreferrer"
+                    href={release.pageUrl}
                   >
                     {release.title}
                   </a>
@@ -108,7 +119,7 @@ const dateFormatter = new Intl.DateTimeFormat("en", {
                 target="_blank"
                 rel="noreferrer"
               >
-                View release
+                View on GitHub
               </a>
             </div>
             <div class="release-notes mt-6">
@@ -119,4 +130,59 @@ const dateFormatter = new Intl.DateTimeFormat("en", {
       }
     </div>
   </section>
+
+  <script is:inline>
+    (() => {
+      if (window.__cliparrReleaseLinks?.ready) {
+        window.__cliparrReleaseLinks.schedule();
+        return;
+      }
+
+      const getHashTarget = () => {
+        const rawId = window.location.hash.slice(1);
+        if (!rawId) return null;
+
+        try {
+          return document.getElementById(decodeURIComponent(rawId));
+        } catch {
+          return document.getElementById(rawId);
+        }
+      };
+
+      const scrollToReleaseHash = () => {
+        const target = getHashTarget();
+        if (
+          !(target instanceof HTMLElement) ||
+          !target.hasAttribute("data-release-card")
+        ) {
+          return;
+        }
+
+        const scrollMarginTop =
+          Number.parseFloat(getComputedStyle(target).scrollMarginTop) || 0;
+        const top = target.getBoundingClientRect().top + window.scrollY;
+
+        window.scrollTo({
+          top: Math.max(0, top - scrollMarginTop),
+          behavior: "instant",
+        });
+      };
+
+      const scheduleReleaseHashScroll = () => {
+        requestAnimationFrame(() => {
+          requestAnimationFrame(scrollToReleaseHash);
+        });
+        window.setTimeout(scrollToReleaseHash, 500);
+        window.setTimeout(scrollToReleaseHash, 1200);
+      };
+
+      window.addEventListener("load", scheduleReleaseHashScroll);
+      window.addEventListener("hashchange", scheduleReleaseHashScroll);
+      document.addEventListener("astro:page-load", scheduleReleaseHashScroll);
+      window.__cliparrReleaseLinks = {
+        ready: true,
+        schedule: scheduleReleaseHashScroll,
+      };
+    })();
+  </script>
 </BaseLayout>
