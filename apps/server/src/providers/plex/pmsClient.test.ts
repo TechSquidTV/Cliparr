@@ -4,6 +4,7 @@ import { isApiError } from "@/http/errors";
 import {
   plexPmsResponseStatusMessage,
   requestPlexPmsCurrentSessions,
+  requestPlexPmsIdentity,
   requestPlexPmsMetadata,
   type PlexPmsRequestContext,
   type PlexPmsRequestOptions,
@@ -25,9 +26,8 @@ function withMockFetch(
   callback: () => Promise<void>,
 ) {
   const originalFetch = globalThis.fetch;
-  globalThis.fetch = (async (input) => {
-    assert(input instanceof Request);
-    return handler(input);
+  globalThis.fetch = (async (input, init) => {
+    return handler(new Request(input, init));
   }) as typeof fetch;
 
   return callback().finally(() => {
@@ -91,6 +91,101 @@ void test("serializes Plex metadata ids through the generated SDK", async () => 
           Metadata: [{ ratingKey: "123" }],
         },
       });
+    },
+  );
+});
+
+void test("validates Plex PMS redirects before following them", async () => {
+  const requests: Request[] = [];
+
+  await withMockFetch(
+    (request) => {
+      requests.push(request);
+      if (request.url === "http://1.1.1.1:32400/identity") {
+        return new Response(null, {
+          status: 302,
+          headers: {
+            location: "http://[::ffff:127.0.0.1]:32400/identity",
+          },
+        });
+      }
+
+      throw new Error(`Unexpected request: ${request.url}`);
+    },
+    async () => {
+      await assert.rejects(
+        () =>
+          requestPlexPmsIdentity(
+            {
+              baseUrl: "http://1.1.1.1:32400",
+              token: "server-token",
+            },
+            options,
+          ),
+        (error: unknown) =>
+          isApiError(error) &&
+          error.status === 400 &&
+          error.code === "plex_unsafe_redirect",
+      );
+
+      assert.deepEqual(
+        requests.map((request) => request.url),
+        ["http://1.1.1.1:32400/identity"],
+      );
+      assert.equal(requests[0]?.redirect, "manual");
+    },
+  );
+});
+
+void test("follows Plex PMS redirects to public targets without forwarding tokens", async () => {
+  const requests: Request[] = [];
+
+  await withMockFetch(
+    (request) => {
+      requests.push(request);
+      if (request.url === "http://1.1.1.1:32400/identity") {
+        return new Response(null, {
+          status: 302,
+          headers: {
+            location: "http://1.1.1.2:32400/identity",
+          },
+        });
+      }
+
+      if (request.url === "http://1.1.1.2:32400/identity") {
+        return jsonResponse({
+          MediaContainer: {
+            claimed: true,
+            machineIdentifier: "plex-server-1",
+            version: "1.41.0",
+          },
+        });
+      }
+
+      throw new Error(`Unexpected request: ${request.url}`);
+    },
+    async () => {
+      const data = await requestPlexPmsIdentity(
+        {
+          baseUrl: "http://1.1.1.1:32400",
+          token: "server-token",
+        },
+        options,
+      );
+
+      assert.deepEqual(data, {
+        MediaContainer: {
+          claimed: true,
+          machineIdentifier: "plex-server-1",
+          version: "1.41.0",
+        },
+      });
+      assert.deepEqual(
+        requests.map((request) => request.url),
+        ["http://1.1.1.1:32400/identity", "http://1.1.1.2:32400/identity"],
+      );
+      assert.equal(requests[0]?.headers.get("X-Plex-Token"), "server-token");
+      assert.equal(requests[1]?.headers.get("X-Plex-Token"), null);
     },
   );
 });
