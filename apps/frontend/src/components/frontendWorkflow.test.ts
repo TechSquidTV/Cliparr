@@ -680,7 +680,8 @@ void test("renders GIF export quality controls and immediate estimated size", ()
   assert.doesNotMatch(markup, /min-h-\[6\.5rem\]/);
   assert.match(markup, /Default GIF quality\/size tradeoff\./);
   assert.match(markup, /Balanced GIF \/ 12 fps/);
-  assert.match(markup, /Filename[\s\S]*Estimated size/);
+  assert.doesNotMatch(markup, /<dt[^>]*>Estimated size<\/dt>/);
+  assert.match(markup, /Estimated size[\s\S]*~1\.5 MB[\s\S]*Export GIF/);
   assert.match(markup, /~1\.5 MB/);
   assert.match(markup, /GIF exports are video only\./);
   assert.doesNotMatch(markup, /role="radiogroup"/);
@@ -700,7 +701,8 @@ void test("renders universal quality details for video formats", () => {
   assert.match(markup, /Sharp quality/);
   assert.doesNotMatch(markup, /GIF Preset/);
   assert.doesNotMatch(markup, /min-h-\[6\.5rem\]/);
-  assert.match(markup, /Filename[\s\S]*Estimated size/);
+  assert.doesNotMatch(markup, /<dt[^>]*>Estimated size<\/dt>/);
+  assert.match(markup, /Estimated size[\s\S]*~6\.7 MB[\s\S]*Export MP4/);
   assert.match(markup, /~6\.7 MB/);
   assert.doesNotMatch(markup, /~1\.5 MB/);
   assert.doesNotMatch(markup, /Balanced GIF \/ 12 fps/);
@@ -709,13 +711,14 @@ void test("renders universal quality details for video formats", () => {
   assert.doesNotMatch(markup, /Size Estimate/);
 });
 
-void test("renders unavailable summary estimate when size inputs are missing", () => {
+void test("renders unavailable footer estimate when size inputs are missing", () => {
   const markup = renderExportDialogMarkup({
     outputDimensions: null,
     outputSizeEstimate: { bytes: null, basis: "unavailable" },
   });
 
-  assert.match(markup, /Filename[\s\S]*Estimated size/);
+  assert.doesNotMatch(markup, /<dt[^>]*>Estimated size<\/dt>/);
+  assert.match(markup, /Estimated size[\s\S]*Unavailable[\s\S]*Export MP4/);
   assert.match(markup, /Unavailable/);
 });
 

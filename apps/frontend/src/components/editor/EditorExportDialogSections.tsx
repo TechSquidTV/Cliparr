@@ -497,7 +497,6 @@ interface EditorExportSummaryPanelProps {
   subtitleSummaryTone: "muted" | "ready" | "warning";
   activeTemplateKind: ExportFileNameTemplateKind;
   fileNamePreview: string;
-  estimatedSizeLabel: string;
 }
 
 function EditorExportSummaryPanelComponent({
@@ -516,7 +515,6 @@ function EditorExportSummaryPanelComponent({
   subtitleSummaryTone,
   activeTemplateKind,
   fileNamePreview,
-  estimatedSizeLabel,
 }: EditorExportSummaryPanelProps) {
   const clipLength = Math.max(0, clipEnd - clipStart);
   const selectedFormatOption = formatOptionFor(selectedFormat);
@@ -611,13 +609,6 @@ function EditorExportSummaryPanelComponent({
           </dd>
           <dd className="mt-1 break-all font-mono text-ui-label text-foreground">
             {fileNamePreview}
-          </dd>
-        </div>
-
-        <div className="rounded-md border border-border bg-background px-3 py-2">
-          <dt className={sectionLabelClassName()}>Estimated size</dt>
-          <dd className="mt-1 font-mono text-xs tabular-nums text-foreground">
-            {estimatedSizeLabel}
           </dd>
         </div>
       </dl>

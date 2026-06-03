@@ -313,7 +313,7 @@ flowchart TD
 ```mermaid
 flowchart TD
     A["Export dialog opens"] --> A1["useEditorExport computes immediate approximate output size from duration, dimensions, format, quality, source size, direct provider bitrate metadata, HLS manifest bandwidth, audio, and GIF settings"]
-    A1 --> A2["Summary panel shows estimate as the bottom summary card"]
+    A1 --> A2["Dialog footer shows a compact estimate opposite the export action"]
     A2 --> A3["Sharp video estimates may use source or HLS bitrate; Compact and Balanced use forced-transcode codec heuristics"]
     A3 --> B["User clicks Export"]
     B --> B1["useEditorExport resolves source/options and lazy-loads exportClip"]
