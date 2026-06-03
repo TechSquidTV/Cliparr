@@ -376,12 +376,11 @@ function EditorExportSettingsSectionComponent({
           </p>
         </label>
       </div>
-      {selectedFormat === "gif" && (
-        <div className="border-t border-border px-3 py-3">
+      <div className="min-h-[6.5rem] border-t border-border px-3 py-3">
+        {selectedFormat === "gif" && (
           <div className="space-y-1.5">
             <span className={sectionLabelClassName()}>GIF Preset</span>
             <div
-              role="radiogroup"
               aria-label="GIF Preset"
               className="grid grid-cols-3 gap-1 rounded-md border border-border bg-background p-1"
             >
@@ -392,11 +391,10 @@ function EditorExportSettingsSectionComponent({
                   <button
                     key={option.value}
                     type="button"
-                    role="radio"
-                    aria-checked={isSelected}
+                    aria-pressed={isSelected}
                     onClick={() => onGifPresetChange(option.value)}
                     className={cn(
-                      "h-8 rounded-sm px-2 text-ui-label font-semibold uppercase tracking-[var(--tracking-caps-sm)] transition-colors focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none",
+                      "h-8 rounded-sm px-2 text-xs font-medium transition-colors focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none",
                       isSelected
                         ? "bg-primary text-primary-foreground"
                         : "text-muted-foreground hover:bg-accent hover:text-foreground",
@@ -411,8 +409,8 @@ function EditorExportSettingsSectionComponent({
               {selectedGifPresetOption.description}
             </p>
           </div>
-        </div>
-      )}
+        )}
+      </div>
     </section>
   );
 }

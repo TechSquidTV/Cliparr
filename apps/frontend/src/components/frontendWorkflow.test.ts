@@ -674,12 +674,14 @@ void test("renders GIF preset controls and immediate estimated size", () => {
   });
 
   assert.match(markup, /GIF Preset/);
-  assert.match(markup, /role="radiogroup"/);
+  assert.match(markup, /aria-pressed="true"/);
+  assert.match(markup, /min-h-\[6\.5rem\]/);
   assert.match(markup, /Default quality\/size tradeoff\./);
   assert.match(markup, /Balanced GIF \/ 12 fps/);
   assert.match(markup, /Filename[\s\S]*Estimated size/);
   assert.match(markup, /~1\.5 MB/);
   assert.match(markup, /GIF exports are video only\./);
+  assert.doesNotMatch(markup, /role="radiogroup"/);
   assert.doesNotMatch(markup, /role="note"/);
   assert.doesNotMatch(markup, /aria-live="polite"/);
 });
@@ -691,6 +693,7 @@ void test("hides GIF-only export details for video formats", () => {
   });
 
   assert.doesNotMatch(markup, /GIF Preset/);
+  assert.match(markup, /min-h-\[6\.5rem\]/);
   assert.match(markup, /Filename[\s\S]*Estimated size/);
   assert.match(markup, /~6\.7 MB/);
   assert.doesNotMatch(markup, /~1\.5 MB/);
