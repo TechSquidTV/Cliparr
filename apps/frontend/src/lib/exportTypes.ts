@@ -2,7 +2,11 @@ export type ExportFormat = "mp4" | "webm" | "mov" | "mkv" | "gif";
 
 export type ExportResolution = "original" | "1080" | "720";
 
-export type GifExportPreset = "compact" | "balanced" | "sharp";
+export type ExportQualityPreset = "compact" | "balanced" | "sharp";
+
+export type GifExportPreset = ExportQualityPreset;
+
+export type VideoExportQualityPreset = ExportQualityPreset;
 
 type GifPaletteMode = "global" | "per-frame";
 export type HlsManifestBitrateBasis = "average-bandwidth" | "bandwidth";
@@ -49,9 +53,37 @@ export interface EstimateExportOutputSizeOptions {
   hlsManifestBitrateKbps?: number | null;
   hlsManifestBitrateBasis?: HlsManifestBitrateBasis | null;
   includeBurnedSubtitles?: boolean;
+  videoQuality?: VideoExportQualityPreset | null;
 }
 
 export const DEFAULT_GIF_EXPORT_PRESET: GifExportPreset = "balanced";
+export const DEFAULT_VIDEO_EXPORT_QUALITY: VideoExportQualityPreset = "sharp";
+
+export const exportQualityOptions: ReadonlyArray<{
+  value: ExportQualityPreset;
+  label: string;
+  videoDescription: string;
+  gifDescription: string;
+}> = [
+  {
+    value: "compact",
+    label: "Compact",
+    videoDescription: "Smallest video file; lower bitrate.",
+    gifDescription: "Smallest GIF, lighter motion/detail.",
+  },
+  {
+    value: "balanced",
+    label: "Balanced",
+    videoDescription: "Smaller video file; moderate bitrate.",
+    gifDescription: "Default GIF quality/size tradeoff.",
+  },
+  {
+    value: "sharp",
+    label: "Sharp",
+    videoDescription: "Preserves source video when possible.",
+    gifDescription: "Smoother, highest-detail GIF.",
+  },
+];
 
 export const gifExportPresetOptions: ReadonlyArray<{
   value: GifExportPreset;
@@ -62,7 +94,7 @@ export const gifExportPresetOptions: ReadonlyArray<{
   {
     value: "compact",
     label: "Compact",
-    description: "Smallest file, lighter motion/detail.",
+    description: "Smallest GIF, lighter motion/detail.",
     settings: {
       preset: "compact",
       maxHeight: 360,
@@ -74,7 +106,7 @@ export const gifExportPresetOptions: ReadonlyArray<{
   {
     value: "balanced",
     label: "Balanced",
-    description: "Default quality/size tradeoff.",
+    description: "Default GIF quality/size tradeoff.",
     settings: {
       preset: "balanced",
       maxHeight: 480,
@@ -115,6 +147,12 @@ const VIDEO_ESTIMATE_BITRATES_KBPS: Record<
   mov: [10_500, 6_200, 3_900, 2_000, 1_100],
   mkv: [6_500, 3_900, 2_500, 1_250, 750],
 };
+const VIDEO_ESTIMATE_QUALITY_FACTORS: Record<VideoExportQualityPreset, number> =
+  {
+    compact: 0.3,
+    balanced: 0.5,
+    sharp: 1,
+  };
 
 export function exportFormatSupportsAudio(format: ExportFormat) {
   return format !== "gif";
@@ -129,6 +167,25 @@ export function gifExportSettingsForPreset(preset: GifExportPreset) {
     gifExportPresetOptions[0];
 
   return { ...option.settings };
+}
+
+export function exportQualityOptionFor(preset: ExportQualityPreset) {
+  return (
+    exportQualityOptions.find((option) => option.value === preset) ??
+    exportQualityOptions.find(
+      (option) => option.value === DEFAULT_VIDEO_EXPORT_QUALITY,
+    ) ??
+    exportQualityOptions[0]
+  );
+}
+
+export function exportQualityDescriptionFor(
+  format: ExportFormat,
+  preset: ExportQualityPreset,
+) {
+  const option = exportQualityOptionFor(preset);
+
+  return format === "gif" ? option.gifDescription : option.videoDescription;
 }
 
 function exportFormatMaxHeight(
@@ -223,6 +280,7 @@ export function estimateExportOutputSize({
   hlsManifestBitrateKbps,
   hlsManifestBitrateBasis,
   includeBurnedSubtitles = false,
+  videoQuality,
 }: EstimateExportOutputSizeOptions): ExportSizeEstimate {
   if (durationSeconds <= 0 || !outputDimensions) {
     return { bytes: null, basis: "unavailable" };
@@ -248,7 +306,10 @@ export function estimateExportOutputSize({
     };
   }
 
+  const resolvedVideoQuality = videoQuality ?? DEFAULT_VIDEO_EXPORT_QUALITY;
+
   if (
+    resolvedVideoQuality === "sharp" &&
     resolution === "original" &&
     !includeBurnedSubtitles &&
     typeof sourceSizeBytes === "number" &&
@@ -265,6 +326,7 @@ export function estimateExportOutputSize({
   }
 
   if (
+    resolvedVideoQuality === "sharp" &&
     !includeBurnedSubtitles &&
     typeof hlsManifestBitrateKbps === "number" &&
     hlsManifestBitrateKbps > 0
@@ -281,7 +343,12 @@ export function estimateExportOutputSize({
       "hls-manifest",
     );
     const codecEstimate = estimateFromBitrateKbps(
-      targetOutputBitrateKbps(format, outputDimensions.height, includeAudio),
+      targetOutputBitrateKbps(
+        format,
+        outputDimensions.height,
+        includeAudio,
+        resolvedVideoQuality,
+      ),
       durationSeconds,
       "codec-heuristic",
     );
@@ -314,6 +381,7 @@ export function estimateExportOutputSize({
         : null;
 
   if (
+    resolvedVideoQuality === "sharp" &&
     resolution === "original" &&
     !includeBurnedSubtitles &&
     metadataBitrateKbps
@@ -326,7 +394,12 @@ export function estimateExportOutputSize({
   }
 
   return estimateFromBitrateKbps(
-    targetOutputBitrateKbps(format, outputDimensions.height, includeAudio),
+    targetOutputBitrateKbps(
+      format,
+      outputDimensions.height,
+      includeAudio,
+      resolvedVideoQuality,
+    ),
     durationSeconds,
     "codec-heuristic",
   );
@@ -354,9 +427,10 @@ function targetOutputBitrateKbps(
   format: Exclude<ExportFormat, "gif">,
   height: number,
   includeAudio: boolean,
+  videoQuality: VideoExportQualityPreset,
 ) {
   return (
-    targetVideoBitrateKbps(format, height) +
+    targetVideoBitrateKbps(format, height, videoQuality) +
     (includeAudio ? AUDIO_EXPORT_BITRATE_KBPS : 0)
   );
 }
@@ -370,25 +444,24 @@ function audioEstimateBitrateKbps(audioBitrateKbps: number | null | undefined) {
 function targetVideoBitrateKbps(
   format: Exclude<ExportFormat, "gif">,
   height: number,
+  videoQuality: VideoExportQualityPreset,
 ) {
   const [veryHigh, high, medium, low, compact] =
     VIDEO_ESTIMATE_BITRATES_KBPS[format];
+  const qualityFactor = VIDEO_ESTIMATE_QUALITY_FACTORS[videoQuality];
+  let baseBitrateKbps: number;
 
   if (height >= 1440) {
-    return veryHigh;
+    baseBitrateKbps = veryHigh;
+  } else if (height >= 1000) {
+    baseBitrateKbps = high;
+  } else if (height >= 700) {
+    baseBitrateKbps = medium;
+  } else if (height >= 460) {
+    baseBitrateKbps = low;
+  } else {
+    baseBitrateKbps = compact;
   }
 
-  if (height >= 1000) {
-    return high;
-  }
-
-  if (height >= 700) {
-    return medium;
-  }
-
-  if (height >= 460) {
-    return low;
-  }
-
-  return compact;
+  return Math.max(1, Math.round(baseBitrateKbps * qualityFactor));
 }

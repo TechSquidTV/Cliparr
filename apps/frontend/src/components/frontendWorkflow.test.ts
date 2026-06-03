@@ -89,8 +89,8 @@ function renderExportDialogMarkup(
     clipEnd: 20,
     selectedFormat: "mp4",
     onFormatChange: () => undefined,
-    selectedGifPreset: "balanced",
-    onGifPresetChange: () => undefined,
+    selectedQuality: "sharp",
+    onQualityChange: () => undefined,
     gifSettings: null,
     outputSizeEstimate: { bytes: 7_029_750, basis: "codec-heuristic" },
     selectedResolution: "original",
@@ -661,10 +661,10 @@ void test("renders the framegrab export dialog actions", () => {
   assert.match(markup, /Example Movie \[01m01s\]\.png/);
 });
 
-void test("renders GIF preset controls and immediate estimated size", () => {
+void test("renders GIF export quality controls and immediate estimated size", () => {
   const markup = renderExportDialogMarkup({
     selectedFormat: "gif",
-    selectedGifPreset: "balanced",
+    selectedQuality: "balanced",
     gifSettings: gifExportSettingsForPreset("balanced"),
     outputSizeEstimate: { bytes: 1_572_864, basis: "gif-heuristic" },
     includeAudio: false,
@@ -673,10 +673,12 @@ void test("renders GIF preset controls and immediate estimated size", () => {
     outputDimensions: { width: 853, height: 480 },
   });
 
-  assert.match(markup, /GIF Preset/);
+  assert.match(markup, /Quality/);
+  assert.match(markup, /aria-label="Export quality"/);
   assert.match(markup, /aria-pressed="true"/);
-  assert.match(markup, /min-h-\[6\.5rem\]/);
-  assert.match(markup, /Default quality\/size tradeoff\./);
+  assert.doesNotMatch(markup, /GIF Preset/);
+  assert.doesNotMatch(markup, /min-h-\[6\.5rem\]/);
+  assert.match(markup, /Default GIF quality\/size tradeoff\./);
   assert.match(markup, /Balanced GIF \/ 12 fps/);
   assert.match(markup, /Filename[\s\S]*Estimated size/);
   assert.match(markup, /~1\.5 MB/);
@@ -686,14 +688,18 @@ void test("renders GIF preset controls and immediate estimated size", () => {
   assert.doesNotMatch(markup, /aria-live="polite"/);
 });
 
-void test("hides GIF-only export details for video formats", () => {
+void test("renders universal quality details for video formats", () => {
   const markup = renderExportDialogMarkup({
     selectedFormat: "mp4",
+    selectedQuality: "sharp",
     gifSettings: gifExportSettingsForPreset("balanced"),
   });
 
+  assert.match(markup, /Quality/);
+  assert.match(markup, /Preserves source video when possible\./);
+  assert.match(markup, /Sharp quality/);
   assert.doesNotMatch(markup, /GIF Preset/);
-  assert.match(markup, /min-h-\[6\.5rem\]/);
+  assert.doesNotMatch(markup, /min-h-\[6\.5rem\]/);
   assert.match(markup, /Filename[\s\S]*Estimated size/);
   assert.match(markup, /~6\.7 MB/);
   assert.doesNotMatch(markup, /~1\.5 MB/);

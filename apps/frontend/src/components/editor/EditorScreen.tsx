@@ -147,7 +147,7 @@ export default function EditorScreen({ session, onBack }: Props) {
   const {
     resolution,
     exportFormat,
-    gifPreset,
+    selectedQuality,
     gifSettings,
     effectiveExportSourcePreference,
     includeAudio,
@@ -170,7 +170,7 @@ export default function EditorScreen({ session, onBack }: Props) {
     handleOpenExportDialog,
     handleCloseExportDialog,
     handleFormatChange,
-    handleGifPresetChange,
+    handleQualityChange,
     handleResolutionChange,
     handleExportSourceChange,
     handleAudioChange,
@@ -647,8 +647,8 @@ export default function EditorScreen({ session, onBack }: Props) {
             clipEnd={endTime}
             selectedFormat={exportFormat}
             onFormatChange={handleFormatChange}
-            selectedGifPreset={gifPreset}
-            onGifPresetChange={handleGifPresetChange}
+            selectedQuality={selectedQuality}
+            onQualityChange={handleQualityChange}
             gifSettings={gifSettings}
             outputSizeEstimate={outputSizeEstimate}
             selectedResolution={resolution}

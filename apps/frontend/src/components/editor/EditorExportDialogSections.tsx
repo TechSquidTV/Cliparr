@@ -16,7 +16,11 @@ import {
 } from "@/components/ui/tooltip";
 import type { ExportFormat, ExportResolution } from "@/lib/exportClip";
 import {
+  exportQualityDescriptionFor,
+  exportQualityOptionFor,
+  exportQualityOptions,
   gifExportPresetOptions,
+  type ExportQualityPreset,
   type GifExportPreset,
   type GifExportSettings,
 } from "@/lib/exportTypes";
@@ -190,8 +194,8 @@ function SectionHeader({ children }: { children: string }) {
 interface EditorExportSettingsSectionProps {
   selectedFormat: ExportFormat;
   onFormatChange: (format: ExportFormat) => void;
-  selectedGifPreset: GifExportPreset;
-  onGifPresetChange: (preset: GifExportPreset) => void;
+  selectedQuality: ExportQualityPreset;
+  onQualityChange: (quality: ExportQualityPreset) => void;
   selectedResolution: ExportResolution;
   onResolutionChange: (resolution: ExportResolution) => void;
   selectedSourcePreference: ExportSourcePreference;
@@ -208,8 +212,8 @@ interface EditorExportSettingsSectionProps {
 function EditorExportSettingsSectionComponent({
   selectedFormat,
   onFormatChange,
-  selectedGifPreset,
-  onGifPresetChange,
+  selectedQuality,
+  onQualityChange,
   selectedResolution,
   onResolutionChange,
   selectedSourcePreference,
@@ -223,7 +227,6 @@ function EditorExportSettingsSectionComponent({
   hlsSourceLabel,
 }: EditorExportSettingsSectionProps) {
   const sourceOptions = sourceOptionsFor({ directSourceLabel, hlsSourceLabel });
-  const selectedGifPresetOption = gifPresetOptionFor(selectedGifPreset);
 
   return (
     <section className="rounded-md border border-border bg-card">
@@ -256,6 +259,38 @@ function EditorExportSettingsSectionComponent({
             {formatOptionFor(selectedFormat).description}
           </p>
         </label>
+
+        <div className="space-y-1.5">
+          <span className={sectionLabelClassName()}>Quality</span>
+          <div
+            aria-label="Export quality"
+            className="grid h-10 grid-cols-3 gap-1 rounded-md border border-border bg-background p-1"
+          >
+            {exportQualityOptions.map((option) => {
+              const isSelected = option.value === selectedQuality;
+
+              return (
+                <button
+                  key={option.value}
+                  type="button"
+                  aria-pressed={isSelected}
+                  onClick={() => onQualityChange(option.value)}
+                  className={cn(
+                    "h-8 rounded-sm px-2 text-xs font-medium transition-colors focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none",
+                    isSelected
+                      ? "bg-primary text-primary-foreground"
+                      : "text-muted-foreground hover:bg-accent hover:text-foreground",
+                  )}
+                >
+                  {option.label}
+                </button>
+              );
+            })}
+          </div>
+          <p className={stableHelperTextClassName}>
+            {exportQualityDescriptionFor(selectedFormat, selectedQuality)}
+          </p>
+        </div>
 
         <label className="space-y-1.5">
           <span className={sectionLabelClassName()}>Resolution</span>
@@ -345,7 +380,7 @@ function EditorExportSettingsSectionComponent({
           </p>
         </div>
 
-        <label className="space-y-1.5">
+        <label className="space-y-1.5 sm:col-span-2">
           <span className={sectionLabelClassName()}>Audio</span>
           <Select
             value={includeAudio ? "included" : "video-only"}
@@ -375,41 +410,6 @@ function EditorExportSettingsSectionComponent({
                 : "Exports without an audio track.")}
           </p>
         </label>
-      </div>
-      <div className="min-h-[6.5rem] border-t border-border px-3 py-3">
-        {selectedFormat === "gif" && (
-          <div className="space-y-1.5">
-            <span className={sectionLabelClassName()}>GIF Preset</span>
-            <div
-              aria-label="GIF Preset"
-              className="grid grid-cols-3 gap-1 rounded-md border border-border bg-background p-1"
-            >
-              {gifExportPresetOptions.map((option) => {
-                const isSelected = option.value === selectedGifPreset;
-
-                return (
-                  <button
-                    key={option.value}
-                    type="button"
-                    aria-pressed={isSelected}
-                    onClick={() => onGifPresetChange(option.value)}
-                    className={cn(
-                      "h-8 rounded-sm px-2 text-xs font-medium transition-colors focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none",
-                      isSelected
-                        ? "bg-primary text-primary-foreground"
-                        : "text-muted-foreground hover:bg-accent hover:text-foreground",
-                    )}
-                  >
-                    {option.label}
-                  </button>
-                );
-              })}
-            </div>
-            <p className={stableHelperTextClassName}>
-              {selectedGifPresetOption.description}
-            </p>
-          </div>
-        )}
       </div>
     </section>
   );
@@ -525,6 +525,7 @@ interface EditorExportSummaryPanelProps {
   clipStart: number;
   clipEnd: number;
   selectedFormat: ExportFormat;
+  selectedQuality: ExportQualityPreset;
   gifSettings?: GifExportSettings | null;
   outputDimensions: VideoDimensions | null;
   exportSourceLabel: string;
@@ -543,6 +544,7 @@ function EditorExportSummaryPanelComponent({
   clipStart,
   clipEnd,
   selectedFormat,
+  selectedQuality,
   gifSettings,
   outputDimensions,
   exportSourceLabel,
@@ -562,7 +564,7 @@ function EditorExportSummaryPanelComponent({
       ? `${gifPresetOptionFor(gifSettings.preset).label} GIF / ${
           gifSettings.frameRate
         } fps`
-      : null;
+      : `${exportQualityOptionFor(selectedQuality).label} quality`;
   const subtitleSummaryClassName =
     subtitleSummaryTone === "ready"
       ? "border-status-ready-border bg-status-ready"

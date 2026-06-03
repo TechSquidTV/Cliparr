@@ -2,8 +2,8 @@ import { Download } from "lucide-react";
 import type { ExportFormat, ExportResolution } from "@/lib/exportClip";
 import {
   formatExportByteSize,
+  type ExportQualityPreset,
   type ExportSizeEstimate,
-  type GifExportPreset,
   type GifExportSettings,
 } from "@/lib/exportTypes";
 import {
@@ -42,8 +42,8 @@ interface EditorExportDialogProps {
   clipEnd: number;
   selectedFormat: ExportFormat;
   onFormatChange: (format: ExportFormat) => void;
-  selectedGifPreset: GifExportPreset;
-  onGifPresetChange: (preset: GifExportPreset) => void;
+  selectedQuality: ExportQualityPreset;
+  onQualityChange: (quality: ExportQualityPreset) => void;
   gifSettings?: GifExportSettings | null;
   outputSizeEstimate: ExportSizeEstimate;
   selectedResolution: ExportResolution;
@@ -89,8 +89,8 @@ export function EditorExportDialog({
   clipEnd,
   selectedFormat,
   onFormatChange,
-  selectedGifPreset,
-  onGifPresetChange,
+  selectedQuality,
+  onQualityChange,
   gifSettings,
   outputSizeEstimate,
   selectedResolution,
@@ -153,8 +153,8 @@ export function EditorExportDialog({
           <EditorExportSettingsSection
             selectedFormat={selectedFormat}
             onFormatChange={onFormatChange}
-            selectedGifPreset={selectedGifPreset}
-            onGifPresetChange={onGifPresetChange}
+            selectedQuality={selectedQuality}
+            onQualityChange={onQualityChange}
             selectedResolution={selectedResolution}
             onResolutionChange={onResolutionChange}
             selectedSourcePreference={selectedSourcePreference}
@@ -182,6 +182,7 @@ export function EditorExportDialog({
           clipStart={clipStart}
           clipEnd={clipEnd}
           selectedFormat={selectedFormat}
+          selectedQuality={selectedQuality}
           gifSettings={gifSettings}
           outputDimensions={outputDimensions}
           exportSourceLabel={exportSourceLabel}

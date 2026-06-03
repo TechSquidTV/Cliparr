@@ -18,7 +18,10 @@ import {
 } from "@/components/editor/useEditorExport";
 import {
   DEFAULT_GIF_EXPORT_PRESET,
+  DEFAULT_VIDEO_EXPORT_QUALITY,
   estimateExportOutputSize,
+  exportQualityDescriptionFor,
+  exportQualityOptions,
   gifExportPresetOptions,
   gifExportSettingsForPreset,
 } from "@/lib/exportTypes";
@@ -222,6 +225,26 @@ void test("reports editor export readiness and subtitle blockers", () => {
 
 void test("defines GIF export presets and balanced default", () => {
   assert.equal(DEFAULT_GIF_EXPORT_PRESET, "balanced");
+  assert.equal(DEFAULT_VIDEO_EXPORT_QUALITY, "sharp");
+  assert.deepEqual(
+    exportQualityOptions.map((option) => ({
+      value: option.value,
+      label: option.label,
+    })),
+    [
+      { value: "compact", label: "Compact" },
+      { value: "balanced", label: "Balanced" },
+      { value: "sharp", label: "Sharp" },
+    ],
+  );
+  assert.equal(
+    exportQualityDescriptionFor("mp4", "sharp"),
+    "Preserves source video when possible.",
+  );
+  assert.equal(
+    exportQualityDescriptionFor("gif", "balanced"),
+    "Default GIF quality/size tradeoff.",
+  );
   assert.deepEqual(
     gifExportPresetOptions.map((option) => ({
       value: option.value,
@@ -327,6 +350,45 @@ void test("includes audio bitrate in heuristic video estimates", () => {
 
   assert.equal(withAudio.bytes, 4_583_500);
   assert.equal(withoutAudio.bytes, 4_377_500);
+});
+
+void test("decreases video estimates as quality presets get smaller", () => {
+  const outputDimensions = { width: 1280, height: 720 };
+  const sharpEstimate = estimateExportOutputSize({
+    format: "mp4",
+    durationSeconds: 10,
+    outputDimensions,
+    includeAudio: true,
+    resolution: "720",
+    videoQuality: "sharp",
+  });
+  const balancedEstimate = estimateExportOutputSize({
+    format: "mp4",
+    durationSeconds: 10,
+    outputDimensions,
+    includeAudio: true,
+    resolution: "720",
+    videoQuality: "balanced",
+  });
+  const compactEstimate = estimateExportOutputSize({
+    format: "mp4",
+    durationSeconds: 10,
+    outputDimensions,
+    includeAudio: true,
+    resolution: "720",
+    videoQuality: "compact",
+  });
+
+  assert.equal(sharpEstimate.bytes, 4_583_500);
+  assert.equal(balancedEstimate.bytes, 2_394_750);
+  assert.equal(compactEstimate.bytes, 1_519_250);
+  assert(
+    typeof sharpEstimate.bytes === "number" &&
+      typeof balancedEstimate.bytes === "number" &&
+      typeof compactEstimate.bytes === "number" &&
+      compactEstimate.bytes < balancedEstimate.bytes &&
+      balancedEstimate.bytes < sharpEstimate.bytes,
+  );
 });
 
 void test("estimates GIF presets in increasing size order", () => {
@@ -443,6 +505,17 @@ void test("uses source proportional estimate only for original non-GIF passthrou
     sourceDurationSeconds: 120,
     includeBurnedSubtitles: false,
   });
+  const balancedEstimate = estimateExportOutputSize({
+    format: "mp4",
+    durationSeconds: 10,
+    outputDimensions: { width: 1920, height: 1080 },
+    includeAudio: true,
+    resolution: "original",
+    sourceSizeBytes: 120_000_000,
+    sourceDurationSeconds: 120,
+    includeBurnedSubtitles: false,
+    videoQuality: "balanced",
+  });
 
   assert.deepEqual(sourceEstimate, {
     bytes: 10_000_000,
@@ -450,6 +523,10 @@ void test("uses source proportional estimate only for original non-GIF passthrou
   });
   assert.equal(subtitleEstimate.basis, "codec-heuristic");
   assert.equal(scaledEstimate.basis, "codec-heuristic");
+  assert.deepEqual(balancedEstimate, {
+    bytes: 3_617_875,
+    basis: "codec-heuristic",
+  });
 });
 
 void test("uses HLS manifest bitrate when available for provider HLS estimates", () => {
@@ -485,6 +562,25 @@ void test("removes audio bitrate from HLS manifest estimates for video-only expo
     {
       bytes: 6_746_500,
       basis: "hls-manifest",
+    },
+  );
+});
+
+void test("uses codec heuristics for forced video quality even with HLS metadata", () => {
+  assert.deepEqual(
+    estimateExportOutputSize({
+      format: "mp4",
+      durationSeconds: 10,
+      outputDimensions: { width: 1920, height: 1072 },
+      includeAudio: true,
+      resolution: "original",
+      hlsManifestBitrateKbps: 5_400,
+      hlsManifestBitrateBasis: "average-bandwidth",
+      videoQuality: "balanced",
+    }),
+    {
+      bytes: 3_617_875,
+      basis: "codec-heuristic",
     },
   );
 });

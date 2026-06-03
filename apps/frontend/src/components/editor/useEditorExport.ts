@@ -8,14 +8,17 @@ import {
 import type { ExportFormat, ExportResolution } from "@/lib/exportClip";
 import {
   DEFAULT_GIF_EXPORT_PRESET,
+  DEFAULT_VIDEO_EXPORT_QUALITY,
   estimateExportOutputSize,
   gifExportSettingsForPreset,
   exportFormatDurationDisabledReason,
   exportFormatSupportsAudio,
   resolveExportOutputDimensions,
+  type ExportQualityPreset,
   type ExportSizeEstimate,
   type GifExportPreset,
   type GifExportSettings,
+  type VideoExportQualityPreset,
 } from "@/lib/exportTypes";
 import {
   buildExportFileName,
@@ -103,6 +106,9 @@ export function useEditorExport({
   const [gifPreset, setGifPreset] = useState<GifExportPreset>(
     DEFAULT_GIF_EXPORT_PRESET,
   );
+  const [videoQuality, setVideoQuality] = useState<VideoExportQualityPreset>(
+    DEFAULT_VIDEO_EXPORT_QUALITY,
+  );
   const [exportSourcePreference, setExportSourcePreference] =
     useState<ExportSourcePreference>("auto");
   const [includeAudio, setIncludeAudio] = useState(true);
@@ -126,6 +132,7 @@ export function useEditorExport({
     () => gifExportSettingsForPreset(gifPreset),
     [gifPreset],
   );
+  const selectedQuality = exportFormat === "gif" ? gifPreset : videoQuality;
   const audioDisabledReason = exportFormatSupportsAudio(exportFormat)
     ? null
     : "GIF exports are video only.";
@@ -295,6 +302,7 @@ export function useEditorExport({
         hlsManifestBitrateKbps,
         hlsManifestBitrateBasis,
         includeBurnedSubtitles: shouldEstimateBurnedSubtitles,
+        videoQuality: exportFormat === "gif" ? null : videoQuality,
       }),
     [
       effectiveIncludeAudio,
@@ -312,6 +320,7 @@ export function useEditorExport({
       sourceDurationSeconds,
       sourceSizeBytes,
       startTime,
+      videoQuality,
     ],
   );
 
@@ -330,6 +339,7 @@ export function useEditorExport({
     if (
       !exportDialogOpen ||
       exportFormat === "gif" ||
+      videoQuality !== DEFAULT_VIDEO_EXPORT_QUALITY ||
       exportSource.kind !== "hls" ||
       exportSource.source?.kind !== "url"
     ) {
@@ -379,6 +389,7 @@ export function useEditorExport({
     exportSource.kind,
     exportSource.source,
     outputDimensions,
+    videoQuality,
   ]);
 
   const handleOpenExportDialog = useCallback(() => {
@@ -404,10 +415,19 @@ export function useEditorExport({
     setExportError(null);
   }, []);
 
-  const handleGifPresetChange = useCallback((nextPreset: GifExportPreset) => {
-    setGifPreset(nextPreset);
-    setExportError(null);
-  }, []);
+  const handleQualityChange = useCallback(
+    (nextQuality: ExportQualityPreset) => {
+      if (exportFormat === "gif") {
+        setGifPreset(nextQuality);
+      } else {
+        setVideoQuality(nextQuality);
+      }
+
+      setHlsEstimateMetadata(null);
+      setExportError(null);
+    },
+    [exportFormat],
+  );
 
   const handleResolutionChange = useCallback(
     (nextResolution: ExportResolution) => {
@@ -496,6 +516,7 @@ export function useEditorExport({
     });
     const baseFields = {
       "export.format": exportFormat,
+      "export.quality": selectedQuality,
       "export.resolution": resolution,
       "export.source.kind": readiness.sourceKind,
       "export.source.role": readiness.source.role,
@@ -537,6 +558,7 @@ export function useEditorExport({
         format: exportFormat,
         resolution,
         gifSettings: exportFormat === "gif" ? gifSettings : undefined,
+        videoQuality: exportFormat === "gif" ? undefined : videoQuality,
         includeAudio: effectiveIncludeAudio,
         selectedAudioTrack: session.selectedAudioTrack,
         metadata: session.exportMetadata,
@@ -580,6 +602,7 @@ export function useEditorExport({
     outputSizeEstimate,
     resolution,
     selectedSubtitleTrack,
+    selectedQuality,
     hlsEstimateMetadata,
     session.exportMetadata,
     session.selectedAudioTrack,
@@ -587,6 +610,7 @@ export function useEditorExport({
     sourceDurationSeconds,
     sourceSizeBytes,
     startTime,
+    videoQuality,
     videoBitrateKbps,
     audioBitrateKbps,
     subtitleCues,
@@ -598,7 +622,7 @@ export function useEditorExport({
   return {
     resolution,
     exportFormat,
-    gifPreset,
+    selectedQuality,
     gifSettings,
     effectiveExportSourcePreference,
     includeAudio: effectiveIncludeAudio,
@@ -621,7 +645,7 @@ export function useEditorExport({
     handleOpenExportDialog,
     handleCloseExportDialog,
     handleFormatChange,
-    handleGifPresetChange,
+    handleQualityChange,
     handleResolutionChange,
     handleExportSourceChange,
     handleAudioChange,

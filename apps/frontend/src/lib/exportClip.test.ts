@@ -2,6 +2,7 @@
 
 import assert from "node:assert/strict";
 import test from "node:test";
+import { QUALITY_LOW, QUALITY_MEDIUM } from "mediabunny";
 import type { ConversionOptions } from "mediabunny";
 import { exportClipWithRuntime } from "@/lib/exportClip";
 import type { EditorMediaSource } from "@/lib/editorMedia";
@@ -243,14 +244,78 @@ void test("builds and executes a trimmed conversion with selected audio and meta
   const selectedVideoOptions = videoOptionsForTrack(
     { id: "video-1" } as unknown as Parameters<typeof videoOptionsForTrack>[0],
     1,
-  ) as { discard: boolean; height?: number };
+  ) as {
+    discard: boolean;
+    height?: number;
+    forceTranscode?: boolean;
+    bitrate?: unknown;
+  };
   const otherVideoOptions = videoOptionsForTrack(
     { id: "video-2" } as unknown as Parameters<typeof videoOptionsForTrack>[0],
     2,
   ) as { discard: boolean; height?: number };
   assert.equal(selectedVideoOptions.discard, false);
   assert.equal(selectedVideoOptions.height, 720);
+  assert.equal(selectedVideoOptions.forceTranscode, undefined);
+  assert.equal(selectedVideoOptions.bitrate, undefined);
   assert.equal(otherVideoOptions.discard, true);
+});
+
+void test("forces video transcode for compact and balanced export quality", async () => {
+  const qualityCases = [
+    ["compact", QUALITY_LOW],
+    ["balanced", QUALITY_MEDIUM],
+  ] as const;
+
+  for (const [videoQuality, expectedBitrate] of qualityCases) {
+    let capturedOptions: ConversionOptions | undefined;
+    const context = createRuntime({
+      initConversion: async (options) => {
+        capturedOptions = options;
+        return createConversion({
+          target: context.target,
+          bytes: [1],
+          utilizedAudio: false,
+        });
+      },
+    });
+
+    await exportClipWithRuntime(
+      {
+        mediaSource,
+        startTime: 0,
+        endTime: 5,
+        format: "mp4",
+        resolution: "original",
+        videoQuality,
+        includeAudio: false,
+        onProgress: () => undefined,
+      },
+      context.runtime,
+    );
+
+    const videoOptionsForTrack = capturedOptions?.video;
+    assert.equal(typeof videoOptionsForTrack, "function");
+    if (typeof videoOptionsForTrack !== "function") {
+      throw new Error("Expected video conversion options to be a function");
+    }
+
+    const selectedVideoOptions = videoOptionsForTrack(
+      { id: "video-1" } as unknown as Parameters<
+        typeof videoOptionsForTrack
+      >[0],
+      1,
+    ) as {
+      discard: boolean;
+      forceTranscode?: boolean;
+      bitrate?: unknown;
+    };
+
+    assert.equal(selectedVideoOptions.discard, false);
+    assert.equal(selectedVideoOptions.forceTranscode, true);
+    assert.equal(selectedVideoOptions.bitrate, expectedBitrate);
+    assert.equal(context.disposed, true);
+  }
 });
 
 void test("fails before execution when conversion would drop source audio", async () => {

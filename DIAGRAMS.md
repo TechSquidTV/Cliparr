@@ -312,14 +312,14 @@ flowchart TD
 
 ```mermaid
 flowchart TD
-    A["Export dialog opens"] --> A1["useEditorExport computes immediate approximate output size from duration, dimensions, format, source size, direct provider bitrate metadata, HLS manifest bandwidth, audio, and GIF preset"]
+    A["Export dialog opens"] --> A1["useEditorExport computes immediate approximate output size from duration, dimensions, format, quality, source size, direct provider bitrate metadata, HLS manifest bandwidth, audio, and GIF settings"]
     A1 --> A2["Summary panel shows estimate as the bottom summary card"]
-    A2 --> A3["HLS peak bandwidth estimates are capped at the browser output codec heuristic"]
+    A2 --> A3["Sharp video estimates may use source or HLS bitrate; Compact and Balanced use forced-transcode codec heuristics"]
     A3 --> B["User clicks Export"]
     B --> B1["useEditorExport resolves source/options and lazy-loads exportClip"]
     B1 --> C{"Output format is GIF?"}
     C -- "Yes" --> D["Build fresh Mediabunny input and CanvasSink from export source"]
-    D --> E["Apply GIF preset for max height, frame rate, color count, and palette mode"]
+    D --> E["Apply shared Quality control as GIF max height, frame rate, color count, and palette mode"]
     E --> F["Draw frames with high-quality canvas scaling and burn subtitles when enabled"]
     F --> G{"Preset uses a stable sampled palette?"}
     G -- "Yes" --> G1["Sample frames first and quantize one shared palette"]
@@ -331,8 +331,12 @@ flowchart TD
     C -- "No" --> H["exportClip builds fresh Mediabunny input from export source URL"]
     H --> I["exportMetadata builds tags and artwork when metadata exists"]
     I --> J["Create Output(BufferTarget)"]
-    J --> K["Build conversion options for source video, selected audio, trim, resolution, tags, and optional subtitles"]
-    K --> L["Conversion.init validates selected tracks and output plan"]
+    J --> K["Build conversion options for source video, selected audio, trim, resolution, tags, optional subtitles, and video quality"]
+    K --> K1{"Video quality is Compact or Balanced?"}
+    K1 -- "Yes" --> K2["Force video transcode with lower target bitrate"]
+    K1 -- "No" --> K3["Sharp leaves copy/remux available when possible"]
+    K2 --> L["Conversion.init validates selected tracks and output plan"]
+    K3 --> L
     L --> M{"Conversion valid?"}
     M -- "No" --> N["Surface conversion/discard error"]
     M -- "Yes" --> O{"Audio requested, source had audio, but no audio track utilized?"}

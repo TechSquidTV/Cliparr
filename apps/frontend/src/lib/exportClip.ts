@@ -6,6 +6,8 @@ import {
   MovOutputFormat,
   Mp4OutputFormat,
   Output,
+  QUALITY_LOW,
+  QUALITY_MEDIUM,
   WebMOutputFormat,
 } from "mediabunny";
 import type {
@@ -36,12 +38,14 @@ import {
 } from "@/lib/exportMetadata";
 import {
   DEFAULT_GIF_EXPORT_PRESET,
+  DEFAULT_VIDEO_EXPORT_QUALITY,
   exportFormatDurationDisabledReason,
   gifExportSettingsForPreset,
   resolveExportOutputDimensions,
   type ExportFormat,
   type ExportResolution,
   type GifExportSettings,
+  type VideoExportQualityPreset,
 } from "@/lib/exportTypes";
 import { getActiveSubtitleCue } from "@/lib/subtitles/getActiveSubtitleCue";
 import { renderSubtitleCue } from "@/lib/subtitles/renderSubtitleCue";
@@ -58,6 +62,7 @@ interface ExportClipOptions {
   format: ExportFormat;
   resolution: ExportResolution;
   gifSettings?: GifExportSettings;
+  videoQuality?: VideoExportQualityPreset;
   includeAudio: boolean;
   selectedAudioTrack?: PlaybackAudioSelection;
   metadata?: MediaExportMetadata;
@@ -285,6 +290,7 @@ export async function exportClip({
   format,
   resolution,
   gifSettings,
+  videoQuality,
   includeAudio,
   selectedAudioTrack,
   metadata,
@@ -302,6 +308,7 @@ export async function exportClip({
       format,
       resolution,
       gifSettings,
+      videoQuality,
       includeAudio,
       selectedAudioTrack,
       metadata,
@@ -346,6 +353,7 @@ export async function exportClipWithRuntime(
     format,
     resolution,
     gifSettings,
+    videoQuality,
     includeAudio,
     selectedAudioTrack,
     metadata,
@@ -364,6 +372,7 @@ export async function exportClipWithRuntime(
     format,
     resolution,
     gifSettings,
+    videoQuality,
     includeAudio,
     selectedAudioTrack,
     metadata,
@@ -471,9 +480,12 @@ export async function exportClipWithRuntime(
       conversionOptions.tags = metadataTags;
     }
 
+    const videoQualityOptions = videoQualityConversionOptions(videoQuality);
+
     if (sourceVideoTrack) {
       conversionOptions.video = (track) => ({
         discard: track.id !== sourceVideoTrack.id,
+        ...videoQualityOptions,
         ...(resolution !== "original"
           ? {
               height: parseInt(resolution, 10),
@@ -492,6 +504,7 @@ export async function exportClipWithRuntime(
       });
     } else if (resolution !== "original") {
       conversionOptions.video = {
+        ...videoQualityOptions,
         height: parseInt(resolution, 10),
         fit: "contain",
       };
@@ -539,6 +552,25 @@ export async function exportClipWithRuntime(
     return blob;
   } finally {
     input.dispose();
+  }
+}
+
+function videoQualityConversionOptions(
+  videoQuality: VideoExportQualityPreset = DEFAULT_VIDEO_EXPORT_QUALITY,
+) {
+  switch (videoQuality) {
+    case "compact":
+      return {
+        forceTranscode: true,
+        bitrate: QUALITY_LOW,
+      } as const;
+    case "balanced":
+      return {
+        forceTranscode: true,
+        bitrate: QUALITY_MEDIUM,
+      } as const;
+    case "sharp":
+      return {};
   }
 }
 
