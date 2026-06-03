@@ -25,8 +25,8 @@ import {
   EditorExportSettingsSection,
   EditorExportSummaryPanel,
   EditorFilenameTemplateSection,
-  formatOptionFor,
 } from "@/components/editor/EditorExportDialogSections";
+import { formatOptionFor } from "@/components/editor/editorExportOptions";
 
 interface VideoDimensions {
   width: number;

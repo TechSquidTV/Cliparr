@@ -35,6 +35,10 @@ import {
   compactSelectTriggerClassName,
   sectionLabelClassName,
 } from "@/components/editor/editorDialogStyles";
+import {
+  formatOptionFor,
+  formatOptions,
+} from "@/components/editor/editorExportOptions";
 import { formatTime } from "@/components/editor/editorUtils";
 
 interface VideoDimensions {
@@ -47,43 +51,6 @@ interface ExportOption<T extends string> {
   label: string;
   description: string;
 }
-
-const formatOptions: ReadonlyArray<
-  ExportOption<ExportFormat> & {
-    extension: string;
-  }
-> = [
-  {
-    value: "mp4",
-    label: "MP4",
-    extension: ".mp4",
-    description: "Best for sharing and uploads.",
-  },
-  {
-    value: "webm",
-    label: "WEBM",
-    extension: ".webm",
-    description: "Modern animated web playback.",
-  },
-  {
-    value: "gif",
-    label: "GIF",
-    extension: ".gif",
-    description: "Animated image export for short clips.",
-  },
-  {
-    value: "mov",
-    label: "MOV",
-    extension: ".mov",
-    description: "Good for editing workflows.",
-  },
-  {
-    value: "mkv",
-    label: "MKV",
-    extension: ".mkv",
-    description: "Flexible container support.",
-  },
-];
 
 const resolutionOptions: ReadonlyArray<ExportOption<ExportResolution>> = [
   {
@@ -122,12 +89,6 @@ const templateOptions: ReadonlyArray<{
 
 const stableHelperTextClassName =
   "min-h-9 text-xs leading-relaxed text-muted-foreground";
-
-export function formatOptionFor(format: ExportFormat) {
-  return (
-    formatOptions.find((option) => option.value === format) ?? formatOptions[0]
-  );
-}
 
 function resolutionOptionFor(resolution: ExportResolution) {
   return (
