@@ -47,6 +47,11 @@ import {
   type GifExportSettings,
   type VideoExportQualityPreset,
 } from "@/lib/exportTypes";
+import {
+  concatenateGifFrameChunks,
+  type GifFrameChunk,
+} from "@/lib/gifFrameChunk";
+import { createBestGifFrameEncoder } from "@/lib/gifFrameEncoder";
 import { getActiveSubtitleCue } from "@/lib/subtitles/getActiveSubtitleCue";
 import { renderSubtitleCue } from "@/lib/subtitles/renderSubtitleCue";
 import { trimSubtitleCues } from "@/lib/subtitles/trimSubtitleCues";
@@ -92,6 +97,7 @@ interface ExportClipRuntime {
   createGifEncoder: typeof GIFEncoder;
   quantizeGifFrame: typeof quantize;
   applyGifPalette: typeof applyPalette;
+  createGifFrameEncoder: typeof createBestGifFrameEncoder;
   getActiveSubtitleCue: typeof getActiveSubtitleCue;
   renderSubtitleCue: typeof renderSubtitleCue;
   initConversion: typeof Conversion.init;
@@ -338,6 +344,7 @@ const defaultExportClipRuntime: ExportClipRuntime = {
   createGifEncoder: GIFEncoder,
   quantizeGifFrame: quantize,
   applyGifPalette: applyPalette,
+  createGifFrameEncoder: createBestGifFrameEncoder,
   getActiveSubtitleCue,
   renderSubtitleCue,
   initConversion: (options) => Conversion.init(options),
@@ -657,7 +664,6 @@ async function exportGifClipWithRuntime(
       outputDimensions.height,
     );
     configureGifCanvasContext(context);
-    const gif = runtime.createGifEncoder();
     let encodedFrameCount = 0;
     const paletteProgressShare =
       resolvedGifSettings.paletteMode === "global" ? 0.12 : 0;
@@ -721,50 +727,109 @@ async function exportGifClipWithRuntime(
           })
         : null;
 
-    for (let frameIndex = 0; frameIndex < frameCount; frameIndex += 1) {
-      const imageData = await readRenderedFrameImageData(frameIndex);
-      const progress =
-        paletteProgressShare +
-        ((frameIndex + 1) / frameCount) * (1 - paletteProgressShare);
+    const frameEncoder = runtime.createGifFrameEncoder();
+    const gifChunks: GifFrameChunk[] = [];
+    const inFlightFrames = new Set<Promise<void>>();
+    let processedFrameCount = 0;
+    let frameEncodingError: Error | null = null;
+    const maxInFlightFrames = Math.max(1, frameEncoder.concurrency * 2);
 
-      if (!imageData) {
-        onProgress(progress);
-        continue;
+    const reportFrameProgress = () => {
+      onProgress(
+        paletteProgressShare +
+          (processedFrameCount / frameCount) * (1 - paletteProgressShare),
+      );
+    };
+
+    const enqueueFrame = (imageData: ImageData) => {
+      const sequenceIndex = encodedFrameCount;
+      encodedFrameCount += 1;
+
+      const framePromise = frameEncoder
+        .encodeFrame({
+          sequenceIndex,
+          imageData,
+          width: outputDimensions.width,
+          height: outputDimensions.height,
+          maxColors: resolvedGifSettings.maxColors,
+          delayMs: frameDelayMs,
+          palette: globalPalette,
+        })
+        .then((chunk) => {
+          gifChunks[chunk.sequenceIndex] = chunk;
+          processedFrameCount += 1;
+          reportFrameProgress();
+        })
+        .catch((error: unknown) => {
+          frameEncodingError ??= toGifFrameEncodingError(error);
+        })
+        .finally(() => {
+          inFlightFrames.delete(framePromise);
+        });
+
+      inFlightFrames.add(framePromise);
+    };
+
+    const waitForFrameEncoderSlot = async () => {
+      while (inFlightFrames.size >= maxInFlightFrames) {
+        await Promise.race(inFlightFrames);
+        if (frameEncodingError) {
+          throwGifFrameEncodingError(frameEncodingError);
+        }
+      }
+    };
+
+    try {
+      for (let frameIndex = 0; frameIndex < frameCount; frameIndex += 1) {
+        const imageData = await readRenderedFrameImageData(frameIndex);
+
+        if (!imageData) {
+          processedFrameCount += 1;
+          reportFrameProgress();
+          continue;
+        }
+
+        enqueueFrame(imageData);
+        await waitForFrameEncoderSlot();
       }
 
-      const palette =
-        globalPalette ??
-        runtime.quantizeGifFrame(imageData.data, resolvedGifSettings.maxColors);
-      const indexedPixels = runtime.applyGifPalette(imageData.data, palette);
-      gif.writeFrame(
-        indexedPixels,
-        outputDimensions.width,
-        outputDimensions.height,
-        {
-          palette,
-          delay: frameDelayMs,
-          repeat: 0,
-        },
-      );
-      encodedFrameCount += 1;
-      onProgress(progress);
+      await Promise.all(inFlightFrames);
+      const settledFrameEncodingError = frameEncodingError;
+      if (settledFrameEncodingError) {
+        throwGifFrameEncodingError(settledFrameEncodingError);
+      }
+    } finally {
+      frameEncoder.dispose();
     }
 
     if (encodedFrameCount === 0) {
       throw new Error("GIF export did not produce any frames.");
     }
 
-    gif.finish();
-    const bytes = gif.bytes();
+    const bytes = concatenateGifFrameChunks(gifChunks);
     if (bytes.length === 0) {
       throw new Error("GIF export did not produce an image buffer.");
     }
 
-    const gifBuffer = new ArrayBuffer(bytes.byteLength);
-    new Uint8Array(gifBuffer).set(bytes);
-
-    return new Blob([gifBuffer], { type: "image/gif" });
+    return new Blob([copyToArrayBuffer(bytes)], { type: "image/gif" });
   } finally {
     input.dispose();
   }
+}
+
+function toGifFrameEncodingError(error: unknown) {
+  return error instanceof Error
+    ? error
+    : new Error("GIF frame encoding failed.");
+}
+
+function throwGifFrameEncodingError(error: Error): never {
+  throw new Error(error.message, { cause: error });
+}
+
+function copyToArrayBuffer(bytes: Uint8Array) {
+  const buffer = new ArrayBuffer(bytes.byteLength);
+  new Uint8Array(buffer).set(bytes);
+
+  return buffer;
 }

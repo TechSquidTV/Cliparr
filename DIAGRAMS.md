@@ -323,10 +323,12 @@ flowchart TD
     E --> F["Draw frames with high-quality canvas scaling and burn subtitles when enabled"]
     F --> G{"Preset uses a stable sampled palette?"}
     G -- "Yes" --> G1["Sample frames first and quantize one shared palette"]
-    G -- "No" --> G2["Quantize each encoded frame independently"]
-    G1 --> G3["Encode frames with gifenc and report encoding progress"]
+    G -- "No" --> G2["Use a per-frame palette"]
+    G1 --> G3["Send RGBA frame data to a bounded gifenc worker pool"]
     G2 --> G3
-    G3 --> G4["Return image/gif Blob"]
+    G3 --> G4["Workers quantize/apply palette and return encoded frame chunks"]
+    G4 --> G5["Main thread concatenates chunks in frame order, appends GIF trailer, and reports progress"]
+    G5 --> G6["Return image/gif Blob"]
 
     C -- "No" --> H["exportClip builds fresh Mediabunny input from export source URL"]
     H --> I["exportMetadata builds tags and artwork when metadata exists"]

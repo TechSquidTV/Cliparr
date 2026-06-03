@@ -85,49 +85,44 @@ export const exportQualityOptions: ReadonlyArray<{
   },
 ];
 
+const GIF_EXPORT_PRESET_SETTINGS: Record<
+  GifExportPreset,
+  Omit<GifExportSettings, "preset">
+> = {
+  compact: {
+    maxHeight: 360,
+    frameRate: 10,
+    maxColors: 64,
+    paletteMode: "global",
+  },
+  balanced: {
+    maxHeight: 480,
+    frameRate: 12,
+    maxColors: 128,
+    paletteMode: "global",
+  },
+  sharp: {
+    maxHeight: 720,
+    frameRate: 18,
+    maxColors: 256,
+    paletteMode: "per-frame",
+  },
+};
+
 export const gifExportPresetOptions: ReadonlyArray<{
   value: GifExportPreset;
   label: string;
   description: string;
   settings: GifExportSettings;
-}> = [
-  {
-    value: "compact",
-    label: "Compact",
-    description: "Smallest GIF, lighter motion/detail.",
-    settings: {
-      preset: "compact",
-      maxHeight: 360,
-      frameRate: 10,
-      maxColors: 64,
-      paletteMode: "global",
-    },
+}> = exportQualityOptions.map((option) => ({
+  value: option.value,
+  label: option.label,
+  description: option.gifDescription,
+  settings: {
+    preset: option.value,
+    ...GIF_EXPORT_PRESET_SETTINGS[option.value],
   },
-  {
-    value: "balanced",
-    label: "Balanced",
-    description: "Default GIF quality/size tradeoff.",
-    settings: {
-      preset: "balanced",
-      maxHeight: 480,
-      frameRate: 12,
-      maxColors: 128,
-      paletteMode: "global",
-    },
-  },
-  {
-    value: "sharp",
-    label: "Sharp",
-    description: "Smoother, highest-detail GIF.",
-    settings: {
-      preset: "sharp",
-      maxHeight: 720,
-      frameRate: 18,
-      maxColors: 256,
-      paletteMode: "per-frame",
-    },
-  },
-];
+}));
 
 const GIF_EXPORT_MAX_DURATION_SECONDS = 15;
 const AUDIO_EXPORT_BITRATE_KBPS = 160;

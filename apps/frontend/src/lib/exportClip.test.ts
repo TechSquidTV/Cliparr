@@ -7,6 +7,7 @@ import type { ConversionOptions } from "mediabunny";
 import { exportClipWithRuntime } from "@/lib/exportClip";
 import type { EditorMediaSource } from "@/lib/editorMedia";
 import { gifExportSettingsForPreset } from "@/lib/exportTypes";
+import { createInlineGifFrameEncoder } from "@/lib/gifFrameEncoder";
 import type { SubtitleStyleSettings } from "@/lib/subtitles/types";
 
 type ExportRuntime = Parameters<typeof exportClipWithRuntime>[1];
@@ -70,7 +71,7 @@ function createRuntime(overrides: Partial<ExportRuntime> = {}) {
     },
   } as unknown as CliparrInput;
 
-  const runtime = {
+  const runtime: ExportRuntime = {
     ensureMediabunnyCodecs: async () => undefined,
     createCliparrInputFromSource: async () => input,
     selectPreferredPairableAudioTrack: async (_videoTrack, audioTracks) =>
@@ -109,6 +110,12 @@ function createRuntime(overrides: Partial<ExportRuntime> = {}) {
       }) as unknown as ReturnType<ExportRuntime["createGifEncoder"]>,
     quantizeGifFrame: () => [[0, 0, 0]],
     applyGifPalette: () => new Uint8Array([0]),
+    createGifFrameEncoder: () =>
+      createInlineGifFrameEncoder({
+        createGifEncoder: runtime.createGifEncoder,
+        quantizeGifFrame: runtime.quantizeGifFrame,
+        applyGifPalette: runtime.applyGifPalette,
+      }),
     getActiveSubtitleCue: () => undefined,
     renderSubtitleCue: () => undefined,
     initConversion: async () =>
@@ -441,6 +448,7 @@ void test("exports GIF frames through the browser encoder path", async () => {
   }> = [];
   const writtenFrames: Array<{
     delay?: number;
+    first?: boolean;
     height: number;
     width: number;
   }> = [];
@@ -459,8 +467,6 @@ void test("exports GIF frames through the browser encoder path", async () => {
     }),
   };
   let canvasSinkOptions: { fit?: string; height?: number } | undefined;
-  let gifByteLength = 0;
-  let finished = false;
   const context = createRuntime({
     buildMetadataTags: async () => {
       throw new Error("metadata should not be built for GIF exports");
@@ -487,28 +493,30 @@ void test("exports GIF frames through the browser encoder path", async () => {
         canvas: { height, width },
         context: gifContext,
       }) as unknown as ReturnType<ExportRuntime["createGifCanvas"]>,
-    createGifEncoder: () =>
-      ({
+    createGifEncoder: () => {
+      let gifByteLength = 0;
+
+      return {
         bytes: () => new Uint8Array(gifByteLength),
         bytesView: () => new Uint8Array(gifByteLength),
-        finish: () => {
-          finished = true;
-        },
+        finish: () => undefined,
         reset: () => undefined,
         writeFrame: (
           _index: Uint8Array,
           width: number,
           height: number,
-          options?: { delay?: number },
+          options?: { delay?: number; first?: boolean },
         ) => {
           writtenFrames.push({
             delay: options?.delay,
+            first: options?.first,
             height,
             width,
           });
-          gifByteLength += 4;
+          gifByteLength = 4;
         },
-      }) as unknown as ReturnType<ExportRuntime["createGifEncoder"]>,
+      } as unknown as ReturnType<ExportRuntime["createGifEncoder"]>;
+    },
     quantizeGifFrame: (rgba, maxColors) => {
       quantizeCalls.push({ byteLength: rgba.length, maxColors });
       return globalPalette;
@@ -543,7 +551,7 @@ void test("exports GIF frames through the browser encoder path", async () => {
   );
 
   assert.equal(blob.type, "image/gif");
-  assert.equal(blob.size, 8);
+  assert.equal(blob.size, 9);
   assert.deepEqual(timestamps, ["15.0000", "15.1000", "15.0000", "15.1000"]);
   assert.deepEqual(quantizeCalls, [
     {
@@ -572,16 +580,17 @@ void test("exports GIF frames through the browser encoder path", async () => {
   assert.deepEqual(writtenFrames, [
     {
       delay: 1000 / gifSettings.frameRate,
+      first: true,
       height: 4,
       width: 4,
     },
     {
       delay: 1000 / gifSettings.frameRate,
+      first: false,
       height: 4,
       width: 4,
     },
   ]);
-  assert.equal(finished, true);
   assert.equal(context.disposed, true);
 });
 
