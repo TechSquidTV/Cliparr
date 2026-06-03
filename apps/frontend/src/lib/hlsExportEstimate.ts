@@ -23,7 +23,7 @@ export async function fetchHlsExportEstimateMetadata(
   signal?: AbortSignal,
 ) {
   const response = await fetch(url, {
-    credentials: "include",
+    credentials: "same-origin",
     signal,
   });
   if (!response.ok) {
