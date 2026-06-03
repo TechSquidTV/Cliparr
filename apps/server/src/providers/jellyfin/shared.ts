@@ -37,6 +37,7 @@ const JELLYFIN_VERSION = CLIPARR_CLIENT_VERSION;
 
 export const JELLYFIN_REQUEST_TIMEOUT_MS = 5000;
 const CURRENT_PLAYBACK_REQUEST_TIMEOUT_MS = 5000;
+const JELLYFIN_MAX_REDIRECTS = 5;
 
 const JELLYFIN_DEV_BASE_URL = stringValue(process.env.CLIPARR_DEV_JELLYFIN_URL);
 const ALLOW_LOOPBACK_JELLYFIN_URLS = booleanEnv(
@@ -160,11 +161,19 @@ function isLoopbackHost(hostname: string) {
 
 function normalizeIpCandidate(value: string) {
   const normalized = value.toLowerCase();
-  if (normalized.startsWith("[") && normalized.endsWith("]")) {
-    return normalized.slice(1, -1);
+  const unwrapped =
+    normalized.startsWith("[") && normalized.endsWith("]")
+      ? normalized.slice(1, -1)
+      : normalized;
+
+  const mappedIpv4Prefix = "::ffff:";
+  if (!unwrapped.startsWith(mappedIpv4Prefix)) {
+    return unwrapped;
   }
 
-  return normalized.startsWith("::ffff:") ? normalized.slice(7) : normalized;
+  return (
+    mappedIpv4Address(unwrapped.slice(mappedIpv4Prefix.length)) ?? unwrapped
+  );
 }
 
 function normalizeHostname(value: string) {
@@ -179,6 +188,66 @@ function isUnspecifiedHost(hostname: string) {
 function isLinkLocalHost(hostname: string) {
   const host = normalizeHostname(hostname);
   return host.startsWith("169.254.") || /^fe[89ab][0-9a-f]:/i.test(host);
+}
+
+function ipv4Octets(hostname: string) {
+  const parts = hostname.split(".");
+  if (parts.length !== 4) {
+    return undefined;
+  }
+
+  const octets = parts.map((part) => Number(part));
+  if (
+    octets.some((octet) => !Number.isInteger(octet) || octet < 0 || octet > 255)
+  ) {
+    return undefined;
+  }
+
+  return octets as [number, number, number, number];
+}
+
+function mappedIpv4Address(hostname: string) {
+  const octets = ipv4Octets(hostname);
+  if (octets) {
+    return octets.join(".");
+  }
+
+  const words = hostname.split(":");
+  if (words.length !== 2) {
+    return undefined;
+  }
+
+  const parsedWords = words.map((word) => Number.parseInt(word, 16));
+  if (
+    words.some(
+      (word, index) =>
+        !/^[0-9a-f]{1,4}$/i.test(word) ||
+        !Number.isInteger(parsedWords[index]) ||
+        parsedWords[index] < 0 ||
+        parsedWords[index] > 0xffff,
+    )
+  ) {
+    return undefined;
+  }
+
+  const [high, low] = parsedWords as [number, number];
+  return [high >> 8, high & 0xff, low >> 8, low & 0xff].join(".");
+}
+
+function isPrivateHost(hostname: string) {
+  const host = normalizeHostname(hostname);
+  const octets = ipv4Octets(host);
+  if (octets) {
+    const [first, second] = octets;
+    return (
+      first === 10 ||
+      (first === 100 && second >= 64 && second <= 127) ||
+      (first === 172 && second >= 16 && second <= 31) ||
+      (first === 192 && second === 168)
+    );
+  }
+
+  return /^f[cd][0-9a-f]{2}:/i.test(host);
 }
 
 function isMulticastHost(hostname: string) {
@@ -215,7 +284,10 @@ async function resolveHostnameAddresses(hostname: string) {
   }
 }
 
-function assertAllowedResolvedAddress(address: string) {
+function assertAllowedResolvedAddress(
+  address: string,
+  options: { allowPrivate?: boolean } = {},
+) {
   if (
     isUnspecifiedHost(address) ||
     isLinkLocalHost(address) ||
@@ -225,6 +297,14 @@ function assertAllowedResolvedAddress(address: string) {
       400,
       "invalid_jellyfin_server_url",
       "Jellyfin serverUrl resolved to an unsafe address",
+    );
+  }
+
+  if (isPrivateHost(address) && options.allowPrivate !== true) {
+    throw createApiError(
+      400,
+      "invalid_jellyfin_server_url",
+      "Jellyfin serverUrl resolved to an unsafe internal address",
     );
   }
 
@@ -241,9 +321,20 @@ function assertAllowedResolvedAddress(address: string) {
   }
 }
 
-async function assertAllowedJellyfinServerUrl(url: string) {
+async function assertAllowedJellyfinServerUrl(
+  url: string,
+  options: { allowPrivate?: boolean } = { allowPrivate: true },
+) {
   const parsed = assertHttpUrl(url.trim());
   const hostname = normalizeHostname(parsed.hostname);
+
+  if (parsed.username || parsed.password) {
+    throw createApiError(
+      400,
+      "invalid_jellyfin_server_url",
+      "Jellyfin serverUrl must not include embedded credentials",
+    );
+  }
 
   if (DISALLOWED_JELLYFIN_HOSTNAMES.has(hostname)) {
     throw createApiError(
@@ -265,10 +356,10 @@ async function assertAllowedJellyfinServerUrl(url: string) {
     );
   }
 
-  assertAllowedResolvedAddress(hostname);
+  assertAllowedResolvedAddress(hostname, options);
 
   for (const address of await resolveHostnameAddresses(hostname)) {
-    assertAllowedResolvedAddress(address);
+    assertAllowedResolvedAddress(address, options);
   }
 
   return parsed;
@@ -376,8 +467,162 @@ const JELLYFIN_CLIENT_INFO = {
   version: JELLYFIN_VERSION,
 };
 
+function isRedirectStatus(status: number) {
+  return (
+    status === 301 ||
+    status === 302 ||
+    status === 303 ||
+    status === 307 ||
+    status === 308
+  );
+}
+
+async function reusableRequestBody(request: Request) {
+  if (request.method === "GET" || request.method === "HEAD" || !request.body) {
+    return undefined;
+  }
+
+  const contentType = (request.headers.get("content-type") ?? "").toLowerCase();
+  if (contentType.includes("json") || contentType.startsWith("text/")) {
+    return request.clone().text();
+  }
+
+  return request.clone().arrayBuffer();
+}
+
+async function closeRedirectResponse(response: globalThis.Response) {
+  try {
+    await response.body?.cancel();
+  } catch {
+    // Redirect response bodies are discarded before the next request.
+  }
+}
+
+function redirectUrl(location: string, requestUrl: URL) {
+  try {
+    return new URL(location, requestUrl);
+  } catch {
+    throw createApiError(
+      502,
+      "jellyfin_invalid_redirect",
+      "Jellyfin server returned an invalid redirect URL",
+    );
+  }
+}
+
+function updateRedirectRequest(
+  init: RequestInit,
+  response: globalThis.Response,
+  nextUrl: URL,
+  currentUrl: URL,
+) {
+  const headers = new Headers(init.headers);
+  const method = String(init.method ?? "GET").toUpperCase();
+  const shouldSwitchToGet =
+    response.status === 303 ||
+    ((response.status === 301 || response.status === 302) && method === "POST");
+
+  if (nextUrl.origin !== currentUrl.origin) {
+    headers.delete("authorization");
+    headers.delete("cookie");
+    headers.delete("x-emby-authorization");
+    headers.delete("x-emby-token");
+    headers.delete("x-mediabrowser-token");
+  }
+
+  if (!shouldSwitchToGet) {
+    return {
+      ...init,
+      headers,
+    };
+  }
+
+  headers.delete("content-length");
+  headers.delete("content-type");
+
+  return {
+    ...init,
+    method: "GET",
+    headers,
+    body: undefined,
+  };
+}
+
+async function assertAllowedJellyfinRequestUrl(
+  requestUrl: URL,
+  trustedOrigin: string,
+) {
+  const parsed = assertHttpUrl(requestUrl.toString());
+  if (parsed.username || parsed.password) {
+    throw createApiError(
+      400,
+      "invalid_jellyfin_server_url",
+      "Jellyfin serverUrl must not include embedded credentials",
+    );
+  }
+
+  if (requestUrl.origin === trustedOrigin) {
+    return;
+  }
+
+  await assertAllowedJellyfinServerUrl(requestUrl.toString(), {
+    allowPrivate: false,
+  });
+}
+
+async function fetchJellyfinWithManualRedirects(
+  input: Parameters<typeof fetch>[0],
+  init?: Parameters<typeof fetch>[1],
+) {
+  const request = new Request(input, init);
+  const trustedOrigin = new URL(request.url).origin;
+  let requestUrl = new URL(request.url);
+  let requestInit: RequestInit = {
+    method: request.method,
+    headers: new Headers(request.headers),
+    body: await reusableRequestBody(request),
+    signal: request.signal,
+  };
+
+  for (
+    let redirectCount = 0;
+    redirectCount <= JELLYFIN_MAX_REDIRECTS;
+    redirectCount += 1
+  ) {
+    await assertAllowedJellyfinRequestUrl(requestUrl, trustedOrigin);
+
+    const response = await globalThis.fetch(requestUrl.toString(), {
+      ...requestInit,
+      redirect: "manual",
+    });
+    const location = response.headers.get("location");
+    if (!isRedirectStatus(response.status) || !location) {
+      return response;
+    }
+
+    const nextUrl = redirectUrl(location, requestUrl);
+    requestInit = updateRedirectRequest(
+      requestInit,
+      response,
+      nextUrl,
+      requestUrl,
+    );
+    await closeRedirectResponse(response);
+    requestUrl = nextUrl;
+  }
+
+  throw createApiError(
+    502,
+    "jellyfin_redirect_limit",
+    "Jellyfin request redirected too many times",
+  );
+}
+
 const jellyfinAxios = axios.create({
   adapter: "fetch",
+  env: {
+    fetch: fetchJellyfinWithManualRedirects,
+  },
 });
 
 function jellyfinDeviceInfo(deviceId = JELLYFIN_DEVICE_ID) {

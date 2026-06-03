@@ -4,6 +4,7 @@ import {
   useLayoutEffect,
   useRef,
   useState,
+  type CSSProperties,
   type KeyboardEvent,
   type ReactNode,
 } from "react";
@@ -16,10 +17,12 @@ interface EditorEditableTimecodeProps {
   ariaLabel: string;
   buttonClassName?: string;
   children: ReactNode;
+  className?: string;
   disabled?: boolean;
   inputClassName?: string;
   inputWidth?: string;
   onCommit: (seconds: number) => void | Promise<void>;
+  style?: CSSProperties;
   value: number;
   valueLabel?: string;
 }
@@ -28,10 +31,12 @@ export function EditorEditableTimecode({
   ariaLabel,
   buttonClassName = "",
   children,
+  className = "",
   disabled = false,
   inputClassName = "",
   inputWidth,
   onCommit,
+  style,
   value,
   valueLabel,
 }: EditorEditableTimecodeProps) {
@@ -139,8 +144,11 @@ export function EditorEditableTimecode({
 
   return (
     <span
-      className="inline-flex min-w-0"
-      style={{ width: editing ? reservedWidth : undefined }}
+      className={`inline-flex min-w-0 ${className}`}
+      style={{
+        ...style,
+        width: editing ? (reservedWidth ?? style?.width) : style?.width,
+      }}
     >
       {editing ? (
         <input

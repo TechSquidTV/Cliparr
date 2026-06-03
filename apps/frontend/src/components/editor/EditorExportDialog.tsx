@@ -214,12 +214,15 @@ export function EditorExportDialog({
           type="button"
           onClick={onExport}
           disabled={exporting || Boolean(exportDisabledReason)}
-          className={compactPrimaryButtonClasses}
+          className={`${compactPrimaryButtonClasses} w-44`}
         >
           {exporting ? (
             <>
-              <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary-foreground/30 border-t-primary-foreground" />
-              Exporting {Math.round(progress * 100)}%
+              <div className="h-4 w-4 shrink-0 animate-spin rounded-full border-2 border-primary-foreground/30 border-t-primary-foreground" />
+              <span>Exporting</span>
+              <span className="inline-block w-[4ch] text-right font-mono tabular-nums">
+                {Math.round(progress * 100)}%
+              </span>
             </>
           ) : (
             <>

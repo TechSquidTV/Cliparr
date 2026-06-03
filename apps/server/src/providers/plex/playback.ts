@@ -1177,7 +1177,20 @@ function playbackSessionIdentity(item: PlexMetadataItem) {
   );
 }
 
+export function createPlexViewerAvatarUrl(
+  session: ProviderSessionRecord,
+  context: PlexSourceContext,
+  item: PlexMetadataItem,
+) {
+  const avatarPath = stringValue(item?.User?.thumb);
+  return avatarPath
+    ? createMediaHandle(session, context, avatarPath)
+    : undefined;
+}
+
 function playbackViewer(
+  session: ProviderSessionRecord,
+  context: PlexSourceContext,
   item: PlexMetadataItem,
   sourceId: string,
   sessionId: string,
@@ -1190,7 +1203,7 @@ function playbackViewer(
     providerId: "plex" as const,
     externalId,
     name: stringValue(item?.User?.title) ?? "Unknown User",
-    avatarUrl: stringValue(item?.User?.thumb),
+    avatarUrl: createPlexViewerAvatarUrl(session, context, item),
   };
 }
 
@@ -1353,7 +1366,7 @@ async function normalizeCurrentPlayback(
       }
 
       return {
-        viewer: playbackViewer(item, source.id, sessionId),
+        viewer: playbackViewer(session, context, item, source.id, sessionId),
         item: {
           id: `${source.id}:${sessionId}`,
           source: {

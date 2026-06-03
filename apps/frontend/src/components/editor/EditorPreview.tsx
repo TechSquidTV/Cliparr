@@ -57,6 +57,7 @@ export function EditorPreview({
           className={`pointer-events-none absolute inset-0 h-full w-full scale-105 object-cover blur-sm transition-opacity duration-200 ease-out ${
             showLoadingOverlay ? "opacity-75" : "opacity-0"
           }`}
+          decoding="async"
           style={
             posterViewTransitionName
               ? { viewTransitionName: posterViewTransitionName }

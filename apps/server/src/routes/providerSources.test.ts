@@ -323,6 +323,146 @@ void test("logs into Jellyfin with credentials and stores a remembered provider 
   });
 });
 
+void test("rejects Jellyfin credential-login redirects to loopback before connecting", async () => {
+  await withTestApp(async (baseUrl, fetchLocal) => {
+    const upstreamRequests: Array<{ url: string; redirectMode: unknown }> = [];
+
+    await withMockedFetch(
+      async (input, init) => {
+        const requestUrl =
+          typeof input === "string"
+            ? input
+            : input instanceof URL
+              ? input.toString()
+              : input.url;
+        upstreamRequests.push({
+          url: requestUrl,
+          redirectMode: init?.redirect,
+        });
+
+        if (requestUrl === "http://1.1.1.1:8096/jellyfin/System/Info/Public") {
+          return new Response(null, {
+            status: 302,
+            headers: {
+              location: "http://[::ffff:127.0.0.1]:8096/System/Info/Public",
+            },
+          });
+        }
+
+        throw new Error(`Unexpected fetch: ${requestUrl}`);
+      },
+      async () => {
+        const response = await fetchLocal(
+          `${baseUrl}/api/providers/jellyfin/auth/login`,
+          {
+            method: "POST",
+            headers: {
+              "content-type": "application/json",
+            },
+            body: JSON.stringify({
+              serverUrl: "http://1.1.1.1:8096/jellyfin",
+              username: "admin",
+              password: "secret",
+            }),
+          },
+        );
+
+        assert.equal(response.status, 400);
+        const body = (await response.json()) as {
+          error?: { code?: string };
+        };
+        assert.equal(body.error?.code, "invalid_jellyfin_server_url");
+        assert.deepEqual(
+          upstreamRequests.map((request) => request.url),
+          ["http://1.1.1.1:8096/jellyfin/System/Info/Public"],
+        );
+        assert.equal(upstreamRequests[0]?.redirectMode, "manual");
+      },
+    );
+  });
+});
+
+void test("follows Jellyfin credential-login redirects to public targets", async () => {
+  await withTestApp(async (baseUrl, fetchLocal) => {
+    const upstreamRequests: string[] = [];
+
+    await withMockedFetch(
+      async (input) => {
+        const requestUrl =
+          typeof input === "string"
+            ? input
+            : input instanceof URL
+              ? input.toString()
+              : input.url;
+        upstreamRequests.push(requestUrl);
+
+        if (requestUrl === "http://1.1.1.1:8096/jellyfin/System/Info/Public") {
+          return new Response(null, {
+            status: 302,
+            headers: {
+              location: "http://1.1.1.2:8096/jellyfin/System/Info/Public",
+            },
+          });
+        }
+
+        if (requestUrl === "http://1.1.1.2:8096/jellyfin/System/Info/Public") {
+          return jsonResponse({
+            Id: "jellyfin-server-1",
+            ServerName: "Jelly Lab",
+            ProductName: "Jellyfin",
+            Version: "10.9.0",
+          });
+        }
+
+        if (
+          requestUrl === "http://1.1.1.1:8096/jellyfin/Users/AuthenticateByName"
+        ) {
+          return jsonResponse({
+            AccessToken: "jellyfin-user-token",
+            ServerId: "jellyfin-server-1",
+            User: {
+              Id: "admin-user",
+              Name: "Admin",
+              Policy: {
+                IsAdministrator: true,
+              },
+            },
+          });
+        }
+
+        throw new Error(`Unexpected fetch: ${requestUrl}`);
+      },
+      async () => {
+        const response = await fetchLocal(
+          `${baseUrl}/api/providers/jellyfin/auth/login`,
+          {
+            method: "POST",
+            headers: {
+              "content-type": "application/json",
+            },
+            body: JSON.stringify({
+              serverUrl: "http://1.1.1.1:8096/jellyfin",
+              username: "admin",
+              password: "secret",
+            }),
+          },
+        );
+
+        assert.equal(response.status, 200);
+        const body = (await response.json()) as {
+          session?: { providerId?: string };
+        };
+        assert.equal(body.session?.providerId, "jellyfin");
+        assert.deepEqual(upstreamRequests, [
+          "http://1.1.1.1:8096/jellyfin/System/Info/Public",
+          "http://1.1.1.2:8096/jellyfin/System/Info/Public",
+          "http://1.1.1.1:8096/jellyfin/Users/AuthenticateByName",
+        ]);
+      },
+    );
+  });
+});
+
 void test("updates sources across connected accounts and preserves Plex manual URL mode", async () => {
   await withTestApp(async (baseUrl, fetchLocal) => {
     const account = upsertProviderAccountByAccessToken({

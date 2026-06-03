@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import type { RefObject } from "react";
 import { errorMessage } from "@/components/editor/editorUtils";
 import type { EditorSession } from "@/lib/editorMedia";
@@ -36,6 +36,7 @@ interface UseEditorFramegrabProps {
   subtitleEnabled: boolean;
   subtitleLoading: boolean;
   subtitleError: string | null;
+  getCurrentTime?: () => number;
 }
 
 export function useEditorFramegrab({
@@ -48,8 +49,8 @@ export function useEditorFramegrab({
   subtitleEnabled,
   subtitleLoading,
   subtitleError,
+  getCurrentTime,
 }: UseEditorFramegrabProps) {
-  const [dialogMounted, setDialogMounted] = useState(false);
   const [capturedFramegrab, setCapturedFramegrab] =
     useState<CapturedFramegrab | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -60,12 +61,6 @@ export function useEditorFramegrab({
   const [action, setAction] = useState<FramegrabAction | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (dialogOpen) {
-      setDialogMounted(true);
-    }
-  }, [dialogOpen]);
 
   const fileName = useMemo(
     () =>
@@ -126,16 +121,16 @@ export function useEditorFramegrab({
       setCapturedFramegrab(null);
       setError("No preview frame is available yet.");
       setMessage(null);
-      setDialogMounted(true);
       setDialogOpen(true);
       return;
     }
 
     try {
       const clonedCanvas = cloneCanvasFrame(canvas);
+      const frameTime = getCurrentTime?.() ?? currentTime;
       setCapturedFramegrab({
         canvas: clonedCanvas,
-        time: currentTime,
+        time: frameTime,
         dimensions: {
           width: clonedCanvas.width,
           height: clonedCanvas.height,
@@ -148,10 +143,9 @@ export function useEditorFramegrab({
       setCapturedFramegrab(null);
       setError(errorMessage(err));
       setMessage(null);
-      setDialogMounted(true);
       setDialogOpen(true);
     }
-  }, [canvasRef, currentTime]);
+  }, [canvasRef, currentTime, getCurrentTime]);
 
   const closeDialog = useCallback(() => {
     if (action) {
@@ -223,7 +217,7 @@ export function useEditorFramegrab({
   }, [action, capturedFramegrab, fileName.fullName, format, quality]);
 
   return {
-    dialogMounted,
+    dialogMounted: dialogOpen || Boolean(capturedFramegrab || error),
     capturedFramegrab,
     dialogOpen,
     format,

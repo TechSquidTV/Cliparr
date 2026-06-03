@@ -84,15 +84,32 @@ export function EditorRangeControl({
 }) {
   const rangeFillPercent =
     max > min ? Math.min(Math.max((value - min) / (max - min), 0), 1) * 100 : 0;
+  const stepFractionDigits = step.toString().split(".")[1]?.length ?? 0;
+  const widestSteppedValueLength =
+    stepFractionDigits > 0
+      ? Math.max(
+          `${min.toFixed(stepFractionDigits)}${unit}`.length,
+          `${max.toFixed(stepFractionDigits)}${unit}`.length,
+        )
+      : 0;
+  const valueSlotWidth = `${Math.max(
+    4,
+    `${min}${unit}`.length,
+    `${max}${unit}`.length,
+    widestSteppedValueLength,
+  )}ch`;
 
   return (
     <EditorPropertyRow
       label={label}
       value={
-        <>
+        <span
+          className="inline-block text-right tabular-nums"
+          style={{ width: valueSlotWidth }}
+        >
           {value}
           {unit}
-        </>
+        </span>
       }
       align="start"
     >

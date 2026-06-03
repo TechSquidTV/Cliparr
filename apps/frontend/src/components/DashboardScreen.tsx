@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   AlertTriangle,
   FolderOpen,
@@ -70,6 +70,15 @@ function sessionActionLabel(
   return canEditSession(session) ? "Edit Clip" : "No stream";
 }
 
+const DASHBOARD_VIDEO_STYLE_CARD_CLASS =
+  "relative flex h-full flex-col overflow-hidden rounded-lg border border-border bg-card text-left text-card-foreground";
+const DASHBOARD_VIDEO_STYLE_THUMBNAIL_CLASS =
+  "relative aspect-[2/3] w-full shrink-0 overflow-hidden bg-background";
+const DASHBOARD_VIDEO_STYLE_BODY_CLASS =
+  "flex flex-1 flex-col gap-3 p-3 md:p-4";
+const DASHBOARD_PLAYBACK_GRID_CLASS =
+  "grid grid-cols-1 gap-3 md:grid-cols-2 md:gap-4 xl:grid-cols-3";
+
 function ViewerAvatar({
   name,
   avatarUrl,
@@ -94,6 +103,9 @@ function ViewerAvatar({
           src={avatarUrl}
           alt={name}
           className="w-full h-full object-cover"
+          width={size === "sm" ? 32 : 48}
+          height={size === "sm" ? 32 : 48}
+          decoding="async"
           onError={() => setImageFailed(true)}
         />
       ) : (
@@ -129,7 +141,7 @@ function ViewerChip({
   );
 }
 
-export function DashboardPlaybackCard({
+export const DashboardPlaybackCard = memo(function DashboardPlaybackCard({
   card,
   activeViewTransitionSessionId,
   onSelectSession,
@@ -155,14 +167,20 @@ export function DashboardPlaybackCard({
         }
       }}
       disabled={!canEdit}
-      className="group relative flex flex-col overflow-hidden rounded-lg border border-border bg-card text-left text-card-foreground transition-all hover:border-primary/50 disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:border-border"
+      className={cn(
+        DASHBOARD_VIDEO_STYLE_CARD_CLASS,
+        "group transition-all hover:border-primary/50 disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:border-border",
+      )}
     >
-      <div className="relative aspect-video w-full bg-background">
+      <div className={DASHBOARD_VIDEO_STYLE_THUMBNAIL_CLASS}>
         {mediaSession.thumbUrl ? (
           <img
             src={mediaSession.thumbUrl}
             alt={mediaSession.title}
-            className="h-full w-full object-cover opacity-80 transition-opacity group-hover:opacity-100"
+            className="absolute inset-0 h-full w-full object-cover opacity-80 transition-opacity group-hover:opacity-100"
+            width="2000"
+            height="3000"
+            decoding="async"
             style={
               thumbnailViewTransitionName
                 ? {
@@ -172,7 +190,7 @@ export function DashboardPlaybackCard({
             }
           />
         ) : (
-          <div className="flex h-full w-full items-center justify-center">
+          <div className="absolute inset-0 flex h-full w-full items-center justify-center">
             <Video className="h-8 w-8 text-muted-foreground/50" />
           </div>
         )}
@@ -196,7 +214,7 @@ export function DashboardPlaybackCard({
           </h3>
         </div>
       </div>
-      <div className="flex flex-1 flex-col gap-3 p-3 md:p-4">
+      <div className={DASHBOARD_VIDEO_STYLE_BODY_CLASS}>
         <ViewerChip
           viewer={viewer}
           sessionCount={viewerSessionCount}
@@ -205,11 +223,46 @@ export function DashboardPlaybackCard({
         <div className="flex items-center justify-between gap-3 text-sm text-muted-foreground">
           <span className="truncate">{mediaSession.playerTitle}</span>
         </div>
-        <div className="flex w-full items-center justify-center rounded-lg bg-primary/10 py-2 text-sm font-medium text-primary transition-colors group-hover:bg-primary group-hover:text-primary-foreground">
+        <div className="mt-auto flex w-full items-center justify-center rounded-lg bg-primary/10 py-2 text-sm font-medium text-primary transition-colors group-hover:bg-primary group-hover:text-primary-foreground">
           {sessionActionLabel(mediaSession)}
         </div>
       </div>
     </button>
+  );
+});
+
+function DashboardPlaybackCardSkeleton({ className }: { className?: string }) {
+  return (
+    <div
+      className={cn(
+        DASHBOARD_VIDEO_STYLE_CARD_CLASS,
+        "animate-pulse",
+        className,
+      )}
+      aria-hidden="true"
+      data-dashboard-playback-skeleton
+    >
+      <div className={DASHBOARD_VIDEO_STYLE_THUMBNAIL_CLASS}>
+        <div className="absolute inset-0 h-full w-full bg-muted/60" />
+        <div className="absolute inset-0 bg-linear-to-t from-card via-card/35 to-transparent" />
+        <div className="absolute top-3 left-3 h-6 w-36 rounded-full bg-card/90 shadow-sm" />
+        <div className="absolute right-3 bottom-3 left-3">
+          <div className="mb-2 h-3 w-16 rounded bg-primary/20" />
+          <div className="h-6 w-4/5 rounded bg-muted" />
+        </div>
+      </div>
+      <div className={DASHBOARD_VIDEO_STYLE_BODY_CLASS}>
+        <div className="flex min-w-0 items-center gap-2.5">
+          <div className="h-8 w-8 shrink-0 rounded-full bg-primary/10" />
+          <div className="min-w-0 flex-1 space-y-2">
+            <div className="h-4 w-28 rounded bg-muted" />
+            <div className="h-3 w-36 rounded bg-muted/70" />
+          </div>
+        </div>
+        <div className="h-5 w-24 rounded bg-muted/70" />
+        <div className="mt-auto h-9 w-full rounded-lg bg-primary/10" />
+      </div>
+    </div>
   );
 }
 
@@ -260,11 +313,19 @@ export default function DashboardScreen({
   const [sourceErrors, setSourceErrors] = useState<SourcePlaybackError[]>([]);
   const [appVersion, setAppVersion] = useState("");
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState("");
+  const hasFetchedSessionsRef = useRef(false);
 
-  const fetchSessions = async () => {
-    setLoading(true);
+  const fetchSessions = useCallback(async () => {
+    const isInitialFetch = !hasFetchedSessionsRef.current;
+    if (isInitialFetch) {
+      setLoading(true);
+    } else {
+      setRefreshing(true);
+    }
     setError("");
+
     try {
       const playback = await cliparrClient.getCurrentlyPlaying();
       setViewers(playback.viewers);
@@ -274,13 +335,15 @@ export default function DashboardScreen({
       setViewers([]);
       setSourceErrors([]);
     } finally {
+      hasFetchedSessionsRef.current = true;
       setLoading(false);
+      setRefreshing(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     void fetchSessions();
-  }, []);
+  }, [fetchSessions]);
 
   useEffect(() => {
     let cancelled = false;
@@ -303,8 +366,12 @@ export default function DashboardScreen({
     };
   }, []);
 
-  const playbackCards = flattenDashboardPlaybackItems(viewers);
+  const playbackCards = useMemo(
+    () => flattenDashboardPlaybackItems(viewers),
+    [viewers],
+  );
   const hasPlaybackCards = playbackCards.length > 0;
+  const showPlaybackGrid = loading || hasPlaybackCards;
   const emptyMessage =
     sourceErrors.length > 0
       ? "No active playback on the available sources."
@@ -321,15 +388,23 @@ export default function DashboardScreen({
                 src="/logo-light.svg"
                 alt="Cliparr Logo"
                 className="w-8 h-8"
+                width="32"
+                height="32"
+                decoding="async"
               />
               <div className="space-y-1">
                 <div className="flex flex-wrap items-center gap-2">
                   <h1 className="text-2xl font-bold tracking-tight">Cliparr</h1>
-                  {versionLabel && (
-                    <span className="hidden rounded-full border border-border bg-card px-2 py-0.5 text-xs font-medium text-muted-foreground sm:inline-flex">
-                      {versionLabel}
-                    </span>
-                  )}
+                  <span
+                    className={cn(
+                      "hidden min-h-5 min-w-15 items-center justify-center rounded-full border border-border bg-card px-2 py-0.5 text-xs font-medium text-muted-foreground sm:inline-flex",
+                      !versionLabel && "invisible",
+                    )}
+                    aria-hidden={!versionLabel}
+                    data-dashboard-version-badge
+                  >
+                    {versionLabel || "0.0.0"}
+                  </span>
                 </div>
                 <p className="text-sm text-muted-foreground">
                   Export clips from active playback sessions.
@@ -366,7 +441,7 @@ export default function DashboardScreen({
               title="Refresh"
             >
               <RefreshCw
-                className={`h-5 w-5 ${loading ? "animate-spin text-primary" : ""}`}
+                className={`h-5 w-5 ${loading || refreshing ? "animate-spin text-primary" : ""}`}
               />
             </button>
           </div>
@@ -396,7 +471,7 @@ export default function DashboardScreen({
               title="Refresh"
             >
               <RefreshCw
-                className={`w-5 h-5 ${loading ? "animate-spin text-primary" : ""}`}
+                className={`w-5 h-5 ${loading || refreshing ? "animate-spin text-primary" : ""}`}
               />
             </button>
             <a
@@ -431,9 +506,9 @@ export default function DashboardScreen({
         </header>
 
         <div
-          className={hasPlaybackCards ? "space-y-4 sm:space-y-6" : "space-y-6"}
+          className={showPlaybackGrid ? "space-y-4 sm:space-y-6" : "space-y-6"}
         >
-          <div className={hasPlaybackCards ? "sr-only" : ""}>
+          <div className={showPlaybackGrid ? "sr-only" : ""}>
             <h2 className="text-xl font-semibold mb-2">Currently Playing</h2>
             <p className="text-muted-foreground text-sm">
               Active sessions across enabled sources.
@@ -462,8 +537,22 @@ export default function DashboardScreen({
             </div>
           )}
 
-          {hasPlaybackCards && (
-            <div className="grid grid-cols-1 gap-3 md:grid-cols-2 md:gap-4 xl:grid-cols-3">
+          {loading && !error && (
+            <div
+              role="status"
+              aria-live="polite"
+              aria-label="Loading currently playing sessions"
+              className={DASHBOARD_PLAYBACK_GRID_CLASS}
+              data-dashboard-loading-grid
+            >
+              <DashboardPlaybackCardSkeleton />
+              <DashboardPlaybackCardSkeleton className="hidden md:flex" />
+              <DashboardPlaybackCardSkeleton className="hidden xl:flex" />
+            </div>
+          )}
+
+          {!loading && hasPlaybackCards && (
+            <div className={DASHBOARD_PLAYBACK_GRID_CLASS}>
               {playbackCards.map((card) => (
                 <DashboardPlaybackCard
                   key={card.session.id}

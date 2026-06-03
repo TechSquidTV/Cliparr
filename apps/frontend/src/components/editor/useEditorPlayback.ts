@@ -85,6 +85,7 @@ interface UseEditorPlaybackProps {
   subtitleCues?: readonly SubtitleCue[];
   subtitlesEnabled?: boolean;
   subtitleStyleSettings?: SubtitleStyleSettings;
+  onPlaybackTimeUpdate?: (seconds: number) => void;
 }
 
 interface VideoDimensions {
@@ -98,6 +99,7 @@ interface StaticVideoFrame {
 }
 
 const MAX_STATIC_VIDEO_FRAME_SIZE = 1920;
+const CURRENT_TIME_REACT_COMMIT_INTERVAL_MS = 125;
 const logger = getFrontendLogger(["editor", "playback"]);
 
 function playbackSourceLogFields(
@@ -226,6 +228,7 @@ export function useEditorPlayback({
   subtitleCues = [],
   subtitlesEnabled = false,
   subtitleStyleSettings,
+  onPlaybackTimeUpdate,
 }: UseEditorPlaybackProps) {
   const [duration, setDuration] = useState(() => Math.max(initialDuration, 0));
   const [currentTime, setCurrentTime] = useState(() =>
@@ -320,6 +323,7 @@ export function useEditorPlayback({
   const skipLiveWaitRef = useRef(false);
   const activeSourceLabelRef = useRef(activeSourceLabel);
   const playbackReadyRangeRef = useRef<PlaybackReadyRange | null>(null);
+  const lastCurrentTimeCommitMsRef = useRef(0);
 
   const durationRef = useRef(duration);
   const startTimeRef = useRef(startTime);
@@ -442,6 +446,22 @@ export function useEditorPlayback({
     return clampTime(playbackTimeAtStartRef.current);
   }, [clampTime]);
 
+  const commitCurrentTimeDuringPlayback = useCallback((seconds: number) => {
+    const now =
+      typeof performance !== "undefined" ? performance.now() : Date.now();
+    if (
+      now - lastCurrentTimeCommitMsRef.current <
+      CURRENT_TIME_REACT_COMMIT_INTERVAL_MS
+    ) {
+      return;
+    }
+
+    lastCurrentTimeCommitMsRef.current = now;
+    setCurrentTime((current) =>
+      Math.abs(current - seconds) < 0.005 ? current : seconds,
+    );
+  }, []);
+
   const stopAudioNodes = useCallback(() => {
     stopQueuedAudioNodes(queuedAudioNodesRef.current);
   }, []);
@@ -495,6 +515,8 @@ export function useEditorPlayback({
     clampTime,
     pausePlayback,
     setCurrentTime,
+    setCurrentTimeDuringPlayback: commitCurrentTimeDuringPlayback,
+    onPlaybackTimeUpdate,
     setError: setPlaybackError,
   });
 
@@ -1334,6 +1356,7 @@ export function useEditorPlayback({
     warmClipStart,
     warmClipSelection,
     setCurrentTime,
+    getPlaybackTime,
     playbackTimeAtStartRef,
   };
 }

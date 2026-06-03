@@ -27,6 +27,9 @@ export default function ProviderConnectScreen({
               src="/logo-light.svg"
               alt="Cliparr Logo"
               className="h-12 w-12"
+              width="48"
+              height="48"
+              decoding="async"
             />
           </div>
           <h1 className="text-center text-3xl font-semibold tracking-tight">

@@ -58,6 +58,9 @@ export function ProviderGlyph({
         src={logoUrl}
         alt={`${label} logo`}
         className={cn("h-5 w-5 object-contain", className)}
+        width="20"
+        height="20"
+        decoding="async"
       />
     );
   }

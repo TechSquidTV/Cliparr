@@ -343,7 +343,7 @@ void test("validates cross-origin media redirects before following them", async 
     return new Response(null, {
       status: 302,
       headers: {
-        location: "http://127.0.0.1/admin",
+        location: "http://[::ffff:127.0.0.1]/admin",
       },
     });
   }) as typeof fetch;

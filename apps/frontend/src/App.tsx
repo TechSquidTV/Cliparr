@@ -68,7 +68,14 @@ export default function App() {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center gap-6 bg-background text-foreground">
         <div className="relative">
-          <img src="/logo-light.svg" alt="Cliparr Logo" className="h-16 w-16" />
+          <img
+            src="/logo-light.svg"
+            alt="Cliparr Logo"
+            className="h-16 w-16"
+            width="64"
+            height="64"
+            decoding="async"
+          />
           <div className="absolute -inset-4 animate-pulse rounded-full bg-primary/10 blur-xl" />
         </div>
         <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground uppercase tracking-[var(--tracking-caps-2xl)]">
