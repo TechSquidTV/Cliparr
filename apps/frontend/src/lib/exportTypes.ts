@@ -9,11 +9,18 @@ export type ExportFormat = "mp4" | "webm" | "mov" | "mkv" | "gif";
 
 export type ExportResolution = "original" | "1080" | "720";
 
-export type ExportQualityPreset = "compact" | "balanced" | "sharp";
+export type ExportQualityPreset =
+  | "compact"
+  | "efficient"
+  | "balanced"
+  | "sharp";
 
 export type GifExportPreset = ExportQualityPreset;
 
-export type VideoExportQualityPreset = ExportQualityPreset;
+export type VideoExportQualityPreset = Exclude<
+  ExportQualityPreset,
+  "efficient"
+>;
 
 export type HlsManifestBitrateBasis = "average-bandwidth" | "bandwidth";
 
@@ -73,7 +80,7 @@ export const DEFAULT_VIDEO_EXPORT_QUALITY: VideoExportQualityPreset = "sharp";
 export const exportQualityOptions: ReadonlyArray<{
   value: ExportQualityPreset;
   label: string;
-  videoDescription: string;
+  videoDescription?: string;
   gifDescription: string;
 }> = [
   {
@@ -81,6 +88,11 @@ export const exportQualityOptions: ReadonlyArray<{
     label: "Compact",
     videoDescription: "Smallest video file; lower bitrate.",
     gifDescription: "Smallest GIF, lighter motion/detail.",
+  },
+  {
+    value: "efficient",
+    label: "Efficient",
+    gifDescription: "Smaller GIF with smooth motion/detail.",
   },
   {
     value: "balanced",
@@ -95,6 +107,15 @@ export const exportQualityOptions: ReadonlyArray<{
     gifDescription: "Smoother, highest-detail GIF.",
   },
 ];
+
+export const videoExportQualityOptions = exportQualityOptions.filter(
+  (
+    option,
+  ): option is (typeof exportQualityOptions)[number] & {
+    value: VideoExportQualityPreset;
+    videoDescription: string;
+  } => option.value !== "efficient" && Boolean(option.videoDescription),
+);
 
 const SOFT_TEMPORAL_DITHER_SETTINGS: GifTemporalDitherSettings = {
   strength: 0.45,
@@ -116,6 +137,15 @@ const GIF_EXPORT_PRESET_SETTINGS: Record<
     paletteMode: "global",
     paletteFormat: "rgb444",
     ditherMode: "none",
+  },
+  efficient: {
+    maxHeight: 432,
+    frameRate: 12,
+    maxColors: 128,
+    paletteMode: "per-frame",
+    paletteFormat: "rgb565",
+    ditherMode: "spatial-temporal",
+    temporalDither: SOFT_TEMPORAL_DITHER_SETTINGS,
   },
   balanced: {
     maxHeight: 480,
@@ -158,6 +188,7 @@ const VIDEO_ESTIMATE_CONTAINER_OVERHEAD = 1.03;
 const GIF_ESTIMATE_BASE_BYTES = 20_000;
 const GIF_ESTIMATE_BYTES_PER_PIXEL_FRAME: Record<GifExportPreset, number> = {
   compact: 0.225,
+  efficient: 0.48,
   balanced: 0.48,
   sharp: 0.5,
 };
@@ -220,13 +251,21 @@ export function exportQualityOptionFor(preset: ExportQualityPreset) {
   );
 }
 
+export function exportQualityOptionsForFormat(format: ExportFormat) {
+  return format === "gif" ? exportQualityOptions : videoExportQualityOptions;
+}
+
 export function exportQualityDescriptionFor(
   format: ExportFormat,
   preset: ExportQualityPreset,
 ) {
   const option = exportQualityOptionFor(preset);
 
-  return format === "gif" ? option.gifDescription : option.videoDescription;
+  if (format === "gif") {
+    return option.gifDescription;
+  }
+
+  return option.videoDescription ?? "Preserves source video when possible.";
 }
 
 function exportFormatMaxHeight(

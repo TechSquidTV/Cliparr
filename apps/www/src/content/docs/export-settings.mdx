@@ -42,15 +42,18 @@ Use `WEBM` instead of `GIF` when your destination supports video files. GIF is u
 
 ## Quality
 
-The `Quality` control is available for every export format.
+The `Quality` control is available for every export format. Video exports use
+`Compact`, `Balanced`, and `Sharp`; GIF exports also include `Efficient` for a
+smaller tuned animated-image preset.
 
-| Quality    | Video behavior                                                                  | GIF behavior                                                           |
-| :--------- | :------------------------------------------------------------------------------ | :--------------------------------------------------------------------- |
-| `Compact`  | Forces a smaller, lower-bitrate transcode.                                      | 360p max, 10 fps, 64 colors.                                           |
-| `Balanced` | Forces a moderate-bitrate transcode for a smaller file than `Sharp`.            | 480p max, 12 fps, 128 colors with soft spatial and temporal dithering. |
-| `Sharp`    | Preserves the source stream when possible, or uses the highest current default. | 720p max, 18 fps, 128 colors with soft spatial and temporal dithering. |
+| Quality     | Video behavior                                                                  | GIF behavior                                                           |
+| :---------- | :------------------------------------------------------------------------------ | :--------------------------------------------------------------------- |
+| `Compact`   | Forces a smaller, lower-bitrate transcode.                                      | 360p max, 10 fps, 64 colors.                                           |
+| `Efficient` | Not shown for video exports.                                                    | 432p max, 12 fps, 128 colors with soft spatial and temporal dithering. |
+| `Balanced`  | Forces a moderate-bitrate transcode for a smaller file than `Sharp`.            | 480p max, 12 fps, 128 colors with soft spatial and temporal dithering. |
+| `Sharp`     | Preserves the source stream when possible, or uses the highest current default. | 720p max, 18 fps, 128 colors with soft spatial and temporal dithering. |
 
-For video, `Sharp` is the safest choice when you want the closest match to the source. Use `Balanced` or `Compact` when file size matters more than preserving the original stream. For GIF, `Balanced` is the default because it keeps the output smaller while still preserving readable motion and detail. `Sharp` keeps the same tuned 128-color temporal dither but spends the file-size budget on higher resolution and smoother motion.
+For video, `Sharp` is the safest choice when you want the closest match to the source. Use `Balanced` or `Compact` when file size matters more than preserving the original stream. For GIF, `Balanced` is the default because it preserves readable motion and detail. Choose `Efficient` when Balanced is slightly too large, or `Compact` when file size matters most. `Sharp` keeps the same tuned 128-color temporal dither but spends the file-size budget on higher resolution and smoother motion.
 
 ## Resolution
 

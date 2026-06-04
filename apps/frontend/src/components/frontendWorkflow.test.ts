@@ -675,7 +675,7 @@ void test("renders GIF export quality controls and immediate estimated size", ()
 
   assert.match(markup, /Quality/);
   assert.match(markup, /aria-label="Export quality"/);
-  assert.match(markup, /aria-pressed="true"/);
+  assert.doesNotMatch(markup, /aria-pressed=/);
   assert.doesNotMatch(markup, /GIF Preset/);
   assert.doesNotMatch(markup, /min-h-\[6\.5rem\]/);
   assert.match(markup, /Default GIF quality\/size tradeoff\./);
@@ -685,6 +685,7 @@ void test("renders GIF export quality controls and immediate estimated size", ()
   assert.match(markup, /~1\.5 MB/);
   assert.match(markup, /GIF exports are video only\./);
   assert.doesNotMatch(markup, /role="radiogroup"/);
+  assert.doesNotMatch(markup, /grid-cols-3/);
   assert.doesNotMatch(markup, /role="note"/);
   assert.doesNotMatch(markup, /aria-live="polite"/);
 });
@@ -697,6 +698,7 @@ void test("renders universal quality details for video formats", () => {
   });
 
   assert.match(markup, /Quality/);
+  assert.doesNotMatch(markup, /Efficient/);
   assert.match(markup, /Preserves source video when possible\./);
   assert.match(markup, /Sharp quality/);
   assert.doesNotMatch(markup, /GIF Preset/);

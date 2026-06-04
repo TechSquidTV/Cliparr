@@ -319,7 +319,7 @@ flowchart TD
     B --> B1["useEditorExport resolves source/options and lazy-loads exportClip"]
     B1 --> C{"Output format is GIF?"}
     C -- "Yes" --> D["Build fresh Mediabunny input and CanvasSink from export source"]
-    D --> E["Apply shared Quality control as GIF max height, frame rate, color count, palette mode, and dither settings"]
+    D --> E["Apply GIF Quality control as max height, frame rate, color count, palette mode, and dither settings"]
     E --> F["Draw frames with high-quality canvas scaling and burn subtitles when enabled"]
     F --> G{"Preset uses a stable sampled palette?"}
     G -- "Yes" --> G1["Sample frames first and quantize one shared palette"]

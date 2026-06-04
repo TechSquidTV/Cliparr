@@ -22,8 +22,10 @@ import {
   estimateExportOutputSize,
   exportQualityDescriptionFor,
   exportQualityOptions,
+  exportQualityOptionsForFormat,
   gifExportPresetOptions,
   gifExportSettingsForPreset,
+  videoExportQualityOptions,
 } from "@/lib/exportTypes";
 
 const localFileSource = {
@@ -227,12 +229,32 @@ void test("defines GIF export presets and balanced default", () => {
   assert.equal(DEFAULT_GIF_EXPORT_PRESET, "balanced");
   assert.equal(DEFAULT_VIDEO_EXPORT_QUALITY, "sharp");
   assert.deepEqual(
+    videoExportQualityOptions.map((option) => ({
+      value: option.value,
+      label: option.label,
+    })),
+    [
+      { value: "compact", label: "Compact" },
+      { value: "balanced", label: "Balanced" },
+      { value: "sharp", label: "Sharp" },
+    ],
+  );
+  assert.deepEqual(
+    exportQualityOptionsForFormat("mp4").map((option) => option.value),
+    ["compact", "balanced", "sharp"],
+  );
+  assert.deepEqual(
+    exportQualityOptionsForFormat("gif").map((option) => option.value),
+    ["compact", "efficient", "balanced", "sharp"],
+  );
+  assert.deepEqual(
     exportQualityOptions.map((option) => ({
       value: option.value,
       label: option.label,
     })),
     [
       { value: "compact", label: "Compact" },
+      { value: "efficient", label: "Efficient" },
       { value: "balanced", label: "Balanced" },
       { value: "sharp", label: "Sharp" },
     ],
@@ -266,6 +288,16 @@ void test("defines GIF export presets and balanced default", () => {
         paletteFormat: "rgb444",
         ditherMode: "none",
         temporalStrength: undefined,
+      },
+      {
+        value: "efficient",
+        maxHeight: 432,
+        frameRate: 12,
+        maxColors: 128,
+        paletteMode: "per-frame",
+        paletteFormat: "rgb565",
+        ditherMode: "spatial-temporal",
+        temporalStrength: 0.45,
       },
       {
         value: "balanced",
@@ -439,6 +471,14 @@ void test("estimates GIF presets in increasing size order", () => {
     resolution: "720",
     gifSettings: gifExportSettingsForPreset("balanced"),
   });
+  const efficientEstimate = estimateExportOutputSize({
+    format: "gif",
+    durationSeconds: 10,
+    outputDimensions: { width: 768, height: 432 },
+    includeAudio: false,
+    resolution: "720",
+    gifSettings: gifExportSettingsForPreset("efficient"),
+  });
   const sharpEstimate = estimateExportOutputSize({
     format: "gif",
     durationSeconds: 10,
@@ -449,13 +489,17 @@ void test("estimates GIF presets in increasing size order", () => {
   });
 
   assert.equal(compactEstimate.basis, "gif-heuristic");
+  assert.equal(efficientEstimate.basis, "gif-heuristic");
   assert.equal(balancedEstimate.basis, "gif-heuristic");
   assert.equal(sharpEstimate.basis, "gif-heuristic");
   assert(
     typeof compactEstimate.bytes === "number" &&
+      typeof efficientEstimate.bytes === "number" &&
       typeof balancedEstimate.bytes === "number" &&
       typeof sharpEstimate.bytes === "number" &&
       compactEstimate.bytes < balancedEstimate.bytes &&
+      compactEstimate.bytes < efficientEstimate.bytes &&
+      efficientEstimate.bytes < balancedEstimate.bytes &&
       balancedEstimate.bytes < sharpEstimate.bytes,
   );
 });
@@ -763,6 +807,18 @@ void test("builds export dimensions and source messaging", () => {
     {
       width: 853,
       height: 480,
+    },
+  );
+  assert.deepEqual(
+    getOutputDimensions(
+      { width: 1920, height: 1080 },
+      "1080",
+      "gif",
+      gifExportSettingsForPreset("efficient"),
+    ),
+    {
+      width: 768,
+      height: 432,
     },
   );
   assert.deepEqual(

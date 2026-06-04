@@ -419,7 +419,7 @@ export function useEditorExport({
     (nextQuality: ExportQualityPreset) => {
       if (exportFormat === "gif") {
         setGifPreset(nextQuality);
-      } else {
+      } else if (nextQuality !== "efficient") {
         setVideoQuality(nextQuality);
       }
 

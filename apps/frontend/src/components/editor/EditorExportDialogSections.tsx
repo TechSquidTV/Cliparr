@@ -18,7 +18,7 @@ import type { ExportFormat, ExportResolution } from "@/lib/exportClip";
 import {
   exportQualityDescriptionFor,
   exportQualityOptionFor,
-  exportQualityOptions,
+  exportQualityOptionsForFormat,
   gifExportPresetOptions,
   type ExportQualityPreset,
   type GifExportPreset,
@@ -29,7 +29,6 @@ import {
   type ExportFileNameTemplateKind,
   type ExportFileNameTemplateSettings,
 } from "@/lib/exportFileName";
-import { cn } from "@/lib/utils";
 import type { ExportSourcePreference } from "@/components/editor/EditorExportDialog";
 import {
   compactSelectTriggerClassName,
@@ -188,6 +187,7 @@ function EditorExportSettingsSectionComponent({
   hlsSourceLabel,
 }: EditorExportSettingsSectionProps) {
   const sourceOptions = sourceOptionsFor({ directSourceLabel, hlsSourceLabel });
+  const qualityOptions = exportQualityOptionsForFormat(selectedFormat);
 
   return (
     <section className="rounded-md border border-border bg-card">
@@ -223,31 +223,30 @@ function EditorExportSettingsSectionComponent({
 
         <div className="space-y-1.5">
           <span className={sectionLabelClassName()}>Quality</span>
-          <div
-            aria-label="Export quality"
-            className="grid h-10 grid-cols-3 gap-1 rounded-md border border-border bg-background p-1"
+          <Select
+            value={selectedQuality}
+            onValueChange={(value) =>
+              onQualityChange(value as ExportQualityPreset)
+            }
           >
-            {exportQualityOptions.map((option) => {
-              const isSelected = option.value === selectedQuality;
-
-              return (
-                <button
-                  key={option.value}
-                  type="button"
-                  aria-pressed={isSelected}
-                  onClick={() => onQualityChange(option.value)}
-                  className={cn(
-                    "h-8 rounded-sm px-2 text-xs font-medium transition-colors focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none",
-                    isSelected
-                      ? "bg-primary text-primary-foreground"
-                      : "text-muted-foreground hover:bg-accent hover:text-foreground",
-                  )}
-                >
-                  {option.label}
-                </button>
-              );
-            })}
-          </div>
+            <SelectTrigger
+              size="sm"
+              className={compactSelectTriggerClassName()}
+              aria-label="Export quality"
+            >
+              <SelectValue placeholder="Select quality" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectGroup>
+                <SelectLabel>Quality</SelectLabel>
+                {qualityOptions.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectGroup>
+            </SelectContent>
+          </Select>
           <p className={stableHelperTextClassName}>
             {exportQualityDescriptionFor(selectedFormat, selectedQuality)}
           </p>
