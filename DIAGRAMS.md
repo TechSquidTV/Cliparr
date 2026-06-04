@@ -319,14 +319,14 @@ flowchart TD
     B --> B1["useEditorExport resolves source/options and lazy-loads exportClip"]
     B1 --> C{"Output format is GIF?"}
     C -- "Yes" --> D["Build fresh Mediabunny input and CanvasSink from export source"]
-    D --> E["Apply shared Quality control as GIF max height, frame rate, color count, and palette mode"]
+    D --> E["Apply shared Quality control as GIF max height, frame rate, color count, palette mode, and dither settings"]
     E --> F["Draw frames with high-quality canvas scaling and burn subtitles when enabled"]
     F --> G{"Preset uses a stable sampled palette?"}
     G -- "Yes" --> G1["Sample frames first and quantize one shared palette"]
     G -- "No" --> G2["Use a per-frame palette"]
-    G1 --> G3["Send RGBA frame data to a bounded gifenc worker pool"]
+    G1 --> G3["Send RGBA frame data to the @techsquidtv/gifenc worker encoder"]
     G2 --> G3
-    G3 --> G4["Workers quantize/apply palette and return encoded frame chunks"]
+    G3 --> G4["Workers quantize/apply palette, including spatial and temporal dithering when enabled, and return encoded frame chunks"]
     G4 --> G5["Main thread concatenates chunks in frame order, appends GIF trailer, and reports progress"]
     G5 --> G6["Return image/gif Blob"]
 

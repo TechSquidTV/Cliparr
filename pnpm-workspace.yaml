@@ -5,6 +5,8 @@ packages:
 autoInstallPeers: false
 minimumReleaseAge: 1440
 minimumReleaseAgeStrict: true
+minimumReleaseAgeExclude:
+  - "@techsquidtv/gifenc@1.1.0"
 
 allowBuilds:
   esbuild: true

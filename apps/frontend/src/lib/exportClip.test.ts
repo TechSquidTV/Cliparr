@@ -4,10 +4,13 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { QUALITY_LOW, QUALITY_MEDIUM } from "mediabunny";
 import type { ConversionOptions } from "mediabunny";
+import type { Palette } from "@techsquidtv/gifenc";
 import { exportClipWithRuntime } from "@/lib/exportClip";
 import type { EditorMediaSource } from "@/lib/editorMedia";
 import { gifExportSettingsForPreset } from "@/lib/exportTypes";
 import { createInlineGifFrameEncoder } from "@/lib/gifFrameEncoder";
+import { concatenateGifFrameChunks } from "@/lib/gifFrameChunk";
+import type { EncodeGifFrameChunkHelpers } from "@/lib/gifFrameChunk";
 import type { SubtitleStyleSettings } from "@/lib/subtitles/types";
 
 type ExportRuntime = Parameters<typeof exportClipWithRuntime>[1];
@@ -20,6 +23,18 @@ type BufferTargetResult = ReturnType<ExportRuntime["createBufferTarget"]>;
 type OutputResult = ReturnType<ExportRuntime["createOutput"]>;
 type SubtitleProcessor = ReturnType<
   ExportRuntime["buildSubtitleBurnInProcessor"]
+>;
+type GifEncodingRuntime = Awaited<
+  ReturnType<ExportRuntime["loadGifEncodingRuntime"]>
+>;
+type CreateGifEncoder = NonNullable<
+  EncodeGifFrameChunkHelpers["createGifEncoder"]
+>;
+type QuantizeGifFrame = NonNullable<
+  EncodeGifFrameChunkHelpers["quantizeGifFrame"]
+>;
+type ApplyGifPalette = NonNullable<
+  EncodeGifFrameChunkHelpers["applyGifPalette"]
 >;
 
 const mediaSource = {
@@ -41,6 +56,38 @@ const subtitleStyle = {
   bottomMargin: 48,
   lineHeight: 1.2,
 } satisfies SubtitleStyleSettings;
+
+function createMockGifEncoder(): ReturnType<CreateGifEncoder> {
+  return {
+    bytes: () => new Uint8Array([71, 73, 70]),
+    bytesView: () => new Uint8Array([71, 73, 70]),
+    finish: () => undefined,
+    reset: () => undefined,
+    writeHeader: () => undefined,
+    writeFrame: () => undefined,
+  } as unknown as ReturnType<CreateGifEncoder>;
+}
+
+function createMockGifRuntime({
+  createGifEncoder = createMockGifEncoder,
+  quantizeGifFrame = (() => [[0, 0, 0]] as Palette) as QuantizeGifFrame,
+  applyGifPalette = (() => new Uint8Array([0])) as ApplyGifPalette,
+}: Partial<{
+  createGifEncoder: CreateGifEncoder;
+  quantizeGifFrame: QuantizeGifFrame;
+  applyGifPalette: ApplyGifPalette;
+}> = {}): GifEncodingRuntime {
+  return {
+    quantizeGifFrame,
+    createGifFrameEncoder: () =>
+      createInlineGifFrameEncoder({
+        createGifEncoder,
+        quantizeGifFrame,
+        applyGifPalette,
+      }),
+    concatenateGifFrameChunks,
+  };
+}
 
 function createRuntime(overrides: Partial<ExportRuntime> = {}) {
   const target = { buffer: undefined as ArrayBuffer | undefined };
@@ -100,22 +147,7 @@ function createRuntime(overrides: Partial<ExportRuntime> = {}) {
           }),
         },
       }) as unknown as ReturnType<ExportRuntime["createGifCanvas"]>,
-    createGifEncoder: () =>
-      ({
-        bytes: () => new Uint8Array([71, 73, 70]),
-        bytesView: () => new Uint8Array([71, 73, 70]),
-        finish: () => undefined,
-        reset: () => undefined,
-        writeFrame: () => undefined,
-      }) as unknown as ReturnType<ExportRuntime["createGifEncoder"]>,
-    quantizeGifFrame: () => [[0, 0, 0]],
-    applyGifPalette: () => new Uint8Array([0]),
-    createGifFrameEncoder: () =>
-      createInlineGifFrameEncoder({
-        createGifEncoder: runtime.createGifEncoder,
-        quantizeGifFrame: runtime.quantizeGifFrame,
-        applyGifPalette: runtime.applyGifPalette,
-      }),
+    loadGifEncodingRuntime: async () => createMockGifRuntime(),
     getActiveSubtitleCue: () => undefined,
     renderSubtitleCue: () => undefined,
     initConversion: async () =>
@@ -182,6 +214,9 @@ void test("builds and executes a trimmed conversion with selected audio and meta
   let patchedBytes: number[] = [];
   const progress: number[] = [];
   const context = createRuntime();
+  context.runtime.loadGifEncodingRuntime = async () => {
+    throw new Error("GIF encoder should not load for video exports");
+  };
   context.runtime.createCliparrInputFromSource = async (_source, options) => {
     capturedHls = options?.hls;
     return context.input;
@@ -467,6 +502,40 @@ void test("exports GIF frames through the browser encoder path", async () => {
     }),
   };
   let canvasSinkOptions: { fit?: string; height?: number } | undefined;
+  const createGifEncoder: CreateGifEncoder = () => {
+    let gifByteLength = 0;
+
+    return {
+      bytes: () => new Uint8Array(gifByteLength),
+      bytesView: () => new Uint8Array(gifByteLength),
+      finish: () => undefined,
+      reset: () => undefined,
+      writeHeader: () => undefined,
+      writeFrame: (
+        _index: Uint8Array,
+        width: number,
+        height: number,
+        options?: { delay?: number; first?: boolean },
+      ) => {
+        writtenFrames.push({
+          delay: options?.delay,
+          first: options?.first,
+          height,
+          width,
+        });
+        gifByteLength = 4;
+      },
+    } as unknown as ReturnType<CreateGifEncoder>;
+  };
+  const quantizeGifFrame: QuantizeGifFrame = (rgba, maxColors) => {
+    quantizeCalls.push({ byteLength: rgba.length, maxColors });
+    return globalPalette;
+  };
+  const applyGifPalette: ApplyGifPalette = (rgba, palette) => {
+    assert.equal(rgba.length, 4 * 4 * 4);
+    assert.equal(palette, globalPalette);
+    return new Uint8Array(4 * 4);
+  };
   const context = createRuntime({
     buildMetadataTags: async () => {
       throw new Error("metadata should not be built for GIF exports");
@@ -493,39 +562,12 @@ void test("exports GIF frames through the browser encoder path", async () => {
         canvas: { height, width },
         context: gifContext,
       }) as unknown as ReturnType<ExportRuntime["createGifCanvas"]>,
-    createGifEncoder: () => {
-      let gifByteLength = 0;
-
-      return {
-        bytes: () => new Uint8Array(gifByteLength),
-        bytesView: () => new Uint8Array(gifByteLength),
-        finish: () => undefined,
-        reset: () => undefined,
-        writeFrame: (
-          _index: Uint8Array,
-          width: number,
-          height: number,
-          options?: { delay?: number; first?: boolean },
-        ) => {
-          writtenFrames.push({
-            delay: options?.delay,
-            first: options?.first,
-            height,
-            width,
-          });
-          gifByteLength = 4;
-        },
-      } as unknown as ReturnType<ExportRuntime["createGifEncoder"]>;
-    },
-    quantizeGifFrame: (rgba, maxColors) => {
-      quantizeCalls.push({ byteLength: rgba.length, maxColors });
-      return globalPalette;
-    },
-    applyGifPalette: (rgba, palette) => {
-      assert.equal(rgba.length, 4 * 4 * 4);
-      assert.equal(palette, globalPalette);
-      return new Uint8Array(4 * 4);
-    },
+    loadGifEncodingRuntime: async () =>
+      createMockGifRuntime({
+        createGifEncoder,
+        quantizeGifFrame,
+        applyGifPalette,
+      }),
     initConversion: async () => {
       throw new Error("Mediabunny conversion should not run for GIFs");
     },
@@ -598,6 +640,10 @@ void test("uses per-frame GIF palettes for the sharp preset", async () => {
   const gifSettings = gifExportSettingsForPreset("sharp");
   const timestamps: string[] = [];
   const quantizeCalls: Array<{ byteLength: number; maxColors: number }> = [];
+  const quantizeGifFrame: QuantizeGifFrame = (rgba, maxColors) => {
+    quantizeCalls.push({ byteLength: rgba.length, maxColors });
+    return [[0, 0, 0]];
+  };
   const context = createRuntime({
     getVideoTrackDimensions: async () => ({ width: 4, height: 4 }),
     createCanvasSink: () =>
@@ -622,10 +668,8 @@ void test("uses per-frame GIF palettes for the sharp preset", async () => {
           }),
         },
       }) as unknown as ReturnType<ExportRuntime["createGifCanvas"]>,
-    quantizeGifFrame: (rgba, maxColors) => {
-      quantizeCalls.push({ byteLength: rgba.length, maxColors });
-      return [[0, 0, 0]];
-    },
+    loadGifEncodingRuntime: async () =>
+      createMockGifRuntime({ quantizeGifFrame }),
   });
 
   await exportClipWithRuntime(

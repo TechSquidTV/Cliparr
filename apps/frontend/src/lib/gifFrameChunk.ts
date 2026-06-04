@@ -1,5 +1,13 @@
-import { GIFEncoder, applyPalette, quantize } from "gifenc/dist/gifenc.esm.js";
-import type { GifPalette } from "gifenc/dist/gifenc.esm.js";
+import { GIFEncoder, applyPalette, quantize } from "@techsquidtv/gifenc";
+import type {
+  ApplyPaletteOptions,
+  Palette,
+  TemporalDitherState,
+} from "@techsquidtv/gifenc";
+import type {
+  GifDitherMode,
+  GifPaletteFormat,
+} from "@/lib/gifEncodingSettings";
 
 export const GIF_TRAILER_BYTE = 0x3b;
 
@@ -11,7 +19,12 @@ export interface EncodeGifFrameChunkInput {
   maxColors: number;
   delayMs: number;
   repeat?: number;
-  palette?: GifPalette | null;
+  palette?: Palette | null;
+  paletteFormat: GifPaletteFormat;
+  ditherMode: GifDitherMode;
+  ditherStrength?: number;
+  serpentine?: boolean;
+  temporalDither?: TemporalDitherState | null;
 }
 
 export interface EncodeGifFrameChunkHelpers {
@@ -35,6 +48,11 @@ export function encodeGifFrameChunk(
     delayMs,
     repeat = 0,
     palette,
+    paletteFormat,
+    ditherMode,
+    ditherStrength,
+    serpentine,
+    temporalDither,
   }: EncodeGifFrameChunkInput,
   {
     createGifEncoder = GIFEncoder,
@@ -42,9 +60,26 @@ export function encodeGifFrameChunk(
     applyGifPalette = applyPalette,
   }: EncodeGifFrameChunkHelpers = {},
 ): GifFrameChunk {
-  const resolvedPalette = palette ?? quantizeGifFrame(rgba, maxColors);
-  const indexedPixels = applyGifPalette(rgba, resolvedPalette);
+  const resolvedPalette =
+    palette ?? quantizeGifFrame(rgba, maxColors, { format: paletteFormat });
+  const indexedPixels = applyGifPalette(
+    rgba,
+    resolvedPalette,
+    applyPaletteOptions({
+      ditherMode,
+      ditherStrength,
+      height,
+      paletteFormat,
+      serpentine,
+      temporalDither,
+      width,
+    }),
+  );
   const gif = createGifEncoder({ auto: false });
+
+  if (sequenceIndex === 0) {
+    gif.writeHeader();
+  }
 
   gif.writeFrame(indexedPixels, width, height, {
     first: sequenceIndex === 0,
@@ -56,6 +91,39 @@ export function encodeGifFrameChunk(
   return {
     sequenceIndex,
     bytes: copyBytes(gif.bytesView()),
+  };
+}
+
+function applyPaletteOptions({
+  ditherMode,
+  ditherStrength,
+  height,
+  paletteFormat,
+  serpentine,
+  temporalDither,
+  width,
+}: {
+  ditherMode: GifDitherMode;
+  ditherStrength?: number;
+  height: number;
+  paletteFormat: GifPaletteFormat;
+  serpentine?: boolean;
+  temporalDither?: TemporalDitherState | null;
+  width: number;
+}): ApplyPaletteOptions {
+  if (ditherMode === "none") {
+    return { format: paletteFormat };
+  }
+
+  return {
+    format: paletteFormat,
+    dither: "floyd-steinberg",
+    ditherStrength,
+    height,
+    serpentine,
+    temporalDither:
+      ditherMode === "spatial-temporal" ? temporalDither : undefined,
+    width,
   };
 }
 

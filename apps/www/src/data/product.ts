@@ -34,12 +34,12 @@ export const features = [
   {
     title: "Browser transcoding",
     description:
-      'Powered by <a href="https://mediabunny.dev/" target="_blank" rel="noreferrer">Mediabunny</a>, video is transcoded in your browser.',
+      'Video exports are powered by <a href="https://mediabunny.dev/" target="_blank" rel="noreferrer">Mediabunny</a>, with short dithered GIFs encoded in browser workers.',
   },
   {
     title: "Metadata included",
     description:
-      "Exports can include season, episode, and timing metadata from your source.",
+      "Video exports can include season, episode, and timing metadata from your source.",
   },
   {
     title: "Subtitle burn-in",

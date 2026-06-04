@@ -1,4 +1,10 @@
-import type { GifPalette } from "gifenc/dist/gifenc.esm.js";
+import type { Palette } from "@techsquidtv/gifenc";
+import {
+  createGifTemporalDitherResolver,
+  type GifDitherMode,
+  type GifPaletteFormat,
+  type GifTemporalDitherSettings,
+} from "@/lib/gifEncodingSettings";
 import {
   encodeGifFrameChunk,
   type EncodeGifFrameChunkHelpers,
@@ -12,13 +18,22 @@ interface GifFrameEncodeInput {
   height: number;
   maxColors: number;
   delayMs: number;
-  palette?: GifPalette | null;
+  palette?: Palette | null;
+  paletteFormat: GifPaletteFormat;
+  ditherMode: GifDitherMode;
+  ditherStrength?: number;
+  serpentine?: boolean;
+  temporalDither?: GifTemporalDitherSettings | null;
 }
 
 export interface GifFrameEncoder {
   concurrency: number;
   encodeFrame(input: GifFrameEncodeInput): Promise<GifFrameChunk>;
   dispose(): void;
+}
+
+export interface GifFrameEncoderOptions {
+  requiresSequentialFrames?: boolean;
 }
 
 export interface GifFrameWorkerEncodeRequest {
@@ -30,7 +45,12 @@ export interface GifFrameWorkerEncodeRequest {
   height: number;
   maxColors: number;
   delayMs: number;
-  palette?: GifPalette | null;
+  palette?: Palette | null;
+  paletteFormat: GifPaletteFormat;
+  ditherMode: GifDitherMode;
+  ditherStrength?: number;
+  serpentine?: boolean;
+  temporalDither?: GifTemporalDitherSettings | null;
 }
 
 export type GifFrameWorkerEncodeResponse =
@@ -46,13 +66,21 @@ export type GifFrameWorkerEncodeResponse =
       message: string;
     };
 
-export function createBestGifFrameEncoder() {
-  return createGifFrameWorkerEncoder() ?? createInlineGifFrameEncoder();
+export function createBestGifFrameEncoder(
+  options: GifFrameEncoderOptions = {},
+) {
+  return (
+    createGifFrameWorkerEncoder({
+      workerCount: options.requiresSequentialFrames ? 1 : undefined,
+    }) ?? createInlineGifFrameEncoder()
+  );
 }
 
 export function createInlineGifFrameEncoder(
   helpers: EncodeGifFrameChunkHelpers = {},
 ): GifFrameEncoder {
+  const temporalDitherResolver = createGifTemporalDitherResolver();
+
   return {
     concurrency: 1,
     async encodeFrame(input) {
@@ -65,6 +93,17 @@ export function createInlineGifFrameEncoder(
           maxColors: input.maxColors,
           delayMs: input.delayMs,
           palette: input.palette,
+          paletteFormat: input.paletteFormat,
+          ditherMode: input.ditherMode,
+          ditherStrength: input.ditherStrength,
+          serpentine: input.serpentine,
+          temporalDither: temporalDitherResolver.resolve({
+            ditherMode: input.ditherMode,
+            height: input.height,
+            paletteFormat: input.paletteFormat,
+            temporalDither: input.temporalDither,
+            width: input.width,
+          }),
         },
         helpers,
       );
@@ -181,6 +220,11 @@ function createGifFrameWorkerEncoder({
             maxColors: input.maxColors,
             delayMs: input.delayMs,
             palette: input.palette,
+            paletteFormat: input.paletteFormat,
+            ditherMode: input.ditherMode,
+            ditherStrength: input.ditherStrength,
+            serpentine: input.serpentine,
+            temporalDither: input.temporalDither,
           } satisfies GifFrameWorkerEncodeRequest,
           [rgba],
         );

@@ -252,6 +252,9 @@ void test("defines GIF export presets and balanced default", () => {
       frameRate: option.settings.frameRate,
       maxColors: option.settings.maxColors,
       paletteMode: option.settings.paletteMode,
+      paletteFormat: option.settings.paletteFormat,
+      ditherMode: option.settings.ditherMode,
+      temporalStrength: option.settings.temporalDither?.strength,
     })),
     [
       {
@@ -260,20 +263,29 @@ void test("defines GIF export presets and balanced default", () => {
         frameRate: 10,
         maxColors: 64,
         paletteMode: "global",
+        paletteFormat: "rgb444",
+        ditherMode: "none",
+        temporalStrength: undefined,
       },
       {
         value: "balanced",
         maxHeight: 480,
         frameRate: 12,
         maxColors: 128,
-        paletteMode: "global",
+        paletteMode: "per-frame",
+        paletteFormat: "rgb565",
+        ditherMode: "spatial-temporal",
+        temporalStrength: 0.45,
       },
       {
         value: "sharp",
         maxHeight: 720,
         frameRate: 18,
-        maxColors: 256,
+        maxColors: 128,
         paletteMode: "per-frame",
+        paletteFormat: "rgb565",
+        ditherMode: "spatial-temporal",
+        temporalStrength: 0.45,
       },
     ],
   );
@@ -282,8 +294,27 @@ void test("defines GIF export presets and balanced default", () => {
     maxHeight: 480,
     frameRate: 12,
     maxColors: 128,
-    paletteMode: "global",
+    paletteMode: "per-frame",
+    paletteFormat: "rgb565",
+    ditherMode: "spatial-temporal",
+    temporalDither: {
+      strength: 0.45,
+      decay: 0.6,
+      maxError: 48,
+      changeDetection: {
+        pixelThreshold: 24,
+      },
+    },
   });
+
+  const mutatedSettings = gifExportSettingsForPreset("balanced");
+  if (typeof mutatedSettings.temporalDither?.changeDetection === "object") {
+    mutatedSettings.temporalDither.changeDetection.pixelThreshold = 1;
+  }
+  assert.deepEqual(
+    gifExportSettingsForPreset("balanced").temporalDither,
+    gifExportSettingsForPreset(DEFAULT_GIF_EXPORT_PRESET).temporalDither,
+  );
 });
 
 void test("estimates export output sizes before export", () => {
@@ -433,13 +464,13 @@ void test("calibrates estimates against observed browser export samples", () => 
   assert.equal(
     estimateExportOutputSize({
       format: "gif",
-      durationSeconds: 10,
-      outputDimensions: { width: 860, height: 480 },
+      durationSeconds: 5,
+      outputDimensions: { width: 606, height: 320 },
       includeAudio: false,
       resolution: "original",
       gifSettings: gifExportSettingsForPreset("balanced"),
     }).bytes,
-    12_651_680,
+    5_604_896,
   );
   assert.equal(
     estimateExportOutputSize({

@@ -1,3 +1,4 @@
+import type { Palette, quantize } from "@techsquidtv/gifenc";
 import {
   BufferTarget,
   CanvasSink,
@@ -16,7 +17,6 @@ import type {
   InputVideoTrack,
   VideoSample,
 } from "mediabunny";
-import { GIFEncoder, applyPalette, quantize } from "gifenc/dist/gifenc.esm.js";
 import type { EditorMediaSource } from "@/lib/editorMedia";
 import { createCliparrInputFromSource } from "@/lib/mediabunnyInput";
 import { ensureMediabunnyCodecs } from "@/lib/mediabunnyCodecs";
@@ -47,11 +47,11 @@ import {
   type GifExportSettings,
   type VideoExportQualityPreset,
 } from "@/lib/exportTypes";
-import {
+import type {
   concatenateGifFrameChunks,
-  type GifFrameChunk,
+  GifFrameChunk,
 } from "@/lib/gifFrameChunk";
-import { createBestGifFrameEncoder } from "@/lib/gifFrameEncoder";
+import type { createBestGifFrameEncoder } from "@/lib/gifFrameEncoder";
 import { getActiveSubtitleCue } from "@/lib/subtitles/getActiveSubtitleCue";
 import { renderSubtitleCue } from "@/lib/subtitles/renderSubtitleCue";
 import { trimSubtitleCues } from "@/lib/subtitles/trimSubtitleCues";
@@ -94,10 +94,7 @@ interface ExportClipRuntime {
     options: CanvasSinkOptions,
   ) => CanvasSink;
   createGifCanvas: typeof createGifCanvas;
-  createGifEncoder: typeof GIFEncoder;
-  quantizeGifFrame: typeof quantize;
-  applyGifPalette: typeof applyPalette;
-  createGifFrameEncoder: typeof createBestGifFrameEncoder;
+  loadGifEncodingRuntime: () => Promise<GifEncodingRuntime>;
   getActiveSubtitleCue: typeof getActiveSubtitleCue;
   renderSubtitleCue: typeof renderSubtitleCue;
   initConversion: typeof Conversion.init;
@@ -109,7 +106,12 @@ interface GifCanvasResources {
   context: CanvasRenderingContext2D;
 }
 
-type GifPalette = ReturnType<ExportClipRuntime["quantizeGifFrame"]>;
+type GifPalette = Palette;
+type GifEncodingRuntime = {
+  quantizeGifFrame: typeof quantize;
+  createGifFrameEncoder: typeof createBestGifFrameEncoder;
+  concatenateGifFrameChunks: typeof concatenateGifFrameChunks;
+};
 
 const GIF_GLOBAL_PALETTE_SAMPLE_FRAME_LIMIT = 24;
 const GIF_GLOBAL_PALETTE_MAX_SAMPLE_PIXELS = 120_000;
@@ -206,15 +208,17 @@ function appendGifPaletteSample(
 async function buildGifGlobalPalette({
   frameCount,
   maxColors,
+  paletteFormat,
   onSampleProgress,
   readFrameImageData,
-  runtime,
+  gifRuntime,
 }: {
   frameCount: number;
   maxColors: number;
+  paletteFormat: GifExportSettings["paletteFormat"];
   onSampleProgress?: (sampledFrames: number, totalSampleFrames: number) => void;
   readFrameImageData: (frameIndex: number) => Promise<ImageData | null>;
-  runtime: ExportClipRuntime;
+  gifRuntime: Pick<GifEncodingRuntime, "quantizeGifFrame">;
 }): Promise<GifPalette | null> {
   const sampleFrameIndexes = selectGifPaletteSampleFrameIndexes(frameCount);
   const maxPixelsPerFrame = Math.max(
@@ -251,9 +255,10 @@ async function buildGifGlobalPalette({
     return null;
   }
 
-  return runtime.quantizeGifFrame(
+  return gifRuntime.quantizeGifFrame(
     sampledPixels.subarray(0, sampleByteOffset),
     maxColors,
+    { format: paletteFormat },
   );
 }
 
@@ -341,10 +346,7 @@ const defaultExportClipRuntime: ExportClipRuntime = {
   createOutput: (options) => new Output(options),
   createCanvasSink: (track, options) => new CanvasSink(track, options),
   createGifCanvas,
-  createGifEncoder: GIFEncoder,
-  quantizeGifFrame: quantize,
-  applyGifPalette: applyPalette,
-  createGifFrameEncoder: createBestGifFrameEncoder,
+  loadGifEncodingRuntime,
   getActiveSubtitleCue,
   renderSubtitleCue,
   initConversion: (options) => Conversion.init(options),
@@ -638,6 +640,7 @@ async function exportGifClipWithRuntime(
       throw new Error("GIF export could not determine the video dimensions.");
     }
 
+    const gifRuntime = await runtime.loadGifEncodingRuntime();
     const timelineOffsetSeconds = await runtime.getTrackTimelineOffsetSeconds([
       sourceVideoTrack,
     ]);
@@ -717,22 +720,29 @@ async function exportGifClipWithRuntime(
         ? await buildGifGlobalPalette({
             frameCount,
             maxColors: resolvedGifSettings.maxColors,
+            paletteFormat: resolvedGifSettings.paletteFormat,
             onSampleProgress: (sampledFrames, totalSampleFrames) => {
               onProgress(
                 (sampledFrames / totalSampleFrames) * paletteProgressShare,
               );
             },
             readFrameImageData: readRenderedFrameImageData,
-            runtime,
+            gifRuntime,
           })
         : null;
 
-    const frameEncoder = runtime.createGifFrameEncoder();
+    const requiresSequentialFrameEncoding =
+      resolvedGifSettings.ditherMode === "spatial-temporal";
+    const frameEncoder = gifRuntime.createGifFrameEncoder({
+      requiresSequentialFrames: requiresSequentialFrameEncoding,
+    });
     const gifChunks: GifFrameChunk[] = [];
     const inFlightFrames = new Set<Promise<void>>();
     let processedFrameCount = 0;
     let frameEncodingError: Error | null = null;
-    const maxInFlightFrames = Math.max(1, frameEncoder.concurrency * 2);
+    const maxInFlightFrames = requiresSequentialFrameEncoding
+      ? 1
+      : Math.max(1, frameEncoder.concurrency * 2);
 
     const reportFrameProgress = () => {
       onProgress(
@@ -754,6 +764,11 @@ async function exportGifClipWithRuntime(
           maxColors: resolvedGifSettings.maxColors,
           delayMs: frameDelayMs,
           palette: globalPalette,
+          paletteFormat: resolvedGifSettings.paletteFormat,
+          ditherMode: resolvedGifSettings.ditherMode,
+          ditherStrength: resolvedGifSettings.ditherStrength,
+          serpentine: resolvedGifSettings.serpentine,
+          temporalDither: resolvedGifSettings.temporalDither,
         })
         .then((chunk) => {
           gifChunks[chunk.sequenceIndex] = chunk;
@@ -806,7 +821,7 @@ async function exportGifClipWithRuntime(
       throw new Error("GIF export did not produce any frames.");
     }
 
-    const bytes = concatenateGifFrameChunks(gifChunks);
+    const bytes = gifRuntime.concatenateGifFrameChunks(gifChunks);
     if (bytes.length === 0) {
       throw new Error("GIF export did not produce an image buffer.");
     }
@@ -832,4 +847,18 @@ function copyToArrayBuffer(bytes: Uint8Array) {
   new Uint8Array(buffer).set(bytes);
 
   return buffer;
+}
+
+async function loadGifEncodingRuntime(): Promise<GifEncodingRuntime> {
+  const [gifenc, gifFrameEncoder, gifFrameChunk] = await Promise.all([
+    import("@techsquidtv/gifenc"),
+    import("@/lib/gifFrameEncoder"),
+    import("@/lib/gifFrameChunk"),
+  ]);
+
+  return {
+    quantizeGifFrame: gifenc.quantize,
+    createGifFrameEncoder: gifFrameEncoder.createBestGifFrameEncoder,
+    concatenateGifFrameChunks: gifFrameChunk.concatenateGifFrameChunks,
+  };
 }

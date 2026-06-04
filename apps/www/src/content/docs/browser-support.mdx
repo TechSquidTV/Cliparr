@@ -19,7 +19,7 @@ For the best experience, use a **modern, stable browser** and always access Clip
 
 ### Video Processing (WebCodecs)
 
-Cliparr uses a technology called WebCodecs to process your clips directly in the browser.
+Cliparr uses WebCodecs to process video exports directly in the browser. GIF exports use canvas rendering and browser workers for spatial and temporal dithered frame encoding.
 
 - **Chromium/Firefox:** Support is very stable.
 - **Safari:** While modern Safari supports these features, it can be more sensitive to specific video formats. If an export fails in Safari, try Chrome or Edge on the same machine.
@@ -34,12 +34,13 @@ Cliparr uses a technology called WebCodecs to process your clips directly in the
 
 Cliparr uses feature detection to decide what to show you. If a feature isn't supported by your browser, Cliparr will either provide a fallback or hide the option to prevent errors.
 
-| Feature              | How Cliparr uses it                                     | Safari Status                                                              |
-| :------------------- | :------------------------------------------------------ | :------------------------------------------------------------------------- |
-| **Video Processing** | Powering the editor and exports via WebCodecs.          | Supported in 16.4+, but occasionally buggy with high-bitrate source files. |
-| **App Install**      | Making Cliparr feel like a native app on your phone.    | Requires manual "Add to Home Screen" on iOS.                               |
-| **Service Workers**  | Making the app load instantly by caching files.         | Fully supported since Safari 11.1.                                         |
-| **WebM Video**       | Serving smaller, faster video previews on the homepage. | Supported in Safari 14.1+ on macOS, and iOS 17.4+.                         |
+| Feature              | How Cliparr uses it                                                          | Safari Status                                                              |
+| :------------------- | :--------------------------------------------------------------------------- | :------------------------------------------------------------------------- |
+| **Video Processing** | Powering the editor and video exports via WebCodecs.                         | Supported in 16.4+, but occasionally buggy with high-bitrate source files. |
+| **Web Workers**      | Keeping GIF frame encoding and subtitle parsing off the main browser thread. | Fully supported in modern Safari.                                          |
+| **App Install**      | Making Cliparr feel like a native app on your phone.                         | Requires manual "Add to Home Screen" on iOS.                               |
+| **Service Workers**  | Making the app load instantly by caching files.                              | Fully supported since Safari 11.1.                                         |
+| **WebM Video**       | Serving smaller, faster video previews on the homepage.                      | Supported in Safari 14.1+ on macOS, and iOS 17.4+.                         |
 
 ## Troubleshooting
 

@@ -1,3 +1,4 @@
+import { createGifTemporalDitherResolver } from "@/lib/gifEncodingSettings";
 import {
   encodeGifFrameChunk,
   type EncodeGifFrameChunkInput,
@@ -19,6 +20,7 @@ type GifFrameWorkerGlobal = {
 };
 
 const workerScope = globalThis as unknown as GifFrameWorkerGlobal;
+const temporalDitherResolver = createGifTemporalDitherResolver();
 
 workerScope.addEventListener("message", (event) => {
   const message = event.data;
@@ -35,6 +37,11 @@ workerScope.addEventListener("message", (event) => {
       maxColors: message.maxColors,
       delayMs: message.delayMs,
       palette: message.palette,
+      paletteFormat: message.paletteFormat,
+      ditherMode: message.ditherMode,
+      ditherStrength: message.ditherStrength,
+      serpentine: message.serpentine,
+      temporalDither: temporalDitherResolver.resolve(message),
     } satisfies EncodeGifFrameChunkInput);
     const bytes = new ArrayBuffer(chunk.bytes.byteLength);
     new Uint8Array(bytes).set(chunk.bytes);
