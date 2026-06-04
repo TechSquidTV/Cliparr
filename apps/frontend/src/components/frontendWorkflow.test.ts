@@ -371,6 +371,8 @@ void test("reserves dashboard playback card space before sessions load", () => {
   );
 
   assert.match(markup, /data-dashboard-loading-grid/);
+  assert.match(markup, /data-dashboard-playback-motion/);
+  assert.match(markup, /data-dashboard-loading-items="3"/);
   assert.match(markup, /role="status"/);
   assert.match(markup, /aria-live="polite"/);
   assert.match(markup, /aria-label="Loading currently playing sessions"/);
