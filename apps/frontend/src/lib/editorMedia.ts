@@ -8,6 +8,7 @@ import type {
   PlaybackSubtitleTrack,
 } from "@/providers/types";
 import { isHlsPlaylistUrl } from "@/lib/mediabunnyInput";
+import { subtitleTrackKey } from "@/lib/selectPreferredSubtitleTrack";
 
 const LOCAL_PROVIDER_ID = "local";
 
@@ -144,6 +145,117 @@ export function editorSessionFromCurrentlyPlaying(
     exportMetadata: item.exportMetadata,
     exportEstimateMetadata: item.exportEstimateMetadata,
     local: false,
+  };
+}
+
+function preserveUrlSourceHandle(
+  current: EditorMediaSource | undefined,
+  next: EditorMediaSource | undefined,
+) {
+  if (!next) {
+    return undefined;
+  }
+
+  if (
+    current?.kind === "url" &&
+    next.kind === "url" &&
+    current.role === next.role
+  ) {
+    return current;
+  }
+
+  return next;
+}
+
+function audioSelectionsEqual(
+  left: PlaybackAudioSelection | undefined,
+  right: PlaybackAudioSelection | undefined,
+) {
+  return (
+    left?.trackNumber === right?.trackNumber &&
+    left?.languageCode === right?.languageCode &&
+    left?.title === right?.title
+  );
+}
+
+function subtitleSelectionsEqual(
+  left: PlaybackSubtitleSelection | undefined,
+  right: PlaybackSubtitleSelection | undefined,
+) {
+  return (
+    left?.streamId === right?.streamId &&
+    left?.index === right?.index &&
+    left?.languageCode === right?.languageCode &&
+    left?.title === right?.title &&
+    left?.codec === right?.codec &&
+    left?.contentFormat === right?.contentFormat &&
+    left?.isText === right?.isText
+  );
+}
+
+function preserveSubtitleTrackHandles(
+  currentTracks: readonly PlaybackSubtitleTrack[] | undefined,
+  nextTracks: readonly PlaybackSubtitleTrack[] | undefined,
+): PlaybackSubtitleTrack[] | undefined {
+  if (!nextTracks) {
+    return undefined;
+  }
+
+  if (!currentTracks || currentTracks.length === 0) {
+    return [...nextTracks];
+  }
+
+  const currentTrackByKey = new Map(
+    currentTracks.map((track) => [subtitleTrackKey(track), track] as const),
+  );
+
+  return nextTracks.map((track) => {
+    const currentTrack = currentTrackByKey.get(subtitleTrackKey(track));
+    if (!currentTrack?.contentUrl || !track.contentUrl) {
+      return track;
+    }
+
+    return {
+      ...track,
+      contentUrl: currentTrack.contentUrl,
+    };
+  });
+}
+
+export function mergeEditorSessionRefresh(
+  current: EditorSession | null | undefined,
+  next: EditorSession,
+): EditorSession {
+  if (!current || current.id !== next.id || current.local || next.local) {
+    return next;
+  }
+
+  return {
+    ...next,
+    initialPlayheadSeconds: current.initialPlayheadSeconds,
+    thumbUrl:
+      next.thumbUrl && current.thumbUrl ? current.thumbUrl : next.thumbUrl,
+    directSource: preserveUrlSourceHandle(
+      current.directSource,
+      next.directSource,
+    ),
+    hlsSource: preserveUrlSourceHandle(current.hlsSource, next.hlsSource),
+    selectedAudioTrack: audioSelectionsEqual(
+      current.selectedAudioTrack,
+      next.selectedAudioTrack,
+    )
+      ? current.selectedAudioTrack
+      : next.selectedAudioTrack,
+    selectedSubtitleTrack: subtitleSelectionsEqual(
+      current.selectedSubtitleTrack,
+      next.selectedSubtitleTrack,
+    )
+      ? current.selectedSubtitleTrack
+      : next.selectedSubtitleTrack,
+    subtitleTracks: preserveSubtitleTrackHandles(
+      current.subtitleTracks,
+      next.subtitleTracks,
+    ),
   };
 }
 

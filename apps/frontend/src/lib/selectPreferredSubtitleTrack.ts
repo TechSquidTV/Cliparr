@@ -37,7 +37,7 @@ export function subtitleTrackUnavailableMessage(
   }
 
   if (track.isText && providerId === "plex") {
-    return "Select this embedded subtitle in Plex first.";
+    return "Plex embedded subtitles cannot be downloaded for editing.";
   }
 
   if (track.isText) {

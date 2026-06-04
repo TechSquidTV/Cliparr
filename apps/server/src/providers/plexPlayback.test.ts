@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import type { ProviderSessionRecord } from "@/session/store";
+import type { MediaHandle } from "@/providers/types";
 import {
   createPlexExportEstimateMetadata,
   createCliparrPlexTranscodeSessionId,
@@ -9,6 +10,8 @@ import {
   deriveSelectedSubtitleTrack,
   deriveSubtitleTracks,
   playheadSecondsFromViewOffset,
+  plexPlaybackSessionIdFromPath,
+  plexMediaFailureLogFields,
 } from "@/providers/plex/playback";
 import type { PlexSourceContext } from "@/providers/plex/shared";
 
@@ -87,7 +90,10 @@ void test("creates a Cliparr-owned Plex transcode session id", () => {
   assert.equal(firstId, secondId);
   assert.notEqual(firstId, differentPlaybackId);
   assert.notEqual(firstId, differentSourceId);
-  assert.match(firstId, /^cliparr-source-1-[a-f0-9]{16}$/);
+  assert.match(
+    firstId,
+    /^[a-f0-9]{8}-[a-f0-9]{4}-5[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/,
+  );
 });
 
 void test("does not create Plex HLS preview paths for audio tracks", () => {
@@ -217,7 +223,7 @@ void test("proxies Plex viewer avatar URLs through provider media handles", () =
   assert.equal(handle.path, "https://plex.tv/users/user-1/avatar?c=123");
 });
 
-void test("creates a subtitle transcode content URL for the selected embedded Plex text subtitle", () => {
+void test("leaves selected embedded Plex text subtitles unsupported for editing", () => {
   const session = createSession();
   const context = createContext();
   const item = {
@@ -247,29 +253,28 @@ void test("creates a subtitle transcode content URL for the selected embedded Pl
   };
 
   const tracks = deriveSubtitleTracks(session, context, item, "plex-session-1");
-  const handle = onlyMediaHandle(session);
-  const transcodeUrl = new URL(handle.path, "http://cliparr.local");
 
   assert.equal(tracks.length, 1);
-  assert.equal(tracks[0]?.contentUrl, `/api/media/${handle.id}`);
+  assert.equal(tracks[0]?.isText, true);
   assert.equal(tracks[0]?.contentFormat, "srt");
+  assert.equal(tracks[0]?.contentUrl, undefined);
+  assert.equal(session.mediaHandles.size, 0);
+});
+
+void test("extracts Plex playback session ids from start and segment paths", () => {
   assert.equal(
-    handle.path.startsWith("/video/:/transcode/universal/subtitles?"),
-    true,
+    plexPlaybackSessionIdFromPath(
+      "/video/:/transcode/universal/start.m3u8?path=%2Flibrary%2Fmetadata%2F123&transcodeSessionId=cliparr-session-1",
+    ),
+    "cliparr-session-1",
   );
   assert.equal(
-    transcodeUrl.searchParams.get("path"),
-    "/library/metadata/12345",
+    plexPlaybackSessionIdFromPath(
+      "/video/:/transcode/universal/session/plex-path-session/base/00000.ts",
+    ),
+    "plex-path-session",
   );
-  assert.equal(
-    transcodeUrl.searchParams.get("transcodeSessionId"),
-    "plex-session-1",
-  );
-  assert.equal(transcodeUrl.searchParams.get("mediaIndex"), "0");
-  assert.equal(transcodeUrl.searchParams.get("partIndex"), "0");
-  assert.equal(transcodeUrl.searchParams.get("subtitles"), "sidecar");
-  assert.equal(transcodeUrl.searchParams.get("advancedSubtitles"), "text");
-  assert.equal(transcodeUrl.searchParams.get("autoAdjustSubtitle"), "0");
+  assert.equal(plexPlaybackSessionIdFromPath("/library/parts/1/file"), null);
 });
 
 void test("prefers direct raw SRT for the selected external Plex text subtitle", () => {
@@ -345,7 +350,7 @@ void test("reports selected external Plex SRT content format consistently", () =
   assert.equal(selectedTrack?.contentFormat, "srt");
 });
 
-void test("reports selected embedded Plex text subtitle transcode format", () => {
+void test("reports selected embedded Plex text subtitle codec format", () => {
   const item = {
     ratingKey: "12345",
     Media: [
@@ -377,7 +382,7 @@ void test("reports selected embedded Plex text subtitle transcode format", () =>
   assert.equal(selectedTrack?.contentFormat, "srt");
 });
 
-void test("leaves unselected embedded Plex text subtitles visible but unsupported", () => {
+void test("leaves unselected embedded Plex text subtitles unsupported", () => {
   const session = createSession();
   const context = createContext();
   const item = {
@@ -448,4 +453,61 @@ void test("leaves Plex image subtitle streams unsupported for burn-in", () => {
   assert.equal(tracks[0]?.isText, false);
   assert.equal(tracks[0]?.contentUrl, undefined);
   assert.equal(session.mediaHandles.size, 0);
+});
+
+void test("builds sanitized Plex media failure diagnostics for HLS segments", () => {
+  const handle: MediaHandle = {
+    id: "segment-handle",
+    providerId: "plex",
+    sourceId: "source-1",
+    baseUrl: "http://plex.local:32400",
+    path: "/video/:/transcode/universal/session/plex-path-session/base/00000.ts?token=secret",
+    basePath:
+      "/video/:/transcode/universal/session/plex-path-session/base/?token=secret",
+    token: "provider-token",
+    lastAccessedAt: 0,
+  };
+
+  const fields = plexMediaFailureLogFields({
+    accept: "video/mp2t",
+    handle,
+    mediaRangePresent: false,
+    playbackSessionId: "playback-session-1",
+    providerAuthAttached: true,
+    sessionId: "session-1",
+    upstreamDetail: "404 not found",
+    upstreamStatus: 404,
+    upstreamUrl:
+      "http://plex.local:32400/video/:/transcode/universal/session/plex-path-session/base/00000.ts?token=secret",
+  });
+
+  assert.equal(fields["event.name"], "media.proxy.upstream");
+  assert.equal(fields["event.outcome"], "failure");
+  assert.equal(fields["media.handle.id"], "segment-handle");
+  assert.equal(fields["session.id"], "session-1");
+  assert.equal(fields["source.id"], "source-1");
+  assert.equal(
+    fields["media.path"],
+    "/video/:/transcode/universal/session/plex-path-session/base/00000.ts",
+  );
+  assert.equal(
+    fields["media.base_path"],
+    "/video/:/transcode/universal/session/plex-path-session/base/",
+  );
+  assert.equal(fields["media.hls.derived"], true);
+  assert.equal(fields["media.hls.playlist"], false);
+  assert.equal(fields["media.hls.segment"], true);
+  assert.equal(fields["media.hls.segment.filename"], "00000.ts");
+  assert.equal(fields["media.hls.segment.index"], 0);
+  assert.equal(fields["plex.transcode.path_session.id"], "plex-path-session");
+  assert.equal(
+    fields["upstream.url"],
+    "http://plex.local:32400/video/:/transcode/universal/session/plex-path-session/base/00000.ts",
+  );
+  assert.equal(fields["upstream.status_code"], 404);
+  assert.equal(fields["upstream.detail"], "404 not found");
+  assert.equal(fields["provider.auth.attached"], true);
+  assert.equal(fields["media.range.present"], false);
+  assert.equal(fields["http.accept"], "video/mp2t");
+  assert.equal(fields["plex.playback_session.id"], "playback-session-1");
 });

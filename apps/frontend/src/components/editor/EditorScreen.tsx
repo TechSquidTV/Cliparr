@@ -65,10 +65,27 @@ interface Props {
 }
 
 export default function EditorScreen({ session, onBack }: Props) {
-  const initialClipRange = buildInitialClipRange(
-    session.duration,
-    session.initialPlayheadSeconds,
-  );
+  const initialSessionRef = useRef<{
+    sessionId: string;
+    duration: number;
+    clipRange: ReturnType<typeof buildInitialClipRange>;
+  } | null>(null);
+  if (
+    !initialSessionRef.current ||
+    initialSessionRef.current.sessionId !== session.id ||
+    (initialSessionRef.current.duration <= 0 && session.duration > 0)
+  ) {
+    initialSessionRef.current = {
+      sessionId: session.id,
+      duration: Math.max(session.duration, 0),
+      clipRange: buildInitialClipRange(
+        session.duration,
+        session.initialPlayheadSeconds,
+      ),
+    };
+  }
+  const initialDuration = initialSessionRef.current.duration;
+  const initialClipRange = initialSessionRef.current.clipRange;
   const [startTime, setStartTime] = useState(() => initialClipRange.startTime);
   const [endTime, setEndTime] = useState(() => initialClipRange.endTime);
   const [playbackSidebarOpen, setPlaybackSidebarOpen] = useState(true);
@@ -91,9 +108,14 @@ export default function EditorScreen({ session, onBack }: Props) {
     subtitleLoading,
     subtitleError,
     subtitlePreviewEnabled,
+    selectedSubtitleCue,
+    selectedSubtitleCueId,
     clippedSubtitleCues,
     subtitleExportSummary,
     handleSelectedSubtitleTrackChange,
+    handleSubtitleCueSelect,
+    handleSubtitleCueTextChange,
+    handleSubtitleCueRangeChange,
   } = useEditorSubtitles({
     session,
     startTime,
@@ -132,7 +154,7 @@ export default function EditorScreen({ session, onBack }: Props) {
   } = useEditorPlayback({
     hlsSource: session.hlsSource,
     directSource: session.directSource,
-    initialDuration: session.duration,
+    initialDuration,
     initialCurrentTime: initialClipRange.startTime,
     startTime,
     endTime,
@@ -359,6 +381,15 @@ export default function EditorScreen({ session, onBack }: Props) {
     },
     [duration, frameStepSeconds, getPlaybackTime, pausePlayback, seekToTime],
   );
+  const handleTimelineSubtitleCueSelect = useCallback(
+    (cueId: string | null) => {
+      handleSubtitleCueSelect(cueId);
+      if (cueId) {
+        setPlaybackSidebarOpen(true);
+      }
+    },
+    [handleSubtitleCueSelect],
+  );
   const {
     timelineRef,
     timelineWheelRegionRef,
@@ -386,6 +417,11 @@ export default function EditorScreen({ session, onBack }: Props) {
     onClipRangeCommit: (nextStart, nextEnd) => {
       void warmClipSelection(nextStart, nextEnd);
     },
+    subtitleCues,
+    selectedSubtitleCueId,
+    showSubtitleRow: subtitleEnabled && selectedSubtitleTrack !== null,
+    subtitleLoading,
+    onSubtitleCueRangeChange: handleSubtitleCueRangeChange,
   });
 
   useEffect(() => {
@@ -465,7 +501,9 @@ export default function EditorScreen({ session, onBack }: Props) {
   const headerExportDisabledReason = durationExportDisabledReason;
   const layoutVariant = isDesktopLayout ? "desktop" : "mobile";
   const propertiesActive =
-    previewSourceLabel === "Direct source" || Boolean(playbackFallbackReason);
+    previewSourceLabel === "Direct source" ||
+    Boolean(playbackFallbackReason) ||
+    Boolean(selectedSubtitleCue);
   const previewPane = (
     <EditorPreviewPane
       error={isDesktopLayout ? error : null}
@@ -521,6 +559,7 @@ export default function EditorScreen({ session, onBack }: Props) {
       activeTimelineScale={activeTimelineScale}
       timelineScaleCount={timelineScaleCount}
       playbackReadyRange={isHlsPreviewSource ? playbackReadyRange : null}
+      subtitleCues={subtitleCues}
       loadingPreview={loadingPreview}
       playing={playing}
       handleTimelineScroll={handleTimelineScroll}
@@ -529,6 +568,7 @@ export default function EditorScreen({ session, onBack }: Props) {
       handleTimelineActionResizeEnd={handleTimelineActionResizeEnd}
       isValidTimelineRange={isValidTimelineRange}
       seekToTime={seekToTime}
+      onSubtitleCueSelect={handleTimelineSubtitleCueSelect}
       onCursorDragStart={() => {
         if (playing) {
           pausePlayback();
@@ -576,6 +616,10 @@ export default function EditorScreen({ session, onBack }: Props) {
           subtitleLoading={subtitleLoading}
           subtitleError={subtitleError}
           selectedSubtitleTrack={selectedSubtitleTrack}
+          selectedSubtitleCue={selectedSubtitleCue}
+          duration={duration}
+          onSubtitleCueTextChange={handleSubtitleCueTextChange}
+          onSubtitleCueRangeChange={handleSubtitleCueRangeChange}
         />
       </div>
     );
@@ -763,7 +807,7 @@ function buildPlaybackFallbackReason({
   const prefix =
     hlsFallbackInfo.category === "preview-only"
       ? "Preview switched sources"
-      : "Using direct media";
+      : "HLS preview failed; using direct media";
 
   return `${prefix}: ${hlsFallbackInfo.message}`;
 }

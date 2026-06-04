@@ -2,12 +2,14 @@ import assert from "node:assert/strict";
 import { PassThrough } from "node:stream";
 import test from "node:test";
 import type { Response } from "express";
-import { isApiError } from "@/http/errors";
+import { createApiError, isApiError } from "@/http/errors";
 import type { ProviderSessionRecord } from "@/session/store";
 import type { MediaHandle } from "@/providers/types";
 import {
   assertAllowedMediaHandleRequestUrl,
   fetchMediaHandleRequest,
+  hlsPlaylistRewriteDiagnosticFields,
+  mediaHandleHlsDiagnosticFields,
   proxyProviderMediaResponse,
   proxyUpstreamMediaResponse,
   sanitizeLoggedMediaPath,
@@ -229,6 +231,34 @@ void test("uses custom media handle URLs when rewriting HLS playlists", async ()
   ]);
 });
 
+void test("uses Plex path session ids for rewritten HLS handles", async () => {
+  const session = createSession();
+  const rootHandle = createMediaHandle({
+    path: "/video/:/transcode/universal/start.m3u8?transcodeSessionId=cliparr-session-1",
+    playbackSessionId: "cliparr-session-1",
+  });
+  const response = createResponseRecorder();
+
+  await proxyUpstreamMediaResponse(
+    session,
+    rootHandle,
+    new globalThis.Response(
+      "#EXTM3U\n#EXT-X-STREAM-INF:BANDWIDTH=1280000\nsession/plex-path-session/base/index.m3u8\n",
+      {
+        status: 200,
+        headers: {
+          "content-type": "application/vnd.apple.mpegurl",
+        },
+      },
+    ),
+    response as unknown as Response,
+  );
+
+  assert.equal(session.mediaHandles.size, 1);
+  const childHandle = [...session.mediaHandles.values()][0];
+  assert.equal(childHandle?.playbackSessionId, "plex-path-session");
+});
+
 void test("strips HLS start hints so editor seeks control playback position", async () => {
   const session = createSession();
   const handle = createMediaHandle();
@@ -264,11 +294,21 @@ void test("strips HLS start hints so editor seeks control playback position", as
   assert.equal(session.mediaHandles.size, 1);
 });
 
-void test("does not forward range requests for HLS playlists that Cliparr rewrites", () => {
+void test("does not forward range requests for HLS handles that Cliparr rewrites", () => {
   assert.equal(
     shouldForwardMediaRange(
       createMediaHandle({
         path: "/video/:/transcode/universal/start.m3u8?session=1",
+      }),
+      "bytes=148-",
+    ),
+    undefined,
+  );
+  assert.equal(
+    shouldForwardMediaRange(
+      createMediaHandle({
+        path: "/video/:/transcode/universal/session/abc/base/00000.ts",
+        basePath: "/video/:/transcode/universal/session/abc/base/",
       }),
       "bytes=148-",
     ),
@@ -572,6 +612,37 @@ void test("retries not-yet-generated HLS-derived media responses", async () => {
   }
 });
 
+void test("keeps retrying delayed HLS-derived 404 responses", async () => {
+  const originalFetch = globalThis.fetch;
+  let fetchCount = 0;
+
+  globalThis.fetch = (async () => {
+    fetchCount += 1;
+
+    return new Response(fetchCount < 7 ? "missing" : "ok", {
+      status: fetchCount < 7 ? 404 : 200,
+    });
+  }) as typeof fetch;
+
+  try {
+    const response = await fetchMediaHandleRequest(
+      createMediaHandle({
+        path: "/hls/segment0.ts",
+        basePath: "/hls/",
+      }),
+      {
+        retryBaseDelayMs: 0,
+      },
+    );
+
+    assert.equal(response.status, 200);
+    assert.equal(await response.text(), "ok");
+    assert.equal(fetchCount, 7);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
 void test("sanitizes logged media paths by stripping query strings", () => {
   assert.equal(
     sanitizeLoggedMediaPath(
@@ -583,6 +654,73 @@ void test("sanitizes logged media paths by stripping query strings", () => {
     sanitizeLoggedMediaPath("/video/master.m3u8?token=abc"),
     "/video/master.m3u8",
   );
+});
+
+void test("builds sanitized HLS playlist rewrite diagnostics", () => {
+  const fields = hlsPlaylistRewriteDiagnosticFields(
+    createMediaHandle({
+      id: "playlist-handle",
+      path: "https://cdn.example.com/hls/master.m3u8?token=secret",
+    }),
+    "https://cdn.example.com/hls/?token=secret",
+    200,
+    {
+      firstPlaylistPath: "https://cdn.example.com/hls/child.m3u8?sig=secret",
+      firstSegmentPath: "https://cdn.example.com/hls/00000.ts?sig=secret",
+      keyUriCount: 1,
+      playlistUriCount: 1,
+      rewrittenUriCount: 3,
+      segmentUriCount: 1,
+      strippedStartHintCount: 1,
+    },
+  );
+
+  assert.equal(fields["event.name"], "media.hls.playlist_rewrite");
+  assert.equal(fields["event.outcome"], "success");
+  assert.equal(fields["media.handle.id"], "playlist-handle");
+  assert.equal(fields["provider.id"], "plex");
+  assert.equal(fields["source.id"], "source-1");
+  assert.equal(fields["media.path"], "https://cdn.example.com/hls/master.m3u8");
+  assert.equal(fields["media.base_path"], "https://cdn.example.com/hls/");
+  assert.equal(fields["upstream.status_code"], 200);
+  assert.equal(fields["media.hls.rewritten_uri_count"], 3);
+  assert.equal(fields["media.hls.segment_uri_count"], 1);
+  assert.equal(fields["media.hls.playlist_uri_count"], 1);
+  assert.equal(fields["media.hls.key_uri_count"], 1);
+  assert.equal(
+    fields["media.hls.first_segment.path"],
+    "https://cdn.example.com/hls/00000.ts",
+  );
+  assert.equal(
+    fields["media.hls.first_playlist.path"],
+    "https://cdn.example.com/hls/child.m3u8",
+  );
+  assert.equal(fields["media.hls.stripped_start_hint_count"], 1);
+});
+
+void test("builds HLS segment diagnostics from media handles", () => {
+  const fields = mediaHandleHlsDiagnosticFields(
+    createMediaHandle({
+      path: "/video/:/transcode/universal/session/abc-123/base/00000.ts?token=secret",
+      basePath:
+        "/video/:/transcode/universal/session/abc-123/base/?token=secret",
+    }),
+  );
+
+  assert.equal(
+    fields["media.path"],
+    "/video/:/transcode/universal/session/abc-123/base/00000.ts",
+  );
+  assert.equal(
+    fields["media.base_path"],
+    "/video/:/transcode/universal/session/abc-123/base/",
+  );
+  assert.equal(fields["media.hls.derived"], true);
+  assert.equal(fields["media.hls.playlist"], false);
+  assert.equal(fields["media.hls.segment"], true);
+  assert.equal(fields["media.hls.segment.filename"], "00000.ts");
+  assert.equal(fields["media.hls.segment.index"], 0);
+  assert.equal(fields["plex.transcode.path_session.id"], "abc-123");
 });
 
 void test("does not throw when a proxied media stream terminates early", async () => {
@@ -676,6 +814,7 @@ void test("uses buffered byte length for cached HLS-derived media responses", as
 void test("dedupes concurrent HLS-derived media requests for the same handle", async () => {
   const session = createSession();
   const handle = createMediaHandle({
+    id: "dedupe-hls-handle",
     path: "https://cdn.example.com/hls/segment0.ts",
     basePath: "https://cdn.example.com/hls/",
   });
@@ -721,4 +860,32 @@ void test("dedupes concurrent HLS-derived media requests for the same handle", a
   assert.equal(fetchCount, 1);
   assert.deepEqual(firstResponse.body, Buffer.from([1, 2, 3, 4]));
   assert.deepEqual(secondResponse.body, Buffer.from([1, 2, 3, 4]));
+});
+
+void test("cleans up rejected in-flight HLS responses without orphaned rejections", async () => {
+  const session = createSession();
+  const handle = createMediaHandle({
+    id: "rejected-hls-handle",
+    path: "https://cdn.example.com/hls/segment0.ts",
+    basePath: "https://cdn.example.com/hls/",
+  });
+  const response = createBinaryResponseRecorder();
+
+  await assert.rejects(
+    proxyProviderMediaResponse(
+      session,
+      handle,
+      {
+        accept: "video/mp2t",
+      },
+      async () => {
+        throw createApiError(404, "plex_media_failed", "segment missing");
+      },
+      response as unknown as Response,
+    ),
+    (err) => isApiError(err) && err.code === "plex_media_failed",
+  );
+  await new Promise((resolve) => {
+    setImmediate(resolve);
+  });
 });

@@ -41,9 +41,11 @@ flowchart TD
     K --> C2
 
     D --> D1["timelineZoom helpers"]
+    D --> D2["editable subtitle cue timeline actions"]
     E --> E1["editorShortcutCommands"]
     J --> J1["useSubtitleCues"]
     J --> J2["selectPreferredSubtitleTrack"]
+    J --> J3["editable subtitle cue state"]
 
     F["SourcesDialog"] --> F1["useSourcesState"]
     F1 --> F2["sourcesStateUtils"]
@@ -286,7 +288,7 @@ flowchart TD
     C -- "Yes" --> D["Attach provider auth/session headers"]
     C -- "No" --> E["Do not attach provider auth headers"]
 
-    D --> F{"Range request or not HLS-derived?"}
+    D --> F{"Range request for non-HLS handle?"}
     E --> F
 
     F -- "Yes" --> G["Fetch upstream with retry policy"]
@@ -297,7 +299,7 @@ flowchart TD
     G5 --> G1
     G1 -- "Yes" --> G2["Rewrite playlist and send response"]
     G1 -- "No" --> G3["Stream response body directly"]
-    F -- "No" --> H["Build short-lived cache key"]
+    F -- "No" --> H["Strip Range for HLS playlists/segments and build short-lived cache key"]
     H --> I{"Cached response exists?"}
     I -- "Yes" --> J["Serve cached response"]
     I -- "No" --> K{"Matching in-flight response exists?"}
@@ -369,9 +371,12 @@ flowchart LR
     D --> P["Preview canvas with optional subtitles"]
     P --> Q["Framegrab dialog"]
     Q --> R["PNG clipboard or image download"]
-    S --> T["useEditorSubtitles loads and clips subtitle cues"]
-    T --> P
-    T --> U["Export subtitle burn-in readiness"]
+    S --> T["useEditorSubtitles loads whole-file subtitle cues"]
+    T --> T1["editable in-memory subtitle cue list"]
+    T1 --> T2["EditorTimeline subtitle row"]
+    T2 --> T1
+    T1 --> P
+    T1 --> U["Export subtitle burn-in readiness"]
     B --> G["useEditorExport source selection"]
     C --> G
     F --> G

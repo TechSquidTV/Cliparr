@@ -87,6 +87,7 @@ export interface MediaHandle {
   token: string;
   deviceId?: string;
   basePath?: string;
+  playbackSessionId?: string;
   lastAccessedAt: number;
 }
 

@@ -31,6 +31,15 @@ import {
   editorPropertyLabelClassName,
   editorPropertySelectTriggerClassName,
 } from "@/components/editor/EditorPropertyControls";
+import { EditorEditableTimecode } from "@/components/editor/EditorEditableTimecode";
+import {
+  formatTimecodeInput,
+  roundTimelineTime,
+} from "@/components/editor/editorUtils";
+import type {
+  EditableSubtitleCue,
+  SubtitleCueRangeUpdate,
+} from "@/components/editor/editorSubtitleCues";
 import { useSubtitleFontOptions } from "@/components/editor/useSubtitleFontOptions";
 
 interface EditorSubtitlePanelProps {
@@ -47,6 +56,13 @@ interface EditorSubtitlePanelProps {
   subtitleLoading: boolean;
   subtitleError: string | null;
   selectedSubtitleTrack: PlaybackSubtitleTrack | null;
+  selectedSubtitleCue: EditableSubtitleCue | null;
+  duration: number;
+  onSubtitleCueTextChange: (cueId: string, text: string) => void;
+  onSubtitleCueRangeChange: (
+    updates: readonly SubtitleCueRangeUpdate[],
+    duration: number,
+  ) => void;
 }
 
 function subtitleTrackLabel(track: PlaybackSubtitleTrack) {
@@ -87,6 +103,10 @@ export function EditorSubtitlePanel({
   subtitleLoading,
   subtitleError,
   selectedSubtitleTrack,
+  selectedSubtitleCue,
+  duration,
+  onSubtitleCueTextChange,
+  onSubtitleCueRangeChange,
 }: EditorSubtitlePanelProps) {
   const canEnableBurnIn = subtitleTrackSupportsBurnIn(selectedSubtitleTrack);
   const styleControlsDisabled = !subtitlesEnabled || !canEnableBurnIn;
@@ -122,6 +142,23 @@ export function EditorSubtitlePanel({
       ...current,
       [key]: value,
     }));
+  }
+
+  function updateCueRange(
+    cue: EditableSubtitleCue,
+    startTime: number,
+    endTime: number,
+  ) {
+    onSubtitleCueRangeChange(
+      [
+        {
+          cueId: cue.id,
+          startTime,
+          endTime,
+        },
+      ],
+      duration,
+    );
   }
 
   const subtitleToggle = (
@@ -230,6 +267,72 @@ export function EditorSubtitlePanel({
         )}
       </EditorPropertySection>
 
+      {selectedSubtitleCue && (
+        <EditorPropertySection
+          title="Cue"
+          action={
+            <span className={editorPropertyLabelClassName()}>
+              {formatTimecodeInput(
+                roundTimelineTime(
+                  selectedSubtitleCue.endTime - selectedSubtitleCue.startTime,
+                ),
+              )}
+            </span>
+          }
+        >
+          <EditorPropertyRow label="Text" align="start">
+            <textarea
+              aria-label="Subtitle cue text"
+              className="min-h-24 w-full resize-y rounded-[var(--radius-control)] border border-editor-border bg-editor-control px-2.5 py-2 text-sm leading-5 text-sidebar-foreground outline-none transition-colors placeholder:text-muted-foreground focus:border-editor-accent focus:ring-2 focus:ring-editor-accent/35"
+              onChange={(event) =>
+                onSubtitleCueTextChange(
+                  selectedSubtitleCue.id,
+                  event.target.value,
+                )
+              }
+              spellCheck
+              value={selectedSubtitleCue.text}
+            />
+          </EditorPropertyRow>
+
+          <CueTimecodeControl
+            label="Start"
+            value={selectedSubtitleCue.startTime}
+            onCommit={(value) =>
+              updateCueRange(
+                selectedSubtitleCue,
+                value,
+                selectedSubtitleCue.endTime,
+              )
+            }
+          />
+          <CueTimecodeControl
+            label="End"
+            value={selectedSubtitleCue.endTime}
+            onCommit={(value) =>
+              updateCueRange(
+                selectedSubtitleCue,
+                selectedSubtitleCue.startTime,
+                value,
+              )
+            }
+          />
+          <CueTimecodeControl
+            label="Duration"
+            value={roundTimelineTime(
+              selectedSubtitleCue.endTime - selectedSubtitleCue.startTime,
+            )}
+            onCommit={(value) =>
+              updateCueRange(
+                selectedSubtitleCue,
+                selectedSubtitleCue.startTime,
+                selectedSubtitleCue.startTime + value,
+              )
+            }
+          />
+        </EditorPropertySection>
+      )}
+
       <div
         aria-disabled={styleControlsDisabled}
         className={cn(
@@ -238,7 +341,7 @@ export function EditorSubtitlePanel({
         )}
       >
         <EditorPropertySection
-          title="Text"
+          title="Track text"
           action={
             styleTooltip ? (
               <Tooltip>
@@ -324,7 +427,7 @@ export function EditorSubtitlePanel({
           />
         </EditorPropertySection>
 
-        <EditorPropertySection title="Shadow">
+        <EditorPropertySection title="Track shadow">
           <EditorColorControl
             label="Color"
             value={subtitleStyleSettings.shadowColor}
@@ -353,7 +456,7 @@ export function EditorSubtitlePanel({
           />
         </EditorPropertySection>
 
-        <EditorPropertySection title="Stroke">
+        <EditorPropertySection title="Track stroke">
           <EditorColorControl
             label="Color"
             value={subtitleStyleSettings.strokeColor}
@@ -372,7 +475,7 @@ export function EditorSubtitlePanel({
           />
         </EditorPropertySection>
 
-        <EditorPropertySection title="Position">
+        <EditorPropertySection title="Track position">
           <EditorRangeControl
             label="Bottom"
             value={subtitleStyleSettings.bottomMargin}
@@ -386,5 +489,33 @@ export function EditorSubtitlePanel({
         </EditorPropertySection>
       </div>
     </div>
+  );
+}
+
+function CueTimecodeControl({
+  label,
+  value,
+  onCommit,
+}: {
+  label: string;
+  value: number;
+  onCommit: (value: number) => void;
+}) {
+  return (
+    <EditorPropertyRow label={label}>
+      <EditorEditableTimecode
+        ariaLabel={`subtitle cue ${label.toLowerCase()}`}
+        buttonClassName="h-8 w-full rounded-[var(--radius-control)] border border-editor-border bg-editor-control px-2.5 text-xs font-medium text-sidebar-foreground shadow-none hover:bg-editor-control-hover"
+        className="w-full"
+        inputClassName="w-full rounded-[var(--radius-control)] text-xs"
+        inputWidth="100%"
+        onCommit={onCommit}
+        value={value}
+      >
+        <span className="font-mono tabular-nums">
+          {formatTimecodeInput(value)}
+        </span>
+      </EditorEditableTimecode>
+    </EditorPropertyRow>
   );
 }

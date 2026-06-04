@@ -67,7 +67,7 @@ void test("blocks export when the selected subtitle track is unsupported", () =>
     }),
     {
       label: "Not supported",
-      detail: "Select this embedded subtitle in Plex first.",
+      detail: "Plex embedded subtitles cannot be downloaded for editing.",
       tone: "warning",
       disabledReason: "Choose another subtitle track or turn subtitles off.",
     },

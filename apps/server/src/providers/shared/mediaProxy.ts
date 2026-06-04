@@ -5,7 +5,11 @@ import { Readable } from "stream";
 import { pipeline } from "stream/promises";
 import type { ReadableStream as WebReadableStream } from "stream/web";
 import type { Response } from "express";
-import { logErrorFields, logEventFields } from "@cliparr/shared/logging";
+import {
+  compactLogFields,
+  logErrorFields,
+  logEventFields,
+} from "@cliparr/shared/logging";
 import { createApiError, isApiError } from "@/http/errors";
 import { getServerLogger } from "@/logging";
 import type { ProviderSessionRecord } from "@/session/store";
@@ -21,6 +25,7 @@ interface MediaHandleContext {
 
 interface CreateMediaHandleOptions {
   basePath?: string;
+  playbackSessionId?: string;
 }
 
 interface ProxyMediaRequestOptions {
@@ -49,6 +54,16 @@ interface CachedProxyMediaResponse {
   body: Buffer;
 }
 
+export interface HlsPlaylistRewriteDiagnostics {
+  firstPlaylistPath?: string;
+  firstSegmentPath?: string;
+  keyUriCount: number;
+  playlistUriCount: number;
+  rewrittenUriCount: number;
+  segmentUriCount: number;
+  strippedStartHintCount: number;
+}
+
 interface ResolvedHostnameCacheEntry {
   expiresAt: number;
   addresses: string[];
@@ -69,7 +84,7 @@ const HLS_PROXY_RESPONSE_CACHE_TTL_MS = 4_000;
 const HLS_PROXY_RESPONSE_CACHE_MAX_BYTES = 8 * 1024 * 1024;
 const MEDIA_PROXY_MAX_REDIRECTS = 5;
 const MEDIA_PROXY_FETCH_ATTEMPTS = 3;
-const HLS_MEDIA_PROXY_FETCH_ATTEMPTS = 5;
+const HLS_MEDIA_PROXY_FETCH_ATTEMPTS = 8;
 const MEDIA_PROXY_FETCH_RETRY_BASE_DELAY_MS = 150;
 const MEDIA_PROXY_FETCH_RETRY_MAX_DELAY_MS = 1_000;
 const DNS_VALIDATION_CACHE_TTL_MS = 60_000;
@@ -634,6 +649,7 @@ export function createProviderMediaHandle(
   const normalizedBasePath = options.basePath
     ? normalizeMediaPath(options.basePath)
     : undefined;
+  const playbackSessionId = options.playbackSessionId?.trim() || undefined;
   const accessedAt = Date.now();
 
   for (const existingHandle of session.mediaHandles.values()) {
@@ -644,7 +660,8 @@ export function createProviderMediaHandle(
       existingHandle.path === normalizedPath &&
       existingHandle.token === context.token &&
       existingHandle.deviceId === context.deviceId &&
-      existingHandle.basePath === normalizedBasePath
+      existingHandle.basePath === normalizedBasePath &&
+      existingHandle.playbackSessionId === playbackSessionId
     ) {
       existingHandle.lastAccessedAt = accessedAt;
       logger.trace("Reused provider media handle.", {
@@ -669,6 +686,7 @@ export function createProviderMediaHandle(
     token: context.token,
     deviceId: context.deviceId,
     basePath: normalizedBasePath,
+    playbackSessionId,
     lastAccessedAt: accessedAt,
   };
   session.mediaHandles.set(handle.id, handle);
@@ -710,11 +728,9 @@ function resolvePlaylistUri(basePath: string, uri: string) {
 function rewritePlaylistUri(
   session: ProviderSessionRecord,
   handle: MediaHandle,
-  basePath: string,
-  uri: string,
+  nextPath: string,
   options: ProxyMediaResponseOptions = {},
 ) {
-  const nextPath = resolvePlaylistUri(basePath, uri);
   if (options.createMediaHandleUrl) {
     return options.createMediaHandleUrl(
       session,
@@ -736,6 +752,8 @@ function rewritePlaylistUri(
     nextPath,
     {
       basePath: playlistBasePath(nextPath),
+      playbackSessionId:
+        plexTranscodePathSessionId(nextPath) ?? handle.playbackSessionId,
     },
   );
 }
@@ -748,8 +766,17 @@ async function rewriteHlsPlaylist(
 ) {
   const body = await upstream.text();
   const basePath = handle.basePath ?? playlistBasePath(handle.path);
-  let rewrittenUriCount = 0;
-  let strippedStartHintCount = 0;
+  let diagnostics = createHlsPlaylistRewriteDiagnostics();
+
+  function rewriteResolvedPlaylistUri(uri: string, sourceLine: string) {
+    const nextPath = resolvePlaylistUri(basePath, uri);
+    diagnostics = recordHlsPlaylistRewriteUri(
+      diagnostics,
+      nextPath,
+      sourceLine,
+    );
+    return rewritePlaylistUri(session, handle, nextPath, options);
+  }
 
   const playlist = body
     .split("\n")
@@ -761,33 +788,32 @@ async function rewriteHlsPlaylist(
 
       if (trimmed.startsWith("#")) {
         if (trimmed.toUpperCase().startsWith("#EXT-X-START:")) {
-          strippedStartHintCount += 1;
+          diagnostics = {
+            ...diagnostics,
+            strippedStartHintCount: diagnostics.strippedStartHintCount + 1,
+          };
           return [];
         }
 
         return [
           line.replace(/URI="([^"]+)"/g, (_match, uri: string) => {
-            rewrittenUriCount += 1;
-            return `URI="${rewritePlaylistUri(session, handle, basePath, uri, options)}"`;
+            return `URI="${rewriteResolvedPlaylistUri(uri, line)}"`;
           }),
         ];
       }
 
-      rewrittenUriCount += 1;
-      return [rewritePlaylistUri(session, handle, basePath, trimmed, options)];
+      return [rewriteResolvedPlaylistUri(trimmed, line)];
     })
     .join("\n");
 
-  logger.trace("Rewrote HLS playlist for media handle.", {
-    ...logEventFields("media.hls.playlist_rewrite", "success"),
-    "media.handle.id": handle.id,
+  logger.debug("Rewrote HLS playlist for media handle.", {
+    ...hlsPlaylistRewriteDiagnosticFields(
+      handle,
+      basePath,
+      upstream.status,
+      diagnostics,
+    ),
     "session.id": session.id,
-    "provider.id": handle.providerId,
-    "media.path": sanitizeLoggedMediaPath(handle.path),
-    "media.base_path": sanitizeLoggedMediaPath(basePath),
-    "upstream.status_code": upstream.status,
-    "media.hls.rewritten_uri_count": rewrittenUriCount,
-    "media.hls.stripped_start_hint_count": strippedStartHintCount,
   });
 
   return playlist;
@@ -827,7 +853,7 @@ export function shouldForwardMediaRange(
   handle: MediaHandle,
   range: string | undefined,
 ) {
-  if (!range || isHlsPlaylist(handle, "")) {
+  if (!range || isHlsDerivedHandle(handle)) {
     return undefined;
   }
 
@@ -865,10 +891,142 @@ function handlePathname(path: string) {
   }
 }
 
+function originalHandlePathname(path: string) {
+  try {
+    return new URL(path, RELATIVE_MEDIA_BASE_URL).pathname;
+  } catch {
+    return path.split(/[?#]/, 1)[0] ?? path;
+  }
+}
+
+function pathBasename(path: string) {
+  const pathname = originalHandlePathname(path);
+  const parts = pathname.split("/").filter(Boolean);
+  return parts.at(-1);
+}
+
+function isHlsPlaylistPath(path: string) {
+  return handlePathname(path).endsWith(".m3u8");
+}
+
 function isHlsDerivedHandle(handle: MediaHandle) {
-  return (
-    Boolean(handle.basePath) || handlePathname(handle.path).endsWith(".m3u8")
+  return Boolean(handle.basePath) || isHlsPlaylistPath(handle.path);
+}
+
+function isHlsKeyLine(line: string) {
+  return line.trim().toUpperCase().startsWith("#EXT-X-KEY:");
+}
+
+function createHlsPlaylistRewriteDiagnostics(): HlsPlaylistRewriteDiagnostics {
+  return {
+    keyUriCount: 0,
+    playlistUriCount: 0,
+    rewrittenUriCount: 0,
+    segmentUriCount: 0,
+    strippedStartHintCount: 0,
+  };
+}
+
+function recordHlsPlaylistRewriteUri(
+  diagnostics: HlsPlaylistRewriteDiagnostics,
+  nextPath: string,
+  sourceLine: string,
+) {
+  const updatedDiagnostics = {
+    ...diagnostics,
+    rewrittenUriCount: diagnostics.rewrittenUriCount + 1,
+  };
+
+  if (isHlsKeyLine(sourceLine)) {
+    return {
+      ...updatedDiagnostics,
+      keyUriCount: diagnostics.keyUriCount + 1,
+    };
+  }
+
+  if (isHlsPlaylistPath(nextPath)) {
+    return {
+      ...updatedDiagnostics,
+      firstPlaylistPath: diagnostics.firstPlaylistPath ?? nextPath,
+      playlistUriCount: diagnostics.playlistUriCount + 1,
+    };
+  }
+
+  return {
+    ...updatedDiagnostics,
+    firstSegmentPath: diagnostics.firstSegmentPath ?? nextPath,
+    segmentUriCount: diagnostics.segmentUriCount + 1,
+  };
+}
+
+export function hlsPlaylistRewriteDiagnosticFields(
+  handle: Pick<MediaHandle, "id" | "providerId" | "sourceId" | "path">,
+  basePath: string,
+  upstreamStatus: number,
+  diagnostics: HlsPlaylistRewriteDiagnostics,
+) {
+  return compactLogFields({
+    ...logEventFields("media.hls.playlist_rewrite", "success"),
+    "media.handle.id": handle.id,
+    "provider.id": handle.providerId,
+    "source.id": handle.sourceId,
+    "media.path": sanitizeLoggedMediaPath(handle.path),
+    "media.base_path": sanitizeLoggedMediaPath(basePath),
+    "upstream.status_code": upstreamStatus,
+    "media.hls.rewritten_uri_count": diagnostics.rewrittenUriCount,
+    "media.hls.segment_uri_count": diagnostics.segmentUriCount,
+    "media.hls.playlist_uri_count": diagnostics.playlistUriCount,
+    "media.hls.key_uri_count": diagnostics.keyUriCount,
+    "media.hls.first_segment.path": sanitizeLoggedMediaPath(
+      diagnostics.firstSegmentPath,
+    ),
+    "media.hls.first_playlist.path": sanitizeLoggedMediaPath(
+      diagnostics.firstPlaylistPath,
+    ),
+    "media.hls.stripped_start_hint_count": diagnostics.strippedStartHintCount,
+  });
+}
+
+function hlsSegmentIndexFromFilename(filename: string | undefined) {
+  if (!filename) {
+    return undefined;
+  }
+
+  const match = /(\d+)/.exec(filename);
+  if (!match) {
+    return undefined;
+  }
+
+  const index = Number(match[1]);
+  return Number.isSafeInteger(index) ? index : undefined;
+}
+
+function plexTranscodePathSessionId(path: string) {
+  const pathname = originalHandlePathname(path);
+  const match = /\/video\/:\/transcode\/universal\/session\/([^/]+)/.exec(
+    pathname,
   );
+  return match?.[1];
+}
+
+export function mediaHandleHlsDiagnosticFields(
+  handle: Pick<MediaHandle, "path" | "basePath">,
+) {
+  const hlsPlaylist = isHlsPlaylistPath(handle.path);
+  const hlsDerived = Boolean(handle.basePath) || hlsPlaylist;
+  const segmentFilename =
+    hlsDerived && !hlsPlaylist ? pathBasename(handle.path) : undefined;
+
+  return compactLogFields({
+    "media.path": sanitizeLoggedMediaPath(handle.path),
+    "media.base_path": sanitizeLoggedMediaPath(handle.basePath),
+    "media.hls.derived": hlsDerived,
+    "media.hls.playlist": hlsPlaylist,
+    "media.hls.segment": hlsDerived && !hlsPlaylist,
+    "media.hls.segment.filename": segmentFilename,
+    "media.hls.segment.index": hlsSegmentIndexFromFilename(segmentFilename),
+    "plex.transcode.path_session.id": plexTranscodePathSessionId(handle.path),
+  });
 }
 
 function buildProxyCacheKey(
@@ -1110,11 +1268,15 @@ export async function proxyProviderMediaResponse(
     })();
 
     inflightProxyResponses.set(cacheKey, inflightResponse);
-    void inflightResponse.finally(() => {
-      if (inflightProxyResponses.get(cacheKey) === inflightResponse) {
-        inflightProxyResponses.delete(cacheKey);
-      }
-    });
+    void inflightResponse
+      .finally(() => {
+        if (inflightProxyResponses.get(cacheKey) === inflightResponse) {
+          inflightProxyResponses.delete(cacheKey);
+        }
+      })
+      .catch(() => {
+        // The request below awaits the original promise; this only settles cleanup.
+      });
   } else {
     logger.trace("Waiting for in-flight proxied media response.", {
       ...logEventFields("media.proxy.cache", "wait"),

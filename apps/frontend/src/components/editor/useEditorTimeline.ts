@@ -22,6 +22,12 @@ import {
   type ClipTimelineEffects,
 } from "@/components/editor/editorUtils";
 import {
+  buildSubtitleTimelineActions,
+  subtitleCueIdFromActionId,
+  type EditableSubtitleCue,
+  type SubtitleCueRangeUpdate,
+} from "@/components/editor/editorSubtitleCues";
+import {
   accumulateTimelineWheelZoomDelta,
   resolveTimelineScrollWheelUpdate,
   resolveTimelineZoomUpdate,
@@ -35,6 +41,14 @@ interface UseEditorTimelineProps {
   sessionId: string;
   updateClipRange: (start: number, end: number) => void;
   onClipRangeCommit?: (start: number, end: number) => void;
+  subtitleCues?: readonly EditableSubtitleCue[];
+  selectedSubtitleCueId?: string | null;
+  showSubtitleRow?: boolean;
+  subtitleLoading?: boolean;
+  onSubtitleCueRangeChange?: (
+    updates: readonly SubtitleCueRangeUpdate[],
+    duration: number,
+  ) => void;
 }
 
 interface TimelineZoomAnchorOptions {
@@ -96,6 +110,11 @@ export function useEditorTimeline({
   sessionId,
   updateClipRange,
   onClipRangeCommit,
+  subtitleCues = [],
+  selectedSubtitleCueId = null,
+  showSubtitleRow = false,
+  subtitleLoading = false,
+  onSubtitleCueRangeChange,
 }: UseEditorTimelineProps) {
   const timelineRef = useRef<TimelineState>(null);
   const timelineWheelRegionRef = useRef<HTMLDivElement>(null);
@@ -113,6 +132,11 @@ export function useEditorTimeline({
     () => ({
       source: { id: "source", name: "Source" },
       clip: { id: "clip", name: "Clip" },
+      subtitle: { id: "subtitle", name: "Subtitle" },
+      "subtitle-placeholder": {
+        id: "subtitle-placeholder",
+        name: "Subtitle placeholder",
+      },
     }),
     [],
   );
@@ -195,7 +219,7 @@ export function useEditorTimeline({
         )
       : MIN_CLIP_SECONDS;
 
-    return [
+    const rows: ClipTimelineData = [
       {
         id: "source-media",
         rowHeight: 32,
@@ -231,7 +255,32 @@ export function useEditorTimeline({
         ],
       },
     ];
-  }, [duration, endTime, hasDuration, startTime]);
+
+    if (showSubtitleRow) {
+      rows.push({
+        id: "subtitles",
+        rowHeight: 44,
+        selected: Boolean(selectedSubtitleCueId),
+        actions: buildSubtitleTimelineActions({
+          cues: subtitleCues,
+          duration: safeDuration,
+          selectedCueId: selectedSubtitleCueId,
+          loading: subtitleLoading,
+        }),
+      });
+    }
+
+    return rows;
+  }, [
+    duration,
+    endTime,
+    hasDuration,
+    selectedSubtitleCueId,
+    showSubtitleRow,
+    startTime,
+    subtitleCues,
+    subtitleLoading,
+  ]);
 
   useEffect(() => {
     timelineZoomIndexRef.current = timelineZoomIndex;
@@ -502,16 +551,44 @@ export function useEditorTimeline({
 
   const handleTimelineChange = useCallback(
     (nextData: ClipTimelineData) => {
-      const nextAction = nextData
-        .flatMap((row) => row.actions)
-        .find((action) => action.id === "selected-clip");
-      if (!nextAction) {
-        return false;
+      const nextActions = nextData.flatMap((row) => row.actions);
+      const nextAction = nextActions.find(
+        (action) => action.id === "selected-clip",
+      );
+      if (nextAction) {
+        updateClipRange(nextAction.start, nextAction.end);
       }
 
-      updateClipRange(nextAction.start, nextAction.end);
+      const subtitleUpdates = nextActions.flatMap<SubtitleCueRangeUpdate>(
+        (action) => {
+          if (action.effectId !== "subtitle") {
+            return [];
+          }
+
+          const cueId = subtitleCueIdFromActionId(action.id);
+          if (!cueId) {
+            return [];
+          }
+
+          return [
+            {
+              cueId,
+              startTime: action.start,
+              endTime: action.end,
+            },
+          ];
+        },
+      );
+
+      if (subtitleUpdates.length > 0) {
+        onSubtitleCueRangeChange?.(subtitleUpdates, duration);
+      }
+
+      if (!nextAction && subtitleUpdates.length === 0) {
+        return false;
+      }
     },
-    [updateClipRange],
+    [duration, onSubtitleCueRangeChange, updateClipRange],
   );
 
   const commitClipRange = useCallback(
@@ -532,12 +609,25 @@ export function useEditorTimeline({
       end: number;
     }) => {
       if (action.id !== "selected-clip") {
+        const cueId = subtitleCueIdFromActionId(action.id);
+        if (cueId) {
+          onSubtitleCueRangeChange?.(
+            [
+              {
+                cueId,
+                startTime: roundTimelineTime(start),
+                endTime: roundTimelineTime(end),
+              },
+            ],
+            duration,
+          );
+        }
         return;
       }
 
       commitClipRange(start, end);
     },
-    [commitClipRange],
+    [commitClipRange, duration, onSubtitleCueRangeChange],
   );
 
   const handleTimelineActionResizeEnd = useCallback(
@@ -551,12 +641,25 @@ export function useEditorTimeline({
       end: number;
     }) => {
       if (action.id !== "selected-clip") {
+        const cueId = subtitleCueIdFromActionId(action.id);
+        if (cueId) {
+          onSubtitleCueRangeChange?.(
+            [
+              {
+                cueId,
+                startTime: roundTimelineTime(start),
+                endTime: roundTimelineTime(end),
+              },
+            ],
+            duration,
+          );
+        }
         return;
       }
 
       commitClipRange(start, end);
     },
-    [commitClipRange],
+    [commitClipRange, duration, onSubtitleCueRangeChange],
   );
 
   return {

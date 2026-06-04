@@ -4,9 +4,13 @@ import { cliparrClient } from "@/api/cliparrClient";
 import EditorScreen from "@/components/editor/EditorScreen";
 import {
   editorSessionFromCurrentlyPlaying,
+  mergeEditorSessionRefresh,
   type EditorSession,
 } from "@/lib/editorMedia";
-import { getPendingEditorTransitionSession } from "@/lib/viewTransitions";
+import {
+  clearPendingEditorTransitionSession,
+  getPendingEditorTransitionSession,
+} from "@/lib/viewTransitions";
 import { router } from "@/router";
 
 function errorMessage(err: unknown, fallback: string) {
@@ -24,6 +28,7 @@ function EditorRouteComponent() {
   const [error, setError] = useState("");
   const [attempt, setAttempt] = useState(0);
   const sessionRef = useRef(session);
+  const hydratedSessionIdRef = useRef<string | null>(null);
 
   useEffect(() => {
     sessionRef.current = session;
@@ -32,11 +37,15 @@ function EditorRouteComponent() {
   useEffect(() => {
     let cancelled = false;
     const transitionSession = getPendingEditorTransitionSession(sessionId);
+    if (hydratedSessionIdRef.current !== sessionId) {
+      hydratedSessionIdRef.current = null;
+    }
     const hasWarmSession =
       Boolean(transitionSession) || sessionRef.current?.id === sessionId;
 
     if (transitionSession) {
       setSession(transitionSession);
+      clearPendingEditorTransitionSession(sessionId);
     }
 
     async function loadSession() {
@@ -62,7 +71,18 @@ function EditorRouteComponent() {
         }
 
         if (!cancelled) {
-          setSession(editorSessionFromCurrentlyPlaying(activeSession));
+          const nextSession = editorSessionFromCurrentlyPlaying(activeSession);
+          const shouldPreserveGeneratedHandles =
+            hydratedSessionIdRef.current === nextSession.id;
+          setSession((currentSession) =>
+            shouldPreserveGeneratedHandles
+              ? mergeEditorSessionRefresh(
+                  currentSession ?? sessionRef.current,
+                  nextSession,
+                )
+              : nextSession,
+          );
+          hydratedSessionIdRef.current = nextSession.id;
         }
       } catch (err: unknown) {
         if (!cancelled) {

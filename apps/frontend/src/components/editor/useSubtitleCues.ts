@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   compactLogFields,
   logDurationFields,
@@ -7,6 +7,7 @@ import {
 } from "@cliparr/shared/logging";
 import type { PlaybackSubtitleTrack } from "@/providers/types";
 import {
+  subtitleTrackKey,
   subtitleTrackSupportsBurnIn,
   subtitleTrackUnavailableMessage,
 } from "@/lib/selectPreferredSubtitleTrack";
@@ -28,14 +29,24 @@ interface SubtitleDownloadFailure {
   message: string;
 }
 
-type SubtitleDownloadResult =
+export interface SubtitleResponseDiagnostics {
+  charCount: number;
+  contentLength?: number;
+  contentType?: string;
+  empty: boolean;
+  status: number;
+}
+
+export type SubtitleDownloadResult =
   | {
       ok: true;
       cues: SubtitleCue[];
+      response: SubtitleResponseDiagnostics;
     }
   | {
       ok: false;
       failure: SubtitleDownloadFailure;
+      response: SubtitleResponseDiagnostics;
     };
 
 function subtitleDownloadFailure(status: number): SubtitleDownloadFailure {
@@ -60,26 +71,77 @@ function subtitleTrackLogFields(
   });
 }
 
-async function downloadSubtitleCues(
+function numericHeaderValue(value: string | null) {
+  if (!value) {
+    return undefined;
+  }
+
+  const parsed = Number(value);
+  return Number.isFinite(parsed) && parsed >= 0 ? parsed : undefined;
+}
+
+export function subtitleResponseDiagnostics(
+  response: Pick<Response, "headers" | "status">,
+  body: string,
+): SubtitleResponseDiagnostics {
+  return {
+    charCount: body.length,
+    contentLength: numericHeaderValue(response.headers.get("content-length")),
+    contentType: response.headers.get("content-type") ?? undefined,
+    empty: body.length === 0,
+    status: response.status,
+  };
+}
+
+export function subtitleResponseDiagnosticFields(
+  response: SubtitleResponseDiagnostics,
+  cueCount: number,
+) {
+  return compactLogFields({
+    "http.status_code": response.status,
+    "http.content_type": response.contentType,
+    "http.content_length": response.contentLength,
+    "subtitle.response.char_count": response.charCount,
+    "subtitle.response.empty": response.empty,
+    "subtitle.cue.count": cueCount,
+    "subtitle.empty": cueCount === 0,
+  });
+}
+
+export function subtitleCueLoadKey(track: PlaybackSubtitleTrack | null) {
+  if (!track) {
+    return "none";
+  }
+
+  return [
+    subtitleTrackKey(track),
+    track.contentFormat ?? "",
+    track.codec ?? "",
+    track.isText ? "text" : "not-text",
+    track.contentUrl ?? "",
+  ].join("\u001f");
+}
+
+export async function downloadSubtitleCues(
   track: PlaybackSubtitleTrack,
   contentUrl: string,
   signal: AbortSignal,
 ): Promise<SubtitleDownloadResult> {
   const response = await fetch(contentUrl, { signal });
+  const body = await response.text();
+  const responseDiagnostics = subtitleResponseDiagnostics(response, body);
   if (!response.ok) {
     return {
       ok: false,
       failure: subtitleDownloadFailure(response.status),
+      response: responseDiagnostics,
     };
   }
 
   return {
     ok: true,
-    cues: await parseSubtitleTextAsync(
-      await response.text(),
-      track.contentFormat,
-      signal,
-    ),
+    cues: await parseSubtitleTextAsync(body, track.contentFormat, signal),
+    response: responseDiagnostics,
   };
 }
 
@@ -91,6 +153,15 @@ export function useSubtitleCues({
   const [subtitleCues, setSubtitleCues] = useState<SubtitleCue[]>([]);
   const [subtitleLoading, setSubtitleLoading] = useState(false);
   const [subtitleError, setSubtitleError] = useState<string | null>(null);
+  const selectedSubtitleTrackRef = useRef(selectedSubtitleTrack);
+  const selectedSubtitleTrackLoadKey = useMemo(
+    () => subtitleCueLoadKey(selectedSubtitleTrack),
+    [selectedSubtitleTrack],
+  );
+
+  useEffect(() => {
+    selectedSubtitleTrackRef.current = selectedSubtitleTrack;
+  }, [selectedSubtitleTrack]);
 
   const resetSubtitleCues = useCallback(() => {
     setSubtitleCues([]);
@@ -110,6 +181,8 @@ export function useSubtitleCues({
     }, subtitleRequestTimeoutMs);
 
     async function loadSubtitleCues() {
+      const selectedSubtitleTrack = selectedSubtitleTrackRef.current;
+
       if (!subtitleEnabled || !selectedSubtitleTrack) {
         resetSubtitleCues();
         return;
@@ -147,8 +220,8 @@ export function useSubtitleCues({
             ...logEventFields("editor.subtitle.load", "failure"),
             ...logDurationFields(startedAt),
             ...subtitleTrackLogFields(selectedSubtitleTrack, providerId),
+            ...subtitleResponseDiagnosticFields(downloadResult.response, 0),
             "subtitle.timeout": false,
-            "http.status_code": downloadResult.failure.status,
             "error.name": "SubtitleDownloadFailure",
             "error.message": downloadResult.failure.message,
           });
@@ -158,17 +231,22 @@ export function useSubtitleCues({
         }
 
         const parsedSubtitleCues = downloadResult.cues;
+        const subtitleEmpty = parsedSubtitleCues.length === 0;
         setSubtitleCues(parsedSubtitleCues);
         setSubtitleError(
-          parsedSubtitleCues.length === 0
-            ? "No subtitles found in this track."
-            : null,
+          subtitleEmpty ? "No subtitles found in this track." : null,
         );
         logger.info("Subtitle cues loaded.", {
-          ...logEventFields("editor.subtitle.load", "success"),
+          ...logEventFields(
+            "editor.subtitle.load",
+            subtitleEmpty ? "empty" : "success",
+          ),
           ...logDurationFields(startedAt),
           ...subtitleTrackLogFields(selectedSubtitleTrack, providerId),
-          "subtitle.cue.count": parsedSubtitleCues.length,
+          ...subtitleResponseDiagnosticFields(
+            downloadResult.response,
+            parsedSubtitleCues.length,
+          ),
         });
       } catch (err) {
         if (cancelled || abortController.signal.aborted) {
@@ -212,7 +290,12 @@ export function useSubtitleCues({
       window.clearTimeout(timeout);
       abortController.abort();
     };
-  }, [providerId, resetSubtitleCues, selectedSubtitleTrack, subtitleEnabled]);
+  }, [
+    providerId,
+    resetSubtitleCues,
+    selectedSubtitleTrackLoadKey,
+    subtitleEnabled,
+  ]);
 
   return {
     subtitleCues,
