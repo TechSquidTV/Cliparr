@@ -312,20 +312,42 @@ flowchart TD
 
 ```mermaid
 flowchart TD
-    A["User clicks Export"] --> B["useEditorExport resolves source/options and lazy-loads exportClip"]
-    B --> C["exportClip builds fresh Mediabunny input from export source URL"]
-    C --> D["exportMetadata builds tags and artwork when metadata exists"]
-    D --> E["Create Output(BufferTarget)"]
-    E --> F["Build conversion options for source video, selected audio, trim, resolution, tags, and optional subtitles"]
-    F --> G["Conversion.init validates selected tracks and output plan"]
-    G --> H{"Conversion valid?"}
-    H -- "No" --> I["Surface conversion/discard error"]
-    H -- "Yes" --> J{"Audio requested, source had audio, but no audio track utilized?"}
-    J -- "Yes" --> K["Surface audio discard error before execute"]
-    J -- "No" --> L["Execute conversion"]
-    L --> M["Patch MP4/MOV metadata boxes when needed"]
-    M --> N["Return Blob from target buffer"]
-    N --> O["Do not reopen the finished Blob just to recheck audio"]
+    A["Export dialog opens"] --> A1["useEditorExport computes immediate approximate output size from duration, dimensions, format, quality, source size, direct provider bitrate metadata, HLS manifest bandwidth, audio, and GIF settings"]
+    A1 --> A2["Dialog footer shows a compact estimate opposite the export action"]
+    A2 --> A3["Sharp video estimates may use source or HLS bitrate; Compact and Balanced use forced-transcode codec heuristics"]
+    A3 --> B["User clicks Export"]
+    B --> B1["useEditorExport resolves source/options and lazy-loads exportClip"]
+    B1 --> C{"Output format is GIF?"}
+    C -- "Yes" --> D["Build fresh Mediabunny input and CanvasSink from export source"]
+    D --> E["Apply GIF Quality control as max height, frame rate, color count, palette mode, and dither settings"]
+    E --> F["Draw frames with high-quality canvas scaling and burn subtitles when enabled"]
+    F --> G{"Preset uses a stable sampled palette?"}
+    G -- "Yes" --> G1["Sample frames first and quantize one shared palette"]
+    G -- "No" --> G2["Use a per-frame palette"]
+    G1 --> G3["Send RGBA frame data to the @techsquidtv/gifenc worker encoder"]
+    G2 --> G3
+    G3 --> G4["Workers quantize/apply palette, including spatial and temporal dithering when enabled, and return encoded frame chunks"]
+    G4 --> G5["Main thread concatenates chunks in frame order, appends GIF trailer, and reports progress"]
+    G5 --> G6["Return image/gif Blob"]
+
+    C -- "No" --> H["exportClip builds fresh Mediabunny input from export source URL"]
+    H --> I["exportMetadata builds tags and artwork when metadata exists"]
+    I --> J["Create Output(BufferTarget)"]
+    J --> K["Build conversion options for source video, selected audio, trim, resolution, tags, optional subtitles, and video quality"]
+    K --> K1{"Video quality is Compact or Balanced?"}
+    K1 -- "Yes" --> K2["Force video transcode with lower target bitrate"]
+    K1 -- "No" --> K3["Sharp leaves copy/remux available when possible"]
+    K2 --> L["Conversion.init validates selected tracks and output plan"]
+    K3 --> L
+    L --> M{"Conversion valid?"}
+    M -- "No" --> N["Surface conversion/discard error"]
+    M -- "Yes" --> O{"Audio requested, source had audio, but no audio track utilized?"}
+    O -- "Yes" --> P["Surface audio discard error before execute"]
+    O -- "No" --> Q["Execute conversion"]
+    Q --> R["Patch MP4/MOV metadata boxes when needed"]
+    R --> S["Log actual output bytes with estimate basis, delta, and ratio"]
+    S --> T["Return video Blob from target buffer"]
+    T --> U["Do not reopen the finished Blob just to recheck audio"]
 ```
 
 ## End-To-End Summary

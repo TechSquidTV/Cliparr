@@ -35,10 +35,19 @@ void test("passes provider playhead seconds into editor sessions", () => {
     playerTitle: "Living Room",
     playerState: "playing",
     mediaUrl: "/api/media/direct",
+    exportEstimateMetadata: {
+      sourceSizeBytes: 120_000_000,
+      sourceDurationSeconds: 600,
+      sourceBitrateKbps: 1_600,
+    },
   };
 
-  assert.equal(
-    editorSessionFromCurrentlyPlaying(item).initialPlayheadSeconds,
-    123.456,
-  );
+  const session = editorSessionFromCurrentlyPlaying(item);
+
+  assert.equal(session.initialPlayheadSeconds, 123.456);
+  assert.deepEqual(session.exportEstimateMetadata, {
+    sourceSizeBytes: 120_000_000,
+    sourceDurationSeconds: 600,
+    sourceBitrateKbps: 1_600,
+  });
 });

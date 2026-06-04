@@ -147,8 +147,11 @@ export default function EditorScreen({ session, onBack }: Props) {
   const {
     resolution,
     exportFormat,
+    selectedQuality,
+    gifSettings,
     effectiveExportSourcePreference,
     includeAudio,
+    audioDisabledReason,
     fileNameTemplates,
     templateEditorKind,
     setTemplateEditorKind,
@@ -158,6 +161,8 @@ export default function EditorScreen({ session, onBack }: Props) {
     exportError,
     fileName,
     outputDimensions,
+    outputSizeEstimate,
+    exportFormatDisabledReason,
     exportSource,
     exportSourceMessage,
     exportSourceSummaryMessage,
@@ -165,6 +170,7 @@ export default function EditorScreen({ session, onBack }: Props) {
     handleOpenExportDialog,
     handleCloseExportDialog,
     handleFormatChange,
+    handleQualityChange,
     handleResolutionChange,
     handleExportSourceChange,
     handleAudioChange,
@@ -453,7 +459,9 @@ export default function EditorScreen({ session, onBack }: Props) {
     ? "Waiting for media duration."
     : null;
   const exportDisabledReason =
-    durationExportDisabledReason ?? subtitleExportSummary.disabledReason;
+    durationExportDisabledReason ??
+    exportFormatDisabledReason ??
+    subtitleExportSummary.disabledReason;
   const headerExportDisabledReason = durationExportDisabledReason;
   const layoutVariant = isDesktopLayout ? "desktop" : "mobile";
   const propertiesActive =
@@ -639,12 +647,17 @@ export default function EditorScreen({ session, onBack }: Props) {
             clipEnd={endTime}
             selectedFormat={exportFormat}
             onFormatChange={handleFormatChange}
+            selectedQuality={selectedQuality}
+            onQualityChange={handleQualityChange}
+            gifSettings={gifSettings}
+            outputSizeEstimate={outputSizeEstimate}
             selectedResolution={resolution}
             onResolutionChange={handleResolutionChange}
             selectedSourcePreference={effectiveExportSourcePreference}
             onSourcePreferenceChange={handleExportSourceChange}
             includeAudio={includeAudio}
             onIncludeAudioChange={handleAudioChange}
+            audioDisabledReason={audioDisabledReason}
             exporting={exporting}
             progress={progress}
             error={exportError}

@@ -16,6 +16,7 @@ import type {
   CurrentlyPlayingEntry,
   MediaExportMetadata,
   PlaybackAudioSelection,
+  PlaybackExportEstimateMetadata,
   PlaybackSubtitleSelection,
   PlaybackSubtitleTrack,
   ProviderConnection,
@@ -118,10 +119,12 @@ interface PlexNetworkTag {
 }
 
 interface PlexStream extends PlexSelectableEntry {
+  bitrate?: unknown;
   codec?: unknown;
   default?: PlexSelectionValue;
   displayTitle?: unknown;
   extendedDisplayTitle?: unknown;
+  frameRate?: unknown;
   forced?: PlexSelectionValue;
   height?: unknown;
   hearingImpaired?: PlexSelectionValue;
@@ -140,16 +143,21 @@ interface PlexStream extends PlexSelectableEntry {
 interface PlexPart extends PlexSelectableEntry {
   Stream?: PlexStream | PlexStream[] | null;
   createdAt?: PlexIdValue;
+  duration?: PlexViewOffsetValue;
   file?: unknown;
   id?: PlexIdValue;
   key?: unknown;
+  size?: unknown;
   updatedAt?: PlexIdValue;
 }
 
 interface PlexMedia extends PlexSelectableEntry {
   Part?: PlexPart | PlexPart[] | null;
+  bitrate?: unknown;
   duration?: PlexViewOffsetValue;
+  height?: unknown;
   id?: PlexIdValue;
+  width?: unknown;
 }
 
 interface PlexPlaybackUser {
@@ -696,6 +704,75 @@ function isSubtitleStream(stream: PlexStream) {
   return numberValue(stream?.streamType) === 3;
 }
 
+function positiveNumber(value: unknown) {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : undefined;
+}
+
+function millisecondsToSeconds(value: unknown) {
+  const milliseconds = positiveNumber(value);
+  return milliseconds === undefined ? undefined : milliseconds / 1000;
+}
+
+function firstSelectedOrFirst<T extends PlexSelectableEntry>(
+  entries: readonly T[],
+) {
+  return entries.find((entry) => isSelectedEntry(entry)) ?? entries[0];
+}
+
+function bitrateFromSize(
+  sourceSizeBytes: number | undefined,
+  sourceDurationSeconds: number | undefined,
+) {
+  return sourceSizeBytes && sourceDurationSeconds
+    ? Math.round((sourceSizeBytes * 8) / sourceDurationSeconds / 1000)
+    : undefined;
+}
+
+export function createPlexExportEstimateMetadata(
+  item: PlexMetadataItem,
+  selection: PlexMediaSelection | undefined,
+  fallbackDurationSeconds: number,
+): PlaybackExportEstimateMetadata | undefined {
+  const resolvedPart = resolveSelectedPart(item, selection);
+  const selectedMedia = resolvedPart?.media;
+  const selectedPart = resolvedPart?.part;
+  const streams = streamEntries(selectedPart);
+  const selectedVideoStream = firstSelectedOrFirst(
+    streams.filter((stream) => isVideoStream(stream)),
+  );
+  const selectedAudioStream = firstSelectedOrFirst(
+    streams.filter((stream) => isAudioStream(stream)),
+  );
+  const sourceSizeBytes = positiveNumber(selectedPart?.size);
+  const sourceDurationSeconds =
+    millisecondsToSeconds(selectedPart?.duration) ??
+    millisecondsToSeconds(selectedMedia?.duration) ??
+    (fallbackDurationSeconds > 0 ? fallbackDurationSeconds : undefined);
+  const sourceBitrateKbps =
+    positiveNumber(selectedMedia?.bitrate) ??
+    bitrateFromSize(sourceSizeBytes, sourceDurationSeconds);
+
+  const metadata = {
+    sourceSizeBytes,
+    sourceDurationSeconds,
+    sourceBitrateKbps,
+    videoBitrateKbps: positiveNumber(selectedVideoStream?.bitrate),
+    audioBitrateKbps: positiveNumber(selectedAudioStream?.bitrate),
+    width:
+      positiveNumber(selectedVideoStream?.width) ??
+      positiveNumber(selectedMedia?.width),
+    height:
+      positiveNumber(selectedVideoStream?.height) ??
+      positiveNumber(selectedMedia?.height),
+    frameRate: positiveNumber(selectedVideoStream?.frameRate),
+  } satisfies PlaybackExportEstimateMetadata;
+
+  return Object.values(metadata).some((value) => value !== undefined)
+    ? metadata
+    : undefined;
+}
+
 function selectedAudioTrackTitle(stream: PlexStream) {
   return (
     stringValue(stream?.title) ??
@@ -1195,6 +1272,11 @@ async function normalizeCurrentPlayback(
             asArray(enrichedItem.Media)[0]?.duration ??
             0,
         ) / 1000;
+      const exportEstimateMetadata = createPlexExportEstimateMetadata(
+        enrichedItem,
+        mediaSelection,
+        duration,
+      );
       const playheadSeconds = playheadSecondsFromViewOffset(item?.viewOffset);
       const playerTitle = stringValue(item.Player?.title) ?? "Unknown Device";
       const playerState = stringValue(item.Player?.state) ?? "unknown";
@@ -1228,6 +1310,7 @@ async function normalizeCurrentPlayback(
           mediaUrl: mediaUrl ?? null,
           hlsUrl: hlsUrl ?? null,
           selectedAudioTrack: selectedAudioTrack ?? null,
+          exportEstimateMetadata: exportEstimateMetadata ?? null,
         },
         metadataPath: metadataPath(enrichedItem) ?? null,
         mediaId: mediaSelection?.mediaId ?? null,
@@ -1306,6 +1389,7 @@ async function normalizeCurrentPlayback(
           selectedSubtitleTrack,
           subtitleTracks,
           exportMetadata: createExportMetadata(session, context, enrichedItem),
+          exportEstimateMetadata,
         },
       };
     }),

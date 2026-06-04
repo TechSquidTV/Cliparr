@@ -73,6 +73,18 @@ void test("builds sanitized movie filenames from metadata templates", () => {
     fullName: "Movie With Bad Characters (1999) [01m01s-01h01m02s].mp4",
     templateKind: "movie",
   });
+
+  assert.equal(
+    buildExportFileName({
+      title: "Short Loop",
+      sessionType: "movie",
+      startTime: 0,
+      endTime: 5,
+      format: "gif",
+      templates: defaultExportFileNameTemplates(),
+    }).fullName,
+    "Short Loop [00m00s-00m05s].gif",
+  );
 });
 
 void test("builds episode filenames and falls back when episode numbers are absent", () => {

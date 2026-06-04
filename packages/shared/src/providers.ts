@@ -23,6 +23,17 @@ export interface MediaExportMetadata {
   imageUrl?: string;
 }
 
+export interface PlaybackExportEstimateMetadata {
+  sourceSizeBytes?: number;
+  sourceDurationSeconds?: number;
+  sourceBitrateKbps?: number;
+  videoBitrateKbps?: number;
+  audioBitrateKbps?: number;
+  width?: number;
+  height?: number;
+  frameRate?: number;
+}
+
 export interface PlaybackAudioSelection {
   trackNumber?: number;
   languageCode?: string;
@@ -86,6 +97,7 @@ export interface CurrentlyPlayingItem {
   selectedSubtitleTrack?: PlaybackSubtitleSelection;
   subtitleTracks?: PlaybackSubtitleTrack[];
   exportMetadata?: MediaExportMetadata;
+  exportEstimateMetadata?: PlaybackExportEstimateMetadata;
 }
 
 export interface ViewerPlaybackGroup {

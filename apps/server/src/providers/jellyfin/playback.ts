@@ -12,6 +12,7 @@ import type {
   CurrentlyPlayingEntry,
   MediaExportMetadata,
   PlaybackAudioSelection,
+  PlaybackExportEstimateMetadata,
   PlaybackSubtitleSelection,
   PlaybackSubtitleTrack,
 } from "@/providers/types";
@@ -47,6 +48,7 @@ import {
   JELLYFIN_REQUEST_TIMEOUT_MS,
   sourceContext,
   type JellyfinItem,
+  type JellyfinMediaSource,
   type JellyfinMediaStream,
   type JellyfinPlaybackInfo,
   type JellyfinSessionInfo,
@@ -260,6 +262,72 @@ function isVideoMediaStream(stream: JellyfinMediaStream) {
 
 function isSubtitleMediaStream(stream: JellyfinMediaStream) {
   return normalizedString(stream?.Type) === "subtitle";
+}
+
+function positiveNumber(value: unknown) {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : undefined;
+}
+
+function bpsToKbps(value: unknown) {
+  const bps = positiveNumber(value);
+  return bps === undefined ? undefined : Math.round(bps / 1000);
+}
+
+function firstDefaultOrFirst<T extends { IsDefault?: unknown }>(
+  entries: readonly T[],
+) {
+  return (
+    entries.find((entry) => booleanValue(entry?.IsDefault) === true) ??
+    entries[0]
+  );
+}
+
+function bitrateFromSize(
+  sourceSizeBytes: number | undefined,
+  sourceDurationSeconds: number | undefined,
+) {
+  return sourceSizeBytes && sourceDurationSeconds
+    ? Math.round((sourceSizeBytes * 8) / sourceDurationSeconds / 1000)
+    : undefined;
+}
+
+export function createJellyfinExportEstimateMetadata(
+  mediaSource: JellyfinMediaSource,
+  fallbackDurationSeconds: number,
+): PlaybackExportEstimateMetadata | undefined {
+  const videoStreams = asArray(mediaSource?.MediaStreams).filter((stream) =>
+    isVideoMediaStream(stream),
+  );
+  const audioStreams = asArray(mediaSource?.MediaStreams).filter((stream) =>
+    isAudioMediaStream(stream),
+  );
+  const selectedVideoStream = firstDefaultOrFirst(videoStreams);
+  const selectedAudioStream = firstDefaultOrFirst(audioStreams);
+  const sourceSizeBytes = positiveNumber(mediaSource?.Size);
+  const sourceDurationSeconds =
+    ticksToSeconds(mediaSource?.RunTimeTicks) ||
+    (fallbackDurationSeconds > 0 ? fallbackDurationSeconds : undefined);
+  const sourceBitrateKbps =
+    bpsToKbps(mediaSource?.Bitrate) ??
+    bitrateFromSize(sourceSizeBytes, sourceDurationSeconds);
+
+  const metadata = {
+    sourceSizeBytes,
+    sourceDurationSeconds,
+    sourceBitrateKbps,
+    videoBitrateKbps: bpsToKbps(selectedVideoStream?.BitRate),
+    audioBitrateKbps: bpsToKbps(selectedAudioStream?.BitRate),
+    width: positiveNumber(selectedVideoStream?.Width),
+    height: positiveNumber(selectedVideoStream?.Height),
+    frameRate:
+      positiveNumber(selectedVideoStream?.AverageFrameRate) ??
+      positiveNumber(selectedVideoStream?.RealFrameRate),
+  } satisfies PlaybackExportEstimateMetadata;
+
+  return Object.values(metadata).some((value) => value !== undefined)
+    ? metadata
+    : undefined;
 }
 
 function jellyfinAudioTrackTitle(stream: JellyfinMediaStream) {
@@ -808,6 +876,9 @@ async function normalizeCurrentPlayback(
   const duration = ticksToSeconds(
     enrichedItem?.RunTimeTicks ?? nowPlayingItem?.RunTimeTicks,
   );
+  const exportEstimateMetadata = mediaSource
+    ? createJellyfinExportEstimateMetadata(mediaSource, duration)
+    : undefined;
   const playheadSeconds = playheadSecondsFromPositionTicks(
     sessionInfo?.PlayState?.PositionTicks,
   );
@@ -853,6 +924,7 @@ async function normalizeCurrentPlayback(
       mediaUrl: mediaUrl ?? null,
       hlsUrl: hlsUrl ?? null,
       selectedAudioTrack: selectedAudioTrack ?? null,
+      exportEstimateMetadata: exportEstimateMetadata ?? null,
     },
     mediaSourceId: mediaSourceId ?? null,
     videoStreamCount: videoStreams.length,
@@ -925,6 +997,7 @@ async function normalizeCurrentPlayback(
       selectedSubtitleTrack,
       subtitleTracks,
       exportMetadata: createExportMetadata(session, context, enrichedItem),
+      exportEstimateMetadata,
     },
   } satisfies CurrentlyPlayingEntry;
 }

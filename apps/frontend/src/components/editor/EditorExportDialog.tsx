@@ -1,6 +1,12 @@
 import { Download } from "lucide-react";
 import type { ExportFormat, ExportResolution } from "@/lib/exportClip";
 import {
+  formatExportByteSize,
+  type ExportQualityPreset,
+  type ExportSizeEstimate,
+  type GifExportSettings,
+} from "@/lib/exportTypes";
+import {
   type ExportFileNameTemplateKind,
   type ExportFileNameTemplateSettings,
 } from "@/lib/exportFileName";
@@ -19,8 +25,8 @@ import {
   EditorExportSettingsSection,
   EditorExportSummaryPanel,
   EditorFilenameTemplateSection,
-  formatOptionFor,
 } from "@/components/editor/EditorExportDialogSections";
+import { formatOptionFor } from "@/components/editor/editorExportOptions";
 
 interface VideoDimensions {
   width: number;
@@ -36,12 +42,17 @@ interface EditorExportDialogProps {
   clipEnd: number;
   selectedFormat: ExportFormat;
   onFormatChange: (format: ExportFormat) => void;
+  selectedQuality: ExportQualityPreset;
+  onQualityChange: (quality: ExportQualityPreset) => void;
+  gifSettings?: GifExportSettings | null;
+  outputSizeEstimate: ExportSizeEstimate;
   selectedResolution: ExportResolution;
   onResolutionChange: (resolution: ExportResolution) => void;
   selectedSourcePreference: ExportSourcePreference;
   onSourcePreferenceChange: (preference: ExportSourcePreference) => void;
   includeAudio: boolean;
   onIncludeAudioChange: (includeAudio: boolean) => void;
+  audioDisabledReason?: string | null;
   exporting: boolean;
   progress: number;
   error: string | null;
@@ -78,12 +89,17 @@ export function EditorExportDialog({
   clipEnd,
   selectedFormat,
   onFormatChange,
+  selectedQuality,
+  onQualityChange,
+  gifSettings,
+  outputSizeEstimate,
   selectedResolution,
   onResolutionChange,
   selectedSourcePreference,
   onSourcePreferenceChange,
   includeAudio,
   onIncludeAudioChange,
+  audioDisabledReason,
   exporting,
   progress,
   error,
@@ -110,6 +126,10 @@ export function EditorExportDialog({
   onExport,
 }: EditorExportDialogProps) {
   const selectedFormatOption = formatOptionFor(selectedFormat);
+  const displayedEstimateLabel =
+    typeof outputSizeEstimate.bytes === "number"
+      ? `~${formatExportByteSize(outputSizeEstimate.bytes)}`
+      : "Unavailable";
 
   return (
     <DialogWindow
@@ -133,12 +153,15 @@ export function EditorExportDialog({
           <EditorExportSettingsSection
             selectedFormat={selectedFormat}
             onFormatChange={onFormatChange}
+            selectedQuality={selectedQuality}
+            onQualityChange={onQualityChange}
             selectedResolution={selectedResolution}
             onResolutionChange={onResolutionChange}
             selectedSourcePreference={selectedSourcePreference}
             onSourcePreferenceChange={onSourcePreferenceChange}
             includeAudio={includeAudio}
             onIncludeAudioChange={onIncludeAudioChange}
+            audioDisabledReason={audioDisabledReason}
             hasHlsSource={hasHlsSource}
             hasDirectSource={hasDirectSource}
             directSourceLabel={directSourceLabel}
@@ -159,6 +182,8 @@ export function EditorExportDialog({
           clipStart={clipStart}
           clipEnd={clipEnd}
           selectedFormat={selectedFormat}
+          selectedQuality={selectedQuality}
+          gifSettings={gifSettings}
           outputDimensions={outputDimensions}
           exportSourceLabel={exportSourceLabel}
           exportSourceSummaryMessage={exportSourceSummaryMessage}
@@ -171,41 +196,51 @@ export function EditorExportDialog({
         />
       </div>
 
-      <DialogFooter className="border-t border-border bg-card px-4 py-3">
-        {exportDisabledReason && (
-          <div className="mr-auto text-xs text-muted-foreground">
-            {exportDisabledReason}
+      <DialogFooter className="flex-col gap-3 border-t border-border bg-card px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="min-w-0 self-stretch sm:self-center">
+          <div className="flex min-w-0 flex-wrap items-baseline gap-x-2 gap-y-0.5 text-xs">
+            <span className="text-muted-foreground">Estimated size</span>
+            <span className="font-mono tabular-nums text-foreground">
+              {displayedEstimateLabel}
+            </span>
           </div>
-        )}
-
-        <DialogClose
-          disabled={exporting}
-          className={compactSecondaryButtonClasses}
-        >
-          Cancel
-        </DialogClose>
-
-        <button
-          type="button"
-          onClick={onExport}
-          disabled={exporting || Boolean(exportDisabledReason)}
-          className={`${compactPrimaryButtonClasses} w-44`}
-        >
-          {exporting ? (
-            <>
-              <div className="h-4 w-4 shrink-0 animate-spin rounded-full border-2 border-primary-foreground/30 border-t-primary-foreground" />
-              <span>Exporting</span>
-              <span className="inline-block w-[4ch] text-right font-mono tabular-nums">
-                {Math.round(progress * 100)}%
-              </span>
-            </>
-          ) : (
-            <>
-              <Download className="h-4 w-4" />
-              Export {selectedFormatOption.label}
-            </>
+          {exportDisabledReason && (
+            <div className="mt-1 text-xs text-muted-foreground">
+              {exportDisabledReason}
+            </div>
           )}
-        </button>
+        </div>
+
+        <div className="flex items-center justify-end gap-2">
+          <DialogClose
+            disabled={exporting}
+            className={compactSecondaryButtonClasses}
+          >
+            Cancel
+          </DialogClose>
+
+          <button
+            type="button"
+            onClick={onExport}
+            disabled={exporting || Boolean(exportDisabledReason)}
+            className={`${compactPrimaryButtonClasses} w-44`}
+          >
+            {exporting ? (
+              <>
+                <div className="h-4 w-4 shrink-0 animate-spin rounded-full border-2 border-primary-foreground/30 border-t-primary-foreground" />
+                <span>Exporting</span>
+                <span className="inline-block w-[4ch] text-right font-mono tabular-nums">
+                  {Math.round(progress * 100)}%
+                </span>
+              </>
+            ) : (
+              <>
+                <Download className="h-4 w-4" />
+                Export {selectedFormatOption.label}
+              </>
+            )}
+          </button>
+        </div>
       </DialogFooter>
     </DialogWindow>
   );

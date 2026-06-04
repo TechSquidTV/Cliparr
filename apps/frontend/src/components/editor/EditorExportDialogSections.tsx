@@ -1,3 +1,4 @@
+import { memo } from "react";
 import { Info } from "lucide-react";
 import {
   Select,
@@ -15,6 +16,15 @@ import {
 } from "@/components/ui/tooltip";
 import type { ExportFormat, ExportResolution } from "@/lib/exportClip";
 import {
+  exportQualityDescriptionFor,
+  exportQualityOptionFor,
+  exportQualityOptionsForFormat,
+  gifExportPresetOptions,
+  type ExportQualityPreset,
+  type GifExportPreset,
+  type GifExportSettings,
+} from "@/lib/exportTypes";
+import {
   getExportFileNameTemplateTokens,
   type ExportFileNameTemplateKind,
   type ExportFileNameTemplateSettings,
@@ -24,6 +34,10 @@ import {
   compactSelectTriggerClassName,
   sectionLabelClassName,
 } from "@/components/editor/editorDialogStyles";
+import {
+  formatOptionFor,
+  formatOptions,
+} from "@/components/editor/editorExportOptions";
 import { formatTime } from "@/components/editor/editorUtils";
 
 interface VideoDimensions {
@@ -36,37 +50,6 @@ interface ExportOption<T extends string> {
   label: string;
   description: string;
 }
-
-const formatOptions: ReadonlyArray<
-  ExportOption<ExportFormat> & {
-    extension: string;
-  }
-> = [
-  {
-    value: "mp4",
-    label: "MP4",
-    extension: ".mp4",
-    description: "Best for sharing and uploads.",
-  },
-  {
-    value: "webm",
-    label: "WEBM",
-    extension: ".webm",
-    description: "Efficient web playback.",
-  },
-  {
-    value: "mov",
-    label: "MOV",
-    extension: ".mov",
-    description: "Good for editing workflows.",
-  },
-  {
-    value: "mkv",
-    label: "MKV",
-    extension: ".mkv",
-    description: "Flexible container support.",
-  },
-];
 
 const resolutionOptions: ReadonlyArray<ExportOption<ExportResolution>> = [
   {
@@ -103,16 +86,20 @@ const templateOptions: ReadonlyArray<{
   },
 ];
 
-export function formatOptionFor(format: ExportFormat) {
-  return (
-    formatOptions.find((option) => option.value === format) ?? formatOptions[0]
-  );
-}
+const stableHelperTextClassName =
+  "min-h-9 text-xs leading-relaxed text-muted-foreground";
 
 function resolutionOptionFor(resolution: ExportResolution) {
   return (
     resolutionOptions.find((option) => option.value === resolution) ??
     resolutionOptions[0]
+  );
+}
+
+function gifPresetOptionFor(preset: GifExportPreset) {
+  return (
+    gifExportPresetOptions.find((option) => option.value === preset) ??
+    gifExportPresetOptions[0]
   );
 }
 
@@ -167,33 +154,40 @@ function SectionHeader({ children }: { children: string }) {
 interface EditorExportSettingsSectionProps {
   selectedFormat: ExportFormat;
   onFormatChange: (format: ExportFormat) => void;
+  selectedQuality: ExportQualityPreset;
+  onQualityChange: (quality: ExportQualityPreset) => void;
   selectedResolution: ExportResolution;
   onResolutionChange: (resolution: ExportResolution) => void;
   selectedSourcePreference: ExportSourcePreference;
   onSourcePreferenceChange: (preference: ExportSourcePreference) => void;
   includeAudio: boolean;
   onIncludeAudioChange: (includeAudio: boolean) => void;
+  audioDisabledReason?: string | null;
   hasHlsSource: boolean;
   hasDirectSource: boolean;
   directSourceLabel: string;
   hlsSourceLabel: string;
 }
 
-export function EditorExportSettingsSection({
+function EditorExportSettingsSectionComponent({
   selectedFormat,
   onFormatChange,
+  selectedQuality,
+  onQualityChange,
   selectedResolution,
   onResolutionChange,
   selectedSourcePreference,
   onSourcePreferenceChange,
   includeAudio,
   onIncludeAudioChange,
+  audioDisabledReason,
   hasHlsSource,
   hasDirectSource,
   directSourceLabel,
   hlsSourceLabel,
 }: EditorExportSettingsSectionProps) {
   const sourceOptions = sourceOptionsFor({ directSourceLabel, hlsSourceLabel });
+  const qualityOptions = exportQualityOptionsForFormat(selectedFormat);
 
   return (
     <section className="rounded-md border border-border bg-card">
@@ -222,10 +216,41 @@ export function EditorExportSettingsSection({
               </SelectGroup>
             </SelectContent>
           </Select>
-          <p className="text-xs text-muted-foreground">
+          <p className={stableHelperTextClassName}>
             {formatOptionFor(selectedFormat).description}
           </p>
         </label>
+
+        <div className="space-y-1.5">
+          <span className={sectionLabelClassName()}>Quality</span>
+          <Select
+            value={selectedQuality}
+            onValueChange={(value) =>
+              onQualityChange(value as ExportQualityPreset)
+            }
+          >
+            <SelectTrigger
+              size="sm"
+              className={compactSelectTriggerClassName()}
+              aria-label="Export quality"
+            >
+              <SelectValue placeholder="Select quality" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectGroup>
+                <SelectLabel>Quality</SelectLabel>
+                {qualityOptions.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectGroup>
+            </SelectContent>
+          </Select>
+          <p className={stableHelperTextClassName}>
+            {exportQualityDescriptionFor(selectedFormat, selectedQuality)}
+          </p>
+        </div>
 
         <label className="space-y-1.5">
           <span className={sectionLabelClassName()}>Resolution</span>
@@ -252,7 +277,7 @@ export function EditorExportSettingsSection({
               </SelectGroup>
             </SelectContent>
           </Select>
-          <p className="text-xs text-muted-foreground">
+          <p className={stableHelperTextClassName}>
             {resolutionOptionFor(selectedResolution).description}
           </p>
         </label>
@@ -305,7 +330,7 @@ export function EditorExportSettingsSection({
               </SelectGroup>
             </SelectContent>
           </Select>
-          <p className="text-xs text-muted-foreground">
+          <p className={stableHelperTextClassName}>
             {
               sourceOptionFor(selectedSourcePreference, {
                 directSourceLabel,
@@ -315,10 +340,11 @@ export function EditorExportSettingsSection({
           </p>
         </div>
 
-        <label className="space-y-1.5">
+        <label className="space-y-1.5 sm:col-span-2">
           <span className={sectionLabelClassName()}>Audio</span>
           <Select
             value={includeAudio ? "included" : "video-only"}
+            disabled={Boolean(audioDisabledReason)}
             onValueChange={(value) =>
               onIncludeAudioChange(value === "included")
             }
@@ -337,16 +363,21 @@ export function EditorExportSettingsSection({
               </SelectGroup>
             </SelectContent>
           </Select>
-          <p className="text-xs text-muted-foreground">
-            {includeAudio
-              ? "Keeps a stereo mix when source audio exists."
-              : "Exports without an audio track."}
+          <p className={stableHelperTextClassName}>
+            {audioDisabledReason ??
+              (includeAudio
+                ? "Keeps a stereo mix when source audio exists."
+                : "Exports without an audio track.")}
           </p>
         </label>
       </div>
     </section>
   );
 }
+
+export const EditorExportSettingsSection = memo(
+  EditorExportSettingsSectionComponent,
+);
 
 interface EditorFilenameTemplateSectionProps {
   editingTemplateKind: ExportFileNameTemplateKind;
@@ -359,7 +390,7 @@ interface EditorFilenameTemplateSectionProps {
   onResetFileNameTemplate: (kind: ExportFileNameTemplateKind) => void;
 }
 
-export function EditorFilenameTemplateSection({
+function EditorFilenameTemplateSectionComponent({
   editingTemplateKind,
   onEditingTemplateKindChange,
   fileNameTemplates,
@@ -423,7 +454,7 @@ export function EditorFilenameTemplateSection({
           />
         </label>
 
-        <p className="text-xs text-muted-foreground">
+        <p className={stableHelperTextClassName}>
           {editingTemplateOption.description}
         </p>
 
@@ -445,11 +476,17 @@ export function EditorFilenameTemplateSection({
   );
 }
 
+export const EditorFilenameTemplateSection = memo(
+  EditorFilenameTemplateSectionComponent,
+);
+
 interface EditorExportSummaryPanelProps {
   title: string;
   clipStart: number;
   clipEnd: number;
   selectedFormat: ExportFormat;
+  selectedQuality: ExportQualityPreset;
+  gifSettings?: GifExportSettings | null;
   outputDimensions: VideoDimensions | null;
   exportSourceLabel: string;
   exportSourceSummaryMessage: string | null;
@@ -461,11 +498,13 @@ interface EditorExportSummaryPanelProps {
   fileNamePreview: string;
 }
 
-export function EditorExportSummaryPanel({
+function EditorExportSummaryPanelComponent({
   title,
   clipStart,
   clipEnd,
   selectedFormat,
+  selectedQuality,
+  gifSettings,
   outputDimensions,
   exportSourceLabel,
   exportSourceSummaryMessage,
@@ -478,6 +517,12 @@ export function EditorExportSummaryPanel({
 }: EditorExportSummaryPanelProps) {
   const clipLength = Math.max(0, clipEnd - clipStart);
   const selectedFormatOption = formatOptionFor(selectedFormat);
+  const outputDetail =
+    selectedFormat === "gif" && gifSettings
+      ? `${gifPresetOptionFor(gifSettings.preset).label} GIF / ${
+          gifSettings.frameRate
+        } fps`
+      : `${exportQualityOptionFor(selectedQuality).label} quality`;
   const subtitleSummaryClassName =
     subtitleSummaryTone === "ready"
       ? "border-status-ready-border bg-status-ready"
@@ -511,11 +556,11 @@ export function EditorExportSummaryPanel({
         <div className="rounded-md border border-border bg-background px-3 py-2">
           <dt className={sectionLabelClassName()}>Source</dt>
           <dd className="mt-1 text-xs text-foreground">{exportSourceLabel}</dd>
-          {exportSourceSummaryMessage ? (
-            <dd className="mt-1 text-xs leading-relaxed text-muted-foreground">
+          {exportSourceSummaryMessage && (
+            <dd className="mt-1 text-ui-label text-muted-foreground">
               {exportSourceSummaryMessage}
             </dd>
-          ) : null}
+          )}
         </div>
 
         <div className="rounded-md border border-border bg-background px-3 py-2">
@@ -528,6 +573,11 @@ export function EditorExportSummaryPanel({
               ? `${outputDimensions.width} x ${outputDimensions.height}`
               : "Unknown size"}
           </dd>
+          {outputDetail && (
+            <dd className="mt-1 text-ui-label text-muted-foreground">
+              {outputDetail}
+            </dd>
+          )}
         </div>
 
         <div className="rounded-md border border-border bg-background px-3 py-2">
@@ -564,3 +614,5 @@ export function EditorExportSummaryPanel({
     </aside>
   );
 }
+
+export const EditorExportSummaryPanel = memo(EditorExportSummaryPanelComponent);

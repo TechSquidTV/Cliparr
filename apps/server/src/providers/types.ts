@@ -3,6 +3,7 @@ import type {
   CurrentlyPlayingItem,
   MediaExportMetadata,
   PlaybackAudioSelection,
+  PlaybackExportEstimateMetadata,
   PlaybackSubtitleSelection,
   PlaybackSubtitleTrack,
   PlaybackViewer,
@@ -15,6 +16,7 @@ import type { ProviderSessionRecord } from "@/session/store";
 export type {
   MediaExportMetadata,
   PlaybackAudioSelection,
+  PlaybackExportEstimateMetadata,
   PlaybackSubtitleSelection,
   PlaybackSubtitleTrack,
   SourcePlaybackError,

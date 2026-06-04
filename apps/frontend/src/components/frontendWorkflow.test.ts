@@ -2,7 +2,7 @@
 
 import assert from "node:assert/strict";
 import test from "node:test";
-import { createElement, createRef } from "react";
+import { createElement, createRef, type ComponentProps } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import {
   flattenDashboardPlaybackItems,
@@ -13,6 +13,7 @@ import { DashboardPlaybackCard } from "@/components/DashboardScreen";
 import DashboardScreen from "@/components/DashboardScreen";
 import { DashboardMobileMenu } from "@/components/DashboardMobileMenu";
 import { EditorControls } from "@/components/editor/EditorControls";
+import { EditorExportDialog } from "@/components/editor/EditorExportDialog";
 import { EditorFramegrabDialog } from "@/components/editor/EditorFramegrabDialog";
 import { EditorHeader } from "@/components/editor/EditorHeader";
 import { EditorPreview } from "@/components/editor/EditorPreview";
@@ -23,6 +24,7 @@ import {
   MobilePwaInstallNudgeCard,
 } from "@/components/MobilePwaInstallNudge";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { gifExportSettingsForPreset } from "@/lib/exportTypes";
 import {
   COARSE_POINTER_MEDIA_QUERY,
   MOBILE_INSTALL_MEDIA_QUERY,
@@ -76,6 +78,66 @@ const dashboardPlaybackGroups: ViewerPlaybackGroup[] = [
     ],
   },
 ];
+
+function renderExportDialogMarkup(
+  overrides: Partial<ComponentProps<typeof EditorExportDialog>> = {},
+) {
+  const props = {
+    isOpen: true,
+    title: "Example Movie",
+    clipStart: 10,
+    clipEnd: 20,
+    selectedFormat: "mp4",
+    onFormatChange: () => undefined,
+    selectedQuality: "sharp",
+    onQualityChange: () => undefined,
+    gifSettings: null,
+    outputSizeEstimate: { bytes: 7_029_750, basis: "codec-heuristic" },
+    selectedResolution: "original",
+    onResolutionChange: () => undefined,
+    selectedSourcePreference: "auto",
+    onSourcePreferenceChange: () => undefined,
+    includeAudio: true,
+    onIncludeAudioChange: () => undefined,
+    audioDisabledReason: null,
+    exporting: false,
+    progress: 0,
+    error: null,
+    fileNamePreview: "Example Movie [00m10s-00m20s].mp4",
+    outputDimensions: { width: 1920, height: 1080 },
+    hasHlsSource: true,
+    hasDirectSource: true,
+    directSourceLabel: "Direct/original",
+    hlsSourceLabel: "HLS playback",
+    exportSourceLabel: "Auto: HLS playback",
+    exportSourceMessage: null,
+    exportSourceSummaryMessage: null,
+    subtitleSummaryLabel: "Off",
+    subtitleSummaryDetail: "No subtitles will be burned in.",
+    subtitleSummaryTone: "muted",
+    exportDisabledReason: null,
+    activeTemplateKind: "movie",
+    editingTemplateKind: "movie",
+    onEditingTemplateKindChange: () => undefined,
+    fileNameTemplates: {
+      movie: "{title} [{start}-{end}]",
+      episode: "{series} - {episodeTitle} [{start}-{end}]",
+    },
+    onFileNameTemplateChange: () => undefined,
+    onResetFileNameTemplate: () => undefined,
+    onClose: () => undefined,
+    onExport: () => undefined,
+    ...overrides,
+  } satisfies ComponentProps<typeof EditorExportDialog>;
+
+  return renderToStaticMarkup(
+    createElement(
+      TooltipProvider,
+      null,
+      createElement(EditorExportDialog, props),
+    ),
+  );
+}
 
 const dashboardMusicPlaybackGroups: ViewerPlaybackGroup[] = [
   {
@@ -597,6 +659,69 @@ void test("renders the framegrab export dialog actions", () => {
   assert.doesNotMatch(markup, /sr-only/);
   assert.match(markup, /Copied to clipboard\./);
   assert.match(markup, /Example Movie \[01m01s\]\.png/);
+});
+
+void test("renders GIF export quality controls and immediate estimated size", () => {
+  const markup = renderExportDialogMarkup({
+    selectedFormat: "gif",
+    selectedQuality: "balanced",
+    gifSettings: gifExportSettingsForPreset("balanced"),
+    outputSizeEstimate: { bytes: 1_572_864, basis: "gif-heuristic" },
+    includeAudio: false,
+    audioDisabledReason: "GIF exports are video only.",
+    fileNamePreview: "Example Movie [00m10s-00m20s].gif",
+    outputDimensions: { width: 853, height: 480 },
+  });
+
+  assert.match(markup, /Quality/);
+  assert.match(markup, /aria-label="Export quality"/);
+  assert.doesNotMatch(markup, /aria-pressed=/);
+  assert.doesNotMatch(markup, /GIF Preset/);
+  assert.doesNotMatch(markup, /min-h-\[6\.5rem\]/);
+  assert.match(markup, /Default GIF quality\/size tradeoff\./);
+  assert.match(markup, /Balanced GIF \/ 12 fps/);
+  assert.doesNotMatch(markup, /<dt[^>]*>Estimated size<\/dt>/);
+  assert.match(markup, /Estimated size[\s\S]*~1\.5 MB[\s\S]*Export GIF/);
+  assert.match(markup, /~1\.5 MB/);
+  assert.match(markup, /GIF exports are video only\./);
+  assert.doesNotMatch(markup, /role="radiogroup"/);
+  assert.doesNotMatch(markup, /grid-cols-3/);
+  assert.doesNotMatch(markup, /role="note"/);
+  assert.doesNotMatch(markup, /aria-live="polite"/);
+});
+
+void test("renders universal quality details for video formats", () => {
+  const markup = renderExportDialogMarkup({
+    selectedFormat: "mp4",
+    selectedQuality: "sharp",
+    gifSettings: gifExportSettingsForPreset("balanced"),
+  });
+
+  assert.match(markup, /Quality/);
+  assert.doesNotMatch(markup, /Efficient/);
+  assert.match(markup, /Preserves source video when possible\./);
+  assert.match(markup, /Sharp quality/);
+  assert.doesNotMatch(markup, /GIF Preset/);
+  assert.doesNotMatch(markup, /min-h-\[6\.5rem\]/);
+  assert.doesNotMatch(markup, /<dt[^>]*>Estimated size<\/dt>/);
+  assert.match(markup, /Estimated size[\s\S]*~6\.7 MB[\s\S]*Export MP4/);
+  assert.match(markup, /~6\.7 MB/);
+  assert.doesNotMatch(markup, /~1\.5 MB/);
+  assert.doesNotMatch(markup, /Balanced GIF \/ 12 fps/);
+  assert.doesNotMatch(markup, /invisible border-transparent/);
+  assert.doesNotMatch(markup, /sm:w-36/);
+  assert.doesNotMatch(markup, /Size Estimate/);
+});
+
+void test("renders unavailable footer estimate when size inputs are missing", () => {
+  const markup = renderExportDialogMarkup({
+    outputDimensions: null,
+    outputSizeEstimate: { bytes: null, basis: "unavailable" },
+  });
+
+  assert.doesNotMatch(markup, /<dt[^>]*>Estimated size<\/dt>/);
+  assert.match(markup, /Estimated size[\s\S]*Unavailable[\s\S]*Export MP4/);
+  assert.match(markup, /Unavailable/);
 });
 
 void test("renders framegrab capture errors without a captured canvas", () => {

@@ -2,6 +2,7 @@ import type {
   CurrentlyPlayingItem,
   MediaExportMetadata,
   PlaybackAudioSelection,
+  PlaybackExportEstimateMetadata,
   PlaybackSource,
   PlaybackSubtitleSelection,
   PlaybackSubtitleTrack,
@@ -81,6 +82,7 @@ export interface EditorSession {
   selectedSubtitleTrack?: PlaybackSubtitleSelection;
   subtitleTracks?: PlaybackSubtitleTrack[];
   exportMetadata?: MediaExportMetadata;
+  exportEstimateMetadata?: PlaybackExportEstimateMetadata;
   local: boolean;
 }
 
@@ -140,6 +142,7 @@ export function editorSessionFromCurrentlyPlaying(
     selectedSubtitleTrack: item.selectedSubtitleTrack,
     subtitleTracks: item.subtitleTracks,
     exportMetadata: item.exportMetadata,
+    exportEstimateMetadata: item.exportEstimateMetadata,
     local: false,
   };
 }
@@ -173,7 +176,34 @@ export function buildLocalEditorSession(input: {
       title,
       sourceTitle: title,
     },
+    exportEstimateMetadata: buildLocalExportEstimateMetadata(
+      input.source,
+      input.duration,
+    ),
     local: true,
+  };
+}
+
+function buildLocalExportEstimateMetadata(
+  source: EditorMediaSource,
+  duration?: number,
+): PlaybackExportEstimateMetadata | undefined {
+  const sourceSizeBytes =
+    source.kind === "file"
+      ? (source.size ?? source.file.size)
+      : source.kind === "file-handle"
+        ? source.size
+        : undefined;
+  const sourceDurationSeconds =
+    typeof duration === "number" && duration > 0 ? duration : undefined;
+
+  if (!sourceSizeBytes && !sourceDurationSeconds) {
+    return undefined;
+  }
+
+  return {
+    sourceSizeBytes,
+    sourceDurationSeconds,
   };
 }
 

@@ -19,6 +19,7 @@
     "@mediabunny/aac-encoder": "^1.45.4",
     "@mediabunny/ac3": "^1.45.4",
     "@tanstack/react-router": "^1.170.10",
+    "@techsquidtv/gifenc": "1.1.0",
     "@xzdarcy/react-timeline-editor": "^1.0.0",
     "clsx": "^2.1.1",
     "lucide-react": "^1.17.0",

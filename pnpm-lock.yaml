@@ -73,6 +73,9 @@ importers:
       '@tanstack/react-router':
         specifier: ^1.170.10
         version: 1.170.10(react-dom@19.2.6(react@19.2.6))(react@19.2.6)
+      '@techsquidtv/gifenc':
+        specifier: 1.1.0
+        version: 1.1.0
       '@xzdarcy/react-timeline-editor':
         specifier: ^1.0.0
         version: 1.0.0(react-dom@19.2.6(react@19.2.6))(react@19.2.6)
@@ -2954,6 +2957,10 @@ packages:
   '@tanstack/virtual-file-routes@1.162.0':
     resolution: {integrity: sha512-uhOeFyxLcU41HzvrxsGpiWdcMbScY1EDgbZ5K7DVRMYInbLYWAC0EA/kx9wXAoSM8q82bUG2hRl8+EAjE6XAbA==}
     engines: {node: '>=20.19'}
+
+  '@techsquidtv/gifenc@1.1.0':
+    resolution: {integrity: sha512-sZZ5P5A89HQytHOsEcNLp8dNdUBnB7RPGVZWnNatapeMlanlW6i4x0CmS1IFPPjA0IPabSv2YZ18o2UtEMdo/A==}
+    engines: {node: '>=22.13.0'}
 
   '@tybys/wasm-util@0.10.2':
     resolution: {integrity: sha512-RoBvJ2X0wuKlWFIjrwffGw1IqZHKQqzIchKaadZZfnNpsAYp2mM0h36JtPCjNDAHGgYez/15uMBpfGwchhiMgg==}
@@ -8532,6 +8539,8 @@ snapshots:
   '@tanstack/store@0.9.3': {}
 
   '@tanstack/virtual-file-routes@1.162.0': {}
+
+  '@techsquidtv/gifenc@1.1.0': {}
 
   '@tybys/wasm-util@0.10.2':
     dependencies:
