@@ -6,7 +6,7 @@
   <p>
     <img src="https://img.shields.io/badge/Support-Plex-e5a00d?style=for-the-badge&logo=plex&logoColor=white" alt="Plex Support" />
     <img src="https://img.shields.io/badge/Support-Jellyfin-00a4dc?style=for-the-badge&logo=jellyfin&logoColor=white" alt="Jellyfin Support" />
-    <img src="https://img.shields.io/github/license/techsquidtv/cliparr?style=for-the-badge" alt="License" />
+    <img src="https://img.shields.io/badge/License-MIT-green?style=for-the-badge" alt="License: MIT" />
   </p>
 </div>
 
