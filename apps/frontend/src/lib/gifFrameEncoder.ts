@@ -209,25 +209,34 @@ function createGifFrameWorkerEncoder({
 
       return new Promise<GifFrameChunk>((resolve, reject) => {
         pendingRequests.set(id, { resolve, reject });
-        worker.postMessage(
-          {
-            type: "encode-frame",
-            id,
-            sequenceIndex: input.sequenceIndex,
-            rgba,
-            width: input.width,
-            height: input.height,
-            maxColors: input.maxColors,
-            delayMs: input.delayMs,
-            palette: input.palette,
-            paletteFormat: input.paletteFormat,
-            ditherMode: input.ditherMode,
-            ditherStrength: input.ditherStrength,
-            serpentine: input.serpentine,
-            temporalDither: input.temporalDither,
-          } satisfies GifFrameWorkerEncodeRequest,
-          [rgba],
-        );
+        try {
+          worker.postMessage(
+            {
+              type: "encode-frame",
+              id,
+              sequenceIndex: input.sequenceIndex,
+              rgba,
+              width: input.width,
+              height: input.height,
+              maxColors: input.maxColors,
+              delayMs: input.delayMs,
+              palette: input.palette,
+              paletteFormat: input.paletteFormat,
+              ditherMode: input.ditherMode,
+              ditherStrength: input.ditherStrength,
+              serpentine: input.serpentine,
+              temporalDither: input.temporalDither,
+            } satisfies GifFrameWorkerEncodeRequest,
+            [rgba],
+          );
+        } catch (error) {
+          pendingRequests.delete(id);
+          reject(
+            error instanceof Error
+              ? error
+              : new Error("GIF frame worker could not receive frame data."),
+          );
+        }
       });
     },
     dispose() {

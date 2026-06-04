@@ -1,4 +1,4 @@
-import type { Palette, quantize } from "@techsquidtv/gifenc";
+import type { Palette } from "@techsquidtv/gifenc";
 import {
   BufferTarget,
   CanvasSink,
@@ -48,10 +48,13 @@ import {
   type VideoExportQualityPreset,
 } from "@/lib/exportTypes";
 import type {
-  concatenateGifFrameChunks,
+  EncodeGifFrameChunkHelpers,
   GifFrameChunk,
 } from "@/lib/gifFrameChunk";
-import type { createBestGifFrameEncoder } from "@/lib/gifFrameEncoder";
+import type {
+  GifFrameEncoder,
+  GifFrameEncoderOptions,
+} from "@/lib/gifFrameEncoder";
 import { getActiveSubtitleCue } from "@/lib/subtitles/getActiveSubtitleCue";
 import { renderSubtitleCue } from "@/lib/subtitles/renderSubtitleCue";
 import { trimSubtitleCues } from "@/lib/subtitles/trimSubtitleCues";
@@ -108,9 +111,9 @@ interface GifCanvasResources {
 
 type GifPalette = Palette;
 type GifEncodingRuntime = {
-  quantizeGifFrame: typeof quantize;
-  createGifFrameEncoder: typeof createBestGifFrameEncoder;
-  concatenateGifFrameChunks: typeof concatenateGifFrameChunks;
+  quantizeGifFrame: NonNullable<EncodeGifFrameChunkHelpers["quantizeGifFrame"]>;
+  createGifFrameEncoder: (options?: GifFrameEncoderOptions) => GifFrameEncoder;
+  concatenateGifFrameChunks: (chunks: readonly GifFrameChunk[]) => Uint8Array;
 };
 
 const GIF_GLOBAL_PALETTE_SAMPLE_FRAME_LIMIT = 24;

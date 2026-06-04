@@ -9,6 +9,7 @@ import {
 } from "@/lib/gifFrameChunk";
 import {
   copyImageDataBuffer,
+  createBestGifFrameEncoder,
   createInlineGifFrameEncoder,
   defaultGifFrameWorkerCount,
 } from "@/lib/gifFrameEncoder";
@@ -161,6 +162,66 @@ void test("inline GIF frame encoder uses the shared chunk encoder contract", asy
   assert.equal(chunk.sequenceIndex, 2);
   assert.deepEqual([...chunk.bytes], [9]);
   assert.equal(temporalDitherPresent, true);
+});
+
+void test("worker GIF frame encoder rejects when postMessage throws", async () => {
+  const previousWorker = globalThis.Worker;
+  const postMessageError = new Error("Worker cannot accept frame data.");
+  let terminated = false;
+
+  const throwingWorker = {
+    addEventListener() {},
+    removeEventListener() {},
+    postMessage() {
+      throw postMessageError;
+    },
+    terminate() {
+      terminated = true;
+    },
+  } as unknown as Worker;
+
+  function ThrowingWorker() {
+    return throwingWorker;
+  }
+
+  Object.defineProperty(globalThis, "Worker", {
+    configurable: true,
+    value: ThrowingWorker,
+  });
+
+  try {
+    const encoder = createBestGifFrameEncoder();
+
+    await assert.rejects(
+      () =>
+        encoder.encodeFrame({
+          sequenceIndex: 0,
+          imageData: {
+            data: new Uint8ClampedArray(4),
+          } as ImageData,
+          width: 1,
+          height: 1,
+          maxColors: 64,
+          delayMs: 100,
+          paletteFormat: "rgb565",
+          ditherMode: "none",
+        }),
+      postMessageError,
+    );
+
+    encoder.dispose();
+
+    assert.equal(terminated, true);
+  } finally {
+    if (previousWorker) {
+      Object.defineProperty(globalThis, "Worker", {
+        configurable: true,
+        value: previousWorker,
+      });
+    } else {
+      Reflect.deleteProperty(globalThis, "Worker");
+    }
+  }
 });
 
 void test("bounds GIF frame worker count", () => {
