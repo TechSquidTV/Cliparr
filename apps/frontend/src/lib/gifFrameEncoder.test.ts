@@ -8,6 +8,7 @@ import {
   encodeGifFrameChunk,
 } from "@/lib/gifFrameChunk";
 import {
+  copyImageDataBuffer,
   createInlineGifFrameEncoder,
   defaultGifFrameWorkerCount,
 } from "@/lib/gifFrameEncoder";
@@ -166,6 +167,19 @@ void test("bounds GIF frame worker count", () => {
   assert.equal(defaultGifFrameWorkerCount(0), 1);
   assert.equal(defaultGifFrameWorkerCount(2), 2);
   assert.equal(defaultGifFrameWorkerCount(99), 4);
+});
+
+void test("copies image data before worker transfer", () => {
+  const data = new Uint8ClampedArray([1, 2, 3, 4]);
+  const buffer = copyImageDataBuffer(data);
+  const copiedData = new Uint8ClampedArray(buffer);
+
+  assert.notEqual(buffer, data.buffer);
+  assert.deepEqual([...copiedData], [1, 2, 3, 4]);
+
+  data[0] = 99;
+
+  assert.deepEqual([...copiedData], [1, 2, 3, 4]);
 });
 
 function createMockGifEncoder(

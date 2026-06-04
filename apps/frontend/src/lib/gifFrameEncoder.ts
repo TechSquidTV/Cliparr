@@ -266,15 +266,7 @@ export function defaultGifFrameWorkerCount(workerCount?: number) {
   return Math.max(1, Math.min(4, hardwareConcurrency - 1));
 }
 
-function copyImageDataBuffer(data: Uint8ClampedArray) {
-  if (
-    data.buffer instanceof ArrayBuffer &&
-    data.byteOffset === 0 &&
-    data.byteLength === data.buffer.byteLength
-  ) {
-    return data.buffer;
-  }
-
+export function copyImageDataBuffer(data: Uint8ClampedArray) {
   const buffer = new ArrayBuffer(data.byteLength);
   new Uint8ClampedArray(buffer).set(data);
 
