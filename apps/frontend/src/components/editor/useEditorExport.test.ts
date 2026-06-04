@@ -711,6 +711,21 @@ void test("uses provider source bitrate metadata for original direct estimates",
       basis: "source-bitrate",
     },
   );
+
+  assert.deepEqual(
+    estimateExportOutputSize({
+      format: "mp4",
+      durationSeconds: 10,
+      outputDimensions: { width: 1920, height: 1080 },
+      includeAudio: true,
+      resolution: "original",
+      videoBitrateKbps: 2_600,
+    }),
+    {
+      bytes: 3_553_500,
+      basis: "source-bitrate",
+    },
+  );
 });
 
 void test("builds export estimate log fields without media URLs", () => {

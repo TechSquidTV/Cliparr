@@ -453,11 +453,7 @@ export function estimateExportOutputSize({
       ? sourceBitrateKbps
       : typeof videoBitrateKbps === "number" && videoBitrateKbps > 0
         ? videoBitrateKbps +
-          (includeAudio &&
-          typeof audioBitrateKbps === "number" &&
-          audioBitrateKbps > 0
-            ? audioBitrateKbps
-            : 0)
+          (includeAudio ? audioEstimateBitrateKbps(audioBitrateKbps) : 0)
         : null;
 
   if (

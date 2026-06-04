@@ -5,7 +5,7 @@ import test from "node:test";
 import { QUALITY_LOW, QUALITY_MEDIUM } from "mediabunny";
 import type { ConversionOptions } from "mediabunny";
 import type { Palette } from "@techsquidtv/gifenc";
-import { exportClipWithRuntime } from "@/lib/exportClip";
+import { createGifCanvas, exportClipWithRuntime } from "@/lib/exportClip";
 import type { EditorMediaSource } from "@/lib/editorMedia";
 import { gifExportSettingsForPreset } from "@/lib/exportTypes";
 import { createInlineGifFrameEncoder } from "@/lib/gifFrameEncoder";
@@ -357,6 +357,50 @@ void test("forces video transcode for compact and balanced export quality", asyn
     assert.equal(selectedVideoOptions.forceTranscode, true);
     assert.equal(selectedVideoOptions.bitrate, expectedBitrate);
     assert.equal(context.disposed, true);
+  }
+});
+
+void test("creates GIF render canvases with frequent readback enabled", () => {
+  const previousDocument = globalThis.document;
+  let contextOptions:
+    | (CanvasRenderingContext2DSettings & { willReadFrequently?: boolean })
+    | undefined;
+  const fakeContext = {} as CanvasRenderingContext2D;
+  const fakeCanvas = {
+    width: 0,
+    height: 0,
+    getContext(type: string, options?: CanvasRenderingContext2DSettings) {
+      assert.equal(type, "2d");
+      contextOptions = options;
+
+      return fakeContext;
+    },
+  } as unknown as HTMLCanvasElement;
+
+  Object.defineProperty(globalThis, "document", {
+    configurable: true,
+    value: {
+      createElement(tagName: string) {
+        assert.equal(tagName, "canvas");
+
+        return fakeCanvas;
+      },
+    },
+  });
+
+  try {
+    const { canvas, context } = createGifCanvas(320, 180);
+
+    assert.equal(canvas, fakeCanvas);
+    assert.equal(context, fakeContext);
+    assert.equal(canvas.width, 320);
+    assert.equal(canvas.height, 180);
+    assert.deepEqual(contextOptions, { willReadFrequently: true });
+  } finally {
+    Object.defineProperty(globalThis, "document", {
+      configurable: true,
+      value: previousDocument,
+    });
   }
 });
 
