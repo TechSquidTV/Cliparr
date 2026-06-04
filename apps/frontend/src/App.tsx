@@ -59,8 +59,8 @@ export default function App() {
     void router.invalidate();
   }, [loading, providerSession]);
 
-  const logout = async () => {
-    await cliparrClient.logout().catch(() => undefined);
+  const disconnect = async () => {
+    await cliparrClient.disconnect().catch(() => undefined);
     setProviderSession(null);
   };
 
@@ -92,7 +92,7 @@ export default function App() {
         auth={{
           providerSession,
           setProviderSession,
-          logout,
+          disconnect,
         }}
       >
         <RouterProvider
@@ -101,7 +101,7 @@ export default function App() {
             auth: {
               providerSession,
               setProviderSession,
-              logout,
+              disconnect,
             },
           }}
         />

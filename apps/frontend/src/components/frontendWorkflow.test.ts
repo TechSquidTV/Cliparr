@@ -312,7 +312,7 @@ void test("renders dashboard mobile menu trigger", () => {
   const markup = renderToStaticMarkup(
     createElement(DashboardMobileMenu, {
       appVersion: "1.2.3",
-      onLogout: () => undefined,
+      onDisconnect: () => undefined,
     }),
   );
 
@@ -352,7 +352,7 @@ void test("does not render dashboard PWA nudge in default server markup", () => 
       onSelectSession: () => undefined,
       onOpenLocalVideo: () => undefined,
       onOpenSources: () => undefined,
-      onLogout: () => undefined,
+      onDisconnect: () => undefined,
     }),
   );
 
@@ -366,7 +366,7 @@ void test("reserves dashboard playback card space before sessions load", () => {
       onSelectSession: () => undefined,
       onOpenLocalVideo: () => undefined,
       onOpenSources: () => undefined,
-      onLogout: () => undefined,
+      onDisconnect: () => undefined,
     }),
   );
 
@@ -385,7 +385,7 @@ void test("reserves dashboard version badge space before health loads", () => {
       onSelectSession: () => undefined,
       onOpenLocalVideo: () => undefined,
       onOpenSources: () => undefined,
-      onLogout: () => undefined,
+      onDisconnect: () => undefined,
     }),
   );
 

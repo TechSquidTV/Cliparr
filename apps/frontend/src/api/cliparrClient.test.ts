@@ -36,7 +36,7 @@ void test("handles 204 responses without trying to parse JSON", async () => {
       return new Response(null, { status: 204 });
     },
     async () => {
-      await cliparrClient.logout();
+      await cliparrClient.disconnect();
     },
   );
 });

@@ -203,7 +203,7 @@ export const cliparrClient = {
     return data.session;
   },
 
-  async logout() {
+  async disconnect() {
     await request<void>("/api/session", { method: "DELETE" });
   },
 

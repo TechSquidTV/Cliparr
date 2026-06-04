@@ -29,10 +29,10 @@ export function GithubIcon({ className }: { className?: string }) {
 
 export function DashboardMobileMenu({
   appVersion,
-  onLogout,
+  onDisconnect,
 }: {
   appVersion: string;
-  onLogout: () => Promise<void> | void;
+  onDisconnect: () => Promise<void> | void;
 }) {
   const menuItemClassName =
     "flex min-h-14 w-full items-center justify-between gap-3 px-4 text-base font-medium text-foreground transition-colors hover:bg-accent focus-visible:ring-2 focus-visible:ring-primary/35 focus-visible:outline-none";
@@ -96,7 +96,7 @@ export function DashboardMobileMenu({
             <DrawerClose asChild>
               <button
                 type="button"
-                onClick={() => void onLogout()}
+                onClick={() => void onDisconnect()}
                 className={menuItemClassName}
               >
                 <span className="flex min-w-0 items-center gap-3">
