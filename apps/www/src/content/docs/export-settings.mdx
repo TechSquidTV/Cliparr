@@ -9,12 +9,12 @@ import { Picture } from "astro:assets";
 import Callout from "../../components/Callout.astro";
 import exportDialogImage from "../../../public/docs/export-dialog.webp";
 
-Cliparr exports clips in the browser. Video formats use Mediabunny, while GIF exports use Cliparr's optimized GIF encoder with worker-backed frame processing. Open the export dialog from the editor after choosing a clip range, then review the output settings before saving the file.
+Cliparr exports clips in the browser. Video formats use Mediabunny, while GIF exports use Cliparr's optimized GIF encoder with worker-backed frame processing. Open the export dialog from the editor after choosing a clip range, then review the output settings, summary, and estimated size before saving the file.
 
 <figure class="my-6 overflow-hidden rounded-lg border border-border bg-card">
   <Picture
     src={exportDialogImage}
-    alt="Cliparr export dialog showing format, quality, resolution, source, audio, filename template, size estimate, and export summary."
+    alt="Cliparr export dialog showing format, resolution, source, audio, filename template, and export summary."
     formats={["avif", "webp"]}
     fallbackFormat="webp"
     widths={[640, 960, 1280, 1600, 2200]}
@@ -38,7 +38,7 @@ Cliparr exports clips in the browser. Video formats use Mediabunny, while GIF ex
 
 Codec availability depends on the browser and source media. If an export cannot keep the selected audio or video track in the chosen container, Cliparr stops the export and shows the reason instead of silently dropping important media.
 
-Use `WEBM` instead of `GIF` when your destination supports video files. GIF is useful for compatibility with older platforms, but it is video-only, limited to short clips, and usually much larger than a modern video export.
+Use `WEBM` instead of `GIF` when your destination supports video files. GIF is useful for compatibility with older platforms, but it is video-only, capped at 15 seconds, and usually much larger than a modern video export.
 
 ## Quality
 
@@ -54,6 +54,8 @@ smaller tuned animated-image preset.
 | `Sharp`     | Preserves the source stream when possible, or uses the highest current default. | 720p max, 18 fps, 128 colors with soft spatial and temporal dithering. |
 
 For video, `Sharp` is the safest choice when you want the closest match to the source. Use `Balanced` or `Compact` when file size matters more than preserving the original stream. For GIF, `Balanced` is the default because it preserves readable motion and detail. Choose `Efficient` when Balanced is slightly too large, or `Compact` when file size matters most. `Sharp` keeps the same tuned 128-color temporal dither but spends the file-size budget on higher resolution and smoother motion.
+
+GIF clips longer than 15 seconds are blocked before export starts. Trim the range or choose `WEBM` for longer animated clips.
 
 ## Resolution
 
@@ -85,9 +87,9 @@ Use `Include Audio` for normal video clips. Cliparr keeps a stereo mix when sour
 
 ## Estimated size
 
-The export dialog shows an immediate estimated size before export starts. For direct sources, `Sharp` video exports can use source-size or bitrate metadata when available. HLS exports can use playlist bandwidth metadata. Other estimates use deterministic codec heuristics based on format, quality, duration, dimensions, audio, and subtitle burn-in.
+The export dialog shows an immediate estimated size in the footer before export starts. For direct sources, `Sharp` video exports can use source-size or bitrate metadata when available. HLS exports can use playlist bandwidth metadata. Other estimates use deterministic codec heuristics based on format, quality, duration, dimensions, audio, and subtitle burn-in.
 
-Treat the value as approximate. Exact output size still depends on source motion, detail, browser codec behavior, and whether Cliparr must transcode.
+Treat the value as approximate. Exact output size still depends on source motion, detail, browser codec behavior, GIF palette/dither behavior, and whether Cliparr must transcode.
 
 ## Filename templates
 
