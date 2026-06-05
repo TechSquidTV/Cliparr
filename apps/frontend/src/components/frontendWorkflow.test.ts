@@ -486,6 +486,7 @@ void test("renders dashboard playback cards with viewer context", () => {
   assert.match(markup, /playing/);
   assert.match(markup, /1 active session/);
   assert.match(markup, /Living Room/);
+  assert.match(markup, /h-full w-full flex-col/);
   assert.match(markup, /aspect-\[2\/3]/);
   assert.match(markup, /mt-auto/);
 });

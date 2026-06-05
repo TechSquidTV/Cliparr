@@ -78,7 +78,7 @@ function sessionActionLabel(
 }
 
 const DASHBOARD_VIDEO_STYLE_CARD_CLASS =
-  "relative flex h-full flex-col overflow-hidden rounded-lg border border-border bg-card text-left text-card-foreground";
+  "relative flex h-full w-full flex-col overflow-hidden rounded-lg border border-border bg-card text-left text-card-foreground";
 const DASHBOARD_VIDEO_STYLE_THUMBNAIL_CLASS =
   "relative aspect-[2/3] w-full shrink-0 overflow-hidden bg-background";
 const DASHBOARD_VIDEO_STYLE_BODY_CLASS =
@@ -224,8 +224,8 @@ export const DashboardPlaybackCard = memo(function DashboardPlaybackCard({
           </div>
         )}
         <div className="absolute inset-0 bg-linear-to-t from-card via-card/35 to-transparent" />
-        <div className="absolute top-3 left-3">
-          <span className="inline-flex max-w-[calc(100vw-7rem)] items-center gap-1.5 rounded-full bg-card/90 px-2.5 py-1 text-ui-label font-medium tracking-wide text-muted-foreground uppercase shadow-sm backdrop-blur-sm">
+        <div className="absolute top-3 right-3 left-3 flex min-w-0">
+          <span className="inline-flex max-w-full min-w-0 items-center gap-1.5 rounded-full bg-card/90 px-2.5 py-1 text-ui-label font-medium tracking-wide text-muted-foreground uppercase shadow-sm backdrop-blur-sm">
             <ProviderGlyph
               providerId={mediaSession.source.providerId}
               providerName={sourceLabel}
@@ -355,7 +355,7 @@ function DashboardPlaybackMotionRegion({
               <motion.div
                 key={index}
                 layout={!reduceMotion}
-                className={className}
+                className={cn("h-full min-w-0", className)}
                 exit={
                   reduceMotion
                     ? { opacity: 0 }
@@ -395,6 +395,7 @@ function DashboardPlaybackMotionRegion({
               <motion.div
                 key={card.session.id}
                 layout={!reduceMotion}
+                className="h-full min-w-0"
                 initial={
                   reduceMotion
                     ? { opacity: 1 }
