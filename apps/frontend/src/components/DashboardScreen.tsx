@@ -375,7 +375,11 @@ function DashboardPlaybackMotionRegion({
             layout={!reduceMotion}
             className={DASHBOARD_PLAYBACK_GRID_CLASS}
             data-dashboard-playback-grid
-            initial={DASHBOARD_PLAYBACK_STATE_INITIAL}
+            initial={
+              reduceMotion
+                ? DASHBOARD_PLAYBACK_STATE_VISIBLE
+                : DASHBOARD_PLAYBACK_STATE_INITIAL
+            }
             animate={DASHBOARD_PLAYBACK_STATE_VISIBLE}
             exit={DASHBOARD_PLAYBACK_STATE_EXIT}
             transition={stateTransition}
