@@ -5,11 +5,11 @@ import { createApiError } from "@/http/errors";
 type OriginAwareRequest = Pick<Request, "get" | "hostname" | "secure">;
 
 function normalizedHostname(hostname: string) {
-  return hostname.replace(/^\[|\]$/g, "").toLowerCase();
+  return hostname.replaceAll(/^\[|]$/g, "").toLowerCase();
 }
 
 function isValidRequestHost(host: string) {
-  return host.length > 0 && !/[\s/@\\?#]/.test(host);
+  return host.length > 0 && !/[\s#/?@\\]/.test(host);
 }
 
 function firstHeaderValue(value: string | undefined) {
@@ -34,8 +34,8 @@ function parseAuthority(authority: string, errorCode: string) {
   return url;
 }
 
-function getRequestHost(req: OriginAwareRequest) {
-  const host = firstHeaderValue(req.get("host"));
+function getRequestHost(request: OriginAwareRequest) {
+  const host = firstHeaderValue(request.get("host"));
   if (!host) {
     throw createApiError(
       400,
@@ -47,15 +47,21 @@ function getRequestHost(req: OriginAwareRequest) {
   return parseAuthority(host, "invalid_request_host");
 }
 
-function buildOriginUrl(req: OriginAwareRequest, hostname: string, port = "") {
-  const url = new URL(req.secure ? "https://localhost" : "http://localhost");
+function buildOriginUrl(
+  request: OriginAwareRequest,
+  hostname: string,
+  port = "",
+) {
+  const url = new URL(
+    request.secure ? "https://localhost" : "http://localhost",
+  );
   url.hostname = hostname;
   url.port = port;
   return url;
 }
 
-function getRequestOriginUrl(req: OriginAwareRequest) {
-  const trustedHostname = req.hostname?.trim();
+function getRequestOriginUrl(request: OriginAwareRequest) {
+  const trustedHostname = request.hostname?.trim();
   if (!trustedHostname) {
     throw createApiError(
       400,
@@ -64,25 +70,25 @@ function getRequestOriginUrl(req: OriginAwareRequest) {
     );
   }
 
-  const hostUrl = getRequestHost(req);
+  const hostUrl = getRequestHost(request);
   if (
     normalizedHostname(hostUrl.hostname) === normalizedHostname(trustedHostname)
   ) {
-    return buildOriginUrl(req, hostUrl.hostname, hostUrl.port);
+    return buildOriginUrl(request, hostUrl.hostname, hostUrl.port);
   }
 
-  const forwardedHost = firstHeaderValue(req.get("x-forwarded-host"));
+  const forwardedHost = firstHeaderValue(request.get("x-forwarded-host"));
   if (forwardedHost) {
     const forwardedUrl = parseAuthority(forwardedHost, "invalid_request_host");
     if (
       normalizedHostname(forwardedUrl.hostname) ===
       normalizedHostname(trustedHostname)
     ) {
-      return buildOriginUrl(req, forwardedUrl.hostname, forwardedUrl.port);
+      return buildOriginUrl(request, forwardedUrl.hostname, forwardedUrl.port);
     }
   }
 
-  return buildOriginUrl(req, trustedHostname);
+  return buildOriginUrl(request, trustedHostname);
 }
 
 function isLoopbackHostname(hostname: string) {
@@ -98,18 +104,23 @@ function isLoopbackHostname(hostname: string) {
   return isIP(normalized) === 4 && normalized.startsWith("127.");
 }
 
-export function getRequestRouteUrl(req: OriginAwareRequest, pathname: string) {
-  const url = getRequestOriginUrl(req);
+export function getRequestRouteUrl(
+  request: OriginAwareRequest,
+  pathname: string,
+) {
+  const url = getRequestOriginUrl(request);
   url.pathname = pathname.startsWith("/") ? pathname : `/${pathname}`;
   url.search = "";
   url.hash = "";
   return url.toString();
 }
 
-export function requestOriginIsPotentiallyTrustworthy(req: OriginAwareRequest) {
-  if (req.secure) {
+export function requestOriginIsPotentiallyTrustworthy(
+  request: OriginAwareRequest,
+) {
+  if (request.secure) {
     return true;
   }
 
-  return isLoopbackHostname(getRequestOriginUrl(req).hostname);
+  return isLoopbackHostname(getRequestOriginUrl(request).hostname);
 }

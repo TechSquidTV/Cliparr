@@ -1,8 +1,7 @@
 import path from "node:path";
-import { fileURLToPath } from "node:url";
 import { defineConfig } from "tsdown";
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const configDirectory = import.meta.dirname;
 const includeSourceMap = process.env.CLIPARR_SERVER_SOURCEMAP !== "false";
 
 export default defineConfig({
@@ -17,7 +16,7 @@ export default defineConfig({
   sourcemap: includeSourceMap,
   fixedExtension: false,
   alias: {
-    "@": path.resolve(__dirname, "src"),
+    "@": path.resolve(configDirectory, "src"),
   },
   deps: {
     onlyBundle: false,

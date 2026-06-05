@@ -3,7 +3,7 @@ import ProviderConnectFlow from "@/components/provider-connect/ProviderConnectFl
 import { secondaryButtonClasses } from "@/components/ui/control-styles";
 import type { ProviderSession } from "@/providers/types";
 
-interface Props {
+interface Properties {
   onConnected: (session: ProviderSession) => Promise<void> | void;
   onOpenLocalVideo: () => void;
 }
@@ -11,7 +11,7 @@ interface Props {
 export default function ProviderConnectScreen({
   onConnected,
   onOpenLocalVideo,
-}: Props) {
+}: Properties) {
   return (
     <div className="flex min-h-screen items-start justify-center bg-background p-4 pt-6 text-foreground sm:items-center">
       <div className="relative w-full max-w-5xl overflow-hidden rounded-4xl border border-border bg-card text-card-foreground shadow-2xl">

@@ -8,7 +8,7 @@ import type {
 import { playbackGainValue } from "@/components/editor/editorPlaybackAudio";
 import { createPlaybackSourceError } from "@/components/editor/editorPlaybackSources";
 
-type RefValue<T> = {
+type ReferenceValue<T> = {
   current: T;
 };
 
@@ -42,17 +42,17 @@ interface CreatePlaybackSinkResourcesOptions {
 }
 
 interface DisposePlaybackSinkResourcesOptions {
-  inputRef: RefValue<Input | null>;
-  videoSinkRef: RefValue<CanvasSink | null>;
-  audioSinkRef: RefValue<AudioBufferSink | null>;
-  audioContextRef: RefValue<AudioContext | null>;
-  gainNodeRef: RefValue<GainNode | null>;
+  inputRef: ReferenceValue<Input | null>;
+  videoSinkRef: ReferenceValue<CanvasSink | null>;
+  audioSinkRef: ReferenceValue<AudioBufferSink | null>;
+  audioContextRef: ReferenceValue<AudioContext | null>;
+  gainNodeRef: ReferenceValue<GainNode | null>;
 }
 
 export function getAudioContextConstructor() {
   return (
-    window.AudioContext ??
-    (window as WindowWithWebkitAudioContext).webkitAudioContext
+    globalThis.AudioContext ??
+    (globalThis as unknown as WindowWithWebkitAudioContext).webkitAudioContext
   );
 }
 
@@ -116,7 +116,7 @@ export function disposePlaybackSinkResources({
   audioSinkRef.current = null;
   inputRef.current?.dispose();
   inputRef.current = null;
-  void audioContextRef.current?.close().catch(() => undefined);
+  void audioContextRef.current?.close().catch(() => {});
   audioContextRef.current = null;
   gainNodeRef.current = null;
 }

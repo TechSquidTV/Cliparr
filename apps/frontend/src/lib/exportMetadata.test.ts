@@ -5,6 +5,8 @@ import test from "node:test";
 import type { MetadataTags } from "mediabunny";
 import { buildMetadataTags, patchMp4MetadataBoxes } from "@/lib/exportMetadata";
 
+const byteMask = 255;
+
 function bytes(...values: number[]) {
   return new Uint8Array(values);
 }
@@ -15,10 +17,10 @@ function textBytes(value: string) {
 
 function uint32(value: number) {
   return bytes(
-    (value >>> 24) & 0xff,
-    (value >>> 16) & 0xff,
-    (value >>> 8) & 0xff,
-    value & 0xff,
+    (value >>> 24) & byteMask,
+    (value >>> 16) & byteMask,
+    (value >>> 8) & byteMask,
+    value & byteMask,
   );
 }
 
@@ -49,7 +51,9 @@ function readUint32(bytes: Uint8Array, offset: number) {
 }
 
 async function withMockedFetch<T>(
-  handler: (...args: Parameters<typeof fetch>) => ReturnType<typeof fetch>,
+  handler: (
+    ...arguments_: Parameters<typeof fetch>
+  ) => ReturnType<typeof fetch>,
   action: () => Promise<T>,
 ) {
   const originalFetch = globalThis.fetch;
@@ -115,7 +119,7 @@ void test("builds MP4 metadata tags for movie clips", async () => {
     "mp4",
   );
 
-  assert(tags);
+  assert.ok(tags);
   assert.equal(tags.title, "Movie Clip");
   assert.equal(tags.description, "A useful scene");
   assert.equal(tags.genre, "Action, Drama");
@@ -171,7 +175,7 @@ void test("builds episode metadata and embeds fetched artwork", async () => {
         "mov",
       );
 
-      assert(tags);
+      assert.ok(tags);
       assert.equal(tags.title, "Episode Title");
       assert.equal(tags.description, "A tiny line");
       assert.equal(tags.images?.[0]?.mimeType, "image/png");
@@ -203,7 +207,7 @@ void test("omits raw ISOBMFF metadata for non-MP4-like formats", async () => {
     "webm",
   );
 
-  assert(tags);
+  assert.ok(tags);
   assert.equal(tags.raw, undefined);
 });
 
@@ -270,8 +274,8 @@ void test("patches MP4 ilst integer metadata data types", () => {
   const tvsnTypeOffset = findText(file, "tvsn");
   const tvsnDataTypeOffset = findText(file, "data", tvsnTypeOffset) + 4;
 
-  assert(stikTypeOffset >= 0);
-  assert(tvsnTypeOffset >= 0);
+  assert.ok(stikTypeOffset >= 0);
+  assert.ok(tvsnTypeOffset >= 0);
   assert.equal(readUint32(file, stikDataTypeOffset), 0x15);
   assert.equal(readUint32(file, tvsnDataTypeOffset), 0x16);
 });

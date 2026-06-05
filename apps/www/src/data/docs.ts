@@ -38,7 +38,7 @@ export const docsSections: {
 ];
 
 function sortDocs<T extends { data: { order: number } }>(docs: T[]) {
-  return [...docs].sort((a, b) => a.data.order - b.data.order);
+  return docs.toSorted((a, b) => a.data.order - b.data.order);
 }
 
 export function docsForSection<

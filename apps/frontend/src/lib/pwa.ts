@@ -42,19 +42,20 @@ function safeLocalStorage() {
     const storage = globalThis.localStorage;
     return typeof storage?.getItem === "function" ? storage : undefined;
   } catch {
-    return undefined;
+    return;
   }
 }
 
 function safeMatchMedia(query: string) {
+  const browserWindow = globalThis.window;
   if (
-    typeof window === "undefined" ||
-    typeof window.matchMedia !== "function"
+    browserWindow === undefined ||
+    typeof browserWindow.matchMedia !== "function"
   ) {
     return false;
   }
 
-  return window.matchMedia(query).matches;
+  return browserWindow.matchMedia(query).matches;
 }
 
 function notifyInstallPromptListeners() {
@@ -79,23 +80,24 @@ export function subscribeToPwaInstallPrompt(
 }
 
 export function startPwaInstallPromptHandling() {
+  const browserWindow = globalThis.window;
   if (
     installPromptHandlingStarted ||
-    typeof window === "undefined" ||
-    typeof window.addEventListener !== "function"
+    browserWindow === undefined ||
+    typeof browserWindow.addEventListener !== "function"
   ) {
     return;
   }
 
   installPromptHandlingStarted = true;
 
-  window.addEventListener("beforeinstallprompt", (event) => {
+  browserWindow.addEventListener("beforeinstallprompt", (event) => {
     event.preventDefault();
     deferredInstallPrompt = event as BeforeInstallPromptEvent;
     notifyInstallPromptListeners();
   });
 
-  window.addEventListener("appinstalled", () => {
+  browserWindow.addEventListener("appinstalled", () => {
     deferredInstallPrompt = null;
     notifyInstallPromptListeners();
   });
@@ -143,15 +145,15 @@ export function writePwaInstallDismissed(
 
 export function isIosLikeDevice(userAgent: string, maxTouchPoints: number) {
   return (
-    /\b(iPad|iPhone|iPod)\b/i.test(userAgent) ||
-    (/\bMacintosh\b/i.test(userAgent) && maxTouchPoints > 1)
+    /\b(ipad|iphone|ipod)\b/i.test(userAgent) ||
+    (/\bmacintosh\b/i.test(userAgent) && maxTouchPoints > 1)
   );
 }
 
 function isMobilePwaDevice(userAgent: string, maxTouchPoints: number) {
   return (
     maxTouchPoints > 0 &&
-    (/\b(Android|webOS|iPhone|iPad|iPod|IEMobile|Opera Mini)\b/i.test(
+    (/\b(android|webos|iphone|ipad|ipod|iemobile|opera mini)\b/i.test(
       userAgent,
     ) ||
       isIosLikeDevice(userAgent, maxTouchPoints))
@@ -193,12 +195,13 @@ export function getPwaInstallEnvironment(
   installPrompt: BeforeInstallPromptEvent | null,
 ): PwaInstallEnvironment {
   const navigatorWithStandalone = navigator as NavigatorWithStandalone;
+  const browserWindow = globalThis.window;
 
   return {
     coarsePointer: safeMatchMedia(COARSE_POINTER_MEDIA_QUERY),
     dismissed: readPwaInstallDismissed(),
     hasInstallPrompt: Boolean(installPrompt),
-    isSecureContext: window.isSecureContext,
+    isSecureContext: browserWindow.isSecureContext,
     maxTouchPoints: navigator.maxTouchPoints ?? 0,
     mobileViewport: safeMatchMedia(MOBILE_INSTALL_MEDIA_QUERY),
     navigatorStandalone: navigatorWithStandalone.standalone === true,
@@ -208,12 +211,13 @@ export function getPwaInstallEnvironment(
 }
 
 export function registerCliparrServiceWorker(
-  prod = Boolean(import.meta.env?.PROD),
+  production = Boolean(import.meta.env?.PROD),
 ) {
+  const browserWindow = globalThis.window;
   if (
-    !prod ||
-    typeof window === "undefined" ||
-    !window.isSecureContext ||
+    !production ||
+    browserWindow === undefined ||
+    !browserWindow.isSecureContext ||
     !("serviceWorker" in navigator)
   ) {
     return;
@@ -233,13 +237,13 @@ export function registerCliparrServiceWorker(
     }
 
     reloading = true;
-    window.location.reload();
+    browserWindow.location.reload();
   });
 
-  window.addEventListener("load", () => {
+  browserWindow.addEventListener("load", () => {
     void navigator.serviceWorker
       .register("/service-worker.js")
-      .then((registration) => registration.update().catch(() => undefined))
-      .catch(() => undefined);
+      .then((registration) => registration.update().catch(() => {}))
+      .catch(() => {});
   });
 }

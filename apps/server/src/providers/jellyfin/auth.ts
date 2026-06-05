@@ -1,7 +1,7 @@
 import type { MediaSource } from "@/db/mediaSourcesRepository";
 import { createApiError, isApiError } from "@/http/errors";
 import type { ProviderResource } from "@/providers/types";
-import { stringValue } from "@/providers/shared/utils";
+import { stringValue } from "@/providers/shared/utilities";
 import {
   authenticateJellyfinUser,
   connectionInfo,
@@ -83,8 +83,8 @@ export async function authenticateWithCredentials(body: unknown) {
       failureMessage: "Jellyfin sign-in failed",
       exposeFailureDetail: false,
     });
-  } catch (err) {
-    if (isApiError(err) && err.status === 401) {
+  } catch (error) {
+    if (isApiError(error) && error.status === 401) {
       throw createApiError(
         401,
         "invalid_jellyfin_credentials",
@@ -92,7 +92,7 @@ export async function authenticateWithCredentials(body: unknown) {
       );
     }
 
-    throw err;
+    throw error;
   }
 
   const accessToken = stringValue(authResult?.AccessToken);
@@ -201,14 +201,14 @@ export async function checkSource(source: MediaSource) {
         isAdministrator: true,
       },
     };
-  } catch (err) {
-    if (isApiError(err)) {
+  } catch (error) {
+    if (isApiError(error)) {
       return {
         ok: false as const,
-        message: err.message,
+        message: error.message,
       };
     }
 
-    throw err;
+    throw error;
   }
 }

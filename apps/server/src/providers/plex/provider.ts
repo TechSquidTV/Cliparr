@@ -45,15 +45,15 @@ async function checkSource(
             : selectedConnection.id,
       },
     };
-  } catch (err) {
-    if (isApiError(err) && err.code === "plex_unreachable") {
+  } catch (error) {
+    if (isApiError(error) && error.code === "plex_unreachable") {
       return {
         ok: false as const,
-        message: err.message,
+        message: error.message,
       };
     }
 
-    throw err;
+    throw error;
   }
 }
 

@@ -1,27 +1,10 @@
 import type { Request, Response } from "express";
 import type {
   CurrentlyPlayingItem,
-  MediaExportMetadata,
-  PlaybackAudioSelection,
-  PlaybackExportEstimateMetadata,
-  PlaybackSubtitleSelection,
-  PlaybackSubtitleTrack,
   PlaybackViewer,
-  SourcePlaybackError,
-  ViewerPlaybackGroup,
 } from "@cliparr/shared/providers";
 import type { MediaSource } from "@/db/mediaSourcesRepository";
 import type { ProviderSessionRecord } from "@/session/store";
-
-export type {
-  MediaExportMetadata,
-  PlaybackAudioSelection,
-  PlaybackExportEstimateMetadata,
-  PlaybackSubtitleSelection,
-  PlaybackSubtitleTrack,
-  SourcePlaybackError,
-  ViewerPlaybackGroup,
-};
 
 type ProviderId = string;
 type ProviderAuthType = "pin" | "credentials";
@@ -127,8 +110,18 @@ export interface ProviderImplementation {
   proxyMedia(
     session: ProviderSessionRecord,
     handleId: string,
-    req: Request,
+    request: Request,
     res: Response,
   ): Promise<void>;
   serializeSession(session: ProviderSessionRecord): ProviderSession;
 }
+
+export {
+  type MediaExportMetadata,
+  type PlaybackAudioSelection,
+  type PlaybackExportEstimateMetadata,
+  type PlaybackSubtitleSelection,
+  type PlaybackSubtitleTrack,
+  type SourcePlaybackError,
+  type ViewerPlaybackGroup,
+} from "@cliparr/shared/providers";

@@ -38,7 +38,7 @@ void test("passes provider playhead seconds into editor sessions", () => {
     exportEstimateMetadata: {
       sourceSizeBytes: 120_000_000,
       sourceDurationSeconds: 600,
-      sourceBitrateKbps: 1_600,
+      sourceBitrateKbps: 1600,
     },
   };
 
@@ -48,6 +48,6 @@ void test("passes provider playhead seconds into editor sessions", () => {
   assert.deepEqual(session.exportEstimateMetadata, {
     sourceSizeBytes: 120_000_000,
     sourceDurationSeconds: 600,
-    sourceBitrateKbps: 1_600,
+    sourceBitrateKbps: 1600,
   });
 });

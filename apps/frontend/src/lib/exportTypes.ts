@@ -196,10 +196,10 @@ const VIDEO_ESTIMATE_BITRATES_KBPS: Record<
   Exclude<ExportFormat, "gif">,
   readonly [number, number, number, number, number]
 > = {
-  mp4: [9_000, 5_300, 3_400, 1_700, 950],
-  webm: [6_000, 3_350, 2_200, 1_100, 650],
-  mov: [10_500, 6_200, 3_900, 2_000, 1_100],
-  mkv: [6_500, 3_900, 2_500, 1_250, 750],
+  mp4: [9000, 5300, 3400, 1700, 950],
+  webm: [6000, 3350, 2200, 1100, 650],
+  mov: [10_500, 6200, 3900, 2000, 1100],
+  mkv: [6500, 3900, 2500, 1250, 750],
 };
 const VIDEO_ESTIMATE_QUALITY_FACTORS: Record<VideoExportQualityPreset, number> =
   {
@@ -315,7 +315,7 @@ export function resolveExportOutputDimensions(
   const requestedHeight =
     resolution === "original"
       ? sourceVideoDimensions.height
-      : parseInt(resolution, 10);
+      : Number.parseInt(resolution, 10);
   if (!Number.isFinite(requestedHeight) || requestedHeight <= 0) {
     return sourceVideoDimensions;
   }
@@ -448,13 +448,14 @@ export function estimateExportOutputSize({
     return hlsEstimate;
   }
 
-  const metadataBitrateKbps =
-    typeof sourceBitrateKbps === "number" && sourceBitrateKbps > 0
-      ? sourceBitrateKbps
-      : typeof videoBitrateKbps === "number" && videoBitrateKbps > 0
-        ? videoBitrateKbps +
-          (includeAudio ? audioEstimateBitrateKbps(audioBitrateKbps) : 0)
-        : null;
+  let metadataBitrateKbps: number | null = null;
+  if (typeof sourceBitrateKbps === "number" && sourceBitrateKbps > 0) {
+    metadataBitrateKbps = sourceBitrateKbps;
+  } else if (typeof videoBitrateKbps === "number" && videoBitrateKbps > 0) {
+    metadataBitrateKbps =
+      videoBitrateKbps +
+      (includeAudio ? audioEstimateBitrateKbps(audioBitrateKbps) : 0);
+  }
 
   if (
     resolvedVideoQuality === "sharp" &&

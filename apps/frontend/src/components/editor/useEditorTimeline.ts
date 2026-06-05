@@ -20,14 +20,14 @@ import {
   timelineTimeToPixel,
   type ClipTimelineData,
   type ClipTimelineEffects,
-} from "@/components/editor/editorUtils";
+} from "@/components/editor/editorUtilities";
 import {
   accumulateTimelineWheelZoomDelta,
   resolveTimelineScrollWheelUpdate,
   resolveTimelineZoomUpdate,
 } from "@/components/editor/timelineZoom";
 
-interface UseEditorTimelineProps {
+interface UseEditorTimelineProperties {
   duration: number;
   startTime: number;
   endTime: number;
@@ -96,15 +96,15 @@ export function useEditorTimeline({
   sessionId,
   updateClipRange,
   onClipRangeCommit,
-}: UseEditorTimelineProps) {
-  const timelineRef = useRef<TimelineState>(null);
-  const timelineWheelRegionRef = useRef<HTMLDivElement>(null);
+}: UseEditorTimelineProperties) {
+  const timelineReference = useRef<TimelineState>(null);
+  const timelineWheelRegionReference = useRef<HTMLDivElement>(null);
 
-  const timelineScrollLeftRef = useRef(0);
-  const pendingTimelineScrollLeftRef = useRef<number | null>(null);
-  const timelineWheelDeltaRef = useRef(0);
-  const hasUserAdjustedTimelineZoomRef = useRef(false);
-  const hasPositionedTimelineViewRef = useRef(false);
+  const timelineScrollLeftReference = useRef(0);
+  const pendingTimelineScrollLeftReference = useRef<number | null>(null);
+  const timelineWheelDeltaReference = useRef(0);
+  const hasUserAdjustedTimelineZoomReference = useRef(false);
+  const hasPositionedTimelineViewReference = useRef(false);
   const [timelineViewportWidth, setTimelineViewportWidth] = useState(0);
 
   const hasDuration = duration > 0;
@@ -154,7 +154,7 @@ export function useEditorTimeline({
   const [timelineZoomIndex, setTimelineZoomIndex] = useState(
     defaultTimelineZoomIndex,
   );
-  const timelineZoomIndexRef = useRef(timelineZoomIndex);
+  const timelineZoomIndexReference = useRef(timelineZoomIndex);
 
   const activeTimelineScale = getTimelineZoomLevel(
     availableTimelineZoomLevels,
@@ -234,11 +234,11 @@ export function useEditorTimeline({
   }, [duration, endTime, hasDuration, startTime]);
 
   useEffect(() => {
-    timelineZoomIndexRef.current = timelineZoomIndex;
+    timelineZoomIndexReference.current = timelineZoomIndex;
   }, [timelineZoomIndex]);
 
   useEffect(() => {
-    const timelineWheelRegion = timelineWheelRegionRef.current;
+    const timelineWheelRegion = timelineWheelRegionReference.current;
     if (!timelineWheelRegion) {
       return;
     }
@@ -262,21 +262,21 @@ export function useEditorTimeline({
 
   useEffect(() => {
     setTimelineZoomIndex(defaultTimelineZoomIndex);
-    timelineZoomIndexRef.current = defaultTimelineZoomIndex;
-    timelineScrollLeftRef.current = 0;
-    timelineWheelDeltaRef.current = 0;
-    hasUserAdjustedTimelineZoomRef.current = false;
-    hasPositionedTimelineViewRef.current = false;
-    timelineRef.current?.setScrollLeft(0);
-    pendingTimelineScrollLeftRef.current = 0;
+    timelineZoomIndexReference.current = defaultTimelineZoomIndex;
+    timelineScrollLeftReference.current = 0;
+    timelineWheelDeltaReference.current = 0;
+    hasUserAdjustedTimelineZoomReference.current = false;
+    hasPositionedTimelineViewReference.current = false;
+    timelineReference.current?.setScrollLeft(0);
+    pendingTimelineScrollLeftReference.current = 0;
   }, [defaultTimelineZoomIndex, sessionId]);
 
   useEffect(() => {
     if (
       !hasDuration ||
       timelineViewportWidth <= 0 ||
-      hasUserAdjustedTimelineZoomRef.current ||
-      hasPositionedTimelineViewRef.current
+      hasUserAdjustedTimelineZoomReference.current ||
+      hasPositionedTimelineViewReference.current
     ) {
       return;
     }
@@ -299,12 +299,12 @@ export function useEditorTimeline({
     });
 
     setTimelineZoomIndex(focusedTimelineZoomIndex);
-    timelineZoomIndexRef.current = focusedTimelineZoomIndex;
-    timelineScrollLeftRef.current = nextScrollLeft;
-    timelineWheelDeltaRef.current = 0;
-    hasPositionedTimelineViewRef.current = true;
-    timelineRef.current?.setScrollLeft(nextScrollLeft);
-    pendingTimelineScrollLeftRef.current = nextScrollLeft;
+    timelineZoomIndexReference.current = focusedTimelineZoomIndex;
+    timelineScrollLeftReference.current = nextScrollLeft;
+    timelineWheelDeltaReference.current = 0;
+    hasPositionedTimelineViewReference.current = true;
+    timelineReference.current?.setScrollLeft(nextScrollLeft);
+    pendingTimelineScrollLeftReference.current = nextScrollLeft;
   }, [
     availableTimelineZoomLevels,
     defaultTimelineScale,
@@ -318,14 +318,14 @@ export function useEditorTimeline({
   ]);
 
   useEffect(() => {
-    const pendingScrollLeft = pendingTimelineScrollLeftRef.current;
+    const pendingScrollLeft = pendingTimelineScrollLeftReference.current;
     if (pendingScrollLeft === null) {
       return;
     }
 
-    timelineRef.current?.setScrollLeft(pendingScrollLeft);
-    timelineScrollLeftRef.current = pendingScrollLeft;
-    pendingTimelineScrollLeftRef.current = null;
+    timelineReference.current?.setScrollLeft(pendingScrollLeft);
+    timelineScrollLeftReference.current = pendingScrollLeft;
+    pendingTimelineScrollLeftReference.current = null;
   }, [activeTimelineScale.scale, activeTimelineScale.scaleWidth]);
 
   const setTimelineCurrentTime = useCallback(
@@ -334,13 +334,13 @@ export function useEditorTimeline({
         return;
       }
 
-      timelineRef.current?.setTime(time);
+      timelineReference.current?.setTime(time);
     },
     [hasDuration],
   );
 
   useEffect(() => {
-    if (!timelineRef.current || !hasDuration) {
+    if (!timelineReference.current || !hasDuration) {
       return;
     }
     setTimelineCurrentTime(currentTime);
@@ -348,7 +348,7 @@ export function useEditorTimeline({
 
   const handleTimelineScroll = useCallback(
     ({ scrollLeft }: { scrollLeft: number }) => {
-      timelineScrollLeftRef.current = scrollLeft;
+      timelineScrollLeftReference.current = scrollLeft;
     },
     [],
   );
@@ -371,14 +371,15 @@ export function useEditorTimeline({
         return;
       }
 
-      const timelineWheelRegion = timelineWheelRegionRef.current;
+      const timelineWheelRegion = timelineWheelRegionReference.current;
       if (!timelineWheelRegion) {
         return;
       }
 
-      const currentZoomIndex = timelineZoomIndexRef.current;
+      const currentZoomIndex = timelineZoomIndexReference.current;
       const currentScrollLeft =
-        pendingTimelineScrollLeftRef.current ?? timelineScrollLeftRef.current;
+        pendingTimelineScrollLeftReference.current ??
+        timelineScrollLeftReference.current;
       const regionRect = timelineWheelRegion.getBoundingClientRect();
       const zoomUpdate = resolveTimelineZoomUpdate({
         availableTimelineZoomLevels,
@@ -393,15 +394,15 @@ export function useEditorTimeline({
         anchorTime: anchorOptions.anchorTime,
       });
       if (!zoomUpdate) {
-        timelineWheelDeltaRef.current = 0;
+        timelineWheelDeltaReference.current = 0;
         return;
       }
 
       const { nextZoomIndex, nextScrollLeft } = zoomUpdate;
-      pendingTimelineScrollLeftRef.current = nextScrollLeft;
-      timelineScrollLeftRef.current = nextScrollLeft;
-      timelineZoomIndexRef.current = nextZoomIndex;
-      hasUserAdjustedTimelineZoomRef.current = true;
+      pendingTimelineScrollLeftReference.current = nextScrollLeft;
+      timelineScrollLeftReference.current = nextScrollLeft;
+      timelineZoomIndexReference.current = nextZoomIndex;
+      hasUserAdjustedTimelineZoomReference.current = true;
 
       startTransition(() => {
         setTimelineZoomIndex(nextZoomIndex);
@@ -424,7 +425,7 @@ export function useEditorTimeline({
         return;
       }
 
-      const timelineWheelRegion = timelineWheelRegionRef.current;
+      const timelineWheelRegion = timelineWheelRegionReference.current;
       if (!timelineWheelRegion) {
         return;
       }
@@ -433,14 +434,14 @@ export function useEditorTimeline({
       const containerWidth = timelineWheelRegion.clientWidth || 1;
 
       if (!event.metaKey && !event.ctrlKey) {
-        timelineWheelDeltaRef.current = 0;
+        timelineWheelDeltaReference.current = 0;
         const nextScrollLeft = resolveTimelineScrollWheelUpdate({
           deltaX: event.deltaX,
           deltaY: event.deltaY,
           deltaMode: event.deltaMode,
           containerWidth,
           containerHeight,
-          currentScrollLeft: timelineScrollLeftRef.current,
+          currentScrollLeft: timelineScrollLeftReference.current,
           duration,
           timelineScale: activeTimelineScale,
         });
@@ -451,8 +452,8 @@ export function useEditorTimeline({
         event.preventDefault();
         event.stopPropagation();
 
-        timelineRef.current?.setScrollLeft(nextScrollLeft);
-        timelineScrollLeftRef.current = nextScrollLeft;
+        timelineReference.current?.setScrollLeft(nextScrollLeft);
+        timelineScrollLeftReference.current = nextScrollLeft;
         return;
       }
 
@@ -465,12 +466,12 @@ export function useEditorTimeline({
 
       const { accumulatedWheelDelta, zoomDelta } =
         accumulateTimelineWheelZoomDelta({
-          currentWheelDelta: timelineWheelDeltaRef.current,
+          currentWheelDelta: timelineWheelDeltaReference.current,
           deltaY: event.deltaY,
           deltaMode: event.deltaMode,
           containerHeight,
         });
-      timelineWheelDeltaRef.current = accumulatedWheelDelta;
+      timelineWheelDeltaReference.current = accumulatedWheelDelta;
       if (zoomDelta === 0) {
         return;
       }
@@ -486,7 +487,7 @@ export function useEditorTimeline({
   );
 
   useEffect(() => {
-    const timelineWheelRegion = timelineWheelRegionRef.current;
+    const timelineWheelRegion = timelineWheelRegionReference.current;
     if (!timelineWheelRegion) {
       return;
     }
@@ -560,8 +561,8 @@ export function useEditorTimeline({
   );
 
   return {
-    timelineRef,
-    timelineWheelRegionRef,
+    timelineRef: timelineReference,
+    timelineWheelRegionRef: timelineWheelRegionReference,
     timelineData,
     timelineEffects,
     activeTimelineScale,

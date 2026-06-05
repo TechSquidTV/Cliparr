@@ -3,7 +3,7 @@ const LOCAL_CLIENT_VERSION = "dev";
 function normalizeVersion(value: string | undefined) {
   const normalized = value?.trim();
   if (!normalized) {
-    return undefined;
+    return;
   }
 
   return normalized;

@@ -49,7 +49,9 @@ interface UseEditorPlaybackSelectionWarmupOptions {
     void,
     unknown
   > | null>;
-  selectionWarmupExtensionTimeoutRef: RefValue<number | null>;
+  selectionWarmupExtensionTimeoutRef: RefValue<ReturnType<
+    typeof globalThis.setTimeout
+  > | null>;
   autoWarmupSessionKeyRef: RefValue<string | null>;
   wasPlayingRef: RefValue<boolean>;
   playingRef: RefValue<boolean>;
@@ -97,7 +99,7 @@ export function useEditorPlaybackSelectionWarmup({
 }: UseEditorPlaybackSelectionWarmupOptions) {
   const cancelScheduledSelectionWarmupExtension = useCallback(() => {
     if (selectionWarmupExtensionTimeoutRef.current !== null) {
-      window.clearTimeout(selectionWarmupExtensionTimeoutRef.current);
+      globalThis.clearTimeout(selectionWarmupExtensionTimeoutRef.current);
       selectionWarmupExtensionTimeoutRef.current = null;
     }
   }, [selectionWarmupExtensionTimeoutRef]);
@@ -480,7 +482,7 @@ export function useEditorPlaybackSelectionWarmup({
         return;
       }
 
-      selectionWarmupExtensionTimeoutRef.current = window.setTimeout(() => {
+      selectionWarmupExtensionTimeoutRef.current = globalThis.setTimeout(() => {
         selectionWarmupExtensionTimeoutRef.current = null;
 
         if (

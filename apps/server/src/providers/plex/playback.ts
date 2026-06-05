@@ -1,4 +1,4 @@
-import { createHash, randomUUID } from "crypto";
+import { createHash, randomUUID } from "node:crypto";
 import type { Request, Response } from "express";
 import {
   logErrorFields,
@@ -45,7 +45,7 @@ import {
   numberValue,
   stringValue,
   uniqueStrings,
-} from "@/providers/shared/utils";
+} from "@/providers/shared/utilities";
 import {
   buildSourceContext,
   candidateConnections,
@@ -231,7 +231,7 @@ function metadataPath(item: PlexMetadataPathItem | null | undefined) {
   ) {
     return item.key;
   }
-  return undefined;
+  return;
 }
 
 function metadataId(item: PlexMetadataPathItem | null | undefined) {
@@ -242,7 +242,7 @@ function metadataId(item: PlexMetadataPathItem | null | undefined) {
 
   const path = metadataPath(item);
   if (!path) {
-    return undefined;
+    return;
   }
 
   const parsed = new URL(path, "http://cliparr.local");
@@ -262,14 +262,14 @@ interface PlexMediaSelection {
 function idValue(value: unknown) {
   if (typeof value === "string") {
     const trimmed = value.trim();
-    return trimmed ? trimmed : undefined;
+    return trimmed || undefined;
   }
 
   if (typeof value === "number" && Number.isFinite(value)) {
     return String(Math.trunc(value));
   }
 
-  return undefined;
+  return;
 }
 
 function itemTypeValue(item: PlexMetadataItem) {
@@ -300,17 +300,17 @@ function streamEntries(part: PlexPart | undefined) {
 
 function selectedIndex<T extends PlexSelectableEntry>(entries: T[]) {
   const index = entries.findIndex((entry) => isSelectedEntry(entry));
-  return index >= 0 ? index : 0;
+  return Math.max(index, 0);
 }
 
-export function playheadSecondsFromViewOffset(value: PlexViewOffsetValue) {
+export function playheadSecondsFromViewOffset(value?: PlexViewOffsetValue) {
   if (value === null || value === undefined) {
-    return undefined;
+    return;
   }
 
   const milliseconds = Number(value);
   if (!Number.isFinite(milliseconds) || milliseconds < 0) {
-    return undefined;
+    return;
   }
 
   return milliseconds / 1000;
@@ -344,7 +344,7 @@ function resolveSelectedPart(
 ) {
   const media = mediaEntries(item);
   if (media.length === 0) {
-    return undefined;
+    return;
   }
 
   let mediaIndex = selection?.mediaId
@@ -400,12 +400,12 @@ export function createPreviewPath(
   selection?: PlexMediaSelection,
 ) {
   if (itemTypeValue(item) === "track") {
-    return undefined;
+    return;
   }
 
   const path = metadataPath(item);
   if (!path) {
-    return undefined;
+    return;
   }
 
   const resolvedSelection = resolveSelectedPart(item, selection);
@@ -437,8 +437,8 @@ export function createCliparrPlexTranscodeSessionId(
 ) {
   const safeSourceId =
     sourceId
-      .replace(/[^a-z0-9_-]+/gi, "-")
-      .replace(/^-+|-+$/g, "")
+      .replaceAll(/[^\w-]+/gi, "-")
+      .replaceAll(/^-+|-+$/g, "")
       .slice(0, PLEX_TRANSCODE_SOURCE_ID_MAX_LENGTH) || "source";
   const digest = createHash("sha256")
     .update(`${sourceId}:${playbackSessionId}`)
@@ -458,15 +458,15 @@ function transcodeSessionId(path: string) {
   }
 }
 
-function isRetryableConnectionError(err: unknown) {
-  if (!isApiError(err)) {
+function isRetryableConnectionError(error: unknown) {
+  if (!isApiError(error)) {
     return true;
   }
 
   return (
-    err.code === "plex_request_failed" &&
-    err.status !== 401 &&
-    err.status !== 403
+    error.code === "plex_request_failed" &&
+    error.status !== 401 &&
+    error.status !== 403
   );
 }
 
@@ -542,12 +542,12 @@ async function fetchCurrentlyPlayingData(source: MediaSource) {
         manualConnectionId,
       });
       return { context, data };
-    } catch (err) {
-      if (!isRetryableConnectionError(err)) {
-        throw err;
+    } catch (error) {
+      if (!isRetryableConnectionError(error)) {
+        throw error;
       }
 
-      failures.push(`${connection.uri}: ${errorMessage(err)}`);
+      failures.push(`${connection.uri}: ${errorMessage(error)}`);
     }
   }
 
@@ -565,9 +565,7 @@ function playbackFallbackIdentity(item: PlexMetadataItem) {
     stringValue(item?.Player?.title);
   const itemId =
     idValue(item?.ratingKey) ?? stringValue(item?.key) ?? metadataPath(item);
-  const parts = [userId, playerId, itemId].filter((value): value is string =>
-    Boolean(value),
-  );
+  const parts = [userId, playerId, itemId].filter(Boolean);
 
   return parts.length > 0 ? parts.join(":") : undefined;
 }
@@ -588,7 +586,7 @@ function playbackDeduplicationKey(item: PlexMetadataItem) {
     return `fallback:${fallbackIdentity}`;
   }
 
-  return undefined;
+  return;
 }
 
 function dedupeCurrentlyPlayingMetadata(metadata: PlexMetadataItem[]) {
@@ -662,7 +660,7 @@ function metadataHdImagePath(
 ) {
   const imagePath = metadataImagePath(item);
   if (!imagePath) {
-    return undefined;
+    return;
   }
 
   const params = new URLSearchParams({
@@ -809,11 +807,11 @@ function deriveSelectedAudioTrack(
   const selectedAudioIndex = audioStreams.findIndex((stream) =>
     isSelectedEntry(stream),
   );
-  if (selectedAudioIndex < 0 && audioStreams.length > 1) {
+  if (selectedAudioIndex === -1 && audioStreams.length > 1) {
     return undefined;
   }
 
-  const trackIndex = selectedAudioIndex >= 0 ? selectedAudioIndex : 0;
+  const trackIndex = Math.max(selectedAudioIndex, 0);
   const selectedAudioStream = audioStreams[trackIndex];
 
   return {
@@ -830,12 +828,12 @@ function buildPlexSubtitlePath(stream: PlexStream) {
   const codec = normalizeSubtitleCodec(stream?.codec);
   const directContentFormat = plexDirectSubtitleContentFormat(codec);
   if (!directContentFormat || !key) {
-    return undefined;
+    return;
   }
 
   const extension = subtitleFileExtension(codec, key);
   if (!extension) {
-    return undefined;
+    return;
   }
 
   const relative = new URL(key, "http://cliparr.local");
@@ -869,7 +867,7 @@ function buildSelectedPlexSubtitleTranscodePath(
   const path = metadataPath(item);
   const codec = normalizeSubtitleCodec(stream?.codec);
   if (!path || !canTranscodeSelectedPlexSubtitle(codec, stream)) {
-    return undefined;
+    return;
   }
 
   const resolvedSelection = resolveSelectedPart(item, selection);
@@ -1032,7 +1030,7 @@ async function fetchMetadataItem(
 ) {
   const id = metadataId(item);
   if (!id) {
-    return undefined;
+    return;
   }
 
   const data = (await fetchPmsMetadata(context, [id])) as PlexMetadataData;
@@ -1056,9 +1054,9 @@ async function enrichMetadataItem(
       Player: item.Player,
       Session: item.Session,
     };
-  } catch (err) {
+  } catch (error) {
     logger.warn("Could not fetch Plex metadata.", {
-      ...logErrorFields(err),
+      ...logErrorFields(error),
       "metadata.path": metadataPath(item) ?? "Plex item",
       "source.id": context.sourceId,
       "source.base_url": sanitizeUrlForLog(context.baseUrl),
@@ -1107,7 +1105,7 @@ function createExportMetadata(
 
 function fallbackPartPath(part: PlexPart | undefined) {
   if (!part?.id) {
-    return undefined;
+    return;
   }
 
   if (typeof part.key === "string" && part.key) {
@@ -1116,7 +1114,7 @@ function fallbackPartPath(part: PlexPart | undefined) {
 
   const file = stringValue(part.file);
   if (file) {
-    const filename = file.split(/[\\/]/).pop() || "file";
+    const filename = file.split(/[/\\]/).pop() || "file";
     const changestamp = part.updatedAt ?? part.createdAt;
     if (changestamp) {
       return `/library/parts/${part.id}/${changestamp}/${encodeURIComponent(filename)}`;
@@ -1150,21 +1148,21 @@ async function resolveMediaPath(
   const id = metadataId(item);
   const path = metadataPath(item);
   if (!id) {
-    return undefined;
+    return;
   }
 
   try {
     const data = (await fetchPmsMetadata(context, [id])) as PlexMetadataData;
     const fullItem = data?.MediaContainer?.Metadata?.[0];
     return fallbackPartPath(resolveSelectedPart(fullItem, selection)?.part);
-  } catch (err) {
+  } catch (error) {
     logger.warn("Could not resolve Plex media part.", {
-      ...logErrorFields(err),
+      ...logErrorFields(error),
       "metadata.path": path,
       "source.id": context.sourceId,
       "source.base_url": sanitizeUrlForLog(context.baseUrl),
     });
-    return undefined;
+    return;
   }
 }
 
@@ -1407,7 +1405,7 @@ export async function listCurrentlyPlaying(
 export async function proxyMedia(
   session: ProviderSessionRecord,
   handleId: string,
-  req: Request,
+  request: Request,
   res: Response,
 ) {
   const handle = session.mediaHandles.get(handleId);
@@ -1429,8 +1427,8 @@ export async function proxyMedia(
       })
     : new Headers();
 
-  const accept = req.header("accept");
-  const requestedRange = req.header("range") ?? undefined;
+  const accept = request.header("accept");
+  const requestedRange = request.header("range") ?? undefined;
   const range = shouldForwardMediaRange(handle, requestedRange);
   if (accept) {
     headers.set("Accept", accept);
@@ -1467,10 +1465,8 @@ export async function proxyMedia(
     async () => {
       const upstream = await fetchMediaHandleRequest(handle, { headers });
       if (!upstream.ok && upstream.status !== 206) {
-        const detail = (await upstream.text())
-          .slice(0, 400)
-          .replace(/\s+/g, " ")
-          .trim();
+        const body = await upstream.text();
+        const detail = body.slice(0, 400).replaceAll(/\s+/g, " ").trim();
         logger.warn("Plex media request failed.", {
           ...logEventFields("media.proxy.upstream", "failure"),
           "media.handle.id": handle.id,

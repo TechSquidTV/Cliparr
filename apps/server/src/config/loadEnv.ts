@@ -1,9 +1,8 @@
-import fs from "fs";
-import path from "path";
+import fs from "node:fs";
+import path from "node:path";
 import dotenv from "dotenv";
-import { fileURLToPath } from "url";
 
-const moduleDir = path.dirname(fileURLToPath(import.meta.url));
+const moduleDirectory = import.meta.dirname;
 const initialCliparrDataDir = process.env.CLIPARR_DATA_DIR;
 const initialEnvKeys = new Set(Object.keys(process.env));
 let configuredDataDirBaseDir: string | undefined;
@@ -18,7 +17,7 @@ function findAncestorWith(startDir: string, entryName: string) {
 
     const parentDir = path.dirname(currentDir);
     if (parentDir === currentDir) {
-      return undefined;
+      return;
     }
 
     currentDir = parentDir;
@@ -26,12 +25,12 @@ function findAncestorWith(startDir: string, entryName: string) {
 }
 
 export const serverRoot =
-  findAncestorWith(moduleDir, "drizzle") ??
+  findAncestorWith(moduleDirectory, "drizzle") ??
   findAncestorWith(process.cwd(), "drizzle") ??
-  path.resolve(moduleDir, "..");
+  path.resolve(moduleDirectory, "..");
 
 export const workspaceRoot =
-  findAncestorWith(moduleDir, "pnpm-workspace.yaml") ??
+  findAncestorWith(moduleDirectory, "pnpm-workspace.yaml") ??
   findAncestorWith(process.cwd(), "pnpm-workspace.yaml") ??
   path.resolve(serverRoot, "../..");
 

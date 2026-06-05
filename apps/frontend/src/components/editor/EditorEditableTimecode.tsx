@@ -11,9 +11,9 @@ import {
 import {
   formatTimecodeInput,
   parseTimecodeInput,
-} from "@/components/editor/editorUtils";
+} from "@/components/editor/editorUtilities";
 
-interface EditorEditableTimecodeProps {
+interface EditorEditableTimecodeProperties {
   ariaLabel: string;
   buttonClassName?: string;
   children: ReactNode;
@@ -39,16 +39,14 @@ export function EditorEditableTimecode({
   style,
   value,
   valueLabel,
-}: EditorEditableTimecodeProps) {
-  const buttonRef = useRef<HTMLButtonElement>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
-  const restoreFocusAfterEditRef = useRef(false);
+}: EditorEditableTimecodeProperties) {
+  const buttonReference = useRef<HTMLButtonElement>(null);
+  const inputReference = useRef<HTMLInputElement>(null);
+  const restoreFocusAfterEditReference = useRef(false);
   const [editing, setEditing] = useState(false);
   const [draftValue, setDraftValue] = useState("");
   const [invalid, setInvalid] = useState(false);
-  const [reservedWidth, setReservedWidth] = useState<string | undefined>(
-    undefined,
-  );
+  const [reservedWidth, setReservedWidth] = useState<string | undefined>();
   const formattedValue = formatTimecodeInput(value);
   const accessibleValue = valueLabel ?? formattedValue;
   const descriptionId = useId();
@@ -58,20 +56,20 @@ export function EditorEditableTimecode({
 
   useLayoutEffect(() => {
     if (editing) {
-      inputRef.current?.focus();
-      inputRef.current?.select();
+      inputReference.current?.focus();
+      inputReference.current?.select();
       return;
     }
 
-    if (restoreFocusAfterEditRef.current) {
-      restoreFocusAfterEditRef.current = false;
-      buttonRef.current?.focus();
+    if (restoreFocusAfterEditReference.current) {
+      restoreFocusAfterEditReference.current = false;
+      buttonReference.current?.focus();
     }
   }, [editing]);
 
   useEffect(() => {
     if (disabled && editing) {
-      restoreFocusAfterEditRef.current = false;
+      restoreFocusAfterEditReference.current = false;
       setInvalid(false);
       setEditing(false);
     }
@@ -82,7 +80,8 @@ export function EditorEditableTimecode({
       return;
     }
 
-    const buttonWidth = buttonRef.current?.getBoundingClientRect().width ?? 0;
+    const buttonWidth =
+      buttonReference.current?.getBoundingClientRect().width ?? 0;
     setReservedWidth(
       buttonWidth > 0 ? `${buttonWidth.toFixed(3)}px` : undefined,
     );
@@ -92,7 +91,7 @@ export function EditorEditableTimecode({
   }
 
   function cancelEditing({ restoreFocus }: { restoreFocus: boolean }) {
-    restoreFocusAfterEditRef.current = restoreFocus;
+    restoreFocusAfterEditReference.current = restoreFocus;
     setInvalid(false);
     setEditing(false);
   }
@@ -101,7 +100,7 @@ export function EditorEditableTimecode({
     nextValue: number,
     { restoreFocus }: { restoreFocus: boolean },
   ) {
-    restoreFocusAfterEditRef.current = restoreFocus;
+    restoreFocusAfterEditReference.current = restoreFocus;
     setInvalid(false);
     setEditing(false);
     void onCommit(nextValue);
@@ -152,7 +151,7 @@ export function EditorEditableTimecode({
     >
       {editing ? (
         <input
-          ref={inputRef}
+          ref={inputReference}
           aria-describedby={describedBy}
           aria-errormessage={invalid ? errorId : undefined}
           aria-invalid={invalid || undefined}
@@ -179,7 +178,7 @@ export function EditorEditableTimecode({
         />
       ) : (
         <button
-          ref={buttonRef}
+          ref={buttonReference}
           aria-label={
             disabled
               ? `${ariaLabel}: ${accessibleValue}`

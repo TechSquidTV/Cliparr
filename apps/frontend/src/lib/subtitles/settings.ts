@@ -53,7 +53,7 @@ export const SUBTITLE_FONT_OPTIONS: readonly SubtitleFontOption[] = [
 function normalizeFontLabel(value: string) {
   return value
     .trim()
-    .replace(/^['"]+|['"]+$/g, "")
+    .replaceAll(/^["']+|["']+$/g, "")
     .toLowerCase();
 }
 
@@ -71,7 +71,7 @@ function subtitleFontLabelFromValue(fontFamily: string) {
   }
 
   const firstFamily = trimmed.split(",")[0]?.trim() ?? "";
-  const normalized = firstFamily.replace(/^['"]+|['"]+$/g, "");
+  const normalized = firstFamily.replaceAll(/^["']+|["']+$/g, "");
 
   return normalized || trimmed;
 }
@@ -99,7 +99,7 @@ export function createSubtitleFontOptionFromValue(
 export function loadLocalSubtitleFontOptions(): Promise<
   readonly SubtitleFontOption[]
 > {
-  if (typeof window === "undefined") {
+  if (globalThis.window === undefined) {
     return Promise.resolve([]);
   }
 
@@ -107,7 +107,7 @@ export function loadLocalSubtitleFontOptions(): Promise<
     return localSubtitleFontOptionsPromise;
   }
 
-  const localFontWindow = window as LocalFontWindow;
+  const localFontWindow = globalThis as unknown as LocalFontWindow;
 
   if (typeof localFontWindow.queryLocalFonts !== "function") {
     localSubtitleFontOptionsPromise = Promise.resolve([]);
@@ -147,7 +147,7 @@ export function loadLocalSubtitleFontOptions(): Promise<
         });
       }
 
-      return options.sort((left, right) =>
+      return options.toSorted((left, right) =>
         left.label.localeCompare(right.label),
       );
     })
@@ -186,7 +186,7 @@ function clampNumber(
 }
 
 function colorValue(value: unknown, fallback: string) {
-  return typeof value === "string" && /^#[0-9a-f]{6}$/i.test(value.trim())
+  return typeof value === "string" && /^#[\da-f]{6}$/i.test(value.trim())
     ? value.trim()
     : fallback;
 }
@@ -194,12 +194,12 @@ function colorValue(value: unknown, fallback: string) {
 export function loadSubtitleStyleSettings(): SubtitleStyleSettings {
   const defaults = defaultSubtitleStyleSettings();
 
-  if (typeof window === "undefined") {
+  if (globalThis.window === undefined) {
     return defaults;
   }
 
   try {
-    const raw = window.localStorage.getItem(
+    const raw = globalThis.localStorage.getItem(
       SUBTITLE_STYLE_SETTINGS_STORAGE_KEY,
     );
     if (!raw) {
@@ -239,12 +239,12 @@ export function loadSubtitleStyleSettings(): SubtitleStyleSettings {
 }
 
 export function saveSubtitleStyleSettings(settings: SubtitleStyleSettings) {
-  if (typeof window === "undefined") {
+  if (globalThis.window === undefined) {
     return;
   }
 
   try {
-    window.localStorage.setItem(
+    globalThis.localStorage.setItem(
       SUBTITLE_STYLE_SETTINGS_STORAGE_KEY,
       JSON.stringify(settings),
     );

@@ -95,7 +95,9 @@ function queueAuthFailureNotification() {
   authFailureQueued = true;
   queueMicrotask(() => {
     authFailureQueued = false;
-    authFailureListeners.forEach((listener) => listener());
+    for (const listener of authFailureListeners) {
+      listener();
+    }
   });
 }
 
@@ -106,18 +108,19 @@ function buildUnexpectedApiResponseError() {
 }
 
 function followAppAuthRedirect(response: Response) {
-  if (typeof window === "undefined" || !response.redirected) {
+  const browserWindow = globalThis.window;
+  if (browserWindow === undefined || !response.redirected) {
     return false;
   }
 
-  const redirectedUrl = new URL(response.url, window.location.origin);
+  const redirectedUrl = new URL(response.url, browserWindow.location.origin);
   if (!redirectedUrl.pathname.startsWith("/api/auth/")) {
     return false;
   }
 
-  const currentLocation = `${window.location.pathname}${window.location.search}${window.location.hash}`;
+  const currentLocation = `${browserWindow.location.pathname}${browserWindow.location.search}${browserWindow.location.hash}`;
   redirectedUrl.searchParams.set("redirectUrl", currentLocation);
-  window.location.assign(redirectedUrl.toString());
+  browserWindow.location.assign(redirectedUrl.toString());
   return true;
 }
 

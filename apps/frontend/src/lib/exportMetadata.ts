@@ -6,6 +6,7 @@ import type { ExportFormat } from "@/lib/exportTypes";
 import { getFrontendLogger, warnWithError } from "@/logging";
 
 const logger = getFrontendLogger(["editor", "artwork"]);
+const byteMask = 255;
 
 const discardReasonLabels: Record<DiscardedTrack["reason"], string> = {
   discarded_by_user: "discarded by configuration",
@@ -42,7 +43,7 @@ function firstText(...values: Array<string | undefined>) {
     }
   }
 
-  return undefined;
+  return;
 }
 
 function nonNegativeInteger(value: number | undefined) {
@@ -54,7 +55,7 @@ function nonNegativeInteger(value: number | undefined) {
 function parseMetadataDate(date: string | undefined, year: number | undefined) {
   const dateText = firstText(date, year ? `${year}-01-01` : undefined);
   if (!dateText) {
-    return undefined;
+    return;
   }
 
   const parsed = new Date(dateText);
@@ -112,10 +113,10 @@ function uint8Atom(value: number) {
 function uint32Atom(value: number) {
   const safeValue = Math.max(0, Math.trunc(value));
   return new Uint8Array([
-    (safeValue >>> 24) & 0xff,
-    (safeValue >>> 16) & 0xff,
-    (safeValue >>> 8) & 0xff,
-    safeValue & 0xff,
+    (safeValue >>> 24) & byteMask,
+    (safeValue >>> 16) & byteMask,
+    (safeValue >>> 8) & byteMask,
+    safeValue & byteMask,
   ]);
 }
 
@@ -136,14 +137,14 @@ function readUint32(bytes: Uint8Array, offset: number) {
 }
 
 function writeUint32(bytes: Uint8Array, offset: number, value: number) {
-  bytes[offset] = (value >>> 24) & 0xff;
-  bytes[offset + 1] = (value >>> 16) & 0xff;
-  bytes[offset + 2] = (value >>> 8) & 0xff;
-  bytes[offset + 3] = value & 0xff;
+  bytes[offset] = (value >>> 24) & byteMask;
+  bytes[offset + 1] = (value >>> 16) & byteMask;
+  bytes[offset + 2] = (value >>> 8) & byteMask;
+  bytes[offset + 3] = value & byteMask;
 }
 
 function readBoxType(bytes: Uint8Array, offset: number) {
-  return String.fromCharCode(
+  return String.fromCodePoint(
     bytes[offset],
     bytes[offset + 1],
     bytes[offset + 2],
@@ -160,7 +161,7 @@ function boxBounds(bytes: Uint8Array, offset: number, end: number) {
     size = end - offset;
   } else if (size32 === 1) {
     if (offset + 16 > end) {
-      return undefined;
+      return;
     }
 
     const high = readUint32(bytes, offset + 8);
@@ -170,7 +171,7 @@ function boxBounds(bytes: Uint8Array, offset: number, end: number) {
 
   const boxEnd = offset + size;
   if (size < headerSize || boxEnd > end || !Number.isSafeInteger(boxEnd)) {
-    return undefined;
+    return;
   }
 
   return { headerSize, end: boxEnd };
@@ -246,7 +247,7 @@ export function patchMp4MetadataBoxes(
 
 function inferHdVideoFlag(height: number | undefined) {
   if (typeof height !== "number" || !Number.isFinite(height)) {
-    return undefined;
+    return;
   }
 
   if (height >= 720) {
@@ -323,7 +324,10 @@ export function isIsobmffExportFormat(format: ExportFormat) {
 }
 
 function inferImageMimeType(url: string) {
-  const pathname = new URL(url, window.location.href).pathname.toLowerCase();
+  const pathname = new URL(
+    url,
+    globalThis.window.location.href,
+  ).pathname.toLowerCase();
   if (pathname.endsWith(".png")) {
     return "image/png";
   }
@@ -375,10 +379,10 @@ async function fetchAttachedImage(
       mimeType,
       kind: "coverFront",
     };
-  } catch (err) {
-    warnWithError(logger, err, "Could not embed clip artwork.", {
+  } catch (error) {
+    warnWithError(logger, error, "Could not embed clip artwork.", {
       ...logEventFields("editor.artwork.load", "failure"),
-      ...logErrorFields(err),
+      ...logErrorFields(error),
     });
     return undefined;
   }

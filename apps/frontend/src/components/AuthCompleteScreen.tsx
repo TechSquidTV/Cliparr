@@ -2,12 +2,12 @@ import { useEffect } from "react";
 
 export default function AuthCompleteScreen() {
   useEffect(() => {
-    const closeTimer = window.setTimeout(() => {
+    const closeTimer = globalThis.setTimeout(() => {
       window.close();
     }, 500);
 
     return () => {
-      window.clearTimeout(closeTimer);
+      globalThis.clearTimeout(closeTimer);
     };
   }, []);
 

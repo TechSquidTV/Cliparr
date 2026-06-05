@@ -43,13 +43,16 @@ export function buildSubtitleExportSummary({
   providerId,
 }: BuildSubtitleExportSummaryOptions): SubtitleExportSummary {
   if (!selectedSubtitleTrack || !subtitleEnabled) {
+    let detail = "No supported subtitles found.";
+    if (selectedSubtitleTrack) {
+      detail = "Subtitles are off.";
+    } else if (subtitleTrackCount > 0) {
+      detail = "No subtitle track selected.";
+    }
+
     return {
       label: "Not included",
-      detail: !selectedSubtitleTrack
-        ? subtitleTrackCount > 0
-          ? "No subtitle track selected."
-          : "No supported subtitles found."
-        : "Subtitles are off.",
+      detail,
       tone: "muted",
       disabledReason: null,
     };

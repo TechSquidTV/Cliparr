@@ -119,12 +119,12 @@ function nowIsoString() {
   return new Date().toISOString();
 }
 
-function canUseIndexedDb() {
+function canUseIndexedDatabase() {
   return typeof indexedDB !== "undefined";
 }
 
 function openDatabase(): Promise<IDBDatabase> {
-  if (!canUseIndexedDb()) {
+  if (!canUseIndexedDatabase()) {
     return Promise.reject(
       new Error("IndexedDB is unavailable in this browser."),
     );
@@ -140,9 +140,10 @@ function openDatabase(): Promise<IDBDatabase> {
       }
     };
 
-    request.onsuccess = () => resolve(request.result);
-    request.onerror = () =>
+    request.addEventListener("success", () => resolve(request.result));
+    request.addEventListener("error", () => {
       reject(request.error ?? new Error("Could not open local media storage."));
+    });
   });
 }
 
@@ -157,26 +158,27 @@ function withStore<T>(
         const store = transaction.objectStore(STORE_NAME);
         const request = callback(store);
 
-        request.onsuccess = () => resolve(request.result);
-        request.onerror = () =>
+        request.addEventListener("success", () => resolve(request.result));
+        request.addEventListener("error", () =>
           reject(
             request.error ?? new Error("Local media storage request failed."),
-          );
-        transaction.oncomplete = () => database.close();
-        transaction.onerror = () => {
+          ),
+        );
+        transaction.addEventListener("complete", () => database.close());
+        transaction.addEventListener("error", () => {
           database.close();
           reject(
             transaction.error ??
               new Error("Local media storage transaction failed."),
           );
-        };
-        transaction.onabort = () => {
+        });
+        transaction.addEventListener("abort", () => {
           database.close();
           reject(
             transaction.error ??
               new Error("Local media storage transaction was aborted."),
           );
-        };
+        });
       }),
   );
 }
@@ -222,8 +224,8 @@ function createFileHandleSource(
   };
 }
 
-function errorMessage(err: unknown, fallback: string) {
-  return err instanceof Error && err.message ? err.message : fallback;
+function errorMessage(error: unknown, fallback: string) {
+  return error instanceof Error && error.message ? error.message : fallback;
 }
 
 async function createUrlSource(
@@ -328,8 +330,9 @@ export function validateLocalMediaUrl(value: string) {
 
 export function localMediaPickerSupported() {
   return (
-    typeof window !== "undefined" &&
-    typeof (window as BrowserWithFilePicker).showOpenFilePicker === "function"
+    globalThis.window !== undefined &&
+    typeof (globalThis as unknown as BrowserWithFilePicker)
+      .showOpenFilePicker === "function"
   );
 }
 
@@ -353,9 +356,9 @@ export async function createLocalSessionFromFile(file: File) {
 
 export async function createLocalSessionFromPicker() {
   const picker =
-    typeof window !== "undefined"
-      ? (window as BrowserWithFilePicker).showOpenFilePicker
-      : undefined;
+    globalThis.window === undefined
+      ? undefined
+      : (globalThis as unknown as BrowserWithFilePicker).showOpenFilePicker;
 
   if (!picker) {
     return { status: "unsupported" as const };
@@ -387,20 +390,21 @@ export async function createLocalSessionFromPicker() {
     };
 
     memoryRecords.set(record.id, record);
-    await putStoredRecord(record).catch(() => undefined);
+    await putStoredRecord(record).catch(() => {});
 
     return {
       status: "ready" as const,
       session: await sessionFromRecord(record),
     };
-  } catch (err) {
-    if (err instanceof DOMException && err.name === "AbortError") {
+  } catch (error) {
+    if (error instanceof DOMException && error.name === "AbortError") {
       return { status: "cancelled" as const };
     }
 
     return {
       status: "error" as const,
-      message: err instanceof Error ? err.message : "Could not open that file.",
+      message:
+        error instanceof Error ? error.message : "Could not open that file.",
     };
   }
 }
@@ -428,15 +432,15 @@ export async function createLocalSessionFromUrl(value: string) {
   let session: EditorSession;
   try {
     session = await sessionFromRecord(record);
-  } catch (err) {
+  } catch (error) {
     return {
       status: "invalid" as const,
-      message: errorMessage(err, "Could not open that URL."),
+      message: errorMessage(error, "Could not open that URL."),
     };
   }
 
   memoryRecords.set(record.id, record);
-  await putStoredRecord(record).catch(() => undefined);
+  await putStoredRecord(record).catch(() => {});
 
   return {
     status: "ready" as const,
@@ -455,11 +459,14 @@ export async function resolveLocalMediaSession(
         status: "ready",
         session: await sessionFromRecord(memoryRecord),
       };
-    } catch (err) {
+    } catch (error) {
       return {
         status: "unavailable",
         title: memoryRecord.title,
-        message: errorMessage(err, "This local video URL could not be opened."),
+        message: errorMessage(
+          error,
+          "This local video URL could not be opened.",
+        ),
       };
     }
   }
@@ -488,11 +495,14 @@ export async function resolveLocalMediaSession(
         status: "ready",
         session: await sessionFromRecord(storedRecord),
       };
-    } catch (err) {
+    } catch (error) {
       return {
         status: "unavailable",
         title: storedRecord.title,
-        message: errorMessage(err, "This local video URL could not be opened."),
+        message: errorMessage(
+          error,
+          "This local video URL could not be opened.",
+        ),
       };
     }
   }
@@ -522,11 +532,11 @@ export async function resolveLocalMediaSession(
       updatedAt: nowIsoString(),
     };
 
-    await putStoredRecord(nextRecord).catch(() => undefined);
+    await putStoredRecord(nextRecord).catch(() => {});
 
     return { status: "ready", session: await sessionFromRecord(nextRecord) };
-  } catch (err) {
-    if (err instanceof DOMException && err.name === "NotAllowedError") {
+  } catch (error) {
+    if (error instanceof DOMException && error.name === "NotAllowedError") {
       return {
         status: "permission-needed",
         id: storedRecord.id,

@@ -5,7 +5,7 @@ import {
   dockerLinuxContainerNote,
   dockerRunCommand,
   dockerRunPowerShellCommand,
-  envVars,
+  envVariables,
   features,
   warnings,
 } from "@/data/product";
@@ -40,7 +40,7 @@ function renderDockerQuickStart() {
 }
 
 function renderConfiguration() {
-  const rows = envVars.map((item) => {
+  const rows = envVariables.map((item) => {
     return `| \`${item.name}\` | ${item.description} | \`${item.defaultValue}\` |`;
   });
 
@@ -57,7 +57,7 @@ function replaceSection(readme: string, name: SectionName) {
   const start = marker(name, "start");
   const end = marker(name, "end");
   const pattern = new RegExp(
-    `${escapeRegExp(start)}\\n[\\s\\S]*?\\n${escapeRegExp(end)}`,
+    String.raw`${escapeRegExp(start)}\n[\s\S]*?\n${escapeRegExp(end)}`,
   );
 
   if (!pattern.test(readme)) {
@@ -68,14 +68,17 @@ function replaceSection(readme: string, name: SectionName) {
 }
 
 function escapeRegExp(value: string) {
-  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return value.replaceAll(/[$()*+.?[\\\]^{|}]/g, String.raw`\$&`);
 }
 
 function syncedReadme(readme: string) {
-  return sectionOrder.reduce(
-    (next, section) => replaceSection(next, section),
-    readme,
-  );
+  let nextReadme = readme;
+
+  for (const section of sectionOrder) {
+    nextReadme = replaceSection(nextReadme, section);
+  }
+
+  return nextReadme;
 }
 
 const mode = process.argv.includes("--write") ? "write" : "check";
@@ -91,11 +94,11 @@ if (mode === "write") {
     fs.writeFileSync(readmePath, nextReadme);
   }
   process.stdout.write("README docs blocks are synced.\n");
-} else if (nextReadme !== readme) {
+} else if (nextReadme === readme) {
+  process.stdout.write("README docs blocks are synced.\n");
+} else {
   process.stderr.write(
     "README docs blocks are out of sync. Run `pnpm docs:sync`.\n",
   );
   process.exit(1);
-} else {
-  process.stdout.write("README docs blocks are synced.\n");
 }

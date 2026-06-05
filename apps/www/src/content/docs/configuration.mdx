@@ -6,11 +6,11 @@ order: 20
 ---
 
 import Callout from "@/components/Callout.astro";
-import EnvVarTable from "@/components/EnvVarTable.astro";
+import EnvVariableTable from "@/components/EnvVariableTable.astro";
 
 Cliparr only needs a few settings in production: a stable `APP_KEY` and a persistent data directory.
 
-<EnvVarTable />
+<EnvVariableTable />
 
 <Callout title="APP_KEY is part of your data" tone="warning">
   `APP_KEY` encrypts persisted provider credentials. Treat it like a secret

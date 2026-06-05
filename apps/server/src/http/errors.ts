@@ -21,11 +21,11 @@ export function createApiError(
   });
 }
 
-export function isApiError(err: unknown): err is ApiError {
-  const candidate = err as Partial<ApiError>;
+export function isApiError(error: unknown): error is ApiError {
+  const candidate = error as Partial<ApiError>;
 
   return (
-    err instanceof Error &&
+    error instanceof Error &&
     candidate.name === "ApiError" &&
     typeof candidate.status === "number" &&
     typeof candidate.code === "string"
@@ -34,41 +34,41 @@ export function isApiError(err: unknown): err is ApiError {
 
 export function asyncHandler(
   handler: (
-    req: Request,
+    request: Request,
     res: Response,
     next: NextFunction,
   ) => Promise<unknown>,
 ) {
-  return (req: Request, res: Response, next: NextFunction) => {
-    void handler(req, res, next).catch(next);
+  return (request: Request, res: Response, next: NextFunction) => {
+    void handler(request, res, next).catch(next);
   };
 }
 
-export function notFoundHandler(req: Request, res: Response) {
+export function notFoundHandler(request: Request, res: Response) {
   res.status(404).json({
     error: {
       code: "not_found",
-      message: `No route for ${req.method} ${req.path}`,
+      message: `No route for ${request.method} ${request.path}`,
     },
   });
 }
 
 export function errorHandler(
-  err: unknown,
-  req: Request,
+  error: unknown,
+  request: Request,
   res: Response,
   _next: NextFunction,
 ) {
-  const apiError = isApiError(err)
-    ? err
+  const apiError = isApiError(error)
+    ? error
     : createApiError(500, "internal_error", "Something went wrong");
 
-  if (!isApiError(err)) {
-    errorWithError(logger, err, "Unhandled request error.", {
+  if (!isApiError(error)) {
+    errorWithError(logger, error, "Unhandled request error.", {
       ...logEventFields("http.request", "unhandled_error"),
-      ...logErrorFields(err),
-      "http.method": req.method,
-      "http.original_url": req.originalUrl,
+      ...logErrorFields(error),
+      "http.method": request.method,
+      "http.original_url": request.originalUrl,
     });
   } else if (apiError.status >= 500) {
     logger.error(apiError, {
@@ -76,8 +76,8 @@ export function errorHandler(
       "http.status_code": apiError.status,
       "error.code": apiError.code,
       "error.message": apiError.message,
-      "http.method": req.method,
-      "http.original_url": req.originalUrl,
+      "http.method": request.method,
+      "http.original_url": request.originalUrl,
     });
   }
 

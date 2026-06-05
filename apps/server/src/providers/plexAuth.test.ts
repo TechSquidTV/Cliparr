@@ -4,15 +4,29 @@ import { isApiError } from "@/http/errors";
 import { pollAuth, startAuth } from "@/providers/plex/auth";
 
 function jsonResponse(value: unknown) {
-  return new Response(JSON.stringify(value), {
+  return Response.json(value, {
     headers: {
       "content-type": "application/json",
     },
   });
 }
 
+function fetchInputUrl(input: Parameters<typeof fetch>[0]) {
+  if (typeof input === "string") {
+    return input;
+  }
+
+  if (input instanceof URL) {
+    return input.toString();
+  }
+
+  return input.url;
+}
+
 async function withMockedFetch<T>(
-  handler: (...args: Parameters<typeof fetch>) => ReturnType<typeof fetch>,
+  handler: (
+    ...arguments_: Parameters<typeof fetch>
+  ) => ReturnType<typeof fetch>,
   action: () => Promise<T>,
 ) {
   const originalFetch = globalThis.fetch;
@@ -28,12 +42,7 @@ async function withMockedFetch<T>(
 void test("requires the starter poll token before completing Plex auth", async () => {
   await withMockedFetch(
     async (input) => {
-      const url =
-        typeof input === "string"
-          ? input
-          : input instanceof URL
-            ? input.toString()
-            : input.url;
+      const url = fetchInputUrl(input);
 
       if (url === "https://plex.tv/api/v2/pins?strong=true") {
         return jsonResponse({
@@ -81,10 +90,10 @@ void test("requires the starter poll token before completing Plex auth", async (
 
       await assert.rejects(
         () => pollAuth(auth.authId, "wrong-token"),
-        (err: unknown) =>
-          isApiError(err) &&
-          err.status === 401 &&
-          err.code === "invalid_plex_auth_session",
+        (error: unknown) =>
+          isApiError(error) &&
+          error.status === 401 &&
+          error.code === "invalid_plex_auth_session",
       );
 
       const status = await pollAuth(auth.authId, auth.pollToken);

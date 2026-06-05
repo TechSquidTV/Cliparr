@@ -1,23 +1,23 @@
 import { Tabs as BaseTabs } from "@base-ui/react/tabs";
 import { motion, type HTMLMotionProps, type Transition } from "motion/react";
 import * as React from "react";
-import { cn } from "@/lib/utils";
+import { cn } from "@/lib/utilities";
 
-type TabsRootProps = React.ComponentProps<typeof BaseTabs.Root>;
-type TabsListProps = Omit<
+type TabsRootProperties = React.ComponentProps<typeof BaseTabs.Root>;
+type TabsListProperties = Omit<
   React.ComponentProps<typeof BaseTabs.List>,
   "className" | "ref"
 > & {
   className?: string;
   indicatorClassName?: string;
 };
-type TabsTabProps = Omit<
+type TabsTabProperties = Omit<
   React.ComponentProps<typeof BaseTabs.Tab>,
   "className" | "ref"
 > & {
   className?: string;
 };
-type TabsPanelsProps = Omit<
+type TabsPanelsProperties = Omit<
   HTMLMotionProps<"div">,
   "children" | "transition"
 > & {
@@ -25,7 +25,7 @@ type TabsPanelsProps = Omit<
   mode?: "auto-height" | "layout";
   transition?: Transition;
 };
-type TabsPanelProps = Omit<
+type TabsPanelProperties = Omit<
   React.ComponentProps<typeof BaseTabs.Panel>,
   "className" | "ref" | "render"
 > & {
@@ -44,7 +44,7 @@ const tabsPanelTransition = {
   ease: "easeInOut",
 } as const;
 
-const Tabs = React.forwardRef<HTMLDivElement, TabsRootProps>(function Tabs(
+const Tabs = React.forwardRef<HTMLDivElement, TabsRootProperties>(function Tabs(
   { className, ...props },
   ref,
 ) {
@@ -53,7 +53,7 @@ const Tabs = React.forwardRef<HTMLDivElement, TabsRootProps>(function Tabs(
   );
 });
 
-const TabsList = React.forwardRef<HTMLDivElement, TabsListProps>(
+const TabsList = React.forwardRef<HTMLDivElement, TabsListProperties>(
   function TabsList(
     { className, indicatorClassName, children, ...props },
     ref,
@@ -81,23 +81,22 @@ const TabsList = React.forwardRef<HTMLDivElement, TabsListProps>(
   },
 );
 
-const TabsTab = React.forwardRef<HTMLElement, TabsTabProps>(function TabsTab(
-  { className, ...props },
-  ref,
-) {
-  return (
-    <BaseTabs.Tab
-      ref={ref}
-      className={cn(
-        "relative z-10 inline-flex h-8 items-center justify-center gap-2 rounded-[var(--radius-control)] px-3 text-xs font-semibold uppercase tracking-[var(--tracking-caps-sm)] text-muted-foreground transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/40 focus-visible:outline-none data-[active]:text-primary-foreground data-[disabled]:cursor-not-allowed data-[disabled]:opacity-55",
-        className,
-      )}
-      {...props}
-    />
-  );
-});
+const TabsTab = React.forwardRef<HTMLElement, TabsTabProperties>(
+  function TabsTab({ className, ...props }, ref) {
+    return (
+      <BaseTabs.Tab
+        ref={ref}
+        className={cn(
+          "relative z-10 inline-flex h-8 items-center justify-center gap-2 rounded-[var(--radius-control)] px-3 text-xs font-semibold uppercase tracking-[var(--tracking-caps-sm)] text-muted-foreground transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/40 focus-visible:outline-none data-[active]:text-primary-foreground data-[disabled]:cursor-not-allowed data-[disabled]:opacity-55",
+          className,
+        )}
+        {...props}
+      />
+    );
+  },
+);
 
-const TabsPanels = React.forwardRef<HTMLDivElement, TabsPanelsProps>(
+const TabsPanels = React.forwardRef<HTMLDivElement, TabsPanelsProperties>(
   function TabsPanels(
     {
       children,
@@ -108,21 +107,21 @@ const TabsPanels = React.forwardRef<HTMLDivElement, TabsPanelsProps>(
     },
     ref,
   ) {
-    const contentRef = React.useRef<HTMLDivElement | null>(null);
+    const contentReference = React.useRef<HTMLDivElement | null>(null);
     const [height, setHeight] = React.useState<number | "auto">("auto");
 
     React.useLayoutEffect(() => {
-      if (mode !== "auto-height" || !contentRef.current) {
-        return undefined;
+      if (mode !== "auto-height" || !contentReference.current) {
+        return;
       }
 
-      const content = contentRef.current;
+      const content = contentReference.current;
       const updateHeight = () => setHeight(content.offsetHeight);
 
       updateHeight();
 
       if (typeof ResizeObserver === "undefined") {
-        return undefined;
+        return;
       }
 
       const observer = new ResizeObserver(updateHeight);
@@ -153,13 +152,13 @@ const TabsPanels = React.forwardRef<HTMLDivElement, TabsPanelsProps>(
         transition={transition}
         {...props}
       >
-        <div ref={contentRef}>{children}</div>
+        <div ref={contentReference}>{children}</div>
       </motion.div>
     );
   },
 );
 
-const TabsPanel = React.forwardRef<HTMLDivElement, TabsPanelProps>(
+const TabsPanel = React.forwardRef<HTMLDivElement, TabsPanelProperties>(
   function TabsPanel(
     { className, transition = tabsPanelTransition, ...props },
     ref,
@@ -167,9 +166,9 @@ const TabsPanel = React.forwardRef<HTMLDivElement, TabsPanelProps>(
     return (
       <BaseTabs.Panel
         ref={ref}
-        render={(renderProps) => (
+        render={(renderProperties) => (
           <motion.div
-            {...(renderProps as HTMLMotionProps<"div">)}
+            {...(renderProperties as HTMLMotionProps<"div">)}
             animate={{ opacity: 1, y: 0 }}
             className={cn("outline-none", className)}
             initial={{ opacity: 0, y: 4 }}

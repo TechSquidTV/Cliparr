@@ -327,13 +327,13 @@ function renderSupersampledSubtitleLayer({
     layerContext.lineWidth = strokeWidth * scale;
     layerContext.shadowColor = "transparent";
 
-    layout.wrappedLines.forEach((line, index) => {
+    for (const [index, line] of layout.wrappedLines.entries()) {
       layerContext.strokeText(
         line,
         localX,
         localStartY + scaledLineHeight * index,
       );
-    });
+    }
   }
 
   layerContext.fillStyle = style.fontColor;
@@ -342,9 +342,9 @@ function renderSupersampledSubtitleLayer({
   layerContext.shadowOffsetX = 0;
   layerContext.shadowOffsetY = shadowOffsetY * scale;
 
-  layout.wrappedLines.forEach((line, index) => {
+  for (const [index, line] of layout.wrappedLines.entries()) {
     layerContext.fillText(line, localX, localStartY + scaledLineHeight * index);
-  });
+  }
 
   layerContext.restore();
 
@@ -403,9 +403,9 @@ function drawDirectSubtitleText({
     context.lineWidth = strokeWidth;
     context.shadowColor = "transparent";
 
-    layout.wrappedLines.forEach((line, index) => {
+    for (const [index, line] of layout.wrappedLines.entries()) {
       context.strokeText(line, x, startY + layout.lineHeight * index);
-    });
+    }
   }
 
   context.fillStyle = style.fontColor;
@@ -414,9 +414,9 @@ function drawDirectSubtitleText({
   context.shadowOffsetX = 0;
   context.shadowOffsetY = shadowOffsetY;
 
-  layout.wrappedLines.forEach((line, index) => {
+  for (const [index, line] of layout.wrappedLines.entries()) {
     context.fillText(line, x, startY + layout.lineHeight * index);
-  });
+  }
 }
 
 export function renderSubtitleCue(

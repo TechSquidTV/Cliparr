@@ -40,7 +40,9 @@ interface UseEditorPlaybackWarmupOptions {
     void,
     unknown
   > | null>;
-  selectionWarmupExtensionTimeoutRef: RefValue<number | null>;
+  selectionWarmupExtensionTimeoutRef: RefValue<ReturnType<
+    typeof globalThis.setTimeout
+  > | null>;
   autoWarmupSessionKeyRef: RefValue<string | null>;
   wasPlayingRef: RefValue<boolean>;
   playingRef: RefValue<boolean>;

@@ -7,7 +7,7 @@
     "build": "astro build",
     "preview": "astro preview",
     "lint": "pnpm lint:eslint && pnpm lint:types",
-    "lint:eslint": "pnpm exec eslint \"src/**/*.astro\"",
+    "lint:eslint": "pnpm exec eslint \"src/**/*.astro\" \"src/**/*.ts\" \"scripts/**/*.ts\" \"astro.config.ts\" \"public/service-worker.js\"",
     "lint:types": "astro-check && tsc --noEmit --project tsconfig.scripts.json",
     "docs:sync": "tsx scripts/sync-readme.ts --write",
     "docs:check": "tsx scripts/sync-readme.ts --check",

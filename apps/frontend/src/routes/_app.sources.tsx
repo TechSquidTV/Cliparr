@@ -10,7 +10,7 @@ function SourcesRouteComponent() {
       isOpen
       onClose={() => {
         if (canGoBack) {
-          window.history.back();
+          globalThis.history.back();
           return;
         }
 

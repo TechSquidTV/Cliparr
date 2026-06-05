@@ -28,7 +28,7 @@ function restoreEnv(name: string, value: string | undefined) {
 }
 
 function jsonResponse(value: unknown, init: ResponseInit = {}) {
-  return new Response(JSON.stringify(value), {
+  return Response.json(value, {
     ...init,
     headers: {
       "content-type": "application/json",
@@ -42,6 +42,18 @@ function cookieHeader(response: Response) {
     .getSetCookie()
     .map((cookie) => cookie.split(";")[0])
     .join("; ");
+}
+
+function fetchInputUrl(input: Parameters<typeof fetch>[0]) {
+  if (typeof input === "string") {
+    return input;
+  }
+
+  if (input instanceof URL) {
+    return input.toString();
+  }
+
+  return input.url;
 }
 
 async function withTestApp<T>(
@@ -65,17 +77,17 @@ async function withTestApp<T>(
       server.once("listening", resolve);
     });
     const address = server.address();
-    assert(address && typeof address === "object");
+    assert.ok(address && typeof address === "object");
     return await callback(`http://127.0.0.1:${address.port}`, originalFetch);
   } finally {
-    await new Promise((resolve, reject) => {
-      server.close((err) => {
-        if (err) {
-          reject(err);
+    await new Promise<void>((resolve, reject) => {
+      server.close((error) => {
+        if (error) {
+          reject(error);
           return;
         }
 
-        resolve(undefined);
+        resolve();
       });
     });
     globalThis.fetch = originalFetch;
@@ -87,7 +99,9 @@ async function withTestApp<T>(
 }
 
 async function withMockedFetch<T>(
-  handler: (...args: Parameters<typeof fetch>) => ReturnType<typeof fetch>,
+  handler: (
+    ...arguments_: Parameters<typeof fetch>
+  ) => ReturnType<typeof fetch>,
   action: () => Promise<T>,
 ) {
   const originalFetch = globalThis.fetch;
@@ -104,12 +118,7 @@ void test("completes Plex PIN auth through route cookies and persists sources", 
   await withTestApp(async (baseUrl, fetchLocal) => {
     await withMockedFetch(
       async (input) => {
-        const requestUrl =
-          typeof input === "string"
-            ? input
-            : input instanceof URL
-              ? input.toString()
-              : input.url;
+        const requestUrl = fetchInputUrl(input);
 
         if (requestUrl === "https://plex.tv/api/v2/pins?strong=true") {
           return jsonResponse({
@@ -196,17 +205,17 @@ void test("completes Plex PIN auth through route cookies and persists sources", 
         assert.equal(completeResponse.status, 200);
         assert.deepEqual(await completeResponse.json(), { status: "complete" });
         const setCookies = completeResponse.headers.getSetCookie();
-        assert(
+        assert.ok(
           setCookies.some(
             (cookie) =>
               cookie.startsWith("cliparr_provider_auth=") &&
               cookie.includes("Expires=Thu, 01 Jan 1970 00:00:00 GMT"),
           ),
         );
-        assert(
+        assert.ok(
           setCookies.some((cookie) => cookie.startsWith("cliparr_session=")),
         );
-        assert(
+        assert.ok(
           setCookies.some((cookie) => cookie.startsWith("cliparr_remember=")),
         );
 
@@ -227,18 +236,14 @@ void test("logs into Jellyfin with credentials and stores a remembered provider 
 
     await withMockedFetch(
       async (input, init) => {
-        const requestUrl =
-          typeof input === "string"
-            ? input
-            : input instanceof URL
-              ? input.toString()
-              : input.url;
-        const requestBody =
-          typeof init?.body === "string"
-            ? init.body
-            : input instanceof Request
-              ? await input.clone().text()
-              : undefined;
+        const requestUrl = fetchInputUrl(input);
+        let requestBody: string | undefined;
+        if (typeof init?.body === "string") {
+          requestBody = init.body;
+        } else if (input instanceof Request) {
+          requestBody = await input.clone().text();
+        }
+
         upstreamRequests.push({
           url: requestUrl,
           body: requestBody || undefined,
@@ -293,17 +298,17 @@ void test("logs into Jellyfin with credentials and stores a remembered provider 
         };
         assert.equal(body.session?.providerId, "jellyfin");
         const setCookies = response.headers.getSetCookie();
-        assert(
+        assert.ok(
           setCookies.some((cookie) => cookie.startsWith("cliparr_session=")),
         );
-        assert(
+        assert.ok(
           setCookies.some((cookie) => cookie.startsWith("cliparr_remember=")),
         );
 
         const authRequest = upstreamRequests.find((request) =>
           request.url.endsWith("/Users/AuthenticateByName"),
         );
-        assert(authRequest?.body);
+        assert.ok(authRequest?.body);
         assert.deepEqual(JSON.parse(authRequest.body), {
           Username: "admin",
           Pw: "secret",
@@ -330,12 +335,7 @@ void test("rejects Jellyfin credential-login redirects to loopback before connec
 
     await withMockedFetch(
       async (input, init) => {
-        const requestUrl =
-          typeof input === "string"
-            ? input
-            : input instanceof URL
-              ? input.toString()
-              : input.url;
+        const requestUrl = fetchInputUrl(input);
         upstreamRequests.push({
           url: requestUrl,
           redirectMode: init?.redirect,
@@ -389,12 +389,7 @@ void test("follows Jellyfin credential-login redirects to public targets", async
 
     await withMockedFetch(
       async (input) => {
-        const requestUrl =
-          typeof input === "string"
-            ? input
-            : input instanceof URL
-              ? input.toString()
-              : input.url;
+        const requestUrl = fetchInputUrl(input);
         upstreamRequests.push(requestUrl);
 
         if (requestUrl === "http://1.1.1.1:8096/jellyfin/System/Info/Public") {
@@ -481,9 +476,9 @@ void test("updates sources across connected accounts and preserves Plex manual U
       label: "Jellyfin Account",
       accessToken: "jellyfin-user-token",
     });
-    assert(account);
-    assert(otherAccount);
-    assert(jellyfinAccount);
+    assert.ok(account);
+    assert.ok(otherAccount);
+    assert.ok(jellyfinAccount);
 
     const source = upsertMediaSource({
       providerId: "plex",
@@ -513,9 +508,9 @@ void test("updates sources across connected accounts and preserves Plex manual U
       name: "Jelly Lab",
       baseUrl: "http://jelly.example:8096",
     });
-    assert(source);
-    assert(otherSource);
-    assert(jellyfinSource);
+    assert.ok(source);
+    assert.ok(otherSource);
+    assert.ok(jellyfinSource);
 
     const session = createProviderSession({
       providerId: "plex",
@@ -578,7 +573,7 @@ void test("updates sources across connected accounts and preserves Plex manual U
     assert.equal(body.source?.baseUrl, "https://manual.example/plex");
 
     const updatedSource = getMediaSourceForAccount(source.id, account.id);
-    assert(updatedSource);
+    assert.ok(updatedSource);
     assert.equal(
       updatedSource.connection.baseUrlMode,
       PLEX_BASE_URL_MODE_MANUAL,
@@ -595,8 +590,8 @@ void test("updates sources across connected accounts and preserves Plex manual U
       sources?: Array<{ id: string }>;
     };
     assert.deepEqual(
-      listed.sources?.map((item) => item.id).sort(),
-      [jellyfinSource.id, otherSource.id, source.id].sort(),
+      listed.sources?.map((item) => item.id).toSorted(),
+      [jellyfinSource.id, otherSource.id, source.id].toSorted(),
     );
   });
 });
@@ -608,7 +603,7 @@ void test("deletes individual source rows and excludes them from dashboard disco
       label: "Plex Account",
       accessToken: "user-token",
     });
-    assert(account);
+    assert.ok(account);
 
     const removedSource = upsertMediaSource({
       providerId: "plex",
@@ -631,8 +626,8 @@ void test("deletes individual source rows and excludes them from dashboard disco
         provides: ["server"],
       },
     });
-    assert(removedSource);
-    assert(keptSource);
+    assert.ok(removedSource);
+    assert.ok(keptSource);
 
     const session = createProviderSession({
       providerId: "plex",
@@ -711,7 +706,7 @@ void test("refreshes Jellyfin source health and persists check results", async (
       label: "Jellyfin Account",
       accessToken: "jellyfin-user-token",
     });
-    assert(account);
+    assert.ok(account);
 
     const source = upsertMediaSource({
       providerId: "jellyfin",
@@ -728,7 +723,7 @@ void test("refreshes Jellyfin source health and persists check results", async (
         serverName: "Jellyfin",
       },
     });
-    assert(source);
+    assert.ok(source);
 
     const session = createProviderSession({
       providerId: "jellyfin",
@@ -738,12 +733,7 @@ void test("refreshes Jellyfin source health and persists check results", async (
 
     await withMockedFetch(
       async (input) => {
-        const requestUrl =
-          typeof input === "string"
-            ? input
-            : input instanceof URL
-              ? input.toString()
-              : input.url;
+        const requestUrl = fetchInputUrl(input);
 
         if (requestUrl === "http://1.1.1.1:8096/System/Info/Public") {
           return jsonResponse({
@@ -797,7 +787,7 @@ void test("refreshes Jellyfin source health and persists check results", async (
           account.id,
           "jellyfin-server-1",
         );
-        assert(updatedSource);
+        assert.ok(updatedSource);
         assert.equal(updatedSource.name, "Jelly Lab");
         assert.equal(updatedSource.lastError, undefined);
         assert.equal(updatedSource.metadata.version, "10.9.1");

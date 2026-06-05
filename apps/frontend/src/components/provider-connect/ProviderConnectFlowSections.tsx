@@ -1,5 +1,5 @@
 import { AnimatePresence, motion } from "motion/react";
-import { cn } from "@/lib/utils";
+import { cn } from "@/lib/utilities";
 import type { ProviderDefinition } from "@/providers/types";
 import { ProviderGlyph } from "@/components/providers/ProviderGlyph";
 
@@ -8,7 +8,7 @@ export function providerPresentation(
   variant: "panel" | "screen",
 ) {
   switch (provider.id) {
-    case "plex":
+    case "plex": {
       return {
         eyebrow: "Browser Sign-In",
         summary:
@@ -17,18 +17,21 @@ export function providerPresentation(
             : "Sign in with Plex to find your servers.",
         action: "Continue with Plex",
       };
-    case "jellyfin":
+    }
+    case "jellyfin": {
       return {
         eyebrow: "Direct Server Login",
         summary: "Connect with your Jellyfin server URL and account.",
         action: "Connect Jellyfin",
       };
-    default:
+    }
+    default: {
       return {
         eyebrow: "Provider Setup",
         summary: `Connect ${provider.name} to import active sessions.`,
         action: `Continue with ${provider.name}`,
       };
+    }
   }
 }
 
@@ -140,18 +143,21 @@ export function ProviderOption({
   const details = providerPresentation(provider, variant);
   const isSelected = provider.id === selectedProvider?.id;
   const isBusy = authenticating && authenticatingProviderId === provider.id;
-  const commonProps = {
+  let selectedClassName = "border-border bg-background hover:bg-accent/60";
+  if (isSelected) {
+    selectedClassName = isScreen
+      ? "border-primary/40 bg-primary/10 shadow-lg"
+      : "border-primary/30 bg-primary/10";
+  }
+
+  const commonProperties = {
     type: "button" as const,
     onClick: () => onSelect(provider.id),
     disabled: authenticating && !isBusy,
     className: cn(
       "w-full border text-left transition-colors disabled:cursor-not-allowed disabled:opacity-60",
       isScreen ? "rounded-2xl px-4 py-4" : "rounded-lg px-3 py-3",
-      isSelected
-        ? isScreen
-          ? "border-primary/40 bg-primary/10 shadow-lg"
-          : "border-primary/30 bg-primary/10"
-        : "border-border bg-background hover:bg-accent/60",
+      selectedClassName,
     ),
   };
 
@@ -222,7 +228,7 @@ export function ProviderOption({
   );
 
   if (!isScreen) {
-    return <button {...commonProps}>{content}</button>;
+    return <button {...commonProperties}>{content}</button>;
   }
 
   return (
@@ -231,7 +237,7 @@ export function ProviderOption({
       whileHover={authenticating && !isBusy ? undefined : { y: -2 }}
       whileTap={authenticating && !isBusy ? undefined : { scale: 0.995 }}
       transition={{ duration: 0.16, ease: "easeOut" }}
-      {...commonProps}
+      {...commonProperties}
     >
       {content}
     </motion.button>

@@ -13,7 +13,7 @@ export function getProvider(providerId: string) {
 }
 
 export function listProviders() {
-  return Array.from(providers.values()).map((provider) => provider.definition);
+  return [...providers.values()].map((provider) => provider.definition);
 }
 
 registerProvider(plexProvider);

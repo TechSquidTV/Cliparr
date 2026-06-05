@@ -92,17 +92,17 @@ function renderExportDialogMarkup(
     clipStart: 10,
     clipEnd: 20,
     selectedFormat: "mp4",
-    onFormatChange: () => undefined,
+    onFormatChange: () => {},
     selectedQuality: "sharp",
-    onQualityChange: () => undefined,
+    onQualityChange: () => {},
     gifSettings: null,
     outputSizeEstimate: { bytes: 7_029_750, basis: "codec-heuristic" },
     selectedResolution: "original",
-    onResolutionChange: () => undefined,
+    onResolutionChange: () => {},
     selectedSourcePreference: "auto",
-    onSourcePreferenceChange: () => undefined,
+    onSourcePreferenceChange: () => {},
     includeAudio: true,
-    onIncludeAudioChange: () => undefined,
+    onIncludeAudioChange: () => {},
     audioDisabledReason: null,
     exporting: false,
     progress: 0,
@@ -122,15 +122,15 @@ function renderExportDialogMarkup(
     exportDisabledReason: null,
     activeTemplateKind: "movie",
     editingTemplateKind: "movie",
-    onEditingTemplateKindChange: () => undefined,
+    onEditingTemplateKindChange: () => {},
     fileNameTemplates: {
       movie: "{title} [{start}-{end}]",
       episode: "{series} - {episodeTitle} [{start}-{end}]",
     },
-    onFileNameTemplateChange: () => undefined,
-    onResetFileNameTemplate: () => undefined,
-    onClose: () => undefined,
-    onExport: () => undefined,
+    onFileNameTemplateChange: () => {},
+    onResetFileNameTemplate: () => {},
+    onClose: () => {},
+    onExport: () => {},
     ...overrides,
   } satisfies ComponentProps<typeof EditorExportDialog>;
 
@@ -207,7 +207,7 @@ function withMobilePwaBrowserEnvironment(callback: () => void) {
   const localStorage = {
     length: 0,
     clear() {
-      return undefined;
+      return;
     },
     getItem() {
       return null;
@@ -216,10 +216,10 @@ function withMobilePwaBrowserEnvironment(callback: () => void) {
       return null;
     },
     removeItem() {
-      return undefined;
+      return;
     },
     setItem() {
-      return undefined;
+      return;
     },
   } satisfies Storage;
 
@@ -227,16 +227,16 @@ function withMobilePwaBrowserEnvironment(callback: () => void) {
     configurable: true,
     value: {
       addEventListener() {
-        return undefined;
+        return;
       },
       isSecureContext: true,
       matchMedia(query: string): MediaQueryList {
         return {
           addEventListener() {
-            return undefined;
+            return;
           },
           addListener() {
-            return undefined;
+            return;
           },
           dispatchEvent() {
             return false;
@@ -245,15 +245,15 @@ function withMobilePwaBrowserEnvironment(callback: () => void) {
           media: query,
           onchange: null,
           removeEventListener() {
-            return undefined;
+            return;
           },
           removeListener() {
-            return undefined;
+            return;
           },
         };
       },
       removeEventListener() {
-        return undefined;
+        return;
       },
     },
   });
@@ -290,8 +290,8 @@ void test("renders local video dialog file picker workflow", () => {
   const markup = renderToStaticMarkup(
     createElement(LocalVideoOpenDialog, {
       isOpen: true,
-      onClose: () => undefined,
-      onOpened: () => undefined,
+      onClose: () => {},
+      onOpened: () => {},
     }),
   );
 
@@ -303,8 +303,8 @@ void test("renders local video dialog file picker workflow", () => {
 void test("reserves provider connect layout before providers load", () => {
   const markup = renderToStaticMarkup(
     createElement(ProviderConnectScreen, {
-      onConnected: () => undefined,
-      onOpenLocalVideo: () => undefined,
+      onConnected: () => {},
+      onOpenLocalVideo: () => {},
     }),
   );
 
@@ -317,7 +317,7 @@ void test("renders dashboard mobile menu trigger", () => {
     createElement(DashboardMobileMenu, {
       appVersion: "1.2.3",
       latestRelease: null,
-      onDisconnect: () => undefined,
+      onDisconnect: () => {},
     }),
   );
 
@@ -371,8 +371,8 @@ void test("renders mobile PWA install nudge for native install state", () => {
   const markup = renderToStaticMarkup(
     createElement(MobilePwaInstallNudgeCard, {
       mode: "native",
-      onDismiss: () => undefined,
-      onInstall: () => undefined,
+      onDismiss: () => {},
+      onInstall: () => {},
     }),
   );
 
@@ -385,8 +385,8 @@ void test("hides mobile PWA install nudge by default", () => {
   const markup = renderToStaticMarkup(
     createElement(MobilePwaInstallNudgeCard, {
       mode: "hidden",
-      onDismiss: () => undefined,
-      onInstall: () => undefined,
+      onDismiss: () => {},
+      onInstall: () => {},
     }),
   );
 
@@ -397,10 +397,10 @@ void test("does not render dashboard PWA nudge in default server markup", () => 
   const markup = renderToStaticMarkup(
     createElement(DashboardScreen, {
       activeViewTransitionSessionId: null,
-      onSelectSession: () => undefined,
-      onOpenLocalVideo: () => undefined,
-      onOpenSources: () => undefined,
-      onDisconnect: () => undefined,
+      onSelectSession: () => {},
+      onOpenLocalVideo: () => {},
+      onOpenSources: () => {},
+      onDisconnect: () => {},
     }),
   );
 
@@ -411,10 +411,10 @@ void test("reserves dashboard playback card space before sessions load", () => {
   const markup = renderToStaticMarkup(
     createElement(DashboardScreen, {
       activeViewTransitionSessionId: null,
-      onSelectSession: () => undefined,
-      onOpenLocalVideo: () => undefined,
-      onOpenSources: () => undefined,
-      onDisconnect: () => undefined,
+      onSelectSession: () => {},
+      onOpenLocalVideo: () => {},
+      onOpenSources: () => {},
+      onDisconnect: () => {},
     }),
   );
 
@@ -425,17 +425,17 @@ void test("reserves dashboard playback card space before sessions load", () => {
   assert.match(markup, /aria-live="polite"/);
   assert.match(markup, /aria-label="Loading currently playing sessions"/);
   assert.match(markup, /data-dashboard-playback-skeleton/);
-  assert.match(markup, /aspect-\[2\/3\]/);
+  assert.match(markup, /aspect-\[2\/3]/);
 });
 
 void test("reserves dashboard version badge space before health loads", () => {
   const markup = renderToStaticMarkup(
     createElement(DashboardScreen, {
       activeViewTransitionSessionId: null,
-      onSelectSession: () => undefined,
-      onOpenLocalVideo: () => undefined,
-      onOpenSources: () => undefined,
-      onDisconnect: () => undefined,
+      onSelectSession: () => {},
+      onOpenLocalVideo: () => {},
+      onOpenSources: () => {},
+      onDisconnect: () => {},
     }),
   );
 
@@ -478,7 +478,7 @@ void test("renders dashboard playback cards with viewer context", () => {
     createElement(DashboardPlaybackCard, {
       card,
       activeViewTransitionSessionId: null,
-      onSelectSession: () => undefined,
+      onSelectSession: () => {},
     }),
   );
 
@@ -486,7 +486,7 @@ void test("renders dashboard playback cards with viewer context", () => {
   assert.match(markup, /playing/);
   assert.match(markup, /1 active session/);
   assert.match(markup, /Living Room/);
-  assert.match(markup, /aspect-\[2\/3\]/);
+  assert.match(markup, /aspect-\[2\/3]/);
   assert.match(markup, /mt-auto/);
 });
 
@@ -498,7 +498,7 @@ void test("renders music playback cards inside the video-style card frame", () =
     createElement(DashboardPlaybackCard, {
       card,
       activeViewTransitionSessionId: null,
-      onSelectSession: () => undefined,
+      onSelectSession: () => {},
     }),
   );
 
@@ -506,7 +506,7 @@ void test("renders music playback cards inside the video-style card frame", () =
   assert.match(markup, /TRACK/);
   assert.match(
     markup,
-    /relative aspect-\[2\/3\] w-full shrink-0 overflow-hidden/,
+    /relative aspect-\[2\/3] w-full shrink-0 overflow-hidden/,
   );
   assert.match(markup, /absolute inset-0 h-full w-full object-cover/);
   assert.match(markup, /mt-auto/);
@@ -522,7 +522,7 @@ void test("renders the editor thumbnail behind loading preview state", () => {
       posterImageUrl: "/api/media/thumb.jpg",
       previewStatus: "Loading HLS stream...",
       previewFrameStatus: "",
-      togglePlay: () => undefined,
+      togglePlay: () => {},
     }),
   );
 
@@ -543,7 +543,7 @@ void test("keeps the editor thumbnail mounted after preview load for fade out", 
       posterImageUrl: "/api/media/thumb.jpg",
       previewStatus: "Loading HLS stream...",
       previewFrameStatus: "",
-      togglePlay: () => undefined,
+      togglePlay: () => {},
     }),
   );
 
@@ -561,24 +561,24 @@ void test("renders mobile editor controls trigger and compact range summary", ()
         variant: "mobile",
         playing: false,
         loadingPreview: false,
-        togglePlay: () => undefined,
+        togglePlay: () => {},
         currentTime: 12,
         duration: 120,
         startTime: 10,
         endTime: 20,
         muted: false,
-        setMuted: () => undefined,
+        setMuted: () => {},
         volume: 1,
-        setVolume: () => undefined,
-        handleTimelineZoomIn: () => undefined,
-        handleTimelineZoomOut: () => undefined,
+        setVolume: () => {},
+        handleTimelineZoomIn: () => {},
+        handleTimelineZoomOut: () => {},
         canZoomIn: true,
         canZoomOut: true,
-        onFramegrabClick: () => undefined,
+        onFramegrabClick: () => {},
         framegrabDisabledReason: null,
-        onPreviewTimeCommit: () => undefined,
-        onStartTimeCommit: () => undefined,
-        onEndTimeCommit: () => undefined,
+        onPreviewTimeCommit: () => {},
+        onStartTimeCommit: () => {},
+        onEndTimeCommit: () => {},
       }),
     ),
   );
@@ -623,7 +623,7 @@ void test("renders editor poster with the shared thumbnail view transition", () 
       posterViewTransitionName: EDITOR_THUMBNAIL_VIEW_TRANSITION_NAME,
       previewStatus: "Loading HLS stream...",
       previewFrameStatus: "",
-      togglePlay: () => undefined,
+      togglePlay: () => {},
     }),
   );
 
@@ -641,34 +641,34 @@ void test("renders the editor framegrab camera control", () => {
       createElement(EditorControls, {
         playing: false,
         loadingPreview: false,
-        togglePlay: () => undefined,
+        togglePlay: () => {},
         currentTime: 12,
         duration: 120,
         startTime: 10,
         endTime: 20,
         muted: false,
-        setMuted: () => undefined,
+        setMuted: () => {},
         volume: 1,
-        setVolume: () => undefined,
-        handleTimelineZoomIn: () => undefined,
-        handleTimelineZoomOut: () => undefined,
+        setVolume: () => {},
+        handleTimelineZoomIn: () => {},
+        handleTimelineZoomOut: () => {},
         canZoomIn: true,
         canZoomOut: true,
-        onFramegrabClick: () => undefined,
+        onFramegrabClick: () => {},
         framegrabDisabledReason: null,
-        onPreviewTimeCommit: () => undefined,
-        onStartTimeCommit: () => undefined,
-        onEndTimeCommit: () => undefined,
+        onPreviewTimeCommit: () => {},
+        onStartTimeCommit: () => {},
+        onEndTimeCommit: () => {},
       }),
     ),
   );
 
   assert.match(markup, /Export current preview frame/);
-  assert(
+  assert.ok(
     markup.indexOf('aria-label="Zoom timeline out"') <
       markup.indexOf('aria-label="Zoom timeline in"'),
   );
-  assert(
+  assert.ok(
     markup.indexOf('aria-label="Zoom timeline in"') <
       markup.indexOf('aria-label="Export current preview frame"'),
   );
@@ -681,17 +681,17 @@ void test("reserves editor export progress label width", () => {
       null,
       createElement(EditorHeader, {
         title: "Example Movie",
-        onBack: () => undefined,
+        onBack: () => {},
         exporting: true,
         progress: 0.07,
         exportDisabledReason: null,
-        onExportClick: () => undefined,
+        onExportClick: () => {},
       }),
     ),
   );
 
   assert.match(markup, /w-40/);
-  assert.match(markup, /w-\[4ch\]/);
+  assert.match(markup, /w-\[4ch]/);
   assert.match(markup, />7%<\/span>/);
 });
 
@@ -706,16 +706,16 @@ void test("renders the framegrab export dialog actions", () => {
         height: 1080,
       },
       selectedFormat: "png",
-      onFormatChange: () => undefined,
+      onFormatChange: () => {},
       selectedQuality: "high",
-      onQualityChange: () => undefined,
+      onQualityChange: () => {},
       fileNamePreview: "Example Movie [01m01s].png",
       processingAction: null,
       error: null,
       message: "Copied to clipboard.",
-      onClose: () => undefined,
-      onCopy: () => undefined,
-      onDownload: () => undefined,
+      onClose: () => {},
+      onCopy: () => {},
+      onDownload: () => {},
     }),
   );
 
@@ -731,7 +731,7 @@ void test("renders the framegrab export dialog actions", () => {
   assert.match(markup, /aria-live="polite"/);
   assert.doesNotMatch(markup, /sr-only/);
   assert.match(markup, /Copied to clipboard\./);
-  assert.match(markup, /Example Movie \[01m01s\]\.png/);
+  assert.match(markup, /Example Movie \[01m01s]\.png/);
 });
 
 void test("renders GIF export quality controls and immediate estimated size", () => {
@@ -750,11 +750,11 @@ void test("renders GIF export quality controls and immediate estimated size", ()
   assert.match(markup, /aria-label="Export quality"/);
   assert.doesNotMatch(markup, /aria-pressed=/);
   assert.doesNotMatch(markup, /GIF Preset/);
-  assert.doesNotMatch(markup, /min-h-\[6\.5rem\]/);
+  assert.doesNotMatch(markup, /min-h-\[6\.5rem]/);
   assert.match(markup, /Default GIF quality\/size tradeoff\./);
   assert.match(markup, /Balanced GIF \/ 12 fps/);
   assert.doesNotMatch(markup, /<dt[^>]*>Estimated size<\/dt>/);
-  assert.match(markup, /Estimated size[\s\S]*~1\.5 MB[\s\S]*Export GIF/);
+  assert.match(markup, /Estimated size[\S\s]*~1\.5 MB[\S\s]*Export GIF/);
   assert.match(markup, /~1\.5 MB/);
   assert.match(markup, /GIF exports are video only\./);
   assert.doesNotMatch(markup, /role="radiogroup"/);
@@ -775,9 +775,9 @@ void test("renders universal quality details for video formats", () => {
   assert.match(markup, /Preserves source video when possible\./);
   assert.match(markup, /Sharp quality/);
   assert.doesNotMatch(markup, /GIF Preset/);
-  assert.doesNotMatch(markup, /min-h-\[6\.5rem\]/);
+  assert.doesNotMatch(markup, /min-h-\[6\.5rem]/);
   assert.doesNotMatch(markup, /<dt[^>]*>Estimated size<\/dt>/);
-  assert.match(markup, /Estimated size[\s\S]*~6\.7 MB[\s\S]*Export MP4/);
+  assert.match(markup, /Estimated size[\S\s]*~6\.7 MB[\S\s]*Export MP4/);
   assert.match(markup, /~6\.7 MB/);
   assert.doesNotMatch(markup, /~1\.5 MB/);
   assert.doesNotMatch(markup, /Balanced GIF \/ 12 fps/);
@@ -793,7 +793,7 @@ void test("renders unavailable footer estimate when size inputs are missing", ()
   });
 
   assert.doesNotMatch(markup, /<dt[^>]*>Estimated size<\/dt>/);
-  assert.match(markup, /Estimated size[\s\S]*Unavailable[\s\S]*Export MP4/);
+  assert.match(markup, /Estimated size[\S\s]*Unavailable[\S\s]*Export MP4/);
   assert.match(markup, /Unavailable/);
 });
 
@@ -805,16 +805,16 @@ void test("renders framegrab capture errors without a captured canvas", () => {
       frameTime: 61.2,
       dimensions: null,
       selectedFormat: "png",
-      onFormatChange: () => undefined,
+      onFormatChange: () => {},
       selectedQuality: "high",
-      onQualityChange: () => undefined,
+      onQualityChange: () => {},
       fileNamePreview: "Example Movie [01m01s].png",
       processingAction: null,
       error: "No preview frame is available yet.",
       message: null,
-      onClose: () => undefined,
-      onCopy: () => undefined,
-      onDownload: () => undefined,
+      onClose: () => {},
+      onCopy: () => {},
+      onDownload: () => {},
     }),
   );
 

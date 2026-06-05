@@ -62,7 +62,7 @@ function createSource(): MediaSource {
 function onlyMediaHandle(session: ProviderSessionRecord) {
   assert.equal(session.mediaHandles.size, 1);
   const handle = [...session.mediaHandles.values()][0];
-  assert(handle);
+  assert.ok(handle);
   return handle;
 }
 
@@ -97,7 +97,7 @@ function createResponseRecorder() {
 }
 
 function jsonResponse(data: unknown, status = 200) {
-  return new Response(JSON.stringify(data), {
+  return Response.json(data, {
     status,
     headers: {
       "Content-Type": "application/json",
@@ -157,7 +157,7 @@ function createJellyfinPlaybackFetch(options: {
     Name: title,
     Type: "Episode",
     MediaType: "Video",
-    RunTimeTicks: 1_698_000_0000,
+    RunTimeTicks: 16_980_000_000,
     MediaSources: [
       {
         Id: "stale-session-media-source",
@@ -213,7 +213,7 @@ void test("disables Jellyfin subtitle burn-in on HLS previews", () => {
     createContext(),
     "play-session-1",
   );
-  assert(path);
+  assert.ok(path);
 
   const url = new URL(path, "http://cliparr.local");
 
@@ -253,8 +253,8 @@ void test("extracts Jellyfin export size estimate metadata from media sources", 
   assert.deepEqual(createJellyfinExportEstimateMetadata(mediaSource, 0), {
     sourceSizeBytes: 120_000_000,
     sourceDurationSeconds: 600,
-    sourceBitrateKbps: 1_600,
-    videoBitrateKbps: 1_400,
+    sourceBitrateKbps: 1600,
+    videoBitrateKbps: 1400,
     audioBitrateKbps: 160,
     width: 1920,
     height: 1080,
@@ -263,11 +263,11 @@ void test("extracts Jellyfin export size estimate metadata from media sources", 
 });
 
 void test("converts Jellyfin PositionTicks into playhead seconds", () => {
-  assert.equal(playheadSecondsFromPositionTicks(1234560000), 123.456);
+  assert.equal(playheadSecondsFromPositionTicks(1_234_560_000), 123.456);
   assert.equal(playheadSecondsFromPositionTicks(0), 0);
   assert.equal(playheadSecondsFromPositionTicks(-1), undefined);
   assert.equal(playheadSecondsFromPositionTicks(null), undefined);
-  assert.equal(playheadSecondsFromPositionTicks(undefined), undefined);
+  assert.equal(playheadSecondsFromPositionTicks(), undefined);
 });
 
 void test("uses Jellyfin PlaybackInfo play session ids for currently playing streams", async () => {
@@ -288,8 +288,8 @@ void test("uses Jellyfin PlaybackInfo play session ids for currently playing str
       "source-1:client-session-1:item-1:media-source-1",
     );
     assert.equal(entries[0]?.item.playheadSeconds, 123.456);
-    assert(entries[0]?.item.mediaUrl);
-    assert(entries[0]?.item.hlsUrl);
+    assert.ok(entries[0]?.item.mediaUrl);
+    assert.ok(entries[0]?.item.hlsUrl);
 
     const streamHandle = [...session.mediaHandles.values()].find((handle) =>
       handle.path.includes("/stream?"),
@@ -297,8 +297,8 @@ void test("uses Jellyfin PlaybackInfo play session ids for currently playing str
     const hlsHandle = [...session.mediaHandles.values()].find((handle) =>
       handle.path.includes("/master.m3u8?"),
     );
-    assert(streamHandle);
-    assert(hlsHandle);
+    assert.ok(streamHandle);
+    assert.ok(hlsHandle);
 
     const streamUrl = new URL(streamHandle.path, "http://cliparr.local");
     const hlsUrl = new URL(hlsHandle.path, "http://cliparr.local");
@@ -355,8 +355,8 @@ void test("reuses Jellyfin playback info for stable currently playing handles", 
     const hlsHandle = [...session.mediaHandles.values()].find((handle) =>
       handle.path.includes("/master.m3u8?"),
     );
-    assert(streamHandle);
-    assert(hlsHandle);
+    assert.ok(streamHandle);
+    assert.ok(hlsHandle);
 
     const streamUrl = new URL(streamHandle.path, "http://cliparr.local");
     const hlsUrl = new URL(hlsHandle.path, "http://cliparr.local");
@@ -543,7 +543,7 @@ void test("uses resolved Jellyfin media source id for subtitle content URLs", ()
     ],
   };
 
-  const tracks = deriveSubtitleTracks(session, context, item, undefined);
+  const tracks = deriveSubtitleTracks(session, context, item);
   const handle = onlyMediaHandle(session);
 
   assert.equal(tracks.length, 1);

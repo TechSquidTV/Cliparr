@@ -7,7 +7,7 @@ type ReleaseEntry = CollectionEntry<"releases">;
 
 const releaseEntries = (
   (await getCollection("releases")) as ReleaseEntry[]
-).sort(
+).toSorted(
   (a, b) => Date.parse(b.data.publishedAt) - Date.parse(a.data.publishedAt),
 );
 const releases = await Promise.all(

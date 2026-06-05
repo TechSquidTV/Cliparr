@@ -1,7 +1,7 @@
 import { LoaderCircle, Play } from "lucide-react";
 import type { RefObject } from "react";
 
-interface EditorPreviewProps {
+interface EditorPreviewProperties {
   canvasRef: RefObject<HTMLCanvasElement | null>;
   videoDimensions?: {
     width: number;
@@ -28,7 +28,7 @@ export function EditorPreview({
   previewStatus,
   previewFrameStatus,
   togglePlay,
-}: EditorPreviewProps) {
+}: EditorPreviewProperties) {
   const aspectRatio =
     videoDimensions && videoDimensions.width > 0 && videoDimensions.height > 0
       ? `${videoDimensions.width} / ${videoDimensions.height}`

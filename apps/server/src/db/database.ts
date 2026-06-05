@@ -1,5 +1,5 @@
-import fs from "fs";
-import path from "path";
+import fs from "node:fs";
+import path from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import { drizzle, type NodeSQLiteDatabase } from "drizzle-orm/node-sqlite";
 import { migrate } from "drizzle-orm/node-sqlite/migrator";
@@ -29,12 +29,12 @@ const logger = getServerLogger("db");
 function enforcePermissions(targetPath: string, mode: number) {
   try {
     fs.chmodSync(targetPath, mode);
-  } catch (err) {
+  } catch (error) {
     if (process.platform !== "win32") {
       logger.warn("Could not set filesystem permissions.", {
         "file.path": targetPath,
         mode,
-        ...logErrorFields(err),
+        ...logErrorFields(error),
       });
     }
   }

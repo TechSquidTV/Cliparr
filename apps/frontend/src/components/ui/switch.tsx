@@ -1,14 +1,14 @@
 import { Switch as BaseSwitch } from "@base-ui/react/switch";
 import { motion, type HTMLMotionProps, type Transition } from "motion/react";
 import * as React from "react";
-import { cn } from "@/lib/utils";
+import { cn } from "@/lib/utilities";
 
-type BaseSwitchRootProps = React.ComponentProps<typeof BaseSwitch.Root>;
+type BaseSwitchRootProperties = React.ComponentProps<typeof BaseSwitch.Root>;
 
 type SwitchVariant = "default" | "editor";
 
-interface SwitchProps extends Omit<
-  BaseSwitchRootProps,
+interface SwitchProperties extends Omit<
+  BaseSwitchRootProperties,
   "children" | "className" | "defaultChecked" | "ref" | "render" | "style"
 > {
   className?: string;
@@ -47,7 +47,7 @@ const thumbVariantClasses: Record<SwitchVariant, string> = {
     "bg-muted-foreground text-editor-panel data-[checked]:bg-editor-accent",
 };
 
-const Switch = React.forwardRef<HTMLElement, SwitchProps>(function Switch(
+const Switch = React.forwardRef<HTMLElement, SwitchProperties>(function Switch(
   {
     checked,
     className,
@@ -88,7 +88,7 @@ const Switch = React.forwardRef<HTMLElement, SwitchProps>(function Switch(
     : 0;
 
   const handleCheckedChange = React.useCallback<
-    NonNullable<BaseSwitchRootProps["onCheckedChange"]>
+    NonNullable<BaseSwitchRootProperties["onCheckedChange"]>
   >(
     (nextChecked, eventDetails) => {
       onCheckedChange?.(nextChecked, eventDetails);
@@ -103,7 +103,7 @@ const Switch = React.forwardRef<HTMLElement, SwitchProps>(function Switch(
   const shouldPress = !disabled && !readOnly;
 
   const handlePointerDown = React.useCallback<
-    NonNullable<BaseSwitchRootProps["onPointerDown"]>
+    NonNullable<BaseSwitchRootProperties["onPointerDown"]>
   >(
     (event) => {
       onPointerDown?.(event);
@@ -116,7 +116,7 @@ const Switch = React.forwardRef<HTMLElement, SwitchProps>(function Switch(
   );
 
   const handlePointerUp = React.useCallback<
-    NonNullable<BaseSwitchRootProps["onPointerUp"]>
+    NonNullable<BaseSwitchRootProperties["onPointerUp"]>
   >(
     (event) => {
       onPointerUp?.(event);
@@ -126,7 +126,7 @@ const Switch = React.forwardRef<HTMLElement, SwitchProps>(function Switch(
   );
 
   const handlePointerLeave = React.useCallback<
-    NonNullable<BaseSwitchRootProps["onPointerLeave"]>
+    NonNullable<BaseSwitchRootProperties["onPointerLeave"]>
   >(
     (event) => {
       onPointerLeave?.(event);
@@ -136,7 +136,7 @@ const Switch = React.forwardRef<HTMLElement, SwitchProps>(function Switch(
   );
 
   const handlePointerCancel = React.useCallback<
-    NonNullable<BaseSwitchRootProps["onPointerCancel"]>
+    NonNullable<BaseSwitchRootProperties["onPointerCancel"]>
   >(
     (event) => {
       onPointerCancel?.(event);
@@ -146,7 +146,7 @@ const Switch = React.forwardRef<HTMLElement, SwitchProps>(function Switch(
   );
 
   const handleKeyDown = React.useCallback<
-    NonNullable<BaseSwitchRootProps["onKeyDown"]>
+    NonNullable<BaseSwitchRootProperties["onKeyDown"]>
   >(
     (event) => {
       onKeyDown?.(event);
@@ -163,7 +163,7 @@ const Switch = React.forwardRef<HTMLElement, SwitchProps>(function Switch(
   );
 
   const handleKeyUp = React.useCallback<
-    NonNullable<BaseSwitchRootProps["onKeyUp"]>
+    NonNullable<BaseSwitchRootProperties["onKeyUp"]>
   >(
     (event) => {
       onKeyUp?.(event);
@@ -173,7 +173,7 @@ const Switch = React.forwardRef<HTMLElement, SwitchProps>(function Switch(
   );
 
   const handleBlur = React.useCallback<
-    NonNullable<BaseSwitchRootProps["onBlur"]>
+    NonNullable<BaseSwitchRootProperties["onBlur"]>
   >(
     (event) => {
       onBlur?.(event);
@@ -215,9 +215,9 @@ const Switch = React.forwardRef<HTMLElement, SwitchProps>(function Switch(
         </span>
       ) : null}
       <BaseSwitch.Thumb
-        render={(renderProps) => (
+        render={(renderProperties) => (
           <motion.span
-            {...(renderProps as HTMLMotionProps<"span">)}
+            {...(renderProperties as HTMLMotionProps<"span">)}
             animate={{ width: activeThumbWidth, x: thumbX }}
             className={cn(
               "pointer-events-none absolute left-1 top-1/2 flex h-3 -translate-y-1/2 items-center justify-center rounded-full transition-colors [&_svg]:h-2.5 [&_svg]:w-2.5",

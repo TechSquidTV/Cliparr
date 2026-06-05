@@ -40,13 +40,13 @@ export function warnWithError(
 }
 
 export function resolveFrontendConsoleLogFormat(
-  viteEnv: ViteLoggingEnv,
+  viteEnvironment: ViteLoggingEnv,
 ): FrontendLogFormat {
-  return viteEnv.PROD ? "pretty" : "json";
+  return viteEnvironment.PROD ? "pretty" : "json";
 }
 
-function frontendConsoleSink(viteEnv: ViteLoggingEnv) {
-  if (resolveFrontendConsoleLogFormat(viteEnv) === "json") {
+function frontendConsoleSink(viteEnvironment: ViteLoggingEnv) {
+  if (resolveFrontendConsoleLogFormat(viteEnvironment) === "json") {
     return getConsoleSink({
       formatter: getJsonLinesFormatter({ properties: "flatten" }),
     });
@@ -60,18 +60,17 @@ export function configureFrontendLogging() {
     return loggingConfigured;
   }
 
-  const viteEnv = import.meta.env as unknown as ViteLoggingEnv;
-  const configuredLevel = viteEnv.VITE_CLIPARR_LOG_LEVEL?.trim();
+  const viteEnvironment = import.meta.env as unknown as ViteLoggingEnv;
+  const configuredLevel = viteEnvironment.VITE_CLIPARR_LOG_LEVEL?.trim();
+  const defaultLowestLevel = viteEnvironment.PROD ? "info" : "debug";
   const lowestLevel =
     configuredLevel && isLogLevel(configuredLevel)
       ? configuredLevel
-      : viteEnv.PROD
-        ? "info"
-        : "debug";
+      : defaultLowestLevel;
 
   loggingConfigured = configure({
     sinks: {
-      console: frontendConsoleSink(viteEnv),
+      console: frontendConsoleSink(viteEnvironment),
     },
     loggers: [
       {

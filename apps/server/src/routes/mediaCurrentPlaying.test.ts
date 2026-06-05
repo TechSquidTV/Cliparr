@@ -43,17 +43,17 @@ async function withTestApp<T>(callback: (baseUrl: string) => Promise<T>) {
       server.once("listening", resolve);
     });
     const address = server.address();
-    assert(address && typeof address === "object");
+    assert.ok(address && typeof address === "object");
     return await callback(`http://127.0.0.1:${address.port}`);
   } finally {
-    await new Promise((resolve, reject) => {
-      server.close((err) => {
-        if (err) {
-          reject(err);
+    await new Promise<void>((resolve, reject) => {
+      server.close((error) => {
+        if (error) {
+          reject(error);
           return;
         }
 
-        resolve(undefined);
+        resolve();
       });
     });
     closeDatabase();
@@ -72,12 +72,12 @@ function createSource(
   const source = upsertMediaSource({
     providerId,
     providerAccountId,
-    externalId: `${providerId}-${name.toLowerCase().replace(/\s+/g, "-")}`,
+    externalId: `${providerId}-${name.toLowerCase().replaceAll(/\s+/g, "-")}`,
     name,
     enabled,
-    baseUrl: `http://${name.toLowerCase().replace(/\s+/g, "-")}.example`,
+    baseUrl: `http://${name.toLowerCase().replaceAll(/\s+/g, "-")}.example`,
   });
-  assert(source);
+  assert.ok(source);
   return source;
 }
 
@@ -121,8 +121,8 @@ void test("aggregates currently playing results across enabled sources with part
       label: "Other Plex Account",
       accessToken: "other-token",
     });
-    assert(account);
-    assert(otherAccount);
+    assert.ok(account);
+    assert.ok(otherAccount);
 
     const alpha = createSource(account.id, "Alpha");
     const zeta = createSource(account.id, "Zeta");
@@ -226,7 +226,7 @@ void test("aggregates currently playing results across enabled sources with part
             providerId: error.providerId,
             message: error.message,
           }))
-          .sort((left, right) =>
+          .toSorted((left, right) =>
             left.sourceName.localeCompare(right.sourceName),
           ),
         [

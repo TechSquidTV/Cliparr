@@ -125,7 +125,7 @@ void test("inline GIF frame encoder uses the shared chunk encoder contract", asy
       createMockGifEncoder({
         bytes: () => new Uint8Array([9]),
         bytesView: () => new Uint8Array([9]),
-        writeFrame: () => undefined,
+        writeFrame: () => {},
       }),
     quantizeGifFrame: () => [[0, 0, 0]],
     applyGifPalette: (_rgba, _palette, options) => {
@@ -250,11 +250,11 @@ function createMockGifEncoder(
     buffer: new ArrayBuffer(0),
     bytes: () => new Uint8Array(),
     bytesView: () => new Uint8Array(),
-    finish: () => undefined,
-    reset: () => undefined,
+    finish: () => {},
+    reset: () => {},
     stream: {} as GIFEncoderInstance["stream"],
-    writeFrame: () => undefined,
-    writeHeader: () => undefined,
+    writeFrame: () => {},
+    writeHeader: () => {},
     ...overrides,
   };
 }

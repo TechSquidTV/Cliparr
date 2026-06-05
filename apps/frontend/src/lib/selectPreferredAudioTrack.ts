@@ -7,7 +7,7 @@ import {
 
 function normalizedText(value: string | null | undefined) {
   const trimmed = value?.trim().toLowerCase();
-  return trimmed ? trimmed : undefined;
+  return trimmed || undefined;
 }
 
 async function selectPreferredAudioTrack(

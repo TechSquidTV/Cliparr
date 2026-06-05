@@ -20,8 +20,8 @@ type SubtitleParseWorkerResponse =
   | SubtitleParseWorkerResponseSuccess
   | SubtitleParseWorkerResponseFailure;
 
-function errorMessage(err: unknown) {
-  return err instanceof Error ? err.message : "Could not parse subtitles.";
+function errorMessage(error: unknown) {
+  return error instanceof Error ? error.message : "Could not parse subtitles.";
 }
 
 self.addEventListener(
@@ -35,10 +35,10 @@ self.addEventListener(
       } satisfies SubtitleParseWorkerResponse;
 
       self.postMessage(response);
-    } catch (err) {
+    } catch (error) {
       const response = {
         ok: false,
-        message: errorMessage(err),
+        message: errorMessage(error),
       } satisfies SubtitleParseWorkerResponse;
 
       self.postMessage(response);

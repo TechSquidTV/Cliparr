@@ -1,7 +1,7 @@
 import type { WrappedAudioBuffer } from "mediabunny";
 import { fromSourceTimelineTime } from "@/lib/mediabunnyTrackAccess";
 
-type RefValue<T> = {
+type ReferenceValue<T> = {
   current: T;
 };
 
@@ -11,13 +11,13 @@ interface RunPlaybackAudioIteratorOptions {
   gainNode: GainNode | null;
   queuedAudioNodes: Set<AudioBufferSourceNode>;
   generation: number;
-  generationRef: RefValue<number>;
-  playingRef: RefValue<boolean>;
-  audioContextStartTimeRef: RefValue<number | null>;
-  playbackTimeAtStartRef: RefValue<number>;
-  sourceTimelineOffsetRef: RefValue<number>;
+  generationRef: ReferenceValue<number>;
+  playingRef: ReferenceValue<boolean>;
+  audioContextStartTimeRef: ReferenceValue<number | null>;
+  playbackTimeAtStartRef: ReferenceValue<number>;
+  sourceTimelineOffsetRef: ReferenceValue<number>;
   getPlaybackTime: () => number;
-  onError: (err: unknown) => void;
+  onError: (error: unknown) => void;
 }
 
 export function playbackGainValue(volume: number, muted: boolean) {
@@ -99,9 +99,9 @@ export async function runPlaybackAudioIterator({
 
       if (started) {
         queuedAudioNodes.add(node);
-        node.onended = () => {
+        node.addEventListener("ended", () => {
           queuedAudioNodes.delete(node);
-        };
+        });
       }
 
       if (displayTimestamp - getPlaybackTime() >= 1) {
@@ -114,9 +114,9 @@ export async function runPlaybackAudioIterator({
         });
       }
     }
-  } catch (err) {
+  } catch (error) {
     if (generation === generationRef.current) {
-      onError(err);
+      onError(error);
     }
   }
 }
@@ -129,19 +129,19 @@ function waitForAudioLead({
   getPlaybackTime,
 }: {
   generation: number;
-  generationRef: RefValue<number>;
-  playingRef: RefValue<boolean>;
+  generationRef: ReferenceValue<number>;
+  playingRef: ReferenceValue<boolean>;
   displayTimestamp: number;
   getPlaybackTime: () => number;
 }) {
   return new Promise<void>((resolve) => {
-    const intervalId = window.setInterval(() => {
+    const intervalId = globalThis.setInterval(() => {
       if (
         generation !== generationRef.current ||
         !playingRef.current ||
         displayTimestamp - getPlaybackTime() < 1
       ) {
-        window.clearInterval(intervalId);
+        globalThis.clearInterval(intervalId);
         resolve();
       }
     }, 100);

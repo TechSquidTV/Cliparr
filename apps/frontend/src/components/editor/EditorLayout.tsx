@@ -109,20 +109,7 @@ export function EditorTimelinePane({
       {controls}
 
       <AnimatePresence mode="popLayout" initial={false}>
-        {!hasDuration ? (
-          <motion.div
-            key="editor-waiting-duration"
-            layout={!reduceMotion}
-            className="border-t border-editor-border px-3 py-3 text-sm text-muted-foreground"
-            data-editor-waiting-duration
-            initial={reduceMotion ? { opacity: 1 } : EDITOR_READY_STATE_INITIAL}
-            animate={EDITOR_READY_STATE_VISIBLE}
-            exit={EDITOR_READY_STATE_EXIT}
-            transition={stateTransition}
-          >
-            Waiting for media duration.
-          </motion.div>
-        ) : (
+        {hasDuration ? (
           <motion.div
             key="editor-timeline-ready"
             layout={!reduceMotion}
@@ -134,6 +121,19 @@ export function EditorTimelinePane({
             transition={stateTransition}
           >
             {timeline}
+          </motion.div>
+        ) : (
+          <motion.div
+            key="editor-waiting-duration"
+            layout={!reduceMotion}
+            className="border-t border-editor-border px-3 py-3 text-sm text-muted-foreground"
+            data-editor-waiting-duration
+            initial={reduceMotion ? { opacity: 1 } : EDITOR_READY_STATE_INITIAL}
+            animate={EDITOR_READY_STATE_VISIBLE}
+            exit={EDITOR_READY_STATE_EXIT}
+            transition={stateTransition}
+          >
+            Waiting for media duration.
           </motion.div>
         )}
       </AnimatePresence>

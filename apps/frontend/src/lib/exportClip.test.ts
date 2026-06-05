@@ -61,10 +61,10 @@ function createMockGifEncoder(): ReturnType<CreateGifEncoder> {
   return {
     bytes: () => new Uint8Array([71, 73, 70]),
     bytesView: () => new Uint8Array([71, 73, 70]),
-    finish: () => undefined,
-    reset: () => undefined,
-    writeHeader: () => undefined,
-    writeFrame: () => undefined,
+    finish: () => {},
+    reset: () => {},
+    writeHeader: () => {},
+    writeFrame: () => {},
   } as unknown as ReturnType<CreateGifEncoder>;
 }
 
@@ -119,7 +119,7 @@ function createRuntime(overrides: Partial<ExportRuntime> = {}) {
   } as unknown as CliparrInput;
 
   const runtime: ExportRuntime = {
-    ensureMediabunnyCodecs: async () => undefined,
+    ensureMediabunnyCodecs: async () => {},
     createCliparrInputFromSource: async () => input,
     selectPreferredPairableAudioTrack: async (_videoTrack, audioTracks) =>
       audioTracks[0] ?? null,
@@ -127,7 +127,7 @@ function createRuntime(overrides: Partial<ExportRuntime> = {}) {
     getVideoTrackDimensions: async () => ({ width: 1920, height: 1080 }),
     buildMetadataTags: async () => ({ title: "Clip" }),
     describeDiscardedTracks: async () => "",
-    patchMp4MetadataBoxes: () => undefined,
+    patchMp4MetadataBoxes: () => {},
     createOutputFormat: () =>
       ({ mimeType: "video/mp4" }) as unknown as OutputFormat,
     createBufferTarget: () => target as unknown as BufferTargetResult,
@@ -140,16 +140,16 @@ function createRuntime(overrides: Partial<ExportRuntime> = {}) {
       ({
         canvas: {},
         context: {
-          clearRect: () => undefined,
-          drawImage: () => undefined,
+          clearRect: () => {},
+          drawImage: () => {},
           getImageData: () => ({
             data: new Uint8ClampedArray(4),
           }),
         },
       }) as unknown as ReturnType<ExportRuntime["createGifCanvas"]>,
     loadGifEncodingRuntime: async () => createMockGifRuntime(),
-    getActiveSubtitleCue: () => undefined,
-    renderSubtitleCue: () => undefined,
+    getActiveSubtitleCue: () => {},
+    renderSubtitleCue: () => {},
     initConversion: async () =>
       createConversion({
         target,
@@ -265,7 +265,7 @@ void test("builds and executes a trimmed conversion with selected audio and meta
   const audioOptionsForTrack = capturedOptions?.audio;
   assert.equal(typeof audioOptionsForTrack, "function");
   if (typeof audioOptionsForTrack !== "function") {
-    throw new Error("Expected audio conversion options to be a function");
+    throw new TypeError("Expected audio conversion options to be a function");
   }
   const selectedAudioOptions = audioOptionsForTrack(
     { id: "audio-1" } as unknown as Parameters<typeof audioOptionsForTrack>[0],
@@ -281,7 +281,7 @@ void test("builds and executes a trimmed conversion with selected audio and meta
   const videoOptionsForTrack = capturedOptions?.video;
   assert.equal(typeof videoOptionsForTrack, "function");
   if (typeof videoOptionsForTrack !== "function") {
-    throw new Error("Expected video conversion options to be a function");
+    throw new TypeError("Expected video conversion options to be a function");
   }
   const selectedVideoOptions = videoOptionsForTrack(
     { id: "video-1" } as unknown as Parameters<typeof videoOptionsForTrack>[0],
@@ -331,7 +331,7 @@ void test("forces video transcode for compact and balanced export quality", asyn
         resolution: "original",
         videoQuality,
         includeAudio: false,
-        onProgress: () => undefined,
+        onProgress: () => {},
       },
       context.runtime,
     );
@@ -339,7 +339,7 @@ void test("forces video transcode for compact and balanced export quality", asyn
     const videoOptionsForTrack = capturedOptions?.video;
     assert.equal(typeof videoOptionsForTrack, "function");
     if (typeof videoOptionsForTrack !== "function") {
-      throw new Error("Expected video conversion options to be a function");
+      throw new TypeError("Expected video conversion options to be a function");
     }
 
     const selectedVideoOptions = videoOptionsForTrack(
@@ -428,7 +428,7 @@ void test("fails before execution when conversion would drop source audio", asyn
           format: "webm",
           resolution: "original",
           includeAudio: true,
-          onProgress: () => undefined,
+          onProgress: () => {},
         },
         context.runtime,
       ),
@@ -475,7 +475,7 @@ void test("validates subtitle burn-in inputs and wires the burn-in processor", a
               lines: ["Hello"],
             },
           ],
-          onProgress: () => undefined,
+          onProgress: () => {},
         },
         context.runtime,
       ),
@@ -500,7 +500,7 @@ void test("validates subtitle burn-in inputs and wires the burn-in processor", a
           lines: ["Hello"],
         },
       ],
-      onProgress: () => undefined,
+      onProgress: () => {},
     },
     context.runtime,
   );
@@ -509,7 +509,7 @@ void test("validates subtitle burn-in inputs and wires the burn-in processor", a
   const videoOptionsForTrack = capturedOptions?.video;
   assert.equal(typeof videoOptionsForTrack, "function");
   if (typeof videoOptionsForTrack !== "function") {
-    throw new Error("Expected video conversion options to be a function");
+    throw new TypeError("Expected video conversion options to be a function");
   }
   const videoOptions = videoOptionsForTrack(
     { id: "video-1" } as unknown as Parameters<typeof videoOptionsForTrack>[0],
@@ -539,8 +539,8 @@ void test("exports GIF frames through the browser encoder path", async () => {
   const gifContext = {
     imageSmoothingEnabled: false,
     imageSmoothingQuality: "low",
-    clearRect: () => undefined,
-    drawImage: () => undefined,
+    clearRect: () => {},
+    drawImage: () => {},
     getImageData: () => ({
       data: new Uint8ClampedArray(4 * 4 * 4),
     }),
@@ -552,9 +552,9 @@ void test("exports GIF frames through the browser encoder path", async () => {
     return {
       bytes: () => new Uint8Array(gifByteLength),
       bytesView: () => new Uint8Array(gifByteLength),
-      finish: () => undefined,
-      reset: () => undefined,
-      writeHeader: () => undefined,
+      finish: () => {},
+      reset: () => {},
+      writeHeader: () => {},
       writeFrame: (
         _index: Uint8Array,
         width: number,
@@ -705,8 +705,8 @@ void test("uses per-frame GIF palettes for the sharp preset", async () => {
       ({
         canvas: { height, width },
         context: {
-          clearRect: () => undefined,
-          drawImage: () => undefined,
+          clearRect: () => {},
+          drawImage: () => {},
           getImageData: () => ({
             data: new Uint8ClampedArray(width * height * 4),
           }),
@@ -725,7 +725,7 @@ void test("uses per-frame GIF palettes for the sharp preset", async () => {
       resolution: "original",
       gifSettings,
       includeAudio: false,
-      onProgress: () => undefined,
+      onProgress: () => {},
     },
     context.runtime,
   );
@@ -761,8 +761,8 @@ void test("renders subtitles when burning cues into GIF frames", async () => {
       ({
         canvas: { height, width },
         context: {
-          clearRect: () => undefined,
-          drawImage: () => undefined,
+          clearRect: () => {},
+          drawImage: () => {},
           getImageData: () => ({
             data: new Uint8ClampedArray(width * height * 4),
           }),
@@ -799,7 +799,7 @@ void test("renders subtitles when burning cues into GIF frames", async () => {
           lines: ["Hello"],
         },
       ],
-      onProgress: () => undefined,
+      onProgress: () => {},
     },
     context.runtime,
   );

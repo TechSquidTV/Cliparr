@@ -27,5 +27,5 @@ export function getActiveSubtitleCue(
     return cue;
   }
 
-  return undefined;
+  return;
 }

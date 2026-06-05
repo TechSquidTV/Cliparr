@@ -14,7 +14,8 @@ export default function App() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const normalizedPath = window.location.pathname.replace(/\/$/, "") || "/";
+    const normalizedPath =
+      globalThis.location.pathname.replace(/\/$/, "") || "/";
     if (normalizedPath === PLEX_AUTH_COMPLETE_PATH) {
       setLoading(false);
       return;
@@ -60,7 +61,7 @@ export default function App() {
   }, [loading, providerSession]);
 
   const disconnect = async () => {
-    await cliparrClient.disconnect().catch(() => undefined);
+    await cliparrClient.disconnect().catch(() => {});
     setProviderSession(null);
   };
 

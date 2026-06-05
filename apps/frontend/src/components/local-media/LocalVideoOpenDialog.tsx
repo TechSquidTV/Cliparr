@@ -27,9 +27,9 @@ import {
   LOCAL_VIDEO_FILE_ACCEPT,
   localMediaPickerSupported,
 } from "@/lib/localMediaRegistry";
-import { cn } from "@/lib/utils";
+import { cn } from "@/lib/utilities";
 
-interface LocalVideoOpenDialogProps {
+interface LocalVideoOpenDialogProperties {
   isOpen: boolean;
   onClose: () => void;
   onOpened: (sessionId: string) => void;
@@ -37,17 +37,17 @@ interface LocalVideoOpenDialogProps {
 
 type LocalOpenTab = "file" | "url";
 
-function errorMessage(err: unknown, fallback: string) {
-  return err instanceof Error && err.message ? err.message : fallback;
+function errorMessage(error: unknown, fallback: string) {
+  return error instanceof Error && error.message ? error.message : fallback;
 }
 
 export function LocalVideoOpenDialog({
   isOpen,
   onClose,
   onOpened,
-}: LocalVideoOpenDialogProps) {
-  const initialFocusRef = useRef<HTMLElement | null>(null);
-  const fileInputRef = useRef<HTMLInputElement | null>(null);
+}: LocalVideoOpenDialogProperties) {
+  const initialFocusReference = useRef<HTMLElement | null>(null);
+  const fileInputReference = useRef<HTMLInputElement | null>(null);
   const [activeTab, setActiveTab] = useState<LocalOpenTab>("file");
   const [urlValue, setUrlValue] = useState("");
   const [opening, setOpening] = useState(false);
@@ -75,8 +75,8 @@ export function LocalVideoOpenDialog({
       try {
         const session = await createLocalSessionFromFile(file);
         completeOpen(session.id);
-      } catch (err) {
-        setError(errorMessage(err, "Could not open that file."));
+      } catch (error_) {
+        setError(errorMessage(error_, "Could not open that file."));
       } finally {
         setOpening(false);
       }
@@ -88,7 +88,7 @@ export function LocalVideoOpenDialog({
     setError("");
 
     if (!localMediaPickerSupported()) {
-      fileInputRef.current?.click();
+      fileInputReference.current?.click();
       return;
     }
 
@@ -101,15 +101,15 @@ export function LocalVideoOpenDialog({
       }
 
       if (result.status === "unsupported") {
-        fileInputRef.current?.click();
+        fileInputReference.current?.click();
         return;
       }
 
       if (result.status === "error") {
         setError(result.message);
       }
-    } catch (err) {
-      setError(errorMessage(err, "Could not open that file."));
+    } catch (error_) {
+      setError(errorMessage(error_, "Could not open that file."));
     } finally {
       setOpening(false);
     }
@@ -138,8 +138,8 @@ export function LocalVideoOpenDialog({
         }
 
         setError(result.message);
-      } catch (err) {
-        setError(errorMessage(err, "Could not open that URL."));
+      } catch (error_) {
+        setError(errorMessage(error_, "Could not open that URL."));
       } finally {
         setOpening(false);
       }
@@ -155,14 +155,18 @@ export function LocalVideoOpenDialog({
       closeLabel="Close local video dialog"
       title="Open Video"
       description="Local files stay in your browser. URLs stream through Cliparr."
-      initialFocus={initialFocusRef}
+      initialFocus={initialFocusReference}
       popupClassName="max-w-xl"
     >
       <Tabs
         value={activeTab}
         onValueChange={(value) => {
-          const nextTab: LocalOpenTab | null =
-            value === "file" ? "file" : value === "url" ? "url" : null;
+          let nextTab: LocalOpenTab | null = null;
+          if (value === "file") {
+            nextTab = "file";
+          } else if (value === "url") {
+            nextTab = "url";
+          }
 
           if (!nextTab) {
             return;
@@ -174,7 +178,7 @@ export function LocalVideoOpenDialog({
       >
         <div className="border-b border-border px-4 py-3">
           <TabsList className="grid grid-cols-2">
-            <TabsTab ref={initialFocusRef} value="file">
+            <TabsTab ref={initialFocusReference} value="file">
               <FileVideo className="h-4 w-4" />
               File
             </TabsTab>
@@ -206,7 +210,7 @@ export function LocalVideoOpenDialog({
                 }`}
               >
                 <input
-                  ref={fileInputRef}
+                  ref={fileInputReference}
                   type="file"
                   accept={LOCAL_VIDEO_FILE_ACCEPT}
                   className="hidden"
