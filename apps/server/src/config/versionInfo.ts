@@ -4,7 +4,7 @@ import {
   logErrorFields,
   logEventFields,
 } from "@cliparr/shared/logging";
-import { CLIPARR_CLIENT_VERSION } from "@/config/version";
+import { resolveCliparrClientVersion } from "@/config/version";
 import { getServerLogger, warnWithError } from "@/logging";
 
 type VersionInfoStatus =
@@ -43,6 +43,7 @@ interface ReleaseCheckResult {
 
 interface VersionInfoServiceOptions {
   currentVersion?: string;
+  env?: NodeJS.ProcessEnv;
   failureCacheTtlMs?: number;
   fetchImpl?: FetchLike;
   latestReleaseApiUrl?: string;
@@ -50,6 +51,18 @@ interface VersionInfoServiceOptions {
   releaseCheckTimeoutMs?: number;
   successCacheTtlMs?: number;
 }
+
+type ReleaseCheckOptions = Required<
+  Pick<
+    VersionInfoServiceOptions,
+    | "failureCacheTtlMs"
+    | "fetchImpl"
+    | "latestReleaseApiUrl"
+    | "now"
+    | "releaseCheckTimeoutMs"
+    | "successCacheTtlMs"
+  >
+>;
 
 const LATEST_RELEASE_API_URL =
   "https://api.github.com/repos/TechSquidTV/Cliparr/releases/latest";
@@ -226,7 +239,7 @@ async function fetchLatestReleaseCheck({
   now,
   releaseCheckTimeoutMs,
   successCacheTtlMs,
-}: Required<Omit<VersionInfoServiceOptions, "currentVersion">>) {
+}: ReleaseCheckOptions) {
   const checkedAt = now();
 
   try {
@@ -348,7 +361,8 @@ function versionInfoFromReleaseCheck(
 }
 
 export function createVersionInfoService({
-  currentVersion = CLIPARR_CLIENT_VERSION,
+  env = process.env,
+  currentVersion = resolveCliparrClientVersion(env),
   failureCacheTtlMs = FAILURE_CACHE_TTL_MS,
   fetchImpl = fetch,
   latestReleaseApiUrl = LATEST_RELEASE_API_URL,

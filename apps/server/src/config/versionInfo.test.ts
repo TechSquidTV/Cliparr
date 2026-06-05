@@ -111,6 +111,7 @@ void test("does not call GitHub for non-release current versions", async () => {
 void test("uses the local dev version when no release version is injected", async () => {
   let fetchCount = 0;
   const service = createVersionInfoService({
+    env: {},
     now: () => CHECKED_AT,
     fetchImpl: async () => {
       fetchCount += 1;
