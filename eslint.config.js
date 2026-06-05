@@ -1,4 +1,5 @@
 import js from "@eslint/js";
+import astro from "eslint-plugin-astro";
 import globals from "globals";
 import reactHooks from "eslint-plugin-react-hooks";
 import eslintPluginUnicorn from "eslint-plugin-unicorn";
@@ -269,6 +270,20 @@ export default tseslint.config(
           varsIgnorePattern: "^_",
         },
       ],
+    },
+  },
+  ...astro.configs["flat/recommended"],
+  {
+    files: ["**/*.astro", "**/*.astro/*.js"],
+    rules: tseslint.configs.disableTypeChecked.rules,
+  },
+  {
+    files: ["apps/www/**/*.astro"],
+    languageOptions: {
+      globals: {
+        ...globals.browser,
+        ...globals.es2024,
+      },
     },
   },
   {
