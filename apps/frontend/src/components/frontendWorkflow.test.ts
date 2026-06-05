@@ -16,6 +16,7 @@ import { EditorControls } from "@/components/editor/EditorControls";
 import { EditorExportDialog } from "@/components/editor/EditorExportDialog";
 import { EditorFramegrabDialog } from "@/components/editor/EditorFramegrabDialog";
 import { EditorHeader } from "@/components/editor/EditorHeader";
+import { EditorTimelinePane } from "@/components/editor/EditorLayout";
 import { EditorPreview } from "@/components/editor/EditorPreview";
 import { LocalVideoOpenDialog } from "@/components/local-media/LocalVideoOpenDialog";
 import ProviderConnectScreen from "@/components/provider-connect/ProviderConnectScreen";
@@ -371,6 +372,8 @@ void test("reserves dashboard playback card space before sessions load", () => {
   );
 
   assert.match(markup, /data-dashboard-loading-grid/);
+  assert.match(markup, /data-dashboard-playback-motion/);
+  assert.match(markup, /data-dashboard-loading-items="3"/);
   assert.match(markup, /role="status"/);
   assert.match(markup, /aria-live="polite"/);
   assert.match(markup, /aria-label="Loading currently playing sessions"/);
@@ -537,6 +540,29 @@ void test("renders mobile editor controls trigger and compact range summary", ()
   assert.match(markup, />In</);
   assert.match(markup, />Out</);
   assert.match(markup, />Duration</);
+});
+
+void test("renders editor readiness transition hooks", () => {
+  const waitingMarkup = renderToStaticMarkup(
+    createElement(EditorTimelinePane, {
+      variant: "desktop",
+      controls: createElement("div"),
+      hasDuration: false,
+      timeline: createElement("div"),
+    }),
+  );
+  const readyMarkup = renderToStaticMarkup(
+    createElement(EditorTimelinePane, {
+      variant: "desktop",
+      controls: createElement("div"),
+      hasDuration: true,
+      timeline: createElement("div"),
+    }),
+  );
+
+  assert.match(waitingMarkup, /data-editor-waiting-duration/);
+  assert.match(waitingMarkup, /Waiting for media duration/);
+  assert.match(readyMarkup, /data-editor-timeline-ready/);
 });
 
 void test("renders editor poster with the shared thumbnail view transition", () => {

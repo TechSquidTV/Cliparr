@@ -161,8 +161,12 @@
   --editor-sidebar-max-width: 85vw;
   --editor-preview-fallback-font-size: 1.5rem;
   --text-editor-preview-fallback: var(--editor-preview-fallback-font-size);
-  --editor-view-transition-duration: 280ms;
-  --editor-view-transition-easing: cubic-bezier(0.2, 0, 0, 1);
+  --motion-duration-fast: 180ms;
+  --motion-duration-medium: 280ms;
+  --motion-duration-standard: 300ms;
+  --motion-easing-standard: cubic-bezier(0.2, 0, 0, 1);
+  --editor-view-transition-duration: var(--motion-duration-medium);
+  --editor-view-transition-easing: var(--motion-easing-standard);
   --status-warning: color-mix(in oklch, var(--primary) 14%, var(--background));
   --status-warning-border: color-mix(in oklch, var(--primary) 28%, transparent);
   --status-warning-foreground: color-mix(
@@ -427,6 +431,10 @@
   --shadow-lg: var(--shadow-lg);
   --shadow-xl: var(--shadow-xl);
   --shadow-2xl: var(--shadow-2xl);
+  --duration-motion-fast: var(--motion-duration-fast);
+  --duration-motion-medium: var(--motion-duration-medium);
+  --duration-motion-standard: var(--motion-duration-standard);
+  --ease-motion-standard: var(--motion-easing-standard);
   --tracking-tighter: calc(var(--tracking-normal) - 0.05em);
   --tracking-tight: calc(var(--tracking-normal) - 0.025em);
   --tracking-normal: var(--tracking-normal);

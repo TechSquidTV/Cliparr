@@ -1,4 +1,5 @@
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import {
   AlertTriangle,
   FolderOpen,
@@ -27,6 +28,7 @@ import {
   flattenDashboardPlaybackItems,
   formatViewerSessionCount,
 } from "@/components/dashboardPlaybackItems";
+import { cliparrMotionTransitions } from "@/lib/motionPresets";
 import type { DashboardPlaybackCardItem } from "@/components/dashboardPlaybackItems";
 import type {
   CurrentlyPlayingItem,
@@ -78,6 +80,26 @@ const DASHBOARD_VIDEO_STYLE_BODY_CLASS =
   "flex flex-1 flex-col gap-3 p-3 md:p-4";
 const DASHBOARD_PLAYBACK_GRID_CLASS =
   "grid grid-cols-1 gap-3 md:grid-cols-2 md:gap-4 xl:grid-cols-3";
+const DASHBOARD_PLAYBACK_STATE_INITIAL = {
+  opacity: 0,
+  y: 6,
+  filter: "blur(8px)",
+};
+const DASHBOARD_PLAYBACK_STATE_VISIBLE = {
+  opacity: 1,
+  y: 0,
+  filter: "blur(0px)",
+};
+const DASHBOARD_PLAYBACK_STATE_EXIT = {
+  opacity: 0,
+  y: -4,
+  filter: "blur(6px)",
+};
+const DASHBOARD_SKELETON_BREAKPOINT_CLASSES = [
+  "",
+  "hidden md:block",
+  "hidden xl:block",
+] as const;
 
 function ViewerAvatar({
   name,
@@ -262,6 +284,161 @@ function DashboardPlaybackCardSkeleton({ className }: { className?: string }) {
         <div className="h-5 w-24 rounded bg-muted/70" />
         <div className="mt-auto h-9 w-full rounded-lg bg-primary/10" />
       </div>
+    </div>
+  );
+}
+
+function dashboardSkeletonExit(index: number, loadedCardCount: number) {
+  const loadedIndex = Math.max(loadedCardCount - 1, 0);
+  const targetIndex = Math.min(index, loadedIndex);
+
+  return {
+    opacity: 0,
+    x: `${(targetIndex - index) * 104}%`,
+    scale: 0.98,
+    filter: "blur(8px)",
+  };
+}
+
+function DashboardPlaybackMotionRegion({
+  loading,
+  error,
+  playbackCards,
+  emptyMessage,
+  activeViewTransitionSessionId,
+  onSelectSession,
+}: {
+  loading: boolean;
+  error: string;
+  playbackCards: DashboardPlaybackCardItem[];
+  emptyMessage: string;
+  activeViewTransitionSessionId?: string | null;
+  onSelectSession: (session: CurrentlyPlayingItem) => void;
+}) {
+  const reduceMotion = useReducedMotion();
+  const hasPlaybackCards = playbackCards.length > 0;
+  const stateTransition = reduceMotion
+    ? { duration: 0 }
+    : cliparrMotionTransitions.standard;
+  const exitTransition = reduceMotion
+    ? { duration: 0 }
+    : cliparrMotionTransitions.fast;
+  const layoutTransition = reduceMotion
+    ? { duration: 0 }
+    : cliparrMotionTransitions.layout;
+
+  return (
+    <div data-dashboard-playback-motion>
+      <AnimatePresence mode="popLayout" initial={false}>
+        {loading && !error && (
+          <motion.div
+            key="dashboard-playback-loading"
+            layout={!reduceMotion}
+            role="status"
+            aria-live="polite"
+            aria-label="Loading currently playing sessions"
+            className={DASHBOARD_PLAYBACK_GRID_CLASS}
+            data-dashboard-loading-grid
+            data-dashboard-loading-items={
+              DASHBOARD_SKELETON_BREAKPOINT_CLASSES.length
+            }
+            transition={layoutTransition}
+          >
+            {DASHBOARD_SKELETON_BREAKPOINT_CLASSES.map((className, index) => (
+              <motion.div
+                key={index}
+                layout={!reduceMotion}
+                className={className}
+                exit={
+                  reduceMotion
+                    ? { opacity: 0 }
+                    : dashboardSkeletonExit(index, playbackCards.length)
+                }
+                transition={
+                  reduceMotion
+                    ? exitTransition
+                    : {
+                        ...exitTransition,
+                        delay: index * 0.03,
+                      }
+                }
+              >
+                <DashboardPlaybackCardSkeleton />
+              </motion.div>
+            ))}
+          </motion.div>
+        )}
+
+        {!loading && hasPlaybackCards && !error && (
+          <motion.div
+            key="dashboard-playback-cards"
+            layout={!reduceMotion}
+            className={DASHBOARD_PLAYBACK_GRID_CLASS}
+            data-dashboard-playback-grid
+            initial={
+              reduceMotion
+                ? DASHBOARD_PLAYBACK_STATE_VISIBLE
+                : DASHBOARD_PLAYBACK_STATE_INITIAL
+            }
+            animate={DASHBOARD_PLAYBACK_STATE_VISIBLE}
+            exit={DASHBOARD_PLAYBACK_STATE_EXIT}
+            transition={stateTransition}
+          >
+            {playbackCards.map((card, index) => (
+              <motion.div
+                key={card.session.id}
+                layout={!reduceMotion}
+                initial={
+                  reduceMotion
+                    ? { opacity: 1 }
+                    : DASHBOARD_PLAYBACK_STATE_INITIAL
+                }
+                animate={DASHBOARD_PLAYBACK_STATE_VISIBLE}
+                exit={DASHBOARD_PLAYBACK_STATE_EXIT}
+                transition={
+                  reduceMotion
+                    ? stateTransition
+                    : {
+                        ...stateTransition,
+                        delay: Math.min(index * 0.04, 0.12),
+                      }
+                }
+              >
+                <DashboardPlaybackCard
+                  card={card}
+                  activeViewTransitionSessionId={activeViewTransitionSessionId}
+                  onSelectSession={onSelectSession}
+                />
+              </motion.div>
+            ))}
+          </motion.div>
+        )}
+
+        {!loading && !hasPlaybackCards && !error && (
+          <motion.div
+            key="dashboard-playback-empty"
+            layout={!reduceMotion}
+            className="bg-card text-card-foreground border border-border rounded-2xl p-12 text-center"
+            data-dashboard-empty-state
+            initial={
+              reduceMotion ? { opacity: 1 } : DASHBOARD_PLAYBACK_STATE_INITIAL
+            }
+            animate={DASHBOARD_PLAYBACK_STATE_VISIBLE}
+            exit={DASHBOARD_PLAYBACK_STATE_EXIT}
+            transition={stateTransition}
+          >
+            <div className="bg-background w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Play className="w-6 h-6 text-muted-foreground" />
+            </div>
+            <h3 className="text-lg font-medium mb-2">
+              Nothing is playing right now
+            </h3>
+            <p className="text-muted-foreground text-sm max-w-sm mx-auto">
+              {emptyMessage}
+            </p>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
@@ -523,46 +700,14 @@ export default function DashboardScreen({
 
           {!error && <WarningBanner sourceErrors={sourceErrors} />}
 
-          {!loading && !hasPlaybackCards && !error && (
-            <div className="bg-card text-card-foreground border border-border rounded-2xl p-12 text-center">
-              <div className="bg-background w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Play className="w-6 h-6 text-muted-foreground" />
-              </div>
-              <h3 className="text-lg font-medium mb-2">
-                Nothing is playing right now
-              </h3>
-              <p className="text-muted-foreground text-sm max-w-sm mx-auto">
-                {emptyMessage}
-              </p>
-            </div>
-          )}
-
-          {loading && !error && (
-            <div
-              role="status"
-              aria-live="polite"
-              aria-label="Loading currently playing sessions"
-              className={DASHBOARD_PLAYBACK_GRID_CLASS}
-              data-dashboard-loading-grid
-            >
-              <DashboardPlaybackCardSkeleton />
-              <DashboardPlaybackCardSkeleton className="hidden md:flex" />
-              <DashboardPlaybackCardSkeleton className="hidden xl:flex" />
-            </div>
-          )}
-
-          {!loading && hasPlaybackCards && (
-            <div className={DASHBOARD_PLAYBACK_GRID_CLASS}>
-              {playbackCards.map((card) => (
-                <DashboardPlaybackCard
-                  key={card.session.id}
-                  card={card}
-                  activeViewTransitionSessionId={activeViewTransitionSessionId}
-                  onSelectSession={onSelectSession}
-                />
-              ))}
-            </div>
-          )}
+          <DashboardPlaybackMotionRegion
+            loading={loading}
+            error={error}
+            playbackCards={playbackCards}
+            emptyMessage={emptyMessage}
+            activeViewTransitionSessionId={activeViewTransitionSessionId}
+            onSelectSession={onSelectSession}
+          />
         </div>
       </div>
     </div>

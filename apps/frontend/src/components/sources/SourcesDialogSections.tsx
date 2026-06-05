@@ -1,4 +1,5 @@
 import type { KeyboardEvent, RefObject } from "react";
+import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import {
   AlertTriangle,
   CheckCircle2,
@@ -22,6 +23,7 @@ import {
   iconButtonClasses,
   textInputClasses as inputClasses,
 } from "@/components/ui/control-styles";
+import { cliparrMotionTransitions } from "@/lib/motionPresets";
 import type { MediaSource, ProviderSession } from "@/providers/types";
 import { formatProviderName } from "@/components/providers/ProviderGlyph";
 import SourceConnectPanel from "@/components/sources/SourceConnectPanel";
@@ -86,6 +88,21 @@ const healthySurfaceClasses = "border-primary/30 bg-primary/10 text-foreground";
 const attentionSurfaceClasses =
   "border-destructive/30 bg-destructive/10 text-destructive";
 const secondarySurfaceClasses = "border-border bg-muted text-muted-foreground";
+const SOURCE_STATE_INITIAL = {
+  opacity: 0,
+  y: 4,
+  filter: "blur(6px)",
+};
+const SOURCE_STATE_VISIBLE = {
+  opacity: 1,
+  y: 0,
+  filter: "blur(0px)",
+};
+const SOURCE_STATE_EXIT = {
+  opacity: 0,
+  y: -3,
+  filter: "blur(6px)",
+};
 
 function stringValue(value: unknown) {
   return typeof value === "string" && value.trim() ? value.trim() : undefined;
@@ -390,12 +407,32 @@ export function SourcesDialogAlerts({
   error,
   feedback,
 }: SourcesDialogAlertsProps) {
+  const reduceMotion = useReducedMotion();
+  const transition = reduceMotion
+    ? { duration: 0 }
+    : cliparrMotionTransitions.fast;
+
   return (
-    <>
-      {error && <div className={destructiveAlertClasses}>{error}</div>}
+    <AnimatePresence mode="popLayout" initial={false}>
+      {error && (
+        <motion.div
+          key="sources-error"
+          layout={!reduceMotion}
+          className={destructiveAlertClasses}
+          data-sources-error-alert
+          initial={reduceMotion ? { opacity: 1 } : SOURCE_STATE_INITIAL}
+          animate={SOURCE_STATE_VISIBLE}
+          exit={SOURCE_STATE_EXIT}
+          transition={transition}
+        >
+          {error}
+        </motion.div>
+      )}
 
       {feedback && (
-        <div
+        <motion.div
+          key={`sources-feedback-${feedback.tone}-${feedback.message}`}
+          layout={!reduceMotion}
           className={cn(
             "rounded-md border px-3 py-2 text-sm",
             feedback.tone === "error" &&
@@ -403,11 +440,16 @@ export function SourcesDialogAlerts({
             feedback.tone === "success" && healthySurfaceClasses,
             feedback.tone === "warning" && attentionSurfaceClasses,
           )}
+          data-sources-feedback-alert
+          initial={reduceMotion ? { opacity: 1 } : SOURCE_STATE_INITIAL}
+          animate={SOURCE_STATE_VISIBLE}
+          exit={SOURCE_STATE_EXIT}
+          transition={transition}
         >
           {feedback.message}
-        </div>
+        </motion.div>
       )}
-    </>
+    </AnimatePresence>
   );
 }
 
@@ -532,6 +574,10 @@ export function SourceCard({
     : null;
   const product = stringValue(source.metadata.product);
   const platform = stringValue(source.metadata.platform);
+  const reduceMotion = useReducedMotion();
+  const stateTransition = reduceMotion
+    ? { duration: 0 }
+    : cliparrMotionTransitions.fast;
 
   function handleKeyDown(event: KeyboardEvent<HTMLInputElement>) {
     if (event.key !== "Enter" || !canSaveEdits) {
@@ -553,35 +599,47 @@ export function SourceCard({
     >
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="flex flex-wrap items-center gap-2">
-          <span
+          <motion.span
+            layout={!reduceMotion}
             className={joinClassNames(
               statusBadgeClasses,
               "border-border bg-card text-muted-foreground",
             )}
+            transition={stateTransition}
           >
             {formatProviderName(source.providerId)}
-          </span>
-          <span
+          </motion.span>
+          <motion.span
+            layout={!reduceMotion}
             className={joinClassNames(
               statusBadgeClasses,
               "min-w-36 justify-center",
               status.className,
             )}
+            transition={stateTransition}
           >
             <StatusIcon className="h-3.5 w-3.5" />
             {status.label}
-          </span>
-          {busyAction && (
-            <span
-              className={joinClassNames(
-                statusBadgeClasses,
-                "w-32 justify-center border-primary/30 bg-primary/10 text-primary",
-              )}
-            >
-              <RefreshCw className="h-3.5 w-3.5 animate-spin" />
-              {busyAction}
-            </span>
-          )}
+          </motion.span>
+          <AnimatePresence mode="popLayout" initial={false}>
+            {busyAction && (
+              <motion.span
+                key="busy-action"
+                layout={!reduceMotion}
+                className={joinClassNames(
+                  statusBadgeClasses,
+                  "w-32 justify-center border-primary/30 bg-primary/10 text-primary",
+                )}
+                initial={reduceMotion ? { opacity: 1 } : SOURCE_STATE_INITIAL}
+                animate={SOURCE_STATE_VISIBLE}
+                exit={SOURCE_STATE_EXIT}
+                transition={stateTransition}
+              >
+                <RefreshCw className="h-3.5 w-3.5 animate-spin" />
+                {busyAction}
+              </motion.span>
+            )}
+          </AnimatePresence>
         </div>
         <div className="text-right text-xs text-muted-foreground">
           <div>Checked {formatTimestamp(source.lastCheckedAt)}</div>
@@ -629,22 +687,30 @@ export function SourceCard({
         </div>
       </dl>
 
-      {source.lastError && (
-        <div
-          className={cn(
-            "mt-3 rounded-md border px-3 py-2 text-sm",
-            attentionSurfaceClasses,
-          )}
-        >
-          <div className="flex items-start gap-2">
-            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
-            <div>
-              <div className="font-medium">Last check failed</div>
-              <div className="mt-1">{source.lastError}</div>
+      <AnimatePresence initial={false}>
+        {source.lastError && (
+          <motion.div
+            key="source-last-error"
+            layout={!reduceMotion}
+            className={cn(
+              "mt-3 rounded-md border px-3 py-2 text-sm",
+              attentionSurfaceClasses,
+            )}
+            initial={reduceMotion ? { opacity: 1 } : SOURCE_STATE_INITIAL}
+            animate={SOURCE_STATE_VISIBLE}
+            exit={SOURCE_STATE_EXIT}
+            transition={stateTransition}
+          >
+            <div className="flex items-start gap-2">
+              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+              <div>
+                <div className="font-medium">Last check failed</div>
+                <div className="mt-1">{source.lastError}</div>
+              </div>
             </div>
-          </div>
-        </div>
-      )}
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <div className="mt-4 flex flex-wrap gap-2">
         <TooltipWrap message={!canSaveEdits ? saveDisabledReason : null}>

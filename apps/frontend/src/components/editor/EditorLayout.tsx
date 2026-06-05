@@ -1,5 +1,6 @@
 import { Eye } from "lucide-react";
 import type { ReactNode } from "react";
+import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import {
   ResizableHandle,
   ResizablePanel,
@@ -10,8 +11,25 @@ import {
   EDITOR_RESIZE_TARGET_MINIMUM_SIZE,
 } from "@/components/editor/editorLayoutSizing";
 import { EditorSidebar } from "@/components/editor/EditorSidebar";
+import { cliparrMotionTransitions } from "@/lib/motionPresets";
 
 export type EditorLayoutVariant = "desktop" | "mobile";
+
+const EDITOR_READY_STATE_INITIAL = {
+  opacity: 0,
+  y: 4,
+  filter: "blur(6px)",
+};
+const EDITOR_READY_STATE_VISIBLE = {
+  opacity: 1,
+  y: 0,
+  filter: "blur(0px)",
+};
+const EDITOR_READY_STATE_EXIT = {
+  opacity: 0,
+  y: -3,
+  filter: "blur(6px)",
+};
 
 export function EditorPreviewPane({
   error,
@@ -22,6 +40,10 @@ export function EditorPreviewPane({
   variant: EditorLayoutVariant;
   children: ReactNode;
 }) {
+  const reduceMotion = useReducedMotion();
+  const stateTransition = reduceMotion
+    ? { duration: 0 }
+    : cliparrMotionTransitions.fast;
   const previewStage = (
     <section
       className={
@@ -40,11 +62,21 @@ export function EditorPreviewPane({
 
   return (
     <div className="flex h-full min-h-0 flex-col gap-3">
-      {error && (
-        <div className="shrink-0 border border-destructive/35 bg-destructive/10 px-3 py-2 text-sm text-destructive">
-          {error}
-        </div>
-      )}
+      <AnimatePresence initial={false}>
+        {error && (
+          <motion.div
+            key="editor-preview-error"
+            layout={!reduceMotion}
+            className="shrink-0 border border-destructive/35 bg-destructive/10 px-3 py-2 text-sm text-destructive"
+            initial={reduceMotion ? { opacity: 1 } : EDITOR_READY_STATE_INITIAL}
+            animate={EDITOR_READY_STATE_VISIBLE}
+            exit={EDITOR_READY_STATE_EXIT}
+            transition={stateTransition}
+          >
+            {error}
+          </motion.div>
+        )}
+      </AnimatePresence>
       {previewStage}
     </div>
   );
@@ -61,6 +93,11 @@ export function EditorTimelinePane({
   hasDuration: boolean;
   timeline: ReactNode;
 }) {
+  const reduceMotion = useReducedMotion();
+  const stateTransition = reduceMotion
+    ? { duration: 0 }
+    : cliparrMotionTransitions.standard;
+
   return (
     <section
       className={
@@ -71,18 +108,35 @@ export function EditorTimelinePane({
     >
       {controls}
 
-      {!hasDuration && (
-        <div className="border-t border-editor-border px-3 py-3 text-sm text-muted-foreground">
-          Waiting for media duration.
-        </div>
-      )}
-
-      {hasDuration &&
-        (variant === "desktop" ? (
-          <div className="min-h-0 flex-1">{timeline}</div>
+      <AnimatePresence mode="popLayout" initial={false}>
+        {!hasDuration ? (
+          <motion.div
+            key="editor-waiting-duration"
+            layout={!reduceMotion}
+            className="border-t border-editor-border px-3 py-3 text-sm text-muted-foreground"
+            data-editor-waiting-duration
+            initial={reduceMotion ? { opacity: 1 } : EDITOR_READY_STATE_INITIAL}
+            animate={EDITOR_READY_STATE_VISIBLE}
+            exit={EDITOR_READY_STATE_EXIT}
+            transition={stateTransition}
+          >
+            Waiting for media duration.
+          </motion.div>
         ) : (
-          timeline
-        ))}
+          <motion.div
+            key="editor-timeline-ready"
+            layout={!reduceMotion}
+            className={variant === "desktop" ? "min-h-0 flex-1" : undefined}
+            data-editor-timeline-ready
+            initial={reduceMotion ? { opacity: 1 } : EDITOR_READY_STATE_INITIAL}
+            animate={EDITOR_READY_STATE_VISIBLE}
+            exit={EDITOR_READY_STATE_EXIT}
+            transition={stateTransition}
+          >
+            {timeline}
+          </motion.div>
+        )}
+      </AnimatePresence>
     </section>
   );
 }

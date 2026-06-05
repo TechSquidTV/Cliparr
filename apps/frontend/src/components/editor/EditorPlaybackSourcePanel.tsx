@@ -1,4 +1,6 @@
+import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { cn } from "@/lib/utils";
+import { cliparrMotionTransitions } from "@/lib/motionPresets";
 
 interface EditorPlaybackSourcePanelProps {
   previewSourceLabel: string;
@@ -19,12 +21,32 @@ function displaySourceLabel(label: string) {
   return label;
 }
 
+const SOURCE_NOTE_INITIAL = {
+  opacity: 0,
+  y: 4,
+  filter: "blur(6px)",
+};
+const SOURCE_NOTE_VISIBLE = {
+  opacity: 1,
+  y: 0,
+  filter: "blur(0px)",
+};
+const SOURCE_NOTE_EXIT = {
+  opacity: 0,
+  y: -3,
+  filter: "blur(6px)",
+};
+
 export function EditorPlaybackSourcePanel({
   previewSourceLabel,
   fallbackMessage,
   hasHlsSource,
   className,
 }: EditorPlaybackSourcePanelProps) {
+  const reduceMotion = useReducedMotion();
+  const transition = reduceMotion
+    ? { duration: 0 }
+    : cliparrMotionTransitions.fast;
   const sourceNote =
     fallbackMessage ??
     (!hasHlsSource && previewSourceLabel === "Direct source"
@@ -45,11 +67,21 @@ export function EditorPlaybackSourcePanel({
             {displaySourceLabel(previewSourceLabel)}
           </div>
 
-          {sourceNote && (
-            <p className="mt-2.5 border-t border-editor-border pt-2.5 text-xs leading-5 text-muted-foreground">
-              {sourceNote}
-            </p>
-          )}
+          <AnimatePresence initial={false}>
+            {sourceNote && (
+              <motion.p
+                key={sourceNote}
+                layout={!reduceMotion}
+                className="mt-2.5 border-t border-editor-border pt-2.5 text-xs leading-5 text-muted-foreground"
+                initial={reduceMotion ? { opacity: 1 } : SOURCE_NOTE_INITIAL}
+                animate={SOURCE_NOTE_VISIBLE}
+                exit={SOURCE_NOTE_EXIT}
+                transition={transition}
+              >
+                {sourceNote}
+              </motion.p>
+            )}
+          </AnimatePresence>
         </div>
       </div>
     </section>
