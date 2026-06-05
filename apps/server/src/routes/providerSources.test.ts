@@ -12,6 +12,7 @@ import {
 } from "@/db/mediaSourcesRepository";
 import { upsertProviderAccountByAccessToken } from "@/db/providerAccountsRepository";
 import { createApp } from "@/app";
+import { plexProvider } from "@/providers/plex/provider";
 import { createProviderSession, getSessionCookieName } from "@/session/store";
 import { PLEX_BASE_URL_MODE_MANUAL } from "@/providers/plex/connectionState";
 
@@ -597,6 +598,109 @@ void test("updates sources across connected accounts and preserves Plex manual U
       listed.sources?.map((item) => item.id).sort(),
       [jellyfinSource.id, otherSource.id, source.id].sort(),
     );
+  });
+});
+
+void test("deletes individual source rows and excludes them from dashboard discovery", async () => {
+  await withTestApp(async (baseUrl, fetchLocal) => {
+    const account = upsertProviderAccountByAccessToken({
+      providerId: "plex",
+      label: "Plex Account",
+      accessToken: "user-token",
+    });
+    assert(account);
+
+    const removedSource = upsertMediaSource({
+      providerId: "plex",
+      providerAccountId: account.id,
+      externalId: "removed-server",
+      name: "Removed Plex",
+      baseUrl: "http://removed.example:32400",
+    });
+    const keptSource = upsertMediaSource({
+      providerId: "plex",
+      providerAccountId: account.id,
+      externalId: "kept-server",
+      name: "Kept Plex",
+      baseUrl: "http://kept.example:32400",
+      credentials: {
+        accessToken: "kept-server-token",
+      },
+      metadata: {
+        owned: true,
+        provides: ["server"],
+      },
+    });
+    assert(removedSource);
+    assert(keptSource);
+
+    const session = createProviderSession({
+      providerId: "plex",
+      providerAccountId: account.id,
+      userToken: "user-token",
+    });
+    const sessionCookie = `${getSessionCookieName()}=${session.id}`;
+
+    const deleteResponse = await fetchLocal(
+      `${baseUrl}/api/sources/${removedSource.id}`,
+      {
+        method: "DELETE",
+        headers: {
+          cookie: sessionCookie,
+        },
+      },
+    );
+    assert.equal(deleteResponse.status, 204);
+    assert.equal(
+      getMediaSourceForAccount(removedSource.id, account.id),
+      undefined,
+    );
+
+    const listResponse = await fetchLocal(`${baseUrl}/api/sources`, {
+      headers: {
+        cookie: sessionCookie,
+      },
+    });
+    assert.equal(listResponse.status, 200);
+    const listed = (await listResponse.json()) as {
+      sources?: Array<{ id: string }>;
+    };
+    assert.deepEqual(
+      listed.sources?.map((item) => item.id),
+      [keptSource.id],
+    );
+
+    const originalListCurrentlyPlaying =
+      plexProvider.listCurrentlyPlaying.bind(plexProvider);
+    const originalSupportsCurrentlyPlayingSource =
+      plexProvider.supportsCurrentlyPlayingSource?.bind(plexProvider);
+    const discoveryCalls: string[] = [];
+    plexProvider.supportsCurrentlyPlayingSource = () => true;
+    plexProvider.listCurrentlyPlaying = async (_session, source) => {
+      discoveryCalls.push(source.id);
+      return [];
+    };
+
+    try {
+      const currentlyPlayingResponse = await fetchLocal(
+        `${baseUrl}/api/media/currently-playing`,
+        {
+          headers: {
+            cookie: sessionCookie,
+          },
+        },
+      );
+      assert.equal(currentlyPlayingResponse.status, 200);
+      assert.deepEqual(discoveryCalls, [keptSource.id]);
+    } finally {
+      plexProvider.listCurrentlyPlaying = originalListCurrentlyPlaying;
+      if (originalSupportsCurrentlyPlayingSource) {
+        plexProvider.supportsCurrentlyPlayingSource =
+          originalSupportsCurrentlyPlayingSource;
+      } else {
+        delete plexProvider.supportsCurrentlyPlayingSource;
+      }
+    }
   });
 });
 

@@ -101,6 +101,15 @@ export function getProviderAccount(id: string) {
   return row ? mapProviderAccount(row) : undefined;
 }
 
+export function deleteProviderAccount(id: string) {
+  const result = getDatabase()
+    .delete(providerAccounts)
+    .where(eq(providerAccounts.id, id))
+    .run();
+
+  return result.changes > 0;
+}
+
 function getProviderAccountByAccessToken(
   providerId: string,
   accessToken: string,

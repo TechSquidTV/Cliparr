@@ -13,6 +13,8 @@ const appModuleSpecifier = "@/app";
 const databaseModuleSpecifier = "@/db/database";
 const providerAccountsRepositoryModuleSpecifier =
   "@/db/providerAccountsRepository";
+const mediaSourcesRepositoryModuleSpecifier = "@/db/mediaSourcesRepository";
+const providerPersistenceModuleSpecifier = "@/db/providerPersistence";
 const rememberedProviderSessionsRepositoryModuleSpecifier =
   "@/db/rememberedProviderSessionsRepository";
 const storeModuleSpecifier = "@/session/store";
@@ -271,7 +273,7 @@ void test("clears invalid remembered provider session cookies from /api/session"
   }
 });
 
-void test("logout revokes the remembered provider session token", () => {
+void test("disconnect removes the provider account and cascades saved sources", () => {
   const dataDir = fs.mkdtempSync(
     path.join(os.tmpdir(), "cliparr-session-route-"),
   );
@@ -283,13 +285,23 @@ void test("logout revokes the remembered provider session token", () => {
 
       const { createApp } = await import(${JSON.stringify(appModuleSpecifier)});
       const { closeDatabase } = await import(${JSON.stringify(databaseModuleSpecifier)});
-      const { upsertProviderAccountByAccessToken } = await import(${JSON.stringify(providerAccountsRepositoryModuleSpecifier)});
+      const {
+        getProviderAccount,
+        upsertProviderAccountByAccessToken,
+      } = await import(${JSON.stringify(providerAccountsRepositoryModuleSpecifier)});
+      const {
+        getMediaSourceByProviderExternalId,
+        listMediaSources,
+        upsertMediaSource,
+      } = await import(${JSON.stringify(mediaSourcesRepositoryModuleSpecifier)});
+      const { persistProviderAuth } = await import(${JSON.stringify(providerPersistenceModuleSpecifier)});
       const {
         createRememberedProviderSession,
         getRememberedProviderSession,
       } = await import(${JSON.stringify(rememberedProviderSessionsRepositoryModuleSpecifier)});
       const {
         createProviderSession,
+        getProviderSession,
         getRememberedProviderSessionCookieName,
         getSessionCookieName,
       } = await import(${JSON.stringify(storeModuleSpecifier)});
@@ -308,8 +320,21 @@ void test("logout revokes the remembered provider session token", () => {
           accessToken: "persisted-user-token",
         });
         assert(account);
+        const source = upsertMediaSource({
+          providerId: "plex",
+          providerAccountId: account.id,
+          externalId: "plex-server-1",
+          name: "Living Room Plex",
+          baseUrl: "http://192.0.2.10:32400",
+        });
+        assert(source);
 
         const session = createProviderSession({
+          providerId: "plex",
+          providerAccountId: account.id,
+          userToken: "persisted-user-token",
+        });
+        const otherSession = createProviderSession({
           providerId: "plex",
           providerAccountId: account.id,
           userToken: "persisted-user-token",
@@ -329,13 +354,138 @@ void test("logout revokes the remembered provider session token", () => {
         );
 
         assert.equal(response.status, 204);
+        assert.equal(getProviderAccount(account.id), undefined);
+        assert.equal(getProviderSession(session.id), undefined);
+        assert.equal(getProviderSession(otherSession.id), undefined);
         assert.equal(getRememberedProviderSession(rememberedSession.token), undefined);
+        assert.equal(
+          getMediaSourceByProviderExternalId("plex", account.id, "plex-server-1"),
+          undefined
+        );
+        assert.equal(listMediaSources({ providerAccountId: account.id }).length, 0);
+
+        const reauthenticatedAccount = persistProviderAuth({
+          provider: {
+            id: "plex",
+            name: "Plex",
+            auth: "pin",
+          },
+          userToken: "new-persisted-user-token",
+          resources: [
+            {
+              id: "plex-server-1",
+              name: "Living Room Plex",
+              accessToken: "new-plex-server-token",
+              connections: [
+                {
+                  id: "auto-connection",
+                  uri: "http://192.0.2.10:32400",
+                  local: true,
+                  relay: false,
+                },
+              ],
+            },
+          ],
+        });
+        assert(reauthenticatedAccount);
+        assert.notEqual(reauthenticatedAccount.id, account.id);
+        assert.deepEqual(
+          listMediaSources({ providerId: "plex" }).map((item) => item.externalId),
+          ["plex-server-1"]
+        );
 
         const setCookies = response.headers.getSetCookie();
         assert(setCookies.some((cookie) =>
           cookie.startsWith(\`\${getSessionCookieName()}=\`)
           && cookie.includes("Expires=Thu, 01 Jan 1970 00:00:00 GMT")
         ));
+        assert(setCookies.some((cookie) =>
+          cookie.startsWith(\`\${getRememberedProviderSessionCookieName()}=\`)
+          && cookie.includes("Expires=Thu, 01 Jan 1970 00:00:00 GMT")
+        ));
+      } finally {
+        await new Promise((resolve, reject) => server.close((err) => err ? reject(err) : resolve(undefined)));
+        closeDatabase();
+      }
+    `,
+      { dataDir },
+    );
+  } finally {
+    fs.rmSync(dataDir, { recursive: true, force: true });
+  }
+});
+
+void test("disconnect uses the remembered provider account when the session cookie is missing", () => {
+  const dataDir = fs.mkdtempSync(
+    path.join(os.tmpdir(), "cliparr-session-route-"),
+  );
+
+  try {
+    runStoreScript(
+      `
+      import assert from "node:assert/strict";
+
+      const { createApp } = await import(${JSON.stringify(appModuleSpecifier)});
+      const { closeDatabase } = await import(${JSON.stringify(databaseModuleSpecifier)});
+      const {
+        getProviderAccount,
+        upsertProviderAccountByAccessToken,
+      } = await import(${JSON.stringify(providerAccountsRepositoryModuleSpecifier)});
+      const {
+        getMediaSourceByProviderExternalId,
+        upsertMediaSource,
+      } = await import(${JSON.stringify(mediaSourcesRepositoryModuleSpecifier)});
+      const {
+        createRememberedProviderSession,
+        getRememberedProviderSession,
+      } = await import(${JSON.stringify(rememberedProviderSessionsRepositoryModuleSpecifier)});
+      const {
+        getRememberedProviderSessionCookieName,
+      } = await import(${JSON.stringify(storeModuleSpecifier)});
+
+      const { app } = await createApp();
+      const server = app.listen(0, "127.0.0.1");
+
+      try {
+        await new Promise((resolve) => server.once("listening", resolve));
+        const address = server.address();
+        assert(address && typeof address === "object");
+
+        const account = upsertProviderAccountByAccessToken({
+          providerId: "plex",
+          label: "Plex Account",
+          accessToken: "persisted-user-token",
+        });
+        assert(account);
+        const source = upsertMediaSource({
+          providerId: "plex",
+          providerAccountId: account.id,
+          externalId: "plex-server-1",
+          name: "Living Room Plex",
+          baseUrl: "http://192.0.2.10:32400",
+        });
+        assert(source);
+
+        const rememberedSession = createRememberedProviderSession(account.id);
+        const response = await fetch(
+          \`http://127.0.0.1:\${address.port}/api/session\`,
+          {
+            method: "DELETE",
+            headers: {
+              cookie: \`\${getRememberedProviderSessionCookieName()}=\${rememberedSession.token}\`,
+            },
+          }
+        );
+
+        assert.equal(response.status, 204);
+        assert.equal(getProviderAccount(account.id), undefined);
+        assert.equal(getRememberedProviderSession(rememberedSession.token), undefined);
+        assert.equal(
+          getMediaSourceByProviderExternalId("plex", account.id, "plex-server-1"),
+          undefined
+        );
+
+        const setCookies = response.headers.getSetCookie();
         assert(setCookies.some((cookie) =>
           cookie.startsWith(\`\${getRememberedProviderSessionCookieName()}=\`)
           && cookie.includes("Expires=Thu, 01 Jan 1970 00:00:00 GMT")

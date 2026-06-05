@@ -39,7 +39,7 @@ interface Props {
   onSelectSession: (session: CurrentlyPlayingItem) => void;
   onOpenLocalVideo: () => void;
   onOpenSources: () => void;
-  onLogout: () => Promise<void> | void;
+  onDisconnect: () => Promise<void> | void;
 }
 
 function errorMessage(err: unknown, fallback: string) {
@@ -307,7 +307,7 @@ export default function DashboardScreen({
   onSelectSession,
   onOpenLocalVideo,
   onOpenSources,
-  onLogout,
+  onDisconnect,
 }: Props) {
   const [viewers, setViewers] = useState<ViewerPlaybackGroup[]>([]);
   const [sourceErrors, setSourceErrors] = useState<SourcePlaybackError[]>([]);
@@ -413,7 +413,7 @@ export default function DashboardScreen({
             </div>
             <DashboardMobileMenu
               appVersion={versionLabel}
-              onLogout={onLogout}
+              onDisconnect={onDisconnect}
             />
           </div>
           <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)_2.75rem] gap-2 sm:hidden">
@@ -496,7 +496,7 @@ export default function DashboardScreen({
             </a>
             <button
               type="button"
-              onClick={onLogout}
+              onClick={onDisconnect}
               className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-accent rounded-lg transition-colors"
             >
               <LogOut className="w-4 h-4" />

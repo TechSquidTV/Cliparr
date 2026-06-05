@@ -9,10 +9,12 @@ import {
   getRememberedProviderSession,
   revokeRememberedProviderSession,
 } from "@/db/rememberedProviderSessionsRepository";
+import { deleteProviderAccount } from "@/db/providerAccountsRepository";
 import { asyncHandler, createApiError } from "@/http/errors";
 import { getProvider } from "@/providers/registry";
 import {
   deleteProviderSession,
+  deleteProviderSessionsForProviderAccount,
   getRememberedProviderSessionCookieClearOptions,
   getRememberedProviderSessionCookieName,
   getRememberedProviderSessionCookieOptions,
@@ -112,13 +114,27 @@ sessionRouter.get(
 
 sessionRouter.delete("/", (req, res) => {
   setNoStore(res);
-  const session = getProviderSession(getRequestSessionId(req));
+  const startedAt = Date.now();
+  const requestSessionId = getRequestSessionId(req);
+  const session = getProviderSession(requestSessionId);
   const rememberedToken = readCookie(
     req.header("cookie"),
     getRememberedProviderSessionCookieName(),
   );
+  const rememberedSession = getRememberedProviderSession(rememberedToken);
+  const providerAccountId =
+    session?.providerAccountId ?? rememberedSession?.providerAccountId;
   revokeRememberedProviderSession(rememberedToken);
-  deleteProviderSession(getRequestSessionId(req));
+  let deletedSessionCount = 0;
+  if (providerAccountId) {
+    deletedSessionCount =
+      deleteProviderSessionsForProviderAccount(providerAccountId);
+  } else {
+    deleteProviderSession(requestSessionId);
+  }
+  const deletedProviderAccount = providerAccountId
+    ? deleteProviderAccount(providerAccountId)
+    : false;
   res.clearCookie(
     getSessionCookieName(),
     getSessionCookieClearOptions(req.secure),
@@ -129,13 +145,16 @@ sessionRouter.delete("/", (req, res) => {
   );
   res.status(204).end();
 
-  logger.info("Provider session logged out.", {
-    ...logEventFields("session.logout", "success"),
+  logger.info("Provider account disconnected.", {
+    ...logEventFields("session.disconnect", "success"),
+    ...logDurationFields(startedAt),
     ...compactLogFields({
       "provider.id": session?.providerId,
-      "provider.account.id": session?.providerAccountId,
+      "provider.account.id": providerAccountId,
       "session.id": session?.id,
+      "session.deleted_count": deletedSessionCount,
       "session.remembered.present": Boolean(rememberedToken),
+      "provider.account.deleted": deletedProviderAccount,
     }),
   });
 });

@@ -5,7 +5,7 @@ import { routeTree } from "@/routeTree.gen";
 export interface RouterAuthContext {
   providerSession: ProviderSession | null;
   setProviderSession: (session: ProviderSession | null) => void;
-  logout: () => Promise<void>;
+  disconnect: () => Promise<void>;
 }
 
 export interface RouterContext {

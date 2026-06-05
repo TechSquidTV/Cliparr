@@ -175,6 +175,31 @@ export function deleteProviderSession(sessionId?: string) {
   }
 }
 
+export function deleteProviderSessionsForProviderAccount(
+  providerAccountId?: string,
+) {
+  if (!providerAccountId) {
+    return 0;
+  }
+
+  const db = getDatabase();
+  const sessionRows = db
+    .select({ id: providerSessions.id })
+    .from(providerSessions)
+    .where(eq(providerSessions.providerAccountId, providerAccountId))
+    .all();
+  const result = db
+    .delete(providerSessions)
+    .where(eq(providerSessions.providerAccountId, providerAccountId))
+    .run();
+
+  for (const session of sessionRows) {
+    mediaHandlesBySessionId.delete(session.id);
+  }
+
+  return Number(result.changes);
+}
+
 export function getSessionCookieName() {
   return SESSION_COOKIE;
 }

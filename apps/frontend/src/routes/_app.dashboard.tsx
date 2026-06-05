@@ -59,7 +59,7 @@ function DashboardRouteComponent() {
         onOpenSources={() => {
           void router.navigate({ to: "/sources" });
         }}
-        onLogout={auth.logout}
+        onDisconnect={auth.disconnect}
       />
       <LocalVideoOpenDialog
         isOpen={localVideoOpen}
