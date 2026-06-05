@@ -546,6 +546,12 @@ export function DashboardVersionBadge({
             aria-hidden="true"
             data-dashboard-update-indicator
           />
+          <span
+            className="text-[11px] leading-none font-medium text-primary/80"
+            data-dashboard-update-label
+          >
+            Update available
+          </span>
         </a>
       </TooltipTrigger>
       <TooltipContent side="top" align="start">

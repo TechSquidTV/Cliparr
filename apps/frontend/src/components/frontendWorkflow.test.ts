@@ -343,6 +343,8 @@ void test("renders dashboard version badge as a release link when an update is a
   assert.match(markup, /data-dashboard-version-badge/);
   assert.match(markup, /data-dashboard-update-available/);
   assert.match(markup, /data-dashboard-update-indicator/);
+  assert.match(markup, /data-dashboard-update-label/);
+  assert.match(markup, /Update available/);
   assert.match(markup, /v1\.3\.0 is available/);
 });
 
