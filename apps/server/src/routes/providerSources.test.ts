@@ -672,7 +672,10 @@ void test("deletes individual source rows and excludes them from dashboard disco
 
     const originalListCurrentlyPlaying =
       plexProvider.listCurrentlyPlaying.bind(plexProvider);
+    const originalSupportsCurrentlyPlayingSource =
+      plexProvider.supportsCurrentlyPlayingSource?.bind(plexProvider);
     const discoveryCalls: string[] = [];
+    plexProvider.supportsCurrentlyPlayingSource = () => true;
     plexProvider.listCurrentlyPlaying = async (_session, source) => {
       discoveryCalls.push(source.id);
       return [];
@@ -691,6 +694,12 @@ void test("deletes individual source rows and excludes them from dashboard disco
       assert.deepEqual(discoveryCalls, [keptSource.id]);
     } finally {
       plexProvider.listCurrentlyPlaying = originalListCurrentlyPlaying;
+      if (originalSupportsCurrentlyPlayingSource) {
+        plexProvider.supportsCurrentlyPlayingSource =
+          originalSupportsCurrentlyPlayingSource;
+      } else {
+        delete plexProvider.supportsCurrentlyPlayingSource;
+      }
     }
   });
 });
