@@ -8,6 +8,7 @@ import {
   DrawerTitle,
   DrawerTrigger,
 } from "@/components/ui/drawer";
+import type { LatestReleaseInfo } from "@/api/cliparrClient";
 
 export const CLIPARR_WEBSITE_URL = "https://cliparr.dev/";
 export const CLIPARR_GITHUB_URL = "https://github.com/TechSquidTV/Cliparr";
@@ -29,9 +30,11 @@ export function GithubIcon({ className }: { className?: string }) {
 
 export function DashboardMobileMenu({
   appVersion,
+  latestRelease,
   onDisconnect,
 }: {
   appVersion: string;
+  latestRelease: LatestReleaseInfo | null;
   onDisconnect: () => Promise<void> | void;
 }) {
   const menuItemClassName =
@@ -110,8 +113,28 @@ export function DashboardMobileMenu({
           </div>
 
           {appVersion && (
-            <DrawerFooter className="border-t-0 px-4 pt-4 pb-0 text-center font-mono text-xs text-muted-foreground">
-              Cliparr {appVersion}
+            <DrawerFooter className="border-t-0 px-4 pt-4 pb-0 text-center text-xs text-muted-foreground">
+              {latestRelease ? (
+                <DrawerClose asChild>
+                  <a
+                    href={latestRelease.url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex min-h-11 flex-col items-center justify-center gap-1 rounded-lg border border-primary/35 bg-primary/10 px-3 py-2 text-primary transition-colors hover:bg-primary/15 focus-visible:ring-2 focus-visible:ring-primary/35 focus-visible:outline-none"
+                    data-dashboard-mobile-update-available
+                  >
+                    <span className="font-mono text-muted-foreground">
+                      Cliparr {appVersion}
+                    </span>
+                    <span className="inline-flex items-center gap-1 font-semibold">
+                      {latestRelease.tagName} available
+                      <ExternalLink className="h-3.5 w-3.5" />
+                    </span>
+                  </a>
+                </DrawerClose>
+              ) : (
+                <span className="font-mono">Cliparr {appVersion}</span>
+              )}
             </DrawerFooter>
           )}
         </div>

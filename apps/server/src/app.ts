@@ -10,6 +10,7 @@ import { mediaRouter } from "@/routes/media";
 import { providersRouter } from "@/routes/providers";
 import { sessionRouter } from "@/routes/session";
 import { sourcesRouter } from "@/routes/sources";
+import { versionRouter } from "@/routes/version";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const workspaceRoot = path.resolve(__dirname, "../../..");
@@ -65,6 +66,7 @@ export async function createApp(options: CreateAppOptions = {}) {
   app.use("/api/session", sessionRouter);
   app.use("/api/sources", sourcesRouter);
   app.use("/api/media", mediaRouter);
+  app.use("/api/version", versionRouter);
   app.use("/api", notFoundHandler);
 
   if (process.env.NODE_ENV !== "production") {

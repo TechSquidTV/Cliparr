@@ -19,6 +19,26 @@ interface HealthResponse {
   version?: string;
 }
 
+type VersionInfoStatus =
+  | "current"
+  | "update_available"
+  | "unknown"
+  | "unavailable";
+
+export interface LatestReleaseInfo {
+  tagName: string;
+  url: string;
+  publishedAt: string;
+}
+
+export interface CliparrVersionInfo {
+  currentVersion?: string;
+  latestRelease?: LatestReleaseInfo;
+  updateAvailable: boolean;
+  checkedAt?: string;
+  status: VersionInfoStatus;
+}
+
 interface LocalMediaUrlResponse {
   mediaUrl: string;
   hls: boolean;
@@ -158,6 +178,10 @@ export function subscribeToAuthFailure(listener: () => void) {
 }
 
 export const cliparrClient = {
+  async getVersionInfo() {
+    return request<CliparrVersionInfo>("/api/version");
+  },
+
   async getHealth() {
     return request<HealthResponse>("/api/health");
   },

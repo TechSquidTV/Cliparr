@@ -10,7 +10,7 @@ import {
   Settings2,
   Video,
 } from "lucide-react";
-import { cliparrClient } from "@/api/cliparrClient";
+import { cliparrClient, type CliparrVersionInfo } from "@/api/cliparrClient";
 import { cn } from "@/lib/utils";
 import { EDITOR_THUMBNAIL_VIEW_TRANSITION_NAME } from "@/lib/viewTransitions";
 import {
@@ -24,6 +24,11 @@ import {
   GithubIcon,
 } from "@/components/DashboardMobileMenu";
 import { MobilePwaInstallNudge } from "@/components/MobilePwaInstallNudge";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import {
   flattenDashboardPlaybackItems,
   formatViewerSessionCount,
@@ -80,6 +85,8 @@ const DASHBOARD_VIDEO_STYLE_BODY_CLASS =
   "flex flex-1 flex-col gap-3 p-3 md:p-4";
 const DASHBOARD_PLAYBACK_GRID_CLASS =
   "grid grid-cols-1 gap-3 md:grid-cols-2 md:gap-4 xl:grid-cols-3";
+const DASHBOARD_VERSION_BADGE_CLASS =
+  "hidden min-h-5 min-w-15 items-center justify-center rounded-full border border-border bg-card px-2 py-0.5 text-xs font-medium text-muted-foreground sm:inline-flex";
 const DASHBOARD_PLAYBACK_STATE_INITIAL = {
   opacity: 0,
   y: 6,
@@ -479,6 +486,81 @@ function WarningBanner({
   );
 }
 
+export function DashboardVersionBadge({
+  latestRelease,
+  releaseChecksDisabledReason,
+  versionLabel,
+}: {
+  latestRelease: CliparrVersionInfo["latestRelease"] | null;
+  releaseChecksDisabledReason?: string | null;
+  versionLabel: string;
+}) {
+  if (!versionLabel) {
+    return (
+      <span
+        className={cn(DASHBOARD_VERSION_BADGE_CLASS, "invisible")}
+        aria-hidden="true"
+        data-dashboard-version-badge
+      >
+        0.0.0
+      </span>
+    );
+  }
+
+  if (!latestRelease) {
+    return (
+      <span
+        className={DASHBOARD_VERSION_BADGE_CLASS}
+        title={releaseChecksDisabledReason ?? undefined}
+        data-dashboard-version-badge
+        data-dashboard-release-check-disabled={
+          releaseChecksDisabledReason ? true : undefined
+        }
+      >
+        {versionLabel}
+      </span>
+    );
+  }
+
+  const updateLabel = `${latestRelease.tagName} is available`;
+
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <a
+          href={latestRelease.url}
+          target="_blank"
+          rel="noreferrer"
+          className={cn(
+            DASHBOARD_VERSION_BADGE_CLASS,
+            "gap-1.5 border-primary/40 bg-primary/10 text-primary transition-colors hover:bg-primary/15 focus-visible:ring-2 focus-visible:ring-primary/35 focus-visible:outline-none",
+          )}
+          aria-label={`${updateLabel}. View release notes.`}
+          title={updateLabel}
+          data-dashboard-version-badge
+          data-dashboard-update-available
+        >
+          <span>{versionLabel}</span>
+          <span
+            className="h-1.5 w-1.5 rounded-full bg-primary"
+            aria-hidden="true"
+            data-dashboard-update-indicator
+          />
+          <span
+            className="text-[11px] leading-none font-medium text-primary/80"
+            data-dashboard-update-label
+          >
+            Update available
+          </span>
+        </a>
+      </TooltipTrigger>
+      <TooltipContent side="top" align="start">
+        {updateLabel}
+      </TooltipContent>
+    </Tooltip>
+  );
+}
+
 export default function DashboardScreen({
   activeViewTransitionSessionId,
   onSelectSession,
@@ -488,7 +570,9 @@ export default function DashboardScreen({
 }: Props) {
   const [viewers, setViewers] = useState<ViewerPlaybackGroup[]>([]);
   const [sourceErrors, setSourceErrors] = useState<SourcePlaybackError[]>([]);
-  const [appVersion, setAppVersion] = useState("");
+  const [versionInfo, setVersionInfo] = useState<CliparrVersionInfo | null>(
+    null,
+  );
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState("");
@@ -526,15 +610,15 @@ export default function DashboardScreen({
     let cancelled = false;
 
     void cliparrClient
-      .getHealth()
-      .then((health) => {
+      .getVersionInfo()
+      .then((nextVersionInfo) => {
         if (!cancelled) {
-          setAppVersion(health.version ?? "");
+          setVersionInfo(nextVersionInfo);
         }
       })
       .catch(() => {
         if (!cancelled) {
-          setAppVersion("");
+          setVersionInfo(null);
         }
       });
 
@@ -553,7 +637,17 @@ export default function DashboardScreen({
     sourceErrors.length > 0
       ? "No active playback on the available sources."
       : "No one is currently watching anything.";
-  const versionLabel = appVersion;
+  const versionLabel = versionInfo?.currentVersion ?? "";
+  const latestUpdateRelease =
+    versionInfo?.status === "update_available" && versionInfo.latestRelease
+      ? versionInfo.latestRelease
+      : null;
+  const releaseChecksDisabledReason =
+    versionLabel && versionInfo?.status === "unknown"
+      ? versionLabel === "dev"
+        ? "Local development build; release update checks are disabled"
+        : "Non-release build; release update checks are disabled"
+      : null;
 
   return (
     <div className="min-h-screen bg-background p-4 text-foreground sm:p-8">
@@ -572,16 +666,11 @@ export default function DashboardScreen({
               <div className="space-y-1">
                 <div className="flex flex-wrap items-center gap-2">
                   <h1 className="text-2xl font-bold tracking-tight">Cliparr</h1>
-                  <span
-                    className={cn(
-                      "hidden min-h-5 min-w-15 items-center justify-center rounded-full border border-border bg-card px-2 py-0.5 text-xs font-medium text-muted-foreground sm:inline-flex",
-                      !versionLabel && "invisible",
-                    )}
-                    aria-hidden={!versionLabel}
-                    data-dashboard-version-badge
-                  >
-                    {versionLabel || "0.0.0"}
-                  </span>
+                  <DashboardVersionBadge
+                    versionLabel={versionLabel}
+                    latestRelease={latestUpdateRelease}
+                    releaseChecksDisabledReason={releaseChecksDisabledReason}
+                  />
                 </div>
                 <p className="text-sm text-muted-foreground">
                   Export clips from active playback sessions.
@@ -590,6 +679,7 @@ export default function DashboardScreen({
             </div>
             <DashboardMobileMenu
               appVersion={versionLabel}
+              latestRelease={latestUpdateRelease}
               onDisconnect={onDisconnect}
             />
           </div>

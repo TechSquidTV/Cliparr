@@ -9,7 +9,10 @@ import {
   formatViewerSessionCount,
 } from "@/components/dashboardPlaybackItems";
 import AuthCompleteScreen from "@/components/AuthCompleteScreen";
-import { DashboardPlaybackCard } from "@/components/DashboardScreen";
+import {
+  DashboardPlaybackCard,
+  DashboardVersionBadge,
+} from "@/components/DashboardScreen";
 import DashboardScreen from "@/components/DashboardScreen";
 import { DashboardMobileMenu } from "@/components/DashboardMobileMenu";
 import { EditorControls } from "@/components/editor/EditorControls";
@@ -313,11 +316,55 @@ void test("renders dashboard mobile menu trigger", () => {
   const markup = renderToStaticMarkup(
     createElement(DashboardMobileMenu, {
       appVersion: "1.2.3",
+      latestRelease: null,
       onDisconnect: () => undefined,
     }),
   );
 
   assert.match(markup, /Open dashboard menu/);
+});
+
+void test("renders dashboard version badge as a release link when an update is available", () => {
+  const markup = renderToStaticMarkup(
+    createElement(
+      TooltipProvider,
+      null,
+      createElement(DashboardVersionBadge, {
+        versionLabel: "v1.2.3",
+        latestRelease: {
+          tagName: "v1.3.0",
+          url: "https://github.com/TechSquidTV/Cliparr/releases/tag/v1.3.0",
+          publishedAt: "2026-06-04T10:30:00.000Z",
+        },
+      }),
+    ),
+  );
+
+  assert.match(markup, /data-dashboard-version-badge/);
+  assert.match(markup, /data-dashboard-update-available/);
+  assert.match(markup, /data-dashboard-update-indicator/);
+  assert.match(markup, /data-dashboard-update-label/);
+  assert.match(markup, /Update available/);
+  assert.match(markup, /v1\.3\.0 is available/);
+});
+
+void test("renders dashboard dev version badge with disabled update checks", () => {
+  const markup = renderToStaticMarkup(
+    createElement(DashboardVersionBadge, {
+      versionLabel: "dev",
+      latestRelease: null,
+      releaseChecksDisabledReason:
+        "Local development build; release update checks are disabled",
+    }),
+  );
+
+  assert.match(markup, /data-dashboard-version-badge/);
+  assert.match(markup, /data-dashboard-release-check-disabled="true"/);
+  assert.match(markup, />dev</);
+  assert.match(
+    markup,
+    /Local development build; release update checks are disabled/,
+  );
 });
 
 void test("renders mobile PWA install nudge for native install state", () => {
