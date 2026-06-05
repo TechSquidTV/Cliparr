@@ -9,7 +9,6 @@
       "vite": false
     },
     "apps/www": {
-      "ignoreBinaries": ["eslint"],
       "ignoreDependencies": ["@fontsource-variable/outfit", "tailwindcss"],
       "ignoreBinaries": ["eslint"],
       "project": ["src/**/*.{astro,mdx,ts}", "scripts/**/*.ts"]
