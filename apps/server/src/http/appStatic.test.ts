@@ -21,20 +21,20 @@ async function withProductionStaticApp<T>(
   callback: (baseUrl: string) => Promise<T>,
 ) {
   const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), "cliparr-app-data-"));
-  const distPath = fs.mkdtempSync(
+  const distributionPath = fs.mkdtempSync(
     path.join(os.tmpdir(), "cliparr-frontend-dist-"),
   );
   const previousAppKey = process.env.APP_KEY;
   const previousDataDir = process.env.CLIPARR_DATA_DIR;
   const previousNodeEnv = process.env.NODE_ENV;
 
-  fs.mkdirSync(path.join(distPath, "assets"));
+  fs.mkdirSync(path.join(distributionPath, "assets"));
   fs.writeFileSync(
-    path.join(distPath, "index.html"),
+    path.join(distributionPath, "index.html"),
     '<!doctype html><div id="root"></div>',
   );
   fs.writeFileSync(
-    path.join(distPath, "assets/app-AbCdEf12.js"),
+    path.join(distributionPath, "assets/app-AbCdEf12.js"),
     "globalThis.__cliparrAssetLoaded = true;",
   );
 
@@ -42,7 +42,7 @@ async function withProductionStaticApp<T>(
   process.env.CLIPARR_DATA_DIR = dataDir;
   process.env.NODE_ENV = "production";
 
-  const { app } = await createApp({ frontendDistPath: distPath });
+  const { app } = await createApp({ frontendDistPath: distributionPath });
   const server = app.listen(0, "127.0.0.1");
 
   try {
@@ -50,17 +50,17 @@ async function withProductionStaticApp<T>(
       server.once("listening", resolve);
     });
     const address = server.address();
-    assert(address && typeof address === "object");
+    assert.ok(address && typeof address === "object");
     return await callback(`http://127.0.0.1:${address.port}`);
   } finally {
-    await new Promise((resolve, reject) => {
-      server.close((err) => {
-        if (err) {
-          reject(err);
+    await new Promise<void>((resolve, reject) => {
+      server.close((error) => {
+        if (error) {
+          reject(error);
           return;
         }
 
-        resolve(undefined);
+        resolve();
       });
     });
     closeDatabase();
@@ -68,7 +68,7 @@ async function withProductionStaticApp<T>(
     restoreEnv("CLIPARR_DATA_DIR", previousDataDir);
     restoreEnv("NODE_ENV", previousNodeEnv);
     fs.rmSync(dataDir, { recursive: true, force: true });
-    fs.rmSync(distPath, { recursive: true, force: true });
+    fs.rmSync(distributionPath, { recursive: true, force: true });
   }
 }
 

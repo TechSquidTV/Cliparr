@@ -10,7 +10,7 @@ const RELEASE_URL =
   "https://github.com/TechSquidTV/Cliparr/releases/tag/v1.3.0";
 
 function jsonResponse(value: unknown, init: ResponseInit = {}) {
-  return new Response(JSON.stringify(value), {
+  return Response.json(value, {
     ...init,
     headers: {
       "content-type": "application/json",
@@ -139,22 +139,16 @@ void test("caches successful release checks", async () => {
     },
   });
 
-  assert.equal(
-    (await service.getVersionInfo()).checkedAt,
-    "2026-06-04T12:00:00.000Z",
-  );
+  let versionInfo = await service.getVersionInfo();
+  assert.equal(versionInfo.checkedAt, "2026-06-04T12:00:00.000Z");
   now += 12 * 60 * 60 * 1000 - 1;
-  assert.equal(
-    (await service.getVersionInfo()).checkedAt,
-    "2026-06-04T12:00:00.000Z",
-  );
+  versionInfo = await service.getVersionInfo();
+  assert.equal(versionInfo.checkedAt, "2026-06-04T12:00:00.000Z");
   assert.equal(fetchCount, 1);
 
   now += 2;
-  assert.equal(
-    (await service.getVersionInfo()).checkedAt,
-    "2026-06-05T00:00:00.001Z",
-  );
+  versionInfo = await service.getVersionInfo();
+  assert.equal(versionInfo.checkedAt, "2026-06-05T00:00:00.001Z");
   assert.equal(fetchCount, 2);
 });
 
@@ -183,17 +177,13 @@ void test("caches failures until GitHub retry headers expire", async () => {
   });
 
   now += 119_000;
-  assert.equal(
-    (await service.getVersionInfo()).checkedAt,
-    "2026-06-04T12:00:00.000Z",
-  );
+  let versionInfo = await service.getVersionInfo();
+  assert.equal(versionInfo.checkedAt, "2026-06-04T12:00:00.000Z");
   assert.equal(fetchCount, 1);
 
-  now += 2_000;
-  assert.equal(
-    (await service.getVersionInfo()).checkedAt,
-    "2026-06-04T12:02:01.000Z",
-  );
+  now += 2000;
+  versionInfo = await service.getVersionInfo();
+  assert.equal(versionInfo.checkedAt, "2026-06-04T12:02:01.000Z");
   assert.equal(fetchCount, 2);
 });
 
@@ -206,7 +196,7 @@ void test("times out stalled release checks and caches the failure", async () =>
     releaseCheckTimeoutMs: 1,
     fetchImpl: async (_input, init) => {
       fetchCount += 1;
-      assert(init?.signal);
+      assert.ok(init?.signal);
 
       return new Promise<Response>((_resolve, reject) => {
         init.signal?.addEventListener("abort", () => {
@@ -227,10 +217,8 @@ void test("times out stalled release checks and caches the failure", async () =>
   assert.equal(fetchCount, 1);
   assert.equal(abortObserved, true);
 
-  assert.equal(
-    (await service.getVersionInfo()).checkedAt,
-    "2026-06-04T12:00:00.000Z",
-  );
+  const versionInfo = await service.getVersionInfo();
+  assert.equal(versionInfo.checkedAt, "2026-06-04T12:00:00.000Z");
   assert.equal(fetchCount, 1);
 });
 

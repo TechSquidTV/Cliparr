@@ -1,11 +1,11 @@
-import { randomUUID } from "crypto";
+import { randomUUID } from "node:crypto";
 import type { MediaSource } from "@/db/mediaSourcesRepository";
 import { createApiError } from "@/http/errors";
 import {
   errorMessage,
   numberValue,
   stringValue,
-} from "@/providers/shared/utils";
+} from "@/providers/shared/utilities";
 import type { ProviderResource } from "@/providers/types";
 import {
   plexBaseUrlMode,
@@ -233,7 +233,7 @@ function orderedConnections(
   resource: ProviderResource,
   preferredConnectionId: string,
 ) {
-  return [...resource.connections].sort((left, right) => {
+  return resource.connections.toSorted((left, right) => {
     if (left.id === preferredConnectionId) {
       return -1;
     }
@@ -306,10 +306,17 @@ function manualConnectionId(sourceId: string) {
 
 function manualConnection(source: MediaSource) {
   if (plexBaseUrlMode(source.connection) !== PLEX_BASE_URL_MODE_MANUAL) {
-    return undefined;
+    return;
   }
 
   const parsed = assertHttpUrl(source.baseUrl);
+  let port = 80;
+  if (parsed.port) {
+    port = Number(parsed.port);
+  } else if (parsed.protocol === "https:") {
+    port = 443;
+  }
+
   return {
     id: manualConnectionId(source.id),
     uri: source.baseUrl,
@@ -317,11 +324,7 @@ function manualConnection(source: MediaSource) {
     relay: false,
     protocol: parsed.protocol.replace(/:$/, ""),
     address: parsed.hostname,
-    port: parsed.port
-      ? Number(parsed.port)
-      : parsed.protocol === "https:"
-        ? 443
-        : 80,
+    port,
   };
 }
 
@@ -421,10 +424,10 @@ async function probeConnection(
     );
 
     return { ok: true as const };
-  } catch (err) {
+  } catch (error) {
     return {
       ok: false as const,
-      message: plexPmsResponseStatusMessage(err) ?? errorMessage(err),
+      message: plexPmsResponseStatusMessage(error) ?? errorMessage(error),
     };
   }
 }

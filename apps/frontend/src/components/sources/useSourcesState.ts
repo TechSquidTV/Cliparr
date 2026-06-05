@@ -17,7 +17,7 @@ import {
   sourceCounts,
   sourceProviderOptions,
   sortSources,
-} from "@/components/sources/sourcesStateUtils";
+} from "@/components/sources/sourcesStateUtilities";
 import { getFrontendLogger, warnWithError } from "@/logging";
 
 interface UseSourcesStateOptions {
@@ -53,8 +53,8 @@ export function useSourcesState({
   const [error, setError] = useState("");
   const [feedback, setFeedback] = useState<Feedback | null>(null);
   const [showAddSource, setShowAddSource] = useState(false);
-  const latestLoadRequestIdRef = useRef(0);
-  const isOpenRef = useRef(isOpen);
+  const latestLoadRequestIdReference = useRef(0);
+  const isOpenReference = useRef(isOpen);
   const sourceLogger = useMemo(
     () =>
       logger.with({
@@ -72,7 +72,10 @@ export function useSourcesState({
   const applyLoadedSources = useCallback(
     async (requestId: number) => {
       const nextSources = sortSources(await cliparrClient.listSources());
-      if (requestId !== latestLoadRequestIdRef.current || !isOpenRef.current) {
+      if (
+        requestId !== latestLoadRequestIdReference.current ||
+        !isOpenReference.current
+      ) {
         return false;
       }
 
@@ -84,10 +87,11 @@ export function useSourcesState({
 
   const loadSources = useCallback(
     async (mode: "initial" | "reload" = "initial") => {
-      const requestId = latestLoadRequestIdRef.current + 1;
-      latestLoadRequestIdRef.current = requestId;
+      const requestId = latestLoadRequestIdReference.current + 1;
+      latestLoadRequestIdReference.current = requestId;
       const isCurrentRequest = () =>
-        requestId === latestLoadRequestIdRef.current && isOpenRef.current;
+        requestId === latestLoadRequestIdReference.current &&
+        isOpenReference.current;
 
       if (mode === "initial") {
         setLoading(true);
@@ -99,13 +103,13 @@ export function useSourcesState({
 
       try {
         await applyLoadedSources(requestId);
-      } catch (err) {
+      } catch (error_) {
         if (!isCurrentRequest()) {
           return;
         }
 
         const message =
-          err instanceof Error ? err.message : "Could not load sources.";
+          error_ instanceof Error ? error_.message : "Could not load sources.";
         setSources([]);
         setDraftBaseUrls({});
         setDraftNames({});
@@ -192,8 +196,8 @@ export function useSourcesState({
       }
       setFeedback(result.feedback);
       await refreshPlaybackView();
-    } catch (err) {
-      const message = err instanceof Error ? err.message : fallbackError;
+    } catch (error_) {
+      const message = error_ instanceof Error ? error_.message : fallbackError;
       setError(message);
     } finally {
       updateBusyAction(source.id);
@@ -282,7 +286,7 @@ export function useSourcesState({
   }
 
   async function deleteSource(source: MediaSource) {
-    const confirmed = window.confirm(
+    const confirmed = globalThis.confirm(
       `Remove ${source.name}? It can be reconnected later.`,
     );
     if (!confirmed) {
@@ -357,13 +361,13 @@ export function useSourcesState({
       } else {
         sourceLogger.warn("Refreshed all media sources with errors.", fields);
       }
-    } catch (err) {
+    } catch (error_) {
       const message =
-        err instanceof Error ? err.message : "Could not refresh sources.";
-      warnWithError(sourceLogger, err, "Could not refresh sources.", {
+        error_ instanceof Error ? error_.message : "Could not refresh sources.";
+      warnWithError(sourceLogger, error_, "Could not refresh sources.", {
         ...logEventFields("source.refresh_all", "failure"),
         ...logDurationFields(startedAt),
-        ...logErrorFields(err),
+        ...logErrorFields(error_),
         "source.count": sources.length,
       });
       setError(message);
@@ -374,9 +378,9 @@ export function useSourcesState({
   }
 
   useEffect(() => {
-    isOpenRef.current = isOpen;
+    isOpenReference.current = isOpen;
     if (!isOpen) {
-      latestLoadRequestIdRef.current += 1;
+      latestLoadRequestIdReference.current += 1;
     }
   }, [isOpen]);
 

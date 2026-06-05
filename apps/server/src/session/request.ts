@@ -7,12 +7,12 @@ import {
   type ProviderSessionRecord,
 } from "@/session/store";
 
-export function getRequestSessionId(req: Request) {
-  return readCookie(req.header("cookie"), getSessionCookieName());
+export function getRequestSessionId(request: Request) {
+  return readCookie(request.header("cookie"), getSessionCookieName());
 }
 
-function requireSession(req: Request): ProviderSessionRecord {
-  const session = getProviderSession(getRequestSessionId(req));
+function requireSession(request: Request): ProviderSessionRecord {
+  const session = getProviderSession(getRequestSessionId(request));
   if (!session) {
     throw createApiError(
       401,
@@ -23,8 +23,8 @@ function requireSession(req: Request): ProviderSessionRecord {
   return session;
 }
 
-export function requireAccountSession(req: Request): ProviderSessionRecord {
-  return requireSession(req);
+export function requireAccountSession(request: Request): ProviderSessionRecord {
+  return requireSession(request);
 }
 
 export function setNoStore(res: Response) {

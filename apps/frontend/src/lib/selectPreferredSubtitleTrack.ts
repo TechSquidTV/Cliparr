@@ -5,7 +5,7 @@ import type {
 
 function normalizedText(value: string | null | undefined) {
   const trimmed = value?.trim().toLowerCase();
-  return trimmed ? trimmed : undefined;
+  return trimmed || undefined;
 }
 
 export function subtitleTrackKey(
@@ -33,7 +33,7 @@ export function subtitleTrackUnavailableMessage(
   providerId?: string,
 ) {
   if (!track || subtitleTrackSupportsBurnIn(track)) {
-    return undefined;
+    return;
   }
 
   if (track.isText && providerId === "plex") {

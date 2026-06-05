@@ -27,11 +27,11 @@ import { EditorPreviewTimecode } from "@/components/editor/EditorPreviewTimecode
 import {
   formatTime,
   formatTimecodeInput,
-} from "@/components/editor/editorUtils";
+} from "@/components/editor/editorUtilities";
 
 type EditorControlsVariant = "desktop" | "mobile";
 
-interface EditorControlsProps {
+interface EditorControlsProperties {
   variant?: EditorControlsVariant;
   playing: boolean;
   loadingPreview: boolean;
@@ -41,7 +41,7 @@ interface EditorControlsProps {
   startTime: number;
   endTime: number;
   muted: boolean;
-  setMuted: (muted: boolean | ((prev: boolean) => boolean)) => void;
+  setMuted: (muted: boolean | ((previous: boolean) => boolean)) => void;
   volume: number;
   setVolume: (volume: number) => void;
   handleTimelineZoomIn: () => void;
@@ -102,7 +102,7 @@ export function EditorControls({
   onPreviewTimeCommit,
   onStartTimeCommit,
   onEndTimeCommit,
-}: EditorControlsProps) {
+}: EditorControlsProperties) {
   const hasDuration = duration > 0;
   const canEditPreviewTime = !loadingPreview && hasDuration;
   const canEditClipRange = !loadingPreview && !playing && hasDuration;
@@ -125,17 +125,15 @@ export function EditorControls({
     Math.min(Math.max(muted ? 0 : volume, 0), 1) * 100
   }%`;
   const framegrabDisabled = Boolean(framegrabDisabledReason);
+  let playControlLabel = "Play preview";
+  if (loadingPreview) {
+    playControlLabel = "Preview is loading.";
+  } else if (playing) {
+    playControlLabel = "Pause preview";
+  }
+
   const playControl = (
-    <ControlTooltip
-      label={
-        loadingPreview
-          ? "Preview is loading."
-          : playing
-            ? "Pause preview"
-            : "Play preview"
-      }
-      disabled={loadingPreview}
-    >
+    <ControlTooltip label={playControlLabel} disabled={loadingPreview}>
       <button
         type="button"
         onClick={togglePlay}

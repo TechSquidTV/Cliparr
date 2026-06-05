@@ -257,7 +257,7 @@ function createGifFrameWorkerEncoder({
 }
 
 function createGifFrameWorker() {
-  return new Worker(new URL("./gifFrameEncoder.worker.ts", import.meta.url), {
+  return new Worker(new URL("gifFrameEncoder.worker.ts", import.meta.url), {
     type: "module",
   });
 }

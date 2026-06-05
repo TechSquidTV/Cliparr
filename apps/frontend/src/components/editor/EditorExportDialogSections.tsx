@@ -38,7 +38,7 @@ import {
   formatOptionFor,
   formatOptions,
 } from "@/components/editor/editorExportOptions";
-import { formatTime } from "@/components/editor/editorUtils";
+import { formatTime } from "@/components/editor/editorUtilities";
 
 interface VideoDimensions {
   width: number;
@@ -151,7 +151,7 @@ function SectionHeader({ children }: { children: string }) {
   );
 }
 
-interface EditorExportSettingsSectionProps {
+interface EditorExportSettingsSectionProperties {
   selectedFormat: ExportFormat;
   onFormatChange: (format: ExportFormat) => void;
   selectedQuality: ExportQualityPreset;
@@ -185,7 +185,7 @@ function EditorExportSettingsSectionComponent({
   hasDirectSource,
   directSourceLabel,
   hlsSourceLabel,
-}: EditorExportSettingsSectionProps) {
+}: EditorExportSettingsSectionProperties) {
   const sourceOptions = sourceOptionsFor({ directSourceLabel, hlsSourceLabel });
   const qualityOptions = exportQualityOptionsForFormat(selectedFormat);
 
@@ -379,7 +379,7 @@ export const EditorExportSettingsSection = memo(
   EditorExportSettingsSectionComponent,
 );
 
-interface EditorFilenameTemplateSectionProps {
+interface EditorFilenameTemplateSectionProperties {
   editingTemplateKind: ExportFileNameTemplateKind;
   onEditingTemplateKindChange: (kind: ExportFileNameTemplateKind) => void;
   fileNameTemplates: ExportFileNameTemplateSettings;
@@ -396,7 +396,7 @@ function EditorFilenameTemplateSectionComponent({
   fileNameTemplates,
   onFileNameTemplateChange,
   onResetFileNameTemplate,
-}: EditorFilenameTemplateSectionProps) {
+}: EditorFilenameTemplateSectionProperties) {
   const editingTemplateOption = templateOptionFor(editingTemplateKind);
   const visibleTokens = getExportFileNameTemplateTokens(editingTemplateKind);
 
@@ -480,7 +480,7 @@ export const EditorFilenameTemplateSection = memo(
   EditorFilenameTemplateSectionComponent,
 );
 
-interface EditorExportSummaryPanelProps {
+interface EditorExportSummaryPanelProperties {
   title: string;
   clipStart: number;
   clipEnd: number;
@@ -514,7 +514,7 @@ function EditorExportSummaryPanelComponent({
   subtitleSummaryTone,
   activeTemplateKind,
   fileNamePreview,
-}: EditorExportSummaryPanelProps) {
+}: EditorExportSummaryPanelProperties) {
   const clipLength = Math.max(0, clipEnd - clipStart);
   const selectedFormatOption = formatOptionFor(selectedFormat);
   const outputDetail =
@@ -523,12 +523,12 @@ function EditorExportSummaryPanelComponent({
           gifSettings.frameRate
         } fps`
       : `${exportQualityOptionFor(selectedQuality).label} quality`;
-  const subtitleSummaryClassName =
-    subtitleSummaryTone === "ready"
-      ? "border-status-ready-border bg-status-ready"
-      : subtitleSummaryTone === "warning"
-        ? "border-status-warning-border bg-status-warning"
-        : "border-border bg-background";
+  let subtitleSummaryClassName = "border-border bg-background";
+  if (subtitleSummaryTone === "ready") {
+    subtitleSummaryClassName = "border-status-ready-border bg-status-ready";
+  } else if (subtitleSummaryTone === "warning") {
+    subtitleSummaryClassName = "border-status-warning-border bg-status-warning";
+  }
 
   return (
     <aside className="space-y-3 rounded-md border border-border bg-card p-3">

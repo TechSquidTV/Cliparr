@@ -29,7 +29,7 @@ void test("parses HLS stream bitrate and dimensions from master playlists", () =
     {
       bandwidth: 5_600_000,
       averageBandwidth: undefined,
-      bitrateKbps: 5_600,
+      bitrateKbps: 5600,
       bitrateBasis: "bandwidth",
       width: 1920,
       height: 1080,
@@ -49,7 +49,7 @@ void test("selects the HLS estimate closest to output dimensions", () => {
   assert.deepEqual(
     selectHlsExportEstimateMetadata(variants, { width: 860, height: 480 }),
     {
-      bitrateKbps: 1_200,
+      bitrateKbps: 1200,
       bitrateBasis: "bandwidth",
       width: 854,
       height: 480,
@@ -60,7 +60,7 @@ void test("selects the HLS estimate closest to output dimensions", () => {
   assert.deepEqual(
     selectHlsExportEstimateMetadata(variants, { width: 1920, height: 1072 }),
     {
-      bitrateKbps: 5_400,
+      bitrateKbps: 5400,
       bitrateBasis: "bandwidth",
       width: 1920,
       height: 1080,
@@ -99,7 +99,7 @@ void test("fetches HLS estimate metadata with same-origin credentials only", asy
     assert.equal(capturedUrl, "https://media.example/master.m3u8");
     assert.equal(capturedCredentials, "same-origin");
     assert.deepEqual(metadata, {
-      bitrateKbps: 1_200,
+      bitrateKbps: 1200,
       bitrateBasis: "bandwidth",
       width: 854,
       height: 480,

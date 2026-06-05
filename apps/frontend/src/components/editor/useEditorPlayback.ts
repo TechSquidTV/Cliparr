@@ -26,7 +26,7 @@ import {
 } from "@/lib/mediabunnyTrackAccess";
 import { selectPreferredPairableAudioTrack } from "@/lib/selectPreferredAudioTrack";
 import type { PlaybackAudioSelection } from "@/providers/types";
-import { errorMessage } from "@/components/editor/editorUtils";
+import { errorMessage } from "@/components/editor/editorUtilities";
 import {
   applyPlaybackGain,
   runPlaybackAudioIterator,
@@ -72,7 +72,7 @@ import { getFrontendLogger, warnWithError } from "@/logging";
 export type { PlaybackFallbackInfo } from "@/components/editor/editorPlaybackSources";
 export type { PlaybackReadyRange } from "@/components/editor/useEditorPlaybackWarmup";
 
-interface UseEditorPlaybackProps {
+interface UseEditorPlaybackProperties {
   hlsSource?: EditorMediaSource;
   directSource?: EditorMediaSource;
   initialDuration: number;
@@ -150,8 +150,10 @@ function loadImageElement(url: string) {
   return new Promise<HTMLImageElement>((resolve, reject) => {
     const image = new Image();
     image.decoding = "async";
-    image.onload = () => resolve(image);
-    image.onerror = () => reject(new Error("Could not load artwork image."));
+    image.addEventListener("load", () => resolve(image));
+    image.addEventListener("error", () =>
+      reject(new Error("Could not load artwork image.")),
+    );
     image.src = url;
   });
 }
@@ -229,7 +231,7 @@ export function useEditorPlayback({
   subtitlesEnabled = false,
   subtitleStyleSettings,
   onPlaybackTimeUpdate,
-}: UseEditorPlaybackProps) {
+}: UseEditorPlaybackProperties) {
   const [duration, setDuration] = useState(() => Math.max(initialDuration, 0));
   const [currentTime, setCurrentTime] = useState(() =>
     initialPlaybackTime(initialCurrentTime, initialDuration),
@@ -247,7 +249,7 @@ export function useEditorPlayback({
   const [activeSourceLabel, setActiveSourceLabel] = useState("");
   const [exportFallbackSource, setExportFallbackSource] = useState<
     EditorMediaSource | undefined
-  >(undefined);
+  >();
   const [hlsFallbackInfo, setHlsFallbackInfo] =
     useState<PlaybackFallbackInfo | null>(null);
   const [sourceVideoDimensions, setSourceVideoDimensions] =
@@ -264,37 +266,39 @@ export function useEditorPlayback({
     [sessionId],
   );
 
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const inputRef = useRef<Input | null>(null);
-  const videoSinkRef = useRef<CanvasSink | null>(null);
-  const audioSinkRef = useRef<AudioBufferSink | null>(null);
-  const staticVideoFrameRef = useRef<HTMLCanvasElement | null>(null);
-  const videoFrameIteratorRef = useRef<AsyncGenerator<
+  const canvasReference = useRef<HTMLCanvasElement>(null);
+  const inputReference = useRef<Input | null>(null);
+  const videoSinkReference = useRef<CanvasSink | null>(null);
+  const audioSinkReference = useRef<AudioBufferSink | null>(null);
+  const staticVideoFrameReference = useRef<HTMLCanvasElement | null>(null);
+  const videoFrameIteratorReference = useRef<AsyncGenerator<
     WrappedCanvas,
     void,
     unknown
   > | null>(null);
-  const audioBufferIteratorRef = useRef<AsyncGenerator<
+  const audioBufferIteratorReference = useRef<AsyncGenerator<
     WrappedAudioBuffer,
     void,
     unknown
   > | null>(null);
-  const nextFrameRef = useRef<WrappedCanvas | null>(null);
-  const displayedFrameRef = useRef<WrappedCanvas | null>(null);
-  const displayedStaticFrameRef = useRef<{
+  const nextFrameReference = useRef<WrappedCanvas | null>(null);
+  const displayedFrameReference = useRef<WrappedCanvas | null>(null);
+  const displayedStaticFrameReference = useRef<{
     canvas: HTMLCanvasElement;
     timestamp: number;
   } | null>(null);
-  const audioContextRef = useRef<AudioContext | null>(null);
-  const gainNodeRef = useRef<GainNode | null>(null);
-  const queuedAudioNodesRef = useRef(new Set<AudioBufferSourceNode>());
-  const animationFrameRef = useRef<number | null>(null);
-  const renderIntervalRef = useRef<number | null>(null);
-  const generationRef = useRef(0);
-  const warmupGenerationRef = useRef(0);
-  const warmupPromiseRef = useRef<Promise<void> | null>(null);
-  const warmupTargetTimeRef = useRef<number | null>(null);
-  const previewFrameLoadGenerationRef = useRef(0);
+  const audioContextReference = useRef<AudioContext | null>(null);
+  const gainNodeReference = useRef<GainNode | null>(null);
+  const queuedAudioNodesReference = useRef(new Set<AudioBufferSourceNode>());
+  const animationFrameReference = useRef<number | null>(null);
+  const renderIntervalReference = useRef<ReturnType<
+    typeof globalThis.setInterval
+  > | null>(null);
+  const generationReference = useRef(0);
+  const warmupGenerationReference = useRef(0);
+  const warmupPromiseReference = useRef<Promise<void> | null>(null);
+  const warmupTargetTimeReference = useRef<number | null>(null);
+  const previewFrameLoadGenerationReference = useRef(0);
   const previewFrameLoadPromiseRef = useRef<Promise<void> | null>(null);
   const previewFrameLoadTargetTimeRef = useRef<number | null>(null);
   const selectionWarmupGenerationRef = useRef(0);
@@ -309,7 +313,9 @@ export function useEditorPlayback({
     void,
     unknown
   > | null>(null);
-  const selectionWarmupExtensionTimeoutRef = useRef<number | null>(null);
+  const selectionWarmupExtensionTimeoutRef = useRef<ReturnType<
+    typeof globalThis.setTimeout
+  > | null>(null);
   const autoWarmupSessionKeyRef = useRef<string | null>(null);
   const wasPlayingRef = useRef(false);
   const playingRef = useRef(false);
@@ -385,7 +391,7 @@ export function useEditorPlayback({
     }
 
     const expiresAtMs = playbackReadyRange.expiresAtMs;
-    const timeoutId = window.setTimeout(
+    const timeoutId = globalThis.setTimeout(
       () => {
         setPlaybackReadyRange((current) => {
           if (!current || current.expiresAtMs !== expiresAtMs) {
@@ -401,14 +407,14 @@ export function useEditorPlayback({
     );
 
     return () => {
-      window.clearTimeout(timeoutId);
+      globalThis.clearTimeout(timeoutId);
     };
   }, [playbackReadyRange]);
 
   useEffect(() => {
     volumeRef.current = volume;
     mutedRef.current = muted;
-    applyPlaybackGain(gainNodeRef.current, volume, muted);
+    applyPlaybackGain(gainNodeReference.current, volume, muted);
   }, [volume, muted]);
 
   useEffect(() => {
@@ -434,11 +440,11 @@ export function useEditorPlayback({
   const getPlaybackTime = useCallback(() => {
     if (
       playingRef.current &&
-      audioContextRef.current &&
+      audioContextReference.current &&
       audioContextStartTimeRef.current !== null
     ) {
       return clampTime(
-        audioContextRef.current.currentTime -
+        audioContextReference.current.currentTime -
           audioContextStartTimeRef.current +
           playbackTimeAtStartRef.current,
       );
@@ -448,7 +454,7 @@ export function useEditorPlayback({
 
   const commitCurrentTimeDuringPlayback = useCallback((seconds: number) => {
     const now =
-      typeof performance !== "undefined" ? performance.now() : Date.now();
+      typeof performance === "undefined" ? Date.now() : performance.now();
     if (
       now - lastCurrentTimeCommitMsRef.current <
       CURRENT_TIME_REACT_COMMIT_INTERVAL_MS
@@ -463,7 +469,7 @@ export function useEditorPlayback({
   }, []);
 
   const stopAudioNodes = useCallback(() => {
-    stopQueuedAudioNodes(queuedAudioNodesRef.current);
+    stopQueuedAudioNodes(queuedAudioNodesReference.current);
   }, []);
 
   const pausePlayback = useCallback(
@@ -475,8 +481,8 @@ export function useEditorPlayback({
       }
       playingRef.current = false;
       setPlaying(false);
-      void audioBufferIteratorRef.current?.return();
-      audioBufferIteratorRef.current = null;
+      void audioBufferIteratorReference.current?.return();
+      audioBufferIteratorReference.current = null;
       stopAudioNodes();
     },
     [getPlaybackTime, stopAudioNodes],
@@ -489,17 +495,17 @@ export function useEditorPlayback({
     startRenderLoop,
     stopRenderLoop,
   } = useEditorPlaybackRenderLoop({
-    canvasRef,
-    inputRef,
-    videoSinkRef,
-    staticVideoFrameRef,
-    videoFrameIteratorRef,
-    nextFrameRef,
-    displayedFrameRef,
-    displayedStaticFrameRef,
-    animationFrameRef,
-    renderIntervalRef,
-    generationRef,
+    canvasRef: canvasReference,
+    inputRef: inputReference,
+    videoSinkRef: videoSinkReference,
+    staticVideoFrameRef: staticVideoFrameReference,
+    videoFrameIteratorRef: videoFrameIteratorReference,
+    nextFrameRef: nextFrameReference,
+    displayedFrameRef: displayedFrameReference,
+    displayedStaticFrameRef: displayedStaticFrameReference,
+    animationFrameRef: animationFrameReference,
+    renderIntervalRef: renderIntervalReference,
+    generationRef: generationReference,
     playingRef,
     playbackTimeAtStartRef,
     playbackStopTimeRef,
@@ -533,12 +539,12 @@ export function useEditorPlayback({
     startTime,
     endTime,
     sessionId,
-    videoSinkRef,
-    audioSinkRef,
-    generationRef,
-    warmupGenerationRef,
-    warmupPromiseRef,
-    warmupTargetTimeRef,
+    videoSinkRef: videoSinkReference,
+    audioSinkRef: audioSinkReference,
+    generationRef: generationReference,
+    warmupGenerationRef: warmupGenerationReference,
+    warmupPromiseRef: warmupPromiseReference,
+    warmupTargetTimeRef: warmupTargetTimeReference,
     selectionWarmupGenerationRef,
     selectionWarmupPromiseRef,
     selectionWarmupVideoIteratorRef,
@@ -558,7 +564,7 @@ export function useEditorPlayback({
   });
 
   const clearPreviewFrameLoad = useCallback(() => {
-    previewFrameLoadGenerationRef.current++;
+    previewFrameLoadGenerationReference.current++;
     previewFrameLoadPromiseRef.current = null;
     previewFrameLoadTargetTimeRef.current = null;
     setLoadingPreviewFrame(false);
@@ -579,7 +585,7 @@ export function useEditorPlayback({
         return pendingLoad;
       }
 
-      const frameLoadGeneration = ++previewFrameLoadGenerationRef.current;
+      const frameLoadGeneration = ++previewFrameLoadGenerationReference.current;
       setPreviewFrameStatus(status);
       setLoadingPreviewFrame(true);
 
@@ -590,7 +596,9 @@ export function useEditorPlayback({
       try {
         await frameLoadPromise;
       } finally {
-        if (frameLoadGeneration === previewFrameLoadGenerationRef.current) {
+        if (
+          frameLoadGeneration === previewFrameLoadGenerationReference.current
+        ) {
           previewFrameLoadPromiseRef.current = null;
           previewFrameLoadTargetTimeRef.current = null;
           setLoadingPreviewFrame(false);
@@ -603,9 +611,9 @@ export function useEditorPlayback({
   const resetPreview = useCallback(
     (advanceGeneration = false, clearActiveSource = false) => {
       if (advanceGeneration) {
-        generationRef.current++;
+        generationReference.current++;
       }
-      warmupGenerationRef.current++;
+      warmupGenerationReference.current++;
       cancelSelectionWarmup();
       autoWarmupSessionKeyRef.current = null;
       if (clearActiveSource) {
@@ -615,27 +623,27 @@ export function useEditorPlayback({
       setPreviewVideoDimensions(null);
       pausePlayback(false);
       stopRenderLoop();
-      void videoFrameIteratorRef.current?.return();
-      void audioBufferIteratorRef.current?.return();
-      videoFrameIteratorRef.current = null;
-      audioBufferIteratorRef.current = null;
-      nextFrameRef.current = null;
-      staticVideoFrameRef.current = null;
+      void videoFrameIteratorReference.current?.return();
+      void audioBufferIteratorReference.current?.return();
+      videoFrameIteratorReference.current = null;
+      audioBufferIteratorReference.current = null;
+      nextFrameReference.current = null;
+      staticVideoFrameReference.current = null;
       sourceTimelineOffsetRef.current = 0;
       skipLiveWaitRef.current = false;
       playbackStopTimeRef.current = null;
       playbackResetTimeRef.current = null;
-      warmupPromiseRef.current = null;
-      warmupTargetTimeRef.current = null;
+      warmupPromiseReference.current = null;
+      warmupTargetTimeReference.current = null;
       clearPreviewFrameLoad();
-      displayedFrameRef.current = null;
-      displayedStaticFrameRef.current = null;
+      displayedFrameReference.current = null;
+      displayedStaticFrameReference.current = null;
       disposePlaybackSinkResources({
-        inputRef,
-        videoSinkRef,
-        audioSinkRef,
-        audioContextRef,
-        gainNodeRef,
+        inputRef: inputReference,
+        videoSinkRef: videoSinkReference,
+        audioSinkRef: audioSinkReference,
+        audioContextRef: audioContextReference,
+        gainNodeRef: gainNodeReference,
       });
       setPlaybackReadyRange(null);
     },
@@ -648,13 +656,13 @@ export function useEditorPlayback({
   );
 
   useEffect(() => {
-    const displayedFrame = displayedFrameRef.current;
+    const displayedFrame = displayedFrameReference.current;
     if (displayedFrame) {
       drawFrame(displayedFrame);
       return;
     }
 
-    const displayedStaticFrame = displayedStaticFrameRef.current;
+    const displayedStaticFrame = displayedStaticFrameReference.current;
     if (displayedStaticFrame) {
       drawCanvasFrame(displayedStaticFrame);
     }
@@ -673,19 +681,19 @@ export function useEditorPlayback({
   const runAudioIterator = useCallback(
     async (generation: number) => {
       await runPlaybackAudioIterator({
-        iterator: audioBufferIteratorRef.current,
-        audioContext: audioContextRef.current,
-        gainNode: gainNodeRef.current,
-        queuedAudioNodes: queuedAudioNodesRef.current,
+        iterator: audioBufferIteratorReference.current,
+        audioContext: audioContextReference.current,
+        gainNode: gainNodeReference.current,
+        queuedAudioNodes: queuedAudioNodesReference.current,
         generation,
-        generationRef,
+        generationRef: generationReference,
         playingRef,
         audioContextStartTimeRef,
         playbackTimeAtStartRef,
         sourceTimelineOffsetRef,
         getPlaybackTime,
-        onError: (err) => {
-          setPlaybackError(errorMessage(err));
+        onError: (error_) => {
+          setPlaybackError(errorMessage(error_));
           pausePlayback();
         },
       });
@@ -694,7 +702,7 @@ export function useEditorPlayback({
   );
 
   const playPreview = useCallback(async () => {
-    if (!inputRef.current || loadingPreview) {
+    if (!inputReference.current || loadingPreview) {
       return;
     }
 
@@ -714,15 +722,15 @@ export function useEditorPlayback({
       clearSelectionWarmState();
     }
     const playbackStartTarget = clampTime(playbackPlan.startTime);
-    const pendingWarmup = warmupPromiseRef.current;
-    const warmupTargetTime = warmupTargetTimeRef.current;
+    const pendingWarmup = warmupPromiseReference.current;
+    const warmupTargetTime = warmupTargetTimeReference.current;
     if (
       pendingWarmup &&
       warmupTargetTime !== null &&
       Math.abs(warmupTargetTime - playbackStartTarget) < 1e-6
     ) {
-      await pendingWarmup.catch(() => undefined);
-      if (!inputRef.current || loadingPreview) {
+      await pendingWarmup.catch(() => {});
+      if (!inputReference.current || loadingPreview) {
         return;
       }
     }
@@ -735,7 +743,7 @@ export function useEditorPlayback({
       Math.abs(pendingFrameTargetTime - playbackStartTarget) < 1e-6
     ) {
       await pendingFrameLoad;
-      if (!inputRef.current || loadingPreview) {
+      if (!inputReference.current || loadingPreview) {
         return;
       }
     }
@@ -755,14 +763,14 @@ export function useEditorPlayback({
       return;
     }
 
-    let audioContext = audioContextRef.current;
+    let audioContext = audioContextReference.current;
     if (!audioContext) {
       const AudioContextConstructor = getAudioContextConstructor();
       if (!AudioContextConstructor) {
         throw new Error("This browser does not provide Web Audio.");
       }
       audioContext = new AudioContextConstructor();
-      audioContextRef.current = audioContext;
+      audioContextReference.current = audioContext;
     }
 
     if (audioContext.state === "suspended") {
@@ -773,12 +781,12 @@ export function useEditorPlayback({
     playingRef.current = true;
     setPlaying(true);
 
-    if (audioSinkRef.current) {
-      void audioBufferIteratorRef.current?.return();
+    if (audioSinkReference.current) {
+      void audioBufferIteratorReference.current?.return();
       const packetRetrievalOptions = skipLiveWaitRef.current
         ? { skipLiveWait: true }
         : undefined;
-      audioBufferIteratorRef.current = audioSinkRef.current.buffers(
+      audioBufferIteratorReference.current = audioSinkReference.current.buffers(
         toSourceTimelineTime(
           getPlaybackTime(),
           sourceTimelineOffsetRef.current,
@@ -786,7 +794,7 @@ export function useEditorPlayback({
         Infinity,
         packetRetrievalOptions,
       );
-      void runAudioIterator(generationRef.current);
+      void runAudioIterator(generationReference.current);
     }
   }, [
     cancelSelectionWarmup,
@@ -804,10 +812,10 @@ export function useEditorPlayback({
       return;
     }
 
-    void playPreview().catch((err) => {
+    void playPreview().catch((error_) => {
       setPlaying(false);
       playingRef.current = false;
-      setPlaybackError(errorMessage(err));
+      setPlaybackError(errorMessage(error_));
     });
   }, [pausePlayback, playPreview, setPlaybackError]);
 
@@ -837,8 +845,8 @@ export function useEditorPlayback({
       setCurrentTime(nextTime);
       try {
         await loadPreviewFrameAtPlaybackTime();
-      } catch (err) {
-        setPlaybackError(errorMessage(err));
+      } catch (error_) {
+        setPlaybackError(errorMessage(error_));
         return;
       }
 
@@ -899,7 +907,7 @@ export function useEditorPlayback({
 
     let cancelled = false;
     disposePreview();
-    const generation = generationRef.current;
+    const generation = generationReference.current;
 
     async function loadPreview() {
       const resetDuration = Math.max(initialDuration, 0);
@@ -935,17 +943,18 @@ export function useEditorPlayback({
           let playbackSourceAnalysisContext:
             | PlaybackSourceAnalysisContext
             | undefined;
+          const latestFailure = failures.at(-1);
           setPreviewStatus(
-            failures.length === 0
-              ? `Loading ${playbackSource.label}...`
-              : `${describePlaybackFailure(failures[failures.length - 1])} Retrying with ${playbackSource.label}...`,
+            latestFailure
+              ? `${describePlaybackFailure(latestFailure)} Retrying with ${playbackSource.label}...`
+              : `Loading ${playbackSource.label}...`,
           );
 
           try {
             await ensurePlaybackCodecs();
             const { AudioBufferSink, CanvasSink } = await import("mediabunny");
 
-            if (cancelled || generation !== generationRef.current) {
+            if (cancelled || generation !== generationReference.current) {
               return;
             }
 
@@ -957,7 +966,7 @@ export function useEditorPlayback({
                   playbackSource.label === "hls url",
               },
             );
-            inputRef.current = input;
+            inputReference.current = input;
 
             const videoTracks = await input.getVideoTracks({
               filter: async (track) => !(await track.hasOnlyKeyPackets()),
@@ -1000,17 +1009,17 @@ export function useEditorPlayback({
             const staticVideoFrame =
               !sourceVideoTrack && previewAudioTrack && posterImageUrl
                 ? await loadStaticVideoFrame(posterImageUrl).catch(
-                    (err: unknown) => {
+                    (error_: unknown) => {
                       warnWithError(
                         playbackLogger,
-                        err,
+                        error_,
                         "Could not load editor artwork for audio-only preview.",
                         {
                           ...logEventFields(
                             "editor.playback.artwork_load",
                             "failure",
                           ),
-                          ...logErrorFields(err),
+                          ...logErrorFields(error_),
                           "media.artwork.present": Boolean(posterImageUrl),
                         },
                       );
@@ -1034,11 +1043,12 @@ export function useEditorPlayback({
               isLivePlayback,
             };
 
-            if (cancelled || generation !== generationRef.current) {
+            if (cancelled || generation !== generationReference.current) {
               return;
             }
 
-            staticVideoFrameRef.current = staticVideoFrame?.canvas ?? null;
+            staticVideoFrameReference.current =
+              staticVideoFrame?.canvas ?? null;
 
             if (
               previewVideoTrack &&
@@ -1114,22 +1124,21 @@ export function useEditorPlayback({
             const timelineOffsetSeconds =
               await getTrackTimelineOffsetSeconds(durationTracks);
             sourceTimelineOffsetRef.current = timelineOffsetSeconds;
-            const metadataDuration =
-              durationTracks.length > 0
-                ? await input.getDurationFromMetadata(
-                    durationTracks,
-                    isLivePlayback ? { skipLiveWait: true } : undefined,
-                  )
-                : null;
-            const sourceTimelineEnd =
-              durationTracks.length > 0
-                ? metadataDuration && metadataDuration > 0
+            let sourceTimelineEnd = Math.max(initialDuration, 0);
+            if (durationTracks.length > 0) {
+              const metadataDuration = await input.getDurationFromMetadata(
+                durationTracks,
+                isLivePlayback ? { skipLiveWait: true } : undefined,
+              );
+              sourceTimelineEnd =
+                metadataDuration && metadataDuration > 0
                   ? metadataDuration
                   : await input.computeDuration(
                       durationTracks,
                       isLivePlayback ? { skipLiveWait: true } : undefined,
-                    )
-                : Math.max(initialDuration, 0);
+                    );
+            }
+
             const computedDuration = fromSourceTimelineTime(
               sourceTimelineEnd,
               timelineOffsetSeconds,
@@ -1154,17 +1163,17 @@ export function useEditorPlayback({
                   ? getVideoTrackDimensions(sourceVideoTrack)
                   : Promise.resolve(null),
                 detectFrameStepSeconds(sourceVideoTrack, isLivePlayback).catch(
-                  (err: unknown) => {
+                  (error_: unknown) => {
                     warnWithError(
                       playbackLogger,
-                      err,
+                      error_,
                       "Could not detect editor playback frame rate.",
                       {
                         ...logEventFields(
                           "editor.playback.frame_rate_detect",
                           "failure",
                         ),
-                        ...logErrorFields(err),
+                        ...logErrorFields(error_),
                         "playback.source.label": playbackSource.label,
                       },
                     );
@@ -1185,7 +1194,7 @@ export function useEditorPlayback({
 
             if (previewDimensions) {
               setPreviewVideoDimensions(previewDimensions);
-              const canvas = canvasRef.current;
+              const canvas = canvasReference.current;
               if (canvas) {
                 canvas.width = previewDimensions.width;
                 canvas.height = previewDimensions.height;
@@ -1203,16 +1212,19 @@ export function useEditorPlayback({
                 muted: mutedRef.current,
               });
 
-              videoSinkRef.current = sinkResources.videoSink;
-              audioSinkRef.current = sinkResources.audioSink;
-              audioContextRef.current = sinkResources.audioContext;
-              gainNodeRef.current = sinkResources.gainNode;
+              videoSinkReference.current = sinkResources.videoSink;
+              audioSinkReference.current = sinkResources.audioSink;
+              audioContextReference.current = sinkResources.audioContext;
+              gainNodeReference.current = sinkResources.gainNode;
 
               await startVideoIterator();
-            } catch (err) {
-              throw isPlaybackSourceError(err)
-                ? err
-                : createPlaybackSourceError("preview-only", errorMessage(err));
+            } catch (error_) {
+              throw isPlaybackSourceError(error_)
+                ? error_
+                : createPlaybackSourceError(
+                    "preview-only",
+                    errorMessage(error_),
+                  );
             }
 
             startRenderLoop();
@@ -1247,8 +1259,8 @@ export function useEditorPlayback({
               "playback.duration.seconds": nextDuration,
             });
             return;
-          } catch (err) {
-            const failure = buildPlaybackFailure(playbackSource, err);
+          } catch (error_) {
+            const failure = buildPlaybackFailure(playbackSource, error_);
             failures.push(failure);
 
             if (
@@ -1268,12 +1280,12 @@ export function useEditorPlayback({
 
             warnWithError(
               playbackLogger,
-              err,
+              error_,
               "Editor playback source failed.",
               {
                 ...logEventFields("editor.playback.source_attempt", "failure"),
                 ...logDurationFields(attemptStartedAt),
-                ...logErrorFields(err),
+                ...logErrorFields(error_),
                 ...playbackSourceLogFields(
                   playbackSource,
                   playbackSourceAnalysisContext,
@@ -1330,7 +1342,7 @@ export function useEditorPlayback({
   ]);
 
   return {
-    canvasRef,
+    canvasRef: canvasReference,
     currentTime,
     duration,
     playing,

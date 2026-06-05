@@ -1,6 +1,6 @@
-import { createHash, randomUUID } from "crypto";
-import { lookup } from "dns/promises";
-import { isIP } from "net";
+import { createHash, randomUUID } from "node:crypto";
+import { lookup } from "node:dns/promises";
+import { isIP } from "node:net";
 import axios, { type AxiosResponse, type RawAxiosRequestConfig } from "axios";
 import { Jellyfin } from "@jellyfin/sdk";
 import type {
@@ -29,7 +29,7 @@ import {
   numberValue,
   stringValue,
   uniqueStrings,
-} from "@/providers/shared/utils";
+} from "@/providers/shared/utilities";
 
 const JELLYFIN_PRODUCT = "Cliparr";
 const JELLYFIN_DEVICE_NAME = "Cliparr";
@@ -187,20 +187,20 @@ function isUnspecifiedHost(hostname: string) {
 
 function isLinkLocalHost(hostname: string) {
   const host = normalizeHostname(hostname);
-  return host.startsWith("169.254.") || /^fe[89ab][0-9a-f]:/i.test(host);
+  return host.startsWith("169.254.") || /^fe[89ab][\da-f]:/i.test(host);
 }
 
 function ipv4Octets(hostname: string) {
   const parts = hostname.split(".");
   if (parts.length !== 4) {
-    return undefined;
+    return;
   }
 
-  const octets = parts.map((part) => Number(part));
+  const octets = parts.map(Number);
   if (
     octets.some((octet) => !Number.isInteger(octet) || octet < 0 || octet > 255)
   ) {
-    return undefined;
+    return;
   }
 
   return octets as [number, number, number, number];
@@ -214,24 +214,26 @@ function mappedIpv4Address(hostname: string) {
 
   const words = hostname.split(":");
   if (words.length !== 2) {
-    return undefined;
+    return;
   }
 
+  const ipv6WordMax = 65_535;
+  const byteMask = 255;
   const parsedWords = words.map((word) => Number.parseInt(word, 16));
   if (
     words.some(
       (word, index) =>
-        !/^[0-9a-f]{1,4}$/i.test(word) ||
+        !/^[\da-f]{1,4}$/i.test(word) ||
         !Number.isInteger(parsedWords[index]) ||
         parsedWords[index] < 0 ||
-        parsedWords[index] > 0xffff,
+        parsedWords[index] > ipv6WordMax,
     )
   ) {
-    return undefined;
+    return;
   }
 
   const [high, low] = parsedWords as [number, number];
-  return [high >> 8, high & 0xff, low >> 8, low & 0xff].join(".");
+  return [high >> 8, high & byteMask, low >> 8, low & byteMask].join(".");
 }
 
 function isPrivateHost(hostname: string) {
@@ -247,12 +249,12 @@ function isPrivateHost(hostname: string) {
     );
   }
 
-  return /^f[cd][0-9a-f]{2}:/i.test(host);
+  return /^f[cd][\da-f]{2}:/i.test(host);
 }
 
 function isMulticastHost(hostname: string) {
   const host = normalizeHostname(hostname);
-  if (/^ff[0-9a-f]{2}:/i.test(host)) {
+  if (/^ff[\da-f]{2}:/i.test(host)) {
     return true;
   }
 
@@ -321,9 +323,11 @@ function assertAllowedResolvedAddress(
   }
 }
 
+const defaultJellyfinServerUrlOptions = { allowPrivate: true };
+
 async function assertAllowedJellyfinServerUrl(
   url: string,
-  options: { allowPrivate?: boolean } = { allowPrivate: true },
+  options: { allowPrivate?: boolean } = defaultJellyfinServerUrlOptions,
 ) {
   const parsed = assertHttpUrl(url.trim());
   const hostname = normalizeHostname(parsed.hostname);
@@ -366,9 +370,8 @@ async function assertAllowedJellyfinServerUrl(
 }
 
 export async function resolveCredentialServerUrl(serverUrl: string) {
-  return resolveJellyfinBaseUrl(
-    (await assertAllowedJellyfinServerUrl(serverUrl)).toString(),
-  );
+  const parsed = await assertAllowedJellyfinServerUrl(serverUrl);
+  return resolveJellyfinBaseUrl(parsed.toString());
 }
 
 function resolveJellyfinBaseUrl(url: string) {
@@ -389,7 +392,7 @@ function sourceHostInfo(baseUrl: string) {
   const parsed = assertHttpUrl(baseUrl);
   const hostname = parsed.hostname.trim();
   if (!hostname) {
-    return undefined;
+    return;
   }
 
   const port = parsed.port ? numberValue(parsed.port) : undefined;
@@ -409,7 +412,7 @@ function sourceHostInfo(baseUrl: string) {
 }
 
 function looksLikeGeneratedServerName(value: string) {
-  return /^[a-f0-9]{12,64}$/i.test(value.trim());
+  return /^[\da-f]{12,64}$/i.test(value.trim());
 }
 
 export function jellyfinSourceName(
@@ -445,7 +448,7 @@ function isLocalConnection(url: URL) {
     host.startsWith("127.") ||
     host.startsWith("10.") ||
     host.startsWith("192.168.") ||
-    /^172\.(1[6-9]|2\d|3[0-1])\./.test(host)
+    /^172\.(1[6-9]|2\d|3[01])\./.test(host)
   );
 }
 
@@ -479,7 +482,7 @@ function isRedirectStatus(status: number) {
 
 async function reusableRequestBody(request: Request) {
   if (request.method === "GET" || request.method === "HEAD" || !request.body) {
-    return undefined;
+    return;
   }
 
   const contentType = (request.headers.get("content-type") ?? "").toLowerCase();
@@ -692,37 +695,37 @@ function jellyfinSdkRequestConfig(
   };
 }
 
+function stringifyHeaderValue(value: unknown) {
+  if (value === undefined || value === null) {
+    return;
+  }
+
+  if (Array.isArray(value)) {
+    return value
+      .filter(
+        (item): item is boolean | number | string =>
+          typeof item === "boolean" ||
+          typeof item === "number" ||
+          typeof item === "string",
+      )
+      .join(", ");
+  }
+
+  if (
+    typeof value === "boolean" ||
+    typeof value === "number" ||
+    typeof value === "string"
+  ) {
+    return String(value);
+  }
+
+  return;
+}
+
 function responseHeader<T>(
   response: AxiosResponse<T>,
   name: string,
 ): string | undefined {
-  function stringifyHeaderValue(value: unknown) {
-    if (value === undefined || value === null) {
-      return undefined;
-    }
-
-    if (Array.isArray(value)) {
-      return value
-        .filter(
-          (item): item is boolean | number | string =>
-            typeof item === "boolean" ||
-            typeof item === "number" ||
-            typeof item === "string",
-        )
-        .join(", ");
-    }
-
-    if (
-      typeof value === "boolean" ||
-      typeof value === "number" ||
-      typeof value === "string"
-    ) {
-      return String(value);
-    }
-
-    return undefined;
-  }
-
   const headers = response.headers;
   if (typeof headers.get === "function") {
     return stringifyHeaderValue(headers.get(name));
@@ -737,71 +740,74 @@ function responseHeader<T>(
 }
 
 function responseDetail(data: unknown) {
-  const detail =
-    typeof data === "string"
-      ? data
-      : data === undefined
-        ? ""
-        : JSON.stringify(data);
+  let detail: string;
+  if (typeof data === "string") {
+    detail = data;
+  } else if (data === undefined) {
+    detail = "";
+  } else {
+    detail = JSON.stringify(data);
+  }
 
-  return detail.slice(0, 400).replace(/\s+/g, " ").trim();
+  return detail.slice(0, 400).replaceAll(/\s+/g, " ").trim();
 }
 
-function axiosRequestUrl(err: unknown, fallbackBaseUrl: string) {
-  if (!axios.isAxiosError(err)) {
+function axiosRequestUrl(error: unknown, fallbackBaseUrl: string) {
+  if (!axios.isAxiosError(error)) {
     return new URL(fallbackBaseUrl);
   }
 
-  const requestUrl = err.config?.url;
+  const requestUrl = error.config?.url;
   try {
-    return new URL(requestUrl ?? "", err.config?.baseURL ?? fallbackBaseUrl);
+    return new URL(requestUrl ?? "", error.config?.baseURL ?? fallbackBaseUrl);
   } catch {
     return new URL(fallbackBaseUrl);
   }
 }
 
-function isAxiosTimeout(err: unknown) {
+function isAxiosTimeout(error: unknown) {
   return (
-    axios.isAxiosError(err) &&
-    (err.code === "ETIMEDOUT" ||
-      err.code === "ECONNABORTED" ||
-      /timeout/i.test(err.message))
+    axios.isAxiosError(error) &&
+    (error.code === "ETIMEDOUT" ||
+      error.code === "ECONNABORTED" ||
+      /timeout/i.test(error.message))
   );
 }
 
 function toJellyfinSdkError(
-  err: unknown,
+  error: unknown,
   baseUrl: string,
   options: JellyfinSdkRequestOptions,
 ) {
-  if (isApiError(err)) {
-    return err;
+  if (isApiError(error)) {
+    return error;
   }
 
   const errorCode = options.errorCode ?? "jellyfin_request_failed";
   const failureMessage = options.failureMessage ?? "Jellyfin request failed";
 
-  if (axios.isAxiosError(err) && err.response) {
+  if (axios.isAxiosError(error) && error.response) {
     const exposeFailureDetail = options.exposeFailureDetail ?? true;
-    const detail = responseDetail(err.response.data);
-    return createApiError(
-      !exposeFailureDetail && err.response.status !== 401
+    const detail = responseDetail(error.response.data);
+    const status =
+      !exposeFailureDetail && error.response.status !== 401
         ? 502
-        : err.response.status,
-      errorCode,
-      !exposeFailureDetail
-        ? failureMessage
-        : detail
-          ? `${failureMessage}: ${detail}`
-          : `${failureMessage}: ${err.response.status} ${err.response.statusText}`,
-    );
+        : error.response.status;
+    let message = failureMessage;
+    if (exposeFailureDetail) {
+      message = detail
+        ? `${failureMessage}: ${detail}`
+        : `${failureMessage}: ${error.response.status} ${error.response.statusText}`;
+    }
+
+    return createApiError(status, errorCode, message);
   }
 
-  if (isAxiosTimeout(err)) {
+  if (isAxiosTimeout(error)) {
     return createApiError(504, errorCode, `${failureMessage} timed out`);
   }
 
-  const parsed = axiosRequestUrl(err, baseUrl);
+  const parsed = axiosRequestUrl(error, baseUrl);
   if (JELLYFIN_DEV_BASE_URL && isLoopbackHost(parsed.hostname)) {
     return createApiError(
       502,
@@ -815,7 +821,7 @@ function toJellyfinSdkError(
     errorCode,
     options.exposeFailureDetail === false
       ? failureMessage
-      : `${failureMessage}: ${errorMessage(err)}`,
+      : `${failureMessage}: ${errorMessage(error)}`,
   );
 }
 
@@ -855,8 +861,8 @@ async function jellyfinSdkJson<T>(
     }
 
     return response.data;
-  } catch (err) {
-    throw toJellyfinSdkError(err, baseUrl, options);
+  } catch (error) {
+    throw toJellyfinSdkError(error, baseUrl, options);
   }
 }
 

@@ -11,7 +11,7 @@ import {
   mergeRefreshAllSourceResults,
   sourceCounts,
   sourceProviderOptions,
-} from "@/components/sources/sourcesStateUtils";
+} from "@/components/sources/sourcesStateUtilities";
 
 function source(
   overrides: Partial<MediaSource> &

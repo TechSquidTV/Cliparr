@@ -49,36 +49,48 @@ export function resolveEditorShortcutCommand({
   }
 
   switch (code) {
-    case "Space":
+    case "Space": {
       return repeat || shiftKey ? null : "toggle-play";
-    case "KeyI":
+    }
+    case "KeyI": {
       if (repeat) {
         return null;
       }
       return shiftKey ? "jump-to-in" : "mark-in";
-    case "KeyO":
+    }
+    case "KeyO": {
       if (repeat) {
         return null;
       }
       return shiftKey ? "jump-to-out" : "mark-out";
-    case "BracketLeft":
+    }
+    case "BracketLeft": {
       return repeat || shiftKey ? null : "mark-in";
-    case "BracketRight":
+    }
+    case "BracketRight": {
       return repeat || shiftKey ? null : "mark-out";
-    case "ArrowLeft":
+    }
+    case "ArrowLeft": {
       return shiftKey ? "seek-backward-small" : "seek-backward-large";
-    case "ArrowRight":
+    }
+    case "ArrowRight": {
       return shiftKey ? "seek-forward-small" : "seek-forward-large";
-    case "PageUp":
+    }
+    case "PageUp": {
       return "step-frame-backward";
-    case "PageDown":
+    }
+    case "PageDown": {
       return "step-frame-forward";
-    case "Minus":
+    }
+    case "Minus": {
       return "zoom-out";
-    case "Equal":
+    }
+    case "Equal": {
       return "zoom-in";
-    default:
+    }
+    default: {
       return null;
+    }
   }
 }
 

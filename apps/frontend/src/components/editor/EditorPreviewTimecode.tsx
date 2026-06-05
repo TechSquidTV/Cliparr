@@ -1,16 +1,16 @@
 import { memo, useLayoutEffect, useMemo, useRef, type RefObject } from "react";
 
-interface EditorPreviewTimecodeProps {
+interface EditorPreviewTimecodeProperties {
   ariaHidden?: boolean;
   currentTime: number;
   duration: number;
 }
 
-interface TimecodeShellProps {
+interface TimecodeShellProperties {
   hoursWidth: string;
   minutesWidth: string;
   showHours: boolean;
-  slotRefs: TimecodeSlotRefs;
+  slotRefs: TimecodeSlotReferences;
 }
 
 interface PreviewTimecodeParts {
@@ -21,7 +21,7 @@ interface PreviewTimecodeParts {
   seconds: string;
 }
 
-type TimecodeSlotRefs = Record<
+type TimecodeSlotReferences = Record<
   "fraction" | "hours" | "minutes" | "seconds",
   RefObject<HTMLSpanElement | null>
 >;
@@ -80,16 +80,16 @@ function setSlotText(ref: RefObject<HTMLSpanElement | null>, value: string) {
 }
 
 function updateTimecodeSlots(
-  slotRefs: TimecodeSlotRefs,
+  slotReferences: TimecodeSlotReferences,
   parts: PreviewTimecodeParts,
 ) {
-  setSlotText(slotRefs.hours, parts.hours);
-  setSlotText(slotRefs.minutes, parts.minutes);
-  setSlotText(slotRefs.seconds, parts.seconds);
-  setSlotText(slotRefs.fraction, parts.fraction);
+  setSlotText(slotReferences.hours, parts.hours);
+  setSlotText(slotReferences.minutes, parts.minutes);
+  setSlotText(slotReferences.seconds, parts.seconds);
+  setSlotText(slotReferences.fraction, parts.fraction);
 }
 
-function useTimecodeSlotRefs(): TimecodeSlotRefs {
+function useTimecodeSlotReferences(): TimecodeSlotReferences {
   const hours = useRef<HTMLSpanElement>(null);
   const minutes = useRef<HTMLSpanElement>(null);
   const seconds = useRef<HTMLSpanElement>(null);
@@ -117,9 +117,9 @@ function getMinutesWidth(
   return `${Math.max(showHours ? 2 : 1, durationParts.minutes.length)}ch`;
 }
 
-function arePreviewTimecodePropsEqual(
-  previous: EditorPreviewTimecodeProps,
-  next: EditorPreviewTimecodeProps,
+function arePreviewTimecodePropertiesEqual(
+  previous: EditorPreviewTimecodeProperties,
+  next: EditorPreviewTimecodeProperties,
 ) {
   return (
     previous.ariaHidden === next.ariaHidden &&
@@ -135,7 +135,7 @@ const TimecodeShell = memo(function TimecodeShell({
   minutesWidth,
   showHours,
   slotRefs,
-}: TimecodeShellProps) {
+}: TimecodeShellProperties) {
   return (
     <span className="inline-flex items-baseline">
       {showHours && (
@@ -173,10 +173,10 @@ export const EditorPreviewTimecode = memo(function EditorPreviewTimecode({
   ariaHidden = false,
   currentTime,
   duration,
-}: EditorPreviewTimecodeProps) {
-  const containerRef = useRef<HTMLSpanElement>(null);
-  const currentSlotRefs = useTimecodeSlotRefs();
-  const durationSlotRefs = useTimecodeSlotRefs();
+}: EditorPreviewTimecodeProperties) {
+  const containerReference = useRef<HTMLSpanElement>(null);
+  const currentSlotReferences = useTimecodeSlotReferences();
+  const durationSlotReferences = useTimecodeSlotReferences();
   const currentCentiseconds = getPreviewCentiseconds(currentTime);
   const durationCentiseconds = getPreviewCentiseconds(duration);
   const showHours = durationCentiseconds >= CENTISECONDS_PER_HOUR;
@@ -199,12 +199,12 @@ export const EditorPreviewTimecode = memo(function EditorPreviewTimecode({
       showHours,
     );
 
-    updateTimecodeSlots(currentSlotRefs, currentParts);
-    updateTimecodeSlots(durationSlotRefs, durationParts);
+    updateTimecodeSlots(currentSlotReferences, currentParts);
+    updateTimecodeSlots(durationSlotReferences, durationParts);
     if (ariaHidden) {
-      containerRef.current?.removeAttribute("aria-label");
+      containerReference.current?.removeAttribute("aria-label");
     } else {
-      containerRef.current?.setAttribute(
+      containerReference.current?.setAttribute(
         "aria-label",
         `${currentParts.label} of ${durationParts.label}`,
       );
@@ -212,15 +212,15 @@ export const EditorPreviewTimecode = memo(function EditorPreviewTimecode({
   }, [
     ariaHidden,
     currentCentiseconds,
-    currentSlotRefs,
+    currentSlotReferences,
     durationParts,
-    durationSlotRefs,
+    durationSlotReferences,
     showHours,
   ]);
 
   return (
     <span
-      ref={containerRef}
+      ref={containerReference}
       aria-hidden={ariaHidden || undefined}
       className="flex shrink-0 items-center whitespace-nowrap font-mono text-sm font-semibold tabular-nums text-foreground"
       style={{ contain: "layout style paint" }}
@@ -230,16 +230,16 @@ export const EditorPreviewTimecode = memo(function EditorPreviewTimecode({
           hoursWidth={hoursWidth}
           minutesWidth={minutesWidth}
           showHours={showHours}
-          slotRefs={currentSlotRefs}
+          slotRefs={currentSlotReferences}
         />
         <span className="px-1.5 text-muted-foreground">/</span>
         <TimecodeShell
           hoursWidth={hoursWidth}
           minutesWidth={minutesWidth}
           showHours={showHours}
-          slotRefs={durationSlotRefs}
+          slotRefs={durationSlotReferences}
         />
       </span>
     </span>
   );
-}, arePreviewTimecodePropsEqual);
+}, arePreviewTimecodePropertiesEqual);

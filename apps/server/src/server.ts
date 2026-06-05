@@ -80,11 +80,13 @@ async function startServer() {
   });
 }
 
-startServer().catch((err: unknown) => {
-  fatalWithError(logger, err, "Failed to start server.", {
+try {
+  await startServer();
+} catch (error: unknown) {
+  fatalWithError(logger, error, "Failed to start server.", {
     ...logEventFields("server.start", "failure"),
-    ...logErrorFields(err),
+    ...logErrorFields(error),
   });
   closeDatabase();
   process.exit(1);
-});
+}

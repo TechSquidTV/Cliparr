@@ -11,14 +11,14 @@ function stringValue(value: unknown) {
 
 function formatProviderNameForSort(providerId: string) {
   return providerId
-    .split(/[-_\s]+/)
+    .split(/[\s_-]+/)
     .filter(Boolean)
     .map((segment) => segment.charAt(0).toUpperCase() + segment.slice(1))
     .join(" ");
 }
 
 export function sortSources(sources: MediaSource[]) {
-  return [...sources].sort(
+  return sources.toSorted(
     (left, right) =>
       compareStrings(
         formatProviderNameForSort(left.providerId),
@@ -67,7 +67,7 @@ export function sourceCounts(sources: readonly MediaSource[]) {
 
 export function sourceProviderOptions(sources: readonly MediaSource[]) {
   const providers = [...new Set(sources.map((source) => source.providerId))];
-  return providers.sort(compareStrings);
+  return providers.toSorted(compareStrings);
 }
 
 export function filterSources({
@@ -131,10 +131,10 @@ export function mergeRefreshAllSourceResults(
   let attentionCount = 0;
   let failedCount = 0;
 
-  results.forEach((entry, index) => {
+  for (const [index, entry] of results.entries()) {
     const currentSource = sources[index];
     if (!currentSource) {
-      return;
+      continue;
     }
 
     if (entry.status === "fulfilled") {
@@ -144,11 +144,11 @@ export function mergeRefreshAllSourceResults(
       } else {
         attentionCount += 1;
       }
-      return;
+      continue;
     }
 
     failedCount += 1;
-  });
+  }
 
   const summaryParts = [
     `${healthyCount} healthy`,

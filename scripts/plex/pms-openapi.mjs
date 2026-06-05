@@ -11,7 +11,7 @@ import {
 } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import { fileURLToPath, pathToFileURL } from "node:url";
+import { pathToFileURL } from "node:url";
 
 export const PLEX_PMS_SPEC_URL = "https://developer.plex.tv/pms/";
 export const PLEX_PMS_SPEC_PATH =
@@ -22,10 +22,7 @@ export const PLEX_PMS_GENERATED_DIR =
   "apps/server/src/providers/plex/generated";
 export const HEY_API_PACKAGE_NAME = "@hey-api/openapi-ts";
 
-const repoRoot = path.resolve(
-  path.dirname(fileURLToPath(import.meta.url)),
-  "../..",
-);
+const repoRoot = path.resolve(import.meta.dirname, "../..");
 
 function repoPath(relativePath) {
   return path.join(repoRoot, relativePath);
@@ -77,13 +74,13 @@ function findJsonObjectEnd(source, start) {
 
 export function extractRedocState(html) {
   const assignmentIndex = html.indexOf("const __redoc_state");
-  if (assignmentIndex < 0) {
+  if (assignmentIndex === -1) {
     throw new Error("Could not find Plex Redoc state in the PMS API page.");
   }
 
   const equalsIndex = html.indexOf("=", assignmentIndex);
   const objectStart = html.indexOf("{", equalsIndex);
-  if (equalsIndex < 0 || objectStart < 0) {
+  if (equalsIndex === -1 || objectStart === -1) {
     throw new Error("Plex Redoc state assignment is malformed.");
   }
 
@@ -102,25 +99,25 @@ function sortJsonValue(value) {
 
   return Object.fromEntries(
     Object.keys(value)
-      .sort()
+      .toSorted()
       .map((key) => [key, sortJsonValue(value[key])]),
   );
 }
 
 export function normalizeOpenApiSpec(spec) {
-  assert(isRecord(spec), "Plex PMS OpenAPI spec must be an object.");
+  assert.ok(isRecord(spec), "Plex PMS OpenAPI spec must be an object.");
   assert.equal(
     typeof spec.openapi,
     "string",
     "Plex PMS OpenAPI spec must include openapi.",
   );
-  assert(isRecord(spec.info), "Plex PMS OpenAPI spec must include info.");
+  assert.ok(isRecord(spec.info), "Plex PMS OpenAPI spec must include info.");
   assert.equal(
     typeof spec.info.version,
     "string",
     "Plex PMS OpenAPI spec must include info.version.",
   );
-  assert(isRecord(spec.paths), "Plex PMS OpenAPI spec must include paths.");
+  assert.ok(isRecord(spec.paths), "Plex PMS OpenAPI spec must include paths.");
 
   const normalized = sortJsonValue(spec);
   if (
@@ -156,7 +153,7 @@ export async function readHeyApiVersion() {
   );
 
   if (typeof packageJson.version !== "string") {
-    throw new Error("Could not read @hey-api/openapi-ts package version.");
+    throw new TypeError("Could not read @hey-api/openapi-ts package version.");
   }
 
   return packageJson.version;
@@ -173,15 +170,15 @@ export async function fetchPlexPmsHtml() {
   return response.text();
 }
 
-function commandFailed(command, args, code) {
+function commandFailed(command, arguments_, code) {
   return new Error(
-    `Command failed with exit code ${code}: ${[command, ...args].join(" ")}`,
+    `Command failed with exit code ${code}: ${[command, ...arguments_].join(" ")}`,
   );
 }
 
-async function run(command, args) {
+async function run(command, arguments_) {
   await new Promise((resolve, reject) => {
-    const child = spawn(command, args, {
+    const child = spawn(command, arguments_, {
       cwd: repoRoot,
       stdio: "inherit",
     });
@@ -192,23 +189,23 @@ async function run(command, args) {
         resolve();
         return;
       }
-      reject(commandFailed(command, args, code));
+      reject(commandFailed(command, arguments_, code));
     });
   });
 }
 
 export async function generatePlexPmsSdk({
   inputPath = repoPath(PLEX_PMS_SPEC_PATH),
-  outputDir = repoPath(PLEX_PMS_GENERATED_DIR),
+  outputDirectory = repoPath(PLEX_PMS_GENERATED_DIR),
 } = {}) {
-  await rm(outputDir, { force: true, recursive: true });
+  await rm(outputDirectory, { force: true, recursive: true });
   await run("pnpm", [
     "exec",
     "openapi-ts",
     "-i",
     inputPath,
     "-o",
-    outputDir,
+    outputDirectory,
     "-c",
     "@hey-api/client-fetch",
   ]);
@@ -221,7 +218,7 @@ export async function writePlexPmsSnapshot(html, now = new Date()) {
   const manifestPath = repoPath(PLEX_PMS_MANIFEST_PATH);
   const existingManifest = await readFile(manifestPath, "utf8")
     .then((value) => JSON.parse(value))
-    .catch(() => undefined);
+    .catch(() => {});
   const manifest = {
     sourceUrl: PLEX_PMS_SPEC_URL,
     upstreamVersion: spec.info.version,
@@ -312,13 +309,13 @@ async function walkFiles(root, current = root) {
     }),
   );
 
-  return files.flat().sort();
+  return files.flat().toSorted();
 }
 
-export async function diffGeneratedSdk(expectedDir, actualDir) {
-  const expectedFiles = await walkFiles(expectedDir);
-  const actualFiles = await walkFiles(actualDir);
-  const allFiles = [...new Set([...expectedFiles, ...actualFiles])].sort();
+export async function diffGeneratedSdk(expectedDirectory, actualDirectory) {
+  const expectedFiles = await walkFiles(expectedDirectory);
+  const actualFiles = await walkFiles(actualDirectory);
+  const allFiles = [...new Set([...expectedFiles, ...actualFiles])].toSorted();
   const diffs = [];
 
   for (const file of allFiles) {
@@ -332,8 +329,8 @@ export async function diffGeneratedSdk(expectedDir, actualDir) {
     }
 
     const [expected, actual] = await Promise.all([
-      readFile(path.join(expectedDir, file)),
-      readFile(path.join(actualDir, file)),
+      readFile(path.join(expectedDirectory, file)),
+      readFile(path.join(actualDirectory, file)),
     ]);
     if (!expected.equals(actual)) {
       diffs.push(`Changed generated file: ${file}`);
@@ -344,21 +341,27 @@ export async function diffGeneratedSdk(expectedDir, actualDir) {
 }
 
 export async function checkGeneratedPlexPmsSdk() {
-  const tempRoot = process.platform === "darwin" ? "/private/tmp" : os.tmpdir();
-  const tempDir = await mkdtemp(path.join(tempRoot, "cliparr-plex-sdk-"));
+  const temporaryRoot =
+    process.platform === "darwin" ? "/private/tmp" : os.tmpdir();
+  const temporaryDirectory = await mkdtemp(
+    path.join(temporaryRoot, "cliparr-plex-sdk-"),
+  );
 
   try {
     const snapshotDiffs = await checkPlexPmsSnapshot();
     await generatePlexPmsSdk({
       inputPath: repoPath(PLEX_PMS_SPEC_PATH),
-      outputDir: tempDir,
+      outputDirectory: temporaryDirectory,
     });
     return [
       ...snapshotDiffs,
-      ...(await diffGeneratedSdk(repoPath(PLEX_PMS_GENERATED_DIR), tempDir)),
+      ...(await diffGeneratedSdk(
+        repoPath(PLEX_PMS_GENERATED_DIR),
+        temporaryDirectory,
+      )),
     ];
   } finally {
-    await rm(tempDir, { force: true, recursive: true });
+    await rm(temporaryDirectory, { force: true, recursive: true });
   }
 }
 
@@ -367,7 +370,7 @@ async function main(argv) {
     const diffs = await checkGeneratedPlexPmsSdk();
     if (diffs.length > 0) {
       for (const diff of diffs) {
-        console.error(diff);
+        process.stderr.write(`${diff}\n`);
       }
       process.exitCode = 1;
     }
@@ -377,8 +380,8 @@ async function main(argv) {
   const html = await fetchPlexPmsHtml();
   const manifest = await writePlexPmsSnapshot(html);
   await generatePlexPmsSdk();
-  console.log(
-    `Generated Plex PMS SDK from ${manifest.upstreamVersion} (${manifest.pathCount} paths).`,
+  process.stdout.write(
+    `Generated Plex PMS SDK from ${manifest.upstreamVersion} (${manifest.pathCount} paths).\n`,
   );
 }
 

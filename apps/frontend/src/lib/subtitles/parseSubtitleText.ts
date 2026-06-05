@@ -3,38 +3,42 @@ import type { SubtitleCue } from "@/lib/subtitles/types";
 type SubtitleTextFormat = "vtt" | "srt";
 
 function normalizeSubtitleText(text: string) {
-  return text.replace(/^\uFEFF/, "").replace(/\r\n?/g, "\n");
+  return text.replace(/^\uFEFF/, "").replaceAll(/\r\n?/g, "\n");
 }
 
 function decodeEntities(text: string) {
   return text
-    .replace(/&nbsp;/gi, " ")
-    .replace(/&amp;/gi, "&")
-    .replace(/&lt;/gi, "<")
-    .replace(/&gt;/gi, ">")
-    .replace(/&quot;/gi, '"')
-    .replace(/&#39;/gi, "'");
+    .replaceAll(/&nbsp;/gi, " ")
+    .replaceAll(/&amp;/gi, "&")
+    .replaceAll(/&lt;/gi, "<")
+    .replaceAll(/&gt;/gi, ">")
+    .replaceAll(/&quot;/gi, '"')
+    .replaceAll(/&#39;/gi, "'");
 }
 
 function cleanCueText(text: string) {
-  return decodeEntities(text.replace(/<[^>]+>/g, "")).trim();
+  return decodeEntities(text.replaceAll(/<[^>]+>/g, "")).trim();
 }
 
 function parseTimestamp(timestamp: string) {
   const normalized = timestamp.trim().replace(",", ".");
   const parts = normalized.split(":");
   if (parts.length < 2 || parts.length > 3) {
-    return undefined;
+    return;
   }
 
-  const secondsPart = parts[parts.length - 1];
+  const secondsPart = parts.at(-1);
+  if (!secondsPart) {
+    return;
+  }
+
   const wholeAndFraction = secondsPart.split(".");
   if (wholeAndFraction.length !== 2) {
-    return undefined;
+    return;
   }
 
   const hours = parts.length === 3 ? Number(parts[0]) : 0;
-  const minutes = Number(parts[parts.length - 2]);
+  const minutes = Number(parts.at(-2));
   const seconds = Number(wholeAndFraction[0]);
   const milliseconds = Number(wholeAndFraction[1].padEnd(3, "0").slice(0, 3));
 
@@ -43,7 +47,7 @@ function parseTimestamp(timestamp: string) {
       Number.isFinite(value),
     )
   ) {
-    return undefined;
+    return;
   }
 
   return hours * 3600 + minutes * 60 + seconds + milliseconds / 1000;
@@ -52,12 +56,12 @@ function parseTimestamp(timestamp: string) {
 function cueFromLines(lines: string[]): SubtitleCue | undefined {
   const trimmedLines = lines.map((line) => line.trimEnd());
   const timingIndex = trimmedLines.findIndex((line) => line.includes("-->"));
-  if (timingIndex < 0) {
+  if (timingIndex === -1) {
     return undefined;
   }
 
   const timingLine = trimmedLines[timingIndex];
-  const match = timingLine.match(/([0-9:.,]+)\s+-->\s+([0-9:.,]+)/);
+  const match = timingLine.match(/([\d,.:]+)\s+-->\s+([\d,.:]+)/);
   if (!match) {
     return undefined;
   }
@@ -157,14 +161,17 @@ export function parseSubtitleText(
   format?: string,
 ): SubtitleCue[] {
   const normalizedFormat = format?.trim().toLowerCase();
-  const cues =
-    normalizedFormat === "vtt" || normalizedFormat === "webvtt"
-      ? parseVtt(text)
-      : normalizedFormat === "srt" || normalizedFormat === "subrip"
-        ? parseSrt(text)
-        : detectSubtitleTextFormat(text) === "vtt"
-          ? parseVtt(text)
-          : parseSrt(text);
+  let cues: SubtitleCue[];
 
-  return cues.sort((left, right) => left.startTime - right.startTime);
+  if (normalizedFormat === "vtt" || normalizedFormat === "webvtt") {
+    cues = parseVtt(text);
+  } else if (normalizedFormat === "srt" || normalizedFormat === "subrip") {
+    cues = parseSrt(text);
+  } else if (detectSubtitleTextFormat(text) === "vtt") {
+    cues = parseVtt(text);
+  } else {
+    cues = parseSrt(text);
+  }
+
+  return cues.toSorted((left, right) => left.startTime - right.startTime);
 }

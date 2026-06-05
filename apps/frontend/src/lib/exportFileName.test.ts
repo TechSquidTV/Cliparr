@@ -234,5 +234,7 @@ void test("exposes expected template tokens by media kind", () => {
     "item_type",
     "format",
   ]);
-  assert(getExportFileNameTemplateTokens("episode").includes("episode_code"));
+  assert.ok(
+    getExportFileNameTemplateTokens("episode").includes("episode_code"),
+  );
 });

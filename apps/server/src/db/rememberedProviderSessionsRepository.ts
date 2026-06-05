@@ -1,4 +1,4 @@
-import { randomBytes, randomUUID } from "crypto";
+import { randomBytes, randomUUID } from "node:crypto";
 import { eq } from "drizzle-orm";
 import { getDatabase } from "@/db/database";
 import {
@@ -69,7 +69,7 @@ export function createRememberedProviderSession(
 
 export function getRememberedProviderSession(token?: string) {
   if (!token) {
-    return undefined;
+    return;
   }
 
   const row = getDatabase()
@@ -83,7 +83,7 @@ export function getRememberedProviderSession(token?: string) {
     (row.revokedAt !== null && row.revokedAt !== undefined) ||
     row.expiresAt <= Date.now()
   ) {
-    return undefined;
+    return;
   }
 
   return mapRememberedProviderSession(row);

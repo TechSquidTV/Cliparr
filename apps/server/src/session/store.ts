@@ -1,4 +1,4 @@
-import { randomUUID } from "crypto";
+import { randomUUID } from "node:crypto";
 import { eq } from "drizzle-orm";
 import { logErrorFields, logEventFields } from "@cliparr/shared/logging";
 import { getDatabase } from "@/db/database";
@@ -82,7 +82,7 @@ export function createProviderSession(input: {
 
 export function getProviderSession(sessionId?: string) {
   if (!sessionId) {
-    return undefined;
+    return;
   }
 
   const row = getDatabase()
@@ -92,12 +92,12 @@ export function getProviderSession(sessionId?: string) {
     .get();
 
   if (!row) {
-    return undefined;
+    return;
   }
 
   if (row.expiresAt <= Date.now()) {
     deleteProviderSession(sessionId);
-    return undefined;
+    return;
   }
 
   return mapProviderSession(row);
@@ -107,13 +107,13 @@ export function restoreProviderSessionFromProviderAccount(
   providerAccountId?: string,
 ) {
   if (!providerAccountId) {
-    return undefined;
+    return;
   }
 
   try {
     const account = getProviderAccount(providerAccountId);
     if (!account?.accessToken) {
-      return undefined;
+      return;
     }
 
     return createProviderSession({
@@ -121,16 +121,16 @@ export function restoreProviderSessionFromProviderAccount(
       providerAccountId: account.id,
       userToken: account.accessToken,
     });
-  } catch (err) {
+  } catch (error) {
     logger.warn(
       "Failed to restore provider session from remembered provider account.",
       {
         ...logEventFields("session.restore", "failure"),
-        ...logErrorFields(err),
+        ...logErrorFields(error),
         "provider.account.id": providerAccountId,
       },
     );
-    return undefined;
+    return;
   }
 }
 
@@ -250,7 +250,7 @@ export function getRememberedProviderSessionCookieClearOptions(
 
 export function readCookie(cookieHeader: string | undefined, name: string) {
   if (!cookieHeader) {
-    return undefined;
+    return;
   }
 
   const cookies = cookieHeader.split(";").map((cookie) => cookie.trim());

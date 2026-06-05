@@ -5,9 +5,9 @@ import {
   extractRedocState,
   manifestDiffsForSpec,
   stableJson,
-} from "./pms-openapi.mjs";
+} from "#plex/pms-openapi.mjs";
 
-const fixtureHtml = `<html><body><script>const __redoc_state = {"spec":{"data":{"openapi":"3.1.0","info":{"version":"1.2.2\\n","title":"Plex Media Server"},"paths":{"/identity":{"get":{"description":"returns { identity }"}}}}}};</script></body></html>`;
+const fixtureHtml = String.raw`<html><body><script>const __redoc_state = {"spec":{"data":{"openapi":"3.1.0","info":{"version":"1.2.2\n","title":"Plex Media Server"},"paths":{"/identity":{"get":{"description":"returns { identity }"}}}}}};</script></body></html>`;
 
 void test("extracts Plex Redoc state from the PMS API page HTML", () => {
   const state = extractRedocState(fixtureHtml);

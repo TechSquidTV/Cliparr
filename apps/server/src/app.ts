@@ -1,6 +1,5 @@
 import express from "express";
-import path from "path";
-import { fileURLToPath } from "url";
+import path from "node:path";
 import { CLIPARR_VERSION } from "@/config/version";
 import { checkDatabaseHealth, initializeDatabase } from "@/db/database";
 import { errorHandler, notFoundHandler } from "@/http/errors";
@@ -12,8 +11,8 @@ import { sessionRouter } from "@/routes/session";
 import { sourcesRouter } from "@/routes/sources";
 import { versionRouter } from "@/routes/version";
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const workspaceRoot = path.resolve(__dirname, "../../..");
+const appDirectory = import.meta.dirname;
+const workspaceRoot = path.resolve(appDirectory, "../../..");
 const frontendRoot = path.join(workspaceRoot, "apps/frontend");
 const DEFAULT_DEV_FRONTEND_URL = "http://localhost:5173";
 const TRUSTED_PROXY_SUBNETS = ["loopback", "linklocal", "uniquelocal"];
@@ -27,7 +26,7 @@ export interface CreateAppOptions {
 
 function isHashedFrontendAsset(filePath: string) {
   const normalizedFilePath = filePath.replaceAll(path.sep, "/");
-  return /(?:^|\/)assets\/.+-[\dA-Za-z_-]{8,}\.[^/]+$/.test(normalizedFilePath);
+  return /(?:^|\/)assets\/.+-[\w-]{8,}\.[^/]+$/.test(normalizedFilePath);
 }
 
 function isFrontendDocument(filePath: string) {
@@ -44,8 +43,8 @@ export async function createApp(options: CreateAppOptions = {}) {
   app.disable("x-powered-by");
   app.use(requestLoggingMiddleware);
   app.use(express.json());
-  app.use((req, res, next) => {
-    if (requestOriginIsPotentiallyTrustworthy(req)) {
+  app.use((request, res, next) => {
+    if (requestOriginIsPotentiallyTrustworthy(request)) {
       res.setHeader("Cross-Origin-Opener-Policy", "same-origin");
       res.setHeader("Cross-Origin-Embedder-Policy", "require-corp");
     }
@@ -53,7 +52,7 @@ export async function createApp(options: CreateAppOptions = {}) {
     next();
   });
 
-  app.get("/api/health", (_req, res) => {
+  app.get("/api/health", (_request, res) => {
     checkDatabaseHealth();
     res.json({
       status: "ok",
@@ -69,26 +68,11 @@ export async function createApp(options: CreateAppOptions = {}) {
   app.use("/api/version", versionRouter);
   app.use("/api", notFoundHandler);
 
-  if (process.env.NODE_ENV !== "production") {
-    const frontendUrl = new URL(
-      process.env.CLIPARR_FRONTEND_URL ?? DEFAULT_DEV_FRONTEND_URL,
-    );
-    app.get(/^(?!\/api(?:\/|$)).*/, (req, res) => {
-      const redirectUrl = new URL(frontendUrl);
-      const safePath = req.path.replace(/^\/+/, "/");
-      const queryIndex = req.originalUrl.indexOf("?");
-
-      redirectUrl.pathname = safePath;
-      redirectUrl.search =
-        queryIndex >= 0 ? req.originalUrl.slice(queryIndex) : "";
-
-      res.redirect(307, redirectUrl.toString());
-    });
-  } else {
-    const distPath =
+  if (process.env.NODE_ENV === "production") {
+    const distributionPath =
       options.frontendDistPath ?? path.join(frontendRoot, "dist");
     app.use(
-      express.static(distPath, {
+      express.static(distributionPath, {
         setHeaders(res, filePath) {
           if (isHashedFrontendAsset(filePath)) {
             res.setHeader(
@@ -104,9 +88,24 @@ export async function createApp(options: CreateAppOptions = {}) {
         },
       }),
     );
-    app.get(/^(?!\/api(?:\/|$)).*/, (_req, res) => {
+    app.get(/^(?!\/api(?:\/|$)).*/, (_request, res) => {
       res.setHeader("Cache-Control", FRONTEND_DOCUMENT_CACHE_CONTROL);
-      res.sendFile(path.join(distPath, "index.html"));
+      res.sendFile(path.join(distributionPath, "index.html"));
+    });
+  } else {
+    const frontendUrl = new URL(
+      process.env.CLIPARR_FRONTEND_URL ?? DEFAULT_DEV_FRONTEND_URL,
+    );
+    app.get(/^(?!\/api(?:\/|$)).*/, (request, res) => {
+      const redirectUrl = new URL(frontendUrl);
+      const safePath = request.path.replace(/^\/+/, "/");
+      const queryIndex = request.originalUrl.indexOf("?");
+
+      redirectUrl.pathname = safePath;
+      redirectUrl.search =
+        queryIndex === -1 ? "" : request.originalUrl.slice(queryIndex);
+
+      res.redirect(307, redirectUrl.toString());
     });
   }
 

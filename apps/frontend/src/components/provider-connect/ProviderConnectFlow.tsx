@@ -1,7 +1,7 @@
 import { AnimatePresence, motion } from "motion/react";
 import { ArrowRight, Check, ExternalLink, Server } from "lucide-react";
 import type { ReactNode } from "react";
-import { cn } from "@/lib/utils";
+import { cn } from "@/lib/utilities";
 import {
   ProviderBadge,
   ProviderConnectError,
@@ -27,21 +27,24 @@ import {
 } from "@/components/ui/control-styles";
 import type { ProviderDefinition, ProviderSession } from "@/providers/types";
 
-interface Props {
+interface Properties {
   onConnected: (session: ProviderSession) => Promise<void> | void;
   onCancel?: () => void;
   variant?: "panel" | "screen";
 }
 
-const importMetaEnv = import.meta.env as
+const importMetaEnvironment = import.meta.env as
   | { VITE_CLIPARR_DEV_JELLYFIN_URL?: unknown }
   | undefined;
-const devJellyfinUrlValue = importMetaEnv?.VITE_CLIPARR_DEV_JELLYFIN_URL;
-const devJellyfinUrl =
-  typeof devJellyfinUrlValue === "string" ? devJellyfinUrlValue.trim() : "";
+const developmentJellyfinUrlValue =
+  importMetaEnvironment?.VITE_CLIPARR_DEV_JELLYFIN_URL;
+const developmentJellyfinUrl =
+  typeof developmentJellyfinUrlValue === "string"
+    ? developmentJellyfinUrlValue.trim()
+    : "";
 
 function isLoopbackUrl(value: string) {
-  return /^https?:\/\/(?:localhost|127(?:\.\d{1,3}){3}|\[::1\]|::1)(?:[:/]|$)/i.test(
+  return /^https?:\/\/(?:localhost|127(?:\.\d{1,3}){3}|\[::1]|::1)(?:[/:]|$)/i.test(
     value.trim(),
   );
 }
@@ -53,7 +56,7 @@ export default function ProviderConnectFlow({
   onConnected,
   onCancel,
   variant = "panel",
-}: Props) {
+}: Properties) {
   const isScreen = variant === "screen";
   const {
     providers,
@@ -166,12 +169,12 @@ export default function ProviderConnectFlow({
     const providerDetails = providerPresentation(provider, variant);
     const jellyfinLoopbackWarning =
       provider.id === "jellyfin" &&
-      Boolean(devJellyfinUrl) &&
+      Boolean(developmentJellyfinUrl) &&
       isLoopbackUrl(serverUrl);
-    const isUsingDevJellyfinUrl =
+    const isUsingDevelopmentJellyfinUrl =
       provider.id === "jellyfin" &&
-      Boolean(devJellyfinUrl) &&
-      serverUrl.trim() === devJellyfinUrl;
+      Boolean(developmentJellyfinUrl) &&
+      serverUrl.trim() === developmentJellyfinUrl;
 
     const formClasses = isScreen
       ? "flex h-full flex-col justify-between gap-6"
@@ -195,19 +198,19 @@ export default function ProviderConnectFlow({
               value={serverUrl}
               onChange={(event) => setServerUrl(event.target.value)}
               placeholder={
-                devJellyfinUrl || "https://media.example.com/jellyfin"
+                developmentJellyfinUrl || "https://media.example.com/jellyfin"
               }
               disabled={authenticating}
               className={isScreen ? screenInputClasses : panelInputClasses}
             />
           </label>
 
-          {devJellyfinUrl && (
+          {developmentJellyfinUrl && (
             <div
               className={cn(
                 "border text-sm",
                 isScreen ? "rounded-2xl px-4 py-3" : "rounded-md px-3 py-2",
-                isUsingDevJellyfinUrl
+                isUsingDevelopmentJellyfinUrl
                   ? "border-primary/25 bg-primary/10 text-foreground"
                   : "border-border bg-card text-muted-foreground",
               )}
@@ -215,7 +218,7 @@ export default function ProviderConnectFlow({
               <p className="leading-6">
                 Docker Jellyfin URL:{" "}
                 <span className="font-mono text-foreground">
-                  {devJellyfinUrl}
+                  {developmentJellyfinUrl}
                 </span>
                 .
               </p>
@@ -223,11 +226,11 @@ export default function ProviderConnectFlow({
               <div className="mt-3 flex flex-wrap items-center gap-2">
                 <button
                   type="button"
-                  onClick={() => setServerUrl(devJellyfinUrl)}
-                  disabled={authenticating || isUsingDevJellyfinUrl}
+                  onClick={() => setServerUrl(developmentJellyfinUrl)}
+                  disabled={authenticating || isUsingDevelopmentJellyfinUrl}
                   className={compactSecondaryButtonClasses}
                 >
-                  {isUsingDevJellyfinUrl ? (
+                  {isUsingDevelopmentJellyfinUrl ? (
                     <>
                       <Check className="h-3.5 w-3.5" />
                       Docker Jellyfin URL selected
@@ -240,7 +243,7 @@ export default function ProviderConnectFlow({
                   )}
                 </button>
 
-                {isScreen && isUsingDevJellyfinUrl && (
+                {isScreen && isUsingDevelopmentJellyfinUrl && (
                   <span className="text-xs text-muted-foreground">
                     Already selected.
                   </span>
@@ -258,8 +261,8 @@ export default function ProviderConnectFlow({
             >
               <p className="leading-6">
                 Docker will use{" "}
-                <span className="font-mono">{devJellyfinUrl}</span> for this
-                localhost URL.
+                <span className="font-mono">{developmentJellyfinUrl}</span> for
+                this localhost URL.
               </p>
             </div>
           )}
@@ -531,7 +534,7 @@ export default function ProviderConnectFlow({
   );
 }
 
-interface ProviderConnectPanelLayoutProps {
+interface ProviderConnectPanelLayoutProperties {
   providers: ProviderDefinition[];
   selectedProviderId: string;
   onSelectProvider: (providerId: string) => void;
@@ -543,7 +546,7 @@ function ProviderConnectPanelLayout({
   selectedProviderId,
   onSelectProvider,
   renderProviderContent,
-}: ProviderConnectPanelLayoutProps) {
+}: ProviderConnectPanelLayoutProperties) {
   return (
     <Tabs
       value={selectedProviderId}
@@ -657,7 +660,7 @@ function ProviderConnectScreenLoadingLayout() {
   );
 }
 
-interface ProviderConnectScreenLayoutProps {
+interface ProviderConnectScreenLayoutProperties {
   providers: ProviderDefinition[];
   selectedProvider: ProviderDefinition | undefined;
   authenticating: boolean;
@@ -673,7 +676,7 @@ function ProviderConnectScreenLayout({
   authenticatingProviderId,
   onSelectProvider,
   renderSelectedProvider,
-}: ProviderConnectScreenLayoutProps) {
+}: ProviderConnectScreenLayoutProperties) {
   return (
     <div className="grid gap-6 lg:grid-cols-provider-connect">
       <motion.div

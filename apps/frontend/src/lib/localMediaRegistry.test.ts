@@ -23,16 +23,16 @@ async function withMockedLocalMediaUrl<T>(callback: () => Promise<T>) {
     const requestBody = init?.body;
     assert.equal(typeof requestBody, "string");
     if (typeof requestBody !== "string") {
-      throw new Error("Expected JSON request body.");
+      throw new TypeError("Expected JSON request body.");
     }
     const body = JSON.parse(requestBody) as { url?: string };
     assert.equal(body.url, "https://example.com/video.mp4");
 
-    return new Response(
-      JSON.stringify({
+    return Response.json(
+      {
         mediaUrl: `/api/media/local-url/proxy-${requestCount}`,
         hls: false,
-      }),
+      },
       {
         status: 201,
         headers: {

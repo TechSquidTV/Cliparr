@@ -1,5 +1,5 @@
 import "@/config/loadEnv";
-import path from "path";
+import path from "node:path";
 import { defineConfig } from "drizzle-kit";
 import { resolveConfiguredDataDir, workspaceRoot } from "@/config/loadEnv";
 

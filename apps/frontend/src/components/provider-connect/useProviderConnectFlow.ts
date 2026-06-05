@@ -6,8 +6,8 @@ interface UseProviderConnectFlowOptions {
   onConnected: (session: ProviderSession) => Promise<void> | void;
 }
 
-function errorMessage(err: unknown, fallback: string) {
-  return err instanceof Error && err.message ? err.message : fallback;
+function errorMessage(error: unknown, fallback: string) {
+  return error instanceof Error && error.message ? error.message : fallback;
 }
 
 export function useProviderConnectFlow({
@@ -33,9 +33,9 @@ export function useProviderConnectFlow({
         if (!cancelled) {
           setProviders(data);
         }
-      } catch (err: unknown) {
+      } catch (error_: unknown) {
         if (!cancelled) {
-          setError(errorMessage(err, "Could not load providers."));
+          setError(errorMessage(error_, "Could not load providers."));
         }
       } finally {
         if (!cancelled) {
@@ -82,7 +82,7 @@ export function useProviderConnectFlow({
       try {
         const status = await cliparrClient.pollAuth(providerId, authId);
         if (status.status === "complete") {
-          window.clearInterval(intervalId);
+          globalThis.clearInterval(intervalId);
           const session = await cliparrClient.getSession();
           await onConnected(session);
           resetProviderState();
@@ -90,27 +90,27 @@ export function useProviderConnectFlow({
         }
 
         if (status.status === "expired") {
-          window.clearInterval(intervalId);
+          globalThis.clearInterval(intervalId);
           resetProviderState();
           setError(`${providerLabel(providerId)} sign-in expired.`);
         }
-      } catch (err: unknown) {
-        window.clearInterval(intervalId);
+      } catch (error_: unknown) {
+        globalThis.clearInterval(intervalId);
         resetProviderState();
         setError(
           errorMessage(
-            err,
+            error_,
             `Could not finish ${providerLabel(providerId)} sign-in.`,
           ),
         );
       }
     };
-    const intervalId = window.setInterval(() => {
+    const intervalId = globalThis.setInterval(() => {
       void pollAuthStatus();
     }, 1500);
 
     return () => {
-      window.clearInterval(intervalId);
+      globalThis.clearInterval(intervalId);
     };
   }, [authId, onConnected, providerId, providerLabel, resetProviderState]);
 
@@ -125,10 +125,10 @@ export function useProviderConnectFlow({
         const auth = await cliparrClient.startAuth(provider.id);
         setAuthId(auth.authId);
         window.open(auth.authUrl, "_blank", "noopener,noreferrer");
-      } catch (err: unknown) {
+      } catch (error_: unknown) {
         resetProviderState();
         setError(
-          errorMessage(err, `Could not start ${provider.name} sign-in.`),
+          errorMessage(error_, `Could not start ${provider.name} sign-in.`),
         );
       }
     },
@@ -152,9 +152,9 @@ export function useProviderConnectFlow({
         resetProviderState();
         setServerUrl("");
         setUsername("");
-      } catch (err: unknown) {
+      } catch (error_: unknown) {
         resetProviderState();
-        setError(errorMessage(err, `Could not connect ${provider.name}.`));
+        setError(errorMessage(error_, `Could not connect ${provider.name}.`));
       }
     },
     [onConnected, password, resetProviderState, serverUrl, username],

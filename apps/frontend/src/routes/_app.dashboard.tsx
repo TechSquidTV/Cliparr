@@ -19,7 +19,7 @@ function DashboardRouteComponent() {
   );
 
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
+    const params = new URLSearchParams(globalThis.location.search);
     if (params.get("openVideo") !== "1") {
       return;
     }
@@ -28,10 +28,10 @@ function DashboardRouteComponent() {
     params.delete("openVideo");
 
     const nextSearch = params.toString();
-    const nextUrl = `${window.location.pathname}${
+    const nextUrl = `${globalThis.location.pathname}${
       nextSearch ? `?${nextSearch}` : ""
-    }${window.location.hash}`;
-    window.history.replaceState(window.history.state, "", nextUrl);
+    }${globalThis.location.hash}`;
+    globalThis.history.replaceState(globalThis.history.state, "", nextUrl);
   }, []);
 
   return (

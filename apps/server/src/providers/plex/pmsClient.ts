@@ -1,5 +1,5 @@
-import { lookup } from "dns/promises";
-import { isIP } from "net";
+import { lookup } from "node:dns/promises";
+import { isIP } from "node:net";
 import { createApiError, isApiError, type ApiError } from "@/http/errors";
 import { createClient } from "@/providers/plex/generated/client/client.gen";
 import type { Client } from "@/providers/plex/generated/client/types.gen";
@@ -8,7 +8,7 @@ import {
   libraryMetadataGetSlash,
   statusGetSlash,
 } from "@/providers/plex/generated/sdk.gen";
-import { errorMessage, uniqueStrings } from "@/providers/shared/utils";
+import { errorMessage, uniqueStrings } from "@/providers/shared/utilities";
 
 export interface PlexPmsRequestContext {
   baseUrl: string;
@@ -70,14 +70,14 @@ function normalizeHostname(value: string) {
 function ipv4Octets(hostname: string) {
   const parts = hostname.split(".");
   if (parts.length !== 4) {
-    return undefined;
+    return;
   }
 
-  const octets = parts.map((part) => Number(part));
+  const octets = parts.map(Number);
   if (
     octets.some((octet) => !Number.isInteger(octet) || octet < 0 || octet > 255)
   ) {
-    return undefined;
+    return;
   }
 
   return octets as [number, number, number, number];
@@ -91,24 +91,26 @@ function mappedIpv4Address(hostname: string) {
 
   const words = hostname.split(":");
   if (words.length !== 2) {
-    return undefined;
+    return;
   }
 
+  const ipv6WordMax = 65_535;
+  const byteMask = 255;
   const parsedWords = words.map((word) => Number.parseInt(word, 16));
   if (
     words.some(
       (word, index) =>
-        !/^[0-9a-f]{1,4}$/i.test(word) ||
+        !/^[\da-f]{1,4}$/i.test(word) ||
         !Number.isInteger(parsedWords[index]) ||
         parsedWords[index] < 0 ||
-        parsedWords[index] > 0xffff,
+        parsedWords[index] > ipv6WordMax,
     )
   ) {
-    return undefined;
+    return;
   }
 
   const [high, low] = parsedWords as [number, number];
-  return [high >> 8, high & 0xff, low >> 8, low & 0xff].join(".");
+  return [high >> 8, high & byteMask, low >> 8, low & byteMask].join(".");
 }
 
 function isLoopbackHost(hostname: string) {
@@ -123,7 +125,7 @@ function isUnspecifiedHost(hostname: string) {
 
 function isLinkLocalHost(hostname: string) {
   const host = normalizeHostname(hostname);
-  return host.startsWith("169.254.") || /^fe[89ab][0-9a-f]:/i.test(host);
+  return host.startsWith("169.254.") || /^fe[89ab][\da-f]:/i.test(host);
 }
 
 function isPrivateHost(hostname: string) {
@@ -139,12 +141,12 @@ function isPrivateHost(hostname: string) {
     );
   }
 
-  return /^f[cd][0-9a-f]{2}:/i.test(host);
+  return /^f[cd][\da-f]{2}:/i.test(host);
 }
 
 function isMulticastHost(hostname: string) {
   const host = normalizeHostname(hostname);
-  if (/^ff[0-9a-f]{2}:/i.test(host)) {
+  if (/^ff[\da-f]{2}:/i.test(host)) {
     return true;
   }
 
@@ -242,7 +244,7 @@ function isRedirectStatus(status: number) {
 
 async function reusableRequestBody(request: Request) {
   if (request.method === "GET" || request.method === "HEAD" || !request.body) {
-    return undefined;
+    return;
   }
 
   const contentType = (request.headers.get("content-type") ?? "").toLowerCase();
@@ -405,7 +407,7 @@ export function plexPmsResponseStatusMessage(error: unknown) {
     typeof (error as Partial<PlexPmsResponseApiError>).plexPmsStatusText !==
       "string"
   ) {
-    return undefined;
+    return;
   }
 
   return `${error.status} ${

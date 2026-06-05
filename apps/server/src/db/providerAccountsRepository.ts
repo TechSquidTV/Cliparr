@@ -1,4 +1,4 @@
-import { randomUUID } from "crypto";
+import { randomUUID } from "node:crypto";
 import { and, eq, isNotNull, isNull, sql } from "drizzle-orm";
 import { getDatabase } from "@/db/database";
 import { providerAccounts, type ProviderAccountRow } from "@/db/schema";
@@ -68,21 +68,21 @@ function createProviderAccount(input: CreateProviderAccountInput) {
 
 function updateProviderAccount(id: string, input: UpdateProviderAccountInput) {
   const accessToken =
-    input.accessToken !== undefined
-      ? normalizeAccessToken(input.accessToken)
-      : undefined;
+    input.accessToken === undefined
+      ? undefined
+      : normalizeAccessToken(input.accessToken);
 
   getDatabase()
     .update(providerAccounts)
     .set({
-      ...(input.label !== undefined ? { label: input.label } : {}),
-      ...(accessToken !== undefined
-        ? {
+      ...(input.label === undefined ? {} : { label: input.label }),
+      ...(accessToken === undefined
+        ? {}
+        : {
             accessToken: accessToken ? encryptSecret(accessToken) : null,
             accessTokenHash: accessToken ? hashSecret(accessToken) : null,
-          }
-        : {}),
-      ...(input.metadata !== undefined ? { metadata: input.metadata } : {}),
+          }),
+      ...(input.metadata === undefined ? {} : { metadata: input.metadata }),
       updatedAt: currentTimestampSql(),
     })
     .where(eq(providerAccounts.id, id))
@@ -189,7 +189,7 @@ export function upsertProviderAccountByAccessToken(
         label: input.label,
         accessToken: encryptSecret(input.accessToken),
         accessTokenHash: hashSecret(input.accessToken),
-        ...(input.metadata !== undefined ? { metadata: input.metadata } : {}),
+        ...(input.metadata === undefined ? {} : { metadata: input.metadata }),
         updatedAt: currentTimestampSql(),
       },
     })

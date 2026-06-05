@@ -4,6 +4,18 @@ import express from "express";
 import { errorHandler } from "@/http/errors";
 import { mediaRouter } from "@/routes/media";
 
+function fetchInputUrl(input: Parameters<typeof fetch>[0]) {
+  if (typeof input === "string") {
+    return input;
+  }
+
+  if (input instanceof URL) {
+    return input.toString();
+  }
+
+  return input.url;
+}
+
 async function withMediaApp<T>(callback: (baseUrl: string) => Promise<T>) {
   const app = express();
   app.use(express.json());
@@ -17,17 +29,17 @@ async function withMediaApp<T>(callback: (baseUrl: string) => Promise<T>) {
       server.once("listening", resolve);
     });
     const address = server.address();
-    assert(address && typeof address === "object");
+    assert.ok(address && typeof address === "object");
     return await callback(`http://127.0.0.1:${address.port}`);
   } finally {
-    await new Promise((resolve, reject) => {
-      server.close((err) => {
-        if (err) {
-          reject(err);
+    await new Promise<void>((resolve, reject) => {
+      server.close((error) => {
+        if (error) {
+          reject(error);
           return;
         }
 
-        resolve(undefined);
+        resolve();
       });
     });
   }
@@ -55,12 +67,7 @@ void test("creates and proxies local URL media handles", async () => {
 
     const originalFetch = globalThis.fetch;
     globalThis.fetch = (async (input, init) => {
-      const requestUrl =
-        typeof input === "string"
-          ? input
-          : input instanceof URL
-            ? input.toString()
-            : input.url;
+      const requestUrl = fetchInputUrl(input);
 
       if (requestUrl.startsWith(baseUrl)) {
         return originalFetch(input, init);

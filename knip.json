@@ -8,6 +8,7 @@
     },
     "apps/www": {
       "ignoreDependencies": ["@fontsource-variable/outfit", "tailwindcss"],
+      "ignoreBinaries": ["eslint"],
       "project": ["src/**/*.{astro,mdx,ts}", "scripts/**/*.ts"]
     },
     "apps/server": {
@@ -18,6 +19,10 @@
         "@/*": ["./src/*"]
       },
       "project": ["src/**/*.ts"]
+    },
+    "packages/shared": {
+      "ignoreBinaries": ["eslint", "tsc"],
+      "project": ["src/**/*.{js,ts}"]
     }
   }
 }

@@ -2,6 +2,11 @@
   "name": "@cliparr/shared",
   "private": true,
   "type": "module",
+  "scripts": {
+    "lint": "pnpm lint:eslint && pnpm lint:types",
+    "lint:eslint": "pnpm exec eslint \"src/**/*.{js,ts}\"",
+    "lint:types": "tsc --noEmit"
+  },
   "types": "./src/providers.ts",
   "exports": {
     "./logging": {

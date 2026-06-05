@@ -27,11 +27,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { formatTime } from "@/components/editor/editorUtils";
+import { formatTime } from "@/components/editor/editorUtilities";
 
 type FramegrabAction = "copy" | "download";
 
-interface EditorFramegrabDialogProps {
+interface EditorFramegrabDialogProperties {
   isOpen: boolean;
   title: string;
   frameTime: number;
@@ -68,7 +68,7 @@ export function EditorFramegrabDialog({
   onClose,
   onCopy,
   onDownload,
-}: EditorFramegrabDialogProps) {
+}: EditorFramegrabDialogProperties) {
   const selectedFormatOption = framegrabFormatOptionFor(selectedFormat);
   const busy = processingAction !== null;
   const hasFrame = dimensions !== null;

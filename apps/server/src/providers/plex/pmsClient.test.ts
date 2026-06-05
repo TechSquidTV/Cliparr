@@ -39,7 +39,7 @@ function jsonResponse(body: unknown, init: ResponseInit = {}) {
   const headers = new Headers(init.headers);
   headers.set("Content-Type", "application/json");
 
-  return new Response(JSON.stringify(body), {
+  return Response.json(body, {
     ...init,
     headers,
   });

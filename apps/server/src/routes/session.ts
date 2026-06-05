@@ -33,15 +33,15 @@ const logger = getServerLogger("session");
 
 sessionRouter.get(
   "/",
-  asyncHandler(async (req, res) => {
+  asyncHandler(async (request, res) => {
     setNoStore(res);
     const startedAt = Date.now();
     const rememberedToken = readCookie(
-      req.header("cookie"),
+      request.header("cookie"),
       getRememberedProviderSessionCookieName(),
     );
     const rememberedSession = getRememberedProviderSession(rememberedToken);
-    const requestSessionId = getRequestSessionId(req);
+    const requestSessionId = getRequestSessionId(request);
     const cookieSession = getProviderSession(requestSessionId);
     const session =
       cookieSession ??
@@ -53,7 +53,7 @@ sessionRouter.get(
         revokeRememberedProviderSession(rememberedToken);
         res.clearCookie(
           getRememberedProviderSessionCookieName(),
-          getRememberedProviderSessionCookieClearOptions(req.secure),
+          getRememberedProviderSessionCookieClearOptions(request.secure),
         );
         logger.info("Remembered provider session was revoked.", {
           ...logEventFields("session.restore", "failure"),
@@ -89,13 +89,13 @@ sessionRouter.get(
     res.cookie(
       getSessionCookieName(),
       session.id,
-      getSessionCookieOptions(req.secure),
+      getSessionCookieOptions(request.secure),
     );
     if (nextRememberedSession) {
       res.cookie(
         getRememberedProviderSessionCookieName(),
         nextRememberedSession.token,
-        getRememberedProviderSessionCookieOptions(req.secure),
+        getRememberedProviderSessionCookieOptions(request.secure),
       );
     }
     res.json({ session: provider.serializeSession(session) });
@@ -112,13 +112,13 @@ sessionRouter.get(
   }),
 );
 
-sessionRouter.delete("/", (req, res) => {
+sessionRouter.delete("/", (request, res) => {
   setNoStore(res);
   const startedAt = Date.now();
-  const requestSessionId = getRequestSessionId(req);
+  const requestSessionId = getRequestSessionId(request);
   const session = getProviderSession(requestSessionId);
   const rememberedToken = readCookie(
-    req.header("cookie"),
+    request.header("cookie"),
     getRememberedProviderSessionCookieName(),
   );
   const rememberedSession = getRememberedProviderSession(rememberedToken);
@@ -137,11 +137,11 @@ sessionRouter.delete("/", (req, res) => {
     : false;
   res.clearCookie(
     getSessionCookieName(),
-    getSessionCookieClearOptions(req.secure),
+    getSessionCookieClearOptions(request.secure),
   );
   res.clearCookie(
     getRememberedProviderSessionCookieName(),
-    getRememberedProviderSessionCookieClearOptions(req.secure),
+    getRememberedProviderSessionCookieClearOptions(request.secure),
   );
   res.status(204).end();
 

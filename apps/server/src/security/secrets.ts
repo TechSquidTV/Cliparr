@@ -4,7 +4,7 @@ import {
   createHmac,
   randomBytes,
   scryptSync,
-} from "crypto";
+} from "node:crypto";
 
 const APP_KEY_ENV = "APP_KEY";
 const APP_KEY_MIN_LENGTH = 32;
@@ -85,7 +85,10 @@ export function decryptSecret(value: string) {
     return value;
   }
 
-  const [, , , ivBase64, authTagBase64, ciphertextBase64] = value.split(":");
+  const encryptedSecretParts = value.split(":");
+  const ivBase64 = encryptedSecretParts[3];
+  const authTagBase64 = encryptedSecretParts[4];
+  const ciphertextBase64 = encryptedSecretParts[5];
   if (!ivBase64 || !authTagBase64 || !ciphertextBase64) {
     throw new Error("Stored secret has an invalid encryption format.");
   }
@@ -103,10 +106,10 @@ export function decryptSecret(value: string) {
       decipher.final(),
     ]);
     return plaintext.toString("utf8");
-  } catch (err) {
+  } catch (error) {
     throw new Error(
       `Stored secrets could not be decrypted. Verify ${APP_KEY_ENV} matches the key previously used for this data directory.`,
-      { cause: err },
+      { cause: error },
     );
   }
 }

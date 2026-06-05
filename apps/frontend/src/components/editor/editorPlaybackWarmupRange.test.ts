@@ -24,10 +24,10 @@ void test("shows active warmup even before progress advances", () => {
       readyUntilTime: 10,
       status: "warming",
     },
-    1_000,
+    1000,
   );
 
-  assert.equal(isPlaybackReadyRangeVisible(range, 1_000), true);
+  assert.equal(isPlaybackReadyRangeVisible(range, 1000), true);
 });
 
 void test("hides readiness after the freshness window expires", () => {
@@ -38,18 +38,18 @@ void test("hides readiness after the freshness window expires", () => {
       readyUntilTime: 20,
       status: "ready",
     },
-    1_000,
+    1000,
   );
 
   assert.equal(
     isPlaybackReadyRangeVisible(
       range,
-      1_000 + PLAYBACK_READY_RANGE_FRESH_MS - 1,
+      1000 + PLAYBACK_READY_RANGE_FRESH_MS - 1,
     ),
     true,
   );
   assert.equal(
-    isPlaybackReadyRangeVisible(range, 1_000 + PLAYBACK_READY_RANGE_FRESH_MS),
+    isPlaybackReadyRangeVisible(range, 1000 + PLAYBACK_READY_RANGE_FRESH_MS),
     false,
   );
 });
@@ -60,7 +60,7 @@ void test("resetting warm state removes prior progress", () => {
     endTime: 20,
     readyUntilTime: 20,
     status: "ready",
-    updatedAtMs: 1_000,
+    updatedAtMs: 1000,
     expiresAtMs: 31_000,
   });
 

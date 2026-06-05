@@ -94,21 +94,21 @@ async function staleWhileRevalidateAsset(request) {
       }
       return response;
     })
-    .catch(() => undefined);
+    .catch(() => {});
 
   return cachedResponse || (await networkResponsePromise) || Response.error();
 }
 
 self.addEventListener("install", (event) => {
-  event.waitUntil(cacheAppShell().catch(() => undefined));
-  self.skipWaiting();
+  event.waitUntil(cacheAppShell().catch(() => {}));
+  globalThis.skipWaiting();
 });
 
 self.addEventListener("activate", (event) => {
   event.waitUntil(
     deleteOldCaches()
-      .catch(() => undefined)
-      .then(() => self.clients.claim()),
+      .catch(() => {})
+      .then(() => globalThis.clients.claim()),
   );
 });
 

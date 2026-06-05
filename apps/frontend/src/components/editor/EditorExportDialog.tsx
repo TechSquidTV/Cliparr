@@ -35,7 +35,7 @@ interface VideoDimensions {
 
 export type ExportSourcePreference = "auto" | "direct" | "hls";
 
-interface EditorExportDialogProps {
+interface EditorExportDialogProperties {
   isOpen: boolean;
   title: string;
   clipStart: number;
@@ -124,7 +124,7 @@ export function EditorExportDialog({
   onResetFileNameTemplate,
   onClose,
   onExport,
-}: EditorExportDialogProps) {
+}: EditorExportDialogProperties) {
   const selectedFormatOption = formatOptionFor(selectedFormat);
   const displayedEstimateLabel =
     typeof outputSizeEstimate.bytes === "number"

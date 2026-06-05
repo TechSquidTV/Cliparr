@@ -90,7 +90,7 @@ void test("preserves manual Plex source URLs and disables stale resources", () =
       account.id,
       "kept-server",
     );
-    assert(keptBefore);
+    assert.ok(keptBefore);
     updateMediaSource(keptBefore.id, {
       baseUrl: "http://manual.example:32400",
       connection: {
@@ -129,8 +129,8 @@ void test("preserves manual Plex source URLs and disables stale resources", () =
       account.id,
       "stale-server",
     );
-    assert(keptAfter);
-    assert(staleAfter);
+    assert.ok(keptAfter);
+    assert.ok(staleAfter);
 
     assert.equal(keptAfter.name, "Kept Server Renamed");
     assert.equal(keptAfter.enabled, true);

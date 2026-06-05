@@ -83,20 +83,25 @@ export function releaseTypeForChange(change) {
 }
 
 export function maxReleaseType(changes) {
-  return changes.reduce((maxType, change) => {
+  let maxType = "none";
+
+  for (const change of changes) {
     const nextType = releaseTypeForChange(change);
-    return releaseTypeOrder.indexOf(nextType) >
-      releaseTypeOrder.indexOf(maxType)
-      ? nextType
-      : maxType;
-  }, "none");
+    if (
+      releaseTypeOrder.indexOf(nextType) > releaseTypeOrder.indexOf(maxType)
+    ) {
+      maxType = nextType;
+    }
+  }
+
+  return maxType;
 }
 
 export function parseSemverTag(tag) {
   const match = semverTagPattern.exec(tag.trim());
 
   if (!match?.groups) {
-    return undefined;
+    return;
   }
 
   return {
@@ -118,7 +123,11 @@ export function compareSemverTags(leftTag, rightTag) {
   const right = parseSemverTag(rightTag);
 
   if (!left || !right) {
-    return left ? 1 : right ? -1 : 0;
+    if (left) {
+      return 1;
+    }
+
+    return right ? -1 : 0;
   }
 
   for (const key of ["major", "minor", "patch"]) {
@@ -150,7 +159,7 @@ export function latestStableTag(tags) {
       const version = parseSemverTag(tag);
       return version && !version.channel;
     })
-    .sort(compareSemverTags)
+    .toSorted(compareSemverTags)
     .at(-1);
 }
 
@@ -194,10 +203,10 @@ export function nextPrereleaseNumber(tags, baseVersion, channel) {
   const prefix = `v${baseVersion}-${channel}.`;
   const highest = tags
     .filter((tag) => tag.startsWith(prefix))
-    .map(parseSemverTag)
+    .map((tag) => parseSemverTag(tag))
     .filter((version) => version?.channel === channel)
     .map((version) => version.prereleaseNumber ?? 0)
-    .sort((left, right) => left - right)
+    .toSorted((left, right) => left - right)
     .at(-1);
 
   return (highest ?? 0) + 1;
@@ -208,12 +217,12 @@ export function latestPrereleaseTag(tags, baseVersion, channel) {
 
   return tags
     .filter((tag) => tag.startsWith(prefix))
-    .sort(compareSemverTags)
+    .toSorted(compareSemverTags)
     .at(-1);
 }
 
 export function extractReleaseTitleFromCommitMessage(message) {
-  const lines = message.replace(/\r\n/g, "\n").split("\n");
+  const lines = message.replaceAll("\r\n", "\n").split("\n");
   const subject = lines[0]?.trim() ?? "";
 
   if (!subject.startsWith("Merge pull request #")) {
@@ -229,7 +238,7 @@ export function extractReleaseTitleFromCommitMessage(message) {
 }
 
 export function extractPullRequestNumberFromCommitMessage(message) {
-  const subject = message.replace(/\r\n/g, "\n").split("\n")[0]?.trim() ?? "";
+  const subject = message.replaceAll("\r\n", "\n").split("\n")[0]?.trim() ?? "";
   const match =
     /^(?:Merge pull request #(?<mergeNumber>\d+) |\S[\s\S]* \(#(?<squashNumber>\d+)\)$)/u.exec(
       subject,
@@ -241,13 +250,20 @@ export function extractPullRequestNumberFromCommitMessage(message) {
 
 export function parseGitLogMessages(logOutput) {
   return logOutput
-    .split("\x1e")
-    .map((record) => record.trim().replace(/\x1f$/u, "").trim())
+    .split("\u001E")
+    .map((record) => {
+      const trimmedRecord = record.trim();
+      const recordWithoutTerminator = trimmedRecord.endsWith("\u001F")
+        ? trimmedRecord.slice(0, -1)
+        : trimmedRecord;
+
+      return recordWithoutTerminator.trim();
+    })
     .filter(Boolean);
 }
 
 export function summarizeChanges(titles) {
-  const changes = titles.map(parseConventionalTitle);
+  const changes = titles.map((title) => parseConventionalTitle(title));
   const invalidChanges = changes.filter((change) => !change.valid);
   const releaseType = maxReleaseType(changes);
 

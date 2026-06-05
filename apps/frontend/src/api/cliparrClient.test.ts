@@ -5,7 +5,7 @@ import test from "node:test";
 import { cliparrClient, subscribeToAuthFailure } from "@/api/cliparrClient";
 
 function jsonResponse(value: unknown, init: ResponseInit = {}) {
-  return new Response(JSON.stringify(value), {
+  return Response.json(value, {
     ...init,
     headers: {
       "content-type": "application/json",
@@ -15,7 +15,9 @@ function jsonResponse(value: unknown, init: ResponseInit = {}) {
 }
 
 async function withMockedFetch<T>(
-  handler: (...args: Parameters<typeof fetch>) => ReturnType<typeof fetch>,
+  handler: (
+    ...arguments_: Parameters<typeof fetch>
+  ) => ReturnType<typeof fetch>,
   action: () => Promise<T>,
 ) {
   const originalFetch = globalThis.fetch;

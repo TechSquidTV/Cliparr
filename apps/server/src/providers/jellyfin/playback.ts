@@ -38,7 +38,7 @@ import {
   numberValue,
   stringValue,
   uniqueStrings,
-} from "@/providers/shared/utils";
+} from "@/providers/shared/utilities";
 import {
   booleanValue,
   fetchItem,
@@ -96,16 +96,14 @@ function ticksToSeconds(value: number | null | undefined) {
   return ticks / 10_000_000;
 }
 
-export function playheadSecondsFromPositionTicks(
-  value: number | null | undefined,
-) {
+export function playheadSecondsFromPositionTicks(value?: number | null) {
   if (value === null || value === undefined) {
-    return undefined;
+    return;
   }
 
   const ticks = Number(value);
   if (!Number.isFinite(ticks) || ticks < 0) {
-    return undefined;
+    return;
   }
 
   return ticks / 10_000_000;
@@ -174,7 +172,7 @@ function itemImagePath(item: JellyfinItem) {
     return `/Items/${encodeURIComponent(itemId)}/Images/Thumb?tag=${encodeURIComponent(thumbTag)}`;
   }
 
-  return undefined;
+  return;
 }
 
 function withHdImageOptions(path: string) {
@@ -232,7 +230,7 @@ function currentMediaSourceId(
 function currentMediaSource(
   sessionInfo: JellyfinSessionInfo | undefined,
   item: JellyfinItem,
-  mediaSourceId: string | undefined,
+  mediaSourceId?: string,
   playbackInfo?: JellyfinPlaybackInfo,
 ) {
   const mediaSources = playbackMediaSources(sessionInfo, item, playbackInfo);
@@ -345,7 +343,7 @@ function jellyfinSubtitleTrackTitle(stream: JellyfinMediaStream) {
 function deriveSelectedAudioTrack(
   sessionInfo: JellyfinSessionInfo,
   item: JellyfinItem,
-  mediaSourceId: string | undefined,
+  mediaSourceId?: string,
   playbackInfo?: JellyfinPlaybackInfo,
 ): PlaybackAudioSelection | undefined {
   const mediaSource = currentMediaSource(
@@ -385,7 +383,7 @@ function deriveSelectedAudioTrack(
   const selectedAudioTrackIndex = audioStreams.findIndex(
     (stream) => numberValue(stream?.Index) === selectedAudioStreamIndex,
   );
-  if (selectedAudioTrackIndex < 0) {
+  if (selectedAudioTrackIndex === -1) {
     return undefined;
   }
 
@@ -409,7 +407,7 @@ function buildJellyfinSubtitlePath(
     subtitleIndex === undefined ||
     !contentFormat
   ) {
-    return undefined;
+    return;
   }
 
   return `/Videos/${encodeURIComponent(itemId)}/${encodeURIComponent(mediaSourceId)}/Subtitles/${subtitleIndex}/Stream.${encodeURIComponent(contentFormat)}`;
@@ -458,7 +456,7 @@ export function deriveSubtitleTracks(
   session: ProviderSessionRecord,
   context: JellyfinSourceContext,
   item: JellyfinItem,
-  mediaSourceId: string | undefined,
+  mediaSourceId?: string,
   sessionInfo?: JellyfinSessionInfo,
   playbackInfo?: JellyfinPlaybackInfo,
 ) {
@@ -553,7 +551,7 @@ function buildStaticStreamPath(
 ) {
   const itemId = stringValue(item?.Id);
   if (!itemId) {
-    return undefined;
+    return;
   }
 
   const isAudio = normalizedString(item?.MediaType) === "audio";
@@ -583,7 +581,7 @@ export function buildPreviewPath(
     normalizedString(item?.MediaType) === "audio" ||
     !mediaSourceId
   ) {
-    return undefined;
+    return;
   }
 
   const params = new URLSearchParams({
@@ -705,9 +703,9 @@ async function enrichMetadataItem(
       ...item,
       ...fullItem,
     };
-  } catch (err) {
+  } catch (error) {
     logger.warn("Could not fetch Jellyfin metadata.", {
-      ...logErrorFields(err),
+      ...logErrorFields(error),
       "metadata.item.id": itemId,
       "source.id": context.sourceId,
       "source.base_url": sanitizeUrlForLog(context.baseUrl),
@@ -741,14 +739,14 @@ async function loadPlaybackInfo(
       });
     }
     return playbackInfo;
-  } catch (err) {
+  } catch (error) {
     logger.warn("Could not fetch Jellyfin playback info.", {
-      ...logErrorFields(err),
+      ...logErrorFields(error),
       "metadata.item.id": itemId,
       "source.id": context.sourceId,
       "source.base_url": sanitizeUrlForLog(context.baseUrl),
     });
-    return undefined;
+    return;
   }
 }
 
@@ -1026,15 +1024,15 @@ export async function listCurrentlyPlaying(
     ),
   );
 
-  return entries.filter((entry): entry is CurrentlyPlayingEntry =>
-    Boolean(entry),
+  return entries.filter(
+    (entry): entry is CurrentlyPlayingEntry => entry !== undefined,
   );
 }
 
 export async function proxyMedia(
   session: ProviderSessionRecord,
   handleId: string,
-  req: Request,
+  request: Request,
   res: Response,
 ) {
   const handle = session.mediaHandles.get(handleId);
@@ -1048,7 +1046,7 @@ export async function proxyMedia(
 
   handle.lastAccessedAt = Date.now();
 
-  const accept = req.header("accept") ?? undefined;
+  const accept = request.header("accept") ?? undefined;
   const useProviderAuth = shouldAttachProviderAuth(handle);
   const headers = useProviderAuth
     ? jellyfinHeaders({
@@ -1057,7 +1055,7 @@ export async function proxyMedia(
         accept,
       })
     : new Headers(accept ? { Accept: accept } : undefined);
-  const requestedRange = req.header("range") ?? undefined;
+  const requestedRange = request.header("range") ?? undefined;
   const range = shouldForwardMediaRange(handle, requestedRange);
   if (range) {
     headers.set("Range", range);
@@ -1090,10 +1088,8 @@ export async function proxyMedia(
         });
 
         if (!upstream.ok && upstream.status !== 206) {
-          const detail = (await upstream.text())
-            .slice(0, 400)
-            .replace(/\s+/g, " ")
-            .trim();
+          const body = await upstream.text();
+          const detail = body.slice(0, 400).replaceAll(/\s+/g, " ").trim();
           throw createApiError(
             upstream.status,
             "jellyfin_media_failed",
@@ -1104,10 +1100,10 @@ export async function proxyMedia(
         }
 
         return upstream;
-      } catch (err) {
+      } catch (error) {
         logger.warn("Jellyfin media request failed.", {
           ...logEventFields("media.proxy.upstream", "failure"),
-          ...logErrorFields(err),
+          ...logErrorFields(error),
           "media.handle.id": handle.id,
           "session.id": session.id,
           "source.id": handle.sourceId,
@@ -1115,9 +1111,9 @@ export async function proxyMedia(
           "provider.auth.attached": useProviderAuth,
           "media.range.present": Boolean(range),
           "http.accept": accept,
-          "error.message": errorMessage(err),
+          "error.message": errorMessage(error),
         });
-        throw err;
+        throw error;
       }
     },
     res,
