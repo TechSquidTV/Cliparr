@@ -14,6 +14,8 @@ interface GitHubRelease {
 
 const releasesApiUrl =
   "https://api.github.com/repos/TechSquidTV/Cliparr/releases?per_page=20";
+const latestReleaseApiUrl =
+  "https://api.github.com/repos/TechSquidTV/Cliparr/releases/latest";
 const pullRequestUrlPattern =
   / by @([^ ]+) in https:\/\/github\.com\/TechSquidTV\/Cliparr\/pull\/(\d+)/gu;
 const fullChangelogPattern =
@@ -28,6 +30,7 @@ interface ChangelogReleaseData extends Record<string, unknown> {
   name: string;
   title: string;
   prerelease: boolean;
+  isLatest: boolean;
   publishedAt: string;
 }
 
@@ -74,7 +77,7 @@ function normalizeReleaseBody(markdown: string) {
     .trim();
 }
 
-async function fetchGitHubReleases() {
+function githubHeaders() {
   const token = process.env.GITHUB_TOKEN ?? process.env.GH_TOKEN;
 
   if (process.env.CF_PAGES && !token) {
@@ -83,14 +86,16 @@ async function fetchGitHubReleases() {
     );
   }
 
-  const response = await fetch(releasesApiUrl, {
-    headers: {
-      Accept: "application/vnd.github+json",
-      "User-Agent": "cliparr-dev-site",
-      "X-GitHub-Api-Version": "2022-11-28",
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    },
-  });
+  return {
+    Accept: "application/vnd.github+json",
+    "User-Agent": "cliparr-dev-site",
+    "X-GitHub-Api-Version": "2022-11-28",
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+  };
+}
+
+async function fetchGitHubReleases() {
+  const response = await fetch(releasesApiUrl, { headers: githubHeaders() });
 
   if (!response.ok) {
     throw new Error(
@@ -101,11 +106,33 @@ async function fetchGitHubReleases() {
   return (await response.json()) as GitHubRelease[];
 }
 
+async function fetchLatestGitHubRelease() {
+  const response = await fetch(latestReleaseApiUrl, {
+    headers: githubHeaders(),
+  });
+
+  if (response.status === 404) {
+    return null;
+  }
+
+  if (!response.ok) {
+    throw new Error(
+      `Failed to load latest GitHub release for ${site.name}: ${response.status} ${await response.text()}`,
+    );
+  }
+
+  return (await response.json()) as GitHubRelease;
+}
+
 export function githubReleasesLoader(): Loader {
   return {
     name: "cliparr-github-releases",
     async load({ generateDigest, parseData, renderMarkdown, store }) {
-      const releases = await fetchGitHubReleases();
+      const [releases, latestRelease] = await Promise.all([
+        fetchGitHubReleases(),
+        fetchLatestGitHubRelease(),
+      ]);
+      const latestReleaseId = latestRelease ? releaseId(latestRelease) : null;
 
       store.clear();
 
@@ -125,6 +152,10 @@ export function githubReleasesLoader(): Loader {
             name: release.name?.trim() || release.tag_name,
             title: releaseTitle(release),
             prerelease: release.prerelease,
+            isLatest:
+              release.id === latestRelease?.id ||
+              release.tag_name === latestRelease?.tag_name ||
+              id === latestReleaseId,
             publishedAt: release.published_at,
           },
         });
