@@ -60,6 +60,38 @@ void test("reports app-page responses as API configuration errors", async () => 
   );
 });
 
+void test("loads version info from the version endpoint", async () => {
+  await withMockedFetch(
+    async (input) => {
+      assert.equal(input, "/api/version");
+      return jsonResponse({
+        currentVersion: "v1.2.3",
+        latestRelease: {
+          tagName: "v1.3.0",
+          url: "https://github.com/TechSquidTV/Cliparr/releases/tag/v1.3.0",
+          publishedAt: "2026-06-04T10:30:00.000Z",
+        },
+        updateAvailable: true,
+        checkedAt: "2026-06-04T12:00:00.000Z",
+        status: "update_available",
+      });
+    },
+    async () => {
+      assert.deepEqual(await cliparrClient.getVersionInfo(), {
+        currentVersion: "v1.2.3",
+        latestRelease: {
+          tagName: "v1.3.0",
+          url: "https://github.com/TechSquidTV/Cliparr/releases/tag/v1.3.0",
+          publishedAt: "2026-06-04T10:30:00.000Z",
+        },
+        updateAvailable: true,
+        checkedAt: "2026-06-04T12:00:00.000Z",
+        status: "update_available",
+      });
+    },
+  );
+});
+
 void test("surfaces JSON API errors and coalesces auth failure notifications", async () => {
   await withMockedFetch(
     async () => {
