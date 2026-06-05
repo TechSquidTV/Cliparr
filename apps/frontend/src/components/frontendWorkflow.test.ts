@@ -346,6 +346,25 @@ void test("renders dashboard version badge as a release link when an update is a
   assert.match(markup, /v1\.3\.0 is available/);
 });
 
+void test("renders dashboard dev version badge with disabled update checks", () => {
+  const markup = renderToStaticMarkup(
+    createElement(DashboardVersionBadge, {
+      versionLabel: "dev",
+      latestRelease: null,
+      releaseChecksDisabledReason:
+        "Local development build; release update checks are disabled",
+    }),
+  );
+
+  assert.match(markup, /data-dashboard-version-badge/);
+  assert.match(markup, /data-dashboard-release-check-disabled="true"/);
+  assert.match(markup, />dev</);
+  assert.match(
+    markup,
+    /Local development build; release update checks are disabled/,
+  );
+});
+
 void test("renders mobile PWA install nudge for native install state", () => {
   const markup = renderToStaticMarkup(
     createElement(MobilePwaInstallNudgeCard, {

@@ -488,9 +488,11 @@ function WarningBanner({
 
 export function DashboardVersionBadge({
   latestRelease,
+  releaseChecksDisabledReason,
   versionLabel,
 }: {
   latestRelease: CliparrVersionInfo["latestRelease"] | null;
+  releaseChecksDisabledReason?: string | null;
   versionLabel: string;
 }) {
   if (!versionLabel) {
@@ -509,7 +511,11 @@ export function DashboardVersionBadge({
     return (
       <span
         className={DASHBOARD_VERSION_BADGE_CLASS}
+        title={releaseChecksDisabledReason ?? undefined}
         data-dashboard-version-badge
+        data-dashboard-release-check-disabled={
+          releaseChecksDisabledReason ? true : undefined
+        }
       >
         {versionLabel}
       </span>
@@ -630,6 +636,12 @@ export default function DashboardScreen({
     versionInfo?.status === "update_available" && versionInfo.latestRelease
       ? versionInfo.latestRelease
       : null;
+  const releaseChecksDisabledReason =
+    versionLabel && versionInfo?.status === "unknown"
+      ? versionLabel === "dev"
+        ? "Local development build; release update checks are disabled"
+        : "Non-release build; release update checks are disabled"
+      : null;
 
   return (
     <div className="min-h-screen bg-background p-4 text-foreground sm:p-8">
@@ -651,6 +663,7 @@ export default function DashboardScreen({
                   <DashboardVersionBadge
                     versionLabel={versionLabel}
                     latestRelease={latestUpdateRelease}
+                    releaseChecksDisabledReason={releaseChecksDisabledReason}
                   />
                 </div>
                 <p className="text-sm text-muted-foreground">

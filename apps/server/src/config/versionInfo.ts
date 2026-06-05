@@ -4,7 +4,7 @@ import {
   logErrorFields,
   logEventFields,
 } from "@cliparr/shared/logging";
-import { CLIPARR_VERSION } from "@/config/version";
+import { CLIPARR_CLIENT_VERSION } from "@/config/version";
 import { getServerLogger, warnWithError } from "@/logging";
 
 type VersionInfoStatus =
@@ -348,7 +348,7 @@ function versionInfoFromReleaseCheck(
 }
 
 export function createVersionInfoService({
-  currentVersion = CLIPARR_VERSION,
+  currentVersion = CLIPARR_CLIENT_VERSION,
   failureCacheTtlMs = FAILURE_CACHE_TTL_MS,
   fetchImpl = fetch,
   latestReleaseApiUrl = LATEST_RELEASE_API_URL,

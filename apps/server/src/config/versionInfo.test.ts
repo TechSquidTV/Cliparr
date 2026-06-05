@@ -108,6 +108,24 @@ void test("does not call GitHub for non-release current versions", async () => {
   assert.equal(fetchCount, 0);
 });
 
+void test("uses the local dev version when no release version is injected", async () => {
+  let fetchCount = 0;
+  const service = createVersionInfoService({
+    now: () => CHECKED_AT,
+    fetchImpl: async () => {
+      fetchCount += 1;
+      return jsonResponse(releasePayload("v1.3.0"));
+    },
+  });
+
+  assert.deepEqual(await service.getVersionInfo(), {
+    currentVersion: "dev",
+    updateAvailable: false,
+    status: "unknown",
+  });
+  assert.equal(fetchCount, 0);
+});
+
 void test("caches successful release checks", async () => {
   let fetchCount = 0;
   let now = CHECKED_AT;
