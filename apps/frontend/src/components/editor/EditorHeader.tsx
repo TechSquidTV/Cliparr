@@ -5,7 +5,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 
-interface EditorHeaderProps {
+interface EditorHeaderProperties {
   title: string;
   onBack: () => void;
   exporting: boolean;
@@ -21,7 +21,7 @@ export function EditorHeader({
   progress,
   exportDisabledReason,
   onExportClick,
-}: EditorHeaderProps) {
+}: EditorHeaderProperties) {
   const exportDisabled = exporting || Boolean(exportDisabledReason);
   const exportTooltip =
     exportDisabledReason ?? (exporting ? "Export in progress." : null);

@@ -1,4 +1,4 @@
-import { randomUUID } from "crypto";
+import { randomUUID } from "node:crypto";
 import { and, asc, eq, type SQL } from "drizzle-orm";
 import { getDatabase } from "@/db/database";
 import { mediaSources, type MediaSourceRow } from "@/db/schema";
@@ -77,7 +77,7 @@ function listMediaSourcesWhere(where?: SQL<unknown>) {
     ? query.where(where).orderBy(asc(mediaSources.name)).all()
     : query.orderBy(asc(mediaSources.name)).all();
 
-  return rows.map(mapMediaSource);
+  return rows.map((row) => mapMediaSource(row));
 }
 
 function createMediaSource(input: CreateMediaSourceInput) {
@@ -106,23 +106,23 @@ export function updateMediaSource(id: string, input: UpdateMediaSourceInput) {
   getDatabase()
     .update(mediaSources)
     .set({
-      ...(input.externalId !== undefined
-        ? { externalId: input.externalId }
-        : {}),
-      ...(input.name !== undefined ? { name: input.name } : {}),
-      ...(input.enabled !== undefined ? { enabled: input.enabled } : {}),
-      ...(input.baseUrl !== undefined ? { baseUrl: input.baseUrl } : {}),
-      ...(input.connection !== undefined
-        ? { connection: encryptJsonSecrets(input.connection) }
-        : {}),
-      ...(input.credentials !== undefined
-        ? { credentials: encryptJsonSecrets(input.credentials) }
-        : {}),
-      ...(input.metadata !== undefined ? { metadata: input.metadata } : {}),
-      ...(input.lastCheckedAt !== undefined
-        ? { lastCheckedAt: input.lastCheckedAt }
-        : {}),
-      ...(input.lastError !== undefined ? { lastError: input.lastError } : {}),
+      ...(input.externalId === undefined
+        ? {}
+        : { externalId: input.externalId }),
+      ...(input.name === undefined ? {} : { name: input.name }),
+      ...(input.enabled === undefined ? {} : { enabled: input.enabled }),
+      ...(input.baseUrl === undefined ? {} : { baseUrl: input.baseUrl }),
+      ...(input.connection === undefined
+        ? {}
+        : { connection: encryptJsonSecrets(input.connection) }),
+      ...(input.credentials === undefined
+        ? {}
+        : { credentials: encryptJsonSecrets(input.credentials) }),
+      ...(input.metadata === undefined ? {} : { metadata: input.metadata }),
+      ...(input.lastCheckedAt === undefined
+        ? {}
+        : { lastCheckedAt: input.lastCheckedAt }),
+      ...(input.lastError === undefined ? {} : { lastError: input.lastError }),
       updatedAt: currentTimestampSql(),
     })
     .where(eq(mediaSources.id, id))
@@ -198,15 +198,15 @@ export function upsertMediaSource(input: CreateMediaSourceInput) {
       ],
       set: {
         name: input.name,
-        ...(input.enabled !== undefined ? { enabled: input.enabled } : {}),
+        ...(input.enabled === undefined ? {} : { enabled: input.enabled }),
         baseUrl: input.baseUrl,
-        ...(input.connection !== undefined
-          ? { connection: encryptJsonSecrets(input.connection) }
-          : {}),
-        ...(input.credentials !== undefined
-          ? { credentials: encryptJsonSecrets(input.credentials) }
-          : {}),
-        ...(input.metadata !== undefined ? { metadata: input.metadata } : {}),
+        ...(input.connection === undefined
+          ? {}
+          : { connection: encryptJsonSecrets(input.connection) }),
+        ...(input.credentials === undefined
+          ? {}
+          : { credentials: encryptJsonSecrets(input.credentials) }),
+        ...(input.metadata === undefined ? {} : { metadata: input.metadata }),
         updatedAt: currentTimestampSql(),
       },
     })
@@ -240,12 +240,12 @@ export function listMediaSources(
     filters.push(eq(mediaSources.providerAccountId, options.providerAccountId));
   }
 
-  const where =
-    filters.length === 0
-      ? undefined
-      : filters.length === 1
-        ? filters[0]
-        : and(...filters);
+  let where: SQL | undefined;
+  if (filters.length === 1) {
+    where = filters[0];
+  } else if (filters.length > 1) {
+    where = and(...filters);
+  }
 
   return listMediaSourcesWhere(where);
 }

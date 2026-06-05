@@ -1,5 +1,5 @@
 import type { CSSProperties, ReactNode } from "react";
-import { cn } from "@/lib/utils";
+import { cn } from "@/lib/utilities";
 
 export function editorPropertyLabelClassName() {
   return "text-ui-micro font-normal normal-case tracking-normal text-muted-foreground";

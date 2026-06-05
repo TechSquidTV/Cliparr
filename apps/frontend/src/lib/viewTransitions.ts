@@ -21,9 +21,9 @@ let pendingEditorTransitionSession: {
 
 function prefersReducedMotion() {
   return (
-    typeof window !== "undefined" &&
-    typeof window.matchMedia === "function" &&
-    window.matchMedia("(prefers-reduced-motion: reduce)").matches
+    globalThis.window !== undefined &&
+    typeof globalThis.matchMedia === "function" &&
+    globalThis.matchMedia("(prefers-reduced-motion: reduce)").matches
   );
 }
 
@@ -70,5 +70,5 @@ export async function runViewTransition(
   }
 
   const transition = viewTransitionDocument.startViewTransition(updateCallback);
-  await transition.finished.catch(() => undefined);
+  await transition.finished.catch(() => {});
 }

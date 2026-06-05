@@ -3,11 +3,14 @@
   "ignoreWorkspaces": ["."],
   "workspaces": {
     "apps/frontend": {
+      "entry": ["src/main.tsx", "vite.config.js"],
       "ignoreBinaries": ["eslint"],
-      "project": ["src/**/*.{ts,tsx}"]
+      "project": ["src/**/*.{ts,tsx,css}"],
+      "vite": false
     },
     "apps/www": {
       "ignoreDependencies": ["@fontsource-variable/outfit", "tailwindcss"],
+      "ignoreBinaries": ["eslint"],
       "project": ["src/**/*.{astro,mdx,ts}", "scripts/**/*.ts"]
     },
     "apps/server": {
@@ -18,6 +21,10 @@
         "@/*": ["./src/*"]
       },
       "project": ["src/**/*.ts"]
+    },
+    "packages/shared": {
+      "ignoreBinaries": ["eslint", "tsc"],
+      "project": ["src/**/*.{js,ts}"]
     }
   }
 }

@@ -1,4 +1,4 @@
-import { stringValue } from "@/providers/shared/utils";
+import { stringValue } from "@/providers/shared/utilities";
 
 const TEXT_SUBTITLE_CODECS = new Set([
   "ass",
@@ -56,7 +56,7 @@ export function booleanFlag(value: unknown) {
     }
   }
 
-  return undefined;
+  return;
 }
 
 export function normalizeSubtitleCodec(codec: unknown) {
@@ -71,10 +71,10 @@ export function isTextSubtitleCodec(codec: unknown) {
 function extensionFromPath(path: string | undefined) {
   const pathname = path?.split("?")[0];
   if (!pathname) {
-    return undefined;
+    return;
   }
 
-  const match = pathname.match(/\.([a-z0-9]+)$/i);
+  const match = pathname.match(/\.([\da-z]+)$/i);
   return match?.[1]?.toLowerCase();
 }
 

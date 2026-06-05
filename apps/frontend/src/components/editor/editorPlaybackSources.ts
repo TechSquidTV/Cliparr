@@ -9,7 +9,7 @@ import type { PlaybackAudioSelection } from "@/providers/types";
 import {
   errorMessage,
   isAc3FamilyCodec,
-} from "@/components/editor/editorUtils";
+} from "@/components/editor/editorUtilities";
 
 type PlaybackSourceLabel =
   | "hls stream"
@@ -66,12 +66,12 @@ export function createPlaybackSourceError(
 }
 
 export function isPlaybackSourceError(
-  err: unknown,
-): err is PlaybackSourceError {
-  const candidate = err as Partial<PlaybackSourceError>;
+  error: unknown,
+): error is PlaybackSourceError {
+  const candidate = error as Partial<PlaybackSourceError>;
 
   return (
-    err instanceof Error &&
+    error instanceof Error &&
     candidate.name === "PlaybackSourceError" &&
     (candidate.category === "open-or-read" ||
       candidate.category === "preview-only" ||
@@ -138,13 +138,13 @@ function classifyPlaybackSource(
 
 export function buildPlaybackFailure(
   source: PlaybackSourceCandidate,
-  err: unknown,
+  error: unknown,
 ): PlaybackLoadFailure {
   return {
     label: source.label,
-    message: errorMessage(err),
+    message: errorMessage(error),
     classification: classifyPlaybackSource(source),
-    category: isPlaybackSourceError(err) ? err.category : "open-or-read",
+    category: isPlaybackSourceError(error) ? error.category : "open-or-read",
   };
 }
 
@@ -165,16 +165,21 @@ export function formatPlaybackSourceLabel(
   label: PlaybackSourceCandidate["label"],
 ) {
   switch (label) {
-    case "hls stream":
+    case "hls stream": {
       return "HLS stream";
-    case "direct source":
+    }
+    case "direct source": {
       return "Direct source";
-    case "local file":
+    }
+    case "local file": {
       return "Local file";
-    case "hls url":
+    }
+    case "hls url": {
       return "HLS URL";
-    case "url":
+    }
+    case "url": {
       return "URL";
+    }
   }
 }
 
@@ -221,21 +226,21 @@ export function buildPlaybackLoadError(failures: PlaybackLoadFailure[]) {
     return `Playback failed. ${uniqueMessages[0]}`;
   }
 
-  return `Playback failed. ${failures.map(describePlaybackFailure).join(" ")}`;
+  return `Playback failed. ${failures.map((failure) => describePlaybackFailure(failure)).join(" ")}`;
 }
 
 export function browserDecoderEnvironmentWarning() {
   const missingDecoders = [
-    "VideoDecoder" in window ? null : "video",
-    "AudioDecoder" in window ? null : "audio",
+    "VideoDecoder" in globalThis ? null : "video",
+    "AudioDecoder" in globalThis ? null : "audio",
   ].filter(isPresent);
 
   if (missingDecoders.length === 0) {
-    return undefined;
+    return;
   }
 
-  if (!window.isSecureContext) {
-    return `Browser decoding is blocked on ${window.location.origin}. Open Cliparr over HTTPS, localhost, or 127.0.0.1.`;
+  if (!globalThis.isSecureContext) {
+    return `Browser decoding is blocked on ${globalThis.location.origin}. Open Cliparr over HTTPS, localhost, or 127.0.0.1.`;
   }
 
   return `Browser ${missingDecoders.join(" and ")} decoding is unavailable.`;

@@ -35,7 +35,7 @@ function createContext(): PlexSourceContext {
 function onlyMediaHandle(session: ProviderSessionRecord) {
   assert.equal(session.mediaHandles.size, 1);
   const handle = [...session.mediaHandles.values()][0];
-  assert(handle);
+  assert.ok(handle);
   return handle;
 }
 
@@ -87,7 +87,7 @@ void test("creates a Cliparr-owned Plex transcode session id", () => {
   assert.equal(firstId, secondId);
   assert.notEqual(firstId, differentPlaybackId);
   assert.notEqual(firstId, differentSourceId);
-  assert.match(firstId, /^cliparr-source-1-[a-f0-9]{16}$/);
+  assert.match(firstId, /^cliparr-source-1-[\da-f]{16}$/);
 });
 
 void test("does not create Plex HLS preview paths for audio tracks", () => {
@@ -100,12 +100,12 @@ void test("does not create Plex HLS preview paths for audio tracks", () => {
 });
 
 void test("converts Plex viewOffset milliseconds into playhead seconds", () => {
-  assert.equal(playheadSecondsFromViewOffset(123456), 123.456);
+  assert.equal(playheadSecondsFromViewOffset(123_456), 123.456);
   assert.equal(playheadSecondsFromViewOffset("123456"), 123.456);
   assert.equal(playheadSecondsFromViewOffset(0), 0);
   assert.equal(playheadSecondsFromViewOffset(-1), undefined);
   assert.equal(playheadSecondsFromViewOffset(null), undefined);
-  assert.equal(playheadSecondsFromViewOffset(undefined), undefined);
+  assert.equal(playheadSecondsFromViewOffset(), undefined);
   assert.equal(playheadSecondsFromViewOffset("nope"), undefined);
 });
 
@@ -115,7 +115,7 @@ void test("extracts Plex export size estimate metadata from selected media", () 
     Media: [
       {
         id: "media-1",
-        bitrate: 1_600,
+        bitrate: 1600,
         width: 1920,
         height: 1080,
         selected: 1,
@@ -131,7 +131,7 @@ void test("extracts Plex export size estimate metadata from selected media", () 
                 streamType: 1,
                 width: 1920,
                 height: 1080,
-                bitrate: 1_400,
+                bitrate: 1400,
                 frameRate: 23.976,
                 selected: 1,
               },
@@ -151,8 +151,8 @@ void test("extracts Plex export size estimate metadata from selected media", () 
   assert.deepEqual(createPlexExportEstimateMetadata(item, undefined, 600), {
     sourceSizeBytes: 120_000_000,
     sourceDurationSeconds: 600,
-    sourceBitrateKbps: 1_600,
-    videoBitrateKbps: 1_400,
+    sourceBitrateKbps: 1600,
+    videoBitrateKbps: 1400,
     audioBitrateKbps: 160,
     width: 1920,
     height: 1080,

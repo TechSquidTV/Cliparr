@@ -71,11 +71,11 @@ export interface CommandExampleVariant {
   lang: CommandExampleLanguage;
 }
 
-export const dockerRunCommand = `docker run -d \\
-  --name cliparr \\
-  -p 7171:7171 \\
-  -e APP_KEY="your-32-char-stable-random-secret" \\
-  -v cliparr-data:/data \\
+export const dockerRunCommand = String.raw`docker run -d \
+  --name cliparr \
+  -p 7171:7171 \
+  -e APP_KEY="your-32-char-stable-random-secret" \
+  -v cliparr-data:/data \
   ghcr.io/techsquidtv/cliparr:latest`;
 
 export const dockerRunPowerShellCommand = `docker run -d \`
@@ -108,12 +108,12 @@ export const dockerComposeExample = `services:
 volumes:
   cliparr-data:`;
 
-const structuredConsoleLoggingCommand = `docker run -d \\
-  --name cliparr \\
-  -p 7171:7171 \\
-  -e APP_KEY="your-32-char-stable-random-secret" \\
-  -e CLIPARR_LOG_FORMAT=json \\
-  -v cliparr-data:/data \\
+const structuredConsoleLoggingCommand = String.raw`docker run -d \
+  --name cliparr \
+  -p 7171:7171 \
+  -e APP_KEY="your-32-char-stable-random-secret" \
+  -e CLIPARR_LOG_FORMAT=json \
+  -v cliparr-data:/data \
   ghcr.io/techsquidtv/cliparr:latest`;
 
 const structuredConsoleLoggingPowerShellCommand = `docker run -d \`
@@ -137,11 +137,11 @@ export const structuredConsoleLoggingCommandVariants = [
   },
 ] satisfies readonly CommandExampleVariant[];
 
-const tailscaleDockerRunCommand = `docker run -d \\
-  --name cliparr \\
-  -p 127.0.0.1:7171:7171 \\
-  -e APP_KEY="your-32-char-stable-random-secret" \\
-  -v cliparr-data:/data \\
+const tailscaleDockerRunCommand = String.raw`docker run -d \
+  --name cliparr \
+  -p 127.0.0.1:7171:7171 \
+  -e APP_KEY="your-32-char-stable-random-secret" \
+  -v cliparr-data:/data \
   ghcr.io/techsquidtv/cliparr:latest`;
 
 const tailscaleDockerRunPowerShellCommand = `docker run -d \`
@@ -160,11 +160,11 @@ export const tailscaleDockerRunCommandVariants = [
   },
 ] satisfies readonly CommandExampleVariant[];
 
-const wireguardDockerRunCommand = `docker run -d \\
-  --name cliparr \\
-  -p 10.8.0.1:7171:7171 \\
-  -e APP_KEY="your-32-char-stable-random-secret" \\
-  -v cliparr-data:/data \\
+const wireguardDockerRunCommand = String.raw`docker run -d \
+  --name cliparr \
+  -p 10.8.0.1:7171:7171 \
+  -e APP_KEY="your-32-char-stable-random-secret" \
+  -v cliparr-data:/data \
   ghcr.io/techsquidtv/cliparr:latest`;
 
 const wireguardDockerRunPowerShellCommand = `docker run -d \`
@@ -230,7 +230,7 @@ export const warnings = [
   },
 ] as const;
 
-export const envVars = [
+export const envVariables = [
   {
     name: "APP_KEY",
     description:

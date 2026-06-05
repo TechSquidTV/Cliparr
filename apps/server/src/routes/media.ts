@@ -1,4 +1,4 @@
-import { randomUUID } from "crypto";
+import { randomUUID } from "node:crypto";
 import { Router } from "express";
 import {
   compactLogFields,
@@ -38,7 +38,7 @@ const proxyLogger = mediaLogger.getChild("proxy");
 const LOCAL_URL_PROVIDER_ID = "local-url";
 const LOCAL_URL_SOURCE_ID = "remote-url";
 const LOCAL_URL_MEDIA_BASE_URL = "http://cliparr.local";
-const HLS_PLAYLIST_PATTERN = /\.m3u8(?:$|[?#])/i;
+const HLS_PLAYLIST_PATTERN = /\.m3u8(?:$|[#?])/i;
 const localUrlMediaHandles = new Map<string, MediaHandle>();
 const localUrlSession: ProviderSessionRecord = {
   id: "local-url",
@@ -75,7 +75,7 @@ function groupCurrentPlayback(
   return [...groups.values()]
     .map((group) => ({
       ...group,
-      items: [...group.items].sort(
+      items: group.items.toSorted(
         (left, right) =>
           compareStrings(left.source.name, right.source.name) ||
           compareStrings(left.playerTitle, right.playerTitle) ||
@@ -83,16 +83,16 @@ function groupCurrentPlayback(
           compareStrings(left.id, right.id),
       ),
     }))
-    .sort(
+    .toSorted(
       (left, right) =>
         compareStrings(left.viewer.name, right.viewer.name) ||
         compareStrings(left.viewer.id, right.viewer.id),
     );
 }
 
-function errorMessage(err: unknown) {
-  if (err instanceof Error) {
-    return err.message;
+function errorMessage(error: unknown) {
+  if (error instanceof Error) {
+    return error.message;
   }
 
   return "Unknown error";
@@ -186,13 +186,13 @@ function createLocalUrlMediaHandleUrl(
 
 mediaRouter.post(
   "/local-url",
-  asyncHandler(async (req, res) => {
+  asyncHandler(async (request, res) => {
     setNoStore(res);
     const startedAt = Date.now();
 
     try {
       const prunedCount = pruneSessionMediaHandles(localUrlSession);
-      const handle = buildLocalUrlMediaHandle(bodyUrl(req.body));
+      const handle = buildLocalUrlMediaHandle(bodyUrl(request.body));
       await assertAllowedMediaHandleRequestUrl(handle);
       const mediaUrl = storeLocalUrlMediaHandle(handle);
 
@@ -216,29 +216,29 @@ mediaRouter.post(
         "media.hls": isHlsPlaylistUrl(handle.path),
         "media.handle.pruned_count": prunedCount,
       });
-    } catch (err) {
+    } catch (error) {
       warnWithError(
         localUrlLogger,
-        err,
+        error,
         "Local URL media handle creation failed.",
         compactLogFields({
           ...logEventFields("media.local_url.create", "failure"),
           ...logDurationFields(startedAt),
-          ...logErrorFields(err),
-          "http.status_code": isApiError(err) ? err.status : undefined,
+          ...logErrorFields(error),
+          "http.status_code": isApiError(error) ? error.status : undefined,
         }),
       );
-      throw err;
+      throw error;
     }
   }),
 );
 
 mediaRouter.get(
   "/local-url/:handleId",
-  asyncHandler(async (req, res) => {
+  asyncHandler(async (request, res) => {
     setNoStore(res);
     const prunedCount = pruneSessionMediaHandles(localUrlSession);
-    const handle = localUrlMediaHandles.get(req.params.handleId as string);
+    const handle = localUrlMediaHandles.get(request.params.handleId as string);
     if (!handle) {
       throw createApiError(
         404,
@@ -249,8 +249,8 @@ mediaRouter.get(
 
     handle.lastAccessedAt = Date.now();
 
-    const accept = req.header("accept") ?? undefined;
-    const requestedRange = req.header("range") ?? undefined;
+    const accept = request.header("accept") ?? undefined;
+    const requestedRange = request.header("range") ?? undefined;
     const range = shouldForwardMediaRange(handle, requestedRange);
     const headers = new Headers(accept ? { Accept: accept } : undefined);
     if (range) {
@@ -277,10 +277,8 @@ mediaRouter.get(
         try {
           const upstream = await fetchMediaHandleRequest(handle, { headers });
           if (!upstream.ok && upstream.status !== 206) {
-            const detail = (await upstream.text())
-              .slice(0, 400)
-              .replace(/\s+/g, " ")
-              .trim();
+            const body = await upstream.text();
+            const detail = body.slice(0, 400).replaceAll(/\s+/g, " ").trim();
             throw createApiError(
               upstream.status,
               "local_media_url_failed",
@@ -291,24 +289,24 @@ mediaRouter.get(
           }
 
           return upstream;
-        } catch (err) {
+        } catch (error) {
           localUrlLogger.warn("Local URL media request failed.", {
             ...logEventFields("media.local_url.fetch", "failure"),
             "media.handle.id": handle.id,
             "upstream.url": sanitizeLoggedMediaPath(upstreamUrl),
             "media.range.present": Boolean(range),
             accept,
-            "error.message": errorMessage(err),
+            "error.message": errorMessage(error),
           });
 
-          if (isApiError(err)) {
-            throw err;
+          if (isApiError(error)) {
+            throw error;
           }
 
           throw createApiError(
             502,
             "local_media_url_failed",
-            `URL media request failed: ${errorMessage(err)}`,
+            `URL media request failed: ${errorMessage(error)}`,
           );
         }
       },
@@ -322,10 +320,10 @@ mediaRouter.get(
 
 mediaRouter.get(
   "/currently-playing",
-  asyncHandler(async (req, res) => {
+  asyncHandler(async (request, res) => {
     setNoStore(res);
     const startedAt = Date.now();
-    const session = requireAccountSession(req);
+    const session = requireAccountSession(request);
     const prunedCount = pruneSessionMediaHandles(session);
     const sourceErrors: SourcePlaybackError[] = [];
     const sources = listMediaSources({
@@ -362,16 +360,16 @@ mediaRouter.get(
 
     const entries: CurrentlyPlayingEntry[] = [];
 
-    settledResults.forEach((result, index) => {
+    for (const [index, result] of settledResults.entries()) {
       const sourceContext = sources[index];
       if (!sourceContext) {
-        return;
+        continue;
       }
       const { source } = sourceContext;
 
       if (result.status === "fulfilled") {
         entries.push(...result.value.entries);
-        return;
+        continue;
       }
 
       sourceErrors.push({
@@ -380,7 +378,7 @@ mediaRouter.get(
         providerId: source.providerId,
         message: errorMessage(result.reason),
       });
-    });
+    }
 
     const summaryFields = {
       ...logEventFields(
@@ -430,15 +428,15 @@ mediaRouter.get(
 
 mediaRouter.get(
   "/:handleId",
-  asyncHandler(async (req, res) => {
+  asyncHandler(async (request, res) => {
     setNoStore(res);
-    const session = requireAccountSession(req);
+    const session = requireAccountSession(request);
     const prunedCount = pruneSessionMediaHandles(session);
-    const handle = session.mediaHandles.get(req.params.handleId as string);
+    const handle = session.mediaHandles.get(request.params.handleId as string);
     if (!handle) {
       proxyLogger.warn("Media handle was not found in provider session.", {
         ...logEventFields("media.proxy", "missing_handle"),
-        "media.handle.id": req.params.handleId,
+        "media.handle.id": request.params.handleId,
         "session.id": session.id,
         "provider.id": session.providerId,
         "provider.account.id": session.providerAccountId,
@@ -478,6 +476,11 @@ mediaRouter.get(
       "media.handle.pruned_count": prunedCount,
     });
 
-    await provider.proxyMedia(session, req.params.handleId as string, req, res);
+    await provider.proxyMedia(
+      session,
+      request.params.handleId as string,
+      request,
+      res,
+    );
   }),
 );

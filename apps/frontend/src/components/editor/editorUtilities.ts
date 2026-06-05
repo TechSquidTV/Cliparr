@@ -32,6 +32,27 @@ const TIMELINE_ZOOM_PRESETS: readonly TimelineZoomPreset[] = [
   { scale: 600, scaleSplitCount: 5, scaleWidth: 152 },
 ];
 
+function focusedTimelineZoomScore(
+  candidate: TimelineZoomLevel,
+  safeFocusDuration: number,
+  targetSelectionPixels: number,
+  maximumComfortableSelectionPixels: number,
+) {
+  const selectionPixels =
+    (safeFocusDuration / candidate.scale) * candidate.scaleWidth;
+  const targetDistance = Math.abs(
+    Math.log2(Math.max(selectionPixels, 1) / targetSelectionPixels),
+  );
+  const undersizedPenalty =
+    Math.max(0, MIN_FOCUSED_TIMELINE_SELECTION_PIXELS - selectionPixels) /
+    MIN_FOCUSED_TIMELINE_SELECTION_PIXELS;
+  const oversizedPenalty =
+    Math.max(0, selectionPixels - maximumComfortableSelectionPixels) /
+    maximumComfortableSelectionPixels;
+
+  return targetDistance + undersizedPenalty * 3 + oversizedPenalty * 1.5;
+}
+
 export type ClipTimelineData = ComponentProps<typeof Timeline>["editorData"];
 export type ClipTimelineEffects = ComponentProps<typeof Timeline>["effects"];
 export type ClipTimelineAction = ClipTimelineData[number]["actions"][number];
@@ -132,8 +153,8 @@ export function parseTimecodeInput(value: string) {
   return roundTimelineTime(hours * 3600 + minutes * 60 + seconds);
 }
 
-export function errorMessage(err: unknown) {
-  return err instanceof Error ? err.message : "Preview failed to load";
+export function errorMessage(error: unknown) {
+  return error instanceof Error ? error.message : "Preview failed to load";
 }
 
 export function isAc3FamilyCodec(codec: string | null) {
@@ -252,8 +273,10 @@ export function getTimelineZoomLevels(seconds: number) {
   }
 
   if (availableLevels.size === 0) {
-    const fallbackPreset =
-      TIMELINE_ZOOM_PRESETS[TIMELINE_ZOOM_PRESETS.length - 1];
+    const fallbackPreset = TIMELINE_ZOOM_PRESETS.at(-1);
+    if (!fallbackPreset) {
+      return [];
+    }
     const minimumSafeScale = Math.max(
       1,
       Math.ceil(safeDuration / MAX_TIMELINE_ZOOM_SCALE_COUNT),
@@ -265,7 +288,7 @@ export function getTimelineZoomLevels(seconds: number) {
     });
   }
 
-  return [...availableLevels.values()].sort((left, right) => {
+  return [...availableLevels.values()].toSorted((left, right) => {
     const zoomDensityDifference =
       right.scaleWidth / right.scale - left.scaleWidth / left.scale;
     if (zoomDensityDifference !== 0) {
@@ -282,7 +305,9 @@ export function getClosestTimelineZoomIndex(
 ) {
   const targetZoomDensity = targetScale.scaleWidth / targetScale.scale;
 
-  return levels.reduce((closestIndex, level, index) => {
+  let closestIndex = 0;
+
+  for (const [index, level] of levels.entries()) {
     const closestLevel = levels[closestIndex];
     const closestDensityDistance = Math.abs(
       closestLevel.scaleWidth / closestLevel.scale - targetZoomDensity,
@@ -292,17 +317,22 @@ export function getClosestTimelineZoomIndex(
     );
 
     if (nextDensityDistance !== closestDensityDistance) {
-      return nextDensityDistance < closestDensityDistance
-        ? index
-        : closestIndex;
+      if (nextDensityDistance < closestDensityDistance) {
+        closestIndex = index;
+      }
+      continue;
     }
 
     const closestScaleDistance = Math.abs(
       closestLevel.scale - targetScale.scale,
     );
     const nextScaleDistance = Math.abs(level.scale - targetScale.scale);
-    return nextScaleDistance < closestScaleDistance ? index : closestIndex;
-  }, 0);
+    if (nextScaleDistance < closestScaleDistance) {
+      closestIndex = index;
+    }
+  }
+
+  return closestIndex;
 }
 
 export function getFocusedTimelineZoomIndex(
@@ -325,26 +355,29 @@ export function getFocusedTimelineZoomIndex(
     editableWidth * 0.85,
   );
 
-  return levels.reduce((bestIndex, level, index) => {
+  let bestIndex = 0;
+
+  for (const [index, level] of levels.entries()) {
     const bestLevel = levels[bestIndex];
-    const scoreLevel = (candidate: TimelineZoomLevel) => {
-      const selectionPixels =
-        (safeFocusDuration / candidate.scale) * candidate.scaleWidth;
-      const targetDistance = Math.abs(
-        Math.log2(Math.max(selectionPixels, 1) / targetSelectionPixels),
-      );
-      const undersizedPenalty =
-        Math.max(0, MIN_FOCUSED_TIMELINE_SELECTION_PIXELS - selectionPixels) /
-        MIN_FOCUSED_TIMELINE_SELECTION_PIXELS;
-      const oversizedPenalty =
-        Math.max(0, selectionPixels - maximumComfortableSelectionPixels) /
-        maximumComfortableSelectionPixels;
+    if (
+      focusedTimelineZoomScore(
+        level,
+        safeFocusDuration,
+        targetSelectionPixels,
+        maximumComfortableSelectionPixels,
+      ) <
+      focusedTimelineZoomScore(
+        bestLevel,
+        safeFocusDuration,
+        targetSelectionPixels,
+        maximumComfortableSelectionPixels,
+      )
+    ) {
+      bestIndex = index;
+    }
+  }
 
-      return targetDistance + undersizedPenalty * 3 + oversizedPenalty * 1.5;
-    };
-
-    return scoreLevel(level) < scoreLevel(bestLevel) ? index : bestIndex;
-  }, 0);
+  return bestIndex;
 }
 
 export function timelinePixelToTime(
@@ -405,12 +438,15 @@ export function normalizeWheelDelta(
   containerSize: number,
 ) {
   switch (deltaMode) {
-    case 1:
+    case 1: {
       return deltaY * 16;
-    case 2:
+    }
+    case 2: {
       return deltaY * containerSize;
-    default:
+    }
+    default: {
       return deltaY;
+    }
   }
 }
 

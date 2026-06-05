@@ -7,23 +7,23 @@ import {
   type Transition,
 } from "motion/react";
 import * as React from "react";
-import { cn } from "@/lib/utils";
+import { cn } from "@/lib/utilities";
 
-type DialogRootProps = React.ComponentProps<typeof BaseDialog.Root>;
-type DialogPortalProps = Omit<
+type DialogRootProperties = React.ComponentProps<typeof BaseDialog.Root>;
+type DialogPortalProperties = Omit<
   React.ComponentProps<typeof BaseDialog.Portal>,
   "keepMounted"
 > & {
   className?: string;
 };
-type DialogBackdropProps = Omit<
+type DialogBackdropProperties = Omit<
   React.ComponentProps<typeof BaseDialog.Backdrop>,
   "onClick" | "render"
 > & {
   onClick?: () => void;
   transition?: Transition;
 };
-type DialogPopupProps = Omit<
+type DialogPopupProperties = Omit<
   React.ComponentProps<typeof BaseDialog.Popup>,
   "render"
 > & {
@@ -32,8 +32,8 @@ type DialogPopupProps = Omit<
   transition?: Transition;
 };
 
-type DialogWindowProps = Omit<
-  DialogRootProps,
+type DialogWindowProperties = Omit<
+  DialogRootProperties,
   "children" | "disablePointerDismissal" | "onOpenChange" | "open"
 > & {
   open: boolean;
@@ -44,9 +44,9 @@ type DialogWindowProps = Omit<
   description?: React.ReactNode;
   ariaLabel?: string;
   children: React.ReactNode;
-  initialFocus?: DialogPopupProps["initialFocus"];
-  finalFocus?: DialogPopupProps["finalFocus"];
-  from?: DialogPopupProps["from"];
+  initialFocus?: DialogPopupProperties["initialFocus"];
+  finalFocus?: DialogPopupProperties["finalFocus"];
+  from?: DialogPopupProperties["from"];
   portalClassName?: string;
   popupClassName?: string;
   headerClassName?: string;
@@ -97,16 +97,16 @@ function Dialog({
   onOpenChange,
   open,
   ...props
-}: DialogRootProps) {
+}: DialogRootProperties) {
   const [uncontrolledOpen, setUncontrolledOpen] = React.useState(defaultOpen);
-  const internalActionsRef = React.useRef<DialogRootActions | null>(null);
-  const resolvedActionsRef = (actionsRef ??
-    internalActionsRef) as React.RefObject<DialogRootActions | null>;
+  const internalActionsReference = React.useRef<DialogRootActions | null>(null);
+  const resolvedActionsReference = (actionsRef ??
+    internalActionsReference) as React.RefObject<DialogRootActions | null>;
   const isControlled = open !== undefined;
   const currentOpen = isControlled ? open : uncontrolledOpen;
 
   const handleOpenChange = React.useCallback<
-    NonNullable<DialogRootProps["onOpenChange"]>
+    NonNullable<DialogRootProperties["onOpenChange"]>
   >(
     (nextOpen, eventDetails) => {
       if (!isControlled) {
@@ -121,13 +121,13 @@ function Dialog({
   return (
     <DialogAnimationContext.Provider
       value={{
-        actionsRef: resolvedActionsRef,
+        actionsRef: resolvedActionsReference,
         disablePointerDismissal,
         open: currentOpen,
       }}
     >
       <BaseDialog.Root
-        actionsRef={resolvedActionsRef}
+        actionsRef={resolvedActionsReference}
         disablePointerDismissal={disablePointerDismissal}
         open={currentOpen}
         onOpenChange={handleOpenChange}
@@ -137,7 +137,11 @@ function Dialog({
   );
 }
 
-function DialogPortal({ children, className, ...props }: DialogPortalProps) {
+function DialogPortal({
+  children,
+  className,
+  ...props
+}: DialogPortalProperties) {
   const { open } = useDialogAnimationContext("DialogPortal");
   const content = (
     <div
@@ -170,7 +174,7 @@ function DialogBackdrop({
   onClick,
   transition = backdropTransition,
   ...props
-}: DialogBackdropProps) {
+}: DialogBackdropProperties) {
   const { actionsRef, disablePointerDismissal } =
     useDialogAnimationContext("DialogBackdrop");
   const backdropClassName = cn(
@@ -185,15 +189,15 @@ function DialogBackdrop({
   return (
     <BaseDialog.Backdrop
       {...props}
-      render={(renderProps) => (
+      render={(renderProperties) => (
         <motion.div
-          {...(renderProps as HTMLMotionProps<"div">)}
+          {...(renderProperties as HTMLMotionProps<"div">)}
           className={backdropClassName}
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           onClick={(event) => {
-            renderProps.onClick?.(event);
+            renderProperties.onClick?.(event);
             if (disablePointerDismissal) {
               return;
             }
@@ -220,7 +224,7 @@ function DialogPopup({
   showCloseButton = true,
   transition = popupTransition,
   ...props
-}: DialogPopupProps) {
+}: DialogPopupProperties) {
   const { actionsRef, open } = useDialogAnimationContext("DialogPopup");
   const fromOffset = getPopupOffset(from);
   const popupClassName = cn(
@@ -240,11 +244,11 @@ function DialogPopup({
   );
 
   if (typeof document === "undefined") {
-    const { style: _style, ...ssrProps } = props;
+    const { style: _style, ...ssrProperties } = props;
 
     return (
       <div
-        {...(ssrProps as React.HTMLAttributes<HTMLDivElement>)}
+        {...(ssrProperties as React.HTMLAttributes<HTMLDivElement>)}
         role="dialog"
         aria-modal="true"
         className={popupClassName}
@@ -259,9 +263,9 @@ function DialogPopup({
       {...props}
       finalFocus={finalFocus}
       initialFocus={initialFocus}
-      render={(renderProps) => (
+      render={(renderProperties) => (
         <motion.div
-          {...(renderProps as HTMLMotionProps<"div">)}
+          {...(renderProperties as HTMLMotionProps<"div">)}
           className={popupClassName}
           initial={{ opacity: 0, scale: 0.97, ...fromOffset }}
           animate={{ opacity: 1, scale: 1, x: 0, y: 0 }}
@@ -302,7 +306,7 @@ function DialogWindow({
   title,
   titleClassName,
   ...props
-}: DialogWindowProps) {
+}: DialogWindowProperties) {
   const hasHeader = Boolean(title || description);
 
   return (
@@ -403,17 +407,20 @@ function DialogFooter({ className, ...props }: React.ComponentProps<"div">) {
   );
 }
 
-function getPopupOffset(from: NonNullable<DialogPopupProps["from"]>) {
+function getPopupOffset(from: NonNullable<DialogPopupProperties["from"]>) {
   switch (from) {
-    case "bottom":
+    case "bottom": {
       return { y: 18 };
-    case "left":
+    }
+    case "left": {
       return { x: -18 };
-    case "right":
+    }
+    case "right": {
       return { x: 18 };
-    case "top":
-    default:
+    }
+    case "top": {
       return { y: -18 };
+    }
   }
 }
 

@@ -150,7 +150,7 @@ void test("preserves absolute HLS origins when rewriting nested playlist resourc
   assert.equal(session.mediaHandles.size, 1);
 
   const childPlaylistHandle = [...session.mediaHandles.values()][0];
-  assert(childPlaylistHandle);
+  assert.ok(childPlaylistHandle);
   assert.equal(
     childPlaylistHandle.path,
     "https://cdn.example.com/hls/720p/prog_index.m3u8?token=abc",
@@ -176,13 +176,11 @@ void test("preserves absolute HLS origins when rewriting nested playlist resourc
     childResponse as unknown as Response,
   );
 
-  const handlePaths = [...session.mediaHandles.values()].map(
-    (handle) => handle.path,
+  const handlePaths = new Set(
+    [...session.mediaHandles.values()].map((handle) => handle.path),
   );
-  assert(
-    handlePaths.includes("https://cdn.example.com/hls/720p/key.key?sig=1"),
-  );
-  assert(handlePaths.includes("https://cdn.example.com/hls/720p/segment0.ts"));
+  assert.ok(handlePaths.has("https://cdn.example.com/hls/720p/key.key?sig=1"));
+  assert.ok(handlePaths.has("https://cdn.example.com/hls/720p/segment0.ts"));
 });
 
 void test("uses custom media handle URLs when rewriting HLS playlists", async () => {
@@ -326,11 +324,11 @@ void test("rejects cross-origin HLS media handles to private addresses", async (
           basePath: "http://1.1.1.1/hls/",
         }),
       ),
-    (err: unknown) =>
-      isApiError(err) &&
-      err.status === 400 &&
-      err.code === "media_proxy_unsafe_url" &&
-      err.message === "Media URL points at an unsafe internal address",
+    (error: unknown) =>
+      isApiError(error) &&
+      error.status === 400 &&
+      error.code === "media_proxy_unsafe_url" &&
+      error.message === "Media URL points at an unsafe internal address",
   );
 });
 
@@ -357,10 +355,10 @@ void test("validates cross-origin media redirects before following them", async 
             basePath: "http://1.1.1.1/hls/",
           }),
         ),
-      (err: unknown) =>
-        isApiError(err) &&
-        err.status === 400 &&
-        err.code === "media_proxy_unsafe_url",
+      (error: unknown) =>
+        isApiError(error) &&
+        error.status === 400 &&
+        error.code === "media_proxy_unsafe_url",
     );
     assert.equal(redirectMode, "manual");
   } finally {
@@ -391,10 +389,10 @@ void test("validates same-origin media redirects before following them", async (
             path: "/library/parts/1/file.mp4",
           }),
         ),
-      (err: unknown) =>
-        isApiError(err) &&
-        err.status === 400 &&
-        err.code === "media_proxy_unsafe_url",
+      (error: unknown) =>
+        isApiError(error) &&
+        error.status === 400 &&
+        error.code === "media_proxy_unsafe_url",
     );
     assert.equal(redirectMode, "manual");
   } finally {

@@ -1,8 +1,8 @@
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
-import { cn } from "@/lib/utils";
+import { cn } from "@/lib/utilities";
 import { cliparrMotionTransitions } from "@/lib/motionPresets";
 
-interface EditorPlaybackSourcePanelProps {
+interface EditorPlaybackSourcePanelProperties {
   previewSourceLabel: string;
   fallbackMessage: string | null;
   hasHlsSource: boolean;
@@ -42,7 +42,7 @@ export function EditorPlaybackSourcePanel({
   fallbackMessage,
   hasHlsSource,
   className,
-}: EditorPlaybackSourcePanelProps) {
+}: EditorPlaybackSourcePanelProperties) {
   const reduceMotion = useReducedMotion();
   const transition = reduceMotion
     ? { duration: 0 }

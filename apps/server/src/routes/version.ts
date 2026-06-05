@@ -7,7 +7,7 @@ export const versionRouter = Router();
 
 versionRouter.get(
   "/",
-  asyncHandler(async (_req, res) => {
+  asyncHandler(async (_request, res) => {
     setNoStore(res);
     res.json(await versionInfoService.getVersionInfo());
   }),

@@ -1,13 +1,13 @@
 import type { ReactNode } from "react";
 import { PanelRightClose, PanelRightOpen, type LucideIcon } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn } from "@/lib/utilities";
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 
-interface EditorSidebarProps {
+interface EditorSidebarProperties {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   title: string;
@@ -31,16 +31,19 @@ export function EditorSidebar({
   active = false,
   icon: Icon,
   resizable = false,
-}: EditorSidebarProps) {
+}: EditorSidebarProperties) {
+  let widthClassName = "w-editor-sidebar-rail";
+  if (resizable) {
+    widthClassName = "w-full";
+  } else if (open) {
+    widthClassName = "w-editor-sidebar-open max-w-editor-sidebar-max";
+  }
+
   return (
     <aside
       className={cn(
         "relative flex h-full min-h-0 shrink-0 border border-editor-border bg-editor-panel text-sidebar-foreground transition-[width] duration-200 ease-linear",
-        resizable
-          ? "w-full"
-          : open
-            ? "w-editor-sidebar-open max-w-editor-sidebar-max"
-            : "w-editor-sidebar-rail",
+        widthClassName,
       )}
     >
       {open ? (

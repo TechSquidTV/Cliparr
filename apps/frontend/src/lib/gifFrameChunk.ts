@@ -9,7 +9,7 @@ import type {
   GifPaletteFormat,
 } from "@/lib/gifEncodingSettings";
 
-export const GIF_TRAILER_BYTE = 0x3b;
+export const GIF_TRAILER_BYTE = 59;
 
 export interface EncodeGifFrameChunkInput {
   sequenceIndex: number;
@@ -134,7 +134,7 @@ export function concatenateGifFrameChunks(
     return new Uint8Array();
   }
 
-  const orderedChunks = [...chunks].sort(
+  const orderedChunks = chunks.toSorted(
     (left, right) => left.sequenceIndex - right.sequenceIndex,
   );
   const byteLength =

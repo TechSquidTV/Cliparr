@@ -105,7 +105,7 @@ export function useSubtitleCues({
   useEffect(() => {
     let cancelled = false;
     const abortController = new AbortController();
-    const timeout = window.setTimeout(() => {
+    const timeout = globalThis.setTimeout(() => {
       abortController.abort();
     }, subtitleRequestTimeoutMs);
 
@@ -170,7 +170,7 @@ export function useSubtitleCues({
           ...subtitleTrackLogFields(selectedSubtitleTrack, providerId),
           "subtitle.cue.count": parsedSubtitleCues.length,
         });
-      } catch (err) {
+      } catch (error) {
         if (cancelled || abortController.signal.aborted) {
           if (!cancelled) {
             setSubtitleCues([]);
@@ -187,16 +187,16 @@ export function useSubtitleCues({
           return;
         }
 
-        warnWithError(logger, err, "Could not load subtitle cues.", {
+        warnWithError(logger, error, "Could not load subtitle cues.", {
           ...logEventFields("editor.subtitle.load", "failure"),
           ...logDurationFields(startedAt),
-          ...logErrorFields(err),
+          ...logErrorFields(error),
           ...subtitleTrackLogFields(selectedSubtitleTrack, providerId),
           "subtitle.timeout": false,
         });
         setSubtitleCues([]);
         setSubtitleError(
-          err instanceof Error ? err.message : "Could not load subtitles.",
+          error instanceof Error ? error.message : "Could not load subtitles.",
         );
       } finally {
         if (!cancelled) {
@@ -209,7 +209,7 @@ export function useSubtitleCues({
 
     return () => {
       cancelled = true;
-      window.clearTimeout(timeout);
+      globalThis.clearTimeout(timeout);
       abortController.abort();
     };
   }, [providerId, resetSubtitleCues, selectedSubtitleTrack, subtitleEnabled]);

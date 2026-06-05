@@ -15,7 +15,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { Switch } from "@/components/ui/switch";
-import { cn } from "@/lib/utils";
+import { cn } from "@/lib/utilities";
 import {
   subtitleTrackKey,
   subtitleTrackSupportsBurnIn,
@@ -33,7 +33,7 @@ import {
 } from "@/components/editor/EditorPropertyControls";
 import { useSubtitleFontOptions } from "@/components/editor/useSubtitleFontOptions";
 
-interface EditorSubtitlePanelProps {
+interface EditorSubtitlePanelProperties {
   providerId?: string;
   subtitleTracks: readonly PlaybackSubtitleTrack[];
   selectedSubtitleTrackKey: string;
@@ -60,7 +60,7 @@ function subtitleTrackLabel(track: PlaybackSubtitleTrack) {
     track.isHearingImpaired ? "SDH" : null,
     track.isDefault ? "Default" : null,
     track.isExternal ? "External" : null,
-    !subtitleTrackSupportsBurnIn(track) ? "Unsupported" : null,
+    subtitleTrackSupportsBurnIn(track) ? null : "Unsupported",
   ].filter(Boolean);
 
   const baseLabel = parts[0] ?? parts[1] ?? "Unnamed subtitle track";
@@ -87,7 +87,7 @@ export function EditorSubtitlePanel({
   subtitleLoading,
   subtitleError,
   selectedSubtitleTrack,
-}: EditorSubtitlePanelProps) {
+}: EditorSubtitlePanelProperties) {
   const canEnableBurnIn = subtitleTrackSupportsBurnIn(selectedSubtitleTrack);
   const styleControlsDisabled = !subtitlesEnabled || !canEnableBurnIn;
   const {
@@ -101,18 +101,21 @@ export function EditorSubtitlePanel({
     selectedSubtitleTrack,
     providerId,
   );
-  const subtitleWarning =
-    subtitleTracks.length === 0
-      ? "No supported subtitles found."
-      : !selectedSubtitleTrack
-        ? "Choose a subtitle track."
-        : (unavailableMessage ?? "This subtitle track is not supported.");
-  const subtitleToggleTooltip = !canEnableBurnIn ? subtitleWarning : null;
-  const styleTooltip = styleControlsDisabled
-    ? subtitlesEnabled
+  let subtitleWarning = "Choose a subtitle track.";
+  if (subtitleTracks.length === 0) {
+    subtitleWarning = "No supported subtitles found.";
+  } else if (selectedSubtitleTrack) {
+    subtitleWarning =
+      unavailableMessage ?? "This subtitle track is not supported.";
+  }
+
+  const subtitleToggleTooltip = canEnableBurnIn ? null : subtitleWarning;
+  let styleTooltip: string | null = null;
+  if (styleControlsDisabled) {
+    styleTooltip = subtitlesEnabled
       ? subtitleWarning
-      : "Turn subtitles on to edit style."
-    : null;
+      : "Turn subtitles on to edit style.";
+  }
 
   function updateStyleSetting<Key extends keyof SubtitleStyleSettings>(
     key: Key,

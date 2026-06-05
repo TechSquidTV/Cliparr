@@ -14,7 +14,7 @@ import {
   type BeforeInstallPromptEvent,
   type PwaInstallMode,
 } from "@/lib/pwa";
-import { cn } from "@/lib/utils";
+import { cn } from "@/lib/utilities";
 import {
   compactPrimaryButtonClasses,
   iconButtonClasses,
@@ -30,13 +30,13 @@ export interface MobilePwaInstallNudgeCardProps {
 
 function addMediaQueryChangeListener(query: string, onChange: () => void) {
   if (
-    typeof window === "undefined" ||
-    typeof window.matchMedia !== "function"
+    globalThis.window === undefined ||
+    typeof globalThis.matchMedia !== "function"
   ) {
-    return () => undefined;
+    return () => {};
   }
 
-  const mediaQuery = window.matchMedia(query);
+  const mediaQuery = globalThis.matchMedia(query);
   const listener = () => onChange();
 
   if (typeof mediaQuery.addEventListener === "function") {
@@ -52,7 +52,7 @@ function getCurrentMobilePwaInstallMode(
   installPrompt: BeforeInstallPromptEvent | null,
   dismissed: boolean,
 ): PwaInstallMode {
-  if (typeof window === "undefined" || typeof navigator === "undefined") {
+  if (globalThis.window === undefined || typeof navigator === "undefined") {
     return "hidden";
   }
 
@@ -169,14 +169,14 @@ export function MobilePwaInstallNudge({ className }: { className?: string }) {
     ];
 
     window.addEventListener("resize", refresh);
-    window.addEventListener("orientationchange", refresh);
+    globalThis.addEventListener("orientationchange", refresh);
 
     return () => {
       for (const cleanup of cleanups) {
         cleanup();
       }
       window.removeEventListener("resize", refresh);
-      window.removeEventListener("orientationchange", refresh);
+      globalThis.removeEventListener("orientationchange", refresh);
     };
   }, [refreshMode]);
 

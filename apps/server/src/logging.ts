@@ -2,7 +2,7 @@ import { AsyncLocalStorage } from "node:async_hooks";
 import { Buffer } from "node:buffer";
 import { randomUUID } from "node:crypto";
 import * as fs from "node:fs/promises";
-import * as path from "node:path";
+import path from "node:path";
 import type { NextFunction, Request, Response } from "express";
 import {
   configure,
@@ -98,7 +98,7 @@ export function fatalWithError(
   logger.fatal(message, properties);
 }
 
-export function resolveServerLogFormat(value: string | undefined) {
+export function resolveServerLogFormat(value?: string) {
   const format = value?.trim().toLowerCase();
   if (format === "json" || format === "logfmt" || format === "pretty") {
     return format;
@@ -117,7 +117,7 @@ export function resolveServerConsoleLogFormat(
   return resolveServerLogFormat(env.CLIPARR_LOG_FORMAT);
 }
 
-export function resolveLogFileMaxBytes(value: string | undefined) {
+export function resolveLogFileMaxBytes(value?: string) {
   const trimmed = value?.trim().toLowerCase();
   if (!trimmed) {
     return DEFAULT_LOG_FILE_MAX_BYTES;
@@ -138,7 +138,7 @@ export function resolveLogFileMaxBytes(value: string | undefined) {
   return size;
 }
 
-export function resolveLogFileMaxFiles(value: string | undefined) {
+export function resolveLogFileMaxFiles(value?: string) {
   const maxFiles = Number(value?.trim());
   if (!Number.isSafeInteger(maxFiles) || maxFiles <= 0) {
     return DEFAULT_LOG_FILE_MAX_FILES;
@@ -205,9 +205,7 @@ function rotatingFileSink(config: ServerLogFileConfig) {
   let directoryReady: Promise<void> | undefined;
 
   async function ensureDirectory() {
-    directoryReady ??= fs
-      .mkdir(directory, { recursive: true })
-      .then(() => undefined);
+    directoryReady ??= fs.mkdir(directory, { recursive: true }).then(() => {});
     await directoryReady;
   }
 
@@ -217,7 +215,8 @@ function rotatingFileSink(config: ServerLogFileConfig) {
     }
 
     try {
-      currentSize = (await fs.stat(config.filePath)).size;
+      const stats = await fs.stat(config.filePath);
+      currentSize = stats.size;
     } catch {
       currentSize = 0;
     }
@@ -291,12 +290,12 @@ export function configureLogging() {
   }
 
   const configuredLevel = process.env.CLIPARR_LOG_LEVEL?.trim();
+  const defaultLowestLevel =
+    process.env.NODE_ENV === "production" ? "info" : "debug";
   const lowestLevel =
     configuredLevel && isLogLevel(configuredLevel)
       ? configuredLevel
-      : process.env.NODE_ENV === "production"
-        ? "info"
-        : "debug";
+      : defaultLowestLevel;
   const { sinks, sinkNames } = serverLogSinks();
 
   loggingConfigured = configure({
@@ -321,18 +320,18 @@ export function configureLogging() {
 
 const requestLogger = getServerLogger(["http", "request"]);
 
-function requestRoute(req: Request) {
-  const route = (req as unknown as { route?: { path?: unknown } }).route;
+function requestRoute(request: Request) {
+  const route = (request as unknown as { route?: { path?: unknown } }).route;
   const routePath = typeof route?.path === "string" ? route.path : undefined;
   if (!routePath) {
-    return undefined;
+    return;
   }
 
-  return `${req.baseUrl}${routePath}`;
+  return `${request.baseUrl}${routePath}`;
 }
 
 export function requestLoggingMiddleware(
-  req: Request,
+  request: Request,
   res: Response,
   next: NextFunction,
 ) {
@@ -342,9 +341,9 @@ export function requestLoggingMiddleware(
   withContext(
     {
       "request.id": requestId,
-      "http.method": req.method,
-      "http.path": req.path,
-      "http.original_url": req.originalUrl,
+      "http.method": request.method,
+      "http.path": request.path,
+      "http.original_url": request.originalUrl,
     },
     () => {
       res.setHeader("X-Request-Id", requestId);
@@ -353,7 +352,7 @@ export function requestLoggingMiddleware(
         const fields = compactLogFields({
           ...logEventFields("http.request", "completed"),
           ...logDurationFields(startedAt, startedAt + durationMs),
-          "http.route": requestRoute(req),
+          "http.route": requestRoute(request),
           "http.status_code": res.statusCode,
         });
 
@@ -362,7 +361,7 @@ export function requestLoggingMiddleware(
         if (
           res.statusCode >= 500 ||
           (durationMs >= SLOW_REQUEST_WARNING_MS &&
-            !req.path.startsWith("/api/media/"))
+            !request.path.startsWith("/api/media/"))
         ) {
           requestLogger.warn("HTTP request needs attention.", {
             ...fields,

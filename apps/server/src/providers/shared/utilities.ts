@@ -10,22 +10,26 @@ export function asArray<T>(value: T | T[] | null | undefined): T[] {
     return [];
   }
 
-  return Array.isArray(value) ? value : [value];
+  if (Array.isArray(value)) {
+    return value;
+  }
+
+  return [value];
 }
 
 export function stringValue(value: unknown) {
   if (typeof value !== "string") {
-    return undefined;
+    return;
   }
 
   const trimmed = value.trim();
-  return trimmed ? trimmed : undefined;
+  return trimmed || undefined;
 }
 
 export function numberValue(value: unknown) {
   const number = Number(value);
   if (!Number.isFinite(number)) {
-    return undefined;
+    return;
   }
 
   return Math.trunc(number);
@@ -47,9 +51,9 @@ export function uniqueStrings(values: Iterable<string | null | undefined>) {
   return result;
 }
 
-export function errorMessage(err: unknown) {
-  if (err instanceof Error) {
-    return err.message;
+export function errorMessage(error: unknown) {
+  if (error instanceof Error) {
+    return error.message;
   }
 
   return "Unknown error";

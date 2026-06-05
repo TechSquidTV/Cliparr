@@ -146,42 +146,42 @@ function parseSourceUpdate(body: unknown): UpdateMediaSourceInput {
 }
 
 function changedSourceFields(input: UpdateMediaSourceInput) {
-  return Object.keys(input).sort();
+  return Object.keys(input).toSorted();
 }
 
 sourcesRouter.get(
   "/",
-  asyncHandler(async (req, res) => {
-    requireAccountSession(req);
+  asyncHandler(async (request, res) => {
+    requireAccountSession(request);
     setNoStore(res);
     res.json({
-      sources: listMediaSources().map(serializeSource),
+      sources: listMediaSources().map((source) => serializeSource(source)),
     });
   }),
 );
 
 sourcesRouter.get(
   "/:id",
-  asyncHandler(async (req, res) => {
-    requireAccountSession(req);
+  asyncHandler(async (request, res) => {
+    requireAccountSession(request);
     setNoStore(res);
-    const source = requireMediaSource(req.params.id as string);
+    const source = requireMediaSource(request.params.id as string);
     res.json({ source: serializeSource(source) });
   }),
 );
 
 sourcesRouter.patch(
   "/:id",
-  asyncHandler(async (req, res) => {
-    const session = requireAccountSession(req);
+  asyncHandler(async (request, res) => {
+    const session = requireAccountSession(request);
     setNoStore(res);
     const startedAt = Date.now();
-    const sourceId = req.params.id as string;
+    const sourceId = request.params.id as string;
     let source: MediaSource | undefined;
 
     try {
       source = requireMediaSource(sourceId);
-      const input = parseSourceUpdate(req.body);
+      const input = parseSourceUpdate(request.body);
       const nextInput =
         source.providerId === "plex" && input.baseUrl !== undefined
           ? {
@@ -207,34 +207,34 @@ sourcesRouter.patch(
         "source.changed_fields": changedSourceFields(input),
         "source.base_url": sanitizeUrlForLog(input.baseUrl),
       });
-    } catch (err) {
+    } catch (error) {
       warnWithError(
         logger,
-        err,
+        error,
         "Media source update failed.",
         compactLogFields({
           ...logEventFields("source.update", "failure"),
           ...logDurationFields(startedAt),
-          ...logErrorFields(err),
+          ...logErrorFields(error),
           "source.id": sourceId,
           "provider.id": source?.providerId,
           "provider.account.id": source?.providerAccountId,
           "session.provider.account.id": session.providerAccountId,
-          "http.status_code": isApiError(err) ? err.status : undefined,
+          "http.status_code": isApiError(error) ? error.status : undefined,
         }),
       );
-      throw err;
+      throw error;
     }
   }),
 );
 
 sourcesRouter.delete(
   "/:id",
-  asyncHandler(async (req, res) => {
-    const session = requireAccountSession(req);
+  asyncHandler(async (request, res) => {
+    const session = requireAccountSession(request);
     setNoStore(res);
     const startedAt = Date.now();
-    const sourceId = req.params.id as string;
+    const sourceId = request.params.id as string;
     let source: MediaSource | undefined;
 
     try {
@@ -253,34 +253,34 @@ sourcesRouter.delete(
         "provider.id": source.providerId,
         "provider.account.id": source.providerAccountId,
       });
-    } catch (err) {
+    } catch (error) {
       warnWithError(
         logger,
-        err,
+        error,
         "Media source delete failed.",
         compactLogFields({
           ...logEventFields("source.delete", "failure"),
           ...logDurationFields(startedAt),
-          ...logErrorFields(err),
+          ...logErrorFields(error),
           "source.id": sourceId,
           "provider.id": source?.providerId,
           "provider.account.id": source?.providerAccountId,
           "session.provider.account.id": session.providerAccountId,
-          "http.status_code": isApiError(err) ? err.status : undefined,
+          "http.status_code": isApiError(error) ? error.status : undefined,
         }),
       );
-      throw err;
+      throw error;
     }
   }),
 );
 
 sourcesRouter.post(
   "/:id/check",
-  asyncHandler(async (req, res) => {
-    const session = requireAccountSession(req);
+  asyncHandler(async (request, res) => {
+    const session = requireAccountSession(request);
     setNoStore(res);
     const startedAt = Date.now();
-    const sourceId = req.params.id as string;
+    const sourceId = request.params.id as string;
     let source: MediaSource | undefined;
 
     try {
@@ -328,12 +328,12 @@ sourcesRouter.post(
       }
 
       const updatedSource = updateMediaSource(source.id, {
-        ...(result.name !== undefined ? { name: result.name } : {}),
-        ...(result.baseUrl !== undefined ? { baseUrl: result.baseUrl } : {}),
-        ...(result.connection !== undefined
-          ? { connection: result.connection }
-          : {}),
-        ...(result.metadata !== undefined ? { metadata: result.metadata } : {}),
+        ...(result.name === undefined ? {} : { name: result.name }),
+        ...(result.baseUrl === undefined ? {} : { baseUrl: result.baseUrl }),
+        ...(result.connection === undefined
+          ? {}
+          : { connection: result.connection }),
+        ...(result.metadata === undefined ? {} : { metadata: result.metadata }),
         lastCheckedAt: checkedAt,
         lastError: null,
       });
@@ -356,23 +356,23 @@ sourcesRouter.post(
         "source.health.ok": true,
         "source.base_url": sanitizeUrlForLog(result.baseUrl),
       });
-    } catch (err) {
+    } catch (error) {
       warnWithError(
         logger,
-        err,
+        error,
         "Media source health check failed.",
         compactLogFields({
           ...logEventFields("source.check", "failure"),
           ...logDurationFields(startedAt),
-          ...logErrorFields(err),
+          ...logErrorFields(error),
           "source.id": sourceId,
           "provider.id": source?.providerId,
           "provider.account.id": source?.providerAccountId,
           "session.provider.account.id": session.providerAccountId,
-          "http.status_code": isApiError(err) ? err.status : undefined,
+          "http.status_code": isApiError(error) ? error.status : undefined,
         }),
       );
-      throw err;
+      throw error;
     }
   }),
 );

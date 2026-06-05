@@ -1,5 +1,5 @@
 import { Film, Server } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn } from "@/lib/utilities";
 
 const plexLogoUrl = new URL("../../assets/providers/plex.svg", import.meta.url)
   .href;
@@ -10,7 +10,7 @@ const jellyfinLogoUrl = new URL(
 
 export function formatProviderName(providerId: string) {
   return providerId
-    .split(/[-_\s]+/)
+    .split(/[\s_-]+/)
     .filter(Boolean)
     .map((segment) => segment.charAt(0).toUpperCase() + segment.slice(1))
     .join(" ");
@@ -18,25 +18,28 @@ export function formatProviderName(providerId: string) {
 
 function providerBranding(providerId: string) {
   switch (providerId) {
-    case "plex":
+    case "plex": {
       return {
         Icon: Film,
         logoUrl: plexLogoUrl,
       };
-    case "jellyfin":
+    }
+    case "jellyfin": {
       return {
         Icon: Server,
         logoUrl: jellyfinLogoUrl,
       };
-    default:
+    }
+    default: {
       return {
         Icon: Server,
         logoUrl: "",
       };
+    }
   }
 }
 
-interface ProviderGlyphProps {
+interface ProviderGlyphProperties {
   providerId: string;
   providerName?: string;
   className?: string;
@@ -48,7 +51,7 @@ export function ProviderGlyph({
   providerName,
   className,
   fallbackClassName,
-}: ProviderGlyphProps) {
+}: ProviderGlyphProperties) {
   const { Icon, logoUrl } = providerBranding(providerId);
   const label = providerName ?? formatProviderName(providerId);
 

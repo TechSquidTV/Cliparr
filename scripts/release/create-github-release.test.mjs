@@ -2,10 +2,10 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   composeReleaseBody,
-  parseArgs,
+  parseArguments,
 } from "#release/create-github-release.mjs";
 
-const requiredArgs = [
+const requiredArguments = [
   "--repository",
   "TechSquidTV/Cliparr",
   "--tag",
@@ -23,15 +23,20 @@ const requiredArgs = [
 ];
 
 void test("accepts an empty image digest for dry-run releases", () => {
-  const args = parseArgs([...requiredArgs, "--image-digest", "", "--dry-run"]);
+  const arguments_ = parseArguments([
+    ...requiredArguments,
+    "--image-digest",
+    "",
+    "--dry-run",
+  ]);
 
-  assert.equal(args.imageDigest, "");
-  assert.equal(args.dryRun, true);
+  assert.equal(arguments_.imageDigest, "");
+  assert.equal(arguments_.dryRun, true);
 });
 
 void test("rejects release arguments with missing values", () => {
   assert.throws(
-    () => parseArgs([...requiredArgs, "--image-digest"]),
+    () => parseArguments([...requiredArguments, "--image-digest"]),
     /--image-digest requires a value\./u,
   );
 });

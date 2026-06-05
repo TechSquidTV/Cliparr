@@ -1,4 +1,4 @@
-import { stringValue } from "@/providers/shared/utils";
+import { stringValue } from "@/providers/shared/utilities";
 
 export const PLEX_BASE_URL_MODE_AUTO = "auto";
 export const PLEX_BASE_URL_MODE_MANUAL = "manual";

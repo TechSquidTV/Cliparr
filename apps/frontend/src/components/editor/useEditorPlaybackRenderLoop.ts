@@ -7,9 +7,9 @@ import {
 import { getActiveSubtitleCue } from "@/lib/subtitles/getActiveSubtitleCue";
 import { renderSubtitleCue } from "@/lib/subtitles/renderSubtitleCue";
 import type { SubtitleCue, SubtitleStyleSettings } from "@/lib/subtitles/types";
-import { errorMessage, themeValue } from "@/components/editor/editorUtils";
+import { errorMessage, themeValue } from "@/components/editor/editorUtilities";
 
-type RefValue<T> = {
+type ReferenceValue<T> = {
   current: T;
 };
 
@@ -19,32 +19,34 @@ interface StaticVideoFrame {
 }
 
 interface UseEditorPlaybackRenderLoopOptions {
-  canvasRef: RefValue<HTMLCanvasElement | null>;
-  inputRef: RefValue<Input | null>;
-  videoSinkRef: RefValue<CanvasSink | null>;
-  staticVideoFrameRef: RefValue<HTMLCanvasElement | null>;
-  videoFrameIteratorRef: RefValue<AsyncGenerator<
+  canvasRef: ReferenceValue<HTMLCanvasElement | null>;
+  inputRef: ReferenceValue<Input | null>;
+  videoSinkRef: ReferenceValue<CanvasSink | null>;
+  staticVideoFrameRef: ReferenceValue<HTMLCanvasElement | null>;
+  videoFrameIteratorRef: ReferenceValue<AsyncGenerator<
     WrappedCanvas,
     void,
     unknown
   > | null>;
-  nextFrameRef: RefValue<WrappedCanvas | null>;
-  displayedFrameRef: RefValue<WrappedCanvas | null>;
-  displayedStaticFrameRef: RefValue<StaticVideoFrame | null>;
-  animationFrameRef: RefValue<number | null>;
-  renderIntervalRef: RefValue<number | null>;
-  generationRef: RefValue<number>;
-  playingRef: RefValue<boolean>;
-  playbackTimeAtStartRef: RefValue<number>;
-  playbackStopTimeRef: RefValue<number | null>;
-  playbackResetTimeRef: RefValue<number | null>;
-  sourceTimelineOffsetRef: RefValue<number>;
-  skipLiveWaitRef: RefValue<boolean>;
-  durationRef: RefValue<number>;
-  endTimeRef: RefValue<number>;
-  subtitleCuesRef: RefValue<readonly SubtitleCue[]>;
-  subtitlesEnabledRef: RefValue<boolean>;
-  subtitleStyleSettingsRef: RefValue<SubtitleStyleSettings | undefined>;
+  nextFrameRef: ReferenceValue<WrappedCanvas | null>;
+  displayedFrameRef: ReferenceValue<WrappedCanvas | null>;
+  displayedStaticFrameRef: ReferenceValue<StaticVideoFrame | null>;
+  animationFrameRef: ReferenceValue<number | null>;
+  renderIntervalRef: ReferenceValue<ReturnType<
+    typeof globalThis.setInterval
+  > | null>;
+  generationRef: ReferenceValue<number>;
+  playingRef: ReferenceValue<boolean>;
+  playbackTimeAtStartRef: ReferenceValue<number>;
+  playbackStopTimeRef: ReferenceValue<number | null>;
+  playbackResetTimeRef: ReferenceValue<number | null>;
+  sourceTimelineOffsetRef: ReferenceValue<number>;
+  skipLiveWaitRef: ReferenceValue<boolean>;
+  durationRef: ReferenceValue<number>;
+  endTimeRef: ReferenceValue<number>;
+  subtitleCuesRef: ReferenceValue<readonly SubtitleCue[]>;
+  subtitlesEnabledRef: ReferenceValue<boolean>;
+  subtitleStyleSettingsRef: ReferenceValue<SubtitleStyleSettings | undefined>;
   getPlaybackTime: () => number;
   clampTime: (seconds: number) => number;
   pausePlayback: (storeCurrentTime?: boolean) => void;
@@ -253,29 +255,29 @@ export function useEditorPlaybackRenderLoop({
       try {
         while (generation === generationRef.current) {
           const result = await iterator.next();
-          const newNextFrame = result.done
+          const nextCandidateFrame = result.done
             ? null
             : (result.value as WrappedCanvas);
-          if (!newNextFrame || generation !== generationRef.current) {
+          if (!nextCandidateFrame || generation !== generationRef.current) {
             break;
           }
 
           const playbackTime = getPlaybackTime();
           if (
             fromSourceTimelineTime(
-              newNextFrame.timestamp,
+              nextCandidateFrame.timestamp,
               sourceTimelineOffsetRef.current,
             ) <= playbackTime
           ) {
-            drawFrame(newNextFrame);
+            drawFrame(nextCandidateFrame);
           } else {
-            nextFrameRef.current = newNextFrame;
+            nextFrameRef.current = nextCandidateFrame;
             break;
           }
         }
-      } catch (err) {
+      } catch (error) {
         if (generation === generationRef.current) {
-          setError(errorMessage(err));
+          setError(errorMessage(error));
         }
       }
     },
@@ -357,7 +359,7 @@ export function useEditorPlaybackRenderLoop({
       animationFrameRef.current = null;
     }
     if (renderIntervalRef.current !== null) {
-      window.clearInterval(renderIntervalRef.current);
+      globalThis.clearInterval(renderIntervalRef.current);
       renderIntervalRef.current = null;
     }
   }, [animationFrameRef, renderIntervalRef]);
@@ -369,7 +371,7 @@ export function useEditorPlaybackRenderLoop({
       animationFrameRef.current = requestAnimationFrame(tick);
     };
     animationFrameRef.current = requestAnimationFrame(tick);
-    renderIntervalRef.current = window.setInterval(renderFrame, 500);
+    renderIntervalRef.current = globalThis.setInterval(renderFrame, 500);
   }, [animationFrameRef, renderFrame, renderIntervalRef, stopRenderLoop]);
 
   return {

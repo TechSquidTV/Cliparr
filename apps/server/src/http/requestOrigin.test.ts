@@ -31,68 +31,68 @@ function makeRequest(
         return options?.forwardedHost;
       }
 
-      return undefined;
+      return;
     },
   } as Pick<Request, "get" | "hostname" | "secure">;
 }
 
 void test("keeps proxied HTTPS requests secure", () => {
-  const req = makeRequest(true, "cliparr.example.com");
+  const request = makeRequest(true, "cliparr.example.com");
 
   assert.equal(
-    getRequestRouteUrl(req, "/auth/plex/complete"),
+    getRequestRouteUrl(request, "/auth/plex/complete"),
     "https://cliparr.example.com/auth/plex/complete",
   );
-  assert.equal(requestOriginIsPotentiallyTrustworthy(req), true);
-  assert.equal(getSessionCookieOptions(req.secure).secure, true);
-  assert.equal(getSessionCookieClearOptions(req.secure).secure, true);
+  assert.equal(requestOriginIsPotentiallyTrustworthy(request), true);
+  assert.equal(getSessionCookieOptions(request.secure).secure, true);
+  assert.equal(getSessionCookieClearOptions(request.secure).secure, true);
 });
 
 void test("uses the trusted forwarded host for callback URLs when a proxy rewrites Host", () => {
-  const req = makeRequest(true, "cliparr:3000", {
+  const request = makeRequest(true, "cliparr:3000", {
     forwardedHost: "cliparr.example.com:8443",
     hostname: "cliparr.example.com",
   });
 
   assert.equal(
-    getRequestRouteUrl(req, "/auth/plex/complete"),
+    getRequestRouteUrl(request, "/auth/plex/complete"),
     "https://cliparr.example.com:8443/auth/plex/complete",
   );
 });
 
 void test("allows localhost HTTP requests", () => {
-  const req = makeRequest(false, "localhost:3000");
+  const request = makeRequest(false, "localhost:3000");
 
   assert.equal(
-    getRequestRouteUrl(req, "/auth/plex/complete"),
+    getRequestRouteUrl(request, "/auth/plex/complete"),
     "http://localhost:3000/auth/plex/complete",
   );
-  assert.equal(requestOriginIsPotentiallyTrustworthy(req), true);
-  assert.equal(getSessionCookieOptions(req.secure).secure, false);
+  assert.equal(requestOriginIsPotentiallyTrustworthy(request), true);
+  assert.equal(getSessionCookieOptions(request.secure).secure, false);
 });
 
 void test("treats loopback IP addresses as potentially trustworthy over HTTP", () => {
-  const req = makeRequest(false, "127.0.0.1:3000");
+  const request = makeRequest(false, "127.0.0.1:3000");
 
-  assert.equal(requestOriginIsPotentiallyTrustworthy(req), true);
+  assert.equal(requestOriginIsPotentiallyTrustworthy(request), true);
 });
 
 void test("drops secure-only browser policies for custom HTTP domains", () => {
-  const req = makeRequest(false, "cliparr.example.com");
+  const request = makeRequest(false, "cliparr.example.com");
 
   assert.equal(
-    getRequestRouteUrl(req, "/auth/plex/complete"),
+    getRequestRouteUrl(request, "/auth/plex/complete"),
     "http://cliparr.example.com/auth/plex/complete",
   );
-  assert.equal(requestOriginIsPotentiallyTrustworthy(req), false);
-  assert.equal(getSessionCookieClearOptions(req.secure).secure, false);
+  assert.equal(requestOriginIsPotentiallyTrustworthy(request), false);
+  assert.equal(getSessionCookieClearOptions(request.secure).secure, false);
 });
 
 void test("rejects invalid host headers before building callback URLs", () => {
-  const req = makeRequest(false, "user@example.com");
+  const request = makeRequest(false, "user@example.com");
 
   assert.throws(
-    () => getRequestRouteUrl(req, "/auth/plex/complete"),
+    () => getRequestRouteUrl(request, "/auth/plex/complete"),
     /Request host header is invalid/,
   );
 });

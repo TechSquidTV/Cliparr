@@ -13,9 +13,9 @@ import {
   type ClipTimelineEffects,
   type ClipTimelineAction,
   type TimelineZoomLevel,
-} from "@/components/editor/editorUtils";
+} from "@/components/editor/editorUtilities";
 
-interface EditorTimelineProps {
+interface EditorTimelineProperties {
   timelineRef: RefObject<TimelineState | null>;
   timelineWheelRegionRef: RefObject<HTMLDivElement | null>;
   timelineData: ClipTimelineData;
@@ -61,7 +61,7 @@ export function EditorTimeline({
   seekToTime,
   onCursorDragStart,
   onCursorDrag,
-}: EditorTimelineProps) {
+}: EditorTimelineProperties) {
   const getReadyFillStyle = useCallback(
     (action: ClipTimelineAction): CSSProperties | null => {
       if (

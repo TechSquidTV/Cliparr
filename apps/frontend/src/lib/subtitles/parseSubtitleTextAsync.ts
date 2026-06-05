@@ -25,7 +25,7 @@ export interface SubtitleParseWorker {
 export type CreateSubtitleParseWorker = () => SubtitleParseWorker;
 
 function createSubtitleParseWorker(): SubtitleParseWorker {
-  return new Worker(new URL("./parseSubtitleText.worker.ts", import.meta.url), {
+  return new Worker(new URL("parseSubtitleText.worker.ts", import.meta.url), {
     name: "cliparr-subtitle-parser",
     type: "module",
   });
@@ -37,8 +37,8 @@ function createAbortError() {
   return error;
 }
 
-function toError(err: unknown) {
-  return err instanceof Error ? err : new Error(String(err));
+function toError(error: unknown) {
+  return error instanceof Error ? error : new Error(String(error));
 }
 
 export async function parseSubtitleTextAsync(
@@ -78,8 +78,8 @@ export async function parseSubtitleTextAsync(
       finish(() => {
         try {
           resolve(parseSubtitleText(text, format));
-        } catch (err) {
-          reject(toError(err));
+        } catch (error) {
+          reject(toError(error));
         }
       });
     };

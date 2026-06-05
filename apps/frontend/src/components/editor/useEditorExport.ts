@@ -70,7 +70,7 @@ interface ExportReadinessInput {
   subtitleLoading: boolean;
 }
 
-interface UseEditorExportProps {
+interface UseEditorExportProperties {
   session: EditorSession;
   startTime: number;
   endTime: number;
@@ -100,7 +100,7 @@ export function useEditorExport({
   subtitleLoading,
   subtitleCues,
   subtitleStyleSettings,
-}: UseEditorExportProps) {
+}: UseEditorExportProperties) {
   const [resolution, setResolution] = useState<ExportResolution>("original");
   const [exportFormat, setExportFormat] = useState<ExportFormat>("mp4");
   const [gifPreset, setGifPreset] = useState<GifExportPreset>(
@@ -138,12 +138,13 @@ export function useEditorExport({
     : "GIF exports are video only.";
   const effectiveIncludeAudio = audioDisabledReason ? false : includeAudio;
 
-  const effectiveExportSourcePreference =
-    exportSourcePreference === "direct" && !session.directSource
-      ? "auto"
-      : exportSourcePreference === "hls" && !session.hlsSource
-        ? "auto"
-        : exportSourcePreference;
+  let effectiveExportSourcePreference = exportSourcePreference;
+  if (
+    (exportSourcePreference === "direct" && !session.directSource) ||
+    (exportSourcePreference === "hls" && !session.hlsSource)
+  ) {
+    effectiveExportSourcePreference = "auto";
+  }
 
   const exportSource = useMemo(
     () =>
@@ -264,17 +265,17 @@ export function useEditorExport({
         session.duration)
       : session.duration;
   const sourceBitrateKbps =
-    exportSource.kind !== "none"
-      ? session.exportEstimateMetadata?.sourceBitrateKbps
-      : null;
+    exportSource.kind === "none"
+      ? null
+      : session.exportEstimateMetadata?.sourceBitrateKbps;
   const videoBitrateKbps =
-    exportSource.kind !== "none"
-      ? session.exportEstimateMetadata?.videoBitrateKbps
-      : null;
+    exportSource.kind === "none"
+      ? null
+      : session.exportEstimateMetadata?.videoBitrateKbps;
   const audioBitrateKbps =
-    exportSource.kind !== "none"
-      ? session.exportEstimateMetadata?.audioBitrateKbps
-      : null;
+    exportSource.kind === "none"
+      ? null
+      : session.exportEstimateMetadata?.audioBitrateKbps;
   const hlsManifestBitrateKbps =
     exportSource.kind === "hls" ? hlsEstimateMetadata?.bitrateKbps : null;
   const hlsManifestBitrateBasis =
@@ -284,7 +285,7 @@ export function useEditorExport({
   const estimateVideoBitrateKbps =
     exportSource.kind === "direct" ? videoBitrateKbps : null;
   const estimateAudioBitrateKbps =
-    exportSource.kind !== "none" ? audioBitrateKbps : null;
+    exportSource.kind === "none" ? null : audioBitrateKbps;
   const outputSizeEstimate = useMemo(
     () =>
       estimateExportOutputSize({
@@ -577,14 +578,14 @@ export function useEditorExport({
         "export.output.bytes": blob.size,
         ...buildExportEstimateActualLogFields(outputSizeEstimate, blob.size),
       });
-    } catch (err) {
-      warnWithError(exportLogger, err, "Editor export failed.", {
+    } catch (error) {
+      warnWithError(exportLogger, error, "Editor export failed.", {
         ...logEventFields("editor.export", "failure"),
         ...logDurationFields(startedAt),
-        ...logErrorFields(err),
+        ...logErrorFields(error),
         ...baseFields,
       });
-      setExportError(err instanceof Error ? err.message : "Export failed");
+      setExportError(error instanceof Error ? error.message : "Export failed");
     } finally {
       setExporting(false);
     }
@@ -922,11 +923,12 @@ export function buildExportSourceMessage({
   }
 
   const exportUsesDirectSource = resolvedSourceKind === "direct";
-  const prefix = exportUsesDirectSource
-    ? "Export switched to direct media"
-    : hlsFallbackInfo.category === "shared-export-blocking"
-      ? "Export cannot use this HLS stream"
-      : "Trying HLS";
+  let prefix = "Trying HLS";
+  if (exportUsesDirectSource) {
+    prefix = "Export switched to direct media";
+  } else if (hlsFallbackInfo.category === "shared-export-blocking") {
+    prefix = "Export cannot use this HLS stream";
+  }
 
   return `${prefix}: ${hlsFallbackInfo.message}`;
 }

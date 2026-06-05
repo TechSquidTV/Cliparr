@@ -11,7 +11,7 @@ import {
   Video,
 } from "lucide-react";
 import { cliparrClient, type CliparrVersionInfo } from "@/api/cliparrClient";
-import { cn } from "@/lib/utils";
+import { cn } from "@/lib/utilities";
 import { EDITOR_THUMBNAIL_VIEW_TRANSITION_NAME } from "@/lib/viewTransitions";
 import {
   formatProviderName,
@@ -41,7 +41,7 @@ import type {
   ViewerPlaybackGroup,
 } from "@/providers/types";
 
-interface Props {
+interface Properties {
   activeViewTransitionSessionId?: string | null;
   onSelectSession: (session: CurrentlyPlayingItem) => void;
   onOpenLocalVideo: () => void;
@@ -49,12 +49,12 @@ interface Props {
   onDisconnect: () => Promise<void> | void;
 }
 
-function errorMessage(err: unknown, fallback: string) {
-  return err instanceof Error && err.message ? err.message : fallback;
+function errorMessage(error: unknown, fallback: string) {
+  return error instanceof Error && error.message ? error.message : fallback;
 }
 
 function looksLikeGeneratedSourceName(value: string) {
-  return /^[a-f0-9]{12,64}$/i.test(value.trim());
+  return /^[\da-f]{12,64}$/i.test(value.trim());
 }
 
 function formatSourceLabel(source: { name: string; providerId: string }) {
@@ -567,7 +567,7 @@ export default function DashboardScreen({
   onOpenLocalVideo,
   onOpenSources,
   onDisconnect,
-}: Props) {
+}: Properties) {
   const [viewers, setViewers] = useState<ViewerPlaybackGroup[]>([]);
   const [sourceErrors, setSourceErrors] = useState<SourcePlaybackError[]>([]);
   const [versionInfo, setVersionInfo] = useState<CliparrVersionInfo | null>(
@@ -576,10 +576,10 @@ export default function DashboardScreen({
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState("");
-  const hasFetchedSessionsRef = useRef(false);
+  const hasFetchedSessionsReference = useRef(false);
 
   const fetchSessions = useCallback(async () => {
-    const isInitialFetch = !hasFetchedSessionsRef.current;
+    const isInitialFetch = !hasFetchedSessionsReference.current;
     if (isInitialFetch) {
       setLoading(true);
     } else {
@@ -591,12 +591,12 @@ export default function DashboardScreen({
       const playback = await cliparrClient.getCurrentlyPlaying();
       setViewers(playback.viewers);
       setSourceErrors(playback.sourceErrors);
-    } catch (err: unknown) {
-      setError(errorMessage(err, "Could not load sessions."));
+    } catch (error_: unknown) {
+      setError(errorMessage(error_, "Could not load sessions."));
       setViewers([]);
       setSourceErrors([]);
     } finally {
-      hasFetchedSessionsRef.current = true;
+      hasFetchedSessionsReference.current = true;
       setLoading(false);
       setRefreshing(false);
     }
@@ -642,12 +642,13 @@ export default function DashboardScreen({
     versionInfo?.status === "update_available" && versionInfo.latestRelease
       ? versionInfo.latestRelease
       : null;
-  const releaseChecksDisabledReason =
-    versionLabel && versionInfo?.status === "unknown"
-      ? versionLabel === "dev"
+  let releaseChecksDisabledReason: string | null = null;
+  if (versionLabel && versionInfo?.status === "unknown") {
+    releaseChecksDisabledReason =
+      versionLabel === "dev"
         ? "Local development build; release update checks are disabled"
-        : "Non-release build; release update checks are disabled"
-      : null;
+        : "Non-release build; release update checks are disabled";
+  }
 
   return (
     <div className="min-h-screen bg-background p-4 text-foreground sm:p-8">

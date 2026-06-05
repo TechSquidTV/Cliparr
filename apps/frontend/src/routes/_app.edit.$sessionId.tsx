@@ -9,8 +9,8 @@ import {
 import { getPendingEditorTransitionSession } from "@/lib/viewTransitions";
 import { router } from "@/router";
 
-function errorMessage(err: unknown, fallback: string) {
-  return err instanceof Error && err.message ? err.message : fallback;
+function errorMessage(error: unknown, fallback: string) {
+  return error instanceof Error && error.message ? error.message : fallback;
 }
 
 function EditorRouteComponent() {
@@ -23,17 +23,17 @@ function EditorRouteComponent() {
   const [loading, setLoading] = useState(() => !transitionSession);
   const [error, setError] = useState("");
   const [attempt, setAttempt] = useState(0);
-  const sessionRef = useRef(session);
+  const sessionReference = useRef(session);
 
   useEffect(() => {
-    sessionRef.current = session;
+    sessionReference.current = session;
   }, [session]);
 
   useEffect(() => {
     let cancelled = false;
     const transitionSession = getPendingEditorTransitionSession(sessionId);
     const hasWarmSession =
-      Boolean(transitionSession) || sessionRef.current?.id === sessionId;
+      Boolean(transitionSession) || sessionReference.current?.id === sessionId;
 
     if (transitionSession) {
       setSession(transitionSession);
@@ -64,10 +64,10 @@ function EditorRouteComponent() {
         if (!cancelled) {
           setSession(editorSessionFromCurrentlyPlaying(activeSession));
         }
-      } catch (err: unknown) {
+      } catch (error_: unknown) {
         if (!cancelled) {
           setSession(null);
-          setError(errorMessage(err, "Could not load this session."));
+          setError(errorMessage(error_, "Could not load this session."));
         }
       } finally {
         if (!cancelled) {
@@ -107,7 +107,7 @@ function EditorRouteComponent() {
               type="button"
               onClick={() => {
                 if (canGoBack) {
-                  window.history.back();
+                  globalThis.history.back();
                   return;
                 }
 
@@ -135,7 +135,7 @@ function EditorRouteComponent() {
       session={session}
       onBack={() => {
         if (canGoBack) {
-          window.history.back();
+          globalThis.history.back();
           return;
         }
 

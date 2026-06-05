@@ -388,7 +388,7 @@ void test("estimates export output sizes before export", () => {
   assert.equal(webmEstimate.bytes, 3_038_500);
   assert.equal(movEstimate.bytes, 5_227_250);
   assert.equal(mkvEstimate.bytes, 3_424_750);
-  assert(
+  assert.ok(
     typeof webmEstimate.bytes === "number" &&
       typeof mp4Estimate.bytes === "number" &&
       webmEstimate.bytes < mp4Estimate.bytes,
@@ -445,7 +445,7 @@ void test("decreases video estimates as quality presets get smaller", () => {
   assert.equal(sharpEstimate.bytes, 4_583_500);
   assert.equal(balancedEstimate.bytes, 2_394_750);
   assert.equal(compactEstimate.bytes, 1_519_250);
-  assert(
+  assert.ok(
     typeof sharpEstimate.bytes === "number" &&
       typeof balancedEstimate.bytes === "number" &&
       typeof compactEstimate.bytes === "number" &&
@@ -492,7 +492,7 @@ void test("estimates GIF presets in increasing size order", () => {
   assert.equal(efficientEstimate.basis, "gif-heuristic");
   assert.equal(balancedEstimate.basis, "gif-heuristic");
   assert.equal(sharpEstimate.basis, "gif-heuristic");
-  assert(
+  assert.ok(
     typeof compactEstimate.bytes === "number" &&
       typeof efficientEstimate.bytes === "number" &&
       typeof balancedEstimate.bytes === "number" &&
@@ -612,7 +612,7 @@ void test("uses HLS manifest bitrate when available for provider HLS estimates",
       outputDimensions: { width: 1920, height: 1072 },
       includeAudio: true,
       resolution: "original",
-      hlsManifestBitrateKbps: 5_400,
+      hlsManifestBitrateKbps: 5400,
       hlsManifestBitrateBasis: "average-bandwidth",
     }),
     {
@@ -630,7 +630,7 @@ void test("removes audio bitrate from HLS manifest estimates for video-only expo
       outputDimensions: { width: 1920, height: 1072 },
       includeAudio: false,
       resolution: "original",
-      hlsManifestBitrateKbps: 5_400,
+      hlsManifestBitrateKbps: 5400,
       hlsManifestBitrateBasis: "average-bandwidth",
       audioBitrateKbps: 160,
     }),
@@ -649,7 +649,7 @@ void test("uses codec heuristics for forced video quality even with HLS metadata
       outputDimensions: { width: 1920, height: 1072 },
       includeAudio: true,
       resolution: "original",
-      hlsManifestBitrateKbps: 5_400,
+      hlsManifestBitrateKbps: 5400,
       hlsManifestBitrateBasis: "average-bandwidth",
       videoQuality: "balanced",
     }),
@@ -686,8 +686,8 @@ void test("uses provider source bitrate metadata for original direct estimates",
       outputDimensions: { width: 1920, height: 1080 },
       includeAudio: true,
       resolution: "original",
-      sourceBitrateKbps: 3_000,
-      videoBitrateKbps: 2_600,
+      sourceBitrateKbps: 3000,
+      videoBitrateKbps: 2600,
       audioBitrateKbps: 160,
     }),
     {
@@ -703,7 +703,7 @@ void test("uses provider source bitrate metadata for original direct estimates",
       outputDimensions: { width: 1920, height: 1080 },
       includeAudio: true,
       resolution: "original",
-      videoBitrateKbps: 2_600,
+      videoBitrateKbps: 2600,
       audioBitrateKbps: 160,
     }),
     {
@@ -719,7 +719,7 @@ void test("uses provider source bitrate metadata for original direct estimates",
       outputDimensions: { width: 1920, height: 1080 },
       includeAudio: true,
       resolution: "original",
-      videoBitrateKbps: 2_600,
+      videoBitrateKbps: 2600,
     }),
     {
       bytes: 3_553_500,

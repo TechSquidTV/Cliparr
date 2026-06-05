@@ -11,7 +11,7 @@ import {
   Trash2,
   X,
 } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn } from "@/lib/utilities";
 import {
   Tooltip,
   TooltipContent,
@@ -156,7 +156,7 @@ function sourceStatus(source: MediaSource) {
   };
 }
 
-interface SourcesDialogHeaderProps {
+interface SourcesDialogHeaderProperties {
   counts: SourceCounts;
   forceAddSourceOpen: boolean;
   showConnectPanel: boolean;
@@ -182,21 +182,22 @@ export function SourcesDialogHeader({
   onReloadList,
   onRefreshAll,
   onClose,
-}: SourcesDialogHeaderProps) {
-  const reloadDisabledReason =
-    loading || reloading
-      ? "Source list is already loading."
-      : refreshingAll
-        ? "Wait for refresh to finish."
-        : null;
-  const refreshAllDisabledReason =
-    counts.all === 0
-      ? "No sources to refresh."
-      : hasBusyActions || refreshingAll
-        ? "Wait for the current action to finish."
-        : loading || reloading
-          ? "Source list is still loading."
-          : null;
+}: SourcesDialogHeaderProperties) {
+  let reloadDisabledReason: string | null = null;
+  if (loading || reloading) {
+    reloadDisabledReason = "Source list is already loading.";
+  } else if (refreshingAll) {
+    reloadDisabledReason = "Wait for refresh to finish.";
+  }
+
+  let refreshAllDisabledReason: string | null = null;
+  if (counts.all === 0) {
+    refreshAllDisabledReason = "No sources to refresh.";
+  } else if (hasBusyActions || refreshingAll) {
+    refreshAllDisabledReason = "Wait for the current action to finish.";
+  } else if (loading || reloading) {
+    refreshAllDisabledReason = "Source list is still loading.";
+  }
   const headerMetrics = [
     {
       label: "Total",
@@ -315,7 +316,7 @@ export function SourcesDialogHeader({
   );
 }
 
-interface SourcesDialogFiltersProps {
+interface SourcesDialogFiltersProperties {
   searchInputRef: RefObject<HTMLInputElement | null>;
   query: string;
   providerFilter: string;
@@ -337,7 +338,7 @@ export function SourcesDialogFilters({
   onQueryChange,
   onProviderFilterChange,
   onStatusFilterChange,
-}: SourcesDialogFiltersProps) {
+}: SourcesDialogFiltersProperties) {
   return (
     <div className="border-b border-border bg-background px-4 py-3 sm:px-5">
       <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
@@ -398,7 +399,7 @@ export function SourcesDialogFilters({
   );
 }
 
-interface SourcesDialogAlertsProps {
+interface SourcesDialogAlertsProperties {
   error: string;
   feedback: Feedback | null;
 }
@@ -406,7 +407,7 @@ interface SourcesDialogAlertsProps {
 export function SourcesDialogAlerts({
   error,
   feedback,
-}: SourcesDialogAlertsProps) {
+}: SourcesDialogAlertsProperties) {
   const reduceMotion = useReducedMotion();
   const transition = reduceMotion
     ? { duration: 0 }
@@ -453,7 +454,7 @@ export function SourcesDialogAlerts({
   );
 }
 
-interface SourcesConnectSectionProps {
+interface SourcesConnectSectionProperties {
   forceAddSourceOpen: boolean;
   onClosePanel: () => void;
   onConnected: (session: ProviderSession) => Promise<void> | void;
@@ -463,7 +464,7 @@ export function SourcesConnectSection({
   forceAddSourceOpen,
   onClosePanel,
   onConnected,
-}: SourcesConnectSectionProps) {
+}: SourcesConnectSectionProperties) {
   return (
     <section className="rounded-lg border border-border bg-card p-4 sm:p-5">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
@@ -494,14 +495,14 @@ export function SourcesConnectSection({
       <div className="mt-4">
         <SourceConnectPanel
           onConnected={onConnected}
-          onCancel={!forceAddSourceOpen ? onClosePanel : undefined}
+          onCancel={forceAddSourceOpen ? undefined : onClosePanel}
         />
       </div>
     </section>
   );
 }
 
-interface SourcesEmptyStateProps {
+interface SourcesEmptyStateProperties {
   title: string;
   description: string;
 }
@@ -509,7 +510,7 @@ interface SourcesEmptyStateProps {
 export function SourcesEmptyState({
   title,
   description,
-}: SourcesEmptyStateProps) {
+}: SourcesEmptyStateProperties) {
   return (
     <div className="rounded-lg border border-dashed border-border bg-background px-6 py-10 text-center">
       <div className="mx-auto mb-3 flex h-10 w-10 items-center justify-center rounded-md border border-border bg-card">
@@ -523,7 +524,7 @@ export function SourcesEmptyState({
   );
 }
 
-interface SourceCardProps {
+interface SourceCardProperties {
   source: MediaSource;
   draftName: string;
   draftBaseUrl: string;
@@ -549,7 +550,7 @@ export function SourceCard({
   onToggleEnabled,
   onRefresh,
   onRemove,
-}: SourceCardProps) {
+}: SourceCardProperties) {
   const status = sourceStatus(source);
   const StatusIcon = status.icon;
   const trimmedName = draftName.trim();
@@ -560,15 +561,16 @@ export function SourceCard({
     Boolean(trimmedBaseUrl) &&
     !isBusy &&
     (trimmedName !== source.name || trimmedBaseUrl !== source.baseUrl);
-  const saveDisabledReason = isBusy
-    ? "Wait for the current action to finish."
-    : !trimmedName
-      ? "Enter a display name."
-      : !trimmedBaseUrl
-        ? "Enter a server URL."
-        : trimmedName === source.name && trimmedBaseUrl === source.baseUrl
-          ? "No changes to save."
-          : null;
+  let saveDisabledReason: string | null = null;
+  if (isBusy) {
+    saveDisabledReason = "Wait for the current action to finish.";
+  } else if (!trimmedName) {
+    saveDisabledReason = "Enter a display name.";
+  } else if (!trimmedBaseUrl) {
+    saveDisabledReason = "Enter a server URL.";
+  } else if (trimmedName === source.name && trimmedBaseUrl === source.baseUrl) {
+    saveDisabledReason = "No changes to save.";
+  }
   const busyDisabledReason = isBusy
     ? "Wait for the current action to finish."
     : null;
@@ -713,7 +715,7 @@ export function SourceCard({
       </AnimatePresence>
 
       <div className="mt-4 flex flex-wrap gap-2">
-        <TooltipWrap message={!canSaveEdits ? saveDisabledReason : null}>
+        <TooltipWrap message={canSaveEdits ? null : saveDisabledReason}>
           <button
             type="button"
             onClick={() => void onSave()}

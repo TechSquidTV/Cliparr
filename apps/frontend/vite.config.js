@@ -1,14 +1,13 @@
 import tailwindcss from "@tailwindcss/vite";
 import { tanstackRouter } from "@tanstack/router-plugin/vite";
 import react from "@vitejs/plugin-react";
-import path from "path";
-import { fileURLToPath } from "url";
+import path from "node:path";
 import { defineConfig, loadEnv } from "vite";
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const configDirectory = import.meta.dirname;
 
 export default defineConfig(({ mode }) => {
-  const env = loadEnv(mode, path.resolve(__dirname, "../.."), "");
+  const env = loadEnv(mode, path.resolve(configDirectory, "../.."), "");
   const apiPort = env.PORT || "3000";
   const apiTarget = env.CLIPARR_API_URL || `http://localhost:${apiPort}`;
   return {
@@ -47,7 +46,7 @@ export default defineConfig(({ mode }) => {
     resolve: {
       dedupe: ["mediabunny"],
       alias: {
-        "@": path.resolve(__dirname, "src"),
+        "@": path.resolve(configDirectory, "src"),
       },
     },
     server: {

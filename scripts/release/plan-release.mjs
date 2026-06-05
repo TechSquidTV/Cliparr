@@ -17,8 +17,8 @@ import {
 
 const validChannels = new Set(["stable", "rc", "beta"]);
 
-function parseArgs(argv) {
-  const args = {
+function parseArguments(argv) {
+  const arguments_ = {
     channel: "stable",
     target: "HEAD",
     githubOutput: false,
@@ -26,41 +26,47 @@ function parseArgs(argv) {
   };
 
   for (let index = 0; index < argv.length; index += 1) {
-    const arg = argv[index];
+    const argument = argv[index];
 
-    if (arg === "--github-output") {
-      args.githubOutput = true;
+    if (argument === "--github-output") {
+      arguments_.githubOutput = true;
       continue;
     }
 
-    if (arg === "--channel" || arg === "--target" || arg === "--image-name") {
+    if (
+      argument === "--channel" ||
+      argument === "--target" ||
+      argument === "--image-name"
+    ) {
       const value = argv[index + 1];
 
       if (!value) {
-        throw new Error(`${arg} requires a value.`);
+        throw new Error(`${argument} requires a value.`);
       }
 
-      args[
-        arg.slice(2).replace(/-([a-z])/g, (_, letter) => letter.toUpperCase())
+      arguments_[
+        argument
+          .slice(2)
+          .replaceAll(/-([a-z])/g, (_, letter) => letter.toUpperCase())
       ] = value;
       index += 1;
       continue;
     }
 
-    throw new Error(`Unknown argument ${arg}.`);
+    throw new Error(`Unknown argument ${argument}.`);
   }
 
-  if (!validChannels.has(args.channel)) {
+  if (!validChannels.has(arguments_.channel)) {
     throw new Error(
-      `Invalid release channel ${args.channel}. Use stable, rc, or beta.`,
+      `Invalid release channel ${arguments_.channel}. Use stable, rc, or beta.`,
     );
   }
 
-  return args;
+  return arguments_;
 }
 
-function git(args) {
-  return execFileSync("git", args, {
+function git(arguments_) {
+  return execFileSync("git", arguments_, {
     encoding: "utf8",
     stdio: ["ignore", "pipe", "pipe"],
   }).trim();
@@ -79,7 +85,7 @@ async function githubApi(path) {
         }),
       );
     } catch {
-      return undefined;
+      return;
     }
   }
 
@@ -143,9 +149,7 @@ function writeGithubOutput(outputs) {
 
   for (const [key, value] of Object.entries(outputs)) {
     if (Array.isArray(value)) {
-      lines.push(`${key}<<EOF`);
-      lines.push(...value);
-      lines.push("EOF");
+      lines.push(`${key}<<EOF`, ...value, "EOF");
     } else {
       lines.push(`${key}=${value}`);
     }
@@ -167,7 +171,7 @@ async function titleForCommitMessage(message) {
     : extractReleaseTitleFromCommitMessage(message);
 }
 
-async function planRelease(args) {
+async function planRelease(arguments_) {
   const tags = getTags();
   const previousStableTag = latestStableTag(tags);
 
@@ -185,8 +189,10 @@ async function planRelease(args) {
     );
   }
 
-  const messages = getCommitMessages(previousStableTag, args.target);
-  const titles = await Promise.all(messages.map(titleForCommitMessage));
+  const messages = getCommitMessages(previousStableTag, arguments_.target);
+  const titles = await Promise.all(
+    messages.map((message) => titleForCommitMessage(message)),
+  );
   const summary = summarizeChanges(titles);
 
   if (summary.invalidChanges.length > 0) {
@@ -207,9 +213,9 @@ async function planRelease(args) {
   const baseVersion = formatVersion(
     bumpVersion(previousStableVersion, summary.releaseType),
   );
-  const isPrerelease = args.channel !== "stable";
+  const isPrerelease = arguments_.channel !== "stable";
   const version = isPrerelease
-    ? `${baseVersion}-${args.channel}.${nextPrereleaseNumber(tags, baseVersion, args.channel)}`
+    ? `${baseVersion}-${arguments_.channel}.${nextPrereleaseNumber(tags, baseVersion, arguments_.channel)}`
     : baseVersion;
   const tag = formatTag(version);
 
@@ -218,14 +224,14 @@ async function planRelease(args) {
   }
 
   const previousPrereleaseTag = isPrerelease
-    ? latestPrereleaseTag(tags, baseVersion, args.channel)
+    ? latestPrereleaseTag(tags, baseVersion, arguments_.channel)
     : undefined;
   const previousTag = previousPrereleaseTag ?? previousStableTag;
-  const shortSha = getShortSha(args.target);
+  const shortSha = getShortSha(arguments_.target);
   const dockerTags = buildDockerTags({
-    imageName: args.imageName,
+    imageName: arguments_.imageName,
     version,
-    channel: args.channel,
+    channel: arguments_.channel,
     shortSha,
   });
 
@@ -243,10 +249,10 @@ async function planRelease(args) {
 }
 
 try {
-  const args = parseArgs(process.argv.slice(2));
-  const plan = await planRelease(args);
+  const arguments_ = parseArguments(process.argv.slice(2));
+  const plan = await planRelease(arguments_);
 
-  if (args.githubOutput) {
+  if (arguments_.githubOutput) {
     writeGithubOutput(plan);
   }
 

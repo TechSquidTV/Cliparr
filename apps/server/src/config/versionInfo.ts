@@ -82,7 +82,7 @@ function normalizeVersion(value: string | undefined) {
 export function parseStableSemverTag(tag: string) {
   const match = STABLE_SEMVER_TAG_PATTERN.exec(tag.trim());
   if (!match?.groups) {
-    return undefined;
+    return;
   }
 
   return {
@@ -106,7 +106,7 @@ function compareSemverVersions(left: SemverVersion, right: SemverVersion) {
 
 function latestReleaseFromPayload(payload: unknown) {
   if (!payload || typeof payload !== "object") {
-    return undefined;
+    return;
   }
 
   const release = payload as Record<string, unknown>;
@@ -115,7 +115,7 @@ function latestReleaseFromPayload(payload: unknown) {
     typeof release.html_url !== "string" ||
     typeof release.published_at !== "string"
   ) {
-    return undefined;
+    return;
   }
 
   return {
@@ -127,7 +127,7 @@ function latestReleaseFromPayload(payload: unknown) {
 
 function parseRetryAfterExpiresAt(value: string | null, now: number) {
   if (!value) {
-    return undefined;
+    return;
   }
 
   const retrySeconds = Number(value);
@@ -140,17 +140,17 @@ function parseRetryAfterExpiresAt(value: string | null, now: number) {
     return retryDate;
   }
 
-  return undefined;
+  return;
 }
 
 function parseRateLimitResetExpiresAt(value: string | null, now: number) {
   if (!value) {
-    return undefined;
+    return;
   }
 
   const resetSeconds = Number(value);
   if (!Number.isFinite(resetSeconds)) {
-    return undefined;
+    return;
   }
 
   const resetAt = resetSeconds * 1000;
@@ -294,17 +294,17 @@ async function fetchLatestReleaseCheck({
       expiresAt: checkedAt + successCacheTtlMs,
       release,
     } satisfies ReleaseCheckResult;
-  } catch (err) {
+  } catch (error) {
     const failedAt = now();
     const expiresAt = failedAt + failureCacheTtlMs;
-    warnWithError(logger, err, "GitHub release check failed.", {
+    warnWithError(logger, error, "GitHub release check failed.", {
       ...releaseCheckFailureFields({
         checkedAt,
         expiresAt,
         failedAt,
         reason: "request_error",
       }),
-      ...logErrorFields(err),
+      ...logErrorFields(error),
     });
 
     return {
@@ -314,7 +314,7 @@ async function fetchLatestReleaseCheck({
   }
 }
 
-function unknownVersionInfo(currentVersion: string | undefined) {
+function unknownVersionInfo(currentVersion?: string) {
   return {
     ...(currentVersion ? { currentVersion } : {}),
     updateAvailable: false,
@@ -402,7 +402,7 @@ export function createVersionInfoService({
     async getVersionInfo(): Promise<CliparrVersionInfo> {
       const normalizedCurrentVersion = normalizeVersion(currentVersion);
       if (!normalizedCurrentVersion) {
-        return unknownVersionInfo(undefined);
+        return unknownVersionInfo();
       }
 
       const currentSemver = parseStableSemverTag(normalizedCurrentVersion);

@@ -96,7 +96,7 @@ export function titleFromUrl(url: string) {
   try {
     const parsed = new URL(url);
     const finalSegment = decodeURIComponent(
-      parsed.pathname.split("/").filter(Boolean).pop() ?? "",
+      parsed.pathname.split("/").findLast(Boolean) ?? "",
     );
     return finalSegment
       ? titleFromFileName(finalSegment)
@@ -188,12 +188,13 @@ function buildLocalExportEstimateMetadata(
   source: EditorMediaSource,
   duration?: number,
 ): PlaybackExportEstimateMetadata | undefined {
-  const sourceSizeBytes =
-    source.kind === "file"
-      ? (source.size ?? source.file.size)
-      : source.kind === "file-handle"
-        ? source.size
-        : undefined;
+  let sourceSizeBytes: number | undefined;
+  if (source.kind === "file") {
+    sourceSizeBytes = source.size ?? source.file.size;
+  } else if (source.kind === "file-handle") {
+    sourceSizeBytes = source.size;
+  }
+
   const sourceDurationSeconds =
     typeof duration === "number" && duration > 0 ? duration : undefined;
 

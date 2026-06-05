@@ -12,7 +12,7 @@ import {
   clampPlaybackTime,
   MIN_CLIP_SECONDS,
   roundTimelineTime,
-} from "@/components/editor/editorUtils";
+} from "@/components/editor/editorUtilities";
 import {
   EDITOR_LARGE_SEEK_SECONDS,
   EDITOR_SMALL_SEEK_SECONDS,
@@ -59,12 +59,12 @@ const EditorFramegrabDialog = lazy(() =>
   })),
 );
 
-interface Props {
+interface Properties {
   session: EditorSession;
   onBack: () => void;
 }
 
-export default function EditorScreen({ session, onBack }: Props) {
+export default function EditorScreen({ session, onBack }: Properties) {
   const initialClipRange = buildInitialClipRange(
     session.duration,
     session.initialPlayheadSeconds,
@@ -73,11 +73,11 @@ export default function EditorScreen({ session, onBack }: Props) {
   const [endTime, setEndTime] = useState(() => initialClipRange.endTime);
   const [playbackSidebarOpen, setPlaybackSidebarOpen] = useState(true);
   const [exportDialogMounted, setExportDialogMounted] = useState(false);
-  const playbackTimeUpdateRef = useRef<((seconds: number) => void) | null>(
-    null,
-  );
+  const playbackTimeUpdateReference = useRef<
+    ((seconds: number) => void) | null
+  >(null);
   const handlePlaybackTimeUpdate = useCallback((seconds: number) => {
-    playbackTimeUpdateRef.current?.(seconds);
+    playbackTimeUpdateReference.current?.(seconds);
   }, []);
   const {
     subtitleTracks,
@@ -389,9 +389,9 @@ export default function EditorScreen({ session, onBack }: Props) {
   });
 
   useEffect(() => {
-    playbackTimeUpdateRef.current = setTimelineCurrentTime;
+    playbackTimeUpdateReference.current = setTimelineCurrentTime;
     return () => {
-      playbackTimeUpdateRef.current = null;
+      playbackTimeUpdateReference.current = null;
     };
   }, [setTimelineCurrentTime]);
 
@@ -455,9 +455,9 @@ export default function EditorScreen({ session, onBack }: Props) {
   });
   const isDesktopLayout = useEditorDesktopLayout();
 
-  const durationExportDisabledReason = !hasDuration
-    ? "Waiting for media duration."
-    : null;
+  const durationExportDisabledReason = hasDuration
+    ? null
+    : "Waiting for media duration.";
   const exportDisabledReason =
     durationExportDisabledReason ??
     exportFormatDisabledReason ??
@@ -722,15 +722,15 @@ export default function EditorScreen({ session, onBack }: Props) {
 
 function useEditorDesktopLayout() {
   const [isDesktopLayout, setIsDesktopLayout] = useState(() => {
-    if (typeof window === "undefined") {
+    if (globalThis.window === undefined) {
       return false;
     }
 
-    return window.matchMedia(EDITOR_DESKTOP_LAYOUT_QUERY).matches;
+    return globalThis.matchMedia(EDITOR_DESKTOP_LAYOUT_QUERY).matches;
   });
 
   useEffect(() => {
-    const query = window.matchMedia(EDITOR_DESKTOP_LAYOUT_QUERY);
+    const query = globalThis.matchMedia(EDITOR_DESKTOP_LAYOUT_QUERY);
     const updateLayout = () => setIsDesktopLayout(query.matches);
 
     updateLayout();

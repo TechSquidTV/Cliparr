@@ -1,11 +1,58 @@
 import js from "@eslint/js";
 import globals from "globals";
-import path from "node:path";
-import { fileURLToPath } from "node:url";
 import reactHooks from "eslint-plugin-react-hooks";
+import eslintPluginUnicorn from "eslint-plugin-unicorn";
 import tseslint from "typescript-eslint";
 
-const rootDir = path.dirname(fileURLToPath(import.meta.url));
+const rootDirectory = import.meta.dirname;
+const unicornAbbreviationAllowList = Object.fromEntries(
+  [
+    "api",
+    "Api",
+    "auth",
+    "Auth",
+    "db",
+    "Db",
+    "dir",
+    "Dir",
+    "docs",
+    "Docs",
+    "env",
+    "Env",
+    "gif",
+    "Gif",
+    "hls",
+    "Hls",
+    "id",
+    "Id",
+    "ids",
+    "Ids",
+    "ms",
+    "Ms",
+    "params",
+    "Params",
+    "pms",
+    "Pms",
+    "props",
+    "Props",
+    "pwa",
+    "Pwa",
+    "ref",
+    "Ref",
+    "res",
+    "Res",
+    "sdk",
+    "Sdk",
+    "ui",
+    "Ui",
+    "url",
+    "Url",
+    "urls",
+    "Urls",
+    "www",
+    "Www",
+  ].map((name) => [name, true]),
+);
 
 export default tseslint.config(
   {
@@ -25,6 +72,7 @@ export default tseslint.config(
     },
   },
   js.configs.recommended,
+  eslintPluginUnicorn.configs.all,
   {
     rules: {
       complexity: ["error", { max: 70 }],
@@ -108,13 +156,38 @@ export default tseslint.config(
             "Do not mutate prototypes; use functions and plain objects instead.",
         },
         {
-          selector: "ImportExpression[source.value=/^\\.{1,2}\\//]",
+          selector: String.raw`ImportExpression[source.value=/^\.{1,2}\//]`,
           message: "Use the package alias instead of a relative import path.",
         },
       ],
       "object-shorthand": "error",
       "prefer-const": ["error", { destructuring: "all" }],
       "prefer-template": "error",
+      "unicorn/filename-case": [
+        "error",
+        {
+          cases: {
+            camelCase: true,
+            kebabCase: true,
+            pascalCase: true,
+          },
+        },
+      ],
+      // Cliparr exchanges JSON/provider/database values where null is contractually meaningful.
+      "unicorn/no-null": "off",
+      // React's DOM contract uses className, so keep the rule active for new-prefixed names only.
+      "unicorn/no-keyword-prefix": [
+        "error",
+        {
+          disallowedPrefixes: ["new"],
+        },
+      ],
+      "unicorn/prevent-abbreviations": [
+        "error",
+        {
+          allowList: unicornAbbreviationAllowList,
+        },
+      ],
     },
   },
   ...tseslint.configs.recommendedTypeChecked,
@@ -123,7 +196,7 @@ export default tseslint.config(
     languageOptions: {
       parserOptions: {
         projectService: true,
-        tsconfigRootDir: rootDir,
+        tsconfigRootDir: rootDirectory,
       },
     },
     rules: {
@@ -211,6 +284,44 @@ export default tseslint.config(
       "react-hooks/exhaustive-deps": "warn",
       "react-hooks/rules-of-hooks": "error",
       "react-hooks/set-state-in-effect": "off",
+    },
+  },
+  {
+    files: ["apps/frontend/src/routes/**/*.{ts,tsx}"],
+    rules: {
+      "unicorn/filename-case": "off",
+    },
+  },
+  {
+    files: ["apps/*/public/service-worker.js"],
+    languageOptions: {
+      globals: {
+        ...globals.serviceworker,
+      },
+    },
+  },
+  {
+    files: [
+      "apps/frontend/src/**/*.worker.ts",
+      "apps/frontend/src/lib/subtitles/parseSubtitleTextAsync.ts",
+    ],
+    rules: {
+      "unicorn/require-post-message-target-origin": "off",
+    },
+  },
+  {
+    files: ["apps/server/src/server.ts"],
+    rules: {
+      "unicorn/no-process-exit": "off",
+    },
+  },
+  {
+    files: [
+      "scripts/**/*.{js,mjs,cjs,ts}",
+      "apps/*/scripts/**/*.{js,mjs,cjs,ts}",
+    ],
+    rules: {
+      "unicorn/no-process-exit": "off",
     },
   },
   {

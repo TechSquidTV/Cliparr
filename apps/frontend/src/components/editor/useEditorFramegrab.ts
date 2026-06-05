@@ -1,6 +1,6 @@
 import { useCallback, useMemo, useState } from "react";
 import type { RefObject } from "react";
-import { errorMessage } from "@/components/editor/editorUtils";
+import { errorMessage } from "@/components/editor/editorUtilities";
 import type { EditorSession } from "@/lib/editorMedia";
 import { downloadBlob } from "@/lib/downloadBlob";
 import { buildFramegrabFileName } from "@/lib/exportFileName";
@@ -26,7 +26,7 @@ interface CapturedFramegrab {
 
 type FramegrabAction = "copy" | "download";
 
-interface UseEditorFramegrabProps {
+interface UseEditorFramegrabProperties {
   session: EditorSession;
   canvasRef: RefObject<HTMLCanvasElement | null>;
   currentTime: number;
@@ -50,7 +50,7 @@ export function useEditorFramegrab({
   subtitleLoading,
   subtitleError,
   getCurrentTime,
-}: UseEditorFramegrabProps) {
+}: UseEditorFramegrabProperties) {
   const [capturedFramegrab, setCapturedFramegrab] =
     useState<CapturedFramegrab | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -139,9 +139,9 @@ export function useEditorFramegrab({
       setError(null);
       setMessage(null);
       setDialogOpen(true);
-    } catch (err) {
+    } catch (error_) {
       setCapturedFramegrab(null);
-      setError(errorMessage(err));
+      setError(errorMessage(error_));
       setMessage(null);
       setDialogOpen(true);
     }
@@ -185,8 +185,8 @@ export function useEditorFramegrab({
     try {
       await copyFramegrabCanvasToClipboard(capturedFramegrab.canvas);
       setMessage("Copied to clipboard.");
-    } catch (err) {
-      setError(errorMessage(err));
+    } catch (error_) {
+      setError(errorMessage(error_));
     } finally {
       setAction(null);
     }
@@ -209,8 +209,8 @@ export function useEditorFramegrab({
       );
       downloadBlob(blob, fileName.fullName);
       setMessage("Download started.");
-    } catch (err) {
-      setError(errorMessage(err));
+    } catch (error_) {
+      setError(errorMessage(error_));
     } finally {
       setAction(null);
     }

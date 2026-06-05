@@ -25,7 +25,7 @@ function LocalEditorRouteComponent() {
 
   const navigateHome = useCallback(() => {
     if (canGoBack) {
-      window.history.back();
+      globalThis.history.back();
       return;
     }
 

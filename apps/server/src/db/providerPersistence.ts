@@ -36,7 +36,7 @@ function preferredConnection(
     return selectedConnection;
   }
 
-  return [...resource.connections].sort(
+  return resource.connections.toSorted(
     (left, right) => connectionRank(left) - connectionRank(right),
   )[0];
 }
@@ -108,7 +108,7 @@ function persistProviderResource(input: {
     input.selectedConnection,
   );
   if (!connection) {
-    return undefined;
+    return;
   }
 
   const baseUrlMode =
@@ -144,11 +144,11 @@ function persistProviderResource(input: {
     baseUrl: nextBaseUrl,
     connection: nextConnection,
     credentials: {
-      ...(input.resource.credentials ?? {}),
+      ...input.resource.credentials,
       accessToken: input.resource.accessToken,
     },
     metadata: {
-      ...(input.resource.metadata ?? {}),
+      ...input.resource.metadata,
       product: input.resource.product,
       platform: input.resource.platform,
       provides: input.resource.provides,

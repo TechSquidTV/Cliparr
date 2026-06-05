@@ -1,9 +1,9 @@
-import { randomUUID } from "crypto";
-import { lookup } from "dns/promises";
-import { isIP } from "net";
-import { Readable } from "stream";
-import { pipeline } from "stream/promises";
-import type { ReadableStream as WebReadableStream } from "stream/web";
+import { randomUUID } from "node:crypto";
+import { lookup } from "node:dns/promises";
+import { isIP } from "node:net";
+import { Readable } from "node:stream";
+import { pipeline } from "node:stream/promises";
+import type { ReadableStream as WebReadableStream } from "node:stream/web";
 import type { Response } from "express";
 import { logErrorFields, logEventFields } from "@cliparr/shared/logging";
 import { createApiError, isApiError } from "@/http/errors";
@@ -65,13 +65,13 @@ const PROXY_HEADER_ALLOWLIST = [
   "etag",
   "last-modified",
 ] as const;
-const HLS_PROXY_RESPONSE_CACHE_TTL_MS = 4_000;
+const HLS_PROXY_RESPONSE_CACHE_TTL_MS = 4000;
 const HLS_PROXY_RESPONSE_CACHE_MAX_BYTES = 8 * 1024 * 1024;
 const MEDIA_PROXY_MAX_REDIRECTS = 5;
 const MEDIA_PROXY_FETCH_ATTEMPTS = 3;
 const HLS_MEDIA_PROXY_FETCH_ATTEMPTS = 5;
 const MEDIA_PROXY_FETCH_RETRY_BASE_DELAY_MS = 150;
-const MEDIA_PROXY_FETCH_RETRY_MAX_DELAY_MS = 1_000;
+const MEDIA_PROXY_FETCH_RETRY_MAX_DELAY_MS = 1000;
 const DNS_VALIDATION_CACHE_TTL_MS = 60_000;
 const DISALLOWED_MEDIA_HOSTNAMES = new Set([
   "metadata",
@@ -97,7 +97,7 @@ const resolvedHostnameCache = new Map<string, ResolvedHostnameCacheEntry>();
 const inflightHostnameResolutions = new Map<string, Promise<string[]>>();
 
 function isAbsoluteUrl(path: string) {
-  return /^[a-z][a-z0-9+.-]*:/i.test(path);
+  return /^[a-z][\d+.a-z-]*:/i.test(path);
 }
 
 function safeUrl(value: string, base?: string) {
@@ -158,14 +158,14 @@ function normalizeHostname(value: string) {
 function ipv4Octets(hostname: string) {
   const parts = hostname.split(".");
   if (parts.length !== 4) {
-    return undefined;
+    return;
   }
 
-  const octets = parts.map((part) => Number(part));
+  const octets = parts.map(Number);
   if (
     octets.some((octet) => !Number.isInteger(octet) || octet < 0 || octet > 255)
   ) {
-    return undefined;
+    return;
   }
 
   return octets as [number, number, number, number];
@@ -179,24 +179,26 @@ function mappedIpv4Address(hostname: string) {
 
   const words = hostname.split(":");
   if (words.length !== 2) {
-    return undefined;
+    return;
   }
 
+  const ipv6WordMax = 65_535;
+  const byteMask = 255;
   const parsedWords = words.map((word) => Number.parseInt(word, 16));
   if (
     words.some(
       (word, index) =>
-        !/^[0-9a-f]{1,4}$/i.test(word) ||
+        !/^[\da-f]{1,4}$/i.test(word) ||
         !Number.isInteger(parsedWords[index]) ||
         parsedWords[index] < 0 ||
-        parsedWords[index] > 0xffff,
+        parsedWords[index] > ipv6WordMax,
     )
   ) {
-    return undefined;
+    return;
   }
 
   const [high, low] = parsedWords as [number, number];
-  return [high >> 8, high & 0xff, low >> 8, low & 0xff].join(".");
+  return [high >> 8, high & byteMask, low >> 8, low & byteMask].join(".");
 }
 
 function isUnsafeIpv4Host(hostname: string) {
@@ -223,9 +225,9 @@ function isUnsafeIpv6Host(hostname: string) {
     hostname === "::" ||
     hostname === "::1" ||
     hostname === "0:0:0:0:0:0:0:1" ||
-    /^f[cd][0-9a-f]{2}:/i.test(hostname) ||
-    /^fe[89ab][0-9a-f]:/i.test(hostname) ||
-    /^ff[0-9a-f]{2}:/i.test(hostname)
+    /^f[cd][\da-f]{2}:/i.test(hostname) ||
+    /^fe[89ab][\da-f]:/i.test(hostname) ||
+    /^ff[\da-f]{2}:/i.test(hostname)
   );
 }
 
@@ -352,12 +354,12 @@ export async function assertAllowedMediaHandleRequestUrl(
   let addresses: string[];
   try {
     addresses = await resolveHostnameAddresses(requestUrl.hostname);
-  } catch (err) {
+  } catch (error) {
     logger.warn("Media URL hostname validation failed.", {
       ...unsafeMediaUrlFields(handle, requestUrl, "dns_resolution"),
-      ...logErrorFields(err),
+      ...logErrorFields(error),
     });
-    throw err;
+    throw error;
   }
 
   for (const address of addresses) {
@@ -417,7 +419,7 @@ function createAttemptRequestInit(
   if (!timeoutMs && !init.signal) {
     return {
       init,
-      cleanup: () => undefined,
+      cleanup: () => {},
     };
   }
 
@@ -455,26 +457,26 @@ function createAttemptRequestInit(
   };
 }
 
-function isAbortLikeError(err: unknown) {
+function isAbortLikeError(error: unknown) {
   return (
-    err instanceof DOMException &&
-    (err.name === "AbortError" || err.name === "TimeoutError")
+    error instanceof DOMException &&
+    (error.name === "AbortError" || error.name === "TimeoutError")
   );
 }
 
 function isRetryableMediaFetchError(
-  err: unknown,
+  error: unknown,
   sourceSignal: AbortSignal | null | undefined,
 ) {
   if (sourceSignal?.aborted) {
     return false;
   }
 
-  if (isApiError(err)) {
+  if (isApiError(error)) {
     return false;
   }
 
-  return err instanceof Error || isAbortLikeError(err);
+  return error instanceof Error || isAbortLikeError(error);
 }
 
 function isRetryableMediaResponse(
@@ -576,14 +578,14 @@ export async function fetchMediaHandleRequest(
         "retry.attempt": attemptNumber,
         "retry.max_attempts": totalAttempts,
       });
-    } catch (err) {
+    } catch (error) {
       cleanup();
-      lastError = err;
+      lastError = error;
       if (
         isFinalAttempt ||
-        !isRetryableMediaFetchError(err, requestInit.signal)
+        !isRetryableMediaFetchError(error, requestInit.signal)
       ) {
-        throw err;
+        throw error;
       }
 
       logger.trace("Retrying media request after fetch failure.", {
@@ -593,7 +595,7 @@ export async function fetchMediaHandleRequest(
         "media.path": sanitizeLoggedMediaPath(handle.path),
         "retry.attempt": attemptNumber,
         "retry.max_attempts": totalAttempts,
-        "error.message": err instanceof Error ? err.message : String(err),
+        "error.message": error instanceof Error ? error.message : String(error),
       });
     }
 
@@ -621,7 +623,7 @@ export function sanitizeLoggedMediaPath(value: string | undefined) {
     return relativeUrl.pathname;
   }
 
-  return value.split(/[?#]/, 1)[0] ?? value;
+  return value.split(/[#?]/, 1)[0] ?? value;
 }
 
 export function createProviderMediaHandle(
@@ -688,7 +690,7 @@ export function createProviderMediaHandle(
 export function playlistBasePath(path: string) {
   const withoutQuery = path.split("?")[0];
   const lastSlash = withoutQuery.lastIndexOf("/");
-  return lastSlash >= 0 ? withoutQuery.slice(0, lastSlash + 1) : "/";
+  return lastSlash === -1 ? "/" : withoutQuery.slice(0, lastSlash + 1);
 }
 
 function resolvePlaylistUri(basePath: string, uri: string) {
@@ -766,7 +768,7 @@ async function rewriteHlsPlaylist(
         }
 
         return [
-          line.replace(/URI="([^"]+)"/g, (_match, uri: string) => {
+          line.replaceAll(/URI="([^"]+)"/g, (_match, uri: string) => {
             rewrittenUriCount += 1;
             return `URI="${rewritePlaylistUri(session, handle, basePath, uri, options)}"`;
           }),
@@ -828,7 +830,7 @@ export function shouldForwardMediaRange(
   range: string | undefined,
 ) {
   if (!range || isHlsPlaylist(handle, "")) {
-    return undefined;
+    return;
   }
 
   return range;
@@ -916,12 +918,13 @@ async function createCachedProxyMediaResponse(
       options,
     );
     const body = Buffer.from(playlist);
-    const nextHeaders = headers
-      .filter(([name]) => name !== "content-type" && name !== "content-length")
-      .concat([
-        ["content-type", "application/vnd.apple.mpegurl"],
-        ["content-length", String(body.byteLength)],
-      ]);
+    const nextHeaders: [string, string][] = [
+      ...headers.filter(
+        ([name]) => name !== "content-type" && name !== "content-length",
+      ),
+      ["content-type", "application/vnd.apple.mpegurl"],
+      ["content-length", String(body.byteLength)],
+    ];
 
     return {
       status: upstream.status,
@@ -933,10 +936,10 @@ async function createCachedProxyMediaResponse(
   const body = Buffer.from(await upstream.arrayBuffer());
   const nextHeaders = headers.filter(([name]) => name !== "content-length");
 
-  if (!upstream.body) {
-    nextHeaders.push(["content-length", "0"]);
-  } else {
+  if (upstream.body) {
     nextHeaders.push(["content-length", String(body.byteLength)]);
+  } else {
+    nextHeaders.push(["content-length", "0"]);
   }
 
   return {
@@ -946,12 +949,12 @@ async function createCachedProxyMediaResponse(
   } satisfies CachedProxyMediaResponse;
 }
 
-function describeStreamFailure(err: unknown) {
-  if (err instanceof Error) {
-    const errorWithCause = err as Error & { code?: string; cause?: unknown };
+function describeStreamFailure(error: unknown) {
+  if (error instanceof Error) {
+    const errorWithCause = error as Error & { code?: string; cause?: unknown };
     const properties: Record<string, unknown> = {
-      "error.name": err.name,
-      "error.message": err.message,
+      "error.name": error.name,
+      "error.message": error.message,
     };
 
     if (errorWithCause.code) {
@@ -973,7 +976,7 @@ function describeStreamFailure(err: unknown) {
   }
 
   return {
-    "error.value": String(err),
+    "error.value": String(error),
   };
 }
 
@@ -1029,7 +1032,7 @@ export async function proxyUpstreamMediaResponse(
 
   try {
     await pipeline(upstreamBody, res);
-  } catch (err) {
+  } catch (error) {
     const responseClosed =
       res.destroyed || res.writableEnded || res.writableFinished;
     const logMessage = "Streaming media proxy failed.";
@@ -1040,7 +1043,7 @@ export async function proxyUpstreamMediaResponse(
       "provider.id": handle.providerId,
       "media.path": sanitizeLoggedMediaPath(handle.path),
       "http.response.closed": responseClosed,
-      ...describeStreamFailure(err),
+      ...describeStreamFailure(error),
     };
 
     if (responseClosed) {
@@ -1089,7 +1092,16 @@ export async function proxyProviderMediaResponse(
   }
 
   let inflightResponse = inflightProxyResponses.get(cacheKey);
-  if (!inflightResponse) {
+  if (inflightResponse) {
+    logger.trace("Waiting for in-flight proxied media response.", {
+      ...logEventFields("media.proxy.cache", "wait"),
+      "media.handle.id": handle.id,
+      "session.id": session.id,
+      "provider.id": handle.providerId,
+      "media.path": sanitizeLoggedMediaPath(handle.path),
+      "media.cache.key": cacheKey,
+    });
+  } else {
     inflightResponse = (async () => {
       const upstream = await fetchUpstream();
       const response = await createCachedProxyMediaResponse(
@@ -1115,16 +1127,7 @@ export async function proxyProviderMediaResponse(
         inflightProxyResponses.delete(cacheKey);
       }
     });
-  } else {
-    logger.trace("Waiting for in-flight proxied media response.", {
-      ...logEventFields("media.proxy.cache", "wait"),
-      "media.handle.id": handle.id,
-      "session.id": session.id,
-      "provider.id": handle.providerId,
-      "media.path": sanitizeLoggedMediaPath(handle.path),
-      "media.cache.key": cacheKey,
-    });
   }
 
-  sendCachedProxyResponse(await inflightResponse, res);
+  sendCachedProxyResponse(await inflightResponse!, res);
 }

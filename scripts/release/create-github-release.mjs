@@ -2,49 +2,53 @@
 import { appendFileSync, readFileSync } from "node:fs";
 import { pathToFileURL } from "node:url";
 
-export function parseArgs(argv) {
-  const args = {
+export function parseArguments(argv) {
+  const arguments_ = {
     dryRun: false,
     prerelease: false,
   };
 
   for (let index = 0; index < argv.length; index += 1) {
-    const arg = argv[index];
+    const argument = argv[index];
 
-    if (arg === "--dry-run" || arg === "--prerelease") {
-      args[
-        arg.slice(2).replace(/-([a-z])/g, (_, letter) => letter.toUpperCase())
+    if (argument === "--dry-run" || argument === "--prerelease") {
+      arguments_[
+        argument
+          .slice(2)
+          .replaceAll(/-([a-z])/g, (_, letter) => letter.toUpperCase())
       ] = true;
       continue;
     }
 
     if (
-      arg === "--repository" ||
-      arg === "--tag" ||
-      arg === "--target" ||
-      arg === "--previous-tag" ||
-      arg === "--name" ||
-      arg === "--image-name" ||
-      arg === "--image-digest" ||
-      arg === "--docker-tags-file"
+      argument === "--repository" ||
+      argument === "--tag" ||
+      argument === "--target" ||
+      argument === "--previous-tag" ||
+      argument === "--name" ||
+      argument === "--image-name" ||
+      argument === "--image-digest" ||
+      argument === "--docker-tags-file"
     ) {
       const value = argv[index + 1];
 
       if (value === undefined) {
-        throw new Error(`${arg} requires a value.`);
+        throw new Error(`${argument} requires a value.`);
       }
 
-      args[
-        arg.slice(2).replace(/-([a-z])/g, (_, letter) => letter.toUpperCase())
+      arguments_[
+        argument
+          .slice(2)
+          .replaceAll(/-([a-z])/g, (_, letter) => letter.toUpperCase())
       ] = value;
       index += 1;
       continue;
     }
 
-    throw new Error(`Unknown argument ${arg}.`);
+    throw new Error(`Unknown argument ${argument}.`);
   }
 
-  for (const requiredArg of [
+  for (const requiredArgument of [
     "repository",
     "tag",
     "target",
@@ -53,14 +57,14 @@ export function parseArgs(argv) {
     "imageName",
     "dockerTagsFile",
   ]) {
-    if (!args[requiredArg]) {
+    if (!arguments_[requiredArgument]) {
       throw new Error(
-        `Missing --${requiredArg.replace(/[A-Z]/g, (letter) => `-${letter.toLowerCase()}`)}.`,
+        `Missing --${requiredArgument.replaceAll(/[A-Z]/g, (letter) => `-${letter.toLowerCase()}`)}.`,
       );
     }
   }
 
-  return args;
+  return arguments_;
 }
 
 async function githubApi(path, { method = "GET", body, token }) {
@@ -138,51 +142,51 @@ function writeGithubOutput(outputs) {
 }
 
 export async function main(argv = process.argv.slice(2)) {
-  const args = parseArgs(argv);
+  const arguments_ = parseArguments(argv);
   const token = process.env.GITHUB_TOKEN ?? process.env.GH_TOKEN;
 
   if (!token) {
     throw new Error("GITHUB_TOKEN is required to create a GitHub release.");
   }
 
-  const dockerTags = readDockerTags(args.dockerTagsFile);
+  const dockerTags = readDockerTags(arguments_.dockerTagsFile);
   const generatedNotes = await githubApi(
-    `/repos/${args.repository}/releases/generate-notes`,
+    `/repos/${arguments_.repository}/releases/generate-notes`,
     {
       method: "POST",
       token,
       body: {
-        tag_name: args.tag,
-        target_commitish: args.target,
-        previous_tag_name: args.previousTag,
+        tag_name: arguments_.tag,
+        target_commitish: arguments_.target,
+        previous_tag_name: arguments_.previousTag,
       },
     },
   );
   const body = composeReleaseBody({
     generatedBody: generatedNotes.body,
-    imageName: args.imageName,
-    imageDigest: args.imageDigest,
+    imageName: arguments_.imageName,
+    imageDigest: arguments_.imageDigest,
     dockerTags,
   });
 
-  if (args.dryRun) {
-    process.stdout.write(`# ${args.name}\n\n`);
+  if (arguments_.dryRun) {
+    process.stdout.write(`# ${arguments_.name}\n\n`);
     process.stdout.write(`${body}\n`);
     writeGithubOutput({ html_url: "" });
     process.exit(0);
   }
 
-  const release = await githubApi(`/repos/${args.repository}/releases`, {
+  const release = await githubApi(`/repos/${arguments_.repository}/releases`, {
     method: "POST",
     token,
     body: {
-      tag_name: args.tag,
-      target_commitish: args.target,
-      name: args.name,
+      tag_name: arguments_.tag,
+      target_commitish: arguments_.target,
+      name: arguments_.name,
       body,
       draft: false,
-      prerelease: args.prerelease,
-      make_latest: args.prerelease ? "false" : "true",
+      prerelease: arguments_.prerelease,
+      make_latest: arguments_.prerelease ? "false" : "true",
     },
   });
 

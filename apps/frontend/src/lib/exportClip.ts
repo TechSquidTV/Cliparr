@@ -121,16 +121,21 @@ const GIF_GLOBAL_PALETTE_MAX_SAMPLE_PIXELS = 120_000;
 
 function createOutputFormat(format: ExportFormat) {
   switch (format) {
-    case "mp4":
+    case "mp4": {
       return new Mp4OutputFormat({ fastStart: "in-memory" });
-    case "webm":
+    }
+    case "webm": {
       return new WebMOutputFormat();
-    case "mov":
+    }
+    case "mov": {
       return new MovOutputFormat({ fastStart: "in-memory" });
-    case "mkv":
+    }
+    case "mkv": {
       return new MkvOutputFormat();
-    case "gif":
+    }
+    case "gif": {
       throw new Error("GIF export uses a dedicated encoder.");
+    }
   }
 }
 
@@ -471,19 +476,24 @@ export async function exportClipWithRuntime(
       bitrate: 160_000,
     } as const;
 
+    let audioOptions: ConversionOptions["audio"];
+    if (!includeAudio) {
+      audioOptions = {
+        discard: true,
+      };
+    } else if (preferredAudioTrack) {
+      audioOptions = (track) => ({
+        ...baseAudioOptions,
+        discard: track.id !== preferredAudioTrack.id,
+      });
+    } else {
+      audioOptions = baseAudioOptions;
+    }
+
     const conversionOptions: ConversionOptions = {
       input,
       output,
-      audio: includeAudio
-        ? preferredAudioTrack
-          ? (track) => ({
-              ...baseAudioOptions,
-              discard: track.id !== preferredAudioTrack.id,
-            })
-          : baseAudioOptions
-        : {
-            discard: true,
-          },
+      audio: audioOptions,
       trim: {
         start: trimStart,
         end: trimEnd,
@@ -501,12 +511,12 @@ export async function exportClipWithRuntime(
       conversionOptions.video = (track) => ({
         discard: track.id !== sourceVideoTrack.id,
         ...videoQualityOptions,
-        ...(resolution !== "original"
-          ? {
-              height: parseInt(resolution, 10),
+        ...(resolution === "original"
+          ? {}
+          : {
+              height: Number.parseInt(resolution, 10),
               fit: "contain" as const,
-            }
-          : {}),
+            }),
         ...(shouldBurnSubtitles && subtitleStyleSettings
           ? {
               forceTranscode: true,
@@ -520,7 +530,7 @@ export async function exportClipWithRuntime(
     } else if (resolution !== "original") {
       conversionOptions.video = {
         ...videoQualityOptions,
-        height: parseInt(resolution, 10),
+        height: Number.parseInt(resolution, 10),
         fit: "contain",
       };
     }
@@ -574,18 +584,21 @@ function videoQualityConversionOptions(
   videoQuality: VideoExportQualityPreset = DEFAULT_VIDEO_EXPORT_QUALITY,
 ) {
   switch (videoQuality) {
-    case "compact":
+    case "compact": {
       return {
         forceTranscode: true,
         bitrate: QUALITY_LOW,
       } as const;
-    case "balanced":
+    }
+    case "balanced": {
       return {
         forceTranscode: true,
         bitrate: QUALITY_MEDIUM,
       } as const;
-    case "sharp":
+    }
+    case "sharp": {
       return {};
+    }
   }
 }
 

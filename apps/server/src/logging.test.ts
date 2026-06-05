@@ -15,7 +15,7 @@ void test("resolves supported server log formats", () => {
 });
 
 void test("falls back to pretty for invalid server log formats", () => {
-  assert.equal(resolveServerLogFormat(undefined), "pretty");
+  assert.equal(resolveServerLogFormat(), "pretty");
   assert.equal(resolveServerLogFormat("verbose"), "pretty");
 });
 
@@ -55,14 +55,14 @@ void test("uses configured console log format in production", () => {
 });
 
 void test("resolves rotating log file size limits", () => {
-  assert.equal(resolveLogFileMaxBytes(undefined), 10 * 1024 * 1024);
+  assert.equal(resolveLogFileMaxBytes(), 10 * 1024 * 1024);
   assert.equal(resolveLogFileMaxBytes("128kb"), 128 * 1024);
   assert.equal(resolveLogFileMaxBytes("2 MiB"), 2 * 1024 * 1024);
   assert.equal(resolveLogFileMaxBytes("nope"), 10 * 1024 * 1024);
 });
 
 void test("resolves rotating log file count limits", () => {
-  assert.equal(resolveLogFileMaxFiles(undefined), 5);
+  assert.equal(resolveLogFileMaxFiles(), 5);
   assert.equal(resolveLogFileMaxFiles("1"), 1);
   assert.equal(resolveLogFileMaxFiles("8"), 8);
   assert.equal(resolveLogFileMaxFiles("0"), 5);

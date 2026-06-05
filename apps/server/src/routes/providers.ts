@@ -104,16 +104,16 @@ function requireProviderAuthCookie(
   return authCookie;
 }
 
-providersRouter.get("/", (_req, res) => {
+providersRouter.get("/", (_request, res) => {
   setNoStore(res);
   res.json({ providers: listProviders() });
 });
 
 providersRouter.post(
   "/:providerId/auth/start",
-  asyncHandler(async (req, res) => {
+  asyncHandler(async (request, res) => {
     setNoStore(res);
-    const provider = getProvider(req.params.providerId as string);
+    const provider = getProvider(request.params.providerId as string);
     if (!provider) {
       throw createApiError(404, "provider_not_found", "Provider was not found");
     }
@@ -131,19 +131,19 @@ providersRouter.post(
     try {
       authStart = await provider.startAuth(
         getRequestRouteUrl(
-          req,
+          request,
           PROVIDER_AUTH_COMPLETE_PATH(provider.definition.id),
         ),
       );
-    } catch (err) {
+    } catch (error) {
       logger.warn("Provider auth start failed.", {
         ...logEventFields("provider.auth.start", "failure"),
         ...logDurationFields(startedAt),
-        ...logErrorFields(err),
+        ...logErrorFields(error),
         "provider.id": provider.definition.id,
         "provider.auth.method": "pin",
       });
-      throw err;
+      throw error;
     }
 
     res.cookie(
@@ -153,7 +153,7 @@ providersRouter.post(
         authId: authStart.authId,
         pollToken: authStart.pollToken,
       }),
-      providerAuthCookieOptions(req.secure, authStart.expiresAt),
+      providerAuthCookieOptions(request.secure, authStart.expiresAt),
     );
 
     res.json({
@@ -173,9 +173,9 @@ providersRouter.post(
 
 providersRouter.get(
   "/:providerId/auth/:authId",
-  asyncHandler(async (req, res) => {
+  asyncHandler(async (request, res) => {
     setNoStore(res);
-    const provider = getProvider(req.params.providerId as string);
+    const provider = getProvider(request.params.providerId as string);
     if (!provider) {
       throw createApiError(404, "provider_not_found", "Provider was not found");
     }
@@ -188,12 +188,12 @@ providersRouter.get(
       );
     }
 
-    const authId = req.params.authId as string;
+    const authId = request.params.authId as string;
     const startedAt = Date.now();
 
     try {
       const authCookie = requireProviderAuthCookie(
-        req.header("cookie"),
+        request.header("cookie"),
         provider.definition.id,
         authId,
       );
@@ -202,7 +202,7 @@ providersRouter.get(
         if (authStatus.status === "expired") {
           res.clearCookie(
             PROVIDER_AUTH_COOKIE,
-            providerAuthCookieClearOptions(req.secure),
+            providerAuthCookieClearOptions(request.secure),
           );
           logger.info("Provider auth expired.", {
             ...logEventFields("provider.auth.poll", "expired"),
@@ -245,17 +245,17 @@ providersRouter.get(
 
       res.clearCookie(
         PROVIDER_AUTH_COOKIE,
-        providerAuthCookieClearOptions(req.secure),
+        providerAuthCookieClearOptions(request.secure),
       );
       res.cookie(
         getSessionCookieName(),
         session.id,
-        getSessionCookieOptions(req.secure),
+        getSessionCookieOptions(request.secure),
       );
       res.cookie(
         getRememberedProviderSessionCookieName(),
         rememberedSession.token,
-        getRememberedProviderSessionCookieOptions(req.secure),
+        getRememberedProviderSessionCookieOptions(request.secure),
       );
       res.json({ status: "complete" });
 
@@ -268,30 +268,30 @@ providersRouter.get(
         "provider.resource.count": authStatus.resources.length,
         "session.id": session.id,
       });
-    } catch (err) {
+    } catch (error) {
       warnWithError(
         logger,
-        err,
+        error,
         "Provider auth poll failed.",
         compactLogFields({
           ...logEventFields("provider.auth.poll", "failure"),
           ...logDurationFields(startedAt),
-          ...logErrorFields(err),
+          ...logErrorFields(error),
           "provider.id": provider.definition.id,
           "provider.auth.method": "pin",
-          "http.status_code": isApiError(err) ? err.status : undefined,
+          "http.status_code": isApiError(error) ? error.status : undefined,
         }),
       );
-      throw err;
+      throw error;
     }
   }),
 );
 
 providersRouter.post(
   "/:providerId/auth/login",
-  asyncHandler(async (req, res) => {
+  asyncHandler(async (request, res) => {
     setNoStore(res);
-    const provider = getProvider(req.params.providerId as string);
+    const provider = getProvider(request.params.providerId as string);
     if (!provider) {
       throw createApiError(404, "provider_not_found", "Provider was not found");
     }
@@ -310,7 +310,9 @@ providersRouter.post(
     const startedAt = Date.now();
 
     try {
-      const authResult = await provider.authenticateWithCredentials(req.body);
+      const authResult = await provider.authenticateWithCredentials(
+        request.body,
+      );
       if (
         !authResult.userToken ||
         !Array.isArray(authResult.resources) ||
@@ -342,12 +344,12 @@ providersRouter.post(
       res.cookie(
         getSessionCookieName(),
         session.id,
-        getSessionCookieOptions(req.secure),
+        getSessionCookieOptions(request.secure),
       );
       res.cookie(
         getRememberedProviderSessionCookieName(),
         rememberedSession.token,
-        getRememberedProviderSessionCookieOptions(req.secure),
+        getRememberedProviderSessionCookieOptions(request.secure),
       );
       res.json({
         session: provider.serializeSession(session),
@@ -362,21 +364,21 @@ providersRouter.post(
         "provider.resource.count": authResult.resources.length,
         "session.id": session.id,
       });
-    } catch (err) {
+    } catch (error) {
       warnWithError(
         logger,
-        err,
+        error,
         "Provider credential login failed.",
         compactLogFields({
           ...logEventFields("provider.auth.login", "failure"),
           ...logDurationFields(startedAt),
-          ...logErrorFields(err),
+          ...logErrorFields(error),
           "provider.id": provider.definition.id,
           "provider.auth.method": "credentials",
-          "http.status_code": isApiError(err) ? err.status : undefined,
+          "http.status_code": isApiError(error) ? error.status : undefined,
         }),
       );
-      throw err;
+      throw error;
     }
   }),
 );

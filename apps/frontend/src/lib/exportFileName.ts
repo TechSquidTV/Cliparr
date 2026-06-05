@@ -137,13 +137,14 @@ function migrateStoredTemplate(
 
 export function loadExportFileNameTemplates(): ExportFileNameTemplateSettings {
   const defaults = defaultExportFileNameTemplates();
+  const browserWindow = globalThis.window;
 
-  if (typeof window === "undefined") {
+  if (browserWindow === undefined) {
     return defaults;
   }
 
   try {
-    const raw = window.localStorage.getItem(
+    const raw = browserWindow.localStorage.getItem(
       EXPORT_FILE_NAME_TEMPLATE_STORAGE_KEY,
     );
     if (!raw) {
@@ -172,12 +173,13 @@ export function loadExportFileNameTemplates(): ExportFileNameTemplateSettings {
 export function saveExportFileNameTemplates(
   templates: ExportFileNameTemplateSettings,
 ) {
-  if (typeof window === "undefined") {
+  const browserWindow = globalThis.window;
+  if (browserWindow === undefined) {
     return;
   }
 
   try {
-    window.localStorage.setItem(
+    browserWindow.localStorage.setItem(
       EXPORT_FILE_NAME_TEMPLATE_STORAGE_KEY,
       JSON.stringify(templates),
     );
@@ -266,7 +268,7 @@ function resolveTemplate(
   template: string,
   values: Record<ExportFileNameTemplateToken, string>,
 ) {
-  return template.replace(/\{([a-z_]+)\}/gi, (_, token: string) => {
+  return template.replaceAll(/{([_a-z]+)}/gi, (_, token: string) => {
     const normalizedToken = token.toLowerCase() as ExportFileNameTemplateToken;
     const replacement = Object.hasOwn(values, normalizedToken)
       ? values[normalizedToken]
@@ -331,7 +333,7 @@ function firstText(...values: Array<string | undefined>) {
     }
   }
 
-  return undefined;
+  return;
 }
 
 function nonNegativeInteger(value: number | undefined) {
@@ -369,35 +371,35 @@ function formatTemplateTime(seconds: number) {
 
 function sanitizeTemplateValue(value: string | undefined) {
   return stripControlCharacters(value ?? "")
-    .replace(/[<>:"/\\|?*]+/g, " ")
-    .replace(/\s+/g, " ")
+    .replaceAll(/["*/:<>?\\|]+/g, " ")
+    .replaceAll(/\s+/g, " ")
     .trim();
 }
 
 function cleanupResolvedTemplate(value: string) {
   return value
-    .replace(/\(\s*\)/g, "")
-    .replace(/\[\s*\]/g, "")
-    .replace(/\{\s*\}/g, "")
-    .replace(/\s+-\s+Episode\s+-\s+/g, " - ")
-    .replace(/\s{2,}/g, " ")
-    .replace(/\s+\)/g, ")")
-    .replace(/\(\s+/g, "(")
-    .replace(/\s+\]/g, "]")
-    .replace(/\[\s+/g, "[")
+    .replaceAll(/\(\s*\)/g, "")
+    .replaceAll(/\[\s*]/g, "")
+    .replaceAll(/{\s*}/g, "")
+    .replaceAll(/\s+-\s+Episode\s+-\s+/g, " - ")
+    .replaceAll(/\s{2,}/g, " ")
+    .replaceAll(/\s+\)/g, ")")
+    .replaceAll(/\(\s+/g, "(")
+    .replaceAll(/\s+]/g, "]")
+    .replaceAll(/\[\s+/g, "[")
     .trim();
 }
 
 function sanitizeFileName(value: string) {
   return stripControlCharacters(value)
-    .replace(/[<>:"/\\|?*]+/g, " ")
-    .replace(/\s+/g, " ")
-    .replace(/[. ]+$/g, "")
+    .replaceAll(/["*/:<>?\\|]+/g, " ")
+    .replaceAll(/\s+/g, " ")
+    .replaceAll(/[ .]+$/g, "")
     .trim();
 }
 
 function stripControlCharacters(value: string) {
-  return Array.from(value)
+  return [...value]
     .filter((char) => {
       const code = char.codePointAt(0) ?? 0;
       return code >= 32;

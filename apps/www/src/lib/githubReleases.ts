@@ -38,7 +38,7 @@ function releaseId(release: GitHubRelease) {
 function releaseTitle(release: GitHubRelease) {
   const name = release.name?.trim() || release.tag_name;
   const tagPattern = new RegExp(
-    `^${release.tag_name.replace(/[.*+?^${}()|[\]\\]/gu, "\\$&")}(?:\\s+-\\s+|\\s+)?`,
+    String.raw`^${release.tag_name.replaceAll(/[.*+?^${}()|[\]\\]/gu, String.raw`\$&`)}(?:\s+-\s+|\s+)?`,
     "u",
   );
   const title = name.replace(tagPattern, "").trim();
@@ -59,7 +59,7 @@ function normalizeReleaseLine(value: string) {
 
   return value
     .replaceAll("[codex] ", "")
-    .replace(
+    .replaceAll(
       pullRequestUrlPattern,
       " ([#$2](https://github.com/TechSquidTV/Cliparr/pull/$2))",
     );
@@ -67,7 +67,7 @@ function normalizeReleaseLine(value: string) {
 
 function normalizeReleaseBody(markdown: string) {
   return markdown
-    .replace(/\r\n/g, "\n")
+    .replaceAll("\r\n", "\n")
     .split("\n")
     .map((line) => normalizeReleaseLine(line.trimEnd()))
     .join("\n")
@@ -104,10 +104,10 @@ async function fetchGitHubReleases() {
 export function githubReleasesLoader(): Loader {
   return {
     name: "cliparr-github-releases",
-    async load({ generateDigest, parseData, renderMarkdown, store }) {
+    async load(loaderContext) {
       const releases = await fetchGitHubReleases();
 
-      store.clear();
+      loaderContext.store.clear();
 
       for (const release of releases) {
         if (release.draft || !release.published_at) {
@@ -116,7 +116,7 @@ export function githubReleasesLoader(): Loader {
 
         const id = releaseId(release);
         const body = normalizeReleaseBody(release.body ?? "");
-        const data = await parseData<ChangelogReleaseData>({
+        const data = await loaderContext.parseData<ChangelogReleaseData>({
           id,
           data: {
             releaseId: release.id,
@@ -129,12 +129,12 @@ export function githubReleasesLoader(): Loader {
           },
         });
 
-        store.set({
+        loaderContext.store.set({
           id,
           data,
           body,
-          rendered: await renderMarkdown(body),
-          digest: generateDigest({ data, body }),
+          rendered: await loaderContext.renderMarkdown(body),
+          digest: loaderContext.generateDigest({ data, body }),
         });
       }
     },

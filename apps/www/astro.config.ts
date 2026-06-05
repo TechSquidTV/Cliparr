@@ -3,10 +3,9 @@ import sitemap from "@astrojs/sitemap";
 import tailwindcss from "@tailwindcss/vite";
 import { defineConfig } from "astro/config";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
 import rehypeMermaid from "rehype-mermaid";
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const configDirectory = import.meta.dirname;
 
 export default defineConfig({
   site: "https://cliparr.dev",
@@ -70,7 +69,7 @@ export default defineConfig({
     plugins: [tailwindcss()],
     resolve: {
       alias: {
-        "@": path.resolve(__dirname, "src"),
+        "@": path.resolve(configDirectory, "src"),
       },
     },
   },

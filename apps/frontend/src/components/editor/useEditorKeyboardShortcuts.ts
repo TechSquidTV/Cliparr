@@ -4,7 +4,7 @@ import {
   type EditorShortcutCommand,
 } from "@/components/editor/editorShortcutCommands";
 
-interface UseEditorKeyboardShortcutsProps {
+interface UseEditorKeyboardShortcutsProperties {
   togglePlay: () => void;
   markIn?: () => void;
   markOut?: () => void;
@@ -34,13 +34,13 @@ export function useEditorKeyboardShortcuts({
   stepFrameForward,
   zoomOut,
   zoomIn,
-}: UseEditorKeyboardShortcutsProps) {
-  const commandHandlersRef = useRef<
+}: UseEditorKeyboardShortcutsProperties) {
+  const commandHandlersReference = useRef<
     Partial<Record<EditorShortcutCommand, () => void>>
   >({});
 
   useEffect(() => {
-    commandHandlersRef.current = {
+    commandHandlersReference.current = {
       "toggle-play": togglePlay,
       "mark-in": markIn,
       "mark-out": markOut,
@@ -75,7 +75,9 @@ export function useEditorKeyboardShortcuts({
         metaKey: event.metaKey,
         pressedCodes,
       });
-      const handler = command ? commandHandlersRef.current[command] : undefined;
+      const handler = command
+        ? commandHandlersReference.current[command]
+        : undefined;
 
       if (!handler) {
         return;
@@ -94,13 +96,13 @@ export function useEditorKeyboardShortcuts({
       pressedCodes.clear();
     }
 
-    window.addEventListener("keydown", handleKeyDown);
-    window.addEventListener("keyup", handleKeyUp);
+    globalThis.addEventListener("keydown", handleKeyDown);
+    globalThis.addEventListener("keyup", handleKeyUp);
     window.addEventListener("blur", handleBlur);
 
     return () => {
-      window.removeEventListener("keydown", handleKeyDown);
-      window.removeEventListener("keyup", handleKeyUp);
+      globalThis.removeEventListener("keydown", handleKeyDown);
+      globalThis.removeEventListener("keyup", handleKeyUp);
       window.removeEventListener("blur", handleBlur);
     };
   }, []);

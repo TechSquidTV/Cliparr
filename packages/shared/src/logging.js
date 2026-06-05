@@ -53,6 +53,6 @@ export function sanitizeUrlForLog(value) {
       ? parsed.pathname
       : `${parsed.origin}${parsed.pathname}`;
   } catch {
-    return value.split(/[?#]/, 1)[0] ?? value;
+    return value.split(/[#?]/, 1)[0] ?? value;
   }
 }

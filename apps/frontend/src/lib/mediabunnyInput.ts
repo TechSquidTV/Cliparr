@@ -1,7 +1,7 @@
 import type { Input } from "mediabunny";
 import type { EditorMediaSource } from "@/lib/editorMedia";
 
-const HLS_PLAYLIST_PATTERN = /\.m3u8(?:$|[?#])/i;
+const HLS_PLAYLIST_PATTERN = /\.m3u8(?:$|[#?])/i;
 const HLS_URL_SOURCE_OPTIONS = {
   maxCacheSize: 64 * 1024 * 1024,
   parallelism: 2,

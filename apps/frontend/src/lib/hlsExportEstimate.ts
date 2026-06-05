@@ -57,11 +57,12 @@ export function parseHlsExportEstimateMetadata(
     const resolution = resolutionAttribute(attributes.get("RESOLUTION"));
     const frameRate = numberAttribute(attributes.get("FRAME-RATE"));
     const selectedBandwidth = averageBandwidth ?? bandwidth;
-    const bitrateBasis = averageBandwidth
-      ? ("average-bandwidth" as const)
-      : bandwidth
-        ? ("bandwidth" as const)
-        : undefined;
+    let bitrateBasis: "average-bandwidth" | "bandwidth" | undefined;
+    if (averageBandwidth) {
+      bitrateBasis = "average-bandwidth";
+    } else if (bandwidth) {
+      bitrateBasis = "bandwidth";
+    }
 
     variants.push({
       bandwidth,
@@ -97,13 +98,13 @@ export function selectHlsExportEstimateMetadata(
 
   const selectedVariant =
     outputDimensions?.height && outputDimensions.height > 0
-      ? [...variantsWithBitrate].sort(
+      ? variantsWithBitrate.toSorted(
           (left, right) =>
             Math.abs((left.height ?? 0) - outputDimensions.height) -
               Math.abs((right.height ?? 0) - outputDimensions.height) ||
             (right.bitrateKbps ?? 0) - (left.bitrateKbps ?? 0),
         )[0]
-      : [...variantsWithBitrate].sort(
+      : variantsWithBitrate.toSorted(
           (left, right) => (right.bitrateKbps ?? 0) - (left.bitrateKbps ?? 0),
         )[0];
 
@@ -123,11 +124,11 @@ export function selectHlsExportEstimateMetadata(
 
 function parseHlsAttributes(value: string) {
   const attributes = new Map<string, string>();
-  const attributePattern = /([A-Z0-9-]+)=("[^"]*"|[^,]*)/gi;
+  const attributePattern = /([\da-z-]+)=("[^"]*"|[^,]*)/gi;
   let match: RegExpExecArray | null;
 
   while ((match = attributePattern.exec(value))) {
-    attributes.set(match[1].toUpperCase(), match[2].replace(/^"|"$/g, ""));
+    attributes.set(match[1].toUpperCase(), match[2].replaceAll(/^"|"$/g, ""));
   }
 
   return attributes;
@@ -135,7 +136,7 @@ function parseHlsAttributes(value: string) {
 
 function numberAttribute(value: string | undefined) {
   if (!value) {
-    return undefined;
+    return;
   }
 
   const parsed = Number(value);
@@ -145,7 +146,7 @@ function numberAttribute(value: string | undefined) {
 function resolutionAttribute(value: string | undefined) {
   const match = value?.match(/^(\d+)x(\d+)$/i);
   if (!match) {
-    return undefined;
+    return;
   }
 
   const width = Number(match[1]);

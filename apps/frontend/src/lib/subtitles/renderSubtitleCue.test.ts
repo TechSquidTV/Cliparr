@@ -71,13 +71,13 @@ function createFakeCanvasContext(ownerDocument: {
       return { width: text.length * 12 };
     },
     drawImage() {
-      return undefined;
+      return;
     },
     fillText() {
-      return undefined;
+      return;
     },
     strokeText() {
-      return undefined;
+      return;
     },
   };
 

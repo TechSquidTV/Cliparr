@@ -14,7 +14,7 @@ import type { PlaybackSubtitleTrack } from "@/providers/types";
 import { buildSubtitleExportSummary } from "@/components/editor/subtitleExportSummary";
 import { useSubtitleCues } from "@/components/editor/useSubtitleCues";
 
-interface UseEditorSubtitlesProps {
+interface UseEditorSubtitlesProperties {
   session: EditorSession;
   startTime: number;
   endTime: number;
@@ -24,7 +24,7 @@ export function useEditorSubtitles({
   session,
   startTime,
   endTime,
-}: UseEditorSubtitlesProps) {
+}: UseEditorSubtitlesProperties) {
   const [subtitleStyleSettings, setSubtitleStyleSettings] = useState(() =>
     loadSubtitleStyleSettings(),
   );
