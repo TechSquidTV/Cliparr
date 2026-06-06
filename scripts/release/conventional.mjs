@@ -19,6 +19,7 @@ const releaseTypeByCommitType = new Map([
   ["security", "patch"],
   ["feat", "minor"],
 ]);
+const ignoredReleaseScopes = new Set(["www"]);
 
 const conventionalTitlePattern =
   /^(?<type>[a-z]+)(?:\((?<scope>[^)]+)\))?(?<breaking>!)?: (?<subject>.+)$/;
@@ -68,6 +69,10 @@ export function parseConventionalTitle(title) {
 
 export function releaseTypeForChange(change) {
   if (!change.valid) {
+    return "none";
+  }
+
+  if (ignoredReleaseScopes.has(change.scope)) {
     return "none";
   }
 
