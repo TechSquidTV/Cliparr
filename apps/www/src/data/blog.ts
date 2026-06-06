@@ -3,7 +3,7 @@ export interface BlogTag {
   slug: BlogTagId;
 }
 
-export const blogTagIds = ["guide", "jellyfin", "plex"] as const;
+export const blogTagIds = ["guide", "jellyfin", "plex", "engineering"] as const;
 
 export type BlogTagId = (typeof blogTagIds)[number];
 
@@ -11,6 +11,7 @@ const blogTagLabels = {
   guide: "Guide",
   jellyfin: "Jellyfin",
   plex: "Plex",
+  engineering: "Engineering",
 } satisfies Record<BlogTagId, string>;
 
 export const blogHeroImageIds = ["what-is-cliparr-hero"] as const;
