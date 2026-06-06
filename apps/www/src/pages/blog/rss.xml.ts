@@ -1,14 +1,21 @@
 import rss from "@astrojs/rss";
 import type { APIRoute } from "astro";
-import type { CollectionEntry } from "astro:content";
 import { getCollection } from "astro:content";
-import { blogTagLabel, compareBlogPosts } from "@/data/blog";
+import { type BlogTagId, blogTagLabel, compareBlogPosts } from "@/data/blog";
 import { site as productSite } from "@/data/product";
 
-type BlogEntry = CollectionEntry<"blog">;
+interface BlogFeedEntry {
+  data: {
+    description: string;
+    publishedAt: string;
+    tags: BlogTagId[];
+    title: string;
+  };
+  id: string;
+}
 
 export const GET: APIRoute = async ({ site }) => {
-  const posts = ((await getCollection("blog")) as BlogEntry[]).toSorted(
+  const posts = ((await getCollection("blog")) as BlogFeedEntry[]).toSorted(
     compareBlogPosts,
   );
 

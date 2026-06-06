@@ -1,17 +1,25 @@
 import rss from "@astrojs/rss";
 import type { APIRoute } from "astro";
-import type { CollectionEntry } from "astro:content";
 import { getCollection } from "astro:content";
 import { site as productSite } from "@/data/product";
 
-type ReleaseEntry = CollectionEntry<"releases">;
+interface ReleaseFeedEntry {
+  data: {
+    isLatest: boolean;
+    prerelease: boolean;
+    publishedAt: string;
+    tagName: string;
+    title: string;
+  };
+  id: string;
+}
 
-const compareReleases = (a: ReleaseEntry, b: ReleaseEntry) =>
+const compareReleases = (a: ReleaseFeedEntry, b: ReleaseFeedEntry) =>
   Date.parse(b.data.publishedAt) - Date.parse(a.data.publishedAt);
 
 export const GET: APIRoute = async ({ site }) => {
   const releases = (
-    (await getCollection("releases")) as ReleaseEntry[]
+    (await getCollection("releases")) as ReleaseFeedEntry[]
   ).toSorted(compareReleases);
 
   return rss({
