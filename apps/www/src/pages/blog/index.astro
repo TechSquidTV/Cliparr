@@ -1,0 +1,69 @@
+---
+import type { CollectionEntry } from "astro:content";
+import { getCollection } from "astro:content";
+import BaseLayout from "@/components/BaseLayout.astro";
+import BlogPostCard from "@/components/BlogPostCard.astro";
+import { blogTagPath, blogTagsForEntries, compareBlogPosts } from "@/data/blog";
+
+type BlogEntry = CollectionEntry<"blog">;
+
+const pageDescription =
+  "Updates, notes, and practical guides for clipping personal media with Cliparr.";
+const posts = ((await getCollection("blog")) as BlogEntry[]).toSorted(
+  compareBlogPosts,
+);
+const tags = blogTagsForEntries(posts);
+---
+
+<BaseLayout title="Blog" description={pageDescription}>
+  <section class="border-b border-border bg-background">
+    <div class="container-page py-12">
+      <p class="section-eyebrow">Blog</p>
+      <h1
+        class="mt-5 max-w-3xl text-4xl font-semibold text-foreground sm:text-5xl"
+      >
+        Cliparr blog
+      </h1>
+      <p class="mt-4 max-w-3xl text-base leading-7 text-muted-foreground">
+        Updates, notes, and practical guides for self-hosted video clipping.
+      </p>
+      {
+        tags.length > 0 && (
+          <div class="mt-6 flex flex-wrap items-center gap-2">
+            <span class="text-sm font-semibold text-foreground">
+              Browse by tag
+            </span>
+            {tags.map((tag) => (
+              <a
+                class="focus-ring rounded-full border border-border bg-card px-3 py-1 text-sm font-semibold text-muted-foreground no-underline transition-colors hover:bg-accent hover:text-foreground"
+                href={blogTagPath(tag.slug)}
+              >
+                {tag.label}
+              </a>
+            ))}
+          </div>
+        )
+      }
+    </div>
+  </section>
+
+  <section class="container-page py-10 sm:py-12">
+    <div class="mx-auto max-w-4xl">
+      {
+        posts.length > 0 ? (
+          <div class="grid gap-4">
+            {posts.map((entry) => (
+              <BlogPostCard entry={entry} />
+            ))}
+          </div>
+        ) : (
+          <div class="rounded-lg border border-border bg-card p-6">
+            <p class="text-sm leading-6 text-muted-foreground">
+              No blog posts have been published yet.
+            </p>
+          </div>
+        )
+      }
+    </div>
+  </section>
+</BaseLayout>

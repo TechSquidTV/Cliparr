@@ -1,0 +1,70 @@
+---
+import type { CollectionEntry } from "astro:content";
+import { getCollection } from "astro:content";
+import BaseLayout from "@/components/BaseLayout.astro";
+import BlogPostCard from "@/components/BlogPostCard.astro";
+import {
+  type BlogTag,
+  blogTagsForEntries,
+  compareBlogPosts,
+} from "@/data/blog";
+
+type BlogEntry = CollectionEntry<"blog">;
+
+interface Props {
+  tag: BlogTag;
+  posts: BlogEntry[];
+}
+
+export async function getStaticPaths() {
+  const posts = ((await getCollection("blog")) as BlogEntry[]).toSorted(
+    compareBlogPosts,
+  );
+  const tags = blogTagsForEntries(posts);
+
+  return tags.map((tag) => ({
+    params: { tag: tag.slug },
+    props: {
+      tag,
+      posts: posts.filter((entry) => entry.data.tags.includes(tag.slug)),
+    },
+  }));
+}
+
+const { tag, posts } = Astro.props;
+const pageDescription = `Blog posts tagged ${tag.label} from Cliparr.`;
+---
+
+<BaseLayout title={`Blog: ${tag.label}`} description={pageDescription}>
+  <section class="border-b border-border bg-background">
+    <div class="container-page py-12">
+      <p class="section-eyebrow">Blog tag</p>
+      <h1
+        class="mt-5 max-w-3xl text-4xl font-semibold text-foreground sm:text-5xl"
+      >
+        Posts tagged {tag.label}
+      </h1>
+      <p class="mt-4 max-w-3xl text-base leading-7 text-muted-foreground">
+        {pageDescription}
+      </p>
+      <a
+        class="focus-ring mt-6 inline-flex rounded-md text-sm font-semibold text-foreground underline decoration-border hover:decoration-primary"
+        href="/blog"
+      >
+        Back to all posts
+      </a>
+    </div>
+  </section>
+
+  <section class="container-page py-10 sm:py-12">
+    <div class="mx-auto max-w-4xl">
+      <div class="grid gap-4">
+        {
+          posts.map((entry) => (
+            <BlogPostCard entry={entry} activeTag={tag.slug} />
+          ))
+        }
+      </div>
+    </div>
+  </section>
+</BaseLayout>

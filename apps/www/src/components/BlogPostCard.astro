@@ -1,0 +1,80 @@
+---
+import type { CollectionEntry } from "astro:content";
+import { Picture } from "astro:assets";
+import { blogTagLabel, blogTagPath } from "@/data/blog";
+import { blogHeroImageFor } from "@/data/blogImages";
+
+type BlogEntry = CollectionEntry<"blog">;
+
+interface Props {
+  entry: BlogEntry;
+  activeTag?: string;
+}
+
+const { entry, activeTag } = Astro.props;
+const heroImage = blogHeroImageFor(entry.data.heroImage);
+const publishedAt = new Date(entry.data.publishedAt);
+const postPath = `/blog/${entry.id}`;
+const dateFormatter = new Intl.DateTimeFormat("en", {
+  dateStyle: "medium",
+  timeZone: "UTC",
+});
+---
+
+<article
+  class="overflow-hidden rounded-lg border border-border bg-card transition-colors hover:bg-accent"
+>
+  {
+    heroImage && (
+      <a class="focus-ring block" href={postPath} aria-label={entry.data.title}>
+        <Picture
+          src={heroImage}
+          alt={entry.data.heroImageAlt ?? ""}
+          formats={["avif", "webp"]}
+          fallbackFormat="webp"
+          widths={[480, 720, 960, 1280]}
+          sizes="(min-width: 64rem) 896px, calc(100vw - 2rem)"
+          quality={72}
+          loading="lazy"
+          decoding="async"
+          class="block aspect-[16/9] w-full object-cover"
+        />
+      </a>
+    )
+  }
+  <div class="p-5 sm:p-6">
+    <div
+      class="flex flex-wrap items-center gap-2 text-sm text-muted-foreground"
+    >
+      <time datetime={entry.data.publishedAt}>
+        {dateFormatter.format(publishedAt)}
+      </time>
+      {
+        entry.data.tags.map((tag) => (
+          <a
+            class:list={[
+              "focus-ring rounded-full border px-2.5 py-1 text-xs font-semibold no-underline transition-colors hover:bg-accent hover:text-foreground",
+              tag === activeTag
+                ? "border-primary/40 bg-primary/10 text-primary"
+                : "border-border bg-muted text-muted-foreground",
+            ]}
+            href={blogTagPath(tag)}
+          >
+            {blogTagLabel(tag)}
+          </a>
+        ))
+      }
+    </div>
+    <h2 class="mt-4 text-2xl font-semibold text-foreground">
+      <a
+        class="focus-ring rounded-md no-underline hover:underline"
+        href={postPath}
+      >
+        {entry.data.title}
+      </a>
+    </h2>
+    <p class="mt-3 text-sm leading-6 text-muted-foreground">
+      {entry.data.description}
+    </p>
+  </div>
+</article>
