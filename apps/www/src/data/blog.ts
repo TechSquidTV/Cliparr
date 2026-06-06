@@ -37,7 +37,7 @@ export function compareBlogPosts<
 export function blogTagsForEntries<
   T extends { data: { tags: readonly BlogTagId[] } },
 >(entries: readonly T[]) {
-  const tagsBySlug = new Map<string, BlogTag>();
+  const tagsBySlug = new Map<BlogTagId, BlogTag>();
 
   for (const entry of entries) {
     for (const tag of entry.data.tags) {

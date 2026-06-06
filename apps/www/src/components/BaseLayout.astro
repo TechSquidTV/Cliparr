@@ -76,6 +76,10 @@ function isStructuredDataItem(
   return item !== null;
 }
 
+function jsonLdScriptContent(item: Record<string, unknown>) {
+  return JSON.stringify(item).replaceAll("<", String.raw`\u003c`);
+}
+
 const structuredDataItems = [homepageSchema, ...pageStructuredData].filter(
   isStructuredDataItem,
 );
@@ -126,7 +130,7 @@ const structuredDataItems = [homepageSchema, ...pageStructuredData].filter(
         <script
           is:inline
           type="application/ld+json"
-          set:html={JSON.stringify(item)}
+          set:html={jsonLdScriptContent(item)}
         />
       ))
     }

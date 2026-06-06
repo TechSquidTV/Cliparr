@@ -8,7 +8,7 @@ type BlogEntry = CollectionEntry<"blog">;
 
 interface Props {
   entry: BlogEntry;
-  activeTag?: string;
+  activeTag?: BlogTagId;
 }
 
 const { entry, activeTag } = Astro.props;
