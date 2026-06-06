@@ -7,6 +7,7 @@ import "@/styles/global.css";
 
 interface Props {
   title?: string;
+  seoTitle?: string;
   description?: string;
   ogType?: "article" | "website";
   socialImage?: string | URL;
@@ -19,6 +20,7 @@ interface Props {
 
 const {
   title,
+  seoTitle,
   description = site.description,
   ogType = "website",
   socialImage = site.ogImage,
@@ -28,8 +30,9 @@ const {
   socialImageWidth = site.ogImageWidth,
   structuredData,
 } = Astro.props;
-const pageTitle = title
-  ? `${title} | ${site.name}`
+const pageTitleText = seoTitle ?? title;
+const pageTitle = pageTitleText
+  ? `${pageTitleText} | ${site.name}`
   : `${site.name} | ${site.description}`;
 const pageTransition = fade({
   duration: "180ms",

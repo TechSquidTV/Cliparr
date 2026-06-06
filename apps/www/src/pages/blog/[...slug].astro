@@ -36,6 +36,18 @@ const heroImage = blogHeroImageFor(entry.data.heroImage);
 const heroImageAlt = entry.data.heroImageAlt ?? site.ogImageAlt;
 const socialImage = heroImage?.src ?? site.ogImage;
 const socialImageUrl = new URL(socialImage, site.url).toString();
+const author = entry.data.author;
+const articleAuthor = author
+  ? {
+      "@type": "Person",
+      name: author.name,
+      ...(author.url ? { url: author.url } : {}),
+    }
+  : {
+      "@type": "Organization",
+      name: site.name,
+      url: site.url,
+    };
 const articleStructuredData = {
   "@context": "https://schema.org",
   "@type": "BlogPosting",
@@ -47,11 +59,7 @@ const articleStructuredData = {
   mainEntityOfPage: postUrl,
   image: socialImageUrl,
   keywords: tags,
-  author: {
-    "@type": "Organization",
-    name: site.name,
-    url: site.url,
-  },
+  author: articleAuthor,
   publisher: {
     "@type": "Organization",
     name: site.name,
@@ -66,6 +74,7 @@ const articleStructuredData = {
 
 <BaseLayout
   title={entry.data.title}
+  seoTitle={entry.data.seoTitle}
   description={entry.data.description}
   ogType="article"
   socialImage={socialImage}
@@ -92,6 +101,24 @@ const articleStructuredData = {
         <time datetime={entry.data.publishedAt}>
           {dateFormatter.format(publishedAt)}
         </time>
+        {
+          author && (
+            <span>
+              By{" "}
+              {author.url ? (
+                <a
+                  class="focus-ring rounded-sm font-medium text-foreground underline decoration-border hover:decoration-primary"
+                  href={author.url}
+                  rel="author noreferrer"
+                >
+                  {author.name}
+                </a>
+              ) : (
+                author.name
+              )}
+            </span>
+          )
+        }
         {
           updatedAt && (
             <span>

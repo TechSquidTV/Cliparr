@@ -26,12 +26,19 @@ const blog = defineCollection({
   schema: z
     .object({
       title: z.string(),
+      seoTitle: z.string().optional(),
       description: z.string(),
       publishedAt: z.iso.date(),
       updatedAt: z.iso.date().optional(),
       tags: z.array(z.enum(blogTagIds)).default([]),
       heroImage: z.enum(blogHeroImageIds).optional(),
       heroImageAlt: z.string().optional(),
+      author: z
+        .object({
+          name: z.string(),
+          url: z.url().optional(),
+        })
+        .optional(),
     })
     .refine((data) => !data.heroImage || Boolean(data.heroImageAlt?.trim()), {
       message: "heroImageAlt is required when heroImage is set.",
