@@ -63,6 +63,35 @@ void test("chooses the highest release level in a change set", () => {
   assert.equal(maxReleaseType(changes), "minor");
 });
 
+void test("ignores website-scoped changes for release planning", () => {
+  assert.equal(
+    releaseTypeForChange(
+      parseConventionalTitle("feat(www): add release page permalinks"),
+    ),
+    "none",
+  );
+  assert.equal(
+    releaseTypeForChange(
+      parseConventionalTitle("fix(www): restore Astro view transitions"),
+    ),
+    "none",
+  );
+  assert.equal(
+    releaseTypeForChange(
+      parseConventionalTitle("feat(www)!: redesign the marketing site"),
+    ),
+    "none",
+  );
+
+  assert.equal(
+    maxReleaseType([
+      parseConventionalTitle("docs: update setup copy"),
+      parseConventionalTitle("feat(www): add blog rss"),
+    ]),
+    "none",
+  );
+});
+
 void test("rejects unknown conventional commit types", () => {
   const change = parseConventionalTitle("release: publish next version");
 
