@@ -34,7 +34,7 @@ export const features = [
   {
     title: "Browser transcoding",
     description:
-      'Video exports are powered by <a href="https://mediabunny.dev/" target="_blank" rel="noreferrer">Mediabunny</a>, with short dithered GIFs encoded in browser workers.',
+      'Video exports are powered by <a href="https://mediabunny.dev/" target="_blank" rel="noreferrer">Mediabunny</a>. GIFs are encoded with <a href="https://github.com/KyleTryon/gifenc" target="_blank" rel="noreferrer">gifenc</a>.',
   },
   {
     title: "Metadata included",
