@@ -3,15 +3,16 @@ import path from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import { drizzle, type NodeSQLiteDatabase } from "drizzle-orm/node-sqlite";
 import { migrate } from "drizzle-orm/node-sqlite/migrator";
-import { logErrorFields } from "@cliparr/shared/logging";
+import { logErrorFields, logEventFields } from "@cliparr/shared/logging";
 import { prepareDatabaseForMigrations } from "@/db/migrationState";
+import { cleanupDuplicatePlexSources } from "@/db/plexSourceDeduplication";
 import * as schema from "@/db/schema";
 import {
   resolveConfiguredDataDir,
   serverRoot,
   workspaceRoot,
 } from "@/config/loadEnv";
-import { getServerLogger } from "@/logging";
+import { getServerLogger, warnWithError } from "@/logging";
 import { assertAppKeyConfigured } from "@/security/secrets";
 
 const DEFAULT_DATABASE_FILE = "cliparr.sqlite";
@@ -55,6 +56,22 @@ function resolveDataDir() {
   return path.join(workspaceRoot, DEFAULT_DEVELOPMENT_DATA_DIR);
 }
 
+function runPostMigrationMaintenance() {
+  try {
+    cleanupDuplicatePlexSources();
+  } catch (error) {
+    warnWithError(
+      logger,
+      error,
+      "Post-migration database maintenance failed.",
+      {
+        ...logEventFields("db.post_migration_maintenance", "failure"),
+        ...logErrorFields(error),
+      },
+    );
+  }
+}
+
 export function initializeDatabase() {
   if (database) {
     return database;
@@ -76,6 +93,7 @@ export function initializeDatabase() {
   database = drizzle({ client: sqlite, schema });
   prepareDatabaseForMigrations(sqlite);
   migrate(database, { migrationsFolder: MIGRATIONS_FOLDER });
+  runPostMigrationMaintenance();
 
   return database;
 }
