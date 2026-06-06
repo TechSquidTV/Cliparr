@@ -7,18 +7,42 @@ import "@/styles/global.css";
 
 interface Props {
   title?: string;
+  seoTitle?: string;
   description?: string;
+  ogType?: "article" | "website";
+  socialImage?: string | URL;
+  socialImageAlt?: string;
+  socialImageHeight?: number;
+  socialImageType?: string;
+  socialImageWidth?: number;
+  structuredData?: Record<string, unknown> | Record<string, unknown>[];
 }
 
-const { title, description = site.description } = Astro.props;
-const pageTitle = title
-  ? `${title} | ${site.name}`
+const {
+  title,
+  seoTitle,
+  description = site.description,
+  ogType = "website",
+  socialImage = site.ogImage,
+  socialImageAlt = site.ogImageAlt,
+  socialImageHeight = site.ogImageHeight,
+  socialImageType = site.ogImageType,
+  socialImageWidth = site.ogImageWidth,
+  structuredData,
+} = Astro.props;
+const pageTitleText = seoTitle ?? title;
+const pageTitle = pageTitleText
+  ? `${pageTitleText} | ${site.name}`
   : `${site.name} | ${site.description}`;
 const pageTransition = fade({
   duration: "180ms",
 });
 const canonicalUrl = new URL(Astro.url.pathname, site.url).toString();
-const socialImageUrl = new URL(site.ogImage, site.url).toString();
+const socialImageUrl = new URL(String(socialImage), site.url).toString();
+const rssLinks = [
+  { href: "/blog/rss.xml", title: `${site.name} blog` },
+  { href: "/changelog/rss.xml", title: `${site.name} releases` },
+] as const;
 const homepageSchema =
   Astro.url.pathname === "/"
     ? {
@@ -41,6 +65,27 @@ const homepageSchema =
         },
       }
     : null;
+const pageStructuredData: Record<string, unknown>[] = [];
+
+if (Array.isArray(structuredData)) {
+  pageStructuredData.push(...structuredData);
+} else if (structuredData) {
+  pageStructuredData.push(structuredData);
+}
+
+function isStructuredDataItem(
+  item: Record<string, unknown> | null,
+): item is Record<string, unknown> {
+  return item !== null;
+}
+
+function jsonLdScriptContent(item: Record<string, unknown>) {
+  return JSON.stringify(item).replaceAll("<", String.raw`\u003c`);
+}
+
+const structuredDataItems = [homepageSchema, ...pageStructuredData].filter(
+  isStructuredDataItem,
+);
 ---
 
 <!doctype html>
@@ -52,35 +97,45 @@ const homepageSchema =
     <meta name="robots" content="index,follow" />
     <link rel="canonical" href={canonicalUrl} />
     <link rel="sitemap" href="/sitemap-index.xml" />
+    {
+      rssLinks.map((link) => (
+        <link
+          rel="alternate"
+          type="application/rss+xml"
+          title={link.title}
+          href={new URL(link.href, site.url).toString()}
+        />
+      ))
+    }
     <meta property="og:title" content={pageTitle} />
     <meta property="og:description" content={description} />
-    <meta property="og:type" content="website" />
+    <meta property="og:type" content={ogType} />
     <meta property="og:url" content={canonicalUrl} />
     <meta property="og:site_name" content={site.name} />
     <meta property="og:image" content={socialImageUrl} />
     <meta property="og:image:secure_url" content={socialImageUrl} />
-    <meta property="og:image:type" content={site.ogImageType} />
-    <meta property="og:image:width" content={String(site.ogImageWidth)} />
-    <meta property="og:image:height" content={String(site.ogImageHeight)} />
-    <meta property="og:image:alt" content={site.ogImageAlt} />
+    <meta property="og:image:type" content={socialImageType} />
+    <meta property="og:image:width" content={String(socialImageWidth)} />
+    <meta property="og:image:height" content={String(socialImageHeight)} />
+    <meta property="og:image:alt" content={socialImageAlt} />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content={pageTitle} />
     <meta name="twitter:description" content={description} />
     <meta name="twitter:image" content={socialImageUrl} />
-    <meta name="twitter:image:alt" content={site.ogImageAlt} />
+    <meta name="twitter:image:alt" content={socialImageAlt} />
     <link rel="icon" href="/favicon.png" />
     <link rel="manifest" href="/manifest.webmanifest" />
     <meta name="theme-color" content="#171717" />
     <link rel="apple-touch-icon" href="/pwa-icon-192.png" />
     <title>{pageTitle}</title>
     {
-      homepageSchema && (
+      structuredDataItems.map((item) => (
         <script
           is:inline
           type="application/ld+json"
-          set:html={JSON.stringify(homepageSchema)}
+          set:html={jsonLdScriptContent(item)}
         />
-      )
+      ))
     }
     <script is:inline>
       (() => {

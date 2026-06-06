@@ -1,0 +1,177 @@
+---
+import type { CollectionEntry } from "astro:content";
+import { getCollection, render } from "astro:content";
+import { Picture } from "astro:assets";
+import BaseLayout from "@/components/BaseLayout.astro";
+import { type BlogTagId, blogTagLabel, blogTagPath } from "@/data/blog";
+import { blogHeroImageFor } from "@/data/blogImages";
+import { site } from "@/data/product";
+
+type BlogEntry = CollectionEntry<"blog">;
+
+type Props = {
+  entry: BlogEntry;
+};
+
+export async function getStaticPaths() {
+  const posts = (await getCollection("blog")) as BlogEntry[];
+
+  return posts.map((entry) => ({
+    params: { slug: entry.id },
+    props: { entry },
+  }));
+}
+
+const { entry } = Astro.props;
+const { Content } = await render(entry);
+const publishedAt = new Date(entry.data.publishedAt);
+const updatedAt = entry.data.updatedAt ? new Date(entry.data.updatedAt) : null;
+const dateFormatter = new Intl.DateTimeFormat("en", {
+  dateStyle: "medium",
+  timeZone: "UTC",
+});
+const tags = entry.data.tags as BlogTagId[];
+const postUrl = new URL(`/blog/${entry.id}`, site.url).toString();
+const heroImage = blogHeroImageFor(entry.data.heroImage);
+const heroImageAlt = entry.data.heroImageAlt ?? site.ogImageAlt;
+const socialImage = heroImage?.src ?? site.ogImage;
+const socialImageUrl = new URL(socialImage, site.url).toString();
+const author = entry.data.author;
+const articleAuthor = author
+  ? {
+      "@type": "Person",
+      name: author.name,
+      ...(author.url ? { url: author.url } : {}),
+    }
+  : {
+      "@type": "Organization",
+      name: site.name,
+      url: site.url,
+    };
+const articleStructuredData = {
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
+  headline: entry.data.title,
+  description: entry.data.description,
+  datePublished: entry.data.publishedAt,
+  ...(entry.data.updatedAt ? { dateModified: entry.data.updatedAt } : {}),
+  url: postUrl,
+  mainEntityOfPage: postUrl,
+  image: socialImageUrl,
+  keywords: tags,
+  author: articleAuthor,
+  publisher: {
+    "@type": "Organization",
+    name: site.name,
+    url: site.url,
+    logo: {
+      "@type": "ImageObject",
+      url: new URL(site.logo, site.url).toString(),
+    },
+  },
+};
+---
+
+<BaseLayout
+  title={entry.data.title}
+  seoTitle={entry.data.seoTitle}
+  description={entry.data.description}
+  ogType="article"
+  socialImage={socialImage}
+  socialImageAlt={heroImageAlt}
+  socialImageHeight={heroImage?.height}
+  socialImageType={heroImage ? `image/${heroImage.format}` : undefined}
+  socialImageWidth={heroImage?.width}
+  structuredData={articleStructuredData}
+>
+  <section class="border-b border-border bg-background">
+    <div class="container-page py-12">
+      <p class="section-eyebrow">Blog</p>
+      <h1
+        class="mt-5 max-w-3xl text-4xl font-semibold text-foreground sm:text-5xl"
+      >
+        {entry.data.title}
+      </h1>
+      <p class="mt-4 max-w-3xl text-base leading-7 text-muted-foreground">
+        {entry.data.description}
+      </p>
+      <div
+        class="mt-5 flex flex-wrap items-center gap-2 text-sm text-muted-foreground"
+      >
+        <time datetime={entry.data.publishedAt}>
+          {dateFormatter.format(publishedAt)}
+        </time>
+        {
+          author && (
+            <span>
+              By{" "}
+              {author.url ? (
+                <a
+                  class="focus-ring rounded-sm font-medium text-foreground underline decoration-border hover:decoration-primary"
+                  href={author.url}
+                  rel="author noreferrer"
+                >
+                  {author.name}
+                </a>
+              ) : (
+                author.name
+              )}
+            </span>
+          )
+        }
+        {
+          updatedAt && (
+            <span>
+              Updated{" "}
+              <time datetime={entry.data.updatedAt}>
+                {dateFormatter.format(updatedAt)}
+              </time>
+            </span>
+          )
+        }
+        {
+          tags.map((tag) => (
+            <a
+              class="focus-ring rounded-full border border-border bg-muted px-2.5 py-1 text-xs font-semibold text-muted-foreground no-underline transition-colors hover:bg-accent hover:text-foreground"
+              href={blogTagPath(tag)}
+            >
+              {blogTagLabel(tag)}
+            </a>
+          ))
+        }
+      </div>
+      {
+        heroImage && (
+          <figure class="mt-8 overflow-hidden rounded-lg border border-border bg-card">
+            <Picture
+              src={heroImage}
+              alt={heroImageAlt}
+              formats={["avif", "webp"]}
+              fallbackFormat="webp"
+              widths={[640, 960, 1280, 1600]}
+              sizes="(min-width: 80rem) 1216px, calc(100vw - 2rem)"
+              quality={76}
+              loading="eager"
+              decoding="async"
+              class="block w-full"
+            />
+          </figure>
+        )
+      }
+    </div>
+  </section>
+
+  <div class="container-page py-10">
+    <div class="mx-auto max-w-3xl">
+      <a
+        class="focus-ring inline-flex rounded-md text-sm font-semibold text-foreground underline decoration-border hover:decoration-primary"
+        href="/blog"
+      >
+        Back to blog
+      </a>
+      <article class="prose-docs mt-8 min-w-0">
+        <Content />
+      </article>
+    </div>
+  </div>
+</BaseLayout>

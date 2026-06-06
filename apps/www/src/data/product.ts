@@ -1,8 +1,7 @@
 export const site = {
   name: "Cliparr",
   url: "https://cliparr.dev",
-  description:
-    "Instant media clipper for Plex, Jellyfin, and local video files.",
+  description: "Self-hosted video clipper for Plex, Jellyfin, and local files.",
   githubUrl: "https://github.com/TechSquidTV/Cliparr",
   ogImage: "/og.jpg",
   ogImageAlt:
@@ -14,18 +13,18 @@ export const site = {
 };
 
 export const productIntro =
-  "Open Plex, Jellyfin, or a local file. Trim the moment and export it.";
+  "Self-hosted video clipping for Plex, Jellyfin, and local files. Trim the moment and export it in your browser.";
 
 export const features = [
   {
     title: "Instant session discovery",
     description:
-      "Automatically loads your media player's currently playing file.",
+      'Automatically loads currently playing media from connected <a href="/docs/providers">Plex and Jellyfin providers</a>.',
   },
   {
     title: "Open local videos",
     description:
-      "Open a local file or direct media URL before or after connecting a provider.",
+      'Open a <a href="/docs/local-videos">local file or direct media URL</a> before or after connecting a provider.',
   },
   {
     title: "Intuitive timeline editor",
@@ -34,7 +33,7 @@ export const features = [
   {
     title: "Browser transcoding",
     description:
-      'Video exports are powered by <a href="https://mediabunny.dev/" target="_blank" rel="noreferrer">Mediabunny</a>. GIFs are encoded with <a href="https://github.com/KyleTryon/gifenc" target="_blank" rel="noreferrer">gifenc</a>.',
+      'Video <a href="/docs/export-settings">export settings</a> are powered by <a href="https://mediabunny.dev/" target="_blank" rel="noreferrer">Mediabunny</a>. GIFs are encoded with <a href="https://github.com/KyleTryon/gifenc" target="_blank" rel="noreferrer">gifenc</a>.',
   },
   {
     title: "Metadata included",
@@ -44,7 +43,7 @@ export const features = [
   {
     title: "Subtitle burn-in",
     description:
-      "Burn in supported subtitles with customizable styling and local font support in Chromium.",
+      'Burn in <a href="/docs/subtitle-burn-in">supported subtitles</a> with customizable styling and local font support in Chromium.',
   },
 ] as const;
 
