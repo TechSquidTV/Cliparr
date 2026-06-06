@@ -10,7 +10,12 @@ import {
   updateMediaSource,
   upsertMediaSource,
 } from "@/db/mediaSourcesRepository";
-import { upsertProviderAccountByAccessToken } from "@/db/providerAccountsRepository";
+import { cleanupDuplicatePlexSources } from "@/db/plexSourceDeduplication";
+import {
+  getProviderAccount,
+  updateProviderAccount,
+  upsertProviderAccountByAccessToken,
+} from "@/db/providerAccountsRepository";
 import {
   plexBaseUrlMode,
   PLEX_BASE_URL_MODE_AUTO,
@@ -41,6 +46,63 @@ function preferredConnection(
   )[0];
 }
 
+function providerAccountMetadata(input: {
+  provider: ProviderDefinition;
+  resources: ProviderResource[];
+}) {
+  return {
+    resourceCount: input.resources.length,
+    lastAuthenticatedAt: new Date().toISOString(),
+    ...(input.provider.id === "plex"
+      ? {
+          resourceIds: input.resources
+            .map((resource) => resource.id)
+            .toSorted(),
+        }
+      : {}),
+  };
+}
+
+function disableStaleProviderSources(input: {
+  providerId: string;
+  providerAccountId: string;
+  activeResourceIds: Set<string>;
+}) {
+  const staleSources = listMediaSources({
+    providerId: input.providerId,
+    providerAccountId: input.providerAccountId,
+  }).filter(
+    (source) =>
+      typeof source.externalId === "string" &&
+      !input.activeResourceIds.has(source.externalId) &&
+      source.enabled,
+  );
+
+  for (const source of staleSources) {
+    updateMediaSource(source.id, { enabled: false });
+  }
+}
+
+function refreshProviderAuthMetadata(
+  providerAccountId: string,
+  input: {
+    provider: ProviderDefinition;
+    resources: ProviderResource[];
+  },
+) {
+  const account = getProviderAccount(providerAccountId);
+  if (!account) {
+    return;
+  }
+
+  updateProviderAccount(providerAccountId, {
+    metadata: {
+      ...account.metadata,
+      ...providerAccountMetadata(input),
+    },
+  });
+}
+
 export function persistProviderAuth(input: {
   provider: ProviderDefinition;
   userToken: string;
@@ -50,10 +112,7 @@ export function persistProviderAuth(input: {
     providerId: input.provider.id,
     label: `${input.provider.name} Account`,
     accessToken: input.userToken,
-    metadata: {
-      resourceCount: input.resources.length,
-      lastAuthenticatedAt: new Date().toISOString(),
-    },
+    metadata: providerAccountMetadata(input),
   });
 
   if (!account) {
@@ -67,19 +126,6 @@ export function persistProviderAuth(input: {
   const activeResourceIds = new Set(
     input.resources.map((resource) => resource.id),
   );
-  const staleSources = listMediaSources({
-    providerId: input.provider.id,
-    providerAccountId: account.id,
-  }).filter(
-    (source) =>
-      typeof source.externalId === "string" &&
-      !activeResourceIds.has(source.externalId) &&
-      source.enabled,
-  );
-
-  for (const source of staleSources) {
-    updateMediaSource(source.id, { enabled: false });
-  }
 
   for (const resource of input.resources) {
     persistProviderResource({
@@ -89,6 +135,27 @@ export function persistProviderAuth(input: {
     });
   }
 
+  if (input.provider.id === "plex") {
+    const cleanup = cleanupDuplicatePlexSources({
+      newlyAuthenticatedAccountId: account.id,
+    });
+    const resolvedAccount = cleanup.providerAccountId
+      ? (getProviderAccount(cleanup.providerAccountId) ?? account)
+      : account;
+    disableStaleProviderSources({
+      providerId: input.provider.id,
+      providerAccountId: resolvedAccount.id,
+      activeResourceIds,
+    });
+    refreshProviderAuthMetadata(resolvedAccount.id, input);
+    return getProviderAccount(resolvedAccount.id) ?? resolvedAccount;
+  }
+
+  disableStaleProviderSources({
+    providerId: input.provider.id,
+    providerAccountId: account.id,
+    activeResourceIds,
+  });
   return account;
 }
 

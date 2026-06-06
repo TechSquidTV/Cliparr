@@ -116,14 +116,17 @@ async function withMockedFetch<T>(
 
 void test("completes Plex PIN auth through route cookies and persists sources", async () => {
   await withTestApp(async (baseUrl, fetchLocal) => {
+    let nextPinId = 321;
     await withMockedFetch(
       async (input) => {
         const requestUrl = fetchInputUrl(input);
 
         if (requestUrl === "https://plex.tv/api/v2/pins?strong=true") {
+          const id = nextPinId;
+          nextPinId += 1;
           return jsonResponse({
-            id: 321,
-            code: "WXYZ",
+            id,
+            code: `WXYZ-${id}`,
             expiresIn: 60,
           });
         }
@@ -131,6 +134,12 @@ void test("completes Plex PIN auth through route cookies and persists sources", 
         if (requestUrl === "https://plex.tv/api/v2/pins/321") {
           return jsonResponse({
             authToken: "plex-user-token",
+          });
+        }
+
+        if (requestUrl === "https://plex.tv/api/v2/pins/322") {
+          return jsonResponse({
+            authToken: "plex-phone-token",
           });
         }
 
@@ -225,6 +234,42 @@ void test("completes Plex PIN auth through route cookies and persists sources", 
         assert.equal(sources[0]?.baseUrl, "http://192.0.2.10:32400");
         assert.equal(sources[0]?.credentials.accessToken, "plex-server-token");
         assert.equal(sources[0]?.metadata.product, "Plex Media Server");
+
+        const secondStartResponse = await fetchLocal(
+          `${baseUrl}/api/providers/plex/auth/start`,
+          {
+            method: "POST",
+          },
+        );
+        assert.equal(secondStartResponse.status, 200);
+        const secondStartBody = (await secondStartResponse.json()) as {
+          authId?: string;
+        };
+        assert.equal(typeof secondStartBody.authId, "string");
+        const secondAuthCookie = cookieHeader(secondStartResponse);
+
+        const secondCompleteResponse = await fetchLocal(
+          `${baseUrl}/api/providers/plex/auth/${secondStartBody.authId}`,
+          {
+            headers: {
+              cookie: secondAuthCookie,
+            },
+          },
+        );
+        assert.equal(secondCompleteResponse.status, 200);
+        assert.deepEqual(await secondCompleteResponse.json(), {
+          status: "complete",
+        });
+
+        const sourcesAfterSecondLogin = listMediaSources({
+          providerId: "plex",
+        });
+        assert.equal(sourcesAfterSecondLogin.length, 1);
+        assert.equal(sourcesAfterSecondLogin[0]?.name, "Living Room Plex");
+        assert.equal(
+          sourcesAfterSecondLogin[0]?.baseUrl,
+          "http://192.0.2.10:32400",
+        );
       },
     );
   });

@@ -66,7 +66,10 @@ function createProviderAccount(input: CreateProviderAccountInput) {
   return getProviderAccount(id);
 }
 
-function updateProviderAccount(id: string, input: UpdateProviderAccountInput) {
+export function updateProviderAccount(
+  id: string,
+  input: UpdateProviderAccountInput,
+) {
   const accessToken =
     input.accessToken === undefined
       ? undefined
