@@ -2,6 +2,7 @@
 import type { CollectionEntry } from "astro:content";
 import { getCollection, render } from "astro:content";
 import BaseLayout from "@/components/BaseLayout.astro";
+import RssIcon from "@/components/icons/RssIcon.astro";
 
 type ReleaseEntry = CollectionEntry<"releases">;
 
@@ -69,10 +70,11 @@ const dateFormatter = new Intl.DateTimeFormat("en", {
               View on GitHub
             </a>
             <a
-              class="focus-ring rounded-md font-medium text-foreground underline decoration-border hover:decoration-primary"
+              class="focus-ring inline-flex items-center gap-1.5 rounded-md font-medium text-foreground underline decoration-border hover:decoration-primary"
               href="/changelog/rss.xml"
             >
-              RSS feed
+              <RssIcon class="h-3.5 w-3.5 text-muted-foreground" />
+              <span>RSS feed</span>
             </a>
           </div>
         )

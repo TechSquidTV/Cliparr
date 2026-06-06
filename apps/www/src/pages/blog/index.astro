@@ -3,6 +3,7 @@ import type { CollectionEntry } from "astro:content";
 import { getCollection } from "astro:content";
 import BaseLayout from "@/components/BaseLayout.astro";
 import BlogPostCard from "@/components/BlogPostCard.astro";
+import RssIcon from "@/components/icons/RssIcon.astro";
 import { blogTagPath, blogTagsForEntries, compareBlogPosts } from "@/data/blog";
 
 type BlogEntry = CollectionEntry<"blog">;
@@ -28,10 +29,11 @@ const tags = blogTagsForEntries(posts);
         Updates, notes, and practical guides for self-hosted video clipping.
       </p>
       <a
-        class="focus-ring mt-6 inline-flex w-fit rounded-full border border-border bg-card px-3 py-2 text-sm font-semibold text-foreground no-underline transition-colors hover:bg-accent"
+        class="focus-ring mt-6 inline-flex w-fit items-center gap-2 rounded-full border border-border bg-card px-3 py-2 text-sm font-semibold text-foreground no-underline transition-colors hover:bg-accent"
         href="/blog/rss.xml"
       >
-        RSS feed
+        <RssIcon class="h-4 w-4 text-muted-foreground" />
+        <span>RSS feed</span>
       </a>
       {
         tags.length > 0 && (
