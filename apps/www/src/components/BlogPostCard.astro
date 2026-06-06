@@ -1,7 +1,7 @@
 ---
 import type { CollectionEntry } from "astro:content";
 import { Picture } from "astro:assets";
-import { blogTagLabel, blogTagPath } from "@/data/blog";
+import { type BlogTagId, blogTagLabel, blogTagPath } from "@/data/blog";
 import { blogHeroImageFor } from "@/data/blogImages";
 
 type BlogEntry = CollectionEntry<"blog">;
@@ -15,6 +15,7 @@ const { entry, activeTag } = Astro.props;
 const heroImage = blogHeroImageFor(entry.data.heroImage);
 const publishedAt = new Date(entry.data.publishedAt);
 const postPath = `/blog/${entry.id}`;
+const tags = entry.data.tags as BlogTagId[];
 const dateFormatter = new Intl.DateTimeFormat("en", {
   dateStyle: "medium",
   timeZone: "UTC",
@@ -50,7 +51,7 @@ const dateFormatter = new Intl.DateTimeFormat("en", {
         {dateFormatter.format(publishedAt)}
       </time>
       {
-        entry.data.tags.map((tag) => (
+        tags.map((tag) => (
           <a
             class:list={[
               "focus-ring rounded-full border px-2.5 py-1 text-xs font-semibold no-underline transition-colors hover:bg-accent hover:text-foreground",
