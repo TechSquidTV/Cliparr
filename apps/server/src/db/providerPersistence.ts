@@ -137,7 +137,7 @@ export function persistProviderAuth(input: {
 
   if (input.provider.id === "plex") {
     const cleanup = cleanupDuplicatePlexSources({
-      preferredAccountId: account.id,
+      newlyAuthenticatedAccountId: account.id,
     });
     const resolvedAccount = cleanup.providerAccountId
       ? (getProviderAccount(cleanup.providerAccountId) ?? account)

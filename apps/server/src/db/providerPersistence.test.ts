@@ -417,7 +417,7 @@ void test("merges Plex account components bridged by a repeated login", () => {
     });
 
     const cleanup = cleanupDuplicatePlexSources({
-      preferredAccountId: phoneAccount.id,
+      newlyAuthenticatedAccountId: phoneAccount.id,
     });
     const sources = listMediaSources({ providerId: "plex" }).toSorted(
       (left, right) =>
@@ -606,7 +606,7 @@ void test("cleans existing duplicate Plex sources and preserves manual URL mode"
     );
 
     const cleanup = cleanupDuplicatePlexSources({
-      preferredAccountId: duplicateAccount.id,
+      newlyAuthenticatedAccountId: duplicateAccount.id,
     });
 
     assert.equal(cleanup.providerAccountId, canonicalAccount.id);

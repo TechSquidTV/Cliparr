@@ -76,7 +76,7 @@ function hasHealthHistory(source: MediaSource) {
 function compareCanonicalSources(
   left: MediaSource,
   right: MediaSource,
-  preferredAccountId?: string,
+  newlyAuthenticatedAccountId?: string,
 ) {
   const leftManual = sourceUsesManualPlexUrl(left);
   const rightManual = sourceUsesManualPlexUrl(right);
@@ -94,14 +94,17 @@ function compareCanonicalSources(
     return leftChecked ? -1 : 1;
   }
 
+  // Fresh auth rows carry newer tokens, but existing rows are safer canonicals.
   if (
-    preferredAccountId &&
+    newlyAuthenticatedAccountId &&
     left.providerAccountId !== right.providerAccountId
   ) {
-    const leftPreferred = left.providerAccountId === preferredAccountId;
-    const rightPreferred = right.providerAccountId === preferredAccountId;
-    if (leftPreferred !== rightPreferred) {
-      return leftPreferred ? 1 : -1;
+    const leftNewlyAuthenticated =
+      left.providerAccountId === newlyAuthenticatedAccountId;
+    const rightNewlyAuthenticated =
+      right.providerAccountId === newlyAuthenticatedAccountId;
+    if (leftNewlyAuthenticated !== rightNewlyAuthenticated) {
+      return leftNewlyAuthenticated ? 1 : -1;
     }
   }
 
@@ -169,15 +172,15 @@ function latestCheckedSource(sources: MediaSource[]) {
     )[0];
 }
 
-function preferredMergeSource(
+function mergeDataSource(
   canonical: MediaSource,
   sources: MediaSource[],
-  preferredAccountId?: string,
+  newlyAuthenticatedAccountId?: string,
 ) {
   return (
     latestUpdatedSource(
       sources.filter(
-        (source) => source.providerAccountId === preferredAccountId,
+        (source) => source.providerAccountId === newlyAuthenticatedAccountId,
       ),
     ) ??
     latestUpdatedSource(
@@ -289,9 +292,13 @@ function groupDuplicateSources(sources: MediaSource[]) {
 function mergeCanonicalSource(
   canonical: MediaSource,
   sources: MediaSource[],
-  preferredAccountId?: string,
+  newlyAuthenticatedAccountId?: string,
 ) {
-  const latest = preferredMergeSource(canonical, sources, preferredAccountId);
+  const latest = mergeDataSource(
+    canonical,
+    sources,
+    newlyAuthenticatedAccountId,
+  );
   const checked = latestCheckedSource(sources);
   const manual = sourceUsesManualPlexUrl(canonical);
 
@@ -482,22 +489,20 @@ function updateMergedProviderAccount(
   });
 }
 
-function resolvePreferredAccountId(
-  preferredAccountId: string | undefined,
+function resolveCanonicalAccountId(
+  accountId: string | undefined,
   canonicalAccountIdByAccountId: Map<string, string>,
 ) {
-  if (!preferredAccountId) {
+  if (!accountId) {
     return;
   }
 
-  return (
-    canonicalAccountIdByAccountId.get(preferredAccountId) ?? preferredAccountId
-  );
+  return canonicalAccountIdByAccountId.get(accountId) ?? accountId;
 }
 
 function cleanupDuplicatePlexSourcesInTransaction(
   options: {
-    preferredAccountId?: string;
+    newlyAuthenticatedAccountId?: string;
   } = {},
 ): CleanupResult {
   const startedAt = Date.now();
@@ -506,7 +511,11 @@ function cleanupDuplicatePlexSourcesInTransaction(
   const duplicateGroupPlans = duplicateGroups
     .map((group): DuplicateGroupPlan | undefined => {
       const canonical = group.toSorted((left, right) =>
-        compareCanonicalSources(left, right, options.preferredAccountId),
+        compareCanonicalSources(
+          left,
+          right,
+          options.newlyAuthenticatedAccountId,
+        ),
       )[0];
       return canonical ? { group, canonical } : undefined;
     })
@@ -520,7 +529,7 @@ function cleanupDuplicatePlexSourcesInTransaction(
   let reassignedRememberedSessionCount = 0;
 
   for (const { canonical, group } of duplicateGroupPlans) {
-    mergeCanonicalSource(canonical, group, options.preferredAccountId);
+    mergeCanonicalSource(canonical, group, options.newlyAuthenticatedAccountId);
 
     for (const source of group) {
       if (source.id === canonical.id) {
@@ -564,8 +573,8 @@ function cleanupDuplicatePlexSourcesInTransaction(
     updateMergedProviderAccount(canonicalAccountId, accounts);
   }
 
-  const providerAccountId = resolvePreferredAccountId(
-    options.preferredAccountId,
+  const providerAccountId = resolveCanonicalAccountId(
+    options.newlyAuthenticatedAccountId,
     canonicalAccountIdByAccountId,
   );
 
@@ -600,7 +609,7 @@ function cleanupDuplicatePlexSourcesInTransaction(
 
 export function cleanupDuplicatePlexSources(
   options: {
-    preferredAccountId?: string;
+    newlyAuthenticatedAccountId?: string;
   } = {},
 ): CleanupResult {
   return getDatabase().transaction(() =>
