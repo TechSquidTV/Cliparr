@@ -36,6 +36,10 @@ const pageTransition = fade({
 });
 const canonicalUrl = new URL(Astro.url.pathname, site.url).toString();
 const socialImageUrl = new URL(String(socialImage), site.url).toString();
+const rssLinks = [
+  { href: "/blog/rss.xml", title: `${site.name} blog` },
+  { href: "/changelog/rss.xml", title: `${site.name} releases` },
+] as const;
 const homepageSchema =
   Astro.url.pathname === "/"
     ? {
@@ -86,6 +90,16 @@ const structuredDataItems = [homepageSchema, ...pageStructuredData].filter(
     <meta name="robots" content="index,follow" />
     <link rel="canonical" href={canonicalUrl} />
     <link rel="sitemap" href="/sitemap-index.xml" />
+    {
+      rssLinks.map((link) => (
+        <link
+          rel="alternate"
+          type="application/rss+xml"
+          title={link.title}
+          href={new URL(link.href, site.url).toString()}
+        />
+      ))
+    }
     <meta property="og:title" content={pageTitle} />
     <meta property="og:description" content={description} />
     <meta property="og:type" content={ogType} />
