@@ -20,12 +20,12 @@
 
 <!-- CLIPARR_DOCS_SYNC:features:start -->
 
-- **Instant session discovery**: Automatically loads your media player's currently playing file.
-- **Open local videos**: Open a local file or direct media URL before or after connecting a provider.
+- **Instant session discovery**: Automatically loads currently playing media from connected <a href="/docs/providers">Plex and Jellyfin providers</a>.
+- **Open local videos**: Open a <a href="/docs/local-videos">local file or direct media URL</a> before or after connecting a provider.
 - **Intuitive timeline editor**: Familiar editing controls for choosing the exact clip range.
-- **Browser transcoding**: Video exports are powered by <a href="https://mediabunny.dev/" target="_blank" rel="noreferrer">Mediabunny</a>. GIFs are encoded with <a href="https://github.com/KyleTryon/gifenc" target="_blank" rel="noreferrer">gifenc</a>.
+- **Browser transcoding**: Video <a href="/docs/export-settings">export settings</a> are powered by <a href="https://mediabunny.dev/" target="_blank" rel="noreferrer">Mediabunny</a>. GIFs are encoded with <a href="https://github.com/KyleTryon/gifenc" target="_blank" rel="noreferrer">gifenc</a>.
 - **Metadata included**: Video exports can include season, episode, and timing metadata from your source.
-- **Subtitle burn-in**: Burn in supported subtitles with customizable styling and local font support in Chromium.
+- **Subtitle burn-in**: Burn in <a href="/docs/subtitle-burn-in">supported subtitles</a> with customizable styling and local font support in Chromium.
 <!-- CLIPARR_DOCS_SYNC:features:end -->
 
 ## Getting Started
