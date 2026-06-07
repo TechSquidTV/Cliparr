@@ -206,6 +206,12 @@ export function DashboardViewerFilterPicker({
   const selectedNames = sanitizeDashboardViewerFilterNames(selectedViewerNames);
   const selectedNamesSet = new Set(selectedNames);
   const filterActive = selectedNames.length > 0;
+  const reduceMotion = useReducedMotion();
+  const microHover = reduceMotion ? undefined : { y: -1 };
+  const microTap = reduceMotion ? undefined : { scale: 0.985 };
+  const microTransition = reduceMotion
+    ? { duration: 0 }
+    : cliparrMotionTransitions.fast;
   const queryText = query.trim().toLowerCase();
   const filteredViewerOptions = queryText
     ? viewerOptions.filter((option) =>
@@ -231,17 +237,27 @@ export function DashboardViewerFilterPicker({
         aria-label={`Filter sessions by viewer: ${triggerLabel}`}
         data-dashboard-viewer-filter
         data-dashboard-viewer-filter-active={filterActive || undefined}
-        className={cn(
-          "inline-flex h-11 min-w-0 items-center justify-center gap-2 rounded-lg border border-border px-3 text-sm font-semibold text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:ring-2 focus-visible:ring-primary/35 focus-visible:outline-none sm:h-9 sm:px-3 sm:font-medium",
-          filterActive &&
-            "border-primary/40 bg-primary/10 text-primary hover:bg-primary/15 hover:text-primary",
-          className,
-        )}
+        className={(state) =>
+          cn(
+            "inline-flex h-11 min-w-0 items-center justify-center gap-2 rounded-lg border border-border px-3 text-sm font-semibold text-muted-foreground transition-[color,background-color,border-color,transform] duration-200 hover:-translate-y-px hover:bg-accent hover:text-foreground active:scale-[0.985] focus-visible:ring-2 focus-visible:ring-primary/35 focus-visible:outline-none motion-reduce:transform-none sm:h-9 sm:px-3 sm:font-medium",
+            state.open &&
+              "[&_[data-dashboard-viewer-filter-chevron]]:rotate-180",
+            filterActive &&
+              "border-primary/40 bg-primary/10 text-primary hover:bg-primary/15 hover:text-primary",
+            className,
+          )
+        }
       >
         <Users className="h-4 w-4 shrink-0" />
         <span className="hidden shrink-0 sm:inline">Viewers</span>
         <span className="min-w-0 truncate">{triggerLabel}</span>
-        <ChevronDown className="h-4 w-4 shrink-0 opacity-70" />
+        <span
+          className="shrink-0 transition-transform duration-200 motion-reduce:transition-none"
+          data-dashboard-viewer-filter-chevron
+          aria-hidden="true"
+        >
+          <ChevronDown className="h-4 w-4 opacity-70" />
+        </span>
       </Popover.Trigger>
       <Popover.Portal>
         <Popover.Positioner sideOffset={8} align="end">
@@ -276,7 +292,7 @@ export function DashboardViewerFilterPicker({
               className="cliparr-editor-scrollbar mt-2 max-h-72 overflow-y-auto"
               data-dashboard-viewer-filter-options
             >
-              <button
+              <motion.button
                 type="button"
                 onClick={onClearViewerFilter}
                 aria-pressed={!filterActive}
@@ -284,6 +300,9 @@ export function DashboardViewerFilterPicker({
                   "flex min-h-11 w-full items-center gap-3 rounded-md px-2 text-left text-sm transition-colors hover:bg-accent hover:text-foreground focus-visible:ring-2 focus-visible:ring-primary/35 focus-visible:outline-none",
                   !filterActive && "bg-primary/10 text-primary",
                 )}
+                whileHover={microHover}
+                whileTap={microTap}
+                transition={microTransition}
               >
                 <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-background text-primary">
                   <Users className="h-4 w-4" />
@@ -296,13 +315,21 @@ export function DashboardViewerFilterPicker({
                     {formatFilterSessionCount(totalSessionCount)}
                   </span>
                 </span>
-                <Check
+                <motion.span
                   className={cn(
-                    "h-4 w-4 shrink-0",
-                    filterActive ? "invisible" : "text-primary",
+                    "shrink-0 text-primary",
+                    filterActive && "pointer-events-none",
                   )}
-                />
-              </button>
+                  animate={{
+                    opacity: filterActive ? 0 : 1,
+                    scale: filterActive ? 0.8 : 1,
+                  }}
+                  transition={microTransition}
+                  aria-hidden="true"
+                >
+                  <Check className="h-4 w-4" />
+                </motion.span>
+              </motion.button>
 
               {filteredViewerOptions.length === 0 ? (
                 <div className="px-3 py-6 text-center text-sm text-muted-foreground">
@@ -316,7 +343,7 @@ export function DashboardViewerFilterPicker({
                     : `Show ${option.name} sessions`;
 
                   return (
-                    <button
+                    <motion.button
                       key={option.normalizedName}
                       type="button"
                       onClick={() => onToggleViewer(option.normalizedName)}
@@ -326,6 +353,9 @@ export function DashboardViewerFilterPicker({
                         "mt-1 flex min-h-11 w-full items-center gap-3 rounded-md px-2 text-left text-sm transition-colors hover:bg-accent hover:text-foreground focus-visible:ring-2 focus-visible:ring-primary/35 focus-visible:outline-none",
                         selected && "bg-primary/10 text-primary",
                       )}
+                      whileHover={microHover}
+                      whileTap={microTap}
+                      transition={microTransition}
                     >
                       <ViewerAvatar
                         name={option.name}
@@ -340,13 +370,21 @@ export function DashboardViewerFilterPicker({
                           {formatFilterSessionCount(option.sessionCount)}
                         </span>
                       </span>
-                      <Check
+                      <motion.span
                         className={cn(
-                          "h-4 w-4 shrink-0",
-                          selected ? "text-primary" : "invisible",
+                          "shrink-0 text-primary",
+                          !selected && "pointer-events-none",
                         )}
-                      />
-                    </button>
+                        animate={{
+                          opacity: selected ? 1 : 0,
+                          scale: selected ? 1 : 0.8,
+                        }}
+                        transition={microTransition}
+                        aria-hidden="true"
+                      >
+                        <Check className="h-4 w-4" />
+                      </motion.span>
+                    </motion.button>
                   );
                 })
               )}
@@ -362,14 +400,17 @@ export function DashboardViewerFilterPicker({
                     ? `${formatFilterSessionCount(hiddenSessionCount)} hidden`
                     : "Filtered"}
                 </span>
-                <button
+                <motion.button
                   type="button"
                   onClick={onClearViewerFilter}
                   className="inline-flex h-8 shrink-0 items-center gap-1.5 rounded-md px-2 text-xs font-semibold text-primary transition-colors hover:bg-primary/10 focus-visible:ring-2 focus-visible:ring-primary/35 focus-visible:outline-none"
+                  whileHover={microHover}
+                  whileTap={microTap}
+                  transition={microTransition}
                 >
                   <X className="h-3.5 w-3.5" />
                   Clear
-                </button>
+                </motion.button>
               </div>
             )}
           </Popover.Popup>
@@ -861,6 +902,7 @@ export default function DashboardScreen({
     readDashboardViewerFilter(),
   );
   const hasFetchedSessionsReference = useRef(false);
+  const reduceDashboardMotion = useReducedMotion();
 
   const fetchSessions = useCallback(async () => {
     const isInitialFetch = !hasFetchedSessionsReference.current;
@@ -1112,14 +1154,36 @@ export default function DashboardScreen({
             >
               <GithubIcon className="h-5 w-5" />
             </a>
-            <button
+            <motion.button
               type="button"
               onClick={onDisconnect}
-              className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-accent rounded-lg transition-colors"
+              className={cn(
+                "flex items-center gap-2 rounded-lg text-sm font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:ring-2 focus-visible:ring-primary/35 focus-visible:outline-none",
+                showViewerFilterControl
+                  ? "h-9 w-9 justify-center p-2"
+                  : "px-4 py-2",
+              )}
+              aria-label="Disconnect"
+              title="Disconnect"
+              whileHover={
+                showViewerFilterControl && !reduceDashboardMotion
+                  ? { y: -1 }
+                  : undefined
+              }
+              whileTap={
+                showViewerFilterControl && !reduceDashboardMotion
+                  ? { scale: 0.985 }
+                  : undefined
+              }
+              transition={
+                reduceDashboardMotion
+                  ? { duration: 0 }
+                  : cliparrMotionTransitions.fast
+              }
             >
               <LogOut className="w-4 h-4" />
-              Disconnect
-            </button>
+              {!showViewerFilterControl && "Disconnect"}
+            </motion.button>
           </div>
         </header>
 
