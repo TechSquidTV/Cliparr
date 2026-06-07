@@ -272,7 +272,7 @@ flowchart TD
     H -- "No" --> J["buildLocalEditorSession stores source as directSource"]
 
     K["GET /api/media/local-url/:handleId"] --> L["Resolve local-url handle"]
-    L --> M["Forward Range only when request is not an HLS playlist"]
+    L --> M["Forward Range only when request is not HLS-derived"]
     M --> N["proxyProviderMediaResponse without provider auth"]
     N --> O["Nested HLS URIs create new local-url handles"]
 ```
