@@ -193,7 +193,11 @@ void test("preserves playback session ids when rewriting HLS playlist resources"
       sourceId: "source-1",
       baseUrl: "http://plex.local:32400",
       token: "provider-token",
-      playbackSessionId: "254",
+      providerMetadata: {
+        plex: {
+          playbackSessionId: "254",
+        },
+      },
     },
     "/video/:/transcode/universal/start.m3u8?transcodeSessionId=11111111-2222-5333-8444-555555555555",
   );
@@ -220,7 +224,7 @@ void test("preserves playback session ids when rewriting HLS playlist resources"
   );
   assert.ok(childHandle);
   assert.equal(childHandle.path, "/video/:/transcode/universal/segment0.ts");
-  assert.equal(childHandle.playbackSessionId, "254");
+  assert.equal(childHandle.providerMetadata?.plex?.playbackSessionId, "254");
 });
 
 void test("uses custom media handle URLs when rewriting HLS playlists", async () => {

@@ -81,7 +81,14 @@ function createMediaHandle(
       sourceId: context.sourceId,
       baseUrl: context.baseUrl,
       token: context.token,
-      playbackSessionId: options.playbackSessionId,
+      providerMetadata:
+        options.playbackSessionId === undefined
+          ? undefined
+          : {
+              plex: {
+                playbackSessionId: options.playbackSessionId,
+              },
+            },
     },
     path,
     {
@@ -1451,7 +1458,8 @@ export async function proxyMedia(
   }
 
   const playbackSessionId = useProviderAuth
-    ? (handle.playbackSessionId ?? transcodeSessionId(handle.path))
+    ? (handle.providerMetadata?.plex?.playbackSessionId ??
+      transcodeSessionId(handle.path))
     : null;
   if (playbackSessionId) {
     headers.set("X-Plex-Session-Identifier", playbackSessionId);

@@ -191,7 +191,10 @@ void test("keeps Plex subtitle extraction on the real playback session id", () =
   assert.equal(tracks[0]?.contentUrl, `/api/media/${handle.id}`);
   assert.equal(tracks[0]?.contentFormat, "srt");
   assert.equal(tracks[0]?.streamId, "101151");
-  assert.equal(handle.playbackSessionId, plexPlaybackSessionId);
+  assert.equal(
+    handle.providerMetadata?.plex?.playbackSessionId,
+    plexPlaybackSessionId,
+  );
   assert.equal(
     subtitleUrl.searchParams.get("transcodeSessionId"),
     plexPlaybackSessionId,
@@ -239,7 +242,11 @@ void test("sends the real Plex playback session header for synthetic HLS preview
     baseUrl: context.baseUrl,
     path: previewPath,
     token: context.token,
-    playbackSessionId: plexPlaybackSessionId,
+    providerMetadata: {
+      plex: {
+        playbackSessionId: plexPlaybackSessionId,
+      },
+    },
     lastAccessedAt: 0,
   });
   const requestHeaders: Headers[] = [];

@@ -646,7 +646,11 @@ void test("strips Jellyfin auth headers from cross-origin media redirects", asyn
     baseUrl: "http://jellyfin.local:8096",
     path: "/Videos/item-1/stream",
     token: "provider-token",
-    deviceId: "cliparr-device-1",
+    providerMetadata: {
+      jellyfin: {
+        deviceId: "cliparr-device-1",
+      },
+    },
     lastAccessedAt: 0,
   });
 

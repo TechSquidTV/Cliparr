@@ -80,7 +80,11 @@ function createMediaHandle(
       sourceId: context.sourceId,
       baseUrl: context.baseUrl,
       token: context.token,
-      deviceId: context.deviceId,
+      providerMetadata: {
+        jellyfin: {
+          deviceId: context.deviceId,
+        },
+      },
     },
     path,
     options,
@@ -1051,7 +1055,7 @@ export async function proxyMedia(
   const headers = useProviderAuth
     ? jellyfinHeaders({
         token: handle.token,
-        deviceId: handle.deviceId,
+        deviceId: handle.providerMetadata?.jellyfin?.deviceId,
         accept,
       })
     : new Headers(accept ? { Accept: accept } : undefined);

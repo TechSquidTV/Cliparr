@@ -16,8 +16,7 @@ interface MediaHandleContext {
   sourceId: string;
   baseUrl: string;
   token: string;
-  playbackSessionId?: string;
-  deviceId?: string;
+  providerMetadata?: MediaHandle["providerMetadata"];
 }
 
 interface CreateMediaHandleOptions {
@@ -96,6 +95,30 @@ const inflightProxyResponses = new Map<
 >();
 const resolvedHostnameCache = new Map<string, ResolvedHostnameCacheEntry>();
 const inflightHostnameResolutions = new Map<string, Promise<string[]>>();
+
+function normalizeProviderMetadata(
+  metadata: MediaHandle["providerMetadata"],
+): MediaHandle["providerMetadata"] {
+  const normalized: NonNullable<MediaHandle["providerMetadata"]> = {};
+
+  if (metadata?.plex?.playbackSessionId !== undefined) {
+    normalized.plex = {
+      playbackSessionId: metadata.plex.playbackSessionId,
+    };
+  }
+
+  if (metadata?.jellyfin?.deviceId !== undefined) {
+    normalized.jellyfin = {
+      deviceId: metadata.jellyfin.deviceId,
+    };
+  }
+
+  return normalized.plex || normalized.jellyfin ? normalized : undefined;
+}
+
+function providerMetadataKey(metadata: MediaHandle["providerMetadata"]) {
+  return JSON.stringify(normalizeProviderMetadata(metadata) ?? {});
+}
 
 function isAbsoluteUrl(path: string) {
   return /^[a-z][\d+.a-z-]*:/i.test(path);
@@ -637,6 +660,8 @@ export function createProviderMediaHandle(
   const normalizedBasePath = options.basePath
     ? normalizeMediaPath(options.basePath)
     : undefined;
+  const providerMetadata = normalizeProviderMetadata(context.providerMetadata);
+  const metadataKey = providerMetadataKey(providerMetadata);
   const accessedAt = Date.now();
 
   for (const existingHandle of session.mediaHandles.values()) {
@@ -646,8 +671,7 @@ export function createProviderMediaHandle(
       existingHandle.baseUrl === context.baseUrl &&
       existingHandle.path === normalizedPath &&
       existingHandle.token === context.token &&
-      existingHandle.playbackSessionId === context.playbackSessionId &&
-      existingHandle.deviceId === context.deviceId &&
+      providerMetadataKey(existingHandle.providerMetadata) === metadataKey &&
       existingHandle.basePath === normalizedBasePath
     ) {
       existingHandle.lastAccessedAt = accessedAt;
@@ -671,8 +695,7 @@ export function createProviderMediaHandle(
     baseUrl: context.baseUrl,
     path: normalizedPath,
     token: context.token,
-    playbackSessionId: context.playbackSessionId,
-    deviceId: context.deviceId,
+    providerMetadata,
     basePath: normalizedBasePath,
     lastAccessedAt: accessedAt,
   };
@@ -736,8 +759,7 @@ function rewritePlaylistUri(
       sourceId: handle.sourceId,
       baseUrl: handle.baseUrl,
       token: handle.token,
-      playbackSessionId: handle.playbackSessionId,
-      deviceId: handle.deviceId,
+      providerMetadata: handle.providerMetadata,
     },
     nextPath,
     {
