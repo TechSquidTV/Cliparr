@@ -5,12 +5,22 @@ import test from "node:test";
 import { createElement, createRef, type ComponentProps } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import {
+  DASHBOARD_VIEWER_FILTER_STORAGE_KEY,
+  buildDashboardViewerFilterOptions,
+  countDashboardViewerFilterHiddenCards,
+  filterDashboardPlaybackCardsByViewer,
   flattenDashboardPlaybackItems,
   formatViewerSessionCount,
+  parseDashboardViewerFilterStorageValue,
+  readDashboardViewerFilter,
+  sanitizeDashboardViewerFilterNames,
+  writeDashboardViewerFilter,
 } from "@/components/dashboardPlaybackItems";
 import AuthCompleteScreen from "@/components/AuthCompleteScreen";
 import {
+  DashboardPlaybackFilterEmptyState,
   DashboardPlaybackCard,
+  DashboardViewerFilterBar,
   DashboardVersionBadge,
 } from "@/components/DashboardScreen";
 import DashboardScreen from "@/components/DashboardScreen";
@@ -78,6 +88,33 @@ const dashboardPlaybackGroups: ViewerPlaybackGroup[] = [
         duration: 5400,
         playerTitle: "Phone",
         playerState: "paused",
+      },
+    ],
+  },
+];
+
+const dashboardDuplicateViewerPlaybackGroups: ViewerPlaybackGroup[] = [
+  ...dashboardPlaybackGroups,
+  {
+    viewer: {
+      id: "viewer-c",
+      providerId: "jellyfin",
+      name: " techsquidtv ",
+      avatarUrl: "/api/media/avatar.jpg",
+    },
+    items: [
+      {
+        id: "session-c",
+        source: {
+          id: "source-c",
+          name: "Jellyfin",
+          providerId: "jellyfin",
+        },
+        title: "Same Viewer Across Providers",
+        type: "episode",
+        duration: 1800,
+        playerTitle: "Bedroom",
+        playerState: "playing",
       },
     ],
   },
@@ -468,6 +505,170 @@ void test("flattens dashboard playback cards with viewer context", () => {
   );
   assert.equal(formatViewerSessionCount(1), "1 active session");
   assert.equal(formatViewerSessionCount(2), "2 active sessions");
+});
+
+void test("groups dashboard viewer filter options by normalized viewer name", () => {
+  const cards = flattenDashboardPlaybackItems(
+    dashboardDuplicateViewerPlaybackGroups,
+  );
+  const options = buildDashboardViewerFilterOptions(cards);
+
+  assert.deepEqual(
+    options.map((option) => [
+      option.normalizedName,
+      option.name,
+      option.sessionCount,
+      option.avatarUrl,
+    ]),
+    [
+      ["techsquidtv", "TechSquidTV", 2, "/api/media/avatar.jpg"],
+      ["guest", "Guest", 1, undefined],
+    ],
+  );
+});
+
+void test("filters dashboard playback cards by multiple viewer names", () => {
+  const cards = flattenDashboardPlaybackItems(
+    dashboardDuplicateViewerPlaybackGroups,
+  );
+
+  assert.deepEqual(
+    sanitizeDashboardViewerFilterNames([
+      " TechSquidTV ",
+      "techsquidtv",
+      "GUEST",
+    ]),
+    ["techsquidtv", "guest"],
+  );
+
+  const techSquidCards = filterDashboardPlaybackCardsByViewer(cards, [
+    "TechSquidTV",
+  ]);
+  assert.deepEqual(
+    techSquidCards.map((card) => card.session.title),
+    ["The Recordist", "Same Viewer Across Providers"],
+  );
+
+  const multiViewerCards = filterDashboardPlaybackCardsByViewer(cards, [
+    "techsquidtv",
+    "guest",
+  ]);
+  assert.equal(multiViewerCards.length, cards.length);
+  assert.equal(countDashboardViewerFilterHiddenCards(cards, ["missing"]), 3);
+});
+
+void test("persists dashboard viewer filters in local storage", () => {
+  const values = new Map<string, string>();
+  const storage = {
+    getItem(key: string) {
+      return values.get(key) ?? null;
+    },
+    removeItem(key: string) {
+      values.delete(key);
+    },
+    setItem(key: string, value: string) {
+      values.set(key, value);
+    },
+  } satisfies Pick<Storage, "getItem" | "removeItem" | "setItem">;
+
+  assert.deepEqual(parseDashboardViewerFilterStorageValue("not-json"), []);
+  writeDashboardViewerFilter([" TechSquidTV ", "Guest", "guest"], storage);
+  assert.equal(
+    values.get(DASHBOARD_VIEWER_FILTER_STORAGE_KEY),
+    '["techsquidtv","guest"]',
+  );
+  assert.deepEqual(readDashboardViewerFilter(storage), [
+    "techsquidtv",
+    "guest",
+  ]);
+
+  writeDashboardViewerFilter([], storage);
+  assert.equal(values.has(DASHBOARD_VIEWER_FILTER_STORAGE_KEY), false);
+});
+
+void test("hides dashboard viewer filter with one viewer and no active filter", () => {
+  const options = buildDashboardViewerFilterOptions(
+    flattenDashboardPlaybackItems([dashboardPlaybackGroups[0]!]),
+  );
+
+  const markup = renderToStaticMarkup(
+    createElement(
+      TooltipProvider,
+      null,
+      createElement(DashboardViewerFilterBar, {
+        viewerOptions: options,
+        selectedViewerNames: [],
+        hiddenSessionCount: 0,
+        onToggleViewer: () => {},
+        onClearViewerFilter: () => {},
+      }),
+    ),
+  );
+
+  assert.equal(markup, "");
+});
+
+void test("renders dashboard viewer filter options for multiple viewers", () => {
+  const options = buildDashboardViewerFilterOptions(
+    flattenDashboardPlaybackItems(dashboardPlaybackGroups),
+  );
+
+  const markup = renderToStaticMarkup(
+    createElement(
+      TooltipProvider,
+      null,
+      createElement(DashboardViewerFilterBar, {
+        viewerOptions: options,
+        selectedViewerNames: [],
+        hiddenSessionCount: 0,
+        onToggleViewer: () => {},
+        onClearViewerFilter: () => {},
+      }),
+    ),
+  );
+
+  assert.match(markup, /data-dashboard-viewer-filter/);
+  assert.match(markup, /Filter sessions by viewer/);
+  assert.match(markup, />All</);
+  assert.match(markup, /TechSquidTV/);
+  assert.match(markup, /Guest/);
+});
+
+void test("renders dashboard viewer filter as active from saved choices", () => {
+  const options = buildDashboardViewerFilterOptions(
+    flattenDashboardPlaybackItems([dashboardPlaybackGroups[0]!]),
+  );
+
+  const markup = renderToStaticMarkup(
+    createElement(
+      TooltipProvider,
+      null,
+      createElement(DashboardViewerFilterBar, {
+        viewerOptions: options,
+        selectedViewerNames: ["techsquidtv"],
+        hiddenSessionCount: 0,
+        onToggleViewer: () => {},
+        onClearViewerFilter: () => {},
+      }),
+    ),
+  );
+
+  assert.match(markup, /data-dashboard-viewer-filter-active="true"/);
+  assert.match(markup, /aria-pressed="true"/);
+  assert.match(markup, /Filtered/);
+});
+
+void test("renders dashboard filtered empty state with a clear action", () => {
+  const markup = renderToStaticMarkup(
+    createElement(DashboardPlaybackFilterEmptyState, {
+      hiddenSessionCount: 2,
+      onClearViewerFilter: () => {},
+    }),
+  );
+
+  assert.match(markup, /No sessions match this viewer filter/);
+  assert.match(markup, /2 sessions are hidden by the viewer filter/);
+  assert.match(markup, /Clear filter/);
 });
 
 void test("renders dashboard playback cards with viewer context", () => {

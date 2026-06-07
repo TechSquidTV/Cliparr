@@ -8,7 +8,9 @@ import {
   Play,
   RefreshCw,
   Settings2,
+  Users,
   Video,
+  X,
 } from "lucide-react";
 import { cliparrClient, type CliparrVersionInfo } from "@/api/cliparrClient";
 import { cn } from "@/lib/utilities";
@@ -30,11 +32,20 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import {
+  buildDashboardViewerFilterOptions,
+  countDashboardViewerFilterHiddenCards,
+  filterDashboardPlaybackCardsByViewer,
   flattenDashboardPlaybackItems,
   formatViewerSessionCount,
+  readDashboardViewerFilter,
+  sanitizeDashboardViewerFilterNames,
+  writeDashboardViewerFilter,
 } from "@/components/dashboardPlaybackItems";
 import { cliparrMotionTransitions } from "@/lib/motionPresets";
-import type { DashboardPlaybackCardItem } from "@/components/dashboardPlaybackItems";
+import type {
+  DashboardPlaybackCardItem,
+  DashboardViewerFilterOption,
+} from "@/components/dashboardPlaybackItems";
 import type {
   CurrentlyPlayingItem,
   SourcePlaybackError,
@@ -123,7 +134,7 @@ function ViewerAvatar({
   return (
     <div
       className={cn(
-        "flex items-center justify-center overflow-hidden rounded-full bg-primary/10 font-semibold text-primary",
+        "flex shrink-0 items-center justify-center overflow-hidden rounded-full bg-primary/10 font-semibold text-primary",
         size === "sm" ? "h-8 w-8 text-sm" : "h-12 w-12 text-lg",
       )}
     >
@@ -140,6 +151,114 @@ function ViewerAvatar({
       ) : (
         label
       )}
+    </div>
+  );
+}
+
+function formatFilterSessionCount(count: number) {
+  return `${count} ${count === 1 ? "session" : "sessions"}`;
+}
+
+function formatFilterHiddenCount(count: number) {
+  return `${count} ${count === 1 ? "session is" : "sessions are"} hidden by the viewer filter.`;
+}
+
+export function DashboardViewerFilterBar({
+  viewerOptions,
+  selectedViewerNames,
+  hiddenSessionCount,
+  onToggleViewer,
+  onClearViewerFilter,
+}: {
+  viewerOptions: DashboardViewerFilterOption[];
+  selectedViewerNames: readonly string[];
+  hiddenSessionCount: number;
+  onToggleViewer: (viewerName: string) => void;
+  onClearViewerFilter: () => void;
+}) {
+  const selectedNames = sanitizeDashboardViewerFilterNames(selectedViewerNames);
+  const selectedNamesSet = new Set(selectedNames);
+  const filterActive = selectedNames.length > 0;
+
+  if (viewerOptions.length <= 1 && !filterActive) {
+    return null;
+  }
+
+  return (
+    <div
+      className="rounded-lg border border-border bg-card/70 p-1"
+      data-dashboard-viewer-filter
+      data-dashboard-viewer-filter-active={filterActive || undefined}
+    >
+      <div
+        role="toolbar"
+        aria-label="Filter sessions by viewer"
+        className="cliparr-editor-scrollbar flex items-center gap-1 overflow-x-auto"
+      >
+        <button
+          type="button"
+          onClick={onClearViewerFilter}
+          aria-pressed={!filterActive}
+          className={cn(
+            "inline-flex h-9 shrink-0 items-center justify-center rounded-md px-3 text-sm font-semibold transition-colors focus-visible:ring-2 focus-visible:ring-primary/35 focus-visible:outline-none",
+            filterActive
+              ? "text-muted-foreground hover:bg-accent hover:text-foreground"
+              : "bg-primary text-primary-foreground",
+          )}
+        >
+          All
+        </button>
+
+        {viewerOptions.map((option) => {
+          const selected = selectedNamesSet.has(option.normalizedName);
+          const actionLabel = selected
+            ? `Hide ${option.name} sessions`
+            : `Show ${option.name} sessions`;
+
+          return (
+            <Tooltip key={option.normalizedName}>
+              <TooltipTrigger asChild>
+                <button
+                  type="button"
+                  onClick={() => onToggleViewer(option.normalizedName)}
+                  aria-pressed={selected}
+                  aria-label={actionLabel}
+                  className={cn(
+                    "inline-flex h-9 max-w-52 shrink-0 items-center gap-2 rounded-full border py-0.5 pr-3 pl-0.5 text-sm font-medium transition-colors focus-visible:ring-2 focus-visible:ring-primary/35 focus-visible:outline-none",
+                    selected
+                      ? "border-primary/50 bg-primary/15 text-primary"
+                      : "border-transparent text-muted-foreground hover:bg-accent hover:text-foreground",
+                  )}
+                >
+                  <ViewerAvatar
+                    name={option.name}
+                    avatarUrl={option.avatarUrl}
+                    size="sm"
+                  />
+                  <span className="truncate">{option.name}</span>
+                  <span className="min-w-[2ch] rounded-full bg-background/80 px-1.5 text-center font-mono text-ui-micro tabular-nums text-muted-foreground">
+                    {option.sessionCount}
+                  </span>
+                </button>
+              </TooltipTrigger>
+              <TooltipContent side="top">
+                {option.name}: {formatFilterSessionCount(option.sessionCount)}
+              </TooltipContent>
+            </Tooltip>
+          );
+        })}
+
+        {filterActive && (
+          <span
+            className="ml-auto hidden shrink-0 px-2 text-xs text-muted-foreground sm:inline-flex"
+            data-dashboard-viewer-filter-summary
+          >
+            {hiddenSessionCount > 0
+              ? `${formatFilterSessionCount(hiddenSessionCount)} hidden`
+              : "Filtered"}
+          </span>
+        )}
+      </div>
     </div>
   );
 }
@@ -307,20 +426,56 @@ function dashboardSkeletonExit(index: number, loadedCardCount: number) {
   };
 }
 
+export function DashboardPlaybackFilterEmptyState({
+  hiddenSessionCount,
+  onClearViewerFilter,
+}: {
+  hiddenSessionCount: number;
+  onClearViewerFilter: () => void;
+}) {
+  return (
+    <>
+      <div className="bg-background mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full">
+        <Users className="h-6 w-6 text-muted-foreground" />
+      </div>
+      <h3 className="mb-2 text-lg font-medium">
+        No sessions match this viewer filter
+      </h3>
+      <p className="mx-auto max-w-sm text-sm text-muted-foreground">
+        {formatFilterHiddenCount(hiddenSessionCount)}
+      </p>
+      <button
+        type="button"
+        onClick={onClearViewerFilter}
+        className="mt-5 inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-border px-4 text-sm font-semibold text-foreground transition-colors hover:bg-accent focus-visible:ring-2 focus-visible:ring-primary/35 focus-visible:outline-none"
+      >
+        <X className="h-4 w-4" />
+        Clear filter
+      </button>
+    </>
+  );
+}
+
 function DashboardPlaybackMotionRegion({
   loading,
   error,
   playbackCards,
+  filteredByViewer,
+  hiddenSessionCount,
   emptyMessage,
   activeViewTransitionSessionId,
   onSelectSession,
+  onClearViewerFilter,
 }: {
   loading: boolean;
   error: string;
   playbackCards: DashboardPlaybackCardItem[];
+  filteredByViewer: boolean;
+  hiddenSessionCount: number;
   emptyMessage: string;
   activeViewTransitionSessionId?: string | null;
   onSelectSession: (session: CurrentlyPlayingItem) => void;
+  onClearViewerFilter: () => void;
 }) {
   const reduceMotion = useReducedMotion();
   const hasPlaybackCards = playbackCards.length > 0;
@@ -435,15 +590,24 @@ function DashboardPlaybackMotionRegion({
             exit={DASHBOARD_PLAYBACK_STATE_EXIT}
             transition={stateTransition}
           >
-            <div className="bg-background w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Play className="w-6 h-6 text-muted-foreground" />
-            </div>
-            <h3 className="text-lg font-medium mb-2">
-              Nothing is playing right now
-            </h3>
-            <p className="text-muted-foreground text-sm max-w-sm mx-auto">
-              {emptyMessage}
-            </p>
+            {filteredByViewer && hiddenSessionCount > 0 ? (
+              <DashboardPlaybackFilterEmptyState
+                hiddenSessionCount={hiddenSessionCount}
+                onClearViewerFilter={onClearViewerFilter}
+              />
+            ) : (
+              <>
+                <div className="bg-background mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full">
+                  <Play className="h-6 w-6 text-muted-foreground" />
+                </div>
+                <h3 className="mb-2 text-lg font-medium">
+                  Nothing is playing right now
+                </h3>
+                <p className="mx-auto max-w-sm text-sm text-muted-foreground">
+                  {emptyMessage}
+                </p>
+              </>
+            )}
           </motion.div>
         )}
       </AnimatePresence>
@@ -577,6 +741,9 @@ export default function DashboardScreen({
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState("");
+  const [selectedViewerNames, setSelectedViewerNames] = useState(() =>
+    readDashboardViewerFilter(),
+  );
   const hasFetchedSessionsReference = useRef(false);
 
   const fetchSessions = useCallback(async () => {
@@ -632,8 +799,32 @@ export default function DashboardScreen({
     () => flattenDashboardPlaybackItems(viewers),
     [viewers],
   );
-  const hasPlaybackCards = playbackCards.length > 0;
-  const showPlaybackGrid = loading || hasPlaybackCards;
+  const selectedViewerFilterNames = useMemo(
+    () => sanitizeDashboardViewerFilterNames(selectedViewerNames),
+    [selectedViewerNames],
+  );
+  const viewerFilterOptions = useMemo(
+    () => buildDashboardViewerFilterOptions(playbackCards),
+    [playbackCards],
+  );
+  const filteredPlaybackCards = useMemo(
+    () =>
+      filterDashboardPlaybackCardsByViewer(
+        playbackCards,
+        selectedViewerFilterNames,
+      ),
+    [playbackCards, selectedViewerFilterNames],
+  );
+  const hiddenViewerFilterCardCount = useMemo(
+    () =>
+      countDashboardViewerFilterHiddenCards(
+        playbackCards,
+        selectedViewerFilterNames,
+      ),
+    [playbackCards, selectedViewerFilterNames],
+  );
+  const hasAnyPlaybackCards = playbackCards.length > 0;
+  const showPlaybackGrid = loading || hasAnyPlaybackCards;
   const emptyMessage =
     sourceErrors.length > 0
       ? "No active playback on the available sources."
@@ -650,6 +841,27 @@ export default function DashboardScreen({
         ? "Local development build; release update checks are disabled"
         : "Non-release build; release update checks are disabled";
   }
+
+  const toggleViewerFilter = useCallback((viewerName: string) => {
+    const [normalizedName] = sanitizeDashboardViewerFilterNames([viewerName]);
+    if (!normalizedName) {
+      return;
+    }
+
+    setSelectedViewerNames((current) => {
+      const currentNames = sanitizeDashboardViewerFilterNames(current);
+      const nextNames = currentNames.includes(normalizedName)
+        ? currentNames.filter((name) => name !== normalizedName)
+        : [...currentNames, normalizedName];
+      writeDashboardViewerFilter(nextNames);
+      return nextNames;
+    });
+  }, []);
+
+  const clearViewerFilter = useCallback(() => {
+    setSelectedViewerNames([]);
+    writeDashboardViewerFilter([]);
+  }, []);
 
   return (
     <div className="min-h-screen bg-background p-4 text-foreground sm:p-8">
@@ -792,13 +1004,26 @@ export default function DashboardScreen({
 
           {!error && <WarningBanner sourceErrors={sourceErrors} />}
 
+          {!error && (
+            <DashboardViewerFilterBar
+              viewerOptions={viewerFilterOptions}
+              selectedViewerNames={selectedViewerFilterNames}
+              hiddenSessionCount={hiddenViewerFilterCardCount}
+              onToggleViewer={toggleViewerFilter}
+              onClearViewerFilter={clearViewerFilter}
+            />
+          )}
+
           <DashboardPlaybackMotionRegion
             loading={loading}
             error={error}
-            playbackCards={playbackCards}
+            playbackCards={filteredPlaybackCards}
+            filteredByViewer={selectedViewerFilterNames.length > 0}
+            hiddenSessionCount={hiddenViewerFilterCardCount}
             emptyMessage={emptyMessage}
             activeViewTransitionSessionId={activeViewTransitionSessionId}
             onSelectSession={onSelectSession}
+            onClearViewerFilter={clearViewerFilter}
           />
         </div>
       </div>
