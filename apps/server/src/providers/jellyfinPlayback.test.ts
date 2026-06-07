@@ -119,15 +119,15 @@ function fetchInputUrl(input: Parameters<typeof fetch>[0]) {
 
 function createJellyfinPlaybackFetch(options: {
   itemId: string;
-  playSessionId?: string | null | (() => string | null);
-  clientSessionId?: string;
+  jellyfinPlaySessionId?: string | null | (() => string | null);
+  jellyfinClientSessionId?: string;
   mediaSourceId?: string;
   title?: string;
 }) {
   const {
     itemId,
-    playSessionId = "playback-info-session-1",
-    clientSessionId = "client-session-1",
+    jellyfinPlaySessionId = "playback-info-session-1",
+    jellyfinClientSessionId = "client-session-1",
     mediaSourceId = "media-source-1",
     title = "Chapter 1: The Dark Revenge",
   } = options;
@@ -172,7 +172,7 @@ function createJellyfinPlaybackFetch(options: {
     if (url.pathname === "/Sessions") {
       return jsonResponse([
         {
-          Id: clientSessionId,
+          Id: jellyfinClientSessionId,
           UserId: "user-1",
           UserName: "Rick",
           DeviceName: "Chrome",
@@ -192,11 +192,13 @@ function createJellyfinPlaybackFetch(options: {
     }
 
     if (url.pathname === `/Items/${itemId}/PlaybackInfo`) {
-      const resolvedPlaySessionId =
-        typeof playSessionId === "function" ? playSessionId() : playSessionId;
+      const resolvedJellyfinPlaySessionId =
+        typeof jellyfinPlaySessionId === "function"
+          ? jellyfinPlaySessionId()
+          : jellyfinPlaySessionId;
       return jsonResponse({
-        ...(resolvedPlaySessionId
-          ? { PlaySessionId: resolvedPlaySessionId }
+        ...(resolvedJellyfinPlaySessionId
+          ? { PlaySessionId: resolvedJellyfinPlaySessionId }
           : {}),
         MediaSources: [mediaSource],
       });
@@ -275,8 +277,8 @@ void test("uses Jellyfin PlaybackInfo play session ids for currently playing str
   const originalFetch = globalThis.fetch;
   globalThis.fetch = createJellyfinPlaybackFetch({
     itemId: "item-1",
-    playSessionId: "playback-info-session-1",
-    clientSessionId: "client-session-1",
+    jellyfinPlaySessionId: "playback-info-session-1",
+    jellyfinClientSessionId: "client-session-1",
   });
 
   try {
@@ -329,11 +331,11 @@ void test("reuses Jellyfin playback info for stable currently playing handles", 
   let playbackInfoRequestCount = 0;
   globalThis.fetch = createJellyfinPlaybackFetch({
     itemId: "item-1",
-    playSessionId: () => {
+    jellyfinPlaySessionId: () => {
       playbackInfoRequestCount += 1;
       return `playback-info-session-${playbackInfoRequestCount}`;
     },
-    clientSessionId: "client-session-1",
+    jellyfinClientSessionId: "client-session-1",
   });
 
   try {
@@ -379,7 +381,7 @@ void test("keeps Jellyfin currently playing item ids stable and item-scoped", as
   try {
     globalThis.fetch = createJellyfinPlaybackFetch({
       itemId: "item-1",
-      clientSessionId: "client-session-1",
+      jellyfinClientSessionId: "client-session-1",
     });
     const firstEntries = await listCurrentlyPlaying(
       createSession(),
@@ -392,7 +394,7 @@ void test("keeps Jellyfin currently playing item ids stable and item-scoped", as
 
     globalThis.fetch = createJellyfinPlaybackFetch({
       itemId: "item-2",
-      clientSessionId: "client-session-1",
+      jellyfinClientSessionId: "client-session-1",
     });
     const differentItemEntries = await listCurrentlyPlaying(
       createSession(),
@@ -411,8 +413,8 @@ void test("omits Jellyfin stream URLs when PlaybackInfo has no play session id",
   const originalFetch = globalThis.fetch;
   globalThis.fetch = createJellyfinPlaybackFetch({
     itemId: "item-1",
-    playSessionId: null,
-    clientSessionId: "client-session-1",
+    jellyfinPlaySessionId: null,
+    jellyfinClientSessionId: "client-session-1",
   });
 
   try {
