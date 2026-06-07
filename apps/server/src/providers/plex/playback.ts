@@ -14,6 +14,7 @@ import { getServerLogger } from "@/logging";
 import type { ProviderSessionRecord } from "@/session/store";
 import type {
   CurrentlyPlayingEntry,
+  MediaHandle,
   MediaExportMetadata,
   PlaybackAudioSelection,
   PlaybackExportEstimateMetadata,
@@ -23,9 +24,11 @@ import type {
   ProviderResource,
 } from "@/providers/types";
 import {
+  assertAllowedMediaHandleRequestUrl,
   createProviderMediaHandle,
   fetchMediaHandleRequest,
   mediaHandleRequestUrl,
+  playlistBasePath,
   proxyProviderMediaResponse,
   sanitizeLoggedMediaPath,
   shouldAttachProviderAuth,
@@ -177,12 +180,15 @@ interface PlexPlaybackUser {
 
 interface PlexPlaybackPlayer {
   machineIdentifier?: string | null;
+  platform?: string | null;
+  product?: string | null;
   state?: string | null;
   title?: string | null;
 }
 
 interface PlexPlaybackSession {
   id?: PlexIdValue;
+  location?: string | null;
 }
 
 interface PlexMetadataItem extends PlexMetadataPathItem {
@@ -470,6 +476,103 @@ function transcodeSessionId(path: string) {
   } catch {
     return null;
   }
+}
+
+function parsedMediaPath(path: string) {
+  try {
+    return new URL(path, "http://cliparr.local");
+  } catch {
+    return;
+  }
+}
+
+export function plexHlsSegmentSessionId(path: string) {
+  const sessionId = parsedMediaPath(path)?.pathname.match(
+    /\/video\/:\/transcode\/universal\/session\/([^/]+)/,
+  )?.[1];
+  return sessionId ? decodeURIComponent(sessionId) : undefined;
+}
+
+export function classifyPlexMediaHandleKind(path: string) {
+  const pathname = parsedMediaPath(path)?.pathname ?? "";
+  if (pathname.startsWith("/video/:/transcode/universal/session/")) {
+    return "hls-segment";
+  }
+  if (pathname.startsWith("/video/:/transcode/universal/start.")) {
+    return "hls-root";
+  }
+  if (pathname === "/video/:/transcode/universal/subtitles") {
+    return "subtitle-transcode";
+  }
+  if (
+    pathname.startsWith("/library/parts/") ||
+    pathname.startsWith("/library/streams/")
+  ) {
+    return "direct";
+  }
+  return "other";
+}
+
+function safeTranscodeQueryFields(path: string) {
+  const parsed = parsedMediaPath(path);
+  if (!parsed) {
+    return {};
+  }
+
+  const whitelistedFields = [
+    "path",
+    "transcodeSessionId",
+    "protocol",
+    "mediaIndex",
+    "partIndex",
+    "subtitles",
+    "directPlay",
+    "directStream",
+    "directStreamAudio",
+  ];
+  const fields: Record<string, string> = {};
+  for (const field of whitelistedFields) {
+    const value = parsed.searchParams.get(field);
+    if (value !== null) {
+      fields[`plex.transcode.query.${field}`] = value;
+    }
+  }
+
+  const hlsSegmentSessionId = plexHlsSegmentSessionId(path);
+  if (hlsSegmentSessionId) {
+    fields["plex.hls.segment_session.id"] = hlsSegmentSessionId;
+  }
+
+  return fields;
+}
+
+export function plexPlaybackIdentityDiagnostics(
+  item: PlexMetadataItem,
+  cliparrPreviewTranscodeSessionId: string,
+) {
+  return {
+    "plex.session.key": idValue(item?.sessionKey) ?? null,
+    "plex.session.id": idValue(item?.Session?.id) ?? null,
+    "plex.session.location": stringValue(item?.Session?.location) ?? null,
+    "plex.player.machine_identifier":
+      stringValue(item?.Player?.machineIdentifier) ?? null,
+    "plex.player.product": stringValue(item?.Player?.product) ?? null,
+    "plex.player.platform": stringValue(item?.Player?.platform) ?? null,
+    "plex.preview_transcode_session.id": cliparrPreviewTranscodeSessionId,
+  };
+}
+
+function plexSessionHeaderSource(
+  handle: Pick<MediaHandle, "providerMetadata">,
+  fallbackTranscodeSessionId: string | null,
+) {
+  if (handle.providerMetadata?.plex?.playbackSessionId) {
+    return "provider-metadata";
+  }
+  if (fallbackTranscodeSessionId) {
+    return "transcode-session-id";
+  }
+  return "none";
 }
 
 function isRetryableConnectionError(error: unknown) {
@@ -1326,6 +1429,10 @@ async function normalizeCurrentPlayback(
         providerAccountId: source.providerAccountId,
         playbackSessionId: plexPlaybackSessionId,
         transcodeSessionId: cliparrPreviewTranscodeSessionId,
+        ...plexPlaybackIdentityDiagnostics(
+          item,
+          cliparrPreviewTranscodeSessionId,
+        ),
         currentlyPlayingItem: {
           id: `${source.id}:${plexPlaybackSessionId}`,
           title: itemTitleValue(enrichedItem),
@@ -1437,6 +1544,242 @@ export async function listCurrentlyPlaying(
   return normalizeCurrentPlayback(session, source, context, data);
 }
 
+const PLEX_HLS_PROBE_BODY_SNIPPET_LENGTH = 400;
+
+interface PlexHlsProbeHeaderCandidate {
+  name: string;
+  value?: string;
+}
+
+function plexHlsProbeHeaderCandidates(
+  item: PlexMetadataItem,
+  cliparrPreviewTranscodeSessionId: string,
+): PlexHlsProbeHeaderCandidate[] {
+  return [
+    { name: "none" },
+    { name: "sessionKey", value: idValue(item?.sessionKey) },
+    { name: "Session.id", value: idValue(item?.Session?.id) },
+    {
+      name: "cliparrPreviewTranscodeSessionId",
+      value: cliparrPreviewTranscodeSessionId,
+    },
+    {
+      name: "Player.machineIdentifier",
+      value: stringValue(item?.Player?.machineIdentifier),
+    },
+  ];
+}
+
+function plexProbeMediaHandle(
+  context: PlexSourceContext,
+  path: string,
+): MediaHandle {
+  return {
+    id: "plex-hls-probe",
+    providerId: "plex",
+    sourceId: context.sourceId,
+    baseUrl: context.baseUrl,
+    path,
+    token: context.token,
+    lastAccessedAt: Date.now(),
+  };
+}
+
+function plexProbeHeaders(
+  context: PlexSourceContext,
+  candidate: PlexHlsProbeHeaderCandidate,
+) {
+  const headers = plexMediaHeaders({
+    "X-Plex-Token": context.token,
+  });
+  headers.set("Accept", "*/*");
+  if (candidate.value) {
+    headers.set("X-Plex-Session-Identifier", candidate.value);
+  }
+  return headers;
+}
+
+function plexProbeBodySnippet(body: string, context: PlexSourceContext) {
+  const snippet = body
+    .slice(0, PLEX_HLS_PROBE_BODY_SNIPPET_LENGTH)
+    .replaceAll(/\s+/g, " ")
+    .trim();
+  return context.token
+    ? snippet.replaceAll(context.token, "[redacted]")
+    : snippet;
+}
+
+async function probePlexMediaPath(
+  context: PlexSourceContext,
+  path: string,
+  candidate: PlexHlsProbeHeaderCandidate,
+) {
+  const handle = plexProbeMediaHandle(context, path);
+  await assertAllowedMediaHandleRequestUrl(handle);
+  const startedAt = Date.now();
+  const response = await fetch(mediaHandleRequestUrl(handle), {
+    headers: plexProbeHeaders(context, candidate),
+    redirect: "manual",
+  });
+  const contentType = response.headers.get("content-type") ?? "";
+  const textLike =
+    contentType.toLowerCase().includes("mpegurl") ||
+    contentType.toLowerCase().includes("json") ||
+    contentType.toLowerCase().includes("text") ||
+    !response.ok;
+  const body = textLike ? await response.text() : undefined;
+  if (!textLike) {
+    await response.body?.cancel();
+  }
+
+  return {
+    candidate: candidate.name,
+    status: response.status,
+    ok: response.ok,
+    contentType: contentType || null,
+    durationMs: Date.now() - startedAt,
+    bodySnippet: body ? plexProbeBodySnippet(body, context) : null,
+    body,
+  };
+}
+
+function firstHlsMediaUri(playlist: string) {
+  return playlist
+    .split("\n")
+    .map((line) => line.trim())
+    .find((line) => line && !line.startsWith("#"));
+}
+
+function resolvePlexPlaylistUri(
+  context: PlexSourceContext,
+  playlistPath: string,
+  uri: string,
+) {
+  const base = new URL(playlistBasePath(playlistPath), context.baseUrl);
+  const resolved = new URL(uri, base);
+  if (resolved.origin === new URL(context.baseUrl).origin) {
+    return `${resolved.pathname}${resolved.search}`;
+  }
+  return resolved.toString();
+}
+
+export async function probePlexHlsSessionIdentities(
+  session: ProviderSessionRecord,
+  source: MediaSource,
+) {
+  const { context, data } = await fetchCurrentlyPlayingData(source);
+  const item = dedupeCurrentlyPlayingMetadata(
+    data?.MediaContainer?.Metadata ?? [],
+  )[0];
+  if (!item) {
+    throw createApiError(
+      404,
+      "plex_hls_probe_no_current_item",
+      "No current Plex playback item was found",
+    );
+  }
+
+  const { plexPlaybackSessionId, cliparrPreviewTranscodeSessionId } =
+    derivePlexPlaybackIds(source.id, item);
+  const mediaSelection = deriveMediaSelection(item);
+  const enrichedItem = await enrichMetadataItem(context, item);
+  const previewPath = createPreviewPath(
+    enrichedItem,
+    cliparrPreviewTranscodeSessionId,
+    mediaSelection,
+  );
+  if (!previewPath) {
+    throw createApiError(
+      404,
+      "plex_hls_probe_no_preview_path",
+      "Current Plex playback item did not produce an HLS preview path",
+    );
+  }
+
+  const candidates = plexHlsProbeHeaderCandidates(
+    item,
+    cliparrPreviewTranscodeSessionId,
+  );
+  const startResults = [];
+  for (const candidate of candidates) {
+    const startResult = await probePlexMediaPath(
+      context,
+      previewPath,
+      candidate,
+    );
+    const firstUri = startResult.body
+      ? firstHlsMediaUri(startResult.body)
+      : null;
+    const firstMediaPath =
+      startResult.ok && firstUri
+        ? resolvePlexPlaylistUri(context, previewPath, firstUri)
+        : null;
+    const segmentResults = [];
+    if (firstMediaPath) {
+      for (const segmentCandidate of candidates) {
+        const segmentResult = await probePlexMediaPath(
+          context,
+          firstMediaPath,
+          segmentCandidate,
+        );
+        segmentResults.push({
+          ...segmentResult,
+          body: undefined,
+        });
+      }
+    }
+
+    startResults.push({
+      ...startResult,
+      body: undefined,
+      firstMediaPath: firstMediaPath
+        ? sanitizeLoggedMediaPath(firstMediaPath)
+        : null,
+      firstMediaKind: firstMediaPath
+        ? classifyPlexMediaHandleKind(firstMediaPath)
+        : null,
+      firstMediaSegmentSessionId: firstMediaPath
+        ? (plexHlsSegmentSessionId(firstMediaPath) ?? null)
+        : null,
+      segmentResults,
+    });
+  }
+
+  const identityDiagnostics = plexPlaybackIdentityDiagnostics(
+    item,
+    cliparrPreviewTranscodeSessionId,
+  );
+  logger.info("Ran Plex HLS session identity probe.", {
+    ...logEventFields("plex.hls_probe", "success"),
+    "session.id": session.id,
+    "source.id": source.id,
+    "provider.account.id": source.providerAccountId,
+    "plex.playback_session.id": plexPlaybackSessionId,
+    ...identityDiagnostics,
+  });
+
+  return {
+    source: {
+      id: source.id,
+      name: source.name,
+      providerAccountId: source.providerAccountId,
+    },
+    item: {
+      id: `${source.id}:${plexPlaybackSessionId}`,
+      ratingKey: idValue(enrichedItem?.ratingKey) ?? null,
+      metadataPath: metadataPath(enrichedItem) ?? null,
+      type: itemTypeValue(enrichedItem) || "video",
+    },
+    identities: identityDiagnostics,
+    preview: {
+      path: sanitizeLoggedMediaPath(previewPath),
+      kind: classifyPlexMediaHandleKind(previewPath),
+      query: safeTranscodeQueryFields(previewPath),
+    },
+    candidates: startResults,
+  };
+}
+
 export async function proxyMedia(
   session: ProviderSessionRecord,
   handleId: string,
@@ -1472,10 +1815,16 @@ export async function proxyMedia(
     headers.set("Range", range);
   }
 
+  const fallbackTranscodeSessionId = transcodeSessionId(handle.path);
   const playbackSessionId = useProviderAuth
     ? (handle.providerMetadata?.plex?.playbackSessionId ??
-      transcodeSessionId(handle.path))
+      fallbackTranscodeSessionId)
     : null;
+  const mediaHandleKind = classifyPlexMediaHandleKind(handle.path);
+  const sessionHeaderSource = plexSessionHeaderSource(
+    handle,
+    fallbackTranscodeSessionId,
+  );
   if (playbackSessionId) {
     headers.set("X-Plex-Session-Identifier", playbackSessionId);
   }
@@ -1485,10 +1834,13 @@ export async function proxyMedia(
     "session.id": session.id,
     "source.id": handle.sourceId,
     "upstream.url": sanitizeLoggedMediaPath(url.toString()),
+    "media.handle.kind": mediaHandleKind,
     "provider.auth.attached": useProviderAuth,
     "media.range.present": Boolean(range),
     "http.accept": accept,
     "plex.playback_session.id": playbackSessionId,
+    "plex.session_header.source": sessionHeaderSource,
+    ...safeTranscodeQueryFields(handle.path),
   });
 
   await proxyProviderMediaResponse(
@@ -1510,11 +1862,15 @@ export async function proxyMedia(
           "source.id": handle.sourceId,
           "upstream.url": sanitizeLoggedMediaPath(url.toString()),
           "upstream.status_code": upstream.status,
+          "upstream.content_type": upstream.headers.get("content-type"),
           "upstream.detail": detail,
+          "media.handle.kind": mediaHandleKind,
           "provider.auth.attached": useProviderAuth,
           "media.range.present": Boolean(range),
           "http.accept": accept,
           "plex.playback_session.id": playbackSessionId,
+          "plex.session_header.source": sessionHeaderSource,
+          ...safeTranscodeQueryFields(handle.path),
         });
         throw createApiError(
           upstream.status,

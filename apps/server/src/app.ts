@@ -5,6 +5,7 @@ import { checkDatabaseHealth, initializeDatabase } from "@/db/database";
 import { errorHandler, notFoundHandler } from "@/http/errors";
 import { requestOriginIsPotentiallyTrustworthy } from "@/http/requestOrigin";
 import { configureLogging, requestLoggingMiddleware } from "@/logging";
+import { debugRouter } from "@/routes/debug";
 import { mediaRouter } from "@/routes/media";
 import { providersRouter } from "@/routes/providers";
 import { sessionRouter } from "@/routes/session";
@@ -65,6 +66,7 @@ export async function createApp(options: CreateAppOptions = {}) {
   app.use("/api/session", sessionRouter);
   app.use("/api/sources", sourcesRouter);
   app.use("/api/media", mediaRouter);
+  app.use("/api/debug", debugRouter);
   app.use("/api/version", versionRouter);
   app.use("/api", notFoundHandler);
 
