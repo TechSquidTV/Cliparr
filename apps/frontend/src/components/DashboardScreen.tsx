@@ -30,6 +30,7 @@ import {
   GithubIcon,
 } from "@/components/DashboardMobileMenu";
 import { MobilePwaInstallNudge } from "@/components/MobilePwaInstallNudge";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Tooltip,
   TooltipContent,
@@ -393,9 +394,11 @@ export function DashboardViewerFilterPicker({
               />
             </label>
 
-            <div
-              className="cliparr-editor-scrollbar mt-2 max-h-72 overflow-y-auto"
+            <ScrollArea
+              className="mt-2 max-h-72"
+              contentClassName="pr-3"
               data-dashboard-viewer-filter-options
+              viewportClassName="max-h-72"
             >
               <motion.button
                 type="button"
@@ -493,7 +496,7 @@ export function DashboardViewerFilterPicker({
                   );
                 })
               )}
-            </div>
+            </ScrollArea>
 
             {filterActive && (
               <div

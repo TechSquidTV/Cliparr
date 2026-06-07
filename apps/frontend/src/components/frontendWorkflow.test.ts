@@ -37,6 +37,7 @@ import {
   MobilePwaInstallNudge,
   MobilePwaInstallNudgeCard,
 } from "@/components/MobilePwaInstallNudge";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { gifExportSettingsForPreset } from "@/lib/exportTypes";
 import {
@@ -631,6 +632,26 @@ void test("renders dashboard viewer filter options for multiple viewers", () => 
   assert.match(markup, /sm:w-52/);
   assert.match(markup, /Filter sessions by viewer: All viewers/);
   assert.match(markup, /All viewers/);
+});
+
+void test("renders scroll area structure for constrained dropdown content", () => {
+  const markup = renderToStaticMarkup(
+    createElement(
+      ScrollArea,
+      {
+        className: "max-h-72",
+        contentClassName: "pr-3",
+        viewportClassName: "max-h-72",
+      },
+      createElement("div", null, "Scrollable content"),
+    ),
+  );
+
+  assert.match(markup, /data-slot="scroll-area"/);
+  assert.match(markup, /data-slot="scroll-area-viewport"/);
+  assert.match(markup, /data-slot="scroll-area-content"/);
+  assert.match(markup, /style="overflow:scroll"/);
+  assert.match(markup, /max-h-72/);
 });
 
 void test("renders dashboard viewer filter as active from saved choices", () => {
