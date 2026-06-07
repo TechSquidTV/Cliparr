@@ -140,7 +140,7 @@ void test("keeps Plex subtitle extraction on the real playback session id", () =
   const session = createSession();
   const context = createContext();
   const plexPlaybackSessionId = "254";
-  const cliparrTranscodeSessionId = createCliparrPlexTranscodeSessionId(
+  const cliparrPreviewTranscodeSessionId = createCliparrPlexTranscodeSessionId(
     context.sourceId,
     plexPlaybackSessionId,
   );
@@ -171,7 +171,7 @@ void test("keeps Plex subtitle extraction on the real playback session id", () =
     ],
   };
 
-  const previewPath = createPreviewPath(item, cliparrTranscodeSessionId);
+  const previewPath = createPreviewPath(item, cliparrPreviewTranscodeSessionId);
   const previewUrl = new URL(previewPath ?? "", "http://cliparr.local");
   const tracks = deriveSubtitleTracks(
     session,
@@ -184,7 +184,7 @@ void test("keeps Plex subtitle extraction on the real playback session id", () =
 
   assert.equal(
     previewUrl.searchParams.get("transcodeSessionId"),
-    cliparrTranscodeSessionId,
+    cliparrPreviewTranscodeSessionId,
   );
   assert.equal(previewUrl.searchParams.get("subtitles"), "none");
   assert.equal(tracks.length, 1);
@@ -201,7 +201,7 @@ void test("keeps Plex subtitle extraction on the real playback session id", () =
   );
   assert.notEqual(
     subtitleUrl.searchParams.get("transcodeSessionId"),
-    cliparrTranscodeSessionId,
+    cliparrPreviewTranscodeSessionId,
   );
   assert.equal(subtitleUrl.searchParams.get("path"), "/library/metadata/14447");
   assert.equal(subtitleUrl.searchParams.get("mediaIndex"), "0");
@@ -213,7 +213,7 @@ void test("sends the real Plex playback session header for synthetic HLS preview
   const session = createSession();
   const context = createContext();
   const plexPlaybackSessionId = "254";
-  const cliparrTranscodeSessionId = createCliparrPlexTranscodeSessionId(
+  const cliparrPreviewTranscodeSessionId = createCliparrPlexTranscodeSessionId(
     context.sourceId,
     plexPlaybackSessionId,
   );
@@ -232,7 +232,7 @@ void test("sends the real Plex playback session header for synthetic HLS preview
       },
     ],
   };
-  const previewPath = createPreviewPath(item, cliparrTranscodeSessionId);
+  const previewPath = createPreviewPath(item, cliparrPreviewTranscodeSessionId);
   assert.ok(previewPath);
   const handleId = "hls-handle";
   session.mediaHandles.set(handleId, {
@@ -280,7 +280,7 @@ void test("sends the real Plex playback session header for synthetic HLS preview
     const upstreamUrl = new URL(requestUrls[0] ?? "");
     assert.equal(
       upstreamUrl.searchParams.get("transcodeSessionId"),
-      cliparrTranscodeSessionId,
+      cliparrPreviewTranscodeSessionId,
     );
     assert.equal(
       requestHeaders[0]?.get("x-plex-session-identifier"),
@@ -288,7 +288,7 @@ void test("sends the real Plex playback session header for synthetic HLS preview
     );
     assert.notEqual(
       requestHeaders[0]?.get("x-plex-session-identifier"),
-      cliparrTranscodeSessionId,
+      cliparrPreviewTranscodeSessionId,
     );
     assert.equal(requestHeaders[0]?.get("x-plex-token"), context.token);
     assert.equal(response.statusCode, 200);

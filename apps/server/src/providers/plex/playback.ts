@@ -442,10 +442,10 @@ export function createPreviewPath(
 
 export function createCliparrPlexTranscodeSessionId(
   sourceId: string,
-  playbackSessionId: string,
+  plexPlaybackSessionId: string,
 ) {
   const digest = createHash("sha256")
-    .update(`${sourceId}:${playbackSessionId}`)
+    .update(`${sourceId}:${plexPlaybackSessionId}`)
     .digest("hex")
     .slice(0, 32);
   const version = "5";
@@ -1193,6 +1193,18 @@ function playbackSessionIdentity(item: PlexMetadataItem) {
   );
 }
 
+function derivePlexPlaybackIds(sourceId: string, item: PlexMetadataItem) {
+  const plexPlaybackSessionId = playbackSessionIdentity(item);
+
+  return {
+    plexPlaybackSessionId,
+    cliparrPreviewTranscodeSessionId: createCliparrPlexTranscodeSessionId(
+      sourceId,
+      plexPlaybackSessionId,
+    ),
+  };
+}
+
 export function createPlexViewerAvatarUrl(
   session: ProviderSessionRecord,
   context: PlexSourceContext,
@@ -1209,13 +1221,13 @@ function playbackViewer(
   context: PlexSourceContext,
   item: PlexMetadataItem,
   sourceId: string,
-  sessionId: string,
+  plexPlaybackSessionId: string,
 ) {
   const externalId = stringValue(item?.User?.id);
   return {
     id: externalId
       ? `plex:user:${externalId}`
-      : `plex:synthetic:${sourceId}:${sessionId}`,
+      : `plex:synthetic:${sourceId}:${plexPlaybackSessionId}`,
     providerId: "plex" as const,
     externalId,
     name: stringValue(item?.User?.title) ?? "Unknown User",
@@ -1238,11 +1250,8 @@ async function normalizeCurrentPlayback(
 
   return Promise.all(
     uniqueMetadata.map(async (item) => {
-      const sessionId = playbackSessionIdentity(item);
-      const transcodeSessionId = createCliparrPlexTranscodeSessionId(
-        source.id,
-        sessionId,
-      );
+      const { plexPlaybackSessionId, cliparrPreviewTranscodeSessionId } =
+        derivePlexPlaybackIds(source.id, item);
       const mediaSelection = deriveMediaSelection(item);
       const enrichedItem = await enrichMetadataItem(context, item);
       const mediaPath = await resolveMediaPath(
@@ -1253,7 +1262,7 @@ async function normalizeCurrentPlayback(
       );
       const previewPath = createPreviewPath(
         enrichedItem,
-        transcodeSessionId,
+        cliparrPreviewTranscodeSessionId,
         mediaSelection,
       );
       const thumbPath = metadataImagePath(enrichedItem);
@@ -1269,7 +1278,7 @@ async function normalizeCurrentPlayback(
         session,
         context,
         enrichedItem,
-        sessionId,
+        plexPlaybackSessionId,
         mediaSelection,
       ).filter((track) => subtitleTrackSupportsBurnIn(track));
       const selectedPart = resolveSelectedPart(
@@ -1304,7 +1313,7 @@ async function normalizeCurrentPlayback(
         : undefined;
       const hlsUrl = previewPath
         ? createMediaHandle(session, context, previewPath, {
-            playbackSessionId: sessionId,
+            playbackSessionId: plexPlaybackSessionId,
           })
         : undefined;
       const missingPreviewPath =
@@ -1315,10 +1324,10 @@ async function normalizeCurrentPlayback(
         sessionId: session.id,
         sourceId: source.id,
         providerAccountId: source.providerAccountId,
-        playbackSessionId: sessionId,
-        transcodeSessionId,
+        playbackSessionId: plexPlaybackSessionId,
+        transcodeSessionId: cliparrPreviewTranscodeSessionId,
         currentlyPlayingItem: {
-          id: `${source.id}:${sessionId}`,
+          id: `${source.id}:${plexPlaybackSessionId}`,
           title: itemTitleValue(enrichedItem),
           type: itemTypeValue(enrichedItem) || "video",
           duration,
@@ -1384,9 +1393,15 @@ async function normalizeCurrentPlayback(
       }
 
       return {
-        viewer: playbackViewer(session, context, item, source.id, sessionId),
+        viewer: playbackViewer(
+          session,
+          context,
+          item,
+          source.id,
+          plexPlaybackSessionId,
+        ),
         item: {
-          id: `${source.id}:${sessionId}`,
+          id: `${source.id}:${plexPlaybackSessionId}`,
           source: {
             id: source.id,
             name: source.name,
