@@ -20,7 +20,7 @@ import AuthCompleteScreen from "@/components/AuthCompleteScreen";
 import {
   DashboardPlaybackFilterEmptyState,
   DashboardPlaybackCard,
-  DashboardViewerFilterBar,
+  DashboardViewerFilterPicker,
   DashboardVersionBadge,
 } from "@/components/DashboardScreen";
 import DashboardScreen from "@/components/DashboardScreen";
@@ -595,7 +595,7 @@ void test("hides dashboard viewer filter with one viewer and no active filter", 
     createElement(
       TooltipProvider,
       null,
-      createElement(DashboardViewerFilterBar, {
+      createElement(DashboardViewerFilterPicker, {
         viewerOptions: options,
         selectedViewerNames: [],
         hiddenSessionCount: 0,
@@ -617,7 +617,7 @@ void test("renders dashboard viewer filter options for multiple viewers", () => 
     createElement(
       TooltipProvider,
       null,
-      createElement(DashboardViewerFilterBar, {
+      createElement(DashboardViewerFilterPicker, {
         viewerOptions: options,
         selectedViewerNames: [],
         hiddenSessionCount: 0,
@@ -628,10 +628,8 @@ void test("renders dashboard viewer filter options for multiple viewers", () => 
   );
 
   assert.match(markup, /data-dashboard-viewer-filter/);
-  assert.match(markup, /Filter sessions by viewer/);
-  assert.match(markup, />All</);
-  assert.match(markup, /TechSquidTV/);
-  assert.match(markup, /Guest/);
+  assert.match(markup, /Filter sessions by viewer: All viewers/);
+  assert.match(markup, /All viewers/);
 });
 
 void test("renders dashboard viewer filter as active from saved choices", () => {
@@ -643,7 +641,7 @@ void test("renders dashboard viewer filter as active from saved choices", () => 
     createElement(
       TooltipProvider,
       null,
-      createElement(DashboardViewerFilterBar, {
+      createElement(DashboardViewerFilterPicker, {
         viewerOptions: options,
         selectedViewerNames: ["techsquidtv"],
         hiddenSessionCount: 0,
@@ -654,8 +652,31 @@ void test("renders dashboard viewer filter as active from saved choices", () => 
   );
 
   assert.match(markup, /data-dashboard-viewer-filter-active="true"/);
-  assert.match(markup, /aria-pressed="true"/);
-  assert.match(markup, /Filtered/);
+  assert.match(markup, /Filter sessions by viewer: TechSquidTV/);
+  assert.match(markup, /TechSquidTV/);
+});
+
+void test("summarizes multiple selected dashboard viewers in the picker trigger", () => {
+  const options = buildDashboardViewerFilterOptions(
+    flattenDashboardPlaybackItems(dashboardPlaybackGroups),
+  );
+
+  const markup = renderToStaticMarkup(
+    createElement(
+      TooltipProvider,
+      null,
+      createElement(DashboardViewerFilterPicker, {
+        viewerOptions: options,
+        selectedViewerNames: ["techsquidtv", "guest"],
+        hiddenSessionCount: 0,
+        onToggleViewer: () => {},
+        onClearViewerFilter: () => {},
+      }),
+    ),
+  );
+
+  assert.match(markup, /Filter sessions by viewer: 2 viewers/);
+  assert.match(markup, /2 viewers/);
 });
 
 void test("renders dashboard filtered empty state with a clear action", () => {

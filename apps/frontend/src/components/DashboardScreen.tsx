@@ -1,12 +1,16 @@
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Popover } from "@base-ui/react/popover";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import {
   AlertTriangle,
+  Check,
+  ChevronDown,
   FolderOpen,
   Globe,
   LogOut,
   Play,
   RefreshCw,
+  Search,
   Settings2,
   Users,
   Video,
@@ -163,103 +167,215 @@ function formatFilterHiddenCount(count: number) {
   return `${count} ${count === 1 ? "session is" : "sessions are"} hidden by the viewer filter.`;
 }
 
-export function DashboardViewerFilterBar({
+function dashboardViewerFilterTriggerLabel(
+  viewerOptions: DashboardViewerFilterOption[],
+  selectedViewerNames: readonly string[],
+) {
+  const selectedNames = sanitizeDashboardViewerFilterNames(selectedViewerNames);
+  if (selectedNames.length === 0) {
+    return "All viewers";
+  }
+
+  if (selectedNames.length === 1) {
+    const [selectedName] = selectedNames;
+    const option = viewerOptions.find(
+      (viewerOption) => viewerOption.normalizedName === selectedName,
+    );
+    return option?.name ?? "1 viewer";
+  }
+
+  return `${selectedNames.length} viewers`;
+}
+
+export function DashboardViewerFilterPicker({
   viewerOptions,
   selectedViewerNames,
   hiddenSessionCount,
   onToggleViewer,
   onClearViewerFilter,
+  className,
 }: {
   viewerOptions: DashboardViewerFilterOption[];
   selectedViewerNames: readonly string[];
   hiddenSessionCount: number;
   onToggleViewer: (viewerName: string) => void;
   onClearViewerFilter: () => void;
+  className?: string;
 }) {
+  const [query, setQuery] = useState("");
   const selectedNames = sanitizeDashboardViewerFilterNames(selectedViewerNames);
   const selectedNamesSet = new Set(selectedNames);
   const filterActive = selectedNames.length > 0;
+  const queryText = query.trim().toLowerCase();
+  const filteredViewerOptions = queryText
+    ? viewerOptions.filter((option) =>
+        option.name.toLowerCase().includes(queryText),
+      )
+    : viewerOptions;
+  const triggerLabel = dashboardViewerFilterTriggerLabel(
+    viewerOptions,
+    selectedNames,
+  );
+  const totalSessionCount = viewerOptions.reduce(
+    (sum, option) => sum + option.sessionCount,
+    0,
+  );
 
   if (viewerOptions.length <= 1 && !filterActive) {
     return null;
   }
 
   return (
-    <div
-      className="rounded-lg border border-border bg-card/70 p-1"
-      data-dashboard-viewer-filter
-      data-dashboard-viewer-filter-active={filterActive || undefined}
-    >
-      <div
-        role="toolbar"
-        aria-label="Filter sessions by viewer"
-        className="cliparr-editor-scrollbar flex items-center gap-1 overflow-x-auto"
+    <Popover.Root>
+      <Popover.Trigger
+        aria-label={`Filter sessions by viewer: ${triggerLabel}`}
+        data-dashboard-viewer-filter
+        data-dashboard-viewer-filter-active={filterActive || undefined}
+        className={cn(
+          "inline-flex h-11 min-w-0 items-center justify-center gap-2 rounded-lg border border-border px-3 text-sm font-semibold text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:ring-2 focus-visible:ring-primary/35 focus-visible:outline-none sm:h-9 sm:px-3 sm:font-medium",
+          filterActive &&
+            "border-primary/40 bg-primary/10 text-primary hover:bg-primary/15 hover:text-primary",
+          className,
+        )}
       >
-        <button
-          type="button"
-          onClick={onClearViewerFilter}
-          aria-pressed={!filterActive}
-          className={cn(
-            "inline-flex h-9 shrink-0 items-center justify-center rounded-md px-3 text-sm font-semibold transition-colors focus-visible:ring-2 focus-visible:ring-primary/35 focus-visible:outline-none",
-            filterActive
-              ? "text-muted-foreground hover:bg-accent hover:text-foreground"
-              : "bg-primary text-primary-foreground",
-          )}
-        >
-          All
-        </button>
+        <Users className="h-4 w-4 shrink-0" />
+        <span className="hidden shrink-0 sm:inline">Viewers</span>
+        <span className="min-w-0 truncate">{triggerLabel}</span>
+        <ChevronDown className="h-4 w-4 shrink-0 opacity-70" />
+      </Popover.Trigger>
+      <Popover.Portal>
+        <Popover.Positioner sideOffset={8} align="end">
+          <Popover.Popup
+            className={cn(
+              "z-50 w-[min(calc(100vw-2rem),22rem)] rounded-lg border border-border bg-popover p-2 text-popover-foreground shadow-lg outline-none",
+              "data-[ending-style]:animate-out data-[ending-style]:fade-out-0 data-[ending-style]:zoom-out-95 data-[starting-style]:animate-in data-[starting-style]:fade-in-0 data-[starting-style]:zoom-in-95",
+            )}
+            initialFocus={false}
+          >
+            <div className="px-2 py-1.5">
+              <Popover.Title className="text-sm font-semibold text-foreground">
+                Filter by viewer
+              </Popover.Title>
+              <Popover.Description className="mt-0.5 text-xs text-muted-foreground">
+                Selected viewers are shown as a whitelist.
+              </Popover.Description>
+            </div>
 
-        {viewerOptions.map((option) => {
-          const selected = selectedNamesSet.has(option.normalizedName);
-          const actionLabel = selected
-            ? `Hide ${option.name} sessions`
-            : `Show ${option.name} sessions`;
+            <label className="relative mt-2 block">
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <input
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+                placeholder="Search viewers"
+                className="h-9 w-full rounded-md border border-input bg-background px-3 pl-9 text-sm text-foreground outline-none transition-colors placeholder:text-muted-foreground focus:border-primary/50 focus:ring-2 focus:ring-primary/20"
+                data-dashboard-viewer-filter-search
+              />
+            </label>
 
-          return (
-            <Tooltip key={option.normalizedName}>
-              <TooltipTrigger asChild>
+            <div
+              className="cliparr-editor-scrollbar mt-2 max-h-72 overflow-y-auto"
+              data-dashboard-viewer-filter-options
+            >
+              <button
+                type="button"
+                onClick={onClearViewerFilter}
+                aria-pressed={!filterActive}
+                className={cn(
+                  "flex min-h-11 w-full items-center gap-3 rounded-md px-2 text-left text-sm transition-colors hover:bg-accent hover:text-foreground focus-visible:ring-2 focus-visible:ring-primary/35 focus-visible:outline-none",
+                  !filterActive && "bg-primary/10 text-primary",
+                )}
+              >
+                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-background text-primary">
+                  <Users className="h-4 w-4" />
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate font-semibold">
+                    All viewers
+                  </span>
+                  <span className="block truncate text-xs text-muted-foreground">
+                    {formatFilterSessionCount(totalSessionCount)}
+                  </span>
+                </span>
+                <Check
+                  className={cn(
+                    "h-4 w-4 shrink-0",
+                    filterActive ? "invisible" : "text-primary",
+                  )}
+                />
+              </button>
+
+              {filteredViewerOptions.length === 0 ? (
+                <div className="px-3 py-6 text-center text-sm text-muted-foreground">
+                  No viewers found.
+                </div>
+              ) : (
+                filteredViewerOptions.map((option) => {
+                  const selected = selectedNamesSet.has(option.normalizedName);
+                  const actionLabel = selected
+                    ? `Hide ${option.name} sessions`
+                    : `Show ${option.name} sessions`;
+
+                  return (
+                    <button
+                      key={option.normalizedName}
+                      type="button"
+                      onClick={() => onToggleViewer(option.normalizedName)}
+                      aria-pressed={selected}
+                      aria-label={actionLabel}
+                      className={cn(
+                        "mt-1 flex min-h-11 w-full items-center gap-3 rounded-md px-2 text-left text-sm transition-colors hover:bg-accent hover:text-foreground focus-visible:ring-2 focus-visible:ring-primary/35 focus-visible:outline-none",
+                        selected && "bg-primary/10 text-primary",
+                      )}
+                    >
+                      <ViewerAvatar
+                        name={option.name}
+                        avatarUrl={option.avatarUrl}
+                        size="sm"
+                      />
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate font-semibold">
+                          {option.name}
+                        </span>
+                        <span className="block truncate text-xs text-muted-foreground">
+                          {formatFilterSessionCount(option.sessionCount)}
+                        </span>
+                      </span>
+                      <Check
+                        className={cn(
+                          "h-4 w-4 shrink-0",
+                          selected ? "text-primary" : "invisible",
+                        )}
+                      />
+                    </button>
+                  );
+                })
+              )}
+            </div>
+
+            {filterActive && (
+              <div
+                className="mt-2 flex items-center justify-between gap-3 border-t border-border px-2 pt-2"
+                data-dashboard-viewer-filter-summary
+              >
+                <span className="min-w-0 truncate text-xs text-muted-foreground">
+                  {hiddenSessionCount > 0
+                    ? `${formatFilterSessionCount(hiddenSessionCount)} hidden`
+                    : "Filtered"}
+                </span>
                 <button
                   type="button"
-                  onClick={() => onToggleViewer(option.normalizedName)}
-                  aria-pressed={selected}
-                  aria-label={actionLabel}
-                  className={cn(
-                    "inline-flex h-9 max-w-52 shrink-0 items-center gap-2 rounded-full border py-0.5 pr-3 pl-0.5 text-sm font-medium transition-colors focus-visible:ring-2 focus-visible:ring-primary/35 focus-visible:outline-none",
-                    selected
-                      ? "border-primary/50 bg-primary/15 text-primary"
-                      : "border-transparent text-muted-foreground hover:bg-accent hover:text-foreground",
-                  )}
+                  onClick={onClearViewerFilter}
+                  className="inline-flex h-8 shrink-0 items-center gap-1.5 rounded-md px-2 text-xs font-semibold text-primary transition-colors hover:bg-primary/10 focus-visible:ring-2 focus-visible:ring-primary/35 focus-visible:outline-none"
                 >
-                  <ViewerAvatar
-                    name={option.name}
-                    avatarUrl={option.avatarUrl}
-                    size="sm"
-                  />
-                  <span className="truncate">{option.name}</span>
-                  <span className="min-w-[2ch] rounded-full bg-background/80 px-1.5 text-center font-mono text-ui-micro tabular-nums text-muted-foreground">
-                    {option.sessionCount}
-                  </span>
+                  <X className="h-3.5 w-3.5" />
+                  Clear
                 </button>
-              </TooltipTrigger>
-              <TooltipContent side="top">
-                {option.name}: {formatFilterSessionCount(option.sessionCount)}
-              </TooltipContent>
-            </Tooltip>
-          );
-        })}
-
-        {filterActive && (
-          <span
-            className="ml-auto hidden shrink-0 px-2 text-xs text-muted-foreground sm:inline-flex"
-            data-dashboard-viewer-filter-summary
-          >
-            {hiddenSessionCount > 0
-              ? `${formatFilterSessionCount(hiddenSessionCount)} hidden`
-              : "Filtered"}
-          </span>
-        )}
-      </div>
-    </div>
+              </div>
+            )}
+          </Popover.Popup>
+        </Popover.Positioner>
+      </Popover.Portal>
+    </Popover.Root>
   );
 }
 
@@ -862,6 +978,18 @@ export default function DashboardScreen({
     setSelectedViewerNames([]);
     writeDashboardViewerFilter([]);
   }, []);
+  const showViewerFilterControl =
+    viewerFilterOptions.length > 1 || selectedViewerFilterNames.length > 0;
+  const renderViewerFilterPicker = () =>
+    showViewerFilterControl ? (
+      <DashboardViewerFilterPicker
+        viewerOptions={viewerFilterOptions}
+        selectedViewerNames={selectedViewerFilterNames}
+        hiddenSessionCount={hiddenViewerFilterCardCount}
+        onToggleViewer={toggleViewerFilter}
+        onClearViewerFilter={clearViewerFilter}
+      />
+    ) : null;
 
   return (
     <div className="min-h-screen bg-background p-4 text-foreground sm:p-8">
@@ -897,7 +1025,14 @@ export default function DashboardScreen({
               onDisconnect={onDisconnect}
             />
           </div>
-          <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)_2.75rem] gap-2 sm:hidden">
+          <div
+            className={cn(
+              "grid gap-2 sm:hidden",
+              showViewerFilterControl
+                ? "grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_2.75rem]"
+                : "grid-cols-[minmax(0,1fr)_minmax(0,1fr)_2.75rem]",
+            )}
+          >
             <button
               type="button"
               onClick={onOpenLocalVideo}
@@ -914,6 +1049,7 @@ export default function DashboardScreen({
               <Settings2 className="h-4 w-4 shrink-0" />
               <span className="truncate">Sources</span>
             </button>
+            {renderViewerFilterPicker()}
             <button
               type="button"
               onClick={fetchSessions}
@@ -944,6 +1080,7 @@ export default function DashboardScreen({
               <Settings2 className="w-4 h-4" />
               Sources
             </button>
+            {renderViewerFilterPicker()}
             <button
               type="button"
               onClick={fetchSessions}
@@ -1003,16 +1140,6 @@ export default function DashboardScreen({
           )}
 
           {!error && <WarningBanner sourceErrors={sourceErrors} />}
-
-          {!error && (
-            <DashboardViewerFilterBar
-              viewerOptions={viewerFilterOptions}
-              selectedViewerNames={selectedViewerFilterNames}
-              hiddenSessionCount={hiddenViewerFilterCardCount}
-              onToggleViewer={toggleViewerFilter}
-              onClearViewerFilter={clearViewerFilter}
-            />
-          )}
 
           <DashboardPlaybackMotionRegion
             loading={loading}
