@@ -1,6 +1,10 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import type { Request, Response } from "express";
+import type {
+  Request as ExpressRequest,
+  Response as ExpressResponse,
+} from "express";
+import type { MediaSource } from "@/db/mediaSourcesRepository";
 import type { ProviderSessionRecord } from "@/session/store";
 import {
   createPlexExportEstimateMetadata,
@@ -9,6 +13,7 @@ import {
   createPreviewPath,
   deriveSelectedSubtitleTrack,
   deriveSubtitleTracks,
+  listCurrentlyPlaying,
   playheadSecondsFromViewOffset,
   proxyMedia,
 } from "@/providers/plex/playback";
@@ -32,6 +37,79 @@ function createContext(): PlexSourceContext {
     baseUrl: "http://plex.local:32400",
     token: "provider-token",
   };
+}
+
+function createSource(): MediaSource {
+  return {
+    id: "source-1",
+    providerId: "plex",
+    providerAccountId: "account-1",
+    name: "Plex",
+    enabled: true,
+    baseUrl: "http://plex.local:32400",
+    connection: {
+      baseUrlMode: "manual",
+      connections: [
+        {
+          id: "plex-connection-1",
+          uri: "http://plex.local:32400",
+          local: true,
+          relay: false,
+          protocol: "http",
+          address: "plex.local",
+          port: 32_400,
+        },
+      ],
+      selectedConnectionId: "plex-connection-1",
+    },
+    credentials: {
+      accessToken: "provider-token",
+    },
+    metadata: {
+      owned: true,
+      provides: ["server"],
+    },
+    createdAt: new Date(0).toISOString(),
+    updatedAt: new Date(0).toISOString(),
+  };
+}
+
+function jsonResponse(body: unknown, init: ResponseInit = {}) {
+  const headers = new Headers(init.headers);
+  headers.set("Content-Type", "application/json");
+
+  return globalThis.Response.json(body, {
+    ...init,
+    headers,
+  });
+}
+
+function withMockFetch(
+  handler: (
+    request: globalThis.Request,
+  ) => globalThis.Response | Promise<globalThis.Response>,
+  callback: () => Promise<void>,
+) {
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = (async (input, init) => {
+    return handler(new globalThis.Request(input, init));
+  }) as typeof fetch;
+
+  return callback().finally(() => {
+    globalThis.fetch = originalFetch;
+  });
+}
+
+function mediaHandleForUrl(
+  session: ProviderSessionRecord,
+  mediaUrl: string | undefined,
+) {
+  assert.ok(mediaUrl);
+  const handleId = mediaUrl.split("/").at(-1);
+  assert.ok(handleId);
+  const handle = session.mediaHandles.get(handleId);
+  assert.ok(handle);
+  return handle;
 }
 
 function createRequest(headers: Record<string, string> = {}) {
@@ -273,8 +351,8 @@ void test("sends the real Plex playback session header for synthetic HLS preview
     await proxyMedia(
       session,
       handleId,
-      createRequest({ accept: "*/*" }) as Request,
-      response as unknown as Response,
+      createRequest({ accept: "*/*" }) as ExpressRequest,
+      response as unknown as ExpressResponse,
     );
 
     const upstreamUrl = new URL(requestUrls[0] ?? "");
@@ -295,6 +373,152 @@ void test("sends the real Plex playback session header for synthetic HLS preview
   } finally {
     globalThis.fetch = originalFetch;
   }
+});
+
+void test("builds Plex HLS preview and selected embedded SRT subtitles with separate session ids", async () => {
+  const session = createSession();
+  const source = createSource();
+  const plexPlaybackSessionId = "254";
+  const cliparrPreviewTranscodeSessionId = createCliparrPlexTranscodeSessionId(
+    source.id,
+    plexPlaybackSessionId,
+  );
+  const currentItem = {
+    ratingKey: "14447",
+    key: "/library/metadata/14447",
+    sessionKey: plexPlaybackSessionId,
+    type: "episode",
+    title: "The Plex Subtitle Case",
+    duration: 1_800_000,
+    viewOffset: 120_000,
+    User: {
+      id: "user-1",
+      title: "Rick",
+    },
+    Player: {
+      title: "Chrome",
+      state: "playing",
+    },
+  };
+  const metadataItem = {
+    ratingKey: "14447",
+    key: "/library/metadata/14447",
+    type: "episode",
+    title: "The Plex Subtitle Case",
+    duration: 1_800_000,
+    Media: [
+      {
+        id: "19134",
+        selected: 1,
+        Part: [
+          {
+            id: "28744",
+            selected: 1,
+            Stream: [
+              {
+                id: "101149",
+                streamType: 1,
+                codec: "h264",
+                width: 1920,
+                height: 1080,
+                selected: 1,
+              },
+              {
+                id: "101150",
+                streamType: 2,
+                codec: "aac",
+                languageCode: "eng",
+                selected: 1,
+              },
+              {
+                id: "101151",
+                index: "3",
+                streamType: "3",
+                codec: "srt",
+                languageCode: "eng",
+                selected: "1",
+                title: "English SDH",
+              },
+            ],
+          },
+        ],
+      },
+    ],
+  };
+
+  await withMockFetch(
+    (request) => {
+      if (request.url === "http://plex.local:32400/status/sessions") {
+        return jsonResponse({
+          MediaContainer: {
+            Metadata: [currentItem],
+          },
+        });
+      }
+
+      if (request.url === "http://plex.local:32400/library/metadata/14447") {
+        return jsonResponse({
+          MediaContainer: {
+            Metadata: [metadataItem],
+          },
+        });
+      }
+
+      throw new Error(`Unexpected request: ${request.url}`);
+    },
+    async () => {
+      const entries = await listCurrentlyPlaying(session, source);
+      assert.equal(entries.length, 1);
+
+      const item = entries[0]?.item;
+      assert.ok(item);
+      assert.equal(item.previewFormat, "hls");
+      assert.equal(item.selectedSubtitleTrack?.streamId, "101151");
+      assert.equal(item.selectedSubtitleTrack?.contentFormat, "srt");
+      const subtitleTracks = item.subtitleTracks ?? [];
+      assert.equal(subtitleTracks.length, 1);
+
+      const hlsHandle = mediaHandleForUrl(session, item.hlsUrl);
+      const hlsUrl = new URL(hlsHandle.path, "http://cliparr.local");
+      assert.equal(
+        hlsUrl.searchParams.get("transcodeSessionId"),
+        cliparrPreviewTranscodeSessionId,
+      );
+      assert.equal(hlsUrl.searchParams.get("subtitles"), "none");
+      assert.equal(
+        hlsHandle.providerMetadata?.plex?.playbackSessionId,
+        plexPlaybackSessionId,
+      );
+
+      const subtitleTrack = subtitleTracks[0];
+      assert.ok(subtitleTrack);
+      assert.equal(subtitleTrack.contentFormat, "srt");
+      assert.equal(subtitleTrack.streamId, "101151");
+
+      const subtitleHandle = mediaHandleForUrl(
+        session,
+        subtitleTrack.contentUrl,
+      );
+      const subtitleUrl = new URL(subtitleHandle.path, "http://cliparr.local");
+      assert.equal(
+        subtitleUrl.searchParams.get("transcodeSessionId"),
+        plexPlaybackSessionId,
+      );
+      assert.notEqual(
+        subtitleUrl.searchParams.get("transcodeSessionId"),
+        cliparrPreviewTranscodeSessionId,
+      );
+      assert.equal(subtitleUrl.searchParams.get("subtitles"), "sidecar");
+      assert.equal(
+        subtitleUrl.searchParams.get("path"),
+        "/library/metadata/14447",
+      );
+      assert.equal(
+        subtitleHandle.providerMetadata?.plex?.playbackSessionId,
+        plexPlaybackSessionId,
+      );
+    },
+  );
 });
 
 void test("does not create Plex HLS preview paths for audio tracks", () => {
