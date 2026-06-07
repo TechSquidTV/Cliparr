@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import type { Request, Response } from "express";
 import type { ProviderSessionRecord } from "@/session/store";
 import {
   createPlexExportEstimateMetadata,
@@ -9,6 +10,7 @@ import {
   deriveSelectedSubtitleTrack,
   deriveSubtitleTracks,
   playheadSecondsFromViewOffset,
+  proxyMedia,
 } from "@/providers/plex/playback";
 import type { PlexSourceContext } from "@/providers/plex/shared";
 
@@ -30,6 +32,46 @@ function createContext(): PlexSourceContext {
     baseUrl: "http://plex.local:32400",
     token: "provider-token",
   };
+}
+
+function createRequest(headers: Record<string, string> = {}) {
+  const normalizedHeaders = new Map(
+    Object.entries(headers).map(([name, value]) => [name.toLowerCase(), value]),
+  );
+
+  return {
+    header(name: string) {
+      return normalizedHeaders.get(name.toLowerCase());
+    },
+  };
+}
+
+function createResponseRecorder() {
+  const recorder = {
+    statusCode: 200,
+    headers: new Map<string, string>(),
+    body: Buffer.alloc(0),
+    ended: false,
+    status(code: number) {
+      recorder.statusCode = code;
+      return recorder;
+    },
+    setHeader(name: string, value: string | number) {
+      recorder.headers.set(name.toLowerCase(), String(value));
+      return recorder;
+    },
+    end(chunk?: string | Uint8Array) {
+      if (typeof chunk === "string") {
+        recorder.body = Buffer.from(chunk);
+      } else if (chunk) {
+        recorder.body = Buffer.from(chunk);
+      }
+      recorder.ended = true;
+      return recorder;
+    },
+  };
+
+  return recorder;
 }
 
 function onlyMediaHandle(session: ProviderSessionRecord) {
@@ -87,7 +129,165 @@ void test("creates a Cliparr-owned Plex transcode session id", () => {
   assert.equal(firstId, secondId);
   assert.notEqual(firstId, differentPlaybackId);
   assert.notEqual(firstId, differentSourceId);
-  assert.match(firstId, /^cliparr-source-1-[\da-f]{16}$/);
+  assert.notEqual(firstId, "plex-session-1");
+  assert.match(
+    firstId,
+    /^[\da-f]{8}-[\da-f]{4}-5[\da-f]{3}-[89ab][\da-f]{3}-[\da-f]{12}$/,
+  );
+});
+
+void test("keeps Plex subtitle extraction on the real playback session id", () => {
+  const session = createSession();
+  const context = createContext();
+  const plexPlaybackSessionId = "254";
+  const cliparrTranscodeSessionId = createCliparrPlexTranscodeSessionId(
+    context.sourceId,
+    plexPlaybackSessionId,
+  );
+  const item = {
+    ratingKey: "14447",
+    Media: [
+      {
+        id: "19134",
+        selected: 1,
+        Part: [
+          {
+            id: "28744",
+            selected: 1,
+            Stream: [
+              {
+                id: "101151",
+                index: "3",
+                streamType: "3",
+                codec: "srt",
+                languageCode: "eng",
+                selected: "1",
+                title: "English SDH",
+              },
+            ],
+          },
+        ],
+      },
+    ],
+  };
+
+  const previewPath = createPreviewPath(item, cliparrTranscodeSessionId);
+  const previewUrl = new URL(previewPath ?? "", "http://cliparr.local");
+  const tracks = deriveSubtitleTracks(
+    session,
+    context,
+    item,
+    plexPlaybackSessionId,
+  );
+  const handle = onlyMediaHandle(session);
+  const subtitleUrl = new URL(handle.path, "http://cliparr.local");
+
+  assert.equal(
+    previewUrl.searchParams.get("transcodeSessionId"),
+    cliparrTranscodeSessionId,
+  );
+  assert.equal(previewUrl.searchParams.get("subtitles"), "none");
+  assert.equal(tracks.length, 1);
+  assert.equal(tracks[0]?.contentUrl, `/api/media/${handle.id}`);
+  assert.equal(tracks[0]?.contentFormat, "srt");
+  assert.equal(tracks[0]?.streamId, "101151");
+  assert.equal(handle.playbackSessionId, plexPlaybackSessionId);
+  assert.equal(
+    subtitleUrl.searchParams.get("transcodeSessionId"),
+    plexPlaybackSessionId,
+  );
+  assert.notEqual(
+    subtitleUrl.searchParams.get("transcodeSessionId"),
+    cliparrTranscodeSessionId,
+  );
+  assert.equal(subtitleUrl.searchParams.get("path"), "/library/metadata/14447");
+  assert.equal(subtitleUrl.searchParams.get("mediaIndex"), "0");
+  assert.equal(subtitleUrl.searchParams.get("partIndex"), "0");
+  assert.equal(subtitleUrl.searchParams.get("subtitles"), "sidecar");
+});
+
+void test("sends the real Plex playback session header for synthetic HLS preview handles", async () => {
+  const session = createSession();
+  const context = createContext();
+  const plexPlaybackSessionId = "254";
+  const cliparrTranscodeSessionId = createCliparrPlexTranscodeSessionId(
+    context.sourceId,
+    plexPlaybackSessionId,
+  );
+  const item = {
+    ratingKey: "14447",
+    Media: [
+      {
+        id: "19134",
+        selected: 1,
+        Part: [
+          {
+            id: "28744",
+            selected: 1,
+          },
+        ],
+      },
+    ],
+  };
+  const previewPath = createPreviewPath(item, cliparrTranscodeSessionId);
+  assert.ok(previewPath);
+  const handleId = "hls-handle";
+  session.mediaHandles.set(handleId, {
+    id: handleId,
+    providerId: "plex",
+    sourceId: context.sourceId,
+    baseUrl: context.baseUrl,
+    path: previewPath,
+    token: context.token,
+    playbackSessionId: plexPlaybackSessionId,
+    lastAccessedAt: 0,
+  });
+  const requestHeaders: Headers[] = [];
+  const requestUrls: string[] = [];
+  const originalFetch = globalThis.fetch;
+
+  globalThis.fetch = (async (input, init) => {
+    requestUrls.push(
+      typeof input === "string" || input instanceof URL
+        ? input.toString()
+        : input.url,
+    );
+    requestHeaders.push(new Headers(init?.headers));
+    return new globalThis.Response("#EXTM3U\n#EXT-X-ENDLIST\n", {
+      status: 200,
+      headers: {
+        "content-type": "application/vnd.apple.mpegurl",
+      },
+    });
+  }) as typeof fetch;
+
+  try {
+    const response = createResponseRecorder();
+    await proxyMedia(
+      session,
+      handleId,
+      createRequest({ accept: "*/*" }) as Request,
+      response as unknown as Response,
+    );
+
+    const upstreamUrl = new URL(requestUrls[0] ?? "");
+    assert.equal(
+      upstreamUrl.searchParams.get("transcodeSessionId"),
+      cliparrTranscodeSessionId,
+    );
+    assert.equal(
+      requestHeaders[0]?.get("x-plex-session-identifier"),
+      plexPlaybackSessionId,
+    );
+    assert.notEqual(
+      requestHeaders[0]?.get("x-plex-session-identifier"),
+      cliparrTranscodeSessionId,
+    );
+    assert.equal(requestHeaders[0]?.get("x-plex-token"), context.token);
+    assert.equal(response.statusCode, 200);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
 });
 
 void test("does not create Plex HLS preview paths for audio tracks", () => {

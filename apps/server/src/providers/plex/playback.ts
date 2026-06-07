@@ -66,14 +66,13 @@ import {
 
 const logger = getServerLogger(["provider", "plex", "playback"]);
 const HD_ARTWORK_SIZE = 1920;
-const PLEX_TRANSCODE_SOURCE_ID_MAX_LENGTH = 16;
 const PLEX_METADATA_PATH_PREFIX = "/library/metadata/";
 
 function createMediaHandle(
   session: ProviderSessionRecord,
   context: PlexSourceContext,
   path: string,
-  options: { basePath?: string } = {},
+  options: { basePath?: string; playbackSessionId?: string } = {},
 ) {
   return createProviderMediaHandle(
     session,
@@ -82,9 +81,12 @@ function createMediaHandle(
       sourceId: context.sourceId,
       baseUrl: context.baseUrl,
       token: context.token,
+      playbackSessionId: options.playbackSessionId,
     },
     path,
-    options,
+    {
+      basePath: options.basePath,
+    },
   );
 }
 
@@ -435,17 +437,22 @@ export function createCliparrPlexTranscodeSessionId(
   sourceId: string,
   playbackSessionId: string,
 ) {
-  const safeSourceId =
-    sourceId
-      .replaceAll(/[^\w-]+/gi, "-")
-      .replaceAll(/^-+|-+$/g, "")
-      .slice(0, PLEX_TRANSCODE_SOURCE_ID_MAX_LENGTH) || "source";
   const digest = createHash("sha256")
     .update(`${sourceId}:${playbackSessionId}`)
     .digest("hex")
-    .slice(0, 16);
+    .slice(0, 32);
+  const version = "5";
+  const variant = ((Number.parseInt(digest[16] ?? "0", 16) & 0x3) | 0x8)
+    .toString(16)
+    .slice(0, 1);
 
-  return `cliparr-${safeSourceId}-${digest}`;
+  return [
+    digest.slice(0, 8),
+    digest.slice(8, 12),
+    `${version}${digest.slice(13, 16)}`,
+    `${variant}${digest.slice(17, 20)}`,
+    digest.slice(20, 32),
+  ].join("-");
 }
 
 function transcodeSessionId(path: string) {
@@ -947,7 +954,11 @@ function plexSubtitleTrack(
     isHearingImpaired: booleanFlag(stream?.hearingImpaired),
     isExternal: Boolean(stringValue(stream?.key)),
     contentUrl: contentPath
-      ? createMediaHandle(session, context, contentPath)
+      ? createMediaHandle(session, context, contentPath, {
+          playbackSessionId: transcodeSubtitlePath
+            ? playbackSessionId
+            : undefined,
+        })
       : undefined,
   };
 }
@@ -1251,7 +1262,7 @@ async function normalizeCurrentPlayback(
         session,
         context,
         enrichedItem,
-        transcodeSessionId,
+        sessionId,
         mediaSelection,
       ).filter((track) => subtitleTrackSupportsBurnIn(track));
       const selectedPart = resolveSelectedPart(
@@ -1285,7 +1296,9 @@ async function normalizeCurrentPlayback(
         ? createMediaHandle(session, context, mediaPath)
         : undefined;
       const hlsUrl = previewPath
-        ? createMediaHandle(session, context, previewPath)
+        ? createMediaHandle(session, context, previewPath, {
+            playbackSessionId: sessionId,
+          })
         : undefined;
       const missingPreviewPath =
         !previewPath && itemTypeValue(enrichedItem) !== "track";
@@ -1438,7 +1451,7 @@ export async function proxyMedia(
   }
 
   const playbackSessionId = useProviderAuth
-    ? transcodeSessionId(handle.path)
+    ? (handle.playbackSessionId ?? transcodeSessionId(handle.path))
     : null;
   if (playbackSessionId) {
     headers.set("X-Plex-Session-Identifier", playbackSessionId);
