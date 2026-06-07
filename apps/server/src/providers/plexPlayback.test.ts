@@ -7,6 +7,7 @@ import type {
 import type { MediaSource } from "@/db/mediaSourcesRepository";
 import type { ProviderSessionRecord } from "@/session/store";
 import {
+  classifyPlexMediaHandleKind,
   createPlexExportEstimateMetadata,
   createCliparrPlexTranscodeSessionId,
   createPlexViewerAvatarUrl,
@@ -15,6 +16,8 @@ import {
   deriveSubtitleTracks,
   listCurrentlyPlaying,
   playheadSecondsFromViewOffset,
+  plexHlsSegmentSessionId,
+  plexPlaybackIdentityDiagnostics,
   proxyMedia,
 } from "@/providers/plex/playback";
 import type { PlexSourceContext } from "@/providers/plex/shared";
@@ -214,6 +217,66 @@ void test("creates a Cliparr-owned Plex transcode session id", () => {
   );
 });
 
+void test("extracts Plex playback identity diagnostics", () => {
+  assert.deepEqual(
+    plexPlaybackIdentityDiagnostics(
+      {
+        sessionKey: "259",
+        Session: {
+          id: "client-playback-session-1",
+          location: "lan",
+        },
+        Player: {
+          machineIdentifier: "player-machine-1",
+          platform: "Chrome",
+          product: "Plex Web",
+        },
+      },
+      "cliparr-transcode-session-1",
+    ),
+    {
+      "plex.session.key": "259",
+      "plex.session.id": "client-playback-session-1",
+      "plex.session.location": "lan",
+      "plex.player.machine_identifier": "player-machine-1",
+      "plex.player.product": "Plex Web",
+      "plex.player.platform": "Chrome",
+      "plex.preview_transcode_session.id": "cliparr-transcode-session-1",
+    },
+  );
+});
+
+void test("classifies Plex media handle kinds", () => {
+  assert.equal(
+    classifyPlexMediaHandleKind(
+      "/video/:/transcode/universal/start.m3u8?transcodeSessionId=abc",
+    ),
+    "hls-root",
+  );
+  assert.equal(
+    classifyPlexMediaHandleKind(
+      "/video/:/transcode/universal/session/cliparr-session/base/00000.ts",
+    ),
+    "hls-segment",
+  );
+  assert.equal(
+    plexHlsSegmentSessionId(
+      "/video/:/transcode/universal/session/cliparr-session/base/00000.ts",
+    ),
+    "cliparr-session",
+  );
+  assert.equal(
+    classifyPlexMediaHandleKind(
+      "/video/:/transcode/universal/subtitles?transcodeSessionId=259",
+    ),
+    "subtitle-transcode",
+  );
+  assert.equal(
+    classifyPlexMediaHandleKind("/library/parts/1/file.mkv"),
+    "direct",
+  );
+});
+
 void test("keeps Plex subtitle extraction on the real playback session id", () => {
   const session = createSession();
   const context = createContext();
@@ -287,7 +350,7 @@ void test("keeps Plex subtitle extraction on the real playback session id", () =
   assert.equal(subtitleUrl.searchParams.get("subtitles"), "sidecar");
 });
 
-void test("sends the real Plex playback session header for synthetic HLS preview handles", async () => {
+void test("sends the real Plex playback session header for HLS preview handles", async () => {
   const session = createSession();
   const context = createContext();
   const plexPlaybackSessionId = "254";
@@ -327,6 +390,22 @@ void test("sends the real Plex playback session header for synthetic HLS preview
     },
     lastAccessedAt: 0,
   });
+  const segmentHandleId = "hls-segment-handle";
+  session.mediaHandles.set(segmentHandleId, {
+    id: segmentHandleId,
+    providerId: "plex",
+    sourceId: context.sourceId,
+    baseUrl: context.baseUrl,
+    path: `/video/:/transcode/universal/session/${cliparrPreviewTranscodeSessionId}/base/00000.ts`,
+    token: context.token,
+    providerMetadata: {
+      plex: {
+        playbackSessionId: plexPlaybackSessionId,
+      },
+    },
+    basePath: `/video/:/transcode/universal/session/${cliparrPreviewTranscodeSessionId}/base/`,
+    lastAccessedAt: 0,
+  });
   const requestHeaders: Headers[] = [];
   const requestUrls: string[] = [];
   const originalFetch = globalThis.fetch;
@@ -338,6 +417,20 @@ void test("sends the real Plex playback session header for synthetic HLS preview
         : input.url,
     );
     requestHeaders.push(new Headers(init?.headers));
+    const requestUrl = new URL(
+      typeof input === "string" || input instanceof URL
+        ? input.toString()
+        : input.url,
+    );
+    if (requestUrl.pathname.endsWith(".ts")) {
+      return new globalThis.Response("segment", {
+        status: 200,
+        headers: {
+          "content-type": "video/mp2t",
+        },
+      });
+    }
+
     return new globalThis.Response("#EXTM3U\n#EXT-X-ENDLIST\n", {
       status: 200,
       headers: {
@@ -370,6 +463,30 @@ void test("sends the real Plex playback session header for synthetic HLS preview
     );
     assert.equal(requestHeaders[0]?.get("x-plex-token"), context.token);
     assert.equal(response.statusCode, 200);
+
+    const segmentResponse = createResponseRecorder();
+    await proxyMedia(
+      session,
+      segmentHandleId,
+      createRequest({ accept: "*/*" }) as ExpressRequest,
+      segmentResponse as unknown as ExpressResponse,
+    );
+
+    const segmentUrl = new URL(requestUrls[1] ?? "");
+    assert.equal(
+      segmentUrl.pathname,
+      `/video/:/transcode/universal/session/${cliparrPreviewTranscodeSessionId}/base/00000.ts`,
+    );
+    assert.equal(
+      requestHeaders[1]?.get("x-plex-session-identifier"),
+      plexPlaybackSessionId,
+    );
+    assert.notEqual(
+      requestHeaders[1]?.get("x-plex-session-identifier"),
+      cliparrPreviewTranscodeSessionId,
+    );
+    assert.equal(requestHeaders[1]?.get("x-plex-token"), context.token);
+    assert.equal(segmentResponse.statusCode, 200);
   } finally {
     globalThis.fetch = originalFetch;
   }

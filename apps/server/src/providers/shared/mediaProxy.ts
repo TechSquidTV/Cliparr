@@ -778,6 +778,34 @@ async function rewriteHlsPlaylist(
   const basePath = handle.basePath ?? playlistBasePath(handle.path);
   let rewrittenUriCount = 0;
   let strippedStartHintCount = 0;
+  const upstreamUriSamples: string[] = [];
+  const rewrittenUriSamples: string[] = [];
+  const segmentSessionIds = new Set<string>();
+
+  function rewriteAndRecordUri(uri: string) {
+    const nextPath = resolvePlaylistUri(basePath, uri);
+    const segmentSessionId = nextPath.match(
+      /\/video\/:\/transcode\/universal\/session\/([^/]+)/,
+    )?.[1];
+    if (segmentSessionId) {
+      segmentSessionIds.add(decodeURIComponent(segmentSessionId));
+    }
+    if (upstreamUriSamples.length < 5) {
+      upstreamUriSamples.push(sanitizeLoggedMediaPath(nextPath) ?? nextPath);
+    }
+
+    const rewritten = rewritePlaylistUri(
+      session,
+      handle,
+      basePath,
+      uri,
+      options,
+    );
+    if (rewrittenUriSamples.length < 5) {
+      rewrittenUriSamples.push(sanitizeLoggedMediaPath(rewritten) ?? rewritten);
+    }
+    return rewritten;
+  }
 
   const playlist = body
     .split("\n")
@@ -796,13 +824,13 @@ async function rewriteHlsPlaylist(
         return [
           line.replaceAll(/URI="([^"]+)"/g, (_match, uri: string) => {
             rewrittenUriCount += 1;
-            return `URI="${rewritePlaylistUri(session, handle, basePath, uri, options)}"`;
+            return `URI="${rewriteAndRecordUri(uri)}"`;
           }),
         ];
       }
 
       rewrittenUriCount += 1;
-      return [rewritePlaylistUri(session, handle, basePath, trimmed, options)];
+      return [rewriteAndRecordUri(trimmed)];
     })
     .join("\n");
 
@@ -816,6 +844,9 @@ async function rewriteHlsPlaylist(
     "upstream.status_code": upstream.status,
     "media.hls.rewritten_uri_count": rewrittenUriCount,
     "media.hls.stripped_start_hint_count": strippedStartHintCount,
+    "media.hls.upstream_uri.samples": upstreamUriSamples,
+    "media.hls.rewritten_uri.samples": rewrittenUriSamples,
+    "plex.hls.segment_session.ids": [...segmentSessionIds],
   });
 
   return playlist;
