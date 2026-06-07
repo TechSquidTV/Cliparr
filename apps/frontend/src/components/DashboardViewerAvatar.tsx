@@ -36,10 +36,12 @@ export function DashboardViewerAvatar({
   name: string;
   size?: DashboardViewerAvatarSize;
 }) {
-  const [imageFailed, setImageFailed] = useState(false);
+  const [failedAvatarUrl, setFailedAvatarUrl] = useState<string | null>(null);
   const label = name.trim().charAt(0).toUpperCase() || "?";
   const sizeClass = dashboardViewerAvatarSizeClass(size);
   const imageSize = dashboardViewerAvatarImageSize(size);
+  const avatarImageUrl =
+    avatarUrl && avatarUrl !== failedAvatarUrl ? avatarUrl : null;
 
   return (
     <div
@@ -48,15 +50,15 @@ export function DashboardViewerAvatar({
         sizeClass,
       )}
     >
-      {avatarUrl && !imageFailed ? (
+      {avatarImageUrl ? (
         <img
-          src={avatarUrl}
+          src={avatarImageUrl}
           alt={name}
           className="h-full w-full object-cover"
           width={imageSize}
           height={imageSize}
           decoding="async"
-          onError={() => setImageFailed(true)}
+          onError={() => setFailedAvatarUrl(avatarImageUrl)}
         />
       ) : (
         label

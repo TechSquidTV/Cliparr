@@ -35,7 +35,7 @@ function dashboardViewerFilterTriggerLabel(
     const option = viewerOptions.find(
       (viewerOption) => viewerOption.normalizedName === selectedName,
     );
-    return option?.name ?? "1 viewer";
+    return option?.name ?? selectedName;
   }
 
   return `${selectedNames.length} viewers`;

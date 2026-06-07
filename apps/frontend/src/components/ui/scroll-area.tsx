@@ -2,11 +2,13 @@ import { ScrollArea as BaseScrollArea } from "@base-ui/react/scroll-area";
 import * as React from "react";
 import { cn } from "@/lib/utilities";
 
-type ScrollAreaProperties = React.ComponentProps<typeof BaseScrollArea.Root> & {
+type ScrollAreaProperties = React.ComponentPropsWithoutRef<
+  typeof BaseScrollArea.Root
+> & {
   viewportClassName?: string;
   contentClassName?: string;
 };
-type ScrollBarProperties = React.ComponentProps<
+type ScrollBarProperties = React.ComponentPropsWithoutRef<
   typeof BaseScrollArea.Scrollbar
 > & {
   thumbClassName?: string;
@@ -19,10 +21,10 @@ const ScrollArea = React.forwardRef<HTMLDivElement, ScrollAreaProperties>(
   ) {
     return (
       <BaseScrollArea.Root
-        ref={ref}
+        {...props}
         className={cn("relative overflow-hidden", className)}
         data-slot="scroll-area"
-        {...props}
+        ref={ref}
       >
         <BaseScrollArea.Viewport
           className={cn(
@@ -55,14 +57,14 @@ const ScrollBar = React.forwardRef<HTMLDivElement, ScrollBarProperties>(
   ) {
     return (
       <BaseScrollArea.Scrollbar
-        ref={ref}
+        {...props}
         orientation={orientation}
         className={cn(
           "flex touch-none p-px select-none transition-colors data-[orientation=horizontal]:absolute data-[orientation=horizontal]:right-0 data-[orientation=horizontal]:bottom-0 data-[orientation=horizontal]:left-0 data-[orientation=horizontal]:h-2.5 data-[orientation=horizontal]:flex-col data-[orientation=vertical]:absolute data-[orientation=vertical]:top-0 data-[orientation=vertical]:right-0 data-[orientation=vertical]:bottom-0 data-[orientation=vertical]:w-2.5",
           className,
         )}
         data-slot="scroll-area-scrollbar"
-        {...props}
+        ref={ref}
       >
         <BaseScrollArea.Thumb
           className={cn(

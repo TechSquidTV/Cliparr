@@ -681,6 +681,25 @@ void test("renders dashboard viewer filter as active from saved choices", () => 
   assert.match(markup, /TechSquidTV/);
 });
 
+void test("labels dashboard viewer filter with saved viewer absent from active sessions", () => {
+  const markup = renderToStaticMarkup(
+    createElement(
+      TooltipProvider,
+      null,
+      createElement(DashboardViewerFilterPicker, {
+        viewerOptions: [],
+        selectedViewerNames: ["saved-viewer"],
+        hiddenSessionCount: 0,
+        onToggleViewer: () => {},
+        onClearViewerFilter: () => {},
+      }),
+    ),
+  );
+
+  assert.match(markup, /data-dashboard-viewer-filter-active="true"/);
+  assert.match(markup, /Filter sessions by viewer: saved-viewer/);
+});
+
 void test("summarizes multiple selected dashboard viewers in the picker trigger", () => {
   const options = buildDashboardViewerFilterOptions(
     flattenDashboardPlaybackItems(dashboardPlaybackGroups),
