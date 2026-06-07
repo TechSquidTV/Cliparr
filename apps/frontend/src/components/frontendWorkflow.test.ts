@@ -628,6 +628,7 @@ void test("renders dashboard viewer filter options for multiple viewers", () => 
   );
 
   assert.match(markup, /data-dashboard-viewer-filter/);
+  assert.match(markup, /sm:w-52/);
   assert.match(markup, /Filter sessions by viewer: All viewers/);
   assert.match(markup, /All viewers/);
 });
@@ -652,6 +653,7 @@ void test("renders dashboard viewer filter as active from saved choices", () => 
   );
 
   assert.match(markup, /data-dashboard-viewer-filter-active="true"/);
+  assert.match(markup, /data-dashboard-viewer-filter-selected-avatars/);
   assert.match(markup, /Filter sessions by viewer: TechSquidTV/);
   assert.match(markup, /TechSquidTV/);
 });
@@ -676,7 +678,41 @@ void test("summarizes multiple selected dashboard viewers in the picker trigger"
   );
 
   assert.match(markup, /Filter sessions by viewer: 2 viewers/);
-  assert.match(markup, /2 viewers/);
+  assert.match(markup, /data-dashboard-viewer-filter-selected-avatars/);
+});
+
+void test("renders dashboard viewer filter selected avatars with overflow count", () => {
+  const viewerOptions = Array.from({ length: 5 }, (_, index) => {
+    const viewerNumber = index + 1;
+
+    return {
+      normalizedName: `viewer-${viewerNumber}`,
+      name: `Viewer ${viewerNumber}`,
+      avatarUrl: `/api/media/avatar-${viewerNumber}.jpg`,
+      sessionCount: 1,
+    };
+  });
+
+  const markup = renderToStaticMarkup(
+    createElement(
+      TooltipProvider,
+      null,
+      createElement(DashboardViewerFilterPicker, {
+        viewerOptions,
+        selectedViewerNames: viewerOptions.map(
+          (option) => option.normalizedName,
+        ),
+        hiddenSessionCount: 0,
+        onToggleViewer: () => {},
+        onClearViewerFilter: () => {},
+      }),
+    ),
+  );
+
+  assert.match(markup, /Filter sessions by viewer: 5 viewers/);
+  assert.match(markup, /data-dashboard-viewer-filter-selected-avatars/);
+  assert.match(markup, /data-dashboard-viewer-filter-overflow-count/);
+  assert.match(markup, /\(\+3\)/);
 });
 
 void test("renders dashboard filtered empty state with a clear action", () => {

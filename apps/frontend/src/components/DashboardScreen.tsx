@@ -122,6 +122,31 @@ const DASHBOARD_SKELETON_BREAKPOINT_CLASSES = [
   "hidden md:block",
   "hidden xl:block",
 ] as const;
+const DASHBOARD_VIEWER_FILTER_TRIGGER_VISIBLE_AVATAR_COUNT = 2;
+
+function viewerAvatarSizeClass(size: "xs" | "sm" | "md") {
+  if (size === "xs") {
+    return "h-6 w-6 text-[11px]";
+  }
+
+  if (size === "sm") {
+    return "h-8 w-8 text-sm";
+  }
+
+  return "h-12 w-12 text-lg";
+}
+
+function viewerAvatarImageSize(size: "xs" | "sm" | "md") {
+  if (size === "xs") {
+    return 24;
+  }
+
+  if (size === "sm") {
+    return 32;
+  }
+
+  return 48;
+}
 
 function ViewerAvatar({
   name,
@@ -130,16 +155,18 @@ function ViewerAvatar({
 }: {
   name: string;
   avatarUrl?: string;
-  size?: "sm" | "md";
+  size?: "xs" | "sm" | "md";
 }) {
   const [imageFailed, setImageFailed] = useState(false);
   const label = name.trim().charAt(0).toUpperCase() || "?";
+  const sizeClass = viewerAvatarSizeClass(size);
+  const imageSize = viewerAvatarImageSize(size);
 
   return (
     <div
       className={cn(
         "flex shrink-0 items-center justify-center overflow-hidden rounded-full bg-primary/10 font-semibold text-primary",
-        size === "sm" ? "h-8 w-8 text-sm" : "h-12 w-12 text-lg",
+        sizeClass,
       )}
     >
       {avatarUrl && !imageFailed ? (
@@ -147,8 +174,8 @@ function ViewerAvatar({
           src={avatarUrl}
           alt={name}
           className="w-full h-full object-cover"
-          width={size === "sm" ? 32 : 48}
-          height={size === "sm" ? 32 : 48}
+          width={imageSize}
+          height={imageSize}
           decoding="async"
           onError={() => setImageFailed(true)}
         />
@@ -187,6 +214,71 @@ function dashboardViewerFilterTriggerLabel(
   return `${selectedNames.length} viewers`;
 }
 
+function selectedDashboardViewerFilterOptions(
+  viewerOptions: DashboardViewerFilterOption[],
+  selectedViewerNames: readonly string[],
+) {
+  const optionsByName = new Map(
+    viewerOptions.map((option) => [option.normalizedName, option]),
+  );
+
+  return sanitizeDashboardViewerFilterNames(selectedViewerNames).map(
+    (selectedName) =>
+      optionsByName.get(selectedName) ?? {
+        normalizedName: selectedName,
+        name: selectedName,
+        sessionCount: 0,
+      },
+  );
+}
+
+function DashboardViewerFilterTriggerSelection({
+  selectedViewerOptions,
+}: {
+  selectedViewerOptions: DashboardViewerFilterOption[];
+}) {
+  const visibleViewerOptions = selectedViewerOptions.slice(
+    0,
+    DASHBOARD_VIEWER_FILTER_TRIGGER_VISIBLE_AVATAR_COUNT,
+  );
+  const hiddenViewerCount = Math.max(
+    selectedViewerOptions.length - visibleViewerOptions.length,
+    0,
+  );
+
+  return (
+    <span
+      className="flex min-w-0 flex-1 items-center justify-center gap-1 sm:justify-end"
+      data-dashboard-viewer-filter-selected-avatars
+      aria-hidden="true"
+    >
+      <span className="flex shrink-0 -space-x-2">
+        {visibleViewerOptions.map((option, index) => (
+          <span
+            key={option.normalizedName}
+            className="relative rounded-full ring-2 ring-background"
+            style={{ zIndex: visibleViewerOptions.length - index }}
+          >
+            <ViewerAvatar
+              name={option.name}
+              avatarUrl={option.avatarUrl}
+              size="xs"
+            />
+          </span>
+        ))}
+      </span>
+      {hiddenViewerCount > 0 ? (
+        <span
+          className="inline-flex h-6 shrink-0 items-center rounded-full border border-border bg-background px-1.5 text-[11px] leading-none font-semibold text-muted-foreground"
+          data-dashboard-viewer-filter-overflow-count
+        >
+          (+{hiddenViewerCount})
+        </span>
+      ) : null}
+    </span>
+  );
+}
+
 export function DashboardViewerFilterPicker({
   viewerOptions,
   selectedViewerNames,
@@ -222,6 +314,10 @@ export function DashboardViewerFilterPicker({
     viewerOptions,
     selectedNames,
   );
+  const selectedViewerOptions = selectedDashboardViewerFilterOptions(
+    viewerOptions,
+    selectedNames,
+  );
   const totalSessionCount = viewerOptions.reduce(
     (sum, option) => sum + option.sessionCount,
     0,
@@ -239,7 +335,7 @@ export function DashboardViewerFilterPicker({
         data-dashboard-viewer-filter-active={filterActive || undefined}
         className={(state) =>
           cn(
-            "inline-flex h-11 min-w-0 items-center justify-center gap-2 rounded-lg border border-border px-3 text-sm font-semibold text-muted-foreground transition-[color,background-color,border-color,transform] duration-200 hover:-translate-y-px hover:bg-accent hover:text-foreground active:scale-[0.985] focus-visible:ring-2 focus-visible:ring-primary/35 focus-visible:outline-none motion-reduce:transform-none sm:h-9 sm:px-3 sm:font-medium",
+            "inline-flex h-11 w-full min-w-0 items-center justify-center gap-1.5 rounded-lg border border-border px-2 text-sm font-semibold text-muted-foreground transition-[color,background-color,border-color,transform] duration-200 hover:-translate-y-px hover:bg-accent hover:text-foreground active:scale-[0.985] focus-visible:ring-2 focus-visible:ring-primary/35 focus-visible:outline-none motion-reduce:transform-none sm:h-9 sm:w-52 sm:shrink-0 sm:gap-2 sm:px-3 sm:font-medium",
             state.open &&
               "[&_[data-dashboard-viewer-filter-chevron]]:rotate-180",
             filterActive &&
@@ -250,7 +346,16 @@ export function DashboardViewerFilterPicker({
       >
         <Users className="h-4 w-4 shrink-0" />
         <span className="hidden shrink-0 sm:inline">Viewers</span>
-        <span className="min-w-0 truncate">{triggerLabel}</span>
+        {filterActive ? (
+          <>
+            <DashboardViewerFilterTriggerSelection
+              selectedViewerOptions={selectedViewerOptions}
+            />
+            <span className="sr-only">{triggerLabel}</span>
+          </>
+        ) : (
+          <span className="min-w-0 flex-1 truncate text-left">All viewers</span>
+        )}
         <span
           className="shrink-0 transition-transform duration-200 motion-reduce:transition-none"
           data-dashboard-viewer-filter-chevron
