@@ -61,6 +61,15 @@ export interface CurrentlyPlayingEntry {
   item: CurrentlyPlayingItem;
 }
 
+interface MediaHandleProviderMetadata {
+  plex?: {
+    playbackSessionId?: string;
+  };
+  jellyfin?: {
+    deviceId?: string;
+  };
+}
+
 export interface MediaHandle {
   id: string;
   providerId: ProviderId;
@@ -68,7 +77,7 @@ export interface MediaHandle {
   baseUrl: string;
   path: string;
   token: string;
-  deviceId?: string;
+  providerMetadata?: MediaHandleProviderMetadata;
   basePath?: string;
   lastAccessedAt: number;
 }

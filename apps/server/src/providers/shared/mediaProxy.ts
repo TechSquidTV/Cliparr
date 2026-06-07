@@ -16,7 +16,7 @@ interface MediaHandleContext {
   sourceId: string;
   baseUrl: string;
   token: string;
-  deviceId?: string;
+  providerMetadata?: MediaHandle["providerMetadata"];
 }
 
 interface CreateMediaHandleOptions {
@@ -69,7 +69,7 @@ const HLS_PROXY_RESPONSE_CACHE_TTL_MS = 4000;
 const HLS_PROXY_RESPONSE_CACHE_MAX_BYTES = 8 * 1024 * 1024;
 const MEDIA_PROXY_MAX_REDIRECTS = 5;
 const MEDIA_PROXY_FETCH_ATTEMPTS = 3;
-const HLS_MEDIA_PROXY_FETCH_ATTEMPTS = 5;
+const HLS_MEDIA_PROXY_FETCH_ATTEMPTS = 8;
 const MEDIA_PROXY_FETCH_RETRY_BASE_DELAY_MS = 150;
 const MEDIA_PROXY_FETCH_RETRY_MAX_DELAY_MS = 1000;
 const DNS_VALIDATION_CACHE_TTL_MS = 60_000;
@@ -95,6 +95,30 @@ const inflightProxyResponses = new Map<
 >();
 const resolvedHostnameCache = new Map<string, ResolvedHostnameCacheEntry>();
 const inflightHostnameResolutions = new Map<string, Promise<string[]>>();
+
+function normalizeProviderMetadata(
+  metadata: MediaHandle["providerMetadata"],
+): MediaHandle["providerMetadata"] {
+  const normalized: NonNullable<MediaHandle["providerMetadata"]> = {};
+
+  if (metadata?.plex?.playbackSessionId !== undefined) {
+    normalized.plex = {
+      playbackSessionId: metadata.plex.playbackSessionId,
+    };
+  }
+
+  if (metadata?.jellyfin?.deviceId !== undefined) {
+    normalized.jellyfin = {
+      deviceId: metadata.jellyfin.deviceId,
+    };
+  }
+
+  return normalized.plex || normalized.jellyfin ? normalized : undefined;
+}
+
+function providerMetadataKey(metadata: MediaHandle["providerMetadata"]) {
+  return JSON.stringify(normalizeProviderMetadata(metadata) ?? {});
+}
 
 function isAbsoluteUrl(path: string) {
   return /^[a-z][\d+.a-z-]*:/i.test(path);
@@ -636,6 +660,8 @@ export function createProviderMediaHandle(
   const normalizedBasePath = options.basePath
     ? normalizeMediaPath(options.basePath)
     : undefined;
+  const providerMetadata = normalizeProviderMetadata(context.providerMetadata);
+  const metadataKey = providerMetadataKey(providerMetadata);
   const accessedAt = Date.now();
 
   for (const existingHandle of session.mediaHandles.values()) {
@@ -645,7 +671,7 @@ export function createProviderMediaHandle(
       existingHandle.baseUrl === context.baseUrl &&
       existingHandle.path === normalizedPath &&
       existingHandle.token === context.token &&
-      existingHandle.deviceId === context.deviceId &&
+      providerMetadataKey(existingHandle.providerMetadata) === metadataKey &&
       existingHandle.basePath === normalizedBasePath
     ) {
       existingHandle.lastAccessedAt = accessedAt;
@@ -669,7 +695,7 @@ export function createProviderMediaHandle(
     baseUrl: context.baseUrl,
     path: normalizedPath,
     token: context.token,
-    deviceId: context.deviceId,
+    providerMetadata,
     basePath: normalizedBasePath,
     lastAccessedAt: accessedAt,
   };
@@ -733,7 +759,7 @@ function rewritePlaylistUri(
       sourceId: handle.sourceId,
       baseUrl: handle.baseUrl,
       token: handle.token,
-      deviceId: handle.deviceId,
+      providerMetadata: handle.providerMetadata,
     },
     nextPath,
     {
@@ -829,7 +855,7 @@ export function shouldForwardMediaRange(
   handle: MediaHandle,
   range: string | undefined,
 ) {
-  if (!range || isHlsPlaylist(handle, "")) {
+  if (!range || isHlsDerivedHandle(handle)) {
     return;
   }
 
@@ -1122,11 +1148,16 @@ export async function proxyProviderMediaResponse(
     })();
 
     inflightProxyResponses.set(cacheKey, inflightResponse);
-    void inflightResponse.finally(() => {
-      if (inflightProxyResponses.get(cacheKey) === inflightResponse) {
-        inflightProxyResponses.delete(cacheKey);
-      }
-    });
+    void inflightResponse
+      .finally(() => {
+        if (inflightProxyResponses.get(cacheKey) === inflightResponse) {
+          inflightProxyResponses.delete(cacheKey);
+        }
+      })
+      .catch(() => {
+        // The original in-flight promise is awaited below; this prevents the
+        // cleanup promise from becoming a separate unhandled rejection.
+      });
   }
 
   sendCachedProxyResponse(await inflightResponse!, res);

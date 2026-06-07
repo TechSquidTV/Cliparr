@@ -66,14 +66,13 @@ import {
 
 const logger = getServerLogger(["provider", "plex", "playback"]);
 const HD_ARTWORK_SIZE = 1920;
-const PLEX_TRANSCODE_SOURCE_ID_MAX_LENGTH = 16;
 const PLEX_METADATA_PATH_PREFIX = "/library/metadata/";
 
 function createMediaHandle(
   session: ProviderSessionRecord,
   context: PlexSourceContext,
   path: string,
-  options: { basePath?: string } = {},
+  options: { basePath?: string; playbackSessionId?: string } = {},
 ) {
   return createProviderMediaHandle(
     session,
@@ -82,9 +81,19 @@ function createMediaHandle(
       sourceId: context.sourceId,
       baseUrl: context.baseUrl,
       token: context.token,
+      providerMetadata:
+        options.playbackSessionId === undefined
+          ? undefined
+          : {
+              plex: {
+                playbackSessionId: options.playbackSessionId,
+              },
+            },
     },
     path,
-    options,
+    {
+      basePath: options.basePath,
+    },
   );
 }
 
@@ -433,19 +442,24 @@ export function createPreviewPath(
 
 export function createCliparrPlexTranscodeSessionId(
   sourceId: string,
-  playbackSessionId: string,
+  plexPlaybackSessionId: string,
 ) {
-  const safeSourceId =
-    sourceId
-      .replaceAll(/[^\w-]+/gi, "-")
-      .replaceAll(/^-+|-+$/g, "")
-      .slice(0, PLEX_TRANSCODE_SOURCE_ID_MAX_LENGTH) || "source";
   const digest = createHash("sha256")
-    .update(`${sourceId}:${playbackSessionId}`)
+    .update(`${sourceId}:${plexPlaybackSessionId}`)
     .digest("hex")
-    .slice(0, 16);
+    .slice(0, 32);
+  const version = "5";
+  const variant = ((Number.parseInt(digest[16] ?? "0", 16) & 0x3) | 0x8)
+    .toString(16)
+    .slice(0, 1);
 
-  return `cliparr-${safeSourceId}-${digest}`;
+  return [
+    digest.slice(0, 8),
+    digest.slice(8, 12),
+    `${version}${digest.slice(13, 16)}`,
+    `${variant}${digest.slice(17, 20)}`,
+    digest.slice(20, 32),
+  ].join("-");
 }
 
 function transcodeSessionId(path: string) {
@@ -947,7 +961,11 @@ function plexSubtitleTrack(
     isHearingImpaired: booleanFlag(stream?.hearingImpaired),
     isExternal: Boolean(stringValue(stream?.key)),
     contentUrl: contentPath
-      ? createMediaHandle(session, context, contentPath)
+      ? createMediaHandle(session, context, contentPath, {
+          playbackSessionId: transcodeSubtitlePath
+            ? playbackSessionId
+            : undefined,
+        })
       : undefined,
   };
 }
@@ -1175,6 +1193,18 @@ function playbackSessionIdentity(item: PlexMetadataItem) {
   );
 }
 
+function derivePlexPlaybackIds(sourceId: string, item: PlexMetadataItem) {
+  const plexPlaybackSessionId = playbackSessionIdentity(item);
+
+  return {
+    plexPlaybackSessionId,
+    cliparrPreviewTranscodeSessionId: createCliparrPlexTranscodeSessionId(
+      sourceId,
+      plexPlaybackSessionId,
+    ),
+  };
+}
+
 export function createPlexViewerAvatarUrl(
   session: ProviderSessionRecord,
   context: PlexSourceContext,
@@ -1191,13 +1221,13 @@ function playbackViewer(
   context: PlexSourceContext,
   item: PlexMetadataItem,
   sourceId: string,
-  sessionId: string,
+  plexPlaybackSessionId: string,
 ) {
   const externalId = stringValue(item?.User?.id);
   return {
     id: externalId
       ? `plex:user:${externalId}`
-      : `plex:synthetic:${sourceId}:${sessionId}`,
+      : `plex:synthetic:${sourceId}:${plexPlaybackSessionId}`,
     providerId: "plex" as const,
     externalId,
     name: stringValue(item?.User?.title) ?? "Unknown User",
@@ -1220,11 +1250,8 @@ async function normalizeCurrentPlayback(
 
   return Promise.all(
     uniqueMetadata.map(async (item) => {
-      const sessionId = playbackSessionIdentity(item);
-      const transcodeSessionId = createCliparrPlexTranscodeSessionId(
-        source.id,
-        sessionId,
-      );
+      const { plexPlaybackSessionId, cliparrPreviewTranscodeSessionId } =
+        derivePlexPlaybackIds(source.id, item);
       const mediaSelection = deriveMediaSelection(item);
       const enrichedItem = await enrichMetadataItem(context, item);
       const mediaPath = await resolveMediaPath(
@@ -1235,7 +1262,7 @@ async function normalizeCurrentPlayback(
       );
       const previewPath = createPreviewPath(
         enrichedItem,
-        transcodeSessionId,
+        cliparrPreviewTranscodeSessionId,
         mediaSelection,
       );
       const thumbPath = metadataImagePath(enrichedItem);
@@ -1251,7 +1278,7 @@ async function normalizeCurrentPlayback(
         session,
         context,
         enrichedItem,
-        transcodeSessionId,
+        plexPlaybackSessionId,
         mediaSelection,
       ).filter((track) => subtitleTrackSupportsBurnIn(track));
       const selectedPart = resolveSelectedPart(
@@ -1285,7 +1312,9 @@ async function normalizeCurrentPlayback(
         ? createMediaHandle(session, context, mediaPath)
         : undefined;
       const hlsUrl = previewPath
-        ? createMediaHandle(session, context, previewPath)
+        ? createMediaHandle(session, context, previewPath, {
+            playbackSessionId: plexPlaybackSessionId,
+          })
         : undefined;
       const missingPreviewPath =
         !previewPath && itemTypeValue(enrichedItem) !== "track";
@@ -1295,10 +1324,10 @@ async function normalizeCurrentPlayback(
         sessionId: session.id,
         sourceId: source.id,
         providerAccountId: source.providerAccountId,
-        playbackSessionId: sessionId,
-        transcodeSessionId,
+        playbackSessionId: plexPlaybackSessionId,
+        transcodeSessionId: cliparrPreviewTranscodeSessionId,
         currentlyPlayingItem: {
-          id: `${source.id}:${sessionId}`,
+          id: `${source.id}:${plexPlaybackSessionId}`,
           title: itemTitleValue(enrichedItem),
           type: itemTypeValue(enrichedItem) || "video",
           duration,
@@ -1364,9 +1393,15 @@ async function normalizeCurrentPlayback(
       }
 
       return {
-        viewer: playbackViewer(session, context, item, source.id, sessionId),
+        viewer: playbackViewer(
+          session,
+          context,
+          item,
+          source.id,
+          plexPlaybackSessionId,
+        ),
         item: {
-          id: `${source.id}:${sessionId}`,
+          id: `${source.id}:${plexPlaybackSessionId}`,
           source: {
             id: source.id,
             name: source.name,
@@ -1438,7 +1473,8 @@ export async function proxyMedia(
   }
 
   const playbackSessionId = useProviderAuth
-    ? transcodeSessionId(handle.path)
+    ? (handle.providerMetadata?.plex?.playbackSessionId ??
+      transcodeSessionId(handle.path))
     : null;
   if (playbackSessionId) {
     headers.set("X-Plex-Session-Identifier", playbackSessionId);

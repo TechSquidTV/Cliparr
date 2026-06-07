@@ -80,7 +80,11 @@ function createMediaHandle(
       sourceId: context.sourceId,
       baseUrl: context.baseUrl,
       token: context.token,
-      deviceId: context.deviceId,
+      providerMetadata: {
+        jellyfin: {
+          deviceId: context.deviceId,
+        },
+      },
     },
     path,
     options,
@@ -547,7 +551,7 @@ function buildStaticStreamPath(
   item: JellyfinItem,
   mediaSourceId: string | undefined,
   context: JellyfinSourceContext,
-  playSessionId: string,
+  jellyfinPlaySessionId: string,
 ) {
   const itemId = stringValue(item?.Id);
   if (!itemId) {
@@ -558,7 +562,7 @@ function buildStaticStreamPath(
   const params = new URLSearchParams({
     static: "true",
     deviceId: context.deviceId,
-    playSessionId,
+    playSessionId: jellyfinPlaySessionId,
     context: "Static",
   });
 
@@ -573,7 +577,7 @@ export function buildPreviewPath(
   item: JellyfinItem,
   mediaSourceId: string | undefined,
   context: JellyfinSourceContext,
-  playSessionId: string,
+  jellyfinPlaySessionId: string,
 ) {
   const itemId = stringValue(item?.Id);
   if (
@@ -587,7 +591,7 @@ export function buildPreviewPath(
   const params = new URLSearchParams({
     mediaSourceId,
     deviceId: context.deviceId,
-    playSessionId,
+    playSessionId: jellyfinPlaySessionId,
     maxAudioChannels: "2",
     audioCodec: "aac",
     enableAdaptiveBitrateStreaming: "false",
@@ -776,13 +780,13 @@ function prunePlaybackInfoCache(now = Date.now()) {
 
 function playbackItemIdentity(
   sourceId: string,
-  clientSessionId: string | undefined,
+  jellyfinClientSessionId: string | undefined,
   itemId: string,
   mediaSourceId: string | undefined,
 ) {
   return [
     sourceId,
-    clientSessionId ?? "unknown-session",
+    jellyfinClientSessionId ?? "unknown-session",
     itemId,
     mediaSourceId ?? "unknown-media-source",
   ].join(":");
@@ -790,14 +794,14 @@ function playbackItemIdentity(
 
 function playbackViewer(
   sourceId: string,
-  sessionId: string,
+  jellyfinClientSessionId: string,
   sessionInfo: JellyfinSessionInfo,
 ) {
   const externalId = stringValue(sessionInfo?.UserId);
   return {
     id: externalId
       ? `jellyfin:user:${externalId}`
-      : `jellyfin:synthetic:${sourceId}:${sessionId}`,
+      : `jellyfin:synthetic:${sourceId}:${jellyfinClientSessionId}`,
     providerId: "jellyfin" as const,
     externalId,
     name: stringValue(sessionInfo?.UserName) ?? "Unknown User",
@@ -824,8 +828,8 @@ async function normalizeCurrentPlayback(
     enrichMetadataItem(context, nowPlayingItem),
     loadPlaybackInfo(session, context, sessionInfo, itemId),
   ]);
-  const playSessionId = stringValue(playbackInfo?.PlaySessionId);
-  const clientSessionId = stringValue(sessionInfo?.Id);
+  const jellyfinPlaySessionId = stringValue(playbackInfo?.PlaySessionId);
+  const jellyfinClientSessionId = stringValue(sessionInfo?.Id);
   const mediaSourceId = currentMediaSourceId(
     sessionInfo,
     enrichedItem,
@@ -837,11 +841,21 @@ async function normalizeCurrentPlayback(
     mediaSourceId,
     playbackInfo,
   );
-  const mediaPath = playSessionId
-    ? buildStaticStreamPath(enrichedItem, mediaSourceId, context, playSessionId)
+  const mediaPath = jellyfinPlaySessionId
+    ? buildStaticStreamPath(
+        enrichedItem,
+        mediaSourceId,
+        context,
+        jellyfinPlaySessionId,
+      )
     : undefined;
-  const previewPath = playSessionId
-    ? buildPreviewPath(enrichedItem, mediaSourceId, context, playSessionId)
+  const previewPath = jellyfinPlaySessionId
+    ? buildPreviewPath(
+        enrichedItem,
+        mediaSourceId,
+        context,
+        jellyfinPlaySessionId,
+      )
     : undefined;
   const imagePath = itemImagePath(enrichedItem);
   const selectedAudioTrack = deriveSelectedAudioTrack(
@@ -898,7 +912,7 @@ async function normalizeCurrentPlayback(
     : undefined;
   const playbackItemId = playbackItemIdentity(
     source.id,
-    clientSessionId,
+    jellyfinClientSessionId,
     itemId,
     mediaSourceId,
   );
@@ -910,7 +924,7 @@ async function normalizeCurrentPlayback(
     sessionId: session.id,
     sourceId: source.id,
     providerAccountId: source.providerAccountId,
-    playSessionId,
+    playSessionId: jellyfinPlaySessionId,
     currentlyPlayingItem: {
       id: playbackItemId,
       title: itemTitle(enrichedItem),
@@ -972,7 +986,11 @@ async function normalizeCurrentPlayback(
   }
 
   return {
-    viewer: playbackViewer(source.id, clientSessionId ?? itemId, sessionInfo),
+    viewer: playbackViewer(
+      source.id,
+      jellyfinClientSessionId ?? itemId,
+      sessionInfo,
+    ),
     item: {
       id: playbackItemId,
       source: {
@@ -1051,7 +1069,7 @@ export async function proxyMedia(
   const headers = useProviderAuth
     ? jellyfinHeaders({
         token: handle.token,
-        deviceId: handle.deviceId,
+        deviceId: handle.providerMetadata?.jellyfin?.deviceId,
         accept,
       })
     : new Headers(accept ? { Accept: accept } : undefined);
