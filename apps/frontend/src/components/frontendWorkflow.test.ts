@@ -712,6 +712,7 @@ void test("renders dashboard viewer filter selected avatars with overflow count"
   assert.match(markup, /Filter sessions by viewer: 5 viewers/);
   assert.match(markup, /data-dashboard-viewer-filter-selected-avatars/);
   assert.match(markup, /data-dashboard-viewer-filter-overflow-count/);
+  assert.match(markup, /style="z-index:1".*style="z-index:2"/);
   assert.match(markup, /\(\+3\)/);
 });
 

@@ -257,7 +257,7 @@ function DashboardViewerFilterTriggerSelection({
           <span
             key={option.normalizedName}
             className="relative rounded-full ring-2 ring-background"
-            style={{ zIndex: visibleViewerOptions.length - index }}
+            style={{ zIndex: index + 1 }}
           >
             <ViewerAvatar
               name={option.name}
