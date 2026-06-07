@@ -18,12 +18,14 @@ import {
 } from "@/components/dashboardPlaybackItems";
 import AuthCompleteScreen from "@/components/AuthCompleteScreen";
 import {
-  DashboardPlaybackFilterEmptyState,
   DashboardPlaybackCard,
-  DashboardViewerFilterPicker,
   DashboardVersionBadge,
 } from "@/components/DashboardScreen";
 import DashboardScreen from "@/components/DashboardScreen";
+import {
+  DashboardPlaybackFilterEmptyState,
+  DashboardViewerFilterPicker,
+} from "@/components/DashboardViewerFilter";
 import { DashboardMobileMenu } from "@/components/DashboardMobileMenu";
 import { EditorControls } from "@/components/editor/EditorControls";
 import { EditorExportDialog } from "@/components/editor/EditorExportDialog";
