@@ -24,14 +24,25 @@ import {
   GithubIcon,
 } from "@/components/DashboardMobileMenu";
 import { MobilePwaInstallNudge } from "@/components/MobilePwaInstallNudge";
+import { DashboardViewerAvatar } from "@/components/DashboardViewerAvatar";
+import {
+  DashboardPlaybackFilterEmptyState,
+  DashboardViewerFilterPicker,
+} from "@/components/DashboardViewerFilter";
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import {
+  buildDashboardViewerFilterOptions,
+  countDashboardViewerFilterHiddenCards,
+  filterDashboardPlaybackCardsByViewer,
   flattenDashboardPlaybackItems,
   formatViewerSessionCount,
+  readDashboardViewerFilter,
+  sanitizeDashboardViewerFilterNames,
+  writeDashboardViewerFilter,
 } from "@/components/dashboardPlaybackItems";
 import { cliparrMotionTransitions } from "@/lib/motionPresets";
 import type { DashboardPlaybackCardItem } from "@/components/dashboardPlaybackItems";
@@ -108,42 +119,6 @@ const DASHBOARD_SKELETON_BREAKPOINT_CLASSES = [
   "hidden xl:block",
 ] as const;
 
-function ViewerAvatar({
-  name,
-  avatarUrl,
-  size = "md",
-}: {
-  name: string;
-  avatarUrl?: string;
-  size?: "sm" | "md";
-}) {
-  const [imageFailed, setImageFailed] = useState(false);
-  const label = name.trim().charAt(0).toUpperCase() || "?";
-
-  return (
-    <div
-      className={cn(
-        "flex items-center justify-center overflow-hidden rounded-full bg-primary/10 font-semibold text-primary",
-        size === "sm" ? "h-8 w-8 text-sm" : "h-12 w-12 text-lg",
-      )}
-    >
-      {avatarUrl && !imageFailed ? (
-        <img
-          src={avatarUrl}
-          alt={name}
-          className="w-full h-full object-cover"
-          width={size === "sm" ? 32 : 48}
-          height={size === "sm" ? 32 : 48}
-          decoding="async"
-          onError={() => setImageFailed(true)}
-        />
-      ) : (
-        label
-      )}
-    </div>
-  );
-}
-
 function ViewerChip({
   viewer,
   sessionCount,
@@ -155,7 +130,11 @@ function ViewerChip({
 }) {
   return (
     <div className="flex min-w-0 items-center gap-2.5">
-      <ViewerAvatar name={viewer.name} avatarUrl={viewer.avatarUrl} size="sm" />
+      <DashboardViewerAvatar
+        name={viewer.name}
+        avatarUrl={viewer.avatarUrl}
+        size="sm"
+      />
       <div className="min-w-0">
         <div className="truncate text-sm font-semibold text-foreground">
           {viewer.name}
@@ -311,16 +290,22 @@ function DashboardPlaybackMotionRegion({
   loading,
   error,
   playbackCards,
+  filteredByViewer,
+  hiddenSessionCount,
   emptyMessage,
   activeViewTransitionSessionId,
   onSelectSession,
+  onClearViewerFilter,
 }: {
   loading: boolean;
   error: string;
   playbackCards: DashboardPlaybackCardItem[];
+  filteredByViewer: boolean;
+  hiddenSessionCount: number;
   emptyMessage: string;
   activeViewTransitionSessionId?: string | null;
   onSelectSession: (session: CurrentlyPlayingItem) => void;
+  onClearViewerFilter: () => void;
 }) {
   const reduceMotion = useReducedMotion();
   const hasPlaybackCards = playbackCards.length > 0;
@@ -435,15 +420,24 @@ function DashboardPlaybackMotionRegion({
             exit={DASHBOARD_PLAYBACK_STATE_EXIT}
             transition={stateTransition}
           >
-            <div className="bg-background w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Play className="w-6 h-6 text-muted-foreground" />
-            </div>
-            <h3 className="text-lg font-medium mb-2">
-              Nothing is playing right now
-            </h3>
-            <p className="text-muted-foreground text-sm max-w-sm mx-auto">
-              {emptyMessage}
-            </p>
+            {filteredByViewer && hiddenSessionCount > 0 ? (
+              <DashboardPlaybackFilterEmptyState
+                hiddenSessionCount={hiddenSessionCount}
+                onClearViewerFilter={onClearViewerFilter}
+              />
+            ) : (
+              <>
+                <div className="bg-background mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full">
+                  <Play className="h-6 w-6 text-muted-foreground" />
+                </div>
+                <h3 className="mb-2 text-lg font-medium">
+                  Nothing is playing right now
+                </h3>
+                <p className="mx-auto max-w-sm text-sm text-muted-foreground">
+                  {emptyMessage}
+                </p>
+              </>
+            )}
           </motion.div>
         )}
       </AnimatePresence>
@@ -577,7 +571,11 @@ export default function DashboardScreen({
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState("");
+  const [selectedViewerNames, setSelectedViewerNames] = useState(() =>
+    readDashboardViewerFilter(),
+  );
   const hasFetchedSessionsReference = useRef(false);
+  const reduceDashboardMotion = useReducedMotion();
 
   const fetchSessions = useCallback(async () => {
     const isInitialFetch = !hasFetchedSessionsReference.current;
@@ -632,8 +630,32 @@ export default function DashboardScreen({
     () => flattenDashboardPlaybackItems(viewers),
     [viewers],
   );
-  const hasPlaybackCards = playbackCards.length > 0;
-  const showPlaybackGrid = loading || hasPlaybackCards;
+  const selectedViewerFilterNames = useMemo(
+    () => sanitizeDashboardViewerFilterNames(selectedViewerNames),
+    [selectedViewerNames],
+  );
+  const viewerFilterOptions = useMemo(
+    () => buildDashboardViewerFilterOptions(playbackCards),
+    [playbackCards],
+  );
+  const filteredPlaybackCards = useMemo(
+    () =>
+      filterDashboardPlaybackCardsByViewer(
+        playbackCards,
+        selectedViewerFilterNames,
+      ),
+    [playbackCards, selectedViewerFilterNames],
+  );
+  const hiddenViewerFilterCardCount = useMemo(
+    () =>
+      countDashboardViewerFilterHiddenCards(
+        playbackCards,
+        selectedViewerFilterNames,
+      ),
+    [playbackCards, selectedViewerFilterNames],
+  );
+  const hasAnyPlaybackCards = playbackCards.length > 0;
+  const showPlaybackGrid = loading || hasAnyPlaybackCards;
   const emptyMessage =
     sourceErrors.length > 0
       ? "No active playback on the available sources."
@@ -650,6 +672,39 @@ export default function DashboardScreen({
         ? "Local development build; release update checks are disabled"
         : "Non-release build; release update checks are disabled";
   }
+
+  const toggleViewerFilter = useCallback((viewerName: string) => {
+    const [normalizedName] = sanitizeDashboardViewerFilterNames([viewerName]);
+    if (!normalizedName) {
+      return;
+    }
+
+    setSelectedViewerNames((current) => {
+      const currentNames = sanitizeDashboardViewerFilterNames(current);
+      const nextNames = currentNames.includes(normalizedName)
+        ? currentNames.filter((name) => name !== normalizedName)
+        : [...currentNames, normalizedName];
+      writeDashboardViewerFilter(nextNames);
+      return nextNames;
+    });
+  }, []);
+
+  const clearViewerFilter = useCallback(() => {
+    setSelectedViewerNames([]);
+    writeDashboardViewerFilter([]);
+  }, []);
+  const showViewerFilterControl =
+    viewerFilterOptions.length > 1 || selectedViewerFilterNames.length > 0;
+  const renderViewerFilterPicker = () =>
+    showViewerFilterControl ? (
+      <DashboardViewerFilterPicker
+        viewerOptions={viewerFilterOptions}
+        selectedViewerNames={selectedViewerFilterNames}
+        hiddenSessionCount={hiddenViewerFilterCardCount}
+        onToggleViewer={toggleViewerFilter}
+        onClearViewerFilter={clearViewerFilter}
+      />
+    ) : null;
 
   return (
     <div className="min-h-screen bg-background p-4 text-foreground sm:p-8">
@@ -685,7 +740,14 @@ export default function DashboardScreen({
               onDisconnect={onDisconnect}
             />
           </div>
-          <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)_2.75rem] gap-2 sm:hidden">
+          <div
+            className={cn(
+              "grid gap-2 sm:hidden",
+              showViewerFilterControl
+                ? "grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_2.75rem]"
+                : "grid-cols-[minmax(0,1fr)_minmax(0,1fr)_2.75rem]",
+            )}
+          >
             <button
               type="button"
               onClick={onOpenLocalVideo}
@@ -702,6 +764,7 @@ export default function DashboardScreen({
               <Settings2 className="h-4 w-4 shrink-0" />
               <span className="truncate">Sources</span>
             </button>
+            {renderViewerFilterPicker()}
             <button
               type="button"
               onClick={fetchSessions}
@@ -732,6 +795,7 @@ export default function DashboardScreen({
               <Settings2 className="w-4 h-4" />
               Sources
             </button>
+            {renderViewerFilterPicker()}
             <button
               type="button"
               onClick={fetchSessions}
@@ -763,14 +827,36 @@ export default function DashboardScreen({
             >
               <GithubIcon className="h-5 w-5" />
             </a>
-            <button
+            <motion.button
               type="button"
               onClick={onDisconnect}
-              className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-accent rounded-lg transition-colors"
+              className={cn(
+                "flex items-center gap-2 rounded-lg text-sm font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:ring-2 focus-visible:ring-primary/35 focus-visible:outline-none",
+                showViewerFilterControl
+                  ? "h-9 w-9 justify-center p-2"
+                  : "px-4 py-2",
+              )}
+              aria-label="Disconnect"
+              title="Disconnect"
+              whileHover={
+                showViewerFilterControl && !reduceDashboardMotion
+                  ? { y: -1 }
+                  : undefined
+              }
+              whileTap={
+                showViewerFilterControl && !reduceDashboardMotion
+                  ? { scale: 0.985 }
+                  : undefined
+              }
+              transition={
+                reduceDashboardMotion
+                  ? { duration: 0 }
+                  : cliparrMotionTransitions.fast
+              }
             >
               <LogOut className="w-4 h-4" />
-              Disconnect
-            </button>
+              {!showViewerFilterControl && "Disconnect"}
+            </motion.button>
           </div>
         </header>
 
@@ -795,10 +881,13 @@ export default function DashboardScreen({
           <DashboardPlaybackMotionRegion
             loading={loading}
             error={error}
-            playbackCards={playbackCards}
+            playbackCards={filteredPlaybackCards}
+            filteredByViewer={selectedViewerFilterNames.length > 0}
+            hiddenSessionCount={hiddenViewerFilterCardCount}
             emptyMessage={emptyMessage}
             activeViewTransitionSessionId={activeViewTransitionSessionId}
             onSelectSession={onSelectSession}
+            onClearViewerFilter={clearViewerFilter}
           />
         </div>
       </div>
