@@ -266,6 +266,15 @@ function isSubtitleMediaStream(stream: JellyfinMediaStream) {
   return normalizedString(stream?.Type) === "subtitle";
 }
 
+function streamIndexValue(value: unknown) {
+  if (value === null || value === undefined) {
+    return undefined;
+  }
+
+  const index = numberValue(value);
+  return index !== undefined && index >= 0 ? index : undefined;
+}
+
 function positiveNumber(value: unknown) {
   const parsed = Number(value);
   return Number.isFinite(parsed) && parsed > 0 ? parsed : undefined;
@@ -344,6 +353,16 @@ function jellyfinSubtitleTrackTitle(stream: JellyfinMediaStream) {
   );
 }
 
+function selectedJellyfinAudioStreamIndex(
+  sessionInfo: JellyfinSessionInfo,
+  mediaSource?: JellyfinMediaSource,
+) {
+  return (
+    streamIndexValue(sessionInfo?.PlayState?.AudioStreamIndex) ??
+    streamIndexValue(mediaSource?.DefaultAudioStreamIndex)
+  );
+}
+
 function deriveSelectedAudioTrack(
   sessionInfo: JellyfinSessionInfo,
   item: JellyfinItem,
@@ -367,9 +386,10 @@ function deriveSelectedAudioTrack(
     return undefined;
   }
 
-  const selectedAudioStreamIndex =
-    numberValue(sessionInfo?.PlayState?.AudioStreamIndex) ??
-    numberValue(mediaSource?.DefaultAudioStreamIndex);
+  const selectedAudioStreamIndex = selectedJellyfinAudioStreamIndex(
+    sessionInfo,
+    mediaSource,
+  );
 
   if (selectedAudioStreamIndex === undefined) {
     if (audioStreams.length !== 1) {
@@ -578,6 +598,7 @@ export function buildPreviewPath(
   mediaSourceId: string | undefined,
   context: JellyfinSourceContext,
   jellyfinPlaySessionId: string,
+  audioStreamIndex?: number,
 ) {
   const itemId = stringValue(item?.Id);
   if (
@@ -594,9 +615,20 @@ export function buildPreviewPath(
     playSessionId: jellyfinPlaySessionId,
     maxAudioChannels: "2",
     audioCodec: "aac",
+    videoCodec: "h264",
+    videoBitRate: "12000000",
+    maxWidth: "1920",
+    maxHeight: "1080",
+    maxVideoBitDepth: "8",
+    allowVideoStreamCopy: "false",
+    enableAutoStreamCopy: "false",
     enableAdaptiveBitrateStreaming: "false",
     alwaysBurnInSubtitleWhenTranscoding: "false",
   });
+
+  if (audioStreamIndex !== undefined) {
+    params.set("audioStreamIndex", String(audioStreamIndex));
+  }
 
   return `/Videos/${encodeURIComponent(itemId)}/master.m3u8?${params.toString()}`;
 }
@@ -841,6 +873,10 @@ async function normalizeCurrentPlayback(
     mediaSourceId,
     playbackInfo,
   );
+  const audioStreamIndex = selectedJellyfinAudioStreamIndex(
+    sessionInfo,
+    mediaSource,
+  );
   const mediaPath = jellyfinPlaySessionId
     ? buildStaticStreamPath(
         enrichedItem,
@@ -855,6 +891,7 @@ async function normalizeCurrentPlayback(
         mediaSourceId,
         context,
         jellyfinPlaySessionId,
+        audioStreamIndex,
       )
     : undefined;
   const imagePath = itemImagePath(enrichedItem);
