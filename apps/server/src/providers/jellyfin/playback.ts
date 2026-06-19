@@ -268,7 +268,7 @@ function isSubtitleMediaStream(stream: JellyfinMediaStream) {
 
 function streamIndexValue(value: unknown) {
   if (value === null || value === undefined) {
-    return undefined;
+    return;
   }
 
   const index = numberValue(value);

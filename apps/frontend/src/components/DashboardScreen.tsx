@@ -35,7 +35,9 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import {
+  activeDashboardViewerFilterNames,
   buildDashboardViewerFilterOptions,
+  canUseDashboardViewerFilter,
   countDashboardViewerFilterHiddenCards,
   filterDashboardPlaybackCardsByViewer,
   flattenDashboardPlaybackItems,
@@ -630,13 +632,22 @@ export default function DashboardScreen({
     () => flattenDashboardPlaybackItems(viewers),
     [viewers],
   );
-  const selectedViewerFilterNames = useMemo(
+  const storedViewerFilterNames = useMemo(
     () => sanitizeDashboardViewerFilterNames(selectedViewerNames),
     [selectedViewerNames],
   );
   const viewerFilterOptions = useMemo(
     () => buildDashboardViewerFilterOptions(playbackCards),
     [playbackCards],
+  );
+  const canFilterByViewer = canUseDashboardViewerFilter(viewerFilterOptions);
+  const selectedViewerFilterNames = useMemo(
+    () =>
+      activeDashboardViewerFilterNames(
+        viewerFilterOptions,
+        storedViewerFilterNames,
+      ),
+    [viewerFilterOptions, storedViewerFilterNames],
   );
   const filteredPlaybackCards = useMemo(
     () =>
@@ -693,8 +704,16 @@ export default function DashboardScreen({
     setSelectedViewerNames([]);
     writeDashboardViewerFilter([]);
   }, []);
-  const showViewerFilterControl =
-    viewerFilterOptions.length > 1 || selectedViewerFilterNames.length > 0;
+
+  useEffect(() => {
+    if (loading || canFilterByViewer || storedViewerFilterNames.length === 0) {
+      return;
+    }
+
+    clearViewerFilter();
+  }, [canFilterByViewer, clearViewerFilter, loading, storedViewerFilterNames]);
+
+  const showViewerFilterControl = canFilterByViewer;
   const renderViewerFilterPicker = () =>
     showViewerFilterControl ? (
       <DashboardViewerFilterPicker

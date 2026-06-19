@@ -6,7 +6,9 @@ import { createElement, createRef, type ComponentProps } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import {
   DASHBOARD_VIEWER_FILTER_STORAGE_KEY,
+  activeDashboardViewerFilterNames,
   buildDashboardViewerFilterOptions,
+  canUseDashboardViewerFilter,
   countDashboardViewerFilterHiddenCards,
   filterDashboardPlaybackCardsByViewer,
   flattenDashboardPlaybackItems,
@@ -611,6 +613,55 @@ void test("hides dashboard viewer filter with one viewer and no active filter", 
   assert.equal(markup, "");
 });
 
+void test("ignores saved dashboard viewer filters until multiple viewers are available", () => {
+  const oneViewerOptions = buildDashboardViewerFilterOptions(
+    flattenDashboardPlaybackItems([dashboardPlaybackGroups[0]!]),
+  );
+  const multipleViewerOptions = buildDashboardViewerFilterOptions(
+    flattenDashboardPlaybackItems(dashboardPlaybackGroups),
+  );
+
+  assert.equal(canUseDashboardViewerFilter(oneViewerOptions), false);
+  assert.deepEqual(
+    activeDashboardViewerFilterNames(oneViewerOptions, [
+      "TechSquidTV",
+      "Guest",
+    ]),
+    [],
+  );
+
+  assert.equal(canUseDashboardViewerFilter(multipleViewerOptions), true);
+  assert.deepEqual(
+    activeDashboardViewerFilterNames(multipleViewerOptions, [
+      " TechSquidTV ",
+      "GUEST",
+    ]),
+    ["techsquidtv", "guest"],
+  );
+});
+
+void test("hides dashboard viewer filter with one viewer and saved choices", () => {
+  const options = buildDashboardViewerFilterOptions(
+    flattenDashboardPlaybackItems([dashboardPlaybackGroups[0]!]),
+  );
+
+  const markup = renderToStaticMarkup(
+    createElement(
+      TooltipProvider,
+      null,
+      createElement(DashboardViewerFilterPicker, {
+        viewerOptions: options,
+        selectedViewerNames: ["techsquidtv", "guest"],
+        hiddenSessionCount: 0,
+        onToggleViewer: () => {},
+        onClearViewerFilter: () => {},
+      }),
+    ),
+  );
+
+  assert.equal(markup, "");
+});
+
 void test("renders dashboard viewer filter options for multiple viewers", () => {
   const options = buildDashboardViewerFilterOptions(
     flattenDashboardPlaybackItems(dashboardPlaybackGroups),
@@ -658,7 +709,7 @@ void test("renders scroll area structure for constrained dropdown content", () =
 
 void test("renders dashboard viewer filter as active from saved choices", () => {
   const options = buildDashboardViewerFilterOptions(
-    flattenDashboardPlaybackItems([dashboardPlaybackGroups[0]!]),
+    flattenDashboardPlaybackItems(dashboardPlaybackGroups),
   );
 
   const markup = renderToStaticMarkup(
@@ -682,12 +733,16 @@ void test("renders dashboard viewer filter as active from saved choices", () => 
 });
 
 void test("labels dashboard viewer filter with saved viewer absent from active sessions", () => {
+  const options = buildDashboardViewerFilterOptions(
+    flattenDashboardPlaybackItems(dashboardPlaybackGroups),
+  );
+
   const markup = renderToStaticMarkup(
     createElement(
       TooltipProvider,
       null,
       createElement(DashboardViewerFilterPicker, {
-        viewerOptions: [],
+        viewerOptions: options,
         selectedViewerNames: ["saved-viewer"],
         hiddenSessionCount: 0,
         onToggleViewer: () => {},
@@ -754,6 +809,8 @@ void test("renders dashboard viewer filter selected avatars with overflow count"
   assert.match(markup, /Filter sessions by viewer: 5 viewers/);
   assert.match(markup, /data-dashboard-viewer-filter-selected-avatars/);
   assert.match(markup, /data-dashboard-viewer-filter-overflow-count/);
+  assert.match(markup, /-space-x-2/);
+  assert.match(markup, /bg-background ring-2 ring-background/);
   assert.match(markup, /style="z-index:1".*style="z-index:2"/);
   assert.match(markup, /\(\+3\)/);
 });

@@ -79,11 +79,11 @@ function DashboardViewerFilterTriggerSelection({
       data-dashboard-viewer-filter-selected-avatars
       aria-hidden="true"
     >
-      <span className="flex shrink-0 -space-x-2">
+      <span className="isolate flex shrink-0 -space-x-2">
         {visibleViewerOptions.map((option, index) => (
           <span
             key={option.normalizedName}
-            className="relative rounded-full ring-2 ring-background"
+            className="relative rounded-full bg-background ring-2 ring-background"
             style={{ zIndex: index + 1 }}
           >
             <DashboardViewerAvatar
@@ -93,15 +93,16 @@ function DashboardViewerFilterTriggerSelection({
             />
           </span>
         ))}
+        {hiddenViewerCount > 0 ? (
+          <span
+            className="relative inline-flex h-6 shrink-0 items-center rounded-full border border-border bg-background px-1.5 text-[11px] leading-none font-semibold text-muted-foreground ring-2 ring-background"
+            style={{ zIndex: visibleViewerOptions.length + 1 }}
+            data-dashboard-viewer-filter-overflow-count
+          >
+            (+{hiddenViewerCount})
+          </span>
+        ) : null}
       </span>
-      {hiddenViewerCount > 0 ? (
-        <span
-          className="inline-flex h-6 shrink-0 items-center rounded-full border border-border bg-background px-1.5 text-[11px] leading-none font-semibold text-muted-foreground"
-          data-dashboard-viewer-filter-overflow-count
-        >
-          (+{hiddenViewerCount})
-        </span>
-      ) : null}
     </span>
   );
 }
@@ -150,7 +151,7 @@ export function DashboardViewerFilterPicker({
     0,
   );
 
-  if (viewerOptions.length <= 1 && !filterActive) {
+  if (viewerOptions.length <= 1) {
     return null;
   }
 

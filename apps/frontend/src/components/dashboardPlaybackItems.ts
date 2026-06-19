@@ -92,6 +92,21 @@ export function buildDashboardViewerFilterOptions(
   return [...options.values()];
 }
 
+export function canUseDashboardViewerFilter(
+  viewerOptions: readonly DashboardViewerFilterOption[],
+) {
+  return viewerOptions.length > 1;
+}
+
+export function activeDashboardViewerFilterNames(
+  viewerOptions: readonly DashboardViewerFilterOption[],
+  selectedViewerNames: readonly string[],
+) {
+  return canUseDashboardViewerFilter(viewerOptions)
+    ? sanitizeDashboardViewerFilterNames(selectedViewerNames)
+    : [];
+}
+
 export function filterDashboardPlaybackCardsByViewer(
   cards: DashboardPlaybackCardItem[],
   selectedViewerNames: readonly string[],
