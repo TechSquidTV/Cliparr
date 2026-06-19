@@ -243,7 +243,8 @@ export function extractReleaseTitleFromCommitMessage(message) {
 }
 
 export function extractPullRequestNumberFromCommitMessage(message) {
-  const subject = message.replaceAll("\r\n", "\n").split("\n")[0]?.trim() ?? "";
+  const subject =
+    message.replaceAll("\r\n", "\n").split("\n", 1)[0]?.trim() ?? "";
   const match =
     /^(?:Merge pull request #(?<mergeNumber>\d+) |\S[\s\S]* \(#(?<squashNumber>\d+)\)$)/u.exec(
       subject,
@@ -255,10 +256,10 @@ export function extractPullRequestNumberFromCommitMessage(message) {
 
 export function parseGitLogMessages(logOutput) {
   return logOutput
-    .split("\u001E")
+    .split("\u{001E}")
     .map((record) => {
       const trimmedRecord = record.trim();
-      const recordWithoutTerminator = trimmedRecord.endsWith("\u001F")
+      const recordWithoutTerminator = trimmedRecord.endsWith("\u{001F}")
         ? trimmedRecord.slice(0, -1)
         : trimmedRecord;
 

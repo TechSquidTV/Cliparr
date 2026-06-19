@@ -8,7 +8,7 @@
     "#plex/*.mjs": "./scripts/plex/*.mjs",
     "#release/*.mjs": "./scripts/release/*.mjs"
   },
-  "packageManager": "pnpm@11.2.2",
+  "packageManager": "pnpm@11.8.0",
   "engines": {
     "node": ">=24.0.0"
   },
@@ -53,19 +53,19 @@
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
-    "@hey-api/openapi-ts": "~0.97.3",
-    "@types/node": "^25.9.1",
-    "concurrently": "^10.0.0",
-    "eslint": "^10.4.1",
+    "@hey-api/openapi-ts": "~0.98.2",
+    "@types/node": "^25.9.3",
+    "concurrently": "^10.0.3",
+    "eslint": "^10.5.0",
     "eslint-plugin-astro": "^1.7.0",
     "eslint-plugin-react-hooks": "^7.1.1",
-    "eslint-plugin-unicorn": "^64.0.0",
+    "eslint-plugin-unicorn": "^67.0.0",
     "globals": "^17.6.0",
-    "knip": "6.14.2",
-    "prettier": "^3.8.3",
+    "knip": "6.17.1",
+    "prettier": "^3.8.4",
     "prettier-plugin-astro": "^0.14.1",
     "typescript": "~6.0.3",
-    "typescript-eslint": "^8.60.0",
-    "wrangler": "^4.95.0"
+    "typescript-eslint": "^8.61.1",
+    "wrangler": "^4.102.0"
   }
 }

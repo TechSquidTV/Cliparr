@@ -23,6 +23,17 @@ export const PLEX_PMS_GENERATED_DIR =
 export const HEY_API_PACKAGE_NAME = "@hey-api/openapi-ts";
 
 const repoRoot = path.resolve(import.meta.dirname, "../..");
+function compareStrings(left, right) {
+  if (left > right) {
+    return 1;
+  }
+
+  if (left < right) {
+    return -1;
+  }
+
+  return 0;
+}
 
 function repoPath(relativePath) {
   return path.join(repoRoot, relativePath);
@@ -34,25 +45,25 @@ function isRecord(value) {
 
 function findJsonObjectEnd(source, start) {
   let depth = 0;
-  let inString = false;
-  let escaped = false;
+  let isInString = false;
+  let isEscaped = false;
 
   for (let index = start; index < source.length; index += 1) {
     const char = source[index];
 
-    if (inString) {
-      if (escaped) {
-        escaped = false;
+    if (isInString) {
+      if (isEscaped) {
+        isEscaped = false;
       } else if (char === "\\") {
-        escaped = true;
+        isEscaped = true;
       } else if (char === '"') {
-        inString = false;
+        isInString = false;
       }
       continue;
     }
 
     if (char === '"') {
-      inString = true;
+      isInString = true;
       continue;
     }
 
@@ -99,7 +110,7 @@ function sortJsonValue(value) {
 
   return Object.fromEntries(
     Object.keys(value)
-      .toSorted()
+      .toSorted(compareStrings)
       .map((key) => [key, sortJsonValue(value[key])]),
   );
 }
@@ -216,9 +227,14 @@ export async function writePlexPmsSnapshot(html, now = new Date()) {
   const specJson = stableJson(spec);
   const heyApiVersion = await readHeyApiVersion();
   const manifestPath = repoPath(PLEX_PMS_MANIFEST_PATH);
-  const existingManifest = await readFile(manifestPath, "utf8")
-    .then((value) => JSON.parse(value))
-    .catch(() => {});
+  let existingManifest;
+
+  try {
+    existingManifest = JSON.parse(await readFile(manifestPath, "utf8"));
+  } catch {
+    existingManifest = undefined;
+  }
+
   const manifest = {
     sourceUrl: PLEX_PMS_SPEC_URL,
     upstreamVersion: spec.info.version,
@@ -309,13 +325,19 @@ async function walkFiles(root, current = root) {
     }),
   );
 
-  return files.flat().toSorted();
+  return files.flat().toSorted(compareStrings);
 }
 
 export async function diffGeneratedSdk(expectedDirectory, actualDirectory) {
   const expectedFiles = await walkFiles(expectedDirectory);
   const actualFiles = await walkFiles(actualDirectory);
-  const allFiles = [...new Set([...expectedFiles, ...actualFiles])].toSorted();
+  const allFileSet = new Set(expectedFiles);
+
+  for (const file of actualFiles) {
+    allFileSet.add(file);
+  }
+
+  const allFiles = [...allFileSet].toSorted(compareStrings);
   const diffs = [];
 
   for (const file of allFiles) {

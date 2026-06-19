@@ -18,18 +18,18 @@
   "dependencies": {
     "@cliparr/shared": "workspace:*",
     "@jellyfin/sdk": "^0.13.0",
-    "@logtape/logtape": "^2.1.1",
-    "axios": "^1.16.1",
+    "@logtape/logtape": "^2.1.5",
+    "axios": "^1.18.0",
     "dotenv": "^17.4.2",
     "drizzle-orm": "1.0.0-rc.4-273829f",
     "express": "^5.2.1"
   },
   "devDependencies": {
     "@types/express": "^5.0.6",
-    "@types/node": "^25.9.1",
+    "@types/node": "^25.9.3",
     "drizzle-kit": "1.0.0-rc.4-273829f",
-    "tsdown": "^0.22.1",
-    "tsx": "^4.22.3",
+    "tsdown": "^0.22.3",
+    "tsx": "^4.22.4",
     "typescript": "~6.0.3"
   }
 }
