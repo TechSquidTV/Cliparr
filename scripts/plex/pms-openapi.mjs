@@ -23,7 +23,17 @@ export const PLEX_PMS_GENERATED_DIR =
 export const HEY_API_PACKAGE_NAME = "@hey-api/openapi-ts";
 
 const repoRoot = path.resolve(import.meta.dirname, "../..");
-const compareStrings = (left, right) => left.localeCompare(right);
+function compareStrings(left, right) {
+  if (left > right) {
+    return 1;
+  }
+
+  if (left < right) {
+    return -1;
+  }
+
+  return 0;
+}
 
 function repoPath(relativePath) {
   return path.join(repoRoot, relativePath);

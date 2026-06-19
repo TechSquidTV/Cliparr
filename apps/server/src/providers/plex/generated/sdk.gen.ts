@@ -134,50 +134,6 @@ export const websocketGetSlash = <ThrowOnError extends boolean = false>(options?
 });
 
 /**
- * Make a decision on media playback
- *
- * Make a decision on media playback based on client profile, and requested settings such as bandwidth and resolution.
- */
-export const transcodeDecision = <ThrowOnError extends boolean = false>(options: Options<TranscodeDecisionData, ThrowOnError>): RequestResult<TranscodeDecisionResponses, unknown, ThrowOnError> => (options.client ?? client).get<TranscodeDecisionResponses, unknown, ThrowOnError>({
-    security: [{ name: 'X-Plex-Token', type: 'apiKey' }],
-    url: '/{transcodeType}/:/transcode/universal/decision',
-    ...options
-});
-
-/**
- * Manually trigger a transcoder fallback
- *
- * Manually trigger a transcoder fallback ex: HEVC to h.264 or hw to sw
- */
-export const transcodeFallback = <ThrowOnError extends boolean = false>(options: Options<TranscodeFallbackData, ThrowOnError>): RequestResult<TranscodeFallbackResponses, TranscodeFallbackErrors, ThrowOnError> => (options.client ?? client).post<TranscodeFallbackResponses, TranscodeFallbackErrors, ThrowOnError>({
-    security: [{ name: 'X-Plex-Token', type: 'apiKey' }],
-    url: '/{transcodeType}/:/transcode/universal/fallback',
-    ...options
-});
-
-/**
- * Start A Transcoding Session
- *
- * Starts the transcoder and returns the corresponding streaming resource document.
- */
-export const transcodeStart = <ThrowOnError extends boolean = false>(options: Options<TranscodeStartData, ThrowOnError>): RequestResult<TranscodeStartResponses, TranscodeStartErrors, ThrowOnError> => (options.client ?? client).get<TranscodeStartResponses, TranscodeStartErrors, ThrowOnError>({
-    security: [{ name: 'X-Plex-Token', type: 'apiKey' }],
-    url: '/{transcodeType}/:/transcode/universal/start.*',
-    ...options
-});
-
-/**
- * Transcode subtitles
- *
- * Only transcode subtitle streams.
- */
-export const transcodeSubtitles = <ThrowOnError extends boolean = false>(options: Options<TranscodeSubtitlesData, ThrowOnError>): RequestResult<TranscodeSubtitlesResponses, TranscodeSubtitlesErrors, ThrowOnError> => (options.client ?? client).get<TranscodeSubtitlesResponses, TranscodeSubtitlesErrors, ThrowOnError>({
-    security: [{ name: 'X-Plex-Token', type: 'apiKey' }],
-    url: '/{transcodeType}/:/transcode/universal/subtitles',
-    ...options
-});
-
-/**
  * Get all activities
  *
  * List all activities on the server.  Admins can see all activities but other users can only see their own
@@ -550,6 +506,17 @@ export const hubsSectionsSectionManagePostSlash = <ThrowOnError extends boolean 
 });
 
 /**
+ * Move Hub
+ *
+ * Changed the ordering of a hub among others hubs
+ */
+export const hubsSectionsSectionManagePutMove = <ThrowOnError extends boolean = false>(options: Options<HubsSectionsSectionManagePutMoveData, ThrowOnError>): RequestResult<HubsSectionsSectionManagePutMoveResponses, HubsSectionsSectionManagePutMoveErrors, ThrowOnError> => (options.client ?? client).put<HubsSectionsSectionManagePutMoveResponses, HubsSectionsSectionManagePutMoveErrors, ThrowOnError>({
+    security: [{ name: 'X-Plex-Token', type: 'apiKey' }],
+    url: '/hubs/sections/{sectionId}/manage/move',
+    ...options
+});
+
+/**
  * Delete a custom hub
  *
  * Delete a custom hub from the server
@@ -568,17 +535,6 @@ export const hubsSectionsSectionManageDeleteIdentifier = <ThrowOnError extends b
 export const hubsSectionsSectionManagePutIdentifier = <ThrowOnError extends boolean = false>(options: Options<HubsSectionsSectionManagePutIdentifierData, ThrowOnError>): RequestResult<HubsSectionsSectionManagePutIdentifierResponses, HubsSectionsSectionManagePutIdentifierErrors, ThrowOnError> => (options.client ?? client).put<HubsSectionsSectionManagePutIdentifierResponses, HubsSectionsSectionManagePutIdentifierErrors, ThrowOnError>({
     security: [{ name: 'X-Plex-Token', type: 'apiKey' }],
     url: '/hubs/sections/{sectionId}/manage/{identifier}',
-    ...options
-});
-
-/**
- * Move Hub
- *
- * Changed the ordering of a hub among others hubs
- */
-export const hubsSectionsSectionManagePutMove = <ThrowOnError extends boolean = false>(options: Options<HubsSectionsSectionManagePutMoveData, ThrowOnError>): RequestResult<HubsSectionsSectionManagePutMoveResponses, HubsSectionsSectionManagePutMoveErrors, ThrowOnError> => (options.client ?? client).put<HubsSectionsSectionManagePutMoveResponses, HubsSectionsSectionManagePutMoveErrors, ThrowOnError>({
-    security: [{ name: 'X-Plex-Token', type: 'apiKey' }],
-    url: '/hubs/sections/{sectionId}/manage/move',
     ...options
 });
 
@@ -729,6 +685,17 @@ export const libraryGetMediaMediaChapterImagesChapter = <ThrowOnError extends bo
 });
 
 /**
+ * Get augmentation status
+ *
+ * Get augmentation status and potentially wait for completion
+ */
+export const libraryGetMetadataAugmentationsAugmentation = <ThrowOnError extends boolean = false>(options: Options<LibraryGetMetadataAugmentationsAugmentationData, ThrowOnError>): RequestResult<LibraryGetMetadataAugmentationsAugmentationResponses, LibraryGetMetadataAugmentationsAugmentationErrors, ThrowOnError> => (options.client ?? client).get<LibraryGetMetadataAugmentationsAugmentationResponses, LibraryGetMetadataAugmentationsAugmentationErrors, ThrowOnError>({
+    security: [{ name: 'X-Plex-Token', type: 'apiKey' }],
+    url: '/library/metadata/augmentations/{augmentationId}',
+    ...options
+});
+
+/**
  * Delete a metadata item
  *
  * Delete a single metadata item from the library, deleting media as well
@@ -759,54 +726,6 @@ export const libraryMetadataPutSlash = <ThrowOnError extends boolean = false>(op
     querySerializer: { parameters: { args: { object: { style: 'form' } } } },
     security: [{ name: 'X-Plex-Token', type: 'apiKey' }],
     url: '/library/metadata/{ids}',
-    ...options
-});
-
-/**
- * Delete an item's artwork, theme, etc
- *
- * Delete the artwork, thumb, element for a metadata item
- * This operation will also lock the field. 'thumb' images for video items will be reset to a screengrab of the video after a refresh.
- * Generally only the admin can perform this action.  The exception is if the metadata is a playlist created by the user
- */
-export const libraryMetadataDeleteElement = <ThrowOnError extends boolean = false>(options: Options<LibraryMetadataDeleteElementData, ThrowOnError>): RequestResult<LibraryMetadataDeleteElementResponses, LibraryMetadataDeleteElementErrors, ThrowOnError> => (options.client ?? client).delete<LibraryMetadataDeleteElementResponses, LibraryMetadataDeleteElementErrors, ThrowOnError>({
-    security: [{ name: 'X-Plex-Token', type: 'apiKey' }],
-    url: '/library/metadata/{ids}/{element}',
-    ...options
-});
-
-/**
- * Set an item's artwork, theme, etc
- *
- * Set the artwork, thumb, element for a metadata item
- * Generally only the admin can perform this action.  The exception is if the metadata is a playlist created by the user
- */
-export const libraryMetadataPostElement = <ThrowOnError extends boolean = false>(options: Options<LibraryMetadataPostElementData, ThrowOnError>): RequestResult<LibraryMetadataPostElementResponses, unknown, ThrowOnError> => (options.client ?? client).post<LibraryMetadataPostElementResponses, unknown, ThrowOnError>({
-    security: [{ name: 'X-Plex-Token', type: 'apiKey' }],
-    url: '/library/metadata/{ids}/{element}',
-    ...options
-});
-
-/**
- * Set an item's artwork, theme, etc
- *
- * Set the artwork, thumb, element for a metadata item
- * Generally only the admin can perform this action.  The exception is if the metadata is a playlist created by the user
- */
-export const libraryMetadataPutElement = <ThrowOnError extends boolean = false>(options: Options<LibraryMetadataPutElementData, ThrowOnError>): RequestResult<LibraryMetadataPutElementResponses, unknown, ThrowOnError> => (options.client ?? client).put<LibraryMetadataPutElementResponses, unknown, ThrowOnError>({
-    security: [{ name: 'X-Plex-Token', type: 'apiKey' }],
-    url: '/library/metadata/{ids}/{element}',
-    ...options
-});
-
-/**
- * Get an item's artwork, theme, etc
- *
- * Get the artwork, thumb, element for a metadata item
- */
-export const libraryMetadataGetElement = <ThrowOnError extends boolean = false>(options: Options<LibraryMetadataGetElementData, ThrowOnError>): RequestResult<LibraryMetadataGetElementResponses, unknown, ThrowOnError> => (options.client ?? client).get<LibraryMetadataGetElementResponses, unknown, ThrowOnError>({
-    security: [{ name: 'X-Plex-Token', type: 'apiKey' }],
-    url: '/library/metadata/{ids}/{element}/{timestamp}',
     ...options
 });
 
@@ -1121,13 +1040,50 @@ export const libraryMetadataPutVoiceActivity = <ThrowOnError extends boolean = f
 });
 
 /**
- * Get augmentation status
+ * Delete an item's artwork, theme, etc
  *
- * Get augmentation status and potentially wait for completion
+ * Delete the artwork, thumb, element for a metadata item
+ * This operation will also lock the field. 'thumb' images for video items will be reset to a screengrab of the video after a refresh.
+ * Generally only the admin can perform this action.  The exception is if the metadata is a playlist created by the user
  */
-export const libraryGetMetadataAugmentationsAugmentation = <ThrowOnError extends boolean = false>(options: Options<LibraryGetMetadataAugmentationsAugmentationData, ThrowOnError>): RequestResult<LibraryGetMetadataAugmentationsAugmentationResponses, LibraryGetMetadataAugmentationsAugmentationErrors, ThrowOnError> => (options.client ?? client).get<LibraryGetMetadataAugmentationsAugmentationResponses, LibraryGetMetadataAugmentationsAugmentationErrors, ThrowOnError>({
+export const libraryMetadataDeleteElement = <ThrowOnError extends boolean = false>(options: Options<LibraryMetadataDeleteElementData, ThrowOnError>): RequestResult<LibraryMetadataDeleteElementResponses, LibraryMetadataDeleteElementErrors, ThrowOnError> => (options.client ?? client).delete<LibraryMetadataDeleteElementResponses, LibraryMetadataDeleteElementErrors, ThrowOnError>({
     security: [{ name: 'X-Plex-Token', type: 'apiKey' }],
-    url: '/library/metadata/augmentations/{augmentationId}',
+    url: '/library/metadata/{ids}/{element}',
+    ...options
+});
+
+/**
+ * Set an item's artwork, theme, etc
+ *
+ * Set the artwork, thumb, element for a metadata item
+ * Generally only the admin can perform this action.  The exception is if the metadata is a playlist created by the user
+ */
+export const libraryMetadataPostElement = <ThrowOnError extends boolean = false>(options: Options<LibraryMetadataPostElementData, ThrowOnError>): RequestResult<LibraryMetadataPostElementResponses, unknown, ThrowOnError> => (options.client ?? client).post<LibraryMetadataPostElementResponses, unknown, ThrowOnError>({
+    security: [{ name: 'X-Plex-Token', type: 'apiKey' }],
+    url: '/library/metadata/{ids}/{element}',
+    ...options
+});
+
+/**
+ * Set an item's artwork, theme, etc
+ *
+ * Set the artwork, thumb, element for a metadata item
+ * Generally only the admin can perform this action.  The exception is if the metadata is a playlist created by the user
+ */
+export const libraryMetadataPutElement = <ThrowOnError extends boolean = false>(options: Options<LibraryMetadataPutElementData, ThrowOnError>): RequestResult<LibraryMetadataPutElementResponses, unknown, ThrowOnError> => (options.client ?? client).put<LibraryMetadataPutElementResponses, unknown, ThrowOnError>({
+    security: [{ name: 'X-Plex-Token', type: 'apiKey' }],
+    url: '/library/metadata/{ids}/{element}',
+    ...options
+});
+
+/**
+ * Get an item's artwork, theme, etc
+ *
+ * Get the artwork, thumb, element for a metadata item
+ */
+export const libraryMetadataGetElement = <ThrowOnError extends boolean = false>(options: Options<LibraryMetadataGetElementData, ThrowOnError>): RequestResult<LibraryMetadataGetElementResponses, unknown, ThrowOnError> => (options.client ?? client).get<LibraryMetadataGetElementResponses, unknown, ThrowOnError>({
+    security: [{ name: 'X-Plex-Token', type: 'apiKey' }],
+    url: '/library/metadata/{ids}/{element}/{timestamp}',
     ...options
 });
 
@@ -1154,20 +1110,6 @@ export const libraryPutPartsPart = <ThrowOnError extends boolean = false>(option
 });
 
 /**
- * Get a media part
- *
- * Get a media part for streaming or download.
- * - streaming: This is the default scenario.  Bandwidth usage on this endpoint will be guaranteed (on the server's end) to be at least the bandwidth reservation given in the decision.  If no decision exists, an ad-hoc decision will be created if sufficient bandwidth exists.  Clients should not rely on ad-hoc decisions being made as this may be removed in the future.
- * - download: Indicated if the query parameter indicates this is a download.  Bandwidth will be prioritized behind playbacks and will get a fair share of what remains.
- *
- */
-export const libraryGetPartsPartChangestampFilename = <ThrowOnError extends boolean = false>(options: Options<LibraryGetPartsPartChangestampFilenameData, ThrowOnError>): RequestResult<LibraryGetPartsPartChangestampFilenameResponses, LibraryGetPartsPartChangestampFilenameErrors, ThrowOnError> => (options.client ?? client).get<LibraryGetPartsPartChangestampFilenameResponses, LibraryGetPartsPartChangestampFilenameErrors, ThrowOnError>({
-    security: [{ name: 'X-Plex-Token', type: 'apiKey' }],
-    url: '/library/parts/{partId}/{changestamp}/{filename}',
-    ...options
-});
-
-/**
  * Get BIF index for a part
  *
  * Get BIF index for a part by index type
@@ -1186,6 +1128,20 @@ export const libraryGetPartsPartIndexesIndex = <ThrowOnError extends boolean = f
 export const libraryGetPartsPartIndexesIndexOffset = <ThrowOnError extends boolean = false>(options: Options<LibraryGetPartsPartIndexesIndexOffsetData, ThrowOnError>): RequestResult<LibraryGetPartsPartIndexesIndexOffsetResponses, LibraryGetPartsPartIndexesIndexOffsetErrors, ThrowOnError> => (options.client ?? client).get<LibraryGetPartsPartIndexesIndexOffsetResponses, LibraryGetPartsPartIndexesIndexOffsetErrors, ThrowOnError>({
     security: [{ name: 'X-Plex-Token', type: 'apiKey' }],
     url: '/library/parts/{partId}/indexes/{index}/{offset}',
+    ...options
+});
+
+/**
+ * Get a media part
+ *
+ * Get a media part for streaming or download.
+ * - streaming: This is the default scenario.  Bandwidth usage on this endpoint will be guaranteed (on the server's end) to be at least the bandwidth reservation given in the decision.  If no decision exists, an ad-hoc decision will be created if sufficient bandwidth exists.  Clients should not rely on ad-hoc decisions being made as this may be removed in the future.
+ * - download: Indicated if the query parameter indicates this is a download.  Bandwidth will be prioritized behind playbacks and will get a fair share of what remains.
+ *
+ */
+export const libraryGetPartsPartChangestampFilename = <ThrowOnError extends boolean = false>(options: Options<LibraryGetPartsPartChangestampFilenameData, ThrowOnError>): RequestResult<LibraryGetPartsPartChangestampFilenameResponses, LibraryGetPartsPartChangestampFilenameErrors, ThrowOnError> => (options.client ?? client).get<LibraryGetPartsPartChangestampFilenameResponses, LibraryGetPartsPartChangestampFilenameErrors, ThrowOnError>({
+    security: [{ name: 'X-Plex-Token', type: 'apiKey' }],
+    url: '/library/parts/{partId}/{changestamp}/{filename}',
     ...options
 });
 
@@ -1223,6 +1179,62 @@ export const libraryGetRandomArtwork = <ThrowOnError extends boolean = false>(op
     querySerializer: { parameters: { sections: { array: { explode: false } } } },
     security: [{ name: 'X-Plex-Token', type: 'apiKey' }],
     url: '/library/randomArtwork',
+    ...options
+});
+
+/**
+ * Get library sections (main Media Provider Only)
+ *
+ * A library section (commonly referred to as just a library) is a collection of media. Libraries are typed, and depending on their type provide either a flat or a hierarchical view of the media. For example, a music library has an artist > albums > tracks structure, whereas a movie library is flat.
+ * Libraries have features beyond just being a collection of media; for starters, they include information about supported types, filters and sorts. This allows a client to provide a rich interface around the media (e.g. allow sorting movies by release year).
+ */
+export const libraryGetSections = <ThrowOnError extends boolean = false>(options?: Options<LibraryGetSectionsData, ThrowOnError>): RequestResult<LibraryGetSectionsResponses, unknown, ThrowOnError> => (options?.client ?? client).get<LibraryGetSectionsResponses, unknown, ThrowOnError>({
+    security: [{ name: 'X-Plex-Token', type: 'apiKey' }],
+    url: '/library/sections/all',
+    ...options
+});
+
+/**
+ * Add a library section
+ *
+ * Add a new library section to the server
+ */
+export const libraryPostSection = <ThrowOnError extends boolean = false>(options: Options<LibraryPostSectionData, ThrowOnError>): RequestResult<LibraryPostSectionResponses, LibraryPostSectionErrors, ThrowOnError> => (options.client ?? client).post<LibraryPostSectionResponses, LibraryPostSectionErrors, ThrowOnError>({
+    security: [{ name: 'X-Plex-Token', type: 'apiKey' }],
+    url: '/library/sections/all',
+    ...options
+});
+
+/**
+ * Stop refresh
+ *
+ * Stop all refreshes across all sections
+ */
+export const libraryDeleteSectionsAllRefresh = <ThrowOnError extends boolean = false>(options?: Options<LibraryDeleteSectionsAllRefreshData, ThrowOnError>): RequestResult<LibraryDeleteSectionsAllRefreshResponses, unknown, ThrowOnError> => (options?.client ?? client).delete<LibraryDeleteSectionsAllRefreshResponses, unknown, ThrowOnError>({
+    security: [{ name: 'X-Plex-Token', type: 'apiKey' }],
+    url: '/library/sections/all/refresh',
+    ...options
+});
+
+/**
+ * Get section prefs
+ *
+ * Get a section's preferences for a metadata type
+ */
+export const libraryGetSectionsPrefs = <ThrowOnError extends boolean = false>(options: Options<LibraryGetSectionsPrefsData, ThrowOnError>): RequestResult<LibraryGetSectionsPrefsResponses, LibraryGetSectionsPrefsErrors, ThrowOnError> => (options.client ?? client).get<LibraryGetSectionsPrefsResponses, LibraryGetSectionsPrefsErrors, ThrowOnError>({
+    security: [{ name: 'X-Plex-Token', type: 'apiKey' }],
+    url: '/library/sections/prefs',
+    ...options
+});
+
+/**
+ * Refresh all sections
+ *
+ * Tell PMS to refresh all section metadata
+ */
+export const libraryPostSectionsRefresh = <ThrowOnError extends boolean = false>(options?: Options<LibraryPostSectionsRefreshData, ThrowOnError>): RequestResult<LibraryPostSectionsRefreshResponses, LibraryPostSectionsRefreshErrors, ThrowOnError> => (options?.client ?? client).post<LibraryPostSectionsRefreshResponses, LibraryPostSectionsRefreshErrors, ThrowOnError>({
+    security: [{ name: 'X-Plex-Token', type: 'apiKey' }],
+    url: '/library/sections/refresh',
     ...options
 });
 
@@ -1659,62 +1671,6 @@ export const librarySectionGetVideoCodecs = <ThrowOnError extends boolean = fals
 });
 
 /**
- * Get library sections (main Media Provider Only)
- *
- * A library section (commonly referred to as just a library) is a collection of media. Libraries are typed, and depending on their type provide either a flat or a hierarchical view of the media. For example, a music library has an artist > albums > tracks structure, whereas a movie library is flat.
- * Libraries have features beyond just being a collection of media; for starters, they include information about supported types, filters and sorts. This allows a client to provide a rich interface around the media (e.g. allow sorting movies by release year).
- */
-export const libraryGetSections = <ThrowOnError extends boolean = false>(options?: Options<LibraryGetSectionsData, ThrowOnError>): RequestResult<LibraryGetSectionsResponses, unknown, ThrowOnError> => (options?.client ?? client).get<LibraryGetSectionsResponses, unknown, ThrowOnError>({
-    security: [{ name: 'X-Plex-Token', type: 'apiKey' }],
-    url: '/library/sections/all',
-    ...options
-});
-
-/**
- * Add a library section
- *
- * Add a new library section to the server
- */
-export const libraryPostSection = <ThrowOnError extends boolean = false>(options: Options<LibraryPostSectionData, ThrowOnError>): RequestResult<LibraryPostSectionResponses, LibraryPostSectionErrors, ThrowOnError> => (options.client ?? client).post<LibraryPostSectionResponses, LibraryPostSectionErrors, ThrowOnError>({
-    security: [{ name: 'X-Plex-Token', type: 'apiKey' }],
-    url: '/library/sections/all',
-    ...options
-});
-
-/**
- * Stop refresh
- *
- * Stop all refreshes across all sections
- */
-export const libraryDeleteSectionsAllRefresh = <ThrowOnError extends boolean = false>(options?: Options<LibraryDeleteSectionsAllRefreshData, ThrowOnError>): RequestResult<LibraryDeleteSectionsAllRefreshResponses, unknown, ThrowOnError> => (options?.client ?? client).delete<LibraryDeleteSectionsAllRefreshResponses, unknown, ThrowOnError>({
-    security: [{ name: 'X-Plex-Token', type: 'apiKey' }],
-    url: '/library/sections/all/refresh',
-    ...options
-});
-
-/**
- * Get section prefs
- *
- * Get a section's preferences for a metadata type
- */
-export const libraryGetSectionsPrefs = <ThrowOnError extends boolean = false>(options: Options<LibraryGetSectionsPrefsData, ThrowOnError>): RequestResult<LibraryGetSectionsPrefsResponses, LibraryGetSectionsPrefsErrors, ThrowOnError> => (options.client ?? client).get<LibraryGetSectionsPrefsResponses, LibraryGetSectionsPrefsErrors, ThrowOnError>({
-    security: [{ name: 'X-Plex-Token', type: 'apiKey' }],
-    url: '/library/sections/prefs',
-    ...options
-});
-
-/**
- * Refresh all sections
- *
- * Tell PMS to refresh all section metadata
- */
-export const libraryPostSectionsRefresh = <ThrowOnError extends boolean = false>(options?: Options<LibraryPostSectionsRefreshData, ThrowOnError>): RequestResult<LibraryPostSectionsRefreshResponses, LibraryPostSectionsRefreshErrors, ThrowOnError> => (options?.client ?? client).post<LibraryPostSectionsRefreshResponses, LibraryPostSectionsRefreshErrors, ThrowOnError>({
-    security: [{ name: 'X-Plex-Token', type: 'apiKey' }],
-    url: '/library/sections/refresh',
-    ...options
-});
-
-/**
  * Delete a stream
  *
  * Delete a stream.  Only applies to downloaded subtitle streams or a sidecar subtitle when media deletion is enabled.
@@ -2034,17 +1990,6 @@ export const livetvSessionsGetSession = <ThrowOnError extends boolean = false>(o
 });
 
 /**
- * Get a single session segment
- *
- * Get a single livetv session segment
- */
-export const livetvSessionsGetSessionConsumerSegment = <ThrowOnError extends boolean = false>(options: Options<LivetvSessionsGetSessionConsumerSegmentData, ThrowOnError>): RequestResult<LivetvSessionsGetSessionConsumerSegmentResponses, LivetvSessionsGetSessionConsumerSegmentErrors, ThrowOnError> => (options.client ?? client).get<LivetvSessionsGetSessionConsumerSegmentResponses, LivetvSessionsGetSessionConsumerSegmentErrors, ThrowOnError>({
-    security: [{ name: 'X-Plex-Token', type: 'apiKey' }],
-    url: '/livetv/sessions/{sessionId}/{consumerId}/{segmentId}',
-    ...options
-});
-
-/**
  * Get a session playlist index
  *
  * Get a playlist index for playing this session
@@ -2052,6 +1997,17 @@ export const livetvSessionsGetSessionConsumerSegment = <ThrowOnError extends boo
 export const livetvSessionsGetSessionConsumerIndex = <ThrowOnError extends boolean = false>(options: Options<LivetvSessionsGetSessionConsumerIndexData, ThrowOnError>): RequestResult<LivetvSessionsGetSessionConsumerIndexResponses, LivetvSessionsGetSessionConsumerIndexErrors, ThrowOnError> => (options.client ?? client).get<LivetvSessionsGetSessionConsumerIndexResponses, LivetvSessionsGetSessionConsumerIndexErrors, ThrowOnError>({
     security: [{ name: 'X-Plex-Token', type: 'apiKey' }],
     url: '/livetv/sessions/{sessionId}/{consumerId}/index.m3u8',
+    ...options
+});
+
+/**
+ * Get a single session segment
+ *
+ * Get a single livetv session segment
+ */
+export const livetvSessionsGetSessionConsumerSegment = <ThrowOnError extends boolean = false>(options: Options<LivetvSessionsGetSessionConsumerSegmentData, ThrowOnError>): RequestResult<LivetvSessionsGetSessionConsumerSegmentResponses, LivetvSessionsGetSessionConsumerSegmentErrors, ThrowOnError> => (options.client ?? client).get<LivetvSessionsGetSessionConsumerSegmentResponses, LivetvSessionsGetSessionConsumerSegmentErrors, ThrowOnError>({
+    security: [{ name: 'X-Plex-Token', type: 'apiKey' }],
+    url: '/livetv/sessions/{sessionId}/{consumerId}/{segmentId}',
     ...options
 });
 
@@ -2130,6 +2086,17 @@ export const mediaGrabberGetDevices = <ThrowOnError extends boolean = false>(opt
 export const mediaGrabberPostDevices = <ThrowOnError extends boolean = false>(options?: Options<MediaGrabberPostDevicesData, ThrowOnError>): RequestResult<MediaGrabberPostDevicesResponses, MediaGrabberPostDevicesErrors, ThrowOnError> => (options?.client ?? client).post<MediaGrabberPostDevicesResponses, MediaGrabberPostDevicesErrors, ThrowOnError>({
     security: [{ name: 'X-Plex-Token', type: 'apiKey' }],
     url: '/media/grabbers/devices',
+    ...options
+});
+
+/**
+ * Tell grabbers to discover devices
+ *
+ * Tell grabbers to discover devices
+ */
+export const mediaGrabberPostDeviceDiscover = <ThrowOnError extends boolean = false>(options?: Options<MediaGrabberPostDeviceDiscoverData, ThrowOnError>): RequestResult<MediaGrabberPostDeviceDiscoverResponses, unknown, ThrowOnError> => (options?.client ?? client).post<MediaGrabberPostDeviceDiscoverResponses, unknown, ThrowOnError>({
+    security: [{ name: 'X-Plex-Token', type: 'apiKey' }],
+    url: '/media/grabbers/devices/discover',
     ...options
 });
 
@@ -2233,17 +2200,6 @@ export const mediaGrabberDevicesDeviceGetThumbVersion = <ThrowOnError extends bo
 });
 
 /**
- * Tell grabbers to discover devices
- *
- * Tell grabbers to discover devices
- */
-export const mediaGrabberPostDeviceDiscover = <ThrowOnError extends boolean = false>(options?: Options<MediaGrabberPostDeviceDiscoverData, ThrowOnError>): RequestResult<MediaGrabberPostDeviceDiscoverResponses, unknown, ThrowOnError> => (options?.client ?? client).post<MediaGrabberPostDeviceDiscoverResponses, unknown, ThrowOnError>({
-    security: [{ name: 'X-Plex-Token', type: 'apiKey' }],
-    url: '/media/grabbers/devices/discover',
-    ...options
-});
-
-/**
  * Cancel an existing grab
  *
  * Cancels an existing media grab (recording). It can be used to resolve a conflict which exists for a rolling subscription.
@@ -2278,17 +2234,6 @@ export const postMediaProviders = <ThrowOnError extends boolean = false>(options
 });
 
 /**
- * Delete a media provider
- *
- * Deletes a media provider with the given id
- */
-export const deleteMediaProvider = <ThrowOnError extends boolean = false>(options: Options<DeleteMediaProviderData, ThrowOnError>): RequestResult<DeleteMediaProviderResponses, DeleteMediaProviderErrors, ThrowOnError> => (options.client ?? client).delete<DeleteMediaProviderResponses, DeleteMediaProviderErrors, ThrowOnError>({
-    security: [{ name: 'X-Plex-Token', type: 'apiKey' }],
-    url: '/media/providers/{provider}',
-    ...options
-});
-
-/**
  * Get the list of available metadata agent providers
  *
  * Get the list of all available metadata agent providers for this PMS.
@@ -2307,39 +2252,6 @@ export const getMetadataAgentProviders = <ThrowOnError extends boolean = false>(
 export const postMetadataAgentProviders = <ThrowOnError extends boolean = false>(options: Options<PostMetadataAgentProvidersData, ThrowOnError>): RequestResult<PostMetadataAgentProvidersResponses, PostMetadataAgentProvidersErrors, ThrowOnError> => (options.client ?? client).post<PostMetadataAgentProvidersResponses, PostMetadataAgentProvidersErrors, ThrowOnError>({
     security: [{ name: 'X-Plex-Token', type: 'apiKey' }],
     url: '/media/providers/metadata',
-    ...options
-});
-
-/**
- * Delete a metadata agent provider
- *
- * Deletes a metadata agent provider with the given id. This will fail if the provider is being used inside a MetadataAgentGroup.
- */
-export const deleteMetadataAgentProvider = <ThrowOnError extends boolean = false>(options: Options<DeleteMetadataAgentProviderData, ThrowOnError>): RequestResult<DeleteMetadataAgentProviderResponses, DeleteMetadataAgentProviderErrors, ThrowOnError> => (options.client ?? client).delete<DeleteMetadataAgentProviderResponses, DeleteMetadataAgentProviderErrors, ThrowOnError>({
-    security: [{ name: 'X-Plex-Token', type: 'apiKey' }],
-    url: '/media/providers/metadata/{providerId}',
-    ...options
-});
-
-/**
- * Get a metadata agent provider
- *
- * Get the metadata agent provider with the given id.
- */
-export const getMetadataAgentProvider = <ThrowOnError extends boolean = false>(options: Options<GetMetadataAgentProviderData, ThrowOnError>): RequestResult<GetMetadataAgentProviderResponses, GetMetadataAgentProviderErrors, ThrowOnError> => (options.client ?? client).get<GetMetadataAgentProviderResponses, GetMetadataAgentProviderErrors, ThrowOnError>({
-    security: [{ name: 'X-Plex-Token', type: 'apiKey' }],
-    url: '/media/providers/metadata/{providerId}',
-    ...options
-});
-
-/**
- * Modify a metadata agent provider
- *
- * Modify the metadata agent provider with the given id. Only the URI is passed, the response to the URI will determine the other properties.
- */
-export const putMetadataAgentProvider = <ThrowOnError extends boolean = false>(options: Options<PutMetadataAgentProviderData, ThrowOnError>): RequestResult<PutMetadataAgentProviderResponses, PutMetadataAgentProviderErrors, ThrowOnError> => (options.client ?? client).put<PutMetadataAgentProviderResponses, PutMetadataAgentProviderErrors, ThrowOnError>({
-    security: [{ name: 'X-Plex-Token', type: 'apiKey' }],
-    url: '/media/providers/metadata/{providerId}',
     ...options
 });
 
@@ -2424,6 +2336,39 @@ export const putMetadataAgentProviderGroupItem = <ThrowOnError extends boolean =
 });
 
 /**
+ * Delete a metadata agent provider
+ *
+ * Deletes a metadata agent provider with the given id. This will fail if the provider is being used inside a MetadataAgentGroup.
+ */
+export const deleteMetadataAgentProvider = <ThrowOnError extends boolean = false>(options: Options<DeleteMetadataAgentProviderData, ThrowOnError>): RequestResult<DeleteMetadataAgentProviderResponses, DeleteMetadataAgentProviderErrors, ThrowOnError> => (options.client ?? client).delete<DeleteMetadataAgentProviderResponses, DeleteMetadataAgentProviderErrors, ThrowOnError>({
+    security: [{ name: 'X-Plex-Token', type: 'apiKey' }],
+    url: '/media/providers/metadata/{providerId}',
+    ...options
+});
+
+/**
+ * Get a metadata agent provider
+ *
+ * Get the metadata agent provider with the given id.
+ */
+export const getMetadataAgentProvider = <ThrowOnError extends boolean = false>(options: Options<GetMetadataAgentProviderData, ThrowOnError>): RequestResult<GetMetadataAgentProviderResponses, GetMetadataAgentProviderErrors, ThrowOnError> => (options.client ?? client).get<GetMetadataAgentProviderResponses, GetMetadataAgentProviderErrors, ThrowOnError>({
+    security: [{ name: 'X-Plex-Token', type: 'apiKey' }],
+    url: '/media/providers/metadata/{providerId}',
+    ...options
+});
+
+/**
+ * Modify a metadata agent provider
+ *
+ * Modify the metadata agent provider with the given id. Only the URI is passed, the response to the URI will determine the other properties.
+ */
+export const putMetadataAgentProvider = <ThrowOnError extends boolean = false>(options: Options<PutMetadataAgentProviderData, ThrowOnError>): RequestResult<PutMetadataAgentProviderResponses, PutMetadataAgentProviderErrors, ThrowOnError> => (options.client ?? client).put<PutMetadataAgentProviderResponses, PutMetadataAgentProviderErrors, ThrowOnError>({
+    security: [{ name: 'X-Plex-Token', type: 'apiKey' }],
+    url: '/media/providers/metadata/{providerId}',
+    ...options
+});
+
+/**
  * Refresh media providers
  *
  * Refresh all known media providers. This is useful in case a provider has updated features.
@@ -2431,6 +2376,17 @@ export const putMetadataAgentProviderGroupItem = <ThrowOnError extends boolean =
 export const postMediaProvidersRefresh = <ThrowOnError extends boolean = false>(options?: Options<PostMediaProvidersRefreshData, ThrowOnError>): RequestResult<PostMediaProvidersRefreshResponses, unknown, ThrowOnError> => (options?.client ?? client).post<PostMediaProvidersRefreshResponses, unknown, ThrowOnError>({
     security: [{ name: 'X-Plex-Token', type: 'apiKey' }],
     url: '/media/providers/refresh',
+    ...options
+});
+
+/**
+ * Delete a media provider
+ *
+ * Deletes a media provider with the given id
+ */
+export const deleteMediaProvider = <ThrowOnError extends boolean = false>(options: Options<DeleteMediaProviderData, ThrowOnError>): RequestResult<DeleteMediaProviderResponses, DeleteMediaProviderErrors, ThrowOnError> => (options.client ?? client).delete<DeleteMediaProviderResponses, DeleteMediaProviderErrors, ThrowOnError>({
+    security: [{ name: 'X-Plex-Token', type: 'apiKey' }],
+    url: '/media/providers/{provider}',
     ...options
 });
 
@@ -2453,6 +2409,39 @@ export const mediaSubscriptionsGetSlash = <ThrowOnError extends boolean = false>
 export const mediaSubscriptionsPostSlash = <ThrowOnError extends boolean = false>(options?: Options<MediaSubscriptionsPostSlashData, ThrowOnError>): RequestResult<MediaSubscriptionsPostSlashResponses, MediaSubscriptionsPostSlashErrors, ThrowOnError> => (options?.client ?? client).post<MediaSubscriptionsPostSlashResponses, MediaSubscriptionsPostSlashErrors, ThrowOnError>({
     security: [{ name: 'X-Plex-Token', type: 'apiKey' }],
     url: '/media/subscriptions',
+    ...options
+});
+
+/**
+ * Process all subscriptions
+ *
+ * Process all subscriptions asynchronously
+ */
+export const mediaSubscriptionsPostProcess = <ThrowOnError extends boolean = false>(options?: Options<MediaSubscriptionsPostProcessData, ThrowOnError>): RequestResult<MediaSubscriptionsPostProcessResponses, MediaSubscriptionsPostProcessErrors, ThrowOnError> => (options?.client ?? client).post<MediaSubscriptionsPostProcessResponses, MediaSubscriptionsPostProcessErrors, ThrowOnError>({
+    security: [{ name: 'X-Plex-Token', type: 'apiKey' }],
+    url: '/media/subscriptions/process',
+    ...options
+});
+
+/**
+ * Get all scheduled recordings
+ *
+ * Get all scheduled recordings across all subscriptions
+ */
+export const mediaSubscriptionsGetScheduled = <ThrowOnError extends boolean = false>(options?: Options<MediaSubscriptionsGetScheduledData, ThrowOnError>): RequestResult<MediaSubscriptionsGetScheduledResponses, MediaSubscriptionsGetScheduledErrors, ThrowOnError> => (options?.client ?? client).get<MediaSubscriptionsGetScheduledResponses, MediaSubscriptionsGetScheduledErrors, ThrowOnError>({
+    security: [{ name: 'X-Plex-Token', type: 'apiKey' }],
+    url: '/media/subscriptions/scheduled',
+    ...options
+});
+
+/**
+ * Get the subscription template
+ *
+ * Get the templates for a piece of media which could include fetching one airing, season, the whole show, etc.
+ */
+export const mediaSubscriptionsGetTemplate = <ThrowOnError extends boolean = false>(options?: Options<MediaSubscriptionsGetTemplateData, ThrowOnError>): RequestResult<MediaSubscriptionsGetTemplateResponses, MediaSubscriptionsGetTemplateErrors, ThrowOnError> => (options?.client ?? client).get<MediaSubscriptionsGetTemplateResponses, MediaSubscriptionsGetTemplateErrors, ThrowOnError>({
+    security: [{ name: 'X-Plex-Token', type: 'apiKey' }],
+    url: '/media/subscriptions/template',
     ...options
 });
 
@@ -2501,39 +2490,6 @@ export const mediaSubscriptionsPutSubscriptionMove = <ThrowOnError extends boole
 });
 
 /**
- * Process all subscriptions
- *
- * Process all subscriptions asynchronously
- */
-export const mediaSubscriptionsPostProcess = <ThrowOnError extends boolean = false>(options?: Options<MediaSubscriptionsPostProcessData, ThrowOnError>): RequestResult<MediaSubscriptionsPostProcessResponses, MediaSubscriptionsPostProcessErrors, ThrowOnError> => (options?.client ?? client).post<MediaSubscriptionsPostProcessResponses, MediaSubscriptionsPostProcessErrors, ThrowOnError>({
-    security: [{ name: 'X-Plex-Token', type: 'apiKey' }],
-    url: '/media/subscriptions/process',
-    ...options
-});
-
-/**
- * Get all scheduled recordings
- *
- * Get all scheduled recordings across all subscriptions
- */
-export const mediaSubscriptionsGetScheduled = <ThrowOnError extends boolean = false>(options?: Options<MediaSubscriptionsGetScheduledData, ThrowOnError>): RequestResult<MediaSubscriptionsGetScheduledResponses, MediaSubscriptionsGetScheduledErrors, ThrowOnError> => (options?.client ?? client).get<MediaSubscriptionsGetScheduledResponses, MediaSubscriptionsGetScheduledErrors, ThrowOnError>({
-    security: [{ name: 'X-Plex-Token', type: 'apiKey' }],
-    url: '/media/subscriptions/scheduled',
-    ...options
-});
-
-/**
- * Get the subscription template
- *
- * Get the templates for a piece of media which could include fetching one airing, season, the whole show, etc.
- */
-export const mediaSubscriptionsGetTemplate = <ThrowOnError extends boolean = false>(options?: Options<MediaSubscriptionsGetTemplateData, ThrowOnError>): RequestResult<MediaSubscriptionsGetTemplateResponses, MediaSubscriptionsGetTemplateErrors, ThrowOnError> => (options?.client ?? client).get<MediaSubscriptionsGetTemplateResponses, MediaSubscriptionsGetTemplateErrors, ThrowOnError>({
-    security: [{ name: 'X-Plex-Token', type: 'apiKey' }],
-    url: '/media/subscriptions/template',
-    ...options
-});
-
-/**
  * Transcode an image
  *
  * Transcode an image, possibly changing format or size
@@ -2541,6 +2497,106 @@ export const mediaSubscriptionsGetTemplate = <ThrowOnError extends boolean = fal
 export const imageTranscode = <ThrowOnError extends boolean = false>(options?: Options<ImageTranscodeData, ThrowOnError>): RequestResult<ImageTranscodeResponses, ImageTranscodeErrors, ThrowOnError> => (options?.client ?? client).get<ImageTranscodeResponses, ImageTranscodeErrors, ThrowOnError>({
     security: [{ name: 'X-Plex-Token', type: 'apiKey' }],
     url: '/photo/:/transcode',
+    ...options
+});
+
+/**
+ * Create a play queue
+ *
+ * Makes a new play queue for a device. The source of the playqueue can either be a URI, or a playlist. The response is a media container with the initial items in the queue. Each item in the queue will be a regular item but with `playQueueItemID` - a unique ID since the queue could have repeated items with the same `ratingKey`.
+ * Note: Either `uri` or `playlistID` must be specified
+ */
+export const playQueuePostSlash = <ThrowOnError extends boolean = false>(options: Options<PlayQueuePostSlashData, ThrowOnError>): RequestResult<PlayQueuePostSlashResponses, PlayQueuePostSlashErrors, ThrowOnError> => (options.client ?? client).post<PlayQueuePostSlashResponses, PlayQueuePostSlashErrors, ThrowOnError>({
+    security: [{ name: 'X-Plex-Token', type: 'apiKey' }],
+    url: '/playQueues',
+    ...options
+});
+
+/**
+ * Retrieve a play queue
+ *
+ * Retrieves the play queue, centered at current item. This can be treated as a regular container by play queue-oblivious clients, but they may wish to request a large window onto the queue since they won't know to refresh.
+ */
+export const playQueueQueueGetSlash = <ThrowOnError extends boolean = false>(options: Options<PlayQueueQueueGetSlashData, ThrowOnError>): RequestResult<PlayQueueQueueGetSlashResponses, PlayQueueQueueGetSlashErrors, ThrowOnError> => (options.client ?? client).get<PlayQueueQueueGetSlashResponses, PlayQueueQueueGetSlashErrors, ThrowOnError>({
+    security: [{ name: 'X-Plex-Token', type: 'apiKey' }],
+    url: '/playQueues/{playQueueId}',
+    ...options
+});
+
+/**
+ * Add a generator or playlist to a play queue
+ *
+ * Adds an item to a play queue (e.g. party mode). Increments the version of the play queue. Takes the following parameters (`uri` and `playlistID` are mutually exclusive). Returns the modified play queue.
+ */
+export const playQueueQueuePutSlash = <ThrowOnError extends boolean = false>(options: Options<PlayQueueQueuePutSlashData, ThrowOnError>): RequestResult<PlayQueueQueuePutSlashResponses, PlayQueueQueuePutSlashErrors, ThrowOnError> => (options.client ?? client).put<PlayQueueQueuePutSlashResponses, PlayQueueQueuePutSlashErrors, ThrowOnError>({
+    security: [{ name: 'X-Plex-Token', type: 'apiKey' }],
+    url: '/playQueues/{playQueueId}',
+    ...options
+});
+
+/**
+ * Clear a play queue
+ *
+ * Deletes all items in the play queue, and increases the version of the play queue.
+ */
+export const playQueueQueueDeleteItems = <ThrowOnError extends boolean = false>(options: Options<PlayQueueQueueDeleteItemsData, ThrowOnError>): RequestResult<PlayQueueQueueDeleteItemsResponses, unknown, ThrowOnError> => (options.client ?? client).delete<PlayQueueQueueDeleteItemsResponses, unknown, ThrowOnError>({
+    security: [{ name: 'X-Plex-Token', type: 'apiKey' }],
+    url: '/playQueues/{playQueueId}/items',
+    ...options
+});
+
+/**
+ * Delete an item from a play queue
+ *
+ * Deletes an item in a play queue. Increments the version of the play queue. Returns the modified play queue.
+ */
+export const playQueueQueueDeleteItemsItem = <ThrowOnError extends boolean = false>(options: Options<PlayQueueQueueDeleteItemsItemData, ThrowOnError>): RequestResult<PlayQueueQueueDeleteItemsItemResponses, PlayQueueQueueDeleteItemsItemErrors, ThrowOnError> => (options.client ?? client).delete<PlayQueueQueueDeleteItemsItemResponses, PlayQueueQueueDeleteItemsItemErrors, ThrowOnError>({
+    security: [{ name: 'X-Plex-Token', type: 'apiKey' }],
+    url: '/playQueues/{playQueueId}/items/{playQueueItemId}',
+    ...options
+});
+
+/**
+ * Move an item in a play queue
+ *
+ * Moves an item in a play queue, and increases the version of the play queue. Returns the modified play queue.
+ */
+export const playQueueQueuePutItemsMove = <ThrowOnError extends boolean = false>(options: Options<PlayQueueQueuePutItemsMoveData, ThrowOnError>): RequestResult<PlayQueueQueuePutItemsMoveResponses, PlayQueueQueuePutItemsMoveErrors, ThrowOnError> => (options.client ?? client).put<PlayQueueQueuePutItemsMoveResponses, PlayQueueQueuePutItemsMoveErrors, ThrowOnError>({
+    security: [{ name: 'X-Plex-Token', type: 'apiKey' }],
+    url: '/playQueues/{playQueueId}/items/{playQueueItemId}/move',
+    ...options
+});
+
+/**
+ * Reset a play queue
+ *
+ * Reset a play queue to the first item being the current item
+ */
+export const playQueuePlayQueueReset = <ThrowOnError extends boolean = false>(options: Options<PlayQueuePlayQueueResetData, ThrowOnError>): RequestResult<PlayQueuePlayQueueResetResponses, PlayQueuePlayQueueResetErrors, ThrowOnError> => (options.client ?? client).put<PlayQueuePlayQueueResetResponses, PlayQueuePlayQueueResetErrors, ThrowOnError>({
+    security: [{ name: 'X-Plex-Token', type: 'apiKey' }],
+    url: '/playQueues/{playQueueId}/reset',
+    ...options
+});
+
+/**
+ * Shuffle a play queue
+ *
+ * Shuffle a play queue (or reshuffles if already shuffled). The currently selected item is maintained. Note that this is currently only supported for play queues *without* an Up Next area. Returns the modified play queue.
+ */
+export const playQueueQueuePutItemsShuffle = <ThrowOnError extends boolean = false>(options: Options<PlayQueueQueuePutItemsShuffleData, ThrowOnError>): RequestResult<PlayQueueQueuePutItemsShuffleResponses, PlayQueueQueuePutItemsShuffleErrors, ThrowOnError> => (options.client ?? client).put<PlayQueueQueuePutItemsShuffleResponses, PlayQueueQueuePutItemsShuffleErrors, ThrowOnError>({
+    security: [{ name: 'X-Plex-Token', type: 'apiKey' }],
+    url: '/playQueues/{playQueueId}/shuffle',
+    ...options
+});
+
+/**
+ * Unshuffle a play queue
+ *
+ * Unshuffles a play queue and restores "natural order". Note that this is currently only supported for play queues *without* an Up Next area. Returns the modified play queue.
+ */
+export const playQueueQueuePutItemsUnshuffle = <ThrowOnError extends boolean = false>(options: Options<PlayQueueQueuePutItemsUnshuffleData, ThrowOnError>): RequestResult<PlayQueueQueuePutItemsUnshuffleResponses, PlayQueueQueuePutItemsUnshuffleErrors, ThrowOnError> => (options.client ?? client).put<PlayQueueQueuePutItemsUnshuffleResponses, PlayQueueQueuePutItemsUnshuffleErrors, ThrowOnError>({
+    security: [{ name: 'X-Plex-Token', type: 'apiKey' }],
+    url: '/playQueues/{playQueueId}/unshuffle',
     ...options
 });
 
@@ -2563,6 +2619,17 @@ export const playlistGetSlash = <ThrowOnError extends boolean = false>(options?:
 export const playlistPostSlash = <ThrowOnError extends boolean = false>(options?: Options<PlaylistPostSlashData, ThrowOnError>): RequestResult<PlaylistPostSlashResponses, PlaylistPostSlashErrors, ThrowOnError> => (options?.client ?? client).post<PlaylistPostSlashResponses, PlaylistPostSlashErrors, ThrowOnError>({
     security: [{ name: 'X-Plex-Token', type: 'apiKey' }],
     url: '/playlists',
+    ...options
+});
+
+/**
+ * Upload
+ *
+ * Imports m3u playlists by passing a path on the server to scan for m3u-formatted playlist files, or a path to a single playlist file.
+ */
+export const playlistPostUpload = <ThrowOnError extends boolean = false>(options?: Options<PlaylistPostUploadData, ThrowOnError>): RequestResult<PlaylistPostUploadResponses, PlaylistPostUploadErrors, ThrowOnError> => (options?.client ?? client).post<PlaylistPostUploadResponses, PlaylistPostUploadErrors, ThrowOnError>({
+    security: [{ name: 'X-Plex-Token', type: 'apiKey' }],
+    url: '/playlists/upload',
     ...options
 });
 
@@ -2679,17 +2746,6 @@ export const playlistPutItemsGenerator = <ThrowOnError extends boolean = false>(
 });
 
 /**
- * Reprocess a generator
- *
- * Make a generator reprocess (refresh)
- */
-export const playlistPutItemsGeneratorReprocess = <ThrowOnError extends boolean = false>(options: Options<PlaylistPutItemsGeneratorReprocessData, ThrowOnError>): RequestResult<PlaylistPutItemsGeneratorReprocessResponses, PlaylistPutItemsGeneratorReprocessErrors, ThrowOnError> => (options.client ?? client).put<PlaylistPutItemsGeneratorReprocessResponses, PlaylistPutItemsGeneratorReprocessErrors, ThrowOnError>({
-    security: [{ name: 'X-Plex-Token', type: 'apiKey' }],
-    url: '/playlists/{playlistId}/items/{generatorId}/{metadataId}/{action}',
-    ...options
-});
-
-/**
  * Get a playlist generator's items
  *
  * Get a playlist generator's items
@@ -2701,6 +2757,17 @@ export const playlistGetItemsGeneratorItems = <ThrowOnError extends boolean = fa
 });
 
 /**
+ * Reprocess a generator
+ *
+ * Make a generator reprocess (refresh)
+ */
+export const playlistPutItemsGeneratorReprocess = <ThrowOnError extends boolean = false>(options: Options<PlaylistPutItemsGeneratorReprocessData, ThrowOnError>): RequestResult<PlaylistPutItemsGeneratorReprocessResponses, PlaylistPutItemsGeneratorReprocessErrors, ThrowOnError> => (options.client ?? client).put<PlaylistPutItemsGeneratorReprocessResponses, PlaylistPutItemsGeneratorReprocessErrors, ThrowOnError>({
+    security: [{ name: 'X-Plex-Token', type: 'apiKey' }],
+    url: '/playlists/{playlistId}/items/{generatorId}/{metadataId}/{action}',
+    ...options
+});
+
+/**
  * Moving items in a playlist
  *
  * Moves an item in a playlist. Only works with dumb playlists.
@@ -2708,117 +2775,6 @@ export const playlistGetItemsGeneratorItems = <ThrowOnError extends boolean = fa
 export const playlistPutItemsMove = <ThrowOnError extends boolean = false>(options: Options<PlaylistPutItemsMoveData, ThrowOnError>): RequestResult<PlaylistPutItemsMoveResponses, PlaylistPutItemsMoveErrors, ThrowOnError> => (options.client ?? client).put<PlaylistPutItemsMoveResponses, PlaylistPutItemsMoveErrors, ThrowOnError>({
     security: [{ name: 'X-Plex-Token', type: 'apiKey' }],
     url: '/playlists/{playlistId}/items/{playlistItemId}/move',
-    ...options
-});
-
-/**
- * Upload
- *
- * Imports m3u playlists by passing a path on the server to scan for m3u-formatted playlist files, or a path to a single playlist file.
- */
-export const playlistPostUpload = <ThrowOnError extends boolean = false>(options?: Options<PlaylistPostUploadData, ThrowOnError>): RequestResult<PlaylistPostUploadResponses, PlaylistPostUploadErrors, ThrowOnError> => (options?.client ?? client).post<PlaylistPostUploadResponses, PlaylistPostUploadErrors, ThrowOnError>({
-    security: [{ name: 'X-Plex-Token', type: 'apiKey' }],
-    url: '/playlists/upload',
-    ...options
-});
-
-/**
- * Create a play queue
- *
- * Makes a new play queue for a device. The source of the playqueue can either be a URI, or a playlist. The response is a media container with the initial items in the queue. Each item in the queue will be a regular item but with `playQueueItemID` - a unique ID since the queue could have repeated items with the same `ratingKey`.
- * Note: Either `uri` or `playlistID` must be specified
- */
-export const playQueuePostSlash = <ThrowOnError extends boolean = false>(options: Options<PlayQueuePostSlashData, ThrowOnError>): RequestResult<PlayQueuePostSlashResponses, PlayQueuePostSlashErrors, ThrowOnError> => (options.client ?? client).post<PlayQueuePostSlashResponses, PlayQueuePostSlashErrors, ThrowOnError>({
-    security: [{ name: 'X-Plex-Token', type: 'apiKey' }],
-    url: '/playQueues',
-    ...options
-});
-
-/**
- * Retrieve a play queue
- *
- * Retrieves the play queue, centered at current item. This can be treated as a regular container by play queue-oblivious clients, but they may wish to request a large window onto the queue since they won't know to refresh.
- */
-export const playQueueQueueGetSlash = <ThrowOnError extends boolean = false>(options: Options<PlayQueueQueueGetSlashData, ThrowOnError>): RequestResult<PlayQueueQueueGetSlashResponses, PlayQueueQueueGetSlashErrors, ThrowOnError> => (options.client ?? client).get<PlayQueueQueueGetSlashResponses, PlayQueueQueueGetSlashErrors, ThrowOnError>({
-    security: [{ name: 'X-Plex-Token', type: 'apiKey' }],
-    url: '/playQueues/{playQueueId}',
-    ...options
-});
-
-/**
- * Add a generator or playlist to a play queue
- *
- * Adds an item to a play queue (e.g. party mode). Increments the version of the play queue. Takes the following parameters (`uri` and `playlistID` are mutually exclusive). Returns the modified play queue.
- */
-export const playQueueQueuePutSlash = <ThrowOnError extends boolean = false>(options: Options<PlayQueueQueuePutSlashData, ThrowOnError>): RequestResult<PlayQueueQueuePutSlashResponses, PlayQueueQueuePutSlashErrors, ThrowOnError> => (options.client ?? client).put<PlayQueueQueuePutSlashResponses, PlayQueueQueuePutSlashErrors, ThrowOnError>({
-    security: [{ name: 'X-Plex-Token', type: 'apiKey' }],
-    url: '/playQueues/{playQueueId}',
-    ...options
-});
-
-/**
- * Clear a play queue
- *
- * Deletes all items in the play queue, and increases the version of the play queue.
- */
-export const playQueueQueueDeleteItems = <ThrowOnError extends boolean = false>(options: Options<PlayQueueQueueDeleteItemsData, ThrowOnError>): RequestResult<PlayQueueQueueDeleteItemsResponses, unknown, ThrowOnError> => (options.client ?? client).delete<PlayQueueQueueDeleteItemsResponses, unknown, ThrowOnError>({
-    security: [{ name: 'X-Plex-Token', type: 'apiKey' }],
-    url: '/playQueues/{playQueueId}/items',
-    ...options
-});
-
-/**
- * Delete an item from a play queue
- *
- * Deletes an item in a play queue. Increments the version of the play queue. Returns the modified play queue.
- */
-export const playQueueQueueDeleteItemsItem = <ThrowOnError extends boolean = false>(options: Options<PlayQueueQueueDeleteItemsItemData, ThrowOnError>): RequestResult<PlayQueueQueueDeleteItemsItemResponses, PlayQueueQueueDeleteItemsItemErrors, ThrowOnError> => (options.client ?? client).delete<PlayQueueQueueDeleteItemsItemResponses, PlayQueueQueueDeleteItemsItemErrors, ThrowOnError>({
-    security: [{ name: 'X-Plex-Token', type: 'apiKey' }],
-    url: '/playQueues/{playQueueId}/items/{playQueueItemId}',
-    ...options
-});
-
-/**
- * Move an item in a play queue
- *
- * Moves an item in a play queue, and increases the version of the play queue. Returns the modified play queue.
- */
-export const playQueueQueuePutItemsMove = <ThrowOnError extends boolean = false>(options: Options<PlayQueueQueuePutItemsMoveData, ThrowOnError>): RequestResult<PlayQueueQueuePutItemsMoveResponses, PlayQueueQueuePutItemsMoveErrors, ThrowOnError> => (options.client ?? client).put<PlayQueueQueuePutItemsMoveResponses, PlayQueueQueuePutItemsMoveErrors, ThrowOnError>({
-    security: [{ name: 'X-Plex-Token', type: 'apiKey' }],
-    url: '/playQueues/{playQueueId}/items/{playQueueItemId}/move',
-    ...options
-});
-
-/**
- * Reset a play queue
- *
- * Reset a play queue to the first item being the current item
- */
-export const playQueuePlayQueueReset = <ThrowOnError extends boolean = false>(options: Options<PlayQueuePlayQueueResetData, ThrowOnError>): RequestResult<PlayQueuePlayQueueResetResponses, PlayQueuePlayQueueResetErrors, ThrowOnError> => (options.client ?? client).put<PlayQueuePlayQueueResetResponses, PlayQueuePlayQueueResetErrors, ThrowOnError>({
-    security: [{ name: 'X-Plex-Token', type: 'apiKey' }],
-    url: '/playQueues/{playQueueId}/reset',
-    ...options
-});
-
-/**
- * Shuffle a play queue
- *
- * Shuffle a play queue (or reshuffles if already shuffled). The currently selected item is maintained. Note that this is currently only supported for play queues *without* an Up Next area. Returns the modified play queue.
- */
-export const playQueueQueuePutItemsShuffle = <ThrowOnError extends boolean = false>(options: Options<PlayQueueQueuePutItemsShuffleData, ThrowOnError>): RequestResult<PlayQueueQueuePutItemsShuffleResponses, PlayQueueQueuePutItemsShuffleErrors, ThrowOnError> => (options.client ?? client).put<PlayQueueQueuePutItemsShuffleResponses, PlayQueueQueuePutItemsShuffleErrors, ThrowOnError>({
-    security: [{ name: 'X-Plex-Token', type: 'apiKey' }],
-    url: '/playQueues/{playQueueId}/shuffle',
-    ...options
-});
-
-/**
- * Unshuffle a play queue
- *
- * Unshuffles a play queue and restores "natural order". Note that this is currently only supported for play queues *without* an Up Next area. Returns the modified play queue.
- */
-export const playQueueQueuePutItemsUnshuffle = <ThrowOnError extends boolean = false>(options: Options<PlayQueueQueuePutItemsUnshuffleData, ThrowOnError>): RequestResult<PlayQueueQueuePutItemsUnshuffleResponses, PlayQueueQueuePutItemsUnshuffleErrors, ThrowOnError> => (options.client ?? client).put<PlayQueueQueuePutItemsUnshuffleResponses, PlayQueueQueuePutItemsUnshuffleErrors, ThrowOnError>({
-    security: [{ name: 'X-Plex-Token', type: 'apiKey' }],
-    url: '/playQueues/{playQueueId}/unshuffle',
     ...options
 });
 
@@ -2890,6 +2846,18 @@ export const statusGetBackground = <ThrowOnError extends boolean = false>(option
 });
 
 /**
+ * List Playback History
+ *
+ * List all playback history (Admin can see all users, others can only see their own).
+ * Pagination should be used on this endpoint.  Additionally this endpoint supports `includeFields`, `excludeFields`, `includeElements`, and `excludeElements` parameters.
+ */
+export const statusGetHistoryAll = <ThrowOnError extends boolean = false>(options?: Options<StatusGetHistoryAllData, ThrowOnError>): RequestResult<StatusGetHistoryAllResponses, unknown, ThrowOnError> => (options?.client ?? client).get<StatusGetHistoryAllResponses, unknown, ThrowOnError>({
+    security: [{ name: 'X-Plex-Token', type: 'apiKey' }],
+    url: '/status/sessions/history/all',
+    ...options
+});
+
+/**
  * Delete Single History Item
  *
  * Delete a single history item by id
@@ -2908,18 +2876,6 @@ export const statusDeleteHistory = <ThrowOnError extends boolean = false>(option
 export const statusGetHistory = <ThrowOnError extends boolean = false>(options: Options<StatusGetHistoryData, ThrowOnError>): RequestResult<StatusGetHistoryResponses, StatusGetHistoryErrors, ThrowOnError> => (options.client ?? client).get<StatusGetHistoryResponses, StatusGetHistoryErrors, ThrowOnError>({
     security: [{ name: 'X-Plex-Token', type: 'apiKey' }],
     url: '/status/sessions/history/{historyId}',
-    ...options
-});
-
-/**
- * List Playback History
- *
- * List all playback history (Admin can see all users, others can only see their own).
- * Pagination should be used on this endpoint.  Additionally this endpoint supports `includeFields`, `excludeFields`, `includeElements`, and `excludeElements` parameters.
- */
-export const statusGetHistoryAll = <ThrowOnError extends boolean = false>(options?: Options<StatusGetHistoryAllData, ThrowOnError>): RequestResult<StatusGetHistoryAllResponses, unknown, ThrowOnError> => (options?.client ?? client).get<StatusGetHistoryAllResponses, unknown, ThrowOnError>({
-    security: [{ name: 'X-Plex-Token', type: 'apiKey' }],
-    url: '/status/sessions/history/all',
     ...options
 });
 
@@ -3008,5 +2964,49 @@ export const updaterPutCheck = <ThrowOnError extends boolean = false>(options?: 
 export const updaterGetStatus = <ThrowOnError extends boolean = false>(options?: Options<UpdaterGetStatusData, ThrowOnError>): RequestResult<UpdaterGetStatusResponses, unknown, ThrowOnError> => (options?.client ?? client).get<UpdaterGetStatusResponses, unknown, ThrowOnError>({
     security: [{ name: 'X-Plex-Token', type: 'apiKey' }],
     url: '/updater/status',
+    ...options
+});
+
+/**
+ * Make a decision on media playback
+ *
+ * Make a decision on media playback based on client profile, and requested settings such as bandwidth and resolution.
+ */
+export const transcodeDecision = <ThrowOnError extends boolean = false>(options: Options<TranscodeDecisionData, ThrowOnError>): RequestResult<TranscodeDecisionResponses, unknown, ThrowOnError> => (options.client ?? client).get<TranscodeDecisionResponses, unknown, ThrowOnError>({
+    security: [{ name: 'X-Plex-Token', type: 'apiKey' }],
+    url: '/{transcodeType}/:/transcode/universal/decision',
+    ...options
+});
+
+/**
+ * Manually trigger a transcoder fallback
+ *
+ * Manually trigger a transcoder fallback ex: HEVC to h.264 or hw to sw
+ */
+export const transcodeFallback = <ThrowOnError extends boolean = false>(options: Options<TranscodeFallbackData, ThrowOnError>): RequestResult<TranscodeFallbackResponses, TranscodeFallbackErrors, ThrowOnError> => (options.client ?? client).post<TranscodeFallbackResponses, TranscodeFallbackErrors, ThrowOnError>({
+    security: [{ name: 'X-Plex-Token', type: 'apiKey' }],
+    url: '/{transcodeType}/:/transcode/universal/fallback',
+    ...options
+});
+
+/**
+ * Start A Transcoding Session
+ *
+ * Starts the transcoder and returns the corresponding streaming resource document.
+ */
+export const transcodeStart = <ThrowOnError extends boolean = false>(options: Options<TranscodeStartData, ThrowOnError>): RequestResult<TranscodeStartResponses, TranscodeStartErrors, ThrowOnError> => (options.client ?? client).get<TranscodeStartResponses, TranscodeStartErrors, ThrowOnError>({
+    security: [{ name: 'X-Plex-Token', type: 'apiKey' }],
+    url: '/{transcodeType}/:/transcode/universal/start.*',
+    ...options
+});
+
+/**
+ * Transcode subtitles
+ *
+ * Only transcode subtitle streams.
+ */
+export const transcodeSubtitles = <ThrowOnError extends boolean = false>(options: Options<TranscodeSubtitlesData, ThrowOnError>): RequestResult<TranscodeSubtitlesResponses, TranscodeSubtitlesErrors, ThrowOnError> => (options.client ?? client).get<TranscodeSubtitlesResponses, TranscodeSubtitlesErrors, ThrowOnError>({
+    security: [{ name: 'X-Plex-Token', type: 'apiKey' }],
+    url: '/{transcodeType}/:/transcode/universal/subtitles',
     ...options
 });

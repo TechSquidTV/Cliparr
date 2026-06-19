@@ -3,10 +3,10 @@
   "upstreamVersion": "1.2.2",
   "openapiVersion": "3.1.0",
   "pathCount": 205,
-  "specSha256": "653b2e1f29c49ffd0a2b89a780d028d92fa957d444f0e26a3f38a3eb47ffacf4",
+  "specSha256": "790038c11318312980c8a4317acd9711d93b717865f7fdc183cf60a8c43587d0",
   "generatedBy": {
     "package": "@hey-api/openapi-ts",
     "version": "0.98.2"
   },
-  "fetchedAt": "2026-06-19T20:57:27.417Z"
+  "fetchedAt": "2026-06-19T21:16:05.766Z"
 }
