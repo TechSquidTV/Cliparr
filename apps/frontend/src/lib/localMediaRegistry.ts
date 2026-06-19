@@ -62,13 +62,13 @@ interface StoredRecordBase {
   updatedAt: string;
 }
 
-export interface StoredUrlRecord extends StoredRecordBase {
+interface StoredUrlRecord extends StoredRecordBase {
   kind: "url";
   url: string;
   hls: boolean;
 }
 
-export interface StoredFileHandleRecord extends StoredRecordBase {
+interface StoredFileHandleRecord extends StoredRecordBase {
   kind: "file-handle";
   name: string;
   type?: string;
@@ -77,7 +77,7 @@ export interface StoredFileHandleRecord extends StoredRecordBase {
   handle: BrowserFileHandle;
 }
 
-export interface MemoryFileRecord extends StoredRecordBase {
+interface MemoryFileRecord extends StoredRecordBase {
   kind: "memory-file";
   name: string;
   type?: string;

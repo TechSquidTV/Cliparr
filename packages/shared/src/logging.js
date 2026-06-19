@@ -1,3 +1,22 @@
+// The placeholder scheme preserves historical protocol-relative log output.
+const SANITIZE_URL_BASE = "http://cliparr.local";
+
+function tryParseAbsoluteUrl(value) {
+  try {
+    return new URL(value);
+  } catch {
+    return;
+  }
+}
+
+function tryParseUrlWithBase(value, base) {
+  try {
+    return new URL(value, base);
+  } catch {
+    return;
+  }
+}
+
 export function compactLogFields(fields) {
   return Object.fromEntries(
     Object.entries(fields).filter((entry) => entry[1] !== undefined),
@@ -40,19 +59,17 @@ export function sanitizeUrlForLog(value) {
     return value;
   }
 
-  try {
-    const parsed = new URL(value);
-    return `${parsed.origin}${parsed.pathname}`;
-  } catch {
-    // Relative URLs are logged without query strings or fragments.
+  const absoluteUrl = tryParseAbsoluteUrl(value);
+  if (absoluteUrl) {
+    return `${absoluteUrl.origin}${absoluteUrl.pathname}`;
   }
 
-  try {
-    const parsed = new URL(value, "http://cliparr.local");
-    return parsed.origin === "http://cliparr.local"
+  const parsed = tryParseUrlWithBase(value, SANITIZE_URL_BASE);
+  if (parsed) {
+    return parsed.origin === SANITIZE_URL_BASE
       ? parsed.pathname
       : `${parsed.origin}${parsed.pathname}`;
-  } catch {
-    return value.split(/[#?]/, 1)[0] ?? value;
   }
+
+  return value.split(/[#?]/, 1)[0] ?? value;
 }

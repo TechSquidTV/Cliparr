@@ -2,6 +2,33 @@
 import { appendFileSync, readFileSync } from "node:fs";
 import { pathToFileURL } from "node:url";
 
+const booleanArgumentNames = new Set(["--dry-run", "--prerelease"]);
+const valueArgumentNames = new Set([
+  "--repository",
+  "--tag",
+  "--target",
+  "--previous-tag",
+  "--name",
+  "--image-name",
+  "--image-digest",
+  "--docker-tags-file",
+]);
+const requiredArguments = [
+  "repository",
+  "tag",
+  "target",
+  "previousTag",
+  "name",
+  "imageName",
+  "dockerTagsFile",
+];
+
+function argumentNameToKey(argument) {
+  return argument
+    .slice(2)
+    .replaceAll(/-([a-z])/g, (_, letter) => letter.toUpperCase());
+}
+
 export function parseArguments(argv) {
   const arguments_ = {
     dryRun: false,
@@ -11,36 +38,19 @@ export function parseArguments(argv) {
   for (let index = 0; index < argv.length; index += 1) {
     const argument = argv[index];
 
-    if (argument === "--dry-run" || argument === "--prerelease") {
-      arguments_[
-        argument
-          .slice(2)
-          .replaceAll(/-([a-z])/g, (_, letter) => letter.toUpperCase())
-      ] = true;
+    if (booleanArgumentNames.has(argument)) {
+      arguments_[argumentNameToKey(argument)] = true;
       continue;
     }
 
-    if (
-      argument === "--repository" ||
-      argument === "--tag" ||
-      argument === "--target" ||
-      argument === "--previous-tag" ||
-      argument === "--name" ||
-      argument === "--image-name" ||
-      argument === "--image-digest" ||
-      argument === "--docker-tags-file"
-    ) {
+    if (valueArgumentNames.has(argument)) {
       const value = argv[index + 1];
 
       if (value === undefined) {
         throw new Error(`${argument} requires a value.`);
       }
 
-      arguments_[
-        argument
-          .slice(2)
-          .replaceAll(/-([a-z])/g, (_, letter) => letter.toUpperCase())
-      ] = value;
+      arguments_[argumentNameToKey(argument)] = value;
       index += 1;
       continue;
     }
@@ -48,16 +58,10 @@ export function parseArguments(argv) {
     throw new Error(`Unknown argument ${argument}.`);
   }
 
-  for (const requiredArgument of [
-    "repository",
-    "tag",
-    "target",
-    "previousTag",
-    "name",
-    "imageName",
-    "dockerTagsFile",
-  ]) {
-    if (!arguments_[requiredArgument]) {
+  for (const requiredArgument of requiredArguments) {
+    const value = arguments_[requiredArgument];
+
+    if (typeof value !== "string" || value.length === 0) {
       throw new Error(
         `Missing --${requiredArgument.replaceAll(/[A-Z]/g, (letter) => `-${letter.toLowerCase()}`)}.`,
       );
@@ -68,15 +72,20 @@ export function parseArguments(argv) {
 }
 
 async function githubApi(path, { method = "GET", body, token }) {
+  const headers = {
+    Accept: "application/vnd.github+json",
+    "Content-Type": "application/json",
+    "User-Agent": "cliparr-release-automation",
+    "X-GitHub-Api-Version": "2022-11-28",
+  };
+
+  if (token) {
+    headers.Authorization = `Bearer ${token}`;
+  }
+
   const response = await fetch(`https://api.github.com${path}`, {
     method,
-    headers: {
-      Accept: "application/vnd.github+json",
-      "Content-Type": "application/json",
-      "User-Agent": "cliparr-release-automation",
-      "X-GitHub-Api-Version": "2022-11-28",
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    },
+    headers,
     body: body ? JSON.stringify(body) : undefined,
   });
 

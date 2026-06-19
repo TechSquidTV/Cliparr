@@ -1,6 +1,6 @@
 services:
   media-seed:
-    image: alpine:3.20
+    image: alpine:3.24
     command:
       - /bin/sh
       - -lc
@@ -35,7 +35,7 @@ services:
     restart: unless-stopped
 
   jellyfin-bootstrap:
-    image: alpine:3.20
+    image: alpine:3.24
     depends_on:
       media-seed:
         condition: service_completed_successfully
@@ -77,7 +77,7 @@ services:
     restart: unless-stopped
 
   plex-bootstrap:
-    image: alpine:3.20
+    image: alpine:3.24
     depends_on:
       media-seed:
         condition: service_completed_successfully

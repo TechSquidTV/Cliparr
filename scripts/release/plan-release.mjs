@@ -16,6 +16,13 @@ import {
 } from "#release/conventional.mjs";
 
 const validChannels = new Set(["stable", "rc", "beta"]);
+const valueArgumentNames = new Set(["--channel", "--target", "--image-name"]);
+
+function argumentNameToKey(argument) {
+  return argument
+    .slice(2)
+    .replaceAll(/-([a-z])/g, (_, letter) => letter.toUpperCase());
+}
 
 function parseArguments(argv) {
   const arguments_ = {
@@ -33,22 +40,14 @@ function parseArguments(argv) {
       continue;
     }
 
-    if (
-      argument === "--channel" ||
-      argument === "--target" ||
-      argument === "--image-name"
-    ) {
+    if (valueArgumentNames.has(argument)) {
       const value = argv[index + 1];
 
       if (!value) {
         throw new Error(`${argument} requires a value.`);
       }
 
-      arguments_[
-        argument
-          .slice(2)
-          .replaceAll(/-([a-z])/g, (_, letter) => letter.toUpperCase())
-      ] = value;
+      arguments_[argumentNameToKey(argument)] = value;
       index += 1;
       continue;
     }
@@ -248,8 +247,8 @@ async function planRelease(arguments_) {
   };
 }
 
-try {
-  const arguments_ = parseArguments(process.argv.slice(2));
+async function main(argv = process.argv.slice(2)) {
+  const arguments_ = parseArguments(argv);
   const plan = await planRelease(arguments_);
 
   if (arguments_.githubOutput) {
@@ -257,6 +256,10 @@ try {
   }
 
   process.stdout.write(`${JSON.stringify(plan, null, 2)}\n`);
+}
+
+try {
+  await main();
 } catch (error) {
   process.stderr.write(
     `${error instanceof Error ? error.message : String(error)}\n`,

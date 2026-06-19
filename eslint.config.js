@@ -54,6 +54,56 @@ const unicornAbbreviationAllowList = Object.fromEntries(
     "Www",
   ].map((name) => [name, true]),
 );
+const unicornUpgradeCompatibilityRules = {
+  // Preserve the repo's effective lint policy while keeping eslint-plugin-unicorn current.
+  "unicorn/consistent-boolean-name": "off",
+  "unicorn/consistent-optional-chaining": "off",
+  "unicorn/max-nested-calls": "off",
+  "unicorn/no-break-in-nested-loop": "off",
+  "unicorn/no-computed-property-existence-check": "off",
+  "unicorn/no-declarations-before-early-exit": "off",
+  "unicorn/no-error-property-assignment": "off",
+  "unicorn/no-global-object-property-assignment": "off",
+  "unicorn/no-invalid-file-input-accept": "off",
+  "unicorn/no-negated-array-predicate": "off",
+  "unicorn/no-non-function-verb-prefix": "off",
+  "unicorn/no-return-array-push": "off",
+  "unicorn/no-top-level-assignment-in-function": "off",
+  "unicorn/no-top-level-side-effects": "off",
+  "unicorn/no-unnecessary-global-this": "off",
+  "unicorn/no-unreadable-for-of-expression": "off",
+  "unicorn/no-unreadable-new-expression": "off",
+  "unicorn/no-unsafe-string-replacement": "off",
+  "unicorn/no-useless-boolean-cast": "off",
+  "unicorn/no-useless-coercion": "off",
+  "unicorn/no-useless-fallback-in-spread": "off",
+  "unicorn/prefer-array-from-map": "off",
+  "unicorn/prefer-at": "off",
+  "unicorn/prefer-await": "off",
+  "unicorn/prefer-direct-iteration": "off",
+  "unicorn/prefer-dispose": "off",
+  "unicorn/prefer-early-return": "off",
+  "unicorn/prefer-else-if": "off",
+  "unicorn/prefer-global-number-constants": "off",
+  "unicorn/prefer-global-this": "off",
+  "unicorn/prefer-https": "off",
+  "unicorn/prefer-includes-over-repeated-comparisons": "off",
+  "unicorn/prefer-iterator-to-array": "off",
+  "unicorn/prefer-minimal-ternary": "off",
+  "unicorn/prefer-number-coercion": "off",
+  "unicorn/prefer-number-is-safe-integer": "off",
+  "unicorn/prefer-object-define-properties": "off",
+  "unicorn/prefer-short-arrow-method": "off",
+  "unicorn/prefer-split-limit": "off",
+  "unicorn/prefer-string-repeat": "off",
+  "unicorn/prefer-temporal": "off",
+  "unicorn/prefer-ternary": "off",
+  "unicorn/prefer-uint8array-base64": "off",
+  "unicorn/prefer-unicode-code-point-escapes": "off",
+  "unicorn/prefer-url-href": "off",
+  "unicorn/require-array-sort-compare": "off",
+  "unicorn/try-complexity": "off",
+};
 
 export default tseslint.config(
   {
@@ -176,6 +226,7 @@ export default tseslint.config(
       ],
       // Cliparr exchanges JSON/provider/database values where null is contractually meaningful.
       "unicorn/no-null": "off",
+      ...unicornUpgradeCompatibilityRules,
       // React's DOM contract uses className, so keep the rule active for new-prefixed names only.
       "unicorn/no-keyword-prefix": [
         "error",
@@ -336,6 +387,7 @@ export default tseslint.config(
       "apps/*/scripts/**/*.{js,mjs,cjs,ts}",
     ],
     rules: {
+      "unicorn/no-exports-in-scripts": "off",
       "unicorn/no-process-exit": "off",
     },
   },

@@ -4,6 +4,23 @@ export type ClientOptions = {
     baseUrl: 'https://{IP-description}.{identifier}.plex.direct:{port}' | (string & {});
 };
 
+export type AllowSync = boolean;
+
+export type Art = string;
+
+export type Channel = {
+    callSign?: string;
+    channelVcn?: string;
+    hd?: boolean;
+    identifier?: string;
+    key?: string;
+    language?: string;
+    thumb?: string;
+    title?: string;
+};
+
+export type Content = boolean;
+
 export type DeviceItems = {
     ChannelMapping?: Array<{
         channelKey?: string;
@@ -25,112 +42,7 @@ export type DeviceItems = {
     uuid?: string;
 };
 
-export type Directory = Directory2;
-
-export type DirectoryType = DirectoryType2;
-
-export type Filter = Filter2;
-
-export type Hub = Hub2;
-
-export type LibrarySection = LibrarySection2;
-
-export type LineupItems = {
-    /**
-     * - `-1`: N/A
-     * - `0`: Over the air
-     * - `1`: Cable
-     * - `2`: Satellite
-     * - `3`: IPTV
-     * - `4`: Virtual
-     *
-     */
-    lineupType?: -1 | 0 | 1 | 2 | 3 | 4;
-    location?: string;
-    title?: string;
-    /**
-     * The type of this object (`lineup` in this case)
-     */
-    type?: string;
-    /**
-     * The uuid of this lineup
-     */
-    uuid?: string;
-};
-
-export type Media = Media2;
-
-export type MediaContainer = {
-    identifier?: string;
-    /**
-     * The offset of where this container page starts among the total objects available.  Also provided in the X-Plex-Container-Start header
-     */
-    offset?: number;
-    size?: number;
-    /**
-     * The total size of objects available.  Also provided in the X-Plex-Container-Total-Size header
-     */
-    totalSize?: number;
-};
-
-export type MediaContainerWithArtwork = MediaContainerWithArtwork2;
-
-export type MediaContainerWithDevice = MediaContainerWithSubscription2;
-
-export type MediaContainerWithLineup = MediaContainerWithLineup2;
-
-export type MediaContainerWithMetadata = MediaContainerWithMetadata2;
-
-export type MediaContainerWithNestedMetadata = MediaContainerWithNestedMetadata2;
-
-export type MediaContainerWithPlaylistMetadata = MediaContainerWithPlaylistMetadata2;
-
-export type MediaContainerWithSettings = MediaContainerWithSettings2;
-
-export type MediaContainerWithSubscription = MediaContainerWithSubscription2;
-
-export type MediaGrabOperation = MediaGrabOperation2;
-
-export type MediaSubscription = MediaSubscription2;
-
-export type Metadata = Metadata2;
-
-export type Part = Part2;
-
-export type ServerConfiguration = ServerConfiguration2;
-
-export type Sort = Sort2;
-
-export type Stream = Stream2;
-
-export type Tag = Tag2;
-
-export type AllowSync = boolean;
-
-export type Art = string;
-
-export type Channel = {
-    callSign?: string;
-    channelVcn?: string;
-    hd?: boolean;
-    identifier?: string;
-    key?: string;
-    language?: string;
-    thumb?: string;
-    title?: string;
-};
-
-export type Content = boolean;
-
-export type Directory2 = {
-    Pivot?: Array<{
-        context?: string;
-        id?: string;
-        key?: string;
-        symbol?: string;
-        title?: string;
-        type?: string;
-    }>;
+export type Directory = {
     art?: string;
     content?: boolean;
     filter?: string;
@@ -140,6 +52,14 @@ export type Directory2 = {
     identifier?: string;
     key?: string;
     lastAccessedAt?: number;
+    Pivot?: Array<{
+        context?: string;
+        id?: string;
+        key?: string;
+        symbol?: string;
+        title?: string;
+        type?: string;
+    }>;
     share?: number;
     thumb?: string;
     title?: string;
@@ -148,11 +68,13 @@ export type Directory2 = {
     [key: string]: unknown;
 };
 
+export type Directory2 = Directory;
+
 /**
  * These represent the types of things found in this library, and for each one, a list of `Filter` and `Sort` objects. These can be used to build rich controls around a grid of media to allow filtering and organizing. Note that these filters and sorts are optional, and without them, the client won't render any filtering controls.
  *
  */
-export type DirectoryType2 = {
+export type DirectoryType = {
     /**
      * This provides the root endpoint returning the actual media list for the type.
      */
@@ -167,7 +89,9 @@ export type DirectoryType2 = {
     type?: string;
 };
 
-export type Filter2 = Directory2 & {
+export type DirectoryType2 = DirectoryType;
+
+export type Filter = Directory & {
     /**
      * This represents the filter name used for the filter, which can be used to construct complex media queries with.
      */
@@ -186,8 +110,9 @@ export type Filter2 = Directory2 & {
     title?: string;
 };
 
-export type Hub2 = {
-    Metadata?: Array<Metadata2>;
+export type Filter2 = Filter;
+
+export type Hub = {
     context?: string;
     /**
      * A unique identifier for the hub
@@ -202,6 +127,7 @@ export type Hub2 = {
      * The key at which all of the content for this hub can be retrieved
      */
     key?: string;
+    Metadata?: Array<Metadata>;
     /**
      * "A boolean indicating that the hub contains more than what's included in the current response."
      *
@@ -236,6 +162,8 @@ export type Hub2 = {
     [key: string]: unknown;
 };
 
+export type Hub2 = Hub;
+
 /**
  * Images such as movie posters and background artwork are represented by Image elements.
  *
@@ -255,20 +183,13 @@ export type Image = {
     url?: string;
 };
 
-export type Items = Metadata2 & {
+export type Items = Metadata & {
     MetadataItem?: Array<Items>;
 };
 
 export type Key = string;
 
-export type LibrarySection2 = {
-    Location?: Array<{
-        id?: number;
-        /**
-         * The path of where this directory exists on disk
-         */
-        path?: unknown;
-    }>;
+export type LibrarySection = {
     agent?: string;
     allowSync?: boolean;
     art?: Art;
@@ -284,6 +205,13 @@ export type LibrarySection2 = {
     hidden?: boolean;
     key?: Key;
     language?: string;
+    Location?: Array<{
+        id?: number;
+        /**
+         * The path of where this directory exists on disk
+         */
+        path?: unknown;
+    }>;
     /**
      * Indicates whether this library section is currently scanning
      */
@@ -296,12 +224,36 @@ export type LibrarySection2 = {
     updatedAt?: number;
 };
 
+export type LibrarySection2 = LibrarySection;
+
+export type LineupItems = {
+    /**
+     * - `-1`: N/A
+     * - `0`: Over the air
+     * - `1`: Cable
+     * - `2`: Satellite
+     * - `3`: IPTV
+     * - `4`: Virtual
+     *
+     */
+    lineupType?: -1 | 0 | 1 | 2 | 3 | 4;
+    location?: string;
+    title?: string;
+    /**
+     * The type of this object (`lineup` in this case)
+     */
+    type?: string;
+    /**
+     * The uuid of this lineup
+     */
+    uuid?: string;
+};
+
 /**
  * `Media` represents an one or more media files (parts) and is a child of a metadata item. There aren't necessarily any guaranteed attributes on media elements since the attributes will vary based on the type. The possible attributes are not documented here, but they typically have self-evident names. High-level media information that can be used for badging and flagging, such as `videoResolution` and codecs, is included on the media element.
  *
  */
-export type Media2 = {
-    Part?: Array<Part2>;
+export type Media = {
     aspectRatio?: number;
     audioChannels?: number;
     audioCodec?: unknown;
@@ -314,6 +266,7 @@ export type Media2 = {
     height?: number;
     id?: number;
     optimizedForStreaming?: boolean;
+    Part?: Array<Part>;
     videoCodec?: unknown;
     videoFrameRate?: unknown;
     videoProfile?: unknown;
@@ -322,13 +275,15 @@ export type Media2 = {
     [key: string]: unknown;
 };
 
+export type Media2 = Media;
+
 /**
  * `MediaContainer` is commonly found as the root of a response and is a pretty generic container. Common attributes include `identifier` and things related to paging (`offset`, `size`, `totalSize`).
  *
  * It is also common for a `MediaContainer` to contain attributes "hoisted" from its children. If every element in the container would have had the same attribute, then that attribute can be present on the container instead of being repeated on every element. For example, an album's list of tracks might include `parentTitle` on the container since all of the tracks have the same album title. A container may have a `source` attribute when all of the items came from the same source. Generally speaking, when looking for an attribute on an item, if the attribute wasn't found then the container should be checked for that attribute as well.
  *
  */
-export type MediaContainer2 = {
+export type MediaContainer = {
     MediaContainer?: {
         identifier?: string;
         /**
@@ -343,8 +298,21 @@ export type MediaContainer2 = {
     };
 };
 
-export type MediaContainerWithArtwork2 = {
-    MediaContainer?: MediaContainer & {
+export type MediaContainer2 = {
+    identifier?: string;
+    /**
+     * The offset of where this container page starts among the total objects available.  Also provided in the X-Plex-Container-Start header
+     */
+    offset?: number;
+    size?: number;
+    /**
+     * The total size of objects available.  Also provided in the X-Plex-Container-Total-Size header
+     */
+    totalSize?: number;
+};
+
+export type MediaContainerWithArtwork = {
+    MediaContainer?: MediaContainer2 & {
         Metadata?: Array<{
             /**
              * The path to the artwork
@@ -360,6 +328,8 @@ export type MediaContainerWithArtwork2 = {
     };
 };
 
+export type MediaContainerWithArtwork2 = MediaContainerWithArtwork;
+
 /**
  * `MediaContainer` is commonly found as the root of a response and is a pretty generic container. Common attributes include `identifier` and things related to paging (`offset`, `size`, `totalSize`).
  *
@@ -368,21 +338,6 @@ export type MediaContainerWithArtwork2 = {
  */
 export type MediaContainerWithDecision = {
     MediaContainer?: PropertiesMediaContainer & {
-        Metadata?: Array<Metadata2 & {
-            Media?: Array<Media2 & {
-                Part?: Array<Part2 & {
-                    Stream?: Array<Stream2 & {
-                        decision?: 'copy' | 'transcode' | 'burn' | 'unavailable' | 'ignore' | 'none';
-                        location?: 'direct' | 'sidecar-subs' | 'segments-video' | 'segments-audio' | 'segments-av' | 'segments-subs' | 'embedded' | 'sidecar';
-                    }>;
-                    decision?: 'directplay' | 'transcode' | 'none';
-                    selected?: boolean;
-                }>;
-                abr?: boolean;
-                resourceSession?: string;
-                selected?: boolean;
-            }>;
-        }>;
         /**
          * The maximum available bitrate when the decision was rendered.
          */
@@ -402,13 +357,28 @@ export type MediaContainerWithDecision = {
          * Descriptive text for the above code
          */
         mdeDecisionText?: string;
+        Metadata?: Array<Metadata & {
+            Media?: Array<Media & {
+                abr?: boolean;
+                Part?: Array<Part & {
+                    decision?: 'directplay' | 'transcode' | 'none';
+                    selected?: boolean;
+                    Stream?: Array<Stream & {
+                        decision?: 'copy' | 'transcode' | 'burn' | 'unavailable' | 'ignore' | 'none';
+                        location?: 'direct' | 'sidecar-subs' | 'segments-video' | 'segments-audio' | 'segments-av' | 'segments-subs' | 'embedded' | 'sidecar';
+                    }>;
+                }>;
+                resourceSession?: string;
+                selected?: boolean;
+            }>;
+        }>;
         transcodeDecisionCode?: number;
         transcodeDecisionText?: string;
     };
 };
 
-export type MediaContainerWithDevice2 = {
-    MediaContainer?: MediaContainer & {
+export type MediaContainerWithDevice = {
+    MediaContainer?: MediaContainer2 & {
         Device?: Array<{
             ChannelMapping?: Array<{
                 channelKey?: string;
@@ -432,8 +402,10 @@ export type MediaContainerWithDevice2 = {
     };
 };
 
-export type MediaContainerWithLineup2 = {
-    MediaContainer?: MediaContainer & {
+export type MediaContainerWithDevice2 = MediaContainerWithSubscription;
+
+export type MediaContainerWithLineup = {
+    MediaContainer?: MediaContainer2 & {
         Lineup?: Array<{
             /**
              * - `-1`: N/A
@@ -463,16 +435,18 @@ export type MediaContainerWithLineup2 = {
     };
 };
 
+export type MediaContainerWithLineup2 = MediaContainerWithLineup;
+
 /**
  * `MediaContainer` is commonly found as the root of a response and is a pretty generic container. Common attributes include `identifier` and things related to paging (`offset`, `size`, `totalSize`).
  *
  * It is also common for a `MediaContainer` to contain attributes "hoisted" from its children. If every element in the container would have had the same attribute, then that attribute can be present on the container instead of being repeated on every element. For example, an album's list of tracks might include `parentTitle` on the container since all of the tracks have the same album title. A container may have a `source` attribute when all of the items came from the same source. Generally speaking, when looking for an attribute on an item, if the attribute wasn't found then the container should be checked for that attribute as well.
  *
  */
-export type MediaContainerWithMetadata2 = {
+export type MediaContainerWithMetadata = {
     MediaContainer?: {
-        Metadata?: Array<Metadata2>;
         identifier?: string;
+        Metadata?: Array<Metadata>;
         /**
          * The offset of where this container page starts among the total objects available.  Also provided in the X-Plex-Container-Start header
          */
@@ -486,15 +460,19 @@ export type MediaContainerWithMetadata2 = {
     };
 };
 
-export type MediaContainerWithNestedMetadata2 = {
-    MediaContainer?: MediaContainer & {
-        MetadataItem?: Array<Metadata2 & {
+export type MediaContainerWithMetadata2 = MediaContainerWithMetadata;
+
+export type MediaContainerWithNestedMetadata = {
+    MediaContainer?: MediaContainer2 & {
+        MetadataItem?: Array<Metadata & {
             MetadataItem?: Array<Items>;
         }>;
     };
 };
 
-export type MediaContainerWithPlaylistMetadata2 = {
+export type MediaContainerWithNestedMetadata2 = MediaContainerWithNestedMetadata;
+
+export type MediaContainerWithPlaylistMetadata = {
     MediaContainer?: PropertiesMediaContainer & {
         Metadata?: Array<{
             /**
@@ -529,12 +507,14 @@ export type MediaContainerWithPlaylistMetadata2 = {
              * If this is a special playlist, this returns its type (e.g. favorites).
              */
             specialPlaylistType?: string;
-        } & Metadata2>;
+        } & Metadata>;
     };
 };
 
-export type MediaContainerWithSettings2 = {
-    MediaContainer?: MediaContainer & {
+export type MediaContainerWithPlaylistMetadata2 = MediaContainerWithPlaylistMetadata;
+
+export type MediaContainerWithSettings = {
+    MediaContainer?: MediaContainer2 & {
         Setting?: Array<{
             /**
              * Whether the pref is considered advanced and normally hidden from the user
@@ -577,7 +557,9 @@ export type MediaContainerWithSettings2 = {
     };
 };
 
-export type MediaContainerWithStatusPropertiesMediaContainer = MediaContainer & {
+export type MediaContainerWithSettings2 = MediaContainerWithSettings;
+
+export type MediaContainerWithStatusPropertiesMediaContainer = MediaContainer2 & {
     /**
      * A message associated with the status.  Typically an error message.
      */
@@ -588,18 +570,19 @@ export type MediaContainerWithStatusPropertiesMediaContainer = MediaContainer & 
     status?: number;
 };
 
-export type MediaContainerWithSubscription2 = {
-    MediaContainer?: MediaContainer & {
-        MediaSubscription?: Array<MediaSubscription2>;
+export type MediaContainerWithSubscription = {
+    MediaContainer?: MediaContainer2 & {
+        MediaSubscription?: Array<MediaSubscription>;
     };
 };
+
+export type MediaContainerWithSubscription2 = MediaContainerWithSubscription;
 
 /**
  * A media grab opration represents a scheduled or active recording of media
  *
  */
-export type MediaGrabOperation2 = {
-    Metadata?: Metadata2;
+export type MediaGrabOperation = {
     currentSize?: number;
     grabberIdentifier?: string;
     grabberProtocol?: string;
@@ -607,21 +590,33 @@ export type MediaGrabOperation2 = {
     key?: string;
     mediaIndex?: number;
     mediaSubscriptionID?: number;
+    Metadata?: Metadata;
     percent?: number;
     provider?: string;
     status?: 'inactive' | 'scheduled' | 'inprogress' | 'complete' | 'cancelled' | 'error' | 'postprocessing' | 'paused';
 };
 
+export type MediaGrabOperation2 = MediaGrabOperation;
+
 /**
  * A media subscription contains a representation of metadata desired to be recorded
  *
  */
-export type MediaSubscription2 = {
+export type MediaSubscription = {
+    airingsType?: 'New Airings Only' | 'New and Repeat Airings';
+    createdAt?: number;
     /**
      * Media Matching Hints
      */
     Directory?: unknown;
-    MediaGrabOperation?: Array<MediaGrabOperation2>;
+    /**
+     * Only included if `includeStorage` is specified
+     */
+    durationTotal?: number;
+    key?: string;
+    librarySectionTitle?: string;
+    locationPath?: string;
+    MediaGrabOperation?: Array<MediaGrabOperation>;
     /**
      * Media Matching Hints
      */
@@ -669,19 +664,6 @@ export type MediaSubscription2 = {
         value?: string | number | boolean;
     }>;
     /**
-     * Media Matching Hints
-     */
-    Video?: unknown;
-    airingsType?: 'New Airings Only' | 'New and Repeat Airings';
-    createdAt?: number;
-    /**
-     * Only included if `includeStorage` is specified
-     */
-    durationTotal?: number;
-    key?: string;
-    librarySectionTitle?: string;
-    locationPath?: string;
-    /**
      * Only included if `includeStorage` is specified
      */
     storageTotal?: number;
@@ -698,7 +680,13 @@ export type MediaSubscription2 = {
      * The metadata type of the root item of the subscription
      */
     type?: number;
+    /**
+     * Media Matching Hints
+     */
+    Video?: unknown;
 };
+
+export type MediaSubscription2 = MediaSubscription;
 
 /**
  * Items in a library are referred to as "metadata items." These metadata items are distinct from "media items" which represent actual instances of media that can be consumed. Consider a TV library that has a single video file in it for a particular episode of a show. The library has a single media item, but it has three metadata items: one for the show, one for the season, and one for the episode. Consider a movie library that has two video files in it: the same movie, but two different resolutions. The library has a single metadata item for the movie, but that metadata item has two media items, one for each resolution. Additionally a "media item" will have one or more "media parts" where the the parts are intended to be watched together, such as a CD1 and CD2 parts of the same movie.
@@ -708,25 +696,7 @@ export type MediaSubscription2 = {
  * Metadata items can often live in a hierarchy with relationships between them.  For example, the metadata item for an episodes is associated with a season metadata item which is associated with a show metadata item.  A similar hierarchy exists with track, album, and artist and photos and photo album.  The relationships may be expressed via relative terms and absolute terms.  For example, "leaves" refer to metadata items which has associated media (there is no media for a season nor show).  A show will have "children" in the form of seasons and a season will have "children" in the form of episodes and episodes have "parent" in the form of a season which has a "parent" in the form of a show.  Similarly, a show has "grandchildren" in the form of episodse and an episode has a "grandparent" in the form of a show.
  *
  */
-export type Metadata2 = {
-    Autotag?: Array<Tag2>;
-    Country?: Array<Tag2>;
-    Director?: Array<Tag2>;
-    /**
-     * Typically only seen in metadata at a library's top level
-     */
-    Filter?: Array<Filter2>;
-    Genre?: Array<Tag2>;
-    Guid?: Array<Tag2>;
-    Image?: Array<Image>;
-    Media?: Array<Media2>;
-    Rating?: Array<Tag2>;
-    Role?: Array<Tag2>;
-    /**
-     * Typically only seen in metadata at a library's top level
-     */
-    Sort?: Array<Sort2>;
-    Writer?: Array<Tag2>;
+export type Metadata = {
     /**
      * When present, contains the disc number for a track on multi-disc albums.
      */
@@ -747,6 +717,7 @@ export type Metadata2 = {
      * A URI representing the image to be shown with the audience rating (e.g. rottentomatoes://image.rating.spilled).
      */
     audienceRatingImage?: unknown;
+    Autotag?: Array<Tag>;
     /**
      * When present, the URL for a banner graphic for the item.
      */
@@ -763,10 +734,17 @@ export type Metadata2 = {
      * If known, the content rating (e.g. MPAA) for an item.
      */
     contentRating?: unknown;
+    Country?: Array<Tag>;
+    Director?: Array<Tag>;
     /**
      * When present, the duration for the item, in units of milliseconds.
      */
     duration?: number;
+    /**
+     * Typically only seen in metadata at a library's top level
+     */
+    Filter?: Array<Filter>;
+    Genre?: Array<Tag>;
     /**
      * The `art` of the grandparent
      */
@@ -795,10 +773,12 @@ export type Metadata2 = {
      * The `title` of the grandparent
      */
     grandparentTitle?: string;
+    Guid?: Array<Tag>;
     /**
      * When present, the URL for a hero image for the item.
      */
     hero?: unknown;
+    Image?: Array<Image>;
     /**
      * When present, this represents the episode number for episodes, season number for seasons, or track number for audio tracks.
      */
@@ -815,14 +795,15 @@ export type Metadata2 = {
      * For shows and seasons, contains the number of total episodes.
      */
     leafCount?: number;
-    /**
-     * When present, used to indicate an item's original title, e.g. a movie's foreign title.
-     */
-    originalTitle?: unknown;
+    Media?: Array<Media>;
     /**
      * When present, in the format YYYY-MM-DD [HH:MM:SS] (the hours/minutes/seconds part is not always present). The air date, or a higher resolution release date for an item, depending on type. For example, episodes usually have air date like 1979-08-10 (we don't use epoch seconds because media existed prior to 1970). In some cases, recorded over-the-air content has higher resolution air date which includes a time component. Albums and movies may have day-resolution release dates as well.
      */
     originallyAvailableAt?: unknown;
+    /**
+     * When present, used to indicate an item's original title, e.g. a movie's foreign title.
+     */
+    originalTitle?: unknown;
     /**
      * The `hero` of the parent
      */
@@ -859,6 +840,7 @@ export type Metadata2 = {
      * When present, the rating for the item. The exact meaning and representation depends on where the rating was sourced from.
      */
     rating?: number;
+    Rating?: Array<Tag>;
     /**
      * Number of ratings under this metadata
      */
@@ -871,6 +853,7 @@ export type Metadata2 = {
      * This is the opaque string to be passed into timeline, scrobble, and rating endpoints to identify them.  While it often appears to be numeric, this is not guaranteed.
      */
     ratingKey?: unknown;
+    Role?: Array<Tag>;
     /**
      * Indicates this is a search directory
      */
@@ -887,6 +870,10 @@ export type Metadata2 = {
      * When present on an episode or track item, indicates parent should be skipped in favor of grandparent (show).
      */
     skipParent?: boolean;
+    /**
+     * Typically only seen in metadata at a library's top level
+     */
+    Sort?: Array<Sort>;
     /**
      * When present, the studio or label which produced an item (e.g. movie studio for movies, record label for albums).
      */
@@ -936,13 +923,14 @@ export type Metadata2 = {
      */
     viewCount?: number;
     /**
-     * When a user is in the process of viewing or listening to this item, this attribute contains the current offset, in units of milliseconds.
-     */
-    viewOffset?: number;
-    /**
      * For shows and seasons, contains the number of viewed episodes.
      */
     viewedLeafCount?: number;
+    /**
+     * When a user is in the process of viewing or listening to this item, this attribute contains the current offset, in units of milliseconds.
+     */
+    viewOffset?: number;
+    Writer?: Array<Tag>;
     /**
      * When present, the year associated with the item's release (e.g. release year for a movie).
      */
@@ -950,20 +938,13 @@ export type Metadata2 = {
     [key: string]: unknown;
 };
 
+export type Metadata2 = Metadata;
+
 /**
  * Describes a MetadataAgentProvider object.
  *
  */
 export type MetadataAgentProvider = {
-    /**
-     * The metadata types supported by the provider.
-     */
-    MetadataType?: Array<{
-        /**
-         * The type of supported metadata.
-         */
-        type?: number;
-    }>;
     /**
      * The type of agent.
      * - primary: A metadata provider which provides a unique identifier (guid) for each item.
@@ -979,6 +960,15 @@ export type MetadataAgentProvider = {
      * The identifier for the provider.
      */
     identifier?: string;
+    /**
+     * The metadata types supported by the provider.
+     */
+    MetadataType?: Array<{
+        /**
+         * The type of supported metadata.
+         */
+        type?: number;
+    }>;
     /**
      * Indicates whether the provider is online.
      */
@@ -998,11 +988,11 @@ export type MetadataAgentProvider = {
  *
  */
 export type MetadataAgentProviderGroup = {
-    MetadataAgentGroupItem?: Array<MetadataAgentProviderGroupItem>;
     /**
      * The unique identifier for the item.
      */
     id?: number;
+    MetadataAgentGroupItem?: Array<MetadataAgentProviderGroupItem>;
     /**
      * The primary identifier for the group. i.e. the identifier of the MetadataAgentProvider which will provide the item guids.
      */
@@ -1040,8 +1030,7 @@ export type MetadataAgentProviderGroupItem = {
  * `Part` represents a particular file or "part" of a media item. The part is the playable unit of the media hierarchy. Suppose that a movie library contains a movie that is broken up into files, reminiscent of a movie split across two BDs. The metadata item represents information about the movie, the media item represents this instance of the movie at this resolution and quality, and the part items represent the two playable files.  If another media were added which contained the joining of these two parts transcoded down to a lower resolution, then this metadata would contain 2 medias, one with 2 parts and one with 1 part.
  *
  */
-export type Part2 = {
-    Stream?: Array<Stream2>;
+export type Part = {
     audioProfile?: unknown;
     /**
      * The container of the media file, such as `mp4` or `mkv`
@@ -1066,13 +1055,16 @@ export type Part2 = {
      * The size of the media, in bytes
      */
     size?: number;
+    Stream?: Array<Stream>;
     videoProfile?: unknown;
     [key: string]: unknown;
 };
 
+export type Part2 = Part;
+
 export type PropertiesMediaContainer = {
-    Metadata?: Array<Metadata2>;
     identifier?: string;
+    Metadata?: Array<Metadata>;
     /**
      * The offset of where this container page starts among the total objects available.  Also provided in the X-Plex-Container-Start header
      */
@@ -1085,7 +1077,7 @@ export type PropertiesMediaContainer = {
     [key: string]: unknown;
 };
 
-export type ServerConfiguration2 = MediaContainer & {
+export type ServerConfiguration = MediaContainer2 & {
     allowCameraUpload?: boolean;
     allowChannelAccess?: boolean;
     allowMediaDeletion?: boolean;
@@ -1145,7 +1137,9 @@ export type ServerConfiguration2 = MediaContainer & {
     voiceSearch?: boolean;
 };
 
-export type Sort2 = Directory2 & {
+export type ServerConfiguration2 = ServerConfiguration;
+
+export type Sort = Directory & {
     /**
      * If present, this sort is the default and in this direction
      */
@@ -1172,11 +1166,13 @@ export type Sort2 = Directory2 & {
     title?: string;
 };
 
+export type Sort2 = Sort;
+
 /**
  * `Stream` represents a particular stream from a media item, such as the video stream, audio stream, or subtitle stream. The stream may either be part of the file represented by the parent `Part` or, especially for subtitles, an external file. The stream contains more detailed information about the specific stream. For example, a video may include the `aspectRatio` at the `Media` level, but detailed information about the video stream like the color space will be included on the `Stream` for the video stream.  Note that photos do not have streams (mostly as an optimization).
  *
  */
-export type Stream2 = {
+export type Stream = {
     audioChannelLayout?: unknown;
     bitDepth?: number;
     bitrate?: number;
@@ -1230,11 +1226,13 @@ export type Stream2 = {
     [key: string]: unknown;
 };
 
+export type Stream2 = Stream;
+
 /**
  * A variety of extra information about a metadata item is included as tags. These tags use their own element names such as `Genre`, `Writer`, `Directory`, and `Role`. Individual tag types may introduce their own extra attributes.
  *
  */
-export type Tag2 = {
+export type Tag = {
     /**
      * Measure of the confidence of an automatic tag
      */
@@ -1261,6 +1259,8 @@ export type Tag2 = {
     tagType?: number;
     thumb?: unknown;
 };
+
+export type Tag2 = Tag;
 
 export type Thumb = string;
 
@@ -1517,7 +1517,7 @@ export type GetSlashResponses = {
      * OK
      */
     200: {
-        MediaContainer?: ServerConfiguration2 & {
+        MediaContainer?: ServerConfiguration & {
             Directory?: Array<{
                 count?: number;
                 /**
@@ -1570,7 +1570,7 @@ export type PreferencesGetSlashResponses = {
     /**
      * OK
      */
-    200: MediaContainerWithSettings2;
+    200: MediaContainerWithSettings;
 };
 
 export type PreferencesGetSlashResponse = PreferencesGetSlashResponses[keyof PreferencesGetSlashResponses];
@@ -1627,7 +1627,7 @@ export type PreferencesGetGetResponses = {
     /**
      * OK
      */
-    200: MediaContainerWithSettings2;
+    200: MediaContainerWithSettings;
 };
 
 export type PreferencesGetGetResponse = PreferencesGetGetResponses[keyof PreferencesGetGetResponses];
@@ -1798,7 +1798,7 @@ export type TimelinePostSlashResponses = {
      * OK
      */
     200: {
-        MediaContainer?: ServerConfiguration2 & {
+        MediaContainer?: ServerConfiguration & {
             /**
              * A list of media times and bandwidths when trascoding is using with auto adjustment of bandwidth
              */
@@ -1896,8856 +1896,6 @@ export type WebsocketGetSlashResponses = {
 };
 
 export type WebsocketGetSlashResponse = WebsocketGetSlashResponses[keyof WebsocketGetSlashResponses];
-
-export type ActivitiesGetSlashData = {
-    body?: never;
-    path?: never;
-    query?: never;
-    url: '/activities';
-};
-
-export type ActivitiesGetSlashResponses = {
-    /**
-     * OK
-     */
-    200: {
-        MediaContainer?: {
-            Activity?: Array<{
-                /**
-                 * An object with additional values
-                 */
-                Context?: {
-                    [key: string]: unknown;
-                };
-                /**
-                 * An object with the response to the async opperation
-                 */
-                Response?: {
-                    [key: string]: unknown;
-                };
-                /**
-                 * Indicates whether this activity can be cancelled
-                 */
-                cancellable?: boolean;
-                /**
-                 * A progress percentage.  A value of -1 means the progress is indeterminate
-                 */
-                progress?: number;
-                /**
-                 * A user-friendly sub-title for this activity
-                 */
-                subtitle?: string;
-                /**
-                 * A user-friendly title for this activity
-                 */
-                title?: string;
-                /**
-                 * The type of activity
-                 */
-                type?: string;
-                /**
-                 * The user this activity belongs to
-                 */
-                userID?: number;
-                /**
-                 * The ID of the activity
-                 */
-                uuid?: string;
-            }>;
-        };
-    };
-};
-
-export type ActivitiesGetSlashResponse = ActivitiesGetSlashResponses[keyof ActivitiesGetSlashResponses];
-
-export type ActivitiesDeleteActivityData = {
-    body?: never;
-    path: {
-        /**
-         * The UUID of the activity to cancel.
-         */
-        activityId: string;
-    };
-    query?: never;
-    url: '/activities/{activityId}';
-};
-
-export type ActivitiesDeleteActivityErrors = {
-    /**
-     * Activity is not cancellable
-     */
-    400: unknown;
-    /**
-     * No activity with the provided id is found
-     */
-    404: unknown;
-};
-
-export type ActivitiesDeleteActivityResponses = {
-    /**
-     * OK
-     */
-    200: unknown;
-};
-
-export type ButlerDeleteSlashData = {
-    body?: never;
-    path?: never;
-    query?: never;
-    url: '/butler';
-};
-
-export type ButlerDeleteSlashResponses = {
-    /**
-     * OK
-     */
-    200: unknown;
-};
-
-export type ButlerGetSlashData = {
-    body?: never;
-    path?: never;
-    query?: never;
-    url: '/butler';
-};
-
-export type ButlerGetSlashResponses = {
-    /**
-     * Butler tasks
-     */
-    200: {
-        ButlerTasks?: {
-            ButlerTask?: Array<{
-                /**
-                 * A user-friendly description of the task
-                 */
-                description?: string;
-                /**
-                 * Whether this task is enabled or not
-                 */
-                enabled?: boolean;
-                /**
-                 * The interval (in days) of when this task is run.  A value of 1 is run every day, 7 is every week, etc.
-                 */
-                interval?: number;
-                /**
-                 * The name of the task
-                 */
-                name?: string;
-                /**
-                 * Indicates whether the timing of the task is randomized within the butler interval
-                 */
-                scheduleRandomized?: boolean;
-                /**
-                 * A user-friendly title of the task
-                 */
-                title?: string;
-            }>;
-        };
-    };
-};
-
-export type ButlerGetSlashResponse = ButlerGetSlashResponses[keyof ButlerGetSlashResponses];
-
-export type ButlerPostSlashData = {
-    body?: never;
-    path?: never;
-    query?: never;
-    url: '/butler';
-};
-
-export type ButlerPostSlashResponses = {
-    /**
-     * OK
-     */
-    200: unknown;
-};
-
-export type ButlerDeleteTaskData = {
-    body?: never;
-    path: {
-        /**
-         * The task name
-         */
-        task: 'AutomaticUpdates' | 'BackupDatabase' | 'ButlerTaskGenerateAdMarkers' | 'ButlerTaskGenerateCreditsMarkers' | 'ButlerTaskGenerateIntroMarkers' | 'ButlerTaskGenerateVoiceActivity' | 'CleanOldBundles' | 'CleanOldCacheFiles' | 'DeepMediaAnalysis' | 'GarbageCollectBlobs' | 'GarbageCollectLibraryMedia' | 'GenerateBlurHashes' | 'GenerateChapterThumbs' | 'GenerateMediaIndexFiles' | 'LoudnessAnalysis' | 'MusicAnalysis' | 'OptimizeDatabase' | 'RefreshEpgGuides' | 'RefreshLibraries' | 'RefreshLocalMedia' | 'RefreshPeriodicMetadata' | 'UpgradeMediaAnalysis';
-    };
-    query?: never;
-    url: '/butler/{task}';
-};
-
-export type ButlerDeleteTaskErrors = {
-    /**
-     * No task with this name was found or no task with this name was running
-     */
-    404: unknown;
-};
-
-export type ButlerDeleteTaskResponses = {
-    /**
-     * OK
-     */
-    200: unknown;
-};
-
-export type ButlerPostTaskData = {
-    body?: never;
-    path: {
-        /**
-         * The task name
-         */
-        task: 'AutomaticUpdates' | 'BackupDatabase' | 'ButlerTaskGenerateAdMarkers' | 'ButlerTaskGenerateCreditsMarkers' | 'ButlerTaskGenerateIntroMarkers' | 'ButlerTaskGenerateVoiceActivity' | 'CleanOldBundles' | 'CleanOldCacheFiles' | 'DeepMediaAnalysis' | 'GarbageCollectBlobs' | 'GarbageCollectLibraryMedia' | 'GenerateBlurHashes' | 'GenerateChapterThumbs' | 'GenerateMediaIndexFiles' | 'LoudnessAnalysis' | 'MusicAnalysis' | 'OptimizeDatabase' | 'RefreshEpgGuides' | 'RefreshLibraries' | 'RefreshLocalMedia' | 'RefreshPeriodicMetadata' | 'UpgradeMediaAnalysis';
-    };
-    query?: never;
-    url: '/butler/{task}';
-};
-
-export type ButlerPostTaskErrors = {
-    /**
-     * No task with this name was found
-     */
-    404: unknown;
-};
-
-export type ButlerPostTaskResponses = {
-    /**
-     * Task started
-     */
-    200: unknown;
-    /**
-     * Task is already running
-     */
-    202: unknown;
-};
-
-export type DownloadQueuePostData = {
-    body?: never;
-    path?: never;
-    query?: never;
-    url: '/downloadQueue';
-};
-
-export type DownloadQueuePostResponses = {
-    /**
-     * OK
-     */
-    200: {
-        MediaContainer?: MediaContainer & {
-            DownloadQueue?: Array<{
-                id?: number;
-                itemCount?: number;
-                /**
-                 * The state of this queue
-                 * - deciding: At least one item is still being decided
-                 * - waiting: At least one item is waiting for transcode and none are currently transcoding
-                 * - processing: At least one item is being transcoded
-                 * - done: All items are available (or potentially expired)
-                 * - error: At least one item has encountered an error
-                 *
-                 */
-                status?: 'deciding' | 'waiting' | 'processing' | 'done' | 'error';
-            }>;
-        };
-    };
-};
-
-export type DownloadQueuePostResponse = DownloadQueuePostResponses[keyof DownloadQueuePostResponses];
-
-export type DownloadQueueGetQueueData = {
-    body?: never;
-    path: {
-        /**
-         * The queue id
-         */
-        queueId: number;
-    };
-    query?: never;
-    url: '/downloadQueue/{queueId}';
-};
-
-export type DownloadQueueGetQueueResponses = {
-    /**
-     * OK
-     */
-    200: {
-        MediaContainer?: MediaContainer & {
-            DownloadQueue?: Array<{
-                id?: number;
-                itemCount?: number;
-                /**
-                 * The state of this queue
-                 * - deciding: At least one item is still being decided
-                 * - waiting: At least one item is waiting for transcode and none are currently transcoding
-                 * - processing: At least one item is being transcoded
-                 * - done: All items are available (or potentially expired)
-                 * - error: At least one item has encountered an error
-                 *
-                 */
-                status?: 'deciding' | 'waiting' | 'processing' | 'done' | 'error';
-            }>;
-        };
-    };
-};
-
-export type DownloadQueueGetQueueResponse = DownloadQueueGetQueueResponses[keyof DownloadQueueGetQueueResponses];
-
-export type DownloadQueuePostQueueAddData = {
-    body?: never;
-    headers: {
-        /**
-         * Unique per client.
-         */
-        'X-Plex-Client-Identifier': string;
-        /**
-         * See [Profile Augmentations](#section/API-Info/Profile-Augmentations) .
-         */
-        'X-Plex-Client-Profile-Extra'?: string;
-        /**
-         * Which built in Client Profile to use in the decision. Generally should only be used to specify the Generic profile.
-         */
-        'X-Plex-Client-Profile-Name'?: string;
-        /**
-         * Device the client is running on
-         */
-        'X-Plex-Device'?: string;
-        /**
-         * Model of the device the client is running on
-         */
-        'X-Plex-Model'?: string;
-        /**
-         * Client Platform
-         */
-        'X-Plex-Platform'?: string;
-        /**
-         * Client Platform Version
-         */
-        'X-Plex-Platform-Version'?: string;
-        /**
-         * Unique per client playback session.  Used if a client can playback multiple items at a time (such as a browser with multiple tabs)
-         */
-        'X-Plex-Session-Identifier'?: string;
-    };
-    path: {
-        /**
-         * The queue id
-         */
-        queueId: number;
-    };
-    query: {
-        /**
-         * Keys to add
-         */
-        keys: Array<string>;
-        /**
-         * Indicates how  incompatible advanced subtitles (such as ass/ssa) should be included: * 'burn' - Burn incompatible advanced text subtitles into the video stream * 'text' - Transcode incompatible advanced text subtitles to a compatible text format, even if some markup is lost
-         *
-         */
-        advancedSubtitles?: 'burn' | 'text' | 'unknown';
-        /**
-         * Percentage of original audio loudness to use when transcoding (100 is equivalent to original volume, 50 is half, 200 is double, etc)
-         */
-        audioBoost?: number;
-        /**
-         * Target video number of audio channels.
-         */
-        audioChannelCount?: number;
-        /**
-         * Indicates the client supports ABR.
-         */
-        autoAdjustQuality?: 0 | 1;
-        /**
-         * Indicates if the server should adjust subtitles based on Voice Activity Data.
-         */
-        autoAdjustSubtitle?: 0 | 1;
-        /**
-         * Indicates the client supports direct playing the indicated content.
-         */
-        directPlay?: 0 | 1;
-        /**
-         * Indicates the client supports direct streaming the video of the indicated content.
-         */
-        directStream?: 0 | 1;
-        /**
-         * Indicates the client supports direct streaming the audio of the indicated content.
-         */
-        directStreamAudio?: 0 | 1;
-        /**
-         * Indicates if resolution should be adjusted for orientation.
-         */
-        disableResolutionRotation?: 0 | 1;
-        /**
-         * Ignore client profiles when determining if direct play is possible. Only has an effect when directPlay=1 and both mediaIndex and partIndex are specified and neither are -1
-         */
-        hasMDE?: 0 | 1;
-        /**
-         * Network type of the client, can be used to help determine target bitrate.
-         */
-        location?: 'lan' | 'wan' | 'cellular';
-        /**
-         * Buffer size used in playback (in KB). Clients should specify a lower bound if not known exactly. This value could make the difference between transcoding and direct play on bandwidth constrained networks.
-         */
-        mediaBufferSize?: number;
-        /**
-         * Index of the media to transcode. -1 or not specified indicates let the server choose.
-         */
-        mediaIndex?: number;
-        /**
-         * Target bitrate for audio only files (in kbps, used to transcode).
-         */
-        musicBitrate?: number;
-        /**
-         * Offset from the start of the media (in seconds).
-         */
-        offset?: number;
-        /**
-         * Index of the part to transcode. -1 or not specified indicates the server should join parts together in a transcode
-         */
-        partIndex?: number;
-        /**
-         * Internal PMS path of the media to transcode.
-         */
-        path?: string;
-        /**
-         * Maximum bitrate (in kbps) to use in ABR.
-         */
-        peakBitrate?: number;
-        /**
-         * Target photo resolution.
-         */
-        photoResolution?: string;
-        /**
-         * Indicates the network streaming protocol to be used for the transcode session: * 'http' - include the file in the http response such as MKV streaming * 'hls' - hls stream (RFC 8216) * 'dash' - dash stream (ISO/IEC 23009-1:2022)
-         *
-         */
-        protocol?: 'http' | 'hls' | 'dash';
-        /**
-         * Number of seconds to include in each transcoded segment
-         */
-        secondsPerSegment?: number;
-        /**
-         * Percentage of original subtitle size to use when burning subtitles (100 is equivalent to original size, 50 is half, ect)
-         */
-        subtitleSize?: number;
-        /**
-         * Indicates how subtitles should be included: * 'auto' - Compute the appropriate subtitle setting automatically * 'burn' - Burn the selected subtitle; auto if no selected subtitle * 'none' - Ignore all subtitle streams * 'sidecar' - The selected subtitle should be provided as a sidecar * 'embedded' - The selected subtitle should be provided as an embedded stream * 'segmented' - The selected subtitle should be provided as a segmented stream
-         *
-         */
-        subtitles?: 'auto' | 'burn' | 'none' | 'sidecar' | 'embedded' | 'segmented' | 'unknown';
-        /**
-         * Target video bitrate (in kbps).
-         */
-        videoBitrate?: number;
-        /**
-         * Target photo quality.
-         */
-        videoQuality?: number;
-        /**
-         * Target maximum video resolution.
-         */
-        videoResolution?: string;
-    };
-    url: '/downloadQueue/{queueId}/add';
-};
-
-export type DownloadQueuePostQueueAddResponses = {
-    /**
-     * OK
-     */
-    200: {
-        MediaContainer?: MediaContainer & {
-            AddedQueueItems?: Array<{
-                /**
-                 * The queue item id that was added or the existing one if an item already exists in this queue with the same parameters
-                 */
-                id?: number;
-                /**
-                 * The key added to the queue
-                 */
-                key?: string;
-            }>;
-        };
-    };
-};
-
-export type DownloadQueuePostQueueAddResponse = DownloadQueuePostQueueAddResponses[keyof DownloadQueuePostQueueAddResponses];
-
-export type DownloadQueueGetQueueItemItemDecisionData = {
-    body?: never;
-    path: {
-        /**
-         * The queue id
-         */
-        queueId: number;
-        /**
-         * The item ids
-         */
-        itemId: number;
-    };
-    query?: never;
-    url: '/downloadQueue/{queueId}/item/{itemId}/decision';
-};
-
-export type DownloadQueueGetQueueItemItemDecisionErrors = {
-    /**
-     * The item is not in a state where a decision is available
-     */
-    400: unknown;
-};
-
-export type DownloadQueueGetQueueItemItemDecisionResponses = {
-    /**
-     * OK
-     */
-    200: MediaContainerWithDecision;
-};
-
-export type DownloadQueueGetQueueItemItemDecisionResponse = DownloadQueueGetQueueItemItemDecisionResponses[keyof DownloadQueueGetQueueItemItemDecisionResponses];
-
-export type DownloadQueueGetQueueItemItemMediaData = {
-    body?: never;
-    path: {
-        /**
-         * The queue id
-         */
-        queueId: number;
-        /**
-         * The item ids
-         */
-        itemId: number;
-    };
-    query?: never;
-    url: '/downloadQueue/{queueId}/item/{itemId}/media';
-};
-
-export type DownloadQueueGetQueueItemItemMediaErrors = {
-    /**
-     * ![503](https://http.cat/503.jpg)
-     *
-     * The queue item is not yet complete and is currently transcoding or waiting to transcode
-     *
-     */
-    503: unknown;
-};
-
-export type DownloadQueueGetQueueItemItemMediaResponses = {
-    /**
-     * The raw media file
-     */
-    200: unknown;
-};
-
-export type DownloadQueueGetQueueItemsData = {
-    body?: never;
-    path: {
-        /**
-         * The queue id
-         */
-        queueId: number;
-    };
-    query?: never;
-    url: '/downloadQueue/{queueId}/items';
-};
-
-export type DownloadQueueGetQueueItemsResponses = {
-    /**
-     * OK
-     */
-    200: {
-        MediaContainer?: MediaContainer & {
-            DownloadQueueItem?: Array<{
-                DecisionResult?: {
-                    /**
-                     * The maximum bitrate set when item was added
-                     */
-                    availableBandwidth?: number;
-                    directPlayDecisionCode?: number;
-                    directPlayDecisionText?: string;
-                    generalDecisionCode?: number;
-                    generalDecisionText?: string;
-                    /**
-                     * The code indicating the status of evaluation of playback when client indicates `hasMDE=1`
-                     */
-                    mdeDecisionCode?: number;
-                    /**
-                     * Descriptive text for the above code
-                     */
-                    mdeDecisionText?: string;
-                    transcodeDecisionCode?: number;
-                    transcodeDecisionText?: string;
-                };
-                /**
-                 * The transcode session if item is currently being transcoded.
-                 */
-                TranscodeSession?: {
-                    complete?: boolean;
-                    context?: string;
-                    duration?: number;
-                    error?: boolean;
-                    key?: string;
-                    progress?: number;
-                    protocol?: string;
-                    size?: number;
-                    sourceAudioCodec?: string;
-                    sourceVideoCodec?: string;
-                    speed?: number;
-                    throttled?: boolean;
-                    transcodeHwFullPipeline?: boolean;
-                    transcodeHwRequested?: boolean;
-                };
-                /**
-                 * The error encountered in transcoding or decision
-                 */
-                error?: string;
-                id?: number;
-                key?: string;
-                queueId?: number;
-                /**
-                 * The state of the item:
-                 * - deciding: The item decision is pending
-                 * - waiting: The item is waiting for transcode
-                 * - processing: The item is being transcoded
-                 * - available: The item is available for download
-                 * - error: The item encountered an error in the decision or transcode
-                 * - expired: The transcoded item has timed out and is no longer available
-                 *
-                 */
-                status?: 'deciding' | 'waiting' | 'processing' | 'available' | 'error' | 'expired';
-                /**
-                 * The transcode session object which is not yet documented otherwise it'd be a $ref here.
-                 */
-                transcode?: {
-                    [key: string]: unknown;
-                };
-            }>;
-        };
-    };
-};
-
-export type DownloadQueueGetQueueItemsResponse = DownloadQueueGetQueueItemsResponses[keyof DownloadQueueGetQueueItemsResponses];
-
-export type DownloadQueueDeleteQueueItemsItemData = {
-    body?: never;
-    path: {
-        /**
-         * The queue id
-         */
-        queueId: number;
-        /**
-         * The item id
-         */
-        itemId: Array<number>;
-    };
-    query?: never;
-    url: '/downloadQueue/{queueId}/items/{itemId}';
-};
-
-export type DownloadQueueDeleteQueueItemsItemResponses = {
-    /**
-     * OK
-     */
-    200: unknown;
-};
-
-export type DownloadQueueGetQueueItemsItemData = {
-    body?: never;
-    path: {
-        /**
-         * The queue id
-         */
-        queueId: number;
-        /**
-         * The item ids
-         */
-        itemId: Array<number>;
-    };
-    query?: never;
-    url: '/downloadQueue/{queueId}/items/{itemId}';
-};
-
-export type DownloadQueueGetQueueItemsItemResponses = {
-    /**
-     * OK
-     */
-    200: {
-        MediaContainer?: MediaContainer & {
-            DownloadQueueItem?: Array<{
-                DecisionResult?: {
-                    /**
-                     * The maximum bitrate set when item was added
-                     */
-                    availableBandwidth?: number;
-                    directPlayDecisionCode?: number;
-                    directPlayDecisionText?: string;
-                    generalDecisionCode?: number;
-                    generalDecisionText?: string;
-                    /**
-                     * The code indicating the status of evaluation of playback when client indicates `hasMDE=1`
-                     */
-                    mdeDecisionCode?: number;
-                    /**
-                     * Descriptive text for the above code
-                     */
-                    mdeDecisionText?: string;
-                    transcodeDecisionCode?: number;
-                    transcodeDecisionText?: string;
-                };
-                /**
-                 * The transcode session if item is currently being transcoded.
-                 */
-                TranscodeSession?: {
-                    complete?: boolean;
-                    context?: string;
-                    duration?: number;
-                    error?: boolean;
-                    key?: string;
-                    progress?: number;
-                    protocol?: string;
-                    size?: number;
-                    sourceAudioCodec?: string;
-                    sourceVideoCodec?: string;
-                    speed?: number;
-                    throttled?: boolean;
-                    transcodeHwFullPipeline?: boolean;
-                    transcodeHwRequested?: boolean;
-                };
-                /**
-                 * The error encountered in transcoding or decision
-                 */
-                error?: string;
-                id?: number;
-                key?: string;
-                queueId?: number;
-                /**
-                 * The state of the item:
-                 * - deciding: The item decision is pending
-                 * - waiting: The item is waiting for transcode
-                 * - processing: The item is being transcoded
-                 * - available: The item is available for download
-                 * - error: The item encountered an error in the decision or transcode
-                 * - expired: The transcoded item has timed out and is no longer available
-                 *
-                 */
-                status?: 'deciding' | 'waiting' | 'processing' | 'available' | 'error' | 'expired';
-                /**
-                 * The transcode session object which is not yet documented otherwise it'd be a $ref here.
-                 */
-                transcode?: {
-                    [key: string]: unknown;
-                };
-            }>;
-        };
-    };
-};
-
-export type DownloadQueueGetQueueItemsItemResponse = DownloadQueueGetQueueItemsItemResponses[keyof DownloadQueueGetQueueItemsItemResponses];
-
-export type DownloadQueuePostQueueItemsItemRestartData = {
-    body?: never;
-    path: {
-        /**
-         * The queue id
-         */
-        queueId: number;
-        /**
-         * The item ids
-         */
-        itemId: Array<number>;
-    };
-    query?: never;
-    url: '/downloadQueue/{queueId}/items/{itemId}/restart';
-};
-
-export type DownloadQueuePostQueueItemsItemRestartResponses = {
-    /**
-     * OK
-     */
-    200: unknown;
-};
-
-export type HubsGetSlashData = {
-    body?: never;
-    path?: never;
-    query?: {
-        /**
-         * Limit hub entries to count items
-         */
-        count?: number;
-        /**
-         * Only return hubs which are "transient", meaning those which are prone to changing after media playback or addition (e.g. On Deck, or Recently Added)
-         */
-        onlyTransient?: 0 | 1;
-        /**
-         * If provided, limit to only specified hubs
-         */
-        identifier?: Array<string>;
-    };
-    url: '/hubs';
-};
-
-export type HubsGetSlashResponses = {
-    /**
-     * OK
-     */
-    200: {
-        MediaContainer?: MediaContainer & {
-            Hub?: Array<Hub2>;
-        };
-    };
-};
-
-export type HubsGetSlashResponse = HubsGetSlashResponses[keyof HubsGetSlashResponses];
-
-export type HubsGetContinueWatchingData = {
-    body?: never;
-    path?: never;
-    query?: {
-        /**
-         * Limit hub entry to count items
-         */
-        count?: number;
-    };
-    url: '/hubs/continueWatching';
-};
-
-export type HubsGetContinueWatchingResponses = {
-    /**
-     * OK
-     */
-    200: {
-        MediaContainer?: MediaContainer & {
-            Hub?: Array<Hub2>;
-        };
-    };
-};
-
-export type HubsGetContinueWatchingResponse = HubsGetContinueWatchingResponses[keyof HubsGetContinueWatchingResponses];
-
-export type HubsGetItemsData = {
-    body?: never;
-    path?: never;
-    query: {
-        /**
-         * Limit hub entry to count items
-         */
-        count?: number;
-        /**
-         * If provided, limit to only specified hubs
-         */
-        identifier: Array<string>;
-    };
-    url: '/hubs/items';
-};
-
-export type HubsGetItemsErrors = {
-    /**
-     * The specified hub could not be found
-     */
-    404: unknown;
-};
-
-export type HubsGetItemsResponses = {
-    /**
-     * OK
-     */
-    200: {
-        MediaContainer?: PropertiesMediaContainer;
-    };
-};
-
-export type HubsGetItemsResponse = HubsGetItemsResponses[keyof HubsGetItemsResponses];
-
-export type HubsGetMetadataMetadataData = {
-    body?: never;
-    path: {
-        /**
-         * The metadata ID for the hubs to fetch
-         */
-        metadataId: number;
-    };
-    query?: {
-        /**
-         * Limit hub entries to count items
-         */
-        count?: number;
-        /**
-         * Only return hubs which are "transient", meaning those which are prone to changing after media playback or addition (e.g. On Deck, or Recently Added)
-         */
-        onlyTransient?: 0 | 1;
-    };
-    url: '/hubs/metadata/{metadataId}';
-};
-
-export type HubsGetMetadataMetadataErrors = {
-    /**
-     * No metadata with that id or permission is denied
-     */
-    400: unknown;
-};
-
-export type HubsGetMetadataMetadataResponses = {
-    /**
-     * OK
-     */
-    200: {
-        MediaContainer?: MediaContainer & {
-            Hub?: Array<Hub2>;
-        };
-    };
-};
-
-export type HubsGetMetadataMetadataResponse = HubsGetMetadataMetadataResponses[keyof HubsGetMetadataMetadataResponses];
-
-export type HubsGetMetadataMetadataPostplayData = {
-    body?: never;
-    path: {
-        /**
-         * The metadata ID for the hubs to fetch
-         */
-        metadataId: number;
-    };
-    query?: {
-        /**
-         * Limit hub entries to count items
-         */
-        count?: number;
-        /**
-         * Only return hubs which are "transient", meaning those which are prone to changing after media playback or addition (e.g. On Deck, or Recently Added)
-         */
-        onlyTransient?: 0 | 1;
-    };
-    url: '/hubs/metadata/{metadataId}/postplay';
-};
-
-export type HubsGetMetadataMetadataPostplayErrors = {
-    /**
-     * No metadata with that id or permission is denied
-     */
-    400: unknown;
-};
-
-export type HubsGetMetadataMetadataPostplayResponses = {
-    /**
-     * OK
-     */
-    200: {
-        MediaContainer?: MediaContainer & {
-            Hub?: Array<Hub2>;
-        };
-    };
-};
-
-export type HubsGetMetadataMetadataPostplayResponse = HubsGetMetadataMetadataPostplayResponses[keyof HubsGetMetadataMetadataPostplayResponses];
-
-export type HubsGetMetadataMetadataRelatedData = {
-    body?: never;
-    path: {
-        /**
-         * The metadata ID for the hubs to fetch
-         */
-        metadataId: number;
-    };
-    query?: {
-        /**
-         * Limit hub entries to count items
-         */
-        count?: number;
-        /**
-         * Only return hubs which are "transient", meaning those which are prone to changing after media playback or addition (e.g. On Deck, or Recently Added)
-         */
-        onlyTransient?: 0 | 1;
-    };
-    url: '/hubs/metadata/{metadataId}/related';
-};
-
-export type HubsGetMetadataMetadataRelatedErrors = {
-    /**
-     * No metadata with that id or permission is denied
-     */
-    400: unknown;
-};
-
-export type HubsGetMetadataMetadataRelatedResponses = {
-    /**
-     * OK
-     */
-    200: {
-        MediaContainer?: MediaContainer & {
-            Hub?: Array<Hub2>;
-        };
-    };
-};
-
-export type HubsGetMetadataMetadataRelatedResponse = HubsGetMetadataMetadataRelatedResponses[keyof HubsGetMetadataMetadataRelatedResponses];
-
-export type HubsGetPromotedData = {
-    body?: never;
-    path?: never;
-    query?: {
-        /**
-         * Limit hub entry to count items
-         */
-        count?: number;
-    };
-    url: '/hubs/promoted';
-};
-
-export type HubsGetPromotedResponses = {
-    /**
-     * OK
-     */
-    200: {
-        MediaContainer?: MediaContainer & {
-            Hub?: Array<Hub2>;
-        };
-    };
-};
-
-export type HubsGetPromotedResponse = HubsGetPromotedResponses[keyof HubsGetPromotedResponses];
-
-export type HubsGetSearchData = {
-    body?: never;
-    path?: never;
-    query: {
-        /**
-         * The query term
-         */
-        query: string;
-        /**
-         * This gives context to the search, and can result in re-ordering of search result hubs.
-         */
-        sectionId?: number;
-        /**
-         * The number of items to return per hub.  3 if not specified
-         */
-        limit?: number;
-    };
-    url: '/hubs/search';
-};
-
-export type HubsGetSearchErrors = {
-    /**
-     * A required parameter was not given, the wrong type, or wrong value
-     */
-    400: unknown;
-    /**
-     * Search restrictions result in no possible items found (such as searching no sections)
-     */
-    404: unknown;
-};
-
-export type HubsGetSearchResponses = {
-    /**
-     * OK
-     */
-    200: {
-        MediaContainer?: MediaContainer & {
-            Hub?: Array<Hub2>;
-        };
-    };
-};
-
-export type HubsGetSearchResponse = HubsGetSearchResponses[keyof HubsGetSearchResponses];
-
-export type HubsSearchGetVoiceData = {
-    body?: never;
-    path?: never;
-    query: {
-        /**
-         * The query term
-         */
-        query: string;
-        /**
-         * The type of thing to limit the search to.
-         */
-        type?: number;
-        /**
-         * The number of items to return per hub.  3 if not specified
-         */
-        limit?: number;
-    };
-    url: '/hubs/search/voice';
-};
-
-export type HubsSearchGetVoiceErrors = {
-    /**
-     * A required parameter was not given, the wrong type, or wrong value
-     */
-    400: unknown;
-};
-
-export type HubsSearchGetVoiceResponses = {
-    /**
-     * OK
-     */
-    200: {
-        MediaContainer?: MediaContainer & {
-            Hub?: Array<Hub2>;
-        };
-    };
-};
-
-export type HubsSearchGetVoiceResponse = HubsSearchGetVoiceResponses[keyof HubsSearchGetVoiceResponses];
-
-export type HubsGetSectionData = {
-    body?: never;
-    path: {
-        /**
-         * The section ID for the hubs to fetch
-         */
-        sectionId: number;
-    };
-    query?: {
-        /**
-         * Limit hub entries to count items
-         */
-        count?: number;
-        /**
-         * Only return hubs which are "transient", meaning those which are prone to changing after media playback or addition (e.g. On Deck, or Recently Added)
-         */
-        onlyTransient?: 0 | 1;
-    };
-    url: '/hubs/sections/{sectionId}';
-};
-
-export type HubsGetSectionErrors = {
-    /**
-     * No section with that id or permission is denied
-     */
-    400: unknown;
-};
-
-export type HubsGetSectionResponses = {
-    /**
-     * OK
-     */
-    200: {
-        MediaContainer?: MediaContainer & {
-            Hub?: Array<Hub2>;
-        };
-    };
-};
-
-export type HubsGetSectionResponse = HubsGetSectionResponses[keyof HubsGetSectionResponses];
-
-export type HubsSectionsSectionManageDeleteSlashData = {
-    body?: never;
-    path: {
-        /**
-         * The section ID for the hubs to reorder
-         */
-        sectionId: number;
-    };
-    query?: never;
-    url: '/hubs/sections/{sectionId}/manage';
-};
-
-export type HubsSectionsSectionManageDeleteSlashErrors = {
-    /**
-     * Forbidden
-     */
-    403: unknown;
-    /**
-     * Section id was not found
-     */
-    404: unknown;
-};
-
-export type HubsSectionsSectionManageDeleteSlashResponses = {
-    /**
-     * OK
-     */
-    200: unknown;
-};
-
-export type HubsSectionsSectionManageGetSlashData = {
-    body?: never;
-    path: {
-        /**
-         * The section ID for the hubs to reorder
-         */
-        sectionId: number;
-    };
-    query?: {
-        /**
-         * Restrict hubs to ones relevant to the provided metadata item
-         */
-        metadataItemId?: number;
-    };
-    url: '/hubs/sections/{sectionId}/manage';
-};
-
-export type HubsSectionsSectionManageGetSlashErrors = {
-    /**
-     * Forbidden
-     */
-    403: unknown;
-    /**
-     * Section id was not found
-     */
-    404: unknown;
-};
-
-export type HubsSectionsSectionManageGetSlashResponses = {
-    /**
-     * OK
-     */
-    200: {
-        MediaContainer?: MediaContainer & {
-            Hub?: Array<{
-                /**
-                 * Whether this hub is visible on the home screen
-                 * - all: Visible to all users
-                 * - none: Visible to no users
-                 * - admin: Visible to only admin users
-                 * - shared: Visible to shared users
-                 *
-                 */
-                homeVisibility?: 'all' | 'none' | 'admin' | 'shared';
-                /**
-                 * The identifier for this hub
-                 */
-                identifier?: string;
-                /**
-                 * Whether this hub is visible to admin user home
-                 */
-                promotedToOwnHome?: boolean;
-                /**
-                 * Whether this hub is promoted to all for recommendations
-                 */
-                promotedToRecommended?: boolean;
-                /**
-                 * Whether this hub is visible to shared user's home
-                 */
-                promotedToSharedHome?: boolean;
-                /**
-                 * The visibility of this hub in recommendations:
-                 * - all: Visible to all users
-                 * - none: Visible to no users
-                 * - admin: Visible to only admin users
-                 * - shared: Visible to shared users
-                 *
-                 */
-                recommendationsVisibility?: 'all' | 'none' | 'admin' | 'shared';
-                /**
-                 * The title of this hub
-                 */
-                title?: string;
-            }>;
-        };
-    };
-};
-
-export type HubsSectionsSectionManageGetSlashResponse = HubsSectionsSectionManageGetSlashResponses[keyof HubsSectionsSectionManageGetSlashResponses];
-
-export type HubsSectionsSectionManagePostSlashData = {
-    body?: never;
-    path: {
-        /**
-         * The section ID for the hubs to reorder
-         */
-        sectionId: number;
-    };
-    query: {
-        /**
-         * The metadata item on which to base this hub.  This must currently be a collection
-         */
-        metadataItemId: number;
-        /**
-         * Whether this hub should be displayed in recommended
-         */
-        promotedToRecommended?: 0 | 1;
-        /**
-         * Whether this hub should be displayed in admin's home
-         */
-        promotedToOwnHome?: 0 | 1;
-        /**
-         * Whether this hub should be displayed in shared user's home
-         */
-        promotedToSharedHome?: 0 | 1;
-    };
-    url: '/hubs/sections/{sectionId}/manage';
-};
-
-export type HubsSectionsSectionManagePostSlashErrors = {
-    /**
-     * A hub could not be created with this metadata item
-     */
-    400: unknown;
-    /**
-     * Forbidden
-     */
-    403: unknown;
-    /**
-     * Section id or metadata item was not found
-     */
-    404: unknown;
-};
-
-export type HubsSectionsSectionManagePostSlashResponses = {
-    /**
-     * OK
-     */
-    200: unknown;
-};
-
-export type HubsSectionsSectionManagePutMoveData = {
-    body?: never;
-    path: {
-        /**
-         * The section ID for the hubs to reorder
-         */
-        sectionId: number;
-    };
-    query: {
-        /**
-         * The identifier of the hub to move
-         */
-        identifier: string;
-        /**
-         * The identifier of the hub to order this hub after (or empty/missing to put this hub first)
-         */
-        after?: string;
-    };
-    url: '/hubs/sections/{sectionId}/manage/move';
-};
-
-export type HubsSectionsSectionManagePutMoveErrors = {
-    /**
-     * Forbidden
-     */
-    403: unknown;
-    /**
-     * Section id was not found
-     */
-    404: unknown;
-};
-
-export type HubsSectionsSectionManagePutMoveResponses = {
-    /**
-     * OK
-     */
-    200: {
-        MediaContainer?: MediaContainer & {
-            Hub?: Array<{
-                /**
-                 * Whether this hub is visible on the home screen
-                 * - all: Visible to all users
-                 * - none: Visible to no users
-                 * - admin: Visible to only admin users
-                 * - shared: Visible to shared users
-                 *
-                 */
-                homeVisibility?: 'all' | 'none' | 'admin' | 'shared';
-                /**
-                 * The identifier for this hub
-                 */
-                identifier?: string;
-                /**
-                 * Whether this hub is visible to admin user home
-                 */
-                promotedToOwnHome?: boolean;
-                /**
-                 * Whether this hub is promoted to all for recommendations
-                 */
-                promotedToRecommended?: boolean;
-                /**
-                 * Whether this hub is visible to shared user's home
-                 */
-                promotedToSharedHome?: boolean;
-                /**
-                 * The visibility of this hub in recommendations:
-                 * - all: Visible to all users
-                 * - none: Visible to no users
-                 * - admin: Visible to only admin users
-                 * - shared: Visible to shared users
-                 *
-                 */
-                recommendationsVisibility?: 'all' | 'none' | 'admin' | 'shared';
-                /**
-                 * The title of this hub
-                 */
-                title?: string;
-            }>;
-        };
-    };
-};
-
-export type HubsSectionsSectionManagePutMoveResponse = HubsSectionsSectionManagePutMoveResponses[keyof HubsSectionsSectionManagePutMoveResponses];
-
-export type HubsSectionsSectionManageDeleteIdentifierData = {
-    body?: never;
-    path: {
-        /**
-         * The section ID for the hubs to change
-         */
-        sectionId: number;
-        /**
-         * The identifier of the hub to change
-         */
-        identifier: string;
-    };
-    query?: never;
-    url: '/hubs/sections/{sectionId}/manage/{identifier}';
-};
-
-export type HubsSectionsSectionManageDeleteIdentifierErrors = {
-    /**
-     * The hub is not a custom hub
-     */
-    400: unknown;
-    /**
-     * Forbidden
-     */
-    403: unknown;
-    /**
-     * The section or hub was not found
-     */
-    404: unknown;
-};
-
-export type HubsSectionsSectionManageDeleteIdentifierResponses = {
-    /**
-     * OK
-     */
-    200: unknown;
-};
-
-export type HubsSectionsSectionManagePutIdentifierData = {
-    body?: never;
-    path: {
-        /**
-         * The section ID for the hubs to change
-         */
-        sectionId: number;
-        /**
-         * The identifier of the hub to change
-         */
-        identifier: string;
-    };
-    query?: {
-        /**
-         * Whether this hub should be displayed in recommended
-         */
-        promotedToRecommended?: 0 | 1;
-        /**
-         * Whether this hub should be displayed in admin's home
-         */
-        promotedToOwnHome?: 0 | 1;
-        /**
-         * Whether this hub should be displayed in shared user's home
-         */
-        promotedToSharedHome?: 0 | 1;
-    };
-    url: '/hubs/sections/{sectionId}/manage/{identifier}';
-};
-
-export type HubsSectionsSectionManagePutIdentifierErrors = {
-    /**
-     * Forbidden
-     */
-    403: unknown;
-    /**
-     * Section id was not found
-     */
-    404: unknown;
-};
-
-export type HubsSectionsSectionManagePutIdentifierResponses = {
-    /**
-     * OK
-     */
-    200: unknown;
-};
-
-export type GetIdentityData = {
-    body?: never;
-    path?: never;
-    query?: never;
-    url: '/identity';
-};
-
-export type GetIdentityResponses = {
-    /**
-     * OK
-     */
-    200: {
-        MediaContainer?: {
-            /**
-             * Indicates whether this server has been claimed by a user
-             */
-            claimed?: boolean;
-            /**
-             * A unique identifier of the computer
-             */
-            machineIdentifier?: string;
-            size?: number;
-            /**
-             * The full version string of the PMS
-             */
-            version?: string;
-        };
-    };
-};
-
-export type GetIdentityResponse = GetIdentityResponses[keyof GetIdentityResponses];
-
-export type LibraryGetAllData = {
-    body?: never;
-    path?: never;
-    query?: {
-        /**
-         * This is a complex query built of several parameters.  See [API Info section](#section/API-Info/Media-Queries) for information on building media queries
-         */
-        mediaQuery?: {
-            [key: string]: unknown;
-        };
-    };
-    url: '/library/all';
-};
-
-export type LibraryGetAllResponses = {
-    /**
-     * OK
-     */
-    200: MediaContainerWithMetadata2;
-};
-
-export type LibraryGetAllResponse = LibraryGetAllResponses[keyof LibraryGetAllResponses];
-
-export type LibraryDeleteCachesData = {
-    body?: never;
-    path?: never;
-    query?: never;
-    url: '/library/caches';
-};
-
-export type LibraryDeleteCachesResponses = {
-    /**
-     * OK
-     */
-    200: unknown;
-};
-
-export type LibraryPutCleanBundlesData = {
-    body?: never;
-    path?: never;
-    query?: never;
-    url: '/library/clean/bundles';
-};
-
-export type LibraryPutCleanBundlesResponses = {
-    /**
-     * OK
-     */
-    200: unknown;
-};
-
-export type LibraryCollectionPostSlashData = {
-    body?: never;
-    path?: never;
-    query: {
-        /**
-         * The section where this collection will be created
-         */
-        sectionId: string;
-        /**
-         * The title of this collection
-         */
-        title: string;
-        /**
-         * Whether this is a smart collection.  Defaults to false
-         */
-        smart?: boolean;
-        /**
-         * The URI for processing the smart collection.  Required for a smart collection
-         */
-        uri?: string;
-        /**
-         * The type of metadata this collection will hold
-         */
-        type?: number;
-    };
-    url: '/library/collections';
-};
-
-export type LibraryCollectionPostSlashErrors = {
-    /**
-     * The uri is missing for a smart collection or the section could not be found
-     */
-    400: unknown;
-};
-
-export type LibraryCollectionPostSlashResponses = {
-    /**
-     * OK
-     */
-    200: MediaContainerWithMetadata2;
-};
-
-export type LibraryCollectionPostSlashResponse = LibraryCollectionPostSlashResponses[keyof LibraryCollectionPostSlashResponses];
-
-export type LibraryCollectionCollectionGetCompositeData = {
-    body?: never;
-    path: {
-        /**
-         * The collection id
-         */
-        collectionId: number;
-        /**
-         * The update time of the image.  Used for busting cache.
-         */
-        updatedAt: number;
-    };
-    query?: {
-        composite?: {
-            /**
-             * 6 character hex RGB value for background color for image
-             */
-            backgroundColor?: string;
-            /**
-             * The width of the intra-image border
-             */
-            border?: number;
-            /**
-             * Number of columns to construct in the composite image
-             */
-            cols?: number;
-            /**
-             * Where to crop source images to fit into composite image proportions
-             */
-            crop?: 'center' | 'top';
-            /**
-             * The image type
-             */
-            format?: 'jpg' | 'png';
-            /**
-             * The height of the image
-             */
-            height?: number;
-            /**
-             * The default image type to use as the sources
-             */
-            media?: 'thumb' | 'art' | 'banner';
-            /**
-             * Allow repetion of images if there are not enough source images to fill grid
-             */
-            repeat?: boolean;
-            /**
-             * Number of rows to construct in the composite image
-             */
-            rows?: number;
-            /**
-             * Limit composite to specified metadata types
-             */
-            type?: number;
-            /**
-             * The width of the image
-             */
-            width?: number;
-        };
-    };
-    url: '/library/collections/{collectionId}/composite/{updatedAt}';
-};
-
-export type LibraryCollectionCollectionGetCompositeErrors = {
-    /**
-     * Collection not found
-     */
-    404: unknown;
-};
-
-export type LibraryCollectionCollectionGetCompositeResponses = {
-    /**
-     * OK
-     */
-    200: Blob | File;
-};
-
-export type LibraryCollectionCollectionGetCompositeResponse = LibraryCollectionCollectionGetCompositeResponses[keyof LibraryCollectionCollectionGetCompositeResponses];
-
-export type LibraryCollectionCollectionGetItemsData = {
-    body?: never;
-    path: {
-        /**
-         * The collection id
-         */
-        collectionId: number;
-    };
-    query?: never;
-    url: '/library/collections/{collectionId}/items';
-};
-
-export type LibraryCollectionCollectionGetItemsErrors = {
-    /**
-     * Collection not found
-     */
-    404: unknown;
-};
-
-export type LibraryCollectionCollectionGetItemsResponses = {
-    /**
-     * OK
-     */
-    200: MediaContainerWithMetadata2;
-};
-
-export type LibraryCollectionCollectionGetItemsResponse = LibraryCollectionCollectionGetItemsResponses[keyof LibraryCollectionCollectionGetItemsResponses];
-
-export type LibraryCollectionCollectionPutItemsData = {
-    body?: never;
-    path: {
-        /**
-         * The collection id
-         */
-        collectionId: number;
-    };
-    query: {
-        /**
-         * The URI describing the items to add to this collection
-         */
-        uri: string;
-    };
-    url: '/library/collections/{collectionId}/items';
-};
-
-export type LibraryCollectionCollectionPutItemsErrors = {
-    /**
-     * Collection not found
-     */
-    404: unknown;
-};
-
-export type LibraryCollectionCollectionPutItemsResponses = {
-    /**
-     * OK
-     */
-    200: MediaContainerWithMetadata2;
-};
-
-export type LibraryCollectionCollectionPutItemsResponse = LibraryCollectionCollectionPutItemsResponses[keyof LibraryCollectionCollectionPutItemsResponses];
-
-export type LibraryCollectionCollectionPutItemsItemData = {
-    body?: never;
-    path: {
-        /**
-         * The collection id
-         */
-        collectionId: number;
-        /**
-         * The item to delete
-         */
-        itemId: number;
-    };
-    query?: never;
-    url: '/library/collections/{collectionId}/items/{itemId}';
-};
-
-export type LibraryCollectionCollectionPutItemsItemErrors = {
-    /**
-     * Item not found
-     */
-    400: unknown;
-    /**
-     * Collection not found
-     */
-    404: unknown;
-};
-
-export type LibraryCollectionCollectionPutItemsItemResponses = {
-    /**
-     * OK
-     */
-    200: MediaContainerWithMetadata2;
-};
-
-export type LibraryCollectionCollectionPutItemsItemResponse = LibraryCollectionCollectionPutItemsItemResponses[keyof LibraryCollectionCollectionPutItemsItemResponses];
-
-export type LibraryCollectionCollectionPutItemsItemMoveData = {
-    body?: never;
-    path: {
-        /**
-         * The collection id
-         */
-        collectionId: number;
-        /**
-         * The item to move
-         */
-        itemId: number;
-    };
-    query?: {
-        /**
-         * The item to move this item after.  If not provided, this item will be moved to the beginning
-         */
-        after?: number;
-    };
-    url: '/library/collections/{collectionId}/items/{itemId}/move';
-};
-
-export type LibraryCollectionCollectionPutItemsItemMoveErrors = {
-    /**
-     * Item not found
-     */
-    400: unknown;
-    /**
-     * Collection not found
-     */
-    404: unknown;
-};
-
-export type LibraryCollectionCollectionPutItemsItemMoveResponses = {
-    /**
-     * OK
-     */
-    200: MediaContainerWithMetadata2;
-};
-
-export type LibraryCollectionCollectionPutItemsItemMoveResponse = LibraryCollectionCollectionPutItemsItemMoveResponses[keyof LibraryCollectionCollectionPutItemsItemMoveResponses];
-
-export type LibraryPostFileData = {
-    body?: never;
-    path?: never;
-    query?: {
-        /**
-         * The file of the file to ingest.
-         */
-        url?: string;
-        /**
-         * A virtual path to use when the url is opaque.
-         */
-        virtualFilePath?: string;
-        /**
-         * Whether or not to compute Plex and OpenSubtitle hashes for the file. Defaults to 0.
-         */
-        computeHashes?: 0 | 1;
-        /**
-         * Whether or not non matching media should be stored. Defaults to 0.
-         */
-        ingestNonMatches?: 0 | 1;
-    };
-    url: '/library/file';
-};
-
-export type LibraryPostFileResponses = {
-    /**
-     * OK
-     */
-    200: MediaContainerWithMetadata2;
-};
-
-export type LibraryPostFileResponse = LibraryPostFileResponses[keyof LibraryPostFileResponses];
-
-export type LibraryGetMatchesData = {
-    body?: never;
-    path?: never;
-    query: {
-        /**
-         * The metadata type to match against
-         */
-        type: number;
-        /**
-         * Whether or not to include full metadata on a positive match. When set, and the best match exceeds a score threshold of 85, metadata as rich as possible is sent back.
-         */
-        includeFullMetadata?: 0 | 1;
-        /**
-         * Whether or not to include metadata for the item's ancestor (e.g. show and season data for an episode).
-         */
-        includeAncestorMetadata?: 0 | 1;
-        /**
-         * Whether or not to return all sources for each metadata field, which results in a different structure being passed back.
-         */
-        includeAlternateMetadataSources?: 0 | 1;
-        /**
-         * Used for movies, shows, artists, albums, and tracks.  Allowed for various URI schemes, to be defined.
-         */
-        guid?: string;
-        /**
-         * Used for movies, shows, artists, and albums.  Required if `path` is not specified.
-         */
-        title?: string;
-        /**
-         * Used for movies shows, and albums.  Optional.
-         */
-        year?: number;
-        /**
-         * Used for movies, episodes, and tracks.  The full path to the media file, used for "cloud-scanning" an item.
-         */
-        path?: string;
-        /**
-         * Used for episodes and tracks.  The title of the show/artist. Required if `path` isn't passed.
-         */
-        grandparentTitle?: string;
-        /**
-         * Used for episodes.  The year of the show.
-         */
-        grandparentYear?: number;
-        /**
-         * Used for episodes and tracks.  The season/album number.
-         */
-        parentIndex?: number;
-        /**
-         * Used for episodes and tracks.  The episode/tracks number in the season/album.
-         */
-        index?: number;
-        /**
-         * Used for episodes.  In the format `YYYY-MM-DD`.
-         */
-        originallyAvailableAt?: string;
-        /**
-         * Used for albums and tracks. The artist name for albums or the album name for tracks.
-         */
-        parentTitle?: string;
-    };
-    url: '/library/matches';
-};
-
-export type LibraryGetMatchesResponses = {
-    /**
-     * OK
-     */
-    200: MediaContainerWithMetadata2;
-};
-
-export type LibraryGetMatchesResponse = LibraryGetMatchesResponses[keyof LibraryGetMatchesResponses];
-
-export type LibraryGetMediaMediaChapterImagesChapterData = {
-    body?: never;
-    path: {
-        /**
-         * The id of the media item
-         */
-        mediaId: number;
-        /**
-         * The index of the chapter
-         */
-        chapter: number;
-    };
-    query?: never;
-    url: '/library/media/{mediaId}/chapterImages/{chapter}';
-};
-
-export type LibraryGetMediaMediaChapterImagesChapterErrors = {
-    /**
-     * Either the media item or the chapter image was not found
-     */
-    404: unknown;
-};
-
-export type LibraryGetMediaMediaChapterImagesChapterResponses = {
-    /**
-     * OK
-     */
-    200: Blob | File;
-};
-
-export type LibraryGetMediaMediaChapterImagesChapterResponse = LibraryGetMediaMediaChapterImagesChapterResponses[keyof LibraryGetMediaMediaChapterImagesChapterResponses];
-
-export type LibraryGetMetadataAugmentationsAugmentationData = {
-    body?: never;
-    path: {
-        /**
-         * The id of the augmentation
-         */
-        augmentationId: string;
-    };
-    query?: {
-        /**
-         * Wait for augmentation completion before returning
-         */
-        wait?: 0 | 1;
-    };
-    url: '/library/metadata/augmentations/{augmentationId}';
-};
-
-export type LibraryGetMetadataAugmentationsAugmentationErrors = {
-    /**
-     * This augmentation is not owned by the requesting user
-     */
-    401: unknown;
-    /**
-     * No augmentation found
-     */
-    404: unknown;
-};
-
-export type LibraryGetMetadataAugmentationsAugmentationResponses = {
-    /**
-     * No Content
-     */
-    204: unknown;
-};
-
-export type LibraryMetadataDeleteSlashData = {
-    body?: never;
-    path: {
-        ids: string;
-    };
-    query?: {
-        /**
-         * Whether proxy items, such as media optimized versions, should also be deleted.  Defaults to false.
-         */
-        proxy?: 0 | 1;
-    };
-    url: '/library/metadata/{ids}';
-};
-
-export type LibraryMetadataDeleteSlashErrors = {
-    /**
-     * Media items could not be deleted
-     */
-    400: unknown;
-};
-
-export type LibraryMetadataDeleteSlashResponses = {
-    /**
-     * OK
-     */
-    200: unknown;
-};
-
-export type LibraryMetadataGetSlashData = {
-    body?: never;
-    path: {
-        ids: Array<string>;
-    };
-    query?: {
-        /**
-         * Determines if file check should be performed asynchronously.  An activity is created to indicate progress.  Default is false.
-         */
-        asyncCheckFiles?: 0 | 1;
-        /**
-         * Determines if local media agent refresh should be performed asynchronously.  An activity is created to indicate progress.  Default is false.
-         */
-        asyncRefreshLocalMediaAgent?: 0 | 1;
-        /**
-         * Determines if analysis refresh should be performed asynchronously.  An activity is created to indicate progress.  Default is false.
-         */
-        asyncRefreshAnalysis?: 0 | 1;
-        /**
-         * Determines if file check should be performed synchronously.  Specifying `asyncCheckFiles` will cause this option to be ignored.  Default is false.
-         */
-        checkFiles?: 0 | 1;
-        /**
-         * Determines if synchronous local media agent and analysis refresh should be skipped.  Specifying async versions will cause synchronous versions to be skipped.  Default is false.
-         */
-        skipRefresh?: 0 | 1;
-        /**
-         * Determines if file existence check should be performed synchronously.  Specifying `checkFiles` will imply this option.  Default is false.
-         */
-        checkFileAvailability?: 0 | 1;
-        /**
-         * Add metadata augmentations.  An activity is created to indicate progress.  Option will be ignored if specified by non-admin or if multiple metadata items are requested.  Default is false.
-         */
-        asyncAugmentMetadata?: 0 | 1;
-        /**
-         * Number of augmentations to add.  Requires `asyncAugmentMetadata` to be specified.
-         */
-        augmentCount?: 0 | 1;
-    };
-    url: '/library/metadata/{ids}';
-};
-
-export type LibraryMetadataGetSlashResponses = {
-    /**
-     * OK
-     */
-    200: MediaContainerWithMetadata2;
-};
-
-export type LibraryMetadataGetSlashResponse = LibraryMetadataGetSlashResponses[keyof LibraryMetadataGetSlashResponses];
-
-export type LibraryMetadataPutSlashData = {
-    body?: never;
-    path: {
-        ids: Array<string>;
-    };
-    query?: {
-        /**
-         * The new values for the metadata item
-         */
-        args?: {
-            [key: string]: unknown;
-        };
-    };
-    url: '/library/metadata/{ids}';
-};
-
-export type LibraryMetadataPutSlashErrors = {
-    /**
-     * Media items could not be deleted
-     */
-    400: unknown;
-};
-
-export type LibraryMetadataPutSlashResponses = {
-    /**
-     * OK
-     */
-    200: unknown;
-};
-
-export type LibraryMetadataPutAddetectData = {
-    body?: never;
-    path: {
-        ids: string;
-    };
-    query?: never;
-    url: '/library/metadata/{ids}/addetect';
-};
-
-export type LibraryMetadataPutAddetectResponses = {
-    /**
-     * OK
-     */
-    200: unknown;
-};
-
-export type LibraryMetadataGetAllLeavesData = {
-    body?: never;
-    path: {
-        ids: string;
-    };
-    query?: never;
-    url: '/library/metadata/{ids}/allLeaves';
-};
-
-export type LibraryMetadataGetAllLeavesResponses = {
-    /**
-     * OK
-     */
-    200: MediaContainerWithMetadata2;
-};
-
-export type LibraryMetadataGetAllLeavesResponse = LibraryMetadataGetAllLeavesResponses[keyof LibraryMetadataGetAllLeavesResponses];
-
-export type LibraryMetadataPutAnalyzeData = {
-    body?: never;
-    path: {
-        ids: string;
-    };
-    query?: {
-        /**
-         * Set the offset to be used for thumbnails
-         */
-        thumbOffset?: number;
-        /**
-         * Set the offset to be used for artwork
-         */
-        artOffset?: number;
-    };
-    url: '/library/metadata/{ids}/analyze';
-};
-
-export type LibraryMetadataPutAnalyzeResponses = {
-    /**
-     * OK
-     */
-    200: unknown;
-};
-
-export type LibraryMetadataPutChapterThumbsData = {
-    body?: never;
-    path: {
-        ids: string;
-    };
-    query?: {
-        force?: 0 | 1;
-    };
-    url: '/library/metadata/{ids}/chapterThumbs';
-};
-
-export type LibraryMetadataPutChapterThumbsResponses = {
-    /**
-     * OK
-     */
-    200: unknown;
-};
-
-export type LibraryMetadataPutCreditsData = {
-    body?: never;
-    path: {
-        ids: string;
-    };
-    query?: {
-        force?: 0 | 1;
-        manual?: 0 | 1;
-    };
-    url: '/library/metadata/{ids}/credits';
-};
-
-export type LibraryMetadataPutCreditsResponses = {
-    /**
-     * OK
-     */
-    200: unknown;
-};
-
-export type LibraryMetadataGetExtrasData = {
-    body?: never;
-    path: {
-        ids: string;
-    };
-    query?: never;
-    url: '/library/metadata/{ids}/extras';
-};
-
-export type LibraryMetadataGetExtrasResponses = {
-    /**
-     * OK
-     */
-    200: MediaContainerWithMetadata2;
-};
-
-export type LibraryMetadataGetExtrasResponse = LibraryMetadataGetExtrasResponses[keyof LibraryMetadataGetExtrasResponses];
-
-export type LibraryMetadataPostExtrasData = {
-    body?: never;
-    path: {
-        ids: string;
-    };
-    query: {
-        /**
-         * The metadata type of the extra
-         */
-        extraType?: number;
-        /**
-         * The URL of the extra
-         */
-        url: string;
-        /**
-         * The title of the extra
-         */
-        title: string;
-    };
-    url: '/library/metadata/{ids}/extras';
-};
-
-export type LibraryMetadataPostExtrasErrors = {
-    /**
-     * Either the metadata item is not present or the extra could not be added
-     */
-    404: unknown;
-};
-
-export type LibraryMetadataPostExtrasResponses = {
-    /**
-     * OK
-     */
-    200: unknown;
-};
-
-export type LibraryMetadataGetFileData = {
-    body?: never;
-    path: {
-        ids: string;
-    };
-    query?: {
-        /**
-         * The bundle url, typically starting with `metadata://` or `media://`
-         */
-        url?: string;
-    };
-    url: '/library/metadata/{ids}/file';
-};
-
-export type LibraryMetadataGetFileResponses = {
-    /**
-     * OK
-     */
-    200: Blob | File;
-};
-
-export type LibraryMetadataGetFileResponse = LibraryMetadataGetFileResponses[keyof LibraryMetadataGetFileResponses];
-
-export type LibraryMetadataPutIndexData = {
-    body?: never;
-    path: {
-        ids: string;
-    };
-    query?: {
-        force?: 0 | 1;
-    };
-    url: '/library/metadata/{ids}/index';
-};
-
-export type LibraryMetadataPutIndexResponses = {
-    /**
-     * OK
-     */
-    200: unknown;
-};
-
-export type LibraryMetadataPutIntroData = {
-    body?: never;
-    path: {
-        ids: string;
-    };
-    query?: {
-        /**
-         * Indicate whether detection should be re-run
-         */
-        force?: 0 | 1;
-        /**
-         * The threshold for determining if content is an intro or not
-         */
-        threshold?: number;
-    };
-    url: '/library/metadata/{ids}/intro';
-};
-
-export type LibraryMetadataPutIntroResponses = {
-    /**
-     * OK
-     */
-    200: unknown;
-};
-
-export type LibraryMetadataPostMarkerData = {
-    body?: never;
-    path: {
-        ids: string;
-    };
-    query: {
-        /**
-         * The type of marker to edit/create
-         */
-        type: number;
-        /**
-         * The start time of the marker
-         */
-        startTimeOffset: number;
-        /**
-         * The end time of the marker
-         */
-        endTimeOffset?: number;
-        /**
-         * The attributes to assign to this marker
-         */
-        attributes?: {
-            [key: string]: unknown;
-        };
-    };
-    url: '/library/metadata/{ids}/marker';
-};
-
-export type LibraryMetadataPostMarkerErrors = {
-    /**
-     * Request parameters are bad, such as an `endTimeOffset` prior to the `startTimeOffset`
-     */
-    400: unknown;
-};
-
-export type LibraryMetadataPostMarkerResponses = {
-    /**
-     * OK
-     */
-    200: {
-        MediaContainer?: MediaContainer & {
-            color?: string;
-            endTimeOffset?: number;
-            id?: number;
-            startTimeOffset?: number;
-            title?: string;
-            type?: 'intro' | 'commercial' | 'bookmark' | 'resume' | 'credit';
-            [key: string]: unknown;
-        };
-    };
-};
-
-export type LibraryMetadataPostMarkerResponse = LibraryMetadataPostMarkerResponses[keyof LibraryMetadataPostMarkerResponses];
-
-export type LibraryMetadataDeleteMarkerMarkerData = {
-    body?: never;
-    path: {
-        ids: string;
-        marker: string;
-    };
-    query?: never;
-    url: '/library/metadata/{ids}/marker/{marker}';
-};
-
-export type LibraryMetadataDeleteMarkerMarkerErrors = {
-    /**
-     * Marker is not a bookmark
-     */
-    400: unknown;
-    /**
-     * Marker could not be found
-     */
-    404: unknown;
-};
-
-export type LibraryMetadataDeleteMarkerMarkerResponses = {
-    /**
-     * OK
-     */
-    200: unknown;
-};
-
-export type LibraryMetadataPutMarkerMarkerData = {
-    body?: never;
-    path: {
-        ids: string;
-        /**
-         * The id of the marker to edit
-         */
-        marker: string;
-    };
-    query: {
-        /**
-         * The type of marker to edit/create
-         */
-        type: number;
-        /**
-         * The start time of the marker
-         */
-        startTimeOffset: number;
-        /**
-         * The end time of the marker
-         */
-        endTimeOffset?: number;
-        /**
-         * The attributes to assign to this marker
-         */
-        attributes?: {
-            [key: string]: unknown;
-        };
-    };
-    url: '/library/metadata/{ids}/marker/{marker}';
-};
-
-export type LibraryMetadataPutMarkerMarkerErrors = {
-    /**
-     * Request parameters are bad, such as an `endTimeOffset` prior to the `startTimeOffset`
-     */
-    400: unknown;
-    /**
-     * The marker could not be found
-     */
-    404: unknown;
-};
-
-export type LibraryMetadataPutMarkerMarkerResponses = {
-    /**
-     * OK
-     */
-    200: {
-        MediaContainer?: MediaContainer & {
-            color?: string;
-            endTimeOffset?: number;
-            id?: number;
-            startTimeOffset?: number;
-            title?: string;
-            type?: 'intro' | 'commercial' | 'bookmark' | 'resume' | 'credit';
-            [key: string]: unknown;
-        };
-    };
-};
-
-export type LibraryMetadataPutMarkerMarkerResponse = LibraryMetadataPutMarkerMarkerResponses[keyof LibraryMetadataPutMarkerMarkerResponses];
-
-export type LibraryMetadataPutMatchData = {
-    body?: never;
-    path: {
-        ids: string;
-    };
-    query?: {
-        guid?: string;
-        name?: string;
-        year?: number;
-    };
-    url: '/library/metadata/{ids}/match';
-};
-
-export type LibraryMetadataPutMatchResponses = {
-    /**
-     * OK
-     */
-    200: unknown;
-};
-
-export type LibraryMetadataGetMatchesData = {
-    body?: never;
-    path: {
-        ids: string;
-    };
-    query?: {
-        title?: string;
-        parentTitle?: string;
-        agent?: string;
-        language?: string;
-        year?: number;
-        manual?: 0 | 1;
-    };
-    url: '/library/metadata/{ids}/matches';
-};
-
-export type LibraryMetadataGetMatchesResponses = {
-    /**
-     * OK
-     */
-    200: MediaContainerWithMetadata2;
-};
-
-export type LibraryMetadataGetMatchesResponse = LibraryMetadataGetMatchesResponses[keyof LibraryMetadataGetMatchesResponses];
-
-export type LibraryMetadataDeleteMediaMediaItemData = {
-    body?: never;
-    path: {
-        ids: string;
-        mediaItem: string;
-    };
-    query?: {
-        /**
-         * Whether proxy items, such as media optimized versions, should also be deleted.  Defaults to false.
-         */
-        proxy?: 0 | 1;
-    };
-    url: '/library/metadata/{ids}/media/{mediaItem}';
-};
-
-export type LibraryMetadataDeleteMediaMediaItemErrors = {
-    /**
-     * Media item could not be deleted
-     */
-    400: unknown;
-    /**
-     * Media item could not be found
-     */
-    404: unknown;
-};
-
-export type LibraryMetadataDeleteMediaMediaItemResponses = {
-    /**
-     * OK
-     */
-    200: unknown;
-};
-
-export type LibraryMetadataPutMergeData = {
-    body?: never;
-    path: {
-        ids: string;
-    };
-    query?: {
-        ids?: Array<string>;
-    };
-    url: '/library/metadata/{ids}/merge';
-};
-
-export type LibraryMetadataPutMergeResponses = {
-    /**
-     * OK
-     */
-    200: unknown;
-};
-
-export type LibraryMetadataGetNearestData = {
-    body?: never;
-    path: {
-        ids: string;
-    };
-    query?: {
-        excludeParentID?: number;
-        excludeGrandparentID?: number;
-        limit?: number;
-        maxDistance?: number;
-    };
-    url: '/library/metadata/{ids}/nearest';
-};
-
-export type LibraryMetadataGetNearestResponses = {
-    /**
-     * OK
-     */
-    200: MediaContainerWithMetadata2;
-};
-
-export type LibraryMetadataGetNearestResponse = LibraryMetadataGetNearestResponses[keyof LibraryMetadataGetNearestResponses];
-
-export type LibraryMetadataPutPrefsData = {
-    body?: never;
-    path: {
-        ids: string;
-    };
-    query?: {
-        args?: {
-            [key: string]: unknown;
-        };
-    };
-    url: '/library/metadata/{ids}/prefs';
-};
-
-export type LibraryMetadataPutPrefsResponses = {
-    /**
-     * OK
-     */
-    200: unknown;
-};
-
-export type LibraryMetadataPutRefreshData = {
-    body?: never;
-    path: {
-        ids: string;
-    };
-    query?: {
-        agent?: string;
-        markUpdated?: 0 | 1;
-    };
-    url: '/library/metadata/{ids}/refresh';
-};
-
-export type LibraryMetadataPutRefreshResponses = {
-    /**
-     * OK
-     */
-    200: unknown;
-};
-
-export type LibraryMetadataGetRelatedData = {
-    body?: never;
-    path: {
-        ids: string;
-    };
-    query?: never;
-    url: '/library/metadata/{ids}/related';
-};
-
-export type LibraryMetadataGetRelatedResponses = {
-    /**
-     * OK
-     */
-    200: {
-        MediaContainer?: MediaContainer & {
-            Hub?: Array<Hub2>;
-        };
-    };
-};
-
-export type LibraryMetadataGetRelatedResponse = LibraryMetadataGetRelatedResponses[keyof LibraryMetadataGetRelatedResponses];
-
-export type LibraryMetadataGetSimilarData = {
-    body?: never;
-    path: {
-        ids: string;
-    };
-    query?: {
-        /**
-         * The maximum number of similar items; defaults to 200
-         */
-        count?: number;
-    };
-    url: '/library/metadata/{ids}/similar';
-};
-
-export type LibraryMetadataGetSimilarResponses = {
-    /**
-     * OK
-     */
-    200: MediaContainerWithMetadata2;
-};
-
-export type LibraryMetadataGetSimilarResponse = LibraryMetadataGetSimilarResponses[keyof LibraryMetadataGetSimilarResponses];
-
-export type LibraryMetadataPutSplitData = {
-    body?: never;
-    path: {
-        ids: string;
-    };
-    query?: never;
-    url: '/library/metadata/{ids}/split';
-};
-
-export type LibraryMetadataPutSplitResponses = {
-    /**
-     * OK
-     */
-    200: unknown;
-};
-
-export type LibraryMetadataPostSubtitlesData = {
-    body?: never;
-    path: {
-        ids: string;
-    };
-    query?: {
-        title?: string;
-        language?: string;
-        mediaItemID?: number;
-        /**
-         * The URL of the subtitle.  If not provided, the contents of the subtitle must be in the post body
-         */
-        url?: string;
-        format?: string;
-        forced?: 0 | 1;
-        hearingImpaired?: 0 | 1;
-    };
-    url: '/library/metadata/{ids}/subtitles';
-};
-
-export type LibraryMetadataPostSubtitlesResponses = {
-    /**
-     * OK
-     */
-    200: unknown;
-};
-
-export type LibraryMetadataGetTreeData = {
-    body?: never;
-    path: {
-        ids: string;
-    };
-    query?: never;
-    url: '/library/metadata/{ids}/tree';
-};
-
-export type LibraryMetadataGetTreeResponses = {
-    /**
-     * OK
-     */
-    200: MediaContainerWithNestedMetadata2;
-};
-
-export type LibraryMetadataGetTreeResponse = LibraryMetadataGetTreeResponses[keyof LibraryMetadataGetTreeResponses];
-
-export type LibraryMetadataPutUnmatchData = {
-    body?: never;
-    path: {
-        ids: string;
-    };
-    query?: never;
-    url: '/library/metadata/{ids}/unmatch';
-};
-
-export type LibraryMetadataPutUnmatchResponses = {
-    /**
-     * OK
-     */
-    200: unknown;
-};
-
-export type LibraryMetadataGetUsersTopData = {
-    body?: never;
-    path: {
-        ids: string;
-    };
-    query?: never;
-    url: '/library/metadata/{ids}/users/top';
-};
-
-export type LibraryMetadataGetUsersTopResponses = {
-    /**
-     * OK
-     */
-    200: {
-        MediaContainer?: MediaContainer & {
-            Account?: Array<{
-                globalViewCount?: number;
-                id?: number;
-            }>;
-        };
-    };
-};
-
-export type LibraryMetadataGetUsersTopResponse = LibraryMetadataGetUsersTopResponses[keyof LibraryMetadataGetUsersTopResponses];
-
-export type LibraryMetadataPutVoiceActivityData = {
-    body?: never;
-    path: {
-        ids: string;
-    };
-    query?: {
-        /**
-         * Indicate whether detection should be re-run
-         */
-        force?: 0 | 1;
-        /**
-         * Indicate whether detection is manually run
-         */
-        manual?: 0 | 1;
-    };
-    url: '/library/metadata/{ids}/voiceActivity';
-};
-
-export type LibraryMetadataPutVoiceActivityResponses = {
-    /**
-     * OK
-     */
-    200: unknown;
-};
-
-export type LibraryMetadataDeleteElementData = {
-    body?: never;
-    path: {
-        ids: string;
-        element: 'thumb' | 'art' | 'clearLogo' | 'squareArt' | 'banner' | 'poster' | 'theme';
-    };
-    query?: never;
-    url: '/library/metadata/{ids}/{element}';
-};
-
-export type LibraryMetadataDeleteElementErrors = {
-    /**
-     * Not Found
-     */
-    404: unknown;
-};
-
-export type LibraryMetadataDeleteElementResponses = {
-    /**
-     * OK
-     */
-    200: unknown;
-};
-
-export type LibraryMetadataPostElementData = {
-    body?: never;
-    path: {
-        ids: string;
-        element: 'thumb' | 'art' | 'clearLogo' | 'squareArt' | 'banner' | 'poster' | 'theme';
-    };
-    query?: {
-        /**
-         * The url of the new asset.  If not provided, the binary of the asset must be provided in the post body.
-         */
-        url?: string;
-    };
-    url: '/library/metadata/{ids}/{element}';
-};
-
-export type LibraryMetadataPostElementResponses = {
-    /**
-     * OK
-     */
-    200: unknown;
-};
-
-export type LibraryMetadataPutElementData = {
-    body?: never;
-    path: {
-        ids: string;
-        element: 'thumb' | 'art' | 'clearLogo' | 'squareArt' | 'banner' | 'poster' | 'theme';
-    };
-    query?: {
-        /**
-         * The url of the new asset.
-         */
-        url?: string;
-    };
-    url: '/library/metadata/{ids}/{element}';
-};
-
-export type LibraryMetadataPutElementResponses = {
-    /**
-     * OK
-     */
-    200: unknown;
-};
-
-export type LibraryMetadataGetElementData = {
-    body?: never;
-    path: {
-        ids: string;
-        element: 'thumb' | 'art' | 'clearLogo' | 'squareArt' | 'banner' | 'poster' | 'theme';
-        /**
-         * A timestamp on the element used for cache management in the client
-         */
-        timestamp: number;
-    };
-    query?: never;
-    url: '/library/metadata/{ids}/{element}/{timestamp}';
-};
-
-export type LibraryMetadataGetElementResponses = {
-    /**
-     * OK
-     */
-    200: Blob | File;
-};
-
-export type LibraryMetadataGetElementResponse = LibraryMetadataGetElementResponses[keyof LibraryMetadataGetElementResponses];
-
-export type LibraryPutOptimizeData = {
-    body?: never;
-    path?: never;
-    query?: {
-        /**
-         * If set, don't wait for completion but return an activity
-         */
-        async?: 0 | 1;
-    };
-    url: '/library/optimize';
-};
-
-export type LibraryPutOptimizeResponses = {
-    /**
-     * OK
-     */
-    200: unknown;
-};
-
-export type LibraryPutPartsPartData = {
-    body?: never;
-    path: {
-        /**
-         * The id of the part to select streams on
-         */
-        partId: number;
-    };
-    query?: {
-        /**
-         * The id of the audio stream to select in this part
-         */
-        audioStreamID?: number;
-        /**
-         * The id of the subtitle stream to select in this part.  Specify 0 to select no subtitle
-         */
-        subtitleStreamID?: number;
-        /**
-         * Perform the same for all parts of this media selecting similar streams in each
-         */
-        allParts?: 0 | 1;
-    };
-    url: '/library/parts/{partId}';
-};
-
-export type LibraryPutPartsPartErrors = {
-    /**
-     * One of the audio or subtitle streams does not belong to this part
-     */
-    400: unknown;
-};
-
-export type LibraryPutPartsPartResponses = {
-    /**
-     * OK
-     */
-    200: unknown;
-};
-
-export type LibraryGetPartsPartIndexesIndexData = {
-    body?: never;
-    path: {
-        /**
-         * The part id who's index is to be fetched
-         */
-        partId: number;
-        /**
-         * The type of index to grab.
-         */
-        index: 'sd';
-    };
-    query?: {
-        /**
-         * The interval between images to return in ms.
-         */
-        interval?: number;
-    };
-    url: '/library/parts/{partId}/indexes/{index}';
-};
-
-export type LibraryGetPartsPartIndexesIndexErrors = {
-    /**
-     * The part or the index doesn't exist or the interval is too small
-     */
-    404: unknown;
-};
-
-export type LibraryGetPartsPartIndexesIndexResponses = {
-    /**
-     * OK
-     */
-    200: Blob | File;
-};
-
-export type LibraryGetPartsPartIndexesIndexResponse = LibraryGetPartsPartIndexesIndexResponses[keyof LibraryGetPartsPartIndexesIndexResponses];
-
-export type LibraryGetPartsPartIndexesIndexOffsetData = {
-    body?: never;
-    path: {
-        /**
-         * The part id who's index is to be fetched
-         */
-        partId: number;
-        /**
-         * The type of index to grab.
-         */
-        index: 'sd';
-        /**
-         * The offset to seek in ms.
-         */
-        offset: number;
-    };
-    query?: never;
-    url: '/library/parts/{partId}/indexes/{index}/{offset}';
-};
-
-export type LibraryGetPartsPartIndexesIndexOffsetErrors = {
-    /**
-     * The part or the index doesn't exist
-     */
-    404: unknown;
-};
-
-export type LibraryGetPartsPartIndexesIndexOffsetResponses = {
-    /**
-     * OK
-     */
-    200: Blob | File;
-};
-
-export type LibraryGetPartsPartIndexesIndexOffsetResponse = LibraryGetPartsPartIndexesIndexOffsetResponses[keyof LibraryGetPartsPartIndexesIndexOffsetResponses];
-
-export type LibraryGetPartsPartChangestampFilenameData = {
-    body?: never;
-    path: {
-        /**
-         * The part id who's index is to be fetched
-         */
-        partId: number;
-        /**
-         * The changestamp of the part; used for busting potential caches.  Provided in the `key` for the part
-         */
-        changestamp: number;
-        /**
-         * A generic filename used for a client media stack which relies on the extension in the request.  Provided in the `key` for the part
-         */
-        filename: string;
-    };
-    query?: {
-        /**
-         * Whether this is a file download
-         */
-        download?: 0 | 1;
-    };
-    url: '/library/parts/{partId}/{changestamp}/{filename}';
-};
-
-export type LibraryGetPartsPartChangestampFilenameErrors = {
-    /**
-     * Client requested download and server owner has forbidden download of media
-     */
-    403: unknown;
-    /**
-     * The part doesn't exist
-     */
-    404: unknown;
-    /**
-     * Client requested the part without a decision and no decision could be made or decision is for a transcode
-     */
-    503: unknown;
-    /**
-     * Client requested the part without a decision and no decision could be made because there is insufficient bandwidth for client to direct play this part
-     */
-    509: unknown;
-};
-
-export type LibraryGetPartsPartChangestampFilenameResponses = {
-    /**
-     * OK
-     */
-    200: unknown;
-};
-
-export type LibraryGetPeoplePersonData = {
-    body?: never;
-    path: {
-        /**
-         * Either the PMS tag `id` of the person or `tagKey` of the actor.  Note the `tagKey` is the hex portion of the plex guid for the actor
-         */
-        personId: number | string;
-    };
-    query?: never;
-    url: '/library/people/{personId}';
-};
-
-export type LibraryGetPeoplePersonErrors = {
-    /**
-     * Not Found
-     */
-    404: unknown;
-};
-
-export type LibraryGetPeoplePersonResponses = {
-    /**
-     * OK
-     */
-    200: {
-        MediaContainer?: MediaContainer & {
-            Directory?: Array<Tag2>;
-        };
-    };
-};
-
-export type LibraryGetPeoplePersonResponse = LibraryGetPeoplePersonResponses[keyof LibraryGetPeoplePersonResponses];
-
-export type LibraryGetPeoplePersonMediaData = {
-    body?: never;
-    path: {
-        /**
-         * Either the PMS tag `id` of the person or `tagKey` of the actor.  Note the `tagKey` is the hex portion of the plex guid for the actor
-         */
-        personId: number | string;
-    };
-    query?: never;
-    url: '/library/people/{personId}/media';
-};
-
-export type LibraryGetPeoplePersonMediaErrors = {
-    /**
-     * Not Found
-     */
-    404: unknown;
-};
-
-export type LibraryGetPeoplePersonMediaResponses = {
-    /**
-     * OK
-     */
-    200: MediaContainerWithMetadata2;
-};
-
-export type LibraryGetPeoplePersonMediaResponse = LibraryGetPeoplePersonMediaResponses[keyof LibraryGetPeoplePersonMediaResponses];
-
-export type LibraryGetRandomArtworkData = {
-    body?: never;
-    path?: never;
-    query?: {
-        /**
-         * The sections for which to fetch artwork.
-         */
-        sections?: Array<number>;
-    };
-    url: '/library/randomArtwork';
-};
-
-export type LibraryGetRandomArtworkResponses = {
-    /**
-     * OK
-     */
-    200: MediaContainerWithArtwork2;
-};
-
-export type LibraryGetRandomArtworkResponse = LibraryGetRandomArtworkResponses[keyof LibraryGetRandomArtworkResponses];
-
-export type LibraryGetSectionsData = {
-    body?: never;
-    path?: never;
-    query?: never;
-    url: '/library/sections/all';
-};
-
-export type LibraryGetSectionsResponses = {
-    /**
-     * OK
-     */
-    200: {
-        MediaContainer?: MediaContainer2 & {
-            Directory?: Array<LibrarySection2>;
-            allowSync?: AllowSync;
-            /**
-             * Typically just "Plex Library"
-             */
-            title1?: string;
-        };
-    };
-};
-
-export type LibraryGetSectionsResponse = LibraryGetSectionsResponses[keyof LibraryGetSectionsResponses];
-
-export type LibraryPostSectionData = {
-    body?: never;
-    path?: never;
-    query: {
-        /**
-         * The name of the new section
-         */
-        name: string;
-        /**
-         * The type of library section
-         */
-        type: number;
-        /**
-         * The scanner this section should use
-         */
-        scanner?: string;
-        /**
-         * The agent this section should use for metadata
-         */
-        agent: string;
-        /**
-         * The agent group id for this section
-         */
-        metadataAgentProviderGroupId?: string;
-        /**
-         * The language of this section
-         */
-        language: string;
-        /**
-         * The locations on disk to add to this section
-         */
-        locations?: Array<string>;
-        /**
-         * The preferences for this section
-         */
-        prefs?: {
-            [key: string]: unknown;
-        };
-        /**
-         * If set, paths are relative to `Media Upload` path
-         */
-        relative?: 0 | 1;
-        /**
-         * If set, import media from iTunes.
-         */
-        importFromiTunes?: 0 | 1;
-    };
-    url: '/library/sections/all';
-};
-
-export type LibraryPostSectionErrors = {
-    /**
-     * Section cannot be created due to bad parameters in request
-     */
-    400: unknown;
-};
-
-export type LibraryPostSectionResponses = {
-    /**
-     * OK
-     */
-    200: {
-        MediaContainer?: {
-            Directory?: Array<Metadata2>;
-            allowSync?: boolean;
-            art?: string;
-            /**
-             * The flavors of directory found here:
-             * - Primary: (e.g. all, On Deck) These are still used in some clients to provide "shortcuts" to subsets of media. However, with the exception of On Deck, all of them can be created by media queries, and the desire is to allow these to be customized by users.
-             * - Secondary: These are marked with `"secondary": true` and were used by old clients to provide nested menus allowing for primative (but structured) navigation.
-             * - Special: There is a By Folder entry which allows browsing the media by the underlying filesystem structure, and there's a completely obsolete entry marked `"search": true` which used to be used to allow clients to build search dialogs on the fly.
-             */
-            content?: string;
-            identifier?: string;
-            librarySectionID?: number;
-            mediaTagPrefix?: string;
-            mediaTagVersion?: number;
-            size?: number;
-            sortAsc?: boolean;
-            thumb?: string;
-            title1?: string;
-            viewGroup?: string;
-            viewMode?: number;
-        };
-    };
-};
-
-export type LibraryPostSectionResponse = LibraryPostSectionResponses[keyof LibraryPostSectionResponses];
-
-export type LibraryDeleteSectionsAllRefreshData = {
-    body?: never;
-    path?: never;
-    query?: never;
-    url: '/library/sections/all/refresh';
-};
-
-export type LibraryDeleteSectionsAllRefreshResponses = {
-    /**
-     * OK
-     */
-    200: {
-        MediaContainer?: ServerConfiguration2 & {
-            Directory?: Array<{
-                count?: number;
-                /**
-                 * The key where this directory is found
-                 */
-                key?: string;
-                title?: string;
-            }>;
-        };
-    };
-};
-
-export type LibraryDeleteSectionsAllRefreshResponse = LibraryDeleteSectionsAllRefreshResponses[keyof LibraryDeleteSectionsAllRefreshResponses];
-
-export type LibraryGetSectionsPrefsData = {
-    body?: never;
-    path?: never;
-    query: {
-        /**
-         * The metadata type
-         */
-        type: number;
-        /**
-         * The metadata agent in use
-         */
-        agent?: string;
-    };
-    url: '/library/sections/prefs';
-};
-
-export type LibraryGetSectionsPrefsErrors = {
-    /**
-     * type not provided or not an integer
-     */
-    400: unknown;
-};
-
-export type LibraryGetSectionsPrefsResponses = {
-    /**
-     * OK
-     */
-    200: {
-        MediaContainer?: ServerConfiguration2 & {
-            Directory?: Array<{
-                count?: number;
-                /**
-                 * The key where this directory is found
-                 */
-                key?: string;
-                title?: string;
-            }>;
-        };
-    };
-};
-
-export type LibraryGetSectionsPrefsResponse = LibraryGetSectionsPrefsResponses[keyof LibraryGetSectionsPrefsResponses];
-
-export type LibraryPostSectionsRefreshData = {
-    body?: never;
-    path?: never;
-    query?: {
-        /**
-         * Force refresh of metadata
-         */
-        force?: boolean;
-    };
-    url: '/library/sections/refresh';
-};
-
-export type LibraryPostSectionsRefreshErrors = {
-    /**
-     * Server cannot refresh a music library when not signed in
-     */
-    503: unknown;
-};
-
-export type LibraryPostSectionsRefreshResponses = {
-    /**
-     * OK
-     */
-    200: unknown;
-};
-
-export type LibraryDeleteSectionData = {
-    body?: never;
-    path: {
-        /**
-         * The section identifier
-         */
-        sectionId: string;
-    };
-    query?: {
-        /**
-         * If set, response will return an activity with the actual deletion process.  Otherwise request will return when deletion is complete
-         */
-        async?: 0 | 1;
-    };
-    url: '/library/sections/{sectionId}';
-};
-
-export type LibraryDeleteSectionResponses = {
-    /**
-     * OK
-     */
-    200: unknown;
-};
-
-export type LibrarySectionGetSectionData = {
-    body?: never;
-    path: {
-        /**
-         * The section identifier
-         */
-        sectionId: string;
-    };
-    query?: {
-        /**
-         * Whether or not to include details for a section (types, filters, and sorts). Only exists for backwards compatibility, media providers other than the server libraries have it on always.
-         */
-        includeDetails?: 0 | 1;
-    };
-    url: '/library/sections/{sectionId}';
-};
-
-export type LibrarySectionGetSectionResponses = {
-    /**
-     * OK
-     */
-    200: {
-        MediaContainer?: {
-            Directory?: Array<Metadata2>;
-            allowSync?: boolean;
-            art?: string;
-            /**
-             * The flavors of directory found here:
-             * - Primary: (e.g. all, On Deck) These are still used in some clients to provide "shortcuts" to subsets of media. However, with the exception of On Deck, all of them can be created by media queries, and the desire is to allow these to be customized by users.
-             * - Secondary: These are marked with `"secondary": true` and were used by old clients to provide nested menus allowing for primative (but structured) navigation.
-             * - Special: There is a By Folder entry which allows browsing the media by the underlying filesystem structure, and there's a completely obsolete entry marked `"search": true` which used to be used to allow clients to build search dialogs on the fly.
-             */
-            content?: string;
-            identifier?: string;
-            librarySectionID?: number;
-            mediaTagPrefix?: string;
-            mediaTagVersion?: number;
-            size?: number;
-            sortAsc?: boolean;
-            thumb?: string;
-            title1?: string;
-            viewGroup?: string;
-            viewMode?: number;
-        };
-    };
-};
-
-export type LibrarySectionGetSectionResponse = LibrarySectionGetSectionResponses[keyof LibrarySectionGetSectionResponses];
-
-export type LibrarySectionPutSectionData = {
-    body?: never;
-    path: {
-        /**
-         * The section identifier
-         */
-        sectionId: string;
-    };
-    query: {
-        /**
-         * The name of the new section
-         */
-        name?: string;
-        /**
-         * The scanner this section should use
-         */
-        scanner?: string;
-        /**
-         * The agent this section should use for metadata
-         */
-        agent: string;
-        /**
-         * The agent group id for this section
-         */
-        metadataAgentProviderGroupId?: string;
-        /**
-         * The language of this section
-         */
-        language?: string;
-        /**
-         * The locations on disk to add to this section
-         */
-        locations?: Array<string>;
-        /**
-         * The preferences for this section
-         */
-        prefs?: {
-            [key: string]: unknown;
-        };
-    };
-    url: '/library/sections/{sectionId}';
-};
-
-export type LibrarySectionPutSectionErrors = {
-    /**
-     * Section cannot be created due to bad parameters in request
-     */
-    400: unknown;
-};
-
-export type LibrarySectionPutSectionResponses = {
-    /**
-     * OK
-     */
-    200: unknown;
-};
-
-export type LibrarySectionGetAlbumsData = {
-    body?: never;
-    path: {
-        /**
-         * Section identifier
-         */
-        sectionId: number;
-    };
-    query?: never;
-    url: '/library/sections/{sectionId}/albums';
-};
-
-export type LibrarySectionGetAlbumsResponses = {
-    /**
-     * OK
-     */
-    200: MediaContainerWithMetadata2;
-};
-
-export type LibrarySectionGetAlbumsResponse = LibrarySectionGetAlbumsResponses[keyof LibrarySectionGetAlbumsResponses];
-
-export type LibrarySectionGetAllData = {
-    body?: never;
-    path: {
-        /**
-         * The id of the section
-         */
-        sectionId: string;
-    };
-    query?: {
-        /**
-         * This is a complex query built of several parameters.  See [API Info section](#section/API-Info/Media-Queries) for information on building media queries
-         */
-        mediaQuery?: {
-            [key: string]: unknown;
-        };
-    };
-    url: '/library/sections/{sectionId}/all';
-};
-
-export type LibrarySectionGetAllResponses = {
-    /**
-     * OK
-     */
-    200: MediaContainerWithMetadata2;
-};
-
-export type LibrarySectionGetAllResponse = LibrarySectionGetAllResponses[keyof LibrarySectionGetAllResponses];
-
-export type LibrarySectionPutAllData = {
-    body?: never;
-    path: {
-        /**
-         * The id of the section
-         */
-        sectionId: string;
-    };
-    query?: {
-        type?: string;
-        /**
-         * The filters to apply to determine which items should be modified
-         */
-        filters?: string;
-        /**
-         * Set the specified field to a new value
-         */
-        'field.value'?: string;
-        /**
-         * Set the specified field to locked (or unlocked if set to 0)
-         */
-        'field.locked'?: 0 | 1;
-        /**
-         * This field is treated specially by albums or artists and may be used for implicit reparenting.
-         */
-        'title.value'?: string;
-        /**
-         * Reparents set of Tracks or Albums - used with album.title.* in the case of tracks
-         */
-        'artist.title.value'?: string;
-        /**
-         * Reparents set of Tracks or Albums - used with album.title.* in the case of tracks
-         */
-        'artist.title.id'?: string;
-        /**
-         * Reparents set of Tracks - Must be used in conjunction with artist.title.value or id
-         */
-        'album.title.value'?: string;
-        /**
-         * Reparents set of Tracks - Must be used in conjunction with artist.title.value or id
-         */
-        'album.title.id'?: string;
-        /**
-         * Creates tag and associates it with each item in the set. - [idx] links this and the next parameters together
-         */
-        'tagtype[idx].tag.tag'?: string;
-        /**
-         * Here `object` may be text/thumb/art/theme - Optionally used in conjunction with tag.tag, to update association info across the set.
-         */
-        'tagtype[idx].tagging.object'?: string;
-        /**
-         * Remove comma separated tags from the set of items
-         */
-        'tagtype[].tag.tag-'?: string;
-        /**
-         * Remove associations of this type (e.g. genre) from the set of items
-         */
-        'tagtype[].tag'?: string;
-    };
-    url: '/library/sections/{sectionId}/all';
-};
-
-export type LibrarySectionPutAllErrors = {
-    /**
-     * The set of parameters are inconsistent or invalid values
-     */
-    400: unknown;
-    /**
-     * A required item could not be found
-     */
-    404: unknown;
-    /**
-     * Rename of a collection to a name that's already taken
-     */
-    409: unknown;
-};
-
-export type LibrarySectionPutAllResponses = {
-    /**
-     * OK
-     */
-    200: unknown;
-};
-
-export type LibrarySectionGetAllLeavesData = {
-    body?: never;
-    path: {
-        /**
-         * Section identifier
-         */
-        sectionId: number;
-    };
-    query?: never;
-    url: '/library/sections/{sectionId}/allLeaves';
-};
-
-export type LibrarySectionGetAllLeavesResponses = {
-    /**
-     * OK
-     */
-    200: MediaContainerWithMetadata2;
-};
-
-export type LibrarySectionGetAllLeavesResponse = LibrarySectionGetAllLeavesResponses[keyof LibrarySectionGetAllLeavesResponses];
-
-export type LibrarySectionPutAnalyzeData = {
-    body?: never;
-    path: {
-        /**
-         * Section identifier
-         */
-        sectionId: number;
-    };
-    query?: never;
-    url: '/library/sections/{sectionId}/analyze';
-};
-
-export type LibrarySectionPutAnalyzeResponses = {
-    /**
-     * OK
-     */
-    200: unknown;
-};
-
-export type LibrarySectionGetArtsData = {
-    body?: never;
-    path: {
-        /**
-         * Section identifier
-         */
-        sectionId: number;
-    };
-    query?: never;
-    url: '/library/sections/{sectionId}/arts';
-};
-
-export type LibrarySectionGetArtsResponses = {
-    /**
-     * OK
-     */
-    200: MediaContainerWithArtwork2;
-};
-
-export type LibrarySectionGetArtsResponse = LibrarySectionGetArtsResponses[keyof LibrarySectionGetArtsResponses];
-
-export type LibrarySectionGetAudioCodecsData = {
-    body?: never;
-    path: {
-        /**
-         * Section identifier
-         */
-        sectionId: number;
-    };
-    query?: {
-        /**
-         * This is a complex query built of several parameters.  See [API Info section](#section/API-Info/Media-Queries) for information on building media queries
-         */
-        mediaQuery?: {
-            [key: string]: unknown;
-        };
-    };
-    url: '/library/sections/{sectionId}/audioCodec';
-};
-
-export type LibrarySectionGetAudioCodecsResponses = {
-    /**
-     * The audio codecs in the section
-     */
-    200: {
-        MediaContainer?: MediaContainer & {
-            Directory?: Array<Directory2>;
-        };
-    };
-};
-
-export type LibrarySectionGetAudioCodecsResponse = LibrarySectionGetAudioCodecsResponses[keyof LibrarySectionGetAudioCodecsResponses];
-
-export type LibrarySectionGetAudioLayoutsData = {
-    body?: never;
-    path: {
-        /**
-         * Section identifier
-         */
-        sectionId: number;
-    };
-    query?: {
-        /**
-         * This is a complex query built of several parameters.  See [API Info section](#section/API-Info/Media-Queries) for information on building media queries
-         */
-        mediaQuery?: {
-            [key: string]: unknown;
-        };
-    };
-    url: '/library/sections/{sectionId}/audioLayout';
-};
-
-export type LibrarySectionGetAudioLayoutsResponses = {
-    /**
-     * The audio layouts in the section
-     */
-    200: {
-        MediaContainer?: MediaContainer & {
-            Directory?: Array<Directory2>;
-        };
-    };
-};
-
-export type LibrarySectionGetAudioLayoutsResponse = LibrarySectionGetAudioLayoutsResponses[keyof LibrarySectionGetAudioLayoutsResponses];
-
-export type LibrarySectionGetAutocompleteData = {
-    body?: never;
-    path: {
-        /**
-         * Section identifier
-         */
-        sectionId: number;
-    };
-    query?: {
-        /**
-         * Item type
-         */
-        type?: number;
-        /**
-         * The "field" stands in for any field, the value is a partial string for matching
-         */
-        'field.query'?: string;
-        /**
-         * This is a complex query built of several parameters.  See [API Info section](#section/API-Info/Media-Queries) for information on building media queries
-         */
-        mediaQuery?: {
-            [key: string]: unknown;
-        };
-    };
-    url: '/library/sections/{sectionId}/autocomplete';
-};
-
-export type LibrarySectionGetAutocompleteErrors = {
-    /**
-     * A paramater is either invalid or missing
-     */
-    400: unknown;
-};
-
-export type LibrarySectionGetAutocompleteResponses = {
-    /**
-     * OK
-     */
-    200: MediaContainerWithMetadata2;
-};
-
-export type LibrarySectionGetAutocompleteResponse = LibrarySectionGetAutocompleteResponses[keyof LibrarySectionGetAutocompleteResponses];
-
-export type LibrarySectionGetCategoriesData = {
-    body?: never;
-    path: {
-        /**
-         * Section identifier
-         */
-        sectionId: number;
-    };
-    query?: never;
-    url: '/library/sections/{sectionId}/categories';
-};
-
-export type LibrarySectionGetCategoriesResponses = {
-    /**
-     * OK
-     */
-    200: MediaContainerWithArtwork2;
-};
-
-export type LibrarySectionGetCategoriesResponse = LibrarySectionGetCategoriesResponses[keyof LibrarySectionGetCategoriesResponses];
-
-export type LibrarySectionGetClusterData = {
-    body?: never;
-    path: {
-        /**
-         * Section identifier
-         */
-        sectionId: number;
-    };
-    query?: never;
-    url: '/library/sections/{sectionId}/cluster';
-};
-
-export type LibrarySectionGetClusterResponses = {
-    /**
-     * OK
-     */
-    200: MediaContainerWithArtwork2;
-};
-
-export type LibrarySectionGetClusterResponse = LibrarySectionGetClusterResponses[keyof LibrarySectionGetClusterResponses];
-
-export type LibrarySectionDeleteCollectionCollectionData = {
-    body?: never;
-    path: {
-        /**
-         * Section identifier
-         */
-        sectionId: number;
-        /**
-         * Collection Id
-         */
-        collectionId: number;
-    };
-    query?: never;
-    url: '/library/sections/{sectionId}/collection/{collectionId}';
-};
-
-export type LibrarySectionDeleteCollectionCollectionErrors = {
-    /**
-     * Collection not found
-     */
-    404: unknown;
-};
-
-export type LibrarySectionDeleteCollectionCollectionResponses = {
-    /**
-     * OK
-     */
-    200: unknown;
-};
-
-export type LibrarySectionGetCollectionsData = {
-    body?: never;
-    path: {
-        /**
-         * Section identifier
-         */
-        sectionId: number;
-    };
-    query?: {
-        /**
-         * This is a complex query built of several parameters.  See [API Info section](#section/API-Info/Media-Queries) for information on building media queries
-         */
-        mediaQuery?: {
-            [key: string]: unknown;
-        };
-    };
-    url: '/library/sections/{sectionId}/collections';
-};
-
-export type LibrarySectionGetCollectionsResponses = {
-    /**
-     * OK
-     */
-    200: MediaContainerWithMetadata2;
-};
-
-export type LibrarySectionGetCollectionsResponse = LibrarySectionGetCollectionsResponses[keyof LibrarySectionGetCollectionsResponses];
-
-export type LibrarySectionGetCommonData = {
-    body?: never;
-    path: {
-        /**
-         * Section identifier
-         */
-        sectionId: number;
-    };
-    query?: {
-        /**
-         * Item type
-         */
-        type?: number;
-        /**
-         * This is a complex query built of several parameters.  See [API Info section](#section/API-Info/Media-Queries) for information on building media queries
-         */
-        mediaQuery?: {
-            [key: string]: unknown;
-        };
-    };
-    url: '/library/sections/{sectionId}/common';
-};
-
-export type LibrarySectionGetCommonErrors = {
-    /**
-     * Bad Request
-     */
-    400: unknown;
-    /**
-     * Not Found
-     */
-    404: unknown;
-};
-
-export type LibrarySectionGetCommonResponses = {
-    /**
-     * OK
-     */
-    200: MediaContainerWithMetadata2;
-};
-
-export type LibrarySectionGetCommonResponse = LibrarySectionGetCommonResponses[keyof LibrarySectionGetCommonResponses];
-
-export type LibrarySectionGetCompositeData = {
-    body?: never;
-    path: {
-        /**
-         * Section identifier
-         */
-        sectionId: number;
-        /**
-         * The update time of the image.  Used for busting cache.
-         */
-        updatedAt: number;
-    };
-    query?: {
-        /**
-         * This is a complex query built of several parameters.  See [API Info section](#section/API-Info/Media-Queries) for information on building media queries
-         */
-        mediaQuery?: {
-            [key: string]: unknown;
-        };
-        composite?: {
-            /**
-             * 6 character hex RGB value for background color for image
-             */
-            backgroundColor?: string;
-            /**
-             * The width of the intra-image border
-             */
-            border?: number;
-            /**
-             * Number of columns to construct in the composite image
-             */
-            cols?: number;
-            /**
-             * Where to crop source images to fit into composite image proportions
-             */
-            crop?: 'center' | 'top';
-            /**
-             * The image type
-             */
-            format?: 'jpg' | 'png';
-            /**
-             * The height of the image
-             */
-            height?: number;
-            /**
-             * The default image type to use as the sources
-             */
-            media?: 'thumb' | 'art' | 'banner';
-            /**
-             * Allow repetion of images if there are not enough source images to fill grid
-             */
-            repeat?: boolean;
-            /**
-             * Number of rows to construct in the composite image
-             */
-            rows?: number;
-            /**
-             * Limit composite to specified metadata types
-             */
-            type?: number;
-            /**
-             * The width of the image
-             */
-            width?: number;
-        };
-    };
-    url: '/library/sections/{sectionId}/composite/{updatedAt}';
-};
-
-export type LibrarySectionGetCompositeResponses = {
-    /**
-     * OK
-     */
-    200: unknown;
-};
-
-export type LibrarySectionGetComputePathData = {
-    body?: never;
-    path: {
-        /**
-         * Section identifier
-         */
-        sectionId: number;
-    };
-    query: {
-        /**
-         * The starting metadata item id
-         */
-        startID: number;
-        /**
-         * The ending metadata item id
-         */
-        endID: number;
-        /**
-         * The number of items along the path; defaults to 50
-         */
-        count?: number;
-        /**
-         * The maximum distance allowed along the path; defaults to 0.25
-         */
-        maxDistance?: number;
-    };
-    url: '/library/sections/{sectionId}/computePath';
-};
-
-export type LibrarySectionGetComputePathResponses = {
-    /**
-     * OK
-     */
-    200: MediaContainerWithMetadata2;
-};
-
-export type LibrarySectionGetComputePathResponse = LibrarySectionGetComputePathResponses[keyof LibrarySectionGetComputePathResponses];
-
-export type LibrarySectionPutEmptyTrashData = {
-    body?: never;
-    path: {
-        /**
-         * Section identifier
-         */
-        sectionId: number;
-    };
-    query?: never;
-    url: '/library/sections/{sectionId}/emptyTrash';
-};
-
-export type LibrarySectionPutEmptyTrashResponses = {
-    /**
-     * OK
-     */
-    200: unknown;
-};
-
-export type LibrarySectionGetFiltersData = {
-    body?: never;
-    path: {
-        /**
-         * Section identifier
-         */
-        sectionId: number;
-    };
-    query?: never;
-    url: '/library/sections/{sectionId}/filters';
-};
-
-export type LibrarySectionGetFiltersResponses = {
-    /**
-     * The filters on the section
-     */
-    200: {
-        MediaContainer?: MediaContainer & {
-            Directory?: Array<Directory2>;
-        };
-    };
-};
-
-export type LibrarySectionGetFiltersResponse = LibrarySectionGetFiltersResponses[keyof LibrarySectionGetFiltersResponses];
-
-export type LibrarySectionGetFirstCharatersData = {
-    body?: never;
-    path: {
-        /**
-         * Section identifier
-         */
-        sectionId: number;
-    };
-    query?: {
-        /**
-         * The metadata type to filter on
-         */
-        type?: number;
-        /**
-         * The metadata type to filter on
-         */
-        sort?: number;
-        /**
-         * This is a complex query built of several parameters.  See [API Info section](#section/API-Info/Media-Queries) for information on building media queries
-         */
-        mediaQuery?: {
-            [key: string]: unknown;
-        };
-    };
-    url: '/library/sections/{sectionId}/firstCharacters';
-};
-
-export type LibrarySectionGetFirstCharatersResponses = {
-    /**
-     * OK
-     */
-    200: {
-        MediaContainer?: MediaContainer & {
-            Directory?: Array<{
-                key?: string;
-                /**
-                 * The number of items starting with this character
-                 */
-                size?: number;
-                title?: string;
-            }>;
-        };
-    };
-};
-
-export type LibrarySectionGetFirstCharatersResponse = LibrarySectionGetFirstCharatersResponses[keyof LibrarySectionGetFirstCharatersResponses];
-
-export type LibrarySectionDeleteIndexesData = {
-    body?: never;
-    path: {
-        /**
-         * Section identifier
-         */
-        sectionId: number;
-    };
-    query?: never;
-    url: '/library/sections/{sectionId}/indexes';
-};
-
-export type LibrarySectionDeleteIndexesResponses = {
-    /**
-     * OK
-     */
-    200: unknown;
-};
-
-export type LibrarySectionDeleteIntrosData = {
-    body?: never;
-    path: {
-        /**
-         * Section identifier
-         */
-        sectionId: number;
-    };
-    query?: never;
-    url: '/library/sections/{sectionId}/intros';
-};
-
-export type LibrarySectionDeleteIntrosResponses = {
-    /**
-     * OK
-     */
-    200: unknown;
-};
-
-export type LibrarySectionGetLocationsData = {
-    body?: never;
-    path: {
-        /**
-         * Section identifier
-         */
-        sectionId: number;
-    };
-    query?: never;
-    url: '/library/sections/{sectionId}/location';
-};
-
-export type LibrarySectionGetLocationsResponses = {
-    /**
-     * OK
-     */
-    200: {
-        MediaContainer?: MediaContainer & {
-            Directory?: Array<{
-                fastKey?: string;
-                key?: string;
-                title?: string;
-            }>;
-        };
-    };
-};
-
-export type LibrarySectionGetLocationsResponse = LibrarySectionGetLocationsResponses[keyof LibrarySectionGetLocationsResponses];
-
-export type LibrarySectionGetMomentData = {
-    body?: never;
-    path: {
-        /**
-         * Section identifier
-         */
-        sectionId: number;
-    };
-    query?: never;
-    url: '/library/sections/{sectionId}/moment';
-};
-
-export type LibrarySectionGetMomentResponses = {
-    /**
-     * OK
-     */
-    200: MediaContainerWithArtwork2;
-};
-
-export type LibrarySectionGetMomentResponse = LibrarySectionGetMomentResponses[keyof LibrarySectionGetMomentResponses];
-
-export type LibrarySectionGetNearestData = {
-    body?: never;
-    path: {
-        /**
-         * Section identifier
-         */
-        sectionId: number;
-    };
-    query: {
-        /**
-         * The metadata type to fetch (should be 10 for audio track)
-         */
-        type?: number;
-        /**
-         * The music analysis to center the search.  Typically obtained from the `musicAnalysis` of a track
-         */
-        values: Array<number>;
-        /**
-         * The limit of the number of items to fetch; defaults to 50
-         */
-        limit?: number;
-        /**
-         * The maximum distance to search, defaults to 0.25
-         */
-        maxDistance?: number;
-    };
-    url: '/library/sections/{sectionId}/nearest';
-};
-
-export type LibrarySectionGetNearestResponses = {
-    /**
-     * OK
-     */
-    200: MediaContainerWithMetadata2;
-};
-
-export type LibrarySectionGetNearestResponse = LibrarySectionGetNearestResponses[keyof LibrarySectionGetNearestResponses];
-
-export type LibrarySectionGetPrefsData = {
-    body?: never;
-    path: {
-        /**
-         * Section identifier
-         */
-        sectionId: number;
-    };
-    query?: {
-        agent?: string;
-    };
-    url: '/library/sections/{sectionId}/prefs';
-};
-
-export type LibrarySectionGetPrefsResponses = {
-    /**
-     * OK
-     */
-    200: MediaContainerWithSettings2;
-};
-
-export type LibrarySectionGetPrefsResponse = LibrarySectionGetPrefsResponses[keyof LibrarySectionGetPrefsResponses];
-
-export type LibrarySectionPutPrefsData = {
-    body?: never;
-    path: {
-        /**
-         * Section identifier
-         */
-        sectionId: number;
-    };
-    query: {
-        prefs: {
-            [key: string]: unknown;
-        };
-    };
-    url: '/library/sections/{sectionId}/prefs';
-};
-
-export type LibrarySectionPutPrefsResponses = {
-    /**
-     * OK
-     */
-    200: unknown;
-};
-
-export type LibrarySectionDeleteRefreshData = {
-    body?: never;
-    path: {
-        /**
-         * Section identifier
-         */
-        sectionId: number;
-    };
-    query?: never;
-    url: '/library/sections/{sectionId}/refresh';
-};
-
-export type LibrarySectionDeleteRefreshResponses = {
-    /**
-     * OK
-     */
-    200: unknown;
-};
-
-export type LibrarySectionPostRefreshData = {
-    body?: never;
-    path: {
-        /**
-         * Section identifier
-         */
-        sectionId: number;
-    };
-    query?: {
-        /**
-         * Whether the update of metadata and items should be performed even if modification dates indicate the items have not change
-         */
-        force?: 0 | 1;
-        /**
-         * Restrict refresh to the specified path
-         */
-        path?: string;
-    };
-    url: '/library/sections/{sectionId}/refresh';
-};
-
-export type LibrarySectionPostRefreshResponses = {
-    /**
-     * OK
-     */
-    200: unknown;
-};
-
-export type LibrarySectionGetSortsData = {
-    body?: never;
-    path: {
-        /**
-         * Section identifier
-         */
-        sectionId: number;
-    };
-    query?: never;
-    url: '/library/sections/{sectionId}/sorts';
-};
-
-export type LibrarySectionGetSortsResponses = {
-    /**
-     * OK
-     */
-    200: {
-        MediaContainer?: MediaContainer & {
-            Directory?: Array<Sort2>;
-        };
-    };
-};
-
-export type LibrarySectionGetSortsResponse = LibrarySectionGetSortsResponses[keyof LibrarySectionGetSortsResponses];
-
-export type LibrarySectionGetSubtitleCodecsData = {
-    body?: never;
-    path: {
-        /**
-         * Section identifier
-         */
-        sectionId: number;
-    };
-    query?: {
-        /**
-         * This is a complex query built of several parameters.  See [API Info section](#section/API-Info/Media-Queries) for information on building media queries
-         */
-        mediaQuery?: {
-            [key: string]: unknown;
-        };
-    };
-    url: '/library/sections/{sectionId}/subtitleCodec';
-};
-
-export type LibrarySectionGetSubtitleCodecsResponses = {
-    /**
-     * The subtitle codecs in the section
-     */
-    200: {
-        MediaContainer?: MediaContainer & {
-            Directory?: Array<Directory2>;
-        };
-    };
-};
-
-export type LibrarySectionGetSubtitleCodecsResponse = LibrarySectionGetSubtitleCodecsResponses[keyof LibrarySectionGetSubtitleCodecsResponses];
-
-export type LibrarySectionGetVideoCodecsData = {
-    body?: never;
-    path: {
-        /**
-         * Section identifier
-         */
-        sectionId: number;
-    };
-    query?: {
-        /**
-         * This is a complex query built of several parameters.  See [API Info section](#section/API-Info/Media-Queries) for information on building media queries
-         */
-        mediaQuery?: {
-            [key: string]: unknown;
-        };
-    };
-    url: '/library/sections/{sectionId}/videoCodec';
-};
-
-export type LibrarySectionGetVideoCodecsResponses = {
-    /**
-     * The video codecs in the section
-     */
-    200: {
-        MediaContainer?: MediaContainer & {
-            Directory?: Array<Directory2>;
-        };
-    };
-};
-
-export type LibrarySectionGetVideoCodecsResponse = LibrarySectionGetVideoCodecsResponses[keyof LibrarySectionGetVideoCodecsResponses];
-
-export type LibraryDeleteStreamsStreamData = {
-    body?: never;
-    path: {
-        /**
-         * The id of the stream
-         */
-        streamId: number;
-        /**
-         * This is not a part of this endpoint but documented here to satisfy OpenAPI
-         */
-        ext: string;
-    };
-    query?: never;
-    url: '/library/streams/{streamId}.{ext}';
-};
-
-export type LibraryDeleteStreamsStreamErrors = {
-    /**
-     * This user cannot delete this stream
-     */
-    403: unknown;
-    /**
-     * The stream cannot be deleted
-     */
-    500: unknown;
-};
-
-export type LibraryDeleteStreamsStreamResponses = {
-    /**
-     * OK
-     */
-    200: unknown;
-};
-
-export type LibraryGetStreamsStreamData = {
-    body?: never;
-    path: {
-        /**
-         * The id of the stream
-         */
-        streamId: number;
-        /**
-         * The extension of the stream.  Required to fetch the `sub` portion of `idx`/`sub` subtitles
-         */
-        ext: string;
-    };
-    query?: {
-        /**
-         * The requested encoding for the subtitle (only used for text subtitles)
-         */
-        encoding?: string;
-        /**
-         * The requested format for the subtitle to convert the subtitles to (only used for text subtitles)
-         */
-        format?: string;
-        /**
-         * Whether the server should attempt to automatically adjust the subtitle timestamps to match the media
-         */
-        autoAdjustSubtitle?: 0 | 1;
-    };
-    url: '/library/streams/{streamId}.{ext}';
-};
-
-export type LibraryGetStreamsStreamErrors = {
-    /**
-     * The media is not accessible to the user
-     */
-    403: unknown;
-    /**
-     * The stream doesn't exist or has no data
-     */
-    404: unknown;
-    /**
-     * The stream is not a sidecar subtitle
-     */
-    501: unknown;
-};
-
-export type LibraryGetStreamsStreamResponses = {
-    /**
-     * The stream in the requested format.
-     */
-    200: unknown;
-};
-
-export type LibraryPutStreamsStreamData = {
-    body?: never;
-    path: {
-        /**
-         * The id of the stream
-         */
-        streamId: number;
-        /**
-         * This is not a part of this endpoint but documented here to satisfy OpenAPI
-         */
-        ext: string;
-    };
-    query?: {
-        /**
-         * The offest in ms
-         */
-        offset?: number;
-    };
-    url: '/library/streams/{streamId}.{ext}';
-};
-
-export type LibraryPutStreamsStreamErrors = {
-    /**
-     * The stream doesn't exist
-     */
-    400: unknown;
-};
-
-export type LibraryPutStreamsStreamResponses = {
-    /**
-     * The stream in the requested format.
-     */
-    200: unknown;
-};
-
-export type LibraryGetStreamsStreamLevelsData = {
-    body?: never;
-    path: {
-        /**
-         * The id of the stream
-         */
-        streamId: number;
-    };
-    query?: {
-        /**
-         * Subsample result down to return only the provided number of samples
-         */
-        subsample?: number;
-    };
-    url: '/library/streams/{streamId}/levels';
-};
-
-export type LibraryGetStreamsStreamLevelsErrors = {
-    /**
-     * The media is not accessible to the user
-     */
-    403: unknown;
-    /**
-     * The stream doesn't exist, or the loudness feature is not available on this PMS
-     */
-    404: unknown;
-};
-
-export type LibraryGetStreamsStreamLevelsResponses = {
-    /**
-     * OK
-     */
-    200: {
-        MediaContainer?: MediaContainer & {
-            Level?: Array<{
-                /**
-                 * The level in db.
-                 */
-                v?: number;
-            }>;
-            /**
-             * The total number of samples (as a string)
-             */
-            totalSamples?: string;
-        };
-    };
-};
-
-export type LibraryGetStreamsStreamLevelsResponse = LibraryGetStreamsStreamLevelsResponses[keyof LibraryGetStreamsStreamLevelsResponses];
-
-export type LibraryGetStreamsStreamLoudnessData = {
-    body?: never;
-    path: {
-        /**
-         * The id of the stream
-         */
-        streamId: number;
-    };
-    query?: {
-        /**
-         * Subsample result down to return only the provided number of samples
-         */
-        subsample?: number;
-    };
-    url: '/library/streams/{streamId}/loudness';
-};
-
-export type LibraryGetStreamsStreamLoudnessErrors = {
-    /**
-     * The media is not accessible to the user
-     */
-    403: unknown;
-    /**
-     * The stream doesn't exist, or the loudness feature is not available on this PMS
-     */
-    404: unknown;
-};
-
-export type LibraryGetStreamsStreamLoudnessResponses = {
-    /**
-     * OK
-     */
-    200: string;
-};
-
-export type LibraryGetStreamsStreamLoudnessResponse = LibraryGetStreamsStreamLoudnessResponses[keyof LibraryGetStreamsStreamLoudnessResponses];
-
-export type LibraryGetTagsData = {
-    body?: never;
-    path?: never;
-    query?: {
-        /**
-         * The type of tags to fetch
-         */
-        type?: number;
-    };
-    url: '/library/tags';
-};
-
-export type LibraryGetTagsResponses = {
-    /**
-     * OK
-     */
-    200: {
-        MediaContainer?: MediaContainer & {
-            Directory?: Array<{
-                /**
-                 * The filter string to view metadata wit this tag
-                 */
-                filter?: string;
-                id?: number;
-                /**
-                 * The name of the tag
-                 */
-                tag?: string;
-                /**
-                 * The key of this tag.  This is a universal key across all PMS instances and plex.tv services
-                 */
-                tagKey?: string;
-                /**
-                 * The type of the tag
-                 */
-                tagType?: number;
-                /**
-                 * The URL to a thumbnail for this tag
-                 */
-                thumb?: string;
-            }>;
-        };
-    };
-};
-
-export type LibraryGetTagsResponse = LibraryGetTagsResponses[keyof LibraryGetTagsResponses];
-
-export type LivetvDvrGetSlashData = {
-    body?: never;
-    path?: never;
-    query?: never;
-    url: '/livetv/dvrs';
-};
-
-export type LivetvDvrGetSlashResponses = {
-    /**
-     * OK
-     */
-    200: {
-        MediaContainer?: MediaContainerWithStatusPropertiesMediaContainer & {
-            DVR?: Array<{
-                Device?: Array<DeviceItems>;
-                key?: string;
-                language?: string;
-                lineup?: string;
-                uuid?: string;
-            }>;
-        };
-    };
-};
-
-export type LivetvDvrGetSlashResponse = LivetvDvrGetSlashResponses[keyof LivetvDvrGetSlashResponses];
-
-export type LivetvDvrPostSlashData = {
-    body?: never;
-    path?: never;
-    query?: {
-        /**
-         * The EPG lineup.
-         */
-        lineup?: string;
-        /**
-         * The device.
-         */
-        device?: Array<string>;
-        /**
-         * The language.
-         */
-        language?: string;
-    };
-    url: '/livetv/dvrs';
-};
-
-export type LivetvDvrPostSlashResponses = {
-    /**
-     * OK
-     */
-    200: {
-        MediaContainer?: MediaContainerWithStatusPropertiesMediaContainer & {
-            DVR?: Array<{
-                Device?: Array<DeviceItems>;
-                key?: string;
-                language?: string;
-                lineup?: string;
-                uuid?: string;
-            }>;
-        };
-    };
-};
-
-export type LivetvDvrPostSlashResponse = LivetvDvrPostSlashResponses[keyof LivetvDvrPostSlashResponses];
-
-export type LivetvDvrDeleteDvrData = {
-    body?: never;
-    path: {
-        /**
-         * The ID of the DVR.
-         */
-        dvrId: number;
-    };
-    query?: never;
-    url: '/livetv/dvrs/{dvrId}';
-};
-
-export type LivetvDvrDeleteDvrResponses = {
-    /**
-     * OK
-     */
-    200: unknown;
-};
-
-export type LivetvDvrGetDvrData = {
-    body?: never;
-    path: {
-        /**
-         * The ID of the DVR.
-         */
-        dvrId: number;
-    };
-    query?: never;
-    url: '/livetv/dvrs/{dvrId}';
-};
-
-export type LivetvDvrGetDvrResponses = {
-    /**
-     * OK
-     */
-    200: {
-        MediaContainer?: MediaContainerWithStatusPropertiesMediaContainer & {
-            DVR?: Array<{
-                Device?: Array<DeviceItems>;
-                key?: string;
-                language?: string;
-                lineup?: string;
-                uuid?: string;
-            }>;
-        };
-    };
-};
-
-export type LivetvDvrGetDvrResponse = LivetvDvrGetDvrResponses[keyof LivetvDvrGetDvrResponses];
-
-export type LivetvDvrPostChannelsChannelTuneData = {
-    body?: never;
-    path: {
-        /**
-         * The ID of the DVR.
-         */
-        dvrId: number;
-        /**
-         * The channel ID to tune
-         */
-        channel: string;
-    };
-    query?: never;
-    url: '/livetv/dvrs/{dvrId}/channels/{channel}/tune';
-};
-
-export type LivetvDvrPostChannelsChannelTuneErrors = {
-    /**
-     * Tuning failed
-     */
-    500: unknown;
-};
-
-export type LivetvDvrPostChannelsChannelTuneResponses = {
-    /**
-     * OK
-     */
-    200: MediaContainerWithMetadata2;
-};
-
-export type LivetvDvrPostChannelsChannelTuneResponse = LivetvDvrPostChannelsChannelTuneResponses[keyof LivetvDvrPostChannelsChannelTuneResponses];
-
-export type LivetvDvrDeleteDvrDeviceData = {
-    body?: never;
-    path: {
-        /**
-         * The ID of the DVR.
-         */
-        dvrId: number;
-        /**
-         * The ID of the device to add.
-         */
-        deviceId: number;
-    };
-    query?: never;
-    url: '/livetv/dvrs/{dvrId}/devices/{deviceId}';
-};
-
-export type LivetvDvrDeleteDvrDeviceResponses = {
-    /**
-     * OK
-     */
-    200: {
-        MediaContainer?: MediaContainerWithStatusPropertiesMediaContainer & {
-            DVR?: Array<{
-                Device?: Array<DeviceItems>;
-                key?: string;
-                language?: string;
-                lineup?: string;
-                uuid?: string;
-            }>;
-        };
-    };
-};
-
-export type LivetvDvrDeleteDvrDeviceResponse = LivetvDvrDeleteDvrDeviceResponses[keyof LivetvDvrDeleteDvrDeviceResponses];
-
-export type LivetvDvrPutDvrDeviceData = {
-    body?: never;
-    path: {
-        /**
-         * The ID of the DVR.
-         */
-        dvrId: number;
-        /**
-         * The ID of the device to add.
-         */
-        deviceId: number;
-    };
-    query?: never;
-    url: '/livetv/dvrs/{dvrId}/devices/{deviceId}';
-};
-
-export type LivetvDvrPutDvrDeviceResponses = {
-    /**
-     * OK
-     */
-    200: {
-        MediaContainer?: MediaContainerWithStatusPropertiesMediaContainer & {
-            DVR?: Array<{
-                Device?: Array<DeviceItems>;
-                key?: string;
-                language?: string;
-                lineup?: string;
-                uuid?: string;
-            }>;
-        };
-    };
-};
-
-export type LivetvDvrPutDvrDeviceResponse = LivetvDvrPutDvrDeviceResponses[keyof LivetvDvrPutDvrDeviceResponses];
-
-export type LivetvDvrDeleteLineupData = {
-    body?: never;
-    path: {
-        /**
-         * The ID of the DVR.
-         */
-        dvrId: number;
-    };
-    query: {
-        /**
-         * The lineup to delete
-         */
-        lineup: string;
-    };
-    url: '/livetv/dvrs/{dvrId}/lineups';
-};
-
-export type LivetvDvrDeleteLineupResponses = {
-    /**
-     * OK
-     */
-    200: {
-        MediaContainer?: MediaContainerWithStatusPropertiesMediaContainer & {
-            DVR?: Array<{
-                Device?: Array<DeviceItems>;
-                key?: string;
-                language?: string;
-                lineup?: string;
-                uuid?: string;
-            }>;
-        };
-    };
-};
-
-export type LivetvDvrDeleteLineupResponse = LivetvDvrDeleteLineupResponses[keyof LivetvDvrDeleteLineupResponses];
-
-export type LivetvDvrPutLineupData = {
-    body?: never;
-    path: {
-        /**
-         * The ID of the DVR.
-         */
-        dvrId: number;
-    };
-    query: {
-        /**
-         * The lineup to delete
-         */
-        lineup: string;
-    };
-    url: '/livetv/dvrs/{dvrId}/lineups';
-};
-
-export type LivetvDvrPutLineupResponses = {
-    /**
-     * OK
-     */
-    200: {
-        MediaContainer?: MediaContainerWithStatusPropertiesMediaContainer & {
-            DVR?: Array<{
-                Device?: Array<DeviceItems>;
-                key?: string;
-                language?: string;
-                lineup?: string;
-                uuid?: string;
-            }>;
-        };
-    };
-};
-
-export type LivetvDvrPutLineupResponse = LivetvDvrPutLineupResponses[keyof LivetvDvrPutLineupResponses];
-
-export type LivetvDvrPutPrefsData = {
-    body?: never;
-    path: {
-        /**
-         * The ID of the DVR.
-         */
-        dvrId: number;
-    };
-    query?: {
-        /**
-         * Set the `name` preference to the provided value
-         */
-        name?: string;
-    };
-    url: '/livetv/dvrs/{dvrId}/prefs';
-};
-
-export type LivetvDvrPutPrefsResponses = {
-    /**
-     * OK
-     */
-    200: {
-        MediaContainer?: MediaContainerWithStatusPropertiesMediaContainer & {
-            DVR?: Array<{
-                Device?: Array<DeviceItems>;
-                key?: string;
-                language?: string;
-                lineup?: string;
-                uuid?: string;
-            }>;
-        };
-    };
-};
-
-export type LivetvDvrPutPrefsResponse = LivetvDvrPutPrefsResponses[keyof LivetvDvrPutPrefsResponses];
-
-export type LivetvDvrDeleteReloadGuideData = {
-    body?: never;
-    path: {
-        /**
-         * The ID of the DVR.
-         */
-        dvrId: number;
-    };
-    query?: never;
-    url: '/livetv/dvrs/{dvrId}/reloadGuide';
-};
-
-export type LivetvDvrDeleteReloadGuideResponses = {
-    /**
-     * OK
-     */
-    200: unknown;
-};
-
-export type LivetvDvrPostReloadGuideData = {
-    body?: never;
-    path: {
-        /**
-         * The ID of the DVR.
-         */
-        dvrId: number;
-    };
-    query?: never;
-    url: '/livetv/dvrs/{dvrId}/reloadGuide';
-};
-
-export type LivetvDvrPostReloadGuideResponses = {
-    /**
-     * OK
-     */
-    200: unknown;
-};
-
-export type LivetvEpgGetChannelmapData = {
-    body?: never;
-    path?: never;
-    query: {
-        /**
-         * The URI describing the device
-         */
-        device: string;
-        /**
-         * The URI describing the lineup
-         */
-        lineup: string;
-    };
-    url: '/livetv/epg/channelmap';
-};
-
-export type LivetvEpgGetChannelmapErrors = {
-    /**
-     * No device or provider with the identifier was found
-     */
-    404: unknown;
-    /**
-     * Failed to compute channel map
-     */
-    500: unknown;
-};
-
-export type LivetvEpgGetChannelmapResponses = {
-    /**
-     * OK
-     */
-    200: {
-        MediaContainer?: MediaContainer & {
-            ChannelMapping?: Array<{
-                channelKey?: string;
-                /**
-                 * The channel description on the device
-                 */
-                deviceIdentifier?: string;
-                favorite?: boolean;
-                /**
-                 * The channel identifier in the lineup
-                 */
-                lineupIdentifier?: string;
-            }>;
-        };
-    };
-};
-
-export type LivetvEpgGetChannelmapResponse = LivetvEpgGetChannelmapResponses[keyof LivetvEpgGetChannelmapResponses];
-
-export type LivetvEpgGetChannelsData = {
-    body?: never;
-    path?: never;
-    query: {
-        /**
-         * The URI describing the lineup
-         */
-        lineup: string;
-    };
-    url: '/livetv/epg/channels';
-};
-
-export type LivetvEpgGetChannelsErrors = {
-    /**
-     * No provider with the identifier was found
-     */
-    404: unknown;
-};
-
-export type LivetvEpgGetChannelsResponses = {
-    /**
-     * OK
-     */
-    200: {
-        MediaContainer?: MediaContainer & {
-            Channel?: Array<Channel>;
-        };
-    };
-};
-
-export type LivetvEpgGetChannelsResponse = LivetvEpgGetChannelsResponses[keyof LivetvEpgGetChannelsResponses];
-
-export type LivetvEpgGetCountriesData = {
-    body?: never;
-    path?: never;
-    query?: never;
-    url: '/livetv/epg/countries';
-};
-
-export type LivetvEpgGetCountriesResponses = {
-    /**
-     * OK
-     */
-    200: {
-        MediaContainer?: MediaContainer & {
-            Country?: Array<{
-                /**
-                 * Three letter code
-                 */
-                code?: string;
-                example?: string;
-                /**
-                 * - `0`: The country is divided into regions, and following the key will lead to a list of regions.
-                 * - `1`: The county is divided by postal codes, and an example code is returned in `example`.
-                 * - `2`: The country has a single postal code, returned in `example`.
-                 *
-                 */
-                flavor?: 0 | 1 | 2;
-                key?: string;
-                /**
-                 * Three letter language code
-                 */
-                language?: string;
-                /**
-                 * The title of the language
-                 */
-                languageTitle?: string;
-                title?: string;
-                type?: string;
-            }>;
-        };
-    };
-};
-
-export type LivetvEpgGetCountriesResponse = LivetvEpgGetCountriesResponses[keyof LivetvEpgGetCountriesResponses];
-
-export type LivetvEpgGetCountriesCountryLineupsData = {
-    body?: never;
-    path: {
-        /**
-         * 3 letter country code
-         */
-        country: string;
-        /**
-         * The `providerIdentifier` of the provider
-         */
-        epgId: string;
-    };
-    query?: {
-        /**
-         * The postal code for the lineups to fetch
-         */
-        postalCode?: string;
-    };
-    url: '/livetv/epg/countries/{country}/{epgId}/lineups';
-};
-
-export type LivetvEpgGetCountriesCountryLineupsErrors = {
-    /**
-     * No provider with the identifier was found
-     */
-    404: unknown;
-};
-
-export type LivetvEpgGetCountriesCountryLineupsResponses = {
-    /**
-     * OK
-     */
-    200: MediaContainerWithLineup2;
-};
-
-export type LivetvEpgGetCountriesCountryLineupsResponse = LivetvEpgGetCountriesCountryLineupsResponses[keyof LivetvEpgGetCountriesCountryLineupsResponses];
-
-export type LivetvEpgGetCountriesCountryRegionsData = {
-    body?: never;
-    path: {
-        /**
-         * 3 letter country code
-         */
-        country: string;
-        /**
-         * The `providerIdentifier` of the provider
-         */
-        epgId: string;
-    };
-    query?: never;
-    url: '/livetv/epg/countries/{country}/{epgId}/regions';
-};
-
-export type LivetvEpgGetCountriesCountryRegionsErrors = {
-    /**
-     * No provider with the identifier was found
-     */
-    404: unknown;
-};
-
-export type LivetvEpgGetCountriesCountryRegionsResponses = {
-    /**
-     * OK
-     */
-    200: {
-        MediaContainer?: MediaContainer & {
-            Country?: Array<{
-                key?: string;
-                national?: boolean;
-                title?: string;
-                type?: string;
-            }>;
-        };
-    };
-};
-
-export type LivetvEpgGetCountriesCountryRegionsResponse = LivetvEpgGetCountriesCountryRegionsResponses[keyof LivetvEpgGetCountriesCountryRegionsResponses];
-
-export type LivetvEpgGetCountriesCountryRegionsRegionLineupsData = {
-    body?: never;
-    path: {
-        /**
-         * 3 letter country code
-         */
-        country: string;
-        /**
-         * The `providerIdentifier` of the provider
-         */
-        epgId: string;
-        /**
-         * The region for the lineup
-         */
-        region: string;
-    };
-    query?: never;
-    url: '/livetv/epg/countries/{country}/{epgId}/regions/{region}/lineups';
-};
-
-export type LivetvEpgGetCountriesCountryRegionsRegionLineupsErrors = {
-    /**
-     * No provider with the identifier was found
-     */
-    404: unknown;
-};
-
-export type LivetvEpgGetCountriesCountryRegionsRegionLineupsResponses = {
-    /**
-     * OK
-     */
-    200: MediaContainerWithLineup2;
-};
-
-export type LivetvEpgGetCountriesCountryRegionsRegionLineupsResponse = LivetvEpgGetCountriesCountryRegionsRegionLineupsResponses[keyof LivetvEpgGetCountriesCountryRegionsRegionLineupsResponses];
-
-export type LivetvEpgGetLanguagesData = {
-    body?: never;
-    path?: never;
-    query?: never;
-    url: '/livetv/epg/languages';
-};
-
-export type LivetvEpgGetLanguagesResponses = {
-    /**
-     * OK
-     */
-    200: {
-        MediaContainer?: MediaContainer & {
-            Language?: Array<{
-                /**
-                 * 3 letter language code
-                 */
-                code?: string;
-                title?: string;
-            }>;
-        };
-    };
-};
-
-export type LivetvEpgGetLanguagesResponse = LivetvEpgGetLanguagesResponses[keyof LivetvEpgGetLanguagesResponses];
-
-export type LivetvEpgGetLineupData = {
-    body?: never;
-    path?: never;
-    query: {
-        /**
-         * The URI describing the device
-         */
-        device: string;
-        /**
-         * The URI describing the lineupGroup
-         */
-        lineupGroup: string;
-    };
-    url: '/livetv/epg/lineup';
-};
-
-export type LivetvEpgGetLineupErrors = {
-    /**
-     * No device or provider with the identifier was found
-     */
-    404: unknown;
-    /**
-     * Could not get device's channels
-     */
-    500: unknown;
-};
-
-export type LivetvEpgGetLineupResponses = {
-    /**
-     * OK
-     */
-    200: unknown;
-};
-
-export type LivetvEpgGetLineupchannelsData = {
-    body?: never;
-    path?: never;
-    query: {
-        /**
-         * The URIs describing the lineups
-         */
-        lineup: Array<string>;
-    };
-    url: '/livetv/epg/lineupchannels';
-};
-
-export type LivetvEpgGetLineupchannelsErrors = {
-    /**
-     * No provider with the identifier was found
-     */
-    404: unknown;
-};
-
-export type LivetvEpgGetLineupchannelsResponses = {
-    /**
-     * OK
-     */
-    200: {
-        MediaContainer?: MediaContainer & {
-            Lineup?: Array<LineupItems & {
-                Channel?: Array<Channel>;
-            }>;
-        };
-    };
-};
-
-export type LivetvEpgGetLineupchannelsResponse = LivetvEpgGetLineupchannelsResponses[keyof LivetvEpgGetLineupchannelsResponses];
-
-export type LivetvSessionsGetSlashData = {
-    body?: never;
-    path?: never;
-    query?: never;
-    url: '/livetv/sessions';
-};
-
-export type LivetvSessionsGetSlashResponses = {
-    /**
-     * OK
-     */
-    200: MediaContainerWithMetadata2;
-};
-
-export type LivetvSessionsGetSlashResponse = LivetvSessionsGetSlashResponses[keyof LivetvSessionsGetSlashResponses];
-
-export type LivetvSessionsGetSessionData = {
-    body?: never;
-    path: {
-        /**
-         * The session id
-         */
-        sessionId: string;
-    };
-    query?: never;
-    url: '/livetv/sessions/{sessionId}';
-};
-
-export type LivetvSessionsGetSessionResponses = {
-    /**
-     * OK
-     */
-    200: MediaContainerWithMetadata2;
-};
-
-export type LivetvSessionsGetSessionResponse = LivetvSessionsGetSessionResponses[keyof LivetvSessionsGetSessionResponses];
-
-export type LivetvSessionsGetSessionConsumerIndexData = {
-    body?: never;
-    path: {
-        /**
-         * The session id
-         */
-        sessionId: string;
-        /**
-         * The consumer id
-         */
-        consumerId: string;
-    };
-    query?: never;
-    url: '/livetv/sessions/{sessionId}/{consumerId}/index.m3u8';
-};
-
-export type LivetvSessionsGetSessionConsumerIndexErrors = {
-    /**
-     * Session or consumer not found
-     */
-    404: unknown;
-};
-
-export type LivetvSessionsGetSessionConsumerIndexResponses = {
-    /**
-     * Index playlist for playing HLS content
-     */
-    200: unknown;
-};
-
-export type LivetvSessionsGetSessionConsumerSegmentData = {
-    body?: never;
-    path: {
-        /**
-         * The session id
-         */
-        sessionId: string;
-        /**
-         * The consumer id
-         */
-        consumerId: string;
-        /**
-         * The segment id
-         */
-        segmentId: string;
-    };
-    query?: never;
-    url: '/livetv/sessions/{sessionId}/{consumerId}/{segmentId}';
-};
-
-export type LivetvSessionsGetSessionConsumerSegmentErrors = {
-    /**
-     * Session, consumer, or segment not found
-     */
-    404: unknown;
-};
-
-export type LivetvSessionsGetSessionConsumerSegmentResponses = {
-    /**
-     * MPEG-TS segment for playing HLS content
-     */
-    200: unknown;
-};
-
-export type LogPostSlashData = {
-    /**
-     * Line separated list of log items
-     */
-    body?: unknown;
-    path?: never;
-    query?: never;
-    url: '/log';
-};
-
-export type LogPostSlashErrors = {
-    /**
-     * Bad Request
-     */
-    400: unknown;
-};
-
-export type LogPostSlashResponses = {
-    /**
-     * OK
-     */
-    200: unknown;
-};
-
-export type LogPutSlashData = {
-    body?: never;
-    path?: never;
-    query?: {
-        /**
-         * An integer log level to write to the PMS log with.
-         * - 0: Error
-         * - 1: Warning
-         * - 2: Info
-         * - 3: Debug
-         * - 4: Verbose
-         *
-         */
-        level?: 0 | 1 | 2 | 3 | 4;
-        /**
-         * The text of the message to write to the log.
-         */
-        message?: string;
-        /**
-         * A string indicating the source of the message.
-         */
-        source?: string;
-    };
-    url: '/log';
-};
-
-export type LogPutSlashResponses = {
-    /**
-     * OK
-     */
-    200: unknown;
-};
-
-export type LogPostPapertrailData = {
-    body?: never;
-    path?: never;
-    query?: {
-        /**
-         * The number of minutes logging should be sent to Papertrail
-         */
-        minutes?: number;
-    };
-    url: '/log/networked';
-};
-
-export type LogPostPapertrailErrors = {
-    /**
-     * User doesn't have permission
-     */
-    403: unknown;
-};
-
-export type LogPostPapertrailResponses = {
-    /**
-     * OK
-     */
-    200: unknown;
-};
-
-export type MediaGrabberGetSlashData = {
-    body?: never;
-    path?: never;
-    query?: {
-        /**
-         * Only return grabbers providing this protocol.
-         */
-        protocol?: string;
-    };
-    url: '/media/grabbers';
-};
-
-export type MediaGrabberGetSlashResponses = {
-    /**
-     * OK
-     */
-    200: {
-        MediaContainer?: MediaContainer & {
-            MediaGrabber?: Array<{
-                identifier?: string;
-                protocol?: string;
-                title?: string;
-            }>;
-        };
-    };
-};
-
-export type MediaGrabberGetSlashResponse = MediaGrabberGetSlashResponses[keyof MediaGrabberGetSlashResponses];
-
-export type MediaGrabberGetDevicesData = {
-    body?: never;
-    path?: never;
-    query?: never;
-    url: '/media/grabbers/devices';
-};
-
-export type MediaGrabberGetDevicesResponses = {
-    /**
-     * OK
-     */
-    200: MediaContainerWithDevice2;
-};
-
-export type MediaGrabberGetDevicesResponse = MediaGrabberGetDevicesResponses[keyof MediaGrabberGetDevicesResponses];
-
-export type MediaGrabberPostDevicesData = {
-    body?: never;
-    path?: never;
-    query?: {
-        /**
-         * The URI of the device.
-         */
-        uri?: string;
-    };
-    url: '/media/grabbers/devices';
-};
-
-export type MediaGrabberPostDevicesErrors = {
-    /**
-     * Bad Request
-     */
-    400: unknown;
-};
-
-export type MediaGrabberPostDevicesResponses = {
-    /**
-     * OK
-     */
-    200: MediaContainerWithDevice2;
-};
-
-export type MediaGrabberPostDevicesResponse = MediaGrabberPostDevicesResponses[keyof MediaGrabberPostDevicesResponses];
-
-export type MediaGrabberPostDeviceDiscoverData = {
-    body?: never;
-    path?: never;
-    query?: never;
-    url: '/media/grabbers/devices/discover';
-};
-
-export type MediaGrabberPostDeviceDiscoverResponses = {
-    /**
-     * OK
-     */
-    200: MediaContainerWithDevice2;
-};
-
-export type MediaGrabberPostDeviceDiscoverResponse = MediaGrabberPostDeviceDiscoverResponses[keyof MediaGrabberPostDeviceDiscoverResponses];
-
-export type MediaGrabberDevicesDeviceDeleteSlashData = {
-    body?: never;
-    path: {
-        /**
-         * The ID of the device.
-         */
-        deviceId: number;
-    };
-    query?: never;
-    url: '/media/grabbers/devices/{deviceId}';
-};
-
-export type MediaGrabberDevicesDeviceDeleteSlashErrors = {
-    /**
-     * Device not found
-     */
-    404: unknown;
-};
-
-export type MediaGrabberDevicesDeviceDeleteSlashResponses = {
-    /**
-     * OK
-     */
-    200: {
-        MediaContainer?: MediaContainer & {
-            message?: string;
-            status?: number;
-        };
-    };
-};
-
-export type MediaGrabberDevicesDeviceDeleteSlashResponse = MediaGrabberDevicesDeviceDeleteSlashResponses[keyof MediaGrabberDevicesDeviceDeleteSlashResponses];
-
-export type MediaGrabberDevicesDeviceGetSlashData = {
-    body?: never;
-    path: {
-        /**
-         * The ID of the device.
-         */
-        deviceId: number;
-    };
-    query?: never;
-    url: '/media/grabbers/devices/{deviceId}';
-};
-
-export type MediaGrabberDevicesDeviceGetSlashErrors = {
-    /**
-     * Device not found
-     */
-    404: unknown;
-};
-
-export type MediaGrabberDevicesDeviceGetSlashResponses = {
-    /**
-     * OK
-     */
-    200: MediaContainerWithDevice2;
-};
-
-export type MediaGrabberDevicesDeviceGetSlashResponse = MediaGrabberDevicesDeviceGetSlashResponses[keyof MediaGrabberDevicesDeviceGetSlashResponses];
-
-export type MediaGrabberDevicesDevicePutSlashData = {
-    body?: never;
-    path: {
-        /**
-         * The ID of the device.
-         */
-        deviceId: number;
-    };
-    query?: {
-        /**
-         * Whether to enable the device
-         */
-        enabled?: 0 | 1;
-    };
-    url: '/media/grabbers/devices/{deviceId}';
-};
-
-export type MediaGrabberDevicesDevicePutSlashErrors = {
-    /**
-     * Device not found
-     */
-    404: unknown;
-};
-
-export type MediaGrabberDevicesDevicePutSlashResponses = {
-    /**
-     * OK
-     */
-    200: {
-        MediaContainer?: MediaContainer & {
-            message?: string;
-            status?: number;
-        };
-    };
-};
-
-export type MediaGrabberDevicesDevicePutSlashResponse = MediaGrabberDevicesDevicePutSlashResponses[keyof MediaGrabberDevicesDevicePutSlashResponses];
-
-export type MediaGrabberDevicesDevicePutChannelmapData = {
-    body?: never;
-    path: {
-        /**
-         * The ID of the device.
-         */
-        deviceId: number;
-    };
-    query?: {
-        /**
-         * The mapping of changes, passed as a map of device channel to lineup VCN.
-         */
-        channelMapping?: {
-            [key: string]: unknown;
-        };
-        /**
-         * The mapping of changes, passed as a map of device channel to lineup key.
-         */
-        channelMappingByKey?: {
-            [key: string]: unknown;
-        };
-        /**
-         * The channels which are enabled.
-         */
-        channelsEnabled?: Array<string>;
-    };
-    url: '/media/grabbers/devices/{deviceId}/channelmap';
-};
-
-export type MediaGrabberDevicesDevicePutChannelmapResponses = {
-    /**
-     * OK
-     */
-    200: MediaContainerWithDevice2;
-};
-
-export type MediaGrabberDevicesDevicePutChannelmapResponse = MediaGrabberDevicesDevicePutChannelmapResponses[keyof MediaGrabberDevicesDevicePutChannelmapResponses];
-
-export type MediaGrabberDevicesDeviceGetChannelsData = {
-    body?: never;
-    path: {
-        /**
-         * The ID of the device.
-         */
-        deviceId: number;
-    };
-    query?: never;
-    url: '/media/grabbers/devices/{deviceId}/channels';
-};
-
-export type MediaGrabberDevicesDeviceGetChannelsErrors = {
-    /**
-     * Device not found
-     */
-    404: unknown;
-};
-
-export type MediaGrabberDevicesDeviceGetChannelsResponses = {
-    /**
-     * OK
-     */
-    200: {
-        MediaContainer?: MediaContainer & {
-            DeviceChannel?: Array<{
-                /**
-                 * Indicates the channel is DRMed and thus may not be playable
-                 */
-                drm?: boolean;
-                favorite?: boolean;
-                hd?: boolean;
-                identifier?: string;
-                key?: string;
-                name?: string;
-                signalQuality?: number;
-                signalStrength?: number;
-            }>;
-        };
-    };
-};
-
-export type MediaGrabberDevicesDeviceGetChannelsResponse = MediaGrabberDevicesDeviceGetChannelsResponses[keyof MediaGrabberDevicesDeviceGetChannelsResponses];
-
-export type MediaGrabberDevicesDevicePutPrefsData = {
-    body?: never;
-    path: {
-        /**
-         * The ID of the device.
-         */
-        deviceId: number;
-    };
-    query?: {
-        /**
-         * The preference names and values.
-         */
-        name?: string;
-    };
-    url: '/media/grabbers/devices/{deviceId}/prefs';
-};
-
-export type MediaGrabberDevicesDevicePutPrefsResponses = {
-    /**
-     * OK
-     */
-    200: unknown;
-};
-
-export type MediaGrabberDeleteDevicesDeviceScanData = {
-    body?: never;
-    path: {
-        /**
-         * The ID of the device.
-         */
-        deviceId: number;
-    };
-    query?: never;
-    url: '/media/grabbers/devices/{deviceId}/scan';
-};
-
-export type MediaGrabberDeleteDevicesDeviceScanResponses = {
-    /**
-     * OK
-     */
-    200: MediaContainerWithDevice2;
-};
-
-export type MediaGrabberDeleteDevicesDeviceScanResponse = MediaGrabberDeleteDevicesDeviceScanResponses[keyof MediaGrabberDeleteDevicesDeviceScanResponses];
-
-export type MediaGrabberDevicesDevicePostScanData = {
-    body?: never;
-    path: {
-        /**
-         * The ID of the device.
-         */
-        deviceId: number;
-    };
-    query?: {
-        /**
-         * A valid source for the scan
-         */
-        source?: string;
-    };
-    url: '/media/grabbers/devices/{deviceId}/scan';
-};
-
-export type MediaGrabberDevicesDevicePostScanResponses = {
-    /**
-     * OK
-     */
-    200: MediaContainerWithDevice2;
-};
-
-export type MediaGrabberDevicesDevicePostScanResponse = MediaGrabberDevicesDevicePostScanResponses[keyof MediaGrabberDevicesDevicePostScanResponses];
-
-export type MediaGrabberDevicesDeviceGetThumbVersionData = {
-    body?: never;
-    path: {
-        /**
-         * The ID of the device.
-         */
-        deviceId: number;
-        /**
-         * A version number of the thumb used for busting cache
-         */
-        version: number;
-    };
-    query?: never;
-    url: '/media/grabbers/devices/{deviceId}/thumb/{version}';
-};
-
-export type MediaGrabberDevicesDeviceGetThumbVersionErrors = {
-    /**
-     * No thumb found for this device
-     */
-    404: unknown;
-};
-
-export type MediaGrabberDevicesDeviceGetThumbVersionResponses = {
-    /**
-     * The thumbnail for the device
-     */
-    200: unknown;
-};
-
-export type MediaGrabberDeleteOperationsOperationData = {
-    body?: never;
-    path: {
-        /**
-         * The ID of the operation.
-         */
-        operationId: string;
-    };
-    query?: never;
-    url: '/media/grabbers/operations/{operationId}';
-};
-
-export type MediaGrabberDeleteOperationsOperationErrors = {
-    /**
-     * User is not owner of the grab and not the admin
-     */
-    403: unknown;
-    /**
-     * Not Found
-     */
-    404: unknown;
-};
-
-export type MediaGrabberDeleteOperationsOperationResponses = {
-    /**
-     * OK
-     */
-    200: unknown;
-};
-
-export type GetMediaProvidersData = {
-    body?: never;
-    path?: never;
-    query?: never;
-    url: '/media/providers';
-};
-
-export type GetMediaProvidersResponses = {
-    /**
-     * OK
-     */
-    200: {
-        MediaContainer?: ServerConfiguration2 & {
-            Feature?: Array<{
-                Directory?: Array<Directory2>;
-                key?: string;
-                type?: string;
-            }>;
-            /**
-             * A unique identifier for the provider, e.g. `com.plexapp.plugins.library`.
-             */
-            identifier?: string;
-            /**
-             * A comma-separated list of default protocols for the provider, which can be:
-             * - `stream`: The provider allows streaming media directly from the provider (e.g. for Vimeo). - `download`: The provider allows downloading media for offline storage, sync, etc. (e.g. Podcasts). - `livetv`: The provider provides live content which is only available on a schedule basis.
-             */
-            protocols?: string;
-            /**
-             * The title of the provider.
-             */
-            title?: string;
-            /**
-             * This attribute contains a comma-separated list of the media types exposed by the provider (e.g. `video, audio`).
-             */
-            types?: string;
-        };
-    };
-};
-
-export type GetMediaProvidersResponse = GetMediaProvidersResponses[keyof GetMediaProvidersResponses];
-
-export type PostMediaProvidersData = {
-    body?: never;
-    path?: never;
-    query: {
-        /**
-         * The URL of the media provider to add.
-         */
-        url: string;
-    };
-    url: '/media/providers';
-};
-
-export type PostMediaProvidersErrors = {
-    /**
-     * Bad Request
-     */
-    400: unknown;
-};
-
-export type PostMediaProvidersResponses = {
-    /**
-     * OK
-     */
-    200: unknown;
-};
-
-export type GetMetadataAgentProvidersData = {
-    body?: never;
-    path?: never;
-    query?: {
-        /**
-         * A comma-separated list of metadata types to filter the providers by. If not specified, all providers are returned.
-         */
-        metadataTypes?: Array<number>;
-    };
-    url: '/media/providers/metadata';
-};
-
-export type GetMetadataAgentProvidersResponses = {
-    /**
-     * OK
-     */
-    200: {
-        MediaContainer?: MediaContainer & {
-            MetadataAgentProvider?: Array<MetadataAgentProvider>;
-        };
-    };
-};
-
-export type GetMetadataAgentProvidersResponse = GetMetadataAgentProvidersResponses[keyof GetMetadataAgentProvidersResponses];
-
-export type PostMetadataAgentProvidersData = {
-    body?: never;
-    path?: never;
-    query: {
-        /**
-         * The URI of the metadata agent provider to add.
-         */
-        uri: string;
-    };
-    url: '/media/providers/metadata';
-};
-
-export type PostMetadataAgentProvidersErrors = {
-    /**
-     * Bad Request
-     */
-    400: unknown;
-    /**
-     * Conflict
-     */
-    409: unknown;
-};
-
-export type PostMetadataAgentProvidersResponses = {
-    /**
-     * OK
-     */
-    200: {
-        MediaContainer?: MediaContainer & {
-            MetadataAgentProvider?: Array<MetadataAgentProvider>;
-        };
-    };
-};
-
-export type PostMetadataAgentProvidersResponse = PostMetadataAgentProvidersResponses[keyof PostMetadataAgentProvidersResponses];
-
-export type GetMetadataAgentProviderGroupsData = {
-    body?: never;
-    path?: never;
-    query?: never;
-    url: '/media/providers/metadata/group';
-};
-
-export type GetMetadataAgentProviderGroupsResponses = {
-    /**
-     * OK
-     */
-    200: {
-        MediaContainer?: MediaContainer & {
-            MetadataAgentProviderGroup?: Array<MetadataAgentProviderGroup>;
-        };
-    };
-};
-
-export type GetMetadataAgentProviderGroupsResponse = GetMetadataAgentProviderGroupsResponses[keyof GetMetadataAgentProviderGroupsResponses];
-
-export type PostMetadataAgentProviderGroupsData = {
-    body?: never;
-    path?: never;
-    query: {
-        /**
-         * The title of the metadata agent provider group to add.
-         */
-        title: string;
-        /**
-         * The identifier of the metadata agent provider which will be the primary for the group.
-         */
-        primaryIdentifier: string;
-    };
-    url: '/media/providers/metadata/group';
-};
-
-export type PostMetadataAgentProviderGroupsErrors = {
-    /**
-     * Bad Request
-     */
-    400: unknown;
-};
-
-export type PostMetadataAgentProviderGroupsResponses = {
-    /**
-     * OK
-     */
-    200: {
-        MediaContainer?: MediaContainer & {
-            MetadataAgentProviderGroup?: Array<MetadataAgentProviderGroup>;
-        };
-    };
-};
-
-export type PostMetadataAgentProviderGroupsResponse = PostMetadataAgentProviderGroupsResponses[keyof PostMetadataAgentProviderGroupsResponses];
-
-export type DeleteMetadataAgentProviderGroupData = {
-    body?: never;
-    path: {
-        /**
-         * The ID of the metadata agent provider group to delete
-         */
-        groupId: number;
-    };
-    query?: never;
-    url: '/media/providers/metadata/group/{groupId}';
-};
-
-export type DeleteMetadataAgentProviderGroupErrors = {
-    /**
-     * Not Found
-     */
-    404: unknown;
-};
-
-export type DeleteMetadataAgentProviderGroupResponses = {
-    /**
-     * OK
-     */
-    200: unknown;
-};
-
-export type GetMetadataAgentProviderGroupData = {
-    body?: never;
-    path: {
-        /**
-         * The ID of the metadata agent provider group to get
-         */
-        groupId: number;
-    };
-    query?: never;
-    url: '/media/providers/metadata/group/{groupId}';
-};
-
-export type GetMetadataAgentProviderGroupErrors = {
-    /**
-     * Not Found
-     */
-    404: unknown;
-};
-
-export type GetMetadataAgentProviderGroupResponses = {
-    /**
-     * OK
-     */
-    200: {
-        MediaContainer?: MediaContainer & {
-            MetadataAgentProviderGroup?: Array<MetadataAgentProviderGroup>;
-        };
-    };
-};
-
-export type GetMetadataAgentProviderGroupResponse = GetMetadataAgentProviderGroupResponses[keyof GetMetadataAgentProviderGroupResponses];
-
-export type PutMetadataAgentProviderGroupData = {
-    body?: never;
-    path: {
-        /**
-         * The ID of the metadata agent provider group to update
-         */
-        groupId: number;
-    };
-    query?: {
-        /**
-         * The title of the metadata agent provider group to update.
-         */
-        title?: string;
-    };
-    url: '/media/providers/metadata/group/{groupId}';
-};
-
-export type PutMetadataAgentProviderGroupErrors = {
-    /**
-     * Bad Request
-     */
-    400: unknown;
-};
-
-export type PutMetadataAgentProviderGroupResponses = {
-    /**
-     * OK
-     */
-    200: {
-        MediaContainer?: MediaContainer & {
-            MetadataAgentProviderGroup?: Array<MetadataAgentProviderGroup>;
-        };
-    };
-};
-
-export type PutMetadataAgentProviderGroupResponse = PutMetadataAgentProviderGroupResponses[keyof PutMetadataAgentProviderGroupResponses];
-
-export type DeleteMetadataAgentProviderGroupItemData = {
-    body?: never;
-    path: {
-        /**
-         * The ID of the metadata agent provider group
-         */
-        groupId: number;
-        /**
-         * The ID of the metadata agent provider
-         */
-        providerId: number;
-    };
-    query?: never;
-    url: '/media/providers/metadata/group/{groupId}/items/{providerId}';
-};
-
-export type DeleteMetadataAgentProviderGroupItemErrors = {
-    /**
-     * Cannot delete the primary provider of a group.
-     */
-    403: unknown;
-    /**
-     * Not Found
-     */
-    404: unknown;
-};
-
-export type DeleteMetadataAgentProviderGroupItemResponses = {
-    /**
-     * OK
-     */
-    200: unknown;
-};
-
-export type PutMetadataAgentProviderGroupItemData = {
-    body?: never;
-    path: {
-        /**
-         * The ID of the metadata agent group
-         */
-        groupId: number;
-        /**
-         * The ID of the metadata agent provider
-         */
-        providerId: number;
-    };
-    query?: {
-        /**
-         * The ID of the group item to place this item after. This only works if the group item already exists. A -1 value will place the item at the beginning.
-         */
-        after?: number;
-    };
-    url: '/media/providers/metadata/group/{groupId}/items/{providerId}';
-};
-
-export type PutMetadataAgentProviderGroupItemErrors = {
-    /**
-     * Bad Request
-     */
-    400: unknown;
-};
-
-export type PutMetadataAgentProviderGroupItemResponses = {
-    /**
-     * OK
-     */
-    200: {
-        MediaContainer?: MediaContainer & {
-            MetadataAgentProviderGroupItem?: Array<MetadataAgentProviderGroupItem>;
-        };
-    };
-};
-
-export type PutMetadataAgentProviderGroupItemResponse = PutMetadataAgentProviderGroupItemResponses[keyof PutMetadataAgentProviderGroupItemResponses];
-
-export type DeleteMetadataAgentProviderData = {
-    body?: never;
-    path: {
-        /**
-         * The ID of the metadata agent provider to delete
-         */
-        providerId: number;
-    };
-    query?: never;
-    url: '/media/providers/metadata/{providerId}';
-};
-
-export type DeleteMetadataAgentProviderErrors = {
-    /**
-     * Bad Request
-     */
-    400: unknown;
-    /**
-     * Cannot delete a provider which is currently used inside a group.
-     */
-    403: unknown;
-    /**
-     * Not Found
-     */
-    404: unknown;
-};
-
-export type DeleteMetadataAgentProviderResponses = {
-    /**
-     * OK
-     */
-    200: unknown;
-};
-
-export type GetMetadataAgentProviderData = {
-    body?: never;
-    path: {
-        /**
-         * The ID of the metadata agent provider to get
-         */
-        providerId: number;
-    };
-    query?: never;
-    url: '/media/providers/metadata/{providerId}';
-};
-
-export type GetMetadataAgentProviderErrors = {
-    /**
-     * Not Found
-     */
-    404: unknown;
-};
-
-export type GetMetadataAgentProviderResponses = {
-    /**
-     * OK
-     */
-    200: {
-        MediaContainer?: MediaContainer & {
-            MetadataAgentProvider?: Array<MetadataAgentProvider>;
-        };
-    };
-};
-
-export type GetMetadataAgentProviderResponse = GetMetadataAgentProviderResponses[keyof GetMetadataAgentProviderResponses];
-
-export type PutMetadataAgentProviderData = {
-    body?: never;
-    path: {
-        /**
-         * The ID of the metadata agent provider to modify
-         */
-        providerId: number;
-    };
-    query?: {
-        /**
-         * The new URI of the metadata agent provider.
-         */
-        uri?: string;
-    };
-    url: '/media/providers/metadata/{providerId}';
-};
-
-export type PutMetadataAgentProviderErrors = {
-    /**
-     * Bad Request
-     */
-    400: unknown;
-};
-
-export type PutMetadataAgentProviderResponses = {
-    /**
-     * OK
-     */
-    200: {
-        MediaContainer?: MediaContainer & {
-            MetadataAgentProvider?: Array<MetadataAgentProvider>;
-        };
-    };
-};
-
-export type PutMetadataAgentProviderResponse = PutMetadataAgentProviderResponses[keyof PutMetadataAgentProviderResponses];
-
-export type PostMediaProvidersRefreshData = {
-    body?: never;
-    path?: never;
-    query?: never;
-    url: '/media/providers/refresh';
-};
-
-export type PostMediaProvidersRefreshResponses = {
-    /**
-     * OK
-     */
-    200: unknown;
-};
-
-export type DeleteMediaProviderData = {
-    body?: never;
-    path: {
-        /**
-         * The ID of the media provider to delete
-         */
-        provider: string;
-    };
-    query?: never;
-    url: '/media/providers/{provider}';
-};
-
-export type DeleteMediaProviderErrors = {
-    /**
-     * Bad Request
-     */
-    400: unknown;
-    /**
-     * Cannot delete a provider which is a child of another provider
-     */
-    403: unknown;
-};
-
-export type DeleteMediaProviderResponses = {
-    /**
-     * OK
-     */
-    200: unknown;
-};
-
-export type MediaSubscriptionsGetSlashData = {
-    body?: never;
-    path?: never;
-    query?: {
-        /**
-         * Indicates whether the active grabs should be included as well
-         */
-        includeGrabs?: 0 | 1;
-        /**
-         * Compute the storage of recorded items desired by this subscription
-         */
-        includeStorage?: 0 | 1;
-    };
-    url: '/media/subscriptions';
-};
-
-export type MediaSubscriptionsGetSlashErrors = {
-    /**
-     * User cannot access DVR on this server
-     */
-    403: unknown;
-};
-
-export type MediaSubscriptionsGetSlashResponses = {
-    /**
-     * OK
-     */
-    200: MediaContainerWithSubscription2;
-};
-
-export type MediaSubscriptionsGetSlashResponse = MediaSubscriptionsGetSlashResponses[keyof MediaSubscriptionsGetSlashResponses];
-
-export type MediaSubscriptionsPostSlashData = {
-    body?: never;
-    path?: never;
-    query?: {
-        /**
-         * The library section into which we'll grab the media.  Not actually required when the subscription is to a playlist.
-         */
-        targetLibrarySectionID?: number;
-        /**
-         * The section location into which to grab.
-         */
-        targetSectionLocationID?: number;
-        /**
-         * The type of the thing we're subscribing too (e.g. show, season).
-         */
-        type?: number;
-        /**
-         * Hints describing what we're looking for.  Note: The hint `ratingKey` is required for downloading from a PMS remote.
-         */
-        hints?: {
-            [key: string]: unknown;
-        };
-        /**
-         * Subscription preferences.
-         */
-        prefs?: {
-            [key: string]: unknown;
-        };
-        /**
-         * Subscription parameters.
-         * - `mediaProviderID`: Required for downloads to indicate which MP the subscription will download into
-         * - `source`: Required for downloads to indicate the source of the downloaded content.
-         *
-         */
-        params?: {
-            [key: string]: unknown;
-        };
-    };
-    url: '/media/subscriptions';
-};
-
-export type MediaSubscriptionsPostSlashErrors = {
-    /**
-     * Bad Request
-     */
-    400: unknown;
-    /**
-     * User cannot access DVR on this server
-     */
-    403: unknown;
-    /**
-     * An subscription with the same parameters already exists
-     */
-    409: unknown;
-};
-
-export type MediaSubscriptionsPostSlashResponses = {
-    /**
-     * OK
-     */
-    200: {
-        MediaContainer?: MediaContainer & {
-            MediaSubscription?: Array<MediaSubscription2>;
-        };
-    };
-};
-
-export type MediaSubscriptionsPostSlashResponse = MediaSubscriptionsPostSlashResponses[keyof MediaSubscriptionsPostSlashResponses];
-
-export type MediaSubscriptionsPostProcessData = {
-    body?: never;
-    path?: never;
-    query?: never;
-    url: '/media/subscriptions/process';
-};
-
-export type MediaSubscriptionsPostProcessErrors = {
-    /**
-     * User cannot access DVR on this server
-     */
-    403: unknown;
-};
-
-export type MediaSubscriptionsPostProcessResponses = {
-    /**
-     * OK
-     */
-    200: unknown;
-};
-
-export type MediaSubscriptionsGetScheduledData = {
-    body?: never;
-    path?: never;
-    query?: never;
-    url: '/media/subscriptions/scheduled';
-};
-
-export type MediaSubscriptionsGetScheduledErrors = {
-    /**
-     * User cannot access DVR on this server
-     */
-    403: unknown;
-};
-
-export type MediaSubscriptionsGetScheduledResponses = {
-    /**
-     * OK
-     */
-    200: {
-        MediaContainer?: MediaContainer & {
-            MediaGrabOperation?: Array<MediaGrabOperation2>;
-        };
-    };
-};
-
-export type MediaSubscriptionsGetScheduledResponse = MediaSubscriptionsGetScheduledResponses[keyof MediaSubscriptionsGetScheduledResponses];
-
-export type MediaSubscriptionsGetTemplateData = {
-    body?: never;
-    path?: never;
-    query?: {
-        /**
-         * The guid of the item for which to get the template
-         */
-        guid?: string;
-    };
-    url: '/media/subscriptions/template';
-};
-
-export type MediaSubscriptionsGetTemplateErrors = {
-    /**
-     * User cannot access DVR on this server
-     */
-    403: unknown;
-};
-
-export type MediaSubscriptionsGetTemplateResponses = {
-    /**
-     * OK
-     */
-    200: {
-        MediaContainer?: MediaContainer & {
-            SubscriptionTemplate?: Array<{
-                MediaSubscription?: Array<MediaSubscription2 & {
-                    airingsType?: string;
-                    librarySectionTitle?: string;
-                    locationPath?: string;
-                    /**
-                     * Parameter string for creating this subscription
-                     */
-                    parameters?: string;
-                    selected?: boolean;
-                    /**
-                     * Where this subscription will record to
-                     */
-                    targetLibrarySectionID?: number;
-                    /**
-                     * The title of this subscription type
-                     */
-                    title?: string;
-                    /**
-                     * Metadata type number
-                     */
-                    type?: number;
-                }>;
-            }>;
-        };
-    };
-};
-
-export type MediaSubscriptionsGetTemplateResponse = MediaSubscriptionsGetTemplateResponses[keyof MediaSubscriptionsGetTemplateResponses];
-
-export type MediaSubscriptionsDeleteSubscriptionData = {
-    body?: never;
-    path: {
-        subscriptionId: number;
-    };
-    query?: never;
-    url: '/media/subscriptions/{subscriptionId}';
-};
-
-export type MediaSubscriptionsDeleteSubscriptionErrors = {
-    /**
-     * Bad Request
-     */
-    400: unknown;
-    /**
-     * User cannot access DVR on this server or cannot access this subscription
-     */
-    403: unknown;
-    /**
-     * Not Found
-     */
-    404: unknown;
-};
-
-export type MediaSubscriptionsDeleteSubscriptionResponses = {
-    /**
-     * OK
-     */
-    200: unknown;
-};
-
-export type MediaSubscriptionsGetSubscriptionData = {
-    body?: never;
-    path: {
-        subscriptionId: number;
-    };
-    query?: {
-        /**
-         * Indicates whether the active grabs should be included as well
-         */
-        includeGrabs?: 0 | 1;
-        /**
-         * Compute the storage of recorded items desired by this subscription
-         */
-        includeStorage?: 0 | 1;
-    };
-    url: '/media/subscriptions/{subscriptionId}';
-};
-
-export type MediaSubscriptionsGetSubscriptionErrors = {
-    /**
-     * Bad Request
-     */
-    400: unknown;
-    /**
-     * User cannot access DVR on this server or cannot access this subscription
-     */
-    403: unknown;
-    /**
-     * Not Found
-     */
-    404: unknown;
-};
-
-export type MediaSubscriptionsGetSubscriptionResponses = {
-    /**
-     * OK
-     */
-    200: MediaContainerWithSubscription2;
-};
-
-export type MediaSubscriptionsGetSubscriptionResponse = MediaSubscriptionsGetSubscriptionResponses[keyof MediaSubscriptionsGetSubscriptionResponses];
-
-export type MediaSubscriptionsPutSubscriptionData = {
-    body?: never;
-    path: {
-        subscriptionId: number;
-    };
-    query?: {
-        prefs?: {
-            [key: string]: unknown;
-        };
-    };
-    url: '/media/subscriptions/{subscriptionId}';
-};
-
-export type MediaSubscriptionsPutSubscriptionErrors = {
-    /**
-     * Bad Request
-     */
-    400: unknown;
-    /**
-     * User cannot access DVR on this server or cannot access this subscription
-     */
-    403: unknown;
-    /**
-     * Not Found
-     */
-    404: unknown;
-};
-
-export type MediaSubscriptionsPutSubscriptionResponses = {
-    /**
-     * OK
-     */
-    200: MediaContainerWithSubscription2;
-};
-
-export type MediaSubscriptionsPutSubscriptionResponse = MediaSubscriptionsPutSubscriptionResponses[keyof MediaSubscriptionsPutSubscriptionResponses];
-
-export type MediaSubscriptionsPutSubscriptionMoveData = {
-    body?: never;
-    path: {
-        subscriptionId: number;
-    };
-    query?: {
-        /**
-         * The subscription to move this sub after.  If missing will insert at the beginning of the list
-         */
-        after?: number;
-    };
-    url: '/media/subscriptions/{subscriptionId}/move';
-};
-
-export type MediaSubscriptionsPutSubscriptionMoveErrors = {
-    /**
-     * Bad Request
-     */
-    400: unknown;
-    /**
-     * User cannot access DVR on this server or cannot access this subscription
-     */
-    403: unknown;
-    /**
-     * Not Found
-     */
-    404: unknown;
-};
-
-export type MediaSubscriptionsPutSubscriptionMoveResponses = {
-    /**
-     * OK
-     */
-    200: MediaContainerWithSubscription2;
-};
-
-export type MediaSubscriptionsPutSubscriptionMoveResponse = MediaSubscriptionsPutSubscriptionMoveResponses[keyof MediaSubscriptionsPutSubscriptionMoveResponses];
-
-export type ImageTranscodeData = {
-    body?: never;
-    path?: never;
-    query?: {
-        /**
-         * The source URL for the image to transcode.  Note, if this URL requires a token such as `X-Plex-Token`, it should be given as a query parameter to this url.
-         */
-        url?: string;
-        /**
-         * The output format for the image; defaults to jpg
-         */
-        format?: 'jpg' | 'jpeg' | 'png' | 'ppm';
-        /**
-         * The desired width of the output image
-         */
-        width?: number;
-        /**
-         * The desired height of the output image
-         */
-        height?: number;
-        /**
-         * The desired quality of the output.  -1 means the highest quality.  Defaults to -1
-         */
-        quality?: number;
-        /**
-         * The background color to apply before painting the image.  Only really applicable if image has transparency.  Defaults to none
-         */
-        background?: string;
-        /**
-         * Indicates if image should be upscaled to the desired width/height.  Defaults to false
-         */
-        upscale?: 0 | 1;
-        /**
-         * Indicates if image should be scaled to fit the smaller dimension.  By default (false) the image is scaled to fit within the width/height specified but if this parameter is true, it will allow overflowing one dimension to fit the other.  Essentially it is making the width/height minimum sizes of the image or sizing the image to fill the entire width/height even if it overflows one dimension.
-         */
-        minSize?: 0 | 1;
-        /**
-         * Obey the rotation values specified in EXIF data.  Defaults to true.
-         */
-        rotate?: 0 | 1;
-        /**
-         * Apply a blur to the image, Defaults to 0 (none)
-         */
-        blur?: number;
-        /**
-         * Scale the image saturation by the specified percentage.  Defaults to 100
-         */
-        saturation?: number;
-        /**
-         * Render the image at the specified opacity percentage.  Defaults to 100
-         */
-        opacity?: number;
-        /**
-         * Use the specified chroma subsambling.
-         * - 0: 411
-         * - 1: 420
-         * - 2: 422
-         * - 3: 444
-         * Defaults to 3 (444)
-         */
-        chromaSubsampling?: 0 | 1 | 2 | 3;
-        /**
-         * The color to blend with the image.  Defaults to none
-         */
-        blendColor?: string;
-    };
-    url: '/photo/:/transcode';
-};
-
-export type ImageTranscodeErrors = {
-    /**
-     * Bad Request
-     */
-    400: unknown;
-    /**
-     * Forbidden
-     */
-    403: unknown;
-    /**
-     * Not Found
-     */
-    404: unknown;
-};
-
-export type ImageTranscodeResponses = {
-    /**
-     * The resulting image
-     */
-    200: Blob | File;
-};
-
-export type ImageTranscodeResponse = ImageTranscodeResponses[keyof ImageTranscodeResponses];
-
-export type PlayQueuePostSlashData = {
-    body?: never;
-    path?: never;
-    query: {
-        /**
-         * The content URI for what we're playing.
-         */
-        uri?: string;
-        /**
-         * the ID of the playlist we're playing.
-         */
-        playlistID?: number;
-        /**
-         * The type of play queue to create
-         */
-        type: 'audio' | 'video' | 'photo';
-        /**
-         * The key of the first item to play, defaults to the first in the play queue.
-         */
-        key?: string;
-        /**
-         * Whether to shuffle the playlist, defaults to 0.
-         */
-        shuffle?: 0 | 1;
-        /**
-         * If the PQ is bigger than the window, fill any empty space with wraparound items, defaults to 0.
-         */
-        repeat?: 0 | 1;
-        /**
-         * Whether to create a continuous play queue (e.g. from an episode), defaults to 0.
-         */
-        continuous?: 0 | 1;
-        /**
-         * Number of trailers to prepend a movie with not including the pre-roll. If omitted the pre-roll will not be returned in the play queue. When resuming a movie `extrasPrefixCount` should be omitted as a parameter instead of passing 0.
-         */
-        extrasPrefixCount?: number;
-        /**
-         * Only applies to queues of type photo, whether to retrieve all descendent photos from an album or section, defaults to 1.
-         */
-        recursive?: 0 | 1;
-        /**
-         * Only applies to queues of type show or seasons, whether to return a queue that is started on the On Deck episode if one exists. Otherwise begins the play queue on the beginning of the show or season.
-         */
-        onDeck?: 0 | 1;
-    };
-    url: '/playQueues';
-};
-
-export type PlayQueuePostSlashErrors = {
-    /**
-     * Bad Request
-     */
-    400: unknown;
-};
-
-export type PlayQueuePostSlashResponses = {
-    /**
-     * OK
-     */
-    200: {
-        MediaContainer?: PropertiesMediaContainer & {
-            /**
-             * The ID of the play queue, which is used in subsequent requests.
-             */
-            playQueueID?: number;
-            /**
-             * Defines where the "Up Next" region starts
-             */
-            playQueueLastAddedItemID?: string;
-            /**
-             * The queue item ID of the currently selected  item.
-             */
-            playQueueSelectedItemID?: number;
-            /**
-             * The offset of the selected item in the play queue, from the beginning of the queue.
-             */
-            playQueueSelectedItemOffset?: number;
-            /**
-             * The metadata item ID of the currently selected item (matches `ratingKey` attribute in metadata item if the media provider is a library).
-             */
-            playQueueSelectedMetadataItemID?: number;
-            /**
-             * Whether or not the queue is shuffled.
-             */
-            playQueueShuffled?: boolean;
-            /**
-             * The original URI used to create the play queue.
-             */
-            playQueueSourceURI?: string;
-            /**
-             * The total number of items in the play queue.
-             */
-            playQueueTotalCount?: number;
-            /**
-             * The version of the play queue. It increments every time a change is made to the play queue to assist clients in knowing when to refresh.
-             */
-            playQueueVersion?: number;
-        };
-    };
-};
-
-export type PlayQueuePostSlashResponse = PlayQueuePostSlashResponses[keyof PlayQueuePostSlashResponses];
-
-export type PlayQueueQueueGetSlashData = {
-    body?: never;
-    path: {
-        /**
-         * The ID of the play queue.
-         */
-        playQueueId: number;
-    };
-    query?: {
-        /**
-         * If the server should transfer ownership to the requesting client (used in remote control scenarios).
-         */
-        own?: 0 | 1;
-        /**
-         * The play queue item ID for the center of the window - this doesn't change the current selected item.
-         */
-        center?: string;
-        /**
-         * How many items on each side of the center of the window
-         */
-        window?: number;
-        /**
-         * Whether to include the items before the center (if 0, center is not included either), defaults to 1.
-         */
-        includeBefore?: 0 | 1;
-        /**
-         * Whether to include the items after the center (if 0, center is not included either), defaults to 1.
-         */
-        includeAfter?: 0 | 1;
-    };
-    url: '/playQueues/{playQueueId}';
-};
-
-export type PlayQueueQueueGetSlashErrors = {
-    /**
-     * Bad Request
-     */
-    400: unknown;
-    /**
-     * Play queue not found
-     */
-    404: unknown;
-};
-
-export type PlayQueueQueueGetSlashResponses = {
-    /**
-     * OK
-     */
-    200: MediaContainerWithPlaylistMetadata2;
-};
-
-export type PlayQueueQueueGetSlashResponse = PlayQueueQueueGetSlashResponses[keyof PlayQueueQueueGetSlashResponses];
-
-export type PlayQueueQueuePutSlashData = {
-    body?: never;
-    path: {
-        /**
-         * The ID of the play queue.
-         */
-        playQueueId: number;
-    };
-    query?: {
-        /**
-         * The content URI for what we're adding to the queue.
-         */
-        uri?: string;
-        /**
-         * The ID of the playlist to add to the playQueue.
-         */
-        playlistID?: string;
-        /**
-         * Play this item next (defaults to 0 - queueing at the end of manually queued items).
-         */
-        next?: 0 | 1;
-    };
-    url: '/playQueues/{playQueueId}';
-};
-
-export type PlayQueueQueuePutSlashErrors = {
-    /**
-     * Bad Request
-     */
-    400: unknown;
-    /**
-     * Play queue not found
-     */
-    404: unknown;
-};
-
-export type PlayQueueQueuePutSlashResponses = {
-    /**
-     * OK
-     */
-    200: MediaContainerWithPlaylistMetadata2;
-};
-
-export type PlayQueueQueuePutSlashResponse = PlayQueueQueuePutSlashResponses[keyof PlayQueueQueuePutSlashResponses];
-
-export type PlayQueueQueueDeleteItemsData = {
-    body?: never;
-    path: {
-        /**
-         * The ID of the play queue.
-         */
-        playQueueId: number;
-    };
-    query?: never;
-    url: '/playQueues/{playQueueId}/items';
-};
-
-export type PlayQueueQueueDeleteItemsResponses = {
-    /**
-     * OK
-     */
-    200: MediaContainerWithPlaylistMetadata2;
-};
-
-export type PlayQueueQueueDeleteItemsResponse = PlayQueueQueueDeleteItemsResponses[keyof PlayQueueQueueDeleteItemsResponses];
-
-export type PlayQueueQueueDeleteItemsItemData = {
-    body?: never;
-    path: {
-        /**
-         * The ID of the play queue.
-         */
-        playQueueId: number;
-        /**
-         * The play queue item ID to delete.
-         */
-        playQueueItemId: number;
-    };
-    query?: never;
-    url: '/playQueues/{playQueueId}/items/{playQueueItemId}';
-};
-
-export type PlayQueueQueueDeleteItemsItemErrors = {
-    /**
-     * Bad Request
-     */
-    400: unknown;
-    /**
-     * Play queue not found
-     */
-    404: unknown;
-};
-
-export type PlayQueueQueueDeleteItemsItemResponses = {
-    /**
-     * OK
-     */
-    200: MediaContainerWithPlaylistMetadata2;
-};
-
-export type PlayQueueQueueDeleteItemsItemResponse = PlayQueueQueueDeleteItemsItemResponses[keyof PlayQueueQueueDeleteItemsItemResponses];
-
-export type PlayQueueQueuePutItemsMoveData = {
-    body?: never;
-    path: {
-        /**
-         * The ID of the play queue.
-         */
-        playQueueId: number;
-        /**
-         * The play queue item ID to delete.
-         */
-        playQueueItemId: number;
-    };
-    query?: {
-        /**
-         * The play queue item ID to insert the new item after. If not present, moves to the beginning.
-         */
-        after?: number;
-    };
-    url: '/playQueues/{playQueueId}/items/{playQueueItemId}/move';
-};
-
-export type PlayQueueQueuePutItemsMoveErrors = {
-    /**
-     * Bad Request
-     */
-    400: unknown;
-    /**
-     * Play queue or queue item not found
-     */
-    404: unknown;
-};
-
-export type PlayQueueQueuePutItemsMoveResponses = {
-    /**
-     * OK
-     */
-    200: MediaContainerWithPlaylistMetadata2;
-};
-
-export type PlayQueueQueuePutItemsMoveResponse = PlayQueueQueuePutItemsMoveResponses[keyof PlayQueueQueuePutItemsMoveResponses];
-
-export type PlayQueuePlayQueueResetData = {
-    body?: never;
-    path: {
-        /**
-         * The ID of the play queue.
-         */
-        playQueueId: number;
-    };
-    query?: never;
-    url: '/playQueues/{playQueueId}/reset';
-};
-
-export type PlayQueuePlayQueueResetErrors = {
-    /**
-     * Bad Request
-     */
-    400: unknown;
-    /**
-     * Play queue not found
-     */
-    404: unknown;
-};
-
-export type PlayQueuePlayQueueResetResponses = {
-    /**
-     * OK
-     */
-    200: MediaContainerWithPlaylistMetadata2;
-};
-
-export type PlayQueuePlayQueueResetResponse = PlayQueuePlayQueueResetResponses[keyof PlayQueuePlayQueueResetResponses];
-
-export type PlayQueueQueuePutItemsShuffleData = {
-    body?: never;
-    path: {
-        /**
-         * The ID of the play queue.
-         */
-        playQueueId: number;
-    };
-    query?: never;
-    url: '/playQueues/{playQueueId}/shuffle';
-};
-
-export type PlayQueueQueuePutItemsShuffleErrors = {
-    /**
-     * Bad Request
-     */
-    400: unknown;
-    /**
-     * Play queue not found or current item not found
-     */
-    404: unknown;
-};
-
-export type PlayQueueQueuePutItemsShuffleResponses = {
-    /**
-     * OK
-     */
-    200: MediaContainerWithPlaylistMetadata2;
-};
-
-export type PlayQueueQueuePutItemsShuffleResponse = PlayQueueQueuePutItemsShuffleResponses[keyof PlayQueueQueuePutItemsShuffleResponses];
-
-export type PlayQueueQueuePutItemsUnshuffleData = {
-    body?: never;
-    path: {
-        /**
-         * The ID of the play queue.
-         */
-        playQueueId: number;
-    };
-    query?: never;
-    url: '/playQueues/{playQueueId}/unshuffle';
-};
-
-export type PlayQueueQueuePutItemsUnshuffleErrors = {
-    /**
-     * Bad Request
-     */
-    400: unknown;
-    /**
-     * Play queue not found or current item not found
-     */
-    404: unknown;
-};
-
-export type PlayQueueQueuePutItemsUnshuffleResponses = {
-    /**
-     * OK
-     */
-    200: MediaContainerWithPlaylistMetadata2;
-};
-
-export type PlayQueueQueuePutItemsUnshuffleResponse = PlayQueueQueuePutItemsUnshuffleResponses[keyof PlayQueueQueuePutItemsUnshuffleResponses];
-
-export type PlaylistGetSlashData = {
-    body?: never;
-    path?: never;
-    query?: {
-        /**
-         * Limit to a type of playlist
-         */
-        playlistType?: 'audio' | 'video' | 'photo';
-        /**
-         * Type of playlists to return, smart or not.  When not provided, will return both.
-         */
-        smart?: 0 | 1;
-    };
-    url: '/playlists';
-};
-
-export type PlaylistGetSlashResponses = {
-    /**
-     * OK
-     */
-    200: MediaContainerWithPlaylistMetadata2;
-};
-
-export type PlaylistGetSlashResponse = PlaylistGetSlashResponses[keyof PlaylistGetSlashResponses];
-
-export type PlaylistPostSlashData = {
-    body?: never;
-    path?: never;
-    query?: {
-        /**
-         * The content URI for what we're playing (e.g. `library://...`).
-         */
-        uri?: string;
-        /**
-         * To create a playlist from an existing play queue.
-         */
-        playQueueID?: number;
-    };
-    url: '/playlists';
-};
-
-export type PlaylistPostSlashErrors = {
-    /**
-     * Bad Request
-     */
-    400: unknown;
-};
-
-export type PlaylistPostSlashResponses = {
-    /**
-     * OK
-     */
-    200: MediaContainerWithPlaylistMetadata2;
-};
-
-export type PlaylistPostSlashResponse = PlaylistPostSlashResponses[keyof PlaylistPostSlashResponses];
-
-export type PlaylistPostUploadData = {
-    body?: never;
-    path?: never;
-    query?: {
-        /**
-         * Absolute path to a directory on the server where m3u files are stored, or the absolute path to a playlist file on the server. If the `path` argument is a directory, that path will be scanned for playlist files to be processed. Each file in that directory creates a separate playlist, with a name based on the filename of the file that created it. The GUID of each playlist is based on the filename. If the `path` argument is a file, that file will be used to create a new playlist, with the name based on the filename of the file that created it. The GUID of each playlist is based on the filename.
-         */
-        path?: string;
-        /**
-         * Force overwriting of duplicate playlists. By default, a playlist file uploaded with the same path will overwrite the existing playlist. The `force` argument is used to disable overwriting. If the `force` argument is set to 0, a new playlist will be created suffixed with the date and time that the duplicate was uploaded.
-         */
-        force?: 0 | 1;
-    };
-    url: '/playlists/upload';
-};
-
-export type PlaylistPostUploadErrors = {
-    /**
-     * OK
-     */
-    403: unknown;
-    /**
-     * The playlist could not be imported
-     */
-    500: unknown;
-};
-
-export type PlaylistPostUploadResponses = {
-    /**
-     * OK
-     */
-    200: unknown;
-};
-
-export type PlaylistDeletePlaylistData = {
-    body?: never;
-    path: {
-        /**
-         * The ID of the playlist
-         */
-        playlistId: number;
-    };
-    query?: never;
-    url: '/playlists/{playlistId}';
-};
-
-export type PlaylistDeletePlaylistErrors = {
-    /**
-     * Playlist not found (or user may not have permission to access playlist)
-     */
-    404: unknown;
-};
-
-export type PlaylistDeletePlaylistResponses = {
-    /**
-     * No Content
-     */
-    204: unknown;
-};
-
-export type PlaylistGetPlaylistData = {
-    body?: never;
-    path: {
-        /**
-         * The ID of the playlist
-         */
-        playlistId: number;
-    };
-    query?: never;
-    url: '/playlists/{playlistId}';
-};
-
-export type PlaylistGetPlaylistErrors = {
-    /**
-     * Playlist not found (or user may not have permission to access playlist)
-     */
-    404: unknown;
-};
-
-export type PlaylistGetPlaylistResponses = {
-    /**
-     * OK
-     */
-    200: MediaContainerWithPlaylistMetadata2;
-};
-
-export type PlaylistGetPlaylistResponse = PlaylistGetPlaylistResponses[keyof PlaylistGetPlaylistResponses];
-
-export type PlaylistPutPlaylistData = {
-    body?: never;
-    path: {
-        /**
-         * The ID of the playlist
-         */
-        playlistId: number;
-    };
-    query?: never;
-    url: '/playlists/{playlistId}';
-};
-
-export type PlaylistPutPlaylistErrors = {
-    /**
-     * Playlist not found (or user may not have permission to access playlist)
-     */
-    404: unknown;
-};
-
-export type PlaylistPutPlaylistResponses = {
-    /**
-     * No Content
-     */
-    204: unknown;
-};
-
-export type PlaylistGetGeneratorsData = {
-    body?: never;
-    path: {
-        /**
-         * The ID of the playlist
-         */
-        playlistId: number;
-    };
-    query?: never;
-    url: '/playlists/{playlistId}/generators';
-};
-
-export type PlaylistGetGeneratorsErrors = {
-    /**
-     * Playlist not found (or user may not have permission to access playlist) or generator not found
-     */
-    404: unknown;
-};
-
-export type PlaylistGetGeneratorsResponses = {
-    /**
-     * OK
-     */
-    200: {
-        MediaContainer?: MediaContainer & {
-            PlayQueueGenerator?: Array<{
-                changedAt?: number;
-                createdAt?: number;
-                id?: number;
-                playlistID?: number;
-                /**
-                 * The type of playlist generator.
-                 *
-                 * - -1: A smart playlist generator
-                 * - 42: A optimized version generator
-                 *
-                 */
-                type?: -1 | 42;
-                updatedAt?: number;
-                /**
-                 * The URI indicating the search for this generator
-                 */
-                uri?: string;
-            }>;
-        };
-    };
-};
-
-export type PlaylistGetGeneratorsResponse = PlaylistGetGeneratorsResponses[keyof PlaylistGetGeneratorsResponses];
-
-export type PlaylistDeleteItemsData = {
-    body?: never;
-    path: {
-        /**
-         * The ID of the playlist
-         */
-        playlistId: number;
-    };
-    query?: never;
-    url: '/playlists/{playlistId}/items';
-};
-
-export type PlaylistDeleteItemsErrors = {
-    /**
-     * Bad Request
-     */
-    400: unknown;
-    /**
-     * Playlist not found (or user may not have permission to access playlist)
-     */
-    404: unknown;
-};
-
-export type PlaylistDeleteItemsResponses = {
-    /**
-     * OK
-     */
-    200: MediaContainerWithPlaylistMetadata2;
-};
-
-export type PlaylistDeleteItemsResponse = PlaylistDeleteItemsResponses[keyof PlaylistDeleteItemsResponses];
-
-export type PlaylistGetItemsData = {
-    body?: never;
-    path: {
-        /**
-         * The ID of the playlist
-         */
-        playlistId: number;
-    };
-    query?: {
-        /**
-         * The metadata types of the item to return.  Values past the first are only used in fetching items from the background processing playlist.
-         */
-        type?: Array<number>;
-    };
-    url: '/playlists/{playlistId}/items';
-};
-
-export type PlaylistGetItemsErrors = {
-    /**
-     * Playlist not found (or user may not have permission to access playlist)
-     */
-    404: unknown;
-};
-
-export type PlaylistGetItemsResponses = {
-    /**
-     * OK
-     */
-    200: MediaContainerWithMetadata2;
-};
-
-export type PlaylistGetItemsResponse = PlaylistGetItemsResponses[keyof PlaylistGetItemsResponses];
-
-export type PlaylistPutItemsData = {
-    body?: never;
-    path: {
-        /**
-         * The ID of the playlist
-         */
-        playlistId: number;
-    };
-    query?: {
-        /**
-         * The content URI for the playlist.
-         */
-        uri?: string;
-        /**
-         * The play queue to add to a playlist.
-         */
-        playQueueID?: number;
-    };
-    url: '/playlists/{playlistId}/items';
-};
-
-export type PlaylistPutItemsErrors = {
-    /**
-     * Bad Request
-     */
-    400: unknown;
-    /**
-     * Playlist not found (or user may not have permission to access playlist)
-     */
-    404: unknown;
-};
-
-export type PlaylistPutItemsResponses = {
-    /**
-     * OK
-     */
-    200: MediaContainerWithPlaylistMetadata2;
-};
-
-export type PlaylistPutItemsResponse = PlaylistPutItemsResponses[keyof PlaylistPutItemsResponses];
-
-export type PlaylistDeleteItemsGeneratorData = {
-    body?: never;
-    path: {
-        /**
-         * The ID of the playlist
-         */
-        playlistId: number;
-        /**
-         * The generator item ID to delete.
-         */
-        generatorId: number;
-    };
-    query?: never;
-    url: '/playlists/{playlistId}/items/{generatorId}';
-};
-
-export type PlaylistDeleteItemsGeneratorErrors = {
-    /**
-     * Bad Request
-     */
-    400: unknown;
-    /**
-     * Playlist not found (or user may not have permission to access playlist) or generator not found
-     */
-    404: unknown;
-};
-
-export type PlaylistDeleteItemsGeneratorResponses = {
-    /**
-     * OK
-     */
-    200: MediaContainerWithPlaylistMetadata2;
-};
-
-export type PlaylistDeleteItemsGeneratorResponse = PlaylistDeleteItemsGeneratorResponses[keyof PlaylistDeleteItemsGeneratorResponses];
-
-export type PlaylistGetItemsGeneratorData = {
-    body?: never;
-    path: {
-        /**
-         * The ID of the playlist
-         */
-        playlistId: number;
-        /**
-         * The generator item ID to delete.
-         */
-        generatorId: number;
-    };
-    query?: never;
-    url: '/playlists/{playlistId}/items/{generatorId}';
-};
-
-export type PlaylistGetItemsGeneratorErrors = {
-    /**
-     * Bad Request
-     */
-    400: unknown;
-    /**
-     * Playlist not found (or user may not have permission to access playlist) or generator not found
-     */
-    404: unknown;
-};
-
-export type PlaylistGetItemsGeneratorResponses = {
-    /**
-     * OK
-     */
-    200: {
-        MediaContainer?: MediaContainer & {
-            Item?: Array<{
-                Device?: {
-                    profile?: string;
-                };
-                Location?: {
-                    librarySectionID?: number;
-                    uri?: string;
-                };
-                MediaSettings?: {
-                    advancedSubtitles?: 'auto' | 'burn' | 'none' | 'sidecar' | 'embedded' | 'segmented';
-                    audioBoost?: number;
-                    audioChannelCount?: number;
-                    autoAdjustQuality?: boolean;
-                    autoAdjustSubtitle?: boolean;
-                    directPlay?: boolean;
-                    directStream?: boolean;
-                    directStreamAudio?: boolean;
-                    disableResolutionRotation?: boolean;
-                    maxVideoBitrate?: number;
-                    musicBitrate?: number;
-                    peakBitrate?: number;
-                    photoQuality?: number;
-                    photoResolution?: string;
-                    secondsPerSegment?: number;
-                    subtitleSize?: number;
-                    subtitles?: 'auto' | 'burn' | 'none' | 'sidecar' | 'embedded' | 'segmented';
-                    videoBitrate?: number;
-                    videoQuality?: number;
-                    videoResolution?: string;
-                };
-                Policy?: {
-                    scope?: 'all' | 'count';
-                    /**
-                     * True if only unwatched items are optimized
-                     */
-                    unwatched?: boolean;
-                    /**
-                     * If the scope is count, the number of items to optimize
-                     */
-                    value?: number;
-                };
-                Status?: {
-                    itemsCompleteCount?: number;
-                    itemsCount?: number;
-                    itemsSuccessfulCount?: number;
-                    state?: 'pending' | 'complete' | 'failed';
-                    totalSize?: number;
-                };
-                /**
-                 * The composite thumbnail image path
-                 */
-                composite?: string;
-                id?: number;
-                target?: string;
-                /**
-                 * The tag of this generator's settings
-                 */
-                targetTagID?: number;
-                title?: string;
-                /**
-                 * The type of this generator
-                 */
-                type?: -1 | 42;
-            }>;
-        };
-    };
-};
-
-export type PlaylistGetItemsGeneratorResponse = PlaylistGetItemsGeneratorResponses[keyof PlaylistGetItemsGeneratorResponses];
-
-export type PlaylistPutItemsGeneratorData = {
-    body?: never;
-    path: {
-        /**
-         * The ID of the playlist
-         */
-        playlistId: number;
-        /**
-         * The generator item ID to modify.
-         */
-        generatorId: number;
-    };
-    query?: {
-        /**
-         * Note: OpenAPI cannot properly render this query parameter example ([See GHI](https://github.com/OAI/OpenAPI-Specification/issues/1706)).  It should be rendered as:
-         *
-         * Item[type]=42&Item[title]=Jack-Jack Attack&Item[target]=&Item[targetTagID]=1&Item[locationID]=-1&Item[Location][uri]=library://82503060-0d68-4603-b594-8b071d54819e/item//library/metadata/146&Item[Policy][scope]=all&Item[Policy][value]=&Item[Policy][unwatched]=0
-         *
-         */
-        Item?: {
-            Location?: {
-                uri?: string;
-            };
-            Policy?: {
-                scope?: 'all' | 'count';
-                unwatched?: 0 | 1;
-                value?: number;
-            };
-            locationID?: number;
-            target?: string;
-            targetTagID?: number;
-            title?: string;
-            type?: number;
-        };
-    };
-    url: '/playlists/{playlistId}/items/{generatorId}';
-};
-
-export type PlaylistPutItemsGeneratorErrors = {
-    /**
-     * Bad Request
-     */
-    400: unknown;
-    /**
-     * Playlist not found (or user may not have permission to access playlist) or generator not found
-     */
-    404: unknown;
-};
-
-export type PlaylistPutItemsGeneratorResponses = {
-    /**
-     * OK
-     */
-    200: MediaContainerWithPlaylistMetadata2;
-};
-
-export type PlaylistPutItemsGeneratorResponse = PlaylistPutItemsGeneratorResponses[keyof PlaylistPutItemsGeneratorResponses];
-
-export type PlaylistGetItemsGeneratorItemsData = {
-    body?: never;
-    path: {
-        /**
-         * The ID of the playlist
-         */
-        playlistId: number;
-        /**
-         * The generator item ID to delete.
-         */
-        generatorId: number;
-    };
-    query?: never;
-    url: '/playlists/{playlistId}/items/{generatorId}/items';
-};
-
-export type PlaylistGetItemsGeneratorItemsErrors = {
-    /**
-     * Bad Request
-     */
-    400: unknown;
-    /**
-     * Playlist not found (or user may not have permission to access playlist) or generator not found
-     */
-    404: unknown;
-};
-
-export type PlaylistGetItemsGeneratorItemsResponses = {
-    /**
-     * OK
-     */
-    200: {
-        MediaContainer?: MediaContainer & {
-            Metadata?: Metadata2 & {
-                /**
-                 * The state of processing if this generator is part of an optimizer playlist
-                 */
-                processingState?: 'processed' | 'completed' | 'tombstoned' | 'disabled' | 'error' | 'pending';
-                /**
-                 * The error which could have occurred (or `good`)
-                 */
-                processingStateContext?: 'good' | 'sourceFileUnavailable' | 'sourceFileMetadataError' | 'clientProfileError' | 'ioError' | 'transcoderError' | 'unknownError' | 'mediaAnalysisError' | 'downloadFailed' | 'accessDenied' | 'cannotTranscode' | 'codecInstallError' | 'diskFull';
-            };
-        };
-    };
-};
-
-export type PlaylistGetItemsGeneratorItemsResponse = PlaylistGetItemsGeneratorItemsResponses[keyof PlaylistGetItemsGeneratorItemsResponses];
-
-export type PlaylistPutItemsGeneratorReprocessData = {
-    body?: never;
-    path: {
-        /**
-         * The ID of the playlist
-         */
-        playlistId: number;
-        /**
-         * The generator item ID to act on
-         */
-        generatorId: number;
-        /**
-         * The metadata item ID to act on
-         */
-        metadataId: number;
-        /**
-         * The action to perform for this item on this optimizer queue
-         */
-        action: 'reprocess' | 'disable' | 'enable';
-    };
-    query?: never;
-    url: '/playlists/{playlistId}/items/{generatorId}/{metadataId}/{action}';
-};
-
-export type PlaylistPutItemsGeneratorReprocessErrors = {
-    /**
-     * Bad Request
-     */
-    400: unknown;
-    /**
-     * Playlist not found (or user may not have permission to access playlist) or generator or metadata item not found
-     */
-    404: unknown;
-};
-
-export type PlaylistPutItemsGeneratorReprocessResponses = {
-    /**
-     * OK
-     */
-    200: unknown;
-};
-
-export type PlaylistPutItemsMoveData = {
-    body?: never;
-    path: {
-        /**
-         * The ID of the playlist
-         */
-        playlistId: number;
-        /**
-         * The playlist item ID to move.
-         */
-        playlistItemId: number;
-    };
-    query?: {
-        /**
-         * The playlist item ID to insert the new item after.  If not provided, item is moved to beginning of playlist
-         */
-        after?: number;
-    };
-    url: '/playlists/{playlistId}/items/{playlistItemId}/move';
-};
-
-export type PlaylistPutItemsMoveErrors = {
-    /**
-     * Bad Request
-     */
-    400: unknown;
-    /**
-     * Playlist not found (or user may not have permission to access playlist)
-     */
-    404: unknown;
-};
-
-export type PlaylistPutItemsMoveResponses = {
-    /**
-     * OK
-     */
-    200: MediaContainerWithPlaylistMetadata2;
-};
-
-export type PlaylistPutItemsMoveResponse = PlaylistPutItemsMoveResponses[keyof PlaylistPutItemsMoveResponses];
-
-export type SecurityGetResourcesData = {
-    body?: never;
-    path?: never;
-    query: {
-        /**
-         * The source identifier with an included prefix.
-         */
-        source: string;
-        /**
-         * Force refresh
-         */
-        refresh?: 0 | 1;
-    };
-    url: '/security/resources';
-};
-
-export type SecurityGetResourcesErrors = {
-    /**
-     * A query param is missing or the wrong value
-     */
-    400: unknown;
-    /**
-     * Invalid or no token provided or a transient token could not be created
-     */
-    403: unknown;
-};
-
-export type SecurityGetResourcesResponses = {
-    /**
-     * OK
-     */
-    200: {
-        MediaContainer?: MediaContainer & {
-            Device?: {
-                Connection?: Array<{
-                    address?: string;
-                    /**
-                     * Indicates if the connection is the server's LAN address
-                     */
-                    local?: boolean;
-                    port?: number;
-                    protocol?: string;
-                    /**
-                     * Indicates the connection is over a relayed connection
-                     */
-                    relay?: boolean;
-                    uri?: string;
-                }>;
-                accessToken?: string;
-                clientIdentifier?: string;
-                name?: string;
-            };
-        };
-    };
-};
-
-export type SecurityGetResourcesResponse = SecurityGetResourcesResponses[keyof SecurityGetResourcesResponses];
-
-export type SecurityPostTokenData = {
-    body?: never;
-    path?: never;
-    query: {
-        /**
-         * The value `delegation` is the only supported `type` parameter.
-         */
-        type: 'delegation';
-        /**
-         * The value `all` is the only supported `scope` parameter.
-         */
-        scope: 'all';
-    };
-    url: '/security/token';
-};
-
-export type SecurityPostTokenErrors = {
-    /**
-     * A query param is missing or the wrong value
-     */
-    400: unknown;
-    /**
-     * Invalid or no token provided or a transient token could not be created
-     */
-    403: unknown;
-};
-
-export type SecurityPostTokenResponses = {
-    /**
-     * OK
-     */
-    200: {
-        MediaContainer?: MediaContainer2 & {
-            /**
-             * The transient token
-             */
-            token?: string;
-        };
-    };
-};
-
-export type SecurityPostTokenResponse = SecurityPostTokenResponses[keyof SecurityPostTokenResponses];
-
-export type UltraBlurGetColorsData = {
-    body?: never;
-    path?: never;
-    query?: {
-        /**
-         * Url for image which requires color extraction. Can be relative PMS library path or absolute url.
-         */
-        url?: string;
-    };
-    url: '/services/ultrablur/colors';
-};
-
-export type UltraBlurGetColorsErrors = {
-    /**
-     * The image url could not be found.
-     */
-    404: unknown;
-    /**
-     * The server was unable to successfully extract the UltraBlur colors.
-     */
-    500: unknown;
-};
-
-export type UltraBlurGetColorsResponses = {
-    /**
-     * OK
-     */
-    200: {
-        MediaContainer?: MediaContainer & {
-            UltraBlurColors?: Array<{
-                /**
-                 * The color (hex) for the bottom left quadrant.
-                 */
-                bottomLeft?: string;
-                /**
-                 * The color (hex) for the bottom right quadrant.
-                 */
-                bottomRight?: string;
-                /**
-                 * The color (hex) for the top left quadrant.
-                 */
-                topLeft?: string;
-                /**
-                 * The color (hex) for the top right quadrant.
-                 */
-                topRight?: string;
-            }>;
-        };
-    };
-};
-
-export type UltraBlurGetColorsResponse = UltraBlurGetColorsResponses[keyof UltraBlurGetColorsResponses];
-
-export type UltraBlurGetImageData = {
-    body?: never;
-    path?: never;
-    query?: {
-        /**
-         * The base color (hex) for the top left quadrant.
-         */
-        topLeft?: string;
-        /**
-         * The base color (hex) for the top right quadrant.
-         */
-        topRight?: string;
-        /**
-         * The base color (hex) for the bottom right quadrant.
-         */
-        bottomRight?: string;
-        /**
-         * The base color (hex) for the bottom left quadrant.
-         */
-        bottomLeft?: string;
-        /**
-         * Width in pixels for the image.
-         */
-        width?: number;
-        /**
-         * Height in pixels for the image.
-         */
-        height?: number;
-        /**
-         * Whether to add noise to the ouput image. Noise can reduce color banding with the gradients. Image sizes with noise will be larger.
-         */
-        noise?: 0 | 1;
-    };
-    url: '/services/ultrablur/image';
-};
-
-export type UltraBlurGetImageErrors = {
-    /**
-     * Requested width and height parameters are out of bounds (maximum 3840 x 2160)
-     */
-    400: unknown;
-};
-
-export type UltraBlurGetImageResponses = {
-    /**
-     * OK
-     */
-    200: Blob | File;
-};
-
-export type UltraBlurGetImageResponse = UltraBlurGetImageResponses[keyof UltraBlurGetImageResponses];
-
-export type StatusGetSlashData = {
-    body?: never;
-    path?: never;
-    query?: never;
-    url: '/status/sessions';
-};
-
-export type StatusGetSlashResponses = {
-    /**
-     * OK
-     */
-    200: {
-        MediaContainer?: PropertiesMediaContainer & {
-            Metadata?: Array<{
-                /**
-                 * Info about the player being used
-                 */
-                Player?: {
-                    /**
-                     * The remote address
-                     */
-                    address?: string;
-                    /**
-                     * Indicating if the client is playing from the local LAN
-                     */
-                    local?: boolean;
-                    /**
-                     * The identifier of the client
-                     */
-                    machineIdentifier?: string;
-                    /**
-                     * The model of the client
-                     */
-                    model?: string;
-                    /**
-                     * The platform of the client
-                     */
-                    platform?: string;
-                    /**
-                     * The platformVersion of the client
-                     */
-                    platformVersion?: string;
-                    /**
-                     * The product name of the client
-                     */
-                    product?: string;
-                    /**
-                     * Indicating if the client is playing over a relay connection
-                     */
-                    relayed?: boolean;
-                    /**
-                     * The client's public address
-                     */
-                    remotePublicAddress?: string;
-                    /**
-                     * Indicating if the client is playing over HTTPS
-                     */
-                    secure?: boolean;
-                    /**
-                     * The client's last reported state
-                     */
-                    state?: string;
-                    /**
-                     * The title of the client
-                     */
-                    title?: string;
-                    /**
-                     * The id of the user
-                     */
-                    userID?: number;
-                    /**
-                     * The vendor of the client
-                     */
-                    vendor?: string;
-                    /**
-                     * The version of the client
-                     */
-                    version?: string;
-                };
-                /**
-                 * Info about the playback session
-                 */
-                Session?: {
-                    /**
-                     * The bandwidth used by this client's playback in kbps
-                     */
-                    bandwidth?: number;
-                    /**
-                     * The id of the playback session
-                     */
-                    id?: string;
-                    /**
-                     * The location of the client
-                     */
-                    location?: 'lan' | 'wan';
-                };
-                /**
-                 * The user playing the content
-                 */
-                User?: {
-                    /**
-                     * The id of the user
-                     */
-                    id?: string;
-                    /**
-                     * Thumb image to display for the user
-                     */
-                    thumb?: string;
-                    /**
-                     * The username
-                     */
-                    title?: string;
-                };
-            } & Metadata2>;
-        };
-    };
-};
-
-export type StatusGetSlashResponse = StatusGetSlashResponses[keyof StatusGetSlashResponses];
-
-export type StatusGetBackgroundData = {
-    body?: never;
-    path?: never;
-    query?: never;
-    url: '/status/sessions/background';
-};
-
-export type StatusGetBackgroundResponses = {
-    /**
-     * OK
-     */
-    200: {
-        MediaContainer?: MediaContainer & {
-            TranscodeJob?: Array<{
-                generatorID?: number;
-                key?: string;
-                progress?: number;
-                ratingKey?: string;
-                /**
-                 * The number of seconds remaining in this job
-                 */
-                remaining?: number;
-                /**
-                 * The size of the result so far
-                 */
-                size?: number;
-                /**
-                 * The speed of the transcode; 1.0 means real-time
-                 */
-                speed?: number;
-                /**
-                 * The tag associated with the job.  This could be the tag containing the optimizer settings.
-                 */
-                targetTagID?: number;
-                thumb?: string;
-                title?: string;
-                type?: 'transcode';
-            }>;
-        };
-    };
-};
-
-export type StatusGetBackgroundResponse = StatusGetBackgroundResponses[keyof StatusGetBackgroundResponses];
-
-export type StatusGetHistoryAllData = {
-    body?: never;
-    path?: never;
-    query?: {
-        /**
-         * The account id to restrict view history
-         */
-        accountID?: number;
-        /**
-         * The time period to restrict history (typically of the form `viewedAt>=12456789`)
-         */
-        viewedAt?: number;
-        /**
-         * The library section id to restrict view history
-         */
-        librarySectionID?: number;
-        /**
-         * The metadata item to restrict view history (can provide the id for a show to see all of that show's view history).  Note this is translated to `metadata_items.id`, `parents.id`, or `grandparents.id` internally depending on the metadata type.
-         */
-        metadataItemID?: number;
-        /**
-         * The field on which to sort.  Multiple orderings can be specified separated by `,` and the direction specified following a `:` (`desc` or `asc`; `asc` is assumed if not provided).  Note `metadataItemID` may not be used here.
-         */
-        sort?: Array<string>;
-    };
-    url: '/status/sessions/history/all';
-};
-
-export type StatusGetHistoryAllResponses = {
-    /**
-     * OK
-     */
-    200: {
-        MediaContainer?: PropertiesMediaContainer & {
-            Metadata?: Array<{
-                /**
-                 * The account id of this playback
-                 */
-                accountID?: number;
-                /**
-                 * The device id which played the item
-                 */
-                deviceID?: number;
-                /**
-                 * The key for this individual history item
-                 */
-                historyKey?: string;
-                /**
-                 * The metadata key for the item played
-                 */
-                key?: string;
-                /**
-                 * The library section id containing the item played
-                 */
-                librarySectionID?: string;
-                /**
-                 * The originally available at of the item played
-                 */
-                originallyAvailableAt?: string;
-                /**
-                 * The rating key for the item played
-                 */
-                ratingKey?: string;
-                /**
-                 * The thumb of the item played
-                 */
-                thumb?: string;
-                /**
-                 * The title of the item played
-                 */
-                title?: string;
-                /**
-                 * The metadata type of the item played
-                 */
-                type?: string;
-                /**
-                 * The time when the item was played
-                 */
-                viewedAt?: number;
-            }>;
-        };
-    };
-};
-
-export type StatusGetHistoryAllResponse = StatusGetHistoryAllResponses[keyof StatusGetHistoryAllResponses];
-
-export type StatusDeleteHistoryData = {
-    body?: never;
-    path: {
-        /**
-         * The id of the history item (the `historyKey` from above)
-         */
-        historyId: number;
-    };
-    query?: never;
-    url: '/status/sessions/history/{historyId}';
-};
-
-export type StatusDeleteHistoryErrors = {
-    /**
-     * History item not found
-     */
-    404: unknown;
-};
-
-export type StatusDeleteHistoryResponses = {
-    /**
-     * OK
-     */
-    200: MediaContainer2;
-};
-
-export type StatusDeleteHistoryResponse = StatusDeleteHistoryResponses[keyof StatusDeleteHistoryResponses];
-
-export type StatusGetHistoryData = {
-    body?: never;
-    path: {
-        /**
-         * The id of the history item (the `historyKey` from above)
-         */
-        historyId: number;
-    };
-    query?: never;
-    url: '/status/sessions/history/{historyId}';
-};
-
-export type StatusGetHistoryErrors = {
-    /**
-     * History item not found
-     */
-    404: unknown;
-};
-
-export type StatusGetHistoryResponses = {
-    /**
-     * OK
-     */
-    200: {
-        MediaContainer?: PropertiesMediaContainer & {
-            Metadata?: Array<{
-                /**
-                 * The account id of this playback
-                 */
-                accountID?: number;
-                /**
-                 * The device id which played the item
-                 */
-                deviceID?: number;
-                /**
-                 * The key for this individual history item
-                 */
-                historyKey?: string;
-                /**
-                 * The metadata key for the item played
-                 */
-                key?: string;
-                /**
-                 * The library section id containing the item played
-                 */
-                librarySectionID?: string;
-                /**
-                 * The originally available at of the item played
-                 */
-                originallyAvailableAt?: string;
-                /**
-                 * The rating key for the item played
-                 */
-                ratingKey?: string;
-                /**
-                 * The thumb of the item played
-                 */
-                thumb?: string;
-                /**
-                 * The title of the item played
-                 */
-                title?: string;
-                /**
-                 * The metadata type of the item played
-                 */
-                type?: string;
-                /**
-                 * The time when the item was played
-                 */
-                viewedAt?: number;
-            }>;
-        };
-    };
-};
-
-export type StatusGetHistoryResponse = StatusGetHistoryResponses[keyof StatusGetHistoryResponses];
-
-export type StatusPostTerminateData = {
-    body?: never;
-    path?: never;
-    query: {
-        /**
-         * The session id (found in the `Session` element in [/status/sessions](#tag/Status/operation/statusGetSlash))
-         */
-        sessionId: string;
-        /**
-         * The reason to give to the user (typically displayed in the client)
-         */
-        reason?: string;
-    };
-    url: '/status/sessions/terminate';
-};
-
-export type StatusPostTerminateErrors = {
-    /**
-     * Server does not have the feature enabled
-     */
-    401: unknown;
-    /**
-     * sessionId is empty
-     */
-    403: unknown;
-    /**
-     * Session not found
-     */
-    404: unknown;
-};
-
-export type StatusPostTerminateResponses = {
-    /**
-     * OK
-     */
-    200: unknown;
-};
-
-export type MediaProviderEpgGridData = {
-    body?: never;
-    path: {
-        /**
-         * The device's Identifier
-         */
-        deviceId: number;
-        /**
-         * The type of EPG
-         */
-        identifier: 'xmltv' | 'cloud' | 'custom';
-    };
-    query: {
-        /**
-         * The key of the channel on which to get airing information
-         */
-        channelGridKey: string;
-        /**
-         * The date on which to get airing information
-         */
-        date: string;
-    };
-    url: '/tv.plex.providers.epg.{identifier}:{deviceId}/grid';
-};
-
-export type MediaProviderEpgGridErrors = {
-    /**
-     * No provider with the identifier was found
-     */
-    404: unknown;
-};
-
-export type MediaProviderEpgGridResponses = {
-    /**
-     * OK
-     */
-    200: MediaContainerWithMetadata2;
-};
-
-export type MediaProviderEpgGridResponse = MediaProviderEpgGridResponses[keyof MediaProviderEpgGridResponses];
-
-export type MediaProviderEpgChannelsData = {
-    body?: never;
-    path: {
-        /**
-         * The device's Identifier
-         */
-        deviceId: number;
-        /**
-         * The type of EPG
-         */
-        identifier: 'xmltv' | 'cloud' | 'custom';
-    };
-    query?: {
-        /**
-         * The genre of channels to fetch
-         */
-        genre?: string;
-    };
-    url: '/tv.plex.providers.epg.{identifier}:{deviceId}/lineups/dvr/channels';
-};
-
-export type MediaProviderEpgChannelsErrors = {
-    /**
-     * No provider with the identifier was found
-     */
-    404: unknown;
-};
-
-export type MediaProviderEpgChannelsResponses = {
-    /**
-     * OK
-     */
-    200: {
-        MediaContainer?: MediaContainer & {
-            Channel?: Array<{
-                callSign?: string;
-                gridKey?: string;
-                id?: string;
-                isHd?: boolean;
-                language?: string;
-                thumb?: string;
-                title?: string;
-                vcn?: string;
-            }>;
-        };
-    };
-};
-
-export type MediaProviderEpgChannelsResponse = MediaProviderEpgChannelsResponses[keyof MediaProviderEpgChannelsResponses];
-
-export type MediaProviderEpgWatchnowData = {
-    body?: never;
-    path: {
-        /**
-         * The device's Identifier
-         */
-        deviceId: number;
-        /**
-         * The type of EPG
-         */
-        identifier: 'xmltv' | 'cloud' | 'custom';
-    };
-    query?: never;
-    url: '/tv.plex.providers.epg.{identifier}:{deviceId}/watchnow';
-};
-
-export type MediaProviderEpgWatchnowErrors = {
-    /**
-     * No provider with the identifier was found
-     */
-    404: unknown;
-};
-
-export type MediaProviderEpgWatchnowResponses = {
-    /**
-     * OK
-     */
-    200: MediaContainer & {
-        Type?: Array<{
-            active?: boolean;
-            key?: string;
-            title?: string;
-            type?: string;
-        }>;
-    };
-};
-
-export type MediaProviderEpgWatchnowResponse = MediaProviderEpgWatchnowResponses[keyof MediaProviderEpgWatchnowResponses];
-
-export type MediaProviderEpgWatchnowAllData = {
-    body?: never;
-    path: {
-        /**
-         * The device's Identifier
-         */
-        deviceId: number;
-        /**
-         * The type of EPG
-         */
-        identifier: 'xmltv' | 'cloud' | 'custom';
-    };
-    query?: never;
-    url: '/tv.plex.providers.epg.{identifier}:{deviceId}/watchnow/all';
-};
-
-export type MediaProviderEpgWatchnowAllErrors = {
-    /**
-     * No provider with the identifier was found
-     */
-    404: unknown;
-};
-
-export type MediaProviderEpgWatchnowAllResponses = {
-    /**
-     * OK
-     */
-    200: MediaContainerWithMetadata2;
-};
-
-export type MediaProviderEpgWatchnowAllResponse = MediaProviderEpgWatchnowAllResponses[keyof MediaProviderEpgWatchnowAllResponses];
-
-export type UpdaterPutApplyData = {
-    body?: never;
-    path?: never;
-    query?: {
-        /**
-         * Indicate that you want the update to run during the next Butler execution. Omitting this or setting it to false indicates that the update should install immediately.
-         */
-        tonight?: 0 | 1;
-        /**
-         * Indicate that the latest version should be marked as skipped. The <Release> entry for this version will have the `state` set to `skipped`.
-         */
-        skip?: 0 | 1;
-    };
-    url: '/updater/apply';
-};
-
-export type UpdaterPutApplyErrors = {
-    /**
-     * This system cannot install updates
-     */
-    400: unknown;
-    /**
-     * The update process failed to start
-     */
-    500: unknown;
-};
-
-export type UpdaterPutApplyResponses = {
-    /**
-     * The update process started correctly
-     */
-    200: unknown;
-};
-
-export type UpdaterPutCheckData = {
-    body?: never;
-    path?: never;
-    query?: {
-        /**
-         * Indicate that you want to start download any updates found.
-         */
-        download?: 0 | 1;
-    };
-    url: '/updater/check';
-};
-
-export type UpdaterPutCheckResponses = {
-    /**
-     * OK
-     */
-    200: unknown;
-};
-
-export type UpdaterGetStatusData = {
-    body?: never;
-    path?: never;
-    query?: never;
-    url: '/updater/status';
-};
-
-export type UpdaterGetStatusResponses = {
-    /**
-     * OK
-     */
-    200: {
-        MediaContainer?: {
-            Release?: Array<{
-                /**
-                 * A list of what has been added in this version
-                 */
-                added?: string;
-                /**
-                 * The URL of where this update is available
-                 */
-                downloadURL?: string;
-                /**
-                 * A list of what has been fixed in this version
-                 */
-                fixed?: string;
-                /**
-                 * The URL key of the update
-                 */
-                key?: string;
-                /**
-                 * The status of this update.
-                 *
-                 * - available - This release is available
-                 * - downloading - This release is downloading
-                 * - downloaded - This release has been downloaded
-                 * - installing - This release is installing
-                 * - tonight - This release will be installed tonight
-                 * - skipped - This release has been skipped
-                 * - error - This release has an error
-                 * - notify - This release is only notifying it is available (typically because it cannot be installed on this setup)
-                 * - done - This release is complete
-                 *
-                 */
-                state?: 'available' | 'downloading' | 'downloaded' | 'installing' | 'tonight' | 'skipped' | 'error' | 'notify' | 'done';
-                /**
-                 * The version available
-                 */
-                version?: string;
-            }>;
-            /**
-             * The version of the updater (currently `1`)
-             */
-            autoUpdateVersion?: number;
-            /**
-             * Indicates whether this install can be updated through these endpoints (typically only on MacOS and Windows)
-             */
-            canInstall?: boolean;
-            /**
-             * The last time a check for updates was performed
-             */
-            checkedAt?: number;
-            /**
-             * The URL where the update is available
-             */
-            downloadURL?: string;
-            /**
-             * The current error code (`0` means no error)
-             */
-            status?: number;
-        };
-    };
-};
-
-export type UpdaterGetStatusResponse = UpdaterGetStatusResponses[keyof UpdaterGetStatusResponses];
 
 export type TranscodeDecisionData = {
     body?: never;
@@ -11312,3 +2462,8853 @@ export type TranscodeSubtitlesResponses = {
      */
     200: unknown;
 };
+
+export type ActivitiesGetSlashData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/activities';
+};
+
+export type ActivitiesGetSlashResponses = {
+    /**
+     * OK
+     */
+    200: {
+        MediaContainer?: {
+            Activity?: Array<{
+                /**
+                 * Indicates whether this activity can be cancelled
+                 */
+                cancellable?: boolean;
+                /**
+                 * An object with additional values
+                 */
+                Context?: {
+                    [key: string]: unknown;
+                };
+                /**
+                 * A progress percentage.  A value of -1 means the progress is indeterminate
+                 */
+                progress?: number;
+                /**
+                 * An object with the response to the async opperation
+                 */
+                Response?: {
+                    [key: string]: unknown;
+                };
+                /**
+                 * A user-friendly sub-title for this activity
+                 */
+                subtitle?: string;
+                /**
+                 * A user-friendly title for this activity
+                 */
+                title?: string;
+                /**
+                 * The type of activity
+                 */
+                type?: string;
+                /**
+                 * The user this activity belongs to
+                 */
+                userID?: number;
+                /**
+                 * The ID of the activity
+                 */
+                uuid?: string;
+            }>;
+        };
+    };
+};
+
+export type ActivitiesGetSlashResponse = ActivitiesGetSlashResponses[keyof ActivitiesGetSlashResponses];
+
+export type ActivitiesDeleteActivityData = {
+    body?: never;
+    path: {
+        /**
+         * The UUID of the activity to cancel.
+         */
+        activityId: string;
+    };
+    query?: never;
+    url: '/activities/{activityId}';
+};
+
+export type ActivitiesDeleteActivityErrors = {
+    /**
+     * Activity is not cancellable
+     */
+    400: unknown;
+    /**
+     * No activity with the provided id is found
+     */
+    404: unknown;
+};
+
+export type ActivitiesDeleteActivityResponses = {
+    /**
+     * OK
+     */
+    200: unknown;
+};
+
+export type ButlerDeleteSlashData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/butler';
+};
+
+export type ButlerDeleteSlashResponses = {
+    /**
+     * OK
+     */
+    200: unknown;
+};
+
+export type ButlerGetSlashData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/butler';
+};
+
+export type ButlerGetSlashResponses = {
+    /**
+     * Butler tasks
+     */
+    200: {
+        ButlerTasks?: {
+            ButlerTask?: Array<{
+                /**
+                 * A user-friendly description of the task
+                 */
+                description?: string;
+                /**
+                 * Whether this task is enabled or not
+                 */
+                enabled?: boolean;
+                /**
+                 * The interval (in days) of when this task is run.  A value of 1 is run every day, 7 is every week, etc.
+                 */
+                interval?: number;
+                /**
+                 * The name of the task
+                 */
+                name?: string;
+                /**
+                 * Indicates whether the timing of the task is randomized within the butler interval
+                 */
+                scheduleRandomized?: boolean;
+                /**
+                 * A user-friendly title of the task
+                 */
+                title?: string;
+            }>;
+        };
+    };
+};
+
+export type ButlerGetSlashResponse = ButlerGetSlashResponses[keyof ButlerGetSlashResponses];
+
+export type ButlerPostSlashData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/butler';
+};
+
+export type ButlerPostSlashResponses = {
+    /**
+     * OK
+     */
+    200: unknown;
+};
+
+export type ButlerDeleteTaskData = {
+    body?: never;
+    path: {
+        /**
+         * The task name
+         */
+        task: 'AutomaticUpdates' | 'BackupDatabase' | 'ButlerTaskGenerateAdMarkers' | 'ButlerTaskGenerateCreditsMarkers' | 'ButlerTaskGenerateIntroMarkers' | 'ButlerTaskGenerateVoiceActivity' | 'CleanOldBundles' | 'CleanOldCacheFiles' | 'DeepMediaAnalysis' | 'GarbageCollectBlobs' | 'GarbageCollectLibraryMedia' | 'GenerateBlurHashes' | 'GenerateChapterThumbs' | 'GenerateMediaIndexFiles' | 'LoudnessAnalysis' | 'MusicAnalysis' | 'OptimizeDatabase' | 'RefreshEpgGuides' | 'RefreshLibraries' | 'RefreshLocalMedia' | 'RefreshPeriodicMetadata' | 'UpgradeMediaAnalysis';
+    };
+    query?: never;
+    url: '/butler/{task}';
+};
+
+export type ButlerDeleteTaskErrors = {
+    /**
+     * No task with this name was found or no task with this name was running
+     */
+    404: unknown;
+};
+
+export type ButlerDeleteTaskResponses = {
+    /**
+     * OK
+     */
+    200: unknown;
+};
+
+export type ButlerPostTaskData = {
+    body?: never;
+    path: {
+        /**
+         * The task name
+         */
+        task: 'AutomaticUpdates' | 'BackupDatabase' | 'ButlerTaskGenerateAdMarkers' | 'ButlerTaskGenerateCreditsMarkers' | 'ButlerTaskGenerateIntroMarkers' | 'ButlerTaskGenerateVoiceActivity' | 'CleanOldBundles' | 'CleanOldCacheFiles' | 'DeepMediaAnalysis' | 'GarbageCollectBlobs' | 'GarbageCollectLibraryMedia' | 'GenerateBlurHashes' | 'GenerateChapterThumbs' | 'GenerateMediaIndexFiles' | 'LoudnessAnalysis' | 'MusicAnalysis' | 'OptimizeDatabase' | 'RefreshEpgGuides' | 'RefreshLibraries' | 'RefreshLocalMedia' | 'RefreshPeriodicMetadata' | 'UpgradeMediaAnalysis';
+    };
+    query?: never;
+    url: '/butler/{task}';
+};
+
+export type ButlerPostTaskErrors = {
+    /**
+     * No task with this name was found
+     */
+    404: unknown;
+};
+
+export type ButlerPostTaskResponses = {
+    /**
+     * Task started
+     */
+    200: unknown;
+    /**
+     * Task is already running
+     */
+    202: unknown;
+};
+
+export type DownloadQueuePostData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/downloadQueue';
+};
+
+export type DownloadQueuePostResponses = {
+    /**
+     * OK
+     */
+    200: {
+        MediaContainer?: MediaContainer2 & {
+            DownloadQueue?: Array<{
+                id?: number;
+                itemCount?: number;
+                /**
+                 * The state of this queue
+                 * - deciding: At least one item is still being decided
+                 * - waiting: At least one item is waiting for transcode and none are currently transcoding
+                 * - processing: At least one item is being transcoded
+                 * - done: All items are available (or potentially expired)
+                 * - error: At least one item has encountered an error
+                 *
+                 */
+                status?: 'deciding' | 'waiting' | 'processing' | 'done' | 'error';
+            }>;
+        };
+    };
+};
+
+export type DownloadQueuePostResponse = DownloadQueuePostResponses[keyof DownloadQueuePostResponses];
+
+export type DownloadQueueGetQueueData = {
+    body?: never;
+    path: {
+        /**
+         * The queue id
+         */
+        queueId: number;
+    };
+    query?: never;
+    url: '/downloadQueue/{queueId}';
+};
+
+export type DownloadQueueGetQueueResponses = {
+    /**
+     * OK
+     */
+    200: {
+        MediaContainer?: MediaContainer2 & {
+            DownloadQueue?: Array<{
+                id?: number;
+                itemCount?: number;
+                /**
+                 * The state of this queue
+                 * - deciding: At least one item is still being decided
+                 * - waiting: At least one item is waiting for transcode and none are currently transcoding
+                 * - processing: At least one item is being transcoded
+                 * - done: All items are available (or potentially expired)
+                 * - error: At least one item has encountered an error
+                 *
+                 */
+                status?: 'deciding' | 'waiting' | 'processing' | 'done' | 'error';
+            }>;
+        };
+    };
+};
+
+export type DownloadQueueGetQueueResponse = DownloadQueueGetQueueResponses[keyof DownloadQueueGetQueueResponses];
+
+export type DownloadQueuePostQueueAddData = {
+    body?: never;
+    headers: {
+        /**
+         * Unique per client.
+         */
+        'X-Plex-Client-Identifier': string;
+        /**
+         * See [Profile Augmentations](#section/API-Info/Profile-Augmentations) .
+         */
+        'X-Plex-Client-Profile-Extra'?: string;
+        /**
+         * Which built in Client Profile to use in the decision. Generally should only be used to specify the Generic profile.
+         */
+        'X-Plex-Client-Profile-Name'?: string;
+        /**
+         * Device the client is running on
+         */
+        'X-Plex-Device'?: string;
+        /**
+         * Model of the device the client is running on
+         */
+        'X-Plex-Model'?: string;
+        /**
+         * Client Platform
+         */
+        'X-Plex-Platform'?: string;
+        /**
+         * Client Platform Version
+         */
+        'X-Plex-Platform-Version'?: string;
+        /**
+         * Unique per client playback session.  Used if a client can playback multiple items at a time (such as a browser with multiple tabs)
+         */
+        'X-Plex-Session-Identifier'?: string;
+    };
+    path: {
+        /**
+         * The queue id
+         */
+        queueId: number;
+    };
+    query: {
+        /**
+         * Keys to add
+         */
+        keys: Array<string>;
+        /**
+         * Indicates how  incompatible advanced subtitles (such as ass/ssa) should be included: * 'burn' - Burn incompatible advanced text subtitles into the video stream * 'text' - Transcode incompatible advanced text subtitles to a compatible text format, even if some markup is lost
+         *
+         */
+        advancedSubtitles?: 'burn' | 'text' | 'unknown';
+        /**
+         * Percentage of original audio loudness to use when transcoding (100 is equivalent to original volume, 50 is half, 200 is double, etc)
+         */
+        audioBoost?: number;
+        /**
+         * Target video number of audio channels.
+         */
+        audioChannelCount?: number;
+        /**
+         * Indicates the client supports ABR.
+         */
+        autoAdjustQuality?: 0 | 1;
+        /**
+         * Indicates if the server should adjust subtitles based on Voice Activity Data.
+         */
+        autoAdjustSubtitle?: 0 | 1;
+        /**
+         * Indicates the client supports direct playing the indicated content.
+         */
+        directPlay?: 0 | 1;
+        /**
+         * Indicates the client supports direct streaming the video of the indicated content.
+         */
+        directStream?: 0 | 1;
+        /**
+         * Indicates the client supports direct streaming the audio of the indicated content.
+         */
+        directStreamAudio?: 0 | 1;
+        /**
+         * Indicates if resolution should be adjusted for orientation.
+         */
+        disableResolutionRotation?: 0 | 1;
+        /**
+         * Ignore client profiles when determining if direct play is possible. Only has an effect when directPlay=1 and both mediaIndex and partIndex are specified and neither are -1
+         */
+        hasMDE?: 0 | 1;
+        /**
+         * Network type of the client, can be used to help determine target bitrate.
+         */
+        location?: 'lan' | 'wan' | 'cellular';
+        /**
+         * Buffer size used in playback (in KB). Clients should specify a lower bound if not known exactly. This value could make the difference between transcoding and direct play on bandwidth constrained networks.
+         */
+        mediaBufferSize?: number;
+        /**
+         * Index of the media to transcode. -1 or not specified indicates let the server choose.
+         */
+        mediaIndex?: number;
+        /**
+         * Target bitrate for audio only files (in kbps, used to transcode).
+         */
+        musicBitrate?: number;
+        /**
+         * Offset from the start of the media (in seconds).
+         */
+        offset?: number;
+        /**
+         * Index of the part to transcode. -1 or not specified indicates the server should join parts together in a transcode
+         */
+        partIndex?: number;
+        /**
+         * Internal PMS path of the media to transcode.
+         */
+        path?: string;
+        /**
+         * Maximum bitrate (in kbps) to use in ABR.
+         */
+        peakBitrate?: number;
+        /**
+         * Target photo resolution.
+         */
+        photoResolution?: string;
+        /**
+         * Indicates the network streaming protocol to be used for the transcode session: * 'http' - include the file in the http response such as MKV streaming * 'hls' - hls stream (RFC 8216) * 'dash' - dash stream (ISO/IEC 23009-1:2022)
+         *
+         */
+        protocol?: 'http' | 'hls' | 'dash';
+        /**
+         * Number of seconds to include in each transcoded segment
+         */
+        secondsPerSegment?: number;
+        /**
+         * Percentage of original subtitle size to use when burning subtitles (100 is equivalent to original size, 50 is half, ect)
+         */
+        subtitleSize?: number;
+        /**
+         * Indicates how subtitles should be included: * 'auto' - Compute the appropriate subtitle setting automatically * 'burn' - Burn the selected subtitle; auto if no selected subtitle * 'none' - Ignore all subtitle streams * 'sidecar' - The selected subtitle should be provided as a sidecar * 'embedded' - The selected subtitle should be provided as an embedded stream * 'segmented' - The selected subtitle should be provided as a segmented stream
+         *
+         */
+        subtitles?: 'auto' | 'burn' | 'none' | 'sidecar' | 'embedded' | 'segmented' | 'unknown';
+        /**
+         * Target video bitrate (in kbps).
+         */
+        videoBitrate?: number;
+        /**
+         * Target photo quality.
+         */
+        videoQuality?: number;
+        /**
+         * Target maximum video resolution.
+         */
+        videoResolution?: string;
+    };
+    url: '/downloadQueue/{queueId}/add';
+};
+
+export type DownloadQueuePostQueueAddResponses = {
+    /**
+     * OK
+     */
+    200: {
+        MediaContainer?: MediaContainer2 & {
+            AddedQueueItems?: Array<{
+                /**
+                 * The queue item id that was added or the existing one if an item already exists in this queue with the same parameters
+                 */
+                id?: number;
+                /**
+                 * The key added to the queue
+                 */
+                key?: string;
+            }>;
+        };
+    };
+};
+
+export type DownloadQueuePostQueueAddResponse = DownloadQueuePostQueueAddResponses[keyof DownloadQueuePostQueueAddResponses];
+
+export type DownloadQueueGetQueueItemItemDecisionData = {
+    body?: never;
+    path: {
+        /**
+         * The queue id
+         */
+        queueId: number;
+        /**
+         * The item ids
+         */
+        itemId: number;
+    };
+    query?: never;
+    url: '/downloadQueue/{queueId}/item/{itemId}/decision';
+};
+
+export type DownloadQueueGetQueueItemItemDecisionErrors = {
+    /**
+     * The item is not in a state where a decision is available
+     */
+    400: unknown;
+};
+
+export type DownloadQueueGetQueueItemItemDecisionResponses = {
+    /**
+     * OK
+     */
+    200: MediaContainerWithDecision;
+};
+
+export type DownloadQueueGetQueueItemItemDecisionResponse = DownloadQueueGetQueueItemItemDecisionResponses[keyof DownloadQueueGetQueueItemItemDecisionResponses];
+
+export type DownloadQueueGetQueueItemItemMediaData = {
+    body?: never;
+    path: {
+        /**
+         * The queue id
+         */
+        queueId: number;
+        /**
+         * The item ids
+         */
+        itemId: number;
+    };
+    query?: never;
+    url: '/downloadQueue/{queueId}/item/{itemId}/media';
+};
+
+export type DownloadQueueGetQueueItemItemMediaErrors = {
+    /**
+     * ![503](https://http.cat/503.jpg)
+     *
+     * The queue item is not yet complete and is currently transcoding or waiting to transcode
+     *
+     */
+    503: unknown;
+};
+
+export type DownloadQueueGetQueueItemItemMediaResponses = {
+    /**
+     * The raw media file
+     */
+    200: unknown;
+};
+
+export type DownloadQueueGetQueueItemsData = {
+    body?: never;
+    path: {
+        /**
+         * The queue id
+         */
+        queueId: number;
+    };
+    query?: never;
+    url: '/downloadQueue/{queueId}/items';
+};
+
+export type DownloadQueueGetQueueItemsResponses = {
+    /**
+     * OK
+     */
+    200: {
+        MediaContainer?: MediaContainer2 & {
+            DownloadQueueItem?: Array<{
+                DecisionResult?: {
+                    /**
+                     * The maximum bitrate set when item was added
+                     */
+                    availableBandwidth?: number;
+                    directPlayDecisionCode?: number;
+                    directPlayDecisionText?: string;
+                    generalDecisionCode?: number;
+                    generalDecisionText?: string;
+                    /**
+                     * The code indicating the status of evaluation of playback when client indicates `hasMDE=1`
+                     */
+                    mdeDecisionCode?: number;
+                    /**
+                     * Descriptive text for the above code
+                     */
+                    mdeDecisionText?: string;
+                    transcodeDecisionCode?: number;
+                    transcodeDecisionText?: string;
+                };
+                /**
+                 * The error encountered in transcoding or decision
+                 */
+                error?: string;
+                id?: number;
+                key?: string;
+                queueId?: number;
+                /**
+                 * The state of the item:
+                 * - deciding: The item decision is pending
+                 * - waiting: The item is waiting for transcode
+                 * - processing: The item is being transcoded
+                 * - available: The item is available for download
+                 * - error: The item encountered an error in the decision or transcode
+                 * - expired: The transcoded item has timed out and is no longer available
+                 *
+                 */
+                status?: 'deciding' | 'waiting' | 'processing' | 'available' | 'error' | 'expired';
+                /**
+                 * The transcode session object which is not yet documented otherwise it'd be a $ref here.
+                 */
+                transcode?: {
+                    [key: string]: unknown;
+                };
+                /**
+                 * The transcode session if item is currently being transcoded.
+                 */
+                TranscodeSession?: {
+                    complete?: boolean;
+                    context?: string;
+                    duration?: number;
+                    error?: boolean;
+                    key?: string;
+                    progress?: number;
+                    protocol?: string;
+                    size?: number;
+                    sourceAudioCodec?: string;
+                    sourceVideoCodec?: string;
+                    speed?: number;
+                    throttled?: boolean;
+                    transcodeHwFullPipeline?: boolean;
+                    transcodeHwRequested?: boolean;
+                };
+            }>;
+        };
+    };
+};
+
+export type DownloadQueueGetQueueItemsResponse = DownloadQueueGetQueueItemsResponses[keyof DownloadQueueGetQueueItemsResponses];
+
+export type DownloadQueueDeleteQueueItemsItemData = {
+    body?: never;
+    path: {
+        /**
+         * The queue id
+         */
+        queueId: number;
+        /**
+         * The item id
+         */
+        itemId: Array<number>;
+    };
+    query?: never;
+    url: '/downloadQueue/{queueId}/items/{itemId}';
+};
+
+export type DownloadQueueDeleteQueueItemsItemResponses = {
+    /**
+     * OK
+     */
+    200: unknown;
+};
+
+export type DownloadQueueGetQueueItemsItemData = {
+    body?: never;
+    path: {
+        /**
+         * The queue id
+         */
+        queueId: number;
+        /**
+         * The item ids
+         */
+        itemId: Array<number>;
+    };
+    query?: never;
+    url: '/downloadQueue/{queueId}/items/{itemId}';
+};
+
+export type DownloadQueueGetQueueItemsItemResponses = {
+    /**
+     * OK
+     */
+    200: {
+        MediaContainer?: MediaContainer2 & {
+            DownloadQueueItem?: Array<{
+                DecisionResult?: {
+                    /**
+                     * The maximum bitrate set when item was added
+                     */
+                    availableBandwidth?: number;
+                    directPlayDecisionCode?: number;
+                    directPlayDecisionText?: string;
+                    generalDecisionCode?: number;
+                    generalDecisionText?: string;
+                    /**
+                     * The code indicating the status of evaluation of playback when client indicates `hasMDE=1`
+                     */
+                    mdeDecisionCode?: number;
+                    /**
+                     * Descriptive text for the above code
+                     */
+                    mdeDecisionText?: string;
+                    transcodeDecisionCode?: number;
+                    transcodeDecisionText?: string;
+                };
+                /**
+                 * The error encountered in transcoding or decision
+                 */
+                error?: string;
+                id?: number;
+                key?: string;
+                queueId?: number;
+                /**
+                 * The state of the item:
+                 * - deciding: The item decision is pending
+                 * - waiting: The item is waiting for transcode
+                 * - processing: The item is being transcoded
+                 * - available: The item is available for download
+                 * - error: The item encountered an error in the decision or transcode
+                 * - expired: The transcoded item has timed out and is no longer available
+                 *
+                 */
+                status?: 'deciding' | 'waiting' | 'processing' | 'available' | 'error' | 'expired';
+                /**
+                 * The transcode session object which is not yet documented otherwise it'd be a $ref here.
+                 */
+                transcode?: {
+                    [key: string]: unknown;
+                };
+                /**
+                 * The transcode session if item is currently being transcoded.
+                 */
+                TranscodeSession?: {
+                    complete?: boolean;
+                    context?: string;
+                    duration?: number;
+                    error?: boolean;
+                    key?: string;
+                    progress?: number;
+                    protocol?: string;
+                    size?: number;
+                    sourceAudioCodec?: string;
+                    sourceVideoCodec?: string;
+                    speed?: number;
+                    throttled?: boolean;
+                    transcodeHwFullPipeline?: boolean;
+                    transcodeHwRequested?: boolean;
+                };
+            }>;
+        };
+    };
+};
+
+export type DownloadQueueGetQueueItemsItemResponse = DownloadQueueGetQueueItemsItemResponses[keyof DownloadQueueGetQueueItemsItemResponses];
+
+export type DownloadQueuePostQueueItemsItemRestartData = {
+    body?: never;
+    path: {
+        /**
+         * The queue id
+         */
+        queueId: number;
+        /**
+         * The item ids
+         */
+        itemId: Array<number>;
+    };
+    query?: never;
+    url: '/downloadQueue/{queueId}/items/{itemId}/restart';
+};
+
+export type DownloadQueuePostQueueItemsItemRestartResponses = {
+    /**
+     * OK
+     */
+    200: unknown;
+};
+
+export type HubsGetSlashData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Limit hub entries to count items
+         */
+        count?: number;
+        /**
+         * Only return hubs which are "transient", meaning those which are prone to changing after media playback or addition (e.g. On Deck, or Recently Added)
+         */
+        onlyTransient?: 0 | 1;
+        /**
+         * If provided, limit to only specified hubs
+         */
+        identifier?: Array<string>;
+    };
+    url: '/hubs';
+};
+
+export type HubsGetSlashResponses = {
+    /**
+     * OK
+     */
+    200: {
+        MediaContainer?: MediaContainer2 & {
+            Hub?: Array<Hub>;
+        };
+    };
+};
+
+export type HubsGetSlashResponse = HubsGetSlashResponses[keyof HubsGetSlashResponses];
+
+export type HubsGetContinueWatchingData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Limit hub entry to count items
+         */
+        count?: number;
+    };
+    url: '/hubs/continueWatching';
+};
+
+export type HubsGetContinueWatchingResponses = {
+    /**
+     * OK
+     */
+    200: {
+        MediaContainer?: MediaContainer2 & {
+            Hub?: Array<Hub>;
+        };
+    };
+};
+
+export type HubsGetContinueWatchingResponse = HubsGetContinueWatchingResponses[keyof HubsGetContinueWatchingResponses];
+
+export type HubsGetItemsData = {
+    body?: never;
+    path?: never;
+    query: {
+        /**
+         * Limit hub entry to count items
+         */
+        count?: number;
+        /**
+         * If provided, limit to only specified hubs
+         */
+        identifier: Array<string>;
+    };
+    url: '/hubs/items';
+};
+
+export type HubsGetItemsErrors = {
+    /**
+     * The specified hub could not be found
+     */
+    404: unknown;
+};
+
+export type HubsGetItemsResponses = {
+    /**
+     * OK
+     */
+    200: {
+        MediaContainer?: PropertiesMediaContainer;
+    };
+};
+
+export type HubsGetItemsResponse = HubsGetItemsResponses[keyof HubsGetItemsResponses];
+
+export type HubsGetMetadataMetadataData = {
+    body?: never;
+    path: {
+        /**
+         * The metadata ID for the hubs to fetch
+         */
+        metadataId: number;
+    };
+    query?: {
+        /**
+         * Limit hub entries to count items
+         */
+        count?: number;
+        /**
+         * Only return hubs which are "transient", meaning those which are prone to changing after media playback or addition (e.g. On Deck, or Recently Added)
+         */
+        onlyTransient?: 0 | 1;
+    };
+    url: '/hubs/metadata/{metadataId}';
+};
+
+export type HubsGetMetadataMetadataErrors = {
+    /**
+     * No metadata with that id or permission is denied
+     */
+    400: unknown;
+};
+
+export type HubsGetMetadataMetadataResponses = {
+    /**
+     * OK
+     */
+    200: {
+        MediaContainer?: MediaContainer2 & {
+            Hub?: Array<Hub>;
+        };
+    };
+};
+
+export type HubsGetMetadataMetadataResponse = HubsGetMetadataMetadataResponses[keyof HubsGetMetadataMetadataResponses];
+
+export type HubsGetMetadataMetadataPostplayData = {
+    body?: never;
+    path: {
+        /**
+         * The metadata ID for the hubs to fetch
+         */
+        metadataId: number;
+    };
+    query?: {
+        /**
+         * Limit hub entries to count items
+         */
+        count?: number;
+        /**
+         * Only return hubs which are "transient", meaning those which are prone to changing after media playback or addition (e.g. On Deck, or Recently Added)
+         */
+        onlyTransient?: 0 | 1;
+    };
+    url: '/hubs/metadata/{metadataId}/postplay';
+};
+
+export type HubsGetMetadataMetadataPostplayErrors = {
+    /**
+     * No metadata with that id or permission is denied
+     */
+    400: unknown;
+};
+
+export type HubsGetMetadataMetadataPostplayResponses = {
+    /**
+     * OK
+     */
+    200: {
+        MediaContainer?: MediaContainer2 & {
+            Hub?: Array<Hub>;
+        };
+    };
+};
+
+export type HubsGetMetadataMetadataPostplayResponse = HubsGetMetadataMetadataPostplayResponses[keyof HubsGetMetadataMetadataPostplayResponses];
+
+export type HubsGetMetadataMetadataRelatedData = {
+    body?: never;
+    path: {
+        /**
+         * The metadata ID for the hubs to fetch
+         */
+        metadataId: number;
+    };
+    query?: {
+        /**
+         * Limit hub entries to count items
+         */
+        count?: number;
+        /**
+         * Only return hubs which are "transient", meaning those which are prone to changing after media playback or addition (e.g. On Deck, or Recently Added)
+         */
+        onlyTransient?: 0 | 1;
+    };
+    url: '/hubs/metadata/{metadataId}/related';
+};
+
+export type HubsGetMetadataMetadataRelatedErrors = {
+    /**
+     * No metadata with that id or permission is denied
+     */
+    400: unknown;
+};
+
+export type HubsGetMetadataMetadataRelatedResponses = {
+    /**
+     * OK
+     */
+    200: {
+        MediaContainer?: MediaContainer2 & {
+            Hub?: Array<Hub>;
+        };
+    };
+};
+
+export type HubsGetMetadataMetadataRelatedResponse = HubsGetMetadataMetadataRelatedResponses[keyof HubsGetMetadataMetadataRelatedResponses];
+
+export type HubsGetPromotedData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Limit hub entry to count items
+         */
+        count?: number;
+    };
+    url: '/hubs/promoted';
+};
+
+export type HubsGetPromotedResponses = {
+    /**
+     * OK
+     */
+    200: {
+        MediaContainer?: MediaContainer2 & {
+            Hub?: Array<Hub>;
+        };
+    };
+};
+
+export type HubsGetPromotedResponse = HubsGetPromotedResponses[keyof HubsGetPromotedResponses];
+
+export type HubsGetSearchData = {
+    body?: never;
+    path?: never;
+    query: {
+        /**
+         * The query term
+         */
+        query: string;
+        /**
+         * This gives context to the search, and can result in re-ordering of search result hubs.
+         */
+        sectionId?: number;
+        /**
+         * The number of items to return per hub.  3 if not specified
+         */
+        limit?: number;
+    };
+    url: '/hubs/search';
+};
+
+export type HubsGetSearchErrors = {
+    /**
+     * A required parameter was not given, the wrong type, or wrong value
+     */
+    400: unknown;
+    /**
+     * Search restrictions result in no possible items found (such as searching no sections)
+     */
+    404: unknown;
+};
+
+export type HubsGetSearchResponses = {
+    /**
+     * OK
+     */
+    200: {
+        MediaContainer?: MediaContainer2 & {
+            Hub?: Array<Hub>;
+        };
+    };
+};
+
+export type HubsGetSearchResponse = HubsGetSearchResponses[keyof HubsGetSearchResponses];
+
+export type HubsSearchGetVoiceData = {
+    body?: never;
+    path?: never;
+    query: {
+        /**
+         * The query term
+         */
+        query: string;
+        /**
+         * The type of thing to limit the search to.
+         */
+        type?: number;
+        /**
+         * The number of items to return per hub.  3 if not specified
+         */
+        limit?: number;
+    };
+    url: '/hubs/search/voice';
+};
+
+export type HubsSearchGetVoiceErrors = {
+    /**
+     * A required parameter was not given, the wrong type, or wrong value
+     */
+    400: unknown;
+};
+
+export type HubsSearchGetVoiceResponses = {
+    /**
+     * OK
+     */
+    200: {
+        MediaContainer?: MediaContainer2 & {
+            Hub?: Array<Hub>;
+        };
+    };
+};
+
+export type HubsSearchGetVoiceResponse = HubsSearchGetVoiceResponses[keyof HubsSearchGetVoiceResponses];
+
+export type HubsGetSectionData = {
+    body?: never;
+    path: {
+        /**
+         * The section ID for the hubs to fetch
+         */
+        sectionId: number;
+    };
+    query?: {
+        /**
+         * Limit hub entries to count items
+         */
+        count?: number;
+        /**
+         * Only return hubs which are "transient", meaning those which are prone to changing after media playback or addition (e.g. On Deck, or Recently Added)
+         */
+        onlyTransient?: 0 | 1;
+    };
+    url: '/hubs/sections/{sectionId}';
+};
+
+export type HubsGetSectionErrors = {
+    /**
+     * No section with that id or permission is denied
+     */
+    400: unknown;
+};
+
+export type HubsGetSectionResponses = {
+    /**
+     * OK
+     */
+    200: {
+        MediaContainer?: MediaContainer2 & {
+            Hub?: Array<Hub>;
+        };
+    };
+};
+
+export type HubsGetSectionResponse = HubsGetSectionResponses[keyof HubsGetSectionResponses];
+
+export type HubsSectionsSectionManageDeleteSlashData = {
+    body?: never;
+    path: {
+        /**
+         * The section ID for the hubs to reorder
+         */
+        sectionId: number;
+    };
+    query?: never;
+    url: '/hubs/sections/{sectionId}/manage';
+};
+
+export type HubsSectionsSectionManageDeleteSlashErrors = {
+    /**
+     * Forbidden
+     */
+    403: unknown;
+    /**
+     * Section id was not found
+     */
+    404: unknown;
+};
+
+export type HubsSectionsSectionManageDeleteSlashResponses = {
+    /**
+     * OK
+     */
+    200: unknown;
+};
+
+export type HubsSectionsSectionManageGetSlashData = {
+    body?: never;
+    path: {
+        /**
+         * The section ID for the hubs to reorder
+         */
+        sectionId: number;
+    };
+    query?: {
+        /**
+         * Restrict hubs to ones relevant to the provided metadata item
+         */
+        metadataItemId?: number;
+    };
+    url: '/hubs/sections/{sectionId}/manage';
+};
+
+export type HubsSectionsSectionManageGetSlashErrors = {
+    /**
+     * Forbidden
+     */
+    403: unknown;
+    /**
+     * Section id was not found
+     */
+    404: unknown;
+};
+
+export type HubsSectionsSectionManageGetSlashResponses = {
+    /**
+     * OK
+     */
+    200: {
+        MediaContainer?: MediaContainer2 & {
+            Hub?: Array<{
+                /**
+                 * Whether this hub is visible on the home screen
+                 * - all: Visible to all users
+                 * - none: Visible to no users
+                 * - admin: Visible to only admin users
+                 * - shared: Visible to shared users
+                 *
+                 */
+                homeVisibility?: 'all' | 'none' | 'admin' | 'shared';
+                /**
+                 * The identifier for this hub
+                 */
+                identifier?: string;
+                /**
+                 * Whether this hub is visible to admin user home
+                 */
+                promotedToOwnHome?: boolean;
+                /**
+                 * Whether this hub is promoted to all for recommendations
+                 */
+                promotedToRecommended?: boolean;
+                /**
+                 * Whether this hub is visible to shared user's home
+                 */
+                promotedToSharedHome?: boolean;
+                /**
+                 * The visibility of this hub in recommendations:
+                 * - all: Visible to all users
+                 * - none: Visible to no users
+                 * - admin: Visible to only admin users
+                 * - shared: Visible to shared users
+                 *
+                 */
+                recommendationsVisibility?: 'all' | 'none' | 'admin' | 'shared';
+                /**
+                 * The title of this hub
+                 */
+                title?: string;
+            }>;
+        };
+    };
+};
+
+export type HubsSectionsSectionManageGetSlashResponse = HubsSectionsSectionManageGetSlashResponses[keyof HubsSectionsSectionManageGetSlashResponses];
+
+export type HubsSectionsSectionManagePostSlashData = {
+    body?: never;
+    path: {
+        /**
+         * The section ID for the hubs to reorder
+         */
+        sectionId: number;
+    };
+    query: {
+        /**
+         * The metadata item on which to base this hub.  This must currently be a collection
+         */
+        metadataItemId: number;
+        /**
+         * Whether this hub should be displayed in recommended
+         */
+        promotedToRecommended?: 0 | 1;
+        /**
+         * Whether this hub should be displayed in admin's home
+         */
+        promotedToOwnHome?: 0 | 1;
+        /**
+         * Whether this hub should be displayed in shared user's home
+         */
+        promotedToSharedHome?: 0 | 1;
+    };
+    url: '/hubs/sections/{sectionId}/manage';
+};
+
+export type HubsSectionsSectionManagePostSlashErrors = {
+    /**
+     * A hub could not be created with this metadata item
+     */
+    400: unknown;
+    /**
+     * Forbidden
+     */
+    403: unknown;
+    /**
+     * Section id or metadata item was not found
+     */
+    404: unknown;
+};
+
+export type HubsSectionsSectionManagePostSlashResponses = {
+    /**
+     * OK
+     */
+    200: unknown;
+};
+
+export type HubsSectionsSectionManageDeleteIdentifierData = {
+    body?: never;
+    path: {
+        /**
+         * The section ID for the hubs to change
+         */
+        sectionId: number;
+        /**
+         * The identifier of the hub to change
+         */
+        identifier: string;
+    };
+    query?: never;
+    url: '/hubs/sections/{sectionId}/manage/{identifier}';
+};
+
+export type HubsSectionsSectionManageDeleteIdentifierErrors = {
+    /**
+     * The hub is not a custom hub
+     */
+    400: unknown;
+    /**
+     * Forbidden
+     */
+    403: unknown;
+    /**
+     * The section or hub was not found
+     */
+    404: unknown;
+};
+
+export type HubsSectionsSectionManageDeleteIdentifierResponses = {
+    /**
+     * OK
+     */
+    200: unknown;
+};
+
+export type HubsSectionsSectionManagePutIdentifierData = {
+    body?: never;
+    path: {
+        /**
+         * The section ID for the hubs to change
+         */
+        sectionId: number;
+        /**
+         * The identifier of the hub to change
+         */
+        identifier: string;
+    };
+    query?: {
+        /**
+         * Whether this hub should be displayed in recommended
+         */
+        promotedToRecommended?: 0 | 1;
+        /**
+         * Whether this hub should be displayed in admin's home
+         */
+        promotedToOwnHome?: 0 | 1;
+        /**
+         * Whether this hub should be displayed in shared user's home
+         */
+        promotedToSharedHome?: 0 | 1;
+    };
+    url: '/hubs/sections/{sectionId}/manage/{identifier}';
+};
+
+export type HubsSectionsSectionManagePutIdentifierErrors = {
+    /**
+     * Forbidden
+     */
+    403: unknown;
+    /**
+     * Section id was not found
+     */
+    404: unknown;
+};
+
+export type HubsSectionsSectionManagePutIdentifierResponses = {
+    /**
+     * OK
+     */
+    200: unknown;
+};
+
+export type HubsSectionsSectionManagePutMoveData = {
+    body?: never;
+    path: {
+        /**
+         * The section ID for the hubs to reorder
+         */
+        sectionId: number;
+    };
+    query: {
+        /**
+         * The identifier of the hub to move
+         */
+        identifier: string;
+        /**
+         * The identifier of the hub to order this hub after (or empty/missing to put this hub first)
+         */
+        after?: string;
+    };
+    url: '/hubs/sections/{sectionId}/manage/move';
+};
+
+export type HubsSectionsSectionManagePutMoveErrors = {
+    /**
+     * Forbidden
+     */
+    403: unknown;
+    /**
+     * Section id was not found
+     */
+    404: unknown;
+};
+
+export type HubsSectionsSectionManagePutMoveResponses = {
+    /**
+     * OK
+     */
+    200: {
+        MediaContainer?: MediaContainer2 & {
+            Hub?: Array<{
+                /**
+                 * Whether this hub is visible on the home screen
+                 * - all: Visible to all users
+                 * - none: Visible to no users
+                 * - admin: Visible to only admin users
+                 * - shared: Visible to shared users
+                 *
+                 */
+                homeVisibility?: 'all' | 'none' | 'admin' | 'shared';
+                /**
+                 * The identifier for this hub
+                 */
+                identifier?: string;
+                /**
+                 * Whether this hub is visible to admin user home
+                 */
+                promotedToOwnHome?: boolean;
+                /**
+                 * Whether this hub is promoted to all for recommendations
+                 */
+                promotedToRecommended?: boolean;
+                /**
+                 * Whether this hub is visible to shared user's home
+                 */
+                promotedToSharedHome?: boolean;
+                /**
+                 * The visibility of this hub in recommendations:
+                 * - all: Visible to all users
+                 * - none: Visible to no users
+                 * - admin: Visible to only admin users
+                 * - shared: Visible to shared users
+                 *
+                 */
+                recommendationsVisibility?: 'all' | 'none' | 'admin' | 'shared';
+                /**
+                 * The title of this hub
+                 */
+                title?: string;
+            }>;
+        };
+    };
+};
+
+export type HubsSectionsSectionManagePutMoveResponse = HubsSectionsSectionManagePutMoveResponses[keyof HubsSectionsSectionManagePutMoveResponses];
+
+export type GetIdentityData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/identity';
+};
+
+export type GetIdentityResponses = {
+    /**
+     * OK
+     */
+    200: {
+        MediaContainer?: {
+            /**
+             * Indicates whether this server has been claimed by a user
+             */
+            claimed?: boolean;
+            /**
+             * A unique identifier of the computer
+             */
+            machineIdentifier?: string;
+            size?: number;
+            /**
+             * The full version string of the PMS
+             */
+            version?: string;
+        };
+    };
+};
+
+export type GetIdentityResponse = GetIdentityResponses[keyof GetIdentityResponses];
+
+export type LibraryGetAllData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * This is a complex query built of several parameters.  See [API Info section](#section/API-Info/Media-Queries) for information on building media queries
+         */
+        mediaQuery?: {
+            [key: string]: unknown;
+        };
+    };
+    url: '/library/all';
+};
+
+export type LibraryGetAllResponses = {
+    /**
+     * OK
+     */
+    200: MediaContainerWithMetadata;
+};
+
+export type LibraryGetAllResponse = LibraryGetAllResponses[keyof LibraryGetAllResponses];
+
+export type LibraryDeleteCachesData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/library/caches';
+};
+
+export type LibraryDeleteCachesResponses = {
+    /**
+     * OK
+     */
+    200: unknown;
+};
+
+export type LibraryPutCleanBundlesData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/library/clean/bundles';
+};
+
+export type LibraryPutCleanBundlesResponses = {
+    /**
+     * OK
+     */
+    200: unknown;
+};
+
+export type LibraryCollectionPostSlashData = {
+    body?: never;
+    path?: never;
+    query: {
+        /**
+         * The section where this collection will be created
+         */
+        sectionId: string;
+        /**
+         * The title of this collection
+         */
+        title: string;
+        /**
+         * Whether this is a smart collection.  Defaults to false
+         */
+        smart?: boolean;
+        /**
+         * The URI for processing the smart collection.  Required for a smart collection
+         */
+        uri?: string;
+        /**
+         * The type of metadata this collection will hold
+         */
+        type?: number;
+    };
+    url: '/library/collections';
+};
+
+export type LibraryCollectionPostSlashErrors = {
+    /**
+     * The uri is missing for a smart collection or the section could not be found
+     */
+    400: unknown;
+};
+
+export type LibraryCollectionPostSlashResponses = {
+    /**
+     * OK
+     */
+    200: MediaContainerWithMetadata;
+};
+
+export type LibraryCollectionPostSlashResponse = LibraryCollectionPostSlashResponses[keyof LibraryCollectionPostSlashResponses];
+
+export type LibraryCollectionCollectionGetCompositeData = {
+    body?: never;
+    path: {
+        /**
+         * The collection id
+         */
+        collectionId: number;
+        /**
+         * The update time of the image.  Used for busting cache.
+         */
+        updatedAt: number;
+    };
+    query?: {
+        composite?: {
+            /**
+             * 6 character hex RGB value for background color for image
+             */
+            backgroundColor?: string;
+            /**
+             * The width of the intra-image border
+             */
+            border?: number;
+            /**
+             * Number of columns to construct in the composite image
+             */
+            cols?: number;
+            /**
+             * Where to crop source images to fit into composite image proportions
+             */
+            crop?: 'center' | 'top';
+            /**
+             * The image type
+             */
+            format?: 'jpg' | 'png';
+            /**
+             * The height of the image
+             */
+            height?: number;
+            /**
+             * The default image type to use as the sources
+             */
+            media?: 'thumb' | 'art' | 'banner';
+            /**
+             * Allow repetion of images if there are not enough source images to fill grid
+             */
+            repeat?: boolean;
+            /**
+             * Number of rows to construct in the composite image
+             */
+            rows?: number;
+            /**
+             * Limit composite to specified metadata types
+             */
+            type?: number;
+            /**
+             * The width of the image
+             */
+            width?: number;
+        };
+    };
+    url: '/library/collections/{collectionId}/composite/{updatedAt}';
+};
+
+export type LibraryCollectionCollectionGetCompositeErrors = {
+    /**
+     * Collection not found
+     */
+    404: unknown;
+};
+
+export type LibraryCollectionCollectionGetCompositeResponses = {
+    /**
+     * OK
+     */
+    200: Blob | File;
+};
+
+export type LibraryCollectionCollectionGetCompositeResponse = LibraryCollectionCollectionGetCompositeResponses[keyof LibraryCollectionCollectionGetCompositeResponses];
+
+export type LibraryCollectionCollectionGetItemsData = {
+    body?: never;
+    path: {
+        /**
+         * The collection id
+         */
+        collectionId: number;
+    };
+    query?: never;
+    url: '/library/collections/{collectionId}/items';
+};
+
+export type LibraryCollectionCollectionGetItemsErrors = {
+    /**
+     * Collection not found
+     */
+    404: unknown;
+};
+
+export type LibraryCollectionCollectionGetItemsResponses = {
+    /**
+     * OK
+     */
+    200: MediaContainerWithMetadata;
+};
+
+export type LibraryCollectionCollectionGetItemsResponse = LibraryCollectionCollectionGetItemsResponses[keyof LibraryCollectionCollectionGetItemsResponses];
+
+export type LibraryCollectionCollectionPutItemsData = {
+    body?: never;
+    path: {
+        /**
+         * The collection id
+         */
+        collectionId: number;
+    };
+    query: {
+        /**
+         * The URI describing the items to add to this collection
+         */
+        uri: string;
+    };
+    url: '/library/collections/{collectionId}/items';
+};
+
+export type LibraryCollectionCollectionPutItemsErrors = {
+    /**
+     * Collection not found
+     */
+    404: unknown;
+};
+
+export type LibraryCollectionCollectionPutItemsResponses = {
+    /**
+     * OK
+     */
+    200: MediaContainerWithMetadata;
+};
+
+export type LibraryCollectionCollectionPutItemsResponse = LibraryCollectionCollectionPutItemsResponses[keyof LibraryCollectionCollectionPutItemsResponses];
+
+export type LibraryCollectionCollectionPutItemsItemData = {
+    body?: never;
+    path: {
+        /**
+         * The collection id
+         */
+        collectionId: number;
+        /**
+         * The item to delete
+         */
+        itemId: number;
+    };
+    query?: never;
+    url: '/library/collections/{collectionId}/items/{itemId}';
+};
+
+export type LibraryCollectionCollectionPutItemsItemErrors = {
+    /**
+     * Item not found
+     */
+    400: unknown;
+    /**
+     * Collection not found
+     */
+    404: unknown;
+};
+
+export type LibraryCollectionCollectionPutItemsItemResponses = {
+    /**
+     * OK
+     */
+    200: MediaContainerWithMetadata;
+};
+
+export type LibraryCollectionCollectionPutItemsItemResponse = LibraryCollectionCollectionPutItemsItemResponses[keyof LibraryCollectionCollectionPutItemsItemResponses];
+
+export type LibraryCollectionCollectionPutItemsItemMoveData = {
+    body?: never;
+    path: {
+        /**
+         * The collection id
+         */
+        collectionId: number;
+        /**
+         * The item to move
+         */
+        itemId: number;
+    };
+    query?: {
+        /**
+         * The item to move this item after.  If not provided, this item will be moved to the beginning
+         */
+        after?: number;
+    };
+    url: '/library/collections/{collectionId}/items/{itemId}/move';
+};
+
+export type LibraryCollectionCollectionPutItemsItemMoveErrors = {
+    /**
+     * Item not found
+     */
+    400: unknown;
+    /**
+     * Collection not found
+     */
+    404: unknown;
+};
+
+export type LibraryCollectionCollectionPutItemsItemMoveResponses = {
+    /**
+     * OK
+     */
+    200: MediaContainerWithMetadata;
+};
+
+export type LibraryCollectionCollectionPutItemsItemMoveResponse = LibraryCollectionCollectionPutItemsItemMoveResponses[keyof LibraryCollectionCollectionPutItemsItemMoveResponses];
+
+export type LibraryPostFileData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * The file of the file to ingest.
+         */
+        url?: string;
+        /**
+         * A virtual path to use when the url is opaque.
+         */
+        virtualFilePath?: string;
+        /**
+         * Whether or not to compute Plex and OpenSubtitle hashes for the file. Defaults to 0.
+         */
+        computeHashes?: 0 | 1;
+        /**
+         * Whether or not non matching media should be stored. Defaults to 0.
+         */
+        ingestNonMatches?: 0 | 1;
+    };
+    url: '/library/file';
+};
+
+export type LibraryPostFileResponses = {
+    /**
+     * OK
+     */
+    200: MediaContainerWithMetadata;
+};
+
+export type LibraryPostFileResponse = LibraryPostFileResponses[keyof LibraryPostFileResponses];
+
+export type LibraryGetMatchesData = {
+    body?: never;
+    path?: never;
+    query: {
+        /**
+         * The metadata type to match against
+         */
+        type: number;
+        /**
+         * Whether or not to include full metadata on a positive match. When set, and the best match exceeds a score threshold of 85, metadata as rich as possible is sent back.
+         */
+        includeFullMetadata?: 0 | 1;
+        /**
+         * Whether or not to include metadata for the item's ancestor (e.g. show and season data for an episode).
+         */
+        includeAncestorMetadata?: 0 | 1;
+        /**
+         * Whether or not to return all sources for each metadata field, which results in a different structure being passed back.
+         */
+        includeAlternateMetadataSources?: 0 | 1;
+        /**
+         * Used for movies, shows, artists, albums, and tracks.  Allowed for various URI schemes, to be defined.
+         */
+        guid?: string;
+        /**
+         * Used for movies, shows, artists, and albums.  Required if `path` is not specified.
+         */
+        title?: string;
+        /**
+         * Used for movies shows, and albums.  Optional.
+         */
+        year?: number;
+        /**
+         * Used for movies, episodes, and tracks.  The full path to the media file, used for "cloud-scanning" an item.
+         */
+        path?: string;
+        /**
+         * Used for episodes and tracks.  The title of the show/artist. Required if `path` isn't passed.
+         */
+        grandparentTitle?: string;
+        /**
+         * Used for episodes.  The year of the show.
+         */
+        grandparentYear?: number;
+        /**
+         * Used for episodes and tracks.  The season/album number.
+         */
+        parentIndex?: number;
+        /**
+         * Used for episodes and tracks.  The episode/tracks number in the season/album.
+         */
+        index?: number;
+        /**
+         * Used for episodes.  In the format `YYYY-MM-DD`.
+         */
+        originallyAvailableAt?: string;
+        /**
+         * Used for albums and tracks. The artist name for albums or the album name for tracks.
+         */
+        parentTitle?: string;
+    };
+    url: '/library/matches';
+};
+
+export type LibraryGetMatchesResponses = {
+    /**
+     * OK
+     */
+    200: MediaContainerWithMetadata;
+};
+
+export type LibraryGetMatchesResponse = LibraryGetMatchesResponses[keyof LibraryGetMatchesResponses];
+
+export type LibraryGetMediaMediaChapterImagesChapterData = {
+    body?: never;
+    path: {
+        /**
+         * The id of the media item
+         */
+        mediaId: number;
+        /**
+         * The index of the chapter
+         */
+        chapter: number;
+    };
+    query?: never;
+    url: '/library/media/{mediaId}/chapterImages/{chapter}';
+};
+
+export type LibraryGetMediaMediaChapterImagesChapterErrors = {
+    /**
+     * Either the media item or the chapter image was not found
+     */
+    404: unknown;
+};
+
+export type LibraryGetMediaMediaChapterImagesChapterResponses = {
+    /**
+     * OK
+     */
+    200: Blob | File;
+};
+
+export type LibraryGetMediaMediaChapterImagesChapterResponse = LibraryGetMediaMediaChapterImagesChapterResponses[keyof LibraryGetMediaMediaChapterImagesChapterResponses];
+
+export type LibraryMetadataDeleteSlashData = {
+    body?: never;
+    path: {
+        ids: string;
+    };
+    query?: {
+        /**
+         * Whether proxy items, such as media optimized versions, should also be deleted.  Defaults to false.
+         */
+        proxy?: 0 | 1;
+    };
+    url: '/library/metadata/{ids}';
+};
+
+export type LibraryMetadataDeleteSlashErrors = {
+    /**
+     * Media items could not be deleted
+     */
+    400: unknown;
+};
+
+export type LibraryMetadataDeleteSlashResponses = {
+    /**
+     * OK
+     */
+    200: unknown;
+};
+
+export type LibraryMetadataGetSlashData = {
+    body?: never;
+    path: {
+        ids: Array<string>;
+    };
+    query?: {
+        /**
+         * Determines if file check should be performed asynchronously.  An activity is created to indicate progress.  Default is false.
+         */
+        asyncCheckFiles?: 0 | 1;
+        /**
+         * Determines if local media agent refresh should be performed asynchronously.  An activity is created to indicate progress.  Default is false.
+         */
+        asyncRefreshLocalMediaAgent?: 0 | 1;
+        /**
+         * Determines if analysis refresh should be performed asynchronously.  An activity is created to indicate progress.  Default is false.
+         */
+        asyncRefreshAnalysis?: 0 | 1;
+        /**
+         * Determines if file check should be performed synchronously.  Specifying `asyncCheckFiles` will cause this option to be ignored.  Default is false.
+         */
+        checkFiles?: 0 | 1;
+        /**
+         * Determines if synchronous local media agent and analysis refresh should be skipped.  Specifying async versions will cause synchronous versions to be skipped.  Default is false.
+         */
+        skipRefresh?: 0 | 1;
+        /**
+         * Determines if file existence check should be performed synchronously.  Specifying `checkFiles` will imply this option.  Default is false.
+         */
+        checkFileAvailability?: 0 | 1;
+        /**
+         * Add metadata augmentations.  An activity is created to indicate progress.  Option will be ignored if specified by non-admin or if multiple metadata items are requested.  Default is false.
+         */
+        asyncAugmentMetadata?: 0 | 1;
+        /**
+         * Number of augmentations to add.  Requires `asyncAugmentMetadata` to be specified.
+         */
+        augmentCount?: 0 | 1;
+    };
+    url: '/library/metadata/{ids}';
+};
+
+export type LibraryMetadataGetSlashResponses = {
+    /**
+     * OK
+     */
+    200: MediaContainerWithMetadata;
+};
+
+export type LibraryMetadataGetSlashResponse = LibraryMetadataGetSlashResponses[keyof LibraryMetadataGetSlashResponses];
+
+export type LibraryMetadataPutSlashData = {
+    body?: never;
+    path: {
+        ids: Array<string>;
+    };
+    query?: {
+        /**
+         * The new values for the metadata item
+         */
+        args?: {
+            [key: string]: unknown;
+        };
+    };
+    url: '/library/metadata/{ids}';
+};
+
+export type LibraryMetadataPutSlashErrors = {
+    /**
+     * Media items could not be deleted
+     */
+    400: unknown;
+};
+
+export type LibraryMetadataPutSlashResponses = {
+    /**
+     * OK
+     */
+    200: unknown;
+};
+
+export type LibraryMetadataDeleteElementData = {
+    body?: never;
+    path: {
+        ids: string;
+        element: 'thumb' | 'art' | 'clearLogo' | 'squareArt' | 'banner' | 'poster' | 'theme';
+    };
+    query?: never;
+    url: '/library/metadata/{ids}/{element}';
+};
+
+export type LibraryMetadataDeleteElementErrors = {
+    /**
+     * Not Found
+     */
+    404: unknown;
+};
+
+export type LibraryMetadataDeleteElementResponses = {
+    /**
+     * OK
+     */
+    200: unknown;
+};
+
+export type LibraryMetadataPostElementData = {
+    body?: never;
+    path: {
+        ids: string;
+        element: 'thumb' | 'art' | 'clearLogo' | 'squareArt' | 'banner' | 'poster' | 'theme';
+    };
+    query?: {
+        /**
+         * The url of the new asset.  If not provided, the binary of the asset must be provided in the post body.
+         */
+        url?: string;
+    };
+    url: '/library/metadata/{ids}/{element}';
+};
+
+export type LibraryMetadataPostElementResponses = {
+    /**
+     * OK
+     */
+    200: unknown;
+};
+
+export type LibraryMetadataPutElementData = {
+    body?: never;
+    path: {
+        ids: string;
+        element: 'thumb' | 'art' | 'clearLogo' | 'squareArt' | 'banner' | 'poster' | 'theme';
+    };
+    query?: {
+        /**
+         * The url of the new asset.
+         */
+        url?: string;
+    };
+    url: '/library/metadata/{ids}/{element}';
+};
+
+export type LibraryMetadataPutElementResponses = {
+    /**
+     * OK
+     */
+    200: unknown;
+};
+
+export type LibraryMetadataGetElementData = {
+    body?: never;
+    path: {
+        ids: string;
+        element: 'thumb' | 'art' | 'clearLogo' | 'squareArt' | 'banner' | 'poster' | 'theme';
+        /**
+         * A timestamp on the element used for cache management in the client
+         */
+        timestamp: number;
+    };
+    query?: never;
+    url: '/library/metadata/{ids}/{element}/{timestamp}';
+};
+
+export type LibraryMetadataGetElementResponses = {
+    /**
+     * OK
+     */
+    200: Blob | File;
+};
+
+export type LibraryMetadataGetElementResponse = LibraryMetadataGetElementResponses[keyof LibraryMetadataGetElementResponses];
+
+export type LibraryMetadataPutAddetectData = {
+    body?: never;
+    path: {
+        ids: string;
+    };
+    query?: never;
+    url: '/library/metadata/{ids}/addetect';
+};
+
+export type LibraryMetadataPutAddetectResponses = {
+    /**
+     * OK
+     */
+    200: unknown;
+};
+
+export type LibraryMetadataGetAllLeavesData = {
+    body?: never;
+    path: {
+        ids: string;
+    };
+    query?: never;
+    url: '/library/metadata/{ids}/allLeaves';
+};
+
+export type LibraryMetadataGetAllLeavesResponses = {
+    /**
+     * OK
+     */
+    200: MediaContainerWithMetadata;
+};
+
+export type LibraryMetadataGetAllLeavesResponse = LibraryMetadataGetAllLeavesResponses[keyof LibraryMetadataGetAllLeavesResponses];
+
+export type LibraryMetadataPutAnalyzeData = {
+    body?: never;
+    path: {
+        ids: string;
+    };
+    query?: {
+        /**
+         * Set the offset to be used for thumbnails
+         */
+        thumbOffset?: number;
+        /**
+         * Set the offset to be used for artwork
+         */
+        artOffset?: number;
+    };
+    url: '/library/metadata/{ids}/analyze';
+};
+
+export type LibraryMetadataPutAnalyzeResponses = {
+    /**
+     * OK
+     */
+    200: unknown;
+};
+
+export type LibraryMetadataPutChapterThumbsData = {
+    body?: never;
+    path: {
+        ids: string;
+    };
+    query?: {
+        force?: 0 | 1;
+    };
+    url: '/library/metadata/{ids}/chapterThumbs';
+};
+
+export type LibraryMetadataPutChapterThumbsResponses = {
+    /**
+     * OK
+     */
+    200: unknown;
+};
+
+export type LibraryMetadataPutCreditsData = {
+    body?: never;
+    path: {
+        ids: string;
+    };
+    query?: {
+        force?: 0 | 1;
+        manual?: 0 | 1;
+    };
+    url: '/library/metadata/{ids}/credits';
+};
+
+export type LibraryMetadataPutCreditsResponses = {
+    /**
+     * OK
+     */
+    200: unknown;
+};
+
+export type LibraryMetadataGetExtrasData = {
+    body?: never;
+    path: {
+        ids: string;
+    };
+    query?: never;
+    url: '/library/metadata/{ids}/extras';
+};
+
+export type LibraryMetadataGetExtrasResponses = {
+    /**
+     * OK
+     */
+    200: MediaContainerWithMetadata;
+};
+
+export type LibraryMetadataGetExtrasResponse = LibraryMetadataGetExtrasResponses[keyof LibraryMetadataGetExtrasResponses];
+
+export type LibraryMetadataPostExtrasData = {
+    body?: never;
+    path: {
+        ids: string;
+    };
+    query: {
+        /**
+         * The metadata type of the extra
+         */
+        extraType?: number;
+        /**
+         * The URL of the extra
+         */
+        url: string;
+        /**
+         * The title of the extra
+         */
+        title: string;
+    };
+    url: '/library/metadata/{ids}/extras';
+};
+
+export type LibraryMetadataPostExtrasErrors = {
+    /**
+     * Either the metadata item is not present or the extra could not be added
+     */
+    404: unknown;
+};
+
+export type LibraryMetadataPostExtrasResponses = {
+    /**
+     * OK
+     */
+    200: unknown;
+};
+
+export type LibraryMetadataGetFileData = {
+    body?: never;
+    path: {
+        ids: string;
+    };
+    query?: {
+        /**
+         * The bundle url, typically starting with `metadata://` or `media://`
+         */
+        url?: string;
+    };
+    url: '/library/metadata/{ids}/file';
+};
+
+export type LibraryMetadataGetFileResponses = {
+    /**
+     * OK
+     */
+    200: Blob | File;
+};
+
+export type LibraryMetadataGetFileResponse = LibraryMetadataGetFileResponses[keyof LibraryMetadataGetFileResponses];
+
+export type LibraryMetadataPutIndexData = {
+    body?: never;
+    path: {
+        ids: string;
+    };
+    query?: {
+        force?: 0 | 1;
+    };
+    url: '/library/metadata/{ids}/index';
+};
+
+export type LibraryMetadataPutIndexResponses = {
+    /**
+     * OK
+     */
+    200: unknown;
+};
+
+export type LibraryMetadataPutIntroData = {
+    body?: never;
+    path: {
+        ids: string;
+    };
+    query?: {
+        /**
+         * Indicate whether detection should be re-run
+         */
+        force?: 0 | 1;
+        /**
+         * The threshold for determining if content is an intro or not
+         */
+        threshold?: number;
+    };
+    url: '/library/metadata/{ids}/intro';
+};
+
+export type LibraryMetadataPutIntroResponses = {
+    /**
+     * OK
+     */
+    200: unknown;
+};
+
+export type LibraryMetadataPostMarkerData = {
+    body?: never;
+    path: {
+        ids: string;
+    };
+    query: {
+        /**
+         * The type of marker to edit/create
+         */
+        type: number;
+        /**
+         * The start time of the marker
+         */
+        startTimeOffset: number;
+        /**
+         * The end time of the marker
+         */
+        endTimeOffset?: number;
+        /**
+         * The attributes to assign to this marker
+         */
+        attributes?: {
+            [key: string]: unknown;
+        };
+    };
+    url: '/library/metadata/{ids}/marker';
+};
+
+export type LibraryMetadataPostMarkerErrors = {
+    /**
+     * Request parameters are bad, such as an `endTimeOffset` prior to the `startTimeOffset`
+     */
+    400: unknown;
+};
+
+export type LibraryMetadataPostMarkerResponses = {
+    /**
+     * OK
+     */
+    200: {
+        MediaContainer?: MediaContainer2 & {
+            color?: string;
+            endTimeOffset?: number;
+            id?: number;
+            startTimeOffset?: number;
+            title?: string;
+            type?: 'intro' | 'commercial' | 'bookmark' | 'resume' | 'credit';
+            [key: string]: unknown;
+        };
+    };
+};
+
+export type LibraryMetadataPostMarkerResponse = LibraryMetadataPostMarkerResponses[keyof LibraryMetadataPostMarkerResponses];
+
+export type LibraryMetadataDeleteMarkerMarkerData = {
+    body?: never;
+    path: {
+        ids: string;
+        marker: string;
+    };
+    query?: never;
+    url: '/library/metadata/{ids}/marker/{marker}';
+};
+
+export type LibraryMetadataDeleteMarkerMarkerErrors = {
+    /**
+     * Marker is not a bookmark
+     */
+    400: unknown;
+    /**
+     * Marker could not be found
+     */
+    404: unknown;
+};
+
+export type LibraryMetadataDeleteMarkerMarkerResponses = {
+    /**
+     * OK
+     */
+    200: unknown;
+};
+
+export type LibraryMetadataPutMarkerMarkerData = {
+    body?: never;
+    path: {
+        ids: string;
+        /**
+         * The id of the marker to edit
+         */
+        marker: string;
+    };
+    query: {
+        /**
+         * The type of marker to edit/create
+         */
+        type: number;
+        /**
+         * The start time of the marker
+         */
+        startTimeOffset: number;
+        /**
+         * The end time of the marker
+         */
+        endTimeOffset?: number;
+        /**
+         * The attributes to assign to this marker
+         */
+        attributes?: {
+            [key: string]: unknown;
+        };
+    };
+    url: '/library/metadata/{ids}/marker/{marker}';
+};
+
+export type LibraryMetadataPutMarkerMarkerErrors = {
+    /**
+     * Request parameters are bad, such as an `endTimeOffset` prior to the `startTimeOffset`
+     */
+    400: unknown;
+    /**
+     * The marker could not be found
+     */
+    404: unknown;
+};
+
+export type LibraryMetadataPutMarkerMarkerResponses = {
+    /**
+     * OK
+     */
+    200: {
+        MediaContainer?: MediaContainer2 & {
+            color?: string;
+            endTimeOffset?: number;
+            id?: number;
+            startTimeOffset?: number;
+            title?: string;
+            type?: 'intro' | 'commercial' | 'bookmark' | 'resume' | 'credit';
+            [key: string]: unknown;
+        };
+    };
+};
+
+export type LibraryMetadataPutMarkerMarkerResponse = LibraryMetadataPutMarkerMarkerResponses[keyof LibraryMetadataPutMarkerMarkerResponses];
+
+export type LibraryMetadataPutMatchData = {
+    body?: never;
+    path: {
+        ids: string;
+    };
+    query?: {
+        guid?: string;
+        name?: string;
+        year?: number;
+    };
+    url: '/library/metadata/{ids}/match';
+};
+
+export type LibraryMetadataPutMatchResponses = {
+    /**
+     * OK
+     */
+    200: unknown;
+};
+
+export type LibraryMetadataGetMatchesData = {
+    body?: never;
+    path: {
+        ids: string;
+    };
+    query?: {
+        title?: string;
+        parentTitle?: string;
+        agent?: string;
+        language?: string;
+        year?: number;
+        manual?: 0 | 1;
+    };
+    url: '/library/metadata/{ids}/matches';
+};
+
+export type LibraryMetadataGetMatchesResponses = {
+    /**
+     * OK
+     */
+    200: MediaContainerWithMetadata;
+};
+
+export type LibraryMetadataGetMatchesResponse = LibraryMetadataGetMatchesResponses[keyof LibraryMetadataGetMatchesResponses];
+
+export type LibraryMetadataDeleteMediaMediaItemData = {
+    body?: never;
+    path: {
+        ids: string;
+        mediaItem: string;
+    };
+    query?: {
+        /**
+         * Whether proxy items, such as media optimized versions, should also be deleted.  Defaults to false.
+         */
+        proxy?: 0 | 1;
+    };
+    url: '/library/metadata/{ids}/media/{mediaItem}';
+};
+
+export type LibraryMetadataDeleteMediaMediaItemErrors = {
+    /**
+     * Media item could not be deleted
+     */
+    400: unknown;
+    /**
+     * Media item could not be found
+     */
+    404: unknown;
+};
+
+export type LibraryMetadataDeleteMediaMediaItemResponses = {
+    /**
+     * OK
+     */
+    200: unknown;
+};
+
+export type LibraryMetadataPutMergeData = {
+    body?: never;
+    path: {
+        ids: string;
+    };
+    query?: {
+        ids?: Array<string>;
+    };
+    url: '/library/metadata/{ids}/merge';
+};
+
+export type LibraryMetadataPutMergeResponses = {
+    /**
+     * OK
+     */
+    200: unknown;
+};
+
+export type LibraryMetadataGetNearestData = {
+    body?: never;
+    path: {
+        ids: string;
+    };
+    query?: {
+        excludeParentID?: number;
+        excludeGrandparentID?: number;
+        limit?: number;
+        maxDistance?: number;
+    };
+    url: '/library/metadata/{ids}/nearest';
+};
+
+export type LibraryMetadataGetNearestResponses = {
+    /**
+     * OK
+     */
+    200: MediaContainerWithMetadata;
+};
+
+export type LibraryMetadataGetNearestResponse = LibraryMetadataGetNearestResponses[keyof LibraryMetadataGetNearestResponses];
+
+export type LibraryMetadataPutPrefsData = {
+    body?: never;
+    path: {
+        ids: string;
+    };
+    query?: {
+        args?: {
+            [key: string]: unknown;
+        };
+    };
+    url: '/library/metadata/{ids}/prefs';
+};
+
+export type LibraryMetadataPutPrefsResponses = {
+    /**
+     * OK
+     */
+    200: unknown;
+};
+
+export type LibraryMetadataPutRefreshData = {
+    body?: never;
+    path: {
+        ids: string;
+    };
+    query?: {
+        agent?: string;
+        markUpdated?: 0 | 1;
+    };
+    url: '/library/metadata/{ids}/refresh';
+};
+
+export type LibraryMetadataPutRefreshResponses = {
+    /**
+     * OK
+     */
+    200: unknown;
+};
+
+export type LibraryMetadataGetRelatedData = {
+    body?: never;
+    path: {
+        ids: string;
+    };
+    query?: never;
+    url: '/library/metadata/{ids}/related';
+};
+
+export type LibraryMetadataGetRelatedResponses = {
+    /**
+     * OK
+     */
+    200: {
+        MediaContainer?: MediaContainer2 & {
+            Hub?: Array<Hub>;
+        };
+    };
+};
+
+export type LibraryMetadataGetRelatedResponse = LibraryMetadataGetRelatedResponses[keyof LibraryMetadataGetRelatedResponses];
+
+export type LibraryMetadataGetSimilarData = {
+    body?: never;
+    path: {
+        ids: string;
+    };
+    query?: {
+        /**
+         * The maximum number of similar items; defaults to 200
+         */
+        count?: number;
+    };
+    url: '/library/metadata/{ids}/similar';
+};
+
+export type LibraryMetadataGetSimilarResponses = {
+    /**
+     * OK
+     */
+    200: MediaContainerWithMetadata;
+};
+
+export type LibraryMetadataGetSimilarResponse = LibraryMetadataGetSimilarResponses[keyof LibraryMetadataGetSimilarResponses];
+
+export type LibraryMetadataPutSplitData = {
+    body?: never;
+    path: {
+        ids: string;
+    };
+    query?: never;
+    url: '/library/metadata/{ids}/split';
+};
+
+export type LibraryMetadataPutSplitResponses = {
+    /**
+     * OK
+     */
+    200: unknown;
+};
+
+export type LibraryMetadataPostSubtitlesData = {
+    body?: never;
+    path: {
+        ids: string;
+    };
+    query?: {
+        title?: string;
+        language?: string;
+        mediaItemID?: number;
+        /**
+         * The URL of the subtitle.  If not provided, the contents of the subtitle must be in the post body
+         */
+        url?: string;
+        format?: string;
+        forced?: 0 | 1;
+        hearingImpaired?: 0 | 1;
+    };
+    url: '/library/metadata/{ids}/subtitles';
+};
+
+export type LibraryMetadataPostSubtitlesResponses = {
+    /**
+     * OK
+     */
+    200: unknown;
+};
+
+export type LibraryMetadataGetTreeData = {
+    body?: never;
+    path: {
+        ids: string;
+    };
+    query?: never;
+    url: '/library/metadata/{ids}/tree';
+};
+
+export type LibraryMetadataGetTreeResponses = {
+    /**
+     * OK
+     */
+    200: MediaContainerWithNestedMetadata;
+};
+
+export type LibraryMetadataGetTreeResponse = LibraryMetadataGetTreeResponses[keyof LibraryMetadataGetTreeResponses];
+
+export type LibraryMetadataPutUnmatchData = {
+    body?: never;
+    path: {
+        ids: string;
+    };
+    query?: never;
+    url: '/library/metadata/{ids}/unmatch';
+};
+
+export type LibraryMetadataPutUnmatchResponses = {
+    /**
+     * OK
+     */
+    200: unknown;
+};
+
+export type LibraryMetadataGetUsersTopData = {
+    body?: never;
+    path: {
+        ids: string;
+    };
+    query?: never;
+    url: '/library/metadata/{ids}/users/top';
+};
+
+export type LibraryMetadataGetUsersTopResponses = {
+    /**
+     * OK
+     */
+    200: {
+        MediaContainer?: MediaContainer2 & {
+            Account?: Array<{
+                globalViewCount?: number;
+                id?: number;
+            }>;
+        };
+    };
+};
+
+export type LibraryMetadataGetUsersTopResponse = LibraryMetadataGetUsersTopResponses[keyof LibraryMetadataGetUsersTopResponses];
+
+export type LibraryMetadataPutVoiceActivityData = {
+    body?: never;
+    path: {
+        ids: string;
+    };
+    query?: {
+        /**
+         * Indicate whether detection should be re-run
+         */
+        force?: 0 | 1;
+        /**
+         * Indicate whether detection is manually run
+         */
+        manual?: 0 | 1;
+    };
+    url: '/library/metadata/{ids}/voiceActivity';
+};
+
+export type LibraryMetadataPutVoiceActivityResponses = {
+    /**
+     * OK
+     */
+    200: unknown;
+};
+
+export type LibraryGetMetadataAugmentationsAugmentationData = {
+    body?: never;
+    path: {
+        /**
+         * The id of the augmentation
+         */
+        augmentationId: string;
+    };
+    query?: {
+        /**
+         * Wait for augmentation completion before returning
+         */
+        wait?: 0 | 1;
+    };
+    url: '/library/metadata/augmentations/{augmentationId}';
+};
+
+export type LibraryGetMetadataAugmentationsAugmentationErrors = {
+    /**
+     * This augmentation is not owned by the requesting user
+     */
+    401: unknown;
+    /**
+     * No augmentation found
+     */
+    404: unknown;
+};
+
+export type LibraryGetMetadataAugmentationsAugmentationResponses = {
+    /**
+     * No Content
+     */
+    204: unknown;
+};
+
+export type LibraryPutOptimizeData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * If set, don't wait for completion but return an activity
+         */
+        async?: 0 | 1;
+    };
+    url: '/library/optimize';
+};
+
+export type LibraryPutOptimizeResponses = {
+    /**
+     * OK
+     */
+    200: unknown;
+};
+
+export type LibraryPutPartsPartData = {
+    body?: never;
+    path: {
+        /**
+         * The id of the part to select streams on
+         */
+        partId: number;
+    };
+    query?: {
+        /**
+         * The id of the audio stream to select in this part
+         */
+        audioStreamID?: number;
+        /**
+         * The id of the subtitle stream to select in this part.  Specify 0 to select no subtitle
+         */
+        subtitleStreamID?: number;
+        /**
+         * Perform the same for all parts of this media selecting similar streams in each
+         */
+        allParts?: 0 | 1;
+    };
+    url: '/library/parts/{partId}';
+};
+
+export type LibraryPutPartsPartErrors = {
+    /**
+     * One of the audio or subtitle streams does not belong to this part
+     */
+    400: unknown;
+};
+
+export type LibraryPutPartsPartResponses = {
+    /**
+     * OK
+     */
+    200: unknown;
+};
+
+export type LibraryGetPartsPartChangestampFilenameData = {
+    body?: never;
+    path: {
+        /**
+         * The part id who's index is to be fetched
+         */
+        partId: number;
+        /**
+         * The changestamp of the part; used for busting potential caches.  Provided in the `key` for the part
+         */
+        changestamp: number;
+        /**
+         * A generic filename used for a client media stack which relies on the extension in the request.  Provided in the `key` for the part
+         */
+        filename: string;
+    };
+    query?: {
+        /**
+         * Whether this is a file download
+         */
+        download?: 0 | 1;
+    };
+    url: '/library/parts/{partId}/{changestamp}/{filename}';
+};
+
+export type LibraryGetPartsPartChangestampFilenameErrors = {
+    /**
+     * Client requested download and server owner has forbidden download of media
+     */
+    403: unknown;
+    /**
+     * The part doesn't exist
+     */
+    404: unknown;
+    /**
+     * Client requested the part without a decision and no decision could be made or decision is for a transcode
+     */
+    503: unknown;
+    /**
+     * Client requested the part without a decision and no decision could be made because there is insufficient bandwidth for client to direct play this part
+     */
+    509: unknown;
+};
+
+export type LibraryGetPartsPartChangestampFilenameResponses = {
+    /**
+     * OK
+     */
+    200: unknown;
+};
+
+export type LibraryGetPartsPartIndexesIndexData = {
+    body?: never;
+    path: {
+        /**
+         * The part id who's index is to be fetched
+         */
+        partId: number;
+        /**
+         * The type of index to grab.
+         */
+        index: 'sd';
+    };
+    query?: {
+        /**
+         * The interval between images to return in ms.
+         */
+        interval?: number;
+    };
+    url: '/library/parts/{partId}/indexes/{index}';
+};
+
+export type LibraryGetPartsPartIndexesIndexErrors = {
+    /**
+     * The part or the index doesn't exist or the interval is too small
+     */
+    404: unknown;
+};
+
+export type LibraryGetPartsPartIndexesIndexResponses = {
+    /**
+     * OK
+     */
+    200: Blob | File;
+};
+
+export type LibraryGetPartsPartIndexesIndexResponse = LibraryGetPartsPartIndexesIndexResponses[keyof LibraryGetPartsPartIndexesIndexResponses];
+
+export type LibraryGetPartsPartIndexesIndexOffsetData = {
+    body?: never;
+    path: {
+        /**
+         * The part id who's index is to be fetched
+         */
+        partId: number;
+        /**
+         * The type of index to grab.
+         */
+        index: 'sd';
+        /**
+         * The offset to seek in ms.
+         */
+        offset: number;
+    };
+    query?: never;
+    url: '/library/parts/{partId}/indexes/{index}/{offset}';
+};
+
+export type LibraryGetPartsPartIndexesIndexOffsetErrors = {
+    /**
+     * The part or the index doesn't exist
+     */
+    404: unknown;
+};
+
+export type LibraryGetPartsPartIndexesIndexOffsetResponses = {
+    /**
+     * OK
+     */
+    200: Blob | File;
+};
+
+export type LibraryGetPartsPartIndexesIndexOffsetResponse = LibraryGetPartsPartIndexesIndexOffsetResponses[keyof LibraryGetPartsPartIndexesIndexOffsetResponses];
+
+export type LibraryGetPeoplePersonData = {
+    body?: never;
+    path: {
+        /**
+         * Either the PMS tag `id` of the person or `tagKey` of the actor.  Note the `tagKey` is the hex portion of the plex guid for the actor
+         */
+        personId: number | string;
+    };
+    query?: never;
+    url: '/library/people/{personId}';
+};
+
+export type LibraryGetPeoplePersonErrors = {
+    /**
+     * Not Found
+     */
+    404: unknown;
+};
+
+export type LibraryGetPeoplePersonResponses = {
+    /**
+     * OK
+     */
+    200: {
+        MediaContainer?: MediaContainer2 & {
+            Directory?: Array<Tag>;
+        };
+    };
+};
+
+export type LibraryGetPeoplePersonResponse = LibraryGetPeoplePersonResponses[keyof LibraryGetPeoplePersonResponses];
+
+export type LibraryGetPeoplePersonMediaData = {
+    body?: never;
+    path: {
+        /**
+         * Either the PMS tag `id` of the person or `tagKey` of the actor.  Note the `tagKey` is the hex portion of the plex guid for the actor
+         */
+        personId: number | string;
+    };
+    query?: never;
+    url: '/library/people/{personId}/media';
+};
+
+export type LibraryGetPeoplePersonMediaErrors = {
+    /**
+     * Not Found
+     */
+    404: unknown;
+};
+
+export type LibraryGetPeoplePersonMediaResponses = {
+    /**
+     * OK
+     */
+    200: MediaContainerWithMetadata;
+};
+
+export type LibraryGetPeoplePersonMediaResponse = LibraryGetPeoplePersonMediaResponses[keyof LibraryGetPeoplePersonMediaResponses];
+
+export type LibraryGetRandomArtworkData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * The sections for which to fetch artwork.
+         */
+        sections?: Array<number>;
+    };
+    url: '/library/randomArtwork';
+};
+
+export type LibraryGetRandomArtworkResponses = {
+    /**
+     * OK
+     */
+    200: MediaContainerWithArtwork;
+};
+
+export type LibraryGetRandomArtworkResponse = LibraryGetRandomArtworkResponses[keyof LibraryGetRandomArtworkResponses];
+
+export type LibraryDeleteSectionData = {
+    body?: never;
+    path: {
+        /**
+         * The section identifier
+         */
+        sectionId: string;
+    };
+    query?: {
+        /**
+         * If set, response will return an activity with the actual deletion process.  Otherwise request will return when deletion is complete
+         */
+        async?: 0 | 1;
+    };
+    url: '/library/sections/{sectionId}';
+};
+
+export type LibraryDeleteSectionResponses = {
+    /**
+     * OK
+     */
+    200: unknown;
+};
+
+export type LibrarySectionGetSectionData = {
+    body?: never;
+    path: {
+        /**
+         * The section identifier
+         */
+        sectionId: string;
+    };
+    query?: {
+        /**
+         * Whether or not to include details for a section (types, filters, and sorts). Only exists for backwards compatibility, media providers other than the server libraries have it on always.
+         */
+        includeDetails?: 0 | 1;
+    };
+    url: '/library/sections/{sectionId}';
+};
+
+export type LibrarySectionGetSectionResponses = {
+    /**
+     * OK
+     */
+    200: {
+        MediaContainer?: {
+            allowSync?: boolean;
+            art?: string;
+            /**
+             * The flavors of directory found here:
+             * - Primary: (e.g. all, On Deck) These are still used in some clients to provide "shortcuts" to subsets of media. However, with the exception of On Deck, all of them can be created by media queries, and the desire is to allow these to be customized by users.
+             * - Secondary: These are marked with `"secondary": true` and were used by old clients to provide nested menus allowing for primative (but structured) navigation.
+             * - Special: There is a By Folder entry which allows browsing the media by the underlying filesystem structure, and there's a completely obsolete entry marked `"search": true` which used to be used to allow clients to build search dialogs on the fly.
+             */
+            content?: string;
+            Directory?: Array<Metadata>;
+            identifier?: string;
+            librarySectionID?: number;
+            mediaTagPrefix?: string;
+            mediaTagVersion?: number;
+            size?: number;
+            sortAsc?: boolean;
+            thumb?: string;
+            title1?: string;
+            viewGroup?: string;
+            viewMode?: number;
+        };
+    };
+};
+
+export type LibrarySectionGetSectionResponse = LibrarySectionGetSectionResponses[keyof LibrarySectionGetSectionResponses];
+
+export type LibrarySectionPutSectionData = {
+    body?: never;
+    path: {
+        /**
+         * The section identifier
+         */
+        sectionId: string;
+    };
+    query: {
+        /**
+         * The name of the new section
+         */
+        name?: string;
+        /**
+         * The scanner this section should use
+         */
+        scanner?: string;
+        /**
+         * The agent this section should use for metadata
+         */
+        agent: string;
+        /**
+         * The agent group id for this section
+         */
+        metadataAgentProviderGroupId?: string;
+        /**
+         * The language of this section
+         */
+        language?: string;
+        /**
+         * The locations on disk to add to this section
+         */
+        locations?: Array<string>;
+        /**
+         * The preferences for this section
+         */
+        prefs?: {
+            [key: string]: unknown;
+        };
+    };
+    url: '/library/sections/{sectionId}';
+};
+
+export type LibrarySectionPutSectionErrors = {
+    /**
+     * Section cannot be created due to bad parameters in request
+     */
+    400: unknown;
+};
+
+export type LibrarySectionPutSectionResponses = {
+    /**
+     * OK
+     */
+    200: unknown;
+};
+
+export type LibrarySectionGetAlbumsData = {
+    body?: never;
+    path: {
+        /**
+         * Section identifier
+         */
+        sectionId: number;
+    };
+    query?: never;
+    url: '/library/sections/{sectionId}/albums';
+};
+
+export type LibrarySectionGetAlbumsResponses = {
+    /**
+     * OK
+     */
+    200: MediaContainerWithMetadata;
+};
+
+export type LibrarySectionGetAlbumsResponse = LibrarySectionGetAlbumsResponses[keyof LibrarySectionGetAlbumsResponses];
+
+export type LibrarySectionGetAllData = {
+    body?: never;
+    path: {
+        /**
+         * The id of the section
+         */
+        sectionId: string;
+    };
+    query?: {
+        /**
+         * This is a complex query built of several parameters.  See [API Info section](#section/API-Info/Media-Queries) for information on building media queries
+         */
+        mediaQuery?: {
+            [key: string]: unknown;
+        };
+    };
+    url: '/library/sections/{sectionId}/all';
+};
+
+export type LibrarySectionGetAllResponses = {
+    /**
+     * OK
+     */
+    200: MediaContainerWithMetadata;
+};
+
+export type LibrarySectionGetAllResponse = LibrarySectionGetAllResponses[keyof LibrarySectionGetAllResponses];
+
+export type LibrarySectionPutAllData = {
+    body?: never;
+    path: {
+        /**
+         * The id of the section
+         */
+        sectionId: string;
+    };
+    query?: {
+        type?: string;
+        /**
+         * The filters to apply to determine which items should be modified
+         */
+        filters?: string;
+        /**
+         * Set the specified field to a new value
+         */
+        'field.value'?: string;
+        /**
+         * Set the specified field to locked (or unlocked if set to 0)
+         */
+        'field.locked'?: 0 | 1;
+        /**
+         * This field is treated specially by albums or artists and may be used for implicit reparenting.
+         */
+        'title.value'?: string;
+        /**
+         * Reparents set of Tracks or Albums - used with album.title.* in the case of tracks
+         */
+        'artist.title.value'?: string;
+        /**
+         * Reparents set of Tracks or Albums - used with album.title.* in the case of tracks
+         */
+        'artist.title.id'?: string;
+        /**
+         * Reparents set of Tracks - Must be used in conjunction with artist.title.value or id
+         */
+        'album.title.value'?: string;
+        /**
+         * Reparents set of Tracks - Must be used in conjunction with artist.title.value or id
+         */
+        'album.title.id'?: string;
+        /**
+         * Creates tag and associates it with each item in the set. - [idx] links this and the next parameters together
+         */
+        'tagtype[idx].tag.tag'?: string;
+        /**
+         * Here `object` may be text/thumb/art/theme - Optionally used in conjunction with tag.tag, to update association info across the set.
+         */
+        'tagtype[idx].tagging.object'?: string;
+        /**
+         * Remove comma separated tags from the set of items
+         */
+        'tagtype[].tag.tag-'?: string;
+        /**
+         * Remove associations of this type (e.g. genre) from the set of items
+         */
+        'tagtype[].tag'?: string;
+    };
+    url: '/library/sections/{sectionId}/all';
+};
+
+export type LibrarySectionPutAllErrors = {
+    /**
+     * The set of parameters are inconsistent or invalid values
+     */
+    400: unknown;
+    /**
+     * A required item could not be found
+     */
+    404: unknown;
+    /**
+     * Rename of a collection to a name that's already taken
+     */
+    409: unknown;
+};
+
+export type LibrarySectionPutAllResponses = {
+    /**
+     * OK
+     */
+    200: unknown;
+};
+
+export type LibrarySectionGetAllLeavesData = {
+    body?: never;
+    path: {
+        /**
+         * Section identifier
+         */
+        sectionId: number;
+    };
+    query?: never;
+    url: '/library/sections/{sectionId}/allLeaves';
+};
+
+export type LibrarySectionGetAllLeavesResponses = {
+    /**
+     * OK
+     */
+    200: MediaContainerWithMetadata;
+};
+
+export type LibrarySectionGetAllLeavesResponse = LibrarySectionGetAllLeavesResponses[keyof LibrarySectionGetAllLeavesResponses];
+
+export type LibrarySectionPutAnalyzeData = {
+    body?: never;
+    path: {
+        /**
+         * Section identifier
+         */
+        sectionId: number;
+    };
+    query?: never;
+    url: '/library/sections/{sectionId}/analyze';
+};
+
+export type LibrarySectionPutAnalyzeResponses = {
+    /**
+     * OK
+     */
+    200: unknown;
+};
+
+export type LibrarySectionGetArtsData = {
+    body?: never;
+    path: {
+        /**
+         * Section identifier
+         */
+        sectionId: number;
+    };
+    query?: never;
+    url: '/library/sections/{sectionId}/arts';
+};
+
+export type LibrarySectionGetArtsResponses = {
+    /**
+     * OK
+     */
+    200: MediaContainerWithArtwork;
+};
+
+export type LibrarySectionGetArtsResponse = LibrarySectionGetArtsResponses[keyof LibrarySectionGetArtsResponses];
+
+export type LibrarySectionGetAudioCodecsData = {
+    body?: never;
+    path: {
+        /**
+         * Section identifier
+         */
+        sectionId: number;
+    };
+    query?: {
+        /**
+         * This is a complex query built of several parameters.  See [API Info section](#section/API-Info/Media-Queries) for information on building media queries
+         */
+        mediaQuery?: {
+            [key: string]: unknown;
+        };
+    };
+    url: '/library/sections/{sectionId}/audioCodec';
+};
+
+export type LibrarySectionGetAudioCodecsResponses = {
+    /**
+     * The audio codecs in the section
+     */
+    200: {
+        MediaContainer?: MediaContainer2 & {
+            Directory?: Array<Directory>;
+        };
+    };
+};
+
+export type LibrarySectionGetAudioCodecsResponse = LibrarySectionGetAudioCodecsResponses[keyof LibrarySectionGetAudioCodecsResponses];
+
+export type LibrarySectionGetAudioLayoutsData = {
+    body?: never;
+    path: {
+        /**
+         * Section identifier
+         */
+        sectionId: number;
+    };
+    query?: {
+        /**
+         * This is a complex query built of several parameters.  See [API Info section](#section/API-Info/Media-Queries) for information on building media queries
+         */
+        mediaQuery?: {
+            [key: string]: unknown;
+        };
+    };
+    url: '/library/sections/{sectionId}/audioLayout';
+};
+
+export type LibrarySectionGetAudioLayoutsResponses = {
+    /**
+     * The audio layouts in the section
+     */
+    200: {
+        MediaContainer?: MediaContainer2 & {
+            Directory?: Array<Directory>;
+        };
+    };
+};
+
+export type LibrarySectionGetAudioLayoutsResponse = LibrarySectionGetAudioLayoutsResponses[keyof LibrarySectionGetAudioLayoutsResponses];
+
+export type LibrarySectionGetAutocompleteData = {
+    body?: never;
+    path: {
+        /**
+         * Section identifier
+         */
+        sectionId: number;
+    };
+    query?: {
+        /**
+         * Item type
+         */
+        type?: number;
+        /**
+         * The "field" stands in for any field, the value is a partial string for matching
+         */
+        'field.query'?: string;
+        /**
+         * This is a complex query built of several parameters.  See [API Info section](#section/API-Info/Media-Queries) for information on building media queries
+         */
+        mediaQuery?: {
+            [key: string]: unknown;
+        };
+    };
+    url: '/library/sections/{sectionId}/autocomplete';
+};
+
+export type LibrarySectionGetAutocompleteErrors = {
+    /**
+     * A paramater is either invalid or missing
+     */
+    400: unknown;
+};
+
+export type LibrarySectionGetAutocompleteResponses = {
+    /**
+     * OK
+     */
+    200: MediaContainerWithMetadata;
+};
+
+export type LibrarySectionGetAutocompleteResponse = LibrarySectionGetAutocompleteResponses[keyof LibrarySectionGetAutocompleteResponses];
+
+export type LibrarySectionGetCategoriesData = {
+    body?: never;
+    path: {
+        /**
+         * Section identifier
+         */
+        sectionId: number;
+    };
+    query?: never;
+    url: '/library/sections/{sectionId}/categories';
+};
+
+export type LibrarySectionGetCategoriesResponses = {
+    /**
+     * OK
+     */
+    200: MediaContainerWithArtwork;
+};
+
+export type LibrarySectionGetCategoriesResponse = LibrarySectionGetCategoriesResponses[keyof LibrarySectionGetCategoriesResponses];
+
+export type LibrarySectionGetClusterData = {
+    body?: never;
+    path: {
+        /**
+         * Section identifier
+         */
+        sectionId: number;
+    };
+    query?: never;
+    url: '/library/sections/{sectionId}/cluster';
+};
+
+export type LibrarySectionGetClusterResponses = {
+    /**
+     * OK
+     */
+    200: MediaContainerWithArtwork;
+};
+
+export type LibrarySectionGetClusterResponse = LibrarySectionGetClusterResponses[keyof LibrarySectionGetClusterResponses];
+
+export type LibrarySectionDeleteCollectionCollectionData = {
+    body?: never;
+    path: {
+        /**
+         * Section identifier
+         */
+        sectionId: number;
+        /**
+         * Collection Id
+         */
+        collectionId: number;
+    };
+    query?: never;
+    url: '/library/sections/{sectionId}/collection/{collectionId}';
+};
+
+export type LibrarySectionDeleteCollectionCollectionErrors = {
+    /**
+     * Collection not found
+     */
+    404: unknown;
+};
+
+export type LibrarySectionDeleteCollectionCollectionResponses = {
+    /**
+     * OK
+     */
+    200: unknown;
+};
+
+export type LibrarySectionGetCollectionsData = {
+    body?: never;
+    path: {
+        /**
+         * Section identifier
+         */
+        sectionId: number;
+    };
+    query?: {
+        /**
+         * This is a complex query built of several parameters.  See [API Info section](#section/API-Info/Media-Queries) for information on building media queries
+         */
+        mediaQuery?: {
+            [key: string]: unknown;
+        };
+    };
+    url: '/library/sections/{sectionId}/collections';
+};
+
+export type LibrarySectionGetCollectionsResponses = {
+    /**
+     * OK
+     */
+    200: MediaContainerWithMetadata;
+};
+
+export type LibrarySectionGetCollectionsResponse = LibrarySectionGetCollectionsResponses[keyof LibrarySectionGetCollectionsResponses];
+
+export type LibrarySectionGetCommonData = {
+    body?: never;
+    path: {
+        /**
+         * Section identifier
+         */
+        sectionId: number;
+    };
+    query?: {
+        /**
+         * Item type
+         */
+        type?: number;
+        /**
+         * This is a complex query built of several parameters.  See [API Info section](#section/API-Info/Media-Queries) for information on building media queries
+         */
+        mediaQuery?: {
+            [key: string]: unknown;
+        };
+    };
+    url: '/library/sections/{sectionId}/common';
+};
+
+export type LibrarySectionGetCommonErrors = {
+    /**
+     * Bad Request
+     */
+    400: unknown;
+    /**
+     * Not Found
+     */
+    404: unknown;
+};
+
+export type LibrarySectionGetCommonResponses = {
+    /**
+     * OK
+     */
+    200: MediaContainerWithMetadata;
+};
+
+export type LibrarySectionGetCommonResponse = LibrarySectionGetCommonResponses[keyof LibrarySectionGetCommonResponses];
+
+export type LibrarySectionGetCompositeData = {
+    body?: never;
+    path: {
+        /**
+         * Section identifier
+         */
+        sectionId: number;
+        /**
+         * The update time of the image.  Used for busting cache.
+         */
+        updatedAt: number;
+    };
+    query?: {
+        /**
+         * This is a complex query built of several parameters.  See [API Info section](#section/API-Info/Media-Queries) for information on building media queries
+         */
+        mediaQuery?: {
+            [key: string]: unknown;
+        };
+        composite?: {
+            /**
+             * 6 character hex RGB value for background color for image
+             */
+            backgroundColor?: string;
+            /**
+             * The width of the intra-image border
+             */
+            border?: number;
+            /**
+             * Number of columns to construct in the composite image
+             */
+            cols?: number;
+            /**
+             * Where to crop source images to fit into composite image proportions
+             */
+            crop?: 'center' | 'top';
+            /**
+             * The image type
+             */
+            format?: 'jpg' | 'png';
+            /**
+             * The height of the image
+             */
+            height?: number;
+            /**
+             * The default image type to use as the sources
+             */
+            media?: 'thumb' | 'art' | 'banner';
+            /**
+             * Allow repetion of images if there are not enough source images to fill grid
+             */
+            repeat?: boolean;
+            /**
+             * Number of rows to construct in the composite image
+             */
+            rows?: number;
+            /**
+             * Limit composite to specified metadata types
+             */
+            type?: number;
+            /**
+             * The width of the image
+             */
+            width?: number;
+        };
+    };
+    url: '/library/sections/{sectionId}/composite/{updatedAt}';
+};
+
+export type LibrarySectionGetCompositeResponses = {
+    /**
+     * OK
+     */
+    200: unknown;
+};
+
+export type LibrarySectionGetComputePathData = {
+    body?: never;
+    path: {
+        /**
+         * Section identifier
+         */
+        sectionId: number;
+    };
+    query: {
+        /**
+         * The starting metadata item id
+         */
+        startID: number;
+        /**
+         * The ending metadata item id
+         */
+        endID: number;
+        /**
+         * The number of items along the path; defaults to 50
+         */
+        count?: number;
+        /**
+         * The maximum distance allowed along the path; defaults to 0.25
+         */
+        maxDistance?: number;
+    };
+    url: '/library/sections/{sectionId}/computePath';
+};
+
+export type LibrarySectionGetComputePathResponses = {
+    /**
+     * OK
+     */
+    200: MediaContainerWithMetadata;
+};
+
+export type LibrarySectionGetComputePathResponse = LibrarySectionGetComputePathResponses[keyof LibrarySectionGetComputePathResponses];
+
+export type LibrarySectionPutEmptyTrashData = {
+    body?: never;
+    path: {
+        /**
+         * Section identifier
+         */
+        sectionId: number;
+    };
+    query?: never;
+    url: '/library/sections/{sectionId}/emptyTrash';
+};
+
+export type LibrarySectionPutEmptyTrashResponses = {
+    /**
+     * OK
+     */
+    200: unknown;
+};
+
+export type LibrarySectionGetFiltersData = {
+    body?: never;
+    path: {
+        /**
+         * Section identifier
+         */
+        sectionId: number;
+    };
+    query?: never;
+    url: '/library/sections/{sectionId}/filters';
+};
+
+export type LibrarySectionGetFiltersResponses = {
+    /**
+     * The filters on the section
+     */
+    200: {
+        MediaContainer?: MediaContainer2 & {
+            Directory?: Array<Directory>;
+        };
+    };
+};
+
+export type LibrarySectionGetFiltersResponse = LibrarySectionGetFiltersResponses[keyof LibrarySectionGetFiltersResponses];
+
+export type LibrarySectionGetFirstCharatersData = {
+    body?: never;
+    path: {
+        /**
+         * Section identifier
+         */
+        sectionId: number;
+    };
+    query?: {
+        /**
+         * The metadata type to filter on
+         */
+        type?: number;
+        /**
+         * The metadata type to filter on
+         */
+        sort?: number;
+        /**
+         * This is a complex query built of several parameters.  See [API Info section](#section/API-Info/Media-Queries) for information on building media queries
+         */
+        mediaQuery?: {
+            [key: string]: unknown;
+        };
+    };
+    url: '/library/sections/{sectionId}/firstCharacters';
+};
+
+export type LibrarySectionGetFirstCharatersResponses = {
+    /**
+     * OK
+     */
+    200: {
+        MediaContainer?: MediaContainer2 & {
+            Directory?: Array<{
+                key?: string;
+                /**
+                 * The number of items starting with this character
+                 */
+                size?: number;
+                title?: string;
+            }>;
+        };
+    };
+};
+
+export type LibrarySectionGetFirstCharatersResponse = LibrarySectionGetFirstCharatersResponses[keyof LibrarySectionGetFirstCharatersResponses];
+
+export type LibrarySectionDeleteIndexesData = {
+    body?: never;
+    path: {
+        /**
+         * Section identifier
+         */
+        sectionId: number;
+    };
+    query?: never;
+    url: '/library/sections/{sectionId}/indexes';
+};
+
+export type LibrarySectionDeleteIndexesResponses = {
+    /**
+     * OK
+     */
+    200: unknown;
+};
+
+export type LibrarySectionDeleteIntrosData = {
+    body?: never;
+    path: {
+        /**
+         * Section identifier
+         */
+        sectionId: number;
+    };
+    query?: never;
+    url: '/library/sections/{sectionId}/intros';
+};
+
+export type LibrarySectionDeleteIntrosResponses = {
+    /**
+     * OK
+     */
+    200: unknown;
+};
+
+export type LibrarySectionGetLocationsData = {
+    body?: never;
+    path: {
+        /**
+         * Section identifier
+         */
+        sectionId: number;
+    };
+    query?: never;
+    url: '/library/sections/{sectionId}/location';
+};
+
+export type LibrarySectionGetLocationsResponses = {
+    /**
+     * OK
+     */
+    200: {
+        MediaContainer?: MediaContainer2 & {
+            Directory?: Array<{
+                fastKey?: string;
+                key?: string;
+                title?: string;
+            }>;
+        };
+    };
+};
+
+export type LibrarySectionGetLocationsResponse = LibrarySectionGetLocationsResponses[keyof LibrarySectionGetLocationsResponses];
+
+export type LibrarySectionGetMomentData = {
+    body?: never;
+    path: {
+        /**
+         * Section identifier
+         */
+        sectionId: number;
+    };
+    query?: never;
+    url: '/library/sections/{sectionId}/moment';
+};
+
+export type LibrarySectionGetMomentResponses = {
+    /**
+     * OK
+     */
+    200: MediaContainerWithArtwork;
+};
+
+export type LibrarySectionGetMomentResponse = LibrarySectionGetMomentResponses[keyof LibrarySectionGetMomentResponses];
+
+export type LibrarySectionGetNearestData = {
+    body?: never;
+    path: {
+        /**
+         * Section identifier
+         */
+        sectionId: number;
+    };
+    query: {
+        /**
+         * The metadata type to fetch (should be 10 for audio track)
+         */
+        type?: number;
+        /**
+         * The music analysis to center the search.  Typically obtained from the `musicAnalysis` of a track
+         */
+        values: Array<number>;
+        /**
+         * The limit of the number of items to fetch; defaults to 50
+         */
+        limit?: number;
+        /**
+         * The maximum distance to search, defaults to 0.25
+         */
+        maxDistance?: number;
+    };
+    url: '/library/sections/{sectionId}/nearest';
+};
+
+export type LibrarySectionGetNearestResponses = {
+    /**
+     * OK
+     */
+    200: MediaContainerWithMetadata;
+};
+
+export type LibrarySectionGetNearestResponse = LibrarySectionGetNearestResponses[keyof LibrarySectionGetNearestResponses];
+
+export type LibrarySectionGetPrefsData = {
+    body?: never;
+    path: {
+        /**
+         * Section identifier
+         */
+        sectionId: number;
+    };
+    query?: {
+        agent?: string;
+    };
+    url: '/library/sections/{sectionId}/prefs';
+};
+
+export type LibrarySectionGetPrefsResponses = {
+    /**
+     * OK
+     */
+    200: MediaContainerWithSettings;
+};
+
+export type LibrarySectionGetPrefsResponse = LibrarySectionGetPrefsResponses[keyof LibrarySectionGetPrefsResponses];
+
+export type LibrarySectionPutPrefsData = {
+    body?: never;
+    path: {
+        /**
+         * Section identifier
+         */
+        sectionId: number;
+    };
+    query: {
+        prefs: {
+            [key: string]: unknown;
+        };
+    };
+    url: '/library/sections/{sectionId}/prefs';
+};
+
+export type LibrarySectionPutPrefsResponses = {
+    /**
+     * OK
+     */
+    200: unknown;
+};
+
+export type LibrarySectionDeleteRefreshData = {
+    body?: never;
+    path: {
+        /**
+         * Section identifier
+         */
+        sectionId: number;
+    };
+    query?: never;
+    url: '/library/sections/{sectionId}/refresh';
+};
+
+export type LibrarySectionDeleteRefreshResponses = {
+    /**
+     * OK
+     */
+    200: unknown;
+};
+
+export type LibrarySectionPostRefreshData = {
+    body?: never;
+    path: {
+        /**
+         * Section identifier
+         */
+        sectionId: number;
+    };
+    query?: {
+        /**
+         * Whether the update of metadata and items should be performed even if modification dates indicate the items have not change
+         */
+        force?: 0 | 1;
+        /**
+         * Restrict refresh to the specified path
+         */
+        path?: string;
+    };
+    url: '/library/sections/{sectionId}/refresh';
+};
+
+export type LibrarySectionPostRefreshResponses = {
+    /**
+     * OK
+     */
+    200: unknown;
+};
+
+export type LibrarySectionGetSortsData = {
+    body?: never;
+    path: {
+        /**
+         * Section identifier
+         */
+        sectionId: number;
+    };
+    query?: never;
+    url: '/library/sections/{sectionId}/sorts';
+};
+
+export type LibrarySectionGetSortsResponses = {
+    /**
+     * OK
+     */
+    200: {
+        MediaContainer?: MediaContainer2 & {
+            Directory?: Array<Sort>;
+        };
+    };
+};
+
+export type LibrarySectionGetSortsResponse = LibrarySectionGetSortsResponses[keyof LibrarySectionGetSortsResponses];
+
+export type LibrarySectionGetSubtitleCodecsData = {
+    body?: never;
+    path: {
+        /**
+         * Section identifier
+         */
+        sectionId: number;
+    };
+    query?: {
+        /**
+         * This is a complex query built of several parameters.  See [API Info section](#section/API-Info/Media-Queries) for information on building media queries
+         */
+        mediaQuery?: {
+            [key: string]: unknown;
+        };
+    };
+    url: '/library/sections/{sectionId}/subtitleCodec';
+};
+
+export type LibrarySectionGetSubtitleCodecsResponses = {
+    /**
+     * The subtitle codecs in the section
+     */
+    200: {
+        MediaContainer?: MediaContainer2 & {
+            Directory?: Array<Directory>;
+        };
+    };
+};
+
+export type LibrarySectionGetSubtitleCodecsResponse = LibrarySectionGetSubtitleCodecsResponses[keyof LibrarySectionGetSubtitleCodecsResponses];
+
+export type LibrarySectionGetVideoCodecsData = {
+    body?: never;
+    path: {
+        /**
+         * Section identifier
+         */
+        sectionId: number;
+    };
+    query?: {
+        /**
+         * This is a complex query built of several parameters.  See [API Info section](#section/API-Info/Media-Queries) for information on building media queries
+         */
+        mediaQuery?: {
+            [key: string]: unknown;
+        };
+    };
+    url: '/library/sections/{sectionId}/videoCodec';
+};
+
+export type LibrarySectionGetVideoCodecsResponses = {
+    /**
+     * The video codecs in the section
+     */
+    200: {
+        MediaContainer?: MediaContainer2 & {
+            Directory?: Array<Directory>;
+        };
+    };
+};
+
+export type LibrarySectionGetVideoCodecsResponse = LibrarySectionGetVideoCodecsResponses[keyof LibrarySectionGetVideoCodecsResponses];
+
+export type LibraryGetSectionsData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/library/sections/all';
+};
+
+export type LibraryGetSectionsResponses = {
+    /**
+     * OK
+     */
+    200: {
+        MediaContainer?: MediaContainer & {
+            allowSync?: AllowSync;
+            Directory?: Array<LibrarySection>;
+            /**
+             * Typically just "Plex Library"
+             */
+            title1?: string;
+        };
+    };
+};
+
+export type LibraryGetSectionsResponse = LibraryGetSectionsResponses[keyof LibraryGetSectionsResponses];
+
+export type LibraryPostSectionData = {
+    body?: never;
+    path?: never;
+    query: {
+        /**
+         * The name of the new section
+         */
+        name: string;
+        /**
+         * The type of library section
+         */
+        type: number;
+        /**
+         * The scanner this section should use
+         */
+        scanner?: string;
+        /**
+         * The agent this section should use for metadata
+         */
+        agent: string;
+        /**
+         * The agent group id for this section
+         */
+        metadataAgentProviderGroupId?: string;
+        /**
+         * The language of this section
+         */
+        language: string;
+        /**
+         * The locations on disk to add to this section
+         */
+        locations?: Array<string>;
+        /**
+         * The preferences for this section
+         */
+        prefs?: {
+            [key: string]: unknown;
+        };
+        /**
+         * If set, paths are relative to `Media Upload` path
+         */
+        relative?: 0 | 1;
+        /**
+         * If set, import media from iTunes.
+         */
+        importFromiTunes?: 0 | 1;
+    };
+    url: '/library/sections/all';
+};
+
+export type LibraryPostSectionErrors = {
+    /**
+     * Section cannot be created due to bad parameters in request
+     */
+    400: unknown;
+};
+
+export type LibraryPostSectionResponses = {
+    /**
+     * OK
+     */
+    200: {
+        MediaContainer?: {
+            allowSync?: boolean;
+            art?: string;
+            /**
+             * The flavors of directory found here:
+             * - Primary: (e.g. all, On Deck) These are still used in some clients to provide "shortcuts" to subsets of media. However, with the exception of On Deck, all of them can be created by media queries, and the desire is to allow these to be customized by users.
+             * - Secondary: These are marked with `"secondary": true` and were used by old clients to provide nested menus allowing for primative (but structured) navigation.
+             * - Special: There is a By Folder entry which allows browsing the media by the underlying filesystem structure, and there's a completely obsolete entry marked `"search": true` which used to be used to allow clients to build search dialogs on the fly.
+             */
+            content?: string;
+            Directory?: Array<Metadata>;
+            identifier?: string;
+            librarySectionID?: number;
+            mediaTagPrefix?: string;
+            mediaTagVersion?: number;
+            size?: number;
+            sortAsc?: boolean;
+            thumb?: string;
+            title1?: string;
+            viewGroup?: string;
+            viewMode?: number;
+        };
+    };
+};
+
+export type LibraryPostSectionResponse = LibraryPostSectionResponses[keyof LibraryPostSectionResponses];
+
+export type LibraryDeleteSectionsAllRefreshData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/library/sections/all/refresh';
+};
+
+export type LibraryDeleteSectionsAllRefreshResponses = {
+    /**
+     * OK
+     */
+    200: {
+        MediaContainer?: ServerConfiguration & {
+            Directory?: Array<{
+                count?: number;
+                /**
+                 * The key where this directory is found
+                 */
+                key?: string;
+                title?: string;
+            }>;
+        };
+    };
+};
+
+export type LibraryDeleteSectionsAllRefreshResponse = LibraryDeleteSectionsAllRefreshResponses[keyof LibraryDeleteSectionsAllRefreshResponses];
+
+export type LibraryGetSectionsPrefsData = {
+    body?: never;
+    path?: never;
+    query: {
+        /**
+         * The metadata type
+         */
+        type: number;
+        /**
+         * The metadata agent in use
+         */
+        agent?: string;
+    };
+    url: '/library/sections/prefs';
+};
+
+export type LibraryGetSectionsPrefsErrors = {
+    /**
+     * type not provided or not an integer
+     */
+    400: unknown;
+};
+
+export type LibraryGetSectionsPrefsResponses = {
+    /**
+     * OK
+     */
+    200: {
+        MediaContainer?: ServerConfiguration & {
+            Directory?: Array<{
+                count?: number;
+                /**
+                 * The key where this directory is found
+                 */
+                key?: string;
+                title?: string;
+            }>;
+        };
+    };
+};
+
+export type LibraryGetSectionsPrefsResponse = LibraryGetSectionsPrefsResponses[keyof LibraryGetSectionsPrefsResponses];
+
+export type LibraryPostSectionsRefreshData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Force refresh of metadata
+         */
+        force?: boolean;
+    };
+    url: '/library/sections/refresh';
+};
+
+export type LibraryPostSectionsRefreshErrors = {
+    /**
+     * Server cannot refresh a music library when not signed in
+     */
+    503: unknown;
+};
+
+export type LibraryPostSectionsRefreshResponses = {
+    /**
+     * OK
+     */
+    200: unknown;
+};
+
+export type LibraryDeleteStreamsStreamData = {
+    body?: never;
+    path: {
+        /**
+         * The id of the stream
+         */
+        streamId: number;
+        /**
+         * This is not a part of this endpoint but documented here to satisfy OpenAPI
+         */
+        ext: string;
+    };
+    query?: never;
+    url: '/library/streams/{streamId}.{ext}';
+};
+
+export type LibraryDeleteStreamsStreamErrors = {
+    /**
+     * This user cannot delete this stream
+     */
+    403: unknown;
+    /**
+     * The stream cannot be deleted
+     */
+    500: unknown;
+};
+
+export type LibraryDeleteStreamsStreamResponses = {
+    /**
+     * OK
+     */
+    200: unknown;
+};
+
+export type LibraryGetStreamsStreamData = {
+    body?: never;
+    path: {
+        /**
+         * The id of the stream
+         */
+        streamId: number;
+        /**
+         * The extension of the stream.  Required to fetch the `sub` portion of `idx`/`sub` subtitles
+         */
+        ext: string;
+    };
+    query?: {
+        /**
+         * The requested encoding for the subtitle (only used for text subtitles)
+         */
+        encoding?: string;
+        /**
+         * The requested format for the subtitle to convert the subtitles to (only used for text subtitles)
+         */
+        format?: string;
+        /**
+         * Whether the server should attempt to automatically adjust the subtitle timestamps to match the media
+         */
+        autoAdjustSubtitle?: 0 | 1;
+    };
+    url: '/library/streams/{streamId}.{ext}';
+};
+
+export type LibraryGetStreamsStreamErrors = {
+    /**
+     * The media is not accessible to the user
+     */
+    403: unknown;
+    /**
+     * The stream doesn't exist or has no data
+     */
+    404: unknown;
+    /**
+     * The stream is not a sidecar subtitle
+     */
+    501: unknown;
+};
+
+export type LibraryGetStreamsStreamResponses = {
+    /**
+     * The stream in the requested format.
+     */
+    200: unknown;
+};
+
+export type LibraryPutStreamsStreamData = {
+    body?: never;
+    path: {
+        /**
+         * The id of the stream
+         */
+        streamId: number;
+        /**
+         * This is not a part of this endpoint but documented here to satisfy OpenAPI
+         */
+        ext: string;
+    };
+    query?: {
+        /**
+         * The offest in ms
+         */
+        offset?: number;
+    };
+    url: '/library/streams/{streamId}.{ext}';
+};
+
+export type LibraryPutStreamsStreamErrors = {
+    /**
+     * The stream doesn't exist
+     */
+    400: unknown;
+};
+
+export type LibraryPutStreamsStreamResponses = {
+    /**
+     * The stream in the requested format.
+     */
+    200: unknown;
+};
+
+export type LibraryGetStreamsStreamLevelsData = {
+    body?: never;
+    path: {
+        /**
+         * The id of the stream
+         */
+        streamId: number;
+    };
+    query?: {
+        /**
+         * Subsample result down to return only the provided number of samples
+         */
+        subsample?: number;
+    };
+    url: '/library/streams/{streamId}/levels';
+};
+
+export type LibraryGetStreamsStreamLevelsErrors = {
+    /**
+     * The media is not accessible to the user
+     */
+    403: unknown;
+    /**
+     * The stream doesn't exist, or the loudness feature is not available on this PMS
+     */
+    404: unknown;
+};
+
+export type LibraryGetStreamsStreamLevelsResponses = {
+    /**
+     * OK
+     */
+    200: {
+        MediaContainer?: MediaContainer2 & {
+            Level?: Array<{
+                /**
+                 * The level in db.
+                 */
+                v?: number;
+            }>;
+            /**
+             * The total number of samples (as a string)
+             */
+            totalSamples?: string;
+        };
+    };
+};
+
+export type LibraryGetStreamsStreamLevelsResponse = LibraryGetStreamsStreamLevelsResponses[keyof LibraryGetStreamsStreamLevelsResponses];
+
+export type LibraryGetStreamsStreamLoudnessData = {
+    body?: never;
+    path: {
+        /**
+         * The id of the stream
+         */
+        streamId: number;
+    };
+    query?: {
+        /**
+         * Subsample result down to return only the provided number of samples
+         */
+        subsample?: number;
+    };
+    url: '/library/streams/{streamId}/loudness';
+};
+
+export type LibraryGetStreamsStreamLoudnessErrors = {
+    /**
+     * The media is not accessible to the user
+     */
+    403: unknown;
+    /**
+     * The stream doesn't exist, or the loudness feature is not available on this PMS
+     */
+    404: unknown;
+};
+
+export type LibraryGetStreamsStreamLoudnessResponses = {
+    /**
+     * OK
+     */
+    200: string;
+};
+
+export type LibraryGetStreamsStreamLoudnessResponse = LibraryGetStreamsStreamLoudnessResponses[keyof LibraryGetStreamsStreamLoudnessResponses];
+
+export type LibraryGetTagsData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * The type of tags to fetch
+         */
+        type?: number;
+    };
+    url: '/library/tags';
+};
+
+export type LibraryGetTagsResponses = {
+    /**
+     * OK
+     */
+    200: {
+        MediaContainer?: MediaContainer2 & {
+            Directory?: Array<{
+                /**
+                 * The filter string to view metadata wit this tag
+                 */
+                filter?: string;
+                id?: number;
+                /**
+                 * The name of the tag
+                 */
+                tag?: string;
+                /**
+                 * The key of this tag.  This is a universal key across all PMS instances and plex.tv services
+                 */
+                tagKey?: string;
+                /**
+                 * The type of the tag
+                 */
+                tagType?: number;
+                /**
+                 * The URL to a thumbnail for this tag
+                 */
+                thumb?: string;
+            }>;
+        };
+    };
+};
+
+export type LibraryGetTagsResponse = LibraryGetTagsResponses[keyof LibraryGetTagsResponses];
+
+export type LivetvDvrGetSlashData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/livetv/dvrs';
+};
+
+export type LivetvDvrGetSlashResponses = {
+    /**
+     * OK
+     */
+    200: {
+        MediaContainer?: MediaContainerWithStatusPropertiesMediaContainer & {
+            DVR?: Array<{
+                Device?: Array<DeviceItems>;
+                key?: string;
+                language?: string;
+                lineup?: string;
+                uuid?: string;
+            }>;
+        };
+    };
+};
+
+export type LivetvDvrGetSlashResponse = LivetvDvrGetSlashResponses[keyof LivetvDvrGetSlashResponses];
+
+export type LivetvDvrPostSlashData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * The EPG lineup.
+         */
+        lineup?: string;
+        /**
+         * The device.
+         */
+        device?: Array<string>;
+        /**
+         * The language.
+         */
+        language?: string;
+    };
+    url: '/livetv/dvrs';
+};
+
+export type LivetvDvrPostSlashResponses = {
+    /**
+     * OK
+     */
+    200: {
+        MediaContainer?: MediaContainerWithStatusPropertiesMediaContainer & {
+            DVR?: Array<{
+                Device?: Array<DeviceItems>;
+                key?: string;
+                language?: string;
+                lineup?: string;
+                uuid?: string;
+            }>;
+        };
+    };
+};
+
+export type LivetvDvrPostSlashResponse = LivetvDvrPostSlashResponses[keyof LivetvDvrPostSlashResponses];
+
+export type LivetvDvrDeleteDvrData = {
+    body?: never;
+    path: {
+        /**
+         * The ID of the DVR.
+         */
+        dvrId: number;
+    };
+    query?: never;
+    url: '/livetv/dvrs/{dvrId}';
+};
+
+export type LivetvDvrDeleteDvrResponses = {
+    /**
+     * OK
+     */
+    200: unknown;
+};
+
+export type LivetvDvrGetDvrData = {
+    body?: never;
+    path: {
+        /**
+         * The ID of the DVR.
+         */
+        dvrId: number;
+    };
+    query?: never;
+    url: '/livetv/dvrs/{dvrId}';
+};
+
+export type LivetvDvrGetDvrResponses = {
+    /**
+     * OK
+     */
+    200: {
+        MediaContainer?: MediaContainerWithStatusPropertiesMediaContainer & {
+            DVR?: Array<{
+                Device?: Array<DeviceItems>;
+                key?: string;
+                language?: string;
+                lineup?: string;
+                uuid?: string;
+            }>;
+        };
+    };
+};
+
+export type LivetvDvrGetDvrResponse = LivetvDvrGetDvrResponses[keyof LivetvDvrGetDvrResponses];
+
+export type LivetvDvrPostChannelsChannelTuneData = {
+    body?: never;
+    path: {
+        /**
+         * The ID of the DVR.
+         */
+        dvrId: number;
+        /**
+         * The channel ID to tune
+         */
+        channel: string;
+    };
+    query?: never;
+    url: '/livetv/dvrs/{dvrId}/channels/{channel}/tune';
+};
+
+export type LivetvDvrPostChannelsChannelTuneErrors = {
+    /**
+     * Tuning failed
+     */
+    500: unknown;
+};
+
+export type LivetvDvrPostChannelsChannelTuneResponses = {
+    /**
+     * OK
+     */
+    200: MediaContainerWithMetadata;
+};
+
+export type LivetvDvrPostChannelsChannelTuneResponse = LivetvDvrPostChannelsChannelTuneResponses[keyof LivetvDvrPostChannelsChannelTuneResponses];
+
+export type LivetvDvrDeleteDvrDeviceData = {
+    body?: never;
+    path: {
+        /**
+         * The ID of the DVR.
+         */
+        dvrId: number;
+        /**
+         * The ID of the device to add.
+         */
+        deviceId: number;
+    };
+    query?: never;
+    url: '/livetv/dvrs/{dvrId}/devices/{deviceId}';
+};
+
+export type LivetvDvrDeleteDvrDeviceResponses = {
+    /**
+     * OK
+     */
+    200: {
+        MediaContainer?: MediaContainerWithStatusPropertiesMediaContainer & {
+            DVR?: Array<{
+                Device?: Array<DeviceItems>;
+                key?: string;
+                language?: string;
+                lineup?: string;
+                uuid?: string;
+            }>;
+        };
+    };
+};
+
+export type LivetvDvrDeleteDvrDeviceResponse = LivetvDvrDeleteDvrDeviceResponses[keyof LivetvDvrDeleteDvrDeviceResponses];
+
+export type LivetvDvrPutDvrDeviceData = {
+    body?: never;
+    path: {
+        /**
+         * The ID of the DVR.
+         */
+        dvrId: number;
+        /**
+         * The ID of the device to add.
+         */
+        deviceId: number;
+    };
+    query?: never;
+    url: '/livetv/dvrs/{dvrId}/devices/{deviceId}';
+};
+
+export type LivetvDvrPutDvrDeviceResponses = {
+    /**
+     * OK
+     */
+    200: {
+        MediaContainer?: MediaContainerWithStatusPropertiesMediaContainer & {
+            DVR?: Array<{
+                Device?: Array<DeviceItems>;
+                key?: string;
+                language?: string;
+                lineup?: string;
+                uuid?: string;
+            }>;
+        };
+    };
+};
+
+export type LivetvDvrPutDvrDeviceResponse = LivetvDvrPutDvrDeviceResponses[keyof LivetvDvrPutDvrDeviceResponses];
+
+export type LivetvDvrDeleteLineupData = {
+    body?: never;
+    path: {
+        /**
+         * The ID of the DVR.
+         */
+        dvrId: number;
+    };
+    query: {
+        /**
+         * The lineup to delete
+         */
+        lineup: string;
+    };
+    url: '/livetv/dvrs/{dvrId}/lineups';
+};
+
+export type LivetvDvrDeleteLineupResponses = {
+    /**
+     * OK
+     */
+    200: {
+        MediaContainer?: MediaContainerWithStatusPropertiesMediaContainer & {
+            DVR?: Array<{
+                Device?: Array<DeviceItems>;
+                key?: string;
+                language?: string;
+                lineup?: string;
+                uuid?: string;
+            }>;
+        };
+    };
+};
+
+export type LivetvDvrDeleteLineupResponse = LivetvDvrDeleteLineupResponses[keyof LivetvDvrDeleteLineupResponses];
+
+export type LivetvDvrPutLineupData = {
+    body?: never;
+    path: {
+        /**
+         * The ID of the DVR.
+         */
+        dvrId: number;
+    };
+    query: {
+        /**
+         * The lineup to delete
+         */
+        lineup: string;
+    };
+    url: '/livetv/dvrs/{dvrId}/lineups';
+};
+
+export type LivetvDvrPutLineupResponses = {
+    /**
+     * OK
+     */
+    200: {
+        MediaContainer?: MediaContainerWithStatusPropertiesMediaContainer & {
+            DVR?: Array<{
+                Device?: Array<DeviceItems>;
+                key?: string;
+                language?: string;
+                lineup?: string;
+                uuid?: string;
+            }>;
+        };
+    };
+};
+
+export type LivetvDvrPutLineupResponse = LivetvDvrPutLineupResponses[keyof LivetvDvrPutLineupResponses];
+
+export type LivetvDvrPutPrefsData = {
+    body?: never;
+    path: {
+        /**
+         * The ID of the DVR.
+         */
+        dvrId: number;
+    };
+    query?: {
+        /**
+         * Set the `name` preference to the provided value
+         */
+        name?: string;
+    };
+    url: '/livetv/dvrs/{dvrId}/prefs';
+};
+
+export type LivetvDvrPutPrefsResponses = {
+    /**
+     * OK
+     */
+    200: {
+        MediaContainer?: MediaContainerWithStatusPropertiesMediaContainer & {
+            DVR?: Array<{
+                Device?: Array<DeviceItems>;
+                key?: string;
+                language?: string;
+                lineup?: string;
+                uuid?: string;
+            }>;
+        };
+    };
+};
+
+export type LivetvDvrPutPrefsResponse = LivetvDvrPutPrefsResponses[keyof LivetvDvrPutPrefsResponses];
+
+export type LivetvDvrDeleteReloadGuideData = {
+    body?: never;
+    path: {
+        /**
+         * The ID of the DVR.
+         */
+        dvrId: number;
+    };
+    query?: never;
+    url: '/livetv/dvrs/{dvrId}/reloadGuide';
+};
+
+export type LivetvDvrDeleteReloadGuideResponses = {
+    /**
+     * OK
+     */
+    200: unknown;
+};
+
+export type LivetvDvrPostReloadGuideData = {
+    body?: never;
+    path: {
+        /**
+         * The ID of the DVR.
+         */
+        dvrId: number;
+    };
+    query?: never;
+    url: '/livetv/dvrs/{dvrId}/reloadGuide';
+};
+
+export type LivetvDvrPostReloadGuideResponses = {
+    /**
+     * OK
+     */
+    200: unknown;
+};
+
+export type LivetvEpgGetChannelmapData = {
+    body?: never;
+    path?: never;
+    query: {
+        /**
+         * The URI describing the device
+         */
+        device: string;
+        /**
+         * The URI describing the lineup
+         */
+        lineup: string;
+    };
+    url: '/livetv/epg/channelmap';
+};
+
+export type LivetvEpgGetChannelmapErrors = {
+    /**
+     * No device or provider with the identifier was found
+     */
+    404: unknown;
+    /**
+     * Failed to compute channel map
+     */
+    500: unknown;
+};
+
+export type LivetvEpgGetChannelmapResponses = {
+    /**
+     * OK
+     */
+    200: {
+        MediaContainer?: MediaContainer2 & {
+            ChannelMapping?: Array<{
+                channelKey?: string;
+                /**
+                 * The channel description on the device
+                 */
+                deviceIdentifier?: string;
+                favorite?: boolean;
+                /**
+                 * The channel identifier in the lineup
+                 */
+                lineupIdentifier?: string;
+            }>;
+        };
+    };
+};
+
+export type LivetvEpgGetChannelmapResponse = LivetvEpgGetChannelmapResponses[keyof LivetvEpgGetChannelmapResponses];
+
+export type LivetvEpgGetChannelsData = {
+    body?: never;
+    path?: never;
+    query: {
+        /**
+         * The URI describing the lineup
+         */
+        lineup: string;
+    };
+    url: '/livetv/epg/channels';
+};
+
+export type LivetvEpgGetChannelsErrors = {
+    /**
+     * No provider with the identifier was found
+     */
+    404: unknown;
+};
+
+export type LivetvEpgGetChannelsResponses = {
+    /**
+     * OK
+     */
+    200: {
+        MediaContainer?: MediaContainer2 & {
+            Channel?: Array<Channel>;
+        };
+    };
+};
+
+export type LivetvEpgGetChannelsResponse = LivetvEpgGetChannelsResponses[keyof LivetvEpgGetChannelsResponses];
+
+export type LivetvEpgGetCountriesData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/livetv/epg/countries';
+};
+
+export type LivetvEpgGetCountriesResponses = {
+    /**
+     * OK
+     */
+    200: {
+        MediaContainer?: MediaContainer2 & {
+            Country?: Array<{
+                /**
+                 * Three letter code
+                 */
+                code?: string;
+                example?: string;
+                /**
+                 * - `0`: The country is divided into regions, and following the key will lead to a list of regions.
+                 * - `1`: The county is divided by postal codes, and an example code is returned in `example`.
+                 * - `2`: The country has a single postal code, returned in `example`.
+                 *
+                 */
+                flavor?: 0 | 1 | 2;
+                key?: string;
+                /**
+                 * Three letter language code
+                 */
+                language?: string;
+                /**
+                 * The title of the language
+                 */
+                languageTitle?: string;
+                title?: string;
+                type?: string;
+            }>;
+        };
+    };
+};
+
+export type LivetvEpgGetCountriesResponse = LivetvEpgGetCountriesResponses[keyof LivetvEpgGetCountriesResponses];
+
+export type LivetvEpgGetCountriesCountryLineupsData = {
+    body?: never;
+    path: {
+        /**
+         * 3 letter country code
+         */
+        country: string;
+        /**
+         * The `providerIdentifier` of the provider
+         */
+        epgId: string;
+    };
+    query?: {
+        /**
+         * The postal code for the lineups to fetch
+         */
+        postalCode?: string;
+    };
+    url: '/livetv/epg/countries/{country}/{epgId}/lineups';
+};
+
+export type LivetvEpgGetCountriesCountryLineupsErrors = {
+    /**
+     * No provider with the identifier was found
+     */
+    404: unknown;
+};
+
+export type LivetvEpgGetCountriesCountryLineupsResponses = {
+    /**
+     * OK
+     */
+    200: MediaContainerWithLineup;
+};
+
+export type LivetvEpgGetCountriesCountryLineupsResponse = LivetvEpgGetCountriesCountryLineupsResponses[keyof LivetvEpgGetCountriesCountryLineupsResponses];
+
+export type LivetvEpgGetCountriesCountryRegionsData = {
+    body?: never;
+    path: {
+        /**
+         * 3 letter country code
+         */
+        country: string;
+        /**
+         * The `providerIdentifier` of the provider
+         */
+        epgId: string;
+    };
+    query?: never;
+    url: '/livetv/epg/countries/{country}/{epgId}/regions';
+};
+
+export type LivetvEpgGetCountriesCountryRegionsErrors = {
+    /**
+     * No provider with the identifier was found
+     */
+    404: unknown;
+};
+
+export type LivetvEpgGetCountriesCountryRegionsResponses = {
+    /**
+     * OK
+     */
+    200: {
+        MediaContainer?: MediaContainer2 & {
+            Country?: Array<{
+                key?: string;
+                national?: boolean;
+                title?: string;
+                type?: string;
+            }>;
+        };
+    };
+};
+
+export type LivetvEpgGetCountriesCountryRegionsResponse = LivetvEpgGetCountriesCountryRegionsResponses[keyof LivetvEpgGetCountriesCountryRegionsResponses];
+
+export type LivetvEpgGetCountriesCountryRegionsRegionLineupsData = {
+    body?: never;
+    path: {
+        /**
+         * 3 letter country code
+         */
+        country: string;
+        /**
+         * The `providerIdentifier` of the provider
+         */
+        epgId: string;
+        /**
+         * The region for the lineup
+         */
+        region: string;
+    };
+    query?: never;
+    url: '/livetv/epg/countries/{country}/{epgId}/regions/{region}/lineups';
+};
+
+export type LivetvEpgGetCountriesCountryRegionsRegionLineupsErrors = {
+    /**
+     * No provider with the identifier was found
+     */
+    404: unknown;
+};
+
+export type LivetvEpgGetCountriesCountryRegionsRegionLineupsResponses = {
+    /**
+     * OK
+     */
+    200: MediaContainerWithLineup;
+};
+
+export type LivetvEpgGetCountriesCountryRegionsRegionLineupsResponse = LivetvEpgGetCountriesCountryRegionsRegionLineupsResponses[keyof LivetvEpgGetCountriesCountryRegionsRegionLineupsResponses];
+
+export type LivetvEpgGetLanguagesData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/livetv/epg/languages';
+};
+
+export type LivetvEpgGetLanguagesResponses = {
+    /**
+     * OK
+     */
+    200: {
+        MediaContainer?: MediaContainer2 & {
+            Language?: Array<{
+                /**
+                 * 3 letter language code
+                 */
+                code?: string;
+                title?: string;
+            }>;
+        };
+    };
+};
+
+export type LivetvEpgGetLanguagesResponse = LivetvEpgGetLanguagesResponses[keyof LivetvEpgGetLanguagesResponses];
+
+export type LivetvEpgGetLineupData = {
+    body?: never;
+    path?: never;
+    query: {
+        /**
+         * The URI describing the device
+         */
+        device: string;
+        /**
+         * The URI describing the lineupGroup
+         */
+        lineupGroup: string;
+    };
+    url: '/livetv/epg/lineup';
+};
+
+export type LivetvEpgGetLineupErrors = {
+    /**
+     * No device or provider with the identifier was found
+     */
+    404: unknown;
+    /**
+     * Could not get device's channels
+     */
+    500: unknown;
+};
+
+export type LivetvEpgGetLineupResponses = {
+    /**
+     * OK
+     */
+    200: unknown;
+};
+
+export type LivetvEpgGetLineupchannelsData = {
+    body?: never;
+    path?: never;
+    query: {
+        /**
+         * The URIs describing the lineups
+         */
+        lineup: Array<string>;
+    };
+    url: '/livetv/epg/lineupchannels';
+};
+
+export type LivetvEpgGetLineupchannelsErrors = {
+    /**
+     * No provider with the identifier was found
+     */
+    404: unknown;
+};
+
+export type LivetvEpgGetLineupchannelsResponses = {
+    /**
+     * OK
+     */
+    200: {
+        MediaContainer?: MediaContainer2 & {
+            Lineup?: Array<LineupItems & {
+                Channel?: Array<Channel>;
+            }>;
+        };
+    };
+};
+
+export type LivetvEpgGetLineupchannelsResponse = LivetvEpgGetLineupchannelsResponses[keyof LivetvEpgGetLineupchannelsResponses];
+
+export type LivetvSessionsGetSlashData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/livetv/sessions';
+};
+
+export type LivetvSessionsGetSlashResponses = {
+    /**
+     * OK
+     */
+    200: MediaContainerWithMetadata;
+};
+
+export type LivetvSessionsGetSlashResponse = LivetvSessionsGetSlashResponses[keyof LivetvSessionsGetSlashResponses];
+
+export type LivetvSessionsGetSessionData = {
+    body?: never;
+    path: {
+        /**
+         * The session id
+         */
+        sessionId: string;
+    };
+    query?: never;
+    url: '/livetv/sessions/{sessionId}';
+};
+
+export type LivetvSessionsGetSessionResponses = {
+    /**
+     * OK
+     */
+    200: MediaContainerWithMetadata;
+};
+
+export type LivetvSessionsGetSessionResponse = LivetvSessionsGetSessionResponses[keyof LivetvSessionsGetSessionResponses];
+
+export type LivetvSessionsGetSessionConsumerSegmentData = {
+    body?: never;
+    path: {
+        /**
+         * The session id
+         */
+        sessionId: string;
+        /**
+         * The consumer id
+         */
+        consumerId: string;
+        /**
+         * The segment id
+         */
+        segmentId: string;
+    };
+    query?: never;
+    url: '/livetv/sessions/{sessionId}/{consumerId}/{segmentId}';
+};
+
+export type LivetvSessionsGetSessionConsumerSegmentErrors = {
+    /**
+     * Session, consumer, or segment not found
+     */
+    404: unknown;
+};
+
+export type LivetvSessionsGetSessionConsumerSegmentResponses = {
+    /**
+     * MPEG-TS segment for playing HLS content
+     */
+    200: unknown;
+};
+
+export type LivetvSessionsGetSessionConsumerIndexData = {
+    body?: never;
+    path: {
+        /**
+         * The session id
+         */
+        sessionId: string;
+        /**
+         * The consumer id
+         */
+        consumerId: string;
+    };
+    query?: never;
+    url: '/livetv/sessions/{sessionId}/{consumerId}/index.m3u8';
+};
+
+export type LivetvSessionsGetSessionConsumerIndexErrors = {
+    /**
+     * Session or consumer not found
+     */
+    404: unknown;
+};
+
+export type LivetvSessionsGetSessionConsumerIndexResponses = {
+    /**
+     * Index playlist for playing HLS content
+     */
+    200: unknown;
+};
+
+export type LogPostSlashData = {
+    /**
+     * Line separated list of log items
+     */
+    body?: unknown;
+    path?: never;
+    query?: never;
+    url: '/log';
+};
+
+export type LogPostSlashErrors = {
+    /**
+     * Bad Request
+     */
+    400: unknown;
+};
+
+export type LogPostSlashResponses = {
+    /**
+     * OK
+     */
+    200: unknown;
+};
+
+export type LogPutSlashData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * An integer log level to write to the PMS log with.
+         * - 0: Error
+         * - 1: Warning
+         * - 2: Info
+         * - 3: Debug
+         * - 4: Verbose
+         *
+         */
+        level?: 0 | 1 | 2 | 3 | 4;
+        /**
+         * The text of the message to write to the log.
+         */
+        message?: string;
+        /**
+         * A string indicating the source of the message.
+         */
+        source?: string;
+    };
+    url: '/log';
+};
+
+export type LogPutSlashResponses = {
+    /**
+     * OK
+     */
+    200: unknown;
+};
+
+export type LogPostPapertrailData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * The number of minutes logging should be sent to Papertrail
+         */
+        minutes?: number;
+    };
+    url: '/log/networked';
+};
+
+export type LogPostPapertrailErrors = {
+    /**
+     * User doesn't have permission
+     */
+    403: unknown;
+};
+
+export type LogPostPapertrailResponses = {
+    /**
+     * OK
+     */
+    200: unknown;
+};
+
+export type MediaGrabberGetSlashData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Only return grabbers providing this protocol.
+         */
+        protocol?: string;
+    };
+    url: '/media/grabbers';
+};
+
+export type MediaGrabberGetSlashResponses = {
+    /**
+     * OK
+     */
+    200: {
+        MediaContainer?: MediaContainer2 & {
+            MediaGrabber?: Array<{
+                identifier?: string;
+                protocol?: string;
+                title?: string;
+            }>;
+        };
+    };
+};
+
+export type MediaGrabberGetSlashResponse = MediaGrabberGetSlashResponses[keyof MediaGrabberGetSlashResponses];
+
+export type MediaGrabberGetDevicesData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/media/grabbers/devices';
+};
+
+export type MediaGrabberGetDevicesResponses = {
+    /**
+     * OK
+     */
+    200: MediaContainerWithDevice;
+};
+
+export type MediaGrabberGetDevicesResponse = MediaGrabberGetDevicesResponses[keyof MediaGrabberGetDevicesResponses];
+
+export type MediaGrabberPostDevicesData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * The URI of the device.
+         */
+        uri?: string;
+    };
+    url: '/media/grabbers/devices';
+};
+
+export type MediaGrabberPostDevicesErrors = {
+    /**
+     * Bad Request
+     */
+    400: unknown;
+};
+
+export type MediaGrabberPostDevicesResponses = {
+    /**
+     * OK
+     */
+    200: MediaContainerWithDevice;
+};
+
+export type MediaGrabberPostDevicesResponse = MediaGrabberPostDevicesResponses[keyof MediaGrabberPostDevicesResponses];
+
+export type MediaGrabberDevicesDeviceDeleteSlashData = {
+    body?: never;
+    path: {
+        /**
+         * The ID of the device.
+         */
+        deviceId: number;
+    };
+    query?: never;
+    url: '/media/grabbers/devices/{deviceId}';
+};
+
+export type MediaGrabberDevicesDeviceDeleteSlashErrors = {
+    /**
+     * Device not found
+     */
+    404: unknown;
+};
+
+export type MediaGrabberDevicesDeviceDeleteSlashResponses = {
+    /**
+     * OK
+     */
+    200: {
+        MediaContainer?: MediaContainer2 & {
+            message?: string;
+            status?: number;
+        };
+    };
+};
+
+export type MediaGrabberDevicesDeviceDeleteSlashResponse = MediaGrabberDevicesDeviceDeleteSlashResponses[keyof MediaGrabberDevicesDeviceDeleteSlashResponses];
+
+export type MediaGrabberDevicesDeviceGetSlashData = {
+    body?: never;
+    path: {
+        /**
+         * The ID of the device.
+         */
+        deviceId: number;
+    };
+    query?: never;
+    url: '/media/grabbers/devices/{deviceId}';
+};
+
+export type MediaGrabberDevicesDeviceGetSlashErrors = {
+    /**
+     * Device not found
+     */
+    404: unknown;
+};
+
+export type MediaGrabberDevicesDeviceGetSlashResponses = {
+    /**
+     * OK
+     */
+    200: MediaContainerWithDevice;
+};
+
+export type MediaGrabberDevicesDeviceGetSlashResponse = MediaGrabberDevicesDeviceGetSlashResponses[keyof MediaGrabberDevicesDeviceGetSlashResponses];
+
+export type MediaGrabberDevicesDevicePutSlashData = {
+    body?: never;
+    path: {
+        /**
+         * The ID of the device.
+         */
+        deviceId: number;
+    };
+    query?: {
+        /**
+         * Whether to enable the device
+         */
+        enabled?: 0 | 1;
+    };
+    url: '/media/grabbers/devices/{deviceId}';
+};
+
+export type MediaGrabberDevicesDevicePutSlashErrors = {
+    /**
+     * Device not found
+     */
+    404: unknown;
+};
+
+export type MediaGrabberDevicesDevicePutSlashResponses = {
+    /**
+     * OK
+     */
+    200: {
+        MediaContainer?: MediaContainer2 & {
+            message?: string;
+            status?: number;
+        };
+    };
+};
+
+export type MediaGrabberDevicesDevicePutSlashResponse = MediaGrabberDevicesDevicePutSlashResponses[keyof MediaGrabberDevicesDevicePutSlashResponses];
+
+export type MediaGrabberDevicesDevicePutChannelmapData = {
+    body?: never;
+    path: {
+        /**
+         * The ID of the device.
+         */
+        deviceId: number;
+    };
+    query?: {
+        /**
+         * The mapping of changes, passed as a map of device channel to lineup VCN.
+         */
+        channelMapping?: {
+            [key: string]: unknown;
+        };
+        /**
+         * The mapping of changes, passed as a map of device channel to lineup key.
+         */
+        channelMappingByKey?: {
+            [key: string]: unknown;
+        };
+        /**
+         * The channels which are enabled.
+         */
+        channelsEnabled?: Array<string>;
+    };
+    url: '/media/grabbers/devices/{deviceId}/channelmap';
+};
+
+export type MediaGrabberDevicesDevicePutChannelmapResponses = {
+    /**
+     * OK
+     */
+    200: MediaContainerWithDevice;
+};
+
+export type MediaGrabberDevicesDevicePutChannelmapResponse = MediaGrabberDevicesDevicePutChannelmapResponses[keyof MediaGrabberDevicesDevicePutChannelmapResponses];
+
+export type MediaGrabberDevicesDeviceGetChannelsData = {
+    body?: never;
+    path: {
+        /**
+         * The ID of the device.
+         */
+        deviceId: number;
+    };
+    query?: never;
+    url: '/media/grabbers/devices/{deviceId}/channels';
+};
+
+export type MediaGrabberDevicesDeviceGetChannelsErrors = {
+    /**
+     * Device not found
+     */
+    404: unknown;
+};
+
+export type MediaGrabberDevicesDeviceGetChannelsResponses = {
+    /**
+     * OK
+     */
+    200: {
+        MediaContainer?: MediaContainer2 & {
+            DeviceChannel?: Array<{
+                /**
+                 * Indicates the channel is DRMed and thus may not be playable
+                 */
+                drm?: boolean;
+                favorite?: boolean;
+                hd?: boolean;
+                identifier?: string;
+                key?: string;
+                name?: string;
+                signalQuality?: number;
+                signalStrength?: number;
+            }>;
+        };
+    };
+};
+
+export type MediaGrabberDevicesDeviceGetChannelsResponse = MediaGrabberDevicesDeviceGetChannelsResponses[keyof MediaGrabberDevicesDeviceGetChannelsResponses];
+
+export type MediaGrabberDevicesDevicePutPrefsData = {
+    body?: never;
+    path: {
+        /**
+         * The ID of the device.
+         */
+        deviceId: number;
+    };
+    query?: {
+        /**
+         * The preference names and values.
+         */
+        name?: string;
+    };
+    url: '/media/grabbers/devices/{deviceId}/prefs';
+};
+
+export type MediaGrabberDevicesDevicePutPrefsResponses = {
+    /**
+     * OK
+     */
+    200: unknown;
+};
+
+export type MediaGrabberDeleteDevicesDeviceScanData = {
+    body?: never;
+    path: {
+        /**
+         * The ID of the device.
+         */
+        deviceId: number;
+    };
+    query?: never;
+    url: '/media/grabbers/devices/{deviceId}/scan';
+};
+
+export type MediaGrabberDeleteDevicesDeviceScanResponses = {
+    /**
+     * OK
+     */
+    200: MediaContainerWithDevice;
+};
+
+export type MediaGrabberDeleteDevicesDeviceScanResponse = MediaGrabberDeleteDevicesDeviceScanResponses[keyof MediaGrabberDeleteDevicesDeviceScanResponses];
+
+export type MediaGrabberDevicesDevicePostScanData = {
+    body?: never;
+    path: {
+        /**
+         * The ID of the device.
+         */
+        deviceId: number;
+    };
+    query?: {
+        /**
+         * A valid source for the scan
+         */
+        source?: string;
+    };
+    url: '/media/grabbers/devices/{deviceId}/scan';
+};
+
+export type MediaGrabberDevicesDevicePostScanResponses = {
+    /**
+     * OK
+     */
+    200: MediaContainerWithDevice;
+};
+
+export type MediaGrabberDevicesDevicePostScanResponse = MediaGrabberDevicesDevicePostScanResponses[keyof MediaGrabberDevicesDevicePostScanResponses];
+
+export type MediaGrabberDevicesDeviceGetThumbVersionData = {
+    body?: never;
+    path: {
+        /**
+         * The ID of the device.
+         */
+        deviceId: number;
+        /**
+         * A version number of the thumb used for busting cache
+         */
+        version: number;
+    };
+    query?: never;
+    url: '/media/grabbers/devices/{deviceId}/thumb/{version}';
+};
+
+export type MediaGrabberDevicesDeviceGetThumbVersionErrors = {
+    /**
+     * No thumb found for this device
+     */
+    404: unknown;
+};
+
+export type MediaGrabberDevicesDeviceGetThumbVersionResponses = {
+    /**
+     * The thumbnail for the device
+     */
+    200: unknown;
+};
+
+export type MediaGrabberPostDeviceDiscoverData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/media/grabbers/devices/discover';
+};
+
+export type MediaGrabberPostDeviceDiscoverResponses = {
+    /**
+     * OK
+     */
+    200: MediaContainerWithDevice;
+};
+
+export type MediaGrabberPostDeviceDiscoverResponse = MediaGrabberPostDeviceDiscoverResponses[keyof MediaGrabberPostDeviceDiscoverResponses];
+
+export type MediaGrabberDeleteOperationsOperationData = {
+    body?: never;
+    path: {
+        /**
+         * The ID of the operation.
+         */
+        operationId: string;
+    };
+    query?: never;
+    url: '/media/grabbers/operations/{operationId}';
+};
+
+export type MediaGrabberDeleteOperationsOperationErrors = {
+    /**
+     * User is not owner of the grab and not the admin
+     */
+    403: unknown;
+    /**
+     * Not Found
+     */
+    404: unknown;
+};
+
+export type MediaGrabberDeleteOperationsOperationResponses = {
+    /**
+     * OK
+     */
+    200: unknown;
+};
+
+export type GetMediaProvidersData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/media/providers';
+};
+
+export type GetMediaProvidersResponses = {
+    /**
+     * OK
+     */
+    200: {
+        MediaContainer?: ServerConfiguration & {
+            Feature?: Array<{
+                Directory?: Array<Directory>;
+                key?: string;
+                type?: string;
+            }>;
+            /**
+             * A unique identifier for the provider, e.g. `com.plexapp.plugins.library`.
+             */
+            identifier?: string;
+            /**
+             * A comma-separated list of default protocols for the provider, which can be:
+             * - `stream`: The provider allows streaming media directly from the provider (e.g. for Vimeo). - `download`: The provider allows downloading media for offline storage, sync, etc. (e.g. Podcasts). - `livetv`: The provider provides live content which is only available on a schedule basis.
+             */
+            protocols?: string;
+            /**
+             * The title of the provider.
+             */
+            title?: string;
+            /**
+             * This attribute contains a comma-separated list of the media types exposed by the provider (e.g. `video, audio`).
+             */
+            types?: string;
+        };
+    };
+};
+
+export type GetMediaProvidersResponse = GetMediaProvidersResponses[keyof GetMediaProvidersResponses];
+
+export type PostMediaProvidersData = {
+    body?: never;
+    path?: never;
+    query: {
+        /**
+         * The URL of the media provider to add.
+         */
+        url: string;
+    };
+    url: '/media/providers';
+};
+
+export type PostMediaProvidersErrors = {
+    /**
+     * Bad Request
+     */
+    400: unknown;
+};
+
+export type PostMediaProvidersResponses = {
+    /**
+     * OK
+     */
+    200: unknown;
+};
+
+export type DeleteMediaProviderData = {
+    body?: never;
+    path: {
+        /**
+         * The ID of the media provider to delete
+         */
+        provider: string;
+    };
+    query?: never;
+    url: '/media/providers/{provider}';
+};
+
+export type DeleteMediaProviderErrors = {
+    /**
+     * Bad Request
+     */
+    400: unknown;
+    /**
+     * Cannot delete a provider which is a child of another provider
+     */
+    403: unknown;
+};
+
+export type DeleteMediaProviderResponses = {
+    /**
+     * OK
+     */
+    200: unknown;
+};
+
+export type GetMetadataAgentProvidersData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * A comma-separated list of metadata types to filter the providers by. If not specified, all providers are returned.
+         */
+        metadataTypes?: Array<number>;
+    };
+    url: '/media/providers/metadata';
+};
+
+export type GetMetadataAgentProvidersResponses = {
+    /**
+     * OK
+     */
+    200: {
+        MediaContainer?: MediaContainer2 & {
+            MetadataAgentProvider?: Array<MetadataAgentProvider>;
+        };
+    };
+};
+
+export type GetMetadataAgentProvidersResponse = GetMetadataAgentProvidersResponses[keyof GetMetadataAgentProvidersResponses];
+
+export type PostMetadataAgentProvidersData = {
+    body?: never;
+    path?: never;
+    query: {
+        /**
+         * The URI of the metadata agent provider to add.
+         */
+        uri: string;
+    };
+    url: '/media/providers/metadata';
+};
+
+export type PostMetadataAgentProvidersErrors = {
+    /**
+     * Bad Request
+     */
+    400: unknown;
+    /**
+     * Conflict
+     */
+    409: unknown;
+};
+
+export type PostMetadataAgentProvidersResponses = {
+    /**
+     * OK
+     */
+    200: {
+        MediaContainer?: MediaContainer2 & {
+            MetadataAgentProvider?: Array<MetadataAgentProvider>;
+        };
+    };
+};
+
+export type PostMetadataAgentProvidersResponse = PostMetadataAgentProvidersResponses[keyof PostMetadataAgentProvidersResponses];
+
+export type DeleteMetadataAgentProviderData = {
+    body?: never;
+    path: {
+        /**
+         * The ID of the metadata agent provider to delete
+         */
+        providerId: number;
+    };
+    query?: never;
+    url: '/media/providers/metadata/{providerId}';
+};
+
+export type DeleteMetadataAgentProviderErrors = {
+    /**
+     * Bad Request
+     */
+    400: unknown;
+    /**
+     * Cannot delete a provider which is currently used inside a group.
+     */
+    403: unknown;
+    /**
+     * Not Found
+     */
+    404: unknown;
+};
+
+export type DeleteMetadataAgentProviderResponses = {
+    /**
+     * OK
+     */
+    200: unknown;
+};
+
+export type GetMetadataAgentProviderData = {
+    body?: never;
+    path: {
+        /**
+         * The ID of the metadata agent provider to get
+         */
+        providerId: number;
+    };
+    query?: never;
+    url: '/media/providers/metadata/{providerId}';
+};
+
+export type GetMetadataAgentProviderErrors = {
+    /**
+     * Not Found
+     */
+    404: unknown;
+};
+
+export type GetMetadataAgentProviderResponses = {
+    /**
+     * OK
+     */
+    200: {
+        MediaContainer?: MediaContainer2 & {
+            MetadataAgentProvider?: Array<MetadataAgentProvider>;
+        };
+    };
+};
+
+export type GetMetadataAgentProviderResponse = GetMetadataAgentProviderResponses[keyof GetMetadataAgentProviderResponses];
+
+export type PutMetadataAgentProviderData = {
+    body?: never;
+    path: {
+        /**
+         * The ID of the metadata agent provider to modify
+         */
+        providerId: number;
+    };
+    query?: {
+        /**
+         * The new URI of the metadata agent provider.
+         */
+        uri?: string;
+    };
+    url: '/media/providers/metadata/{providerId}';
+};
+
+export type PutMetadataAgentProviderErrors = {
+    /**
+     * Bad Request
+     */
+    400: unknown;
+};
+
+export type PutMetadataAgentProviderResponses = {
+    /**
+     * OK
+     */
+    200: {
+        MediaContainer?: MediaContainer2 & {
+            MetadataAgentProvider?: Array<MetadataAgentProvider>;
+        };
+    };
+};
+
+export type PutMetadataAgentProviderResponse = PutMetadataAgentProviderResponses[keyof PutMetadataAgentProviderResponses];
+
+export type GetMetadataAgentProviderGroupsData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/media/providers/metadata/group';
+};
+
+export type GetMetadataAgentProviderGroupsResponses = {
+    /**
+     * OK
+     */
+    200: {
+        MediaContainer?: MediaContainer2 & {
+            MetadataAgentProviderGroup?: Array<MetadataAgentProviderGroup>;
+        };
+    };
+};
+
+export type GetMetadataAgentProviderGroupsResponse = GetMetadataAgentProviderGroupsResponses[keyof GetMetadataAgentProviderGroupsResponses];
+
+export type PostMetadataAgentProviderGroupsData = {
+    body?: never;
+    path?: never;
+    query: {
+        /**
+         * The title of the metadata agent provider group to add.
+         */
+        title: string;
+        /**
+         * The identifier of the metadata agent provider which will be the primary for the group.
+         */
+        primaryIdentifier: string;
+    };
+    url: '/media/providers/metadata/group';
+};
+
+export type PostMetadataAgentProviderGroupsErrors = {
+    /**
+     * Bad Request
+     */
+    400: unknown;
+};
+
+export type PostMetadataAgentProviderGroupsResponses = {
+    /**
+     * OK
+     */
+    200: {
+        MediaContainer?: MediaContainer2 & {
+            MetadataAgentProviderGroup?: Array<MetadataAgentProviderGroup>;
+        };
+    };
+};
+
+export type PostMetadataAgentProviderGroupsResponse = PostMetadataAgentProviderGroupsResponses[keyof PostMetadataAgentProviderGroupsResponses];
+
+export type DeleteMetadataAgentProviderGroupData = {
+    body?: never;
+    path: {
+        /**
+         * The ID of the metadata agent provider group to delete
+         */
+        groupId: number;
+    };
+    query?: never;
+    url: '/media/providers/metadata/group/{groupId}';
+};
+
+export type DeleteMetadataAgentProviderGroupErrors = {
+    /**
+     * Not Found
+     */
+    404: unknown;
+};
+
+export type DeleteMetadataAgentProviderGroupResponses = {
+    /**
+     * OK
+     */
+    200: unknown;
+};
+
+export type GetMetadataAgentProviderGroupData = {
+    body?: never;
+    path: {
+        /**
+         * The ID of the metadata agent provider group to get
+         */
+        groupId: number;
+    };
+    query?: never;
+    url: '/media/providers/metadata/group/{groupId}';
+};
+
+export type GetMetadataAgentProviderGroupErrors = {
+    /**
+     * Not Found
+     */
+    404: unknown;
+};
+
+export type GetMetadataAgentProviderGroupResponses = {
+    /**
+     * OK
+     */
+    200: {
+        MediaContainer?: MediaContainer2 & {
+            MetadataAgentProviderGroup?: Array<MetadataAgentProviderGroup>;
+        };
+    };
+};
+
+export type GetMetadataAgentProviderGroupResponse = GetMetadataAgentProviderGroupResponses[keyof GetMetadataAgentProviderGroupResponses];
+
+export type PutMetadataAgentProviderGroupData = {
+    body?: never;
+    path: {
+        /**
+         * The ID of the metadata agent provider group to update
+         */
+        groupId: number;
+    };
+    query?: {
+        /**
+         * The title of the metadata agent provider group to update.
+         */
+        title?: string;
+    };
+    url: '/media/providers/metadata/group/{groupId}';
+};
+
+export type PutMetadataAgentProviderGroupErrors = {
+    /**
+     * Bad Request
+     */
+    400: unknown;
+};
+
+export type PutMetadataAgentProviderGroupResponses = {
+    /**
+     * OK
+     */
+    200: {
+        MediaContainer?: MediaContainer2 & {
+            MetadataAgentProviderGroup?: Array<MetadataAgentProviderGroup>;
+        };
+    };
+};
+
+export type PutMetadataAgentProviderGroupResponse = PutMetadataAgentProviderGroupResponses[keyof PutMetadataAgentProviderGroupResponses];
+
+export type DeleteMetadataAgentProviderGroupItemData = {
+    body?: never;
+    path: {
+        /**
+         * The ID of the metadata agent provider group
+         */
+        groupId: number;
+        /**
+         * The ID of the metadata agent provider
+         */
+        providerId: number;
+    };
+    query?: never;
+    url: '/media/providers/metadata/group/{groupId}/items/{providerId}';
+};
+
+export type DeleteMetadataAgentProviderGroupItemErrors = {
+    /**
+     * Cannot delete the primary provider of a group.
+     */
+    403: unknown;
+    /**
+     * Not Found
+     */
+    404: unknown;
+};
+
+export type DeleteMetadataAgentProviderGroupItemResponses = {
+    /**
+     * OK
+     */
+    200: unknown;
+};
+
+export type PutMetadataAgentProviderGroupItemData = {
+    body?: never;
+    path: {
+        /**
+         * The ID of the metadata agent group
+         */
+        groupId: number;
+        /**
+         * The ID of the metadata agent provider
+         */
+        providerId: number;
+    };
+    query?: {
+        /**
+         * The ID of the group item to place this item after. This only works if the group item already exists. A -1 value will place the item at the beginning.
+         */
+        after?: number;
+    };
+    url: '/media/providers/metadata/group/{groupId}/items/{providerId}';
+};
+
+export type PutMetadataAgentProviderGroupItemErrors = {
+    /**
+     * Bad Request
+     */
+    400: unknown;
+};
+
+export type PutMetadataAgentProviderGroupItemResponses = {
+    /**
+     * OK
+     */
+    200: {
+        MediaContainer?: MediaContainer2 & {
+            MetadataAgentProviderGroupItem?: Array<MetadataAgentProviderGroupItem>;
+        };
+    };
+};
+
+export type PutMetadataAgentProviderGroupItemResponse = PutMetadataAgentProviderGroupItemResponses[keyof PutMetadataAgentProviderGroupItemResponses];
+
+export type PostMediaProvidersRefreshData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/media/providers/refresh';
+};
+
+export type PostMediaProvidersRefreshResponses = {
+    /**
+     * OK
+     */
+    200: unknown;
+};
+
+export type MediaSubscriptionsGetSlashData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Indicates whether the active grabs should be included as well
+         */
+        includeGrabs?: 0 | 1;
+        /**
+         * Compute the storage of recorded items desired by this subscription
+         */
+        includeStorage?: 0 | 1;
+    };
+    url: '/media/subscriptions';
+};
+
+export type MediaSubscriptionsGetSlashErrors = {
+    /**
+     * User cannot access DVR on this server
+     */
+    403: unknown;
+};
+
+export type MediaSubscriptionsGetSlashResponses = {
+    /**
+     * OK
+     */
+    200: MediaContainerWithSubscription;
+};
+
+export type MediaSubscriptionsGetSlashResponse = MediaSubscriptionsGetSlashResponses[keyof MediaSubscriptionsGetSlashResponses];
+
+export type MediaSubscriptionsPostSlashData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * The library section into which we'll grab the media.  Not actually required when the subscription is to a playlist.
+         */
+        targetLibrarySectionID?: number;
+        /**
+         * The section location into which to grab.
+         */
+        targetSectionLocationID?: number;
+        /**
+         * The type of the thing we're subscribing too (e.g. show, season).
+         */
+        type?: number;
+        /**
+         * Hints describing what we're looking for.  Note: The hint `ratingKey` is required for downloading from a PMS remote.
+         */
+        hints?: {
+            [key: string]: unknown;
+        };
+        /**
+         * Subscription preferences.
+         */
+        prefs?: {
+            [key: string]: unknown;
+        };
+        /**
+         * Subscription parameters.
+         * - `mediaProviderID`: Required for downloads to indicate which MP the subscription will download into
+         * - `source`: Required for downloads to indicate the source of the downloaded content.
+         *
+         */
+        params?: {
+            [key: string]: unknown;
+        };
+    };
+    url: '/media/subscriptions';
+};
+
+export type MediaSubscriptionsPostSlashErrors = {
+    /**
+     * Bad Request
+     */
+    400: unknown;
+    /**
+     * User cannot access DVR on this server
+     */
+    403: unknown;
+    /**
+     * An subscription with the same parameters already exists
+     */
+    409: unknown;
+};
+
+export type MediaSubscriptionsPostSlashResponses = {
+    /**
+     * OK
+     */
+    200: {
+        MediaContainer?: MediaContainer2 & {
+            MediaSubscription?: Array<MediaSubscription>;
+        };
+    };
+};
+
+export type MediaSubscriptionsPostSlashResponse = MediaSubscriptionsPostSlashResponses[keyof MediaSubscriptionsPostSlashResponses];
+
+export type MediaSubscriptionsDeleteSubscriptionData = {
+    body?: never;
+    path: {
+        subscriptionId: number;
+    };
+    query?: never;
+    url: '/media/subscriptions/{subscriptionId}';
+};
+
+export type MediaSubscriptionsDeleteSubscriptionErrors = {
+    /**
+     * Bad Request
+     */
+    400: unknown;
+    /**
+     * User cannot access DVR on this server or cannot access this subscription
+     */
+    403: unknown;
+    /**
+     * Not Found
+     */
+    404: unknown;
+};
+
+export type MediaSubscriptionsDeleteSubscriptionResponses = {
+    /**
+     * OK
+     */
+    200: unknown;
+};
+
+export type MediaSubscriptionsGetSubscriptionData = {
+    body?: never;
+    path: {
+        subscriptionId: number;
+    };
+    query?: {
+        /**
+         * Indicates whether the active grabs should be included as well
+         */
+        includeGrabs?: 0 | 1;
+        /**
+         * Compute the storage of recorded items desired by this subscription
+         */
+        includeStorage?: 0 | 1;
+    };
+    url: '/media/subscriptions/{subscriptionId}';
+};
+
+export type MediaSubscriptionsGetSubscriptionErrors = {
+    /**
+     * Bad Request
+     */
+    400: unknown;
+    /**
+     * User cannot access DVR on this server or cannot access this subscription
+     */
+    403: unknown;
+    /**
+     * Not Found
+     */
+    404: unknown;
+};
+
+export type MediaSubscriptionsGetSubscriptionResponses = {
+    /**
+     * OK
+     */
+    200: MediaContainerWithSubscription;
+};
+
+export type MediaSubscriptionsGetSubscriptionResponse = MediaSubscriptionsGetSubscriptionResponses[keyof MediaSubscriptionsGetSubscriptionResponses];
+
+export type MediaSubscriptionsPutSubscriptionData = {
+    body?: never;
+    path: {
+        subscriptionId: number;
+    };
+    query?: {
+        prefs?: {
+            [key: string]: unknown;
+        };
+    };
+    url: '/media/subscriptions/{subscriptionId}';
+};
+
+export type MediaSubscriptionsPutSubscriptionErrors = {
+    /**
+     * Bad Request
+     */
+    400: unknown;
+    /**
+     * User cannot access DVR on this server or cannot access this subscription
+     */
+    403: unknown;
+    /**
+     * Not Found
+     */
+    404: unknown;
+};
+
+export type MediaSubscriptionsPutSubscriptionResponses = {
+    /**
+     * OK
+     */
+    200: MediaContainerWithSubscription;
+};
+
+export type MediaSubscriptionsPutSubscriptionResponse = MediaSubscriptionsPutSubscriptionResponses[keyof MediaSubscriptionsPutSubscriptionResponses];
+
+export type MediaSubscriptionsPutSubscriptionMoveData = {
+    body?: never;
+    path: {
+        subscriptionId: number;
+    };
+    query?: {
+        /**
+         * The subscription to move this sub after.  If missing will insert at the beginning of the list
+         */
+        after?: number;
+    };
+    url: '/media/subscriptions/{subscriptionId}/move';
+};
+
+export type MediaSubscriptionsPutSubscriptionMoveErrors = {
+    /**
+     * Bad Request
+     */
+    400: unknown;
+    /**
+     * User cannot access DVR on this server or cannot access this subscription
+     */
+    403: unknown;
+    /**
+     * Not Found
+     */
+    404: unknown;
+};
+
+export type MediaSubscriptionsPutSubscriptionMoveResponses = {
+    /**
+     * OK
+     */
+    200: MediaContainerWithSubscription;
+};
+
+export type MediaSubscriptionsPutSubscriptionMoveResponse = MediaSubscriptionsPutSubscriptionMoveResponses[keyof MediaSubscriptionsPutSubscriptionMoveResponses];
+
+export type MediaSubscriptionsPostProcessData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/media/subscriptions/process';
+};
+
+export type MediaSubscriptionsPostProcessErrors = {
+    /**
+     * User cannot access DVR on this server
+     */
+    403: unknown;
+};
+
+export type MediaSubscriptionsPostProcessResponses = {
+    /**
+     * OK
+     */
+    200: unknown;
+};
+
+export type MediaSubscriptionsGetScheduledData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/media/subscriptions/scheduled';
+};
+
+export type MediaSubscriptionsGetScheduledErrors = {
+    /**
+     * User cannot access DVR on this server
+     */
+    403: unknown;
+};
+
+export type MediaSubscriptionsGetScheduledResponses = {
+    /**
+     * OK
+     */
+    200: {
+        MediaContainer?: MediaContainer2 & {
+            MediaGrabOperation?: Array<MediaGrabOperation>;
+        };
+    };
+};
+
+export type MediaSubscriptionsGetScheduledResponse = MediaSubscriptionsGetScheduledResponses[keyof MediaSubscriptionsGetScheduledResponses];
+
+export type MediaSubscriptionsGetTemplateData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * The guid of the item for which to get the template
+         */
+        guid?: string;
+    };
+    url: '/media/subscriptions/template';
+};
+
+export type MediaSubscriptionsGetTemplateErrors = {
+    /**
+     * User cannot access DVR on this server
+     */
+    403: unknown;
+};
+
+export type MediaSubscriptionsGetTemplateResponses = {
+    /**
+     * OK
+     */
+    200: {
+        MediaContainer?: MediaContainer2 & {
+            SubscriptionTemplate?: Array<{
+                MediaSubscription?: Array<MediaSubscription & {
+                    airingsType?: string;
+                    librarySectionTitle?: string;
+                    locationPath?: string;
+                    /**
+                     * Parameter string for creating this subscription
+                     */
+                    parameters?: string;
+                    selected?: boolean;
+                    /**
+                     * Where this subscription will record to
+                     */
+                    targetLibrarySectionID?: number;
+                    /**
+                     * The title of this subscription type
+                     */
+                    title?: string;
+                    /**
+                     * Metadata type number
+                     */
+                    type?: number;
+                }>;
+            }>;
+        };
+    };
+};
+
+export type MediaSubscriptionsGetTemplateResponse = MediaSubscriptionsGetTemplateResponses[keyof MediaSubscriptionsGetTemplateResponses];
+
+export type ImageTranscodeData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * The source URL for the image to transcode.  Note, if this URL requires a token such as `X-Plex-Token`, it should be given as a query parameter to this url.
+         */
+        url?: string;
+        /**
+         * The output format for the image; defaults to jpg
+         */
+        format?: 'jpg' | 'jpeg' | 'png' | 'ppm';
+        /**
+         * The desired width of the output image
+         */
+        width?: number;
+        /**
+         * The desired height of the output image
+         */
+        height?: number;
+        /**
+         * The desired quality of the output.  -1 means the highest quality.  Defaults to -1
+         */
+        quality?: number;
+        /**
+         * The background color to apply before painting the image.  Only really applicable if image has transparency.  Defaults to none
+         */
+        background?: string;
+        /**
+         * Indicates if image should be upscaled to the desired width/height.  Defaults to false
+         */
+        upscale?: 0 | 1;
+        /**
+         * Indicates if image should be scaled to fit the smaller dimension.  By default (false) the image is scaled to fit within the width/height specified but if this parameter is true, it will allow overflowing one dimension to fit the other.  Essentially it is making the width/height minimum sizes of the image or sizing the image to fill the entire width/height even if it overflows one dimension.
+         */
+        minSize?: 0 | 1;
+        /**
+         * Obey the rotation values specified in EXIF data.  Defaults to true.
+         */
+        rotate?: 0 | 1;
+        /**
+         * Apply a blur to the image, Defaults to 0 (none)
+         */
+        blur?: number;
+        /**
+         * Scale the image saturation by the specified percentage.  Defaults to 100
+         */
+        saturation?: number;
+        /**
+         * Render the image at the specified opacity percentage.  Defaults to 100
+         */
+        opacity?: number;
+        /**
+         * Use the specified chroma subsambling.
+         * - 0: 411
+         * - 1: 420
+         * - 2: 422
+         * - 3: 444
+         * Defaults to 3 (444)
+         */
+        chromaSubsampling?: 0 | 1 | 2 | 3;
+        /**
+         * The color to blend with the image.  Defaults to none
+         */
+        blendColor?: string;
+    };
+    url: '/photo/:/transcode';
+};
+
+export type ImageTranscodeErrors = {
+    /**
+     * Bad Request
+     */
+    400: unknown;
+    /**
+     * Forbidden
+     */
+    403: unknown;
+    /**
+     * Not Found
+     */
+    404: unknown;
+};
+
+export type ImageTranscodeResponses = {
+    /**
+     * The resulting image
+     */
+    200: Blob | File;
+};
+
+export type ImageTranscodeResponse = ImageTranscodeResponses[keyof ImageTranscodeResponses];
+
+export type PlaylistGetSlashData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Limit to a type of playlist
+         */
+        playlistType?: 'audio' | 'video' | 'photo';
+        /**
+         * Type of playlists to return, smart or not.  When not provided, will return both.
+         */
+        smart?: 0 | 1;
+    };
+    url: '/playlists';
+};
+
+export type PlaylistGetSlashResponses = {
+    /**
+     * OK
+     */
+    200: MediaContainerWithPlaylistMetadata;
+};
+
+export type PlaylistGetSlashResponse = PlaylistGetSlashResponses[keyof PlaylistGetSlashResponses];
+
+export type PlaylistPostSlashData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * The content URI for what we're playing (e.g. `library://...`).
+         */
+        uri?: string;
+        /**
+         * To create a playlist from an existing play queue.
+         */
+        playQueueID?: number;
+    };
+    url: '/playlists';
+};
+
+export type PlaylistPostSlashErrors = {
+    /**
+     * Bad Request
+     */
+    400: unknown;
+};
+
+export type PlaylistPostSlashResponses = {
+    /**
+     * OK
+     */
+    200: MediaContainerWithPlaylistMetadata;
+};
+
+export type PlaylistPostSlashResponse = PlaylistPostSlashResponses[keyof PlaylistPostSlashResponses];
+
+export type PlaylistDeletePlaylistData = {
+    body?: never;
+    path: {
+        /**
+         * The ID of the playlist
+         */
+        playlistId: number;
+    };
+    query?: never;
+    url: '/playlists/{playlistId}';
+};
+
+export type PlaylistDeletePlaylistErrors = {
+    /**
+     * Playlist not found (or user may not have permission to access playlist)
+     */
+    404: unknown;
+};
+
+export type PlaylistDeletePlaylistResponses = {
+    /**
+     * No Content
+     */
+    204: unknown;
+};
+
+export type PlaylistGetPlaylistData = {
+    body?: never;
+    path: {
+        /**
+         * The ID of the playlist
+         */
+        playlistId: number;
+    };
+    query?: never;
+    url: '/playlists/{playlistId}';
+};
+
+export type PlaylistGetPlaylistErrors = {
+    /**
+     * Playlist not found (or user may not have permission to access playlist)
+     */
+    404: unknown;
+};
+
+export type PlaylistGetPlaylistResponses = {
+    /**
+     * OK
+     */
+    200: MediaContainerWithPlaylistMetadata;
+};
+
+export type PlaylistGetPlaylistResponse = PlaylistGetPlaylistResponses[keyof PlaylistGetPlaylistResponses];
+
+export type PlaylistPutPlaylistData = {
+    body?: never;
+    path: {
+        /**
+         * The ID of the playlist
+         */
+        playlistId: number;
+    };
+    query?: never;
+    url: '/playlists/{playlistId}';
+};
+
+export type PlaylistPutPlaylistErrors = {
+    /**
+     * Playlist not found (or user may not have permission to access playlist)
+     */
+    404: unknown;
+};
+
+export type PlaylistPutPlaylistResponses = {
+    /**
+     * No Content
+     */
+    204: unknown;
+};
+
+export type PlaylistGetGeneratorsData = {
+    body?: never;
+    path: {
+        /**
+         * The ID of the playlist
+         */
+        playlistId: number;
+    };
+    query?: never;
+    url: '/playlists/{playlistId}/generators';
+};
+
+export type PlaylistGetGeneratorsErrors = {
+    /**
+     * Playlist not found (or user may not have permission to access playlist) or generator not found
+     */
+    404: unknown;
+};
+
+export type PlaylistGetGeneratorsResponses = {
+    /**
+     * OK
+     */
+    200: {
+        MediaContainer?: MediaContainer2 & {
+            PlayQueueGenerator?: Array<{
+                changedAt?: number;
+                createdAt?: number;
+                id?: number;
+                playlistID?: number;
+                /**
+                 * The type of playlist generator.
+                 *
+                 * - -1: A smart playlist generator
+                 * - 42: A optimized version generator
+                 *
+                 */
+                type?: -1 | 42;
+                updatedAt?: number;
+                /**
+                 * The URI indicating the search for this generator
+                 */
+                uri?: string;
+            }>;
+        };
+    };
+};
+
+export type PlaylistGetGeneratorsResponse = PlaylistGetGeneratorsResponses[keyof PlaylistGetGeneratorsResponses];
+
+export type PlaylistDeleteItemsData = {
+    body?: never;
+    path: {
+        /**
+         * The ID of the playlist
+         */
+        playlistId: number;
+    };
+    query?: never;
+    url: '/playlists/{playlistId}/items';
+};
+
+export type PlaylistDeleteItemsErrors = {
+    /**
+     * Bad Request
+     */
+    400: unknown;
+    /**
+     * Playlist not found (or user may not have permission to access playlist)
+     */
+    404: unknown;
+};
+
+export type PlaylistDeleteItemsResponses = {
+    /**
+     * OK
+     */
+    200: MediaContainerWithPlaylistMetadata;
+};
+
+export type PlaylistDeleteItemsResponse = PlaylistDeleteItemsResponses[keyof PlaylistDeleteItemsResponses];
+
+export type PlaylistGetItemsData = {
+    body?: never;
+    path: {
+        /**
+         * The ID of the playlist
+         */
+        playlistId: number;
+    };
+    query?: {
+        /**
+         * The metadata types of the item to return.  Values past the first are only used in fetching items from the background processing playlist.
+         */
+        type?: Array<number>;
+    };
+    url: '/playlists/{playlistId}/items';
+};
+
+export type PlaylistGetItemsErrors = {
+    /**
+     * Playlist not found (or user may not have permission to access playlist)
+     */
+    404: unknown;
+};
+
+export type PlaylistGetItemsResponses = {
+    /**
+     * OK
+     */
+    200: MediaContainerWithMetadata;
+};
+
+export type PlaylistGetItemsResponse = PlaylistGetItemsResponses[keyof PlaylistGetItemsResponses];
+
+export type PlaylistPutItemsData = {
+    body?: never;
+    path: {
+        /**
+         * The ID of the playlist
+         */
+        playlistId: number;
+    };
+    query?: {
+        /**
+         * The content URI for the playlist.
+         */
+        uri?: string;
+        /**
+         * The play queue to add to a playlist.
+         */
+        playQueueID?: number;
+    };
+    url: '/playlists/{playlistId}/items';
+};
+
+export type PlaylistPutItemsErrors = {
+    /**
+     * Bad Request
+     */
+    400: unknown;
+    /**
+     * Playlist not found (or user may not have permission to access playlist)
+     */
+    404: unknown;
+};
+
+export type PlaylistPutItemsResponses = {
+    /**
+     * OK
+     */
+    200: MediaContainerWithPlaylistMetadata;
+};
+
+export type PlaylistPutItemsResponse = PlaylistPutItemsResponses[keyof PlaylistPutItemsResponses];
+
+export type PlaylistDeleteItemsGeneratorData = {
+    body?: never;
+    path: {
+        /**
+         * The ID of the playlist
+         */
+        playlistId: number;
+        /**
+         * The generator item ID to delete.
+         */
+        generatorId: number;
+    };
+    query?: never;
+    url: '/playlists/{playlistId}/items/{generatorId}';
+};
+
+export type PlaylistDeleteItemsGeneratorErrors = {
+    /**
+     * Bad Request
+     */
+    400: unknown;
+    /**
+     * Playlist not found (or user may not have permission to access playlist) or generator not found
+     */
+    404: unknown;
+};
+
+export type PlaylistDeleteItemsGeneratorResponses = {
+    /**
+     * OK
+     */
+    200: MediaContainerWithPlaylistMetadata;
+};
+
+export type PlaylistDeleteItemsGeneratorResponse = PlaylistDeleteItemsGeneratorResponses[keyof PlaylistDeleteItemsGeneratorResponses];
+
+export type PlaylistGetItemsGeneratorData = {
+    body?: never;
+    path: {
+        /**
+         * The ID of the playlist
+         */
+        playlistId: number;
+        /**
+         * The generator item ID to delete.
+         */
+        generatorId: number;
+    };
+    query?: never;
+    url: '/playlists/{playlistId}/items/{generatorId}';
+};
+
+export type PlaylistGetItemsGeneratorErrors = {
+    /**
+     * Bad Request
+     */
+    400: unknown;
+    /**
+     * Playlist not found (or user may not have permission to access playlist) or generator not found
+     */
+    404: unknown;
+};
+
+export type PlaylistGetItemsGeneratorResponses = {
+    /**
+     * OK
+     */
+    200: {
+        MediaContainer?: MediaContainer2 & {
+            Item?: Array<{
+                /**
+                 * The composite thumbnail image path
+                 */
+                composite?: string;
+                Device?: {
+                    profile?: string;
+                };
+                id?: number;
+                Location?: {
+                    librarySectionID?: number;
+                    uri?: string;
+                };
+                MediaSettings?: {
+                    advancedSubtitles?: 'auto' | 'burn' | 'none' | 'sidecar' | 'embedded' | 'segmented';
+                    audioBoost?: number;
+                    audioChannelCount?: number;
+                    autoAdjustQuality?: boolean;
+                    autoAdjustSubtitle?: boolean;
+                    directPlay?: boolean;
+                    directStream?: boolean;
+                    directStreamAudio?: boolean;
+                    disableResolutionRotation?: boolean;
+                    maxVideoBitrate?: number;
+                    musicBitrate?: number;
+                    peakBitrate?: number;
+                    photoQuality?: number;
+                    photoResolution?: string;
+                    secondsPerSegment?: number;
+                    subtitles?: 'auto' | 'burn' | 'none' | 'sidecar' | 'embedded' | 'segmented';
+                    subtitleSize?: number;
+                    videoBitrate?: number;
+                    videoQuality?: number;
+                    videoResolution?: string;
+                };
+                Policy?: {
+                    scope?: 'all' | 'count';
+                    /**
+                     * True if only unwatched items are optimized
+                     */
+                    unwatched?: boolean;
+                    /**
+                     * If the scope is count, the number of items to optimize
+                     */
+                    value?: number;
+                };
+                Status?: {
+                    itemsCompleteCount?: number;
+                    itemsCount?: number;
+                    itemsSuccessfulCount?: number;
+                    state?: 'pending' | 'complete' | 'failed';
+                    totalSize?: number;
+                };
+                target?: string;
+                /**
+                 * The tag of this generator's settings
+                 */
+                targetTagID?: number;
+                title?: string;
+                /**
+                 * The type of this generator
+                 */
+                type?: -1 | 42;
+            }>;
+        };
+    };
+};
+
+export type PlaylistGetItemsGeneratorResponse = PlaylistGetItemsGeneratorResponses[keyof PlaylistGetItemsGeneratorResponses];
+
+export type PlaylistPutItemsGeneratorData = {
+    body?: never;
+    path: {
+        /**
+         * The ID of the playlist
+         */
+        playlistId: number;
+        /**
+         * The generator item ID to modify.
+         */
+        generatorId: number;
+    };
+    query?: {
+        /**
+         * Note: OpenAPI cannot properly render this query parameter example ([See GHI](https://github.com/OAI/OpenAPI-Specification/issues/1706)).  It should be rendered as:
+         *
+         * Item[type]=42&Item[title]=Jack-Jack Attack&Item[target]=&Item[targetTagID]=1&Item[locationID]=-1&Item[Location][uri]=library://82503060-0d68-4603-b594-8b071d54819e/item//library/metadata/146&Item[Policy][scope]=all&Item[Policy][value]=&Item[Policy][unwatched]=0
+         *
+         */
+        Item?: {
+            Location?: {
+                uri?: string;
+            };
+            locationID?: number;
+            Policy?: {
+                scope?: 'all' | 'count';
+                unwatched?: 0 | 1;
+                value?: number;
+            };
+            target?: string;
+            targetTagID?: number;
+            title?: string;
+            type?: number;
+        };
+    };
+    url: '/playlists/{playlistId}/items/{generatorId}';
+};
+
+export type PlaylistPutItemsGeneratorErrors = {
+    /**
+     * Bad Request
+     */
+    400: unknown;
+    /**
+     * Playlist not found (or user may not have permission to access playlist) or generator not found
+     */
+    404: unknown;
+};
+
+export type PlaylistPutItemsGeneratorResponses = {
+    /**
+     * OK
+     */
+    200: MediaContainerWithPlaylistMetadata;
+};
+
+export type PlaylistPutItemsGeneratorResponse = PlaylistPutItemsGeneratorResponses[keyof PlaylistPutItemsGeneratorResponses];
+
+export type PlaylistPutItemsGeneratorReprocessData = {
+    body?: never;
+    path: {
+        /**
+         * The ID of the playlist
+         */
+        playlistId: number;
+        /**
+         * The generator item ID to act on
+         */
+        generatorId: number;
+        /**
+         * The metadata item ID to act on
+         */
+        metadataId: number;
+        /**
+         * The action to perform for this item on this optimizer queue
+         */
+        action: 'reprocess' | 'disable' | 'enable';
+    };
+    query?: never;
+    url: '/playlists/{playlistId}/items/{generatorId}/{metadataId}/{action}';
+};
+
+export type PlaylistPutItemsGeneratorReprocessErrors = {
+    /**
+     * Bad Request
+     */
+    400: unknown;
+    /**
+     * Playlist not found (or user may not have permission to access playlist) or generator or metadata item not found
+     */
+    404: unknown;
+};
+
+export type PlaylistPutItemsGeneratorReprocessResponses = {
+    /**
+     * OK
+     */
+    200: unknown;
+};
+
+export type PlaylistGetItemsGeneratorItemsData = {
+    body?: never;
+    path: {
+        /**
+         * The ID of the playlist
+         */
+        playlistId: number;
+        /**
+         * The generator item ID to delete.
+         */
+        generatorId: number;
+    };
+    query?: never;
+    url: '/playlists/{playlistId}/items/{generatorId}/items';
+};
+
+export type PlaylistGetItemsGeneratorItemsErrors = {
+    /**
+     * Bad Request
+     */
+    400: unknown;
+    /**
+     * Playlist not found (or user may not have permission to access playlist) or generator not found
+     */
+    404: unknown;
+};
+
+export type PlaylistGetItemsGeneratorItemsResponses = {
+    /**
+     * OK
+     */
+    200: {
+        MediaContainer?: MediaContainer2 & {
+            Metadata?: Metadata & {
+                /**
+                 * The state of processing if this generator is part of an optimizer playlist
+                 */
+                processingState?: 'processed' | 'completed' | 'tombstoned' | 'disabled' | 'error' | 'pending';
+                /**
+                 * The error which could have occurred (or `good`)
+                 */
+                processingStateContext?: 'good' | 'sourceFileUnavailable' | 'sourceFileMetadataError' | 'clientProfileError' | 'ioError' | 'transcoderError' | 'unknownError' | 'mediaAnalysisError' | 'downloadFailed' | 'accessDenied' | 'cannotTranscode' | 'codecInstallError' | 'diskFull';
+            };
+        };
+    };
+};
+
+export type PlaylistGetItemsGeneratorItemsResponse = PlaylistGetItemsGeneratorItemsResponses[keyof PlaylistGetItemsGeneratorItemsResponses];
+
+export type PlaylistPutItemsMoveData = {
+    body?: never;
+    path: {
+        /**
+         * The ID of the playlist
+         */
+        playlistId: number;
+        /**
+         * The playlist item ID to move.
+         */
+        playlistItemId: number;
+    };
+    query?: {
+        /**
+         * The playlist item ID to insert the new item after.  If not provided, item is moved to beginning of playlist
+         */
+        after?: number;
+    };
+    url: '/playlists/{playlistId}/items/{playlistItemId}/move';
+};
+
+export type PlaylistPutItemsMoveErrors = {
+    /**
+     * Bad Request
+     */
+    400: unknown;
+    /**
+     * Playlist not found (or user may not have permission to access playlist)
+     */
+    404: unknown;
+};
+
+export type PlaylistPutItemsMoveResponses = {
+    /**
+     * OK
+     */
+    200: MediaContainerWithPlaylistMetadata;
+};
+
+export type PlaylistPutItemsMoveResponse = PlaylistPutItemsMoveResponses[keyof PlaylistPutItemsMoveResponses];
+
+export type PlaylistPostUploadData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Absolute path to a directory on the server where m3u files are stored, or the absolute path to a playlist file on the server. If the `path` argument is a directory, that path will be scanned for playlist files to be processed. Each file in that directory creates a separate playlist, with a name based on the filename of the file that created it. The GUID of each playlist is based on the filename. If the `path` argument is a file, that file will be used to create a new playlist, with the name based on the filename of the file that created it. The GUID of each playlist is based on the filename.
+         */
+        path?: string;
+        /**
+         * Force overwriting of duplicate playlists. By default, a playlist file uploaded with the same path will overwrite the existing playlist. The `force` argument is used to disable overwriting. If the `force` argument is set to 0, a new playlist will be created suffixed with the date and time that the duplicate was uploaded.
+         */
+        force?: 0 | 1;
+    };
+    url: '/playlists/upload';
+};
+
+export type PlaylistPostUploadErrors = {
+    /**
+     * OK
+     */
+    403: unknown;
+    /**
+     * The playlist could not be imported
+     */
+    500: unknown;
+};
+
+export type PlaylistPostUploadResponses = {
+    /**
+     * OK
+     */
+    200: unknown;
+};
+
+export type PlayQueuePostSlashData = {
+    body?: never;
+    path?: never;
+    query: {
+        /**
+         * The content URI for what we're playing.
+         */
+        uri?: string;
+        /**
+         * the ID of the playlist we're playing.
+         */
+        playlistID?: number;
+        /**
+         * The type of play queue to create
+         */
+        type: 'audio' | 'video' | 'photo';
+        /**
+         * The key of the first item to play, defaults to the first in the play queue.
+         */
+        key?: string;
+        /**
+         * Whether to shuffle the playlist, defaults to 0.
+         */
+        shuffle?: 0 | 1;
+        /**
+         * If the PQ is bigger than the window, fill any empty space with wraparound items, defaults to 0.
+         */
+        repeat?: 0 | 1;
+        /**
+         * Whether to create a continuous play queue (e.g. from an episode), defaults to 0.
+         */
+        continuous?: 0 | 1;
+        /**
+         * Number of trailers to prepend a movie with not including the pre-roll. If omitted the pre-roll will not be returned in the play queue. When resuming a movie `extrasPrefixCount` should be omitted as a parameter instead of passing 0.
+         */
+        extrasPrefixCount?: number;
+        /**
+         * Only applies to queues of type photo, whether to retrieve all descendent photos from an album or section, defaults to 1.
+         */
+        recursive?: 0 | 1;
+        /**
+         * Only applies to queues of type show or seasons, whether to return a queue that is started on the On Deck episode if one exists. Otherwise begins the play queue on the beginning of the show or season.
+         */
+        onDeck?: 0 | 1;
+    };
+    url: '/playQueues';
+};
+
+export type PlayQueuePostSlashErrors = {
+    /**
+     * Bad Request
+     */
+    400: unknown;
+};
+
+export type PlayQueuePostSlashResponses = {
+    /**
+     * OK
+     */
+    200: {
+        MediaContainer?: PropertiesMediaContainer & {
+            /**
+             * The ID of the play queue, which is used in subsequent requests.
+             */
+            playQueueID?: number;
+            /**
+             * Defines where the "Up Next" region starts
+             */
+            playQueueLastAddedItemID?: string;
+            /**
+             * The queue item ID of the currently selected  item.
+             */
+            playQueueSelectedItemID?: number;
+            /**
+             * The offset of the selected item in the play queue, from the beginning of the queue.
+             */
+            playQueueSelectedItemOffset?: number;
+            /**
+             * The metadata item ID of the currently selected item (matches `ratingKey` attribute in metadata item if the media provider is a library).
+             */
+            playQueueSelectedMetadataItemID?: number;
+            /**
+             * Whether or not the queue is shuffled.
+             */
+            playQueueShuffled?: boolean;
+            /**
+             * The original URI used to create the play queue.
+             */
+            playQueueSourceURI?: string;
+            /**
+             * The total number of items in the play queue.
+             */
+            playQueueTotalCount?: number;
+            /**
+             * The version of the play queue. It increments every time a change is made to the play queue to assist clients in knowing when to refresh.
+             */
+            playQueueVersion?: number;
+        };
+    };
+};
+
+export type PlayQueuePostSlashResponse = PlayQueuePostSlashResponses[keyof PlayQueuePostSlashResponses];
+
+export type PlayQueueQueueGetSlashData = {
+    body?: never;
+    path: {
+        /**
+         * The ID of the play queue.
+         */
+        playQueueId: number;
+    };
+    query?: {
+        /**
+         * If the server should transfer ownership to the requesting client (used in remote control scenarios).
+         */
+        own?: 0 | 1;
+        /**
+         * The play queue item ID for the center of the window - this doesn't change the current selected item.
+         */
+        center?: string;
+        /**
+         * How many items on each side of the center of the window
+         */
+        window?: number;
+        /**
+         * Whether to include the items before the center (if 0, center is not included either), defaults to 1.
+         */
+        includeBefore?: 0 | 1;
+        /**
+         * Whether to include the items after the center (if 0, center is not included either), defaults to 1.
+         */
+        includeAfter?: 0 | 1;
+    };
+    url: '/playQueues/{playQueueId}';
+};
+
+export type PlayQueueQueueGetSlashErrors = {
+    /**
+     * Bad Request
+     */
+    400: unknown;
+    /**
+     * Play queue not found
+     */
+    404: unknown;
+};
+
+export type PlayQueueQueueGetSlashResponses = {
+    /**
+     * OK
+     */
+    200: MediaContainerWithPlaylistMetadata;
+};
+
+export type PlayQueueQueueGetSlashResponse = PlayQueueQueueGetSlashResponses[keyof PlayQueueQueueGetSlashResponses];
+
+export type PlayQueueQueuePutSlashData = {
+    body?: never;
+    path: {
+        /**
+         * The ID of the play queue.
+         */
+        playQueueId: number;
+    };
+    query?: {
+        /**
+         * The content URI for what we're adding to the queue.
+         */
+        uri?: string;
+        /**
+         * The ID of the playlist to add to the playQueue.
+         */
+        playlistID?: string;
+        /**
+         * Play this item next (defaults to 0 - queueing at the end of manually queued items).
+         */
+        next?: 0 | 1;
+    };
+    url: '/playQueues/{playQueueId}';
+};
+
+export type PlayQueueQueuePutSlashErrors = {
+    /**
+     * Bad Request
+     */
+    400: unknown;
+    /**
+     * Play queue not found
+     */
+    404: unknown;
+};
+
+export type PlayQueueQueuePutSlashResponses = {
+    /**
+     * OK
+     */
+    200: MediaContainerWithPlaylistMetadata;
+};
+
+export type PlayQueueQueuePutSlashResponse = PlayQueueQueuePutSlashResponses[keyof PlayQueueQueuePutSlashResponses];
+
+export type PlayQueueQueueDeleteItemsData = {
+    body?: never;
+    path: {
+        /**
+         * The ID of the play queue.
+         */
+        playQueueId: number;
+    };
+    query?: never;
+    url: '/playQueues/{playQueueId}/items';
+};
+
+export type PlayQueueQueueDeleteItemsResponses = {
+    /**
+     * OK
+     */
+    200: MediaContainerWithPlaylistMetadata;
+};
+
+export type PlayQueueQueueDeleteItemsResponse = PlayQueueQueueDeleteItemsResponses[keyof PlayQueueQueueDeleteItemsResponses];
+
+export type PlayQueueQueueDeleteItemsItemData = {
+    body?: never;
+    path: {
+        /**
+         * The ID of the play queue.
+         */
+        playQueueId: number;
+        /**
+         * The play queue item ID to delete.
+         */
+        playQueueItemId: number;
+    };
+    query?: never;
+    url: '/playQueues/{playQueueId}/items/{playQueueItemId}';
+};
+
+export type PlayQueueQueueDeleteItemsItemErrors = {
+    /**
+     * Bad Request
+     */
+    400: unknown;
+    /**
+     * Play queue not found
+     */
+    404: unknown;
+};
+
+export type PlayQueueQueueDeleteItemsItemResponses = {
+    /**
+     * OK
+     */
+    200: MediaContainerWithPlaylistMetadata;
+};
+
+export type PlayQueueQueueDeleteItemsItemResponse = PlayQueueQueueDeleteItemsItemResponses[keyof PlayQueueQueueDeleteItemsItemResponses];
+
+export type PlayQueueQueuePutItemsMoveData = {
+    body?: never;
+    path: {
+        /**
+         * The ID of the play queue.
+         */
+        playQueueId: number;
+        /**
+         * The play queue item ID to delete.
+         */
+        playQueueItemId: number;
+    };
+    query?: {
+        /**
+         * The play queue item ID to insert the new item after. If not present, moves to the beginning.
+         */
+        after?: number;
+    };
+    url: '/playQueues/{playQueueId}/items/{playQueueItemId}/move';
+};
+
+export type PlayQueueQueuePutItemsMoveErrors = {
+    /**
+     * Bad Request
+     */
+    400: unknown;
+    /**
+     * Play queue or queue item not found
+     */
+    404: unknown;
+};
+
+export type PlayQueueQueuePutItemsMoveResponses = {
+    /**
+     * OK
+     */
+    200: MediaContainerWithPlaylistMetadata;
+};
+
+export type PlayQueueQueuePutItemsMoveResponse = PlayQueueQueuePutItemsMoveResponses[keyof PlayQueueQueuePutItemsMoveResponses];
+
+export type PlayQueuePlayQueueResetData = {
+    body?: never;
+    path: {
+        /**
+         * The ID of the play queue.
+         */
+        playQueueId: number;
+    };
+    query?: never;
+    url: '/playQueues/{playQueueId}/reset';
+};
+
+export type PlayQueuePlayQueueResetErrors = {
+    /**
+     * Bad Request
+     */
+    400: unknown;
+    /**
+     * Play queue not found
+     */
+    404: unknown;
+};
+
+export type PlayQueuePlayQueueResetResponses = {
+    /**
+     * OK
+     */
+    200: MediaContainerWithPlaylistMetadata;
+};
+
+export type PlayQueuePlayQueueResetResponse = PlayQueuePlayQueueResetResponses[keyof PlayQueuePlayQueueResetResponses];
+
+export type PlayQueueQueuePutItemsShuffleData = {
+    body?: never;
+    path: {
+        /**
+         * The ID of the play queue.
+         */
+        playQueueId: number;
+    };
+    query?: never;
+    url: '/playQueues/{playQueueId}/shuffle';
+};
+
+export type PlayQueueQueuePutItemsShuffleErrors = {
+    /**
+     * Bad Request
+     */
+    400: unknown;
+    /**
+     * Play queue not found or current item not found
+     */
+    404: unknown;
+};
+
+export type PlayQueueQueuePutItemsShuffleResponses = {
+    /**
+     * OK
+     */
+    200: MediaContainerWithPlaylistMetadata;
+};
+
+export type PlayQueueQueuePutItemsShuffleResponse = PlayQueueQueuePutItemsShuffleResponses[keyof PlayQueueQueuePutItemsShuffleResponses];
+
+export type PlayQueueQueuePutItemsUnshuffleData = {
+    body?: never;
+    path: {
+        /**
+         * The ID of the play queue.
+         */
+        playQueueId: number;
+    };
+    query?: never;
+    url: '/playQueues/{playQueueId}/unshuffle';
+};
+
+export type PlayQueueQueuePutItemsUnshuffleErrors = {
+    /**
+     * Bad Request
+     */
+    400: unknown;
+    /**
+     * Play queue not found or current item not found
+     */
+    404: unknown;
+};
+
+export type PlayQueueQueuePutItemsUnshuffleResponses = {
+    /**
+     * OK
+     */
+    200: MediaContainerWithPlaylistMetadata;
+};
+
+export type PlayQueueQueuePutItemsUnshuffleResponse = PlayQueueQueuePutItemsUnshuffleResponses[keyof PlayQueueQueuePutItemsUnshuffleResponses];
+
+export type SecurityGetResourcesData = {
+    body?: never;
+    path?: never;
+    query: {
+        /**
+         * The source identifier with an included prefix.
+         */
+        source: string;
+        /**
+         * Force refresh
+         */
+        refresh?: 0 | 1;
+    };
+    url: '/security/resources';
+};
+
+export type SecurityGetResourcesErrors = {
+    /**
+     * A query param is missing or the wrong value
+     */
+    400: unknown;
+    /**
+     * Invalid or no token provided or a transient token could not be created
+     */
+    403: unknown;
+};
+
+export type SecurityGetResourcesResponses = {
+    /**
+     * OK
+     */
+    200: {
+        MediaContainer?: MediaContainer2 & {
+            Device?: {
+                accessToken?: string;
+                clientIdentifier?: string;
+                Connection?: Array<{
+                    address?: string;
+                    /**
+                     * Indicates if the connection is the server's LAN address
+                     */
+                    local?: boolean;
+                    port?: number;
+                    protocol?: string;
+                    /**
+                     * Indicates the connection is over a relayed connection
+                     */
+                    relay?: boolean;
+                    uri?: string;
+                }>;
+                name?: string;
+            };
+        };
+    };
+};
+
+export type SecurityGetResourcesResponse = SecurityGetResourcesResponses[keyof SecurityGetResourcesResponses];
+
+export type SecurityPostTokenData = {
+    body?: never;
+    path?: never;
+    query: {
+        /**
+         * The value `delegation` is the only supported `type` parameter.
+         */
+        type: 'delegation';
+        /**
+         * The value `all` is the only supported `scope` parameter.
+         */
+        scope: 'all';
+    };
+    url: '/security/token';
+};
+
+export type SecurityPostTokenErrors = {
+    /**
+     * A query param is missing or the wrong value
+     */
+    400: unknown;
+    /**
+     * Invalid or no token provided or a transient token could not be created
+     */
+    403: unknown;
+};
+
+export type SecurityPostTokenResponses = {
+    /**
+     * OK
+     */
+    200: {
+        MediaContainer?: MediaContainer & {
+            /**
+             * The transient token
+             */
+            token?: string;
+        };
+    };
+};
+
+export type SecurityPostTokenResponse = SecurityPostTokenResponses[keyof SecurityPostTokenResponses];
+
+export type UltraBlurGetColorsData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Url for image which requires color extraction. Can be relative PMS library path or absolute url.
+         */
+        url?: string;
+    };
+    url: '/services/ultrablur/colors';
+};
+
+export type UltraBlurGetColorsErrors = {
+    /**
+     * The image url could not be found.
+     */
+    404: unknown;
+    /**
+     * The server was unable to successfully extract the UltraBlur colors.
+     */
+    500: unknown;
+};
+
+export type UltraBlurGetColorsResponses = {
+    /**
+     * OK
+     */
+    200: {
+        MediaContainer?: MediaContainer2 & {
+            UltraBlurColors?: Array<{
+                /**
+                 * The color (hex) for the bottom left quadrant.
+                 */
+                bottomLeft?: string;
+                /**
+                 * The color (hex) for the bottom right quadrant.
+                 */
+                bottomRight?: string;
+                /**
+                 * The color (hex) for the top left quadrant.
+                 */
+                topLeft?: string;
+                /**
+                 * The color (hex) for the top right quadrant.
+                 */
+                topRight?: string;
+            }>;
+        };
+    };
+};
+
+export type UltraBlurGetColorsResponse = UltraBlurGetColorsResponses[keyof UltraBlurGetColorsResponses];
+
+export type UltraBlurGetImageData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * The base color (hex) for the top left quadrant.
+         */
+        topLeft?: string;
+        /**
+         * The base color (hex) for the top right quadrant.
+         */
+        topRight?: string;
+        /**
+         * The base color (hex) for the bottom right quadrant.
+         */
+        bottomRight?: string;
+        /**
+         * The base color (hex) for the bottom left quadrant.
+         */
+        bottomLeft?: string;
+        /**
+         * Width in pixels for the image.
+         */
+        width?: number;
+        /**
+         * Height in pixels for the image.
+         */
+        height?: number;
+        /**
+         * Whether to add noise to the ouput image. Noise can reduce color banding with the gradients. Image sizes with noise will be larger.
+         */
+        noise?: 0 | 1;
+    };
+    url: '/services/ultrablur/image';
+};
+
+export type UltraBlurGetImageErrors = {
+    /**
+     * Requested width and height parameters are out of bounds (maximum 3840 x 2160)
+     */
+    400: unknown;
+};
+
+export type UltraBlurGetImageResponses = {
+    /**
+     * OK
+     */
+    200: Blob | File;
+};
+
+export type UltraBlurGetImageResponse = UltraBlurGetImageResponses[keyof UltraBlurGetImageResponses];
+
+export type StatusGetSlashData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/status/sessions';
+};
+
+export type StatusGetSlashResponses = {
+    /**
+     * OK
+     */
+    200: {
+        MediaContainer?: PropertiesMediaContainer & {
+            Metadata?: Array<{
+                /**
+                 * Info about the player being used
+                 */
+                Player?: {
+                    /**
+                     * The remote address
+                     */
+                    address?: string;
+                    /**
+                     * Indicating if the client is playing from the local LAN
+                     */
+                    local?: boolean;
+                    /**
+                     * The identifier of the client
+                     */
+                    machineIdentifier?: string;
+                    /**
+                     * The model of the client
+                     */
+                    model?: string;
+                    /**
+                     * The platform of the client
+                     */
+                    platform?: string;
+                    /**
+                     * The platformVersion of the client
+                     */
+                    platformVersion?: string;
+                    /**
+                     * The product name of the client
+                     */
+                    product?: string;
+                    /**
+                     * Indicating if the client is playing over a relay connection
+                     */
+                    relayed?: boolean;
+                    /**
+                     * The client's public address
+                     */
+                    remotePublicAddress?: string;
+                    /**
+                     * Indicating if the client is playing over HTTPS
+                     */
+                    secure?: boolean;
+                    /**
+                     * The client's last reported state
+                     */
+                    state?: string;
+                    /**
+                     * The title of the client
+                     */
+                    title?: string;
+                    /**
+                     * The id of the user
+                     */
+                    userID?: number;
+                    /**
+                     * The vendor of the client
+                     */
+                    vendor?: string;
+                    /**
+                     * The version of the client
+                     */
+                    version?: string;
+                };
+                /**
+                 * Info about the playback session
+                 */
+                Session?: {
+                    /**
+                     * The bandwidth used by this client's playback in kbps
+                     */
+                    bandwidth?: number;
+                    /**
+                     * The id of the playback session
+                     */
+                    id?: string;
+                    /**
+                     * The location of the client
+                     */
+                    location?: 'lan' | 'wan';
+                };
+                /**
+                 * The user playing the content
+                 */
+                User?: {
+                    /**
+                     * The id of the user
+                     */
+                    id?: string;
+                    /**
+                     * Thumb image to display for the user
+                     */
+                    thumb?: string;
+                    /**
+                     * The username
+                     */
+                    title?: string;
+                };
+            } & Metadata>;
+        };
+    };
+};
+
+export type StatusGetSlashResponse = StatusGetSlashResponses[keyof StatusGetSlashResponses];
+
+export type StatusGetBackgroundData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/status/sessions/background';
+};
+
+export type StatusGetBackgroundResponses = {
+    /**
+     * OK
+     */
+    200: {
+        MediaContainer?: MediaContainer2 & {
+            TranscodeJob?: Array<{
+                generatorID?: number;
+                key?: string;
+                progress?: number;
+                ratingKey?: string;
+                /**
+                 * The number of seconds remaining in this job
+                 */
+                remaining?: number;
+                /**
+                 * The size of the result so far
+                 */
+                size?: number;
+                /**
+                 * The speed of the transcode; 1.0 means real-time
+                 */
+                speed?: number;
+                /**
+                 * The tag associated with the job.  This could be the tag containing the optimizer settings.
+                 */
+                targetTagID?: number;
+                thumb?: string;
+                title?: string;
+                type?: 'transcode';
+            }>;
+        };
+    };
+};
+
+export type StatusGetBackgroundResponse = StatusGetBackgroundResponses[keyof StatusGetBackgroundResponses];
+
+export type StatusDeleteHistoryData = {
+    body?: never;
+    path: {
+        /**
+         * The id of the history item (the `historyKey` from above)
+         */
+        historyId: number;
+    };
+    query?: never;
+    url: '/status/sessions/history/{historyId}';
+};
+
+export type StatusDeleteHistoryErrors = {
+    /**
+     * History item not found
+     */
+    404: unknown;
+};
+
+export type StatusDeleteHistoryResponses = {
+    /**
+     * OK
+     */
+    200: MediaContainer;
+};
+
+export type StatusDeleteHistoryResponse = StatusDeleteHistoryResponses[keyof StatusDeleteHistoryResponses];
+
+export type StatusGetHistoryData = {
+    body?: never;
+    path: {
+        /**
+         * The id of the history item (the `historyKey` from above)
+         */
+        historyId: number;
+    };
+    query?: never;
+    url: '/status/sessions/history/{historyId}';
+};
+
+export type StatusGetHistoryErrors = {
+    /**
+     * History item not found
+     */
+    404: unknown;
+};
+
+export type StatusGetHistoryResponses = {
+    /**
+     * OK
+     */
+    200: {
+        MediaContainer?: PropertiesMediaContainer & {
+            Metadata?: Array<{
+                /**
+                 * The account id of this playback
+                 */
+                accountID?: number;
+                /**
+                 * The device id which played the item
+                 */
+                deviceID?: number;
+                /**
+                 * The key for this individual history item
+                 */
+                historyKey?: string;
+                /**
+                 * The metadata key for the item played
+                 */
+                key?: string;
+                /**
+                 * The library section id containing the item played
+                 */
+                librarySectionID?: string;
+                /**
+                 * The originally available at of the item played
+                 */
+                originallyAvailableAt?: string;
+                /**
+                 * The rating key for the item played
+                 */
+                ratingKey?: string;
+                /**
+                 * The thumb of the item played
+                 */
+                thumb?: string;
+                /**
+                 * The title of the item played
+                 */
+                title?: string;
+                /**
+                 * The metadata type of the item played
+                 */
+                type?: string;
+                /**
+                 * The time when the item was played
+                 */
+                viewedAt?: number;
+            }>;
+        };
+    };
+};
+
+export type StatusGetHistoryResponse = StatusGetHistoryResponses[keyof StatusGetHistoryResponses];
+
+export type StatusGetHistoryAllData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * The account id to restrict view history
+         */
+        accountID?: number;
+        /**
+         * The time period to restrict history (typically of the form `viewedAt>=12456789`)
+         */
+        viewedAt?: number;
+        /**
+         * The library section id to restrict view history
+         */
+        librarySectionID?: number;
+        /**
+         * The metadata item to restrict view history (can provide the id for a show to see all of that show's view history).  Note this is translated to `metadata_items.id`, `parents.id`, or `grandparents.id` internally depending on the metadata type.
+         */
+        metadataItemID?: number;
+        /**
+         * The field on which to sort.  Multiple orderings can be specified separated by `,` and the direction specified following a `:` (`desc` or `asc`; `asc` is assumed if not provided).  Note `metadataItemID` may not be used here.
+         */
+        sort?: Array<string>;
+    };
+    url: '/status/sessions/history/all';
+};
+
+export type StatusGetHistoryAllResponses = {
+    /**
+     * OK
+     */
+    200: {
+        MediaContainer?: PropertiesMediaContainer & {
+            Metadata?: Array<{
+                /**
+                 * The account id of this playback
+                 */
+                accountID?: number;
+                /**
+                 * The device id which played the item
+                 */
+                deviceID?: number;
+                /**
+                 * The key for this individual history item
+                 */
+                historyKey?: string;
+                /**
+                 * The metadata key for the item played
+                 */
+                key?: string;
+                /**
+                 * The library section id containing the item played
+                 */
+                librarySectionID?: string;
+                /**
+                 * The originally available at of the item played
+                 */
+                originallyAvailableAt?: string;
+                /**
+                 * The rating key for the item played
+                 */
+                ratingKey?: string;
+                /**
+                 * The thumb of the item played
+                 */
+                thumb?: string;
+                /**
+                 * The title of the item played
+                 */
+                title?: string;
+                /**
+                 * The metadata type of the item played
+                 */
+                type?: string;
+                /**
+                 * The time when the item was played
+                 */
+                viewedAt?: number;
+            }>;
+        };
+    };
+};
+
+export type StatusGetHistoryAllResponse = StatusGetHistoryAllResponses[keyof StatusGetHistoryAllResponses];
+
+export type StatusPostTerminateData = {
+    body?: never;
+    path?: never;
+    query: {
+        /**
+         * The session id (found in the `Session` element in [/status/sessions](#tag/Status/operation/statusGetSlash))
+         */
+        sessionId: string;
+        /**
+         * The reason to give to the user (typically displayed in the client)
+         */
+        reason?: string;
+    };
+    url: '/status/sessions/terminate';
+};
+
+export type StatusPostTerminateErrors = {
+    /**
+     * Server does not have the feature enabled
+     */
+    401: unknown;
+    /**
+     * sessionId is empty
+     */
+    403: unknown;
+    /**
+     * Session not found
+     */
+    404: unknown;
+};
+
+export type StatusPostTerminateResponses = {
+    /**
+     * OK
+     */
+    200: unknown;
+};
+
+export type MediaProviderEpgGridData = {
+    body?: never;
+    path: {
+        /**
+         * The device's Identifier
+         */
+        deviceId: number;
+        /**
+         * The type of EPG
+         */
+        identifier: 'xmltv' | 'cloud' | 'custom';
+    };
+    query: {
+        /**
+         * The key of the channel on which to get airing information
+         */
+        channelGridKey: string;
+        /**
+         * The date on which to get airing information
+         */
+        date: string;
+    };
+    url: '/tv.plex.providers.epg.{identifier}:{deviceId}/grid';
+};
+
+export type MediaProviderEpgGridErrors = {
+    /**
+     * No provider with the identifier was found
+     */
+    404: unknown;
+};
+
+export type MediaProviderEpgGridResponses = {
+    /**
+     * OK
+     */
+    200: MediaContainerWithMetadata;
+};
+
+export type MediaProviderEpgGridResponse = MediaProviderEpgGridResponses[keyof MediaProviderEpgGridResponses];
+
+export type MediaProviderEpgChannelsData = {
+    body?: never;
+    path: {
+        /**
+         * The device's Identifier
+         */
+        deviceId: number;
+        /**
+         * The type of EPG
+         */
+        identifier: 'xmltv' | 'cloud' | 'custom';
+    };
+    query?: {
+        /**
+         * The genre of channels to fetch
+         */
+        genre?: string;
+    };
+    url: '/tv.plex.providers.epg.{identifier}:{deviceId}/lineups/dvr/channels';
+};
+
+export type MediaProviderEpgChannelsErrors = {
+    /**
+     * No provider with the identifier was found
+     */
+    404: unknown;
+};
+
+export type MediaProviderEpgChannelsResponses = {
+    /**
+     * OK
+     */
+    200: {
+        MediaContainer?: MediaContainer2 & {
+            Channel?: Array<{
+                callSign?: string;
+                gridKey?: string;
+                id?: string;
+                isHd?: boolean;
+                language?: string;
+                thumb?: string;
+                title?: string;
+                vcn?: string;
+            }>;
+        };
+    };
+};
+
+export type MediaProviderEpgChannelsResponse = MediaProviderEpgChannelsResponses[keyof MediaProviderEpgChannelsResponses];
+
+export type MediaProviderEpgWatchnowData = {
+    body?: never;
+    path: {
+        /**
+         * The device's Identifier
+         */
+        deviceId: number;
+        /**
+         * The type of EPG
+         */
+        identifier: 'xmltv' | 'cloud' | 'custom';
+    };
+    query?: never;
+    url: '/tv.plex.providers.epg.{identifier}:{deviceId}/watchnow';
+};
+
+export type MediaProviderEpgWatchnowErrors = {
+    /**
+     * No provider with the identifier was found
+     */
+    404: unknown;
+};
+
+export type MediaProviderEpgWatchnowResponses = {
+    /**
+     * OK
+     */
+    200: MediaContainer2 & {
+        Type?: Array<{
+            active?: boolean;
+            key?: string;
+            title?: string;
+            type?: string;
+        }>;
+    };
+};
+
+export type MediaProviderEpgWatchnowResponse = MediaProviderEpgWatchnowResponses[keyof MediaProviderEpgWatchnowResponses];
+
+export type MediaProviderEpgWatchnowAllData = {
+    body?: never;
+    path: {
+        /**
+         * The device's Identifier
+         */
+        deviceId: number;
+        /**
+         * The type of EPG
+         */
+        identifier: 'xmltv' | 'cloud' | 'custom';
+    };
+    query?: never;
+    url: '/tv.plex.providers.epg.{identifier}:{deviceId}/watchnow/all';
+};
+
+export type MediaProviderEpgWatchnowAllErrors = {
+    /**
+     * No provider with the identifier was found
+     */
+    404: unknown;
+};
+
+export type MediaProviderEpgWatchnowAllResponses = {
+    /**
+     * OK
+     */
+    200: MediaContainerWithMetadata;
+};
+
+export type MediaProviderEpgWatchnowAllResponse = MediaProviderEpgWatchnowAllResponses[keyof MediaProviderEpgWatchnowAllResponses];
+
+export type UpdaterPutApplyData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Indicate that you want the update to run during the next Butler execution. Omitting this or setting it to false indicates that the update should install immediately.
+         */
+        tonight?: 0 | 1;
+        /**
+         * Indicate that the latest version should be marked as skipped. The <Release> entry for this version will have the `state` set to `skipped`.
+         */
+        skip?: 0 | 1;
+    };
+    url: '/updater/apply';
+};
+
+export type UpdaterPutApplyErrors = {
+    /**
+     * This system cannot install updates
+     */
+    400: unknown;
+    /**
+     * The update process failed to start
+     */
+    500: unknown;
+};
+
+export type UpdaterPutApplyResponses = {
+    /**
+     * The update process started correctly
+     */
+    200: unknown;
+};
+
+export type UpdaterPutCheckData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Indicate that you want to start download any updates found.
+         */
+        download?: 0 | 1;
+    };
+    url: '/updater/check';
+};
+
+export type UpdaterPutCheckResponses = {
+    /**
+     * OK
+     */
+    200: unknown;
+};
+
+export type UpdaterGetStatusData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/updater/status';
+};
+
+export type UpdaterGetStatusResponses = {
+    /**
+     * OK
+     */
+    200: {
+        MediaContainer?: {
+            /**
+             * The version of the updater (currently `1`)
+             */
+            autoUpdateVersion?: number;
+            /**
+             * Indicates whether this install can be updated through these endpoints (typically only on MacOS and Windows)
+             */
+            canInstall?: boolean;
+            /**
+             * The last time a check for updates was performed
+             */
+            checkedAt?: number;
+            /**
+             * The URL where the update is available
+             */
+            downloadURL?: string;
+            Release?: Array<{
+                /**
+                 * A list of what has been added in this version
+                 */
+                added?: string;
+                /**
+                 * The URL of where this update is available
+                 */
+                downloadURL?: string;
+                /**
+                 * A list of what has been fixed in this version
+                 */
+                fixed?: string;
+                /**
+                 * The URL key of the update
+                 */
+                key?: string;
+                /**
+                 * The status of this update.
+                 *
+                 * - available - This release is available
+                 * - downloading - This release is downloading
+                 * - downloaded - This release has been downloaded
+                 * - installing - This release is installing
+                 * - tonight - This release will be installed tonight
+                 * - skipped - This release has been skipped
+                 * - error - This release has an error
+                 * - notify - This release is only notifying it is available (typically because it cannot be installed on this setup)
+                 * - done - This release is complete
+                 *
+                 */
+                state?: 'available' | 'downloading' | 'downloaded' | 'installing' | 'tonight' | 'skipped' | 'error' | 'notify' | 'done';
+                /**
+                 * The version available
+                 */
+                version?: string;
+            }>;
+            /**
+             * The current error code (`0` means no error)
+             */
+            status?: number;
+        };
+    };
+};
+
+export type UpdaterGetStatusResponse = UpdaterGetStatusResponses[keyof UpdaterGetStatusResponses];
