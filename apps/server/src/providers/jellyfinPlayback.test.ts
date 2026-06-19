@@ -223,6 +223,13 @@ void test("disables Jellyfin subtitle burn-in on HLS previews", () => {
   assert.equal(url.searchParams.get("mediaSourceId"), "media-source-1");
   assert.equal(url.searchParams.get("deviceId"), "cliparr-device-1");
   assert.equal(url.searchParams.get("playSessionId"), "play-session-1");
+  assert.equal(url.searchParams.get("videoCodec"), "h264");
+  assert.equal(url.searchParams.get("videoBitRate"), "12000000");
+  assert.equal(url.searchParams.get("maxWidth"), "1920");
+  assert.equal(url.searchParams.get("maxHeight"), "1080");
+  assert.equal(url.searchParams.get("maxVideoBitDepth"), "8");
+  assert.equal(url.searchParams.get("allowVideoStreamCopy"), "false");
+  assert.equal(url.searchParams.get("enableAutoStreamCopy"), "false");
   assert.equal(
     url.searchParams.get("alwaysBurnInSubtitleWhenTranscoding"),
     "false",

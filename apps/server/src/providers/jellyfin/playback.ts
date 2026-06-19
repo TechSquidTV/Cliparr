@@ -594,6 +594,13 @@ export function buildPreviewPath(
     playSessionId: jellyfinPlaySessionId,
     maxAudioChannels: "2",
     audioCodec: "aac",
+    videoCodec: "h264",
+    videoBitRate: "12000000",
+    maxWidth: "1920",
+    maxHeight: "1080",
+    maxVideoBitDepth: "8",
+    allowVideoStreamCopy: "false",
+    enableAutoStreamCopy: "false",
     enableAdaptiveBitrateStreaming: "false",
     alwaysBurnInSubtitleWhenTranscoding: "false",
   });
