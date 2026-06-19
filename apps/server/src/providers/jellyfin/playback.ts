@@ -267,6 +267,10 @@ function isSubtitleMediaStream(stream: JellyfinMediaStream) {
 }
 
 function streamIndexValue(value: unknown) {
+  if (value === null || value === undefined) {
+    return undefined;
+  }
+
   const index = numberValue(value);
   return index !== undefined && index >= 0 ? index : undefined;
 }
