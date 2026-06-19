@@ -122,6 +122,9 @@ function createJellyfinPlaybackFetch(options: {
   jellyfinPlaySessionId?: string | null | (() => string | null);
   jellyfinClientSessionId?: string;
   mediaSourceId?: string;
+  playStateAudioStreamIndex?: number | null;
+  defaultAudioStreamIndex?: number | null;
+  audioStreams?: Array<Record<string, unknown>>;
   title?: string;
 }) {
   const {
@@ -129,19 +132,9 @@ function createJellyfinPlaybackFetch(options: {
     jellyfinPlaySessionId = "playback-info-session-1",
     jellyfinClientSessionId = "client-session-1",
     mediaSourceId = "media-source-1",
-    title = "Chapter 1: The Dark Revenge",
-  } = options;
-  const mediaSource = {
-    Id: mediaSourceId,
-    DefaultAudioStreamIndex: 1,
-    MediaStreams: [
-      {
-        Type: "Video",
-        Index: 0,
-        Codec: "h264",
-        Width: 1920,
-        Height: 1080,
-      },
+    playStateAudioStreamIndex = 1,
+    defaultAudioStreamIndex = 1,
+    audioStreams = [
       {
         Type: "Audio",
         Index: 1,
@@ -150,6 +143,23 @@ function createJellyfinPlaybackFetch(options: {
         Title: "English",
         IsDefault: true,
       },
+    ],
+    title = "Chapter 1: The Dark Revenge",
+  } = options;
+  const mediaSource = {
+    Id: mediaSourceId,
+    ...(defaultAudioStreamIndex === null
+      ? {}
+      : { DefaultAudioStreamIndex: defaultAudioStreamIndex }),
+    MediaStreams: [
+      {
+        Type: "Video",
+        Index: 0,
+        Codec: "h264",
+        Width: 1920,
+        Height: 1080,
+      },
+      ...audioStreams,
     ],
   };
   const item = {
@@ -179,7 +189,9 @@ function createJellyfinPlaybackFetch(options: {
           PlayState: {
             MediaSourceId: mediaSourceId,
             IsPaused: true,
-            AudioStreamIndex: 1,
+            ...(playStateAudioStreamIndex === null
+              ? {}
+              : { AudioStreamIndex: playStateAudioStreamIndex }),
             PositionTicks: 1_234_560_000,
           },
           NowPlayingItem: item,
@@ -327,6 +339,50 @@ void test("uses Jellyfin PlaybackInfo play session ids for currently playing str
       hlsUrl.searchParams.get("playSessionId"),
       "client-session-1",
     );
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+void test("uses Jellyfin PlayState audio stream index for HLS previews", async () => {
+  const session = createSession();
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = createJellyfinPlaybackFetch({
+    itemId: "item-1",
+    playStateAudioStreamIndex: 3,
+    defaultAudioStreamIndex: 1,
+    audioStreams: [
+      {
+        Type: "Audio",
+        Index: 1,
+        Codec: "aac",
+        Language: "deu",
+        Title: "German",
+        IsDefault: true,
+      },
+      {
+        Type: "Audio",
+        Index: 3,
+        Codec: "aac",
+        Language: "eng",
+        Title: "English",
+      },
+    ],
+  });
+
+  try {
+    const entries = await listCurrentlyPlaying(session, createSource());
+
+    const hlsHandle = [...session.mediaHandles.values()].find((handle) =>
+      handle.path.includes("/master.m3u8?"),
+    );
+    assert.ok(hlsHandle);
+
+    const hlsUrl = new URL(hlsHandle.path, "http://cliparr.local");
+    assert.equal(hlsUrl.searchParams.get("audioStreamIndex"), "3");
+    assert.equal(entries[0]?.item.selectedAudioTrack?.trackNumber, 2);
+    assert.equal(entries[0]?.item.selectedAudioTrack?.languageCode, "eng");
+    assert.equal(entries[0]?.item.selectedAudioTrack?.title, "English");
   } finally {
     globalThis.fetch = originalFetch;
   }
