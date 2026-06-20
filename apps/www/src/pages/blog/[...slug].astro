@@ -6,6 +6,13 @@ import BaseLayout from "@/components/BaseLayout.astro";
 import { type BlogTagId, blogTagLabel, blogTagPath } from "@/data/blog";
 import { blogHeroImageFor } from "@/data/blogImages";
 import { site } from "@/data/product";
+import {
+  absoluteSiteUrl,
+  canonicalSiteUrl,
+  organizationReference,
+  websiteReference,
+  webPageId,
+} from "@/lib/structuredData";
 
 type BlogEntry = CollectionEntry<"blog">;
 
@@ -31,44 +38,37 @@ const dateFormatter = new Intl.DateTimeFormat("en", {
   timeZone: "UTC",
 });
 const tags = entry.data.tags as BlogTagId[];
-const postUrl = new URL(`/blog/${entry.id}`, site.url).toString();
+const postUrl = canonicalSiteUrl(`/blog/${entry.id}`);
 const heroImage = blogHeroImageFor(entry.data.heroImage);
 const heroImageAlt = entry.data.heroImageAlt ?? site.ogImageAlt;
 const socialImage = heroImage?.src ?? site.ogImage;
-const socialImageUrl = new URL(socialImage, site.url).toString();
+const socialImageUrl = absoluteSiteUrl(socialImage);
 const author = entry.data.author;
 const articleAuthor = author
   ? {
       "@type": "Person",
+      ...(author.url ? { "@id": `${author.url}#person` } : {}),
       name: author.name,
       ...(author.url ? { url: author.url } : {}),
     }
-  : {
-      "@type": "Organization",
-      name: site.name,
-      url: site.url,
-    };
+  : organizationReference();
 const articleStructuredData = {
   "@context": "https://schema.org",
   "@type": "BlogPosting",
+  "@id": `${postUrl}#article`,
   headline: entry.data.title,
   description: entry.data.description,
   datePublished: entry.data.publishedAt,
-  ...(entry.data.updatedAt ? { dateModified: entry.data.updatedAt } : {}),
+  dateModified: entry.data.updatedAt ?? entry.data.publishedAt,
   url: postUrl,
-  mainEntityOfPage: postUrl,
+  mainEntityOfPage: { "@id": webPageId(postUrl) },
   image: socialImageUrl,
-  keywords: tags,
+  inLanguage: "en",
+  isPartOf: websiteReference(),
+  articleSection: "Blog",
+  keywords: tags.map((tag) => blogTagLabel(tag)),
   author: articleAuthor,
-  publisher: {
-    "@type": "Organization",
-    name: site.name,
-    url: site.url,
-    logo: {
-      "@type": "ImageObject",
-      url: new URL(site.logo, site.url).toString(),
-    },
-  },
+  publisher: organizationReference(),
 };
 ---
 

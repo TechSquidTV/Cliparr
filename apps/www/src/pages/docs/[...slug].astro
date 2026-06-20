@@ -2,6 +2,13 @@
 import type { CollectionEntry } from "astro:content";
 import { getCollection, render } from "astro:content";
 import DocsLayout from "@/components/DocsLayout.astro";
+import { docsSections } from "@/data/docs";
+import {
+  canonicalSiteUrl,
+  organizationReference,
+  websiteReference,
+  webPageId,
+} from "@/lib/structuredData";
 
 type Props = {
   entry: CollectionEntry<"docs">;
@@ -17,12 +24,55 @@ export async function getStaticPaths() {
 
 const { entry } = Astro.props;
 const { Content } = await render(entry);
+const documentUrl = canonicalSiteUrl(`/docs/${entry.id}`);
+const documentSection = docsSections.find(
+  (section) => section.id === entry.data.section,
+);
+const documentMainEntityOfPage = { "@id": webPageId(documentUrl) };
+const sharedDocumentStructuredData = {
+  "@context": "https://schema.org",
+  "@id": `${documentUrl}#article`,
+  description: entry.data.description,
+  url: documentUrl,
+  mainEntityOfPage: documentMainEntityOfPage,
+  inLanguage: "en",
+  isPartOf: websiteReference(),
+  author: organizationReference(),
+  publisher: organizationReference(),
+};
+const documentStructuredData =
+  entry.data.schemaType === "HowTo" && entry.data.howTo
+    ? {
+        ...sharedDocumentStructuredData,
+        "@type": "HowTo",
+        "@id": `${documentUrl}#howto`,
+        name: entry.data.title,
+        tool: entry.data.howTo.tools.map((tool: string) => ({
+          "@type": "HowToTool",
+          name: tool,
+        })),
+        step: entry.data.howTo.steps.map(
+          (step: { name: string; text: string }, index: number) => ({
+            "@type": "HowToStep",
+            position: index + 1,
+            name: step.name,
+            text: step.text,
+          }),
+        ),
+      }
+    : {
+        ...sharedDocumentStructuredData,
+        "@type": "TechArticle",
+        headline: entry.data.title,
+        articleSection: documentSection?.title ?? "Documentation",
+      };
 ---
 
 <DocsLayout
   title={entry.data.title}
   description={entry.data.description}
   currentSlug={entry.id}
+  structuredData={documentStructuredData}
 >
   <Content />
 </DocsLayout>
