@@ -46,6 +46,7 @@ export default defineConfig(({ mode }) => {
     resolve: {
       dedupe: ["mediabunny"],
       alias: {
+        "#": path.resolve(configDirectory, "src"),
         "@": path.resolve(configDirectory, "src"),
       },
     },

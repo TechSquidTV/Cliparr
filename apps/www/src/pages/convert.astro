@@ -1,0 +1,74 @@
+---
+import BaseLayout from "@/components/BaseLayout.astro";
+import { ConvertTool } from "@/components/convert/ConvertTool";
+import { site } from "@/data/product";
+import {
+  canonicalSiteUrl,
+  organizationReference,
+  websiteReference,
+  webPageId,
+} from "@/lib/structuredData";
+
+const description =
+  "Convert local video files to MP4, WebM, MOV, MKV, or GIF entirely in your browser. Convert MP4 to WebM, remux MKV to MP4, and export without uploads, ads, or watermarks.";
+
+const convertUrl = canonicalSiteUrl("/convert");
+const structuredData = {
+  "@context": "https://schema.org",
+  "@type": "WebApplication",
+  "@id": `${convertUrl}#video-converter`,
+  name: "Cliparr Video Converter",
+  alternateName: "Browser video converter",
+  description,
+  url: convertUrl,
+  applicationCategory: "MultimediaApplication",
+  applicationSubCategory: "Video converter",
+  operatingSystem: "Web",
+  browserRequirements:
+    "Requires a modern browser with WebCodecs support for local video conversion.",
+  isAccessibleForFree: true,
+  license: `${site.githubUrl}/blob/main/LICENSE`,
+  mainEntityOfPage: { "@id": webPageId(convertUrl) },
+  inLanguage: "en",
+  isPartOf: websiteReference(),
+  publisher: organizationReference(),
+  softwareHelp: canonicalSiteUrl("/docs/export-settings"),
+  featureList: [
+    "Convert local video files to MP4, WebM, MOV, MKV, and GIF",
+    "Process files locally in the browser without uploads",
+    "Adjust quality, resolution, and audio settings before download",
+  ],
+  offers: {
+    "@type": "Offer",
+    price: "0",
+    priceCurrency: "USD",
+  },
+};
+---
+
+<BaseLayout
+  title="Convert"
+  seoTitle="Convert Video: MP4, WebM, MKV, MOV, and GIF"
+  description={description}
+  structuredData={structuredData}
+>
+  <main class="bg-background text-foreground">
+    <section class="border-b border-border bg-background">
+      <div class="container-page py-8 sm:py-10">
+        <div class="max-w-3xl">
+          <p class="section-eyebrow">Local browser conversion</p>
+          <h1 class="mt-4 text-4xl font-semibold leading-tight sm:text-5xl">
+            Convert video.
+          </h1>
+          <p class="mt-4 max-w-2xl text-base leading-7 text-muted-foreground">
+            {description}
+          </p>
+        </div>
+
+        <div class="mt-7">
+          <ConvertTool client:load />
+        </div>
+      </div>
+    </section>
+  </main>
+</BaseLayout>

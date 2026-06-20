@@ -1,9 +1,9 @@
 import type { InputAudioTrack, InputVideoTrack } from "mediabunny";
-import type { PlaybackAudioSelection } from "@/providers/types";
+import type { PlaybackAudioSelection } from "#/providers/types";
 import {
   getTrackLanguageCode,
   getTrackName,
-} from "@/lib/mediabunnyTrackAccess";
+} from "#/lib/mediabunnyTrackAccess";
 
 function normalizedText(value: string | null | undefined) {
   const trimmed = value?.trim().toLowerCase();

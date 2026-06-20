@@ -4,12 +4,12 @@ import {
   type GifDitherMode,
   type GifPaletteFormat,
   type GifTemporalDitherSettings,
-} from "@/lib/gifEncodingSettings";
+} from "#/lib/gifEncodingSettings";
 import {
   encodeGifFrameChunk,
   type EncodeGifFrameChunkHelpers,
   type GifFrameChunk,
-} from "@/lib/gifFrameChunk";
+} from "#/lib/gifFrameChunk";
 
 interface GifFrameEncodeInput {
   sequenceIndex: number;

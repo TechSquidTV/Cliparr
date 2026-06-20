@@ -1,12 +1,12 @@
-import { createGifTemporalDitherResolver } from "@/lib/gifEncodingSettings";
+import { createGifTemporalDitherResolver } from "#/lib/gifEncodingSettings";
 import {
   encodeGifFrameChunk,
   type EncodeGifFrameChunkInput,
-} from "@/lib/gifFrameChunk";
+} from "#/lib/gifFrameChunk";
 import type {
   GifFrameWorkerEncodeRequest,
   GifFrameWorkerEncodeResponse,
-} from "@/lib/gifFrameEncoder";
+} from "#/lib/gifFrameEncoder";
 
 type GifFrameWorkerGlobal = {
   addEventListener(

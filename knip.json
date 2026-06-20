@@ -9,9 +9,15 @@
       "vite": false
     },
     "apps/www": {
-      "ignoreDependencies": ["@fontsource-variable/outfit", "tailwindcss"],
+      "ignoreDependencies": [
+        "@fontsource-variable/outfit",
+        "@mediabunny/aac-encoder",
+        "@mediabunny/ac3",
+        "@techsquidtv/gifenc",
+        "tailwindcss"
+      ],
       "ignoreBinaries": ["eslint"],
-      "project": ["src/**/*.{astro,mdx,ts}", "scripts/**/*.ts"]
+      "project": ["src/**/*.{astro,mdx,ts,tsx}", "scripts/**/*.ts"]
     },
     "apps/server": {
       "drizzle": false,

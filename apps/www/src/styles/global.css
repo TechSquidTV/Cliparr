@@ -1,5 +1,11 @@
 @import "tailwindcss";
 
+@source "../../../frontend/src/components/editor/EditorExportDialogSections.tsx";
+@source "../../../frontend/src/components/editor/editorDialogStyles.ts";
+@source "../../../frontend/src/components/ui/control-styles.ts";
+@source "../../../frontend/src/components/ui/select.tsx";
+@source "../../../frontend/src/components/ui/tooltip.tsx";
+
 @font-face {
   font-family: "Outfit Variable";
   font-style: normal;
@@ -28,6 +34,13 @@
   --accent: oklch(0.9 0 0);
   --accent-foreground: oklch(0.16 0 0);
   --destructive: oklch(0.5783 0.2301 28.5639);
+  --input: var(--border);
+  --popover: var(--card);
+  --popover-foreground: var(--card-foreground);
+  --status-ready: color-mix(in oklch, var(--secondary) 10%, var(--background));
+  --status-ready-border: color-mix(in oklch, var(--secondary) 28%, transparent);
+  --status-warning: color-mix(in oklch, var(--primary) 12%, var(--background));
+  --status-warning-border: color-mix(in oklch, var(--primary) 32%, transparent);
   --border: color-mix(in oklch, black 14%, transparent);
   --ring: var(--secondary);
   --font-ui: "Outfit Variable", ui-sans-serif, sans-serif, system-ui;
@@ -35,6 +48,10 @@
     IBM Plex Mono, ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
     monospace;
   --radius: 0.5rem;
+  --tracking-normal: 0em;
+  --tracking-caps-sm: calc(var(--tracking-normal) + 0.12em);
+  --tracking-caps-md: calc(var(--tracking-normal) + 0.14em);
+  --tracking-caps-lg: calc(var(--tracking-normal) + 0.16em);
 }
 
 :root[data-theme="dark"] {
@@ -81,6 +98,13 @@
   --color-accent: var(--accent);
   --color-accent-foreground: var(--accent-foreground);
   --color-destructive: var(--destructive);
+  --color-input: var(--input);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-status-ready: var(--status-ready);
+  --color-status-ready-border: var(--status-ready-border);
+  --color-status-warning: var(--status-warning);
+  --color-status-warning-border: var(--status-warning-border);
   --color-border: var(--border);
   --color-ring: var(--ring);
   --font-sans: var(--font-ui);
@@ -88,6 +112,21 @@
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
+  --text-ui-label: 0.6875rem;
+  --text-ui-label--line-height: calc(1 / 0.6875);
+  --spacing-editor-export-sidebar: 18rem;
+  --spacing-editor-export-template-label: 12rem;
+  --spacing-select-content-min: 8rem;
+}
+
+@utility grid-cols-editor-export {
+  grid-template-columns:
+    minmax(0, 1fr)
+    var(--spacing-editor-export-sidebar);
+}
+
+@utility grid-cols-editor-export-template {
+  grid-template-columns: var(--spacing-editor-export-template-label) auto;
 }
 
 @layer base {
