@@ -90,6 +90,21 @@ function dimensionsLabel(result: SourceProbeResult | null) {
     : "Unknown";
 }
 
+function fileTypeLabel(file: File | null) {
+  if (!file) {
+    return "Unknown";
+  }
+
+  const extension = /(?:\.([^.]+))$/.exec(file.name)?.[1]?.toUpperCase();
+  const mimeType = file.type.trim();
+
+  if (extension && mimeType) {
+    return `${extension} (${mimeType})`;
+  }
+
+  return mimeType || extension || "Unknown";
+}
+
 function probeErrorMessage(error: unknown) {
   return errorMessage(
     error,
@@ -347,6 +362,14 @@ export function ConvertTool() {
             </dt>
             <dd className="mt-1 font-mono text-sm text-foreground">
               {dimensionsLabel(probeState.result)}
+            </dd>
+          </div>
+          <div>
+            <dt className="text-xs font-semibold uppercase text-muted-foreground">
+              Type
+            </dt>
+            <dd className="mt-1 font-mono text-sm text-foreground">
+              {fileTypeLabel(sourceFile)}
             </dd>
           </div>
           <div>
@@ -708,7 +731,7 @@ export function ConvertTool() {
 
         <section
           aria-label="Conversion settings"
-          className="overflow-hidden rounded-lg border border-border bg-card"
+          className="self-start overflow-hidden rounded-lg border border-border bg-card"
         >
           <TooltipProvider>
             <div className="grid min-h-0 flex-1 gap-4 p-4 lg:grid-cols-editor-export">
