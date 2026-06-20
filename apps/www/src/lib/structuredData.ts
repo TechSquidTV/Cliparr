@@ -6,13 +6,28 @@ export type StructuredDataInput = StructuredData | StructuredData[];
 const organizationId = `${site.url}/#organization`;
 const webApplicationId = `${site.url}/#web-application`;
 const websiteId = `${site.url}/#website`;
+const siteOrigin = new URL(site.url).origin;
 
 export function absoluteSiteUrl(pathOrUrl: string | URL) {
   return new URL(String(pathOrUrl), site.url).toString();
 }
 
+export function canonicalSiteUrl(pathOrUrl: string | URL) {
+  const url = new URL(String(pathOrUrl), site.url);
+
+  if (
+    url.origin === siteOrigin &&
+    !url.pathname.endsWith("/") &&
+    !/\/[^/]+\.[^/]+$/u.test(url.pathname)
+  ) {
+    url.pathname = `${url.pathname}/`;
+  }
+
+  return url.toString();
+}
+
 export function webPageId(pageUrl: string | URL) {
-  return `${absoluteSiteUrl(pageUrl)}#webpage`;
+  return `${canonicalSiteUrl(pageUrl)}#webpage`;
 }
 
 export function organizationReference() {
@@ -102,7 +117,7 @@ export function pageStructuredData({
       mainEntityOfPage: { "@id": currentWebPageId },
       publisher: organizationReference(),
       sameAs: site.sameAs,
-      softwareHelp: absoluteSiteUrl("/docs"),
+      softwareHelp: canonicalSiteUrl("/docs"),
       offers: {
         "@type": "Offer",
         price: "0",

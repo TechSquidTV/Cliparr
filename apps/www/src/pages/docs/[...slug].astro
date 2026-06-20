@@ -4,7 +4,7 @@ import { getCollection, render } from "astro:content";
 import DocsLayout from "@/components/DocsLayout.astro";
 import { docsSections } from "@/data/docs";
 import {
-  absoluteSiteUrl,
+  canonicalSiteUrl,
   organizationReference,
   websiteReference,
   webPageId,
@@ -24,7 +24,7 @@ export async function getStaticPaths() {
 
 const { entry } = Astro.props;
 const { Content } = await render(entry);
-const documentUrl = absoluteSiteUrl(`/docs/${entry.id}`);
+const documentUrl = canonicalSiteUrl(`/docs/${entry.id}`);
 const documentSection = docsSections.find(
   (section) => section.id === entry.data.section,
 );

@@ -4,7 +4,7 @@ import { getCollection } from "astro:content";
 import DocsLayout from "@/components/DocsLayout.astro";
 import { docsForSection, docsSections } from "@/data/docs";
 import {
-  absoluteSiteUrl,
+  canonicalSiteUrl,
   organizationReference,
   websiteReference,
   webPageId,
@@ -16,7 +16,7 @@ const docs = (await getCollection("docs")) as DocsEntry[];
 const pageTitle = "Cliparr docs";
 const pageDescription =
   "Small, practical guides for installing, configuring, and using Cliparr.";
-const docsUrl = absoluteSiteUrl("/docs");
+const docsUrl = canonicalSiteUrl("/docs");
 const listedDocs = docsSections.flatMap((section) =>
   docsForSection(docs, section.id),
 );
@@ -32,7 +32,7 @@ const docsStructuredData = {
   isPartOf: websiteReference(),
   publisher: organizationReference(),
   hasPart: listedDocs.map((entry) => {
-    const entryUrl = absoluteSiteUrl(`/docs/${entry.id}`);
+    const entryUrl = canonicalSiteUrl(`/docs/${entry.id}`);
     const isHowTo = entry.data.schemaType === "HowTo";
 
     return {

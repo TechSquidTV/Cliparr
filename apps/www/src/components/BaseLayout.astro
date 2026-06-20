@@ -4,6 +4,7 @@ import Footer from "@/components/Footer.astro";
 import Header from "@/components/Header.astro";
 import { site } from "@/data/product";
 import {
+  canonicalSiteUrl,
   jsonLdScriptContent,
   normalizeStructuredData,
   pageStructuredData,
@@ -43,7 +44,7 @@ const pageTitle = pageTitleText
 const pageTransition = fade({
   duration: "180ms",
 });
-const canonicalUrl = new URL(Astro.url.pathname, site.url).toString();
+const canonicalUrl = canonicalSiteUrl(Astro.url.pathname);
 const socialImageUrl = new URL(String(socialImage), site.url).toString();
 const rssLinks = [
   { href: "/blog/rss.xml", title: `${site.name} blog` },

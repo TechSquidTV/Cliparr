@@ -8,6 +8,7 @@ import { blogHeroImageFor } from "@/data/blogImages";
 import { site } from "@/data/product";
 import {
   absoluteSiteUrl,
+  canonicalSiteUrl,
   organizationReference,
   websiteReference,
   webPageId,
@@ -37,7 +38,7 @@ const dateFormatter = new Intl.DateTimeFormat("en", {
   timeZone: "UTC",
 });
 const tags = entry.data.tags as BlogTagId[];
-const postUrl = absoluteSiteUrl(`/blog/${entry.id}`);
+const postUrl = canonicalSiteUrl(`/blog/${entry.id}`);
 const heroImage = blogHeroImageFor(entry.data.heroImage);
 const heroImageAlt = entry.data.heroImageAlt ?? site.ogImageAlt;
 const socialImage = heroImage?.src ?? site.ogImage;
