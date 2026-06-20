@@ -9,6 +9,7 @@ minimumReleaseAgeExclude:
   - "@techsquidtv/gifenc@1.1.0"
 
 allowBuilds:
+  "@sentry/cli": true
   esbuild: true
   sharp: true
   workerd: true

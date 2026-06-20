@@ -5,6 +5,7 @@ import { formatOptions } from "./components/editor/editorExportOptions";
 export {
   DEFAULT_GIF_EXPORT_PRESET,
   DEFAULT_VIDEO_EXPORT_QUALITY,
+  EXPORT_SIZE_ESTIMATE_ALGORITHM_VERSION,
   estimateExportOutputSize,
   exportFormatDurationDisabledReason,
   exportFormatSupportsAudio,
