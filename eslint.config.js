@@ -104,6 +104,54 @@ const unicornUpgradeCompatibilityRules = {
   "unicorn/require-array-sort-compare": "off",
   "unicorn/try-complexity": "off",
 };
+const relativeImportRestriction = {
+  group: ["./*", "../*"],
+  message: "Use the package alias instead of a relative import path.",
+};
+const crossWorkspaceImportRestrictions = [
+  {
+    regex: "^@cliparr/frontend(?:$|/(?!convert$).+)",
+    message: "Do not import app internals across workspace boundaries.",
+  },
+  {
+    group: [
+      "@cliparr/server",
+      "@cliparr/server/*",
+      "apps/frontend/*",
+      "apps/server/*",
+    ],
+    message: "Do not import app internals across workspace boundaries.",
+  },
+];
+const relativeDynamicImportSelector = String.raw`ImportExpression[source.value=/^\.{1,2}\//]`;
+const restrictedSyntaxRules = [
+  {
+    selector: "ClassDeclaration, ClassExpression",
+    message:
+      "Use functions and plain objects instead of classes in Cliparr code.",
+  },
+  {
+    selector: "ThisExpression",
+    message: "Avoid `this`; close over explicit values or pass state as data.",
+  },
+  {
+    selector: "Super",
+    message: "Use functional composition instead of class inheritance.",
+  },
+  {
+    selector: "MemberExpression[property.name='prototype']",
+    message:
+      "Do not mutate prototypes; use functions and plain objects instead.",
+  },
+  {
+    selector: relativeDynamicImportSelector,
+    message: "Use the package alias instead of a relative import path.",
+  },
+];
+const restrictedSyntaxRulesWithoutRelativeDynamicImports =
+  restrictedSyntaxRules.filter(
+    ({ selector }) => selector !== relativeDynamicImportSelector,
+  );
 
 export default tseslint.config(
   {
@@ -165,55 +213,12 @@ export default tseslint.config(
         "error",
         {
           patterns: [
-            {
-              group: ["./*", "../*"],
-              message:
-                "Use the package alias instead of a relative import path.",
-            },
-            {
-              regex: "^@cliparr/frontend(?:$|/(?!convert$).+)",
-              message:
-                "Do not import app internals across workspace boundaries.",
-            },
-            {
-              group: [
-                "@cliparr/server",
-                "@cliparr/server/*",
-                "apps/frontend/*",
-                "apps/server/*",
-              ],
-              message:
-                "Do not import app internals across workspace boundaries.",
-            },
+            relativeImportRestriction,
+            ...crossWorkspaceImportRestrictions,
           ],
         },
       ],
-      "no-restricted-syntax": [
-        "error",
-        {
-          selector: "ClassDeclaration, ClassExpression",
-          message:
-            "Use functions and plain objects instead of classes in Cliparr code.",
-        },
-        {
-          selector: "ThisExpression",
-          message:
-            "Avoid `this`; close over explicit values or pass state as data.",
-        },
-        {
-          selector: "Super",
-          message: "Use functional composition instead of class inheritance.",
-        },
-        {
-          selector: "MemberExpression[property.name='prototype']",
-          message:
-            "Do not mutate prototypes; use functions and plain objects instead.",
-        },
-        {
-          selector: String.raw`ImportExpression[source.value=/^\.{1,2}\//]`,
-          message: "Use the package alias instead of a relative import path.",
-        },
-      ],
+      "no-restricted-syntax": ["error", ...restrictedSyntaxRules],
       "object-shorthand": "error",
       "prefer-const": ["error", { destructuring: "all" }],
       "prefer-template": "error",
@@ -353,6 +358,23 @@ export default tseslint.config(
       "react-hooks/exhaustive-deps": "warn",
       "react-hooks/rules-of-hooks": "error",
       "react-hooks/set-state-in-effect": "off",
+    },
+  },
+  {
+    files: ["apps/frontend/src/convert.ts"],
+    rules: {
+      // This package entrypoint is consumed as source by @cliparr/www, so its
+      // specifiers must resolve without the frontend tsconfig aliases.
+      "no-restricted-imports": [
+        "error",
+        {
+          patterns: crossWorkspaceImportRestrictions,
+        },
+      ],
+      "no-restricted-syntax": [
+        "error",
+        ...restrictedSyntaxRulesWithoutRelativeDynamicImports,
+      ],
     },
   },
   {

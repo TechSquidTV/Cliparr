@@ -7,7 +7,7 @@
   },
   "exports": {
     "./convert": {
-      "types": "./src/convert.d.ts",
+      "types": "./src/convert.ts",
       "default": "./src/convert.ts"
     }
   },
