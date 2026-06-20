@@ -14,7 +14,10 @@ const blogTagLabels = {
   engineering: "Engineering",
 } satisfies Record<BlogTagId, string>;
 
-export const blogHeroImageIds = ["what-is-cliparr-hero"] as const;
+export const blogHeroImageIds = [
+  "what-is-cliparr-hero",
+  "convert-video-in-your-browser-hero",
+] as const;
 
 export type BlogHeroImageId = (typeof blogHeroImageIds)[number];
 
