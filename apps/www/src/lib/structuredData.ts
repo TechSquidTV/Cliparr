@@ -47,6 +47,7 @@ function organizationStructuredData(): StructuredData {
     "@type": "Organization",
     "@id": organizationId,
     name: site.name,
+    description: site.description,
     url: site.url,
     logo: {
       "@type": "ImageObject",
