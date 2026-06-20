@@ -1,31 +1,48 @@
 ---
 import BaseLayout from "@/components/BaseLayout.astro";
 import { ConvertTool } from "@/components/convert/ConvertTool";
+import { site } from "@/data/product";
+import {
+  canonicalSiteUrl,
+  organizationReference,
+  websiteReference,
+  webPageId,
+} from "@/lib/structuredData";
 
 const description =
   "Convert local video files to MP4, WebM, MOV, MKV, or GIF entirely in your browser. Convert MP4 to WebM, remux MKV to MP4, and export without uploads, ads, or watermarks.";
 
+const convertUrl = canonicalSiteUrl("/convert");
 const structuredData = {
   "@context": "https://schema.org",
-  "@type": "FAQPage",
-  mainEntity: [
-    {
-      "@type": "Question",
-      name: "How do I convert MP4 to WebM?",
-      acceptedAnswer: {
-        "@type": "Answer",
-        text: "Upload an MP4, choose WebM as the output format, adjust quality and resolution, then convert directly in your browser.",
-      },
-    },
-    {
-      "@type": "Question",
-      name: "Can I create a GIF from a video?",
-      acceptedAnswer: {
-        "@type": "Answer",
-        text: "Yes. Upload a video, choose GIF output, tune quality and dimensions, and export locally with no server upload.",
-      },
-    },
+  "@type": "WebApplication",
+  "@id": `${convertUrl}#video-converter`,
+  name: "Cliparr Video Converter",
+  alternateName: "Browser video converter",
+  description,
+  url: convertUrl,
+  applicationCategory: "MultimediaApplication",
+  applicationSubCategory: "Video converter",
+  operatingSystem: "Web",
+  browserRequirements:
+    "Requires a modern browser with WebCodecs support for local video conversion.",
+  isAccessibleForFree: true,
+  license: `${site.githubUrl}/blob/main/LICENSE`,
+  mainEntityOfPage: { "@id": webPageId(convertUrl) },
+  inLanguage: "en",
+  isPartOf: websiteReference(),
+  publisher: organizationReference(),
+  softwareHelp: canonicalSiteUrl("/docs/export-settings"),
+  featureList: [
+    "Convert local video files to MP4, WebM, MOV, MKV, and GIF",
+    "Process files locally in the browser without uploads",
+    "Adjust quality, resolution, and audio settings before download",
   ],
+  offers: {
+    "@type": "Offer",
+    price: "0",
+    priceCurrency: "USD",
+  },
 };
 ---
 
