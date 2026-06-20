@@ -3,6 +3,12 @@
   Referrer-Policy: strict-origin-when-cross-origin
   Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=(), usb=()
 
+/convert/service-worker.js
+  Cache-Control: no-cache
+
+/convert/manifest.webmanifest
+  Cache-Control: no-cache
+
 /_astro/*
   Cache-Control: public, max-age=31536000, immutable
 
