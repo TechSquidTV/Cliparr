@@ -37,8 +37,10 @@ export {
 } from "./lib/editorMedia";
 export { createCliparrInputFromSource } from "./lib/mediabunnyInput";
 export {
+  assessVideoTrackDecodability,
   getTrackTimelineOffsetSeconds,
   getVideoTrackDimensions,
+  videoTrackPreviewUnavailableMessage,
 } from "./lib/mediabunnyTrackAccess";
 export type { MediaExportMetadata } from "./providers/types";
 export {

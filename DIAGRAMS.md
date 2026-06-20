@@ -318,7 +318,7 @@ flowchart TD
     A3 --> B["User clicks Export"]
     B --> B1["useEditorExport resolves source/options and lazy-loads exportClip"]
     B1 --> C{"Output format is GIF?"}
-    C -- "Yes" --> D["Build fresh Mediabunny input and CanvasSink from export source"]
+    C -- "Yes" --> D["Build fresh Mediabunny input and assert source video is decodable before CanvasSink setup"]
     D --> E["Apply GIF Quality control as max height, frame rate, color count, palette mode, and dither settings"]
     E --> F["Draw frames with high-quality canvas scaling and burn subtitles when enabled"]
     F --> G{"Preset uses a stable sampled palette?"}
@@ -331,7 +331,8 @@ flowchart TD
     G5 --> G6["Return image/gif Blob"]
 
     C -- "No" --> H["exportClip builds fresh Mediabunny input from export source URL"]
-    H --> I["exportMetadata builds tags and artwork when metadata exists"]
+    H --> H1["Assert selected source video is decodable when conversion needs decoded frames"]
+    H1 --> I["exportMetadata builds tags and artwork when metadata exists"]
     I --> J["Create Output(BufferTarget)"]
     J --> K["Build conversion options for source video, selected audio, trim, resolution, tags, optional subtitles, and video quality"]
     K --> K1{"Video quality is Compact or Balanced?"}

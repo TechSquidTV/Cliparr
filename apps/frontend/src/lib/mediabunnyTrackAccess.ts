@@ -1,8 +1,18 @@
-import type { InputAudioTrack, InputTrack, InputVideoTrack } from "mediabunny";
+import type {
+  InputAudioTrack,
+  InputTrack,
+  InputVideoTrack,
+  VideoCodec,
+} from "mediabunny";
 
 interface VideoTrackDimensions {
   width: number;
   height: number;
+}
+
+export interface VideoTrackDecodabilityAssessment {
+  codec: VideoCodec | null;
+  canDecode: boolean;
 }
 
 export async function describeInputTrack(track: InputTrack) {
@@ -27,6 +37,37 @@ export async function getTrackName(track: InputTrack) {
 
 export async function getTrackCodec(track: InputTrack) {
   return track.getCodec();
+}
+
+export async function assessVideoTrackDecodability(
+  track: InputVideoTrack,
+): Promise<VideoTrackDecodabilityAssessment> {
+  const codec = await track.getCodec();
+
+  return {
+    codec,
+    canDecode: codec !== null && (await track.canDecode()),
+  };
+}
+
+export function videoTrackPreviewUnavailableMessage(
+  decodability: VideoTrackDecodabilityAssessment,
+) {
+  if (decodability.codec === null) {
+    return "Preview unavailable: this browser cannot decode the source video track because its codec is unknown.";
+  }
+
+  return `Preview unavailable: this browser cannot decode ${decodability.codec} video.`;
+}
+
+export function videoTrackExportUnsupportedMessage(
+  decodability: VideoTrackDecodabilityAssessment,
+) {
+  if (decodability.codec === null) {
+    return "This browser cannot decode the source video track because its codec is unknown.";
+  }
+
+  return `This browser cannot decode ${decodability.codec} video. Try Chrome or Edge, or use a source video codec this browser supports.`;
 }
 
 export async function getVideoTrackDimensions(

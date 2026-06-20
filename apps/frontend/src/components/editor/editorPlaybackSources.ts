@@ -4,7 +4,11 @@ import {
   isHlsEditorMediaSource,
   type EditorMediaSource,
 } from "@/lib/editorMedia";
-import { getTrackCodec } from "@/lib/mediabunnyTrackAccess";
+import {
+  assessVideoTrackDecodability,
+  getTrackCodec,
+  videoTrackPreviewUnavailableMessage,
+} from "@/lib/mediabunnyTrackAccess";
 import type { PlaybackAudioSelection } from "@/providers/types";
 import {
   errorMessage,
@@ -251,18 +255,11 @@ async function assessPreviewVideoTrack(track: InputVideoTrack | null) {
     return { track: null, warning: undefined };
   }
 
-  const videoCodec = await getTrackCodec(track);
-  if (videoCodec === null) {
+  const decodability = await assessVideoTrackDecodability(track);
+  if (decodability.codec === null || !decodability.canDecode) {
     return {
       track: null,
-      warning: "Video codec is unknown.",
-    };
-  }
-
-  if (!(await track.canDecode())) {
-    return {
-      track: null,
-      warning: `Cannot decode ${videoCodec} video in this browser.`,
+      warning: videoTrackPreviewUnavailableMessage(decodability),
     };
   }
 
