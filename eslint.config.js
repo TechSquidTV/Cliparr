@@ -384,7 +384,7 @@ export default tseslint.config(
     },
   },
   {
-    files: ["apps/*/public/service-worker.js"],
+    files: ["apps/*/public/**/service-worker.js"],
     languageOptions: {
       globals: {
         ...globals.serviceworker,

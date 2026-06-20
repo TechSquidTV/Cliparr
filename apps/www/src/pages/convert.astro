@@ -1,5 +1,6 @@
 ---
 import BaseLayout from "@/components/BaseLayout.astro";
+import { ConvertPwaInstallPrompt } from "@/components/convert/ConvertPwaInstallPrompt";
 import { ConvertTool } from "@/components/convert/ConvertTool";
 import { site } from "@/data/product";
 import {
@@ -50,6 +51,9 @@ const structuredData = {
   title="Convert"
   seoTitle="Convert Video: MP4, WebM, MKV, MOV, and GIF"
   description={description}
+  manifestHref="/convert/manifest.webmanifest"
+  appleTouchIconHref="/pwa-icon-192.png"
+  appleMobileWebAppTitle="Cliparr Convert"
   structuredData={structuredData}
 >
   <main class="bg-background text-foreground">
@@ -63,6 +67,7 @@ const structuredData = {
           <p class="mt-4 max-w-2xl text-base leading-7 text-muted-foreground">
             {description}
           </p>
+          <ConvertPwaInstallPrompt client:load />
         </div>
 
         <div class="mt-7">

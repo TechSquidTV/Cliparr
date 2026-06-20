@@ -63,6 +63,14 @@ interface ConvertExportFailedMetricInput extends ConvertExportMetricContext {
   durationMs: number;
 }
 
+export type ConvertPwaInstallFormFactor = "desktop" | "mobile";
+type ConvertPwaInstallMode = "ios" | "native";
+
+export interface ConvertPwaInstallMetricInput {
+  formFactor: ConvertPwaInstallFormFactor;
+  installMode: ConvertPwaInstallMode;
+}
+
 const convertMetricsFlushTimeoutMs = 2000;
 const defaultConvertMetricsDependencies: ConvertMetricsDependencies = {
   metrics: Sentry.metrics,
@@ -167,9 +175,11 @@ export function recordConvertExportStarted(
   context: ConvertExportMetricContext,
   dependencies: ConvertMetricsDependencies = defaultConvertMetricsDependencies,
 ) {
-  dependencies.metrics.count("convert.export.started", 1, {
-    attributes: buildConvertMetricAttributes(context),
-  });
+  recordCount(
+    dependencies.metrics,
+    "convert.export.started",
+    buildConvertMetricAttributes(context),
+  );
 }
 
 export function recordConvertExportCompleted(
@@ -179,7 +189,7 @@ export function recordConvertExportCompleted(
   const attributes = buildConvertMetricAttributes(input);
   const estimateBytes = input.outputSizeEstimate.bytes;
 
-  dependencies.metrics.count("convert.export.completed", 1, { attributes });
+  recordCount(dependencies.metrics, "convert.export.completed", attributes);
   recordDistribution(
     dependencies.metrics,
     "convert.source.size_bytes",
@@ -240,15 +250,83 @@ export function recordConvertExportFailed(
   input: ConvertExportFailedMetricInput,
   dependencies: ConvertMetricsDependencies = defaultConvertMetricsDependencies,
 ) {
-  dependencies.metrics.count("convert.export.failed", 1, {
-    attributes: buildConvertMetricAttributes(input),
-  });
+  recordCount(
+    dependencies.metrics,
+    "convert.export.failed",
+    buildConvertMetricAttributes(input),
+  );
 }
 
-export function flushConvertMetrics(
+export async function flushConvertMetrics(
   dependencies: ConvertMetricsDependencies = defaultConvertMetricsDependencies,
 ) {
-  return dependencies.flush(convertMetricsFlushTimeoutMs);
+  try {
+    return await dependencies.flush(convertMetricsFlushTimeoutMs);
+  } catch {
+    return false;
+  }
+}
+
+export function recordConvertPwaInstallPromptAvailable(
+  input: ConvertPwaInstallMetricInput,
+  dependencies: ConvertMetricsDependencies = defaultConvertMetricsDependencies,
+) {
+  recordConvertPwaInstallMetric(
+    "convert.pwa.install.prompt.available",
+    input,
+    dependencies,
+  );
+}
+
+export function recordConvertPwaInstallPromptShown(
+  input: ConvertPwaInstallMetricInput,
+  dependencies: ConvertMetricsDependencies = defaultConvertMetricsDependencies,
+) {
+  recordConvertPwaInstallMetric(
+    "convert.pwa.install.prompt.shown",
+    input,
+    dependencies,
+  );
+}
+
+export function recordConvertPwaInstallClicked(
+  input: ConvertPwaInstallMetricInput,
+  dependencies: ConvertMetricsDependencies = defaultConvertMetricsDependencies,
+) {
+  recordConvertPwaInstallMetric(
+    "convert.pwa.install.clicked",
+    input,
+    dependencies,
+  );
+}
+
+export function recordConvertPwaInstallAccepted(
+  input: ConvertPwaInstallMetricInput,
+  dependencies: ConvertMetricsDependencies = defaultConvertMetricsDependencies,
+) {
+  recordConvertPwaInstallMetric(
+    "convert.pwa.install.accepted",
+    input,
+    dependencies,
+  );
+}
+
+export function recordConvertPwaInstallDismissed(
+  input: ConvertPwaInstallMetricInput,
+  dependencies: ConvertMetricsDependencies = defaultConvertMetricsDependencies,
+) {
+  recordConvertPwaInstallMetric(
+    "convert.pwa.install.dismissed",
+    input,
+    dependencies,
+  );
+}
+
+export function recordConvertPwaInstalled(
+  input: ConvertPwaInstallMetricInput,
+  dependencies: ConvertMetricsDependencies = defaultConvertMetricsDependencies,
+) {
+  recordConvertPwaInstallMetric("convert.pwa.installed", input, dependencies);
 }
 
 function compactMetricAttributes(
@@ -262,6 +340,30 @@ function compactMetricAttributes(
   );
 }
 
+function recordConvertPwaInstallMetric(
+  name: string,
+  input: ConvertPwaInstallMetricInput,
+  dependencies: ConvertMetricsDependencies,
+) {
+  recordCount(dependencies.metrics, name, {
+    surface: "www.convert",
+    form_factor: input.formFactor,
+    install_mode: input.installMode,
+  });
+}
+
+function recordCount(
+  metrics: ConvertMetricsClient,
+  name: string,
+  attributes: Record<string, MetricAttributeValue>,
+) {
+  try {
+    metrics.count(name, 1, { attributes });
+  } catch {
+    return;
+  }
+}
+
 function recordDistribution(
   metrics: ConvertMetricsClient,
   name: string,
@@ -273,10 +375,14 @@ function recordDistribution(
     return;
   }
 
-  metrics.distribution(name, value, {
-    attributes,
-    ...(unit ? { unit } : {}),
-  });
+  try {
+    metrics.distribution(name, value, {
+      attributes,
+      ...(unit ? { unit } : {}),
+    });
+  } catch {
+    return;
+  }
 }
 
 function stringMetricAttribute(value: unknown) {

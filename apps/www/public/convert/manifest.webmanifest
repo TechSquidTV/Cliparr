@@ -1,0 +1,47 @@
+{
+  "id": "/convert",
+  "name": "Cliparr Convert",
+  "short_name": "Convert",
+  "description": "Convert local video files to MP4, WebM, MOV, MKV, or GIF entirely in your browser.",
+  "start_url": "/convert/",
+  "scope": "/convert/",
+  "display": "standalone",
+  "background_color": "#171717",
+  "theme_color": "#171717",
+  "categories": ["photo", "video", "utilities"],
+  "icons": [
+    {
+      "src": "/pwa-icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/pwa-icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/pwa-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Convert Video",
+      "short_name": "Convert",
+      "description": "Open the local browser video converter.",
+      "url": "/convert/",
+      "icons": [
+        {
+          "src": "/pwa-icon-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    }
+  ]
+}

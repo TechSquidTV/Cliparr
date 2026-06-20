@@ -6,6 +6,12 @@ import {
   normalizeConvertSourceFormat,
   recordConvertExportCompleted,
   recordConvertExportFailed,
+  recordConvertPwaInstallAccepted,
+  recordConvertPwaInstallClicked,
+  recordConvertPwaInstallDismissed,
+  recordConvertPwaInstalled,
+  recordConvertPwaInstallPromptAvailable,
+  recordConvertPwaInstallPromptShown,
   type ConvertMetricsDependencies,
 } from "@/components/convert/convertMetrics";
 
@@ -187,10 +193,75 @@ void test("failed convert metrics omit raw error and file details", () => {
   assert.doesNotMatch(serializedCalls, /S01E02/);
 });
 
-void test("convert metric flushing uses the short best-effort timeout", () => {
+void test("convert metric flushing uses the short best-effort timeout", async () => {
   const { dependencies, flushTimeouts } = createMetricRecorder();
 
-  void flushConvertMetrics(dependencies);
+  assert.equal(await flushConvertMetrics(dependencies), true);
 
   assert.deepEqual(flushTimeouts, [2000]);
+});
+
+void test("PWA install metrics stay bounded", () => {
+  const { calls, dependencies } = createMetricRecorder();
+  const input = {
+    formFactor: "mobile" as const,
+    installMode: "native" as const,
+  };
+
+  recordConvertPwaInstallPromptAvailable(input, dependencies);
+  recordConvertPwaInstallPromptShown(input, dependencies);
+  recordConvertPwaInstallClicked(input, dependencies);
+  recordConvertPwaInstallAccepted(input, dependencies);
+  recordConvertPwaInstallDismissed(input, dependencies);
+  recordConvertPwaInstalled(input, dependencies);
+
+  assert.equal(
+    metricCall(calls, "convert.pwa.install.prompt.available").value,
+    1,
+  );
+  assert.equal(metricCall(calls, "convert.pwa.install.prompt.shown").value, 1);
+  assert.equal(metricCall(calls, "convert.pwa.install.clicked").value, 1);
+  assert.equal(metricCall(calls, "convert.pwa.install.accepted").value, 1);
+  assert.equal(metricCall(calls, "convert.pwa.install.dismissed").value, 1);
+  assert.equal(metricCall(calls, "convert.pwa.installed").value, 1);
+
+  const attributes = metricCall(calls, "convert.pwa.install.prompt.available")
+    .options?.attributes;
+  assert.deepEqual(attributes, {
+    surface: "www.convert",
+    form_factor: "mobile",
+    install_mode: "native",
+  });
+});
+
+void test("metric calls are best effort when the metrics client fails", async () => {
+  const dependencies: ConvertMetricsDependencies = {
+    metrics: {
+      count: () => {
+        throw new Error("metrics unavailable");
+      },
+      distribution: () => {
+        throw new Error("metrics unavailable");
+      },
+    },
+    flush: () => {
+      throw new Error("flush unavailable");
+    },
+  };
+
+  assert.doesNotThrow(() => {
+    recordConvertExportCompleted(
+      {
+        ...createMetricContext(),
+        actualBytes: 1100,
+        durationMs: 2500,
+      },
+      dependencies,
+    );
+    recordConvertPwaInstallClicked(
+      { formFactor: "desktop", installMode: "native" },
+      dependencies,
+    );
+  });
+  assert.equal(await flushConvertMetrics(dependencies), false);
 });
