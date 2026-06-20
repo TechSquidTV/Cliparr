@@ -1,9 +1,9 @@
-import type { MediaExportMetadata } from "@/providers/types";
-import type { ExportFormat } from "@/lib/exportTypes";
+import type { MediaExportMetadata } from "#/providers/types";
+import type { ExportFormat } from "#/lib/exportTypes";
 import {
   framegrabExtensionFor,
   type FramegrabImageFormat,
-} from "@/lib/framegrab";
+} from "#/lib/framegrab";
 
 export type ExportFileNameTemplateKind = "movie" | "episode";
 

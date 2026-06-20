@@ -171,9 +171,12 @@ export default tseslint.config(
                 "Use the package alias instead of a relative import path.",
             },
             {
+              regex: "^@cliparr/frontend(?:$|/(?!convert$).+)",
+              message:
+                "Do not import app internals across workspace boundaries.",
+            },
+            {
               group: [
-                "@cliparr/frontend",
-                "@cliparr/frontend/*",
                 "@cliparr/server",
                 "@cliparr/server/*",
                 "apps/frontend/*",

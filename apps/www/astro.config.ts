@@ -1,4 +1,5 @@
 import mdx from "@astrojs/mdx";
+import react from "@astrojs/react";
 import sitemap from "@astrojs/sitemap";
 import tailwindcss from "@tailwindcss/vite";
 import { defineConfig } from "astro/config";
@@ -56,6 +57,7 @@ export default defineConfig({
   },
   integrations: [
     mdx(),
+    react(),
     sitemap({
       namespaces: {
         news: false,
@@ -67,6 +69,14 @@ export default defineConfig({
   ],
   vite: {
     plugins: [tailwindcss()],
+    optimizeDeps: {
+      include: [
+        "@mediabunny/aac-encoder",
+        "@mediabunny/ac3",
+        "@techsquidtv/gifenc",
+        "mediabunny",
+      ],
+    },
     resolve: {
       alias: {
         "@": path.resolve(configDirectory, "src"),

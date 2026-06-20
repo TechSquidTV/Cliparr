@@ -3,7 +3,7 @@ import type {
   GifPaletteFormat,
   GifPaletteMode,
   GifTemporalDitherSettings,
-} from "@/lib/gifEncodingSettings";
+} from "#/lib/gifEncodingSettings";
 
 export type ExportFormat = "mp4" | "webm" | "mov" | "mkv" | "gif";
 

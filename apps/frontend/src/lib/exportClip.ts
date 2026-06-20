@@ -17,25 +17,25 @@ import type {
   InputVideoTrack,
   VideoSample,
 } from "mediabunny";
-import type { EditorMediaSource } from "@/lib/editorMedia";
-import { createCliparrInputFromSource } from "@/lib/mediabunnyInput";
-import { ensureMediabunnyCodecs } from "@/lib/mediabunnyCodecs";
+import type { EditorMediaSource } from "#/lib/editorMedia";
+import { createCliparrInputFromSource } from "#/lib/mediabunnyInput";
+import { ensureMediabunnyCodecs } from "#/lib/mediabunnyCodecs";
 import {
   getTrackTimelineOffsetSeconds,
   getVideoTrackDimensions,
   toSourceTimelineTime,
-} from "@/lib/mediabunnyTrackAccess";
-import { selectPreferredPairableAudioTrack } from "@/lib/selectPreferredAudioTrack";
+} from "#/lib/mediabunnyTrackAccess";
+import { selectPreferredPairableAudioTrack } from "#/lib/selectPreferredAudioTrack";
 import type {
   MediaExportMetadata,
   PlaybackAudioSelection,
-} from "@/providers/types";
+} from "#/providers/types";
 import {
   buildMetadataTags,
   describeDiscardedTracks,
   isIsobmffExportFormat,
   patchMp4MetadataBoxes,
-} from "@/lib/exportMetadata";
+} from "#/lib/exportMetadata";
 import {
   DEFAULT_GIF_EXPORT_PRESET,
   DEFAULT_VIDEO_EXPORT_QUALITY,
@@ -46,23 +46,23 @@ import {
   type ExportResolution,
   type GifExportSettings,
   type VideoExportQualityPreset,
-} from "@/lib/exportTypes";
+} from "#/lib/exportTypes";
 import type {
   EncodeGifFrameChunkHelpers,
   GifFrameChunk,
-} from "@/lib/gifFrameChunk";
+} from "#/lib/gifFrameChunk";
 import type {
   GifFrameEncoder,
   GifFrameEncoderOptions,
-} from "@/lib/gifFrameEncoder";
-import { getActiveSubtitleCue } from "@/lib/subtitles/getActiveSubtitleCue";
-import { renderSubtitleCue } from "@/lib/subtitles/renderSubtitleCue";
-import { trimSubtitleCues } from "@/lib/subtitles/trimSubtitleCues";
-import type { SubtitleCue, SubtitleStyleSettings } from "@/lib/subtitles/types";
+} from "#/lib/gifFrameEncoder";
+import { getActiveSubtitleCue } from "#/lib/subtitles/getActiveSubtitleCue";
+import { renderSubtitleCue } from "#/lib/subtitles/renderSubtitleCue";
+import { trimSubtitleCues } from "#/lib/subtitles/trimSubtitleCues";
+import type { SubtitleCue, SubtitleStyleSettings } from "#/lib/subtitles/types";
 
-export type { ExportFormat, ExportResolution } from "@/lib/exportTypes";
+export type { ExportFormat, ExportResolution } from "#/lib/exportTypes";
 
-interface ExportClipOptions {
+export interface ExportClipOptions {
   mediaSource: EditorMediaSource;
   hls?: boolean;
   startTime: number;
@@ -871,8 +871,8 @@ function copyToArrayBuffer(bytes: Uint8Array) {
 async function loadGifEncodingRuntime(): Promise<GifEncodingRuntime> {
   const [gifenc, gifFrameEncoder, gifFrameChunk] = await Promise.all([
     import("@techsquidtv/gifenc"),
-    import("@/lib/gifFrameEncoder"),
-    import("@/lib/gifFrameChunk"),
+    import("#/lib/gifFrameEncoder"),
+    import("#/lib/gifFrameChunk"),
   ]);
 
   return {

@@ -1,4 +1,4 @@
-import type { SubtitleCue } from "@/lib/subtitles/types";
+import type { SubtitleCue } from "#/lib/subtitles/types";
 
 export function trimSubtitleCues(
   cues: readonly SubtitleCue[],

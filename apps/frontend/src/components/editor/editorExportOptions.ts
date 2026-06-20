@@ -1,4 +1,4 @@
-import type { ExportFormat } from "@/lib/exportTypes";
+import type { ExportFormat } from "#/lib/exportTypes";
 
 interface EditorExportOption<T extends string> {
   value: T;

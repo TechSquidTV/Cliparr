@@ -8,13 +8,13 @@ import {
   SelectLabel,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
+} from "#/components/ui/select";
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
-} from "@/components/ui/tooltip";
-import type { ExportFormat, ExportResolution } from "@/lib/exportClip";
+} from "#/components/ui/tooltip";
+import type { ExportFormat, ExportResolution } from "#/lib/exportClip";
 import {
   exportQualityDescriptionFor,
   exportQualityOptionFor,
@@ -23,22 +23,22 @@ import {
   type ExportQualityPreset,
   type GifExportPreset,
   type GifExportSettings,
-} from "@/lib/exportTypes";
+} from "#/lib/exportTypes";
 import {
   getExportFileNameTemplateTokens,
   type ExportFileNameTemplateKind,
   type ExportFileNameTemplateSettings,
-} from "@/lib/exportFileName";
-import type { ExportSourcePreference } from "@/components/editor/EditorExportDialog";
+} from "#/lib/exportFileName";
+import type { ExportSourcePreference } from "#/components/editor/EditorExportDialog";
 import {
   compactSelectTriggerClassName,
   sectionLabelClassName,
-} from "@/components/editor/editorDialogStyles";
+} from "#/components/editor/editorDialogStyles";
 import {
   formatOptionFor,
   formatOptions,
-} from "@/components/editor/editorExportOptions";
-import { formatTime } from "@/components/editor/editorUtilities";
+} from "#/components/editor/editorExportOptions";
+import { formatTime } from "#/components/editor/editorUtilities";
 
 interface VideoDimensions {
   width: number;
@@ -158,15 +158,16 @@ interface EditorExportSettingsSectionProperties {
   onQualityChange: (quality: ExportQualityPreset) => void;
   selectedResolution: ExportResolution;
   onResolutionChange: (resolution: ExportResolution) => void;
-  selectedSourcePreference: ExportSourcePreference;
-  onSourcePreferenceChange: (preference: ExportSourcePreference) => void;
+  selectedSourcePreference?: ExportSourcePreference;
+  onSourcePreferenceChange?: (preference: ExportSourcePreference) => void;
   includeAudio: boolean;
   onIncludeAudioChange: (includeAudio: boolean) => void;
   audioDisabledReason?: string | null;
-  hasHlsSource: boolean;
-  hasDirectSource: boolean;
-  directSourceLabel: string;
-  hlsSourceLabel: string;
+  showSourcePreference?: boolean;
+  hasHlsSource?: boolean;
+  hasDirectSource?: boolean;
+  directSourceLabel?: string;
+  hlsSourceLabel?: string;
 }
 
 function EditorExportSettingsSectionComponent({
@@ -181,13 +182,15 @@ function EditorExportSettingsSectionComponent({
   includeAudio,
   onIncludeAudioChange,
   audioDisabledReason,
-  hasHlsSource,
-  hasDirectSource,
-  directSourceLabel,
-  hlsSourceLabel,
+  showSourcePreference = true,
+  hasHlsSource = false,
+  hasDirectSource = false,
+  directSourceLabel = "Direct source",
+  hlsSourceLabel = "HLS stream",
 }: EditorExportSettingsSectionProperties) {
   const sourceOptions = sourceOptionsFor({ directSourceLabel, hlsSourceLabel });
   const qualityOptions = exportQualityOptionsForFormat(selectedFormat);
+  const activeSourcePreference = selectedSourcePreference ?? "auto";
 
   return (
     <section className="rounded-md border border-border bg-card">
@@ -282,65 +285,71 @@ function EditorExportSettingsSectionComponent({
           </p>
         </label>
 
-        <div className="space-y-1.5">
-          <div className="flex items-center gap-1.5">
-            <span className={sectionLabelClassName()}>Source</span>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <button
-                  type="button"
-                  aria-label="Export source details"
-                  className="inline-flex h-4 w-4 items-center justify-center rounded-full text-muted-foreground transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/50"
-                >
-                  <Info className="h-3.5 w-3.5" />
-                </button>
-              </TooltipTrigger>
-              <TooltipContent side="top" align="start">
-                Chooses the media path used for export.
-              </TooltipContent>
-            </Tooltip>
-          </div>
-          <Select
-            value={selectedSourcePreference}
-            onValueChange={(value) =>
-              onSourcePreferenceChange(value as ExportSourcePreference)
-            }
-          >
-            <SelectTrigger
-              size="sm"
-              className={compactSelectTriggerClassName()}
-            >
-              <SelectValue placeholder="Select source" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectGroup>
-                <SelectLabel>Sources</SelectLabel>
-                {sourceOptions.map((option) => (
-                  <SelectItem
-                    key={option.value}
-                    value={option.value}
-                    disabled={
-                      (option.value === "direct" && !hasDirectSource) ||
-                      (option.value === "hls" && !hasHlsSource)
-                    }
+        {showSourcePreference && (
+          <div className="space-y-1.5">
+            <div className="flex items-center gap-1.5">
+              <span className={sectionLabelClassName()}>Source</span>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    type="button"
+                    aria-label="Export source details"
+                    className="inline-flex h-4 w-4 items-center justify-center rounded-full text-muted-foreground transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/50"
                   >
-                    {option.label}
-                  </SelectItem>
-                ))}
-              </SelectGroup>
-            </SelectContent>
-          </Select>
-          <p className={stableHelperTextClassName}>
-            {
-              sourceOptionFor(selectedSourcePreference, {
-                directSourceLabel,
-                hlsSourceLabel,
-              }).description
-            }
-          </p>
-        </div>
+                    <Info className="h-3.5 w-3.5" />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent side="top" align="start">
+                  Chooses the media path used for export.
+                </TooltipContent>
+              </Tooltip>
+            </div>
+            <Select
+              value={activeSourcePreference}
+              onValueChange={(value) =>
+                onSourcePreferenceChange?.(value as ExportSourcePreference)
+              }
+            >
+              <SelectTrigger
+                size="sm"
+                className={compactSelectTriggerClassName()}
+              >
+                <SelectValue placeholder="Select source" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectGroup>
+                  <SelectLabel>Sources</SelectLabel>
+                  {sourceOptions.map((option) => (
+                    <SelectItem
+                      key={option.value}
+                      value={option.value}
+                      disabled={
+                        (option.value === "direct" && !hasDirectSource) ||
+                        (option.value === "hls" && !hasHlsSource)
+                      }
+                    >
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectGroup>
+              </SelectContent>
+            </Select>
+            <p className={stableHelperTextClassName}>
+              {
+                sourceOptionFor(activeSourcePreference, {
+                  directSourceLabel,
+                  hlsSourceLabel,
+                }).description
+              }
+            </p>
+          </div>
+        )}
 
-        <label className="space-y-1.5 sm:col-span-2">
+        <label
+          className={
+            showSourcePreference ? "space-y-1.5 sm:col-span-2" : "space-y-1.5"
+          }
+        >
           <span className={sectionLabelClassName()}>Audio</span>
           <Select
             value={includeAudio ? "included" : "video-only"}
@@ -488,14 +497,19 @@ interface EditorExportSummaryPanelProperties {
   selectedQuality: ExportQualityPreset;
   gifSettings?: GifExportSettings | null;
   outputDimensions: VideoDimensions | null;
-  exportSourceLabel: string;
-  exportSourceSummaryMessage: string | null;
+  exportSourceLabel?: string;
+  exportSourceSummaryMessage?: string | null;
   includeAudio: boolean;
-  subtitleSummaryLabel: string;
-  subtitleSummaryDetail: string;
-  subtitleSummaryTone: "muted" | "ready" | "warning";
-  activeTemplateKind: ExportFileNameTemplateKind;
-  fileNamePreview: string;
+  showClipSummary?: boolean;
+  showSourceSummary?: boolean;
+  showSubtitleSummary?: boolean;
+  showFilenameSummary?: boolean;
+  subtitleSummaryLabel?: string;
+  subtitleSummaryDetail?: string;
+  subtitleSummaryTone?: "muted" | "ready" | "warning";
+  activeTemplateKind?: ExportFileNameTemplateKind;
+  filenameTemplateLabel?: string | null;
+  fileNamePreview?: string;
 }
 
 function EditorExportSummaryPanelComponent({
@@ -506,14 +520,19 @@ function EditorExportSummaryPanelComponent({
   selectedQuality,
   gifSettings,
   outputDimensions,
-  exportSourceLabel,
-  exportSourceSummaryMessage,
+  exportSourceLabel = "Auto",
+  exportSourceSummaryMessage = null,
   includeAudio,
-  subtitleSummaryLabel,
-  subtitleSummaryDetail,
-  subtitleSummaryTone,
-  activeTemplateKind,
-  fileNamePreview,
+  showClipSummary = true,
+  showSourceSummary = true,
+  showSubtitleSummary = true,
+  showFilenameSummary = true,
+  subtitleSummaryLabel = "Not included",
+  subtitleSummaryDetail = "No supported subtitles found.",
+  subtitleSummaryTone = "muted",
+  activeTemplateKind = "movie",
+  filenameTemplateLabel,
+  fileNamePreview = "",
 }: EditorExportSummaryPanelProperties) {
   const clipLength = Math.max(0, clipEnd - clipStart);
   const selectedFormatOption = formatOptionFor(selectedFormat);
@@ -529,6 +548,11 @@ function EditorExportSummaryPanelComponent({
   } else if (subtitleSummaryTone === "warning") {
     subtitleSummaryClassName = "border-status-warning-border bg-status-warning";
   }
+  let displayedFilenameTemplateLabel = filenameTemplateLabel;
+  if (filenameTemplateLabel === undefined) {
+    displayedFilenameTemplateLabel =
+      activeTemplateKind === "episode" ? "TV show template" : "Movie template";
+  }
 
   return (
     <aside className="space-y-3 rounded-md border border-border bg-card p-3">
@@ -539,12 +563,14 @@ function EditorExportSummaryPanelComponent({
       <div className="text-sm font-medium text-foreground">{title}</div>
 
       <dl className="grid gap-2 text-sm">
-        <div className="rounded-md border border-border bg-background px-3 py-2">
-          <dt className={sectionLabelClassName()}>Clip</dt>
-          <dd className="mt-1 font-mono text-xs text-foreground">
-            {formatTime(clipStart)} to {formatTime(clipEnd)}
-          </dd>
-        </div>
+        {showClipSummary && (
+          <div className="rounded-md border border-border bg-background px-3 py-2">
+            <dt className={sectionLabelClassName()}>Clip</dt>
+            <dd className="mt-1 font-mono text-xs text-foreground">
+              {formatTime(clipStart)} to {formatTime(clipEnd)}
+            </dd>
+          </div>
+        )}
 
         <div className="rounded-md border border-border bg-background px-3 py-2">
           <dt className={sectionLabelClassName()}>Duration</dt>
@@ -553,15 +579,19 @@ function EditorExportSummaryPanelComponent({
           </dd>
         </div>
 
-        <div className="rounded-md border border-border bg-background px-3 py-2">
-          <dt className={sectionLabelClassName()}>Source</dt>
-          <dd className="mt-1 text-xs text-foreground">{exportSourceLabel}</dd>
-          {exportSourceSummaryMessage && (
-            <dd className="mt-1 text-ui-label text-muted-foreground">
-              {exportSourceSummaryMessage}
+        {showSourceSummary && (
+          <div className="rounded-md border border-border bg-background px-3 py-2">
+            <dt className={sectionLabelClassName()}>Source</dt>
+            <dd className="mt-1 text-xs text-foreground">
+              {exportSourceLabel}
             </dd>
-          )}
-        </div>
+            {exportSourceSummaryMessage && (
+              <dd className="mt-1 text-ui-label text-muted-foreground">
+                {exportSourceSummaryMessage}
+              </dd>
+            )}
+          </div>
+        )}
 
         <div className="rounded-md border border-border bg-background px-3 py-2">
           <dt className={sectionLabelClassName()}>Output</dt>
@@ -587,29 +617,33 @@ function EditorExportSummaryPanelComponent({
           </dd>
         </div>
 
-        <div
-          className={`rounded-md border px-3 py-2 ${subtitleSummaryClassName}`}
-        >
-          <dt className={sectionLabelClassName()}>Subtitles</dt>
-          <dd className="mt-1 text-xs font-medium text-foreground">
-            {subtitleSummaryLabel}
-          </dd>
-          <dd className="mt-1 text-ui-label text-muted-foreground">
-            {subtitleSummaryDetail}
-          </dd>
-        </div>
+        {showSubtitleSummary && (
+          <div
+            className={`rounded-md border px-3 py-2 ${subtitleSummaryClassName}`}
+          >
+            <dt className={sectionLabelClassName()}>Subtitles</dt>
+            <dd className="mt-1 text-xs font-medium text-foreground">
+              {subtitleSummaryLabel}
+            </dd>
+            <dd className="mt-1 text-ui-label text-muted-foreground">
+              {subtitleSummaryDetail}
+            </dd>
+          </div>
+        )}
 
-        <div className="rounded-md border border-border bg-background px-3 py-2">
-          <dt className={sectionLabelClassName()}>Filename</dt>
-          <dd className="mt-1 text-ui-label font-semibold uppercase tracking-[var(--tracking-caps-md)] text-muted-foreground">
-            {activeTemplateKind === "episode"
-              ? "TV show template"
-              : "Movie template"}
-          </dd>
-          <dd className="mt-1 break-all font-mono text-ui-label text-foreground">
-            {fileNamePreview}
-          </dd>
-        </div>
+        {showFilenameSummary && (
+          <div className="rounded-md border border-border bg-background px-3 py-2">
+            <dt className={sectionLabelClassName()}>Filename</dt>
+            {displayedFilenameTemplateLabel ? (
+              <dd className="mt-1 text-ui-label font-semibold uppercase tracking-[var(--tracking-caps-md)] text-muted-foreground">
+                {displayedFilenameTemplateLabel}
+              </dd>
+            ) : null}
+            <dd className="mt-1 break-all font-mono text-ui-label text-foreground">
+              {fileNamePreview}
+            </dd>
+          </div>
+        )}
       </dl>
     </aside>
   );

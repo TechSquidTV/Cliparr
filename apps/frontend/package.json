@@ -2,6 +2,15 @@
   "name": "@cliparr/frontend",
   "private": true,
   "type": "module",
+  "imports": {
+    "#/*": "./src/*"
+  },
+  "exports": {
+    "./convert": {
+      "types": "./src/convert.d.ts",
+      "default": "./src/convert.ts"
+    }
+  },
   "scripts": {
     "dev": "vite",
     "build": "vite build",
