@@ -46,6 +46,12 @@ import {
   selectedQualityForFormat,
   type SourceProbeResult,
 } from "@/components/convert/convertToolUtilities";
+import {
+  flushConvertMetrics,
+  recordConvertExportCompleted,
+  recordConvertExportFailed,
+  recordConvertExportStarted,
+} from "@/components/convert/convertMetrics";
 import { MediabunnySourcePreview } from "@/components/convert/MediabunnySourcePreview";
 
 type ProbeState =
@@ -545,8 +551,23 @@ export function ConvertTool() {
     setProgress(0);
     setExportError(null);
 
+    const startedAt = Date.now();
+    const metricContext = {
+      sourceFile,
+      probe: probeResult,
+      format,
+      selectedQuality,
+      resolution,
+      includeAudio: effectiveIncludeAudio,
+      outputDimensions,
+      outputSizeEstimate,
+      gifSettings: format === "gif" ? gifSettings : null,
+    };
+
+    recordConvertExportStarted(metricContext);
+
     try {
-      await runConvertExport({
+      const blob = await runConvertExport({
         source,
         fileName: outputFileName,
         probe: probeResult,
@@ -565,8 +586,19 @@ export function ConvertTool() {
         },
       });
 
+      recordConvertExportCompleted({
+        ...metricContext,
+        actualBytes: blob.size,
+        durationMs: Math.max(0, Date.now() - startedAt),
+      });
+      void flushConvertMetrics();
       setProgress(1);
     } catch (error) {
+      recordConvertExportFailed({
+        ...metricContext,
+        durationMs: Math.max(0, Date.now() - startedAt),
+      });
+      void flushConvertMetrics();
       setExportError(errorMessage(error, "Conversion failed."));
     } finally {
       setExporting(false);
@@ -577,8 +609,11 @@ export function ConvertTool() {
     format,
     gifSettings,
     outputFileName,
+    outputDimensions,
+    outputSizeEstimate,
     probeResult,
     resolution,
+    selectedQuality,
     source,
     sourceFile,
     videoQuality,

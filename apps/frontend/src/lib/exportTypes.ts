@@ -76,6 +76,7 @@ export interface EstimateExportOutputSizeOptions {
 
 export const DEFAULT_GIF_EXPORT_PRESET: GifExportPreset = "balanced";
 export const DEFAULT_VIDEO_EXPORT_QUALITY: VideoExportQualityPreset = "sharp";
+export const EXPORT_SIZE_ESTIMATE_ALGORITHM_VERSION = 1;
 
 export const exportQualityOptions: ReadonlyArray<{
   value: ExportQualityPreset;
