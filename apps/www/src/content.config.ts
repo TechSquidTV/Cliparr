@@ -10,12 +10,31 @@ const docs = defineCollection({
     base: "./src/content/docs",
     pattern: "**/*.{md,mdx}",
   }),
-  schema: z.object({
-    title: z.string(),
-    description: z.string(),
-    section: z.enum(docsSectionIds),
-    order: z.number(),
-  }),
+  schema: z
+    .object({
+      title: z.string(),
+      description: z.string(),
+      section: z.enum(docsSectionIds),
+      order: z.number(),
+      schemaType: z.enum(["TechArticle", "HowTo"]).default("TechArticle"),
+      howTo: z
+        .object({
+          tools: z.array(z.string()).default([]),
+          steps: z
+            .array(
+              z.object({
+                name: z.string(),
+                text: z.string(),
+              }),
+            )
+            .min(1),
+        })
+        .optional(),
+    })
+    .refine((data) => data.schemaType !== "HowTo" || data.howTo, {
+      message: "howTo is required when schemaType is HowTo.",
+      path: ["howTo"],
+    }),
 });
 
 const blog = defineCollection({

@@ -3,16 +3,53 @@ import type { CollectionEntry } from "astro:content";
 import { getCollection } from "astro:content";
 import DocsLayout from "@/components/DocsLayout.astro";
 import { docsForSection, docsSections } from "@/data/docs";
+import {
+  absoluteSiteUrl,
+  organizationReference,
+  websiteReference,
+  webPageId,
+} from "@/lib/structuredData";
 
 type DocsEntry = CollectionEntry<"docs">;
 
 const docs = (await getCollection("docs")) as DocsEntry[];
+const pageTitle = "Cliparr docs";
+const pageDescription =
+  "Small, practical guides for installing, configuring, and using Cliparr.";
+const docsUrl = absoluteSiteUrl("/docs");
+const listedDocs = docsSections.flatMap((section) =>
+  docsForSection(docs, section.id),
+);
+const docsStructuredData = {
+  "@context": "https://schema.org",
+  "@type": "CollectionPage",
+  "@id": `${docsUrl}#collection`,
+  name: pageTitle,
+  description: pageDescription,
+  url: docsUrl,
+  mainEntityOfPage: { "@id": webPageId(docsUrl) },
+  inLanguage: "en",
+  isPartOf: websiteReference(),
+  publisher: organizationReference(),
+  hasPart: listedDocs.map((entry) => {
+    const entryUrl = absoluteSiteUrl(`/docs/${entry.id}`);
+    const isHowTo = entry.data.schemaType === "HowTo";
+
+    return {
+      "@type": isHowTo ? "HowTo" : "TechArticle",
+      "@id": `${entryUrl}${isHowTo ? "#howto" : "#article"}`,
+      name: entry.data.title,
+      url: entryUrl,
+    };
+  }),
+};
 ---
 
 <DocsLayout
-  title="Cliparr docs"
-  description="Small, practical guides for installing, configuring, and using Cliparr."
+  title={pageTitle}
+  description={pageDescription}
   currentSlug=""
+  structuredData={docsStructuredData}
 >
   <div class="space-y-10">
     {

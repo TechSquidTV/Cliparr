@@ -2,17 +2,23 @@
 import BaseLayout from "@/components/BaseLayout.astro";
 import DocsNav from "@/components/DocsNav.astro";
 import MermaidRenderer from "@/components/MermaidRenderer.astro";
+import type { StructuredDataInput } from "@/lib/structuredData";
 
 interface Props {
   title: string;
   description: string;
   currentSlug?: string;
+  structuredData?: StructuredDataInput;
 }
 
-const { title, description, currentSlug } = Astro.props;
+const { title, description, currentSlug, structuredData } = Astro.props;
 ---
 
-<BaseLayout title={title} description={description}>
+<BaseLayout
+  title={title}
+  description={description}
+  structuredData={structuredData}
+>
   <section class="border-b border-border bg-background">
     <div class="container-page py-12">
       <p class="section-eyebrow">Documentation</p>

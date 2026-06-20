@@ -10,6 +10,8 @@ export const site = {
   ogImageType: "image/jpeg",
   ogImageWidth: 1200,
   logo: "/logo-light.svg",
+  schemaLogo: "/pwa-icon-512.png",
+  sameAs: ["https://github.com/TechSquidTV/Cliparr"],
 };
 
 export const productIntro =

@@ -3,6 +3,12 @@ import { ClientRouter, fade } from "astro:transitions";
 import Footer from "@/components/Footer.astro";
 import Header from "@/components/Header.astro";
 import { site } from "@/data/product";
+import {
+  jsonLdScriptContent,
+  normalizeStructuredData,
+  pageStructuredData,
+  type StructuredDataInput,
+} from "@/lib/structuredData";
 import "@/styles/global.css";
 
 interface Props {
@@ -15,7 +21,7 @@ interface Props {
   socialImageHeight?: number;
   socialImageType?: string;
   socialImageWidth?: number;
-  structuredData?: Record<string, unknown> | Record<string, unknown>[];
+  structuredData?: StructuredDataInput;
 }
 
 const {
@@ -43,49 +49,16 @@ const rssLinks = [
   { href: "/blog/rss.xml", title: `${site.name} blog` },
   { href: "/changelog/rss.xml", title: `${site.name} releases` },
 ] as const;
-const homepageSchema =
-  Astro.url.pathname === "/"
-    ? {
-        "@context": "https://schema.org",
-        "@id": `${site.url}/#software`,
-        "@type": "SoftwareApplication",
-        name: site.name,
-        description: site.description,
-        url: site.url,
-        image: socialImageUrl,
-        applicationCategory: "MultimediaApplication",
-        operatingSystem: "Docker, Linux",
-        isAccessibleForFree: true,
-        license: `${site.githubUrl}/blob/main/LICENSE`,
-        sameAs: [site.githubUrl],
-        offers: {
-          "@type": "Offer",
-          price: "0",
-          priceCurrency: "USD",
-        },
-      }
-    : null;
-const pageStructuredData: Record<string, unknown>[] = [];
-
-if (Array.isArray(structuredData)) {
-  pageStructuredData.push(...structuredData);
-} else if (structuredData) {
-  pageStructuredData.push(structuredData);
-}
-
-function isStructuredDataItem(
-  item: Record<string, unknown> | null,
-): item is Record<string, unknown> {
-  return item !== null;
-}
-
-function jsonLdScriptContent(item: Record<string, unknown>) {
-  return JSON.stringify(item).replaceAll("<", String.raw`\u003c`);
-}
-
-const structuredDataItems = [homepageSchema, ...pageStructuredData].filter(
-  isStructuredDataItem,
-);
+const structuredDataItems = [
+  pageStructuredData({
+    canonicalUrl,
+    description,
+    imageUrl: socialImageUrl,
+    isHomepage: Astro.url.pathname === "/",
+    title: pageTitle,
+  }),
+  ...normalizeStructuredData(structuredData),
+];
 ---
 
 <!doctype html>

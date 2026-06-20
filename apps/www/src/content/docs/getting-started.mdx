@@ -3,6 +3,20 @@ title: Getting started
 description: Run Cliparr with Docker, keep settings persistent, and open the app for the first time.
 section: install-operate
 order: 10
+schemaType: HowTo
+howTo:
+  tools:
+    - Docker
+    - A modern web browser
+  steps:
+    - name: Start Cliparr with Docker
+      text: Run the Cliparr container, map port 7171, set a stable APP_KEY, and mount /data for persistent settings.
+    - name: Open Cliparr
+      text: Open http://localhost:7171 in a browser after the container starts.
+    - name: Connect a source
+      text: Connect Plex or Jellyfin, or choose Open Video for a browser-local file.
+    - name: Keep production settings persistent
+      text: Use Docker Compose with the same APP_KEY and volume across updates so provider connections and settings survive restarts.
 ---
 
 import Callout from "@/components/Callout.astro";
