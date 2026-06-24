@@ -20,6 +20,15 @@ interface SubtitleLayer {
   bounds: SubtitleLayerBounds;
 }
 
+interface SubtitleCueRenderMetrics {
+  fontSize: number;
+  strokeWidth: number;
+  shadowBlur: number;
+  shadowOffsetY: number;
+  bottomMargin: number;
+  layout: SubtitleLayout;
+}
+
 const subtitleLayoutCache = new Map<string, SubtitleLayout>();
 const SUBTITLE_LAYOUT_CACHE_LIMIT = 120;
 const subtitleLayerCache = new Map<string, SubtitleLayer>();
@@ -419,13 +428,19 @@ function drawDirectSubtitleText({
   }
 }
 
-export function renderSubtitleCue(
-  context: CanvasRenderingContext2D,
-  cue: SubtitleCue,
-  style: SubtitleStyleSettings,
-  canvasWidth: number,
-  canvasHeight: number,
-) {
+function resolveSubtitleCueRenderMetrics({
+  context,
+  cue,
+  style,
+  canvasWidth,
+  canvasHeight,
+}: {
+  context: CanvasRenderingContext2D;
+  cue: SubtitleCue;
+  style: SubtitleStyleSettings;
+  canvasWidth: number;
+  canvasHeight: number;
+}): SubtitleCueRenderMetrics {
   const fontSize = Math.max(12, scaledValue(style.fontSize, canvasHeight));
   const strokeWidth = Math.max(0, scaledValue(style.strokeWidth, canvasHeight));
   const shadowBlur = Math.max(0, scaledValue(style.shadowBlur, canvasHeight));
@@ -435,15 +450,42 @@ export function renderSubtitleCue(
     scaledValue(style.bottomMargin, canvasHeight),
   );
   const maxWidth = canvasWidth * 0.84;
-  const layout = cachedSubtitleLayout(
-    context,
-    cue,
-    style,
-    canvasWidth,
-    canvasHeight,
+
+  return {
     fontSize,
-    maxWidth,
-  );
+    strokeWidth,
+    shadowBlur,
+    shadowOffsetY,
+    bottomMargin,
+    layout: cachedSubtitleLayout(
+      context,
+      cue,
+      style,
+      canvasWidth,
+      canvasHeight,
+      fontSize,
+      maxWidth,
+    ),
+  };
+}
+
+function renderSubtitleCueWithMetrics({
+  context,
+  cue,
+  style,
+  canvasWidth,
+  canvasHeight,
+  metrics,
+}: {
+  context: CanvasRenderingContext2D;
+  cue: SubtitleCue;
+  style: SubtitleStyleSettings;
+  canvasWidth: number;
+  canvasHeight: number;
+  metrics: SubtitleCueRenderMetrics;
+}) {
+  const { strokeWidth, shadowBlur, shadowOffsetY, bottomMargin, layout } =
+    metrics;
 
   context.save();
   context.font = layout.font;
@@ -486,4 +528,40 @@ export function renderSubtitleCue(
   }
 
   context.restore();
+}
+
+export function renderSubtitleCue(
+  context: CanvasRenderingContext2D,
+  cue: SubtitleCue,
+  style: SubtitleStyleSettings,
+  canvasWidth: number,
+  canvasHeight: number,
+) {
+  const metrics = resolveSubtitleCueRenderMetrics({
+    context,
+    cue,
+    style,
+    canvasWidth,
+    canvasHeight,
+  });
+  renderSubtitleCueWithMetrics({
+    context,
+    cue,
+    style,
+    canvasWidth,
+    canvasHeight,
+    metrics,
+  });
+}
+
+export function renderSubtitleCues(
+  context: CanvasRenderingContext2D,
+  cues: readonly SubtitleCue[],
+  style: SubtitleStyleSettings,
+  canvasWidth: number,
+  canvasHeight: number,
+) {
+  for (const cue of cues) {
+    renderSubtitleCue(context, cue, style, canvasWidth, canvasHeight);
+  }
 }

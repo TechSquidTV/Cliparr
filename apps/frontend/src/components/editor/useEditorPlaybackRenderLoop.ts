@@ -4,8 +4,8 @@ import {
   fromSourceTimelineTime,
   toSourceTimelineTime,
 } from "@/lib/mediabunnyTrackAccess";
-import { getActiveSubtitleCue } from "@/lib/subtitles/getActiveSubtitleCue";
-import { renderSubtitleCue } from "@/lib/subtitles/renderSubtitleCue";
+import { getActiveSubtitleCues } from "@/lib/subtitles/getActiveSubtitleCue";
+import { renderSubtitleCues } from "@/lib/subtitles/renderSubtitleCue";
 import type { SubtitleCue, SubtitleStyleSettings } from "@/lib/subtitles/types";
 import { errorMessage, themeValue } from "@/components/editor/editorUtilities";
 
@@ -98,17 +98,17 @@ export function useEditorPlaybackRenderLoop({
       context.drawImage(frame.canvas, 0, 0, canvas.width, canvas.height);
 
       if (subtitlesEnabledRef.current && subtitleStyleSettingsRef.current) {
-        const cue = getActiveSubtitleCue(
+        const cues = getActiveSubtitleCues(
           subtitleCuesRef.current,
           fromSourceTimelineTime(
             frame.timestamp,
             sourceTimelineOffsetRef.current,
           ),
         );
-        if (cue) {
-          renderSubtitleCue(
+        if (cues.length > 0) {
+          renderSubtitleCues(
             context,
-            cue,
+            cues,
             subtitleStyleSettingsRef.current,
             canvas.width,
             canvas.height,

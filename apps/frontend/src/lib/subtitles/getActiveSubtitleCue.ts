@@ -1,31 +1,30 @@
 import type { SubtitleCue } from "@/lib/subtitles/types";
 
+export function getActiveSubtitleCues(
+  cues: readonly SubtitleCue[],
+  time: number,
+) {
+  if (!Number.isFinite(time)) {
+    return [];
+  }
+
+  const activeCues: SubtitleCue[] = [];
+  for (const cue of cues) {
+    if (cue.startTime > time) {
+      break;
+    }
+
+    if (time >= cue.startTime && time < cue.endTime) {
+      activeCues.push(cue);
+    }
+  }
+
+  return activeCues;
+}
+
 export function getActiveSubtitleCue(
   cues: readonly SubtitleCue[],
   time: number,
 ) {
-  let low = 0;
-  let high = cues.length - 1;
-
-  while (low <= high) {
-    const mid = Math.floor((low + high) / 2);
-    const cue = cues[mid];
-    if (!cue) {
-      break;
-    }
-
-    if (time < cue.startTime) {
-      high = mid - 1;
-      continue;
-    }
-
-    if (time >= cue.endTime) {
-      low = mid + 1;
-      continue;
-    }
-
-    return cue;
-  }
-
-  return;
+  return getActiveSubtitleCues(cues, time)[0];
 }

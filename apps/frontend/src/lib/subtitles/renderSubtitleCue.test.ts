@@ -4,6 +4,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   renderSubtitleCue,
+  renderSubtitleCues,
   resolveSubtitleLayerBounds,
 } from "@/lib/subtitles/renderSubtitleCue";
 import type { SubtitleStyleSettings } from "@/lib/subtitles/types";
@@ -16,6 +17,12 @@ interface FakeCanvas {
 
 interface FakeCanvasContext {
   canvas: { ownerDocument: { createElement: () => FakeCanvas } };
+  drawImageCalls: Array<{
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+  }>;
   fillStyle: string;
   font: string;
   imageSmoothingEnabled: boolean;
@@ -33,7 +40,7 @@ interface FakeCanvasContext {
   save: () => void;
   restore: () => void;
   measureText: (text: string) => { width: number };
-  drawImage: () => undefined;
+  drawImage: (...parameters: unknown[]) => undefined;
   fillText: () => undefined;
   strokeText: () => undefined;
 }
@@ -44,6 +51,7 @@ function createFakeCanvasContext(ownerDocument: {
   const stateStack: string[] = [];
   const context: FakeCanvasContext = {
     canvas: { ownerDocument },
+    drawImageCalls: [],
     fillStyle: "",
     font: "10px initial",
     imageSmoothingEnabled: false,
@@ -70,7 +78,16 @@ function createFakeCanvasContext(ownerDocument: {
     measureText(text) {
       return { width: text.length * 12 };
     },
-    drawImage() {
+    drawImage(...parameters) {
+      const [, x, y, width, height] = parameters;
+      if (
+        typeof x === "number" &&
+        typeof y === "number" &&
+        typeof width === "number" &&
+        typeof height === "number"
+      ) {
+        context.drawImageCalls.push({ x, y, width, height });
+      }
       return;
     },
     fillText() {
@@ -179,4 +196,37 @@ void test("rendering subtitles preserves the caller canvas font", () => {
   );
 
   assert.equal(context.font, "16px caller");
+});
+
+void test("rendering multiple subtitle cues composites separate cue layers at the same anchor", () => {
+  const ownerDocument = {
+    createElement: () => createFakeCanvas(ownerDocument),
+  };
+  const context = createFakeCanvasContext(ownerDocument);
+
+  renderSubtitleCues(
+    context as unknown as CanvasRenderingContext2D,
+    [
+      {
+        id: "overlap-cue-1",
+        startTime: 0,
+        endTime: 2,
+        text: "Bottom cue",
+        lines: ["Bottom cue"],
+      },
+      {
+        id: "overlap-cue-2",
+        startTime: 0,
+        endTime: 2,
+        text: "Top cue",
+        lines: ["Top cue"],
+      },
+    ],
+    subtitleStyle,
+    1920,
+    1080,
+  );
+
+  assert.equal(context.drawImageCalls.length, 2);
+  assert.equal(context.drawImageCalls[0]!.y, context.drawImageCalls[1]!.y);
 });
