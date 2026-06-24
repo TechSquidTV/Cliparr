@@ -12,12 +12,28 @@ import {
 import { trimSubtitleCues } from "@/lib/subtitles/trimSubtitleCues";
 import type { PlaybackSubtitleTrack } from "@/providers/types";
 import { buildSubtitleExportSummary } from "@/components/editor/subtitleExportSummary";
+import {
+  applySubtitleCueTimingUpdates,
+  buildSubtitleTimelineTrack,
+  subtitleTimelineTrackToCues,
+  type SubtitleCueTimingUpdate,
+  type SubtitleTimelineTrack,
+} from "@/components/editor/subtitleTimeline";
 import { useSubtitleCues } from "@/components/editor/useSubtitleCues";
 
 interface UseEditorSubtitlesProperties {
   session: EditorSession;
   startTime: number;
   endTime: number;
+}
+
+function subtitleTrackTimelineLabel(track: PlaybackSubtitleTrack) {
+  const parts = [
+    track.title?.trim(),
+    track.languageCode?.trim()?.toUpperCase(),
+  ].filter(Boolean);
+
+  return parts.join(" / ") || "Subtitle track";
 }
 
 export function useEditorSubtitles({
@@ -31,6 +47,8 @@ export function useEditorSubtitles({
   const [subtitleEnabled, setSubtitleEnabled] = useState(false);
   const [selectedSubtitleTrackKey, setSelectedSubtitleTrackKey] =
     useState("none");
+  const [subtitleTimelineTrack, setSubtitleTimelineTrack] =
+    useState<SubtitleTimelineTrack | null>(null);
 
   const subtitleTracks = useMemo<PlaybackSubtitleTrack[]>(
     () =>
@@ -53,9 +71,10 @@ export function useEditorSubtitles({
     );
   }, [selectedSubtitleTrackKey, subtitleTracks]);
   const {
-    subtitleCues,
+    subtitleCues: downloadedSubtitleCues,
     subtitleLoading,
     subtitleError,
+    loadedSubtitleTrackKey,
     resetSubtitleCues,
     clearSubtitleError,
   } = useSubtitleCues({
@@ -63,6 +82,20 @@ export function useEditorSubtitles({
     subtitleEnabled,
     providerId: session.source.providerId,
   });
+  const selectedDownloadedSubtitleCues = useMemo(
+    () =>
+      loadedSubtitleTrackKey === selectedSubtitleTrackKey
+        ? downloadedSubtitleCues
+        : [],
+    [downloadedSubtitleCues, loadedSubtitleTrackKey, selectedSubtitleTrackKey],
+  );
+  const subtitleCues = useMemo(
+    () =>
+      subtitleTimelineTrack
+        ? subtitleTimelineTrackToCues(subtitleTimelineTrack)
+        : selectedDownloadedSubtitleCues,
+    [selectedDownloadedSubtitleCues, subtitleTimelineTrack],
+  );
   const subtitlePreviewEnabled =
     subtitleEnabled &&
     subtitleTrackSupportsBurnIn(selectedSubtitleTrack) &&
@@ -97,6 +130,38 @@ export function useEditorSubtitles({
   useEffect(() => {
     saveSubtitleStyleSettings(subtitleStyleSettings);
   }, [subtitleStyleSettings]);
+
+  useEffect(() => {
+    setSubtitleTimelineTrack(null);
+  }, [session.id, selectedSubtitleTrackKey]);
+
+  useEffect(() => {
+    if (
+      !selectedSubtitleTrack ||
+      loadedSubtitleTrackKey !== selectedSubtitleTrackKey ||
+      downloadedSubtitleCues.length === 0
+    ) {
+      return;
+    }
+
+    const trackKey = selectedSubtitleTrackKey;
+    setSubtitleTimelineTrack((current) => {
+      if (current?.trackKey === trackKey) {
+        return current;
+      }
+
+      return buildSubtitleTimelineTrack({
+        trackKey,
+        label: subtitleTrackTimelineLabel(selectedSubtitleTrack),
+        cues: downloadedSubtitleCues,
+      });
+    });
+  }, [
+    downloadedSubtitleCues,
+    loadedSubtitleTrackKey,
+    selectedSubtitleTrack,
+    selectedSubtitleTrackKey,
+  ]);
 
   useEffect(() => {
     const preferredSubtitleTrack = selectPreferredSubtitleTrack(
@@ -144,6 +209,19 @@ export function useEditorSubtitles({
     [clearSubtitleError, resetSubtitleCues, subtitleTracks],
   );
 
+  const updateSubtitleCueTimings = useCallback(
+    (updates: readonly SubtitleCueTimingUpdate[], duration: number) => {
+      setSubtitleTimelineTrack((current) =>
+        applySubtitleCueTimingUpdates({
+          track: current,
+          updates,
+          duration,
+        }),
+      );
+    },
+    [],
+  );
+
   return {
     subtitleTracks,
     selectedSubtitleTrack,
@@ -156,8 +234,10 @@ export function useEditorSubtitles({
     subtitleLoading,
     subtitleError,
     subtitlePreviewEnabled,
+    subtitleTimelineTrack,
     clippedSubtitleCues,
     subtitleExportSummary,
     handleSelectedSubtitleTrackChange,
+    updateSubtitleCueTimings,
   };
 }
