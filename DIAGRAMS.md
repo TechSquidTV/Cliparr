@@ -351,6 +351,24 @@ flowchart TD
     T --> U["Do not reopen the finished Blob just to recheck audio"]
 ```
 
+## Subtitle Timeline Invariants
+
+- Subtitle timeline editing is session-local and only applies to the currently
+  selected supported text subtitle track.
+- `useSubtitleCues` owns subtitle download/parse state. `useEditorSubtitles`
+  converts the loaded cues into canonical `subtitleTimeline` cue objects with
+  stable ids for drag/resize updates.
+- Subtitle timeline rows are derived from canonical cue timing. Overlapping cues
+  create additional lanes below the clip row, and lane placement is recalculated
+  after timing changes.
+- Preview and export consume adjusted subtitle cues from the timeline model, not
+  the original parsed cue list.
+- Concurrent active cues render as separate composited cues at the same default
+  subtitle anchor. They are not merged into one cue and are not auto-stacked;
+  positioning controls are future work.
+- Text editing, add/remove, provider-side subtitle writes, lazy cue loading, and
+  sidecar export/persistence are outside the v1 timeline scope.
+
 ## End-To-End Summary
 
 ```mermaid
