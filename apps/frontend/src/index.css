@@ -651,7 +651,7 @@
 
 .cliparr-timeline .timeline-editor-edit-area .ReactVirtualized__Grid {
   overflow-x: scroll !important;
-  overflow-y: hidden !important;
+  overflow-y: auto !important;
   scrollbar-color: var(--editor-scrollbar) transparent;
   scrollbar-gutter: stable;
   scrollbar-width: thin;
@@ -734,6 +734,22 @@
   height: 34px !important;
 }
 
+.cliparr-timeline .timeline-editor-action-effect-subtitle {
+  top: 4px !important;
+  height: 26px !important;
+  border-color: color-mix(
+    in oklch,
+    var(--editor-accent) 46%,
+    var(--editor-border)
+  );
+  background: color-mix(
+    in oklch,
+    var(--editor-accent) 18%,
+    var(--editor-panel)
+  );
+  color: var(--foreground);
+}
+
 .cliparr-timeline .timeline-editor-action .timeline-editor-action-left-stretch,
 .cliparr-timeline
   .timeline-editor-action
@@ -804,6 +820,13 @@
   letter-spacing: 0.08em;
   text-transform: uppercase;
   text-overflow: ellipsis;
+}
+
+.cliparr-timeline
+  .timeline-editor-action-effect-subtitle
+  .cliparr-timeline-action-label {
+  letter-spacing: 0;
+  text-transform: none;
 }
 
 .cliparr-timeline-action-time {

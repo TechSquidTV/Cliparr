@@ -44,6 +44,7 @@ flowchart TD
     E --> E1["editorShortcutCommands"]
     J --> J1["useSubtitleCues"]
     J --> J2["selectPreferredSubtitleTrack"]
+    J --> J3["subtitleTimeline editable cue model"]
 
     F["SourcesDialog"] --> F1["useSourcesState"]
     F1 --> F2["sourcesStateUtils"]
@@ -369,9 +370,11 @@ flowchart LR
     D --> P["Preview canvas with optional subtitles"]
     P --> Q["Framegrab dialog"]
     Q --> R["PNG clipboard or image download"]
-    S --> T["useEditorSubtitles loads and clips subtitle cues"]
-    T --> P
-    T --> U["Export subtitle burn-in readiness"]
+    S --> T["useEditorSubtitles loads subtitle cues"]
+    T --> T1["subtitleTimeline maps cues into editable timeline actions"]
+    T1 --> T2["Adjusted cues feed preview and export"]
+    T2 --> P
+    T2 --> U["Export subtitle burn-in readiness"]
     B --> G["useEditorExport source selection"]
     C --> G
     F --> G

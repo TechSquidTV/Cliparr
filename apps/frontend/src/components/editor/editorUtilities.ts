@@ -3,6 +3,9 @@ import type { ComponentProps } from "react";
 
 export const MIN_CLIP_SECONDS = 0.1;
 export const TIMELINE_START_LEFT = 24;
+export const SOURCE_TIMELINE_ROW_HEIGHT = 32;
+export const CLIP_TIMELINE_ROW_HEIGHT = 44;
+export const SUBTITLE_TIMELINE_ROW_HEIGHT = 34;
 const MAX_TIMELINE_ZOOM_SCALE_COUNT = 2000;
 export const TIMELINE_ZOOM_WHEEL_STEP = 80;
 const MIN_FOCUSED_TIMELINE_SELECTION_PIXELS = 96;
