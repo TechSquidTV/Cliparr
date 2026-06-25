@@ -1,6 +1,8 @@
 ../node_modules/
 ../.pnpm-store/
 ../.astro/
+../apps/*/.astro/
+../apps/*/dist/
 ../build/
 ../dist/
 ../coverage/
