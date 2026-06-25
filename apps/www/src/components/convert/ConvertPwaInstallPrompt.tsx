@@ -45,15 +45,16 @@ function addMediaQueryChangeListener(query: string, onChange: () => void) {
   }
 
   const mediaQuery = globalThis.matchMedia(query);
-  const listener = () => onChange();
-
-  if (typeof mediaQuery.addEventListener === "function") {
-    mediaQuery.addEventListener("change", listener);
-    return () => mediaQuery.removeEventListener("change", listener);
+  if (
+    typeof mediaQuery.addEventListener !== "function" ||
+    typeof mediaQuery.removeEventListener !== "function"
+  ) {
+    return () => {};
   }
 
-  mediaQuery.addListener(listener);
-  return () => mediaQuery.removeListener(listener);
+  const listener = () => onChange();
+  mediaQuery.addEventListener("change", listener);
+  return () => mediaQuery.removeEventListener("change", listener);
 }
 
 function getCurrentConvertPwaInstallState(
