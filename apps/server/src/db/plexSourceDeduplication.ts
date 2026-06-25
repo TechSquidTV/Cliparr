@@ -471,13 +471,17 @@ function reassignMediaSourcesForProviderAccount(
 function updateMergedProviderAccount(
   canonicalAccountId: string,
   accounts: ProviderAccount[],
+  newlyAuthenticatedAccountId?: string,
 ) {
   const canonicalAccount = getProviderAccount(canonicalAccountId);
   if (!canonicalAccount) {
     return;
   }
 
-  const latestAccount = latestUpdatedAccount(accounts) ?? canonicalAccount;
+  const latestAccount =
+    accounts.find((account) => account.id === newlyAuthenticatedAccountId) ??
+    latestUpdatedAccount(accounts) ??
+    canonicalAccount;
   updateProviderAccount(canonicalAccountId, {
     label: canonicalAccount.label,
     accessToken: latestAccount.accessToken,
@@ -570,7 +574,11 @@ function cleanupDuplicatePlexSourcesInTransaction(
   }
 
   for (const [canonicalAccountId, accounts] of componentAccountsByCanonicalId) {
-    updateMergedProviderAccount(canonicalAccountId, accounts);
+    updateMergedProviderAccount(
+      canonicalAccountId,
+      accounts,
+      options.newlyAuthenticatedAccountId,
+    );
   }
 
   const providerAccountId = resolveCanonicalAccountId(
