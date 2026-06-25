@@ -25,6 +25,7 @@ import type {
 import {
   createProviderMediaHandle,
   fetchMediaHandleRequest,
+  mediaHandleHlsLogFields,
   mediaHandleRequestUrl,
   proxyProviderMediaResponse,
   sanitizeLoggedMediaPath,
@@ -1515,6 +1516,7 @@ export async function proxyMedia(
           "media.range.present": Boolean(range),
           "http.accept": accept,
           "plex.playback_session.id": playbackSessionId,
+          ...mediaHandleHlsLogFields(handle),
         });
         throw createApiError(
           upstream.status,

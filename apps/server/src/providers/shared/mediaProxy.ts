@@ -650,6 +650,33 @@ export function sanitizeLoggedMediaPath(value: string | undefined) {
   return value.split(/[#?]/, 1)[0] ?? value;
 }
 
+export function mediaHandleHlsLogFields(handle: MediaHandle) {
+  const isHlsDerived = isHlsDerivedHandle(handle);
+  return {
+    "media.hls.derived": isHlsDerived,
+    "media.hls.uri.kind": isHlsDerived ? hlsUriKind(handle.path) : undefined,
+    "media.hls.segment.index": isHlsDerived
+      ? hlsSegmentIndex(handle.path)
+      : undefined,
+  };
+}
+
+function mediaHandleLogFields(
+  session: ProviderSessionRecord,
+  handle: MediaHandle,
+  basePath = handle.basePath,
+) {
+  return {
+    "media.handle.id": handle.id,
+    "session.id": session.id,
+    "provider.id": handle.providerId,
+    "source.id": handle.sourceId,
+    "media.path": sanitizeLoggedMediaPath(handle.path),
+    "media.base_path": sanitizeLoggedMediaPath(basePath),
+    ...mediaHandleHlsLogFields(handle),
+  };
+}
+
 export function createProviderMediaHandle(
   session: ProviderSessionRecord,
   context: MediaHandleContext,
@@ -677,12 +704,7 @@ export function createProviderMediaHandle(
       existingHandle.lastAccessedAt = accessedAt;
       logger.trace("Reused provider media handle.", {
         ...logEventFields("media.handle", "reused"),
-        "media.handle.id": existingHandle.id,
-        "session.id": session.id,
-        "provider.id": context.providerId,
-        "source.id": context.sourceId,
-        "media.path": sanitizeLoggedMediaPath(normalizedPath),
-        "media.base_path": sanitizeLoggedMediaPath(normalizedBasePath),
+        ...mediaHandleLogFields(session, existingHandle, normalizedBasePath),
       });
       return `/api/media/${existingHandle.id}`;
     }
@@ -702,12 +724,7 @@ export function createProviderMediaHandle(
   session.mediaHandles.set(handle.id, handle);
   logger.trace("Created provider media handle.", {
     ...logEventFields("media.handle", "created"),
-    "media.handle.id": handle.id,
-    "session.id": session.id,
-    "provider.id": handle.providerId,
-    "source.id": handle.sourceId,
-    "media.path": sanitizeLoggedMediaPath(handle.path),
-    "media.base_path": sanitizeLoggedMediaPath(handle.basePath),
+    ...mediaHandleLogFields(session, handle),
     "media.path.absolute": isAbsoluteUrl(handle.path),
   });
   return `/api/media/${handle.id}`;
@@ -735,14 +752,39 @@ function resolvePlaylistUri(basePath: string, uri: string) {
   return parsed.toString();
 }
 
-function rewritePlaylistUri(
+function hlsUriKind(path: string) {
+  const pathname = handlePathname(path);
+  if (pathname.endsWith(".m3u8")) {
+    return "playlist";
+  }
+  if (pathname.endsWith(".ts") || pathname.endsWith(".m4s")) {
+    return "segment";
+  }
+  if (pathname.endsWith(".key")) {
+    return "key";
+  }
+  return "unknown";
+}
+
+function hlsSegmentIndex(path: string): number | undefined {
+  const pathname = handlePathname(path);
+  const segmentMatch = pathname.match(
+    /(?:^|[/_-])(?:segment)?(\d+)\.(?:ts|m4s)$/,
+  );
+  if (!segmentMatch) {
+    return;
+  }
+
+  const index = Number(segmentMatch[1]);
+  return Number.isSafeInteger(index) ? index : undefined;
+}
+
+function createPlaylistMediaHandleUrl(
   session: ProviderSessionRecord,
   handle: MediaHandle,
-  basePath: string,
-  uri: string,
+  nextPath: string,
   options: ProxyMediaResponseOptions = {},
 ) {
-  const nextPath = resolvePlaylistUri(basePath, uri);
   if (options.createMediaHandleUrl) {
     return options.createMediaHandleUrl(
       session,
@@ -768,6 +810,21 @@ function rewritePlaylistUri(
   );
 }
 
+function rewritePlaylistUri(
+  session: ProviderSessionRecord,
+  handle: MediaHandle,
+  basePath: string,
+  uri: string,
+  options: ProxyMediaResponseOptions = {},
+) {
+  return createPlaylistMediaHandleUrl(
+    session,
+    handle,
+    resolvePlaylistUri(basePath, uri),
+    options,
+  );
+}
+
 async function rewriteHlsPlaylist(
   session: ProviderSessionRecord,
   handle: MediaHandle,
@@ -778,6 +835,8 @@ async function rewriteHlsPlaylist(
   const basePath = handle.basePath ?? playlistBasePath(handle.path);
   let rewrittenUriCount = 0;
   let strippedStartHintCount = 0;
+  let firstMediaUriPath: string | undefined;
+  let firstMediaUriKind: string | undefined;
 
   const playlist = body
     .split("\n")
@@ -802,23 +861,40 @@ async function rewriteHlsPlaylist(
       }
 
       rewrittenUriCount += 1;
-      return [rewritePlaylistUri(session, handle, basePath, trimmed, options)];
+      const nextPath = resolvePlaylistUri(basePath, trimmed);
+      if (!firstMediaUriPath) {
+        firstMediaUriPath = nextPath;
+        firstMediaUriKind = hlsUriKind(nextPath);
+      }
+      return [createPlaylistMediaHandleUrl(session, handle, nextPath, options)];
     })
     .join("\n");
 
   logger.trace("Rewrote HLS playlist for media handle.", {
     ...logEventFields("media.hls.playlist_rewrite", "success"),
-    "media.handle.id": handle.id,
-    "session.id": session.id,
-    "provider.id": handle.providerId,
-    "media.path": sanitizeLoggedMediaPath(handle.path),
-    "media.base_path": sanitizeLoggedMediaPath(basePath),
+    ...mediaHandleLogFields(session, handle, basePath),
     "upstream.status_code": upstream.status,
+    "media.hls.first_media.path": sanitizeLoggedMediaPath(firstMediaUriPath),
+    "media.hls.first_media.kind": firstMediaUriKind,
     "media.hls.rewritten_uri_count": rewrittenUriCount,
     "media.hls.stripped_start_hint_count": strippedStartHintCount,
   });
 
   return playlist;
+}
+
+function logHlsPlaylistFetch(
+  session: ProviderSessionRecord,
+  handle: MediaHandle,
+  upstream: globalThis.Response,
+  contentType: string,
+) {
+  logger.trace("Fetched HLS playlist for media handle.", {
+    ...logEventFields("media.hls.playlist_fetch", "success"),
+    ...mediaHandleLogFields(session, handle),
+    "upstream.status_code": upstream.status,
+    "upstream.content_type": contentType,
+  });
 }
 
 function copyProxyHeaders(upstream: globalThis.Response, res: Response) {
@@ -937,6 +1013,7 @@ async function createCachedProxyMediaResponse(
   const headers = snapshotProxyHeaders(upstream);
 
   if (isHlsPlaylist(handle, contentType)) {
+    logHlsPlaylistFetch(session, handle, upstream, contentType);
     const playlist = await rewriteHlsPlaylist(
       session,
       handle,
@@ -1026,6 +1103,7 @@ export async function proxyUpstreamMediaResponse(
   });
 
   if (isHlsPlaylist(handle, contentType)) {
+    logHlsPlaylistFetch(session, handle, upstream, contentType);
     const playlist = await rewriteHlsPlaylist(
       session,
       handle,
