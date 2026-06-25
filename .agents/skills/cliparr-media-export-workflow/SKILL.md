@@ -9,11 +9,11 @@ description: Cliparr media editor/export workflow guidance for HLS playback, sou
 
 Use this skill for changes that affect Cliparr's editor preview, HLS handling, export source choice, Mediabunny conversion, subtitle burn-in, metadata tagging, timeline offsets, or media proxy behavior.
 
-Treat `DIAGRAMS.md` as the canonical reference for detailed decision trees. Do not copy those trees into this skill; read and update `DIAGRAMS.md` when behavior changes.
+Treat `.github/docs/diagrams.md` as the canonical reference for detailed decision trees. Do not copy those trees into this skill; read and update `.github/docs/diagrams.md` when behavior changes.
 
 ## Start Here
 
-Before changing behavior, read the relevant `DIAGRAMS.md` sections:
+Before changing behavior, read the relevant `.github/docs/diagrams.md` sections:
 
 - Playback source construction: `Playback Candidate Tree`, `HLS Track Selection Tree`, `Source Vs Preview Track Tree`
 - HLS fallback and readiness: `Playback Fallback Tree`, `Preview Ready Warmup Tree`
@@ -22,7 +22,7 @@ Before changing behavior, read the relevant `DIAGRAMS.md` sections:
 - Proxy or playlist work: `Playlist Rewrite Tree`, `Proxy Media Request Tree`
 - Broad behavior checks: `Frontend Responsibility Map`, `End-To-End Summary`
 
-Use `rg -n "^##" DIAGRAMS.md` to find section line numbers, then read only the relevant section(s).
+Use `rg -n "^##" .github/docs/diagrams.md` to find section line numbers, then read only the relevant section(s).
 
 ## Main Entry Points
 
@@ -68,8 +68,8 @@ Server/provider paths:
 ## Invariants
 
 - Keep source semantics separate from preview mechanics: source tracks determine duration, timeline offsets, export blocking, and export alignment; preview tracks determine browser playback.
-- Preserve auto export source order from `DIAGRAMS.md`: explicit user choice wins, otherwise fallback source, then HLS, then direct.
-- Change HLS fallback only with the fallback categories in `DIAGRAMS.md`; preview-only failures should not silently change export source.
+- Preserve auto export source order from `.github/docs/diagrams.md`: explicit user choice wins, otherwise fallback source, then HLS, then direct.
+- Change HLS fallback only with the fallback categories in `.github/docs/diagrams.md`; preview-only failures should not silently change export source.
 - Apply `timelineOffsetSeconds` consistently to preview seeking and export trim boundaries.
 - Keep HLS playlist rewrite behavior origin-safe and base-path aware for nested relative playlists.
 - Attach provider auth only when the media request origin matches the provider base URL origin.
@@ -84,4 +84,4 @@ Run the package-level tests that match the change:
 - Server media proxy or provider playback changes: `pnpm --filter @cliparr/server test`
 - Shared provider contract changes: run both frontend and server tests.
 
-For changes that update diagrams, also inspect `DIAGRAMS.md` rendered Mermaid mentally for broken labels or flow syntax. Before committing, use `$cliparr-git-workflow`; it requires `pnpm preflight`.
+For changes that update diagrams, also inspect `.github/docs/diagrams.md` rendered Mermaid mentally for broken labels or flow syntax. Before committing, use `$cliparr-git-workflow`; it requires `pnpm preflight`.
