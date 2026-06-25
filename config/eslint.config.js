@@ -4,8 +4,9 @@ import globals from "globals";
 import reactHooks from "eslint-plugin-react-hooks";
 import eslintPluginUnicorn from "eslint-plugin-unicorn";
 import tseslint from "typescript-eslint";
+import { fileURLToPath } from "node:url";
 
-const rootDirectory = import.meta.dirname;
+const rootDirectory = fileURLToPath(new URL("..", import.meta.url));
 const unicornAbbreviationAllowList = Object.fromEntries(
   [
     "api",

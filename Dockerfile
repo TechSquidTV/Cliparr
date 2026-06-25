@@ -24,7 +24,7 @@ COPY packages/shared/package.json packages/shared/package.json
 
 RUN pnpm install --frozen-lockfile
 
-COPY tsconfig.json tsconfig.base.json ./
+COPY config/tsconfig.json config/tsconfig.base.json ./config/
 COPY packages/shared/src packages/shared/src
 COPY apps/server/tsconfig.json apps/server/tsconfig.build.json apps/server/tsdown.config.ts apps/server/
 COPY apps/server/drizzle apps/server/drizzle

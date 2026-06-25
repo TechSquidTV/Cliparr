@@ -12,6 +12,7 @@ import {
 
 const rootDir = path.resolve(import.meta.dirname, "../../..");
 const readmePath = path.join(rootDir, "README.md");
+const prettierConfigPath = path.join(rootDir, "config/prettier.config.js");
 
 type SectionName = "features" | "docker-quick-start" | "configuration";
 
@@ -83,7 +84,9 @@ function syncedReadme(readme: string) {
 
 const mode = process.argv.includes("--write") ? "write" : "check";
 const readme = fs.readFileSync(readmePath, "utf8");
-const prettierConfig = await prettier.resolveConfig(readmePath);
+const prettierConfig = await prettier.resolveConfig(readmePath, {
+  config: prettierConfigPath,
+});
 const nextReadme = await prettier.format(syncedReadme(readme), {
   ...prettierConfig,
   filepath: readmePath,
