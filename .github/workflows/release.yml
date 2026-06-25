@@ -65,7 +65,7 @@ jobs:
             CHANNEL="rc"
           fi
 
-          node scripts/release/plan-release.mjs \
+          node tools/release/plan-release.mjs \
             --channel "${CHANNEL}" \
             --target "${GITHUB_SHA}" \
             --image-name "${IMAGE_NAME}" \
@@ -105,7 +105,7 @@ jobs:
         uses: docker/build-push-action@v7
         with:
           context: .
-          file: ./Dockerfile
+          file: ./docker/prod.Dockerfile
           platforms: linux/amd64
           pull: true
           load: true
@@ -179,7 +179,7 @@ jobs:
         uses: docker/build-push-action@v7
         with:
           context: .
-          file: ./Dockerfile
+          file: ./docker/prod.Dockerfile
           platforms: linux/amd64,linux/arm64
           pull: true
           push: ${{ !inputs.dry_run }}
@@ -227,7 +227,7 @@ jobs:
             args+=(--dry-run)
           fi
 
-          node scripts/release/create-github-release.mjs "${args[@]}"
+          node tools/release/create-github-release.mjs "${args[@]}"
 
       - name: Trigger Cloudflare Pages rebuild
         if: ${{ !inputs.dry_run }}

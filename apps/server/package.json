@@ -6,7 +6,7 @@
     "dev": "node --watch-path=./src --import tsx ./src/server.ts",
     "build": "tsdown",
     "lint": "pnpm lint:eslint && pnpm lint:types",
-    "lint:eslint": "pnpm exec eslint \"src/**/*.ts\" \"drizzle.config.ts\" \"tsdown.config.ts\"",
+    "lint:eslint": "cd ../.. && pnpm exec eslint --config config/eslint.config.js \"apps/server/src/**/*.ts\" \"apps/server/drizzle.config.ts\" \"apps/server/tsdown.config.ts\"",
     "lint:types": "tsc --noEmit",
     "test": "node --import tsx --test src/**/*.test.ts",
     "db:generate": "drizzle-kit generate",

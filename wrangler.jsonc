@@ -1,7 +1,7 @@
 {
   "$schema": "./node_modules/wrangler/config-schema.json",
   "name": "cliparr-web",
-  "main": "./workers/cliparr-web.js",
+  "main": "./apps/www/cloudflare/cliparr-web.js",
   "compatibility_date": "2026-05-28",
   "assets": {
     "directory": "./apps/www/dist",

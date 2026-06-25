@@ -7,7 +7,7 @@
     "build": "astro build",
     "preview": "astro preview",
     "lint": "pnpm lint:eslint && pnpm lint:types",
-    "lint:eslint": "pnpm exec eslint \"src/**/*.astro\" \"src/**/*.{ts,tsx}\" \"scripts/**/*.ts\" \"astro.config.ts\" \"public/**/*.js\"",
+    "lint:eslint": "cd ../.. && pnpm exec eslint --config config/eslint.config.js \"apps/www/src/**/*.astro\" \"apps/www/src/**/*.{ts,tsx}\" \"apps/www/scripts/**/*.ts\" \"apps/www/astro.config.ts\" \"apps/www/public/**/*.js\"",
     "lint:types": "astro-check && tsc --noEmit --project tsconfig.scripts.json",
     "test": "node --import tsx --test \"src/**/*.test.ts\"",
     "docs:sync": "tsx scripts/sync-readme.ts --write",
