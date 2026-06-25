@@ -409,7 +409,7 @@ export default tseslint.config(
   },
   {
     files: [
-      "scripts/**/*.{js,mjs,cjs,ts}",
+      "tools/**/*.{js,mjs,cjs,ts}",
       "apps/*/scripts/**/*.{js,mjs,cjs,ts}",
     ],
     rules: {
