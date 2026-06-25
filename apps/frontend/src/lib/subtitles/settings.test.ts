@@ -55,26 +55,47 @@ function withStorage<T>(
   }
 }
 
-void test("loads and clamps subtitle vertical position from v3 settings", () => {
+void test("loads and clamps subtitle position from v3 settings", () => {
   withStorage(
     {
       [subtitleStyleSettingsStorageKey]: JSON.stringify({
+        positionX: 150,
         positionY: 175,
       }),
     },
     () => {
-      assert.equal(loadSubtitleStyleSettings().positionY, 100);
+      const settings = loadSubtitleStyleSettings();
+      assert.equal(settings.positionX, 100);
+      assert.equal(settings.positionY, 100);
     },
   );
 
   withStorage(
     {
       [subtitleStyleSettingsStorageKey]: JSON.stringify({
+        positionX: -25,
         positionY: -25,
       }),
     },
     () => {
-      assert.equal(loadSubtitleStyleSettings().positionY, 0);
+      const settings = loadSubtitleStyleSettings();
+      assert.equal(settings.positionX, 0);
+      assert.equal(settings.positionY, 0);
+    },
+  );
+});
+
+void test("defaults missing subtitle horizontal position to center", () => {
+  withStorage(
+    {
+      [subtitleStyleSettingsStorageKey]: JSON.stringify({
+        positionY: 20,
+      }),
+    },
+    () => {
+      const settings = loadSubtitleStyleSettings();
+      assert.equal(settings.positionX, 50);
+      assert.equal(settings.positionY, 20);
     },
   );
 });
@@ -90,7 +111,9 @@ void test("ignores legacy subtitle position settings", () => {
       }),
     },
     () => {
-      assert.equal(loadSubtitleStyleSettings().positionY, 10);
+      const settings = loadSubtitleStyleSettings();
+      assert.equal(settings.positionX, 50);
+      assert.equal(settings.positionY, 10);
     },
   );
 });

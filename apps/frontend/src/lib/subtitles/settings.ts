@@ -166,6 +166,7 @@ function defaultSubtitleStyleSettings(): SubtitleStyleSettings {
     shadowOffsetY: 2,
     strokeColor: "#000000",
     strokeWidth: 4,
+    positionX: 50,
     positionY: 10,
     lineHeight: 1.2,
   };
@@ -225,6 +226,7 @@ export function loadSubtitleStyleSettings(): SubtitleStyleSettings {
       ),
       strokeColor: colorValue(parsed.strokeColor, defaults.strokeColor),
       strokeWidth: clampNumber(parsed.strokeWidth, defaults.strokeWidth, 0, 32),
+      positionX: clampNumber(parsed.positionX, defaults.positionX, 0, 100),
       positionY: clampNumber(parsed.positionY, defaults.positionY, 0, 100),
       lineHeight: clampNumber(parsed.lineHeight, defaults.lineHeight, 1, 2),
     };

@@ -25,6 +25,7 @@ interface SubtitleCueRenderMetrics {
   strokeWidth: number;
   shadowBlur: number;
   shadowOffsetY: number;
+  positionX: number;
   positionY: number;
   layout: SubtitleLayout;
 }
@@ -61,18 +62,46 @@ export function resolveSubtitleStartY({
   return clampNumber(unclampedStartY, 0, maxStartY);
 }
 
+export function resolveSubtitleCenterX({
+  canvasWidth,
+  positionX,
+  maxLineWidth,
+}: {
+  canvasWidth: number;
+  positionX: number;
+  maxLineWidth: number;
+}) {
+  const safeCanvasWidth = Math.max(1, canvasWidth);
+  const safeMaxLineWidth = Math.max(1, maxLineWidth);
+  const desiredCenterX = safeCanvasWidth * (positionX / 100);
+  const halfWidth = Math.min(safeCanvasWidth, safeMaxLineWidth) / 2;
+
+  return clampNumber(desiredCenterX, halfWidth, safeCanvasWidth - halfWidth);
+}
+
 function resolveSubtitlePlacement({
+  canvasWidth,
   canvasHeight,
   layout,
+  positionX,
   positionY,
 }: {
+  canvasWidth: number;
   canvasHeight: number;
   layout: SubtitleLayout;
+  positionX: number;
   positionY: number;
 }) {
   const totalHeight = layout.lineHeight * layout.wrappedLines.length;
+  const maxLineWidth = Math.max(1, ...layout.lineWidths);
 
   return {
+    centerX: resolveSubtitleCenterX({
+      canvasWidth,
+      positionX,
+      maxLineWidth,
+    }),
+    maxLineWidth,
     startY: resolveSubtitleStartY({
       canvasHeight,
       positionY,
@@ -245,6 +274,7 @@ function cueLayerKey({
   strokeWidth,
   shadowBlur,
   shadowOffsetY,
+  positionX,
   positionY,
 }: {
   cue: SubtitleCue;
@@ -255,6 +285,7 @@ function cueLayerKey({
   strokeWidth: number;
   shadowBlur: number;
   shadowOffsetY: number;
+  positionX: number;
   positionY: number;
 }) {
   return JSON.stringify([
@@ -273,6 +304,7 @@ function cueLayerKey({
     style.shadowColor,
     shadowBlur,
     shadowOffsetY,
+    positionX,
     positionY,
     SUBTITLE_SUPERSAMPLE_SCALE,
   ]);
@@ -298,6 +330,7 @@ function renderSupersampledSubtitleLayer({
   strokeWidth,
   shadowBlur,
   shadowOffsetY,
+  positionX,
   positionY,
 }: {
   context: CanvasRenderingContext2D;
@@ -309,6 +342,7 @@ function renderSupersampledSubtitleLayer({
   strokeWidth: number;
   shadowBlur: number;
   shadowOffsetY: number;
+  positionX: number;
   positionY: number;
 }): SubtitleLayer | null {
   const key = cueLayerKey({
@@ -320,6 +354,7 @@ function renderSupersampledSubtitleLayer({
     strokeWidth,
     shadowBlur,
     shadowOffsetY,
+    positionX,
     positionY,
   });
   const cached = subtitleLayerCache.get(key);
@@ -327,13 +362,14 @@ function renderSupersampledSubtitleLayer({
     return cached;
   }
 
-  const { startY, totalHeight } = resolveSubtitlePlacement({
-    canvasHeight,
-    layout,
-    positionY,
-  });
-  const centerX = canvasWidth / 2;
-  const maxLineWidth = Math.max(1, ...layout.lineWidths);
+  const { centerX, maxLineWidth, startY, totalHeight } =
+    resolveSubtitlePlacement({
+      canvasWidth,
+      canvasHeight,
+      layout,
+      positionX,
+      positionY,
+    });
   const bounds = resolveSubtitleLayerBounds({
     canvasWidth,
     canvasHeight,
@@ -437,6 +473,7 @@ function drawDirectSubtitleText({
   strokeWidth,
   shadowBlur,
   shadowOffsetY,
+  positionX,
   positionY,
 }: {
   context: CanvasRenderingContext2D;
@@ -447,14 +484,16 @@ function drawDirectSubtitleText({
   strokeWidth: number;
   shadowBlur: number;
   shadowOffsetY: number;
+  positionX: number;
   positionY: number;
 }) {
-  const { startY } = resolveSubtitlePlacement({
+  const { centerX, startY } = resolveSubtitlePlacement({
+    canvasWidth,
     canvasHeight,
     layout,
+    positionX,
     positionY,
   });
-  const x = canvasWidth / 2;
 
   if (strokeWidth > 0) {
     context.strokeStyle = style.strokeColor;
@@ -462,7 +501,7 @@ function drawDirectSubtitleText({
     context.shadowColor = "transparent";
 
     for (const [index, line] of layout.wrappedLines.entries()) {
-      context.strokeText(line, x, startY + layout.lineHeight * index);
+      context.strokeText(line, centerX, startY + layout.lineHeight * index);
     }
   }
 
@@ -473,7 +512,7 @@ function drawDirectSubtitleText({
   context.shadowOffsetY = shadowOffsetY;
 
   for (const [index, line] of layout.wrappedLines.entries()) {
-    context.fillText(line, x, startY + layout.lineHeight * index);
+    context.fillText(line, centerX, startY + layout.lineHeight * index);
   }
 }
 
@@ -494,6 +533,7 @@ function resolveSubtitleCueRenderMetrics({
   const strokeWidth = Math.max(0, scaledValue(style.strokeWidth, canvasHeight));
   const shadowBlur = Math.max(0, scaledValue(style.shadowBlur, canvasHeight));
   const shadowOffsetY = scaledValue(style.shadowOffsetY, canvasHeight);
+  const positionX = clampNumber(style.positionX, 0, 100);
   const positionY = clampNumber(style.positionY, 0, 100);
   const maxWidth = canvasWidth * 0.84;
 
@@ -502,6 +542,7 @@ function resolveSubtitleCueRenderMetrics({
     strokeWidth,
     shadowBlur,
     shadowOffsetY,
+    positionX,
     positionY,
     layout: cachedSubtitleLayout(
       context,
@@ -530,7 +571,14 @@ function renderSubtitleCueWithMetrics({
   canvasHeight: number;
   metrics: SubtitleCueRenderMetrics;
 }) {
-  const { strokeWidth, shadowBlur, shadowOffsetY, positionY, layout } = metrics;
+  const {
+    strokeWidth,
+    shadowBlur,
+    shadowOffsetY,
+    positionX,
+    positionY,
+    layout,
+  } = metrics;
 
   context.save();
   context.font = layout.font;
@@ -554,6 +602,7 @@ function renderSubtitleCueWithMetrics({
     strokeWidth,
     shadowBlur,
     shadowOffsetY,
+    positionX,
     positionY,
   });
   if (layer) {
@@ -568,6 +617,7 @@ function renderSubtitleCueWithMetrics({
       strokeWidth,
       shadowBlur,
       shadowOffsetY,
+      positionX,
       positionY,
     });
   }

@@ -5,6 +5,7 @@ import test from "node:test";
 import {
   renderSubtitleCue,
   renderSubtitleCues,
+  resolveSubtitleCenterX,
   resolveSubtitleLayerBounds,
   resolveSubtitleStartY,
 } from "@/lib/subtitles/renderSubtitleCue";
@@ -128,6 +129,7 @@ const subtitleStyle: SubtitleStyleSettings = {
   shadowBlur: 8,
   shadowColor: "rgba(0, 0, 0, 0.7)",
   shadowOffsetY: 4,
+  positionX: 50,
   positionY: 10,
 };
 
@@ -172,6 +174,58 @@ void test("clamps subtitle supersampling bounds to the target canvas", () => {
       width: 640,
       height: 46,
     },
+  );
+});
+
+void test("resolves subtitle horizontal center from the center position", () => {
+  assert.equal(
+    resolveSubtitleCenterX({
+      canvasWidth: 1920,
+      positionX: 50,
+      maxLineWidth: 480,
+    }),
+    960,
+  );
+});
+
+void test("clamps subtitle horizontal center to the left edge", () => {
+  assert.equal(
+    resolveSubtitleCenterX({
+      canvasWidth: 1920,
+      positionX: 0,
+      maxLineWidth: 480,
+    }),
+    240,
+  );
+});
+
+void test("clamps subtitle horizontal center to the right edge", () => {
+  assert.equal(
+    resolveSubtitleCenterX({
+      canvasWidth: 1920,
+      positionX: 100,
+      maxLineWidth: 480,
+    }),
+    1680,
+  );
+});
+
+void test("keeps oversized subtitle lines centered horizontally", () => {
+  assert.equal(
+    resolveSubtitleCenterX({
+      canvasWidth: 1920,
+      positionX: 0,
+      maxLineWidth: 2400,
+    }),
+    960,
+  );
+  assert.equal(
+    resolveSubtitleCenterX({
+      canvasWidth: 1920,
+      positionX: 100,
+      maxLineWidth: 2400,
+    }),
+    960,
   );
 });
 

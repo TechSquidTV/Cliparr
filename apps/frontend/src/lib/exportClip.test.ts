@@ -53,6 +53,7 @@ const subtitleStyle = {
   shadowOffsetY: 2,
   strokeColor: "#000000",
   strokeWidth: 2,
+  positionX: 50,
   positionY: 10,
   lineHeight: 1.2,
 } satisfies SubtitleStyleSettings;
