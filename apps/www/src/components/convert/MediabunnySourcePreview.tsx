@@ -8,7 +8,9 @@ import {
   type DragEvent,
 } from "react";
 import {
+  assessVideoTrackDecodability,
   createCliparrInputFromSource,
+  videoTrackPreviewUnavailableMessage,
   type EditorFileMediaSource,
 } from "@cliparr/frontend/convert";
 import type {
@@ -223,9 +225,9 @@ export function MediabunnySourcePreview({
           );
         }
 
-        const codec = await videoTrack.getCodec();
-        if (codec === null || !(await videoTrack.canDecode())) {
-          throw new Error("This browser cannot decode the source video track.");
+        const decodability = await assessVideoTrackDecodability(videoTrack);
+        if (decodability.codec === null || !decodability.canDecode) {
+          throw new Error(videoTrackPreviewUnavailableMessage(decodability));
         }
         if (isStale()) {
           releaseInput();

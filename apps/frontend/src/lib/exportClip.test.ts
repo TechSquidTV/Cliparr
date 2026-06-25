@@ -95,6 +95,9 @@ function createRuntime(overrides: Partial<ExportRuntime> = {}) {
     id: "video-1",
     hasOnlyKeyPackets: async () => false,
     canBeTransparent: async () => false,
+    canDecode: async () => true,
+    getFirstTimestamp: async () => 0,
+    getCodec: async () => "avc",
   };
   const audioTrack = {
     id: "audio-1",
@@ -129,7 +132,10 @@ function createRuntime(overrides: Partial<ExportRuntime> = {}) {
     describeDiscardedTracks: async () => "",
     patchMp4MetadataBoxes: () => {},
     createOutputFormat: () =>
-      ({ mimeType: "video/mp4" }) as unknown as OutputFormat,
+      ({
+        mimeType: "video/mp4",
+        getSupportedVideoCodecs: () => ["avc", "hevc", "vp9", "av1", "vp8"],
+      }) as unknown as OutputFormat,
     createBufferTarget: () => target as unknown as BufferTargetResult,
     createOutput: (options) => ({ options }) as unknown as OutputResult,
     createCanvasSink: () =>
@@ -437,6 +443,68 @@ void test("fails before execution when conversion would drop source audio", asyn
   assert.equal(context.disposed, true);
 });
 
+void test("fails before initializing video conversion when the source video codec cannot decode", async () => {
+  const context = createRuntime({
+    initConversion: async () => {
+      throw new Error("conversion should not initialize");
+    },
+  });
+  context.videoTrack.getCodec = async () => "vp9";
+  context.videoTrack.canDecode = async () => false;
+
+  await assert.rejects(
+    () =>
+      exportClipWithRuntime(
+        {
+          mediaSource,
+          startTime: 0,
+          endTime: 10,
+          format: "mp4",
+          resolution: "720",
+          includeAudio: true,
+          onProgress: () => {},
+        },
+        context.runtime,
+      ),
+    /This browser cannot decode vp9 video\. Try Chrome or Edge/,
+  );
+  assert.equal(context.disposed, true);
+});
+
+void test("allows original sharp exports to copy a carried source codec without browser decoding", async () => {
+  let initializedConversion = false;
+  const context = createRuntime({
+    getTrackTimelineOffsetSeconds: async () => 0,
+    initConversion: async () => {
+      initializedConversion = true;
+      return createConversion({
+        target: context.target,
+        bytes: [1, 2, 3],
+        utilizedAudio: false,
+      });
+    },
+  });
+  context.videoTrack.getCodec = async () => "vp9";
+  context.videoTrack.canDecode = async () => false;
+
+  const blob = await exportClipWithRuntime(
+    {
+      mediaSource,
+      startTime: 0,
+      endTime: 10,
+      format: "mp4",
+      resolution: "original",
+      includeAudio: false,
+      onProgress: () => {},
+    },
+    context.runtime,
+  );
+
+  assert.equal(initializedConversion, true);
+  assert.equal(blob.size, 3);
+  assert.equal(context.disposed, true);
+});
+
 void test("validates subtitle burn-in inputs and wires the burn-in processor", async () => {
   const processor = (() => ({})) as unknown as SubtitleProcessor;
   let capturedOptions: ConversionOptions | undefined;
@@ -677,6 +745,34 @@ void test("exports GIF frames through the browser encoder path", async () => {
       width: 4,
     },
   ]);
+  assert.equal(context.disposed, true);
+});
+
+void test("fails before creating a GIF canvas sink when the source video codec cannot decode", async () => {
+  const context = createRuntime({
+    createCanvasSink: () => {
+      throw new Error("GIF canvas sink should not be created");
+    },
+  });
+  context.videoTrack.getCodec = async () => "vp8";
+  context.videoTrack.canDecode = async () => false;
+
+  await assert.rejects(
+    () =>
+      exportClipWithRuntime(
+        {
+          mediaSource,
+          startTime: 0,
+          endTime: 2,
+          format: "gif",
+          resolution: "original",
+          includeAudio: false,
+          onProgress: () => {},
+        },
+        context.runtime,
+      ),
+    /This browser cannot decode vp8 video\. Try Chrome or Edge/,
+  );
   assert.equal(context.disposed, true);
 });
 

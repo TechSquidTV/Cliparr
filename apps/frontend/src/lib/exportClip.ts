@@ -21,9 +21,12 @@ import type { EditorMediaSource } from "#/lib/editorMedia";
 import { createCliparrInputFromSource } from "#/lib/mediabunnyInput";
 import { ensureMediabunnyCodecs } from "#/lib/mediabunnyCodecs";
 import {
+  assessVideoTrackDecodability,
   getTrackTimelineOffsetSeconds,
   getVideoTrackDimensions,
   toSourceTimelineTime,
+  videoTrackExportUnsupportedMessage,
+  type VideoTrackDecodabilityAssessment,
 } from "#/lib/mediabunnyTrackAccess";
 import { selectPreferredPairableAudioTrack } from "#/lib/selectPreferredAudioTrack";
 import type {
@@ -158,6 +161,60 @@ export function createGifCanvas(
 function configureGifCanvasContext(context: CanvasRenderingContext2D) {
   context.imageSmoothingEnabled = true;
   context.imageSmoothingQuality = "high";
+}
+
+function assertVideoTrackDecodableForExport(
+  decodability: VideoTrackDecodabilityAssessment,
+) {
+  if (decodability.codec === null || !decodability.canDecode) {
+    throw new Error(videoTrackExportUnsupportedMessage(decodability));
+  }
+}
+
+async function videoExportRequiresSourceDecode({
+  track,
+  sourceVideoDimensions,
+  outputDimensions,
+  outputFormat,
+  videoQualityOptions,
+  trimStart,
+  shouldBurnSubtitles,
+  decodability,
+}: {
+  track: InputVideoTrack;
+  sourceVideoDimensions: { width: number; height: number } | null;
+  outputDimensions: { width: number; height: number } | null;
+  outputFormat: ReturnType<typeof createOutputFormat>;
+  videoQualityOptions: ReturnType<typeof videoQualityConversionOptions>;
+  trimStart: number;
+  shouldBurnSubtitles: boolean;
+  decodability: VideoTrackDecodabilityAssessment;
+}) {
+  if (
+    videoQualityOptions.forceTranscode ||
+    videoQualityOptions.bitrate !== undefined ||
+    shouldBurnSubtitles
+  ) {
+    return true;
+  }
+
+  if (
+    decodability.codec === null ||
+    !outputFormat.getSupportedVideoCodecs().includes(decodability.codec)
+  ) {
+    return true;
+  }
+
+  if (
+    sourceVideoDimensions &&
+    outputDimensions &&
+    (sourceVideoDimensions.width !== outputDimensions.width ||
+      sourceVideoDimensions.height !== outputDimensions.height)
+  ) {
+    return true;
+  }
+
+  return (await track.getFirstTimestamp()) < trimStart;
 }
 
 function selectGifPaletteSampleFrameIndexes(frameCount: number) {
@@ -416,6 +473,7 @@ export async function exportClipWithRuntime(
     const sourceVideoTrack = await input.getPrimaryVideoTrack({
       filter: async (track) => !(await track.hasOnlyKeyPackets()),
     });
+
     const sourceAudioTracks = await input.getAudioTracks();
     const preferredAudioTrack = await runtime.selectPreferredPairableAudioTrack(
       sourceVideoTrack,
@@ -439,6 +497,7 @@ export async function exportClipWithRuntime(
       resolution,
       format,
     );
+    const videoQualityOptions = videoQualityConversionOptions(videoQuality);
     const outputHeight = outputDimensions?.height;
     const clippedSubtitleCues =
       includeBurnedSubtitles && subtitleCues.length > 0
@@ -455,6 +514,24 @@ export async function exportClipWithRuntime(
     }
 
     const outputFormat = runtime.createOutputFormat(format);
+    if (sourceVideoTrack) {
+      const decodability = await assessVideoTrackDecodability(sourceVideoTrack);
+      if (
+        await videoExportRequiresSourceDecode({
+          track: sourceVideoTrack,
+          sourceVideoDimensions,
+          outputDimensions,
+          outputFormat,
+          videoQualityOptions,
+          trimStart,
+          shouldBurnSubtitles,
+          decodability,
+        })
+      ) {
+        assertVideoTrackDecodableForExport(decodability);
+      }
+    }
+
     const target = runtime.createBufferTarget();
     const metadataTags = await runtime.buildMetadataTags(
       metadata,
@@ -504,8 +581,6 @@ export async function exportClipWithRuntime(
     if (metadataTags) {
       conversionOptions.tags = metadataTags;
     }
-
-    const videoQualityOptions = videoQualityConversionOptions(videoQuality);
 
     if (sourceVideoTrack) {
       conversionOptions.video = (track) => ({
@@ -642,6 +717,10 @@ async function exportGifClipWithRuntime(
     if (!sourceVideoTrack) {
       throw new Error("GIF export requires a video track.");
     }
+
+    assertVideoTrackDecodableForExport(
+      await assessVideoTrackDecodability(sourceVideoTrack),
+    );
 
     if (includeBurnedSubtitles && !subtitleStyleSettings) {
       throw new Error("Subtitle burn-in was requested without style settings.");
