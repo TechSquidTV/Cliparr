@@ -1,6 +1,10 @@
+name: cliparr
+
 services:
   cliparr:
-    build: .
+    build:
+      context: ..
+      dockerfile: docker/prod.Dockerfile
     ports:
       - "7171:7171"
     environment:

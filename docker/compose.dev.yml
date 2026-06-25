@@ -1,3 +1,5 @@
+name: cliparr-dev
+
 services:
   media-seed:
     image: alpine:3.24
@@ -11,7 +13,7 @@ services:
       GITHUB_ACTIONS: ${GITHUB_ACTIONS:-false}
       SINTEL_URL: https://download.blender.org/demo/movies/Sintel.2010.720p.mkv
     volumes:
-      - ./docker:/scripts:ro
+      - ../docker:/scripts:ro
       - cliparr-dev-media:/media
     networks:
       - cliparr-dev
@@ -52,7 +54,7 @@ services:
       JELLYFIN_LIBRARY_NAME: Movies
       JELLYFIN_LIBRARY_PATH: /media/movies
     volumes:
-      - ./docker:/scripts:ro
+      - ../docker:/scripts:ro
     networks:
       - cliparr-dev
 
@@ -94,11 +96,11 @@ services:
       PLEX_LIBRARY_PATH: /data/movies
       PLEX_LIBRARY_LANGUAGE: en-US
     volumes:
-      - ./docker:/scripts:ro
+      - ../docker:/scripts:ro
 
   cliparr:
     build:
-      context: .
+      context: ..
       dockerfile: docker/dev.Dockerfile
     image: cliparr-dev:local
     depends_on:
@@ -125,7 +127,7 @@ services:
       - "3000:3000"
       - "5173:5173"
     volumes:
-      - .:/workspace
+      - ..:/workspace
       - cliparr-dev-data:/data
       - cliparr-dev-root-node-modules:/workspace/node_modules
       - cliparr-dev-server-node-modules:/workspace/apps/server/node_modules
