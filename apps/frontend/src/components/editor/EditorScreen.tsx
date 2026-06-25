@@ -45,6 +45,10 @@ import {
 import { useEditorFramegrab } from "@/components/editor/useEditorFramegrab";
 import { useEditorSubtitles } from "@/components/editor/useEditorSubtitles";
 import {
+  loadEditorPropertiesOpenSections,
+  saveEditorPropertiesOpenSections,
+} from "@/components/editor/editorSidebarPreferences";
+import {
   isValidSubtitleTimelineActionRange,
   subtitleCueIdFromActionId,
 } from "@/components/editor/subtitleTimeline";
@@ -76,6 +80,8 @@ export default function EditorScreen({ session, onBack }: Properties) {
   const [startTime, setStartTime] = useState(() => initialClipRange.startTime);
   const [endTime, setEndTime] = useState(() => initialClipRange.endTime);
   const [playbackSidebarOpen, setPlaybackSidebarOpen] = useState(true);
+  const [editorPropertiesOpenSections, setEditorPropertiesOpenSections] =
+    useState(loadEditorPropertiesOpenSections);
   const [exportDialogMounted, setExportDialogMounted] = useState(false);
   const playbackTimeUpdateReference = useRef<
     ((seconds: number) => void) | null
@@ -150,6 +156,10 @@ export default function EditorScreen({ session, onBack }: Properties) {
     subtitleStyleSettings,
     onPlaybackTimeUpdate: handlePlaybackTimeUpdate,
   });
+
+  useEffect(() => {
+    saveEditorPropertiesOpenSections(editorPropertiesOpenSections);
+  }, [editorPropertiesOpenSections]);
   const {
     resolution,
     exportFormat,
@@ -609,6 +619,8 @@ export default function EditorScreen({ session, onBack }: Properties) {
           subtitleLoading={subtitleLoading}
           subtitleError={subtitleError}
           selectedSubtitleTrack={selectedSubtitleTrack}
+          editorPropertiesOpenSections={editorPropertiesOpenSections}
+          onEditorPropertiesOpenSectionsChange={setEditorPropertiesOpenSections}
         />
       </div>
     );
