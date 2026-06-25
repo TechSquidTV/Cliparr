@@ -784,6 +784,18 @@
   -webkit-user-select: none;
 }
 
+.cliparr-timeline-action-content[data-selected="true"]::after {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  border: 2px solid var(--editor-accent);
+  border-radius: 1px;
+  box-shadow: inset 0 0 0 1px
+    color-mix(in oklch, var(--editor-workspace) 70%, transparent);
+  content: "";
+  pointer-events: none;
+}
+
 .cliparr-timeline-action-ready-fill {
   position: absolute;
   top: 0;

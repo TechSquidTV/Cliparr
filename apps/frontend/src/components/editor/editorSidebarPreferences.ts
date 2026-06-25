@@ -1,8 +1,10 @@
 export const EDITOR_PROPERTIES_SECTION_ID = {
+  selection: "selection",
   globalSubtitles: "global-subtitles",
 } as const;
 
 const EDITOR_PROPERTIES_SECTION_IDS = [
+  EDITOR_PROPERTIES_SECTION_ID.selection,
   EDITOR_PROPERTIES_SECTION_ID.globalSubtitles,
 ] as const;
 
@@ -12,6 +14,7 @@ export type EditorPropertiesSectionId =
 export type EditorPropertiesOpenSections = readonly EditorPropertiesSectionId[];
 
 export const DEFAULT_EDITOR_PROPERTIES_OPEN_SECTIONS = [
+  EDITOR_PROPERTIES_SECTION_ID.selection,
   EDITOR_PROPERTIES_SECTION_ID.globalSubtitles,
 ] as const satisfies EditorPropertiesOpenSections;
 

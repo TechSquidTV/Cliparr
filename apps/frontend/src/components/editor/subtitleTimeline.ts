@@ -34,6 +34,8 @@ export type SubtitleCueTimingUpdateMode =
   | "resize-left"
   | "resize-right";
 
+export type SubtitleCueTimingProperty = "start" | "end" | "duration";
+
 const subtitleActionPrefix = "subtitle-cue:";
 
 export function subtitleTimelineActionId(cueId: string) {
@@ -197,6 +199,53 @@ export function roundSubtitleCueTimingUpdate(
     startTime: roundTimelineTime(update.startTime),
     endTime: roundTimelineTime(update.endTime),
   };
+}
+
+export function buildSubtitleCueTimingPropertyUpdate({
+  cue,
+  property,
+  value,
+  duration,
+}: {
+  cue: SubtitleTimelineCue;
+  property: SubtitleCueTimingProperty;
+  value: number;
+  duration: number;
+}): SubtitleCueTimingUpdate | null {
+  const roundedValue = roundTimelineTime(value);
+  let update: SubtitleCueTimingUpdate;
+
+  if (property === "start") {
+    update = {
+      cueId: cue.id,
+      startTime: roundedValue,
+      endTime: cue.endTime,
+    };
+  } else if (property === "end") {
+    update = {
+      cueId: cue.id,
+      startTime: cue.startTime,
+      endTime: roundedValue,
+    };
+  } else {
+    update = {
+      cueId: cue.id,
+      startTime: cue.startTime,
+      endTime: roundTimelineTime(cue.startTime + roundedValue),
+    };
+  }
+
+  if (
+    !isValidSubtitleCueRange({
+      startTime: update.startTime,
+      endTime: update.endTime,
+      duration,
+    })
+  ) {
+    return null;
+  }
+
+  return roundSubtitleCueTimingUpdate(update);
 }
 
 export function snapSubtitleCueTimingUpdateToAdjacentCue({

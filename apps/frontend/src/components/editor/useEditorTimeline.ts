@@ -40,6 +40,10 @@ import {
   type SubtitleCueTimingUpdateMode,
   type SubtitleTimelineTrack,
 } from "@/components/editor/subtitleTimeline";
+import {
+  editorTimelineSelectionForActionId,
+  type EditorTimelineSelection,
+} from "@/components/editor/editorTimelineSelection";
 
 interface UseEditorTimelineProperties {
   duration: number;
@@ -50,6 +54,8 @@ interface UseEditorTimelineProperties {
   updateClipRange: (start: number, end: number) => void;
   onClipRangeCommit?: (start: number, end: number) => void;
   subtitleTimelineTrack?: SubtitleTimelineTrack | null;
+  timelineSelection: EditorTimelineSelection;
+  onTimelineSelectionChange: (selection: EditorTimelineSelection) => void;
   updateSubtitleCueTimings?: (
     updates: readonly SubtitleCueTimingUpdate[],
     duration: number,
@@ -120,6 +126,8 @@ export function useEditorTimeline({
   updateClipRange,
   onClipRangeCommit,
   subtitleTimelineTrack,
+  timelineSelection,
+  onTimelineSelectionChange,
   updateSubtitleCueTimings,
 }: UseEditorTimelineProperties) {
   const timelineReference = useRef<TimelineState>(null);
@@ -247,12 +255,18 @@ export function useEditorTimeline({
       subtitleTimelineTrack && subtitleTimelineCues.length > 0
         ? assignSubtitleCueLanes(subtitleTimelineCues).map((lane) => ({
             id: `${subtitleTimelineTrack.id}:lane:${lane.index}`,
+            selected:
+              timelineSelection.kind === "subtitle-cue" &&
+              lane.cues.some((cue) => cue.id === timelineSelection.cueId),
             rowHeight: SUBTITLE_TIMELINE_ROW_HEIGHT,
             actions: lane.cues.map((cue) => ({
               id: subtitleTimelineActionId(cue.id),
               start: roundTimelineTime(cue.startTime),
               end: roundTimelineTime(cue.endTime),
               effectId: "subtitle",
+              selected:
+                timelineSelection.kind === "subtitle-cue" &&
+                timelineSelection.cueId === cue.id,
               flexible: hasDuration,
               movable: hasDuration,
               minStart: 0,
@@ -281,14 +295,14 @@ export function useEditorTimeline({
       {
         id: "clip-range",
         rowHeight: CLIP_TIMELINE_ROW_HEIGHT,
-        selected: true,
+        selected: timelineSelection.kind === "clip",
         actions: [
           {
             id: "selected-clip",
             start: safeStart,
             end: safeEnd,
             effectId: "clip",
-            selected: true,
+            selected: timelineSelection.kind === "clip",
             flexible: hasDuration,
             movable: hasDuration,
             minStart: 0,
@@ -298,7 +312,14 @@ export function useEditorTimeline({
       },
       ...subtitleRows,
     ];
-  }, [duration, endTime, hasDuration, startTime, subtitleTimelineTrack]);
+  }, [
+    duration,
+    endTime,
+    hasDuration,
+    startTime,
+    subtitleTimelineTrack,
+    timelineSelection,
+  ]);
 
   const timelineSubtitleActionLabels = useMemo(() => {
     const labels = new Map<string, string>();
@@ -634,6 +655,16 @@ export function useEditorTimeline({
     ],
   );
 
+  const selectTimelineAction = useCallback(
+    (action: { id: string }) => {
+      const selection = editorTimelineSelectionForActionId(action.id);
+      if (selection) {
+        onTimelineSelectionChange(selection);
+      }
+    },
+    [onTimelineSelectionChange],
+  );
+
   const handleTimelineActionMoveEnd = useCallback(
     ({
       action,
@@ -644,6 +675,7 @@ export function useEditorTimeline({
       start: number;
       end: number;
     }) => {
+      selectTimelineAction(action);
       if (action.id !== "selected-clip") {
         commitSubtitleCueTiming({ action, start, end, mode: "move" });
         return;
@@ -651,7 +683,7 @@ export function useEditorTimeline({
 
       commitClipRange(start, end);
     },
-    [commitClipRange, commitSubtitleCueTiming],
+    [commitClipRange, commitSubtitleCueTiming, selectTimelineAction],
   );
 
   const handleTimelineActionResizeEnd = useCallback(
@@ -666,6 +698,7 @@ export function useEditorTimeline({
       end: number;
       dir?: "right" | "left";
     }) => {
+      selectTimelineAction(action);
       if (action.id !== "selected-clip") {
         commitSubtitleCueTiming({
           action,
@@ -678,7 +711,7 @@ export function useEditorTimeline({
 
       commitClipRange(start, end);
     },
-    [commitClipRange, commitSubtitleCueTiming],
+    [commitClipRange, commitSubtitleCueTiming, selectTimelineAction],
   );
 
   return {
@@ -699,6 +732,7 @@ export function useEditorTimeline({
     handleTimelineChange,
     handleTimelineActionMoveEnd,
     handleTimelineActionResizeEnd,
+    selectTimelineAction,
     setTimelineCurrentTime,
     hasDuration,
   };

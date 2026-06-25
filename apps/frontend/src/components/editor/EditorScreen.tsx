@@ -3,6 +3,7 @@ import {
   Suspense,
   useCallback,
   useEffect,
+  useMemo,
   useRef,
   useState,
 } from "react";
@@ -49,9 +50,18 @@ import {
   saveEditorPropertiesOpenSections,
 } from "@/components/editor/editorSidebarPreferences";
 import {
+  buildSubtitleCueTimingPropertyUpdate,
   isValidSubtitleTimelineActionRange,
   subtitleCueIdFromActionId,
+  type SubtitleTimelineCue,
 } from "@/components/editor/subtitleTimeline";
+import {
+  defaultEditorTimelineSelection,
+  editorTimelineSelectionsEqual,
+  normalizeEditorTimelineSelection,
+  resolveSelectedSubtitleCue,
+  type EditorTimelineSelection,
+} from "@/components/editor/editorTimelineSelection";
 import { sourceDisplayLabel, type EditorSession } from "@/lib/editorMedia";
 import { EDITOR_THUMBNAIL_VIEW_TRANSITION_NAME } from "@/lib/viewTransitions";
 
@@ -82,6 +92,8 @@ export default function EditorScreen({ session, onBack }: Properties) {
   const [playbackSidebarOpen, setPlaybackSidebarOpen] = useState(true);
   const [editorPropertiesOpenSections, setEditorPropertiesOpenSections] =
     useState(loadEditorPropertiesOpenSections);
+  const [timelineSelection, setTimelineSelection] =
+    useState<EditorTimelineSelection>(defaultEditorTimelineSelection);
   const [exportDialogMounted, setExportDialogMounted] = useState(false);
   const playbackTimeUpdateReference = useRef<
     ((seconds: number) => void) | null
@@ -111,6 +123,22 @@ export default function EditorScreen({ session, onBack }: Properties) {
     startTime,
     endTime,
   });
+  const normalizedTimelineSelection = useMemo(
+    () =>
+      normalizeEditorTimelineSelection({
+        selection: timelineSelection,
+        subtitleTimelineTrack,
+      }),
+    [subtitleTimelineTrack, timelineSelection],
+  );
+  const selectedSubtitleCue = useMemo(
+    () =>
+      resolveSelectedSubtitleCue(
+        subtitleTimelineTrack,
+        normalizedTimelineSelection,
+      ),
+    [normalizedTimelineSelection, subtitleTimelineTrack],
+  );
   const posterImageUrl = session.thumbUrl;
 
   const {
@@ -160,6 +188,19 @@ export default function EditorScreen({ session, onBack }: Properties) {
   useEffect(() => {
     saveEditorPropertiesOpenSections(editorPropertiesOpenSections);
   }, [editorPropertiesOpenSections]);
+  useEffect(() => {
+    setTimelineSelection(defaultEditorTimelineSelection());
+  }, [session.id]);
+  useEffect(() => {
+    if (
+      !editorTimelineSelectionsEqual(
+        timelineSelection,
+        normalizedTimelineSelection,
+      )
+    ) {
+      setTimelineSelection(normalizedTimelineSelection);
+    }
+  }, [normalizedTimelineSelection, timelineSelection]);
   const {
     resolution,
     exportFormat,
@@ -328,6 +369,42 @@ export default function EditorScreen({ session, onBack }: Properties) {
     },
     [duration, startTime, updateClipRange, warmClipSelection],
   );
+  const handleClipDurationCommit = useCallback(
+    (nextDuration: number) => {
+      if (!duration || duration <= 0) {
+        return;
+      }
+
+      const nextEnd = clampClipEndTime(
+        startTime + nextDuration,
+        startTime,
+        duration,
+      );
+      updateClipRange(startTime, nextEnd);
+      void warmClipSelection(startTime, nextEnd);
+    },
+    [duration, startTime, updateClipRange, warmClipSelection],
+  );
+  const handleSubtitleCueTimingPropertyCommit = useCallback(
+    (
+      cue: SubtitleTimelineCue,
+      property: "start" | "end" | "duration",
+      value: number,
+    ) => {
+      const update = buildSubtitleCueTimingPropertyUpdate({
+        cue,
+        property,
+        value,
+        duration,
+      });
+      if (!update) {
+        return;
+      }
+
+      updateSubtitleCueTimings([update], duration);
+    },
+    [duration, updateSubtitleCueTimings],
+  );
   const handleMarkInShortcut = useCallback(() => {
     if (!duration || duration <= 0) {
       return;
@@ -414,6 +491,7 @@ export default function EditorScreen({ session, onBack }: Properties) {
     handleTimelineChange,
     handleTimelineActionMoveEnd,
     handleTimelineActionResizeEnd,
+    selectTimelineAction,
     setTimelineCurrentTime,
     hasDuration,
   } = useEditorTimeline({
@@ -427,6 +505,8 @@ export default function EditorScreen({ session, onBack }: Properties) {
       void warmClipSelection(nextStart, nextEnd);
     },
     subtitleTimelineTrack,
+    timelineSelection: normalizedTimelineSelection,
+    onTimelineSelectionChange: setTimelineSelection,
     updateSubtitleCueTimings,
   });
 
@@ -570,6 +650,7 @@ export default function EditorScreen({ session, onBack }: Properties) {
       handleTimelineChange={handleTimelineChange}
       handleTimelineActionMoveEnd={handleTimelineActionMoveEnd}
       handleTimelineActionResizeEnd={handleTimelineActionResizeEnd}
+      selectTimelineAction={selectTimelineAction}
       isValidTimelineActionRange={isValidTimelineActionRange}
       seekToTime={seekToTime}
       onCursorDragStart={() => {
@@ -601,13 +682,27 @@ export default function EditorScreen({ session, onBack }: Properties) {
   );
 
   function renderSubtitlePanel(className: string) {
-    if (session.local) {
-      return null;
-    }
-
     return (
       <div className={className}>
         <EditorSubtitlePanel
+          showGlobalSubtitles={!session.local}
+          timelineSelection={normalizedTimelineSelection}
+          selectedSubtitleCue={selectedSubtitleCue}
+          clipStartTime={startTime}
+          clipEndTime={endTime}
+          duration={duration}
+          onClipStartTimeCommit={handleStartTimeCommit}
+          onClipEndTimeCommit={handleEndTimeCommit}
+          onClipDurationCommit={handleClipDurationCommit}
+          onSubtitleCueStartTimeCommit={(cue, seconds) =>
+            handleSubtitleCueTimingPropertyCommit(cue, "start", seconds)
+          }
+          onSubtitleCueEndTimeCommit={(cue, seconds) =>
+            handleSubtitleCueTimingPropertyCommit(cue, "end", seconds)
+          }
+          onSubtitleCueDurationCommit={(cue, seconds) =>
+            handleSubtitleCueTimingPropertyCommit(cue, "duration", seconds)
+          }
           providerId={session.source.providerId}
           subtitleTracks={subtitleTracks}
           selectedSubtitleTrackKey={selectedSubtitleTrackKey}

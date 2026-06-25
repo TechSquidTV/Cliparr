@@ -5,6 +5,7 @@ import test from "node:test";
 import {
   applySubtitleCueTimingUpdates,
   assignSubtitleCueLanes,
+  buildSubtitleCueTimingPropertyUpdate,
   buildSubtitleTimelineTrack,
   isValidSubtitleCueRange,
   isValidSubtitleTimelineActionRange,
@@ -316,6 +317,82 @@ void test("rejects invalid subtitle cue timing updates", () => {
       updates: [{ cueId: "stream:1:cue:0", startTime: 1, endTime: 11 }],
     }),
     track,
+  );
+});
+
+void test("builds subtitle cue timing updates from property edits", () => {
+  const item = cue("cue-1", 1, 3);
+
+  assert.deepEqual(
+    buildSubtitleCueTimingPropertyUpdate({
+      cue: item,
+      property: "start",
+      value: 1.234,
+      duration: 10,
+    }),
+    {
+      cueId: "cue-1",
+      startTime: 1.23,
+      endTime: 3,
+    },
+  );
+  assert.deepEqual(
+    buildSubtitleCueTimingPropertyUpdate({
+      cue: item,
+      property: "end",
+      value: 4.567,
+      duration: 10,
+    }),
+    {
+      cueId: "cue-1",
+      startTime: 1,
+      endTime: 4.57,
+    },
+  );
+  assert.deepEqual(
+    buildSubtitleCueTimingPropertyUpdate({
+      cue: item,
+      property: "duration",
+      value: 2.345,
+      duration: 10,
+    }),
+    {
+      cueId: "cue-1",
+      startTime: 1,
+      endTime: 3.35,
+    },
+  );
+});
+
+void test("rejects invalid subtitle cue timing property edits", () => {
+  const item = cue("cue-1", 1, 3);
+
+  assert.equal(
+    buildSubtitleCueTimingPropertyUpdate({
+      cue: item,
+      property: "start",
+      value: 3,
+      duration: 10,
+    }),
+    null,
+  );
+  assert.equal(
+    buildSubtitleCueTimingPropertyUpdate({
+      cue: item,
+      property: "end",
+      value: 1,
+      duration: 10,
+    }),
+    null,
+  );
+  assert.equal(
+    buildSubtitleCueTimingPropertyUpdate({
+      cue: item,
+      property: "duration",
+      value: 20,
+      duration: 10,
+    }),
+    null,
   );
 });
 
