@@ -9,6 +9,7 @@ import {
   loadSubtitleStyleSettings,
   saveSubtitleStyleSettings,
 } from "@/lib/subtitles/settings";
+import { formatSubtitleTrackLabel } from "@/lib/subtitleTrackLabels";
 import { trimSubtitleCues } from "@/lib/subtitles/trimSubtitleCues";
 import type { PlaybackSubtitleTrack } from "@/providers/types";
 import { buildSubtitleExportSummary } from "@/components/editor/subtitleExportSummary";
@@ -25,15 +26,6 @@ interface UseEditorSubtitlesProperties {
   session: EditorSession;
   startTime: number;
   endTime: number;
-}
-
-function subtitleTrackTimelineLabel(track: PlaybackSubtitleTrack) {
-  const parts = [
-    track.title?.trim(),
-    track.languageCode?.trim()?.toUpperCase(),
-  ].filter(Boolean);
-
-  return parts.join(" / ") || "Subtitle track";
 }
 
 export function useEditorSubtitles({
@@ -152,7 +144,9 @@ export function useEditorSubtitles({
 
       return buildSubtitleTimelineTrack({
         trackKey,
-        label: subtitleTrackTimelineLabel(selectedSubtitleTrack),
+        label: formatSubtitleTrackLabel(selectedSubtitleTrack, {
+          variant: "timeline",
+        }),
         cues: downloadedSubtitleCues,
       });
     });

@@ -21,6 +21,10 @@ import {
   subtitleTrackSupportsBurnIn,
   subtitleTrackUnavailableMessage,
 } from "@/lib/selectPreferredSubtitleTrack";
+import {
+  formatSubtitleTrackLabel,
+  formatSubtitleTrackTechnicalSummary,
+} from "@/lib/subtitleTrackLabels";
 import type { SubtitleStyleSettings } from "@/lib/subtitles/types";
 import type { PlaybackSubtitleTrack } from "@/providers/types";
 import {
@@ -47,32 +51,6 @@ interface EditorSubtitlePanelProperties {
   subtitleLoading: boolean;
   subtitleError: string | null;
   selectedSubtitleTrack: PlaybackSubtitleTrack | null;
-}
-
-function subtitleTrackLabel(track: PlaybackSubtitleTrack) {
-  const parts = [
-    track.title?.trim(),
-    track.languageCode?.trim()?.toUpperCase(),
-  ].filter(Boolean);
-  const codec = track.codec?.trim()?.toUpperCase();
-  const flags = [
-    track.isForced ? "Forced" : null,
-    track.isHearingImpaired ? "SDH" : null,
-    track.isDefault ? "Default" : null,
-    track.isExternal ? "External" : null,
-    subtitleTrackSupportsBurnIn(track) ? null : "Unsupported",
-  ].filter(Boolean);
-
-  const baseLabel = parts[0] ?? parts[1] ?? "Unnamed subtitle track";
-  const detailParts = [
-    parts[0] && parts[1] ? parts[1] : null,
-    codec,
-    flags.join(" · "),
-  ].filter(Boolean);
-
-  return detailParts.length > 0
-    ? `${baseLabel} (${detailParts.join(" | ")})`
-    : baseLabel;
 }
 
 export function EditorSubtitlePanel({
@@ -195,7 +173,7 @@ export function EditorSubtitlePanel({
 
                   return (
                     <SelectItem key={trackKey} value={trackKey}>
-                      {subtitleTrackLabel(track)}
+                      {formatSubtitleTrackLabel(track, { variant: "selector" })}
                     </SelectItem>
                   );
                 })}
@@ -212,13 +190,7 @@ export function EditorSubtitlePanel({
                 <p>{subtitleWarning}</p>
                 {selectedSubtitleTrack && (
                   <p className="text-ui-label text-muted-foreground">
-                    {selectedSubtitleTrack.codec?.toUpperCase() ??
-                      "Unknown codec"}
-                    {selectedSubtitleTrack.languageCode
-                      ? ` · ${selectedSubtitleTrack.languageCode.toUpperCase()}`
-                      : ""}
-                    {selectedSubtitleTrack.isForced ? " · Forced" : ""}
-                    {selectedSubtitleTrack.isHearingImpaired ? " · SDH" : ""}
+                    {formatSubtitleTrackTechnicalSummary(selectedSubtitleTrack)}
                   </p>
                 )}
               </div>

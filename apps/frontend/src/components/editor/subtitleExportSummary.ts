@@ -3,6 +3,7 @@ import {
   subtitleTrackSupportsBurnIn,
   subtitleTrackUnavailableMessage,
 } from "@/lib/selectPreferredSubtitleTrack";
+import { formatSubtitleTrackLabel } from "@/lib/subtitleTrackLabels";
 
 interface BuildSubtitleExportSummaryOptions {
   selectedSubtitleTrack: PlaybackSubtitleTrack | null;
@@ -19,18 +20,6 @@ export interface SubtitleExportSummary {
   detail: string;
   tone: "muted" | "ready" | "warning";
   disabledReason: string | null;
-}
-
-function subtitleTrackDisplayName(track: PlaybackSubtitleTrack | null) {
-  if (!track) {
-    return "No subtitle track selected";
-  }
-
-  return (
-    track.title?.trim() ||
-    track.languageCode?.trim()?.toUpperCase() ||
-    "Selected subtitle track"
-  );
 }
 
 export function buildSubtitleExportSummary({
@@ -58,7 +47,9 @@ export function buildSubtitleExportSummary({
     };
   }
 
-  const trackName = subtitleTrackDisplayName(selectedSubtitleTrack);
+  const trackName = formatSubtitleTrackLabel(selectedSubtitleTrack, {
+    variant: "summary",
+  });
 
   if (!subtitleTrackSupportsBurnIn(selectedSubtitleTrack)) {
     return {
