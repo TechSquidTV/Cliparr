@@ -1,7 +1,7 @@
 import type { SubtitleStyleSettings } from "@/lib/subtitles/types";
 
 const SUBTITLE_STYLE_SETTINGS_STORAGE_KEY =
-  "cliparr.subtitle.style-settings.v1";
+  "cliparr.subtitle.style-settings.v3";
 
 type SubtitleFontOptionSource = "bundled" | "local" | "saved";
 
@@ -166,7 +166,7 @@ function defaultSubtitleStyleSettings(): SubtitleStyleSettings {
     shadowOffsetY: 2,
     strokeColor: "#000000",
     strokeWidth: 4,
-    bottomMargin: 72,
+    positionY: 10,
     lineHeight: 1.2,
   };
 }
@@ -225,12 +225,7 @@ export function loadSubtitleStyleSettings(): SubtitleStyleSettings {
       ),
       strokeColor: colorValue(parsed.strokeColor, defaults.strokeColor),
       strokeWidth: clampNumber(parsed.strokeWidth, defaults.strokeWidth, 0, 32),
-      bottomMargin: clampNumber(
-        parsed.bottomMargin,
-        defaults.bottomMargin,
-        0,
-        240,
-      ),
+      positionY: clampNumber(parsed.positionY, defaults.positionY, 0, 100),
       lineHeight: clampNumber(parsed.lineHeight, defaults.lineHeight, 1, 2),
     };
   } catch {

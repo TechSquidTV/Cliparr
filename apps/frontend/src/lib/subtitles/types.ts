@@ -15,6 +15,6 @@ export interface SubtitleStyleSettings {
   shadowOffsetY: number;
   strokeColor: string;
   strokeWidth: number;
-  bottomMargin: number;
+  positionY: number;
   lineHeight: number;
 }

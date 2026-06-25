@@ -364,9 +364,8 @@ flowchart TD
   after timing changes.
 - Preview and export consume adjusted subtitle cues from the timeline model, not
   the original parsed cue list.
-- Concurrent active cues render as separate composited cues at the same default
-  subtitle anchor. They are not merged into one cue and are not auto-stacked;
-  positioning controls are future work.
+- Concurrent active cues render as separate composited cues at the same global
+  subtitle position. They are not merged into one cue and are not auto-stacked.
 - Text editing, add/remove, provider-side subtitle writes, lazy cue loading, and
   sidecar export/persistence are outside the v1 timeline scope.
 

@@ -349,14 +349,14 @@ export function EditorSubtitlePanel({
 
         <EditorPropertySection title="Position">
           <EditorRangeControl
-            label="Bottom"
-            value={subtitleStyleSettings.bottomMargin}
+            label="Y"
+            value={subtitleStyleSettings.positionY}
             min={0}
-            max={180}
+            max={100}
             step={1}
-            unit="px"
+            unit="%"
             disabled={styleControlsDisabled}
-            onChange={(value) => updateStyleSetting("bottomMargin", value)}
+            onChange={(value) => updateStyleSetting("positionY", value)}
           />
         </EditorPropertySection>
       </div>
