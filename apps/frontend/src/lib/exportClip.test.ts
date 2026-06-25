@@ -154,8 +154,8 @@ function createRuntime(overrides: Partial<ExportRuntime> = {}) {
         },
       }) as unknown as ReturnType<ExportRuntime["createGifCanvas"]>,
     loadGifEncodingRuntime: async () => createMockGifRuntime(),
-    getActiveSubtitleCue: () => {},
-    renderSubtitleCue: () => {},
+    getActiveSubtitleCues: () => [],
+    renderSubtitleCues: () => {},
     initConversion: async () =>
       createConversion({
         target,
@@ -864,15 +864,15 @@ void test("renders subtitles when burning cues into GIF frames", async () => {
           }),
         },
       }) as unknown as ReturnType<ExportRuntime["createGifCanvas"]>,
-    getActiveSubtitleCue: (cues, timestamp) => {
+    getActiveSubtitleCues: (cues, timestamp) => {
       activeSubtitleTimestamp = timestamp;
-      return cues[0];
+      return [...cues];
     },
-    renderSubtitleCue: (_context, cue, _styleSettings, width, height) => {
-      assert.equal(cue.text, "Hello");
+    renderSubtitleCues: (_context, cues, _styleSettings, width, height) => {
+      assert.equal(cues[0]?.text, "Hello");
       assert.equal(width, 4);
       assert.equal(height, 4);
-      renderedSubtitleCount += 1;
+      renderedSubtitleCount += cues.length;
     },
   });
 

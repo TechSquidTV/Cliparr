@@ -58,8 +58,8 @@ import type {
   GifFrameEncoder,
   GifFrameEncoderOptions,
 } from "#/lib/gifFrameEncoder";
-import { getActiveSubtitleCue } from "#/lib/subtitles/getActiveSubtitleCue";
-import { renderSubtitleCue } from "#/lib/subtitles/renderSubtitleCue";
+import { getActiveSubtitleCues } from "#/lib/subtitles/getActiveSubtitleCue";
+import { renderSubtitleCues } from "#/lib/subtitles/renderSubtitleCue";
 import { trimSubtitleCues } from "#/lib/subtitles/trimSubtitleCues";
 import type { SubtitleCue, SubtitleStyleSettings } from "#/lib/subtitles/types";
 
@@ -101,8 +101,8 @@ interface ExportClipRuntime {
   ) => CanvasSink;
   createGifCanvas: typeof createGifCanvas;
   loadGifEncodingRuntime: () => Promise<GifEncodingRuntime>;
-  getActiveSubtitleCue: typeof getActiveSubtitleCue;
-  renderSubtitleCue: typeof renderSubtitleCue;
+  getActiveSubtitleCues: typeof getActiveSubtitleCues;
+  renderSubtitleCues: typeof renderSubtitleCues;
   initConversion: typeof Conversion.init;
   buildSubtitleBurnInProcessor: typeof buildSubtitleBurnInProcessor;
 }
@@ -352,9 +352,9 @@ function buildSubtitleBurnInProcessor(
     context.clearRect(0, 0, width, height);
     sample.draw(context, 0, 0, width, height);
 
-    const activeCue = getActiveSubtitleCue(cues, sample.timestamp);
-    if (activeCue) {
-      renderSubtitleCue(context, activeCue, styleSettings, width, height);
+    const activeCues = getActiveSubtitleCues(cues, sample.timestamp);
+    if (activeCues.length > 0) {
+      renderSubtitleCues(context, activeCues, styleSettings, width, height);
     }
 
     return canvas;
@@ -415,8 +415,8 @@ const defaultExportClipRuntime: ExportClipRuntime = {
   createCanvasSink: (track, options) => new CanvasSink(track, options),
   createGifCanvas,
   loadGifEncodingRuntime,
-  getActiveSubtitleCue,
-  renderSubtitleCue,
+  getActiveSubtitleCues,
+  renderSubtitleCues,
   initConversion: (options) => Conversion.init(options),
   buildSubtitleBurnInProcessor,
 };
@@ -789,15 +789,15 @@ async function exportGifClipWithRuntime(
       );
 
       if (shouldBurnSubtitles && subtitleStyleSettings) {
-        const activeCue = runtime.getActiveSubtitleCue(
+        const activeCues = runtime.getActiveSubtitleCues(
           clippedSubtitleCues,
           displayTimestamp - startTime,
         );
 
-        if (activeCue) {
-          runtime.renderSubtitleCue(
+        if (activeCues.length > 0) {
+          runtime.renderSubtitleCues(
             context,
-            activeCue,
+            activeCues,
             subtitleStyleSettings,
             outputDimensions.width,
             outputDimensions.height,

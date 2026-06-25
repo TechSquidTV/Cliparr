@@ -7,6 +7,7 @@ import {
 } from "@cliparr/shared/logging";
 import type { PlaybackSubtitleTrack } from "@/providers/types";
 import {
+  subtitleTrackKey,
   subtitleTrackSupportsBurnIn,
   subtitleTrackUnavailableMessage,
 } from "@/lib/selectPreferredSubtitleTrack";
@@ -91,11 +92,15 @@ export function useSubtitleCues({
   const [subtitleCues, setSubtitleCues] = useState<SubtitleCue[]>([]);
   const [subtitleLoading, setSubtitleLoading] = useState(false);
   const [subtitleError, setSubtitleError] = useState<string | null>(null);
+  const [loadedSubtitleTrackKey, setLoadedSubtitleTrackKey] = useState<
+    string | null
+  >(null);
 
   const resetSubtitleCues = useCallback(() => {
     setSubtitleCues([]);
     setSubtitleLoading(false);
     setSubtitleError(null);
+    setLoadedSubtitleTrackKey(null);
   }, []);
 
   const clearSubtitleError = useCallback(() => {
@@ -119,6 +124,7 @@ export function useSubtitleCues({
       if (!subtitleTrackSupportsBurnIn(selectedSubtitleTrack) || !contentUrl) {
         setSubtitleLoading(false);
         setSubtitleCues([]);
+        setLoadedSubtitleTrackKey(null);
         setSubtitleError(
           subtitleTrackUnavailableMessage(selectedSubtitleTrack, providerId) ??
             "This subtitle track is not supported.",
@@ -127,6 +133,7 @@ export function useSubtitleCues({
       }
 
       setSubtitleCues([]);
+      setLoadedSubtitleTrackKey(null);
       setSubtitleLoading(true);
       setSubtitleError(null);
 
@@ -159,6 +166,7 @@ export function useSubtitleCues({
 
         const parsedSubtitleCues = downloadResult.cues;
         setSubtitleCues(parsedSubtitleCues);
+        setLoadedSubtitleTrackKey(subtitleTrackKey(selectedSubtitleTrack));
         setSubtitleError(
           parsedSubtitleCues.length === 0
             ? "No subtitles found in this track."
@@ -174,6 +182,7 @@ export function useSubtitleCues({
         if (cancelled || abortController.signal.aborted) {
           if (!cancelled) {
             setSubtitleCues([]);
+            setLoadedSubtitleTrackKey(null);
             setSubtitleError("Subtitles timed out. Try again.");
             setSubtitleLoading(false);
             logger.warn("Subtitle cue load timed out.", {
@@ -195,6 +204,7 @@ export function useSubtitleCues({
           "subtitle.timeout": false,
         });
         setSubtitleCues([]);
+        setLoadedSubtitleTrackKey(null);
         setSubtitleError(
           error instanceof Error ? error.message : "Could not load subtitles.",
         );
@@ -218,6 +228,7 @@ export function useSubtitleCues({
     subtitleCues,
     subtitleLoading,
     subtitleError,
+    loadedSubtitleTrackKey,
     resetSubtitleCues,
     clearSubtitleError,
   };

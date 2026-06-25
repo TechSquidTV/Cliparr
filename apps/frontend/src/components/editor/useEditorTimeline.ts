@@ -17,6 +17,9 @@ import {
   roundTimelineTime,
   MIN_CLIP_SECONDS,
   TIMELINE_START_LEFT,
+  CLIP_TIMELINE_ROW_HEIGHT,
+  SOURCE_TIMELINE_ROW_HEIGHT,
+  SUBTITLE_TIMELINE_ROW_HEIGHT,
   timelineTimeToPixel,
   type ClipTimelineData,
   type ClipTimelineEffects,
@@ -26,6 +29,17 @@ import {
   resolveTimelineScrollWheelUpdate,
   resolveTimelineZoomUpdate,
 } from "@/components/editor/timelineZoom";
+import {
+  assignSubtitleCueLanes,
+  snapSubtitleCueTimingUpdateToAdjacentCue,
+  subtitleCueIdFromActionId,
+  subtitleCuesInTimelineWindow,
+  subtitleCueTimelineLabel,
+  subtitleTimelineActionId,
+  type SubtitleCueTimingUpdate,
+  type SubtitleCueTimingUpdateMode,
+  type SubtitleTimelineTrack,
+} from "@/components/editor/subtitleTimeline";
 
 interface UseEditorTimelineProperties {
   duration: number;
@@ -35,12 +49,21 @@ interface UseEditorTimelineProperties {
   sessionId: string;
   updateClipRange: (start: number, end: number) => void;
   onClipRangeCommit?: (start: number, end: number) => void;
+  subtitleTimelineTrack?: SubtitleTimelineTrack | null;
+  updateSubtitleCueTimings?: (
+    updates: readonly SubtitleCueTimingUpdate[],
+    duration: number,
+  ) => void;
 }
 
 interface TimelineZoomAnchorOptions {
   anchorClientX?: number;
   anchorTime?: number;
 }
+
+const SUBTITLE_TIMELINE_OVERSCAN_SECONDS = 120;
+const SUBTITLE_TIMELINE_SNAP_PIXELS = 8;
+const SUBTITLE_TIMELINE_MAX_SNAP_SECONDS = 0.25;
 
 function getTimelineRangeScrollLeft({
   start,
@@ -96,6 +119,8 @@ export function useEditorTimeline({
   sessionId,
   updateClipRange,
   onClipRangeCommit,
+  subtitleTimelineTrack,
+  updateSubtitleCueTimings,
 }: UseEditorTimelineProperties) {
   const timelineReference = useRef<TimelineState>(null);
   const timelineWheelRegionReference = useRef<HTMLDivElement>(null);
@@ -113,6 +138,7 @@ export function useEditorTimeline({
     () => ({
       source: { id: "source", name: "Source" },
       clip: { id: "clip", name: "Clip" },
+      subtitle: { id: "subtitle", name: "Subtitle" },
     }),
     [],
   );
@@ -176,6 +202,15 @@ export function useEditorTimeline({
       ),
     [duration, activeTimelineScale.scale],
   );
+  const subtitleTimelineSnapThresholdSeconds = useMemo(
+    () =>
+      Math.min(
+        SUBTITLE_TIMELINE_MAX_SNAP_SECONDS,
+        (SUBTITLE_TIMELINE_SNAP_PIXELS / activeTimelineScale.scaleWidth) *
+          activeTimelineScale.scale,
+      ),
+    [activeTimelineScale.scale, activeTimelineScale.scaleWidth],
+  );
 
   const timelineData = useMemo<ClipTimelineData>(() => {
     const clipLength = hasDuration
@@ -195,10 +230,41 @@ export function useEditorTimeline({
         )
       : MIN_CLIP_SECONDS;
 
+    const subtitleTimelineCues = subtitleTimelineTrack
+      ? subtitleCuesInTimelineWindow({
+          cues: subtitleTimelineTrack.cues,
+          startTime: Math.max(
+            0,
+            safeStart - SUBTITLE_TIMELINE_OVERSCAN_SECONDS,
+          ),
+          endTime: Math.min(
+            safeDuration,
+            safeEnd + SUBTITLE_TIMELINE_OVERSCAN_SECONDS,
+          ),
+        })
+      : [];
+    const subtitleRows =
+      subtitleTimelineTrack && subtitleTimelineCues.length > 0
+        ? assignSubtitleCueLanes(subtitleTimelineCues).map((lane) => ({
+            id: `${subtitleTimelineTrack.id}:lane:${lane.index}`,
+            rowHeight: SUBTITLE_TIMELINE_ROW_HEIGHT,
+            actions: lane.cues.map((cue) => ({
+              id: subtitleTimelineActionId(cue.id),
+              start: roundTimelineTime(cue.startTime),
+              end: roundTimelineTime(cue.endTime),
+              effectId: "subtitle",
+              flexible: hasDuration,
+              movable: hasDuration,
+              minStart: 0,
+              maxEnd: safeDuration,
+            })),
+          }))
+        : [];
+
     return [
       {
         id: "source-media",
-        rowHeight: 32,
+        rowHeight: SOURCE_TIMELINE_ROW_HEIGHT,
         actions: [
           {
             id: "full-video",
@@ -214,7 +280,7 @@ export function useEditorTimeline({
       },
       {
         id: "clip-range",
-        rowHeight: 44,
+        rowHeight: CLIP_TIMELINE_ROW_HEIGHT,
         selected: true,
         actions: [
           {
@@ -230,8 +296,20 @@ export function useEditorTimeline({
           },
         ],
       },
+      ...subtitleRows,
     ];
-  }, [duration, endTime, hasDuration, startTime]);
+  }, [duration, endTime, hasDuration, startTime, subtitleTimelineTrack]);
+
+  const timelineSubtitleActionLabels = useMemo(() => {
+    const labels = new Map<string, string>();
+    for (const cue of subtitleTimelineTrack?.cues ?? []) {
+      labels.set(
+        subtitleTimelineActionId(cue.id),
+        subtitleCueTimelineLabel(cue),
+      );
+    }
+    return labels;
+  }, [subtitleTimelineTrack]);
 
   useEffect(() => {
     timelineZoomIndexReference.current = timelineZoomIndex;
@@ -501,25 +579,59 @@ export function useEditorTimeline({
     };
   }, [handleTimelineWheel]);
 
-  const handleTimelineChange = useCallback(
-    (nextData: ClipTimelineData) => {
-      const nextAction = nextData
-        .flatMap((row) => row.actions)
-        .find((action) => action.id === "selected-clip");
-      if (!nextAction) {
-        return false;
-      }
-
-      updateClipRange(nextAction.start, nextAction.end);
-    },
-    [updateClipRange],
-  );
+  const handleTimelineChange = useCallback(() => false, []);
 
   const commitClipRange = useCallback(
     (start: number, end: number) => {
-      onClipRangeCommit?.(roundTimelineTime(start), roundTimelineTime(end));
+      const nextStart = roundTimelineTime(start);
+      const nextEnd = roundTimelineTime(end);
+
+      updateClipRange(nextStart, nextEnd);
+      onClipRangeCommit?.(nextStart, nextEnd);
     },
-    [onClipRangeCommit],
+    [onClipRangeCommit, updateClipRange],
+  );
+
+  const commitSubtitleCueTiming = useCallback(
+    ({
+      action,
+      start,
+      end,
+      mode,
+    }: {
+      action: { id: string };
+      start: number;
+      end: number;
+      mode: SubtitleCueTimingUpdateMode;
+    }) => {
+      const cueId = subtitleCueIdFromActionId(action.id);
+      if (!cueId) {
+        return;
+      }
+
+      updateSubtitleCueTimings?.(
+        [
+          snapSubtitleCueTimingUpdateToAdjacentCue({
+            track: subtitleTimelineTrack,
+            duration,
+            thresholdSeconds: subtitleTimelineSnapThresholdSeconds,
+            mode,
+            update: {
+              cueId,
+              startTime: start,
+              endTime: end,
+            },
+          }),
+        ],
+        duration,
+      );
+    },
+    [
+      duration,
+      subtitleTimelineSnapThresholdSeconds,
+      subtitleTimelineTrack,
+      updateSubtitleCueTimings,
+    ],
   );
 
   const handleTimelineActionMoveEnd = useCallback(
@@ -533,12 +645,13 @@ export function useEditorTimeline({
       end: number;
     }) => {
       if (action.id !== "selected-clip") {
+        commitSubtitleCueTiming({ action, start, end, mode: "move" });
         return;
       }
 
       commitClipRange(start, end);
     },
-    [commitClipRange],
+    [commitClipRange, commitSubtitleCueTiming],
   );
 
   const handleTimelineActionResizeEnd = useCallback(
@@ -546,18 +659,26 @@ export function useEditorTimeline({
       action,
       start,
       end,
+      dir,
     }: {
       action: { id: string };
       start: number;
       end: number;
+      dir?: "right" | "left";
     }) => {
       if (action.id !== "selected-clip") {
+        commitSubtitleCueTiming({
+          action,
+          start,
+          end,
+          mode: dir === "left" ? "resize-left" : "resize-right",
+        });
         return;
       }
 
       commitClipRange(start, end);
     },
-    [commitClipRange],
+    [commitClipRange, commitSubtitleCueTiming],
   );
 
   return {
@@ -565,6 +686,7 @@ export function useEditorTimeline({
     timelineWheelRegionRef: timelineWheelRegionReference,
     timelineData,
     timelineEffects,
+    timelineSubtitleActionLabels,
     activeTimelineScale,
     timelineScaleCount,
     timelineViewportWidth,

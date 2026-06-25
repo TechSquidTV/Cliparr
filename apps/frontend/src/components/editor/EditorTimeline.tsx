@@ -2,10 +2,11 @@ import { useCallback } from "react";
 import { Timeline, type TimelineState } from "@xzdarcy/react-timeline-editor";
 import "@xzdarcy/react-timeline-editor/dist/react-timeline-editor.css";
 import type { CSSProperties, RefObject } from "react";
-import { Scissors } from "lucide-react";
+import { Captions, Scissors } from "lucide-react";
 import type { PlaybackReadyRange } from "@/components/editor/useEditorPlayback";
 import { isPlaybackReadyRangeVisible } from "@/components/editor/editorPlaybackWarmupRange";
 import {
+  CLIP_TIMELINE_ROW_HEIGHT,
   formatTime,
   getTimelineFillPercentages,
   TIMELINE_START_LEFT,
@@ -20,13 +21,14 @@ interface EditorTimelineProperties {
   timelineWheelRegionRef: RefObject<HTMLDivElement | null>;
   timelineData: ClipTimelineData;
   timelineEffects: ClipTimelineEffects;
+  timelineSubtitleActionLabels: ReadonlyMap<string, string>;
   activeTimelineScale: TimelineZoomLevel;
   timelineScaleCount: number;
   playbackReadyRange: PlaybackReadyRange | null;
   loadingPreview: boolean;
   playing: boolean;
   handleTimelineScroll: (data: { scrollLeft: number }) => void;
-  handleTimelineChange: (data: ClipTimelineData) => void;
+  handleTimelineChange: (data: ClipTimelineData) => boolean | void;
   handleTimelineActionMoveEnd: (params: {
     action: { id: string };
     start: number;
@@ -36,8 +38,13 @@ interface EditorTimelineProperties {
     action: { id: string };
     start: number;
     end: number;
+    dir?: "right" | "left";
   }) => void;
-  isValidTimelineRange: (start: number, end: number) => boolean;
+  isValidTimelineActionRange: (params: {
+    action: { id: string };
+    start: number;
+    end: number;
+  }) => boolean;
   seekToTime: (time: number) => Promise<void> | void;
   onCursorDragStart: () => void;
   onCursorDrag: (time: number) => void;
@@ -48,6 +55,7 @@ export function EditorTimeline({
   timelineWheelRegionRef,
   timelineData,
   timelineEffects,
+  timelineSubtitleActionLabels,
   activeTimelineScale,
   timelineScaleCount,
   playbackReadyRange,
@@ -57,7 +65,7 @@ export function EditorTimeline({
   handleTimelineChange,
   handleTimelineActionMoveEnd,
   handleTimelineActionResizeEnd,
-  isValidTimelineRange,
+  isValidTimelineActionRange,
   seekToTime,
   onCursorDragStart,
   onCursorDrag,
@@ -99,7 +107,12 @@ export function EditorTimeline({
   const renderClipTimelineAction = useCallback(
     (action: ClipTimelineAction) => {
       const isSource = action.effectId === "source";
+      const isSubtitle = action.effectId === "subtitle";
       const readyFillStyle = getReadyFillStyle(action);
+      const subtitleLabel = isSubtitle
+        ? (timelineSubtitleActionLabels.get(action.id) ?? "Subtitle")
+        : null;
+      const actionLabel = isSource ? "Source" : (subtitleLabel ?? "Selection");
 
       return (
         <div className="cliparr-timeline-action-content">
@@ -112,13 +125,17 @@ export function EditorTimeline({
             />
           )}
           <span className="cliparr-timeline-action-label">
-            {!isSource && <Scissors className="h-3.5 w-3.5" />}
-            {isSource ? "Source" : "Selection"}
+            {isSubtitle ? (
+              <Captions className="h-3.5 w-3.5" />
+            ) : (
+              !isSource && <Scissors className="h-3.5 w-3.5" />
+            )}
+            {actionLabel}
           </span>
         </div>
       );
     },
-    [getReadyFillStyle, playbackReadyRange],
+    [getReadyFillStyle, playbackReadyRange, timelineSubtitleActionLabels],
   );
 
   return (
@@ -133,15 +150,19 @@ export function EditorTimeline({
         minScaleCount={timelineScaleCount}
         maxScaleCount={timelineScaleCount}
         startLeft={TIMELINE_START_LEFT}
-        rowHeight={44}
+        rowHeight={CLIP_TIMELINE_ROW_HEIGHT}
         autoScroll
         hideCursor={false}
-        dragLine
+        dragLine={false}
         disableDrag={loadingPreview || playing}
         onScroll={handleTimelineScroll}
         onChange={handleTimelineChange}
-        onActionMoving={({ start, end }) => isValidTimelineRange(start, end)}
-        onActionResizing={({ start, end }) => isValidTimelineRange(start, end)}
+        onActionMoving={({ action, start, end }) =>
+          isValidTimelineActionRange({ action, start, end })
+        }
+        onActionResizing={({ action, start, end }) =>
+          isValidTimelineActionRange({ action, start, end })
+        }
         onActionMoveEnd={handleTimelineActionMoveEnd}
         onActionResizeEnd={handleTimelineActionResizeEnd}
         onClickTimeArea={(time) => {

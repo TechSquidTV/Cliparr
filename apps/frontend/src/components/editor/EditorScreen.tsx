@@ -44,6 +44,10 @@ import {
 } from "@/components/editor/EditorLayout";
 import { useEditorFramegrab } from "@/components/editor/useEditorFramegrab";
 import { useEditorSubtitles } from "@/components/editor/useEditorSubtitles";
+import {
+  isValidSubtitleTimelineActionRange,
+  subtitleCueIdFromActionId,
+} from "@/components/editor/subtitleTimeline";
 import { sourceDisplayLabel, type EditorSession } from "@/lib/editorMedia";
 import { EDITOR_THUMBNAIL_VIEW_TRANSITION_NAME } from "@/lib/viewTransitions";
 
@@ -91,9 +95,11 @@ export default function EditorScreen({ session, onBack }: Properties) {
     subtitleLoading,
     subtitleError,
     subtitlePreviewEnabled,
+    subtitleTimelineTrack,
     clippedSubtitleCues,
     subtitleExportSummary,
     handleSelectedSubtitleTrackChange,
+    updateSubtitleCueTimings,
   } = useEditorSubtitles({
     session,
     startTime,
@@ -255,6 +261,29 @@ export default function EditorScreen({ session, onBack }: Properties) {
     },
     [duration],
   );
+  const isValidTimelineActionRange = useCallback(
+    ({
+      action,
+      start,
+      end,
+    }: {
+      action: { id: string };
+      start: number;
+      end: number;
+    }) => {
+      if (subtitleCueIdFromActionId(action.id)) {
+        return isValidSubtitleTimelineActionRange({
+          actionId: action.id,
+          startTime: start,
+          endTime: end,
+          duration,
+        });
+      }
+
+      return isValidTimelineRange(start, end);
+    },
+    [duration, isValidTimelineRange],
+  );
   const handlePreviewTimeCommit = useCallback(
     (nextTime: number) => {
       if (!duration || duration <= 0) {
@@ -364,6 +393,7 @@ export default function EditorScreen({ session, onBack }: Properties) {
     timelineWheelRegionRef,
     timelineData,
     timelineEffects,
+    timelineSubtitleActionLabels,
     activeTimelineScale,
     timelineScaleCount,
     handleTimelineScroll,
@@ -386,6 +416,8 @@ export default function EditorScreen({ session, onBack }: Properties) {
     onClipRangeCommit: (nextStart, nextEnd) => {
       void warmClipSelection(nextStart, nextEnd);
     },
+    subtitleTimelineTrack,
+    updateSubtitleCueTimings,
   });
 
   useEffect(() => {
@@ -518,6 +550,7 @@ export default function EditorScreen({ session, onBack }: Properties) {
       timelineWheelRegionRef={timelineWheelRegionRef}
       timelineData={timelineData}
       timelineEffects={timelineEffects}
+      timelineSubtitleActionLabels={timelineSubtitleActionLabels}
       activeTimelineScale={activeTimelineScale}
       timelineScaleCount={timelineScaleCount}
       playbackReadyRange={isHlsPreviewSource ? playbackReadyRange : null}
@@ -527,7 +560,7 @@ export default function EditorScreen({ session, onBack }: Properties) {
       handleTimelineChange={handleTimelineChange}
       handleTimelineActionMoveEnd={handleTimelineActionMoveEnd}
       handleTimelineActionResizeEnd={handleTimelineActionResizeEnd}
-      isValidTimelineRange={isValidTimelineRange}
+      isValidTimelineActionRange={isValidTimelineActionRange}
       seekToTime={seekToTime}
       onCursorDragStart={() => {
         if (playing) {
