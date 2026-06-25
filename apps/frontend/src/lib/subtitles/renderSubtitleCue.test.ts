@@ -5,7 +5,9 @@ import test from "node:test";
 import {
   renderSubtitleCue,
   renderSubtitleCues,
+  resolveSubtitleCenterX,
   resolveSubtitleLayerBounds,
+  resolveSubtitleStartY,
 } from "@/lib/subtitles/renderSubtitleCue";
 import type { SubtitleStyleSettings } from "@/lib/subtitles/types";
 
@@ -127,7 +129,8 @@ const subtitleStyle: SubtitleStyleSettings = {
   shadowBlur: 8,
   shadowColor: "rgba(0, 0, 0, 0.7)",
   shadowOffsetY: 4,
-  bottomMargin: 96,
+  positionX: 50,
+  positionY: 10,
 };
 
 void test("resolves subtitle supersampling bounds with stroke and shadow padding", () => {
@@ -171,6 +174,110 @@ void test("clamps subtitle supersampling bounds to the target canvas", () => {
       width: 640,
       height: 46,
     },
+  );
+});
+
+void test("resolves subtitle horizontal center from the center position", () => {
+  assert.equal(
+    resolveSubtitleCenterX({
+      canvasWidth: 1920,
+      positionX: 50,
+      maxLineWidth: 480,
+    }),
+    960,
+  );
+});
+
+void test("clamps subtitle horizontal center to the left edge", () => {
+  assert.equal(
+    resolveSubtitleCenterX({
+      canvasWidth: 1920,
+      positionX: 0,
+      maxLineWidth: 480,
+    }),
+    240,
+  );
+});
+
+void test("clamps subtitle horizontal center to the right edge", () => {
+  assert.equal(
+    resolveSubtitleCenterX({
+      canvasWidth: 1920,
+      positionX: 100,
+      maxLineWidth: 480,
+    }),
+    1680,
+  );
+});
+
+void test("keeps oversized subtitle lines centered horizontally", () => {
+  assert.equal(
+    resolveSubtitleCenterX({
+      canvasWidth: 1920,
+      positionX: 0,
+      maxLineWidth: 2400,
+    }),
+    960,
+  );
+  assert.equal(
+    resolveSubtitleCenterX({
+      canvasWidth: 1920,
+      positionX: 100,
+      maxLineWidth: 2400,
+    }),
+    960,
+  );
+});
+
+void test("resolves subtitle vertical start from the center position", () => {
+  assert.equal(
+    resolveSubtitleStartY({
+      canvasHeight: 1080,
+      positionY: 50,
+      totalHeight: 120,
+    }),
+    480,
+  );
+});
+
+void test("clamps subtitle vertical start to the top edge", () => {
+  assert.equal(
+    resolveSubtitleStartY({
+      canvasHeight: 1080,
+      positionY: 100,
+      totalHeight: 120,
+    }),
+    0,
+  );
+});
+
+void test("clamps subtitle vertical start to the bottom edge", () => {
+  assert.equal(
+    resolveSubtitleStartY({
+      canvasHeight: 1080,
+      positionY: 0,
+      totalHeight: 120,
+    }),
+    960,
+  );
+});
+
+void test("keeps tall multiline subtitles inside the frame bounds", () => {
+  assert.equal(
+    resolveSubtitleStartY({
+      canvasHeight: 1080,
+      positionY: 100,
+      totalHeight: 900,
+    }),
+    0,
+  );
+  assert.equal(
+    resolveSubtitleStartY({
+      canvasHeight: 1080,
+      positionY: 0,
+      totalHeight: 900,
+    }),
+    180,
   );
 });
 
