@@ -11,9 +11,66 @@ import {
   providers,
   site,
 } from "@/data/product";
+
+const faqs = [
+  {
+    question: "Where does Cliparr process video?",
+    answer:
+      "Cliparr processes video in the browser. Local files are read directly by the browser; Plex, Jellyfin, and direct media URL sources can route through your self-hosted Cliparr server's media proxy so the browser can preview and export them.",
+    links: [
+      { href: "/docs/local-videos", label: "Local videos and URLs" },
+      { href: "/docs/providers", label: "Plex and Jellyfin providers" },
+    ],
+  },
+  {
+    question: "What does the Cliparr server do?",
+    answer:
+      "The server handles media server authentication, encrypted provider records, active playback discovery, and proxy work for media routes. It helps the browser reach authenticated sources, while editing and export processing run in the browser.",
+    links: [
+      { href: "/docs/providers", label: "Provider setup" },
+      { href: "/docs/configuration", label: "Configuration" },
+    ],
+  },
+  {
+    question: "Does Cliparr use FFmpeg?",
+    answer:
+      "No. Cliparr does not shell out to FFmpeg for exports. Video export uses browser media APIs through Mediabunny, while GIF export uses the @techsquidtv/gifenc package in the browser.",
+    links: [
+      { href: "/docs/export-settings", label: "Export settings" },
+      { href: "https://mediabunny.dev/", label: "Mediabunny" },
+      { href: "https://github.com/KyleTryon/gifenc", label: "gifenc" },
+    ],
+  },
+  {
+    question: "Does Cliparr work with Plex and Jellyfin?",
+    answer:
+      "Yes. Cliparr can connect to Plex and Jellyfin providers, discover active playback sessions, open the current media, and start clipping from the playback position.",
+    links: [{ href: "/docs/providers", label: "Plex and Jellyfin" }],
+  },
+  {
+    question: "When should I use Cliparr Convert instead?",
+    answer:
+      "Use Cliparr Convert when you only need whole-file conversion without self-hosting. The hosted converter runs in your browser and is separate from the full Cliparr app for Plex, Jellyfin, local sources, and timeline clipping.",
+    links: [{ href: "/convert", label: "Open Cliparr Convert" }],
+  },
+] as const;
+
+const faqStructuredData = {
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "@id": `${site.url}/#faq`,
+  mainEntity: faqs.map((faq) => ({
+    "@type": "Question",
+    name: faq.question,
+    acceptedAnswer: {
+      "@type": "Answer",
+      text: faq.answer,
+    },
+  })),
+};
 ---
 
-<BaseLayout description={productIntro}>
+<BaseLayout description={productIntro} structuredData={faqStructuredData}>
   <section
     class="overflow-hidden border-b border-border bg-background text-foreground"
   >
@@ -248,6 +305,47 @@ import {
               <p class="mt-3 text-sm leading-6 text-muted-foreground">
                 {provider.setup}
               </p>
+            </article>
+          ))
+        }
+      </div>
+    </div>
+  </section>
+
+  <section class="border-t border-border bg-background py-16 sm:py-20">
+    <div class="container-page">
+      <div class="mx-auto max-w-3xl text-center">
+        <p class="section-eyebrow">Questions</p>
+        <h2 class="mt-5 text-3xl font-semibold sm:text-5xl">Cliparr basics.</h2>
+        <p class="mt-5 text-base leading-7 text-muted-foreground">
+          A few quick answers about self-hosting, provider support, browser
+          exports, and where Cliparr Convert fits.
+        </p>
+      </div>
+      <div class="mx-auto mt-8 grid max-w-4xl gap-3">
+        {
+          faqs.map((faq) => (
+            <article class="rounded-lg border border-border bg-card p-5 sm:p-6">
+              <h3 class="text-base font-semibold text-foreground">
+                {faq.question}
+              </h3>
+              <p class="mt-2 text-sm leading-6 text-muted-foreground">
+                {faq.answer}
+              </p>
+              <div class="mt-3 flex flex-wrap gap-3 text-sm font-medium">
+                {faq.links.map((link) => (
+                  <a
+                    class="focus-ring rounded-sm text-foreground underline decoration-border underline-offset-4 hover:decoration-primary"
+                    href={link.href}
+                    target={link.href.startsWith("http") ? "_blank" : undefined}
+                    rel={
+                      link.href.startsWith("http") ? "noreferrer" : undefined
+                    }
+                  >
+                    {link.label}
+                  </a>
+                ))}
+              </div>
             </article>
           ))
         }
