@@ -1,5 +1,10 @@
 export const site = {
   name: "Cliparr",
+  alternateName: [
+    "Cliparr video clipper",
+    "Cliparr Plex clipper",
+    "Cliparr Jellyfin clipper",
+  ],
   url: "https://cliparr.dev",
   description: "Self-hosted video clipper for Plex, Jellyfin, and local files.",
   githubUrl: "https://github.com/TechSquidTV/Cliparr",
