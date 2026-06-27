@@ -40,6 +40,7 @@ interface EditorTimelineProperties {
     end: number;
     dir?: "right" | "left";
   }) => void;
+  selectTimelineAction: (action: { id: string }) => void;
   isValidTimelineActionRange: (params: {
     action: { id: string };
     start: number;
@@ -65,6 +66,7 @@ export function EditorTimeline({
   handleTimelineChange,
   handleTimelineActionMoveEnd,
   handleTimelineActionResizeEnd,
+  selectTimelineAction,
   isValidTimelineActionRange,
   seekToTime,
   onCursorDragStart,
@@ -115,7 +117,10 @@ export function EditorTimeline({
       const actionLabel = isSource ? "Source" : (subtitleLabel ?? "Selection");
 
       return (
-        <div className="cliparr-timeline-action-content">
+        <div
+          className="cliparr-timeline-action-content"
+          data-selected={action.selected ? "true" : undefined}
+        >
           {readyFillStyle && playbackReadyRange && (
             <span
               className="cliparr-timeline-action-ready-fill"
@@ -179,7 +184,8 @@ export function EditorTimeline({
 
           void seekToTime(time);
         }}
-        onClickActionOnly={(_, { time }) => {
+        onClickActionOnly={(_, { action, time }) => {
+          selectTimelineAction(action);
           void seekToTime(time);
         }}
         onCursorDragStart={onCursorDragStart}

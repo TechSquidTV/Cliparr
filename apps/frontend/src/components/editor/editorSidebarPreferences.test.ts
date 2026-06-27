@@ -70,7 +70,10 @@ void test("loads saved open editor properties accordion sections", () => {
   withStorage(
     {
       [editorPropertiesAccordionStorageKey]: JSON.stringify({
-        openSections: [EDITOR_PROPERTIES_SECTION_ID.globalSubtitles],
+        openSections: [
+          EDITOR_PROPERTIES_SECTION_ID.selection,
+          EDITOR_PROPERTIES_SECTION_ID.globalSubtitles,
+        ],
       }),
     },
     () => {
@@ -78,6 +81,21 @@ void test("loads saved open editor properties accordion sections", () => {
         loadEditorPropertiesOpenSections(),
         DEFAULT_EDITOR_PROPERTIES_OPEN_SECTIONS,
       );
+    },
+  );
+});
+
+void test("loads saved single editor properties accordion section", () => {
+  withStorage(
+    {
+      [editorPropertiesAccordionStorageKey]: JSON.stringify({
+        openSections: [EDITOR_PROPERTIES_SECTION_ID.globalSubtitles],
+      }),
+    },
+    () => {
+      assert.deepEqual(loadEditorPropertiesOpenSections(), [
+        EDITOR_PROPERTIES_SECTION_ID.globalSubtitles,
+      ]);
     },
   );
 });
@@ -101,6 +119,7 @@ void test("filters unknown editor properties accordion section ids", () => {
       [editorPropertiesAccordionStorageKey]: JSON.stringify({
         openSections: [
           "preview-source",
+          EDITOR_PROPERTIES_SECTION_ID.selection,
           EDITOR_PROPERTIES_SECTION_ID.globalSubtitles,
           "export",
         ],
@@ -120,7 +139,9 @@ void test("deduplicates editor properties accordion section ids", () => {
     {
       [editorPropertiesAccordionStorageKey]: JSON.stringify({
         openSections: [
+          EDITOR_PROPERTIES_SECTION_ID.selection,
           EDITOR_PROPERTIES_SECTION_ID.globalSubtitles,
+          EDITOR_PROPERTIES_SECTION_ID.selection,
           EDITOR_PROPERTIES_SECTION_ID.globalSubtitles,
         ],
       }),
@@ -176,7 +197,10 @@ void test("saves editor properties accordion sections", () => {
     assert.equal(
       storage.get(editorPropertiesAccordionStorageKey),
       JSON.stringify({
-        openSections: [EDITOR_PROPERTIES_SECTION_ID.globalSubtitles],
+        openSections: [
+          EDITOR_PROPERTIES_SECTION_ID.selection,
+          EDITOR_PROPERTIES_SECTION_ID.globalSubtitles,
+        ],
       }),
     );
   });
