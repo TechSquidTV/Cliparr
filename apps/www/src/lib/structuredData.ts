@@ -4,7 +4,7 @@ export type StructuredData = Record<string, unknown>;
 export type StructuredDataInput = StructuredData | StructuredData[];
 
 const organizationId = `${site.url}/#organization`;
-const webApplicationId = `${site.url}/#web-application`;
+const softwareApplicationId = `${site.url}/#software`;
 const websiteId = `${site.url}/#website`;
 const siteOrigin = new URL(site.url).origin;
 
@@ -65,6 +65,7 @@ interface PageStructuredDataOptions {
   description: string;
   imageUrl: string;
   isHomepage: boolean;
+  mainEntity?: StructuredData;
   title: string;
 }
 
@@ -73,15 +74,19 @@ export function pageStructuredData({
   description,
   imageUrl,
   isHomepage,
+  mainEntity,
   title,
 }: PageStructuredDataOptions): StructuredData {
   const currentWebPageId = webPageId(canonicalUrl);
+  const webPageMainEntity =
+    mainEntity ?? (isHomepage ? { "@id": softwareApplicationId } : undefined);
   const graph: StructuredData[] = [
     organizationStructuredData(),
     {
       "@type": "WebSite",
       "@id": websiteId,
       name: site.name,
+      alternateName: site.alternateName,
       url: site.url,
       description: site.description,
       inLanguage: "en",
@@ -97,22 +102,31 @@ export function pageStructuredData({
       inLanguage: "en",
       isPartOf: websiteReference(),
       publisher: organizationReference(),
-      ...(isHomepage ? { mainEntity: { "@id": webApplicationId } } : {}),
+      ...(webPageMainEntity ? { mainEntity: webPageMainEntity } : {}),
     },
   ];
 
   if (isHomepage) {
     graph.push({
-      "@type": "WebApplication",
-      "@id": webApplicationId,
+      "@type": "SoftwareApplication",
+      "@id": softwareApplicationId,
       name: site.name,
+      alternateName: site.alternateName,
       description: site.description,
       url: site.url,
       image: imageUrl,
       applicationCategory: "MultimediaApplication",
-      operatingSystem: "Web",
-      browserRequirements:
-        "Requires a modern browser with WebCodecs support for editing and export.",
+      operatingSystem: "Docker, Linux",
+      codeRepository: site.githubUrl,
+      featureList: [
+        "Discover currently playing Plex sessions",
+        "Discover currently playing Jellyfin sessions",
+        "Open local video files and direct media URLs",
+        "Trim clips in a browser timeline editor",
+        "Export MP4, WebM, MOV, MKV, and GIF clips",
+        "Burn in supported subtitles",
+        "Include source metadata in video exports",
+      ],
       isAccessibleForFree: true,
       license: `${site.githubUrl}/blob/main/LICENSE`,
       mainEntityOfPage: { "@id": currentWebPageId },

@@ -14,10 +14,11 @@ const description =
   "Convert local video files to MP4, WebM, MOV, MKV, or GIF entirely in your browser. Convert MP4 to WebM, remux MKV to MP4, and export without uploads, ads, or watermarks.";
 
 const convertUrl = canonicalSiteUrl("/convert");
+const converterId = `${convertUrl}#video-converter`;
 const structuredData = {
   "@context": "https://schema.org",
   "@type": "WebApplication",
-  "@id": `${convertUrl}#video-converter`,
+  "@id": converterId,
   name: "Cliparr Video Converter",
   alternateName: "Browser video converter",
   description,
@@ -54,6 +55,7 @@ const structuredData = {
   manifestHref="/convert/manifest.webmanifest"
   appleTouchIconHref="/pwa-icon-192.png"
   appleMobileWebAppTitle="Cliparr Convert"
+  structuredDataMainEntity={{ "@id": converterId }}
   structuredData={structuredData}
 >
   <main class="bg-background text-foreground">

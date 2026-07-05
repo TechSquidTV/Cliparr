@@ -3,6 +3,7 @@ title: "What is Cliparr?"
 seoTitle: "What is Cliparr? Self-hosted Plex and Jellyfin video clipper"
 description: "Learn what Cliparr is: a self-hosted video clipper for Plex, Jellyfin, and local files with browser-based MP4, WebM, MOV, MKV, and GIF export."
 publishedAt: "2026-06-06"
+updatedAt: "2026-06-26"
 heroImage: what-is-cliparr-hero
 heroImageAlt: Cliparr editor showing a video preview, playback controls, and timeline clip selection.
 author:
@@ -15,7 +16,8 @@ tags:
   - jellyfin
 ---
 
-Cliparr is a self-hosted video clipper for Plex, Jellyfin, and local files that runs almost entirely in the browser.
+Cliparr is a self-hosted video clipper for Plex, Jellyfin, and local files.
+It uses a small server for provider access, saved sources, and secure persistence, while the editing and export workflow runs in the browser.
 
 While watching something in Plex or Jellyfin, have you ever wanted to quickly grab a clip, possibly with subtitles, and export without downloading the full file and opening a whole video editor?
 
@@ -33,6 +35,32 @@ Cliparr connects to [Plex and Jellyfin](/docs/providers), opens [local files or 
 4. Export MP4, WebM, MOV, MKV, or GIF in-browser.
 
 If you're a content creator, this will fit right into your existing editing workflow, and make getting clips faster. It is useful for TikTokers, YouTube video essays, streamers who want to clip highlights from a long stream, or making a quick meme.
+
+## Cliparr As A Plex Clipper
+
+When you connect Plex, Cliparr can discover active playback sessions and open the media you are already watching.
+Instead of manually finding the file, copying it somewhere else, and lining up the timestamp in another editor, Cliparr can start from the current Plex playback position and let you trim the moment in the browser.
+
+That makes it useful for people who keep personal media in Plex but still want a quick way to export short clips, highlights, references, or reaction-ready moments.
+See the [provider setup guide](/docs/providers) for the current Plex connection flow.
+
+## Cliparr As A Jellyfin Clipper
+
+Cliparr also works with Jellyfin sources.
+After connecting a Jellyfin server, Cliparr can list currently playing media, load source details, expose available tracks, and send the selected range through the same browser export workflow.
+
+For Jellyfin users, the main value is similar: keep the media library on your own server, but move the expensive export work to the browser that is actually creating the clip.
+That keeps a small home server, NAS, or mini PC from having to behave like a render workstation.
+
+## Clip Local Video Files
+
+You do not need Plex or Jellyfin to use the self-hosted Cliparr app.
+You can open [local video files or direct media URLs](/docs/local-videos), choose a range, and export a clip from your browser.
+That makes Cliparr useful for downloaded recordings, camera files, screen captures, stream archives, or any local source where you want a smaller shareable segment.
+
+The difference is hosting and workflow.
+Cliparr is the self-hosted app you run when you want Plex, Jellyfin, provider sessions, saved sources, and the full clipping editor.
+[Cliparr Convert](/convert/) is the hosted convert-only tool for whole-file jobs: you do not need to self-host anything, and the conversion runs entirely in your browser.
 
 ## The Tech Stack
 
@@ -101,4 +129,5 @@ I am proud of the codebase and the product. AI helped me get there faster, but I
 
 ## Try It
 
-Start with [Getting started](/docs/getting-started). For release-by-release details, see the [Changelog](/changelog).
+Start with [Getting started](/docs/getting-started), connect [Plex or Jellyfin](/docs/providers), try [local videos](/docs/local-videos), and review [export settings](/docs/export-settings) when you are ready to tune the output.
+For full-file conversion without self-hosting, use [Cliparr Convert](/convert/). For release-by-release details, see the [Changelog](/changelog).

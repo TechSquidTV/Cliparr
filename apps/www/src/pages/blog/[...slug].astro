@@ -39,6 +39,7 @@ const dateFormatter = new Intl.DateTimeFormat("en", {
 });
 const tags = entry.data.tags as BlogTagId[];
 const postUrl = canonicalSiteUrl(`/blog/${entry.id}`);
+const articleId = `${postUrl}#article`;
 const heroImage = blogHeroImageFor(entry.data.heroImage);
 const heroImageAlt = entry.data.heroImageAlt ?? site.ogImageAlt;
 const socialImage = heroImage?.src ?? site.ogImage;
@@ -55,7 +56,7 @@ const articleAuthor = author
 const articleStructuredData = {
   "@context": "https://schema.org",
   "@type": "BlogPosting",
-  "@id": `${postUrl}#article`,
+  "@id": articleId,
   headline: entry.data.title,
   description: entry.data.description,
   datePublished: entry.data.publishedAt,
@@ -82,6 +83,7 @@ const articleStructuredData = {
   socialImageHeight={heroImage?.height}
   socialImageType={heroImage ? `image/${heroImage.format}` : undefined}
   socialImageWidth={heroImage?.width}
+  structuredDataMainEntity={{ "@id": articleId }}
   structuredData={articleStructuredData}
 >
   <section class="border-b border-border bg-background">
