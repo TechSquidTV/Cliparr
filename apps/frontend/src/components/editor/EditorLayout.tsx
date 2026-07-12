@@ -235,6 +235,7 @@ export function EditorDesktopLayout({
             minSize={EDITOR_PANEL_SIZES.propertiesMin}
             maxSize={EDITOR_PANEL_SIZES.propertiesMax}
             groupResizeBehavior="preserve-pixel-size"
+            style={{ overflow: "hidden" }}
           >
             <EditorPropertiesPanel
               open={playbackSidebarOpen}

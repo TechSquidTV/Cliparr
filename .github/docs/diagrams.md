@@ -340,8 +340,9 @@ flowchart TD
 - Track headers use stable `Source` and `Sub 1` labels. Source mute controls the
   preview audio output without hiding video; Sub 1 visibility is engine-owned
   and gates subtitle preview, framegrabs, and export.
-- The side panel edits the selected engine clip's text and timing, while
-  overlap-safe command previews and commits drive timeline dragging and trims.
+- The side panel edits the selected engine clip's text and timing. Timeline
+  dragging and trimming use Canvas Timeline's native `ClipInteractionLayer`
+  live-edit behavior, matching the upstream demos.
 - Export and framegrab actions remain blocked while parsed cues are waiting for
   their one-time engine import. Turning subtitles off preserves customized cues.
 - Export subtitle burn-in consumes cues reconstructed from engine state.

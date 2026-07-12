@@ -1,45 +1,19 @@
 import {
   CanvasRenderer,
   Timeline,
-  defaultTimelineInteractionGeometry,
   toSeconds,
   useTimelineTracks,
   useTimeline,
-  type ClipHitRegion,
-  type TimelineEditCommand,
   type UseTimelineTrackHeaderResult,
 } from "@techsquidtv/canvas-timeline";
 import { Eye, EyeOff, Volume2, VolumeX } from "lucide-react";
-import {
-  useEffect,
-  useRef,
-  useState,
-  type PointerEvent as ReactPointerEvent,
-} from "react";
+import { useEffect, useRef } from "react";
 import {
   EDITOR_MEDIA_TRACK_ID,
-  EDITOR_SUBTITLE_TRACK_ID,
   timelineScrollLeftForCenteredTime,
   type EditorTimelineTrackKind,
 } from "@/components/editor/editorTimelineEngine";
 import "@techsquidtv/canvas-timeline/styles.css";
-
-interface ActiveSubtitleEdit {
-  clipId: string;
-  region: ClipHitRegion;
-  startClientX: number;
-  startLeft: number;
-  startRight: number;
-  command: TimelineEditCommand | null;
-}
-
-interface SubtitleEditOverlay {
-  height: number;
-  label: string;
-  left: number;
-  top: number;
-  width: number;
-}
 
 interface EditorTimelineProperties {
   muted: boolean;
@@ -101,173 +75,6 @@ function TrackHeaderColumn({ muted, onMutedChange }: EditorTimelineProperties) {
   );
 }
 
-function timelinePoint(event: ReactPointerEvent<HTMLDivElement>) {
-  const bounds = event.currentTarget.getBoundingClientRect();
-  return {
-    x: event.clientX - bounds.left,
-    y:
-      event.clientY -
-      bounds.top +
-      defaultTimelineInteractionGeometry.rulerHeight,
-  };
-}
-
-function EditableClipInteractionLayer() {
-  const { engine } = useTimeline();
-  const activeEdit = useRef<ActiveSubtitleEdit | null>(null);
-  const [editOverlay, setEditOverlay] = useState<SubtitleEditOverlay | null>(
-    null,
-  );
-
-  function handlePointerDown(event: ReactPointerEvent<HTMLDivElement>) {
-    if (event.pointerType !== "touch" && event.button !== 0) {
-      return;
-    }
-    const point = timelinePoint(event);
-    const hit = engine.getClipAtPoint({
-      ...defaultTimelineInteractionGeometry,
-      ...point,
-      pointerType: event.pointerType,
-    });
-    if (!hit) {
-      return;
-    }
-    const found = engine.getClip(hit.clip.id);
-    if (found?.track.id !== EDITOR_SUBTITLE_TRACK_ID) {
-      return;
-    }
-
-    event.preventDefault();
-    event.stopPropagation();
-    engine.selectClip(hit.clip.id);
-    event.currentTarget.setPointerCapture(event.pointerId);
-    activeEdit.current = {
-      clipId: hit.clip.id,
-      region: hit.region,
-      startClientX: event.clientX,
-      startLeft: hit.rect.x,
-      startRight: hit.rect.x + hit.rect.width,
-      command: null,
-    };
-  }
-
-  function handlePointerMove(event: ReactPointerEvent<HTMLDivElement>) {
-    const edit = activeEdit.current;
-    if (!edit) {
-      return;
-    }
-    event.preventDefault();
-    event.stopPropagation();
-    const deltaX = event.clientX - edit.startClientX;
-    let command: TimelineEditCommand;
-    if (edit.region === "start-edge") {
-      command = {
-        type: "trim",
-        clipId: edit.clipId,
-        edge: "start",
-        // eslint-disable-next-line unicorn/no-keyword-prefix -- Canvas Timeline command field.
-        newTime: engine.pixelToTime(edit.startLeft + deltaX),
-        snap: false,
-      };
-    } else if (edit.region === "end-edge") {
-      command = {
-        type: "trim",
-        clipId: edit.clipId,
-        edge: "end",
-        // eslint-disable-next-line unicorn/no-keyword-prefix -- Canvas Timeline command field.
-        newTime: engine.pixelToTime(edit.startRight + deltaX),
-        snap: false,
-      };
-    } else {
-      command = {
-        type: "move",
-        clipId: edit.clipId,
-        startTime: engine.pixelToTime(edit.startLeft + deltaX),
-        targetTrackId: EDITOR_SUBTITLE_TRACK_ID,
-        snap: false,
-      };
-    }
-    const preview = engine.previewEdit(command);
-    edit.command = preview.valid ? command : null;
-    const previewClip = preview.changedClips.find(
-      (clip) => clip.id === edit.clipId,
-    );
-    const originalRect = engine.getClipRect(
-      edit.clipId,
-      defaultTimelineInteractionGeometry,
-    );
-    if (!preview.valid || !previewClip || !originalRect) {
-      setEditOverlay(null);
-      return;
-    }
-    const left = engine.timeToPixel(previewClip.timelineStart);
-    setEditOverlay({
-      height: originalRect.height,
-      label: previewClip.label?.replaceAll("\n", " ") ?? "Subtitle cue",
-      left,
-      top: originalRect.y,
-      width: Math.max(1, engine.timeToPixel(previewClip.timelineEnd) - left),
-    });
-  }
-
-  function finishEdit(
-    event: ReactPointerEvent<HTMLDivElement>,
-    commit: boolean,
-  ) {
-    const edit = activeEdit.current;
-    if (!edit) {
-      return;
-    }
-    event.preventDefault();
-    event.stopPropagation();
-    activeEdit.current = null;
-    setEditOverlay(null);
-    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
-      event.currentTarget.releasePointerCapture(event.pointerId);
-    }
-    if (commit && edit.command) {
-      engine.commitEdit(edit.command);
-    } else {
-      engine.cancelEdit();
-    }
-  }
-
-  return (
-    <>
-      {editOverlay && (
-        <div
-          aria-hidden="true"
-          className="pointer-events-none absolute z-20 overflow-hidden rounded-[var(--radius-control)] border border-editor-accent bg-editor-accent/35 px-2 text-xs leading-none text-foreground shadow-sm"
-          style={{
-            height: editOverlay.height,
-            left: editOverlay.left,
-            lineHeight: `${editOverlay.height}px`,
-            top:
-              editOverlay.top - defaultTimelineInteractionGeometry.rulerHeight,
-            width: editOverlay.width,
-          }}
-        >
-          <span className="block truncate">{editOverlay.label}</span>
-        </div>
-      )}
-      <Timeline.ClipInteractionLayer
-        selectOnNavigate
-        onPointerDown={handlePointerDown}
-        onPointerMove={handlePointerMove}
-        onPointerUp={(event: ReactPointerEvent<HTMLDivElement>) =>
-          finishEdit(event, true)
-        }
-        onPointerCancel={(event: ReactPointerEvent<HTMLDivElement>) =>
-          finishEdit(event, false)
-        }
-        onLostPointerCapture={(event: ReactPointerEvent<HTMLDivElement>) =>
-          finishEdit(event, false)
-        }
-      />
-    </>
-  );
-}
-
 function EditorTimelineLayers() {
   const { tracks } = useTimelineTracks<EditorTimelineTrackKind>();
 
@@ -281,7 +88,7 @@ function EditorTimelineLayers() {
           <Timeline.Track key={track.id} trackId={track.id} />
         ))}
       </Timeline.TrackList>
-      <EditableClipInteractionLayer />
+      <Timeline.ClipInteractionLayer />
       <Timeline.RangeSelector />
     </>
   );
@@ -289,19 +96,22 @@ function EditorTimelineLayers() {
 
 function CenterViewportOnInPoint() {
   const { engine, state } = useTimeline();
+  const hasCentered = useRef(false);
   const zoomScale = useRef(state.zoomScale);
   zoomScale.current = state.zoomScale;
   const inPointSeconds = state.inPoint ? toSeconds(state.inPoint) : undefined;
-  const durationSeconds = state.duration
-    ? toSeconds(state.duration)
-    : undefined;
   const viewportWidth = state.viewportWidth ?? 0;
 
   useEffect(() => {
-    if (inPointSeconds === undefined || viewportWidth <= 0) {
+    if (
+      hasCentered.current ||
+      inPointSeconds === undefined ||
+      viewportWidth <= 0
+    ) {
       return;
     }
 
+    hasCentered.current = true;
     engine.setScrollLeft(
       timelineScrollLeftForCenteredTime({
         maxScrollLeft: engine.maxScrollLeft,
@@ -310,7 +120,7 @@ function CenterViewportOnInPoint() {
         zoomScale: zoomScale.current,
       }),
     );
-  }, [durationSeconds, engine, inPointSeconds, viewportWidth]);
+  }, [engine, inPointSeconds, viewportWidth]);
 
   return null;
 }
