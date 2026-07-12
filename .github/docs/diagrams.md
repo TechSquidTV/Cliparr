@@ -13,7 +13,7 @@ framegrabs.
 flowchart TD
     A["EditorScreen creates TimelineEngine"] --> A0["TimelineProvider"]
     A0 --> A1["EditorHeader / EditorLayout / EditorPreview"]
-    A0 --> A2["EditorControls / Canvas Timeline surface"]
+    A0 --> A2["EditorControls / Canvas Timeline surface and track headers"]
     A --> A3["EditorPlaybackSourcePanel / EditorSubtitlePanel"]
     A0 --> B["useEditorTimelineMedia"]
     A0 --> C["useEditorExport"]
@@ -27,6 +27,7 @@ flowchart TD
     B --> B4["TimelineEngine media clip sourceStart/duration"]
     A2 --> D["CanvasRenderer / RangeSelector / ViewportScrollbar"]
     D --> D1["TimelineEngine playhead/in/out/zoom/scroll"]
+    A2 --> D2["Source mute / Sub 1 visibility headers"]
 
     C --> C1["lazy EditorExportDialog"]
     C --> C2["exportFileName"]
@@ -42,7 +43,8 @@ flowchart TD
     E --> E1["editorShortcutCommands"]
     J --> J1["useSubtitleCues"]
     J --> J2["selectPreferredSubtitleTrack"]
-    J --> J3["Export-only cue model; Canvas subtitle track is scaffold-only"]
+    J --> J3["Parsed SRT/VTT cues synchronize into Canvas subtitle clips"]
+    J3 --> J4["Editable engine subtitle clips feed preview, framegrabs, and export"]
 
     F["SourcesDialog"] --> F1["useSourcesState"]
     F1 --> F2["sourcesStateUtils"]
@@ -327,18 +329,29 @@ flowchart TD
 
 ## Subtitle Timeline Invariants
 
-- Canvas Timeline contains one locked, empty subtitle track as a v2 integration
-  scaffold. Subtitle cues are not mirrored into engine clips yet.
-- `useSubtitleCues` and `useEditorSubtitles` continue to own selected-track
-  download, parsing, style settings, clipped cue calculation, and export
-  readiness outside the engine until the dedicated subtitle pass.
-- Export subtitle burn-in remains supported from the Cliparr cue model.
-- The Mediabunny adapter owns preview canvas painting and does not expose a text
-  composition layer, so subtitle preview composition is deferred rather than
-  maintaining the deleted custom render loop beside the adapter.
-- Cue drag/resize, text editing, add/remove, provider-side subtitle writes,
-  sidecar export/persistence, and engine clip synchronization belong to the
-  follow-up subtitle implementation.
+- Canvas Timeline contains one editable subtitle track. The existing text-track
+  detection and SRT/VTT parser populate that track once after media duration is
+  resolved; user changes are never overwritten by later toggle state.
+- `useSubtitleCues` owns selected-track download and parsing only. Parsed cues
+  are synchronized into the engine, then read back from engine clips for
+  clipping and subtitle export so there is no parallel editable cue model.
+- Clip labels are the canonical multiline cue text and timeline start/end values
+  are the canonical cue timing values. Source cue identity remains in metadata.
+- Track headers use stable `Source` and `Sub 1` labels. Source mute controls the
+  preview audio output without hiding video; Sub 1 visibility is engine-owned
+  and gates subtitle preview, framegrabs, and export.
+- The side panel edits the selected engine clip's text and timing, while
+  overlap-safe command previews and commits drive timeline dragging and trims.
+- Export and framegrab actions remain blocked while parsed cues are waiting for
+  their one-time engine import. Turning subtitles off preserves customized cues.
+- Export subtitle burn-in consumes cues reconstructed from engine state.
+- The Mediabunny adapter owns media painting. Cliparr draws active engine cues
+  on a transparent preview canvas using the adapter's last rendered frame time
+  and composites that layer into framegrabs; video and GIF export use the same
+  cue conversion and style settings.
+- Adding cues, provider-side subtitle writes, and sidecar export/persistence
+  remain deferred. Existing imported cues support selection, text editing,
+  move, trim, navigation, seek, and deletion.
 
 ## End-To-End Summary
 
@@ -363,9 +376,11 @@ flowchart LR
     D --> P["Adapter preview canvas"]
     P --> Q["Framegrab dialog"]
     Q --> R["PNG clipboard or image download"]
-    S --> T["useEditorSubtitles loads subtitle cues"]
-    T --> T2["Adjusted cues feed export; timeline subtitle track is scaffold-only"]
-    T2 --> U["Export subtitle burn-in readiness"]
+    S --> T["useEditorSubtitles parses detected SRT/VTT cues"]
+    T --> T2["Canvas subtitle clips own cue timing and text"]
+    T2 --> T3["Side panel and overlap-safe timeline commands customize cues"]
+    T3 --> T4["Active cues render on preview and framegrab overlay"]
+    T3 --> U["Engine cues are clipped for export subtitle burn-in"]
     B --> G["useEditorExport source selection"]
     C --> G
     F --> G

@@ -69,6 +69,7 @@ interface LoadedMediaDetails {
   hlsFallbackInfo: PlaybackFallbackInfo | null;
   previewVideoDimensions: MediaDimensions | null;
   sourceVideoDimensions: MediaDimensions | null;
+  timelineOffsetSeconds: number;
 }
 
 interface PreparedInput {
@@ -91,6 +92,7 @@ const initialMediaDetails: LoadedMediaDetails = {
   hlsFallbackInfo: null,
   previewVideoDimensions: null,
   sourceVideoDimensions: null,
+  timelineOffsetSeconds: 0,
 };
 
 function createEditorAudioOutput(): EditorAudioOutput | null {
@@ -278,6 +280,7 @@ export function useEditorTimelineMedia(session: EditorSession) {
                 : null,
               previewVideoDimensions: prepared.previewVideoDimensions,
               sourceVideoDimensions: prepared.sourceVideoDimensions,
+              timelineOffsetSeconds: prepared.timelineOffsetSeconds,
             });
             return prepared.input;
           } catch (error) {
@@ -348,6 +351,16 @@ export function useEditorTimelineMedia(session: EditorSession) {
     ready: adapter.ready,
   });
   const renderedFrameTime = useMediabunnyFrameTime(adapter);
+  const renderedTimelineFrameTime =
+    renderedFrameTime === null
+      ? null
+      : Math.max(
+          0,
+          fromSourceTimelineTime(
+            renderedFrameTime,
+            details.timelineOffsetSeconds,
+          ),
+        );
 
   useEffect(() => {
     if (adapter.error) {
@@ -418,6 +431,7 @@ export function useEditorTimelineMedia(session: EditorSession) {
   return {
     canvasRef,
     currentTime: toSeconds(playheadTime),
+    renderedFrameTime: renderedTimelineFrameTime,
     duration,
     playing,
     loadingPreview,

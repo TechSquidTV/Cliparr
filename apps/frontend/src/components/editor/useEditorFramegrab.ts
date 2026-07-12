@@ -24,6 +24,7 @@ type FramegrabAction = "copy" | "download";
 interface UseEditorFramegrabProperties {
   session: EditorSession;
   canvasRef: RefObject<HTMLCanvasElement | null>;
+  subtitleCanvasRef: RefObject<HTMLCanvasElement | null>;
   currentTime: number;
   loadingPreview: boolean;
   loadingPreviewFrame: boolean;
@@ -37,6 +38,7 @@ interface UseEditorFramegrabProperties {
 export function useEditorFramegrab({
   session,
   canvasRef,
+  subtitleCanvasRef,
   currentTime,
   loadingPreview,
   loadingPreviewFrame,
@@ -121,7 +123,10 @@ export function useEditorFramegrab({
     }
 
     try {
-      const clonedCanvas = cloneCanvasFrame(canvas);
+      const clonedCanvas = cloneCanvasFrame(
+        canvas,
+        subtitleEnabled ? subtitleCanvasRef.current : null,
+      );
       const frameTime = getCurrentTime?.() ?? currentTime;
       setCapturedFramegrab({
         canvas: clonedCanvas,
@@ -140,7 +145,13 @@ export function useEditorFramegrab({
       setMessage(null);
       setDialogOpen(true);
     }
-  }, [canvasRef, currentTime, getCurrentTime]);
+  }, [
+    canvasRef,
+    currentTime,
+    getCurrentTime,
+    subtitleCanvasRef,
+    subtitleEnabled,
+  ]);
 
   const closeDialog = useCallback(() => {
     if (action) {

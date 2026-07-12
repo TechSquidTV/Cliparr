@@ -2,10 +2,12 @@ import {
   TimelineEngine,
   fromSeconds,
   toSeconds,
+  type Clip,
   type Track,
 } from "@techsquidtv/canvas-timeline";
 import { buildInitialClipRange } from "@/components/editor/initialClipRange";
 import type { EditorSession } from "@/lib/editorMedia";
+import type { SubtitleCue } from "@/lib/subtitles/types";
 
 export type EditorTimelineTrackKind = "media" | "subtitle";
 
@@ -13,9 +15,33 @@ export const EDITOR_MEDIA_SOURCE_ID = "editor-media-source";
 export const EDITOR_MEDIA_TRACK_ID = "editor-media-track";
 export const EDITOR_MEDIA_CLIP_ID = "editor-media-clip";
 export const EDITOR_SUBTITLE_TRACK_ID = "editor-subtitle-track";
+export const EDITOR_MEDIA_TRACK_NAME = "Source";
+export const EDITOR_SUBTITLE_TRACK_NAME = "Sub 1";
+const EDITOR_SUBTITLE_SOURCE_ID = "editor-subtitle-source";
 
 const MINIMUM_MEDIA_DURATION_SECONDS = 0.01;
 const DEFAULT_TIMELINE_ZOOM_SCALE = 74;
+
+interface CenteredTimelineScrollOptions {
+  maxScrollLeft: number;
+  timeSeconds: number;
+  viewportWidth: number;
+  zoomScale: number;
+}
+
+export function timelineScrollLeftForCenteredTime({
+  maxScrollLeft,
+  timeSeconds,
+  viewportWidth,
+  zoomScale,
+}: CenteredTimelineScrollOptions) {
+  const centeredScrollLeft = timeSeconds * zoomScale - viewportWidth / 2;
+  return Math.min(maxScrollLeft, Math.max(0, centeredScrollLeft));
+}
+
+interface EditorSubtitleClipMetadata extends Record<string, unknown> {
+  cueId?: string;
+}
 
 function safeMediaDuration(duration: number) {
   return Math.max(
@@ -34,7 +60,7 @@ function createEditorTracks(
     {
       id: EDITOR_MEDIA_TRACK_ID,
       kind: "media",
-      name: "Media",
+      name: EDITOR_MEDIA_TRACK_NAME,
       locked: true,
       muted: false,
       visible: true,
@@ -55,19 +81,74 @@ function createEditorTracks(
         },
       ],
     },
-    {
-      id: EDITOR_SUBTITLE_TRACK_ID,
-      kind: "subtitle",
-      name: "Subtitles",
-      locked: true,
-      muted: false,
-      visible: true,
-      selected: false,
-      targeted: false,
-      height: 42,
-      clips: [],
-    },
+    createSubtitleTrack([], safeMediaDuration(duration)),
   ];
+}
+
+function isEditorSubtitleClipMetadata(
+  metadata: Clip["metadata"],
+): metadata is EditorSubtitleClipMetadata {
+  return (
+    metadata !== undefined &&
+    (metadata.cueId === undefined || typeof metadata.cueId === "string")
+  );
+}
+
+function subtitleLines(text: string) {
+  return text
+    .split("\n")
+    .map((line) => line.trimEnd())
+    .filter((line) => line.trim().length > 0);
+}
+
+function createSubtitleTrack(
+  cues: readonly SubtitleCue[],
+  duration: number,
+): Track<EditorTimelineTrackKind> {
+  const clips = cues.flatMap<Clip>((cue, index) => {
+    const startTime = Math.max(0, cue.startTime);
+    const endTime = Math.min(duration, cue.endTime);
+    if (
+      !Number.isFinite(startTime) ||
+      !Number.isFinite(endTime) ||
+      endTime <= startTime
+    ) {
+      return [];
+    }
+
+    return [
+      {
+        id: `editor-subtitle-cue-${index}`,
+        sourceId: EDITOR_SUBTITLE_SOURCE_ID,
+        timelineStart: fromSeconds(startTime),
+        timelineEnd: fromSeconds(endTime),
+        sourceStart: fromSeconds(startTime),
+        minStart: fromSeconds(0),
+        maxEnd: fromSeconds(duration),
+        selected: false,
+        movable: true,
+        resizable: true,
+        snap: false,
+        label: cue.text,
+        metadata: {
+          ...(cue.id ? { cueId: cue.id } : {}),
+        } satisfies EditorSubtitleClipMetadata,
+      },
+    ];
+  });
+
+  return {
+    id: EDITOR_SUBTITLE_TRACK_ID,
+    kind: "subtitle",
+    name: EDITOR_SUBTITLE_TRACK_NAME,
+    locked: false,
+    muted: false,
+    visible: true,
+    selected: false,
+    targeted: false,
+    height: 42,
+    clips,
+  };
 }
 
 export function createEditorTimelineEngine(session: EditorSession) {
@@ -145,4 +226,50 @@ export function synchronizeEditorTimelineMedia(
     engine.setOutPoint(fromSeconds(initialRange.endTime));
     engine.updatePlayhead(fromSeconds(initialRange.startTime));
   }
+}
+
+export function synchronizeEditorTimelineSubtitles(
+  engine: TimelineEngine,
+  options: {
+    cues: readonly SubtitleCue[];
+  },
+) {
+  const duration = toSeconds(engine.getState().duration ?? fromSeconds(0));
+  engine.removeTrack(EDITOR_SUBTITLE_TRACK_ID);
+  engine.addTrack(createSubtitleTrack(options.cues, duration));
+}
+
+export function subtitleCuesFromTimeline(
+  tracks: readonly Track[],
+): SubtitleCue[] {
+  const subtitleTrack = tracks.find(
+    (track) => track.id === EDITOR_SUBTITLE_TRACK_ID,
+  );
+  if (!subtitleTrack) {
+    return [];
+  }
+
+  return subtitleTrack.clips.flatMap<SubtitleCue>((clip) => {
+    const cue = subtitleCueFromTimelineClip(clip);
+    return cue ? [cue] : [];
+  });
+}
+
+export function subtitleCueFromTimelineClip(clip: Clip): SubtitleCue | null {
+  const text = clip.label?.trim();
+  const lines = text ? subtitleLines(text) : [];
+  if (!text || lines.length === 0) {
+    return null;
+  }
+
+  const metadata = isEditorSubtitleClipMetadata(clip.metadata)
+    ? clip.metadata
+    : undefined;
+  return {
+    ...(metadata?.cueId ? { id: metadata.cueId } : {}),
+    startTime: toSeconds(clip.timelineStart),
+    endTime: toSeconds(clip.timelineEnd),
+    text,
+    lines,
+  };
 }

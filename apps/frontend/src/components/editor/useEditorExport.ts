@@ -777,7 +777,7 @@ export function getEditorExportReadiness({
     selectedSubtitleTrack !== null &&
     clippedSubtitleCues.length > 0;
 
-  if (shouldBurnSubtitles && subtitleLoading) {
+  if (subtitleEnabled && selectedSubtitleTrack !== null && subtitleLoading) {
     return {
       state: "blocked" as const,
       message: "Subtitles are still loading.",

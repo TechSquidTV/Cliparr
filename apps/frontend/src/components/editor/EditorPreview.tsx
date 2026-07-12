@@ -1,6 +1,7 @@
 import { LoaderCircle, Play } from "lucide-react";
 import type { RefObject } from "react";
 import type { MediaDimensions } from "@/lib/editorMedia";
+import type { ReactNode } from "react";
 
 interface EditorPreviewProperties {
   canvasRef: RefObject<HTMLCanvasElement | null>;
@@ -13,6 +14,7 @@ interface EditorPreviewProperties {
   previewStatus: string;
   previewFrameStatus: string;
   togglePlay: () => void;
+  overlay?: ReactNode;
 }
 
 export function EditorPreview({
@@ -26,6 +28,7 @@ export function EditorPreview({
   previewStatus,
   previewFrameStatus,
   togglePlay,
+  overlay,
 }: EditorPreviewProperties) {
   const aspectRatio =
     videoDimensions && videoDimensions.width > 0 && videoDimensions.height > 0
@@ -47,6 +50,7 @@ export function EditorPreview({
         className="h-full w-full object-contain"
         onClick={togglePlay}
       />
+      {overlay}
       {posterImageUrl && (
         <img
           src={posterImageUrl}

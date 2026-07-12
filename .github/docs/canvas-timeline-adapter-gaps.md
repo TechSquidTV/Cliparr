@@ -61,5 +61,9 @@ the following gaps need upstream treatment in a second pass.
   equivalent and were removed in v2. A future readiness API would need decoded
   video/audio coverage ranges rather than a single boolean.
 - Subtitle canvas composition and audio-only poster rendering are not adapter
-  features. Cliparr retains subtitle export burn-in, but preview subtitle layers
-  and real subtitle timeline clips are deferred to the planned subtitle pass.
+  features. Cliparr stores parsed SRT/VTT cues as editable Canvas Timeline
+  clips, renders a separate subtitle preview/framegrab overlay, and retains
+  subtitle export burn-in without changing the adapter.
+- Free-placement insertion is not exposed for overlapping subtitle cues. Cliparr
+  therefore edits and deletes imported cues now, while adding new cues remains
+  deferred until core supports non-ripple, non-overwrite placement.

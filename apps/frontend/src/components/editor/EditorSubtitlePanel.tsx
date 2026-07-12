@@ -1,5 +1,12 @@
-import type { Dispatch, SetStateAction } from "react";
-import { LoaderCircle, Sparkles } from "lucide-react";
+import { useEffect, useState, type Dispatch, type SetStateAction } from "react";
+import {
+  ChevronLeft,
+  ChevronRight,
+  LoaderCircle,
+  LocateFixed,
+  Sparkles,
+  Trash2,
+} from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -25,7 +32,7 @@ import {
   formatSubtitleTrackLabel,
   formatSubtitleTrackTechnicalSummary,
 } from "@/lib/subtitleTrackLabels";
-import type { SubtitleStyleSettings } from "@/lib/subtitles/types";
+import type { SubtitleCue, SubtitleStyleSettings } from "@/lib/subtitles/types";
 import type { PlaybackSubtitleTrack } from "@/providers/types";
 import {
   EditorPropertyAccordion,
@@ -43,6 +50,8 @@ import {
   type EditorPropertiesSectionId,
 } from "@/components/editor/editorSidebarPreferences";
 import { useSubtitleFontOptions } from "@/components/editor/useSubtitleFontOptions";
+import { EditorEditableTimecode } from "@/components/editor/EditorEditableTimecode";
+import { formatTimecodeInput } from "@/components/editor/editorUtilities";
 
 interface EditorSubtitlePanelProperties {
   providerId?: string;
@@ -62,6 +71,14 @@ interface EditorSubtitlePanelProperties {
   onEditorPropertiesOpenSectionsChange: (
     openSections: EditorPropertiesOpenSections,
   ) => void;
+  selectedSubtitleCue: SubtitleCue | null;
+  onSelectedSubtitleTextCommit: (text: string) => void;
+  onSelectedSubtitleStartCommit: (time: number) => void;
+  onSelectedSubtitleEndCommit: (time: number) => void;
+  onDeleteSelectedSubtitle: () => void;
+  onSelectPreviousSubtitle: () => void;
+  onSelectNextSubtitle: () => void;
+  onSeekToSelectedSubtitle: () => void;
 }
 
 export function EditorSubtitlePanel({
@@ -78,7 +95,19 @@ export function EditorSubtitlePanel({
   selectedSubtitleTrack,
   editorPropertiesOpenSections,
   onEditorPropertiesOpenSectionsChange,
+  selectedSubtitleCue,
+  onSelectedSubtitleTextCommit,
+  onSelectedSubtitleStartCommit,
+  onSelectedSubtitleEndCommit,
+  onDeleteSelectedSubtitle,
+  onSelectPreviousSubtitle,
+  onSelectNextSubtitle,
+  onSeekToSelectedSubtitle,
 }: EditorSubtitlePanelProperties) {
+  const [subtitleTextDraft, setSubtitleTextDraft] = useState("");
+  useEffect(() => {
+    setSubtitleTextDraft(selectedSubtitleCue?.text ?? "");
+  }, [selectedSubtitleCue?.id, selectedSubtitleCue?.text]);
   const canEnableBurnIn = subtitleTrackSupportsBurnIn(selectedSubtitleTrack);
   const styleControlsDisabled = !subtitlesEnabled || !canEnableBurnIn;
   const {
@@ -225,6 +254,116 @@ export function EditorSubtitlePanel({
               <div className="border border-destructive/35 bg-destructive/10 px-2.5 py-2 text-xs text-destructive">
                 {subtitleError}
               </div>
+            )}
+          </EditorPropertySection>
+
+          <EditorPropertySection
+            title="Selected Cue"
+            action={
+              selectedSubtitleCue ? (
+                <div className="flex items-center gap-1">
+                  <button
+                    type="button"
+                    onClick={onSelectPreviousSubtitle}
+                    aria-label="Select previous subtitle cue"
+                    className="flex h-7 w-7 items-center justify-center rounded-[var(--radius-control)] text-muted-foreground hover:bg-editor-control-hover hover:text-foreground focus-visible:ring-2 focus-visible:ring-editor-accent/35 focus-visible:outline-none"
+                  >
+                    <ChevronLeft className="h-3.5 w-3.5" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={onSelectNextSubtitle}
+                    aria-label="Select next subtitle cue"
+                    className="flex h-7 w-7 items-center justify-center rounded-[var(--radius-control)] text-muted-foreground hover:bg-editor-control-hover hover:text-foreground focus-visible:ring-2 focus-visible:ring-editor-accent/35 focus-visible:outline-none"
+                  >
+                    <ChevronRight className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+              ) : null
+            }
+          >
+            {selectedSubtitleCue ? (
+              <>
+                <EditorPropertyRow label="Text" align="start">
+                  <textarea
+                    aria-label="Subtitle cue text"
+                    value={subtitleTextDraft}
+                    rows={4}
+                    onChange={(event) =>
+                      setSubtitleTextDraft(event.target.value)
+                    }
+                    onBlur={() =>
+                      onSelectedSubtitleTextCommit(subtitleTextDraft)
+                    }
+                    onKeyDown={(event) => {
+                      if (
+                        (event.metaKey || event.ctrlKey) &&
+                        event.key === "Enter"
+                      ) {
+                        event.preventDefault();
+                        onSelectedSubtitleTextCommit(subtitleTextDraft);
+                      }
+                    }}
+                    className="cliparr-editor-scrollbar w-full resize-y rounded-[var(--radius-control)] border border-editor-border bg-editor-control px-2.5 py-2 text-xs leading-relaxed text-foreground outline-none focus:border-editor-accent focus:ring-2 focus:ring-editor-accent/25"
+                  />
+                </EditorPropertyRow>
+                <EditorPropertyRow label="In">
+                  <EditorEditableTimecode
+                    ariaLabel="subtitle cue in point"
+                    value={selectedSubtitleCue.startTime}
+                    onCommit={onSelectedSubtitleStartCommit}
+                    className="w-full justify-end"
+                    buttonClassName="w-full justify-end rounded-[var(--radius-control)] px-2 py-1 font-mono text-xs text-foreground hover:bg-editor-control-hover"
+                  >
+                    <span>
+                      {formatTimecodeInput(selectedSubtitleCue.startTime)}
+                    </span>
+                  </EditorEditableTimecode>
+                </EditorPropertyRow>
+                <EditorPropertyRow label="Out">
+                  <EditorEditableTimecode
+                    ariaLabel="subtitle cue out point"
+                    value={selectedSubtitleCue.endTime}
+                    onCommit={onSelectedSubtitleEndCommit}
+                    className="w-full justify-end"
+                    buttonClassName="w-full justify-end rounded-[var(--radius-control)] px-2 py-1 font-mono text-xs text-foreground hover:bg-editor-control-hover"
+                  >
+                    <span>
+                      {formatTimecodeInput(selectedSubtitleCue.endTime)}
+                    </span>
+                  </EditorEditableTimecode>
+                </EditorPropertyRow>
+                <EditorPropertyRow
+                  label="Duration"
+                  value={formatTimecodeInput(
+                    selectedSubtitleCue.endTime - selectedSubtitleCue.startTime,
+                  )}
+                >
+                  <div className="flex justify-end gap-1.5">
+                    <button
+                      type="button"
+                      onClick={onSeekToSelectedSubtitle}
+                      className="inline-flex h-8 items-center gap-1.5 rounded-[var(--radius-control)] border border-editor-border bg-editor-control px-2.5 text-xs text-muted-foreground hover:bg-editor-control-hover hover:text-foreground focus-visible:ring-2 focus-visible:ring-editor-accent/35 focus-visible:outline-none"
+                    >
+                      <LocateFixed className="h-3.5 w-3.5" />
+                      Seek
+                    </button>
+                    <button
+                      type="button"
+                      onClick={onDeleteSelectedSubtitle}
+                      className="inline-flex h-8 items-center gap-1.5 rounded-[var(--radius-control)] border border-destructive/40 bg-destructive/10 px-2.5 text-xs text-destructive hover:bg-destructive/15 focus-visible:ring-2 focus-visible:ring-destructive/30 focus-visible:outline-none"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                      Delete
+                    </button>
+                  </div>
+                </EditorPropertyRow>
+              </>
+            ) : (
+              <p className="text-xs leading-relaxed text-muted-foreground">
+                Select a subtitle clip in the timeline to edit its text and
+                timing.
+              </p>
             )}
           </EditorPropertySection>
 

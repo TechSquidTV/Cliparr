@@ -175,6 +175,25 @@ void test("reports editor export readiness and subtitle blockers", () => {
       endTime: 10,
       subtitleEnabled: true,
       selectedSubtitleTrack: textSubtitleTrack,
+      clippedSubtitleCues: [],
+      subtitleLoading: true,
+    }),
+    {
+      state: "blocked",
+      message: "Subtitles are still loading.",
+      shouldBurnSubtitles: false,
+    },
+  );
+
+  assert.deepEqual(
+    getEditorExportReadiness({
+      exportSource: readySource,
+      format: "mp4",
+      exporting: false,
+      startTime: 0,
+      endTime: 10,
+      subtitleEnabled: true,
+      selectedSubtitleTrack: textSubtitleTrack,
       clippedSubtitleCues: subtitleCues,
       subtitleLoading: true,
     }),

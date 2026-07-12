@@ -4,6 +4,7 @@ import {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
 import {
@@ -30,6 +31,7 @@ import { useEditorTimelineMedia } from "@/components/editor/useEditorTimelineMed
 import { createEditorTimelineEngine } from "@/components/editor/editorTimelineEngine";
 import { EditorHeader } from "@/components/editor/EditorHeader";
 import { EditorPreview } from "@/components/editor/EditorPreview";
+import { EditorSubtitlePreview } from "@/components/editor/EditorSubtitlePreview";
 import { EditorControls } from "@/components/editor/EditorControls";
 import { EditorPlaybackSourcePanel } from "@/components/editor/EditorPlaybackSourcePanel";
 import { EditorTimeline } from "@/components/editor/EditorTimeline";
@@ -96,6 +98,8 @@ function EditorScreenContent({ session, onBack }: Properties) {
     selectedSubtitleTrack,
     selectedSubtitleTrackKey,
     subtitleEnabled,
+    subtitleOutputEnabled,
+    subtitleCuesReady,
     setSubtitleEnabled,
     subtitleStyleSettings,
     setSubtitleStyleSettings,
@@ -105,16 +109,27 @@ function EditorScreenContent({ session, onBack }: Properties) {
     clippedSubtitleCues,
     subtitleExportSummary,
     handleSelectedSubtitleTrackChange,
+    selectedSubtitleCue,
+    handleSelectedSubtitleTextCommit,
+    handleSelectedSubtitleStartCommit,
+    handleSelectedSubtitleEndCommit,
+    handleDeleteSelectedSubtitle,
+    handleSelectPreviousSubtitle,
+    handleSelectNextSubtitle,
+    handleSeekToSelectedSubtitle,
   } = useEditorSubtitles({
     session,
     startTime,
     endTime,
+    duration,
+    mediaReady: timelineMedia.ready,
   });
   const posterImageUrl = session.thumbUrl;
 
   const {
     canvasRef,
     currentTime,
+    renderedFrameTime,
     playing,
     loadingPreview,
     loadingPreviewFrame,
@@ -180,24 +195,31 @@ function EditorScreenContent({ session, onBack }: Properties) {
     sourceVideoDimensions,
     exportFallbackSource,
     hlsFallbackInfo,
-    subtitleEnabled,
+    subtitleEnabled: subtitleOutputEnabled,
     selectedSubtitleTrack,
     clippedSubtitleCues,
     subtitleLoading,
     subtitleCues,
     subtitleStyleSettings,
   });
+  const subtitleCanvasRef = useRef<HTMLCanvasElement>(null);
+  const previewFrameTime = renderedFrameTime ?? currentTime;
+  const getFramegrabTime = useCallback(
+    () => renderedFrameTime ?? getPlaybackTime(),
+    [getPlaybackTime, renderedFrameTime],
+  );
   const framegrab = useEditorFramegrab({
     session,
     canvasRef,
-    currentTime,
+    subtitleCanvasRef,
+    currentTime: previewFrameTime,
     loadingPreview,
     loadingPreviewFrame,
     previewVideoDimensions,
-    subtitleEnabled,
+    subtitleEnabled: subtitleOutputEnabled,
     subtitleLoading,
     subtitleError,
-    getCurrentTime: getPlaybackTime,
+    getCurrentTime: getFramegrabTime,
   });
   const playbackFallbackReason = buildPlaybackFallbackReason({
     activeSourceLabel,
@@ -375,6 +397,17 @@ function EditorScreenContent({ session, onBack }: Properties) {
         previewStatus={previewStatus}
         previewFrameStatus={previewFrameStatus}
         togglePlay={togglePlay}
+        overlay={
+          <EditorSubtitlePreview
+            cues={subtitleCues}
+            currentTime={previewFrameTime}
+            enabled={subtitleOutputEnabled && subtitleCuesReady}
+            overlayCanvasRef={subtitleCanvasRef}
+            style={subtitleStyleSettings}
+            videoCanvasRef={canvasRef}
+            videoDimensions={previewVideoDimensions}
+          />
+        }
       />
     </EditorPreviewPane>
   );
@@ -406,7 +439,9 @@ function EditorScreenContent({ session, onBack }: Properties) {
       onClearPoints={handleClearInOutPoints}
     />
   );
-  const editorTimeline = hasDuration ? <EditorTimeline /> : null;
+  const editorTimeline = hasDuration ? (
+    <EditorTimeline muted={muted} onMutedChange={setMuted} />
+  ) : null;
   const timelinePane = (
     <EditorTimelinePane
       variant={layoutVariant}
@@ -444,6 +479,14 @@ function EditorScreenContent({ session, onBack }: Properties) {
           selectedSubtitleTrack={selectedSubtitleTrack}
           editorPropertiesOpenSections={editorPropertiesOpenSections}
           onEditorPropertiesOpenSectionsChange={setEditorPropertiesOpenSections}
+          selectedSubtitleCue={selectedSubtitleCue}
+          onSelectedSubtitleTextCommit={handleSelectedSubtitleTextCommit}
+          onSelectedSubtitleStartCommit={handleSelectedSubtitleStartCommit}
+          onSelectedSubtitleEndCommit={handleSelectedSubtitleEndCommit}
+          onDeleteSelectedSubtitle={handleDeleteSelectedSubtitle}
+          onSelectPreviousSubtitle={handleSelectPreviousSubtitle}
+          onSelectNextSubtitle={handleSelectNextSubtitle}
+          onSeekToSelectedSubtitle={handleSeekToSelectedSubtitle}
         />
       </div>
     );
