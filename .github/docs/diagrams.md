@@ -1,33 +1,32 @@
 # Diagrams
 
-This file captures the current playback, preview-ready warmup, export, local
-media, and proxy decision trees. It reflects the stable branch behavior after
-the fallback, timeline normalization, alternate track selection, playlist
-rewrite, proxy auth/cache handling, export memory fixes, local file/URL support,
-subtitle burn-in, framegrabs, and the frontend refactor that split large editor
-workflows into focused hooks/helpers.
+This file captures the current Canvas Timeline editor, Mediabunny adapter,
+export, local media, and proxy decision trees. It reflects the v2 editor's
+engine-owned in/out range and viewport, HLS-first adapter loading, timeline
+normalization, alternate track selection, playlist rewrite, proxy auth/cache
+handling, export memory fixes, local file/URL support, subtitle burn-in, and
+framegrabs.
 
 ## Frontend Responsibility Map
 
 ```mermaid
 flowchart TD
-    A["EditorScreen"] --> A1["EditorHeader / EditorLayout / EditorPreview"]
-    A --> A2["EditorControls / EditorTimeline"]
+    A["EditorScreen creates TimelineEngine"] --> A0["TimelineProvider"]
+    A0 --> A1["EditorHeader / EditorLayout / EditorPreview"]
+    A0 --> A2["EditorControls / Canvas Timeline surface"]
     A --> A3["EditorPlaybackSourcePanel / EditorSubtitlePanel"]
-    A --> B["useEditorPlayback"]
-    A --> C["useEditorExport"]
-    A --> D["useEditorTimeline"]
-    A --> E["useEditorKeyboardShortcuts"]
-    A --> J["useEditorSubtitles"]
-    A --> K["useEditorFramegrab"]
+    A0 --> B["useEditorTimelineMedia"]
+    A0 --> C["useEditorExport"]
+    A0 --> E["useEditorKeyboardShortcuts"]
+    A0 --> J["useEditorSubtitles"]
+    A0 --> K["useEditorFramegrab"]
 
-    B --> B1["editorPlaybackSources"]
-    B --> B2["useEditorPlaybackRenderLoop"]
-    B --> B3["editorPlaybackAudio"]
-    B --> B4["editorPlaybackSinks"]
-    B --> B5["useEditorPlaybackWarmup"]
-    B --> B6["editorPlaybackPlan"]
-    B5 --> B7["useEditorPlaybackSelectionWarmup"]
+    B --> B1["editorPlaybackSources track/source analysis"]
+    B --> B2["Mediabunny adapter"]
+    B --> B3["useTimelineMediaSync"]
+    B --> B4["TimelineEngine media clip sourceStart/duration"]
+    A2 --> D["CanvasRenderer / RangeSelector / ViewportScrollbar"]
+    D --> D1["TimelineEngine playhead/in/out/zoom/scroll"]
 
     C --> C1["lazy EditorExportDialog"]
     C --> C2["exportFileName"]
@@ -40,11 +39,10 @@ flowchart TD
     K --> H1["framegrab canvas helpers"]
     K --> C2
 
-    D --> D1["timelineZoom helpers"]
     E --> E1["editorShortcutCommands"]
     J --> J1["useSubtitleCues"]
     J --> J2["selectPreferredSubtitleTrack"]
-    J --> J3["subtitleTimeline editable cue model"]
+    J --> J3["Export-only cue model; Canvas subtitle track is scaffold-only"]
 
     F["SourcesDialog"] --> F1["useSourcesState"]
     F1 --> F2["sourcesStateUtils"]
@@ -119,18 +117,15 @@ flowchart TD
     A["Tracks selected for this candidate"] --> B{"Which responsibility?"}
 
     B -- "Source semantics" --> C["Use sourceVideoTrack/sourceAudioTrack"]
-    C --> D["Detect live playback for skipLiveWait and logging"]
+    C --> D["Use skipLiveWait for duration discovery"]
     C --> E["Compute timelineOffsetSeconds"]
     C --> F["Compute duration and source timeline end"]
     C --> G["Read source dimensions for export sizing"]
 
     B -- "Browser preview" --> H["Use previewVideoTrack/previewAudioTrack"]
-    H --> I["Create CanvasSink / AudioBufferSink"]
-    H --> J{"Audio-only with poster artwork?"}
-    J -- "Yes" --> K["Load static poster canvas for preview video"]
-    J -- "No" --> L["Read preview/source dimensions"]
-    K --> M["Schedule preview frames and audio"]
-    L --> M
+    H --> I["Override input primary tracks for adapter"]
+    I --> J["Mediabunny adapter owns CanvasSink / AudioBufferSink"]
+    J --> K["useTimelineMediaSync drives external timeline clock"]
 
     C --> N["Keep export/editor range aligned"]
 ```
@@ -139,59 +134,36 @@ flowchart TD
 
 ```mermaid
 flowchart TD
-    A["Try next playback candidate"] --> B{"Input opens and reads?"}
-    B -- "No" --> C["Failure category: open-or-read"]
-    C --> D{"Failed source was HLS and direct/local/url fallback exists?"}
-    D -- "Yes" --> E["Remember fallback source for Auto export"]
-    D -- "No" --> F["Do not change export fallback"]
-    E --> G["Try next candidate"]
-    F --> G
-
-    B -- "Yes" --> H{"Why can't preview use the tracks/sinks?"}
-    H -- "Browser decoder environment blocks source video or all tracks" --> I["Failure category: shared-export-blocking"]
-    I --> J{"Direct/local/url fallback exists?"}
-    J -- "Yes" --> K["Remember fallback source for Auto export"]
-    J -- "No" --> L["Keep HLS source and surface error later"]
-    K --> G
-    L --> G
-
-    H -- "No decodable tracks, Web Audio unavailable, or sink setup failed" --> M["Failure category: preview-only"]
-    M --> N["Do not change export fallback"]
-    N --> G
-
-    H -- "Tracks are previewable" --> O["Preview succeeds"]
-    O --> P["Show active source label and fallback message when used"]
+    A["Adapter receives ordered descriptors sharing one sourceId"] --> B["Try HLS descriptor first"]
+    B --> C{"Input, primary tracks, and sinks load?"}
+    C -- "Yes" --> D["Keep HLS controller; skip duplicate direct sourceId"]
+    C -- "No" --> E{"Direct/local/url descriptor exists?"}
+    E -- "Yes" --> F["Try direct descriptor under same logical sourceId"]
+    E -- "No" --> G["Surface adapter load error"]
+    F --> H{"Direct descriptor loads?"}
+    H -- "Yes" --> I["Remember direct source for Auto export and show fallback message"]
+    H -- "No" --> G
+    D --> J["Preview succeeds with HLS"]
+    I --> K["Preview succeeds with direct media"]
+    L["Runtime decode failure after adapter ready"] --> M["Surface playback error"]
+    M --> N["Published adapter cannot switch controllers at runtime; second-pass gap"]
 ```
 
-## Preview Ready Warmup Tree
+## Adapter Readiness Tree
 
 ```mermaid
 flowchart TD
-    A["Active preview source is provider HLS stream"] --> B["useEditorPlaybackSelectionWarmup sets playbackReadyRange"]
-    B --> C["Paused auto-warmup starts from selection start"]
-    C --> D["useEditorPlaybackWarmup warms exact playback/selection start first"]
-    D --> E["Selection warmup warms an initial front window"]
-    E --> F["Publish readyUntilTime = min(videoReadyUntil, audioReadyUntil)"]
-    F --> G{"Still paused and selection not complete?"}
-    G -- "Yes" --> H["Schedule extension warmup toward selection end"]
-    G -- "No" --> I{"Both tracks reached selection end?"}
-    H --> I
-    I -- "Yes" --> J["Status = ready"]
-    I -- "No" --> K["Status = warming or idle"]
-
-    L["User presses Play"] --> M{"Matching start-target warmup in flight?"}
-    M -- "Yes" --> N["Wait for that exact warmup target first"]
-    M -- "No" --> O["Start playback immediately"]
-    N --> O
-    O --> P["Cancel background selection warmup"]
-    P --> Q["Preview Ready band advances with confirmed playback progress"]
-
-    R["Paused seek outside ready range"] --> S["Warm seek target silently"]
-    S --> T{"Seek lands in selection?"}
-    T -- "Yes" --> U["Restart paused selection warmup from selection start/end"]
-    T -- "No" --> V["Cancel background selection warmup"]
-
-    W["Playback pauses before selection is ready"] --> X["Resume paused selection warmup from selection start"]
+    A["Mediabunny adapter loads at least one source"] --> B["adapter.ready = true"]
+    B --> C["useTimelineMediaSync schedules initial paused seek"]
+    C --> D["Adapter decodes and paints active media frame"]
+    D --> E["Framegrab and playback controls become available"]
+    F["User presses Play"] --> G["Resume AudioContext without blocking transport"]
+    G --> H["Adapter starts external media clock"]
+    H --> I["TimelineEngine playhead follows adapter clock"]
+    I --> J{"Playhead reaches engine outPoint?"}
+    J -- "Yes" --> K["Pause adapter and reset playhead to inPoint"]
+    J -- "No" --> I
+    L["Legacy HLS selection warmup / Preview Ready band"] --> M["Removed in v2; adapter exposes no equivalent readiness range"]
 ```
 
 ## Export Source Selection Tree
@@ -229,9 +201,10 @@ flowchart TD
     B -- "Yes" --> D["Read the earliest selected track first timestamp"]
     D --> E["Store it as timelineOffsetSeconds"]
     E --> F["Preview duration = source end time - timeline offset"]
-    E --> G["Preview seek/read time = UI time + timeline offset"]
+    E --> G["Set engine media clip.sourceStart = timeline offset"]
+    G --> G1["Adapter maps engine timeline time to source time"]
     E --> H["Export trim.start/end = UI time + timeline offset"]
-    E --> I["Frame stepping and warmup use source timeline conversion"]
+    E --> I["Frame stepping uses engine timeline time"]
 ```
 
 ## Playlist Rewrite Tree
@@ -354,20 +327,18 @@ flowchart TD
 
 ## Subtitle Timeline Invariants
 
-- Subtitle timeline editing is session-local and only applies to the currently
-  selected supported text subtitle track.
-- `useSubtitleCues` owns subtitle download/parse state. `useEditorSubtitles`
-  converts the loaded cues into canonical `subtitleTimeline` cue objects with
-  stable ids for drag/resize updates.
-- Subtitle timeline rows are derived from canonical cue timing. Overlapping cues
-  create additional lanes below the clip row, and lane placement is recalculated
-  after timing changes.
-- Preview and export consume adjusted subtitle cues from the timeline model, not
-  the original parsed cue list.
-- Concurrent active cues render as separate composited cues at the same global
-  subtitle position. They are not merged into one cue and are not auto-stacked.
-- Text editing, add/remove, provider-side subtitle writes, lazy cue loading, and
-  sidecar export/persistence are outside the v1 timeline scope.
+- Canvas Timeline contains one locked, empty subtitle track as a v2 integration
+  scaffold. Subtitle cues are not mirrored into engine clips yet.
+- `useSubtitleCues` and `useEditorSubtitles` continue to own selected-track
+  download, parsing, style settings, clipped cue calculation, and export
+  readiness outside the engine until the dedicated subtitle pass.
+- Export subtitle burn-in remains supported from the Cliparr cue model.
+- The Mediabunny adapter owns preview canvas painting and does not expose a text
+  composition layer, so subtitle preview composition is deferred rather than
+  maintaining the deleted custom render loop beside the adapter.
+- Cue drag/resize, text editing, add/remove, provider-side subtitle writes,
+  sidecar export/persistence, and engine clip synchronization belong to the
+  follow-up subtitle implementation.
 
 ## End-To-End Summary
 
@@ -376,22 +347,24 @@ flowchart LR
     A["Provider or local session data"] --> B["session.hlsSource"]
     A --> C["session.directSource"]
     A --> S["subtitle tracks / selected subtitle"]
-    B --> D["useEditorPlayback"]
+    A --> T0["TimelineEngine + TimelineProvider"]
+    T0 --> T1["Engine owns playhead, in/out, zoom, and scroll"]
+    B --> D["useEditorTimelineMedia"]
     C --> D
-    D --> E["Preview source chosen"]
+    D --> E["HLS-first adapter descriptors share one logical sourceId"]
     D --> F["Optional exportFallbackSource"]
     D --> I["Optional timelineOffsetSeconds"]
     D --> J["Source tracks for duration/export alignment"]
     D --> K["Preview tracks for browser playback"]
-    D --> L["Optional playbackReadyRange for provider HLS stream preview only"]
-    L --> M["EditorTimeline Preview Ready overlay and note"]
-    D --> P["Preview canvas with optional subtitles"]
+    D --> L["Mediabunny adapter"]
+    L --> M["useTimelineMediaSync external clock"]
+    M --> T1
+    T1 --> TS["CanvasRenderer / RangeSelector / ViewportScrollbar"]
+    D --> P["Adapter preview canvas"]
     P --> Q["Framegrab dialog"]
     Q --> R["PNG clipboard or image download"]
     S --> T["useEditorSubtitles loads subtitle cues"]
-    T --> T1["subtitleTimeline maps cues into editable timeline actions"]
-    T1 --> T2["Adjusted cues feed preview and export"]
-    T2 --> P
+    T --> T2["Adjusted cues feed export; timeline subtitle track is scaffold-only"]
     T2 --> U["Export subtitle burn-in readiness"]
     B --> G["useEditorExport source selection"]
     C --> G
@@ -399,6 +372,8 @@ flowchart LR
     U --> G
     G --> H["exportClip input URL"]
     H --> N["exportClip builds a fresh input"]
+    T1 --> X["Engine in/out seconds"]
+    X --> N
     I --> N
     N --> O["exportMetadata applies tags/artwork/MP4 or MOV metadata patching"]
 ```

@@ -34,6 +34,7 @@ import {
   sourceDisplayLabel,
   type EditorMediaSource,
   type EditorSession,
+  type MediaDimensions,
 } from "@/lib/editorMedia";
 import {
   fetchHlsExportEstimateMetadata,
@@ -43,13 +44,8 @@ import { subtitleTrackSupportsBurnIn } from "@/lib/selectPreferredSubtitleTrack"
 import type { SubtitleCue, SubtitleStyleSettings } from "@/lib/subtitles/types";
 import type { PlaybackSubtitleTrack } from "@/providers/types";
 import type { ExportSourcePreference } from "@/components/editor/EditorExportDialog";
-import type { PlaybackFallbackInfo } from "@/components/editor/useEditorPlayback";
+import type { PlaybackFallbackInfo } from "@/components/editor/editorPlaybackSources";
 import { getFrontendLogger, warnWithError } from "@/logging";
-
-interface VideoDimensions {
-  width: number;
-  height: number;
-}
 
 type ResolvedExportSourceKind = "hls" | "direct" | "none";
 
@@ -74,7 +70,7 @@ interface UseEditorExportProperties {
   session: EditorSession;
   startTime: number;
   endTime: number;
-  sourceVideoDimensions: VideoDimensions | null;
+  sourceVideoDimensions: MediaDimensions | null;
   exportFallbackSource?: EditorMediaSource;
   hlsFallbackInfo: PlaybackFallbackInfo | null;
   subtitleEnabled: boolean;
@@ -657,7 +653,7 @@ export function useEditorExport({
 }
 
 export function getOutputDimensions(
-  sourceVideoDimensions: VideoDimensions | null,
+  sourceVideoDimensions: MediaDimensions | null,
   resolution: ExportResolution,
   format: ExportFormat = "mp4",
   gifSettings?: GifExportSettings | null,
@@ -926,8 +922,6 @@ export function buildExportSourceMessage({
   let prefix = "Trying HLS";
   if (exportUsesDirectSource) {
     prefix = "Export switched to direct media";
-  } else if (hlsFallbackInfo.category === "shared-export-blocking") {
-    prefix = "Export cannot use this HLS stream";
   }
 
   return `${prefix}: ${hlsFallbackInfo.message}`;

@@ -7,13 +7,8 @@ import {
   type EditorMediaSource,
 } from "@/lib/editorMedia";
 import {
-  buildPlaybackFailure,
-  buildPlaybackLoadError,
   buildPlaybackSourceCandidates,
-  createPlaybackSourceError,
   resolvePlaybackDuration,
-  shouldUseExportFallback,
-  type PlaybackLoadFailure,
 } from "@/components/editor/editorPlaybackSources";
 
 function localFileSource(label = "movie.mp4") {
@@ -98,45 +93,5 @@ void test("preserves server duration for HLS and uses computed direct duration w
       100,
     ),
     100,
-  );
-});
-
-void test("classifies source failures and export fallback eligibility", () => {
-  const failure = buildPlaybackFailure(
-    {
-      label: "hls stream",
-      source: createProviderUrlSource("/playback/master.m3u8", "hls"),
-    },
-    createPlaybackSourceError("shared-export-blocking", "Decoder unavailable"),
-  );
-
-  assert.deepEqual(failure, {
-    label: "hls stream",
-    message: "Decoder unavailable",
-    classification: "hls-playlist",
-    category: "shared-export-blocking",
-  });
-  assert.equal(shouldUseExportFallback(failure), true);
-});
-
-void test("deduplicates playback load errors that share the same underlying message", () => {
-  const failures: PlaybackLoadFailure[] = [
-    {
-      label: "hls stream",
-      message: "Network denied",
-      classification: "hls-playlist",
-      category: "open-or-read",
-    },
-    {
-      label: "direct source",
-      message: "Network denied",
-      classification: "unknown",
-      category: "open-or-read",
-    },
-  ];
-
-  assert.equal(
-    buildPlaybackLoadError(failures),
-    "Playback failed. Network denied",
   );
 });

@@ -3,6 +3,7 @@ import {
   Camera,
   Pause,
   Play,
+  RotateCcw,
   SlidersHorizontal,
   Volume2,
   VolumeX,
@@ -53,6 +54,9 @@ interface EditorControlsProperties {
   onPreviewTimeCommit: (time: number) => void | Promise<void>;
   onStartTimeCommit: (time: number) => void | Promise<void>;
   onEndTimeCommit: (time: number) => void | Promise<void>;
+  onSetInPoint: () => void;
+  onSetOutPoint: () => void;
+  onClearPoints: () => void;
 }
 
 function ControlTooltip({
@@ -102,10 +106,14 @@ export function EditorControls({
   onPreviewTimeCommit,
   onStartTimeCommit,
   onEndTimeCommit,
+  onSetInPoint,
+  onSetOutPoint,
+  onClearPoints,
 }: EditorControlsProperties) {
   const hasDuration = duration > 0;
   const canEditPreviewTime = !loadingPreview && hasDuration;
-  const canEditClipRange = !loadingPreview && !playing && hasDuration;
+  const canSetClipRange = !loadingPreview && hasDuration;
+  const canEditClipTimecode = canSetClipRange && !playing;
   const clipMetrics = useMemo(() => {
     const clipDuration = Math.max(0, endTime - startTime);
 
@@ -252,6 +260,55 @@ export function EditorControls({
       </button>
     </ControlTooltip>
   );
+  const rangeActionButtonClassName =
+    "flex h-8 items-center justify-center gap-1.5 px-2.5 text-xs font-semibold text-muted-foreground transition-colors hover:bg-editor-control-hover hover:text-foreground focus-visible:ring-2 focus-visible:ring-editor-accent/35 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-45";
+  const rangeActions = (
+    <div className="flex items-center overflow-hidden rounded-[var(--radius-control)] border border-editor-border bg-editor-control">
+      <ControlTooltip
+        label="Set in point at the playhead"
+        disabled={!canSetClipRange}
+      >
+        <button
+          type="button"
+          onClick={onSetInPoint}
+          disabled={!canSetClipRange}
+          className={rangeActionButtonClassName}
+          aria-label="Set in point at the playhead"
+        >
+          In
+        </button>
+      </ControlTooltip>
+      <ControlTooltip
+        label="Set out point at the playhead"
+        disabled={!canSetClipRange}
+      >
+        <button
+          type="button"
+          onClick={onSetOutPoint}
+          disabled={!canSetClipRange}
+          className={`${rangeActionButtonClassName} border-l border-editor-border`}
+          aria-label="Set out point at the playhead"
+        >
+          Out
+        </button>
+      </ControlTooltip>
+      <ControlTooltip
+        label="Clear in and out points"
+        disabled={!canSetClipRange}
+      >
+        <button
+          type="button"
+          onClick={onClearPoints}
+          disabled={!canSetClipRange}
+          className={`${rangeActionButtonClassName} border-l border-editor-border`}
+          aria-label="Clear in and out points"
+        >
+          <RotateCcw className="h-3.5 w-3.5" />
+          Clear
+        </button>
+      </ControlTooltip>
+    </div>
+  );
   const editableClipMetrics = (
     <>
       {clipMetrics.map((metric) => (
@@ -264,7 +321,7 @@ export function EditorControls({
               ariaLabel={`${metric.label} time`}
               buttonClassName="w-full justify-end rounded-[var(--radius-control)] px-1 font-mono text-sm font-semibold tabular-nums text-muted-foreground hover:bg-editor-control-hover hover:text-foreground focus-visible:ring-editor-accent/35"
               className="justify-end"
-              disabled={!canEditClipRange}
+              disabled={!canEditClipTimecode}
               inputClassName="text-right"
               onCommit={metric.onCommit}
               style={clipMetricTimeStyle}
@@ -350,6 +407,7 @@ export function EditorControls({
                   <div className="grid gap-2 text-right">
                     {editableClipMetrics}
                   </div>
+                  <div className="mt-3 flex justify-end">{rangeActions}</div>
                 </section>
               </div>
             </DrawerContent>
@@ -391,6 +449,7 @@ export function EditorControls({
         {volumeControl}
         {zoomControl}
         {framegrabControl}
+        {rangeActions}
         <div className="min-w-0 flex-1" />
         <div className="flex flex-wrap items-center justify-end gap-x-4 gap-y-2 text-right sm:gap-x-6">
           {editableClipMetrics}

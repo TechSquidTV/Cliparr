@@ -9,17 +9,9 @@ import {
   loadSubtitleStyleSettings,
   saveSubtitleStyleSettings,
 } from "@/lib/subtitles/settings";
-import { formatSubtitleTrackLabel } from "@/lib/subtitleTrackLabels";
 import { trimSubtitleCues } from "@/lib/subtitles/trimSubtitleCues";
 import type { PlaybackSubtitleTrack } from "@/providers/types";
 import { buildSubtitleExportSummary } from "@/components/editor/subtitleExportSummary";
-import {
-  applySubtitleCueTimingUpdates,
-  buildSubtitleTimelineTrack,
-  subtitleTimelineTrackToCues,
-  type SubtitleCueTimingUpdate,
-  type SubtitleTimelineTrack,
-} from "@/components/editor/subtitleTimeline";
 import { useSubtitleCues } from "@/components/editor/useSubtitleCues";
 
 interface UseEditorSubtitlesProperties {
@@ -39,8 +31,6 @@ export function useEditorSubtitles({
   const [subtitleEnabled, setSubtitleEnabled] = useState(false);
   const [selectedSubtitleTrackKey, setSelectedSubtitleTrackKey] =
     useState("none");
-  const [subtitleTimelineTrack, setSubtitleTimelineTrack] =
-    useState<SubtitleTimelineTrack | null>(null);
 
   const subtitleTracks = useMemo<PlaybackSubtitleTrack[]>(
     () =>
@@ -81,17 +71,7 @@ export function useEditorSubtitles({
         : [],
     [downloadedSubtitleCues, loadedSubtitleTrackKey, selectedSubtitleTrackKey],
   );
-  const subtitleCues = useMemo(
-    () =>
-      subtitleTimelineTrack
-        ? subtitleTimelineTrackToCues(subtitleTimelineTrack)
-        : selectedDownloadedSubtitleCues,
-    [selectedDownloadedSubtitleCues, subtitleTimelineTrack],
-  );
-  const subtitlePreviewEnabled =
-    subtitleEnabled &&
-    subtitleTrackSupportsBurnIn(selectedSubtitleTrack) &&
-    subtitleCues.length > 0;
+  const subtitleCues = selectedDownloadedSubtitleCues;
   const clippedSubtitleCues = useMemo(
     () =>
       subtitleEnabled ? trimSubtitleCues(subtitleCues, startTime, endTime) : [],
@@ -122,40 +102,6 @@ export function useEditorSubtitles({
   useEffect(() => {
     saveSubtitleStyleSettings(subtitleStyleSettings);
   }, [subtitleStyleSettings]);
-
-  useEffect(() => {
-    setSubtitleTimelineTrack(null);
-  }, [session.id, selectedSubtitleTrackKey]);
-
-  useEffect(() => {
-    if (
-      !selectedSubtitleTrack ||
-      loadedSubtitleTrackKey !== selectedSubtitleTrackKey ||
-      downloadedSubtitleCues.length === 0
-    ) {
-      return;
-    }
-
-    const trackKey = selectedSubtitleTrackKey;
-    setSubtitleTimelineTrack((current) => {
-      if (current?.trackKey === trackKey) {
-        return current;
-      }
-
-      return buildSubtitleTimelineTrack({
-        trackKey,
-        label: formatSubtitleTrackLabel(selectedSubtitleTrack, {
-          variant: "timeline",
-        }),
-        cues: downloadedSubtitleCues,
-      });
-    });
-  }, [
-    downloadedSubtitleCues,
-    loadedSubtitleTrackKey,
-    selectedSubtitleTrack,
-    selectedSubtitleTrackKey,
-  ]);
 
   useEffect(() => {
     const preferredSubtitleTrack = selectPreferredSubtitleTrack(
@@ -203,19 +149,6 @@ export function useEditorSubtitles({
     [clearSubtitleError, resetSubtitleCues, subtitleTracks],
   );
 
-  const updateSubtitleCueTimings = useCallback(
-    (updates: readonly SubtitleCueTimingUpdate[], duration: number) => {
-      setSubtitleTimelineTrack((current) =>
-        applySubtitleCueTimingUpdates({
-          track: current,
-          updates,
-          duration,
-        }),
-      );
-    },
-    [],
-  );
-
   return {
     subtitleTracks,
     selectedSubtitleTrack,
@@ -227,11 +160,8 @@ export function useEditorSubtitles({
     subtitleCues,
     subtitleLoading,
     subtitleError,
-    subtitlePreviewEnabled,
-    subtitleTimelineTrack,
     clippedSubtitleCues,
     subtitleExportSummary,
     handleSelectedSubtitleTrackChange,
-    updateSubtitleCueTimings,
   };
 }

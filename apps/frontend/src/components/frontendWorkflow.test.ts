@@ -938,6 +938,9 @@ void test("renders mobile editor controls trigger and compact range summary", ()
         onPreviewTimeCommit: () => {},
         onStartTimeCommit: () => {},
         onEndTimeCommit: () => {},
+        onSetInPoint: () => {},
+        onSetOutPoint: () => {},
+        onClearPoints: () => {},
       }),
     ),
   );
@@ -1018,11 +1021,17 @@ void test("renders the editor framegrab camera control", () => {
         onPreviewTimeCommit: () => {},
         onStartTimeCommit: () => {},
         onEndTimeCommit: () => {},
+        onSetInPoint: () => {},
+        onSetOutPoint: () => {},
+        onClearPoints: () => {},
       }),
     ),
   );
 
   assert.match(markup, /Export current preview frame/);
+  assert.match(markup, /Set in point at the playhead/);
+  assert.match(markup, /Set out point at the playhead/);
+  assert.match(markup, /Clear in and out points/);
   assert.ok(
     markup.indexOf('aria-label="Zoom timeline out"') <
       markup.indexOf('aria-label="Zoom timeline in"'),

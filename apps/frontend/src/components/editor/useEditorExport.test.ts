@@ -916,7 +916,6 @@ void test("builds export dimensions and source messaging", () => {
       hlsSource,
       directSource,
       hlsFallbackInfo: {
-        category: "shared-export-blocking",
         message: "browser cannot read the stream",
       },
     }),
@@ -931,11 +930,10 @@ void test("builds export dimensions and source messaging", () => {
       hlsSource,
       directSource,
       hlsFallbackInfo: {
-        category: "shared-export-blocking",
         message: "browser cannot read the stream",
       },
     }),
-    "Export cannot use this HLS stream: browser cannot read the stream",
+    "Trying HLS: browser cannot read the stream",
   );
 
   assert.equal(

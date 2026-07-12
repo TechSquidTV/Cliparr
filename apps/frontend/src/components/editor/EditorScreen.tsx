@@ -3,38 +3,37 @@ import {
   Suspense,
   useCallback,
   useEffect,
-  useRef,
+  useMemo,
   useState,
 } from "react";
+import {
+  TimelineProvider,
+  fromSeconds,
+  toSeconds,
+  useTimeline,
+  useTimelineZoomControl,
+} from "@techsquidtv/canvas-timeline";
 import {
   clampClipEndTime,
   clampClipStartTime,
   clampPlaybackTime,
-  MIN_CLIP_SECONDS,
-  roundTimelineTime,
 } from "@/components/editor/editorUtilities";
 import {
   EDITOR_LARGE_SEEK_SECONDS,
   EDITOR_SMALL_SEEK_SECONDS,
   resolveRelativeSeekTime,
 } from "@/components/editor/editorShortcutCommands";
-import {
-  useEditorPlayback,
-  type PlaybackFallbackInfo,
-} from "@/components/editor/useEditorPlayback";
+import type { PlaybackFallbackInfo } from "@/components/editor/editorPlaybackSources";
 import { useEditorExport } from "@/components/editor/useEditorExport";
 import { useEditorKeyboardShortcuts } from "@/components/editor/useEditorKeyboardShortcuts";
-import { useEditorTimeline } from "@/components/editor/useEditorTimeline";
+import { useEditorTimelineMedia } from "@/components/editor/useEditorTimelineMedia";
+import { createEditorTimelineEngine } from "@/components/editor/editorTimelineEngine";
 import { EditorHeader } from "@/components/editor/EditorHeader";
 import { EditorPreview } from "@/components/editor/EditorPreview";
 import { EditorControls } from "@/components/editor/EditorControls";
 import { EditorPlaybackSourcePanel } from "@/components/editor/EditorPlaybackSourcePanel";
 import { EditorTimeline } from "@/components/editor/EditorTimeline";
 import { EditorSubtitlePanel } from "@/components/editor/EditorSubtitlePanel";
-import {
-  buildClipRangeAfterDurationDiscovery,
-  buildInitialClipRange,
-} from "@/components/editor/initialClipRange";
 import { EDITOR_DESKTOP_LAYOUT_QUERY } from "@/components/editor/editorLayoutSizing";
 import {
   EditorDesktopLayout,
@@ -48,10 +47,6 @@ import {
   loadEditorPropertiesOpenSections,
   saveEditorPropertiesOpenSections,
 } from "@/components/editor/editorSidebarPreferences";
-import {
-  isValidSubtitleTimelineActionRange,
-  subtitleCueIdFromActionId,
-} from "@/components/editor/subtitleTimeline";
 import { sourceDisplayLabel, type EditorSession } from "@/lib/editorMedia";
 import { EDITOR_THUMBNAIL_VIEW_TRANSITION_NAME } from "@/lib/viewTransitions";
 
@@ -73,22 +68,29 @@ interface Properties {
 }
 
 export default function EditorScreen({ session, onBack }: Properties) {
-  const initialClipRange = buildInitialClipRange(
-    session.duration,
-    session.initialPlayheadSeconds,
+  const engine = useMemo(() => createEditorTimelineEngine(session), [session]);
+
+  return (
+    <TimelineProvider key={session.id} engine={engine}>
+      <EditorScreenContent session={session} onBack={onBack} />
+    </TimelineProvider>
   );
-  const [startTime, setStartTime] = useState(() => initialClipRange.startTime);
-  const [endTime, setEndTime] = useState(() => initialClipRange.endTime);
+}
+
+function EditorScreenContent({ session, onBack }: Properties) {
+  const { engine, state: timelineState } = useTimeline();
+  const timelineMedia = useEditorTimelineMedia(session);
+  const duration = timelineMedia.duration;
+  const startTime = timelineState.inPoint
+    ? toSeconds(timelineState.inPoint)
+    : 0;
+  const endTime = timelineState.outPoint
+    ? toSeconds(timelineState.outPoint)
+    : duration;
   const [playbackSidebarOpen, setPlaybackSidebarOpen] = useState(true);
   const [editorPropertiesOpenSections, setEditorPropertiesOpenSections] =
     useState(loadEditorPropertiesOpenSections);
   const [exportDialogMounted, setExportDialogMounted] = useState(false);
-  const playbackTimeUpdateReference = useRef<
-    ((seconds: number) => void) | null
-  >(null);
-  const handlePlaybackTimeUpdate = useCallback((seconds: number) => {
-    playbackTimeUpdateReference.current?.(seconds);
-  }, []);
   const {
     subtitleTracks,
     selectedSubtitleTrack,
@@ -100,12 +102,9 @@ export default function EditorScreen({ session, onBack }: Properties) {
     subtitleCues,
     subtitleLoading,
     subtitleError,
-    subtitlePreviewEnabled,
-    subtitleTimelineTrack,
     clippedSubtitleCues,
     subtitleExportSummary,
     handleSelectedSubtitleTrackChange,
-    updateSubtitleCueTimings,
   } = useEditorSubtitles({
     session,
     startTime,
@@ -116,7 +115,6 @@ export default function EditorScreen({ session, onBack }: Properties) {
   const {
     canvasRef,
     currentTime,
-    duration,
     playing,
     loadingPreview,
     loadingPreviewFrame,
@@ -129,7 +127,6 @@ export default function EditorScreen({ session, onBack }: Properties) {
     sourceVideoDimensions,
     previewVideoDimensions,
     frameStepSeconds,
-    playbackReadyRange,
     volume,
     muted,
     setVolume,
@@ -137,25 +134,8 @@ export default function EditorScreen({ session, onBack }: Properties) {
     togglePlay,
     pausePlayback,
     seekToTime,
-    warmClipSelection,
-    setCurrentTime,
     getPlaybackTime,
-    playbackTimeAtStartRef,
-  } = useEditorPlayback({
-    hlsSource: session.hlsSource,
-    directSource: session.directSource,
-    initialDuration: session.duration,
-    initialCurrentTime: initialClipRange.startTime,
-    startTime,
-    endTime,
-    sessionId: session.id,
-    selectedAudioTrack: session.selectedAudioTrack,
-    posterImageUrl,
-    subtitleCues,
-    subtitlesEnabled: subtitlePreviewEnabled,
-    subtitleStyleSettings,
-    onPlaybackTimeUpdate: handlePlaybackTimeUpdate,
-  });
+  } = timelineMedia;
 
   useEffect(() => {
     saveEditorPropertiesOpenSections(editorPropertiesOpenSections);
@@ -226,8 +206,6 @@ export default function EditorScreen({ session, onBack }: Properties) {
   });
   const previewSourceLabel =
     activeSourceLabel || (loadingPreview ? "Resolving stream" : "Unavailable");
-  const isHlsPreviewSource =
-    previewSourceLabel === "HLS stream" || previewSourceLabel === "HLS URL";
 
   useEffect(() => {
     if (exportDialogOpen) {
@@ -235,72 +213,23 @@ export default function EditorScreen({ session, onBack }: Properties) {
     }
   }, [exportDialogOpen]);
 
-  const updateClipRange = useCallback(
-    (nextStart: number, nextEnd: number) => {
-      if (!duration || duration <= 0) {
-        return;
-      }
-
-      const minClipLength = Math.min(MIN_CLIP_SECONDS, duration);
-      const boundedStart = Math.min(
-        Math.max(nextStart, 0),
-        Math.max(duration - minClipLength, 0),
-      );
-      const boundedEnd = Math.min(
-        Math.max(nextEnd, boundedStart + minClipLength),
-        duration,
-      );
-      const roundedStart = roundTimelineTime(boundedStart);
-      const roundedEnd = roundTimelineTime(boundedEnd);
-
-      setStartTime(roundedStart);
-      setEndTime(roundedEnd);
-    },
-    [duration],
-  );
-
-  const isValidTimelineRange = useCallback(
-    (nextStart: number, nextEnd: number) => {
-      const minClipLength = Math.min(MIN_CLIP_SECONDS, duration);
-      return (
-        duration > 0 &&
-        nextStart >= 0 &&
-        nextEnd <= duration &&
-        nextEnd - nextStart >= minClipLength
-      );
-    },
-    [duration],
-  );
-  const isValidTimelineActionRange = useCallback(
-    ({
-      action,
-      start,
-      end,
-    }: {
-      action: { id: string };
-      start: number;
-      end: number;
-    }) => {
-      if (subtitleCueIdFromActionId(action.id)) {
-        return isValidSubtitleTimelineActionRange({
-          actionId: action.id,
-          startTime: start,
-          endTime: end,
-          duration,
-        });
-      }
-
-      return isValidTimelineRange(start, end);
-    },
-    [duration, isValidTimelineRange],
-  );
+  const zoomControl = useTimelineZoomControl({ min: 10, max: 1000 });
+  const hasDuration = timelineMedia.ready && duration > 0;
+  const canZoomOut = zoomControl.value > zoomControl.min;
+  const canZoomIn = zoomControl.value < zoomControl.max;
+  const handleTimelineZoomOut = useCallback(() => {
+    zoomControl.commit(Math.max(zoomControl.min, zoomControl.value / 1.25));
+  }, [zoomControl]);
+  const handleTimelineZoomIn = useCallback(() => {
+    zoomControl.commit(Math.min(zoomControl.max, zoomControl.value * 1.25));
+  }, [zoomControl]);
   const handlePreviewTimeCommit = useCallback(
     (nextTime: number) => {
       if (!duration || duration <= 0) {
         return;
       }
 
-      void seekToTime(clampPlaybackTime(nextTime, duration));
+      seekToTime(clampPlaybackTime(nextTime, duration));
     },
     [duration, seekToTime],
   );
@@ -311,10 +240,9 @@ export default function EditorScreen({ session, onBack }: Properties) {
       }
 
       const nextClampedStart = clampClipStartTime(nextStart, endTime, duration);
-      updateClipRange(nextClampedStart, endTime);
-      void warmClipSelection(nextClampedStart, endTime);
+      engine.setInPoint(fromSeconds(nextClampedStart));
     },
-    [duration, endTime, updateClipRange, warmClipSelection],
+    [duration, endTime, engine],
   );
   const handleEndTimeCommit = useCallback(
     (nextEnd: number) => {
@@ -323,10 +251,9 @@ export default function EditorScreen({ session, onBack }: Properties) {
       }
 
       const nextClampedEnd = clampClipEndTime(nextEnd, startTime, duration);
-      updateClipRange(startTime, nextClampedEnd);
-      void warmClipSelection(startTime, nextClampedEnd);
+      engine.setOutPoint(fromSeconds(nextClampedEnd));
     },
-    [duration, startTime, updateClipRange, warmClipSelection],
+    [duration, engine, startTime],
   );
   const handleMarkInShortcut = useCallback(() => {
     if (!duration || duration <= 0) {
@@ -334,37 +261,33 @@ export default function EditorScreen({ session, onBack }: Properties) {
     }
 
     const nextStart = clampClipStartTime(getPlaybackTime(), endTime, duration);
-    updateClipRange(nextStart, endTime);
-    void warmClipSelection(nextStart, endTime);
-  }, [duration, endTime, getPlaybackTime, updateClipRange, warmClipSelection]);
+    engine.setInPoint(fromSeconds(nextStart));
+  }, [duration, endTime, engine, getPlaybackTime]);
   const handleMarkOutShortcut = useCallback(() => {
     if (!duration || duration <= 0) {
       return;
     }
 
     const nextEnd = clampClipEndTime(getPlaybackTime(), startTime, duration);
-    updateClipRange(startTime, nextEnd);
-    void warmClipSelection(startTime, nextEnd);
-  }, [
-    duration,
-    getPlaybackTime,
-    startTime,
-    updateClipRange,
-    warmClipSelection,
-  ]);
+    engine.setOutPoint(fromSeconds(nextEnd));
+  }, [duration, engine, getPlaybackTime, startTime]);
+  const handleClearInOutPoints = useCallback(() => {
+    engine.setInPoint(undefined);
+    engine.setOutPoint(undefined);
+  }, [engine]);
   const handleJumpToInShortcut = useCallback(() => {
     if (!duration || duration <= 0) {
       return;
     }
 
-    void seekToTime(clampPlaybackTime(startTime, duration));
+    seekToTime(clampPlaybackTime(startTime, duration));
   }, [duration, seekToTime, startTime]);
   const handleJumpToOutShortcut = useCallback(() => {
     if (!duration || duration <= 0) {
       return;
     }
 
-    void seekToTime(clampPlaybackTime(endTime, duration));
+    seekToTime(clampPlaybackTime(endTime, duration));
   }, [duration, endTime, seekToTime]);
   const seekByShortcut = useCallback(
     (deltaSeconds: number) => {
@@ -372,7 +295,7 @@ export default function EditorScreen({ session, onBack }: Properties) {
         return;
       }
 
-      void seekToTime(
+      seekToTime(
         resolveRelativeSeekTime({
           currentTime: getPlaybackTime(),
           deltaSeconds,
@@ -394,86 +317,12 @@ export default function EditorScreen({ session, onBack }: Properties) {
         duration,
       });
       pausePlayback();
-      void seekToTime(nextTime);
+      seekToTime(nextTime);
     },
     [duration, frameStepSeconds, getPlaybackTime, pausePlayback, seekToTime],
   );
-  const {
-    timelineRef,
-    timelineWheelRegionRef,
-    timelineData,
-    timelineEffects,
-    timelineSubtitleActionLabels,
-    activeTimelineScale,
-    timelineScaleCount,
-    handleTimelineScroll,
-    handleTimelineZoomIn,
-    handleTimelineZoomOut,
-    canZoomIn,
-    canZoomOut,
-    handleTimelineChange,
-    handleTimelineActionMoveEnd,
-    handleTimelineActionResizeEnd,
-    setTimelineCurrentTime,
-    hasDuration,
-  } = useEditorTimeline({
-    duration,
-    startTime,
-    endTime,
-    currentTime,
-    sessionId: session.id,
-    updateClipRange,
-    onClipRangeCommit: (nextStart, nextEnd) => {
-      void warmClipSelection(nextStart, nextEnd);
-    },
-    subtitleTimelineTrack,
-    updateSubtitleCueTimings,
-  });
-
-  useEffect(() => {
-    playbackTimeUpdateReference.current = setTimelineCurrentTime;
-    return () => {
-      playbackTimeUpdateReference.current = null;
-    };
-  }, [setTimelineCurrentTime]);
-
-  useEffect(() => {
-    if (!duration || duration <= 0) {
-      return;
-    }
-
-    const discoveredInitialRange = buildClipRangeAfterDurationDiscovery({
-      initialDuration: session.duration,
-      currentStartTime: startTime,
-      currentEndTime: endTime,
-      discoveredDuration: duration,
-      playheadSeconds: session.initialPlayheadSeconds,
-    });
-    if (discoveredInitialRange) {
-      updateClipRange(
-        discoveredInitialRange.startTime,
-        discoveredInitialRange.endTime,
-      );
-      return;
-    }
-
-    if (isValidTimelineRange(startTime, endTime)) {
-      return;
-    }
-
-    updateClipRange(startTime, endTime);
-  }, [
-    duration,
-    endTime,
-    isValidTimelineRange,
-    session.duration,
-    session.initialPlayheadSeconds,
-    startTime,
-    updateClipRange,
-  ]);
-
   useEditorKeyboardShortcuts({
-    togglePlay,
+    togglePlay: () => void togglePlay(),
     markIn: handleMarkInShortcut,
     markOut: handleMarkOutShortcut,
     jumpToIn: handleJumpToInShortcut,
@@ -552,38 +401,12 @@ export default function EditorScreen({ session, onBack }: Properties) {
       onPreviewTimeCommit={handlePreviewTimeCommit}
       onStartTimeCommit={handleStartTimeCommit}
       onEndTimeCommit={handleEndTimeCommit}
+      onSetInPoint={handleMarkInShortcut}
+      onSetOutPoint={handleMarkOutShortcut}
+      onClearPoints={handleClearInOutPoints}
     />
   );
-  const editorTimeline = hasDuration ? (
-    <EditorTimeline
-      timelineRef={timelineRef}
-      timelineWheelRegionRef={timelineWheelRegionRef}
-      timelineData={timelineData}
-      timelineEffects={timelineEffects}
-      timelineSubtitleActionLabels={timelineSubtitleActionLabels}
-      activeTimelineScale={activeTimelineScale}
-      timelineScaleCount={timelineScaleCount}
-      playbackReadyRange={isHlsPreviewSource ? playbackReadyRange : null}
-      loadingPreview={loadingPreview}
-      playing={playing}
-      handleTimelineScroll={handleTimelineScroll}
-      handleTimelineChange={handleTimelineChange}
-      handleTimelineActionMoveEnd={handleTimelineActionMoveEnd}
-      handleTimelineActionResizeEnd={handleTimelineActionResizeEnd}
-      isValidTimelineActionRange={isValidTimelineActionRange}
-      seekToTime={seekToTime}
-      onCursorDragStart={() => {
-        if (playing) {
-          pausePlayback();
-        }
-      }}
-      onCursorDrag={(time) => {
-        const nextTime = Math.min(Math.max(time, 0), duration);
-        playbackTimeAtStartRef.current = nextTime;
-        setCurrentTime(nextTime);
-      }}
-    />
-  ) : null;
+  const editorTimeline = hasDuration ? <EditorTimeline /> : null;
   const timelinePane = (
     <EditorTimelinePane
       variant={layoutVariant}
@@ -805,10 +628,5 @@ function buildPlaybackFallbackReason({
     return null;
   }
 
-  const prefix =
-    hlsFallbackInfo.category === "preview-only"
-      ? "Preview switched sources"
-      : "Using direct media";
-
-  return `${prefix}: ${hlsFallbackInfo.message}`;
+  return `Using direct media: ${hlsFallbackInfo.message}`;
 }

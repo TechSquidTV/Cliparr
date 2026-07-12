@@ -1,14 +1,5 @@
-import type {
-  InputAudioTrack,
-  InputTrack,
-  InputVideoTrack,
-  VideoCodec,
-} from "mediabunny";
-
-interface VideoTrackDimensions {
-  width: number;
-  height: number;
-}
+import type { InputTrack, InputVideoTrack, VideoCodec } from "mediabunny";
+import type { MediaDimensions } from "@/lib/editorMedia";
 
 export interface VideoTrackDecodabilityAssessment {
   codec: VideoCodec | null;
@@ -72,17 +63,13 @@ export function videoTrackExportUnsupportedMessage(
 
 export async function getVideoTrackDimensions(
   track: InputVideoTrack,
-): Promise<VideoTrackDimensions> {
+): Promise<MediaDimensions> {
   const [width, height] = await Promise.all([
     track.getDisplayWidth(),
     track.getDisplayHeight(),
   ]);
 
   return { width, height };
-}
-
-export async function getAudioTrackSampleRate(track: InputAudioTrack) {
-  return track.getSampleRate();
 }
 
 export async function getTrackTimelineOffsetSeconds(
