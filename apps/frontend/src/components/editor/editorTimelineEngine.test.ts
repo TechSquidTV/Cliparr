@@ -10,6 +10,7 @@ import {
   createEditorTimelineEngine,
   subtitleCuesFromTimeline,
   synchronizeEditorTimelineMedia,
+  synchronizeEditorTimelineSession,
   synchronizeEditorTimelineSubtitles,
   timelineScrollLeftForCenteredTime,
 } from "@/components/editor/editorTimelineEngine";
@@ -133,6 +134,65 @@ void describe("editor timeline engine", () => {
     const state = engine.getState();
     assert.equal(state.inPoint, undefined);
     assert.equal(state.outPoint, undefined);
+  });
+
+  void it("synchronizes refreshed session metadata without replacing engine-owned edits", () => {
+    const warmSession = createSession({ duration: 20, title: "Warm title" });
+    const engine = createEditorTimelineEngine(warmSession);
+    synchronizeEditorTimelineSubtitles(engine, {
+      cues: [
+        {
+          startTime: 2,
+          endTime: 4,
+          text: "Customized subtitle",
+          lines: ["Customized subtitle"],
+        },
+      ],
+    });
+    engine.setInPoint(fromSeconds(3));
+    engine.setOutPoint(fromSeconds(12));
+    engine.setZoomScale(180);
+
+    synchronizeEditorTimelineSession(
+      engine,
+      warmSession,
+      createSession({ duration: 25, title: "Fetched title" }),
+    );
+
+    const state = engine.getState();
+    assert.equal(toSeconds(state.duration!), 25);
+    assert.equal(state.tracks[0]?.clips[0]?.label, "Fetched title");
+    assert.equal(toSeconds(state.inPoint!), 3);
+    assert.equal(toSeconds(state.outPoint!), 12);
+    assert.equal(state.zoomScale, 180);
+    assert.deepEqual(subtitleCuesFromTimeline(state.tracks), [
+      {
+        startTime: 2,
+        endTime: 4,
+        text: "Customized subtitle",
+        lines: ["Customized subtitle"],
+      },
+    ]);
+  });
+
+  void it("discovers the export range when refreshed session metadata supplies duration", () => {
+    const warmSession = createSession({
+      duration: 0,
+      initialPlayheadSeconds: 8,
+    });
+    const engine = createEditorTimelineEngine(warmSession);
+
+    synchronizeEditorTimelineSession(
+      engine,
+      warmSession,
+      createSession({ duration: 30, initialPlayheadSeconds: 8 }),
+    );
+
+    const state = engine.getState();
+    assert.equal(toSeconds(state.duration!), 30);
+    assert.equal(toSeconds(state.inPoint!), 8);
+    assert.equal(toSeconds(state.outPoint!), 18);
+    assert.equal(toSeconds(state.playheadTime), 8);
   });
 
   void it("stores parsed subtitle cues as engine-owned subtitle clips", () => {

@@ -9,32 +9,18 @@ description: Cliparr media editor/export workflow guidance for HLS playback, sou
 
 Use this skill for changes that affect Cliparr's editor preview, HLS handling, export source choice, Mediabunny conversion, subtitle burn-in, metadata tagging, timeline offsets, or media proxy behavior.
 
-Treat `.github/docs/diagrams.md` as the canonical reference for detailed decision trees. Do not copy those trees into this skill; read and update `.github/docs/diagrams.md` when behavior changes.
-
-## Start Here
-
-Before changing behavior, read the relevant `.github/docs/diagrams.md` sections:
-
-- Playback source construction: `Playback Candidate Tree`, `HLS Track Selection Tree`, `Source Vs Preview Track Tree`
-- HLS fallback and readiness: `Playback Fallback Tree`, `Preview Ready Warmup Tree`
-- Export source choice: `Export Source Selection Tree`, `Export Output Flow`
-- Timeline offset work: `Timeline Normalization Tree`
-- Proxy or playlist work: `Playlist Rewrite Tree`, `Proxy Media Request Tree`
-- Broad behavior checks: `Frontend Responsibility Map`, `End-To-End Summary`
-
-Use `rg -n "^##" .github/docs/diagrams.md` to find section line numbers, then read only the relevant section(s).
+Treat the implementation and its focused tests as the canonical reference for
+media editor and export behavior. When behavior changes, update the matching
+tests in the same change instead of maintaining a parallel architecture
+diagram.
 
 ## Main Entry Points
 
 Frontend editor and playback:
 
-- `apps/frontend/src/components/editor/useEditorPlayback.ts`
+- `apps/frontend/src/components/editor/useEditorTimelineMedia.ts`
 - `apps/frontend/src/components/editor/editorPlaybackSources.ts`
-- `apps/frontend/src/components/editor/editorPlaybackPlan.ts`
-- `apps/frontend/src/components/editor/editorPlaybackSinks.ts`
-- `apps/frontend/src/components/editor/useEditorPlaybackWarmup.ts`
-- `apps/frontend/src/components/editor/useEditorPlaybackSelectionWarmup.ts`
-- `apps/frontend/src/components/editor/useEditorTimeline.ts`
+- `apps/frontend/src/components/editor/editorTimelineEngine.ts`
 - `apps/frontend/src/components/editor/EditorTimeline.tsx`
 
 Export and media helpers:
@@ -68,8 +54,8 @@ Server/provider paths:
 ## Invariants
 
 - Keep source semantics separate from preview mechanics: source tracks determine duration, timeline offsets, export blocking, and export alignment; preview tracks determine browser playback.
-- Preserve auto export source order from `.github/docs/diagrams.md`: explicit user choice wins, otherwise fallback source, then HLS, then direct.
-- Change HLS fallback only with the fallback categories in `.github/docs/diagrams.md`; preview-only failures should not silently change export source.
+- Preserve auto export source order: explicit user choice wins, otherwise fallback source, then HLS, then direct.
+- Preview-only failures should not silently change the export source.
 - Apply `timelineOffsetSeconds` consistently to preview seeking and export trim boundaries.
 - Keep HLS playlist rewrite behavior origin-safe and base-path aware for nested relative playlists.
 - Attach provider auth only when the media request origin matches the provider base URL origin.
@@ -84,4 +70,4 @@ Run the package-level tests that match the change:
 - Server media proxy or provider playback changes: `pnpm --filter @cliparr/server test`
 - Shared provider contract changes: run both frontend and server tests.
 
-For changes that update diagrams, also inspect `.github/docs/diagrams.md` rendered Mermaid mentally for broken labels or flow syntax. Before committing, use `$cliparr-git-workflow`; it requires `pnpm preflight`.
+Before committing, use `$cliparr-git-workflow`; it requires `pnpm preflight`.

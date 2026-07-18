@@ -3,7 +3,7 @@ import {
   Suspense,
   useCallback,
   useEffect,
-  useMemo,
+  useLayoutEffect,
   useRef,
   useState,
 } from "react";
@@ -28,7 +28,10 @@ import type { PlaybackFallbackInfo } from "@/components/editor/editorPlaybackSou
 import { useEditorExport } from "@/components/editor/useEditorExport";
 import { useEditorKeyboardShortcuts } from "@/components/editor/useEditorKeyboardShortcuts";
 import { useEditorTimelineMedia } from "@/components/editor/useEditorTimelineMedia";
-import { createEditorTimelineEngine } from "@/components/editor/editorTimelineEngine";
+import {
+  createEditorTimelineEngine,
+  synchronizeEditorTimelineSession,
+} from "@/components/editor/editorTimelineEngine";
 import { EditorHeader } from "@/components/editor/EditorHeader";
 import { EditorPreview } from "@/components/editor/EditorPreview";
 import { EditorSubtitlePreview } from "@/components/editor/EditorSubtitlePreview";
@@ -70,10 +73,27 @@ interface Properties {
 }
 
 export default function EditorScreen({ session, onBack }: Properties) {
-  const engine = useMemo(() => createEditorTimelineEngine(session), [session]);
+  return (
+    <EditorSessionScreen key={session.id} session={session} onBack={onBack} />
+  );
+}
+
+function EditorSessionScreen({ session, onBack }: Properties) {
+  const [engine] = useState(() => createEditorTimelineEngine(session));
+  const previousSessionReference = useRef(session);
+
+  useLayoutEffect(() => {
+    const previousSession = previousSessionReference.current;
+    previousSessionReference.current = session;
+    if (previousSession === session) {
+      return;
+    }
+
+    synchronizeEditorTimelineSession(engine, previousSession, session);
+  }, [engine, session]);
 
   return (
-    <TimelineProvider key={session.id} engine={engine}>
+    <TimelineProvider engine={engine}>
       <EditorScreenContent session={session} onBack={onBack} />
     </TimelineProvider>
   );

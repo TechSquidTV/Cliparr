@@ -171,6 +171,40 @@ export function createEditorTimelineEngine(session: EditorSession) {
   return engine;
 }
 
+export function synchronizeEditorTimelineSession(
+  engine: TimelineEngine,
+  previousSession: EditorSession,
+  session: EditorSession,
+) {
+  if (previousSession.id !== session.id) {
+    return;
+  }
+
+  const mediaClip = engine
+    .getState()
+    .tracks.flatMap((track) => track.clips)
+    .find((clip) => clip.id === EDITOR_MEDIA_CLIP_ID);
+  if (mediaClip?.label !== session.title) {
+    engine.updateClipProperties(EDITOR_MEDIA_CLIP_ID, {
+      label: session.title,
+    });
+  }
+
+  if (
+    session.duration <= 0 ||
+    Math.abs(session.duration - previousSession.duration) <= Number.EPSILON
+  ) {
+    return;
+  }
+
+  synchronizeEditorTimelineMedia(engine, {
+    duration: session.duration,
+    sourceStart: mediaClip ? toSeconds(mediaClip.sourceStart) : 0,
+    initialDuration: previousSession.duration,
+    initialPlayheadSeconds: session.initialPlayheadSeconds,
+  });
+}
+
 export function synchronizeEditorTimelineMedia(
   engine: TimelineEngine,
   options: {
