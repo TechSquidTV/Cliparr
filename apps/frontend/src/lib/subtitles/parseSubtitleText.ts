@@ -1,4 +1,5 @@
 import type { SubtitleCue } from "@/lib/subtitles/types";
+import { normalizeSubtitleCueText } from "@/lib/subtitles/normalizeSubtitleCueText";
 
 type SubtitleTextFormat = "vtt" | "srt";
 
@@ -78,11 +79,13 @@ function cueFromLines(lines: string[]): SubtitleCue | undefined {
 
   const cueId =
     timingIndex > 0 ? trimmedLines[0].trim() || undefined : undefined;
-  const textLines = trimmedLines
-    .slice(timingIndex + 1)
-    .map((line) => cleanCueText(line))
-    .filter(Boolean);
-  if (textLines.length === 0) {
+  const normalizedText = normalizeSubtitleCueText(
+    trimmedLines
+      .slice(timingIndex + 1)
+      .map((line) => cleanCueText(line))
+      .join("\n"),
+  );
+  if (!normalizedText) {
     return undefined;
   }
 
@@ -90,8 +93,7 @@ function cueFromLines(lines: string[]): SubtitleCue | undefined {
     id: cueId,
     startTime,
     endTime,
-    text: textLines.join("\n"),
-    lines: textLines,
+    ...normalizedText,
   };
 }
 

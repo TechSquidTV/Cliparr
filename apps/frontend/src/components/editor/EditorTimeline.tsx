@@ -2,8 +2,9 @@ import {
   CanvasRenderer,
   Timeline,
   toSeconds,
+  useTimelinePlayback,
   useTimelineTracks,
-  useTimeline,
+  useTimelineViewport,
   type UseTimelineTrackHeaderResult,
 } from "@techsquidtv/canvas-timeline";
 import { Eye, EyeOff, Volume2, VolumeX } from "lucide-react";
@@ -95,12 +96,11 @@ function EditorTimelineLayers() {
 }
 
 function CenterViewportOnInPoint() {
-  const { engine, state } = useTimeline();
+  const { inPoint } = useTimelinePlayback();
+  const { maxScrollLeft, setScrollLeft, viewportWidth, zoomScale } =
+    useTimelineViewport();
   const hasCentered = useRef(false);
-  const zoomScale = useRef(state.zoomScale);
-  zoomScale.current = state.zoomScale;
-  const inPointSeconds = state.inPoint ? toSeconds(state.inPoint) : undefined;
-  const viewportWidth = state.viewportWidth ?? 0;
+  const inPointSeconds = inPoint ? toSeconds(inPoint) : undefined;
 
   useEffect(() => {
     if (
@@ -112,15 +112,15 @@ function CenterViewportOnInPoint() {
     }
 
     hasCentered.current = true;
-    engine.setScrollLeft(
+    setScrollLeft(
       timelineScrollLeftForCenteredTime({
-        maxScrollLeft: engine.maxScrollLeft,
+        maxScrollLeft,
         timeSeconds: inPointSeconds,
         viewportWidth,
-        zoomScale: zoomScale.current,
+        zoomScale,
       }),
     );
-  }, [engine, inPointSeconds, viewportWidth]);
+  }, [inPointSeconds, maxScrollLeft, setScrollLeft, viewportWidth, zoomScale]);
 
   return null;
 }

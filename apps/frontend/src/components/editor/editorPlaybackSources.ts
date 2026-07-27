@@ -1,4 +1,5 @@
 import type { InputAudioTrack, InputVideoTrack } from "mediabunny";
+import type { PlaybackAudioSelection } from "#/providers/types";
 import {
   editorMediaSourcesEqual,
   isHlsEditorMediaSource,
@@ -25,6 +26,34 @@ export interface PlaybackSourceCandidate {
 
 export interface PlaybackFallbackInfo {
   message: string;
+}
+
+export function playbackAudioSelectionsEqual(
+  left: PlaybackAudioSelection | undefined,
+  right: PlaybackAudioSelection | undefined,
+) {
+  return (
+    left?.trackNumber === right?.trackNumber &&
+    left?.languageCode === right?.languageCode &&
+    left?.title === right?.title
+  );
+}
+
+export function playbackSourceCandidatesEqual(
+  left: readonly PlaybackSourceCandidate[],
+  right: readonly PlaybackSourceCandidate[],
+) {
+  return (
+    left.length === right.length &&
+    left.every((candidate, index) => {
+      const otherCandidate = right[index];
+      return (
+        otherCandidate !== undefined &&
+        candidate.label === otherCandidate.label &&
+        editorMediaSourcesEqual(candidate.source, otherCandidate.source)
+      );
+    })
+  );
 }
 
 function playbackLabelForSource(

@@ -8,6 +8,8 @@ import {
 } from "@/lib/editorMedia";
 import {
   buildPlaybackSourceCandidates,
+  playbackAudioSelectionsEqual,
+  playbackSourceCandidatesEqual,
   resolvePlaybackDuration,
 } from "@/components/editor/editorPlaybackSources";
 
@@ -62,6 +64,41 @@ void test("builds local file and URL playback candidates", () => {
     { label: "hls url", source: hlsUrlSource },
     { label: "url", source: urlSource },
   ]);
+});
+
+void test("treats refreshed URL source descriptors as the same playback configuration", () => {
+  const first = buildPlaybackSourceCandidates(
+    createProviderUrlSource("/playback/master.m3u8", "hls"),
+    createProviderUrlSource("/media/movie.mp4", "direct"),
+  );
+  const refreshed = buildPlaybackSourceCandidates(
+    createProviderUrlSource("/playback/master.m3u8", "hls"),
+    createProviderUrlSource("/media/movie.mp4", "direct"),
+  );
+  const changed = buildPlaybackSourceCandidates(
+    createProviderUrlSource("/playback/replacement.m3u8", "hls"),
+    createProviderUrlSource("/media/movie.mp4", "direct"),
+  );
+
+  assert.equal(playbackSourceCandidatesEqual(first, refreshed), true);
+  assert.equal(playbackSourceCandidatesEqual(first, changed), false);
+});
+
+void test("compares selected audio tracks by playback identity", () => {
+  assert.equal(
+    playbackAudioSelectionsEqual(
+      { trackNumber: 2, languageCode: "eng", title: "English" },
+      { trackNumber: 2, languageCode: "eng", title: "English" },
+    ),
+    true,
+  );
+  assert.equal(
+    playbackAudioSelectionsEqual(
+      { trackNumber: 2, languageCode: "eng", title: "English" },
+      { trackNumber: 3, languageCode: "spa", title: "Spanish" },
+    ),
+    false,
+  );
 });
 
 void test("preserves server duration for HLS and uses computed direct duration when available", () => {

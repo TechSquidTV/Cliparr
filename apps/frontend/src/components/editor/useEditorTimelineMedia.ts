@@ -3,13 +3,10 @@ import {
   fromSeconds,
   toSeconds,
   useTimeline,
+  useTimelineEvent,
   useTimelineMediaSync,
   useTimelinePlayheadTime,
 } from "@techsquidtv/canvas-timeline";
-import {
-  useMediabunnyAdapter,
-  useMediabunnyFrameTime,
-} from "@techsquidtv/canvas-timeline-mediabunny-adapter/react";
 import type {
   MediabunnyModule,
   MediabunnySource,
@@ -25,6 +22,8 @@ import {
   buildPlaybackSourceCandidates,
   formatPlaybackSourceLabel,
   isPresent,
+  playbackAudioSelectionsEqual,
+  playbackSourceCandidatesEqual,
   resolvePlaybackDuration,
   selectPreviewVideoTrack,
   type PlaybackFallbackInfo,
@@ -34,6 +33,7 @@ import {
   DEFAULT_EDITOR_FRAME_STEP_SECONDS,
   frameStepSecondsFromFrameRate,
 } from "@/components/editor/editorShortcutCommands";
+import { useEditorMediabunnyAdapter } from "@/components/editor/useEditorMediabunnyAdapter";
 import {
   EDITOR_MEDIA_SOURCE_ID,
   synchronizeEditorTimelineMedia,
@@ -58,9 +58,6 @@ const previewLayerSelectors = {
   visuals: { trackKind: "media", sourceId: EDITOR_MEDIA_SOURCE_ID },
   audio: { trackKind: "media", sourceId: EDITOR_MEDIA_SOURCE_ID },
 } as const;
-const mediaTrackKinds = ["media"] as const;
-const loadMediabunny = () => import("mediabunny");
-const noMediaSources: readonly MediabunnySource[] = [];
 
 interface LoadedMediaDetails {
   activeSourceLabel: string;
@@ -81,11 +78,6 @@ interface PreparedInput {
   timelineOffsetSeconds: number;
 }
 
-interface EditorAudioOutput {
-  context: AudioContext;
-  gain: GainNode;
-}
-
 const initialMediaDetails: LoadedMediaDetails = {
   activeSourceLabel: "",
   frameStepSeconds: DEFAULT_EDITOR_FRAME_STEP_SECONDS,
@@ -94,28 +86,6 @@ const initialMediaDetails: LoadedMediaDetails = {
   sourceVideoDimensions: null,
   timelineOffsetSeconds: 0,
 };
-
-function createEditorAudioOutput(): EditorAudioOutput | null {
-  if (typeof window === "undefined") {
-    return null;
-  }
-
-  const AudioContextConstructor =
-    window.AudioContext ??
-    (
-      window as typeof window & {
-        webkitAudioContext?: typeof AudioContext;
-      }
-    ).webkitAudioContext;
-  if (!AudioContextConstructor) {
-    return null;
-  }
-
-  const context = new AudioContextConstructor();
-  const gain = context.createGain();
-  gain.connect(context.destination);
-  return { context, gain };
-}
 
 async function detectFrameStepSeconds(
   sourceVideoTrack: InputVideoTrack | null,
@@ -225,21 +195,36 @@ async function prepareInput(
 export function useEditorTimelineMedia(session: EditorSession) {
   const { engine } = useTimeline();
   const playheadTime = useTimelinePlayheadTime();
-  const canvasRef = useRef<HTMLCanvasElement>(null);
   const [details, setDetails] =
     useState<LoadedMediaDetails>(initialMediaDetails);
   const [playbackError, setPlaybackError] = useState("");
   const [volume, setVolume] = useState(0.8);
   const [muted, setMuted] = useState(false);
-  const [audioOutput, setAudioOutput] = useState<
-    EditorAudioOutput | null | undefined
-  >();
+  const sessionReference = useRef(session);
   const hlsFailureMessageReference = useRef<string | null>(null);
-  const candidates = useMemo(
-    () =>
-      buildPlaybackSourceCandidates(session.hlsSource, session.directSource),
-    [session.directSource, session.hlsSource],
+  sessionReference.current = session;
+
+  const nextCandidates = buildPlaybackSourceCandidates(
+    session.hlsSource,
+    session.directSource,
   );
+  const candidatesReference = useRef(nextCandidates);
+  if (
+    !playbackSourceCandidatesEqual(candidatesReference.current, nextCandidates)
+  ) {
+    candidatesReference.current = nextCandidates;
+  }
+  const candidates = candidatesReference.current;
+  const selectedAudioTrackReference = useRef(session.selectedAudioTrack);
+  if (
+    !playbackAudioSelectionsEqual(
+      selectedAudioTrackReference.current,
+      session.selectedAudioTrack,
+    )
+  ) {
+    selectedAudioTrackReference.current = session.selectedAudioTrack;
+  }
+  const selectedAudioTrack = selectedAudioTrackReference.current;
 
   const sources = useMemo<readonly MediabunnySource[]>(
     () =>
@@ -253,17 +238,28 @@ export function useEditorTimelineMedia(session: EditorSession) {
           });
 
           try {
-            const prepared = await prepareInput(input, candidate, session);
+            const currentSession = {
+              ...sessionReference.current,
+              selectedAudioTrack,
+            };
+            const prepared = await prepareInput(
+              input,
+              candidate,
+              currentSession,
+            );
             const usingDirectFallback = Boolean(
-              session.hlsSource &&
-              session.directSource &&
-              editorMediaSourcesEqual(candidate.source, session.directSource),
+              currentSession.hlsSource &&
+              currentSession.directSource &&
+              editorMediaSourcesEqual(
+                candidate.source,
+                currentSession.directSource,
+              ),
             );
             synchronizeEditorTimelineMedia(engine, {
               duration: prepared.duration,
               sourceStart: prepared.timelineOffsetSeconds,
-              initialDuration: session.duration,
-              initialPlayheadSeconds: session.initialPlayheadSeconds,
+              initialDuration: currentSession.duration,
+              initialPlayheadSeconds: currentSession.initialPlayheadSeconds,
             });
             setDetails({
               activeSourceLabel: formatPlaybackSourceLabel(candidate.label),
@@ -295,62 +291,24 @@ export function useEditorTimelineMedia(session: EditorSession) {
           }
         },
       })),
-    [candidates, engine, session],
+    [candidates, engine, selectedAudioTrack],
   );
-  useEffect(() => {
-    const output = createEditorAudioOutput();
-    setAudioOutput(output);
-
-    return () => {
-      if (output && output.context.state !== "closed") {
-        void output.context.close().catch(() => {});
-      }
-    };
-  }, []);
-  useEffect(() => {
-    if (audioOutput) {
-      audioOutput.gain.gain.value = muted ? 0 : volume;
-    }
-  }, [audioOutput, muted, volume]);
-  const sharedAudio = useMemo(
-    () =>
-      audioOutput
-        ? {
-            context: audioOutput.context,
-            destination: audioOutput.gain,
-            volume: 1,
-          }
-        : null,
-    [audioOutput],
-  );
-  const audio = sharedAudio ?? { volume: muted ? 0 : volume };
+  const {
+    adapter,
+    audioResumeWarning,
+    canvasRef,
+    renderedFrameTime,
+    syncAdapter,
+  } = useEditorMediabunnyAdapter({ sources, muted, volume });
   const handleMediaError = useCallback((message: string) => {
     setPlaybackError(message);
   }, []);
-  const adapter = useMediabunnyAdapter({
-    audio,
-    audioTrackKinds: mediaTrackKinds,
-    canvasRef,
-    mediabunny: loadMediabunny,
-    sources: audioOutput === undefined ? noMediaSources : sources,
-    visualTrackKinds: mediaTrackKinds,
-  });
-  const mediaSyncAdapter = useMemo(
-    () => ({
-      ...adapter.syncAdapter,
-      resumeClock: (playbackRate: number) => {
-        void adapter.resumeClock(playbackRate);
-      },
-    }),
-    [adapter],
-  );
   const { pause, play, playing } = useTimelineMediaSync({
-    adapter: mediaSyncAdapter,
+    adapter: syncAdapter,
     layers: previewLayerSelectors,
     onError: handleMediaError,
-    ready: adapter.ready,
+    ready: adapter?.ready ?? false,
   });
-  const renderedFrameTime = useMediabunnyFrameTime(adapter);
   const renderedTimelineFrameTime =
     renderedFrameTime === null
       ? null
@@ -363,26 +321,22 @@ export function useEditorTimelineMedia(session: EditorSession) {
         );
 
   useEffect(() => {
-    if (adapter.error) {
+    if (adapter?.error) {
       setPlaybackError(adapter.error.message);
     }
-  }, [adapter.error]);
+  }, [adapter?.error]);
 
-  useEffect(
-    () =>
-      engine.on("playhead:scrub", (time) => {
-        const state = engine.getState();
-        if (!state.playing || !state.outPoint) {
-          return;
-        }
+  useTimelineEvent("playhead:scrub", (time) => {
+    const state = engine.getState();
+    if (!state.playing || !state.outPoint) {
+      return;
+    }
 
-        if (toSeconds(time) >= toSeconds(state.outPoint)) {
-          pause();
-          engine.updatePlayhead(state.inPoint ?? fromSeconds(0));
-        }
-      }),
-    [engine, pause],
-  );
+    if (toSeconds(time) >= toSeconds(state.outPoint)) {
+      pause();
+      engine.updatePlayhead(state.inPoint ?? fromSeconds(0));
+    }
+  });
 
   const pausePlayback = useCallback(() => {
     pause();
@@ -415,16 +369,17 @@ export function useEditorTimelineMedia(session: EditorSession) {
     setPlaybackError(result.ok ? "" : result.message);
   }, [engine, pause, play, playing]);
   const getPlaybackTime = useCallback(
-    () => (playing ? adapter.getClockTime() : toSeconds(engine.getTime())),
+    () =>
+      playing && adapter ? adapter.getClockTime() : toSeconds(engine.getTime()),
     [adapter, engine, playing],
   );
 
   const duration = toSeconds(
     engine.getState().duration ?? fromSeconds(session.duration),
   );
-  const loadingPreview = !adapter.ready && !adapter.error;
+  const loadingPreview = !(adapter?.ready ?? false) && !adapter?.error;
   const loadingPreviewFrame =
-    adapter.ready &&
+    (adapter?.ready ?? false) &&
     details.previewVideoDimensions !== null &&
     renderedFrameTime === null;
 
@@ -436,9 +391,9 @@ export function useEditorTimelineMedia(session: EditorSession) {
     playing,
     loadingPreview,
     loadingPreviewFrame,
-    previewStatus: adapter.status,
+    previewStatus: adapter?.status ?? "Preparing media preview...",
     previewFrameStatus: "Loading preview frame...",
-    error: playbackError || adapter.error?.message || "",
+    error: playbackError || adapter?.error?.message || audioResumeWarning || "",
     activeSourceLabel: details.activeSourceLabel,
     exportFallbackSource: details.exportFallbackSource,
     hlsFallbackInfo: details.hlsFallbackInfo,
@@ -453,6 +408,6 @@ export function useEditorTimelineMedia(session: EditorSession) {
     pausePlayback,
     seekToTime,
     getPlaybackTime,
-    ready: adapter.ready,
+    ready: adapter?.ready ?? false,
   };
 }

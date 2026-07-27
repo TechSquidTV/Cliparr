@@ -327,4 +327,33 @@ void describe("editor timeline engine", () => {
       },
     ]);
   });
+
+  void it("keeps timeline subtitle text and rendered lines synchronized", () => {
+    const engine = createEditorTimelineEngine(createSession());
+    synchronizeEditorTimelineSubtitles(engine, {
+      cues: [
+        {
+          startTime: 2,
+          endTime: 5,
+          text: "Original",
+          lines: ["Original"],
+        },
+      ],
+    });
+
+    assert.equal(
+      engine.updateClipProperties("editor-subtitle-cue-0", {
+        label: "  First line  \r\n\r\n Second line ",
+      }),
+      true,
+    );
+    assert.deepEqual(subtitleCuesFromTimeline(engine.getState().tracks), [
+      {
+        startTime: 2,
+        endTime: 5,
+        text: "First line\nSecond line",
+        lines: ["First line", "Second line"],
+      },
+    ]);
+  });
 });

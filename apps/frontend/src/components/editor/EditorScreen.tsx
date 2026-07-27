@@ -11,7 +11,7 @@ import {
   TimelineProvider,
   fromSeconds,
   toSeconds,
-  useTimeline,
+  useTimelinePlayback,
   useTimelineZoomControl,
 } from "@techsquidtv/canvas-timeline";
 import {
@@ -100,15 +100,12 @@ function EditorSessionScreen({ session, onBack }: Properties) {
 }
 
 function EditorScreenContent({ session, onBack }: Properties) {
-  const { engine, state: timelineState } = useTimeline();
+  const { inPoint, outPoint, setInPoint, setOutPoint, clearInOutPoints } =
+    useTimelinePlayback();
   const timelineMedia = useEditorTimelineMedia(session);
   const duration = timelineMedia.duration;
-  const startTime = timelineState.inPoint
-    ? toSeconds(timelineState.inPoint)
-    : 0;
-  const endTime = timelineState.outPoint
-    ? toSeconds(timelineState.outPoint)
-    : duration;
+  const startTime = inPoint ? toSeconds(inPoint) : 0;
+  const endTime = outPoint ? toSeconds(outPoint) : duration;
   const [playbackSidebarOpen, setPlaybackSidebarOpen] = useState(true);
   const [editorPropertiesOpenSections, setEditorPropertiesOpenSections] =
     useState(loadEditorPropertiesOpenSections);
@@ -282,9 +279,9 @@ function EditorScreenContent({ session, onBack }: Properties) {
       }
 
       const nextClampedStart = clampClipStartTime(nextStart, endTime, duration);
-      engine.setInPoint(fromSeconds(nextClampedStart));
+      setInPoint(fromSeconds(nextClampedStart));
     },
-    [duration, endTime, engine],
+    [duration, endTime, setInPoint],
   );
   const handleEndTimeCommit = useCallback(
     (nextEnd: number) => {
@@ -293,9 +290,9 @@ function EditorScreenContent({ session, onBack }: Properties) {
       }
 
       const nextClampedEnd = clampClipEndTime(nextEnd, startTime, duration);
-      engine.setOutPoint(fromSeconds(nextClampedEnd));
+      setOutPoint(fromSeconds(nextClampedEnd));
     },
-    [duration, engine, startTime],
+    [duration, setOutPoint, startTime],
   );
   const handleMarkInShortcut = useCallback(() => {
     if (!duration || duration <= 0) {
@@ -303,20 +300,19 @@ function EditorScreenContent({ session, onBack }: Properties) {
     }
 
     const nextStart = clampClipStartTime(getPlaybackTime(), endTime, duration);
-    engine.setInPoint(fromSeconds(nextStart));
-  }, [duration, endTime, engine, getPlaybackTime]);
+    setInPoint(fromSeconds(nextStart));
+  }, [duration, endTime, getPlaybackTime, setInPoint]);
   const handleMarkOutShortcut = useCallback(() => {
     if (!duration || duration <= 0) {
       return;
     }
 
     const nextEnd = clampClipEndTime(getPlaybackTime(), startTime, duration);
-    engine.setOutPoint(fromSeconds(nextEnd));
-  }, [duration, engine, getPlaybackTime, startTime]);
+    setOutPoint(fromSeconds(nextEnd));
+  }, [duration, getPlaybackTime, setOutPoint, startTime]);
   const handleClearInOutPoints = useCallback(() => {
-    engine.setInPoint(undefined);
-    engine.setOutPoint(undefined);
-  }, [engine]);
+    clearInOutPoints();
+  }, [clearInOutPoints]);
   const handleJumpToInShortcut = useCallback(() => {
     if (!duration || duration <= 0) {
       return;

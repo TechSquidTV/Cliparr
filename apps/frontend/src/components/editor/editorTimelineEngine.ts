@@ -7,6 +7,7 @@ import {
 } from "@techsquidtv/canvas-timeline";
 import { buildInitialClipRange } from "@/components/editor/initialClipRange";
 import type { EditorSession } from "@/lib/editorMedia";
+import { normalizeSubtitleCueText } from "@/lib/subtitles/normalizeSubtitleCueText";
 import type { SubtitleCue } from "@/lib/subtitles/types";
 
 export type EditorTimelineTrackKind = "media" | "subtitle";
@@ -92,13 +93,6 @@ function isEditorSubtitleClipMetadata(
     metadata !== undefined &&
     (metadata.cueId === undefined || typeof metadata.cueId === "string")
   );
-}
-
-function subtitleLines(text: string) {
-  return text
-    .split("\n")
-    .map((line) => line.trimEnd())
-    .filter((line) => line.trim().length > 0);
 }
 
 function createSubtitleTrack(
@@ -290,9 +284,8 @@ export function subtitleCuesFromTimeline(
 }
 
 export function subtitleCueFromTimelineClip(clip: Clip): SubtitleCue | null {
-  const text = clip.label?.trim();
-  const lines = text ? subtitleLines(text) : [];
-  if (!text || lines.length === 0) {
+  const normalizedText = normalizeSubtitleCueText(clip.label ?? "");
+  if (!normalizedText) {
     return null;
   }
 
@@ -303,7 +296,6 @@ export function subtitleCueFromTimelineClip(clip: Clip): SubtitleCue | null {
     ...(metadata?.cueId ? { id: metadata.cueId } : {}),
     startTime: toSeconds(clip.timelineStart),
     endTime: toSeconds(clip.timelineEnd),
-    text,
-    lines,
+    ...normalizedText,
   };
 }

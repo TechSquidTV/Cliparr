@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   fromSeconds,
   useTimeline,
@@ -17,6 +17,7 @@ import {
   saveSubtitleStyleSettings,
 } from "@/lib/subtitles/settings";
 import { trimSubtitleCues } from "@/lib/subtitles/trimSubtitleCues";
+import { normalizeSubtitleCueText } from "@/lib/subtitles/normalizeSubtitleCueText";
 import type { PlaybackSubtitleTrack } from "@/providers/types";
 import { buildSubtitleExportSummary } from "@/components/editor/subtitleExportSummary";
 import { useSubtitleCues } from "@/components/editor/useSubtitleCues";
@@ -51,13 +52,6 @@ export function useEditorSubtitles({
   const [subtitleStyleSettings, setSubtitleStyleSettings] = useState(() =>
     loadSubtitleStyleSettings(),
   );
-  const [subtitleEnabled, setSubtitleEnabled] = useState(false);
-  const [selectedSubtitleTrackKey, setSelectedSubtitleTrackKey] =
-    useState("none");
-  const [importedSubtitleTrackKey, setImportedSubtitleTrackKey] = useState<
-    string | null
-  >(null);
-
   const subtitleTracks = useMemo<PlaybackSubtitleTrack[]>(
     () =>
       session.local
@@ -67,6 +61,30 @@ export function useEditorSubtitles({
           ),
     [session.local, session.subtitleTracks],
   );
+  const [initialSubtitleSelection] = useState(() => {
+    const track = selectPreferredSubtitleTrack(
+      subtitleTracks,
+      session.selectedSubtitleTrack,
+    );
+    return {
+      key: track ? subtitleTrackKey(track) : "none",
+      enabled: subtitleTrackSupportsBurnIn(track),
+      initialized: track !== null,
+    };
+  });
+  const [subtitleEnabled, setSubtitleEnabled] = useState(
+    initialSubtitleSelection.enabled,
+  );
+  const [selectedSubtitleTrackKey, setSelectedSubtitleTrackKey] = useState(
+    initialSubtitleSelection.key,
+  );
+  const [importedSubtitleTrackKey, setImportedSubtitleTrackKey] = useState<
+    string | null
+  >(null);
+  const subtitleTrackSelectionInitializedReference = useRef(
+    initialSubtitleSelection.initialized,
+  );
+  const subtitleTrackSelectionChangedByUserReference = useRef(false);
   const selectedSubtitleTrack = useMemo(() => {
     if (selectedSubtitleTrackKey === "none") {
       return null;
@@ -191,30 +209,25 @@ export function useEditorSubtitles({
   }, [subtitleStyleSettings]);
 
   useEffect(() => {
+    if (
+      subtitleTrackSelectionInitializedReference.current ||
+      subtitleTrackSelectionChangedByUserReference.current
+    ) {
+      return;
+    }
+
     const preferredSubtitleTrack = selectPreferredSubtitleTrack(
       subtitleTracks,
       session.selectedSubtitleTrack,
     );
+    if (!preferredSubtitleTrack) {
+      return;
+    }
 
-    setSelectedSubtitleTrackKey(
-      preferredSubtitleTrack
-        ? subtitleTrackKey(preferredSubtitleTrack)
-        : "none",
-    );
-    setSubtitleEnabled(
-      Boolean(
-        preferredSubtitleTrack &&
-        subtitleTrackSupportsBurnIn(preferredSubtitleTrack),
-      ),
-    );
-    resetSubtitleCues();
-    setImportedSubtitleTrackKey(null);
-  }, [
-    session.id,
-    session.selectedSubtitleTrack,
-    subtitleTracks,
-    resetSubtitleCues,
-  ]);
+    subtitleTrackSelectionInitializedReference.current = true;
+    setSelectedSubtitleTrackKey(subtitleTrackKey(preferredSubtitleTrack));
+    setSubtitleEnabled(subtitleTrackSupportsBurnIn(preferredSubtitleTrack));
+  }, [session.selectedSubtitleTrack, subtitleTracks]);
 
   const handleSelectedSubtitleTrackChange = useCallback(
     (value: string) => {
@@ -230,6 +243,7 @@ export function useEditorSubtitles({
         return;
       }
 
+      subtitleTrackSelectionChangedByUserReference.current = true;
       setSelectedSubtitleTrackKey(value);
       clearSubtitleError();
 
@@ -260,16 +274,11 @@ export function useEditorSubtitles({
       if (!selectedSubtitleClip) {
         return;
       }
-      const normalizedText = text
-        .replaceAll(/\r\n?/g, "\n")
-        .split("\n")
-        .map((line) => line.trimEnd())
-        .join("\n")
-        .trim();
-      if (normalizedText.length === 0) {
+      const normalizedText = normalizeSubtitleCueText(text);
+      if (!normalizedText) {
         return;
       }
-      updateClip(selectedSubtitleClip.id, { label: normalizedText });
+      updateClip(selectedSubtitleClip.id, { label: normalizedText.text });
     },
     [selectedSubtitleClip, updateClip],
   );
