@@ -369,14 +369,12 @@ void test("forces video transcode for compact and balanced export quality", asyn
       discard: boolean;
       forceTranscode?: boolean;
       bitrate?: number;
-      bitrateMode?: string;
       codec?: string;
     };
 
     assert.equal(selectedVideoOptions.discard, false);
     assert.equal(selectedVideoOptions.forceTranscode, true);
     assert.equal(selectedVideoOptions.bitrate, expectedBitrate);
-    assert.equal(selectedVideoOptions.bitrateMode, "variable");
     assert.equal(selectedVideoOptions.codec, "avc");
     assert.equal(context.disposed, true);
   }

@@ -71,11 +71,11 @@ importers:
         specifier: ^2.1.5
         version: 2.1.5
       '@mediabunny/aac-encoder':
-        specifier: ^1.49.0
-        version: 1.49.0(mediabunny@1.49.0)
+        specifier: ^1.52.2
+        version: 1.52.2(mediabunny@1.52.2)
       '@mediabunny/ac3':
-        specifier: ^1.49.0
-        version: 1.49.0(mediabunny@1.49.0)
+        specifier: ^1.52.2
+        version: 1.52.2(mediabunny@1.52.2)
       '@tanstack/react-router':
         specifier: ^1.170.16
         version: 1.170.16(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
@@ -92,8 +92,8 @@ importers:
         specifier: ^1.21.0
         version: 1.21.0(react@19.2.7)
       mediabunny:
-        specifier: ^1.49.0
-        version: 1.49.0
+        specifier: ^1.52.2
+        version: 1.52.2
       motion:
         specifier: ^12.40.0
         version: 12.40.0(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
@@ -214,11 +214,11 @@ importers:
         specifier: ^5.2.8
         version: 5.2.8
       '@mediabunny/aac-encoder':
-        specifier: ^1.49.0
-        version: 1.49.0(mediabunny@1.49.0)
+        specifier: ^1.52.2
+        version: 1.52.2(mediabunny@1.52.2)
       '@mediabunny/ac3':
-        specifier: ^1.49.0
-        version: 1.49.0(mediabunny@1.49.0)
+        specifier: ^1.52.2
+        version: 1.52.2(mediabunny@1.52.2)
       '@sentry/astro':
         specifier: ^10.58.0
         version: 10.58.0(astro@6.4.8(@types/node@25.9.3)(jiti@2.7.0)(lightningcss@1.32.0)(rollup@4.62.0)(tsx@4.22.4)(yaml@2.9.0))(rollup@4.62.0)
@@ -235,8 +235,8 @@ importers:
         specifier: ^1.21.0
         version: 1.21.0(react@19.2.7)
       mediabunny:
-        specifier: ^1.49.0
-        version: 1.49.0
+        specifier: ^1.52.2
+        version: 1.52.2
       mermaid:
         specifier: 11.15.0
         version: 11.15.0
@@ -1543,13 +1543,13 @@ packages:
   '@mdx-js/mdx@3.1.1':
     resolution: {integrity: sha512-f6ZO2ifpwAQIpzGWaBQT2TXxPv6z3RBzQKpVftEWN78Vl/YweF1uwussDx8ECAXVtr3Rs89fKyG9YlzUs9DyGQ==}
 
-  '@mediabunny/aac-encoder@1.49.0':
-    resolution: {integrity: sha512-aUVkHLzNU04zCKOzVXl7HwCPlz8Tqbk14inFuXJ3awJ/WSi6weWUpC/5NU28YhO2l981PE/myEdt1J2Gh5L1DA==}
+  '@mediabunny/aac-encoder@1.52.2':
+    resolution: {integrity: sha512-M9wwZC3Ininf4CIHZUkh9SRQh0MLm8d6rkm/jfIn8uMULtSit7y5H/vdRlV/TrIu9lZtosYUm1qxxqxFA2gxIg==}
     peerDependencies:
       mediabunny: ^1.0.0
 
-  '@mediabunny/ac3@1.49.0':
-    resolution: {integrity: sha512-xoK2+9hAq38LzJY4QVPrRfwY/W36+Zu59OiDR696FAMNvqABCPTD29js7wZRruNm+XpMLNd8wh8QX8x/MP01FQ==}
+  '@mediabunny/ac3@1.52.2':
+    resolution: {integrity: sha512-c/LiU7OMGmTizgIutB3Pt+X5z6r3knLIMeVCqRJqWOOOOpgTW0/0jMBlYbP4uALWlqzrrnscNoGRc/Vb+L5kQg==}
     peerDependencies:
       mediabunny: ^1.0.0
 
@@ -5236,8 +5236,8 @@ packages:
     resolution: {integrity: sha512-aisnrDP4GNe06UcKFnV5bfMNPBUw4jsLGaWwWfnH3v02GnBuXX2MCVn5RbrWo0j3pczUilYblq7fQ7Nw2t5XKw==}
     engines: {node: '>= 0.8'}
 
-  mediabunny@1.49.0:
-    resolution: {integrity: sha512-hDMtS/q22GFjyB3Yum+a6NHhDtVnye6hgaYTjx3DPUfnckRjzxFmXmCc3UQXdvo7d6PUCl7KM6Y9MRWzlvnAJQ==}
+  mediabunny@1.52.2:
+    resolution: {integrity: sha512-HIgqL2BAWsWJtaqZRrqcrv7cEajQtCT9noR0dO8cGLKZKML9mmL4BjZOtm6j5I9qAp0v/hr/NmRZhuR6HZyQ7Q==}
 
   merge-descriptors@2.0.0:
     resolution: {integrity: sha512-Snk314V5ayFLhp3fkUREub6WtjBfPdCPY1Ln8/8munuLuiYhsABgBVWsozAG+MWMbVEvcdcpbi9R7ww22l9Q3g==}
@@ -7852,13 +7852,13 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  '@mediabunny/aac-encoder@1.49.0(mediabunny@1.49.0)':
+  '@mediabunny/aac-encoder@1.52.2(mediabunny@1.52.2)':
     dependencies:
-      mediabunny: 1.49.0
+      mediabunny: 1.52.2
 
-  '@mediabunny/ac3@1.49.0(mediabunny@1.49.0)':
+  '@mediabunny/ac3@1.52.2(mediabunny@1.52.2)':
     dependencies:
-      mediabunny: 1.49.0
+      mediabunny: 1.52.2
 
   '@mermaid-js/parser@1.1.1':
     dependencies:
@@ -11709,7 +11709,7 @@ snapshots:
 
   media-typer@1.1.0: {}
 
-  mediabunny@1.49.0:
+  mediabunny@1.52.2:
     dependencies:
       '@types/dom-mediacapture-transform': 0.1.11
       '@types/dom-webcodecs': 0.1.13

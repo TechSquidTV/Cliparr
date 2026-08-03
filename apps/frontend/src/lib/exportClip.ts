@@ -604,7 +604,6 @@ export async function exportClipWithRuntime(
         numberOfChannels: 2,
         codec: audioCodec,
         bitrate: EXPORT_AUDIO_BITRATE_BPS,
-        bitrateMode: "variable" as const,
       } as const;
 
       audioOptions = (track) => ({
@@ -707,7 +706,6 @@ export async function exportClipWithRuntime(
 
 interface VideoQualityConversionOptions {
   bitrate?: number;
-  bitrateMode?: "variable";
   codec?: VideoCodec;
   forceTranscode?: boolean;
 }
@@ -719,7 +717,6 @@ function videoQualityConversionOptions(
     forceTranscode: true,
     codec: plan.codec,
     bitrate: plan.bitrateBps,
-    bitrateMode: "variable",
   };
 }
 
