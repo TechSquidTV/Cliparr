@@ -7,16 +7,24 @@ import {
   MovOutputFormat,
   Mp4OutputFormat,
   Output,
-  QUALITY_LOW,
-  QUALITY_MEDIUM,
   WebMOutputFormat,
+  canEncodeAudio as canEncodeAudioWithBrowser,
+  canEncodeVideo as canEncodeVideoWithBrowser,
 } from "mediabunny";
 import type {
   CanvasSinkOptions,
   ConversionOptions,
   InputVideoTrack,
+  VideoCodec,
   VideoSample,
 } from "mediabunny";
+import {
+  exportAudioCodecPriorities,
+  EXPORT_AUDIO_BITRATE_BPS,
+  resolveVideoEncodingPlan,
+  type ExportVideoCodec,
+  type VideoEncodingPlan,
+} from "#/lib/exportEncodingPolicy";
 import type { EditorMediaSource } from "#/lib/editorMedia";
 import { createCliparrInputFromSource } from "#/lib/mediabunnyInput";
 import { ensureMediabunnyCodecs } from "#/lib/mediabunnyCodecs";
@@ -33,6 +41,7 @@ import type {
   MediaExportMetadata,
   PlaybackAudioSelection,
 } from "#/providers/types";
+import { normalizeExportVideoCodec } from "@cliparr/shared/providers";
 import {
   buildMetadataTags,
   describeDiscardedTracks,
@@ -80,7 +89,14 @@ export interface ExportClipOptions {
   includeBurnedSubtitles?: boolean;
   subtitleCues?: readonly SubtitleCue[];
   subtitleStyleSettings?: SubtitleStyleSettings;
+  onVideoEncodingPlan?: (plan: ExportVideoEncodingPlan) => void;
   onProgress: (progress: number) => void;
+}
+
+export interface ExportVideoEncodingPlan {
+  bitrateBps: number | null;
+  codec: string | null;
+  mode: "copy" | "gif" | "transcode";
 }
 
 interface ExportClipRuntime {
@@ -104,6 +120,8 @@ interface ExportClipRuntime {
   getActiveSubtitleCues: typeof getActiveSubtitleCues;
   renderSubtitleCues: typeof renderSubtitleCues;
   initConversion: typeof Conversion.init;
+  canEncodeVideo: typeof canEncodeVideoWithBrowser;
+  canEncodeAudio: typeof canEncodeAudioWithBrowser;
   buildSubtitleBurnInProcessor: typeof buildSubtitleBurnInProcessor;
 }
 
@@ -185,7 +203,7 @@ async function videoExportRequiresSourceDecode({
   sourceVideoDimensions: { width: number; height: number } | null;
   outputDimensions: { width: number; height: number } | null;
   outputFormat: ReturnType<typeof createOutputFormat>;
-  videoQualityOptions: ReturnType<typeof videoQualityConversionOptions>;
+  videoQualityOptions: VideoQualityConversionOptions;
   trimStart: number;
   shouldBurnSubtitles: boolean;
   decodability: VideoTrackDecodabilityAssessment;
@@ -376,6 +394,7 @@ export async function exportClip({
   includeBurnedSubtitles = false,
   subtitleCues = [],
   subtitleStyleSettings,
+  onVideoEncodingPlan,
   onProgress,
 }: ExportClipOptions) {
   return exportClipWithRuntime(
@@ -394,6 +413,7 @@ export async function exportClip({
       includeBurnedSubtitles,
       subtitleCues,
       subtitleStyleSettings,
+      onVideoEncodingPlan,
       onProgress,
     },
     defaultExportClipRuntime,
@@ -418,6 +438,8 @@ const defaultExportClipRuntime: ExportClipRuntime = {
   getActiveSubtitleCues,
   renderSubtitleCues,
   initConversion: (options) => Conversion.init(options),
+  canEncodeVideo: canEncodeVideoWithBrowser,
+  canEncodeAudio: canEncodeAudioWithBrowser,
   buildSubtitleBurnInProcessor,
 };
 
@@ -437,6 +459,7 @@ export async function exportClipWithRuntime(
     includeBurnedSubtitles = false,
     subtitleCues = [],
     subtitleStyleSettings,
+    onVideoEncodingPlan,
     onProgress,
   }: ExportClipOptions,
   runtime: ExportClipRuntime,
@@ -456,10 +479,12 @@ export async function exportClipWithRuntime(
     includeBurnedSubtitles,
     subtitleCues,
     subtitleStyleSettings,
+    onVideoEncodingPlan,
     onProgress,
   };
 
   if (format === "gif") {
+    onVideoEncodingPlan?.({ bitrateBps: null, codec: null, mode: "gif" });
     return exportGifClipWithRuntime(options, runtime);
   }
 
@@ -497,7 +522,6 @@ export async function exportClipWithRuntime(
       resolution,
       format,
     );
-    const videoQualityOptions = videoQualityConversionOptions(videoQuality);
     const outputHeight = outputDimensions?.height;
     const clippedSubtitleCues =
       includeBurnedSubtitles && subtitleCues.length > 0
@@ -514,23 +538,47 @@ export async function exportClipWithRuntime(
     }
 
     const outputFormat = runtime.createOutputFormat(format);
+    const resolvedVideoQuality = videoQuality ?? DEFAULT_VIDEO_EXPORT_QUALITY;
+    let videoQualityOptions: VideoQualityConversionOptions =
+      resolvedVideoQuality === "sharp" ? {} : { forceTranscode: true };
+    let videoRequiresTranscode = !sourceVideoTrack;
+    let sourceVideoCodec: ExportVideoCodec | null = null;
+    let targetVideoPlan: VideoEncodingPlan | null = null;
     if (sourceVideoTrack) {
       const decodability = await assessVideoTrackDecodability(sourceVideoTrack);
-      if (
-        await videoExportRequiresSourceDecode({
-          track: sourceVideoTrack,
-          sourceVideoDimensions,
-          outputDimensions,
-          outputFormat,
-          videoQualityOptions,
-          trimStart,
-          shouldBurnSubtitles,
-          decodability,
-        })
-      ) {
+      videoRequiresTranscode = await videoExportRequiresSourceDecode({
+        track: sourceVideoTrack,
+        sourceVideoDimensions,
+        outputDimensions,
+        outputFormat,
+        videoQualityOptions,
+        trimStart,
+        shouldBurnSubtitles,
+        decodability,
+      });
+      if (videoRequiresTranscode) {
         assertVideoTrackDecodableForExport(decodability);
+      } else {
+        sourceVideoCodec = normalizeExportVideoCodec(decodability.codec);
       }
     }
+
+    if (videoRequiresTranscode && outputDimensions) {
+      targetVideoPlan = await resolveVideoEncodingPlan({
+        format,
+        outputDimensions,
+        quality: resolvedVideoQuality,
+        supportedVideoCodecs: outputFormat.getSupportedVideoCodecs(),
+        canEncodeVideo: runtime.canEncodeVideo,
+      });
+      videoQualityOptions = videoQualityConversionOptions(targetVideoPlan);
+    }
+
+    onVideoEncodingPlan?.({
+      bitrateBps: targetVideoPlan?.bitrateBps ?? null,
+      codec: targetVideoPlan?.codec ?? sourceVideoCodec,
+      mode: videoRequiresTranscode ? "transcode" : "copy",
+    });
 
     const target = runtime.createBufferTarget();
     const metadataTags = await runtime.buildMetadataTags(
@@ -545,26 +593,28 @@ export async function exportClipWithRuntime(
       target,
     });
 
-    const baseAudioOptions = {
-      // Let Mediabunny choose the first encodable codec supported by the
-      // target container instead of forcing AAC for every export format.
-      forceTranscode: true,
-      numberOfChannels: 2,
-      bitrate: 160_000,
-    } as const;
-
     let audioOptions: ConversionOptions["audio"];
-    if (!includeAudio) {
-      audioOptions = {
-        discard: true,
-      };
-    } else if (preferredAudioTrack) {
+    if (includeAudio && preferredAudioTrack) {
+      const audioCodec = await resolveAudioCodec({
+        format,
+        outputFormat,
+        canEncodeAudio: runtime.canEncodeAudio,
+      });
+      const baseAudioOptions = {
+        forceTranscode: true,
+        numberOfChannels: 2,
+        codec: audioCodec,
+        bitrate: EXPORT_AUDIO_BITRATE_BPS,
+      } as const;
+
       audioOptions = (track) => ({
         ...baseAudioOptions,
         discard: track.id !== preferredAudioTrack.id,
       });
     } else {
-      audioOptions = baseAudioOptions;
+      audioOptions = {
+        discard: true,
+      };
     }
 
     const conversionOptions: ConversionOptions = {
@@ -655,26 +705,49 @@ export async function exportClipWithRuntime(
   }
 }
 
+interface VideoQualityConversionOptions {
+  bitrate?: number;
+  codec?: VideoCodec;
+  forceTranscode?: boolean;
+}
+
 function videoQualityConversionOptions(
-  videoQuality: VideoExportQualityPreset = DEFAULT_VIDEO_EXPORT_QUALITY,
-) {
-  switch (videoQuality) {
-    case "compact": {
-      return {
-        forceTranscode: true,
-        bitrate: QUALITY_LOW,
-      } as const;
+  plan: VideoEncodingPlan,
+): VideoQualityConversionOptions {
+  return {
+    forceTranscode: true,
+    codec: plan.codec,
+    bitrate: plan.bitrateBps,
+  };
+}
+
+async function resolveAudioCodec({
+  format,
+  outputFormat,
+  canEncodeAudio,
+}: {
+  format: Exclude<ExportFormat, "gif">;
+  outputFormat: ReturnType<typeof createOutputFormat>;
+  canEncodeAudio: typeof canEncodeAudioWithBrowser;
+}) {
+  const supportedCodecs = outputFormat.getSupportedAudioCodecs();
+
+  for (const codec of exportAudioCodecPriorities(format)) {
+    if (!supportedCodecs.includes(codec)) {
+      continue;
     }
-    case "balanced": {
-      return {
-        forceTranscode: true,
-        bitrate: QUALITY_MEDIUM,
-      } as const;
-    }
-    case "sharp": {
-      return {};
+
+    if (
+      await canEncodeAudio(codec, {
+        numberOfChannels: 2,
+        bitrate: EXPORT_AUDIO_BITRATE_BPS,
+      })
+    ) {
+      return codec;
     }
   }
+
+  throw new Error("No compatible audio encoder is available for this export.");
 }
 
 async function exportGifClipWithRuntime(

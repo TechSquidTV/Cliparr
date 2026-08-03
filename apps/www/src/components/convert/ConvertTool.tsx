@@ -9,6 +9,8 @@ import {
   destructiveAlertClasses,
   estimateExportOutputSize,
   exportFormatDurationDisabledReason,
+  exportVideoCodecPriorities,
+  formatCanCopyVideoCodec,
   formatOptionFor,
   formatExportByteSize,
   getTrackTimelineOffsetSeconds,
@@ -16,14 +18,19 @@ import {
   gifExportSettingsForPreset,
   primaryAlertClasses,
   resolveExportOutputDimensions,
+  resolveVideoEncodingPlan,
   titleFromFileName,
+  videoEncodingPlanKey,
   type EditorFileMediaSource,
+  type ExportVideoEncodingPlan,
   type ExportFormat,
   type ExportQualityPreset,
   type ExportResolution,
+  type ResolvedVideoEncodingPlan,
   type GifExportPreset,
   type VideoExportQualityPreset,
 } from "@cliparr/frontend/convert";
+import { canEncodeVideo } from "mediabunny";
 import { Download, FolderOpen, RefreshCcw, Upload } from "lucide-react";
 import {
   useCallback,
@@ -164,6 +171,9 @@ const quickTemplates: readonly QuickTemplate[] = [
 ] as const;
 
 interface ProbeVideoTrack {
+  getAverageBitrate: () => Promise<number | null>;
+  getBitrate: () => Promise<number | null>;
+  getCodec: () => Promise<string | null>;
   hasOnlyKeyPackets: () => Promise<boolean>;
 }
 
@@ -204,12 +214,22 @@ async function probeSource(source: EditorFileMediaSource) {
     }
 
     const dimensions = await getVideoTrackDimensions(videoTrack);
+    const averageVideoBitrate = await videoTrack.getAverageBitrate();
+    const peakVideoBitrate = await videoTrack.getBitrate();
+    let videoBitrateKbps: number | null = null;
+    if (typeof averageVideoBitrate === "number" && averageVideoBitrate > 0) {
+      videoBitrateKbps = Math.round(averageVideoBitrate / 1000);
+    } else if (typeof peakVideoBitrate === "number" && peakVideoBitrate > 0) {
+      videoBitrateKbps = Math.round(peakVideoBitrate / 1000);
+    }
 
     return {
       durationSeconds,
       previewStartTimestampSeconds,
       dimensions,
       hasAudio: audioTracks.length > 0,
+      videoCodec: await videoTrack.getCodec(),
+      videoBitrateKbps,
     } satisfies SourceProbeResult;
   } finally {
     input.dispose();
@@ -237,6 +257,8 @@ export function ConvertTool() {
   const [isConverterReady, setIsConverterReady] = useState(false);
   const [dragActive, setDragActive] = useState(false);
   const [exporting, setExporting] = useState(false);
+  const [resolvedVideoPlan, setResolvedVideoPlan] =
+    useState<ResolvedVideoEncodingPlan | null>(null);
   const [progress, setProgress] = useState(0);
   const [exportError, setExportError] = useState<string | null>(null);
 
@@ -270,6 +292,51 @@ export function ConvertTool() {
     format,
     includeAudio && (probeResult?.hasAudio ?? true),
   );
+  const videoPlanKey = useMemo(
+    () =>
+      format === "gif" || !outputDimensions
+        ? null
+        : videoEncodingPlanKey({
+            format,
+            outputDimensions,
+            quality: videoQuality,
+          }),
+    [format, outputDimensions, videoQuality],
+  );
+  const sourceCopyEligible =
+    format !== "gif" &&
+    videoQuality === "sharp" &&
+    resolution === "original" &&
+    formatCanCopyVideoCodec(format, probeResult?.videoCodec);
+  useEffect(() => {
+    let cancelled = false;
+
+    if (format === "gif" || !outputDimensions || !videoPlanKey) {
+      return () => {
+        cancelled = true;
+      };
+    }
+
+    void resolveVideoEncodingPlan({
+      format,
+      outputDimensions,
+      quality: videoQuality,
+      supportedVideoCodecs: exportVideoCodecPriorities(format),
+      canEncodeVideo,
+    })
+      .then((plan) => {
+        if (!cancelled) {
+          setResolvedVideoPlan({ ...plan, key: videoPlanKey });
+        }
+      })
+      .catch(() => {
+        // Export validates encoder support again before conversion.
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [format, outputDimensions, videoPlanKey, videoQuality]);
   const outputSizeEstimate = useMemo(
     () =>
       probeResult && sourceFile
@@ -280,8 +347,12 @@ export function ConvertTool() {
             includeAudio: effectiveIncludeAudio,
             resolution,
             gifSettings: format === "gif" ? gifSettings : null,
-            sourceSizeBytes: sourceFile.size,
-            sourceDurationSeconds: probeResult.durationSeconds,
+            videoBitrateKbps: probeResult.videoBitrateKbps,
+            sourceCopyEligible,
+            preferredVideoCodec:
+              resolvedVideoPlan?.key === videoPlanKey
+                ? resolvedVideoPlan.codec
+                : null,
             videoQuality: format === "gif" ? null : videoQuality,
           })
         : { bytes: null, basis: "unavailable" as const },
@@ -292,7 +363,10 @@ export function ConvertTool() {
       outputDimensions,
       probeResult,
       resolution,
+      resolvedVideoPlan,
+      sourceCopyEligible,
       sourceFile,
+      videoPlanKey,
       videoQuality,
     ],
   );
@@ -565,6 +639,7 @@ export function ConvertTool() {
     };
 
     recordConvertExportStarted(metricContext);
+    let videoEncodingPlan: ExportVideoEncodingPlan | undefined;
 
     try {
       const blob = await runConvertExport({
@@ -576,6 +651,9 @@ export function ConvertTool() {
         gifSettings: format === "gif" ? gifSettings : undefined,
         videoQuality: format === "gif" ? undefined : videoQuality,
         includeAudio: effectiveIncludeAudio,
+        onVideoEncodingPlan: (plan) => {
+          videoEncodingPlan = plan;
+        },
         onProgress: (nextProgress) => {
           setProgress((currentProgress: number) =>
             nextProgress >= 1 ||
@@ -590,6 +668,7 @@ export function ConvertTool() {
         ...metricContext,
         actualBytes: blob.size,
         durationMs: Math.max(0, Date.now() - startedAt),
+        videoEncodingPlan,
       });
       void flushConvertMetrics();
       setProgress(1);
@@ -597,6 +676,7 @@ export function ConvertTool() {
       recordConvertExportFailed({
         ...metricContext,
         durationMs: Math.max(0, Date.now() - startedAt),
+        videoEncodingPlan,
       });
       void flushConvertMetrics();
       setExportError(errorMessage(error, "Conversion failed."));

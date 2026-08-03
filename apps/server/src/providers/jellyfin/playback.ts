@@ -4,6 +4,7 @@ import {
   logEventFields,
   sanitizeUrlForLog,
 } from "@cliparr/shared/logging";
+import { normalizeExportVideoCodec } from "@cliparr/shared/providers";
 import type { MediaSource } from "@/db/mediaSourcesRepository";
 import { createApiError } from "@/http/errors";
 import { getServerLogger } from "@/logging";
@@ -322,6 +323,9 @@ export function createJellyfinExportEstimateMetadata(
   const sourceBitrateKbps =
     bpsToKbps(mediaSource?.Bitrate) ??
     bitrateFromSize(sourceSizeBytes, sourceDurationSeconds);
+  const videoCodec = normalizeExportVideoCodec(
+    stringValue(selectedVideoStream?.Codec),
+  );
 
   const metadata = {
     sourceSizeBytes,
@@ -329,6 +333,7 @@ export function createJellyfinExportEstimateMetadata(
     sourceBitrateKbps,
     videoBitrateKbps: bpsToKbps(selectedVideoStream?.BitRate),
     audioBitrateKbps: bpsToKbps(selectedAudioStream?.BitRate),
+    ...(videoCodec ? { videoCodec } : {}),
     width: positiveNumber(selectedVideoStream?.Width),
     height: positiveNumber(selectedVideoStream?.Height),
     frameRate:

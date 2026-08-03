@@ -560,6 +560,7 @@ void test("extracts Plex export size estimate metadata from selected media", () 
               {
                 id: "video-1",
                 streamType: 1,
+                codec: "h264",
                 width: 1920,
                 height: 1080,
                 bitrate: 1400,
@@ -585,6 +586,7 @@ void test("extracts Plex export size estimate metadata from selected media", () 
     sourceBitrateKbps: 1600,
     videoBitrateKbps: 1400,
     audioBitrateKbps: 160,
+    videoCodec: "avc",
     width: 1920,
     height: 1080,
     frameRate: 23.976,

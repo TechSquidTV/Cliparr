@@ -23,12 +23,43 @@ export interface MediaExportMetadata {
   imageUrl?: string;
 }
 
+export type ExportVideoCodec = "av1" | "avc" | "hevc" | "vp8" | "vp9";
+
+export function normalizeExportVideoCodec(
+  value: string | null | undefined,
+): ExportVideoCodec | null {
+  const normalized = value?.trim().toLowerCase();
+  if (normalized === "av1") {
+    return "av1";
+  }
+
+  if (normalized === "avc" || normalized === "avc1" || normalized === "h264") {
+    return "avc";
+  }
+
+  if (
+    normalized === "hevc" ||
+    normalized === "h265" ||
+    normalized === "hev1" ||
+    normalized === "hvc1"
+  ) {
+    return "hevc";
+  }
+
+  if (normalized === "vp8" || normalized === "vp9") {
+    return normalized;
+  }
+
+  return null;
+}
+
 export interface PlaybackExportEstimateMetadata {
   sourceSizeBytes?: number;
   sourceDurationSeconds?: number;
   sourceBitrateKbps?: number;
   videoBitrateKbps?: number;
   audioBitrateKbps?: number;
+  videoCodec?: ExportVideoCodec;
   width?: number;
   height?: number;
   frameRate?: number;

@@ -2,10 +2,13 @@
 
 import assert from "node:assert/strict";
 import test from "node:test";
-import { QUALITY_LOW, QUALITY_MEDIUM } from "mediabunny";
 import type { ConversionOptions } from "mediabunny";
 import type { Palette } from "@techsquidtv/gifenc";
-import { createGifCanvas, exportClipWithRuntime } from "@/lib/exportClip";
+import {
+  createGifCanvas,
+  exportClipWithRuntime,
+  type ExportVideoEncodingPlan,
+} from "@/lib/exportClip";
 import type { EditorMediaSource } from "@/lib/editorMedia";
 import { gifExportSettingsForPreset } from "@/lib/exportTypes";
 import { createInlineGifFrameEncoder } from "@/lib/gifFrameEncoder";
@@ -136,6 +139,7 @@ function createRuntime(overrides: Partial<ExportRuntime> = {}) {
       ({
         mimeType: "video/mp4",
         getSupportedVideoCodecs: () => ["avc", "hevc", "vp9", "av1", "vp8"],
+        getSupportedAudioCodecs: () => ["aac", "mp3", "opus", "vorbis"],
       }) as unknown as OutputFormat,
     createBufferTarget: () => target as unknown as BufferTargetResult,
     createOutput: (options) => ({ options }) as unknown as OutputResult,
@@ -164,6 +168,8 @@ function createRuntime(overrides: Partial<ExportRuntime> = {}) {
         utilizedAudio: true,
         progress: 0.5,
       }),
+    canEncodeVideo: async () => true,
+    canEncodeAudio: async () => true,
     buildSubtitleBurnInProcessor: () =>
       (() => ({})) as unknown as SubtitleProcessor,
     ...overrides,
@@ -218,6 +224,7 @@ function createConversion({
 void test("builds and executes a trimmed conversion with selected audio and metadata", async () => {
   let capturedHls: boolean | undefined;
   let capturedOptions: ConversionOptions | undefined;
+  let capturedVideoPlan: unknown;
   let patchedBytes: number[] = [];
   const progress: number[] = [];
   const context = createRuntime();
@@ -255,6 +262,9 @@ void test("builds and executes a trimmed conversion with selected audio and meta
         itemType: "movie",
         title: "Movie",
       },
+      onVideoEncodingPlan: (plan) => {
+        capturedVideoPlan = plan;
+      },
       onProgress: (value) => progress.push(value),
     },
     context.runtime,
@@ -267,6 +277,11 @@ void test("builds and executes a trimmed conversion with selected audio and meta
   assert.equal(blob.size, 3);
   assert.deepEqual(progress, [0.5]);
   assert.deepEqual(patchedBytes, [1, 2, 3]);
+  assert.deepEqual(capturedVideoPlan, {
+    mode: "transcode",
+    codec: "avc",
+    bitrateBps: 2_778_000,
+  });
   assert.equal(context.disposed, true);
 
   const audioOptionsForTrack = capturedOptions?.audio;
@@ -305,15 +320,15 @@ void test("builds and executes a trimmed conversion with selected audio and meta
   ) as { discard: boolean; height?: number };
   assert.equal(selectedVideoOptions.discard, false);
   assert.equal(selectedVideoOptions.height, 720);
-  assert.equal(selectedVideoOptions.forceTranscode, undefined);
-  assert.equal(selectedVideoOptions.bitrate, undefined);
+  assert.equal(selectedVideoOptions.forceTranscode, true);
+  assert.equal(selectedVideoOptions.bitrate, 2_778_000);
   assert.equal(otherVideoOptions.discard, true);
 });
 
 void test("forces video transcode for compact and balanced export quality", async () => {
   const qualityCases = [
-    ["compact", QUALITY_LOW],
-    ["balanced", QUALITY_MEDIUM],
+    ["compact", 1_800_000],
+    ["balanced", 3_000_000],
   ] as const;
 
   for (const [videoQuality, expectedBitrate] of qualityCases) {
@@ -357,12 +372,14 @@ void test("forces video transcode for compact and balanced export quality", asyn
     ) as {
       discard: boolean;
       forceTranscode?: boolean;
-      bitrate?: unknown;
+      bitrate?: number;
+      codec?: string;
     };
 
     assert.equal(selectedVideoOptions.discard, false);
     assert.equal(selectedVideoOptions.forceTranscode, true);
     assert.equal(selectedVideoOptions.bitrate, expectedBitrate);
+    assert.equal(selectedVideoOptions.codec, "avc");
     assert.equal(context.disposed, true);
   }
 });
@@ -503,6 +520,35 @@ void test("allows original sharp exports to copy a carried source codec without 
 
   assert.equal(initializedConversion, true);
   assert.equal(blob.size, 3);
+  assert.equal(context.disposed, true);
+});
+
+void test("transcodes ProRes instead of treating it as a copy-plan codec", async () => {
+  let capturedVideoPlan: ExportVideoEncodingPlan | undefined;
+  const context = createRuntime();
+  context.videoTrack.getCodec = async () => "prores";
+
+  await exportClipWithRuntime(
+    {
+      mediaSource,
+      startTime: 0,
+      endTime: 10,
+      format: "mp4",
+      resolution: "original",
+      includeAudio: false,
+      onVideoEncodingPlan: (plan) => {
+        capturedVideoPlan = plan;
+      },
+      onProgress: () => {},
+    },
+    context.runtime,
+  );
+
+  assert.deepEqual(capturedVideoPlan, {
+    mode: "transcode",
+    codec: "avc",
+    bitrateBps: 6_000_000,
+  });
   assert.equal(context.disposed, true);
 });
 
