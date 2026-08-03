@@ -4,7 +4,11 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import type { ConversionOptions } from "mediabunny";
 import type { Palette } from "@techsquidtv/gifenc";
-import { createGifCanvas, exportClipWithRuntime } from "@/lib/exportClip";
+import {
+  createGifCanvas,
+  exportClipWithRuntime,
+  type ExportVideoEncodingPlan,
+} from "@/lib/exportClip";
 import type { EditorMediaSource } from "@/lib/editorMedia";
 import { gifExportSettingsForPreset } from "@/lib/exportTypes";
 import { createInlineGifFrameEncoder } from "@/lib/gifFrameEncoder";
@@ -516,6 +520,35 @@ void test("allows original sharp exports to copy a carried source codec without 
 
   assert.equal(initializedConversion, true);
   assert.equal(blob.size, 3);
+  assert.equal(context.disposed, true);
+});
+
+void test("transcodes ProRes instead of treating it as a copy-plan codec", async () => {
+  let capturedVideoPlan: ExportVideoEncodingPlan | undefined;
+  const context = createRuntime();
+  context.videoTrack.getCodec = async () => "prores";
+
+  await exportClipWithRuntime(
+    {
+      mediaSource,
+      startTime: 0,
+      endTime: 10,
+      format: "mp4",
+      resolution: "original",
+      includeAudio: false,
+      onVideoEncodingPlan: (plan) => {
+        capturedVideoPlan = plan;
+      },
+      onProgress: () => {},
+    },
+    context.runtime,
+  );
+
+  assert.deepEqual(capturedVideoPlan, {
+    mode: "transcode",
+    codec: "avc",
+    bitrateBps: 6_000_000,
+  });
   assert.equal(context.disposed, true);
 });
 

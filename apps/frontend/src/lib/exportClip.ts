@@ -41,6 +41,7 @@ import type {
   MediaExportMetadata,
   PlaybackAudioSelection,
 } from "#/providers/types";
+import { normalizeExportVideoCodec } from "@cliparr/shared/providers";
 import {
   buildMetadataTags,
   describeDiscardedTracks,
@@ -558,7 +559,7 @@ export async function exportClipWithRuntime(
       if (videoRequiresTranscode) {
         assertVideoTrackDecodableForExport(decodability);
       } else {
-        sourceVideoCodec = decodability.codec;
+        sourceVideoCodec = normalizeExportVideoCodec(decodability.codec);
       }
     }
 
