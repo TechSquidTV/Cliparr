@@ -313,9 +313,9 @@ flowchart TD
 
 ```mermaid
 flowchart TD
-    A["Export dialog opens"] --> A1["useEditorExport computes immediate approximate output size from duration, dimensions, format, quality, source size, direct provider bitrate metadata, HLS manifest bandwidth, audio, and GIF settings"]
+    A["Export dialog opens"] --> A1["useEditorExport resolves a browser-supported output codec and computes an approximate size from duration, dimensions, format, quality, audio, GIF settings, and compatible direct-source metadata"]
     A1 --> A2["Dialog footer shows a compact estimate opposite the export action"]
-    A2 --> A3["Sharp video estimates may use source or HLS bitrate; Compact and Balanced use forced-transcode codec heuristics"]
+    A2 --> A3["A compatible Sharp direct source beginning at the source start can use its copy plan; every other video estimate uses the selected codec's numeric VBR target"]
     A3 --> B["User clicks Export"]
     B --> B1["useEditorExport resolves source/options and lazy-loads exportClip"]
     B1 --> C{"Output format is GIF?"}
@@ -336,9 +336,9 @@ flowchart TD
     H1 --> I["exportMetadata builds tags and artwork when metadata exists"]
     I --> J["Create Output(BufferTarget)"]
     J --> K["Build conversion options for source video, selected audio, trim, resolution, tags, optional subtitles, and video quality"]
-    K --> K1{"Video quality is Compact or Balanced?"}
-    K1 -- "Yes" --> K2["Force video transcode with lower target bitrate"]
-    K1 -- "No" --> K3["Sharp leaves copy/remux available when possible"]
+    K --> K1{"Can Sharp preserve compatible source packets?"}
+    K1 -- "Yes" --> K2["Copy/remux source video packets"]
+    K1 -- "No" --> K3["Resolve browser-supported output codec and numeric variable-bitrate target, then transcode"]
     K2 --> L["Conversion.init validates selected tracks and output plan"]
     K3 --> L
     L --> M{"Conversion valid?"}

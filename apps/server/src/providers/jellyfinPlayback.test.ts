@@ -154,8 +154,8 @@ function createJellyfinPlaybackFetch(options: {
     MediaStreams: [
       {
         Type: "Video",
-        Index: 0,
         Codec: "h264",
+        Index: 0,
         Width: 1920,
         Height: 1080,
       },
@@ -257,6 +257,7 @@ void test("extracts Jellyfin export size estimate metadata from media sources", 
     MediaStreams: [
       {
         Type: "Video",
+        Codec: "h264",
         BitRate: 1_400_000,
         Width: 1920,
         Height: 1080,
@@ -277,6 +278,7 @@ void test("extracts Jellyfin export size estimate metadata from media sources", 
     sourceBitrateKbps: 1600,
     videoBitrateKbps: 1400,
     audioBitrateKbps: 160,
+    videoCodec: "avc",
     width: 1920,
     height: 1080,
     frameRate: 23.976,

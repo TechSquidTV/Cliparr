@@ -7,6 +7,7 @@ import {
   type EditorFileMediaSource,
   type EditorMediaSource,
   type ExportClipOptions,
+  type ExportVideoEncodingPlan,
   type ExportFormat,
   type ExportQualityPreset,
   type ExportResolution,
@@ -24,6 +25,8 @@ export interface SourceProbeResult {
     height: number;
   };
   hasAudio: boolean;
+  videoCodec?: string | null;
+  videoBitrateKbps?: number | null;
 }
 
 export interface ConvertExportOptions {
@@ -36,6 +39,7 @@ export interface ConvertExportOptions {
   gifSettings?: GifExportSettings;
   videoQuality?: VideoExportQualityPreset;
   includeAudio: boolean;
+  onVideoEncodingPlan?: (plan: ExportVideoEncodingPlan) => void;
   onProgress: (progress: number) => void;
 }
 
@@ -149,6 +153,7 @@ export async function runConvertExport(
     gifSettings,
     videoQuality,
     includeAudio,
+    onVideoEncodingPlan,
     onProgress,
   }: ConvertExportOptions,
   dependencies: ConvertExportDependencies = DEFAULT_EXPORT_DEPENDENCIES,
@@ -164,6 +169,7 @@ export async function runConvertExport(
     videoQuality: format === "gif" ? undefined : videoQuality,
     includeAudio: resolveConvertIncludeAudio(format, includeAudio),
     metadata,
+    onVideoEncodingPlan,
     onProgress,
   });
 

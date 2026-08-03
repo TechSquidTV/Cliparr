@@ -70,7 +70,7 @@ function createMetricContext() {
     outputDimensions: { width: 1280, height: 720 },
     outputSizeEstimate: {
       bytes: 1000,
-      basis: "codec-heuristic" as const,
+      basis: "transcode-plan" as const,
     },
     gifSettings: null,
   };
@@ -107,13 +107,24 @@ void test("normalizes convert source formats from extension and MIME type", () =
 });
 
 void test("metric attributes stay bounded and omit file-identifying values", () => {
-  const attributes = buildConvertMetricAttributes(createMetricContext());
+  const attributes = buildConvertMetricAttributes({
+    ...createMetricContext(),
+    videoEncodingPlan: {
+      mode: "transcode",
+      codec: "vp9",
+      bitrateBps: 1_800_000,
+    },
+  });
   const serializedAttributes = JSON.stringify(attributes);
 
   assert.equal(attributes.surface, "www.convert");
   assert.equal(attributes["source.format"], "mkv");
   assert.equal(attributes["output.format"], "mp4");
-  assert.equal(attributes["estimator.version"], 1);
+  assert.equal(attributes["estimator.version"], 2);
+  assert.equal(attributes["encoder.policy.version"], 1);
+  assert.equal(attributes["encoder.video.mode"], "transcode");
+  assert.equal(attributes["encoder.video.codec"], "vp9");
+  assert.equal(attributes["encoder.video.target_bitrate_bps"], 1_800_000);
   assert.doesNotMatch(serializedAttributes, /Private Show/);
   assert.doesNotMatch(serializedAttributes, /S01E02/);
   assert.equal(

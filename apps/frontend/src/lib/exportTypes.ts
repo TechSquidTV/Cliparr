@@ -4,6 +4,13 @@ import type {
   GifPaletteMode,
   GifTemporalDitherSettings,
 } from "#/lib/gifEncodingSettings";
+import {
+  calibratedEstimatedVideoBitrateBps,
+  exportVideoCodecPriorities,
+  EXPORT_AUDIO_BITRATE_BPS,
+  EXPORT_ESTIMATE_CONTAINER_OVERHEAD,
+  type ExportVideoCodec,
+} from "#/lib/exportEncodingPolicy";
 
 export type ExportFormat = "mp4" | "webm" | "mov" | "mkv" | "gif";
 
@@ -43,12 +50,10 @@ export interface GifExportSettings {
 }
 
 type ExportSizeEstimateBasis =
-  | "codec-heuristic"
-  | "hls-manifest"
-  | "hls-manifest-capped"
-  | "source-bitrate"
-  | "gif-heuristic"
-  | "source-proportional"
+  | "copy-plan"
+  | "copy-fallback"
+  | "transcode-plan"
+  | "gif-profile"
   | "unavailable";
 
 export interface ExportSizeEstimate {
@@ -68,15 +73,15 @@ export interface EstimateExportOutputSizeOptions {
   sourceBitrateKbps?: number | null;
   videoBitrateKbps?: number | null;
   audioBitrateKbps?: number | null;
-  hlsManifestBitrateKbps?: number | null;
-  hlsManifestBitrateBasis?: HlsManifestBitrateBasis | null;
+  sourceCopyEligible?: boolean;
+  preferredVideoCodec?: ExportVideoCodec | null;
   includeBurnedSubtitles?: boolean;
   videoQuality?: VideoExportQualityPreset | null;
 }
 
 export const DEFAULT_GIF_EXPORT_PRESET: GifExportPreset = "balanced";
 export const DEFAULT_VIDEO_EXPORT_QUALITY: VideoExportQualityPreset = "sharp";
-export const EXPORT_SIZE_ESTIMATE_ALGORITHM_VERSION = 1;
+export const EXPORT_SIZE_ESTIMATE_ALGORITHM_VERSION = 2;
 
 export const exportQualityOptions: ReadonlyArray<{
   value: ExportQualityPreset;
@@ -184,8 +189,6 @@ export const gifExportPresetOptions: ReadonlyArray<{
 }));
 
 const GIF_EXPORT_MAX_DURATION_SECONDS = 15;
-const AUDIO_EXPORT_BITRATE_KBPS = 160;
-const VIDEO_ESTIMATE_CONTAINER_OVERHEAD = 1.03;
 const GIF_ESTIMATE_BASE_BYTES = 20_000;
 const GIF_ESTIMATE_BYTES_PER_PIXEL_FRAME: Record<GifExportPreset, number> = {
   compact: 0.225,
@@ -193,21 +196,6 @@ const GIF_ESTIMATE_BYTES_PER_PIXEL_FRAME: Record<GifExportPreset, number> = {
   balanced: 0.48,
   sharp: 0.5,
 };
-const VIDEO_ESTIMATE_BITRATES_KBPS: Record<
-  Exclude<ExportFormat, "gif">,
-  readonly [number, number, number, number, number]
-> = {
-  mp4: [9000, 5300, 3400, 1700, 950],
-  webm: [6000, 3350, 2200, 1100, 650],
-  mov: [10_500, 6200, 3900, 2000, 1100],
-  mkv: [6500, 3900, 2500, 1250, 750],
-};
-const VIDEO_ESTIMATE_QUALITY_FACTORS: Record<VideoExportQualityPreset, number> =
-  {
-    compact: 0.3,
-    balanced: 0.5,
-    sharp: 1,
-  };
 
 export function exportFormatSupportsAudio(format: ExportFormat) {
   return format !== "gif";
@@ -358,8 +346,8 @@ export function estimateExportOutputSize({
   sourceBitrateKbps,
   videoBitrateKbps,
   audioBitrateKbps,
-  hlsManifestBitrateKbps,
-  hlsManifestBitrateBasis,
+  sourceCopyEligible = false,
+  preferredVideoCodec,
   includeBurnedSubtitles = false,
   videoQuality,
 }: EstimateExportOutputSizeOptions): ExportSizeEstimate {
@@ -383,103 +371,61 @@ export function estimateExportOutputSize({
 
     return {
       bytes: Math.round(bytes),
-      basis: "gif-heuristic",
+      basis: "gif-profile",
     };
   }
 
   const resolvedVideoQuality = videoQuality ?? DEFAULT_VIDEO_EXPORT_QUALITY;
 
   if (
+    sourceCopyEligible &&
     resolvedVideoQuality === "sharp" &&
     resolution === "original" &&
-    !includeBurnedSubtitles &&
-    typeof sourceSizeBytes === "number" &&
-    sourceSizeBytes > 0 &&
-    typeof sourceDurationSeconds === "number" &&
-    sourceDurationSeconds > 0
+    !includeBurnedSubtitles
   ) {
-    return {
-      bytes: Math.round(
-        sourceSizeBytes * Math.min(1, durationSeconds / sourceDurationSeconds),
-      ),
-      basis: "source-proportional",
-    };
-  }
+    const metadataBitrateKbps = copyPlanBitrateKbps({
+      sourceBitrateKbps,
+      videoBitrateKbps,
+      audioBitrateKbps,
+      includeAudio,
+    });
 
-  if (
-    resolvedVideoQuality === "sharp" &&
-    !includeBurnedSubtitles &&
-    typeof hlsManifestBitrateKbps === "number" &&
-    hlsManifestBitrateKbps > 0
-  ) {
-    const adjustedHlsBitrateKbps = includeAudio
-      ? hlsManifestBitrateKbps
-      : Math.max(
-          1,
-          hlsManifestBitrateKbps - audioEstimateBitrateKbps(audioBitrateKbps),
-        );
-    const hlsEstimate = estimateFromBitrateKbps(
-      adjustedHlsBitrateKbps,
-      durationSeconds,
-      "hls-manifest",
-    );
-    const codecEstimate = estimateFromBitrateKbps(
-      targetOutputBitrateKbps(
-        format,
-        outputDimensions.height,
-        includeAudio,
-        resolvedVideoQuality,
-      ),
-      durationSeconds,
-      "codec-heuristic",
-    );
-
-    if (
-      hlsManifestBitrateBasis !== "average-bandwidth" &&
-      typeof hlsEstimate.bytes === "number" &&
-      typeof codecEstimate.bytes === "number" &&
-      hlsEstimate.bytes > codecEstimate.bytes
-    ) {
-      return {
-        bytes: codecEstimate.bytes,
-        basis: "hls-manifest-capped",
-      };
+    if (metadataBitrateKbps !== null) {
+      return estimateFromBitrateKbps(
+        metadataBitrateKbps,
+        durationSeconds,
+        "copy-plan",
+      );
     }
 
-    return hlsEstimate;
+    if (
+      typeof sourceSizeBytes === "number" &&
+      sourceSizeBytes > 0 &&
+      typeof sourceDurationSeconds === "number" &&
+      sourceDurationSeconds > 0
+    ) {
+      return {
+        bytes: Math.round(
+          sourceSizeBytes *
+            Math.min(1, durationSeconds / sourceDurationSeconds),
+        ),
+        basis: "copy-fallback",
+      };
+    }
   }
 
-  let metadataBitrateKbps: number | null = null;
-  if (typeof sourceBitrateKbps === "number" && sourceBitrateKbps > 0) {
-    metadataBitrateKbps = sourceBitrateKbps;
-  } else if (typeof videoBitrateKbps === "number" && videoBitrateKbps > 0) {
-    metadataBitrateKbps =
-      videoBitrateKbps +
-      (includeAudio ? audioEstimateBitrateKbps(audioBitrateKbps) : 0);
-  }
-
-  if (
-    resolvedVideoQuality === "sharp" &&
-    resolution === "original" &&
-    !includeBurnedSubtitles &&
-    metadataBitrateKbps
-  ) {
-    return estimateFromBitrateKbps(
-      metadataBitrateKbps,
-      durationSeconds,
-      "source-bitrate",
-    );
-  }
+  const codec = preferredVideoCodec ?? exportVideoCodecPriorities(format)[0];
+  const videoBitrateBps = calibratedEstimatedVideoBitrateBps({
+    format,
+    codec,
+    outputDimensions,
+    quality: resolvedVideoQuality,
+  });
 
   return estimateFromBitrateKbps(
-    targetOutputBitrateKbps(
-      format,
-      outputDimensions.height,
-      includeAudio,
-      resolvedVideoQuality,
-    ),
+    (videoBitrateBps + (includeAudio ? EXPORT_AUDIO_BITRATE_BPS : 0)) / 1000,
     durationSeconds,
-    "codec-heuristic",
+    "transcode-plan",
   );
 }
 
@@ -488,58 +434,46 @@ function estimateFromBitrateKbps(
   durationSeconds: number,
   basis: Exclude<
     ExportSizeEstimateBasis,
-    "gif-heuristic" | "source-proportional" | "unavailable"
+    "gif-profile" | "copy-fallback" | "unavailable"
   >,
 ): ExportSizeEstimate {
   return {
     bytes: Math.round(
       ((bitrateKbps * 1000) / 8) *
         durationSeconds *
-        VIDEO_ESTIMATE_CONTAINER_OVERHEAD,
+        EXPORT_ESTIMATE_CONTAINER_OVERHEAD,
     ),
     basis,
   };
 }
 
-function targetOutputBitrateKbps(
-  format: Exclude<ExportFormat, "gif">,
-  height: number,
-  includeAudio: boolean,
-  videoQuality: VideoExportQualityPreset,
-) {
-  return (
-    targetVideoBitrateKbps(format, height, videoQuality) +
-    (includeAudio ? AUDIO_EXPORT_BITRATE_KBPS : 0)
-  );
-}
+function copyPlanBitrateKbps({
+  sourceBitrateKbps,
+  videoBitrateKbps,
+  audioBitrateKbps,
+  includeAudio,
+}: Pick<
+  EstimateExportOutputSizeOptions,
+  "sourceBitrateKbps" | "videoBitrateKbps" | "audioBitrateKbps" | "includeAudio"
+>): number | null {
+  const outputAudioBitrateKbps = includeAudio
+    ? EXPORT_AUDIO_BITRATE_BPS / 1000
+    : 0;
 
-function audioEstimateBitrateKbps(audioBitrateKbps: number | null | undefined) {
-  return typeof audioBitrateKbps === "number" && audioBitrateKbps > 0
-    ? audioBitrateKbps
-    : AUDIO_EXPORT_BITRATE_KBPS;
-}
-
-function targetVideoBitrateKbps(
-  format: Exclude<ExportFormat, "gif">,
-  height: number,
-  videoQuality: VideoExportQualityPreset,
-) {
-  const [veryHigh, high, medium, low, compact] =
-    VIDEO_ESTIMATE_BITRATES_KBPS[format];
-  const qualityFactor = VIDEO_ESTIMATE_QUALITY_FACTORS[videoQuality];
-  let baseBitrateKbps: number;
-
-  if (height >= 1440) {
-    baseBitrateKbps = veryHigh;
-  } else if (height >= 1000) {
-    baseBitrateKbps = high;
-  } else if (height >= 700) {
-    baseBitrateKbps = medium;
-  } else if (height >= 460) {
-    baseBitrateKbps = low;
-  } else {
-    baseBitrateKbps = compact;
+  if (typeof videoBitrateKbps === "number" && videoBitrateKbps > 0) {
+    return videoBitrateKbps + outputAudioBitrateKbps;
   }
 
-  return Math.max(1, Math.round(baseBitrateKbps * qualityFactor));
+  if (typeof sourceBitrateKbps !== "number" || sourceBitrateKbps <= 0) {
+    return null;
+  }
+
+  if (typeof audioBitrateKbps !== "number" || audioBitrateKbps <= 0) {
+    return sourceBitrateKbps;
+  }
+
+  return Math.max(
+    1,
+    sourceBitrateKbps - audioBitrateKbps + outputAudioBitrateKbps,
+  );
 }

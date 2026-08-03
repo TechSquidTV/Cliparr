@@ -1,8 +1,10 @@
 import * as Sentry from "@sentry/astro";
 import {
   EXPORT_SIZE_ESTIMATE_ALGORITHM_VERSION,
+  EXPORT_ENCODING_POLICY_VERSION,
   type ExportFormat,
   type ExportOutputDimensions,
+  type ExportVideoEncodingPlan,
   type ExportQualityPreset,
   type ExportResolution,
   type ExportSizeEstimate,
@@ -51,6 +53,7 @@ interface ConvertExportMetricContext {
   includeAudio: boolean;
   outputDimensions: ExportOutputDimensions | null;
   outputSizeEstimate: ExportSizeEstimate;
+  videoEncodingPlan?: ExportVideoEncodingPlan;
   gifSettings?: GifExportSettings | null;
 }
 
@@ -144,11 +147,13 @@ export function buildConvertMetricAttributes({
   includeAudio,
   outputDimensions,
   outputSizeEstimate,
+  videoEncodingPlan,
   gifSettings,
 }: ConvertExportMetricContext) {
   return compactMetricAttributes({
     surface: "www.convert",
     "estimator.version": EXPORT_SIZE_ESTIMATE_ALGORITHM_VERSION,
+    "encoder.policy.version": EXPORT_ENCODING_POLICY_VERSION,
     "source.format": normalizeConvertSourceFormat(sourceFile),
     "output.format": format,
     "export.quality": selectedQuality,
@@ -158,6 +163,10 @@ export function buildConvertMetricAttributes({
     "output.width": outputDimensions?.width,
     "output.height": outputDimensions?.height,
     "estimate.basis": outputSizeEstimate.basis,
+    "encoder.video.mode": videoEncodingPlan?.mode,
+    "encoder.video.codec": videoEncodingPlan?.codec ?? undefined,
+    "encoder.video.target_bitrate_bps":
+      videoEncodingPlan?.bitrateBps ?? undefined,
     "gif.frame_rate": format === "gif" ? gifSettings?.frameRate : undefined,
     "gif.max_colors": format === "gif" ? gifSettings?.maxColors : undefined,
     "gif.palette_mode":
