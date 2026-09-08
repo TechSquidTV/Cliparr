@@ -958,6 +958,7 @@ void test("renders mobile editor controls trigger and compact range summary", ()
         onSetInPoint: () => {},
         onSetOutPoint: () => {},
         onClearPoints: () => {},
+        onFitSelection: () => {},
       }),
     ),
   );
@@ -1041,6 +1042,7 @@ void test("renders the editor framegrab camera control", () => {
         onSetInPoint: () => {},
         onSetOutPoint: () => {},
         onClearPoints: () => {},
+        onFitSelection: () => {},
       }),
     ),
   );
