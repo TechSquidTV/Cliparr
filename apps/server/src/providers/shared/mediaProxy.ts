@@ -10,6 +10,7 @@ import { createApiError, isApiError } from "@/http/errors";
 import { getServerLogger } from "@/logging";
 import type { ProviderSessionRecord } from "@/session/store";
 import type { MediaHandle } from "@/providers/types";
+import { fetchWithPinnedDns } from "@/providers/shared/pinnedFetch";
 
 interface MediaHandleContext {
   providerId: MediaHandle["providerId"];
@@ -91,7 +92,7 @@ const cachedProxyResponses = new Map<
 >();
 const inflightProxyResponses = new Map<
   string,
-  Promise<CachedProxyMediaResponse>
+  Promise<CachedProxyMediaResponse | null>
 >();
 const resolvedHostnameCache = new Map<string, ResolvedHostnameCacheEntry>();
 const inflightHostnameResolutions = new Map<string, Promise<string[]>>();
@@ -347,7 +348,7 @@ function throwUnsafeMediaUrl(
 }
 
 export async function assertAllowedMediaHandleRequestUrl(
-  handle: Pick<MediaHandle, "baseUrl" | "path">,
+  handle: Pick<MediaHandle, "baseUrl" | "path" | "providerId">,
   requestUrl = mediaHandleRequestUrl(handle),
 ) {
   if (requestUrl.protocol !== "http:" && requestUrl.protocol !== "https:") {
@@ -367,7 +368,11 @@ export async function assertAllowedMediaHandleRequestUrl(
   }
 
   const providerUrl = safeUrl(handle.baseUrl);
-  if (providerUrl && requestUrl.origin === providerUrl.origin) {
+  if (
+    handle.providerId !== "local-url" &&
+    providerUrl &&
+    requestUrl.origin === providerUrl.origin
+  ) {
     return;
   }
 
@@ -391,6 +396,7 @@ export async function assertAllowedMediaHandleRequestUrl(
       throwUnsafeMediaUrl(handle, requestUrl, "resolved_address");
     }
   }
+  return addresses;
 }
 
 function isRedirectStatus(status: number) {
@@ -533,12 +539,15 @@ async function fetchMediaHandleRequestOnce(
     redirectCount <= MEDIA_PROXY_MAX_REDIRECTS;
     redirectCount += 1
   ) {
-    await assertAllowedMediaHandleRequestUrl(handle, requestUrl);
-
-    const response = await fetch(requestUrl.toString(), {
-      ...requestInit,
-      redirect: "manual",
-    });
+    const addresses = await assertAllowedMediaHandleRequestUrl(
+      handle,
+      requestUrl,
+    );
+    const response = await fetchWithPinnedDns(
+      requestUrl,
+      { ...requestInit, redirect: "manual" },
+      addresses,
+    );
     const location = response.headers.get("location");
     if (!isRedirectStatus(response.status) || !location) {
       return response;
@@ -548,6 +557,7 @@ async function fetchMediaHandleRequestOnce(
     if (nextUrl.origin !== requestUrl.origin) {
       requestInit = removeSensitiveRedirectHeaders(requestInit);
     }
+    await closeRetryableResponse(response);
     requestUrl = nextUrl;
   }
 
@@ -831,8 +841,19 @@ async function rewriteHlsPlaylist(
   upstream: globalThis.Response,
   options: ProxyMediaResponseOptions = {},
 ) {
-  const body = await upstream.text();
-  const basePath = handle.basePath ?? playlistBasePath(handle.path);
+  const buffered = await bufferProxyBody(upstream);
+  if (buffered instanceof globalThis.Response) {
+    await buffered.body?.cancel();
+    throw createApiError(
+      502,
+      "media_proxy_playlist_too_large",
+      "HLS playlist exceeds the proxy size limit",
+    );
+  }
+  const body = buffered.toString("utf8");
+  const basePath = upstream.url
+    ? playlistBasePath(upstream.url)
+    : (handle.basePath ?? playlistBasePath(handle.path));
   let rewrittenUriCount = 0;
   let strippedStartHintCount = 0;
   let firstMediaUriPath: string | undefined;
@@ -898,18 +919,13 @@ function logHlsPlaylistFetch(
 }
 
 function copyProxyHeaders(upstream: globalThis.Response, res: Response) {
-  for (const header of PROXY_HEADER_ALLOWLIST) {
+  for (const [header, value] of snapshotProxyHeaders(upstream)) {
     if (header === "content-length") {
       continue;
     }
 
-    const value = upstream.headers.get(header);
-    if (value) {
-      res.setHeader(header, value);
-    }
+    res.setHeader(header, value);
   }
-
-  res.setHeader("Cross-Origin-Resource-Policy", "same-origin");
 }
 
 function isHlsPlaylist(handle: MediaHandle, contentType: string) {
@@ -931,7 +947,7 @@ export function shouldForwardMediaRange(
   handle: MediaHandle,
   range: string | undefined,
 ) {
-  if (!range || isHlsDerivedHandle(handle)) {
+  if (!range || isHlsPlaylist(handle, "")) {
     return;
   }
 
@@ -948,7 +964,14 @@ function snapshotProxyHeaders(upstream: globalThis.Response) {
     }
   }
 
-  headers.push(["cross-origin-resource-policy", "same-origin"]);
+  headers.push(
+    ["cross-origin-resource-policy", "same-origin"],
+    [
+      "content-security-policy",
+      "sandbox; default-src 'none'; base-uri 'none'; form-action 'none'",
+    ],
+    ["x-content-type-options", "nosniff"],
+  );
   return headers;
 }
 
@@ -1003,6 +1026,62 @@ function sendCachedProxyResponse(
   res.end(response.body);
 }
 
+/** Buffer small responses only; replay the prefix and stream the rest on overflow. */
+async function bufferProxyBody(upstream: globalThis.Response) {
+  if (!upstream.body) {
+    return Buffer.alloc(0);
+  }
+  const reader = upstream.body.getReader();
+  const chunks: Uint8Array[] = [];
+  let byteLength = 0;
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) {
+        reader.releaseLock();
+        return Buffer.concat(chunks, byteLength);
+      }
+      chunks.push(value);
+      byteLength += value.byteLength;
+      if (byteLength > HLS_PROXY_RESPONSE_CACHE_MAX_BYTES) {
+        const body = new ReadableStream<Uint8Array>({
+          start(controller) {
+            for (const chunk of chunks) {
+              controller.enqueue(chunk);
+            }
+            chunks.length = 0;
+          },
+          async pull(controller) {
+            try {
+              const next = await reader.read();
+              if (next.done) {
+                reader.releaseLock();
+                controller.close();
+              } else {
+                controller.enqueue(next.value);
+              }
+            } catch (error) {
+              reader.releaseLock();
+              controller.error(error);
+            }
+          },
+          async cancel(reason) {
+            try {
+              await reader.cancel(reason);
+            } finally {
+              reader.releaseLock();
+            }
+          },
+        });
+        return new globalThis.Response(body, upstream);
+      }
+    }
+  } catch (error) {
+    reader.releaseLock();
+    throw error;
+  }
+}
+
 async function createCachedProxyMediaResponse(
   session: ProviderSessionRecord,
   handle: MediaHandle,
@@ -1036,7 +1115,16 @@ async function createCachedProxyMediaResponse(
     } satisfies CachedProxyMediaResponse;
   }
 
-  const body = Buffer.from(await upstream.arrayBuffer());
+  if (
+    Number(upstream.headers.get("content-length")) >
+    HLS_PROXY_RESPONSE_CACHE_MAX_BYTES
+  ) {
+    return upstream;
+  }
+  const body = await bufferProxyBody(upstream);
+  if (body instanceof globalThis.Response) {
+    return body;
+  }
   const nextHeaders = headers.filter(([name]) => name !== "content-length");
 
   if (upstream.body) {
@@ -1175,7 +1263,7 @@ export async function proxyProviderMediaResponse(
   const cacheKey = buildProxyCacheKey(handle, request);
   if (!cacheKey) {
     const upstream = await fetchUpstream();
-    await proxyUpstreamMediaResponse(session, handle, upstream, res);
+    await proxyUpstreamMediaResponse(session, handle, upstream, res, options);
     return;
   }
 
@@ -1195,6 +1283,7 @@ export async function proxyProviderMediaResponse(
     return;
   }
 
+  let streamingUpstream: globalThis.Response | undefined;
   let inflightResponse = inflightProxyResponses.get(cacheKey);
   if (inflightResponse) {
     logger.trace("Waiting for in-flight proxied media response.", {
@@ -1215,6 +1304,10 @@ export async function proxyProviderMediaResponse(
         options,
       );
 
+      if (response instanceof globalThis.Response) {
+        streamingUpstream = response;
+        return null;
+      }
       if (response.body.byteLength <= HLS_PROXY_RESPONSE_CACHE_MAX_BYTES) {
         cachedProxyResponses.set(cacheKey, {
           expiresAt: Date.now() + HLS_PROXY_RESPONSE_CACHE_TTL_MS,
@@ -1238,5 +1331,16 @@ export async function proxyProviderMediaResponse(
       });
   }
 
-  sendCachedProxyResponse(await inflightResponse!, res);
+  const response = await inflightResponse;
+  if (response) {
+    sendCachedProxyResponse(response, res);
+  } else {
+    await proxyUpstreamMediaResponse(
+      session,
+      handle,
+      streamingUpstream ?? (await fetchUpstream()),
+      res,
+      options,
+    );
+  }
 }

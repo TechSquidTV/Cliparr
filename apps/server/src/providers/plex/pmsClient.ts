@@ -9,6 +9,7 @@ import {
   statusGetSlash,
 } from "@/providers/plex/generated/sdk.gen";
 import { errorMessage, uniqueStrings } from "@/providers/shared/utilities";
+import { fetchWithPinnedDns } from "@/providers/shared/pinnedFetch";
 
 export interface PlexPmsRequestContext {
   baseUrl: string;
@@ -227,9 +228,11 @@ async function assertAllowedPlexPmsRequestUrl(
 
   assertAllowedRedirectHostname(requestUrl.hostname);
 
-  for (const address of await resolveHostnameAddresses(requestUrl.hostname)) {
+  const addresses = await resolveHostnameAddresses(requestUrl.hostname);
+  for (const address of addresses) {
     assertAllowedRedirectHostname(address);
   }
+  return addresses;
 }
 
 function isRedirectStatus(status: number) {
@@ -330,12 +333,15 @@ async function fetchPlexPmsWithManualRedirects(
     redirectCount <= PLEX_PMS_MAX_REDIRECTS;
     redirectCount += 1
   ) {
-    await assertAllowedPlexPmsRequestUrl(requestUrl, trustedOrigin);
-
-    const response = await globalThis.fetch(requestUrl.toString(), {
-      ...requestInit,
-      redirect: "manual",
-    });
+    const addresses = await assertAllowedPlexPmsRequestUrl(
+      requestUrl,
+      trustedOrigin,
+    );
+    const response = await fetchWithPinnedDns(
+      requestUrl,
+      { ...requestInit, redirect: "manual" },
+      addresses,
+    );
     const location = response.headers.get("location");
     if (!isRedirectStatus(response.status) || !location) {
       return response;

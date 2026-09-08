@@ -188,6 +188,7 @@ mediaRouter.post(
   "/local-url",
   asyncHandler(async (request, res) => {
     setNoStore(res);
+    requireAccountSession(request);
     const startedAt = Date.now();
 
     try {
@@ -237,6 +238,7 @@ mediaRouter.get(
   "/local-url/:handleId",
   asyncHandler(async (request, res) => {
     setNoStore(res);
+    requireAccountSession(request);
     const prunedCount = pruneSessionMediaHandles(localUrlSession);
     const handle = localUrlMediaHandles.get(request.params.handleId as string);
     if (!handle) {

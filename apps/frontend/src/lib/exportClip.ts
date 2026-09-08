@@ -611,10 +611,6 @@ export async function exportClipWithRuntime(
     }
 
     const conversion = await runtime.initConversion(conversionOptions);
-    const utilizedAudioTracks = conversion.utilizedTracks.filter((track) =>
-      track.isAudioTrack(),
-    );
-
     if (!conversion.isValid) {
       const discardedDetails = await runtime.describeDiscardedTracks(
         conversion.discardedTracks,
@@ -623,14 +619,25 @@ export async function exportClipWithRuntime(
       throw new Error(`Conversion is invalid.${suffix}`);
     }
 
-    if (includeAudio && sourceHasAudio && utilizedAudioTracks.length === 0) {
+    const dropsAudio =
+      includeAudio &&
+      sourceHasAudio &&
+      !conversion.utilizedTracks.some((track) => track.isAudioTrack());
+    const dropsVideo =
+      sourceVideoTrack &&
+      !conversion.utilizedTracks.some(
+        (track) => track.isVideoTrack() && track.id === sourceVideoTrack.id,
+      );
+    if (dropsAudio || dropsVideo) {
       const discardedDetails = await runtime.describeDiscardedTracks(
         conversion.discardedTracks,
       );
       const suffix = discardedDetails
         ? ` ${discardedDetails}`
         : " Mediabunny did not report a discarded-track reason.";
-      throw new Error(`Export would drop the source audio track.${suffix}`);
+      throw new Error(
+        `Export would drop the source ${dropsAudio ? "audio" : "video"} track.${suffix}`,
+      );
     }
 
     conversion.onProgress = (progress) => onProgress(progress);
@@ -645,8 +652,8 @@ export async function exportClipWithRuntime(
       runtime.patchMp4MetadataBoxes(new Uint8Array(target.buffer));
     }
 
-    // Conversion.init already proved that at least one audio track made it into the
-    // output plan; reparsing the completed file adds memory pressure for long exports.
+    // The conversion plan preserves the selected video and requested audio;
+    // reparsing the completed file adds memory pressure for long exports.
     const blob = new Blob([target.buffer], { type: outputFormat.mimeType });
 
     return blob;

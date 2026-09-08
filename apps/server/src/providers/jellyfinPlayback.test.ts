@@ -13,6 +13,7 @@ import {
   proxyMedia,
 } from "@/providers/jellyfin/playback";
 import type { JellyfinSourceContext } from "@/providers/jellyfin/shared";
+import { mediaHandleRequestUrl } from "@/providers/shared/mediaProxy";
 
 let sessionIndex = 0;
 
@@ -126,6 +127,7 @@ function createJellyfinPlaybackFetch(options: {
   defaultAudioStreamIndex?: number | null;
   audioStreams?: Array<Record<string, unknown>>;
   title?: string;
+  withArtwork?: boolean;
 }) {
   const {
     itemId,
@@ -145,6 +147,7 @@ function createJellyfinPlaybackFetch(options: {
       },
     ],
     title = "Chapter 1: The Dark Revenge",
+    withArtwork = false,
   } = options;
   const mediaSource = {
     Id: mediaSourceId,
@@ -164,6 +167,7 @@ function createJellyfinPlaybackFetch(options: {
   };
   const item = {
     Id: itemId,
+    ...(withArtwork ? { ImageTags: { Primary: "artwork-tag" } } : {}),
     Name: title,
     Type: "Episode",
     MediaType: "Video",
@@ -341,6 +345,82 @@ void test("uses Jellyfin PlaybackInfo play session ids for currently playing str
     );
   } finally {
     globalThis.fetch = originalFetch;
+  }
+});
+
+void test("preserves Jellyfin base paths for streams, previews, artwork, and subtitles", async (context) => {
+  for (const prefix of ["/jellyfin", "/media/jellyfin/"]) {
+    const session = createSession();
+    const source = {
+      ...createSource(),
+      baseUrl: `http://jellyfin.local:8096${prefix}`,
+    };
+    const normalizedPrefix = prefix.replace(/\/$/, "");
+    const upstreamFetch = createJellyfinPlaybackFetch({
+      itemId: "item-prefix",
+      withArtwork: true,
+    });
+    context.mock.method(
+      globalThis,
+      "fetch",
+      async (input: Parameters<typeof fetch>[0], init?: RequestInit) => {
+        const url = fetchInputUrl(input);
+        assert.ok(url.pathname.startsWith(`${normalizedPrefix}/`));
+        url.pathname = url.pathname.slice(normalizedPrefix.length);
+        return upstreamFetch(url, init);
+      },
+    );
+    const entries = await listCurrentlyPlaying(session, source);
+    assert.equal(entries.length, 1);
+    assert.ok(entries[0]?.item.mediaUrl);
+    assert.ok(entries[0]?.item.hlsUrl);
+    const providerContext = { ...createContext(), baseUrl: source.baseUrl };
+    deriveSubtitleTracks(
+      session,
+      providerContext,
+      {
+        Id: "item-prefix",
+        MediaSources: [
+          {
+            Id: "media-source-1",
+            MediaStreams: [
+              {
+                Type: "Subtitle",
+                Index: 2,
+                Codec: "srt",
+                IsTextSubtitleStream: true,
+              },
+            ],
+          },
+        ],
+      },
+      "media-source-1",
+    );
+    const paths = new Set(
+      [...session.mediaHandles.values()].map(
+        (handle) => mediaHandleRequestUrl(handle).pathname,
+      ),
+    );
+    assert.ok(paths.has(`${normalizedPrefix}/Videos/item-prefix/stream`));
+    assert.ok(paths.has(`${normalizedPrefix}/Videos/item-prefix/master.m3u8`));
+    assert.ok(
+      paths.has(`${normalizedPrefix}/Items/item-prefix/Images/Primary`),
+    );
+    assert.ok(
+      paths.has(
+        `${normalizedPrefix}/Videos/item-prefix/media-source-1/Subtitles/2/Stream.vtt`,
+      ),
+    );
+    for (const handle of session.mediaHandles.values()) {
+      assert.ok(
+        mediaHandleRequestUrl(handle).pathname.startsWith(
+          `${normalizedPrefix}/`,
+        ),
+      );
+      if (handle.basePath) {
+        assert.ok(handle.basePath.startsWith(`${normalizedPrefix}/`));
+      }
+    }
   }
 });
 

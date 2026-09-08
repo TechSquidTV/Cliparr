@@ -73,6 +73,7 @@ function createMediaHandle(
   path: string,
   options: { basePath?: string } = {},
 ) {
+  const basePathPrefix = new URL(context.baseUrl).pathname.replace(/\/$/, "");
   return createProviderMediaHandle(
     session,
     {
@@ -86,8 +87,13 @@ function createMediaHandle(
         },
       },
     },
-    path,
-    options,
+    `${basePathPrefix}${path}`,
+    {
+      ...options,
+      basePath: options.basePath
+        ? `${basePathPrefix}${options.basePath}`
+        : undefined,
+    },
   );
 }
 

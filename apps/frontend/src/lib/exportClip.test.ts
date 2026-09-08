@@ -185,18 +185,39 @@ function createConversion({
   target,
   bytes,
   utilizedAudio,
+  utilizedVideo = true,
   progress,
 }: {
   target: { buffer: ArrayBuffer | undefined };
   bytes?: number[];
   utilizedAudio: boolean;
+  utilizedVideo?: boolean;
   progress?: number;
 }) {
   let onProgress: ((progress: number) => void) | undefined;
 
   return {
     isValid: true,
-    utilizedTracks: utilizedAudio ? [{ isAudioTrack: () => true }] : [],
+    utilizedTracks: [
+      ...(utilizedAudio
+        ? [
+            {
+              id: "audio-1",
+              isAudioTrack: () => true,
+              isVideoTrack: () => false,
+            },
+          ]
+        : []),
+      ...(utilizedVideo
+        ? [
+            {
+              id: "video-1",
+              isAudioTrack: () => false,
+              isVideoTrack: () => true,
+            },
+          ]
+        : []),
+    ],
     discardedTracks: [],
     get onProgress() {
       return onProgress;
@@ -468,6 +489,41 @@ void test("fails before initializing video conversion when the source video code
         context.runtime,
       ),
     /This browser cannot decode vp9 video\. Try Chrome or Edge/,
+  );
+  assert.equal(context.disposed, true);
+});
+
+void test("fails before execution when a valid conversion would drop the selected video", async () => {
+  const context = createRuntime({
+    describeDiscardedTracks: async () => "No encodable target video codec.",
+    initConversion: async () => {
+      const conversion = createConversion({
+        target: { buffer: undefined },
+        utilizedAudio: true,
+        utilizedVideo: false,
+      });
+      conversion.execute = async () => {
+        assert.fail(
+          "an audio-only conversion must not execute for a video source",
+        );
+      };
+      return conversion;
+    },
+  });
+  await assert.rejects(
+    exportClipWithRuntime(
+      {
+        mediaSource,
+        startTime: 0,
+        endTime: 10,
+        format: "mkv",
+        resolution: "original",
+        includeAudio: true,
+        onProgress: () => {},
+      },
+      context.runtime,
+    ),
+    /Export would drop the source video track\. No encodable target video codec\./,
   );
   assert.equal(context.disposed, true);
 });

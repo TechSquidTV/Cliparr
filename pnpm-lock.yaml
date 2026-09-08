@@ -176,6 +176,9 @@ importers:
       express:
         specifier: ^5.2.1
         version: 5.2.1
+      undici:
+        specifier: ^7.28.0
+        version: 7.28.0
     devDependencies:
       '@types/express':
         specifier: ^5.0.6
