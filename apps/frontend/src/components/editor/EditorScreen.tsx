@@ -33,6 +33,8 @@ import {
   createEditorTimelineEngine,
   synchronizeEditorTimelineSession,
 } from "@/components/editor/editorTimelineEngine";
+import { useEditorHistory } from "@/components/editor/useEditorHistory";
+import { EditorEditingTools } from "@/components/editor/EditorEditingTools";
 import { EditorHeader } from "@/components/editor/EditorHeader";
 import { EditorPreview } from "@/components/editor/EditorPreview";
 import { EditorSubtitlePreview } from "@/components/editor/EditorSubtitlePreview";
@@ -147,6 +149,10 @@ function EditorScreenContent({
     duration,
     mediaReady: timelineMedia.metadataReady,
   });
+  const editHistory = useEditorHistory(
+    engine,
+    timelineMedia.metadataReady && !subtitleLoading,
+  );
   const posterImageUrl = session.thumbUrl;
 
   const {
@@ -368,6 +374,8 @@ function EditorScreenContent({
     [duration, frameStepSeconds, getPlaybackTime, pausePlayback, seekToTime],
   );
   useEditorKeyboardShortcuts({
+    undo: editHistory.undo,
+    redo: editHistory.redo,
     togglePlay: () => void togglePlay(),
     markIn: handleMarkInShortcut,
     markOut: handleMarkOutShortcut,
@@ -551,6 +559,8 @@ function EditorScreenContent({
         exportDisabledReason={headerExportDisabledReason}
         onExportClick={handleOpenExportDialog}
       />
+
+      <EditorEditingTools history={editHistory} />
 
       <main className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto p-2.5 sm:p-3 lg:overflow-hidden">
         {isDesktopLayout ? (

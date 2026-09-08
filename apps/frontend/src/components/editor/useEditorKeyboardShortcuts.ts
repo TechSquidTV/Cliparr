@@ -5,6 +5,8 @@ import {
 } from "@/components/editor/editorShortcutCommands";
 
 interface UseEditorKeyboardShortcutsProperties {
+  undo?: () => void;
+  redo?: () => void;
   togglePlay: () => void;
   markIn?: () => void;
   markOut?: () => void;
@@ -22,6 +24,8 @@ interface UseEditorKeyboardShortcutsProperties {
 
 export function useEditorKeyboardShortcuts({
   togglePlay,
+  undo,
+  redo,
   markIn,
   markOut,
   jumpToIn,
@@ -41,6 +45,8 @@ export function useEditorKeyboardShortcuts({
 
   useEffect(() => {
     commandHandlersReference.current = {
+      undo,
+      redo,
       "toggle-play": togglePlay,
       "mark-in": markIn,
       "mark-out": markOut,
@@ -61,11 +67,10 @@ export function useEditorKeyboardShortcuts({
     const pressedCodes = new Set<string>();
 
     function handleKeyDown(event: KeyboardEvent) {
-      if (isInteractiveKeyboardTarget(event.target) || isModalDialogOpen()) {
+      if (isEditorDialogOpen()) {
         return;
       }
 
-      pressedCodes.add(event.code);
       const command = resolveEditorShortcutCommand({
         code: event.code,
         repeat: event.repeat,
@@ -75,6 +80,15 @@ export function useEditorKeyboardShortcuts({
         metaKey: event.metaKey,
         pressedCodes,
       });
+      if (
+        isInteractiveKeyboardTarget(
+          event.target,
+          command === "undo" || command === "redo",
+        )
+      ) {
+        return;
+      }
+      pressedCodes.add(event.code);
       const handler = command
         ? commandHandlersReference.current[command]
         : undefined;
@@ -108,7 +122,10 @@ export function useEditorKeyboardShortcuts({
   }, []);
 }
 
-function isInteractiveKeyboardTarget(target: EventTarget | null) {
+function isInteractiveKeyboardTarget(
+  target: EventTarget | null,
+  historyCommand: boolean,
+) {
   if (!(target instanceof HTMLElement)) {
     return false;
   }
@@ -117,21 +134,24 @@ function isInteractiveKeyboardTarget(target: EventTarget | null) {
     return true;
   }
 
-  return Boolean(
-    target.closest(
-      'input, textarea, select, button, [contenteditable="true"], [role="slider"], [role="dialog"], [role="alertdialog"], dialog',
-    ),
+  return (
+    (!historyCommand && Boolean(target.closest("button"))) ||
+    Boolean(
+      target.closest(
+        'input, textarea, select, [contenteditable="true"], [role="slider"], [role="dialog"], [role="alertdialog"], dialog',
+      ),
+    )
   );
 }
 
-function isModalDialogOpen() {
+function isEditorDialogOpen() {
   if (typeof document === "undefined") {
     return false;
   }
 
-  return Boolean(
-    document.querySelector(
-      '[role="dialog"][aria-modal="true"], [role="alertdialog"][aria-modal="true"], dialog[open]',
+  return [
+    ...document.querySelectorAll<HTMLElement>(
+      '[role="dialog"], [role="alertdialog"], dialog[open]',
     ),
-  );
+  ].some((dialog) => dialog.getClientRects().length > 0);
 }

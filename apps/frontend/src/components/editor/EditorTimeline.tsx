@@ -33,8 +33,8 @@ function TrackHeaderColumn({ muted, onMutedChange }: EditorTimelineProperties) {
                 <button
                   type="button"
                   onClick={() => onMutedChange(!muted)}
-                  title={muted ? "Unmute Source" : "Mute Source"}
-                  aria-label={muted ? "Unmute Source" : "Mute Source"}
+                  title={muted ? "Unmute preview" : "Mute preview"}
+                  aria-label={muted ? "Unmute preview" : "Mute preview"}
                   aria-pressed={muted}
                   className="flex h-7 w-7 shrink-0 items-center justify-center rounded-[var(--radius-control)] border border-editor-border bg-editor-control text-muted-foreground transition-colors hover:bg-editor-control-hover hover:text-foreground focus-visible:ring-2 focus-visible:ring-editor-accent/35 focus-visible:outline-none"
                 >

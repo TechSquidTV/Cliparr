@@ -3,6 +3,8 @@ export const EDITOR_SMALL_SEEK_SECONDS = 5;
 export const DEFAULT_EDITOR_FRAME_STEP_SECONDS = 1 / 30;
 
 export type EditorShortcutCommand =
+  | "undo"
+  | "redo"
   | "toggle-play"
   | "mark-in"
   | "mark-out"
@@ -36,6 +38,14 @@ export function resolveEditorShortcutCommand({
   metaKey = false,
   pressedCodes,
 }: EditorShortcutEvent): EditorShortcutCommand | null {
+  if (!altKey && (ctrlKey || metaKey) && !repeat) {
+    if (code === "KeyZ") {
+      return shiftKey ? "redo" : "undo";
+    }
+    if (code === "KeyY" && ctrlKey && !metaKey && !shiftKey) {
+      return "redo";
+    }
+  }
   if (altKey || ctrlKey || metaKey) {
     return null;
   }
