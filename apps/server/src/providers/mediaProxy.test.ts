@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { once } from "node:events";
 import { PassThrough } from "node:stream";
 import test from "node:test";
 import type { Response } from "express";
@@ -71,19 +72,13 @@ function createResponseRecorder() {
 function createStreamingResponseRecorder() {
   const stream = new PassThrough();
   const headers = new Map<string, string>();
-  let statusCode = 200;
   stream.resume();
 
   const recorder = Object.assign(stream, {
-    get statusCode() {
-      return statusCode;
-    },
-    set statusCode(value: number) {
-      statusCode = value;
-    },
+    statusCode: 200,
     headers,
     status(code: number) {
-      statusCode = code;
+      recorder.statusCode = code;
       return recorder;
     },
     setHeader(name: string, value: string | number) {
@@ -306,7 +301,7 @@ void test("strips HLS start hints so editor seeks control playback position", as
   assert.equal(session.mediaHandles.size, 1);
 });
 
-void test("does not forward range requests for HLS resources that Cliparr rewrites", () => {
+void test("forwards segment byte ranges but omits ranges for rewritten HLS playlists", () => {
   assert.equal(
     shouldForwardMediaRange(
       createMediaHandle({
@@ -324,7 +319,7 @@ void test("does not forward range requests for HLS resources that Cliparr rewrit
       }),
       "bytes=148-",
     ),
-    undefined,
+    "bytes=148-",
   );
   assert.equal(
     shouldForwardMediaRange(
@@ -815,4 +810,273 @@ void test("cleans failed in-flight HLS responses without unhandled rejection", a
   }
 
   assert.deepEqual(unhandledRejections, []);
+});
+
+void test("resolves redirected playlist resources against the final URL", async () => {
+  const session = createSession();
+  const handle = createMediaHandle({
+    basePath: "/old/",
+    path: "/old/master.m3u8",
+  });
+  const upstream = new globalThis.Response(
+    '#EXTM3U\n#EXT-X-KEY:METHOD=AES-128,URI="key.key"\nvariant/playlist.m3u8\n/root/segment.ts\n',
+    { headers: { "content-type": "application/vnd.apple.mpegurl" } },
+  );
+  Object.defineProperty(upstream, "url", {
+    value: "https://cdn.example.com/new/master.m3u8",
+  });
+  const response = createResponseRecorder();
+  await proxyUpstreamMediaResponse(
+    session,
+    handle,
+    upstream,
+    response as unknown as Response,
+  );
+  assert.deepEqual(
+    [...session.mediaHandles.values()].map((child) => child.path),
+    [
+      "https://cdn.example.com/new/key.key",
+      "https://cdn.example.com/new/variant/playlist.m3u8",
+      "https://cdn.example.com/root/segment.ts",
+    ],
+  );
+  for (const child of session.mediaHandles.values()) {
+    assert.equal(shouldAttachProviderAuth(child), false);
+  }
+});
+
+void test("preserves playlist filenames when resolving query-only HLS links", async () => {
+  for (const finalUrl of [
+    "",
+    "https://cdn.example.com/new/stream.php?playlist=1",
+  ]) {
+    const session = createSession();
+    const handle = createMediaHandle({
+      path: "/hls/stream.php?playlist=1",
+      basePath: "/hls/",
+    });
+    const upstream = new globalThis.Response(
+      '#EXTM3U\n#EXT-X-KEY:METHOD=AES-128,URI="?key=1"\n#EXTINF:2,\n?segment=1\nsegment2.ts\n',
+      { headers: { "content-type": "application/vnd.apple.mpegurl" } },
+    );
+    Object.defineProperty(upstream, "url", { value: finalUrl });
+    await proxyUpstreamMediaResponse(
+      session,
+      handle,
+      upstream,
+      createResponseRecorder() as unknown as Response,
+    );
+    const prefix = finalUrl ? "https://cdn.example.com/new/" : "/hls/";
+    assert.deepEqual(
+      [...session.mediaHandles.values()].map((child) => child.path),
+      [
+        `${prefix}stream.php?key=1`,
+        `${prefix}stream.php?segment=1`,
+        `${prefix}segment2.ts`,
+      ],
+    );
+  }
+});
+
+void test("preserves custom handle routing for extensionless HLS and range requests", async () => {
+  for (const range of [undefined, "bytes=0-"]) {
+    const session = createSession();
+    const response = createResponseRecorder();
+    const paths: string[] = [];
+    await proxyProviderMediaResponse(
+      session,
+      createMediaHandle({
+        path: "https://cdn.example.com/hls/live",
+        basePath: undefined,
+      }),
+      { range },
+      async () =>
+        new globalThis.Response("#EXTM3U\nsegment.ts\n", {
+          headers: { "content-type": "application/vnd.apple.mpegurl" },
+        }),
+      response as unknown as Response,
+      {
+        createMediaHandleUrl: (_session, _handle, nextPath) => {
+          paths.push(nextPath);
+          return "/api/media/local-url/child";
+        },
+      },
+    );
+    assert.equal(response.body, "#EXTM3U\n/api/media/local-url/child\n");
+    assert.deepEqual(paths, ["https://cdn.example.com/hls/segment.ts"]);
+    assert.equal(session.mediaHandles.size, 0);
+  }
+});
+
+void test("sandboxes active content for streamed and cached proxy responses", async () => {
+  for (const contentType of [
+    "text/html",
+    "image/svg+xml",
+    "application/xhtml+xml",
+  ]) {
+    for (const cached of [false, true]) {
+      const response = createStreamingResponseRecorder();
+      let fetches = 0;
+      const handle = createMediaHandle({
+        id: `active-content-${contentType}-${cached}`,
+        path: "/payload",
+        basePath: cached ? "/" : undefined,
+      });
+      const fetchUpstream = async () => {
+        fetches += 1;
+        return new globalThis.Response(
+          "<script>alert(document.cookie)</script>",
+          {
+            headers: {
+              "content-type": contentType,
+              "content-disposition": "inline",
+            },
+          },
+        );
+      };
+      await proxyProviderMediaResponse(
+        createSession(),
+        handle,
+        {},
+        fetchUpstream,
+        response as unknown as Response,
+      );
+      assert.match(
+        response.headers.get("content-security-policy") ?? "",
+        /(?:^|; )sandbox(?:;|$)/,
+      );
+      assert.doesNotMatch(
+        response.headers.get("content-security-policy") ?? "",
+        /allow-scripts|allow-same-origin/,
+      );
+      assert.equal(response.headers.get("x-content-type-options"), "nosniff");
+      if (cached) {
+        const cacheHit = createStreamingResponseRecorder();
+        await proxyProviderMediaResponse(
+          createSession(),
+          handle,
+          {},
+          fetchUpstream,
+          cacheHit as unknown as Response,
+        );
+        assert.equal(fetches, 1);
+        assert.equal(
+          cacheHit.headers.get("content-security-policy"),
+          response.headers.get("content-security-policy"),
+        );
+      }
+    }
+  }
+});
+
+void test(
+  "streams oversized HLS segments before receiving their complete body",
+  { timeout: 5000 },
+  async () => {
+    const response = createStreamingResponseRecorder();
+    const firstBytes = once(response, "data");
+    let receivedBytes = 0;
+    response.on("data", (chunk: Buffer) => {
+      receivedBytes += chunk.byteLength;
+    });
+    let chunksSent = 0;
+    const chunkSize = 1024 * 1024;
+    const body = new ReadableStream<Uint8Array>({
+      async pull(controller) {
+        if (chunksSent >= 10) {
+          await firstBytes;
+        }
+        if (chunksSent === 12) {
+          controller.close();
+        } else {
+          chunksSent += 1;
+          controller.enqueue(new Uint8Array(chunkSize));
+        }
+      },
+    });
+    await proxyProviderMediaResponse(
+      createSession(),
+      createMediaHandle({
+        id: "large-stream",
+        path: "/hls/movie.ts",
+        basePath: "/hls/",
+      }),
+      {},
+      async () =>
+        new globalThis.Response(body, {
+          headers: { "content-type": "video/mp2t" },
+        }),
+      response as unknown as Response,
+    );
+    assert.equal(receivedBytes, 12 * chunkSize);
+    assert.equal(response.headers.get("content-length"), undefined);
+  },
+);
+
+void test("streams distinct HLS byte ranges without sharing cached bodies", async () => {
+  const handle = createMediaHandle({
+    id: "byte-range-segment",
+    path: "/hls/movie.ts",
+    basePath: "/hls/",
+  });
+  let fetchCount = 0;
+  for (const [range, body] of [
+    ["bytes=0-3", "abcd"],
+    ["bytes=4-7", "efgh"],
+  ]) {
+    const response = createStreamingResponseRecorder();
+    let received = "";
+    response.on("data", (chunk: Buffer) => {
+      received += chunk.toString();
+    });
+    await proxyProviderMediaResponse(
+      createSession(),
+      handle,
+      { range },
+      async () => {
+        fetchCount += 1;
+        assert.equal(shouldForwardMediaRange(handle, range), range);
+        return new globalThis.Response(body, {
+          status: 206,
+          headers: { "content-range": `${range.replace("=", " ")}/8` },
+        });
+      },
+      response as unknown as Response,
+    );
+    assert.equal(response.statusCode, 206);
+    assert.equal(received, body);
+    assert.equal(
+      response.headers.get("content-range"),
+      `${range.replace("=", " ")}/8`,
+    );
+  }
+  assert.equal(fetchCount, 2);
+});
+
+void test("rejects oversized playlists without consuming the entire body", async () => {
+  let cancelled = false;
+  let pulls = 0;
+  const upstream = new globalThis.Response(
+    new ReadableStream<Uint8Array>({
+      pull(controller) {
+        pulls += 1;
+        controller.enqueue(new Uint8Array(1024 * 1024));
+      },
+      cancel() {
+        cancelled = true;
+      },
+    }),
+  );
+  await assert.rejects(
+    proxyUpstreamMediaResponse(
+      createSession(),
+      createMediaHandle(),
+      upstream,
+      createResponseRecorder() as unknown as Response,
+    ),
+    (error: Error) =>
+      isApiError(error) && error.code === "media_proxy_playlist_too_large",
+  );
+  assert.equal(cancelled, true);
+  assert.ok(pulls <= 11);
 });

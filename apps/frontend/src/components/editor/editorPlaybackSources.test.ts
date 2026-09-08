@@ -2,19 +2,43 @@
 
 import assert from "node:assert/strict";
 import test from "node:test";
+import type { InputVideoTrack } from "mediabunny";
 import {
   createProviderUrlSource,
   type EditorMediaSource,
 } from "@/lib/editorMedia";
 import {
-  buildPlaybackFailure,
-  buildPlaybackLoadError,
   buildPlaybackSourceCandidates,
-  createPlaybackSourceError,
+  playbackAudioSelectionsEqual,
+  playbackSourceCandidatesEqual,
   resolvePlaybackDuration,
-  shouldUseExportFallback,
-  type PlaybackLoadFailure,
+  selectPreviewVideoTrack,
 } from "@/components/editor/editorPlaybackSources";
+
+void test("uses the export primary video track even when it is not first in the file", async () => {
+  const first = {
+    id: 1,
+    getCodec: async () => "avc",
+    canDecode: async () => true,
+  } as InputVideoTrack;
+  const primary = {
+    id: 2,
+    getCodec: async () => "avc",
+    canDecode: async () => true,
+  } as InputVideoTrack;
+  const input = {
+    getPrimaryVideoTrack: async () => primary,
+    getVideoTracks: async () => [first, primary],
+  };
+  const selected = await selectPreviewVideoTrack(input);
+  assert.equal(selected.sourceVideoTrack, primary);
+  assert.equal(selected.previewVideoTrack, primary);
+
+  primary.canDecode = async () => false;
+  const recovered = await selectPreviewVideoTrack(input);
+  assert.equal(recovered.sourceVideoTrack, primary);
+  assert.equal(recovered.previewVideoTrack, first);
+});
 
 function localFileSource(label = "movie.mp4") {
   return {
@@ -69,6 +93,41 @@ void test("builds local file and URL playback candidates", () => {
   ]);
 });
 
+void test("treats refreshed URL source descriptors as the same playback configuration", () => {
+  const first = buildPlaybackSourceCandidates(
+    createProviderUrlSource("/playback/master.m3u8", "hls"),
+    createProviderUrlSource("/media/movie.mp4", "direct"),
+  );
+  const refreshed = buildPlaybackSourceCandidates(
+    createProviderUrlSource("/playback/master.m3u8", "hls"),
+    createProviderUrlSource("/media/movie.mp4", "direct"),
+  );
+  const changed = buildPlaybackSourceCandidates(
+    createProviderUrlSource("/playback/replacement.m3u8", "hls"),
+    createProviderUrlSource("/media/movie.mp4", "direct"),
+  );
+
+  assert.equal(playbackSourceCandidatesEqual(first, refreshed), true);
+  assert.equal(playbackSourceCandidatesEqual(first, changed), false);
+});
+
+void test("compares selected audio tracks by playback identity", () => {
+  assert.equal(
+    playbackAudioSelectionsEqual(
+      { trackNumber: 2, languageCode: "eng", title: "English" },
+      { trackNumber: 2, languageCode: "eng", title: "English" },
+    ),
+    true,
+  );
+  assert.equal(
+    playbackAudioSelectionsEqual(
+      { trackNumber: 2, languageCode: "eng", title: "English" },
+      { trackNumber: 3, languageCode: "spa", title: "Spanish" },
+    ),
+    false,
+  );
+});
+
 void test("preserves server duration for HLS and uses computed direct duration when available", () => {
   const hlsSource = createProviderUrlSource("/playback/master.m3u8", "hls");
   const directSource = createProviderUrlSource("/media/movie.mp4", "direct");
@@ -98,45 +157,5 @@ void test("preserves server duration for HLS and uses computed direct duration w
       100,
     ),
     100,
-  );
-});
-
-void test("classifies source failures and export fallback eligibility", () => {
-  const failure = buildPlaybackFailure(
-    {
-      label: "hls stream",
-      source: createProviderUrlSource("/playback/master.m3u8", "hls"),
-    },
-    createPlaybackSourceError("shared-export-blocking", "Decoder unavailable"),
-  );
-
-  assert.deepEqual(failure, {
-    label: "hls stream",
-    message: "Decoder unavailable",
-    classification: "hls-playlist",
-    category: "shared-export-blocking",
-  });
-  assert.equal(shouldUseExportFallback(failure), true);
-});
-
-void test("deduplicates playback load errors that share the same underlying message", () => {
-  const failures: PlaybackLoadFailure[] = [
-    {
-      label: "hls stream",
-      message: "Network denied",
-      classification: "hls-playlist",
-      category: "open-or-read",
-    },
-    {
-      label: "direct source",
-      message: "Network denied",
-      classification: "unknown",
-      category: "open-or-read",
-    },
-  ];
-
-  assert.equal(
-    buildPlaybackLoadError(failures),
-    "Playback failed. Network denied",
   );
 });

@@ -1,4 +1,5 @@
-import type { InputAudioTrack, InputVideoTrack } from "mediabunny";
+import type { Input, InputAudioTrack, InputVideoTrack } from "mediabunny";
+import type { PlaybackAudioSelection } from "#/providers/types";
 import {
   editorMediaSourcesEqual,
   isHlsEditorMediaSource,
@@ -7,13 +8,10 @@ import {
 import {
   assessVideoTrackDecodability,
   getTrackCodec,
+  isPlaybackVideoTrack,
   videoTrackPreviewUnavailableMessage,
 } from "@/lib/mediabunnyTrackAccess";
-import type { PlaybackAudioSelection } from "@/providers/types";
-import {
-  errorMessage,
-  isAc3FamilyCodec,
-} from "@/components/editor/editorUtilities";
+import { isAc3FamilyCodec } from "@/components/editor/editorUtilities";
 
 type PlaybackSourceLabel =
   | "hls stream"
@@ -27,59 +25,35 @@ export interface PlaybackSourceCandidate {
   source: EditorMediaSource;
 }
 
-export interface PlaybackLoadFailure {
-  label: PlaybackSourceCandidate["label"];
-  message: string;
-  classification: "hls-playlist" | "unknown";
-  category: "open-or-read" | "preview-only" | "shared-export-blocking";
-}
-
 export interface PlaybackFallbackInfo {
-  category: PlaybackLoadFailure["category"];
   message: string;
 }
 
-export interface PlaybackSourceAnalysisContext {
-  sessionId: string;
-  source: PlaybackSourceCandidate["label"];
-  mediaSource: EditorMediaSource;
-  selectedAudioTrack?: PlaybackAudioSelection;
-  videoTracks: readonly InputVideoTrack[];
-  allAudioTracks: readonly InputAudioTrack[];
-  sourceVideoTrack: InputVideoTrack | null;
-  previewVideoTrack: InputVideoTrack | null;
-  sourceAudioTrack: InputAudioTrack | null;
-  previewAudioTrack: InputAudioTrack | null;
-  previewAudioWarning?: string;
-  warnings: string[];
-  isLivePlayback: boolean;
-}
-
-export interface PlaybackSourceError extends Error {
-  category: PlaybackLoadFailure["category"];
-}
-
-export function createPlaybackSourceError(
-  category: PlaybackLoadFailure["category"],
-  message: string,
-): PlaybackSourceError {
-  return Object.assign(new Error(message), {
-    name: "PlaybackSourceError",
-    category,
-  });
-}
-
-export function isPlaybackSourceError(
-  error: unknown,
-): error is PlaybackSourceError {
-  const candidate = error as Partial<PlaybackSourceError>;
-
+export function playbackAudioSelectionsEqual(
+  left: PlaybackAudioSelection | undefined,
+  right: PlaybackAudioSelection | undefined,
+) {
   return (
-    error instanceof Error &&
-    candidate.name === "PlaybackSourceError" &&
-    (candidate.category === "open-or-read" ||
-      candidate.category === "preview-only" ||
-      candidate.category === "shared-export-blocking")
+    left?.trackNumber === right?.trackNumber &&
+    left?.languageCode === right?.languageCode &&
+    left?.title === right?.title
+  );
+}
+
+export function playbackSourceCandidatesEqual(
+  left: readonly PlaybackSourceCandidate[],
+  right: readonly PlaybackSourceCandidate[],
+) {
+  return (
+    left.length === right.length &&
+    left.every((candidate, index) => {
+      const otherCandidate = right[index];
+      return (
+        otherCandidate !== undefined &&
+        candidate.label === otherCandidate.label &&
+        editorMediaSourcesEqual(candidate.source, otherCandidate.source)
+      );
+    })
   );
 }
 
@@ -128,41 +102,6 @@ export function buildPlaybackSourceCandidates(
   }
 
   return candidates;
-}
-
-function classifyPlaybackSource(
-  source: Pick<PlaybackSourceCandidate, "label" | "source">,
-): PlaybackLoadFailure["classification"] {
-  return source.label === "hls stream" ||
-    source.label === "hls url" ||
-    isHlsEditorMediaSource(source.source)
-    ? "hls-playlist"
-    : "unknown";
-}
-
-export function buildPlaybackFailure(
-  source: PlaybackSourceCandidate,
-  error: unknown,
-): PlaybackLoadFailure {
-  return {
-    label: source.label,
-    message: errorMessage(error),
-    classification: classifyPlaybackSource(source),
-    category: isPlaybackSourceError(error) ? error.category : "open-or-read",
-  };
-}
-
-export function shouldUseExportFallback(failure: PlaybackLoadFailure) {
-  return (
-    failure.category === "open-or-read" ||
-    failure.category === "shared-export-blocking"
-  );
-}
-
-export function describePlaybackFailure(failure: PlaybackLoadFailure) {
-  const prefix = formatPlaybackSourceLabel(failure.label);
-
-  return `${prefix} failed: ${failure.message}`;
 }
 
 export function formatPlaybackSourceLabel(
@@ -214,42 +153,6 @@ export function resolvePlaybackDuration(
   return normalizedComputedDuration || fallbackDuration;
 }
 
-export function buildPlaybackLoadError(failures: PlaybackLoadFailure[]) {
-  if (failures.length === 0) {
-    return "Playback failed.";
-  }
-
-  if (failures.length === 1) {
-    return describePlaybackFailure(failures[0]);
-  }
-
-  const uniqueMessages = [
-    ...new Set(failures.map((failure) => failure.message)),
-  ];
-  if (uniqueMessages.length === 1) {
-    return `Playback failed. ${uniqueMessages[0]}`;
-  }
-
-  return `Playback failed. ${failures.map((failure) => describePlaybackFailure(failure)).join(" ")}`;
-}
-
-export function browserDecoderEnvironmentWarning() {
-  const missingDecoders = [
-    "VideoDecoder" in globalThis ? null : "video",
-    "AudioDecoder" in globalThis ? null : "audio",
-  ].filter(isPresent);
-
-  if (missingDecoders.length === 0) {
-    return;
-  }
-
-  if (!globalThis.isSecureContext) {
-    return `Browser decoding is blocked on ${globalThis.location.origin}. Open Cliparr over HTTPS, localhost, or 127.0.0.1.`;
-  }
-
-  return `Browser ${missingDecoders.join(" and ")} decoding is unavailable.`;
-}
-
 async function assessPreviewVideoTrack(track: InputVideoTrack | null) {
   if (!track) {
     return { track: null, warning: undefined };
@@ -267,9 +170,11 @@ async function assessPreviewVideoTrack(track: InputVideoTrack | null) {
 }
 
 export async function selectPreviewVideoTrack(
-  videoTracks: readonly InputVideoTrack[],
+  input: Pick<Input, "getPrimaryVideoTrack" | "getVideoTracks">,
 ) {
-  const sourceVideoTrack = videoTracks[0] ?? null;
+  const sourceVideoTrack = await input.getPrimaryVideoTrack({
+    filter: isPlaybackVideoTrack,
+  });
   if (!sourceVideoTrack) {
     return {
       sourceVideoTrack: null,
@@ -292,7 +197,13 @@ export async function selectPreviewVideoTrack(
     warnings.push(primaryAssessment.warning);
   }
 
-  for (const candidate of videoTracks.slice(1)) {
+  const videoTracks = await input.getVideoTracks({
+    filter: isPlaybackVideoTrack,
+  });
+  for (const candidate of videoTracks) {
+    if (candidate.id === sourceVideoTrack.id) {
+      continue;
+    }
     const candidateAssessment = await assessPreviewVideoTrack(candidate);
     if (candidateAssessment.track) {
       return {

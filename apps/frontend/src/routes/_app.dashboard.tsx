@@ -62,6 +62,7 @@ function DashboardRouteComponent() {
         onDisconnect={auth.disconnect}
       />
       <LocalVideoOpenDialog
+        canOpenUrl={Boolean(auth.providerSession)}
         isOpen={localVideoOpen}
         onClose={() => setLocalVideoOpen(false)}
         onOpened={(sessionId) => {

@@ -79,12 +79,15 @@ importers:
       '@tanstack/react-router':
         specifier: ^1.170.16
         version: 1.170.16(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
+      '@techsquidtv/canvas-timeline':
+        specifier: ^0.3.0
+        version: 0.3.0(@types/react@19.2.17)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
+      '@techsquidtv/canvas-timeline-mediabunny-adapter':
+        specifier: ^0.3.0
+        version: 0.3.0(@techsquidtv/canvas-timeline-react@0.3.0(@types/react@19.2.17)(react-dom@19.2.7(react@19.2.7))(react@19.2.7))(mediabunny@1.52.2)(react@19.2.7)
       '@techsquidtv/gifenc':
         specifier: 1.1.0
         version: 1.1.0
-      '@xzdarcy/react-timeline-editor':
-        specifier: ^1.0.0
-        version: 1.0.0(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
       clsx:
         specifier: ^2.1.1
         version: 2.1.1
@@ -173,6 +176,9 @@ importers:
       express:
         specifier: ^5.2.1
         version: 5.2.1
+      undici:
+        specifier: ^7.28.0
+        version: 7.28.0
     devDependencies:
       '@types/express':
         specifier: ^5.0.6
@@ -1498,9 +1504,6 @@ packages:
     engines: {node: '>=20.9.0'}
     cpu: [x64]
     os: [win32]
-
-  '@interactjs/types@1.10.27':
-    resolution: {integrity: sha512-BUdv0cvs4H5ODuwft2Xp4eL8Vmi3LcihK42z0Ft/FbVJZoRioBsxH+LlsBdK4tAie7PqlKGy+1oyOncu1nQ6eA==}
 
   '@jellyfin/sdk@0.13.0':
     resolution: {integrity: sha512-oiBAOXH6s+dKdReSsYgNktBDzbxtg4JVWhEzIxZSxKcWMdSKmBtK41MhXRO7IWAC40DguKUm3nU/Z493qPAlWA==}
@@ -3237,6 +3240,58 @@ packages:
     resolution: {integrity: sha512-uhOeFyxLcU41HzvrxsGpiWdcMbScY1EDgbZ5K7DVRMYInbLYWAC0EA/kx9wXAoSM8q82bUG2hRl8+EAjE6XAbA==}
     engines: {node: '>=20.19'}
 
+  '@techsquidtv/canvas-timeline-core@0.3.0':
+    resolution: {integrity: sha512-EsLX+DONvze5CjDbxlctFNlFEiA418/WWhAk5uDTUfuvq1mv6bUFUbbUT4oLHgPt4sKrFeexVpUBnFmqq4DJJA==}
+    engines: {node: '>=24'}
+
+  '@techsquidtv/canvas-timeline-html-media-adapter@0.3.0':
+    resolution: {integrity: sha512-m12HaJ/CHVuKSeJhgB1nN7Upu8SAVG4dzJBROHxEJKatHv2lsfkBq5OpJV5Yn0b41nSxt7xsBJ6QlXDOqsXqew==}
+    engines: {node: '>=24'}
+    peerDependencies:
+      '@techsquidtv/canvas-timeline-react': 0.3.0
+      react: ^19.2.7
+    peerDependenciesMeta:
+      '@techsquidtv/canvas-timeline-react':
+        optional: true
+      react:
+        optional: true
+
+  '@techsquidtv/canvas-timeline-mediabunny-adapter@0.3.0':
+    resolution: {integrity: sha512-M0n1X33DALe0ReuyXMqDb01gHdfo1CgXTPBJuu4EyADLEtGbMMtwsLoJ2nyWNjOOyC9CAp2xRay6zopFLuT0sA==}
+    engines: {node: '>=24'}
+    peerDependencies:
+      '@techsquidtv/canvas-timeline-react': 0.3.0
+      mediabunny: ^1.50.3
+      react: ^19.2.7
+    peerDependenciesMeta:
+      '@techsquidtv/canvas-timeline-react':
+        optional: true
+      react:
+        optional: true
+
+  '@techsquidtv/canvas-timeline-react@0.3.0':
+    resolution: {integrity: sha512-7cX21RRk9HEuYfZb68k8AB1qOxvRS8jnXuEUn8qOvgQN/RZAxvqqKzXO5K/vrnon55qIIONTP/rXTHnMkQ15Gg==}
+    engines: {node: '>=24'}
+    peerDependencies:
+      react: ^19.2.7
+      react-dom: ^19.2.7
+
+  '@techsquidtv/canvas-timeline-renderer@0.3.0':
+    resolution: {integrity: sha512-UegKrbcEk2CfGw8FgX+2WEbVMxEDjK/s4inB4gMFVg5okKpnpvofT9CkT1C3USsdw3xGnDm9hVWUdHxVaKIIKw==}
+    engines: {node: '>=24'}
+    peerDependencies:
+      react: ^19.2.7
+
+  '@techsquidtv/canvas-timeline-utils@0.3.0':
+    resolution: {integrity: sha512-J7GqkAhg2bDQulwdmDZDfWX5p2cdVa0M7Snw+ObX1kb7FI2ieKnikdXt19ZdglB/XGw2EdKFMNOXkuDVTTwusg==}
+    engines: {node: '>=24'}
+
+  '@techsquidtv/canvas-timeline@0.3.0':
+    resolution: {integrity: sha512-OBVZa0sA0eqGj+voijeYaINy/7lyvoaK7SrBeCr9N5jbvOiEKM/zlu5o00aQwRl3d+8a8zClV4WsfVuOIE64xQ==}
+    engines: {node: '>=24'}
+    peerDependencies:
+      react: ^19.2.7
+
   '@techsquidtv/gifenc@1.1.0':
     resolution: {integrity: sha512-sZZ5P5A89HQytHOsEcNLp8dNdUBnB7RPGVZWnNatapeMlanlW6i4x0CmS1IFPPjA0IPabSv2YZ18o2UtEMdo/A==}
     engines: {node: '>=22.13.0'}
@@ -3412,9 +3467,6 @@ packages:
   '@types/node@25.9.3':
     resolution: {integrity: sha512-603BddQMv3pUcr4U2dhujk83N2tTDVr/34wII2B6bJy6g+8WD6yUb11jszNs0gdi4PesVWl7ABt8nYMVpnLUcg==}
 
-  '@types/prop-types@15.7.15':
-    resolution: {integrity: sha512-F6bEyamV9jKGAFBEmlQnesRPGOQqS2+Uwi0Em15xenOxHaf2hv6L8YCVn3rPdPJOiJfPiCnLIRyvwVaqMY3MIw==}
-
   '@types/qs@6.15.1':
     resolution: {integrity: sha512-GZHUBZR9hckSUhrxmp1nG6NwdpM9fCunJwyThLW1X3AyHgd9IlHb6VANpQQqDr2o/qQp6McZ3y/IA2rVzKzSbw==}
 
@@ -3425,9 +3477,6 @@ packages:
     resolution: {integrity: sha512-jp2L/eY6fn+KgVVQAOqYItbF0VY/YApe5Mz2F0aykSO8gx31bYCZyvSeYxCHKvzHG5eZjc+zyaS5BrBWya2+kQ==}
     peerDependencies:
       '@types/react': ^19.2.0
-
-  '@types/react-virtualized@9.22.3':
-    resolution: {integrity: sha512-UKRWeBIrECaKhE4O//TSFhlgwntMwyiEIOA7WZoVkr52Jahv0dH6YIOorqc358N2V3oKFclsq5XxPmx2PiYB5A==}
 
   '@types/react@19.2.17':
     resolution: {integrity: sha512-MXfmqaVPEVgkBT/aY0aGCkRWWtByiYQXo3xdQ8r5RzuFrPiRn8Gar2tQdXSUQ2GKV3bkXckek89V8wQBY2Q/Aw==}
@@ -3559,15 +3608,6 @@ packages:
 
   '@vscode/l10n@0.0.18':
     resolution: {integrity: sha512-KYSIHVmslkaCDyw013pphY+d7x1qV8IZupYfeIfzNA+nsaWHbn5uPuQRvdRFsa9zFzGeudPuoGoZ1Op4jrJXIQ==}
-
-  '@xzdarcy/react-timeline-editor@1.0.0':
-    resolution: {integrity: sha512-8kf3o9qat44ZGbusKAPnBYQivzL/RSL2du4w47UyelEeib/5ZZmN8mTlch3J5JsIEtkhpAsJYSJUx12j7/XMtg==}
-    peerDependencies:
-      react: '>=18.0.0'
-      react-dom: '>=18.0.0'
-
-  '@xzdarcy/timeline-engine@1.0.0':
-    resolution: {integrity: sha512-zeue0e/CL8Z+J5Em6jsgCx58llh/crAaEj0h97MKvWKWR5pLW4vrk4w3HGDXpcHwEz+EzqcAAtg4nnHbUYLRQg==}
 
   accepts@2.0.0:
     resolution: {integrity: sha512-5cvg6CtKwfgdmVqY1WIiXKc3Q1bkRqGLi+2W/6ao+6Y7gu/RCwRuAhGEzh5B4KlszSuTLgZYuqFqo5bImjNKng==}
@@ -3807,10 +3847,6 @@ packages:
   cliui@9.0.1:
     resolution: {integrity: sha512-k7ndgKhwoQveBL+/1tqGJYNz097I7WOvwbmmU2AR5+magtbjPWQTS1C5vzGkBC8Ym8UWRzfKUzUUqFLypY4Q+w==}
     engines: {node: '>=20'}
-
-  clsx@1.2.1:
-    resolution: {integrity: sha512-EcR6r5a8bj6pu3ycsa/E/cKVGuTgZJZdsyUYHOksG/UHIiKfjxzRxYJpyVBwYaQeOvghal9fcc4PidlgzugAQg==}
-    engines: {node: '>=6'}
 
   clsx@2.1.1:
     resolution: {integrity: sha512-eYm0QWBtUrBWZWG0d386OGAw16Z995PiOVo2B7bjWSbHedGl5e0ZWaq65kOGgUSNesEIDkB9ISbTg/JK9dhCZA==}
@@ -4168,9 +4204,6 @@ packages:
   diff@8.0.4:
     resolution: {integrity: sha512-DPi0FmjiSU5EvQV0++GFDOJ9ASQUVFh5kD+OzOnYdi7n3Wpm9hWWGfB/O2blfHcMVTL5WkQXSnRiK9makhrcnw==}
     engines: {node: '>=0.3.1'}
-
-  dom-helpers@5.2.1:
-    resolution: {integrity: sha512-nRCa7CK3VTrM2NmGkIy4cbK7IZlgBE/PYMn55rrXefr5xXDP0LdtfPnblFDoVdcAfslJ7or6iqAUnx0CCGIWQA==}
 
   dom-serializer@2.0.0:
     resolution: {integrity: sha512-wIkAryiqt/nV5EQKqQpo3SToSOV9J0DnbJqwK7Wv/Trc92zIAYZ4FlMu+JPFW1DfGFt81ZTCGgDEabffXeLyJg==}
@@ -4673,9 +4706,6 @@ packages:
       react-dom:
         optional: true
 
-  framework-utils@1.1.0:
-    resolution: {integrity: sha512-KAfqli5PwpFJ8o3psRNs8svpMGyCSAe8nmGcjQ0zZBWN2H6dZDnq+ABp3N3hdUmFeMrLtjOCTXD4yplUJIWceg==}
-
   fresh@2.0.0:
     resolution: {integrity: sha512-Rx/WycZ60HOaqLKAi6cHRKKI7zxWbJ31MhntmtwMoaTeF7XFH9hhBp8vITaMidfljRQ6eYWCKkaTK+ykVJHP2A==}
     engines: {node: '>= 0.8'}
@@ -4888,9 +4918,6 @@ packages:
 
   inline-style-parser@0.2.7:
     resolution: {integrity: sha512-Nb2ctOyNR8DqQoR0OwRG95uNWIC0C1lCgf5Naz5H6Ji72KZ8OcFZLz2P5sNgwlyoJ8Yif11oMuYs5pBQa86csA==}
-
-  interactjs@1.10.27:
-    resolution: {integrity: sha512-y/8RcCftGAF24gSp76X2JS3XpHiUvDQyhF8i7ujemBz77hwiHDuJzftHx7thY8cxGogwGiPJ+o97kWB6eAXnsA==}
 
   internmap@1.0.1:
     resolution: {integrity: sha512-lDB5YccMydFBtasVtxnZ3MRBHuaoE8GKsppq+EchKL2U4nK/DmEpPHNH8MZe5HkMtpSiTSOZwfN0tzYjO/lJEw==}
@@ -5136,10 +5163,6 @@ packages:
 
   longest-streak@3.1.0:
     resolution: {integrity: sha512-9Ri+o0JYgehTaVBBDoMqIl8GXtbWg711O3srftcHhZ0dqnETqLaoIK0x17fUw9rFSlK/0NlsKe0Ahhyl5pXE2g==}
-
-  loose-envify@1.4.0:
-    resolution: {integrity: sha512-lyuxPGr/Wfhrlem2CL/UcnUc1zcqKAImBDzukY7Y5F/yQiNdko6+fRLevlw1HgMySw7f611UIY408EtxRSoK3Q==}
-    hasBin: true
 
   lru-cache@11.5.1:
     resolution: {integrity: sha512-RPimw/7aMdv2oqRrxKwvZXcPfwBrn/JZ2xYcY9Hus/6LaS3VOAKVWKWgNLCFSiOm1ESXinjsDlidVU7JlnCN2A==}
@@ -5478,10 +5501,6 @@ packages:
   nth-check@2.1.1:
     resolution: {integrity: sha512-lqjrjmaOoAnWfMmBPL+XNnynZh2+swxiX3WUE0s4yEHI6m+AwrK2UZOimIRl3X/4QctVqS8AiZjFqyOGrMXb/w==}
 
-  object-assign@4.1.1:
-    resolution: {integrity: sha512-rJgTQnkUnH1sFw8yT6VSU3zD3sWmu6sZhIseY8VX+GRu3P6F7Fu+JNDoXfklElbLJSnc3FUQHVe4cU5hj+BcUg==}
-    engines: {node: '>=0.10.0'}
-
   object-inspect@1.13.4:
     resolution: {integrity: sha512-W67iLl4J2EXEGTbfeHCffrjDfitvLANg0UlX3wFUUSTx92KXRFegMHUVgSqE+wvhAbi4WqjGg9czysTV2Epbew==}
     engines: {node: '>= 0.4'}
@@ -5664,9 +5683,6 @@ packages:
     resolution: {integrity: sha512-7PiHtLll5LdnKIMw100I+8xJXR5gW2QwWYkT6iJva0bXitZKa/XMrSbdmg3r2Xnaidz9Qumd0VPaMrZlF9V9sA==}
     engines: {node: '>=0.4.0'}
 
-  prop-types@15.8.1:
-    resolution: {integrity: sha512-oj87CgZICdulUohogVAR7AjlC0327U4el4L6eAvOqCeudMDVU0NThNaV+b9Df4dXgSP1gXMTnPdhfe/2qDH5cg==}
-
   property-information@7.2.0:
     resolution: {integrity: sha512-IAtzIB6sUiWaJYrX9smp3V46pBGbBeLFRGdh25kg1334VcBlD8HzhPeNIWQH9zhGmo2itIe25EHt9dQP7G5hmg==}
 
@@ -5727,12 +5743,6 @@ packages:
     peerDependencies:
       react: ^19.2.7
 
-  react-is@16.13.1:
-    resolution: {integrity: sha512-24e6ynE2H+OKt4kqsOvNd8kBpV65zoxbA4BVsEOB3ARVWQki/DHzaUoC5KuON/BiccDaCCTZBuOcfZs70kR8bQ==}
-
-  react-lifecycles-compat@3.0.4:
-    resolution: {integrity: sha512-fBASbA6LnOU9dOU2eW7aQ8xmYBSXUIWr+UmF9b1efZBazGNO+rcXT/icdKnYm2pTwcRylVUYwW7H1PHfLekVzA==}
-
   react-refresh@0.18.0:
     resolution: {integrity: sha512-QgT5//D3jfjJb6Gsjxv0Slpj23ip+HtOpnNgnb2S5zU3CB26G/IDPGoy4RJB42wzFE46DRsstbW6tKHoKbhAxw==}
     engines: {node: '>=0.10.0'}
@@ -5772,12 +5782,6 @@ packages:
     peerDependenciesMeta:
       '@types/react':
         optional: true
-
-  react-virtualized@9.22.6:
-    resolution: {integrity: sha512-U5j7KuUQt3AaMatlMJ0UJddqSiX+Km0YJxSqbAzIiGw5EmNz0khMyqP2hzgu4+QUtm+QPIrxzUX4raJxmVJnHg==}
-    peerDependencies:
-      react: ^16.3.0 || ^17.0.0 || ^18.0.0 || ^19.0.0
-      react-dom: ^16.3.0 || ^17.0.0 || ^18.0.0 || ^19.0.0
 
   react@19.2.7:
     resolution: {integrity: sha512-HNe9WslTbXmFK8o8cmwgAeJFSBvt1bPdHCVKtaaV+WlAN36mpT4hcRpwbf3fY56ar2oIXzsBpOAiIRHAdY0OlQ==}
@@ -7782,8 +7786,6 @@ snapshots:
   '@img/sharp-win32-x64@0.35.1':
     optional: true
 
-  '@interactjs/types@1.10.27': {}
-
   '@jellyfin/sdk@0.13.0(axios@1.18.0)':
     dependencies:
       axios: 1.18.0
@@ -9364,6 +9366,67 @@ snapshots:
 
   '@tanstack/virtual-file-routes@1.162.0': {}
 
+  '@techsquidtv/canvas-timeline-core@0.3.0':
+    dependencies:
+      '@techsquidtv/canvas-timeline-utils': 0.3.0
+
+  '@techsquidtv/canvas-timeline-html-media-adapter@0.3.0(@techsquidtv/canvas-timeline-react@0.3.0(@types/react@19.2.17)(react-dom@19.2.7(react@19.2.7))(react@19.2.7))(react@19.2.7)':
+    dependencies:
+      '@techsquidtv/canvas-timeline-core': 0.3.0
+      '@techsquidtv/canvas-timeline-utils': 0.3.0
+    optionalDependencies:
+      '@techsquidtv/canvas-timeline-react': 0.3.0(@types/react@19.2.17)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
+      react: 19.2.7
+
+  '@techsquidtv/canvas-timeline-mediabunny-adapter@0.3.0(@techsquidtv/canvas-timeline-react@0.3.0(@types/react@19.2.17)(react-dom@19.2.7(react@19.2.7))(react@19.2.7))(mediabunny@1.52.2)(react@19.2.7)':
+    dependencies:
+      '@techsquidtv/canvas-timeline-core': 0.3.0
+      '@techsquidtv/canvas-timeline-utils': 0.3.0
+      mediabunny: 1.52.2
+    optionalDependencies:
+      '@techsquidtv/canvas-timeline-react': 0.3.0(@types/react@19.2.17)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
+      react: 19.2.7
+
+  '@techsquidtv/canvas-timeline-react@0.3.0(@types/react@19.2.17)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)':
+    dependencies:
+      '@base-ui/react': 1.6.0(@types/react@19.2.17)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
+      '@techsquidtv/canvas-timeline-core': 0.3.0
+      '@techsquidtv/canvas-timeline-utils': 0.3.0
+      react: 19.2.7
+      react-dom: 19.2.7(react@19.2.7)
+    transitivePeerDependencies:
+      - '@date-fns/tz'
+      - '@types/react'
+      - date-fns
+
+  '@techsquidtv/canvas-timeline-renderer@0.3.0(@types/react@19.2.17)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)':
+    dependencies:
+      '@techsquidtv/canvas-timeline-core': 0.3.0
+      '@techsquidtv/canvas-timeline-react': 0.3.0(@types/react@19.2.17)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
+      '@techsquidtv/canvas-timeline-utils': 0.3.0
+      react: 19.2.7
+    transitivePeerDependencies:
+      - '@date-fns/tz'
+      - '@types/react'
+      - date-fns
+      - react-dom
+
+  '@techsquidtv/canvas-timeline-utils@0.3.0': {}
+
+  '@techsquidtv/canvas-timeline@0.3.0(@types/react@19.2.17)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)':
+    dependencies:
+      '@techsquidtv/canvas-timeline-core': 0.3.0
+      '@techsquidtv/canvas-timeline-html-media-adapter': 0.3.0(@techsquidtv/canvas-timeline-react@0.3.0(@types/react@19.2.17)(react-dom@19.2.7(react@19.2.7))(react@19.2.7))(react@19.2.7)
+      '@techsquidtv/canvas-timeline-react': 0.3.0(@types/react@19.2.17)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
+      '@techsquidtv/canvas-timeline-renderer': 0.3.0(@types/react@19.2.17)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
+      '@techsquidtv/canvas-timeline-utils': 0.3.0
+      react: 19.2.7
+    transitivePeerDependencies:
+      - '@date-fns/tz'
+      - '@types/react'
+      - date-fns
+      - react-dom
+
   '@techsquidtv/gifenc@1.1.0': {}
 
   '@tybys/wasm-util@0.10.2':
@@ -9581,19 +9644,12 @@ snapshots:
     dependencies:
       undici-types: 7.24.6
 
-  '@types/prop-types@15.7.15': {}
-
   '@types/qs@6.15.1': {}
 
   '@types/range-parser@1.2.7': {}
 
   '@types/react-dom@19.2.3(@types/react@19.2.17)':
     dependencies:
-      '@types/react': 19.2.17
-
-  '@types/react-virtualized@9.22.3':
-    dependencies:
-      '@types/prop-types': 15.7.15
       '@types/react': 19.2.17
 
   '@types/react@19.2.17':
@@ -9784,19 +9840,6 @@ snapshots:
       vscode-uri: 3.1.0
 
   '@vscode/l10n@0.0.18': {}
-
-  '@xzdarcy/react-timeline-editor@1.0.0(react-dom@19.2.7(react@19.2.7))(react@19.2.7)':
-    dependencies:
-      '@interactjs/types': 1.10.27
-      '@types/react-virtualized': 9.22.3
-      '@xzdarcy/timeline-engine': 1.0.0
-      framework-utils: 1.1.0
-      interactjs: 1.10.27
-      react: 19.2.7
-      react-dom: 19.2.7(react@19.2.7)
-      react-virtualized: 9.22.6(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
-
-  '@xzdarcy/timeline-engine@1.0.0': {}
 
   accepts@2.0.0:
     dependencies:
@@ -10134,8 +10177,6 @@ snapshots:
       string-width: 7.2.0
       strip-ansi: 7.2.0
       wrap-ansi: 9.0.2
-
-  clsx@1.2.1: {}
 
   clsx@2.1.1: {}
 
@@ -10476,11 +10517,6 @@ snapshots:
       dequal: 2.0.3
 
   diff@8.0.4: {}
-
-  dom-helpers@5.2.1:
-    dependencies:
-      '@babel/runtime': 7.29.7
-      csstype: 3.2.3
 
   dom-serializer@2.0.0:
     dependencies:
@@ -11016,8 +11052,6 @@ snapshots:
       react: 19.2.7
       react-dom: 19.2.7(react@19.2.7)
 
-  framework-utils@1.1.0: {}
-
   fresh@2.0.0: {}
 
   fsevents@2.3.2:
@@ -11317,10 +11351,6 @@ snapshots:
 
   inline-style-parser@0.2.7: {}
 
-  interactjs@1.10.27:
-    dependencies:
-      '@interactjs/types': 1.10.27
-
   internmap@1.0.1: {}
 
   internmap@2.0.3: {}
@@ -11501,10 +11531,6 @@ snapshots:
   lodash-es@4.18.1: {}
 
   longest-streak@3.1.0: {}
-
-  loose-envify@1.4.0:
-    dependencies:
-      js-tokens: 4.0.0
 
   lru-cache@11.5.1: {}
 
@@ -12101,8 +12127,6 @@ snapshots:
     dependencies:
       boolbase: 1.0.0
 
-  object-assign@4.1.1: {}
-
   object-inspect@1.13.4: {}
 
   obug@2.1.3: {}
@@ -12323,12 +12347,6 @@ snapshots:
 
   progress@2.0.3: {}
 
-  prop-types@15.8.1:
-    dependencies:
-      loose-envify: 1.4.0
-      object-assign: 4.1.1
-      react-is: 16.13.1
-
   property-information@7.2.0: {}
 
   proxy-addr@2.0.7:
@@ -12434,10 +12452,6 @@ snapshots:
       react: 19.2.7
       scheduler: 0.27.0
 
-  react-is@16.13.1: {}
-
-  react-lifecycles-compat@3.0.4: {}
-
   react-refresh@0.18.0: {}
 
   react-remove-scroll-bar@2.3.8(@types/react@19.2.17)(react@19.2.7):
@@ -12471,17 +12485,6 @@ snapshots:
       tslib: 2.8.1
     optionalDependencies:
       '@types/react': 19.2.17
-
-  react-virtualized@9.22.6(react-dom@19.2.7(react@19.2.7))(react@19.2.7):
-    dependencies:
-      '@babel/runtime': 7.29.7
-      clsx: 1.2.1
-      dom-helpers: 5.2.1
-      loose-envify: 1.4.0
-      prop-types: 15.8.1
-      react: 19.2.7
-      react-dom: 19.2.7(react@19.2.7)
-      react-lifecycles-compat: 3.0.4
 
   react@19.2.7: {}
 

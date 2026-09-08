@@ -1,5 +1,8 @@
 import type { ExportClipOptions } from "./lib/exportClip";
 import type { ExportFormat } from "./lib/exportTypes";
+import type { InputVideoTrack } from "mediabunny";
+import type { MediaDimensions } from "./lib/editorMedia";
+import { getVideoTrackDimensions as readVideoTrackDimensions } from "./lib/mediabunnyTrackAccess";
 import { formatOptions } from "./components/editor/editorExportOptions";
 
 export {
@@ -53,12 +56,12 @@ export {
   type EditorFileMediaSource,
   type EditorMediaSource,
   type EditorSession,
+  type MediaDimensions,
 } from "./lib/editorMedia";
 export { createCliparrInputFromSource } from "./lib/mediabunnyInput";
 export {
   assessVideoTrackDecodability,
   getTrackTimelineOffsetSeconds,
-  getVideoTrackDimensions,
   videoTrackPreviewUnavailableMessage,
 } from "./lib/mediabunnyTrackAccess";
 export type { MediaExportMetadata } from "./providers/types";
@@ -85,6 +88,12 @@ export async function exportClip(options: ExportClipOptions) {
 }
 
 export const convertFormatOptions = formatOptions;
+
+export function getVideoTrackDimensions(
+  track: InputVideoTrack,
+): Promise<MediaDimensions> {
+  return readVideoTrackDimensions(track);
+}
 
 export function exportFormatExtension(format: ExportFormat) {
   return (

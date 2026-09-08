@@ -27,11 +27,7 @@ import {
   EditorFilenameTemplateSection,
 } from "@/components/editor/EditorExportDialogSections";
 import { formatOptionFor } from "@/components/editor/editorExportOptions";
-
-interface VideoDimensions {
-  width: number;
-  height: number;
-}
+import type { MediaDimensions } from "@/lib/editorMedia";
 
 export type ExportSourcePreference = "auto" | "direct" | "hls";
 
@@ -57,7 +53,7 @@ interface EditorExportDialogProperties {
   progress: number;
   error: string | null;
   fileNamePreview: string;
-  outputDimensions: VideoDimensions | null;
+  outputDimensions: MediaDimensions | null;
   hasHlsSource: boolean;
   hasDirectSource: boolean;
   directSourceLabel: string;

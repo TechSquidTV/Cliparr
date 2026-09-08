@@ -28,6 +28,7 @@ export default defineConfig({
       /^dotenv(?:\/.*)?$/,
       /^drizzle-orm(?:\/.*)?$/,
       /^express(?:\/.*)?$/,
+      /^undici(?:\/.*)?$/,
     ],
   },
 });

@@ -600,258 +600,47 @@
   box-shadow: 0 1px 3px color-mix(in oklch, var(--foreground) 28%, transparent);
 }
 
-.cliparr-timeline {
-  position: relative;
-  width: 100%;
-  height: 100%;
-  min-height: 154px;
-  background: var(--editor-panel);
-}
-
-.cliparr-timeline .timeline-editor {
-  width: 100%;
-  height: 100%;
-  min-height: 154px;
-  overflow: hidden;
-  border: none;
-  border-radius: 0;
-  background: var(--editor-panel);
-  color: var(--foreground);
-  font-family: var(--font-sans);
-  box-shadow: none;
-}
-
-.cliparr-timeline .timeline-editor-time-area {
-  height: 32px;
-  border-bottom: 1px solid var(--editor-border);
-  background: var(--editor-panel-muted);
-}
-
-.cliparr-timeline .timeline-editor-time-unit {
-  border-right-color: color-mix(
+.cliparr-timeline-v2 {
+  --timeline-panel: var(--editor-panel);
+  --timeline-panel-muted: var(--editor-panel-muted);
+  --timeline-panel-control: var(--editor-control);
+  --timeline-panel-control-hover: var(--editor-control-hover);
+  --timeline-border: var(--editor-border);
+  --timeline-border-width: 1px;
+  --timeline-canvas-background: var(--editor-panel);
+  --timeline-ruler-background: var(--editor-panel-muted);
+  --timeline-ruler-tick: var(--muted-foreground);
+  --timeline-ruler-text: var(--muted-foreground);
+  --timeline-track-divider: var(--editor-border);
+  --timeline-track-locked-overlay: transparent;
+  --timeline-clip-background: var(--editor-selection);
+  --timeline-clip-background-selected: var(--editor-selection);
+  --timeline-clip-border: color-mix(
     in oklch,
-    var(--muted-foreground) 24%,
-    transparent
+    var(--muted-foreground) 52%,
+    var(--editor-border)
   );
-}
-
-.cliparr-timeline .timeline-editor-time-unit-scale {
-  top: 7px;
-  color: var(--muted-foreground);
-  font-family: var(--font-mono);
-  font-size: 10px;
-  font-weight: 600;
-  letter-spacing: 0.04em;
-}
-
-.cliparr-timeline .timeline-editor-edit-area {
-  margin-top: 0;
-  background: var(--editor-panel);
-}
-
-.cliparr-timeline .timeline-editor-edit-area .ReactVirtualized__Grid {
-  overflow-x: scroll !important;
-  overflow-y: auto !important;
-  scrollbar-color: var(--editor-scrollbar) transparent;
-  scrollbar-gutter: stable;
-  scrollbar-width: thin;
-}
-
-.cliparr-timeline
-  .timeline-editor:hover
-  .timeline-editor-edit-area
-  .ReactVirtualized__Grid::-webkit-scrollbar,
-.cliparr-timeline
-  .timeline-editor-edit-area
-  .ReactVirtualized__Grid::-webkit-scrollbar {
-  width: 0;
-  height: 10px;
-}
-
-.cliparr-timeline
-  .timeline-editor-edit-area
-  .ReactVirtualized__Grid::-webkit-scrollbar-track {
-  background: transparent !important;
-}
-
-.cliparr-timeline
-  .timeline-editor-edit-area
-  .ReactVirtualized__Grid::-webkit-scrollbar-thumb {
-  min-width: 44px;
-  border: 3px solid transparent;
-  border-radius: 999px;
-  background: var(--editor-scrollbar);
-  background-clip: padding-box;
-}
-
-.cliparr-timeline
-  .timeline-editor-edit-area
-  .ReactVirtualized__Grid::-webkit-scrollbar-thumb:hover {
-  background: color-mix(
+  --timeline-clip-border-selected: var(--editor-accent);
+  --timeline-clip-radius: 2px;
+  --timeline-playhead: var(--editor-playhead);
+  --timeline-playhead-hover: var(--editor-playhead);
+  --timeline-inout-accent: var(--editor-accent);
+  --timeline-scrollbar-bg: var(--editor-panel);
+  --timeline-scrollbar-border: var(--editor-border);
+  --timeline-scrollbar-thumb: var(--editor-scrollbar);
+  --timeline-scrollbar-thumb-hover: color-mix(
     in oklch,
     var(--editor-scrollbar) 74%,
     var(--foreground)
   );
-  background-clip: padding-box;
+  font-family: var(--font-sans);
 }
 
-.cliparr-timeline .timeline-editor-edit-row {
-  background-image:
-    linear-gradient(
-      color-mix(in oklch, var(--editor-panel) 86%, var(--editor-workspace)),
-      color-mix(in oklch, var(--editor-panel) 86%, var(--editor-workspace))
-    ),
-    linear-gradient(
-      90deg,
-      color-mix(in oklch, var(--muted-foreground) 10%, transparent) 1px,
-      transparent 0
-    );
+.cliparr-timeline-v2 .timeline-root {
+  border: 0;
+  background: var(--editor-panel);
 }
 
-.cliparr-timeline .timeline-editor-action {
-  overflow: hidden;
-  border: 1px solid
-    color-mix(in oklch, var(--muted-foreground) 52%, var(--editor-border));
-  border-radius: 2px;
-  background: var(--editor-selection);
-  color: var(--foreground);
-  box-shadow: none;
-  user-select: none;
-  -webkit-user-select: none;
-}
-
-.cliparr-timeline .timeline-editor-action-effect-source {
-  top: 7px !important;
-  height: 18px !important;
-  border-color: var(--editor-border);
-  background: var(--editor-control);
-  color: var(--muted-foreground);
-  box-shadow: none;
-}
-
-.cliparr-timeline .timeline-editor-action-effect-clip {
-  top: 5px !important;
-  height: 34px !important;
-}
-
-.cliparr-timeline .timeline-editor-action-effect-subtitle {
-  top: 4px !important;
-  height: 26px !important;
-  border-color: color-mix(
-    in oklch,
-    var(--editor-accent) 46%,
-    var(--editor-border)
-  );
-  background: color-mix(
-    in oklch,
-    var(--editor-accent) 18%,
-    var(--editor-panel)
-  );
-  color: var(--foreground);
-}
-
-.cliparr-timeline .timeline-editor-action .timeline-editor-action-left-stretch,
-.cliparr-timeline
-  .timeline-editor-action
-  .timeline-editor-action-right-stretch {
-  width: 12px;
-  border-radius: 0;
-  background: color-mix(in oklch, var(--foreground) 14%, transparent);
-}
-
-.cliparr-timeline
-  .timeline-editor-action
-  .timeline-editor-action-left-stretch::after,
-.cliparr-timeline
-  .timeline-editor-action
-  .timeline-editor-action-right-stretch::after {
-  border-left-color: color-mix(in oklch, var(--foreground) 42%, transparent);
-  border-right-color: color-mix(in oklch, var(--foreground) 42%, transparent);
-}
-
-.cliparr-timeline-action-content {
-  display: flex;
-  position: relative;
-  height: 100%;
-  min-width: 0;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  overflow: hidden;
-  padding: 0 12px;
-  white-space: nowrap;
-  user-select: none;
-  -webkit-user-select: none;
-}
-
-.cliparr-timeline-action-ready-fill {
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  z-index: 0;
-  border-radius: 1px;
-  background: color-mix(in oklch, var(--muted-foreground) 24%, transparent);
-  box-shadow:
-    inset 1px 0 0 color-mix(in oklch, var(--muted-foreground) 54%, transparent),
-    inset 0 0 0 1px
-      color-mix(in oklch, var(--muted-foreground) 22%, transparent);
-  pointer-events: none;
-}
-
-.cliparr-timeline-action-ready-fill[data-status="warming"] {
-  min-width: 2px;
-  background: color-mix(in oklch, var(--muted-foreground) 18%, transparent);
-}
-
-.cliparr-timeline-action-ready-fill[data-status="ready"] {
-  background: color-mix(in oklch, var(--muted-foreground) 28%, transparent);
-}
-
-.cliparr-timeline-action-label {
-  display: inline-flex;
-  position: relative;
-  z-index: 1;
-  min-width: 0;
-  align-items: center;
-  gap: 6px;
-  overflow: hidden;
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  text-overflow: ellipsis;
-}
-
-.cliparr-timeline
-  .timeline-editor-action-effect-subtitle
-  .cliparr-timeline-action-label {
-  letter-spacing: 0;
-  text-transform: none;
-}
-
-.cliparr-timeline-action-time {
-  flex: 0 0 auto;
-  color: color-mix(in oklch, currentColor 86%, transparent);
-  font-family: var(--font-mono);
-  font-size: 12px;
-  font-weight: 600;
-}
-
-.cliparr-timeline .timeline-editor-cursor {
-  top: 32px;
-  height: calc(100% - 32px);
-  border-right-color: var(--editor-playhead);
-  border-left-color: var(--editor-playhead);
-}
-
-.cliparr-timeline .timeline-editor-cursor-top path {
-  fill: var(--editor-playhead);
-}
-
-.cliparr-timeline .timeline-editor-drag-line {
-  border-left-color: color-mix(
-    in oklch,
-    var(--editor-playhead) 75%,
-    transparent
-  );
+.cliparr-timeline-scrollbar-row .range-scrollbar {
+  min-height: 14px;
 }

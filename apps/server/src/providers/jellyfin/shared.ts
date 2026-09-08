@@ -24,6 +24,7 @@ import { getAuthorizationHeader } from "@jellyfin/sdk/lib/utils/authentication.j
 import { CLIPARR_CLIENT_VERSION } from "@/config/version";
 import type { MediaSource } from "@/db/mediaSourcesRepository";
 import { createApiError, isApiError } from "@/http/errors";
+import { fetchWithPinnedDns } from "@/providers/shared/pinnedFetch";
 import {
   errorMessage,
   numberValue,
@@ -362,16 +363,17 @@ async function assertAllowedJellyfinServerUrl(
 
   assertAllowedResolvedAddress(hostname, options);
 
-  for (const address of await resolveHostnameAddresses(hostname)) {
+  const addresses = await resolveHostnameAddresses(hostname);
+  for (const address of addresses) {
     assertAllowedResolvedAddress(address, options);
   }
 
-  return parsed;
+  return { url: parsed, addresses };
 }
 
 export async function resolveCredentialServerUrl(serverUrl: string) {
-  const parsed = await assertAllowedJellyfinServerUrl(serverUrl);
-  return resolveJellyfinBaseUrl(parsed.toString());
+  const { url } = await assertAllowedJellyfinServerUrl(serverUrl);
+  return resolveJellyfinBaseUrl(url.toString());
 }
 
 function resolveJellyfinBaseUrl(url: string) {
@@ -555,22 +557,13 @@ async function assertAllowedJellyfinRequestUrl(
   requestUrl: URL,
   trustedOrigin: string,
 ) {
-  const parsed = assertHttpUrl(requestUrl.toString());
-  if (parsed.username || parsed.password) {
-    throw createApiError(
-      400,
-      "invalid_jellyfin_server_url",
-      "Jellyfin serverUrl must not include embedded credentials",
-    );
-  }
-
-  if (requestUrl.origin === trustedOrigin) {
-    return;
-  }
-
-  await assertAllowedJellyfinServerUrl(requestUrl.toString(), {
-    allowPrivate: false,
-  });
+  const { addresses } = await assertAllowedJellyfinServerUrl(
+    requestUrl.toString(),
+    {
+      allowPrivate: requestUrl.origin === trustedOrigin,
+    },
+  );
+  return addresses;
 }
 
 async function fetchJellyfinWithManualRedirects(
@@ -592,12 +585,15 @@ async function fetchJellyfinWithManualRedirects(
     redirectCount <= JELLYFIN_MAX_REDIRECTS;
     redirectCount += 1
   ) {
-    await assertAllowedJellyfinRequestUrl(requestUrl, trustedOrigin);
-
-    const response = await globalThis.fetch(requestUrl.toString(), {
-      ...requestInit,
-      redirect: "manual",
-    });
+    const addresses = await assertAllowedJellyfinRequestUrl(
+      requestUrl,
+      trustedOrigin,
+    );
+    const response = await fetchWithPinnedDns(
+      requestUrl,
+      { ...requestInit, redirect: "manual" },
+      addresses,
+    );
     const location = response.headers.get("location");
     if (!isRedirectStatus(response.status) || !location) {
       return response;

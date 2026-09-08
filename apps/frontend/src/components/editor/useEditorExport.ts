@@ -44,9 +44,11 @@ import {
 import { downloadBlob } from "@/lib/downloadBlob";
 import {
   isHlsEditorMediaSource,
+  editorMediaSourcesEqual,
   sourceDisplayLabel,
   type EditorMediaSource,
   type EditorSession,
+  type MediaDimensions,
 } from "@/lib/editorMedia";
 import {
   fetchHlsExportEstimateMetadata,
@@ -56,13 +58,9 @@ import { subtitleTrackSupportsBurnIn } from "@/lib/selectPreferredSubtitleTrack"
 import type { SubtitleCue, SubtitleStyleSettings } from "@/lib/subtitles/types";
 import type { PlaybackSubtitleTrack } from "@/providers/types";
 import type { ExportSourcePreference } from "@/components/editor/EditorExportDialog";
-import type { PlaybackFallbackInfo } from "@/components/editor/useEditorPlayback";
+import type { PlaybackFallbackInfo } from "@/components/editor/editorPlaybackSources";
+import type { EditorExportMedia } from "@/components/editor/editorMediaLifecycle";
 import { getFrontendLogger, warnWithError } from "@/logging";
-
-interface VideoDimensions {
-  width: number;
-  height: number;
-}
 
 type ResolvedExportSourceKind = "hls" | "direct" | "none";
 
@@ -85,9 +83,10 @@ interface ExportReadinessInput {
 
 interface UseEditorExportProperties {
   session: EditorSession;
+  exportMedia: EditorExportMedia | null;
   startTime: number;
   endTime: number;
-  sourceVideoDimensions: VideoDimensions | null;
+  sourceVideoDimensions: MediaDimensions | null;
   exportFallbackSource?: EditorMediaSource;
   hlsFallbackInfo: PlaybackFallbackInfo | null;
   subtitleEnabled: boolean;
@@ -100,8 +99,19 @@ interface UseEditorExportProperties {
 
 const logger = getFrontendLogger(["editor", "export"]);
 
+export function exportTimelineOffsetForSource(
+  source: EditorMediaSource,
+  exportMedia: EditorExportMedia | null,
+) {
+  return exportMedia &&
+    editorMediaSourcesEqual(source, exportMedia.candidate.source)
+    ? exportMedia.metadata.timelineOffsetSeconds
+    : undefined;
+}
+
 export function useEditorExport({
   session,
+  exportMedia,
   startTime,
   endTime,
   sourceVideoDimensions,
@@ -618,6 +628,10 @@ export function useEditorExport({
       };
       const blob = await exportClip({
         mediaSource: readiness.source,
+        timelineOffsetSeconds: exportTimelineOffsetForSource(
+          readiness.source,
+          exportMedia,
+        ),
         hls: readiness.sourceKind === "hls",
         startTime,
         endTime,
@@ -667,6 +681,7 @@ export function useEditorExport({
     exportLogger,
     exportSource,
     exporting,
+    exportMedia,
     fileName.fullName,
     gifSettings,
     outputDimensions,
@@ -727,7 +742,7 @@ export function useEditorExport({
 }
 
 export function getOutputDimensions(
-  sourceVideoDimensions: VideoDimensions | null,
+  sourceVideoDimensions: MediaDimensions | null,
   resolution: ExportResolution,
   format: ExportFormat = "mp4",
   gifSettings?: GifExportSettings | null,
@@ -862,7 +877,7 @@ export function getEditorExportReadiness({
     selectedSubtitleTrack !== null &&
     clippedSubtitleCues.length > 0;
 
-  if (shouldBurnSubtitles && subtitleLoading) {
+  if (subtitleEnabled && selectedSubtitleTrack !== null && subtitleLoading) {
     return {
       state: "blocked" as const,
       message: "Subtitles are still loading.",
@@ -1004,11 +1019,9 @@ export function buildExportSourceMessage({
   }
 
   const exportUsesDirectSource = resolvedSourceKind === "direct";
-  let prefix = "Trying HLS";
+  let prefix = "Export still uses HLS; the preview fell back to direct media";
   if (exportUsesDirectSource) {
     prefix = "Export switched to direct media";
-  } else if (hlsFallbackInfo.category === "shared-export-blocking") {
-    prefix = "Export cannot use this HLS stream";
   }
 
   return `${prefix}: ${hlsFallbackInfo.message}`;

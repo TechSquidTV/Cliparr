@@ -15,7 +15,9 @@ import {
   getEditorExportReadiness,
   getOutputDimensions,
   resolveExportSource,
+  exportTimelineOffsetForSource,
 } from "@/components/editor/useEditorExport";
+import type { EditorExportMedia } from "@/components/editor/editorMediaLifecycle";
 import {
   DEFAULT_GIF_EXPORT_PRESET,
   DEFAULT_VIDEO_EXPORT_QUALITY,
@@ -35,6 +37,28 @@ const localFileSource = {
   file: new File(["video"], "movie.mp4", { type: "video/mp4" }),
   fileName: "movie.mp4",
 } satisfies EditorMediaSource;
+
+void test("uses the captured timeline origin only for the matching export source", () => {
+  const source = createProviderUrlSource("/live.m3u8", "hls");
+  const media: EditorExportMedia = {
+    candidate: { label: "hls stream", source },
+    metadata: {
+      duration: 60,
+      frameStepSeconds: 1 / 30,
+      sourceVideoDimensions: null,
+      previewVideoDimensions: null,
+      timelineOffsetSeconds: 1000,
+    },
+  };
+  assert.equal(exportTimelineOffsetForSource({ ...source }, media), 1000);
+  assert.equal(
+    exportTimelineOffsetForSource(localFileSource, media),
+    undefined,
+  );
+  assert.equal(exportTimelineOffsetForSource(source, null), undefined);
+  media.metadata.timelineOffsetSeconds = 0;
+  assert.equal(exportTimelineOffsetForSource(source, media), 0);
+});
 
 void test("resolves provider export sources by preference", () => {
   const hlsSource = createProviderUrlSource("/playback/master.m3u8", "hls");
@@ -162,6 +186,25 @@ void test("reports editor export readiness and subtitle blockers", () => {
     {
       state: "blocked",
       message: "Waiting for media duration.",
+      shouldBurnSubtitles: false,
+    },
+  );
+
+  assert.deepEqual(
+    getEditorExportReadiness({
+      exportSource: readySource,
+      format: "mp4",
+      exporting: false,
+      startTime: 0,
+      endTime: 10,
+      subtitleEnabled: true,
+      selectedSubtitleTrack: textSubtitleTrack,
+      clippedSubtitleCues: [],
+      subtitleLoading: true,
+    }),
+    {
+      state: "blocked",
+      message: "Subtitles are still loading.",
       shouldBurnSubtitles: false,
     },
   );
@@ -863,7 +906,6 @@ void test("builds export dimensions and source messaging", () => {
       hlsSource,
       directSource,
       hlsFallbackInfo: {
-        category: "shared-export-blocking",
         message: "browser cannot read the stream",
       },
     }),
@@ -878,11 +920,10 @@ void test("builds export dimensions and source messaging", () => {
       hlsSource,
       directSource,
       hlsFallbackInfo: {
-        category: "shared-export-blocking",
         message: "browser cannot read the stream",
       },
     }),
-    "Export cannot use this HLS stream: browser cannot read the stream",
+    "Export still uses HLS; the preview fell back to direct media: browser cannot read the stream",
   );
 
   assert.equal(

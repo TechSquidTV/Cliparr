@@ -2,7 +2,7 @@
 
 import assert from "node:assert/strict";
 import test from "node:test";
-import { createElement, createRef, type ComponentProps } from "react";
+import { createElement, type ComponentProps } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import {
   DASHBOARD_VIEWER_FILTER_STORAGE_KEY,
@@ -332,6 +332,7 @@ void test("renders local video dialog file picker workflow", () => {
   const markup = renderToStaticMarkup(
     createElement(LocalVideoOpenDialog, {
       isOpen: true,
+      canOpenUrl: true,
       onClose: () => {},
       onOpened: () => {},
     }),
@@ -340,6 +341,22 @@ void test("renders local video dialog file picker workflow", () => {
   assert.match(markup, /Open Video/);
   assert.match(markup, /Local files stay in your browser/);
   assert.match(markup, /Choose File/);
+});
+
+void test("explains and disables URL opening before provider sign-in", () => {
+  const markup = renderToStaticMarkup(
+    createElement(LocalVideoOpenDialog, {
+      isOpen: true,
+      canOpenUrl: false,
+      onClose: () => {},
+      onOpened: () => {},
+    }),
+  );
+
+  assert.match(markup, /Sign in to a provider to open a URL/);
+  assert.match(markup, /<button[^>]*disabled[^>]*>[\s\S]*?URL<\/button>/);
+  assert.match(markup, /Choose File/);
+  assert.doesNotMatch(markup, /type="url"/);
 });
 
 void test("reserves provider connect layout before providers load", () => {
@@ -874,7 +891,7 @@ void test("renders music playback cards inside the video-style card frame", () =
 void test("renders the editor thumbnail behind loading preview state", () => {
   const markup = renderToStaticMarkup(
     createElement(EditorPreview, {
-      canvasRef: createRef<HTMLCanvasElement>(),
+      canvasRef: () => {},
       playing: false,
       loadingPreview: true,
       loadingPreviewFrame: false,
@@ -895,7 +912,7 @@ void test("renders the editor thumbnail behind loading preview state", () => {
 void test("keeps the editor thumbnail mounted after preview load for fade out", () => {
   const markup = renderToStaticMarkup(
     createElement(EditorPreview, {
-      canvasRef: createRef<HTMLCanvasElement>(),
+      canvasRef: () => {},
       playing: false,
       loadingPreview: false,
       loadingPreviewFrame: false,
@@ -938,6 +955,9 @@ void test("renders mobile editor controls trigger and compact range summary", ()
         onPreviewTimeCommit: () => {},
         onStartTimeCommit: () => {},
         onEndTimeCommit: () => {},
+        onSetInPoint: () => {},
+        onSetOutPoint: () => {},
+        onClearPoints: () => {},
       }),
     ),
   );
@@ -974,7 +994,7 @@ void test("renders editor readiness transition hooks", () => {
 void test("renders editor poster with the shared thumbnail view transition", () => {
   const markup = renderToStaticMarkup(
     createElement(EditorPreview, {
-      canvasRef: createRef<HTMLCanvasElement>(),
+      canvasRef: () => {},
       playing: false,
       loadingPreview: true,
       loadingPreviewFrame: false,
@@ -1018,11 +1038,17 @@ void test("renders the editor framegrab camera control", () => {
         onPreviewTimeCommit: () => {},
         onStartTimeCommit: () => {},
         onEndTimeCommit: () => {},
+        onSetInPoint: () => {},
+        onSetOutPoint: () => {},
+        onClearPoints: () => {},
       }),
     ),
   );
 
   assert.match(markup, /Export current preview frame/);
+  assert.match(markup, /Set in point at the playhead/);
+  assert.match(markup, /Set out point at the playhead/);
+  assert.match(markup, /Clear in and out points/);
   assert.ok(
     markup.indexOf('aria-label="Zoom timeline out"') <
       markup.indexOf('aria-label="Zoom timeline in"'),

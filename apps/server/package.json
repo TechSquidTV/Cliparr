@@ -8,7 +8,7 @@
     "lint": "pnpm lint:eslint && pnpm lint:types",
     "lint:eslint": "cd ../.. && pnpm exec eslint --config config/eslint.config.js \"apps/server/src/**/*.ts\" \"apps/server/drizzle.config.ts\" \"apps/server/tsdown.config.ts\"",
     "lint:types": "tsc --noEmit",
-    "test": "node --import tsx --test src/**/*.test.ts",
+    "test": "node --import tsx --test \"src/**/*.test.ts\"",
     "db:generate": "drizzle-kit generate",
     "db:export": "drizzle-kit export --sql",
     "preview": "NODE_ENV=production node --import tsx src/server.ts",
@@ -22,7 +22,8 @@
     "axios": "^1.18.0",
     "dotenv": "^17.4.2",
     "drizzle-orm": "1.0.0-rc.4-273829f",
-    "express": "^5.2.1"
+    "express": "^5.2.1",
+    "undici": "^7.28.0"
   },
   "devDependencies": {
     "@types/express": "^5.0.6",

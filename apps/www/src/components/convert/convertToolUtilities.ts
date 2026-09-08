@@ -13,6 +13,7 @@ import {
   type ExportResolution,
   type GifExportPreset,
   type GifExportSettings,
+  type MediaDimensions,
   type MediaExportMetadata,
   type VideoExportQualityPreset,
 } from "@cliparr/frontend/convert";
@@ -20,10 +21,7 @@ import {
 export interface SourceProbeResult {
   durationSeconds: number;
   previewStartTimestampSeconds: number;
-  dimensions: {
-    width: number;
-    height: number;
-  };
+  dimensions: MediaDimensions;
   hasAudio: boolean;
   videoCodec?: string | null;
   videoBitrateKbps?: number | null;

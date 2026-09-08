@@ -16,6 +16,7 @@ function ProviderConnectRouteComponent() {
         onOpenLocalVideo={() => setLocalVideoOpen(true)}
       />
       <LocalVideoOpenDialog
+        canOpenUrl={Boolean(auth.providerSession)}
         isOpen={localVideoOpen}
         onClose={() => setLocalVideoOpen(false)}
         onOpened={(sessionId) => {

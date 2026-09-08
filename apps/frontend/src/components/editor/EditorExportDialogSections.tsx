@@ -39,11 +39,7 @@ import {
   formatOptions,
 } from "#/components/editor/editorExportOptions";
 import { formatTime } from "#/components/editor/editorUtilities";
-
-interface VideoDimensions {
-  width: number;
-  height: number;
-}
+import type { MediaDimensions } from "#/lib/editorMedia";
 
 interface ExportOption<T extends string> {
   value: T;
@@ -496,7 +492,7 @@ interface EditorExportSummaryPanelProperties {
   selectedFormat: ExportFormat;
   selectedQuality: ExportQualityPreset;
   gifSettings?: GifExportSettings | null;
-  outputDimensions: VideoDimensions | null;
+  outputDimensions: MediaDimensions | null;
   exportSourceLabel?: string;
   exportSourceSummaryMessage?: string | null;
   includeAudio: boolean;

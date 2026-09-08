@@ -79,7 +79,10 @@ export function framegrabQualityOptionFor(quality: FramegrabImageQuality) {
   );
 }
 
-export function cloneCanvasFrame(sourceCanvas: HTMLCanvasElement) {
+export function cloneCanvasFrame(
+  sourceCanvas: HTMLCanvasElement,
+  overlayCanvas?: HTMLCanvasElement | null,
+) {
   if (sourceCanvas.width <= 0 || sourceCanvas.height <= 0) {
     throw new Error("No preview frame is available yet.");
   }
@@ -94,6 +97,9 @@ export function cloneCanvasFrame(sourceCanvas: HTMLCanvasElement) {
   }
 
   context.drawImage(sourceCanvas, 0, 0, canvas.width, canvas.height);
+  if (overlayCanvas && overlayCanvas.width > 0 && overlayCanvas.height > 0) {
+    context.drawImage(overlayCanvas, 0, 0, canvas.width, canvas.height);
+  }
   return canvas;
 }
 

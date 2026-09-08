@@ -28,6 +28,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { formatTime } from "@/components/editor/editorUtilities";
+import type { MediaDimensions } from "@/lib/editorMedia";
 
 type FramegrabAction = "copy" | "download";
 
@@ -35,10 +36,7 @@ interface EditorFramegrabDialogProperties {
   isOpen: boolean;
   title: string;
   frameTime: number;
-  dimensions: {
-    width: number;
-    height: number;
-  } | null;
+  dimensions: MediaDimensions | null;
   selectedFormat: FramegrabImageFormat;
   onFormatChange: (format: FramegrabImageFormat) => void;
   selectedQuality: FramegrabImageQuality;

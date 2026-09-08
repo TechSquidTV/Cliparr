@@ -12,7 +12,6 @@ import { decryptSecret, encryptSecret } from "@/security/secrets";
 const SESSION_COOKIE = "cliparr_session";
 const REMEMBERED_PROVIDER_SESSION_COOKIE = "cliparr_remember";
 const SESSION_TTL_MS = 1000 * 60 * 60 * 12;
-const MEDIA_HANDLE_IDLE_TTL_MS = 1000 * 60 * 15;
 const logger = getServerLogger(["session", "store"]);
 
 export interface ProviderSessionRecord {
@@ -136,7 +135,9 @@ export function restoreProviderSessionFromProviderAccount(
 
 export function pruneSessionMediaHandles(
   session: ProviderSessionRecord,
-  maxIdleMs = MEDIA_HANDLE_IDLE_TTL_MS,
+  // Editors retain playlist and segment URLs, even while paused. Keep them
+  // available for the full session so later seeks and exports can reuse them.
+  maxIdleMs = SESSION_TTL_MS,
 ) {
   const cutoff = Date.now() - maxIdleMs;
   let prunedCount = 0;
