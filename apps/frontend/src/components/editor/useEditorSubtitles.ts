@@ -7,6 +7,7 @@ import {
   useTimelineTracks,
   type TimelineEngine,
 } from "@techsquidtv/canvas-timeline";
+import type { EditorDraft } from "@/components/editor/editorDrafts";
 import type { EditorSession } from "@/lib/editorMedia";
 import {
   selectPreferredSubtitleTrack,
@@ -30,6 +31,7 @@ import {
 } from "@/components/editor/editorTimelineEngine";
 
 interface UseEditorSubtitlesProperties {
+  initialDraft?: EditorDraft | null;
   engine: TimelineEngine;
   session: EditorSession;
   startTime: number;
@@ -39,6 +41,7 @@ interface UseEditorSubtitlesProperties {
 }
 
 export function useEditorSubtitles({
+  initialDraft,
   engine,
   session,
   startTime,
@@ -64,6 +67,13 @@ export function useEditorSubtitles({
     [session.local, session.subtitleTracks],
   );
   const [initialSubtitleSelection] = useState(() => {
+    if (initialDraft) {
+      return {
+        key: initialDraft.subtitles.selectedTrackKey,
+        enabled: initialDraft.subtitles.enabled,
+        initialized: true,
+      };
+    }
     const track = selectPreferredSubtitleTrack(
       subtitleTracks,
       session.selectedSubtitleTrack,
@@ -82,7 +92,7 @@ export function useEditorSubtitles({
   );
   const [importedSubtitleTrackKey, setImportedSubtitleTrackKey] = useState<
     string | null
-  >(null);
+  >(initialDraft?.subtitles.importedTrackKey ?? null);
   const subtitleTrackSelectionInitializedReference = useRef(
     initialSubtitleSelection.initialized,
   );
@@ -358,6 +368,8 @@ export function useEditorSubtitles({
   }, [engine, selectedSubtitleCue]);
 
   return {
+    importedSubtitleTrackKey,
+    subtitleTrackVisible,
     subtitleTracks,
     selectedSubtitleTrack,
     selectedSubtitleTrackKey,
