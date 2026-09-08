@@ -57,6 +57,7 @@ interface EditorControlsProperties {
   onSetInPoint: () => void;
   onSetOutPoint: () => void;
   onClearPoints: () => void;
+  onFitSelection: () => void;
 }
 
 function ControlTooltip({
@@ -109,6 +110,7 @@ export function EditorControls({
   onSetInPoint,
   onSetOutPoint,
   onClearPoints,
+  onFitSelection,
 }: EditorControlsProperties) {
   const hasDuration = duration > 0;
   const canEditPreviewTime = !loadingPreview && hasDuration;
@@ -312,7 +314,14 @@ export function EditorControls({
   const editableClipMetrics = (
     <>
       {clipMetrics.map((metric) => (
-        <div key={metric.label} className="flex items-center gap-2">
+        <div
+          key={metric.label}
+          className={
+            variant === "mobile"
+              ? "flex min-w-0 flex-col rounded-[var(--radius-control)] border border-editor-border bg-editor-control p-2"
+              : "flex items-center gap-2"
+          }
+        >
           <span className="text-ui-label font-semibold uppercase tracking-[var(--tracking-caps-lg)] text-muted-foreground">
             {metric.label}
           </span>
@@ -400,39 +409,24 @@ export function EditorControls({
                     {framegrabControl}
                   </div>
                 </section>
-                <section className="py-3">
-                  <div className="mb-2 text-ui-micro font-semibold uppercase tracking-[var(--tracking-caps-md)] text-muted-foreground">
-                    Clip Range
-                  </div>
-                  <div className="grid gap-2 text-right">
-                    {editableClipMetrics}
-                  </div>
-                  <div className="mt-3 flex justify-end">{rangeActions}</div>
-                </section>
               </div>
             </DrawerContent>
           </Drawer>
         </div>
-        <div className="mt-2 grid grid-cols-3 gap-1.5">
-          {clipMetrics.map((metric) => (
-            <div
-              key={metric.label}
-              className="min-w-0 rounded-[var(--radius-control)] border border-editor-border bg-editor-control px-2 py-1.5"
-            >
-              <div className="truncate text-ui-micro font-semibold uppercase tracking-[var(--tracking-caps-md)] text-muted-foreground">
-                {metric.label}
-              </div>
-              <div
-                className={`truncate font-mono text-xs font-semibold ${
-                  metric.emphasized
-                    ? "text-foreground"
-                    : "text-muted-foreground"
-                }`}
-              >
-                {formatTime(metric.value)}
-              </div>
-            </div>
-          ))}
+        <div className="mt-2 grid grid-cols-3 gap-1.5 [&_button]:min-h-11 [&_input]:min-h-11 [&_span.font-mono]:min-h-11 [&_span.font-mono]:content-center">
+          {editableClipMetrics}
+        </div>
+        <div className="mt-2 flex items-center justify-between gap-2 [&_button]:min-h-11">
+          {rangeActions}
+          <button
+            type="button"
+            aria-label="Fit selected clip in timeline"
+            disabled={!canSetClipRange || endTime <= startTime}
+            className={`${rangeActionButtonClassName} rounded-[var(--radius-control)] border border-editor-border bg-editor-control`}
+            onClick={onFitSelection}
+          >
+            Fit clip
+          </button>
         </div>
       </div>
     );
