@@ -2,6 +2,7 @@ import { createFileRoute, useCanGoBack } from "@tanstack/react-router";
 import { FolderOpen, ShieldCheck, TriangleAlert } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { useAuth } from "@/auth";
+import { editorDrafts } from "@/components/editor/editorDrafts";
 import EditorScreen from "@/components/editor/EditorScreen";
 import { LocalVideoOpenDialog } from "@/components/local-media/LocalVideoOpenDialog";
 import {
@@ -81,6 +82,12 @@ function LocalEditorRouteComponent() {
         <div className="space-y-2">
           <h1 className="text-lg font-semibold text-foreground">{title}</h1>
           <p className="text-sm leading-6 text-muted-foreground">{message}</p>
+          {editorDrafts.hasSession(sessionId) && (
+            <p className="text-sm leading-6 text-muted-foreground">
+              Your draft is saved on this device. Reopen the same unchanged file
+              to restore its clip range and subtitle edits.
+            </p>
+          )}
         </div>
         <div className="mt-5 flex flex-wrap items-center gap-3">
           {needsPermission && (
