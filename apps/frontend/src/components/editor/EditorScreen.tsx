@@ -13,6 +13,7 @@ import {
   toSeconds,
   useTimelinePlayback,
   useTimelineZoomControl,
+  useTimelineViewport,
   type TimelineEngine,
 } from "@techsquidtv/canvas-timeline";
 import {
@@ -39,6 +40,8 @@ import {
   type EditorDraft,
 } from "@/components/editor/editorDrafts";
 import { useEditorDraft } from "@/components/editor/useEditorDraft";
+import { useEditorHistory } from "@/components/editor/useEditorHistory";
+import { EditorEditingTools } from "@/components/editor/EditorEditingTools";
 import { EditorHeader } from "@/components/editor/EditorHeader";
 import { EditorPreview } from "@/components/editor/EditorPreview";
 import { EditorSubtitlePreview } from "@/components/editor/EditorSubtitlePreview";
@@ -196,6 +199,10 @@ function EditorScreenContent({
       cues: subtitleCues,
     },
   });
+  const editHistory = useEditorHistory(
+    engine,
+    timelineMedia.metadataReady && !subtitleLoading,
+  );
   const posterImageUrl = session.thumbUrl;
 
   const {
@@ -243,6 +250,9 @@ function EditorScreenContent({
     exporting,
     progress,
     exportError,
+    exportPhase,
+    exportNotice,
+    handleCancelExport,
     fileName,
     outputDimensions,
     outputSizeEstimate,
@@ -309,6 +319,19 @@ function EditorScreenContent({
     }
   }, [exportDialogOpen]);
 
+  const { viewportWidth, setZoomScale, setScrollLeft } = useTimelineViewport();
+  const handleFitSelection = () => {
+    if (viewportWidth <= 0 || endTime <= startTime) {
+      return;
+    }
+    const padding = Math.min(24, viewportWidth / 4);
+    const scale = Math.min(
+      1000,
+      (viewportWidth - padding * 2) / (endTime - startTime),
+    );
+    setZoomScale(scale);
+    setScrollLeft(Math.max(0, startTime * scale - padding));
+  };
   const zoomControl = useTimelineZoomControl({ min: 10, max: 1000 });
   const hasDuration = timelineMedia.metadataReady && duration > 0;
   const canZoomOut = zoomControl.value > zoomControl.min;
@@ -417,6 +440,8 @@ function EditorScreenContent({
     [duration, frameStepSeconds, getPlaybackTime, pausePlayback, seekToTime],
   );
   useEditorKeyboardShortcuts({
+    undo: editHistory.undo,
+    redo: editHistory.redo,
     togglePlay: () => void togglePlay(),
     markIn: handleMarkInShortcut,
     markOut: handleMarkOutShortcut,
@@ -498,6 +523,7 @@ function EditorScreenContent({
       setMuted={setMuted}
       volume={volume}
       setVolume={setVolume}
+      onFitSelection={handleFitSelection}
       handleTimelineZoomIn={handleTimelineZoomIn}
       handleTimelineZoomOut={handleTimelineZoomOut}
       canZoomIn={canZoomIn}
@@ -622,6 +648,7 @@ function EditorScreenContent({
           Reset draft
         </button>
       </div>
+      <EditorEditingTools history={editHistory} />
 
       <main className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto p-2.5 sm:p-3 lg:overflow-hidden">
         {isDesktopLayout ? (
@@ -667,6 +694,9 @@ function EditorScreenContent({
             exporting={exporting}
             progress={progress}
             error={exportError}
+            exportPhase={exportPhase}
+            exportNotice={exportNotice}
+            onCancelExport={handleCancelExport}
             fileNamePreview={fileName.fullName}
             outputDimensions={outputDimensions}
             hasHlsSource={Boolean(session.hlsSource)}
