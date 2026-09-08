@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { canEncodeVideo } from "mediabunny";
 import {
   compactLogFields,
@@ -8,6 +8,7 @@ import {
 } from "@cliparr/shared/logging";
 import type {
   ExportFormat,
+  ExportPhase,
   ExportResolution,
   ExportVideoEncodingPlan,
 } from "@/lib/exportClip";
@@ -144,6 +145,20 @@ export function useEditorExport({
   const [exportDialogOpen, setExportDialogOpen] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [progress, setProgress] = useState(0);
+  const [exportPhase, setExportPhase] = useState<ExportPhase>("preparing");
+  const [exportNotice, setExportNotice] = useState<string | null>(null);
+  const exportController = useRef<AbortController | null>(null);
+  const mounted = useRef(true);
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+      exportController.current?.abort();
+    };
+  }, []);
+  const handleCancelExport = useCallback(() => {
+    exportController.current?.abort();
+  }, []);
   const [hlsEstimateMetadata, setHlsEstimateMetadata] =
     useState<HlsExportEstimateMetadata | null>(null);
   const [resolvedVideoPlan, setResolvedVideoPlan] =
@@ -469,6 +484,7 @@ export function useEditorExport({
 
   const handleOpenExportDialog = useCallback(() => {
     setExportError(null);
+    setExportNotice(null);
     setHlsEstimateMetadata(null);
     setProgress(0);
     setTemplateEditorKind(fileName.templateKind);
@@ -552,6 +568,9 @@ export function useEditorExport({
   );
 
   const handleExport = useCallback(async () => {
+    if (exportController.current) {
+      return;
+    }
     const readiness = getEditorExportReadiness({
       exportSource,
       format: exportFormat,
@@ -576,6 +595,10 @@ export function useEditorExport({
     const shouldBurnSubtitles = readiness.shouldBurnSubtitles;
 
     setExportError(null);
+    const controller = new AbortController();
+    exportController.current = controller;
+    setExportNotice(null);
+    setExportPhase("preparing");
     setExporting(true);
     setProgress(0);
 
@@ -616,7 +639,11 @@ export function useEditorExport({
 
     try {
       const { exportClip } = await import("@/lib/exportClip");
+      controller.signal.throwIfAborted();
       const handleProgress = (nextProgress: number) => {
+        if (controller.signal.aborted || !mounted.current) {
+          return;
+        }
         setProgress((currentProgress) => {
           const nextPercent = Math.round(nextProgress * 100);
           const currentPercent = Math.round(currentProgress * 100);
@@ -627,6 +654,12 @@ export function useEditorExport({
         });
       };
       const blob = await exportClip({
+        signal: controller.signal,
+        onPhaseChange: (phase) => {
+          if (mounted.current && !controller.signal.aborted) {
+            setExportPhase(phase);
+          }
+        },
         mediaSource: readiness.source,
         timelineOffsetSeconds: exportTimelineOffsetForSource(
           readiness.source,
@@ -650,8 +683,9 @@ export function useEditorExport({
         },
         onProgress: handleProgress,
       });
+      controller.signal.throwIfAborted();
       downloadBlob(blob, fileName.fullName);
-      setExportDialogOpen(false);
+      setExportNotice(`Download started: ${fileName.fullName}`);
 
       exportLogger.info("Editor export completed.", {
         ...logEventFields("editor.export", "success"),
@@ -662,6 +696,17 @@ export function useEditorExport({
         ...buildExportEstimateActualLogFields(outputSizeEstimate, blob.size),
       });
     } catch (error) {
+      if (controller.signal.aborted) {
+        exportLogger.info("Editor export cancelled.", {
+          ...logEventFields("editor.export", "cancelled"),
+          ...logDurationFields(startedAt),
+          ...baseFields,
+        });
+        if (mounted.current) {
+          setExportNotice("Export cancelled. Your edits are unchanged.");
+        }
+        return;
+      }
       warnWithError(exportLogger, error, "Editor export failed.", {
         ...logEventFields("editor.export", "failure"),
         ...logDurationFields(startedAt),
@@ -671,7 +716,10 @@ export function useEditorExport({
       });
       setExportError(error instanceof Error ? error.message : "Export failed");
     } finally {
-      setExporting(false);
+      exportController.current = null;
+      if (mounted.current) {
+        setExporting(false);
+      }
     }
   }, [
     clippedSubtitleCues,
@@ -719,6 +767,9 @@ export function useEditorExport({
     exportDialogOpen,
     exporting,
     progress,
+    exportPhase,
+    exportNotice,
+    handleCancelExport,
     exportError,
     fileName,
     outputDimensions,
