@@ -6,13 +6,13 @@ autoInstallPeers: false
 minimumReleaseAge: 1440
 minimumReleaseAgeStrict: true
 minimumReleaseAgeExclude:
-  - "@techsquidtv/canvas-timeline@0.1.0"
-  - "@techsquidtv/canvas-timeline-core@0.1.0"
-  - "@techsquidtv/canvas-timeline-html-media-adapter@0.1.0"
-  - "@techsquidtv/canvas-timeline-mediabunny-adapter@0.1.0"
-  - "@techsquidtv/canvas-timeline-react@0.1.0"
-  - "@techsquidtv/canvas-timeline-renderer@0.1.0"
-  - "@techsquidtv/canvas-timeline-utils@0.1.0"
+  - "@techsquidtv/canvas-timeline@0.3.0"
+  - "@techsquidtv/canvas-timeline-core@0.3.0"
+  - "@techsquidtv/canvas-timeline-html-media-adapter@0.3.0"
+  - "@techsquidtv/canvas-timeline-mediabunny-adapter@0.3.0"
+  - "@techsquidtv/canvas-timeline-react@0.3.0"
+  - "@techsquidtv/canvas-timeline-renderer@0.3.0"
+  - "@techsquidtv/canvas-timeline-utils@0.3.0"
   - "@techsquidtv/gifenc@1.1.0"
 
 allowBuilds:

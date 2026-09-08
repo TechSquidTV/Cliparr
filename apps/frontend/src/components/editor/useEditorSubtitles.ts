@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   fromSeconds,
-  useTimeline,
   useTimelineClips,
   useTimelineEditCommands,
+  useTimelineSelection,
   useTimelineTracks,
+  type TimelineEngine,
 } from "@techsquidtv/canvas-timeline";
 import type { EditorSession } from "@/lib/editorMedia";
 import {
@@ -26,10 +27,10 @@ import {
   subtitleCueFromTimelineClip,
   subtitleCuesFromTimeline,
   synchronizeEditorTimelineSubtitles,
-  type EditorTimelineTrackKind,
 } from "@/components/editor/editorTimelineEngine";
 
 interface UseEditorSubtitlesProperties {
+  engine: TimelineEngine;
   session: EditorSession;
   startTime: number;
   endTime: number;
@@ -38,16 +39,17 @@ interface UseEditorSubtitlesProperties {
 }
 
 export function useEditorSubtitles({
+  engine,
   session,
   startTime,
   endTime,
   duration,
   mediaReady,
 }: UseEditorSubtitlesProperties) {
-  const { engine } = useTimeline();
-  const { tracks } = useTimelineTracks<EditorTimelineTrackKind>();
-  const { clips, selectedClip, selectedClipTrackId, selectClip, updateClip } =
-    useTimelineClips<EditorTimelineTrackKind>();
+  const { tracks } = useTimelineTracks();
+  const { clips, updateClip } = useTimelineClips();
+  const { selectedClip, selectedClipTrackId, selectClip } =
+    useTimelineSelection();
   const { deleteClip, trimClip } = useTimelineEditCommands();
   const [subtitleStyleSettings, setSubtitleStyleSettings] = useState(() =>
     loadSubtitleStyleSettings(),

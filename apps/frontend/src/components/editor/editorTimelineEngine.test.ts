@@ -98,10 +98,52 @@ void describe("editor timeline engine", () => {
     assert.equal(toSeconds(state.duration!), 30);
     assert.equal(toSeconds(mediaClip!.timelineEnd), 30);
     assert.equal(toSeconds(mediaClip!.sourceStart), 1_700_000_000);
+    assert.equal(state.tracks[0]?.locked, true);
     assert.equal(toSeconds(state.playheadTime), 12);
     assert.equal(toSeconds(state.inPoint!), 12);
     assert.equal(toSeconds(state.outPoint!), 22);
     assert.equal(state.zoomScale, 74);
+  });
+
+  void it("restores the source lock and rejects the whole metadata edit when validation fails", () => {
+    const engine = createEditorTimelineEngine(createSession());
+    const initialClip = engine.getState().tracks[0]?.clips[0];
+    engine.setEditPolicy({
+      canTrimClip: () => ({ valid: false, reason: "policy-rejected" }),
+    });
+
+    assert.throws(
+      () =>
+        synchronizeEditorTimelineMedia(engine, {
+          duration: 30,
+          sourceStart: 100,
+          initialDuration: 20,
+        }),
+      /Could not synchronize media timeline: policy-rejected/,
+    );
+
+    const state = engine.getState();
+    assert.equal(state.tracks[0]?.locked, true);
+    assert.deepEqual(state.tracks[0]?.clips[0], initialClip);
+    assert.equal(toSeconds(state.duration!), 20);
+  });
+
+  void it("uses the shared range policy for external media playback", () => {
+    const engine = createEditorTimelineEngine(createSession());
+    assert.equal(
+      engine.play({ clock: "external", respectInOut: true, loop: false }),
+      true,
+    );
+    const update = engine.updateExternalPlaybackTime(fromSeconds(16));
+
+    assert.equal(update.action, "pause");
+    assert.equal(update.reason, "in-out");
+    assert.equal(toSeconds(engine.getTime()), 15);
+    assert.equal(engine.getState().playing, false);
+    assert.equal(
+      toSeconds(engine.getPlaybackStartTime({ respectInOut: true })),
+      5,
+    );
   });
 
   void it("preserves a valid engine-owned range when media metadata is refined", () => {
@@ -297,11 +339,11 @@ void describe("editor timeline engine", () => {
       ],
     });
 
-    assert.equal(
+    assert.deepEqual(
       engine.updateClipProperties("editor-subtitle-cue-0", {
         label: "Customized\ntext",
       }),
-      true,
+      { ok: true },
     );
     const move = engine.commitEdit({
       type: "move",
@@ -341,11 +383,11 @@ void describe("editor timeline engine", () => {
       ],
     });
 
-    assert.equal(
+    assert.deepEqual(
       engine.updateClipProperties("editor-subtitle-cue-0", {
         label: "  First line  \r\n\r\n Second line ",
       }),
-      true,
+      { ok: true },
     );
     assert.deepEqual(subtitleCuesFromTimeline(engine.getState().tracks), [
       {

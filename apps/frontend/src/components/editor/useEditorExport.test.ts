@@ -952,7 +952,7 @@ void test("builds export dimensions and source messaging", () => {
         message: "browser cannot read the stream",
       },
     }),
-    "Trying HLS: browser cannot read the stream",
+    "Export still uses HLS; the preview fell back to direct media: browser cannot read the stream",
   );
 
   assert.equal(

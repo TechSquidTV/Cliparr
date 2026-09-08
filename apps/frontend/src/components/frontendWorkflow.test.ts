@@ -2,7 +2,7 @@
 
 import assert from "node:assert/strict";
 import test from "node:test";
-import { createElement, createRef, type ComponentProps } from "react";
+import { createElement, type ComponentProps } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import {
   DASHBOARD_VIEWER_FILTER_STORAGE_KEY,
@@ -874,7 +874,7 @@ void test("renders music playback cards inside the video-style card frame", () =
 void test("renders the editor thumbnail behind loading preview state", () => {
   const markup = renderToStaticMarkup(
     createElement(EditorPreview, {
-      canvasRef: createRef<HTMLCanvasElement>(),
+      canvasRef: () => {},
       playing: false,
       loadingPreview: true,
       loadingPreviewFrame: false,
@@ -895,7 +895,7 @@ void test("renders the editor thumbnail behind loading preview state", () => {
 void test("keeps the editor thumbnail mounted after preview load for fade out", () => {
   const markup = renderToStaticMarkup(
     createElement(EditorPreview, {
-      canvasRef: createRef<HTMLCanvasElement>(),
+      canvasRef: () => {},
       playing: false,
       loadingPreview: false,
       loadingPreviewFrame: false,
@@ -977,7 +977,7 @@ void test("renders editor readiness transition hooks", () => {
 void test("renders editor poster with the shared thumbnail view transition", () => {
   const markup = renderToStaticMarkup(
     createElement(EditorPreview, {
-      canvasRef: createRef<HTMLCanvasElement>(),
+      canvasRef: () => {},
       playing: false,
       loadingPreview: true,
       loadingPreviewFrame: false,

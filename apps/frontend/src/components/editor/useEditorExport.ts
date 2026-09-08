@@ -919,7 +919,7 @@ export function buildExportSourceMessage({
   }
 
   const exportUsesDirectSource = resolvedSourceKind === "direct";
-  let prefix = "Trying HLS";
+  let prefix = "Export still uses HLS; the preview fell back to direct media";
   if (exportUsesDirectSource) {
     prefix = "Export switched to direct media";
   }

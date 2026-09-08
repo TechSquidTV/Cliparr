@@ -4,13 +4,15 @@ import {
   toSeconds,
   type Clip,
   type Track,
+  type TimelineReadonly,
+  type TimelineEditCommand,
 } from "@techsquidtv/canvas-timeline";
 import { buildInitialClipRange } from "@/components/editor/initialClipRange";
 import type { EditorSession } from "@/lib/editorMedia";
 import { normalizeSubtitleCueText } from "@/lib/subtitles/normalizeSubtitleCueText";
 import type { SubtitleCue } from "@/lib/subtitles/types";
 
-export type EditorTimelineTrackKind = "media" | "subtitle";
+type EditorTimelineTrackKind = "media" | "subtitle";
 
 export const EDITOR_MEDIA_SOURCE_ID = "editor-media-source";
 export const EDITOR_MEDIA_TRACK_ID = "editor-media-track";
@@ -38,10 +40,6 @@ export function timelineScrollLeftForCenteredTime({
 }: CenteredTimelineScrollOptions) {
   const centeredScrollLeft = timeSeconds * zoomScale - viewportWidth / 2;
   return Math.min(maxScrollLeft, Math.max(0, centeredScrollLeft));
-}
-
-interface EditorSubtitleClipMetadata extends Record<string, unknown> {
-  cueId?: string;
 }
 
 function safeMediaDuration(duration: number) {
@@ -86,15 +84,6 @@ function createEditorTracks(
   ];
 }
 
-function isEditorSubtitleClipMetadata(
-  metadata: Clip["metadata"],
-): metadata is EditorSubtitleClipMetadata {
-  return (
-    metadata !== undefined &&
-    (metadata.cueId === undefined || typeof metadata.cueId === "string")
-  );
-}
-
 function createSubtitleTrack(
   cues: readonly SubtitleCue[],
   duration: number,
@@ -126,7 +115,7 @@ function createSubtitleTrack(
         label: cue.text,
         metadata: {
           ...(cue.id ? { cueId: cue.id } : {}),
-        } satisfies EditorSubtitleClipMetadata,
+        },
       },
     ];
   });
@@ -151,18 +140,15 @@ export function createEditorTimelineEngine(session: EditorSession) {
     duration,
     session.initialPlayheadSeconds,
   );
-  const engine = new TimelineEngine({
+  return new TimelineEngine({
     duration: fromSeconds(duration),
     playheadTime: fromSeconds(initialRange.startTime),
+    inPoint: fromSeconds(initialRange.startTime),
+    outPoint: fromSeconds(initialRange.endTime),
     zoomScale: DEFAULT_TIMELINE_ZOOM_SCALE,
     snapEnabled: false,
     tracks: createEditorTracks(duration, session.title),
   });
-
-  engine.setInPoint(fromSeconds(initialRange.startTime));
-  engine.setOutPoint(fromSeconds(initialRange.endTime));
-
-  return engine;
 }
 
 export function synchronizeEditorTimelineSession(
@@ -174,10 +160,7 @@ export function synchronizeEditorTimelineSession(
     return;
   }
 
-  const mediaClip = engine
-    .getState()
-    .tracks.flatMap((track) => track.clips)
-    .find((clip) => clip.id === EDITOR_MEDIA_CLIP_ID);
+  const mediaClip = engine.geometry.getClip(EDITOR_MEDIA_CLIP_ID)?.clip;
   if (mediaClip?.label !== session.title) {
     engine.updateClipProperties(EDITOR_MEDIA_CLIP_ID, {
       label: session.title,
@@ -209,18 +192,54 @@ export function synchronizeEditorTimelineMedia(
   },
 ) {
   const duration = safeMediaDuration(options.duration);
-  const mediaClip = engine
-    .getState()
-    .tracks.flatMap((track) => track.clips)
-    .find((clip) => clip.id === EDITOR_MEDIA_CLIP_ID);
+  const mediaEntry = engine.geometry.getClip(EDITOR_MEDIA_CLIP_ID);
+  const mediaClip = mediaEntry?.clip;
 
   if (mediaClip) {
     const sourceStartDelta =
       options.sourceStart - toSeconds(mediaClip.sourceStart);
+    const commands: TimelineEditCommand[] = [];
     if (Math.abs(sourceStartDelta) > Number.EPSILON) {
-      engine.slipClip(EDITOR_MEDIA_CLIP_ID, fromSeconds(sourceStartDelta));
+      commands.push({
+        type: "slip",
+        clipId: EDITOR_MEDIA_CLIP_ID,
+        deltaTime: fromSeconds(sourceStartDelta),
+      });
     }
-    engine.trimClip(EDITOR_MEDIA_CLIP_ID, "end", fromSeconds(duration));
+    if (
+      Math.abs(duration - toSeconds(mediaClip.timelineEnd)) > Number.EPSILON
+    ) {
+      commands.push({
+        type: "trim",
+        clipId: EDITOR_MEDIA_CLIP_ID,
+        edge: "end",
+        // eslint-disable-next-line unicorn/no-keyword-prefix -- Canvas Timeline command field.
+        newTime: fromSeconds(duration),
+        snap: false,
+      });
+    }
+    if (commands.length > 0) {
+      // Metadata discovery must update the source clip even though its row is
+      // locked against user edits. Restore the lock after the atomic edit.
+      const locked = mediaEntry.track.locked;
+      if (locked) {
+        engine.toggleLockTrack(EDITOR_MEDIA_TRACK_ID, false);
+      }
+      try {
+        const failure = engine
+          .commitEdits(commands)
+          .find((result) => !result.preview.valid);
+        if (failure) {
+          throw new Error(
+            `Could not synchronize media timeline: ${failure.preview.reason}`,
+          );
+        }
+      } finally {
+        if (locked) {
+          engine.toggleLockTrack(EDITOR_MEDIA_TRACK_ID, true);
+        }
+      }
+    }
   }
 
   engine.setDuration(fromSeconds(duration));
@@ -250,8 +269,10 @@ export function synchronizeEditorTimelineMedia(
       duration,
       options.initialPlayheadSeconds,
     );
-    engine.setInPoint(fromSeconds(initialRange.startTime));
-    engine.setOutPoint(fromSeconds(initialRange.endTime));
+    engine.setInOutRange(
+      fromSeconds(initialRange.startTime),
+      fromSeconds(initialRange.endTime),
+    );
     engine.updatePlayhead(fromSeconds(initialRange.startTime));
   }
 }
@@ -268,7 +289,7 @@ export function synchronizeEditorTimelineSubtitles(
 }
 
 export function subtitleCuesFromTimeline(
-  tracks: readonly Track[],
+  tracks: readonly TimelineReadonly<Track>[],
 ): SubtitleCue[] {
   const subtitleTrack = tracks.find(
     (track) => track.id === EDITOR_SUBTITLE_TRACK_ID,
@@ -283,17 +304,17 @@ export function subtitleCuesFromTimeline(
   });
 }
 
-export function subtitleCueFromTimelineClip(clip: Clip): SubtitleCue | null {
+export function subtitleCueFromTimelineClip(
+  clip: TimelineReadonly<Clip>,
+): SubtitleCue | null {
   const normalizedText = normalizeSubtitleCueText(clip.label ?? "");
   if (!normalizedText) {
     return null;
   }
 
-  const metadata = isEditorSubtitleClipMetadata(clip.metadata)
-    ? clip.metadata
-    : undefined;
+  const cueId = clip.metadata?.cueId;
   return {
-    ...(metadata?.cueId ? { id: metadata.cueId } : {}),
+    ...(typeof cueId === "string" && cueId ? { id: cueId } : {}),
     startTime: toSeconds(clip.timelineStart),
     endTime: toSeconds(clip.timelineEnd),
     ...normalizedText,

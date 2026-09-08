@@ -80,11 +80,11 @@ importers:
         specifier: ^1.170.16
         version: 1.170.16(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
       '@techsquidtv/canvas-timeline':
-        specifier: ^0.1.0
-        version: 0.1.0(@types/react@19.2.17)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
+        specifier: ^0.3.0
+        version: 0.3.0(@types/react@19.2.17)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
       '@techsquidtv/canvas-timeline-mediabunny-adapter':
-        specifier: ^0.1.0
-        version: 0.1.0(@types/react@19.2.17)(mediabunny@1.50.8)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
+        specifier: ^0.3.0
+        version: 0.3.0(@techsquidtv/canvas-timeline-react@0.3.0(@types/react@19.2.17)(react-dom@19.2.7(react@19.2.7))(react@19.2.7))(mediabunny@1.50.8)(react@19.2.7)
       '@techsquidtv/gifenc':
         specifier: 1.1.0
         version: 1.1.0
@@ -3247,43 +3247,54 @@ packages:
     resolution: {integrity: sha512-uhOeFyxLcU41HzvrxsGpiWdcMbScY1EDgbZ5K7DVRMYInbLYWAC0EA/kx9wXAoSM8q82bUG2hRl8+EAjE6XAbA==}
     engines: {node: '>=20.19'}
 
-  '@techsquidtv/canvas-timeline-core@0.1.0':
-    resolution: {integrity: sha512-vFjNtv9PHc1aRJkXLzslSjacMMkiHR5zevijk+kOFHOeunSTrAQtY9TpTlK3ZDoyT/qLi6q+ZLNkQCmVkdkcxQ==}
+  '@techsquidtv/canvas-timeline-core@0.3.0':
+    resolution: {integrity: sha512-EsLX+DONvze5CjDbxlctFNlFEiA418/WWhAk5uDTUfuvq1mv6bUFUbbUT4oLHgPt4sKrFeexVpUBnFmqq4DJJA==}
     engines: {node: '>=24'}
 
-  '@techsquidtv/canvas-timeline-html-media-adapter@0.1.0':
-    resolution: {integrity: sha512-ZUC0CSURWH6y26Z6AmlvF9w+18EKm2yqJJCwewhnxb575iiLd4DQGEQqvmi0Fvf43vLKONOs9MY/Iyd1e8K3vg==}
+  '@techsquidtv/canvas-timeline-html-media-adapter@0.3.0':
+    resolution: {integrity: sha512-m12HaJ/CHVuKSeJhgB1nN7Upu8SAVG4dzJBROHxEJKatHv2lsfkBq5OpJV5Yn0b41nSxt7xsBJ6QlXDOqsXqew==}
     engines: {node: '>=24'}
     peerDependencies:
+      '@techsquidtv/canvas-timeline-react': 0.3.0
       react: ^19.2.7
-      react-dom: ^19.2.7
+    peerDependenciesMeta:
+      '@techsquidtv/canvas-timeline-react':
+        optional: true
+      react:
+        optional: true
 
-  '@techsquidtv/canvas-timeline-mediabunny-adapter@0.1.0':
-    resolution: {integrity: sha512-QDI2P6gRgqz2OSDX5A0ckp7wH1IoHy+sI7B4mr1t9s4TZZ/oW+cOCbjEw8AEwWiO2XaE279HAEJggVXc2QJfyw==}
+  '@techsquidtv/canvas-timeline-mediabunny-adapter@0.3.0':
+    resolution: {integrity: sha512-M0n1X33DALe0ReuyXMqDb01gHdfo1CgXTPBJuu4EyADLEtGbMMtwsLoJ2nyWNjOOyC9CAp2xRay6zopFLuT0sA==}
     engines: {node: '>=24'}
     peerDependencies:
+      '@techsquidtv/canvas-timeline-react': 0.3.0
       mediabunny: ^1.50.3
       react: ^19.2.7
+    peerDependenciesMeta:
+      '@techsquidtv/canvas-timeline-react':
+        optional: true
+      react:
+        optional: true
 
-  '@techsquidtv/canvas-timeline-react@0.1.0':
-    resolution: {integrity: sha512-1r6uuNgy2+U+aySsyH8zuk3Lp0jl2NBhOMIbt6NBrowVotBx2gnvACtUAQe3TkERt4bd8EuRijZxfBCPoSUu5g==}
+  '@techsquidtv/canvas-timeline-react@0.3.0':
+    resolution: {integrity: sha512-7cX21RRk9HEuYfZb68k8AB1qOxvRS8jnXuEUn8qOvgQN/RZAxvqqKzXO5K/vrnon55qIIONTP/rXTHnMkQ15Gg==}
     engines: {node: '>=24'}
     peerDependencies:
       react: ^19.2.7
       react-dom: ^19.2.7
 
-  '@techsquidtv/canvas-timeline-renderer@0.1.0':
-    resolution: {integrity: sha512-jpGCuPkpowZjKbSdx+Pp1k7sW/67EDJvPGnm8niEQ+PMVLMz7HV7xoExs3LjIjvkPe/h3dJQJ1wRVhgMQc/Xzg==}
+  '@techsquidtv/canvas-timeline-renderer@0.3.0':
+    resolution: {integrity: sha512-UegKrbcEk2CfGw8FgX+2WEbVMxEDjK/s4inB4gMFVg5okKpnpvofT9CkT1C3USsdw3xGnDm9hVWUdHxVaKIIKw==}
     engines: {node: '>=24'}
     peerDependencies:
       react: ^19.2.7
 
-  '@techsquidtv/canvas-timeline-utils@0.1.0':
-    resolution: {integrity: sha512-bL8ZmpI1hsszUJu1MXY48y8F+MJYq4MU/0cuuhYSeToyQXkWKvi9/myHn2oB5j6mB2KmV2cL/P+O2BZRM+M+bA==}
+  '@techsquidtv/canvas-timeline-utils@0.3.0':
+    resolution: {integrity: sha512-J7GqkAhg2bDQulwdmDZDfWX5p2cdVa0M7Snw+ObX1kb7FI2ieKnikdXt19ZdglB/XGw2EdKFMNOXkuDVTTwusg==}
     engines: {node: '>=24'}
 
-  '@techsquidtv/canvas-timeline@0.1.0':
-    resolution: {integrity: sha512-2Q17o1TTYsHqyXLU7dqYH2NPjUEoUF4VIlHfrsR7mTXpaV4BI58p1s3KYXHqVtTH1y8KW5KZxi4k3KjXTlH7bg==}
+  '@techsquidtv/canvas-timeline@0.3.0':
+    resolution: {integrity: sha512-OBVZa0sA0eqGj+voijeYaINy/7lyvoaK7SrBeCr9N5jbvOiEKM/zlu5o00aQwRl3d+8a8zClV4WsfVuOIE64xQ==}
     engines: {node: '>=24'}
     peerDependencies:
       react: ^19.2.7
@@ -9373,40 +9384,32 @@ snapshots:
 
   '@tanstack/virtual-file-routes@1.162.0': {}
 
-  '@techsquidtv/canvas-timeline-core@0.1.0':
+  '@techsquidtv/canvas-timeline-core@0.3.0':
     dependencies:
-      '@techsquidtv/canvas-timeline-utils': 0.1.0
+      '@techsquidtv/canvas-timeline-utils': 0.3.0
 
-  '@techsquidtv/canvas-timeline-html-media-adapter@0.1.0(@types/react@19.2.17)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)':
+  '@techsquidtv/canvas-timeline-html-media-adapter@0.3.0(@techsquidtv/canvas-timeline-react@0.3.0(@types/react@19.2.17)(react-dom@19.2.7(react@19.2.7))(react@19.2.7))(react@19.2.7)':
     dependencies:
-      '@techsquidtv/canvas-timeline-core': 0.1.0
-      '@techsquidtv/canvas-timeline-react': 0.1.0(@types/react@19.2.17)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
-      '@techsquidtv/canvas-timeline-utils': 0.1.0
+      '@techsquidtv/canvas-timeline-core': 0.3.0
+      '@techsquidtv/canvas-timeline-utils': 0.3.0
+    optionalDependencies:
+      '@techsquidtv/canvas-timeline-react': 0.3.0(@types/react@19.2.17)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
       react: 19.2.7
-      react-dom: 19.2.7(react@19.2.7)
-    transitivePeerDependencies:
-      - '@date-fns/tz'
-      - '@types/react'
-      - date-fns
 
-  '@techsquidtv/canvas-timeline-mediabunny-adapter@0.1.0(@types/react@19.2.17)(mediabunny@1.50.8)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)':
+  '@techsquidtv/canvas-timeline-mediabunny-adapter@0.3.0(@techsquidtv/canvas-timeline-react@0.3.0(@types/react@19.2.17)(react-dom@19.2.7(react@19.2.7))(react@19.2.7))(mediabunny@1.50.8)(react@19.2.7)':
     dependencies:
-      '@techsquidtv/canvas-timeline-core': 0.1.0
-      '@techsquidtv/canvas-timeline-react': 0.1.0(@types/react@19.2.17)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
-      '@techsquidtv/canvas-timeline-utils': 0.1.0
+      '@techsquidtv/canvas-timeline-core': 0.3.0
+      '@techsquidtv/canvas-timeline-utils': 0.3.0
       mediabunny: 1.50.8
+    optionalDependencies:
+      '@techsquidtv/canvas-timeline-react': 0.3.0(@types/react@19.2.17)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
       react: 19.2.7
-    transitivePeerDependencies:
-      - '@date-fns/tz'
-      - '@types/react'
-      - date-fns
-      - react-dom
 
-  '@techsquidtv/canvas-timeline-react@0.1.0(@types/react@19.2.17)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)':
+  '@techsquidtv/canvas-timeline-react@0.3.0(@types/react@19.2.17)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)':
     dependencies:
       '@base-ui/react': 1.6.0(@types/react@19.2.17)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
-      '@techsquidtv/canvas-timeline-core': 0.1.0
-      '@techsquidtv/canvas-timeline-utils': 0.1.0
+      '@techsquidtv/canvas-timeline-core': 0.3.0
+      '@techsquidtv/canvas-timeline-utils': 0.3.0
       react: 19.2.7
       react-dom: 19.2.7(react@19.2.7)
     transitivePeerDependencies:
@@ -9414,11 +9417,11 @@ snapshots:
       - '@types/react'
       - date-fns
 
-  '@techsquidtv/canvas-timeline-renderer@0.1.0(@types/react@19.2.17)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)':
+  '@techsquidtv/canvas-timeline-renderer@0.3.0(@types/react@19.2.17)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)':
     dependencies:
-      '@techsquidtv/canvas-timeline-core': 0.1.0
-      '@techsquidtv/canvas-timeline-react': 0.1.0(@types/react@19.2.17)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
-      '@techsquidtv/canvas-timeline-utils': 0.1.0
+      '@techsquidtv/canvas-timeline-core': 0.3.0
+      '@techsquidtv/canvas-timeline-react': 0.3.0(@types/react@19.2.17)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
+      '@techsquidtv/canvas-timeline-utils': 0.3.0
       react: 19.2.7
     transitivePeerDependencies:
       - '@date-fns/tz'
@@ -9426,15 +9429,15 @@ snapshots:
       - date-fns
       - react-dom
 
-  '@techsquidtv/canvas-timeline-utils@0.1.0': {}
+  '@techsquidtv/canvas-timeline-utils@0.3.0': {}
 
-  '@techsquidtv/canvas-timeline@0.1.0(@types/react@19.2.17)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)':
+  '@techsquidtv/canvas-timeline@0.3.0(@types/react@19.2.17)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)':
     dependencies:
-      '@techsquidtv/canvas-timeline-core': 0.1.0
-      '@techsquidtv/canvas-timeline-html-media-adapter': 0.1.0(@types/react@19.2.17)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
-      '@techsquidtv/canvas-timeline-react': 0.1.0(@types/react@19.2.17)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
-      '@techsquidtv/canvas-timeline-renderer': 0.1.0(@types/react@19.2.17)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
-      '@techsquidtv/canvas-timeline-utils': 0.1.0
+      '@techsquidtv/canvas-timeline-core': 0.3.0
+      '@techsquidtv/canvas-timeline-html-media-adapter': 0.3.0(@techsquidtv/canvas-timeline-react@0.3.0(@types/react@19.2.17)(react-dom@19.2.7(react@19.2.7))(react@19.2.7))(react@19.2.7)
+      '@techsquidtv/canvas-timeline-react': 0.3.0(@types/react@19.2.17)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
+      '@techsquidtv/canvas-timeline-renderer': 0.3.0(@types/react@19.2.17)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
+      '@techsquidtv/canvas-timeline-utils': 0.3.0
       react: 19.2.7
     transitivePeerDependencies:
       - '@date-fns/tz'

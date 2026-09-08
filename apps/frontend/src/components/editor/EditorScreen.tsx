@@ -13,6 +13,7 @@ import {
   toSeconds,
   useTimelinePlayback,
   useTimelineZoomControl,
+  type TimelineEngine,
 } from "@techsquidtv/canvas-timeline";
 import {
   clampClipEndTime,
@@ -94,15 +95,19 @@ function EditorSessionScreen({ session, onBack }: Properties) {
 
   return (
     <TimelineProvider engine={engine}>
-      <EditorScreenContent session={session} onBack={onBack} />
+      <EditorScreenContent session={session} onBack={onBack} engine={engine} />
     </TimelineProvider>
   );
 }
 
-function EditorScreenContent({ session, onBack }: Properties) {
+function EditorScreenContent({
+  session,
+  onBack,
+  engine,
+}: Properties & { engine: TimelineEngine }) {
   const { inPoint, outPoint, setInPoint, setOutPoint, clearInOutPoints } =
     useTimelinePlayback();
-  const timelineMedia = useEditorTimelineMedia(session);
+  const timelineMedia = useEditorTimelineMedia(session, engine);
   const duration = timelineMedia.duration;
   const startTime = inPoint ? toSeconds(inPoint) : 0;
   const endTime = outPoint ? toSeconds(outPoint) : duration;
@@ -135,16 +140,18 @@ function EditorScreenContent({ session, onBack }: Properties) {
     handleSelectNextSubtitle,
     handleSeekToSelectedSubtitle,
   } = useEditorSubtitles({
+    engine,
     session,
     startTime,
     endTime,
     duration,
-    mediaReady: timelineMedia.ready,
+    mediaReady: timelineMedia.metadataReady,
   });
   const posterImageUrl = session.thumbUrl;
 
   const {
     canvasRef,
+    connectCanvas,
     currentTime,
     renderedFrameTime,
     playing,
@@ -253,7 +260,7 @@ function EditorScreenContent({ session, onBack }: Properties) {
   }, [exportDialogOpen]);
 
   const zoomControl = useTimelineZoomControl({ min: 10, max: 1000 });
-  const hasDuration = timelineMedia.ready && duration > 0;
+  const hasDuration = timelineMedia.metadataReady && duration > 0;
   const canZoomOut = zoomControl.value > zoomControl.min;
   const canZoomIn = zoomControl.value < zoomControl.max;
   const handleTimelineZoomOut = useCallback(() => {
@@ -401,7 +408,7 @@ function EditorScreenContent({ session, onBack }: Properties) {
       variant={layoutVariant}
     >
       <EditorPreview
-        canvasRef={canvasRef}
+        canvasRef={connectCanvas}
         videoDimensions={previewVideoDimensions}
         playing={playing}
         loadingPreview={loadingPreview}

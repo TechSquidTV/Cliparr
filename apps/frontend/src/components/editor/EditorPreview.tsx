@@ -1,10 +1,10 @@
 import { LoaderCircle, Play } from "lucide-react";
-import type { RefObject } from "react";
+import type { RefCallback } from "react";
 import type { MediaDimensions } from "@/lib/editorMedia";
 import type { ReactNode } from "react";
 
 interface EditorPreviewProperties {
-  canvasRef: RefObject<HTMLCanvasElement | null>;
+  canvasRef: RefCallback<HTMLCanvasElement>;
   videoDimensions?: MediaDimensions | null;
   playing: boolean;
   loadingPreview: boolean;

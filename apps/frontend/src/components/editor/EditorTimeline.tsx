@@ -12,7 +12,6 @@ import { useEffect, useRef } from "react";
 import {
   EDITOR_MEDIA_TRACK_ID,
   timelineScrollLeftForCenteredTime,
-  type EditorTimelineTrackKind,
 } from "@/components/editor/editorTimelineEngine";
 import "@techsquidtv/canvas-timeline/styles.css";
 
@@ -22,13 +21,13 @@ interface EditorTimelineProperties {
 }
 
 function TrackHeaderColumn({ muted, onMutedChange }: EditorTimelineProperties) {
-  const { tracks } = useTimelineTracks<EditorTimelineTrackKind>();
+  const { tracks } = useTimelineTracks();
 
   return (
     <Timeline.TrackHeaderList className="h-full">
       {tracks.map((track) => (
         <Timeline.TrackHeader key={track.id} trackId={track.id}>
-          {(header: UseTimelineTrackHeaderResult<EditorTimelineTrackKind>) => (
+          {(header: UseTimelineTrackHeaderResult) => (
             <div className="flex h-full min-w-0 flex-1 items-center gap-2">
               {track.id === EDITOR_MEDIA_TRACK_ID ? (
                 <button
@@ -77,7 +76,7 @@ function TrackHeaderColumn({ muted, onMutedChange }: EditorTimelineProperties) {
 }
 
 function EditorTimelineLayers() {
-  const { tracks } = useTimelineTracks<EditorTimelineTrackKind>();
+  const { tracks } = useTimelineTracks();
 
   return (
     <>
