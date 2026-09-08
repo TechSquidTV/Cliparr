@@ -1,11 +1,16 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { canEncodeVideo } from "mediabunny";
 import {
   compactLogFields,
   logDurationFields,
   logErrorFields,
   logEventFields,
 } from "@cliparr/shared/logging";
-import type { ExportFormat, ExportResolution } from "@/lib/exportClip";
+import type {
+  ExportFormat,
+  ExportResolution,
+  ExportVideoEncodingPlan,
+} from "@/lib/exportClip";
 import {
   DEFAULT_GIF_EXPORT_PRESET,
   DEFAULT_VIDEO_EXPORT_QUALITY,
@@ -20,6 +25,14 @@ import {
   type GifExportSettings,
   type VideoExportQualityPreset,
 } from "@/lib/exportTypes";
+import {
+  EXPORT_ENCODING_POLICY_VERSION,
+  exportVideoCodecPriorities,
+  formatCanCopyVideoCodec,
+  resolveVideoEncodingPlan,
+  videoEncodingPlanKey,
+  type ResolvedVideoEncodingPlan,
+} from "@/lib/exportEncodingPolicy";
 import {
   buildExportFileName,
   defaultExportFileNameTemplates,
@@ -133,6 +146,8 @@ export function useEditorExport({
   const [progress, setProgress] = useState(0);
   const [hlsEstimateMetadata, setHlsEstimateMetadata] =
     useState<HlsExportEstimateMetadata | null>(null);
+  const [resolvedVideoPlan, setResolvedVideoPlan] =
+    useState<ResolvedVideoEncodingPlan | null>(null);
   const [exportError, setExportError] = useState<string | null>(null);
   const exportLogger = useMemo(
     () => logger.with({ "editor.session.id": session.id }),
@@ -256,6 +271,47 @@ export function useEditorExport({
       ),
     [exportFormat, gifSettings, resolution, sourceVideoDimensions],
   );
+  const videoPlanKey = useMemo(
+    () =>
+      exportFormat === "gif" || !outputDimensions
+        ? null
+        : videoEncodingPlanKey({
+            format: exportFormat,
+            outputDimensions,
+            quality: videoQuality,
+          }),
+    [exportFormat, outputDimensions, videoQuality],
+  );
+
+  useEffect(() => {
+    let cancelled = false;
+
+    if (exportFormat === "gif" || !outputDimensions || !videoPlanKey) {
+      return () => {
+        cancelled = true;
+      };
+    }
+
+    void resolveVideoEncodingPlan({
+      format: exportFormat,
+      outputDimensions,
+      quality: videoQuality,
+      supportedVideoCodecs: exportVideoCodecPriorities(exportFormat),
+      canEncodeVideo,
+    })
+      .then((plan) => {
+        if (!cancelled) {
+          setResolvedVideoPlan({ ...plan, key: videoPlanKey });
+        }
+      })
+      .catch(() => {
+        // Export validates encoder support again before conversion.
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [exportFormat, outputDimensions, videoPlanKey, videoQuality]);
 
   const shouldEstimateBurnedSubtitles =
     subtitleEnabled &&
@@ -286,16 +342,20 @@ export function useEditorExport({
     exportSource.kind === "none"
       ? null
       : session.exportEstimateMetadata?.audioBitrateKbps;
-  const hlsManifestBitrateKbps =
-    exportSource.kind === "hls" ? hlsEstimateMetadata?.bitrateKbps : null;
-  const hlsManifestBitrateBasis =
-    exportSource.kind === "hls" ? hlsEstimateMetadata?.bitrateBasis : null;
   const estimateSourceBitrateKbps =
     exportSource.kind === "direct" ? sourceBitrateKbps : null;
   const estimateVideoBitrateKbps =
     exportSource.kind === "direct" ? videoBitrateKbps : null;
   const estimateAudioBitrateKbps =
     exportSource.kind === "none" ? null : audioBitrateKbps;
+  const sourceCopyEligible =
+    exportFormat !== "gif" &&
+    exportSource.kind === "direct" &&
+    startTime === 0 &&
+    formatCanCopyVideoCodec(
+      exportFormat,
+      session.exportEstimateMetadata?.videoCodec,
+    );
   const outputSizeEstimate = useMemo(
     () =>
       estimateExportOutputSize({
@@ -310,8 +370,11 @@ export function useEditorExport({
         sourceBitrateKbps: estimateSourceBitrateKbps,
         videoBitrateKbps: estimateVideoBitrateKbps,
         audioBitrateKbps: estimateAudioBitrateKbps,
-        hlsManifestBitrateKbps,
-        hlsManifestBitrateBasis,
+        sourceCopyEligible,
+        preferredVideoCodec:
+          resolvedVideoPlan?.key === videoPlanKey
+            ? resolvedVideoPlan.codec
+            : null,
         includeBurnedSubtitles: shouldEstimateBurnedSubtitles,
         videoQuality: exportFormat === "gif" ? null : videoQuality,
       }),
@@ -323,13 +386,14 @@ export function useEditorExport({
       estimateVideoBitrateKbps,
       exportFormat,
       gifSettings,
-      hlsManifestBitrateBasis,
-      hlsManifestBitrateKbps,
       outputDimensions,
       resolution,
+      resolvedVideoPlan,
       shouldEstimateBurnedSubtitles,
       sourceDurationSeconds,
       sourceSizeBytes,
+      sourceCopyEligible,
+      videoPlanKey,
       startTime,
       videoQuality,
     ],
@@ -548,6 +612,7 @@ export function useEditorExport({
       ...logEventFields("editor.export", "started"),
       ...baseFields,
     });
+    let videoEncodingPlan: ExportVideoEncodingPlan | undefined;
 
     try {
       const { exportClip } = await import("@/lib/exportClip");
@@ -580,6 +645,9 @@ export function useEditorExport({
         includeBurnedSubtitles: shouldBurnSubtitles,
         subtitleCues,
         subtitleStyleSettings,
+        onVideoEncodingPlan: (plan) => {
+          videoEncodingPlan = plan;
+        },
         onProgress: handleProgress,
       });
       downloadBlob(blob, fileName.fullName);
@@ -590,6 +658,7 @@ export function useEditorExport({
         ...logDurationFields(startedAt),
         ...baseFields,
         "export.output.bytes": blob.size,
+        ...buildExportVideoEncodingLogFields(videoEncodingPlan),
         ...buildExportEstimateActualLogFields(outputSizeEstimate, blob.size),
       });
     } catch (error) {
@@ -598,6 +667,7 @@ export function useEditorExport({
         ...logDurationFields(startedAt),
         ...logErrorFields(error),
         ...baseFields,
+        ...buildExportVideoEncodingLogFields(videoEncodingPlan),
       });
       setExportError(error instanceof Error ? error.message : "Export failed");
     } finally {
@@ -721,6 +791,7 @@ export function buildExportEstimateLogFields({
   return compactLogFields({
     "export.estimate.bytes": estimate.bytes ?? undefined,
     "export.estimate.basis": estimate.basis,
+    "export.encoder.policy.version": EXPORT_ENCODING_POLICY_VERSION,
     "export.estimate.hls.bitrate_kbps": hlsEstimateMetadata?.bitrateKbps,
     "export.estimate.hls.bitrate_basis": hlsEstimateMetadata?.bitrateBasis,
     "export.estimate.hls.variant.width": hlsEstimateMetadata?.width,
@@ -750,6 +821,16 @@ export function buildExportEstimateActualLogFields(
       (actualBytes / estimate.bytes).toFixed(3),
     ),
   };
+}
+
+function buildExportVideoEncodingLogFields(
+  plan: ExportVideoEncodingPlan | undefined,
+) {
+  return compactLogFields({
+    "export.encoder.video.mode": plan?.mode,
+    "export.encoder.video.codec": plan?.codec,
+    "export.encoder.video.target_bitrate_bps": plan?.bitrateBps,
+  });
 }
 
 export function getEditorExportReadiness({

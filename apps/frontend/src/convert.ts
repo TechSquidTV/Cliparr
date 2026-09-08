@@ -28,8 +28,27 @@ export {
   type GifExportSettings,
   type VideoExportQualityPreset,
 } from "./lib/exportTypes";
-export type { ExportClipOptions } from "./lib/exportClip";
+export type {
+  ExportClipOptions,
+  ExportVideoEncodingPlan,
+} from "./lib/exportClip";
 export type { ExportFormat, ExportResolution } from "./lib/exportTypes";
+export {
+  calibratedEstimatedVideoBitrateBps,
+  exportAudioCodecPriorities,
+  exportVideoCodecPriorities,
+  formatCanCopyVideoCodec,
+  resolveVideoEncodingPlan,
+  videoEncodingPlanKey,
+  videoTargetBitrateBps,
+  EXPORT_AUDIO_BITRATE_BPS,
+  EXPORT_ENCODING_POLICY_VERSION,
+  EXPORT_ESTIMATE_CONTAINER_OVERHEAD,
+  type ExportAudioCodec,
+  type ExportVideoCodec,
+  type VideoEncodingPlan,
+  type ResolvedVideoEncodingPlan,
+} from "./lib/exportEncodingPolicy";
 export { downloadBlob } from "./lib/downloadBlob";
 export {
   buildLocalEditorSession,

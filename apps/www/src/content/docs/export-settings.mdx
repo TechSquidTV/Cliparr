@@ -87,9 +87,9 @@ Use `Include Audio` for normal video clips. Cliparr keeps a stereo mix when sour
 
 ## Estimated size
 
-The export dialog shows an immediate estimated size in the footer before export starts. For direct sources, `Sharp` video exports can use source-size or bitrate metadata when available. HLS exports can use playlist bandwidth metadata. Other estimates use deterministic codec heuristics based on format, quality, duration, dimensions, audio, and subtitle burn-in.
+The export dialog shows an immediate estimated size in the footer before export starts. Cliparr resolves a planned output codec and numeric average bitrate from the selected format, quality, dimensions, and audio settings. `Sharp` exports preserve compatible source video when possible; otherwise they use the same planned target as the encoder.
 
-Treat the value as approximate. Exact output size still depends on source motion, detail, browser codec behavior, GIF palette/dither behavior, and whether Cliparr must transcode.
+Treat the value as approximate. Video uses variable bitrate, so exact output still depends on source motion, detail, browser codec behavior, GIF palette/dither behavior, and whether Cliparr can preserve the source track.
 
 ## Filename templates
 

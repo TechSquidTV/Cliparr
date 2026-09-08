@@ -5,6 +5,7 @@ import {
   logEventFields,
   sanitizeUrlForLog,
 } from "@cliparr/shared/logging";
+import { normalizeExportVideoCodec } from "@cliparr/shared/providers";
 import {
   updateMediaSource,
   type MediaSource,
@@ -765,6 +766,9 @@ export function createPlexExportEstimateMetadata(
   const sourceBitrateKbps =
     positiveNumber(selectedMedia?.bitrate) ??
     bitrateFromSize(sourceSizeBytes, sourceDurationSeconds);
+  const videoCodec = normalizeExportVideoCodec(
+    stringValue(selectedVideoStream?.codec),
+  );
 
   const metadata = {
     sourceSizeBytes,
@@ -772,6 +776,7 @@ export function createPlexExportEstimateMetadata(
     sourceBitrateKbps,
     videoBitrateKbps: positiveNumber(selectedVideoStream?.bitrate),
     audioBitrateKbps: positiveNumber(selectedAudioStream?.bitrate),
+    ...(videoCodec ? { videoCodec } : {}),
     width:
       positiveNumber(selectedVideoStream?.width) ??
       positiveNumber(selectedMedia?.width),

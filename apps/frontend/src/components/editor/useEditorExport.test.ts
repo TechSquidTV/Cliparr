@@ -423,14 +423,14 @@ void test("estimates export output sizes before export", () => {
     resolution: "720",
   });
 
-  assert.equal(mp4Estimate.basis, "codec-heuristic");
-  assert.equal(webmEstimate.basis, "codec-heuristic");
-  assert.equal(movEstimate.basis, "codec-heuristic");
-  assert.equal(mkvEstimate.basis, "codec-heuristic");
-  assert.equal(mp4Estimate.bytes, 4_583_500);
-  assert.equal(webmEstimate.bytes, 3_038_500);
-  assert.equal(movEstimate.bytes, 5_227_250);
-  assert.equal(mkvEstimate.bytes, 3_424_750);
+  assert.equal(mp4Estimate.basis, "transcode-plan");
+  assert.equal(webmEstimate.basis, "transcode-plan");
+  assert.equal(movEstimate.basis, "transcode-plan");
+  assert.equal(mkvEstimate.basis, "transcode-plan");
+  assert.equal(mp4Estimate.bytes, 3_782_675);
+  assert.equal(webmEstimate.bytes, 2_352_263);
+  assert.equal(movEstimate.bytes, 3_782_675);
+  assert.equal(mkvEstimate.bytes, 3_782_675);
   assert.ok(
     typeof webmEstimate.bytes === "number" &&
       typeof mp4Estimate.bytes === "number" &&
@@ -454,8 +454,8 @@ void test("includes audio bitrate in heuristic video estimates", () => {
     resolution: "720",
   });
 
-  assert.equal(withAudio.bytes, 4_583_500);
-  assert.equal(withoutAudio.bytes, 4_377_500);
+  assert.equal(withAudio.bytes, 3_782_675);
+  assert.equal(withoutAudio.bytes, 3_576_675);
 });
 
 void test("decreases video estimates as quality presets get smaller", () => {
@@ -485,9 +485,9 @@ void test("decreases video estimates as quality presets get smaller", () => {
     videoQuality: "compact",
   });
 
-  assert.equal(sharpEstimate.bytes, 4_583_500);
-  assert.equal(balancedEstimate.bytes, 2_394_750);
-  assert.equal(compactEstimate.bytes, 1_519_250);
+  assert.equal(sharpEstimate.bytes, 3_782_675);
+  assert.equal(balancedEstimate.bytes, 1_994_338);
+  assert.equal(compactEstimate.bytes, 1_279_775);
   assert.ok(
     typeof sharpEstimate.bytes === "number" &&
       typeof balancedEstimate.bytes === "number" &&
@@ -531,10 +531,10 @@ void test("estimates GIF presets in increasing size order", () => {
     gifSettings: gifExportSettingsForPreset("sharp"),
   });
 
-  assert.equal(compactEstimate.basis, "gif-heuristic");
-  assert.equal(efficientEstimate.basis, "gif-heuristic");
-  assert.equal(balancedEstimate.basis, "gif-heuristic");
-  assert.equal(sharpEstimate.basis, "gif-heuristic");
+  assert.equal(compactEstimate.basis, "gif-profile");
+  assert.equal(efficientEstimate.basis, "gif-profile");
+  assert.equal(balancedEstimate.basis, "gif-profile");
+  assert.equal(sharpEstimate.basis, "gif-profile");
   assert.ok(
     typeof compactEstimate.bytes === "number" &&
       typeof efficientEstimate.bytes === "number" &&
@@ -578,7 +578,7 @@ void test("calibrates estimates against observed browser export samples", () => 
       includeAudio: true,
       resolution: "original",
     }).bytes,
-    7_029_750,
+    7_876_925,
   );
   assert.equal(
     estimateExportOutputSize({
@@ -588,11 +588,11 @@ void test("calibrates estimates against observed browser export samples", () => 
       includeAudio: true,
       resolution: "original",
     }).bytes,
-    4_519_125,
+    4_808_813,
   );
 });
 
-void test("uses source proportional estimate only for original non-GIF passthrough-like exports", () => {
+void test("uses a transcode plan unless a source copy is explicitly eligible", () => {
   const sourceEstimate = estimateExportOutputSize({
     format: "mp4",
     durationSeconds: 10,
@@ -636,92 +636,18 @@ void test("uses source proportional estimate only for original non-GIF passthrou
   });
 
   assert.deepEqual(sourceEstimate, {
-    bytes: 10_000_000,
-    basis: "source-proportional",
+    bytes: 7_931_000,
+    basis: "transcode-plan",
   });
-  assert.equal(subtitleEstimate.basis, "codec-heuristic");
-  assert.equal(scaledEstimate.basis, "codec-heuristic");
+  assert.equal(subtitleEstimate.basis, "transcode-plan");
+  assert.equal(scaledEstimate.basis, "transcode-plan");
   assert.deepEqual(balancedEstimate, {
-    bytes: 3_617_875,
-    basis: "codec-heuristic",
+    bytes: 4_068_500,
+    basis: "transcode-plan",
   });
 });
 
-void test("uses HLS manifest bitrate when available for provider HLS estimates", () => {
-  assert.deepEqual(
-    estimateExportOutputSize({
-      format: "mp4",
-      durationSeconds: 10,
-      outputDimensions: { width: 1920, height: 1072 },
-      includeAudio: true,
-      resolution: "original",
-      hlsManifestBitrateKbps: 5400,
-      hlsManifestBitrateBasis: "average-bandwidth",
-    }),
-    {
-      bytes: 6_952_500,
-      basis: "hls-manifest",
-    },
-  );
-});
-
-void test("removes audio bitrate from HLS manifest estimates for video-only exports", () => {
-  assert.deepEqual(
-    estimateExportOutputSize({
-      format: "mp4",
-      durationSeconds: 10,
-      outputDimensions: { width: 1920, height: 1072 },
-      includeAudio: false,
-      resolution: "original",
-      hlsManifestBitrateKbps: 5400,
-      hlsManifestBitrateBasis: "average-bandwidth",
-      audioBitrateKbps: 160,
-    }),
-    {
-      bytes: 6_746_500,
-      basis: "hls-manifest",
-    },
-  );
-});
-
-void test("uses codec heuristics for forced video quality even with HLS metadata", () => {
-  assert.deepEqual(
-    estimateExportOutputSize({
-      format: "mp4",
-      durationSeconds: 10,
-      outputDimensions: { width: 1920, height: 1072 },
-      includeAudio: true,
-      resolution: "original",
-      hlsManifestBitrateKbps: 5400,
-      hlsManifestBitrateBasis: "average-bandwidth",
-      videoQuality: "balanced",
-    }),
-    {
-      bytes: 3_617_875,
-      basis: "codec-heuristic",
-    },
-  );
-});
-
-void test("caps peak HLS bandwidth estimates at the output codec heuristic", () => {
-  assert.deepEqual(
-    estimateExportOutputSize({
-      format: "mp4",
-      durationSeconds: 10,
-      outputDimensions: { width: 1920, height: 1072 },
-      includeAudio: true,
-      resolution: "original",
-      hlsManifestBitrateKbps: 11_000,
-      hlsManifestBitrateBasis: "bandwidth",
-    }),
-    {
-      bytes: 7_029_750,
-      basis: "hls-manifest-capped",
-    },
-  );
-});
-
-void test("uses provider source bitrate metadata for original direct estimates", () => {
+void test("uses copied-video and output-audio bitrates for an eligible copy plan", () => {
   assert.deepEqual(
     estimateExportOutputSize({
       format: "mp4",
@@ -732,10 +658,11 @@ void test("uses provider source bitrate metadata for original direct estimates",
       sourceBitrateKbps: 3000,
       videoBitrateKbps: 2600,
       audioBitrateKbps: 160,
+      sourceCopyEligible: true,
     }),
     {
-      bytes: 3_862_500,
-      basis: "source-bitrate",
+      bytes: 3_553_500,
+      basis: "copy-plan",
     },
   );
 
@@ -747,11 +674,30 @@ void test("uses provider source bitrate metadata for original direct estimates",
       includeAudio: true,
       resolution: "original",
       videoBitrateKbps: 2600,
+      sourceCopyEligible: true,
       audioBitrateKbps: 160,
     }),
     {
       bytes: 3_553_500,
-      basis: "source-bitrate",
+      basis: "copy-plan",
+    },
+  );
+
+  assert.deepEqual(
+    estimateExportOutputSize({
+      format: "mp4",
+      durationSeconds: 10,
+      outputDimensions: { width: 1920, height: 1080 },
+      includeAudio: false,
+      resolution: "original",
+      sourceBitrateKbps: 3000,
+      videoBitrateKbps: 2600,
+      audioBitrateKbps: 160,
+      sourceCopyEligible: true,
+    }),
+    {
+      bytes: 3_347_500,
+      basis: "copy-plan",
     },
   );
 
@@ -765,8 +711,8 @@ void test("uses provider source bitrate metadata for original direct estimates",
       videoBitrateKbps: 2600,
     }),
     {
-      bytes: 3_553_500,
-      basis: "source-bitrate",
+      bytes: 7_931_000,
+      basis: "transcode-plan",
     },
   );
 });
@@ -776,7 +722,7 @@ void test("builds export estimate log fields without media URLs", () => {
     buildExportEstimateLogFields({
       estimate: {
         bytes: 7_029_750,
-        basis: "hls-manifest-capped",
+        basis: "transcode-plan",
       },
       hlsEstimateMetadata: {
         bitrateKbps: 11_000,
@@ -794,7 +740,8 @@ void test("builds export estimate log fields without media URLs", () => {
     }),
     {
       "export.estimate.bytes": 7_029_750,
-      "export.estimate.basis": "hls-manifest-capped",
+      "export.estimate.basis": "transcode-plan",
+      "export.encoder.policy.version": 1,
       "export.estimate.hls.bitrate_kbps": 11_000,
       "export.estimate.hls.bitrate_basis": "bandwidth",
       "export.estimate.hls.variant.width": 1920,
@@ -812,7 +759,7 @@ void test("builds export estimate log fields without media URLs", () => {
     buildExportEstimateActualLogFields(
       {
         bytes: 7_029_750,
-        basis: "hls-manifest-capped",
+        basis: "transcode-plan",
       },
       5_833_648,
     ),
