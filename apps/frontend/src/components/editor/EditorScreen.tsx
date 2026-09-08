@@ -194,6 +194,9 @@ function EditorScreenContent({
     exporting,
     progress,
     exportError,
+    exportPhase,
+    exportNotice,
+    handleCancelExport,
     fileName,
     outputDimensions,
     outputSizeEstimate,
@@ -596,6 +599,9 @@ function EditorScreenContent({
             exporting={exporting}
             progress={progress}
             error={exportError}
+            exportPhase={exportPhase}
+            exportNotice={exportNotice}
+            onCancelExport={handleCancelExport}
             fileNamePreview={fileName.fullName}
             outputDimensions={outputDimensions}
             hasHlsSource={Boolean(session.hlsSource)}

@@ -1,5 +1,9 @@
 import { Download } from "lucide-react";
-import type { ExportFormat, ExportResolution } from "@/lib/exportClip";
+import type {
+  ExportFormat,
+  ExportResolution,
+  ExportPhase,
+} from "@/lib/exportClip";
 import {
   formatExportByteSize,
   type ExportQualityPreset,
@@ -51,6 +55,9 @@ interface EditorExportDialogProperties {
   audioDisabledReason?: string | null;
   exporting: boolean;
   progress: number;
+  exportPhase: ExportPhase;
+  exportNotice: string | null;
+  onCancelExport: () => void;
   error: string | null;
   fileNamePreview: string;
   outputDimensions: MediaDimensions | null;
@@ -98,6 +105,9 @@ export function EditorExportDialog({
   audioDisabledReason,
   exporting,
   progress,
+  exportPhase,
+  exportNotice,
+  onCancelExport,
   error,
   fileNamePreview,
   outputDimensions,
@@ -122,6 +132,11 @@ export function EditorExportDialog({
   onExport,
 }: EditorExportDialogProperties) {
   const selectedFormatOption = formatOptionFor(selectedFormat);
+  const phaseLabel = {
+    preparing: "Preparing media…",
+    encoding: `Encoding: ${Math.round(progress * 100)}%`,
+    finalizing: "Finalizing file…",
+  }[exportPhase];
   const displayedEstimateLabel =
     typeof outputSizeEstimate.bytes === "number"
       ? `~${formatExportByteSize(outputSizeEstimate.bytes)}`
@@ -146,31 +161,37 @@ export function EditorExportDialog({
             <div className={primaryAlertClasses}>{exportSourceMessage}</div>
           )}
 
-          <EditorExportSettingsSection
-            selectedFormat={selectedFormat}
-            onFormatChange={onFormatChange}
-            selectedQuality={selectedQuality}
-            onQualityChange={onQualityChange}
-            selectedResolution={selectedResolution}
-            onResolutionChange={onResolutionChange}
-            selectedSourcePreference={selectedSourcePreference}
-            onSourcePreferenceChange={onSourcePreferenceChange}
-            includeAudio={includeAudio}
-            onIncludeAudioChange={onIncludeAudioChange}
-            audioDisabledReason={audioDisabledReason}
-            hasHlsSource={hasHlsSource}
-            hasDirectSource={hasDirectSource}
-            directSourceLabel={directSourceLabel}
-            hlsSourceLabel={hlsSourceLabel}
-          />
+          <fieldset
+            disabled={exporting}
+            inert={exporting}
+            className="min-w-0 space-y-4 disabled:opacity-60"
+          >
+            <EditorExportSettingsSection
+              selectedFormat={selectedFormat}
+              onFormatChange={onFormatChange}
+              selectedQuality={selectedQuality}
+              onQualityChange={onQualityChange}
+              selectedResolution={selectedResolution}
+              onResolutionChange={onResolutionChange}
+              selectedSourcePreference={selectedSourcePreference}
+              onSourcePreferenceChange={onSourcePreferenceChange}
+              includeAudio={includeAudio}
+              onIncludeAudioChange={onIncludeAudioChange}
+              audioDisabledReason={audioDisabledReason}
+              hasHlsSource={hasHlsSource}
+              hasDirectSource={hasDirectSource}
+              directSourceLabel={directSourceLabel}
+              hlsSourceLabel={hlsSourceLabel}
+            />
 
-          <EditorFilenameTemplateSection
-            editingTemplateKind={editingTemplateKind}
-            onEditingTemplateKindChange={onEditingTemplateKindChange}
-            fileNameTemplates={fileNameTemplates}
-            onFileNameTemplateChange={onFileNameTemplateChange}
-            onResetFileNameTemplate={onResetFileNameTemplate}
-          />
+            <EditorFilenameTemplateSection
+              editingTemplateKind={editingTemplateKind}
+              onEditingTemplateKindChange={onEditingTemplateKindChange}
+              fileNameTemplates={fileNameTemplates}
+              onFileNameTemplateChange={onFileNameTemplateChange}
+              onResetFileNameTemplate={onResetFileNameTemplate}
+            />
+          </fieldset>
         </div>
 
         <EditorExportSummaryPanel
@@ -194,6 +215,16 @@ export function EditorExportDialog({
 
       <DialogFooter className="flex-col gap-3 border-t border-border bg-card px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="min-w-0 self-stretch sm:self-center">
+          {exportNotice && (
+            <p role="status" className="mb-2 break-all text-sm text-foreground">
+              {exportNotice}
+            </p>
+          )}
+          {exporting && (
+            <p role="status" className="mb-2 text-sm text-foreground">
+              {phaseLabel}
+            </p>
+          )}
           <div className="flex min-w-0 flex-wrap items-baseline gap-x-2 gap-y-0.5 text-xs">
             <span className="text-muted-foreground">Estimated size</span>
             <span className="font-mono tabular-nums text-foreground">
@@ -208,12 +239,19 @@ export function EditorExportDialog({
         </div>
 
         <div className="flex items-center justify-end gap-2">
-          <DialogClose
-            disabled={exporting}
-            className={compactSecondaryButtonClasses}
-          >
-            Cancel
-          </DialogClose>
+          {exporting ? (
+            <button
+              type="button"
+              onClick={onCancelExport}
+              className={compactSecondaryButtonClasses}
+            >
+              Cancel export
+            </button>
+          ) : (
+            <DialogClose className={compactSecondaryButtonClasses}>
+              Close
+            </DialogClose>
+          )}
 
           <button
             type="button"
