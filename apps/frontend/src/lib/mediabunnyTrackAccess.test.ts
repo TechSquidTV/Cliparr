@@ -1,10 +1,30 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { HLS, MP4, type InputVideoTrack } from "mediabunny";
 import {
+  isPlaybackVideoTrack,
   videoTrackExportUnsupportedMessage,
   videoTrackPreviewUnavailableMessage,
   type VideoTrackDecodabilityAssessment,
 } from "@/lib/mediabunnyTrackAccess";
+
+void test("keeps all-keyframe video while excluding HLS trick-play renditions", async () => {
+  const track = {
+    hasOnlyKeyPackets: async () => true,
+    getCodec: async () => "prores",
+    input: { getFormat: async () => MP4 },
+  };
+  assert.equal(await isPlaybackVideoTrack(track as InputVideoTrack), true);
+  track.getCodec = async () => "avc";
+  assert.equal(await isPlaybackVideoTrack(track as InputVideoTrack), true);
+  track.input.getFormat = async () => HLS;
+  assert.equal(await isPlaybackVideoTrack(track as InputVideoTrack), false);
+  track.hasOnlyKeyPackets = async () => false;
+  assert.equal(await isPlaybackVideoTrack(track as InputVideoTrack), true);
+  track.hasOnlyKeyPackets = async () => true;
+  track.getCodec = async () => "prores";
+  assert.equal(await isPlaybackVideoTrack(track as InputVideoTrack), true);
+});
 
 void test("formats unsupported video track messages for preview and export contexts", () => {
   const unsupportedVp9 = {

@@ -1,6 +1,7 @@
 import { createFileRoute, useCanGoBack } from "@tanstack/react-router";
 import { FolderOpen, ShieldCheck, TriangleAlert } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
+import { useAuth } from "@/auth";
 import EditorScreen from "@/components/editor/EditorScreen";
 import { LocalVideoOpenDialog } from "@/components/local-media/LocalVideoOpenDialog";
 import {
@@ -15,6 +16,7 @@ import {
 import { router } from "@/router";
 
 function LocalEditorRouteComponent() {
+  const auth = useAuth();
   const { sessionId } = Route.useParams();
   const canGoBack = useCanGoBack();
   const [resolution, setResolution] = useState<LocalMediaResolution | null>(
@@ -110,6 +112,7 @@ function LocalEditorRouteComponent() {
       </div>
 
       <LocalVideoOpenDialog
+        canOpenUrl={Boolean(auth.providerSession)}
         isOpen={openDialog}
         onClose={() => setOpenDialog(false)}
         onOpened={(nextSessionId) => {

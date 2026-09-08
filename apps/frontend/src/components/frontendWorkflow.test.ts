@@ -332,6 +332,7 @@ void test("renders local video dialog file picker workflow", () => {
   const markup = renderToStaticMarkup(
     createElement(LocalVideoOpenDialog, {
       isOpen: true,
+      canOpenUrl: true,
       onClose: () => {},
       onOpened: () => {},
     }),
@@ -340,6 +341,22 @@ void test("renders local video dialog file picker workflow", () => {
   assert.match(markup, /Open Video/);
   assert.match(markup, /Local files stay in your browser/);
   assert.match(markup, /Choose File/);
+});
+
+void test("explains and disables URL opening before provider sign-in", () => {
+  const markup = renderToStaticMarkup(
+    createElement(LocalVideoOpenDialog, {
+      isOpen: true,
+      canOpenUrl: false,
+      onClose: () => {},
+      onOpened: () => {},
+    }),
+  );
+
+  assert.match(markup, /Sign in to a provider to open a URL/);
+  assert.match(markup, /<button[^>]*disabled[^>]*>[\s\S]*?URL<\/button>/);
+  assert.match(markup, /Choose File/);
+  assert.doesNotMatch(markup, /type="url"/);
 });
 
 void test("reserves provider connect layout before providers load", () => {

@@ -1,9 +1,27 @@
-import type { InputTrack, InputVideoTrack, VideoCodec } from "mediabunny";
+import {
+  HLS,
+  type InputTrack,
+  type InputVideoTrack,
+  type VideoCodec,
+} from "mediabunny";
 import type { MediaDimensions } from "@/lib/editorMedia";
 
 export interface VideoTrackDecodabilityAssessment {
   codec: VideoCodec | null;
   canDecode: boolean;
+}
+
+export async function isPlaybackVideoTrack(track: InputVideoTrack) {
+  if (!(await track.hasOnlyKeyPackets())) {
+    return true;
+  }
+
+  // HLS I-frame renditions are for trick play. Intra-frame codecs such as
+  // ProRes also report only key packets, but contain the complete video.
+  return (
+    (await track.input.getFormat()) !== HLS ||
+    (await track.getCodec()) === "prores"
+  );
 }
 
 export async function describeInputTrack(track: InputTrack) {

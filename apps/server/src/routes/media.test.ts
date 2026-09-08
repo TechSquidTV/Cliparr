@@ -90,7 +90,7 @@ async function withMediaApp<T>(
   }
 }
 
-void test("creates and proxies local URL media handles", async () => {
+void test("creates and proxies local URL media handles after a long edit", async (context) => {
   await withMediaApp(async (baseUrl, sessionCookie) => {
     const createResponse = await fetch(`${baseUrl}/api/media/local-url`, {
       method: "POST",
@@ -146,6 +146,8 @@ void test("creates and proxies local URL media handles", async () => {
     }) as typeof fetch;
 
     try {
+      const later = Date.now() + 16 * 60 * 1000;
+      context.mock.method(Date, "now", () => later);
       const proxyResponse = await originalFetch(
         `${baseUrl}${created.mediaUrl}`,
         {
@@ -164,6 +166,7 @@ void test("creates and proxies local URL media handles", async () => {
       );
     } finally {
       globalThis.fetch = originalFetch;
+      context.mock.restoreAll();
     }
   });
 });

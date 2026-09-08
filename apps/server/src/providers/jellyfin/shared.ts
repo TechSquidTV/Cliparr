@@ -557,23 +557,10 @@ async function assertAllowedJellyfinRequestUrl(
   requestUrl: URL,
   trustedOrigin: string,
 ) {
-  const parsed = assertHttpUrl(requestUrl.toString());
-  if (parsed.username || parsed.password) {
-    throw createApiError(
-      400,
-      "invalid_jellyfin_server_url",
-      "Jellyfin serverUrl must not include embedded credentials",
-    );
-  }
-
-  if (requestUrl.origin === trustedOrigin) {
-    return;
-  }
-
   const { addresses } = await assertAllowedJellyfinServerUrl(
     requestUrl.toString(),
     {
-      allowPrivate: false,
+      allowPrivate: requestUrl.origin === trustedOrigin,
     },
   );
   return addresses;

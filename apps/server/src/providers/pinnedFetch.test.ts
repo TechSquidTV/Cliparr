@@ -9,6 +9,7 @@ import { fetchMediaHandleRequest } from "@/providers/shared/mediaProxy";
 import { isApiError } from "@/http/errors";
 import { requestPlexPmsIdentity } from "@/providers/plex/pmsClient";
 import { fetchPublicSystemInfo } from "@/providers/jellyfin/shared";
+import { authenticateWithCredentials } from "@/providers/jellyfin/auth";
 
 void test("connects to pinned addresses while preserving the URL hostname", async () => {
   let requestHost: string | undefined;
@@ -160,7 +161,7 @@ for (const provider of ["plex", "jellyfin"] as const) {
       } else {
         await fetchPublicSystemInfo({ baseUrl: "http://jellyfin.local" });
       }
-      assert.equal(resolutions, 1);
+      assert.equal(resolutions, provider === "jellyfin" ? 2 : 1);
       assert.equal(requests, 2);
     } finally {
       context.mock.restoreAll();
@@ -168,3 +169,94 @@ for (const provider of ["plex", "jellyfin"] as const) {
     }
   });
 }
+
+for (const address of ["93.184.216.34", "192.168.1.50"]) {
+  void test(`pins initial Jellyfin sign-in requests to validated ${address} addresses`, async (context) => {
+    let resolutions = 0;
+    const paths: string[] = [];
+    context.mock.method(dns, "lookup", async () => {
+      resolutions += 1;
+      return [{ address, family: 4 }];
+    });
+    syncBuiltinESMExports();
+    context.mock.method(
+      globalThis,
+      "fetch",
+      async (
+        input: Parameters<typeof fetch>[0],
+        init?: RequestInit & { dispatcher?: Agent },
+      ) => {
+        assert.ok(init?.dispatcher instanceof Agent);
+        const request = new Request(input, init);
+        const path = new URL(request.url).pathname;
+        paths.push(path);
+        if (path === "/System/Info/Public") {
+          return Response.json({ Id: "server-1" });
+        }
+        assert.deepEqual(await request.json(), {
+          Username: "admin",
+          Pw: "password",
+        });
+        return Response.json({
+          AccessToken: "token",
+          ServerId: "server-1",
+          User: { Id: "user-1", Policy: { IsAdministrator: true } },
+        });
+      },
+    );
+    try {
+      await authenticateWithCredentials({
+        serverUrl: "http://jellyfin-rebinding.invalid",
+        username: "admin",
+        password: "password",
+      });
+      assert.equal(resolutions, 3);
+      assert.deepEqual(paths, [
+        "/System/Info/Public",
+        "/Users/AuthenticateByName",
+      ]);
+    } finally {
+      context.mock.restoreAll();
+      syncBuiltinESMExports();
+    }
+  });
+}
+
+void test("rejects Jellyfin DNS rebinding before sending sign-in credentials", async (context) => {
+  let resolutions = 0;
+  let requests = 0;
+  context.mock.method(dns, "lookup", async () => {
+    resolutions += 1;
+    return [
+      {
+        address: resolutions < 3 ? "93.184.216.34" : "169.254.169.254",
+        family: 4,
+      },
+    ];
+  });
+  syncBuiltinESMExports();
+  context.mock.method(
+    globalThis,
+    "fetch",
+    async (input: Parameters<typeof fetch>[0], init?: RequestInit) => {
+      requests += 1;
+      assert.equal(new Request(input, init).method, "GET");
+      return Response.json({ Id: "server-1" });
+    },
+  );
+  try {
+    await assert.rejects(
+      authenticateWithCredentials({
+        serverUrl: "http://jellyfin-rebinding.invalid",
+        username: "admin",
+        password: "password",
+      }),
+      (error: Error) =>
+        isApiError(error) && error.code === "invalid_jellyfin_server_url",
+    );
+    assert.equal(requests, 1);
+  } finally {
+    context.mock.restoreAll();
+    syncBuiltinESMExports();
+  }
+});

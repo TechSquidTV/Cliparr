@@ -31,6 +31,7 @@ import { cn } from "@/lib/utilities";
 
 interface LocalVideoOpenDialogProperties {
   isOpen: boolean;
+  canOpenUrl: boolean;
   onClose: () => void;
   onOpened: (sessionId: string) => void;
 }
@@ -43,6 +44,7 @@ function errorMessage(error: unknown, fallback: string) {
 
 export function LocalVideoOpenDialog({
   isOpen,
+  canOpenUrl,
   onClose,
   onOpened,
 }: LocalVideoOpenDialogProperties) {
@@ -127,6 +129,9 @@ export function LocalVideoOpenDialog({
   const handleUrlSubmit = useCallback(
     async (event: FormEvent<HTMLFormElement>) => {
       event.preventDefault();
+      if (!canOpenUrl) {
+        return;
+      }
       setOpening(true);
       setError("");
 
@@ -144,7 +149,7 @@ export function LocalVideoOpenDialog({
         setOpening(false);
       }
     },
-    [completeOpen, urlValue],
+    [canOpenUrl, completeOpen, urlValue],
   );
 
   return (
@@ -154,12 +159,16 @@ export function LocalVideoOpenDialog({
       closeDisabled={opening}
       closeLabel="Close local video dialog"
       title="Open Video"
-      description="Local files stay in your browser. URLs stream through Cliparr."
+      description={
+        canOpenUrl
+          ? "Local files stay in your browser. URLs stream through Cliparr."
+          : "Local files stay in your browser. Sign in to a provider to open a URL."
+      }
       initialFocus={initialFocusReference}
       popupClassName="max-w-xl"
     >
       <Tabs
-        value={activeTab}
+        value={canOpenUrl ? activeTab : "file"}
         onValueChange={(value) => {
           let nextTab: LocalOpenTab | null = null;
           if (value === "file") {
@@ -182,7 +191,7 @@ export function LocalVideoOpenDialog({
               <FileVideo className="h-4 w-4" />
               File
             </TabsTab>
-            <TabsTab value="url">
+            <TabsTab value="url" disabled={!canOpenUrl}>
               <Link className="h-4 w-4" />
               URL
             </TabsTab>
@@ -251,6 +260,7 @@ export function LocalVideoOpenDialog({
                   <span className={fieldLabelWideClasses}>Media URL</span>
                   <input
                     type="url"
+                    disabled={!canOpenUrl}
                     value={urlValue}
                     onChange={(event) => setUrlValue(event.target.value)}
                     placeholder="https://example.com/video.mp4"
@@ -263,7 +273,7 @@ export function LocalVideoOpenDialog({
                 <div className="flex justify-end">
                   <button
                     type="submit"
-                    disabled={opening}
+                    disabled={opening || !canOpenUrl}
                     className={primaryButtonClasses}
                   >
                     <Link className="h-4 w-4" />

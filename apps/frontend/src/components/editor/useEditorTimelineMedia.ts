@@ -49,6 +49,7 @@ import { createCliparrInputFromSource } from "@/lib/mediabunnyInput";
 import {
   fromSourceTimelineTime,
   getTrackTimelineOffsetSeconds,
+  isPlaybackVideoTrack,
   getVideoTrackDimensions,
 } from "@/lib/mediabunnyTrackAccess";
 import { selectPreferredPairableAudioTrack } from "@/lib/selectPreferredAudioTrack";
@@ -107,7 +108,7 @@ async function prepareInput(
   session: EditorSession,
 ): Promise<EditorMediaMetadata & MediabunnyTrackSelection> {
   const videoTracks = await input.getVideoTracks({
-    filter: async (track) => !(await track.hasOnlyKeyPackets()),
+    filter: isPlaybackVideoTrack,
   });
   const { sourceVideoTrack, previewVideoTrack } =
     await selectPreviewVideoTrack(videoTracks);

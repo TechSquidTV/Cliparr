@@ -33,7 +33,7 @@ function createSession(): ProviderSessionRecord {
 function createContext(): JellyfinSourceContext {
   return {
     sourceId: "source-1",
-    baseUrl: "http://jellyfin.local:8096",
+    baseUrl: "http://192.168.1.50:8096",
     token: "provider-token",
     userId: "user-1",
     deviceId: "cliparr-device-1",
@@ -47,7 +47,7 @@ function createSource(): MediaSource {
     providerAccountId: "account-1",
     name: "Jellyfin",
     enabled: true,
-    baseUrl: "http://jellyfin.local:8096",
+    baseUrl: "http://192.168.1.50:8096",
     connection: {},
     credentials: {
       accessToken: "provider-token",
@@ -353,7 +353,7 @@ void test("preserves Jellyfin base paths for streams, previews, artwork, and sub
     const session = createSession();
     const source = {
       ...createSource(),
-      baseUrl: `http://jellyfin.local:8096${prefix}`,
+      baseUrl: `http://192.168.1.50:8096${prefix}`,
     };
     const normalizedPrefix = prefix.replace(/\/$/, "");
     const upstreamFetch = createJellyfinPlaybackFetch({
@@ -788,7 +788,7 @@ void test("strips Jellyfin auth headers from cross-origin media redirects", asyn
     id: "handle-1",
     providerId: "jellyfin",
     sourceId: "source-1",
-    baseUrl: "http://jellyfin.local:8096",
+    baseUrl: "http://192.168.1.50:8096",
     path: "/Videos/item-1/stream",
     token: "provider-token",
     providerMetadata: {

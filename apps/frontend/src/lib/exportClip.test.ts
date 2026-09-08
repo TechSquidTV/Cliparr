@@ -2,7 +2,7 @@
 
 import assert from "node:assert/strict";
 import test from "node:test";
-import { QUALITY_LOW, QUALITY_MEDIUM } from "mediabunny";
+import { MP4, QUALITY_LOW, QUALITY_MEDIUM } from "mediabunny";
 import type { ConversionOptions } from "mediabunny";
 import type { Palette } from "@techsquidtv/gifenc";
 import { createGifCanvas, exportClipWithRuntime } from "@/lib/exportClip";
@@ -12,6 +12,7 @@ import { createInlineGifFrameEncoder } from "@/lib/gifFrameEncoder";
 import { concatenateGifFrameChunks } from "@/lib/gifFrameChunk";
 import type { EncodeGifFrameChunkHelpers } from "@/lib/gifFrameChunk";
 import type { SubtitleStyleSettings } from "@/lib/subtitles/types";
+import { getTrackTimelineOffsetSeconds } from "@/lib/mediabunnyTrackAccess";
 
 type ExportRuntime = Parameters<typeof exportClipWithRuntime>[1];
 type CliparrInput = Awaited<
@@ -94,14 +95,20 @@ function createRuntime(overrides: Partial<ExportRuntime> = {}) {
   const target = { buffer: undefined as ArrayBuffer | undefined };
   const videoTrack = {
     id: "video-1",
+    input: { getFormat: async () => MP4 },
     hasOnlyKeyPackets: async () => false,
     canBeTransparent: async () => false,
     canDecode: async () => true,
     getFirstTimestamp: async () => 0,
+    isRelativeToUnixEpoch: async () => false,
+    isLive: async () => false,
     getCodec: async () => "avc",
   };
   const audioTrack = {
     id: "audio-1",
+    getFirstTimestamp: async () => 0,
+    isRelativeToUnixEpoch: async () => false,
+    isLive: async () => false,
   };
   let disposed = false;
 
@@ -234,6 +241,66 @@ function createConversion({
       }
     },
   } as unknown as ConversionResult;
+}
+
+for (const { format, includeAudio } of [
+  { format: "mp4", includeAudio: true },
+  { format: "mp4", includeAudio: false },
+  { format: "gif", includeAudio: false },
+] as const) {
+  void test(`preserves ProRes video and source timing for ${format} export with audio ${includeAudio}`, async () => {
+    const context = createRuntime({ getTrackTimelineOffsetSeconds });
+    context.videoTrack.hasOnlyKeyPackets = async () => true;
+    context.videoTrack.getCodec = async () => "prores";
+    context.videoTrack.getFirstTimestamp = async () => 1000.5;
+    context.videoTrack.isRelativeToUnixEpoch = async () => true;
+    context.audioTrack.getFirstTimestamp = async () => 1000;
+    context.audioTrack.isRelativeToUnixEpoch = async () => true;
+    const selectedAudioTrack = { trackNumber: 2 };
+    context.runtime.selectPreferredPairableAudioTrack = async (
+      _video,
+      audio,
+      selection,
+    ) => {
+      assert.deepEqual(selection, selectedAudioTrack);
+      return audio[0] ?? null;
+    };
+    const stop = new Error("Stop before encoding");
+    let requestedStart: number | undefined;
+    context.runtime.initConversion = async (options) => {
+      requestedStart = options.trim?.start;
+      assert.equal(options.trim?.end, 1015);
+      throw stop;
+    };
+    const createCanvasSink = context.runtime.createCanvasSink;
+    context.runtime.createCanvasSink = (track, options) => {
+      const sink = createCanvasSink(track, options);
+      sink.getCanvas = async (timestamp: number) => {
+        requestedStart = timestamp;
+        throw stop;
+      };
+      return sink;
+    };
+
+    await assert.rejects(
+      exportClipWithRuntime(
+        {
+          mediaSource,
+          startTime: 10,
+          endTime: 15,
+          format,
+          resolution: "original",
+          includeAudio,
+          selectedAudioTrack,
+          onProgress: () => {},
+        },
+        context.runtime,
+      ),
+      (error: Error) => error === stop,
+    );
+    assert.equal(requestedStart, 1010);
+    assert.equal(context.disposed, true);
+  });
 }
 
 void test("builds and executes a trimmed conversion with selected audio and metadata", async () => {

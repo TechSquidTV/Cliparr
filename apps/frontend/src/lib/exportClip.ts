@@ -24,6 +24,7 @@ import {
   assessVideoTrackDecodability,
   getTrackTimelineOffsetSeconds,
   getVideoTrackDimensions,
+  isPlaybackVideoTrack,
   toSourceTimelineTime,
   videoTrackExportUnsupportedMessage,
   type VideoTrackDecodabilityAssessment,
@@ -471,7 +472,7 @@ export async function exportClipWithRuntime(
 
   try {
     const sourceVideoTrack = await input.getPrimaryVideoTrack({
-      filter: async (track) => !(await track.hasOnlyKeyPackets()),
+      filter: isPlaybackVideoTrack,
     });
 
     const sourceAudioTracks = await input.getAudioTracks();
@@ -484,7 +485,7 @@ export async function exportClipWithRuntime(
 
     const timelineOffsetSeconds = await runtime.getTrackTimelineOffsetSeconds([
       sourceVideoTrack,
-      includeAudio ? preferredAudioTrack : undefined,
+      preferredAudioTrack,
     ]);
     const trimStart = toSourceTimelineTime(startTime, timelineOffsetSeconds);
     const trimEnd = toSourceTimelineTime(endTime, timelineOffsetSeconds);
@@ -692,6 +693,7 @@ async function exportGifClipWithRuntime(
     endTime,
     resolution,
     gifSettings,
+    selectedAudioTrack,
     includeBurnedSubtitles = false,
     subtitleCues = [],
     subtitleStyleSettings,
@@ -718,7 +720,7 @@ async function exportGifClipWithRuntime(
 
   try {
     const sourceVideoTrack = await input.getPrimaryVideoTrack({
-      filter: async (track) => !(await track.hasOnlyKeyPackets()),
+      filter: isPlaybackVideoTrack,
     });
 
     if (!sourceVideoTrack) {
@@ -746,8 +748,15 @@ async function exportGifClipWithRuntime(
     }
 
     const gifRuntime = await runtime.loadGifEncodingRuntime();
+    const sourceAudioTracks = await input.getAudioTracks();
+    const preferredAudioTrack = await runtime.selectPreferredPairableAudioTrack(
+      sourceVideoTrack,
+      sourceAudioTracks,
+      selectedAudioTrack,
+    );
     const timelineOffsetSeconds = await runtime.getTrackTimelineOffsetSeconds([
       sourceVideoTrack,
+      preferredAudioTrack,
     ]);
     const trimStart = toSourceTimelineTime(startTime, timelineOffsetSeconds);
     const trimEnd = toSourceTimelineTime(endTime, timelineOffsetSeconds);
