@@ -1,6 +1,6 @@
 import { FolderOpen } from "lucide-react";
 import ProviderConnectFlow from "@/components/provider-connect/ProviderConnectFlow";
-import { secondaryButtonClasses } from "@/components/ui/control-styles";
+import { primaryButtonClasses } from "@/components/ui/control-styles";
 import type { ProviderSession } from "@/providers/types";
 
 interface Properties {
@@ -33,25 +33,41 @@ export default function ProviderConnectScreen({
             />
           </div>
           <h1 className="text-center text-3xl font-semibold tracking-tight">
-            Connect A Provider
+            Start a clip
           </h1>
           <p className="mx-auto mt-3 max-w-2xl text-center text-sm leading-6 text-muted-foreground">
-            Choose a provider to get started.
+            Open a video from your device or connect your media library.
           </p>
-          <div className="mt-5 flex justify-center">
+        </div>
+
+        <div className="relative grid gap-6 px-6 py-6 sm:px-8 lg:grid-cols-2">
+          <section className="rounded-2xl border border-border bg-background/60 p-5">
+            <FolderOpen
+              className="mb-3 h-6 w-6 text-primary"
+              aria-hidden="true"
+            />
+            <h2 className="text-lg font-semibold">Open a file</h2>
+            <p className="mt-2 text-sm leading-6 text-muted-foreground">
+              Choose a video on this device and start trimming. Local files need
+              no account or provider connection.
+            </p>
             <button
               type="button"
               onClick={onOpenLocalVideo}
-              className={secondaryButtonClasses}
+              className={`${primaryButtonClasses} mt-5`}
             >
               <FolderOpen className="h-4 w-4" />
               Open Video
             </button>
-          </div>
-        </div>
-
-        <div className="relative px-6 py-6 sm:px-8">
-          <ProviderConnectFlow variant="screen" onConnected={onConnected} />
+          </section>
+          <section className="min-w-0 rounded-2xl border border-border bg-background/60 p-5">
+            <h2 className="text-lg font-semibold">Connect a provider</h2>
+            <p className="mt-2 mb-5 text-sm leading-6 text-muted-foreground">
+              Connect Plex or Jellyfin, then play a video there to find it in
+              Cliparr and create a clip.
+            </p>
+            <ProviderConnectFlow variant="screen" onConnected={onConnected} />
+          </section>
         </div>
       </div>
     </div>

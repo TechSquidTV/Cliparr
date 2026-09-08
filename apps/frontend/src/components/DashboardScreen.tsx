@@ -11,6 +11,7 @@ import {
   Video,
 } from "lucide-react";
 import { cliparrClient, type CliparrVersionInfo } from "@/api/cliparrClient";
+import { compactSecondaryButtonClasses } from "@/components/ui/control-styles";
 import { cn } from "@/lib/utilities";
 import { EDITOR_THUMBNAIL_VIEW_TRANSITION_NAME } from "@/lib/viewTransitions";
 import {
@@ -298,6 +299,10 @@ function DashboardPlaybackMotionRegion({
   activeViewTransitionSessionId,
   onSelectSession,
   onClearViewerFilter,
+  onOpenLocalVideo,
+  onOpenSources,
+  onRefresh,
+  refreshing,
 }: {
   loading: boolean;
   error: string;
@@ -308,6 +313,10 @@ function DashboardPlaybackMotionRegion({
   activeViewTransitionSessionId?: string | null;
   onSelectSession: (session: CurrentlyPlayingItem) => void;
   onClearViewerFilter: () => void;
+  onOpenLocalVideo: () => void;
+  onOpenSources: () => void;
+  onRefresh: () => void;
+  refreshing: boolean;
 }) {
   const reduceMotion = useReducedMotion();
   const hasPlaybackCards = playbackCards.length > 0;
@@ -438,6 +447,37 @@ function DashboardPlaybackMotionRegion({
                 <p className="mx-auto max-w-sm text-sm text-muted-foreground">
                   {emptyMessage}
                 </p>
+                <p className="mx-auto mt-2 max-w-sm text-sm text-muted-foreground">
+                  Start a video in Plex or Jellyfin, then refresh. If your
+                  server is missing, check your connected sources.
+                </p>
+                <div className="mt-5 flex flex-wrap justify-center gap-2">
+                  <button
+                    type="button"
+                    onClick={onRefresh}
+                    disabled={refreshing}
+                    className={compactSecondaryButtonClasses}
+                  >
+                    <RefreshCw className="h-4 w-4" />
+                    {refreshing ? "Refreshing…" : "Refresh sessions"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={onOpenSources}
+                    className={compactSecondaryButtonClasses}
+                  >
+                    <Settings2 className="h-4 w-4" />
+                    Manage sources
+                  </button>
+                  <button
+                    type="button"
+                    onClick={onOpenLocalVideo}
+                    className={compactSecondaryButtonClasses}
+                  >
+                    <FolderOpen className="h-4 w-4" />
+                    Open Video
+                  </button>
+                </div>
               </>
             )}
           </motion.div>
@@ -907,6 +947,10 @@ export default function DashboardScreen({
             activeViewTransitionSessionId={activeViewTransitionSessionId}
             onSelectSession={onSelectSession}
             onClearViewerFilter={clearViewerFilter}
+            onOpenLocalVideo={onOpenLocalVideo}
+            onOpenSources={onOpenSources}
+            onRefresh={() => void fetchSessions()}
+            refreshing={refreshing}
           />
         </div>
       </div>
