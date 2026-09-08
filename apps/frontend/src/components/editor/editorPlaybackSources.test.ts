@@ -2,6 +2,7 @@
 
 import assert from "node:assert/strict";
 import test from "node:test";
+import type { InputVideoTrack } from "mediabunny";
 import {
   createProviderUrlSource,
   type EditorMediaSource,
@@ -11,7 +12,33 @@ import {
   playbackAudioSelectionsEqual,
   playbackSourceCandidatesEqual,
   resolvePlaybackDuration,
+  selectPreviewVideoTrack,
 } from "@/components/editor/editorPlaybackSources";
+
+void test("uses the export primary video track even when it is not first in the file", async () => {
+  const first = {
+    id: 1,
+    getCodec: async () => "avc",
+    canDecode: async () => true,
+  } as InputVideoTrack;
+  const primary = {
+    id: 2,
+    getCodec: async () => "avc",
+    canDecode: async () => true,
+  } as InputVideoTrack;
+  const input = {
+    getPrimaryVideoTrack: async () => primary,
+    getVideoTracks: async () => [first, primary],
+  };
+  const selected = await selectPreviewVideoTrack(input);
+  assert.equal(selected.sourceVideoTrack, primary);
+  assert.equal(selected.previewVideoTrack, primary);
+
+  primary.canDecode = async () => false;
+  const recovered = await selectPreviewVideoTrack(input);
+  assert.equal(recovered.sourceVideoTrack, primary);
+  assert.equal(recovered.previewVideoTrack, first);
+});
 
 function localFileSource(label = "movie.mp4") {
   return {

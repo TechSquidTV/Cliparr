@@ -214,6 +214,7 @@ function EditorScreenContent({
     handleExport,
   } = useEditorExport({
     session,
+    exportMedia: timelineMedia.exportMedia,
     startTime,
     endTime,
     sourceVideoDimensions,

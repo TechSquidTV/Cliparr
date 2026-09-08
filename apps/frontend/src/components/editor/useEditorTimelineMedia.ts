@@ -49,7 +49,6 @@ import { createCliparrInputFromSource } from "@/lib/mediabunnyInput";
 import {
   fromSourceTimelineTime,
   getTrackTimelineOffsetSeconds,
-  isPlaybackVideoTrack,
   getVideoTrackDimensions,
 } from "@/lib/mediabunnyTrackAccess";
 import { selectPreferredPairableAudioTrack } from "@/lib/selectPreferredAudioTrack";
@@ -106,12 +105,10 @@ async function prepareInput(
   input: Input,
   candidate: PlaybackSourceCandidate,
   session: EditorSession,
+  previousTimelineOffsetSeconds?: number,
 ): Promise<EditorMediaMetadata & MediabunnyTrackSelection> {
-  const videoTracks = await input.getVideoTracks({
-    filter: isPlaybackVideoTrack,
-  });
   const { sourceVideoTrack, previewVideoTrack } =
-    await selectPreviewVideoTrack(videoTracks);
+    await selectPreviewVideoTrack(input);
   const audioTracks = await input.getAudioTracks();
   const sourceAudioTrack = await selectPreferredPairableAudioTrack(
     sourceVideoTrack,
@@ -141,7 +138,8 @@ async function prepareInput(
       ? sourceTracks
       : [previewVideoTrack, previewAudioTrack].filter(isPresent);
   const timelineOffsetSeconds =
-    await getTrackTimelineOffsetSeconds(durationTracks);
+    previousTimelineOffsetSeconds ??
+    (await getTrackTimelineOffsetSeconds(durationTracks));
   const sourceTimelineEnd =
     (await input.getDurationFromMetadata(durationTracks, {
       skipLiveWait: true,
@@ -232,10 +230,12 @@ export function useEditorTimelineMedia(
       if (!candidate) {
         throw new Error("The preview source is no longer available.");
       }
-      const prepared = await prepareInput(input, candidate, {
-        ...sessionReference.current,
-        selectedAudioTrack,
-      });
+      const prepared = await prepareInput(
+        input,
+        candidate,
+        { ...sessionReference.current, selectedAudioTrack },
+        preparedInputs.get(inputIndex)?.timelineOffsetSeconds,
+      );
       const { videoTrack, audioTrack, ...metadata } = prepared;
       preparedInputs.set(inputIndex, metadata);
       return {
@@ -486,6 +486,7 @@ export function useEditorTimelineMedia(
         : ""),
     activeSourceLabel: details.activeSourceLabel,
     exportFallbackSource: details.exportFallbackSource,
+    exportMedia,
     hlsFallbackInfo: details.hlsFallbackInfo,
     sourceVideoDimensions: exportMedia?.metadata.sourceVideoDimensions ?? null,
     previewVideoDimensions: details.previewVideoDimensions,

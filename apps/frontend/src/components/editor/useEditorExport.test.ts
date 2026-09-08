@@ -15,7 +15,9 @@ import {
   getEditorExportReadiness,
   getOutputDimensions,
   resolveExportSource,
+  exportTimelineOffsetForSource,
 } from "@/components/editor/useEditorExport";
+import type { EditorExportMedia } from "@/components/editor/editorMediaLifecycle";
 import {
   DEFAULT_GIF_EXPORT_PRESET,
   DEFAULT_VIDEO_EXPORT_QUALITY,
@@ -35,6 +37,28 @@ const localFileSource = {
   file: new File(["video"], "movie.mp4", { type: "video/mp4" }),
   fileName: "movie.mp4",
 } satisfies EditorMediaSource;
+
+void test("uses the captured timeline origin only for the matching export source", () => {
+  const source = createProviderUrlSource("/live.m3u8", "hls");
+  const media: EditorExportMedia = {
+    candidate: { label: "hls stream", source },
+    metadata: {
+      duration: 60,
+      frameStepSeconds: 1 / 30,
+      sourceVideoDimensions: null,
+      previewVideoDimensions: null,
+      timelineOffsetSeconds: 1000,
+    },
+  };
+  assert.equal(exportTimelineOffsetForSource({ ...source }, media), 1000);
+  assert.equal(
+    exportTimelineOffsetForSource(localFileSource, media),
+    undefined,
+  );
+  assert.equal(exportTimelineOffsetForSource(source, null), undefined);
+  media.metadata.timelineOffsetSeconds = 0;
+  assert.equal(exportTimelineOffsetForSource(source, media), 0);
+});
 
 void test("resolves provider export sources by preference", () => {
   const hlsSource = createProviderUrlSource("/playback/master.m3u8", "hls");

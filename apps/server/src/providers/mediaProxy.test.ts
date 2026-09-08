@@ -845,6 +845,39 @@ void test("resolves redirected playlist resources against the final URL", async 
   }
 });
 
+void test("preserves playlist filenames when resolving query-only HLS links", async () => {
+  for (const finalUrl of [
+    "",
+    "https://cdn.example.com/new/stream.php?playlist=1",
+  ]) {
+    const session = createSession();
+    const handle = createMediaHandle({
+      path: "/hls/stream.php?playlist=1",
+      basePath: "/hls/",
+    });
+    const upstream = new globalThis.Response(
+      '#EXTM3U\n#EXT-X-KEY:METHOD=AES-128,URI="?key=1"\n#EXTINF:2,\n?segment=1\nsegment2.ts\n',
+      { headers: { "content-type": "application/vnd.apple.mpegurl" } },
+    );
+    Object.defineProperty(upstream, "url", { value: finalUrl });
+    await proxyUpstreamMediaResponse(
+      session,
+      handle,
+      upstream,
+      createResponseRecorder() as unknown as Response,
+    );
+    const prefix = finalUrl ? "https://cdn.example.com/new/" : "/hls/";
+    assert.deepEqual(
+      [...session.mediaHandles.values()].map((child) => child.path),
+      [
+        `${prefix}stream.php?key=1`,
+        `${prefix}stream.php?segment=1`,
+        `${prefix}segment2.ts`,
+      ],
+    );
+  }
+});
+
 void test("preserves custom handle routing for extensionless HLS and range requests", async () => {
   for (const range of [undefined, "bytes=0-"]) {
     const session = createSession();

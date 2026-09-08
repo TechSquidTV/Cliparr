@@ -1,4 +1,4 @@
-import type { InputAudioTrack, InputVideoTrack } from "mediabunny";
+import type { Input, InputAudioTrack, InputVideoTrack } from "mediabunny";
 import type { PlaybackAudioSelection } from "#/providers/types";
 import {
   editorMediaSourcesEqual,
@@ -8,6 +8,7 @@ import {
 import {
   assessVideoTrackDecodability,
   getTrackCodec,
+  isPlaybackVideoTrack,
   videoTrackPreviewUnavailableMessage,
 } from "@/lib/mediabunnyTrackAccess";
 import { isAc3FamilyCodec } from "@/components/editor/editorUtilities";
@@ -169,9 +170,11 @@ async function assessPreviewVideoTrack(track: InputVideoTrack | null) {
 }
 
 export async function selectPreviewVideoTrack(
-  videoTracks: readonly InputVideoTrack[],
+  input: Pick<Input, "getPrimaryVideoTrack" | "getVideoTracks">,
 ) {
-  const sourceVideoTrack = videoTracks[0] ?? null;
+  const sourceVideoTrack = await input.getPrimaryVideoTrack({
+    filter: isPlaybackVideoTrack,
+  });
   if (!sourceVideoTrack) {
     return {
       sourceVideoTrack: null,
@@ -194,7 +197,13 @@ export async function selectPreviewVideoTrack(
     warnings.push(primaryAssessment.warning);
   }
 
-  for (const candidate of videoTracks.slice(1)) {
+  const videoTracks = await input.getVideoTracks({
+    filter: isPlaybackVideoTrack,
+  });
+  for (const candidate of videoTracks) {
+    if (candidate.id === sourceVideoTrack.id) {
+      continue;
+    }
     const candidateAssessment = await assessPreviewVideoTrack(candidate);
     if (candidateAssessment.track) {
       return {

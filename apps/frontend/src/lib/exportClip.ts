@@ -69,6 +69,8 @@ export type { ExportFormat, ExportResolution } from "#/lib/exportTypes";
 export interface ExportClipOptions {
   mediaSource: EditorMediaSource;
   hls?: boolean;
+  /** Timestamp origin captured when this source was opened in the editor. */
+  timelineOffsetSeconds?: number;
   startTime: number;
   endTime: number;
   format: ExportFormat;
@@ -362,43 +364,8 @@ function buildSubtitleBurnInProcessor(
   };
 }
 
-export async function exportClip({
-  mediaSource,
-  hls,
-  startTime,
-  endTime,
-  format,
-  resolution,
-  gifSettings,
-  videoQuality,
-  includeAudio,
-  selectedAudioTrack,
-  metadata,
-  includeBurnedSubtitles = false,
-  subtitleCues = [],
-  subtitleStyleSettings,
-  onProgress,
-}: ExportClipOptions) {
-  return exportClipWithRuntime(
-    {
-      mediaSource,
-      hls,
-      startTime,
-      endTime,
-      format,
-      resolution,
-      gifSettings,
-      videoQuality,
-      includeAudio,
-      selectedAudioTrack,
-      metadata,
-      includeBurnedSubtitles,
-      subtitleCues,
-      subtitleStyleSettings,
-      onProgress,
-    },
-    defaultExportClipRuntime,
-  );
+export async function exportClip(options: ExportClipOptions) {
+  return exportClipWithRuntime(options, defaultExportClipRuntime);
 }
 
 const defaultExportClipRuntime: ExportClipRuntime = {
@@ -426,6 +393,7 @@ export async function exportClipWithRuntime(
   {
     mediaSource,
     hls,
+    timelineOffsetSeconds,
     startTime,
     endTime,
     format,
@@ -445,6 +413,7 @@ export async function exportClipWithRuntime(
   const options = {
     mediaSource,
     hls,
+    timelineOffsetSeconds,
     startTime,
     endTime,
     format,
@@ -483,12 +452,11 @@ export async function exportClipWithRuntime(
     );
     const sourceHasAudio = sourceAudioTracks.length > 0;
 
-    const timelineOffsetSeconds = await runtime.getTrackTimelineOffsetSeconds([
-      sourceVideoTrack,
-      preferredAudioTrack,
-    ]);
-    const trimStart = toSourceTimelineTime(startTime, timelineOffsetSeconds);
-    const trimEnd = toSourceTimelineTime(endTime, timelineOffsetSeconds);
+    const { start: trimStart, end: trimEnd } = await resolveExportTrim(
+      { startTime, endTime, timelineOffsetSeconds },
+      [sourceVideoTrack, preferredAudioTrack],
+      runtime,
+    );
 
     const sourceVideoDimensions = sourceVideoTrack
       ? await runtime.getVideoTrackDimensions(sourceVideoTrack)
@@ -685,10 +653,39 @@ function videoQualityConversionOptions(
   }
 }
 
+async function resolveExportTrim(
+  {
+    startTime,
+    endTime,
+    timelineOffsetSeconds,
+  }: Pick<ExportClipOptions, "startTime" | "endTime" | "timelineOffsetSeconds">,
+  tracks: Parameters<typeof getTrackTimelineOffsetSeconds>[0],
+  runtime: Pick<ExportClipRuntime, "getTrackTimelineOffsetSeconds">,
+) {
+  const availableOffset = await runtime.getTrackTimelineOffsetSeconds(tracks);
+  const offset = timelineOffsetSeconds ?? availableOffset;
+  if (!Number.isFinite(offset) || offset < 0) {
+    throw new Error(
+      "The source timeline offset must be a finite, non-negative number.",
+    );
+  }
+  const start = toSourceTimelineTime(startTime, offset);
+  if (
+    timelineOffsetSeconds !== undefined &&
+    start + 0.000001 < availableOffset
+  ) {
+    throw new Error(
+      "The selected range is no longer available in this live stream. Choose a later range or reopen the stream.",
+    );
+  }
+  return { start, end: toSourceTimelineTime(endTime, offset) };
+}
+
 async function exportGifClipWithRuntime(
   {
     mediaSource,
     hls,
+    timelineOffsetSeconds,
     startTime,
     endTime,
     resolution,
@@ -754,12 +751,11 @@ async function exportGifClipWithRuntime(
       sourceAudioTracks,
       selectedAudioTrack,
     );
-    const timelineOffsetSeconds = await runtime.getTrackTimelineOffsetSeconds([
-      sourceVideoTrack,
-      preferredAudioTrack,
-    ]);
-    const trimStart = toSourceTimelineTime(startTime, timelineOffsetSeconds);
-    const trimEnd = toSourceTimelineTime(endTime, timelineOffsetSeconds);
+    const { start: trimStart, end: trimEnd } = await resolveExportTrim(
+      { startTime, endTime, timelineOffsetSeconds },
+      [sourceVideoTrack, preferredAudioTrack],
+      runtime,
+    );
     const clippedSubtitleCues =
       includeBurnedSubtitles && subtitleCues.length > 0
         ? trimSubtitleCues(subtitleCues, startTime, endTime)

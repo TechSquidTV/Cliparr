@@ -31,6 +31,7 @@ import {
 import { downloadBlob } from "@/lib/downloadBlob";
 import {
   isHlsEditorMediaSource,
+  editorMediaSourcesEqual,
   sourceDisplayLabel,
   type EditorMediaSource,
   type EditorSession,
@@ -45,6 +46,7 @@ import type { SubtitleCue, SubtitleStyleSettings } from "@/lib/subtitles/types";
 import type { PlaybackSubtitleTrack } from "@/providers/types";
 import type { ExportSourcePreference } from "@/components/editor/EditorExportDialog";
 import type { PlaybackFallbackInfo } from "@/components/editor/editorPlaybackSources";
+import type { EditorExportMedia } from "@/components/editor/editorMediaLifecycle";
 import { getFrontendLogger, warnWithError } from "@/logging";
 
 type ResolvedExportSourceKind = "hls" | "direct" | "none";
@@ -68,6 +70,7 @@ interface ExportReadinessInput {
 
 interface UseEditorExportProperties {
   session: EditorSession;
+  exportMedia: EditorExportMedia | null;
   startTime: number;
   endTime: number;
   sourceVideoDimensions: MediaDimensions | null;
@@ -83,8 +86,19 @@ interface UseEditorExportProperties {
 
 const logger = getFrontendLogger(["editor", "export"]);
 
+export function exportTimelineOffsetForSource(
+  source: EditorMediaSource,
+  exportMedia: EditorExportMedia | null,
+) {
+  return exportMedia &&
+    editorMediaSourcesEqual(source, exportMedia.candidate.source)
+    ? exportMedia.metadata.timelineOffsetSeconds
+    : undefined;
+}
+
 export function useEditorExport({
   session,
+  exportMedia,
   startTime,
   endTime,
   sourceVideoDimensions,
@@ -549,6 +563,10 @@ export function useEditorExport({
       };
       const blob = await exportClip({
         mediaSource: readiness.source,
+        timelineOffsetSeconds: exportTimelineOffsetForSource(
+          readiness.source,
+          exportMedia,
+        ),
         hls: readiness.sourceKind === "hls",
         startTime,
         endTime,
@@ -593,6 +611,7 @@ export function useEditorExport({
     exportLogger,
     exportSource,
     exporting,
+    exportMedia,
     fileName.fullName,
     gifSettings,
     outputDimensions,

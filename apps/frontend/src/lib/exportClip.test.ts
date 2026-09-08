@@ -243,6 +243,51 @@ function createConversion({
   } as unknown as ConversionResult;
 }
 
+for (const format of ["mp4", "gif"] as const) {
+  void test(`preserves the editor timeline origin for ${format} after a live window advances`, async () => {
+    const context = createRuntime({
+      getTrackTimelineOffsetSeconds: async () => 1002,
+    });
+    const stop = new Error("Stop before encoding");
+    let sourceTimestamp: number | undefined;
+    context.runtime.initConversion = async (options) => {
+      sourceTimestamp = options.trim?.start;
+      assert.equal(options.trim?.end, 1004);
+      throw stop;
+    };
+    const createCanvasSink = context.runtime.createCanvasSink;
+    context.runtime.createCanvasSink = (track, options) => {
+      const sink = createCanvasSink(track, options);
+      sink.getCanvas = async (timestamp) => {
+        sourceTimestamp = timestamp;
+        throw stop;
+      };
+      return sink;
+    };
+    const options = {
+      mediaSource,
+      timelineOffsetSeconds: 1000,
+      startTime: 2,
+      endTime: 4,
+      format,
+      resolution: "original" as const,
+      includeAudio: false,
+      onProgress: () => {},
+    };
+    await assert.rejects(
+      exportClipWithRuntime(options, context.runtime),
+      (error: Error) => error === stop,
+    );
+    assert.equal(sourceTimestamp, 1002);
+    sourceTimestamp = undefined;
+    await assert.rejects(
+      exportClipWithRuntime({ ...options, startTime: 1 }, context.runtime),
+      /selected range is no longer available/,
+    );
+    assert.equal(sourceTimestamp, undefined);
+  });
+}
+
 for (const { format, includeAudio } of [
   { format: "mp4", includeAudio: true },
   { format: "mp4", includeAudio: false },
