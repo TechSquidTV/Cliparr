@@ -65,7 +65,7 @@ export const providers = [
     name: "Jellyfin",
     iconPath: "/providers/jellyfin.svg",
     setup:
-      "Connect your Jellyfin server with an administrator account and clip from active sessions across your library.",
+      "Connect your Jellyfin server with your account and clip from your active sessions. Administrator accounts can access sessions across the server.",
   },
 ] as const;
 

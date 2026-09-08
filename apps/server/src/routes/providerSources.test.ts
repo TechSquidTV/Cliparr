@@ -275,7 +275,7 @@ void test("completes Plex PIN auth through route cookies and persists sources", 
   });
 });
 
-void test("logs into Jellyfin with credentials and stores a remembered provider session", async () => {
+void test("logs into Jellyfin with a regular account and stores a remembered provider session", async () => {
   await withTestApp(async (baseUrl, fetchLocal) => {
     const upstreamRequests: Array<{ url: string; body?: string }> = [];
 
@@ -310,10 +310,10 @@ void test("logs into Jellyfin with credentials and stores a remembered provider 
             AccessToken: "jellyfin-user-token",
             ServerId: "jellyfin-server-1",
             User: {
-              Id: "admin-user",
-              Name: "Admin",
+              Id: "regular-user",
+              Name: "Viewer",
               Policy: {
-                IsAdministrator: true,
+                IsAdministrator: false,
               },
             },
           });
@@ -331,7 +331,7 @@ void test("logs into Jellyfin with credentials and stores a remembered provider 
             },
             body: JSON.stringify({
               serverUrl: "http://1.1.1.1:8096/jellyfin/?discard=true#fragment",
-              username: "admin",
+              username: "viewer",
               password: "secret",
             }),
           },
@@ -355,7 +355,7 @@ void test("logs into Jellyfin with credentials and stores a remembered provider 
         );
         assert.ok(authRequest?.body);
         assert.deepEqual(JSON.parse(authRequest.body), {
-          Username: "admin",
+          Username: "viewer",
           Pw: "secret",
         });
 
@@ -367,8 +367,9 @@ void test("logs into Jellyfin with credentials and stores a remembered provider 
           sources[0]?.credentials.accessToken,
           "jellyfin-user-token",
         );
-        assert.equal(sources[0]?.credentials.userId, "admin-user");
-        assert.equal(sources[0]?.metadata.username, "Admin");
+        assert.equal(sources[0]?.credentials.userId, "regular-user");
+        assert.equal(sources[0]?.metadata.username, "Viewer");
+        assert.equal(sources[0]?.metadata.isAdministrator, false);
       },
     );
   });
@@ -744,7 +745,7 @@ void test("deletes individual source rows and excludes them from dashboard disco
   });
 });
 
-void test("refreshes Jellyfin source health and persists check results", async () => {
+void test("refreshes Jellyfin source health after account permission changes", async () => {
   await withTestApp(async (baseUrl, fetchLocal) => {
     const account = upsertProviderAccountByAccessToken({
       providerId: "jellyfin",
@@ -766,6 +767,7 @@ void test("refreshes Jellyfin source health and persists check results", async (
       },
       metadata: {
         serverName: "Jellyfin",
+        isAdministrator: true,
       },
     });
     assert.ok(source);
@@ -776,6 +778,7 @@ void test("refreshes Jellyfin source health and persists check results", async (
       userToken: "jellyfin-user-token",
     });
 
+    let isAdministrator = false;
     await withMockedFetch(
       async (input) => {
         const requestUrl = fetchInputUrl(input);
@@ -794,7 +797,7 @@ void test("refreshes Jellyfin source health and persists check results", async (
             Id: "admin-user",
             Name: "Admin",
             Policy: {
-              IsAdministrator: true,
+              IsAdministrator: isAdministrator,
             },
           });
         }
@@ -808,35 +811,42 @@ void test("refreshes Jellyfin source health and persists check results", async (
         throw new Error(`Unexpected fetch: ${requestUrl}`);
       },
       async () => {
-        const response = await fetchLocal(
-          `${baseUrl}/api/sources/${source.id}/check`,
-          {
-            method: "POST",
-            headers: {
-              cookie: `${getSessionCookieName()}=${session.id}`,
+        for (const nextIsAdministrator of [false, true]) {
+          isAdministrator = nextIsAdministrator;
+          const response: Response = await fetchLocal(
+            `${baseUrl}/api/sources/${source.id}/check`,
+            {
+              method: "POST",
+              headers: {
+                cookie: `${getSessionCookieName()}=${session.id}`,
+              },
             },
-          },
-        );
+          );
 
-        assert.equal(response.status, 200);
-        const body = (await response.json()) as {
-          ok?: boolean;
-          source?: { name?: string; lastError?: string | null };
-        };
-        assert.equal(body.ok, true);
-        assert.equal(body.source?.name, "Jelly Lab");
-        assert.equal(body.source?.lastError, null);
+          assert.equal(response.status, 200);
+          const body = (await response.json()) as {
+            ok?: boolean;
+            source?: { name?: string; lastError?: string | null };
+          };
+          assert.equal(body.ok, true);
+          assert.equal(body.source?.name, "Jelly Lab");
+          assert.equal(body.source?.lastError, null);
 
-        const updatedSource = getMediaSourceByProviderExternalId(
-          "jellyfin",
-          account.id,
-          "jellyfin-server-1",
-        );
-        assert.ok(updatedSource);
-        assert.equal(updatedSource.name, "Jelly Lab");
-        assert.equal(updatedSource.lastError, undefined);
-        assert.equal(updatedSource.metadata.version, "10.9.1");
-        assert.match(updatedSource.lastCheckedAt ?? "", /^\d{4}-\d{2}-\d{2}T/);
+          const updatedSource = getMediaSourceByProviderExternalId(
+            "jellyfin",
+            account.id,
+            "jellyfin-server-1",
+          );
+          assert.ok(updatedSource);
+          assert.equal(updatedSource.name, "Jelly Lab");
+          assert.equal(updatedSource.lastError, undefined);
+          assert.equal(updatedSource.metadata.version, "10.9.1");
+          assert.equal(updatedSource.metadata.isAdministrator, isAdministrator);
+          assert.match(
+            updatedSource.lastCheckedAt ?? "",
+            /^\d{4}-\d{2}-\d{2}T/,
+          );
+        }
       },
     );
   });

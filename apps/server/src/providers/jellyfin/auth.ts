@@ -110,14 +110,6 @@ export async function authenticateWithCredentials(body: unknown) {
     );
   }
 
-  if (!isAdministrator) {
-    throw createApiError(
-      403,
-      "jellyfin_admin_required",
-      "Cliparr needs a Jellyfin administrator account so it can view active sessions across the server",
-    );
-  }
-
   const normalizedBaseUrl = normalizeBaseUrl(serverUrl);
 
   return {
@@ -142,7 +134,7 @@ export async function authenticateWithCredentials(body: unknown) {
           version: stringValue(publicInfo?.Version),
           username: stringValue(user?.Name) ?? username,
           userId,
-          isAdministrator: true,
+          isAdministrator,
         },
       } satisfies ProviderResource,
     ],
@@ -162,14 +154,6 @@ export async function checkSource(source: MediaSource) {
       }),
       fetchCurrentUser(context),
     ]);
-
-    if (currentUser?.Policy?.IsAdministrator !== true) {
-      return {
-        ok: false as const,
-        message:
-          "Cliparr needs a Jellyfin administrator account to read active sessions",
-      };
-    }
 
     await fetchSessions(context);
 
@@ -198,7 +182,7 @@ export async function checkSource(source: MediaSource) {
           stringValue(source.metadata.username),
         userId:
           stringValue(currentUser?.Id) ?? stringValue(source.metadata.userId),
-        isAdministrator: true,
+        isAdministrator: currentUser?.Policy?.IsAdministrator === true,
       },
     };
   } catch (error) {

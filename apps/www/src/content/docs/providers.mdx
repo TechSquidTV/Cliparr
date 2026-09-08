@@ -21,14 +21,16 @@ Cliparr uses provider sources to discover active playback sessions, load playabl
     </h2>
     <p>{provider.setup}</p>
     {provider.name === "Plex" ? (
-      <p>Use a Plex account that owns the server you want to connect. Cliparr uses that account to find servers and active playback sessions.</p>
+      <p>Use a Plex account that owns the server you want to connect. Plex's <a href="https://developer.plex.tv/pms/#tag/Status/operation/statusGetSlash">active-session API</a> requires administrator access, so shared library access alone is not enough to discover playback sessions.</p>
     ) : (
-      <p>Use a Jellyfin administrator account. Cliparr needs administrator access to read active sessions across the server.</p>
+      <p>Use any Jellyfin account. A regular account connects its own playback sessions across devices; an administrator account connects active sessions across the server.</p>
     )}
   </section>
 ))}
 
 Provider-backed clips can include media-server metadata in the exported file, such as title, show, season, episode, artwork, rating, and timing details when the source provides them.
+
+Connected sources are shared across the Cliparr instance. Connecting a regular Jellyfin account limits that source's sessions; it does not hide other connected sources. See [Access control](/docs/access-control) before sharing an instance.
 
 <Callout title="Credentials stay encrypted" tone="info">
   Provider credentials are persisted so Cliparr can refresh sessions later. Keep
