@@ -75,7 +75,11 @@ import type { SubtitleCue, SubtitleStyleSettings } from "#/lib/subtitles/types";
 
 export type { ExportFormat, ExportResolution } from "#/lib/exportTypes";
 
+export type ExportPhase = "preparing" | "encoding" | "finalizing";
+
 export interface ExportClipOptions {
+  signal?: AbortSignal;
+  onPhaseChange?: (phase: ExportPhase) => void;
   mediaSource: EditorMediaSource;
   hls?: boolean;
   /** Timestamp origin captured when this source was opened in the editor. */
@@ -411,6 +415,8 @@ const defaultExportClipRuntime: ExportClipRuntime = {
 
 export async function exportClipWithRuntime(
   {
+    signal,
+    onPhaseChange,
     mediaSource,
     hls,
     timelineOffsetSeconds,
@@ -432,6 +438,8 @@ export async function exportClipWithRuntime(
   runtime: ExportClipRuntime,
 ) {
   const options = {
+    signal,
+    onPhaseChange,
     mediaSource,
     hls,
     timelineOffsetSeconds,
@@ -451,6 +459,9 @@ export async function exportClipWithRuntime(
     onProgress,
   };
 
+  signal?.throwIfAborted();
+  onPhaseChange?.("preparing");
+
   if (format === "gif") {
     onVideoEncodingPlan?.({ bitrateBps: null, codec: null, mode: "gif" });
     return exportGifClipWithRuntime(options, runtime);
@@ -458,11 +469,16 @@ export async function exportClipWithRuntime(
 
   await runtime.ensureMediabunnyCodecs();
 
+  signal?.throwIfAborted();
   const input = await runtime.createCliparrInputFromSource(mediaSource, {
     hls,
   });
 
+  const disposeOnAbort = () => input.dispose();
+  signal?.addEventListener("abort", disposeOnAbort, { once: true });
+
   try {
+    signal?.throwIfAborted();
     const sourceVideoTrack = await input.getPrimaryVideoTrack({
       filter: isPlaybackVideoTrack,
     });
@@ -627,54 +643,83 @@ export async function exportClipWithRuntime(
       };
     }
 
+    signal?.throwIfAborted();
     const conversion = await runtime.initConversion(conversionOptions);
-    if (!conversion.isValid) {
-      const discardedDetails = await runtime.describeDiscardedTracks(
-        conversion.discardedTracks,
-      );
-      const suffix = discardedDetails ? ` ${discardedDetails}` : "";
-      throw new Error(`Conversion is invalid.${suffix}`);
+    let cancellation: Promise<void> | undefined;
+    const cancelConversion = () => {
+      cancellation ??= conversion.cancel().catch(() => {});
+    };
+    signal?.addEventListener("abort", cancelConversion, { once: true });
+    try {
+      if (signal?.aborted) {
+        cancelConversion();
+        signal.throwIfAborted();
+      }
+      if (!conversion.isValid) {
+        const discardedDetails = await runtime.describeDiscardedTracks(
+          conversion.discardedTracks,
+        );
+        const suffix = discardedDetails ? ` ${discardedDetails}` : "";
+        throw new Error(`Conversion is invalid.${suffix}`);
+      }
+
+      const dropsAudio =
+        includeAudio &&
+        sourceHasAudio &&
+        !conversion.utilizedTracks.some((track) => track.isAudioTrack());
+      const dropsVideo =
+        sourceVideoTrack &&
+        !conversion.utilizedTracks.some(
+          (track) => track.isVideoTrack() && track.id === sourceVideoTrack.id,
+        );
+      if (dropsAudio || dropsVideo) {
+        const discardedDetails = await runtime.describeDiscardedTracks(
+          conversion.discardedTracks,
+        );
+        const suffix = discardedDetails
+          ? ` ${discardedDetails}`
+          : " Mediabunny did not report a discarded-track reason.";
+        throw new Error(
+          `Export would drop the source ${dropsAudio ? "audio" : "video"} track.${suffix}`,
+        );
+      }
+
+      conversion.onProgress = (progress) => {
+        if (!signal?.aborted) {
+          onProgress(progress);
+          if (progress >= 1) {
+            onPhaseChange?.("finalizing");
+          }
+        }
+      };
+
+      onPhaseChange?.("encoding");
+      await conversion.execute();
+      signal?.throwIfAborted();
+      onPhaseChange?.("finalizing");
+
+      if (!target.buffer) {
+        throw new Error("Export did not produce a video buffer");
+      }
+
+      if (isIsobmffExportFormat(format)) {
+        runtime.patchMp4MetadataBoxes(new Uint8Array(target.buffer));
+      }
+
+      // The conversion plan preserves the selected video and requested audio;
+      // reparsing the completed file adds memory pressure for long exports.
+      const blob = new Blob([target.buffer], { type: outputFormat.mimeType });
+
+      return blob;
+    } finally {
+      signal?.removeEventListener("abort", cancelConversion);
+      await cancellation;
     }
-
-    const dropsAudio =
-      includeAudio &&
-      sourceHasAudio &&
-      !conversion.utilizedTracks.some((track) => track.isAudioTrack());
-    const dropsVideo =
-      sourceVideoTrack &&
-      !conversion.utilizedTracks.some(
-        (track) => track.isVideoTrack() && track.id === sourceVideoTrack.id,
-      );
-    if (dropsAudio || dropsVideo) {
-      const discardedDetails = await runtime.describeDiscardedTracks(
-        conversion.discardedTracks,
-      );
-      const suffix = discardedDetails
-        ? ` ${discardedDetails}`
-        : " Mediabunny did not report a discarded-track reason.";
-      throw new Error(
-        `Export would drop the source ${dropsAudio ? "audio" : "video"} track.${suffix}`,
-      );
-    }
-
-    conversion.onProgress = (progress) => onProgress(progress);
-
-    await conversion.execute();
-
-    if (!target.buffer) {
-      throw new Error("Export did not produce a video buffer");
-    }
-
-    if (isIsobmffExportFormat(format)) {
-      runtime.patchMp4MetadataBoxes(new Uint8Array(target.buffer));
-    }
-
-    // The conversion plan preserves the selected video and requested audio;
-    // reparsing the completed file adds memory pressure for long exports.
-    const blob = new Blob([target.buffer], { type: outputFormat.mimeType });
-
-    return blob;
+  } catch (error) {
+    signal?.throwIfAborted();
+    throw error;
   } finally {
+    signal?.removeEventListener("abort", disposeOnAbort);
     input.dispose();
   }
 }
@@ -754,6 +799,8 @@ async function resolveExportTrim(
 
 async function exportGifClipWithRuntime(
   {
+    signal,
+    onPhaseChange,
     mediaSource,
     hls,
     timelineOffsetSeconds,
@@ -782,11 +829,16 @@ async function exportGifClipWithRuntime(
   const resolvedGifSettings =
     gifSettings ?? gifExportSettingsForPreset(DEFAULT_GIF_EXPORT_PRESET);
 
+  signal?.throwIfAborted();
   const input = await runtime.createCliparrInputFromSource(mediaSource, {
     hls,
   });
 
+  const disposeOnAbort = () => input.dispose();
+  signal?.addEventListener("abort", disposeOnAbort, { once: true });
+
   try {
+    signal?.throwIfAborted();
     const sourceVideoTrack = await input.getPrimaryVideoTrack({
       filter: isPlaybackVideoTrack,
     });
@@ -853,10 +905,12 @@ async function exportGifClipWithRuntime(
       resolvedGifSettings.paletteMode === "global" ? 0.12 : 0;
 
     const readRenderedFrameImageData = async (frameIndex: number) => {
+      signal?.throwIfAborted();
       const clipTimestamp = frameIndex / resolvedGifSettings.frameRate;
       const displayTimestamp = startTime + clipTimestamp;
       const sourceTimestamp = Math.min(trimEnd, trimStart + clipTimestamp);
       const frame = await videoSink.getCanvas(sourceTimestamp);
+      signal?.throwIfAborted();
 
       if (!frame) {
         return null;
@@ -914,9 +968,13 @@ async function exportGifClipWithRuntime(
 
     const requiresSequentialFrameEncoding =
       resolvedGifSettings.ditherMode === "spatial-temporal";
+    signal?.throwIfAborted();
+    onPhaseChange?.("encoding");
     const frameEncoder = gifRuntime.createGifFrameEncoder({
       requiresSequentialFrames: requiresSequentialFrameEncoding,
     });
+    const cancelFrameEncoder = () => frameEncoder.dispose();
+    signal?.addEventListener("abort", cancelFrameEncoder, { once: true });
     const gifChunks: GifFrameChunk[] = [];
     const inFlightFrames = new Set<Promise<void>>();
     let processedFrameCount = 0;
@@ -952,6 +1010,7 @@ async function exportGifClipWithRuntime(
           temporalDither: resolvedGifSettings.temporalDither,
         })
         .then((chunk) => {
+          signal?.throwIfAborted();
           gifChunks[chunk.sequenceIndex] = chunk;
           processedFrameCount += 1;
           reportFrameProgress();
@@ -969,6 +1028,7 @@ async function exportGifClipWithRuntime(
     const waitForFrameEncoderSlot = async () => {
       while (inFlightFrames.size >= maxInFlightFrames) {
         await Promise.race(inFlightFrames);
+        signal?.throwIfAborted();
         if (frameEncodingError) {
           throwGifFrameEncodingError(frameEncodingError);
         }
@@ -990,11 +1050,13 @@ async function exportGifClipWithRuntime(
       }
 
       await Promise.all(inFlightFrames);
+      signal?.throwIfAborted();
       const settledFrameEncodingError = frameEncodingError;
       if (settledFrameEncodingError) {
         throwGifFrameEncodingError(settledFrameEncodingError);
       }
     } finally {
+      signal?.removeEventListener("abort", cancelFrameEncoder);
       frameEncoder.dispose();
     }
 
@@ -1002,13 +1064,19 @@ async function exportGifClipWithRuntime(
       throw new Error("GIF export did not produce any frames.");
     }
 
+    signal?.throwIfAborted();
+    onPhaseChange?.("finalizing");
     const bytes = gifRuntime.concatenateGifFrameChunks(gifChunks);
     if (bytes.length === 0) {
       throw new Error("GIF export did not produce an image buffer.");
     }
 
     return new Blob([copyToArrayBuffer(bytes)], { type: "image/gif" });
+  } catch (error) {
+    signal?.throwIfAborted();
+    throw error;
   } finally {
+    signal?.removeEventListener("abort", disposeOnAbort);
     input.dispose();
   }
 }

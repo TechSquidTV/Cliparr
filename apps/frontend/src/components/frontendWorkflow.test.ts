@@ -148,6 +148,9 @@ function renderExportDialogMarkup(
     audioDisabledReason: null,
     exporting: false,
     progress: 0,
+    exportPhase: "preparing",
+    exportNotice: null,
+    onCancelExport: () => {},
     error: null,
     fileNamePreview: "Example Movie [00m10s-00m20s].mp4",
     outputDimensions: { width: 1920, height: 1080 },
@@ -958,6 +961,7 @@ void test("renders mobile editor controls trigger and compact range summary", ()
         onSetInPoint: () => {},
         onSetOutPoint: () => {},
         onClearPoints: () => {},
+        onFitSelection: () => {},
       }),
     ),
   );
@@ -1041,6 +1045,7 @@ void test("renders the editor framegrab camera control", () => {
         onSetInPoint: () => {},
         onSetOutPoint: () => {},
         onClearPoints: () => {},
+        onFitSelection: () => {},
       }),
     ),
   );

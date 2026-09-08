@@ -499,6 +499,8 @@ export function useEditorTimelineMedia(
     pausePlayback,
     seekToTime,
     getPlaybackTime,
-    metadataReady: exportMedia !== null,
+    // Consumers may restore edits only after metadata has been applied to the
+    // engine; discovery alone still exposes the initial placeholder duration.
+    metadataReady: exportMedia !== null && details.exportMedia === exportMedia,
   };
 }

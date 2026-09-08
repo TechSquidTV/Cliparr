@@ -250,6 +250,16 @@ function createConversion({
   } as unknown as ConversionResult;
 }
 
+function createDeferred<T>() {
+  let resolve!: (value: T | PromiseLike<T>) => void;
+  let reject!: (error: Error) => void;
+  const promise = new Promise<T>((resolvePromise, rejectPromise) => {
+    resolve = resolvePromise;
+    reject = rejectPromise;
+  });
+  return { promise, resolve, reject };
+}
+
 for (const format of ["mp4", "gif"] as const) {
   void test(`preserves the editor timeline origin for ${format} after a live window advances`, async () => {
     const context = createRuntime({
@@ -1118,4 +1128,152 @@ void test("renders subtitles when burning cues into GIF frames", async () => {
 
   assert.equal(activeSubtitleTimestamp, 0);
   assert.equal(renderedSubtitleCount, 1);
+});
+
+for (const format of ["mp4", "gif"] as const) {
+  void test(`does not open media for a pre-cancelled ${format} export`, async () => {
+    const context = createRuntime({
+      ensureMediabunnyCodecs: async () => {
+        assert.fail("Cancelled export must not initialize codecs");
+      },
+    });
+    await assert.rejects(
+      exportClipWithRuntime(
+        {
+          mediaSource,
+          format,
+          startTime: 0,
+          endTime: 1,
+          resolution: "original",
+          includeAudio: false,
+          signal: AbortSignal.abort(),
+          onProgress: () => {},
+        },
+        context.runtime,
+      ),
+      { name: "AbortError" },
+    );
+  });
+
+  void test(`releases the input when ${format} export is cancelled during preparation`, async () => {
+    const controller = new AbortController();
+    const context = createRuntime({
+      getVideoTrackDimensions: async () => {
+        controller.abort();
+        throw new Error("Input disposed while reading metadata");
+      },
+    });
+    await assert.rejects(
+      exportClipWithRuntime(
+        {
+          mediaSource,
+          format,
+          startTime: 0,
+          endTime: 1,
+          resolution: "original",
+          includeAudio: false,
+          signal: controller.signal,
+          onProgress: () => {},
+        },
+        context.runtime,
+      ),
+      { name: "AbortError" },
+    );
+    assert.equal(context.disposed, true);
+  });
+}
+
+void test("cancels an executing conversion and never returns a partial file", async () => {
+  const controller = new AbortController();
+  const started = createDeferred<void>();
+  const execution = createDeferred<void>();
+  const context = createRuntime();
+  let cancellations = 0;
+  context.runtime.initConversion = async () => {
+    const conversion = createConversion({
+      target: context.target,
+      utilizedAudio: false,
+    });
+    conversion.execute = async () => {
+      started.resolve();
+      await execution.promise;
+    };
+    conversion.cancel = async () => {
+      cancellations += 1;
+      execution.reject(new Error("Conversion cancelled"));
+    };
+    return conversion;
+  };
+  const exported = exportClipWithRuntime(
+    {
+      mediaSource,
+      format: "mp4",
+      startTime: 0,
+      endTime: 1,
+      resolution: "original",
+      includeAudio: false,
+      signal: controller.signal,
+      onProgress: () => {},
+    },
+    context.runtime,
+  );
+  const rejection = assert.rejects(exported, { name: "AbortError" });
+  await started.promise;
+  controller.abort();
+  await rejection;
+  assert.equal(cancellations, 1);
+  assert.equal(context.disposed, true);
+  assert.equal(context.target.buffer, undefined);
+});
+
+void test("cancels pending GIF worker frames and disposes their encoder", async () => {
+  const controller = new AbortController();
+  const started = createDeferred<void>();
+  const pending = createDeferred<never>();
+  const context = createRuntime();
+  const createCanvasSink = context.runtime.createCanvasSink;
+  context.runtime.createCanvasSink = (track, options) => {
+    const sink = createCanvasSink(track, options);
+    sink.getCanvas = async () => ({
+      canvas: context.runtime.createGifCanvas(1, 1).canvas,
+      timestamp: 0,
+      duration: 1,
+    });
+    return sink;
+  };
+  let disposed = false;
+  context.runtime.loadGifEncodingRuntime = async () => ({
+    ...createMockGifRuntime(),
+    createGifFrameEncoder: () => ({
+      concurrency: 1,
+      encodeFrame: async () => {
+        started.resolve();
+        return pending.promise;
+      },
+      dispose: () => {
+        disposed = true;
+        pending.reject(new Error("Worker terminated"));
+      },
+    }),
+  });
+  const exported = exportClipWithRuntime(
+    {
+      mediaSource,
+      format: "gif",
+      startTime: 0,
+      endTime: 1,
+      gifSettings: gifExportSettingsForPreset("sharp"),
+      resolution: "original",
+      includeAudio: false,
+      signal: controller.signal,
+      onProgress: () => {},
+    },
+    context.runtime,
+  );
+  const rejection = assert.rejects(exported, { name: "AbortError" });
+  await started.promise;
+  controller.abort();
+  await rejection;
+  assert.equal(disposed, true);
+  assert.equal(context.disposed, true);
 });

@@ -13,6 +13,7 @@ import {
   toSeconds,
   useTimelinePlayback,
   useTimelineZoomControl,
+  useTimelineViewport,
   type TimelineEngine,
 } from "@techsquidtv/canvas-timeline";
 import {
@@ -33,6 +34,14 @@ import {
   createEditorTimelineEngine,
   synchronizeEditorTimelineSession,
 } from "@/components/editor/editorTimelineEngine";
+import {
+  editorDraftIdentity,
+  editorDrafts,
+  type EditorDraft,
+} from "@/components/editor/editorDrafts";
+import { useEditorDraft } from "@/components/editor/useEditorDraft";
+import { useEditorHistory } from "@/components/editor/useEditorHistory";
+import { EditorEditingTools } from "@/components/editor/EditorEditingTools";
 import { EditorHeader } from "@/components/editor/EditorHeader";
 import { EditorPreview } from "@/components/editor/EditorPreview";
 import { EditorSubtitlePreview } from "@/components/editor/EditorSubtitlePreview";
@@ -74,12 +83,23 @@ interface Properties {
 }
 
 export default function EditorScreen({ session, onBack }: Properties) {
+  const [draftRevision, setDraftRevision] = useState(0);
   return (
-    <EditorSessionScreen key={session.id} session={session} onBack={onBack} />
+    <EditorSessionScreen
+      key={`${editorDraftIdentity(session)}:${draftRevision}`}
+      session={session}
+      onBack={onBack}
+      onReset={() => setDraftRevision((revision) => revision + 1)}
+    />
   );
 }
 
-function EditorSessionScreen({ session, onBack }: Properties) {
+function EditorSessionScreen({
+  session,
+  onBack,
+  onReset,
+}: Properties & { onReset: () => void }) {
+  const [initialDraft] = useState(() => editorDrafts.read(session));
   const [engine] = useState(() => createEditorTimelineEngine(session));
   const previousSessionReference = useRef(session);
 
@@ -95,7 +115,13 @@ function EditorSessionScreen({ session, onBack }: Properties) {
 
   return (
     <TimelineProvider engine={engine}>
-      <EditorScreenContent session={session} onBack={onBack} engine={engine} />
+      <EditorScreenContent
+        session={session}
+        onBack={onBack}
+        engine={engine}
+        initialDraft={initialDraft}
+        onReset={onReset}
+      />
     </TimelineProvider>
   );
 }
@@ -104,7 +130,13 @@ function EditorScreenContent({
   session,
   onBack,
   engine,
-}: Properties & { engine: TimelineEngine }) {
+  initialDraft,
+  onReset,
+}: Properties & {
+  engine: TimelineEngine;
+  initialDraft: EditorDraft | null;
+  onReset: () => void;
+}) {
   const { inPoint, outPoint, setInPoint, setOutPoint, clearInOutPoints } =
     useTimelinePlayback();
   const timelineMedia = useEditorTimelineMedia(session, engine);
@@ -122,6 +154,8 @@ function EditorScreenContent({
     subtitleEnabled,
     subtitleOutputEnabled,
     subtitleCuesReady,
+    importedSubtitleTrackKey,
+    subtitleTrackVisible,
     setSubtitleEnabled,
     subtitleStyleSettings,
     setSubtitleStyleSettings,
@@ -140,6 +174,7 @@ function EditorScreenContent({
     handleSelectNextSubtitle,
     handleSeekToSelectedSubtitle,
   } = useEditorSubtitles({
+    initialDraft,
     engine,
     session,
     startTime,
@@ -147,6 +182,27 @@ function EditorScreenContent({
     duration,
     mediaReady: timelineMedia.metadataReady,
   });
+  const draft = useEditorDraft({
+    engine,
+    session,
+    initialDraft,
+    onReset,
+    ready: timelineMedia.metadataReady && !subtitleLoading,
+    duration,
+    startTime,
+    endTime,
+    subtitles: {
+      selectedTrackKey: selectedSubtitleTrackKey,
+      importedTrackKey: importedSubtitleTrackKey,
+      enabled: subtitleEnabled,
+      visible: subtitleTrackVisible,
+      cues: subtitleCues,
+    },
+  });
+  const editHistory = useEditorHistory(
+    engine,
+    timelineMedia.metadataReady && !subtitleLoading,
+  );
   const posterImageUrl = session.thumbUrl;
 
   const {
@@ -194,6 +250,9 @@ function EditorScreenContent({
     exporting,
     progress,
     exportError,
+    exportPhase,
+    exportNotice,
+    handleCancelExport,
     fileName,
     outputDimensions,
     outputSizeEstimate,
@@ -260,6 +319,19 @@ function EditorScreenContent({
     }
   }, [exportDialogOpen]);
 
+  const { viewportWidth, setZoomScale, setScrollLeft } = useTimelineViewport();
+  const handleFitSelection = () => {
+    if (viewportWidth <= 0 || endTime <= startTime) {
+      return;
+    }
+    const padding = Math.min(24, viewportWidth / 4);
+    const scale = Math.min(
+      1000,
+      (viewportWidth - padding * 2) / (endTime - startTime),
+    );
+    setZoomScale(scale);
+    setScrollLeft(Math.max(0, startTime * scale - padding));
+  };
   const zoomControl = useTimelineZoomControl({ min: 10, max: 1000 });
   const hasDuration = timelineMedia.metadataReady && duration > 0;
   const canZoomOut = zoomControl.value > zoomControl.min;
@@ -368,6 +440,8 @@ function EditorScreenContent({
     [duration, frameStepSeconds, getPlaybackTime, pausePlayback, seekToTime],
   );
   useEditorKeyboardShortcuts({
+    undo: editHistory.undo,
+    redo: editHistory.redo,
     togglePlay: () => void togglePlay(),
     markIn: handleMarkInShortcut,
     markOut: handleMarkOutShortcut,
@@ -449,6 +523,7 @@ function EditorScreenContent({
       setMuted={setMuted}
       volume={volume}
       setVolume={setVolume}
+      onFitSelection={handleFitSelection}
       handleTimelineZoomIn={handleTimelineZoomIn}
       handleTimelineZoomOut={handleTimelineZoomOut}
       canZoomIn={canZoomIn}
@@ -552,6 +627,29 @@ function EditorScreenContent({
         onExportClick={handleOpenExportDialog}
       />
 
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-editor-border bg-editor-panel px-3 py-2 text-xs text-muted-foreground">
+        <span role="status">
+          {draft.notice ?? "Drafts save on this device for 14 days."}
+        </span>
+        <button
+          type="button"
+          disabled={exporting}
+          onClick={() => {
+            if (
+              globalThis.confirm(
+                "Reset this draft? This removes the saved clip range and subtitle edits.",
+              )
+            ) {
+              draft.reset();
+            }
+          }}
+          className="rounded px-2 py-1 text-foreground hover:bg-editor-control-hover focus-visible:ring-2 focus-visible:ring-editor-accent"
+        >
+          Reset draft
+        </button>
+      </div>
+      <EditorEditingTools history={editHistory} />
+
       <main className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto p-2.5 sm:p-3 lg:overflow-hidden">
         {isDesktopLayout ? (
           <EditorDesktopLayout
@@ -596,6 +694,9 @@ function EditorScreenContent({
             exporting={exporting}
             progress={progress}
             error={exportError}
+            exportPhase={exportPhase}
+            exportNotice={exportNotice}
+            onCancelExport={handleCancelExport}
             fileNamePreview={fileName.fullName}
             outputDimensions={outputDimensions}
             hasHlsSource={Boolean(session.hlsSource)}
