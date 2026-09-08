@@ -178,19 +178,27 @@ export function EditorExportDialog({
               includeAudio={includeAudio}
               onIncludeAudioChange={onIncludeAudioChange}
               audioDisabledReason={audioDisabledReason}
+              showSourcePreference={hasHlsSource && hasDirectSource}
               hasHlsSource={hasHlsSource}
               hasDirectSource={hasDirectSource}
               directSourceLabel={directSourceLabel}
               hlsSourceLabel={hlsSourceLabel}
             />
 
-            <EditorFilenameTemplateSection
-              editingTemplateKind={editingTemplateKind}
-              onEditingTemplateKindChange={onEditingTemplateKindChange}
-              fileNameTemplates={fileNameTemplates}
-              onFileNameTemplateChange={onFileNameTemplateChange}
-              onResetFileNameTemplate={onResetFileNameTemplate}
-            />
+            <details className="rounded-md border border-border bg-card">
+              <summary className="cursor-pointer rounded-md px-3 py-3 text-sm font-medium focus-visible:ring-2 focus-visible:ring-ring">
+                Advanced filename settings
+              </summary>
+              <div className="px-3 pb-3">
+                <EditorFilenameTemplateSection
+                  editingTemplateKind={editingTemplateKind}
+                  onEditingTemplateKindChange={onEditingTemplateKindChange}
+                  fileNameTemplates={fileNameTemplates}
+                  onFileNameTemplateChange={onFileNameTemplateChange}
+                  onResetFileNameTemplate={onResetFileNameTemplate}
+                />
+              </div>
+            </details>
           </fieldset>
         </div>
 

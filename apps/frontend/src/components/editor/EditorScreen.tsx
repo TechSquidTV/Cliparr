@@ -13,6 +13,7 @@ import {
   toSeconds,
   useTimelinePlayback,
   useTimelineZoomControl,
+  useTimelineViewport,
   type TimelineEngine,
 } from "@techsquidtv/canvas-timeline";
 import {
@@ -263,6 +264,19 @@ function EditorScreenContent({
     }
   }, [exportDialogOpen]);
 
+  const { viewportWidth, setZoomScale, setScrollLeft } = useTimelineViewport();
+  const handleFitSelection = () => {
+    if (viewportWidth <= 0 || endTime <= startTime) {
+      return;
+    }
+    const padding = Math.min(24, viewportWidth / 4);
+    const scale = Math.min(
+      1000,
+      (viewportWidth - padding * 2) / (endTime - startTime),
+    );
+    setZoomScale(scale);
+    setScrollLeft(Math.max(0, startTime * scale - padding));
+  };
   const zoomControl = useTimelineZoomControl({ min: 10, max: 1000 });
   const hasDuration = timelineMedia.metadataReady && duration > 0;
   const canZoomOut = zoomControl.value > zoomControl.min;
@@ -452,6 +466,7 @@ function EditorScreenContent({
       setMuted={setMuted}
       volume={volume}
       setVolume={setVolume}
+      onFitSelection={handleFitSelection}
       handleTimelineZoomIn={handleTimelineZoomIn}
       handleTimelineZoomOut={handleTimelineZoomOut}
       canZoomIn={canZoomIn}

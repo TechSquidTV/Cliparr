@@ -106,21 +106,10 @@ export function EditorEditableTimecode({
     void onCommit(nextValue);
   }
 
-  function commitDraft({
-    cancelOnInvalid,
-    restoreFocus,
-  }: {
-    cancelOnInvalid: boolean;
-    restoreFocus: boolean;
-  }) {
+  function commitDraft({ restoreFocus }: { restoreFocus: boolean }) {
     const parsedValue = parseTimecodeInput(draftValue);
 
     if (parsedValue === null) {
-      if (cancelOnInvalid) {
-        cancelEditing({ restoreFocus });
-        return;
-      }
-
       setInvalid(true);
       return;
     }
@@ -131,7 +120,7 @@ export function EditorEditableTimecode({
   function handleInputKeyDown(event: KeyboardEvent<HTMLInputElement>) {
     if (event.key === "Enter") {
       event.preventDefault();
-      commitDraft({ cancelOnInvalid: false, restoreFocus: true });
+      commitDraft({ restoreFocus: true });
       return;
     }
 
@@ -143,7 +132,7 @@ export function EditorEditableTimecode({
 
   return (
     <span
-      className={`inline-flex min-w-0 ${className}`}
+      className={`relative inline-flex min-w-0 ${className}`}
       style={{
         ...style,
         width: editing ? (reservedWidth ?? style?.width) : style?.width,
@@ -163,9 +152,7 @@ export function EditorEditableTimecode({
               : "border-editor-border focus:border-editor-accent focus:ring-editor-accent/35"
           } ${inputClassName}`}
           inputMode="text"
-          onBlur={() =>
-            commitDraft({ cancelOnInvalid: true, restoreFocus: false })
-          }
+          onBlur={() => commitDraft({ restoreFocus: false })}
           onChange={(event) => {
             setDraftValue(event.target.value);
             setInvalid(false);
@@ -199,8 +186,13 @@ export function EditorEditableTimecode({
             Press Enter to apply or Escape to cancel.
           </span>
           {invalid && (
-            <span id={errorId} className="sr-only" role="alert">
-              Invalid timecode. Use seconds, m:ss, or h:mm:ss.
+            <span
+              id={errorId}
+              className="absolute top-full left-0 z-50 mt-1 w-52 max-w-[70vw] rounded-md border border-destructive bg-popover p-2 text-xs font-normal text-popover-foreground shadow-md"
+              role="alert"
+            >
+              Enter seconds (12.5), m:ss (1:23), or h:mm:ss (1:02:03). Press
+              Escape to discard this edit.
             </span>
           )}
         </>
