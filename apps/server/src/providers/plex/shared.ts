@@ -160,6 +160,7 @@ function plexBoolean(value: unknown) {
 }
 
 function isAdminServerResource(resource: PlexResourceResponse) {
+  // Plex requires an admin token for the /status/sessions endpoint.
   return (
     Boolean(resource.accessToken) &&
     plexBoolean(resource.owned) &&

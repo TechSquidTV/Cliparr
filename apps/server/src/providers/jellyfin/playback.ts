@@ -42,6 +42,7 @@ import {
 } from "@/providers/shared/utilities";
 import {
   booleanValue,
+  fetchCurrentUser,
   fetchItem,
   fetchPlaybackInfo,
   fetchSessions,
@@ -1067,12 +1068,7 @@ async function normalizeCurrentPlayback(
 }
 
 export function sourceSupportsCurrentlyPlaying(source: MediaSource) {
-  if (!stringValue(source.credentials.accessToken)) {
-    return false;
-  }
-
-  const isAdministrator = booleanValue(source.metadata.isAdministrator);
-  return isAdministrator !== false;
+  return Boolean(stringValue(source.credentials.accessToken));
 }
 
 export async function listCurrentlyPlaying(
@@ -1080,9 +1076,16 @@ export async function listCurrentlyPlaying(
   source: MediaSource,
 ) {
   const context = sourceContext(source);
-  const sessions = await fetchSessions(context);
-  const activeSessions = sessions.filter((sessionInfo) =>
-    Boolean(stringValue(sessionInfo?.NowPlayingItem?.Id)),
+  // Recheck permissions because the stored role can outlive an account change.
+  const [currentUser, sessions] = await Promise.all([
+    fetchCurrentUser(context),
+    fetchSessions(context),
+  ]);
+  const isAdministrator = currentUser?.Policy?.IsAdministrator === true;
+  const activeSessions = sessions.filter(
+    (sessionInfo) =>
+      Boolean(stringValue(sessionInfo?.NowPlayingItem?.Id)) &&
+      (isAdministrator || sessionInfo.UserId === context.userId),
   );
   const entries = await Promise.all(
     activeSessions.map((sessionInfo) =>

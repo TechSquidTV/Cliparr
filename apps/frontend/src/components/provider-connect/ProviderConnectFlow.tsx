@@ -265,7 +265,7 @@ export default function ProviderConnectFlow({
                 autoComplete="username"
                 value={username}
                 onChange={(event) => setUsername(event.target.value)}
-                placeholder="admin"
+                placeholder="username"
                 disabled={authenticating}
                 className={isScreen ? screenInputClasses : panelInputClasses}
               />

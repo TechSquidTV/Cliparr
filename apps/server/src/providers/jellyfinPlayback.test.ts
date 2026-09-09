@@ -11,8 +11,13 @@ import {
   listCurrentlyPlaying,
   playheadSecondsFromPositionTicks,
   proxyMedia,
+  sourceSupportsCurrentlyPlaying,
 } from "@/providers/jellyfin/playback";
-import type { JellyfinSourceContext } from "@/providers/jellyfin/shared";
+import type {
+  JellyfinSessionInfo,
+  JellyfinSourceContext,
+  JellyfinUser,
+} from "@/providers/jellyfin/shared";
 import { mediaHandleRequestUrl } from "@/providers/shared/mediaProxy";
 
 let sessionIndex = 0;
@@ -120,6 +125,8 @@ function fetchInputUrl(input: Parameters<typeof fetch>[0]) {
 
 function createJellyfinPlaybackFetch(options: {
   itemId: string;
+  currentUser?: JellyfinUser;
+  sessions?: JellyfinSessionInfo[];
   jellyfinPlaySessionId?: string | null | (() => string | null);
   jellyfinClientSessionId?: string;
   mediaSourceId?: string;
@@ -131,6 +138,8 @@ function createJellyfinPlaybackFetch(options: {
 }) {
   const {
     itemId,
+    currentUser = { Id: "user-1" },
+    sessions,
     jellyfinPlaySessionId = "playback-info-session-1",
     jellyfinClientSessionId = "client-session-1",
     mediaSourceId = "media-source-1",
@@ -183,24 +192,30 @@ function createJellyfinPlaybackFetch(options: {
   return (async (input) => {
     const url = fetchInputUrl(input);
 
+    if (url.pathname === "/Users/Me") {
+      return jsonResponse(currentUser);
+    }
+
     if (url.pathname === "/Sessions") {
-      return jsonResponse([
-        {
-          Id: jellyfinClientSessionId,
-          UserId: "user-1",
-          UserName: "Rick",
-          DeviceName: "Chrome",
-          PlayState: {
-            MediaSourceId: mediaSourceId,
-            IsPaused: true,
-            ...(playStateAudioStreamIndex === null
-              ? {}
-              : { AudioStreamIndex: playStateAudioStreamIndex }),
-            PositionTicks: 1_234_560_000,
+      return jsonResponse(
+        sessions ?? [
+          {
+            Id: jellyfinClientSessionId,
+            UserId: "user-1",
+            UserName: "Rick",
+            DeviceName: "Chrome",
+            PlayState: {
+              MediaSourceId: mediaSourceId,
+              IsPaused: true,
+              ...(playStateAudioStreamIndex === null
+                ? {}
+                : { AudioStreamIndex: playStateAudioStreamIndex }),
+              PositionTicks: 1_234_560_000,
+            },
+            NowPlayingItem: item,
           },
-          NowPlayingItem: item,
-        },
-      ]);
+        ],
+      );
     }
 
     if (url.pathname === `/Items/${itemId}`) {
@@ -348,6 +363,120 @@ void test("uses Jellyfin PlaybackInfo play session ids for currently playing str
   } finally {
     globalThis.fetch = originalFetch;
   }
+});
+
+for (const isAdministrator of [true, false, undefined]) {
+  void test(`scopes Jellyfin playback using the current administrator policy: ${isAdministrator}`, async (context) => {
+    const session = createSession();
+    const source = createSource();
+    source.metadata.isAdministrator = isAdministrator !== true;
+    const sessions: JellyfinSessionInfo[] = [
+      {
+        Id: "own-desktop",
+        UserId: "user-1",
+        DeviceName: "Desktop",
+        NowPlayingItem: { Id: "own-item" },
+      },
+      {
+        Id: "own-tv",
+        UserId: "user-1",
+        DeviceName: "TV",
+        NowPlayingItem: { Id: "own-item" },
+      },
+      {
+        Id: "other-user",
+        UserId: "user-2",
+        NowPlayingItem: { Id: "other-item" },
+      },
+      {
+        Id: "anonymous",
+        UserId: "00000000000000000000000000000000",
+        NowPlayingItem: { Id: "anonymous-item" },
+      },
+      { Id: "missing-user", NowPlayingItem: { Id: "missing-user-item" } },
+      { Id: "idle", UserId: "user-1" },
+    ];
+    const itemRequests: string[] = [];
+    const upstreamFetch = createJellyfinPlaybackFetch({
+      itemId: "own-item",
+      currentUser: {
+        Id: "user-1",
+        ...(isAdministrator === undefined
+          ? {}
+          : {
+              Policy: {
+                IsAdministrator: isAdministrator,
+                AuthenticationProviderId: "auth-provider",
+                PasswordResetProviderId: "password-reset-provider",
+              },
+            }),
+      },
+      sessions,
+    });
+    context.mock.method(
+      globalThis,
+      "fetch",
+      async (input: Parameters<typeof fetch>[0], init?: RequestInit) => {
+        const url = fetchInputUrl(input);
+        if (url.pathname.startsWith("/Items/")) {
+          const itemId = url.pathname.split("/")[2];
+          assert.ok(itemId);
+          itemRequests.push(itemId);
+          url.pathname = url.pathname.replace(itemId, "own-item");
+        }
+        return upstreamFetch(url, init);
+      },
+    );
+
+    assert.equal(sourceSupportsCurrentlyPlaying(source), true);
+    const entries = await listCurrentlyPlaying(session, source);
+    assert.equal(entries.length, isAdministrator === true ? 5 : 2);
+    assert.deepEqual(
+      new Set(itemRequests),
+      new Set(
+        isAdministrator === true
+          ? ["own-item", "other-item", "anonymous-item", "missing-user-item"]
+          : ["own-item"],
+      ),
+    );
+    assert.deepEqual(
+      entries.slice(0, 2).map((entry) => entry.item.playerTitle),
+      ["Desktop", "TV"],
+    );
+    for (const entry of entries) {
+      assert.ok(entry.item.mediaUrl);
+      assert.ok(entry.item.hlsUrl);
+    }
+  });
+}
+
+void test("does not discover Jellyfin playback without an access token", () => {
+  const source = createSource();
+  delete source.credentials.accessToken;
+  assert.equal(sourceSupportsCurrentlyPlaying(source), false);
+});
+
+void test("does not use cached admin access when Jellyfin authentication fails", async (context) => {
+  const source = createSource();
+  source.metadata.isAdministrator = true;
+  const session = createSession();
+  const upstreamFetch = createJellyfinPlaybackFetch({ itemId: "item-1" });
+  context.mock.method(
+    globalThis,
+    "fetch",
+    async (input: Parameters<typeof fetch>[0], init?: RequestInit) => {
+      if (fetchInputUrl(input).pathname === "/Users/Me") {
+        return jsonResponse({ message: "Unauthorized" }, 401);
+      }
+      return upstreamFetch(input, init);
+    },
+  );
+
+  await assert.rejects(listCurrentlyPlaying(session, source), {
+    status: 401,
+    code: "jellyfin_auth_failed",
+  });
+  assert.equal(session.mediaHandles.size, 0);
 });
 
 void test("preserves Jellyfin base paths for streams, previews, artwork, and subtitles", async (context) => {
