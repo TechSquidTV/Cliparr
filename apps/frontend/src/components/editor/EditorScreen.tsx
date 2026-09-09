@@ -41,6 +41,10 @@ import {
 } from "@/components/editor/editorDrafts";
 import { useEditorDraft } from "@/components/editor/useEditorDraft";
 import { useEditorHistory } from "@/components/editor/useEditorHistory";
+import {
+  EDITOR_MAX_ZOOM_SCALE,
+  zoomEditorTimeline,
+} from "@/components/editor/editorTimelineZoom";
 import { EditorEditingTools } from "@/components/editor/EditorEditingTools";
 import { EditorHeader } from "@/components/editor/EditorHeader";
 import { EditorPreview } from "@/components/editor/EditorPreview";
@@ -326,22 +330,31 @@ function EditorScreenContent({
     }
     const padding = Math.min(24, viewportWidth / 4);
     const scale = Math.min(
-      1000,
+      EDITOR_MAX_ZOOM_SCALE,
       (viewportWidth - padding * 2) / (endTime - startTime),
     );
     setZoomScale(scale);
     setScrollLeft(Math.max(0, startTime * scale - padding));
   };
-  const zoomControl = useTimelineZoomControl({ min: 10, max: 1000 });
+  const zoomControl = useTimelineZoomControl({
+    min: 0,
+    max: EDITOR_MAX_ZOOM_SCALE,
+  });
   const hasDuration = timelineMedia.metadataReady && duration > 0;
   const canZoomOut = zoomControl.value > zoomControl.min;
   const canZoomIn = zoomControl.value < zoomControl.max;
   const handleTimelineZoomOut = useCallback(() => {
-    zoomControl.commit(Math.max(zoomControl.min, zoomControl.value / 1.25));
-  }, [zoomControl]);
+    zoomEditorTimeline(
+      engine,
+      Math.max(zoomControl.min, zoomControl.value / 1.25),
+    );
+  }, [engine, zoomControl]);
   const handleTimelineZoomIn = useCallback(() => {
-    zoomControl.commit(Math.min(zoomControl.max, zoomControl.value * 1.25));
-  }, [zoomControl]);
+    zoomEditorTimeline(
+      engine,
+      Math.min(zoomControl.max, zoomControl.value * 1.25),
+    );
+  }, [engine, zoomControl]);
   const handlePreviewTimeCommit = useCallback(
     (nextTime: number) => {
       if (!duration || duration <= 0) {

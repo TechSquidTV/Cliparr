@@ -596,7 +596,8 @@
   box-shadow: 0 1px 3px color-mix(in oklch, var(--foreground) 28%, transparent);
 }
 
-.cliparr-timeline-v2 {
+.cliparr-timeline-v2,
+.cliparr-timeline-v2 .timeline-root {
   --timeline-panel: var(--editor-panel);
   --timeline-panel-muted: var(--editor-panel-muted);
   --timeline-panel-control: var(--editor-control);
@@ -639,4 +640,53 @@
 
 .cliparr-timeline-scrollbar-row .range-scrollbar {
   min-height: 14px;
+}
+
+.editor-media-range-row {
+  position: absolute;
+  right: 0;
+  left: 0;
+  z-index: 26;
+  overflow: hidden;
+}
+
+.editor-media-range-row .editor-media-range-scrub {
+  height: 100%;
+}
+
+.editor-media-range-row .editor-media-range {
+  z-index: 31;
+  border: 0;
+  background: transparent;
+  pointer-events: none;
+}
+
+.editor-media-range .range-scrollbar-thumb {
+  min-width: 0;
+  overflow: visible;
+  border: 0;
+  background: transparent;
+  pointer-events: auto;
+  touch-action: none;
+}
+
+.editor-media-range .range-scrollbar-handle {
+  width: min(12px, 25%);
+  background: transparent;
+  touch-action: none;
+}
+
+.editor-media-range
+  .range-scrollbar-thumb:is(:hover, :active, [data-dragging]) {
+  background: transparent;
+}
+
+.editor-media-range .range-scrollbar-handle:empty::before {
+  content: none;
+}
+
+.editor-media-range
+  :is(.range-scrollbar-thumb, .range-scrollbar-handle):focus-visible {
+  outline: 2px solid var(--editor-accent);
+  outline-offset: 2px;
 }

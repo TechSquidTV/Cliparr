@@ -8,6 +8,7 @@ import {
   type TimelineEditCommand,
 } from "@techsquidtv/canvas-timeline";
 import { buildInitialClipRange } from "@/components/editor/initialClipRange";
+import { EDITOR_MAX_ZOOM_SCALE } from "@/components/editor/editorTimelineZoom";
 import type { EditorSession } from "@/lib/editorMedia";
 import { normalizeSubtitleCueText } from "@/lib/subtitles/normalizeSubtitleCueText";
 import type { SubtitleCue } from "@/lib/subtitles/types";
@@ -146,6 +147,7 @@ export function createEditorTimelineEngine(session: EditorSession) {
     inPoint: fromSeconds(initialRange.startTime),
     outPoint: fromSeconds(initialRange.endTime),
     zoomScale: DEFAULT_TIMELINE_ZOOM_SCALE,
+    zoomConstraints: { maxZoomScale: EDITOR_MAX_ZOOM_SCALE },
     snapEnabled: false,
     tracks: createEditorTracks(duration, session.title),
   });

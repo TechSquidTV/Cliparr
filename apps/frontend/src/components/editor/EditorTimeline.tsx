@@ -9,6 +9,9 @@ import {
 } from "@techsquidtv/canvas-timeline";
 import { Eye, EyeOff, Volume2, VolumeX } from "lucide-react";
 import { useEffect, useRef } from "react";
+import { EditorMediaRange } from "@/components/editor/EditorMediaRange";
+import { EditorMediaRangeCanvas } from "@/components/editor/EditorMediaRangeCanvas";
+import { EditorViewportScrollbar } from "@/components/editor/EditorViewportScrollbar";
 import {
   EDITOR_MEDIA_TRACK_ID,
   timelineScrollLeftForCenteredTime,
@@ -89,7 +92,7 @@ function EditorTimelineLayers() {
         ))}
       </Timeline.TrackList>
       <Timeline.ClipInteractionLayer />
-      <Timeline.RangeSelector />
+      <EditorMediaRange />
     </>
   );
 }
@@ -136,7 +139,8 @@ export function EditorTimeline({
         </div>
         <div className="min-w-0 flex-1">
           <Timeline.Root className="h-full min-h-editor-timeline-mobile w-full lg:min-h-0">
-            <CanvasRenderer />
+            <CanvasRenderer showInOutPoints={false} />
+            <EditorMediaRangeCanvas />
             <EditorTimelineLayers />
           </Timeline.Root>
         </div>
@@ -144,12 +148,7 @@ export function EditorTimeline({
       <div className="flex shrink-0">
         <div className="w-32 shrink-0 border-t border-r border-editor-border bg-editor-panel-muted/55" />
         <div className="cliparr-timeline-scrollbar-row min-w-0 flex-1 border-t border-editor-border px-2 py-1.5">
-          <Timeline.ViewportScrollbar>
-            <Timeline.ViewportScrollbarThumb>
-              <Timeline.ViewportScrollbarHandle side="start" />
-              <Timeline.ViewportScrollbarHandle side="end" />
-            </Timeline.ViewportScrollbarThumb>
-          </Timeline.ViewportScrollbar>
+          <EditorViewportScrollbar />
         </div>
       </div>
     </div>

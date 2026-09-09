@@ -62,9 +62,13 @@ Timecode fields accept seconds, minutes and seconds, or hours, minutes, and seco
 
 Most editor actions are controlled directly on screen:
 
-- Drag the timeline selection to move the clip range.
-- Drag selection edges to adjust `In` and `Out`.
+- The timeline always spans the full media duration. The media block represents the selected clip range.
+- Drag the media block to move `In` and `Out` together, keeping the clip length.
+- Drag either block edge to adjust `In` or `Out`. Click the empty media row or ruler to scrub the source.
+- Focus the block or either edge and use arrow keys for precise adjustments; Page Up and Page Down adjust by one second.
 - Use the zoom buttons to change timeline scale.
+- Drag the scrollbar body to navigate the full video. Drag its edges inward to zoom in or outward to zoom out; zoom changes proportionally to the current view, so fine subtitle adjustments stay precise on long videos.
+- Zoom out to fit the full media duration, or zoom in to inspect subtitle timing. Scrollbar handles, zoom buttons, and wheel zoom share the same limits.
 - Scroll the timeline to move horizontally.
 - Use `Ctrl`/`Cmd` + scroll over the timeline to zoom around the pointer.
 - Use the volume slider and mute button to control preview audio.
