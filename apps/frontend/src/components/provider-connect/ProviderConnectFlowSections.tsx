@@ -1,7 +1,6 @@
 import { AnimatePresence, motion } from "motion/react";
 import { cn } from "@/lib/utilities";
 import type { ProviderDefinition } from "@/providers/types";
-import { ProviderGlyph } from "@/components/providers/ProviderGlyph";
 
 export function providerPresentation(
   provider: ProviderDefinition,
@@ -35,37 +34,6 @@ export function providerPresentation(
   }
 }
 
-export function ProviderBadge({
-  providerId,
-  name,
-  selected,
-  large = false,
-  compact = false,
-}: {
-  providerId: string;
-  name: string;
-  selected: boolean;
-  large?: boolean;
-  compact?: boolean;
-}) {
-  return (
-    <div
-      className={cn(
-        compact ? "rounded-md p-2" : "rounded-2xl p-3",
-        "transition-colors",
-        selected ? "bg-primary/15" : "bg-card",
-      )}
-    >
-      <ProviderGlyph
-        providerId={providerId}
-        providerName={name}
-        className={large ? "h-6 w-6" : "h-5 w-5"}
-        fallbackClassName={selected ? "text-primary" : "text-muted-foreground"}
-      />
-    </div>
-  );
-}
-
 export function ProviderConnectError({
   error,
   isScreen,
@@ -86,7 +54,7 @@ export function ProviderConnectError({
   }
 
   return (
-    <div className="mb-5 min-h-19">
+    <div className="mb-4">
       <AnimatePresence mode="wait">
         <motion.div
           key={error}
@@ -121,125 +89,5 @@ export function ProviderStatusMessage({
     >
       {children}
     </div>
-  );
-}
-
-export function ProviderOption({
-  provider,
-  selectedProvider,
-  authenticating,
-  authenticatingProviderId,
-  variant,
-  onSelect,
-}: {
-  provider: ProviderDefinition;
-  selectedProvider?: ProviderDefinition;
-  authenticating: boolean;
-  authenticatingProviderId: string;
-  variant: "panel" | "screen";
-  onSelect: (providerId: string) => void;
-}) {
-  const isScreen = variant === "screen";
-  const details = providerPresentation(provider, variant);
-  const isSelected = provider.id === selectedProvider?.id;
-  const isBusy = authenticating && authenticatingProviderId === provider.id;
-  let selectedClassName = "border-border bg-background hover:bg-accent/60";
-  if (isSelected) {
-    selectedClassName = isScreen
-      ? "border-primary/40 bg-primary/10 shadow-lg"
-      : "border-primary/30 bg-primary/10";
-  }
-
-  const commonProperties = {
-    type: "button" as const,
-    onClick: () => onSelect(provider.id),
-    disabled: authenticating && !isBusy,
-    className: cn(
-      "w-full border text-left transition-colors disabled:cursor-not-allowed disabled:opacity-60",
-      isScreen ? "rounded-2xl px-4 py-4" : "rounded-lg px-3 py-3",
-      selectedClassName,
-    ),
-  };
-
-  const content = (
-    <div className={cn("flex items-start", isScreen ? "gap-4" : "gap-3")}>
-      <ProviderBadge
-        providerId={provider.id}
-        name={provider.name}
-        selected={isSelected}
-        compact={!isScreen}
-      />
-      <div className="min-w-0 flex-1">
-        <div className="flex items-center justify-between gap-3">
-          <div>
-            <p className="text-xs font-medium uppercase tracking-[var(--tracking-caps-xl)] text-muted-foreground">
-              {details.eyebrow}
-            </p>
-            <h2
-              className={cn(
-                "mt-1 font-semibold text-foreground",
-                isScreen ? "text-lg" : "text-sm",
-              )}
-            >
-              {provider.name}
-            </h2>
-          </div>
-          {isScreen ? (
-            <span
-              aria-hidden={!isSelected}
-              className={cn(
-                "rounded-full border border-primary/30 bg-primary/10 px-2.5 py-1 text-ui-label font-medium uppercase tracking-[var(--tracking-caps-lg)] text-primary",
-                !isSelected && "invisible",
-              )}
-            >
-              Selected
-            </span>
-          ) : (
-            <span
-              aria-hidden={!isSelected}
-              className={cn(
-                "rounded-md border border-primary/20 bg-primary/10 px-2 py-1 text-ui-micro font-semibold uppercase tracking-[var(--tracking-caps-md)] text-primary",
-                !isSelected && "invisible",
-              )}
-            >
-              Selected
-            </span>
-          )}
-        </div>
-        <p
-          className={cn(
-            "mt-2 text-sm text-muted-foreground",
-            isScreen ? "leading-6" : "leading-5",
-          )}
-        >
-          {details.summary}
-        </p>
-        <p
-          aria-hidden={!isBusy}
-          className={cn(
-            "mt-3 h-4 text-xs font-medium uppercase tracking-[var(--tracking-caps-xl)] text-primary",
-            !isBusy && "invisible",
-          )}
-        >
-          In progress
-        </p>
-      </div>
-    </div>
-  );
-
-  if (!isScreen) {
-    return <button {...commonProperties}>{content}</button>;
-  }
-
-  return (
-    <motion.button
-      layout
-      whileHover={authenticating && !isBusy ? undefined : { y: -2 }}
-      whileTap={authenticating && !isBusy ? undefined : { scale: 0.995 }}
-      transition={{ duration: 0.16, ease: "easeOut" }}
-      {...commonProperties}
-    >
-      {content}
-    </motion.button>
   );
 }
