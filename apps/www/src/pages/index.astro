@@ -226,32 +226,34 @@ const faqStructuredData = {
       <div class="flex justify-center lg:justify-end">
         <div class="mobile-phone-preview">
           <div class="editor-preview mobile-phone-screen" data-editor-preview>
-            <Picture
-              src={mobilePreviewImage}
-              alt="Cliparr running in a narrow mobile layout with a dashboard, source controls, and playback actions."
-              formats={["avif", "webp"]}
-              fallbackFormat="jpg"
-              width={402}
-              height={874}
-              widths={[201, 302, 402]}
-              sizes="(min-width: 64rem) 22rem, min(78vw, 22rem)"
-              quality={72}
-              loading="lazy"
-              decoding="async"
-              class="h-full w-full object-cover"
-            />
-            <video
-              class="editor-preview-video absolute inset-0 h-full w-full object-cover"
-              muted
-              loop
-              playsinline
-              preload="none"
-              aria-hidden="true"
-              data-editor-preview-video
-            >
-              <source data-src="/mobile-pwa-preview.webm" type="video/webm" />
-              <source data-src="/mobile-pwa-preview.mp4" type="video/mp4" />
-            </video>
+            <div class="mobile-phone-content">
+              <Picture
+                src={mobilePreviewImage}
+                alt="Cliparr running in a narrow mobile layout with a dashboard, source controls, and playback actions."
+                formats={["avif", "webp"]}
+                fallbackFormat="jpg"
+                width={402}
+                height={874}
+                widths={[201, 302, 402]}
+                sizes="(min-width: 64rem) 22rem, min(78vw, 22rem)"
+                quality={72}
+                loading="lazy"
+                decoding="async"
+                class="h-full w-full object-cover"
+              />
+              <video
+                class="editor-preview-video absolute inset-0 h-full w-full object-cover"
+                muted
+                loop
+                playsinline
+                preload="none"
+                aria-hidden="true"
+                data-editor-preview-video
+              >
+                <source data-src="/mobile-pwa-preview.webm" type="video/webm" />
+                <source data-src="/mobile-pwa-preview.mp4" type="video/mp4" />
+              </video>
+            </div>
           </div>
         </div>
       </div>

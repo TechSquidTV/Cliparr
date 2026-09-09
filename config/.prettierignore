@@ -16,3 +16,5 @@
 ../apps/frontend/src/routeTree.gen.ts
 ../apps/server/src/providers/plex/openapi/pms.json
 ../apps/server/src/providers/plex/generated/
+
+../.asset-capture/

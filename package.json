@@ -37,7 +37,7 @@
     "plex:sdk:update": "node tools/plex/update-sdk.mjs",
     "plex:sdk:check": "node tools/plex/check-sdk.mjs",
     "preflight": "pnpm format:check && pnpm lint && pnpm knip && pnpm test",
-    "test": "pnpm plex:sdk:check && pnpm test:release && pnpm test:plex-sdk && pnpm --filter @cliparr/server test && pnpm --filter @cliparr/frontend test",
+    "test": "pnpm plex:sdk:check && pnpm test:release && pnpm test:plex-sdk && pnpm --filter @cliparr/server test && pnpm --filter @cliparr/frontend test && pnpm test:assets",
     "test:release": "node --test tools/release/*.test.mjs",
     "test:plex-sdk": "node --test tools/plex/*.test.mjs",
     "release:plan": "node tools/release/plan-release.mjs",
@@ -49,7 +49,9 @@
     "deploy:web": "pnpm build:web && pnpm cf:deploy",
     "preview": "pnpm --filter @cliparr/server preview",
     "start": "pnpm --filter @cliparr/server start",
-    "clean": "pnpm -r clean"
+    "clean": "pnpm -r clean",
+    "assets:capture": "pnpm --filter @cliparr/www-assets capture",
+    "test:assets": "pnpm --filter @cliparr/www-assets test"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

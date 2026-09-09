@@ -27,6 +27,7 @@ import {
   resolveRelativeSeekTime,
 } from "@/components/editor/editorShortcutCommands";
 import type { PlaybackFallbackInfo } from "@/components/editor/editorPlaybackSources";
+import { useEditorAssetCapture } from "@/components/editor/useEditorAssetCapture";
 import { useEditorExport } from "@/components/editor/useEditorExport";
 import { useEditorKeyboardShortcuts } from "@/components/editor/useEditorKeyboardShortcuts";
 import { useEditorTimelineMedia } from "@/components/editor/useEditorTimelineMedia";
@@ -336,6 +337,21 @@ function EditorScreenContent({
     setZoomScale(scale);
     setScrollLeft(Math.max(0, startTime * scale - padding));
   };
+  useEditorAssetCapture({
+    engine,
+    media: timelineMedia,
+    fitSelection: handleFitSelection,
+    subtitles: {
+      subtitleTracks,
+      subtitleOutputEnabled,
+      subtitleCuesReady,
+      subtitleLoading,
+      subtitleError,
+      clippedSubtitleCues,
+      setSubtitleEnabled,
+      handleSelectedSubtitleTrackChange,
+    },
+  });
   const zoomControl = useTimelineZoomControl({
     min: 0,
     max: EDITOR_MAX_ZOOM_SCALE,
