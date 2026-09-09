@@ -671,7 +671,6 @@
 }
 
 .editor-media-range .range-scrollbar-handle {
-  width: min(12px, 25%);
   background: transparent;
   touch-action: none;
 }

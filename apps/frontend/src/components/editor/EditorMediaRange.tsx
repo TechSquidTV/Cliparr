@@ -1,13 +1,18 @@
 import {
   RangeScrollbar,
   Timeline,
+  fromSeconds,
   useTimelineInOutRangeControl,
   useTimelinePlayback,
   useTimelineScrollLeft,
   useTimelineTrack,
   useTimelineZoomScale,
+  type TimelineEngine,
 } from "@techsquidtv/canvas-timeline";
-import { EDITOR_MEDIA_RANGE_INSET } from "@/components/editor/EditorMediaRangeCanvas";
+import {
+  EDITOR_MEDIA_RANGE_HANDLE_WIDTH,
+  EDITOR_MEDIA_RANGE_INSET,
+} from "@/components/editor/EditorMediaRangeCanvas";
 import { EDITOR_MEDIA_TRACK_ID } from "@/components/editor/editorTimelineEngine";
 import {
   formatTime,
@@ -17,7 +22,7 @@ import {
 // The source clip stays full-length for preview and source timestamp mapping.
 // Its visible row represents the export range, using the same In/Out state as
 // time fields, shortcuts, drafts, and history rather than editing source media.
-export function EditorMediaRange() {
+export function EditorMediaRange({ engine }: { engine: TimelineEngine }) {
   const { setPlayheadTime } = useTimelinePlayback();
   const { rect } = useTimelineTrack(EDITOR_MEDIA_TRACK_ID);
   const scrollLeft = useTimelineScrollLeft();
@@ -53,17 +58,18 @@ export function EditorMediaRange() {
             : formatTime(value)
         }
         onValueChange={({ start, end }, details) => {
+          // Native drags retain the callback from pointerdown. Apply the whole
+          // range atomically so returning to the gesture's start still updates.
+          engine.setInOutRange(fromSeconds(start), fromSeconds(end));
           if (
             details.reason === "thumb-keyboard" ||
             details.reason === "handle-keyboard"
           ) {
-            range.commit([start, end]);
-          } else {
-            range.setValue([start, end]);
+            engine.settle();
           }
         }}
-        onPointerUp={() => range.commit()}
-        onPointerCancel={() => range.commit()}
+        onPointerUp={() => engine.settle()}
+        onPointerCancel={() => engine.settle()}
         style={{
           top: EDITOR_MEDIA_RANGE_INSET,
           height: rect.height - EDITOR_MEDIA_RANGE_INSET * 2,
@@ -78,12 +84,14 @@ export function EditorMediaRange() {
         >
           <RangeScrollbar.Handle
             side="start"
+            style={{ width: `min(${EDITOR_MEDIA_RANGE_HANDLE_WIDTH}px, 25%)` }}
             role="slider"
             aria-label="Clip start"
             title="Trim clip start"
           />
           <RangeScrollbar.Handle
             side="end"
+            style={{ width: `min(${EDITOR_MEDIA_RANGE_HANDLE_WIDTH}px, 25%)` }}
             role="slider"
             aria-label="Clip end"
             title="Trim clip end"

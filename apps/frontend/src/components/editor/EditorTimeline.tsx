@@ -5,6 +5,7 @@ import {
   useTimelinePlayback,
   useTimelineTracks,
   useTimelineViewport,
+  type TimelineEngine,
   type UseTimelineTrackHeaderResult,
 } from "@techsquidtv/canvas-timeline";
 import { Eye, EyeOff, Volume2, VolumeX } from "lucide-react";
@@ -12,6 +13,7 @@ import { useEffect, useRef } from "react";
 import { EditorMediaRange } from "@/components/editor/EditorMediaRange";
 import { EditorMediaRangeCanvas } from "@/components/editor/EditorMediaRangeCanvas";
 import { EditorViewportScrollbar } from "@/components/editor/EditorViewportScrollbar";
+import { zoomEditorTimeline } from "@/components/editor/editorTimelineZoom";
 import {
   EDITOR_MEDIA_TRACK_ID,
   timelineScrollLeftForCenteredTime,
@@ -78,7 +80,7 @@ function TrackHeaderColumn({ muted, onMutedChange }: EditorTimelineProperties) {
   );
 }
 
-function EditorTimelineLayers() {
+function EditorTimelineLayers({ engine }: { engine: TimelineEngine }) {
   const { tracks } = useTimelineTracks();
 
   return (
@@ -92,7 +94,7 @@ function EditorTimelineLayers() {
         ))}
       </Timeline.TrackList>
       <Timeline.ClipInteractionLayer />
-      <EditorMediaRange />
+      <EditorMediaRange engine={engine} />
     </>
   );
 }
@@ -128,9 +130,37 @@ function CenterViewportOnInPoint() {
 }
 
 export function EditorTimeline({
+  engine,
   muted,
   onMutedChange,
-}: EditorTimelineProperties) {
+}: EditorTimelineProperties & { engine: TimelineEngine }) {
+  const root = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const element = root.current;
+    if (!element) {
+      return;
+    }
+    const zoomAtPointer = (event: WheelEvent) => {
+      if (event.shiftKey || (!event.ctrlKey && !event.metaKey)) {
+        return;
+      }
+      // Intercept before the library's wheel listener, which preserves pixel
+      // scroll offset and can jump far from the current moment on long media.
+      event.preventDefault();
+      event.stopPropagation();
+      zoomEditorTimeline(
+        engine,
+        Math.max(0.01, engine.zoomScale * (1 - event.deltaY * 0.001)),
+        event.clientX - element.getBoundingClientRect().left,
+      );
+    };
+    element.addEventListener("wheel", zoomAtPointer, {
+      capture: true,
+      passive: false,
+    });
+    return () => element.removeEventListener("wheel", zoomAtPointer, true);
+  }, [engine]);
+
   return (
     <div className="cliparr-timeline-v2 flex h-full min-h-0 flex-col bg-editor-panel">
       <div className="flex min-h-0 flex-1">
@@ -138,10 +168,13 @@ export function EditorTimeline({
           <TrackHeaderColumn muted={muted} onMutedChange={onMutedChange} />
         </div>
         <div className="min-w-0 flex-1">
-          <Timeline.Root className="h-full min-h-editor-timeline-mobile w-full lg:min-h-0">
+          <Timeline.Root
+            ref={root}
+            className="h-full min-h-editor-timeline-mobile w-full lg:min-h-0"
+          >
             <CanvasRenderer showInOutPoints={false} />
             <EditorMediaRangeCanvas />
-            <EditorTimelineLayers />
+            <EditorTimelineLayers engine={engine} />
           </Timeline.Root>
         </div>
       </div>

@@ -47,14 +47,25 @@ export function viewportScrollbarGeometry({
   };
 }
 
-export function zoomEditorTimeline(engine: TimelineEngine, scale: number) {
+export function zoomEditorTimeline(
+  engine: TimelineEngine,
+  scale: number,
+  anchorPixel?: number,
+) {
   const state = engine.getState();
   const width = state.viewportWidth ?? 0;
   if (width <= 0) {
     return;
   }
   const playheadX = engine.timeToPixel(state.playheadTime);
-  const anchorX = playheadX >= 0 && playheadX <= width ? playheadX : width / 2;
+  const anchorX = Math.min(
+    width,
+    Math.max(
+      0,
+      anchorPixel ??
+        (playheadX >= 0 && playheadX <= width ? playheadX : width / 2),
+    ),
+  );
   const anchorTime = engine.pixelToTime(anchorX);
   engine.setZoomScale(scale);
   engine.setScrollLeft(

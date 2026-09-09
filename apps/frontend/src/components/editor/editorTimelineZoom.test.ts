@@ -80,6 +80,34 @@ void test("button zoom keeps the viewport center when the playhead is offscreen"
   assert.equal(engine.timeToPixel(fromSeconds(1805)), 500);
 });
 
+void test("pointer zoom preserves the pointed time even when the zoom limit clamps the scale", () => {
+  const engine = new TimelineEngine({
+    tracks: [],
+    duration: fromSeconds(3600),
+    zoomScale: 100,
+    zoomConstraints: { maxZoomScale: 1000 },
+    playheadTime: fromSeconds(1801),
+  });
+  engine.setViewportWidth(1000);
+  engine.setScrollLeft(180_000);
+  zoomEditorTimeline(engine, 2000, 750);
+  assert.equal(engine.zoomScale, 1000);
+  assert.equal(engine.timeToPixel(fromSeconds(1807.5)), 750);
+});
+
+void test("zooming all the way out stays within the full media bounds", () => {
+  const engine = new TimelineEngine({
+    tracks: [],
+    duration: fromSeconds(3600),
+    zoomScale: 100,
+  });
+  engine.setViewportWidth(1000);
+  engine.setScrollLeft(359_000);
+  zoomEditorTimeline(engine, 0.01, 900);
+  assert.equal(engine.zoomScale, 1000 / 3600);
+  assert.equal(engine.getState().scrollLeft, 0);
+});
+
 void test("zoom drag precision depends on the visible span, not media length", () => {
   for (const duration of [1800, 3600, 7200]) {
     assert.deepEqual(

@@ -7,7 +7,7 @@ order: 40
 
 The editor keeps keyboard shortcuts focused on preview playback, range marking, seeking, and timeline navigation so browser, form, and media controls stay predictable.
 
-Shortcuts only control the editor when focus is not inside an interactive control or dialog. They are ignored while typing in inputs, using selects, pressing buttons, adjusting sliders, or working inside export and framegrab dialogs.
+Shortcuts only control the editor when focus is not inside an interactive control or dialog. They are ignored while typing in inputs, using selects, pressing buttons, adjusting sliders or scrollbars, or working inside export and framegrab dialogs.
 
 ## Preview playback
 
@@ -72,3 +72,11 @@ Most editor actions are controlled directly on screen:
 - Scroll the timeline to move horizontally.
 - Use `Ctrl`/`Cmd` + scroll over the timeline to zoom around the pointer.
 - Use the volume slider and mute button to control preview audio.
+
+## Working with long videos
+
+Use the scrollbar body to move through the full source, then drag a scrollbar edge inward to zoom in until subtitle cues are easy to read and adjust. Drag outward to zoom back out. The thumb's width follows the zoom level, while its position tracks where you are in the video; its width continues to change even when only a few seconds are visible.
+
+With the scrollbar body focused, Left and Right Arrow pan a small distance, and Page Up and Page Down pan most of the visible view. With an edge focused, these keys adjust zoom instead. These controls leave the playhead and clip boundaries in place. The zoom buttons keep a visible playhead at its screen position, or keep the center of the view when the playhead is offscreen, until the view reaches a media boundary.
+
+Zoom out to see the entire source when choosing a new moment, or zoom in for subtitle timing. Moving the media block changes only the export range; subtitle cues stay aligned with the source. The `In` and `Out` timecodes remain available for exact boundaries.

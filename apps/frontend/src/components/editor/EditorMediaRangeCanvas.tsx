@@ -9,6 +9,7 @@ import { useCallback, useRef } from "react";
 import { EDITOR_MEDIA_TRACK_ID } from "@/components/editor/editorTimelineEngine";
 
 export const EDITOR_MEDIA_RANGE_INSET = 4;
+export const EDITOR_MEDIA_RANGE_HANDLE_WIDTH = 12;
 
 export function EditorMediaRangeCanvas() {
   const { rect, track } = useTimelineTrack(EDITOR_MEDIA_TRACK_ID);
@@ -63,7 +64,10 @@ export function EditorMediaRangeCanvas() {
         ctx.stroke();
         ctx.clip();
 
-        const handleWidth = Math.min(12, selectionWidth / 4);
+        const handleWidth = Math.min(
+          EDITOR_MEDIA_RANGE_HANDLE_WIDTH,
+          selectionWidth / 4,
+        );
         ctx.fillStyle = theme.colors.clip.borderSelected;
         ctx.globalAlpha = 0.25;
         ctx.fillRect(x, y, handleWidth, selectionHeight);

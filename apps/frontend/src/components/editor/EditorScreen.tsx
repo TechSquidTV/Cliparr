@@ -552,7 +552,7 @@ function EditorScreenContent({
     />
   );
   const editorTimeline = hasDuration ? (
-    <EditorTimeline muted={muted} onMutedChange={setMuted} />
+    <EditorTimeline engine={engine} muted={muted} onMutedChange={setMuted} />
   ) : null;
   const timelinePane = (
     <EditorTimelinePane
