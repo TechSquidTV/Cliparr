@@ -1,10 +1,12 @@
 #!/usr/bin/env node
 import { execFileSync } from "node:child_process";
-import { appendFileSync } from "node:fs";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { writeGithubOutput } from "#release/github-output.mjs";
+import { pathToFileURL } from "node:url";
 import {
   bumpVersion,
+  compareSemverTags,
   extractReleaseTitleFromCommitMessage,
-  extractPullRequestNumberFromCommitMessage,
   formatTag,
   formatVersion,
   latestPrereleaseTag,
@@ -71,46 +73,8 @@ function git(arguments_) {
   }).trim();
 }
 
-async function githubApi(path) {
-  const token = process.env.GITHUB_TOKEN ?? process.env.GH_TOKEN;
-  const repository = process.env.GITHUB_REPOSITORY ?? "TechSquidTV/Cliparr";
-
-  if (!token) {
-    try {
-      return JSON.parse(
-        execFileSync("gh", ["api", `repos/${repository}${path}`], {
-          encoding: "utf8",
-          stdio: ["ignore", "pipe", "ignore"],
-        }),
-      );
-    } catch {
-      return;
-    }
-  }
-
-  const response = await fetch(
-    `https://api.github.com/repos/${repository}${path}`,
-    {
-      headers: {
-        Accept: "application/vnd.github+json",
-        Authorization: `Bearer ${token}`,
-        "User-Agent": "cliparr-release-planner",
-        "X-GitHub-Api-Version": "2022-11-28",
-      },
-    },
-  );
-
-  if (!response.ok) {
-    throw new Error(
-      `GitHub API GET ${path} failed: ${response.status} ${await response.text()}`,
-    );
-  }
-
-  return response.json();
-}
-
-function getTags() {
-  const output = git(["tag", "--list", "v*"]);
+function getTags(target) {
+  const output = git(["tag", "--merged", target, "--list", "v*"]);
   return output ? output.split("\n").filter(Boolean) : [];
 }
 
@@ -137,41 +101,15 @@ function buildDockerTags({ imageName, version, channel, shortSha }) {
   return tags;
 }
 
-function writeGithubOutput(outputs) {
-  const outputFile = process.env.GITHUB_OUTPUT;
-
-  if (!outputFile) {
-    throw new Error("GITHUB_OUTPUT is not set.");
-  }
-
-  const lines = [];
-
-  for (const [key, value] of Object.entries(outputs)) {
-    if (Array.isArray(value)) {
-      lines.push(`${key}<<EOF`, ...value, "EOF");
-    } else {
-      lines.push(`${key}=${value}`);
-    }
-  }
-
-  appendFileSync(outputFile, `${lines.join("\n")}\n`);
+function getCommitSha(ref) {
+  // Git's peel syntax is literal, not a missing JavaScript interpolation.
+  // eslint-disable-next-line unicorn/no-incorrect-template-string-interpolation
+  return git(["rev-parse", `${ref}^{commit}`]);
 }
 
-async function titleForCommitMessage(message) {
-  const pullRequestNumber = extractPullRequestNumberFromCommitMessage(message);
-
-  if (!pullRequestNumber) {
-    return extractReleaseTitleFromCommitMessage(message);
-  }
-
-  const pullRequest = await githubApi(`/pulls/${pullRequestNumber}`);
-  return typeof pullRequest?.title === "string"
-    ? pullRequest.title
-    : extractReleaseTitleFromCommitMessage(message);
-}
-
-async function planRelease(arguments_) {
-  const tags = getTags();
+export function planRelease(arguments_) {
+  const target = getCommitSha(arguments_.target);
+  const tags = getTags(target);
   const previousStableTag = latestStableTag(tags);
 
   if (!previousStableTag) {
@@ -189,8 +127,8 @@ async function planRelease(arguments_) {
   }
 
   const messages = getCommitMessages(previousStableTag, arguments_.target);
-  const titles = await Promise.all(
-    messages.map((message) => titleForCommitMessage(message)),
+  const titles = messages.map((message) =>
+    extractReleaseTitleFromCommitMessage(message),
   );
   const summary = summarizeChanges(titles);
 
@@ -222,10 +160,19 @@ async function planRelease(arguments_) {
     throw new Error(`Release tag ${tag} already exists.`);
   }
 
-  const previousPrereleaseTag = isPrerelease
-    ? latestPrereleaseTag(tags, baseVersion, arguments_.channel)
+  const previousPrereleaseTag = latestPrereleaseTag(
+    tags,
+    baseVersion,
+    isPrerelease ? arguments_.channel : "rc",
+  );
+  const changesSincePrerelease = previousPrereleaseTag
+    ? getCommitMessages(previousPrereleaseTag, target).length
     : undefined;
-  const previousTag = previousPrereleaseTag ?? previousStableTag;
+  if (isPrerelease && changesSincePrerelease === 0) {
+    throw new Error(`No new commits since ${previousPrereleaseTag}.`);
+  }
+  const previousTag =
+    (isPrerelease ? previousPrereleaseTag : undefined) ?? previousStableTag;
   const shortSha = getShortSha(arguments_.target);
   const dockerTags = buildDockerTags({
     imageName: arguments_.imageName,
@@ -235,6 +182,15 @@ async function planRelease(arguments_) {
   });
 
   return {
+    target,
+    channel: arguments_.channel,
+    previous_stable_tag: previousStableTag,
+    previous_prerelease_tag: previousPrereleaseTag ?? "",
+    changes_since_prerelease:
+      changesSincePrerelease === undefined
+        ? ""
+        : String(changesSincePrerelease),
+    matches_prerelease: String(changesSincePrerelease === 0),
     version,
     tag,
     previous_tag: previousTag,
@@ -249,7 +205,50 @@ async function planRelease(arguments_) {
 
 async function main(argv = process.argv.slice(2)) {
   const arguments_ = parseArguments(argv);
-  const plan = await planRelease(arguments_);
+  const planFile = process.env.RELEASE_PLAN_FILE;
+  const plan =
+    planFile && existsSync(planFile)
+      ? JSON.parse(readFileSync(planFile, "utf8"))
+      : planRelease(arguments_);
+  if (
+    plan.target !== getCommitSha(arguments_.target) ||
+    plan.channel !== arguments_.channel
+  ) {
+    throw new Error(
+      "Saved release plan does not match the requested commit and channel.",
+    );
+  }
+  const existingTags = git(["tag", "--list", "v*"]).split("\n").filter(Boolean);
+  if (
+    existingTags.includes(plan.tag) &&
+    getCommitSha(plan.tag) !== plan.target
+  ) {
+    throw new Error(`Release tag ${plan.tag} points to another commit.`);
+  }
+  const stableTag = latestStableTag(
+    existingTags.filter((tag) => tag !== plan.tag),
+  );
+  if (stableTag !== plan.previous_stable_tag) {
+    throw new Error(
+      "A newer stable release exists; refusing to resume an outdated plan.",
+    );
+  }
+  const newerCandidate = existingTags.find((tag) => {
+    const parsed = parseSemverTag(tag);
+    return (
+      plan.prerelease === "true" &&
+      parsed?.channel === plan.channel &&
+      compareSemverTags(tag, plan.tag) > 0
+    );
+  });
+  if (newerCandidate) {
+    throw new Error(
+      `A newer candidate ${newerCandidate} exists; refusing to move the channel backwards.`,
+    );
+  }
+  if (planFile) {
+    writeFileSync(planFile, `${JSON.stringify(plan, null, 2)}\n`);
+  }
 
   if (arguments_.githubOutput) {
     writeGithubOutput(plan);
@@ -258,11 +257,16 @@ async function main(argv = process.argv.slice(2)) {
   process.stdout.write(`${JSON.stringify(plan, null, 2)}\n`);
 }
 
-try {
-  await main();
-} catch (error) {
-  process.stderr.write(
-    `${error instanceof Error ? error.message : String(error)}\n`,
-  );
-  process.exit(1);
+if (
+  process.argv[1] &&
+  import.meta.url === pathToFileURL(process.argv[1]).href
+) {
+  try {
+    await main();
+  } catch (error) {
+    process.stderr.write(
+      `${error instanceof Error ? error.message : String(error)}\n`,
+    );
+    process.exitCode = 1;
+  }
 }

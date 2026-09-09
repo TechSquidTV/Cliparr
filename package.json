@@ -5,6 +5,7 @@
   "license": "MIT",
   "type": "module",
   "imports": {
+    "#ci/*.mjs": "./tools/ci/*.mjs",
     "#plex/*.mjs": "./tools/plex/*.mjs",
     "#release/*.mjs": "./tools/release/*.mjs"
   },
@@ -37,7 +38,7 @@
     "plex:sdk:update": "node tools/plex/update-sdk.mjs",
     "plex:sdk:check": "node tools/plex/check-sdk.mjs",
     "preflight": "pnpm format:check && pnpm lint && pnpm knip && pnpm test",
-    "test": "pnpm plex:sdk:check && pnpm test:release && pnpm test:plex-sdk && pnpm --filter @cliparr/server test && pnpm --filter @cliparr/frontend test && pnpm test:assets",
+    "test": "pnpm plex:sdk:check && pnpm test:release && pnpm test:plex-sdk && pnpm -r --if-present test",
     "test:release": "node --test tools/release/*.test.mjs",
     "test:plex-sdk": "node --test tools/plex/*.test.mjs",
     "release:plan": "node tools/release/plan-release.mjs",

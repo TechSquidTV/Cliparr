@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import { appendFileSync, readFileSync } from "node:fs";
+import { writeGithubOutput } from "#release/github-output.mjs";
 import { pathToFileURL } from "node:url";
 
 const booleanArgumentNames = new Set(["--dry-run", "--prerelease"]);
@@ -72,7 +73,10 @@ export function parseArguments(argv) {
   return arguments_;
 }
 
-async function githubApi(path, { method = "GET", body, token }) {
+async function githubApi(
+  path,
+  { method = "GET", body, token, allowMissing = false },
+) {
   const headers = {
     Accept: "application/vnd.github+json",
     "Content-Type": "application/json",
@@ -89,6 +93,10 @@ async function githubApi(path, { method = "GET", body, token }) {
     headers,
     body: body ? JSON.stringify(body) : undefined,
   });
+
+  if (response.status === 404 && allowMissing) {
+    return;
+  }
 
   if (!response.ok) {
     throw new Error(
@@ -112,6 +120,7 @@ export function composeReleaseBody({
   imageName,
   imageDigest,
   dockerTags,
+  dryRun = false,
 }) {
   const pullTag =
     dockerTags.find(
@@ -120,7 +129,7 @@ export function composeReleaseBody({
   const dockerLines = [
     "## Docker image",
     "",
-    `Published to \`${imageName}\`.`,
+    `${dryRun ? "Planned image (not published)" : "Published to"} \`${imageName}\`.`,
     "",
     "```bash",
     `docker pull ${pullTag}`,
@@ -137,21 +146,6 @@ export function composeReleaseBody({
   return `${[releaseNotes.trim(), generatedBody.trim(), dockerLines.join("\n")]
     .filter(Boolean)
     .join("\n\n")}\n`;
-}
-
-function writeGithubOutput(outputs) {
-  const outputFile = process.env.GITHUB_OUTPUT;
-
-  if (!outputFile) {
-    return;
-  }
-
-  appendFileSync(
-    outputFile,
-    `${Object.entries(outputs)
-      .map(([key, value]) => `${key}=${value}`)
-      .join("\n")}\n`,
-  );
 }
 
 export async function main(argv = process.argv.slice(2)) {
@@ -184,28 +178,56 @@ export async function main(argv = process.argv.slice(2)) {
     imageName: arguments_.imageName,
     imageDigest: arguments_.imageDigest,
     dockerTags,
+    dryRun: arguments_.dryRun,
   });
+
+  if (process.env.GITHUB_STEP_SUMMARY) {
+    appendFileSync(
+      process.env.GITHUB_STEP_SUMMARY,
+      `<details><summary>${arguments_.dryRun ? "Planned release notes — not published" : "Release notes"}</summary>\n\n${body}\n</details>\n`,
+    );
+  }
 
   if (arguments_.dryRun) {
     process.stdout.write(`# ${arguments_.name}\n\n`);
     process.stdout.write(`${body}\n`);
     writeGithubOutput({ html_url: "" });
-    process.exit(0);
+    return;
   }
 
-  const release = await githubApi(`/repos/${arguments_.repository}/releases`, {
-    method: "POST",
-    token,
-    body: {
-      tag_name: arguments_.tag,
-      target_commitish: arguments_.target,
-      name: arguments_.name,
-      body,
-      draft: false,
-      prerelease: arguments_.prerelease,
-      make_latest: arguments_.prerelease ? "false" : "true",
+  const repositoryPath = `/repos/${arguments_.repository}`;
+  const existing = await githubApi(
+    `${repositoryPath}/releases/tags/${arguments_.tag}`,
+    { token, allowMissing: true },
+  );
+  const taggedCommit = await githubApi(
+    `${repositoryPath}/commits/${arguments_.tag}`,
+    { token, allowMissing: true },
+  );
+  if (
+    (existing && !taggedCommit) ||
+    (taggedCommit && taggedCommit.sha !== arguments_.target)
+  ) {
+    throw new Error(`Release tag ${arguments_.tag} points to another commit.`);
+  }
+  const release = await githubApi(
+    existing
+      ? `${repositoryPath}/releases/${existing.id}`
+      : `${repositoryPath}/releases`,
+    {
+      method: existing ? "PATCH" : "POST",
+      token,
+      body: {
+        tag_name: arguments_.tag,
+        target_commitish: arguments_.target,
+        name: arguments_.name,
+        body,
+        draft: false,
+        prerelease: arguments_.prerelease,
+        make_latest: arguments_.prerelease ? "false" : "true",
+      },
     },
-  });
+  );
 
   process.stdout.write(`Created release ${release.html_url}\n`);
   writeGithubOutput({ html_url: release.html_url });

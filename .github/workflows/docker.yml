@@ -6,6 +6,10 @@ on:
       - main
   workflow_dispatch:
 
+concurrency:
+  group: docker-${{ github.ref }}
+  cancel-in-progress: true
+
 permissions:
   contents: read
 
@@ -21,6 +25,14 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v7
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v6
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v4
@@ -78,45 +90,13 @@ jobs:
           cache-from: type=gha
 
       - name: Smoke test image
-        run: |
-          set -euo pipefail
-
-          health_file="${RUNNER_TEMP}/cliparr-health.json"
-          index_file="${RUNNER_TEMP}/cliparr-index.html"
-
-          docker run \
-            --detach \
-            --name cliparr-smoke \
-            --publish 7171:7171 \
-            --env APP_KEY="cliparr-smoke-test-key-with-at-least-32-characters" \
-            --volume cliparr-smoke-data:/data \
-            cliparr:smoke
-
-          for attempt in {1..30}; do
-            if curl --fail --silent --show-error http://127.0.0.1:7171/api/health > "${health_file}"; then
-              break
-            fi
-            sleep 1
-          done
-
-          cat "${health_file}"
-          grep -q '"status":"ok"' "${health_file}"
-          grep -q '"database":"ok"' "${health_file}"
-
-          curl --fail --silent --show-error http://127.0.0.1:7171/ > "${index_file}"
-          grep -q '<div id="root"></div>' "${index_file}"
-
-      - name: Show smoke-test logs
-        if: failure()
-        run: docker logs cliparr-smoke || true
-
-      - name: Stop smoke-test container
-        if: always()
-        run: |
-          docker rm -f cliparr-smoke || true
-          docker volume rm cliparr-smoke-data || true
+        id: smoke
+        env:
+          EXPECTED_VERSION: ${{ steps.version.outputs.value }}
+        run: bash tools/ci/smoke-image.sh cliparr:smoke "$EXPECTED_VERSION"
 
       - name: Build Docker image
+        id: publish
         uses: docker/build-push-action@v7
         with:
           context: .
@@ -130,3 +110,13 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+      - name: Write CI summary
+        if: always()
+        env:
+          SUMMARY_STEPS: ${{ toJSON(steps) }}
+          JOB_STATUS: ${{ job.status }}
+          DRY_RUN: "true"
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          CLIPARR_VERSION: ${{ steps.version.outputs.value }}
+        run: node tools/ci/summary.mjs
