@@ -1,4 +1,9 @@
-import { useMemo, type CSSProperties, type ReactElement } from "react";
+import {
+  useMemo,
+  type CSSProperties,
+  type ReactElement,
+  type ReactNode,
+} from "react";
 import {
   Camera,
   Pause,
@@ -24,6 +29,7 @@ import {
   DrawerTrigger,
 } from "@/components/ui/drawer";
 import { EditorEditableTimecode } from "@/components/editor/EditorEditableTimecode";
+import { handleHorizontalScrollKeyDown } from "@/components/ui/scroll-area";
 import { EditorPreviewTimecode } from "@/components/editor/EditorPreviewTimecode";
 import {
   formatTime,
@@ -34,6 +40,7 @@ type EditorControlsVariant = "desktop" | "mobile";
 
 interface EditorControlsProperties {
   variant?: EditorControlsVariant;
+  playbackSourcePanel: ReactNode;
   playing: boolean;
   loadingPreview: boolean;
   togglePlay: () => void;
@@ -87,6 +94,7 @@ function ControlTooltip({
 
 export function EditorControls({
   variant = "desktop",
+  playbackSourcePanel,
   playing,
   loadingPreview,
   togglePlay,
@@ -131,6 +139,9 @@ export function EditorControls({
     }),
     [duration],
   );
+  const mobileClipMetricStyle: CSSProperties = {
+    minWidth: `max(8rem, ${formatTimecodeInput(duration).length + 2}ch)`,
+  };
   const volumeRangeFillPercent = `${
     Math.min(Math.max(muted ? 0 : volume, 0), 1) * 100
   }%`;
@@ -170,6 +181,11 @@ export function EditorControls({
     >
       <EditorPreviewTimecode
         ariaHidden
+        className={
+          variant === "mobile"
+            ? "text-[clamp(0.6875rem,6cqi,0.875rem)]"
+            : undefined
+        }
         currentTime={currentTime}
         duration={duration}
       />
@@ -277,7 +293,7 @@ export function EditorControls({
           className={rangeActionButtonClassName}
           aria-label="Set in point at the playhead"
         >
-          In
+          Set in
         </button>
       </ControlTooltip>
       <ControlTooltip
@@ -291,7 +307,7 @@ export function EditorControls({
           className={`${rangeActionButtonClassName} border-l border-editor-border`}
           aria-label="Set out point at the playhead"
         >
-          Out
+          Set out
         </button>
       </ControlTooltip>
       <ControlTooltip
@@ -313,45 +329,72 @@ export function EditorControls({
   );
   const editableClipMetrics = (
     <>
-      {clipMetrics.map((metric) => (
-        <div
-          key={metric.label}
-          className={
-            variant === "mobile"
-              ? "flex min-w-0 flex-col rounded-[var(--radius-control)] border border-editor-border bg-editor-control p-2"
-              : "flex items-center gap-2"
-          }
-        >
-          <span className="text-ui-label font-semibold uppercase tracking-[var(--tracking-caps-lg)] text-muted-foreground">
+      {clipMetrics.map((metric) => {
+        const label = (
+          <span className="font-sans text-ui-label font-semibold uppercase tracking-[var(--tracking-caps-lg)] text-muted-foreground">
             {metric.label}
           </span>
-          {metric.onCommit ? (
-            <EditorEditableTimecode
-              ariaLabel={`${metric.label} time`}
-              buttonClassName="w-full justify-end rounded-[var(--radius-control)] px-1 font-mono text-sm font-semibold tabular-nums text-muted-foreground hover:bg-editor-control-hover hover:text-foreground focus-visible:ring-editor-accent/35"
-              className="justify-end"
-              disabled={!canEditClipTimecode}
-              inputClassName="text-right"
-              onCommit={metric.onCommit}
-              style={clipMetricTimeStyle}
-              value={metric.value}
-            >
-              <span className="block w-full text-right">
+        );
+        return (
+          <div
+            key={metric.label}
+            className={
+              variant === "mobile"
+                ? "flex h-11 flex-1 items-center justify-center gap-2 whitespace-nowrap border-r border-editor-border px-2 font-mono last:border-r-0"
+                : "flex items-center gap-2"
+            }
+            style={variant === "mobile" ? mobileClipMetricStyle : undefined}
+          >
+            {(variant === "desktop" || !metric.onCommit) && label}
+            {metric.onCommit ? (
+              <EditorEditableTimecode
+                ariaLabel={`${metric.label} time`}
+                buttonClassName={
+                  variant === "mobile"
+                    ? "h-11 w-full justify-center gap-2 rounded-[var(--radius-control)] text-foreground hover:bg-editor-control-hover"
+                    : "w-full justify-end rounded-[var(--radius-control)] px-1 font-mono text-sm font-semibold tabular-nums text-muted-foreground hover:bg-editor-control-hover hover:text-foreground focus-visible:ring-editor-accent/35"
+                }
+                className={
+                  variant === "mobile"
+                    ? "min-h-11 w-full items-center"
+                    : "justify-end"
+                }
+                disabled={!canEditClipTimecode}
+                inputClassName={
+                  variant === "mobile"
+                    ? "h-11 text-base text-right"
+                    : "text-right"
+                }
+                onCommit={metric.onCommit}
+                style={variant === "desktop" ? clipMetricTimeStyle : undefined}
+                value={metric.value}
+              >
+                {variant === "mobile" && label}
+                <span
+                  className={
+                    variant === "mobile"
+                      ? "font-mono text-sm font-semibold tabular-nums"
+                      : "block w-full text-right"
+                  }
+                >
+                  {formatTime(metric.value)}
+                </span>
+              </EditorEditableTimecode>
+            ) : (
+              <span
+                className={`inline-block text-right font-mono text-sm font-semibold tabular-nums ${
+                  metric.emphasized
+                    ? "text-foreground"
+                    : "text-muted-foreground"
+                }`}
+                style={variant === "desktop" ? clipMetricTimeStyle : undefined}
+              >
                 {formatTime(metric.value)}
               </span>
-            </EditorEditableTimecode>
-          ) : (
-            <span
-              className={`inline-block text-right font-mono text-sm font-semibold tabular-nums ${
-                metric.emphasized ? "text-foreground" : "text-muted-foreground"
-              }`}
-              style={clipMetricTimeStyle}
-            >
-              {formatTime(metric.value)}
-            </span>
-          )}
-        </div>
-      ))}
+            )}
+          </div>
+        );
+      })}
     </>
   );
 
@@ -360,7 +403,7 @@ export function EditorControls({
       <div className="border-b border-editor-border bg-editor-panel px-3 py-2">
         <div className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2">
           <div className="[&_button]:h-10 [&_button]:w-10">{playControl}</div>
-          <div className="min-w-0 text-center text-sm font-medium">
+          <div className="@container min-w-0 text-center text-sm font-medium">
             {previewTimeControl}
           </div>
           <Drawer>
@@ -381,6 +424,7 @@ export function EditorControls({
                 </DrawerDescription>
               </DrawerHeader>
               <div className="cliparr-editor-scrollbar min-h-0 overflow-y-auto px-3 pb-4">
+                <div className="pt-3">{playbackSourcePanel}</div>
                 <section className="border-b border-editor-border py-3">
                   <div className="mb-2 text-ui-micro font-semibold uppercase tracking-[var(--tracking-caps-md)] text-muted-foreground">
                     Playback
@@ -413,8 +457,14 @@ export function EditorControls({
             </DrawerContent>
           </Drawer>
         </div>
-        <div className="mt-2 grid grid-cols-3 gap-1.5 [&_button]:min-h-11 [&_input]:min-h-11 [&_span.font-mono]:min-h-11 [&_span.font-mono]:content-center">
-          {editableClipMetrics}
+        <div
+          className="cliparr-editor-scrollbar mt-2 overflow-x-auto overscroll-x-contain border-y border-editor-border"
+          role="region"
+          aria-label="Clip in, out, and duration"
+          tabIndex={0}
+          onKeyDown={handleHorizontalScrollKeyDown}
+        >
+          <div className="flex w-max min-w-full">{editableClipMetrics}</div>
         </div>
         <div className="mt-2 flex items-center justify-between gap-2 [&_button]:min-h-11">
           {rangeActions}

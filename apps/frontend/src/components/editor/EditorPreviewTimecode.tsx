@@ -1,7 +1,9 @@
 import { memo, useLayoutEffect, useMemo, useRef, type RefObject } from "react";
+import { cn } from "@/lib/utilities";
 
 interface EditorPreviewTimecodeProperties {
   ariaHidden?: boolean;
+  className?: string;
   currentTime: number;
   duration: number;
 }
@@ -123,6 +125,7 @@ function arePreviewTimecodePropertiesEqual(
 ) {
   return (
     previous.ariaHidden === next.ariaHidden &&
+    previous.className === next.className &&
     getPreviewCentiseconds(previous.currentTime) ===
       getPreviewCentiseconds(next.currentTime) &&
     getPreviewCentiseconds(previous.duration) ===
@@ -171,6 +174,7 @@ const TimecodeShell = memo(function TimecodeShell({
 
 export const EditorPreviewTimecode = memo(function EditorPreviewTimecode({
   ariaHidden = false,
+  className,
   currentTime,
   duration,
 }: EditorPreviewTimecodeProperties) {
@@ -222,7 +226,10 @@ export const EditorPreviewTimecode = memo(function EditorPreviewTimecode({
     <span
       ref={containerReference}
       aria-hidden={ariaHidden || undefined}
-      className="flex shrink-0 items-center whitespace-nowrap font-mono text-sm font-semibold tabular-nums text-foreground"
+      className={cn(
+        "flex shrink-0 items-center whitespace-nowrap font-mono text-sm font-semibold tabular-nums text-foreground",
+        className,
+      )}
       style={{ contain: "layout style paint" }}
     >
       <span aria-hidden="true" className="inline-flex items-baseline">

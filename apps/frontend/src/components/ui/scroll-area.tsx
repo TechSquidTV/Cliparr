@@ -2,6 +2,20 @@ import { ScrollArea as BaseScrollArea } from "@base-ui/react/scroll-area";
 import * as React from "react";
 import { cn } from "@/lib/utilities";
 
+export function handleHorizontalScrollKeyDown(
+  event: React.KeyboardEvent<HTMLDivElement>,
+) {
+  if (
+    event.target !== event.currentTarget ||
+    (event.key !== "ArrowLeft" && event.key !== "ArrowRight")
+  ) {
+    return;
+  }
+  event.preventDefault();
+  event.stopPropagation();
+  event.currentTarget.scrollBy({ left: event.key === "ArrowRight" ? 32 : -32 });
+}
+
 type ScrollAreaProperties = React.ComponentPropsWithoutRef<
   typeof BaseScrollArea.Root
 > & {
