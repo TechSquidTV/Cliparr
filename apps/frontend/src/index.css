@@ -648,6 +648,8 @@
 }
 
 .editor-media-range-row .editor-media-range {
+  /* Match the canvas clip's 4px corners instead of the scrollbar's pill. */
+  --timeline-radius-full: 4px;
   z-index: 31;
   border: 0;
   background: transparent;
