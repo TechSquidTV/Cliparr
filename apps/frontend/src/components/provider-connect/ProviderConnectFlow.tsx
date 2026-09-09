@@ -3,9 +3,7 @@ import { ArrowRight, Check, ExternalLink, Server } from "lucide-react";
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utilities";
 import {
-  ProviderBadge,
   ProviderConnectError,
-  ProviderOption,
   ProviderStatusMessage,
   providerPresentation,
 } from "@/components/provider-connect/ProviderConnectFlowSections";
@@ -133,16 +131,10 @@ export default function ProviderConnectFlow({
     }
 
     return (
-      <div className="flex h-full flex-col justify-between gap-6">
-        <div className="space-y-4">
-          <div className="rounded-2xl border border-border bg-card px-4 py-4 text-sm text-muted-foreground">
-            A new tab will open for sign-in.
-          </div>
-
-          <div className="rounded-2xl border border-border bg-card px-4 py-4 text-sm text-muted-foreground">
-            Add more sources later from Sources.
-          </div>
-        </div>
+      <div className="flex flex-col gap-4">
+        <p className="text-sm text-muted-foreground">
+          A new tab will open for sign-in.
+        </p>
 
         <div className="space-y-4">
           <button
@@ -158,7 +150,7 @@ export default function ProviderConnectFlow({
           </button>
 
           <p className="text-center text-xs leading-6 text-muted-foreground">
-            You can switch providers any time.
+            Add more servers later from Sources.
           </p>
         </div>
       </div>
@@ -176,9 +168,7 @@ export default function ProviderConnectFlow({
       Boolean(developmentJellyfinUrl) &&
       serverUrl.trim() === developmentJellyfinUrl;
 
-    const formClasses = isScreen
-      ? "flex h-full flex-col justify-between gap-6"
-      : "space-y-3";
+    const formClasses = isScreen ? "flex flex-col gap-5" : "space-y-3";
 
     return (
       <form
@@ -267,7 +257,7 @@ export default function ProviderConnectFlow({
             </div>
           )}
 
-          <div className="grid gap-4 sm:grid-cols-2">
+          <div className="grid gap-4 @sm:grid-cols-2">
             <label className="block text-xs font-medium uppercase tracking-[var(--tracking-caps-lg)] text-muted-foreground">
               Username
               <input
@@ -384,15 +374,12 @@ export default function ProviderConnectFlow({
 
     return (
       <>
-        <div className="flex items-start gap-4">
-          {isScreen ? (
-            <ProviderBadge
-              providerId={provider.id}
-              name={provider.name}
-              selected={true}
-              large
-            />
-          ) : (
+        {isScreen ? (
+          <p className="text-sm leading-6 text-muted-foreground">
+            {providerDetails.summary}
+          </p>
+        ) : (
+          <div className="flex items-start gap-4">
             <div className="rounded-md border border-border bg-card p-2">
               <ProviderGlyph
                 providerId={provider.id}
@@ -401,31 +388,31 @@ export default function ProviderConnectFlow({
                 fallbackClassName="text-primary"
               />
             </div>
-          )}
-          <div>
-            <p className="text-xs font-medium uppercase tracking-[var(--tracking-caps-xl)] text-muted-foreground">
-              {providerDetails.eyebrow}
-            </p>
-            <h3
-              className={cn(
-                "mt-1 font-semibold tracking-tight text-foreground",
-                isScreen ? "text-2xl" : "text-base",
-              )}
-            >
-              {provider.name}
-            </h3>
-            <p
-              className={cn(
-                "mt-2 text-sm text-muted-foreground",
-                isScreen ? "leading-6" : "leading-5",
-              )}
-            >
-              {providerDetails.summary}
-            </p>
+            <div>
+              <p className="text-xs font-medium uppercase tracking-[var(--tracking-caps-xl)] text-muted-foreground">
+                {providerDetails.eyebrow}
+              </p>
+              <h3
+                className={cn(
+                  "mt-1 font-semibold tracking-tight text-foreground",
+                  isScreen ? "text-2xl" : "text-base",
+                )}
+              >
+                {provider.name}
+              </h3>
+              <p
+                className={cn(
+                  "mt-2 text-sm text-muted-foreground",
+                  isScreen ? "leading-6" : "leading-5",
+                )}
+              >
+                {providerDetails.summary}
+              </p>
+            </div>
           </div>
-        </div>
+        )}
 
-        <div className={cn("mt-6", isScreen && "flex-1")}>
+        <div className="mt-4">
           {provider.auth === "pin"
             ? renderPinContent(provider)
             : renderCredentialsContent(provider)}
@@ -433,31 +420,6 @@ export default function ProviderConnectFlow({
 
         {renderAuthProgress(provider)}
       </>
-    );
-  }
-
-  function renderScreenSelectedProvider() {
-    if (!selectedProvider) {
-      return null;
-    }
-
-    const innerContent = renderSelectedProviderContent(selectedProvider);
-
-    return (
-      <div className="relative min-h-152 overflow-hidden rounded-3xl border border-border bg-background/80 shadow-xl">
-        <AnimatePresence mode="wait" initial={false}>
-          <motion.div
-            key={selectedProvider.id}
-            initial={{ opacity: 0, x: 16, scale: 0.985 }}
-            animate={{ opacity: 1, x: 0, scale: 1 }}
-            exit={{ opacity: 0, x: -16, scale: 0.985 }}
-            transition={{ duration: 0.22, ease: "easeOut" }}
-            className="absolute inset-0 flex flex-col overflow-y-auto overscroll-contain p-5 [scrollbar-gutter:stable] sm:p-6"
-          >
-            {innerContent}
-          </motion.div>
-        </AnimatePresence>
-      </div>
     );
   }
 
@@ -490,21 +452,10 @@ export default function ProviderConnectFlow({
       );
     }
 
-    if (isScreen) {
-      return (
-        <ProviderConnectScreenLayout
-          providers={providers}
-          selectedProvider={selectedProvider ?? undefined}
-          authenticating={authenticating}
-          authenticatingProviderId={providerId}
-          onSelectProvider={handleSelectProvider}
-          renderSelectedProvider={renderScreenSelectedProvider}
-        />
-      );
-    }
-
     return (
-      <ProviderConnectPanelLayout
+      <ProviderConnectTabsLayout
+        isScreen={isScreen}
+        authenticating={authenticating}
         providers={providers}
         selectedProviderId={selectedProvider?.id ?? providers[0]?.id ?? ""}
         onSelectProvider={handleSelectProvider}
@@ -524,29 +475,29 @@ export default function ProviderConnectFlow({
 
   return (
     <>
-      {error ? (
-        <ProviderConnectError error={error} isScreen={isScreen} />
-      ) : (
-        <div className="mb-5 min-h-19" />
-      )}
+      <ProviderConnectError error={error} isScreen={isScreen} />
       {renderContent()}
     </>
   );
 }
 
-interface ProviderConnectPanelLayoutProperties {
+interface ProviderConnectTabsLayoutProperties {
+  isScreen: boolean;
+  authenticating: boolean;
   providers: ProviderDefinition[];
   selectedProviderId: string;
   onSelectProvider: (providerId: string) => void;
   renderProviderContent: (provider: ProviderDefinition) => ReactNode;
 }
 
-function ProviderConnectPanelLayout({
+function ProviderConnectTabsLayout({
+  isScreen,
+  authenticating,
   providers,
   selectedProviderId,
   onSelectProvider,
   renderProviderContent,
-}: ProviderConnectPanelLayoutProperties) {
+}: ProviderConnectTabsLayoutProperties) {
   return (
     <Tabs
       value={selectedProviderId}
@@ -559,11 +510,9 @@ function ProviderConnectPanelLayout({
       }}
       className="space-y-3"
     >
-      <p className="text-xs font-medium uppercase tracking-[var(--tracking-caps-md)] text-muted-foreground">
-        Choose A Provider
-      </p>
-
       <TabsList
+        springIndicator
+        aria-label="Media provider"
         className="grid w-full"
         style={{
           gridTemplateColumns: `repeat(${providers.length}, minmax(0, 1fr))`,
@@ -573,7 +522,8 @@ function ProviderConnectPanelLayout({
           <TabsTab
             key={provider.id}
             value={provider.id}
-            className="min-w-0 px-2"
+            disabled={authenticating}
+            className="min-h-11 min-w-0 px-2"
           >
             <ProviderGlyph
               providerId={provider.id}
@@ -586,11 +536,21 @@ function ProviderConnectPanelLayout({
       </TabsList>
 
       <TabsPanels
-        mode="layout"
-        className="cliparr-editor-scrollbar h-source-provider-panel overflow-y-auto rounded-lg border border-border bg-background p-4"
+        mode="static"
+        className={cn(
+          "@container",
+          isScreen
+            ? "pt-2 sm:rounded-lg sm:border sm:border-border sm:bg-background sm:p-4"
+            : "cliparr-editor-scrollbar h-source-provider-panel overflow-y-auto rounded-lg border border-border bg-background p-4",
+        )}
       >
         {providers.map((provider) => (
-          <TabsPanel key={provider.id} value={provider.id} className="h-full">
+          <TabsPanel
+            animated={false}
+            key={provider.id}
+            value={provider.id}
+            className={isScreen ? undefined : "h-full"}
+          >
             {renderProviderContent(provider)}
           </TabsPanel>
         ))}
@@ -602,107 +562,19 @@ function ProviderConnectPanelLayout({
 function ProviderConnectScreenLoadingLayout() {
   return (
     <div
-      className="grid gap-6 lg:grid-cols-provider-connect"
+      className="space-y-3"
       aria-hidden="true"
       data-provider-connect-loading-layout
     >
-      <div className="space-y-3">
-        <div className="h-3 w-36 rounded bg-background" />
-        <div className="rounded-2xl border border-border bg-background px-4 py-4">
-          <div className="flex items-start gap-4">
-            <div className="h-11 w-11 rounded-2xl bg-card" />
-            <div className="min-w-0 flex-1 space-y-3">
-              <div className="h-3 w-28 rounded bg-card" />
-              <div className="h-5 w-32 rounded bg-card" />
-              <div className="h-4 w-full rounded bg-card" />
-            </div>
-          </div>
-        </div>
-        <div className="rounded-2xl border border-border bg-background px-4 py-4">
-          <div className="flex items-start gap-4">
-            <div className="h-11 w-11 rounded-2xl bg-card" />
-            <div className="min-w-0 flex-1 space-y-3">
-              <div className="h-3 w-32 rounded bg-card" />
-              <div className="h-5 w-36 rounded bg-card" />
-              <div className="h-4 w-full rounded bg-card" />
-            </div>
-          </div>
-        </div>
-      </div>
-
+      <div className="h-13 rounded-md border border-border bg-background" />
       <div
-        className="relative min-h-152 overflow-hidden rounded-3xl border border-border bg-background/80 shadow-xl"
+        className="space-y-4 pt-2 sm:rounded-lg sm:border sm:border-border sm:bg-background sm:p-4"
         data-provider-connect-selected-skeleton
       >
-        <div className="absolute inset-0 flex flex-col p-5 sm:p-6">
-          <div className="flex items-start gap-4">
-            <div className="h-12 w-12 rounded-2xl bg-card" />
-            <div className="min-w-0 flex-1 space-y-3">
-              <div className="h-3 w-32 rounded bg-card" />
-              <div className="h-7 w-40 rounded bg-card" />
-              <div className="h-4 w-full rounded bg-card" />
-              <div className="h-4 w-2/3 rounded bg-card" />
-            </div>
-          </div>
-          <div className="mt-6 flex flex-1 flex-col justify-between gap-6">
-            <div className="space-y-4">
-              <div className="h-18 rounded-2xl border border-border bg-card" />
-              <div className="h-18 rounded-2xl border border-border bg-card" />
-            </div>
-            <div className="space-y-4">
-              <div className="h-12 rounded-2xl bg-primary/10" />
-              <div className="mx-auto h-3 w-44 rounded bg-card" />
-            </div>
-          </div>
-        </div>
+        <div className="h-5 w-3/4 rounded bg-card" />
+        <div className="h-5 w-1/2 rounded bg-card" />
+        <div className="h-12 rounded-xl bg-primary/10" />
       </div>
-    </div>
-  );
-}
-
-interface ProviderConnectScreenLayoutProperties {
-  providers: ProviderDefinition[];
-  selectedProvider: ProviderDefinition | undefined;
-  authenticating: boolean;
-  authenticatingProviderId: string;
-  onSelectProvider: (providerId: string) => void;
-  renderSelectedProvider: () => ReactNode;
-}
-
-function ProviderConnectScreenLayout({
-  providers,
-  selectedProvider,
-  authenticating,
-  authenticatingProviderId,
-  onSelectProvider,
-  renderSelectedProvider,
-}: ProviderConnectScreenLayoutProperties) {
-  return (
-    <div className="grid gap-6 lg:grid-cols-provider-connect">
-      <motion.div
-        initial={{ opacity: 0, x: -12 }}
-        animate={{ opacity: 1, x: 0 }}
-        transition={{ duration: 0.24, ease: "easeOut" }}
-        className="space-y-3"
-      >
-        <p className="text-xs font-medium uppercase tracking-[var(--tracking-caps-3xl)] text-muted-foreground">
-          Choose A Provider
-        </p>
-
-        {providers.map((provider) => (
-          <ProviderOption
-            key={provider.id}
-            provider={provider}
-            selectedProvider={selectedProvider}
-            authenticating={authenticating}
-            authenticatingProviderId={authenticatingProviderId}
-            variant="screen"
-            onSelect={onSelectProvider}
-          />
-        ))}
-      </motion.div>
-
-      {renderSelectedProvider()}
     </div>
   );
 }
