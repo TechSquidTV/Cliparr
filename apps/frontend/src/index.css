@@ -84,11 +84,7 @@
     var(--foreground) 12%,
     transparent
   );
-  --editor-preview-overlay-foreground: color-mix(
-    in oklch,
-    var(--foreground) 80%,
-    var(--background)
-  );
+  --editor-preview-overlay-foreground: oklch(0.92 0 0);
   --editor-workspace: color-mix(
     in oklch,
     var(--background) 90%,

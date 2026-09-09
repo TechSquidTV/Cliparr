@@ -11,6 +11,7 @@ import {
   EDITOR_RESIZE_TARGET_MINIMUM_SIZE,
 } from "@/components/editor/editorLayoutSizing";
 import { EditorSidebar } from "@/components/editor/EditorSidebar";
+import { BarsLoader } from "@/components/ui/bars-loader";
 import { cliparrMotionTransitions } from "@/lib/motionPresets";
 
 export type EditorLayoutVariant = "desktop" | "mobile";
@@ -117,7 +118,7 @@ export function EditorTimelinePane({
         aria-busy={!hasDuration}
       >
         <div
-          className={`h-full ${hasDuration ? "" : "opacity-40"}`}
+          className={`isolate h-full ${hasDuration ? "" : "opacity-40"}`}
           inert={!hasDuration}
           data-editor-timeline-ready={hasDuration || undefined}
         >
@@ -126,10 +127,9 @@ export function EditorTimelinePane({
         {!hasDuration && (
           <div
             className="absolute inset-0 flex items-center justify-center bg-editor-panel/70 px-3 text-center text-sm text-muted-foreground"
-            role="status"
             data-editor-waiting-duration
           >
-            Waiting for media duration.
+            <BarsLoader label="Loading timeline…" showLabel />
           </div>
         )}
       </div>

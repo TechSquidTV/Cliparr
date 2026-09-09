@@ -995,14 +995,14 @@ void test("keeps timeline geometry mounted and inert until media is ready", () =
   );
 
   assert.match(waitingMarkup, /data-editor-waiting-duration/);
-  assert.match(waitingMarkup, /Waiting for media duration/);
+  assert.match(waitingMarkup, /Loading timeline…/);
   assert.match(waitingMarkup, /inert=""/);
   assert.match(waitingMarkup, /aria-busy="true"/);
   assert.match(waitingMarkup, /Timeline interaction/);
   assert.match(readyMarkup, /data-editor-timeline-ready/);
   assert.match(readyMarkup, /Timeline interaction/);
   assert.doesNotMatch(readyMarkup, /inert=""/);
-  assert.doesNotMatch(readyMarkup, /Waiting for media duration/);
+  assert.doesNotMatch(readyMarkup, /Loading timeline…/);
 });
 
 void test("renders editor poster with the shared thumbnail view transition", () => {
