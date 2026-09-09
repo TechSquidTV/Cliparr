@@ -35,7 +35,8 @@ export const features = [
   },
   {
     title: "Intuitive timeline editor",
-    description: "Familiar editing controls for choosing the exact clip range.",
+    description:
+      "Drag the media block to choose your clip, trim either edge, and zoom into subtitle timing across the full video.",
   },
   {
     title: "Browser transcoding",

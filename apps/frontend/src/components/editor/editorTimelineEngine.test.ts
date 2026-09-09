@@ -15,6 +15,7 @@ import {
   timelineScrollLeftForCenteredTime,
 } from "@/components/editor/editorTimelineEngine";
 import type { EditorSession } from "@/lib/editorMedia";
+import { createEditorHistory } from "@/components/editor/editorHistory";
 
 function createSession(overrides: Partial<EditorSession> = {}): EditorSession {
   return {
@@ -32,6 +33,18 @@ function createSession(overrides: Partial<EditorSession> = {}): EditorSession {
 }
 
 void describe("editor timeline engine", () => {
+  void it("shares zoom bounds across controls, from the full movie to subtitle detail", () => {
+    const engine = createEditorTimelineEngine(
+      createSession({ duration: 3600 }),
+    );
+    engine.setViewportWidth(1000);
+    engine.setZoomScale(0.01);
+    assert.equal(engine.zoomScale, 1000 / 3600);
+    engine.setZoomScale(10_000);
+    assert.equal(engine.zoomScale, 1000);
+    assert.equal(toSeconds(engine.getState().duration!), 3600);
+  });
+
   void it("centers a time within the available horizontal scroll range", () => {
     assert.equal(
       timelineScrollLeftForCenteredTime({
@@ -144,6 +157,47 @@ void describe("editor timeline engine", () => {
       toSeconds(engine.getPlaybackStartTime({ respectInOut: true })),
       5,
     );
+  });
+
+  void it("moves the selection as one undoable range without moving source media or subtitles", () => {
+    const engine = createEditorTimelineEngine(createSession());
+    synchronizeEditorTimelineMedia(engine, {
+      duration: 20,
+      sourceStart: 1_700_000_000,
+      initialDuration: 20,
+    });
+    synchronizeEditorTimelineSubtitles(engine, {
+      cues: [
+        { startTime: 2, endTime: 4, text: "Fixed cue", lines: ["Fixed cue"] },
+      ],
+    });
+    const initialTracks = engine.getState().tracks;
+    const history = createEditorHistory(engine);
+
+    history.beginRangeGesture();
+    for (const start of [6, 7, 8, 10]) {
+      engine.setInOutRange(fromSeconds(start), fromSeconds(start + 10));
+    }
+    history.endRangeGesture();
+
+    assert.equal(toSeconds(engine.getState().duration!), 20);
+    assert.equal(toSeconds(engine.maxContentTime), 20);
+    assert.deepEqual(engine.getState().tracks, initialTracks);
+    assert.equal(toSeconds(engine.getState().inPoint!), 10);
+    assert.equal(toSeconds(engine.getState().outPoint!), 20);
+    // The playhead can still inspect source media before the selected clip.
+    engine.updatePlayhead(fromSeconds(1));
+    assert.equal(toSeconds(engine.getTime()), 1);
+
+    history.undo();
+    assert.equal(toSeconds(engine.getState().inPoint!), 5);
+    assert.equal(toSeconds(engine.getState().outPoint!), 15);
+    assert.equal(history.getSnapshot().canUndo, false);
+    history.redo();
+    assert.equal(toSeconds(engine.getState().inPoint!), 10);
+    assert.equal(toSeconds(engine.getState().outPoint!), 20);
+    assert.deepEqual(engine.getState().tracks, initialTracks);
+    history.dispose();
   });
 
   void it("preserves a valid engine-owned range when media metadata is refined", () => {

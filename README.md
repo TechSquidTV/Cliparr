@@ -22,7 +22,7 @@
 
 - **Instant session discovery**: Automatically loads currently playing media from connected <a href="/docs/providers">Plex and Jellyfin providers</a>.
 - **Open local videos**: Open a <a href="/docs/local-videos">local file or direct media URL</a> before or after connecting a provider.
-- **Intuitive timeline editor**: Familiar editing controls for choosing the exact clip range.
+- **Intuitive timeline editor**: Drag the media block to choose your clip, trim either edge, and zoom into subtitle timing across the full video.
 - **Browser transcoding**: Video <a href="/docs/export-settings">export settings</a> are powered by <a href="https://mediabunny.dev/" target="_blank" rel="noreferrer">Mediabunny</a>. GIFs are encoded with <a href="https://github.com/KyleTryon/gifenc" target="_blank" rel="noreferrer">gifenc</a>.
 - **Metadata included**: Video exports can include season, episode, and timing metadata from your source.
 - **Subtitle burn-in**: Burn in <a href="/docs/subtitle-burn-in">supported subtitles</a> with customizable styling and local font support in Chromium.

@@ -67,7 +67,7 @@ export function useEditorKeyboardShortcuts({
     const pressedCodes = new Set<string>();
 
     function handleKeyDown(event: KeyboardEvent) {
-      if (isEditorDialogOpen()) {
+      if (event.defaultPrevented || isEditorDialogOpen()) {
         return;
       }
 
@@ -138,7 +138,7 @@ function isInteractiveKeyboardTarget(
     (!historyCommand && Boolean(target.closest("button"))) ||
     Boolean(
       target.closest(
-        'input, textarea, select, [contenteditable="true"], [role="slider"], [role="dialog"], [role="alertdialog"], dialog',
+        'input, textarea, select, [contenteditable="true"], [role="slider"], [role="scrollbar"], [role="dialog"], [role="alertdialog"], dialog',
       ),
     )
   );
