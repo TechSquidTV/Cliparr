@@ -1,6 +1,7 @@
 packages:
   - "apps/*"
   - "packages/*"
+  - "tools/www-assets"
 
 autoInstallPeers: false
 minimumReleaseAge: 1440

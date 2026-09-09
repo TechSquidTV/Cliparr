@@ -11,3 +11,5 @@ apps/server/.cliparr-data/
 *.tsbuildinfo
 .env*
 !.env.example
+
+.asset-capture/

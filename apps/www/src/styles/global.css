@@ -475,7 +475,6 @@
   .mobile-phone-preview {
     position: relative;
     width: min(78vw, 22rem);
-    aspect-ratio: 402 / 874;
     padding: 0.45rem;
     background: rgb(9 9 11);
     border: 1px solid rgb(39 39 42);
@@ -499,10 +498,15 @@
 
   .mobile-phone-screen {
     position: relative;
-    height: 100%;
+    padding-block: 2.6rem 2rem;
     overflow: hidden;
     border-radius: 2.55rem;
-    background: rgb(0 0 0);
+    background: rgb(16 16 16);
+  }
+
+  .mobile-phone-content {
+    position: relative;
+    aspect-ratio: 402 / 874;
   }
 
   .mobile-phone-screen picture,
@@ -526,6 +530,7 @@
     }
 
     .mobile-phone-screen {
+      padding-block: 2.15rem 1.75rem;
       border-radius: 2.25rem;
     }
   }

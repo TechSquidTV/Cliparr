@@ -1,9 +1,5 @@
-import type {
-  SourcePlaybackError,
-  ViewerPlaybackGroup,
-} from "@cliparr/shared/providers";
-
 export type {
+  CurrentlyPlayingResponse,
   CurrentlyPlayingItem,
   MediaExportMetadata,
   PlaybackAudioSelection,
@@ -56,9 +52,4 @@ export interface MediaSourceCheckResult {
   error?: {
     message: string;
   };
-}
-
-export interface CurrentlyPlayingResponse {
-  viewers: ViewerPlaybackGroup[];
-  sourceErrors: SourcePlaybackError[];
 }

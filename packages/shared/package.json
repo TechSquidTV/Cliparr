@@ -16,6 +16,10 @@
     "./providers": {
       "types": "./src/providers.ts",
       "default": "./src/providers.ts"
+    },
+    "./asset-capture": {
+      "types": "./src/assetCapture.ts",
+      "default": "./src/assetCapture.ts"
     }
   }
 }

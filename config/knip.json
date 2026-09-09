@@ -31,6 +31,10 @@
     "packages/shared": {
       "ignoreBinaries": ["eslint", "tsc"],
       "project": ["src/**/*.{js,ts}"]
+    },
+    "tools/www-assets": {
+      "project": ["src/**/*.ts"],
+      "ignoreBinaries": ["eslint"]
     }
   }
 }

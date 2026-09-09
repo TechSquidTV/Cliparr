@@ -159,9 +159,14 @@ fi
 echo "Creating Jellyfin library '$JELLYFIN_LIBRARY_NAME'."
 query="name=$(urlencode "$JELLYFIN_LIBRARY_NAME")&collectionType=movies&paths=$(urlencode "$JELLYFIN_LIBRARY_PATH")&refreshLibrary=true"
 
+library_options='{"LibraryOptions":{}}'
+if [ "${JELLYFIN_DISABLE_METADATA:-false}" = "true" ]; then
+  library_options='{"LibraryOptions":{"EnableInternetProviders":false,"EnableAutomaticSeriesGrouping":false,"EnableRealtimeMonitor":false,"MetadataSavers":[],"TypeOptions":[{"Type":"Movie","MetadataFetchers":[],"ImageFetchers":[]}]}}'
+fi
+
 post_jellyfin_with_retries \
   "/Library/VirtualFolders?$query" \
   "$access_token" \
-  '{"LibraryOptions":{}}'
+  "$library_options"
 
 echo "Jellyfin bootstrap complete."

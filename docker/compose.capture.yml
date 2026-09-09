@@ -1,0 +1,77 @@
+# Disposable capture stack; no host ports and no shared development volumes.
+x-capture-image: &capture-image
+  image: cliparr-www-capture:local
+
+services:
+  jellyfin:
+    image: jellyfin/jellyfin:10.11.6
+    volumes:
+      - jellyfin-config:/config
+      - jellyfin-cache:/cache
+      - ${CAPTURE_MEDIA_DIR:?Provide the source media directory}:/media:ro
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8096/health"]
+      interval: 2s
+      timeout: 3s
+      retries: 60
+
+  jellyfin-bootstrap:
+    <<: *capture-image
+    depends_on:
+      jellyfin:
+        condition: service_healthy
+    command: ["sh", "docker/bootstrap-jellyfin.sh"]
+    environment:
+      JELLYFIN_BASE_URL: http://jellyfin:8096
+      JELLYFIN_ADMIN_USERNAME: capture
+      JELLYFIN_ADMIN_PASSWORD: ${CAPTURE_PASSWORD:?Required}
+      JELLYFIN_LIBRARY_NAME: Capture
+      JELLYFIN_LIBRARY_PATH: /media
+      JELLYFIN_DISABLE_METADATA: "true"
+
+  cliparr:
+    <<: *capture-image
+    depends_on:
+      jellyfin-bootstrap:
+        condition: service_completed_successfully
+    command: ["node", "apps/server/dist/server.js"]
+    environment:
+      PORT: "7171"
+      CLIPARR_DATA_DIR: /data
+      APP_KEY: ${CAPTURE_APP_KEY:?Required}
+    volumes:
+      - cliparr-data:/data
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://localhost:7171/api/health').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))",
+        ]
+      interval: 2s
+      timeout: 3s
+      retries: 60
+
+  capture:
+    <<: *capture-image
+    build:
+      context: ..
+      dockerfile: docker/capture.Dockerfile
+    init: true
+    shm_size: 1gb
+    # Loopback is a secure browser context, required by WebCodecs.
+    network_mode: service:cliparr
+    depends_on:
+      cliparr:
+        condition: service_healthy
+    command: ["pnpm", "--filter", "@cliparr/www-assets", "record"]
+    environment:
+      CAPTURE_PASSWORD: ${CAPTURE_PASSWORD:?Required}
+    volumes:
+      - ${CAPTURE_OUTPUT_DIR:?Provide the output directory}:/output
+
+volumes:
+  jellyfin-config:
+  jellyfin-cache:
+  cliparr-data:

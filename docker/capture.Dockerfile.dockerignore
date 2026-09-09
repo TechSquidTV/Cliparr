@@ -1,0 +1,7 @@
+**/node_modules
+**/dist
+**/.cliparr-data
+**/*.log
+.git
+.asset-capture
+.env*

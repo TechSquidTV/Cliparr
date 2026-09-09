@@ -1,0 +1,26 @@
+{
+  "name": "@cliparr/www-assets",
+  "private": true,
+  "type": "module",
+  "imports": {
+    "#/*": "./src/*"
+  },
+  "scripts": {
+    "capture": "node --import tsx src/cli.ts",
+    "record": "node --import tsx src/record.ts",
+    "test": "node --import tsx --test src/*.test.ts",
+    "lint:types": "tsc --noEmit",
+    "lint:eslint": "cd ../.. && pnpm exec eslint --config config/eslint.config.js 'tools/www-assets/src/**/*.ts'"
+  },
+  "dependencies": {
+    "@cliparr/shared": "workspace:*",
+    "@jellyfin/sdk": "0.13.0",
+    "playwright": "1.63.0",
+    "axios": "^1.18.0"
+  },
+  "devDependencies": {
+    "@types/node": "^25.9.3",
+    "tsx": "^4.22.4",
+    "typescript": "~6.0.3"
+  }
+}

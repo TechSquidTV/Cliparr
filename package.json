@@ -50,7 +50,9 @@
     "deploy:web": "pnpm build:web && pnpm cf:deploy",
     "preview": "pnpm --filter @cliparr/server preview",
     "start": "pnpm --filter @cliparr/server start",
-    "clean": "pnpm -r clean"
+    "clean": "pnpm -r clean",
+    "assets:capture": "pnpm --filter @cliparr/www-assets capture",
+    "test:assets": "pnpm --filter @cliparr/www-assets test"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

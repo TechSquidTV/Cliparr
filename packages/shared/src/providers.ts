@@ -142,3 +142,8 @@ export interface SourcePlaybackError {
   providerId: string;
   message: string;
 }
+
+export interface CurrentlyPlayingResponse {
+  viewers: ViewerPlaybackGroup[];
+  sourceErrors: SourcePlaybackError[];
+}
