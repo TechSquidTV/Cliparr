@@ -57,9 +57,9 @@ GitHub Releases are the canonical changelog. The `Release` workflow is run manua
 
 Before running a real release, make sure `CLOUDFLARE_PAGES_DEPLOY_HOOK_URL` is configured as a repository secret. Cloudflare Pages builds require a read-only `GITHUB_TOKEN` or `GH_TOKEN` environment variable so the changelog mirror does not hit unauthenticated GitHub API rate limits. Use the workflow's dry-run mode first when validating a release.
 
-## Security
+### Upcoming v2.0.0
 
-Do not include Plex tokens, Jellyfin credentials, server URLs, local media paths, or other private account details in issues, logs, screenshots, or pull requests.
+The next release targets v2.0.0. Keep `tools/release/notes/v2.0.0.md` up to date as additional features land, and document breaking changes with upgrade instructions. These notes are a working draft; preparing them does not publish a release. Review the final feature scope before running an RC or stable release.
 
 ### Release validation and recovery
 
@@ -72,3 +72,7 @@ Dry runs build both architectures and smoke-test the local amd64 image, generate
 If publication fails, **rerun the same workflow run** to reuse its saved release plan (retained for 30 days), rather than starting another dispatch that could calculate a different version. Existing GitHub releases are updated only after verifying their tag targets the planned commit. Conflicting tags and superseded stable plans stop recovery. A retry rebuilds and retests its image before promotion, so its digest can change. GitHub and GHCR publication is not atomic; the summary identifies partial publication and which stages completed.
 
 The Cloudflare changelog refresh is a separate job. If only that job fails, rerun the failed job; the release is already published. To retry an older refresh independently, use the Sync Changelog workflow.
+
+## Security
+
+Do not include Plex tokens, Jellyfin credentials, server URLs, local media paths, or other private account details in issues, logs, screenshots, or pull requests.

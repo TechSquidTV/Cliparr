@@ -49,10 +49,10 @@ void test("accepts a release notes file and rejects a missing path", () => {
   const arguments_ = parseArguments([
     ...requiredArguments,
     "--notes-file",
-    "tools/release/notes/v1.3.0.md",
+    "tools/release/notes/v2.0.0.md",
   ]);
 
-  assert.equal(arguments_.notesFile, "tools/release/notes/v1.3.0.md");
+  assert.equal(arguments_.notesFile, "tools/release/notes/v2.0.0.md");
   assert.throws(
     () => parseArguments([...requiredArguments, "--notes-file"]),
     /--notes-file requires a value\./u,
