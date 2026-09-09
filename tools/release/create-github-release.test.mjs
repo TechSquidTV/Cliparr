@@ -41,6 +41,38 @@ void test("rejects release arguments with missing values", () => {
   );
 });
 
+void test("accepts a release notes file and rejects a missing path", () => {
+  const arguments_ = parseArguments([
+    ...requiredArguments,
+    "--notes-file",
+    "tools/release/notes/v1.3.0.md",
+  ]);
+
+  assert.equal(arguments_.notesFile, "tools/release/notes/v1.3.0.md");
+  assert.throws(
+    () => parseArguments([...requiredArguments, "--notes-file"]),
+    /--notes-file requires a value\./u,
+  );
+});
+
+void test("places upgrade notes before generated changes and preserves Docker details", () => {
+  const body = composeReleaseBody({
+    releaseNotes: "  ## Upgrade notes\n\nRemote URLs require sign-in.\n",
+    generatedBody: "## What's Changed\n\n- Improve the editor",
+    imageName: "ghcr.io/techsquidtv/cliparr",
+    imageDigest: "sha256:example",
+    dockerTags: ["ghcr.io/techsquidtv/cliparr:1.3.0"],
+  });
+
+  assert.ok(
+    body.startsWith(
+      "## Upgrade notes\n\nRemote URLs require sign-in.\n\n## What's Changed",
+    ),
+  );
+  assert.match(body, /docker pull ghcr\.io\/techsquidtv\/cliparr:1\.3\.0/u);
+  assert.match(body, /Digest: `sha256:example`/u);
+});
+
 void test("omits the digest line when no image digest exists", () => {
   const body = composeReleaseBody({
     generatedBody: "## What's Changed\n\n- fix release dry runs",

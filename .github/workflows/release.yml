@@ -219,6 +219,11 @@ jobs:
             --docker-tags-file "${RUNNER_TEMP}/docker-tags.txt"
           )
 
+          notes_file="tools/release/notes/${{ steps.plan.outputs.tag }}.md"
+          if [[ -f "${notes_file}" ]]; then
+            args+=(--notes-file "${notes_file}")
+          fi
+
           if [[ "${{ steps.plan.outputs.prerelease }}" == "true" ]]; then
             args+=(--prerelease)
           fi

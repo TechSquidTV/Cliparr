@@ -12,6 +12,7 @@ const valueArgumentNames = new Set([
   "--image-name",
   "--image-digest",
   "--docker-tags-file",
+  "--notes-file",
 ]);
 const requiredArguments = [
   "repository",
@@ -106,6 +107,7 @@ function readDockerTags(filePath) {
 }
 
 export function composeReleaseBody({
+  releaseNotes = "",
   generatedBody,
   imageName,
   imageDigest,
@@ -132,7 +134,9 @@ export function composeReleaseBody({
     dockerLines.push("", `Digest: \`${imageDigest}\``);
   }
 
-  return `${generatedBody.trim()}\n\n${dockerLines.join("\n")}\n`;
+  return `${[releaseNotes.trim(), generatedBody.trim(), dockerLines.join("\n")]
+    .filter(Boolean)
+    .join("\n\n")}\n`;
 }
 
 function writeGithubOutput(outputs) {
@@ -159,6 +163,9 @@ export async function main(argv = process.argv.slice(2)) {
   }
 
   const dockerTags = readDockerTags(arguments_.dockerTagsFile);
+  const releaseNotes = arguments_.notesFile
+    ? readFileSync(arguments_.notesFile, "utf8")
+    : "";
   const generatedNotes = await githubApi(
     `/repos/${arguments_.repository}/releases/generate-notes`,
     {
@@ -172,6 +179,7 @@ export async function main(argv = process.argv.slice(2)) {
     },
   );
   const body = composeReleaseBody({
+    releaseNotes,
     generatedBody: generatedNotes.body,
     imageName: arguments_.imageName,
     imageDigest: arguments_.imageDigest,
