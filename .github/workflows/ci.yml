@@ -9,6 +9,10 @@ on:
       - main
   workflow_dispatch:
 
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
 permissions:
   contents: read
 
@@ -39,21 +43,35 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Format
+        id: format
         run: pnpm format:check
 
       - name: Lint
+        id: lint
         run: pnpm lint
 
       - name: Knip
+        id: knip
         run: pnpm knip
 
       - name: Test
+        id: test
         run: pnpm test
 
       - name: Docs check
+        id: docs
         run: pnpm docs:check
 
       - name: Build
+        id: build
         env:
           GITHUB_TOKEN: ${{ github.token }}
         run: pnpm build
+
+      - name: Write CI summary
+        if: always()
+        env:
+          SUMMARY_STEPS: ${{ toJSON(steps) }}
+          JOB_STATUS: ${{ job.status }}
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: node tools/ci/summary.mjs
