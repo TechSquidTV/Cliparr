@@ -423,7 +423,7 @@ export function EditorControls({
                   Additional clip controls
                 </DrawerDescription>
               </DrawerHeader>
-              <div className="cliparr-editor-scrollbar min-h-0 overflow-y-auto px-3 pb-4">
+              <div className="min-h-0 overflow-y-auto px-3 pb-4">
                 <div className="pt-3">{playbackSourcePanel}</div>
                 <section className="border-b border-editor-border py-3">
                   <div className="mb-2 text-ui-micro font-semibold uppercase tracking-[var(--tracking-caps-md)] text-muted-foreground">
@@ -458,7 +458,7 @@ export function EditorControls({
           </Drawer>
         </div>
         <div
-          className="cliparr-editor-scrollbar mt-2 overflow-x-auto overscroll-x-contain border-y border-editor-border"
+          className="mt-2 overflow-x-auto overscroll-x-contain border-y border-editor-border"
           role="region"
           aria-label="Clip in, out, and duration"
           tabIndex={0}

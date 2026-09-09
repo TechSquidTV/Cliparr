@@ -8,7 +8,7 @@ export function editorPropertyLabelClassName() {
 }
 
 export function editorPropertySelectTriggerClassName() {
-  return "h-8 w-full min-w-0 rounded-[var(--radius-control)] border-editor-border bg-editor-control px-2.5 text-xs font-medium text-sidebar-foreground shadow-none hover:bg-editor-control-hover focus-visible:ring-2 focus-visible:ring-editor-accent/35";
+  return "h-8 w-full min-w-0 border-editor-border bg-editor-control px-2.5 text-xs font-medium text-sidebar-foreground shadow-none hover:bg-editor-control-hover focus-visible:ring-2 focus-visible:ring-editor-accent/35";
 }
 
 export function EditorPropertySection({

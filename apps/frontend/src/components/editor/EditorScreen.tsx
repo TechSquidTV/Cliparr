@@ -628,7 +628,7 @@ function EditorScreenContent({
   }
 
   const propertiesContent = (
-    <div className="cliparr-editor-scrollbar flex h-full min-h-0 flex-col gap-3 overflow-y-auto p-3">
+    <div className="flex h-full min-h-0 flex-col gap-3 overflow-y-auto p-3">
       {playbackSourcePanel}
       {renderSubtitlePanel("min-h-editor-properties-min flex-1")}
     </div>

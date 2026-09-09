@@ -238,7 +238,7 @@ export default function SourcesDialog({
         onStatusFilterChange={setStatusFilter}
       />
 
-      <div className="cliparr-editor-scrollbar flex-1 overflow-y-auto px-4 py-4 sm:px-5">
+      <div className="flex-1 overflow-y-auto px-4 py-4 sm:px-5">
         <div className="space-y-3">
           <SourcesDialogAlerts error={error} feedback={feedback} />
 

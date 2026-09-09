@@ -175,7 +175,7 @@ export function EditorSubtitlePanel({
   );
 
   return (
-    <div className="cliparr-editor-scrollbar min-h-0 flex-1 overflow-y-auto bg-editor-panel text-sidebar-foreground">
+    <div className="min-h-0 flex-1 overflow-y-auto bg-editor-panel text-sidebar-foreground">
       <EditorPropertyAccordion<EditorPropertiesSectionId>
         value={editorPropertiesOpenSections}
         onValueChange={onEditorPropertiesOpenSectionsChange}
@@ -304,7 +304,7 @@ export function EditorSubtitlePanel({
                         onSelectedSubtitleTextCommit(subtitleTextDraft);
                       }
                     }}
-                    className="cliparr-editor-scrollbar w-full resize-y rounded-[var(--radius-control)] border border-editor-border bg-editor-control px-2.5 py-2 text-xs leading-relaxed text-foreground outline-none focus:border-editor-accent focus:ring-2 focus:ring-editor-accent/25"
+                    className="w-full resize-y rounded-[var(--radius-control)] border border-editor-border bg-editor-control px-2.5 py-2 text-xs leading-relaxed text-foreground outline-none focus:border-editor-accent focus:ring-2 focus:ring-editor-accent/25"
                   />
                 </EditorPropertyRow>
                 <EditorPropertyRow label="In">

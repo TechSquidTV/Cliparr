@@ -82,7 +82,7 @@ const ScrollBar = React.forwardRef<HTMLDivElement, ScrollBarProperties>(
       >
         <BaseScrollArea.Thumb
           className={cn(
-            "relative flex-1 rounded-full bg-border/80 transition-colors hover:bg-muted-foreground/60 before:absolute before:inset-0 before:-m-1",
+            "relative flex-1 rounded-full bg-scrollbar-thumb transition-colors hover:bg-scrollbar-thumb-hover before:absolute before:inset-0 before:-m-1",
             thumbClassName,
           )}
           data-slot="scroll-area-thumb"

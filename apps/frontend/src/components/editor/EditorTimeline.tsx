@@ -186,7 +186,7 @@ export function EditorTimeline({
         role="region"
         aria-label="Timeline tracks and names"
         tabIndex={0}
-        className="cliparr-editor-scrollbar min-h-0 flex-1 overflow-x-auto overscroll-x-contain lg:overflow-x-hidden"
+        className="min-h-0 flex-1 overflow-x-auto overscroll-x-contain lg:overflow-x-hidden"
         onScroll={(event) =>
           setTrackNamesVisible(
             event.currentTarget.scrollLeft <

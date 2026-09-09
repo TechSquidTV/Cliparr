@@ -1,0 +1,92 @@
+/* BeUI Select's unfold-and-separate motion, with Radix handling focus,
+ * collisions and scrolling. Animate the surface without changing its measured
+ * size, so opening a dropdown never moves the surrounding fields. */
+.cliparr-select-content {
+  --select-attached-offset: -8px;
+}
+
+.cliparr-select-content[data-side="top"] {
+  --select-attached-offset: 8px;
+}
+
+.cliparr-select-content[data-state="open"] {
+  animation: select-unfold 420ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.cliparr-select-content[data-state="closed"] {
+  animation: select-fold 140ms ease-out both;
+  pointer-events: none;
+}
+
+.cliparr-select-content[data-state="open"] [data-slot="select-item"] {
+  --select-item-delay: 140ms;
+  animation: select-item-enter 200ms ease-out var(--select-item-delay) both;
+}
+
+.cliparr-select-content [data-slot="select-item"]:nth-child(1) {
+  --select-item-delay: 35ms;
+}
+
+.cliparr-select-content [data-slot="select-item"]:nth-child(2) {
+  --select-item-delay: 70ms;
+}
+
+.cliparr-select-content [data-slot="select-item"]:nth-child(3) {
+  --select-item-delay: 105ms;
+}
+
+@keyframes select-unfold {
+  0% {
+    opacity: 0;
+    transform: translateY(var(--select-attached-offset)) scaleY(0.55);
+  }
+  65% {
+    opacity: 1;
+    transform: translateY(0) scaleY(1.025);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scaleY(1);
+  }
+}
+
+@keyframes select-fold {
+  to {
+    opacity: 0;
+    transform: translateY(var(--select-attached-offset)) scaleY(0.96);
+  }
+}
+
+@keyframes select-item-enter {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cliparr-select-content[data-state="open"] {
+    animation: select-fade-in 120ms ease-out both;
+  }
+
+  .cliparr-select-content[data-state="closed"] {
+    animation: select-fade-in 120ms ease-out reverse both;
+  }
+
+  .cliparr-select-content[data-state="open"] [data-slot="select-item"] {
+    animation: none;
+  }
+}
+
+@keyframes select-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
