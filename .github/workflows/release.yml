@@ -17,6 +17,7 @@ on:
 permissions:
   contents: write
   packages: write
+  actions: read
 
 concurrency:
   group: release
@@ -31,6 +32,10 @@ jobs:
     name: Release
     runs-on: ubuntu-latest
 
+    outputs:
+      release_url: ${{ steps.github-release.outputs.html_url }}
+    env:
+      RELEASE_PLAN_FILE: /tmp/cliparr-release-plan/plan.json
     steps:
       - name: Checkout
         uses: actions/checkout@v7
@@ -55,10 +60,20 @@ jobs:
             exit 1
           fi
 
+      - name: Restore release plan on retry
+        id: restore
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p "$(dirname "$RELEASE_PLAN_FILE")"
+          artifact_id="$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID/artifacts" --paginate --jq '.artifacts[] | select(.name == "release-plan") | .id')"
+          if [[ -n "$artifact_id" ]]; then
+            gh run download "$GITHUB_RUN_ID" --repo "$GITHUB_REPOSITORY" --name release-plan --dir "$(dirname "$RELEASE_PLAN_FILE")"
+            echo 'restored=true' >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Plan release
         id: plan
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           CHANNEL="stable"
           if [[ "${{ inputs.rc }}" == "true" ]]; then
@@ -71,25 +86,46 @@ jobs:
             --image-name "${IMAGE_NAME}" \
             --github-output
 
+      - name: Preserve release plan for retries
+        if: steps.restore.outputs.restored != 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-plan
+          path: ${{ env.RELEASE_PLAN_FILE }}
+          retention-days: 30
+          if-no-files-found: error
+
+      - name: Summarize release plan
+        env:
+          SUMMARY_PHASE: plan
+          DRY_RUN: ${{ inputs.dry_run }}
+        run: node tools/ci/summary.mjs
+
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
       - name: Format
+        id: format
         run: pnpm format:check
 
       - name: Lint
+        id: lint
         run: pnpm lint
 
       - name: Knip
+        id: knip
         run: pnpm knip
 
       - name: Test
+        id: test
         run: pnpm test
 
       - name: Docs check
+        id: docs
         run: pnpm docs:check
 
       - name: Build
+        id: build
         env:
           CLIPARR_VERSION: ${{ steps.plan.outputs.tag }}
           GITHUB_TOKEN: ${{ github.token }}
@@ -115,44 +151,10 @@ jobs:
           cache-from: type=gha
 
       - name: Smoke test image
-        run: |
-          set -euo pipefail
-
-          health_file="${RUNNER_TEMP}/cliparr-health.json"
-          index_file="${RUNNER_TEMP}/cliparr-index.html"
-
-          docker run \
-            --detach \
-            --name cliparr-smoke \
-            --publish 7171:7171 \
-            --env APP_KEY="cliparr-smoke-test-key-with-at-least-32-characters" \
-            --volume cliparr-smoke-data:/data \
-            cliparr:smoke
-
-          for attempt in {1..30}; do
-            if curl --fail --silent --show-error http://127.0.0.1:7171/api/health > "${health_file}"; then
-              break
-            fi
-            sleep 1
-          done
-
-          cat "${health_file}"
-          grep -q '"status":"ok"' "${health_file}"
-          grep -q '"database":"ok"' "${health_file}"
-          grep -q '"version":"${{ steps.plan.outputs.tag }}"' "${health_file}"
-
-          curl --fail --silent --show-error http://127.0.0.1:7171/ > "${index_file}"
-          grep -q '<div id="root"></div>' "${index_file}"
-
-      - name: Show smoke-test logs
-        if: failure()
-        run: docker logs cliparr-smoke || true
-
-      - name: Stop smoke-test container
-        if: always()
-        run: |
-          docker rm -f cliparr-smoke || true
-          docker volume rm cliparr-smoke-data || true
+        id: smoke
+        env:
+          EXPECTED_VERSION: ${{ steps.plan.outputs.tag }}
+        run: bash tools/ci/smoke-image.sh cliparr:smoke "$EXPECTED_VERSION"
 
       - name: Validate release secrets
         if: ${{ !inputs.dry_run }}
@@ -185,7 +187,7 @@ jobs:
           push: ${{ !inputs.dry_run }}
           build-args: |
             CLIPARR_VERSION=${{ steps.plan.outputs.tag }}
-          tags: ${{ steps.plan.outputs.docker_tags }}
+          tags: ${{ env.IMAGE_NAME }}:run-${{ github.run_id }}-${{ github.run_attempt }}
           labels: |
             org.opencontainers.image.title=Cliparr
             org.opencontainers.image.description=${{ env.IMAGE_DESCRIPTION }}
@@ -198,6 +200,22 @@ jobs:
             org.opencontainers.image.description=${{ env.IMAGE_DESCRIPTION }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+      - name: Verify published amd64 digest
+        id: verify_amd64
+        if: ${{ !inputs.dry_run }}
+        env:
+          IMAGE_DIGEST: ${{ steps.publish.outputs.digest }}
+          EXPECTED_VERSION: ${{ steps.plan.outputs.tag }}
+        run: bash tools/ci/smoke-image.sh "$IMAGE_NAME@$IMAGE_DIGEST" "$EXPECTED_VERSION" linux/amd64
+
+      - name: Verify published arm64 digest
+        id: verify_arm64
+        if: ${{ !inputs.dry_run }}
+        env:
+          IMAGE_DIGEST: ${{ steps.publish.outputs.digest }}
+          EXPECTED_VERSION: ${{ steps.plan.outputs.tag }}
+        run: bash tools/ci/smoke-image.sh "$IMAGE_NAME@$IMAGE_DIGEST" "$EXPECTED_VERSION" linux/arm64
 
       - name: Write Docker tags file
         run: |
@@ -234,8 +252,45 @@ jobs:
 
           node tools/release/create-github-release.mjs "${args[@]}"
 
-      - name: Trigger Cloudflare Pages rebuild
+      - name: Promote tested Docker image
+        id: aliases
         if: ${{ !inputs.dry_run }}
         env:
+          IMAGE_DIGEST: ${{ steps.publish.outputs.digest }}
+          DOCKER_TAGS: ${{ steps.plan.outputs.docker_tags }}
+        run: |
+          args=()
+          while IFS= read -r tag; do
+            args+=(--tag "$tag")
+          done <<< "$DOCKER_TAGS"
+          docker buildx imagetools create "${args[@]}" "$IMAGE_NAME@$IMAGE_DIGEST"
+
+      - name: Write release summary
+        if: always()
+        env:
+          SUMMARY_STEPS: ${{ toJSON(steps) }}
+          JOB_STATUS: ${{ job.status }}
+          DRY_RUN: ${{ inputs.dry_run }}
+          IMAGE_DIGEST: ${{ steps.publish.outputs.digest }}
+          RELEASE_URL: ${{ steps.github-release.outputs.html_url }}
+        run: node tools/ci/summary.mjs
+
+  changelog:
+    name: Refresh changelog
+    needs: release
+    if: ${{ !inputs.dry_run }}
+    runs-on: ubuntu-latest
+    permissions: {}
+    steps:
+      - name: Trigger Cloudflare Pages rebuild
+        env:
           CLOUDFLARE_PAGES_DEPLOY_HOOK_URL: ${{ secrets.CLOUDFLARE_PAGES_DEPLOY_HOOK_URL }}
-        run: curl --fail --silent --show-error --request POST "${CLOUDFLARE_PAGES_DEPLOY_HOOK_URL}"
+        run: curl --fail --silent --show-error --request POST "$CLOUDFLARE_PAGES_DEPLOY_HOOK_URL"
+
+      - name: Summarize changelog refresh
+        if: always()
+        env:
+          RESULT: ${{ job.status }}
+          RELEASE_URL: ${{ needs.release.outputs.release_url }}
+        run: |
+          printf '## Changelog refresh\n\nResult: %s\n\n[Published release](%s)\n\nIf the refresh failed, rerun this job; the release is already published.\n' "$RESULT" "$RELEASE_URL" >> "$GITHUB_STEP_SUMMARY"
