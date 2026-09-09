@@ -200,13 +200,14 @@ export function EditorSubtitlePanel({
             )
           }
         >
-          <EditorPropertySection title="Track">
+          <EditorPropertySection>
             <EditorPropertyRow label="Track">
               <Select
                 value={selectedSubtitleTrackKey}
                 onValueChange={onSelectedSubtitleTrackKeyChange}
               >
                 <SelectTrigger
+                  aria-label="Subtitle track"
                   size="sm"
                   className={editorPropertySelectTriggerClassName()}
                 >
