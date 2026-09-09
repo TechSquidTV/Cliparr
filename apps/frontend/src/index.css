@@ -463,10 +463,6 @@
   grid-template-columns: auto minmax(0, 1fr) auto;
 }
 
-@utility grid-cols-provider-connect {
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1.12fr);
-}
-
 @utility grid-cols-editor-export {
   grid-template-columns:
     minmax(0, 1fr)
