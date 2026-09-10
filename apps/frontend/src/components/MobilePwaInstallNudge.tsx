@@ -1,3 +1,4 @@
+import { ControlTooltip } from "@/components/ui/tooltip";
 import { Download, Share, Smartphone, X } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import {
@@ -99,15 +100,16 @@ export function MobilePwaInstallNudgeCard({
               : "Open it like an app with a faster, full-screen experience."}
           </p>
         </div>
-        <button
-          type="button"
-          onClick={onDismiss}
-          className={cn(iconButtonClasses, "h-8 w-8 shrink-0")}
-          aria-label="Dismiss install prompt"
-          title="Dismiss"
-        >
-          <X className="h-4 w-4" />
-        </button>
+        <ControlTooltip label="Dismiss">
+          <button
+            type="button"
+            onClick={onDismiss}
+            className={cn(iconButtonClasses, "h-8 w-8 shrink-0")}
+            aria-label="Dismiss install prompt"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </ControlTooltip>
       </div>
 
       <div className="mt-3 flex flex-wrap items-center gap-2 pl-12">

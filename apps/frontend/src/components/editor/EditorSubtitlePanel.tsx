@@ -1,4 +1,10 @@
-import { useEffect, useState, type Dispatch, type SetStateAction } from "react";
+import {
+  useEffect,
+  useState,
+  type Dispatch,
+  type SetStateAction,
+  type RefObject,
+} from "react";
 import {
   ChevronLeft,
   ChevronRight,
@@ -57,6 +63,8 @@ interface EditorSubtitlePanelProperties {
   providerId?: string;
   subtitleTracks: readonly PlaybackSubtitleTrack[];
   selectedSubtitleTrackKey: string;
+  subtitleTrackChangePending: boolean;
+  subtitleTrackTriggerRef: RefObject<HTMLButtonElement | null>;
   onSelectedSubtitleTrackKeyChange: (value: string) => void;
   subtitlesEnabled: boolean;
   onSubtitlesEnabledChange: (value: boolean) => void;
@@ -85,6 +93,8 @@ export function EditorSubtitlePanel({
   providerId,
   subtitleTracks,
   selectedSubtitleTrackKey,
+  subtitleTrackChangePending,
+  subtitleTrackTriggerRef,
   onSelectedSubtitleTrackKeyChange,
   subtitlesEnabled,
   onSubtitlesEnabledChange,
@@ -207,13 +217,21 @@ export function EditorSubtitlePanel({
                 onValueChange={onSelectedSubtitleTrackKeyChange}
               >
                 <SelectTrigger
+                  ref={subtitleTrackTriggerRef}
                   aria-label="Subtitle track"
                   size="sm"
                   className={editorPropertySelectTriggerClassName()}
                 >
                   <SelectValue placeholder="Select subtitle track" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent
+                  onCloseAutoFocus={(event) => {
+                    // The confirmation owns focus while it is open.
+                    if (subtitleTrackChangePending) {
+                      event.preventDefault();
+                    }
+                  }}
+                >
                   <SelectGroup>
                     <SelectLabel>Subtitle Tracks</SelectLabel>
                     <SelectItem value="none">No subtitles</SelectItem>

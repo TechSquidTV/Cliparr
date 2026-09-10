@@ -12,11 +12,7 @@ import {
   X,
 } from "lucide-react";
 import { cn } from "@/lib/utilities";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
+import { ControlTooltip } from "@/components/ui/tooltip";
 import { Switch } from "@/components/ui/switch";
 import {
   Select,
@@ -35,29 +31,6 @@ import type { MediaSource, ProviderSession } from "@/providers/types";
 import { formatProviderName } from "@/components/providers/ProviderGlyph";
 import SourceConnectPanel from "@/components/sources/SourceConnectPanel";
 import type { Feedback, SourceFilter } from "@/components/sources/sourcesTypes";
-
-function TooltipWrap({
-  message,
-  children,
-}: {
-  message: string | null;
-  children: React.ReactElement;
-}) {
-  if (!message) {
-    return children;
-  }
-
-  return (
-    <Tooltip>
-      <TooltipTrigger asChild>
-        <span className="inline-flex" tabIndex={0}>
-          {children}
-        </span>
-      </TooltipTrigger>
-      <TooltipContent side="top">{message}</TooltipContent>
-    </Tooltip>
-  );
-}
 
 interface SourceCounts {
   all: number;
@@ -274,7 +247,7 @@ export function SourcesDialogHeader({
               {showConnectPanel ? "Hide" : "Add Source"}
             </button>
           )}
-          <TooltipWrap message={reloadDisabledReason}>
+          <ControlTooltip disabled side="top" label={reloadDisabledReason}>
             <button
               type="button"
               onClick={onReloadList}
@@ -289,8 +262,8 @@ export function SourcesDialogHeader({
               />
               Reload
             </button>
-          </TooltipWrap>
-          <TooltipWrap message={refreshAllDisabledReason}>
+          </ControlTooltip>
+          <ControlTooltip disabled side="top" label={refreshAllDisabledReason}>
             <button
               type="button"
               onClick={onRefreshAll}
@@ -308,7 +281,7 @@ export function SourcesDialogHeader({
               />
               Refresh All
             </button>
-          </TooltipWrap>
+          </ControlTooltip>
           <button
             type="button"
             onClick={onClose}
@@ -721,7 +694,11 @@ export function SourceCard({
       </AnimatePresence>
 
       <div className="mt-4 flex flex-wrap gap-2">
-        <TooltipWrap message={canSaveEdits ? null : saveDisabledReason}>
+        <ControlTooltip
+          disabled
+          side="top"
+          label={canSaveEdits ? null : saveDisabledReason}
+        >
           <button
             type="button"
             onClick={() => void onSave()}
@@ -730,7 +707,7 @@ export function SourceCard({
           >
             Save Changes
           </button>
-        </TooltipWrap>
+        </ControlTooltip>
         <div
           className={joinClassNames(
             "inline-flex h-8 items-center gap-3 rounded-md border border-border bg-card px-3 text-xs font-medium normal-case tracking-normal text-foreground transition-opacity",
@@ -738,7 +715,7 @@ export function SourceCard({
           )}
         >
           <span>{source.enabled ? "Enabled" : "Disabled"}</span>
-          <TooltipWrap message={busyDisabledReason}>
+          <ControlTooltip disabled side="top" label={busyDisabledReason}>
             <Switch
               aria-label={`${source.enabled ? "Disable" : "Enable"} ${
                 source.name
@@ -747,9 +724,9 @@ export function SourceCard({
               disabled={isBusy}
               onCheckedChange={() => void onToggleEnabled()}
             />
-          </TooltipWrap>
+          </ControlTooltip>
         </div>
-        <TooltipWrap message={busyDisabledReason}>
+        <ControlTooltip disabled side="top" label={busyDisabledReason}>
           <button
             type="button"
             onClick={() => void onRefresh()}
@@ -764,8 +741,8 @@ export function SourceCard({
             />
             Refresh
           </button>
-        </TooltipWrap>
-        <TooltipWrap message={busyDisabledReason}>
+        </ControlTooltip>
+        <ControlTooltip disabled side="top" label={busyDisabledReason}>
           <button
             type="button"
             onClick={() => void onRemove()}
@@ -775,7 +752,7 @@ export function SourceCard({
             <Trash2 className="h-4 w-4" />
             Remove
           </button>
-        </TooltipWrap>
+        </ControlTooltip>
       </div>
     </article>
   );

@@ -1,3 +1,4 @@
+import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
 import {
   lazy,
   Suspense,
@@ -152,6 +153,7 @@ function EditorScreenContent({
   const [editorPropertiesOpenSections, setEditorPropertiesOpenSections] =
     useState(loadEditorPropertiesOpenSections);
   const [exportDialogMounted, setExportDialogMounted] = useState(false);
+  const subtitleTrackTriggerReference = useRef<HTMLButtonElement>(null);
   const {
     subtitleTracks,
     selectedSubtitleTrack,
@@ -170,6 +172,9 @@ function EditorScreenContent({
     clippedSubtitleCues,
     subtitleExportSummary,
     handleSelectedSubtitleTrackChange,
+    subtitleTrackChangePending,
+    confirmSubtitleTrackChange,
+    cancelSubtitleTrackChange,
     selectedSubtitleCue,
     handleSelectedSubtitleTextCommit,
     handleSelectedSubtitleStartCommit,
@@ -604,6 +609,8 @@ function EditorScreenContent({
           providerId={session.source.providerId}
           subtitleTracks={subtitleTracks}
           selectedSubtitleTrackKey={selectedSubtitleTrackKey}
+          subtitleTrackChangePending={subtitleTrackChangePending}
+          subtitleTrackTriggerRef={subtitleTrackTriggerReference}
           onSelectedSubtitleTrackKeyChange={handleSelectedSubtitleTrackChange}
           subtitlesEnabled={subtitleEnabled}
           onSubtitlesEnabledChange={setSubtitleEnabled}
@@ -649,6 +656,15 @@ function EditorScreenContent({
 
   return (
     <div className="flex h-dvh flex-col overflow-hidden bg-editor-workspace text-foreground">
+      <ConfirmationDialog
+        open={subtitleTrackChangePending}
+        title="Replace subtitle cues?"
+        description="Changing subtitle tracks will replace your customized subtitle cues."
+        confirmLabel="Replace cues"
+        onConfirm={confirmSubtitleTrackChange}
+        onCancel={cancelSubtitleTrackChange}
+        finalFocus={subtitleTrackTriggerReference}
+      />
       <EditorHeader
         title={session.title}
         onBack={onBack}

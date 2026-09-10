@@ -1,3 +1,4 @@
+import { ControlTooltip } from "@/components/ui/tooltip";
 import {
   RangeScrollbar,
   Timeline,
@@ -37,92 +38,95 @@ function ZoomHandle({
   };
 
   return (
-    <Timeline.ViewportScrollbarHandle
-      side={side}
-      title="Drag inward to zoom in; outward to zoom out"
-      aria-valuemin={
-        side === "start" ? 0 : control.viewStartSeconds + control.range.minSpan
-      }
-      aria-valuemax={
-        side === "start"
-          ? control.viewEndSeconds - control.range.minSpan
-          : control.totalDurationSeconds
-      }
-      aria-valuenow={
-        side === "start" ? control.viewStartSeconds : control.viewEndSeconds
-      }
-      aria-valuetext={
-        side === "start" ? control.startValueText : control.endValueText
-      }
-      style={{ touchAction: "none" }}
-      onKeyDown={(event: KeyboardEvent<HTMLDivElement>) => {
-        const delta = {
-          ArrowLeft: -10,
-          ArrowRight: 10,
-          PageUp: -120,
-          PageDown: 120,
-        }[event.key];
-        if (delta === undefined) {
-          return;
+    <ControlTooltip label="Drag inward to zoom in; outward to zoom out">
+      <Timeline.ViewportScrollbarHandle
+        side={side}
+        aria-valuemin={
+          side === "start"
+            ? 0
+            : control.viewStartSeconds + control.range.minSpan
         }
-        event.preventDefault();
-        event.stopPropagation();
-        control.onValueChange(
-          viewportRangeAfterZoomDrag({
+        aria-valuemax={
+          side === "start"
+            ? control.viewEndSeconds - control.range.minSpan
+            : control.totalDurationSeconds
+        }
+        aria-valuenow={
+          side === "start" ? control.viewStartSeconds : control.viewEndSeconds
+        }
+        aria-valuetext={
+          side === "start" ? control.startValueText : control.endValueText
+        }
+        style={{ touchAction: "none" }}
+        onKeyDown={(event: KeyboardEvent<HTMLDivElement>) => {
+          const delta = {
+            ArrowLeft: -10,
+            ArrowRight: 10,
+            PageUp: -120,
+            PageDown: 120,
+          }[event.key];
+          if (delta === undefined) {
+            return;
+          }
+          event.preventDefault();
+          event.stopPropagation();
+          control.onValueChange(
+            viewportRangeAfterZoomDrag({
+              range: {
+                start: control.viewStartSeconds,
+                end: control.viewEndSeconds,
+              },
+              side,
+              deltaPixels: delta,
+              minSpan: control.range.minSpan,
+              duration: control.totalDurationSeconds,
+            }),
+            { reason: "handle-keyboard", side },
+          );
+        }}
+        onPointerDown={(event: PointerEvent<HTMLDivElement>) => {
+          // Preserve the library's accessible handle while replacing its
+          // full-duration linear pointer sensitivity with proportional zoom.
+          event.preventDefault();
+          event.stopPropagation();
+          if (
+            (event.pointerType !== "touch" && event.button !== 0) ||
+            drag.current
+          ) {
+            return;
+          }
+          event.currentTarget.focus();
+          drag.current = {
+            pointerId: event.pointerId,
+            clientX: event.clientX,
             range: {
               start: control.viewStartSeconds,
               end: control.viewEndSeconds,
             },
-            side,
-            deltaPixels: delta,
-            minSpan: control.range.minSpan,
-            duration: control.totalDurationSeconds,
-          }),
-          { reason: "handle-keyboard", side },
-        );
-      }}
-      onPointerDown={(event: PointerEvent<HTMLDivElement>) => {
-        // Preserve the library's accessible handle while replacing its
-        // full-duration linear pointer sensitivity with proportional zoom.
-        event.preventDefault();
-        event.stopPropagation();
-        if (
-          (event.pointerType !== "touch" && event.button !== 0) ||
-          drag.current
-        ) {
-          return;
-        }
-        event.currentTarget.focus();
-        drag.current = {
-          pointerId: event.pointerId,
-          clientX: event.clientX,
-          range: {
-            start: control.viewStartSeconds,
-            end: control.viewEndSeconds,
-          },
-        };
-        event.currentTarget.setPointerCapture(event.pointerId);
-      }}
-      onPointerMove={(event: PointerEvent<HTMLDivElement>) => {
-        const active = drag.current;
-        if (!active || active.pointerId !== event.pointerId) {
-          return;
-        }
-        control.onValueChange(
-          viewportRangeAfterZoomDrag({
-            range: active.range,
-            side,
-            deltaPixels: event.clientX - active.clientX,
-            minSpan: control.range.minSpan,
-            duration: control.totalDurationSeconds,
-          }),
-          { reason: "handle-drag", side },
-        );
-      }}
-      onPointerUp={finishDrag}
-      onPointerCancel={finishDrag}
-      onLostPointerCapture={finishDrag}
-    />
+          };
+          event.currentTarget.setPointerCapture(event.pointerId);
+        }}
+        onPointerMove={(event: PointerEvent<HTMLDivElement>) => {
+          const active = drag.current;
+          if (!active || active.pointerId !== event.pointerId) {
+            return;
+          }
+          control.onValueChange(
+            viewportRangeAfterZoomDrag({
+              range: active.range,
+              side,
+              deltaPixels: event.clientX - active.clientX,
+              minSpan: control.range.minSpan,
+              duration: control.totalDurationSeconds,
+            }),
+            { reason: "handle-drag", side },
+          );
+        }}
+        onPointerUp={finishDrag}
+        onPointerCancel={finishDrag}
+        onLostPointerCapture={finishDrag}
+      />
+    </ControlTooltip>
   );
 }
 

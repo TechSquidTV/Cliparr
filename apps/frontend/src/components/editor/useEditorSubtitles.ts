@@ -90,6 +90,9 @@ export function useEditorSubtitles({
   const [selectedSubtitleTrackKey, setSelectedSubtitleTrackKey] = useState(
     initialSubtitleSelection.key,
   );
+  const [pendingSubtitleTrackKey, setPendingSubtitleTrackKey] = useState<
+    string | null
+  >(null);
   const [importedSubtitleTrackKey, setImportedSubtitleTrackKey] = useState<
     string | null
   >(initialDraft?.subtitles.importedTrackKey ?? null);
@@ -241,20 +244,8 @@ export function useEditorSubtitles({
     setSubtitleEnabled(subtitleTrackSupportsBurnIn(preferredSubtitleTrack));
   }, [session.selectedSubtitleTrack, subtitleTracks]);
 
-  const handleSelectedSubtitleTrackChange = useCallback(
+  const applySubtitleTrackChange = useCallback(
     (value: string) => {
-      if (
-        value !== "none" &&
-        value !== importedSubtitleTrackKey &&
-        subtitleCues.length > 0 &&
-        globalThis.window !== undefined &&
-        !globalThis.confirm(
-          "Changing subtitle tracks will replace your customized subtitle cues. Continue?",
-        )
-      ) {
-        return;
-      }
-
       subtitleTrackSelectionChangedByUserReference.current = true;
       setSelectedSubtitleTrackKey(value);
       clearSubtitleError();
@@ -272,14 +263,32 @@ export function useEditorSubtitles({
         Boolean(nextTrack && subtitleTrackSupportsBurnIn(nextTrack)),
       );
     },
-    [
-      clearSubtitleError,
-      importedSubtitleTrackKey,
-      resetSubtitleCues,
-      subtitleCues.length,
-      subtitleTracks,
-    ],
+    [clearSubtitleError, resetSubtitleCues, subtitleTracks],
   );
+
+  const handleSelectedSubtitleTrackChange = useCallback(
+    (value: string) => {
+      if (
+        value !== "none" &&
+        value !== importedSubtitleTrackKey &&
+        subtitleCues.length > 0
+      ) {
+        setPendingSubtitleTrackKey(value);
+        return;
+      }
+
+      applySubtitleTrackChange(value);
+    },
+    [applySubtitleTrackChange, importedSubtitleTrackKey, subtitleCues.length],
+  );
+
+  function confirmSubtitleTrackChange() {
+    if (pendingSubtitleTrackKey === null) {
+      return;
+    }
+    applySubtitleTrackChange(pendingSubtitleTrackKey);
+    setPendingSubtitleTrackKey(null);
+  }
 
   const handleSelectedSubtitleTextCommit = useCallback(
     (text: string) => {
@@ -385,6 +394,9 @@ export function useEditorSubtitles({
     clippedSubtitleCues,
     subtitleExportSummary,
     handleSelectedSubtitleTrackChange,
+    subtitleTrackChangePending: pendingSubtitleTrackKey !== null,
+    confirmSubtitleTrackChange,
+    cancelSubtitleTrackChange: () => setPendingSubtitleTrackKey(null),
     selectedSubtitleCue,
     handleSelectedSubtitleTextCommit,
     handleSelectedSubtitleStartCommit,
