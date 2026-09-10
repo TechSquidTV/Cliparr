@@ -8,7 +8,7 @@ export function editorPropertyLabelClassName() {
 }
 
 export function editorPropertySelectTriggerClassName() {
-  return "h-8 w-full min-w-0 rounded-[var(--radius-control)] border-editor-border bg-editor-control px-2.5 text-xs font-medium text-sidebar-foreground shadow-none hover:bg-editor-control-hover focus-visible:ring-2 focus-visible:ring-editor-accent/35";
+  return "h-8 w-full min-w-0 border-editor-border bg-editor-control px-2.5 text-xs font-medium text-sidebar-foreground shadow-none hover:bg-editor-control-hover focus-visible:ring-2 focus-visible:ring-editor-accent/35";
 }
 
 export function EditorPropertySection({
@@ -16,17 +16,21 @@ export function EditorPropertySection({
   action,
   children,
 }: {
-  title: string;
+  title?: string;
   action?: ReactNode;
   children: ReactNode;
 }) {
+  const hasHeader = Boolean(title || action);
+
   return (
     <section className="border-b border-editor-border/80 px-3 py-3 last:border-b-0">
-      <div className="flex min-h-7 items-center justify-between gap-3">
-        <div className={editorPropertyLabelClassName()}>{title}</div>
-        {action}
-      </div>
-      <div className="mt-2.5 space-y-2.5">{children}</div>
+      {hasHeader && (
+        <div className="flex min-h-7 items-center justify-between gap-3">
+          <div className={editorPropertyLabelClassName()}>{title}</div>
+          {action}
+        </div>
+      )}
+      <div className={cn("space-y-2.5", hasHeader && "mt-2.5")}>{children}</div>
     </section>
   );
 }

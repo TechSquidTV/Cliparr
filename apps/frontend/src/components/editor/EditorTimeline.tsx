@@ -8,11 +8,19 @@ import {
   type TimelineEngine,
   type UseTimelineTrackHeaderResult,
 } from "@techsquidtv/canvas-timeline";
-import { Eye, EyeOff, Volume2, VolumeX } from "lucide-react";
-import { useEffect, useRef } from "react";
+import {
+  ChevronLeft,
+  ChevronRight,
+  Eye,
+  EyeOff,
+  Volume2,
+  VolumeX,
+} from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 import { EditorMediaRange } from "@/components/editor/EditorMediaRange";
 import { EditorMediaRangeCanvas } from "@/components/editor/EditorMediaRangeCanvas";
 import { EditorViewportScrollbar } from "@/components/editor/EditorViewportScrollbar";
+import { handleHorizontalScrollKeyDown } from "@/components/ui/scroll-area";
 import { zoomEditorTimeline } from "@/components/editor/editorTimelineZoom";
 import {
   EDITOR_MEDIA_TRACK_ID,
@@ -80,12 +88,18 @@ function TrackHeaderColumn({ muted, onMutedChange }: EditorTimelineProperties) {
   );
 }
 
-function EditorTimelineLayers({ engine }: { engine: TimelineEngine }) {
+function EditorTimelineLayers({
+  engine,
+  ready,
+}: {
+  engine: TimelineEngine;
+  ready: boolean;
+}) {
   const { tracks } = useTimelineTracks();
 
   return (
     <>
-      <CenterViewportOnInPoint />
+      {ready && <CenterViewportOnInPoint />}
       <Timeline.PlayheadArea />
       <Timeline.PlayheadGrabber />
       <Timeline.TrackList className="timeline-track-list-overlay">
@@ -131,10 +145,14 @@ function CenterViewportOnInPoint() {
 
 export function EditorTimeline({
   engine,
+  ready,
   muted,
   onMutedChange,
-}: EditorTimelineProperties & { engine: TimelineEngine }) {
+}: EditorTimelineProperties & { engine: TimelineEngine; ready: boolean }) {
   const root = useRef<HTMLDivElement>(null);
+  const horizontalScroller = useRef<HTMLDivElement>(null);
+  const trackHeader = useRef<HTMLDivElement>(null);
+  const [trackNamesVisible, setTrackNamesVisible] = useState(true);
   useEffect(() => {
     const element = root.current;
     if (!element) {
@@ -162,28 +180,63 @@ export function EditorTimeline({
   }, [engine]);
 
   return (
-    <div className="cliparr-timeline-v2 flex h-full min-h-0 flex-col bg-editor-panel">
-      <div className="flex min-h-0 flex-1">
-        <div className="w-32 shrink-0 border-r border-editor-border bg-editor-panel-muted/55">
-          <TrackHeaderColumn muted={muted} onMutedChange={onMutedChange} />
-        </div>
-        <div className="min-w-0 flex-1">
-          <Timeline.Root
-            ref={root}
-            className="h-full min-h-editor-timeline-mobile w-full lg:min-h-0"
-          >
-            <CanvasRenderer showInOutPoints={false} />
-            <EditorMediaRangeCanvas />
-            <EditorTimelineLayers engine={engine} />
-          </Timeline.Root>
+    <div className="flex h-full min-h-0 flex-col [--editor-track-header-width:6rem] lg:[--editor-track-header-width:8rem]">
+      <div
+        ref={horizontalScroller}
+        role="region"
+        aria-label="Timeline tracks and names"
+        tabIndex={0}
+        className="min-h-0 flex-1 overflow-x-auto overscroll-x-contain lg:overflow-x-hidden"
+        onScroll={(event) =>
+          setTrackNamesVisible(
+            event.currentTarget.scrollLeft <
+              (trackHeader.current?.offsetWidth ?? 0) - 1,
+          )
+        }
+        onKeyDown={handleHorizontalScrollKeyDown}
+      >
+        <div className="cliparr-timeline-v2 flex h-full min-h-0 w-[calc(100%+var(--editor-track-header-width))] flex-col bg-editor-panel lg:w-full">
+          <div className="flex min-h-0 flex-1">
+            <div
+              ref={trackHeader}
+              className="w-[var(--editor-track-header-width)] shrink-0 border-r border-editor-border bg-editor-panel-muted/55"
+            >
+              <TrackHeaderColumn muted={muted} onMutedChange={onMutedChange} />
+            </div>
+            <div className="min-w-0 flex-1">
+              <Timeline.Root ref={root} className="h-full w-full">
+                <CanvasRenderer showInOutPoints={false} />
+                <EditorMediaRangeCanvas />
+                <EditorTimelineLayers engine={engine} ready={ready} />
+              </Timeline.Root>
+            </div>
+          </div>
+          <div className="flex shrink-0">
+            <div className="w-[var(--editor-track-header-width)] shrink-0 border-t border-r border-editor-border bg-editor-panel-muted/55" />
+            <div className="cliparr-timeline-scrollbar-row min-w-0 flex-1 border-t border-editor-border px-2 py-1.5">
+              <EditorViewportScrollbar />
+            </div>
+          </div>
         </div>
       </div>
-      <div className="flex shrink-0">
-        <div className="w-32 shrink-0 border-t border-r border-editor-border bg-editor-panel-muted/55" />
-        <div className="cliparr-timeline-scrollbar-row min-w-0 flex-1 border-t border-editor-border px-2 py-1.5">
-          <EditorViewportScrollbar />
-        </div>
-      </div>
+      <button
+        type="button"
+        className="flex min-h-11 shrink-0 items-center justify-center gap-2 border-t border-editor-border bg-editor-panel px-3 text-xs text-muted-foreground hover:bg-editor-control-hover hover:text-foreground focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-editor-accent/35 focus-visible:outline-none lg:hidden"
+        onClick={() =>
+          horizontalScroller.current?.scrollTo({
+            left: trackNamesVisible
+              ? (trackHeader.current?.offsetWidth ?? 0)
+              : 0,
+          })
+        }
+      >
+        {trackNamesVisible ? (
+          <ChevronLeft className="h-4 w-4" />
+        ) : (
+          <ChevronRight className="h-4 w-4" />
+        )}
+        {trackNamesVisible ? "Hide track names" : "Show track names"}
+      </button>
     </div>
   );
 }

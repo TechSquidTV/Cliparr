@@ -19,6 +19,13 @@ import {
 } from "@/components/ui/tooltip";
 import { Switch } from "@/components/ui/switch";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   destructiveAlertClasses,
   iconButtonClasses,
   textInputClasses as inputClasses,
@@ -354,21 +361,20 @@ export function SourcesDialogFilters({
             />
           </label>
 
-          <label className="flex h-9 items-center gap-3 rounded-md border border-input bg-background px-3 text-sm text-muted-foreground">
-            <span className={sourceFieldLabelClasses}>Provider</span>
-            <select
-              value={providerFilter}
-              onChange={(event) => onProviderFilterChange(event.target.value)}
-              className="h-full min-w-0 bg-transparent text-sm text-foreground outline-none"
-            >
-              <option value="all">All providers</option>
+          <Select value={providerFilter} onValueChange={onProviderFilterChange}>
+            <SelectTrigger aria-label="Provider" className="lg:w-52">
+              <span className={sourceFieldLabelClasses}>Provider</span>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All providers</SelectItem>
               {providerOptions.map((providerId) => (
-                <option key={providerId} value={providerId}>
+                <SelectItem key={providerId} value={providerId}>
                   {formatProviderName(providerId)}
-                </option>
+                </SelectItem>
               ))}
-            </select>
-          </label>
+            </SelectContent>
+          </Select>
         </div>
 
         <div className="flex flex-wrap gap-1 rounded-md border border-border bg-card p-1">

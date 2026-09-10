@@ -1,5 +1,6 @@
 @import "tailwindcss";
 @import "tw-animate-css";
+@import "./components/ui/select.css";
 
 @custom-variant dark (&:is(.dark *));
 
@@ -71,6 +72,11 @@
   --tracking-caps-xl: calc(var(--tracking-normal) + 0.18em);
   --tracking-caps-2xl: calc(var(--tracking-normal) + 0.2em);
   --tracking-caps-3xl: calc(var(--tracking-normal) + 0.22em);
+  --scrollbar-thumb-hover: color-mix(
+    in oklch,
+    var(--scrollbar-thumb) 74%,
+    var(--foreground)
+  );
   --radius-control: calc(var(--radius) - 2px);
   --radius-panel: calc(var(--radius) * 7);
   --editor-preview-stage: var(--editor-monitor);
@@ -84,11 +90,7 @@
     var(--foreground) 12%,
     transparent
   );
-  --editor-preview-overlay-foreground: color-mix(
-    in oklch,
-    var(--foreground) 80%,
-    var(--background)
-  );
+  --editor-preview-overlay-foreground: oklch(0.92 0 0);
   --editor-workspace: color-mix(
     in oklch,
     var(--background) 90%,
@@ -135,7 +137,7 @@
     var(--foreground) 86%,
     var(--primary)
   );
-  --editor-scrollbar: color-mix(
+  --scrollbar-thumb: color-mix(
     in oklch,
     var(--muted-foreground) 42%,
     transparent
@@ -301,7 +303,7 @@
     var(--foreground) 88%,
     var(--primary)
   );
-  --editor-scrollbar: color-mix(
+  --scrollbar-thumb: color-mix(
     in oklch,
     var(--muted-foreground) 46%,
     transparent
@@ -400,7 +402,8 @@
   --color-editor-preview-overlay-foreground: var(
     --editor-preview-overlay-foreground
   );
-  --color-editor-scrollbar: var(--editor-scrollbar);
+  --color-scrollbar-thumb: var(--scrollbar-thumb);
+  --color-scrollbar-thumb-hover: var(--scrollbar-thumb-hover);
   --color-editor-range-track: var(--editor-range-track);
   --color-editor-range-track-border: var(--editor-range-track-border);
   --color-editor-range-fill: var(--editor-range-fill);
@@ -482,6 +485,30 @@
 @layer base {
   * {
     @apply border-border outline-ring/50;
+    scrollbar-color: var(--scrollbar-thumb) transparent;
+    scrollbar-width: thin;
+  }
+
+  *::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+
+  *::-webkit-scrollbar-track,
+  *::-webkit-scrollbar-corner {
+    background: transparent;
+  }
+
+  *::-webkit-scrollbar-thumb {
+    border: 3px solid transparent;
+    border-radius: 999px;
+    background: var(--scrollbar-thumb);
+    background-clip: padding-box;
+  }
+
+  *::-webkit-scrollbar-thumb:hover {
+    background: var(--scrollbar-thumb-hover);
+    background-clip: padding-box;
   }
 
   body {
@@ -502,36 +529,6 @@
   ::view-transition-new(cliparr-editor-thumbnail) {
     mix-blend-mode: normal;
   }
-}
-
-.cliparr-editor-scrollbar {
-  scrollbar-color: var(--editor-scrollbar) transparent;
-  scrollbar-width: thin;
-}
-
-.cliparr-editor-scrollbar::-webkit-scrollbar {
-  width: 10px;
-  height: 10px;
-}
-
-.cliparr-editor-scrollbar::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.cliparr-editor-scrollbar::-webkit-scrollbar-thumb {
-  border: 3px solid transparent;
-  border-radius: 999px;
-  background: var(--editor-scrollbar);
-  background-clip: padding-box;
-}
-
-.cliparr-editor-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: color-mix(
-    in oklch,
-    var(--editor-scrollbar) 74%,
-    var(--foreground)
-  );
-  background-clip: padding-box;
 }
 
 .cliparr-editor-range {
@@ -624,12 +621,8 @@
   --timeline-inout-accent: var(--editor-accent);
   --timeline-scrollbar-bg: var(--editor-panel);
   --timeline-scrollbar-border: var(--editor-border);
-  --timeline-scrollbar-thumb: var(--editor-scrollbar);
-  --timeline-scrollbar-thumb-hover: color-mix(
-    in oklch,
-    var(--editor-scrollbar) 74%,
-    var(--foreground)
-  );
+  --timeline-scrollbar-thumb: var(--scrollbar-thumb);
+  --timeline-scrollbar-thumb-hover: var(--scrollbar-thumb-hover);
   font-family: var(--font-sans);
 }
 
@@ -655,6 +648,8 @@
 }
 
 .editor-media-range-row .editor-media-range {
+  /* Match the canvas clip's 4px corners instead of the scrollbar's pill. */
+  --timeline-radius-full: 4px;
   z-index: 31;
   border: 0;
   background: transparent;

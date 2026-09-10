@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useAuth } from "@/auth";
 import { editorDrafts } from "@/components/editor/editorDrafts";
 import EditorScreen from "@/components/editor/EditorScreen";
+import { BarsLoader } from "@/components/ui/bars-loader";
 import { LocalVideoOpenDialog } from "@/components/local-media/LocalVideoOpenDialog";
 import {
   primaryButtonClasses,
@@ -56,7 +57,7 @@ function LocalEditorRouteComponent() {
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background text-foreground">
-        Loading local video...
+        <BarsLoader label="Loading local video…" showLabel />
       </div>
     );
   }

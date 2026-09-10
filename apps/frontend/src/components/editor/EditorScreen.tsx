@@ -538,9 +538,18 @@ function EditorScreenContent({
       />
     </EditorPreviewPane>
   );
+  const playbackSourcePanel = (
+    <EditorPlaybackSourcePanel
+      previewSourceLabel={previewSourceLabel}
+      fallbackMessage={playbackFallbackReason}
+      className={isDesktopLayout ? "shrink-0 px-3" : "shrink-0"}
+    />
+  );
+
   const editorControls = (
     <EditorControls
       variant={layoutVariant}
+      playbackSourcePanel={playbackSourcePanel}
       playing={playing}
       loadingPreview={loadingPreview}
       togglePlay={togglePlay}
@@ -567,22 +576,20 @@ function EditorScreenContent({
       onClearPoints={handleClearInOutPoints}
     />
   );
-  const editorTimeline = hasDuration ? (
-    <EditorTimeline engine={engine} muted={muted} onMutedChange={setMuted} />
-  ) : null;
+  const editorTimeline = (
+    <EditorTimeline
+      engine={engine}
+      ready={hasDuration}
+      muted={muted}
+      onMutedChange={setMuted}
+    />
+  );
   const timelinePane = (
     <EditorTimelinePane
       variant={layoutVariant}
       controls={editorControls}
       hasDuration={hasDuration}
       timeline={editorTimeline}
-    />
-  );
-  const mobilePlaybackSourcePanel = (
-    <EditorPlaybackSourcePanel
-      previewSourceLabel={previewSourceLabel}
-      fallbackMessage={playbackFallbackReason}
-      hasHlsSource={Boolean(session.hlsSource)}
     />
   );
 
@@ -621,13 +628,8 @@ function EditorScreenContent({
   }
 
   const propertiesContent = (
-    <div className="cliparr-editor-scrollbar flex h-full min-h-0 flex-col gap-3 overflow-y-auto p-3">
-      <EditorPlaybackSourcePanel
-        previewSourceLabel={previewSourceLabel}
-        fallbackMessage={playbackFallbackReason}
-        hasHlsSource={Boolean(session.hlsSource)}
-        className="shrink-0 p-0"
-      />
+    <div className="flex h-full min-h-0 flex-col gap-3 overflow-y-auto p-3">
+      {playbackSourcePanel}
       {renderSubtitlePanel("min-h-editor-properties-min flex-1")}
     </div>
   );
@@ -656,30 +658,15 @@ function EditorScreenContent({
         onExportClick={handleOpenExportDialog}
       />
 
-      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-editor-border bg-editor-panel px-3 py-2 text-xs text-muted-foreground">
-        <span role="status">
-          {draft.notice ?? "Drafts save on this device for 14 days."}
-        </span>
-        <button
-          type="button"
-          disabled={exporting}
-          onClick={() => {
-            if (
-              globalThis.confirm(
-                "Reset this draft? This removes the saved clip range and subtitle edits.",
-              )
-            ) {
-              draft.reset();
-            }
-          }}
-          className="rounded px-2 py-1 text-foreground hover:bg-editor-control-hover focus-visible:ring-2 focus-visible:ring-editor-accent"
-        >
-          Reset draft
-        </button>
-      </div>
-      <EditorEditingTools history={editHistory} />
+      <EditorEditingTools
+        history={editHistory}
+        variant={layoutVariant}
+        onResetDraft={draft.reset}
+        resetDisabled={exporting}
+        draftNotice={draft.notice}
+      />
 
-      <main className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto p-2.5 sm:p-3 lg:overflow-hidden">
+      <main className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto p-2.5 [scrollbar-gutter:stable] sm:p-3 lg:overflow-hidden lg:[scrollbar-gutter:auto]">
         {isDesktopLayout ? (
           <EditorDesktopLayout
             playbackSidebarOpen={playbackSidebarOpen}
@@ -692,7 +679,6 @@ function EditorScreenContent({
         ) : (
           <EditorMobileLayout
             error={error}
-            playbackSourcePanel={mobilePlaybackSourcePanel}
             previewPane={previewPane}
             timelinePane={timelinePane}
             subtitlePanel={renderSubtitlePanel("min-h-editor-properties-min")}

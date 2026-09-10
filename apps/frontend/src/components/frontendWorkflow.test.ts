@@ -937,6 +937,7 @@ void test("renders mobile editor controls trigger and compact range summary", ()
       TooltipProvider,
       null,
       createElement(EditorControls, {
+        playbackSourcePanel: null,
         variant: "mobile",
         playing: false,
         loadingPreview: false,
@@ -967,18 +968,21 @@ void test("renders mobile editor controls trigger and compact range summary", ()
   );
 
   assert.match(markup, /More clip controls/);
+  assert.match(markup, />Set in</);
+  assert.match(markup, />Set out</);
+  assert.doesNotMatch(markup, /aria-label="Edit Duration/);
   assert.match(markup, />In</);
   assert.match(markup, />Out</);
   assert.match(markup, />Duration</);
 });
 
-void test("renders editor readiness transition hooks", () => {
+void test("keeps timeline geometry mounted and inert until media is ready", () => {
   const waitingMarkup = renderToStaticMarkup(
     createElement(EditorTimelinePane, {
       variant: "desktop",
       controls: createElement("div"),
       hasDuration: false,
-      timeline: createElement("div"),
+      timeline: createElement("button", null, "Timeline interaction"),
     }),
   );
   const readyMarkup = renderToStaticMarkup(
@@ -986,13 +990,19 @@ void test("renders editor readiness transition hooks", () => {
       variant: "desktop",
       controls: createElement("div"),
       hasDuration: true,
-      timeline: createElement("div"),
+      timeline: createElement("button", null, "Timeline interaction"),
     }),
   );
 
   assert.match(waitingMarkup, /data-editor-waiting-duration/);
-  assert.match(waitingMarkup, /Waiting for media duration/);
+  assert.match(waitingMarkup, /Loading timeline…/);
+  assert.match(waitingMarkup, /inert=""/);
+  assert.match(waitingMarkup, /aria-busy="true"/);
+  assert.match(waitingMarkup, /Timeline interaction/);
   assert.match(readyMarkup, /data-editor-timeline-ready/);
+  assert.match(readyMarkup, /Timeline interaction/);
+  assert.doesNotMatch(readyMarkup, /inert=""/);
+  assert.doesNotMatch(readyMarkup, /Loading timeline…/);
 });
 
 void test("renders editor poster with the shared thumbnail view transition", () => {
@@ -1022,6 +1032,7 @@ void test("renders the editor framegrab camera control", () => {
       TooltipProvider,
       null,
       createElement(EditorControls, {
+        playbackSourcePanel: null,
         playing: false,
         loadingPreview: false,
         togglePlay: () => {},

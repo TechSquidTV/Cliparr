@@ -541,7 +541,7 @@ function ProviderConnectTabsLayout({
           "@container",
           isScreen
             ? "pt-2 sm:rounded-lg sm:border sm:border-border sm:bg-background sm:p-4"
-            : "cliparr-editor-scrollbar h-source-provider-panel overflow-y-auto rounded-lg border border-border bg-background p-4",
+            : "h-source-provider-panel overflow-y-auto rounded-lg border border-border bg-background p-4",
         )}
       >
         {providers.map((provider) => (

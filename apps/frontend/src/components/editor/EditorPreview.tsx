@@ -1,4 +1,5 @@
-import { LoaderCircle, Play } from "lucide-react";
+import { Play } from "lucide-react";
+import { BarsLoader } from "@/components/ui/bars-loader";
 import type { RefCallback } from "react";
 import type { MediaDimensions } from "@/lib/editorMedia";
 import type { ReactNode } from "react";
@@ -44,6 +45,7 @@ export function EditorPreview({
     <div
       className="group relative aspect-video h-full max-h-full w-auto max-w-full overflow-hidden bg-editor-monitor"
       style={aspectRatio ? { aspectRatio } : undefined}
+      aria-busy={showLoadingOverlay}
     >
       <canvas
         ref={canvasRef}
@@ -88,7 +90,7 @@ export function EditorPreview({
       )}
       <div
         aria-hidden={!showLoadingOverlay}
-        className={`pointer-events-none absolute inset-0 flex items-center justify-center gap-2 text-sm text-editor-preview-overlay-foreground transition-opacity duration-200 ease-out ${
+        className={`pointer-events-none absolute inset-0 flex items-center justify-center px-3 text-editor-preview-overlay-foreground transition-opacity duration-200 ease-out motion-reduce:transition-none ${
           showLoadingOverlay ? "opacity-100" : "opacity-0"
         } ${
           hasPosterImage
@@ -96,8 +98,7 @@ export function EditorPreview({
             : "bg-editor-preview-overlay"
         }`}
       >
-        <LoaderCircle className="h-4 w-4 animate-spin" />
-        <span>{loadingStatus}</span>
+        {showLoadingOverlay && <BarsLoader label={loadingStatus} showLabel />}
       </div>
     </div>
   );

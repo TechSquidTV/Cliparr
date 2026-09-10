@@ -2,6 +2,7 @@ import { createFileRoute, useCanGoBack } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { cliparrClient } from "@/api/cliparrClient";
 import EditorScreen from "@/components/editor/EditorScreen";
+import { BarsLoader } from "@/components/ui/bars-loader";
 import {
   editorSessionFromCurrentlyPlaying,
   type EditorSession,
@@ -85,7 +86,7 @@ function EditorRouteComponent() {
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background text-foreground">
-        Loading editor...
+        <BarsLoader label="Loading editor…" showLabel />
       </div>
     );
   }

@@ -12,6 +12,8 @@ import {
   formatTimecodeInput,
   parseTimecodeInput,
 } from "@/components/editor/editorUtilities";
+import { cn } from "@/lib/utilities";
+import { Popover } from "radix-ui";
 
 interface EditorEditableTimecodeProperties {
   ariaLabel: string;
@@ -139,30 +141,52 @@ export function EditorEditableTimecode({
       }}
     >
       {editing ? (
-        <input
-          ref={inputReference}
-          aria-describedby={describedBy}
-          aria-errormessage={invalid ? errorId : undefined}
-          aria-invalid={invalid || undefined}
-          aria-label={`Edit ${ariaLabel}`}
-          autoComplete="off"
-          className={`h-7 border bg-editor-control px-1.5 font-mono text-sm font-semibold text-foreground outline-none transition-colors focus:ring-2 ${
-            invalid
-              ? "border-destructive focus:border-destructive focus:ring-destructive/20"
-              : "border-editor-border focus:border-editor-accent focus:ring-editor-accent/35"
-          } ${inputClassName}`}
-          inputMode="text"
-          onBlur={() => commitDraft({ restoreFocus: false })}
-          onChange={(event) => {
-            setDraftValue(event.target.value);
-            setInvalid(false);
-          }}
-          onKeyDown={handleInputKeyDown}
-          spellCheck={false}
-          style={{ width: inputWidth ?? "100%" }}
-          type="text"
-          value={draftValue}
-        />
+        <Popover.Root open={invalid}>
+          <Popover.Anchor asChild>
+            <input
+              ref={inputReference}
+              aria-describedby={describedBy}
+              aria-errormessage={invalid ? errorId : undefined}
+              aria-invalid={invalid || undefined}
+              aria-label={`Edit ${ariaLabel}`}
+              autoComplete="off"
+              className={cn(
+                "h-7 border bg-editor-control px-1.5 font-mono text-sm font-semibold text-foreground outline-none transition-colors focus:ring-2",
+                invalid
+                  ? "border-destructive focus:border-destructive focus:ring-destructive/20"
+                  : "border-editor-border focus:border-editor-accent focus:ring-editor-accent/35",
+                inputClassName,
+              )}
+              inputMode="text"
+              onBlur={() => commitDraft({ restoreFocus: false })}
+              onChange={(event) => {
+                setDraftValue(event.target.value);
+                setInvalid(false);
+              }}
+              onKeyDown={handleInputKeyDown}
+              spellCheck={false}
+              style={{ width: inputWidth ?? "100%" }}
+              type="text"
+              value={draftValue}
+            />
+          </Popover.Anchor>
+          <Popover.Portal>
+            <Popover.Content
+              id={errorId}
+              role="alert"
+              side="bottom"
+              align="start"
+              sideOffset={4}
+              collisionPadding={8}
+              onOpenAutoFocus={(event) => event.preventDefault()}
+              onCloseAutoFocus={(event) => event.preventDefault()}
+              className="z-[60] w-52 max-w-[70vw] rounded-md border border-destructive bg-popover p-2 text-xs font-normal text-popover-foreground shadow-md"
+            >
+              Enter seconds (12.5), m:ss (1:23), or h:mm:ss (1:02:03). Press
+              Escape to discard this edit.
+            </Popover.Content>
+          </Popover.Portal>
+        </Popover.Root>
       ) : (
         <button
           ref={buttonReference}
@@ -180,22 +204,10 @@ export function EditorEditableTimecode({
         </button>
       )}
       {editing && (
-        <>
-          <span id={hintId} className="sr-only">
-            Enter seconds, minutes and seconds, or hours minutes and seconds.
-            Press Enter to apply or Escape to cancel.
-          </span>
-          {invalid && (
-            <span
-              id={errorId}
-              className="absolute top-full left-0 z-50 mt-1 w-52 max-w-[70vw] rounded-md border border-destructive bg-popover p-2 text-xs font-normal text-popover-foreground shadow-md"
-              role="alert"
-            >
-              Enter seconds (12.5), m:ss (1:23), or h:mm:ss (1:02:03). Press
-              Escape to discard this edit.
-            </span>
-          )}
-        </>
+        <span id={hintId} className="sr-only">
+          Enter seconds, minutes and seconds, or hours minutes and seconds.
+          Press Enter to apply or Escape to cancel.
+        </span>
       )}
     </span>
   );

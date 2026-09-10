@@ -11,6 +11,7 @@ import {
   EDITOR_RESIZE_TARGET_MINIMUM_SIZE,
 } from "@/components/editor/editorLayoutSizing";
 import { EditorSidebar } from "@/components/editor/EditorSidebar";
+import { BarsLoader } from "@/components/ui/bars-loader";
 import { cliparrMotionTransitions } from "@/lib/motionPresets";
 
 export type EditorLayoutVariant = "desktop" | "mobile";
@@ -46,13 +47,20 @@ export function EditorPreviewPane({
     : cliparrMotionTransitions.fast;
   const previewStage = (
     <section
+      data-editor-preview-stage
       className={
         variant === "desktop"
           ? "flex min-h-0 flex-1 items-center justify-center overflow-hidden border border-editor-border bg-editor-monitor p-2"
-          : "flex min-h-editor-preview-min flex-none items-center justify-center overflow-hidden border border-editor-border bg-editor-monitor p-2 sm:min-h-editor-preview-sm-min"
+          : "relative aspect-video min-h-editor-preview-min w-full flex-none overflow-hidden border border-editor-border bg-editor-monitor sm:min-h-editor-preview-sm-min"
       }
     >
-      {children}
+      {variant === "mobile" ? (
+        <div className="absolute inset-2 flex min-h-0 items-center justify-center">
+          {children}
+        </div>
+      ) : (
+        children
+      )}
     </section>
   );
 
@@ -93,11 +101,6 @@ export function EditorTimelinePane({
   hasDuration: boolean;
   timeline: ReactNode;
 }) {
-  const reduceMotion = useReducedMotion();
-  const stateTransition = reduceMotion
-    ? { duration: 0 }
-    : cliparrMotionTransitions.standard;
-
   return (
     <section
       className={
@@ -108,35 +111,28 @@ export function EditorTimelinePane({
     >
       {controls}
 
-      <AnimatePresence mode="popLayout" initial={false}>
-        {hasDuration ? (
-          <motion.div
-            key="editor-timeline-ready"
-            layout={!reduceMotion}
-            className={variant === "desktop" ? "min-h-0 flex-1" : undefined}
-            data-editor-timeline-ready
-            initial={reduceMotion ? { opacity: 1 } : EDITOR_READY_STATE_INITIAL}
-            animate={EDITOR_READY_STATE_VISIBLE}
-            exit={EDITOR_READY_STATE_EXIT}
-            transition={stateTransition}
-          >
-            {timeline}
-          </motion.div>
-        ) : (
-          <motion.div
-            key="editor-waiting-duration"
-            layout={!reduceMotion}
-            className="border-t border-editor-border px-3 py-3 text-sm text-muted-foreground"
+      <div
+        className={
+          variant === "desktop" ? "relative min-h-0 flex-1" : "relative"
+        }
+        aria-busy={!hasDuration}
+      >
+        <div
+          className={`isolate h-full ${hasDuration ? "" : "opacity-40"}`}
+          inert={!hasDuration}
+          data-editor-timeline-ready={hasDuration || undefined}
+        >
+          {timeline}
+        </div>
+        {!hasDuration && (
+          <div
+            className="absolute inset-0 flex items-center justify-center bg-editor-panel/70 px-3 text-center text-sm text-muted-foreground"
             data-editor-waiting-duration
-            initial={reduceMotion ? { opacity: 1 } : EDITOR_READY_STATE_INITIAL}
-            animate={EDITOR_READY_STATE_VISIBLE}
-            exit={EDITOR_READY_STATE_EXIT}
-            transition={stateTransition}
           >
-            Waiting for media duration.
-          </motion.div>
+            <BarsLoader label="Loading timeline…" showLabel />
+          </div>
         )}
-      </AnimatePresence>
+      </div>
     </section>
   );
 }
@@ -271,13 +267,11 @@ export function EditorDesktopLayout({
 
 export function EditorMobileLayout({
   error,
-  playbackSourcePanel,
   previewPane,
   timelinePane,
   subtitlePanel,
 }: {
   error: string | null;
-  playbackSourcePanel: ReactNode;
   previewPane: ReactNode;
   timelinePane: ReactNode;
   subtitlePanel: ReactNode;
@@ -290,7 +284,6 @@ export function EditorMobileLayout({
         </div>
       )}
 
-      {playbackSourcePanel}
       {previewPane}
       {timelinePane}
       {subtitlePanel}
