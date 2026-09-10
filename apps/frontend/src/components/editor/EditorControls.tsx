@@ -1,9 +1,4 @@
-import {
-  useMemo,
-  type CSSProperties,
-  type ReactElement,
-  type ReactNode,
-} from "react";
+import { useMemo, type CSSProperties, type ReactNode } from "react";
 import {
   Camera,
   Pause,
@@ -15,11 +10,7 @@ import {
   ZoomIn,
   ZoomOut,
 } from "lucide-react";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
+import { ControlTooltip } from "@/components/ui/tooltip";
 import {
   Drawer,
   DrawerContent,
@@ -65,31 +56,6 @@ interface EditorControlsProperties {
   onSetOutPoint: () => void;
   onClearPoints: () => void;
   onFitSelection: () => void;
-}
-
-function ControlTooltip({
-  label,
-  disabled = false,
-  children,
-}: {
-  label: string;
-  disabled?: boolean;
-  children: ReactElement;
-}) {
-  return (
-    <Tooltip>
-      <TooltipTrigger asChild>
-        {disabled ? (
-          <span className="inline-flex" tabIndex={0}>
-            {children}
-          </span>
-        ) : (
-          children
-        )}
-      </TooltipTrigger>
-      <TooltipContent side="bottom">{label}</TooltipContent>
-    </Tooltip>
-  );
 }
 
 export function EditorControls({

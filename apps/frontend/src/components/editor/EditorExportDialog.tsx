@@ -1,4 +1,5 @@
-import { Download } from "lucide-react";
+import { Download, FileText } from "lucide-react";
+import { BouncyAccordion } from "@/components/ui/bouncy-accordion";
 import type {
   ExportFormat,
   ExportResolution,
@@ -185,20 +186,24 @@ export function EditorExportDialog({
               hlsSourceLabel={hlsSourceLabel}
             />
 
-            <details className="rounded-md border border-border bg-card">
-              <summary className="cursor-pointer rounded-md px-3 py-3 text-sm font-medium focus-visible:ring-2 focus-visible:ring-ring">
-                Advanced filename settings
-              </summary>
-              <div className="px-3 pb-3">
-                <EditorFilenameTemplateSection
-                  editingTemplateKind={editingTemplateKind}
-                  onEditingTemplateKindChange={onEditingTemplateKindChange}
-                  fileNameTemplates={fileNameTemplates}
-                  onFileNameTemplateChange={onFileNameTemplateChange}
-                  onResetFileNameTemplate={onResetFileNameTemplate}
-                />
-              </div>
-            </details>
+            <BouncyAccordion
+              items={[
+                {
+                  id: "filename-settings",
+                  title: "Advanced filename settings",
+                  icon: <FileText className="h-4 w-4" />,
+                  description: (
+                    <EditorFilenameTemplateSection
+                      editingTemplateKind={editingTemplateKind}
+                      onEditingTemplateKindChange={onEditingTemplateKindChange}
+                      fileNameTemplates={fileNameTemplates}
+                      onFileNameTemplateChange={onFileNameTemplateChange}
+                      onResetFileNameTemplate={onResetFileNameTemplate}
+                    />
+                  ),
+                },
+              ]}
+            />
           </fieldset>
         </div>
 

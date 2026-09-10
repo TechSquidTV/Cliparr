@@ -1,3 +1,4 @@
+import { ControlTooltip } from "@/components/ui/tooltip";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import {
@@ -546,16 +547,18 @@ export function DashboardVersionBadge({
 
   if (!latestRelease) {
     return (
-      <span
-        className={DASHBOARD_VERSION_BADGE_CLASS}
-        title={releaseChecksDisabledReason ?? undefined}
-        data-dashboard-version-badge
-        data-dashboard-release-check-disabled={
-          releaseChecksDisabledReason ? true : undefined
-        }
-      >
-        {versionLabel}
-      </span>
+      <ControlTooltip label={releaseChecksDisabledReason ?? undefined}>
+        <span
+          className={DASHBOARD_VERSION_BADGE_CLASS}
+          tabIndex={releaseChecksDisabledReason ? 0 : undefined}
+          data-dashboard-version-badge
+          data-dashboard-release-check-disabled={
+            releaseChecksDisabledReason ? true : undefined
+          }
+        >
+          {versionLabel}
+        </span>
+      </ControlTooltip>
     );
   }
 
@@ -573,7 +576,6 @@ export function DashboardVersionBadge({
             "gap-1.5 border-primary/40 bg-primary/10 text-primary transition-colors hover:bg-primary/15 focus-visible:ring-2 focus-visible:ring-primary/35 focus-visible:outline-none",
           )}
           aria-label={`${updateLabel}. View release notes.`}
-          title={updateLabel}
           data-dashboard-version-badge
           data-dashboard-update-available
         >
@@ -824,17 +826,18 @@ export default function DashboardScreen({
               <span className="truncate">Sources</span>
             </button>
             {renderViewerFilterPicker()}
-            <button
-              type="button"
-              onClick={fetchSessions}
-              className="inline-flex h-11 w-11 items-center justify-center rounded-lg border border-border text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
-              aria-label="Refresh sessions"
-              title="Refresh"
-            >
-              <RefreshCw
-                className={`h-5 w-5 ${loading || refreshing ? "animate-spin text-primary" : ""}`}
-              />
-            </button>
+            <ControlTooltip label="Refresh">
+              <button
+                type="button"
+                onClick={fetchSessions}
+                className="inline-flex h-11 w-11 items-center justify-center rounded-lg border border-border text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+                aria-label="Refresh sessions"
+              >
+                <RefreshCw
+                  className={`h-5 w-5 ${loading || refreshing ? "animate-spin text-primary" : ""}`}
+                />
+              </button>
+            </ControlTooltip>
           </div>
           <MobilePwaInstallNudge />
           <div className="hidden flex-wrap items-center gap-3 sm:flex sm:justify-end">
@@ -855,67 +858,71 @@ export default function DashboardScreen({
               Sources
             </button>
             {renderViewerFilterPicker()}
-            <button
-              type="button"
-              onClick={fetchSessions}
-              className="p-2 text-muted-foreground hover:text-foreground hover:bg-accent rounded-lg transition-colors"
-              aria-label="Refresh sessions"
-              title="Refresh"
-            >
-              <RefreshCw
-                className={`w-5 h-5 ${loading || refreshing ? "animate-spin text-primary" : ""}`}
-              />
-            </button>
-            <a
-              href={CLIPARR_WEBSITE_URL}
-              target="_blank"
-              rel="noreferrer"
-              className="p-2 text-muted-foreground hover:text-foreground hover:bg-accent rounded-lg transition-colors"
-              aria-label="Open Cliparr website"
-              title="Open Cliparr website"
-            >
-              <Globe className="h-5 w-5" />
-            </a>
-            <a
-              href={CLIPARR_GITHUB_URL}
-              target="_blank"
-              rel="noreferrer"
-              className="p-2 text-muted-foreground hover:text-foreground hover:bg-accent rounded-lg transition-colors"
-              aria-label="View Cliparr on GitHub"
-              title="View Cliparr on GitHub"
-            >
-              <GithubIcon className="h-5 w-5" />
-            </a>
-            <motion.button
-              type="button"
-              onClick={onDisconnect}
-              className={cn(
-                "flex items-center gap-2 rounded-lg text-sm font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:ring-2 focus-visible:ring-primary/35 focus-visible:outline-none",
-                showViewerFilterControl
-                  ? "h-9 w-9 justify-center p-2"
-                  : "px-4 py-2",
-              )}
-              aria-label="Disconnect"
-              title="Disconnect"
-              whileHover={
-                showViewerFilterControl && !reduceDashboardMotion
-                  ? { y: -1 }
-                  : undefined
-              }
-              whileTap={
-                showViewerFilterControl && !reduceDashboardMotion
-                  ? { scale: 0.985 }
-                  : undefined
-              }
-              transition={
-                reduceDashboardMotion
-                  ? { duration: 0 }
-                  : cliparrMotionTransitions.fast
-              }
-            >
-              <LogOut className="w-4 h-4" />
-              {!showViewerFilterControl && "Disconnect"}
-            </motion.button>
+            <ControlTooltip label="Refresh">
+              <button
+                type="button"
+                onClick={fetchSessions}
+                className="p-2 text-muted-foreground hover:text-foreground hover:bg-accent rounded-lg transition-colors"
+                aria-label="Refresh sessions"
+              >
+                <RefreshCw
+                  className={`w-5 h-5 ${loading || refreshing ? "animate-spin text-primary" : ""}`}
+                />
+              </button>
+            </ControlTooltip>
+            <ControlTooltip label="Open Cliparr website">
+              <a
+                href={CLIPARR_WEBSITE_URL}
+                target="_blank"
+                rel="noreferrer"
+                className="p-2 text-muted-foreground hover:text-foreground hover:bg-accent rounded-lg transition-colors"
+                aria-label="Open Cliparr website"
+              >
+                <Globe className="h-5 w-5" />
+              </a>
+            </ControlTooltip>
+            <ControlTooltip label="View Cliparr on GitHub">
+              <a
+                href={CLIPARR_GITHUB_URL}
+                target="_blank"
+                rel="noreferrer"
+                className="p-2 text-muted-foreground hover:text-foreground hover:bg-accent rounded-lg transition-colors"
+                aria-label="View Cliparr on GitHub"
+              >
+                <GithubIcon className="h-5 w-5" />
+              </a>
+            </ControlTooltip>
+            <ControlTooltip label="Disconnect">
+              <motion.button
+                type="button"
+                onClick={onDisconnect}
+                className={cn(
+                  "flex items-center gap-2 rounded-lg text-sm font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:ring-2 focus-visible:ring-primary/35 focus-visible:outline-none",
+                  showViewerFilterControl
+                    ? "h-9 w-9 justify-center p-2"
+                    : "px-4 py-2",
+                )}
+                aria-label="Disconnect"
+                whileHover={
+                  showViewerFilterControl && !reduceDashboardMotion
+                    ? { y: -1 }
+                    : undefined
+                }
+                whileTap={
+                  showViewerFilterControl && !reduceDashboardMotion
+                    ? { scale: 0.985 }
+                    : undefined
+                }
+                transition={
+                  reduceDashboardMotion
+                    ? { duration: 0 }
+                    : cliparrMotionTransitions.fast
+                }
+              >
+                <LogOut className="w-4 h-4" />
+                {!showViewerFilterControl && "Disconnect"}
+              </motion.button>
+            </ControlTooltip>
           </div>
         </header>
 

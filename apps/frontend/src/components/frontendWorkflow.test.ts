@@ -412,30 +412,36 @@ void test("renders dashboard version badge as a release link when an update is a
 
 void test("renders dashboard dev version badge with disabled update checks", () => {
   const markup = renderToStaticMarkup(
-    createElement(DashboardVersionBadge, {
-      versionLabel: "dev",
-      latestRelease: null,
-      releaseChecksDisabledReason:
-        "Local development build; release update checks are disabled",
-    }),
+    createElement(
+      TooltipProvider,
+      null,
+      createElement(DashboardVersionBadge, {
+        versionLabel: "dev",
+        latestRelease: null,
+        releaseChecksDisabledReason:
+          "Local development build; release update checks are disabled",
+      }),
+    ),
   );
 
   assert.match(markup, /data-dashboard-version-badge/);
   assert.match(markup, /data-dashboard-release-check-disabled="true"/);
   assert.match(markup, />dev</);
-  assert.match(
-    markup,
-    /Local development build; release update checks are disabled/,
-  );
+  assert.match(markup, /tabindex="0"/);
+  assert.doesNotMatch(markup, / title=/);
 });
 
 void test("renders mobile PWA install nudge for native install state", () => {
   const markup = renderToStaticMarkup(
-    createElement(MobilePwaInstallNudgeCard, {
-      mode: "native",
-      onDismiss: () => {},
-      onInstall: () => {},
-    }),
+    createElement(
+      TooltipProvider,
+      null,
+      createElement(MobilePwaInstallNudgeCard, {
+        mode: "native",
+        onDismiss: () => {},
+        onInstall: () => {},
+      }),
+    ),
   );
 
   assert.match(markup, /Add Cliparr to your home screen/);
@@ -445,11 +451,15 @@ void test("renders mobile PWA install nudge for native install state", () => {
 
 void test("hides mobile PWA install nudge by default", () => {
   const markup = renderToStaticMarkup(
-    createElement(MobilePwaInstallNudgeCard, {
-      mode: "hidden",
-      onDismiss: () => {},
-      onInstall: () => {},
-    }),
+    createElement(
+      TooltipProvider,
+      null,
+      createElement(MobilePwaInstallNudgeCard, {
+        mode: "hidden",
+        onDismiss: () => {},
+        onInstall: () => {},
+      }),
+    ),
   );
 
   assert.equal(markup, "");
@@ -457,13 +467,17 @@ void test("hides mobile PWA install nudge by default", () => {
 
 void test("does not render dashboard PWA nudge in default server markup", () => {
   const markup = renderToStaticMarkup(
-    createElement(DashboardScreen, {
-      activeViewTransitionSessionId: null,
-      onSelectSession: () => {},
-      onOpenLocalVideo: () => {},
-      onOpenSources: () => {},
-      onDisconnect: () => {},
-    }),
+    createElement(
+      TooltipProvider,
+      null,
+      createElement(DashboardScreen, {
+        activeViewTransitionSessionId: null,
+        onSelectSession: () => {},
+        onOpenLocalVideo: () => {},
+        onOpenSources: () => {},
+        onDisconnect: () => {},
+      }),
+    ),
   );
 
   assert.doesNotMatch(markup, /Add Cliparr to your home screen/);
@@ -471,13 +485,17 @@ void test("does not render dashboard PWA nudge in default server markup", () => 
 
 void test("reserves dashboard playback card space before sessions load", () => {
   const markup = renderToStaticMarkup(
-    createElement(DashboardScreen, {
-      activeViewTransitionSessionId: null,
-      onSelectSession: () => {},
-      onOpenLocalVideo: () => {},
-      onOpenSources: () => {},
-      onDisconnect: () => {},
-    }),
+    createElement(
+      TooltipProvider,
+      null,
+      createElement(DashboardScreen, {
+        activeViewTransitionSessionId: null,
+        onSelectSession: () => {},
+        onOpenLocalVideo: () => {},
+        onOpenSources: () => {},
+        onDisconnect: () => {},
+      }),
+    ),
   );
 
   assert.match(markup, /data-dashboard-loading-grid/);
@@ -492,13 +510,17 @@ void test("reserves dashboard playback card space before sessions load", () => {
 
 void test("reserves dashboard version badge space before health loads", () => {
   const markup = renderToStaticMarkup(
-    createElement(DashboardScreen, {
-      activeViewTransitionSessionId: null,
-      onSelectSession: () => {},
-      onOpenLocalVideo: () => {},
-      onOpenSources: () => {},
-      onDisconnect: () => {},
-    }),
+    createElement(
+      TooltipProvider,
+      null,
+      createElement(DashboardScreen, {
+        activeViewTransitionSessionId: null,
+        onSelectSession: () => {},
+        onOpenLocalVideo: () => {},
+        onOpenSources: () => {},
+        onDisconnect: () => {},
+      }),
+    ),
   );
 
   assert.match(markup, /data-dashboard-version-badge/);
@@ -507,7 +529,13 @@ void test("reserves dashboard version badge space before health loads", () => {
 
 void test("renders mobile PWA install nudge on the initial eligible browser pass", () => {
   withMobilePwaBrowserEnvironment(() => {
-    const markup = renderToStaticMarkup(createElement(MobilePwaInstallNudge));
+    const markup = renderToStaticMarkup(
+      createElement(
+        TooltipProvider,
+        null,
+        createElement(MobilePwaInstallNudge),
+      ),
+    );
 
     assert.match(markup, /Add Cliparr to your home screen/);
     assert.match(markup, /data-pwa-install-mode="ios"/);

@@ -90,7 +90,7 @@ export function ConvertPwaInstallPromptView({
           disabled={prompting}
           className="focus-ring inline-flex h-8 items-center justify-center gap-2 rounded-md border border-border bg-background px-3 text-xs font-semibold uppercase tracking-[var(--tracking-caps-sm)] text-muted-foreground transition-colors hover:bg-accent hover:text-foreground disabled:cursor-not-allowed disabled:opacity-60"
           aria-label="Install Cliparr Convert"
-          title="Install Cliparr Convert"
+          data-tooltip="Install Cliparr Convert"
           data-convert-pwa-install-mode="native"
           data-convert-pwa-form-factor="desktop"
         >
@@ -130,7 +130,7 @@ export function ConvertPwaInstallPromptView({
           onClick={onDismiss}
           className="focus-ring inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-border bg-background text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
           aria-label="Dismiss install prompt"
-          title="Dismiss"
+          data-tooltip="Dismiss"
         >
           <X className="h-4 w-4" />
         </button>

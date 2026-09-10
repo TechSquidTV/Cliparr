@@ -1,5 +1,6 @@
 ---
 import { ClientRouter, fade } from "astro:transitions";
+import SiteTooltips from "@/components/SiteTooltips.astro";
 import Footer from "@/components/Footer.astro";
 import Header from "@/components/Header.astro";
 import { site } from "@/data/product";
@@ -169,7 +170,7 @@ const structuredDataItems = [
               "aria-pressed",
               theme === "dark" ? "true" : "false",
             );
-            button.setAttribute("title", `Switch to ${nextTheme} theme`);
+            button.setAttribute("data-tooltip", `Switch to ${nextTheme} theme`);
             button.setAttribute("data-theme-toggle-state", theme);
             button.setAttribute("data-theme-source", source);
           });
@@ -243,5 +244,6 @@ const structuredDataItems = [
       <slot />
     </main>
     <Footer />
+    <SiteTooltips />
   </body>
 </html>

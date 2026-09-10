@@ -53,6 +53,9 @@ export function useSourcesState({
   const [error, setError] = useState("");
   const [feedback, setFeedback] = useState<Feedback | null>(null);
   const [showAddSource, setShowAddSource] = useState(false);
+  const [sourceToRemove, setSourceToRemove] = useState<MediaSource | null>(
+    null,
+  );
   const latestLoadRequestIdReference = useRef(0);
   const isOpenReference = useRef(isOpen);
   const sourceLogger = useMemo(
@@ -285,13 +288,12 @@ export function useSourcesState({
     );
   }
 
-  async function deleteSource(source: MediaSource) {
-    const confirmed = globalThis.confirm(
-      `Remove ${source.name}? It can be reconnected later.`,
-    );
-    if (!confirmed) {
+  async function confirmSourceRemoval() {
+    const source = sourceToRemove;
+    if (!source || !isOpenReference.current) {
       return;
     }
+    setSourceToRemove(null);
 
     await runSourceAction(
       source,
@@ -387,6 +389,7 @@ export function useSourcesState({
   useEffect(() => {
     if (!isOpen) {
       setShowAddSource(false);
+      setSourceToRemove(null);
       return;
     }
 
@@ -464,7 +467,10 @@ export function useSourcesState({
     saveSourceEdits,
     toggleSourceEnabled,
     checkSource,
-    deleteSource,
+    sourceToRemove,
+    requestSourceRemoval: setSourceToRemove,
+    cancelSourceRemoval: () => setSourceToRemove(null),
+    confirmSourceRemoval,
     updateDraftName,
     updateDraftBaseUrl,
   };

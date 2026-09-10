@@ -1,3 +1,4 @@
+import { ControlTooltip } from "@/components/ui/tooltip";
 import {
   CanvasRenderer,
   Timeline,
@@ -43,35 +44,41 @@ function TrackHeaderColumn({ muted, onMutedChange }: EditorTimelineProperties) {
           {(header: UseTimelineTrackHeaderResult) => (
             <div className="flex h-full min-w-0 flex-1 items-center gap-2">
               {track.id === EDITOR_MEDIA_TRACK_ID ? (
-                <button
-                  type="button"
-                  onClick={() => onMutedChange(!muted)}
-                  title={muted ? "Unmute preview" : "Mute preview"}
-                  aria-label={muted ? "Unmute preview" : "Mute preview"}
-                  aria-pressed={muted}
-                  className="flex h-7 w-7 shrink-0 items-center justify-center rounded-[var(--radius-control)] border border-editor-border bg-editor-control text-muted-foreground transition-colors hover:bg-editor-control-hover hover:text-foreground focus-visible:ring-2 focus-visible:ring-editor-accent/35 focus-visible:outline-none"
+                <ControlTooltip
+                  label={muted ? "Unmute preview" : "Mute preview"}
                 >
-                  {muted ? (
-                    <VolumeX aria-hidden="true" className="h-3.5 w-3.5" />
-                  ) : (
-                    <Volume2 aria-hidden="true" className="h-3.5 w-3.5" />
-                  )}
-                </button>
+                  <button
+                    type="button"
+                    onClick={() => onMutedChange(!muted)}
+                    aria-label={muted ? "Unmute preview" : "Mute preview"}
+                    aria-pressed={muted}
+                    className="flex h-7 w-7 shrink-0 items-center justify-center rounded-[var(--radius-control)] border border-editor-border bg-editor-control text-muted-foreground transition-colors hover:bg-editor-control-hover hover:text-foreground focus-visible:ring-2 focus-visible:ring-editor-accent/35 focus-visible:outline-none"
+                  >
+                    {muted ? (
+                      <VolumeX aria-hidden="true" className="h-3.5 w-3.5" />
+                    ) : (
+                      <Volume2 aria-hidden="true" className="h-3.5 w-3.5" />
+                    )}
+                  </button>
+                </ControlTooltip>
               ) : (
-                <button
-                  type="button"
-                  onClick={() => header.setVisible(!header.visible)}
-                  title={header.visible ? "Hide Sub 1" : "Show Sub 1"}
-                  aria-label={header.visible ? "Hide Sub 1" : "Show Sub 1"}
-                  aria-pressed={!header.visible}
-                  className="flex h-7 w-7 shrink-0 items-center justify-center rounded-[var(--radius-control)] border border-editor-border bg-editor-control text-muted-foreground transition-colors hover:bg-editor-control-hover hover:text-foreground focus-visible:ring-2 focus-visible:ring-editor-accent/35 focus-visible:outline-none"
+                <ControlTooltip
+                  label={header.visible ? "Hide Sub 1" : "Show Sub 1"}
                 >
-                  {header.visible ? (
-                    <Eye aria-hidden="true" className="h-3.5 w-3.5" />
-                  ) : (
-                    <EyeOff aria-hidden="true" className="h-3.5 w-3.5" />
-                  )}
-                </button>
+                  <button
+                    type="button"
+                    onClick={() => header.setVisible(!header.visible)}
+                    aria-label={header.visible ? "Hide Sub 1" : "Show Sub 1"}
+                    aria-pressed={!header.visible}
+                    className="flex h-7 w-7 shrink-0 items-center justify-center rounded-[var(--radius-control)] border border-editor-border bg-editor-control text-muted-foreground transition-colors hover:bg-editor-control-hover hover:text-foreground focus-visible:ring-2 focus-visible:ring-editor-accent/35 focus-visible:outline-none"
+                  >
+                    {header.visible ? (
+                      <Eye aria-hidden="true" className="h-3.5 w-3.5" />
+                    ) : (
+                      <EyeOff aria-hidden="true" className="h-3.5 w-3.5" />
+                    )}
+                  </button>
+                </ControlTooltip>
               )}
               <span className="min-w-0 flex-1 truncate text-xs font-medium text-foreground">
                 {header.label}

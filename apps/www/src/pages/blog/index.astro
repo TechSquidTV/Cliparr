@@ -34,7 +34,7 @@ const posts = ((await getCollection("blog")) as BlogEntry[]).toSorted(
           class="focus-ring mt-1 inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-border bg-card text-muted-foreground no-underline transition-colors hover:bg-accent hover:text-foreground"
           href="/blog/rss.xml"
           aria-label="Subscribe to the Cliparr blog RSS feed"
-          title="RSS feed"
+          data-tooltip="RSS feed"
         >
           <RssIcon class="h-4 w-4" />
         </a>

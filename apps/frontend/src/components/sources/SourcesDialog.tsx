@@ -1,6 +1,7 @@
 import { useRef } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { DialogWindow } from "@/components/ui/dialog";
+import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
 import {
   SourceCard,
   SourcesConnectSection,
@@ -70,7 +71,10 @@ export default function SourcesDialog({
     saveSourceEdits,
     toggleSourceEnabled,
     checkSource,
-    deleteSource,
+    sourceToRemove,
+    requestSourceRemoval,
+    cancelSourceRemoval,
+    confirmSourceRemoval,
     updateDraftName,
     updateDraftBaseUrl,
   } = useSourcesState({
@@ -195,7 +199,7 @@ export default function SourcesDialog({
               onSave={() => saveSourceEdits(source)}
               onToggleEnabled={() => toggleSourceEnabled(source)}
               onRefresh={() => checkSource(source)}
-              onRemove={() => deleteSource(source)}
+              onRemove={() => requestSourceRemoval(source)}
             />
           </motion.div>
         ))}
@@ -212,6 +216,14 @@ export default function SourcesDialog({
       portalClassName="p-4 sm:p-6"
       popupClassName="h-full max-w-6xl rounded-lg"
     >
+      <ConfirmationDialog
+        open={isOpen && sourceToRemove !== null}
+        title="Remove source?"
+        description={`Remove ${sourceToRemove?.name ?? "this source"}? It can be reconnected later.`}
+        confirmLabel="Remove source"
+        onCancel={cancelSourceRemoval}
+        onConfirm={() => void confirmSourceRemoval()}
+      />
       <SourcesDialogHeader
         counts={counts}
         forceAddSourceOpen={forceAddSourceOpen}

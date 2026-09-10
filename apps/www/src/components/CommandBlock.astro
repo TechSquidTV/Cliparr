@@ -93,7 +93,7 @@ const groupId = `command-${hashCommandBlockId(
                   aria-label="Copy command"
                   class="command-copy-button"
                   data-command-copy
-                  title="Copy command"
+                  data-tooltip="Copy command"
                   type="button"
                 >
                   <svg
@@ -175,7 +175,7 @@ const groupId = `command-${hashCommandBlockId(
           aria-label="Copy command"
           class="command-copy-button"
           data-command-copy
-          title="Copy command"
+          data-tooltip="Copy command"
           type="button"
         >
           <svg
@@ -301,11 +301,11 @@ const groupId = `command-${hashCommandBlockId(
     await writeClipboardText(code.trimEnd());
     button.dataset.copyState = "copied";
     button.setAttribute("aria-label", "Copied");
-    button.title = "Copied";
+    button.dataset.tooltip = "Copied";
 
     window.setTimeout(() => {
       button.setAttribute("aria-label", "Copy command");
-      button.title = "Copy command";
+      button.dataset.tooltip = "Copy command";
       delete button.dataset.copyState;
     }, 1600);
   }
@@ -325,11 +325,11 @@ const groupId = `command-${hashCommandBlockId(
         void copyCommand(item).catch(() => {
           item.dataset.copyState = "failed";
           item.setAttribute("aria-label", "Copy failed");
-          item.title = "Copy failed";
+          item.dataset.tooltip = "Copy failed";
 
           window.setTimeout(() => {
             item.setAttribute("aria-label", "Copy command");
-            item.title = "Copy command";
+            item.dataset.tooltip = "Copy command";
             delete item.dataset.copyState;
           }, 1600);
         });
