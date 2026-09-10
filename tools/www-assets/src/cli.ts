@@ -125,6 +125,8 @@ async function main() {
     // The recorder writes this last, only after both complete and validate.
     await readFile(path.join(output, "report.json"), "utf8");
     if (values.write) {
+      const readmeAssetsDir = path.join(root, ".github", "img");
+      await mkdir(readmeAssetsDir, { recursive: true });
       for (const scene of scenes) {
         for (const extension of ["mp4", "webm"]) {
           const name = `${scene.videoName}.${extension}`;
@@ -138,6 +140,12 @@ async function main() {
           path.join(output, name),
           path.join(root, "apps/www/src/assets", name),
         );
+        if (scene.name === "hero") {
+          await copyFile(
+            path.join(output, name),
+            path.join(readmeAssetsDir, "screenshot.webp"),
+          );
+        }
       }
     }
     process.stdout.write(

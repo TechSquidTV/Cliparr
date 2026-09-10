@@ -60,6 +60,9 @@ pnpm assets:capture --media-dir /absolute/path/to/media \
   --hero 'hero.mkv' --mobile 'mobile.mkv' --write
 ```
 
+When `--write` is enabled, the hero poster is also copied to `./.github/img/screenshot.webp`.
+The README screenshot points at the homepage hero poster, so it updates automatically when captures complete.
+
 Optional `--hero-seconds` and `--mobile-seconds` control recording duration only.
 They must be positive and fit within the selected range. `--hero-subtitle` and
 `--mobile-subtitle` accept Cliparr subtitle track keys to override its preferred

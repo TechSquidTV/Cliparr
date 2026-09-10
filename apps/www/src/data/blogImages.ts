@@ -5,6 +5,7 @@ const blogHeroImagePaths = {
   "what-is-cliparr-hero": "../assets/blog/what-is-cliparr/hero.webp",
   "convert-video-in-your-browser-hero":
     "../assets/blog/convert-video-in-your-browser/hero.webp",
+  "cliparr-2-0-release-hero": "../assets/blog/cliparr-2-0-release/hero.png",
 } satisfies Record<BlogHeroImageId, string>;
 
 const blogHeroImageModules = import.meta.glob<{ default: ImageMetadata }>(
