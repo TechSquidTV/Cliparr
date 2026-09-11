@@ -19,6 +19,7 @@ type CaptureSubtitles = Pick<
   | "subtitleError"
   | "clippedSubtitleCues"
   | "setSubtitleEnabled"
+  | "setSubtitleStyleSettings"
   | "handleSelectedSubtitleTrackChange"
 >;
 
@@ -70,7 +71,12 @@ export function useEditorAssetCapture(bindings: CaptureBindings) {
           error: media.error || subtitles.subtitleError || "",
         };
       },
-      configure({ inSeconds, outSeconds, subtitleTrackKey: trackKey }) {
+      configure({
+        inSeconds,
+        outSeconds,
+        subtitleTrackKey: trackKey,
+        subtitleFontSize,
+      }) {
         const { engine, media, subtitles } = current.current;
         if (
           !media.metadataReady ||
@@ -83,6 +89,14 @@ export function useEditorAssetCapture(bindings: CaptureBindings) {
           throw new Error(
             "Capture selection is outside the loaded media duration.",
           );
+        }
+        if (
+          subtitleFontSize !== undefined &&
+          (!Number.isFinite(subtitleFontSize) ||
+            subtitleFontSize < 16 ||
+            subtitleFontSize > 150)
+        ) {
+          throw new Error("Capture subtitle font size must be from 16 to 150.");
         }
         if (
           trackKey &&
@@ -105,6 +119,12 @@ export function useEditorAssetCapture(bindings: CaptureBindings) {
         }
         if (trackKey) {
           subtitles.handleSelectedSubtitleTrackChange(trackKey);
+        }
+        if (subtitleFontSize !== undefined) {
+          subtitles.setSubtitleStyleSettings((settings) => ({
+            ...settings,
+            fontSize: subtitleFontSize,
+          }));
         }
         subtitles.setSubtitleEnabled(true);
         media.seekToTime(inSeconds);

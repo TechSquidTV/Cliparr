@@ -49,6 +49,7 @@ export function buildScenes(options: {
       selection: {
         inSeconds: 496.07,
         outSeconds: 499.01,
+        subtitleFontSize: 72,
         ...(options.heroSubtitle
           ? { subtitleTrackKey: options.heroSubtitle }
           : {}),
@@ -65,6 +66,7 @@ export function buildScenes(options: {
       selection: {
         inSeconds: 1402,
         outSeconds: 1412,
+        subtitleFontSize: 150,
         ...(options.mobileSubtitle
           ? { subtitleTrackKey: options.mobileSubtitle }
           : {}),

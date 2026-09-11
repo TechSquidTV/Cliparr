@@ -13,15 +13,19 @@ controls the editor through its capture-only bridge; no mouse interaction is nee
 
 Expect **two original media assets**, one for the hero and one for the mobile
 workspace. Both must retain their original timelines through the out point. Do not
-pre-trim the sources to the selected clips. Supply embedded text subtitles or
-Jellyfin-compatible sidecars alongside the media, such as `hero.en.srt`.
+pre-trim the sources to the selected clips. Prefer an existing non-empty,
+language-tagged Jellyfin sidecar beside each source, such as `<media>.en.srt`.
+Only transcribe when the required sidecar is missing; capture-window-only SRTs are
+valid as long as their cues retain the original media timestamps. The disposable
+Jellyfin session prefers English text subtitles and falls back to the first
+supported text track only when no English track is available.
 
 The canonical configuration is `tools/www-assets/src/scenes.ts`:
 
-| Scene  | Cliparr in/out  | Selected duration | Browser/video size | Default recording duration |
-| ------ | --------------- | ----------------- | ------------------ | -------------------------- |
-| Hero   | 8:16.07–8:19.01 | 2.94 seconds      | 1600×886           | 82/30 seconds (~2.733)     |
-| Mobile | 23:22–23:32     | 10 seconds        | 402×874            | 3 seconds                  |
+| Scene  | Cliparr in/out  | Selected duration | Browser/video size | Caption size | Default recording duration |
+| ------ | --------------- | ----------------- | ------------------ | ------------ | -------------------------- |
+| Hero   | 8:16.07–8:19.01 | 2.94 seconds      | 1600×886           | 72 px        | 82/30 seconds (~2.733)     |
+| Mobile | 23:22–23:32     | 10 seconds        | 402×874            | 150 px       | 3 seconds                  |
 
 The fractional hero timecodes are **decimal seconds, not frame numbers**.
 Cliparr selection and website recording length are separate settings. Never infer
@@ -74,6 +78,8 @@ supported text track. Failure diagnostics include the available track keys.
 - Subtitles must be enabled, loaded, and overlap the selected range. Do not silently
   capture without them. Image-only subtitles are not a substitute for supported
   text subtitles.
+- Apply each scene's configured caption size through the capture bridge before
+  recording. Keep hero at 72 px and mobile at Cliparr's 150 px maximum.
 - Do not show a mouse cursor, pointer annotations, or Playwright overlays.
 - Use `window.cliparrAssetCapture` to configure selection, seek, fit the timeline,
   inspect readiness, and start/pause playback. It wraps existing Cliparr hooks and

@@ -3,6 +3,7 @@ export interface AssetCaptureSelection {
   inSeconds: number;
   outSeconds: number;
   subtitleTrackKey?: string;
+  subtitleFontSize?: number;
 }
 
 export interface AssetCaptureState {
