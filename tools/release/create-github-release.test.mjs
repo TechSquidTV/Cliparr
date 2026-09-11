@@ -103,7 +103,16 @@ void test("dry-run notes identify the image as planned", () => {
   assert.doesNotMatch(body, /Published to/u);
 });
 
-function mockReleaseApi(context, { existing = false, conflict = false } = {}) {
+function mockReleaseApi(
+  context,
+  {
+    existing = false,
+    conflict = false,
+    tagExists = existing || conflict,
+    refStatus = tagExists ? 200 : 404,
+    commitStatus = tagExists ? 200 : 422,
+  } = {},
+) {
   const directory = mkdtempSync(path.join(tmpdir(), "cliparr-release-api-"));
   const tagsFile = path.join(directory, "tags.txt");
   writeFileSync(tagsFile, "example/image:1.0.0\n");
@@ -126,10 +135,19 @@ function mockReleaseApi(context, { existing = false, conflict = false } = {}) {
     if (pathname.endsWith("/generate-notes")) {
       return Response.json({ body: "Changes" });
     }
+    if (pathname.includes("/git/ref/tags/")) {
+      return Response.json(
+        { ref: "refs/tags/v0.6.1", object: { type: "tag", sha: "tag-object" } },
+        { status: refStatus },
+      );
+    }
     if (pathname.includes("/commits/")) {
-      return existing || conflict
+      return commitStatus === 200
         ? Response.json({ sha: conflict ? "other" : "HEAD" })
-        : new Response("Missing", { status: 404 });
+        : Response.json(
+            { message: "No commit found for SHA: v0.6.1" },
+            { status: commitStatus },
+          );
     }
     if (options.method === "GET") {
       return existing
@@ -180,4 +198,48 @@ void test("new candidates are prereleases and never become latest", async (conte
   );
   assert.equal(creation.body.prerelease, true);
   assert.equal(creation.body.make_latest, "false");
+  assert.ok(
+    api.calls.some((call) => call.pathname.endsWith("/git/ref/tags/v0.6.1")),
+  );
+  assert.ok(!api.calls.some((call) => call.pathname.includes("/commits/")));
 });
+
+void test("creates a release for an existing annotated tag after resolving its commit", async (context) => {
+  const api = mockReleaseApi(context, { tagExists: true });
+  await main(api.args);
+  assert.ok(
+    api.calls.some((call) =>
+      call.pathname.endsWith("/commits/refs%2Ftags%2Fv0.6.1"),
+    ),
+  );
+  assert.ok(
+    api.calls.some(
+      (call) => call.method === "POST" && call.pathname.endsWith("/releases"),
+    ),
+  );
+});
+
+void test("refuses an existing release whose tag is missing", async (context) => {
+  const api = mockReleaseApi(context, { existing: true, tagExists: false });
+  await assert.rejects(main(api.args), /points to another commit/u);
+  assert.ok(!api.calls.some((call) => call.method === "PATCH"));
+});
+
+for (const status of [403, 422, 500]) {
+  void test(`does not treat ref lookup HTTP ${status} as a missing tag`, async (context) => {
+    const api = mockReleaseApi(context, { refStatus: status });
+    await assert.rejects(main(api.args), new RegExp(`failed: ${status}`, "u"));
+    assert.ok(!api.calls.some((call) => call.pathname.endsWith("/releases")));
+  });
+}
+
+for (const status of [404, 422]) {
+  void test(`refuses publication when an existing tag's commit lookup returns HTTP ${status}`, async (context) => {
+    const api = mockReleaseApi(context, {
+      tagExists: true,
+      commitStatus: status,
+    });
+    await assert.rejects(main(api.args), new RegExp(`failed: ${status}`, "u"));
+    assert.ok(!api.calls.some((call) => call.pathname.endsWith("/releases")));
+  });
+}
