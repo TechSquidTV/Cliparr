@@ -132,7 +132,7 @@ async function main() {
           const name = `${scene.videoName}.${extension}`;
           await copyFile(
             path.join(output, name),
-            path.join(root, "apps/www/public", name),
+            path.join(root, "apps/www/src/assets", name),
           );
         }
         const name = `${scene.posterName}.webp`;

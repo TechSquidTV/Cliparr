@@ -3,7 +3,11 @@ import BaseLayout from "@/components/BaseLayout.astro";
 import CommandBlock from "@/components/CommandBlock.astro";
 import FeatureGrid from "@/components/FeatureGrid.astro";
 import { Picture } from "astro:assets";
+import mobilePreviewMp4 from "@/assets/mobile-pwa-preview.mp4?url";
+import mobilePreviewWebm from "@/assets/mobile-pwa-preview.webm?url";
 import mobilePreviewImage from "@/assets/mobile-pwa-preview.webp";
+import previewMp4 from "@/assets/preview.mp4?url";
+import previewWebm from "@/assets/preview.webm?url";
 import screenshotImage from "@/assets/screenshot.webp";
 import {
   dockerRunCommandVariants,
@@ -141,8 +145,8 @@ const faqStructuredData = {
               aria-hidden="true"
               data-editor-preview-video
             >
-              <source data-src="/preview.webm" type="video/webm" />
-              <source data-src="/preview.mp4" type="video/mp4" />
+              <source data-src={previewWebm} type="video/webm" />
+              <source data-src={previewMp4} type="video/mp4" />
             </video>
           </div>
         </div>
@@ -250,8 +254,8 @@ const faqStructuredData = {
                 aria-hidden="true"
                 data-editor-preview-video
               >
-                <source data-src="/mobile-pwa-preview.webm" type="video/webm" />
-                <source data-src="/mobile-pwa-preview.mp4" type="video/mp4" />
+                <source data-src={mobilePreviewWebm} type="video/webm" />
+                <source data-src={mobilePreviewMp4} type="video/mp4" />
               </video>
             </div>
           </div>
