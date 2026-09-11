@@ -1,0 +1,151 @@
+<div
+  id="site-tooltip"
+  role="tooltip"
+  hidden
+  class="fixed z-[60] w-max max-w-[min(18rem,calc(100vw-1rem))] rounded-md border border-border bg-popover px-3 py-2 text-xs leading-relaxed text-popover-foreground shadow-md"
+>
+</div>
+
+<script>
+  // Delegate events so tooltips also work after Astro navigation and React updates.
+  let activeTrigger: HTMLElement | null = null;
+  let dismissedTrigger: HTMLElement | null = null;
+  let showTimer: ReturnType<typeof setTimeout> | undefined;
+  let hideTimer: ReturnType<typeof setTimeout> | undefined;
+  const labelObserver = new MutationObserver(updateTooltip);
+  const tooltipId = "site-tooltip";
+  const tooltip = () => document.getElementById(tooltipId);
+  const triggerFor = (target: EventTarget | null) =>
+    target instanceof Element
+      ? target.closest<HTMLElement>("[data-tooltip]")
+      : null;
+
+  function hideTooltip() {
+    clearTimeout(showTimer);
+    clearTimeout(hideTimer);
+    labelObserver.disconnect();
+    const content = tooltip();
+    if (content) content.hidden = true;
+    if (activeTrigger) {
+      const descriptions = (
+        activeTrigger.getAttribute("aria-describedby") ?? ""
+      )
+        .split(/\s+/)
+        .filter((id) => id && id !== tooltipId);
+      if (descriptions.length) {
+        activeTrigger.setAttribute("aria-describedby", descriptions.join(" "));
+      } else {
+        activeTrigger.removeAttribute("aria-describedby");
+      }
+    }
+    activeTrigger = null;
+  }
+
+  function updateTooltip() {
+    const trigger = activeTrigger;
+    const content = tooltip();
+    if (!trigger?.isConnected || !trigger.dataset.tooltip || !content) {
+      hideTooltip();
+      return;
+    }
+    content.textContent = trigger.dataset.tooltip;
+    const bounds = trigger.getBoundingClientRect();
+    const gap = 8;
+    const left = Math.max(
+      gap,
+      Math.min(
+        bounds.left + (bounds.width - content.offsetWidth) / 2,
+        window.innerWidth - content.offsetWidth - gap,
+      ),
+    );
+    const top =
+      bounds.bottom + content.offsetHeight + gap * 2 > window.innerHeight
+        ? Math.max(gap, bounds.top - content.offsetHeight - gap)
+        : bounds.bottom + gap;
+    content.style.left = `${left}px`;
+    content.style.top = `${top}px`;
+  }
+
+  function showTooltip(trigger: HTMLElement, delay: number) {
+    clearTimeout(hideTimer);
+    if (trigger === activeTrigger || trigger === dismissedTrigger) return;
+    hideTooltip();
+    activeTrigger = trigger;
+    showTimer = setTimeout(() => {
+      const content = tooltip();
+      if (!content) {
+        hideTooltip();
+        return;
+      }
+      content.hidden = false;
+      updateTooltip();
+      if (activeTrigger !== trigger) return;
+      const descriptions = trigger.getAttribute("aria-describedby");
+      trigger.setAttribute(
+        "aria-describedby",
+        [descriptions, tooltipId].filter(Boolean).join(" "),
+      );
+      labelObserver.observe(trigger, {
+        attributes: true,
+        attributeFilter: ["data-tooltip"],
+      });
+    }, delay);
+  }
+
+  document.addEventListener("pointerover", (event) => {
+    if (event.pointerType === "touch") return;
+    if (event.target === tooltip()) {
+      clearTimeout(hideTimer);
+      return;
+    }
+    const trigger = triggerFor(event.target);
+    if (trigger) showTooltip(trigger, 250);
+  });
+
+  document.addEventListener("pointerout", (event) => {
+    const trigger = triggerFor(event.target);
+    if (
+      event.relatedTarget instanceof Node &&
+      trigger?.contains(event.relatedTarget)
+    )
+      return;
+    if (trigger === dismissedTrigger) dismissedTrigger = null;
+    if (event.relatedTarget === tooltip()) return;
+    if (activeTrigger?.contains(document.activeElement)) return;
+    if (
+      activeTrigger &&
+      (trigger === activeTrigger || event.target === tooltip())
+    ) {
+      clearTimeout(hideTimer);
+      hideTimer = setTimeout(hideTooltip, 100);
+    }
+  });
+
+  document.addEventListener("focusin", (event) => {
+    const trigger = triggerFor(event.target);
+    if (trigger) showTooltip(trigger, 0);
+  });
+  document.addEventListener("focusout", (event) => {
+    const trigger = triggerFor(event.target);
+    if (
+      event.relatedTarget instanceof Node &&
+      trigger?.contains(event.relatedTarget)
+    )
+      return;
+    if (trigger === dismissedTrigger) dismissedTrigger = null;
+    if (trigger === activeTrigger) hideTooltip();
+  });
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape") {
+      dismissedTrigger = activeTrigger;
+      hideTooltip();
+    }
+  });
+  document.addEventListener("pointerdown", hideTooltip);
+  document.addEventListener("scroll", hideTooltip, true);
+  window.addEventListener("resize", hideTooltip);
+  document.addEventListener("astro:before-swap", () => {
+    hideTooltip();
+    dismissedTrigger = null;
+  });
+</script>

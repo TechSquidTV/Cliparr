@@ -52,4 +52,64 @@ function TooltipContent({
   );
 }
 
+interface ControlTooltipProperties {
+  label?: string | null;
+  disabled?: boolean;
+  children: React.ReactElement;
+  side?: React.ComponentProps<typeof TooltipContent>["side"];
+}
+
+export function ControlTooltip({ label, ...props }: ControlTooltipProperties) {
+  return label ? (
+    <LabeledControlTooltip label={label} {...props} />
+  ) : (
+    props.children
+  );
+}
+
+function LabeledControlTooltip({
+  label,
+  disabled = false,
+  children,
+  side = "bottom",
+}: ControlTooltipProperties & { label: string }) {
+  const [open, setOpen] = React.useState(false);
+  const nestedTriggerReference = React.useRef(false);
+
+  function trackTrigger(event: React.SyntheticEvent<HTMLElement>) {
+    const target = event.target;
+    const nested =
+      target instanceof Element &&
+      target.closest('[data-slot="tooltip-trigger"]') !== event.currentTarget;
+    nestedTriggerReference.current = nested;
+    if (nested) {
+      setOpen(false);
+    }
+  }
+
+  return (
+    <Tooltip
+      open={open}
+      onOpenChange={(nextOpen) => {
+        setOpen(nextOpen && !nestedTriggerReference.current);
+      }}
+    >
+      <TooltipTrigger
+        asChild
+        onFocusCapture={trackTrigger}
+        onPointerMoveCapture={trackTrigger}
+      >
+        {disabled ? (
+          <span className="inline-flex" tabIndex={0}>
+            {children}
+          </span>
+        ) : (
+          children
+        )}
+      </TooltipTrigger>
+      <TooltipContent side={side}>{label}</TooltipContent>
+    </Tooltip>
+  );
+}
+
 export { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger };

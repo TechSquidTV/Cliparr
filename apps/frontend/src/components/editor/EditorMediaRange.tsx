@@ -1,3 +1,4 @@
+import { ControlTooltip } from "@/components/ui/tooltip";
 import {
   RangeScrollbar,
   Timeline,
@@ -39,11 +40,12 @@ export function EditorMediaRange({ engine }: { engine: TimelineEngine }) {
       className="editor-media-range-row"
       style={{ top: rect.y, height: rect.height }}
     >
-      <Timeline.PlayheadArea
-        className="editor-media-range-scrub"
-        title="Scrub source media"
-        onDoubleClick={setPlayheadTime}
-      />
+      <ControlTooltip label="Scrub source media">
+        <Timeline.PlayheadArea
+          className="editor-media-range-scrub"
+          onDoubleClick={setPlayheadTime}
+        />
+      </ControlTooltip>
       <RangeScrollbar.Root
         className="editor-media-range"
         min={range.min}
@@ -77,26 +79,30 @@ export function EditorMediaRange({ engine }: { engine: TimelineEngine }) {
           transform: `translateX(${-scrollLeft}px)`,
         }}
       >
-        <RangeScrollbar.Thumb
-          role="slider"
-          aria-label="Move clip selection"
-          title="Drag to move selection; drag either edge to trim"
-        >
-          <RangeScrollbar.Handle
-            side="start"
-            style={{ width: `min(${EDITOR_MEDIA_RANGE_HANDLE_WIDTH}px, 25%)` }}
-            role="slider"
-            aria-label="Clip start"
-            title="Trim clip start"
-          />
-          <RangeScrollbar.Handle
-            side="end"
-            style={{ width: `min(${EDITOR_MEDIA_RANGE_HANDLE_WIDTH}px, 25%)` }}
-            role="slider"
-            aria-label="Clip end"
-            title="Trim clip end"
-          />
-        </RangeScrollbar.Thumb>
+        <ControlTooltip label="Drag to move selection; drag either edge to trim">
+          <RangeScrollbar.Thumb role="slider" aria-label="Move clip selection">
+            <ControlTooltip label="Trim clip start">
+              <RangeScrollbar.Handle
+                side="start"
+                style={{
+                  width: `min(${EDITOR_MEDIA_RANGE_HANDLE_WIDTH}px, 25%)`,
+                }}
+                role="slider"
+                aria-label="Clip start"
+              />
+            </ControlTooltip>
+            <ControlTooltip label="Trim clip end">
+              <RangeScrollbar.Handle
+                side="end"
+                style={{
+                  width: `min(${EDITOR_MEDIA_RANGE_HANDLE_WIDTH}px, 25%)`,
+                }}
+                role="slider"
+                aria-label="Clip end"
+              />
+            </ControlTooltip>
+          </RangeScrollbar.Thumb>
+        </ControlTooltip>
       </RangeScrollbar.Root>
     </div>
   );
