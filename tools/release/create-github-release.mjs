@@ -196,14 +196,23 @@ export async function main(argv = process.argv.slice(2)) {
   }
 
   const repositoryPath = `/repos/${arguments_.repository}`;
-  const existing = await githubApi(
-    `${repositoryPath}/releases/tags/${arguments_.tag}`,
+  const tag = encodeURIComponent(arguments_.tag);
+  const existing = await githubApi(`${repositoryPath}/releases/tags/${tag}`, {
+    token,
+    allowMissing: true,
+  });
+  const tagReference = await githubApi(
+    `${repositoryPath}/git/ref/tags/${tag}`,
     { token, allowMissing: true },
   );
-  const taggedCommit = await githubApi(
-    `${repositoryPath}/commits/${arguments_.tag}`,
-    { token, allowMissing: true },
-  );
+  // The commits endpoint returns 422 for an absent tag. Resolve the commit only
+  // after finding the exact tag ref; this also dereferences annotated tags.
+  const taggedCommit = tagReference
+    ? await githubApi(
+        `${repositoryPath}/commits/${encodeURIComponent(`refs/tags/${arguments_.tag}`)}`,
+        { token },
+      )
+    : undefined;
   if (
     (existing && !taggedCommit) ||
     (taggedCommit && taggedCommit.sha !== arguments_.target)
