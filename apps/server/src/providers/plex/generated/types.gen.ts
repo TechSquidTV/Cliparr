@@ -1184,6 +1184,10 @@ export type Stream2 = {
      * For subtitle streams only. If `true` then the server can attempt to automatically sync the subtitle timestamps with the video.
      */
     canAutoSync?: boolean;
+    /**
+     * For audio streams only. If `true` then the server can attempt to normalize the loudness levels.
+     */
+    canNormalizeLoudness?: boolean;
     chromaLocation?: unknown;
     chromaSubsampling?: unknown;
     /**
@@ -1285,159 +1289,159 @@ export type _3 = number;
 export type _4 = number;
 
 /**
- * Indicates the client supports ABR.
+ * Indicates if the server should normalize the loudness of an audio track based on loudness analysis results.
  */
 export type _5 = 0 | 1;
 
 /**
- * Indicates if the server should adjust subtitles based on Voice Activity Data.
+ * Indicates if the server boost the dialog found within an audio track.
  */
 export type _6 = 0 | 1;
 
 /**
- * Indicates the client supports direct playing the indicated content.
+ * Indicates the client supports ABR.
  */
 export type _7 = 0 | 1;
 
 /**
- * Indicates the client supports direct streaming the video of the indicated content.
+ * Indicates if the server should adjust subtitles based on Voice Activity Data.
  */
 export type _8 = 0 | 1;
 
 /**
- * Indicates the client supports direct streaming the audio of the indicated content.
+ * Indicates the client supports direct playing the indicated content.
  */
 export type _9 = 0 | 1;
 
 /**
- * Indicates if resolution should be adjusted for orientation.
+ * Indicates the client supports direct streaming the video of the indicated content.
  */
 export type _10 = 0 | 1;
 
 /**
- * Ignore client profiles when determining if direct play is possible. Only has an effect when directPlay=1 and both mediaIndex and partIndex are specified and neither are -1
+ * Indicates the client supports direct streaming the audio of the indicated content.
  */
 export type _11 = 0 | 1;
 
 /**
+ * Indicates if resolution should be adjusted for orientation.
+ */
+export type _12 = 0 | 1;
+
+/**
+ * Ignore client profiles when determining if direct play is possible. Only has an effect when directPlay=1 and both mediaIndex and partIndex are specified and neither are -1
+ */
+export type _13 = 0 | 1;
+
+/**
  * Network type of the client, can be used to help determine target bitrate.
  */
-export type _12 = 'lan' | 'wan' | 'cellular';
+export type _14 = 'lan' | 'wan' | 'cellular';
 
 /**
  * Buffer size used in playback (in KB). Clients should specify a lower bound if not known exactly. This value could make the difference between transcoding and direct play on bandwidth constrained networks.
  */
-export type _13 = number;
+export type _15 = number;
 
 /**
  * Index of the media to transcode. -1 or not specified indicates let the server choose.
  */
-export type _14 = number;
+export type _16 = number;
 
 /**
  * Target bitrate for audio only files (in kbps, used to transcode).
  */
-export type _15 = number;
+export type _17 = number;
 
 /**
  * Offset from the start of the media (in seconds).
  */
-export type _16 = number;
+export type _18 = number;
 
 /**
  * Index of the part to transcode. -1 or not specified indicates the server should join parts together in a transcode
  */
-export type _17 = number;
+export type _19 = number;
 
 /**
  * Internal PMS path of the media to transcode.
  */
-export type _18 = string;
+export type _20 = string;
 
 /**
  * Maximum bitrate (in kbps) to use in ABR.
  */
-export type _19 = number;
+export type _21 = number;
 
 /**
  * Target photo resolution.
  */
-export type _20 = string;
+export type _22 = string;
 
 /**
  * Indicates the network streaming protocol to be used for the transcode session: * 'http' - include the file in the http response such as MKV streaming * 'hls' - hls stream (RFC 8216) * 'dash' - dash stream (ISO/IEC 23009-1:2022)
  *
  */
-export type _21 = 'http' | 'hls' | 'dash';
+export type _23 = 'http' | 'hls' | 'dash';
 
 /**
  * Number of seconds to include in each transcoded segment
  */
-export type _22 = number;
+export type _24 = number;
 
 /**
  * Percentage of original subtitle size to use when burning subtitles (100 is equivalent to original size, 50 is half, ect)
  */
-export type _23 = number;
+export type _25 = number;
 
 /**
  * Indicates how subtitles should be included: * 'auto' - Compute the appropriate subtitle setting automatically * 'burn' - Burn the selected subtitle; auto if no selected subtitle * 'none' - Ignore all subtitle streams * 'sidecar' - The selected subtitle should be provided as a sidecar * 'embedded' - The selected subtitle should be provided as an embedded stream * 'segmented' - The selected subtitle should be provided as a segmented stream
  *
  */
-export type _24 = 'auto' | 'burn' | 'none' | 'sidecar' | 'embedded' | 'segmented' | 'unknown';
+export type _26 = 'auto' | 'burn' | 'none' | 'sidecar' | 'embedded' | 'segmented' | 'unknown';
 
 /**
  * Target video bitrate (in kbps).
  */
-export type _25 = number;
+export type _27 = number;
 
 /**
  * Target photo quality.
  */
-export type _26 = number;
+export type _28 = number;
 
 /**
  * Target maximum video resolution.
  */
-export type _27 = string;
+export type _29 = string;
 
 /**
  * Unique per client.
  */
-export type _28 = string;
+export type _30 = string;
 
 /**
  * See [Profile Augmentations](#section/API-Info/Profile-Augmentations) .
  */
-export type _29 = string;
+export type _31 = string;
 
 /**
  * Which built in Client Profile to use in the decision. Generally should only be used to specify the Generic profile.
  */
-export type _30 = string;
+export type _32 = string;
 
 /**
  * Device the client is running on
  */
-export type _31 = string;
+export type _33 = string;
 
 /**
  * Model of the device the client is running on
  */
-export type _32 = string;
-
-/**
- * Client Platform
- */
-export type _33 = string;
-
-/**
- * Client Platform Version
- */
 export type _34 = string;
 
 /**
- * Unique per client playback session.  Used if a client can playback multiple items at a time (such as a browser with multiple tabs)
+ * Client Platform
  */
 export type _35 = string;
 
@@ -2215,14 +2219,6 @@ export type DownloadQueuePostQueueAddData = {
          * Client Platform
          */
         'X-Plex-Platform'?: string;
-        /**
-         * Client Platform Version
-         */
-        'X-Plex-Platform-Version'?: string;
-        /**
-         * Unique per client playback session.  Used if a client can playback multiple items at a time (such as a browser with multiple tabs)
-         */
-        'X-Plex-Session-Identifier'?: string;
     };
     path: {
         /**
@@ -2248,6 +2244,14 @@ export type DownloadQueuePostQueueAddData = {
          * Target video number of audio channels.
          */
         audioChannelCount?: number;
+        /**
+         * Indicates if the server should normalize the loudness of an audio track based on loudness analysis results.
+         */
+        normalizeLoudness?: 0 | 1;
+        /**
+         * Indicates if the server boost the dialog found within an audio track.
+         */
+        boostDialog?: 0 | 1;
         /**
          * Indicates the client supports ABR.
          */
@@ -2875,6 +2879,35 @@ export type HubsGetMetadataMetadataRelatedResponses = {
 };
 
 export type HubsGetMetadataMetadataRelatedResponse = HubsGetMetadataMetadataRelatedResponses[keyof HubsGetMetadataMetadataRelatedResponses];
+
+export type HubsGetPopularInLibrariesData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Limit hub entry to count items
+         */
+        count?: number;
+        /**
+         * Restrict the hub to the given content directory ids
+         */
+        contentDirectoryID?: Array<number>;
+    };
+    url: '/hubs/popularInLibraries';
+};
+
+export type HubsGetPopularInLibrariesResponses = {
+    /**
+     * OK
+     */
+    200: {
+        MediaContainer?: MediaContainer & {
+            Hub?: Array<Hub2>;
+        };
+    };
+};
+
+export type HubsGetPopularInLibrariesResponse = HubsGetPopularInLibrariesResponses[keyof HubsGetPopularInLibrariesResponses];
 
 export type HubsGetPromotedData = {
     body?: never;
@@ -4035,6 +4068,31 @@ export type LibraryMetadataPutAnalyzeData = {
 };
 
 export type LibraryMetadataPutAnalyzeResponses = {
+    /**
+     * OK
+     */
+    200: unknown;
+};
+
+export type LibraryMetadataPutAnalyzeLoudnessData = {
+    body?: never;
+    path: {
+        ids: string;
+    };
+    query?: {
+        /**
+         * Indicate whether detection should be re-run
+         */
+        force?: 0 | 1;
+        /**
+         * Indicate whether detection is manually run
+         */
+        manual?: 0 | 1;
+    };
+    url: '/library/metadata/{ids}/analyzeLoudness';
+};
+
+export type LibraryMetadataPutAnalyzeLoudnessResponses = {
     /**
      * OK
      */
@@ -9611,12 +9669,14 @@ export type PlaylistGetItemsGeneratorResponses = {
                     audioChannelCount?: number;
                     autoAdjustQuality?: boolean;
                     autoAdjustSubtitle?: boolean;
+                    boostDialog?: boolean;
                     directPlay?: boolean;
                     directStream?: boolean;
                     directStreamAudio?: boolean;
                     disableResolutionRotation?: boolean;
                     maxVideoBitrate?: number;
                     musicBitrate?: number;
+                    normalizeLoudness?: boolean;
                     peakBitrate?: number;
                     photoQuality?: number;
                     photoResolution?: string;
@@ -10808,6 +10868,14 @@ export type TranscodeDecisionData = {
          */
         audioChannelCount?: number;
         /**
+         * Indicates if the server should normalize the loudness of an audio track based on loudness analysis results.
+         */
+        normalizeLoudness?: 0 | 1;
+        /**
+         * Indicates if the server boost the dialog found within an audio track.
+         */
+        boostDialog?: 0 | 1;
+        /**
          * Indicates the client supports ABR.
          */
         autoAdjustQuality?: 0 | 1;
@@ -11014,6 +11082,14 @@ export type TranscodeStartData = {
          */
         audioChannelCount?: number;
         /**
+         * Indicates if the server should normalize the loudness of an audio track based on loudness analysis results.
+         */
+        normalizeLoudness?: 0 | 1;
+        /**
+         * Indicates if the server boost the dialog found within an audio track.
+         */
+        boostDialog?: 0 | 1;
+        /**
          * Indicates the client supports ABR.
          */
         autoAdjustQuality?: 0 | 1;
@@ -11193,6 +11269,14 @@ export type TranscodeSubtitlesData = {
          * Target video number of audio channels.
          */
         audioChannelCount?: number;
+        /**
+         * Indicates if the server should normalize the loudness of an audio track based on loudness analysis results.
+         */
+        normalizeLoudness?: 0 | 1;
+        /**
+         * Indicates if the server boost the dialog found within an audio track.
+         */
+        boostDialog?: 0 | 1;
         /**
          * Indicates the client supports ABR.
          */
