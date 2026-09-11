@@ -354,6 +354,7 @@ function EditorScreenContent({
       subtitleError,
       clippedSubtitleCues,
       setSubtitleEnabled,
+      setSubtitleStyleSettings,
       handleSelectedSubtitleTrackChange,
     },
   });
