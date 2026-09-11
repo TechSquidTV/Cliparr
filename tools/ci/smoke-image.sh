@@ -17,9 +17,16 @@ cleanup() {
 }
 trap cleanup EXIT
 
-# Explicitly replace a locally cached architecture when testing the same index
-# digest twice on runners using Docker's classic image store.
+# Pull the platform manifest so Docker's classic image store never has to map
+# the same index digest to two different architecture images.
 if [[ "$image" == *@sha256:* ]]; then
+  platform_digest="$(docker buildx imagetools inspect --raw "$image" | jq --exit-status --raw-output --arg platform "$platform" '
+    [.manifests[] | select((.platform.os + "/" + .platform.architecture) == $platform)]
+    | if length == 1 then .[0].digest
+      else error("Expected exactly one manifest for " + $platform)
+      end
+  ')"
+  image="${image%@*}@$platform_digest"
   docker pull --platform "$platform" "$image"
 fi
 
