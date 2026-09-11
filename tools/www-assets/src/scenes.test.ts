@@ -9,8 +9,16 @@ void test("keeps source selection separate from website recording length", () =>
     mobile: "mobile.mkv",
   });
   assert.ok(hero && mobile);
-  assert.deepEqual(hero.selection, { inSeconds: 496.07, outSeconds: 499.01 });
-  assert.deepEqual(mobile.selection, { inSeconds: 1402, outSeconds: 1412 });
+  assert.deepEqual(hero.selection, {
+    inSeconds: 496.07,
+    outSeconds: 499.01,
+    subtitleFontSize: 72,
+  });
+  assert.deepEqual(mobile.selection, {
+    inSeconds: 1402,
+    outSeconds: 1412,
+    subtitleFontSize: 150,
+  });
   assert.equal(hero.recordingSeconds, 82 / 30);
   assert.equal(mobile.recordingSeconds, 3);
   const changed = buildScenes({

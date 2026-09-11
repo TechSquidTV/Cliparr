@@ -55,9 +55,15 @@ export async function startJellyfinScene(
       `${scene.name}: source must include the original timeline through ${scene.selection.outSeconds} seconds.`,
     );
   }
-  const subtitle = mediaSource.MediaStreams?.find(
-    (stream) => stream.Type === "Subtitle" && stream.IsTextSubtitleStream,
-  );
+  const textSubtitles =
+    mediaSource.MediaStreams?.filter(
+      (stream) => stream.Type === "Subtitle" && stream.IsTextSubtitleStream,
+    ) ?? [];
+  const subtitle =
+    textSubtitles.find((stream) => {
+      const language = stream.Language?.trim().toLowerCase();
+      return language === "en" || language === "eng";
+    }) ?? textSubtitles[0];
   if (subtitle?.Index === undefined || subtitle.Index === null) {
     throw new Error(
       `${scene.name}: provide an embedded text subtitle track or matching subtitle sidecar.`,
