@@ -99,15 +99,19 @@ supported text track. Failure diagnostics include the available track keys.
 
 ## Outputs and verification
 
-| Scene  | Poster                                        | Videos                                                              |
-| ------ | --------------------------------------------- | ------------------------------------------------------------------- |
-| Hero   | `apps/www/src/assets/screenshot.webp`         | `apps/www/public/preview.mp4`, `preview.webm`                       |
-| Mobile | `apps/www/src/assets/mobile-pwa-preview.webp` | `apps/www/public/mobile-pwa-preview.mp4`, `mobile-pwa-preview.webm` |
+| Scene  | Poster                                        | Videos                                                                  |
+| ------ | --------------------------------------------- | ----------------------------------------------------------------------- |
+| Hero   | `apps/www/src/assets/screenshot.webp`         | `apps/www/src/assets/preview.mp4`, `preview.webm`                       |
+| Mobile | `apps/www/src/assets/mobile-pwa-preview.webp` | `apps/www/src/assets/mobile-pwa-preview.mp4`, `mobile-pwa-preview.webm` |
 
 The pipeline encodes silent H.264 MP4 and VP9 WebM at 30 fps, with fast-start MP4.
 It extracts each WebP poster from the delivered MP4's first frame. FFprobe and a
 full decode validate dimensions, codecs, absent audio, and recording duration.
 Playback telemetry verifies decoded frame advancement and rejects capture stalls.
+The homepage imports posters and videos from `apps/www/src/assets` so Astro gives
+every file a content-hashed deployment URL. Do not move preview videos back to
+stable `public` URLs; stale browser or CDN caches can otherwise pair a new poster
+with a video from an older capture.
 
 The existing 500 KB hero / 100 KB mobile video budgets are advisory. The report
 flags larger files; inspect quality before changing encoding settings. Do not
