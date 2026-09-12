@@ -644,7 +644,7 @@ function EditorScreenContent({
 
   if (!exportSource.source) {
     return (
-      <div className="flex h-dvh items-center justify-center overflow-hidden bg-background p-8 text-foreground">
+      <div className="flex h-(--app-viewport-height) items-center justify-center overflow-hidden bg-background p-8 text-foreground">
         <div className="text-center">
           <p className="text-destructive mb-4">No exportable stream found.</p>
           <button onClick={onBack} className="text-primary hover:underline">
@@ -656,7 +656,7 @@ function EditorScreenContent({
   }
 
   return (
-    <div className="flex h-dvh flex-col overflow-hidden bg-editor-workspace text-foreground">
+    <div className="flex h-(--app-viewport-height) flex-col overflow-hidden bg-editor-workspace text-foreground">
       <ConfirmationDialog
         open={subtitleTrackChangePending}
         title="Replace subtitle cues?"

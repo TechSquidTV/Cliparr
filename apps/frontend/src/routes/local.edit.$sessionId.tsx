@@ -56,7 +56,7 @@ function LocalEditorRouteComponent() {
 
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-background text-foreground">
+      <div className="flex min-h-(--app-viewport-height) items-center justify-center bg-background text-foreground">
         <BarsLoader label="Loading local video…" showLabel />
       </div>
     );
@@ -71,7 +71,7 @@ function LocalEditorRouteComponent() {
   const needsPermission = resolution?.status === "permission-needed";
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background p-6 text-foreground">
+    <div className="flex min-h-(--app-viewport-height) items-center justify-center bg-background p-6 text-foreground">
       <div className="w-full max-w-md rounded-lg border border-border bg-card p-5 text-card-foreground shadow-lg">
         <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-full border border-border bg-background text-muted-foreground">
           {needsPermission ? (

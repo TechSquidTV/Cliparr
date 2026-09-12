@@ -5,6 +5,13 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
+  --safe-area-top: env(safe-area-inset-top);
+  --safe-area-right: env(safe-area-inset-right);
+  --safe-area-bottom: env(safe-area-inset-bottom);
+  --safe-area-left: env(safe-area-inset-left);
+  --app-viewport-height: calc(
+    100dvh - var(--safe-area-top) - var(--safe-area-bottom)
+  );
   --background: oklch(0.9851 0 0);
   --foreground: oklch(0.1591 0 0);
   --card: oklch(0.9461 0 0);
@@ -509,6 +516,14 @@
   *::-webkit-scrollbar-thumb:hover {
     background: var(--scrollbar-thumb-hover);
     background-clip: padding-box;
+  }
+
+  /* The app owns safe-area padding; route screens use the remaining height. */
+  #root {
+    box-sizing: border-box;
+    min-height: 100dvh;
+    padding: var(--safe-area-top) var(--safe-area-right) var(--safe-area-bottom)
+      var(--safe-area-left);
   }
 
   body {

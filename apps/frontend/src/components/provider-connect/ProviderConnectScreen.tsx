@@ -13,7 +13,7 @@ export default function ProviderConnectScreen({
   onOpenLocalVideo,
 }: Properties) {
   return (
-    <div className="flex min-h-screen items-start justify-center bg-background text-foreground sm:p-4 sm:pt-12">
+    <div className="flex min-h-(--app-viewport-height) items-start justify-center bg-background text-foreground sm:p-4 sm:pt-12">
       <div className="relative w-full max-w-2xl overflow-hidden text-card-foreground sm:rounded-4xl sm:border sm:border-border sm:bg-card sm:shadow-2xl">
         <div className="pointer-events-none absolute inset-0">
           <div className="absolute inset-x-0 top-0 h-40 bg-linear-to-b from-primary/10 via-secondary/5 to-transparent" />

@@ -53,7 +53,7 @@ export function DashboardMobileMenu({
           <Menu className="h-5 w-5" />
         </button>
       </DrawerTrigger>
-      <DrawerContent className="border-border bg-background/95 pb-[max(1rem,env(safe-area-inset-bottom))] sm:hidden">
+      <DrawerContent className="border-border bg-background/95 [--drawer-bottom-padding:1rem] sm:hidden">
         <DrawerTitle className="sr-only">Cliparr Menu</DrawerTitle>
         <DrawerDescription className="sr-only">
           Dashboard menu
