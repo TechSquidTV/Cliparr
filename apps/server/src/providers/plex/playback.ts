@@ -13,9 +13,11 @@ import {
 import { createApiError, isApiError } from "@/http/errors";
 import { getServerLogger } from "@/logging";
 import type { ProviderSessionRecord } from "@/session/store";
+import type { MediaContainerWithDecision } from "@/providers/plex/generated/types.gen";
 import type {
   CurrentlyPlayingEntry,
   MediaExportMetadata,
+  MediaHandle,
   PlaybackAudioSelection,
   PlaybackExportEstimateMetadata,
   PlaybackSubtitleSelection,
@@ -74,7 +76,11 @@ function createMediaHandle(
   session: ProviderSessionRecord,
   context: PlexSourceContext,
   path: string,
-  options: { basePath?: string; playbackSessionId?: string } = {},
+  options: {
+    basePath?: string;
+    playbackSessionId?: string;
+    subtitleStreamId?: string;
+  } = {},
 ) {
   return createProviderMediaHandle(
     session,
@@ -89,6 +95,7 @@ function createMediaHandle(
           : {
               plex: {
                 playbackSessionId: options.playbackSessionId,
+                subtitleStreamId: options.subtitleStreamId,
               },
             },
     },
@@ -880,7 +887,7 @@ function plexDirectSubtitleContentFormat(codec: unknown) {
 
 function buildSelectedPlexSubtitleTranscodePath(
   item: PlexMetadataItem,
-  playbackSessionId: string,
+  subtitleSessionId: string,
   selection: PlexMediaSelection | undefined,
   stream: PlexStream,
 ) {
@@ -893,19 +900,28 @@ function buildSelectedPlexSubtitleTranscodePath(
   const resolvedSelection = resolveSelectedPart(item, selection);
   const params = new URLSearchParams({
     path,
-    transcodeSessionId: playbackSessionId,
+    session: subtitleSessionId,
+    protocol: "http",
+    directPlay: "1",
+    hasMDE: "1",
     mediaIndex: String(resolvedSelection?.mediaIndex ?? 0),
     partIndex: String(resolvedSelection?.partIndex ?? 0),
     subtitles: "sidecar",
     advancedSubtitles: "text",
     autoAdjustSubtitle: "0",
+    offset: "0",
+    copyts: "1",
   });
 
-  return `/video/:/transcode/universal/subtitles?${params.toString()}`;
+  return `/subtitles/:/transcode/universal/start?${params.toString()}`;
 }
 
 function canTranscodeSelectedPlexSubtitle(codec: unknown, stream: PlexStream) {
-  return isSelectedEntry(stream) && isTextSubtitleCodec(codec);
+  return (
+    isSelectedEntry(stream) &&
+    isTextSubtitleCodec(codec) &&
+    Boolean(idValue(stream.id))
+  );
 }
 
 function plexSubtitleContentFormat(
@@ -932,20 +948,28 @@ function plexSubtitleTrack(
   selection: PlexMediaSelection | undefined,
   stream: PlexStream,
 ): PlaybackSubtitleTrack {
+  const streamId = idValue(stream.id);
   const codec = normalizeSubtitleCodec(stream?.codec);
   const directSubtitlePath = buildPlexSubtitlePath(stream);
   const isText = isTextSubtitleCodec(codec);
   const transcodeSubtitleAvailable =
     Boolean(metadataPath(item)) &&
     canTranscodeSelectedPlexSubtitle(codec, stream);
-  const transcodeSubtitlePath = directSubtitlePath
-    ? undefined
-    : buildSelectedPlexSubtitleTranscodePath(
+  const subtitleSessionId =
+    transcodeSubtitleAvailable && !directSubtitlePath
+      ? createCliparrPlexTranscodeSessionId(
+          context.sourceId,
+          `${session.id}:${playbackSessionId}:subtitles:${streamId}`,
+        )
+      : undefined;
+  const transcodeSubtitlePath = subtitleSessionId
+    ? buildSelectedPlexSubtitleTranscodePath(
         item,
-        playbackSessionId,
+        subtitleSessionId,
         selection,
         stream,
-      );
+      )
+    : undefined;
   const contentFormat = plexSubtitleContentFormat(
     codec,
     directSubtitlePath,
@@ -954,7 +978,7 @@ function plexSubtitleTrack(
   const contentPath = directSubtitlePath ?? transcodeSubtitlePath;
 
   return {
-    streamId: idValue(stream?.id),
+    streamId,
     index: numberValue(stream?.index) ?? numberValue(stream?.streamIdentifier),
     languageCode:
       stringValue(stream?.languageCode) ?? stringValue(stream?.languageTag),
@@ -969,8 +993,9 @@ function plexSubtitleTrack(
     contentUrl: contentPath
       ? createMediaHandle(session, context, contentPath, {
           playbackSessionId: transcodeSubtitlePath
-            ? playbackSessionId
+            ? subtitleSessionId
             : undefined,
+          subtitleStreamId: transcodeSubtitlePath ? streamId : undefined,
         })
       : undefined,
   };
@@ -1443,6 +1468,73 @@ export async function listCurrentlyPlaying(
   return normalizeCurrentPlayback(session, source, context, data);
 }
 
+async function preparePlexSubtitleTranscode(
+  handle: MediaHandle,
+  headers: Headers,
+  subtitleStreamId: string,
+  signal: AbortSignal,
+) {
+  // Plex authorizes subtitle extraction through a preceding video decision.
+  // Direct-play capability here avoids starting a video transcode; only the
+  // subtitle request is subsequently downloaded, in its own session.
+  const decisionUrl = new URL(handle.path, handle.baseUrl);
+  decisionUrl.pathname = "/video/:/transcode/universal/decision";
+  const decisionHeaders = new Headers(headers);
+  decisionHeaders.set("Accept", "application/json");
+  decisionHeaders.delete("Range");
+  const response = await fetchMediaHandleRequest(
+    { ...handle, path: `${decisionUrl.pathname}${decisionUrl.search}` },
+    {
+      headers: decisionHeaders,
+      signal,
+      timeoutMs: CURRENT_PLAYBACK_REQUEST_TIMEOUT_MS,
+      retryAttempts: 1,
+    },
+  );
+  if (!response.ok) {
+    await response.body?.cancel();
+    throw createApiError(
+      response.status,
+      "plex_subtitle_decision_failed",
+      "Plex could not prepare the embedded subtitle track.",
+    );
+  }
+
+  let decision: PlexMetadataData & MediaContainerWithDecision;
+  try {
+    decision = (await response.json()) as typeof decision;
+  } catch {
+    signal.throwIfAborted();
+    throw createApiError(
+      502,
+      "plex_subtitle_decision_failed",
+      "Plex returned an invalid subtitle playback decision.",
+    );
+  }
+  const container = decision?.MediaContainer;
+  const decisionCode = numberValue(
+    container?.mdeDecisionCode ?? container?.generalDecisionCode,
+  );
+  if (!container || (decisionCode !== undefined && decisionCode >= 2000)) {
+    throw createApiError(
+      502,
+      "plex_subtitle_decision_failed",
+      "Plex could not prepare the embedded subtitle track.",
+    );
+  }
+  const decisionItem = container.Metadata?.[0];
+  const selectedTrack = decisionItem
+    ? deriveSelectedSubtitleTrack(decisionItem)
+    : undefined;
+  if (selectedTrack?.streamId !== subtitleStreamId) {
+    throw createApiError(
+      409,
+      "plex_subtitle_selection_changed",
+      "The selected Plex subtitle changed. Refresh the editor and try again.",
+    );
+  }
+}
+
 export async function proxyMedia(
   session: ProviderSessionRecord,
   handleId: string,
@@ -1485,6 +1577,19 @@ export async function proxyMedia(
   if (playbackSessionId) {
     headers.set("X-Plex-Session-Identifier", playbackSessionId);
   }
+  const subtitleStreamId = useProviderAuth
+    ? handle.providerMetadata?.plex?.subtitleStreamId
+    : undefined;
+  const subtitleRequest = subtitleStreamId
+    ? { streamId: subtitleStreamId, controller: new AbortController() }
+    : undefined;
+  if (subtitleRequest) {
+    headers.set("X-Plex-Client-Profile-Name", "Generic");
+    headers.set(
+      "X-Plex-Client-Profile-Extra",
+      "add-transcode-target(type=subtitleProfile&protocol=http&context=all&subtitleCodec=srt&container=srt)",
+    );
+  }
 
   logger.trace("Fetching Plex media.", {
     "media.handle.id": handle.id,
@@ -1497,43 +1602,72 @@ export async function proxyMedia(
     "plex.playback_session.id": playbackSessionId,
   });
 
-  await proxyProviderMediaResponse(
-    session,
-    handle,
-    {
-      accept: accept ?? undefined,
-      range: range ?? undefined,
-    },
-    async () => {
-      const upstream = await fetchMediaHandleRequest(handle, { headers });
-      if (!upstream.ok && upstream.status !== 206) {
-        const body = await upstream.text();
-        const detail = body.slice(0, 400).replaceAll(/\s+/g, " ").trim();
-        logger.warn("Plex media request failed.", {
-          ...logEventFields("media.proxy.upstream", "failure"),
-          "media.handle.id": handle.id,
-          "session.id": session.id,
-          "source.id": handle.sourceId,
-          "upstream.url": sanitizeLoggedMediaPath(url.toString()),
-          "upstream.status_code": upstream.status,
-          "upstream.detail": detail,
-          "provider.auth.attached": useProviderAuth,
-          "media.range.present": Boolean(range),
-          "http.accept": accept,
-          "plex.playback_session.id": playbackSessionId,
-          ...mediaHandleHlsLogFields(handle),
-        });
-        throw createApiError(
-          upstream.status,
-          "plex_media_failed",
-          detail
-            ? `Plex media request failed: ${detail}`
-            : "Plex media request failed",
-        );
-      }
+  const abortSubtitleRequest = () => subtitleRequest?.controller.abort();
+  if (subtitleRequest) {
+    res.once("close", abortSubtitleRequest);
+    if (res.destroyed) {
+      abortSubtitleRequest();
+    }
+  }
 
-      return upstream;
-    },
-    res,
-  );
+  try {
+    await proxyProviderMediaResponse(
+      session,
+      handle,
+      {
+        accept: accept ?? undefined,
+        range: range ?? undefined,
+      },
+      async () => {
+        if (subtitleRequest) {
+          await preparePlexSubtitleTranscode(
+            handle,
+            headers,
+            subtitleRequest.streamId,
+            subtitleRequest.controller.signal,
+          );
+        }
+        const upstream = await fetchMediaHandleRequest(handle, {
+          headers,
+          signal: subtitleRequest?.controller.signal,
+        });
+        if (!upstream.ok && upstream.status !== 206) {
+          const body = await upstream.text();
+          const detail = body.slice(0, 400).replaceAll(/\s+/g, " ").trim();
+          logger.warn("Plex media request failed.", {
+            ...logEventFields("media.proxy.upstream", "failure"),
+            "media.handle.id": handle.id,
+            "session.id": session.id,
+            "source.id": handle.sourceId,
+            "upstream.url": sanitizeLoggedMediaPath(url.toString()),
+            "upstream.status_code": upstream.status,
+            "upstream.detail": detail,
+            "provider.auth.attached": useProviderAuth,
+            "media.range.present": Boolean(range),
+            "http.accept": accept,
+            "plex.playback_session.id": playbackSessionId,
+            ...mediaHandleHlsLogFields(handle),
+          });
+          throw createApiError(
+            upstream.status,
+            "plex_media_failed",
+            detail
+              ? `Plex media request failed: ${detail}`
+              : "Plex media request failed",
+          );
+        }
+
+        return upstream;
+      },
+      res,
+    );
+  } catch (error) {
+    if (!subtitleRequest?.controller.signal.aborted || !res.destroyed) {
+      throw error;
+    }
+  } finally {
+    if (subtitleRequest) {
+      res.off("close", abortSubtitleRequest);
+    }
+  }
 }
