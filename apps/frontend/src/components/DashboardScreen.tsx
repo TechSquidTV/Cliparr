@@ -768,7 +768,7 @@ export default function DashboardScreen({
     ) : null;
 
   return (
-    <div className="min-h-screen bg-background p-4 text-foreground sm:p-8">
+    <div className="min-h-(--app-viewport-height) bg-background p-4 text-foreground sm:p-8">
       <div className="max-w-5xl mx-auto">
         <header className="mb-5 space-y-4 sm:mb-12 sm:flex sm:items-center sm:justify-between sm:space-y-0">
           <div className="flex items-start justify-between gap-3">

@@ -67,7 +67,7 @@ export default function App() {
 
   if (loading) {
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center gap-6 bg-background text-foreground">
+      <div className="flex min-h-(--app-viewport-height) flex-col items-center justify-center gap-6 bg-background text-foreground">
         <div className="relative">
           <img
             src="/logo-light.svg"

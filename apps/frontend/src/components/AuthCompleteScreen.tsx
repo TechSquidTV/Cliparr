@@ -12,7 +12,7 @@ export default function AuthCompleteScreen() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-background text-foreground flex items-center justify-center p-4">
+    <div className="min-h-(--app-viewport-height) bg-background text-foreground flex items-center justify-center p-4">
       <div className="bg-card text-card-foreground border border-border p-8 rounded-lg w-full max-w-md shadow-2xl text-center">
         <div className="flex items-center justify-center mb-6">
           <img

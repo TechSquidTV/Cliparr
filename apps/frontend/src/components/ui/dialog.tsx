@@ -146,7 +146,7 @@ function DialogPortal({
   const content = (
     <div
       className={cn(
-        "pointer-events-none fixed inset-0 z-50 grid place-items-center p-4",
+        "pointer-events-none fixed top-(--safe-area-top) right-(--safe-area-right) bottom-(--safe-area-bottom) left-(--safe-area-left) z-50 grid place-items-center p-4",
         className,
       )}
     >

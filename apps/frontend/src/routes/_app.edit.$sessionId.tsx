@@ -85,7 +85,7 @@ function EditorRouteComponent() {
 
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-background text-foreground">
+      <div className="flex min-h-(--app-viewport-height) items-center justify-center bg-background text-foreground">
         <BarsLoader label="Loading editor…" showLabel />
       </div>
     );
@@ -93,7 +93,7 @@ function EditorRouteComponent() {
 
   if (error) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-background px-6 text-foreground">
+      <div className="flex min-h-(--app-viewport-height) items-center justify-center bg-background px-6 text-foreground">
         <div className="max-w-md space-y-4 text-center">
           <p className="text-sm text-destructive">{error}</p>
           <div className="flex flex-wrap items-center justify-center gap-3">
