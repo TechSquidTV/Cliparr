@@ -2,7 +2,11 @@
 
 import assert from "node:assert/strict";
 import test from "node:test";
-import { cliparrClient, subscribeToAuthFailure } from "@/api/cliparrClient";
+import {
+  cliparrClient,
+  readResponseErrorDetails,
+  subscribeToAuthFailure,
+} from "@/api/cliparrClient";
 
 function jsonResponse(value: unknown, init: ResponseInit = {}) {
   return Response.json(value, {
@@ -220,4 +224,58 @@ void test("follows app auth redirects with the current browser location", async 
       delete (globalThis as { window?: unknown }).window;
     }
   }
+});
+
+void test("preserves actionable subtitle errors and tolerates non-JSON or malformed error bodies", async () => {
+  const message =
+    "The selected Plex subtitle changed. Refresh the editor and try again.";
+  assert.deepEqual(
+    await readResponseErrorDetails(
+      jsonResponse(
+        {
+          error: {
+            code: "plex_subtitle_selection_changed",
+            message,
+          },
+        },
+        { status: 409 },
+      ),
+    ),
+    { code: "plex_subtitle_selection_changed", message },
+  );
+
+  for (const body of ["not JSON", "null", '{"error":42}']) {
+    assert.deepEqual(
+      await readResponseErrorDetails(
+        new Response(body, {
+          status: 502,
+          headers: { "content-type": "application/json" },
+        }),
+      ),
+      {},
+    );
+  }
+  assert.deepEqual(
+    await readResponseErrorDetails(
+      new Response("<html>Bad gateway</html>", {
+        status: 502,
+        headers: { "content-type": "text/html" },
+      }),
+    ),
+    {},
+  );
+});
+
+void test("propagates cancellation while reading an API error body", async () => {
+  const response = new Response(
+    new ReadableStream<Uint8Array>({
+      start(controller) {
+        controller.error(new DOMException("Download cancelled", "AbortError"));
+      },
+    }),
+    { status: 409, headers: { "content-type": "application/json" } },
+  );
+  await assert.rejects(readResponseErrorDetails(response), {
+    name: "AbortError",
+  });
 });

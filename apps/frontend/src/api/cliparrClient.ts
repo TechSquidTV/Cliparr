@@ -87,6 +87,21 @@ function responseErrorDetails(payload: unknown): ResponseErrorDetails {
   };
 }
 
+export async function readResponseErrorDetails(
+  response: Response,
+): Promise<ResponseErrorDetails> {
+  if (!response.headers.get("content-type")?.includes("application/json")) {
+    return {};
+  }
+
+  const text = await response.text();
+  try {
+    return responseErrorDetails(JSON.parse(text));
+  } catch {
+    return {};
+  }
+}
+
 function queueAuthFailureNotification() {
   if (authFailureQueued) {
     return;
@@ -144,10 +159,7 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
       throw buildUnexpectedApiResponseError();
     }
 
-    const data: unknown = contentType.includes("application/json")
-      ? await response.json().catch((): unknown => null)
-      : null;
-    const error = responseErrorDetails(data);
+    const error = await readResponseErrorDetails(response);
 
     if (response.status === 401 && error.code === "not_authenticated") {
       queueAuthFailureNotification();

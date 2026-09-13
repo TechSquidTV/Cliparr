@@ -103,9 +103,13 @@ function normalizeProviderMetadata(
 ): MediaHandle["providerMetadata"] {
   const normalized: NonNullable<MediaHandle["providerMetadata"]> = {};
 
-  if (metadata?.plex?.playbackSessionId !== undefined) {
+  if (
+    metadata?.plex?.playbackSessionId !== undefined ||
+    metadata?.plex?.subtitleStreamId !== undefined
+  ) {
     normalized.plex = {
       playbackSessionId: metadata.plex.playbackSessionId,
+      subtitleStreamId: metadata.plex.subtitleStreamId,
     };
   }
 

@@ -64,6 +64,7 @@ export interface CurrentlyPlayingEntry {
 interface MediaHandleProviderMetadata {
   plex?: {
     playbackSessionId?: string;
+    subtitleStreamId?: string;
   };
   jellyfin?: {
     deviceId?: string;
