@@ -6,6 +6,7 @@ import {
   logEventFields,
 } from "@cliparr/shared/logging";
 import type { PlaybackSubtitleTrack } from "@/providers/types";
+import { readResponseErrorDetails } from "@/api/cliparrClient";
 import {
   subtitleTrackKey,
   subtitleTrackSupportsBurnIn,
@@ -39,10 +40,13 @@ type SubtitleDownloadResult =
       failure: SubtitleDownloadFailure;
     };
 
-function subtitleDownloadFailure(status: number): SubtitleDownloadFailure {
+async function subtitleDownloadFailure(
+  response: Response,
+): Promise<SubtitleDownloadFailure> {
+  const error = await readResponseErrorDetails(response);
   return {
-    status,
-    message: `Could not load subtitles (${status}).`,
+    status: response.status,
+    message: error.message ?? `Could not load subtitles (${response.status}).`,
   };
 }
 
@@ -70,7 +74,7 @@ async function downloadSubtitleCues(
   if (!response.ok) {
     return {
       ok: false,
-      failure: subtitleDownloadFailure(response.status),
+      failure: await subtitleDownloadFailure(response),
     };
   }
 

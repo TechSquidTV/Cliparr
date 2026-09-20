@@ -1,5 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { once } from "node:events";
+import { PassThrough } from "node:stream";
 import type {
   Request as ExpressRequest,
   Response as ExpressResponse,
@@ -125,11 +127,12 @@ function createRequest(headers: Record<string, string> = {}) {
 }
 
 function createResponseRecorder() {
-  const recorder = {
+  const stream = new PassThrough();
+  const chunks: Buffer[] = [];
+  stream.on("data", (chunk: Buffer) => chunks.push(chunk));
+  const recorder = Object.assign(stream, {
     statusCode: 200,
     headers: new Map<string, string>(),
-    body: Buffer.alloc(0),
-    ended: false,
     status(code: number) {
       recorder.statusCode = code;
       return recorder;
@@ -138,18 +141,12 @@ function createResponseRecorder() {
       recorder.headers.set(name.toLowerCase(), String(value));
       return recorder;
     },
-    end(chunk?: string | Uint8Array) {
-      if (typeof chunk === "string") {
-        recorder.body = Buffer.from(chunk);
-      } else if (chunk) {
-        recorder.body = Buffer.from(chunk);
-      }
-      recorder.ended = true;
-      return recorder;
-    },
-  };
+  });
 
-  return recorder;
+  const response = Object.assign(recorder, {
+    getBody: () => Buffer.concat(chunks).toString(),
+  });
+  return response as typeof response & ExpressResponse;
 }
 
 function onlyMediaHandle(session: ProviderSessionRecord) {
@@ -214,7 +211,7 @@ void test("creates a Cliparr-owned Plex transcode session id", () => {
   );
 });
 
-void test("keeps Plex subtitle extraction on the real playback session id", () => {
+void test("isolates Plex subtitle extraction from the viewer and HLS preview sessions", () => {
   const session = createSession();
   const context = createContext();
   const plexPlaybackSessionId = "254";
@@ -271,14 +268,14 @@ void test("keeps Plex subtitle extraction on the real playback session id", () =
   assert.equal(tracks[0]?.streamId, "101151");
   assert.equal(
     handle.providerMetadata?.plex?.playbackSessionId,
-    plexPlaybackSessionId,
+    subtitleUrl.searchParams.get("session"),
   );
-  assert.equal(
-    subtitleUrl.searchParams.get("transcodeSessionId"),
+  assert.notEqual(
+    subtitleUrl.searchParams.get("session"),
     plexPlaybackSessionId,
   );
   assert.notEqual(
-    subtitleUrl.searchParams.get("transcodeSessionId"),
+    subtitleUrl.searchParams.get("session"),
     cliparrPreviewTranscodeSessionId,
   );
   assert.equal(subtitleUrl.searchParams.get("path"), "/library/metadata/14447");
@@ -352,7 +349,7 @@ void test("sends the real Plex playback session header for synthetic HLS preview
       session,
       handleId,
       createRequest({ accept: "*/*" }) as ExpressRequest,
-      response as unknown as ExpressResponse,
+      response,
     );
 
     const upstreamUrl = new URL(requestUrls[0] ?? "");
@@ -375,7 +372,7 @@ void test("sends the real Plex playback session header for synthetic HLS preview
   }
 });
 
-void test("builds Plex HLS preview and selected embedded SRT subtitles with separate session ids", async () => {
+void test("builds Plex HLS preview and embedded SRT extraction with independent sessions", async () => {
   const session = createSession();
   const source = createSource();
   const plexPlaybackSessionId = "254";
@@ -500,12 +497,12 @@ void test("builds Plex HLS preview and selected embedded SRT subtitles with sepa
         subtitleTrack.contentUrl,
       );
       const subtitleUrl = new URL(subtitleHandle.path, "http://cliparr.local");
-      assert.equal(
-        subtitleUrl.searchParams.get("transcodeSessionId"),
+      assert.notEqual(
+        subtitleUrl.searchParams.get("session"),
         plexPlaybackSessionId,
       );
       assert.notEqual(
-        subtitleUrl.searchParams.get("transcodeSessionId"),
+        subtitleUrl.searchParams.get("session"),
         cliparrPreviewTranscodeSessionId,
       );
       assert.equal(subtitleUrl.searchParams.get("subtitles"), "sidecar");
@@ -515,7 +512,7 @@ void test("builds Plex HLS preview and selected embedded SRT subtitles with sepa
       );
       assert.equal(
         subtitleHandle.providerMetadata?.plex?.playbackSessionId,
-        plexPlaybackSessionId,
+        subtitleUrl.searchParams.get("session"),
       );
     },
   );
@@ -687,17 +684,22 @@ void test("creates a subtitle transcode content URL for the selected embedded Pl
   assert.equal(tracks[0]?.contentUrl, `/api/media/${handle.id}`);
   assert.equal(tracks[0]?.contentFormat, "srt");
   assert.equal(
-    handle.path.startsWith("/video/:/transcode/universal/subtitles?"),
+    handle.path.startsWith("/subtitles/:/transcode/universal/start?"),
     true,
   );
   assert.equal(
     transcodeUrl.searchParams.get("path"),
     "/library/metadata/12345",
   );
-  assert.equal(
-    transcodeUrl.searchParams.get("transcodeSessionId"),
-    "plex-session-1",
-  );
+  assert.ok(transcodeUrl.searchParams.get("session"));
+  assert.notEqual(transcodeUrl.searchParams.get("session"), "plex-session-1");
+  assert.equal(transcodeUrl.searchParams.has("transcodeSessionId"), false);
+  assert.equal(handle.providerMetadata?.plex?.subtitleStreamId, "201");
+  assert.equal(transcodeUrl.searchParams.get("protocol"), "http");
+  assert.equal(transcodeUrl.searchParams.get("directPlay"), "1");
+  assert.equal(transcodeUrl.searchParams.get("hasMDE"), "1");
+  assert.equal(transcodeUrl.searchParams.get("offset"), "0");
+  assert.equal(transcodeUrl.searchParams.get("copyts"), "1");
   assert.equal(transcodeUrl.searchParams.get("mediaIndex"), "0");
   assert.equal(transcodeUrl.searchParams.get("partIndex"), "0");
   assert.equal(transcodeUrl.searchParams.get("subtitles"), "sidecar");
@@ -881,4 +883,357 @@ void test("leaves Plex image subtitle streams unsupported for burn-in", () => {
   assert.equal(tracks[0]?.isText, false);
   assert.equal(tracks[0]?.contentUrl, undefined);
   assert.equal(session.mediaHandles.size, 0);
+});
+
+function embeddedSubtitleItem(codec = "srt") {
+  return {
+    ratingKey: "12345",
+    Media: [
+      {
+        Part: [
+          {
+            Stream: [{ id: "201", streamType: 3, codec, selected: true }],
+          },
+        ],
+      },
+    ],
+  };
+}
+
+void test("prepares a Plex direct-play decision before downloading embedded subtitle text", async () => {
+  for (const codec of ["srt", "ass"]) {
+    const session = createSession();
+    const context = createContext();
+    const item = embeddedSubtitleItem(codec);
+    deriveSubtitleTracks(session, context, item, "viewer-session");
+    const handle = onlyMediaHandle(session);
+    const contentUrl = new URL(handle.path, context.baseUrl);
+    const requests: string[] = [];
+    const subtitleText =
+      "1\n00:00:01,023 --> 00:00:03,023\nEmbedded English cue\n";
+
+    await withMockFetch(
+      (request) => {
+        const url = new URL(request.url);
+        requests.push(url.pathname);
+        assert.equal(request.method, "GET");
+        assert.equal(request.headers.get("x-plex-token"), context.token);
+        assert.equal(
+          request.headers.get("x-plex-session-identifier"),
+          contentUrl.searchParams.get("session"),
+        );
+        assert.equal(
+          request.headers.get("x-plex-client-profile-name"),
+          "Generic",
+        );
+        assert.match(
+          request.headers.get("x-plex-client-profile-extra") ?? "",
+          /subtitleCodec=srt&container=srt/,
+        );
+        assert.equal(url.search, contentUrl.search);
+
+        if (url.pathname === "/video/:/transcode/universal/decision") {
+          assert.equal(requests.length, 1);
+          assert.equal(request.headers.get("accept"), "application/json");
+          return jsonResponse({ MediaContainer: { Metadata: [item] } });
+        }
+        assert.equal(url.pathname, "/subtitles/:/transcode/universal/start");
+        assert.equal(requests.length, 2);
+        return new globalThis.Response(subtitleText, {
+          headers: { "content-type": "application/octet-stream" },
+        });
+      },
+      async () => {
+        const response = createResponseRecorder();
+        await proxyMedia(
+          session,
+          handle.id,
+          createRequest() as ExpressRequest,
+          response,
+        );
+        assert.equal(response.statusCode, 200);
+        assert.equal(response.getBody(), subtitleText);
+        assert.equal(requests.length, 2);
+      },
+    );
+  }
+});
+
+void test("does not download embedded subtitles when Plex refuses or changes the selection", async () => {
+  for (const failure of ["denied", "different-track", "disabled"] as const) {
+    const session = createSession();
+    const item = embeddedSubtitleItem();
+    deriveSubtitleTracks(session, createContext(), item, "viewer-session");
+    const handle = onlyMediaHandle(session);
+    let requests = 0;
+
+    await withMockFetch(
+      (request) => {
+        requests += 1;
+        assert.equal(
+          new URL(request.url).pathname,
+          "/video/:/transcode/universal/decision",
+        );
+        if (failure === "denied") {
+          return new globalThis.Response(null, { status: 403 });
+        }
+        return jsonResponse({
+          MediaContainer: {
+            Metadata: [
+              {
+                Media: [
+                  {
+                    Part: [
+                      {
+                        Stream: [
+                          {
+                            id: failure === "different-track" ? "202" : "201",
+                            streamType: 3,
+                            selected: failure !== "disabled",
+                          },
+                        ],
+                      },
+                    ],
+                  },
+                ],
+              },
+            ],
+          },
+        });
+      },
+      async () => {
+        await assert.rejects(
+          proxyMedia(
+            session,
+            handle.id,
+            createRequest() as ExpressRequest,
+            createResponseRecorder(),
+          ),
+          {
+            code:
+              failure === "denied"
+                ? "plex_subtitle_decision_failed"
+                : "plex_subtitle_selection_changed",
+            status: failure === "denied" ? 403 : 409,
+          },
+        );
+        assert.equal(requests, 1);
+      },
+    );
+  }
+});
+
+void test("downloads Plex sidecar subtitles without a transcode decision", async () => {
+  const session = createSession();
+  const item = embeddedSubtitleItem();
+  const stream = item.Media[0]?.Part[0]?.Stream[0];
+  assert.ok(stream);
+  const sidecarItem = {
+    ...item,
+    Media: [
+      { Part: [{ Stream: [{ ...stream, key: "/library/streams/201" }] }] },
+    ],
+  };
+  deriveSubtitleTracks(session, createContext(), sidecarItem, "viewer-session");
+  const handle = onlyMediaHandle(session);
+  let requests = 0;
+  await withMockFetch(
+    (request) => {
+      requests += 1;
+      assert.equal(new URL(request.url).pathname, "/library/streams/201.srt");
+      assert.equal(request.headers.has("x-plex-session-identifier"), false);
+      return new globalThis.Response("Sidecar subtitle text");
+    },
+    async () => {
+      const response = createResponseRecorder();
+      await proxyMedia(
+        session,
+        handle.id,
+        createRequest() as ExpressRequest,
+        response,
+      );
+      assert.equal(response.getBody(), "Sidecar subtitle text");
+      assert.equal(requests, 1);
+    },
+  );
+});
+
+void test("preserves the selected Plex media version and part for embedded subtitles", () => {
+  const session = createSession();
+  const context = createContext();
+  const item = embeddedSubtitleItem();
+  const part = item.Media[0]?.Part[0];
+  assert.ok(part);
+  const versionedItem = {
+    ...item,
+    Media: [{ Part: [] }, { Part: [{ Stream: [] }, part] }],
+  };
+  const selection = { mediaIndex: 1, partIndex: 1 };
+  const tracks = deriveSubtitleTracks(
+    session,
+    context,
+    versionedItem,
+    "viewer-session",
+    selection,
+  );
+  const handle = onlyMediaHandle(session);
+  const url = new URL(handle.path, context.baseUrl);
+  assert.equal(url.searchParams.get("mediaIndex"), "1");
+  assert.equal(url.searchParams.get("partIndex"), "1");
+  assert.equal(
+    tracks[0]?.contentUrl,
+    deriveSubtitleTracks(
+      session,
+      context,
+      versionedItem,
+      "viewer-session",
+      selection,
+    )[0]?.contentUrl,
+  );
+  assert.equal(session.mediaHandles.size, 1);
+});
+
+void test("checks subtitles on the media version and part selected by the Plex decision", async () => {
+  const session = createSession();
+  const item = embeddedSubtitleItem();
+  deriveSubtitleTracks(session, createContext(), item, "viewer-session");
+  const handle = onlyMediaHandle(session);
+  const wrongPart = { Stream: [{ id: "202", streamType: 3, selected: true }] };
+  const decisionItem = {
+    ...item,
+    Media: [
+      { Part: [wrongPart] },
+      {
+        selected: true,
+        Part: [wrongPart, { ...item.Media[0]?.Part[0], selected: true }],
+      },
+    ],
+  };
+  await withMockFetch(
+    (request) => {
+      if (new URL(request.url).pathname.endsWith("/decision")) {
+        return jsonResponse({ MediaContainer: { Metadata: [decisionItem] } });
+      }
+      return new globalThis.Response("Selected version subtitle");
+    },
+    async () => {
+      const response = createResponseRecorder();
+      await proxyMedia(
+        session,
+        handle.id,
+        createRequest() as ExpressRequest,
+        response,
+      );
+      assert.equal(response.getBody(), "Selected version subtitle");
+    },
+  );
+});
+
+void test("cancels Plex subtitle preparation and extraction when the browser disconnects", async () => {
+  for (const phase of ["decision", "start"]) {
+    const session = createSession();
+    const item = embeddedSubtitleItem();
+    deriveSubtitleTracks(session, createContext(), item, "viewer-session");
+    const handle = onlyMediaHandle(session);
+    let reachRequest: ((signal: AbortSignal) => void) | undefined;
+    const reached = new Promise<AbortSignal>((resolve) => {
+      reachRequest = resolve;
+    });
+    let rejectPending: ((reason: Error) => void) | undefined;
+    const pending = new Promise<globalThis.Response>((_resolve, reject) => {
+      rejectPending = reject;
+    });
+    const response = createResponseRecorder();
+    const initialCloseListeners = response.listenerCount("close");
+    let requests = 0;
+    await withMockFetch(
+      (request) => {
+        requests += 1;
+        if (!new URL(request.url).pathname.endsWith(`/${phase}`)) {
+          return jsonResponse({ MediaContainer: { Metadata: [item] } });
+        }
+        reachRequest?.(request.signal);
+        request.signal.addEventListener(
+          "abort",
+          () => {
+            rejectPending?.(
+              new DOMException("Browser disconnected", "AbortError"),
+            );
+          },
+          { once: true },
+        );
+        return pending;
+      },
+      async () => {
+        const load = proxyMedia(
+          session,
+          handle.id,
+          createRequest() as ExpressRequest,
+          response,
+        );
+        // Observe rejection immediately so an abort cannot become unhandled.
+        const outcome = Promise.allSettled([load]);
+        const signal = await reached;
+        try {
+          const closed = once(response, "close");
+          response.destroy();
+          await closed;
+          assert.equal(signal.aborted, true);
+          const results = await outcome;
+          assert.equal(results[0]?.status, "fulfilled");
+          assert.equal(response.listenerCount("close"), initialCloseListeners);
+          assert.equal(requests, phase === "decision" ? 1 : 2);
+        } finally {
+          rejectPending?.(new DOMException("Test cleanup", "AbortError"));
+          await outcome;
+        }
+      },
+    );
+  }
+});
+
+void test("rejects failed or malformed Plex decisions before starting subtitle extraction", async () => {
+  const item = embeddedSubtitleItem();
+  const failedDecisions = [
+    JSON.stringify({
+      MediaContainer: { mdeDecisionCode: 2000, Metadata: [item] },
+    }),
+    JSON.stringify({
+      MediaContainer: { generalDecisionCode: 2001, Metadata: [item] },
+    }),
+    "not JSON",
+    "null",
+  ];
+  for (const decision of failedDecisions) {
+    const session = createSession();
+    deriveSubtitleTracks(session, createContext(), item, "viewer-session");
+    const handle = onlyMediaHandle(session);
+    let requests = 0;
+    await withMockFetch(
+      () => {
+        requests += 1;
+        return new globalThis.Response(decision, {
+          headers: { "content-type": "application/json" },
+        });
+      },
+      async () => {
+        const response = createResponseRecorder();
+        const initialCloseListeners = response.listenerCount("close");
+        await assert.rejects(
+          proxyMedia(
+            session,
+            handle.id,
+            createRequest() as ExpressRequest,
+            response,
+          ),
+          {
+            status: 502,
+            code: "plex_subtitle_decision_failed",
+          },
+        );
+        assert.equal(requests, 1);
+        assert.equal(response.listenerCount("close"), initialCloseListeners);
+      },
+    );
+  }
 });
