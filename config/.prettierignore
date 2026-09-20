@@ -1,6 +1,7 @@
 ../node_modules/
 ../.pnpm-store/
 ../.astro/
+../.wrangler/
 ../apps/*/.astro/
 ../apps/*/dist/
 ../build/

@@ -3,6 +3,7 @@ import { getCollection } from "astro:content";
 import { docsForSection, docsSections, type DocsSectionId } from "@/data/docs";
 import { site } from "@/data/product";
 import { canonicalSiteUrl } from "@/lib/structuredData";
+import { markdownPath } from "@/lib/markdown";
 
 interface DocumentationIndexEntry {
   data: {
@@ -15,7 +16,7 @@ interface DocumentationIndexEntry {
 }
 
 const formatLink = (title: string, description: string, path: string) =>
-  `- [${title}](${canonicalSiteUrl(path)}): ${description}`;
+  `- [${title}](${canonicalSiteUrl(path.startsWith("/") ? markdownPath(path) : path)}): ${description}`;
 
 const featuredDocumentIds = new Set([
   "getting-started",

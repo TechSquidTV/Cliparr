@@ -9,6 +9,7 @@
       "vite": false
     },
     "apps/www": {
+      "entry": ["src/worker.ts"],
       "ignoreDependencies": [
         "@fontsource-variable/outfit",
         "@mediabunny/aac-encoder",

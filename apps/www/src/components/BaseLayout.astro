@@ -4,6 +4,7 @@ import SiteTooltips from "@/components/SiteTooltips.astro";
 import Footer from "@/components/Footer.astro";
 import Header from "@/components/Header.astro";
 import { site } from "@/data/product";
+import { markdownPath } from "@/lib/markdown";
 import {
   canonicalSiteUrl,
   jsonLdScriptContent,
@@ -81,6 +82,16 @@ const structuredDataItems = [
     <meta name="robots" content="index,follow" />
     <link rel="canonical" href={canonicalUrl} />
     <link rel="sitemap" href="/sitemap-index.xml" />
+    {
+      Astro.url.pathname !== "/404" && Astro.url.pathname !== "/404.html" && (
+        <link
+          rel="alternate"
+          type="text/markdown"
+          href={markdownPath(Astro.url.pathname)}
+          title="Markdown"
+        />
+      )
+    }
     <link
       rel="describedby"
       type="text/markdown"
