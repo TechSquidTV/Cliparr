@@ -81,6 +81,12 @@ const structuredDataItems = [
     <meta name="robots" content="index,follow" />
     <link rel="canonical" href={canonicalUrl} />
     <link rel="sitemap" href="/sitemap-index.xml" />
+    <link
+      rel="describedby"
+      type="text/markdown"
+      title={`${site.name} LLM context`}
+      href="/llms.txt"
+    />
     {
       rssLinks.map((link) => (
         <link

@@ -3,6 +3,7 @@ import { site as productSite } from "@/data/product";
 
 const getRobotsTxt = (sitemapUrl: URL) => `User-agent: *
 Allow: /
+Content-Signal: ai-train=no, search=yes, ai-input=yes
 
 Sitemap: ${sitemapUrl.href}
 `;
