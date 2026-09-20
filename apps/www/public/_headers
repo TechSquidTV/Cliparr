@@ -6,6 +6,10 @@
 /convert/service-worker.js
   Cache-Control: no-cache
 
+/*.md
+  Content-Signal: ai-train=yes, search=yes, ai-input=yes
+  Link: </llms.txt>; rel="describedby"
+
 /convert/manifest.webmanifest
   Cache-Control: no-cache
 

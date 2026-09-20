@@ -6,6 +6,9 @@ import tailwindcss from "@tailwindcss/vite";
 import { defineConfig } from "astro/config";
 import path from "node:path";
 import rehypeMermaid from "rehype-mermaid";
+// Astro loads configuration before resolving the app's path aliases.
+// eslint-disable-next-line no-restricted-imports
+import markdownExport from "./src/lib/markdownExport";
 
 const configDirectory = import.meta.dirname;
 
@@ -68,6 +71,7 @@ export default defineConfig({
       },
     }),
     sentry(),
+    markdownExport(),
   ],
   vite: {
     plugins: [tailwindcss()],

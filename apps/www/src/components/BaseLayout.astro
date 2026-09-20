@@ -4,6 +4,7 @@ import SiteTooltips from "@/components/SiteTooltips.astro";
 import Footer from "@/components/Footer.astro";
 import Header from "@/components/Header.astro";
 import { site } from "@/data/product";
+import { markdownPath } from "@/lib/markdown";
 import {
   canonicalSiteUrl,
   jsonLdScriptContent,
@@ -14,6 +15,7 @@ import {
 import "@/styles/global.css";
 
 interface Props {
+  isNotFound?: boolean;
   title?: string;
   seoTitle?: string;
   description?: string;
@@ -31,6 +33,7 @@ interface Props {
 }
 
 const {
+  isNotFound = false,
   title,
   seoTitle,
   description = site.description,
@@ -78,9 +81,28 @@ const structuredDataItems = [
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="description" content={description} />
-    <meta name="robots" content="index,follow" />
-    <link rel="canonical" href={canonicalUrl} />
+    <meta
+      name="robots"
+      content={isNotFound ? "noindex,follow" : "index,follow"}
+    />
+    {!isNotFound && <link rel="canonical" href={canonicalUrl} />}
     <link rel="sitemap" href="/sitemap-index.xml" />
+    {
+      !isNotFound && (
+        <link
+          rel="alternate"
+          type="text/markdown"
+          href={markdownPath(Astro.url.pathname)}
+          title="Markdown"
+        />
+      )
+    }
+    <link
+      rel="describedby"
+      type="text/markdown"
+      title={`${site.name} LLM context`}
+      href="/llms.txt"
+    />
     {
       rssLinks.map((link) => (
         <link
@@ -94,7 +116,7 @@ const structuredDataItems = [
     <meta property="og:title" content={pageTitle} />
     <meta property="og:description" content={description} />
     <meta property="og:type" content={ogType} />
-    <meta property="og:url" content={canonicalUrl} />
+    {!isNotFound && <meta property="og:url" content={canonicalUrl} />}
     <meta property="og:site_name" content={site.name} />
     <meta property="og:image" content={socialImageUrl} />
     <meta property="og:image:secure_url" content={socialImageUrl} />
@@ -128,13 +150,14 @@ const structuredDataItems = [
     }
     <title>{pageTitle}</title>
     {
-      structuredDataItems.map((item) => (
-        <script
-          is:inline
-          type="application/ld+json"
-          set:html={jsonLdScriptContent(item)}
-        />
-      ))
+      !isNotFound &&
+        structuredDataItems.map((item) => (
+          <script
+            is:inline
+            type="application/ld+json"
+            set:html={jsonLdScriptContent(item)}
+          />
+        ))
     }
     <script is:inline>
       (() => {

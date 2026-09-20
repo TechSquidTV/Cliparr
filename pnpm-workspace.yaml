@@ -26,6 +26,8 @@ allowBuilds:
   workerd: true
 
 overrides:
+  # Astro augments HAST types; converters must share that same type instance.
+  "@types/hast": 3.0.5
   baseline-browser-mapping: 2.10.31
   enhanced-resolve: 5.21.3
   es-object-atoms: 1.1.1

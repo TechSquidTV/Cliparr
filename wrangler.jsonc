@@ -1,13 +1,30 @@
 {
   "$schema": "./node_modules/wrangler/config-schema.json",
   "name": "cliparr-web",
-  "main": "./apps/www/cloudflare/cliparr-web.js",
+  "main": "./apps/www/src/worker.ts",
+  "tsconfig": "./apps/www/tsconfig.json",
   "compatibility_date": "2026-05-28",
   "assets": {
     "directory": "./apps/www/dist",
     "binding": "ASSETS",
     "html_handling": "auto-trailing-slash",
     "not_found_handling": "404-page",
-    "run_worker_first": ["/__cliparr/runtime-config.json"],
+    // Negotiate page responses (including arbitrary 404s), while static
+    // resources stay on the asset-only path without a Worker invocation.
+    "run_worker_first": [
+      "/*",
+      "!/_astro/*",
+      "!/*.js",
+      "!/*.png",
+      "!/*.svg",
+      "!/*.jpg",
+      "!/*.webp",
+      "!/*.avif",
+      "!/*.webm",
+      "!/*.mp4",
+      "!/*.webmanifest",
+      "!/*.txt",
+      "!/*.xml",
+    ],
   },
 }

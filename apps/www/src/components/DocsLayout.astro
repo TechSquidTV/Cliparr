@@ -35,7 +35,7 @@ const { title, description, currentSlug, structuredData } = Astro.props;
   <div
     class="container-page grid gap-8 py-10 lg:grid-cols-[16rem_minmax(0,1fr)]"
   >
-    <aside class="lg:sticky lg:top-24 lg:self-start">
+    <aside data-markdown-exclude class="lg:sticky lg:top-24 lg:self-start">
       <DocsNav currentSlug={currentSlug} />
     </aside>
     <article class="prose-docs min-w-0">
