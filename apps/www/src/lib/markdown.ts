@@ -1,5 +1,10 @@
 /** Public Markdown location for a canonical page path. */
 export function markdownPath(pathname: string): string {
+  return `${pathname.replace(/\/$/u, "") || "/index"}.md`;
+}
+
+/** Build output location, independent of the public Markdown URL. */
+export function markdownAssetPath(pathname: string): string {
   return `${pathname.replace(/\/$/u, "")}/index.md`;
 }
 

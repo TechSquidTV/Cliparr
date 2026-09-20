@@ -11,7 +11,7 @@ import remarkStringify from "remark-stringify";
 import { unified } from "unified";
 // Loaded by Astro configuration before app aliases are available.
 // eslint-disable-next-line no-restricted-imports
-import { markdownPath } from "./markdown";
+import { markdownAssetPath } from "./markdown";
 
 function cleanContent(target: Element, pageUrl: string): void {
   target.children = target.children.filter(
@@ -104,7 +104,7 @@ export default function markdownExport(): AstroIntegration {
             continue;
           }
           const htmlPath = new URL(
-            `.${markdownPath(pathname).replace(/\.md$/u, ".html")}`,
+            `.${markdownAssetPath(pathname).replace(/\.md$/u, ".html")}`,
             dir,
           );
           const markdown = await pageMarkdown(
@@ -112,7 +112,7 @@ export default function markdownExport(): AstroIntegration {
             new URL(`${pathname.replace(/\/$/u, "")}/`, siteUrl).href,
           );
           const output = fileURLToPath(
-            new URL(`.${markdownPath(pathname)}`, dir),
+            new URL(`.${markdownAssetPath(pathname)}`, dir),
           );
           await mkdir(path.dirname(output), { recursive: true });
           await writeFile(output, markdown);

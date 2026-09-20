@@ -1,6 +1,10 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { markdownPath, prefersMarkdown } from "@/lib/markdown";
+import {
+  markdownAssetPath,
+  markdownPath,
+  prefersMarkdown,
+} from "@/lib/markdown";
 import { pageMarkdown } from "@/lib/markdownExport";
 
 void test("negotiation honors explicit preferences, exclusions, and HTML defaults", () => {
@@ -26,8 +30,12 @@ void test("negotiation honors explicit preferences, exclusions, and HTML default
     assert.equal(prefersMarkdown(accept), true, accept);
   }
   assert.equal(markdownPath("/"), "/index.md");
-  assert.equal(markdownPath("/docs/setup/"), "/docs/setup/index.md");
-  assert.equal(markdownPath("/docs/setup"), "/docs/setup/index.md");
+  assert.equal(markdownPath("/docs/"), "/docs.md");
+  assert.equal(markdownPath("/docs/setup/"), "/docs/setup.md");
+  assert.equal(markdownPath("/docs/setup"), "/docs/setup.md");
+  assert.equal(markdownAssetPath("/"), "/index.md");
+  assert.equal(markdownAssetPath("/docs/setup/"), "/docs/setup/index.md");
+  assert.equal(markdownAssetPath("/docs/setup"), "/docs/setup/index.md");
 });
 
 void test("rendered MDX keeps commands, warning callouts, tables, and resolved links", async () => {

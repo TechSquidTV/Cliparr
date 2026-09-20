@@ -1,4 +1,6 @@
-import { markdownPath, prefersMarkdown } from "@/lib/markdown";
+import { markdownAssetPath, prefersMarkdown } from "@/lib/markdown";
+import { notFoundMarkdown } from "@/lib/notFound";
+import { canonicalSiteUrl } from "@/lib/structuredData";
 
 interface WorkerEnvironment {
   ASSETS: { fetch: typeof fetch };
@@ -16,37 +18,75 @@ export default {
         },
       );
     }
+    const directMarkdown = url.pathname.endsWith(".md");
     if (
       !["GET", "HEAD"].includes(request.method) ||
-      /\/[^/]+\.[^/]+$/u.test(url.pathname)
+      (!directMarkdown && /\/[^/]+\.[^/]+$/u.test(url.pathname))
     ) {
       return env.ASSETS.fetch(request);
     }
     let response: Response | undefined;
-    if (prefersMarkdown(request.headers.get("Accept"))) {
-      url.pathname = markdownPath(url.pathname);
+    if (directMarkdown || prefersMarkdown(request.headers.get("Accept"))) {
+      let pagePath = url.pathname;
+      if (directMarkdown) {
+        pagePath =
+          url.pathname === "/index.md" ? "/" : url.pathname.slice(0, -3);
+      }
+      url.pathname = markdownAssetPath(pagePath);
       const headers = new Headers(request.headers);
       // Validators and ranges from HTML must not be applied to the Markdown asset.
-      for (const name of [
-        "If-None-Match",
-        "If-Modified-Since",
-        "Range",
-        "If-Range",
-      ]) {
-        headers.delete(name);
+      if (!directMarkdown) {
+        for (const name of [
+          "If-None-Match",
+          "If-Modified-Since",
+          "Range",
+          "If-Range",
+        ]) {
+          headers.delete(name);
+        }
       }
       const markdown = await env.ASSETS.fetch(
         new Request(url, { method: request.method, headers }),
       );
-      if (markdown.ok) {
-        response = new Response(markdown.body, markdown);
-        response.headers.set("Content-Type", "text/markdown; charset=utf-8");
+      const markdownHeaders = new Headers(markdown.headers);
+      markdownHeaders.set("Content-Type", "text/markdown; charset=utf-8");
+      if (markdown.status >= 400) {
+        markdownHeaders.set("X-Robots-Tag", "noindex");
+        // ASSETS returns the site's HTML error page for missing files.
+        // Never expose that layout (or its validators) as Markdown.
+        for (const name of [
+          "ETag",
+          "Last-Modified",
+          "Content-Length",
+          "Content-Encoding",
+          "Content-Range",
+        ]) {
+          markdownHeaders.delete(name);
+        }
+        response = new Response(
+          markdown.status === 404
+            ? notFoundMarkdown
+            : "# Unable to serve Markdown\n",
+          { status: markdown.status, headers: markdownHeaders },
+        );
+      } else {
+        markdownHeaders.append(
+          "Link",
+          `<${canonicalSiteUrl(pagePath)}>; rel="canonical"`,
+        );
+        response = new Response(markdown.body, {
+          status: markdown.status,
+          statusText: markdown.statusText,
+          headers: markdownHeaders,
+        });
       }
     }
     response ??= await env.ASSETS.fetch(request);
     const headers = new Headers(response.headers);
-    const vary = headers.get("Vary");
-    headers.set("Vary", vary ? `${vary}, Accept` : "Accept");
+    if (!directMarkdown) {
+      const vary = headers.get("Vary");
+      headers.set("Vary", vary ? `${vary}, Accept` : "Accept");
+    }
     // Cloudflare's shared cache does not generally key on arbitrary Vary values.
     // The ASSETS binding still caches each underlying file by its distinct path.
     headers.set("Cloudflare-CDN-Cache-Control", "no-store");

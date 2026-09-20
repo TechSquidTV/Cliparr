@@ -7,7 +7,6 @@
   Cache-Control: no-cache
 
 /*.md
-  Content-Type: text/markdown; charset=utf-8
   Content-Signal: ai-train=yes, search=yes, ai-input=yes
   Link: </llms.txt>; rel="describedby"
 
