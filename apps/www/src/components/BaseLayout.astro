@@ -259,6 +259,20 @@ const structuredDataItems = [
         };
       })();
     </script>
+    <script>
+      import { viewportTransitionAbort } from "@/lib/viewTransitions";
+
+      window.addEventListener("unhandledrejection", (event) => {
+        if (
+          (event.reason instanceof DOMException ||
+            event.reason instanceof Error) &&
+          event.reason.name === "InvalidStateError" &&
+          viewportTransitionAbort.test(event.reason.message)
+        ) {
+          event.preventDefault();
+        }
+      });
+    </script>
     <ClientRouter />
   </head>
   <body>

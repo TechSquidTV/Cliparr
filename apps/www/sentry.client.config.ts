@@ -1,4 +1,5 @@
 import * as Sentry from "@sentry/astro";
+import { viewportTransitionAbort } from "./src/lib/viewTransitions";
 
 interface RuntimeConfig {
   sentryDsn?: unknown;
@@ -16,6 +17,7 @@ async function initializeSentry() {
   Sentry.init({
     dsn,
     integrations: [],
+    ignoreErrors: [viewportTransitionAbort],
   });
 }
 
