@@ -30,12 +30,14 @@ export async function watchCurrentlyPlaying(
   observer: PlaybackObserver,
   signal: AbortSignal,
 ) {
+  signal.throwIfAborted();
   const context = sourceContext(source);
   const [user, info] = await Promise.all([
-    fetchCurrentUser(context),
+    fetchCurrentUser(context, signal),
     fetchPublicSystemInfo({
       baseUrl: context.baseUrl,
       deviceId: context.deviceId,
+      signal,
     }),
   ]);
   signal.throwIfAborted();
@@ -94,7 +96,7 @@ export async function watchCurrentlyPlaying(
       onOpen(send) {
         send(JSON.stringify({ MessageType: "SessionsStart", Data: "0,1000" }));
         // Never let an older HTTP response overwrite a newer pushed snapshot.
-        initialization = fetchSessions(context)
+        initialization = fetchSessions(context, connectionSignal)
           .then((sessions) => {
             if (!receivedSnapshot) {
               publish(sessions);

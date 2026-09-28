@@ -234,11 +234,27 @@ export function createLivePlaybackHub(dependencies: {
           if (!active(subscription) || subscription.controller.signal.aborted) {
             return;
           }
+          const changed: PlaybackProgress[] = [];
           for (const update of updates) {
-            subscription.progress.set(update.sessionId, update);
+            const previous = subscription.progress.get(update.sessionId);
+            const playheadSeconds =
+              update.playheadSeconds ?? previous?.playheadSeconds;
+            if (
+              previous?.playerState === update.playerState &&
+              previous.playheadSeconds === playheadSeconds
+            ) {
+              continue;
+            }
+            // Omitted positions leave the last known playhead intact for new subscribers too.
+            const next = { ...update, playheadSeconds };
+            subscription.progress.set(update.sessionId, next);
+            changed.push(next);
+          }
+          if (changed.length === 0) {
+            return;
           }
           for (const dashboard of dashboards.values()) {
-            emit(dashboard, { type: "progress", updates });
+            emit(dashboard, { type: "progress", updates: changed });
           }
         },
       },

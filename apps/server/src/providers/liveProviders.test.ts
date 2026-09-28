@@ -11,6 +11,20 @@ import {
 } from "@/providers/plex/live";
 import { readServerEvents } from "@cliparr/shared/server-events";
 
+const source: MediaSource = {
+  id: "source",
+  providerId: "plex",
+  providerAccountId: "account",
+  name: "Server",
+  enabled: true,
+  baseUrl: "https://plex.example",
+  connection: { baseUrlMode: "manual" },
+  credentials: { accessToken: "private" },
+  metadata: { owned: true, provides: ["server"] },
+  createdAt: "",
+  updatedAt: "",
+};
+
 void test("Jellyfin live support respects non-admin version restrictions", () => {
   assert.equal(jellyfinSupportsLiveSessions("10.10.7", false), false);
   assert.equal(jellyfinSupportsLiveSessions("10.10.7", true), true);
@@ -94,23 +108,12 @@ void test("SSE decoder preserves split UTF-8, multiline JSON, CRLF and ignores h
 
 void test("Plex coalesces changes, skips progress fetches, accepts keepalives and detects stalled streams", async (context) => {
   context.mock.timers.enable({ apis: ["setTimeout"] });
-  const source: MediaSource = {
-    id: "source",
-    providerId: "plex",
-    providerAccountId: "account",
-    name: "Server",
-    enabled: true,
-    baseUrl: "https://plex.example",
-    connection: { baseUrlMode: "manual" },
-    credentials: { accessToken: "private" },
-    metadata: { owned: true, provides: ["server"] },
-    createdAt: "",
-    updatedAt: "",
-  };
+
   const pending = createDeferred<Response>();
   let discoveryRequests = 0;
   let snapshots = 0;
   let progress = 0;
+  let lastProgressSize = 0;
   let events: ReadableStreamDefaultController<Uint8Array> | undefined;
   const controller = new AbortController();
   context.mock.method(
@@ -151,8 +154,9 @@ void test("Plex coalesces changes, skips progress fetches, accepts keepalives an
       snapshot() {
         snapshots++;
       },
-      progress() {
+      progress(updates) {
         progress++;
+        lastProgressSize = updates.length;
       },
       invalidate() {},
     },
@@ -188,12 +192,38 @@ void test("Plex coalesces changes, skips progress fetches, accepts keepalives an
     await setImmediate();
     assert.equal(discoveryRequests, 4);
     assert.equal(snapshots, 2);
+    const beforeBatch = progress;
+    events.enqueue(
+      new TextEncoder().encode(
+        `data: ${JSON.stringify({
+          NotificationContainer: {
+            PlaySessionStateNotification: Array.from(
+              { length: 20 },
+              (_, index) => ({
+                sessionKey: `batch-${index}`,
+                ratingKey: "movie",
+                state: "playing",
+                viewOffset: 1000,
+              }),
+            ),
+          },
+        })}\n\n`,
+      ),
+    );
+    await setImmediate();
+    assert.equal(discoveryRequests, 5, "one batch triggers one refresh");
+    assert.equal(
+      progress,
+      beforeBatch + 1,
+      "one batch emits one progress event",
+    );
+    assert.equal(lastProgressSize, 20);
     context.mock.timers.tick(44_000);
     events?.enqueue(new TextEncoder().encode(": heartbeat\n\n"));
     await setImmediate();
     context.mock.timers.tick(44_000);
     await setImmediate();
-    assert.equal(discoveryRequests, 4, "keepalives do not query sessions");
+    assert.equal(discoveryRequests, 5, "keepalives do not query sessions");
     const rejected = assert.rejects(watching, /stopped responding/);
     context.mock.timers.tick(1000);
     await rejected;
@@ -202,3 +232,89 @@ void test("Plex coalesces changes, skips progress fetches, accepts keepalives an
     await watching.catch(() => {});
   }
 });
+
+for (const phase of ["initial discovery", "snapshot refresh"] as const) {
+  void test(
+    `Plex cancellation aborts HTTP during ${phase}`,
+    { timeout: 5000 },
+    async (context) => {
+      const controller = new AbortController();
+      const pending = createDeferred<Response>();
+      const requested = createDeferred<AbortSignal>();
+      context.after(() => {
+        controller.abort();
+        pending.resolve(Response.json({ MediaContainer: { Metadata: [] } }));
+      });
+      let requests = 0;
+      context.mock.method(
+        globalThis,
+        "fetch",
+        async (input: Parameters<typeof fetch>[0], init?: RequestInit) => {
+          const request = new Request(input, init);
+          if (new URL(request.url).pathname === "/status/sessions") {
+            requests++;
+            if (requests === (phase === "initial discovery" ? 1 : 2)) {
+              requested.resolve(request.signal);
+              return Promise.race([
+                pending.promise,
+                new Promise<Response>((_resolve, reject) => {
+                  request.signal.addEventListener(
+                    "abort",
+                    () => reject(new Error("Request aborted")),
+                    { once: true },
+                  );
+                }),
+              ]);
+            }
+            return Response.json({ MediaContainer: { Metadata: [] } });
+          }
+          return new Response(
+            new ReadableStream<Uint8Array>({
+              start(stream) {
+                request.signal.addEventListener(
+                  "abort",
+                  () => stream.error(new Error("Stream aborted")),
+                  { once: true },
+                );
+              },
+            }),
+            { headers: { "Content-Type": "text/event-stream" } },
+          );
+        },
+      );
+      const ended = watchCurrentlyPlaying(
+        {
+          ...source,
+          connection: {
+            baseUrlMode: "auto",
+            selectedConnectionId: "primary",
+            connections: [
+              { id: "primary", uri: source.baseUrl },
+              { id: "secondary", uri: "https://fallback.example" },
+            ],
+          },
+        },
+        { snapshot() {}, progress() {}, invalidate() {} },
+        controller.signal,
+      ).then(
+        () => {},
+        (error: Error) => error,
+      );
+      try {
+        const signal = await requested.promise;
+        controller.abort();
+        assert.equal(signal.aborted, true);
+        await ended;
+        assert.equal(
+          requests,
+          phase === "initial discovery" ? 1 : 2,
+          "cancellation must not try another connection",
+        );
+      } finally {
+        controller.abort();
+        pending.resolve(Response.json({ MediaContainer: { Metadata: [] } }));
+        await ended;
+      }
+    },
+  );
+}

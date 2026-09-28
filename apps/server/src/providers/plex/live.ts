@@ -8,6 +8,7 @@ import {
 } from "@/providers/plex/playback";
 import { openPlexEventStream } from "@/providers/plex/pmsClient";
 import { plexMediaHeaders } from "@/providers/plex/shared";
+import type { PlaybackProgress } from "@cliparr/shared/providers";
 
 interface PlexPlayingNotification {
   sessionKey?: string | number;
@@ -51,7 +52,7 @@ export async function watchCurrentlyPlaying(
   signal: AbortSignal,
 ) {
   // Resolve the same reachable PMS connection as ordinary playback discovery.
-  const initial = await fetchCurrentlyPlayingData(source);
+  const initial = await fetchCurrentlyPlayingData(source, signal);
   signal.throwIfAborted();
   const resolvePlayback = createPlexPlaybackResolver(source, initial.context);
   const controller = new AbortController();
@@ -78,7 +79,10 @@ export async function watchCurrentlyPlaying(
     refresh ??= (async () => {
       while (dirty && !connectionSignal.aborted) {
         dirty = false;
-        const { context, data } = await fetchCurrentlyPlayingData(source);
+        const { context, data } = await fetchCurrentlyPlayingData(
+          source,
+          connectionSignal,
+        );
         if (connectionSignal.aborted) {
           return;
         }
@@ -111,26 +115,32 @@ export async function watchCurrentlyPlaying(
     const stream = readServerEvents(
       body,
       (_event, text) => {
+        let changed = false;
+        const updates: PlaybackProgress[] = [];
         for (const entry of readPlexPlayingNotifications(text)) {
           const sessionId = String(entry.sessionKey);
           const identity = JSON.stringify([entry.ratingKey, entry.state]);
           if (identities.get(sessionId) !== identity) {
             identities.set(sessionId, identity);
-            refreshSnapshot();
+            changed = true;
           }
           if (entry.state !== "stopped") {
-            observer.progress([
-              {
-                sourceId: source.id,
-                sessionId,
-                playerState: entry.state ?? "playing",
-                playheadSeconds:
-                  typeof entry.viewOffset === "number"
-                    ? entry.viewOffset / 1000
-                    : undefined,
-              },
-            ]);
+            updates.push({
+              sourceId: source.id,
+              sessionId,
+              playerState: entry.state ?? "playing",
+              playheadSeconds:
+                typeof entry.viewOffset === "number"
+                  ? entry.viewOffset / 1000
+                  : undefined,
+            });
           }
+        }
+        if (changed) {
+          refreshSnapshot();
+        }
+        if (updates.length > 0) {
+          observer.progress(updates);
         }
       },
       activity,

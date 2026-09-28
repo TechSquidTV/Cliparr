@@ -123,7 +123,11 @@ function persistWorkingSourceConnection(
   });
 }
 
-export async function fetchCurrentlyPlayingData(source: MediaSource) {
+export async function fetchCurrentlyPlayingData(
+  source: MediaSource,
+  signal?: AbortSignal,
+) {
+  signal?.throwIfAborted();
   const {
     baseUrlMode,
     manualConnectionId,
@@ -147,13 +151,16 @@ export async function fetchCurrentlyPlayingData(source: MediaSource) {
     try {
       const data = await fetchPmsCurrentSessions(context, {
         timeoutMs: CURRENT_PLAYBACK_REQUEST_TIMEOUT_MS,
+        signal,
       });
+      signal?.throwIfAborted();
       persistWorkingSourceConnection(source, persistedConnections, connection, {
         baseUrlMode,
         manualConnectionId,
       });
       return { context, data };
     } catch (error) {
+      signal?.throwIfAborted();
       if (!isRetryableConnectionError(error)) {
         throw error;
       }

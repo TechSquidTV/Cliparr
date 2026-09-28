@@ -27,6 +27,7 @@ export interface PlexPmsRequestOptions {
   clientIdentifier: string;
   product: string;
   timeoutMs: number;
+  signal?: AbortSignal;
 }
 
 type PlexPmsSdkResult<T> =
@@ -313,12 +314,13 @@ async function withPlexPmsClient<T>(
 ) {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), options.timeoutMs);
+  const signal = options.signal
+    ? AbortSignal.any([controller.signal, options.signal])
+    : controller.signal;
 
   try {
     return readPlexPmsResult(
-      await request(
-        createPlexPmsSdkClient(context, options, controller.signal),
-      ),
+      await request(createPlexPmsSdkClient(context, options, signal)),
     );
   } finally {
     clearTimeout(timeout);

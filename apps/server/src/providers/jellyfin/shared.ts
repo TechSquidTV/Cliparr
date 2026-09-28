@@ -672,6 +672,7 @@ export function jellyfinHeaders(options: {
 }
 
 interface JellyfinSdkRequestOptions {
+  signal?: AbortSignal;
   token?: string;
   deviceId?: string;
   timeoutMs?: number;
@@ -836,7 +837,10 @@ async function jellyfinSdkJson<T>(
         token: options.token,
         deviceId: options.deviceId,
       }),
-      jellyfinSdkRequestConfig(options.timeoutMs),
+      {
+        ...jellyfinSdkRequestConfig(options.timeoutMs),
+        signal: options.signal,
+      },
     );
 
     const contentType = responseHeader(response, "content-type") ?? "";
@@ -858,6 +862,7 @@ async function jellyfinSdkJson<T>(
 
     return response.data;
   } catch (error) {
+    options.signal?.throwIfAborted();
     throw toJellyfinSdkError(error, baseUrl, options);
   }
 }
@@ -895,7 +900,10 @@ export function sourceContext(source: MediaSource): JellyfinSourceContext {
   };
 }
 
-export async function fetchCurrentUser(context: JellyfinSourceContext) {
+export async function fetchCurrentUser(
+  context: JellyfinSourceContext,
+  signal?: AbortSignal,
+) {
   return jellyfinSdkJson<JellyfinUser>(
     context.baseUrl,
     (api, config) => getUserApi(api).getCurrentUser(config),
@@ -904,12 +912,14 @@ export async function fetchCurrentUser(context: JellyfinSourceContext) {
       deviceId: context.deviceId,
       timeoutMs: JELLYFIN_REQUEST_TIMEOUT_MS,
       errorCode: "jellyfin_auth_failed",
+      signal,
       failureMessage: "Jellyfin authentication failed",
     },
   );
 }
 
 export async function fetchPublicSystemInfo(options: {
+  signal?: AbortSignal;
   baseUrl: string;
   deviceId?: string;
   timeoutMs?: number;
@@ -926,6 +936,7 @@ export async function fetchPublicSystemInfo(options: {
       errorCode: options.errorCode,
       failureMessage: options.failureMessage,
       exposeFailureDetail: options.exposeFailureDetail,
+      signal: options.signal,
     },
   );
 }
@@ -962,7 +973,10 @@ export async function authenticateJellyfinUser(options: {
   );
 }
 
-export async function fetchSessions(context: JellyfinSourceContext) {
+export async function fetchSessions(
+  context: JellyfinSourceContext,
+  signal?: AbortSignal,
+) {
   return jellyfinSdkJson<JellyfinSessionInfo[]>(
     context.baseUrl,
     (api, config) =>
@@ -977,6 +991,7 @@ export async function fetchSessions(context: JellyfinSourceContext) {
       deviceId: context.deviceId,
       timeoutMs: CURRENT_PLAYBACK_REQUEST_TIMEOUT_MS,
       errorCode: "jellyfin_sessions_failed",
+      signal,
       failureMessage: "Jellyfin sessions request failed",
     },
   );

@@ -151,15 +151,15 @@ function ViewerChip({
 }
 
 export const DashboardPlaybackCard = memo(function DashboardPlaybackCard({
-  card,
+  session: mediaSession,
+  viewer,
+  viewerSessionCount,
   activeViewTransitionSessionId,
   onSelectSession,
-}: {
-  card: DashboardPlaybackCardItem;
+}: DashboardPlaybackCardItem & {
   activeViewTransitionSessionId?: string | null;
   onSelectSession: (session: CurrentlyPlayingItem) => void;
 }) {
-  const { session: mediaSession, viewer, viewerSessionCount } = card;
   const canEdit = canEditSession(mediaSession);
   const sourceLabel = formatSourceLabel(mediaSession.source);
   const thumbnailViewTransitionName =
@@ -403,7 +403,9 @@ function DashboardPlaybackMotionRegion({
                 }
               >
                 <DashboardPlaybackCard
-                  card={card}
+                  session={card.session}
+                  viewer={card.viewer}
+                  viewerSessionCount={card.viewerSessionCount}
                   activeViewTransitionSessionId={activeViewTransitionSessionId}
                   onSelectSession={onSelectSession}
                 />

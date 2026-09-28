@@ -311,6 +311,65 @@ void test("permission invalidation clears existing data and prevents older work 
   }
 });
 
+void test("progress broadcasts only changes and preserves omitted positions for later subscribers", async (context) => {
+  const { hub, connections } = setup();
+  const events: PlaybackStreamEvent[] = [];
+  const stop = hub.subscribe(session("one"), (event) => events.push(event));
+  context.after(stop);
+  const observer = connections[0].observer;
+  observer.snapshot(async () => [entry("movie", "one")]);
+  await setImmediate();
+  events.length = 0;
+  const update = {
+    sourceId: source.id,
+    sessionId: "movie",
+    playerState: "playing",
+    playheadSeconds: 12,
+  };
+  observer.progress([update]);
+  for (let index = 0; index < 100; index++) {
+    observer.progress([update]);
+  }
+  observer.progress([]);
+  assert.equal(events.length, 1);
+  observer.progress([{ ...update, playheadSeconds: undefined }]);
+  assert.equal(
+    events.length,
+    1,
+    "omitted positions do not erase the last playhead",
+  );
+  observer.progress([
+    { ...update, playerState: "paused", playheadSeconds: undefined },
+  ]);
+  assert.deepEqual(events.at(-1), {
+    type: "progress",
+    updates: [{ ...update, playerState: "paused" }],
+  });
+  const later: PlaybackStreamEvent[] = [];
+  context.after(hub.subscribe(session("one"), (event) => later.push(event)));
+  assert.equal(latest(later).viewers[0].items[0].playheadSeconds, 12);
+  assert.equal(latest(later).viewers[0].items[0].playerState, "paused");
+  observer.progress([
+    { ...update, playerState: "paused" },
+    { ...update, sessionId: "other", playheadSeconds: 0 },
+  ]);
+  assert.deepEqual(events.at(-1), {
+    type: "progress",
+    updates: [{ ...update, sessionId: "other", playheadSeconds: 0 }],
+  });
+  observer.progress([{ ...update, playerState: "paused", playheadSeconds: 0 }]);
+  assert.deepEqual(events.at(-1), {
+    type: "progress",
+    updates: [{ ...update, playerState: "paused", playheadSeconds: 0 }],
+  });
+  // A new snapshot resets the baseline: the same progress must be delivered again.
+  observer.snapshot(async () => [entry("movie", "one")]);
+  await setImmediate();
+  events.length = 0;
+  observer.progress([{ ...update, playerState: "paused", playheadSeconds: 0 }]);
+  assert.equal(events.length, 1);
+});
+
 void test("unsupported live sessions have an explicit error and no automatic polling fallback", async (context) => {
   context.mock.timers.enable({ apis: ["setTimeout"] });
   const { hub, provider } = setup();

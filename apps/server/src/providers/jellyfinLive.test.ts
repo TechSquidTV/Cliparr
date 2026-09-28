@@ -7,6 +7,26 @@ import type { MediaSource } from "@/db/mediaSourcesRepository";
 import { createDeferred } from "@/test/deferred";
 import { acceptTestWebSocket } from "@/test/webSocket";
 
+function createSource(baseUrl: string): MediaSource {
+  return {
+    id: "source",
+    providerId: "jellyfin",
+    providerAccountId: "account",
+    name: "Server",
+    enabled: true,
+    baseUrl,
+    credentials: {
+      accessToken: "test-token",
+      userId: "user",
+      deviceId: "device",
+    },
+    connection: {},
+    metadata: {},
+    createdAt: "",
+    updatedAt: "",
+  };
+}
+
 for (const scenario of [
   "pushed snapshot",
   "no snapshot",
@@ -37,30 +57,16 @@ for (const scenario of [
       });
       const address = server.address();
       assert.ok(address && typeof address === "object");
-      const source: MediaSource = {
-        id: "source",
-        providerId: "jellyfin",
-        providerAccountId: "account",
-        name: "Server",
-        enabled: true,
-        baseUrl: `http://127.0.0.1:${address.port}`,
-        credentials: {
-          accessToken: "test-token",
-          userId: "user",
-          deviceId: "device",
-        },
-        connection: {},
-        metadata: {},
-        createdAt: "",
-        updatedAt: "",
-      };
+      const source = createSource(`http://127.0.0.1:${address.port}`);
       const pending = createDeferred<Response>();
       const requested = createDeferred<void>();
+      let sessionRequestSignal: AbortSignal | undefined;
       context.mock.method(
         globalThis,
         "fetch",
         async (input: Parameters<typeof fetch>[0], init?: RequestInit) => {
-          const path = new URL(new Request(input, init).url).pathname;
+          const request = new Request(input, init);
+          const path = new URL(request.url).pathname;
           if (path === "/Users/Me") {
             return Response.json({
               Id: "user",
@@ -71,8 +77,18 @@ for (const scenario of [
             return Response.json({ Version: "10.11.0" });
           }
           assert.equal(path, "/Sessions");
+          sessionRequestSignal = request.signal;
           requested.resolve();
-          return pending.promise;
+          return Promise.race([
+            pending.promise,
+            new Promise<Response>((_resolve, reject) => {
+              request.signal.addEventListener(
+                "abort",
+                () => reject(new Error("Request aborted")),
+                { once: true },
+              );
+            }),
+          ]);
         },
       );
       const initial = createDeferred<void>();
@@ -110,6 +126,8 @@ for (const scenario of [
           await initial.promise;
         } else if (scenario === "cancelled") {
           controller.abort();
+          assert.equal(sessionRequestSignal?.aborted, true);
+          assert.equal(await ended, undefined);
         }
         pending.resolve(new Response("Temporary failure", { status: 503 }));
         await setImmediate();
@@ -157,3 +175,64 @@ for (const scenario of [
     },
   );
 }
+
+void test(
+  "Jellyfin cancellation aborts both startup HTTP requests",
+  { timeout: 5000 },
+  async (context) => {
+    const { watchCurrentlyPlaying } = await import("@/providers/jellyfin/live");
+    const controller = new AbortController();
+    const pending = createDeferred<Response>();
+    const requested = createDeferred<void>();
+    const signals = new Map<string, AbortSignal>();
+    context.after(() => {
+      controller.abort();
+      pending.resolve(Response.json({}));
+    });
+    context.mock.method(
+      globalThis,
+      "fetch",
+      async (input: Parameters<typeof fetch>[0], init?: RequestInit) => {
+        const request = new Request(input, init);
+        signals.set(new URL(request.url).pathname, request.signal);
+        if (signals.size === 2) {
+          requested.resolve();
+        }
+        return Promise.race([
+          pending.promise,
+          new Promise<Response>((_resolve, reject) => {
+            request.signal.addEventListener(
+              "abort",
+              () => reject(new Error("Request aborted")),
+              { once: true },
+            );
+          }),
+        ]);
+      },
+    );
+    const ended = watchCurrentlyPlaying(
+      createSource("http://192.168.1.50:8096"),
+      { snapshot() {}, progress() {}, invalidate() {} },
+      controller.signal,
+    ).then(
+      () => {},
+      (error: Error) => error,
+    );
+    try {
+      await requested.promise;
+      controller.abort();
+      assert.deepEqual([...signals.keys()].toSorted(), [
+        "/System/Info/Public",
+        "/Users/Me",
+      ]);
+      for (const signal of signals.values()) {
+        assert.equal(signal.aborted, true);
+      }
+      assert.equal(await ended, controller.signal.reason);
+    } finally {
+      controller.abort();
+      pending.resolve(Response.json({}));
+      await ended;
+    }
+  },
+);
