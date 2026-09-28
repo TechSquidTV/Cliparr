@@ -26,7 +26,10 @@ export async function fetchWithPinnedDns(
 
 export function createPinnedDnsAgent(
   addresses: readonly string[],
-  onSocket?: (socket: Socket) => void,
+  options: {
+    onSocket?: (socket: Socket) => void;
+    webSocket?: Agent.Options["webSocket"];
+  } = {},
 ) {
   const records = addresses.map((address) => ({
     address,
@@ -55,12 +58,13 @@ export function createPinnedDnsAgent(
   };
   const connect = buildConnector({ lookup });
   return new Agent({
-    connect(options, callback) {
-      connect(options, (error, socket) => {
+    webSocket: options.webSocket,
+    connect(connection, callback) {
+      connect(connection, (error, socket) => {
         if (error) {
           callback(error, null);
         } else {
-          onSocket?.(socket);
+          options.onSocket?.(socket);
           callback(null, socket);
         }
       });

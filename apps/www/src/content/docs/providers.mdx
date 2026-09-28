@@ -49,6 +49,8 @@ The first connection may take longer while Cliparr finds a reachable server, ope
 
 If a connection drops, Cliparr keeps the last sessions visible, marks live updates as disconnected, and retries the connection automatically. **Retry connection** is available for failures. Expired credentials require reconnecting the source in **Sources**.
 
+Live updates allow up to eight dashboard connections per browser session and 128 across a Cliparr server. Additional connections receive HTTP 429 and retry automatically; close unused dashboard tabs to free a connection.
+
 Reverse proxies must allow WebSocket connections between Cliparr and Jellyfin, and unbuffered server-sent events between Plex and Cliparr and between Cliparr and your browser. Persistent connections exchange keepalive messages; these do not poll for sessions. See [Reverse proxies](/docs/configuration#reverse-proxies) for deployment requirements.
 
 <Callout title="Jellyfin compatibility change" tone="warning">

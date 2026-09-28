@@ -341,3 +341,53 @@ void test(
     });
   },
 );
+
+void test(
+  "SSE rejects excess connections with JSON before committing stream headers",
+  { timeout: 10_000 },
+  async () => {
+    await withTestApp(async (baseUrl) => {
+      const account = upsertProviderAccountByAccessToken({
+        providerId: "plex",
+        label: "Connection limit",
+        accessToken: "limit-test-token",
+      });
+      assert.ok(account);
+      const session = createProviderSession({
+        providerId: "plex",
+        providerAccountId: account.id,
+        userToken: "limit-test-token",
+      });
+      const responses: Response[] = [];
+      const headers = { cookie: `${getSessionCookieName()}=${session.id}` };
+      try {
+        for (let index = 0; index < 8; index++) {
+          const response = await fetch(`${baseUrl}/api/media/live`, {
+            headers,
+          });
+          responses.push(response);
+          assert.equal(response.status, 200);
+        }
+        const denied = await fetch(`${baseUrl}/api/media/live`, { headers });
+        assert.equal(denied.status, 429);
+        assert.match(
+          denied.headers.get("content-type") ?? "",
+          /application\/json/,
+        );
+        assert.equal(denied.headers.has("x-accel-buffering"), false);
+        assert.deepEqual(await denied.json(), {
+          error: {
+            code: "live_connection_limit",
+            message:
+              "Too many live playback connections. Close another dashboard and try again.",
+          },
+        });
+      } finally {
+        deleteProviderSession(session.id);
+        await Promise.all(
+          responses.map(async (response) => response.body?.cancel()),
+        );
+      }
+    });
+  },
+);

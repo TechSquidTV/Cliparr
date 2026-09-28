@@ -3,6 +3,7 @@ import {
   type PlaybackProgress,
   type PlaybackSourceStatus,
   type PlaybackStreamEvent,
+  type PlaybackSnapshot,
 } from "@cliparr/shared/providers";
 import {
   listMediaSources,
@@ -21,8 +22,11 @@ import { getServerLogger } from "@/logging";
 import { logEventFields } from "@cliparr/shared/logging";
 import { groupCurrentPlayback } from "@/playback/groupPlayback";
 import { subscribePlaybackStateChanges } from "@/playback/stateChanges";
+import { createApiError } from "@/http/errors";
 
 const logger = getServerLogger(["media", "discovery"]);
+const MAX_LISTENERS_PER_SESSION = 8;
+const MAX_LISTENERS = 128;
 
 interface SourceSubscription {
   source: MediaSource;
@@ -66,6 +70,7 @@ export function createLivePlaybackHub(dependencies: {
 }) {
   const sources = new Map<string, SourceSubscription>();
   const dashboards = new Map<string, DashboardSubscription>();
+  let listenerCount = 0;
   let unsubscribeChanges: (() => void) | undefined;
 
   const emit = (
@@ -76,42 +81,42 @@ export function createLivePlaybackHub(dependencies: {
       listener(event);
     }
   };
-  const publish = (dashboard: DashboardSubscription) => {
+  const snapshot = (dashboard: DashboardSubscription): PlaybackSnapshot => {
     const statuses = [...sources.values()].map(({ status, source }) => {
       const message = dashboard.errors.get(source.id);
       return message ? { ...status, state: "error" as const, message } : status;
     });
-    emit(dashboard, {
-      type: "snapshot",
-      snapshot: {
-        viewers: applyPlaybackProgress(
-          groupCurrentPlayback([...dashboard.entries.values()].flat()),
-          [...sources.values()].flatMap((source) => [
-            ...source.progress.values(),
-          ]),
-        ),
-        sources: statuses,
-        sourceErrors: statuses.flatMap((status) =>
-          status.message
-            ? [
-                {
-                  sourceId: status.sourceId,
-                  sourceName: status.sourceName,
-                  providerId: status.providerId,
-                  message: status.message,
-                },
-              ]
-            : [],
-        ),
-        loading: [...sources.values()].some(
-          (source) =>
-            !dashboard.entries.has(source.source.id) &&
-            !dashboard.errors.has(source.source.id) &&
-            (source.status.state === "connecting" ||
-              source.status.state === "live"),
-        ),
-      },
-    });
+    return {
+      viewers: applyPlaybackProgress(
+        groupCurrentPlayback([...dashboard.entries.values()].flat()),
+        [...sources.values()].flatMap((source) => [
+          ...source.progress.values(),
+        ]),
+      ),
+      sources: statuses,
+      sourceErrors: statuses.flatMap((status) =>
+        status.message
+          ? [
+              {
+                sourceId: status.sourceId,
+                sourceName: status.sourceName,
+                providerId: status.providerId,
+                message: status.message,
+              },
+            ]
+          : [],
+      ),
+      loading: [...sources.values()].some(
+        (source) =>
+          !dashboard.entries.has(source.source.id) &&
+          !dashboard.errors.has(source.source.id) &&
+          (source.status.state === "connecting" ||
+            source.status.state === "live"),
+      ),
+    };
+  };
+  const publish = (dashboard: DashboardSubscription) => {
+    emit(dashboard, { type: "snapshot", snapshot: snapshot(dashboard) });
   };
   const publishAll = () => {
     for (const dashboard of dashboards.values()) {
@@ -241,6 +246,7 @@ export function createLivePlaybackHub(dependencies: {
   };
 
   const reconcile = () => {
+    let changed = false;
     const desired = new Map(
       dependencies
         .listSources()
@@ -257,6 +263,7 @@ export function createLivePlaybackHub(dependencies: {
     for (const [id, subscription] of sources) {
       const source = desired.get(id);
       if (!source || sourceKey(source) !== subscription.key) {
+        changed = true;
         sources.delete(id);
         stopSource(subscription);
         for (const dashboard of dashboards.values()) {
@@ -267,13 +274,18 @@ export function createLivePlaybackHub(dependencies: {
     }
     for (const [id, source] of desired) {
       if (!sources.has(id)) {
+        changed = true;
         startSource(source);
       }
     }
-    publishAll();
+    if (changed) {
+      publishAll();
+    }
   };
 
   const removeDashboard = (dashboard: DashboardSubscription) => {
+    listenerCount -= dashboard.listeners.size;
+    dashboard.listeners.clear();
     clearTimeout(dashboard.expiry);
     for (const job of dashboard.jobs.values()) {
       job.work.stop();
@@ -300,6 +312,17 @@ export function createLivePlaybackHub(dependencies: {
       listener: (event: PlaybackStreamEvent) => void,
     ) {
       let dashboard = dashboards.get(session.id);
+      if (
+        (dashboard?.listeners.size ?? 0) >= MAX_LISTENERS_PER_SESSION ||
+        listenerCount >= MAX_LISTENERS
+      ) {
+        throw createApiError(
+          429,
+          "live_connection_limit",
+          "Too many live playback connections. Close another dashboard and try again.",
+        );
+      }
+      const firstDashboard = dashboards.size === 0;
       if (!dashboard) {
         dashboard = {
           session,
@@ -320,7 +343,6 @@ export function createLivePlaybackHub(dependencies: {
         dashboard.expiry.unref();
         dashboards.set(session.id, dashboard);
       }
-      dashboard.listeners.add(listener);
       unsubscribeChanges ??= subscribePlaybackStateChanges((change) => {
         if (change.type === "sources") {
           reconcile();
@@ -331,7 +353,14 @@ export function createLivePlaybackHub(dependencies: {
           }
         }
       });
-      reconcile();
+      if (firstDashboard) {
+        reconcile();
+      }
+      // Each connection owns a slot, even if a caller reuses its callback.
+      const onEvent = (event: PlaybackStreamEvent) => listener(event);
+      dashboard.listeners.add(onEvent);
+      listenerCount++;
+      listener({ type: "snapshot", snapshot: snapshot(dashboard) });
       for (const subscription of sources.values()) {
         if (!dashboard.entries.has(subscription.source.id)) {
           materialize(dashboard, subscription);
@@ -339,7 +368,9 @@ export function createLivePlaybackHub(dependencies: {
       }
       const current = dashboard;
       return () => {
-        current.listeners.delete(listener);
+        if (current.listeners.delete(onEvent)) {
+          listenerCount--;
+        }
         if (
           current.listeners.size === 0 &&
           dashboards.get(session.id) === current

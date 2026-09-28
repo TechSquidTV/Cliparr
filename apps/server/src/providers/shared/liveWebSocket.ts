@@ -17,9 +17,13 @@ export async function readLiveWebSocket(options: {
   const transports = new Set<Socket>();
   const dispatcher = createPinnedDnsAgent(
     isIP(hostname) ? [hostname] : options.addresses,
-    (transport) => {
-      transports.add(transport);
-      transport.once("close", () => transports.delete(transport));
+    {
+      // Bound buffering and decompression before a complete message is emitted.
+      webSocket: { maxPayloadSize: 4 * 1024 * 1024, maxFragments: 1024 },
+      onSocket(transport) {
+        transports.add(transport);
+        transport.once("close", () => transports.delete(transport));
+      },
     },
   );
   const socket = new WebSocket(options.url, {
@@ -96,11 +100,8 @@ export async function readLiveWebSocket(options: {
         }
         activity();
         try {
-          if (
-            typeof event.data !== "string" ||
-            event.data.length > 4 * 1024 * 1024
-          ) {
-            throw new Error("Invalid live message");
+          if (typeof event.data !== "string") {
+            throw new TypeError("Invalid live message");
           }
           options.onMessage(event.data, send);
         } catch (error) {

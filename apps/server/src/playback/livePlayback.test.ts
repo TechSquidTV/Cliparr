@@ -107,11 +107,15 @@ void test("shares upstream subscriptions and same-session normalization without 
   const second: PlaybackStreamEvent[] = [];
   const third: PlaybackStreamEvent[] = [];
   const stopFirst = hub.subscribe(session("one"), (event) => first.push(event));
+  const initialCount = first.length;
   const stopSecond = hub.subscribe(session("one"), (event) =>
     second.push(event),
   );
   const stopThird = hub.subscribe(session("two"), (event) => third.push(event));
   try {
+    assert.equal(first.length, initialCount);
+    assert.equal(second.length, 1);
+    assert.equal(third.length, 1);
     assert.equal(connections.length, 1);
     assert.equal(latest(first).loading, true);
     const calls: string[] = [];
@@ -149,6 +153,87 @@ void test("shares upstream subscriptions and same-session normalization without 
     stopThird();
   }
   assert.equal(connections[0].signal.aborted, true);
+});
+
+void test("subscription admission bounds fanout and releases slots on disconnect and revocation", (context) => {
+  let sourceReads = 0;
+  const hub = createLivePlaybackHub({
+    listSources: () => {
+      sourceReads++;
+      return [];
+    },
+    provider: () => {},
+  });
+  let snapshots = 0;
+  const listener = (event: PlaybackStreamEvent) => {
+    if (event.type === "snapshot") {
+      snapshots++;
+    }
+  };
+  const stops: Array<() => void> = [];
+  context.after(() => {
+    for (const stop of stops) {
+      stop();
+    }
+  });
+  const limitError = { status: 429, code: "live_connection_limit" };
+  for (let index = 0; index < 128; index++) {
+    stops.push(hub.subscribe(session(String(Math.floor(index / 8))), listener));
+    if (index === 7) {
+      assert.throws(() => hub.subscribe(session("0"), listener), limitError);
+    }
+  }
+  assert.equal(snapshots, 128);
+  assert.equal(sourceReads, 1);
+  assert.throws(() => hub.subscribe(session("overflow"), listener), limitError);
+  assert.equal(snapshots, 128);
+  stops[0]();
+  stops[0]();
+  stops.push(hub.subscribe(session("replacement"), listener));
+  assert.throws(() => hub.subscribe(session("overflow"), listener), limitError);
+  notifyPlaybackStateChange({ type: "session", sessionId: "1" });
+  for (let index = 8; index < 16; index++) {
+    stops[index]();
+  }
+  for (let index = 0; index < 8; index++) {
+    stops.push(hub.subscribe(session("after-revocation"), listener));
+  }
+  assert.throws(() => hub.subscribe(session("overflow"), listener), limitError);
+});
+
+void test("expired dashboards release admission slots and unchanged sources do not rebroadcast", (context) => {
+  context.mock.timers.enable({ apis: ["setTimeout"] });
+  const { hub, replaceSources } = setup();
+  const events: PlaybackStreamEvent[] = [];
+  const stops: Array<() => void> = [];
+  context.after(() => {
+    for (const stop of stops) {
+      stop();
+    }
+  });
+  for (let index = 0; index < 8; index++) {
+    stops.push(
+      hub.subscribe(session("expires"), (event) => events.push(event)),
+    );
+  }
+  const before = events.length;
+  replaceSources([source]);
+  assert.equal(events.length, before);
+  context.mock.timers.tick(60_001);
+  assert.equal(
+    events.filter((event) => event.type === "unauthorized").length,
+    8,
+  );
+  for (let index = 0; index < 8; index++) {
+    stops.push(hub.subscribe(session("expires"), () => {}));
+  }
+  // Closing an expired stream must not release its replacement's slot.
+  for (let index = 0; index < 8; index++) {
+    stops[index]();
+  }
+  assert.throws(() => hub.subscribe(session("expires"), () => {}), {
+    status: 429,
+  });
 });
 
 void test("new snapshots and progress win over in-flight discovery; removed sources cannot reappear", async () => {
