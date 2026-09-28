@@ -1,9 +1,8 @@
 import assert from "node:assert/strict";
-import { Buffer } from "node:buffer";
-import { createHash } from "node:crypto";
 import { createServer } from "node:http";
 import test from "node:test";
 import { createDeferred } from "@/test/deferred";
+import { acceptTestWebSocket } from "@/test/webSocket";
 import { readLiveWebSocket } from "@/providers/shared/liveWebSocket";
 
 for (const scenario of [
@@ -26,27 +25,13 @@ for (const scenario of [
           request.headers.authorization,
           'MediaBrowser Token="private"',
         );
-        const key = request.headers["sec-websocket-key"];
-        assert.equal(typeof key, "string");
-        const accept = createHash("sha1")
-          .update(`${key}258EAFA5-E914-47DA-95CA-C5AB0DC85B11`)
-          .digest("base64");
-        socket.write(
-          `HTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: ${accept}\r\n\r\n`,
-        );
-        const payload = Buffer.from('{"ready":true}');
+        const send = acceptTestWebSocket(request, socket);
         if (!silent) {
-          socket.write(
-            Buffer.concat([Buffer.from([0x81, payload.length]), payload]),
-          );
+          send('{"ready":true}');
         }
-        socket.on("error", () => {});
-        // Deliberately ignore the close frame to exercise forced termination.
-        socket.on("data", () => {});
         socket.on("close", () => {
           peerClosed.resolve();
         });
-        socket.on("end", () => socket.destroy());
       });
       server.listen(0, "127.0.0.1");
       await new Promise<void>((resolve) => {

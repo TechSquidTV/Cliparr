@@ -101,6 +101,9 @@ export async function watchCurrentlyPlaying(
             }
           })
           .catch((error: unknown) => {
+            if (receivedSnapshot || connectionSignal.aborted) {
+              return;
+            }
             failure = new Error(
               "Could not load the initial Jellyfin sessions",
               { cause: error },
