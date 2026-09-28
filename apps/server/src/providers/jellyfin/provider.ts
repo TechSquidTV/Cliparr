@@ -1,4 +1,5 @@
 import type { ProviderImplementation } from "@/providers/types";
+import { watchCurrentlyPlaying } from "@/providers/jellyfin/live";
 import {
   authenticateWithCredentials,
   checkSource,
@@ -18,6 +19,7 @@ export const jellyfinProvider: ProviderImplementation = {
   authenticateWithCredentials,
   supportsCurrentlyPlayingSource: sourceSupportsCurrentlyPlaying,
   checkSource,
+  watchCurrentlyPlaying,
   listCurrentlyPlaying,
   proxyMedia,
   serializeSession(session) {

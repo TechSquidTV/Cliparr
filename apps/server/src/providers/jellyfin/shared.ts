@@ -326,7 +326,7 @@ function assertAllowedResolvedAddress(
 
 const defaultJellyfinServerUrlOptions = { allowPrivate: true };
 
-async function assertAllowedJellyfinServerUrl(
+export async function assertAllowedJellyfinServerUrl(
   url: string,
   options: { allowPrivate?: boolean } = defaultJellyfinServerUrlOptions,
 ) {

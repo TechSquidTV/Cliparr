@@ -1,3 +1,4 @@
+import { createPlaybackResolverCache } from "@/playback/resolverCache";
 import type { Request, Response } from "express";
 import {
   logErrorFields,
@@ -768,6 +769,7 @@ async function loadPlaybackInfo(
   context: JellyfinSourceContext,
   sessionInfo: JellyfinSessionInfo,
   itemId: string,
+  requirePlayable = false,
 ) {
   const cacheKey = playbackInfoCacheKey(session, context, sessionInfo, itemId);
   const cached = playbackInfoCache.get(cacheKey);
@@ -781,6 +783,9 @@ async function loadPlaybackInfo(
 
   try {
     const playbackInfo = await fetchPlaybackInfo(context, itemId);
+    if (requirePlayable && !stringValue(playbackInfo?.PlaySessionId)) {
+      throw new Error("Jellyfin returned no playback session");
+    }
     if (stringValue(playbackInfo?.PlaySessionId)) {
       playbackInfoCache.set(cacheKey, {
         expiresAt: Date.now() + PLAYBACK_INFO_CACHE_TTL_MS,
@@ -789,6 +794,9 @@ async function loadPlaybackInfo(
     }
     return playbackInfo;
   } catch (error) {
+    if (requirePlayable) {
+      throw error;
+    }
     warnWithError(logger, error, "Could not fetch Jellyfin playback info.", {
       ...logErrorFields(error),
       "metadata.item.id": itemId,
@@ -858,6 +866,7 @@ async function normalizeCurrentPlayback(
   source: MediaSource,
   context: JellyfinSourceContext,
   sessionInfo: JellyfinSessionInfo,
+  preparedItem?: JellyfinItem,
 ): Promise<CurrentlyPlayingEntry | undefined> {
   const nowPlayingItem = sessionInfo?.NowPlayingItem;
   if (!nowPlayingItem) {
@@ -870,8 +879,14 @@ async function normalizeCurrentPlayback(
   }
 
   const [enrichedItem, playbackInfo] = await Promise.all([
-    enrichMetadataItem(context, nowPlayingItem),
-    loadPlaybackInfo(session, context, sessionInfo, itemId),
+    preparedItem ?? enrichMetadataItem(context, nowPlayingItem),
+    loadPlaybackInfo(
+      session,
+      context,
+      sessionInfo,
+      itemId,
+      Boolean(preparedItem),
+    ),
   ]);
   const jellyfinPlaySessionId = stringValue(playbackInfo?.PlaySessionId);
   const jellyfinClientSessionId = stringValue(sessionInfo?.Id);
@@ -999,6 +1014,7 @@ async function normalizeCurrentPlayback(
     ),
     item: {
       id: playbackItemId,
+      playbackSessionId: jellyfinClientSessionId,
       source: {
         id: source.id,
         name: source.name,
@@ -1039,10 +1055,86 @@ export async function listCurrentlyPlaying(
     fetchSessions(context),
   ]);
   const isAdministrator = currentUser?.Policy?.IsAdministrator === true;
-  const activeSessions = sessions.filter(
-    (sessionInfo) =>
-      Boolean(stringValue(sessionInfo?.NowPlayingItem?.Id)) &&
-      (isAdministrator || sessionInfo.UserId === context.userId),
+  return resolveJellyfinPlayback(
+    session,
+    source,
+    context,
+    sessions,
+    isAdministrator,
+  );
+}
+
+export function visibleJellyfinSessions(
+  sessions: JellyfinSessionInfo[],
+  userId: string,
+  isAdministrator: boolean,
+) {
+  return sessions.filter(
+    (session) =>
+      Boolean(stringValue(session.NowPlayingItem?.Id)) &&
+      (isAdministrator || session.UserId === userId),
+  );
+}
+
+export function jellyfinPlaybackIdentity(sessions: JellyfinSessionInfo[]) {
+  return JSON.stringify(
+    sessions
+      .toSorted((a, b) => (a.Id ?? "").localeCompare(b.Id ?? ""))
+      .map((session) => [
+        session.Id,
+        session.UserId,
+        session.UserName,
+        session.Client,
+        session.DeviceName,
+        session.NowPlayingItem?.Id,
+        session.NowPlayingItem?.Name,
+        session.NowPlayingItem?.ImageTags,
+        session.PlayState?.MediaSourceId,
+        session.PlayState?.AudioStreamIndex,
+        session.PlayState?.SubtitleStreamIndex,
+      ]),
+  );
+}
+
+export function createJellyfinPlaybackResolver(
+  source: MediaSource,
+  context: JellyfinSourceContext,
+) {
+  return createPlaybackResolverCache({
+    key: (row: JellyfinSessionInfo) => jellyfinPlaybackIdentity([row]),
+    prepare: async (row) => {
+      const id = stringValue(row.NowPlayingItem?.Id);
+      if (!id) {
+        throw new Error("Jellyfin session has no item ID");
+      }
+      return { ...row.NowPlayingItem, ...(await fetchItem(context, id)) };
+    },
+    bind: (row, item, session) =>
+      normalizeCurrentPlayback(session, source, context, row, item),
+    update: (entry, row) => ({
+      ...entry,
+      item: {
+        ...entry.item,
+        playerState: row.PlayState?.IsPaused ? "paused" : "playing",
+        playheadSeconds: playheadSecondsFromPositionTicks(
+          row.PlayState?.PositionTicks,
+        ),
+      },
+    }),
+  });
+}
+
+async function resolveJellyfinPlayback(
+  session: ProviderSessionRecord,
+  source: MediaSource,
+  context: JellyfinSourceContext,
+  sessions: JellyfinSessionInfo[],
+  isAdministrator: boolean,
+) {
+  const activeSessions = visibleJellyfinSessions(
+    sessions,
+    context.userId,
+    isAdministrator,
   );
   const entries = await Promise.all(
     activeSessions.map((sessionInfo) =>

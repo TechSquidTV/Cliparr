@@ -325,6 +325,33 @@ async function withPlexPmsClient<T>(
   }
 }
 
+export async function openPlexEventStream(
+  context: PlexPmsRequestContext,
+  headers: Headers,
+  signal: AbortSignal,
+) {
+  headers.set("X-Plex-Token", context.token);
+  headers.set("Accept", "text/event-stream");
+  const response = await fetchPlexPmsWithManualRedirects(
+    new URL(
+      `${context.baseUrl.replace(/\/$/, "")}/:/eventsource/notifications`,
+    ),
+    { headers, signal },
+  );
+  if (!response.ok) {
+    await response.body?.cancel();
+    throw createPlexPmsResponseApiError(response);
+  }
+  if (
+    !response.body ||
+    !response.headers.get("content-type")?.includes("text/event-stream")
+  ) {
+    await response.body?.cancel();
+    throw new Error("Plex did not return an event stream");
+  }
+  return response.body;
+}
+
 export function requestPlexPmsIdentity(
   context: PlexPmsRequestContext,
   options: PlexPmsRequestOptions,

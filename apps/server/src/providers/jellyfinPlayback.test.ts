@@ -5,6 +5,7 @@ import type { MediaSource } from "@/db/mediaSourcesRepository";
 import type { ProviderSessionRecord } from "@/session/store";
 import {
   buildPreviewPath,
+  createJellyfinPlaybackResolver,
   createJellyfinExportEstimateMetadata,
   deriveSelectedSubtitleTrack,
   deriveSubtitleTracks,
@@ -967,4 +968,84 @@ void test("strips Jellyfin auth headers from cross-origin media redirects", asyn
   } finally {
     globalThis.fetch = originalFetch;
   }
+});
+
+void test("live Jellyfin metadata is shared, handles stay session-owned, and unchanged items are reused", async (context) => {
+  const source = createSource();
+  const first = createSession();
+  const second = createSession();
+  const baseFetch = createJellyfinPlaybackFetch({ itemId: "item-1" });
+  let metadataCalls = 0;
+  let playbackCalls = 0;
+  context.mock.method(
+    globalThis,
+    "fetch",
+    async (input: Parameters<typeof fetch>[0], init?: RequestInit) => {
+      const path = fetchInputUrl(input).pathname;
+      if (path.endsWith("/PlaybackInfo")) {
+        playbackCalls++;
+      } else if (path === "/Items/item-1") {
+        metadataCalls++;
+      }
+      return baseFetch(input, init);
+    },
+  );
+  const row: JellyfinSessionInfo = {
+    Id: "live-session",
+    UserId: "user-1",
+    NowPlayingItem: { Id: "item-1" },
+    PlayState: { PositionTicks: 10_000_000 },
+  };
+  const snapshot = createJellyfinPlaybackResolver(source, createContext());
+  const initial = snapshot([row]);
+  const [one, two] = await Promise.all([initial(first), initial(second)]);
+  assert.equal(metadataCalls, 1);
+  assert.equal(playbackCalls, 2);
+  assert.notEqual(one[0].item.mediaUrl, two[0].item.mediaUrl);
+  assert.ok(first.mediaHandles.has(one[0].item.mediaUrl!.split("/").at(-1)!));
+  const paused = await snapshot([
+    { ...row, PlayState: { IsPaused: true, PositionTicks: 20_000_000 } },
+  ])(first);
+  assert.equal(paused[0].item.playerState, "paused");
+  assert.equal(paused[0].item.playheadSeconds, 2);
+  assert.equal(paused[0].item.mediaUrl, one[0].item.mediaUrl);
+  assert.equal(metadataCalls, 1);
+  assert.equal(playbackCalls, 2);
+  await snapshot([])(first);
+  await snapshot([row])(first);
+  assert.equal(metadataCalls, 2, "removed sessions evict their metadata");
+});
+
+void test("live Jellyfin preparation propagates transient failures and the same resolver can recover", async (context) => {
+  const baseFetch = createJellyfinPlaybackFetch({ itemId: "retry-item" });
+  let attempts = 0;
+  context.mock.method(
+    globalThis,
+    "fetch",
+    async (input: Parameters<typeof fetch>[0], init?: RequestInit) => {
+      if (
+        fetchInputUrl(input).pathname.endsWith("/PlaybackInfo") &&
+        ++attempts === 1
+      ) {
+        return jsonResponse({ message: "Temporary failure" }, 503);
+      }
+      return baseFetch(input, init);
+    },
+  );
+  const resolve = createJellyfinPlaybackResolver(
+    createSource(),
+    createContext(),
+  )([
+    {
+      Id: "retry-session",
+      UserId: "user-1",
+      NowPlayingItem: { Id: "retry-item" },
+    },
+  ]);
+  const owner = createSession();
+  await assert.rejects(resolve(owner));
+  const recovered = await resolve(owner);
+  assert.ok(recovered[0].item.mediaUrl);
+  assert.ok(recovered[0].item.previewUrl);
+  assert.equal(attempts, 2);
 });

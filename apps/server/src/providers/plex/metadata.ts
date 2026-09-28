@@ -119,6 +119,7 @@ function buildSourceTitle(item: PlexMetadataItem) {
 export async function enrichPlaybackItems(
   context: PlexSourceContext,
   items: PlexMetadataItem[],
+  options: { required?: boolean } = {},
 ): Promise<{ item: PlexMetadataItem; libraryItem?: PlexMetadataItem }[]> {
   const ids = uniqueStrings(items.map((item) => metadataId(item)));
   if (ids.length === 0) {
@@ -135,9 +136,15 @@ export async function enrichPlaybackItems(
     return items.map((item) => {
       const id = metadataId(item);
       const libraryItem = id ? byId.get(id) : undefined;
+      if (options.required && !libraryItem) {
+        throw new Error("Plex returned no playback metadata");
+      }
       return { item: mergePlaybackMetadata(item, libraryItem), libraryItem };
     });
   } catch (error) {
+    if (options.required) {
+      throw error;
+    }
     warnWithError(logger, error, "Could not fetch Plex metadata.", {
       ...logErrorFields(error),
       "metadata.count": ids.length,

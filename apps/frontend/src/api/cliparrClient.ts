@@ -1,3 +1,4 @@
+import { subscribePlaybackStream } from "@/api/playbackStream";
 import type {
   CurrentlyPlayingResponse,
   MediaSource,
@@ -116,9 +117,9 @@ function queueAuthFailureNotification() {
   });
 }
 
-function buildUnexpectedApiResponseError() {
+function buildUnexpectedApiResponseError(response: Response) {
   return new Error(
-    "Cliparr API returned the app page instead of JSON. Check the API URL.",
+    `Cliparr API returned a non-JSON response (HTTP ${response.status}). Check that the API URL points to the Cliparr server.`,
   );
 }
 
@@ -156,7 +157,7 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
 
   if (!response.ok) {
     if (!contentType.includes("application/json")) {
-      throw buildUnexpectedApiResponseError();
+      throw buildUnexpectedApiResponseError(response);
     }
 
     const error = await readResponseErrorDetails(response);
@@ -177,7 +178,7 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   }
 
   if (!contentType.includes("application/json")) {
-    throw buildUnexpectedApiResponseError();
+    throw buildUnexpectedApiResponseError(response);
   }
 
   const data: unknown = await response.json();
@@ -282,6 +283,23 @@ export const cliparrClient = {
     return request<MediaSourceCheckResult>(`/api/sources/${sourceId}/check`, {
       method: "POST",
     });
+  },
+
+  subscribeCurrentlyPlaying(
+    options: Pick<
+      Parameters<typeof subscribePlaybackStream>[0],
+      "onEvent" | "onConnection"
+    >,
+  ) {
+    return subscribePlaybackStream({
+      ...options,
+      onUnauthorized: queueAuthFailureNotification,
+      onRedirect: followAppAuthRedirect,
+    });
+  },
+
+  retryLivePlayback() {
+    return request<void>("/api/media/live/retry", { method: "POST" });
   },
 
   getCurrentlyPlaying() {

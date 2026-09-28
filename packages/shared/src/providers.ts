@@ -112,6 +112,7 @@ export interface PlaybackSource {
 
 export interface CurrentlyPlayingItem {
   id: string;
+  playbackSessionId?: string;
   source: PlaybackSource;
   title: string;
   type: string;
@@ -146,4 +147,64 @@ export interface SourcePlaybackError {
 export interface CurrentlyPlayingResponse {
   viewers: ViewerPlaybackGroup[];
   sourceErrors: SourcePlaybackError[];
+}
+
+export interface PlaybackProgress {
+  sourceId: string;
+  sessionId: string;
+  playerState: string;
+  playheadSeconds?: number;
+}
+
+export interface PlaybackSourceStatus {
+  sourceId: string;
+  sourceName: string;
+  providerId: string;
+  state: "connecting" | "live" | "reconnecting" | "unsupported" | "error";
+  message?: string;
+}
+
+export interface PlaybackSnapshot extends CurrentlyPlayingResponse {
+  sources: PlaybackSourceStatus[];
+  loading: boolean;
+}
+
+export type PlaybackStreamEvent =
+  | { type: "snapshot"; snapshot: PlaybackSnapshot }
+  | { type: "progress"; updates: PlaybackProgress[] }
+  | { type: "unauthorized" };
+
+export function applyPlaybackProgress(
+  viewers: ViewerPlaybackGroup[],
+  updates: readonly PlaybackProgress[],
+): ViewerPlaybackGroup[] {
+  const byId = new Map(
+    updates.map((update) => [`${update.sourceId}:${update.sessionId}`, update]),
+  );
+  let changed = false;
+  const next = viewers.map((group) => {
+    let groupChanged = false;
+    const items = group.items.map((item) => {
+      const update = byId.get(`${item.source.id}:${item.playbackSessionId}`);
+      if (
+        !update ||
+        (update.playerState === item.playerState &&
+          (update.playheadSeconds === undefined ||
+            update.playheadSeconds === item.playheadSeconds))
+      ) {
+        return item;
+      }
+      changed = true;
+      groupChanged = true;
+      return {
+        ...item,
+        playerState: update.playerState,
+        ...(update.playheadSeconds === undefined
+          ? {}
+          : { playheadSeconds: update.playheadSeconds }),
+      };
+    });
+    return groupChanged ? { ...group, items } : group;
+  });
+  return changed ? next : viewers;
 }

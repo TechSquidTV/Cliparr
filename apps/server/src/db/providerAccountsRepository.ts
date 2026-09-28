@@ -1,3 +1,4 @@
+import { notifyPlaybackStateChange } from "@/playback/stateChanges";
 import { randomUUID } from "node:crypto";
 import { and, eq, isNotNull, isNull, sql } from "drizzle-orm";
 import { getDatabase } from "@/db/database";
@@ -110,6 +111,7 @@ export function deleteProviderAccount(id: string) {
     .where(eq(providerAccounts.id, id))
     .run();
 
+  notifyPlaybackStateChange({ type: "sources" });
   return result.changes > 0;
 }
 

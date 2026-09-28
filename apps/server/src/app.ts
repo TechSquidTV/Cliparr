@@ -8,6 +8,7 @@ import { configureLogging, requestLoggingMiddleware } from "@/logging";
 import { mediaRouter } from "@/routes/media";
 import { providersRouter } from "@/routes/providers";
 import { sessionRouter } from "@/routes/session";
+import { livePlaybackRouter } from "@/routes/livePlayback";
 import { sourcesRouter } from "@/routes/sources";
 import { versionRouter } from "@/routes/version";
 
@@ -64,6 +65,7 @@ export async function createApp(options: CreateAppOptions = {}) {
   app.use("/api/providers", providersRouter);
   app.use("/api/session", sessionRouter);
   app.use("/api/sources", sourcesRouter);
+  app.use("/api/media/live", livePlaybackRouter);
   app.use("/api/media", mediaRouter);
   app.use("/api/version", versionRouter);
   app.use("/api", notFoundHandler);

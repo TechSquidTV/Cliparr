@@ -1,4 +1,5 @@
 import { isApiError } from "@/http/errors";
+import { watchCurrentlyPlaying } from "@/providers/plex/live";
 import { pollAuth, startAuth } from "@/providers/plex/auth";
 import {
   PLEX_BASE_URL_MODE_AUTO,
@@ -69,6 +70,7 @@ export const plexProvider: ProviderImplementation = {
   supportsCurrentlyPlayingSource: sourceSupportsCurrentlyPlaying,
   checkSource,
   listCurrentlyPlaying,
+  watchCurrentlyPlaying,
   proxyMedia,
   serializeSession(session) {
     return {
