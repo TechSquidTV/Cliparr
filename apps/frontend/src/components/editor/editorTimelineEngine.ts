@@ -85,6 +85,35 @@ function createEditorTracks(
   ];
 }
 
+export function getSubtitleCreationRange(
+  tracks: readonly TimelineReadonly<Track>[],
+  startTime: number,
+  duration: number,
+): Pick<SubtitleCue, "startTime" | "endTime"> | null {
+  const track = tracks.find((entry) => entry.id === EDITOR_SUBTITLE_TRACK_ID);
+  if (
+    !track ||
+    !Number.isFinite(startTime) ||
+    !Number.isFinite(duration) ||
+    startTime < 0 ||
+    startTime >= duration
+  ) {
+    return null;
+  }
+  let endTime = Math.min(startTime + 2, duration);
+  // Hidden subtitles still occupy time. Creation never changes another cue.
+  for (const clip of track.clips) {
+    const start = toSeconds(clip.timelineStart);
+    if (start <= startTime && startTime < toSeconds(clip.timelineEnd)) {
+      return null;
+    }
+    if (start > startTime) {
+      endTime = Math.min(endTime, start);
+    }
+  }
+  return { startTime, endTime };
+}
+
 export function createSubtitleClip(
   cue: Pick<SubtitleCue, "startTime" | "endTime" | "text">,
   duration: number,

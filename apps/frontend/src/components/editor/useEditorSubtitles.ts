@@ -27,6 +27,7 @@ import { useSubtitleCues } from "@/components/editor/useSubtitleCues";
 import { useEditorHistory } from "@/components/editor/useEditorHistory";
 import {
   createSubtitleClip,
+  getSubtitleCreationRange,
   EDITOR_SUBTITLE_TRACK_ID,
   subtitleCueFromTimelineClip,
   subtitleCuesFromTimeline,
@@ -90,7 +91,6 @@ export function useEditorSubtitles({
   const textEditReference = useRef<SubtitleTextEdit | null>(null);
   const [textError, setTextError] = useState<string | null>(null);
   const [focusRevision, setFocusRevision] = useState(0);
-  const lastDuration = useRef(2);
   const history = useEditorHistory(engine, mediaReady && initialized);
   const { runAction } = history;
   const download = useSubtitleCues({
@@ -186,21 +186,6 @@ export function useEditorSubtitles({
       }),
     [commitText, engine],
   );
-  useEffect(
-    () =>
-      engine.on("edit:commit", ({ command, committed }) => {
-        if (!committed || command.type !== "trim") {
-          return;
-        }
-        const entry = engine.geometry.getClip(command.clipId);
-        if (entry?.track.id === EDITOR_SUBTITLE_TRACK_ID) {
-          lastDuration.current =
-            toSeconds(entry.clip.timelineEnd) -
-            toSeconds(entry.clip.timelineStart);
-        }
-      }),
-    [engine],
-  );
 
   const timelineSubtitleCues = useMemo(
     () => subtitleCuesFromTimeline(tracks),
@@ -245,7 +230,10 @@ export function useEditorSubtitles({
     subtitleLoading,
   });
   const canEditSubtitles = mediaReady && initialized && !subtitleLoading;
-  const canAddSubtitle = canEditSubtitles && toSeconds(playheadTime) < duration;
+  const canAddSubtitle =
+    canEditSubtitles &&
+    getSubtitleCreationRange(tracks, toSeconds(playheadTime), duration) !==
+      null;
 
   function cancelImport() {
     setImportTrack(null);
@@ -277,16 +265,21 @@ export function useEditorSubtitles({
     }
   }
   function addSubtitle() {
-    if (!canAddSubtitle) {
+    if (!canEditSubtitles) {
+      return;
+    }
+    pausePlayback();
+    // Recheck live state: playback may have advanced since the button rendered.
+    const state = engine.getState();
+    const time = toSeconds(state.playheadTime);
+    const range = getSubtitleCreationRange(state.tracks, time, duration);
+    if (!range) {
       return;
     }
     commitText();
-    pausePlayback();
-    const time = toSeconds(engine.getState().playheadTime);
     const clip = createSubtitleClip(
       {
-        startTime: time,
-        endTime: time + lastDuration.current,
+        ...range,
         text: "New subtitle",
       },
       duration,
@@ -295,6 +288,7 @@ export function useEditorSubtitles({
       return;
     }
     runAction(() => {
+      // The permitted span is empty; native overwrite preserves all other cues.
       const result = engine.commitEdit({
         type: "overwrite",
         targetTrackId: EDITOR_SUBTITLE_TRACK_ID,

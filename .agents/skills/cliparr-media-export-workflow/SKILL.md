@@ -61,7 +61,7 @@ Server/provider paths:
 - Attach provider auth only when the media request origin matches the provider base URL origin.
 - Avoid reopening a finished export blob for validation; `Conversion.init` should validate the output plan before execution to reduce memory pressure.
 - Burn visible timeline subtitle cues when style settings and a video track are available; provider track selection is only an import source, never an output requirement.
-- Keep authored and imported subtitles in the single timeline-owned collection. Use native overwrite commands for creation, preserve cue identities in drafts, and group multi-command authoring actions into one undo step.
+- Keep authored and imported subtitles in the single timeline-owned collection. Create only at an unoccupied playhead, with a two-second duration capped by the next cue or video end; hidden cues still occupy time. Use native overwrite only within that empty span, preserve existing cues and draft identities, and group creation plus visibility into one undo step.
 - Subtitle draft version 2 intentionally rejects older saved ranges and subtitle edits; do not add compatibility aliases or fallback readers.
 
 ## Testing

@@ -13,9 +13,9 @@ Create your own subtitles for memes, captions, and commentary, or import dialogu
 
 Move the playhead to the desired moment and choose **Add subtitle** in the Subtitles panel or the **+** in the subtitle timeline header. Playback pauses, subtitle output becomes visible, and the new text is selected for editing.
 
-New subtitles initially last two seconds. During the editing session, Cliparr remembers the duration of your last created or manually resized subtitle. New cues are capped at the end of the video. You can place them anywhere in the source; **Outside export range** identifies a selected cue that will not appear in the current export.
+New subtitles last two seconds, shortened when necessary to end at the next subtitle's start or the end of the video. Resizing a subtitle does not change this default. You can place them anywhere in the source; **Outside export range** identifies a selected cue that will not appear in the current export.
 
-Creation overwrites only the covered time. For example, placing a cue from 4–6 seconds over one spanning 2–8 seconds keeps the original text at 2–4 and 6–8 seconds. Later subtitles keep their timing. Undo restores the entire operation.
+**Add subtitle** is disabled when a subtitle already covers the playhead, even when subtitle output is hidden. Move to an empty time to add text. Creation stays exactly at the playhead and preserves all existing text and timing. For example, adding at 4 seconds with the next cue starting at 5 seconds creates a one-second subtitle from 4–5 seconds. At a cue's exact end, creation is available unless another cue starts there. Undo removes the new cue and restores the previous visibility in one step.
 
 Text previews update while you type. Leaving the field or pressing Ctrl/Command+Enter commits one text edit. Empty text restores the previous value; use **Delete subtitle** to remove a cue. Drag timeline edges or edit the In and Out fields to change timing.
 

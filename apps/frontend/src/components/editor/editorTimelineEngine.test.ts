@@ -9,6 +9,7 @@ import {
   EDITOR_SUBTITLE_TRACK_ID,
   createEditorTimelineEngine,
   createSubtitleClip,
+  getSubtitleCreationRange,
   subtitleCuesFromTimeline,
   synchronizeEditorTimelineMedia,
   synchronizeEditorTimelineSession,
@@ -467,38 +468,32 @@ void describe("editor timeline engine", () => {
 });
 
 void describe("subtitle authoring", () => {
-  for (const [start, end, expected] of [
-    [2, 8, [[2, 8, "New"]]],
-    [
-      1,
-      4,
-      [
-        [1, 4, "New"],
-        [4, 8, "Original"],
-      ],
-    ],
-    [
-      6,
-      9,
-      [
-        [2, 6, "Original"],
-        [6, 9, "New"],
-      ],
-    ],
-    [
-      4,
-      6,
-      [
-        [2, 4, "Original"],
-        [4, 6, "New"],
-        [6, 8, "Original"],
-      ],
-    ],
+  for (const [start, expectedEnd] of [
+    [0, 2],
+    [1, 2],
+    [2, null],
+    [5, null],
+    [8, null],
+    [9, 10],
+    [10, null],
+    [11, null],
+    [12, 14],
+    [19, 20],
+    [20, null],
+    [-1, null],
+    [Number.NaN, null],
   ] as const) {
-    void it(`overwrites ${start}–${end} without moving later cues and undoes atomically`, () => {
+    void it(`creates only in empty time at ${start}, capped at ${expectedEnd}`, () => {
       const engine = createEditorTimelineEngine(createSession());
       synchronizeEditorTimelineSubtitles(engine, {
         cues: [
+          {
+            id: "later",
+            startTime: 10,
+            endTime: 12,
+            text: "Later",
+            lines: ["Later"],
+          },
           {
             id: "original",
             startTime: 2,
@@ -507,50 +502,97 @@ void describe("subtitle authoring", () => {
             lines: ["Original"],
           },
           {
-            id: "later",
-            startTime: 10,
-            endTime: 12,
-            text: "Later",
-            lines: ["Later"],
+            id: "overlapping",
+            startTime: 5,
+            endTime: 9,
+            text: "Overlap",
+            lines: ["Overlap"],
           },
         ],
       });
+      engine.toggleTrackVisibility(EDITOR_SUBTITLE_TRACK_ID, false);
       const before = subtitleCuesFromTimeline(engine.getState().tracks);
-      const history = createEditorHistory(engine);
-      const clip = createSubtitleClip(
-        { startTime: start, endTime: end, text: "New" },
+      const range = getSubtitleCreationRange(
+        engine.getState().tracks,
+        start,
         20,
       );
+      if (expectedEnd === null) {
+        assert.equal(range, null);
+        assert.deepEqual(
+          subtitleCuesFromTimeline(engine.getState().tracks),
+          before,
+        );
+        return;
+      }
+      assert.deepEqual(range, { startTime: start, endTime: expectedEnd });
+      assert.ok(range);
+      const clip = createSubtitleClip({ ...range, text: "New" }, 20);
       assert.ok(clip);
-      assert.equal(
-        engine.commitEdit({
-          type: "overwrite",
-          targetTrackId: EDITOR_SUBTITLE_TRACK_ID,
-          startTime: fromSeconds(start),
-          clip,
-          snap: false,
-        }).committed,
-        true,
-      );
+      const history = createEditorHistory(engine);
+      history.runAction(() => {
+        assert.equal(
+          engine.commitEdit({
+            type: "overwrite",
+            targetTrackId: EDITOR_SUBTITLE_TRACK_ID,
+            startTime: fromSeconds(start),
+            clip,
+            snap: false,
+          }).committed,
+          true,
+        );
+        engine.toggleTrackVisibility(EDITOR_SUBTITLE_TRACK_ID, true);
+      });
       const after = subtitleCuesFromTimeline(engine.getState().tracks);
       assert.deepEqual(
-        after.map((cue) => [cue.startTime, cue.endTime, cue.text]),
-        [...expected, [10, 12, "Later"]],
+        after.filter((cue) => cue.id !== clip.id),
+        before,
       );
-      assert.equal(new Set(after.map((cue) => cue.id)).size, after.length);
+      assert.equal(after.length, before.length + 1);
       history.undo();
       assert.deepEqual(
         subtitleCuesFromTimeline(engine.getState().tracks),
         before,
       );
+      assert.equal(
+        engine
+          .getState()
+          .tracks.find((track) => track.id === EDITOR_SUBTITLE_TRACK_ID)
+          ?.visible,
+        false,
+      );
+      assert.equal(history.getSnapshot().canUndo, false);
       history.redo();
       assert.deepEqual(
         subtitleCuesFromTimeline(engine.getState().tracks),
         after,
       );
+      assert.equal(
+        engine
+          .getState()
+          .tracks.find((track) => track.id === EDITOR_SUBTITLE_TRACK_ID)
+          ?.visible,
+        true,
+      );
       history.dispose();
     });
   }
+  void it("defaults to two seconds on an empty lane and requires a valid media duration", () => {
+    const engine = createEditorTimelineEngine(createSession());
+    const tracks = engine.getState().tracks;
+    assert.deepEqual(getSubtitleCreationRange(tracks, 0, 20), {
+      startTime: 0,
+      endTime: 2,
+    });
+    assert.deepEqual(getSubtitleCreationRange(tracks, 0, 1), {
+      startTime: 0,
+      endTime: 1,
+    });
+    for (const duration of [0, -1, Number.NaN, Number.POSITIVE_INFINITY]) {
+      assert.equal(getSubtitleCreationRange(tracks, 0, duration), null);
+    }
+    assert.equal(getSubtitleCreationRange([], 0, 20), null);
+  });
   void it("creates text without a provider, normalizes it, and clamps to video end", () => {
     const clip = createSubtitleClip(
       { startTime: 19, endTime: 23, text: "  Meme\r\n text  " },
