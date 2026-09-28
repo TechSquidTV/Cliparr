@@ -14,6 +14,7 @@ import {
   ChevronRight,
   Eye,
   EyeOff,
+  Plus,
   Volume2,
   VolumeX,
 } from "lucide-react";
@@ -32,9 +33,18 @@ import "@techsquidtv/canvas-timeline/styles.css";
 interface EditorTimelineProperties {
   muted: boolean;
   onMutedChange: (muted: boolean) => void;
+  canAddSubtitle: boolean;
+  onAddSubtitle: () => void;
+  onSubtitleVisibilityChange: (visible: boolean) => void;
 }
 
-function TrackHeaderColumn({ muted, onMutedChange }: EditorTimelineProperties) {
+function TrackHeaderColumn({
+  muted,
+  onMutedChange,
+  canAddSubtitle,
+  onAddSubtitle,
+  onSubtitleVisibilityChange,
+}: EditorTimelineProperties) {
   const { tracks } = useTimelineTracks();
 
   return (
@@ -63,12 +73,14 @@ function TrackHeaderColumn({ muted, onMutedChange }: EditorTimelineProperties) {
                 </ControlTooltip>
               ) : (
                 <ControlTooltip
-                  label={header.visible ? "Hide Sub 1" : "Show Sub 1"}
+                  label={header.visible ? "Hide subtitles" : "Show subtitles"}
                 >
                   <button
                     type="button"
-                    onClick={() => header.setVisible(!header.visible)}
-                    aria-label={header.visible ? "Hide Sub 1" : "Show Sub 1"}
+                    onClick={() => onSubtitleVisibilityChange(!header.visible)}
+                    aria-label={
+                      header.visible ? "Hide subtitles" : "Show subtitles"
+                    }
                     aria-pressed={!header.visible}
                     className="flex h-7 w-7 shrink-0 items-center justify-center rounded-[var(--radius-control)] border border-editor-border bg-editor-control text-muted-foreground transition-colors hover:bg-editor-control-hover hover:text-foreground focus-visible:ring-2 focus-visible:ring-editor-accent/35 focus-visible:outline-none"
                   >
@@ -83,6 +95,19 @@ function TrackHeaderColumn({ muted, onMutedChange }: EditorTimelineProperties) {
               <span className="min-w-0 flex-1 truncate text-xs font-medium text-foreground">
                 {header.label}
               </span>
+              {track.id !== EDITOR_MEDIA_TRACK_ID && (
+                <ControlTooltip label="Add subtitle at playhead">
+                  <button
+                    type="button"
+                    aria-label="Add subtitle at playhead"
+                    disabled={!canAddSubtitle}
+                    onClick={onAddSubtitle}
+                    className="flex h-8 w-8 shrink-0 items-center justify-center rounded text-foreground hover:bg-editor-control-hover disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-editor-accent/35"
+                  >
+                    <Plus className="h-4 w-4" />
+                  </button>
+                </ControlTooltip>
+              )}
               <Timeline.TrackHeaderResizeHandle
                 trackId={track.id}
                 maxHeight={96}
@@ -155,7 +180,17 @@ export function EditorTimeline({
   ready,
   muted,
   onMutedChange,
-}: EditorTimelineProperties & { engine: TimelineEngine; ready: boolean }) {
+  canAddSubtitle,
+  onAddSubtitle,
+  onSubtitleVisibilityChange,
+  subtitleLoading,
+  onInteractionStart,
+}: EditorTimelineProperties & {
+  engine: TimelineEngine;
+  ready: boolean;
+  subtitleLoading: boolean;
+  onInteractionStart: () => void;
+}) {
   const root = useRef<HTMLDivElement>(null);
   const horizontalScroller = useRef<HTMLDivElement>(null);
   const trackHeader = useRef<HTMLDivElement>(null);
@@ -187,7 +222,12 @@ export function EditorTimeline({
   }, [engine]);
 
   return (
-    <div className="flex h-full min-h-0 flex-col [--editor-track-header-width:6rem] lg:[--editor-track-header-width:8rem]">
+    <div
+      inert={subtitleLoading}
+      onPointerDownCapture={onInteractionStart}
+      onKeyDownCapture={onInteractionStart}
+      className="flex h-full min-h-0 flex-col [--editor-track-header-width:8rem] lg:[--editor-track-header-width:9rem]"
+    >
       <div
         ref={horizontalScroller}
         role="region"
@@ -208,7 +248,13 @@ export function EditorTimeline({
               ref={trackHeader}
               className="w-[var(--editor-track-header-width)] shrink-0 border-r border-editor-border bg-editor-panel-muted/55"
             >
-              <TrackHeaderColumn muted={muted} onMutedChange={onMutedChange} />
+              <TrackHeaderColumn
+                muted={muted}
+                onMutedChange={onMutedChange}
+                canAddSubtitle={canAddSubtitle}
+                onAddSubtitle={onAddSubtitle}
+                onSubtitleVisibilityChange={onSubtitleVisibilityChange}
+              />
             </div>
             <div className="min-w-0 flex-1">
               <Timeline.Root ref={root} className="h-full w-full">

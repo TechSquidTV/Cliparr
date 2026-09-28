@@ -24,7 +24,7 @@ function session(name = "clip.mp4", size = 5, lastModified = 1): EditorSession {
 }
 function draftFor(media: EditorSession): EditorDraft {
   return {
-    version: 1,
+    version: 2,
     identity: editorDraftIdentity(media),
     sessionId: media.id,
     updatedAt: Date.now(),
@@ -32,9 +32,6 @@ function draftFor(media: EditorSession): EditorDraft {
     startTime: 5,
     endTime: 20,
     subtitles: {
-      selectedTrackKey: "stream:1",
-      importedTrackKey: "stream:1",
-      enabled: true,
       visible: false,
       cues: [
         {
@@ -103,7 +100,7 @@ void test("ignores corrupt, malformed, expired, and unsupported draft records", 
     "null",
     "{}",
     "[null]",
-    JSON.stringify([{ ...draftFor(media), version: 2 }]),
+    JSON.stringify([{ ...draftFor(media), version: 1 }]),
     JSON.stringify([{ ...draftFor(media), subtitles: { cues: [null] } }]),
     JSON.stringify([
       { ...draftFor(media), updatedAt: Date.now() - 15 * 86_400_000 },

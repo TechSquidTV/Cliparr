@@ -1,4 +1,10 @@
-import { useEffect, useState, useSyncExternalStore } from "react";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from "react";
 import type { TimelineEngine } from "@techsquidtv/canvas-timeline";
 import { createEditorHistory } from "@/components/editor/editorHistory";
 
@@ -36,12 +42,23 @@ export function useEditorHistory(engine: TimelineEngine, ready: boolean) {
       window.removeEventListener("blur", next.endRangeGesture);
     };
   }, [engine, ready]);
+  const historyReference = useRef(history);
+  historyReference.current = history;
+  const runAction = useCallback((action: () => void) => {
+    const current = historyReference.current;
+    if (current) {
+      current.runAction(action);
+    } else {
+      action();
+    }
+  }, []);
   const state = useSyncExternalStore(
     history?.subscribe ?? subscribeEmptyHistory,
     history?.getSnapshot ?? getEmptyHistory,
     getEmptyHistory,
   );
   return {
+    runAction,
     canUndo: ready && state.canUndo,
     canRedo: ready && state.canRedo,
     undo: () => {

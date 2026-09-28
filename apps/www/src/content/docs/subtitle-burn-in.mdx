@@ -1,36 +1,43 @@
 ---
 title: Subtitle burn-in
-description: Choose supported text subtitles and style how they render into exported clips.
+description: Create original captions, edit or delete subtitles, and burn shared text styling into exported clips.
 section: editing-export
 order: 20
 ---
 
-import { Picture } from "astro:assets";
 import Callout from "../../components/Callout.astro";
-import subtitlePanelImage from "../../../public/docs/subtitle-panel.webp";
 
-Cliparr supports burning in supported subtitle tracks provided by your media player. Customize position, style, and use any font on your system.
+Create your own subtitles for memes, captions, and commentary, or import dialogue from Plex or Jellyfin. Text does not have to match the audio. Local videos and videos without subtitle tracks support the same authoring tools.
 
-<figure class="my-6 overflow-hidden rounded-lg border border-border bg-card">
-  <Picture
-    src={subtitlePanelImage}
-    alt="Cliparr subtitle panel showing track selection and burn-in style controls."
-    formats={["avif", "webp"]}
-    fallbackFormat="webp"
-    widths={[640, 960, 1280, 1600]}
-    sizes="(min-width: 80rem) 896px, (min-width: 64rem) calc(100vw - 22rem), calc(100vw - 2rem)"
-    quality={78}
-    loading="lazy"
-    decoding="async"
-    class="block w-full"
-  />
-</figure>
+## Add and edit text
 
-## Supported tracks
+Move the playhead to the desired moment and choose **Add subtitle** in the Subtitles panel or the **+** in the subtitle timeline header. Playback pauses, subtitle output becomes visible, and the new text is selected for editing.
 
-Cliparr supports subtitle burn-in when the selected track is a downloadable text subtitle track. Supported text formats include SRT/SubRip, WebVTT, ASS/SSA, TTML, SMI, and related text tracks exposed by Plex or Jellyfin.
+New subtitles initially last two seconds. During the editing session, Cliparr remembers the duration of your last created or manually resized subtitle. New cues are capped at the end of the video. You can place them anywhere in the source; **Outside export range** identifies a selected cue that will not appear in the current export.
 
-Image-based subtitle formats, such as PGS or VobSub, are visible when the provider reports them, but they cannot be burned in today.
+Creation overwrites only the covered time. For example, placing a cue from 4–6 seconds over one spanning 2–8 seconds keeps the original text at 2–4 and 6–8 seconds. Later subtitles keep their timing. Undo restores the entire operation.
+
+Text previews update while you type. Leaving the field or pressing Ctrl/Command+Enter commits one text edit. Empty text restores the previous value; use **Delete subtitle** to remove a cue. Drag timeline edges or edit the In and Out fields to change timing.
+
+## Delete or start blank
+
+Select a cue and choose **Delete subtitle**, or press Delete/Backspace while focus is outside text fields and other controls. Use **Subtitle options → Start blank…** to remove all cues after confirmation. Shared styling is preserved, and Undo restores deleted subtitles.
+
+The panel switch and timeline eye control the same subtitle output state. Hidden subtitles remain editable but do not appear in preview, frame grabs, or exports.
+
+## Import dialogue
+
+New sessions still import the preferred supported subtitle track automatically. Saved drafts, including empty drafts, take precedence.
+
+Choose **Import…** to import or reimport a provider track. If subtitles already exist, confirm their replacement. Your current cues remain visible during the download. Import can be cancelled; a failed or cancelled import leaves your edits intact. Successful replacement can be undone.
+
+Supported imports are downloadable text tracks, including SRT/SubRip, WebVTT, ASS/SSA, TTML, SMI, and related formats exposed by Plex or Jellyfin. Image-based subtitles such as PGS or VobSub cannot be imported. Their absence does not prevent creating your own text.
+
+<Callout title="Saved draft format changed" tone="warning">
+  Subtitle authoring uses draft version 2. Saved clip ranges and subtitle edits
+  from the previous format are not restored. There is no migration. Shared
+  subtitle style preferences are preserved.
+</Callout>
 
 ## Provider notes
 
@@ -40,21 +47,15 @@ Plex sidecar text subtitles can usually be downloaded directly. Some embedded Pl
 
 [Plex: Adding Local Subtitles to Your Media](https://support.plex.tv/articles/200471133-adding-local-subtitles-to-your-media/)
 
-<Callout title="Unsupported tracks stay selectable for context" tone="info">
-  Cliparr may still show unsupported subtitle tracks so you can see what the
-  provider reported. The export button remains blocked when burn-in is enabled
-  for an unsupported track.
-</Callout>
-
 ## Styling
 
-When burn-in is enabled, the subtitle panel controls how text is rendered into the exported video:
+The **Shared style** section applies to all cues, including imported and original text. You can edit these settings while subtitle output is hidden:
 
 - Font family.
 - Font color and size.
 - Shadow color, blur, and vertical offset.
 - Stroke color and width.
-- Bottom margin.
+- Horizontal and vertical position.
 
 Style settings are saved in your browser. They apply to future exports from the same browser profile.
 
@@ -64,4 +65,6 @@ Cliparr includes a small set of common font options. Browsers that support local
 
 ## Export behavior
 
-Subtitle cues are trimmed to the selected clip range before export. If subtitles are still loading, or if the selected track does not expose downloadable text cues, Cliparr waits or blocks the export with a message instead of producing a clip with missing subtitles.
+Subtitle cues are trimmed to the selected clip range before export. Visible authored text is burned into the video without requiring a selected provider subtitle track. Hidden cues and cues outside the export range are excluded.
+
+Export and frame capture wait while an import is pending. Once an import fails or is cancelled, the existing subtitles remain available for output. Preview, frame grabs, and export use the same subtitle text and shared style.

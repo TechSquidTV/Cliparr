@@ -70,7 +70,7 @@ void test("loads saved open editor properties accordion sections", () => {
   withStorage(
     {
       [editorPropertiesAccordionStorageKey]: JSON.stringify({
-        openSections: [EDITOR_PROPERTIES_SECTION_ID.globalSubtitles],
+        openSections: [EDITOR_PROPERTIES_SECTION_ID.subtitleStyle],
       }),
     },
     () => {
@@ -101,7 +101,7 @@ void test("filters unknown editor properties accordion section ids", () => {
       [editorPropertiesAccordionStorageKey]: JSON.stringify({
         openSections: [
           "preview-source",
-          EDITOR_PROPERTIES_SECTION_ID.globalSubtitles,
+          EDITOR_PROPERTIES_SECTION_ID.subtitleStyle,
           "export",
         ],
       }),
@@ -120,8 +120,8 @@ void test("deduplicates editor properties accordion section ids", () => {
     {
       [editorPropertiesAccordionStorageKey]: JSON.stringify({
         openSections: [
-          EDITOR_PROPERTIES_SECTION_ID.globalSubtitles,
-          EDITOR_PROPERTIES_SECTION_ID.globalSubtitles,
+          EDITOR_PROPERTIES_SECTION_ID.subtitleStyle,
+          EDITOR_PROPERTIES_SECTION_ID.subtitleStyle,
         ],
       }),
     },
@@ -176,7 +176,7 @@ void test("saves editor properties accordion sections", () => {
     assert.equal(
       storage.get(editorPropertiesAccordionStorageKey),
       JSON.stringify({
-        openSections: [EDITOR_PROPERTIES_SECTION_ID.globalSubtitles],
+        openSections: [EDITOR_PROPERTIES_SECTION_ID.subtitleStyle],
       }),
     );
   });

@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   fromSeconds,
+  toSeconds,
   useTimelineClips,
-  useTimelineEditCommands,
+  useTimelinePlayheadTime,
   useTimelineSelection,
   useTimelineTracks,
   type TimelineEngine,
@@ -23,11 +24,14 @@ import { normalizeSubtitleCueText } from "@/lib/subtitles/normalizeSubtitleCueTe
 import type { PlaybackSubtitleTrack } from "@/providers/types";
 import { buildSubtitleExportSummary } from "@/components/editor/subtitleExportSummary";
 import { useSubtitleCues } from "@/components/editor/useSubtitleCues";
+import { useEditorHistory } from "@/components/editor/useEditorHistory";
 import {
+  createSubtitleClip,
   EDITOR_SUBTITLE_TRACK_ID,
   subtitleCueFromTimelineClip,
   subtitleCuesFromTimeline,
   synchronizeEditorTimelineSubtitles,
+  timelineScrollLeftForCenteredTime,
 } from "@/components/editor/editorTimelineEngine";
 
 interface UseEditorSubtitlesProperties {
@@ -38,6 +42,13 @@ interface UseEditorSubtitlesProperties {
   endTime: number;
   duration: number;
   mediaReady: boolean;
+  pausePlayback: () => void;
+  onSubtitleCreated: () => void;
+}
+
+interface SubtitleTextEdit {
+  clipId: string;
+  text: string;
 }
 
 export function useEditorSubtitles({
@@ -48,126 +59,169 @@ export function useEditorSubtitles({
   endTime,
   duration,
   mediaReady,
+  pausePlayback,
+  onSubtitleCreated,
 }: UseEditorSubtitlesProperties) {
   const { tracks } = useTimelineTracks();
-  const { clips, updateClip } = useTimelineClips();
+  const { clips } = useTimelineClips();
+  const playheadTime = useTimelinePlayheadTime();
   const { selectedClip, selectedClipTrackId, selectClip } =
     useTimelineSelection();
-  const { deleteClip, trimClip } = useTimelineEditCommands();
-  const [subtitleStyleSettings, setSubtitleStyleSettings] = useState(() =>
-    loadSubtitleStyleSettings(),
+  const [subtitleStyleSettings, setSubtitleStyleSettings] = useState(
+    loadSubtitleStyleSettings,
   );
   const subtitleTracks = useMemo<PlaybackSubtitleTrack[]>(
     () =>
       session.local
         ? []
-        : (session.subtitleTracks ?? []).filter((track) =>
-            subtitleTrackSupportsBurnIn(track),
-          ),
+        : (session.subtitleTracks ?? []).filter(subtitleTrackSupportsBurnIn),
     [session.local, session.subtitleTracks],
   );
-  const [initialSubtitleSelection] = useState(() => {
-    if (initialDraft) {
-      return {
-        key: initialDraft.subtitles.selectedTrackKey,
-        enabled: initialDraft.subtitles.enabled,
-        initialized: true,
-      };
+  const [initialized, setInitialized] = useState(Boolean(initialDraft));
+  const initialImportStarted = useRef(Boolean(initialDraft));
+  const [importTrack, setImportTrack] = useState<PlaybackSubtitleTrack | null>(
+    null,
+  );
+  const [pendingImport, setPendingImport] =
+    useState<PlaybackSubtitleTrack | null>(null);
+  const [subtitleError, setSubtitleError] = useState<string | null>(null);
+  const [clearPending, setClearPending] = useState(false);
+  const [textEdit, setTextEdit] = useState<SubtitleTextEdit | null>(null);
+  const textEditReference = useRef<SubtitleTextEdit | null>(null);
+  const [textError, setTextError] = useState<string | null>(null);
+  const [focusRevision, setFocusRevision] = useState(0);
+  const lastDuration = useRef(2);
+  const history = useEditorHistory(engine, mediaReady && initialized);
+  const { runAction } = history;
+  const download = useSubtitleCues({
+    selectedSubtitleTrack: importTrack,
+    subtitleEnabled: importTrack !== null,
+    providerId: session.source.providerId,
+  });
+  const { resetSubtitleCues } = download;
+  const subtitleLoading = importTrack !== null;
+
+  useEffect(() => {
+    saveSubtitleStyleSettings(subtitleStyleSettings);
+  }, [subtitleStyleSettings]);
+  useEffect(() => {
+    if (!mediaReady || duration <= 0 || initialImportStarted.current) {
+      return;
     }
+    initialImportStarted.current = true;
     const track = selectPreferredSubtitleTrack(
       subtitleTracks,
       session.selectedSubtitleTrack,
     );
-    return {
-      key: track ? subtitleTrackKey(track) : "none",
-      enabled: subtitleTrackSupportsBurnIn(track),
-      initialized: track !== null,
-    };
-  });
-  const [subtitleEnabled, setSubtitleEnabled] = useState(
-    initialSubtitleSelection.enabled,
-  );
-  const [selectedSubtitleTrackKey, setSelectedSubtitleTrackKey] = useState(
-    initialSubtitleSelection.key,
-  );
-  const [pendingSubtitleTrackKey, setPendingSubtitleTrackKey] = useState<
-    string | null
-  >(null);
-  const [importedSubtitleTrackKey, setImportedSubtitleTrackKey] = useState<
-    string | null
-  >(initialDraft?.subtitles.importedTrackKey ?? null);
-  const subtitleTrackSelectionInitializedReference = useRef(
-    initialSubtitleSelection.initialized,
-  );
-  const subtitleTrackSelectionChangedByUserReference = useRef(false);
-  const selectedSubtitleTrack = useMemo(() => {
-    if (selectedSubtitleTrackKey === "none") {
-      return null;
+    if (track) {
+      setImportTrack(track);
+    } else {
+      setInitialized(true);
     }
+  }, [duration, mediaReady, session.selectedSubtitleTrack, subtitleTracks]);
 
-    return (
-      subtitleTracks.find(
-        (track) => subtitleTrackKey(track) === selectedSubtitleTrackKey,
-      ) ?? null
-    );
-  }, [selectedSubtitleTrackKey, subtitleTracks]);
-  const subtitleImportRequired =
-    subtitleEnabled &&
-    selectedSubtitleTrack !== null &&
-    importedSubtitleTrackKey !== selectedSubtitleTrackKey;
-  const {
-    subtitleCues: downloadedSubtitleCues,
-    subtitleLoading: downloadedSubtitlesLoading,
-    subtitleError,
-    loadedSubtitleTrackKey,
-    resetSubtitleCues,
-    clearSubtitleError,
-  } = useSubtitleCues({
-    selectedSubtitleTrack,
-    subtitleEnabled: subtitleImportRequired,
-    providerId: session.source.providerId,
-  });
-  const selectedDownloadedSubtitleCues = useMemo(
-    () =>
-      loadedSubtitleTrackKey === selectedSubtitleTrackKey
-        ? downloadedSubtitleCues
-        : [],
-    [downloadedSubtitleCues, loadedSubtitleTrackKey, selectedSubtitleTrackKey],
-  );
-  const subtitleLoading =
-    downloadedSubtitlesLoading ||
-    Boolean(subtitleImportRequired && !subtitleError);
   useEffect(() => {
-    if (
-      !mediaReady ||
-      duration <= 0 ||
-      !subtitleImportRequired ||
-      loadedSubtitleTrackKey !== selectedSubtitleTrackKey
-    ) {
+    if (!importTrack || !mediaReady) {
       return;
     }
-
-    synchronizeEditorTimelineSubtitles(engine, {
-      cues: selectedDownloadedSubtitleCues,
-    });
-    setImportedSubtitleTrackKey(selectedSubtitleTrackKey);
-    resetSubtitleCues();
+    if (download.subtitleError) {
+      setSubtitleError(download.subtitleError);
+      setImportTrack(null);
+      resetSubtitleCues();
+      setInitialized(true);
+    } else if (
+      download.loadedSubtitleTrackKey === subtitleTrackKey(importTrack)
+    ) {
+      runAction(() => {
+        synchronizeEditorTimelineSubtitles(engine, {
+          // Provider identifiers are not editor identities.
+          cues: download.subtitleCues.map((cue) => ({
+            ...cue,
+            id: crypto.randomUUID(),
+          })),
+        });
+      });
+      selectClip(null);
+      setImportTrack(null);
+      resetSubtitleCues();
+      setInitialized(true);
+    }
   }, [
-    duration,
+    download.loadedSubtitleTrackKey,
+    download.subtitleCues,
+    download.subtitleError,
     engine,
-    loadedSubtitleTrackKey,
+    importTrack,
     mediaReady,
     resetSubtitleCues,
-    selectedDownloadedSubtitleCues,
-    selectedSubtitleTrackKey,
-    subtitleImportRequired,
+    runAction,
+    selectClip,
   ]);
-  const subtitleCues = useMemo(
+
+  const commitText = useCallback(() => {
+    const edit = textEditReference.current;
+    if (!edit) {
+      return;
+    }
+    textEditReference.current = null;
+    setTextEdit(null);
+    const normalized = normalizeSubtitleCueText(edit.text);
+    if (!normalized) {
+      setTextError("Enter subtitle text, or use Delete subtitle to remove it.");
+      return;
+    }
+    const clip = engine.geometry.getClip(edit.clipId)?.clip;
+    if (clip && clip.label !== normalized.text) {
+      engine.updateClipProperties(edit.clipId, { label: normalized.text });
+    }
+  }, [engine]);
+
+  // Authoring actions finish text before changing the document; the timeline captures native interactions before its commands run.
+  // This subscription covers engine API selection changes. Blur, explicit text commits, and export finish editing at their UI boundaries.
+  useEffect(
+    () =>
+      engine.on("clip:select", () => {
+        commitText();
+        setTextError(null);
+      }),
+    [commitText, engine],
+  );
+  useEffect(
+    () =>
+      engine.on("edit:commit", ({ command, committed }) => {
+        if (!committed || command.type !== "trim") {
+          return;
+        }
+        const entry = engine.geometry.getClip(command.clipId);
+        if (entry?.track.id === EDITOR_SUBTITLE_TRACK_ID) {
+          lastDuration.current =
+            toSeconds(entry.clip.timelineEnd) -
+            toSeconds(entry.clip.timelineStart);
+        }
+      }),
+    [engine],
+  );
+
+  const timelineSubtitleCues = useMemo(
     () => subtitleCuesFromTimeline(tracks),
     [tracks],
   );
+  const subtitleCues = useMemo(() => {
+    const normalized = textEdit && normalizeSubtitleCueText(textEdit.text);
+    return normalized
+      ? timelineSubtitleCues.map((cue) =>
+          cue.id === textEdit?.clipId ? { ...cue, ...normalized } : cue,
+        )
+      : timelineSubtitleCues;
+  }, [textEdit, timelineSubtitleCues]);
   const subtitleClipEntries = useMemo(
-    () => clips.filter((entry) => entry.track.id === EDITOR_SUBTITLE_TRACK_ID),
+    () =>
+      clips
+        .filter((entry) => entry.track.id === EDITOR_SUBTITLE_TRACK_ID)
+        .toSorted(
+          (a, b) =>
+            toSeconds(a.clip.timelineStart) - toSeconds(b.clip.timelineStart),
+        ),
     [clips],
   );
   const selectedSubtitleClip =
@@ -175,217 +229,185 @@ export function useEditorSubtitles({
   const selectedSubtitleCue = selectedSubtitleClip
     ? subtitleCueFromTimelineClip(selectedSubtitleClip)
     : null;
-  const subtitleTrackVisible =
+  const subtitleOutputEnabled =
     tracks.find((track) => track.id === EDITOR_SUBTITLE_TRACK_ID)?.visible ??
     true;
-  const subtitleOutputEnabled = subtitleEnabled && subtitleTrackVisible;
-  const subtitleCuesReady =
-    selectedSubtitleTrack !== null &&
-    importedSubtitleTrackKey === selectedSubtitleTrackKey &&
-    !subtitleLoading &&
-    !subtitleError;
   const clippedSubtitleCues = useMemo(
     () =>
-      subtitleOutputEnabled && subtitleCuesReady
+      subtitleOutputEnabled
         ? trimSubtitleCues(subtitleCues, startTime, endTime)
         : [],
-    [
-      endTime,
-      startTime,
-      subtitleCues,
-      subtitleCuesReady,
-      subtitleOutputEnabled,
-    ],
+    [endTime, startTime, subtitleCues, subtitleOutputEnabled],
   );
-  const subtitleExportSummary = useMemo(
-    () =>
-      buildSubtitleExportSummary({
-        selectedSubtitleTrack,
-        subtitleEnabled: subtitleOutputEnabled,
-        subtitleTrackCount: subtitleTracks.length,
-        clippedSubtitleCueCount: clippedSubtitleCues.length,
-        subtitleLoading,
-        subtitleError,
-        providerId: session.source.providerId,
-      }),
-    [
-      selectedSubtitleTrack,
-      subtitleOutputEnabled,
-      subtitleTracks.length,
-      clippedSubtitleCues.length,
-      subtitleLoading,
-      subtitleError,
-      session.source.providerId,
-    ],
-  );
+  const subtitleExportSummary = buildSubtitleExportSummary({
+    subtitleEnabled: subtitleOutputEnabled,
+    clippedSubtitleCueCount: clippedSubtitleCues.length,
+    subtitleLoading,
+  });
+  const canEditSubtitles = mediaReady && initialized && !subtitleLoading;
+  const canAddSubtitle = canEditSubtitles && toSeconds(playheadTime) < duration;
 
-  useEffect(() => {
-    saveSubtitleStyleSettings(subtitleStyleSettings);
-  }, [subtitleStyleSettings]);
-
-  useEffect(() => {
-    if (
-      subtitleTrackSelectionInitializedReference.current ||
-      subtitleTrackSelectionChangedByUserReference.current
-    ) {
-      return;
-    }
-
-    const preferredSubtitleTrack = selectPreferredSubtitleTrack(
-      subtitleTracks,
-      session.selectedSubtitleTrack,
-    );
-    if (!preferredSubtitleTrack) {
-      return;
-    }
-
-    subtitleTrackSelectionInitializedReference.current = true;
-    setSelectedSubtitleTrackKey(subtitleTrackKey(preferredSubtitleTrack));
-    setSubtitleEnabled(subtitleTrackSupportsBurnIn(preferredSubtitleTrack));
-  }, [session.selectedSubtitleTrack, subtitleTracks]);
-
-  const applySubtitleTrackChange = useCallback(
-    (value: string) => {
-      subtitleTrackSelectionChangedByUserReference.current = true;
-      setSelectedSubtitleTrackKey(value);
-      clearSubtitleError();
-
-      if (value === "none") {
-        setSubtitleEnabled(false);
-        resetSubtitleCues();
-        return;
-      }
-
-      const nextTrack =
-        subtitleTracks.find((track) => subtitleTrackKey(track) === value) ??
-        null;
-      setSubtitleEnabled(
-        Boolean(nextTrack && subtitleTrackSupportsBurnIn(nextTrack)),
-      );
-    },
-    [clearSubtitleError, resetSubtitleCues, subtitleTracks],
-  );
-
-  const handleSelectedSubtitleTrackChange = useCallback(
-    (value: string) => {
-      if (
-        value !== "none" &&
-        value !== importedSubtitleTrackKey &&
-        subtitleCues.length > 0
-      ) {
-        setPendingSubtitleTrackKey(value);
-        return;
-      }
-
-      applySubtitleTrackChange(value);
-    },
-    [applySubtitleTrackChange, importedSubtitleTrackKey, subtitleCues.length],
-  );
-
-  function confirmSubtitleTrackChange() {
-    if (pendingSubtitleTrackKey === null) {
-      return;
-    }
-    applySubtitleTrackChange(pendingSubtitleTrackKey);
-    setPendingSubtitleTrackKey(null);
+  function cancelImport() {
+    setImportTrack(null);
+    resetSubtitleCues();
+    setInitialized(true);
   }
-
-  const handleSelectedSubtitleTextCommit = useCallback(
-    (text: string) => {
-      if (!selectedSubtitleClip) {
-        return;
-      }
-      const normalizedText = normalizeSubtitleCueText(text);
-      if (!normalizedText) {
-        return;
-      }
-      updateClip(selectedSubtitleClip.id, { label: normalizedText.text });
-    },
-    [selectedSubtitleClip, updateClip],
-  );
-
-  const handleSelectedSubtitleStartCommit = useCallback(
-    (startTime: number) => {
-      if (!selectedSubtitleClip || !Number.isFinite(startTime)) {
-        return;
-      }
-      trimClip({
-        clipId: selectedSubtitleClip.id,
-        edge: "start",
-        // eslint-disable-next-line unicorn/no-keyword-prefix -- Canvas Timeline command field.
-        newTime: fromSeconds(Math.min(Math.max(0, startTime), duration)),
-        snap: false,
-      });
-    },
-    [duration, selectedSubtitleClip, trimClip],
-  );
-
-  const handleSelectedSubtitleEndCommit = useCallback(
-    (endTime: number) => {
-      if (!selectedSubtitleClip || !Number.isFinite(endTime)) {
-        return;
-      }
-      trimClip({
-        clipId: selectedSubtitleClip.id,
-        edge: "end",
-        // eslint-disable-next-line unicorn/no-keyword-prefix -- Canvas Timeline command field.
-        newTime: fromSeconds(Math.min(Math.max(0, endTime), duration)),
-        snap: false,
-      });
-    },
-    [duration, selectedSubtitleClip, trimClip],
-  );
-
-  const handleDeleteSelectedSubtitle = useCallback(() => {
-    if (!selectedSubtitleClip) {
+  function beginImport(track: PlaybackSubtitleTrack) {
+    commitText();
+    resetSubtitleCues();
+    setSubtitleError(null);
+    setPendingImport(null);
+    setImportTrack(track);
+  }
+  function requestImport(key: string) {
+    if (!canEditSubtitles) {
       return;
     }
-    const selectedIndex = subtitleClipEntries.findIndex(
+    const track = subtitleTracks.find(
+      (candidate) => subtitleTrackKey(candidate) === key,
+    );
+    if (!track) {
+      return;
+    }
+    if (subtitleCues.length > 0) {
+      commitText();
+      setPendingImport(track);
+    } else {
+      beginImport(track);
+    }
+  }
+  function addSubtitle() {
+    if (!canAddSubtitle) {
+      return;
+    }
+    commitText();
+    pausePlayback();
+    const time = toSeconds(engine.getState().playheadTime);
+    const clip = createSubtitleClip(
+      {
+        startTime: time,
+        endTime: time + lastDuration.current,
+        text: "New subtitle",
+      },
+      duration,
+    );
+    if (!clip) {
+      return;
+    }
+    runAction(() => {
+      const result = engine.commitEdit({
+        type: "overwrite",
+        targetTrackId: EDITOR_SUBTITLE_TRACK_ID,
+        startTime: fromSeconds(time),
+        clip,
+        snap: false,
+      });
+      if (!result.preview.valid) {
+        setSubtitleError(
+          result.preview.message ?? "Could not add a subtitle at this time.",
+        );
+        return;
+      }
+      if (!subtitleOutputEnabled) {
+        engine.toggleTrackVisibility(EDITOR_SUBTITLE_TRACK_ID, true);
+      }
+      selectClip(clip.id);
+      engine.setScrollLeft(
+        timelineScrollLeftForCenteredTime({
+          maxScrollLeft: engine.maxScrollLeft,
+          timeSeconds: time,
+          viewportWidth: engine.getState().viewportWidth ?? 0,
+          zoomScale: engine.getState().zoomScale,
+        }),
+      );
+      setTextError(null);
+      onSubtitleCreated();
+      setFocusRevision((value) => value + 1);
+    });
+  }
+  function deleteSubtitle() {
+    if (!selectedSubtitleClip || subtitleLoading) {
+      return;
+    }
+    commitText();
+    const index = subtitleClipEntries.findIndex(
       (entry) => entry.clip.id === selectedSubtitleClip.id,
     );
-    const nextSelection =
-      subtitleClipEntries[selectedIndex + 1] ??
-      subtitleClipEntries[selectedIndex - 1] ??
-      null;
-    deleteClip(selectedSubtitleClip.id);
-    selectClip(nextSelection?.clip.id ?? null);
-  }, [deleteClip, selectClip, selectedSubtitleClip, subtitleClipEntries]);
-
-  const selectRelativeSubtitleCue = useCallback(
-    (offset: -1 | 1) => {
-      if (subtitleClipEntries.length === 0) {
-        return;
-      }
-      const selectedIndex = selectedSubtitleClip
-        ? subtitleClipEntries.findIndex(
-            (entry) => entry.clip.id === selectedSubtitleClip.id,
-          )
-        : -1;
-      const nextIndex = Math.min(
-        Math.max(selectedIndex + offset, 0),
-        subtitleClipEntries.length - 1,
-      );
-      selectClip(subtitleClipEntries[nextIndex]?.clip.id ?? null);
-    },
-    [selectClip, selectedSubtitleClip, subtitleClipEntries],
-  );
-
-  const handleSeekToSelectedSubtitle = useCallback(() => {
-    if (selectedSubtitleCue) {
-      engine.updatePlayhead(fromSeconds(selectedSubtitleCue.startTime));
+    engine.commitEdit({
+      type: "delete-clips",
+      clipIds: [selectedSubtitleClip.id],
+    });
+    selectClip(
+      (subtitleClipEntries[index + 1] ?? subtitleClipEntries[index - 1])?.clip
+        .id ?? null,
+    );
+    setTextError(null);
+  }
+  function clearSubtitles() {
+    commitText();
+    cancelImport();
+    initialImportStarted.current = true;
+    engine.commitEdit({
+      type: "delete-clips",
+      clipIds: subtitleClipEntries.map((entry) => entry.clip.id),
+    });
+    selectClip(null);
+    setClearPending(false);
+    setSubtitleError(null);
+    setTextError(null);
+  }
+  function trimSubtitle(edge: "start" | "end", time: number) {
+    if (!selectedSubtitleClip || subtitleLoading || !Number.isFinite(time)) {
+      return;
     }
-  }, [engine, selectedSubtitleCue]);
+    commitText();
+    engine.commitEdit({
+      type: "trim",
+      clipId: selectedSubtitleClip.id,
+      edge,
+      // eslint-disable-next-line unicorn/no-keyword-prefix -- Canvas Timeline command field.
+      newTime: fromSeconds(Math.min(Math.max(0, time), duration)),
+      snap: false,
+    });
+  }
+  function selectRelative(offset: -1 | 1) {
+    commitText();
+    const index = subtitleClipEntries.findIndex(
+      (entry) => entry.clip.id === selectedSubtitleClip?.id,
+    );
+    selectClip(
+      subtitleClipEntries[
+        Math.min(Math.max(index + offset, 0), subtitleClipEntries.length - 1)
+      ]?.clip.id ?? null,
+    );
+    setTextError(null);
+  }
 
   return {
-    importedSubtitleTrackKey,
-    subtitleTrackVisible,
+    history: {
+      ...history,
+      canUndo: !subtitleLoading && history.canUndo,
+      canRedo: !subtitleLoading && history.canRedo,
+      undo: () => {
+        if (!subtitleLoading) {
+          commitText();
+          history.undo();
+        }
+      },
+      redo: () => {
+        if (!subtitleLoading) {
+          commitText();
+          history.redo();
+        }
+      },
+    },
+    initialized,
     subtitleTracks,
-    selectedSubtitleTrack,
-    selectedSubtitleTrackKey,
-    subtitleEnabled,
     subtitleOutputEnabled,
-    subtitleCuesReady,
-    setSubtitleEnabled,
+    setSubtitleEnabled: (visible: boolean) => {
+      commitText();
+      engine.toggleTrackVisibility(EDITOR_SUBTITLE_TRACK_ID, visible);
+    },
     subtitleStyleSettings,
     setSubtitleStyleSettings,
     subtitleCues,
@@ -393,17 +415,60 @@ export function useEditorSubtitles({
     subtitleError,
     clippedSubtitleCues,
     subtitleExportSummary,
-    handleSelectedSubtitleTrackChange,
-    subtitleTrackChangePending: pendingSubtitleTrackKey !== null,
-    confirmSubtitleTrackChange,
-    cancelSubtitleTrackChange: () => setPendingSubtitleTrackKey(null),
+    requestImport,
+    cancelImport,
+    subtitleTrackChangePending: pendingImport !== null,
+    confirmSubtitleTrackChange: () => {
+      if (pendingImport) {
+        beginImport(pendingImport);
+      }
+    },
+    cancelSubtitleTrackChange: () => setPendingImport(null),
+    clearPending,
+    requestClear: () => {
+      commitText();
+      setClearPending(true);
+    },
+    confirmClear: clearSubtitles,
+    cancelClear: () => setClearPending(false),
+    canImportSubtitles: canEditSubtitles && subtitleTracks.length > 0,
+    canAddSubtitle,
+    addSubtitle,
+    focusRevision,
     selectedSubtitleCue,
-    handleSelectedSubtitleTextCommit,
-    handleSelectedSubtitleStartCommit,
-    handleSelectedSubtitleEndCommit,
-    handleDeleteSelectedSubtitle,
-    handleSelectPreviousSubtitle: () => selectRelativeSubtitleCue(-1),
-    handleSelectNextSubtitle: () => selectRelativeSubtitleCue(1),
-    handleSeekToSelectedSubtitle,
+    selectedSubtitleOutsideRange: Boolean(
+      selectedSubtitleCue &&
+      (selectedSubtitleCue.endTime <= startTime ||
+        selectedSubtitleCue.startTime >= endTime),
+    ),
+    subtitleText:
+      textEdit?.clipId === selectedSubtitleClip?.id
+        ? (textEdit?.text ?? "")
+        : (selectedSubtitleCue?.text ?? ""),
+    textError,
+    editSubtitleText: (text: string) => {
+      if (!selectedSubtitleClip || subtitleLoading) {
+        return;
+      }
+      const edit = { clipId: selectedSubtitleClip.id, text };
+      textEditReference.current = edit;
+      setTextEdit(edit);
+      setTextError(null);
+    },
+    commitText,
+    handleSelectedSubtitleStartCommit: (time: number) =>
+      trimSubtitle("start", time),
+    handleSelectedSubtitleEndCommit: (time: number) =>
+      trimSubtitle("end", time),
+    handleDeleteSelectedSubtitle: deleteSubtitle,
+    handleSelectPreviousSubtitle: () => selectRelative(-1),
+    handleSelectNextSubtitle: () => selectRelative(1),
+    handleSeekToSelectedSubtitle: () => {
+      if (selectedSubtitleCue) {
+        commitText();
+        pausePlayback();
+        engine.updatePlayhead(fromSeconds(selectedSubtitleCue.startTime));
+      }
+    },
   };
 }

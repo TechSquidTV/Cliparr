@@ -123,3 +123,18 @@ void test("resolves frame-step seconds from detected frame rate", () => {
     DEFAULT_EDITOR_FRAME_STEP_SECONDS,
   );
 });
+
+void test("deletes selected subtitles without hijacking modified or repeated keys", () => {
+  for (const code of ["Delete", "Backspace"]) {
+    assert.equal(resolveEditorShortcutCommand({ code }), "delete-subtitle");
+    for (const modifiers of [
+      { repeat: true },
+      { shiftKey: true },
+      { ctrlKey: true },
+      { metaKey: true },
+      { altKey: true },
+    ]) {
+      assert.equal(resolveEditorShortcutCommand({ code, ...modifiers }), null);
+    }
+  }
+});

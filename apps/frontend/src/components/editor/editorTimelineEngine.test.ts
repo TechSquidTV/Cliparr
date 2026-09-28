@@ -8,6 +8,7 @@ import {
   EDITOR_SUBTITLE_TRACK_NAME,
   EDITOR_SUBTITLE_TRACK_ID,
   createEditorTimelineEngine,
+  createSubtitleClip,
   subtitleCuesFromTimeline,
   synchronizeEditorTimelineMedia,
   synchronizeEditorTimelineSession,
@@ -238,6 +239,7 @@ void describe("editor timeline engine", () => {
     synchronizeEditorTimelineSubtitles(engine, {
       cues: [
         {
+          id: "custom",
           startTime: 2,
           endTime: 4,
           text: "Customized subtitle",
@@ -263,6 +265,7 @@ void describe("editor timeline engine", () => {
     assert.equal(state.zoomScale, 180);
     assert.deepEqual(subtitleCuesFromTimeline(state.tracks), [
       {
+        id: "custom",
         startTime: 2,
         endTime: 4,
         text: "Customized subtitle",
@@ -304,6 +307,7 @@ void describe("editor timeline engine", () => {
           lines: ["First line", "Second line"],
         },
         {
+          id: "clamped",
           startTime: 19,
           endTime: 22,
           text: "Clamped ending",
@@ -337,6 +341,7 @@ void describe("editor timeline engine", () => {
         lines: ["First line", "Second line"],
       },
       {
+        id: "clamped",
         startTime: 19,
         endTime: 20,
         text: "Clamped ending",
@@ -350,6 +355,7 @@ void describe("editor timeline engine", () => {
     const engine = createEditorTimelineEngine(session);
     const cues = [
       {
+        id: "discovered",
         startTime: 2,
         endTime: 4,
         text: "Visible after discovery",
@@ -379,12 +385,14 @@ void describe("editor timeline engine", () => {
     synchronizeEditorTimelineSubtitles(engine, {
       cues: [
         {
+          id: "editor-subtitle-cue-0",
           startTime: 2,
           endTime: 5,
           text: "Original",
           lines: ["Original"],
         },
         {
+          id: "overlapping",
           startTime: 4,
           endTime: 7,
           text: "Overlapping",
@@ -410,12 +418,14 @@ void describe("editor timeline engine", () => {
     assert.equal(move.committed, true);
     assert.deepEqual(subtitleCuesFromTimeline(engine.getState().tracks), [
       {
+        id: "editor-subtitle-cue-0",
         startTime: 3,
         endTime: 6,
         text: "Customized\ntext",
         lines: ["Customized", "text"],
       },
       {
+        id: "overlapping",
         startTime: 4,
         endTime: 7,
         text: "Overlapping",
@@ -429,6 +439,7 @@ void describe("editor timeline engine", () => {
     synchronizeEditorTimelineSubtitles(engine, {
       cues: [
         {
+          id: "editor-subtitle-cue-0",
           startTime: 2,
           endTime: 5,
           text: "Original",
@@ -445,11 +456,146 @@ void describe("editor timeline engine", () => {
     );
     assert.deepEqual(subtitleCuesFromTimeline(engine.getState().tracks), [
       {
+        id: "editor-subtitle-cue-0",
         startTime: 2,
         endTime: 5,
         text: "First line\nSecond line",
         lines: ["First line", "Second line"],
       },
     ]);
+  });
+});
+
+void describe("subtitle authoring", () => {
+  for (const [start, end, expected] of [
+    [2, 8, [[2, 8, "New"]]],
+    [
+      1,
+      4,
+      [
+        [1, 4, "New"],
+        [4, 8, "Original"],
+      ],
+    ],
+    [
+      6,
+      9,
+      [
+        [2, 6, "Original"],
+        [6, 9, "New"],
+      ],
+    ],
+    [
+      4,
+      6,
+      [
+        [2, 4, "Original"],
+        [4, 6, "New"],
+        [6, 8, "Original"],
+      ],
+    ],
+  ] as const) {
+    void it(`overwrites ${start}–${end} without moving later cues and undoes atomically`, () => {
+      const engine = createEditorTimelineEngine(createSession());
+      synchronizeEditorTimelineSubtitles(engine, {
+        cues: [
+          {
+            id: "original",
+            startTime: 2,
+            endTime: 8,
+            text: "Original",
+            lines: ["Original"],
+          },
+          {
+            id: "later",
+            startTime: 10,
+            endTime: 12,
+            text: "Later",
+            lines: ["Later"],
+          },
+        ],
+      });
+      const before = subtitleCuesFromTimeline(engine.getState().tracks);
+      const history = createEditorHistory(engine);
+      const clip = createSubtitleClip(
+        { startTime: start, endTime: end, text: "New" },
+        20,
+      );
+      assert.ok(clip);
+      assert.equal(
+        engine.commitEdit({
+          type: "overwrite",
+          targetTrackId: EDITOR_SUBTITLE_TRACK_ID,
+          startTime: fromSeconds(start),
+          clip,
+          snap: false,
+        }).committed,
+        true,
+      );
+      const after = subtitleCuesFromTimeline(engine.getState().tracks);
+      assert.deepEqual(
+        after.map((cue) => [cue.startTime, cue.endTime, cue.text]),
+        [...expected, [10, 12, "Later"]],
+      );
+      assert.equal(new Set(after.map((cue) => cue.id)).size, after.length);
+      history.undo();
+      assert.deepEqual(
+        subtitleCuesFromTimeline(engine.getState().tracks),
+        before,
+      );
+      history.redo();
+      assert.deepEqual(
+        subtitleCuesFromTimeline(engine.getState().tracks),
+        after,
+      );
+      history.dispose();
+    });
+  }
+  void it("creates text without a provider, normalizes it, and clamps to video end", () => {
+    const clip = createSubtitleClip(
+      { startTime: 19, endTime: 23, text: "  Meme\r\n text  " },
+      20,
+    );
+    assert.ok(clip);
+    assert.equal(toSeconds(clip.timelineStart), 19);
+    assert.equal(toSeconds(clip.timelineEnd), 20);
+    assert.equal(clip.label, "Meme\ntext");
+    assert.equal(
+      createSubtitleClip({ startTime: 20, endTime: 22, text: "End" }, 20),
+      null,
+    );
+    assert.equal(
+      createSubtitleClip({ startTime: 0, endTime: 2, text: "   " }, 20),
+      null,
+    );
+  });
+  void it("sorts cues and preserves unique editor identities across draft restoration", () => {
+    const engine = createEditorTimelineEngine(createSession());
+    synchronizeEditorTimelineSubtitles(engine, {
+      cues: [
+        {
+          id: "same",
+          startTime: 8,
+          endTime: 10,
+          text: "Later",
+          lines: ["Later"],
+        },
+        {
+          id: "same",
+          startTime: 1,
+          endTime: 2,
+          text: "Earlier",
+          lines: ["Earlier"],
+        },
+      ],
+    });
+    const cues = subtitleCuesFromTimeline(engine.getState().tracks);
+    assert.deepEqual(
+      cues.map((cue) => cue.startTime),
+      [1, 8],
+    );
+    assert.notEqual(cues[0]?.id, cues[1]?.id);
+    synchronizeEditorTimelineSubtitles(engine, { cues });
+    assert.deepEqual(subtitleCuesFromTimeline(engine.getState().tracks), cues);
   });
 });

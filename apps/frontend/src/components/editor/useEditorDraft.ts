@@ -72,9 +72,6 @@ export function useEditorDraft({
     setRestorationComplete(true);
   }, [duration, engine, initialDraft, ready]);
 
-  const selectedTrackKey = subtitles.selectedTrackKey;
-  const importedTrackKey = subtitles.importedTrackKey;
-  const enabled = subtitles.enabled;
   const visible = subtitles.visible;
   const cues = subtitles.cues;
   useEffect(() => {
@@ -82,14 +79,14 @@ export function useEditorDraft({
       return;
     }
     const draft: EditorDraft = {
-      version: 1,
+      version: 2,
       identity: editorDraftIdentity(session),
       sessionId: session.id,
       updatedAt: Date.now(),
       duration,
       startTime,
       endTime,
-      subtitles: { selectedTrackKey, importedTrackKey, enabled, visible, cues },
+      subtitles: { visible, cues },
     };
     latest.current = draft;
     const timeout = setTimeout(() => {
@@ -103,12 +100,9 @@ export function useEditorDraft({
   }, [
     cues,
     duration,
-    enabled,
     endTime,
-    importedTrackKey,
     ready,
     restorationComplete,
-    selectedTrackKey,
     session,
     startTime,
     visible,

@@ -133,17 +133,6 @@ void test("uses export fallback source when auto-selected", () => {
 void test("reports editor export readiness and subtitle blockers", () => {
   const hlsSource = createProviderUrlSource("/playback/master.m3u8", "hls");
   const readySource = { source: hlsSource, kind: "hls" as const };
-  const textSubtitleTrack = {
-    streamId: "subtitle-1",
-    isText: true,
-    contentUrl: "/subtitles/1.srt",
-    contentFormat: "srt",
-  };
-  const imageSubtitleTrack = {
-    streamId: "subtitle-2",
-    isText: false,
-    codec: "pgs",
-  };
   const subtitleCues = [
     {
       startTime: 1,
@@ -161,7 +150,6 @@ void test("reports editor export readiness and subtitle blockers", () => {
       startTime: 0,
       endTime: 10,
       subtitleEnabled: false,
-      selectedSubtitleTrack: null,
       clippedSubtitleCues: [],
       subtitleLoading: false,
     }),
@@ -179,7 +167,6 @@ void test("reports editor export readiness and subtitle blockers", () => {
       startTime: 10,
       endTime: 10,
       subtitleEnabled: false,
-      selectedSubtitleTrack: null,
       clippedSubtitleCues: [],
       subtitleLoading: false,
     }),
@@ -198,7 +185,6 @@ void test("reports editor export readiness and subtitle blockers", () => {
       startTime: 0,
       endTime: 10,
       subtitleEnabled: true,
-      selectedSubtitleTrack: textSubtitleTrack,
       clippedSubtitleCues: [],
       subtitleLoading: true,
     }),
@@ -217,7 +203,6 @@ void test("reports editor export readiness and subtitle blockers", () => {
       startTime: 0,
       endTime: 10,
       subtitleEnabled: true,
-      selectedSubtitleTrack: textSubtitleTrack,
       clippedSubtitleCues: subtitleCues,
       subtitleLoading: true,
     }),
@@ -235,15 +220,15 @@ void test("reports editor export readiness and subtitle blockers", () => {
       exporting: false,
       startTime: 0,
       endTime: 10,
-      subtitleEnabled: true,
-      selectedSubtitleTrack: imageSubtitleTrack,
+      subtitleEnabled: false,
       clippedSubtitleCues: subtitleCues,
       subtitleLoading: false,
     }),
     {
-      state: "blocked",
-      message: "This subtitle track is not supported.",
-      shouldBurnSubtitles: true,
+      state: "ready",
+      source: hlsSource,
+      sourceKind: "hls",
+      shouldBurnSubtitles: false,
     },
   );
 
@@ -255,7 +240,6 @@ void test("reports editor export readiness and subtitle blockers", () => {
       startTime: 0,
       endTime: 10,
       subtitleEnabled: true,
-      selectedSubtitleTrack: textSubtitleTrack,
       clippedSubtitleCues: subtitleCues,
       subtitleLoading: false,
     }),
@@ -867,7 +851,6 @@ void test("builds export dimensions and source messaging", () => {
       startTime: 0,
       endTime: 16,
       subtitleEnabled: false,
-      selectedSubtitleTrack: null,
       clippedSubtitleCues: [],
       subtitleLoading: false,
     }),

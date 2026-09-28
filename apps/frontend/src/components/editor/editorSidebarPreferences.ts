@@ -1,9 +1,9 @@
 export const EDITOR_PROPERTIES_SECTION_ID = {
-  globalSubtitles: "global-subtitles",
+  subtitleStyle: "subtitle-style",
 } as const;
 
 const EDITOR_PROPERTIES_SECTION_IDS = [
-  EDITOR_PROPERTIES_SECTION_ID.globalSubtitles,
+  EDITOR_PROPERTIES_SECTION_ID.subtitleStyle,
 ] as const;
 
 export type EditorPropertiesSectionId =
@@ -12,7 +12,7 @@ export type EditorPropertiesSectionId =
 export type EditorPropertiesOpenSections = readonly EditorPropertiesSectionId[];
 
 export const DEFAULT_EDITOR_PROPERTIES_OPEN_SECTIONS = [
-  EDITOR_PROPERTIES_SECTION_ID.globalSubtitles,
+  EDITOR_PROPERTIES_SECTION_ID.subtitleStyle,
 ] as const satisfies EditorPropertiesOpenSections;
 
 const EDITOR_PROPERTIES_ACCORDION_STORAGE_KEY =

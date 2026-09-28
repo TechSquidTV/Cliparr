@@ -37,6 +37,7 @@ const shortcuts = [
   ["Seek 5 seconds", "Shift + ← / →"],
   ["Previous / next frame", "Page Up / Page Down (or hold K + J / L)"],
   ["Zoom out / in", "− / +"],
+  ["Delete selected subtitle", "Delete / Backspace"],
   ["Undo", "Ctrl / ⌘ + Z"],
   ["Redo", "Ctrl / ⌘ + Shift + Z (or Ctrl + Y)"],
 ] as const;

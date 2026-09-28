@@ -42,7 +42,6 @@ import {
   type EditorDraft,
 } from "@/components/editor/editorDrafts";
 import { useEditorDraft } from "@/components/editor/useEditorDraft";
-import { useEditorHistory } from "@/components/editor/useEditorHistory";
 import {
   EDITOR_MAX_ZOOM_SCALE,
   zoomEditorTimeline,
@@ -154,15 +153,21 @@ function EditorScreenContent({
     useState(loadEditorPropertiesOpenSections);
   const [exportDialogMounted, setExportDialogMounted] = useState(false);
   const subtitleTrackTriggerReference = useRef<HTMLButtonElement>(null);
+  const subtitleOptionsTriggerReference = useRef<HTMLButtonElement>(null);
+  const subtitles = useEditorSubtitles({
+    initialDraft,
+    engine,
+    session,
+    startTime,
+    endTime,
+    duration,
+    mediaReady: timelineMedia.metadataReady,
+    pausePlayback: timelineMedia.pausePlayback,
+    onSubtitleCreated: () => setPlaybackSidebarOpen(true),
+  });
   const {
     subtitleTracks,
-    selectedSubtitleTrack,
-    selectedSubtitleTrackKey,
-    subtitleEnabled,
     subtitleOutputEnabled,
-    subtitleCuesReady,
-    importedSubtitleTrackKey,
-    subtitleTrackVisible,
     setSubtitleEnabled,
     subtitleStyleSettings,
     setSubtitleStyleSettings,
@@ -171,48 +176,26 @@ function EditorScreenContent({
     subtitleError,
     clippedSubtitleCues,
     subtitleExportSummary,
-    handleSelectedSubtitleTrackChange,
+    requestImport,
     subtitleTrackChangePending,
     confirmSubtitleTrackChange,
     cancelSubtitleTrackChange,
-    selectedSubtitleCue,
-    handleSelectedSubtitleTextCommit,
-    handleSelectedSubtitleStartCommit,
-    handleSelectedSubtitleEndCommit,
-    handleDeleteSelectedSubtitle,
-    handleSelectPreviousSubtitle,
-    handleSelectNextSubtitle,
-    handleSeekToSelectedSubtitle,
-  } = useEditorSubtitles({
-    initialDraft,
-    engine,
-    session,
-    startTime,
-    endTime,
-    duration,
-    mediaReady: timelineMedia.metadataReady,
-  });
+    history: editHistory,
+  } = subtitles;
   const draft = useEditorDraft({
     engine,
     session,
     initialDraft,
     onReset,
-    ready: timelineMedia.metadataReady && !subtitleLoading,
+    ready: timelineMedia.metadataReady && subtitles.initialized,
     duration,
     startTime,
     endTime,
     subtitles: {
-      selectedTrackKey: selectedSubtitleTrackKey,
-      importedTrackKey: importedSubtitleTrackKey,
-      enabled: subtitleEnabled,
-      visible: subtitleTrackVisible,
+      visible: subtitleOutputEnabled,
       cues: subtitleCues,
     },
   });
-  const editHistory = useEditorHistory(
-    engine,
-    timelineMedia.metadataReady && !subtitleLoading,
-  );
   const posterImageUrl = session.thumbUrl;
 
   const {
@@ -290,7 +273,6 @@ function EditorScreenContent({
     exportFallbackSource,
     hlsFallbackInfo,
     subtitleEnabled: subtitleOutputEnabled,
-    selectedSubtitleTrack,
     clippedSubtitleCues,
     subtitleLoading,
     subtitleCues,
@@ -312,7 +294,6 @@ function EditorScreenContent({
     previewVideoDimensions,
     subtitleEnabled: subtitleOutputEnabled,
     subtitleLoading,
-    subtitleError,
     getCurrentTime: getFramegrabTime,
   });
   const playbackFallbackReason = buildPlaybackFallbackReason({
@@ -349,13 +330,13 @@ function EditorScreenContent({
     subtitles: {
       subtitleTracks,
       subtitleOutputEnabled,
-      subtitleCuesReady,
+      initialized: subtitles.initialized,
       subtitleLoading,
       subtitleError,
       clippedSubtitleCues,
       setSubtitleEnabled,
       setSubtitleStyleSettings,
-      handleSelectedSubtitleTrackChange,
+      requestImport,
     },
   });
   const zoomControl = useTimelineZoomControl({
@@ -475,6 +456,7 @@ function EditorScreenContent({
     [duration, frameStepSeconds, getPlaybackTime, pausePlayback, seekToTime],
   );
   useEditorKeyboardShortcuts({
+    deleteSubtitle: subtitles.handleDeleteSelectedSubtitle,
     undo: editHistory.undo,
     redo: editHistory.redo,
     togglePlay: () => void togglePlay(),
@@ -534,7 +516,7 @@ function EditorScreenContent({
           <EditorSubtitlePreview
             cues={subtitleCues}
             currentTime={previewFrameTime}
-            enabled={subtitleOutputEnabled && subtitleCuesReady}
+            enabled={subtitleOutputEnabled}
             overlayCanvasRef={subtitleCanvasRef}
             style={subtitleStyleSettings}
             videoCanvasRef={canvasRef}
@@ -572,7 +554,10 @@ function EditorScreenContent({
       handleTimelineZoomOut={handleTimelineZoomOut}
       canZoomIn={canZoomIn}
       canZoomOut={canZoomOut}
-      onFramegrabClick={framegrab.openDialog}
+      onFramegrabClick={() => {
+        subtitles.commitText();
+        framegrab.openDialog();
+      }}
       framegrabDisabledReason={framegrab.disabledReason}
       onPreviewTimeCommit={handlePreviewTimeCommit}
       onStartTimeCommit={handleStartTimeCommit}
@@ -586,6 +571,11 @@ function EditorScreenContent({
     <EditorTimeline
       engine={engine}
       ready={hasDuration}
+      subtitleLoading={subtitleLoading}
+      onInteractionStart={subtitles.commitText}
+      canAddSubtitle={subtitles.canAddSubtitle}
+      onAddSubtitle={subtitles.addSubtitle}
+      onSubtitleVisibilityChange={setSubtitleEnabled}
       muted={muted}
       onMutedChange={setMuted}
     />
@@ -600,45 +590,23 @@ function EditorScreenContent({
   );
 
   function renderSubtitlePanel(className: string) {
-    if (session.local) {
-      return null;
-    }
-
     return (
       <div className={className}>
         <EditorSubtitlePanel
-          providerId={session.source.providerId}
-          subtitleTracks={subtitleTracks}
-          selectedSubtitleTrackKey={selectedSubtitleTrackKey}
-          subtitleTrackChangePending={subtitleTrackChangePending}
+          subtitles={subtitles}
           subtitleTrackTriggerRef={subtitleTrackTriggerReference}
-          onSelectedSubtitleTrackKeyChange={handleSelectedSubtitleTrackChange}
-          subtitlesEnabled={subtitleEnabled}
-          onSubtitlesEnabledChange={setSubtitleEnabled}
-          subtitleStyleSettings={subtitleStyleSettings}
-          onSubtitleStyleSettingsChange={setSubtitleStyleSettings}
-          subtitleLoading={subtitleLoading}
-          subtitleError={subtitleError}
-          selectedSubtitleTrack={selectedSubtitleTrack}
+          subtitleOptionsTriggerRef={subtitleOptionsTriggerReference}
           editorPropertiesOpenSections={editorPropertiesOpenSections}
           onEditorPropertiesOpenSectionsChange={setEditorPropertiesOpenSections}
-          selectedSubtitleCue={selectedSubtitleCue}
-          onSelectedSubtitleTextCommit={handleSelectedSubtitleTextCommit}
-          onSelectedSubtitleStartCommit={handleSelectedSubtitleStartCommit}
-          onSelectedSubtitleEndCommit={handleSelectedSubtitleEndCommit}
-          onDeleteSelectedSubtitle={handleDeleteSelectedSubtitle}
-          onSelectPreviousSubtitle={handleSelectPreviousSubtitle}
-          onSelectNextSubtitle={handleSelectNextSubtitle}
-          onSeekToSelectedSubtitle={handleSeekToSelectedSubtitle}
         />
       </div>
     );
   }
 
   const propertiesContent = (
-    <div className="flex h-full min-h-0 flex-col gap-3 overflow-y-auto p-3">
+    <div className="flex h-full min-h-0 flex-col gap-3 p-3">
       {playbackSourcePanel}
-      {renderSubtitlePanel("min-h-editor-properties-min flex-1")}
+      {renderSubtitlePanel("min-h-0 flex-1")}
     </div>
   );
 
@@ -660,11 +628,20 @@ function EditorScreenContent({
       <ConfirmationDialog
         open={subtitleTrackChangePending}
         title="Replace subtitle cues?"
-        description="Changing subtitle tracks will replace your customized subtitle cues."
+        description="Importing replaces every subtitle in this editor. You can undo the replacement."
         confirmLabel="Replace cues"
         onConfirm={confirmSubtitleTrackChange}
         onCancel={cancelSubtitleTrackChange}
         finalFocus={subtitleTrackTriggerReference}
+      />
+      <ConfirmationDialog
+        open={subtitles.clearPending}
+        title="Start with blank subtitles?"
+        description={`Remove all ${subtitleCues.length} subtitles? Your shared style will be kept. You can undo this action.`}
+        confirmLabel="Start blank"
+        onConfirm={subtitles.confirmClear}
+        onCancel={subtitles.cancelClear}
+        finalFocus={subtitleOptionsTriggerReference}
       />
       <EditorHeader
         title={session.title}
@@ -672,7 +649,10 @@ function EditorScreenContent({
         exporting={exporting}
         progress={progress}
         exportDisabledReason={headerExportDisabledReason}
-        onExportClick={handleOpenExportDialog}
+        onExportClick={() => {
+          subtitles.commitText();
+          handleOpenExportDialog();
+        }}
       />
 
       <EditorEditingTools
