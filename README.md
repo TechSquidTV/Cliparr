@@ -127,7 +127,7 @@ We welcome contributions! To get started with a local development environment:
 3. **Install**: `pnpm install`
 4. **Run**: `pnpm dev`
 
-The optional Docker dev stack (`docker/compose.dev.yml`) seeds Plex and Jellyfin with Sintel, a Blender open movie with embedded subtitle tracks. Run `pnpm docker:dev:build` after Dockerfile or dependency changes, then `pnpm docker:dev:up` to start the stack. The seed is skipped when `CI=true` or `GITHUB_ACTIONS=true` so CI jobs do not download the large test movie. If you previously used the old Big Buck Bunny seed, recreate the `cliparr-dev-media`, `plex-config`, and `jellyfin-config` Docker volumes to force a clean library scan.
+The optional Docker dev stack (`docker/compose.dev.yml`) seeds Plex and Jellyfin with Sintel, a Blender open movie with embedded subtitle tracks. It downloads from download.blender.org and falls back to a Blender mirror, checking the file against Blender's published MD5; set `SINTEL_URL` (and `SINTEL_MD5`) to use a different copy. Run `pnpm docker:dev:build` after Dockerfile or dependency changes, then `pnpm docker:dev:up` to start the stack. The seed is skipped when `CI=true` or `GITHUB_ACTIONS=true` so CI jobs do not download the large test movie. If you previously used the old Big Buck Bunny seed, recreate the `cliparr-dev-media`, `plex-config`, and `jellyfin-config` Docker volumes to force a clean library scan.
 
 See [.github/CONTRIBUTING.md](.github/CONTRIBUTING.md) for more detailed guidance.
 
