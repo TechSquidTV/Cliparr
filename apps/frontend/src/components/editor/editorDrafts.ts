@@ -2,7 +2,7 @@ import type { EditorSession } from "@/lib/editorMedia";
 import type { SubtitleCue } from "@/lib/subtitles/types";
 
 export interface EditorDraft {
-  version: 1;
+  version: 2;
   identity: string;
   sessionId: string;
   updatedAt: number;
@@ -10,16 +10,13 @@ export interface EditorDraft {
   startTime: number;
   endTime: number;
   subtitles: {
-    selectedTrackKey: string;
-    importedTrackKey: string | null;
-    enabled: boolean;
     visible: boolean;
     cues: readonly SubtitleCue[];
   };
 }
 
 type DraftStorage = Pick<Storage, "getItem" | "setItem">;
-const STORAGE_KEY = "cliparr.editor.drafts.v1";
+const STORAGE_KEY = "cliparr.editor.drafts.v2";
 const MAX_AGE_MS = 14 * 24 * 60 * 60 * 1000;
 const MAX_STORAGE_BYTES = 1_500_000;
 
@@ -74,7 +71,7 @@ function isDraft(value: Partial<EditorDraft> | null): value is EditorDraft {
   }
   const subtitles = value.subtitles;
   return (
-    value.version === 1 &&
+    value.version === 2 &&
     typeof value.identity === "string" &&
     value.identity.length <= 4096 &&
     typeof value.sessionId === "string" &&
@@ -93,10 +90,6 @@ function isDraft(value: Partial<EditorDraft> | null): value is EditorDraft {
     Boolean(
       subtitles &&
       typeof subtitles === "object" &&
-      typeof subtitles.selectedTrackKey === "string" &&
-      (subtitles.importedTrackKey === null ||
-        typeof subtitles.importedTrackKey === "string") &&
-      typeof subtitles.enabled === "boolean" &&
       typeof subtitles.visible === "boolean" &&
       Array.isArray(subtitles.cues) &&
       subtitles.cues.length <= 20_000 &&

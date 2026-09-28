@@ -1,18 +1,7 @@
-import type { PlaybackSubtitleTrack } from "@/providers/types";
-import {
-  subtitleTrackSupportsBurnIn,
-  subtitleTrackUnavailableMessage,
-} from "@/lib/selectPreferredSubtitleTrack";
-import { formatSubtitleTrackLabel } from "@/lib/subtitleTrackLabels";
-
 interface BuildSubtitleExportSummaryOptions {
-  selectedSubtitleTrack: PlaybackSubtitleTrack | null;
   subtitleEnabled: boolean;
-  subtitleTrackCount: number;
   clippedSubtitleCueCount: number;
   subtitleLoading: boolean;
-  subtitleError: string | null;
-  providerId: string;
 }
 
 export interface SubtitleExportSummary {
@@ -23,63 +12,26 @@ export interface SubtitleExportSummary {
 }
 
 export function buildSubtitleExportSummary({
-  selectedSubtitleTrack,
   subtitleEnabled,
-  subtitleTrackCount,
   clippedSubtitleCueCount,
   subtitleLoading,
-  subtitleError,
-  providerId,
 }: BuildSubtitleExportSummaryOptions): SubtitleExportSummary {
-  if (!selectedSubtitleTrack || !subtitleEnabled) {
-    let detail = "No supported subtitles found.";
-    if (selectedSubtitleTrack) {
-      detail = "Subtitles are off.";
-    } else if (subtitleTrackCount > 0) {
-      detail = "No subtitle track selected.";
-    }
-
-    return {
-      label: "Not included",
-      detail,
-      tone: "muted",
-      disabledReason: null,
-    };
-  }
-
-  const trackName = formatSubtitleTrackLabel(selectedSubtitleTrack, {
-    variant: "summary",
-  });
-
-  if (!subtitleTrackSupportsBurnIn(selectedSubtitleTrack)) {
-    return {
-      label: "Not supported",
-      detail:
-        subtitleTrackUnavailableMessage(selectedSubtitleTrack, providerId) ??
-        "This subtitle track is not supported.",
-      tone: "warning",
-      disabledReason: "Choose another subtitle track or turn subtitles off.",
-    };
-  }
-
   if (subtitleLoading) {
     return {
-      label: "Loading",
-      detail: "Preparing subtitles.",
+      label: "Importing",
+      detail: "Preparing subtitles. Your current subtitles are preserved.",
       tone: "warning",
       disabledReason: "Subtitles are still loading.",
     };
   }
-
-  if (subtitleError) {
+  if (!subtitleEnabled) {
     return {
-      label: "Issue",
-      detail: subtitleError,
-      tone: "warning",
-      disabledReason: subtitleError,
+      label: "Not included",
+      detail: "Subtitles are hidden.",
+      tone: "muted",
+      disabledReason: null,
     };
   }
-
   if (clippedSubtitleCueCount === 0) {
     return {
       label: "None in range",
@@ -88,10 +40,9 @@ export function buildSubtitleExportSummary({
       disabledReason: null,
     };
   }
-
   return {
     label: "Included",
-    detail: `${trackName} will be burned in.`,
+    detail: `${clippedSubtitleCueCount} subtitle${clippedSubtitleCueCount === 1 ? "" : "s"} will be burned in.`,
     tone: "ready",
     disabledReason: null,
   };

@@ -3,7 +3,7 @@ import { Accordion } from "@base-ui/react/accordion";
 import { ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utilities";
 
-export function editorPropertyLabelClassName() {
+function editorPropertyLabelClassName() {
   return "text-ui-micro font-normal normal-case tracking-normal text-muted-foreground";
 }
 

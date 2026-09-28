@@ -14,13 +14,13 @@ type CaptureSubtitles = Pick<
   ReturnType<typeof useEditorSubtitles>,
   | "subtitleTracks"
   | "subtitleOutputEnabled"
-  | "subtitleCuesReady"
+  | "initialized"
   | "subtitleLoading"
   | "subtitleError"
   | "clippedSubtitleCues"
   | "setSubtitleEnabled"
   | "setSubtitleStyleSettings"
-  | "handleSelectedSubtitleTrackChange"
+  | "requestImport"
 >;
 
 interface CaptureBindings {
@@ -61,7 +61,7 @@ export function useEditorAssetCapture(bindings: CaptureBindings) {
           playing: media.playing,
           subtitlesReady:
             subtitles.subtitleOutputEnabled &&
-            subtitles.subtitleCuesReady &&
+            subtitles.initialized &&
             !subtitles.subtitleLoading,
           subtitleCueCount: subtitles.clippedSubtitleCues.length,
           subtitleTracks: subtitles.subtitleTracks.map((track) => ({
@@ -118,7 +118,7 @@ export function useEditorAssetCapture(bindings: CaptureBindings) {
           throw new Error("Timeline rejected the capture selection.");
         }
         if (trackKey) {
-          subtitles.handleSelectedSubtitleTrackChange(trackKey);
+          subtitles.requestImport(trackKey);
         }
         if (subtitleFontSize !== undefined) {
           subtitles.setSubtitleStyleSettings((settings) => ({

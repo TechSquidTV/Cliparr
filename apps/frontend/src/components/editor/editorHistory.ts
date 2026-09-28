@@ -6,7 +6,7 @@ import {
 
 type ClipRange = Pick<TimelineStateSnapshot, "inPoint" | "outPoint">;
 type RangeEdit = { kind: "range"; before: ClipRange; after: ClipRange };
-type Edit = RangeEdit | { kind: "timeline" };
+type Edit = RangeEdit | { kind: "timeline"; steps: number };
 
 function readRange(engine: TimelineEngine): ClipRange {
   const { inPoint, outPoint } = engine.getState();
@@ -32,6 +32,9 @@ export function createEditorHistory(engine: TimelineEngine) {
   let range = readRange(engine);
   let replaying = false;
   let rangeGesture = false;
+  let actionDepth = 0;
+  let actionSteps = 0;
+  let availableUndoSteps = 0;
   let groupedRange: RangeEdit | null = null;
   let snapshot = { canUndo: false, canRedo: false };
 
@@ -52,6 +55,18 @@ export function createEditorHistory(engine: TimelineEngine) {
     past.push(edit);
     if (past.length > 75) {
       past.shift();
+    }
+    // Native history also has a byte budget. Drop whole editor actions when
+    // their oldest native snapshots have been evicted, never half an import.
+    let retainedSteps = past.reduce(
+      (count, item) => count + (item.kind === "timeline" ? item.steps : 0),
+      0,
+    );
+    while (retainedSteps > availableUndoSteps) {
+      const removed = past.shift();
+      if (removed?.kind === "timeline") {
+        retainedSteps -= removed.steps;
+      }
     }
     future.length = 0;
     notify();
@@ -74,10 +89,15 @@ export function createEditorHistory(engine: TimelineEngine) {
     }
     range = next;
   });
-  const unsubscribeTimeline = engine.on("history:change", () => {
+  const unsubscribeTimeline = engine.on("history:change", ({ index }) => {
+    availableUndoSteps = index;
     if (!replaying) {
       groupedRange = null;
-      push({ kind: "timeline" });
+      if (actionDepth > 0) {
+        actionSteps += 1;
+      } else {
+        push({ kind: "timeline", steps: 1 });
+      }
     }
   });
 
@@ -109,10 +129,14 @@ export function createEditorHistory(engine: TimelineEngine) {
     try {
       if (edit.kind === "range") {
         restoreRange(direction === "undo" ? edit.before : edit.after);
-      } else if (direction === "undo") {
-        engine.undo();
       } else {
-        engine.redo();
+        for (let step = 0; step < edit.steps; step += 1) {
+          if (direction === "undo") {
+            engine.undo();
+          } else {
+            engine.redo();
+          }
+        }
       }
       destination.push(edit);
     } finally {
@@ -122,6 +146,19 @@ export function createEditorHistory(engine: TimelineEngine) {
     }
   }
   return {
+    runAction: (action: () => void) => {
+      actionDepth += 1;
+      try {
+        action();
+      } finally {
+        actionDepth -= 1;
+        if (actionDepth === 0 && actionSteps > 0) {
+          const steps = actionSteps;
+          actionSteps = 0;
+          push({ kind: "timeline", steps });
+        }
+      }
+    },
     getSnapshot: () => snapshot,
     subscribe: (listener: () => void) => {
       listeners.add(listener);

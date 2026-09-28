@@ -5,6 +5,7 @@ import {
 } from "@/components/editor/editorShortcutCommands";
 
 interface UseEditorKeyboardShortcutsProperties {
+  deleteSubtitle?: () => void;
   undo?: () => void;
   redo?: () => void;
   togglePlay: () => void;
@@ -24,6 +25,7 @@ interface UseEditorKeyboardShortcutsProperties {
 
 export function useEditorKeyboardShortcuts({
   togglePlay,
+  deleteSubtitle,
   undo,
   redo,
   markIn,
@@ -45,6 +47,7 @@ export function useEditorKeyboardShortcuts({
 
   useEffect(() => {
     commandHandlersReference.current = {
+      "delete-subtitle": deleteSubtitle,
       undo,
       redo,
       "toggle-play": togglePlay,
@@ -135,10 +138,15 @@ function isInteractiveKeyboardTarget(
   }
 
   return (
-    (!historyCommand && Boolean(target.closest("button"))) ||
+    (!historyCommand &&
+      Boolean(
+        target.closest(
+          'button, a[href], [role="button"], [role="switch"], [role="checkbox"], [role="radio"], [role="tab"]',
+        ),
+      )) ||
     Boolean(
       target.closest(
-        'input, textarea, select, [contenteditable="true"], [role="slider"], [role="scrollbar"], [role="dialog"], [role="alertdialog"], dialog',
+        'input, textarea, select, [contenteditable="true"], [role="slider"], [role="scrollbar"], [role="menu"], [role="menubar"], [role^="menuitem"], [role="listbox"], [role="option"], [role="combobox"], [role="dialog"], [role="alertdialog"], dialog',
       ),
     )
   );

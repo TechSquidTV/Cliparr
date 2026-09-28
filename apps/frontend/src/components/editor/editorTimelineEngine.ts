@@ -20,7 +20,7 @@ export const EDITOR_MEDIA_TRACK_ID = "editor-media-track";
 export const EDITOR_MEDIA_CLIP_ID = "editor-media-clip";
 export const EDITOR_SUBTITLE_TRACK_ID = "editor-subtitle-track";
 export const EDITOR_MEDIA_TRACK_NAME = "Source";
-export const EDITOR_SUBTITLE_TRACK_NAME = "Sub 1";
+export const EDITOR_SUBTITLE_TRACK_NAME = "Subtitles";
 const EDITOR_SUBTITLE_SOURCE_ID = "editor-subtitle-source";
 
 const MINIMUM_MEDIA_DURATION_SECONDS = 0.01;
@@ -85,40 +85,77 @@ function createEditorTracks(
   ];
 }
 
+export function getSubtitleCreationRange(
+  tracks: readonly TimelineReadonly<Track>[],
+  startTime: number,
+  duration: number,
+): Pick<SubtitleCue, "startTime" | "endTime"> | null {
+  const track = tracks.find((entry) => entry.id === EDITOR_SUBTITLE_TRACK_ID);
+  if (
+    !track ||
+    !Number.isFinite(startTime) ||
+    !Number.isFinite(duration) ||
+    startTime < 0 ||
+    startTime >= duration
+  ) {
+    return null;
+  }
+  let endTime = Math.min(startTime + 2, duration);
+  // Hidden subtitles still occupy time. Creation never changes another cue.
+  for (const clip of track.clips) {
+    const start = toSeconds(clip.timelineStart);
+    if (start <= startTime && startTime < toSeconds(clip.timelineEnd)) {
+      return null;
+    }
+    if (start > startTime) {
+      endTime = Math.min(endTime, start);
+    }
+  }
+  return { startTime, endTime };
+}
+
+export function createSubtitleClip(
+  cue: Pick<SubtitleCue, "startTime" | "endTime" | "text">,
+  duration: number,
+  id: string = crypto.randomUUID(),
+): Clip | null {
+  const startTime = Math.max(0, cue.startTime);
+  const endTime = Math.min(duration, cue.endTime);
+  const normalized = normalizeSubtitleCueText(cue.text);
+  if (
+    !normalized ||
+    !Number.isFinite(startTime) ||
+    !Number.isFinite(endTime) ||
+    endTime <= startTime
+  ) {
+    return null;
+  }
+  return {
+    id,
+    sourceId: EDITOR_SUBTITLE_SOURCE_ID,
+    timelineStart: fromSeconds(startTime),
+    timelineEnd: fromSeconds(endTime),
+    sourceStart: fromSeconds(startTime),
+    minStart: fromSeconds(0),
+    maxEnd: fromSeconds(duration),
+    selected: false,
+    movable: true,
+    resizable: true,
+    snap: false,
+    label: normalized.text,
+  };
+}
+
 function createSubtitleTrack(
   cues: readonly SubtitleCue[],
   duration: number,
 ): Track<EditorTimelineTrackKind> {
-  const clips = cues.flatMap<Clip>((cue, index) => {
-    const startTime = Math.max(0, cue.startTime);
-    const endTime = Math.min(duration, cue.endTime);
-    if (
-      !Number.isFinite(startTime) ||
-      !Number.isFinite(endTime) ||
-      endTime <= startTime
-    ) {
-      return [];
-    }
-
-    return [
-      {
-        id: `editor-subtitle-cue-${index}`,
-        sourceId: EDITOR_SUBTITLE_SOURCE_ID,
-        timelineStart: fromSeconds(startTime),
-        timelineEnd: fromSeconds(endTime),
-        sourceStart: fromSeconds(startTime),
-        minStart: fromSeconds(0),
-        maxEnd: fromSeconds(duration),
-        selected: false,
-        movable: true,
-        resizable: true,
-        snap: false,
-        label: cue.text,
-        metadata: {
-          ...(cue.id ? { cueId: cue.id } : {}),
-        },
-      },
-    ];
+  const ids = new Set<string>();
+  const clips = cues.flatMap<Clip>((cue) => {
+    const id = cue.id && !ids.has(cue.id) ? cue.id : crypto.randomUUID();
+    ids.add(id);
+    const clip = createSubtitleClip(cue, duration, id);
+    return clip ? [clip] : [];
   });
 
   return {
@@ -300,10 +337,12 @@ export function subtitleCuesFromTimeline(
     return [];
   }
 
-  return subtitleTrack.clips.flatMap<SubtitleCue>((clip) => {
-    const cue = subtitleCueFromTimelineClip(clip);
-    return cue ? [cue] : [];
-  });
+  return subtitleTrack.clips
+    .flatMap<SubtitleCue>((clip) => {
+      const cue = subtitleCueFromTimelineClip(clip);
+      return cue ? [cue] : [];
+    })
+    .toSorted((left, right) => left.startTime - right.startTime);
 }
 
 export function subtitleCueFromTimelineClip(
@@ -314,9 +353,8 @@ export function subtitleCueFromTimelineClip(
     return null;
   }
 
-  const cueId = clip.metadata?.cueId;
   return {
-    ...(typeof cueId === "string" && cueId ? { id: cueId } : {}),
+    id: clip.id,
     startTime: toSeconds(clip.timelineStart),
     endTime: toSeconds(clip.timelineEnd),
     ...normalizedText,

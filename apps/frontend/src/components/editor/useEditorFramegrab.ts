@@ -31,7 +31,6 @@ interface UseEditorFramegrabProperties {
   previewVideoDimensions: MediaDimensions | null;
   subtitleEnabled: boolean;
   subtitleLoading: boolean;
-  subtitleError: string | null;
   getCurrentTime?: () => number;
 }
 
@@ -45,7 +44,6 @@ export function useEditorFramegrab({
   previewVideoDimensions,
   subtitleEnabled,
   subtitleLoading,
-  subtitleError,
   getCurrentTime,
 }: UseEditorFramegrabProperties) {
   const [capturedFramegrab, setCapturedFramegrab] =
@@ -83,12 +81,8 @@ export function useEditorFramegrab({
       return "Preview frame is loading.";
     }
 
-    if (subtitleEnabled && subtitleLoading) {
+    if (subtitleLoading) {
       return "Subtitles are still loading.";
-    }
-
-    if (subtitleEnabled && subtitleError) {
-      return subtitleError;
     }
 
     const canvas = canvasRef.current;
@@ -107,8 +101,6 @@ export function useEditorFramegrab({
     loadingPreview,
     loadingPreviewFrame,
     previewVideoDimensions,
-    subtitleEnabled,
-    subtitleError,
     subtitleLoading,
   ]);
 

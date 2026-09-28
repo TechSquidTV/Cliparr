@@ -111,3 +111,110 @@ void test("resolves platform undo and redo without consuming unrelated modifiers
     null,
   );
 });
+
+void test("groups native edits into one reversible authoring action", () => {
+  const engine = createEngine();
+  const history = createEditorHistory(engine);
+  const track = engine.getState().tracks[0];
+  assert.ok(track);
+  const original = subtitleCuesFromTimeline(engine.getState().tracks);
+  history.runAction(() => {
+    engine.toggleTrackVisibility(track.id, false);
+    engine.commitEdit({
+      type: "delete-clips",
+      clipIds: track.clips.map((clip) => clip.id),
+    });
+  });
+  assert.deepEqual(subtitleCuesFromTimeline(engine.getState().tracks), []);
+  assert.equal(engine.getState().tracks[0]?.visible, false);
+  history.undo();
+  assert.deepEqual(
+    subtitleCuesFromTimeline(engine.getState().tracks),
+    original,
+  );
+  assert.equal(engine.getState().tracks[0]?.visible, true);
+  assert.equal(history.getSnapshot().canUndo, false);
+  history.redo();
+  assert.deepEqual(subtitleCuesFromTimeline(engine.getState().tracks), []);
+  assert.equal(engine.getState().tracks[0]?.visible, false);
+  history.dispose();
+});
+
+void test("import replacement stays in chronological history with text and range edits", () => {
+  const engine = createEngine();
+  const history = createEditorHistory(engine);
+  const original = subtitleCuesFromTimeline(engine.getState().tracks);
+  engine.setInPoint(fromSeconds(5));
+  history.runAction(() =>
+    synchronizeEditorTimelineSubtitles(engine, {
+      cues: [
+        {
+          id: "imported",
+          startTime: 3,
+          endTime: 5,
+          text: "Imported",
+          lines: ["Imported"],
+        },
+      ],
+    }),
+  );
+  engine.updateClipProperties("imported", { label: "Custom" });
+  history.undo();
+  assert.equal(
+    subtitleCuesFromTimeline(engine.getState().tracks)[0]?.text,
+    "Imported",
+  );
+  history.undo();
+  assert.deepEqual(
+    subtitleCuesFromTimeline(engine.getState().tracks),
+    original,
+  );
+  assert.equal(toSeconds(engine.getState().inPoint!), 5);
+  history.undo();
+  assert.equal(toSeconds(engine.getState().inPoint!), 0);
+  history.redo();
+  history.redo();
+  history.redo();
+  assert.equal(
+    subtitleCuesFromTimeline(engine.getState().tracks)[0]?.text,
+    "Custom",
+  );
+  history.dispose();
+});
+
+void test("does not offer half an authoring action after native history eviction", () => {
+  const engine = new TimelineEngine({
+    tracks: [],
+    duration: fromSeconds(60),
+    history: { maxEntries: 3 },
+  });
+  synchronizeEditorTimelineSubtitles(engine, {
+    cues: [
+      {
+        id: "cue",
+        startTime: 1,
+        endTime: 2,
+        text: "Original",
+        lines: ["Original"],
+      },
+    ],
+  });
+  const history = createEditorHistory(engine);
+  history.runAction(() => {
+    engine.updateClipProperties("cue", { label: "First" });
+    engine.toggleTrackVisibility("editor-subtitle-track", false);
+  });
+  engine.updateClipProperties("cue", { label: "Second" });
+  history.undo();
+  assert.equal(
+    subtitleCuesFromTimeline(engine.getState().tracks)[0]?.text,
+    "First",
+  );
+  assert.equal(history.getSnapshot().canUndo, false);
+  history.redo();
+  assert.equal(
+    subtitleCuesFromTimeline(engine.getState().tracks)[0]?.text,
+    "Second",
+  );
+  history.dispose();
+});

@@ -3,6 +3,7 @@ export const EDITOR_SMALL_SEEK_SECONDS = 5;
 export const DEFAULT_EDITOR_FRAME_STEP_SECONDS = 1 / 30;
 
 export type EditorShortcutCommand =
+  | "delete-subtitle"
   | "undo"
   | "redo"
   | "toggle-play"
@@ -59,6 +60,10 @@ export function resolveEditorShortcutCommand({
   }
 
   switch (code) {
+    case "Delete":
+    case "Backspace": {
+      return repeat || shiftKey ? null : "delete-subtitle";
+    }
     case "Space": {
       return repeat || shiftKey ? null : "toggle-play";
     }

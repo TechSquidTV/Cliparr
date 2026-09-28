@@ -55,9 +55,7 @@ import {
   fetchHlsExportEstimateMetadata,
   type HlsExportEstimateMetadata,
 } from "@/lib/hlsExportEstimate";
-import { subtitleTrackSupportsBurnIn } from "@/lib/selectPreferredSubtitleTrack";
 import type { SubtitleCue, SubtitleStyleSettings } from "@/lib/subtitles/types";
-import type { PlaybackSubtitleTrack } from "@/providers/types";
 import type { ExportSourcePreference } from "@/components/editor/EditorExportDialog";
 import type { PlaybackFallbackInfo } from "@/components/editor/editorPlaybackSources";
 import type { EditorExportMedia } from "@/components/editor/editorMediaLifecycle";
@@ -77,7 +75,6 @@ interface ExportReadinessInput {
   startTime: number;
   endTime: number;
   subtitleEnabled: boolean;
-  selectedSubtitleTrack: PlaybackSubtitleTrack | null;
   clippedSubtitleCues: readonly SubtitleCue[];
   subtitleLoading: boolean;
 }
@@ -91,7 +88,6 @@ interface UseEditorExportProperties {
   exportFallbackSource?: EditorMediaSource;
   hlsFallbackInfo: PlaybackFallbackInfo | null;
   subtitleEnabled: boolean;
-  selectedSubtitleTrack: PlaybackSubtitleTrack | null;
   clippedSubtitleCues: readonly SubtitleCue[];
   subtitleLoading: boolean;
   subtitleCues: readonly SubtitleCue[];
@@ -119,7 +115,6 @@ export function useEditorExport({
   exportFallbackSource,
   hlsFallbackInfo,
   subtitleEnabled,
-  selectedSubtitleTrack,
   clippedSubtitleCues,
   subtitleLoading,
   subtitleCues,
@@ -329,12 +324,7 @@ export function useEditorExport({
   }, [exportFormat, outputDimensions, videoPlanKey, videoQuality]);
 
   const shouldEstimateBurnedSubtitles =
-    subtitleEnabled &&
-    !subtitleLoading &&
-    Boolean(selectedSubtitleTrack) &&
-    selectedSubtitleTrack !== null &&
-    subtitleTrackSupportsBurnIn(selectedSubtitleTrack) &&
-    clippedSubtitleCues.length > 0;
+    subtitleEnabled && !subtitleLoading && clippedSubtitleCues.length > 0;
   const sourceSizeBytes =
     exportSource.kind === "direct"
       ? (exportSourceSizeBytes(exportSource.source) ??
@@ -578,7 +568,6 @@ export function useEditorExport({
       startTime,
       endTime,
       subtitleEnabled,
-      selectedSubtitleTrack,
       clippedSubtitleCues,
       subtitleLoading,
     });
@@ -735,7 +724,6 @@ export function useEditorExport({
     outputDimensions,
     outputSizeEstimate,
     resolution,
-    selectedSubtitleTrack,
     selectedQuality,
     hlsEstimateMetadata,
     session.exportMetadata,
@@ -891,7 +879,6 @@ export function getEditorExportReadiness({
   startTime,
   endTime,
   subtitleEnabled,
-  selectedSubtitleTrack,
   clippedSubtitleCues,
   subtitleLoading,
 }: ExportReadinessInput) {
@@ -923,26 +910,12 @@ export function getEditorExportReadiness({
     };
   }
 
-  const shouldBurnSubtitles =
-    subtitleEnabled &&
-    selectedSubtitleTrack !== null &&
-    clippedSubtitleCues.length > 0;
+  const shouldBurnSubtitles = subtitleEnabled && clippedSubtitleCues.length > 0;
 
-  if (subtitleEnabled && selectedSubtitleTrack !== null && subtitleLoading) {
+  if (subtitleLoading) {
     return {
       state: "blocked" as const,
       message: "Subtitles are still loading.",
-      shouldBurnSubtitles,
-    };
-  }
-
-  if (
-    shouldBurnSubtitles &&
-    !subtitleTrackSupportsBurnIn(selectedSubtitleTrack)
-  ) {
-    return {
-      state: "blocked" as const,
-      message: "This subtitle track is not supported.",
       shouldBurnSubtitles,
     };
   }
