@@ -57,9 +57,11 @@ GitHub Releases are the canonical changelog. The `Release` workflow is run manua
 
 Before running a real release, make sure `CLOUDFLARE_PAGES_DEPLOY_HOOK_URL` is configured as a repository secret. Cloudflare Pages builds require a read-only `GITHUB_TOKEN` or `GH_TOKEN` environment variable so the changelog mirror does not hit unauthenticated GitHub API rate limits. Use the workflow's dry-run mode first when validating a release.
 
-### Upcoming v2.0.0
+### Release planning
 
-The next release targets v2.0.0. Keep `tools/release/notes/v2.0.0.md` up to date as additional features land, and document breaking changes with upgrade instructions. These notes are a working draft; preparing them does not publish a release. Review the final feature scope before running an RC or stable release.
+Document user-visible changes and breaking-change upgrade instructions in pull requests and the relevant guides. Assign changes to a release version only when that release has been explicitly planned. Do not append new features or upgrade notes to an already-published release's notes.
+
+When a release is planned, prepare version-specific draft notes and review the final feature scope before running an RC or stable release. Preparing notes does not publish a release.
 
 ### Release validation and recovery
 
