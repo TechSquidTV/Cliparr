@@ -11,7 +11,8 @@ services:
       MEDIA_ROOT: /media
       CI: ${CI:-false}
       GITHUB_ACTIONS: ${GITHUB_ACTIONS:-false}
-      SINTEL_URL: https://download.blender.org/demo/movies/Sintel.2010.720p.mkv
+      SINTEL_URL: ${SINTEL_URL:-}
+      SINTEL_MD5: ${SINTEL_MD5:-}
     volumes:
       - ../docker:/scripts:ro
       - cliparr-dev-media:/media
