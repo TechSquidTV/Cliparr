@@ -20,7 +20,7 @@
 
 <!-- CLIPARR_DOCS_SYNC:features:start -->
 
-- **Instant session discovery**: Automatically loads currently playing media from connected <a href="/docs/providers">Plex and Jellyfin providers</a>.
+- **Live session discovery**: Playback starts, pauses, and stops update automatically from connected <a href="/docs/providers">Plex and Jellyfin providers</a>, without manual refresh.
 - **Open local videos**: Open a <a href="/docs/local-videos">local file or direct media URL</a> before or after connecting a provider.
 - **Intuitive timeline editor**: Drag the media block to choose your clip, trim either edge, and zoom into subtitle timing across the full video.
 - **Browser transcoding**: Video <a href="/docs/export-settings">export settings</a> are powered by <a href="https://mediabunny.dev/" target="_blank" rel="noreferrer">Mediabunny</a>. GIFs are encoded with <a href="https://github.com/KyleTryon/gifenc" target="_blank" rel="noreferrer">gifenc</a>.
@@ -67,6 +67,15 @@ On Windows, run this from Docker Desktop or another Docker engine using Linux co
 > **Use HTTPS for editing**: Cliparr's editor uses browser WebCodecs. Supporting browsers require a secure context, so use HTTPS through a reverse proxy or open Cliparr on localhost or 127.0.0.1.
 
 <!-- CLIPARR_DOCS_SYNC:docker-quick-start:end -->
+
+### Live Provider Sessions
+
+Connect Plex or Jellyfin, then start playing a video in that provider. Cliparr's server subscribes to playback notifications and streams updates to the dashboard without periodic session polling. If a connection drops, the dashboard keeps the last sessions visible with a warning and reconnects automatically. Use **Retry connection** when needed.
+
+> [!IMPORTANT]
+> **Jellyfin compatibility**: Non-administrator accounts require Jellyfin 10.11 or newer for live sessions. On older versions, upgrade Jellyfin or connect an administrator account. There is no polling fallback.
+
+See the [provider guide](https://cliparr.dev/docs/providers) for setup and troubleshooting.
 
 ### Local Videos
 
@@ -116,6 +125,8 @@ volumes:
 
 When running behind a reverse proxy, preserve the `Host` header and pass `X-Forwarded-Proto`. Cliparr trusts loopback, link-local, and private-LAN proxy ranges directly in the app, so typical Caddy/Nginx/Traefik setups on the same network do not need extra app configuration. Caddy already forwards the needed headers.
 
+Live sessions also require unbuffered server-sent events between Cliparr and the browser. Proxies in front of your media servers must allow Plex event streams and Jellyfin WebSockets. See the [reverse proxy requirements](https://cliparr.dev/docs/configuration#reverse-proxies).
+
 Cliparr does not include a full app-level user or permission system. If you need to limit who can open the app, keep it on a trusted network or put it behind an authenticated reverse proxy. See the [access control guide](https://cliparr.dev/docs/access-control) for recommended deployment patterns.
 
 ## Development
@@ -132,6 +143,8 @@ The optional Docker dev stack (`docker/compose.dev.yml`) seeds Plex and Jellyfin
 Plex library bootstrap runs the dependency-free `@cliparr/plex` Node entry point from the mounted package. It uses the same generated contracts as the server and fails visibly if bounded readiness or library creation retries are exhausted. See [Plex contract maintenance](packages/plex/README.md) for generation and compatibility details.
 
 See [.github/CONTRIBUTING.md](.github/CONTRIBUTING.md) for more detailed guidance.
+
+Provider session discovery depends on the Cliparr server for persistent connections, shared subscriptions, and playback preparation. This adds a substantial server dependency for any future fully client-side design; see the [architecture notes](https://cliparr.dev/docs/development#live-session-architecture). Local-file editing and export run in the browser.
 
 ## License
 
