@@ -155,7 +155,7 @@ void test("shares upstream subscriptions and same-session normalization without 
   assert.equal(connections[0].signal.aborted, true);
 });
 
-void test("subscription admission bounds fanout and releases slots on disconnect and revocation", (context) => {
+void test("subscription admission bounds fanout and releases slots on disconnect and revocation", async (context) => {
   let sourceReads = 0;
   const hub = createLivePlaybackHub({
     listSources: () => {
@@ -165,9 +165,12 @@ void test("subscription admission bounds fanout and releases slots on disconnect
     provider: () => {},
   });
   let snapshots = 0;
+  let revocations = 0;
   const listener = (event: PlaybackStreamEvent) => {
     if (event.type === "snapshot") {
       snapshots++;
+    } else if (event.type === "unauthorized") {
+      revocations++;
     }
   };
   const stops: Array<() => void> = [];
@@ -192,16 +195,20 @@ void test("subscription admission bounds fanout and releases slots on disconnect
   stops.push(hub.subscribe(session("replacement"), listener));
   assert.throws(() => hub.subscribe(session("overflow"), listener), limitError);
   notifyPlaybackStateChange({ type: "session", sessionId: "1" });
-  for (let index = 8; index < 16; index++) {
-    stops[index]();
-  }
+  await setImmediate();
+  assert.equal(revocations, 8);
+  // Revocation alone must free these slots, before any client closes its stream.
   for (let index = 0; index < 8; index++) {
     stops.push(hub.subscribe(session("after-revocation"), listener));
   }
   assert.throws(() => hub.subscribe(session("overflow"), listener), limitError);
+  for (let index = 8; index < 16; index++) {
+    stops[index]();
+  }
+  assert.throws(() => hub.subscribe(session("overflow"), listener), limitError);
 });
 
-void test("expired dashboards release admission slots and unchanged sources do not rebroadcast", (context) => {
+void test("expired dashboards release admission slots and unchanged sources do not rebroadcast", async (context) => {
   context.mock.timers.enable({ apis: ["setTimeout"] });
   const { hub, replaceSources } = setup();
   const events: PlaybackStreamEvent[] = [];
@@ -216,8 +223,13 @@ void test("expired dashboards release admission slots and unchanged sources do n
       hub.subscribe(session("expires"), (event) => events.push(event)),
     );
   }
+  const renamedSource = { ...source, name: "Renamed Server" };
+  replaceSources([renamedSource]);
+  await setImmediate();
+  assert.equal(latest(events).sources[0].sourceName, renamedSource.name);
   const before = events.length;
-  replaceSources([source]);
+  replaceSources([renamedSource]);
+  await setImmediate();
   assert.equal(events.length, before);
   context.mock.timers.tick(60_001);
   assert.equal(

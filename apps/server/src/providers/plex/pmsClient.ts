@@ -197,6 +197,7 @@ async function fetchPlexPmsWithManualRedirects(
     method: request.method,
     headers: new Headers(request.headers),
     body: await reusableRequestBody(request),
+    // Retain the caller signal: Request owns its forwarding AbortController.
     signal: init?.signal ?? request.signal,
   };
 

@@ -106,132 +106,142 @@ void test("SSE decoder preserves split UTF-8, multiline JSON, CRLF and ignores h
   assert.deepEqual(events, [["playback", '{"title":"🎬",\n"value":1}']]);
 });
 
-void test("Plex coalesces changes, skips progress fetches, accepts keepalives and detects stalled streams", async (context) => {
-  context.mock.timers.enable({ apis: ["setTimeout"] });
+void test(
+  "Plex coalesces changes, skips progress fetches, accepts keepalives and detects stalled streams",
+  { timeout: 5000 },
+  async (context) => {
+    context.mock.timers.enable({ apis: ["setTimeout"] });
 
-  const pending = createDeferred<Response>();
-  let discoveryRequests = 0;
-  let snapshots = 0;
-  let progress = 0;
-  let lastProgressSize = 0;
-  let events: ReadableStreamDefaultController<Uint8Array> | undefined;
-  const controller = new AbortController();
-  context.mock.method(
-    globalThis,
-    "fetch",
-    async (input: Parameters<typeof fetch>[0], init?: RequestInit) => {
-      const request = new Request(input, init);
-      assert.equal(request.headers.get("X-Plex-Token"), "private");
-      if (new URL(request.url).pathname === "/status/sessions") {
-        discoveryRequests++;
-        if (discoveryRequests === 2) {
-          return pending.promise;
+    const pending = createDeferred<Response>();
+    let discoveryRequests = 0;
+    let snapshots = 0;
+    let progress = 0;
+    let lastProgressSize = 0;
+    let events: ReadableStreamDefaultController<Uint8Array> | undefined;
+    let eventStreamSignal: AbortSignal | undefined;
+    const controller = new AbortController();
+    context.mock.method(
+      globalThis,
+      "fetch",
+      async (input: Parameters<typeof fetch>[0], init?: RequestInit) => {
+        const request = new Request(input, init);
+        assert.equal(request.headers.get("X-Plex-Token"), "private");
+        if (new URL(request.url).pathname === "/status/sessions") {
+          discoveryRequests++;
+          if (discoveryRequests === 2) {
+            return pending.promise;
+          }
+          return Response.json({ MediaContainer: { Metadata: [] } });
         }
-        return Response.json({ MediaContainer: { Metadata: [] } });
+        assert.equal(
+          new URL(request.url).pathname,
+          "/:/eventsource/notifications",
+        );
+        return new Response(
+          new ReadableStream<Uint8Array>({
+            start(stream) {
+              events = stream;
+              eventStreamSignal = init?.signal ?? request.signal;
+              eventStreamSignal.addEventListener(
+                "abort",
+                () => stream.error(new Error("aborted")),
+                { once: true },
+              );
+            },
+          }),
+          { headers: { "Content-Type": "text/event-stream" } },
+        );
+      },
+    );
+    const watching = watchCurrentlyPlaying(
+      source,
+      {
+        snapshot() {
+          snapshots++;
+        },
+        progress(updates) {
+          progress++;
+          lastProgressSize = updates.length;
+        },
+        invalidate() {},
+      },
+      controller.signal,
+    ).catch((error: unknown) => {
+      if (!controller.signal.aborted) {
+        throw error;
       }
+    });
+    const send = (state: string, viewOffset: number) =>
+      events?.enqueue(
+        new TextEncoder().encode(
+          `data: ${JSON.stringify({ PlaySessionStateNotification: { sessionKey: "session", ratingKey: "movie", state, viewOffset } })}\n\n`,
+        ),
+      );
+    try {
+      await setImmediate();
+      assert.ok(events);
+      assert.equal(discoveryRequests, 2);
+      send("playing", 0);
+      await setImmediate();
+      pending.resolve(Response.json({ MediaContainer: { Metadata: [] } }));
+      await setImmediate();
+      assert.equal(discoveryRequests, 3);
+      assert.equal(snapshots, 1);
+      for (let position = 1; position <= 5; position++) {
+        send("playing", position * 1000);
+      }
+      await setImmediate();
+      assert.equal(discoveryRequests, 3);
+      assert.equal(progress, 6);
+      send("stopped", 6000);
+      await setImmediate();
+      assert.equal(discoveryRequests, 4);
+      assert.equal(snapshots, 2);
+      const beforeBatch = progress;
+      events.enqueue(
+        new TextEncoder().encode(
+          `data: ${JSON.stringify({
+            NotificationContainer: {
+              PlaySessionStateNotification: Array.from(
+                { length: 20 },
+                (_, index) => ({
+                  sessionKey: `batch-${index}`,
+                  ratingKey: "movie",
+                  state: "playing",
+                  viewOffset: 1000,
+                }),
+              ),
+            },
+          })}\n\n`,
+        ),
+      );
+      await setImmediate();
+      assert.equal(discoveryRequests, 5, "one batch triggers one refresh");
       assert.equal(
-        new URL(request.url).pathname,
-        "/:/eventsource/notifications",
+        progress,
+        beforeBatch + 1,
+        "one batch emits one progress event",
       );
-      return new Response(
-        new ReadableStream<Uint8Array>({
-          start(stream) {
-            events = stream;
-            request.signal.addEventListener(
-              "abort",
-              () => stream.error(new Error("aborted")),
-              { once: true },
-            );
-          },
-        }),
-        { headers: { "Content-Type": "text/event-stream" } },
-      );
-    },
-  );
-  const watching = watchCurrentlyPlaying(
-    source,
-    {
-      snapshot() {
-        snapshots++;
-      },
-      progress(updates) {
-        progress++;
-        lastProgressSize = updates.length;
-      },
-      invalidate() {},
-    },
-    controller.signal,
-  ).catch((error: unknown) => {
-    if (!controller.signal.aborted) {
-      throw error;
+      assert.equal(lastProgressSize, 20);
+      context.mock.timers.tick(44_000);
+      events?.enqueue(new TextEncoder().encode(": heartbeat\n\n"));
+      await setImmediate();
+      context.mock.timers.tick(44_000);
+      await setImmediate();
+      assert.equal(discoveryRequests, 5, "keepalives do not query sessions");
+      assert.ok(eventStreamSignal);
+      assert.equal(eventStreamSignal.aborted, false);
+      const rejected = assert.rejects(watching, /stopped responding/);
+      context.mock.timers.tick(1000);
+      assert.equal(eventStreamSignal.aborted, true);
+      await rejected;
+    } finally {
+      controller.abort();
+      pending.resolve(Response.json({ MediaContainer: { Metadata: [] } }));
+      await watching.catch(() => {});
     }
-  });
-  const send = (state: string, viewOffset: number) =>
-    events?.enqueue(
-      new TextEncoder().encode(
-        `data: ${JSON.stringify({ PlaySessionStateNotification: { sessionKey: "session", ratingKey: "movie", state, viewOffset } })}\n\n`,
-      ),
-    );
-  try {
-    await setImmediate();
-    assert.ok(events);
-    assert.equal(discoveryRequests, 2);
-    send("playing", 0);
-    await setImmediate();
-    pending.resolve(Response.json({ MediaContainer: { Metadata: [] } }));
-    await setImmediate();
-    assert.equal(discoveryRequests, 3);
-    assert.equal(snapshots, 1);
-    for (let position = 1; position <= 5; position++) {
-      send("playing", position * 1000);
-    }
-    await setImmediate();
-    assert.equal(discoveryRequests, 3);
-    assert.equal(progress, 6);
-    send("stopped", 6000);
-    await setImmediate();
-    assert.equal(discoveryRequests, 4);
-    assert.equal(snapshots, 2);
-    const beforeBatch = progress;
-    events.enqueue(
-      new TextEncoder().encode(
-        `data: ${JSON.stringify({
-          NotificationContainer: {
-            PlaySessionStateNotification: Array.from(
-              { length: 20 },
-              (_, index) => ({
-                sessionKey: `batch-${index}`,
-                ratingKey: "movie",
-                state: "playing",
-                viewOffset: 1000,
-              }),
-            ),
-          },
-        })}\n\n`,
-      ),
-    );
-    await setImmediate();
-    assert.equal(discoveryRequests, 5, "one batch triggers one refresh");
-    assert.equal(
-      progress,
-      beforeBatch + 1,
-      "one batch emits one progress event",
-    );
-    assert.equal(lastProgressSize, 20);
-    context.mock.timers.tick(44_000);
-    events?.enqueue(new TextEncoder().encode(": heartbeat\n\n"));
-    await setImmediate();
-    context.mock.timers.tick(44_000);
-    await setImmediate();
-    assert.equal(discoveryRequests, 5, "keepalives do not query sessions");
-    const rejected = assert.rejects(watching, /stopped responding/);
-    context.mock.timers.tick(1000);
-    await rejected;
-  } finally {
-    controller.abort();
-    await watching.catch(() => {});
-  }
-});
+  },
+);
 
 for (const phase of ["initial discovery", "snapshot refresh"] as const) {
   void test(
