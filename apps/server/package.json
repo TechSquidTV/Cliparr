@@ -23,7 +23,7 @@
     "dotenv": "^17.4.2",
     "drizzle-orm": "1.0.0-rc.4-273829f",
     "express": "^5.2.1",
-    "undici": "^7.28.0",
+    "undici": "^7.30.0",
     "@cliparr/plex": "workspace:*"
   },
   "devDependencies": {
