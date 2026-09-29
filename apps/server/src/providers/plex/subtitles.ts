@@ -64,13 +64,14 @@ function directSubtitleResource(stream: PlexStream) {
           query: format === "vtt" ? { format } : undefined,
         }),
         format,
+        generatedOperation: true,
       };
     }
   }
   // Following a returned resource does not convert its content. Only advertise
   // the raw formats understood by the editor's parser.
   if (["srt", "subrip", "vtt", "webvtt"].includes(codec ?? "")) {
-    return { path: key, format };
+    return { path: key, format, generatedOperation: false };
   }
 }
 
@@ -87,14 +88,17 @@ function buildSelectedPlexSubtitleTranscodePath(
   }
 
   const resolvedSelection = resolveSelectedPart(item, selection);
+  if (!resolvedSelection) {
+    return;
+  }
   const query = {
     path,
     session: subtitleSessionId,
     protocol: "http",
     directPlay: 1,
     hasMDE: 1,
-    mediaIndex: resolvedSelection?.mediaIndex ?? 0,
-    partIndex: resolvedSelection?.partIndex ?? 0,
+    mediaIndex: resolvedSelection.mediaIndex,
+    partIndex: resolvedSelection.partIndex,
     subtitles: "sidecar",
     advancedSubtitles: "text",
     autoAdjustSubtitle: 0,
@@ -165,6 +169,7 @@ function plexSubtitleTrack(
     isExternal: Boolean(stringValue(stream?.key)),
     contentUrl: contentPath
       ? createMediaHandle(session, context, contentPath, {
+          generatedOperation: direct?.generatedOperation ?? true,
           playbackSessionId: transcodeSubtitlePath
             ? subtitleSessionId
             : undefined,

@@ -357,6 +357,7 @@ async function normalizeCurrentPlayback(
       : undefined;
     const hlsUrl = previewPath
       ? createMediaHandle(session, context, previewPath, {
+          generatedOperation: true,
           playbackSessionId: plexPlaybackSessionId,
         })
       : undefined;

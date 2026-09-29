@@ -8,6 +8,7 @@ export function createMediaHandle(
   context: PlexSourceContext,
   path: string,
   options: {
+    generatedOperation?: boolean;
     basePath?: string;
     playbackSessionId?: string;
     subtitleStreamId?: string;
@@ -32,7 +33,11 @@ export function createMediaHandle(
               },
             },
     },
-    path,
+    // Generated endpoints are relative to the configured PMS API base. Returned
+    // resources instead retain their own URL resolution semantics.
+    options.generatedOperation
+      ? `${context.baseUrl.replace(/\/+$/, "")}${path}`
+      : path,
     {
       basePath: options.basePath,
     },

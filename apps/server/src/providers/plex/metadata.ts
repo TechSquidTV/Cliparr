@@ -152,8 +152,7 @@ export function createExportMetadata(
   context: PlexSourceContext,
   item: PlexMetadataItem,
 ): MediaExportMetadata {
-  const imagePath =
-    metadataHdImagePath(item, context) ?? metadataImagePath(item);
+  const imagePath = metadataHdImagePath(item, context);
   const guid = stringValue(item?.guid);
 
   return {
@@ -179,7 +178,9 @@ export function createExportMetadata(
     guids: uniqueStrings([guid, ...tagValues(item?.Guid)]),
     ratingKey: stringValue(item?.ratingKey),
     imageUrl: imagePath
-      ? createMediaHandle(session, context, imagePath)
+      ? createMediaHandle(session, context, imagePath, {
+          generatedOperation: true,
+        })
       : undefined,
   };
 }

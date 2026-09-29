@@ -120,34 +120,67 @@ function selectedIndex<T extends PlexSelectableEntry>(entries: T[]) {
   return Math.max(index, 0);
 }
 
+function correspondingIndex<T extends { id?: string | number }>(
+  entries: T[],
+  id: string | undefined,
+  index: number | undefined,
+) {
+  if (id !== undefined) {
+    const match = entries.findIndex((entry) => idValue(entry.id) === id);
+    if (match !== -1) {
+      return match;
+    }
+  }
+  // Position is meaningful only when at least one side has no identity.
+  if (
+    index !== undefined &&
+    entries[index] &&
+    (id === undefined || idValue(entries[index].id) === undefined)
+  ) {
+    return index;
+  }
+  return -1;
+}
+
 function correspondingEntry<T extends { id?: string | number }>(
-  entries: T[] | undefined,
+  entries: T[] = [],
   entry: T,
   index: number,
 ) {
-  const id = idValue(entry.id);
-  return id
-    ? entries?.find((candidate) => idValue(candidate.id) === id)
-    : entries?.[index];
+  return entries[correspondingIndex(entries, idValue(entry.id), index)];
+}
+
+function correspondingStream(
+  entries: PlexStream[],
+  stream: PlexStream,
+  index: number,
+) {
+  const candidate = correspondingEntry(entries, stream, index);
+  return candidate?.streamType !== undefined &&
+    stream.streamType !== undefined &&
+    candidate.streamType !== stream.streamType
+    ? undefined
+    : candidate;
 }
 
 function mergePlaybackStreams(library: PlexStream[], live: PlexStream[]) {
-  const streams = library.map((stream) => {
-    if (!live.some((entry) => entry.streamType === stream.streamType)) {
-      return stream;
-    }
-    const id = idValue(stream.id);
-    const selected =
-      id !== undefined &&
-      live.some((entry) => idValue(entry.id) === id && isSelectedEntry(entry));
-    return { ...stream, selected };
+  const streams = library.map((stream, index) => {
+    const liveStream = correspondingStream(live, stream, index);
+    const merged = {
+      ...liveStream,
+      ...stream,
+      key: liveStream?.key ?? stream.key,
+    };
+    // Live selection owns each stream type represented in the session payload.
+    return liveStream ||
+      live.some((entry) => entry.streamType === stream.streamType)
+      ? { ...merged, selected: isSelectedEntry(liveStream) }
+      : merged;
   });
   return [
     ...streams,
     ...live.filter(
-      (stream) =>
-        idValue(stream.id) !== undefined &&
-        !library.some((entry) => idValue(entry.id) === idValue(stream.id)),
+      (stream, index) => !correspondingStream(library, stream, index),
     ),
   ];
 }
@@ -166,6 +199,7 @@ export function mergePlaybackMetadata(
       library.Media?.map((media, mediaIndex) => {
         const liveMedia = correspondingEntry(live.Media, media, mediaIndex);
         return {
+          ...liveMedia,
           ...media,
           selected: liveMedia?.selected ?? media.selected,
           Part:
@@ -176,7 +210,9 @@ export function mergePlaybackMetadata(
                 partIndex,
               );
               return {
+                ...livePart,
                 ...part,
+                key: livePart?.key ?? part.key,
                 selected: livePart?.selected ?? part.selected,
                 Stream: mergePlaybackStreams(
                   part.Stream ?? [],
@@ -238,23 +274,20 @@ export function resolveSelectedPart(
     return;
   }
 
-  let mediaIndex = selection?.mediaId
-    ? media.findIndex((entry) => idValue(entry?.id) === selection.mediaId)
-    : -1;
-  if (
-    mediaIndex < 0 &&
-    selection?.mediaIndex !== undefined &&
-    media[selection.mediaIndex]
-  ) {
-    mediaIndex = selection.mediaIndex;
-  }
+  const mediaIndex =
+    selection?.mediaId !== undefined || selection?.mediaIndex !== undefined
+      ? correspondingIndex(media, selection.mediaId, selection.mediaIndex)
+      : selectedIndex(media);
   if (mediaIndex < 0) {
-    mediaIndex = selectedIndex(media);
+    return;
   }
 
   const selectedMedia = media[mediaIndex];
   const parts = partEntries(selectedMedia);
   if (parts.length === 0) {
+    if (selection?.partId !== undefined || selection?.partIndex !== undefined) {
+      return;
+    }
     return {
       media: selectedMedia,
       mediaIndex,
@@ -263,18 +296,12 @@ export function resolveSelectedPart(
     };
   }
 
-  let partIndex = selection?.partId
-    ? parts.findIndex((entry) => idValue(entry?.id) === selection.partId)
-    : -1;
-  if (
-    partIndex < 0 &&
-    selection?.partIndex !== undefined &&
-    parts[selection.partIndex]
-  ) {
-    partIndex = selection.partIndex;
-  }
+  const partIndex =
+    selection?.partId !== undefined || selection?.partIndex !== undefined
+      ? correspondingIndex(parts, selection.partId, selection.partIndex)
+      : selectedIndex(parts);
   if (partIndex < 0) {
-    partIndex = selectedIndex(parts);
+    return;
   }
 
   return {
@@ -300,6 +327,9 @@ export function createPreviewPath(
   }
 
   const resolvedSelection = resolveSelectedPart(item, selection);
+  if (selection && !resolvedSelection) {
+    return;
+  }
   return transcodeStartUrl({
     path: { transcodeType: "video", extension: "m3u8" },
     query: {

@@ -84,7 +84,7 @@ Server policy remains in `apps/server/src/providers/plex`:
 | `selection.ts`    | Generated metadata projections, live track selection, preview URLs, export estimates |
 | `metadata.ts`     | Batched enrichment, export tags, and origin-scoped artwork credentials               |
 | `subtitles.ts`    | Delivery URL/format selection and embedded-subtitle preparation                      |
-| `mediaHandles.ts` | Authorized Plex media handle creation                                                |
+| `mediaHandles.ts` | Authorized Plex media handles and API base-path resolution                           |
 | `mediaProxy.ts`   | HTTP proxy lifecycle, range handling, and cancellation                               |
 
 Metadata is fetched once for distinct item IDs within each poll. Enrichment is
@@ -92,6 +92,17 @@ combined separately with each live session, preserving its stream selections
 instead of inheriting the library's defaults. The PMS and shared media transports
 use `shared/networkPolicy.ts` for address classification and redirect credential
 stripping; their DNS, timeout, retry, and streaming policies remain separate.
+
+Enrichment retains live resource keys and fills in descriptive fields from the
+library. Media and part IDs take precedence over array positions; positions are
+used only when an identity is missing. **Behavior change:** if an explicit live
+ID conflicts with library metadata, previews and subtitle extraction are omitted
+instead of selecting another version. A returned live download URL remains usable.
+
+Generated deferred operations pass `generatedOperation: true` to `createMediaHandle`
+so the configured PMS base path is included once. Returned resource URLs use normal
+URL resolution unchanged. Internal metadata paths in transcode queries remain
+relative to PMS itself, without the reverse proxy prefix.
 
 ## Current inventory
 
