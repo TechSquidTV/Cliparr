@@ -26,9 +26,10 @@ with Node's built-in type stripping, without installing the application.
   every artifact. Nothing in `src/generated` is manually maintained.
 
 Run `pnpm plex:sdk:update` to fetch upstream, apply reviewed corrections, regenerate,
-and check reproducibility. Changed inputs also run package/server type checks,
-package/server tests, and generation/enforcement tests directly in the updater.
-Failures fail the command. Unchanged input does not change timestamps.
+and check reproducibility. Every run also checks package/server types,
+package/server tests, and generation/enforcement tests directly in the updater,
+including retries after failed validation. Failures fail the command. Unchanged
+input does not change timestamps.
 
 To add an operation, first find it in the upstream contract. If coverage is absent,
 add a narrowly scoped correction or cloud definition with source evidence and a

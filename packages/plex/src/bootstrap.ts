@@ -38,11 +38,12 @@ export async function bootstrapPlex(options: {
         signal: AbortSignal.timeout(5000),
         throwOnError: true,
       });
-      if (!data.MediaContainer?.Directory) {
+      const sections = data.MediaContainer;
+      if (!sections) {
         throw new Error("Plex did not return library sections");
       }
       if (
-        data.MediaContainer.Directory.some(
+        sections.Directory?.some(
           (section) => section.title === options.library.name,
         )
       ) {
