@@ -1682,13 +1682,27 @@ void test("enrichment follows matching media and part IDs after library reorderi
   assert.equal(deriveSelectedSubtitleTrack(merged, selection)?.streamId, "3");
 });
 
-void test("missing library versions keep returned downloads but omit unresolved previews", async () => {
+void test("missing library versions preserve direct-file audio selection but omit unresolved previews", async () => {
   for (const conflict of ["media", "part"] as const) {
     const session = createSession();
     const live: PlexMetadataItem = {
       ratingKey: "42",
       type: "movie",
-      Media: [{ id: 20, Part: [{ id: 21, key: "/returned/live.mp4" }] }],
+      Media: [
+        {
+          id: 20,
+          Part: [
+            {
+              id: 21,
+              key: "/returned/live.mp4",
+              Stream: [
+                { id: 30, streamType: 2, languageCode: "eng", selected: false },
+                { id: 31, streamType: 2, languageCode: "spa", selected: true },
+              ],
+            },
+          ],
+        },
+      ],
     };
     const library: PlexMetadataItem = {
       ratingKey: "42",
@@ -1718,6 +1732,8 @@ void test("missing library versions keep returned downloads but omit unresolved 
           "/returned/live.mp4",
         );
         assert.equal(entry?.item.hlsUrl, undefined);
+        assert.equal(entry?.item.selectedAudioTrack?.trackNumber, 2);
+        assert.equal(entry?.item.selectedAudioTrack?.languageCode, "spa");
       },
     );
   }
@@ -1902,4 +1918,217 @@ void test("partial library streams retain live-only fields and ID-less resources
     );
     assert.equal(deriveSelectedSubtitleTrack(merged)?.codec, "vtt");
   }
+});
+
+void test("partial live stream lists match source locators before array position", () => {
+  for (const locator of ["index", "streamIdentifier"] as const) {
+    for (const idless of ["live", "library"] as const) {
+      const live: PlexMetadataItem = {
+        Media: [
+          {
+            id: 1,
+            Part: [
+              {
+                id: 2,
+                Stream: [
+                  {
+                    id: idless === "live" ? undefined : 11,
+                    streamType: 2,
+                    [locator]: 2,
+                    languageCode: "spa",
+                    selected: true,
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      };
+      const library: PlexMetadataItem = {
+        Media: [
+          {
+            id: 1,
+            Part: [
+              {
+                id: 2,
+                Stream: [
+                  {
+                    id: idless === "library" ? undefined : 10,
+                    streamType: 2,
+                    [locator]: 1,
+                    languageCode: "eng",
+                    selected: true,
+                  },
+                  {
+                    id: idless === "library" ? undefined : 11,
+                    streamType: 2,
+                    [locator]: 2,
+                    languageCode: "spa",
+                    selected: false,
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      };
+      const merged = mergePlaybackMetadata(live, library);
+      assert.equal(resolveSelectedPart(merged)?.part?.Stream?.length, 2);
+      assert.equal(deriveSelectedAudioTrack(merged)?.languageCode, "spa");
+      assert.equal(deriveSelectedAudioTrack(merged)?.trackNumber, 2);
+    }
+  }
+});
+
+void test("subtitle enrichment never attaches a live resource to a contradictory source locator", () => {
+  for (const locator of ["index", "streamIdentifier"] as const) {
+    const live: PlexMetadataItem = {
+      Media: [
+        {
+          Part: [
+            {
+              Stream: [
+                {
+                  streamType: 3,
+                  [locator]: 2,
+                  codec: "srt",
+                  key: "/returned/spanish.srt",
+                  selected: true,
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    };
+    const library: PlexMetadataItem = {
+      Media: [
+        {
+          Part: [
+            {
+              Stream: [
+                {
+                  id: 10,
+                  streamType: 3,
+                  [locator]: 1,
+                  codec: "srt",
+                  languageCode: "eng",
+                  key: "/returned/english.srt",
+                },
+                {
+                  id: 11,
+                  streamType: 3,
+                  [locator]: 2,
+                  codec: "srt",
+                  languageCode: "spa",
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    };
+    const merged = mergePlaybackMetadata(live, library);
+    assert.equal(deriveSelectedSubtitleTrack(merged)?.streamId, "11");
+    const session = createSession();
+    const tracks = deriveSubtitleTracks(
+      session,
+      createContext(),
+      merged,
+      "viewer",
+    );
+    assert.deepEqual(
+      tracks.map((track) => ({
+        language: track.languageCode,
+        path: mediaHandleForUrl(session, track.contentUrl).path,
+      })),
+      [
+        { language: "eng", path: "/returned/english.srt" },
+        { language: "spa", path: "/returned/spanish.srt" },
+      ],
+    );
+  }
+});
+
+void test("stream locators cannot override conflicting IDs or stream types", () => {
+  for (const other of [
+    { id: 12, index: 2, streamType: 2 },
+    { index: 2, streamType: 3 },
+    { index: 1, streamIdentifier: 2, streamType: 2 },
+  ]) {
+    const live: PlexMetadataItem = {
+      Media: [
+        {
+          Part: [
+            {
+              Stream: [
+                {
+                  id: 11,
+                  index: 2,
+                  streamIdentifier: 2,
+                  streamType: 2,
+                  languageCode: "spa",
+                  selected: true,
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    };
+    const library: PlexMetadataItem = {
+      Media: [
+        {
+          Part: [
+            { Stream: [{ ...other, languageCode: "eng", selected: false }] },
+          ],
+        },
+      ],
+    };
+    const streams = resolveSelectedPart(mergePlaybackMetadata(live, library))
+      ?.part?.Stream;
+    assert.equal(streams?.length, 2);
+    assert.equal(streams?.[0]?.selected, false);
+    assert.equal(streams?.[1]?.languageCode, "spa");
+    assert.equal(streams?.[1]?.selected, true);
+  }
+});
+
+void test("positional stream guesses cannot steal a stronger match elsewhere", () => {
+  const live: PlexMetadataItem = {
+    Media: [
+      {
+        Part: [
+          {
+            Stream: [
+              { index: 2, streamType: 2, languageCode: "spa", selected: true },
+            ],
+          },
+        ],
+      },
+    ],
+  };
+  const library: PlexMetadataItem = {
+    Media: [
+      {
+        Part: [
+          {
+            Stream: [
+              { id: 10, streamType: 2, languageCode: "eng" },
+              { id: 11, index: 2, streamType: 2, languageCode: "spa" },
+            ],
+          },
+        ],
+      },
+    ],
+  };
+  const merged = mergePlaybackMetadata(live, library);
+  const streams = resolveSelectedPart(merged)?.part?.Stream;
+  assert.equal(streams?.length, 2);
+  assert.deepEqual(
+    streams?.map((stream) => stream.selected),
+    [false, true],
+  );
+  assert.equal(deriveSelectedAudioTrack(merged)?.trackNumber, 2);
+  assert.equal(deriveSelectedAudioTrack(merged)?.languageCode, "spa");
 });

@@ -155,17 +155,72 @@ function correspondingStream(
   stream: PlexStream,
   index: number,
 ) {
-  const candidate = correspondingEntry(entries, stream, index);
-  return candidate?.streamType !== undefined &&
-    stream.streamType !== undefined &&
-    candidate.streamType !== stream.streamType
-    ? undefined
-    : candidate;
+  const id = idValue(stream.id);
+  const compatible = (candidate: PlexStream) =>
+    (candidate.streamType === undefined ||
+      stream.streamType === undefined ||
+      candidate.streamType === stream.streamType) &&
+    (id === undefined ||
+      idValue(candidate.id) === undefined ||
+      idValue(candidate.id) === id);
+  const identified =
+    id === undefined
+      ? undefined
+      : entries.find(
+          (candidate) => idValue(candidate.id) === id && compatible(candidate),
+        );
+  if (identified) {
+    return identified;
+  }
+
+  // A session can contain only selected streams. Source indexes/identifiers
+  // locate them in the full library list; array positions do not.
+  const locators = ["index", "streamIdentifier"] as const;
+  const contradicts = (candidate: PlexStream) =>
+    locators.some(
+      (key) =>
+        stream[key] !== undefined &&
+        candidate[key] !== undefined &&
+        stream[key] !== candidate[key],
+    );
+  const located = entries.find(
+    (candidate) =>
+      compatible(candidate) &&
+      !contradicts(candidate) &&
+      locators.some(
+        (key) => stream[key] !== undefined && stream[key] === candidate[key],
+      ),
+  );
+  if (located) {
+    return located;
+  }
+  const positional = entries[index];
+  return positional && compatible(positional) && !contradicts(positional)
+    ? positional
+    : undefined;
 }
 
 function mergePlaybackStreams(library: PlexStream[], live: PlexStream[]) {
-  const streams = library.map((stream, index) => {
-    const liveStream = correspondingStream(live, stream, index);
+  // Require mutual matches so a positional guess cannot consume a stream that
+  // has a stronger identity match elsewhere in the other list.
+  const matches = new Map<PlexStream, PlexStream>();
+  const unmatched = live.filter((stream, index) => {
+    const libraryStream = correspondingStream(library, stream, index);
+    if (
+      !libraryStream ||
+      correspondingStream(
+        live,
+        libraryStream,
+        library.indexOf(libraryStream),
+      ) !== stream
+    ) {
+      return true;
+    }
+    matches.set(libraryStream, stream);
+    return false;
+  });
+  const streams = library.map((stream) => {
+    const liveStream = matches.get(stream);
     const merged = {
       ...liveStream,
       ...stream,
@@ -177,12 +232,7 @@ function mergePlaybackStreams(library: PlexStream[], live: PlexStream[]) {
       ? { ...merged, selected: isSelectedEntry(liveStream) }
       : merged;
   });
-  return [
-    ...streams,
-    ...live.filter(
-      (stream, index) => !correspondingStream(library, stream, index),
-    ),
-  ];
+  return [...streams, ...unmatched];
 }
 
 export function mergePlaybackMetadata(

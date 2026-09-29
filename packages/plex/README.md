@@ -97,7 +97,9 @@ Enrichment retains live resource keys and fills in descriptive fields from the
 library. Media and part IDs take precedence over array positions; positions are
 used only when an identity is missing. **Behavior change:** if an explicit live
 ID conflicts with library metadata, previews and subtitle extraction are omitted
-instead of selecting another version. A returned live download URL remains usable.
+instead of selecting another version. A returned live download URL and its live
+audio selection remain usable. Streams match by ID, then by source index or stream
+identifier when IDs are missing; contradictory locators cannot match by position.
 
 Generated deferred operations pass `generatedOperation: true` to `createMediaHandle`
 so the configured PMS base path is included once. Returned resource URLs use normal

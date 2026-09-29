@@ -312,8 +312,15 @@ async function normalizeCurrentPlayback(
       mediaSelection,
     );
     const thumbPath = metadataImagePath(enrichedItem);
-    const selectedAudioTrack = deriveSelectedAudioTrack(
+    const selectedPart = resolveSelectedPart(
       enrichedItem,
+      mediaSelection,
+    )?.part;
+    // A retained live file still needs its own audio selection even when that
+    // version is missing from the library response used for preview indexes.
+    const audioItem = !selectedPart && mediaPath ? item : enrichedItem;
+    const selectedAudioTrack = deriveSelectedAudioTrack(
+      audioItem,
       mediaSelection,
     );
     const selectedSubtitleTrack = deriveSelectedSubtitleTrack(
@@ -327,13 +334,9 @@ async function normalizeCurrentPlayback(
       plexPlaybackSessionId,
       mediaSelection,
     ).filter((track) => subtitleTrackSupportsBurnIn(track));
-    const selectedPart = resolveSelectedPart(
-      enrichedItem,
-      mediaSelection,
-    )?.part;
-    const audioStreams = selectedPart
-      ? streamEntries(selectedPart).filter((stream) => isAudioStream(stream))
-      : [];
+    const audioStreams = streamEntries(
+      resolveSelectedPart(audioItem, mediaSelection)?.part,
+    ).filter((stream) => isAudioStream(stream));
     const videoStreams = selectedPart
       ? streamEntries(selectedPart).filter((stream) => isVideoStream(stream))
       : [];
