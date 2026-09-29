@@ -74,6 +74,25 @@ generated decision query so playback never reconstructs it by rewriting a URL.
 Cloud clients are per-request; PIN requests carry no token and discovery receives
 only the user token. PMS/media requests receive only the server resource token.
 
+## Provider organization
+
+Server policy remains in `apps/server/src/providers/plex`:
+
+| Module            | Responsibility                                                                       |
+| ----------------- | ------------------------------------------------------------------------------------ |
+| `playback.ts`     | Connection failover and currently-playing orchestration                              |
+| `selection.ts`    | Generated metadata projections, live track selection, preview URLs, export estimates |
+| `metadata.ts`     | Batched enrichment, export tags, and origin-scoped artwork credentials               |
+| `subtitles.ts`    | Delivery URL/format selection and embedded-subtitle preparation                      |
+| `mediaHandles.ts` | Authorized Plex media handle creation                                                |
+| `mediaProxy.ts`   | HTTP proxy lifecycle, range handling, and cancellation                               |
+
+Metadata is fetched once for distinct item IDs within each poll. Enrichment is
+combined separately with each live session, preserving its stream selections
+instead of inheriting the library's defaults. The PMS and shared media transports
+use `shared/networkPolicy.ts` for address classification and redirect credential
+stripping; their DNS, timeout, retry, and streaming policies remain separate.
+
 ## Current inventory
 
 | Caller                             | Contract or resource handling                                                                 |
@@ -104,6 +123,13 @@ to derive from upstream components, including Player/User/Session.
   Resource ownership/local/relay flags use the JSON boolean contract, and discovery
   no longer reads the undocumented `machineIdentifier` resource alias.
 - Undocumented `Network` metadata no longer populates export network tags.
+- Returned subtitle links with unsupported raw formats (such as ASS or TTML) are
+  not offered for import. Recognized local stream routes can still use generated
+  VTT conversion, and selected embedded subtitles use the sidecar operation.
+  Raw SRT/VTT resource links are followed unchanged and labeled with their format.
+- PMS redirects now share the media proxy's blocked-address policy, including
+  reserved IPv4 destinations in `0.0.0.0/8` and `240.0.0.0/4`. Configured Plex
+  origins retain their existing trusted-origin handling.
 - Wire types no longer advertise singleton arrays, null/string/numeric aliases
   absent from the JSON schema. Tests use contract-shaped JSON fixtures. No new
   minimum PMS version is asserted.
@@ -114,8 +140,9 @@ to derive from upstream components, including Player/User/Session.
 ## Validation and downstream PR #204
 
 The architecture check runs in lint and rejects direct/global/aliased fetch,
-prohibited transport imports, client creation outside named boundaries, and authored
-endpoint strings (patterns derive from contract inputs). Generated artifacts and
+prohibited transport imports, client creation outside named boundaries, raw member
+access through locally aliased Plex clients, handwritten wire interfaces/type
+literals, and authored endpoint strings (patterns derive from contract inputs). Generated artifacts and
 explicit test files are excluded; the metadata prefix exception is limited to its
 returned-reference validator. This is a static guard plus code review, not a proof
 against arbitrary runtime string computation.

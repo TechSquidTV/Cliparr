@@ -20,6 +20,12 @@ for (const source of [
   'import * as proxy from "@/providers/shared/mediaProxy"',
   'import axios from "axios"',
   "interface PlexMetadata { title: string }",
+  "type PlexMetadata = { title: string }",
+  "type PlexMetadata = GeneratedMetadata & { title: string }",
+  "const client = createPlexPmsSdkClient(context, options, signal); client.get({ url })",
+  "const client = createPlexPmsSdkClient(context, options, signal); const alias = client; alias.request({ url })",
+  'import { createPlexPmsSdkClient as make } from "@/providers/plex/pmsClient"; const client = make(context, options, signal); const send = client["get"];',
+  "const client = createPlexPmsSdkClient(context, options, signal); const { get: send } = client;",
 ]) {
   void test(`rejects Plex bypass: ${source}`, () => {
     assert.ok(architectureViolations(consumer, source).length > 0);
@@ -30,6 +36,16 @@ void test("permits generated calls and returned resource references", () => {
     architectureViolations(
       consumer,
       'import { imageTranscodeUrl } from "@cliparr/plex/pms/urls"; const path = imageTranscodeUrl({ query: { url: item.thumb } }); const resource = new URL(item.key, baseUrl);',
+    ),
+    [],
+  );
+});
+
+void test("permits derived wire types and clients passed to generated operations", () => {
+  assert.deepEqual(
+    architectureViolations(
+      consumer,
+      "type PlexMetadata = NonNullable<StatusGetSlashResponse['MediaContainer']>['Metadata']; const client = createPlexPmsSdkClient(context, options, signal); eventsourceGetSlash({ client, parseAs: 'stream' });",
     ),
     [],
   );

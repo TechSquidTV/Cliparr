@@ -65,6 +65,89 @@ export function architectureViolations(file, text) {
   const errors = [];
   const plexConsumer =
     file.startsWith(plexDirectory) || file.startsWith("packages/plex/src/");
+  const clientFactories = new Set(["createPlexPmsSdkClient"]);
+  const clients = new Set();
+  for (const statement of source.statements) {
+    if (ts.isImportDeclaration(statement)) {
+      for (const binding of statement.importClause?.namedBindings?.elements ??
+        []) {
+        if (
+          (binding.propertyName ?? binding.name).text ===
+          "createPlexPmsSdkClient"
+        ) {
+          clientFactories.add(binding.name.text);
+        }
+      }
+    }
+  }
+  function isClient(node) {
+    let value = node;
+    while (
+      value &&
+      (ts.isParenthesizedExpression(value) ||
+        ts.isAsExpression(value) ||
+        ts.isSatisfiesExpression(value))
+    ) {
+      value = value.expression;
+    }
+    if (!value) {
+      return false;
+    }
+    if (ts.isIdentifier(value)) {
+      return clients.has(value.text);
+    }
+    return (
+      ts.isCallExpression(value) &&
+      ((ts.isIdentifier(value.expression) &&
+        clientFactories.has(value.expression.text)) ||
+        (ts.isPropertyAccessExpression(value.expression) &&
+          clientFactories.has(value.expression.name.text)))
+    );
+  }
+  function accessesClient(node) {
+    return (
+      ((ts.isPropertyAccessExpression(node) ||
+        ts.isElementAccessExpression(node)) &&
+        isClient(node.expression)) ||
+      (ts.isVariableDeclaration(node) &&
+        ts.isObjectBindingPattern(node.name) &&
+        isClient(node.initializer))
+    );
+  }
+  function declaresWireModel(node) {
+    return (
+      (ts.isInterfaceDeclaration(node) ||
+        (ts.isTypeAliasDeclaration(node) && containsWireLiteral(node.type))) &&
+      /(?:Metadata|PlayingNotification|ResourceResponse|PinResponse|PlexStream|PlexPart|PlexMedia$)/.test(
+        node.name.text,
+      )
+    );
+  }
+  // Follow local aliases before checking member access; generated operations may
+  // receive the client, but consumers may not turn it into a raw HTTP caller.
+  let changed;
+  do {
+    changed = false;
+    function collect(node) {
+      if (
+        ts.isVariableDeclaration(node) &&
+        ts.isIdentifier(node.name) &&
+        isClient(node.initializer) &&
+        !clients.has(node.name.text)
+      ) {
+        clients.add(node.name.text);
+        changed = true;
+      }
+      ts.forEachChild(node, collect);
+    }
+    collect(source);
+  } while (changed);
+  function containsWireLiteral(node) {
+    return (
+      ts.isTypeLiteralNode(node) ||
+      Boolean(ts.forEachChild(node, containsWireLiteral))
+    );
+  }
   function report(node, message) {
     const { line } = source.getLineAndCharacterOfPosition(
       node.getStart(source),
@@ -97,6 +180,12 @@ export function architectureViolations(file, text) {
     return "";
   }
   function visit(node) {
+    if (!clientOwners.has(file) && accessesClient(node)) {
+      report(
+        node,
+        "Pass Plex clients to generated operations; do not access raw client members.",
+      );
+    }
     if (
       (ts.isBinaryExpression(node) || ts.isTemplateExpression(node)) &&
       isEndpoint(authoredText(node))
@@ -180,7 +269,7 @@ export function architectureViolations(file, text) {
             imported === "fetchMediaHandleRequest" &&
             ![
               `${plexDirectory}mediaClient.ts`,
-              `${plexDirectory}playback.ts`,
+              `${plexDirectory}mediaProxy.ts`,
             ].includes(file)
           ) {
             report(node, "Media networking is owned by the media transport.");
@@ -220,7 +309,7 @@ export function architectureViolations(file, text) {
     if (
       ts.isCallExpression(node) &&
       node.expression.getText(source) === "fetchMediaHandleRequest" &&
-      file === `${plexDirectory}playback.ts` &&
+      file === `${plexDirectory}mediaProxy.ts` &&
       enclosingFunction(node) !== "proxyMedia"
     ) {
       report(
@@ -236,7 +325,7 @@ export function architectureViolations(file, text) {
       // This single prefix validates returned metadata references; it is never
       // used to construct a request (the builder owns the template).
       const metadataReference =
-        file === `${plexDirectory}playback.ts` &&
+        file === `${plexDirectory}selection.ts` &&
         ts.isVariableDeclaration(node.parent) &&
         node.parent.name.getText(source) === "PLEX_METADATA_PATH_PREFIX" &&
         /^\/library\/metadata\/$/.test(node.text);
@@ -247,13 +336,7 @@ export function architectureViolations(file, text) {
         );
       }
     }
-    if (
-      plexConsumer &&
-      ts.isInterfaceDeclaration(node) &&
-      /(?:Metadata|PlayingNotification|ResourceResponse|PinResponse|PlexStream|PlexPart|PlexMedia$)/.test(
-        node.name.text,
-      )
-    ) {
+    if (plexConsumer && declaresWireModel(node)) {
       report(node, "Derive Plex wire models from generated response types.");
     }
     ts.forEachChild(node, visit);

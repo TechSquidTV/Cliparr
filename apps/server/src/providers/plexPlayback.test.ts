@@ -1,25 +1,31 @@
-import assert from "node:assert/strict";
-import test from "node:test";
-import { once } from "node:events";
-import { PassThrough } from "node:stream";
+import type { MediaSource } from "@/db/mediaSourcesRepository";
+import { proxyMedia } from "@/providers/plex/mediaProxy";
+import {
+  createPlexViewerAvatarUrl,
+  listCurrentlyPlaying,
+} from "@/providers/plex/playback";
+import {
+  createCliparrPlexTranscodeSessionId,
+  createPlexExportEstimateMetadata,
+  createPreviewPath,
+  playheadSecondsFromViewOffset,
+} from "@/providers/plex/selection";
+import type { PlexSourceContext } from "@/providers/plex/shared";
+import { createExportMetadata } from "@/providers/plex/metadata";
+import type { PlexMetadataItem } from "@/providers/plex/selection";
+import {
+  deriveSelectedSubtitleTrack,
+  deriveSubtitleTracks,
+} from "@/providers/plex/subtitles";
+import type { ProviderSessionRecord } from "@/session/store";
 import type {
   Request as ExpressRequest,
   Response as ExpressResponse,
 } from "express";
-import type { MediaSource } from "@/db/mediaSourcesRepository";
-import type { ProviderSessionRecord } from "@/session/store";
-import {
-  createPlexExportEstimateMetadata,
-  createCliparrPlexTranscodeSessionId,
-  createPlexViewerAvatarUrl,
-  createPreviewPath,
-  deriveSelectedSubtitleTrack,
-  deriveSubtitleTracks,
-  listCurrentlyPlaying,
-  playheadSecondsFromViewOffset,
-  proxyMedia,
-} from "@/providers/plex/playback";
-import type { PlexSourceContext } from "@/providers/plex/shared";
+import assert from "node:assert/strict";
+import { once } from "node:events";
+import { PassThrough } from "node:stream";
+import test from "node:test";
 
 function createSession(): ProviderSessionRecord {
   return {
@@ -1262,5 +1268,204 @@ void test("requires returned part keys and performs metadata enrichment only onc
       assert.ok(entries[0]?.item.hlsUrl);
       assert.equal(metadataRequests, 1);
     },
+  );
+});
+
+void test("export artwork scopes nested credentials to the Plex origin", () => {
+  const context = createContext();
+  for (const thumb of [
+    "/library/metadata/42/thumb?width=100",
+    `${context.baseUrl}/library/metadata/42/thumb?X-Plex-Token=stale`,
+    "https://artwork.example/poster.jpg?signed=123",
+    "//artwork.example/poster.jpg?signed=123",
+  ]) {
+    const session = createSession();
+    const metadata = createExportMetadata(session, context, { thumb });
+    const handle = mediaHandleForUrl(session, metadata.imageUrl);
+    const requestUrl = new URL(handle.path, context.baseUrl);
+    const image = requestUrl.searchParams.get("url");
+    assert.ok(image);
+    const parsed = new URL(image, context.baseUrl);
+    if (parsed.origin === context.baseUrl) {
+      assert.deepEqual(parsed.searchParams.getAll("X-Plex-Token"), [
+        context.token,
+      ]);
+    } else {
+      assert.equal(image, thumb);
+      assert.equal(parsed.searchParams.has("X-Plex-Token"), false);
+    }
+  }
+});
+
+void test("batch enrichment preserves each viewer's audio and subtitle selection", async () => {
+  const session = createSession();
+  const source = createSource();
+  const currentItem = (
+    sessionKey: string,
+    spanish: boolean,
+  ): PlexMetadataItem => ({
+    ratingKey: "42",
+    sessionKey,
+    type: "movie",
+    Media: [
+      {
+        id: 1,
+        selected: true,
+        Part: [
+          {
+            id: 2,
+            selected: true,
+            Stream: [
+              {
+                id: 10,
+                streamType: 2,
+                languageCode: "eng",
+                selected: !spanish,
+              },
+              { id: 11, streamType: 2, languageCode: "spa", selected: spanish },
+              { id: 20, streamType: 3, codec: "srt", selected: spanish },
+            ],
+          },
+        ],
+      },
+    ],
+  });
+  const library: PlexMetadataItem = {
+    ratingKey: "42",
+    title: "Enriched title",
+    type: "movie",
+    Media: [
+      {
+        id: 1,
+        Part: [
+          {
+            id: 2,
+            key: "/returned/movie.mp4",
+            Stream: [
+              { id: 11, streamType: 2, languageCode: "spa", selected: false },
+              { id: 10, streamType: 2, languageCode: "eng", selected: true },
+              { id: 20, streamType: 3, codec: "srt", selected: true },
+            ],
+          },
+        ],
+      },
+    ],
+  };
+  let metadataRequests = 0;
+  await withMockFetch(
+    (request) => {
+      const url = new URL(request.url);
+      if (url.pathname === "/status/sessions") {
+        return jsonResponse({
+          MediaContainer: {
+            Metadata: [
+              currentItem("spanish", true),
+              currentItem("english", false),
+              { ratingKey: "99", sessionKey: "other", type: "track" },
+              { sessionKey: "missing-id", title: "Live only", type: "track" },
+            ],
+          },
+        });
+      }
+      metadataRequests += 1;
+      assert.equal(decodeURIComponent(url.pathname), "/library/metadata/42,99");
+      return jsonResponse({
+        MediaContainer: {
+          Metadata: [
+            { ratingKey: "99", title: "Other title", type: "track" },
+            { title: "Unmatched response" },
+            library,
+          ],
+        },
+      });
+    },
+    async () => {
+      const entries = await listCurrentlyPlaying(session, source);
+      assert.equal(metadataRequests, 1);
+      assert.deepEqual(
+        entries.map((entry) => entry.item.title),
+        ["Enriched title", "Enriched title", "Other title", "Live only"],
+      );
+      assert.equal(entries[0]?.item.selectedAudioTrack?.languageCode, "spa");
+      assert.equal(entries[0]?.item.selectedAudioTrack?.trackNumber, 1);
+      assert.equal(entries[0]?.item.selectedSubtitleTrack?.streamId, "20");
+      assert.equal(entries[1]?.item.selectedAudioTrack?.languageCode, "eng");
+      assert.equal(entries[1]?.item.selectedAudioTrack?.trackNumber, 2);
+      assert.equal(entries[1]?.item.selectedSubtitleTrack, undefined);
+      assert.equal(entries[1]?.item.subtitleTracks?.length, 0);
+      assert.equal(library.Media?.[0]?.Part?.[0]?.Stream?.[0]?.selected, false);
+    },
+  );
+});
+
+void test("returned raw subtitles are offered only with a supported content format", () => {
+  for (const codec of ["srt", "vtt", "ass", "ttml"]) {
+    const session = createSession();
+    const path = `https://subtitles.example/captions.${codec}?signed=123`;
+    const item = {
+      ratingKey: "42",
+      Media: [
+        {
+          Part: [
+            {
+              Stream: [
+                { id: 20, streamType: 3, codec, key: path, selected: true },
+              ],
+            },
+          ],
+        },
+      ],
+    };
+    const [track] = deriveSubtitleTracks(
+      session,
+      createContext(),
+      item,
+      "viewer",
+    );
+    const selected = deriveSelectedSubtitleTrack(item);
+    if (codec === "srt" || codec === "vtt") {
+      assert.equal(track?.contentFormat, codec);
+      assert.equal(selected?.contentFormat, codec);
+      assert.equal(mediaHandleForUrl(session, track?.contentUrl).path, path);
+    } else {
+      assert.equal(track?.contentFormat, undefined);
+      assert.equal(selected?.contentFormat, undefined);
+      assert.equal(track?.contentUrl, undefined);
+      assert.equal(session.mediaHandles.size, 0);
+    }
+  }
+});
+
+void test("recognized local ASS streams request generated VTT conversion", () => {
+  const session = createSession();
+  const item = {
+    Media: [
+      {
+        Part: [
+          {
+            Stream: [
+              {
+                id: 20,
+                streamType: 3,
+                codec: "ass",
+                key: "/library/streams/20",
+                selected: true,
+              },
+            ],
+          },
+        ],
+      },
+    ],
+  };
+  const [track] = deriveSubtitleTracks(
+    session,
+    createContext(),
+    item,
+    "viewer",
+  );
+  assert.equal(track?.contentFormat, "vtt");
+  assert.equal(
+    mediaHandleForUrl(session, track?.contentUrl).path,
+    "/library/streams/20.ass?format=vtt",
   );
 });

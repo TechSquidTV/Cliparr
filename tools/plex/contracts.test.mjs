@@ -47,7 +47,7 @@ void test("generated output comparison detects missing and modified artifacts", 
 });
 
 void test(
-  "removing a consumed generated parameter fails the actual playback consumer type check",
+  "removing a consumed generated parameter fails the actual preview consumer type check",
   { timeout: 30_000 },
   async () => {
     const temporary = await mkdtemp(path.join(os.tmpdir(), "plex-consumer-"));
@@ -98,7 +98,7 @@ void test(
           ).resolvedModule;
         });
       const program = ts.createProgram(
-        [path.resolve("apps/server/src/providers/plex/playback.ts")],
+        [path.resolve("apps/server/src/providers/plex/selection.ts")],
         parsed.options,
         host,
       );
@@ -106,7 +106,7 @@ void test(
       assert.ok(
         diagnostics.some(
           (diagnostic) =>
-            diagnostic.file?.fileName.endsWith("plex/playback.ts") &&
+            diagnostic.file?.fileName.endsWith("plex/selection.ts") &&
             ts
               .flattenDiagnosticMessageText(diagnostic.messageText, " ")
               .includes("videoQuality"),
