@@ -1,9 +1,18 @@
 <script>
   async function renderMermaid() {
-    const diagrams = document.querySelectorAll<HTMLPreElement>("pre.mermaid");
+    const diagrams = document.querySelectorAll<HTMLPreElement>(
+      "pre:has(> code.language-mermaid)",
+    );
 
     if (diagrams.length === 0) {
       return;
+    }
+
+    // Claim the blocks before loading Mermaid so page-load events cannot render
+    // them twice. Mermaid reads plain source instead of the code wrapper.
+    for (const diagram of diagrams) {
+      diagram.classList.add("mermaid");
+      diagram.replaceChildren(diagram.textContent);
     }
 
     const { default: mermaid } = await import("mermaid");

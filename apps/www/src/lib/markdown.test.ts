@@ -67,3 +67,11 @@ void test("rendered MDX keeps commands, warning callouts, tables, and resolved l
     /Global navigation|Docs sidebar|Copy command|secretScript|Footer noise|<script|<input/u,
   );
 });
+
+void test("Mermaid code blocks retain their source in Markdown exports", async () => {
+  const markdown = await pageMarkdown(
+    '<main><pre><code class="language-mermaid">flowchart LR\nBrowser --&gt; Cliparr\n</code></pre></main>',
+    "https://cliparr.dev/docs/access-control/",
+  );
+  assert.match(markdown, /```mermaid\nflowchart LR\nBrowser --> Cliparr\n```/u);
+});
