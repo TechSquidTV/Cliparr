@@ -23,7 +23,6 @@
     "apps/server": {
       "drizzle": false,
       "ignoreBinaries": ["eslint"],
-      "ignore": ["src/providers/plex/generated/**"],
       "paths": {
         "@/*": ["./src/*"]
       },
@@ -36,6 +35,11 @@
     "tools/www-assets": {
       "project": ["src/**/*.ts"],
       "ignoreBinaries": ["eslint"]
+    },
+    "packages/plex": {
+      "ignore": ["src/generated/**"],
+      "ignoreBinaries": ["tsc", "eslint"],
+      "project": ["src/**/*.ts"]
     }
   }
 }

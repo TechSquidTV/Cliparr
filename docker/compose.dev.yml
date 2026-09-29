@@ -80,24 +80,21 @@ services:
     restart: unless-stopped
 
   plex-bootstrap:
-    image: alpine:3.24
+    image: node:24-slim
     depends_on:
       media-seed:
         condition: service_completed_successfully
       plex:
         condition: service_started
     network_mode: service:plex
-    command:
-      - /bin/sh
-      - -lc
-      - apk add --no-cache curl jq >/dev/null && sh /scripts/bootstrap-plex.sh
+    command: ["node", "/plex/src/bootstrap.ts"]
     environment:
       PLEX_BASE_URL: http://127.0.0.1:32400
       PLEX_LIBRARY_NAME: Movies
       PLEX_LIBRARY_PATH: /data/movies
       PLEX_LIBRARY_LANGUAGE: en-US
     volumes:
-      - ../docker:/scripts:ro
+      - ../packages/plex:/plex:ro
 
   cliparr:
     build:

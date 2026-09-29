@@ -21,6 +21,7 @@ export default defineConfig({
   deps: {
     onlyBundle: false,
     alwaysBundle: [
+      /^@cliparr\/plex(?:\/.*)?$/,
       /^@cliparr\/shared(?:\/.*)?$/,
       /^@jellyfin\/sdk(?:\/.*)?$/,
       /^@logtape\/logtape(?:\/.*)?$/,

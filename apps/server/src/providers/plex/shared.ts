@@ -1,3 +1,4 @@
+import type { Resource } from "@cliparr/plex/cloud/types";
 import { randomUUID } from "node:crypto";
 import type { MediaSource } from "@/db/mediaSourcesRepository";
 import { createApiError } from "@/http/errors";
@@ -37,25 +38,6 @@ export interface PlexAuthRequest {
   expiresAt: number;
 }
 
-export interface PlexResourceResponse {
-  name?: string;
-  product?: string;
-  platform?: string;
-  clientIdentifier?: string;
-  machineIdentifier?: string;
-  provides?: string;
-  owned?: boolean | number | string;
-  accessToken?: string;
-  connections?: {
-    uri?: string;
-    local?: boolean | number | string;
-    relay?: boolean | number | string;
-    protocol?: string;
-    address?: string;
-    port?: number;
-  }[];
-}
-
 export interface PlexSourceContext {
   sourceId: string;
   baseUrl: string;
@@ -80,25 +62,6 @@ export function plexMediaHeaders(
   headers.set("X-Plex-Platform", "Web");
   headers.set("X-Plex-Client-Profile-Name", "generic");
   return headers;
-}
-
-export async function plexFetch(url: string, init: RequestInit = {}) {
-  const headers = plexHeaders(init.headers);
-
-  const response = await fetch(url, {
-    ...init,
-    headers,
-  });
-
-  if (!response.ok) {
-    throw createApiError(
-      response.status,
-      "plex_request_failed",
-      `Plex request failed: ${response.status} ${response.statusText}`,
-    );
-  }
-
-  return response;
 }
 
 function assertHttpUrl(uri: string) {
@@ -131,77 +94,47 @@ function normalizeProvides(provides: unknown): string[] {
     .filter(Boolean);
 }
 
-function plexBoolean(value: unknown) {
-  if (typeof value === "boolean") {
-    return value;
-  }
-
-  if (typeof value === "number") {
-    return value !== 0;
-  }
-
-  if (typeof value === "string") {
-    const normalized = value.trim().toLowerCase();
-    if (normalized === "1" || normalized === "true" || normalized === "yes") {
-      return true;
-    }
-
-    if (
-      normalized === "0" ||
-      normalized === "false" ||
-      normalized === "no" ||
-      normalized === ""
-    ) {
-      return false;
-    }
-  }
-
-  return false;
-}
-
-function isAdminServerResource(resource: PlexResourceResponse) {
+function isAdminServerResource(
+  resource: Resource,
+): resource is Resource & Required<Pick<Resource, "accessToken">> {
   // Plex requires an admin token for the /status/sessions endpoint.
   return (
     Boolean(resource.accessToken) &&
-    plexBoolean(resource.owned) &&
+    resource.owned === true &&
     normalizeProvides(resource.provides).includes("server") &&
     Boolean(resource.connections?.length)
   );
 }
 
-export function normalizeResources(
-  resources: PlexResourceResponse[],
-): ProviderResource[] {
+export function normalizeResources(resources: Resource[]): ProviderResource[] {
   return resources
     .filter((resource) => isAdminServerResource(resource))
     .map((resource) => {
-      const connections = (resource.connections ?? [])
-        .filter((connection) => connection.uri)
-        .map((connection) => {
-          const uri = connection.uri as string;
-          assertHttpUrl(uri);
-          return {
-            id: randomUUID(),
-            uri,
-            local: plexBoolean(connection.local),
-            relay: plexBoolean(connection.relay),
-            protocol: connection.protocol,
-            address: connection.address,
-            port: connection.port,
-          };
-        });
+      const connections = (resource.connections ?? []).flatMap((connection) => {
+        const uri = connection.uri;
+        if (!uri) {
+          return [];
+        }
+        assertHttpUrl(uri);
+        return {
+          id: randomUUID(),
+          uri,
+          local: connection.local === true,
+          relay: connection.relay === true,
+          protocol: connection.protocol,
+          address: connection.address,
+          port: connection.port,
+        };
+      });
 
       return {
-        id:
-          resource.clientIdentifier ??
-          resource.machineIdentifier ??
-          randomUUID(),
+        id: resource.clientIdentifier ?? randomUUID(),
         name: resource.name ?? "Plex Media Server",
         product: resource.product,
         platform: resource.platform,
         provides: normalizeProvides(resource.provides),
-        owned: plexBoolean(resource.owned),
-        accessToken: resource.accessToken as string,
+        owned: resource.owned === true,
+        accessToken: resource.accessToken,
         connections,
       };
     })

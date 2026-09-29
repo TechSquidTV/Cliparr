@@ -1,0 +1,742 @@
+{
+  "description": "Cliparr local corrections; not official Plex definitions. Every edit is guarded against upstream drift.",
+  "patches": [
+    {
+      "path": [
+        "components",
+        "schemas",
+        "metadata",
+        "properties",
+        "contentRating"
+      ],
+      "expected": {
+        "description": "If known, the content rating (e.g. MPAA) for an item."
+      },
+      "value": {
+        "description": "If known, the content rating (e.g. MPAA) for an item.",
+        "type": "string"
+      },
+      "rationale": "Supply the string type described by this upstream field and its examples.",
+      "source": "https://developer.plex.tv/pms/"
+    },
+    {
+      "path": [
+        "components",
+        "schemas",
+        "metadata",
+        "properties",
+        "key"
+      ],
+      "expected": {
+        "description": "The key at which the item's details can be fetched.  In many cases a metadata item may be passed without all the details (such as in a hub) and this key corresponds to the endpoint to fetch additional details."
+      },
+      "value": {
+        "description": "The key at which the item's details can be fetched.  In many cases a metadata item may be passed without all the details (such as in a hub) and this key corresponds to the endpoint to fetch additional details.",
+        "type": "string"
+      },
+      "rationale": "Supply the string type described by this upstream field and its examples.",
+      "source": "https://developer.plex.tv/pms/"
+    },
+    {
+      "path": [
+        "components",
+        "schemas",
+        "metadata",
+        "properties",
+        "originallyAvailableAt"
+      ],
+      "expected": {
+        "description": "When present, in the format YYYY-MM-DD [HH:MM:SS] (the hours/minutes/seconds part is not always present). The air date, or a higher resolution release date for an item, depending on type. For example, episodes usually have air date like 1979-08-10 (we don't use epoch seconds because media existed prior to 1970). In some cases, recorded over-the-air content has higher resolution air date which includes a time component. Albums and movies may have day-resolution release dates as well."
+      },
+      "value": {
+        "description": "When present, in the format YYYY-MM-DD [HH:MM:SS] (the hours/minutes/seconds part is not always present). The air date, or a higher resolution release date for an item, depending on type. For example, episodes usually have air date like 1979-08-10 (we don't use epoch seconds because media existed prior to 1970). In some cases, recorded over-the-air content has higher resolution air date which includes a time component. Albums and movies may have day-resolution release dates as well.",
+        "type": "string"
+      },
+      "rationale": "Supply the string type described by this upstream field and its examples.",
+      "source": "https://developer.plex.tv/pms/"
+    },
+    {
+      "path": [
+        "components",
+        "schemas",
+        "metadata",
+        "properties",
+        "ratingKey"
+      ],
+      "expected": {
+        "description": "This is the opaque string to be passed into timeline, scrobble, and rating endpoints to identify them.  While it often appears to be numeric, this is not guaranteed."
+      },
+      "value": {
+        "description": "This is the opaque string to be passed into timeline, scrobble, and rating endpoints to identify them.  While it often appears to be numeric, this is not guaranteed.",
+        "type": "string"
+      },
+      "rationale": "Supply the string type described by this upstream field and its examples.",
+      "source": "https://developer.plex.tv/pms/"
+    },
+    {
+      "path": [
+        "components",
+        "schemas",
+        "metadata",
+        "properties",
+        "studio"
+      ],
+      "expected": {
+        "description": "When present, the studio or label which produced an item (e.g. movie studio for movies, record label for albums)."
+      },
+      "value": {
+        "description": "When present, the studio or label which produced an item (e.g. movie studio for movies, record label for albums).",
+        "type": "string"
+      },
+      "rationale": "Supply the string type described by this upstream field and its examples.",
+      "source": "https://developer.plex.tv/pms/"
+    },
+    {
+      "path": [
+        "components",
+        "schemas",
+        "metadata",
+        "properties",
+        "summary"
+      ],
+      "expected": {
+        "description": "When present, the extended textual information about the item (e.g. movie plot, artist biography, album review)."
+      },
+      "value": {
+        "description": "When present, the extended textual information about the item (e.g. movie plot, artist biography, album review).",
+        "type": "string"
+      },
+      "rationale": "Supply the string type described by this upstream field and its examples.",
+      "source": "https://developer.plex.tv/pms/"
+    },
+    {
+      "path": [
+        "components",
+        "schemas",
+        "metadata",
+        "properties",
+        "tagline"
+      ],
+      "expected": {
+        "description": "When present, a pithy one-liner about the item (usually only seen for movies)."
+      },
+      "value": {
+        "description": "When present, a pithy one-liner about the item (usually only seen for movies).",
+        "type": "string"
+      },
+      "rationale": "Supply the string type described by this upstream field and its examples.",
+      "source": "https://developer.plex.tv/pms/"
+    },
+    {
+      "path": [
+        "components",
+        "schemas",
+        "metadata",
+        "properties",
+        "thumb"
+      ],
+      "expected": {
+        "description": "When present, the URL for the poster or thumbnail for the item. When available for types like movie, it will be the poster graphic, but fall-back to the extracted media thumbnail."
+      },
+      "value": {
+        "description": "When present, the URL for the poster or thumbnail for the item. When available for types like movie, it will be the poster graphic, but fall-back to the extracted media thumbnail.",
+        "type": "string"
+      },
+      "rationale": "Supply the string type described by this upstream field and its examples.",
+      "source": "https://developer.plex.tv/pms/"
+    },
+    {
+      "path": [
+        "components",
+        "schemas",
+        "metadata",
+        "properties",
+        "title"
+      ],
+      "expected": {
+        "description": "The title of the item (e.g. \u201c300\u201d or \u201cThe Simpsons\u201d)"
+      },
+      "value": {
+        "description": "The title of the item (e.g. \u201c300\u201d or \u201cThe Simpsons\u201d)",
+        "type": "string"
+      },
+      "rationale": "Supply the string type described by this upstream field and its examples.",
+      "source": "https://developer.plex.tv/pms/"
+    },
+    {
+      "path": [
+        "components",
+        "schemas",
+        "metadata",
+        "properties",
+        "type"
+      ],
+      "expected": {
+        "description": "The type of the video item, such as `movie`, `episode`, or `clip`."
+      },
+      "value": {
+        "description": "The type of the video item, such as `movie`, `episode`, or `clip`.",
+        "type": "string"
+      },
+      "rationale": "Supply the string type described by this upstream field and its examples.",
+      "source": "https://developer.plex.tv/pms/"
+    },
+    {
+      "path": [
+        "components",
+        "schemas",
+        "part",
+        "properties",
+        "file"
+      ],
+      "expected": {
+        "description": "The local file path at which the part is stored on the server",
+        "example": "/home/schuyler/Videos/Trailers/Cloud Atlas (2012).mov"
+      },
+      "value": {
+        "description": "The local file path at which the part is stored on the server",
+        "example": "/home/schuyler/Videos/Trailers/Cloud Atlas (2012).mov",
+        "type": "string"
+      },
+      "rationale": "Supply the string type described by this upstream field and its examples.",
+      "source": "https://developer.plex.tv/pms/"
+    },
+    {
+      "path": [
+        "components",
+        "schemas",
+        "part",
+        "properties",
+        "key"
+      ],
+      "expected": {
+        "description": "The key from which the media can be streamed",
+        "example": "/library/parts/1/1531779263/file.mov"
+      },
+      "value": {
+        "description": "The key from which the media can be streamed",
+        "example": "/library/parts/1/1531779263/file.mov",
+        "type": "string"
+      },
+      "rationale": "Supply the string type described by this upstream field and its examples.",
+      "source": "https://developer.plex.tv/pms/"
+    },
+    {
+      "path": [
+        "components",
+        "schemas",
+        "stream",
+        "properties",
+        "codec"
+      ],
+      "expected": {
+        "description": "The codec of the stream, such as `h264` or `aac`",
+        "example": "h264"
+      },
+      "value": {
+        "description": "The codec of the stream, such as `h264` or `aac`",
+        "example": "h264",
+        "type": "string"
+      },
+      "rationale": "Supply the string type described by this upstream field and its examples.",
+      "source": "https://developer.plex.tv/pms/"
+    },
+    {
+      "path": [
+        "components",
+        "schemas",
+        "stream",
+        "properties",
+        "displayTitle"
+      ],
+      "expected": {
+        "description": "A friendly name for the stream, often comprised of the language and codec information",
+        "example": "English (H.264 Main)"
+      },
+      "value": {
+        "description": "A friendly name for the stream, often comprised of the language and codec information",
+        "example": "English (H.264 Main)",
+        "type": "string"
+      },
+      "rationale": "Supply the string type described by this upstream field and its examples.",
+      "source": "https://developer.plex.tv/pms/"
+    },
+    {
+      "path": [
+        "components",
+        "schemas",
+        "stream",
+        "properties",
+        "key"
+      ],
+      "expected": {
+        "description": "If the stream is independently streamable, the key from which it can be streamed",
+        "example": "/library/streams/1"
+      },
+      "value": {
+        "description": "If the stream is independently streamable, the key from which it can be streamed",
+        "example": "/library/streams/1",
+        "type": "string"
+      },
+      "rationale": "Supply the string type described by this upstream field and its examples.",
+      "source": "https://developer.plex.tv/pms/"
+    },
+    {
+      "path": [
+        "components",
+        "schemas",
+        "stream",
+        "properties",
+        "language"
+      ],
+      "expected": {
+        "example": "English"
+      },
+      "value": {
+        "example": "English",
+        "type": "string"
+      },
+      "rationale": "Supply the string type described by this upstream field and its examples.",
+      "source": "https://developer.plex.tv/pms/"
+    },
+    {
+      "path": [
+        "components",
+        "schemas",
+        "stream",
+        "properties",
+        "languageCode"
+      ],
+      "expected": {
+        "description": "The three character language code for the stream contents",
+        "example": "eng"
+      },
+      "value": {
+        "description": "The three character language code for the stream contents",
+        "example": "eng",
+        "type": "string"
+      },
+      "rationale": "Supply the string type described by this upstream field and its examples.",
+      "source": "https://developer.plex.tv/pms/"
+    },
+    {
+      "path": [
+        "components",
+        "schemas",
+        "tag",
+        "properties",
+        "tag"
+      ],
+      "expected": {
+        "description": "The value of the tag (the name)",
+        "example": "Shaun Lawton"
+      },
+      "value": {
+        "description": "The value of the tag (the name)",
+        "example": "Shaun Lawton",
+        "type": "string"
+      },
+      "rationale": "Supply the string type described by this upstream field and its examples.",
+      "source": "https://developer.plex.tv/pms/"
+    },
+    {
+      "path": [
+        "components",
+        "schemas",
+        "tag",
+        "properties",
+        "filter"
+      ],
+      "expected": {
+        "description": "A filter parameter that can be used to query for more content that matches this tag value.",
+        "example": "actor=49"
+      },
+      "value": {
+        "description": "A filter parameter that can be used to query for more content that matches this tag value.",
+        "example": "actor=49",
+        "type": "string"
+      },
+      "rationale": "Supply the string type described by this upstream field and its examples.",
+      "source": "https://developer.plex.tv/pms/"
+    },
+    {
+      "path": [
+        "components",
+        "schemas",
+        "media",
+        "properties",
+        "id"
+      ],
+      "expected": {
+        "example": 1,
+        "type": "integer"
+      },
+      "value": {
+        "example": 1,
+        "type": [
+          "integer",
+          "string"
+        ]
+      },
+      "rationale": "Upstream metadata and transcode-decision examples include string IDs alongside numeric IDs.",
+      "source": "https://developer.plex.tv/pms/"
+    },
+    {
+      "path": [
+        "components",
+        "schemas",
+        "part",
+        "properties",
+        "id"
+      ],
+      "expected": {
+        "example": 1,
+        "type": "integer"
+      },
+      "value": {
+        "example": 1,
+        "type": [
+          "integer",
+          "string"
+        ]
+      },
+      "rationale": "Upstream metadata and transcode-decision examples include string IDs alongside numeric IDs.",
+      "source": "https://developer.plex.tv/pms/"
+    },
+    {
+      "path": [
+        "components",
+        "schemas",
+        "stream",
+        "properties",
+        "id"
+      ],
+      "expected": {
+        "example": 1,
+        "type": "integer"
+      },
+      "value": {
+        "example": 1,
+        "type": [
+          "integer",
+          "string"
+        ]
+      },
+      "rationale": "Upstream metadata and transcode-decision examples include string IDs alongside numeric IDs.",
+      "source": "https://developer.plex.tv/pms/"
+    },
+    {
+      "path": [
+        "components",
+        "schemas",
+        "tag",
+        "properties",
+        "id"
+      ],
+      "expected": {
+        "type": "integer"
+      },
+      "value": {
+        "type": [
+          "integer",
+          "string"
+        ]
+      },
+      "rationale": "Upstream metadata and transcode-decision examples include string IDs alongside numeric IDs.",
+      "source": "https://developer.plex.tv/pms/"
+    },
+    {
+      "path": [
+        "components",
+        "schemas",
+        "media",
+        "properties",
+        "selected"
+      ],
+      "expected": null,
+      "value": {
+        "type": "boolean"
+      },
+      "rationale": "The upstream transcodeDecision example marks selected media and parts.",
+      "source": "https://developer.plex.tv/pms/"
+    },
+    {
+      "path": [
+        "components",
+        "schemas",
+        "part",
+        "properties",
+        "selected"
+      ],
+      "expected": null,
+      "value": {
+        "type": "boolean"
+      },
+      "rationale": "The upstream transcodeDecision example marks selected media and parts.",
+      "source": "https://developer.plex.tv/pms/"
+    },
+    {
+      "path": [
+        "components",
+        "schemas",
+        "stream",
+        "properties",
+        "title"
+      ],
+      "expected": null,
+      "value": {
+        "type": "string"
+      },
+      "rationale": "Expose the stream attribute consumed by the media adapter.",
+      "source": "https://github.com/pkkid/python-plexapi/blob/master/plexapi/media.py"
+    },
+    {
+      "path": [
+        "components",
+        "schemas",
+        "stream",
+        "properties",
+        "extendedDisplayTitle"
+      ],
+      "expected": null,
+      "value": {
+        "type": "string"
+      },
+      "rationale": "Expose the stream attribute consumed by the media adapter.",
+      "source": "https://github.com/pkkid/python-plexapi/blob/master/plexapi/media.py"
+    },
+    {
+      "path": [
+        "components",
+        "schemas",
+        "stream",
+        "properties",
+        "languageTag"
+      ],
+      "expected": null,
+      "value": {
+        "type": "string"
+      },
+      "rationale": "Expose the stream attribute consumed by the media adapter.",
+      "source": "https://github.com/pkkid/python-plexapi/blob/master/plexapi/media.py"
+    },
+    {
+      "path": [
+        "components",
+        "schemas",
+        "stream",
+        "properties",
+        "forced"
+      ],
+      "expected": null,
+      "value": {
+        "type": "boolean"
+      },
+      "rationale": "Expose subtitle accessibility flags.",
+      "source": "https://github.com/pkkid/python-plexapi/blob/master/plexapi/media.py"
+    },
+    {
+      "path": [
+        "components",
+        "schemas",
+        "stream",
+        "properties",
+        "hearingImpaired"
+      ],
+      "expected": null,
+      "value": {
+        "type": "boolean"
+      },
+      "rationale": "Expose subtitle accessibility flags.",
+      "source": "https://github.com/pkkid/python-plexapi/blob/master/plexapi/media.py"
+    },
+    {
+      "path": [
+        "paths",
+        "/status/sessions",
+        "get",
+        "responses",
+        "200",
+        "content",
+        "application/json",
+        "schema",
+        "properties",
+        "MediaContainer",
+        "allOf",
+        1,
+        "properties",
+        "Metadata",
+        "items",
+        "allOf",
+        0,
+        "properties",
+        "sessionKey"
+      ],
+      "expected": null,
+      "value": {
+        "type": "string"
+      },
+      "rationale": "PMS session identifier used by clients.",
+      "source": "https://github.com/pkkid/python-plexapi/blob/master/plexapi/video.py"
+    },
+    {
+      "path": [
+        "paths",
+        "/library/sections/all",
+        "post",
+        "parameters",
+        1,
+        "schema"
+      ],
+      "expected": {
+        "type": "integer"
+      },
+      "value": {
+        "type": "string"
+      },
+      "rationale": "Library creation uses the library type name (movie/show/artist/photo).",
+      "source": "https://github.com/pkkid/python-plexapi/blob/master/plexapi/library.py"
+    },
+    {
+      "path": [
+        "paths",
+        "/library/sections/all",
+        "post",
+        "parameters",
+        6
+      ],
+      "expected": {
+        "description": "The locations on disk to add to this section",
+        "example": [
+          "O:\\fatboy\\Media\\Ripped\\Music",
+          "O:\\fatboy\\Media\\My Music"
+        ],
+        "in": "query",
+        "name": "locations",
+        "schema": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        }
+      },
+      "value": {
+        "description": "The locations on disk to add to this section",
+        "example": [
+          "O:\\fatboy\\Media\\Ripped\\Music",
+          "O:\\fatboy\\Media\\My Music"
+        ],
+        "in": "query",
+        "name": "location",
+        "schema": {
+          "type": "string"
+        }
+      },
+      "rationale": "Single-library-path bootstrap uses location, as Library.add does.",
+      "source": "https://github.com/pkkid/python-plexapi/blob/master/plexapi/library.py"
+    },
+    {
+      "path": [
+        "components",
+        "schemas",
+        "metadata",
+        "properties",
+        "guid"
+      ],
+      "expected": null,
+      "value": {
+        "type": "string"
+      },
+      "rationale": "The metadata GUID consumed for export tagging.",
+      "source": "https://github.com/pkkid/python-plexapi/blob/master/plexapi/video.py"
+    }
+  ],
+  "operations": [
+    {
+      "kind": "move",
+      "from": "/{transcodeType}/:/transcode/universal/start.*",
+      "to": "/{transcodeType}/:/transcode/universal/start.{extension}",
+      "sourceSha256": "d50f13ddee4341dd248159a921cbe1b226d358b6265a83405aa66018aa395a0f",
+      "rationale": "The documented wildcard describes an output extension, not a literal asterisk. Model the HLS extension used by Cliparr.",
+      "source": "https://developer.plex.tv/pms/",
+      "parameters": [
+        {
+          "in": "path",
+          "name": "extension",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "enum": [
+              "m3u8"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "kind": "copy",
+      "from": "/{transcodeType}/:/transcode/universal/subtitles",
+      "to": "/subtitles/:/transcode/universal/start",
+      "sourceSha256": "425fa9932667fccfd8ffc349218dc8843c38b79dc8a6e78354382b4f5caac539",
+      "operationId": "startSelectedSubtitle",
+      "rationale": "Plex Web sidecar extraction uses this distinct route. Preserve decision-before-extraction and its session/copyts parameters.",
+      "source": "https://forums.plex.tv/t/webos-no-subtitles/922752",
+      "removePathParameters": true,
+      "parameters": [
+        {
+          "in": "query",
+          "name": "session",
+          "schema": {
+            "type": "string"
+          }
+        },
+        {
+          "in": "query",
+          "name": "copyts",
+          "schema": {
+            "type": "integer",
+            "enum": [
+              0,
+              1
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "kind": "move",
+      "from": "/library/sections/all",
+      "to": "/library/sections",
+      "sourceSha256": "2d28db35987ea9769aeda05bab56e65977c95c101e01f26fb1fd0182b108e915",
+      "rationale": "Library listing/creation uses the collection route; /all is not the bootstrap collection route.",
+      "source": "https://github.com/pkkid/python-plexapi/blob/master/plexapi/library.py"
+    }
+  ],
+  "parameters": [
+    {
+      "operationId": "transcodeDecision",
+      "parameters": [
+        {
+          "in": "query",
+          "name": "session",
+          "schema": {
+            "type": "string"
+          }
+        },
+        {
+          "in": "query",
+          "name": "copyts",
+          "schema": {
+            "type": "integer",
+            "enum": [
+              0,
+              1
+            ]
+          }
+        }
+      ],
+      "rationale": "Plex Web sends the same sidecar session and copyts parameters to decision and extraction.",
+      "source": "https://forums.plex.tv/t/webos-no-subtitles/922752"
+    }
+  ]
+}

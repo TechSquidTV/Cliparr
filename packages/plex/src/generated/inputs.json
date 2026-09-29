@@ -1,0 +1,10 @@
+{
+  "inputs": {
+    "pms.json": "cb6c349b61b62b4324377f9e0f81212eb7147c2e5886bf5fb6b4279757c03a9a",
+    "pms-supplement.json": "b0e1eef41b2b40e130de6d9f6a5e18a594b33f6bf50496a44a690fbf61b3b733",
+    "cloud.json": "a6b2ac5fd27acd90e90ac5bf3443a60a3be3632f74e464625a41fde7e5d7c090"
+  },
+  "generatorVersion": "0.98.2",
+  "pipelineSha256": "8c37a3e631743b9c6c034dc55af8d54c18826caf7df63b61bf05dc3320ee25fc",
+  "extensionSha256": "9ce80c363225ffc5e082e13b4f584a5fd78c5365f59be8e6bd782c29ee34f909"
+}

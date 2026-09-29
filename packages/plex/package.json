@@ -1,0 +1,23 @@
+{
+  "name": "@cliparr/plex",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./pms": "./src/generated/pms/sdk.gen.ts",
+    "./pms/types": "./src/generated/pms/types.gen.ts",
+    "./pms/client": "./src/generated/pms/client/index.ts",
+    "./pms/urls": "./src/generated/pms/urls.gen.ts",
+    "./cloud": "./src/generated/cloud/sdk.gen.ts",
+    "./cloud/types": "./src/generated/cloud/types.gen.ts",
+    "./cloud/client": "./src/generated/cloud/client/index.ts"
+  },
+  "scripts": {
+    "lint:types": "tsc --noEmit",
+    "lint:eslint": "cd ../.. && pnpm exec eslint --config config/eslint.config.js \"packages/plex/src/*.ts\"",
+    "test": "node --test src/*.test.ts",
+    "bootstrap": "node src/bootstrap.ts"
+  },
+  "imports": {
+    "#bootstrap": "./src/bootstrap.ts"
+  }
+}

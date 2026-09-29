@@ -1,3 +1,9 @@
+import { createClient } from "@hey-api/openapi-ts";
+import {
+  applySupplement,
+  inputFingerprints,
+  generateUrlBuilders,
+} from "#plex/contracts.mjs";
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
 import { createHash } from "node:crypto";
@@ -11,15 +17,11 @@ import {
 } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import { pathToFileURL } from "node:url";
 
 export const PLEX_PMS_SPEC_URL = "https://developer.plex.tv/pms/";
-export const PLEX_PMS_SPEC_PATH =
-  "apps/server/src/providers/plex/openapi/pms.json";
-export const PLEX_PMS_MANIFEST_PATH =
-  "apps/server/src/providers/plex/openapi/manifest.json";
-export const PLEX_PMS_GENERATED_DIR =
-  "apps/server/src/providers/plex/generated";
+export const PLEX_PMS_SPEC_PATH = "packages/plex/openapi/pms.json";
+export const PLEX_PMS_MANIFEST_PATH = "packages/plex/openapi/manifest.json";
+export const PLEX_PMS_GENERATED_DIR = "packages/plex/src/generated";
 export const HEY_API_PACKAGE_NAME = "@hey-api/openapi-ts";
 
 const repoRoot = path.resolve(import.meta.dirname, "../..");
@@ -187,7 +189,7 @@ function commandFailed(command, arguments_, code) {
   );
 }
 
-async function run(command, arguments_) {
+export async function run(command, arguments_) {
   await new Promise((resolve, reject) => {
     const child = spawn(command, arguments_, {
       cwd: repoRoot,
@@ -210,16 +212,41 @@ export async function generatePlexPmsSdk({
   outputDirectory = repoPath(PLEX_PMS_GENERATED_DIR),
 } = {}) {
   await rm(outputDirectory, { force: true, recursive: true });
-  await run("pnpm", [
-    "exec",
-    "openapi-ts",
-    "-i",
-    inputPath,
-    "-o",
-    outputDirectory,
-    "-c",
-    "@hey-api/client-fetch",
-  ]);
+  const inputDirectory = path.dirname(inputPath);
+  const upstream = JSON.parse(await readFile(inputPath, "utf8"));
+  const supplement = JSON.parse(
+    await readFile(path.join(inputDirectory, "pms-supplement.json"), "utf8"),
+  );
+  const cloud = JSON.parse(
+    await readFile(path.join(inputDirectory, "cloud.json"), "utf8"),
+  );
+  for (const [name, spec] of [
+    ["pms", applySupplement(upstream, supplement)],
+    ["cloud", cloud],
+  ]) {
+    await createClient({
+      input: spec,
+      output: {
+        path: path.join(outputDirectory, name),
+        importFileExtension: ".ts",
+      },
+      plugins: ["@hey-api/typescript", "@hey-api/sdk", "@hey-api/client-fetch"],
+    });
+  }
+  await generateUrlBuilders(path.join(outputDirectory, "pms"));
+  await writeFile(
+    path.join(outputDirectory, "inputs.json"),
+    stableJson({
+      inputs: await inputFingerprints(inputDirectory),
+      generatorVersion: await readHeyApiVersion(),
+      pipelineSha256: sha256(
+        await readFile(repoPath("tools/plex/pms-openapi.mjs")),
+      ),
+      extensionSha256: sha256(
+        await readFile(repoPath("tools/plex/contracts.mjs")),
+      ),
+    }),
+  );
 }
 
 export async function writePlexPmsSnapshot(html, now = new Date()) {
@@ -385,31 +412,4 @@ export async function checkGeneratedPlexPmsSdk() {
   } finally {
     await rm(temporaryDirectory, { force: true, recursive: true });
   }
-}
-
-async function main(argv) {
-  if (argv.includes("--check")) {
-    const diffs = await checkGeneratedPlexPmsSdk();
-    if (diffs.length > 0) {
-      for (const diff of diffs) {
-        process.stderr.write(`${diff}\n`);
-      }
-      process.exitCode = 1;
-    }
-    return;
-  }
-
-  const html = await fetchPlexPmsHtml();
-  const manifest = await writePlexPmsSnapshot(html);
-  await generatePlexPmsSdk();
-  process.stdout.write(
-    `Generated Plex PMS SDK from ${manifest.upstreamVersion} (${manifest.pathCount} paths).\n`,
-  );
-}
-
-if (
-  process.argv[1] &&
-  import.meta.url === pathToFileURL(process.argv[1]).href
-) {
-  await main(process.argv.slice(2));
 }

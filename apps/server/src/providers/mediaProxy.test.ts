@@ -191,6 +191,10 @@ void test("preserves playback session ids when rewriting HLS playlist resources"
       providerMetadata: {
         plex: {
           playbackSessionId: "254",
+          subtitleDecision: {
+            path: "/library/metadata/42",
+            session: "subtitle-session",
+          },
         },
       },
     },
@@ -220,6 +224,10 @@ void test("preserves playback session ids when rewriting HLS playlist resources"
   assert.ok(childHandle);
   assert.equal(childHandle.path, "/video/:/transcode/universal/segment0.ts");
   assert.equal(childHandle.providerMetadata?.plex?.playbackSessionId, "254");
+  assert.deepEqual(
+    childHandle.providerMetadata?.plex?.subtitleDecision,
+    rootHandle.providerMetadata?.plex?.subtitleDecision,
+  );
 });
 
 void test("uses custom media handle URLs when rewriting HLS playlists", async () => {

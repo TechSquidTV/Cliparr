@@ -1,0 +1,265 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Cliparr Plex cloud contract subset (locally maintained)",
+    "version": "1.0.0",
+    "description": "PIN protocol: https://forums.plex.tv/t/authenticating-with-plex/609370 . Resource protocol and fields: https://github.com/pkkid/python-plexapi/blob/master/plexapi/myplex.py . Not an official cloud OpenAPI document."
+  },
+  "servers": [
+    {
+      "url": "https://plex.tv"
+    }
+  ],
+  "components": {
+    "schemas": {
+      "Pin": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "code": {
+            "type": "string"
+          },
+          "expiresIn": {
+            "type": "integer"
+          },
+          "authToken": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      },
+      "ResourceConnection": {
+        "type": "object",
+        "properties": {
+          "uri": {
+            "type": "string"
+          },
+          "local": {
+            "type": "boolean"
+          },
+          "relay": {
+            "type": "boolean"
+          },
+          "protocol": {
+            "type": "string"
+          },
+          "address": {
+            "type": "string"
+          },
+          "port": {
+            "type": "integer"
+          }
+        }
+      },
+      "Resource": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "product": {
+            "type": "string"
+          },
+          "platform": {
+            "type": "string"
+          },
+          "clientIdentifier": {
+            "type": "string"
+          },
+          "provides": {
+            "type": "string"
+          },
+          "accessToken": {
+            "type": "string"
+          },
+          "owned": {
+            "type": "boolean"
+          },
+          "connections": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ResourceConnection"
+            }
+          }
+        }
+      }
+    },
+    "parameters": {
+      "X-Plex-Client-Identifier": {
+        "in": "header",
+        "name": "X-Plex-Client-Identifier",
+        "schema": {
+          "type": "string"
+        }
+      },
+      "X-Plex-Product": {
+        "in": "header",
+        "name": "X-Plex-Product",
+        "schema": {
+          "type": "string"
+        }
+      },
+      "X-Plex-Token": {
+        "in": "header",
+        "name": "X-Plex-Token",
+        "schema": {
+          "type": "string"
+        }
+      },
+      "Accept": {
+        "in": "header",
+        "name": "Accept",
+        "schema": {
+          "type": "string",
+          "enum": [
+            "application/json"
+          ]
+        }
+      }
+    }
+  },
+  "paths": {
+    "/api/v2/pins": {
+      "post": {
+        "operationId": "createPin",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "strong",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/X-Plex-Client-Identifier"
+          },
+          {
+            "$ref": "#/components/parameters/X-Plex-Product"
+          },
+          {
+            "$ref": "#/components/parameters/Accept"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Pin"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v2/pins/{id}": {
+      "get": {
+        "operationId": "getPin",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "code",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/X-Plex-Client-Identifier"
+          },
+          {
+            "$ref": "#/components/parameters/X-Plex-Product"
+          },
+          {
+            "$ref": "#/components/parameters/Accept"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Pin"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v2/resources": {
+      "get": {
+        "operationId": "getResources",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "includeHttps",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "includeRelay",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "includeIPv6",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/X-Plex-Client-Identifier"
+          },
+          {
+            "$ref": "#/components/parameters/X-Plex-Product"
+          },
+          {
+            "$ref": "#/components/parameters/X-Plex-Token"
+          },
+          {
+            "$ref": "#/components/parameters/Accept"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Resource"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

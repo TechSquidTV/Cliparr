@@ -110,6 +110,7 @@ function normalizeProviderMetadata(
     normalized.plex = {
       playbackSessionId: metadata.plex.playbackSessionId,
       subtitleStreamId: metadata.plex.subtitleStreamId,
+      subtitleDecision: metadata.plex.subtitleDecision,
     };
   }
 

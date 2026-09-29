@@ -7,7 +7,7 @@ Thanks for helping improve Cliparr.
 Requirements:
 
 - Node.js 24 or newer
-- pnpm 11.2.2 via Corepack, matching the root `packageManager`
+- The pnpm version pinned by the root `packageManager`, via Corepack
 - A Plex or Jellyfin server, or a local video file, for manual end-to-end testing
 
 Install dependencies:
@@ -78,3 +78,10 @@ The Cloudflare changelog refresh is a separate job. If only that job fails, reru
 ## Security
 
 Do not include Plex tokens, Jellyfin credentials, server URLs, local media paths, or other private account details in issues, logs, screenshots, or pull requests.
+
+## Plex API changes
+
+All Plex operations, endpoint templates, parameter contracts, and wire response
+models must derive from `@cliparr/plex`. Add missing protocol coverage to generation
+inputs before writing callers. See [contract maintenance](../packages/plex/README.md)
+for provenance, supplements, generated URL builders, and transport boundaries.

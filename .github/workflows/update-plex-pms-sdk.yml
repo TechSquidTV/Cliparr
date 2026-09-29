@@ -1,4 +1,4 @@
-name: Update Plex PMS SDK
+name: Update Plex contracts
 
 on:
   workflow_dispatch:
@@ -15,7 +15,7 @@ concurrency:
 
 jobs:
   update:
-    name: Update Plex PMS SDK
+    name: Update Plex contracts
     runs-on: ubuntu-latest
 
     steps:
@@ -37,24 +37,35 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Update Plex PMS SDK
+      - name: Update Plex contracts
         run: pnpm plex:sdk:update
 
-      - name: Check generated Plex PMS SDK
-        run: pnpm plex:sdk:check
+      - name: Detect changed contracts
+        id: contracts
+        run: |
+          if git diff --quiet -- packages/plex; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Validate consumers and repository
+        if: steps.contracts.outputs.changed == 'true'
+        run: pnpm preflight
 
       - name: Open pull request
+        if: steps.contracts.outputs.changed == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
-          BRANCH_NAME: codex/update-plex-pms-sdk
+          BRANCH_NAME: chore/cliparr/update-plex-contracts
           PR_BODY: |
-            Updates the committed Plex PMS OpenAPI snapshot and generated TypeScript SDK from https://developer.plex.tv/pms/.
+            Updates the official PMS snapshot from https://developer.plex.tv/pms/ and regenerates @cliparr/plex using the reviewed PMS supplement and local cloud contract.
 
-            This PR was created by the scheduled Plex PMS SDK update workflow.
+            Generation is reproducible; consumer type checks, contract tests, server tests, and repository preflight passed.
         run: |
           set -euo pipefail
 
-          if [[ -z "$(git status --porcelain -- apps/server/src/providers/plex/openapi apps/server/src/providers/plex/generated)" ]]; then
+          if [[ -z "$(git status --porcelain -- packages/plex/openapi packages/plex/src/generated)" ]]; then
             echo "Plex PMS SDK is already up to date."
             exit 0
           fi
@@ -62,20 +73,22 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
+          body_file="$(mktemp)"
+          printf '%s\n' "${PR_BODY}" > "${body_file}"
           git switch --create "${BRANCH_NAME}"
-          git add apps/server/src/providers/plex/openapi apps/server/src/providers/plex/generated
-          git commit -m "chore(plex): update PMS OpenAPI SDK"
+          git add packages/plex/openapi packages/plex/src/generated
+          git commit -m "chore(cliparr): update generated Plex contracts"
           git push --force-with-lease origin "${BRANCH_NAME}"
 
           if gh pr view "${BRANCH_NAME}" --json number >/dev/null 2>&1; then
             gh pr edit "${BRANCH_NAME}" \
-              --title "chore(plex): update PMS OpenAPI SDK" \
-              --body "${PR_BODY}"
+              --title "chore(cliparr): update generated Plex contracts" \
+              --body-file "${body_file}"
             exit 0
           fi
 
           gh pr create \
             --base main \
             --head "${BRANCH_NAME}" \
-            --title "chore(plex): update PMS OpenAPI SDK" \
-            --body "${PR_BODY}"
+            --title "chore(cliparr): update generated Plex contracts" \
+            --body-file "${body_file}"

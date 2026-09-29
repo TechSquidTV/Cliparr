@@ -1,4 +1,9 @@
 import {
+  requestPin,
+  requestPinStatus,
+  requestResources,
+} from "@/providers/plex/cloudClient";
+import {
   createHash,
   randomBytes,
   randomUUID,
@@ -10,11 +15,9 @@ import {
   MAX_PENDING_AUTH_REQUESTS,
   normalizeResources,
   PLEX_CLIENT_IDENTIFIER,
-  plexFetch,
   PLEX_PRODUCT,
   requirePlexServerResources,
   type PlexAuthRequest,
-  type PlexResourceResponse,
 } from "@/providers/plex/shared";
 
 const authRequests = new Map<string, PlexAuthRequest>();
@@ -52,14 +55,7 @@ export async function startAuth(callbackUrl: string) {
     );
   }
 
-  const response = await plexFetch("https://plex.tv/api/v2/pins?strong=true", {
-    method: "POST",
-  });
-  const data = (await response.json()) as {
-    id: number;
-    code: string;
-    expiresIn?: number;
-  };
+  const data = await requestPin();
 
   if (!data.id || !data.code) {
     throw createApiError(
@@ -117,31 +113,15 @@ export async function pollAuth(authId: string, pollToken: string) {
     );
   }
 
-  const response = await plexFetch(
-    `https://plex.tv/api/v2/pins/${authRequest.pinId}`,
-  );
-  const data = (await response.json()) as {
-    authToken?: string;
-    auth_token?: string;
-  };
-  const userToken = data.authToken ?? data.auth_token;
+  const data = await requestPinStatus(authRequest.pinId, authRequest.code);
+  const userToken = data.authToken;
 
   if (!userToken) {
     return { status: "pending" as const };
   }
 
-  const resourcesResponse = await plexFetch(
-    "https://clients.plex.tv/api/v2/resources?includeHttps=1&includeRelay=1&includeIPv6=1",
-    {
-      headers: {
-        "X-Plex-Token": userToken,
-      },
-    },
-  );
   const resources = requirePlexServerResources(
-    normalizeResources(
-      (await resourcesResponse.json()) as PlexResourceResponse[],
-    ),
+    normalizeResources(await requestResources(userToken)),
   );
   authRequests.delete(authId);
 

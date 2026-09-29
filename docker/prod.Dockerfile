@@ -21,11 +21,13 @@ COPY .npmrc package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY apps/server/package.json apps/server/package.json
 COPY apps/frontend/package.json apps/frontend/package.json
 COPY packages/shared/package.json packages/shared/package.json
+COPY packages/plex/package.json packages/plex/package.json
 
 RUN pnpm install --frozen-lockfile
 
 COPY config/tsconfig.json config/tsconfig.base.json ./config/
 COPY packages/shared/src packages/shared/src
+COPY packages/plex/src packages/plex/src
 COPY apps/server/tsconfig.json apps/server/tsconfig.build.json apps/server/tsdown.config.ts apps/server/
 COPY apps/server/drizzle apps/server/drizzle
 COPY apps/server/src apps/server/src

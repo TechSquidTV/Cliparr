@@ -162,11 +162,11 @@ void test("uses a stable Plex transcode session id for repeated playback polls",
     Media: [
       {
         id: "media-1",
-        selected: 1,
+        selected: true,
         Part: [
           {
             id: "part-1",
-            selected: 1,
+            selected: true,
           },
         ],
       },
@@ -224,19 +224,19 @@ void test("isolates Plex subtitle extraction from the viewer and HLS preview ses
     Media: [
       {
         id: "19134",
-        selected: 1,
+        selected: true,
         Part: [
           {
             id: "28744",
-            selected: 1,
+            selected: true,
             Stream: [
               {
                 id: "101151",
-                index: "3",
-                streamType: "3",
+                index: 3,
+                streamType: 3,
                 codec: "srt",
                 languageCode: "eng",
-                selected: "1",
+                selected: true,
                 title: "English SDH",
               },
             ],
@@ -297,11 +297,11 @@ void test("sends the real Plex playback session header for synthetic HLS preview
     Media: [
       {
         id: "19134",
-        selected: 1,
+        selected: true,
         Part: [
           {
             id: "28744",
-            selected: 1,
+            selected: true,
           },
         ],
       },
@@ -406,11 +406,11 @@ void test("builds Plex HLS preview and embedded SRT extraction with independent 
     Media: [
       {
         id: "19134",
-        selected: 1,
+        selected: true,
         Part: [
           {
             id: "28744",
-            selected: 1,
+            selected: true,
             Stream: [
               {
                 id: "101149",
@@ -418,22 +418,22 @@ void test("builds Plex HLS preview and embedded SRT extraction with independent 
                 codec: "h264",
                 width: 1920,
                 height: 1080,
-                selected: 1,
+                selected: true,
               },
               {
                 id: "101150",
                 streamType: 2,
                 codec: "aac",
                 languageCode: "eng",
-                selected: 1,
+                selected: true,
               },
               {
                 id: "101151",
-                index: "3",
-                streamType: "3",
+                index: 3,
+                streamType: 3,
                 codec: "srt",
                 languageCode: "eng",
-                selected: "1",
+                selected: true,
                 title: "English SDH",
               },
             ],
@@ -529,12 +529,11 @@ void test("does not create Plex HLS preview paths for audio tracks", () => {
 
 void test("converts Plex viewOffset milliseconds into playhead seconds", () => {
   assert.equal(playheadSecondsFromViewOffset(123_456), 123.456);
-  assert.equal(playheadSecondsFromViewOffset("123456"), 123.456);
   assert.equal(playheadSecondsFromViewOffset(0), 0);
   assert.equal(playheadSecondsFromViewOffset(-1), undefined);
-  assert.equal(playheadSecondsFromViewOffset(null), undefined);
+  assert.equal(playheadSecondsFromViewOffset(undefined), undefined);
   assert.equal(playheadSecondsFromViewOffset(), undefined);
-  assert.equal(playheadSecondsFromViewOffset("nope"), undefined);
+  assert.equal(playheadSecondsFromViewOffset(Number.NaN), undefined);
 });
 
 void test("extracts Plex export size estimate metadata from selected media", () => {
@@ -546,11 +545,11 @@ void test("extracts Plex export size estimate metadata from selected media", () 
         bitrate: 1600,
         width: 1920,
         height: 1080,
-        selected: 1,
+        selected: true,
         Part: [
           {
             id: "part-1",
-            selected: 1,
+            selected: true,
             size: 120_000_000,
             duration: 600_000,
             Stream: [
@@ -562,13 +561,13 @@ void test("extracts Plex export size estimate metadata from selected media", () 
                 height: 1080,
                 bitrate: 1400,
                 frameRate: 23.976,
-                selected: 1,
+                selected: true,
               },
               {
                 id: "audio-1",
                 streamType: 2,
                 bitrate: 160,
-                selected: 1,
+                selected: true,
               },
             ],
           },
@@ -598,11 +597,11 @@ void test("creates a direct content URL for Plex sidecar text subtitle streams",
     Media: [
       {
         id: "media-1",
-        selected: 1,
+        selected: true,
         Part: [
           {
             id: "part-1",
-            selected: 1,
+            selected: true,
             Stream: [
               {
                 id: "101",
@@ -655,11 +654,11 @@ void test("creates a subtitle transcode content URL for the selected embedded Pl
     Media: [
       {
         id: "media-1",
-        selected: 1,
+        selected: true,
         Part: [
           {
             id: "part-1",
-            selected: 1,
+            selected: true,
             Stream: [
               {
                 id: "201",
@@ -715,11 +714,11 @@ void test("prefers direct raw SRT for the selected external Plex text subtitle",
     Media: [
       {
         id: "media-1",
-        selected: 1,
+        selected: true,
         Part: [
           {
             id: "part-1",
-            selected: 1,
+            selected: true,
             Stream: [
               {
                 id: "202",
@@ -753,11 +752,11 @@ void test("reports selected external Plex SRT content format consistently", () =
     Media: [
       {
         id: "media-1",
-        selected: 1,
+        selected: true,
         Part: [
           {
             id: "part-1",
-            selected: 1,
+            selected: true,
             Stream: [
               {
                 id: "203",
@@ -786,11 +785,11 @@ void test("reports selected embedded Plex text subtitle transcode format", () =>
     Media: [
       {
         id: "media-1",
-        selected: 1,
+        selected: true,
         Part: [
           {
             id: "part-1",
-            selected: 1,
+            selected: true,
             Stream: [
               {
                 id: "204",
@@ -820,11 +819,11 @@ void test("leaves unselected embedded Plex text subtitles visible but unsupporte
     Media: [
       {
         id: "media-1",
-        selected: 1,
+        selected: true,
         Part: [
           {
             id: "part-1",
-            selected: 1,
+            selected: true,
             Stream: [
               {
                 id: "301",
@@ -856,11 +855,11 @@ void test("leaves Plex image subtitle streams unsupported for burn-in", () => {
     Media: [
       {
         id: "media-1",
-        selected: 1,
+        selected: true,
         Part: [
           {
             id: "part-1",
-            selected: 1,
+            selected: true,
             Stream: [
               {
                 id: "401",
@@ -1236,4 +1235,32 @@ void test("rejects failed or malformed Plex decisions before starting subtitle e
       },
     );
   }
+});
+
+void test("requires returned part keys and performs metadata enrichment only once", async () => {
+  const session = createSession();
+  const metadata = {
+    ratingKey: "42",
+    type: "movie",
+    title: "Synthetic",
+    Media: [{ id: 1, Part: [{ id: 2, file: "/media/example.mkv" }] }],
+  };
+  let metadataRequests = 0;
+  await withMockFetch(
+    (request) => {
+      const url = new URL(request.url);
+      if (url.pathname === "/library/metadata/42") {
+        metadataRequests += 1;
+      } else {
+        assert.equal(url.pathname, "/status/sessions");
+      }
+      return jsonResponse({ MediaContainer: { Metadata: [metadata] } });
+    },
+    async () => {
+      const entries = await listCurrentlyPlaying(session, createSource());
+      assert.equal(entries[0]?.item.mediaUrl, undefined);
+      assert.ok(entries[0]?.item.hlsUrl);
+      assert.equal(metadataRequests, 1);
+    },
+  );
 });

@@ -29,7 +29,7 @@
     "docker:dev:up": "docker compose -f docker/compose.dev.yml up",
     "build": "pnpm -r build",
     "build:web": "pnpm docs:check && pnpm --filter @cliparr/www build",
-    "lint": "pnpm lint:eslint && pnpm lint:types",
+    "lint": "pnpm plex:architecture:check && pnpm lint:eslint && pnpm lint:types",
     "lint:eslint": "pnpm lint:eslint:root && pnpm -r --if-present lint:eslint",
     "lint:eslint:root": "pnpm exec eslint --config config/eslint.config.js \"config/eslint.config.js\" \"tools/**/*.mjs\"",
     "lint:types": "pnpm -r --if-present lint:types",
@@ -52,7 +52,8 @@
     "start": "pnpm --filter @cliparr/server start",
     "clean": "pnpm -r clean",
     "assets:capture": "pnpm --filter @cliparr/www-assets capture",
-    "test:assets": "pnpm --filter @cliparr/www-assets test"
+    "test:assets": "pnpm --filter @cliparr/www-assets test",
+    "plex:architecture:check": "node tools/plex/check-architecture.mjs"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

@@ -13,7 +13,22 @@ import {
 import { createApiError, isApiError } from "@/http/errors";
 import { getServerLogger } from "@/logging";
 import type { ProviderSessionRecord } from "@/session/store";
-import type { MediaContainerWithDecision } from "@/providers/plex/generated/types.gen";
+import type {
+  StatusGetSlashResponse,
+  Stream,
+  Part,
+  Media,
+  Tag,
+  TranscodeDecisionData,
+} from "@cliparr/plex/pms/types";
+import {
+  libraryMetadataGetSlashUrl,
+  transcodeStartUrl,
+  imageTranscodeUrl,
+  libraryGetStreamsStreamUrl,
+  startSelectedSubtitleUrl,
+} from "@cliparr/plex/pms/urls";
+import { requestSubtitleDecision } from "@/providers/plex/mediaClient";
 import type {
   CurrentlyPlayingEntry,
   MediaExportMetadata,
@@ -80,6 +95,7 @@ function createMediaHandle(
     basePath?: string;
     playbackSessionId?: string;
     subtitleStreamId?: string;
+    subtitleDecision?: TranscodeDecisionData["query"];
   } = {},
 ) {
   return createProviderMediaHandle(
@@ -96,6 +112,7 @@ function createMediaHandle(
               plex: {
                 playbackSessionId: options.playbackSessionId,
                 subtitleStreamId: options.subtitleStreamId,
+                subtitleDecision: options.subtitleDecision,
               },
             },
     },
@@ -106,142 +123,20 @@ function createMediaHandle(
   );
 }
 
-type PlexIdValue = string | number | null | undefined;
-type PlexViewOffsetValue = number | string | null | undefined;
-type PlexSelectionValue = boolean | number | string | null | undefined;
-type PlexTagInput =
-  | string
-  | PlexTag
-  | Array<string | PlexTag>
-  | null
-  | undefined;
-
-interface PlexMetadataPathItem {
-  ratingKey?: PlexIdValue;
-  key?: string | null;
-}
-
-interface PlexSelectableEntry {
-  selected?: PlexSelectionValue;
-}
-
-interface PlexTag {
-  id?: PlexIdValue;
-  ratingKey?: PlexIdValue;
-  tag?: unknown;
-}
-
-interface PlexNetworkTag {
-  tag?: unknown;
-  title?: unknown;
-}
-
-interface PlexStream extends PlexSelectableEntry {
-  bitrate?: unknown;
-  codec?: unknown;
-  default?: PlexSelectionValue;
-  displayTitle?: unknown;
-  extendedDisplayTitle?: unknown;
-  frameRate?: unknown;
-  forced?: PlexSelectionValue;
-  height?: unknown;
-  hearingImpaired?: PlexSelectionValue;
-  id?: PlexIdValue;
-  index?: PlexIdValue;
-  key?: unknown;
-  language?: unknown;
-  languageCode?: unknown;
-  languageTag?: unknown;
-  streamIdentifier?: PlexIdValue;
-  streamType?: PlexIdValue;
-  title?: unknown;
-  width?: unknown;
-}
-
-interface PlexPart extends PlexSelectableEntry {
-  Stream?: PlexStream | PlexStream[] | null;
-  createdAt?: PlexIdValue;
-  duration?: PlexViewOffsetValue;
-  file?: unknown;
-  id?: PlexIdValue;
-  key?: unknown;
-  size?: unknown;
-  updatedAt?: PlexIdValue;
-}
-
-interface PlexMedia extends PlexSelectableEntry {
-  Part?: PlexPart | PlexPart[] | null;
-  bitrate?: unknown;
-  duration?: PlexViewOffsetValue;
-  height?: unknown;
-  id?: PlexIdValue;
-  width?: unknown;
-}
-
-interface PlexPlaybackUser {
-  id?: PlexIdValue;
-  thumb?: string | null;
-  title?: string | null;
-}
-
-interface PlexPlaybackPlayer {
-  machineIdentifier?: string | null;
-  state?: string | null;
-  title?: string | null;
-}
-
-interface PlexPlaybackSession {
-  id?: PlexIdValue;
-}
-
-interface PlexMetadataItem extends PlexMetadataPathItem {
-  Director?: PlexTag | PlexTag[] | null;
-  Genre?: PlexTag | PlexTag[] | null;
-  Guid?: PlexTag | PlexTag[] | null;
-  Media?: PlexMedia | PlexMedia[] | null;
-  Network?: PlexNetworkTag | null;
-  Player?: PlexPlaybackPlayer | null;
-  Role?: PlexTag | PlexTag[] | null;
-  Session?: PlexPlaybackSession | null;
-  User?: PlexPlaybackUser | null;
-  Writer?: PlexTag | PlexTag[] | null;
-  contentRating?: unknown;
-  duration?: PlexViewOffsetValue;
-  grandparentThumb?: unknown;
-  grandparentTitle?: unknown;
-  guid?: unknown;
-  index?: unknown;
-  originallyAvailableAt?: unknown;
-  parentIndex?: unknown;
-  parentThumb?: unknown;
-  parentTitle?: unknown;
-  sessionKey?: PlexIdValue;
-  studio?: unknown;
-  summary?: unknown;
-  tagline?: unknown;
-  thumb?: unknown;
-  title?: unknown;
-  type?: unknown;
-  viewOffset?: PlexViewOffsetValue;
-  year?: unknown;
-}
-
-interface PlexCurrentlyPlayingData {
-  MediaContainer?: {
-    Metadata?: PlexMetadataItem[] | null;
-  } | null;
-}
-
-interface PlexMetadataData {
-  MediaContainer?: {
-    Metadata?: PlexMetadataItem[] | null;
-  } | null;
-}
+type PlexMetadataItem = NonNullable<
+  NonNullable<StatusGetSlashResponse["MediaContainer"]>["Metadata"]
+>[number];
+type PlexStream = Stream;
+type PlexPart = Part;
+type PlexMedia = Media;
+type PlexMetadataPathItem = Pick<PlexMetadataItem, "ratingKey" | "key">;
+type PlexSelectableEntry = Pick<Stream, "selected">;
+type PlexViewOffsetValue = PlexMetadataItem["viewOffset"];
 
 function metadataPath(item: PlexMetadataPathItem | null | undefined) {
   const ratingKey = idValue(item?.ratingKey);
   if (ratingKey) {
-    return `${PLEX_METADATA_PATH_PREFIX}${ratingKey}`;
+    return libraryMetadataGetSlashUrl({ path: { ids: [ratingKey] } });
   }
   if (
     typeof item?.key === "string" &&
@@ -277,7 +172,7 @@ interface PlexMediaSelection {
   partIndex?: number;
 }
 
-function idValue(value: unknown) {
+function idValue(value: string | number | undefined) {
   if (typeof value === "string") {
     const trimmed = value.trim();
     return trimmed || undefined;
@@ -299,9 +194,7 @@ function itemTitleValue(item: PlexMetadataItem) {
 }
 
 function isSelectedEntry(entry: PlexSelectableEntry | undefined) {
-  return (
-    entry?.selected === true || entry?.selected === 1 || entry?.selected === "1"
-  );
+  return booleanFlag(entry?.selected) === true;
 }
 
 function mediaEntries(item: PlexMetadataItem | undefined) {
@@ -427,26 +320,27 @@ export function createPreviewPath(
   }
 
   const resolvedSelection = resolveSelectedPart(item, selection);
-  const params = new URLSearchParams({
-    path,
-    transcodeSessionId,
-    protocol: "hls",
-    directPlay: "0",
-    directStream: "0",
-    directStreamAudio: "0",
-    subtitles: "none",
-    mediaIndex: String(resolvedSelection?.mediaIndex ?? 0),
-    partIndex: String(resolvedSelection?.partIndex ?? 0),
-    audioChannelCount: "2",
-    videoQuality: "80",
-    videoResolution: "1920x1080",
-    videoBitrate: "12000",
-    peakBitrate: "12000",
-    location: "lan",
-    mediaBufferSize: "102400",
+  return transcodeStartUrl({
+    path: { transcodeType: "video", extension: "m3u8" },
+    query: {
+      path,
+      transcodeSessionId,
+      protocol: "hls",
+      directPlay: 0,
+      directStream: 0,
+      directStreamAudio: 0,
+      subtitles: "none",
+      mediaIndex: resolvedSelection?.mediaIndex ?? 0,
+      partIndex: resolvedSelection?.partIndex ?? 0,
+      audioChannelCount: 2,
+      videoQuality: 80,
+      videoResolution: "1920x1080",
+      videoBitrate: 12_000,
+      peakBitrate: 12_000,
+      location: "lan",
+      mediaBufferSize: 102_400,
+    },
   });
-
-  return `/video/:/transcode/universal/start.m3u8?${params.toString()}`;
 }
 
 export function createCliparrPlexTranscodeSessionId(
@@ -557,9 +451,9 @@ async function fetchCurrentlyPlayingData(source: MediaSource) {
     );
 
     try {
-      const data = (await fetchPmsCurrentSessions(context, {
+      const data = await fetchPmsCurrentSessions(context, {
         timeoutMs: CURRENT_PLAYBACK_REQUEST_TIMEOUT_MS,
-      })) as PlexCurrentlyPlayingData;
+      });
       persistWorkingSourceConnection(source, persistedConnections, connection, {
         baseUrlMode,
         manualConnectionId,
@@ -631,7 +525,7 @@ function dedupeCurrentlyPlayingMetadata(metadata: PlexMetadataItem[]) {
   });
 }
 
-function tagValues(value: PlexTagInput) {
+function tagValues(value: Tag[] | undefined) {
   return uniqueStrings(
     asArray(value).map((entry) => {
       if (typeof entry === "string") {
@@ -686,15 +580,15 @@ function metadataHdImagePath(
     return;
   }
 
-  const params = new URLSearchParams({
-    url: appendPlexTokenToImagePath(imagePath, context.token),
-    width: String(HD_ARTWORK_SIZE),
-    height: String(HD_ARTWORK_SIZE),
-    quality: "-1",
-    upscale: "0",
+  return imageTranscodeUrl({
+    query: {
+      url: appendPlexTokenToImagePath(imagePath, context.token),
+      width: HD_ARTWORK_SIZE,
+      height: HD_ARTWORK_SIZE,
+      quality: -1,
+      upscale: 0,
+    },
   });
-
-  return `/photo/:/transcode?${params.toString()}`;
 }
 
 function buildSourceTitle(item: PlexMetadataItem) {
@@ -725,12 +619,12 @@ function isSubtitleStream(stream: PlexStream) {
   return numberValue(stream?.streamType) === 3;
 }
 
-function positiveNumber(value: unknown) {
+function positiveNumber(value: number | undefined) {
   const parsed = Number(value);
   return Number.isFinite(parsed) && parsed > 0 ? parsed : undefined;
 }
 
-function millisecondsToSeconds(value: unknown) {
+function millisecondsToSeconds(value: number | undefined) {
   const milliseconds = positiveNumber(value);
   return milliseconds === undefined ? undefined : milliseconds / 1000;
 }
@@ -858,25 +752,27 @@ function buildPlexSubtitlePath(stream: PlexStream) {
     return;
   }
 
+  const streamId = Number(stream.id);
   const extension = subtitleFileExtension(codec, key);
-  if (!extension) {
-    return;
+  if (!Number.isSafeInteger(streamId) || !extension) {
+    return key;
   }
-
-  const relative = new URL(key, "http://cliparr.local");
-
-  if (!relative.pathname.endsWith(`.${extension}`)) {
-    relative.pathname = `${relative.pathname}.${extension}`;
+  const path = libraryGetStreamsStreamUrl({
+    path: { streamId, ext: extension },
+    query: directContentFormat === "vtt" ? { format: "vtt" } : undefined,
+  });
+  const barePath = libraryGetStreamsStreamUrl({
+    path: { streamId, ext: "" },
+  }).slice(0, -1);
+  // Recognize a returned local stream reference using the generated route.
+  // Other returned resources retain their origin, query, and path unchanged.
+  if (key === barePath || key === `${barePath}.${extension}`) {
+    return path;
   }
-
-  if (directContentFormat === "vtt") {
-    relative.searchParams.set("format", directContentFormat);
-  }
-
-  return `${relative.pathname}${relative.search}`;
+  return key;
 }
 
-function plexDirectSubtitleContentFormat(codec: unknown) {
+function plexDirectSubtitleContentFormat(codec: string | undefined) {
   const normalized = normalizeSubtitleCodec(codec);
   if (normalized === "srt" || normalized === "subrip") {
     return "srt";
@@ -898,25 +794,27 @@ function buildSelectedPlexSubtitleTranscodePath(
   }
 
   const resolvedSelection = resolveSelectedPart(item, selection);
-  const params = new URLSearchParams({
+  const query = {
     path,
     session: subtitleSessionId,
     protocol: "http",
-    directPlay: "1",
-    hasMDE: "1",
-    mediaIndex: String(resolvedSelection?.mediaIndex ?? 0),
-    partIndex: String(resolvedSelection?.partIndex ?? 0),
+    directPlay: 1,
+    hasMDE: 1,
+    mediaIndex: resolvedSelection?.mediaIndex ?? 0,
+    partIndex: resolvedSelection?.partIndex ?? 0,
     subtitles: "sidecar",
     advancedSubtitles: "text",
-    autoAdjustSubtitle: "0",
-    offset: "0",
-    copyts: "1",
-  });
-
-  return `/subtitles/:/transcode/universal/start?${params.toString()}`;
+    autoAdjustSubtitle: 0,
+    offset: 0,
+    copyts: 1,
+  } satisfies TranscodeDecisionData["query"];
+  return { path: startSelectedSubtitleUrl({ query }), query };
 }
 
-function canTranscodeSelectedPlexSubtitle(codec: unknown, stream: PlexStream) {
+function canTranscodeSelectedPlexSubtitle(
+  codec: string | undefined,
+  stream: PlexStream,
+) {
   return (
     isSelectedEntry(stream) &&
     isTextSubtitleCodec(codec) &&
@@ -925,7 +823,7 @@ function canTranscodeSelectedPlexSubtitle(codec: unknown, stream: PlexStream) {
 }
 
 function plexSubtitleContentFormat(
-  codec: unknown,
+  codec: string | undefined,
   directSubtitlePath: string | undefined,
   transcodeSubtitleAvailable: boolean,
 ) {
@@ -975,7 +873,7 @@ function plexSubtitleTrack(
     directSubtitlePath,
     transcodeSubtitleAvailable,
   );
-  const contentPath = directSubtitlePath ?? transcodeSubtitlePath;
+  const contentPath = directSubtitlePath ?? transcodeSubtitlePath?.path;
 
   return {
     streamId,
@@ -996,6 +894,7 @@ function plexSubtitleTrack(
             ? subtitleSessionId
             : undefined,
           subtitleStreamId: transcodeSubtitlePath ? streamId : undefined,
+          subtitleDecision: transcodeSubtitlePath?.query,
         })
       : undefined,
   };
@@ -1082,7 +981,7 @@ async function fetchMetadataItem(
     return;
   }
 
-  const data = (await fetchPmsMetadata(context, [id])) as PlexMetadataData;
+  const data = await fetchPmsMetadata(context, [id]);
   return data?.MediaContainer?.Metadata?.[0];
 }
 
@@ -1137,8 +1036,7 @@ function createExportMetadata(
     description: stringValue(item?.summary),
     tagline: stringValue(item?.tagline),
     studio: stringValue(item?.studio),
-    network:
-      stringValue(item?.Network?.title) ?? stringValue(item?.Network?.tag),
+
     contentRating: stringValue(item?.contentRating),
     genres: tagValues(item?.Genre),
     directors: tagValues(item?.Director),
@@ -1152,67 +1050,19 @@ function createExportMetadata(
   };
 }
 
-function fallbackPartPath(part: PlexPart | undefined) {
-  if (!part?.id) {
-    return;
-  }
-
-  if (typeof part.key === "string" && part.key) {
-    return part.key;
-  }
-
-  const file = stringValue(part.file);
-  if (file) {
-    const filename = file.split(/[/\\]/).pop() || "file";
-    const changestamp = part.updatedAt ?? part.createdAt;
-    if (changestamp) {
-      return `/library/parts/${part.id}/${changestamp}/${encodeURIComponent(filename)}`;
-    }
-    return `/library/parts/${part.id}/${encodeURIComponent(filename)}`;
-  }
-
-  return `/library/parts/${part.id}/file`;
+function returnedPartPath(part: PlexPart | undefined) {
+  return stringValue(part?.key);
 }
 
-async function resolveMediaPath(
-  context: PlexSourceContext,
+function resolveMediaPath(
   item: PlexMetadataItem,
-  enrichedItem?: PlexMetadataItem,
+  enrichedItem: PlexMetadataItem,
   selection?: PlexMediaSelection,
 ) {
-  const directPath = fallbackPartPath(
-    resolveSelectedPart(item, selection)?.part,
+  return (
+    returnedPartPath(resolveSelectedPart(item, selection)?.part) ??
+    returnedPartPath(resolveSelectedPart(enrichedItem, selection)?.part)
   );
-  if (directPath) {
-    return directPath;
-  }
-
-  const enrichedPath = fallbackPartPath(
-    resolveSelectedPart(enrichedItem, selection)?.part,
-  );
-  if (enrichedPath) {
-    return enrichedPath;
-  }
-
-  const id = metadataId(item);
-  const path = metadataPath(item);
-  if (!id) {
-    return;
-  }
-
-  try {
-    const data = (await fetchPmsMetadata(context, [id])) as PlexMetadataData;
-    const fullItem = data?.MediaContainer?.Metadata?.[0];
-    return fallbackPartPath(resolveSelectedPart(fullItem, selection)?.part);
-  } catch (error) {
-    logger.warn("Could not resolve Plex media part.", {
-      ...logErrorFields(error),
-      "metadata.path": path,
-      "source.id": context.sourceId,
-      "source.base_url": sanitizeUrlForLog(context.baseUrl),
-    });
-    return;
-  }
 }
 
 function playbackSessionIdentity(item: PlexMetadataItem) {
@@ -1270,7 +1120,7 @@ async function normalizeCurrentPlayback(
   session: ProviderSessionRecord,
   source: MediaSource,
   context: PlexSourceContext,
-  data: PlexCurrentlyPlayingData,
+  data: StatusGetSlashResponse,
 ): Promise<CurrentlyPlayingEntry[]> {
   const metadata = data?.MediaContainer?.Metadata;
   if (!Array.isArray(metadata)) {
@@ -1285,12 +1135,7 @@ async function normalizeCurrentPlayback(
         derivePlexPlaybackIds(source.id, item);
       const mediaSelection = deriveMediaSelection(item);
       const enrichedItem = await enrichMetadataItem(context, item);
-      const mediaPath = await resolveMediaPath(
-        context,
-        item,
-        enrichedItem,
-        mediaSelection,
-      );
+      const mediaPath = resolveMediaPath(item, enrichedItem, mediaSelection);
       const previewPath = createPreviewPath(
         enrichedItem,
         cliparrPreviewTranscodeSessionId,
@@ -1474,43 +1319,23 @@ async function preparePlexSubtitleTranscode(
   subtitleStreamId: string,
   signal: AbortSignal,
 ) {
-  // Plex authorizes subtitle extraction through a preceding video decision.
-  // Direct-play capability here avoids starting a video transcode; only the
-  // subtitle request is subsequently downloaded, in its own session.
-  const decisionUrl = new URL(handle.path, handle.baseUrl);
-  decisionUrl.pathname = "/video/:/transcode/universal/decision";
+  const query = handle.providerMetadata?.plex?.subtitleDecision;
+  if (!query) {
+    throw createApiError(
+      400,
+      "plex_subtitle_decision_missing",
+      "Subtitle handle has no playback decision contract",
+    );
+  }
   const decisionHeaders = new Headers(headers);
   decisionHeaders.set("Accept", "application/json");
   decisionHeaders.delete("Range");
-  const response = await fetchMediaHandleRequest(
-    { ...handle, path: `${decisionUrl.pathname}${decisionUrl.search}` },
-    {
-      headers: decisionHeaders,
-      signal,
-      timeoutMs: CURRENT_PLAYBACK_REQUEST_TIMEOUT_MS,
-      retryAttempts: 1,
-    },
+  const decision = await requestSubtitleDecision(
+    handle,
+    query,
+    decisionHeaders,
+    signal,
   );
-  if (!response.ok) {
-    await response.body?.cancel();
-    throw createApiError(
-      response.status,
-      "plex_subtitle_decision_failed",
-      "Plex could not prepare the embedded subtitle track.",
-    );
-  }
-
-  let decision: PlexMetadataData & MediaContainerWithDecision;
-  try {
-    decision = (await response.json()) as typeof decision;
-  } catch {
-    signal.throwIfAborted();
-    throw createApiError(
-      502,
-      "plex_subtitle_decision_failed",
-      "Plex returned an invalid subtitle playback decision.",
-    );
-  }
   const container = decision?.MediaContainer;
   const decisionCode = numberValue(
     container?.mdeDecisionCode ?? container?.generalDecisionCode,

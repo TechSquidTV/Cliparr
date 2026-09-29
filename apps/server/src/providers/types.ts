@@ -1,3 +1,4 @@
+import type { TranscodeDecisionData } from "@cliparr/plex/pms/types";
 import type { Request, Response } from "express";
 import type {
   CurrentlyPlayingItem,
@@ -65,6 +66,7 @@ interface MediaHandleProviderMetadata {
   plex?: {
     playbackSessionId?: string;
     subtitleStreamId?: string;
+    subtitleDecision?: TranscodeDecisionData["query"];
   };
   jellyfin?: {
     deviceId?: string;

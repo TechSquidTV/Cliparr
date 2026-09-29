@@ -312,13 +312,14 @@ export type Media2 = {
     has64bitOffsets?: boolean;
     hasVoiceActivity?: boolean;
     height?: number;
-    id?: number;
+    id?: number | string;
     optimizedForStreaming?: boolean;
     videoCodec?: unknown;
     videoFrameRate?: unknown;
     videoProfile?: unknown;
     videoResolution?: unknown;
     width?: number;
+    selected?: boolean;
     [key: string]: unknown;
 };
 
@@ -762,7 +763,7 @@ export type Metadata2 = {
     /**
      * If known, the content rating (e.g. MPAA) for an item.
      */
-    contentRating?: unknown;
+    contentRating?: string;
     /**
      * When present, the duration for the item, in units of milliseconds.
      */
@@ -806,7 +807,7 @@ export type Metadata2 = {
     /**
      * The key at which the item's details can be fetched.  In many cases a metadata item may be passed without all the details (such as in a hub) and this key corresponds to the endpoint to fetch additional details.
      */
-    key?: unknown;
+    key?: string;
     /**
      * When a user has watched or listened to an item, this contains a timestamp (epoch seconds) for that last consumption time.
      */
@@ -822,7 +823,7 @@ export type Metadata2 = {
     /**
      * When present, in the format YYYY-MM-DD [HH:MM:SS] (the hours/minutes/seconds part is not always present). The air date, or a higher resolution release date for an item, depending on type. For example, episodes usually have air date like 1979-08-10 (we don't use epoch seconds because media existed prior to 1970). In some cases, recorded over-the-air content has higher resolution air date which includes a time component. Albums and movies may have day-resolution release dates as well.
      */
-    originallyAvailableAt?: unknown;
+    originallyAvailableAt?: string;
     /**
      * The `hero` of the parent
      */
@@ -870,7 +871,7 @@ export type Metadata2 = {
     /**
      * This is the opaque string to be passed into timeline, scrobble, and rating endpoints to identify them.  While it often appears to be numeric, this is not guaranteed.
      */
-    ratingKey?: unknown;
+    ratingKey?: string;
     /**
      * Indicates this is a search directory
      */
@@ -890,7 +891,7 @@ export type Metadata2 = {
     /**
      * When present, the studio or label which produced an item (e.g. movie studio for movies, record label for albums).
      */
-    studio?: unknown;
+    studio?: string;
     /**
      * The subtype of the video item, such as `photo` when the video item is in a photo library
      */
@@ -898,11 +899,11 @@ export type Metadata2 = {
     /**
      * When present, the extended textual information about the item (e.g. movie plot, artist biography, album review).
      */
-    summary?: unknown;
+    summary?: string;
     /**
      * When present, a pithy one-liner about the item (usually only seen for movies).
      */
-    tagline?: unknown;
+    tagline?: string;
     /**
      * When present, the URL for theme music for the item (usually only for TV shows).
      */
@@ -910,11 +911,11 @@ export type Metadata2 = {
     /**
      * When present, the URL for the poster or thumbnail for the item. When available for types like movie, it will be the poster graphic, but fall-back to the extracted media thumbnail.
      */
-    thumb?: unknown;
+    thumb?: string;
     /**
      * The title of the item (e.g. “300” or “The Simpsons”)
      */
-    title?: unknown;
+    title?: string;
     /**
      * Whene present, this is the string used for sorting the item. It's usually the title with any leading articles removed (e.g. “Simpsons”).
      */
@@ -922,7 +923,7 @@ export type Metadata2 = {
     /**
      * The type of the video item, such as `movie`, `episode`, or `clip`.
      */
-    type?: unknown;
+    type?: string;
     /**
      * In units of seconds since the epoch, returns the time at which the item was last changed (e.g. had its metadata updated).
      */
@@ -947,6 +948,7 @@ export type Metadata2 = {
      * When present, the year associated with the item's release (e.g. release year for a movie).
      */
     year?: number;
+    guid?: string;
     [key: string]: unknown;
 };
 
@@ -1054,19 +1056,20 @@ export type Part2 = {
     /**
      * The local file path at which the part is stored on the server
      */
-    file?: unknown;
+    file?: string;
     has64bitOffsets?: boolean;
-    id?: number;
+    id?: number | string;
     /**
      * The key from which the media can be streamed
      */
-    key?: unknown;
+    key?: string;
     optimizedForStreaming?: boolean;
     /**
      * The size of the media, in bytes
      */
     size?: number;
     videoProfile?: unknown;
+    selected?: boolean;
     [key: string]: unknown;
 };
 
@@ -1193,7 +1196,7 @@ export type Stream2 = {
     /**
      * The codec of the stream, such as `h264` or `aac`
      */
-    codec?: unknown;
+    codec?: string;
     colorPrimaries?: unknown;
     colorRange?: unknown;
     colorSpace?: unknown;
@@ -1202,11 +1205,11 @@ export type Stream2 = {
     /**
      * A friendly name for the stream, often comprised of the language and codec information
      */
-    displayTitle?: unknown;
+    displayTitle?: string;
     frameRate?: number;
     hasScalingMatrix?: unknown;
     height?: number;
-    id?: number;
+    id?: number | string;
     /**
      * If the stream is part of the `Part` and not an external resource, the index of the stream within that part
      */
@@ -1214,12 +1217,12 @@ export type Stream2 = {
     /**
      * If the stream is independently streamable, the key from which it can be streamed
      */
-    key?: unknown;
-    language?: unknown;
+    key?: string;
+    language?: string;
     /**
      * The three character language code for the stream contents
      */
-    languageCode?: unknown;
+    languageCode?: string;
     level?: number;
     profile?: unknown;
     refFrames?: number;
@@ -1231,6 +1234,11 @@ export type Stream2 = {
      */
     streamType?: number;
     width?: number;
+    title?: string;
+    extendedDisplayTitle?: string;
+    languageTag?: string;
+    forced?: boolean;
+    hearingImpaired?: boolean;
     [key: string]: unknown;
 };
 
@@ -1247,8 +1255,8 @@ export type Tag2 = {
     /**
      * A filter parameter that can be used to query for more content that matches this tag value.
      */
-    filter?: unknown;
-    id?: number;
+    filter?: string;
+    id?: number | string;
     ratingKey?: string;
     /**
      * The role this actor played
@@ -1257,7 +1265,7 @@ export type Tag2 = {
     /**
      * The value of the tag (the name)
      */
-    tag?: unknown;
+    tag?: string;
     /**
      * Plex identifier for this tag which can be used to fetch additional information from plex.tv
      */
@@ -5083,120 +5091,6 @@ export type LibraryGetRandomArtworkResponses = {
 };
 
 export type LibraryGetRandomArtworkResponse = LibraryGetRandomArtworkResponses[keyof LibraryGetRandomArtworkResponses];
-
-export type LibraryGetSectionsData = {
-    body?: never;
-    path?: never;
-    query?: never;
-    url: '/library/sections/all';
-};
-
-export type LibraryGetSectionsResponses = {
-    /**
-     * OK
-     */
-    200: {
-        MediaContainer?: MediaContainer2 & {
-            Directory?: Array<LibrarySection2>;
-            allowSync?: AllowSync;
-            /**
-             * Typically just "Plex Library"
-             */
-            title1?: string;
-        };
-    };
-};
-
-export type LibraryGetSectionsResponse = LibraryGetSectionsResponses[keyof LibraryGetSectionsResponses];
-
-export type LibraryPostSectionData = {
-    body?: never;
-    path?: never;
-    query: {
-        /**
-         * The name of the new section
-         */
-        name: string;
-        /**
-         * The type of library section
-         */
-        type: number;
-        /**
-         * The scanner this section should use
-         */
-        scanner?: string;
-        /**
-         * The agent this section should use for metadata
-         */
-        agent: string;
-        /**
-         * The agent group id for this section
-         */
-        metadataAgentProviderGroupId?: string;
-        /**
-         * The language of this section
-         */
-        language: string;
-        /**
-         * The locations on disk to add to this section
-         */
-        locations?: Array<string>;
-        /**
-         * The preferences for this section
-         */
-        prefs?: {
-            [key: string]: unknown;
-        };
-        /**
-         * If set, paths are relative to `Media Upload` path
-         */
-        relative?: 0 | 1;
-        /**
-         * If set, import media from iTunes.
-         */
-        importFromiTunes?: 0 | 1;
-    };
-    url: '/library/sections/all';
-};
-
-export type LibraryPostSectionErrors = {
-    /**
-     * Section cannot be created due to bad parameters in request
-     */
-    400: unknown;
-};
-
-export type LibraryPostSectionResponses = {
-    /**
-     * OK
-     */
-    200: {
-        MediaContainer?: {
-            Directory?: Array<Metadata2>;
-            allowSync?: boolean;
-            art?: string;
-            /**
-             * The flavors of directory found here:
-             * - Primary: (e.g. all, On Deck) These are still used in some clients to provide "shortcuts" to subsets of media. However, with the exception of On Deck, all of them can be created by media queries, and the desire is to allow these to be customized by users.
-             * - Secondary: These are marked with `"secondary": true` and were used by old clients to provide nested menus allowing for primative (but structured) navigation.
-             * - Special: There is a By Folder entry which allows browsing the media by the underlying filesystem structure, and there's a completely obsolete entry marked `"search": true` which used to be used to allow clients to build search dialogs on the fly.
-             */
-            content?: string;
-            identifier?: string;
-            librarySectionID?: number;
-            mediaTagPrefix?: string;
-            mediaTagVersion?: number;
-            size?: number;
-            sortAsc?: boolean;
-            thumb?: string;
-            title1?: string;
-            viewGroup?: string;
-            viewMode?: number;
-        };
-    };
-};
-
-export type LibraryPostSectionResponse = LibraryPostSectionResponses[keyof LibraryPostSectionResponses];
 
 export type LibraryDeleteSectionsAllRefreshData = {
     body?: never;
@@ -10236,6 +10130,7 @@ export type StatusGetSlashResponses = {
                      */
                     title?: string;
                 };
+                sessionKey?: string;
             } & Metadata2>;
         };
     };
@@ -10969,6 +10864,8 @@ export type TranscodeDecisionData = {
          * Target maximum video resolution.
          */
         videoResolution?: string;
+        session?: string;
+        copyts?: 0 | 1;
     };
     url: '/{transcodeType}/:/transcode/universal/decision';
 };
@@ -11017,194 +10914,6 @@ export type TranscodeFallbackErrors = {
 export type TranscodeFallbackResponses = {
     /**
      * OK
-     */
-    200: unknown;
-};
-
-export type TranscodeStartData = {
-    body?: never;
-    headers: {
-        /**
-         * Unique per client.
-         */
-        'X-Plex-Client-Identifier': string;
-        /**
-         * See [Profile Augmentations](#section/API-Info/Profile-Augmentations) .
-         */
-        'X-Plex-Client-Profile-Extra'?: string;
-        /**
-         * Which built in Client Profile to use in the decision. Generally should only be used to specify the Generic profile.
-         */
-        'X-Plex-Client-Profile-Name'?: string;
-        /**
-         * Device the client is running on
-         */
-        'X-Plex-Device'?: string;
-        /**
-         * Model of the device the client is running on
-         */
-        'X-Plex-Model'?: string;
-        /**
-         * Client Platform
-         */
-        'X-Plex-Platform'?: string;
-        /**
-         * Client Platform Version
-         */
-        'X-Plex-Platform-Version'?: string;
-        /**
-         * Unique per client playback session.  Used if a client can playback multiple items at a time (such as a browser with multiple tabs)
-         */
-        'X-Plex-Session-Identifier'?: string;
-    };
-    path: {
-        /**
-         * Type of transcode media
-         */
-        transcodeType: 'video' | 'music' | 'audio' | 'subtitles';
-    };
-    query?: {
-        /**
-         * Transcode session UUID
-         */
-        transcodeSessionId?: string;
-        /**
-         * Indicates how  incompatible advanced subtitles (such as ass/ssa) should be included: * 'burn' - Burn incompatible advanced text subtitles into the video stream * 'text' - Transcode incompatible advanced text subtitles to a compatible text format, even if some markup is lost
-         *
-         */
-        advancedSubtitles?: 'burn' | 'text' | 'unknown';
-        /**
-         * Percentage of original audio loudness to use when transcoding (100 is equivalent to original volume, 50 is half, 200 is double, etc)
-         */
-        audioBoost?: number;
-        /**
-         * Target video number of audio channels.
-         */
-        audioChannelCount?: number;
-        /**
-         * Indicates if the server should normalize the loudness of an audio track based on loudness analysis results.
-         */
-        normalizeLoudness?: 0 | 1;
-        /**
-         * Indicates if the server boost the dialog found within an audio track.
-         */
-        boostDialog?: 0 | 1;
-        /**
-         * Indicates the client supports ABR.
-         */
-        autoAdjustQuality?: 0 | 1;
-        /**
-         * Indicates if the server should adjust subtitles based on Voice Activity Data.
-         */
-        autoAdjustSubtitle?: 0 | 1;
-        /**
-         * Indicates the client supports direct playing the indicated content.
-         */
-        directPlay?: 0 | 1;
-        /**
-         * Indicates the client supports direct streaming the video of the indicated content.
-         */
-        directStream?: 0 | 1;
-        /**
-         * Indicates the client supports direct streaming the audio of the indicated content.
-         */
-        directStreamAudio?: 0 | 1;
-        /**
-         * Indicates if resolution should be adjusted for orientation.
-         */
-        disableResolutionRotation?: 0 | 1;
-        /**
-         * Ignore client profiles when determining if direct play is possible. Only has an effect when directPlay=1 and both mediaIndex and partIndex are specified and neither are -1
-         */
-        hasMDE?: 0 | 1;
-        /**
-         * Network type of the client, can be used to help determine target bitrate.
-         */
-        location?: 'lan' | 'wan' | 'cellular';
-        /**
-         * Buffer size used in playback (in KB). Clients should specify a lower bound if not known exactly. This value could make the difference between transcoding and direct play on bandwidth constrained networks.
-         */
-        mediaBufferSize?: number;
-        /**
-         * Index of the media to transcode. -1 or not specified indicates let the server choose.
-         */
-        mediaIndex?: number;
-        /**
-         * Target bitrate for audio only files (in kbps, used to transcode).
-         */
-        musicBitrate?: number;
-        /**
-         * Offset from the start of the media (in seconds).
-         */
-        offset?: number;
-        /**
-         * Index of the part to transcode. -1 or not specified indicates the server should join parts together in a transcode
-         */
-        partIndex?: number;
-        /**
-         * Internal PMS path of the media to transcode.
-         */
-        path?: string;
-        /**
-         * Maximum bitrate (in kbps) to use in ABR.
-         */
-        peakBitrate?: number;
-        /**
-         * Target photo resolution.
-         */
-        photoResolution?: string;
-        /**
-         * Indicates the network streaming protocol to be used for the transcode session: * 'http' - include the file in the http response such as MKV streaming * 'hls' - hls stream (RFC 8216) * 'dash' - dash stream (ISO/IEC 23009-1:2022)
-         *
-         */
-        protocol?: 'http' | 'hls' | 'dash';
-        /**
-         * Number of seconds to include in each transcoded segment
-         */
-        secondsPerSegment?: number;
-        /**
-         * Percentage of original subtitle size to use when burning subtitles (100 is equivalent to original size, 50 is half, ect)
-         */
-        subtitleSize?: number;
-        /**
-         * Indicates how subtitles should be included: * 'auto' - Compute the appropriate subtitle setting automatically * 'burn' - Burn the selected subtitle; auto if no selected subtitle * 'none' - Ignore all subtitle streams * 'sidecar' - The selected subtitle should be provided as a sidecar * 'embedded' - The selected subtitle should be provided as an embedded stream * 'segmented' - The selected subtitle should be provided as a segmented stream
-         *
-         */
-        subtitles?: 'auto' | 'burn' | 'none' | 'sidecar' | 'embedded' | 'segmented' | 'unknown';
-        /**
-         * Target video bitrate (in kbps).
-         */
-        videoBitrate?: number;
-        /**
-         * Target photo quality.
-         */
-        videoQuality?: number;
-        /**
-         * Target maximum video resolution.
-         */
-        videoResolution?: string;
-    };
-    url: '/{transcodeType}/:/transcode/universal/start.*';
-};
-
-export type TranscodeStartErrors = {
-    /**
-     * Bad Request
-     */
-    400: unknown;
-    /**
-     * Forbidden
-     */
-    403: unknown;
-    /**
-     * Not Found
-     */
-    404: unknown;
-};
-
-export type TranscodeStartResponses = {
-    /**
-     * MPD file (see ISO/IEC 23009-1:2022), m3u8 file (see RFC 8216), or binary http stream
      */
     200: unknown;
 };
@@ -11396,3 +11105,491 @@ export type TranscodeSubtitlesResponses = {
      */
     200: unknown;
 };
+
+export type TranscodeStartData = {
+    body?: never;
+    headers: {
+        /**
+         * Unique per client.
+         */
+        'X-Plex-Client-Identifier': string;
+        /**
+         * See [Profile Augmentations](#section/API-Info/Profile-Augmentations) .
+         */
+        'X-Plex-Client-Profile-Extra'?: string;
+        /**
+         * Which built in Client Profile to use in the decision. Generally should only be used to specify the Generic profile.
+         */
+        'X-Plex-Client-Profile-Name'?: string;
+        /**
+         * Device the client is running on
+         */
+        'X-Plex-Device'?: string;
+        /**
+         * Model of the device the client is running on
+         */
+        'X-Plex-Model'?: string;
+        /**
+         * Client Platform
+         */
+        'X-Plex-Platform'?: string;
+        /**
+         * Client Platform Version
+         */
+        'X-Plex-Platform-Version'?: string;
+        /**
+         * Unique per client playback session.  Used if a client can playback multiple items at a time (such as a browser with multiple tabs)
+         */
+        'X-Plex-Session-Identifier'?: string;
+    };
+    path: {
+        /**
+         * Type of transcode media
+         */
+        transcodeType: 'video' | 'music' | 'audio' | 'subtitles';
+        extension: 'm3u8';
+    };
+    query?: {
+        /**
+         * Transcode session UUID
+         */
+        transcodeSessionId?: string;
+        /**
+         * Indicates how  incompatible advanced subtitles (such as ass/ssa) should be included: * 'burn' - Burn incompatible advanced text subtitles into the video stream * 'text' - Transcode incompatible advanced text subtitles to a compatible text format, even if some markup is lost
+         *
+         */
+        advancedSubtitles?: 'burn' | 'text' | 'unknown';
+        /**
+         * Percentage of original audio loudness to use when transcoding (100 is equivalent to original volume, 50 is half, 200 is double, etc)
+         */
+        audioBoost?: number;
+        /**
+         * Target video number of audio channels.
+         */
+        audioChannelCount?: number;
+        /**
+         * Indicates if the server should normalize the loudness of an audio track based on loudness analysis results.
+         */
+        normalizeLoudness?: 0 | 1;
+        /**
+         * Indicates if the server boost the dialog found within an audio track.
+         */
+        boostDialog?: 0 | 1;
+        /**
+         * Indicates the client supports ABR.
+         */
+        autoAdjustQuality?: 0 | 1;
+        /**
+         * Indicates if the server should adjust subtitles based on Voice Activity Data.
+         */
+        autoAdjustSubtitle?: 0 | 1;
+        /**
+         * Indicates the client supports direct playing the indicated content.
+         */
+        directPlay?: 0 | 1;
+        /**
+         * Indicates the client supports direct streaming the video of the indicated content.
+         */
+        directStream?: 0 | 1;
+        /**
+         * Indicates the client supports direct streaming the audio of the indicated content.
+         */
+        directStreamAudio?: 0 | 1;
+        /**
+         * Indicates if resolution should be adjusted for orientation.
+         */
+        disableResolutionRotation?: 0 | 1;
+        /**
+         * Ignore client profiles when determining if direct play is possible. Only has an effect when directPlay=1 and both mediaIndex and partIndex are specified and neither are -1
+         */
+        hasMDE?: 0 | 1;
+        /**
+         * Network type of the client, can be used to help determine target bitrate.
+         */
+        location?: 'lan' | 'wan' | 'cellular';
+        /**
+         * Buffer size used in playback (in KB). Clients should specify a lower bound if not known exactly. This value could make the difference between transcoding and direct play on bandwidth constrained networks.
+         */
+        mediaBufferSize?: number;
+        /**
+         * Index of the media to transcode. -1 or not specified indicates let the server choose.
+         */
+        mediaIndex?: number;
+        /**
+         * Target bitrate for audio only files (in kbps, used to transcode).
+         */
+        musicBitrate?: number;
+        /**
+         * Offset from the start of the media (in seconds).
+         */
+        offset?: number;
+        /**
+         * Index of the part to transcode. -1 or not specified indicates the server should join parts together in a transcode
+         */
+        partIndex?: number;
+        /**
+         * Internal PMS path of the media to transcode.
+         */
+        path?: string;
+        /**
+         * Maximum bitrate (in kbps) to use in ABR.
+         */
+        peakBitrate?: number;
+        /**
+         * Target photo resolution.
+         */
+        photoResolution?: string;
+        /**
+         * Indicates the network streaming protocol to be used for the transcode session: * 'http' - include the file in the http response such as MKV streaming * 'hls' - hls stream (RFC 8216) * 'dash' - dash stream (ISO/IEC 23009-1:2022)
+         *
+         */
+        protocol?: 'http' | 'hls' | 'dash';
+        /**
+         * Number of seconds to include in each transcoded segment
+         */
+        secondsPerSegment?: number;
+        /**
+         * Percentage of original subtitle size to use when burning subtitles (100 is equivalent to original size, 50 is half, ect)
+         */
+        subtitleSize?: number;
+        /**
+         * Indicates how subtitles should be included: * 'auto' - Compute the appropriate subtitle setting automatically * 'burn' - Burn the selected subtitle; auto if no selected subtitle * 'none' - Ignore all subtitle streams * 'sidecar' - The selected subtitle should be provided as a sidecar * 'embedded' - The selected subtitle should be provided as an embedded stream * 'segmented' - The selected subtitle should be provided as a segmented stream
+         *
+         */
+        subtitles?: 'auto' | 'burn' | 'none' | 'sidecar' | 'embedded' | 'segmented' | 'unknown';
+        /**
+         * Target video bitrate (in kbps).
+         */
+        videoBitrate?: number;
+        /**
+         * Target photo quality.
+         */
+        videoQuality?: number;
+        /**
+         * Target maximum video resolution.
+         */
+        videoResolution?: string;
+    };
+    url: '/{transcodeType}/:/transcode/universal/start.{extension}';
+};
+
+export type TranscodeStartErrors = {
+    /**
+     * Bad Request
+     */
+    400: unknown;
+    /**
+     * Forbidden
+     */
+    403: unknown;
+    /**
+     * Not Found
+     */
+    404: unknown;
+};
+
+export type TranscodeStartResponses = {
+    /**
+     * MPD file (see ISO/IEC 23009-1:2022), m3u8 file (see RFC 8216), or binary http stream
+     */
+    200: unknown;
+};
+
+export type StartSelectedSubtitleData = {
+    body?: never;
+    headers: {
+        /**
+         * Unique per client.
+         */
+        'X-Plex-Client-Identifier': string;
+        /**
+         * See [Profile Augmentations](#section/API-Info/Profile-Augmentations) .
+         */
+        'X-Plex-Client-Profile-Extra'?: string;
+        /**
+         * Which built in Client Profile to use in the decision. Generally should only be used to specify the Generic profile.
+         */
+        'X-Plex-Client-Profile-Name'?: string;
+        /**
+         * Device the client is running on
+         */
+        'X-Plex-Device'?: string;
+        /**
+         * Model of the device the client is running on
+         */
+        'X-Plex-Model'?: string;
+        /**
+         * Client Platform
+         */
+        'X-Plex-Platform'?: string;
+        /**
+         * Client Platform Version
+         */
+        'X-Plex-Platform-Version'?: string;
+        /**
+         * Unique per client playback session.  Used if a client can playback multiple items at a time (such as a browser with multiple tabs)
+         */
+        'X-Plex-Session-Identifier'?: string;
+    };
+    path?: never;
+    query?: {
+        /**
+         * Transcode session UUID
+         */
+        transcodeSessionId?: string;
+        /**
+         * Indicates how  incompatible advanced subtitles (such as ass/ssa) should be included: * 'burn' - Burn incompatible advanced text subtitles into the video stream * 'text' - Transcode incompatible advanced text subtitles to a compatible text format, even if some markup is lost
+         *
+         */
+        advancedSubtitles?: 'burn' | 'text' | 'unknown';
+        /**
+         * Percentage of original audio loudness to use when transcoding (100 is equivalent to original volume, 50 is half, 200 is double, etc)
+         */
+        audioBoost?: number;
+        /**
+         * Target video number of audio channels.
+         */
+        audioChannelCount?: number;
+        /**
+         * Indicates if the server should normalize the loudness of an audio track based on loudness analysis results.
+         */
+        normalizeLoudness?: 0 | 1;
+        /**
+         * Indicates if the server boost the dialog found within an audio track.
+         */
+        boostDialog?: 0 | 1;
+        /**
+         * Indicates the client supports ABR.
+         */
+        autoAdjustQuality?: 0 | 1;
+        /**
+         * Indicates if the server should adjust subtitles based on Voice Activity Data.
+         */
+        autoAdjustSubtitle?: 0 | 1;
+        /**
+         * Indicates the client supports direct playing the indicated content.
+         */
+        directPlay?: 0 | 1;
+        /**
+         * Indicates the client supports direct streaming the video of the indicated content.
+         */
+        directStream?: 0 | 1;
+        /**
+         * Indicates the client supports direct streaming the audio of the indicated content.
+         */
+        directStreamAudio?: 0 | 1;
+        /**
+         * Indicates if resolution should be adjusted for orientation.
+         */
+        disableResolutionRotation?: 0 | 1;
+        /**
+         * Ignore client profiles when determining if direct play is possible. Only has an effect when directPlay=1 and both mediaIndex and partIndex are specified and neither are -1
+         */
+        hasMDE?: 0 | 1;
+        /**
+         * Network type of the client, can be used to help determine target bitrate.
+         */
+        location?: 'lan' | 'wan' | 'cellular';
+        /**
+         * Buffer size used in playback (in KB). Clients should specify a lower bound if not known exactly. This value could make the difference between transcoding and direct play on bandwidth constrained networks.
+         */
+        mediaBufferSize?: number;
+        /**
+         * Index of the media to transcode. -1 or not specified indicates let the server choose.
+         */
+        mediaIndex?: number;
+        /**
+         * Target bitrate for audio only files (in kbps, used to transcode).
+         */
+        musicBitrate?: number;
+        /**
+         * Offset from the start of the media (in seconds).
+         */
+        offset?: number;
+        /**
+         * Index of the part to transcode. -1 or not specified indicates the server should join parts together in a transcode
+         */
+        partIndex?: number;
+        /**
+         * Internal PMS path of the media to transcode.
+         */
+        path?: string;
+        /**
+         * Maximum bitrate (in kbps) to use in ABR.
+         */
+        peakBitrate?: number;
+        /**
+         * Target photo resolution.
+         */
+        photoResolution?: string;
+        /**
+         * Indicates the network streaming protocol to be used for the transcode session: * 'http' - include the file in the http response such as MKV streaming * 'hls' - hls stream (RFC 8216) * 'dash' - dash stream (ISO/IEC 23009-1:2022)
+         *
+         */
+        protocol?: 'http' | 'hls' | 'dash';
+        /**
+         * Number of seconds to include in each transcoded segment
+         */
+        secondsPerSegment?: number;
+        /**
+         * Percentage of original subtitle size to use when burning subtitles (100 is equivalent to original size, 50 is half, ect)
+         */
+        subtitleSize?: number;
+        /**
+         * Indicates how subtitles should be included: * 'auto' - Compute the appropriate subtitle setting automatically * 'burn' - Burn the selected subtitle; auto if no selected subtitle * 'none' - Ignore all subtitle streams * 'sidecar' - The selected subtitle should be provided as a sidecar * 'embedded' - The selected subtitle should be provided as an embedded stream * 'segmented' - The selected subtitle should be provided as a segmented stream
+         *
+         */
+        subtitles?: 'auto' | 'burn' | 'none' | 'sidecar' | 'embedded' | 'segmented' | 'unknown';
+        /**
+         * Target video bitrate (in kbps).
+         */
+        videoBitrate?: number;
+        /**
+         * Target photo quality.
+         */
+        videoQuality?: number;
+        /**
+         * Target maximum video resolution.
+         */
+        videoResolution?: string;
+        session?: string;
+        copyts?: 0 | 1;
+    };
+    url: '/subtitles/:/transcode/universal/start';
+};
+
+export type StartSelectedSubtitleErrors = {
+    /**
+     * Bad Request
+     */
+    400: unknown;
+    /**
+     * Forbidden
+     */
+    403: unknown;
+    /**
+     * Not Found
+     */
+    404: unknown;
+};
+
+export type StartSelectedSubtitleResponses = {
+    /**
+     * Transcoded subtitle file
+     */
+    200: unknown;
+};
+
+export type LibraryGetSectionsData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/library/sections';
+};
+
+export type LibraryGetSectionsResponses = {
+    /**
+     * OK
+     */
+    200: {
+        MediaContainer?: MediaContainer2 & {
+            Directory?: Array<LibrarySection2>;
+            allowSync?: AllowSync;
+            /**
+             * Typically just "Plex Library"
+             */
+            title1?: string;
+        };
+    };
+};
+
+export type LibraryGetSectionsResponse = LibraryGetSectionsResponses[keyof LibraryGetSectionsResponses];
+
+export type LibraryPostSectionData = {
+    body?: never;
+    path?: never;
+    query: {
+        /**
+         * The name of the new section
+         */
+        name: string;
+        /**
+         * The type of library section
+         */
+        type: string;
+        /**
+         * The scanner this section should use
+         */
+        scanner?: string;
+        /**
+         * The agent this section should use for metadata
+         */
+        agent: string;
+        /**
+         * The agent group id for this section
+         */
+        metadataAgentProviderGroupId?: string;
+        /**
+         * The language of this section
+         */
+        language: string;
+        /**
+         * The locations on disk to add to this section
+         */
+        location?: string;
+        /**
+         * The preferences for this section
+         */
+        prefs?: {
+            [key: string]: unknown;
+        };
+        /**
+         * If set, paths are relative to `Media Upload` path
+         */
+        relative?: 0 | 1;
+        /**
+         * If set, import media from iTunes.
+         */
+        importFromiTunes?: 0 | 1;
+    };
+    url: '/library/sections';
+};
+
+export type LibraryPostSectionErrors = {
+    /**
+     * Section cannot be created due to bad parameters in request
+     */
+    400: unknown;
+};
+
+export type LibraryPostSectionResponses = {
+    /**
+     * OK
+     */
+    200: {
+        MediaContainer?: {
+            Directory?: Array<Metadata2>;
+            allowSync?: boolean;
+            art?: string;
+            /**
+             * The flavors of directory found here:
+             * - Primary: (e.g. all, On Deck) These are still used in some clients to provide "shortcuts" to subsets of media. However, with the exception of On Deck, all of them can be created by media queries, and the desire is to allow these to be customized by users.
+             * - Secondary: These are marked with `"secondary": true` and were used by old clients to provide nested menus allowing for primative (but structured) navigation.
+             * - Special: There is a By Folder entry which allows browsing the media by the underlying filesystem structure, and there's a completely obsolete entry marked `"search": true` which used to be used to allow clients to build search dialogs on the fly.
+             */
+            content?: string;
+            identifier?: string;
+            librarySectionID?: number;
+            mediaTagPrefix?: string;
+            mediaTagVersion?: number;
+            size?: number;
+            sortAsc?: boolean;
+            thumb?: string;
+            title1?: string;
+            viewGroup?: string;
+            viewMode?: number;
+        };
+    };
+};
+
+export type LibraryPostSectionResponse = LibraryPostSectionResponses[keyof LibraryPostSectionResponses];

@@ -1,13 +1,13 @@
 import { lookup } from "node:dns/promises";
 import { isIP } from "node:net";
 import { createApiError, isApiError, type ApiError } from "@/http/errors";
-import { createClient } from "@/providers/plex/generated/client/client.gen";
-import type { Client } from "@/providers/plex/generated/client/types.gen";
+import { createClient } from "@cliparr/plex/pms/client";
+import type { Client } from "@cliparr/plex/pms/client";
 import {
   getIdentity,
   libraryMetadataGetSlash,
   statusGetSlash,
-} from "@/providers/plex/generated/sdk.gen";
+} from "@cliparr/plex/pms";
 import { errorMessage, uniqueStrings } from "@/providers/shared/utilities";
 import { fetchWithPinnedDns } from "@/providers/shared/pinnedFetch";
 
@@ -325,7 +325,7 @@ async function fetchPlexPmsWithManualRedirects(
     method: request.method,
     headers: new Headers(request.headers),
     body: await reusableRequestBody(request),
-    signal: request.signal,
+    signal: init?.signal ?? request.signal,
   };
 
   for (
@@ -365,7 +365,7 @@ async function fetchPlexPmsWithManualRedirects(
   );
 }
 
-function createPlexPmsSdkClient(
+export function createPlexPmsSdkClient(
   context: PlexPmsRequestContext,
   options: PlexPmsRequestOptions,
   signal: AbortSignal,
@@ -378,7 +378,9 @@ function createPlexPmsSdkClient(
       "X-Plex-Product": options.product,
       "X-Plex-Token": context.token,
     },
-    fetch: fetchPlexPmsWithManualRedirects,
+    // Keep the original signal alive beyond headers; Request signals forward through GC-sensitive controllers.
+    fetch: (input, init) =>
+      fetchPlexPmsWithManualRedirects(input, { ...init, signal }),
     parseAs: "json",
     signal,
   });
