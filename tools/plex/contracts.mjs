@@ -3,6 +3,7 @@ import { createHash } from "node:crypto";
 import { readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import ts from "typescript";
+import { isDeepStrictEqual } from "node:util";
 
 export const CONTRACT_INPUTS = [
   "pms.json",
@@ -30,12 +31,116 @@ export function fingerprint(value) {
     .digest("hex");
 }
 
+const documentationKeys = new Set([
+  "description",
+  "summary",
+  "example",
+  "examples",
+  "externalDocs",
+]);
+// These objects contain user-defined names, not OpenAPI keywords. A property
+// named "description" must still participate in compatibility checks.
+const namedMaps = new Set([
+  "properties",
+  "patternProperties",
+  "$defs",
+  "definitions",
+  "schemas",
+  "paths",
+  "responses",
+  "content",
+  "headers",
+  "parameters",
+  "requestBodies",
+  "callbacks",
+  "links",
+  "securitySchemes",
+  "encoding",
+  "mapping",
+]);
+const literalKeys = new Set(["default", "const", "enum", "security"]);
+
+function mapContract(
+  value,
+  annotations,
+  reference = null,
+  named = false,
+  baseline = null,
+) {
+  if (Array.isArray(value)) {
+    return value.map((entry, index) =>
+      mapContract(
+        entry,
+        annotations,
+        reference?.[index],
+        false,
+        baseline?.[index],
+      ),
+    );
+  }
+  if (!value || typeof value !== "object") {
+    return value;
+  }
+  const result = Object.fromEntries(
+    Object.entries(value).map(([key, entry]) => [
+      key,
+      !named && (literalKeys.has(key) || key.startsWith("x-"))
+        ? structuredClone(entry)
+        : mapContract(
+            entry,
+            annotations,
+            reference?.[key],
+            !named && namedMaps.has(key),
+            baseline?.[key],
+          ),
+    ]),
+  );
+  return named ? result : annotations(result, reference, baseline);
+}
+
+function contractShape(value) {
+  return mapContract(value, (entry) =>
+    Object.fromEntries(
+      Object.entries(entry).filter(([key]) => !documentationKeys.has(key)),
+    ),
+  );
+}
+
+export function contractFingerprint(value) {
+  return fingerprint(contractShape(value));
+}
+
+function preserveDocumentation(corrected, upstream, expected) {
+  return mapContract(
+    corrected,
+    (entry, original, previous) => {
+      if (!original || typeof original !== "object") {
+        return entry;
+      }
+      const result = { ...entry };
+      for (const key of documentationKeys) {
+        if (isDeepStrictEqual(original[key], previous?.[key])) {
+          continue;
+        }
+        delete result[key];
+        if (Object.hasOwn(original, key)) {
+          result[key] = structuredClone(original[key]);
+        }
+      }
+      return result;
+    },
+    upstream,
+    false,
+    expected,
+  );
+}
+
 export function applySupplement(upstream, supplement) {
   const spec = structuredClone(upstream);
   for (const change of supplement.operations) {
     assert.ok(change.source && change.rationale);
     assert.equal(
-      fingerprint(upstream.paths[change.from]),
+      contractFingerprint(upstream.paths[change.from]),
       change.sourceSha256,
       `Review stale supplement for ${change.from}`,
     );
@@ -52,12 +157,21 @@ export function applySupplement(upstream, supplement) {
       target = target[key];
     }
     const key = change.path.at(-1);
+    const current = contractShape(target[key] ?? null);
+    // Plex may have adopted this correction. Keep its definition and docs.
+    if (isDeepStrictEqual(current, contractShape(change.value))) {
+      continue;
+    }
     assert.deepEqual(
-      target[key] ?? null,
-      change.expected,
+      current,
+      contractShape(change.expected),
       `Review stale supplement: ${change.path.join("/")}`,
     );
-    target[key] = structuredClone(change.value);
+    target[key] = preserveDocumentation(
+      change.value,
+      target[key],
+      change.expected,
+    );
   }
   for (const change of supplement.operations) {
     const item = structuredClone(spec.paths[change.from]);
@@ -89,18 +203,24 @@ export function applySupplement(upstream, supplement) {
       .find((entry) => entry.operationId === change.operationId);
     assert.ok(operation, `Missing operation ${change.operationId}`);
     for (const parameter of change.parameters) {
-      assert.ok(
-        !operation.parameters.some((entry) => {
-          const resolved = entry.$ref
-            ? spec.components.parameters[entry.$ref.split("/").at(-1)]
-            : entry;
-          return (
-            resolved.in === parameter.in && resolved.name === parameter.name
-          );
-        }),
-        `Upstream overlaps parameter ${parameter.name}`,
-      );
-      operation.parameters.push(structuredClone(parameter));
+      const existing = operation.parameters.find((entry) => {
+        const resolved = entry.$ref
+          ? spec.components.parameters[entry.$ref.split("/").at(-1)]
+          : entry;
+        return resolved.in === parameter.in && resolved.name === parameter.name;
+      });
+      if (existing) {
+        const resolved = existing.$ref
+          ? spec.components.parameters[existing.$ref.split("/").at(-1)]
+          : existing;
+        assert.deepEqual(
+          contractShape(resolved),
+          contractShape(parameter),
+          `Upstream conflicts with parameter ${parameter.name}`,
+        );
+      } else {
+        operation.parameters.push(structuredClone(parameter));
+      }
     }
   }
   return spec;

@@ -38,7 +38,11 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Update Plex contracts
-        run: pnpm plex:sdk:update
+        id: update
+        run: |
+          mkdir -p "$RUNNER_TEMP/plex-update"
+          set -o pipefail
+          pnpm plex:sdk:update --report-dir "$RUNNER_TEMP/plex-update" 2>&1 | tee "$RUNNER_TEMP/plex-update/update.log"
 
       - name: Detect changed contracts
         id: contracts
@@ -50,8 +54,37 @@ jobs:
           fi
 
       - name: Validate consumers and repository
+        id: preflight
         if: steps.contracts.outputs.changed == 'true'
-        run: pnpm preflight
+        run: |
+          set -o pipefail
+          pnpm preflight 2>&1 | tee "$RUNNER_TEMP/plex-update/preflight.log"
+
+      - name: Report blocked update
+        if: failure() && (steps.update.outcome == 'failure' || steps.preflight.outcome == 'failure')
+        run: |
+          report="$RUNNER_TEMP/plex-update/report.md"
+          if [ ! -f "$report" ]; then
+            mkdir -p "$RUNNER_TEMP/plex-update/candidate"
+            cp -R packages/plex/openapi "$RUNNER_TEMP/plex-update/candidate/openapi"
+            cp -R packages/plex/src/generated "$RUNNER_TEMP/plex-update/candidate/generated"
+            cat > "$report" <<'REPORT'
+          # Plex contract update blocked
+
+          The contract updater or repository validation failed. No update was published.
+          The candidate contracts and validation logs are attached for review.
+          REPORT
+          fi
+          cat "$report" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload blocked update evidence
+        if: failure() && (steps.update.outcome == 'failure' || steps.preflight.outcome == 'failure')
+        uses: actions/upload-artifact@v4
+        with:
+          name: plex-update-failure-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/plex-update
+          retention-days: 14
+          if-no-files-found: error
 
       - name: Open pull request
         if: steps.contracts.outputs.changed == 'true'

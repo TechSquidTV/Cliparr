@@ -4,7 +4,7 @@ import os from "node:os";
 import path from "node:path";
 import test from "node:test";
 import ts from "typescript";
-import { applySupplement, fingerprint } from "#plex/contracts.mjs";
+import { applySupplement, contractFingerprint } from "#plex/contracts.mjs";
 import { generatePlexPmsSdk, diffGeneratedSdk } from "#plex/pms-openapi.mjs";
 
 const directory = path.resolve("packages/plex/openapi");
@@ -62,7 +62,7 @@ void test(
       const reviewed = structuredClone(supplement);
       reviewed.operations.find(
         (operation) => operation.from === route,
-      ).sourceSha256 = fingerprint(changed.paths[route]);
+      ).sourceSha256 = contractFingerprint(changed.paths[route]);
       await writeFile(path.join(inputs, "pms.json"), JSON.stringify(changed));
       await writeFile(
         path.join(inputs, "pms-supplement.json"),
@@ -118,3 +118,134 @@ void test(
     }
   },
 );
+
+void test("documentation changes preserve new prose without weakening contract checks", () => {
+  const changed = structuredClone(upstream);
+  changed.components.schemas.stream.properties.codec.description =
+    "Updated codec documentation";
+  const route = supplement.operations[0].from;
+  changed.paths[route].get.description = "Updated transcode documentation";
+  changed.paths[route].get.parameters[0].description =
+    "Updated parameter documentation";
+  const result = applySupplement(changed, supplement);
+  assert.equal(
+    result.components.schemas.stream.properties.codec.type,
+    "string",
+  );
+  assert.equal(
+    result.components.schemas.stream.properties.codec.description,
+    "Updated codec documentation",
+  );
+  assert.equal(
+    result.paths[supplement.operations[0].to].get.description,
+    "Updated transcode documentation",
+  );
+  assert.equal(
+    result.paths[supplement.operations[0].to].get.parameters[0].description,
+    "Updated parameter documentation",
+  );
+  changed.components.schemas.stream.properties.codec.type = "integer";
+  assert.throws(() => applySupplement(changed, supplement), /stale supplement/);
+});
+
+void test("semantic hashes retain named schema properties and literal values", () => {
+  for (const key of ["description", "summary", "example", "examples"]) {
+    const before = {
+      type: "object",
+      properties: { [key]: { type: "string" } },
+    };
+    const after = { type: "object", properties: { [key]: { type: "number" } } };
+    assert.notEqual(contractFingerprint(before), contractFingerprint(after));
+    assert.notEqual(
+      contractFingerprint({ default: { [key]: "old" } }),
+      contractFingerprint({ default: { [key]: "new" } }),
+    );
+    assert.equal(
+      contractFingerprint({ description: "old", ...before }),
+      contractFingerprint({ description: "new", ...before }),
+    );
+  }
+  assert.notEqual(
+    contractFingerprint({ required: ["description"] }),
+    contractFingerprint({ required: [] }),
+  );
+  assert.notEqual(
+    contractFingerprint({ title: "OriginalModel" }),
+    contractFingerprint({ title: "RenamedModel" }),
+  );
+});
+
+void test("already adopted field and parameter corrections remain single definitions", () => {
+  const changed = structuredClone(upstream);
+  const patch = supplement.patches.find(
+    (entry) =>
+      entry.path.join("/") === "components/schemas/stream/properties/codec",
+  );
+  changed.components.schemas.stream.properties.codec = {
+    ...patch.value,
+    description: "Plex now declares its type",
+  };
+  const operation = Object.values(changed.paths)
+    .flatMap((item) => Object.values(item))
+    .find((item) => item.operationId === "transcodeDecision");
+  operation.parameters.push({
+    ...supplement.parameters[0].parameters[0],
+    description: "Now official",
+  });
+  const result = applySupplement(changed, supplement);
+  assert.equal(
+    result.components.schemas.stream.properties.codec.description,
+    "Plex now declares its type",
+  );
+  const resultOperation = Object.values(result.paths)
+    .flatMap((item) => Object.values(item))
+    .find((item) => item.operationId === "transcodeDecision");
+  assert.equal(
+    resultOperation.parameters.filter(
+      (parameter) => parameter.name === "session",
+    ).length,
+    1,
+  );
+  operation.parameters.at(-1).schema = { type: "integer" };
+  assert.throws(
+    () => applySupplement(changed, supplement),
+    /conflicts with parameter session/,
+  );
+});
+
+void test("generation failures preserve the existing SDK, including late builder failures", async () => {
+  const temporary = await mkdtemp(path.join(os.tmpdir(), "plex-preserve-"));
+  try {
+    const inputs = path.join(temporary, "openapi");
+    await cp(directory, inputs, { recursive: true });
+    const generated = path.join(temporary, "generated");
+    await cp("packages/plex/src/generated", generated, { recursive: true });
+    for (const failure of ["supplement", "builder"]) {
+      const changed = structuredClone(upstream);
+      if (failure === "supplement") {
+        changed.components.schemas.stream.properties.codec.type = "integer";
+      } else {
+        const operation = Object.values(changed.paths)
+          .flatMap((item) => Object.values(item))
+          .find((item) => item.operationId === "libraryGetStreamsStream");
+        operation.operationId = "renamedStreamOperation";
+      }
+      await writeFile(path.join(inputs, "pms.json"), JSON.stringify(changed));
+      await assert.rejects(
+        generatePlexPmsSdk({
+          inputPath: path.join(inputs, "pms.json"),
+          outputDirectory: generated,
+        }),
+        failure === "supplement"
+          ? /stale supplement/
+          : /Missing generated builders/,
+      );
+      assert.deepEqual(
+        await diffGeneratedSdk("packages/plex/src/generated", generated),
+        [],
+      );
+    }
+  } finally {
+    await rm(temporary, { recursive: true, force: true });
+  }
+});

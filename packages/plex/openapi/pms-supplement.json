@@ -656,7 +656,7 @@
       "kind": "move",
       "from": "/{transcodeType}/:/transcode/universal/start.*",
       "to": "/{transcodeType}/:/transcode/universal/start.{extension}",
-      "sourceSha256": "d50f13ddee4341dd248159a921cbe1b226d358b6265a83405aa66018aa395a0f",
+      "sourceSha256": "dfbe17e94b3cd7890ee2e1c0b04e626e186595677c9359dcbe87d754e1113ca4",
       "rationale": "The documented wildcard describes an output extension, not a literal asterisk. Model the HLS extension used by Cliparr.",
       "source": "https://developer.plex.tv/pms/",
       "parameters": [
@@ -677,7 +677,7 @@
       "kind": "copy",
       "from": "/{transcodeType}/:/transcode/universal/subtitles",
       "to": "/subtitles/:/transcode/universal/start",
-      "sourceSha256": "425fa9932667fccfd8ffc349218dc8843c38b79dc8a6e78354382b4f5caac539",
+      "sourceSha256": "6e20337703f39d9f18b82b079b52361f5a1cf28da69531dcb32c75ea502e87bc",
       "operationId": "startSelectedSubtitle",
       "rationale": "Plex Web sidecar extraction uses this distinct route. Preserve decision-before-extraction and its session/copyts parameters.",
       "source": "https://forums.plex.tv/t/webos-no-subtitles/922752",
@@ -707,7 +707,7 @@
       "kind": "move",
       "from": "/library/sections/all",
       "to": "/library/sections",
-      "sourceSha256": "2d28db35987ea9769aeda05bab56e65977c95c101e01f26fb1fd0182b108e915",
+      "sourceSha256": "30a4b1f8e0f4e0f73f7d15a7b8bb5ded9cbd285e518180fd454e68dd9bd11dd3",
       "rationale": "Library listing/creation uses the collection route; /all is not the bootstrap collection route.",
       "source": "https://github.com/pkkid/python-plexapi/blob/master/plexapi/library.py"
     }

@@ -5,9 +5,11 @@ import {
   generateUrlBuilders,
 } from "#plex/contracts.mjs";
 import assert from "node:assert/strict";
+import { withArtifactTransaction } from "#plex/artifact-transaction.mjs";
 import { spawn } from "node:child_process";
 import { createHash } from "node:crypto";
 import {
+  cp,
   mkdir,
   mkdtemp,
   readdir,
@@ -211,7 +213,19 @@ export async function generatePlexPmsSdk({
   inputPath = repoPath(PLEX_PMS_SPEC_PATH),
   outputDirectory = repoPath(PLEX_PMS_GENERATED_DIR),
 } = {}) {
-  await rm(outputDirectory, { force: true, recursive: true });
+  const candidate = await mkdtemp(path.join(os.tmpdir(), "plex-generation-"));
+  try {
+    await generateSdkFiles(inputPath, candidate);
+    await withArtifactTransaction([outputDirectory], async () => {
+      await rm(outputDirectory, { force: true, recursive: true });
+      await cp(candidate, outputDirectory, { recursive: true });
+    });
+  } finally {
+    await rm(candidate, { force: true, recursive: true });
+  }
+}
+
+async function generateSdkFiles(inputPath, outputDirectory) {
   const inputDirectory = path.dirname(inputPath);
   const upstream = JSON.parse(await readFile(inputPath, "utf8"));
   const supplement = JSON.parse(
@@ -244,6 +258,9 @@ export async function generatePlexPmsSdk({
       ),
       extensionSha256: sha256(
         await readFile(repoPath("tools/plex/contracts.mjs")),
+      ),
+      artifactTransactionSha256: sha256(
+        await readFile(repoPath("tools/plex/artifact-transaction.mjs")),
       ),
     }),
   );

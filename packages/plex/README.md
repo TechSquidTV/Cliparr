@@ -11,17 +11,22 @@ with Node's built-in type stripping, without installing the application.
   <https://developer.plex.tv/pms/>. `openapi/manifest.json` records its hash,
   generator version, and original retrieval provenance. It is not patched in place.
 - `openapi/pms-supplement.json` contains local corrections, with rationale and
-  source on every change. Property edits compare expected old values. Route
-  corrections fingerprint their source operation and reject overlapping upstream
-  paths. Added parameters reject collisions. Changes require review when upstream
-  assumptions change; supplements are not official Plex definitions.
+  source on every change. Guards compare contract structure while ignoring
+  descriptions, summaries, examples, and external documentation. Named schema
+  properties, defaults, constraints, model titles, and extensions remain guarded.
+  New upstream prose is retained. Field/parameter corrections already adopted
+  upstream are accepted without duplicate definitions. Conflicting field types,
+  parameter contracts, changed route contracts, and overlapping destination paths
+  still require review. Route `sourceSha256` values hash this contract structure;
+  full input fingerprints continue to include documentation. Supplements are not
+  official Plex definitions.
 - `openapi/cloud.json` is a locally maintained subset, not a claimed official
   cloud OpenAPI specification. PIN behavior comes from Plex's
   [authentication documentation](https://forums.plex.tv/t/authenticating-with-plex/609370).
   Resource fields and discovery parameters are corroborated by
   [python-plexapi](https://github.com/pkkid/python-plexapi/blob/master/plexapi/myplex.py).
 - `src/generated/inputs.json` fingerprints all three inputs, the generator version,
-  and the generation pipeline/extension. `pnpm plex:sdk:check` regenerates both SDKs,
+  and the generation pipeline, extension, and artifact transaction helper. `pnpm plex:sdk:check` regenerates both SDKs,
   their serializers, and operation builders in a temporary directory and compares
   every artifact. Nothing in `src/generated` is manually maintained.
 
@@ -30,6 +35,24 @@ and check reproducibility. Every run also checks package/server types,
 package/server tests, and generation/enforcement tests directly in the updater,
 including retries after failed validation. Failures fail the command. Unchanged
 input does not change timestamps.
+
+Generation completes in a temporary directory before replacing the SDK. If any
+updater stage reports an error, the original snapshot, manifest, and SDK are
+restored, including local uncommitted edits. A failed restore retains its backup
+and reports the location. Avoid running concurrent updaters in the same checkout.
+
+Use `pnpm plex:sdk:update --report-dir /tmp/plex-update-report` to retain failure
+evidence outside the contract files. Reports include the failing stage and error,
+the candidate inputs when available, and the candidate SDK if generation completed.
+Reusing a report directory replaces its `report.json`, `report.md`, and `candidate`
+outputs; successful validation clears stale failure evidence. Consumer failures
+still fail the command and retries run every check again.
+
+The scheduled/manual workflow writes a failure summary and uploads candidate
+files plus validation logs as a 14-day Actions artifact. Failed updates never
+reach the commit/PR step; successful changed updates still require full preflight
+before publication. A report is evidence for fixing the update, not approval to
+merge incompatible contracts.
 
 To add an operation, first find it in the upstream contract. If coverage is absent,
 add a narrowly scoped correction or cloud definition with source evidence and a
