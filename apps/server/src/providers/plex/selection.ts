@@ -150,11 +150,7 @@ function correspondingEntry<T extends { id?: string | number }>(
   return entries[correspondingIndex(entries, idValue(entry.id), index)];
 }
 
-function correspondingStream(
-  entries: PlexStream[],
-  stream: PlexStream,
-  index?: number,
-) {
+function correspondingStream(entries: PlexStream[], stream: PlexStream) {
   const id = idValue(stream.id);
   const compatible = (candidate: PlexStream) =>
     (candidate.streamType === undefined ||
@@ -194,26 +190,26 @@ function correspondingStream(
   if (located) {
     return located;
   }
-  const positional = index === undefined ? undefined : entries[index];
-  return positional && compatible(positional) && !contradicts(positional)
-    ? positional
-    : undefined;
+  const key = stringValue(stream.key);
+  if (!key) {
+    return;
+  }
+  const resources = entries.filter(
+    (candidate) =>
+      compatible(candidate) &&
+      !contradicts(candidate) &&
+      stringValue(candidate.key) === key,
+  );
+  return resources.length === 1 ? resources[0] : undefined;
 }
 
 function mergePlaybackStreams(library: PlexStream[], live: PlexStream[]) {
-  // Require mutual matches so a positional guess cannot consume a stream that
-  // has a stronger identity match elsewhere in the other list.
+  // Require mutual matches so a resource or locator match cannot consume a
+  // stream that has a stronger identity match elsewhere in the other list.
   const matches = new Map<PlexStream, PlexStream>();
-  const unmatched = live.filter((stream, index) => {
-    const libraryStream = correspondingStream(library, stream, index);
-    if (
-      !libraryStream ||
-      correspondingStream(
-        live,
-        libraryStream,
-        library.indexOf(libraryStream),
-      ) !== stream
-    ) {
+  const unmatched = live.filter((stream) => {
+    const libraryStream = correspondingStream(library, stream);
+    if (!libraryStream || correspondingStream(live, libraryStream) !== stream) {
       return true;
     }
     matches.set(libraryStream, stream);

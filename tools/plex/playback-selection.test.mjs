@@ -41,7 +41,7 @@ void test("Plex audio selection reaches the frontend without inventing ordinals 
     const originalFetch = globalThis.fetch;
     const results = [];
     try {
-      for (const scenario of ['complete-library', 'conflicting-media', 'conflicting-part', 'lookup-failed', 'missing-item', 'live-only-stream', 'no-rating-key']) {
+      for (const scenario of ['complete-library', 'conflicting-media', 'conflicting-part', 'lookup-failed', 'missing-item', 'live-only-stream', 'no-rating-key', 'unidentified-stream']) {
         const session = { id: scenario, providerId: 'plex', providerAccountId: 'account', userToken: 'synthetic', mediaHandles: new Map(), createdAt: 0, expiresAt: Date.now() + 60_000 };
         const library = { ratingKey: '42', type: 'movie', Media: [{
           id: scenario === 'conflicting-media' ? 10 : 20,
@@ -52,7 +52,14 @@ void test("Plex audio selection reaches the frontend without inventing ordinals 
         globalThis.fetch = async (input, init) => {
           const request = new Request(input, init);
           if (new URL(request.url).pathname === '/status/sessions') {
-            return Response.json({ MediaContainer: { Metadata: [{ ...live, ratingKey: scenario === 'no-rating-key' ? undefined : '42' }] } });
+            const liveItem = structuredClone(live);
+            if (scenario === 'no-rating-key') delete liveItem.ratingKey;
+            if (scenario === 'unidentified-stream') {
+              const stream = liveItem.Media[0].Part[0].Stream[0];
+              delete stream.id;
+              delete stream.index;
+            }
+            return Response.json({ MediaContainer: { Metadata: [liveItem] } });
           }
           assert.notEqual(scenario, 'no-rating-key');
           if (scenario === 'lookup-failed') return new Response('Unavailable', { status: 503 });
@@ -70,7 +77,7 @@ void test("Plex audio selection reaches the frontend without inventing ordinals 
   `,
   );
   const results = JSON.parse(payload);
-  assert.equal(results.length, 7);
+  assert.equal(results.length, 8);
 
   runPackageScript(
     "frontend",

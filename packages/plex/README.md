@@ -98,8 +98,10 @@ library. Media and part IDs take precedence over array positions; positions are
 used only when an identity is missing. **Behavior change:** if an explicit live
 ID conflicts with library metadata, previews and subtitle extraction are omitted
 instead of selecting another version. A returned live download URL and its live
-audio selection remain usable. Streams match by ID, then by source index or stream
-identifier when IDs are missing; contradictory locators cannot match by position.
+audio selection remain usable. Streams match by ID, then by source index, stream
+identifier, or an unambiguous resource key when IDs are missing. **Behavior change:**
+streams never match by array position; unidentified live streams retain their own
+selection and descriptive fields without inheriting library identity.
 Audio track numbers come only from a stream matched to the raw library part.
 **Behavior change:** partial live lists and unmatched streams omit the ordinal;
 the editor selects using the retained language/title instead of a guessed number.

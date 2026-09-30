@@ -2138,3 +2138,88 @@ void test("positional stream guesses cannot steal a stronger match elsewhere", (
   );
   assert.equal(deriveSelectedAudioTrack(merged)?.languageCode, "spa");
 });
+
+void test("unidentified subtitles match only unambiguous resource keys and preserve live identity otherwise", () => {
+  for (const match of [
+    "resource",
+    "missing",
+    "ambiguous",
+    "id-conflict",
+    "index-conflict",
+  ] as const) {
+    const liveStream = {
+      ...(match === "id-conflict" ? { id: 99 } : {}),
+      ...(match === "index-conflict" ? { index: 9 } : {}),
+      streamType: 3,
+      codec: "srt",
+      languageCode: "spa",
+      selected: true,
+      key: "/returned/spanish.srt",
+    };
+    const live: PlexMetadataItem = {
+      Media: [{ id: 1, Part: [{ id: 2, Stream: [liveStream] }] }],
+    };
+    const spanish = {
+      id: 31,
+      index: 2,
+      streamType: 3,
+      codec: "srt",
+      languageCode: "spa",
+      key: match === "missing" ? "/returned/other.srt" : liveStream.key,
+    };
+    const library: PlexMetadataItem = {
+      Media: [
+        {
+          id: 1,
+          Part: [
+            {
+              id: 2,
+              Stream: [
+                {
+                  id: 30,
+                  streamType: 3,
+                  codec: "srt",
+                  languageCode: "eng",
+                  key: "/returned/english.srt",
+                },
+                spanish,
+                ...(match === "ambiguous" ? [{ ...spanish, id: 32 }] : []),
+              ],
+            },
+          ],
+        },
+      ],
+    };
+    const merged = mergePlaybackMetadata(live, library);
+    const session = createSession();
+    const tracks = deriveSubtitleTracks(
+      session,
+      createContext(),
+      merged,
+      "viewer",
+    );
+    const english = tracks.find((track) => track.streamId === "30");
+    assert.equal(english?.languageCode, "eng");
+    assert.equal(
+      mediaHandleForUrl(session, english?.contentUrl).path,
+      "/returned/english.srt",
+    );
+    const selected = deriveSelectedSubtitleTrack(merged);
+    assert.equal(selected?.languageCode, "spa");
+    assert.equal(
+      selected?.streamId,
+      match === "resource" ? "31" : liveStream.id?.toString(),
+    );
+    const streams = resolveSelectedPart(merged)?.part?.Stream;
+    assert.equal(streams?.filter((stream) => stream.selected).length, 1);
+    if (match === "resource") {
+      assert.equal(tracks.length, 2);
+      assert.equal(
+        mediaHandleForUrl(session, tracks[1]?.contentUrl).path,
+        liveStream.key,
+      );
+    } else {
+      assert.deepEqual(streams?.at(-1), liveStream);
+    }
+  }
+});
