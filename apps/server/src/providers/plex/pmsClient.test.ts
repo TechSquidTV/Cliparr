@@ -3,6 +3,7 @@ import test from "node:test";
 import { isApiError } from "@/http/errors";
 import {
   plexPmsResponseStatusMessage,
+  openPlexEventStream,
   requestPlexPmsCurrentSessions,
   requestPlexPmsIdentity,
   requestPlexPmsMetadata,
@@ -223,6 +224,46 @@ void test("maps failed Plex PMS responses to Cliparr API errors", async () => {
         plexPmsResponseStatusMessage(capturedError),
         "401 Unauthorized",
       );
+    },
+  );
+});
+
+void test("generated Plex events preserve HTTP failures and reject non-stream responses", async () => {
+  await withMockFetch(
+    () =>
+      new Response("Unauthorized", { status: 401, statusText: "Unauthorized" }),
+    async () => {
+      await assert.rejects(
+        openPlexEventStream(
+          context,
+          new Headers(),
+          new AbortController().signal,
+        ),
+        (error: Error) => isApiError(error) && error.status === 401,
+      );
+    },
+  );
+  let cancelled = false;
+  await withMockFetch(
+    () =>
+      new Response(
+        new ReadableStream<Uint8Array>({
+          cancel() {
+            cancelled = true;
+          },
+        }),
+        { headers: { "content-type": "text/html" } },
+      ),
+    async () => {
+      await assert.rejects(
+        openPlexEventStream(
+          context,
+          new Headers(),
+          new AbortController().signal,
+        ),
+        /Plex did not return an event stream/,
+      );
+      assert.equal(cancelled, true);
     },
   );
 });

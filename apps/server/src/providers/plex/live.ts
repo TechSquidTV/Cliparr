@@ -1,3 +1,7 @@
+import type {
+  PlexNotificationEnvelope,
+  PlaySessionStateNotification,
+} from "@cliparr/plex/pms/types";
 import { createApiError } from "@/http/errors";
 import { readServerEvents } from "@cliparr/shared/server-events";
 import type { MediaSource } from "@/db/mediaSourcesRepository";
@@ -10,27 +14,13 @@ import { openPlexEventStream } from "@/providers/plex/pmsClient";
 import { plexMediaHeaders } from "@/providers/plex/shared";
 import type { PlaybackProgress } from "@cliparr/shared/providers";
 
-interface PlexPlayingNotification {
-  sessionKey?: string | number;
-  state?: string;
-  ratingKey?: string | number;
-  viewOffset?: number;
-}
-
 export function readPlexPlayingNotifications(
   text: string,
-): PlexPlayingNotification[] {
-  const message = JSON.parse(text) as {
-    NotificationContainer?: {
-      PlaySessionStateNotification?: PlexPlayingNotification[];
-    };
-    PlaySessionStateNotification?:
-      | PlexPlayingNotification
-      | PlexPlayingNotification[];
-  };
+): PlaySessionStateNotification[] {
+  const message = JSON.parse(text) as PlexNotificationEnvelope | null;
   const notifications =
-    message.NotificationContainer?.PlaySessionStateNotification ??
-    message.PlaySessionStateNotification;
+    message?.NotificationContainer?.PlaySessionStateNotification ??
+    message?.PlaySessionStateNotification;
   if (!notifications) {
     return [];
   }

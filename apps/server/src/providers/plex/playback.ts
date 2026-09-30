@@ -296,7 +296,9 @@ async function preparePlexPlayback(
   context: PlexSourceContext,
   item: PlexMetadataItem,
 ) {
-  const [prepared] = await enrichPlaybackItems(context, [item], { required: true });
+  const [prepared] = await enrichPlaybackItems(context, [item], {
+    required: true,
+  });
   return prepared;
 }
 
@@ -318,10 +320,7 @@ function bindPlexPlayback(
     mediaSelection,
   );
   const thumbPath = metadataImagePath(enrichedItem);
-  const selectedPart = resolveSelectedPart(
-    enrichedItem,
-    mediaSelection,
-  )?.part;
+  const selectedPart = resolveSelectedPart(enrichedItem, mediaSelection)?.part;
   // A retained live file still needs its own audio selection even when that
   // version is missing from the library response used for preview indexes.
   const audioItem = !selectedPart && mediaPath ? item : enrichedItem;
@@ -471,9 +470,13 @@ async function normalizeCurrentPlayback(
   context: PlexSourceContext,
   data: StatusGetSlashResponse,
 ): Promise<CurrentlyPlayingEntry[]> {
-  const items = dedupeCurrentlyPlayingMetadata(data.MediaContainer?.Metadata ?? []);
+  const items = dedupeCurrentlyPlayingMetadata(
+    data.MediaContainer?.Metadata ?? [],
+  );
   const prepared = await enrichPlaybackItems(context, items);
-  return items.map((item, index) => bindPlexPlayback(session, source, context, item, prepared[index]));
+  return items.map((item, index) =>
+    bindPlexPlayback(session, source, context, item, prepared[index]),
+  );
 }
 
 export async function listCurrentlyPlaying(

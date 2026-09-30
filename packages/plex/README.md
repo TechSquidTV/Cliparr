@@ -196,9 +196,19 @@ cancellation. Existing media/security tests remain required. Fixtures clearly
 identify documentation versus observed protocol sources; they contain no account
 tokens or private media recordings.
 
-This prerequisite targets main and imports none of #204's live feature. After it
-merges, #204's owner must rebase, migrate its SSE caller to `eventsourceGetSlash`
-through `createPlexPmsSdkClient`, add an evidence-backed event-envelope supplement,
-and consume its generated model. Preserve one reconnect owner, coalescing, session
-isolation, connection limits, and revocation/idle behavior. Run all enforcement,
-preflight/build, and live tests without restoring old modules or bypasses.
+Live playback uses `eventsourceGetSlash` through `createPlexPmsSdkClient` with
+`parseAs: "stream"` and the original response body. Cliparr owns SSE decoding and
+reconnection; the generated SDK does not create a second reconnect loop.
+
+The locally maintained `PlaySessionStateNotification` and
+`PlexNotificationEnvelope` schemas cover the live decoder's existing payload
+forms. Field evidence comes from [published playing-event examples](https://www.plexopedia.com/plex-media-server/api/server/listen-events/),
+and the wrapped envelope is also consumed by [python-plexapi](https://github.com/pushingkarmaorg/python-plexapi/blob/master/plexapi/alert.py).
+These supplement schemas are not official PMS response definitions; the upstream
+stream response remains unchanged. Decoder fixtures are synthetic, not recordings.
+
+Live metadata preparation retains raw library ordering for audio selection and
+binds media handles separately for each Cliparr session. The shared watcher retains
+one reconnect owner, coalescing, connection limits, and revocation/idle behavior.
+Tests cover cancellation after headers/GC, reverse-proxy prefixes, HTTP error
+preservation, per-viewer selections, and generated-contract enforcement.

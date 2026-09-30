@@ -123,6 +123,9 @@ export async function enrichPlaybackItems(
 ): Promise<{ item: PlexMetadataItem; libraryItem?: PlexMetadataItem }[]> {
   const ids = uniqueStrings(items.map((item) => metadataId(item)));
   if (ids.length === 0) {
+    if (options.required && items.length > 0) {
+      throw new Error("Plex returned no playback metadata");
+    }
     return items.map((item) => ({ item }));
   }
   try {

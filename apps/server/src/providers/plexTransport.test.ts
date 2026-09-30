@@ -4,7 +4,10 @@ import { createServer } from "node:http";
 import { setImmediate } from "node:timers/promises";
 import test from "node:test";
 import { eventsourceGetSlash } from "@cliparr/plex/pms";
-import { createPlexPmsSdkClient } from "@/providers/plex/pmsClient";
+import {
+  createPlexPmsSdkClient,
+  openPlexEventStream,
+} from "@/providers/plex/pmsClient";
 
 void test(
   "generated PMS streaming remains unbuffered and cancels after headers and GC",
@@ -12,7 +15,8 @@ void test(
   async () => {
     let disconnected = false;
     const server = createServer((request, response) => {
-      assert.equal(request.url, "/:/eventsource/notifications");
+      assert.equal(request.url, "/plex/:/eventsource/notifications");
+      assert.equal(request.headers.accept, "text/event-stream");
       assert.equal(request.headers["x-plex-token"], "server-token");
       response.writeHead(200, { "content-type": "text/event-stream" });
       response.write(": heartbeat\n\n");
@@ -26,27 +30,14 @@ void test(
     assert.ok(address && typeof address === "object");
     const controller = new AbortController();
     try {
-      // Return only the body so the generated Request and result can be collected.
-      const body = await (async () => {
-        const result = await eventsourceGetSlash({
-          client: createPlexPmsSdkClient(
-            {
-              baseUrl: `http://127.0.0.1:${address.port}`,
-              token: "server-token",
-            },
-            {
-              clientIdentifier: "contract-test",
-              product: "Cliparr",
-              timeoutMs: 1,
-            },
-            controller.signal,
-          ),
-          parseAs: "stream",
-          headers: { Accept: "text/event-stream" },
-        });
-        assert.equal(result.response?.status, 200);
-        return result.response?.body;
-      })();
+      const body = await openPlexEventStream(
+        {
+          baseUrl: `http://127.0.0.1:${address.port}/plex`,
+          token: "server-token",
+        },
+        new Headers({ "X-Plex-Client-Identifier": "contract-test" }),
+        controller.signal,
+      );
       assert.ok(body);
       const reader = body.getReader();
       const firstChunk = await reader.read();

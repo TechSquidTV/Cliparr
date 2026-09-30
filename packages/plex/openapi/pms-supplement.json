@@ -649,6 +649,79 @@
       },
       "rationale": "The metadata GUID consumed for export tagging.",
       "source": "https://github.com/pkkid/python-plexapi/blob/master/plexapi/video.py"
+    },
+    {
+      "path": [
+        "components",
+        "schemas",
+        "PlaySessionStateNotification"
+      ],
+      "expected": null,
+      "value": {
+        "type": "object",
+        "properties": {
+          "sessionKey": {
+            "type": [
+              "string",
+              "integer"
+            ]
+          },
+          "state": {
+            "type": "string"
+          },
+          "ratingKey": {
+            "type": [
+              "string",
+              "integer"
+            ]
+          },
+          "viewOffset": {
+            "type": "integer"
+          }
+        }
+      },
+      "rationale": "Generate the existing live-session decoder contract. SSE payload fields follow published playing-event examples; the wrapped NotificationContainer form follows python-plexapi. Synthetic decoder fixtures cover both forms in apps/server/src/providers/liveProviders.test.ts; they are not live recordings.",
+      "source": "https://www.plexopedia.com/plex-media-server/api/server/listen-events/"
+    },
+    {
+      "path": [
+        "components",
+        "schemas",
+        "PlexNotificationEnvelope"
+      ],
+      "expected": null,
+      "value": {
+        "type": "object",
+        "description": "JSON data carried by Plex playback notifications. The SSE transport remains a byte stream. Locally maintained from protocol examples, not an official Plex envelope schema.",
+        "properties": {
+          "PlaySessionStateNotification": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/PlaySessionStateNotification"
+              },
+              {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/PlaySessionStateNotification"
+                }
+              }
+            ]
+          },
+          "NotificationContainer": {
+            "type": "object",
+            "properties": {
+              "PlaySessionStateNotification": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/PlaySessionStateNotification"
+                }
+              }
+            }
+          }
+        }
+      },
+      "rationale": "Generate the existing live-session decoder contract. SSE payload fields follow published playing-event examples; the wrapped NotificationContainer form follows python-plexapi. Synthetic decoder fixtures cover both forms in apps/server/src/providers/liveProviders.test.ts; they are not live recordings.",
+      "source": "https://github.com/pushingkarmaorg/python-plexapi/blob/master/plexapi/alert.py"
     }
   ],
   "operations": [

@@ -1,3 +1,4 @@
+import { PLEX_CLIENT_IDENTIFIER, PLEX_PRODUCT } from "@/providers/plex/shared";
 import { createApiError, isApiError, type ApiError } from "@/http/errors";
 import {
   isRedirectStatus,
@@ -10,6 +11,7 @@ import { fetchWithPinnedDns } from "@/providers/shared/pinnedFetch";
 import { errorMessage, uniqueStrings } from "@/providers/shared/utilities";
 import {
   getIdentity,
+  eventsourceGetSlash,
   libraryMetadataGetSlash,
   statusGetSlash,
 } from "@cliparr/plex/pms";
@@ -132,11 +134,11 @@ async function reusableRequestBody(request: Request) {
   return request.clone().arrayBuffer();
 }
 
-async function closeRedirectResponse(response: Response) {
+async function discardPlexResponse(response: Response) {
   try {
     await response.body?.cancel();
   } catch {
-    // Redirect response bodies are discarded before the next request.
+    // A generated error response may already be consumed or locked.
   }
 }
 
@@ -227,7 +229,7 @@ async function fetchPlexPmsWithManualRedirects(
       nextUrl,
       requestUrl,
     );
-    await closeRedirectResponse(response);
+    await discardPlexResponse(response);
     requestUrl = nextUrl;
   }
 
@@ -333,23 +335,32 @@ export async function openPlexEventStream(
   headers: Headers,
   signal: AbortSignal,
 ) {
-  headers.set("X-Plex-Token", context.token);
-  headers.set("Accept", "text/event-stream");
-  const response = await fetchPlexPmsWithManualRedirects(
-    new URL(
-      `${context.baseUrl.replace(/\/$/, "")}/:/eventsource/notifications`,
+  const result = await eventsourceGetSlash({
+    client: createPlexPmsSdkClient(
+      context,
+      {
+        clientIdentifier: PLEX_CLIENT_IDENTIFIER,
+        product: PLEX_PRODUCT,
+        timeoutMs: 0,
+      },
+      signal,
     ),
-    { headers, signal },
-  );
+    headers: { ...Object.fromEntries(headers), Accept: "text/event-stream" },
+    parseAs: "stream",
+  });
+  const response = result.response;
+  if (!response) {
+    throw sdkRequestError(result.error);
+  }
   if (!response.ok) {
-    await response.body?.cancel();
+    await discardPlexResponse(response);
     throw createPlexPmsResponseApiError(response);
   }
   if (
     !response.body ||
     !response.headers.get("content-type")?.includes("text/event-stream")
   ) {
-    await response.body?.cancel();
+    await discardPlexResponse(response);
     throw new Error("Plex did not return an event stream");
   }
   return response.body;

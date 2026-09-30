@@ -25,7 +25,7 @@ void test("Plex audio selection reaches the frontend without inventing ordinals 
     "server",
     `
     import assert from 'node:assert/strict';
-    import { listCurrentlyPlaying } from './src/providers/plex/playback.ts';
+    import { listCurrentlyPlaying, createPlexPlaybackResolver } from './src/providers/plex/playback.ts';
     const baseUrl = 'http://plex.local:32400';
     const source = {
       id: 'source', providerId: 'plex', providerAccountId: 'account', name: 'Fixture', enabled: true, baseUrl,
@@ -49,9 +49,6 @@ void test("Plex audio selection reaches the frontend without inventing ordinals 
             Stream: scenario === 'live-only-stream' ? [english] : [english, { ...spanish, selected: false }],
           }],
         }] };
-        globalThis.fetch = async (input, init) => {
-          const request = new Request(input, init);
-          if (new URL(request.url).pathname === '/status/sessions') {
             const liveItem = structuredClone(live);
             if (scenario === 'no-rating-key') delete liveItem.ratingKey;
             if (scenario === 'unidentified-stream') {
@@ -59,6 +56,9 @@ void test("Plex audio selection reaches the frontend without inventing ordinals 
               delete stream.id;
               delete stream.index;
             }
+        globalThis.fetch = async (input, init) => {
+          const request = new Request(input, init);
+          if (new URL(request.url).pathname === '/status/sessions') {
             return Response.json({ MediaContainer: { Metadata: [liveItem] } });
           }
           assert.notEqual(scenario, 'no-rating-key');
@@ -71,13 +71,22 @@ void test("Plex audio selection reaches the frontend without inventing ordinals 
         assert.equal(audio.languageCode, 'spa', scenario);
         assert.equal(audio.trackNumber, scenario === 'complete-library' ? 2 : undefined, scenario);
         results.push({ scenario, item: entry.item });
+        const liveResult = createPlexPlaybackResolver(source, { sourceId: source.id, baseUrl, token: 'synthetic' })({ MediaContainer: { Metadata: [liveItem] } });
+        if (['lookup-failed', 'missing-item', 'no-rating-key'].includes(scenario)) {
+          await assert.rejects(liveResult(session), undefined, scenario);
+        } else {
+          const [liveEntry] = await liveResult(session);
+          assert.deepEqual(liveEntry.item.selectedAudioTrack, audio, scenario);
+          results.push({ scenario: 'live-' + scenario, item: liveEntry.item });
+        }
+
       }
     } finally { globalThis.fetch = originalFetch; }
     process.stdout.write(JSON.stringify(results));
   `,
   );
   const results = JSON.parse(payload);
-  assert.equal(results.length, 8);
+  assert.equal(results.length, 13);
 
   runPackageScript(
     "frontend",
