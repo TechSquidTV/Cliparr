@@ -7,7 +7,7 @@ import {
 import { normalizeExportVideoCodec } from "@cliparr/shared/providers";
 import type { MediaSource } from "@/db/mediaSourcesRepository";
 import { createApiError } from "@/http/errors";
-import { getServerLogger } from "@/logging";
+import { getServerLogger, warnWithError } from "@/logging";
 import type { ProviderSessionRecord } from "@/session/store";
 import type {
   CurrentlyPlayingEntry,
@@ -58,6 +58,7 @@ import {
 } from "@/providers/jellyfin/shared";
 
 const logger = getServerLogger(["provider", "jellyfin", "playback"]);
+const proxyLogger = getServerLogger(["media", "proxy"]);
 const HD_ARTWORK_SIZE = 1920;
 const HD_ARTWORK_QUALITY = 96;
 const PLAYBACK_INFO_CACHE_TTL_MS = 1000 * 60 * 15;
@@ -752,7 +753,7 @@ async function enrichMetadataItem(
       ...fullItem,
     };
   } catch (error) {
-    logger.warn("Could not fetch Jellyfin metadata.", {
+    warnWithError(logger, error, "Could not fetch Jellyfin metadata.", {
       ...logErrorFields(error),
       "metadata.item.id": itemId,
       "source.id": context.sourceId,
@@ -788,7 +789,7 @@ async function loadPlaybackInfo(
     }
     return playbackInfo;
   } catch (error) {
-    logger.warn("Could not fetch Jellyfin playback info.", {
+    warnWithError(logger, error, "Could not fetch Jellyfin playback info.", {
       ...logErrorFields(error),
       "metadata.item.id": itemId,
       "source.id": context.sourceId,
@@ -969,70 +970,26 @@ async function normalizeCurrentPlayback(
     !previewPath && normalizedString(enrichedItem?.MediaType) !== "audio";
   const unresolvedSelectedAudioTrack =
     !selectedAudioTrack && audioStreams.length > 1;
-  const playbackDiagnostics = {
-    sessionId: session.id,
-    sourceId: source.id,
-    providerAccountId: source.providerAccountId,
-    playSessionId: jellyfinPlaySessionId,
-    currentlyPlayingItem: {
-      id: playbackItemId,
-      title: itemTitle(enrichedItem),
-      type: itemType(enrichedItem).toLowerCase(),
-      duration,
-      playheadSeconds: playheadSeconds ?? null,
-      playerTitle,
-      playerState,
-      mediaUrl: mediaUrl ?? null,
-      hlsUrl: hlsUrl ?? null,
-      selectedAudioTrack: selectedAudioTrack ?? null,
-      exportEstimateMetadata: exportEstimateMetadata ?? null,
-    },
-    mediaSourceId: mediaSourceId ?? null,
-    videoStreamCount: videoStreams.length,
-    audioStreamCount: audioStreams.length,
-    videoStreams: videoStreams.map((stream, index) => ({
-      trackNumber: index + 1,
-      streamIndex: numberValue(stream?.Index) ?? null,
-      title:
-        stringValue(stream?.Title) ?? stringValue(stream?.DisplayTitle) ?? null,
-      codec: stringValue(stream?.Codec) ?? null,
-      width: numberValue(stream?.Width) ?? null,
-      height: numberValue(stream?.Height) ?? null,
-      isDefault: booleanValue(stream?.IsDefault) ?? null,
-    })),
-    hasMultipleAudioStreams: audioStreams.length > 1,
-    audioStreams: audioStreams.map((stream, index) => ({
-      trackNumber: index + 1,
-      streamIndex: numberValue(stream?.Index) ?? null,
-      languageCode: stringValue(stream?.Language) ?? null,
-      title: jellyfinAudioTrackTitle(stream) ?? null,
-      codec: stringValue(stream?.Codec) ?? null,
-      isDefault: booleanValue(stream?.IsDefault) ?? null,
-    })),
-    playStateAudioStreamIndex:
-      numberValue(sessionInfo?.PlayState?.AudioStreamIndex) ?? null,
-    defaultAudioStreamIndex:
-      numberValue(mediaSource?.DefaultAudioStreamIndex) ?? null,
-  };
-
-  logger.debug(
-    "Jellyfin playback diagnostics for currently playing item.",
-    playbackDiagnostics,
-  );
-
-  if (missingPreviewPath) {
-    logger.debug(
-      "Jellyfin playback item did not produce an HLS preview path.",
-      playbackDiagnostics,
-    );
-  }
-
-  if (unresolvedSelectedAudioTrack) {
-    logger.debug(
-      "Jellyfin playback item has multiple audio streams without a resolved selected audio track.",
-      playbackDiagnostics,
-    );
-  }
+  logger.trace("Resolved Jellyfin playback item.", {
+    ...logEventFields("provider.playback.resolve", "success"),
+    "provider.id": "jellyfin",
+    "session.id": session.id,
+    "source.id": source.id,
+    "provider.account.id": source.providerAccountId,
+    "jellyfin.play_session.id": jellyfinPlaySessionId,
+    "media.item.id": playbackItemId,
+    "media.source.id": mediaSourceId,
+    "media.video_stream.count": videoStreams.length,
+    "media.audio_stream.count": audioStreams.length,
+    "media.preview.missing": missingPreviewPath,
+    "media.audio_selection.unresolved": unresolvedSelectedAudioTrack,
+    "media.audio_stream.index": numberValue(
+      sessionInfo?.PlayState?.AudioStreamIndex,
+    ),
+    "media.audio_stream.default_index": numberValue(
+      mediaSource?.DefaultAudioStreamIndex,
+    ),
+  });
 
   return {
     viewer: playbackViewer(
@@ -1132,7 +1089,7 @@ export async function proxyMedia(
 
   const upstreamUrl = mediaHandleRequestUrl(handle).toString();
 
-  logger.trace("Fetching Jellyfin media.", {
+  proxyLogger.trace("Fetching Jellyfin media.", {
     "media.handle.id": handle.id,
     "session.id": session.id,
     "source.id": handle.sourceId,
@@ -1170,7 +1127,7 @@ export async function proxyMedia(
 
         return upstream;
       } catch (error) {
-        logger.warn("Jellyfin media request failed.", {
+        warnWithError(proxyLogger, error, "Jellyfin media request failed.", {
           ...logEventFields("media.proxy.upstream", "failure"),
           ...logErrorFields(error),
           "media.handle.id": handle.id,

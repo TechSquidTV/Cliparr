@@ -136,7 +136,7 @@ providersRouter.post(
         ),
       );
     } catch (error) {
-      logger.warn("Provider auth start failed.", {
+      warnWithError(logger, error, "Provider auth start failed.", {
         ...logEventFields("provider.auth.start", "failure"),
         ...logDurationFields(startedAt),
         ...logErrorFields(error),

@@ -9,11 +9,13 @@ COPY .npmrc package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY apps/frontend/package.json apps/frontend/package.json
 COPY apps/server/package.json apps/server/package.json
 COPY packages/shared/package.json packages/shared/package.json
+COPY packages/plex/package.json packages/plex/package.json
 COPY tools/www-assets/package.json tools/www-assets/package.json
 RUN pnpm install --frozen-lockfile
 RUN pnpm --filter @cliparr/www-assets exec playwright install --with-deps chromium
 COPY config config
 COPY packages/shared packages/shared
+COPY packages/plex packages/plex
 COPY apps/frontend apps/frontend
 COPY apps/server apps/server
 COPY tools/www-assets tools/www-assets

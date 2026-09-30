@@ -292,14 +292,19 @@ mediaRouter.get(
 
           return upstream;
         } catch (error) {
-          localUrlLogger.warn("Local URL media request failed.", {
-            ...logEventFields("media.local_url.fetch", "failure"),
-            "media.handle.id": handle.id,
-            "upstream.url": sanitizeLoggedMediaPath(upstreamUrl),
-            "media.range.present": Boolean(range),
-            accept,
-            "error.message": errorMessage(error),
-          });
+          warnWithError(
+            localUrlLogger,
+            error,
+            "Local URL media request failed.",
+            {
+              ...logEventFields("media.local_url.fetch", "failure"),
+              "media.handle.id": handle.id,
+              "upstream.url": sanitizeLoggedMediaPath(upstreamUrl),
+              "media.range.present": Boolean(range),
+              "http.accept": accept,
+              ...logErrorFields(error),
+            },
+          );
 
           if (isApiError(error)) {
             throw error;

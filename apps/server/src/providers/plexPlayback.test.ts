@@ -1,25 +1,37 @@
-import assert from "node:assert/strict";
-import test from "node:test";
-import { once } from "node:events";
-import { PassThrough } from "node:stream";
+import type { MediaSource } from "@/db/mediaSourcesRepository";
+import { proxyMedia } from "@/providers/plex/mediaProxy";
+import {
+  createPlexViewerAvatarUrl,
+  listCurrentlyPlaying,
+} from "@/providers/plex/playback";
+import {
+  createCliparrPlexTranscodeSessionId,
+  createPlexExportEstimateMetadata,
+  createPreviewPath,
+  deriveMediaSelection,
+  deriveSelectedAudioTrack,
+  mergePlaybackMetadata,
+  resolveSelectedPart,
+  playheadSecondsFromViewOffset,
+} from "@/providers/plex/selection";
+import type { PlexSourceContext } from "@/providers/plex/shared";
+import { createExportMetadata } from "@/providers/plex/metadata";
+import { createMediaHandle } from "@/providers/plex/mediaHandles";
+import { mediaHandleRequestUrl } from "@/providers/shared/mediaProxy";
+import type { PlexMetadataItem } from "@/providers/plex/selection";
+import {
+  deriveSelectedSubtitleTrack,
+  deriveSubtitleTracks,
+} from "@/providers/plex/subtitles";
+import type { ProviderSessionRecord } from "@/session/store";
 import type {
   Request as ExpressRequest,
   Response as ExpressResponse,
 } from "express";
-import type { MediaSource } from "@/db/mediaSourcesRepository";
-import type { ProviderSessionRecord } from "@/session/store";
-import {
-  createPlexExportEstimateMetadata,
-  createCliparrPlexTranscodeSessionId,
-  createPlexViewerAvatarUrl,
-  createPreviewPath,
-  deriveSelectedSubtitleTrack,
-  deriveSubtitleTracks,
-  listCurrentlyPlaying,
-  playheadSecondsFromViewOffset,
-  proxyMedia,
-} from "@/providers/plex/playback";
-import type { PlexSourceContext } from "@/providers/plex/shared";
+import assert from "node:assert/strict";
+import { once } from "node:events";
+import { PassThrough } from "node:stream";
+import test from "node:test";
 
 function createSession(): ProviderSessionRecord {
   return {
@@ -162,11 +174,11 @@ void test("uses a stable Plex transcode session id for repeated playback polls",
     Media: [
       {
         id: "media-1",
-        selected: 1,
+        selected: true,
         Part: [
           {
             id: "part-1",
-            selected: 1,
+            selected: true,
           },
         ],
       },
@@ -224,19 +236,19 @@ void test("isolates Plex subtitle extraction from the viewer and HLS preview ses
     Media: [
       {
         id: "19134",
-        selected: 1,
+        selected: true,
         Part: [
           {
             id: "28744",
-            selected: 1,
+            selected: true,
             Stream: [
               {
                 id: "101151",
-                index: "3",
-                streamType: "3",
+                index: 3,
+                streamType: 3,
                 codec: "srt",
                 languageCode: "eng",
-                selected: "1",
+                selected: true,
                 title: "English SDH",
               },
             ],
@@ -297,11 +309,11 @@ void test("sends the real Plex playback session header for synthetic HLS preview
     Media: [
       {
         id: "19134",
-        selected: 1,
+        selected: true,
         Part: [
           {
             id: "28744",
-            selected: 1,
+            selected: true,
           },
         ],
       },
@@ -406,11 +418,11 @@ void test("builds Plex HLS preview and embedded SRT extraction with independent 
     Media: [
       {
         id: "19134",
-        selected: 1,
+        selected: true,
         Part: [
           {
             id: "28744",
-            selected: 1,
+            selected: true,
             Stream: [
               {
                 id: "101149",
@@ -418,22 +430,22 @@ void test("builds Plex HLS preview and embedded SRT extraction with independent 
                 codec: "h264",
                 width: 1920,
                 height: 1080,
-                selected: 1,
+                selected: true,
               },
               {
                 id: "101150",
                 streamType: 2,
                 codec: "aac",
                 languageCode: "eng",
-                selected: 1,
+                selected: true,
               },
               {
                 id: "101151",
-                index: "3",
-                streamType: "3",
+                index: 3,
+                streamType: 3,
                 codec: "srt",
                 languageCode: "eng",
-                selected: "1",
+                selected: true,
                 title: "English SDH",
               },
             ],
@@ -529,12 +541,11 @@ void test("does not create Plex HLS preview paths for audio tracks", () => {
 
 void test("converts Plex viewOffset milliseconds into playhead seconds", () => {
   assert.equal(playheadSecondsFromViewOffset(123_456), 123.456);
-  assert.equal(playheadSecondsFromViewOffset("123456"), 123.456);
   assert.equal(playheadSecondsFromViewOffset(0), 0);
   assert.equal(playheadSecondsFromViewOffset(-1), undefined);
-  assert.equal(playheadSecondsFromViewOffset(null), undefined);
+  assert.equal(playheadSecondsFromViewOffset(undefined), undefined);
   assert.equal(playheadSecondsFromViewOffset(), undefined);
-  assert.equal(playheadSecondsFromViewOffset("nope"), undefined);
+  assert.equal(playheadSecondsFromViewOffset(Number.NaN), undefined);
 });
 
 void test("extracts Plex export size estimate metadata from selected media", () => {
@@ -546,11 +557,11 @@ void test("extracts Plex export size estimate metadata from selected media", () 
         bitrate: 1600,
         width: 1920,
         height: 1080,
-        selected: 1,
+        selected: true,
         Part: [
           {
             id: "part-1",
-            selected: 1,
+            selected: true,
             size: 120_000_000,
             duration: 600_000,
             Stream: [
@@ -562,13 +573,13 @@ void test("extracts Plex export size estimate metadata from selected media", () 
                 height: 1080,
                 bitrate: 1400,
                 frameRate: 23.976,
-                selected: 1,
+                selected: true,
               },
               {
                 id: "audio-1",
                 streamType: 2,
                 bitrate: 160,
-                selected: 1,
+                selected: true,
               },
             ],
           },
@@ -598,11 +609,11 @@ void test("creates a direct content URL for Plex sidecar text subtitle streams",
     Media: [
       {
         id: "media-1",
-        selected: 1,
+        selected: true,
         Part: [
           {
             id: "part-1",
-            selected: 1,
+            selected: true,
             Stream: [
               {
                 id: "101",
@@ -626,7 +637,10 @@ void test("creates a direct content URL for Plex sidecar text subtitle streams",
     `/api/media/${onlyMediaHandle(session).id}`,
   );
   assert.equal(tracks[0]?.contentFormat, "srt");
-  assert.equal(onlyMediaHandle(session).path, "/library/streams/101.srt");
+  assert.equal(
+    mediaHandleRequestUrl(onlyMediaHandle(session)).pathname,
+    "/library/streams/101.srt",
+  );
 });
 
 void test("proxies Plex viewer avatar URLs through provider media handles", () => {
@@ -655,11 +669,11 @@ void test("creates a subtitle transcode content URL for the selected embedded Pl
     Media: [
       {
         id: "media-1",
-        selected: 1,
+        selected: true,
         Part: [
           {
             id: "part-1",
-            selected: 1,
+            selected: true,
             Stream: [
               {
                 id: "201",
@@ -684,7 +698,7 @@ void test("creates a subtitle transcode content URL for the selected embedded Pl
   assert.equal(tracks[0]?.contentUrl, `/api/media/${handle.id}`);
   assert.equal(tracks[0]?.contentFormat, "srt");
   assert.equal(
-    handle.path.startsWith("/subtitles/:/transcode/universal/start?"),
+    transcodeUrl.pathname === "/subtitles/:/transcode/universal/start",
     true,
   );
   assert.equal(
@@ -715,11 +729,11 @@ void test("prefers direct raw SRT for the selected external Plex text subtitle",
     Media: [
       {
         id: "media-1",
-        selected: 1,
+        selected: true,
         Part: [
           {
             id: "part-1",
-            selected: 1,
+            selected: true,
             Stream: [
               {
                 id: "202",
@@ -744,7 +758,10 @@ void test("prefers direct raw SRT for the selected external Plex text subtitle",
   assert.equal(tracks[0]?.isExternal, true);
   assert.equal(tracks[0]?.contentUrl, `/api/media/${handle.id}`);
   assert.equal(tracks[0]?.contentFormat, "srt");
-  assert.equal(handle.path, "/library/streams/202.srt");
+  assert.equal(
+    mediaHandleRequestUrl(handle).pathname,
+    "/library/streams/202.srt",
+  );
 });
 
 void test("reports selected external Plex SRT content format consistently", () => {
@@ -753,11 +770,11 @@ void test("reports selected external Plex SRT content format consistently", () =
     Media: [
       {
         id: "media-1",
-        selected: 1,
+        selected: true,
         Part: [
           {
             id: "part-1",
-            selected: 1,
+            selected: true,
             Stream: [
               {
                 id: "203",
@@ -786,11 +803,11 @@ void test("reports selected embedded Plex text subtitle transcode format", () =>
     Media: [
       {
         id: "media-1",
-        selected: 1,
+        selected: true,
         Part: [
           {
             id: "part-1",
-            selected: 1,
+            selected: true,
             Stream: [
               {
                 id: "204",
@@ -820,11 +837,11 @@ void test("leaves unselected embedded Plex text subtitles visible but unsupporte
     Media: [
       {
         id: "media-1",
-        selected: 1,
+        selected: true,
         Part: [
           {
             id: "part-1",
-            selected: 1,
+            selected: true,
             Stream: [
               {
                 id: "301",
@@ -856,11 +873,11 @@ void test("leaves Plex image subtitle streams unsupported for burn-in", () => {
     Media: [
       {
         id: "media-1",
-        selected: 1,
+        selected: true,
         Part: [
           {
             id: "part-1",
-            selected: 1,
+            selected: true,
             Stream: [
               {
                 id: "401",
@@ -1233,6 +1250,1047 @@ void test("rejects failed or malformed Plex decisions before starting subtitle e
         );
         assert.equal(requests, 1);
         assert.equal(response.listenerCount("close"), initialCloseListeners);
+      },
+    );
+  }
+});
+
+void test("requires returned part keys and performs metadata enrichment only once", async () => {
+  const session = createSession();
+  const metadata = {
+    ratingKey: "42",
+    type: "movie",
+    title: "Synthetic",
+    Media: [{ id: 1, Part: [{ id: 2, file: "/media/example.mkv" }] }],
+  };
+  let metadataRequests = 0;
+  await withMockFetch(
+    (request) => {
+      const url = new URL(request.url);
+      if (url.pathname === "/library/metadata/42") {
+        metadataRequests += 1;
+      } else {
+        assert.equal(url.pathname, "/status/sessions");
+      }
+      return jsonResponse({ MediaContainer: { Metadata: [metadata] } });
+    },
+    async () => {
+      const entries = await listCurrentlyPlaying(session, createSource());
+      assert.equal(entries[0]?.item.mediaUrl, undefined);
+      assert.ok(entries[0]?.item.hlsUrl);
+      assert.equal(metadataRequests, 1);
+    },
+  );
+});
+
+void test("export artwork scopes nested credentials to the Plex origin", () => {
+  const context = createContext();
+  for (const thumb of [
+    "/library/metadata/42/thumb?width=100",
+    `${context.baseUrl}/library/metadata/42/thumb?X-Plex-Token=stale`,
+    "https://artwork.example/poster.jpg?signed=123",
+    "//artwork.example/poster.jpg?signed=123",
+  ]) {
+    const session = createSession();
+    const metadata = createExportMetadata(session, context, { thumb });
+    const handle = mediaHandleForUrl(session, metadata.imageUrl);
+    const requestUrl = new URL(handle.path, context.baseUrl);
+    const image = requestUrl.searchParams.get("url");
+    assert.ok(image);
+    const parsed = new URL(image, context.baseUrl);
+    if (parsed.origin === context.baseUrl) {
+      assert.deepEqual(parsed.searchParams.getAll("X-Plex-Token"), [
+        context.token,
+      ]);
+    } else {
+      assert.equal(image, thumb);
+      assert.equal(parsed.searchParams.has("X-Plex-Token"), false);
+    }
+  }
+});
+
+void test("batch enrichment preserves each viewer's audio and subtitle selection", async () => {
+  const session = createSession();
+  const source = createSource();
+  const currentItem = (
+    sessionKey: string,
+    spanish: boolean,
+  ): PlexMetadataItem => ({
+    ratingKey: "42",
+    sessionKey,
+    type: "movie",
+    Media: [
+      {
+        id: 1,
+        selected: true,
+        Part: [
+          {
+            id: 2,
+            selected: true,
+            Stream: [
+              {
+                id: 10,
+                streamType: 2,
+                languageCode: "eng",
+                selected: !spanish,
+              },
+              { id: 11, streamType: 2, languageCode: "spa", selected: spanish },
+              { id: 20, streamType: 3, codec: "srt", selected: spanish },
+            ],
+          },
+        ],
+      },
+    ],
+  });
+  const library: PlexMetadataItem = {
+    ratingKey: "42",
+    title: "Enriched title",
+    type: "movie",
+    Media: [
+      {
+        id: 1,
+        Part: [
+          {
+            id: 2,
+            key: "/returned/movie.mp4",
+            Stream: [
+              { id: 11, streamType: 2, languageCode: "spa", selected: false },
+              { id: 10, streamType: 2, languageCode: "eng", selected: true },
+              { id: 20, streamType: 3, codec: "srt", selected: true },
+            ],
+          },
+        ],
+      },
+    ],
+  };
+  let metadataRequests = 0;
+  await withMockFetch(
+    (request) => {
+      const url = new URL(request.url);
+      if (url.pathname === "/status/sessions") {
+        return jsonResponse({
+          MediaContainer: {
+            Metadata: [
+              currentItem("spanish", true),
+              currentItem("english", false),
+              { ratingKey: "99", sessionKey: "other", type: "track" },
+              { sessionKey: "missing-id", title: "Live only", type: "track" },
+            ],
+          },
+        });
+      }
+      metadataRequests += 1;
+      assert.equal(decodeURIComponent(url.pathname), "/library/metadata/42,99");
+      return jsonResponse({
+        MediaContainer: {
+          Metadata: [
+            { ratingKey: "99", title: "Other title", type: "track" },
+            { title: "Unmatched response" },
+            library,
+          ],
+        },
+      });
+    },
+    async () => {
+      const entries = await listCurrentlyPlaying(session, source);
+      assert.equal(metadataRequests, 1);
+      assert.deepEqual(
+        entries.map((entry) => entry.item.title),
+        ["Enriched title", "Enriched title", "Other title", "Live only"],
+      );
+      assert.equal(entries[0]?.item.selectedAudioTrack?.languageCode, "spa");
+      assert.equal(entries[0]?.item.selectedAudioTrack?.trackNumber, 1);
+      assert.equal(entries[0]?.item.selectedSubtitleTrack?.streamId, "20");
+      assert.equal(entries[1]?.item.selectedAudioTrack?.languageCode, "eng");
+      assert.equal(entries[1]?.item.selectedAudioTrack?.trackNumber, 2);
+      assert.equal(entries[1]?.item.selectedSubtitleTrack, undefined);
+      assert.equal(entries[1]?.item.subtitleTracks?.length, 0);
+      assert.equal(library.Media?.[0]?.Part?.[0]?.Stream?.[0]?.selected, false);
+    },
+  );
+});
+
+void test("returned raw subtitles are offered only with a supported content format", () => {
+  for (const codec of ["srt", "vtt", "ass", "ttml"]) {
+    const session = createSession();
+    const path = `https://subtitles.example/captions.${codec}?signed=123`;
+    const item = {
+      ratingKey: "42",
+      Media: [
+        {
+          Part: [
+            {
+              Stream: [
+                { id: 20, streamType: 3, codec, key: path, selected: true },
+              ],
+            },
+          ],
+        },
+      ],
+    };
+    const [track] = deriveSubtitleTracks(
+      session,
+      createContext(),
+      item,
+      "viewer",
+    );
+    const selected = deriveSelectedSubtitleTrack(item);
+    if (codec === "srt" || codec === "vtt") {
+      assert.equal(track?.contentFormat, codec);
+      assert.equal(selected?.contentFormat, codec);
+      assert.equal(mediaHandleForUrl(session, track?.contentUrl).path, path);
+    } else {
+      assert.equal(track?.contentFormat, undefined);
+      assert.equal(selected?.contentFormat, undefined);
+      assert.equal(track?.contentUrl, undefined);
+      assert.equal(session.mediaHandles.size, 0);
+    }
+  }
+});
+
+void test("recognized local ASS streams request generated VTT conversion", () => {
+  const session = createSession();
+  const item = {
+    Media: [
+      {
+        Part: [
+          {
+            Stream: [
+              {
+                id: 20,
+                streamType: 3,
+                codec: "ass",
+                key: "/library/streams/20",
+                selected: true,
+              },
+            ],
+          },
+        ],
+      },
+    ],
+  };
+  const [track] = deriveSubtitleTracks(
+    session,
+    createContext(),
+    item,
+    "viewer",
+  );
+  assert.equal(track?.contentFormat, "vtt");
+  assert.equal(
+    mediaHandleForUrl(session, track?.contentUrl).path,
+    `${createContext().baseUrl}/library/streams/20.ass?format=vtt`,
+  );
+});
+
+void test("enrichment preserves live resource fields and selection while adding descriptions", () => {
+  const live: PlexMetadataItem = {
+    ratingKey: "42",
+    Media: [
+      {
+        id: 1,
+        Part: [
+          {
+            id: 2,
+            key: "/returned/live.mp4",
+            Stream: [
+              {
+                id: 3,
+                streamType: 3,
+                codec: "srt",
+                key: "https://subtitles.example/live.srt",
+                selected: false,
+              },
+            ],
+          },
+        ],
+      },
+    ],
+  };
+  const library: PlexMetadataItem = {
+    ratingKey: "42",
+    Media: [
+      {
+        id: 1,
+        Part: [
+          {
+            id: 2,
+            Stream: [
+              {
+                id: 3,
+                streamType: 3,
+                languageCode: "eng",
+                title: "English",
+                selected: true,
+              },
+            ],
+          },
+        ],
+      },
+    ],
+  };
+  const merged = mergePlaybackMetadata(live, library);
+  const selection = deriveMediaSelection(live);
+  assert.equal(
+    resolveSelectedPart(merged, selection)?.part?.key,
+    "/returned/live.mp4",
+  );
+  assert.equal(deriveSelectedSubtitleTrack(merged, selection), undefined);
+  const session = createSession();
+  const [track] = deriveSubtitleTracks(
+    session,
+    createContext(),
+    merged,
+    "viewer",
+    selection,
+  );
+  assert.equal(track?.title, "English");
+  assert.equal(track?.languageCode, "eng");
+  assert.equal(track?.codec, "srt");
+  assert.equal(
+    mediaHandleForUrl(session, track?.contentUrl).path,
+    "https://subtitles.example/live.srt",
+  );
+});
+
+void test("enrichment uses position only when media or part identity is missing", () => {
+  for (const missingFrom of ["live", "library"] as const) {
+    const live: PlexMetadataItem = {
+      ratingKey: "42",
+      Media: [
+        {
+          id: missingFrom === "live" ? undefined : 1,
+          Part: [
+            {
+              id: missingFrom === "live" ? undefined : 2,
+              Stream: [
+                { id: 10, streamType: 2, languageCode: "eng", selected: false },
+                { id: 11, streamType: 2, languageCode: "spa", selected: true },
+              ],
+            },
+          ],
+        },
+      ],
+    };
+    const library: PlexMetadataItem = {
+      ratingKey: "42",
+      Media: [
+        {
+          id: missingFrom === "library" ? undefined : 1,
+          Part: [
+            {
+              id: missingFrom === "library" ? undefined : 2,
+              Stream: [
+                { id: 10, streamType: 2, languageCode: "eng", selected: true },
+                { id: 11, streamType: 2, languageCode: "spa", selected: false },
+              ],
+            },
+          ],
+        },
+      ],
+    };
+    const merged = mergePlaybackMetadata(live, library);
+    const selection = deriveMediaSelection(live);
+    assert.equal(
+      deriveSelectedAudioTrack(merged, selection)?.languageCode,
+      "spa",
+    );
+    assert.ok(createPreviewPath(merged, "preview", selection));
+  }
+});
+
+void test("explicit identity conflicts and invalid positions never select another Plex version", () => {
+  const item: PlexMetadataItem = {
+    ratingKey: "42",
+    Media: [
+      {
+        id: 1,
+        Part: [
+          {
+            id: 2,
+            Stream: [{ id: 3, streamType: 3, codec: "srt", selected: true }],
+          },
+        ],
+      },
+    ],
+  };
+  for (const selection of [
+    { mediaId: "99", mediaIndex: 0 },
+    { mediaId: "1", mediaIndex: 0, partId: "99", partIndex: 0 },
+    { mediaIndex: 4 },
+    { mediaIndex: 0, partIndex: 4 },
+  ]) {
+    assert.equal(resolveSelectedPart(item, selection), undefined);
+    assert.equal(createPreviewPath(item, "preview", selection), undefined);
+    assert.deepEqual(
+      deriveSubtitleTracks(
+        createSession(),
+        createContext(),
+        item,
+        "viewer",
+        selection,
+      ),
+      [],
+    );
+  }
+  assert.equal(
+    createPreviewPath({ ...item, Media: [] }, "preview", {
+      mediaId: "1",
+      mediaIndex: 0,
+    }),
+    undefined,
+  );
+  assert.equal(
+    resolveSelectedPart({ Media: [{ id: 1 }] }, { mediaId: "1", partId: "2" }),
+    undefined,
+  );
+});
+
+void test("enrichment follows matching media and part IDs after library reordering", () => {
+  const live: PlexMetadataItem = {
+    ratingKey: "42",
+    Media: [
+      {
+        id: 20,
+        Part: [
+          {
+            id: 21,
+            key: "/returned/live.mp4",
+            Stream: [{ id: 3, streamType: 3, codec: "srt", selected: true }],
+          },
+        ],
+      },
+    ],
+  };
+  const library: PlexMetadataItem = {
+    ratingKey: "42",
+    Media: [
+      { id: 10, Part: [{ id: 11 }] },
+      { id: 20, Part: [{ id: 22 }, { id: 21 }] },
+    ],
+  };
+  const merged = mergePlaybackMetadata(live, library);
+  const selection = deriveMediaSelection(live);
+  const preview = createPreviewPath(merged, "preview", selection);
+  assert.ok(preview);
+  const url = new URL(preview, createContext().baseUrl);
+  assert.equal(url.searchParams.get("mediaIndex"), "1");
+  assert.equal(url.searchParams.get("partIndex"), "1");
+  assert.equal(
+    resolveSelectedPart(merged, selection)?.part?.key,
+    "/returned/live.mp4",
+  );
+  assert.equal(deriveSelectedSubtitleTrack(merged, selection)?.streamId, "3");
+});
+
+void test("missing library versions preserve direct-file audio selection but omit unresolved previews", async () => {
+  for (const conflict of ["media", "part"] as const) {
+    const session = createSession();
+    const live: PlexMetadataItem = {
+      ratingKey: "42",
+      type: "movie",
+      Media: [
+        {
+          id: 20,
+          Part: [
+            {
+              id: 21,
+              key: "/returned/live.mp4",
+              Stream: [
+                { id: 30, streamType: 2, languageCode: "eng", selected: false },
+                { id: 31, streamType: 2, languageCode: "spa", selected: true },
+              ],
+            },
+          ],
+        },
+      ],
+    };
+    const library: PlexMetadataItem = {
+      ratingKey: "42",
+      type: "movie",
+      Media: [
+        {
+          id: conflict === "media" ? 10 : 20,
+          Part: [{ id: 11, key: "/returned/other.mp4" }],
+        },
+      ],
+    };
+    await withMockFetch(
+      (request) =>
+        jsonResponse({
+          MediaContainer: {
+            Metadata: [
+              new URL(request.url).pathname === "/status/sessions"
+                ? live
+                : library,
+            ],
+          },
+        }),
+      async () => {
+        const [entry] = await listCurrentlyPlaying(session, createSource());
+        assert.equal(
+          mediaHandleForUrl(session, entry?.item.mediaUrl).path,
+          "/returned/live.mp4",
+        );
+        assert.equal(entry?.item.hlsUrl, undefined);
+        assert.equal(entry?.item.selectedAudioTrack?.trackNumber, undefined);
+        assert.equal(entry?.item.selectedAudioTrack?.languageCode, "spa");
+      },
+    );
+  }
+});
+
+void test("generated Plex media operations preserve API base paths without rewriting resource links", async () => {
+  for (const prefix of ["/plex", "/media/plex/"]) {
+    const session = createSession();
+    const context = {
+      ...createContext(),
+      baseUrl: `${createContext().baseUrl}${prefix}`,
+    };
+    const normalizedPrefix = prefix.replace(/\/$/, "");
+    const item = {
+      ...embeddedSubtitleItem(),
+      thumb: "/library/metadata/12345/thumb",
+    };
+    await withMockFetch(
+      (request) => {
+        const url = new URL(request.url);
+        assert.ok(
+          [
+            `${normalizedPrefix}/status/sessions`,
+            `${normalizedPrefix}/library/metadata/12345`,
+          ].includes(url.pathname),
+        );
+        return jsonResponse({ MediaContainer: { Metadata: [item] } });
+      },
+      async () => {
+        const [entry] = await listCurrentlyPlaying(session, {
+          ...createSource(),
+          baseUrl: context.baseUrl,
+        });
+        const preview = mediaHandleRequestUrl(
+          mediaHandleForUrl(session, entry?.item.hlsUrl),
+        );
+        assert.equal(
+          preview.pathname,
+          `${normalizedPrefix}/video/:/transcode/universal/start.m3u8`,
+        );
+        assert.equal(
+          preview.searchParams.get("path"),
+          "/library/metadata/12345",
+        );
+        const artwork = mediaHandleRequestUrl(
+          mediaHandleForUrl(session, entry?.item.exportMetadata?.imageUrl),
+        );
+        assert.equal(artwork.pathname, `${normalizedPrefix}/photo/:/transcode`);
+        assert.ok(
+          artwork.searchParams
+            .get("url")
+            ?.startsWith("/library/metadata/12345/thumb?"),
+        );
+      },
+    );
+
+    const [track] = deriveSubtitleTracks(session, context, item, "viewer");
+    const handle = mediaHandleForUrl(session, track?.contentUrl);
+    const requests: string[] = [];
+    await withMockFetch(
+      (request) => {
+        const url = new URL(request.url);
+        requests.push(url.pathname);
+        assert.equal(request.headers.get("x-plex-token"), context.token);
+        assert.equal(url.searchParams.get("path"), "/library/metadata/12345");
+        if (url.pathname.endsWith("/decision")) {
+          return jsonResponse({ MediaContainer: { Metadata: [item] } });
+        }
+        return new globalThis.Response("Subtitle text");
+      },
+      async () => {
+        const response = createResponseRecorder();
+        await proxyMedia(
+          session,
+          handle.id,
+          createRequest() as ExpressRequest,
+          response,
+        );
+        assert.equal(response.getBody(), "Subtitle text");
+      },
+    );
+    assert.deepEqual(requests, [
+      `${normalizedPrefix}/video/:/transcode/universal/decision`,
+      `${normalizedPrefix}/subtitles/:/transcode/universal/start`,
+    ]);
+
+    const sidecar = {
+      Media: [
+        {
+          Part: [
+            {
+              Stream: [
+                {
+                  id: 3,
+                  streamType: 3,
+                  codec: "ass",
+                  key: "/library/streams/3",
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    };
+    const [sidecarTrack] = deriveSubtitleTracks(
+      session,
+      context,
+      sidecar,
+      "viewer",
+    );
+    const sidecarUrl = mediaHandleRequestUrl(
+      mediaHandleForUrl(session, sidecarTrack?.contentUrl),
+    );
+    assert.equal(
+      sidecarUrl.pathname,
+      `${normalizedPrefix}/library/streams/3.ass`,
+    );
+    assert.equal(sidecarUrl.searchParams.get("format"), "vtt");
+
+    for (const resource of [
+      "/returned/movie.mp4",
+      `${normalizedPrefix}/already-prefixed.mp4`,
+      "https://external.example/movie.mp4?signature=123",
+      "//external.example/subtitle.srt",
+    ]) {
+      const resourceHandle = mediaHandleForUrl(
+        session,
+        createMediaHandle(session, context, resource),
+      );
+      assert.equal(resourceHandle.path, resource);
+      assert.equal(
+        mediaHandleRequestUrl(resourceHandle).href,
+        new URL(resource, context.baseUrl).href,
+      );
+    }
+  }
+});
+
+void test("partial library streams retain live-only fields and ID-less resources", () => {
+  const live: PlexMetadataItem = {
+    ratingKey: "42",
+    Media: [
+      {
+        id: 1,
+        Part: [
+          {
+            id: 2,
+            Stream: [
+              {
+                id: 3,
+                streamType: 3,
+                codec: "srt",
+                key: "/returned/english.srt",
+                selected: false,
+              },
+              {
+                streamType: 3,
+                codec: "vtt",
+                key: "/returned/spanish.vtt",
+                selected: true,
+              },
+            ],
+          },
+        ],
+      },
+    ],
+  };
+  for (const streams of [undefined, [{ id: 3, title: "English" }]]) {
+    const merged = mergePlaybackMetadata(live, {
+      Media: [{ id: 1, Part: [{ id: 2, Stream: streams }] }],
+    });
+    const session = createSession();
+    const tracks = deriveSubtitleTracks(
+      session,
+      createContext(),
+      merged,
+      "viewer",
+    );
+    assert.deepEqual(
+      tracks.map((track) => mediaHandleForUrl(session, track.contentUrl).path),
+      ["/returned/english.srt", "/returned/spanish.vtt"],
+    );
+    assert.equal(deriveSelectedSubtitleTrack(merged)?.codec, "vtt");
+  }
+});
+
+void test("partial live stream lists match source locators before array position", () => {
+  for (const locator of ["index", "streamIdentifier"] as const) {
+    for (const idless of ["live", "library"] as const) {
+      const live: PlexMetadataItem = {
+        Media: [
+          {
+            id: 1,
+            Part: [
+              {
+                id: 2,
+                Stream: [
+                  {
+                    id: idless === "live" ? undefined : 11,
+                    streamType: 2,
+                    [locator]: 2,
+                    languageCode: "spa",
+                    selected: true,
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      };
+      const library: PlexMetadataItem = {
+        Media: [
+          {
+            id: 1,
+            Part: [
+              {
+                id: 2,
+                Stream: [
+                  {
+                    id: idless === "library" ? undefined : 10,
+                    streamType: 2,
+                    [locator]: 1,
+                    languageCode: "eng",
+                    selected: true,
+                  },
+                  {
+                    id: idless === "library" ? undefined : 11,
+                    streamType: 2,
+                    [locator]: 2,
+                    languageCode: "spa",
+                    selected: false,
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      };
+      const merged = mergePlaybackMetadata(live, library);
+      assert.equal(resolveSelectedPart(merged)?.part?.Stream?.length, 2);
+      assert.equal(deriveSelectedAudioTrack(merged)?.languageCode, "spa");
+      assert.equal(
+        deriveSelectedAudioTrack(merged, undefined, library)?.trackNumber,
+        2,
+      );
+    }
+  }
+});
+
+void test("subtitle enrichment never attaches a live resource to a contradictory source locator", () => {
+  for (const locator of ["index", "streamIdentifier"] as const) {
+    const live: PlexMetadataItem = {
+      Media: [
+        {
+          Part: [
+            {
+              Stream: [
+                {
+                  streamType: 3,
+                  [locator]: 2,
+                  codec: "srt",
+                  key: "/returned/spanish.srt",
+                  selected: true,
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    };
+    const library: PlexMetadataItem = {
+      Media: [
+        {
+          Part: [
+            {
+              Stream: [
+                {
+                  id: 10,
+                  streamType: 3,
+                  [locator]: 1,
+                  codec: "srt",
+                  languageCode: "eng",
+                  key: "/returned/english.srt",
+                },
+                {
+                  id: 11,
+                  streamType: 3,
+                  [locator]: 2,
+                  codec: "srt",
+                  languageCode: "spa",
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    };
+    const merged = mergePlaybackMetadata(live, library);
+    assert.equal(deriveSelectedSubtitleTrack(merged)?.streamId, "11");
+    const session = createSession();
+    const tracks = deriveSubtitleTracks(
+      session,
+      createContext(),
+      merged,
+      "viewer",
+    );
+    assert.deepEqual(
+      tracks.map((track) => ({
+        language: track.languageCode,
+        path: mediaHandleForUrl(session, track.contentUrl).path,
+      })),
+      [
+        { language: "eng", path: "/returned/english.srt" },
+        { language: "spa", path: "/returned/spanish.srt" },
+      ],
+    );
+  }
+});
+
+void test("stream locators cannot override conflicting IDs or stream types", () => {
+  for (const other of [
+    { id: 12, index: 2, streamType: 2 },
+    { index: 2, streamType: 3 },
+    { index: 1, streamIdentifier: 2, streamType: 2 },
+  ]) {
+    const live: PlexMetadataItem = {
+      Media: [
+        {
+          Part: [
+            {
+              Stream: [
+                {
+                  id: 11,
+                  index: 2,
+                  streamIdentifier: 2,
+                  streamType: 2,
+                  languageCode: "spa",
+                  selected: true,
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    };
+    const library: PlexMetadataItem = {
+      Media: [
+        {
+          Part: [
+            { Stream: [{ ...other, languageCode: "eng", selected: false }] },
+          ],
+        },
+      ],
+    };
+    const streams = resolveSelectedPart(mergePlaybackMetadata(live, library))
+      ?.part?.Stream;
+    assert.equal(streams?.length, 2);
+    assert.equal(streams?.[0]?.selected, false);
+    assert.equal(streams?.[1]?.languageCode, "spa");
+    assert.equal(streams?.[1]?.selected, true);
+  }
+});
+
+void test("positional stream guesses cannot steal a stronger match elsewhere", () => {
+  const live: PlexMetadataItem = {
+    Media: [
+      {
+        Part: [
+          {
+            Stream: [
+              { index: 2, streamType: 2, languageCode: "spa", selected: true },
+            ],
+          },
+        ],
+      },
+    ],
+  };
+  const library: PlexMetadataItem = {
+    Media: [
+      {
+        Part: [
+          {
+            Stream: [
+              { id: 10, streamType: 2, languageCode: "eng" },
+              { id: 11, index: 2, streamType: 2, languageCode: "spa" },
+            ],
+          },
+        ],
+      },
+    ],
+  };
+  const merged = mergePlaybackMetadata(live, library);
+  const streams = resolveSelectedPart(merged)?.part?.Stream;
+  assert.equal(streams?.length, 2);
+  assert.deepEqual(
+    streams?.map((stream) => stream.selected),
+    [false, true],
+  );
+  assert.equal(
+    deriveSelectedAudioTrack(merged, undefined, library)?.trackNumber,
+    2,
+  );
+  assert.equal(deriveSelectedAudioTrack(merged)?.languageCode, "spa");
+});
+
+void test("unidentified subtitles match only unambiguous resource keys and preserve live identity otherwise", () => {
+  for (const match of [
+    "resource",
+    "missing",
+    "ambiguous",
+    "id-conflict",
+    "index-conflict",
+  ] as const) {
+    const liveStream = {
+      ...(match === "id-conflict" ? { id: 99 } : {}),
+      ...(match === "index-conflict" ? { index: 9 } : {}),
+      streamType: 3,
+      codec: "srt",
+      languageCode: "spa",
+      selected: true,
+      key: "/returned/spanish.srt",
+    };
+    const live: PlexMetadataItem = {
+      Media: [{ id: 1, Part: [{ id: 2, Stream: [liveStream] }] }],
+    };
+    const spanish = {
+      id: 31,
+      index: 2,
+      streamType: 3,
+      codec: "srt",
+      languageCode: "spa",
+      key: match === "missing" ? "/returned/other.srt" : liveStream.key,
+    };
+    const library: PlexMetadataItem = {
+      Media: [
+        {
+          id: 1,
+          Part: [
+            {
+              id: 2,
+              Stream: [
+                {
+                  id: 30,
+                  streamType: 3,
+                  codec: "srt",
+                  languageCode: "eng",
+                  key: "/returned/english.srt",
+                },
+                spanish,
+                ...(match === "ambiguous" ? [{ ...spanish, id: 32 }] : []),
+              ],
+            },
+          ],
+        },
+      ],
+    };
+    const merged = mergePlaybackMetadata(live, library);
+    const session = createSession();
+    const tracks = deriveSubtitleTracks(
+      session,
+      createContext(),
+      merged,
+      "viewer",
+    );
+    const english = tracks.find((track) => track.streamId === "30");
+    assert.equal(english?.languageCode, "eng");
+    assert.equal(
+      mediaHandleForUrl(session, english?.contentUrl).path,
+      "/returned/english.srt",
+    );
+    const selected = deriveSelectedSubtitleTrack(merged);
+    assert.equal(selected?.languageCode, "spa");
+    assert.equal(
+      selected?.streamId,
+      match === "resource" ? "31" : liveStream.id?.toString(),
+    );
+    const streams = resolveSelectedPart(merged)?.part?.Stream;
+    assert.equal(streams?.filter((stream) => stream.selected).length, 1);
+    if (match === "resource") {
+      assert.equal(tracks.length, 2);
+      assert.equal(
+        mediaHandleForUrl(session, tracks[1]?.contentUrl).path,
+        liveStream.key,
+      );
+    } else {
+      assert.deepEqual(streams?.at(-1), liveStream);
+    }
+  }
+});
+
+void test("unidentified library entries cannot steal a matching media or part ID", async () => {
+  for (const dimension of ["media", "part"] as const) {
+    const live: PlexMetadataItem = {
+      ratingKey: "42",
+      type: "movie",
+      Media: [
+        {
+          id: 20,
+          Part: [
+            {
+              id: 21,
+              key: "/returned/selected.mp4",
+              Stream: [{ id: 30, streamType: 3, codec: "srt", selected: true }],
+            },
+          ],
+        },
+      ],
+    };
+    const library: PlexMetadataItem = {
+      ratingKey: "42",
+      type: "movie",
+      Media:
+        dimension === "media"
+          ? [{ Part: [{}] }, { id: 20, Part: [{ id: 21 }] }]
+          : [{ id: 20, Part: [{}, { id: 21 }] }],
+    };
+    const merged = mergePlaybackMetadata(live, library);
+    const entries =
+      dimension === "media" ? merged.Media : merged.Media?.[0]?.Part;
+    assert.deepEqual(
+      entries?.map((entry) => entry.id),
+      [undefined, dimension === "media" ? 20 : 21],
+    );
+    const session = createSession();
+    await withMockFetch(
+      (request) =>
+        jsonResponse({
+          MediaContainer: {
+            Metadata: [
+              new URL(request.url).pathname === "/status/sessions"
+                ? live
+                : library,
+            ],
+          },
+        }),
+      async () => {
+        const [entry] = await listCurrentlyPlaying(session, createSource());
+        const preview = mediaHandleForUrl(session, entry?.item.hlsUrl);
+        const subtitle = mediaHandleForUrl(
+          session,
+          entry?.item.subtitleTracks?.[0]?.contentUrl,
+        );
+        for (const handle of [preview, subtitle]) {
+          const url = mediaHandleRequestUrl(handle);
+          assert.equal(
+            url.searchParams.get("mediaIndex"),
+            dimension === "media" ? "1" : "0",
+          );
+          assert.equal(
+            url.searchParams.get("partIndex"),
+            dimension === "part" ? "1" : "0",
+          );
+        }
+        assert.equal(
+          mediaHandleForUrl(session, entry?.item.mediaUrl).path,
+          "/returned/selected.mp4",
+        );
       },
     );
   }

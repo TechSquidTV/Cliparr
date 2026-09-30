@@ -5,7 +5,7 @@ import { getDatabase } from "@/db/database";
 import { getProviderAccount } from "@/db/providerAccountsRepository";
 import { REMEMBERED_PROVIDER_SESSION_TTL_MS } from "@/db/rememberedProviderSessionsRepository";
 import { providerSessions, type ProviderSessionRow } from "@/db/schema";
-import { getServerLogger } from "@/logging";
+import { getServerLogger, warnWithError } from "@/logging";
 import type { MediaHandle } from "@/providers/types";
 import { decryptSecret, encryptSecret } from "@/security/secrets";
 
@@ -121,7 +121,9 @@ export function restoreProviderSessionFromProviderAccount(
       userToken: account.accessToken,
     });
   } catch (error) {
-    logger.warn(
+    warnWithError(
+      logger,
+      error,
       "Failed to restore provider session from remembered provider account.",
       {
         ...logEventFields("session.restore", "failure"),

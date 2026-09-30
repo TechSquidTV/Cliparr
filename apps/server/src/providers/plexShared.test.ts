@@ -7,19 +7,19 @@ import {
   requirePlexServerResources,
 } from "@/providers/plex/shared";
 
-void test("normalizes Plex server resources when Plex flags are strings", () => {
+void test("normalizes Plex server resources with JSON boolean flags", () => {
   const resources = normalizeResources([
     {
       name: "Owned Server",
       provides: "server",
-      owned: "1",
+      owned: true,
       accessToken: "server-token",
       clientIdentifier: "server-1",
       connections: [
         {
           uri: "http://192.168.1.10:32400",
-          local: "1",
-          relay: "0",
+          local: true,
+          relay: false,
           protocol: "http",
           address: "192.168.1.10",
           port: 32_400,
@@ -29,14 +29,14 @@ void test("normalizes Plex server resources when Plex flags are strings", () => 
     {
       name: "Shared Server",
       provides: "server",
-      owned: "0",
+      owned: false,
       accessToken: "shared-token",
       clientIdentifier: "server-2",
       connections: [
         {
           uri: "https://example.com:32400",
-          local: "0",
-          relay: "1",
+          local: false,
+          relay: true,
           protocol: "https",
           address: "example.com",
           port: 32_400,

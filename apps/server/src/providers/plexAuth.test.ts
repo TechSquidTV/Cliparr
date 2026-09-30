@@ -52,7 +52,7 @@ void test("requires the starter poll token before completing Plex auth", async (
         });
       }
 
-      if (url === "https://plex.tv/api/v2/pins/123") {
+      if (url === "https://plex.tv/api/v2/pins/123?code=ABCD") {
         return jsonResponse({
           authToken: "user-token",
         });
@@ -100,6 +100,77 @@ void test("requires the starter poll token before completing Plex auth", async (
       assert.equal(status.status, "complete");
       assert.equal(status.userToken, "user-token");
       assert.equal(status.resources?.length, 1);
+    },
+  );
+});
+
+void test("PIN polling keeps user credentials out of PMS resources and navigation uses the documented fragment", async () => {
+  let polls = 0;
+  await withMockedFetch(
+    async (input, init) => {
+      const request = new Request(input, init);
+      const url = new URL(request.url);
+      assert.equal(request.headers.get("accept"), "application/json");
+      assert.ok(request.headers.get("x-plex-client-identifier"));
+      if (url.pathname === "/api/v2/resources") {
+        assert.equal(request.headers.get("x-plex-token"), "cloud-user-token");
+        return jsonResponse([
+          {
+            name: "Owned",
+            provides: "server",
+            owned: true,
+            accessToken: "pms-only-token",
+            connections: [{ uri: "https://plex.example" }],
+          },
+        ]);
+      }
+      assert.equal(request.headers.get("x-plex-token"), null);
+      if (request.method === "POST") {
+        return jsonResponse({ id: 456, code: "A & B", expiresIn: 60 });
+      }
+      assert.equal(url.pathname, "/api/v2/pins/456");
+      assert.equal(url.searchParams.get("code"), "A & B");
+      polls += 1;
+      return jsonResponse({
+        authToken: polls === 1 ? null : "cloud-user-token",
+      });
+    },
+    async () => {
+      const started = await startAuth(
+        "https://cliparr.example/callback?x=1&y=2",
+      );
+      const navigation = new URL(started.authUrl);
+      assert.equal(navigation.origin, "https://app.plex.tv");
+      assert.equal(navigation.pathname, "/auth");
+      const parameters = new URLSearchParams(navigation.hash.slice(2));
+      assert.equal(parameters.get("code"), "A & B");
+      assert.equal(
+        parameters.get("forwardUrl"),
+        "https://cliparr.example/callback?x=1&y=2",
+      );
+      const pending = await pollAuth(started.authId, started.pollToken);
+      assert.equal(pending.status, "pending");
+      const completed = await pollAuth(started.authId, started.pollToken);
+      assert.equal(completed.status, "complete");
+      assert.equal(completed.resources?.[0]?.accessToken, "pms-only-token");
+      const expired = await pollAuth(started.authId, started.pollToken);
+      assert.equal(expired.status, "expired");
+    },
+  );
+});
+
+void test("expired PIN sessions are removed before any cloud poll", async () => {
+  let requests = 0;
+  await withMockedFetch(
+    async () => {
+      requests += 1;
+      return jsonResponse({ id: 789, code: "expired", expiresIn: -1 });
+    },
+    async () => {
+      const started = await startAuth("https://cliparr.example/callback");
+      const expired = await pollAuth(started.authId, started.pollToken);
+      assert.equal(expired.status, "expired");
+      assert.equal(requests, 1);
     },
   );
 });

@@ -11,7 +11,7 @@ import {
   serverRoot,
   workspaceRoot,
 } from "@/config/loadEnv";
-import { getServerLogger } from "@/logging";
+import { getServerLogger, warnWithError } from "@/logging";
 import { assertAppKeyConfigured } from "@/security/secrets";
 
 const DEFAULT_DATABASE_FILE = "cliparr.sqlite";
@@ -31,9 +31,9 @@ function enforcePermissions(targetPath: string, mode: number) {
     fs.chmodSync(targetPath, mode);
   } catch (error) {
     if (process.platform !== "win32") {
-      logger.warn("Could not set filesystem permissions.", {
+      warnWithError(logger, error, "Could not set filesystem permissions.", {
         "file.path": targetPath,
-        mode,
+        "file.mode": mode,
         ...logErrorFields(error),
       });
     }

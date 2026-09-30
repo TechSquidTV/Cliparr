@@ -156,6 +156,9 @@ importers:
 
   apps/server:
     dependencies:
+      '@cliparr/plex':
+        specifier: workspace:*
+        version: link:../../packages/plex
       '@cliparr/shared':
         specifier: workspace:*
         version: link:../../packages/shared
@@ -305,6 +308,8 @@ importers:
       vite:
         specifier: ^8.3.1
         version: 8.3.1(@types/node@25.9.3)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.22.4)(yaml@2.9.1)
+
+  packages/plex: {}
 
   packages/shared: {}
 

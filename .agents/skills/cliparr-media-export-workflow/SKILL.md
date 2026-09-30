@@ -73,3 +73,18 @@ Run the package-level tests that match the change:
 - Shared provider contract changes: run both frontend and server tests.
 
 Before committing, use `$cliparr-git-workflow`; it requires `pnpm preflight`.
+
+## Plex contract ownership
+
+All Cliparr-authored Plex API operations, endpoint templates, parameter contracts,
+and wire response models must derive from generated `@cliparr/plex` artifacts.
+Resolve gaps in generation inputs before adding a caller. Never add handwritten
+endpoint bypasses or duplicate wire models. Use generated operations for immediate
+requests and generated operation-specific URL builders for deferred media handles.
+Keep validated server/manifest resource links unchanged. Browser sign-in navigation
+is a centralized browser protocol, not a PMS REST operation.
+
+Preserve the media proxy security and stream lifecycle boundaries. Generated stream
+callers use `parseAs: "stream"`, the real response body, and an original caller signal
+retained by the injected transport. Do not add a second SSE reconnect owner. See
+`packages/plex/README.md` and run `pnpm plex:architecture:check`.

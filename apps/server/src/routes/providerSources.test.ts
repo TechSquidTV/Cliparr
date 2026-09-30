@@ -131,13 +131,13 @@ void test("completes Plex PIN auth through route cookies and persists sources", 
           });
         }
 
-        if (requestUrl === "https://plex.tv/api/v2/pins/321") {
+        if (requestUrl === "https://plex.tv/api/v2/pins/321?code=WXYZ-321") {
           return jsonResponse({
             authToken: "plex-user-token",
           });
         }
 
-        if (requestUrl === "https://plex.tv/api/v2/pins/322") {
+        if (requestUrl === "https://plex.tv/api/v2/pins/322?code=WXYZ-322") {
           return jsonResponse({
             authToken: "plex-phone-token",
           });

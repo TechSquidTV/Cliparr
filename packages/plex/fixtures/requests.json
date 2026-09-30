@@ -1,0 +1,20 @@
+{
+  "provenance": "Sanitized protocol examples. PMS metadata/image routes and query types: https://developer.plex.tv/pms/ . Plex Web sidecar route/session/copyts: https://forums.plex.tv/t/webos-no-subtitles/922752 . Values are synthetic; this is not a claimed local server recording.",
+  "sidecar": {
+    "method": "GET",
+    "pathname": "/subtitles/:/transcode/universal/start",
+    "query": {
+      "path": "/library/metadata/42",
+      "session": "isolated-session",
+      "protocol": "http",
+      "directPlay": "1",
+      "hasMDE": "1",
+      "mediaIndex": "0",
+      "partIndex": "0",
+      "subtitles": "sidecar",
+      "copyts": "1"
+    }
+  },
+  "preview": { "pathname": "/video/:/transcode/universal/start.m3u8" },
+  "image": { "pathname": "/photo/:/transcode" }
+}
