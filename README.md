@@ -144,8 +144,6 @@ Plex library bootstrap runs the dependency-free `@cliparr/plex` Node entry point
 
 See [.github/CONTRIBUTING.md](.github/CONTRIBUTING.md) for more detailed guidance.
 
-Provider session discovery depends on the Cliparr server for persistent connections, shared subscriptions, and playback preparation. This adds a substantial server dependency for any future fully client-side design; see the [architecture notes](https://cliparr.dev/docs/development#live-session-architecture). Local-file editing and export run in the browser.
-
 ## License
 
 Cliparr is released under the [MIT License](LICENSE).
