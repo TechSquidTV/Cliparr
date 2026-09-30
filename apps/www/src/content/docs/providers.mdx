@@ -23,7 +23,7 @@ Cliparr uses provider sources to discover active playback sessions, load playabl
     {provider.name === "Plex" ? (
       <p>Use a Plex account that owns the server you want to connect. Plex's <a href="https://developer.plex.tv/pms/#tag/Status/operation/statusGetSlash">active-session API</a> requires administrator access, so shared library access alone is not enough to discover playback sessions.</p>
     ) : (
-      <p>Use any Jellyfin account. A regular account connects its own playback sessions across devices; an administrator account connects active sessions across the server.</p>
+      <p>On Jellyfin 10.11 or newer, a regular account connects its own playback sessions across devices; an administrator account connects active sessions across the server. Older Jellyfin versions require administrator access for live session updates.</p>
     )}
   </section>
 ))}
@@ -33,10 +33,28 @@ Provider-backed clips can include media-server metadata in the exported file, su
 Connected sources are shared across the Cliparr instance. Connecting a regular Jellyfin account limits that source's sessions; it does not hide other connected sources. See [Access control](/docs/access-control) before sharing an instance.
 
 <Callout title="Credentials stay encrypted" tone="info">
-  Provider credentials are persisted so Cliparr can refresh sessions later. Keep
-  `APP_KEY` stable so those credentials remain decryptable.
+  Provider credentials are persisted so Cliparr can reconnect to your sources.
+  Keep `APP_KEY` stable so those credentials remain decryptable.
 </Callout>
 
 ## Multiple sources
 
 You can add more than one source, then disable or reconnect sources from source management. Cliparr shows available sessions from enabled sources and surfaces source-specific errors without blocking the rest of the dashboard.
+
+## Automatic session updates
+
+The dashboard subscribes to Plex and Jellyfin playback notifications. Starting, pausing, or stopping playback updates the dashboard automatically, without periodic session polling or a manual refresh. Cliparr loads an initial snapshot and resynchronizes after reconnecting.
+
+The first connection may take longer while Cliparr finds a reachable server, opens the notification stream, and prepares playback metadata. Subsequent updates use the established connection.
+
+If a connection drops, Cliparr keeps the last sessions visible, marks live updates as disconnected, and retries the connection automatically. **Retry connection** is available for failures. Expired credentials require reconnecting the source in **Sources**.
+
+Live updates allow up to eight dashboard connections per browser session and 128 across a Cliparr server. Additional connections receive HTTP 429 and retry automatically; close unused dashboard tabs to free a connection.
+
+Reverse proxies must allow WebSocket connections between Cliparr and Jellyfin, and unbuffered server-sent events between Plex and Cliparr and between Cliparr and your browser. Persistent connections exchange keepalive messages; these do not poll for sessions. See [Reverse proxies](/docs/configuration#reverse-proxies) for deployment requirements.
+
+<Callout title="Jellyfin compatibility change" tone="warning">
+  Non-administrator accounts on Jellyfin versions older than 10.11 cannot use
+  the live dashboard. Upgrade Jellyfin or connect an administrator account.
+  Cliparr does not fall back to polling.
+</Callout>

@@ -1280,6 +1280,23 @@ export type Title = string;
 
 export type Type = string;
 
+export type PlaySessionStateNotification = {
+    sessionKey?: string | number;
+    state?: string;
+    ratingKey?: string | number;
+    viewOffset?: number;
+};
+
+/**
+ * JSON data carried by Plex playback notifications. The SSE transport remains a byte stream. Locally maintained from protocol examples, not an official Plex envelope schema.
+ */
+export type PlexNotificationEnvelope = {
+    PlaySessionStateNotification?: PlaySessionStateNotification | Array<PlaySessionStateNotification>;
+    NotificationContainer?: {
+        PlaySessionStateNotification?: Array<PlaySessionStateNotification>;
+    };
+};
+
 /**
  * Indicates how  incompatible advanced subtitles (such as ass/ssa) should be included: * 'burn' - Burn incompatible advanced text subtitles into the video stream * 'text' - Transcode incompatible advanced text subtitles to a compatible text format, even if some markup is lost
  *

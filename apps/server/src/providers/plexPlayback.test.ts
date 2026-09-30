@@ -2,6 +2,7 @@ import type { MediaSource } from "@/db/mediaSourcesRepository";
 import { proxyMedia } from "@/providers/plex/mediaProxy";
 import {
   createPlexViewerAvatarUrl,
+  createPlexPlaybackResolver,
   listCurrentlyPlaying,
 } from "@/providers/plex/playback";
 import {
@@ -2294,4 +2295,78 @@ void test("unidentified library entries cannot steal a matching media or part ID
       },
     );
   }
+});
+
+const livePlexItem = (id: string) => ({
+  sessionKey: id,
+  ratingKey: id,
+  key: `/library/metadata/${id}`,
+  title: id,
+  type: "movie",
+  Player: { state: "playing", title: "Browser" },
+});
+
+void test("live Plex enriches only changed items and shares metadata across Cliparr sessions", async () => {
+  const requests: string[] = [];
+  await withMockFetch(
+    (request) => {
+      const id = new URL(request.url).pathname.split("/").at(-1)!;
+      requests.push(id);
+      return jsonResponse({
+        MediaContainer: {
+          Metadata: [
+            {
+              ...livePlexItem(id),
+              Media: [
+                {
+                  Part: [
+                    { id: `part-${id}`, key: `/library/parts/${id}/file` },
+                  ],
+                },
+              ],
+            },
+          ],
+        },
+      });
+    },
+    async () => {
+      const snapshot = createPlexPlaybackResolver(
+        createSource(),
+        createContext(),
+      );
+      const first = createSession();
+      const second = { ...createSession(), id: "second" };
+      const initial = snapshot({
+        MediaContainer: {
+          Metadata: [livePlexItem("one"), livePlexItem("two")],
+        },
+      });
+      const [one, two] = await Promise.all([initial(first), initial(second)]);
+      assert.deepEqual(requests.toSorted(), ["one", "two"]);
+      assert.notEqual(one[0].item.mediaUrl, two[0].item.mediaUrl);
+      const paused = {
+        ...livePlexItem("one"),
+        Player: { state: "paused", title: "Browser" },
+        viewOffset: 12_000,
+      };
+      const next = snapshot({
+        MediaContainer: {
+          Metadata: [paused, livePlexItem("two"), livePlexItem("three")],
+        },
+      });
+      const [updated] = await Promise.all([next(first), next(second)]);
+      assert.deepEqual(requests.toSorted(), ["one", "three", "two"]);
+      assert.equal(updated[0].item.playerState, "paused");
+      assert.equal(updated[0].item.playheadSeconds, 12);
+      assert.equal(updated[0].item.mediaUrl, one[0].item.mediaUrl);
+      await snapshot({ MediaContainer: { Metadata: [livePlexItem("three")] } })(
+        first,
+      );
+      assert.equal(
+        requests.length,
+        3,
+        "removing a session does not enrich remaining items",
+      );
+    },
+  );
 });

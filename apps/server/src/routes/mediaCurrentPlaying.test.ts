@@ -1,3 +1,4 @@
+import { createDeferred } from "@/test/deferred";
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import os from "node:os";
@@ -6,13 +7,20 @@ import test from "node:test";
 import { closeDatabase } from "@/db/database";
 import {
   upsertMediaSource,
+  updateMediaSource,
   type MediaSource,
 } from "@/db/mediaSourcesRepository";
 import { upsertProviderAccountByAccessToken } from "@/db/providerAccountsRepository";
 import { createApp } from "@/app";
 import { plexProvider } from "@/providers/plex/provider";
 import type { CurrentlyPlayingEntry } from "@/providers/types";
-import { createProviderSession, getSessionCookieName } from "@/session/store";
+import {
+  createProviderSession,
+  deleteProviderSession,
+  getSessionCookieName,
+} from "@/session/store";
+import { readServerEvents } from "@cliparr/shared/server-events";
+import type { PlaybackStreamEvent } from "@cliparr/shared/providers";
 
 const TEST_APP_KEY = "media-currently-playing-test-key-with-32-chars";
 
@@ -249,3 +257,137 @@ void test("aggregates currently playing results across enabled sources with part
     }
   });
 });
+
+void test(
+  "authenticated SSE delivers initial state, source disabling, and session revocation",
+  { timeout: 10_000 },
+  async () => {
+    await withTestApp(async (baseUrl) => {
+      const denied = await fetch(`${baseUrl}/api/media/live`);
+      assert.equal(denied.status, 401);
+      const account = upsertProviderAccountByAccessToken({
+        providerId: "plex",
+        label: "Test",
+        accessToken: "test-token",
+      });
+      assert.ok(account);
+      const source = createSource(account.id, "Live");
+      const session = createProviderSession({
+        providerId: "plex",
+        providerAccountId: account.id,
+        userToken: "test-token",
+      });
+      const originalWatch =
+        plexProvider.watchCurrentlyPlaying.bind(plexProvider);
+      const originalSupports =
+        plexProvider.supportsCurrentlyPlayingSource?.bind(plexProvider);
+      const stopped = createDeferred<void>();
+      plexProvider.supportsCurrentlyPlayingSource = () => true;
+      plexProvider.watchCurrentlyPlaying = async (source, observer, signal) => {
+        observer.snapshot(async () => [
+          playbackEntry(source, { id: "viewer", name: "Viewer" }, "live-item"),
+        ]);
+        await new Promise<void>((resolve) => {
+          signal.addEventListener(
+            "abort",
+            () => {
+              stopped.resolve();
+              resolve();
+            },
+            { once: true },
+          );
+        });
+      };
+      const controller = new AbortController();
+      try {
+        const response = await fetch(`${baseUrl}/api/media/live`, {
+          signal: controller.signal,
+          headers: { cookie: `${getSessionCookieName()}=${session.id}` },
+        });
+        assert.equal(
+          response.headers.get("content-type"),
+          "text/event-stream; charset=utf-8",
+        );
+        assert.equal(response.headers.get("x-accel-buffering"), "no");
+        assert.ok(response.body);
+        const initial = createDeferred<void>();
+        const removed = createDeferred<void>();
+        const unauthorized = createDeferred<void>();
+        const reading = readServerEvents(response.body, (_name, data) => {
+          const event = JSON.parse(data) as PlaybackStreamEvent;
+          if (event.type === "snapshot" && !event.snapshot.loading) {
+            if (event.snapshot.viewers.length > 0) {
+              initial.resolve();
+            } else {
+              removed.resolve();
+            }
+          }
+          if (event.type === "unauthorized") {
+            unauthorized.resolve();
+          }
+        });
+        await initial.promise;
+        updateMediaSource(source.id, { enabled: false });
+        await removed.promise;
+        await stopped.promise;
+        deleteProviderSession(session.id);
+        await unauthorized.promise;
+        await reading;
+      } finally {
+        controller.abort();
+        plexProvider.watchCurrentlyPlaying = originalWatch;
+        plexProvider.supportsCurrentlyPlayingSource = originalSupports;
+      }
+    });
+  },
+);
+
+void test(
+  "SSE rejects excess connections with JSON before committing stream headers",
+  { timeout: 10_000 },
+  async () => {
+    await withTestApp(async (baseUrl) => {
+      const account = upsertProviderAccountByAccessToken({
+        providerId: "plex",
+        label: "Connection limit",
+        accessToken: "limit-test-token",
+      });
+      assert.ok(account);
+      const session = createProviderSession({
+        providerId: "plex",
+        providerAccountId: account.id,
+        userToken: "limit-test-token",
+      });
+      const responses: Response[] = [];
+      const headers = { cookie: `${getSessionCookieName()}=${session.id}` };
+      try {
+        for (let index = 0; index < 8; index++) {
+          const response = await fetch(`${baseUrl}/api/media/live`, {
+            headers,
+          });
+          responses.push(response);
+          assert.equal(response.status, 200);
+        }
+        const denied = await fetch(`${baseUrl}/api/media/live`, { headers });
+        assert.equal(denied.status, 429);
+        assert.match(
+          denied.headers.get("content-type") ?? "",
+          /application\/json/,
+        );
+        assert.equal(denied.headers.has("x-accel-buffering"), false);
+        assert.deepEqual(await denied.json(), {
+          error: {
+            code: "live_connection_limit",
+            message:
+              "Too many live playback connections. Close another dashboard and try again.",
+          },
+        });
+      } finally {
+        deleteProviderSession(session.id);
+        await Promise.all(
+          responses.map(async (response) => response.body?.cancel()),
+        );
+      }
+    });
+  },
+);

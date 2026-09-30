@@ -9,6 +9,7 @@
   },
   "types": "./src/providers.ts",
   "exports": {
+    "./server-events": "./src/serverEvents.ts",
     "./logging": {
       "types": "./src/logging.d.ts",
       "default": "./src/logging.js"

@@ -21,6 +21,10 @@ Cliparr only needs a few settings in production: a stable `APP_KEY` and a persis
 
 When running behind Caddy, Nginx, Traefik, or another reverse proxy, preserve the `Host` header and pass `X-Forwarded-Proto`. Cliparr trusts loopback, link-local, and private-LAN proxy ranges directly in the app, so typical same-network proxy setups do not need extra app configuration.
 
+The dashboard receives live updates over a long-lived server-sent event (SSE) response at `/api/media/live`. Allow that response to stream without buffering or caching. Cliparr sends a heartbeat every 15 seconds; proxy idle timeouts must allow these connections to stay open between heartbeats.
+
+If a reverse proxy sits between Cliparr and your media server, it must also support Plex's SSE notifications or Jellyfin's WebSocket connection. The browser connects to Cliparr for updates; Cliparr maintains the provider connections. Delayed updates or repeated reconnects can indicate proxy buffering or timeouts. See [Automatic session updates](/docs/providers#automatic-session-updates) for recovery behavior and Jellyfin compatibility.
+
 <Callout title="Add authentication at the proxy" tone="info">
   Cliparr does not include a full user or permission system. Use an
   authenticated reverse proxy or private-access layer when you need to limit who

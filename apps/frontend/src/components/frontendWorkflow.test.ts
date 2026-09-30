@@ -882,7 +882,7 @@ void test("renders dashboard playback cards with viewer context", () => {
 
   const markup = renderToStaticMarkup(
     createElement(DashboardPlaybackCard, {
-      card,
+      ...card,
       activeViewTransitionSessionId: null,
       onSelectSession: () => {},
     }),
@@ -903,7 +903,7 @@ void test("renders music playback cards inside the video-style card frame", () =
 
   const markup = renderToStaticMarkup(
     createElement(DashboardPlaybackCard, {
-      card,
+      ...card,
       activeViewTransitionSessionId: null,
       onSelectSession: () => {},
     }),

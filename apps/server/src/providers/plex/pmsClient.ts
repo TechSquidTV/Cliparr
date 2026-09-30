@@ -1,3 +1,4 @@
+import { PLEX_CLIENT_IDENTIFIER, PLEX_PRODUCT } from "@/providers/plex/shared";
 import { createApiError, isApiError, type ApiError } from "@/http/errors";
 import {
   isRedirectStatus,
@@ -10,6 +11,7 @@ import { fetchWithPinnedDns } from "@/providers/shared/pinnedFetch";
 import { errorMessage, uniqueStrings } from "@/providers/shared/utilities";
 import {
   getIdentity,
+  eventsourceGetSlash,
   libraryMetadataGetSlash,
   statusGetSlash,
 } from "@cliparr/plex/pms";
@@ -27,6 +29,7 @@ export interface PlexPmsRequestOptions {
   clientIdentifier: string;
   product: string;
   timeoutMs: number;
+  signal?: AbortSignal;
 }
 
 type PlexPmsSdkResult<T> =
@@ -131,11 +134,11 @@ async function reusableRequestBody(request: Request) {
   return request.clone().arrayBuffer();
 }
 
-async function closeRedirectResponse(response: Response) {
+async function discardPlexResponse(response: Response) {
   try {
     await response.body?.cancel();
   } catch {
-    // Redirect response bodies are discarded before the next request.
+    // A generated error response may already be consumed or locked.
   }
 }
 
@@ -196,6 +199,7 @@ async function fetchPlexPmsWithManualRedirects(
     method: request.method,
     headers: new Headers(request.headers),
     body: await reusableRequestBody(request),
+    // Retain the caller signal: Request owns its forwarding AbortController.
     signal: init?.signal ?? request.signal,
   };
 
@@ -225,7 +229,7 @@ async function fetchPlexPmsWithManualRedirects(
       nextUrl,
       requestUrl,
     );
-    await closeRedirectResponse(response);
+    await discardPlexResponse(response);
     requestUrl = nextUrl;
   }
 
@@ -313,16 +317,53 @@ async function withPlexPmsClient<T>(
 ) {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), options.timeoutMs);
+  const signal = options.signal
+    ? AbortSignal.any([controller.signal, options.signal])
+    : controller.signal;
 
   try {
     return readPlexPmsResult(
-      await request(
-        createPlexPmsSdkClient(context, options, controller.signal),
-      ),
+      await request(createPlexPmsSdkClient(context, options, signal)),
     );
   } finally {
     clearTimeout(timeout);
   }
+}
+
+export async function openPlexEventStream(
+  context: PlexPmsRequestContext,
+  headers: Headers,
+  signal: AbortSignal,
+) {
+  const result = await eventsourceGetSlash({
+    client: createPlexPmsSdkClient(
+      context,
+      {
+        clientIdentifier: PLEX_CLIENT_IDENTIFIER,
+        product: PLEX_PRODUCT,
+        timeoutMs: 0,
+      },
+      signal,
+    ),
+    headers: { ...Object.fromEntries(headers), Accept: "text/event-stream" },
+    parseAs: "stream",
+  });
+  const response = result.response;
+  if (!response) {
+    throw sdkRequestError(result.error);
+  }
+  if (!response.ok) {
+    await discardPlexResponse(response);
+    throw createPlexPmsResponseApiError(response);
+  }
+  if (
+    !response.body ||
+    !response.headers.get("content-type")?.includes("text/event-stream")
+  ) {
+    await discardPlexResponse(response);
+    throw new Error("Plex did not return an event stream");
+  }
+  return response.body;
 }
 
 export function requestPlexPmsIdentity(

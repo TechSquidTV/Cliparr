@@ -60,7 +60,23 @@ void test("reports app-page responses as API configuration errors", async () => 
     async () => {
       await assert.rejects(
         () => cliparrClient.getHealth(),
-        /Cliparr API returned the app page instead of JSON/,
+        /Cliparr API returned a non-JSON response \(HTTP 200\)/,
+      );
+    },
+  );
+});
+
+void test("reports an HTML API error with its status instead of claiming it is the app page", async () => {
+  await withMockedFetch(
+    async () =>
+      new Response("<pre>Cannot GET /api/health</pre>", {
+        status: 404,
+        headers: { "content-type": "text/html" },
+      }),
+    async () => {
+      await assert.rejects(
+        () => cliparrClient.getHealth(),
+        /Cliparr API returned a non-JSON response \(HTTP 404\)/,
       );
     },
   );

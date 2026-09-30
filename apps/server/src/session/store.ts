@@ -1,3 +1,4 @@
+import { notifyPlaybackStateChange } from "@/playback/stateChanges";
 import { randomUUID } from "node:crypto";
 import { eq } from "drizzle-orm";
 import { logErrorFields, logEventFields } from "@cliparr/shared/logging";
@@ -175,6 +176,7 @@ export function deleteProviderSession(sessionId?: string) {
       .where(eq(providerSessions.id, sessionId))
       .run();
     mediaHandlesBySessionId.delete(sessionId);
+    notifyPlaybackStateChange({ type: "session", sessionId });
   }
 }
 
@@ -198,6 +200,7 @@ export function deleteProviderSessionsForProviderAccount(
 
   for (const session of sessionRows) {
     mediaHandlesBySessionId.delete(session.id);
+    notifyPlaybackStateChange({ type: "session", sessionId: session.id });
   }
 
   return Number(result.changes);

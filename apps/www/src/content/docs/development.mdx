@@ -25,6 +25,12 @@ The seed downloads Sintel from download.blender.org and falls back to a Blender 
 
 Run `pnpm docker:dev:build` after Dockerfile or dependency changes, then `pnpm docker:dev:up` to start the stack.
 
+## Live session architecture
+
+While dashboards are subscribed, the Cliparr server maintains shared provider notification connections: SSE for Plex and WebSockets for Jellyfin. It loads initial session snapshots, prepares playback metadata and session-scoped media handles, handles reconnects and permission changes, and forwards updates to browsers through authenticated SSE at `/api/media/live`. Browsers do not poll provider sessions.
+
+For manual validation, connect a provider and check playback start, pause, stop, and recovery after a connection loss. The initial connection may take longer while Cliparr finds a reachable server and prepares playback details. See [Providers](/docs/providers) for supported Jellyfin versions and [Configuration](/docs/configuration#reverse-proxies) for streaming requirements.
+
 ## Pull request checks
 
 Before opening a pull request, run:

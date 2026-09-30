@@ -24,9 +24,9 @@ export const productIntro =
 
 export const features = [
   {
-    title: "Instant session discovery",
+    title: "Live session discovery",
     description:
-      'Automatically loads currently playing media from connected <a href="/docs/providers">Plex and Jellyfin providers</a>.',
+      'Playback starts, pauses, and stops update automatically from connected <a href="/docs/providers">Plex and Jellyfin providers</a>, without manual refresh.',
   },
   {
     title: "Open local videos",

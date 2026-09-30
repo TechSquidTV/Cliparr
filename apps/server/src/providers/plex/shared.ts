@@ -376,14 +376,14 @@ function plexPmsRequestOptions(timeoutMs: number) {
 
 export function fetchPmsCurrentSessions(
   context: PlexSourceContext,
-  options: { timeoutMs?: number } = {},
+  options: { timeoutMs?: number; signal?: AbortSignal } = {},
 ) {
-  return requestPlexPmsCurrentSessions(
-    context,
-    plexPmsRequestOptions(
+  return requestPlexPmsCurrentSessions(context, {
+    ...plexPmsRequestOptions(
       options.timeoutMs ?? CURRENT_PLAYBACK_REQUEST_TIMEOUT_MS,
     ),
-  );
+    signal: options.signal,
+  });
 }
 
 export function fetchPmsMetadata(

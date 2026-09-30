@@ -1,5 +1,5 @@
-import { isIP, type LookupFunction } from "node:net";
-import { Agent } from "undici";
+import { isIP, type Socket, type LookupFunction } from "node:net";
+import { Agent, buildConnector } from "undici";
 
 /** Keep the URL hostname for HTTP Host/TLS while connecting only to validated IPs. */
 export async function fetchWithPinnedDns(
@@ -14,6 +14,23 @@ export async function fetchWithPinnedDns(
     return globalThis.fetch(url.toString(), init);
   }
 
+  const dispatcher = createPinnedDnsAgent(addresses);
+  const requestInit = { ...init, dispatcher };
+  try {
+    return await globalThis.fetch(url.toString(), requestInit);
+  } finally {
+    // Graceful close waits for the response body to finish or be cancelled.
+    void dispatcher.close().catch(() => {});
+  }
+}
+
+export function createPinnedDnsAgent(
+  addresses: readonly string[],
+  options: {
+    onSocket?: (socket: Socket) => void;
+    webSocket?: Agent.Options["webSocket"];
+  } = {},
+) {
   const records = addresses.map((address) => ({
     address,
     family: isIP(address),
@@ -39,12 +56,18 @@ export async function fetchWithPinnedDns(
       callback(null, first.address, first.family);
     }
   };
-  const dispatcher = new Agent({ connect: { lookup } });
-  const requestInit = { ...init, dispatcher };
-  try {
-    return await globalThis.fetch(url.toString(), requestInit);
-  } finally {
-    // Graceful close waits for the response body to finish or be cancelled.
-    void dispatcher.close().catch(() => {});
-  }
+  const connect = buildConnector({ lookup });
+  return new Agent({
+    webSocket: options.webSocket,
+    connect(connection, callback) {
+      connect(connection, (error, socket) => {
+        if (error) {
+          callback(error, null);
+        } else {
+          options.onSocket?.(socket);
+          callback(null, socket);
+        }
+      });
+    },
+  });
 }

@@ -1,5 +1,6 @@
+import { useLivePlayback } from "@/components/useLivePlayback";
 import { ControlTooltip } from "@/components/ui/tooltip";
-import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import {
   AlertTriangle,
@@ -62,10 +63,6 @@ interface Properties {
   onOpenLocalVideo: () => void;
   onOpenSources: () => void;
   onDisconnect: () => Promise<void> | void;
-}
-
-function errorMessage(error: unknown, fallback: string) {
-  return error instanceof Error && error.message ? error.message : fallback;
 }
 
 function looksLikeGeneratedSourceName(value: string) {
@@ -154,15 +151,15 @@ function ViewerChip({
 }
 
 export const DashboardPlaybackCard = memo(function DashboardPlaybackCard({
-  card,
+  session: mediaSession,
+  viewer,
+  viewerSessionCount,
   activeViewTransitionSessionId,
   onSelectSession,
-}: {
-  card: DashboardPlaybackCardItem;
+}: DashboardPlaybackCardItem & {
   activeViewTransitionSessionId?: string | null;
   onSelectSession: (session: CurrentlyPlayingItem) => void;
 }) {
-  const { session: mediaSession, viewer, viewerSessionCount } = card;
   const canEdit = canEditSession(mediaSession);
   const sourceLabel = formatSourceLabel(mediaSession.source);
   const thumbnailViewTransitionName =
@@ -302,8 +299,6 @@ function DashboardPlaybackMotionRegion({
   onClearViewerFilter,
   onOpenLocalVideo,
   onOpenSources,
-  onRefresh,
-  refreshing,
 }: {
   loading: boolean;
   error: string;
@@ -316,8 +311,6 @@ function DashboardPlaybackMotionRegion({
   onClearViewerFilter: () => void;
   onOpenLocalVideo: () => void;
   onOpenSources: () => void;
-  onRefresh: () => void;
-  refreshing: boolean;
 }) {
   const reduceMotion = useReducedMotion();
   const hasPlaybackCards = playbackCards.length > 0;
@@ -373,7 +366,7 @@ function DashboardPlaybackMotionRegion({
           </motion.div>
         )}
 
-        {!loading && hasPlaybackCards && !error && (
+        {!loading && hasPlaybackCards && (
           <motion.div
             key="dashboard-playback-cards"
             layout={!reduceMotion}
@@ -410,7 +403,9 @@ function DashboardPlaybackMotionRegion({
                 }
               >
                 <DashboardPlaybackCard
-                  card={card}
+                  session={card.session}
+                  viewer={card.viewer}
+                  viewerSessionCount={card.viewerSessionCount}
                   activeViewTransitionSessionId={activeViewTransitionSessionId}
                   onSelectSession={onSelectSession}
                 />
@@ -449,19 +444,11 @@ function DashboardPlaybackMotionRegion({
                   {emptyMessage}
                 </p>
                 <p className="mx-auto mt-2 max-w-sm text-sm text-muted-foreground">
-                  Start a video in Plex or Jellyfin, then refresh. If your
-                  server is missing, check your connected sources.
+                  Start a video in Plex or Jellyfin and it will appear here
+                  automatically. If your server is missing, check your connected
+                  sources.
                 </p>
                 <div className="mt-5 flex flex-wrap justify-center gap-2">
-                  <button
-                    type="button"
-                    onClick={onRefresh}
-                    disabled={refreshing}
-                    className={compactSecondaryButtonClasses}
-                  >
-                    <RefreshCw className="h-4 w-4" />
-                    {refreshing ? "Refreshing…" : "Refresh sessions"}
-                  </button>
                   <button
                     type="button"
                     onClick={onOpenSources}
@@ -607,47 +594,38 @@ export default function DashboardScreen({
   onOpenSources,
   onDisconnect,
 }: Properties) {
-  const [viewers, setViewers] = useState<ViewerPlaybackGroup[]>([]);
-  const [sourceErrors, setSourceErrors] = useState<SourcePlaybackError[]>([]);
+  const {
+    viewers,
+    sourceErrors,
+    sources,
+    loading: pending,
+    connection,
+    retry,
+  } = useLivePlayback();
+  const loading =
+    pending && connection !== "reconnecting" && viewers.length === 0;
+  const error =
+    connection === "reconnecting"
+      ? "Live updates disconnected. Reconnecting automatically; displayed sessions may be out of date."
+      : "";
+  let liveStatus = "Connecting to live sessions…";
+  if (connection === "reconnecting") {
+    liveStatus = "Reconnecting to live sessions…";
+  } else if (sourceErrors.length > 0) {
+    liveStatus = "Some sources are unavailable";
+  } else if (
+    connection === "live" &&
+    sources.every((source) => source.state === "live")
+  ) {
+    liveStatus = "Sessions update automatically";
+  }
   const [versionInfo, setVersionInfo] = useState<CliparrVersionInfo | null>(
     null,
   );
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-  const [error, setError] = useState("");
   const [selectedViewerNames, setSelectedViewerNames] = useState(() =>
     readDashboardViewerFilter(),
   );
-  const hasFetchedSessionsReference = useRef(false);
   const reduceDashboardMotion = useReducedMotion();
-
-  const fetchSessions = useCallback(async () => {
-    const isInitialFetch = !hasFetchedSessionsReference.current;
-    if (isInitialFetch) {
-      setLoading(true);
-    } else {
-      setRefreshing(true);
-    }
-    setError("");
-
-    try {
-      const playback = await cliparrClient.getCurrentlyPlaying();
-      setViewers(playback.viewers);
-      setSourceErrors(playback.sourceErrors);
-    } catch (error_: unknown) {
-      setError(errorMessage(error_, "Could not load sessions."));
-      setViewers([]);
-      setSourceErrors([]);
-    } finally {
-      hasFetchedSessionsReference.current = true;
-      setLoading(false);
-      setRefreshing(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    void fetchSessions();
-  }, [fetchSessions]);
 
   useEffect(() => {
     let cancelled = false;
@@ -804,9 +782,7 @@ export default function DashboardScreen({
           <div
             className={cn(
               "grid gap-2 sm:hidden",
-              showViewerFilterControl
-                ? "grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_2.75rem]"
-                : "grid-cols-[minmax(0,1fr)_minmax(0,1fr)_2.75rem]",
+              showViewerFilterControl ? "grid-cols-3" : "grid-cols-2",
             )}
           >
             <button
@@ -826,18 +802,6 @@ export default function DashboardScreen({
               <span className="truncate">Sources</span>
             </button>
             {renderViewerFilterPicker()}
-            <ControlTooltip label="Refresh">
-              <button
-                type="button"
-                onClick={fetchSessions}
-                className="inline-flex h-11 w-11 items-center justify-center rounded-lg border border-border text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
-                aria-label="Refresh sessions"
-              >
-                <RefreshCw
-                  className={`h-5 w-5 ${loading || refreshing ? "animate-spin text-primary" : ""}`}
-                />
-              </button>
-            </ControlTooltip>
           </div>
           <MobilePwaInstallNudge />
           <div className="hidden flex-wrap items-center gap-3 sm:flex sm:justify-end">
@@ -858,18 +822,7 @@ export default function DashboardScreen({
               Sources
             </button>
             {renderViewerFilterPicker()}
-            <ControlTooltip label="Refresh">
-              <button
-                type="button"
-                onClick={fetchSessions}
-                className="p-2 text-muted-foreground hover:text-foreground hover:bg-accent rounded-lg transition-colors"
-                aria-label="Refresh sessions"
-              >
-                <RefreshCw
-                  className={`w-5 h-5 ${loading || refreshing ? "animate-spin text-primary" : ""}`}
-                />
-              </button>
-            </ControlTooltip>
+
             <ControlTooltip label="Open Cliparr website">
               <a
                 href={CLIPARR_WEBSITE_URL}
@@ -936,6 +889,24 @@ export default function DashboardScreen({
             </p>
           </div>
 
+          <div
+            className="flex items-center gap-3 text-sm text-muted-foreground"
+            role="status"
+            aria-live="polite"
+          >
+            <span>{liveStatus}</span>
+            {(error || sourceErrors.length > 0) && (
+              <button
+                type="button"
+                onClick={retry}
+                className={compactSecondaryButtonClasses}
+              >
+                <RefreshCw className="h-4 w-4" />
+                Retry connection
+              </button>
+            )}
+          </div>
+
           {error && (
             <div className="bg-destructive/10 border border-destructive/20 text-destructive p-4 rounded-xl text-sm">
               {error}
@@ -946,7 +917,12 @@ export default function DashboardScreen({
 
           <DashboardPlaybackMotionRegion
             loading={loading}
-            error={error}
+            error={
+              error ||
+              (viewers.length === 0 && sourceErrors.length > 0
+                ? "Sources unavailable"
+                : "")
+            }
             playbackCards={filteredPlaybackCards}
             filteredByViewer={selectedViewerFilterNames.length > 0}
             hiddenSessionCount={hiddenViewerFilterCardCount}
@@ -956,8 +932,6 @@ export default function DashboardScreen({
             onClearViewerFilter={clearViewerFilter}
             onOpenLocalVideo={onOpenLocalVideo}
             onOpenSources={onOpenSources}
-            onRefresh={() => void fetchSessions()}
-            refreshing={refreshing}
           />
         </div>
       </div>

@@ -1,3 +1,4 @@
+import { createPlaybackResolverCache } from "@/playback/resolverCache";
 import { logEventFields } from "@cliparr/shared/logging";
 import { randomUUID } from "node:crypto";
 import {
@@ -122,7 +123,11 @@ function persistWorkingSourceConnection(
   });
 }
 
-async function fetchCurrentlyPlayingData(source: MediaSource) {
+export async function fetchCurrentlyPlayingData(
+  source: MediaSource,
+  signal?: AbortSignal,
+) {
+  signal?.throwIfAborted();
   const {
     baseUrlMode,
     manualConnectionId,
@@ -146,13 +151,16 @@ async function fetchCurrentlyPlayingData(source: MediaSource) {
     try {
       const data = await fetchPmsCurrentSessions(context, {
         timeoutMs: CURRENT_PLAYBACK_REQUEST_TIMEOUT_MS,
+        signal,
       });
+      signal?.throwIfAborted();
       persistWorkingSourceConnection(source, persistedConnections, connection, {
         baseUrlMode,
         manualConnectionId,
       });
       return { context, data };
     } catch (error) {
+      signal?.throwIfAborted();
       if (!isRetryableConnectionError(error)) {
         throw error;
       }
@@ -284,142 +292,191 @@ function playbackViewer(
   };
 }
 
+async function preparePlexPlayback(
+  context: PlexSourceContext,
+  item: PlexMetadataItem,
+) {
+  const [prepared] = await enrichPlaybackItems(context, [item], {
+    required: true,
+  });
+  return prepared;
+}
+
+function bindPlexPlayback(
+  session: ProviderSessionRecord,
+  source: MediaSource,
+  context: PlexSourceContext,
+  item: PlexMetadataItem,
+  prepared: Awaited<ReturnType<typeof preparePlexPlayback>>,
+): CurrentlyPlayingEntry {
+  const { plexPlaybackSessionId, cliparrPreviewTranscodeSessionId } =
+    derivePlexPlaybackIds(source.id, item);
+  const mediaSelection = deriveMediaSelection(item);
+  const { item: enrichedItem, libraryItem } = prepared;
+  const mediaPath = resolveMediaPath(item, enrichedItem, mediaSelection);
+  const previewPath = createPreviewPath(
+    enrichedItem,
+    cliparrPreviewTranscodeSessionId,
+    mediaSelection,
+  );
+  const thumbPath = metadataImagePath(enrichedItem);
+  const selectedPart = resolveSelectedPart(enrichedItem, mediaSelection)?.part;
+  // A retained live file still needs its own audio selection even when that
+  // version is missing from the library response used for preview indexes.
+  const audioItem = !selectedPart && mediaPath ? item : enrichedItem;
+  const selectedAudioTrack = deriveSelectedAudioTrack(
+    audioItem,
+    mediaSelection,
+    libraryItem,
+  );
+  const selectedSubtitleTrack = deriveSelectedSubtitleTrack(
+    enrichedItem,
+    mediaSelection,
+  );
+  const subtitleTracks = deriveSubtitleTracks(
+    session,
+    context,
+    enrichedItem,
+    plexPlaybackSessionId,
+    mediaSelection,
+  ).filter((track) => subtitleTrackSupportsBurnIn(track));
+  const audioStreams = streamEntries(
+    resolveSelectedPart(audioItem, mediaSelection)?.part,
+  ).filter((stream) => isAudioStream(stream));
+  const videoStreams = selectedPart
+    ? streamEntries(selectedPart).filter((stream) => isVideoStream(stream))
+    : [];
+  const duration =
+    Number(
+      enrichedItem.duration ?? asArray(enrichedItem.Media)[0]?.duration ?? 0,
+    ) / 1000;
+  const exportEstimateMetadata = createPlexExportEstimateMetadata(
+    enrichedItem,
+    mediaSelection,
+    duration,
+  );
+  const playheadSeconds = playheadSecondsFromViewOffset(item?.viewOffset);
+  const playerTitle = stringValue(item.Player?.title) ?? "Unknown Device";
+  const playerState = stringValue(item.Player?.state) ?? "unknown";
+  const thumbUrl = thumbPath
+    ? createMediaHandle(session, context, thumbPath)
+    : undefined;
+  const mediaUrl = mediaPath
+    ? createMediaHandle(session, context, mediaPath)
+    : undefined;
+  const hlsUrl = previewPath
+    ? createMediaHandle(session, context, previewPath, {
+        generatedOperation: true,
+        playbackSessionId: plexPlaybackSessionId,
+      })
+    : undefined;
+  const missingPreviewPath =
+    !previewPath && itemTypeValue(enrichedItem) !== "track";
+  const unresolvedSelectedAudioTrack =
+    !selectedAudioTrack && audioStreams.length > 1;
+  logger.trace("Resolved Plex playback item.", {
+    ...logEventFields("provider.playback.resolve", "success"),
+    "provider.id": "plex",
+    "session.id": session.id,
+    "source.id": source.id,
+    "provider.account.id": source.providerAccountId,
+    "plex.playback_session.id": plexPlaybackSessionId,
+    "plex.transcode_session.id": cliparrPreviewTranscodeSessionId,
+    "media.item.id": `${source.id}:${plexPlaybackSessionId}`,
+    "media.id": mediaSelection?.mediaId,
+    "media.index": mediaSelection?.mediaIndex,
+    "media.part.id": mediaSelection?.partId,
+    "media.part.index": mediaSelection?.partIndex,
+    "media.video_stream.count": videoStreams.length,
+    "media.audio_stream.count": audioStreams.length,
+    "media.preview.missing": missingPreviewPath,
+    "media.audio_selection.unresolved": unresolvedSelectedAudioTrack,
+  });
+
+  return {
+    viewer: playbackViewer(
+      session,
+      context,
+      item,
+      source.id,
+      plexPlaybackSessionId,
+    ),
+    item: {
+      id: `${source.id}:${plexPlaybackSessionId}`,
+      playbackSessionId: plexPlaybackSessionId,
+      source: {
+        id: source.id,
+        name: source.name,
+        providerId: "plex",
+      },
+      title: itemTitleValue(enrichedItem),
+      type: itemTypeValue(enrichedItem) || "video",
+      duration,
+      playheadSeconds,
+      playerTitle,
+      playerState,
+      thumbUrl,
+      mediaUrl,
+      hlsUrl,
+      previewUrl: hlsUrl,
+      previewFormat: previewPath ? "hls" : undefined,
+      selectedAudioTrack,
+      selectedSubtitleTrack,
+      subtitleTracks,
+      exportMetadata: createExportMetadata(session, context, enrichedItem),
+      exportEstimateMetadata,
+    },
+  };
+}
+
+export function createPlexPlaybackResolver(
+  source: MediaSource,
+  context: PlexSourceContext,
+) {
+  const resolve = createPlaybackResolverCache({
+    key: (item: PlexMetadataItem) =>
+      JSON.stringify([
+        playbackSessionIdentity(item),
+        item.ratingKey,
+        item.key,
+        item.title,
+        item.thumb,
+        item.User,
+        item.Player?.title,
+        item.Player?.machineIdentifier,
+        item.Media,
+      ]),
+    prepare: (item) => preparePlexPlayback(context, item),
+    bind: async (item, prepared, session) =>
+      bindPlexPlayback(session, source, context, item, prepared),
+    update: (entry, item) => ({
+      ...entry,
+      item: {
+        ...entry.item,
+        playerState: stringValue(item.Player?.state) ?? "unknown",
+        playheadSeconds: playheadSecondsFromViewOffset(item.viewOffset),
+      },
+    }),
+  });
+  return (data: StatusGetSlashResponse) =>
+    resolve(
+      dedupeCurrentlyPlayingMetadata(data.MediaContainer?.Metadata ?? []),
+    );
+}
+
 async function normalizeCurrentPlayback(
   session: ProviderSessionRecord,
   source: MediaSource,
   context: PlexSourceContext,
   data: StatusGetSlashResponse,
 ): Promise<CurrentlyPlayingEntry[]> {
-  const metadata = data?.MediaContainer?.Metadata;
-  if (!Array.isArray(metadata)) {
-    return [];
-  }
-
-  const uniqueMetadata = dedupeCurrentlyPlayingMetadata(metadata);
-  const enrichedItems = await enrichPlaybackItems(context, uniqueMetadata);
-
-  return uniqueMetadata.map((item, index) => {
-    const { plexPlaybackSessionId, cliparrPreviewTranscodeSessionId } =
-      derivePlexPlaybackIds(source.id, item);
-    const mediaSelection = deriveMediaSelection(item);
-    const { item: enrichedItem, libraryItem } = enrichedItems[index];
-    const mediaPath = resolveMediaPath(item, enrichedItem, mediaSelection);
-    const previewPath = createPreviewPath(
-      enrichedItem,
-      cliparrPreviewTranscodeSessionId,
-      mediaSelection,
-    );
-    const thumbPath = metadataImagePath(enrichedItem);
-    const selectedPart = resolveSelectedPart(
-      enrichedItem,
-      mediaSelection,
-    )?.part;
-    // A retained live file still needs its own audio selection even when that
-    // version is missing from the library response used for preview indexes.
-    const audioItem = !selectedPart && mediaPath ? item : enrichedItem;
-    const selectedAudioTrack = deriveSelectedAudioTrack(
-      audioItem,
-      mediaSelection,
-      libraryItem,
-    );
-    const selectedSubtitleTrack = deriveSelectedSubtitleTrack(
-      enrichedItem,
-      mediaSelection,
-    );
-    const subtitleTracks = deriveSubtitleTracks(
-      session,
-      context,
-      enrichedItem,
-      plexPlaybackSessionId,
-      mediaSelection,
-    ).filter((track) => subtitleTrackSupportsBurnIn(track));
-    const audioStreams = streamEntries(
-      resolveSelectedPart(audioItem, mediaSelection)?.part,
-    ).filter((stream) => isAudioStream(stream));
-    const videoStreams = selectedPart
-      ? streamEntries(selectedPart).filter((stream) => isVideoStream(stream))
-      : [];
-    const duration =
-      Number(
-        enrichedItem.duration ?? asArray(enrichedItem.Media)[0]?.duration ?? 0,
-      ) / 1000;
-    const exportEstimateMetadata = createPlexExportEstimateMetadata(
-      enrichedItem,
-      mediaSelection,
-      duration,
-    );
-    const playheadSeconds = playheadSecondsFromViewOffset(item?.viewOffset);
-    const playerTitle = stringValue(item.Player?.title) ?? "Unknown Device";
-    const playerState = stringValue(item.Player?.state) ?? "unknown";
-    const thumbUrl = thumbPath
-      ? createMediaHandle(session, context, thumbPath)
-      : undefined;
-    const mediaUrl = mediaPath
-      ? createMediaHandle(session, context, mediaPath)
-      : undefined;
-    const hlsUrl = previewPath
-      ? createMediaHandle(session, context, previewPath, {
-          generatedOperation: true,
-          playbackSessionId: plexPlaybackSessionId,
-        })
-      : undefined;
-    const missingPreviewPath =
-      !previewPath && itemTypeValue(enrichedItem) !== "track";
-    const unresolvedSelectedAudioTrack =
-      !selectedAudioTrack && audioStreams.length > 1;
-    logger.trace("Resolved Plex playback item.", {
-      ...logEventFields("provider.playback.resolve", "success"),
-      "provider.id": "plex",
-      "session.id": session.id,
-      "source.id": source.id,
-      "provider.account.id": source.providerAccountId,
-      "plex.playback_session.id": plexPlaybackSessionId,
-      "plex.transcode_session.id": cliparrPreviewTranscodeSessionId,
-      "media.item.id": `${source.id}:${plexPlaybackSessionId}`,
-      "media.id": mediaSelection?.mediaId,
-      "media.index": mediaSelection?.mediaIndex,
-      "media.part.id": mediaSelection?.partId,
-      "media.part.index": mediaSelection?.partIndex,
-      "media.video_stream.count": videoStreams.length,
-      "media.audio_stream.count": audioStreams.length,
-      "media.preview.missing": missingPreviewPath,
-      "media.audio_selection.unresolved": unresolvedSelectedAudioTrack,
-    });
-
-    return {
-      viewer: playbackViewer(
-        session,
-        context,
-        item,
-        source.id,
-        plexPlaybackSessionId,
-      ),
-      item: {
-        id: `${source.id}:${plexPlaybackSessionId}`,
-        source: {
-          id: source.id,
-          name: source.name,
-          providerId: "plex",
-        },
-        title: itemTitleValue(enrichedItem),
-        type: itemTypeValue(enrichedItem) || "video",
-        duration,
-        playheadSeconds,
-        playerTitle,
-        playerState,
-        thumbUrl,
-        mediaUrl,
-        hlsUrl,
-        previewUrl: hlsUrl,
-        previewFormat: previewPath ? "hls" : undefined,
-        selectedAudioTrack,
-        selectedSubtitleTrack,
-        subtitleTracks,
-        exportMetadata: createExportMetadata(session, context, enrichedItem),
-        exportEstimateMetadata,
-      },
-    };
-  });
+  const items = dedupeCurrentlyPlayingMetadata(
+    data.MediaContainer?.Metadata ?? [],
+  );
+  const prepared = await enrichPlaybackItems(context, items);
+  return items.map((item, index) =>
+    bindPlexPlayback(session, source, context, item, prepared[index]),
+  );
 }
 
 export async function listCurrentlyPlaying(

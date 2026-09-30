@@ -1,3 +1,4 @@
+import { notifyPlaybackStateChange } from "@/playback/stateChanges";
 import { randomUUID } from "node:crypto";
 import { and, asc, eq, type SQL } from "drizzle-orm";
 import { getDatabase } from "@/db/database";
@@ -99,6 +100,7 @@ function createMediaSource(input: CreateMediaSourceInput) {
     })
     .run();
 
+  notifyPlaybackStateChange({ type: "sources" });
   return getMediaSource(id);
 }
 
@@ -128,6 +130,7 @@ export function updateMediaSource(id: string, input: UpdateMediaSourceInput) {
     .where(eq(mediaSources.id, id))
     .run();
 
+  notifyPlaybackStateChange({ type: "sources" });
   return getMediaSource(id);
 }
 
@@ -153,6 +156,7 @@ export function deleteMediaSource(id: string) {
     .where(eq(mediaSources.id, id))
     .run();
 
+  notifyPlaybackStateChange({ type: "sources" });
   return result.changes > 0;
 }
 
@@ -212,6 +216,7 @@ export function upsertMediaSource(input: CreateMediaSourceInput) {
     })
     .run();
 
+  notifyPlaybackStateChange({ type: "sources" });
   return getMediaSourceByProviderExternalId(
     input.providerId,
     input.providerAccountId,

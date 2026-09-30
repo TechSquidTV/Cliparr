@@ -3,6 +3,7 @@ import type { Request, Response } from "express";
 import type {
   CurrentlyPlayingItem,
   PlaybackViewer,
+  PlaybackProgress,
 } from "@cliparr/shared/providers";
 import type { MediaSource } from "@/db/mediaSourcesRepository";
 import type { ProviderSessionRecord } from "@/session/store";
@@ -62,6 +63,16 @@ export interface CurrentlyPlayingEntry {
   item: CurrentlyPlayingItem;
 }
 
+export type PlaybackResolver = (
+  session: ProviderSessionRecord,
+) => Promise<CurrentlyPlayingEntry[]>;
+
+export interface PlaybackObserver {
+  snapshot: (resolve: PlaybackResolver) => void;
+  progress: (updates: PlaybackProgress[]) => void;
+  invalidate: () => void;
+}
+
 interface MediaHandleProviderMetadata {
   plex?: {
     playbackSessionId?: string;
@@ -119,6 +130,11 @@ export interface ProviderImplementation {
     session: ProviderSessionRecord,
     source: MediaSource,
   ): Promise<CurrentlyPlayingEntry[]>;
+  watchCurrentlyPlaying(
+    source: MediaSource,
+    observer: PlaybackObserver,
+    signal: AbortSignal,
+  ): Promise<void>;
   proxyMedia(
     session: ProviderSessionRecord,
     handleId: string,
