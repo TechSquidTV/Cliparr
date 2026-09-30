@@ -521,7 +521,7 @@ export function createPlexExportEstimateMetadata(
     : undefined;
 }
 
-export function selectedAudioTrackTitle(stream: PlexStream) {
+function selectedAudioTrackTitle(stream: PlexStream) {
   return (
     stringValue(stream?.title) ??
     stringValue(stream?.extendedDisplayTitle) ??

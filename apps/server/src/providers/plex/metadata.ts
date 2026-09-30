@@ -1,5 +1,5 @@
 import { logErrorFields, sanitizeUrlForLog } from "@cliparr/shared/logging";
-import { getServerLogger } from "@/logging";
+import { getServerLogger, warnWithError } from "@/logging";
 import type { ProviderSessionRecord } from "@/session/store";
 import type { Tag } from "@cliparr/plex/pms/types";
 import { imageTranscodeUrl } from "@cliparr/plex/pms/urls";
@@ -138,7 +138,7 @@ export async function enrichPlaybackItems(
       return { item: mergePlaybackMetadata(item, libraryItem), libraryItem };
     });
   } catch (error) {
-    logger.warn("Could not fetch Plex metadata.", {
+    warnWithError(logger, error, "Could not fetch Plex metadata.", {
       ...logErrorFields(error),
       "metadata.count": ids.length,
       "source.id": context.sourceId,

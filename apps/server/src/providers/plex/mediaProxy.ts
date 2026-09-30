@@ -15,7 +15,7 @@ import {
 import { plexMediaHeaders } from "@/providers/plex/shared";
 import { preparePlexSubtitleTranscode } from "@/providers/plex/subtitles";
 
-const logger = getServerLogger(["provider", "plex", "playback"]);
+const logger = getServerLogger(["media", "proxy"]);
 
 function transcodeSessionId(path: string) {
   try {

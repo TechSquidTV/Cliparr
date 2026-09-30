@@ -14,7 +14,7 @@ import type { ReadableStream as WebReadableStream } from "node:stream/web";
 import type { Response } from "express";
 import { logErrorFields, logEventFields } from "@cliparr/shared/logging";
 import { createApiError, isApiError } from "@/http/errors";
-import { getServerLogger } from "@/logging";
+import { getServerLogger, warnWithError } from "@/logging";
 import type { ProviderSessionRecord } from "@/session/store";
 import type { MediaHandle } from "@/providers/types";
 import { fetchWithPinnedDns } from "@/providers/shared/pinnedFetch";
@@ -285,7 +285,7 @@ export async function assertAllowedMediaHandleRequestUrl(
   try {
     addresses = await resolveHostnameAddresses(requestUrl.hostname);
   } catch (error) {
-    logger.warn("Media URL hostname validation failed.", {
+    warnWithError(logger, error, "Media URL hostname validation failed.", {
       ...unsafeMediaUrlFields(handle, requestUrl, "dns_resolution"),
       ...logErrorFields(error),
     });
@@ -1191,7 +1191,7 @@ export async function proxyUpstreamMediaResponse(
       return;
     }
 
-    logger.warn(logMessage, properties);
+    warnWithError(logger, error, logMessage, properties);
     if (!res.destroyed) {
       res.destroy();
     }

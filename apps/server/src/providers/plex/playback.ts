@@ -1,3 +1,4 @@
+import { logEventFields } from "@cliparr/shared/logging";
 import { randomUUID } from "node:crypto";
 import {
   updateMediaSource,
@@ -15,7 +16,6 @@ import type {
 import {
   asArray,
   errorMessage,
-  numberValue,
   stringValue,
 } from "@/providers/shared/utilities";
 import {
@@ -46,14 +46,12 @@ import {
   deriveSelectedAudioTrack,
   idValue,
   isAudioStream,
-  isSelectedEntry,
   isVideoStream,
   itemTitleValue,
   itemTypeValue,
   metadataPath,
   playheadSecondsFromViewOffset,
   resolveSelectedPart,
-  selectedAudioTrackTitle,
   streamEntries,
 } from "@/providers/plex/selection";
 import { createMediaHandle } from "@/providers/plex/mediaHandles";
@@ -369,77 +367,24 @@ async function normalizeCurrentPlayback(
       !previewPath && itemTypeValue(enrichedItem) !== "track";
     const unresolvedSelectedAudioTrack =
       !selectedAudioTrack && audioStreams.length > 1;
-    const playbackDiagnostics = {
-      sessionId: session.id,
-      sourceId: source.id,
-      providerAccountId: source.providerAccountId,
-      playbackSessionId: plexPlaybackSessionId,
-      transcodeSessionId: cliparrPreviewTranscodeSessionId,
-      currentlyPlayingItem: {
-        id: `${source.id}:${plexPlaybackSessionId}`,
-        title: itemTitleValue(enrichedItem),
-        type: itemTypeValue(enrichedItem) || "video",
-        duration,
-        playheadSeconds: playheadSeconds ?? null,
-        playerTitle,
-        playerState,
-        mediaUrl: mediaUrl ?? null,
-        hlsUrl: hlsUrl ?? null,
-        selectedAudioTrack: selectedAudioTrack ?? null,
-        exportEstimateMetadata: exportEstimateMetadata ?? null,
-      },
-      metadataPath: metadataPath(enrichedItem) ?? null,
-      mediaId: mediaSelection?.mediaId ?? null,
-      mediaIndex: mediaSelection?.mediaIndex ?? null,
-      partId: mediaSelection?.partId ?? null,
-      partIndex: mediaSelection?.partIndex ?? null,
-      videoStreamCount: videoStreams.length,
-      audioStreamCount: audioStreams.length,
-      videoStreams: videoStreams.map((stream, index) => ({
-        trackNumber: index + 1,
-        streamId: idValue(stream?.id) ?? null,
-        title:
-          stringValue(stream?.title) ??
-          stringValue(stream?.extendedDisplayTitle) ??
-          stringValue(stream?.displayTitle) ??
-          null,
-        codec: stringValue(stream?.codec) ?? null,
-        width: numberValue(stream?.width) ?? null,
-        height: numberValue(stream?.height) ?? null,
-        selected: isSelectedEntry(stream),
-      })),
-      hasMultipleAudioStreams: audioStreams.length > 1,
-      audioStreams: audioStreams.map((stream, index) => ({
-        trackNumber: index + 1,
-        streamId: idValue(stream?.id) ?? null,
-        languageCode:
-          stringValue(stream?.languageCode) ??
-          stringValue(stream?.languageTag) ??
-          null,
-        title: selectedAudioTrackTitle(stream) ?? null,
-        codec: stringValue(stream?.codec) ?? null,
-        selected: isSelectedEntry(stream),
-      })),
-    };
-
-    logger.debug(
-      "Plex playback diagnostics for currently playing item.",
-      playbackDiagnostics,
-    );
-
-    if (missingPreviewPath) {
-      logger.debug(
-        "Plex playback item did not produce an HLS preview path.",
-        playbackDiagnostics,
-      );
-    }
-
-    if (unresolvedSelectedAudioTrack) {
-      logger.debug(
-        "Plex playback item has multiple audio streams without a resolved selected audio track.",
-        playbackDiagnostics,
-      );
-    }
+    logger.trace("Resolved Plex playback item.", {
+      ...logEventFields("provider.playback.resolve", "success"),
+      "provider.id": "plex",
+      "session.id": session.id,
+      "source.id": source.id,
+      "provider.account.id": source.providerAccountId,
+      "plex.playback_session.id": plexPlaybackSessionId,
+      "plex.transcode_session.id": cliparrPreviewTranscodeSessionId,
+      "media.item.id": `${source.id}:${plexPlaybackSessionId}`,
+      "media.id": mediaSelection?.mediaId,
+      "media.index": mediaSelection?.mediaIndex,
+      "media.part.id": mediaSelection?.partId,
+      "media.part.index": mediaSelection?.partIndex,
+      "media.video_stream.count": videoStreams.length,
+      "media.audio_stream.count": audioStreams.length,
+      "media.preview.missing": missingPreviewPath,
+      "media.audio_selection.unresolved": unresolvedSelectedAudioTrack,
+    });
 
     return {
       viewer: playbackViewer(
