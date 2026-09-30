@@ -100,6 +100,9 @@ ID conflicts with library metadata, previews and subtitle extraction are omitted
 instead of selecting another version. A returned live download URL and its live
 audio selection remain usable. Streams match by ID, then by source index or stream
 identifier when IDs are missing; contradictory locators cannot match by position.
+Audio track numbers come only from a stream matched to the raw library part.
+**Behavior change:** partial live lists and unmatched streams omit the ordinal;
+the editor selects using the retained language/title instead of a guessed number.
 
 Generated deferred operations pass `generatedOperation: true` to `createMediaHandle`
 so the configured PMS base path is included once. Returned resource URLs use normal

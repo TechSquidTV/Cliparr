@@ -153,7 +153,7 @@ function correspondingEntry<T extends { id?: string | number }>(
 function correspondingStream(
   entries: PlexStream[],
   stream: PlexStream,
-  index: number,
+  index?: number,
 ) {
   const id = idValue(stream.id);
   const compatible = (candidate: PlexStream) =>
@@ -194,7 +194,7 @@ function correspondingStream(
   if (located) {
     return located;
   }
-  const positional = entries[index];
+  const positional = index === undefined ? undefined : entries[index];
   return positional && compatible(positional) && !contradicts(positional)
     ? positional
     : undefined;
@@ -521,6 +521,7 @@ export function selectedAudioTrackTitle(stream: PlexStream) {
 export function deriveSelectedAudioTrack(
   item: PlexMetadataItem,
   selection?: PlexMediaSelection,
+  libraryItem?: PlexMetadataItem,
 ): PlaybackAudioSelection | undefined {
   const part = resolveSelectedPart(item, selection)?.part;
   if (!part) {
@@ -543,9 +544,16 @@ export function deriveSelectedAudioTrack(
 
   const trackIndex = Math.max(selectedAudioIndex, 0);
   const selectedAudioStream = audioStreams[trackIndex];
+  // Session stream lists may be partial, and enrichment can append live-only
+  // streams. Only the matching library part establishes source audio ordering.
+  const libraryAudio = streamEntries(
+    resolveSelectedPart(libraryItem, selection)?.part,
+  ).filter((stream) => isAudioStream(stream));
+  const libraryStream = correspondingStream(libraryAudio, selectedAudioStream);
+  const libraryIndex = libraryStream ? libraryAudio.indexOf(libraryStream) : -1;
 
   return {
-    trackNumber: trackIndex + 1,
+    trackNumber: libraryIndex === -1 ? undefined : libraryIndex + 1,
     languageCode:
       stringValue(selectedAudioStream?.languageCode) ??
       stringValue(selectedAudioStream?.languageTag),

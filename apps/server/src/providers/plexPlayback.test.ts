@@ -1732,7 +1732,7 @@ void test("missing library versions preserve direct-file audio selection but omi
           "/returned/live.mp4",
         );
         assert.equal(entry?.item.hlsUrl, undefined);
-        assert.equal(entry?.item.selectedAudioTrack?.trackNumber, 2);
+        assert.equal(entry?.item.selectedAudioTrack?.trackNumber, undefined);
         assert.equal(entry?.item.selectedAudioTrack?.languageCode, "spa");
       },
     );
@@ -1975,7 +1975,10 @@ void test("partial live stream lists match source locators before array position
       const merged = mergePlaybackMetadata(live, library);
       assert.equal(resolveSelectedPart(merged)?.part?.Stream?.length, 2);
       assert.equal(deriveSelectedAudioTrack(merged)?.languageCode, "spa");
-      assert.equal(deriveSelectedAudioTrack(merged)?.trackNumber, 2);
+      assert.equal(
+        deriveSelectedAudioTrack(merged, undefined, library)?.trackNumber,
+        2,
+      );
     }
   }
 });
@@ -2129,6 +2132,9 @@ void test("positional stream guesses cannot steal a stronger match elsewhere", (
     streams?.map((stream) => stream.selected),
     [false, true],
   );
-  assert.equal(deriveSelectedAudioTrack(merged)?.trackNumber, 2);
+  assert.equal(
+    deriveSelectedAudioTrack(merged, undefined, library)?.trackNumber,
+    2,
+  );
   assert.equal(deriveSelectedAudioTrack(merged)?.languageCode, "spa");
 });

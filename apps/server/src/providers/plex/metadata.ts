@@ -119,10 +119,10 @@ function buildSourceTitle(item: PlexMetadataItem) {
 export async function enrichPlaybackItems(
   context: PlexSourceContext,
   items: PlexMetadataItem[],
-) {
+): Promise<{ item: PlexMetadataItem; libraryItem?: PlexMetadataItem }[]> {
   const ids = uniqueStrings(items.map((item) => metadataId(item)));
   if (ids.length === 0) {
-    return items;
+    return items.map((item) => ({ item }));
   }
   try {
     const data = await fetchPmsMetadata(context, ids);
@@ -134,7 +134,8 @@ export async function enrichPlaybackItems(
     );
     return items.map((item) => {
       const id = metadataId(item);
-      return mergePlaybackMetadata(item, id ? byId.get(id) : undefined);
+      const libraryItem = id ? byId.get(id) : undefined;
+      return { item: mergePlaybackMetadata(item, libraryItem), libraryItem };
     });
   } catch (error) {
     logger.warn("Could not fetch Plex metadata.", {
@@ -143,7 +144,7 @@ export async function enrichPlaybackItems(
       "source.id": context.sourceId,
       "source.base_url": sanitizeUrlForLog(context.baseUrl),
     });
-    return items;
+    return items.map((item) => ({ item }));
   }
 }
 

@@ -304,7 +304,7 @@ async function normalizeCurrentPlayback(
     const { plexPlaybackSessionId, cliparrPreviewTranscodeSessionId } =
       derivePlexPlaybackIds(source.id, item);
     const mediaSelection = deriveMediaSelection(item);
-    const enrichedItem = enrichedItems[index];
+    const { item: enrichedItem, libraryItem } = enrichedItems[index];
     const mediaPath = resolveMediaPath(item, enrichedItem, mediaSelection);
     const previewPath = createPreviewPath(
       enrichedItem,
@@ -322,6 +322,7 @@ async function normalizeCurrentPlayback(
     const selectedAudioTrack = deriveSelectedAudioTrack(
       audioItem,
       mediaSelection,
+      libraryItem,
     );
     const selectedSubtitleTrack = deriveSelectedSubtitleTrack(
       enrichedItem,
