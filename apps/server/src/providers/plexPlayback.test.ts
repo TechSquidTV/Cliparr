@@ -2223,3 +2223,75 @@ void test("unidentified subtitles match only unambiguous resource keys and prese
     }
   }
 });
+
+void test("unidentified library entries cannot steal a matching media or part ID", async () => {
+  for (const dimension of ["media", "part"] as const) {
+    const live: PlexMetadataItem = {
+      ratingKey: "42",
+      type: "movie",
+      Media: [
+        {
+          id: 20,
+          Part: [
+            {
+              id: 21,
+              key: "/returned/selected.mp4",
+              Stream: [{ id: 30, streamType: 3, codec: "srt", selected: true }],
+            },
+          ],
+        },
+      ],
+    };
+    const library: PlexMetadataItem = {
+      ratingKey: "42",
+      type: "movie",
+      Media:
+        dimension === "media"
+          ? [{ Part: [{}] }, { id: 20, Part: [{ id: 21 }] }]
+          : [{ id: 20, Part: [{}, { id: 21 }] }],
+    };
+    const merged = mergePlaybackMetadata(live, library);
+    const entries =
+      dimension === "media" ? merged.Media : merged.Media?.[0]?.Part;
+    assert.deepEqual(
+      entries?.map((entry) => entry.id),
+      [undefined, dimension === "media" ? 20 : 21],
+    );
+    const session = createSession();
+    await withMockFetch(
+      (request) =>
+        jsonResponse({
+          MediaContainer: {
+            Metadata: [
+              new URL(request.url).pathname === "/status/sessions"
+                ? live
+                : library,
+            ],
+          },
+        }),
+      async () => {
+        const [entry] = await listCurrentlyPlaying(session, createSource());
+        const preview = mediaHandleForUrl(session, entry?.item.hlsUrl);
+        const subtitle = mediaHandleForUrl(
+          session,
+          entry?.item.subtitleTracks?.[0]?.contentUrl,
+        );
+        for (const handle of [preview, subtitle]) {
+          const url = mediaHandleRequestUrl(handle);
+          assert.equal(
+            url.searchParams.get("mediaIndex"),
+            dimension === "media" ? "1" : "0",
+          );
+          assert.equal(
+            url.searchParams.get("partIndex"),
+            dimension === "part" ? "1" : "0",
+          );
+        }
+        assert.equal(
+          mediaHandleForUrl(session, entry?.item.mediaUrl).path,
+          "/returned/selected.mp4",
+        );
+      },
+    );
+  }
+});

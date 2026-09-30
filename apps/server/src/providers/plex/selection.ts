@@ -144,10 +144,21 @@ function correspondingIndex<T extends { id?: string | number }>(
 
 function correspondingEntry<T extends { id?: string | number }>(
   entries: T[] = [],
-  entry: T,
+  counterparts: T[],
   index: number,
 ) {
-  return entries[correspondingIndex(entries, idValue(entry.id), index)];
+  const matchIndex = correspondingIndex(
+    entries,
+    idValue(counterparts[index].id),
+    index,
+  );
+  const match = entries[matchIndex];
+  // A positional match must not reuse an entry identified elsewhere in either
+  // list. Require both sides to choose each other before copying live fields.
+  return match &&
+    correspondingIndex(counterparts, idValue(match.id), matchIndex) === index
+    ? match
+    : undefined;
 }
 
 function correspondingStream(entries: PlexStream[], stream: PlexStream) {
@@ -242,17 +253,21 @@ export function mergePlaybackMetadata(
     ...live,
     ...library,
     Media:
-      library.Media?.map((media, mediaIndex) => {
-        const liveMedia = correspondingEntry(live.Media, media, mediaIndex);
+      library.Media?.map((media, mediaIndex, libraryMedia) => {
+        const liveMedia = correspondingEntry(
+          live.Media,
+          libraryMedia,
+          mediaIndex,
+        );
         return {
           ...liveMedia,
           ...media,
           selected: liveMedia?.selected ?? media.selected,
           Part:
-            media.Part?.map((part, partIndex) => {
+            media.Part?.map((part, partIndex, libraryParts) => {
               const livePart = correspondingEntry(
                 liveMedia?.Part,
-                part,
+                libraryParts,
                 partIndex,
               );
               return {

@@ -95,8 +95,10 @@ stripping; their DNS, timeout, retry, and streaming policies remain separate.
 
 Enrichment retains live resource keys and fills in descriptive fields from the
 library. Media and part IDs take precedence over array positions; positions are
-used only when an identity is missing. **Behavior change:** if an explicit live
-ID conflicts with library metadata, previews and subtitle extraction are omitted
+used only when an identity is missing and both entries choose each other, so a
+positional match cannot reuse an entry identified elsewhere. **Behavior change:**
+if an explicit live ID conflicts with library metadata, previews and subtitle
+extraction are omitted
 instead of selecting another version. A returned live download URL and its live
 audio selection remain usable. Streams match by ID, then by source index, stream
 identifier, or an unambiguous resource key when IDs are missing. **Behavior change:**
