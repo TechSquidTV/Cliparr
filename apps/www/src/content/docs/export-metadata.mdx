@@ -57,6 +57,8 @@ Source start and end are rounded to integer milliseconds once. Clip duration is 
 
 The named timing fields are `CLIPARR_SOURCE_START_SECONDS`, `CLIPARR_SOURCE_END_SECONDS`, `CLIPARR_CLIP_DURATION_SECONDS`, and `CLIPARR_SOURCE_START_TIMECODE`. These and the MP4 timing keys are application-defined; general players may not display them.
 
+`clpr` is Cliparr’s custom metadata tag for MP4, MOV, and M4A files. It is application-defined, not a standard container metadata field. Other supported containers carry the same Cliparr-defined payload under `CLIPARR_METADATA`, as shown above.
+
 The shared payload has this shape:
 
 ```json
