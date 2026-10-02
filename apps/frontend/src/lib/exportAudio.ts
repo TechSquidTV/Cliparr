@@ -436,41 +436,16 @@ export function audioBitDepthSummary(plan: ExportAudioPlan) {
     return null;
   }
   const precision = plan.source.precision;
-  let reason = `Source bit depth is unavailable; uses ${plan.bits}-bit to avoid additional precision reduction.`;
+  let reason = "Source bit depth unknown.";
   if (plan.mixdown) {
-    reason = "Preserves precision when mixing channels.";
+    reason = "Preserves mixing precision.";
   } else if (precision) {
-    if (precision.kind === "float") {
-      reason = `Preserves ${precision.bits}-bit floating-point audio.`;
-    } else {
-      reason =
-        plan.bits === precision.bits
-          ? `Matches the source's ${precision.bits}-bit precision.`
-          : `Preserves the source's ${precision.bits}-bit precision without adding detail.`;
-    }
+    reason =
+      plan.bits === precision.bits
+        ? "Matches source."
+        : "Preserves source precision.";
   }
   return { bits: plan.bits, reason };
-}
-
-export function audioPlanSummary(plan: ExportAudioPlan) {
-  const channels =
-    { 1: "Mono", 2: "Stereo" }[plan.numberOfChannels] ??
-    `${plan.numberOfChannels} channels`;
-  const details = [
-    plan.codec.replace("pcm-", "PCM ").toUpperCase(),
-    `${plan.sampleRate / 1000} kHz`,
-    channels,
-  ];
-  if (plan.bits) {
-    details.push(`${plan.bits}-bit`);
-  } else if (plan.bitrate) {
-    details.push(`${plan.bitrate / 1000} kbps`);
-  }
-  const resampling =
-    plan.sampleRate === plan.source.sampleRate
-      ? ""
-      : ` (resampled from ${plan.source.sampleRate / 1000} kHz)`;
-  return details.join(" · ") + resampling;
 }
 
 export function assertWavSize(plan: ExportAudioPlan, duration: number) {

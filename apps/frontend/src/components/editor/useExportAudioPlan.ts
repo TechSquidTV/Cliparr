@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from "react";
 import {
-  audioPlanSummary,
   audioBitDepthSummary,
   inspectAudioTrack,
   resolveExportAudioPlan,
@@ -130,14 +129,14 @@ export function useExportAudioPlan(
     result.mixdown === mixdown
       ? result
       : null;
-  let summary = "Not included";
+  let status = "Not included";
   if (active) {
-    summary = current?.error ? "Unavailable" : "Checking source audio…";
+    status = current?.error ? "Unavailable" : "Checking source audio…";
     if (current?.channels === 0) {
-      summary = "No source audio";
+      status = "No source audio";
     }
     if (current?.plan) {
-      summary = audioPlanSummary(current.plan);
+      status = "Ready";
     }
   }
   let disabledReason: string | null = null;
@@ -167,6 +166,6 @@ export function useExportAudioPlan(
       active && current?.plan ? audioBitDepthSummary(current.plan) : null,
     mixdownDisabledReason,
     disabledReason,
-    summary,
+    status,
   };
 }

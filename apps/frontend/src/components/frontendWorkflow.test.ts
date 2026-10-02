@@ -44,6 +44,7 @@ import {
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { gifExportSettingsForPreset } from "@/lib/exportTypes";
+import { resolveExportAudioPlan } from "@/lib/exportAudio";
 import {
   COARSE_POINTER_MEDIA_QUERY,
   MOBILE_INSTALL_MEDIA_QUERY,
@@ -146,7 +147,8 @@ function renderExportDialogMarkup(
     mode: "video-audio",
     mixDownToStereo: true,
     onMixDownToStereoChange: () => {},
-    audioSummary: "Stereo",
+    audioStatus: "Stereo",
+    audioPlan: null,
     audioBitDepth: null,
     onOutputTypeChange: () => {},
     onVideoMutedChange: () => {},
@@ -885,21 +887,28 @@ void test("renders dashboard playback cards with viewer context", () => {
   const card = flattenDashboardPlaybackItems(dashboardPlaybackGroups)[0];
   assert.ok(card);
 
-  const markup = renderToStaticMarkup(
-    createElement(DashboardPlaybackCard, {
-      ...card,
-      activeViewTransitionSessionId: null,
-      onSelectSession: () => {},
-    }),
-  );
+  for (const viewerSessionCount of [1, 2]) {
+    const markup = renderToStaticMarkup(
+      createElement(DashboardPlaybackCard, {
+        ...card,
+        viewerSessionCount,
+        activeViewTransitionSessionId: null,
+        onSelectSession: () => {},
+      }),
+    );
 
-  assert.match(markup, /TechSquidTV/);
-  assert.match(markup, /playing/);
-  assert.match(markup, /1 active session/);
-  assert.match(markup, /Living Room/);
-  assert.match(markup, /h-full w-full flex-col/);
-  assert.match(markup, /aspect-\[2\/3]/);
-  assert.match(markup, /mt-auto/);
+    assert.match(markup, /TechSquidTV/);
+    assert.match(markup, /playing/);
+    if (viewerSessionCount === 1) {
+      assert.doesNotMatch(markup, /1 active session/);
+    } else {
+      assert.match(markup, /\(2 active sessions\)/);
+    }
+    assert.match(markup, /Living Room/);
+    assert.match(markup, /h-full w-full flex-col/);
+    assert.match(markup, /aspect-\[2\/3]/);
+    assert.match(markup, /mt-auto/);
+  }
 });
 
 void test("renders music playback cards inside the video-style card frame", () => {
@@ -1188,7 +1197,7 @@ void test("renders GIF export quality controls and immediate estimated size", ()
   assert.match(markup, /Default GIF quality\/size tradeoff\./);
   assert.match(markup, /aria-label="GIF dimensions"/);
   assert.match(markup, /853 × 480/);
-  assert.match(markup, /smaller sources stay at their original size/);
+  assert.match(markup, /Up to 480p\. Smaller sources unchanged\./);
   assert.doesNotMatch(markup, /Select resolution/);
   assert.match(markup, /Balanced GIF \/ 12 fps/);
   assert.doesNotMatch(markup, /<dt[^>]*>Estimated size<\/dt>/);
@@ -1271,15 +1280,71 @@ void test("audio-only dialog hides video and subtitle controls while showing aud
   const markup = renderExportDialogMarkup({
     mode: "audio-only",
     selectedFormat: "flac",
-    audioSummary: "FLAC · 48 kHz · Stereo · 24-bit",
+    audioStatus: "Ready",
+    audioPlan: {
+      format: "flac",
+      codec: "flac",
+      sampleRate: 48_000,
+      numberOfChannels: 2,
+      bitrate: undefined,
+      bits: 24,
+      sampleFormat: "f32",
+      mixdown: false,
+      outputLayout: ["L", "R"],
+      source: {
+        codec: "aac",
+        sampleRate: 48_000,
+        numberOfChannels: 2,
+        layout: ["L", "R"],
+        precision: null,
+      },
+    },
     outputDimensions: null,
     outputSizeEstimate: { bytes: null, basis: "variable" },
   });
   assert.match(markup, /Mix down to stereo/);
-  assert.match(markup, /FLAC · 48 kHz · Stereo · 24-bit/);
+  assert.match(markup, /Channels<\/dt>[\s\S]*Stereo<\/dd>/);
+  assert.match(markup, /Sample rate<\/dt>[\s\S]*48 kHz<\/dd>/);
+  assert.match(markup, /Bit depth<\/dt>[\s\S]*24-bit<\/dd>/);
+  assert.doesNotMatch(markup, /Codec<\/dt>/);
   assert.match(markup, /Variable \(lossless compression\)/);
   assert.doesNotMatch(
     markup,
     /Export quality|>Resolution<|>Subtitles<|Unknown size/,
   );
+});
+
+void test("renders resolved audio details without repeating codecs or hiding resampling", async () => {
+  for (const format of ["ogg", "wav"] as const) {
+    const audioPlan = await resolveExportAudioPlan(
+      {
+        codec: "pcm-f32",
+        sampleRate: 96_000,
+        numberOfChannels: 1,
+        layout: ["C"],
+        precision: { bits: 32, kind: "float" },
+      },
+      format,
+      false,
+      async () => true,
+      async () => {},
+    );
+    const markup = renderExportDialogMarkup({
+      mode: "audio-only",
+      selectedFormat: format,
+      audioPlan,
+      audioStatus: "Ready",
+      outputDimensions: null,
+    });
+    assert.match(markup, /Channels<\/dt>[\s\S]*Mono<\/dd>/);
+    if (format === "ogg") {
+      assert.match(markup, /Bitrate<\/dt>[\s\S]*64 kbps<\/dd>/);
+      assert.match(markup, /Resampled from 96 kHz\./);
+      assert.doesNotMatch(markup, /Codec<\/dt>|Bit depth<\/dt>/);
+    } else {
+      assert.match(markup, /Codec<\/dt>[\s\S]*PCM \(float\)<\/dd>/);
+      assert.match(markup, /Bit depth<\/dt>[\s\S]*32-bit<\/dd>/);
+      assert.doesNotMatch(markup, /Bitrate<\/dt>|Resampled from/);
+    }
+  }
 });

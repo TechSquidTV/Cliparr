@@ -842,7 +842,8 @@ export function ConvertTool() {
                 gifSettings={format === "gif" ? gifSettings : null}
                 outputDimensions={outputDimensions}
                 mode={mode}
-                audioSummary={audio.summary}
+                audioStatus={audio.status}
+                audioPlan={audio.plan}
                 showClipSummary={false}
                 showSourceSummary={false}
                 showSubtitleSummary={false}
