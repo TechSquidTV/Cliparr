@@ -127,7 +127,7 @@ void test("builds MP4 metadata tags for movie clips", async () => {
   assert.equal((tags.date as Date).getUTCFullYear(), 2001);
   assert.equal(
     tags.comment,
-    "Clip from Original Movie, 1:05 to 2:11. Content rating: PG-13.",
+    "Clip from Original Movie, 00:01:05.125 to 00:02:10.750. Content rating: PG-13.",
   );
 
   const raw = tags.raw as NonNullable<MetadataTags["raw"]>;
@@ -137,11 +137,14 @@ void test("builds MP4 metadata tags for movie clips", async () => {
   assert.equal(raw.csta, "65.125");
   assert.equal(raw.cend, "130.750");
   assert.equal(raw.cdur, "65.625");
-  assert.deepEqual(JSON.parse(raw.clpr as string), {
-    sourceStartSeconds: 65.125,
-    sourceEndSeconds: 130.75,
-    sourceDurationSeconds: 65.625,
-  });
+  assert.deepEqual(
+    (JSON.parse(raw.clpr as string) as { clip: Record<string, number> }).clip,
+    {
+      sourceStartSeconds: 65.125,
+      sourceEndSeconds: 130.75,
+      durationSeconds: 65.625,
+    },
+  );
 });
 
 void test("builds episode metadata and embeds fetched artwork", async () => {
@@ -194,7 +197,7 @@ void test("builds episode metadata and embeds fetched artwork", async () => {
   );
 });
 
-void test("omits raw ISOBMFF metadata for non-MP4-like formats", async () => {
+void test("embeds structured metadata in non-MP4-like formats", async () => {
   const tags = await buildMetadataTags(
     {
       providerId: "demo",
@@ -208,14 +211,15 @@ void test("omits raw ISOBMFF metadata for non-MP4-like formats", async () => {
   );
 
   assert.ok(tags);
-  assert.equal(tags.raw, undefined);
+  assert.equal(typeof tags.raw?.CLIPARR_METADATA, "string");
+  assert.equal(tags.raw?.stik, undefined);
 });
 
 void test("infers artwork mime type and ignores failed artwork fetches", async () => {
   await withWindowLocation("http://cliparr.test/dashboard", async () => {
     await withMockedFetch(
       async (input) => {
-        if (input === "https://cdn.example.test/poster.webp") {
+        if (input === "https://cdn.example.test/poster.png") {
           return new Response(bytes(4, 5), { status: 200 });
         }
 
@@ -227,14 +231,14 @@ void test("infers artwork mime type and ignores failed artwork fetches", async (
             providerId: "demo",
             itemType: "movie",
             title: "Movie Clip",
-            imageUrl: "https://cdn.example.test/poster.webp",
+            imageUrl: "https://cdn.example.test/poster.png",
           },
           0,
           10,
           1080,
           "mp4",
         );
-        assert.equal(withArtwork?.images?.[0]?.mimeType, "image/webp");
+        assert.equal(withArtwork?.images?.[0]?.mimeType, "image/png");
 
         const withoutArtwork = await buildMetadataTags(
           {
@@ -278,4 +282,131 @@ void test("patches MP4 ilst integer metadata data types", () => {
   assert.ok(tvsnTypeOffset >= 0);
   assert.equal(readUint32(file, stikDataTypeOffset), 0x15);
   assert.equal(readUint32(file, tvsnDataTypeOffset), 0x16);
+});
+
+void test("shares source identity and normalized timing across all metadata containers", async () => {
+  const source = {
+    providerId: "private",
+    ratingKey: "private",
+    guids: ["private"],
+    itemType: "episode",
+    title: "Épisode 日本語",
+    sourceTitle: "Original",
+    showTitle: "Show",
+    seasonTitle: "Season",
+    seasonNumber: 2,
+    episodeNumber: 7,
+    description: "Scene",
+    tagline: "Tag",
+    year: 2024,
+    date: "2024-01-02",
+    studio: "Studio",
+    network: "Network",
+    contentRating: "TV-14",
+    genres: ["Drama"],
+    directors: ["Director"],
+    actors: ["Actor"],
+    writers: ["Writer"],
+  };
+  let expectedPayload: string | undefined;
+  for (const format of [
+    "mp4",
+    "mov",
+    "m4a",
+    "mp3",
+    "wav",
+    "ogg",
+    "flac",
+    "webm",
+    "mkv",
+  ] as const) {
+    const tags = await buildMetadataTags(
+      source,
+      65.125,
+      130.75,
+      undefined,
+      format,
+    );
+    assert.ok(tags);
+    assert.match(tags.comment ?? "", /00:01:05.125 to 00:02:10.750/);
+    assert.equal(tags.album, undefined);
+    assert.equal(tags.artist, undefined);
+    assert.equal(tags.trackNumber, undefined);
+    const raw = tags.raw;
+    assert.ok(raw);
+    const fields = (
+      format === "mp3" || format === "wav" ? raw.TXXX : raw
+    ) as NonNullable<MetadataTags["raw"]>;
+    assert.ok(
+      fields && typeof fields === "object" && !(fields instanceof Uint8Array),
+    );
+    const payload = raw.clpr ?? fields.CLIPARR_METADATA;
+    assert.ok(typeof payload === "string");
+    assert.doesNotMatch(payload, /private/);
+    if (expectedPayload) {
+      assert.equal(payload, expectedPayload);
+    } else {
+      expectedPayload = payload;
+    }
+    assert.equal(raw.csta ?? fields.CLIPARR_SOURCE_START_SECONDS, "65.125");
+    assert.equal(raw.cend ?? fields.CLIPARR_SOURCE_END_SECONDS, "130.750");
+    assert.equal(raw.cdur ?? fields.CLIPARR_CLIP_DURATION_SECONDS, "65.625");
+    if (format === "m4a") {
+      assert.equal(raw.stik, undefined);
+      assert.equal(raw.hdvd, undefined);
+    }
+  }
+});
+
+void test("local clips always carry timing, rounding endpoints once without changing source origin", async () => {
+  const tags = await buildMetadataTags(
+    undefined,
+    360_000.0006,
+    360_000.0014,
+    undefined,
+    "mp3",
+    { title: "Local clip" },
+  );
+  assert.ok(tags);
+  assert.equal(tags.title, "Local clip");
+  assert.match(tags.comment ?? "", /100:00:00.001 to 100:00:00.001/);
+  assert.deepEqual(tags.raw?.TXXX, {
+    CLIPARR_SOURCE_START_SECONDS: "360000.001",
+    CLIPARR_SOURCE_END_SECONDS: "360000.001",
+    CLIPARR_CLIP_DURATION_SECONDS: "0.000",
+    CLIPARR_SOURCE_START_TIMECODE: "100:00:00.001",
+    CLIPARR_METADATA: JSON.stringify({
+      version: 1,
+      source: { title: "Local clip" },
+      clip: {
+        sourceStartSeconds: 360_000.001,
+        sourceEndSeconds: 360_000.001,
+        durationSeconds: 0,
+      },
+    }),
+  });
+});
+
+void test("artwork cancellation propagates instead of producing a partial metadata result", async () => {
+  const controller = new AbortController();
+  await withMockedFetch(
+    async (_url, options) => {
+      assert.equal(options?.signal, controller.signal);
+      controller.abort();
+      throw controller.signal.reason;
+    },
+    async () => {
+      await assert.rejects(
+        buildMetadataTags(
+          { providerId: "local", itemType: "movie", imageUrl: "/art" },
+          0,
+          1,
+          undefined,
+          "wav",
+          { signal: controller.signal },
+        ),
+        { name: "AbortError" },
+      );
+    },
+  );
 });

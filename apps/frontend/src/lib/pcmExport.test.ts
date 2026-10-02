@@ -69,6 +69,10 @@ for (const bits of [8, 16, 24, 32] as const) {
         position += 8 + length + (length % 2);
       }
       assert.equal(found, true);
+      assert.match(
+        new TextDecoder().decode(bytes),
+        /CLIPARR_SOURCE_START_SECONDS/,
+      );
     }
   });
 }

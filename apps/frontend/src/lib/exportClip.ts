@@ -643,6 +643,7 @@ export async function exportClipWithRuntime(
       endTime,
       outputHeight,
       format,
+      { signal, title },
     );
 
     let audioOptions: ConversionOptions["audio"];

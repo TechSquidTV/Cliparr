@@ -63,29 +63,11 @@ function parseMetadataDate(date: string | undefined, year: number | undefined) {
   return Number.isNaN(parsed.getTime()) ? undefined : parsed;
 }
 
-function formatMetadataTime(seconds: number) {
-  if (!Number.isFinite(seconds)) {
-    return "0:00";
-  }
-
-  const wholeSeconds = Math.max(0, Math.round(seconds));
-  const hours = Math.floor(wholeSeconds / 3600);
-  const minutes = Math.floor((wholeSeconds % 3600) / 60);
-  const remainingSeconds = wholeSeconds % 60;
-
-  if (hours > 0) {
-    return `${hours}:${minutes.toString().padStart(2, "0")}:${remainingSeconds.toString().padStart(2, "0")}`;
-  }
-
-  return `${minutes}:${remainingSeconds.toString().padStart(2, "0")}`;
-}
-
-function formatMetadataTimecode(seconds: number) {
-  if (!Number.isFinite(seconds)) {
+function formatMetadataTimecode(wholeMilliseconds: number) {
+  if (!Number.isFinite(wholeMilliseconds)) {
     return "00:00:00.000";
   }
 
-  const wholeMilliseconds = Math.max(0, Math.round(seconds * 1000));
   const milliseconds = wholeMilliseconds % 1000;
   const wholeSeconds = Math.floor(wholeMilliseconds / 1000);
   const hours = Math.floor(wholeSeconds / 3600);
@@ -97,14 +79,6 @@ function formatMetadataTimecode(seconds: number) {
     minutes.toString().padStart(2, "0"),
     remainingSeconds.toString().padStart(2, "0"),
   ].join(":")}.${milliseconds.toString().padStart(3, "0")}`;
-}
-
-function formatMetadataSeconds(seconds: number) {
-  if (!Number.isFinite(seconds)) {
-    return "0.000";
-  }
-
-  return Math.max(0, seconds).toFixed(3);
 }
 
 function uint8Atom(value: number) {
@@ -258,13 +232,12 @@ function inferHdVideoFlag(height: number | undefined) {
 }
 
 function buildMp4RawTags(
-  metadata: MediaExportMetadata,
+  metadata: ExportSourceMetadata,
   outputHeight: number | undefined,
-  startTime: number,
-  endTime: number,
+  video: boolean,
 ): MetadataTags["raw"] | undefined {
   const raw: MetadataTags["raw"] = {};
-  const itemType = metadata.itemType.toLowerCase();
+  const itemType = metadata.itemType?.toLowerCase();
   const showTitle = firstText(metadata.showTitle);
   const seasonNumber = nonNegativeInteger(metadata.seasonNumber);
   const episodeNumber = nonNegativeInteger(metadata.episodeNumber);
@@ -285,18 +258,10 @@ function buildMp4RawTags(
     raw.hdvd = uint8Atom(hdVideoFlag);
   }
 
-  raw["©TIM"] = formatMetadataTimecode(startTime);
-  raw.csta = formatMetadataSeconds(startTime);
-  raw.cend = formatMetadataSeconds(endTime);
-  raw.cdur = formatMetadataSeconds(endTime - startTime);
-  raw.clpr = JSON.stringify({
-    sourceStartSeconds: Number(formatMetadataSeconds(startTime)),
-    sourceEndSeconds: Number(formatMetadataSeconds(endTime)),
-    sourceDurationSeconds: Number(formatMetadataSeconds(endTime - startTime)),
-  });
-
   if (itemType === "episode") {
-    raw.stik = uint8Atom(10);
+    if (video) {
+      raw.stik = uint8Atom(10);
+    }
 
     if (showTitle) {
       raw.tvsh = showTitle;
@@ -313,7 +278,7 @@ function buildMp4RawTags(
     if (network) {
       raw.tvnn = network;
     }
-  } else if (itemType === "movie") {
+  } else if (video && itemType === "movie") {
     raw.stik = uint8Atom(9);
   }
 
@@ -321,7 +286,7 @@ function buildMp4RawTags(
 }
 
 export function isIsobmffExportFormat(format: ExportFormat) {
-  return format === "mp4" || format === "mov";
+  return format === "mp4" || format === "mov" || format === "m4a";
 }
 
 function inferImageMimeType(url: string) {
@@ -346,13 +311,14 @@ function inferImageMimeType(url: string) {
 
 async function fetchAttachedImage(
   url: string | undefined,
+  signal?: AbortSignal,
 ): Promise<NonNullable<MetadataTags["images"]>[number] | undefined> {
   if (!url) {
     return undefined;
   }
 
   try {
-    const response = await fetch(url);
+    const response = await fetch(url, { signal });
     if (!response.ok) {
       logger.warn("Could not fetch clip artwork.", {
         ...logEventFields("editor.artwork.load", "failure"),
@@ -366,10 +332,30 @@ async function fetchAttachedImage(
       ?.split(";")[0]
       ?.trim()
       .toLowerCase();
-    const mimeType = contentType?.startsWith("image/")
+    let mimeType = contentType?.startsWith("image/")
       ? contentType
       : inferImageMimeType(url);
-    const data = new Uint8Array(await response.arrayBuffer());
+    let data = new Uint8Array(await response.arrayBuffer());
+    signal?.throwIfAborted();
+    if (mimeType !== "image/jpeg" && mimeType !== "image/png") {
+      const bitmap = await createImageBitmap(
+        new Blob([data], { type: mimeType }),
+      );
+      try {
+        const canvas = new OffscreenCanvas(bitmap.width, bitmap.height);
+        const context = canvas.getContext("2d");
+        if (!context) {
+          throw new Error("Could not normalize artwork.");
+        }
+        context.drawImage(bitmap, 0, 0);
+        const blob = await canvas.convertToBlob({ type: "image/png" });
+        data = new Uint8Array(await blob.arrayBuffer());
+        mimeType = "image/png";
+      } finally {
+        bitmap.close();
+      }
+      signal?.throwIfAborted();
+    }
 
     if (data.length === 0) {
       return undefined;
@@ -381,6 +367,7 @@ async function fetchAttachedImage(
       kind: "coverFront",
     };
   } catch (error) {
+    signal?.throwIfAborted();
     warnWithError(logger, error, "Could not embed clip artwork.", {
       ...logEventFields("editor.artwork.load", "failure"),
       ...logErrorFields(error),
@@ -389,58 +376,131 @@ async function fetchAttachedImage(
   }
 }
 
+type ExportSourceMetadata = Partial<
+  Omit<MediaExportMetadata, "providerId" | "ratingKey" | "guids" | "imageUrl">
+>;
+
+interface ClipMetadata {
+  sourceStartSeconds: number;
+  sourceEndSeconds: number;
+  durationSeconds: number;
+}
+
+function buildSourceClipMetadata(
+  metadata: MediaExportMetadata | undefined,
+  startTime: number,
+  endTime: number,
+  title?: string,
+) {
+  if (
+    !Number.isFinite(startTime) ||
+    !Number.isFinite(endTime) ||
+    startTime < 0 ||
+    endTime < startTime
+  ) {
+    throw new Error("Invalid metadata clip interval.");
+  }
+  // Explicit allowlist prevents future private provider fields from leaking into files.
+  const source: ExportSourceMetadata = {};
+  const fields = [
+    "itemType",
+    "title",
+    "sourceTitle",
+    "showTitle",
+    "seasonTitle",
+    "seasonNumber",
+    "episodeNumber",
+    "year",
+    "date",
+    "description",
+    "tagline",
+    "studio",
+    "network",
+    "contentRating",
+    "genres",
+    "directors",
+    "writers",
+    "actors",
+  ] as const satisfies readonly (keyof ExportSourceMetadata)[];
+  for (const key of fields) {
+    const value = metadata?.[key];
+    if (value !== undefined) {
+      Object.assign(source, { [key]: value });
+    }
+  }
+  source.title = firstText(source.title, source.sourceTitle, title);
+  const startMs = Math.round(startTime * 1000);
+  const endMs = Math.round(endTime * 1000);
+  const clip: ClipMetadata = {
+    sourceStartSeconds: startMs / 1000,
+    sourceEndSeconds: endMs / 1000,
+    durationSeconds: (endMs - startMs) / 1000,
+  };
+  const startTimecode = formatMetadataTimecode(startMs);
+  const endTimecode = formatMetadataTimecode(endMs);
+  const identity = firstText(
+    source.sourceTitle,
+    source.title,
+    source.showTitle,
+    "source media",
+  );
+  const comment = `Clip from ${identity}, ${startTimecode} to ${endTimecode}.${source.contentRating ? ` Content rating: ${source.contentRating}.` : ""}`;
+  const timing = {
+    CLIPARR_SOURCE_START_SECONDS: clip.sourceStartSeconds.toFixed(3),
+    CLIPARR_SOURCE_END_SECONDS: clip.sourceEndSeconds.toFixed(3),
+    CLIPARR_CLIP_DURATION_SECONDS: clip.durationSeconds.toFixed(3),
+    CLIPARR_SOURCE_START_TIMECODE: startTimecode,
+  };
+  return {
+    source,
+    comment,
+    timing,
+    payload: JSON.stringify({ version: 1, source, clip }),
+  };
+}
+
 export async function buildMetadataTags(
   metadata: MediaExportMetadata | undefined,
   startTime: number,
   endTime: number,
   outputHeight: number | undefined,
   format: ExportFormat,
+  options: { signal?: AbortSignal; title?: string } = {},
 ): Promise<MetadataTags | undefined> {
-  if (!metadata) {
+  if (format === "gif") {
     return undefined;
   }
-
-  const title = firstText(metadata.title, metadata.sourceTitle);
-  const description = firstText(metadata.description, metadata.tagline);
-  const sourceTitle = firstText(metadata.showTitle);
-  const clipRange = `${formatMetadataTime(startTime)} to ${formatMetadataTime(endTime)}`;
-  const tags: MetadataTags = {};
-
-  if (title) {
-    tags.title = title;
-  }
-  if (description) {
-    tags.description = description;
-  }
-  if (metadata.genres?.length) {
-    tags.genre = metadata.genres.join(", ");
-  }
-
-  const date = parseMetadataDate(metadata.date, metadata.year);
-  if (date) {
-    tags.date = date;
-  }
-
-  const source = firstText(
-    metadata.sourceTitle,
-    metadata.title,
-    sourceTitle,
-    "source media",
+  const { source, comment, timing, payload } = buildSourceClipMetadata(
+    metadata,
+    startTime,
+    endTime,
+    options.title,
   );
-  const contentRating = firstText(metadata.contentRating);
-  tags.comment = `Clip from ${source}, ${clipRange}.${contentRating ? ` Content rating: ${contentRating}.` : ""}`;
-
-  const image = await fetchAttachedImage(metadata.imageUrl);
+  const tags: MetadataTags = {
+    title: source.title,
+    description: firstText(source.description, source.tagline),
+    genre: source.genres?.join(", "),
+    date: parseMetadataDate(source.date, source.year),
+    comment,
+  };
+  const image = await fetchAttachedImage(metadata?.imageUrl, options.signal);
   if (image) {
     tags.images = [image];
   }
-
-  const raw = isIsobmffExportFormat(format)
-    ? buildMp4RawTags(metadata, outputHeight, startTime, endTime)
-    : undefined;
-  if (raw) {
-    tags.raw = raw;
+  if (isIsobmffExportFormat(format)) {
+    tags.raw = {
+      ...buildMp4RawTags(source, outputHeight, format !== "m4a"),
+      csta: timing.CLIPARR_SOURCE_START_SECONDS,
+      cend: timing.CLIPARR_SOURCE_END_SECONDS,
+      cdur: timing.CLIPARR_CLIP_DURATION_SECONDS,
+      "©TIM": timing.CLIPARR_SOURCE_START_TIMECODE,
+      clpr: payload,
+    };
+  } else {
+    const comments = { ...timing, CLIPARR_METADATA: payload };
+    tags.raw =
+      format === "mp3" || format === "wav" ? { TXXX: comments } : comments;
   }
-
-  return Object.keys(tags).length > 0 ? tags : undefined;
+  options.signal?.throwIfAborted();
+  return tags;
 }
