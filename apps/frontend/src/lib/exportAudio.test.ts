@@ -66,7 +66,7 @@ void test("chooses 16/24-bit lossless settings and preserves known 32-bit WAV", 
   assert.equal(plan2.bits, 24);
   assert.match(
     audioBitDepthSummary(plan2)?.reason ?? "",
-    /Source bit depth is unavailable/,
+    /Source bit depth unknown; using 24-bit\./,
   );
   for (const kind of ["integer", "float"] as const) {
     const precise = { ...source, precision: { bits: 32, kind } };

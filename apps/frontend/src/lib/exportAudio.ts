@@ -436,7 +436,7 @@ export function audioBitDepthSummary(plan: ExportAudioPlan) {
     return null;
   }
   const precision = plan.source.precision;
-  let reason = `Source bit depth is unavailable; uses ${plan.bits}-bit to avoid additional precision reduction.`;
+  let reason = `Source bit depth unknown; using ${plan.bits}-bit.`;
   if (plan.mixdown) {
     reason = "Preserves precision when mixing channels.";
   } else if (precision) {
