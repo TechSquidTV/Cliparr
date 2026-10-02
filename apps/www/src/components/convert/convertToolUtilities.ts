@@ -55,7 +55,7 @@ const DEFAULT_EXPORT_DEPENDENCIES: ConvertExportDependencies = {
   exportClip,
   downloadBlob,
 };
-const fallbackConvertedFileBaseName = "converted-video";
+const fallbackConvertedFileBaseName = "converted-media";
 const knownConvertedFileExtensions = exportFormats.map(
   (option) => option.extension,
 );

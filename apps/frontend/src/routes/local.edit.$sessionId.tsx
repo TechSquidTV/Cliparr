@@ -85,8 +85,8 @@ function LocalEditorRouteComponent() {
           <p className="text-sm leading-6 text-muted-foreground">{message}</p>
           {editorDrafts.hasSession(sessionId) && (
             <p className="text-sm leading-6 text-muted-foreground">
-              Your draft is saved on this device. Reopen the same unchanged file
-              to restore its clip range and subtitle edits.
+              Reopen the same unchanged file to restore your draft on this
+              device.
             </p>
           )}
         </div>

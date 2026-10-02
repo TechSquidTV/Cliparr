@@ -453,8 +453,7 @@ export function SourcesConnectSection({
               Connect another media server
             </h3>
             <p className="mt-1 max-w-2xl text-xs text-muted-foreground">
-              Add a new Jellyfin server or reconnect another provider without
-              leaving source management.
+              Add or reconnect a media server.
             </p>
           </div>
         </div>

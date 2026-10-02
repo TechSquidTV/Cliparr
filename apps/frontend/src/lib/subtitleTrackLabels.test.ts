@@ -2,13 +2,10 @@
 
 import assert from "node:assert/strict";
 import test from "node:test";
-import {
-  formatSubtitleTrackLabel,
-  formatSubtitleTrackTechnicalSummary,
-} from "@/lib/subtitleTrackLabels";
+import { subtitleTrackLabelParts } from "@/lib/subtitleTrackLabels";
 import type { PlaybackSubtitleTrack } from "@/providers/types";
 
-void test("formats subtitle track labels for selector summary and timeline surfaces", () => {
+void test("preserves subtitle language, format, and flags as separate details", () => {
   const track = {
     title: " English SDH ",
     languageCode: " en ",
@@ -21,47 +18,25 @@ void test("formats subtitle track labels for selector summary and timeline surfa
     isExternal: true,
   } satisfies PlaybackSubtitleTrack;
 
-  assert.equal(
-    formatSubtitleTrackLabel(track, { variant: "selector" }),
-    "English SDH (EN | SRT | Forced · SDH · Default · External)",
-  );
-  assert.equal(
-    formatSubtitleTrackLabel(track, { variant: "summary" }),
-    "English SDH",
-  );
-  assert.equal(
-    formatSubtitleTrackLabel(track, { variant: "timeline" }),
-    "English SDH / EN",
-  );
-  assert.equal(
-    formatSubtitleTrackTechnicalSummary(track),
-    "SRT · EN · Forced · SDH",
-  );
+  assert.deepEqual(subtitleTrackLabelParts(track), {
+    title: "English SDH",
+    language: "EN",
+    codec: "SRT",
+    flags: ["Forced", "SDH", "Default", "External"],
+  });
 });
 
-void test("formats fallback subtitle track labels consistently", () => {
-  assert.equal(
-    formatSubtitleTrackLabel({ languageCode: "es" }, { variant: "selector" }),
-    "ES (Unsupported)",
-  );
-  assert.equal(
-    formatSubtitleTrackLabel({ languageCode: "es" }, { variant: "summary" }),
-    "ES",
-  );
-  assert.equal(
-    formatSubtitleTrackLabel({ languageCode: "es" }, { variant: "timeline" }),
-    "ES",
-  );
-  assert.equal(
-    formatSubtitleTrackLabel({}, { variant: "selector" }),
-    "Unnamed subtitle track (Unsupported)",
-  );
-  assert.equal(
-    formatSubtitleTrackLabel({}, { variant: "summary" }),
-    "Selected subtitle track",
-  );
-  assert.equal(
-    formatSubtitleTrackLabel({}, { variant: "timeline" }),
-    "Subtitle track",
-  );
+void test("handles missing and blank subtitle metadata without empty labels", () => {
+  assert.deepEqual(subtitleTrackLabelParts({ languageCode: "es" }), {
+    title: undefined,
+    language: "ES",
+    codec: undefined,
+    flags: ["Unsupported"],
+  });
+  assert.deepEqual(subtitleTrackLabelParts({ title: " ", codec: " " }), {
+    title: undefined,
+    language: undefined,
+    codec: undefined,
+    flags: ["Unsupported"],
+  });
 });

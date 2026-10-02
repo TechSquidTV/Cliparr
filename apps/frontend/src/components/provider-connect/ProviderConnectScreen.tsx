@@ -60,8 +60,7 @@ export default function ProviderConnectScreen({
           <section className="min-w-0 border-t border-border pt-6 sm:rounded-2xl sm:border sm:bg-background/60 sm:p-5">
             <h2 className="text-lg font-semibold">Connect Plex or Jellyfin</h2>
             <p className="mt-2 mb-5 text-sm leading-6 text-muted-foreground">
-              Connect your server, then play a video in Plex or Jellyfin to find
-              it here and start clipping.
+              Connect your server, then play a video in Plex or Jellyfin.
             </p>
             <ProviderConnectFlow variant="screen" onConnected={onConnected} />
           </section>

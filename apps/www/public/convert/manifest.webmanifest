@@ -2,7 +2,7 @@
   "id": "/convert",
   "name": "Cliparr Convert",
   "short_name": "Convert",
-  "description": "Convert local video and audio files, extract audio, or make GIFs in your browser without uploads.",
+  "description": "Convert video and audio files, or extract soundtracks to MP3, M4A, Ogg, FLAC, and WAV entirely in your browser.",
   "start_url": "/convert/",
   "scope": "/convert/",
   "display": "standalone",
@@ -31,7 +31,7 @@
   ],
   "shortcuts": [
     {
-      "name": "Convert Video and Audio",
+      "name": "Convert Media",
       "short_name": "Convert",
       "description": "Open the local browser video and audio converter.",
       "url": "/convert/",

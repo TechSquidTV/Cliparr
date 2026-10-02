@@ -142,8 +142,7 @@ function ViewerChip({
         </div>
         <div className="truncate text-xs text-muted-foreground">
           <span className="capitalize">{playerState}</span>
-          <span aria-hidden="true"> · </span>
-          {formatViewerSessionCount(sessionCount)}
+          {sessionCount > 1 && ` (${formatViewerSessionCount(sessionCount)})`}
         </div>
       </div>
     </div>
@@ -606,7 +605,7 @@ export default function DashboardScreen({
     pending && connection !== "reconnecting" && viewers.length === 0;
   const error =
     connection === "reconnecting"
-      ? "Live updates disconnected. Reconnecting automatically; displayed sessions may be out of date."
+      ? "Reconnecting live updates. Sessions may be out of date."
       : "";
   let liveStatus = "Connecting to live sessions…";
   if (connection === "reconnecting") {

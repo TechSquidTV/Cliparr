@@ -20,7 +20,7 @@ import {
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { subtitleTrackKey } from "@/lib/selectPreferredSubtitleTrack";
-import { formatSubtitleTrackLabel } from "@/lib/subtitleTrackLabels";
+import { SubtitleTrackLabel } from "@/components/editor/SubtitleTrackLabel";
 import type { SubtitleStyleSettings } from "@/lib/subtitles/types";
 import {
   EditorPropertyAccordion,
@@ -199,7 +199,7 @@ export function EditorSubtitlePanel({
                       subtitles.requestImport(subtitleTrackKey(track))
                     }
                   >
-                    {formatSubtitleTrackLabel(track, { variant: "selector" })}
+                    <SubtitleTrackLabel track={track} />
                   </DropdownMenu.Item>
                 ))}
               </DropdownMenu.Content>

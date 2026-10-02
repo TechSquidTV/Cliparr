@@ -1,4 +1,4 @@
-import type { audioBitDepthSummary } from "#/lib/exportAudio";
+import type { audioBitDepthSummary, ExportAudioPlan } from "#/lib/exportAudio";
 import { Switch } from "#/components/ui/switch";
 import {
   isAudioExportFormat,
@@ -309,13 +309,30 @@ function EditorExportSettingsSectionComponent({
             role="group"
             aria-label="Automatic bit depth"
           >
-            <div className={sectionLabelClassName()}>Bit depth</div>
-            <div className="flex h-8 items-center text-sm font-medium">
-              {audioBitDepth ? `${audioBitDepth.bits}-bit · Auto` : "Auto"}
+            <div className="flex items-center gap-1.5">
+              <span className={sectionLabelClassName()}>Bit depth</span>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    type="button"
+                    aria-label="Automatic bit depth details"
+                    className="inline-flex h-4 w-4 items-center justify-center rounded-full text-muted-foreground transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/50"
+                  >
+                    <Info className="h-3.5 w-3.5" />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent side="top" align="start">
+                  Matches source precision where possible. Unknown bit depth
+                  defaults to 24-bit; mixing uses at least 24-bit. Higher bit
+                  depth adds no detail.
+                </TooltipContent>
+              </Tooltip>
             </div>
-            <p className="h-20 overflow-y-auto text-xs leading-relaxed text-muted-foreground">
-              {audioBitDepth?.reason ??
-                "Selected automatically from the source and any channel mixing."}
+            <div className="flex h-8 items-center text-sm font-medium">
+              {audioBitDepth ? `${audioBitDepth.bits}-bit (automatic)` : "Auto"}
+            </div>
+            <p className={stableHelperTextClassName}>
+              {audioBitDepth?.reason ?? "Based on source and channel mixing."}
             </p>
           </div>
         )}
@@ -366,10 +383,8 @@ function EditorExportSettingsSectionComponent({
                     : "Determined from source"}
                 </div>
                 <p className={stableHelperTextClassName}>
-                  Fits the source within{" "}
-                  {gifPresetOptionFor(selectedQuality).settings.maxHeight}p.
-                  Size follows the quality preset; smaller sources stay at their
-                  original size.
+                  Up to {gifPresetOptionFor(selectedQuality).settings.maxHeight}
+                  p. Smaller sources unchanged.
                 </p>
               </div>
             ) : (
@@ -483,8 +498,8 @@ function EditorExportSettingsSectionComponent({
           <p className={stableHelperTextClassName}>
             {audioDisabledReason ??
               (mixDownToStereo
-                ? "Includes dialogue and surround channels in a stereo mix. Mono stays mono."
-                : "Preserves the source channels. The selected format must support their layout.")}
+                ? "Mixes surround to stereo. Mono unchanged."
+                : "Keeps source channels.")}
           </p>
         </div>
       </div>
@@ -608,7 +623,8 @@ interface EditorExportSummaryPanelProperties {
   exportSourceLabel?: string;
   exportSourceSummaryMessage?: string | null;
   mode: ExportMode;
-  audioSummary?: string;
+  audioStatus: string;
+  audioPlan: ExportAudioPlan | null;
   showClipSummary?: boolean;
   showSourceSummary?: boolean;
   showSubtitleSummary?: boolean;
@@ -632,7 +648,8 @@ function EditorExportSummaryPanelComponent({
   exportSourceLabel = "Auto",
   exportSourceSummaryMessage = null,
   mode,
-  audioSummary,
+  audioStatus,
+  audioPlan,
   showClipSummary = true,
   showSourceSummary = true,
   showSubtitleSummary = true,
@@ -647,11 +664,8 @@ function EditorExportSummaryPanelComponent({
   const clipLength = Math.max(0, clipEnd - clipStart);
   const selectedFormatOption = exportFormatFor(selectedFormat);
   const audioOnly = isAudioExportFormat(selectedFormat);
-  let outputDetail: string | undefined =
-    `${exportQualityOptionFor(selectedQuality).label} quality`;
-  if (audioOnly) {
-    outputDetail = audioSummary;
-  } else if (selectedFormat === "gif" && gifSettings) {
+  let outputDetail = `${exportQualityOptionFor(selectedQuality).label} quality`;
+  if (selectedFormat === "gif" && gifSettings) {
     outputDetail = `${gifPresetOptionFor(gifSettings.preset).label} GIF / ${gifSettings.frameRate} fps`;
   }
   let subtitleSummaryClassName = "border-border bg-background";
@@ -717,10 +731,16 @@ function EditorExportSummaryPanelComponent({
                 : "Unknown size"}
             </dd>
           )}
-          {outputDetail && (
-            <dd
-              className={`mt-1 text-ui-label text-muted-foreground ${audioOnly ? "h-10 overflow-y-auto" : ""}`}
-            >
+          {audioOnly ? (
+            <dd className="mt-2">
+              <ExportAudioDetails
+                plan={audioPlan}
+                status={audioStatus}
+                showCodec={selectedFormat === "wav"}
+              />
+            </dd>
+          ) : (
+            <dd className="mt-1 text-ui-label text-muted-foreground">
               {outputDetail}
             </dd>
           )}
@@ -729,11 +749,16 @@ function EditorExportSummaryPanelComponent({
         {!audioOnly && selectedFormat !== "gif" && (
           <div className="rounded-md border border-border bg-background px-3 py-2">
             <dt className={sectionLabelClassName()}>Audio</dt>
-            <dd className="mt-1 h-10 overflow-y-auto text-xs text-foreground">
-              {audioSummary ??
-                (exportIncludesAudio(mode, selectedFormat)
-                  ? "Included when available"
-                  : "Video only")}
+            <dd className="mt-2">
+              <ExportAudioDetails
+                plan={audioPlan}
+                status={
+                  exportIncludesAudio(mode, selectedFormat)
+                    ? audioStatus
+                    : "Video only"
+                }
+                showCodec
+              />
             </dd>
           </div>
         )}
@@ -772,11 +797,65 @@ function EditorExportSummaryPanelComponent({
 
 export const EditorExportSummaryPanel = memo(EditorExportSummaryPanelComponent);
 
+function ExportAudioDetails({
+  plan,
+  status,
+  showCodec,
+}: {
+  plan: ExportAudioPlan | null;
+  status: string;
+  showCodec: boolean;
+}) {
+  if (!plan) {
+    return <p className="text-xs text-muted-foreground">{status}</p>;
+  }
+  const details: Array<readonly [string, string]> = [];
+  if (showCodec) {
+    let codec = plan.codec === "opus" ? "Opus" : plan.codec.toUpperCase();
+    if (plan.codec.startsWith("pcm-")) {
+      codec = plan.codec === "pcm-f32" ? "PCM (float)" : "PCM";
+    }
+    details.push(["Codec", codec]);
+  }
+  details.push(
+    [
+      "Channels",
+      { 1: "Mono", 2: "Stereo" }[plan.numberOfChannels] ??
+        `${plan.numberOfChannels} channels`,
+    ],
+    ["Sample rate", `${plan.sampleRate / 1000} kHz`],
+  );
+  if (plan.bits !== null) {
+    details.push(["Bit depth", `${plan.bits}-bit`]);
+  } else if (plan.bitrate !== undefined) {
+    details.push(["Bitrate", `${plan.bitrate / 1000} kbps`]);
+  }
+  return (
+    <>
+      <dl className="space-y-1 text-xs">
+        {details.map(([label, value]) => (
+          <div
+            key={label}
+            className="grid grid-cols-[minmax(0,1fr)_auto] gap-x-3"
+          >
+            <dt className="text-muted-foreground">{label}</dt>
+            <dd className="text-right text-foreground">{value}</dd>
+          </div>
+        ))}
+      </dl>
+      {plan.sampleRate !== plan.source.sampleRate && (
+        <p className="mt-2 text-xs text-muted-foreground">
+          Resampled from {plan.source.sampleRate / 1000} kHz.
+        </p>
+      )}
+    </>
+  );
+}
+
 function ExportMemoryGuidance({ bytes }: { bytes: number | null }) {
   return bytes !== null && bytes >= 100 * 1024 * 1024 ? (
     <p className="mt-1 text-xs text-muted-foreground">
-      Large export: the completed file is held in browser memory. Shorter clips
-      use less memory.
+      Large export uses browser memory. Shorter clips use less.
     </p>
   ) : null;
 }

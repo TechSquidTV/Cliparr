@@ -237,7 +237,8 @@ function EditorScreenContent({
     mode,
     mixDownToStereo,
     setMixDownToStereo,
-    audioSummary,
+    audioStatus,
+    audioPlan,
     audioBitDepth,
     audioExportDisabledReason,
     audioDisabledReason,
@@ -712,7 +713,8 @@ function EditorScreenContent({
             onVideoMutedChange={handleVideoMutedChange}
             mixDownToStereo={mixDownToStereo}
             onMixDownToStereoChange={setMixDownToStereo}
-            audioSummary={audioSummary}
+            audioStatus={audioStatus}
+            audioPlan={audioPlan}
             audioBitDepth={audioBitDepth}
             audioDisabledReason={audioDisabledReason}
             exporting={exporting}

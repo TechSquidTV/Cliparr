@@ -91,9 +91,7 @@ export function useEditorDraft({
     latest.current = draft;
     const timeout = setTimeout(() => {
       if (!editorDrafts.save(draft)) {
-        setNotice(
-          "Draft kept in this tab. Browser storage is unavailable or full; reopening the page may lose edits.",
-        );
+        setNotice("Draft kept in this tab only. Reopening may lose edits.");
       }
     }, 250);
     return () => clearTimeout(timeout);
