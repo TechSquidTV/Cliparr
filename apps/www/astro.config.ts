@@ -44,6 +44,7 @@ export default defineConfig({
         "@mediabunny/aac-encoder",
         "@mediabunny/ac3",
         "@techsquidtv/gifenc",
+        "lucide-react",
         "mediabunny",
       ],
     },
