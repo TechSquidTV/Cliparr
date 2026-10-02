@@ -436,18 +436,14 @@ export function audioBitDepthSummary(plan: ExportAudioPlan) {
     return null;
   }
   const precision = plan.source.precision;
-  let reason = `Source bit depth unknown; using ${plan.bits}-bit.`;
+  let reason = "Source bit depth unknown.";
   if (plan.mixdown) {
-    reason = "Preserves precision when mixing channels.";
+    reason = "Preserves mixing precision.";
   } else if (precision) {
-    if (precision.kind === "float") {
-      reason = `Preserves ${precision.bits}-bit floating-point audio.`;
-    } else {
-      reason =
-        plan.bits === precision.bits
-          ? `Matches the source's ${precision.bits}-bit precision.`
-          : `Preserves the source's ${precision.bits}-bit precision without adding detail.`;
-    }
+    reason =
+      plan.bits === precision.bits
+        ? "Matches source."
+        : "Preserves source precision.";
   }
   return { bits: plan.bits, reason };
 }

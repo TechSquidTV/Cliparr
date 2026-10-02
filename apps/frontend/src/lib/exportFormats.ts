@@ -64,7 +64,7 @@ export const exportFormats = [
     label: "FLAC",
     extension: ".flac",
     group: "Lossless",
-    description: "Compressed lossless audio. Bit depth selected automatically.",
+    description: "Compressed lossless audio.",
   },
   {
     value: "wav",

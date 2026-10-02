@@ -57,26 +57,23 @@ void test("chooses 16/24-bit lossless settings and preserves known 32-bit WAV", 
   assert.equal(plan1.bits, 16);
   assert.deepEqual(audioBitDepthSummary(plan1), {
     bits: 16,
-    reason: "Matches the source's 16-bit precision.",
+    reason: "Matches source.",
   });
   const plan2 = await resolve(
     { ...source, codec: "aac", precision: null },
     "flac",
   );
   assert.equal(plan2.bits, 24);
-  assert.match(
-    audioBitDepthSummary(plan2)?.reason ?? "",
-    /Source bit depth unknown; using 24-bit\./,
+  assert.equal(
+    audioBitDepthSummary(plan2)?.reason,
+    "Source bit depth unknown.",
   );
   for (const kind of ["integer", "float"] as const) {
     const precise = { ...source, precision: { bits: 32, kind } };
     const plan3 = await resolve(precise, "wav");
     assert.equal(plan3.bits, 32);
     assert.equal(audioBitDepthSummary(plan3)?.bits, 32);
-    assert.match(
-      audioBitDepthSummary(plan3)?.reason ?? "",
-      kind === "float" ? /floating-point/ : /32-bit precision/,
-    );
+    assert.equal(audioBitDepthSummary(plan3)?.reason, "Matches source.");
     await assert.rejects(resolve(precise, "flac"), /exceeds 24-bit/);
   }
   const surround = {
@@ -88,7 +85,7 @@ void test("chooses 16/24-bit lossless settings and preserves known 32-bit WAV", 
   assert.equal(plan4.bits, 24);
   assert.equal(
     audioBitDepthSummary(plan4)?.reason,
-    "Preserves precision when mixing channels.",
+    "Preserves mixing precision.",
   );
   await assert.rejects(resolve(surround, "mp3", false), /Enable Mix down/);
   await assert.rejects(resolve(surround, "wav", false), /Enable Mix down/);

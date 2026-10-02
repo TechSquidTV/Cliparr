@@ -309,13 +309,30 @@ function EditorExportSettingsSectionComponent({
             role="group"
             aria-label="Automatic bit depth"
           >
-            <div className={sectionLabelClassName()}>Bit depth</div>
+            <div className="flex items-center gap-1.5">
+              <span className={sectionLabelClassName()}>Bit depth</span>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    type="button"
+                    aria-label="Automatic bit depth details"
+                    className="inline-flex h-4 w-4 items-center justify-center rounded-full text-muted-foreground transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/50"
+                  >
+                    <Info className="h-3.5 w-3.5" />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent side="top" align="start">
+                  Matches source precision where possible. Unknown bit depth
+                  defaults to 24-bit; mixing uses at least 24-bit. Higher bit
+                  depth adds no detail.
+                </TooltipContent>
+              </Tooltip>
+            </div>
             <div className="flex h-8 items-center text-sm font-medium">
               {audioBitDepth ? `${audioBitDepth.bits}-bit · Auto` : "Auto"}
             </div>
-            <p className="h-20 overflow-y-auto text-xs leading-relaxed text-muted-foreground">
-              {audioBitDepth?.reason ??
-                "Selected automatically from the source and any channel mixing."}
+            <p className={stableHelperTextClassName}>
+              {audioBitDepth?.reason ?? "Based on source and channel mixing."}
             </p>
           </div>
         )}
@@ -483,8 +500,8 @@ function EditorExportSettingsSectionComponent({
           <p className={stableHelperTextClassName}>
             {audioDisabledReason ??
               (mixDownToStereo
-                ? "Includes dialogue and surround channels in a stereo mix. Mono stays mono."
-                : "Preserves the source channels. The selected format must support their layout.")}
+                ? "Mixes surround to stereo. Mono unchanged."
+                : "Keeps source channels.")}
           </p>
         </div>
       </div>
