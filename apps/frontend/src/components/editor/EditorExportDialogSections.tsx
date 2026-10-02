@@ -383,10 +383,8 @@ function EditorExportSettingsSectionComponent({
                     : "Determined from source"}
                 </div>
                 <p className={stableHelperTextClassName}>
-                  Fits the source within{" "}
-                  {gifPresetOptionFor(selectedQuality).settings.maxHeight}p.
-                  Size follows the quality preset; smaller sources stay at their
-                  original size.
+                  Up to {gifPresetOptionFor(selectedQuality).settings.maxHeight}
+                  p. Smaller sources unchanged.
                 </p>
               </div>
             ) : (
@@ -792,8 +790,7 @@ export const EditorExportSummaryPanel = memo(EditorExportSummaryPanelComponent);
 function ExportMemoryGuidance({ bytes }: { bytes: number | null }) {
   return bytes !== null && bytes >= 100 * 1024 * 1024 ? (
     <p className="mt-1 text-xs text-muted-foreground">
-      Large export: the completed file is held in browser memory. Shorter clips
-      use less memory.
+      Large export uses browser memory. Shorter clips use less.
     </p>
   ) : null;
 }

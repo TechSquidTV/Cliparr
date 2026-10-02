@@ -1188,7 +1188,7 @@ void test("renders GIF export quality controls and immediate estimated size", ()
   assert.match(markup, /Default GIF quality\/size tradeoff\./);
   assert.match(markup, /aria-label="GIF dimensions"/);
   assert.match(markup, /853 × 480/);
-  assert.match(markup, /smaller sources stay at their original size/);
+  assert.match(markup, /Up to 480p\. Smaller sources unchanged\./);
   assert.doesNotMatch(markup, /Select resolution/);
   assert.match(markup, /Balanced GIF \/ 12 fps/);
   assert.doesNotMatch(markup, /<dt[^>]*>Estimated size<\/dt>/);

@@ -606,7 +606,7 @@ export default function DashboardScreen({
     pending && connection !== "reconnecting" && viewers.length === 0;
   const error =
     connection === "reconnecting"
-      ? "Live updates disconnected. Reconnecting automatically; displayed sessions may be out of date."
+      ? "Reconnecting live updates. Sessions may be out of date."
       : "";
   let liveStatus = "Connecting to live sessions…";
   if (connection === "reconnecting") {
