@@ -74,7 +74,7 @@ void test("buildConvertedOutputFileName sanitizes custom names and applies the s
   );
   assert.equal(
     buildConvertedOutputFileName("   ", "mkv"),
-    "converted-video.mkv",
+    "converted-media.mkv",
   );
   assert.equal(buildConvertedFileBaseName("nested/name?.mov"), "nested name");
 });

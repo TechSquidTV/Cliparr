@@ -14,11 +14,15 @@ import {
   exportFormatDurationDisabledReason,
   formatCanCopyVideoCodec,
   exportFormatFor,
+  exportFormats,
   resolveExportOutputDimensions,
   titleFromFileName,
   type EditorFileMediaSource,
   type ExportVideoEncodingPlan,
   type ExportPhase,
+  type ExportFormat,
+  type ExportQualityPreset,
+  type ExportResolution,
 } from "@cliparr/frontend/convert";
 import { Download, FolderOpen, RefreshCcw, Upload } from "lucide-react";
 import {
@@ -84,9 +88,10 @@ function errorMessage(error: unknown, fallback: string) {
 }
 
 function dimensionsLabel(result: SourceProbeResult | null) {
-  return result?.dimensions
-    ? `${result.dimensions.width} x ${result.dimensions.height}`
-    : "Unknown";
+  if (result?.dimensions) {
+    return `${result.dimensions.width} x ${result.dimensions.height}`;
+  }
+  return result && !result.hasVideo ? "Not applicable" : "Unknown";
 }
 
 function fileTypeLabel(file: File | null) {
@@ -112,49 +117,80 @@ function probeErrorMessage(error: unknown) {
 }
 
 type QuickTemplate = {
-  id:
-    | "gif-from-video"
-    | "webm-for-web"
-    | "mp4-high-quality"
-    | "mpeg-ts-to-mp4"
-    | "mkv-to-mp4"
-    | "compress-video";
   title: string;
   description: string;
+  format: ExportFormat;
+  quality?: ExportQualityPreset;
+  resolution?: ExportResolution;
+  videoMuted?: boolean;
 };
 
-const quickTemplates: readonly QuickTemplate[] = [
+const quickTemplateGroups: readonly {
+  title: string;
+  templates: readonly QuickTemplate[];
+}[] = [
   {
-    id: "gif-from-video",
-    title: "Video to GIF",
-    description: "GIF output with compact dimensions for easy sharing.",
+    title: "Audio",
+    templates: exportFormats
+      .filter((option) => isAudioExportFormat(option.value))
+      .map((option) => ({
+        title: `Convert to ${option.label}`,
+        description: option.description,
+        format: option.value,
+      })),
   },
   {
-    id: "webm-for-web",
-    title: "MP4 to WebM",
-    description: "Smaller web previews with efficient modern compression.",
+    title: "Video & GIF",
+    templates: [
+      {
+        title: "Video to GIF",
+        description: "GIF output with compact dimensions for easy sharing.",
+        format: "gif",
+        quality: DEFAULT_GIF_EXPORT_PRESET,
+      },
+      {
+        title: "MP4 to WebM",
+        description: "Smaller web previews with efficient modern compression.",
+        format: "webm",
+        quality: "compact",
+        resolution: "720",
+        videoMuted: true,
+      },
+      {
+        title: "High-quality MP4",
+        description: "Crisp exports for maximum compatibility across devices.",
+        format: "mp4",
+        quality: "sharp",
+        resolution: "1080",
+        videoMuted: false,
+      },
+      {
+        title: "MPEG-TS to MP4",
+        description: "Convert TS, M2TS, or MTS transport streams to MP4.",
+        format: "mp4",
+        quality: "sharp",
+        resolution: "original",
+        videoMuted: false,
+      },
+      {
+        title: "MKV to MP4",
+        description: "Remux or convert MKV videos into a familiar MP4 file.",
+        format: "mp4",
+        quality: "sharp",
+        resolution: "original",
+        videoMuted: false,
+      },
+      {
+        title: "Compress video file",
+        description: "Smaller MP4 output for sharing, email, and uploads.",
+        format: "mp4",
+        quality: "compact",
+        resolution: "720",
+        videoMuted: false,
+      },
+    ],
   },
-  {
-    id: "mp4-high-quality",
-    title: "High-quality MP4",
-    description: "Crisp exports for maximum compatibility across devices.",
-  },
-  {
-    id: "mpeg-ts-to-mp4",
-    title: "MPEG-TS to MP4",
-    description: "Convert TS, M2TS, or MTS transport streams to MP4.",
-  },
-  {
-    id: "mkv-to-mp4",
-    title: "MKV to MP4",
-    description: "Remux or convert MKV videos into a familiar MP4 file.",
-  },
-  {
-    id: "compress-video",
-    title: "Compress video file",
-    description: "Smaller MP4 output for sharing, email, and uploads.",
-  },
-] as const;
+];
 
 export function ConvertTool() {
   const fileInputId = useId();
@@ -192,7 +228,7 @@ export function ConvertTool() {
     mixDownToStereo,
     setMixDownToStereo,
   } = useExportSettings(handleSettingsChange);
-  const [outputNameStem, setOutputNameStem] = useState("converted-video");
+  const [outputNameStem, setOutputNameStem] = useState("");
   const [isConverterReady, setIsConverterReady] = useState(false);
   const [dragActive, setDragActive] = useState(false);
   const [exporting, setExporting] = useState(false);
@@ -432,9 +468,7 @@ export function ConvertTool() {
 
   useEffect(() => {
     setOutputNameStem(
-      sourceFile
-        ? buildConvertedFileBaseName(sourceFile.name)
-        : "converted-video",
+      sourceFile ? buildConvertedFileBaseName(sourceFile.name) : "",
     );
   }, [sourceFile]);
 
@@ -478,51 +512,16 @@ export function ConvertTool() {
   );
 
   const applyQuickTemplate = useCallback(
-    (templateId: QuickTemplate["id"]) => {
-      switch (templateId) {
-        case "gif-from-video": {
-          setFormat("gif");
-          setQuality(DEFAULT_GIF_EXPORT_PRESET);
-          break;
-        }
-        case "webm-for-web": {
-          setFormat("webm");
-          setQuality("compact");
-          setResolution("720");
-          setVideoMuted(true);
-          break;
-        }
-        case "mp4-high-quality": {
-          setFormat("mp4");
-          setQuality("sharp");
-          setResolution("1080");
-          setVideoMuted(false);
-          break;
-        }
-        case "mpeg-ts-to-mp4": {
-          setFormat("mp4");
-          setQuality("sharp");
-          setResolution("original");
-          setVideoMuted(false);
-          break;
-        }
-        case "mkv-to-mp4": {
-          setFormat("mp4");
-          setQuality("sharp");
-          setResolution("original");
-          setVideoMuted(false);
-          break;
-        }
-        case "compress-video": {
-          setFormat("mp4");
-          setQuality("compact");
-          setResolution("720");
-          setVideoMuted(false);
-          break;
-        }
-        default: {
-          break;
-        }
+    (template: QuickTemplate) => {
+      setFormat(template.format);
+      if (template.quality !== undefined) {
+        setQuality(template.quality);
+      }
+      if (template.resolution !== undefined) {
+        setResolution(template.resolution);
+      }
+      if (template.videoMuted !== undefined) {
+        setVideoMuted(template.videoMuted);
       }
     },
     [setFormat, setQuality, setResolution, setVideoMuted],
@@ -906,27 +905,37 @@ export function ConvertTool() {
             Quick templates
           </h3>
           <p className="mt-1 text-sm leading-6 text-muted-foreground">
-            Click a template to prefill export settings.
+            Convert an audio file or extract a video’s soundtrack with an audio
+            template, or choose a video preset.
           </p>
         </div>
 
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {quickTemplates.map((template) => (
-            <button
-              key={template.id}
-              type="button"
-              aria-label={`Apply quick template: ${template.title}`}
-              onClick={() => applyQuickTemplate(template.id)}
-              disabled={exporting}
-              className="focus-ring cursor-pointer rounded-md border border-border/70 bg-background/70 px-3 py-3 text-left transition-colors hover:bg-background disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              <p className="text-sm font-semibold text-foreground">
-                {template.title}
-              </p>
-              <p className="mt-1 text-xs leading-5 text-muted-foreground">
-                {template.description}
-              </p>
-            </button>
+        <div className="space-y-5">
+          {quickTemplateGroups.map((group) => (
+            <div key={group.title}>
+              <h4 className="mb-2 text-sm font-semibold text-foreground">
+                {group.title}
+              </h4>
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                {group.templates.map((template) => (
+                  <button
+                    key={template.title}
+                    type="button"
+                    aria-label={`Apply quick template: ${template.title}`}
+                    onClick={() => applyQuickTemplate(template)}
+                    disabled={exporting}
+                    className="focus-ring cursor-pointer rounded-md border border-border/70 bg-background/70 px-3 py-3 text-left transition-colors hover:bg-background disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    <p className="text-sm font-semibold text-foreground">
+                      {template.title}
+                    </p>
+                    <p className="mt-1 text-xs leading-5 text-muted-foreground">
+                      {template.description}
+                    </p>
+                  </button>
+                ))}
+              </div>
+            </div>
           ))}
         </div>
       </section>
