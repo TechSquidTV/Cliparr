@@ -26,23 +26,40 @@ Cliparr exports clips in the browser. Video formats use Mediabunny, while GIF ex
   />
 </figure>
 
+## Export mode
+
+Choose **Video** (default), **Audio**, or **GIF**. Video includes sound unless you enable **Mute audio** beside the dropdown. Audio hides the mute toggle and video quality, resolution, and subtitle controls. GIF shows quality and the resolved output dimensions without a format selector or audio controls. Video and audio formats, video mute and resolution, and separate video/GIF quality preferences are remembered while the editor is open.
+
 ## Format
 
-| Format | Best for                                                     |
-| :----- | :----------------------------------------------------------- |
-| `MP4`  | Sharing, uploads, and general compatibility.                 |
-| `WEBM` | Efficient web playback.                                      |
-| `MOV`  | Editing workflows that prefer QuickTime-style containers.    |
-| `MKV`  | Flexible container support.                                  |
-| `GIF`  | Short animated-image exports for platforms that require GIF. |
+| Format | Best for                                                  |
+| :----- | :-------------------------------------------------------- |
+| `MP4`  | Sharing, uploads, and general compatibility.              |
+| `WEBM` | Efficient web playback.                                   |
+| `MOV`  | Editing workflows that prefer QuickTime-style containers. |
+| `MKV`  | Flexible container support.                               |
 
 Codec availability depends on the browser and source media. If an export cannot keep the selected audio or video track in the chosen container, Cliparr stops the export and shows the reason instead of silently dropping important media.
 
-Use `WEBM` instead of `GIF` when your destination supports video files. GIF is useful for compatibility with older platforms, but it is video-only, capped at 15 seconds, and usually much larger than a modern video export.
+Use `WEBM` instead of `GIF` when your destination supports video files. GIF is useful for compatibility with older platforms, but it has no audio, is capped at 15 seconds, and usually much larger than a modern video export.
+
+Audio defaults to MP3 and groups its formats by compression:
+
+| Format     | Best for                                 |
+| :--------- | :--------------------------------------- |
+| MP3        | Broad compatibility and sharing.         |
+| M4A / AAC  | Efficient audio and editing.             |
+| Ogg / Opus | Compact, high-quality audio.             |
+| FLAC       | Compressed lossless audio, 16 or 24 bit. |
+| WAV        | Uncompressed audio for editing.          |
+
+Some FLAC edge cases, including single-frame clips and extremely small final compressed frames, are not supported by the current media library. Cliparr rejects these exports with an explanation. Choose WAV or adjust the clip boundaries; Cliparr does not pad audio or change its timing.
+
+Audio encoding settings are automatic. FLAC and WAV show the selected **Bit depth** marked **Auto**, with a visible explanation based on source precision and channel mixing. The summary shows the codec, channels, sample rate, bitrate or bit depth, and any necessary lossy resampling. FLAC and WAV do not silently change the source sample rate. Known integer sources up to 16 bit use 16-bit lossless output when only trimmed; processing or uncertain precision uses 24 bit. WAV can preserve identified 32-bit PCM. Higher precision sources cannot be silently reduced to FLAC.
 
 ## Quality
 
-The `Quality` control is available for every export format. Video exports use
+The `Quality` control is available for video and GIF exports. Video exports use
 `Compact`, `Balanced`, and `Sharp`; GIF exports also include `Efficient` for a
 smaller tuned animated-image preset.
 
@@ -67,7 +84,7 @@ GIF clips longer than 15 seconds are blocked before export starts. Trim the rang
 
 Use `Original` when you want the closest match to the source. Use `1080p` or `720p` when you want a smaller export for sharing or faster downloads.
 
-GIF exports apply the selected quality preset's maximum height even when resolution is set to `Original`.
+GIF dimensions follow the quality preset's maximum height and preserve the source aspect ratio. Smaller sources keep their original dimensions. The GIF settings show the resolved dimensions instead of a resolution dropdown.
 
 ## Source
 
@@ -83,13 +100,15 @@ For most clips, leave source on `Auto`. Choose a specific source when troublesho
 
 ## Audio
 
-Use `Include Audio` for normal video clips. Cliparr keeps a stereo mix when source audio exists. Use `Video Only` when you want a silent clip or when the source audio is not needed. GIF exports are always video-only, so audio is disabled for that format.
+**Mix down to stereo** is enabled by default for both modes containing audio. Mono stays mono. Identified surround layouts include dialogue and surround contributions, omit LFE, and use headroom to avoid clipping. The resulting mix can be quieter than older exports. Disable mixdown to preserve channels when the selected codec and browser support their ordering; MP3 and WAV require mono or stereo in this release. Native Opus output also requires mono or stereo until its surround encoder mapping can be verified; AAC and FLAC preserve supported, identified layouts. Unsupported or unknown layouts produce an explanation rather than dropping channels.
 
 ## Estimated size
 
 The export dialog shows an immediate estimated size in the footer before export starts. Cliparr resolves a planned output codec and numeric average bitrate from the selected format, quality, dimensions, and audio settings. `Sharp` exports preserve compatible source video when possible; otherwise they use the same planned target as the encoder.
 
 Treat the value as approximate. Video uses variable bitrate, so exact output still depends on source motion, detail, browser codec behavior, GIF palette/dither behavior, and whether Cliparr can preserve the source track.
+
+Audio size estimates use the resolved bitrate or WAV PCM parameters. FLAC size is shown as variable. Exports estimated at 100 MiB or larger show nonblocking memory guidance; this is not a browser memory guarantee. The completed file stays in browser memory, and WAV has a 4 GiB file-size limit.
 
 ## Filename templates
 
@@ -130,7 +149,7 @@ Unsupported or missing token values resolve to empty text, and Cliparr sanitizes
 
 ## Metadata
 
-Provider-backed video clips can include title, show, season, episode, artwork, rating, and Cliparr timing metadata when the source provides it. Local files and direct URLs include only best-effort metadata. GIF exports do not embed metadata. See [Export metadata](/docs/export-metadata) for the full metadata table.
+Audio and video clips preserve available title, show, season, episode, artwork, rating, credits, and source timing. Local files and direct URLs always receive clip timing, even without provider metadata. GIF exports do not embed metadata. See [Export metadata](/docs/export-metadata) for the full metadata table.
 
 <Callout title="Exports use browser resources" tone="info">
   Longer clips, higher resolutions, subtitle burn-in, and large source files

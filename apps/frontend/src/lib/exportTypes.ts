@@ -1,3 +1,4 @@
+import type { ExportAudioPlan } from "#/lib/exportAudio";
 import type {
   GifDitherMode,
   GifPaletteFormat,
@@ -12,7 +13,13 @@ import {
   type ExportVideoCodec,
 } from "#/lib/exportEncodingPolicy";
 
-export type ExportFormat = "mp4" | "webm" | "mov" | "mkv" | "gif";
+import {
+  isAudioExportFormat,
+  exportIncludesAudio,
+  type ExportMode,
+  type ExportFormat,
+} from "#/lib/exportFormats";
+export type { ExportFormat } from "#/lib/exportFormats";
 
 export type ExportResolution = "original" | "1080" | "720";
 
@@ -50,6 +57,8 @@ export interface GifExportSettings {
 }
 
 type ExportSizeEstimateBasis =
+  | "audio-plan"
+  | "variable"
   | "copy-plan"
   | "copy-fallback"
   | "transcode-plan"
@@ -65,7 +74,8 @@ export interface EstimateExportOutputSizeOptions {
   format: ExportFormat;
   durationSeconds: number;
   outputDimensions: ExportOutputDimensions | null;
-  includeAudio: boolean;
+  mode: ExportMode;
+  audioPlan?: ExportAudioPlan | null;
   resolution: ExportResolution;
   gifSettings?: GifExportSettings | null;
   sourceSizeBytes?: number | null;
@@ -197,10 +207,6 @@ const GIF_ESTIMATE_BYTES_PER_PIXEL_FRAME: Record<GifExportPreset, number> = {
   sharp: 0.5,
 };
 
-export function exportFormatSupportsAudio(format: ExportFormat) {
-  return format !== "gif";
-}
-
 export function gifExportSettingsForPreset(preset: GifExportPreset) {
   const option =
     gifExportPresetOptions.find((option) => option.value === preset) ??
@@ -293,6 +299,9 @@ export function resolveExportOutputDimensions(
   format: ExportFormat,
   gifSettings?: GifExportSettings | null,
 ) {
+  if (isAudioExportFormat(format)) {
+    return null;
+  }
   if (
     !sourceVideoDimensions ||
     sourceVideoDimensions.width <= 0 ||
@@ -334,11 +343,30 @@ export function formatExportByteSize(bytes: number) {
   return `${Math.max(1, Math.round(kib))} KB`;
 }
 
+export function estimateAudioExportSize(
+  plan: ExportAudioPlan,
+  duration: number,
+): ExportSizeEstimate {
+  if (plan.codec === "flac") {
+    return { bytes: null, basis: "variable" };
+  }
+  const rate =
+    plan.bitrate ?? plan.sampleRate * plan.numberOfChannels * (plan.bits ?? 24);
+  return {
+    bytes: Math.ceil(
+      ((Math.max(0, duration) * rate) / 8) *
+        (plan.bitrate ? EXPORT_ESTIMATE_CONTAINER_OVERHEAD : 1),
+    ),
+    basis: "audio-plan",
+  };
+}
+
 export function estimateExportOutputSize({
   format,
   durationSeconds,
   outputDimensions,
-  includeAudio,
+  mode,
+  audioPlan,
   resolution,
   gifSettings,
   sourceSizeBytes,
@@ -351,7 +379,15 @@ export function estimateExportOutputSize({
   includeBurnedSubtitles = false,
   videoQuality,
 }: EstimateExportOutputSizeOptions): ExportSizeEstimate {
-  if (durationSeconds <= 0 || !outputDimensions) {
+  if (durationSeconds <= 0) {
+    return { bytes: null, basis: "unavailable" };
+  }
+  if (isAudioExportFormat(format)) {
+    return audioPlan?.format === format
+      ? estimateAudioExportSize(audioPlan, durationSeconds)
+      : { bytes: null, basis: "unavailable" };
+  }
+  if (!outputDimensions) {
     return { bytes: null, basis: "unavailable" };
   }
 
@@ -387,7 +423,8 @@ export function estimateExportOutputSize({
       sourceBitrateKbps,
       videoBitrateKbps,
       audioBitrateKbps,
-      includeAudio,
+      mode,
+      audioPlan,
     });
 
     if (metadataBitrateKbps !== null) {
@@ -423,7 +460,11 @@ export function estimateExportOutputSize({
   });
 
   return estimateFromBitrateKbps(
-    (videoBitrateBps + (includeAudio ? EXPORT_AUDIO_BITRATE_BPS : 0)) / 1000,
+    (videoBitrateBps +
+      (exportIncludesAudio(mode, format)
+        ? (audioPlan?.bitrate ?? EXPORT_AUDIO_BITRATE_BPS)
+        : 0)) /
+      1000,
     durationSeconds,
     "transcode-plan",
   );
@@ -451,14 +492,20 @@ function copyPlanBitrateKbps({
   sourceBitrateKbps,
   videoBitrateKbps,
   audioBitrateKbps,
-  includeAudio,
+  mode,
+  audioPlan,
 }: Pick<
   EstimateExportOutputSizeOptions,
-  "sourceBitrateKbps" | "videoBitrateKbps" | "audioBitrateKbps" | "includeAudio"
+  | "sourceBitrateKbps"
+  | "videoBitrateKbps"
+  | "audioBitrateKbps"
+  | "mode"
+  | "audioPlan"
 >): number | null {
-  const outputAudioBitrateKbps = includeAudio
-    ? EXPORT_AUDIO_BITRATE_BPS / 1000
-    : 0;
+  const outputAudioBitrateKbps =
+    mode === "video-only"
+      ? 0
+      : (audioPlan?.bitrate ?? EXPORT_AUDIO_BITRATE_BPS) / 1000;
 
   if (typeof videoBitrateKbps === "number" && videoBitrateKbps > 0) {
     return videoBitrateKbps + outputAudioBitrateKbps;
@@ -476,4 +523,13 @@ function copyPlanBitrateKbps({
     1,
     sourceBitrateKbps - audioBitrateKbps + outputAudioBitrateKbps,
   );
+}
+
+export function formatExportSizeEstimate(estimate: ExportSizeEstimate) {
+  if (typeof estimate.bytes === "number") {
+    return `~${formatExportByteSize(estimate.bytes)}`;
+  }
+  return estimate.basis === "variable"
+    ? "Variable (lossless compression)"
+    : "Unavailable";
 }

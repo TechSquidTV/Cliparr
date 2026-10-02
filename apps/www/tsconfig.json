@@ -4,7 +4,8 @@
     "baseUrl": ".",
     "jsx": "react-jsx",
     "paths": {
-      "@/*": ["src/*"]
+      "@/*": ["src/*"],
+      "#/*": ["../frontend/src/*"]
     }
   },
   "include": [

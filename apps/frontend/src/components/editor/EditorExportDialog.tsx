@@ -1,3 +1,5 @@
+import type { audioBitDepthSummary } from "#/lib/exportAudio";
+import type { ExportMode, ExportOutputType } from "#/lib/exportFormats";
 import { Download, FileText } from "lucide-react";
 import { BouncyAccordion } from "@/components/ui/bouncy-accordion";
 import type {
@@ -6,7 +8,6 @@ import type {
   ExportPhase,
 } from "@/lib/exportClip";
 import {
-  formatExportByteSize,
   type ExportQualityPreset,
   type ExportSizeEstimate,
   type GifExportSettings,
@@ -23,15 +24,14 @@ import {
 import {
   compactPrimaryButtonClasses,
   compactSecondaryButtonClasses,
-  destructiveAlertClasses,
   primaryAlertClasses,
 } from "@/components/ui/control-styles";
 import {
+  ExportStatusPanel,
   EditorExportSettingsSection,
   EditorExportSummaryPanel,
   EditorFilenameTemplateSection,
 } from "@/components/editor/EditorExportDialogSections";
-import { formatOptionFor } from "@/components/editor/editorExportOptions";
 import type { MediaDimensions } from "@/lib/editorMedia";
 
 export type ExportSourcePreference = "auto" | "direct" | "hls";
@@ -51,9 +51,14 @@ interface EditorExportDialogProperties {
   onResolutionChange: (resolution: ExportResolution) => void;
   selectedSourcePreference: ExportSourcePreference;
   onSourcePreferenceChange: (preference: ExportSourcePreference) => void;
-  includeAudio: boolean;
-  onIncludeAudioChange: (includeAudio: boolean) => void;
+  mode: ExportMode;
+  onOutputTypeChange: (outputType: ExportOutputType) => void;
+  onVideoMutedChange: (muted: boolean) => void;
+  mixDownToStereo: boolean;
+  onMixDownToStereoChange: (mixdown: boolean) => void;
+  audioSummary: string;
   audioDisabledReason?: string | null;
+  audioBitDepth: ReturnType<typeof audioBitDepthSummary>;
   exporting: boolean;
   progress: number;
   exportPhase: ExportPhase;
@@ -101,9 +106,14 @@ export function EditorExportDialog({
   onResolutionChange,
   selectedSourcePreference,
   onSourcePreferenceChange,
-  includeAudio,
-  onIncludeAudioChange,
+  mode,
+  onOutputTypeChange,
+  onVideoMutedChange,
+  mixDownToStereo,
+  onMixDownToStereoChange,
+  audioSummary,
   audioDisabledReason,
+  audioBitDepth,
   exporting,
   progress,
   exportPhase,
@@ -132,17 +142,6 @@ export function EditorExportDialog({
   onClose,
   onExport,
 }: EditorExportDialogProperties) {
-  const selectedFormatOption = formatOptionFor(selectedFormat);
-  const phaseLabel = {
-    preparing: "Preparing media…",
-    encoding: `Encoding: ${Math.round(progress * 100)}%`,
-    finalizing: "Finalizing file…",
-  }[exportPhase];
-  const displayedEstimateLabel =
-    typeof outputSizeEstimate.bytes === "number"
-      ? `~${formatExportByteSize(outputSizeEstimate.bytes)}`
-      : "Unavailable";
-
   return (
     <DialogWindow
       open={isOpen}
@@ -151,13 +150,11 @@ export function EditorExportDialog({
       closeLabel="Close export dialog"
       title="Export Clip"
       description="Review settings before download."
-      popupClassName="max-w-4xl"
-      headerClassName="bg-card"
+      popupClassName="h-[min(48rem,100%)] max-w-4xl"
+      headerClassName="shrink-0 bg-card"
     >
       <div className="grid min-h-0 flex-1 gap-4 overflow-y-auto p-4 lg:grid-cols-editor-export">
         <div className="space-y-4">
-          {error && <div className={destructiveAlertClasses}>{error}</div>}
-
           {exportSourceMessage && (
             <div className={primaryAlertClasses}>{exportSourceMessage}</div>
           )}
@@ -172,13 +169,18 @@ export function EditorExportDialog({
               onFormatChange={onFormatChange}
               selectedQuality={selectedQuality}
               onQualityChange={onQualityChange}
+              outputDimensions={outputDimensions}
               selectedResolution={selectedResolution}
               onResolutionChange={onResolutionChange}
               selectedSourcePreference={selectedSourcePreference}
               onSourcePreferenceChange={onSourcePreferenceChange}
-              includeAudio={includeAudio}
-              onIncludeAudioChange={onIncludeAudioChange}
+              mode={mode}
+              onOutputTypeChange={onOutputTypeChange}
+              onVideoMutedChange={onVideoMutedChange}
+              mixDownToStereo={mixDownToStereo}
+              onMixDownToStereoChange={onMixDownToStereoChange}
               audioDisabledReason={audioDisabledReason}
+              audioBitDepth={audioBitDepth}
               showSourcePreference={hasHlsSource && hasDirectSource}
               hasHlsSource={hasHlsSource}
               hasDirectSource={hasDirectSource}
@@ -217,7 +219,8 @@ export function EditorExportDialog({
           outputDimensions={outputDimensions}
           exportSourceLabel={exportSourceLabel}
           exportSourceSummaryMessage={exportSourceSummaryMessage}
-          includeAudio={includeAudio}
+          mode={mode}
+          audioSummary={audioSummary}
           subtitleSummaryLabel={subtitleSummaryLabel}
           subtitleSummaryDetail={subtitleSummaryDetail}
           subtitleSummaryTone={subtitleSummaryTone}
@@ -226,42 +229,31 @@ export function EditorExportDialog({
         />
       </div>
 
-      <DialogFooter className="flex-col gap-3 border-t border-border bg-card px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="min-w-0 self-stretch sm:self-center">
-          {exportNotice && (
-            <p role="status" className="mb-2 break-all text-sm text-foreground">
-              {exportNotice}
-            </p>
-          )}
-          {exporting && (
-            <p role="status" className="mb-2 text-sm text-foreground">
-              {phaseLabel}
-            </p>
-          )}
-          <div className="flex min-w-0 flex-wrap items-baseline gap-x-2 gap-y-0.5 text-xs">
-            <span className="text-muted-foreground">Estimated size</span>
-            <span className="font-mono tabular-nums text-foreground">
-              {displayedEstimateLabel}
-            </span>
-          </div>
-          {exportDisabledReason && (
-            <div className="mt-1 text-xs text-muted-foreground">
-              {exportDisabledReason}
-            </div>
-          )}
-        </div>
+      <DialogFooter className="shrink-0 flex-col gap-3 border-t border-border bg-card px-4 py-3 sm:flex-row sm:items-end sm:justify-between">
+        <ExportStatusPanel
+          estimate={outputSizeEstimate}
+          exporting={exporting}
+          phase={exportPhase}
+          progress={progress}
+          notice={exportNotice}
+          error={error}
+          disabledReason={exportDisabledReason}
+        />
 
-        <div className="flex items-center justify-end gap-2">
+        <div className="flex min-w-0 items-center justify-end gap-2 sm:shrink-0">
           {exporting ? (
             <button
               type="button"
               onClick={onCancelExport}
-              className={compactSecondaryButtonClasses}
+              className={`${compactSecondaryButtonClasses} w-20 min-w-16 whitespace-nowrap`}
+              aria-label="Cancel export"
             >
-              Cancel export
+              Cancel
             </button>
           ) : (
-            <DialogClose className={compactSecondaryButtonClasses}>
+            <DialogClose
+              className={`${compactSecondaryButtonClasses} w-20 min-w-16 whitespace-nowrap`}
+            >
               Close
             </DialogClose>
           )}
@@ -270,7 +262,7 @@ export function EditorExportDialog({
             type="button"
             onClick={onExport}
             disabled={exporting || Boolean(exportDisabledReason)}
-            className={`${compactPrimaryButtonClasses} w-44`}
+            className={`${compactPrimaryButtonClasses} w-44 shrink-0 whitespace-nowrap`}
           >
             {exporting ? (
               <>
@@ -283,7 +275,7 @@ export function EditorExportDialog({
             ) : (
               <>
                 <Download className="h-4 w-4" />
-                Export {selectedFormatOption.label}
+                Export {selectedFormat.toUpperCase()}
               </>
             )}
           </button>

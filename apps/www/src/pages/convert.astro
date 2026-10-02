@@ -11,7 +11,7 @@ import {
 } from "@/lib/structuredData";
 
 const description =
-  "Convert local video files to MP4, WebM, MOV, MKV, or GIF entirely in your browser. Convert MP4 to WebM, remux MKV to MP4, and export without uploads, ads, or watermarks.";
+  "Convert video or audio files entirely in your browser. Export video, extract audio, or convert audio to MP3, M4A, Ogg, FLAC, and WAV without uploads, ads, or watermarks.";
 
 const convertUrl = canonicalSiteUrl("/convert");
 const converterId = `${convertUrl}#video-converter`;
@@ -19,15 +19,15 @@ const structuredData = {
   "@context": "https://schema.org",
   "@type": "WebApplication",
   "@id": converterId,
-  name: "Cliparr Video Converter",
-  alternateName: "Browser video converter",
+  name: "Cliparr Video and Audio Converter",
+  alternateName: "Browser media converter",
   description,
   url: convertUrl,
   applicationCategory: "MultimediaApplication",
-  applicationSubCategory: "Video converter",
+  applicationSubCategory: "Video and audio converter",
   operatingSystem: "Web",
   browserRequirements:
-    "Requires a modern browser with WebCodecs support for local video conversion.",
+    "Requires a modern browser with WebCodecs support for local media conversion.",
   isAccessibleForFree: true,
   license: `${site.githubUrl}/blob/main/LICENSE`,
   mainEntityOfPage: { "@id": webPageId(convertUrl) },
@@ -37,6 +37,7 @@ const structuredData = {
   softwareHelp: canonicalSiteUrl("/docs/export-settings"),
   featureList: [
     "Convert local video files to MP4, WebM, MOV, MKV, and GIF",
+    "Extract and convert audio to MP3, M4A, Ogg, FLAC, and WAV",
     "Process files locally in the browser without uploads",
     "Adjust quality, resolution, and audio settings before download",
   ],
@@ -50,7 +51,7 @@ const structuredData = {
 
 <BaseLayout
   title="Convert"
-  seoTitle="Convert Video: MP4, WebM, MKV, MOV, and GIF"
+  seoTitle="Convert Video and Audio in Your Browser"
   description={description}
   manifestHref="/convert/manifest.webmanifest"
   appleTouchIconHref="/pwa-icon-192.png"
@@ -64,7 +65,7 @@ const structuredData = {
         <div class="max-w-3xl">
           <p class="section-eyebrow">Local browser conversion</p>
           <h1 class="mt-4 text-4xl font-semibold leading-tight sm:text-5xl">
-            Convert video.
+            Convert video and audio.
           </h1>
           <p class="mt-4 max-w-2xl text-base leading-7 text-muted-foreground">
             {description}

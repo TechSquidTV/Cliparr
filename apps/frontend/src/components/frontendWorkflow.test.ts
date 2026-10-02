@@ -143,8 +143,13 @@ function renderExportDialogMarkup(
     onResolutionChange: () => {},
     selectedSourcePreference: "auto",
     onSourcePreferenceChange: () => {},
-    includeAudio: true,
-    onIncludeAudioChange: () => {},
+    mode: "video-audio",
+    mixDownToStereo: true,
+    onMixDownToStereoChange: () => {},
+    audioSummary: "Stereo",
+    audioBitDepth: null,
+    onOutputTypeChange: () => {},
+    onVideoMutedChange: () => {},
     audioDisabledReason: null,
     exporting: false,
     progress: 0,
@@ -1169,7 +1174,7 @@ void test("renders GIF export quality controls and immediate estimated size", ()
     selectedQuality: "balanced",
     gifSettings: gifExportSettingsForPreset("balanced"),
     outputSizeEstimate: { bytes: 1_572_864, basis: "gif-profile" },
-    includeAudio: false,
+    mode: "video-only",
     audioDisabledReason: "GIF exports are video only.",
     fileNamePreview: "Example Movie [00m10s-00m20s].gif",
     outputDimensions: { width: 853, height: 480 },
@@ -1181,11 +1186,21 @@ void test("renders GIF export quality controls and immediate estimated size", ()
   assert.doesNotMatch(markup, /GIF Preset/);
   assert.doesNotMatch(markup, /min-h-\[6\.5rem]/);
   assert.match(markup, /Default GIF quality\/size tradeoff\./);
+  assert.match(markup, /aria-label="GIF dimensions"/);
+  assert.match(markup, /853 × 480/);
+  assert.match(markup, /smaller sources stay at their original size/);
+  assert.doesNotMatch(markup, /Select resolution/);
   assert.match(markup, /Balanced GIF \/ 12 fps/);
   assert.doesNotMatch(markup, /<dt[^>]*>Estimated size<\/dt>/);
   assert.match(markup, /Estimated size[\S\s]*~1\.5 MB[\S\s]*Export GIF/);
   assert.match(markup, /~1\.5 MB/);
-  assert.match(markup, /GIF exports are video only\./);
+  assert.doesNotMatch(markup, /GIF has no audio/);
+  assert.doesNotMatch(markup, /Select format/);
+  assert.doesNotMatch(markup, /<dt[^>]*>Audio<\/dt>/);
+  assert.match(
+    markup,
+    /<label[^>]*invisible[^>]*aria-hidden="true"[^>]*inert=""/,
+  );
   assert.doesNotMatch(markup, /role="radiogroup"/);
   assert.doesNotMatch(markup, /grid-cols-3/);
   assert.doesNotMatch(markup, /role="note"/);
@@ -1250,4 +1265,21 @@ void test("renders framegrab capture errors without a captured canvas", () => {
   assert.match(markup, /No preview frame is available yet\./);
   assert.match(markup, /Unavailable/);
   assert.match(markup, /disabled/);
+});
+
+void test("audio-only dialog hides video and subtitle controls while showing audio characteristics", () => {
+  const markup = renderExportDialogMarkup({
+    mode: "audio-only",
+    selectedFormat: "flac",
+    audioSummary: "FLAC · 48 kHz · Stereo · 24-bit",
+    outputDimensions: null,
+    outputSizeEstimate: { bytes: null, basis: "variable" },
+  });
+  assert.match(markup, /Mix down to stereo/);
+  assert.match(markup, /FLAC · 48 kHz · Stereo · 24-bit/);
+  assert.match(markup, /Variable \(lossless compression\)/);
+  assert.doesNotMatch(
+    markup,
+    /Export quality|>Resolution<|>Subtitles<|Unknown size/,
+  );
 });

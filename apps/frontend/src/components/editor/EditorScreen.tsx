@@ -234,7 +234,12 @@ function EditorScreenContent({
     selectedQuality,
     gifSettings,
     effectiveExportSourcePreference,
-    includeAudio,
+    mode,
+    mixDownToStereo,
+    setMixDownToStereo,
+    audioSummary,
+    audioBitDepth,
+    audioExportDisabledReason,
     audioDisabledReason,
     fileNameTemplates,
     templateEditorKind,
@@ -260,7 +265,8 @@ function EditorScreenContent({
     handleQualityChange,
     handleResolutionChange,
     handleExportSourceChange,
-    handleAudioChange,
+    handleOutputTypeChange,
+    handleVideoMutedChange,
     handleFileNameTemplateChange,
     handleResetFileNameTemplate,
     handleExport,
@@ -489,7 +495,8 @@ function EditorScreenContent({
   const exportDisabledReason =
     durationExportDisabledReason ??
     exportFormatDisabledReason ??
-    subtitleExportSummary.disabledReason;
+    audioExportDisabledReason ??
+    (mode === "audio-only" ? null : subtitleExportSummary.disabledReason);
   const headerExportDisabledReason = durationExportDisabledReason;
   const layoutVariant = isDesktopLayout ? "desktop" : "mobile";
   const propertiesActive =
@@ -700,8 +707,13 @@ function EditorScreenContent({
             onResolutionChange={handleResolutionChange}
             selectedSourcePreference={effectiveExportSourcePreference}
             onSourcePreferenceChange={handleExportSourceChange}
-            includeAudio={includeAudio}
-            onIncludeAudioChange={handleAudioChange}
+            mode={mode}
+            onOutputTypeChange={handleOutputTypeChange}
+            onVideoMutedChange={handleVideoMutedChange}
+            mixDownToStereo={mixDownToStereo}
+            onMixDownToStereoChange={setMixDownToStereo}
+            audioSummary={audioSummary}
+            audioBitDepth={audioBitDepth}
             audioDisabledReason={audioDisabledReason}
             exporting={exporting}
             progress={progress}

@@ -1,3 +1,13 @@
+import type { audioBitDepthSummary } from "#/lib/exportAudio";
+import { Switch } from "#/components/ui/switch";
+import {
+  isAudioExportFormat,
+  exportIncludesAudio,
+  exportFormatFor,
+  exportFormats,
+  type ExportMode,
+  type ExportOutputType,
+} from "#/lib/exportFormats";
 import { memo } from "react";
 import { Info } from "lucide-react";
 import {
@@ -14,8 +24,14 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "#/components/ui/tooltip";
-import type { ExportFormat, ExportResolution } from "#/lib/exportClip";
+import type {
+  ExportPhase,
+  ExportFormat,
+  ExportResolution,
+} from "#/lib/exportClip";
 import {
+  formatExportSizeEstimate,
+  type ExportSizeEstimate,
   exportQualityDescriptionFor,
   exportQualityOptionFor,
   exportQualityOptionsForFormat,
@@ -34,10 +50,6 @@ import {
   compactSelectTriggerClassName,
   sectionLabelClassName,
 } from "#/components/editor/editorDialogStyles";
-import {
-  formatOptionFor,
-  formatOptions,
-} from "#/components/editor/editorExportOptions";
 import { formatTime } from "#/components/editor/editorUtilities";
 import type { MediaDimensions } from "#/lib/editorMedia";
 
@@ -152,13 +164,18 @@ interface EditorExportSettingsSectionProperties {
   onFormatChange: (format: ExportFormat) => void;
   selectedQuality: ExportQualityPreset;
   onQualityChange: (quality: ExportQualityPreset) => void;
+  outputDimensions: MediaDimensions | null;
   selectedResolution: ExportResolution;
   onResolutionChange: (resolution: ExportResolution) => void;
   selectedSourcePreference?: ExportSourcePreference;
   onSourcePreferenceChange?: (preference: ExportSourcePreference) => void;
-  includeAudio: boolean;
-  onIncludeAudioChange: (includeAudio: boolean) => void;
+  mode: ExportMode;
+  onOutputTypeChange: (outputType: ExportOutputType) => void;
+  onVideoMutedChange: (muted: boolean) => void;
+  mixDownToStereo: boolean;
+  onMixDownToStereoChange: (mixdown: boolean) => void;
   audioDisabledReason?: string | null;
+  audioBitDepth: ReturnType<typeof audioBitDepthSummary>;
   showSourcePreference?: boolean;
   hasHlsSource?: boolean;
   hasDirectSource?: boolean;
@@ -171,13 +188,18 @@ function EditorExportSettingsSectionComponent({
   onFormatChange,
   selectedQuality,
   onQualityChange,
+  outputDimensions,
   selectedResolution,
   onResolutionChange,
   selectedSourcePreference,
   onSourcePreferenceChange,
-  includeAudio,
-  onIncludeAudioChange,
+  mode,
+  onOutputTypeChange,
+  onVideoMutedChange,
+  mixDownToStereo,
+  onMixDownToStereoChange,
   audioDisabledReason,
+  audioBitDepth,
   showSourcePreference = true,
   hasHlsSource = false,
   hasDirectSource = false,
@@ -187,99 +209,202 @@ function EditorExportSettingsSectionComponent({
   const sourceOptions = sourceOptionsFor({ directSourceLabel, hlsSourceLabel });
   const qualityOptions = exportQualityOptionsForFormat(selectedFormat);
   const activeSourcePreference = selectedSourcePreference ?? "auto";
+  const gif = selectedFormat === "gif";
+  const showMute = mode !== "audio-only" && !gif;
+  let outputType: ExportOutputType = "video";
+  if (gif) {
+    outputType = "gif";
+  } else if (mode === "audio-only") {
+    outputType = "audio";
+  }
+  const showBitDepth = selectedFormat === "flac" || selectedFormat === "wav";
 
   return (
     <section className="rounded-md border border-border bg-card">
       <SectionHeader>Export Settings</SectionHeader>
       <div className="grid gap-3 p-3 sm:grid-cols-2">
-        <label className="space-y-1.5">
-          <span className={sectionLabelClassName()}>Format</span>
-          <Select
-            value={selectedFormat}
-            onValueChange={(value) => onFormatChange(value as ExportFormat)}
-          >
-            <SelectTrigger
-              size="sm"
-              className={compactSelectTriggerClassName()}
+        <div className="grid grid-cols-[minmax(0,1fr)_8rem] gap-x-3 sm:col-span-2">
+          <div className="space-y-1.5">
+            <span className={sectionLabelClassName()}>Export</span>
+            <Select
+              value={outputType}
+              onValueChange={(value) =>
+                onOutputTypeChange(value as ExportOutputType)
+              }
             >
-              <SelectValue placeholder="Select format" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectGroup>
-                <SelectLabel>Formats</SelectLabel>
-                {formatOptions.map((option) => (
-                  <SelectItem key={option.value} value={option.value}>
-                    {option.label} {option.extension}
-                  </SelectItem>
-                ))}
-              </SelectGroup>
-            </SelectContent>
-          </Select>
-          <p className={stableHelperTextClassName}>
-            {formatOptionFor(selectedFormat).description}
-          </p>
-        </label>
-
-        <div className="space-y-1.5">
-          <span className={sectionLabelClassName()}>Quality</span>
-          <Select
-            value={selectedQuality}
-            onValueChange={(value) =>
-              onQualityChange(value as ExportQualityPreset)
-            }
+              <SelectTrigger
+                size="sm"
+                aria-label="Export mode"
+                className={compactSelectTriggerClassName()}
+              >
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="video">Video</SelectItem>
+                <SelectItem value="audio">Audio</SelectItem>
+                <SelectItem value="gif">GIF</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <label
+            className={`flex h-8 items-center gap-2 self-end text-sm ${showMute ? "" : "invisible"}`}
+            aria-hidden={!showMute}
+            inert={!showMute}
           >
-            <SelectTrigger
-              size="sm"
-              className={compactSelectTriggerClassName()}
-              aria-label="Export quality"
-            >
-              <SelectValue placeholder="Select quality" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectGroup>
-                <SelectLabel>Quality</SelectLabel>
-                {qualityOptions.map((option) => (
-                  <SelectItem key={option.value} value={option.value}>
-                    {option.label}
-                  </SelectItem>
-                ))}
-              </SelectGroup>
-            </SelectContent>
-          </Select>
-          <p className={stableHelperTextClassName}>
-            {exportQualityDescriptionFor(selectedFormat, selectedQuality)}
-          </p>
+            <Switch
+              checked={mode === "video-only"}
+              disabled={!showMute}
+              onCheckedChange={onVideoMutedChange}
+              aria-label="Mute audio"
+            />
+            Mute audio
+          </label>
         </div>
-
-        <label className="space-y-1.5">
-          <span className={sectionLabelClassName()}>Resolution</span>
-          <Select
-            value={selectedResolution}
-            onValueChange={(value) =>
-              onResolutionChange(value as ExportResolution)
+        {!gif && (
+          <label
+            className={
+              mode === "audio-only" && !showBitDepth
+                ? "space-y-1.5 sm:col-span-2"
+                : "space-y-1.5"
             }
           >
-            <SelectTrigger
-              size="sm"
-              className={compactSelectTriggerClassName()}
+            <span className={sectionLabelClassName()}>Format</span>
+            <Select
+              value={selectedFormat}
+              onValueChange={(value) => onFormatChange(value as ExportFormat)}
             >
-              <SelectValue placeholder="Select resolution" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectGroup>
-                <SelectLabel>Resolutions</SelectLabel>
-                {resolutionOptions.map((option) => (
-                  <SelectItem key={option.value} value={option.value}>
-                    {option.label}
-                  </SelectItem>
+              <SelectTrigger
+                size="sm"
+                className={compactSelectTriggerClassName()}
+              >
+                <SelectValue placeholder="Select format" />
+              </SelectTrigger>
+              <SelectContent>
+                {(mode === "audio-only"
+                  ? ["Lossy", "Lossless"]
+                  : ["Video"]
+                ).map((group) => (
+                  <SelectGroup key={group}>
+                    <SelectLabel>{group}</SelectLabel>
+                    {exportFormats
+                      .filter((option) => option.group === group)
+                      .map((option) => (
+                        <SelectItem key={option.value} value={option.value}>
+                          {option.label} {option.extension}
+                        </SelectItem>
+                      ))}
+                  </SelectGroup>
                 ))}
-              </SelectGroup>
-            </SelectContent>
-          </Select>
-          <p className={stableHelperTextClassName}>
-            {resolutionOptionFor(selectedResolution).description}
-          </p>
-        </label>
+              </SelectContent>
+            </Select>
+            <p className={stableHelperTextClassName}>
+              {exportFormatFor(selectedFormat).description}
+            </p>
+          </label>
+        )}
+
+        {showBitDepth && (
+          <div
+            className="space-y-1.5"
+            role="group"
+            aria-label="Automatic bit depth"
+          >
+            <div className={sectionLabelClassName()}>Bit depth</div>
+            <div className="flex h-8 items-center text-sm font-medium">
+              {audioBitDepth ? `${audioBitDepth.bits}-bit · Auto` : "Auto"}
+            </div>
+            <p className="h-20 overflow-y-auto text-xs leading-relaxed text-muted-foreground">
+              {audioBitDepth?.reason ??
+                "Selected automatically from the source and any channel mixing."}
+            </p>
+          </div>
+        )}
+
+        {mode !== "audio-only" && (
+          <>
+            <div className="space-y-1.5">
+              <span className={sectionLabelClassName()}>Quality</span>
+              <Select
+                value={selectedQuality}
+                onValueChange={(value) =>
+                  onQualityChange(value as ExportQualityPreset)
+                }
+              >
+                <SelectTrigger
+                  size="sm"
+                  className={compactSelectTriggerClassName()}
+                  aria-label="Export quality"
+                >
+                  <SelectValue placeholder="Select quality" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectGroup>
+                    <SelectLabel>Quality</SelectLabel>
+                    {qualityOptions.map((option) => (
+                      <SelectItem key={option.value} value={option.value}>
+                        {option.label}
+                      </SelectItem>
+                    ))}
+                  </SelectGroup>
+                </SelectContent>
+              </Select>
+              <p className={stableHelperTextClassName}>
+                {exportQualityDescriptionFor(selectedFormat, selectedQuality)}
+              </p>
+            </div>
+
+            {gif ? (
+              <div
+                className="space-y-1.5"
+                role="group"
+                aria-label="GIF dimensions"
+              >
+                <div className={sectionLabelClassName()}>Dimensions</div>
+                <div className="flex h-8 items-center text-sm font-medium">
+                  {outputDimensions
+                    ? `${outputDimensions.width} × ${outputDimensions.height}`
+                    : "Determined from source"}
+                </div>
+                <p className={stableHelperTextClassName}>
+                  Fits the source within{" "}
+                  {gifPresetOptionFor(selectedQuality).settings.maxHeight}p.
+                  Size follows the quality preset; smaller sources stay at their
+                  original size.
+                </p>
+              </div>
+            ) : (
+              <label className="space-y-1.5">
+                <span className={sectionLabelClassName()}>Resolution</span>
+                <Select
+                  value={selectedResolution}
+                  onValueChange={(value) =>
+                    onResolutionChange(value as ExportResolution)
+                  }
+                >
+                  <SelectTrigger
+                    size="sm"
+                    className={compactSelectTriggerClassName()}
+                  >
+                    <SelectValue placeholder="Select resolution" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectGroup>
+                      <SelectLabel>Resolutions</SelectLabel>
+                      {resolutionOptions.map((option) => (
+                        <SelectItem key={option.value} value={option.value}>
+                          {option.label}
+                        </SelectItem>
+                      ))}
+                    </SelectGroup>
+                  </SelectContent>
+                </Select>
+                <p className={stableHelperTextClassName}>
+                  {resolutionOptionFor(selectedResolution).description}
+                </p>
+              </label>
+            )}
+          </>
+        )}
 
         {showSourcePreference && (
           <div className="space-y-1.5">
@@ -341,40 +466,27 @@ function EditorExportSettingsSectionComponent({
           </div>
         )}
 
-        <label
-          className={
-            showSourcePreference ? "space-y-1.5 sm:col-span-2" : "space-y-1.5"
-          }
+        <div
+          className={`space-y-1.5 sm:col-span-2 ${mode === "video-only" ? "invisible" : ""}`}
+          aria-hidden={mode === "video-only"}
+          inert={mode === "video-only"}
         >
-          <span className={sectionLabelClassName()}>Audio</span>
-          <Select
-            value={includeAudio ? "included" : "video-only"}
-            disabled={Boolean(audioDisabledReason)}
-            onValueChange={(value) =>
-              onIncludeAudioChange(value === "included")
-            }
-          >
-            <SelectTrigger
-              size="sm"
-              className={compactSelectTriggerClassName()}
-            >
-              <SelectValue placeholder="Select audio option" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectGroup>
-                <SelectLabel>Audio</SelectLabel>
-                <SelectItem value="included">Include Audio</SelectItem>
-                <SelectItem value="video-only">Video Only</SelectItem>
-              </SelectGroup>
-            </SelectContent>
-          </Select>
+          <label className="flex items-center gap-2 text-sm">
+            <Switch
+              checked={mixDownToStereo}
+              disabled={Boolean(audioDisabledReason)}
+              onCheckedChange={onMixDownToStereoChange}
+              aria-label="Mix down to stereo"
+            />
+            Mix down to stereo
+          </label>
           <p className={stableHelperTextClassName}>
             {audioDisabledReason ??
-              (includeAudio
-                ? "Keeps a stereo mix when source audio exists."
-                : "Exports without an audio track.")}
+              (mixDownToStereo
+                ? "Includes dialogue and surround channels in a stereo mix. Mono stays mono."
+                : "Preserves the source channels. The selected format must support their layout.")}
           </p>
-        </label>
+        </div>
       </div>
     </section>
   );
@@ -495,7 +607,8 @@ interface EditorExportSummaryPanelProperties {
   outputDimensions: MediaDimensions | null;
   exportSourceLabel?: string;
   exportSourceSummaryMessage?: string | null;
-  includeAudio: boolean;
+  mode: ExportMode;
+  audioSummary?: string;
   showClipSummary?: boolean;
   showSourceSummary?: boolean;
   showSubtitleSummary?: boolean;
@@ -518,7 +631,8 @@ function EditorExportSummaryPanelComponent({
   outputDimensions,
   exportSourceLabel = "Auto",
   exportSourceSummaryMessage = null,
-  includeAudio,
+  mode,
+  audioSummary,
   showClipSummary = true,
   showSourceSummary = true,
   showSubtitleSummary = true,
@@ -531,13 +645,15 @@ function EditorExportSummaryPanelComponent({
   fileNamePreview = "",
 }: EditorExportSummaryPanelProperties) {
   const clipLength = Math.max(0, clipEnd - clipStart);
-  const selectedFormatOption = formatOptionFor(selectedFormat);
-  const outputDetail =
-    selectedFormat === "gif" && gifSettings
-      ? `${gifPresetOptionFor(gifSettings.preset).label} GIF / ${
-          gifSettings.frameRate
-        } fps`
-      : `${exportQualityOptionFor(selectedQuality).label} quality`;
+  const selectedFormatOption = exportFormatFor(selectedFormat);
+  const audioOnly = isAudioExportFormat(selectedFormat);
+  let outputDetail: string | undefined =
+    `${exportQualityOptionFor(selectedQuality).label} quality`;
+  if (audioOnly) {
+    outputDetail = audioSummary;
+  } else if (selectedFormat === "gif" && gifSettings) {
+    outputDetail = `${gifPresetOptionFor(gifSettings.preset).label} GIF / ${gifSettings.frameRate} fps`;
+  }
   let subtitleSummaryClassName = "border-border bg-background";
   if (subtitleSummaryTone === "ready") {
     subtitleSummaryClassName = "border-status-ready-border bg-status-ready";
@@ -594,26 +710,35 @@ function EditorExportSummaryPanelComponent({
           <dd className="mt-1 text-xs text-foreground">
             {selectedFormatOption.label}
           </dd>
-          <dd className="mt-1 font-mono text-ui-label text-foreground">
-            {outputDimensions
-              ? `${outputDimensions.width} x ${outputDimensions.height}`
-              : "Unknown size"}
-          </dd>
+          {!audioOnly && (
+            <dd className="mt-1 font-mono text-ui-label text-foreground">
+              {outputDimensions
+                ? `${outputDimensions.width} x ${outputDimensions.height}`
+                : "Unknown size"}
+            </dd>
+          )}
           {outputDetail && (
-            <dd className="mt-1 text-ui-label text-muted-foreground">
+            <dd
+              className={`mt-1 text-ui-label text-muted-foreground ${audioOnly ? "h-10 overflow-y-auto" : ""}`}
+            >
               {outputDetail}
             </dd>
           )}
         </div>
 
-        <div className="rounded-md border border-border bg-background px-3 py-2">
-          <dt className={sectionLabelClassName()}>Audio</dt>
-          <dd className="mt-1 text-xs text-foreground">
-            {includeAudio ? "Included when available" : "Video only"}
-          </dd>
-        </div>
+        {!audioOnly && selectedFormat !== "gif" && (
+          <div className="rounded-md border border-border bg-background px-3 py-2">
+            <dt className={sectionLabelClassName()}>Audio</dt>
+            <dd className="mt-1 h-10 overflow-y-auto text-xs text-foreground">
+              {audioSummary ??
+                (exportIncludesAudio(mode, selectedFormat)
+                  ? "Included when available"
+                  : "Video only")}
+            </dd>
+          </div>
+        )}
 
-        {showSubtitleSummary && (
+        {showSubtitleSummary && !audioOnly && (
           <div
             className={`rounded-md border px-3 py-2 ${subtitleSummaryClassName}`}
           >
@@ -646,3 +771,54 @@ function EditorExportSummaryPanelComponent({
 }
 
 export const EditorExportSummaryPanel = memo(EditorExportSummaryPanelComponent);
+
+function ExportMemoryGuidance({ bytes }: { bytes: number | null }) {
+  return bytes !== null && bytes >= 100 * 1024 * 1024 ? (
+    <p className="mt-1 text-xs text-muted-foreground">
+      Large export: the completed file is held in browser memory. Shorter clips
+      use less memory.
+    </p>
+  ) : null;
+}
+
+export function ExportStatusPanel({
+  estimate,
+  exporting,
+  phase,
+  progress,
+  notice,
+  error,
+  disabledReason,
+}: {
+  estimate: ExportSizeEstimate;
+  exporting: boolean;
+  phase: ExportPhase;
+  progress: number;
+  notice: string | null;
+  error: string | null;
+  disabledReason?: string | null;
+}) {
+  const phaseLabel = {
+    preparing: "Preparing media…",
+    encoding: `Encoding: ${Math.round(progress * 100)}%`,
+    finalizing: "Finalizing file…",
+  }[phase];
+  const message = exporting ? phaseLabel : (error ?? disabledReason ?? notice);
+  return (
+    <div className="h-28 min-w-0 overflow-y-auto self-stretch sm:h-20 sm:flex-1">
+      <div className="flex min-w-0 flex-wrap items-baseline gap-x-2 gap-y-0.5 text-xs">
+        <span className="text-muted-foreground">Estimated size</span>
+        <span className="font-mono tabular-nums text-foreground">
+          {formatExportSizeEstimate(estimate)}
+        </span>
+      </div>
+      <div
+        role="status"
+        className={`mt-1 wrap-anywhere text-xs ${error ? "text-destructive" : "text-muted-foreground"}`}
+      >
+        {message}
+      </div>
+      <ExportMemoryGuidance bytes={estimate.bytes} />
+    </div>
+  );
+}

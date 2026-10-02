@@ -1,6 +1,7 @@
 # Repository instructions
 
 - Use strict TypeScript. Do not author `any`; reserve `unknown` for untrusted boundaries.
+- Never patch dependencies, modify their internals, or monkey-patch their behavior. Use released public APIs and supported extensions; reduce feature scope when necessary.
 - Reuse existing types and helpers. Review completed changes for duplication and unnecessary layers.
 - Breaking changes are acceptable when explicitly documented. Do not add compatibility aliases or fallback implementations.
 - Use scoped Conventional Commits, without agent branding. Run `pnpm preflight` before every commit.

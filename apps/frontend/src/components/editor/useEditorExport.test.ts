@@ -1,3 +1,4 @@
+import { createIncompleteSourceAudioError } from "#/lib/exportSourceAudio";
 /// <reference types="node" />
 
 import assert from "node:assert/strict";
@@ -7,6 +8,7 @@ import {
   type EditorMediaSource,
 } from "@/lib/editorMedia";
 import {
+  buildExportErrorMessage,
   buildExportSourceLabel,
   buildExportSourceMessage,
   buildExportSourceSummaryMessage,
@@ -382,28 +384,28 @@ void test("estimates export output sizes before export", () => {
     format: "mp4",
     durationSeconds: 10,
     outputDimensions,
-    includeAudio: true,
+    mode: "video-audio",
     resolution: "720",
   });
   const webmEstimate = estimateExportOutputSize({
     format: "webm",
     durationSeconds: 10,
     outputDimensions,
-    includeAudio: true,
+    mode: "video-audio",
     resolution: "720",
   });
   const movEstimate = estimateExportOutputSize({
     format: "mov",
     durationSeconds: 10,
     outputDimensions,
-    includeAudio: true,
+    mode: "video-audio",
     resolution: "720",
   });
   const mkvEstimate = estimateExportOutputSize({
     format: "mkv",
     durationSeconds: 10,
     outputDimensions,
-    includeAudio: true,
+    mode: "video-audio",
     resolution: "720",
   });
 
@@ -427,14 +429,14 @@ void test("includes audio bitrate in heuristic video estimates", () => {
     format: "mp4",
     durationSeconds: 10,
     outputDimensions: { width: 1280, height: 720 },
-    includeAudio: true,
+    mode: "video-audio",
     resolution: "720",
   });
   const withoutAudio = estimateExportOutputSize({
     format: "mp4",
     durationSeconds: 10,
     outputDimensions: { width: 1280, height: 720 },
-    includeAudio: false,
+    mode: "video-only",
     resolution: "720",
   });
 
@@ -448,7 +450,7 @@ void test("decreases video estimates as quality presets get smaller", () => {
     format: "mp4",
     durationSeconds: 10,
     outputDimensions,
-    includeAudio: true,
+    mode: "video-audio",
     resolution: "720",
     videoQuality: "sharp",
   });
@@ -456,7 +458,7 @@ void test("decreases video estimates as quality presets get smaller", () => {
     format: "mp4",
     durationSeconds: 10,
     outputDimensions,
-    includeAudio: true,
+    mode: "video-audio",
     resolution: "720",
     videoQuality: "balanced",
   });
@@ -464,7 +466,7 @@ void test("decreases video estimates as quality presets get smaller", () => {
     format: "mp4",
     durationSeconds: 10,
     outputDimensions,
-    includeAudio: true,
+    mode: "video-audio",
     resolution: "720",
     videoQuality: "compact",
   });
@@ -486,7 +488,7 @@ void test("estimates GIF presets in increasing size order", () => {
     format: "gif",
     durationSeconds: 10,
     outputDimensions: { width: 640, height: 360 },
-    includeAudio: false,
+    mode: "video-only",
     resolution: "720",
     gifSettings: gifExportSettingsForPreset("compact"),
   });
@@ -494,7 +496,7 @@ void test("estimates GIF presets in increasing size order", () => {
     format: "gif",
     durationSeconds: 10,
     outputDimensions: { width: 853, height: 480 },
-    includeAudio: false,
+    mode: "video-only",
     resolution: "720",
     gifSettings: gifExportSettingsForPreset("balanced"),
   });
@@ -502,7 +504,7 @@ void test("estimates GIF presets in increasing size order", () => {
     format: "gif",
     durationSeconds: 10,
     outputDimensions: { width: 768, height: 432 },
-    includeAudio: false,
+    mode: "video-only",
     resolution: "720",
     gifSettings: gifExportSettingsForPreset("efficient"),
   });
@@ -510,7 +512,7 @@ void test("estimates GIF presets in increasing size order", () => {
     format: "gif",
     durationSeconds: 10,
     outputDimensions: { width: 1280, height: 720 },
-    includeAudio: false,
+    mode: "video-only",
     resolution: "720",
     gifSettings: gifExportSettingsForPreset("sharp"),
   });
@@ -537,7 +539,7 @@ void test("calibrates estimates against observed browser export samples", () => 
       format: "gif",
       durationSeconds: 5,
       outputDimensions: { width: 606, height: 320 },
-      includeAudio: false,
+      mode: "video-only",
       resolution: "original",
       gifSettings: gifExportSettingsForPreset("balanced"),
     }).bytes,
@@ -548,7 +550,7 @@ void test("calibrates estimates against observed browser export samples", () => 
       format: "gif",
       durationSeconds: 10,
       outputDimensions: { width: 645, height: 360 },
-      includeAudio: false,
+      mode: "video-only",
       resolution: "original",
       gifSettings: gifExportSettingsForPreset("compact"),
     }).bytes,
@@ -559,7 +561,7 @@ void test("calibrates estimates against observed browser export samples", () => 
       format: "mp4",
       durationSeconds: 10,
       outputDimensions: { width: 1920, height: 1072 },
-      includeAudio: true,
+      mode: "video-audio",
       resolution: "original",
     }).bytes,
     7_876_925,
@@ -569,7 +571,7 @@ void test("calibrates estimates against observed browser export samples", () => 
       format: "webm",
       durationSeconds: 10,
       outputDimensions: { width: 1920, height: 1072 },
-      includeAudio: true,
+      mode: "video-audio",
       resolution: "original",
     }).bytes,
     4_808_813,
@@ -581,7 +583,7 @@ void test("uses a transcode plan unless a source copy is explicitly eligible", (
     format: "mp4",
     durationSeconds: 10,
     outputDimensions: { width: 1920, height: 1080 },
-    includeAudio: true,
+    mode: "video-audio",
     resolution: "original",
     sourceSizeBytes: 120_000_000,
     sourceDurationSeconds: 120,
@@ -591,7 +593,7 @@ void test("uses a transcode plan unless a source copy is explicitly eligible", (
     format: "mp4",
     durationSeconds: 10,
     outputDimensions: { width: 1920, height: 1080 },
-    includeAudio: true,
+    mode: "video-audio",
     resolution: "original",
     sourceSizeBytes: 120_000_000,
     sourceDurationSeconds: 120,
@@ -601,7 +603,7 @@ void test("uses a transcode plan unless a source copy is explicitly eligible", (
     format: "mp4",
     durationSeconds: 10,
     outputDimensions: { width: 1280, height: 720 },
-    includeAudio: true,
+    mode: "video-audio",
     resolution: "720",
     sourceSizeBytes: 120_000_000,
     sourceDurationSeconds: 120,
@@ -611,7 +613,7 @@ void test("uses a transcode plan unless a source copy is explicitly eligible", (
     format: "mp4",
     durationSeconds: 10,
     outputDimensions: { width: 1920, height: 1080 },
-    includeAudio: true,
+    mode: "video-audio",
     resolution: "original",
     sourceSizeBytes: 120_000_000,
     sourceDurationSeconds: 120,
@@ -637,7 +639,7 @@ void test("uses copied-video and output-audio bitrates for an eligible copy plan
       format: "mp4",
       durationSeconds: 10,
       outputDimensions: { width: 1920, height: 1080 },
-      includeAudio: true,
+      mode: "video-audio",
       resolution: "original",
       sourceBitrateKbps: 3000,
       videoBitrateKbps: 2600,
@@ -655,7 +657,7 @@ void test("uses copied-video and output-audio bitrates for an eligible copy plan
       format: "mp4",
       durationSeconds: 10,
       outputDimensions: { width: 1920, height: 1080 },
-      includeAudio: true,
+      mode: "video-audio",
       resolution: "original",
       videoBitrateKbps: 2600,
       sourceCopyEligible: true,
@@ -672,7 +674,7 @@ void test("uses copied-video and output-audio bitrates for an eligible copy plan
       format: "mp4",
       durationSeconds: 10,
       outputDimensions: { width: 1920, height: 1080 },
-      includeAudio: false,
+      mode: "video-only",
       resolution: "original",
       sourceBitrateKbps: 3000,
       videoBitrateKbps: 2600,
@@ -690,7 +692,7 @@ void test("uses copied-video and output-audio bitrates for an eligible copy plan
       format: "mp4",
       durationSeconds: 10,
       outputDimensions: { width: 1920, height: 1080 },
-      includeAudio: true,
+      mode: "video-audio",
       resolution: "original",
       videoBitrateKbps: 2600,
     }),
@@ -760,7 +762,7 @@ void test("reports unavailable size estimates without duration or dimensions", (
       format: "mp4",
       durationSeconds: 0,
       outputDimensions: { width: 1280, height: 720 },
-      includeAudio: true,
+      mode: "video-audio",
       resolution: "720",
     }),
     { bytes: null, basis: "unavailable" },
@@ -770,7 +772,7 @@ void test("reports unavailable size estimates without duration or dimensions", (
       format: "mp4",
       durationSeconds: 10,
       outputDimensions: null,
-      includeAudio: true,
+      mode: "video-audio",
       resolution: "720",
     }),
     { bytes: null, basis: "unavailable" },
@@ -927,5 +929,48 @@ void test("builds export dimensions and source messaging", () => {
       hlsSource,
     }),
     "Using direct media.",
+  );
+});
+
+void test("audio-only readiness ignores subtitle loading and video dimensions", () => {
+  const result = getEditorExportReadiness({
+    exportSource: {
+      source: createProviderUrlSource("/playback/master.m3u8", "hls"),
+      kind: "hls",
+    },
+    format: "mp3",
+    exporting: false,
+    startTime: 65.125,
+    endTime: 130.75,
+    subtitleEnabled: true,
+    subtitleLoading: true,
+    clippedSubtitleCues: [],
+  });
+  assert.equal(result.state, "ready");
+  assert.equal(result.shouldBurnSubtitles, false);
+  assert.equal(
+    getOutputDimensions({ width: 1920, height: 1080 }, "original", "mp3"),
+    null,
+  );
+});
+
+void test("unreadable audio guidance names only an available distinct HLS source", () => {
+  const error = createIncompleteSourceAudioError();
+  const direct = createProviderUrlSource("/api/media/direct", "direct");
+  const hls = createProviderUrlSource("/api/media/hls", "hls");
+  const source = { source: direct, kind: "direct" } as const;
+  assert.match(
+    buildExportErrorMessage(error, source, hls),
+    /Choose ‘HLS playback’ under Source/,
+  );
+  assert.equal(buildExportErrorMessage(error, source), error.message);
+  assert.equal(buildExportErrorMessage(error, source, direct), error.message);
+  assert.equal(
+    buildExportErrorMessage(error, { source: hls, kind: "hls" }, hls),
+    error.message,
+  );
+  assert.equal(
+    buildExportErrorMessage(new Error("Network failed"), source, hls),
+    "Network failed",
   );
 });

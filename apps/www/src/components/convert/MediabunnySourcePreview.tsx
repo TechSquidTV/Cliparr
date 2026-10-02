@@ -10,13 +10,11 @@ import {
 import {
   assessVideoTrackDecodability,
   createCliparrInputFromSource,
+  isPlaybackVideoTrack,
   videoTrackPreviewUnavailableMessage,
   type EditorFileMediaSource,
 } from "@cliparr/frontend/convert";
-import type {
-  CanvasSink as MediabunnyCanvasSink,
-  InputVideoTrack,
-} from "mediabunny";
+import type { CanvasSink as MediabunnyCanvasSink } from "mediabunny";
 import {
   formatDuration,
   type SourceProbeResult,
@@ -24,7 +22,6 @@ import {
 
 interface MediabunnySourcePreviewProperties {
   source: EditorFileMediaSource;
-  sourceKey: string;
   probe: SourceProbeResult;
   canSelectFile: boolean;
   dragActive: boolean;
@@ -40,10 +37,6 @@ type PreviewState =
       dimensions: { width: number; height: number };
     }
   | { status: "error"; message: string };
-
-interface PreviewVideoTrackFilter {
-  hasOnlyKeyPackets: () => Promise<boolean>;
-}
 
 function previewErrorMessage(error: unknown) {
   return error instanceof Error && error.message
@@ -61,7 +54,6 @@ function clampTime(seconds: number, durationSeconds: number) {
 
 export function MediabunnySourcePreview({
   source,
-  sourceKey,
   probe,
   canSelectFile,
   dragActive,
@@ -210,10 +202,9 @@ export function MediabunnySourcePreview({
 
         inputRef.current = input;
 
-        const videoTrack = (await input.getPrimaryVideoTrack({
-          filter: async (track: PreviewVideoTrackFilter) =>
-            !(await track.hasOnlyKeyPackets()),
-        })) as InputVideoTrack | null;
+        const videoTrack = await input.getPrimaryVideoTrack({
+          filter: isPlaybackVideoTrack,
+        });
         if (isStale()) {
           releaseInput();
           return;
@@ -240,6 +231,9 @@ export function MediabunnySourcePreview({
         }
 
         const dimensions = probe.dimensions;
+        if (!dimensions) {
+          throw new Error("No video dimensions are available for preview.");
+        }
         const canvas = canvasRef.current;
         if (isStale()) {
           releaseInput();
@@ -288,7 +282,7 @@ export function MediabunnySourcePreview({
       stopPlayback();
       releaseInput();
     };
-  }, [probe, renderFrameAt, source, sourceKey, stopPlayback]);
+  }, [probe, renderFrameAt, source, stopPlayback]);
 
   const handleTogglePlayback = useCallback(() => {
     if (state.status !== "ready") {

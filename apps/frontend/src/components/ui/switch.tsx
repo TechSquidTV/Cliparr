@@ -1,7 +1,7 @@
 import { Switch as BaseSwitch } from "@base-ui/react/switch";
 import { motion, type HTMLMotionProps, type Transition } from "motion/react";
 import * as React from "react";
-import { cn } from "@/lib/utilities";
+import { cn } from "#/lib/utilities";
 
 type BaseSwitchRootProperties = React.ComponentProps<typeof BaseSwitch.Root>;
 

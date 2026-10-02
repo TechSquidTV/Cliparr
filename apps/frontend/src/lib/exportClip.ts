@@ -6,6 +6,10 @@ import {
   MkvOutputFormat,
   MovOutputFormat,
   Mp4OutputFormat,
+  Mp3OutputFormat,
+  OggOutputFormat,
+  FlacOutputFormat,
+  WavOutputFormat,
   Output,
   WebMOutputFormat,
   canEncodeAudio as canEncodeAudioWithBrowser,
@@ -14,19 +18,32 @@ import {
 import type {
   CanvasSinkOptions,
   ConversionOptions,
+  FlacOutputFormatOptions,
   InputVideoTrack,
+  InputAudioTrack,
   VideoCodec,
   VideoSample,
 } from "mediabunny";
 import {
-  exportAudioCodecPriorities,
-  EXPORT_AUDIO_BITRATE_BPS,
   resolveVideoEncodingPlan,
   type ExportVideoCodec,
   type VideoEncodingPlan,
 } from "#/lib/exportEncodingPolicy";
+import {
+  isAudioExportFormat,
+  exportIncludesAudio,
+  type ExportMode,
+} from "#/lib/exportFormats";
+import {
+  inspectAudioTrack,
+  resolveExportAudioPlan,
+  audioConversionOptions,
+  assertWavSize,
+  type ExportAudioPlan,
+} from "#/lib/exportAudio";
 import type { EditorMediaSource } from "#/lib/editorMedia";
 import { createCliparrInputFromSource } from "#/lib/mediabunnyInput";
+import { assertSourceAudioRange } from "#/lib/exportSourceAudio";
 import { ensureMediabunnyCodecs } from "#/lib/mediabunnyCodecs";
 import {
   assessVideoTrackDecodability,
@@ -90,7 +107,11 @@ export interface ExportClipOptions {
   resolution: ExportResolution;
   gifSettings?: GifExportSettings;
   videoQuality?: VideoExportQualityPreset;
-  includeAudio: boolean;
+  mode: ExportMode;
+  mixDownToStereo?: boolean;
+  title?: string;
+  audioPlan?: ExportAudioPlan;
+  onAudioEncodingPlan?: (plan: ExportAudioPlan) => void;
   selectedAudioTrack?: PlaybackAudioSelection;
   metadata?: MediaExportMetadata;
   includeBurnedSubtitles?: boolean;
@@ -113,6 +134,9 @@ interface ExportClipRuntime {
   getTrackTimelineOffsetSeconds: typeof getTrackTimelineOffsetSeconds;
   getVideoTrackDimensions: typeof getVideoTrackDimensions;
   buildMetadataTags: typeof buildMetadataTags;
+  inspectAudioTrack: typeof inspectAudioTrack;
+  assertSourceAudioRange: typeof assertSourceAudioRange;
+  resolveExportAudioPlan: typeof resolveExportAudioPlan;
   describeDiscardedTracks: typeof describeDiscardedTracks;
   patchMp4MetadataBoxes: typeof patchMp4MetadataBoxes;
   createOutputFormat: typeof createOutputFormat;
@@ -147,16 +171,35 @@ type GifEncodingRuntime = {
 const GIF_GLOBAL_PALETTE_SAMPLE_FRAME_LIMIT = 24;
 const GIF_GLOBAL_PALETTE_MAX_SAMPLE_PIXELS = 120_000;
 
-function createOutputFormat(format: ExportFormat) {
+function createOutputFormat(
+  format: ExportFormat,
+  onFlacFrame?: FlacOutputFormatOptions["onFrame"],
+) {
   switch (format) {
+    case "m4a":
     case "mp4": {
       return new Mp4OutputFormat({ fastStart: "in-memory" });
+    }
+    case "mp3": {
+      return new Mp3OutputFormat();
+    }
+    case "ogg": {
+      return new OggOutputFormat();
+    }
+    case "flac": {
+      return new FlacOutputFormat({ onFrame: onFlacFrame });
+    }
+    case "wav": {
+      return new WavOutputFormat({ metadataFormat: "id3" });
     }
     case "webm": {
       return new WebMOutputFormat();
     }
     case "mov": {
-      return new MovOutputFormat({ fastStart: "in-memory" });
+      return new MovOutputFormat({
+        fastStart: "in-memory",
+        metadataFormat: "mdir",
+      });
     }
     case "mkv": {
       return new MkvOutputFormat();
@@ -397,6 +440,9 @@ const defaultExportClipRuntime: ExportClipRuntime = {
   getTrackTimelineOffsetSeconds,
   getVideoTrackDimensions,
   buildMetadataTags,
+  inspectAudioTrack,
+  assertSourceAudioRange,
+  resolveExportAudioPlan,
   describeDiscardedTracks,
   patchMp4MetadataBoxes,
   createOutputFormat,
@@ -426,10 +472,14 @@ export async function exportClipWithRuntime(
     resolution,
     gifSettings,
     videoQuality,
-    includeAudio,
+    mode,
+    mixDownToStereo = true,
+    title,
+    audioPlan,
+    onAudioEncodingPlan,
     selectedAudioTrack,
     metadata,
-    includeBurnedSubtitles = false,
+    includeBurnedSubtitles: requestedBurnedSubtitles = false,
     subtitleCues = [],
     subtitleStyleSettings,
     onVideoEncodingPlan,
@@ -437,6 +487,8 @@ export async function exportClipWithRuntime(
   }: ExportClipOptions,
   runtime: ExportClipRuntime,
 ) {
+  const includeBurnedSubtitles =
+    mode !== "audio-only" && requestedBurnedSubtitles;
   const options = {
     signal,
     onPhaseChange,
@@ -449,7 +501,11 @@ export async function exportClipWithRuntime(
     resolution,
     gifSettings,
     videoQuality,
-    includeAudio,
+    mode,
+    mixDownToStereo,
+    title,
+    audioPlan,
+    onAudioEncodingPlan,
     selectedAudioTrack,
     metadata,
     includeBurnedSubtitles,
@@ -459,6 +515,14 @@ export async function exportClipWithRuntime(
     onProgress,
   };
 
+  const audioOnly = mode === "audio-only";
+  if (
+    audioOnly !== isAudioExportFormat(format) ||
+    (format === "gif" && mode !== "video-only")
+  ) {
+    throw new Error("The export mode does not match the selected format.");
+  }
+  const includeAudio = exportIncludesAudio(mode, format);
   signal?.throwIfAborted();
   onPhaseChange?.("preparing");
 
@@ -497,9 +561,18 @@ export async function exportClipWithRuntime(
       runtime,
     );
 
-    const sourceVideoDimensions = sourceVideoTrack
-      ? await runtime.getVideoTrackDimensions(sourceVideoTrack)
-      : null;
+    await runtime.assertSourceAudioRange(
+      preferredAudioTrack,
+      trimStart,
+      trimEnd,
+      includeAudio,
+      signal,
+    );
+
+    const sourceVideoDimensions =
+      !audioOnly && sourceVideoTrack
+        ? await runtime.getVideoTrackDimensions(sourceVideoTrack)
+        : null;
     const outputDimensions = resolveExportOutputDimensions(
       sourceVideoDimensions,
       resolution,
@@ -520,14 +593,19 @@ export async function exportClipWithRuntime(
       throw new Error("Subtitle burn-in requires a video track.");
     }
 
-    const outputFormat = runtime.createOutputFormat(format);
+    let flacFrameCount = 0;
+    let lastFlacFrameBytes = 0;
+    const outputFormat = runtime.createOutputFormat(format, (data) => {
+      flacFrameCount++;
+      lastFlacFrameBytes = data.byteLength;
+    });
     const resolvedVideoQuality = videoQuality ?? DEFAULT_VIDEO_EXPORT_QUALITY;
     let videoQualityOptions: VideoQualityConversionOptions =
       resolvedVideoQuality === "sharp" ? {} : { forceTranscode: true };
-    let videoRequiresTranscode = !sourceVideoTrack;
+    let videoRequiresTranscode = !audioOnly && !sourceVideoTrack;
     let sourceVideoCodec: ExportVideoCodec | null = null;
     let targetVideoPlan: VideoEncodingPlan | null = null;
-    if (sourceVideoTrack) {
+    if (!audioOnly && sourceVideoTrack) {
       const decodability = await assessVideoTrackDecodability(sourceVideoTrack);
       videoRequiresTranscode = await videoExportRequiresSourceDecode({
         track: sourceVideoTrack,
@@ -546,7 +624,11 @@ export async function exportClipWithRuntime(
       }
     }
 
-    if (videoRequiresTranscode && outputDimensions) {
+    if (
+      !isAudioExportFormat(format) &&
+      videoRequiresTranscode &&
+      outputDimensions
+    ) {
       targetVideoPlan = await resolveVideoEncodingPlan({
         format,
         outputDimensions,
@@ -557,11 +639,13 @@ export async function exportClipWithRuntime(
       videoQualityOptions = videoQualityConversionOptions(targetVideoPlan);
     }
 
-    onVideoEncodingPlan?.({
-      bitrateBps: targetVideoPlan?.bitrateBps ?? null,
-      codec: targetVideoPlan?.codec ?? sourceVideoCodec,
-      mode: videoRequiresTranscode ? "transcode" : "copy",
-    });
+    if (!audioOnly) {
+      onVideoEncodingPlan?.({
+        bitrateBps: targetVideoPlan?.bitrateBps ?? null,
+        codec: targetVideoPlan?.codec ?? sourceVideoCodec,
+        mode: videoRequiresTranscode ? "transcode" : "copy",
+      });
+    }
 
     const target = runtime.createBufferTarget();
     const metadataTags = await runtime.buildMetadataTags(
@@ -570,35 +654,41 @@ export async function exportClipWithRuntime(
       endTime,
       outputHeight,
       format,
+      { signal, title },
     );
-    const output = runtime.createOutput({
-      format: outputFormat,
-      target,
-    });
 
     let audioOptions: ConversionOptions["audio"];
     if (includeAudio && preferredAudioTrack) {
-      const audioCodec = await resolveAudioCodec({
+      const plan = await prepareAudioPlan(
+        preferredAudioTrack,
         format,
-        outputFormat,
-        canEncodeAudio: runtime.canEncodeAudio,
-      });
-      const baseAudioOptions = {
-        forceTranscode: true,
-        numberOfChannels: 2,
-        codec: audioCodec,
-        bitrate: EXPORT_AUDIO_BITRATE_BPS,
-      } as const;
+        mixDownToStereo,
+        audioPlan,
+        signal,
+        runtime,
+      );
+      signal?.throwIfAborted();
+      assertWavSize(plan, endTime - startTime);
+      onAudioEncodingPlan?.(plan);
+      const baseAudioOptions = audioConversionOptions(plan);
 
       audioOptions = (track) => ({
         ...baseAudioOptions,
         discard: track.id !== preferredAudioTrack.id,
       });
     } else {
+      if (audioOnly) {
+        throw new Error("The selected source has no audio track to export.");
+      }
       audioOptions = {
         discard: true,
       };
     }
+
+    const output = runtime.createOutput({
+      format: outputFormat,
+      target,
+    });
 
     const conversionOptions: ConversionOptions = {
       input,
@@ -615,7 +705,9 @@ export async function exportClipWithRuntime(
       conversionOptions.tags = metadataTags;
     }
 
-    if (sourceVideoTrack) {
+    if (audioOnly) {
+      conversionOptions.video = { discard: true };
+    } else if (sourceVideoTrack) {
       conversionOptions.video = (track) => ({
         discard: track.id !== sourceVideoTrack.id,
         ...videoQualityOptions,
@@ -644,10 +736,22 @@ export async function exportClipWithRuntime(
     }
 
     signal?.throwIfAborted();
-    const conversion = await runtime.initConversion(conversionOptions);
+    const conversion = await runtime
+      .initConversion(conversionOptions)
+      .catch(async (error: Error) => {
+        // Initialization can attach sources before rejecting, without returning a Conversion to cancel.
+        await output.cancel().catch(() => {});
+        throw error;
+      });
+    let completed = false;
     let cancellation: Promise<void> | undefined;
+    let notifyCancellation = () => {};
+    const cancelled = new Promise<void>((resolve) => {
+      notifyCancellation = resolve;
+    });
     const cancelConversion = () => {
       cancellation ??= conversion.cancel().catch(() => {});
+      notifyCancellation();
     };
     signal?.addEventListener("abort", cancelConversion, { once: true });
     try {
@@ -655,34 +759,12 @@ export async function exportClipWithRuntime(
         cancelConversion();
         signal.throwIfAborted();
       }
-      if (!conversion.isValid) {
-        const discardedDetails = await runtime.describeDiscardedTracks(
-          conversion.discardedTracks,
-        );
-        const suffix = discardedDetails ? ` ${discardedDetails}` : "";
-        throw new Error(`Conversion is invalid.${suffix}`);
-      }
-
-      const dropsAudio =
-        includeAudio &&
-        sourceHasAudio &&
-        !conversion.utilizedTracks.some((track) => track.isAudioTrack());
-      const dropsVideo =
-        sourceVideoTrack &&
-        !conversion.utilizedTracks.some(
-          (track) => track.isVideoTrack() && track.id === sourceVideoTrack.id,
-        );
-      if (dropsAudio || dropsVideo) {
-        const discardedDetails = await runtime.describeDiscardedTracks(
-          conversion.discardedTracks,
-        );
-        const suffix = discardedDetails
-          ? ` ${discardedDetails}`
-          : " Mediabunny did not report a discarded-track reason.";
-        throw new Error(
-          `Export would drop the source ${dropsAudio ? "audio" : "video"} track.${suffix}`,
-        );
-      }
+      await assertConversionTracks(
+        conversion,
+        audioOnly ? null : sourceVideoTrack,
+        includeAudio && sourceHasAudio,
+        runtime,
+      );
 
       conversion.onProgress = (progress) => {
         if (!signal?.aborted) {
@@ -693,13 +775,28 @@ export async function exportClipWithRuntime(
         }
       };
 
+      signal?.throwIfAborted();
       onPhaseChange?.("encoding");
-      await conversion.execute();
+      // Extension workers can terminate without settling a pending encode command.
+      // Still await MediaBunny's cancellation cleanup in finally before returning.
+      await Promise.race([conversion.execute(), cancelled]);
       signal?.throwIfAborted();
       onPhaseChange?.("finalizing");
 
+      // The released FLAC muxer cannot finalize a valid single-frame STREAMINFO.
+      // Its reader also misses final frames shorter than 16 bytes. Observe the
+      // public frame callback; never rewrite or reparse output.
+      if (
+        format === "flac" &&
+        (flacFrameCount < 2 || lastFlacFrameBytes < 16)
+      ) {
+        throw new Error(
+          "This clip cannot be exported reliably as FLAC. Choose WAV or adjust the clip boundaries.",
+        );
+      }
+
       if (!target.buffer) {
-        throw new Error("Export did not produce a video buffer");
+        throw new Error("Export did not produce a media buffer");
       }
 
       if (isIsobmffExportFormat(format)) {
@@ -708,11 +805,17 @@ export async function exportClipWithRuntime(
 
       // The conversion plan preserves the selected video and requested audio;
       // reparsing the completed file adds memory pressure for long exports.
-      const blob = new Blob([target.buffer], { type: outputFormat.mimeType });
+      const mimeType = await output.getMimeType();
+      signal?.throwIfAborted();
+      const blob = new Blob([target.buffer], { type: mimeType });
 
+      completed = true;
       return blob;
     } finally {
       signal?.removeEventListener("abort", cancelConversion);
+      if (!completed) {
+        cancelConversion();
+      }
       await cancellation;
     }
   } catch (error) {
@@ -738,35 +841,6 @@ function videoQualityConversionOptions(
     codec: plan.codec,
     bitrate: plan.bitrateBps,
   };
-}
-
-async function resolveAudioCodec({
-  format,
-  outputFormat,
-  canEncodeAudio,
-}: {
-  format: Exclude<ExportFormat, "gif">;
-  outputFormat: ReturnType<typeof createOutputFormat>;
-  canEncodeAudio: typeof canEncodeAudioWithBrowser;
-}) {
-  const supportedCodecs = outputFormat.getSupportedAudioCodecs();
-
-  for (const codec of exportAudioCodecPriorities(format)) {
-    if (!supportedCodecs.includes(codec)) {
-      continue;
-    }
-
-    if (
-      await canEncodeAudio(codec, {
-        numberOfChannels: 2,
-        bitrate: EXPORT_AUDIO_BITRATE_BPS,
-      })
-    ) {
-      return codec;
-    }
-  }
-
-  throw new Error("No compatible audio encoder is available for this export.");
 }
 
 async function resolveExportTrim(
@@ -1110,4 +1184,60 @@ async function loadGifEncodingRuntime(): Promise<GifEncodingRuntime> {
     createGifFrameEncoder: gifFrameEncoder.createBestGifFrameEncoder,
     concatenateGifFrameChunks: gifFrameChunk.concatenateGifFrameChunks,
   };
+}
+
+async function prepareAudioPlan(
+  track: InputAudioTrack,
+  format: Exclude<ExportFormat, "gif">,
+  mixdown: boolean,
+  cached: ExportAudioPlan | undefined,
+  signal: AbortSignal | undefined,
+  runtime: ExportClipRuntime,
+) {
+  const source = await runtime.inspectAudioTrack(track, signal);
+  signal?.throwIfAborted();
+  if (
+    cached &&
+    cached.format === format &&
+    cached.mixdown === (mixdown && source.numberOfChannels > 2) &&
+    JSON.stringify(cached.source) === JSON.stringify(source)
+  ) {
+    return cached;
+  }
+  return runtime.resolveExportAudioPlan(
+    source,
+    format,
+    mixdown,
+    runtime.canEncodeAudio,
+  );
+}
+
+async function assertConversionTracks(
+  conversion: Awaited<ReturnType<typeof Conversion.init>>,
+  videoTrack: InputVideoTrack | null,
+  expectAudio: boolean,
+  runtime: ExportClipRuntime,
+) {
+  if (!conversion.isValid) {
+    const details = await runtime.describeDiscardedTracks(
+      conversion.discardedTracks,
+    );
+    throw new Error(`Conversion is invalid.${details ? ` ${details}` : ""}`);
+  }
+  const dropsAudio =
+    expectAudio &&
+    !conversion.utilizedTracks.some((track) => track.isAudioTrack());
+  const dropsVideo =
+    videoTrack &&
+    !conversion.utilizedTracks.some(
+      (track) => track.isVideoTrack() && track.id === videoTrack.id,
+    );
+  if (dropsAudio || dropsVideo) {
+    const details = await runtime.describeDiscardedTracks(
+      conversion.discardedTracks,
+    );
+    throw new Error(
+      `Export would drop the source ${dropsAudio ? "audio" : "video"} track.${details ? ` ${details}` : " Mediabunny did not report a discarded-track reason."}`,
+    );
+  }
 }
