@@ -26,32 +26,32 @@ export const features = [
   {
     title: "Live session discovery",
     description:
-      'Playback starts, pauses, and stops update automatically from connected <a href="/docs/providers">Plex and Jellyfin providers</a>, without manual refresh.',
+      'Follow playback automatically from connected <a href="/docs/providers">Plex and Jellyfin servers</a>.',
   },
   {
     title: "Open local videos",
     description:
-      'Open a <a href="/docs/local-videos">local file or direct media URL</a> before or after connecting a provider.',
+      'Clip <a href="/docs/local-videos">local files</a> without uploading them. Direct media URLs require provider sign-in.',
   },
   {
-    title: "Intuitive timeline editor",
+    title: "Timeline editing",
     description:
-      "Drag the media block to choose your clip, trim either edge, and zoom into subtitle timing across the full video.",
+      "Trim, zoom, and fine-tune your clip range with a familiar non-linear editor.",
   },
   {
-    title: "Browser transcoding",
+    title: "Video, audio, and GIF export",
     description:
-      'Video <a href="/docs/export-settings">export settings</a> are powered by <a href="https://mediabunny.dev/" target="_blank" rel="noreferrer">Mediabunny</a>. GIFs are encoded with <a href="https://github.com/KyleTryon/gifenc" target="_blank" rel="noreferrer">gifenc</a>.',
+      'Choose video or audio-only formats, or make a GIF. <a href="/docs/export-settings">Exports run in your browser</a>.',
   },
   {
     title: "Metadata included",
     description:
-      "Video exports can include season, episode, and timing metadata from your source.",
+      'Keep source details, artwork, and clip timing in supported <a href="/docs/export-metadata">video and audio containers</a>.',
   },
   {
-    title: "Subtitle burn-in",
+    title: "Subtitle authoring",
     description:
-      'Burn in <a href="/docs/subtitle-burn-in">supported subtitles</a> with customizable styling and local font support in Chromium.',
+      'Create your own captions or import subtitles, then <a href="/docs/subtitle-burn-in">style and burn subtitles</a> into your clip.',
   },
 ] as const;
 
@@ -225,17 +225,6 @@ export const developmentSetupCommandVariants = [
 ] satisfies readonly CommandExampleVariant[];
 
 export const preflightCommands = `pnpm preflight`;
-
-export const warnings = [
-  {
-    title: "Stable APP_KEY required",
-    body: "Cliparr uses APP_KEY to encrypt provider credentials at rest. Use a stable random secret at least 32 characters long. If you change it later, you will need to re-authenticate your media servers.",
-  },
-  {
-    title: "Use HTTPS for editing",
-    body: "Cliparr's editor uses browser WebCodecs. Supporting browsers require a secure context, so use HTTPS through a reverse proxy or open Cliparr on localhost or 127.0.0.1.",
-  },
-] as const;
 
 export const envVariables = [
   {

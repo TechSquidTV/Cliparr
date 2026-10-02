@@ -5,7 +5,7 @@ section: sources
 order: 20
 ---
 
-Cliparr can work without a connected media server when you use **Open Video** from the connect screen or dashboard.
+Use **Open Video** from the connect screen or dashboard. Local files work without a connected media server; direct media URLs require a signed-in Plex or Jellyfin session.
 
 ## Local files
 
@@ -15,10 +15,10 @@ Browsers that support persistent file handles can reopen the selected file after
 
 ## Direct media URLs
 
-Direct media URLs stream through Cliparr's media proxy. The URL must use HTTP or HTTPS, be reachable from the Cliparr server, and not point at a blocked internal address.
+Sign in to a provider before opening a direct media URL. URLs stream through Cliparr's media proxy and must use HTTP or HTTPS, be reachable from the Cliparr server, and not point at a blocked internal address.
 
 For smooth seeking and clipping, use URLs that support byte-range requests. HLS `.m3u8` URLs can be opened when Cliparr can fetch the playlist and its segment URLs.
 
 ## When to use local videos
 
-Use local videos when you already have a file on the device running the browser, want to clip a direct media URL, or do not need active playback discovery from Plex or Jellyfin.
+Use local files when the video is already on your device or you do not need a media server. Use a direct media URL when you are signed in and want to clip remotely hosted media without active playback discovery.
