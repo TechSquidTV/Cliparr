@@ -5,13 +5,13 @@ section: install-operate
 order: 35
 ---
 
-Cliparr edits and exports media in your browser. Its self-hosted server handles provider authentication, live playback notifications, and proxy access to remote media. Local files stay on your device.
+Cliparr edits and exports media in your browser. Local files stay on your device.
 
 ## WebCodecs support
 
 **WebCodecs support is the main browser requirement for Cliparr's media processing and exports.** Use a current browser with support on your device. Check your browser and version in the [WebCodecs compatibility table on Can I use](https://caniuse.com/webcodecs), including the separate entries for desktop and mobile browsers.
 
-Supported codecs still vary by browser, operating system, and hardware. WebCodecs availability does not guarantee every source or output format will work. Cliparr reports unsupported export configurations. See [Export settings](/docs/export-settings) for formats and limitations, and [MDN's codec-selection reference](https://developer.mozilla.org/en-US/docs/Web/API/WebCodecs_API/Codec_selection) for codec compatibility.
+Supported codecs still vary by browser, operating system, and hardware. WebCodecs availability does not guarantee every source or output format will work. Cliparr reports unsupported export configurations. See [Export settings](/docs/export-settings) for available formats and limitations.
 
 ## Secure access
 
@@ -32,4 +32,4 @@ Installation adds a launcher for Cliparr; it does not add codecs or remove brows
 3. Read the export error. Try a supported format or source, and review the [audio and FLAC limitations](/docs/export-settings#format) before changing formats.
 4. For large exports, shorten the selection or lower video resolution. Exported files remain in browser memory.
 
-See [MDN's secure-context requirements](https://developer.mozilla.org/en-US/docs/Web/Security/Defenses/Secure_Contexts/features_restricted_to_secure_contexts) for the browser API requirement, and [Providers](/docs/providers) for connection or live-update failures.
+For media-server connection or live-update problems, see [Providers](/docs/providers).

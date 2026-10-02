@@ -83,6 +83,17 @@ If publication fails, **rerun the same workflow run** to reuse its saved release
 
 The Cloudflare changelog refresh is a separate job. If only that job fails, rerun the failed job; the release is already published. To retry an older refresh independently, use the Sync Changelog workflow.
 
+### Upgrading source integrations to 3.0
+
+**Breaking changes:**
+
+- Export callers must replace `includeAudio` with export mode and mixdown preferences and use the shared format API.
+- Plex callers must use generated `@cliparr/plex` operations and URL builders. Downloads require provider-returned part links. Conflicting media or part identities can suppress previews and subtitle extraction; unidentified streams no longer inherit selection or track numbers from array positions. Undocumented response aliases and `Network` export tags have been removed.
+- Embedded Cliparr metadata now uses version 1 JSON with `source` and `clip` objects: `clpr` in MP4 and `CLIPARR_METADATA` in other supported containers. The old unversioned payload is no longer written; individual MP4 timing tags remain available.
+- The website moves to Astro 7 and Vite 8. Rebuild deployed artifacts with the updated lockfile.
+
+No compatibility aliases or fallback implementations are provided.
+
 ## Security
 
 Do not include Plex tokens, Jellyfin credentials, server URLs, local media paths, or other private account details in issues, logs, screenshots, or pull requests.
