@@ -1,4 +1,4 @@
-import type { audioBitDepthSummary } from "#/lib/exportAudio";
+import type { audioBitDepthSummary, ExportAudioPlan } from "#/lib/exportAudio";
 import { Switch } from "#/components/ui/switch";
 import {
   isAudioExportFormat,
@@ -329,7 +329,7 @@ function EditorExportSettingsSectionComponent({
               </Tooltip>
             </div>
             <div className="flex h-8 items-center text-sm font-medium">
-              {audioBitDepth ? `${audioBitDepth.bits}-bit · Auto` : "Auto"}
+              {audioBitDepth ? `${audioBitDepth.bits}-bit (automatic)` : "Auto"}
             </div>
             <p className={stableHelperTextClassName}>
               {audioBitDepth?.reason ?? "Based on source and channel mixing."}
@@ -623,7 +623,8 @@ interface EditorExportSummaryPanelProperties {
   exportSourceLabel?: string;
   exportSourceSummaryMessage?: string | null;
   mode: ExportMode;
-  audioSummary?: string;
+  audioStatus: string;
+  audioPlan: ExportAudioPlan | null;
   showClipSummary?: boolean;
   showSourceSummary?: boolean;
   showSubtitleSummary?: boolean;
@@ -647,7 +648,8 @@ function EditorExportSummaryPanelComponent({
   exportSourceLabel = "Auto",
   exportSourceSummaryMessage = null,
   mode,
-  audioSummary,
+  audioStatus,
+  audioPlan,
   showClipSummary = true,
   showSourceSummary = true,
   showSubtitleSummary = true,
@@ -662,11 +664,8 @@ function EditorExportSummaryPanelComponent({
   const clipLength = Math.max(0, clipEnd - clipStart);
   const selectedFormatOption = exportFormatFor(selectedFormat);
   const audioOnly = isAudioExportFormat(selectedFormat);
-  let outputDetail: string | undefined =
-    `${exportQualityOptionFor(selectedQuality).label} quality`;
-  if (audioOnly) {
-    outputDetail = audioSummary;
-  } else if (selectedFormat === "gif" && gifSettings) {
+  let outputDetail = `${exportQualityOptionFor(selectedQuality).label} quality`;
+  if (selectedFormat === "gif" && gifSettings) {
     outputDetail = `${gifPresetOptionFor(gifSettings.preset).label} GIF / ${gifSettings.frameRate} fps`;
   }
   let subtitleSummaryClassName = "border-border bg-background";
@@ -732,10 +731,16 @@ function EditorExportSummaryPanelComponent({
                 : "Unknown size"}
             </dd>
           )}
-          {outputDetail && (
-            <dd
-              className={`mt-1 text-ui-label text-muted-foreground ${audioOnly ? "h-10 overflow-y-auto" : ""}`}
-            >
+          {audioOnly ? (
+            <dd className="mt-2">
+              <ExportAudioDetails
+                plan={audioPlan}
+                status={audioStatus}
+                showCodec={selectedFormat === "wav"}
+              />
+            </dd>
+          ) : (
+            <dd className="mt-1 text-ui-label text-muted-foreground">
               {outputDetail}
             </dd>
           )}
@@ -744,11 +749,16 @@ function EditorExportSummaryPanelComponent({
         {!audioOnly && selectedFormat !== "gif" && (
           <div className="rounded-md border border-border bg-background px-3 py-2">
             <dt className={sectionLabelClassName()}>Audio</dt>
-            <dd className="mt-1 h-10 overflow-y-auto text-xs text-foreground">
-              {audioSummary ??
-                (exportIncludesAudio(mode, selectedFormat)
-                  ? "Included when available"
-                  : "Video only")}
+            <dd className="mt-2">
+              <ExportAudioDetails
+                plan={audioPlan}
+                status={
+                  exportIncludesAudio(mode, selectedFormat)
+                    ? audioStatus
+                    : "Video only"
+                }
+                showCodec
+              />
             </dd>
           </div>
         )}
@@ -786,6 +796,61 @@ function EditorExportSummaryPanelComponent({
 }
 
 export const EditorExportSummaryPanel = memo(EditorExportSummaryPanelComponent);
+
+function ExportAudioDetails({
+  plan,
+  status,
+  showCodec,
+}: {
+  plan: ExportAudioPlan | null;
+  status: string;
+  showCodec: boolean;
+}) {
+  if (!plan) {
+    return <p className="text-xs text-muted-foreground">{status}</p>;
+  }
+  const details: Array<readonly [string, string]> = [];
+  if (showCodec) {
+    let codec = plan.codec === "opus" ? "Opus" : plan.codec.toUpperCase();
+    if (plan.codec.startsWith("pcm-")) {
+      codec = plan.codec === "pcm-f32" ? "PCM (float)" : "PCM";
+    }
+    details.push(["Codec", codec]);
+  }
+  details.push(
+    [
+      "Channels",
+      { 1: "Mono", 2: "Stereo" }[plan.numberOfChannels] ??
+        `${plan.numberOfChannels} channels`,
+    ],
+    ["Sample rate", `${plan.sampleRate / 1000} kHz`],
+  );
+  if (plan.bits !== null) {
+    details.push(["Bit depth", `${plan.bits}-bit`]);
+  } else if (plan.bitrate !== undefined) {
+    details.push(["Bitrate", `${plan.bitrate / 1000} kbps`]);
+  }
+  return (
+    <>
+      <dl className="space-y-1 text-xs">
+        {details.map(([label, value]) => (
+          <div
+            key={label}
+            className="grid grid-cols-[minmax(0,1fr)_auto] gap-x-3"
+          >
+            <dt className="text-muted-foreground">{label}</dt>
+            <dd className="text-right text-foreground">{value}</dd>
+          </div>
+        ))}
+      </dl>
+      {plan.sampleRate !== plan.source.sampleRate && (
+        <p className="mt-2 text-xs text-muted-foreground">
+          Resampled from {plan.source.sampleRate / 1000} kHz.
+        </p>
+      )}
+    </>
+  );
+}
 
 function ExportMemoryGuidance({ bytes }: { bytes: number | null }) {
   return bytes !== null && bytes >= 100 * 1024 * 1024 ? (

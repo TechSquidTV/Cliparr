@@ -1,4 +1,4 @@
-import type { audioBitDepthSummary } from "#/lib/exportAudio";
+import type { audioBitDepthSummary, ExportAudioPlan } from "#/lib/exportAudio";
 import type { ExportMode, ExportOutputType } from "#/lib/exportFormats";
 import { Download, FileText } from "lucide-react";
 import { BouncyAccordion } from "@/components/ui/bouncy-accordion";
@@ -56,7 +56,8 @@ interface EditorExportDialogProperties {
   onVideoMutedChange: (muted: boolean) => void;
   mixDownToStereo: boolean;
   onMixDownToStereoChange: (mixdown: boolean) => void;
-  audioSummary: string;
+  audioStatus: string;
+  audioPlan: ExportAudioPlan | null;
   audioDisabledReason?: string | null;
   audioBitDepth: ReturnType<typeof audioBitDepthSummary>;
   exporting: boolean;
@@ -111,7 +112,8 @@ export function EditorExportDialog({
   onVideoMutedChange,
   mixDownToStereo,
   onMixDownToStereoChange,
-  audioSummary,
+  audioStatus,
+  audioPlan,
   audioDisabledReason,
   audioBitDepth,
   exporting,
@@ -220,7 +222,8 @@ export function EditorExportDialog({
           exportSourceLabel={exportSourceLabel}
           exportSourceSummaryMessage={exportSourceSummaryMessage}
           mode={mode}
-          audioSummary={audioSummary}
+          audioStatus={audioStatus}
+          audioPlan={audioPlan}
           subtitleSummaryLabel={subtitleSummaryLabel}
           subtitleSummaryDetail={subtitleSummaryDetail}
           subtitleSummaryTone={subtitleSummaryTone}

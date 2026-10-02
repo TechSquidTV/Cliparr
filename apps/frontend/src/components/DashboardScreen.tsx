@@ -142,8 +142,7 @@ function ViewerChip({
         </div>
         <div className="truncate text-xs text-muted-foreground">
           <span className="capitalize">{playerState}</span>
-          <span aria-hidden="true"> · </span>
-          {formatViewerSessionCount(sessionCount)}
+          {sessionCount > 1 && ` (${formatViewerSessionCount(sessionCount)})`}
         </div>
       </div>
     </div>

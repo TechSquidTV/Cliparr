@@ -448,27 +448,6 @@ export function audioBitDepthSummary(plan: ExportAudioPlan) {
   return { bits: plan.bits, reason };
 }
 
-export function audioPlanSummary(plan: ExportAudioPlan) {
-  const channels =
-    { 1: "Mono", 2: "Stereo" }[plan.numberOfChannels] ??
-    `${plan.numberOfChannels} channels`;
-  const details = [
-    plan.codec.replace("pcm-", "PCM ").toUpperCase(),
-    `${plan.sampleRate / 1000} kHz`,
-    channels,
-  ];
-  if (plan.bits) {
-    details.push(`${plan.bits}-bit`);
-  } else if (plan.bitrate) {
-    details.push(`${plan.bitrate / 1000} kbps`);
-  }
-  const resampling =
-    plan.sampleRate === plan.source.sampleRate
-      ? ""
-      : ` (resampled from ${plan.source.sampleRate / 1000} kHz)`;
-  return details.join(" · ") + resampling;
-}
-
 export function assertWavSize(plan: ExportAudioPlan, duration: number) {
   if (
     plan.codec.startsWith("pcm-") &&
