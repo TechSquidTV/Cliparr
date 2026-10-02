@@ -1,8 +1,8 @@
 import type {
-  ExportFormat,
   ExportOutputDimensions,
   VideoExportQualityPreset,
 } from "#/lib/exportTypes";
+import type { VideoExportFormat } from "#/lib/exportFormats";
 import type { ExportVideoCodec as SharedExportVideoCodec } from "@cliparr/shared/providers";
 
 export type ExportVideoCodec = SharedExportVideoCodec;
@@ -43,7 +43,7 @@ const VIDEO_QUALITY_FACTORS: Readonly<
 };
 
 const VIDEO_CODEC_PRIORITIES: Readonly<
-  Record<Exclude<ExportFormat, "gif">, readonly ExportVideoCodec[]>
+  Record<VideoExportFormat, readonly ExportVideoCodec[]>
 > = {
   mp4: ["avc", "hevc", "vp9", "av1", "vp8"],
   mov: ["avc", "hevc", "vp9", "av1", "vp8"],
@@ -52,7 +52,7 @@ const VIDEO_CODEC_PRIORITIES: Readonly<
 };
 
 const AUDIO_CODEC_PRIORITIES: Readonly<
-  Record<Exclude<ExportFormat, "gif">, readonly ExportAudioCodec[]>
+  Record<VideoExportFormat, readonly ExportAudioCodec[]>
 > = {
   mp4: ["aac", "mp3", "opus", "vorbis"],
   mov: ["aac", "mp3", "opus", "vorbis"],
@@ -64,21 +64,17 @@ const AUDIO_CODEC_PRIORITIES: Readonly<
 const VIDEO_CALIBRATION_FACTORS: Readonly<
   Partial<
     Record<
-      `${Exclude<ExportFormat, "gif">}:${ExportVideoCodec}:${VideoExportQualityPreset}`,
+      `${VideoExportFormat}:${ExportVideoCodec}:${VideoExportQualityPreset}`,
       number
     >
   >
 > = {};
 
-export function exportVideoCodecPriorities(
-  format: Exclude<ExportFormat, "gif">,
-) {
+export function exportVideoCodecPriorities(format: VideoExportFormat) {
   return VIDEO_CODEC_PRIORITIES[format];
 }
 
-export function exportAudioCodecPriorities(
-  format: Exclude<ExportFormat, "gif">,
-) {
+export function exportAudioCodecPriorities(format: VideoExportFormat) {
   return AUDIO_CODEC_PRIORITIES[format];
 }
 
@@ -87,7 +83,7 @@ export function videoEncodingPlanKey({
   outputDimensions,
   quality,
 }: {
-  format: Exclude<ExportFormat, "gif">;
+  format: VideoExportFormat;
   outputDimensions: ExportOutputDimensions;
   quality: VideoExportQualityPreset;
 }) {
@@ -95,7 +91,7 @@ export function videoEncodingPlanKey({
 }
 
 export function formatCanCopyVideoCodec(
-  format: Exclude<ExportFormat, "gif">,
+  format: VideoExportFormat,
   codec: string | null | undefined,
 ) {
   if (!codec) {
@@ -144,7 +140,7 @@ export function calibratedEstimatedVideoBitrateBps({
   outputDimensions,
   quality,
 }: {
-  format: Exclude<ExportFormat, "gif">;
+  format: VideoExportFormat;
   codec: ExportVideoCodec;
   outputDimensions: ExportOutputDimensions;
   quality: VideoExportQualityPreset;
@@ -170,7 +166,7 @@ export async function resolveVideoEncodingPlan({
   supportedVideoCodecs,
   canEncodeVideo,
 }: {
-  format: Exclude<ExportFormat, "gif">;
+  format: VideoExportFormat;
   outputDimensions: ExportOutputDimensions;
   quality: VideoExportQualityPreset;
   supportedVideoCodecs: readonly string[];

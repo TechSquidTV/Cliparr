@@ -1,36 +1,25 @@
 import {
+  useExportSettings,
+  useExportAudioPlan,
+  useExportVideoPlan,
+  exportIncludesAudio,
+  isAudioExportFormat,
   DEFAULT_GIF_EXPORT_PRESET,
-  DEFAULT_VIDEO_EXPORT_QUALITY,
+  ExportStatusPanel,
   EditorExportSettingsSection,
   EditorExportSummaryPanel,
   TooltipProvider,
   compactPrimaryButtonClasses,
-  createCliparrInputFromSource,
-  destructiveAlertClasses,
   estimateExportOutputSize,
   exportFormatDurationDisabledReason,
-  exportVideoCodecPriorities,
   formatCanCopyVideoCodec,
-  formatOptionFor,
-  formatExportByteSize,
-  getTrackTimelineOffsetSeconds,
-  getVideoTrackDimensions,
-  gifExportSettingsForPreset,
-  primaryAlertClasses,
+  exportFormatFor,
   resolveExportOutputDimensions,
-  resolveVideoEncodingPlan,
   titleFromFileName,
-  videoEncodingPlanKey,
   type EditorFileMediaSource,
   type ExportVideoEncodingPlan,
-  type ExportFormat,
-  type ExportQualityPreset,
-  type ExportResolution,
-  type ResolvedVideoEncodingPlan,
-  type GifExportPreset,
-  type VideoExportQualityPreset,
+  type ExportPhase,
 } from "@cliparr/frontend/convert";
-import { canEncodeVideo } from "mediabunny";
 import { Download, FolderOpen, RefreshCcw, Upload } from "lucide-react";
 import {
   useCallback,
@@ -48,9 +37,8 @@ import {
   buildConvertedOutputFileName,
   buildLocalFileSource,
   formatDuration,
-  resolveConvertIncludeAudio,
   runConvertExport,
-  selectedQualityForFormat,
+  probeConvertSource,
   type SourceProbeResult,
 } from "@/components/convert/convertToolUtilities";
 import {
@@ -69,6 +57,14 @@ type ProbeState =
 
 const fileAccept = [
   "video/*",
+  "audio/*",
+  ".mp3",
+  ".m4a",
+  ".aac",
+  ".ogg",
+  ".opus",
+  ".flac",
+  ".wav",
   "video/x-matroska",
   "application/x-matroska",
   "video/mp2t",
@@ -87,18 +83,8 @@ function errorMessage(error: unknown, fallback: string) {
   return error instanceof Error && error.message ? error.message : fallback;
 }
 
-function isVideoExportQuality(
-  quality: ExportQualityPreset,
-): quality is VideoExportQualityPreset {
-  return quality !== "efficient";
-}
-
-function probeKeyFor(file: File | null) {
-  return file ? `${file.name}:${file.size}:${file.lastModified}` : "";
-}
-
 function dimensionsLabel(result: SourceProbeResult | null) {
-  return result
+  return result?.dimensions
     ? `${result.dimensions.width} x ${result.dimensions.height}`
     : "Unknown";
 }
@@ -121,7 +107,7 @@ function fileTypeLabel(file: File | null) {
 function probeErrorMessage(error: unknown) {
   return errorMessage(
     error,
-    "Could not inspect this file. Try another video format.",
+    "Could not inspect this file. Try another media format.",
   );
 }
 
@@ -170,114 +156,76 @@ const quickTemplates: readonly QuickTemplate[] = [
   },
 ] as const;
 
-interface ProbeVideoTrack {
-  getAverageBitrate: () => Promise<number | null>;
-  getBitrate: () => Promise<number | null>;
-  getCodec: () => Promise<string | null>;
-  hasOnlyKeyPackets: () => Promise<boolean>;
-}
-
-async function probeSource(source: EditorFileMediaSource) {
-  const input = await createCliparrInputFromSource(source);
-
-  try {
-    const videoTrack = await input.getPrimaryVideoTrack({
-      filter: async (track: ProbeVideoTrack) =>
-        !(await track.hasOnlyKeyPackets()),
-    });
-
-    if (!videoTrack) {
-      throw new Error("This file does not contain an exportable video track.");
-    }
-
-    const audioTracks = await input.getAudioTracks();
-    const durationTracks = [videoTrack, ...audioTracks];
-    const previewStartTimestampSeconds = Math.max(
-      await videoTrack.getFirstTimestamp(),
-      0,
-    );
-    const timelineOffsetSeconds =
-      await getTrackTimelineOffsetSeconds(durationTracks);
-    const metadataDuration =
-      await input.getDurationFromMetadata(durationTracks);
-    const sourceTimelineEnd =
-      metadataDuration && metadataDuration > 0
-        ? metadataDuration
-        : await input.computeDuration(durationTracks);
-    const durationSeconds = Math.max(
-      0,
-      sourceTimelineEnd - timelineOffsetSeconds,
-    );
-
-    if (!Number.isFinite(durationSeconds) || durationSeconds <= 0) {
-      throw new Error("Could not determine this file's duration.");
-    }
-
-    const dimensions = await getVideoTrackDimensions(videoTrack);
-    const averageVideoBitrate = await videoTrack.getAverageBitrate();
-    const peakVideoBitrate = await videoTrack.getBitrate();
-    let videoBitrateKbps: number | null = null;
-    if (typeof averageVideoBitrate === "number" && averageVideoBitrate > 0) {
-      videoBitrateKbps = Math.round(averageVideoBitrate / 1000);
-    } else if (typeof peakVideoBitrate === "number" && peakVideoBitrate > 0) {
-      videoBitrateKbps = Math.round(peakVideoBitrate / 1000);
-    }
-
-    return {
-      durationSeconds,
-      previewStartTimestampSeconds,
-      dimensions,
-      hasAudio: audioTracks.length > 0,
-      videoCodec: await videoTrack.getCodec(),
-      videoBitrateKbps,
-    } satisfies SourceProbeResult;
-  } finally {
-    input.dispose();
-  }
-}
-
 export function ConvertTool() {
   const fileInputId = useId();
   const outputNameInputId = useId();
   const inputRef = useRef<HTMLInputElement | null>(null);
+  const exportController = useRef<AbortController | null>(null);
   const [source, setSource] = useState<EditorFileMediaSource | null>(null);
-  const [probeState, setProbeState] = useState<ProbeState>({
-    status: "idle",
-  });
-  const [format, setFormat] = useState<ExportFormat>("mp4");
-  const [resolution, setResolution] = useState<ExportResolution>("original");
-  const [gifPreset, setGifPreset] = useState<GifExportPreset>(
-    DEFAULT_GIF_EXPORT_PRESET,
-  );
-  const [videoQuality, setVideoQuality] = useState<VideoExportQualityPreset>(
-    DEFAULT_VIDEO_EXPORT_QUALITY,
-  );
-  const [includeAudio, setIncludeAudio] = useState(true);
+  const [probeCache, setProbeCache] = useState<{
+    file: File;
+    results: Partial<Record<"audio" | "video", SourceProbeResult>>;
+  } | null>(null);
+  const [probeError, setProbeError] = useState<{
+    file: File;
+    audioOnly: boolean;
+    message: string;
+  } | null>(null);
+  const [exportNotice, setExportNotice] = useState<string | null>(null);
+  const [exportError, setExportError] = useState<string | null>(null);
+  const handleSettingsChange = useCallback(() => {
+    setExportError(null);
+    setExportNotice(null);
+  }, []);
+  const {
+    mode,
+    format,
+    setOutputType,
+    setVideoMuted,
+    setFormat,
+    resolution,
+    setResolution,
+    selectedQuality,
+    setQuality,
+    videoQuality,
+    gifSettings,
+    mixDownToStereo,
+    setMixDownToStereo,
+  } = useExportSettings(handleSettingsChange);
   const [outputNameStem, setOutputNameStem] = useState("converted-video");
   const [isConverterReady, setIsConverterReady] = useState(false);
   const [dragActive, setDragActive] = useState(false);
   const [exporting, setExporting] = useState(false);
-  const [resolvedVideoPlan, setResolvedVideoPlan] =
-    useState<ResolvedVideoEncodingPlan | null>(null);
+  const [exportPhase, setExportPhase] = useState<ExportPhase>("preparing");
   const [progress, setProgress] = useState(0);
-  const [exportError, setExportError] = useState<string | null>(null);
 
   const sourceFile = source?.file ?? null;
   const canSelectFile = isConverterReady && !exporting;
-  const sourceProbeKey = probeKeyFor(sourceFile);
-  const probeResult = probeState.status === "ready" ? probeState.result : null;
+  const audioOnly = mode === "audio-only";
+  const probeResult =
+    probeCache?.file === sourceFile
+      ? (probeCache?.results[audioOnly ? "audio" : "video"] ?? null)
+      : null;
+  let probeState: ProbeState = { status: sourceFile ? "loading" : "idle" };
+  if (probeResult) {
+    probeState = { status: "ready", result: probeResult };
+  } else if (
+    probeError?.file === sourceFile &&
+    probeError?.audioOnly === audioOnly
+  ) {
+    probeState = { status: "error", message: probeError.message };
+  }
+  // Output selection does not change the inspected source or its preview.
+  const sourceInspection =
+    probeCache?.file === sourceFile
+      ? (probeCache?.results.video ?? probeCache?.results.audio ?? null)
+      : null;
+  const sourceProbeState: ProbeState = sourceInspection
+    ? { status: "ready", result: sourceInspection }
+    : probeState;
   const sourceTitle = sourceFile
     ? titleFromFileName(sourceFile.name)
     : "No file selected";
-  const gifSettings = useMemo(
-    () => gifExportSettingsForPreset(gifPreset),
-    [gifPreset],
-  );
-  const selectedQuality = selectedQualityForFormat({
-    format,
-    gifPreset,
-    videoQuality,
-  });
   const outputDimensions = useMemo(
     () =>
       resolveExportOutputDimensions(
@@ -288,122 +236,82 @@ export function ConvertTool() {
       ),
     [format, gifSettings, probeResult?.dimensions, resolution],
   );
-  const effectiveIncludeAudio = resolveConvertIncludeAudio(
+  const effectiveIncludeAudio = exportIncludesAudio(mode, format);
+  const audio = useExportAudioPlan(
+    source,
+    undefined,
     format,
-    includeAudio && (probeResult?.hasAudio ?? true),
+    mixDownToStereo,
+    effectiveIncludeAudio && Boolean(probeResult),
   );
-  const videoPlanKey = useMemo(
-    () =>
-      format === "gif" || !outputDimensions
-        ? null
-        : videoEncodingPlanKey({
-            format,
-            outputDimensions,
-            quality: videoQuality,
-          }),
-    [format, outputDimensions, videoQuality],
+  const resolvedVideoPlan = useExportVideoPlan(
+    format,
+    outputDimensions,
+    videoQuality,
   );
   const sourceCopyEligible =
+    !isAudioExportFormat(format) &&
     format !== "gif" &&
     videoQuality === "sharp" &&
     resolution === "original" &&
     formatCanCopyVideoCodec(format, probeResult?.videoCodec);
-  useEffect(() => {
-    let cancelled = false;
-
-    if (format === "gif" || !outputDimensions || !videoPlanKey) {
-      return () => {
-        cancelled = true;
-      };
+  const outputSizeEstimate = useMemo(() => {
+    if (!probeResult || !sourceFile) {
+      return { bytes: null, basis: "unavailable" as const };
     }
-
-    void resolveVideoEncodingPlan({
+    return estimateExportOutputSize({
       format,
+      durationSeconds: probeResult.durationSeconds,
       outputDimensions,
-      quality: videoQuality,
-      supportedVideoCodecs: exportVideoCodecPriorities(format),
-      canEncodeVideo,
-    })
-      .then((plan) => {
-        if (!cancelled) {
-          setResolvedVideoPlan({ ...plan, key: videoPlanKey });
-        }
-      })
-      .catch(() => {
-        // Export validates encoder support again before conversion.
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [format, outputDimensions, videoPlanKey, videoQuality]);
-  const outputSizeEstimate = useMemo(
-    () =>
-      probeResult && sourceFile
-        ? estimateExportOutputSize({
-            format,
-            durationSeconds: probeResult.durationSeconds,
-            outputDimensions,
-            includeAudio: effectiveIncludeAudio,
-            resolution,
-            gifSettings: format === "gif" ? gifSettings : null,
-            videoBitrateKbps: probeResult.videoBitrateKbps,
-            sourceCopyEligible,
-            preferredVideoCodec:
-              resolvedVideoPlan?.key === videoPlanKey
-                ? resolvedVideoPlan.codec
-                : null,
-            videoQuality: format === "gif" ? null : videoQuality,
-          })
-        : { bytes: null, basis: "unavailable" as const },
-    [
-      effectiveIncludeAudio,
-      format,
-      gifSettings,
-      outputDimensions,
-      probeResult,
+      mode,
+      audioPlan: audio.plan,
       resolution,
-      resolvedVideoPlan,
+      gifSettings: format === "gif" ? gifSettings : null,
+      videoBitrateKbps: probeResult.videoBitrateKbps,
       sourceCopyEligible,
-      sourceFile,
-      videoPlanKey,
-      videoQuality,
-    ],
-  );
+      preferredVideoCodec: resolvedVideoPlan?.codec ?? null,
+      videoQuality: format === "gif" ? null : videoQuality,
+    });
+  }, [
+    mode,
+    audio.plan,
+    format,
+    gifSettings,
+    outputDimensions,
+    probeResult,
+    resolution,
+    resolvedVideoPlan,
+    sourceCopyEligible,
+    sourceFile,
+    videoQuality,
+  ]);
   const formatDisabledReason = probeResult
     ? exportFormatDurationDisabledReason(format, 0, probeResult.durationSeconds)
     : null;
-  let exportDisabledReason = formatDisabledReason;
+  let exportDisabledReason = formatDisabledReason ?? audio.disabledReason;
+  if (probeResult && !audioOnly && !probeResult.hasVideo) {
+    exportDisabledReason =
+      "This file contains only audio. Choose Audio to export it.";
+  }
   if (!source || !probeResult) {
     exportDisabledReason = "Choose a file.";
   }
   if (probeState.status === "error") {
-    exportDisabledReason = "Choose another file.";
+    exportDisabledReason = probeState.message;
   }
   if (probeState.status === "loading") {
     exportDisabledReason = "Inspecting file.";
   }
   const outputFileName = buildConvertedOutputFileName(outputNameStem, format);
-  const outputEstimateLabel =
-    typeof outputSizeEstimate.bytes === "number"
-      ? `~${formatExportByteSize(outputSizeEstimate.bytes)}`
-      : "Unavailable";
-  const selectedFormatOption = formatOptionFor(format);
+  const selectedFormatOption = exportFormatFor(format);
   const emptyDropZoneTitle = isConverterReady
-    ? "Drop a video file here"
+    ? "Drop a video or audio file here"
     : "Preparing converter";
   const emptyDropZoneDescription = isConverterReady
-    ? "MP4, MOV, MKV, WebM, Ogg video, and MPEG-TS are supported."
+    ? "MP4, MOV, MKV, WebM, MPEG-TS, MP3, M4A, Ogg, FLAC, and WAV are supported."
     : "The file picker will be ready in a moment.";
-  let audioDisabledReason: string | null = null;
-  if (probeResult && !probeResult.hasAudio) {
-    audioDisabledReason = "No source audio detected.";
-  }
-  if (format === "gif") {
-    audioDisabledReason = "GIF output is video only.";
-  }
   let sourceProbeContent: ReactNode;
-  switch (probeState.status) {
+  switch (sourceProbeState.status) {
     case "idle": {
       sourceProbeContent = (
         <p className="text-sm text-muted-foreground">No file selected.</p>
@@ -421,7 +329,7 @@ export function ConvertTool() {
     }
     case "error": {
       sourceProbeContent = (
-        <p className="text-sm text-destructive">{probeState.message}</p>
+        <p className="text-sm text-destructive">{sourceProbeState.message}</p>
       );
       break;
     }
@@ -433,7 +341,7 @@ export function ConvertTool() {
               Duration
             </dt>
             <dd className="mt-1 font-mono text-sm text-foreground">
-              {formatDuration(probeState.result.durationSeconds)}
+              {formatDuration(sourceProbeState.result.durationSeconds)}
             </dd>
           </div>
           <div>
@@ -441,7 +349,7 @@ export function ConvertTool() {
               Dimensions
             </dt>
             <dd className="mt-1 font-mono text-sm text-foreground">
-              {dimensionsLabel(probeState.result)}
+              {dimensionsLabel(sourceProbeState.result)}
             </dd>
           </div>
           <div>
@@ -457,7 +365,7 @@ export function ConvertTool() {
               Audio
             </dt>
             <dd className="mt-1 text-sm text-foreground">
-              {probeState.result.hasAudio ? "Detected" : "None detected"}
+              {sourceProbeState.result.hasAudio ? "Detected" : "None detected"}
             </dd>
           </div>
         </dl>
@@ -468,36 +376,59 @@ export function ConvertTool() {
 
   useEffect(() => {
     setIsConverterReady(true);
+    return () => {
+      exportController.current?.abort();
+      exportController.current = null;
+    };
   }, []);
 
   useEffect(() => {
-    if (!source) {
-      setProbeState({ status: "idle" });
+    setProgress(0);
+    setExportError(null);
+    setProbeError(null);
+    setExportNotice(null);
+    if (!source || probeResult) {
       return;
     }
 
-    let cancelled = false;
+    const controller = new AbortController();
 
-    setProbeState({ status: "loading" });
-    setProgress(0);
-    setExportError(null);
-
-    probeSource(source)
+    probeConvertSource(source, audioOnly, controller.signal)
       .then((result) => {
-        if (!cancelled) {
-          setProbeState({ status: "ready", result });
+        if (!controller.signal.aborted) {
+          if (
+            probeCache?.file !== source.file &&
+            !result.hasVideo &&
+            result.hasAudio
+          ) {
+            setOutputType("audio");
+          }
+          // Retain only completed results for one file; never cache live inputs.
+          setProbeCache((previous) => ({
+            file: source.file,
+            results: {
+              ...(previous?.file === source.file ? previous.results : {}),
+              ...(result.hasVideo
+                ? { [audioOnly ? "audio" : "video"]: result }
+                : { audio: result, video: result }),
+            },
+          }));
         }
       })
       .catch((error: unknown) => {
-        if (!cancelled) {
-          setProbeState({ status: "error", message: probeErrorMessage(error) });
+        if (!controller.signal.aborted) {
+          setProbeError({
+            file: source.file,
+            audioOnly,
+            message: probeErrorMessage(error),
+          });
         }
       });
 
     return () => {
-      cancelled = true;
+      controller.abort();
     };
-  }, [source, sourceProbeKey]);
+  }, [source, audioOnly, probeResult, probeCache?.file, setOutputType]);
 
   useEffect(() => {
     setOutputNameStem(
@@ -505,7 +436,7 @@ export function ConvertTool() {
         ? buildConvertedFileBaseName(sourceFile.name)
         : "converted-video",
     );
-  }, [sourceFile, sourceProbeKey]);
+  }, [sourceFile]);
 
   const selectFile = useCallback(
     (file: File | null | undefined) => {
@@ -541,87 +472,79 @@ export function ConvertTool() {
   const handleOutputNameChange = useCallback(
     (event: ChangeEvent<HTMLInputElement>) => {
       setOutputNameStem(event.currentTarget.value);
-      setExportError(null);
+      handleSettingsChange();
     },
-    [],
+    [handleSettingsChange],
   );
 
-  const handleFormatChange = useCallback((nextFormat: ExportFormat) => {
-    setFormat(nextFormat);
-    setExportError(null);
-  }, []);
-
-  const handleQualityChange = useCallback(
-    (quality: ExportQualityPreset) => {
-      if (format === "gif") {
-        setGifPreset(quality);
-      } else if (isVideoExportQuality(quality)) {
-        setVideoQuality(quality);
+  const applyQuickTemplate = useCallback(
+    (templateId: QuickTemplate["id"]) => {
+      switch (templateId) {
+        case "gif-from-video": {
+          setFormat("gif");
+          setQuality(DEFAULT_GIF_EXPORT_PRESET);
+          break;
+        }
+        case "webm-for-web": {
+          setFormat("webm");
+          setQuality("compact");
+          setResolution("720");
+          setVideoMuted(true);
+          break;
+        }
+        case "mp4-high-quality": {
+          setFormat("mp4");
+          setQuality("sharp");
+          setResolution("1080");
+          setVideoMuted(false);
+          break;
+        }
+        case "mpeg-ts-to-mp4": {
+          setFormat("mp4");
+          setQuality("sharp");
+          setResolution("original");
+          setVideoMuted(false);
+          break;
+        }
+        case "mkv-to-mp4": {
+          setFormat("mp4");
+          setQuality("sharp");
+          setResolution("original");
+          setVideoMuted(false);
+          break;
+        }
+        case "compress-video": {
+          setFormat("mp4");
+          setQuality("compact");
+          setResolution("720");
+          setVideoMuted(false);
+          break;
+        }
+        default: {
+          break;
+        }
       }
-
-      setExportError(null);
     },
-    [format],
+    [setFormat, setQuality, setResolution, setVideoMuted],
   );
-
-  const applyQuickTemplate = useCallback((templateId: QuickTemplate["id"]) => {
-    switch (templateId) {
-      case "gif-from-video": {
-        setFormat("gif");
-        setGifPreset(DEFAULT_GIF_EXPORT_PRESET);
-        setResolution("720");
-        setIncludeAudio(false);
-        break;
-      }
-      case "webm-for-web": {
-        setFormat("webm");
-        setVideoQuality("compact");
-        setResolution("720");
-        setIncludeAudio(false);
-        break;
-      }
-      case "mp4-high-quality": {
-        setFormat("mp4");
-        setVideoQuality("sharp");
-        setResolution("1080");
-        setIncludeAudio(true);
-        break;
-      }
-      case "mpeg-ts-to-mp4": {
-        setFormat("mp4");
-        setVideoQuality("sharp");
-        setResolution("original");
-        setIncludeAudio(true);
-        break;
-      }
-      case "mkv-to-mp4": {
-        setFormat("mp4");
-        setVideoQuality("sharp");
-        setResolution("original");
-        setIncludeAudio(true);
-        break;
-      }
-      case "compress-video": {
-        setFormat("mp4");
-        setVideoQuality("compact");
-        setResolution("720");
-        setIncludeAudio(true);
-        break;
-      }
-      default: {
-        break;
-      }
-    }
-
-    setExportError(null);
-  }, []);
 
   const handleExport = useCallback(async () => {
-    if (!source || !sourceFile || !probeResult || exportDisabledReason) {
+    if (
+      !source ||
+      !sourceFile ||
+      !probeResult ||
+      exportDisabledReason ||
+      exportController.current
+    ) {
       return;
     }
 
+    const controller = new AbortController();
+    exportController.current = controller;
+    const isCurrent = () => exportController.current === controller;
     setExporting(true);
+    setExportPhase("preparing");
+    setExportNotice(null);
     setProgress(0);
     setExportError(null);
 
@@ -643,6 +566,12 @@ export function ConvertTool() {
 
     try {
       const blob = await runConvertExport({
+        signal: controller.signal,
+        onPhaseChange: (phase) => {
+          if (isCurrent() && !controller.signal.aborted) {
+            setExportPhase(phase);
+          }
+        },
         source,
         fileName: outputFileName,
         probe: probeResult,
@@ -650,11 +579,16 @@ export function ConvertTool() {
         resolution,
         gifSettings: format === "gif" ? gifSettings : undefined,
         videoQuality: format === "gif" ? undefined : videoQuality,
-        includeAudio: effectiveIncludeAudio,
+        mode,
+        mixDownToStereo,
+        audioPlan: audio.plan ?? undefined,
         onVideoEncodingPlan: (plan) => {
           videoEncodingPlan = plan;
         },
         onProgress: (nextProgress) => {
+          if (!isCurrent() || controller.signal.aborted) {
+            return;
+          }
           setProgress((currentProgress: number) =>
             nextProgress >= 1 ||
             Math.round(nextProgress * 100) !== Math.round(currentProgress * 100)
@@ -664,6 +598,9 @@ export function ConvertTool() {
         },
       });
 
+      if (!isCurrent()) {
+        return;
+      }
       recordConvertExportCompleted({
         ...metricContext,
         actualBytes: blob.size,
@@ -672,7 +609,16 @@ export function ConvertTool() {
       });
       void flushConvertMetrics();
       setProgress(1);
+      setExportNotice(`Download started: ${outputFileName}`);
     } catch (error) {
+      if (!isCurrent()) {
+        return;
+      }
+      if (controller.signal.aborted) {
+        setExportNotice("Export cancelled.");
+        setProgress(0);
+        return;
+      }
       recordConvertExportFailed({
         ...metricContext,
         durationMs: Math.max(0, Date.now() - startedAt),
@@ -681,10 +627,16 @@ export function ConvertTool() {
       void flushConvertMetrics();
       setExportError(errorMessage(error, "Conversion failed."));
     } finally {
-      setExporting(false);
+      if (isCurrent()) {
+        exportController.current = null;
+        setExporting(false);
+      }
     }
   }, [
     effectiveIncludeAudio,
+    mode,
+    mixDownToStereo,
+    audio.plan,
     exportDisabledReason,
     format,
     gifSettings,
@@ -700,12 +652,11 @@ export function ConvertTool() {
   ]);
 
   let sourcePickerContent: ReactNode;
-  if (source && probeResult) {
+  if (source && sourceInspection?.hasVideo && sourceInspection.dimensions) {
     sourcePickerContent = (
       <MediabunnySourcePreview
         source={source}
-        sourceKey={sourceProbeKey}
-        probe={probeResult}
+        probe={sourceInspection}
         canSelectFile={canSelectFile}
         dragActive={dragActive}
         onDragActiveChange={setDragActive}
@@ -713,6 +664,12 @@ export function ConvertTool() {
       />
     );
   } else if (source) {
+    let previewMessage = "Preparing preview";
+    if (probeResult) {
+      previewMessage = audioOnly
+        ? "Audio ready for export"
+        : "Audio file selected";
+    }
     sourcePickerContent = (
       <div
         className={`mt-4 flex aspect-video items-center justify-center rounded-lg border border-border bg-background text-sm font-medium text-muted-foreground transition-colors ${
@@ -733,7 +690,7 @@ export function ConvertTool() {
           }
         }}
       >
-        Preparing preview
+        {previewMessage}
       </div>
     );
   } else {
@@ -849,30 +806,31 @@ export function ConvertTool() {
           className="self-start overflow-hidden rounded-lg border border-border bg-card"
         >
           <TooltipProvider>
-            <div className="grid min-h-0 flex-1 gap-4 p-4 lg:grid-cols-editor-export">
+            <div className="grid h-[min(40rem,80svh)] content-start gap-4 overflow-y-auto p-4 lg:h-[28rem] lg:grid-cols-editor-export">
               <div className="space-y-4">
-                {exportError ? (
-                  <div className={destructiveAlertClasses}>{exportError}</div>
-                ) : null}
-
-                {formatDisabledReason ? (
-                  <div className={primaryAlertClasses}>
-                    {formatDisabledReason}
-                  </div>
-                ) : null}
-
-                <EditorExportSettingsSection
-                  selectedFormat={format}
-                  onFormatChange={handleFormatChange}
-                  selectedQuality={selectedQuality}
-                  onQualityChange={handleQualityChange}
-                  selectedResolution={resolution}
-                  onResolutionChange={setResolution}
-                  includeAudio={effectiveIncludeAudio}
-                  onIncludeAudioChange={setIncludeAudio}
-                  audioDisabledReason={audioDisabledReason}
-                  showSourcePreference={false}
-                />
+                <fieldset
+                  disabled={exporting}
+                  inert={exporting}
+                  className="min-w-0 disabled:opacity-60"
+                >
+                  <EditorExportSettingsSection
+                    selectedFormat={format}
+                    onFormatChange={setFormat}
+                    selectedQuality={selectedQuality}
+                    onQualityChange={setQuality}
+                    outputDimensions={outputDimensions}
+                    selectedResolution={resolution}
+                    onResolutionChange={setResolution}
+                    mode={mode}
+                    onOutputTypeChange={setOutputType}
+                    onVideoMutedChange={setVideoMuted}
+                    mixDownToStereo={mixDownToStereo}
+                    onMixDownToStereoChange={setMixDownToStereo}
+                    audioDisabledReason={audio.mixdownDisabledReason}
+                    audioBitDepth={audio.bitDepth}
+                    showSourcePreference={false}
+                  />
+                </fieldset>
               </div>
 
               <EditorExportSummaryPanel
@@ -883,7 +841,8 @@ export function ConvertTool() {
                 selectedQuality={selectedQuality}
                 gifSettings={format === "gif" ? gifSettings : null}
                 outputDimensions={outputDimensions}
-                includeAudio={effectiveIncludeAudio}
+                mode={mode}
+                audioSummary={audio.summary}
                 showClipSummary={false}
                 showSourceSummary={false}
                 showSubtitleSummary={false}
@@ -893,41 +852,49 @@ export function ConvertTool() {
           </TooltipProvider>
 
           <div className="flex flex-col gap-3 border-t border-border bg-card px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
-            <div className="min-w-0 self-stretch sm:self-center">
-              <div className="flex min-w-0 flex-wrap items-baseline gap-x-2 gap-y-0.5 text-xs">
-                <span className="text-muted-foreground">Estimated size</span>
-                <span className="font-mono tabular-nums text-foreground">
-                  {outputEstimateLabel}
-                </span>
-              </div>
-              {exportDisabledReason ? (
-                <div className="mt-1 text-xs text-muted-foreground">
-                  {exportDisabledReason}
-                </div>
-              ) : null}
-            </div>
+            <ExportStatusPanel
+              estimate={outputSizeEstimate}
+              exporting={exporting}
+              phase={exportPhase}
+              progress={progress}
+              notice={exportNotice}
+              error={exportError}
+              disabledReason={exportDisabledReason}
+            />
 
-            <button
-              type="button"
-              onClick={() => void handleExport()}
-              disabled={exporting || Boolean(exportDisabledReason)}
-              className={`${compactPrimaryButtonClasses} w-44`}
-            >
-              {exporting ? (
-                <>
-                  <div className="h-4 w-4 shrink-0 animate-spin rounded-full border-2 border-primary-foreground/30 border-t-primary-foreground" />
-                  <span>Converting</span>
-                  <span className="inline-block w-[4ch] text-right font-mono tabular-nums">
-                    {Math.round(progress * 100)}%
-                  </span>
-                </>
-              ) : (
-                <>
-                  <Download className="h-4 w-4" />
-                  Convert {selectedFormatOption.label}
-                </>
-              )}
-            </button>
+            <div className="flex min-w-0 items-center gap-2 sm:shrink-0">
+              <button
+                type="button"
+                onClick={() => exportController.current?.abort()}
+                disabled={!exporting}
+                className={`h-8 w-16 shrink-0 rounded-md border border-border text-xs font-medium ${exporting ? "" : "invisible"}`}
+                aria-label="Cancel export"
+              >
+                Cancel
+              </button>
+
+              <button
+                type="button"
+                onClick={() => void handleExport()}
+                disabled={exporting || Boolean(exportDisabledReason)}
+                className={`${compactPrimaryButtonClasses} w-44 min-w-0 whitespace-nowrap`}
+              >
+                {exporting ? (
+                  <>
+                    <div className="h-4 w-4 shrink-0 animate-spin rounded-full border-2 border-primary-foreground/30 border-t-primary-foreground" />
+                    <span>Converting</span>
+                    <span className="inline-block w-[4ch] text-right font-mono tabular-nums">
+                      {Math.round(progress * 100)}%
+                    </span>
+                  </>
+                ) : (
+                  <>
+                    <Download className="h-4 w-4" />
+                    Convert {format.toUpperCase()}
+                  </>
+                )}
+              </button>
+            </div>
           </div>
         </section>
       </div>

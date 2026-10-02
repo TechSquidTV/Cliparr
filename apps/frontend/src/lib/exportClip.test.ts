@@ -1,5 +1,7 @@
 /// <reference types="node" />
 
+import { resolveExportAudioPlan } from "@/lib/exportAudio";
+
 import assert from "node:assert/strict";
 import test from "node:test";
 import { MP4 } from "mediabunny";
@@ -135,6 +137,15 @@ function createRuntime(overrides: Partial<ExportRuntime> = {}) {
 
   const runtime: ExportRuntime = {
     ensureMediabunnyCodecs: async () => {},
+    inspectAudioTrack: async () => ({
+      codec: "aac",
+      numberOfChannels: 2,
+      sampleRate: 48_000,
+      layout: ["L", "R"],
+      precision: null,
+    }),
+    resolveExportAudioPlan: (source, format, mixdown, supports) =>
+      resolveExportAudioPlan(source, format, mixdown, supports, async () => {}),
     createCliparrInputFromSource: async () => input,
     selectPreferredPairableAudioTrack: async (_videoTrack, audioTracks) =>
       audioTracks[0] ?? null,
@@ -143,14 +154,22 @@ function createRuntime(overrides: Partial<ExportRuntime> = {}) {
     buildMetadataTags: async () => ({ title: "Clip" }),
     describeDiscardedTracks: async () => "",
     patchMp4MetadataBoxes: () => {},
-    createOutputFormat: () =>
-      ({
+    createOutputFormat: (_format, onFlacFrame) => {
+      onFlacFrame?.(new Uint8Array(16), 0);
+      onFlacFrame?.(new Uint8Array(16), 16);
+      return {
         mimeType: "video/mp4",
         getSupportedVideoCodecs: () => ["avc", "hevc", "vp9", "av1", "vp8"],
         getSupportedAudioCodecs: () => ["aac", "mp3", "opus", "vorbis"],
-      }) as unknown as OutputFormat,
+      } as unknown as OutputFormat;
+    },
     createBufferTarget: () => target as unknown as BufferTargetResult,
-    createOutput: (options) => ({ options }) as unknown as OutputResult,
+    createOutput: (options) =>
+      ({
+        options,
+        cancel: async () => {},
+        getMimeType: async () => "video/mp4",
+      }) as unknown as OutputResult,
     createCanvasSink: () =>
       ({
         getCanvas: async () => null,
@@ -211,6 +230,7 @@ function createConversion({
   let onProgress: ((progress: number) => void) | undefined;
 
   return {
+    cancel: async () => {},
     isValid: true,
     utilizedTracks: [
       ...(utilizedAudio
@@ -288,7 +308,7 @@ for (const format of ["mp4", "gif"] as const) {
       endTime: 4,
       format,
       resolution: "original" as const,
-      includeAudio: false,
+      mode: "video-only" as const,
       onProgress: () => {},
     };
     await assert.rejects(
@@ -305,12 +325,12 @@ for (const format of ["mp4", "gif"] as const) {
   });
 }
 
-for (const { format, includeAudio } of [
-  { format: "mp4", includeAudio: true },
-  { format: "mp4", includeAudio: false },
-  { format: "gif", includeAudio: false },
+for (const { format, mode } of [
+  { format: "mp4", mode: "video-audio" },
+  { format: "mp4", mode: "video-only" },
+  { format: "gif", mode: "video-only" },
 ] as const) {
-  void test(`preserves ProRes video and source timing for ${format} export with audio ${includeAudio}`, async () => {
+  void test(`preserves ProRes video and source timing for ${format} export with audio ${mode}`, async () => {
     const context = createRuntime({ getTrackTimelineOffsetSeconds });
     context.videoTrack.hasOnlyKeyPackets = async () => true;
     context.videoTrack.getCodec = async () => "prores";
@@ -352,7 +372,7 @@ for (const { format, includeAudio } of [
           endTime: 15,
           format,
           resolution: "original",
-          includeAudio,
+          mode,
           selectedAudioTrack,
           onProgress: () => {},
         },
@@ -400,7 +420,7 @@ void test("builds and executes a trimmed conversion with selected audio and meta
       endTime: 15,
       format: "mp4",
       resolution: "720",
-      includeAudio: true,
+      mode: "video-audio",
       metadata: {
         providerId: "plex",
         itemType: "movie",
@@ -496,7 +516,7 @@ void test("forces video transcode for compact and balanced export quality", asyn
         format: "mp4",
         resolution: "original",
         videoQuality,
-        includeAudio: false,
+        mode: "video-only",
         onProgress: () => {},
       },
       context.runtime,
@@ -577,6 +597,7 @@ void test("fails before execution when conversion would drop source audio", asyn
     describeDiscardedTracks: async () => "Codec unsupported.",
     initConversion: async () =>
       ({
+        cancel: async () => {},
         isValid: true,
         utilizedTracks: [],
         discardedTracks: [{}],
@@ -595,7 +616,7 @@ void test("fails before execution when conversion would drop source audio", asyn
           endTime: 10,
           format: "webm",
           resolution: "original",
-          includeAudio: true,
+          mode: "video-audio",
           onProgress: () => {},
         },
         context.runtime,
@@ -623,7 +644,7 @@ void test("fails before initializing video conversion when the source video code
           endTime: 10,
           format: "mp4",
           resolution: "720",
-          includeAudio: true,
+          mode: "video-audio",
           onProgress: () => {},
         },
         context.runtime,
@@ -658,7 +679,7 @@ void test("fails before execution when a valid conversion would drop the selecte
         endTime: 10,
         format: "mkv",
         resolution: "original",
-        includeAudio: true,
+        mode: "video-audio",
         onProgress: () => {},
       },
       context.runtime,
@@ -691,7 +712,7 @@ void test("allows original sharp exports to copy a carried source codec without 
       endTime: 10,
       format: "mp4",
       resolution: "original",
-      includeAudio: false,
+      mode: "video-only" as const,
       onProgress: () => {},
     },
     context.runtime,
@@ -714,7 +735,7 @@ void test("transcodes ProRes instead of treating it as a copy-plan codec", async
       endTime: 10,
       format: "mp4",
       resolution: "original",
-      includeAudio: false,
+      mode: "video-only",
       onVideoEncodingPlan: (plan) => {
         capturedVideoPlan = plan;
       },
@@ -759,7 +780,7 @@ void test("validates subtitle burn-in inputs and wires the burn-in processor", a
           endTime: 10,
           format: "mp4",
           resolution: "original",
-          includeAudio: true,
+          mode: "video-audio",
           includeBurnedSubtitles: true,
           subtitleCues: [
             {
@@ -783,7 +804,7 @@ void test("validates subtitle burn-in inputs and wires the burn-in processor", a
       endTime: 10,
       format: "mp4",
       resolution: "original",
-      includeAudio: true,
+      mode: "video-audio",
       includeBurnedSubtitles: true,
       subtitleStyleSettings: subtitleStyle,
       subtitleCues: [
@@ -919,7 +940,7 @@ void test("exports GIF frames through the browser encoder path", async () => {
       format: "gif",
       resolution: "original",
       gifSettings,
-      includeAudio: true,
+      mode: "video-only",
       metadata: {
         providerId: "plex",
         itemType: "movie",
@@ -992,7 +1013,7 @@ void test("fails before creating a GIF canvas sink when the source video codec c
           endTime: 2,
           format: "gif",
           resolution: "original",
-          includeAudio: false,
+          mode: "video-only",
           onProgress: () => {},
         },
         context.runtime,
@@ -1046,7 +1067,7 @@ void test("uses per-frame GIF palettes for the sharp preset", async () => {
       format: "gif",
       resolution: "original",
       gifSettings,
-      includeAudio: false,
+      mode: "video-only" as const,
       onProgress: () => {},
     },
     context.runtime,
@@ -1110,7 +1131,7 @@ void test("renders subtitles when burning cues into GIF frames", async () => {
       format: "gif",
       resolution: "original",
       gifSettings,
-      includeAudio: false,
+      mode: "video-only",
       includeBurnedSubtitles: true,
       subtitleStyleSettings: subtitleStyle,
       subtitleCues: [
@@ -1145,7 +1166,7 @@ for (const format of ["mp4", "gif"] as const) {
           startTime: 0,
           endTime: 1,
           resolution: "original",
-          includeAudio: false,
+          mode: "video-only",
           signal: AbortSignal.abort(),
           onProgress: () => {},
         },
@@ -1171,7 +1192,7 @@ for (const format of ["mp4", "gif"] as const) {
           startTime: 0,
           endTime: 1,
           resolution: "original",
-          includeAudio: false,
+          mode: "video-only",
           signal: controller.signal,
           onProgress: () => {},
         },
@@ -1183,7 +1204,7 @@ for (const format of ["mp4", "gif"] as const) {
   });
 }
 
-void test("cancels an executing conversion and never returns a partial file", async () => {
+void test("cancels an executing conversion even when its terminated worker never settles execution", async () => {
   const controller = new AbortController();
   const started = createDeferred<void>();
   const execution = createDeferred<void>();
@@ -1200,7 +1221,6 @@ void test("cancels an executing conversion and never returns a partial file", as
     };
     conversion.cancel = async () => {
       cancellations += 1;
-      execution.reject(new Error("Conversion cancelled"));
     };
     return conversion;
   };
@@ -1211,7 +1231,7 @@ void test("cancels an executing conversion and never returns a partial file", as
       startTime: 0,
       endTime: 1,
       resolution: "original",
-      includeAudio: false,
+      mode: "video-only",
       signal: controller.signal,
       onProgress: () => {},
     },
@@ -1264,7 +1284,7 @@ void test("cancels pending GIF worker frames and disposes their encoder", async 
       endTime: 1,
       gifSettings: gifExportSettingsForPreset("sharp"),
       resolution: "original",
-      includeAudio: false,
+      mode: "video-only",
       signal: controller.signal,
       onProgress: () => {},
     },
@@ -1276,4 +1296,131 @@ void test("cancels pending GIF worker frames and disposes their encoder", async 
   await rejection;
   assert.equal(disposed, true);
   assert.equal(context.disposed, true);
+});
+
+for (const format of ["mp3", "m4a", "ogg", "flac", "wav"] as const) {
+  void test(`${format} export bypasses video decoding, dimensions and subtitle requirements`, async () => {
+    let options: ConversionOptions | undefined;
+    const context = createRuntime({
+      getVideoTrackDimensions: async () => {
+        throw new Error("Must not inspect video dimensions");
+      },
+      canEncodeVideo: async () => {
+        throw new Error("Must not probe video encoders");
+      },
+      initConversion: async (conversionOptions) => {
+        options = conversionOptions;
+        return createConversion({
+          target: context.target,
+          bytes: [1, 2, 3],
+          utilizedAudio: true,
+          utilizedVideo: false,
+        });
+      },
+    });
+    context.videoTrack.canDecode = async () => {
+      throw new Error("Must not decode video");
+    };
+    await exportClipWithRuntime(
+      {
+        mediaSource,
+        format,
+        mode: "audio-only",
+        resolution: "original",
+        startTime: 65.125,
+        endTime: 130.75,
+        includeBurnedSubtitles: true,
+        onProgress: () => {},
+      },
+      context.runtime,
+    );
+    assert.deepEqual(options?.video, { discard: true });
+    assert.deepEqual(options?.trim, { start: 70.125, end: 135.75 });
+    assert.equal(context.disposed, true);
+  });
+}
+
+void test("audio cancellation during conversion initialization releases resources and permits retry", async () => {
+  const controller = new AbortController();
+  const context = createRuntime();
+  let cancellations = 0;
+  let attempts = 0;
+  context.runtime.initConversion = async () => {
+    const conversion = createConversion({
+      target: context.target,
+      utilizedAudio: true,
+      utilizedVideo: false,
+      bytes: [1, 2, 3],
+    });
+    conversion.cancel = async () => {
+      cancellations++;
+    };
+    if (attempts++ === 0) {
+      controller.abort();
+    }
+    return conversion;
+  };
+  const options = {
+    mediaSource,
+    format: "mp3",
+    mode: "audio-only",
+    resolution: "original",
+    startTime: 0,
+    endTime: 1,
+    onProgress: () => {},
+  } as const;
+  await assert.rejects(
+    exportClipWithRuntime(
+      { ...options, signal: controller.signal },
+      context.runtime,
+    ),
+    { name: "AbortError" },
+  );
+  assert.equal(cancellations, 1);
+  assert.equal(context.disposed, true);
+  const result = await exportClipWithRuntime(options, context.runtime);
+  assert.equal(result.size, 3);
+});
+
+void test("failed conversion initialization closes its output and permits retry", async () => {
+  const context = createRuntime();
+  const createOutput = context.runtime.createOutput;
+  let cancelled = 0;
+  context.runtime.createOutput = (options) => {
+    const output = createOutput(options);
+    output.cancel = async () => {
+      cancelled++;
+    };
+    return output;
+  };
+  let attempts = 0;
+  context.runtime.initConversion = async () => {
+    if (attempts++ === 0) {
+      throw new Error("Initialization failed");
+    }
+    return createConversion({
+      target: context.target,
+      utilizedAudio: true,
+      utilizedVideo: false,
+      bytes: [1, 2, 3],
+    });
+  };
+  const options = {
+    mediaSource,
+    format: "mp3",
+    mode: "audio-only",
+    resolution: "original",
+    startTime: 0,
+    endTime: 1,
+    onProgress: () => {},
+  } as const;
+  await assert.rejects(
+    exportClipWithRuntime(options, context.runtime),
+    /Initialization failed/,
+  );
+  assert.equal(cancelled, 1);
+  assert.equal(context.disposed, true);
+  const result = await exportClipWithRuntime(options, context.runtime);
+  assert.equal(result.size, 3);
+  assert.equal(cancelled, 1);
 });

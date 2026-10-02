@@ -62,6 +62,7 @@ function createMetricContext() {
       previewStartTimestampSeconds: 0,
       dimensions: { width: 1920, height: 1080 },
       hasAudio: true,
+      hasVideo: true,
     },
     format: "mp4" as const,
     selectedQuality: "balanced" as const,

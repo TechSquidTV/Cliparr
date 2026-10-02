@@ -7,9 +7,6 @@ autoInstallPeers: false
 minimumReleaseAge: 1440
 minimumReleaseAgeStrict: true
 minimumReleaseAgeExclude:
-  - "mediabunny@1.56.0"
-  - "@mediabunny/aac-encoder@1.56.0"
-  - "@mediabunny/ac3@1.56.0"
   - "@techsquidtv/canvas-timeline@0.4.0"
   - "@techsquidtv/canvas-timeline-core@0.4.0"
   - "@techsquidtv/canvas-timeline-html-media-adapter@0.4.0"

@@ -1,5 +1,9 @@
+import { useExportSettings } from "#/components/editor/useExportSettings";
+import { isAudioExportFormat, exportIncludesAudio } from "#/lib/exportFormats";
+import type { ExportAudioPlan } from "#/lib/exportAudio";
+import { useExportAudioPlan } from "#/components/editor/useExportAudioPlan";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { canEncodeVideo } from "mediabunny";
+import { useExportVideoPlan } from "#/components/editor/useExportVideoPlan";
 import {
   compactLogFields,
   logDurationFields,
@@ -13,26 +17,16 @@ import type {
   ExportVideoEncodingPlan,
 } from "@/lib/exportClip";
 import {
-  DEFAULT_GIF_EXPORT_PRESET,
   DEFAULT_VIDEO_EXPORT_QUALITY,
   estimateExportOutputSize,
-  gifExportSettingsForPreset,
   exportFormatDurationDisabledReason,
-  exportFormatSupportsAudio,
   resolveExportOutputDimensions,
-  type ExportQualityPreset,
   type ExportSizeEstimate,
-  type GifExportPreset,
   type GifExportSettings,
-  type VideoExportQualityPreset,
 } from "@/lib/exportTypes";
 import {
   EXPORT_ENCODING_POLICY_VERSION,
-  exportVideoCodecPriorities,
   formatCanCopyVideoCodec,
-  resolveVideoEncodingPlan,
-  videoEncodingPlanKey,
-  type ResolvedVideoEncodingPlan,
 } from "@/lib/exportEncodingPolicy";
 import {
   buildExportFileName,
@@ -120,17 +114,31 @@ export function useEditorExport({
   subtitleCues,
   subtitleStyleSettings,
 }: UseEditorExportProperties) {
-  const [resolution, setResolution] = useState<ExportResolution>("original");
-  const [exportFormat, setExportFormat] = useState<ExportFormat>("mp4");
-  const [gifPreset, setGifPreset] = useState<GifExportPreset>(
-    DEFAULT_GIF_EXPORT_PRESET,
-  );
-  const [videoQuality, setVideoQuality] = useState<VideoExportQualityPreset>(
-    DEFAULT_VIDEO_EXPORT_QUALITY,
-  );
+  const [exportError, setExportError] = useState<string | null>(null);
+  const [exportNotice, setExportNotice] = useState<string | null>(null);
+  const [hlsEstimateMetadata, setHlsEstimateMetadata] =
+    useState<HlsExportEstimateMetadata | null>(null);
+  const handleSettingsChange = useCallback(() => {
+    setExportError(null);
+    setExportNotice(null);
+  }, []);
+  const {
+    mode,
+    format: exportFormat,
+    setOutputType,
+    setVideoMuted,
+    setFormat,
+    resolution,
+    setResolution,
+    selectedQuality,
+    setQuality,
+    videoQuality,
+    gifSettings,
+    mixDownToStereo,
+    setMixDownToStereo,
+  } = useExportSettings(handleSettingsChange);
   const [exportSourcePreference, setExportSourcePreference] =
     useState<ExportSourcePreference>("auto");
-  const [includeAudio, setIncludeAudio] = useState(true);
   const [fileNameTemplates, setFileNameTemplates] =
     useState<ExportFileNameTemplateSettings>(() =>
       loadExportFileNameTemplates(),
@@ -141,7 +149,6 @@ export function useEditorExport({
   const [exporting, setExporting] = useState(false);
   const [progress, setProgress] = useState(0);
   const [exportPhase, setExportPhase] = useState<ExportPhase>("preparing");
-  const [exportNotice, setExportNotice] = useState<string | null>(null);
   const exportController = useRef<AbortController | null>(null);
   const mounted = useRef(true);
   useEffect(() => {
@@ -154,24 +161,11 @@ export function useEditorExport({
   const handleCancelExport = useCallback(() => {
     exportController.current?.abort();
   }, []);
-  const [hlsEstimateMetadata, setHlsEstimateMetadata] =
-    useState<HlsExportEstimateMetadata | null>(null);
-  const [resolvedVideoPlan, setResolvedVideoPlan] =
-    useState<ResolvedVideoEncodingPlan | null>(null);
-  const [exportError, setExportError] = useState<string | null>(null);
   const exportLogger = useMemo(
     () => logger.with({ "editor.session.id": session.id }),
     [session.id],
   );
-  const gifSettings = useMemo(
-    () => gifExportSettingsForPreset(gifPreset),
-    [gifPreset],
-  );
-  const selectedQuality = exportFormat === "gif" ? gifPreset : videoQuality;
-  const audioDisabledReason = exportFormatSupportsAudio(exportFormat)
-    ? null
-    : "GIF exports are video only.";
-  const effectiveIncludeAudio = audioDisabledReason ? false : includeAudio;
+  const effectiveIncludeAudio = exportIncludesAudio(mode, exportFormat);
 
   let effectiveExportSourcePreference = exportSourcePreference;
   if (
@@ -195,6 +189,14 @@ export function useEditorExport({
       session.directSource,
       session.hlsSource,
     ],
+  );
+
+  const audio = useExportAudioPlan(
+    exportSource.source,
+    session.selectedAudioTrack,
+    exportFormat,
+    mixDownToStereo,
+    exportDialogOpen && effectiveIncludeAudio,
   );
 
   const exportSourceMessage = useMemo(
@@ -281,47 +283,11 @@ export function useEditorExport({
       ),
     [exportFormat, gifSettings, resolution, sourceVideoDimensions],
   );
-  const videoPlanKey = useMemo(
-    () =>
-      exportFormat === "gif" || !outputDimensions
-        ? null
-        : videoEncodingPlanKey({
-            format: exportFormat,
-            outputDimensions,
-            quality: videoQuality,
-          }),
-    [exportFormat, outputDimensions, videoQuality],
+  const resolvedVideoPlan = useExportVideoPlan(
+    exportFormat,
+    outputDimensions,
+    videoQuality,
   );
-
-  useEffect(() => {
-    let cancelled = false;
-
-    if (exportFormat === "gif" || !outputDimensions || !videoPlanKey) {
-      return () => {
-        cancelled = true;
-      };
-    }
-
-    void resolveVideoEncodingPlan({
-      format: exportFormat,
-      outputDimensions,
-      quality: videoQuality,
-      supportedVideoCodecs: exportVideoCodecPriorities(exportFormat),
-      canEncodeVideo,
-    })
-      .then((plan) => {
-        if (!cancelled) {
-          setResolvedVideoPlan({ ...plan, key: videoPlanKey });
-        }
-      })
-      .catch(() => {
-        // Export validates encoder support again before conversion.
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [exportFormat, outputDimensions, videoPlanKey, videoQuality]);
 
   const shouldEstimateBurnedSubtitles =
     subtitleEnabled && !subtitleLoading && clippedSubtitleCues.length > 0;
@@ -354,6 +320,7 @@ export function useEditorExport({
   const estimateAudioBitrateKbps =
     exportSource.kind === "none" ? null : audioBitrateKbps;
   const sourceCopyEligible =
+    !isAudioExportFormat(exportFormat) &&
     exportFormat !== "gif" &&
     exportSource.kind === "direct" &&
     startTime === 0 &&
@@ -361,48 +328,44 @@ export function useEditorExport({
       exportFormat,
       session.exportEstimateMetadata?.videoCodec,
     );
-  const outputSizeEstimate = useMemo(
-    () =>
-      estimateExportOutputSize({
-        format: exportFormat,
-        durationSeconds: Math.max(0, endTime - startTime),
-        outputDimensions,
-        includeAudio: effectiveIncludeAudio,
-        resolution,
-        gifSettings: exportFormat === "gif" ? gifSettings : null,
-        sourceSizeBytes,
-        sourceDurationSeconds,
-        sourceBitrateKbps: estimateSourceBitrateKbps,
-        videoBitrateKbps: estimateVideoBitrateKbps,
-        audioBitrateKbps: estimateAudioBitrateKbps,
-        sourceCopyEligible,
-        preferredVideoCodec:
-          resolvedVideoPlan?.key === videoPlanKey
-            ? resolvedVideoPlan.codec
-            : null,
-        includeBurnedSubtitles: shouldEstimateBurnedSubtitles,
-        videoQuality: exportFormat === "gif" ? null : videoQuality,
-      }),
-    [
-      effectiveIncludeAudio,
-      endTime,
-      estimateAudioBitrateKbps,
-      estimateSourceBitrateKbps,
-      estimateVideoBitrateKbps,
-      exportFormat,
-      gifSettings,
+  const outputSizeEstimate = useMemo(() => {
+    return estimateExportOutputSize({
+      format: exportFormat,
+      durationSeconds: Math.max(0, endTime - startTime),
       outputDimensions,
+      mode,
+      audioPlan: audio.plan,
       resolution,
-      resolvedVideoPlan,
-      shouldEstimateBurnedSubtitles,
-      sourceDurationSeconds,
+      gifSettings: exportFormat === "gif" ? gifSettings : null,
       sourceSizeBytes,
+      sourceDurationSeconds,
+      sourceBitrateKbps: estimateSourceBitrateKbps,
+      videoBitrateKbps: estimateVideoBitrateKbps,
+      audioBitrateKbps: estimateAudioBitrateKbps,
       sourceCopyEligible,
-      videoPlanKey,
-      startTime,
-      videoQuality,
-    ],
-  );
+      preferredVideoCodec: resolvedVideoPlan?.codec ?? null,
+      includeBurnedSubtitles: shouldEstimateBurnedSubtitles,
+      videoQuality: exportFormat === "gif" ? null : videoQuality,
+    });
+  }, [
+    mode,
+    audio.plan,
+    endTime,
+    estimateAudioBitrateKbps,
+    estimateSourceBitrateKbps,
+    estimateVideoBitrateKbps,
+    exportFormat,
+    gifSettings,
+    outputDimensions,
+    resolution,
+    resolvedVideoPlan,
+    shouldEstimateBurnedSubtitles,
+    sourceDurationSeconds,
+    sourceSizeBytes,
+    sourceCopyEligible,
+    startTime,
+    videoQuality,
+  ]);
 
   const exportFormatDisabledReason = useMemo(
     () => exportFormatDurationDisabledReason(exportFormat, startTime, endTime),
@@ -418,6 +381,7 @@ export function useEditorExport({
 
     if (
       !exportDialogOpen ||
+      isAudioExportFormat(exportFormat) ||
       exportFormat === "gif" ||
       videoQuality !== DEFAULT_VIDEO_EXPORT_QUALITY ||
       exportSource.kind !== "hls" ||
@@ -490,48 +454,13 @@ export function useEditorExport({
     setHlsEstimateMetadata(null);
   }, [exporting]);
 
-  const handleFormatChange = useCallback((nextFormat: ExportFormat) => {
-    setExportFormat(nextFormat);
-    setHlsEstimateMetadata(null);
-    setExportError(null);
-  }, []);
-
-  const handleQualityChange = useCallback(
-    (nextQuality: ExportQualityPreset) => {
-      if (exportFormat === "gif") {
-        setGifPreset(nextQuality);
-      } else if (nextQuality !== "efficient") {
-        setVideoQuality(nextQuality);
-      }
-
-      setHlsEstimateMetadata(null);
-      setExportError(null);
-    },
-    [exportFormat],
-  );
-
-  const handleResolutionChange = useCallback(
-    (nextResolution: ExportResolution) => {
-      setResolution(nextResolution);
-      setHlsEstimateMetadata(null);
-      setExportError(null);
-    },
-    [],
-  );
-
   const handleExportSourceChange = useCallback(
     (nextSourcePreference: ExportSourcePreference) => {
       setExportSourcePreference(nextSourcePreference);
-      setHlsEstimateMetadata(null);
-      setExportError(null);
+      handleSettingsChange();
     },
-    [],
+    [handleSettingsChange],
   );
-
-  const handleAudioChange = useCallback((nextIncludeAudio: boolean) => {
-    setIncludeAudio(nextIncludeAudio);
-    setExportError(null);
-  }, []);
 
   const handleFileNameTemplateChange = useCallback(
     (kind: ExportFileNameTemplateKind, nextTemplate: string) => {
@@ -539,9 +468,9 @@ export function useEditorExport({
         ...current,
         [kind]: nextTemplate,
       }));
-      setExportError(null);
+      handleSettingsChange();
     },
-    [],
+    [handleSettingsChange],
   );
 
   const handleResetFileNameTemplate = useCallback(
@@ -552,9 +481,9 @@ export function useEditorExport({
         ...current,
         [kind]: defaults[kind],
       }));
-      setExportError(null);
+      handleSettingsChange();
     },
-    [],
+    [handleSettingsChange],
   );
 
   const handleExport = useCallback(async () => {
@@ -581,6 +510,10 @@ export function useEditorExport({
       return;
     }
 
+    if (audio.disabledReason) {
+      setExportError(audio.disabledReason);
+      return;
+    }
     const shouldBurnSubtitles = readiness.shouldBurnSubtitles;
 
     setExportError(null);
@@ -610,7 +543,8 @@ export function useEditorExport({
       "export.range.start_seconds": startTime,
       "export.range.end_seconds": endTime,
       "export.range.duration_seconds": Math.max(0, endTime - startTime),
-      "export.include_audio": effectiveIncludeAudio,
+      "export.mode": mode,
+      "export.audio.mix_down_to_stereo": mixDownToStereo,
       "export.subtitle.burn_in": shouldBurnSubtitles,
       "export.subtitle.cue_count": shouldBurnSubtitles
         ? clippedSubtitleCues.length
@@ -625,6 +559,7 @@ export function useEditorExport({
       ...baseFields,
     });
     let videoEncodingPlan: ExportVideoEncodingPlan | undefined;
+    let audioEncodingPlan: ExportAudioPlan | undefined;
 
     try {
       const { exportClip } = await import("@/lib/exportClip");
@@ -661,7 +596,13 @@ export function useEditorExport({
         resolution,
         gifSettings: exportFormat === "gif" ? gifSettings : undefined,
         videoQuality: exportFormat === "gif" ? undefined : videoQuality,
-        includeAudio: effectiveIncludeAudio,
+        mode,
+        mixDownToStereo,
+        audioPlan: audio.plan ?? undefined,
+        title: session.title,
+        onAudioEncodingPlan: (plan) => {
+          audioEncodingPlan = plan;
+        },
         selectedAudioTrack: session.selectedAudioTrack,
         metadata: session.exportMetadata,
         includeBurnedSubtitles: shouldBurnSubtitles,
@@ -681,6 +622,11 @@ export function useEditorExport({
         ...logDurationFields(startedAt),
         ...baseFields,
         "export.output.bytes": blob.size,
+        "export.encoder.audio.codec": audioEncodingPlan?.codec,
+        "export.encoder.audio.sample_rate": audioEncodingPlan?.sampleRate,
+        "export.encoder.audio.channels": audioEncodingPlan?.numberOfChannels,
+        "export.encoder.audio.bits": audioEncodingPlan?.bits,
+        "export.encoder.audio.bitrate": audioEncodingPlan?.bitrate,
         ...buildExportVideoEncodingLogFields(videoEncodingPlan),
         ...buildExportEstimateActualLogFields(outputSizeEstimate, blob.size),
       });
@@ -713,7 +659,11 @@ export function useEditorExport({
   }, [
     clippedSubtitleCues,
     endTime,
-    effectiveIncludeAudio,
+    mode,
+    mixDownToStereo,
+    audio.plan,
+    audio.disabledReason,
+    session.title,
     exportFormat,
     exportLogger,
     exportSource,
@@ -747,8 +697,13 @@ export function useEditorExport({
     selectedQuality,
     gifSettings,
     effectiveExportSourcePreference,
-    includeAudio: effectiveIncludeAudio,
-    audioDisabledReason,
+    mode,
+    mixDownToStereo,
+    setMixDownToStereo,
+    audioSummary: audio.summary,
+    audioBitDepth: audio.bitDepth,
+    audioExportDisabledReason: audio.disabledReason,
+    audioDisabledReason: audio.mixdownDisabledReason,
     fileNameTemplates,
     templateEditorKind,
     setTemplateEditorKind,
@@ -769,11 +724,12 @@ export function useEditorExport({
     exportSourceLabel,
     handleOpenExportDialog,
     handleCloseExportDialog,
-    handleFormatChange,
-    handleQualityChange,
-    handleResolutionChange,
+    handleFormatChange: setFormat,
+    handleQualityChange: setQuality,
+    handleResolutionChange: setResolution,
     handleExportSourceChange,
-    handleAudioChange,
+    handleOutputTypeChange: setOutputType,
+    handleVideoMutedChange: setVideoMuted,
     handleFileNameTemplateChange,
     handleResetFileNameTemplate,
     handleExport,
@@ -910,9 +866,12 @@ export function getEditorExportReadiness({
     };
   }
 
-  const shouldBurnSubtitles = subtitleEnabled && clippedSubtitleCues.length > 0;
+  const shouldBurnSubtitles =
+    !isAudioExportFormat(format) &&
+    subtitleEnabled &&
+    clippedSubtitleCues.length > 0;
 
-  if (subtitleLoading) {
+  if (!isAudioExportFormat(format) && subtitleLoading) {
     return {
       state: "blocked" as const,
       message: "Subtitles are still loading.",

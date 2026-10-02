@@ -1,9 +1,7 @@
 import type { ExportClipOptions } from "./lib/exportClip";
-import type { ExportFormat } from "./lib/exportTypes";
 import type { InputVideoTrack } from "mediabunny";
 import type { MediaDimensions } from "./lib/editorMedia";
 import { getVideoTrackDimensions as readVideoTrackDimensions } from "./lib/mediabunnyTrackAccess";
-import { formatOptions } from "./components/editor/editorExportOptions";
 
 export {
   DEFAULT_GIF_EXPORT_PRESET,
@@ -11,12 +9,12 @@ export {
   EXPORT_SIZE_ESTIMATE_ALGORITHM_VERSION,
   estimateExportOutputSize,
   exportFormatDurationDisabledReason,
-  exportFormatSupportsAudio,
   exportQualityDescriptionFor,
   exportQualityOptionFor,
   exportQualityOptions,
   exportQualityOptionsForFormat,
   formatExportByteSize,
+  formatExportSizeEstimate,
   gifExportPresetOptions,
   gifExportSettingsForPreset,
   resolveExportOutputDimensions,
@@ -31,6 +29,7 @@ export {
 export type {
   ExportClipOptions,
   ExportVideoEncodingPlan,
+  ExportPhase,
 } from "./lib/exportClip";
 export type { ExportFormat, ExportResolution } from "./lib/exportTypes";
 export {
@@ -59,21 +58,20 @@ export {
   type MediaDimensions,
 } from "./lib/editorMedia";
 export { createCliparrInputFromSource } from "./lib/mediabunnyInput";
+export { selectPreferredPairableAudioTrack } from "./lib/selectPreferredAudioTrack";
 export {
   assessVideoTrackDecodability,
+  isPlaybackVideoTrack,
   getTrackTimelineOffsetSeconds,
   videoTrackPreviewUnavailableMessage,
 } from "./lib/mediabunnyTrackAccess";
 export type { MediaExportMetadata } from "./providers/types";
 export {
+  ExportStatusPanel,
   EditorExportSettingsSection,
   EditorExportSummaryPanel,
 } from "./components/editor/EditorExportDialogSections";
 export type { ExportSourcePreference } from "./components/editor/EditorExportDialog";
-export {
-  formatOptionFor,
-  formatOptions,
-} from "./components/editor/editorExportOptions";
 export { TooltipProvider } from "./components/ui/tooltip";
 export {
   compactPrimaryButtonClasses,
@@ -87,17 +85,23 @@ export async function exportClip(options: ExportClipOptions) {
   return module.exportClip(options);
 }
 
-export const convertFormatOptions = formatOptions;
-
 export function getVideoTrackDimensions(
   track: InputVideoTrack,
 ): Promise<MediaDimensions> {
   return readVideoTrackDimensions(track);
 }
 
-export function exportFormatExtension(format: ExportFormat) {
-  return (
-    convertFormatOptions.find((option) => option.value === format)?.extension ??
-    ".mp4"
-  );
-}
+export { useExportSettings } from "./components/editor/useExportSettings";
+export { useExportAudioPlan } from "./components/editor/useExportAudioPlan";
+export {
+  exportFormatFor,
+  exportFormats,
+  exportIncludesAudio,
+  isAudioExportFormat,
+  type ExportMode,
+  type AudioExportFormat,
+  type VideoExportFormat,
+} from "./lib/exportFormats";
+export type { ExportAudioPlan } from "./lib/exportAudio";
+
+export { useExportVideoPlan } from "./components/editor/useExportVideoPlan";

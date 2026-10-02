@@ -1,14 +1,29 @@
+import { createPcmWav } from "#/lib/exportAudioFixtures.test-support";
+import { ensureAudioEncoder } from "#/lib/mediabunnyCodecs";
+import {
+  ALL_FORMATS,
+  AudioSample,
+  AudioSampleSource,
+  BlobSource,
+  BufferTarget,
+  Input,
+  MovOutputFormat,
+  Output,
+} from "mediabunny";
 import assert from "node:assert/strict";
 import test from "node:test";
-import type { ExportClipOptions } from "@cliparr/frontend/convert";
+import {
+  createCliparrInputFromSource,
+  type ExportClipOptions,
+  type ExportPhase,
+} from "@cliparr/frontend/convert";
 import {
   buildConvertedFileBaseName,
   buildConvertedFileName,
   buildConvertedOutputFileName,
   buildLocalFileSource,
-  resolveConvertIncludeAudio,
   runConvertExport,
-  selectedQualityForFormat,
+  probeConvertSource,
 } from "@/components/convert/convertToolUtilities";
 
 function createVideoFile(name = "Demo Clip.mov") {
@@ -64,27 +79,6 @@ void test("buildConvertedOutputFileName sanitizes custom names and applies the s
   assert.equal(buildConvertedFileBaseName("nested/name?.mov"), "nested name");
 });
 
-void test("format changes resolve audio and quality state", () => {
-  assert.equal(resolveConvertIncludeAudio("mp4", true), true);
-  assert.equal(resolveConvertIncludeAudio("gif", true), false);
-  assert.equal(
-    selectedQualityForFormat({
-      format: "gif",
-      gifPreset: "efficient",
-      videoQuality: "sharp",
-    }),
-    "efficient",
-  );
-  assert.equal(
-    selectedQualityForFormat({
-      format: "mp4",
-      gifPreset: "efficient",
-      videoQuality: "balanced",
-    }),
-    "balanced",
-  );
-});
-
 void test("runConvertExport forwards options, progress, and download", async () => {
   const file = createVideoFile("source.mp4");
   const source = buildLocalFileSource(file);
@@ -104,11 +98,12 @@ void test("runConvertExport forwards options, progress, and download", async () 
         previewStartTimestampSeconds: 0,
         dimensions: { width: 1920, height: 1080 },
         hasAudio: true,
+        hasVideo: true,
       },
       format: "webm",
       resolution: "720",
       videoQuality: "balanced",
-      includeAudio: true,
+      mode: "video-audio",
       onProgress: (progress) => progressValues.push(progress),
     },
     {
@@ -131,7 +126,7 @@ void test("runConvertExport forwards options, progress, and download", async () 
   assert.equal(received.options.format, "webm");
   assert.equal(received.options.resolution, "720");
   assert.equal(received.options.videoQuality, "balanced");
-  assert.equal(received.options.includeAudio, true);
+  assert.equal(received.options.mode, "video-audio");
   assert.deepEqual(progressValues, [0.42]);
   assert.deepEqual(downloaded, [{ blob: outputBlob, fileName: "source.webm" }]);
 });
@@ -150,11 +145,12 @@ void test("runConvertExport propagates export errors without downloading", async
           previewStartTimestampSeconds: 0,
           dimensions: { width: 1280, height: 720 },
           hasAudio: false,
+          hasVideo: true,
         },
         format: "mp4",
         resolution: "original",
         videoQuality: "sharp",
-        includeAudio: false,
+        mode: "video-only",
         onProgress: () => {},
       },
       {
@@ -170,3 +166,193 @@ void test("runConvertExport propagates export errors without downloading", async
   );
   assert.equal(downloaded, false);
 });
+
+void test("audio-only source probing uses export track selection and releases its input", async () => {
+  const file = createPcmWav({
+    bits: 16,
+    samples: Array.from({ length: 480 }, () => 0),
+  });
+  const source = buildLocalFileSource(file);
+  let disposed = false;
+  const result = await probeConvertSource(
+    source,
+    true,
+    undefined,
+    async (source) => {
+      const input = await createCliparrInputFromSource(source);
+      input.getPrimaryAudioTrack = async () =>
+        assert.fail("Use the shared export audio selector");
+      const dispose = input.dispose.bind(input);
+      input.dispose = () => {
+        disposed = true;
+        dispose();
+      };
+      return input;
+    },
+  );
+  assert.equal(result.dimensions, null);
+  assert.equal(result.videoCodec, null);
+  assert.equal(result.hasAudio, true);
+  assert.equal(result.durationSeconds, 0.01);
+  assert.equal(disposed, true);
+  const initialProbe = await probeConvertSource(source, false);
+  assert.equal(initialProbe.hasVideo, false);
+  assert.equal(initialProbe.hasAudio, true);
+  assert.equal(initialProbe.durationSeconds, result.durationSeconds);
+});
+
+void test("audio-only probing and conversion preserve the full selected track when the default track is shorter", async () => {
+  await ensureAudioEncoder("pcm-s16");
+  const target = new BufferTarget();
+  const output = new Output({ target, format: new MovOutputFormat() });
+  const first = new AudioSampleSource({ codec: "pcm-s16" });
+  const second = new AudioSampleSource({ codec: "pcm-s16" });
+  output.addAudioTrack(first, { disposition: { default: false } });
+  output.addAudioTrack(second, { disposition: { default: true } });
+  await output.start();
+  for (const [track, seconds] of [
+    [first, 10],
+    [second, 2],
+  ] as const) {
+    const sample = new AudioSample({
+      data: new Int16Array(8000 * seconds).fill(track === first ? 2000 : 6000),
+      format: "s16",
+      sampleRate: 8000,
+      numberOfChannels: 1,
+      timestamp: 0,
+    });
+    try {
+      await track.add(sample);
+    } finally {
+      sample.close();
+      track.close();
+    }
+  }
+  await output.finalize();
+  assert.ok(target.buffer);
+  const file = new File([target.buffer], "two-tracks.mov");
+  const source = buildLocalFileSource(file);
+  const probe = await probeConvertSource(source, true);
+  assert.equal(probe.durationSeconds, 10);
+  const { exportClip } = await import("#/lib/exportClip");
+  const blob = await runConvertExport(
+    {
+      source,
+      fileName: "complete.wav",
+      probe,
+      format: "wav",
+      resolution: "original",
+      mode: "audio-only",
+      onProgress: () => {},
+    },
+    {
+      exportClip,
+      downloadBlob: () => {},
+    },
+  );
+  const input = new Input({
+    source: new BlobSource(blob),
+    formats: ALL_FORMATS,
+  });
+  try {
+    assert.equal(await input.computeDuration(), 10);
+  } finally {
+    input.dispose();
+  }
+});
+
+void test("cancelled source probing never opens a new input", async () => {
+  const controller = new AbortController();
+  controller.abort();
+  await assert.rejects(
+    probeConvertSource(
+      buildLocalFileSource(createVideoFile()),
+      true,
+      controller.signal,
+      async () => assert.fail("Unexpected input"),
+    ),
+    { name: "AbortError" },
+  );
+});
+
+for (const cancellationPoint of [
+  "before",
+  "preparing",
+  "encoding",
+  "finalizing",
+] as const) {
+  void test(`converter cancellation during ${cancellationPoint} prevents downloads and permits retry`, async () => {
+    const controller = new AbortController();
+    const phases: string[] = [];
+    let exports = 0;
+    let downloads = 0;
+    const options = {
+      source: buildLocalFileSource(createVideoFile()),
+      fileName: "audio.wav",
+      probe: {
+        durationSeconds: 1,
+        previewStartTimestampSeconds: 0,
+        dimensions: null,
+        hasAudio: true,
+        hasVideo: false,
+      },
+      format: "wav" as const,
+      mode: "audio-only" as const,
+      resolution: "original" as const,
+      onProgress: () => {},
+      onPhaseChange: (phase: ExportPhase) => {
+        phases.push(phase);
+      },
+    };
+    const dependencies = {
+      exportClip: async (received: ExportClipOptions) => {
+        exports++;
+        assert.equal(received.signal, controller.signal);
+        for (const phase of ["preparing", "encoding", "finalizing"] as const) {
+          received.onPhaseChange?.(phase);
+          if (phase === cancellationPoint) {
+            controller.abort();
+            if (phase !== "finalizing") {
+              received.signal?.throwIfAborted();
+            }
+          }
+        }
+        // Simulate an engine completing concurrently with cancellation.
+        return new Blob(["finished"]);
+      },
+      downloadBlob: () => {
+        downloads++;
+      },
+    };
+    if (cancellationPoint === "before") {
+      controller.abort();
+    }
+    await assert.rejects(
+      runConvertExport({ ...options, signal: controller.signal }, dependencies),
+      { name: "AbortError" },
+    );
+    assert.equal(downloads, 0);
+    assert.equal(exports, cancellationPoint === "before" ? 0 : 1);
+    assert.deepEqual(
+      phases,
+      cancellationPoint === "before"
+        ? []
+        : ["preparing", "encoding", "finalizing"].slice(
+            0,
+            ["preparing", "encoding", "finalizing"].indexOf(cancellationPoint) +
+              1,
+          ),
+    );
+    await runConvertExport(
+      { ...options, signal: new AbortController().signal },
+      {
+        ...dependencies,
+        exportClip: async (received) => {
+          assert.equal(received.signal?.aborted, false);
+          return new Blob(["retry"]);
+        },
+      },
+    );
+    assert.equal(downloads, 1);
+  });
+}
