@@ -7,7 +7,17 @@ order: 40
 
 The editor keeps keyboard shortcuts focused on preview playback, range marking, seeking, and timeline navigation so browser, form, and media controls stay predictable.
 
-Shortcuts only control the editor when focus is not inside an interactive control or dialog. They are ignored while typing in inputs, using selects, pressing buttons, adjusting sliders or scrollbars, or working inside export and framegrab dialogs.
+Shortcuts are ignored while typing in inputs, using selects, adjusting sliders or scrollbars, or working inside dialogs. Playback, seeking, and subtitle deletion also leave focused buttons and other interactive controls alone. Undo and redo remain available when a toolbar button is focused.
+
+## Undo and redo
+
+| Shortcut                     | Action              |
+| :--------------------------- | :------------------ |
+| `Ctrl`/`Cmd` + `Z`           | Undo the last edit. |
+| `Ctrl`/`Cmd` + `Shift` + `Z` | Redo the last undo. |
+| `Ctrl` + `Y`                 | Redo the last undo. |
+
+Editor history includes clip-range and subtitle changes, including creation, deletion, clearing, and import replacement. Text fields retain their own editing shortcuts while focused.
 
 ## Preview playback
 

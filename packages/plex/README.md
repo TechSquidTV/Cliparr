@@ -110,9 +110,13 @@ Server policy remains in `apps/server/src/providers/plex`:
 | `mediaHandles.ts` | Authorized Plex media handles and API base-path resolution                           |
 | `mediaProxy.ts`   | HTTP proxy lifecycle, range handling, and cancellation                               |
 
-Metadata is fetched once for distinct item IDs within each poll. Enrichment is
-combined separately with each live session, preserving its stream selections
-instead of inheriting the library's defaults. The PMS and shared media transports
+Live playback loads an initial snapshot and resynchronizes when Plex notifications
+change the active sessions or their playback state. It does not periodically poll
+for sessions. Metadata preparation is cached for unchanged playback entries and
+shared across dashboard subscribers. Changed entries are prepared again, while
+media handles and playback setup remain scoped to each Cliparr session. Enrichment
+preserves live stream selections instead of inheriting the library's defaults.
+The PMS and shared media transports
 use `shared/networkPolicy.ts` for address classification and redirect credential
 stripping; their DNS, timeout, retry, and streaming policies remain separate.
 

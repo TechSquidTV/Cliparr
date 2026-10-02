@@ -31,7 +31,7 @@ New sessions still import the preferred supported subtitle track automatically. 
 
 Choose **Import…** to import or reimport a provider track. If subtitles already exist, confirm their replacement. Your current cues remain visible during the download. Import can be cancelled; a failed or cancelled import leaves your edits intact. Successful replacement can be undone.
 
-Supported imports are downloadable text tracks, including SRT/SubRip, WebVTT, ASS/SSA, TTML, SMI, and related formats exposed by Plex or Jellyfin. Image-based subtitles such as PGS or VobSub cannot be imported. Their absence does not prevent creating your own text.
+Cliparr reads SRT/SubRip and WebVTT text. Other text codecs can be imported when the provider exposes them through a supported conversion or extraction path. Image-based subtitles such as PGS or VobSub cannot be imported. Their absence does not prevent creating your own text.
 
 <Callout title="Saved draft format changed" tone="warning">
   Subtitle authoring uses draft version 2. Saved clip ranges and subtitle edits
@@ -41,9 +41,11 @@ Supported imports are downloadable text tracks, including SRT/SubRip, WebVTT, AS
 
 ## Provider notes
 
-Jellyfin can usually expose downloadable text subtitle tracks directly from the selected media source.
+Jellyfin supplies supported text tracks from the selected media source as WebVTT, including conversion of source text formats such as ASS/SSA, TTML, or SMI.
 
-Plex sidecar text subtitles can usually be downloaded directly. Some embedded Plex text subtitles must be selected in Plex first so Plex exposes a subtitle content stream that Cliparr can fetch.
+Plex supports provider-returned raw SRT/SubRip and WebVTT resources, conversion of recognized local subtitle-stream links to WebVTT, and supported embedded-subtitle extraction. Some embedded text subtitles must be selected in Plex first so Plex exposes a content stream that Cliparr can fetch.
+
+**Plex compatibility change:** Returned raw ASS/SSA, TTML, SMI, and other unsupported subtitle resources are excluded from import. A track's text codec alone does not guarantee that Plex exposes a usable conversion or extraction path. If a track is unavailable, choose another supported track or author your own captions.
 
 [Plex: Adding Local Subtitles to Your Media](https://support.plex.tv/articles/200471133-adding-local-subtitles-to-your-media/)
 

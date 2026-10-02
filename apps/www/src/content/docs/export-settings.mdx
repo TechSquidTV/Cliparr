@@ -9,7 +9,7 @@ import { Picture } from "astro:assets";
 import Callout from "../../components/Callout.astro";
 import exportDialogImage from "../../../public/docs/export-dialog.webp";
 
-Cliparr exports clips in the browser. Video formats use Mediabunny, while GIF exports use Cliparr's optimized GIF encoder with worker-backed frame processing. Open the export dialog from the editor after choosing a clip range, then review the output settings, summary, and estimated size before saving the file.
+Cliparr exports clips in the browser. Video and audio formats use Mediabunny, while GIF exports use Cliparr's optimized GIF encoder with worker-backed frame processing. Open the export dialog from the editor after choosing a clip range, then review the output settings, summary, and estimated size before saving the file.
 
 <figure class="my-6 overflow-hidden rounded-lg border border-border bg-card">
   <Picture
@@ -54,6 +54,8 @@ Audio defaults to MP3 and groups its formats by compression:
 | WAV        | Uncompressed audio for editing.          |
 
 Some FLAC edge cases, including single-frame clips and extremely small final compressed frames, are not supported by the current media library. Cliparr rejects these exports with an explanation. Choose WAV or adjust the clip boundaries; Cliparr does not pad audio or change its timing.
+
+Standalone FLAC inputs can also have an unreadable tail. Cliparr rejects selections that include missing source audio before encoding or download, regardless of the chosen output format. A selection ending within the readable portion can still export. Changing the output to WAV does not recover unreadable input. This source-range restriction does not apply to FLAC audio inside MP4, MKV, or HLS sources.
 
 Audio encoding settings are automatic. FLAC and WAV show the selected **Bit depth** marked **Auto**, with a visible explanation based on source precision and channel mixing. The summary shows the codec, channels, sample rate, bitrate or bit depth, and any necessary lossy resampling. FLAC and WAV do not silently change the source sample rate. Known integer sources up to 16 bit use 16-bit lossless output when only trimmed; processing or uncertain precision uses 24 bit. WAV can preserve identified 32-bit PCM. Higher precision sources cannot be silently reduced to FLAC.
 

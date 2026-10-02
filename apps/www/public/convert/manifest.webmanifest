@@ -2,13 +2,13 @@
   "id": "/convert",
   "name": "Cliparr Convert",
   "short_name": "Convert",
-  "description": "Convert local video files to MP4, WebM, MOV, MKV, or GIF entirely in your browser.",
+  "description": "Convert local video and audio files, extract audio, or make GIFs in your browser without uploads.",
   "start_url": "/convert/",
   "scope": "/convert/",
   "display": "standalone",
   "background_color": "#171717",
   "theme_color": "#171717",
-  "categories": ["photo", "video", "utilities"],
+  "categories": ["photo", "video", "music", "utilities"],
   "icons": [
     {
       "src": "/pwa-icon-192.png",
@@ -31,9 +31,9 @@
   ],
   "shortcuts": [
     {
-      "name": "Convert Video",
+      "name": "Convert Video and Audio",
       "short_name": "Convert",
-      "description": "Open the local browser video converter.",
+      "description": "Open the local browser video and audio converter.",
       "url": "/convert/",
       "icons": [
         {
