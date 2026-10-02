@@ -7,19 +7,15 @@ order: 35
 
 Cliparr edits and exports media in your browser. Its self-hosted server handles provider authentication, live playback notifications, and proxy access to remote media. Local files stay on your device.
 
+## WebCodecs support
+
+**WebCodecs support is the main browser requirement for Cliparr's media processing and exports.** Use a current browser with support on your device. Check your browser and version in the [WebCodecs compatibility table on Can I use](https://caniuse.com/webcodecs), including the separate entries for desktop and mobile browsers.
+
+Supported codecs still vary by browser, operating system, and hardware. WebCodecs availability does not guarantee every source or output format will work. Cliparr reports unsupported export configurations. See [Export settings](/docs/export-settings) for formats and limitations, and [MDN's codec-selection reference](https://developer.mozilla.org/en-US/docs/Web/API/WebCodecs_API/Codec_selection) for codec compatibility.
+
 ## Secure access
 
 Use **HTTPS** when accessing Cliparr from another device. Local `localhost` and `127.0.0.1` access also meet the secure-context requirement for browser media APIs. An HTTP address on your LAN does not. See [Configuration](/docs/configuration#https-and-browser-apis).
-
-## Playback and export support
-
-Use a current browser and check the selected source and output format. Browser name alone does not establish support: decoding, encoding, containers, channel layouts, and hardware capabilities can differ across browser versions, operating systems, and devices. Playing a file successfully does not guarantee that the browser can export it in every format.
-
-Video and audio exports use Mediabunny and available browser media APIs. Cliparr also loads codec extensions for selected audio formats. GIF exports use canvas rendering and browser workers. Missing source decoders or unsupported output configurations can still prevent an export; Cliparr reports the reason rather than silently dropping a required track.
-
-The automated audio-export browser suite runs on desktop Chrome. Firefox, Edge, Safari, and mobile browsers are not covered by that suite, so the Chrome results do not establish support for every format on those browsers. Check an export on your target device before relying on it for a longer clip.
-
-See [Export settings](/docs/export-settings) for available video and audio formats, stereo mixdown, lossless bit depth, FLAC restrictions, and memory limits. Browser codec availability is described in the [WebCodecs codec-selection reference](https://developer.mozilla.org/en-US/docs/Web/API/WebCodecs_API/Codec_selection).
 
 ## Installing as an app
 
@@ -35,6 +31,5 @@ Installation adds a launcher for Cliparr; it does not add codecs or remove brows
 2. Update the browser and retry a short selection with the intended output format.
 3. Read the export error. Try a supported format or source, and review the [audio and FLAC limitations](/docs/export-settings#format) before changing formats.
 4. For large exports, shorten the selection or lower video resolution. Exported files remain in browser memory.
-5. If an issue appears specific to one browser, compare the same source and settings in desktop Chrome, which is used by the audio-export browser suite.
 
 See [MDN's secure-context requirements](https://developer.mozilla.org/en-US/docs/Web/Security/Defenses/Secure_Contexts/features_restricted_to_secure_contexts) for the browser API requirement, and [Providers](/docs/providers) for connection or live-update failures.
