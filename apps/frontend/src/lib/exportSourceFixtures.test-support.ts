@@ -49,6 +49,18 @@ async function createFlacTailFixture(
 }
 
 export async function createBrowserSourceFixtures() {
+  const canvas = new OffscreenCanvas(3, 2);
+  const context = canvas.getContext("2d");
+  if (!context) {
+    throw new Error("Missing artwork fixture context");
+  }
+  context.fillStyle = "#ff0000";
+  context.fillRect(0, 0, canvas.width, canvas.height);
+  const artwork = await canvas.convertToBlob({ type: "image/webp" });
+  if (artwork.type !== "image/webp") {
+    throw new Error("Artwork fixture must exercise WebP normalization");
+  }
+  const artworkBytes = new Uint8Array(await artwork.arrayBuffer());
   const flac = await createFlacTailFixture();
   const mp4 = await createFlacTailFixture(new Mp4OutputFormat());
   const mkv = await createFlacTailFixture(new MkvOutputFormat());
@@ -83,6 +95,7 @@ export async function createBrowserSourceFixtures() {
     source.close();
     await output.finalize();
     return [
+      { path: "fixtures/artwork.webp", data: [...artworkBytes] },
       { path: "fixtures/tail.flac", data: [...new Uint8Array(flac)] },
       { path: "fixtures/tail.mp4", data: [...new Uint8Array(mp4)] },
       { path: "fixtures/tail.mkv", data: [...new Uint8Array(mkv)] },

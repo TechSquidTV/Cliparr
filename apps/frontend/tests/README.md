@@ -8,7 +8,8 @@ The runner builds a temporary production bundle, serves it locally, checks the
 five audio formats in a real browser, and removes its temporary output. Fixtures
 use synthetic PCM and MediaBunny encoding; no external media tools are required.
 The checks cover mono playback, center-channel dialogue, supported AAC channel
-preservation, low-rate MP3 bitrate, metadata, lossless sample preparation after
+preservation, low-rate MP3 bitrate, metadata, WebP-to-PNG artwork embedding,
+lossless sample preparation after
 browser decoding, FLAC rejection feedback and independent playback, 7.1 AAC
 stereo mixdown, MP3 cancellation and retry, and encoder-worker cleanup.
 Focused `exportClip.integration.test.ts` checks cover Cliparr trimming and source

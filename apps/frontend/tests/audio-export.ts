@@ -36,6 +36,7 @@ async function convert(
   startTime = 0.125,
   endTime = 0.75,
   lifecycle: Pick<ExportClipOptions, "signal" | "onPhaseChange"> = {},
+  imageUrl?: string,
 ) {
   return exportClip({
     ...lifecycle,
@@ -61,6 +62,7 @@ async function convert(
       seasonNumber: 2,
       episodeNumber: 3,
       directors: ["Director"],
+      imageUrl,
     },
     onProgress: () => {},
   });
@@ -353,7 +355,15 @@ async function runAudioExportChecks() {
   const mono = await createPcmWav({ bits: 16, samples });
   for (const format of ["mp3", "m4a", "ogg", "flac", "wav"] as const) {
     document.title = `Checking ${format}`;
-    const blob = await convert(mono, format);
+    const blob = await convert(
+      mono,
+      format,
+      true,
+      0.125,
+      0.75,
+      {},
+      new URL("/fixtures/artwork.webp", location.href).href,
+    );
     const input = new Input({
       source: new BlobSource(blob),
       formats: ALL_FORMATS,
@@ -374,6 +384,37 @@ async function runAudioExportChecks() {
         `${format}: unexpected video`,
       );
       const tags = await input.getMetadataTags();
+      const artwork = tags.images?.[0];
+      check(
+        artwork?.mimeType === "image/png",
+        `${format}: normalized artwork missing`,
+      );
+      check(
+        [137, 80, 78, 71, 13, 10, 26, 10].every(
+          (byte, index) => artwork.data[index] === byte,
+        ),
+        `${format}: artwork must contain PNG bytes, not just a PNG MIME type`,
+      );
+      const bitmap = await createImageBitmap(
+        new Blob([new Uint8Array(artwork.data)], { type: artwork.mimeType }),
+      );
+      try {
+        check(
+          bitmap.width === 3 && bitmap.height === 2,
+          `${format}: artwork dimensions changed`,
+        );
+        const canvas = new OffscreenCanvas(3, 2);
+        const context = canvas.getContext("2d");
+        check(context !== null, "Missing artwork verification context");
+        context.drawImage(bitmap, 0, 0);
+        const pixel = context.getImageData(1, 1, 1, 1).data;
+        check(
+          pixel[0] > 240 && pixel[1] < 15 && pixel[2] < 15 && pixel[3] === 255,
+          `${format}: artwork pixels were lost`,
+        );
+      } finally {
+        bitmap.close();
+      }
       check(
         tags.title === "Dialogue 日本語",
         `${format}: Unicode title missing`,
@@ -399,7 +440,9 @@ async function runAudioExportChecks() {
     }
     const decoded = await channelEnergy(blob);
     check(decoded.energy[0] > 1, `${format}: speech disappeared`);
-    checks.push(`${format} output, metadata, mono speech, and worker loading`);
+    checks.push(
+      `${format} output, metadata, normalized WebP artwork, mono speech, and worker loading`,
+    );
   }
   for (const rate of [8000, 11_025, 12_000]) {
     for (const channels of [1, 2]) {

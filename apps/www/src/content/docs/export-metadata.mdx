@@ -24,23 +24,23 @@ These tags are sent for every audio and video export format when the source fiel
 
 MP4, MOV, and M4A exports also receive the current raw container keys below. Cliparr patches integer MP4 boxes so `hdvd`, `stik`, `tves`, and `tvsn` are stored as numeric metadata.
 
-| Raw tag | Applies to        | Source                          | Value written                                                                                  |
-| :------ | :---------------- | :------------------------------ | :--------------------------------------------------------------------------------------------- |
-| `ldes`  | MP4, MOV          | `description`, then `tagline`   | Long description.                                                                              |
-| `©dir`  | MP4, MOV          | `directors`                     | Directors joined with `, `.                                                                    |
-| `hdvd`  | MP4, MOV          | Output height                   | `1` when output height is at least 720p, otherwise `0`. Skipped when output height is unknown. |
-| `©TIM`  | MP4, MOV          | Clip start time                 | Cliparr timing key containing the source start time as `HH:MM:SS.mmm`.                         |
-| `csta`  | MP4, MOV          | Clip start time                 | Source start seconds with three decimals.                                                      |
-| `cend`  | MP4, MOV          | Clip end time                   | Source end seconds with three decimals.                                                        |
-| `cdur`  | MP4, MOV          | Clip duration                   | Clip duration seconds with three decimals.                                                     |
-| `clpr`  | MP4, MOV          | Clip start, end, duration       | Version 1 JSON containing `source` and `clip`; see below.                                      |
-| `stik`  | MP4, MOV episodes | `itemType`                      | `10` for episodes.                                                                             |
-| `tvsh`  | MP4, MOV episodes | `showTitle`                     | Show title.                                                                                    |
-| `tvsn`  | MP4, MOV episodes | `seasonNumber`                  | Non-negative integer season number.                                                            |
-| `tves`  | MP4, MOV episodes | `episodeNumber`                 | Non-negative integer episode number.                                                           |
-| `tven`  | MP4, MOV episodes | `seasonNumber`, `episodeNumber` | Episode code as `S##E##` when both numbers exist.                                              |
-| `tvnn`  | MP4, MOV episodes | `network`, then `studio`        | Network name, falling back to studio.                                                          |
-| `stik`  | MP4, MOV movies   | `itemType`                      | `9` for movies.                                                                                |
+| Raw tag | Applies to                    | Source                          | Value written                                                                                  |
+| :------ | :---------------------------- | :------------------------------ | :--------------------------------------------------------------------------------------------- |
+| `ldes`  | MP4, MOV, M4A                 | `description`, then `tagline`   | Long description.                                                                              |
+| `©dir`  | MP4, MOV, M4A                 | `directors`                     | Directors joined with `, `.                                                                    |
+| `hdvd`  | MP4, MOV                      | Output height                   | `1` when output height is at least 720p, otherwise `0`. Skipped when output height is unknown. |
+| `©TIM`  | MP4, MOV, M4A                 | Clip start time                 | Cliparr timing key containing the source start time as `HH:MM:SS.mmm`.                         |
+| `csta`  | MP4, MOV, M4A                 | Clip start time                 | Source start seconds with three decimals.                                                      |
+| `cend`  | MP4, MOV, M4A                 | Clip end time                   | Source end seconds with three decimals.                                                        |
+| `cdur`  | MP4, MOV, M4A                 | Clip duration                   | Clip duration seconds with three decimals.                                                     |
+| `clpr`  | MP4, MOV, M4A                 | Clip start, end, duration       | Version 1 JSON containing `source` and `clip`; see below.                                      |
+| `stik`  | MP4, MOV episodes             | `itemType`                      | `10` for episodes.                                                                             |
+| `tvsh`  | MP4, MOV, M4A episode sources | `showTitle`                     | Show title.                                                                                    |
+| `tvsn`  | MP4, MOV, M4A episode sources | `seasonNumber`                  | Non-negative integer season number.                                                            |
+| `tves`  | MP4, MOV, M4A episode sources | `episodeNumber`                 | Non-negative integer episode number.                                                           |
+| `tven`  | MP4, MOV, M4A episode sources | `seasonNumber`, `episodeNumber` | Episode code as `S##E##` when both numbers exist.                                              |
+| `tvnn`  | MP4, MOV, M4A episode sources | `network`, then `studio`        | Network name, falling back to studio.                                                          |
+| `stik`  | MP4, MOV movies               | `itemType`                      | `9` for movies.                                                                                |
 
 M4A receives descriptive and timing tags, including TV source information, but does not receive the video-specific `hdvd` or `stik` flags. An episode excerpt remains an episode in its source metadata; Cliparr does not invent album, artist, or music track fields from TV and film fields.
 
