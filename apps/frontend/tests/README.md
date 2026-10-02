@@ -8,8 +8,13 @@ The runner builds a temporary production bundle, serves it locally, checks the
 five audio formats in a real browser, and removes its temporary output. Fixtures
 use synthetic PCM and MediaBunny encoding; no external media tools are required.
 The checks cover mono playback, center-channel dialogue, supported AAC channel
-preservation, low-rate MP3 bitrate, metadata, exact lossless sample round trips,
-single-frame FLAC rejection and multi-frame playback, 7.1 AAC stereo mixdown, MP3 cancellation and retry,
-and encoder-worker cleanup.
-Node unit tests remain part of repository preflight;
+preservation, low-rate MP3 bitrate, metadata, lossless sample preparation after
+browser decoding, FLAC rejection feedback and independent playback, 7.1 AAC
+stereo mixdown, MP3 cancellation and retry, and encoder-worker cleanup.
+Focused `exportClip.integration.test.ts` checks cover Cliparr trimming and source
+precision through the real export entry point. The fixed 32-bit input lives in
+`src/lib/fixtures`; fixture details are documented there. Codec implementations
+and container layout are delegated to MediaBunny.
+
+Node tests remain part of repository preflight;
 run this browser suite separately for export or encoder dependency changes.

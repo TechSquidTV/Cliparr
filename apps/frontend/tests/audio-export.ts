@@ -60,7 +60,7 @@ async function convert(
 }
 
 async function checkWorkerCancellation() {
-  const file = createPcmWav({
+  const file = await createPcmWav({
     bits: 16,
     samples: Array.from({ length: 48_000 * 30 }, (_, index) => index % 16_000),
   });
@@ -149,62 +149,27 @@ async function readMonoPcm(blob: Blob) {
   }
 }
 
-async function checkShortFlacExports() {
-  for (const sampleRate of [8000, 48_000]) {
-    for (const bits of [16, 24] as const) {
-      for (const count of [1, 15, 16, 800, 4096, 4097, 8192]) {
-        const samples = Array.from(
-          { length: count },
-          (_, index) => (index % 257) * 17 - 2048,
-        );
-        const file = createPcmWav({ bits, sampleRate, samples });
-        if (count <= 4097) {
-          let rejected = false;
-          try {
-            await convert(file, "flac", true, 0, count / sampleRate);
-          } catch (error) {
-            rejected =
-              error instanceof Error &&
-              error.message.includes("cannot be exported reliably as FLAC");
-          }
-          check(rejected, "Single-frame FLAC must explain the WAV alternative");
-          continue;
-        }
-        const blob = await convert(file, "flac", true, 0, count / sampleRate);
-        // Inspect the actual container independently of MediaBunny's metadata reader.
-        const bytes = await blob.arrayBuffer();
-        const header = new DataView(bytes);
-        check(
-          new TextDecoder().decode(new Uint8Array(bytes, 0, 4)) === "fLaC",
-          "Missing FLAC signature",
-        );
-        const minimum = header.getUint16(8);
-        const maximum = header.getUint16(10);
-        check(
-          minimum >= 16 && maximum >= minimum,
-          "Invalid FLAC STREAMINFO block sizes",
-        );
-        const decoded = await readMonoPcm(blob);
-        check(
-          decoded.length === count,
-          `Short FLAC changed sample count: ${bits}-bit ${sampleRate} Hz, expected ${count}, got ${decoded.length}`,
-        );
-        check(
-          decoded.every(
-            (value, index) => value === samples[index] / 2 ** (bits - 1),
-          ),
-          "Short FLAC changed PCM values",
-        );
-        if (sampleRate === 8000 && bits === 16 && count === 8192) {
-          const context = new OfflineAudioContext(1, count, sampleRate);
-          const independent = await context.decodeAudioData(bytes);
-          check(
-            independent.length === count,
-            "Independent FLAC playback failed",
-          );
-        }
-      }
+async function checkFlacLimitFeedback() {
+  // One single-frame clip and one clip with a tiny final frame exercise
+  // Cliparr's two rejection conditions, without testing FLAC header internals.
+  for (const count of [800, 4097]) {
+    const file = await createPcmWav({
+      samples: Array.from(
+        { length: count },
+        (_, index) => (index % 257) * 17 - 2048,
+      ),
+    });
+    let message = "";
+    try {
+      await convert(file, "flac", true, 0, count / 48_000);
+    } catch (error) {
+      message = error instanceof Error ? error.message : "";
     }
+    check(
+      message.includes("cannot be exported reliably as FLAC") &&
+        message.includes("Choose WAV"),
+      "Unsupported FLAC exports must explain the WAV alternative",
+    );
   }
 }
 
@@ -286,7 +251,7 @@ async function runAudioExportChecks() {
   const samples = Array.from({ length: 48_000 }, (_, frame) =>
     Math.round(12_000 * Math.sin((2 * Math.PI * 440 * frame) / 48_000)),
   );
-  const mono = createPcmWav({ bits: 16, samples });
+  const mono = await createPcmWav({ bits: 16, samples });
   for (const format of ["mp3", "m4a", "ogg", "flac", "wav"] as const) {
     document.title = `Checking ${format}`;
     const blob = await convert(mono, format);
@@ -325,13 +290,21 @@ async function runAudioExportChecks() {
     } finally {
       input.dispose();
     }
+    if (format === "flac") {
+      const context = new OfflineAudioContext(1, 48_000, 48_000);
+      const decoded = await context.decodeAudioData(await blob.arrayBuffer());
+      check(
+        decoded.length === 30_000,
+        "FLAC playback changed the selected clip duration",
+      );
+    }
     const decoded = await channelEnergy(blob);
     check(decoded.energy[0] > 1, `${format}: speech disappeared`);
     checks.push(`${format} output, metadata, mono speech, and worker loading`);
   }
   for (const rate of [8000, 11_025, 12_000]) {
     for (const channels of [1, 2]) {
-      const file = createPcmWav({
+      const file = await createPcmWav({
         bits: 16,
         channels,
         sampleRate: rate,
@@ -415,45 +388,38 @@ async function runAudioExportChecks() {
     "real AAC configuration 12 source inspection and stereo MP3 export",
   );
   document.title = "Checking single-frame FLAC";
-  await checkShortFlacExports();
-  checks.push(
-    "single-frame FLAC rejection, multi-frame precision, and independent playback",
-  );
+  await checkFlacLimitFeedback();
+  checks.push("unsupported FLAC exports explain the WAV alternative");
   document.title = "Checking unsigned PCM";
   const pattern = [0, 128, 128, 255, 1, 127, 129, 64, 255];
   const values = Array.from(
     { length: 4800 },
     (_, index) => pattern[index % pattern.length],
   );
-  const unsigned = createPcmWav({ bits: 8, samples: values });
-  for (const format of ["wav", "flac"] as const) {
-    const blob = await convert(
-      unsigned,
-      format,
-      true,
-      1 / 48_000,
-      (values.length - 1) / 48_000,
-    );
-    let checkedBlob = blob;
-    if (format === "flac") {
-      checkedBlob = await convert(
-        new File([blob], "roundtrip.flac"),
-        "wav",
-        true,
-        0,
-        (values.length - 2) / 48_000,
-      );
-    }
-    const actual = await readMonoPcm(checkedBlob);
-    check(
-      actual.length === values.length - 2 &&
-        actual.every(
-          (value, index) => value === (values[index + 1] - 128) / 128,
-        ),
-      `${format}: unsigned PCM trim changed samples`,
-    );
-  }
-  checks.push("unsigned 8-bit PCM exact WAV/FLAC round trips after trimming");
+  const unsigned = await createPcmWav({ bits: 8, samples: values });
+  // This round trip crosses the browser decoder before Cliparr's integer
+  // sample preparation, which previously rounded the decoded values incorrectly.
+  const flac = await convert(
+    unsigned,
+    "flac",
+    true,
+    1 / 48_000,
+    (values.length - 1) / 48_000,
+  );
+  const wav = await convert(
+    new File([flac], "roundtrip.flac"),
+    "wav",
+    true,
+    0,
+    (values.length - 2) / 48_000,
+  );
+  const actual = await readMonoPcm(wav);
+  check(
+    actual.length === values.length - 2 &&
+      actual.every((value, index) => value === (values[index + 1] - 128) / 128),
+    "Cliparr's lossless sample preparation changed browser-decoded values",
+  );
+  checks.push("lossless sample preparation preserves browser-decoded audio");
   document.title = "Audio export checks passed";
   return checks;
 }

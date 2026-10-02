@@ -168,7 +168,7 @@ void test("runConvertExport propagates export errors without downloading", async
 });
 
 void test("audio-only source probing uses export track selection and releases its input", async () => {
-  const file = createPcmWav({
+  const file = await createPcmWav({
     bits: 16,
     samples: Array.from({ length: 480 }, () => 0),
   });
