@@ -21,8 +21,6 @@ The frontend runs on `http://localhost:5173`. The API server runs on `http://loc
 
 The optional Docker dev stack seeds Plex and Jellyfin with Sintel, a Blender open movie with embedded subtitle tracks.
 
-The seed downloads Sintel from download.blender.org and falls back to a Blender mirror, checking the file against Blender's published MD5. To use a different copy, set `SINTEL_URL` (and `SINTEL_MD5` to verify it) before starting the stack.
-
 Run `pnpm docker:dev:build` after Dockerfile or dependency changes, then `pnpm docker:dev:up` to start the stack.
 
 ## Live session architecture

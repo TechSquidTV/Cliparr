@@ -37,10 +37,6 @@ pnpm preflight
 
 The [Docker dev stack](../docker/compose.dev.yml) seeds Plex and Jellyfin with Sintel, a Blender open movie with embedded subtitle tracks. Run `pnpm docker:dev:build` after Dockerfile or dependency changes, then `pnpm docker:dev:up` to start the stack.
 
-The seed downloads from download.blender.org and falls back to a Blender mirror, checking the file against Blender's published MD5. Set `SINTEL_URL` (and `SINTEL_MD5`) to use a different copy. Downloads are skipped when `CI=true` or `GITHUB_ACTIONS=true`. If you previously used the Big Buck Bunny seed, recreate the `cliparr-dev-media`, `plex-config`, and `jellyfin-config` Docker volumes to force a clean library scan; this discards their existing development data.
-
-Plex library bootstrap runs the dependency-free `@cliparr/plex` Node entry point from the mounted package. It uses generated contracts and fails visibly if bounded readiness or library creation retries are exhausted. See [Plex contract maintenance](../packages/plex/README.md).
-
 ## Pull Requests
 
 - Keep changes focused and explain the user-visible behavior they affect.
