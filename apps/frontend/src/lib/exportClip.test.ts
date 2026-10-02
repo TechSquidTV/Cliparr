@@ -1,3 +1,7 @@
+import {
+  createIncompleteSourceAudioError,
+  isIncompleteSourceAudioError,
+} from "#/lib/exportSourceAudio";
 /// <reference types="node" />
 
 import { resolveExportAudioPlan } from "@/lib/exportAudio";
@@ -137,6 +141,7 @@ function createRuntime(overrides: Partial<ExportRuntime> = {}) {
 
   const runtime: ExportRuntime = {
     ensureMediabunnyCodecs: async () => {},
+    assertSourceAudioRange: async () => {},
     inspectAudioTrack: async () => ({
       codec: "aac",
       numberOfChannels: 2,
@@ -1423,4 +1428,88 @@ void test("failed conversion initialization closes its output and permits retry"
   const result = await exportClipWithRuntime(options, context.runtime);
   assert.equal(result.size, 3);
   assert.equal(cancelled, 1);
+});
+
+void test("unreadable audio stops before artwork and encoding, disposes input, and permits retry", async () => {
+  const context = createRuntime({
+    assertSourceAudioRange: async (_track, start, end) => {
+      assert.equal(start, 6);
+      assert.equal(end, 7);
+      throw createIncompleteSourceAudioError();
+    },
+    buildMetadataTags: async () => assert.fail("Must not fetch artwork"),
+    initConversion: async () => assert.fail("Must not initialize encoding"),
+  });
+  const options = {
+    mediaSource,
+    startTime: 1,
+    endTime: 2,
+    format: "wav",
+    mode: "audio-only",
+    resolution: "original",
+    onProgress: () => {},
+  } as const;
+  await assert.rejects(
+    exportClipWithRuntime(options, context.runtime),
+    isIncompleteSourceAudioError,
+  );
+  assert.equal(context.disposed, true);
+  const retry = createRuntime();
+  const retried = await exportClipWithRuntime(options, retry.runtime);
+  assert.equal(retried.size, 3);
+  assert.equal(retry.disposed, true);
+});
+
+void test("cancellation during source range inspection disposes input without encoding", async () => {
+  const controller = new AbortController();
+  const context = createRuntime({
+    assertSourceAudioRange: async (
+      _track,
+      _start,
+      _end,
+      _includeAudio,
+      signal,
+    ) => {
+      controller.abort();
+      signal?.throwIfAborted();
+    },
+    initConversion: async () => assert.fail("Must not initialize encoding"),
+  });
+  await assert.rejects(
+    exportClipWithRuntime(
+      {
+        mediaSource,
+        startTime: 1,
+        endTime: 2,
+        format: "wav",
+        mode: "audio-only",
+        resolution: "original",
+        signal: controller.signal,
+        onProgress: () => {},
+      },
+      context.runtime,
+    ),
+    { name: "AbortError" },
+  );
+  assert.equal(context.disposed, true);
+});
+
+void test("video-only exports do not inspect source audio coverage", async () => {
+  const context = createRuntime({
+    assertSourceAudioRange: async (_track, _start, _end, includeAudio) =>
+      assert.equal(includeAudio, false),
+  });
+  await exportClipWithRuntime(
+    {
+      mediaSource,
+      startTime: 1,
+      endTime: 2,
+      format: "mp4",
+      mode: "video-only",
+      resolution: "original",
+      onProgress: () => {},
+    },
+    context.runtime,
+  );
+  assert.equal(context.disposed, true);
 });

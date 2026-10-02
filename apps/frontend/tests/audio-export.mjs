@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdtemp, rm } from "node:fs/promises";
+import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -10,6 +10,8 @@ const root = fileURLToPath(new URL("..", import.meta.url));
 const outDir = await mkdtemp(path.join(tmpdir(), "cliparr-audio-browser-"));
 let server;
 let browser;
+let page;
+const diagnostics = path.resolve(root, "../../build/browser-export");
 try {
   await build({
     root,
@@ -34,13 +36,21 @@ try {
     headless: true,
     channel: process.env.CLIPARR_TEST_BROWSER_CHANNEL || undefined,
   });
-  const page = await browser.newPage();
+  page = await browser.newPage();
   const errors = [];
   page.on("pageerror", (error) => errors.push(error.message));
   await page.goto(new URL("tests/audio-export.html", url).href);
   await page.waitForFunction(
     () => typeof globalThis.runAudioExportChecks === "function",
   );
+  const fixtures = await page.evaluate(() =>
+    globalThis.createBrowserSourceFixtures(),
+  );
+  for (const fixture of fixtures) {
+    const destination = path.join(outDir, fixture.path);
+    await mkdir(path.dirname(destination), { recursive: true });
+    await writeFile(destination, Buffer.from(fixture.data));
+  }
   const checks = await page.evaluate(async () => {
     try {
       return await globalThis.runAudioExportChecks();
@@ -63,6 +73,19 @@ try {
   process.stdout.write(
     `${checks.map((check) => `PASS ${check}`).join("\n")}\n`,
   );
+} catch (error) {
+  await mkdir(diagnostics, { recursive: true });
+  await writeFile(
+    path.join(diagnostics, "failure.log"),
+    String(error.stack ?? error),
+  );
+  await page
+    ?.screenshot({
+      path: path.join(diagnostics, "failure.png"),
+      fullPage: true,
+    })
+    .catch(() => {});
+  throw error;
 } finally {
   await browser?.close();
   await server?.close();

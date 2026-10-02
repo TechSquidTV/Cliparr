@@ -1,8 +1,8 @@
 # Audio export browser checks
 
-Run `pnpm --filter @cliparr/frontend test:browser` after installing Playwright's
-Chromium (`pnpm --filter @cliparr/frontend exec playwright install chromium`).
-To use an installed Chrome instead, set `CLIPARR_TEST_BROWSER_CHANNEL=chrome`.
+Install Chrome with `pnpm --filter @cliparr/frontend exec playwright install --with-deps chrome`,
+then run `CLIPARR_TEST_BROWSER_CHANNEL=chrome pnpm --filter @cliparr/frontend test:browser`.
+CI uses the same Chrome channel so AAC decoding is available.
 
 The runner builds a temporary production bundle, serves it locally, checks the
 five audio formats in a real browser, and removes its temporary output. Fixtures
@@ -16,5 +16,13 @@ precision through the real export entry point. The fixed 32-bit input lives in
 `src/lib/fixtures`; fixture details are documented there. Codec implementations
 and container layout are delegated to MediaBunny.
 
-Node tests remain part of repository preflight;
-run this browser suite separately for export or encoder dependency changes.
+Node tests remain part of repository preflight. The browser suite runs in the
+**Browser audio export** CI job on pull requests and main. Failures retain logs
+and a screenshot under `build/browser-export` (uploaded by CI).
+
+Provider-style tests serve generated media over local HTTP: a native FLAC with
+an unreadable tail, FLAC audio inside MP4/MKV, and AAC HLS with multiple fMP4
+segments and a nonzero timeline origin. They verify source-range protection,
+valid-prefix retry, container-specific checks, and clip timing across segments.
+The independent upstream reproduction is in [flac-upstream-reproduction.md](flac-upstream-reproduction.md).
+No provider credentials or external media tools are needed.

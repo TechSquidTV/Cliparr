@@ -43,6 +43,7 @@ import {
 } from "#/lib/exportAudio";
 import type { EditorMediaSource } from "#/lib/editorMedia";
 import { createCliparrInputFromSource } from "#/lib/mediabunnyInput";
+import { assertSourceAudioRange } from "#/lib/exportSourceAudio";
 import { ensureMediabunnyCodecs } from "#/lib/mediabunnyCodecs";
 import {
   assessVideoTrackDecodability,
@@ -134,6 +135,7 @@ interface ExportClipRuntime {
   getVideoTrackDimensions: typeof getVideoTrackDimensions;
   buildMetadataTags: typeof buildMetadataTags;
   inspectAudioTrack: typeof inspectAudioTrack;
+  assertSourceAudioRange: typeof assertSourceAudioRange;
   resolveExportAudioPlan: typeof resolveExportAudioPlan;
   describeDiscardedTracks: typeof describeDiscardedTracks;
   patchMp4MetadataBoxes: typeof patchMp4MetadataBoxes;
@@ -439,6 +441,7 @@ const defaultExportClipRuntime: ExportClipRuntime = {
   getVideoTrackDimensions,
   buildMetadataTags,
   inspectAudioTrack,
+  assertSourceAudioRange,
   resolveExportAudioPlan,
   describeDiscardedTracks,
   patchMp4MetadataBoxes,
@@ -556,6 +559,14 @@ export async function exportClipWithRuntime(
       { startTime, endTime, timelineOffsetSeconds },
       [sourceVideoTrack, preferredAudioTrack],
       runtime,
+    );
+
+    await runtime.assertSourceAudioRange(
+      preferredAudioTrack,
+      trimStart,
+      trimEnd,
+      includeAudio,
+      signal,
     );
 
     const sourceVideoDimensions =

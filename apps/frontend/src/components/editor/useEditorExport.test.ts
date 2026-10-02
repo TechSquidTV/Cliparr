@@ -1,3 +1,4 @@
+import { createIncompleteSourceAudioError } from "#/lib/exportSourceAudio";
 /// <reference types="node" />
 
 import assert from "node:assert/strict";
@@ -7,6 +8,7 @@ import {
   type EditorMediaSource,
 } from "@/lib/editorMedia";
 import {
+  buildExportErrorMessage,
   buildExportSourceLabel,
   buildExportSourceMessage,
   buildExportSourceSummaryMessage,
@@ -949,5 +951,26 @@ void test("audio-only readiness ignores subtitle loading and video dimensions", 
   assert.equal(
     getOutputDimensions({ width: 1920, height: 1080 }, "original", "mp3"),
     null,
+  );
+});
+
+void test("unreadable audio guidance names only an available distinct HLS source", () => {
+  const error = createIncompleteSourceAudioError();
+  const direct = createProviderUrlSource("/api/media/direct", "direct");
+  const hls = createProviderUrlSource("/api/media/hls", "hls");
+  const source = { source: direct, kind: "direct" } as const;
+  assert.match(
+    buildExportErrorMessage(error, source, hls),
+    /Choose ‘HLS playback’ under Source/,
+  );
+  assert.equal(buildExportErrorMessage(error, source), error.message);
+  assert.equal(buildExportErrorMessage(error, source, direct), error.message);
+  assert.equal(
+    buildExportErrorMessage(error, { source: hls, kind: "hls" }, hls),
+    error.message,
+  );
+  assert.equal(
+    buildExportErrorMessage(new Error("Network failed"), source, hls),
+    "Network failed",
   );
 });

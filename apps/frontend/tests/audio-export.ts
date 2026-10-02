@@ -1,3 +1,10 @@
+import { createBrowserSourceFixtures as buildBrowserSourceFixtures } from "#/lib/exportSourceFixtures.test-support";
+import {
+  assertSourceAudioRange,
+  isIncompleteSourceAudioError,
+} from "#/lib/exportSourceAudio";
+import { createCliparrInputFromSource } from "#/lib/mediabunnyInput";
+import { getTrackTimelineOffsetSeconds } from "#/lib/mediabunnyTrackAccess";
 import {
   ALL_FORMATS,
   AudioSample,
@@ -243,8 +250,100 @@ async function dialogueSource(channels: number) {
   return new File([target.buffer], "dialogue.flac", { type: "audio/flac" });
 }
 
+async function checkProviderSourceRanges() {
+  const source = {
+    kind: "url",
+    role: "direct",
+    label: "Direct source",
+    url: new URL("/fixtures/tail.flac", location.href).href,
+  } as const;
+  for (const extension of ["mp4", "mkv"]) {
+    const input = await createCliparrInputFromSource({
+      ...source,
+      url: source.url.replace(".flac", `.${extension}`),
+    });
+    try {
+      const track = await input.getPrimaryAudioTrack();
+      check(
+        track !== null && (await track.getCodec()) === "flac",
+        "Missing container FLAC fixture",
+      );
+      // Beyond the file end: only the native FLAC reader is subject to this guard.
+      await assertSourceAudioRange(track, 0, 2, true);
+    } finally {
+      input.dispose();
+    }
+  }
+  const options = {
+    mediaSource: source,
+    format: "wav",
+    mode: "audio-only",
+    resolution: "original",
+    startTime: 0,
+    endTime: 1.024,
+    onProgress: () => {},
+  } as const;
+  let rejected = false;
+  try {
+    await exportClip(options);
+  } catch (error) {
+    rejected = isIncompleteSourceAudioError(error);
+  }
+  check(rejected, "Incomplete provider FLAC must not produce a download");
+  const prefix = await exportClip({ ...options, endTime: 0.256 });
+  const prefixSamples = await readMonoPcm(prefix);
+  check(prefixSamples.length === 2048, "Readable FLAC prefix changed");
+
+  const hlsSource = {
+    ...source,
+    role: "hls",
+    label: "HLS stream",
+    url: new URL("/fixtures/master.m3u8", location.href).href,
+    hls: true,
+  } as const;
+  const input = await createCliparrInputFromSource(hlsSource);
+  let origin: number;
+  try {
+    const track = await input.getPrimaryAudioTrack();
+    check(track !== null, "Missing HLS audio");
+    // Use the origin captured when the editor opens the stream.
+    origin = await getTrackTimelineOffsetSeconds([track]);
+    check(origin > 59, "HLS fixture must exercise a nonzero timeline origin");
+  } finally {
+    input.dispose();
+  }
+  const blob = await exportClip({
+    ...options,
+    mediaSource: hlsSource,
+    timelineOffsetSeconds: origin,
+    startTime: 0.25,
+    endTime: 1.25,
+    title: "Provider clip",
+  });
+  const hlsSamples = await readMonoPcm(blob);
+  check(hlsSamples.length === 48_000, "HLS cross-segment trim changed");
+  const exported = new Input({
+    source: new BlobSource(blob),
+    formats: ALL_FORMATS,
+  });
+  try {
+    const tags = await exported.getMetadataTags();
+    check(
+      tags.comment?.includes("00:00:00.250 to 00:00:01.250") === true,
+      "HLS origin leaked into source metadata",
+    );
+  } finally {
+    exported.dispose();
+  }
+}
+
 async function runAudioExportChecks() {
   const checks: string[] = [];
+  document.title = "Checking provider source ranges";
+  await checkProviderSourceRanges();
+  checks.push(
+    "provider FLAC range protection and cross-segment AAC HLS export",
+  );
   document.title = "Checking worker cancellation";
   await checkWorkerCancellation();
   checks.push("MP3 preparation/worker cancellation and retry");
@@ -425,6 +524,9 @@ async function runAudioExportChecks() {
 }
 
 declare global {
+  var createBrowserSourceFixtures: typeof buildBrowserSourceFixtures;
   var runAudioExportChecks: () => Promise<string[]>;
 }
 globalThis.runAudioExportChecks = runAudioExportChecks;
+
+globalThis.createBrowserSourceFixtures = buildBrowserSourceFixtures;

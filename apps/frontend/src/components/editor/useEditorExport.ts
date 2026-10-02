@@ -1,3 +1,4 @@
+import { isIncompleteSourceAudioError } from "#/lib/exportSourceAudio";
 import { useExportSettings } from "#/components/editor/useExportSettings";
 import { isAudioExportFormat, exportIncludesAudio } from "#/lib/exportFormats";
 import type { ExportAudioPlan } from "#/lib/exportAudio";
@@ -649,7 +650,9 @@ export function useEditorExport({
         ...baseFields,
         ...buildExportVideoEncodingLogFields(videoEncodingPlan),
       });
-      setExportError(error instanceof Error ? error.message : "Export failed");
+      setExportError(
+        buildExportErrorMessage(error, exportSource, session.hlsSource),
+      );
     } finally {
       exportController.current = null;
       if (mounted.current) {
@@ -664,6 +667,7 @@ export function useEditorExport({
     audio.plan,
     audio.disabledReason,
     session.title,
+    session.hlsSource,
     exportFormat,
     exportLogger,
     exportSource,
@@ -1031,4 +1035,22 @@ export function buildExportSourceSummaryMessage({
   }
 
   return null;
+}
+
+/** Add recovery guidance only when this editor actually has another source. */
+export function buildExportErrorMessage(
+  error: unknown,
+  source: ResolvedExportSource,
+  hlsSource?: EditorMediaSource,
+) {
+  if (
+    isIncompleteSourceAudioError(error) &&
+    source.kind === "direct" &&
+    source.source &&
+    hlsSource &&
+    !editorMediaSourcesEqual(source.source, hlsSource)
+  ) {
+    return `Cliparr couldn’t read all audio in this selection. Choose ‘${sourceDisplayLabel(hlsSource)}’ under Source and export again.`;
+  }
+  return error instanceof Error ? error.message : "Export failed";
 }
