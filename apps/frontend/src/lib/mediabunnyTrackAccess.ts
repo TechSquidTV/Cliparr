@@ -36,14 +36,6 @@ export async function describeInputTrack(track: InputTrack) {
   return `${label}${formattedName} (${String(codec ?? internalCodecId ?? "unknown codec")})`;
 }
 
-export async function getTrackLanguageCode(track: InputTrack) {
-  return track.getLanguageCode();
-}
-
-export async function getTrackName(track: InputTrack) {
-  return track.getName();
-}
-
 export async function assessVideoTrackDecodability(
   track: InputVideoTrack,
 ): Promise<VideoTrackDecodabilityAssessment> {

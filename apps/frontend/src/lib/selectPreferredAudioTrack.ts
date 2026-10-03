@@ -1,9 +1,5 @@
 import type { InputAudioTrack, InputVideoTrack } from "mediabunny";
 import type { PlaybackAudioSelection } from "#/providers/types";
-import {
-  getTrackLanguageCode,
-  getTrackName,
-} from "#/lib/mediabunnyTrackAccess";
 
 function normalizedText(value: string | null | undefined) {
   const trimmed = value?.trim().toLowerCase();
@@ -33,8 +29,8 @@ async function selectPreferredAudioTrack(
   const tracks = await Promise.all(
     audioTracks.map(async (track) => ({
       track,
-      title: normalizedText(await getTrackName(track)),
-      languageCode: normalizedText(await getTrackLanguageCode(track)),
+      title: normalizedText(await track.getName()),
+      languageCode: normalizedText(await track.getLanguageCode()),
     })),
   );
 
