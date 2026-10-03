@@ -17,21 +17,21 @@
   },
   "dependencies": {
     "@cliparr/shared": "workspace:*",
-    "@jellyfin/sdk": "^0.13.0",
-    "@logtape/logtape": "^2.1.5",
-    "axios": "^1.18.0",
-    "dotenv": "^17.4.2",
-    "drizzle-orm": "1.0.0-rc.4-273829f",
+    "@jellyfin/sdk": "^1.0.0",
+    "@logtape/logtape": "^2.3.10",
+    "axios": "^1.20.0",
+    "dotenv": "^18.0.5",
+    "drizzle-orm": "1.0.0-rc.5-5935859",
     "express": "^5.2.1",
     "undici": "^7.30.0",
     "@cliparr/plex": "workspace:*"
   },
   "devDependencies": {
     "@types/express": "^5.0.6",
-    "@types/node": "^25.9.3",
-    "drizzle-kit": "1.0.0-rc.4-273829f",
-    "tsdown": "^0.22.3",
-    "tsx": "^4.22.4",
+    "@types/node": "^24.19.1",
+    "drizzle-kit": "1.0.0-rc.5-5935859",
+    "tsdown": "^0.23.0",
+    "tsx": "^4.23.15",
     "typescript": "~6.0.3"
   }
 }

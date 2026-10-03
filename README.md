@@ -26,6 +26,7 @@
 - **Browser transcoding**: Video <a href="/docs/export-settings">export settings</a> are powered by <a href="https://mediabunny.dev/" target="_blank" rel="noreferrer">Mediabunny</a>. GIFs are encoded with <a href="https://github.com/KyleTryon/gifenc" target="_blank" rel="noreferrer">gifenc</a>.
 - **Metadata included**: Video exports can include season, episode, and timing metadata from your source.
 - **Subtitle burn-in**: Burn in <a href="/docs/subtitle-burn-in">supported subtitles</a> with customizable styling and local font support in Chromium.
+
 <!-- CLIPARR_DOCS_SYNC:features:end -->
 
 ## Getting Started
@@ -136,8 +137,9 @@ We welcome contributions! To get started with a local development environment:
 
 1. **Clone**: `git clone https://github.com/techsquidtv/cliparr.git`
 2. **Setup**: `cp .env.example .env` (and fill in `APP_KEY`)
-3. **Install**: `pnpm install`
-4. **Run**: `pnpm dev`
+3. **Install pnpm** with Node.js 24.16 or newer: `npm install --global "$(node -p 'require("./package.json").packageManager')"`
+4. **Install dependencies**: `pnpm install`
+5. **Run**: `pnpm dev`
 
 The optional Docker dev stack (`docker/compose.dev.yml`) seeds Plex and Jellyfin with Sintel, a Blender open movie with embedded subtitle tracks. It downloads from download.blender.org and falls back to a Blender mirror, checking the file against Blender's published MD5; set `SINTEL_URL` (and `SINTEL_MD5`) to use a different copy. Run `pnpm docker:dev:build` after Dockerfile or dependency changes, then `pnpm docker:dev:up` to start the stack. The seed is skipped when `CI=true` or `GITHUB_ACTIONS=true` so CI jobs do not download the large test movie. If you previously used the old Big Buck Bunny seed, recreate the `cliparr-dev-media`, `plex-config`, and `jellyfin-config` Docker volumes to force a clean library scan.
 

@@ -75,18 +75,14 @@ const faqStructuredData = {
 ---
 
 <BaseLayout description={productIntro} structuredData={faqStructuredData}>
-  <section
-    class="overflow-hidden border-b border-border bg-background text-foreground"
-  >
+  <section class="overflow-hidden border-b border-border bg-background text-foreground">
     <div class="container-page py-8 sm:py-10">
       <div class="mx-auto max-w-4xl text-center">
         <p class="section-eyebrow">Self-hosted video clipping</p>
         <h1 class="mt-4 text-4xl font-semibold leading-tight sm:text-6xl">
           Clip your personal media.
         </h1>
-        <p
-          class="mx-auto mt-4 max-w-2xl text-lg leading-8 text-muted-foreground sm:text-xl"
-        >
+        <p class="mx-auto mt-4 max-w-2xl text-lg leading-8 text-muted-foreground sm:text-xl">
           {productIntro}
         </p>
         <div class="mt-6 flex flex-wrap justify-center gap-3">
@@ -111,9 +107,7 @@ const faqStructuredData = {
       </div>
 
       <div class="mx-auto mt-7 max-w-5xl">
-        <div
-          class="overflow-hidden rounded-lg border border-[#0A0A0A] bg-[#0A0A0A] p-2 shadow-2xl shadow-black/20"
-        >
+        <div class="overflow-hidden rounded-lg border border-[#0A0A0A] bg-[#0A0A0A] p-2 shadow-2xl shadow-black/20">
           <div class="border-b border-white/10 px-3 py-2 text-xs text-white/70">
             <span>Cliparr editor</span>
           </div>
@@ -165,15 +159,12 @@ const faqStructuredData = {
           Cliparr keeps the workflow small: find the source, choose the range,
           export the clip.
         </p>
-        <p
-          class="mx-auto mt-3 max-w-2xl text-sm leading-6 text-muted-foreground [&_a]:font-medium [&_a]:text-foreground [&_a]:underline [&_a]:underline-offset-4"
-        >
-          Use Cliparr with <a href="/docs/providers">Plex and Jellyfin</a>, open <a
-            href="/docs/local-videos">local videos</a
-          >, tune
+        <p class="mx-auto mt-3 max-w-2xl text-sm leading-6 text-muted-foreground [&_a]:font-medium [&_a]:text-foreground [&_a]:underline [&_a]:underline-offset-4">
+          Use Cliparr with <a href="/docs/providers">Plex and Jellyfin</a>, open{" "}
+          <a href="/docs/local-videos">local videos</a>, tune
           <a href="/docs/export-settings">export settings</a>, and burn in
-          supported <a href="/docs/subtitle-burn-in">subtitles</a> without turning
-          your home server into a render box.
+          supported <a href="/docs/subtitle-burn-in">subtitles</a> without
+          turning your home server into a render box.
         </p>
       </div>
       <div class="mt-8">
@@ -183,9 +174,7 @@ const faqStructuredData = {
   </section>
 
   <section class="border-y border-border bg-muted/40 py-16 sm:py-20">
-    <div
-      class="container-page grid gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(20rem,28rem)] lg:items-center"
-    >
+    <div class="container-page grid gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(20rem,28rem)] lg:items-center">
       <div class="max-w-2xl">
         <p class="section-eyebrow">Mobile PWA</p>
         <h2 class="mt-5 text-3xl font-semibold sm:text-5xl">
@@ -265,9 +254,7 @@ const faqStructuredData = {
   </section>
 
   <section class="border-b border-border bg-background py-16 sm:py-20">
-    <div
-      class="container-page grid gap-8 lg:grid-cols-[1fr_1.1fr] lg:items-start"
-    >
+    <div class="container-page grid gap-8 lg:grid-cols-[1fr_1.1fr] lg:items-start">
       <div>
         <p class="section-eyebrow">Self-hosted quick start</p>
         <h2 class="mt-5 text-3xl font-semibold sm:text-5xl">
@@ -295,25 +282,23 @@ const faqStructuredData = {
         </p>
       </div>
       <div class="mt-8 grid gap-4 md:grid-cols-2">
-        {
-          providers.map((provider) => (
-            <article class="rounded-lg border border-border bg-card p-6">
-              <div class="flex items-center gap-4">
-                <span class="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg border border-border bg-muted p-2.5">
-                  <img
-                    src={provider.iconPath}
-                    alt=""
-                    class="provider-logo h-full w-full"
-                  />
-                </span>
-                <h3 class="text-lg font-semibold">{provider.name}</h3>
-              </div>
-              <p class="mt-3 text-sm leading-6 text-muted-foreground">
-                {provider.setup}
-              </p>
-            </article>
-          ))
-        }
+        {providers.map((provider) => (
+          <article class="rounded-lg border border-border bg-card p-6">
+            <div class="flex items-center gap-4">
+              <span class="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg border border-border bg-muted p-2.5">
+                <img
+                  src={provider.iconPath}
+                  alt=""
+                  class="provider-logo h-full w-full"
+                />
+              </span>
+              <h3 class="text-lg font-semibold">{provider.name}</h3>
+            </div>
+            <p class="mt-3 text-sm leading-6 text-muted-foreground">
+              {provider.setup}
+            </p>
+          </article>
+        ))}
       </div>
     </div>
   </section>
@@ -329,32 +314,28 @@ const faqStructuredData = {
         </p>
       </div>
       <div class="mx-auto mt-8 grid max-w-4xl gap-3">
-        {
-          faqs.map((faq) => (
-            <article class="rounded-lg border border-border bg-card p-5 sm:p-6">
-              <h3 class="text-base font-semibold text-foreground">
-                {faq.question}
-              </h3>
-              <p class="mt-2 text-sm leading-6 text-muted-foreground">
-                {faq.answer}
-              </p>
-              <div class="mt-3 flex flex-wrap gap-3 text-sm font-medium">
-                {faq.links.map((link) => (
-                  <a
-                    class="focus-ring rounded-sm text-foreground underline decoration-border underline-offset-4 hover:decoration-primary"
-                    href={link.href}
-                    target={link.href.startsWith("http") ? "_blank" : undefined}
-                    rel={
-                      link.href.startsWith("http") ? "noreferrer" : undefined
-                    }
-                  >
-                    {link.label}
-                  </a>
-                ))}
-              </div>
-            </article>
-          ))
-        }
+        {faqs.map((faq) => (
+          <article class="rounded-lg border border-border bg-card p-5 sm:p-6">
+            <h3 class="text-base font-semibold text-foreground">
+              {faq.question}
+            </h3>
+            <p class="mt-2 text-sm leading-6 text-muted-foreground">
+              {faq.answer}
+            </p>
+            <div class="mt-3 flex flex-wrap gap-3 text-sm font-medium">
+              {faq.links.map((link) => (
+                <a
+                  class="focus-ring rounded-sm text-foreground underline decoration-border underline-offset-4 hover:decoration-primary"
+                  href={link.href}
+                  target={link.href.startsWith("http") ? "_blank" : undefined}
+                  rel={link.href.startsWith("http") ? "noreferrer" : undefined}
+                >
+                  {link.label}
+                </a>
+              ))}
+            </div>
+          </article>
+        ))}
       </div>
     </div>
   </section>

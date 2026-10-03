@@ -39,9 +39,7 @@ const pageDescription = `Blog posts tagged ${tag.label} from Cliparr.`;
   <section class="border-b border-border bg-background">
     <div class="container-page py-12">
       <p class="section-eyebrow">Blog tag</p>
-      <h1
-        class="mt-5 max-w-3xl text-4xl font-semibold text-foreground sm:text-5xl"
-      >
+      <h1 class="mt-5 max-w-3xl text-4xl font-semibold text-foreground sm:text-5xl">
         Posts tagged {tag.label}
       </h1>
       <p class="mt-4 max-w-3xl text-base leading-7 text-muted-foreground">
@@ -59,11 +57,9 @@ const pageDescription = `Blog posts tagged ${tag.label} from Cliparr.`;
   <section class="container-page py-10 sm:py-12">
     <div class="mx-auto max-w-4xl">
       <div class="grid gap-4">
-        {
-          posts.map((entry) => (
-            <BlogPostCard entry={entry} activeTag={tag.slug} />
-          ))
-        }
+        {posts.map((entry) => (
+          <BlogPostCard entry={entry} activeTag={tag.slug} />
+        ))}
       </div>
     </div>
   </section>

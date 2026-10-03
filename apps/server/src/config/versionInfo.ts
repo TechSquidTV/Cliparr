@@ -8,10 +8,7 @@ import { resolveCliparrClientVersion } from "@/config/version";
 import { getServerLogger, warnWithError } from "@/logging";
 
 type VersionInfoStatus =
-  | "current"
-  | "update_available"
-  | "unknown"
-  | "unavailable";
+  "current" | "update_available" | "unknown" | "unavailable";
 
 interface LatestReleaseInfo {
   tagName: string;

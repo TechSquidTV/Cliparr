@@ -7,10 +7,14 @@ import tseslint from "typescript-eslint";
 import { fileURLToPath } from "node:url";
 
 const rootDirectory = fileURLToPath(new URL("..", import.meta.url));
-const unicornAbbreviationAllowList = Object.fromEntries(
+const unicornNameAllowList = Object.fromEntries(
   [
     "api",
     "Api",
+    "configuration",
+    "Configuration",
+    "application",
+    "Application",
     "auth",
     "Auth",
     "db",
@@ -39,6 +43,8 @@ const unicornAbbreviationAllowList = Object.fromEntries(
     "Props",
     "pwa",
     "Pwa",
+    "repository",
+    "Repository",
     "ref",
     "Ref",
     "res",
@@ -57,6 +63,27 @@ const unicornAbbreviationAllowList = Object.fromEntries(
 );
 const unicornUpgradeCompatibilityRules = {
   // Preserve the repo's effective lint policy while keeping eslint-plugin-unicorn current.
+  "unicorn/prefer-json-import": "off",
+  "unicorn/prefer-promise-with-resolvers": "off",
+  "unicorn/prefer-iterator-helpers": "off",
+  "unicorn/prefer-then-catch": "off",
+  "unicorn/prefer-uint8array-hex": "off",
+  "unicorn/prefer-logical-operator-over-ternary": "off",
+  "unicorn/no-array-front-mutation": "off",
+  "unicorn/no-unnecessary-string-trim": "off",
+  "unicorn/prefer-toggle-attribute": "off",
+  "unicorn/no-unnecessary-fetch-options": "off",
+  "unicorn/prefer-promise-try": "off",
+  "unicorn/no-duplicate-if-branches": "off",
+  "unicorn/single-line-block-comment-style": "off",
+  "unicorn/consistent-conditional-object-spread": "off",
+  "unicorn/consistent-arrow-return-style": "off",
+  "unicorn/iteration-fallback-style": "off",
+  "unicorn/prefer-simple-condition-first": "off",
+  "unicorn/prefer-continue": "off",
+  "unicorn/prefer-error-is-error": "off",
+  "unicorn/prefer-combined-guards": "off",
+  "unicorn/no-array-sort-for-min-max": "off",
   "unicorn/consistent-boolean-name": "off",
   "unicorn/consistent-optional-chaining": "off",
   "unicorn/max-nested-calls": "off",
@@ -312,16 +339,14 @@ export default tseslint.config(
       "unicorn/no-null": "off",
       ...unicornUpgradeCompatibilityRules,
       // React's DOM contract uses className, so keep the rule active for new-prefixed names only.
+      "unicorn/name-replacements": [
+        "error",
+        { allowList: unicornNameAllowList },
+      ],
       "unicorn/no-keyword-prefix": [
         "error",
         {
           disallowedPrefixes: ["new"],
-        },
-      ],
-      "unicorn/prevent-abbreviations": [
-        "error",
-        {
-          allowList: unicornAbbreviationAllowList,
         },
       ],
     },

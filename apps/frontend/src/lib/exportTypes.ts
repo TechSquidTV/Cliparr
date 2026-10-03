@@ -24,10 +24,7 @@ export type { ExportFormat } from "#/lib/exportFormats";
 export type ExportResolution = "original" | "1080" | "720";
 
 export type ExportQualityPreset =
-  | "compact"
-  | "efficient"
-  | "balanced"
-  | "sharp";
+  "compact" | "efficient" | "balanced" | "sharp";
 
 export type GifExportPreset = ExportQualityPreset;
 

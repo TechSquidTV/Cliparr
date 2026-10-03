@@ -51,204 +51,198 @@ const groupId = `command-${hashCommandBlockId(
 )}`;
 ---
 
-<figure
-  class="my-6 overflow-hidden rounded-lg border border-border bg-black shadow-2xl shadow-black/30"
->
-  {
-    label && (
-      <figcaption class="border-b border-white/10 px-4 py-2 text-xs font-medium text-white/58">
-        {label}
-      </figcaption>
-    )
-  }
-  {
-    hasTabs ? (
-      <div
-        class="command-tabs"
-        data-command-tabs
-        style={`--tab-count: ${commandVariants.length}`}
-      >
-        {commandVariants.map((variant, index) => {
-          const optionId = `${groupId}-${index}`;
+<figure class="my-6 overflow-hidden rounded-lg border border-border bg-black shadow-2xl shadow-black/30">
+  {label && (
+    <figcaption class="border-b border-white/10 px-4 py-2 text-xs font-medium text-white/58">
+      {label}
+    </figcaption>
+  )}
+  {hasTabs ? (
+    <div
+      class="command-tabs"
+      data-command-tabs
+      style={`--tab-count: ${commandVariants.length}`}
+    >
+      {commandVariants.map((variant, index) => {
+        const optionId = `${groupId}-${index}`;
 
-          return (
-            <>
-              <input
-                checked={index === 0}
-                class="command-tab-input"
-                data-command-shell={variant.lang}
-                id={optionId}
-                name={groupId}
-                type="radio"
-              />
-              <label
-                class="command-tab-label"
-                for={optionId}
-                style={`grid-column: ${index + 1}`}
+        return (
+          <>
+            <input
+              checked={index === 0}
+              class="command-tab-input"
+              data-command-shell={variant.lang}
+              id={optionId}
+              name={groupId}
+              type="radio"
+            />
+            <label
+              class="command-tab-label"
+              for={optionId}
+              style={`grid-column: ${index + 1}`}
+            >
+              {variant.label}
+            </label>
+            <div class="command-panel">
+              <button
+                aria-label="Copy command"
+                class="command-copy-button"
+                data-command-copy
+                data-tooltip="Copy command"
+                type="button"
               >
-                {variant.label}
-              </label>
-              <div class="command-panel">
-                <button
-                  aria-label="Copy command"
-                  class="command-copy-button"
-                  data-command-copy
-                  data-tooltip="Copy command"
-                  type="button"
+                <svg
+                  aria-hidden="true"
+                  class="command-copy-icon command-copy-icon-copy"
+                  fill="none"
+                  viewBox="0 0 24 24"
                 >
-                  <svg
-                    aria-hidden="true"
-                    class="command-copy-icon command-copy-icon-copy"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                  >
-                    <rect
-                      height="14"
-                      rx="2"
-                      stroke="currentColor"
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      stroke-width="2"
-                      width="14"
-                      x="8"
-                      y="8"
-                    />
-                    <path
-                      d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"
-                      stroke="currentColor"
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      stroke-width="2"
-                    />
-                  </svg>
-                  <svg
-                    aria-hidden="true"
-                    class="command-copy-icon command-copy-icon-copied"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      d="M20 6 9 17l-5-5"
-                      stroke="currentColor"
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      stroke-width="2"
-                    />
-                  </svg>
-                  <svg
-                    aria-hidden="true"
-                    class="command-copy-icon command-copy-icon-failed"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      d="m18 6-12 12"
-                      stroke="currentColor"
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      stroke-width="2"
-                    />
-                    <path
-                      d="m6 6 12 12"
-                      stroke="currentColor"
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      stroke-width="2"
-                    />
-                  </svg>
-                </button>
-                <div class="command-code">
-                  <Code
-                    code={variant.code}
-                    lang={variant.lang}
-                    theme="github-dark"
+                  <rect
+                    height="14"
+                    rx="2"
+                    stroke="currentColor"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    width="14"
+                    x="8"
+                    y="8"
                   />
-                </div>
+                  <path
+                    d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"
+                    stroke="currentColor"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                  />
+                </svg>
+                <svg
+                  aria-hidden="true"
+                  class="command-copy-icon command-copy-icon-copied"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    d="M20 6 9 17l-5-5"
+                    stroke="currentColor"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                  />
+                </svg>
+                <svg
+                  aria-hidden="true"
+                  class="command-copy-icon command-copy-icon-failed"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    d="m18 6-12 12"
+                    stroke="currentColor"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                  />
+                  <path
+                    d="m6 6 12 12"
+                    stroke="currentColor"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                  />
+                </svg>
+              </button>
+              <div class="command-code">
+                <Code
+                  code={variant.code}
+                  lang={variant.lang}
+                  theme="github-dark"
+                />
               </div>
-            </>
-          );
-        })}
-      </div>
-    ) : (
-      <div class="command-panel-single">
-        <button
-          aria-label="Copy command"
-          class="command-copy-button"
-          data-command-copy
-          data-tooltip="Copy command"
-          type="button"
+            </div>
+          </>
+        );
+      })}
+    </div>
+  ) : (
+    <div class="command-panel-single">
+      <button
+        aria-label="Copy command"
+        class="command-copy-button"
+        data-command-copy
+        data-tooltip="Copy command"
+        type="button"
+      >
+        <svg
+          aria-hidden="true"
+          class="command-copy-icon command-copy-icon-copy"
+          fill="none"
+          viewBox="0 0 24 24"
         >
-          <svg
-            aria-hidden="true"
-            class="command-copy-icon command-copy-icon-copy"
-            fill="none"
-            viewBox="0 0 24 24"
-          >
-            <rect
-              height="14"
-              rx="2"
-              stroke="currentColor"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              width="14"
-              x="8"
-              y="8"
-            />
-            <path
-              d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"
-              stroke="currentColor"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-            />
-          </svg>
-          <svg
-            aria-hidden="true"
-            class="command-copy-icon command-copy-icon-copied"
-            fill="none"
-            viewBox="0 0 24 24"
-          >
-            <path
-              d="M20 6 9 17l-5-5"
-              stroke="currentColor"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-            />
-          </svg>
-          <svg
-            aria-hidden="true"
-            class="command-copy-icon command-copy-icon-failed"
-            fill="none"
-            viewBox="0 0 24 24"
-          >
-            <path
-              d="m18 6-12 12"
-              stroke="currentColor"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-            />
-            <path
-              d="m6 6 12 12"
-              stroke="currentColor"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-            />
-          </svg>
-        </button>
-        <div class="command-code">
-          <Code
-            code={commandVariants[0].code}
-            lang={commandVariants[0].lang}
-            theme="github-dark"
+          <rect
+            height="14"
+            rx="2"
+            stroke="currentColor"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            width="14"
+            x="8"
+            y="8"
           />
-        </div>
+          <path
+            d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"
+            stroke="currentColor"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+          />
+        </svg>
+        <svg
+          aria-hidden="true"
+          class="command-copy-icon command-copy-icon-copied"
+          fill="none"
+          viewBox="0 0 24 24"
+        >
+          <path
+            d="M20 6 9 17l-5-5"
+            stroke="currentColor"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+          />
+        </svg>
+        <svg
+          aria-hidden="true"
+          class="command-copy-icon command-copy-icon-failed"
+          fill="none"
+          viewBox="0 0 24 24"
+        >
+          <path
+            d="m18 6-12 12"
+            stroke="currentColor"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+          />
+          <path
+            d="m6 6 12 12"
+            stroke="currentColor"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+          />
+        </svg>
+      </button>
+      <div class="command-code">
+        <Code
+          code={commandVariants[0].code}
+          lang={commandVariants[0].lang}
+          theme="github-dark"
+        />
       </div>
-    )
-  }
+    </div>
+  )}
 </figure>
 
 <script>

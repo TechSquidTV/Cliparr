@@ -49,118 +49,112 @@ const dateFormatter = new Intl.DateTimeFormat("en", {
         version.
       </p>
 
-      {
-        latestRelease && (
-          <div class="mt-6 flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
-            <a
-              class="focus-ring rounded-full border border-border bg-card px-3 py-1 font-medium text-foreground no-underline transition-colors hover:bg-accent"
-              href={latestRelease.pageUrl}
-            >
-              Latest version {latestRelease.tagName}
-            </a>
-            <span>
-              Published {dateFormatter.format(latestRelease.publishedAt)}
+      {latestRelease && (
+        <div class="mt-6 flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
+          <a
+            class="focus-ring rounded-full border border-border bg-card px-3 py-1 font-medium text-foreground no-underline transition-colors hover:bg-accent"
+            href={latestRelease.pageUrl}
+          >
+            Latest version {latestRelease.tagName}
+          </a>
+          <span>
+            Published {dateFormatter.format(latestRelease.publishedAt)}
+          </span>
+          <a
+            class="focus-ring rounded-md font-medium text-foreground underline decoration-border hover:decoration-primary"
+            href={latestRelease.url}
+            target="_blank"
+            rel="noreferrer"
+          >
+            View on GitHub
+          </a>
+          <a
+            class="focus-ring inline-flex items-center gap-1.5 rounded-md font-medium text-foreground underline decoration-border hover:decoration-primary"
+            href="/changelog/rss.xml"
+          >
+            <RssIcon class="h-3.5 w-3.5 text-muted-foreground" />
+            <span>RSS feed</span>
+          </a>
+        </div>
+      )}
+    </div>
+
+    <div class="mx-auto mt-10 max-w-4xl space-y-5">
+      {hasPrereleases && (
+        <div class="flex justify-end">
+          <label class="focus-within:focus-ring flex cursor-pointer items-center gap-3 rounded-full border border-border bg-card px-3 py-2 text-sm font-semibold text-foreground">
+            <input
+              class="peer sr-only"
+              type="checkbox"
+              data-prerelease-toggle
+              aria-label="Show prereleases"
+            />
+            <span class="relative h-5 w-9 rounded-full bg-muted transition-colors peer-checked:bg-secondary peer-checked:[&>span]:translate-x-4">
+              <span class="absolute left-0.5 top-0.5 h-4 w-4 rounded-full bg-background shadow-sm transition-transform" />
             </span>
+            <span>Show prereleases</span>
+          </label>
+        </div>
+      )}
+      {releases.map((release) => (
+        <article
+          id={release.anchorId}
+          data-release-card
+          data-release-prerelease={release.prerelease ? "true" : undefined}
+          class:list={[
+            "scroll-mt-24 rounded-lg border border-border bg-card p-5 transition-colors target:border-primary/60 target:bg-primary/[0.04] sm:p-6",
+            { hidden: release.prerelease },
+          ]}
+        >
+          <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+            <div>
+              <div class="flex flex-wrap items-center gap-2">
+                {release.isLatest && (
+                  <span class="rounded-full border border-primary/40 bg-primary/10 px-2.5 py-1 text-xs font-semibold text-primary">
+                    Latest
+                  </span>
+                )}
+                <a
+                  class="focus-ring rounded-full border border-border bg-muted px-2.5 py-1 text-xs font-semibold text-muted-foreground no-underline transition-colors hover:bg-accent hover:text-foreground"
+                  href={release.pageUrl}
+                  aria-label={`Link to ${release.tagName} on this page`}
+                >
+                  {release.tagName}
+                </a>
+                {release.prerelease && (
+                  <span class="rounded-full border border-secondary/40 bg-secondary/10 px-2.5 py-1 text-xs font-semibold text-secondary">
+                    Prerelease
+                  </span>
+                )}
+              </div>
+              <h2 class="mt-4 text-2xl font-semibold">
+                <a
+                  class="focus-ring rounded-md no-underline hover:underline"
+                  href={release.pageUrl}
+                >
+                  {release.title}
+                </a>
+              </h2>
+              <p class="mt-2 text-sm text-muted-foreground">
+                <time datetime={release.publishedAt.toISOString()}>
+                  {dateFormatter.format(release.publishedAt)}
+                </time>
+              </p>
+            </div>
             <a
-              class="focus-ring rounded-md font-medium text-foreground underline decoration-border hover:decoration-primary"
-              href={latestRelease.url}
+              class="focus-ring w-fit rounded-full border border-border px-3 py-2 text-sm font-semibold text-foreground no-underline transition-colors hover:bg-accent"
+              href={release.url}
               target="_blank"
               rel="noreferrer"
             >
               View on GitHub
             </a>
-            <a
-              class="focus-ring inline-flex items-center gap-1.5 rounded-md font-medium text-foreground underline decoration-border hover:decoration-primary"
-              href="/changelog/rss.xml"
-            >
-              <RssIcon class="h-3.5 w-3.5 text-muted-foreground" />
-              <span>RSS feed</span>
-            </a>
           </div>
-        )
-      }
-    </div>
-
-    <div class="mx-auto mt-10 max-w-4xl space-y-5">
-      {
-        hasPrereleases && (
-          <div class="flex justify-end">
-            <label class="focus-within:focus-ring flex cursor-pointer items-center gap-3 rounded-full border border-border bg-card px-3 py-2 text-sm font-semibold text-foreground">
-              <input
-                class="peer sr-only"
-                type="checkbox"
-                data-prerelease-toggle
-                aria-label="Show prereleases"
-              />
-              <span class="relative h-5 w-9 rounded-full bg-muted transition-colors peer-checked:bg-secondary peer-checked:[&>span]:translate-x-4">
-                <span class="absolute left-0.5 top-0.5 h-4 w-4 rounded-full bg-background shadow-sm transition-transform" />
-              </span>
-              <span>Show prereleases</span>
-            </label>
+          <div class="release-notes mt-6">
+            <release.Content />
           </div>
-        )
-      }
-      {
-        releases.map((release) => (
-          <article
-            id={release.anchorId}
-            data-release-card
-            data-release-prerelease={release.prerelease ? "true" : undefined}
-            class:list={[
-              "scroll-mt-24 rounded-lg border border-border bg-card p-5 transition-colors target:border-primary/60 target:bg-primary/[0.04] sm:p-6",
-              { hidden: release.prerelease },
-            ]}
-          >
-            <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-              <div>
-                <div class="flex flex-wrap items-center gap-2">
-                  {release.isLatest && (
-                    <span class="rounded-full border border-primary/40 bg-primary/10 px-2.5 py-1 text-xs font-semibold text-primary">
-                      Latest
-                    </span>
-                  )}
-                  <a
-                    class="focus-ring rounded-full border border-border bg-muted px-2.5 py-1 text-xs font-semibold text-muted-foreground no-underline transition-colors hover:bg-accent hover:text-foreground"
-                    href={release.pageUrl}
-                    aria-label={`Link to ${release.tagName} on this page`}
-                  >
-                    {release.tagName}
-                  </a>
-                  {release.prerelease && (
-                    <span class="rounded-full border border-secondary/40 bg-secondary/10 px-2.5 py-1 text-xs font-semibold text-secondary">
-                      Prerelease
-                    </span>
-                  )}
-                </div>
-                <h2 class="mt-4 text-2xl font-semibold">
-                  <a
-                    class="focus-ring rounded-md no-underline hover:underline"
-                    href={release.pageUrl}
-                  >
-                    {release.title}
-                  </a>
-                </h2>
-                <p class="mt-2 text-sm text-muted-foreground">
-                  <time datetime={release.publishedAt.toISOString()}>
-                    {dateFormatter.format(release.publishedAt)}
-                  </time>
-                </p>
-              </div>
-              <a
-                class="focus-ring w-fit rounded-full border border-border px-3 py-2 text-sm font-semibold text-foreground no-underline transition-colors hover:bg-accent"
-                href={release.url}
-                target="_blank"
-                rel="noreferrer"
-              >
-                View on GitHub
-              </a>
-            </div>
-            <div class="release-notes mt-6">
-              <release.Content />
-            </div>
-          </article>
-        ))
-      }
+        </article>
+      ))}
     </div>
   </section>
 

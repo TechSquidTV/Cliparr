@@ -6,6 +6,7 @@
     "security:minimumReleaseAgeNpm"
   ],
   "timezone": "America/New_York",
+  "schedule": ["* 0-4 * * 6"],
   "configMigration": true,
   "semanticCommits": "enabled",
   "semanticCommitType": "chore",

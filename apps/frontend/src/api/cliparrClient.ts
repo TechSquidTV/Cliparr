@@ -21,10 +21,7 @@ interface HealthResponse {
 }
 
 type VersionInfoStatus =
-  | "current"
-  | "update_available"
-  | "unknown"
-  | "unavailable";
+  "current" | "update_available" | "unknown" | "unavailable";
 
 export interface LatestReleaseInfo {
   tagName: string;

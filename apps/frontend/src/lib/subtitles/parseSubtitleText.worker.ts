@@ -17,8 +17,7 @@ interface SubtitleParseWorkerResponseFailure {
 }
 
 type SubtitleParseWorkerResponse =
-  | SubtitleParseWorkerResponseSuccess
-  | SubtitleParseWorkerResponseFailure;
+  SubtitleParseWorkerResponseSuccess | SubtitleParseWorkerResponseFailure;
 
 function errorMessage(error: unknown) {
   return error instanceof Error ? error.message : "Could not parse subtitles.";
