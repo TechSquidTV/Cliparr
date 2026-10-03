@@ -15,6 +15,8 @@ minimumReleaseAgeExclude:
   - "@techsquidtv/canvas-timeline-renderer@0.4.0"
   - "@techsquidtv/canvas-timeline-utils@0.4.0"
   - "@techsquidtv/gifenc@1.1.0"
+  # Renovate security update: axios@1.20.0
+  - axios@1.20.0
 
 allowBuilds:
   "@sentry/cli": true
