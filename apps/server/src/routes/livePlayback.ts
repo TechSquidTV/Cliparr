@@ -46,7 +46,7 @@ livePlaybackRouter.get("/", (request, res) => {
 });
 
 livePlaybackRouter.post("/retry", (request, res) => {
-  requireAccountSession(request);
-  livePlayback.retry();
+  const session = requireAccountSession(request);
+  livePlayback.retry(session.providerAccountId);
   res.sendStatus(204);
 });

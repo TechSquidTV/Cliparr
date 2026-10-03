@@ -501,3 +501,169 @@ void test("disconnect uses the remembered provider account when the session cook
     fs.rmSync(dataDir, { recursive: true, force: true });
   }
 });
+
+function runSessionCacheScript(script: string) {
+  const dataDir = fs.mkdtempSync(
+    path.join(os.tmpdir(), "cliparr-session-cache-"),
+  );
+  try {
+    runStoreScript(
+      `
+      import assert from "node:assert/strict";
+      import { mock } from "node:test";
+      import { eq } from "drizzle-orm";
+      const { initializeDatabase, closeDatabase } = await import(${JSON.stringify(databaseModuleSpecifier)});
+      const { providerSessions } = await import("@/db/schema");
+      const { encryptSecret } = await import("@/security/secrets");
+      const { upsertProviderAccountByAccessToken } = await import(${JSON.stringify(providerAccountsRepositoryModuleSpecifier)});
+      const { createProviderSession, getProviderSession, deleteProviderSession, deleteProviderSessionsForProviderAccount } = await import(${JSON.stringify(storeModuleSpecifier)});
+      try {
+        const db = initializeDatabase();
+        const account = upsertProviderAccountByAccessToken({
+          providerId: "plex", label: "Cache account", accessToken: "user-token",
+        });
+        const createSession = () => createProviderSession({
+          providerId: "plex", providerAccountId: account.id, userToken: "user-token",
+        });
+        mock.timers.enable({ apis: ["Date"], now: Date.now() });
+        ${script}
+      } finally {
+        mock.restoreAll();
+        mock.timers.reset();
+        closeDatabase();
+      }
+    `,
+      { dataDir },
+    );
+  } finally {
+    fs.rmSync(dataDir, { recursive: true, force: true });
+  }
+}
+
+void test("caches mapped sessions without another DB read and refreshes after a fixed TTL", () => {
+  runSessionCacheScript(`
+    const created = createSession();
+    const select = mock.method(db, "select");
+    const first = getProviderSession(created.id);
+    assert(first);
+    assert.equal(select.mock.callCount(), 1);
+    assert.equal(first.mediaHandles, created.mediaHandles);
+    assert.equal(first.userToken, "user-token");
+    first.mediaHandles.set("live", {
+      id: "live", providerId: "plex", sourceId: "source-1", baseUrl: "http://plex.local",
+      path: "/segment.ts", token: "provider-token", lastAccessedAt: Date.now(),
+    });
+    db.update(providerSessions).set({ userToken: encryptSecret("new-user-token") })
+      .where(eq(providerSessions.id, created.id)).run();
+    mock.timers.tick(59_999);
+    assert.equal(getProviderSession(created.id), first);
+    assert.equal(select.mock.callCount(), 1);
+    mock.timers.tick(1);
+    const refreshed = getProviderSession(created.id);
+    assert(refreshed);
+    assert.notEqual(refreshed, first);
+    assert.equal(select.mock.callCount(), 2);
+    assert.equal(refreshed.userToken, "new-user-token");
+    assert.equal(refreshed.mediaHandles, first.mediaHandles);
+    assert.equal(refreshed.mediaHandles.size, 1);
+  `);
+});
+
+void test("lazily deletes expired sessions on both cached and uncached reads", () => {
+  runSessionCacheScript(`
+    for (const cached of [false, true]) {
+      const created = createSession();
+      const expiresAt = Date.now() + 1000;
+      db.update(providerSessions).set({ expiresAt }).where(eq(providerSessions.id, created.id)).run();
+      if (cached) assert(getProviderSession(created.id));
+      mock.timers.tick(1000);
+      assert.equal(getProviderSession(created.id), undefined);
+      assert.equal(db.select().from(providerSessions).where(eq(providerSessions.id, created.id)).get(), undefined);
+      assert.equal(getProviderSession(created.id), undefined);
+    }
+  `);
+});
+
+void test("evicts cached sessions on single-session and account deletion", () => {
+  runSessionCacheScript(`
+    const single = createSession();
+    const first = createSession();
+    const second = createSession();
+    const otherAccount = upsertProviderAccountByAccessToken({
+      providerId: "plex", label: "Other account", accessToken: "other-token",
+    });
+    const other = createProviderSession({ providerId: "plex", providerAccountId: otherAccount.id, userToken: "other-token" });
+    for (const session of [single, first, second, other]) assert(getProviderSession(session.id));
+    const otherCached = getProviderSession(other.id);
+    deleteProviderSession(single.id);
+    assert.equal(getProviderSession(single.id), undefined);
+    assert.equal(deleteProviderSessionsForProviderAccount(account.id), 2);
+    assert.equal(getProviderSession(first.id), undefined);
+    assert.equal(getProviderSession(second.id), undefined);
+    assert.equal(getProviderSession(other.id), otherCached);
+  `);
+});
+
+void test("caps the session cache at 128 entries and evicts the least recently used", () => {
+  runSessionCacheScript(`
+    const sessions = Array.from({ length: 129 }, createSession);
+    const records = sessions.slice(0, 128).map((session) => getProviderSession(session.id));
+    const select = mock.method(db, "select");
+    assert.equal(getProviderSession(sessions[0].id), records[0]);
+    assert(getProviderSession(sessions[128].id));
+    assert.equal(select.mock.callCount(), 1);
+    assert.equal(getProviderSession(sessions[0].id), records[0]);
+    const reloaded = getProviderSession(sessions[1].id);
+    assert(reloaded);
+    assert.notEqual(reloaded, records[1]);
+    assert.equal(reloaded.mediaHandles, records[1].mediaHandles);
+    assert.equal(select.mock.callCount(), 2);
+  `);
+});
+
+void test("disconnect revokes cached sessions immediately after a Plex account merge", () => {
+  runSessionCacheScript(`
+    const { createApp } = await import(${JSON.stringify(appModuleSpecifier)});
+    const { getProviderAccount } = await import(${JSON.stringify(providerAccountsRepositoryModuleSpecifier)});
+    const { upsertMediaSource } = await import(${JSON.stringify(mediaSourcesRepositoryModuleSpecifier)});
+    const { cleanupDuplicatePlexSources } = await import("@/db/plexSourceDeduplication");
+    const { getSessionCookieName } = await import(${JSON.stringify(storeModuleSpecifier)});
+    const { PLEX_BASE_URL_MODE_MANUAL } = await import("@/providers/plex/connectionState");
+    const { app } = await createApp();
+    const duplicate = upsertProviderAccountByAccessToken({
+      providerId: "plex", label: "Duplicate", accessToken: "duplicate-token",
+    });
+    for (const owner of [account, duplicate]) {
+      upsertMediaSource({
+        providerId: "plex", providerAccountId: owner.id, externalId: "same-server",
+        name: "Test server", baseUrl: "https://example.com:32400",
+        connection: owner === account ? { baseUrlMode: PLEX_BASE_URL_MODE_MANUAL } : {},
+        credentials: { accessToken: "test-source-token" },
+      });
+    }
+    const sessions = Array.from({ length: 2 }, () => createProviderSession({
+      providerId: "plex", providerAccountId: duplicate.id, userToken: "duplicate-token",
+    }));
+    for (const session of sessions) {
+      assert.equal(getProviderSession(session.id).providerAccountId, duplicate.id);
+    }
+    cleanupDuplicatePlexSources({ newlyAuthenticatedAccountId: duplicate.id });
+    assert.equal(getProviderAccount(duplicate.id), undefined);
+    const server = app.listen(0, "127.0.0.1");
+    try {
+      await new Promise((resolve) => server.once("listening", resolve));
+      const address = server.address();
+      assert(address && typeof address === "object");
+      const response = await fetch(\`http://127.0.0.1:\${address.port}/api/session\`, {
+        method: "DELETE",
+        headers: { cookie: \`\${getSessionCookieName()}=\${sessions[0].id}\` },
+      });
+      assert.equal(response.status, 204);
+      assert.equal(getProviderAccount(account.id), undefined);
+      for (const session of sessions) assert.equal(getProviderSession(session.id), undefined);
+      assert.equal(db.select().from(providerSessions).all().length, 0);
+    } finally {
+      await new Promise((resolve, reject) => server.close((error) => error ? reject(error) : resolve()));
+    }
+  `);
+});

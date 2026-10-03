@@ -65,13 +65,16 @@ function sourceKey(source: MediaSource) {
 }
 
 export function createLivePlaybackHub(dependencies: {
-  listSources: () => MediaSource[];
+  listSources: (providerAccountId: string) => MediaSource[];
   provider: (id: string) => ProviderImplementation | undefined;
 }) {
   const sources = new Map<string, SourceSubscription>();
   const dashboards = new Map<string, DashboardSubscription>();
   let listenerCount = 0;
   let unsubscribeChanges: (() => void) | undefined;
+
+  const ownsSource = (dashboard: DashboardSubscription, source: MediaSource) =>
+    dashboard.session.providerAccountId === source.providerAccountId;
 
   const emit = (
     dashboard: DashboardSubscription,
@@ -82,16 +85,17 @@ export function createLivePlaybackHub(dependencies: {
     }
   };
   const snapshot = (dashboard: DashboardSubscription): PlaybackSnapshot => {
-    const statuses = [...sources.values()].map(({ status, source }) => {
+    const ownedSources = [...sources.values()].filter(({ source }) =>
+      ownsSource(dashboard, source),
+    );
+    const statuses = ownedSources.map(({ status, source }) => {
       const message = dashboard.errors.get(source.id);
       return message ? { ...status, state: "error" as const, message } : status;
     });
     return {
       viewers: applyPlaybackProgress(
         groupCurrentPlayback([...dashboard.entries.values()].flat()),
-        [...sources.values()].flatMap((source) => [
-          ...source.progress.values(),
-        ]),
+        ownedSources.flatMap((source) => [...source.progress.values()]),
       ),
       sources: statuses,
       sourceErrors: statuses.flatMap((status) =>
@@ -106,7 +110,7 @@ export function createLivePlaybackHub(dependencies: {
             ]
           : [],
       ),
-      loading: [...sources.values()].some(
+      loading: ownedSources.some(
         (source) =>
           !dashboard.entries.has(source.source.id) &&
           !dashboard.errors.has(source.source.id) &&
@@ -138,7 +142,7 @@ export function createLivePlaybackHub(dependencies: {
     subscription: SourceSubscription,
   ) => {
     const id = subscription.source.id;
-    if (!subscription.resolve) {
+    if (!ownsSource(dashboard, subscription.source) || !subscription.resolve) {
       return;
     }
     let job = dashboard.jobs.get(id);
@@ -254,7 +258,9 @@ export function createLivePlaybackHub(dependencies: {
             return;
           }
           for (const dashboard of dashboards.values()) {
-            emit(dashboard, { type: "progress", updates: changed });
+            if (ownsSource(dashboard, source)) {
+              emit(dashboard, { type: "progress", updates: changed });
+            }
           }
         },
       },
@@ -263,11 +269,15 @@ export function createLivePlaybackHub(dependencies: {
 
   const reconcile = () => {
     let changed = false;
+    const accountIds = new Set(
+      [...dashboards.values()].map(({ session }) => session.providerAccountId),
+    );
     const desired = new Map(
-      dependencies
-        .listSources()
+      [...accountIds]
+        .flatMap((accountId) => dependencies.listSources(accountId))
         .filter(
           (source) =>
+            accountIds.has(source.providerAccountId) &&
             source.enabled &&
             (dependencies
               .provider(source.providerId)
@@ -315,6 +325,13 @@ export function createLivePlaybackHub(dependencies: {
       sources.clear();
       unsubscribeChanges?.();
       unsubscribeChanges = undefined;
+    } else if (
+      ![...dashboards.values()].some(
+        ({ session }) =>
+          session.providerAccountId === dashboard.session.providerAccountId,
+      )
+    ) {
+      reconcile();
     }
   };
   const expire = (dashboard: DashboardSubscription) => {
@@ -338,7 +355,10 @@ export function createLivePlaybackHub(dependencies: {
           "Too many live playback connections. Close another dashboard and try again.",
         );
       }
-      const firstDashboard = dashboards.size === 0;
+      const firstAccountDashboard = ![...dashboards.values()].some(
+        (dashboard) =>
+          dashboard.session.providerAccountId === session.providerAccountId,
+      );
       if (!dashboard) {
         dashboard = {
           session,
@@ -369,7 +389,7 @@ export function createLivePlaybackHub(dependencies: {
           }
         }
       });
-      if (firstDashboard) {
+      if (firstAccountDashboard) {
         reconcile();
       }
       // Each connection owns a slot, even if a caller reuses its callback.
@@ -395,11 +415,14 @@ export function createLivePlaybackHub(dependencies: {
         }
       };
     },
-    retry() {
+    retry(providerAccountId: string) {
       if (dashboards.size === 0) {
         return;
       }
       for (const [id, subscription] of sources) {
+        if (subscription.source.providerAccountId !== providerAccountId) {
+          continue;
+        }
         if (subscription.status.state === "live") {
           for (const dashboard of dashboards.values()) {
             if (dashboard.errors.has(id)) {
@@ -420,6 +443,7 @@ export function createLivePlaybackHub(dependencies: {
 }
 
 export const livePlayback = createLivePlaybackHub({
-  listSources: () => listMediaSources({ enabledOnly: true }),
+  listSources: (providerAccountId) =>
+    listMediaSources({ enabledOnly: true, providerAccountId }),
   provider: getProvider,
 });

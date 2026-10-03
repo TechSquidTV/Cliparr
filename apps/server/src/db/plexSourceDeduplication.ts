@@ -33,6 +33,7 @@ import {
   type PlexSourceIdentity,
 } from "@/providers/plex/sourceIdentity";
 import { getServerLogger } from "@/logging";
+import { invalidateProviderSessionCacheForAccounts } from "@/session/store";
 
 const PLEX_PROVIDER_ID = "plex";
 const logger = getServerLogger(["db"]);
@@ -508,7 +509,7 @@ function cleanupDuplicatePlexSourcesInTransaction(
   options: {
     newlyAuthenticatedAccountId?: string;
   } = {},
-): CleanupResult {
+): CleanupResult & { mergedAccountIds: string[] } {
   const startedAt = Date.now();
   const sources = listMediaSources({ providerId: PLEX_PROVIDER_ID });
   const duplicateGroups = groupDuplicateSources(sources);
@@ -603,6 +604,7 @@ function cleanupDuplicatePlexSourcesInTransaction(
   }
 
   return {
+    mergedAccountIds: nonCanonicalAccountIds,
     providerAccountId:
       providerAccountId && getProviderAccount(providerAccountId)
         ? providerAccountId
@@ -620,7 +622,11 @@ export function cleanupDuplicatePlexSources(
     newlyAuthenticatedAccountId?: string;
   } = {},
 ): CleanupResult {
-  return getDatabase().transaction(() =>
+  const { mergedAccountIds, ...result } = getDatabase().transaction(() =>
     cleanupDuplicatePlexSourcesInTransaction(options),
   );
+  if (mergedAccountIds.length > 0) {
+    invalidateProviderSessionCacheForAccounts(new Set(mergedAccountIds));
+  }
+  return result;
 }

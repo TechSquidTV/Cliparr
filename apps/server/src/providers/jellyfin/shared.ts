@@ -1,5 +1,5 @@
 import { createHash, randomUUID } from "node:crypto";
-import { lookup } from "node:dns/promises";
+import { lookupWithSignal } from "@/providers/shared/dnsLookup";
 import { isIP } from "node:net";
 import axios, { type AxiosResponse, type RawAxiosRequestConfig } from "axios";
 import { Jellyfin } from "@jellyfin/sdk";
@@ -26,6 +26,7 @@ import type { MediaSource } from "@/db/mediaSourcesRepository";
 import { createApiError, isApiError } from "@/http/errors";
 import { fetchWithPinnedDns } from "@/providers/shared/pinnedFetch";
 import {
+  booleanEnv,
   errorMessage,
   numberValue,
   stringValue,
@@ -105,16 +106,6 @@ export function booleanValue(value: unknown) {
   return typeof value === "boolean" ? value : undefined;
 }
 
-function booleanEnv(value: string | undefined) {
-  const normalized = value?.trim().toLowerCase();
-  return (
-    normalized === "1" ||
-    normalized === "true" ||
-    normalized === "yes" ||
-    normalized === "on"
-  );
-}
-
 function deriveJellyfinDeviceId() {
   const configured = stringValue(process.env.JELLYFIN_DEVICE_ID);
   if (configured) {
@@ -157,7 +148,13 @@ export function normalizeBaseUrl(url: string) {
 
 function isLoopbackHost(hostname: string) {
   const host = normalizeHostname(hostname);
-  return host === "localhost" || host === "::1" || host.startsWith("127.");
+  return (
+    host === "localhost" ||
+    host.endsWith(".localhost") ||
+    host === "::1" ||
+    host === "0:0:0:0:0:0:0:1" ||
+    host.startsWith("127.")
+  );
 }
 
 function normalizeIpCandidate(value: string) {
@@ -263,22 +260,20 @@ function isMulticastHost(hostname: string) {
   return Number.isInteger(firstOctet) && firstOctet >= 224 && firstOctet <= 239;
 }
 
-async function resolveHostnameAddresses(hostname: string) {
+async function resolveHostnameAddresses(hostname: string, signal: AbortSignal) {
   const normalized = normalizeHostname(hostname);
   if (isIP(normalized)) {
     return [];
   }
 
   try {
-    const records = await lookup(normalized, {
-      all: true,
-      verbatim: true,
-    });
+    const records = await lookupWithSignal(normalized, signal);
 
     return uniqueStrings(
       records.map((record) => normalizeIpCandidate(record.address)),
     );
   } catch {
+    signal.throwIfAborted();
     throw createApiError(
       400,
       "invalid_jellyfin_server_url",
@@ -303,7 +298,10 @@ function assertAllowedResolvedAddress(
     );
   }
 
-  if (isPrivateHost(address) && options.allowPrivate !== true) {
+  if (
+    (isPrivateHost(address) || isLoopbackHost(address)) &&
+    options.allowPrivate !== true
+  ) {
     throw createApiError(
       400,
       "invalid_jellyfin_server_url",
@@ -328,8 +326,14 @@ const defaultJellyfinServerUrlOptions = { allowPrivate: true };
 
 export async function assertAllowedJellyfinServerUrl(
   url: string,
-  options: { allowPrivate?: boolean } = defaultJellyfinServerUrlOptions,
+  options: {
+    allowPrivate?: boolean;
+    signal?: AbortSignal;
+  } = defaultJellyfinServerUrlOptions,
 ) {
+  const signal =
+    options.signal ?? AbortSignal.timeout(JELLYFIN_REQUEST_TIMEOUT_MS);
+  signal.throwIfAborted();
   const parsed = assertHttpUrl(url.trim());
   const hostname = normalizeHostname(parsed.hostname);
 
@@ -363,7 +367,19 @@ export async function assertAllowedJellyfinServerUrl(
 
   assertAllowedResolvedAddress(hostname, options);
 
-  const addresses = await resolveHostnameAddresses(hostname);
+  const addresses = await resolveHostnameAddresses(hostname, signal).catch(
+    (error: unknown) => {
+      if (!options.signal && signal.aborted) {
+        throw createApiError(
+          504,
+          "invalid_jellyfin_server_url",
+          "Jellyfin serverUrl DNS validation timed out",
+        );
+      }
+      throw error;
+    },
+  );
+  signal.throwIfAborted();
   for (const address of addresses) {
     assertAllowedResolvedAddress(address, options);
   }
@@ -556,11 +572,13 @@ function updateRedirectRequest(
 async function assertAllowedJellyfinRequestUrl(
   requestUrl: URL,
   trustedOrigin: string,
+  signal: AbortSignal,
 ) {
   const { addresses } = await assertAllowedJellyfinServerUrl(
     requestUrl.toString(),
     {
       allowPrivate: requestUrl.origin === trustedOrigin,
+      signal,
     },
   );
   return addresses;
@@ -571,13 +589,15 @@ async function fetchJellyfinWithManualRedirects(
   init?: Parameters<typeof fetch>[1],
 ) {
   const request = new Request(input, init);
+  const signal = init?.signal ?? request.signal;
+  signal.throwIfAborted();
   const trustedOrigin = new URL(request.url).origin;
   let requestUrl = new URL(request.url);
   let requestInit: RequestInit = {
     method: request.method,
     headers: new Headers(request.headers),
     body: await reusableRequestBody(request),
-    signal: request.signal,
+    signal,
   };
 
   for (
@@ -588,6 +608,7 @@ async function fetchJellyfinWithManualRedirects(
     const addresses = await assertAllowedJellyfinRequestUrl(
       requestUrl,
       trustedOrigin,
+      signal,
     );
     const response = await fetchWithPinnedDns(
       requestUrl,

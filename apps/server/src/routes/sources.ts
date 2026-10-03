@@ -9,7 +9,7 @@ import {
 import {
   listMediaSources,
   deleteMediaSource,
-  getMediaSource,
+  getMediaSourceForAccount,
   type MediaSource,
   type UpdateMediaSourceInput,
   updateMediaSource,
@@ -41,8 +41,8 @@ function serializeSource(source: MediaSource) {
   };
 }
 
-function requireMediaSource(sourceId: string) {
-  const source = getMediaSource(sourceId);
+function requireMediaSource(sourceId: string, providerAccountId: string) {
+  const source = getMediaSourceForAccount(sourceId, providerAccountId);
   if (!source) {
     throw createApiError(404, "source_not_found", "Source was not found");
   }
@@ -152,10 +152,12 @@ function changedSourceFields(input: UpdateMediaSourceInput) {
 sourcesRouter.get(
   "/",
   asyncHandler(async (request, res) => {
-    requireAccountSession(request);
+    const session = requireAccountSession(request);
     setNoStore(res);
     res.json({
-      sources: listMediaSources().map((source) => serializeSource(source)),
+      sources: listMediaSources({
+        providerAccountId: session.providerAccountId,
+      }).map((source) => serializeSource(source)),
     });
   }),
 );
@@ -163,9 +165,12 @@ sourcesRouter.get(
 sourcesRouter.get(
   "/:id",
   asyncHandler(async (request, res) => {
-    requireAccountSession(request);
+    const session = requireAccountSession(request);
     setNoStore(res);
-    const source = requireMediaSource(request.params.id as string);
+    const source = requireMediaSource(
+      request.params.id as string,
+      session.providerAccountId,
+    );
     res.json({ source: serializeSource(source) });
   }),
 );
@@ -180,7 +185,7 @@ sourcesRouter.patch(
     let source: MediaSource | undefined;
 
     try {
-      source = requireMediaSource(sourceId);
+      source = requireMediaSource(sourceId, session.providerAccountId);
       const input = parseSourceUpdate(request.body);
       const nextInput =
         source.providerId === "plex" && input.baseUrl !== undefined
@@ -238,7 +243,7 @@ sourcesRouter.delete(
     let source: MediaSource | undefined;
 
     try {
-      source = requireMediaSource(sourceId);
+      source = requireMediaSource(sourceId, session.providerAccountId);
       const deleted = deleteMediaSource(sourceId);
       if (!deleted) {
         throw createApiError(404, "source_not_found", "Source was not found");
@@ -284,7 +289,7 @@ sourcesRouter.post(
     let source: MediaSource | undefined;
 
     try {
-      source = requireMediaSource(sourceId);
+      source = requireMediaSource(sourceId, session.providerAccountId);
       const provider = getProvider(source.providerId);
       if (!provider) {
         throw createApiError(

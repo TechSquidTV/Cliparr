@@ -17,7 +17,7 @@ const source: MediaSource = {
   providerAccountId: "account",
   name: "Server",
   enabled: true,
-  baseUrl: "https://plex.example",
+  baseUrl: "http://192.168.1.50:32400",
   connection: { baseUrlMode: "manual" },
   credentials: { accessToken: "private" },
   metadata: { owned: true, provides: ["server"] },

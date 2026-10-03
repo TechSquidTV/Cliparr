@@ -2,20 +2,162 @@ import assert from "node:assert/strict";
 import dns from "node:dns/promises";
 import { createServer } from "node:http";
 import { syncBuiltinESMExports } from "node:module";
-import test from "node:test";
+import test, { afterEach, type TestContext } from "node:test";
+import { setImmediate } from "node:timers/promises";
 import { Agent } from "undici";
-import { fetchWithPinnedDns } from "@/providers/shared/pinnedFetch";
+import {
+  closePooledPinnedDnsAgents,
+  fetchWithPinnedDns,
+} from "@/providers/shared/pinnedFetch";
 import { fetchMediaHandleRequest } from "@/providers/shared/mediaProxy";
 import { isApiError } from "@/http/errors";
 import { requestPlexPmsIdentity } from "@/providers/plex/pmsClient";
 import { fetchPublicSystemInfo } from "@/providers/jellyfin/shared";
 import { authenticateWithCredentials } from "@/providers/jellyfin/auth";
 
+afterEach(closePooledPinnedDnsAgents);
+
+function capturePinnedDispatchers(context: TestContext) {
+  const dispatchers: Agent[] = [];
+  context.mock.method(
+    globalThis,
+    "fetch",
+    async (
+      _input: Parameters<typeof fetch>[0],
+      init?: RequestInit & { dispatcher?: Agent },
+    ) => {
+      assert.ok(init?.dispatcher instanceof Agent);
+      dispatchers.push(init.dispatcher);
+      return new Response("segment");
+    },
+  );
+  return dispatchers;
+}
+
+void test("reuses a pinned agent for the same address set across hostnames", async (context) => {
+  const dispatchers = capturePinnedDispatchers(context);
+  await fetchWithPinnedDns(new URL("https://first.invalid/segment.ts"), {}, [
+    "127.0.0.1",
+    "::1",
+  ]);
+  const first = dispatchers[0];
+  assert.ok(first);
+  await fetchWithPinnedDns(new URL("https://second.invalid/segment.ts"), {}, [
+    "::1",
+    "127.0.0.1",
+  ]);
+  assert.equal(dispatchers[1], first);
+  assert.equal(first.closed, false);
+});
+
+void test("uses different pinned agents for different address sets", async (context) => {
+  const dispatchers = capturePinnedDispatchers(context);
+  const url = new URL("https://media.invalid/segment.ts");
+  await fetchWithPinnedDns(url, {}, ["127.0.0.1"]);
+  await fetchWithPinnedDns(url, {}, ["127.0.0.2"]);
+  assert.notEqual(dispatchers[0], dispatchers[1]);
+});
+
+void test("refreshes last-used time and evicts idle pinned agents lazily", async (context) => {
+  context.mock.timers.enable({ apis: ["Date"], now: 0 });
+  const dispatchers = capturePinnedDispatchers(context);
+  const url = new URL("https://media.invalid/segment.ts");
+  await fetchWithPinnedDns(url, {}, ["127.0.0.1"]);
+  const first = dispatchers[0];
+  assert.ok(first);
+  context.mock.timers.tick(40_000);
+  await fetchWithPinnedDns(url, {}, ["127.0.0.1"]);
+  context.mock.timers.tick(40_000);
+  await fetchWithPinnedDns(url, {}, ["127.0.0.1"]);
+  assert.equal(dispatchers[2], first);
+  assert.equal(first.closed, false);
+  context.mock.timers.tick(60_001);
+  await fetchWithPinnedDns(url, {}, ["127.0.0.2"]);
+  assert.equal(first.closed, true);
+  await fetchWithPinnedDns(url, {}, ["127.0.0.1"]);
+  assert.notEqual(dispatchers[4], first);
+});
+
+void test("caps rotating address sets at 32 agents and evicts the least recently used", async (context) => {
+  const dispatchers = capturePinnedDispatchers(context);
+  const url = new URL("https://media.invalid/segment.ts");
+  for (let index = 1; index <= 32; index += 1) {
+    await fetchWithPinnedDns(url, {}, [`127.0.0.${index}`]);
+  }
+  await fetchWithPinnedDns(url, {}, ["127.0.0.1"]);
+  assert.equal(dispatchers[32], dispatchers[0]);
+  await fetchWithPinnedDns(url, {}, ["127.0.0.33"]);
+  assert.equal(dispatchers[0]?.closed, false);
+  assert.equal(dispatchers[1]?.closed, true);
+  for (let index = 34; index <= 64; index += 1) {
+    await fetchWithPinnedDns(url, {}, [`127.0.0.${index}`]);
+  }
+  assert.ok(dispatchers.slice(0, 32).every((agent) => agent.closed));
+  assert.equal(dispatchers.filter((agent) => !agent.closed).length, 32);
+});
+
+void test("closes and clears the pooled agents", async (context) => {
+  const dispatchers = capturePinnedDispatchers(context);
+  const url = new URL("https://media.invalid/segment.ts");
+  await fetchWithPinnedDns(url, {}, ["127.0.0.1"]);
+  const first = dispatchers[0];
+  assert.ok(first);
+  await closePooledPinnedDnsAgents();
+  assert.equal(first.closed, true);
+  assert.equal(first.destroyed, true);
+  await fetchWithPinnedDns(url, {}, ["127.0.0.1"]);
+  assert.notEqual(dispatchers[1], first);
+});
+
+void test("the pinned dispatcher overrides a caller-supplied dispatcher", async (context) => {
+  const dispatchers = capturePinnedDispatchers(context);
+  const supplied = new Agent();
+  const init: RequestInit & { dispatcher: Agent } = { dispatcher: supplied };
+  try {
+    await fetchWithPinnedDns(
+      new URL("https://media.invalid/segment.ts"),
+      init,
+      ["127.0.0.1"],
+    );
+    assert.notEqual(dispatchers[0], supplied);
+  } finally {
+    await supplied.close();
+  }
+});
+
+for (const [url, addresses] of [
+  ["https://media.invalid/segment.ts", undefined],
+  ["http://127.0.0.1/segment.ts", []],
+  ["http://[::1]/segment.ts", ["invalid"]],
+] as const) {
+  void test(`bypasses the pool for ${url} with ${JSON.stringify(addresses)} addresses`, async (context) => {
+    const init = { redirect: "manual" } as const;
+    const fetchMock = context.mock.method(
+      globalThis,
+      "fetch",
+      async (
+        input: Parameters<typeof fetch>[0],
+        receivedInit?: RequestInit,
+      ) => {
+        assert.equal(input, url);
+        assert.equal(receivedInit, init);
+        return new Response("plain fetch");
+      },
+    );
+    await fetchWithPinnedDns(new URL(url), init, addresses);
+    assert.equal(fetchMock.mock.callCount(), 1);
+  });
+}
+
 void test("connects to pinned addresses while preserving the URL hostname", async () => {
   let requestHost: string | undefined;
+  let connections = 0;
   const server = createServer((request, response) => {
     requestHost = request.headers.host;
     response.end("pinned response");
+  });
+  server.on("connection", () => {
+    connections += 1;
   });
   try {
     await new Promise<void>((resolve) => {
@@ -32,6 +174,15 @@ void test("connects to pinned addresses while preserving the URL hostname", asyn
     assert.equal(await response.text(), "pinned response");
     assert.equal(response.url, url.toString());
     assert.equal(requestHost, `rebinding.invalid:${address.port}`);
+    // Let the consumed response's socket return to undici's available pool.
+    await setImmediate();
+    const next = await fetchWithPinnedDns(
+      new URL("segment-2.ts", url),
+      { signal: AbortSignal.timeout(3000) },
+      ["127.0.0.1"],
+    );
+    assert.equal(await next.text(), "pinned response");
+    assert.equal(connections, 1);
   } finally {
     server.closeAllConnections();
     await new Promise<void>((resolve, reject) => {
@@ -79,11 +230,21 @@ void test("passes validated media DNS addresses to a pinned dispatcher", async (
   }
 });
 
-void test("fails closed when a hostname has no validated addresses", async () => {
-  await assert.rejects(
-    fetchWithPinnedDns(new URL("https://empty.invalid/media"), {}, []),
-    /No validated IP addresses/,
-  );
+void test("fails closed for empty or invalid address sets even with cached agents", async (context) => {
+  const dispatchers = capturePinnedDispatchers(context);
+  const url = new URL("https://empty.invalid/media");
+  await fetchWithPinnedDns(url, {}, ["127.0.0.1", "::1"]);
+  for (const addresses of [
+    [],
+    ["invalid"],
+    ["127.0.0.1", "invalid"],
+    ["127.0.0.1,::1"],
+  ]) {
+    await assert.rejects(fetchWithPinnedDns(url, {}, addresses), {
+      message: "No validated IP addresses are available for this request",
+    });
+  }
+  assert.equal(dispatchers.length, 1);
 });
 
 void test("does not treat the local URL placeholder origin as a trusted provider", async (context) => {
@@ -161,8 +322,81 @@ for (const provider of ["plex", "jellyfin"] as const) {
       } else {
         await fetchPublicSystemInfo({ baseUrl: "http://jellyfin.local" });
       }
-      assert.equal(resolutions, provider === "jellyfin" ? 2 : 1);
+      assert.equal(resolutions, 2);
       assert.equal(requests, 2);
+    } finally {
+      context.mock.restoreAll();
+      syncBuiltinESMExports();
+    }
+  });
+}
+
+for (const address of ["93.184.216.34", "192.168.1.50"]) {
+  void test(`pins initial Plex PMS requests to validated ${address} addresses`, async (context) => {
+    let resolutions = 0;
+    context.mock.method(dns, "lookup", async () => {
+      resolutions++;
+      return [
+        { address: resolutions === 1 ? address : "127.0.0.1", family: 4 },
+      ];
+    });
+    syncBuiltinESMExports();
+    context.mock.method(
+      globalThis,
+      "fetch",
+      async (
+        _input: Parameters<typeof fetch>[0],
+        init?: RequestInit & { dispatcher?: Agent },
+      ) => {
+        assert.ok(init?.dispatcher instanceof Agent);
+        assert.equal(new Headers(init.headers).get("X-Plex-Token"), "token");
+        return Response.json({
+          MediaContainer: { machineIdentifier: "server" },
+        });
+      },
+    );
+    try {
+      await requestPlexPmsIdentity(
+        { baseUrl: "http://plex-rebinding.invalid:32400", token: "token" },
+        { clientIdentifier: "test", product: "Cliparr", timeoutMs: 3000 },
+      );
+      assert.equal(resolutions, 1);
+    } finally {
+      context.mock.restoreAll();
+      syncBuiltinESMExports();
+    }
+  });
+}
+
+for (const address of ["127.0.0.1", "169.254.169.254", "::1"]) {
+  void test(`rejects initial Plex DNS resolving to ${address} before fetching`, async (context) => {
+    const previousLoopbackSetting =
+      process.env.CLIPARR_ALLOW_LOOPBACK_PLEX_URLS;
+    delete process.env.CLIPARR_ALLOW_LOOPBACK_PLEX_URLS;
+    context.after(() => {
+      if (previousLoopbackSetting === undefined) {
+        delete process.env.CLIPARR_ALLOW_LOOPBACK_PLEX_URLS;
+      } else {
+        process.env.CLIPARR_ALLOW_LOOPBACK_PLEX_URLS = previousLoopbackSetting;
+      }
+    });
+    context.mock.method(dns, "lookup", async () => [
+      { address: "192.168.1.50", family: 4 },
+      { address, family: address === "::1" ? 6 : 4 },
+    ]);
+    syncBuiltinESMExports();
+    context.mock.method(globalThis, "fetch", () =>
+      assert.fail("Unsafe DNS must not be fetched"),
+    );
+    try {
+      await assert.rejects(
+        requestPlexPmsIdentity(
+          { baseUrl: "http://plex-rebinding.invalid:32400", token: "token" },
+          { clientIdentifier: "test", product: "Cliparr", timeoutMs: 3000 },
+        ),
+        (error: Error) =>
+          isApiError(error) && error.code === "plex_unsafe_redirect",
+      );
     } finally {
       context.mock.restoreAll();
       syncBuiltinESMExports();

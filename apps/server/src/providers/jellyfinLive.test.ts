@@ -1,4 +1,7 @@
 import assert from "node:assert/strict";
+import dns from "node:dns/promises";
+import type { LookupAddress } from "node:dns";
+import { syncBuiltinESMExports } from "node:module";
 import { createServer } from "node:http";
 import type { Duplex } from "node:stream";
 import test from "node:test";
@@ -234,5 +237,73 @@ void test(
       pending.resolve(Response.json({}));
       await ended;
     }
+  },
+);
+
+void test(
+  "cancelling Jellyfin live startup interrupts WebSocket DNS validation",
+  { timeout: 1000 },
+  async (context) => {
+    const { watchCurrentlyPlaying } = await import("@/providers/jellyfin/live");
+    const entered = createDeferred<void>();
+    const pending = createDeferred<LookupAddress[]>();
+    const controller = new AbortController();
+    const reason = new Error("Live connection cancelled");
+    let resolutions = 0;
+    context.mock.method(dns, "lookup", () => {
+      resolutions++;
+      if (resolutions <= 2) {
+        return Promise.resolve([{ address: "192.168.1.50", family: 4 }]);
+      }
+      entered.resolve();
+      return pending.promise;
+    });
+    syncBuiltinESMExports();
+    let fetchCalls = 0;
+    context.mock.method(
+      globalThis,
+      "fetch",
+      async (input: Parameters<typeof fetch>[0], init?: RequestInit) => {
+        fetchCalls++;
+        const path = new URL(new Request(input, init).url).pathname;
+        return Response.json(
+          path === "/Users/Me"
+            ? { Id: "user", Policy: { IsAdministrator: false } }
+            : { Version: "10.11.0" },
+        );
+      },
+    );
+    context.after(() => {
+      controller.abort();
+      pending.resolve([]);
+      context.mock.restoreAll();
+      syncBuiltinESMExports();
+    });
+    const watching = watchCurrentlyPlaying(
+      createSource("http://jellyfin.invalid:8096"),
+      {
+        snapshot() {
+          assert.fail("No snapshot before connecting");
+        },
+        progress() {
+          assert.fail("No progress before connecting");
+        },
+        invalidate() {
+          assert.fail("No invalidation before connecting");
+        },
+      },
+      controller.signal,
+    );
+    const rejected = assert.rejects(
+      watching,
+      (error: Error) => error === reason,
+    );
+    await entered.promise;
+    controller.abort(reason);
+    await rejected;
+    pending.resolve([{ address: "192.168.1.50", family: 4 }]);
+    await setImmediate();
+    assert.equal(fetchCalls, 2);
+    assert.equal(resolutions, 3);
   },
 );

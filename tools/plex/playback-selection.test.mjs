@@ -26,7 +26,7 @@ void test("Plex audio selection reaches the frontend without inventing ordinals 
     `
     import assert from 'node:assert/strict';
     import { listCurrentlyPlaying, createPlexPlaybackResolver } from './src/providers/plex/playback.ts';
-    const baseUrl = 'http://plex.local:32400';
+    const baseUrl = 'http://192.168.1.50:32400';
     const source = {
       id: 'source', providerId: 'plex', providerAccountId: 'account', name: 'Fixture', enabled: true, baseUrl,
       connection: { baseUrlMode: 'manual', connections: [{ id: 'connection', uri: baseUrl, local: true, relay: false }], selectedConnectionId: 'connection' },

@@ -12,6 +12,12 @@ Cliparr only needs a few settings in production: a stable `APP_KEY` and a persis
 
 <EnvVariableTable />
 
+Plex and Jellyfin connections support private LAN servers. Loopback addresses such as `localhost`, `127.0.0.1`, and `::1` require the corresponding `CLIPARR_ALLOW_LOOPBACK_*_URLS` opt-in. Enable these flags only if every authenticated user is trusted: users can configure arbitrary loopback hosts and ports on the Cliparr host.
+
+The loopback exception applies only to the initial configured server origin (scheme, hostname, and port), including redirects returning to it. Redirects to another origin cannot reach loopback, even with the flag enabled. Cloud metadata, link-local, unspecified, and multicast addresses remain blocked.
+
+**Behavior change:** Earlier Jellyfin loopback opt-ins also allowed redirects to other loopback origins. Those redirects are now rejected. Configure the final Jellyfin origin directly if your setup relied on such a redirect.
+
 <Callout title="APP_KEY is part of your data" tone="warning">
   `APP_KEY` encrypts persisted provider credentials. Treat it like a secret
   backup item, not a disposable container variable.

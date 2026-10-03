@@ -15,6 +15,7 @@ import {
   assertAllowedMediaHandleRequestUrl,
   fetchMediaHandleRequest,
   mediaHandleRequestUrl,
+  mediaProxyAcceptHeader,
   proxyProviderMediaResponse,
   sanitizeLoggedMediaPath,
   shouldForwardMediaRange,
@@ -40,6 +41,7 @@ const LOCAL_URL_SOURCE_ID = "remote-url";
 const LOCAL_URL_MEDIA_BASE_URL = "http://cliparr.local";
 const HLS_PLAYLIST_PATTERN = /\.m3u8(?:$|[#?])/i;
 const localUrlMediaHandles = new Map<string, MediaHandle>();
+const LOCAL_URL_ERROR_BODY_MAX_BYTES = 4096;
 const localUrlSession: ProviderSessionRecord = {
   id: "local-url",
   providerId: LOCAL_URL_PROVIDER_ID,
@@ -56,6 +58,31 @@ function errorMessage(error: unknown) {
   }
 
   return "Unknown error";
+}
+
+async function readLocalUrlErrorBody(response: Response) {
+  if (!response.body) {
+    return "";
+  }
+
+  const reader = response.body.getReader();
+  const bytes = new Uint8Array(LOCAL_URL_ERROR_BODY_MAX_BYTES);
+  let length = 0;
+  try {
+    while (length < bytes.length) {
+      const { done, value } = await reader.read();
+      if (done) {
+        break;
+      }
+      const chunk = value.subarray(0, bytes.length - length);
+      bytes.set(chunk, length);
+      length += chunk.length;
+    }
+    return new TextDecoder().decode(bytes.subarray(0, length));
+  } finally {
+    await reader.cancel().catch(() => {});
+    reader.releaseLock();
+  }
 }
 
 function bodyUrl(value: unknown) {
@@ -211,9 +238,12 @@ mediaRouter.get(
 
     handle.lastAccessedAt = Date.now();
 
-    const accept = request.header("accept") ?? undefined;
     const requestedRange = request.header("range") ?? undefined;
     const range = shouldForwardMediaRange(handle, requestedRange);
+    const accept = mediaProxyAcceptHeader(handle, {
+      accept: request.header("accept") ?? undefined,
+      range,
+    });
     const headers = new Headers(accept ? { Accept: accept } : undefined);
     if (range) {
       headers.set("Range", range);
@@ -239,7 +269,7 @@ mediaRouter.get(
         try {
           const upstream = await fetchMediaHandleRequest(handle, { headers });
           if (!upstream.ok && upstream.status !== 206) {
-            const body = await upstream.text();
+            const body = await readLocalUrlErrorBody(upstream);
             const detail = body.slice(0, 400).replaceAll(/\s+/g, " ").trim();
             throw createApiError(
               upstream.status,
@@ -294,6 +324,7 @@ mediaRouter.get(
     const prunedCount = pruneSessionMediaHandles(session);
     const sourceErrors: SourcePlaybackError[] = [];
     const sources = listMediaSources({
+      providerAccountId: session.providerAccountId,
       enabledOnly: true,
     }).flatMap((source) => {
       const provider = getProvider(source.providerId);

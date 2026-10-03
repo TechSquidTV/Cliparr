@@ -44,7 +44,7 @@ import {
 import type { EditorMediaSource } from "#/lib/editorMedia";
 import { createCliparrInputFromSource } from "#/lib/mediabunnyInput";
 import { assertSourceAudioRange } from "#/lib/exportSourceAudio";
-import { ensureMediabunnyCodecs } from "#/lib/mediabunnyCodecs";
+import { ensureAudioDecoder } from "#/lib/mediabunnyCodecs";
 import {
   assessVideoTrackDecodability,
   getTrackTimelineOffsetSeconds,
@@ -128,7 +128,7 @@ export interface ExportVideoEncodingPlan {
 }
 
 interface ExportClipRuntime {
-  ensureMediabunnyCodecs: typeof ensureMediabunnyCodecs;
+  ensureAudioDecoder: typeof ensureAudioDecoder;
   createCliparrInputFromSource: typeof createCliparrInputFromSource;
   selectPreferredPairableAudioTrack: typeof selectPreferredPairableAudioTrack;
   getTrackTimelineOffsetSeconds: typeof getTrackTimelineOffsetSeconds;
@@ -434,7 +434,7 @@ export async function exportClip(options: ExportClipOptions) {
 }
 
 const defaultExportClipRuntime: ExportClipRuntime = {
-  ensureMediabunnyCodecs,
+  ensureAudioDecoder,
   createCliparrInputFromSource,
   selectPreferredPairableAudioTrack,
   getTrackTimelineOffsetSeconds,
@@ -530,8 +530,6 @@ export async function exportClipWithRuntime(
     onVideoEncodingPlan?.({ bitrateBps: null, codec: null, mode: "gif" });
     return exportGifClipWithRuntime(options, runtime);
   }
-
-  await runtime.ensureMediabunnyCodecs();
 
   signal?.throwIfAborted();
   const input = await runtime.createCliparrInputFromSource(mediaSource, {
@@ -899,7 +897,6 @@ async function exportGifClipWithRuntime(
     throw new Error(durationDisabledReason);
   }
 
-  await runtime.ensureMediabunnyCodecs();
   const resolvedGifSettings =
     gifSettings ?? gifExportSettingsForPreset(DEFAULT_GIF_EXPORT_PRESET);
 
@@ -1194,6 +1191,10 @@ async function prepareAudioPlan(
   signal: AbortSignal | undefined,
   runtime: ExportClipRuntime,
 ) {
+  const codec = await track.getCodec();
+  signal?.throwIfAborted();
+  await runtime.ensureAudioDecoder(codec);
+  signal?.throwIfAborted();
   const source = await runtime.inspectAudioTrack(track, signal);
   signal?.throwIfAborted();
   if (

@@ -3,7 +3,8 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import test from "node:test";
-import { closeDatabase, initializeDatabase } from "@/db/database";
+import { sql } from "drizzle-orm";
+import { closeDatabase, getDatabase, initializeDatabase } from "@/db/database";
 import {
   getMediaSourceByProviderExternalId,
   listMediaSources,
@@ -604,6 +605,39 @@ void test("cleans existing duplicate Plex sources and preserves manual URL mode"
     const rememberedSession = createRememberedProviderSession(
       duplicateAccount.id,
     );
+    const cachedDuplicateSession = getProviderSession(duplicateSession.id);
+    assert.ok(cachedDuplicateSession);
+    const canonicalSession = createProviderSession({
+      providerId: "plex",
+      providerAccountId: canonicalAccount.id,
+      userToken: "desktop-user-token",
+    });
+    const cachedCanonicalSession = getProviderSession(canonicalSession.id);
+
+    // Fail after references are reassigned, before the merge can commit.
+    getDatabase().run(sql`
+      CREATE TEMP TRIGGER abort_plex_merge BEFORE DELETE ON provider_accounts
+      BEGIN SELECT RAISE(ABORT, 'test merge rollback'); END
+    `);
+    try {
+      assert.throws(() =>
+        cleanupDuplicatePlexSources({
+          newlyAuthenticatedAccountId: duplicateAccount.id,
+        }),
+      );
+      assert.equal(
+        getProviderSession(duplicateSession.id),
+        cachedDuplicateSession,
+      );
+      assert.ok(getProviderAccount(duplicateAccount.id));
+      assert.equal(
+        getRememberedProviderSession(rememberedSession.token)
+          ?.providerAccountId,
+        duplicateAccount.id,
+      );
+    } finally {
+      getDatabase().run(sql`DROP TRIGGER abort_plex_merge`);
+    }
 
     const cleanup = cleanupDuplicatePlexSources({
       newlyAuthenticatedAccountId: duplicateAccount.id,
@@ -615,6 +649,14 @@ void test("cleans existing duplicate Plex sources and preserves manual URL mode"
     assert.equal(
       getProviderSession(duplicateSession.id)?.providerAccountId,
       canonicalAccount.id,
+    );
+    assert.equal(
+      getProviderSession(duplicateSession.id)?.mediaHandles,
+      cachedDuplicateSession.mediaHandles,
+    );
+    assert.equal(
+      getProviderSession(canonicalSession.id),
+      cachedCanonicalSession,
     );
     assert.equal(
       getRememberedProviderSession(rememberedSession.token)?.providerAccountId,

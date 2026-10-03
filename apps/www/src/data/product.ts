@@ -289,9 +289,16 @@ export const envVariables = [
     required: false,
   },
   {
+    name: "CLIPARR_ALLOW_LOOPBACK_PLEX_URLS",
+    description:
+      "Allow Plex URLs that resolve to loopback only for the initial configured origin, including redirects returning to it. Enable only if you trust every authenticated user: they can configure arbitrary loopback hosts and ports. Other origins remain blocked from reaching loopback.",
+    defaultValue: "false",
+    required: false,
+  },
+  {
     name: "CLIPARR_ALLOW_LOOPBACK_JELLYFIN_URLS",
     description:
-      "Allow Jellyfin URLs that resolve to localhost or loopback. Use only for trusted self-hosted setups.",
+      "Allow Jellyfin URLs that resolve to loopback only for the initial configured origin, including redirects returning to it. Enable only if you trust every authenticated user: they can configure arbitrary loopback hosts and ports. Other origins remain blocked from reaching loopback.",
     defaultValue: "false",
     required: false,
   },

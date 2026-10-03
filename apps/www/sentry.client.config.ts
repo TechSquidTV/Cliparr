@@ -5,7 +5,9 @@ interface RuntimeConfig {
   sentryDsn?: unknown;
 }
 
-void initializeSentry();
+if (import.meta.env.PROD) {
+  void initializeSentry();
+}
 
 async function initializeSentry() {
   const dsn = await loadRuntimeSentryDsn();

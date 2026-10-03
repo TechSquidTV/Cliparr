@@ -49,7 +49,7 @@ function createSession(): ProviderSessionRecord {
 function createContext(): PlexSourceContext {
   return {
     sourceId: "source-1",
-    baseUrl: "http://plex.local:32400",
+    baseUrl: "http://192.168.1.50:32400",
     token: "provider-token",
   };
 }
@@ -61,17 +61,17 @@ function createSource(): MediaSource {
     providerAccountId: "account-1",
     name: "Plex",
     enabled: true,
-    baseUrl: "http://plex.local:32400",
+    baseUrl: "http://192.168.1.50:32400",
     connection: {
       baseUrlMode: "manual",
       connections: [
         {
           id: "plex-connection-1",
-          uri: "http://plex.local:32400",
+          uri: "http://192.168.1.50:32400",
           local: true,
           relay: false,
           protocol: "http",
-          address: "plex.local",
+          address: "192.168.1.50",
           port: 32_400,
         },
       ],
@@ -458,7 +458,7 @@ void test("builds Plex HLS preview and embedded SRT extraction with independent 
 
   await withMockFetch(
     (request) => {
-      if (request.url === "http://plex.local:32400/status/sessions") {
+      if (request.url === "http://192.168.1.50:32400/status/sessions") {
         return jsonResponse({
           MediaContainer: {
             Metadata: [currentItem],
@@ -466,7 +466,7 @@ void test("builds Plex HLS preview and embedded SRT extraction with independent 
         });
       }
 
-      if (request.url === "http://plex.local:32400/library/metadata/14447") {
+      if (request.url === "http://192.168.1.50:32400/library/metadata/14447") {
         return jsonResponse({
           MediaContainer: {
             Metadata: [metadataItem],
