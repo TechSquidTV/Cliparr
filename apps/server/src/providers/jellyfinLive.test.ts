@@ -1,3 +1,8 @@
+import {
+  TEST_JELLYFIN_BASE_URL,
+  TEST_PUBLIC_ADDRESS,
+  mockProviderDns,
+} from "@/test/providerFixtures";
 import assert from "node:assert/strict";
 import dns from "node:dns/promises";
 import type { LookupAddress } from "node:dns";
@@ -183,6 +188,7 @@ void test(
   "Jellyfin cancellation aborts both startup HTTP requests",
   { timeout: 5000 },
   async (context) => {
+    context.after(mockProviderDns(context.mock));
     const { watchCurrentlyPlaying } = await import("@/providers/jellyfin/live");
     const controller = new AbortController();
     const pending = createDeferred<Response>();
@@ -214,7 +220,7 @@ void test(
       },
     );
     const ended = watchCurrentlyPlaying(
-      createSource("http://192.168.1.50:8096"),
+      createSource(TEST_JELLYFIN_BASE_URL),
       { snapshot() {}, progress() {}, invalidate() {} },
       controller.signal,
     ).then(
@@ -254,7 +260,7 @@ void test(
       resolutions++;
       // The two concurrent startup HTTP requests share their DNS lookup.
       if (resolutions === 1) {
-        return Promise.resolve([{ address: "192.168.1.50", family: 4 }]);
+        return Promise.resolve([{ address: TEST_PUBLIC_ADDRESS, family: 4 }]);
       }
       entered.resolve();
       return pending.promise;
@@ -302,7 +308,7 @@ void test(
     await entered.promise;
     controller.abort(reason);
     await rejected;
-    pending.resolve([{ address: "192.168.1.50", family: 4 }]);
+    pending.resolve([{ address: TEST_PUBLIC_ADDRESS, family: 4 }]);
     await setImmediate();
     assert.equal(fetchCalls, 2);
     assert.equal(resolutions, 2);

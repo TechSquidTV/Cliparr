@@ -1,3 +1,5 @@
+import { TEST_PUBLIC_ADDRESS } from "@/test/providerFixtures";
+import { PRIVATE_IPV4_ADDRESSES } from "@/test/networkPolicyFixtures";
 import assert from "node:assert/strict";
 import type { LookupAddress } from "node:dns";
 import { getEventListeners } from "node:events";
@@ -15,7 +17,7 @@ void test("concurrent resolutions share one lookup", async (context) => {
     await new Promise((resolve) => {
       setTimeout(resolve, 10);
     });
-    return [{ address: "93.184.216.34", family: 4 }];
+    return [{ address: TEST_PUBLIC_ADDRESS, family: 4 }];
   });
   syncBuiltinESMExports();
   try {
@@ -23,8 +25,8 @@ void test("concurrent resolutions share one lookup", async (context) => {
       resolveHostnameAddresses("example.test", new AbortController().signal),
       resolveHostnameAddresses("example.test", new AbortController().signal),
     ]);
-    assert.deepEqual(a, ["93.184.216.34"]);
-    assert.deepEqual(b, ["93.184.216.34"]);
+    assert.deepEqual(a, [TEST_PUBLIC_ADDRESS]);
+    assert.deepEqual(b, [TEST_PUBLIC_ADDRESS]);
     assert.equal(lookups, 1);
   } finally {
     context.mock.restoreAll();
@@ -36,7 +38,7 @@ void test("resolved addresses are cached within the TTL", async (context) => {
   let lookups = 0;
   context.mock.method(dns, "lookup", async () => {
     lookups += 1;
-    return [{ address: "93.184.216.34", family: 4 }];
+    return [{ address: TEST_PUBLIC_ADDRESS, family: 4 }];
   });
   syncBuiltinESMExports();
   try {
@@ -45,14 +47,14 @@ void test("resolved addresses are cached within the TTL", async (context) => {
         "cached.test",
         new AbortController().signal,
       ),
-      ["93.184.216.34"],
+      [TEST_PUBLIC_ADDRESS],
     );
     assert.deepEqual(
       await resolveHostnameAddresses(
         "cached.test",
         new AbortController().signal,
       ),
-      ["93.184.216.34"],
+      [TEST_PUBLIC_ADDRESS],
     );
     assert.equal(lookups, 1);
   } finally {
@@ -71,7 +73,7 @@ void test("IP literals resolve without a lookup", async (context) => {
   try {
     assert.deepEqual(
       await resolveHostnameAddresses(
-        "192.168.1.50",
+        PRIVATE_IPV4_ADDRESSES[0],
         new AbortController().signal,
       ),
       [],
@@ -113,10 +115,10 @@ void test("lookup failures propagate and are not cached", async (context) => {
 void test("duplicate and IPv4-mapped addresses are normalized", async (context) => {
   context.mock.method(dns, "lookup", async () => {
     return [
-      { address: "93.184.216.34", family: 4 },
-      { address: "93.184.216.34", family: 4 },
-      // ::ffff:5db8:d822 is the IPv4-mapped form of 93.184.216.34.
-      { address: "::ffff:5db8:d822", family: 6 },
+      { address: TEST_PUBLIC_ADDRESS, family: 4 },
+      { address: TEST_PUBLIC_ADDRESS, family: 4 },
+      // IPv4-mapped form of TEST_PUBLIC_ADDRESS (192.0.2.10).
+      { address: "::ffff:c000:020a", family: 6 },
     ];
   });
   syncBuiltinESMExports();
@@ -126,7 +128,7 @@ void test("duplicate and IPv4-mapped addresses are normalized", async (context) 
         "mapped.test",
         new AbortController().signal,
       ),
-      ["93.184.216.34"],
+      [TEST_PUBLIC_ADDRESS],
     );
   } finally {
     context.mock.restoreAll();
@@ -140,7 +142,7 @@ void test("TTL expires at 60 seconds and callers cannot mutate cached answers", 
   context.mock.method(Date, "now", () => now);
   context.mock.method(dns, "lookup", async () => {
     lookups += 1;
-    return [{ address: `93.184.216.${lookups}`, family: 4 }];
+    return [{ address: `192.0.2.${lookups}`, family: 4 }];
   });
   syncBuiltinESMExports();
   try {
@@ -149,12 +151,12 @@ void test("TTL expires at 60 seconds and callers cannot mutate cached answers", 
     first.push("127.0.0.1");
     now += 59_999;
     assert.deepEqual(await resolveHostnameAddresses("TTL.test.", signal), [
-      "93.184.216.1",
+      "192.0.2.1",
     ]);
     assert.equal(lookups, 1);
     now += 1;
     assert.deepEqual(await resolveHostnameAddresses("ttl.test", signal), [
-      "93.184.216.2",
+      "192.0.2.2",
     ]);
     assert.equal(lookups, 2);
   } finally {
@@ -167,7 +169,7 @@ void test("already-aborted signals reject even for a cache hit or IP literal", a
   let lookups = 0;
   context.mock.method(dns, "lookup", async () => {
     lookups += 1;
-    return [{ address: "93.184.216.34", family: 4 }];
+    return [{ address: TEST_PUBLIC_ADDRESS, family: 4 }];
   });
   syncBuiltinESMExports();
   try {
@@ -218,9 +220,9 @@ for (const cancelledCaller of ["first", "second"] as const) {
       );
       (cancelledCaller === "first" ? first : second).abort(reason);
       await rejected;
-      pending.resolve([{ address: "93.184.216.34", family: 4 }]);
+      pending.resolve([{ address: TEST_PUBLIC_ADDRESS, family: 4 }]);
       assert.deepEqual(await (cancelledCaller === "first" ? two : one), [
-        "93.184.216.34",
+        TEST_PUBLIC_ADDRESS,
       ]);
       assert.equal(getEventListeners(first.signal, "abort").length, 0);
       assert.equal(getEventListeners(second.signal, "abort").length, 0);
@@ -247,7 +249,7 @@ for (const outcome of [
       lookups += 1;
       return lookups === 1
         ? pending.promise
-        : Promise.resolve([{ address: "93.184.216.35", family: 4 }]);
+        : Promise.resolve([{ address: "192.0.2.11", family: 4 }]);
     });
     syncBuiltinESMExports();
     const controller = new AbortController();
@@ -258,7 +260,7 @@ for (const outcome of [
       const completion =
         outcome === "success" ? request : assert.rejects(request);
       if (outcome === "success") {
-        pending.resolve([{ address: "93.184.216.34", family: 4 }]);
+        pending.resolve([{ address: TEST_PUBLIC_ADDRESS, family: 4 }]);
       } else if (outcome === "failure") {
         pending.reject(new Error("DNS failed"));
       } else {
@@ -269,7 +271,7 @@ for (const outcome of [
       if (outcome === "late rejection") {
         pending.reject(new Error("DNS failed after abort"));
       } else {
-        pending.resolve([{ address: "93.184.216.34", family: 4 }]);
+        pending.resolve([{ address: TEST_PUBLIC_ADDRESS, family: 4 }]);
       }
       await setImmediate();
       await resolveHostnameAddresses(hostname, new AbortController().signal);

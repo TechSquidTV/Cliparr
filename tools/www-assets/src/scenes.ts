@@ -47,8 +47,8 @@ export function buildScenes(options: {
       mediaPath: options.hero,
       viewport: { width: 1600, height: 886 },
       selection: {
-        inSeconds: 496.07,
-        outSeconds: 499.01,
+        inSeconds: 111.95,
+        outSeconds: 114.89,
         subtitleFontSize: 72,
         ...(options.heroSubtitle
           ? { subtitleTrackKey: options.heroSubtitle }
@@ -64,8 +64,8 @@ export function buildScenes(options: {
       mediaPath: options.mobile,
       viewport: { width: 402, height: 874 },
       selection: {
-        inSeconds: 1402,
-        outSeconds: 1412,
+        inSeconds: 129.6,
+        outSeconds: 139.6,
         subtitleFontSize: 150,
         ...(options.mobileSubtitle
           ? { subtitleTrackKey: options.mobileSubtitle }

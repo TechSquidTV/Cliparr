@@ -1,3 +1,7 @@
+import {
+  TEST_PLEX_BASE_URL,
+  useProviderFixtures,
+} from "@/test/providerFixtures";
 import type { MediaSource } from "@/db/mediaSourcesRepository";
 import { proxyMedia } from "@/providers/plex/mediaProxy";
 import {
@@ -49,7 +53,7 @@ function createSession(): ProviderSessionRecord {
 function createContext(): PlexSourceContext {
   return {
     sourceId: "source-1",
-    baseUrl: "http://192.168.1.50:32400",
+    baseUrl: TEST_PLEX_BASE_URL,
     token: "provider-token",
   };
 }
@@ -61,17 +65,17 @@ function createSource(): MediaSource {
     providerAccountId: "account-1",
     name: "Plex",
     enabled: true,
-    baseUrl: "http://192.168.1.50:32400",
+    baseUrl: TEST_PLEX_BASE_URL,
     connection: {
       baseUrlMode: "manual",
       connections: [
         {
           id: "plex-connection-1",
-          uri: "http://192.168.1.50:32400",
+          uri: TEST_PLEX_BASE_URL,
           local: true,
           relay: false,
           protocol: "http",
-          address: "192.168.1.50",
+          address: new URL(TEST_PLEX_BASE_URL).hostname,
           port: 32_400,
         },
       ],
@@ -458,7 +462,7 @@ void test("builds Plex HLS preview and embedded SRT extraction with independent 
 
   await withMockFetch(
     (request) => {
-      if (request.url === "http://192.168.1.50:32400/status/sessions") {
+      if (request.url === `${TEST_PLEX_BASE_URL}/status/sessions`) {
         return jsonResponse({
           MediaContainer: {
             Metadata: [currentItem],
@@ -466,7 +470,7 @@ void test("builds Plex HLS preview and embedded SRT extraction with independent 
         });
       }
 
-      if (request.url === "http://192.168.1.50:32400/library/metadata/14447") {
+      if (request.url === `${TEST_PLEX_BASE_URL}/library/metadata/14447`) {
         return jsonResponse({
           MediaContainer: {
             Metadata: [metadataItem],
@@ -2458,3 +2462,5 @@ void test("live Plex fingerprints ignore payload details and refresh selection i
     },
   );
 });
+
+useProviderFixtures();

@@ -26,7 +26,8 @@ void test("Plex audio selection reaches the frontend without inventing ordinals 
     `
     import assert from 'node:assert/strict';
     import { listCurrentlyPlaying, createPlexPlaybackResolver } from './src/providers/plex/playback.ts';
-    const baseUrl = 'http://192.168.1.50:32400';
+    const { TEST_PLEX_BASE_URL: baseUrl, mockProviderDns } = await import('./src/test/providerFixtures.ts');
+    const restoreDns = mockProviderDns();
     const source = {
       id: 'source', providerId: 'plex', providerAccountId: 'account', name: 'Fixture', enabled: true, baseUrl,
       connection: { baseUrlMode: 'manual', connections: [{ id: 'connection', uri: baseUrl, local: true, relay: false }], selectedConnectionId: 'connection' },
@@ -81,7 +82,7 @@ void test("Plex audio selection reaches the frontend without inventing ordinals 
         }
 
       }
-    } finally { globalThis.fetch = originalFetch; }
+    } finally { globalThis.fetch = originalFetch; restoreDns(); }
     process.stdout.write(JSON.stringify(results));
   `,
   );

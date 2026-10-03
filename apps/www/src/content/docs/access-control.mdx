@@ -163,7 +163,7 @@ Tailscale will give the service a tailnet-only HTTPS URL on the machine's MagicD
 
 With WireGuard, keep the same idea: do not publish Cliparr to the public interface. Bind it to a WireGuard-only address or place Caddy on the host and allow the Caddy port only from the WireGuard interface or VPN subnet.
 
-For example, if the Cliparr host has WireGuard address `10.8.0.1`, bind Docker to that address instead of every interface:
+Set `WIREGUARD_BIND_ADDRESS` in your local shell environment to the Cliparr host’s WireGuard interface address, then bind Docker to that interface instead of every interface. Keep the value in local configuration; do not commit it:
 
 <CommandBlock
   variants={wireguardDockerRunCommandVariants}

@@ -103,14 +103,14 @@ for (const scenario of ["caller abort", "timeout", "redirect abort"] as const) {
       syncBuiltinESMExports();
       context.after(() => {
         controller.abort();
-        pending.resolve([{ address: "192.168.1.50", family: 4 }]);
+        pending.resolve([{ address: "192.0.2.10", family: 4 }]);
         context.mock.restoreAll();
         syncBuiltinESMExports();
       });
       const request = fetchPublicSystemInfo({
         baseUrl:
           scenario === "redirect abort"
-            ? "http://192.168.1.50:8096"
+            ? "http://192.0.2.10:8096"
             : "http://jellyfin.invalid:8096",
         signal: controller.signal,
         timeoutMs: 50,
@@ -128,7 +128,7 @@ for (const scenario of ["caller abort", "timeout", "redirect abort"] as const) {
         controller.abort(reason);
       }
       await rejected;
-      pending.resolve([{ address: "192.168.1.50", family: 4 }]);
+      pending.resolve([{ address: "192.0.2.10", family: 4 }]);
       await setImmediate();
       assert.equal(fetchCalls, scenario === "redirect abort" ? 1 : 0);
     },
@@ -198,7 +198,7 @@ for (const outcome of ["success", "failure", "late rejection"] as const) {
     await entered.promise;
     assert.equal(getEventListeners(controller.signal, "abort").length, 1);
     if (outcome === "success") {
-      pending.resolve([{ address: "192.168.1.50", family: 4 }]);
+      pending.resolve([{ address: "192.0.2.10", family: 4 }]);
     } else if (outcome === "failure") {
       pending.reject(new Error("DNS failed"));
     } else {

@@ -2,14 +2,14 @@ import type { ImageMetadata } from "astro";
 import type { BlogHeroImageId } from "@/data/blog";
 
 const blogHeroImagePaths = {
-  "what-is-cliparr-hero": "../assets/blog/what-is-cliparr/hero.webp",
+  "what-is-cliparr-hero": "../assets/screenshot.webp",
   "convert-video-in-your-browser-hero":
     "../assets/blog/convert-video-in-your-browser/hero.webp",
-  "cliparr-2-0-release-hero": "../assets/blog/cliparr-2-0-release/hero.png",
+  "cliparr-2-0-release-hero": "../assets/screenshot.webp",
 } satisfies Record<BlogHeroImageId, string>;
 
 const blogHeroImageModules = import.meta.glob<{ default: ImageMetadata }>(
-  "../assets/blog/**/*.{avif,jpeg,jpg,png,webp}",
+  ["../assets/blog/**/*.{avif,jpeg,jpg,png,webp}", "../assets/screenshot.webp"],
   {
     eager: true,
   },
