@@ -5,7 +5,6 @@ import { drizzle, type NodeSQLiteDatabase } from "drizzle-orm/node-sqlite";
 import { migrate } from "drizzle-orm/node-sqlite/migrator";
 import { logErrorFields } from "@cliparr/shared/logging";
 import { prepareDatabaseForMigrations } from "@/db/migrationState";
-import * as schema from "@/db/schema";
 import {
   resolveConfiguredDataDir,
   serverRoot,
@@ -18,7 +17,7 @@ const DEFAULT_DATABASE_FILE = "cliparr.sqlite";
 const DEFAULT_DEVELOPMENT_DATA_DIR = ".cliparr-data";
 const MIGRATIONS_FOLDER = path.join(serverRoot, "drizzle");
 
-type CliparrDatabase = NodeSQLiteDatabase<typeof schema>;
+type CliparrDatabase = NodeSQLiteDatabase;
 
 let sqlite: DatabaseSync | undefined;
 let database: CliparrDatabase | undefined;
@@ -73,7 +72,7 @@ export function initializeDatabase() {
     PRAGMA journal_mode = WAL;
     PRAGMA busy_timeout = 5000;
   `);
-  database = drizzle({ client: sqlite, schema });
+  database = drizzle({ client: sqlite });
   prepareDatabaseForMigrations(sqlite);
   migrate(database, { migrationsFolder: MIGRATIONS_FOLDER });
 

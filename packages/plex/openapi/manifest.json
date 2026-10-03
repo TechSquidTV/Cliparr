@@ -6,7 +6,7 @@
   "specSha256": "d6d86b0187ff51391d21f08ebd35fbe7e7c8d34747759d383db4152ddc8f010d",
   "generatedBy": {
     "package": "@hey-api/openapi-ts",
-    "version": "0.98.2"
+    "version": "0.99.0"
   },
-  "fetchedAt": "2026-09-11T14:28:20.412Z"
+  "fetchedAt": "2026-10-03T16:38:57.325Z"
 }

@@ -26,6 +26,7 @@ Self-hosted clipping for Plex, Jellyfin, and local files. Trim video, add subtit
 - **Video, audio, and GIF export**: Choose video or audio-only formats, or make a GIF. <a href="https://cliparr.dev/docs/export-settings">Exports run in your browser</a>.
 - **Metadata included**: Keep source details, artwork, and clip timing in supported <a href="https://cliparr.dev/docs/export-metadata">video and audio containers</a>.
 - **Subtitle authoring**: Create your own captions or import subtitles, then <a href="https://cliparr.dev/docs/subtitle-burn-in">style and burn subtitles</a> into your clip.
+
 <!-- CLIPARR_DOCS_SYNC:features:end -->
 
 ## Quick start

@@ -17,6 +17,32 @@ permissions:
   contents: read
 
 jobs:
+  changes:
+    name: Detect changed areas
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: read
+    outputs:
+      frontend: ${{ steps.filter.outputs.frontend }}
+    steps:
+      # Only PRs need change detection; pushes and manual dispatches run
+      # everything.
+      - name: Check changed files
+        id: filter
+        if: github.event_name == 'pull_request'
+        uses: dorny/paths-filter@v4
+        with:
+          filters: |
+            frontend:
+              - 'apps/frontend/**'
+              - 'packages/shared/**'
+              - 'package.json'
+              - 'pnpm-lock.yaml'
+              - 'pnpm-workspace.yaml'
+              - '.npmrc'
+              - 'config/**'
+              - '.github/workflows/ci.yml'
+
   lint-build:
     name: Lint and build
     runs-on: ubuntu-latest
@@ -29,7 +55,7 @@ jobs:
         uses: pnpm/action-setup@v6
 
       - name: Set up Node.js
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v7
         with:
           node-version: 24
           cache: pnpm
@@ -84,13 +110,16 @@ jobs:
     name: Browser audio export
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    needs: changes
+    # Skip costly browser setup unless its inputs change or detection fails.
+    if: ${{ !cancelled() && (github.event_name != 'pull_request' || needs.changes.result != 'success' || needs.changes.outputs.frontend == 'true') }}
     steps:
       - name: Checkout
         uses: actions/checkout@v7
       - name: Set up pnpm
         uses: pnpm/action-setup@v6
       - name: Set up Node.js
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v7
         with:
           node-version: 24
           cache: pnpm
@@ -111,14 +140,14 @@ jobs:
         run: pnpm --filter @cliparr/frontend test:browser:loading
       - name: Retain loading measurements
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: media-loading-measurements
           path: build/browser-export/loading/*.json
           retention-days: 7
       - name: Retain failure diagnostics
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: browser-export-failure
           path: build/browser-export/

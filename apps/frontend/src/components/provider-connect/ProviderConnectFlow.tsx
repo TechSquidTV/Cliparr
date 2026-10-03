@@ -32,8 +32,7 @@ interface Properties {
 }
 
 const importMetaEnvironment = import.meta.env as
-  | { VITE_CLIPARR_DEV_JELLYFIN_URL?: unknown }
-  | undefined;
+  { VITE_CLIPARR_DEV_JELLYFIN_URL?: unknown } | undefined;
 const developmentJellyfinUrlValue =
   importMetaEnvironment?.VITE_CLIPARR_DEV_JELLYFIN_URL;
 const developmentJellyfinUrl =

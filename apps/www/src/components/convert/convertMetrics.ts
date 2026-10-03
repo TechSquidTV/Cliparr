@@ -13,14 +13,7 @@ import {
 import type { SourceProbeResult } from "@/components/convert/convertToolUtilities";
 
 type ConvertSourceFormat =
-  | "gif"
-  | "mkv"
-  | "mov"
-  | "mp4"
-  | "mpeg-ts"
-  | "ogg"
-  | "unknown"
-  | "webm";
+  "gif" | "mkv" | "mov" | "mp4" | "mpeg-ts" | "ogg" | "unknown" | "webm";
 
 type MetricAttributeValue = boolean | number | string;
 

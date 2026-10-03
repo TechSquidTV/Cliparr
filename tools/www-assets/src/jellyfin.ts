@@ -1,9 +1,8 @@
 import { Jellyfin } from "@jellyfin/sdk";
 import {
-  getItemsApi,
-  getPlaystateApi,
+  getAuthenticationApi,
+  getLibraryApi,
   getSessionApi,
-  getUserApi,
 } from "@jellyfin/sdk/lib/utils/api/index.js";
 import { waitUntil } from "#/process.ts";
 import type { CaptureScene } from "#/scenes.ts";
@@ -21,7 +20,7 @@ export async function startJellyfinScene(
     deviceInfo: { name: `Website ${scene.name}`, id: deviceId },
   });
   const loginApi = jellyfin.createApi(jellyfinUrl);
-  const { data: authentication } = await getUserApi(
+  const { data: authentication } = await getAuthenticationApi(
     loginApi,
   ).authenticateUserByName({
     authenticateUserByName: { Username: captureUsername, Pw: password },
@@ -36,7 +35,7 @@ export async function startJellyfinScene(
   const item = await waitUntil(
     `${scene.name} to be indexed in Jellyfin`,
     async () => {
-      const { data } = await getItemsApi(api).getItems({
+      const { data } = await getLibraryApi(api).getItems({
         userId,
         recursive: true,
         fields: ["Path", "MediaSources", "MediaStreams"],
@@ -69,7 +68,7 @@ export async function startJellyfinScene(
       `${scene.name}: provide an embedded text subtitle track or matching subtitle sidecar.`,
     );
   }
-  const playstate = getPlaystateApi(api);
+  const playstate = getSessionApi(api);
   const playback = {
     ItemId: itemId,
     MediaSourceId: mediaSource.Id,

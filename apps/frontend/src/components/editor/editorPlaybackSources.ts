@@ -13,11 +13,7 @@ import {
 import { ensureAudioDecoder } from "@/lib/mediabunnyCodecs";
 
 type PlaybackSourceLabel =
-  | "hls stream"
-  | "direct source"
-  | "local file"
-  | "url"
-  | "hls url";
+  "hls stream" | "direct source" | "local file" | "url" | "hls url";
 
 export interface PlaybackSourceCandidate {
   label: PlaybackSourceLabel;

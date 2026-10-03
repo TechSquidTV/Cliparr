@@ -139,8 +139,7 @@ export function countDashboardViewerFilterHiddenCards(
 }
 
 function safeDashboardViewerFilterStorage():
-  | DashboardViewerFilterStorage
-  | undefined {
+  DashboardViewerFilterStorage | undefined {
   try {
     if (globalThis.window === undefined) {
       return undefined;

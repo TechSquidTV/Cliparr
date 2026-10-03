@@ -12,8 +12,7 @@ interface SubtitleParseWorkerResponseFailure {
 }
 
 type SubtitleParseWorkerResponse =
-  | SubtitleParseWorkerResponseSuccess
-  | SubtitleParseWorkerResponseFailure;
+  SubtitleParseWorkerResponseSuccess | SubtitleParseWorkerResponseFailure;
 
 export interface SubtitleParseWorker {
   addEventListener(type: "message" | "error", listener: EventListener): void;

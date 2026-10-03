@@ -4,6 +4,9 @@ on:
   pull_request:
     branches:
       - main
+  push:
+    branches:
+      - main
   workflow_dispatch:
 
 concurrency:
@@ -18,9 +21,42 @@ env:
   IMAGE_DESCRIPTION: Instant media clipper for Plex and Jellyfin servers.
 
 jobs:
+  changes:
+    name: Detect Docker-relevant changes
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: read
+    outputs:
+      docker: ${{ steps.filter.outputs.docker }}
+    steps:
+      # Only PRs need change detection; pushes and manual dispatches always
+      # build (pushes refresh the shared cache and verify arm64).
+      - name: Check changed files
+        id: filter
+        if: github.event_name == 'pull_request'
+        uses: dorny/paths-filter@v4
+        with:
+          filters: |
+            docker:
+              - 'docker/**'
+              - 'apps/server/**'
+              - 'apps/frontend/**'
+              - 'packages/**'
+              - 'package.json'
+              - 'pnpm-lock.yaml'
+              - 'pnpm-workspace.yaml'
+              - '.npmrc'
+              - 'config/**'
+              - 'tools/ci/smoke-image.sh'
+              - 'tools/ci/summary.mjs'
+              - '.github/workflows/docker.yml'
+
   build:
     name: Build image
     runs-on: ubuntu-latest
+    needs: changes
+    # Keep the required check reporting; run validation if detection fails.
+    if: ${{ !cancelled() && (github.event_name != 'pull_request' || needs.changes.result != 'success' || needs.changes.outputs.docker == 'true') }}
 
     steps:
       - name: Checkout
@@ -30,11 +66,14 @@ jobs:
         uses: pnpm/action-setup@v6
 
       - name: Set up Node.js
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v7
         with:
           node-version: 24
 
+      # Only needed for the arm64 leg, which runs on main pushes and manual
+      # dispatches, not on PRs.
       - name: Set up QEMU
+        if: github.event_name != 'pull_request'
         uses: docker/setup-qemu-action@v4
 
       - name: Set up Docker Buildx
@@ -95,8 +134,12 @@ jobs:
           EXPECTED_VERSION: ${{ steps.version.outputs.value }}
         run: bash tools/ci/smoke-image.sh cliparr:smoke "$EXPECTED_VERSION"
 
+      # Full multi-arch verification plus shared-cache refresh. Runs on main
+      # pushes and manual dispatches only; PRs get the amd64 smoke build
+      # above, which is enough to validate the Dockerfile.
       - name: Build Docker image
         id: publish
+        if: github.event_name != 'pull_request'
         uses: docker/build-push-action@v7
         with:
           context: .
@@ -117,6 +160,6 @@ jobs:
           SUMMARY_STEPS: ${{ toJSON(steps) }}
           JOB_STATUS: ${{ job.status }}
           DRY_RUN: "true"
-          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
           CLIPARR_VERSION: ${{ steps.version.outputs.value }}
         run: node tools/ci/summary.mjs

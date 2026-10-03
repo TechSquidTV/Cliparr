@@ -6,13 +6,14 @@ Thanks for helping improve Cliparr.
 
 Requirements:
 
-- Node.js 24 or newer
-- The pnpm version pinned by the root `packageManager`, via Corepack
+- Node.js 24.16 or newer
+- The pnpm version pinned by the root `packageManager`, installed through npm
 - A Plex or Jellyfin server, or a local video file, for manual end-to-end testing
 
 Install dependencies:
 
 ```sh
+npm install --global "$(node -p 'require("./package.json").packageManager')"
 pnpm install
 cp .env.example .env
 # Set APP_KEY in .env with a stable random value, for example:
@@ -101,6 +102,7 @@ The Cloudflare changelog refresh is a separate job. If only that job fails, reru
 - Plex callers must use generated `@cliparr/plex` operations and URL builders. Downloads require provider-returned part links. Conflicting media or part identities can suppress previews and subtitle extraction; unidentified streams no longer inherit selection or track numbers from array positions. Undocumented response aliases and `Network` export tags have been removed.
 - Embedded Cliparr metadata now uses version 1 JSON with `source` and `clip` objects: `clpr` in MP4 and `CLIPARR_METADATA` in other supported containers. The old unversioned payload is no longer written; individual MP4 timing tags remain available.
 - `CLIPARR_DEV_JELLYFIN_URL` has been removed. Configure a directly reachable Jellyfin URL, such as `http://jellyfin:8096` in the Docker dev stack. Localhost URLs always require `CLIPARR_ALLOW_LOOPBACK_JELLYFIN_URLS`. The separate frontend `VITE_CLIPARR_DEV_JELLYFIN_URL` hint does not grant a server-side exception.
+- Development now requires Node.js 24.16 or newer and pnpm 12.8.1. Install the pinned pnpm version through npm using the setup command above; Corepack cannot launch pnpm 12's native executable.
 - The website moves to Astro 7 and Vite 8. Rebuild deployed artifacts with the updated lockfile.
 
 No compatibility aliases or fallback implementations are provided.

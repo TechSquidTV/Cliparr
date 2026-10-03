@@ -22,49 +22,41 @@ const dateFormatter = new Intl.DateTimeFormat("en", {
 });
 ---
 
-<article
-  class="overflow-hidden rounded-lg border border-border bg-card transition-colors hover:bg-accent"
->
-  {
-    heroImage && (
-      <a class="focus-ring block" href={postPath} aria-label={entry.data.title}>
-        <Picture
-          src={heroImage}
-          alt={entry.data.heroImageAlt ?? ""}
-          formats={["avif", "webp"]}
-          fallbackFormat="webp"
-          widths={[480, 720, 960, 1280]}
-          sizes="(min-width: 64rem) 896px, calc(100vw - 2rem)"
-          quality={72}
-          loading="lazy"
-          decoding="async"
-          class="block aspect-[16/9] w-full object-cover"
-        />
-      </a>
-    )
-  }
+<article class="overflow-hidden rounded-lg border border-border bg-card transition-colors hover:bg-accent">
+  {heroImage && (
+    <a class="focus-ring block" href={postPath} aria-label={entry.data.title}>
+      <Picture
+        src={heroImage}
+        alt={entry.data.heroImageAlt ?? ""}
+        formats={["avif", "webp"]}
+        fallbackFormat="webp"
+        widths={[480, 720, 960, 1280]}
+        sizes="(min-width: 64rem) 896px, calc(100vw - 2rem)"
+        quality={72}
+        loading="lazy"
+        decoding="async"
+        class="block aspect-[16/9] w-full object-cover"
+      />
+    </a>
+  )}
   <div class="p-5 sm:p-6">
-    <div
-      class="flex flex-wrap items-center gap-2 text-sm text-muted-foreground"
-    >
+    <div class="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
       <time datetime={entry.data.publishedAt}>
         {dateFormatter.format(publishedAt)}
       </time>
-      {
-        tags.map((tag) => (
-          <a
-            class:list={[
-              "focus-ring rounded-full border px-2.5 py-1 text-xs font-semibold no-underline transition-colors hover:bg-accent hover:text-foreground",
-              tag === activeTag
-                ? "border-primary/40 bg-primary/10 text-primary"
-                : "border-border bg-muted text-muted-foreground",
-            ]}
-            href={blogTagPath(tag)}
-          >
-            {blogTagLabel(tag)}
-          </a>
-        ))
-      }
+      {tags.map((tag) => (
+        <a
+          class:list={[
+            "focus-ring rounded-full border px-2.5 py-1 text-xs font-semibold no-underline transition-colors hover:bg-accent hover:text-foreground",
+            tag === activeTag
+              ? "border-primary/40 bg-primary/10 text-primary"
+              : "border-border bg-muted text-muted-foreground",
+          ]}
+          href={blogTagPath(tag)}
+        >
+          {blogTagLabel(tag)}
+        </a>
+      ))}
     </div>
     <h2 class="mt-4 text-2xl font-semibold text-foreground">
       <a

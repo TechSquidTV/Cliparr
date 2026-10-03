@@ -45,8 +45,7 @@ export function useExportAudioPlan(
     }
     const controller = new AbortController();
     let input:
-      | Awaited<ReturnType<typeof createCliparrInputFromSource>>
-      | undefined;
+      Awaited<ReturnType<typeof createCliparrInputFromSource>> | undefined;
     const dispose = () => input?.dispose();
     controller.signal.addEventListener("abort", dispose, { once: true });
     void (async () => {

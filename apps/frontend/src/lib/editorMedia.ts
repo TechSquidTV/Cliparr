@@ -31,10 +31,7 @@ export interface BrowserFileHandle {
 }
 
 export type EditorMediaSourceRole =
-  | "hls"
-  | "direct"
-  | "local-file"
-  | "direct-url";
+  "hls" | "direct" | "local-file" | "direct-url";
 
 interface BaseEditorMediaSource {
   role: EditorMediaSourceRole;
@@ -67,9 +64,7 @@ export interface EditorFileHandleMediaSource extends BaseEditorMediaSource {
 }
 
 export type EditorMediaSource =
-  | EditorUrlMediaSource
-  | EditorFileMediaSource
-  | EditorFileHandleMediaSource;
+  EditorUrlMediaSource | EditorFileMediaSource | EditorFileHandleMediaSource;
 
 export interface EditorSession {
   id: string;

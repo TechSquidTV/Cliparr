@@ -4,7 +4,7 @@ x-capture-image: &capture-image
 
 services:
   jellyfin:
-    image: jellyfin/jellyfin:10.11.6
+    image: jellyfin/jellyfin:12.1
     volumes:
       - jellyfin-config:/config
       - jellyfin-cache:/cache
