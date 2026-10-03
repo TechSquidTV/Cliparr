@@ -1,6 +1,10 @@
+import type { LookupAddress } from "node:dns";
+import { dedupeInflightFetch } from "@/providers/shared/inflight";
 import { lookup } from "node:dns/promises";
 import { addAbortListener } from "node:events";
 import { errorMessage } from "@/providers/shared/utilities";
+
+const inflightLookups = new Map<string, Promise<LookupAddress[]>>();
 
 export async function lookupWithSignal(hostname: string, signal: AbortSignal) {
   signal.throwIfAborted();
@@ -16,7 +20,9 @@ export async function lookupWithSignal(hostname: string, signal: AbortSignal) {
     });
     // lookup() cannot cancel its OS work; stop waiting when the request aborts.
     return await Promise.race([
-      lookup(hostname, { all: true, verbatim: true }),
+      dedupeInflightFetch(inflightLookups, hostname, () =>
+        lookup(hostname, { all: true, verbatim: true }),
+      ),
       cancellation,
     ]);
   } finally {

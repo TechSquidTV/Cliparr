@@ -33,6 +33,20 @@ Before opening a pull request, run:
 pnpm preflight
 ```
 
+## Live playback resolvers
+
+Internal API change: `createPlaybackResolverCache` requires `prepareMany(rows)`
+in place of `prepare(row)`. Return one prepared value per input row in the same
+order. Preparation is lazy, deduplicated by resolver key, and shared across
+Cliparr sessions; bindings and playback handles remain session-owned. Failed
+batches retry through `prepareMany`, without switching to per-row preparation.
+Providers without a batch endpoint can prepare their rows with `Promise.all`.
+
+DNS validation caches successful answers for 60 seconds and shares pending OS
+lookups. Every caller still uses `lookupWithSignal` with its own cancellation;
+already-aborted callers cannot use cached answers. URL/address security policy
+and credential scope are checked by each transport, including on cache hits.
+
 ## Pull Requests
 
 - Keep changes focused and explain the user-visible behavior they affect.

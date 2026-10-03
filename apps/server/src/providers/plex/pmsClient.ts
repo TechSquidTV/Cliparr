@@ -3,16 +3,10 @@ import { createApiError, isApiError, type ApiError } from "@/http/errors";
 import {
   isRedirectStatus,
   isUnsafeRemoteHostname,
-  normalizeHostname,
-  normalizeIpCandidate,
   removeSensitiveRedirectHeaders,
 } from "@/providers/shared/networkPolicy";
 import { fetchWithPinnedDns } from "@/providers/shared/pinnedFetch";
-import {
-  booleanEnv,
-  errorMessage,
-  uniqueStrings,
-} from "@/providers/shared/utilities";
+import { booleanEnv, errorMessage } from "@/providers/shared/utilities";
 import {
   getIdentity,
   eventsourceGetSlash,
@@ -21,8 +15,7 @@ import {
 } from "@cliparr/plex/pms";
 import type { Client } from "@cliparr/plex/pms/client";
 import { createClient } from "@cliparr/plex/pms/client";
-import { lookupWithSignal } from "@/providers/shared/dnsLookup";
-import { isIP } from "node:net";
+import { resolveHostnameAddresses } from "@/providers/shared/dnsCache";
 
 export interface PlexPmsRequestContext {
   baseUrl: string;
@@ -104,29 +97,6 @@ function assertAllowedRedirectHostname(
   );
 }
 
-async function resolveHostnameAddresses(hostname: string, signal: AbortSignal) {
-  const normalized = normalizeHostname(hostname);
-  if (isIP(normalized)) {
-    return [];
-  }
-
-  signal.throwIfAborted();
-  try {
-    const records = await lookupWithSignal(normalized, signal);
-
-    return uniqueStrings(
-      records.map((record) => normalizeIpCandidate(record.address)),
-    );
-  } catch {
-    signal.throwIfAborted();
-    throw createApiError(
-      400,
-      "plex_unsafe_redirect",
-      "Plex PMS redirect hostname could not be resolved for security validation",
-    );
-  }
-}
-
 async function assertAllowedPlexPmsRequestUrl(
   requestUrl: URL,
   trustedOrigin: string,
@@ -137,7 +107,17 @@ async function assertAllowedPlexPmsRequestUrl(
   const allowPrivate = requestUrl.origin === trustedOrigin;
   assertAllowedRedirectHostname(requestUrl.hostname, allowPrivate);
 
-  const addresses = await resolveHostnameAddresses(requestUrl.hostname, signal);
+  let addresses: string[];
+  try {
+    addresses = await resolveHostnameAddresses(requestUrl.hostname, signal);
+  } catch {
+    signal.throwIfAborted();
+    throw createApiError(
+      400,
+      "plex_unsafe_redirect",
+      "Plex PMS redirect hostname could not be resolved for security validation",
+    );
+  }
   for (const address of addresses) {
     assertAllowedRedirectHostname(address, allowPrivate);
   }

@@ -250,6 +250,28 @@ function playbackSessionIdentity(item: PlexMetadataItem) {
   );
 }
 
+// Track identities, resource links, source indexes and selections without
+// serializing codecs or the rest of the potentially large Media payload.
+function plexMediaSelectionFingerprint(item: PlexMetadataItem) {
+  return asArray(item.Media).map((media) => [
+    idValue(media.id),
+    Boolean(media.selected),
+    asArray(media.Part).map((part) => [
+      idValue(part.id),
+      stringValue(part.key),
+      Boolean(part.selected),
+      asArray(part.Stream).map((stream) => [
+        idValue(stream.id),
+        stringValue(stream.key),
+        stream.index,
+        stream.streamIdentifier,
+        stream.streamType,
+        Boolean(stream.selected),
+      ]),
+    ]),
+  ]);
+}
+
 function derivePlexPlaybackIds(sourceId: string, item: PlexMetadataItem) {
   const plexPlaybackSessionId = playbackSessionIdentity(item);
 
@@ -292,22 +314,12 @@ function playbackViewer(
   };
 }
 
-async function preparePlexPlayback(
-  context: PlexSourceContext,
-  item: PlexMetadataItem,
-) {
-  const [prepared] = await enrichPlaybackItems(context, [item], {
-    required: true,
-  });
-  return prepared;
-}
-
 function bindPlexPlayback(
   session: ProviderSessionRecord,
   source: MediaSource,
   context: PlexSourceContext,
   item: PlexMetadataItem,
-  prepared: Awaited<ReturnType<typeof preparePlexPlayback>>,
+  prepared: Awaited<ReturnType<typeof enrichPlaybackItems>>[number],
 ): CurrentlyPlayingEntry {
   const { plexPlaybackSessionId, cliparrPreviewTranscodeSessionId } =
     derivePlexPlaybackIds(source.id, item);
@@ -444,9 +456,10 @@ export function createPlexPlaybackResolver(
         item.User,
         item.Player?.title,
         item.Player?.machineIdentifier,
-        item.Media,
+        plexMediaSelectionFingerprint(item),
       ]),
-    prepare: (item) => preparePlexPlayback(context, item),
+    prepareMany: (items) =>
+      enrichPlaybackItems(context, items, { required: true }),
     bind: async (item, prepared, session) =>
       bindPlexPlayback(session, source, context, item, prepared),
     update: (entry, item) => ({

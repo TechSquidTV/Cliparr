@@ -1054,4 +1054,59 @@ void test("live Jellyfin preparation propagates transient failures and the same 
   assert.equal(attempts, 2);
 });
 
+void test("concurrent Jellyfin resolvers share items within one credential scope and keep playback sessions isolated", async (context) => {
+  const baseFetch = createJellyfinPlaybackFetch({ itemId: "dedupe-item" });
+  let metadataCalls = 0;
+  let playbackCalls = 0;
+  context.mock.method(
+    globalThis,
+    "fetch",
+    async (input: Parameters<typeof fetch>[0], init?: RequestInit) => {
+      const path = fetchInputUrl(input).pathname;
+      if (path === "/Items/dedupe-item") {
+        metadataCalls += 1;
+      }
+      if (path.endsWith("/PlaybackInfo")) {
+        playbackCalls += 1;
+      }
+      return baseFetch(input, init);
+    },
+  );
+  const rows: JellyfinSessionInfo[] = [
+    {
+      Id: "dedupe-session",
+      UserId: "user-1",
+      NowPlayingItem: { Id: "dedupe-item" },
+    },
+  ];
+  const resolve = (providerContext: JellyfinSourceContext) =>
+    createJellyfinPlaybackResolver(createSource(), providerContext)(rows);
+  const owner = createSession();
+  await Promise.all([
+    resolve(createContext())(owner),
+    resolve(createContext())(owner),
+  ]);
+  assert.equal(metadataCalls, 1);
+  assert.equal(
+    playbackCalls,
+    1,
+    "same owner and playback row share one in-flight setup",
+  );
+
+  await Promise.all([
+    resolve(createContext())(createSession()),
+    resolve({ ...createContext(), token: "different-token" })(createSession()),
+  ]);
+  assert.equal(
+    metadataCalls,
+    3,
+    "different credentials must not share item responses",
+  );
+  assert.equal(
+    playbackCalls,
+    3,
+    "different owners must not share playback setup",
+  );
+});
+
 useProviderFixtures();

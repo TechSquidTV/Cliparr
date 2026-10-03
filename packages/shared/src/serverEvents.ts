@@ -6,10 +6,12 @@ export async function readServerEvents(
 ) {
   const reader = body.getReader();
   const decoder = new TextDecoder();
-  let buffer = "";
+  let fragments: string[] = [];
+  let pendingLength = 0;
   let event = "message";
   let data: string[] = [];
   let size = 0;
+  const sizeLimit = 4 * 1024 * 1024;
   try {
     for (;;) {
       const chunk = await reader.read();
@@ -17,11 +19,22 @@ export async function readServerEvents(
         break;
       }
       onActivity?.();
-      buffer += decoder.decode(chunk.value, { stream: true });
+      const text = decoder.decode(chunk.value, { stream: true });
+      let start = 0;
       let newline: number;
-      while ((newline = buffer.indexOf("\n")) >= 0) {
-        const line = buffer.slice(0, newline).replace(/\r$/, "");
-        buffer = buffer.slice(newline + 1);
+      // Scan each decoded chunk once. Join a fragmented line only when it is
+      // complete, so even a long line arriving byte by byte stays linear.
+      while ((newline = text.indexOf("\n", start)) >= 0) {
+        const fragment = text.slice(start, newline);
+        if (pendingLength + fragment.length > sizeLimit) {
+          throw new Error("Event exceeds size limit");
+        }
+        const line = (
+          fragments.length > 0 ? [...fragments, fragment].join("") : fragment
+        ).replace(/\r$/, "");
+        fragments = [];
+        pendingLength = 0;
+        start = newline + 1;
         if (!line) {
           if (data.length > 0) {
             onEvent(event, data.join("\n"));
@@ -36,11 +49,16 @@ export async function readServerEvents(
         } else if (line.startsWith("event:")) {
           event = line.slice(6).trim();
         }
-        if (size > 4 * 1024 * 1024) {
+        if (size > sizeLimit) {
           throw new Error("Event exceeds size limit");
         }
       }
-      if (buffer.length > 4 * 1024 * 1024) {
+      if (start < text.length) {
+        const fragment = text.slice(start);
+        fragments.push(fragment);
+        pendingLength += fragment.length;
+      }
+      if (pendingLength > sizeLimit) {
         throw new Error("Event exceeds size limit");
       }
     }
