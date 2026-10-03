@@ -18,6 +18,7 @@ import {
 import type { Client } from "@cliparr/plex/pms/client";
 import { createClient } from "@cliparr/plex/pms/client";
 import { lookup } from "node:dns/promises";
+import { addAbortListener } from "node:events";
 import { isIP } from "node:net";
 
 export interface PlexPmsRequestContext {
@@ -82,39 +83,52 @@ function assertAllowedRedirectHostname(
   }
 }
 
-async function resolveHostnameAddresses(hostname: string) {
+async function resolveHostnameAddresses(hostname: string, signal: AbortSignal) {
   const normalized = normalizeHostname(hostname);
   if (isIP(normalized)) {
     return [];
   }
 
+  signal.throwIfAborted();
+  let subscription: ReturnType<typeof addAbortListener> | undefined;
   try {
-    const records = await lookup(normalized, {
-      all: true,
-      verbatim: true,
+    const cancellation = new Promise<never>((_resolve, reject) => {
+      subscription = addAbortListener(signal, () =>
+        reject(sdkRequestError(signal.reason)),
+      );
     });
+    // lookup() cannot cancel its OS work; stop waiting when the request aborts.
+    const records = await Promise.race([
+      lookup(normalized, { all: true, verbatim: true }),
+      cancellation,
+    ]);
 
     return uniqueStrings(
       records.map((record) => normalizeIpCandidate(record.address)),
     );
   } catch {
+    signal.throwIfAborted();
     throw createApiError(
       400,
       "plex_unsafe_redirect",
       "Plex PMS redirect hostname could not be resolved for security validation",
     );
+  } finally {
+    subscription?.[Symbol.dispose]();
   }
 }
 
 async function assertAllowedPlexPmsRequestUrl(
   requestUrl: URL,
   trustedOrigin: string,
+  signal: AbortSignal,
 ) {
+  signal.throwIfAborted();
   assertHttpUrl(requestUrl);
   const allowPrivate = requestUrl.origin === trustedOrigin;
   assertAllowedRedirectHostname(requestUrl.hostname, allowPrivate);
 
-  const addresses = await resolveHostnameAddresses(requestUrl.hostname);
+  const addresses = await resolveHostnameAddresses(requestUrl.hostname, signal);
   for (const address of addresses) {
     assertAllowedRedirectHostname(address, allowPrivate);
   }
@@ -193,6 +207,8 @@ async function fetchPlexPmsWithManualRedirects(
   init?: Parameters<typeof fetch>[1],
 ) {
   const request = new Request(input, init);
+  const signal = init?.signal ?? request.signal;
+  signal.throwIfAborted();
   const trustedOrigin = new URL(request.url).origin;
   let requestUrl = new URL(request.url);
   let requestInit: RequestInit = {
@@ -200,7 +216,7 @@ async function fetchPlexPmsWithManualRedirects(
     headers: new Headers(request.headers),
     body: await reusableRequestBody(request),
     // Retain the caller signal: Request owns its forwarding AbortController.
-    signal: init?.signal ?? request.signal,
+    signal,
   };
 
   for (
@@ -211,6 +227,7 @@ async function fetchPlexPmsWithManualRedirects(
     const addresses = await assertAllowedPlexPmsRequestUrl(
       requestUrl,
       trustedOrigin,
+      signal,
     );
     const response = await fetchWithPinnedDns(
       requestUrl,
