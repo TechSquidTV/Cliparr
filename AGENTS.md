@@ -6,6 +6,12 @@
 - Breaking changes are acceptable when explicitly documented. Do not add compatibility aliases or fallback implementations.
 - Use scoped Conventional Commits, without agent branding. Run `pnpm preflight` before every commit.
 
+## Marketing assets
+
+Refresh README and website marketing captures only through
+[cliparr-www-assets](.agents/skills/cliparr-www-assets/SKILL.md), following its
+source-selection, write, and explicit restoration rules.
+
 ## Plex contracts
 
 All Cliparr-authored Plex API operations, endpoint templates, parameter contracts,

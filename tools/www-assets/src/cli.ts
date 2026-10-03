@@ -31,7 +31,7 @@ const { values } = parseArgs({
 async function main() {
   if (values.help) {
     process.stdout.write(
-      `Usage: pnpm assets:capture --media-dir /path/to/media [options]\n\n  --hero <relative-file>       Default hero.mkv\n  --mobile <relative-file>     Default mobile.mkv\n  --hero-seconds <seconds>     Recording duration; default 82/30\n  --mobile-seconds <seconds>   Recording duration; default 3\n  --hero-subtitle <track-key>  Override the preferred text subtitle track\n  --mobile-subtitle <track-key>\n  --write                     Replace previews, docs images, and social preview after validation\n\nSelections remain hero 111.95–114.89 and mobile 129.6–139.6 seconds.\n`,
+      `Usage: pnpm assets:capture --media-dir /path/to/media [options]\n\n  --hero <relative-file>       Default hero.mkv\n  --mobile <relative-file>     Default mobile.mkv\n  --hero-seconds <seconds>     Recording duration; default 82/30\n  --mobile-seconds <seconds>   Recording duration; default 3\n  --hero-subtitle <track-key>  Override the preferred text subtitle track\n  --mobile-subtitle <track-key>\n  --write                     Replace previews, docs images, and social preview after validation\n\nSelections remain hero 496.07–499.01 and mobile 129.6–139.6 seconds.\n`,
     );
     return;
   }

@@ -10,8 +10,8 @@ void test("keeps source selection separate from website recording length", () =>
   });
   assert.ok(hero && mobile);
   assert.deepEqual(hero.selection, {
-    inSeconds: 111.95,
-    outSeconds: 114.89,
+    inSeconds: 496.07,
+    outSeconds: 499.01,
     subtitleFontSize: 72,
   });
   assert.deepEqual(mobile.selection, {
