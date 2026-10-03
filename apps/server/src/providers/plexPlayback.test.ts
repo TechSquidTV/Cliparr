@@ -2308,24 +2308,24 @@ const livePlexItem = (id: string) => ({
 
 void test("live Plex enriches only changed items and shares metadata across Cliparr sessions", async () => {
   const requests: string[] = [];
+  const batches: string[][] = [];
   await withMockFetch(
     (request) => {
-      const id = new URL(request.url).pathname.split("/").at(-1)!;
-      requests.push(id);
+      // The live resolver batches metadata enrichment: one request carries
+      // every uncached item id as a comma-joined path segment.
+      const ids = new URL(request.url).pathname.split("/").at(-1)!.split(",");
+      requests.push(...ids);
+      batches.push(ids);
       return jsonResponse({
         MediaContainer: {
-          Metadata: [
-            {
-              ...livePlexItem(id),
-              Media: [
-                {
-                  Part: [
-                    { id: `part-${id}`, key: `/library/parts/${id}/file` },
-                  ],
-                },
-              ],
-            },
-          ],
+          Metadata: ids.map((id) => ({
+            ...livePlexItem(id),
+            Media: [
+              {
+                Part: [{ id: `part-${id}`, key: `/library/parts/${id}/file` }],
+              },
+            ],
+          })),
         },
       });
     },
@@ -2343,6 +2343,7 @@ void test("live Plex enriches only changed items and shares metadata across Clip
       });
       const [one, two] = await Promise.all([initial(first), initial(second)]);
       assert.deepEqual(requests.toSorted(), ["one", "two"]);
+      assert.deepEqual(batches, [["one", "two"]]);
       assert.notEqual(one[0].item.mediaUrl, two[0].item.mediaUrl);
       const paused = {
         ...livePlexItem("one"),
@@ -2356,6 +2357,7 @@ void test("live Plex enriches only changed items and shares metadata across Clip
       });
       const [updated] = await Promise.all([next(first), next(second)]);
       assert.deepEqual(requests.toSorted(), ["one", "three", "two"]);
+      assert.deepEqual(batches, [["one", "two"], ["three"]]);
       assert.equal(updated[0].item.playerState, "paused");
       assert.equal(updated[0].item.playheadSeconds, 12);
       assert.equal(updated[0].item.mediaUrl, one[0].item.mediaUrl);
@@ -2366,6 +2368,92 @@ void test("live Plex enriches only changed items and shares metadata across Clip
         requests.length,
         3,
         "removing a session does not enrich remaining items",
+      );
+    },
+  );
+});
+
+void test("live Plex fingerprints ignore payload details and refresh selection identities and source indexes", async () => {
+  let requests = 0;
+  await withMockFetch(
+    () => {
+      requests += 1;
+      return jsonResponse({
+        MediaContainer: {
+          Metadata: [
+            {
+              ...livePlexItem("fingerprint"),
+              Media: [{ id: 1, Part: [{ id: 2, key: "/returned/file.mp4" }] }],
+            },
+          ],
+        },
+      });
+    },
+    async () => {
+      const snapshot = createPlexPlaybackResolver(
+        createSource(),
+        createContext(),
+      );
+      const session = createSession();
+      const item = {
+        ...livePlexItem("fingerprint"),
+        Media: [
+          {
+            id: 1,
+            Part: [
+              {
+                id: 2,
+                Stream: [
+                  {
+                    id: 3,
+                    index: 0,
+                    streamType: 2,
+                    selected: true,
+                    codec: "aac",
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      };
+      const resolve = (row: typeof item) =>
+        snapshot({ MediaContainer: { Metadata: [row] } })(session);
+      await resolve(item);
+      await resolve({
+        ...item,
+        Media: [
+          {
+            ...item.Media[0],
+            Part: [
+              {
+                ...item.Media[0].Part[0],
+                Stream: [{ ...item.Media[0].Part[0].Stream[0], codec: "flac" }],
+              },
+            ],
+          },
+        ],
+      });
+      assert.equal(requests, 1, "codec payload changes do not re-enrich");
+      for (const stream of [
+        { id: 3, index: 0, streamType: 2, selected: false, codec: "aac" },
+        { id: 4, index: 0, streamType: 2, selected: false, codec: "aac" },
+        { id: 4, index: 1, streamType: 2, selected: false, codec: "aac" },
+      ]) {
+        await resolve({
+          ...item,
+          Media: [
+            {
+              ...item.Media[0],
+              Part: [{ ...item.Media[0].Part[0], Stream: [stream] }],
+            },
+          ],
+        });
+      }
+      assert.equal(
+        requests,
+        4,
+        "selection, identity and source-index changes each re-enrich",
       );
     },
   );

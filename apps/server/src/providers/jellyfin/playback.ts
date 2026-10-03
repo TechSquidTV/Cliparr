@@ -29,6 +29,7 @@ import {
   shouldAttachProviderAuth,
   shouldForwardMediaRange,
 } from "@/providers/shared/mediaProxy";
+import { dedupeInflightFetch } from "@/providers/shared/inflight";
 import {
   isTextSubtitleCodec,
   normalizeSubtitleCodec,
@@ -71,6 +72,33 @@ interface CachedPlaybackInfo {
 }
 
 const playbackInfoCache = new Map<string, CachedPlaybackInfo>();
+
+// In-flight upstream fetches, shared across concurrent callers so N sessions
+// watching the same item trigger one fetch instead of N. Entries are removed
+// as soon as they settle, so failures are retried on the next call.
+const inflightItemFetches = new Map<string, Promise<JellyfinItem>>();
+const inflightPlaybackInfoFetches = new Map<
+  string,
+  Promise<JellyfinPlaybackInfo>
+>();
+
+function itemFetchKey(context: JellyfinSourceContext, itemId: string) {
+  return JSON.stringify([
+    context.baseUrl,
+    context.token,
+    context.userId,
+    context.deviceId,
+    itemId,
+  ]);
+}
+
+function fetchSharedItem(context: JellyfinSourceContext, itemId: string) {
+  return dedupeInflightFetch(
+    inflightItemFetches,
+    itemFetchKey(context, itemId),
+    () => fetchItem(context, itemId),
+  );
+}
 
 function createMediaHandle(
   session: ProviderSessionRecord,
@@ -749,7 +777,7 @@ async function enrichMetadataItem(
   }
 
   try {
-    const fullItem = await fetchItem(context, itemId);
+    const fullItem = await fetchSharedItem(context, itemId);
     return {
       ...item,
       ...fullItem,
@@ -783,7 +811,11 @@ async function loadPlaybackInfo(
   prunePlaybackInfoCache(now);
 
   try {
-    const playbackInfo = await fetchPlaybackInfo(context, itemId);
+    const playbackInfo = await dedupeInflightFetch(
+      inflightPlaybackInfoFetches,
+      JSON.stringify([cacheKey, itemFetchKey(context, itemId)]),
+      () => fetchPlaybackInfo(context, itemId),
+    );
     if (requirePlayable && !stringValue(playbackInfo?.PlaySessionId)) {
       throw new Error("Jellyfin returned no playback session");
     }
@@ -1103,13 +1135,19 @@ export function createJellyfinPlaybackResolver(
 ) {
   return createPlaybackResolverCache({
     key: (row: JellyfinSessionInfo) => jellyfinPlaybackIdentity([row]),
-    prepare: async (row) => {
-      const id = stringValue(row.NowPlayingItem?.Id);
-      if (!id) {
-        throw new Error("Jellyfin session has no item ID");
-      }
-      return { ...row.NowPlayingItem, ...(await fetchItem(context, id)) };
-    },
+    prepareMany: (rows) =>
+      Promise.all(
+        rows.map(async (row) => {
+          const id = stringValue(row.NowPlayingItem?.Id);
+          if (!id) {
+            throw new Error("Jellyfin session has no item ID");
+          }
+          return {
+            ...row.NowPlayingItem,
+            ...(await fetchSharedItem(context, id)),
+          };
+        }),
+      ),
     bind: (row, item, session) =>
       normalizeCurrentPlayback(session, source, context, row, item),
     update: (entry, row) => ({

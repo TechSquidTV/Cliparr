@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import test, { mock } from "node:test";
+import test, { beforeEach, mock } from "node:test";
 import dns from "node:dns/promises";
 import type { LookupAddress } from "node:dns";
 import { getEventListeners } from "node:events";
@@ -17,6 +17,14 @@ import {
   type PlexPmsRequestContext,
   type PlexPmsRequestOptions,
 } from "@/providers/plex/pmsClient";
+
+// Each security scenario gets a fresh DNS TTL window for its mocked answers.
+let testTime = Date.now();
+beforeEach((testContext) => {
+  assert.ok("mock" in testContext);
+  testTime += 60_001;
+  testContext.mock.method(Date, "now", () => testTime);
+});
 
 const context: PlexPmsRequestContext = {
   baseUrl: "http://plex.local:32400",

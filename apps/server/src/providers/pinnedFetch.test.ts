@@ -331,7 +331,7 @@ for (const provider of ["plex", "jellyfin"] as const) {
   });
 }
 
-for (const address of ["93.184.216.34", "192.168.1.50"]) {
+for (const [index, address] of ["93.184.216.34", "192.168.1.50"].entries()) {
   void test(`pins initial Plex PMS requests to validated ${address} addresses`, async (context) => {
     let resolutions = 0;
     context.mock.method(dns, "lookup", async () => {
@@ -357,7 +357,10 @@ for (const address of ["93.184.216.34", "192.168.1.50"]) {
     );
     try {
       await requestPlexPmsIdentity(
-        { baseUrl: "http://plex-rebinding.invalid:32400", token: "token" },
+        {
+          baseUrl: `http://plex-rebinding-allowed-${index}.invalid:32400`,
+          token: "token",
+        },
         { clientIdentifier: "test", product: "Cliparr", timeoutMs: 3000 },
       );
       assert.equal(resolutions, 1);
@@ -368,7 +371,11 @@ for (const address of ["93.184.216.34", "192.168.1.50"]) {
   });
 }
 
-for (const address of ["127.0.0.1", "169.254.169.254", "::1"]) {
+for (const [index, address] of [
+  "127.0.0.1",
+  "169.254.169.254",
+  "::1",
+].entries()) {
   void test(`rejects initial Plex DNS resolving to ${address} before fetching`, async (context) => {
     const previousLoopbackSetting =
       process.env.CLIPARR_ALLOW_LOOPBACK_PLEX_URLS;
@@ -391,7 +398,10 @@ for (const address of ["127.0.0.1", "169.254.169.254", "::1"]) {
     try {
       await assert.rejects(
         requestPlexPmsIdentity(
-          { baseUrl: "http://plex-rebinding.invalid:32400", token: "token" },
+          {
+            baseUrl: `http://plex-rebinding-unsafe-${index}.invalid:32400`,
+            token: "token",
+          },
           { clientIdentifier: "test", product: "Cliparr", timeoutMs: 3000 },
         ),
         (error: Error) =>

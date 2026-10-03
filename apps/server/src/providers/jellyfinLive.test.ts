@@ -252,7 +252,8 @@ void test(
     let resolutions = 0;
     context.mock.method(dns, "lookup", () => {
       resolutions++;
-      if (resolutions <= 2) {
+      // The two concurrent startup HTTP requests share their DNS lookup.
+      if (resolutions === 1) {
         return Promise.resolve([{ address: "192.168.1.50", family: 4 }]);
       }
       entered.resolve();
@@ -304,6 +305,6 @@ void test(
     pending.resolve([{ address: "192.168.1.50", family: 4 }]);
     await setImmediate();
     assert.equal(fetchCalls, 2);
-    assert.equal(resolutions, 3);
+    assert.equal(resolutions, 2);
   },
 );
