@@ -85,6 +85,45 @@ void test("checks bare private hostname literals and permits reviewed public ori
   );
 });
 
+void test("checks scheme variants and scheme-relative endpoints without exposing values", () => {
+  const hostname = ["fixture-provider", "fixture-installation", "dev"].join(
+    ".",
+  );
+  for (const prefix of ["http://", "HTTPS://", "HtTp://", "hTtPs://", "//"]) {
+    for (const wrap of [
+      (url) => url,
+      (url) => `const endpoint = "${url}";`,
+      (url) => `<video src="${url}">`,
+      (url) => `[media](${url})`,
+    ]) {
+      const issues = findPrivacyIssues(
+        "fixture.ts",
+        wrap(`${prefix}${hostname}:\${port}/media`),
+      );
+      assert.deepEqual(issues, [
+        { file: "fixture.ts", line: 1, category: "unapproved-endpoint" },
+      ]);
+      assert.equal(JSON.stringify(issues).includes(hostname), false);
+      for (const permittedHost of ["plex.example.test", "developer.plex.tv"]) {
+        assert.deepEqual(
+          findPrivacyIssues(
+            "fixture.ts",
+            wrap(`${prefix}${permittedHost}/media`),
+          ),
+          [],
+        );
+      }
+    }
+  }
+  for (const content of [
+    "// A normal source comment",
+    'const path = "/media//segment.ts";',
+    'const path = "C://media/segment.ts";',
+  ]) {
+    assert.deepEqual(findPrivacyIssues("fixture.ts", content), []);
+  }
+});
+
 void test("detects fabricated bare hostnames across public DNS suffixes", () => {
   for (const suffix of [
     "dev",

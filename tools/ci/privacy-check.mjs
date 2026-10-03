@@ -125,7 +125,7 @@ function permittedAddress(address, file) {
 function endpointCategory(value, file) {
   // Inspect the authority independently of an interpolated port, path, or query.
   // Only a dynamic hostname (JS or OpenAPI template) cannot be checked statically.
-  const authority = /^https?:\/\/([^/?#]+)/i.exec(value)?.[1];
+  const authority = /^(?:https?:)?\/\/([^/?#]+)/i.exec(value)?.[1];
   const hostAndPort = authority?.slice(authority.lastIndexOf("@") + 1);
   const host = hostAndPort?.startsWith("[")
     ? /^\[[^\]]+\]/.exec(hostAndPort)?.[0]
@@ -190,7 +190,9 @@ export function findPrivacyIssues(file, content) {
         categories.add("unapproved-address");
       }
     }
-    for (const match of line.matchAll(/https?:\/\/[^\s"'`<>\\)]+/g)) {
+    for (const match of line.matchAll(
+      /(?:https?:\/\/|(?<=^|[\s"'`(=])\/\/)[^\s"'`<>\\)]+/gi,
+    )) {
       const category = endpointCategory(match[0], file);
       if (category) {
         categories.add(category);
