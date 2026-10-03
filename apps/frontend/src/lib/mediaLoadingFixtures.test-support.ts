@@ -16,6 +16,7 @@ export async function createMediaLoadingFixtures() {
   await ensureAudioEncoder("aac");
   const fixtures: { name: string; bytes: number[] }[] = [];
   for (const codecs of [
+    [],
     ["aac"],
     ["ac3"],
     ["eac3"],
@@ -67,7 +68,7 @@ export async function createMediaLoadingFixtures() {
         throw new Error("Missing loading fixture output");
       }
       fixtures.push({
-        name: `${codecs.join("-")}.mp4`,
+        name: `${codecs.length > 0 ? codecs.join("-") : "video-only"}.mp4`,
         bytes: [...new Uint8Array(target.buffer)],
       });
     } finally {

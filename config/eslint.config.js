@@ -154,12 +154,6 @@ const restrictedSyntaxRulesWithoutRelativeDynamicImports =
     ({ selector }) => selector !== relativeDynamicImportSelector,
   );
 
-const codecExtensions = [
-  "@mediabunny/ac3",
-  "@mediabunny/aac-encoder",
-  "@mediabunny/mp3-encoder",
-  "@mediabunny/flac-encoder",
-];
 const mediaTestFiles = ["**/*.test.ts", "**/*.test-support.ts"];
 const gifRuntimeFiles = [
   "apps/frontend/src/lib/gifEncodingSettings.ts",
@@ -175,11 +169,7 @@ function mediaLoadingRestrictions({
   ui = false,
   relativeImports = false,
 } = {}) {
-  const paths = codecExtensions.map((name) => ({
-    name,
-    allowTypeImports: true,
-    message: "Load codec extensions dynamically through mediabunnyCodecs.",
-  }));
+  const paths = [];
   if (!gifRuntime) {
     paths.push({
       name: "@techsquidtv/gifenc",
@@ -206,13 +196,12 @@ function mediaLoadingRestrictions({
       : restrictedSyntaxRules),
   ];
   if (!codecLoader) {
-    for (const name of codecExtensions) {
-      syntax.push({
-        selector: `ImportExpression[source.value='${name}']`,
-        message: "Load codec extensions through mediabunnyCodecs.",
-      });
-    }
+    syntax.push({
+      selector: String.raw`ImportExpression[source.value=/^@mediabunny\//]`,
+      message: "Load codec extensions through mediabunnyCodecs.",
+    });
   }
+
   if (!gifRuntime && !gifLoader) {
     syntax.push({
       selector: "ImportExpression[source.value='@techsquidtv/gifenc']",
@@ -226,6 +215,12 @@ function mediaLoadingRestrictions({
       {
         paths,
         patterns: [
+          {
+            group: ["@mediabunny/*", "@mediabunny/**"],
+            allowTypeImports: true,
+            message:
+              "Load codec extensions dynamically through mediabunnyCodecs.",
+          },
           ...(relativeImports ? [] : [relativeImportRestriction]),
           ...crossWorkspaceImportRestrictions,
         ],

@@ -1,77 +1,72 @@
 import assert from "node:assert/strict";
-import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { gzipSync } from "node:zlib";
 import { chromium } from "playwright";
 import { build, preview } from "vite";
+import {
+  assertCapabilityCoverage,
+  assertLoadedFeatures,
+  classifyModules,
+  discoverCodecPackages,
+} from "#tests/media-loading-policy.mjs";
+import { setupExpectations } from "#tests/media-loading-scenarios.ts";
 
 const root = fileURLToPath(new URL("..", import.meta.url));
 const temporary = await mkdtemp(path.join(tmpdir(), "cliparr-media-loading-"));
 const diagnostics = path.resolve(root, "../../build/browser-export/loading");
-const features = {
-  ac3: "/node_modules/@mediabunny/ac3/",
-  aac: "/node_modules/@mediabunny/aac-encoder/",
-  mp3: "/node_modules/@mediabunny/mp3-encoder/",
-  flac: "/node_modules/@mediabunny/flac-encoder/",
-  gif: "/node_modules/@techsquidtv/gifenc/",
-  audioPlan: "/src/lib/exportAudio.ts",
-  export: "/src/lib/exportClip.ts",
-};
-const optionalFeatures = Object.keys(features);
+const manifest = JSON.parse(
+  await readFile(new URL("../package.json", import.meta.url), "utf8"),
+);
+const codecPackages = discoverCodecPackages(manifest.dependencies);
+const positiveFeatures = new Set();
 const reports = {};
 const stages = [];
 const sessions = [];
 const servers = [];
 let browser;
 let page;
+let scenario = "production builds";
 
 // Observe the actual emitted modules, including shared chunks. Filenames and
 // byte counts can change without weakening the capability boundary assertions.
 async function buildSite(name, input = "index.html") {
   const chunks = {};
   const outDir = path.join(temporary, name);
+  reports[name] = chunks;
+  const reportPlugin = () => ({
+    name: "media-loading-report",
+    generateBundle(_options, bundle) {
+      for (const [file, chunk] of Object.entries(bundle)) {
+        if (chunk.type !== "chunk") {
+          continue;
+        }
+        const modules = Object.entries(chunk.modules)
+          .filter(([, module]) => module.renderedLength > 0)
+          .map(([id]) => id.replaceAll("\\", "/"));
+        chunks[file] = {
+          bytes: Buffer.byteLength(chunk.code),
+          gzipBytes: gzipSync(chunk.code).byteLength,
+          modules,
+          features: classifyModules(modules, codecPackages),
+        };
+      }
+    },
+  });
   await build({
     root,
     configFile: path.join(root, "vite.config.js"),
     logLevel: "error",
-    plugins: [
-      {
-        name: "media-loading-report",
-        generateBundle(_options, bundle) {
-          for (const [file, chunk] of Object.entries(bundle)) {
-            if (chunk.type !== "chunk") {
-              continue;
-            }
-            const modules = Object.entries(chunk.modules)
-              .filter(([, module]) => module.renderedLength > 0)
-              .map(([id]) => id.replaceAll("\\", "/"));
-            chunks[file] = {
-              bytes: Buffer.byteLength(chunk.code),
-              gzipBytes: gzipSync(chunk.code).byteLength,
-              features: Object.entries(features)
-                .filter(([, fragment]) =>
-                  modules.some((id) => id.includes(fragment)),
-                )
-                .map(([feature]) => feature),
-            };
-          }
-        },
-      },
-    ],
+    plugins: [reportPlugin()],
+    worker: { plugins: () => [reportPlugin()] },
     build: {
       outDir,
       emptyOutDir: true,
       rollupOptions: { input: path.join(root, input) },
     },
   });
-  for (const feature of optionalFeatures) {
-    assert.ok(
-      Object.values(chunks).some((chunk) => chunk.features.includes(feature)),
-      `Missing ${feature} in ${name} build report`,
-    );
-  }
   const server = await preview({
     configFile: false,
     root,
@@ -82,11 +77,11 @@ async function buildSite(name, input = "index.html") {
   servers.push(server);
   const url = server.resolvedUrls?.local[0];
   assert.ok(url);
-  reports[name] = chunks;
   return { name, url, outDir, chunks };
 }
 
-async function openPage(site, disableNativeEncoder = false) {
+async function openPage(site, disableNativeEncoder = false, label = site.name) {
+  scenario = label;
   const context = await browser.newContext({
     viewport: { width: 1440, height: 1000 },
     serviceWorkers: "block",
@@ -99,13 +94,17 @@ async function openPage(site, disableNativeEncoder = false) {
   page = await context.newPage();
   const requests = [];
   const errors = [];
-  sessions.push({ build: site.name, requests, errors });
-  page.on("request", (request) => {
+  const failures = [];
+  sessions.push({ scenario, build: site.name, requests, errors, failures });
+  context.on("request", (request) => {
     const url = new URL(request.url());
     if (url.pathname.endsWith(".js")) {
       requests.push(url.pathname.slice(1));
     }
   });
+  context.on("requestfailed", (request) =>
+    failures.push({ url: request.url(), error: request.failure()?.errorText }),
+  );
   page.on("pageerror", (error) => errors.push(error.message));
   await page.route("**/api/**", (route) =>
     route.fulfill({
@@ -114,7 +113,7 @@ async function openPage(site, disableNativeEncoder = false) {
         : { providers: [] },
     }),
   );
-  return { context, requests, errors, site };
+  return { context, requests, errors, failures, site };
 }
 
 async function checkStage(session, label, expected) {
@@ -127,6 +126,8 @@ async function checkStage(session, label, expected) {
   ].toSorted();
   stages.push({
     label,
+    expected,
+    failures: [...session.failures],
     build: session.site.name,
     files,
     loaded,
@@ -136,11 +137,10 @@ async function checkStage(session, label, expected) {
     ),
   });
   assert.deepEqual(session.errors, [], `${label}: browser errors`);
-  assert.deepEqual(
-    loaded,
-    [...expected].toSorted(),
-    `${label}: unexpected feature downloads`,
-  );
+  assertLoadedFeatures(files, session.site.chunks, expected, label);
+  for (const feature of expected) {
+    positiveFeatures.add(feature);
+  }
   process.stdout.write(`PASS ${label}\n`);
 }
 
@@ -201,7 +201,11 @@ try {
   await generation.close();
 
   for (const disableNativeEncoder of [false, true]) {
-    const session = await openPage(app, disableNativeEncoder);
+    const session = await openPage(
+      app,
+      disableNativeEncoder,
+      `editor flow with native encoder ${!disableNativeEncoder}`,
+    );
     await page.goto(app.url);
     await page
       .getByRole("button", { name: "Open Video", exact: true })
@@ -219,26 +223,33 @@ try {
     );
     await page.getByRole("button", { name: "Export", exact: true }).click();
     await waitForExport("mp4");
-    await checkStage(session, "MP4 export setup", ["audioPlan", "aac"]);
+    await checkStage(session, "MP4 export setup", [
+      "audioPlan",
+      "@mediabunny/aac-encoder",
+    ]);
     await selectMode("Audio");
     await waitForExport("mp3");
-    await checkStage(session, "MP3 export setup", ["audioPlan", "aac", "mp3"]);
+    await checkStage(session, "MP3 export setup", [
+      "audioPlan",
+      "@mediabunny/aac-encoder",
+      "@mediabunny/mp3-encoder",
+    ]);
     await page.getByRole("combobox").filter({ hasText: /^MP3/ }).click();
     await page.getByRole("option", { name: /^FLAC/ }).click();
     await waitForExport("flac");
     await checkStage(session, "FLAC export setup", [
       "audioPlan",
-      "aac",
-      "mp3",
-      "flac",
+      "@mediabunny/aac-encoder",
+      "@mediabunny/mp3-encoder",
+      "@mediabunny/flac-encoder",
     ]);
     await selectMode("GIF");
     await waitForExport("gif");
     await checkStage(session, "GIF setup before encoding", [
       "audioPlan",
-      "aac",
-      "mp3",
-      "flac",
+      "@mediabunny/aac-encoder",
+      "@mediabunny/mp3-encoder",
+      "@mediabunny/flac-encoder",
     ]);
     const download = page.waitForEvent("download");
     await page.getByRole("button", { name: "Export GIF", exact: true }).click();
@@ -246,9 +257,9 @@ try {
     assert.equal(await downloaded.failure(), null);
     await checkStage(session, "GIF export", [
       "audioPlan",
-      "aac",
-      "mp3",
-      "flac",
+      "@mediabunny/aac-encoder",
+      "@mediabunny/mp3-encoder",
+      "@mediabunny/flac-encoder",
       "gif",
       "export",
     ]);
@@ -256,13 +267,13 @@ try {
   }
 
   for (const fixture of ["ac3.mp4", "eac3.mp4", "aac-ac3.mp4"]) {
-    const session = await openPage(app);
+    const session = await openPage(app, false, `preview ${fixture}`);
     await page.goto(app.url);
     await openVideo(app, fixture);
     await checkStage(
       session,
       `${fixture} selected preview track`,
-      fixture === "aac-ac3.mp4" ? [] : ["ac3"],
+      fixture === "aac-ac3.mp4" ? [] : ["@mediabunny/ac3"],
     );
     await page
       .getByRole("button", { name: "Play preview", exact: true })
@@ -275,7 +286,7 @@ try {
 
   // Close and replace the source while the export helper download is suspended.
   // Resolving the import must not start encoder registration for the stale effect.
-  const cancelled = await openPage(app);
+  const cancelled = await openPage(app, false, "cancelled helper download");
   const helperFiles = Object.entries(app.chunks).filter(([, chunk]) =>
     chunk.features.includes("audioPlan"),
   );
@@ -307,9 +318,9 @@ try {
     await waitForExport("mp4");
     await checkStage(cancelled, "export setup retry on replacement source", [
       "audioPlan",
-      "aac",
+      "@mediabunny/aac-encoder",
     ]);
-    for (const feature of ["audioPlan", "aac"]) {
+    for (const feature of ["audioPlan", "@mediabunny/aac-encoder"]) {
       const matchingRequests = cancelled.requests.filter((file) =>
         app.chunks[file]?.features.includes(feature),
       );
@@ -324,16 +335,110 @@ try {
   }
   await cancelled.context.close();
 
-  for (const format of ["mp4", "gif", "m4a"]) {
-    const session = await openPage(harness, true);
+  // A completed registration must not publish the old source's plan after cancellation.
+  const encoderCancelled = await openPage(
+    app,
+    false,
+    "cancelled encoder registration",
+  );
+  const encoderFiles = Object.entries(app.chunks).filter(([, chunk]) =>
+    chunk.features.includes("@mediabunny/aac-encoder"),
+  );
+  assert.equal(encoderFiles.length, 1);
+  const encoderHeld = Promise.withResolvers();
+  const encoderUrl = new URL(encoderFiles[0][0], app.url).href;
+  await page.route(encoderUrl, async (route) => {
+    await encoderHeld.promise;
+    await route.continue();
+  });
+  try {
+    await page.goto(app.url);
+    await openVideo(app, "aac.mp4");
+    const requested = page.waitForRequest(encoderUrl);
+    await page.getByRole("button", { name: "Export", exact: true }).click();
+    await requested;
+    await page
+      .getByRole("button", { name: "Close export dialog", exact: true })
+      .click();
+    await page.getByRole("button", { name: "Back", exact: true }).click();
+    await openVideo(app, "video-only.mp4");
+    await page.getByRole("button", { name: "Export", exact: true }).click();
+    await page.getByText("No source audio", { exact: true }).first().waitFor();
+    encoderHeld.resolve();
+    await checkStage(
+      encoderCancelled,
+      "cancelled encoder registration on replacement source",
+      ["audioPlan", "@mediabunny/aac-encoder"],
+    );
+    assert.ok(
+      await page
+        .getByText("No source audio", { exact: true })
+        .first()
+        .isVisible(),
+    );
+    await page
+      .getByRole("button", { name: "Close export dialog", exact: true })
+      .click();
+    await page.getByRole("button", { name: "Back", exact: true }).click();
+    await openVideo(app, "aac.mp4");
+    await page.getByRole("button", { name: "Export", exact: true }).click();
+    await waitForExport("mp4");
+    await checkStage(
+      encoderCancelled,
+      "export setup after cancelled encoder registration",
+      ["audioPlan", "@mediabunny/aac-encoder"],
+    );
+    assert.equal(
+      encoderCancelled.requests.filter((file) =>
+        app.chunks[file]?.features.includes("@mediabunny/aac-encoder"),
+      ).length,
+      1,
+    );
+  } finally {
+    encoderHeld.resolve();
+  }
+  await encoderCancelled.context.close();
+
+  for (const [format, expected] of Object.entries(setupExpectations)) {
+    const session = await openPage(harness, false, `cold ${format} setup`);
     await page.goto(new URL("tests/media-loading.html", harness.url).href);
-    await checkStage(session, `converter before ${format} export`, []);
+    await page.evaluate(() => globalThis.loadLoadingConverter());
+    await checkStage(session, `converter imported before ${format} setup`, []);
+    await page.evaluate(
+      (format) =>
+        globalThis.startLoadingPlan(
+          format,
+          format === "gif" ? "video-only" : "audio-only",
+        ),
+      format,
+    );
+    await page
+      .getByText(format === "gif" ? "Not included" : "Ready", { exact: true })
+      .waitFor();
+    await checkStage(session, `cold ${format} setup`, expected);
+    await session.context.close();
+  }
+  const muted = await openPage(harness, false, "cold video-only setup");
+  await page.goto(new URL("tests/media-loading.html", harness.url).href);
+  await page.evaluate(() => globalThis.loadLoadingConverter());
+  await page.evaluate(() => globalThis.startLoadingPlan("mp4", "video-only"));
+  await page.getByText("Not included", { exact: true }).waitFor();
+  await checkStage(muted, "cold video-only setup", []);
+  await muted.context.close();
+
+  for (const format of ["mp4", "gif", "m4a", "mp3", "flac"]) {
+    const session = await openPage(harness, true, `direct ${format} export`);
+    await page.goto(new URL("tests/media-loading.html", harness.url).href);
+    await page.evaluate(() => globalThis.loadLoadingConverter());
+    await checkStage(session, `converter imported before ${format} export`, []);
     const result = await page.evaluate(
       (format) =>
         globalThis.runLoadingExport({
           fixture: "ac3.mp4",
           format,
-          mode: format === "m4a" ? "audio-only" : "video-only",
+          mode: ["m4a", "mp3", "flac"].includes(format)
+            ? "audio-only"
+            : "video-only",
         }),
       format,
     );
@@ -342,15 +447,25 @@ try {
       "audioPlan",
       "export",
       ...(format === "gif" ? ["gif"] : []),
-      ...(format === "m4a" ? ["ac3", "aac"] : []),
+      ...(["m4a", "mp3", "flac"].includes(format)
+        ? [
+            "@mediabunny/ac3",
+            ...setupExpectations[format].filter(
+              (feature) => feature !== "audioPlan",
+            ),
+          ]
+        : []),
     ]);
     await session.context.close();
+  }
+  for (const chunks of Object.values(reports)) {
+    assertCapabilityCoverage(chunks, codecPackages, [...positiveFeatures]);
   }
 } catch (error) {
   await mkdir(diagnostics, { recursive: true });
   await writeFile(
     path.join(diagnostics, "failure.log"),
-    String(error.stack ?? error),
+    `${scenario}: ${String(error.stack ?? error)}`,
   );
   await page
     ?.screenshot({

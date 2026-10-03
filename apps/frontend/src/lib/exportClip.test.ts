@@ -1,3 +1,4 @@
+import { createDeferred } from "#/lib/deferred.test-support";
 import {
   createIncompleteSourceAudioError,
   isIncompleteSourceAudioError,
@@ -274,16 +275,6 @@ function createConversion({
       }
     },
   } as unknown as ConversionResult;
-}
-
-function createDeferred<T>() {
-  let resolve!: (value: T | PromiseLike<T>) => void;
-  let reject!: (error: Error) => void;
-  const promise = new Promise<T>((resolvePromise, rejectPromise) => {
-    resolve = resolvePromise;
-    reject = rejectPromise;
-  });
-  return { promise, resolve, reject };
 }
 
 for (const format of ["mp4", "gif"] as const) {

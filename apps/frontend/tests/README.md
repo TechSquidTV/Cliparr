@@ -38,20 +38,36 @@ contexts with service workers disabled. Fixture video uses VP9 so headless Chrom
 can decode it in software.
 
 A test-only build hook maps source modules to emitted chunks, including shared
-chunks. Checks assert feature-loading boundaries rather than filenames or exact
-byte counts: ordinary preview needs no optional codecs; selected AC3/EAC3 audio
-loads its decoder; export setup loads its chosen encoder and audio helpers; GIF
-encoding loads only when exporting. A suspended helper request exercises closing
-the dialog and replacing its source before loading finishes. Direct converter
-exports verify that GIF/video-only output never initializes audio extensions.
+chunks and workers. Checks assert feature-loading boundaries rather than filenames
+or exact byte counts. Ordinary preview needs no optional codecs; selected AC3/EAC3
+audio loads its decoder; export setup loads its chosen encoder and audio helpers;
+GIF encoding loads only when exporting.
 
-CI retains `build/browser-export/loading/chunks.json` and `requests.json`, with
-per-stage requested files, features, and gzip sizes. Failures also retain a log
-and screenshot. To add a heavy optional dependency, declare its module fragment
-in the runner and extend the relevant scenario with the earliest allowed loading
-stage. Keep fixture generation out of measured contexts. Static import boundaries
-are enforced by the existing frontend ESLint configuration; type imports and test
-fixtures are exempt.
+The actual app exercises format switching and cancellation during both helper and
+encoder downloads. The converter harness imports the public entrypoint before
+measuring setup or execution, and mounts its public audio-planning hook in a fresh
+context for every format. Direct exports verify isolated MP3/FLAC/AAC loading and
+that GIF/video-only output never initializes audio extensions. Fixture creation
+uses a separate browser context so it cannot warm the measured sessions.
+
+Codec packages are discovered from frontend dependencies under `@mediabunny/*`.
+Every extension must appear in the build report and have a successful positive
+loading scenario. Undeclared emitted extensions and unmapped JavaScript requests
+fail the suite. Expected capabilities are authored independently of build output;
+the typed setup table must cover every export format. Adding a codec requires
+updating the appropriate scenario. A dependency outside the Mediabunny namespace
+still needs explicit classification; package checks cannot distinguish decoder
+and encoder registration within the same downloaded package.
+
+CI retains `build/browser-export/loading/chunks.json` and `requests.json`, including
+scenario names, contributing source modules, expected/observed capabilities,
+request failures, and gzip sizes. Failures also retain a log and screenshot.
+
+Ordinary frontend tests/preflight cover registration deduplication, failure/retry,
+capability classification, and ESLint boundaries (including hypothetical future
+packages and subpaths). Static runtime codec imports are forbidden; extension
+dynamic imports belong to the codec-loading module. Type imports and test fixtures
+are exempt. Browser checks remain separate from preflight.
 
 Follow-up: the timeline adapter currently imports Mediabunny's full module,
 including output/muxer code during preview. A narrower upstream adapter contract
