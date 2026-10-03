@@ -21,8 +21,7 @@ import {
 } from "@cliparr/plex/pms";
 import type { Client } from "@cliparr/plex/pms/client";
 import { createClient } from "@cliparr/plex/pms/client";
-import { lookup } from "node:dns/promises";
-import { addAbortListener } from "node:events";
+import { lookupWithSignal } from "@/providers/shared/dnsLookup";
 import { isIP } from "node:net";
 
 export interface PlexPmsRequestContext {
@@ -112,18 +111,8 @@ async function resolveHostnameAddresses(hostname: string, signal: AbortSignal) {
   }
 
   signal.throwIfAborted();
-  let subscription: ReturnType<typeof addAbortListener> | undefined;
   try {
-    const cancellation = new Promise<never>((_resolve, reject) => {
-      subscription = addAbortListener(signal, () =>
-        reject(sdkRequestError(signal.reason)),
-      );
-    });
-    // lookup() cannot cancel its OS work; stop waiting when the request aborts.
-    const records = await Promise.race([
-      lookup(normalized, { all: true, verbatim: true }),
-      cancellation,
-    ]);
+    const records = await lookupWithSignal(normalized, signal);
 
     return uniqueStrings(
       records.map((record) => normalizeIpCandidate(record.address)),
@@ -135,8 +124,6 @@ async function resolveHostnameAddresses(hostname: string, signal: AbortSignal) {
       "plex_unsafe_redirect",
       "Plex PMS redirect hostname could not be resolved for security validation",
     );
-  } finally {
-    subscription?.[Symbol.dispose]();
   }
 }
 

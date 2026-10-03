@@ -51,6 +51,7 @@ export async function watchCurrentlyPlaying(
   }
   const { url, addresses } = await assertAllowedJellyfinServerUrl(
     `${context.baseUrl}/socket`,
+    { allowPrivate: true, signal },
   );
   url.protocol = url.protocol === "https:" ? "wss:" : "ws:";
   const connection = new AbortController();
