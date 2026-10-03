@@ -227,6 +227,12 @@ try {
       "audioPlan",
       "@mediabunny/aac-encoder",
     ]);
+    // The unavailable-native-encoder variant only needs preview and AAC setup.
+    // Format transitions are covered below and by the isolated converter cases.
+    if (disableNativeEncoder) {
+      await session.context.close();
+      continue;
+    }
     await selectMode("Audio");
     await waitForExport("mp3");
     await checkStage(session, "MP3 export setup", [

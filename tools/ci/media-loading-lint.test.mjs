@@ -2,11 +2,14 @@ import assert from "node:assert/strict";
 import { fileURLToPath } from "node:url";
 import test from "node:test";
 import { ESLint } from "eslint";
+import tseslint from "typescript-eslint";
 
 const root = fileURLToPath(new URL("../..", import.meta.url));
 const eslint = new ESLint({
   cwd: root,
   overrideConfigFile: "config/eslint.config.js",
+  // Import boundaries need syntax only; ordinary lint still checks types.
+  overrideConfig: tseslint.configs.disableTypeChecked,
 });
 const ui = "apps/frontend/src/components/editor/editorPlaybackSources.ts";
 const loader = "apps/frontend/src/lib/mediabunnyCodecs.ts";
