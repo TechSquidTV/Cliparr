@@ -607,7 +607,7 @@ export default function DashboardScreen({
     connection === "reconnecting"
       ? "Reconnecting live updates. Sessions may be out of date."
       : "";
-  let liveStatus = "Connecting to live sessions…";
+  let liveStatus: string | null = "Connecting to live sessions…";
   if (connection === "reconnecting") {
     liveStatus = "Reconnecting to live sessions…";
   } else if (sourceErrors.length > 0) {
@@ -616,7 +616,7 @@ export default function DashboardScreen({
     connection === "live" &&
     sources.every((source) => source.state === "live")
   ) {
-    liveStatus = "Sessions update automatically";
+    liveStatus = null;
   }
   const [versionInfo, setVersionInfo] = useState<CliparrVersionInfo | null>(
     null,
@@ -888,23 +888,25 @@ export default function DashboardScreen({
             </p>
           </div>
 
-          <div
-            className="flex items-center gap-3 text-sm text-muted-foreground"
-            role="status"
-            aria-live="polite"
-          >
-            <span>{liveStatus}</span>
-            {(error || sourceErrors.length > 0) && (
-              <button
-                type="button"
-                onClick={retry}
-                className={compactSecondaryButtonClasses}
-              >
-                <RefreshCw className="h-4 w-4" />
-                Retry connection
-              </button>
-            )}
-          </div>
+          {liveStatus && (
+            <div
+              className="flex items-center gap-3 text-sm text-muted-foreground"
+              role="status"
+              aria-live="polite"
+            >
+              <span>{liveStatus}</span>
+              {(error || sourceErrors.length > 0) && (
+                <button
+                  type="button"
+                  onClick={retry}
+                  className={compactSecondaryButtonClasses}
+                >
+                  <RefreshCw className="h-4 w-4" />
+                  Retry connection
+                </button>
+              )}
+            </div>
+          )}
 
           {error && (
             <div className="bg-destructive/10 border border-destructive/20 text-destructive p-4 rounded-xl text-sm">
