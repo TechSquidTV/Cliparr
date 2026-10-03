@@ -37,8 +37,8 @@
     "format:check": "prettier --config config/prettier.config.js --ignore-path config/.prettierignore --check .",
     "plex:sdk:update": "node tools/plex/update-sdk.mjs",
     "plex:sdk:check": "node tools/plex/check-sdk.mjs",
-    "preflight": "pnpm format:check && pnpm lint && pnpm knip && pnpm test",
-    "test": "pnpm plex:sdk:check && pnpm test:release && pnpm test:plex-sdk && pnpm -r --if-present test",
+    "preflight": "pnpm privacy:check && pnpm format:check && pnpm lint && pnpm knip && pnpm test",
+    "test": "pnpm plex:sdk:check && pnpm test:privacy && pnpm test:release && pnpm test:plex-sdk && pnpm -r --if-present test",
     "test:release": "node --test tools/release/*.test.mjs",
     "test:plex-sdk": "node --test tools/plex/*.test.mjs",
     "release:plan": "node tools/release/plan-release.mjs",
@@ -53,7 +53,9 @@
     "clean": "pnpm -r clean",
     "assets:capture": "pnpm --filter @cliparr/www-assets capture",
     "test:assets": "pnpm --filter @cliparr/www-assets test",
-    "plex:architecture:check": "node tools/plex/check-architecture.mjs"
+    "plex:architecture:check": "node tools/plex/check-architecture.mjs",
+    "privacy:check": "node tools/ci/privacy-check.mjs",
+    "test:privacy": "node --test tools/ci/privacy-check.test.mjs"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

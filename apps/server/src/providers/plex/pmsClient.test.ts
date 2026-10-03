@@ -1,3 +1,7 @@
+import {
+  PRIVATE_IPV4_ADDRESSES,
+  PRIVATE_IPV6_ADDRESS,
+} from "@/test/networkPolicyFixtures";
 import assert from "node:assert/strict";
 import test, { mock } from "node:test";
 import dns from "node:dns/promises";
@@ -19,7 +23,7 @@ import {
 } from "@/providers/plex/pmsClient";
 
 const context: PlexPmsRequestContext = {
-  baseUrl: "http://plex.local:32400",
+  baseUrl: "http://plex.example.test:32400",
   token: "server-token",
 };
 
@@ -45,7 +49,7 @@ function withMockFetch(
     delete process.env.CLIPARR_ALLOW_LOOPBACK_PLEX_URLS;
   }
   const lookup = mock.method(dns, "lookup", async () => [
-    { address: "192.168.1.50", family: 4 },
+    { address: "192.0.2.10", family: 4 },
   ]);
   syncBuiltinESMExports();
   globalThis.fetch = (async (input, init) => {
@@ -218,7 +222,7 @@ void test("rejects unsafe resolved addresses mixed with opted-in loopback", asyn
 
 for (const intermediate of [
   "http://127.0.0.1:32400/same-origin",
-  "http://1.1.1.1:32400/other-origin",
+  "http://198.51.100.10:32400/other-origin",
 ]) {
   void test(`allows opted-in redirects returning to the initial origin via ${intermediate}`, async () => {
     const requests: Request[] = [];
@@ -262,7 +266,7 @@ for (const intermediate of [
 for (const destination of [
   "http://127.0.0.1:32401/identity",
   "http://localhost:32400/identity",
-  "http://plex.local:32400/identity",
+  "http://plex.example.test:32400/identity",
 ]) {
   void test(`rejects opted-in redirects to loopback on another origin ${destination}`, async () => {
     let requests = 0;
@@ -300,10 +304,8 @@ for (const destination of [
 }
 
 for (const hostname of [
-  "192.168.1.50",
-  "10.0.0.2",
-  "172.16.0.2",
-  "[fd00::1]",
+  ...PRIVATE_IPV4_ADDRESSES,
+  `[${PRIVATE_IPV6_ADDRESS}]`,
 ]) {
   void test(`allows initial LAN Plex PMS requests to ${hostname}`, async () => {
     await withMockFetch(
@@ -388,13 +390,13 @@ for (const scenario of [
       syncBuiltinESMExports();
       testContext.after(() => {
         controller.abort();
-        pending.resolve([{ address: "93.184.216.34", family: 4 }]);
+        pending.resolve([{ address: "192.0.2.10", family: 4 }]);
         testContext.mock.restoreAll();
         syncBuiltinESMExports();
       });
       const requestContext =
         scenario === "redirect abort"
-          ? { ...context, baseUrl: "http://192.168.1.50:32400" }
+          ? { ...context, baseUrl: "http://192.0.2.10:32400" }
           : context;
       const request =
         scenario === "event stream abort"
@@ -420,7 +422,7 @@ for (const scenario of [
       await rejected;
       const expectedFetchCalls = scenario === "redirect abort" ? 1 : 0;
       assert.equal(fetchCalls, expectedFetchCalls);
-      pending.resolve([{ address: "93.184.216.34", family: 4 }]);
+      pending.resolve([{ address: "192.0.2.10", family: 4 }]);
       await setImmediate();
       assert.equal(fetchCalls, expectedFetchCalls);
     },
@@ -498,7 +500,7 @@ for (const outcome of ["success", "failure"] as const) {
     if (outcome === "failure") {
       pending.reject(new Error("DNS lookup failed"));
     } else {
-      pending.resolve([{ address: "192.168.1.50", family: 4 }]);
+      pending.resolve([{ address: "192.0.2.10", family: 4 }]);
     }
     await completion;
     assert.equal(
@@ -511,7 +513,10 @@ for (const outcome of ["success", "failure"] as const) {
 void test("requests current Plex sessions with Cliparr Plex headers", async () => {
   await withMockFetch(
     (request) => {
-      assert.equal(request.url, "http://plex.local:32400/status/sessions");
+      assert.equal(
+        request.url,
+        "http://plex.example.test:32400/status/sessions",
+      );
       assert.equal(request.headers.get("Accept"), "application/json");
       assert.equal(request.headers.get("X-Plex-Token"), "server-token");
       assert.equal(request.headers.get("X-Plex-Product"), "Cliparr");
@@ -540,7 +545,10 @@ void test("requests current Plex sessions with Cliparr Plex headers", async () =
 void test("serializes Plex metadata ids through the generated SDK", async () => {
   await withMockFetch(
     (request) => {
-      assert.equal(request.url, "http://plex.local:32400/library/metadata/123");
+      assert.equal(
+        request.url,
+        "http://plex.example.test:32400/library/metadata/123",
+      );
       return jsonResponse({
         MediaContainer: {
           Metadata: [{ ratingKey: "123" }],
@@ -564,7 +572,7 @@ void test("validates Plex PMS redirects before following them", async () => {
   await withMockFetch(
     (request) => {
       requests.push(request);
-      if (request.url === "http://1.1.1.1:32400/identity") {
+      if (request.url === "http://198.51.100.10:32400/identity") {
         return new Response(null, {
           status: 302,
           headers: {
@@ -580,7 +588,7 @@ void test("validates Plex PMS redirects before following them", async () => {
         () =>
           requestPlexPmsIdentity(
             {
-              baseUrl: "http://1.1.1.1:32400",
+              baseUrl: "http://198.51.100.10:32400",
               token: "server-token",
             },
             options,
@@ -593,7 +601,7 @@ void test("validates Plex PMS redirects before following them", async () => {
 
       assert.deepEqual(
         requests.map((request) => request.url),
-        ["http://1.1.1.1:32400/identity"],
+        ["http://198.51.100.10:32400/identity"],
       );
       assert.equal(requests[0]?.redirect, "manual");
     },
@@ -606,16 +614,16 @@ void test("follows Plex PMS redirects to public targets without forwarding token
   await withMockFetch(
     (request) => {
       requests.push(request);
-      if (request.url === "http://1.1.1.1:32400/identity") {
+      if (request.url === "http://198.51.100.10:32400/identity") {
         return new Response(null, {
           status: 302,
           headers: {
-            location: "http://1.1.1.2:32400/identity",
+            location: "http://203.0.113.20:32400/identity",
           },
         });
       }
 
-      if (request.url === "http://1.1.1.2:32400/identity") {
+      if (request.url === "http://203.0.113.20:32400/identity") {
         return jsonResponse({
           MediaContainer: {
             claimed: true,
@@ -630,7 +638,7 @@ void test("follows Plex PMS redirects to public targets without forwarding token
     async () => {
       const data = await requestPlexPmsIdentity(
         {
-          baseUrl: "http://1.1.1.1:32400",
+          baseUrl: "http://198.51.100.10:32400",
           token: "server-token",
         },
         options,
@@ -645,7 +653,10 @@ void test("follows Plex PMS redirects to public targets without forwarding token
       });
       assert.deepEqual(
         requests.map((request) => request.url),
-        ["http://1.1.1.1:32400/identity", "http://1.1.1.2:32400/identity"],
+        [
+          "http://198.51.100.10:32400/identity",
+          "http://203.0.113.20:32400/identity",
+        ],
       );
       assert.equal(requests[0]?.headers.get("X-Plex-Token"), "server-token");
       assert.equal(requests[1]?.headers.get("X-Plex-Token"), null);

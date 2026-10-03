@@ -31,7 +31,7 @@ const { values } = parseArgs({
 async function main() {
   if (values.help) {
     process.stdout.write(
-      `Usage: pnpm assets:capture --media-dir /path/to/media [options]\n\n  --hero <relative-file>       Default hero.mkv\n  --mobile <relative-file>     Default mobile.mkv\n  --hero-seconds <seconds>     Recording duration; default 82/30\n  --mobile-seconds <seconds>   Recording duration; default 3\n  --hero-subtitle <track-key>  Override the preferred text subtitle track\n  --mobile-subtitle <track-key>\n  --write                     Replace all six www assets after validation\n\nSelections remain hero 496.07–499.01 and mobile 1402–1412 seconds.\n`,
+      `Usage: pnpm assets:capture --media-dir /path/to/media [options]\n\n  --hero <relative-file>       Default hero.mkv\n  --mobile <relative-file>     Default mobile.mkv\n  --hero-seconds <seconds>     Recording duration; default 82/30\n  --mobile-seconds <seconds>   Recording duration; default 3\n  --hero-subtitle <track-key>  Override the preferred text subtitle track\n  --mobile-subtitle <track-key>\n  --write                     Replace previews, docs images, and social preview after validation\n\nSelections remain hero 111.95–114.89 and mobile 129.6–139.6 seconds.\n`,
     );
     return;
   }
@@ -79,7 +79,7 @@ async function main() {
   await run("docker", ["info"], { capture: true, timeout: 15_000 });
   const runs = path.join(root, ".asset-capture");
   await mkdir(runs, { recursive: true });
-  const output = await mkdtemp(path.join(runs, "run-"));
+  const output = await realpath(await mkdtemp(path.join(runs, "run-")));
   await writeFile(
     path.join(output, "plan.json"),
     JSON.stringify({ scenes }, null, 2),
@@ -148,8 +148,20 @@ async function main() {
         }
       }
     }
+    if (values.write) {
+      for (const name of ["export-dialog.webp", "subtitle-panel.webp"]) {
+        await copyFile(
+          path.join(output, name),
+          path.join(root, "apps/www/public/docs", name),
+        );
+      }
+      await copyFile(
+        path.join(output, "og.jpg"),
+        path.join(root, "apps/www/public/og.jpg"),
+      );
+    }
     process.stdout.write(
-      `Capture complete: ${path.join(output, "review.html")}\n${values.write ? "Updated all six website assets.\n" : "Website assets unchanged; use --write to replace them.\n"}`,
+      `Capture complete: ${path.join(output, "review.html")}\n${values.write ? "Updated previews, documentation images, and social preview.\n" : "Website assets unchanged; use --write to replace them.\n"}`,
     );
   } catch (error) {
     const logs = await docker(

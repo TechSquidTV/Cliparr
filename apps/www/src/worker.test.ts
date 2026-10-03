@@ -121,7 +121,7 @@ void test("public .md URLs rewrite internally and canonicalize to production HTM
   ] as const) {
     const env = environment();
     const response = await worker.fetch(
-      new Request(`https://preview.workers.dev${publicPath}?ref=test`, {
+      new Request(`https://preview.example.test${publicPath}?ref=test`, {
         headers: { Accept: "text/html", "If-None-Match": '"old-markdown"' },
       }),
       env,

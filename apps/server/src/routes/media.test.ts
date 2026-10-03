@@ -99,7 +99,7 @@ void test("creates and proxies local URL media handles after a long edit", async
         cookie: sessionCookie,
       },
       body: JSON.stringify({
-        url: "http://1.1.1.1/video.mp4",
+        url: "http://198.51.100.10/video.mp4",
       }),
     });
 
@@ -130,7 +130,7 @@ void test("creates and proxies local URL media handles after a long edit", async
         return originalFetch(input, init);
       }
 
-      assert.equal(requestUrl, "http://1.1.1.1/video.mp4");
+      assert.equal(requestUrl, "http://198.51.100.10/video.mp4");
       const headers = new Headers(init?.headers);
       assert.equal(headers.get("range"), "bytes=0-3");
       assert.equal(headers.get("accept"), "video/mp4");
@@ -198,7 +198,7 @@ void test("requires an account session for local URL media handles", async () =>
         "content-type": "application/json",
       },
       body: JSON.stringify({
-        url: "http://1.1.1.1/video.mp4",
+        url: "http://198.51.100.10/video.mp4",
       }),
     });
 
@@ -251,7 +251,7 @@ for (const chunkSize of [128, 65_536]) {
             cookie: sessionCookie,
             "content-type": "application/json",
           },
-          body: JSON.stringify({ url: "http://1.1.1.1/error.mp4" }),
+          body: JSON.stringify({ url: "http://198.51.100.10/error.mp4" }),
         });
         assert.equal(created.status, 201);
         const { mediaUrl } = (await created.json()) as { mediaUrl: string };
@@ -308,7 +308,7 @@ for (const body of ["  Upstream\n\t failed: café 😞  ", ""]) {
             cookie: sessionCookie,
             "content-type": "application/json",
           },
-          body: JSON.stringify({ url: "http://1.1.1.1/error.mp4" }),
+          body: JSON.stringify({ url: "http://198.51.100.10/error.mp4" }),
         });
         const { mediaUrl } = (await created.json()) as { mediaUrl: string };
         const response = await originalFetch(`${baseUrl}${mediaUrl}`, {
@@ -337,17 +337,17 @@ void test("proxies redirected extensionless HLS through local URL handles with b
     const upstreamRequests: string[] = [];
     globalThis.fetch = async (input, init) => {
       const url = fetchInputUrl(input);
-      if (!url.startsWith("http://1.1.1.1/")) {
+      if (!url.startsWith("http://198.51.100.10/")) {
         return originalFetch(input, init);
       }
       upstreamRequests.push(url);
-      if (url === "http://1.1.1.1/live") {
+      if (url === "http://198.51.100.10/live") {
         return new Response(null, {
           status: 302,
           headers: { location: "/moved/live" },
         });
       }
-      if (url === "http://1.1.1.1/moved/live") {
+      if (url === "http://198.51.100.10/moved/live") {
         const playlist = new Response(
           "#EXTM3U\n#EXT-X-BYTERANGE:4@0\nmovie.ts\n",
           {
@@ -357,7 +357,7 @@ void test("proxies redirected extensionless HLS through local URL handles with b
         Object.defineProperty(playlist, "url", { value: url });
         return playlist;
       }
-      assert.equal(url, "http://1.1.1.1/moved/movie.ts");
+      assert.equal(url, "http://198.51.100.10/moved/movie.ts");
       assert.equal(new Headers(init?.headers).get("range"), "bytes=0-3");
       return new Response("abcd", {
         status: 206,
@@ -371,7 +371,7 @@ void test("proxies redirected extensionless HLS through local URL handles with b
       const created = await originalFetch(`${baseUrl}/api/media/local-url`, {
         method: "POST",
         headers: { "content-type": "application/json", cookie: sessionCookie },
-        body: JSON.stringify({ url: "http://1.1.1.1/live" }),
+        body: JSON.stringify({ url: "http://198.51.100.10/live" }),
       });
       assert.equal(created.status, 201);
       const { mediaUrl } = (await created.json()) as { mediaUrl: string };
@@ -394,9 +394,9 @@ void test("proxies redirected extensionless HLS through local URL handles with b
       );
       assert.equal(await segment.text(), "abcd");
       assert.deepEqual(upstreamRequests, [
-        "http://1.1.1.1/live",
-        "http://1.1.1.1/moved/live",
-        "http://1.1.1.1/moved/movie.ts",
+        "http://198.51.100.10/live",
+        "http://198.51.100.10/moved/live",
+        "http://198.51.100.10/moved/movie.ts",
       ]);
     } finally {
       globalThis.fetch = originalFetch;

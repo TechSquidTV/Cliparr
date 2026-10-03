@@ -1,3 +1,4 @@
+import { TEST_PLEX_BASE_URL } from "@/test/providerFixtures";
 import assert from "node:assert/strict";
 import test from "node:test";
 import { isApiError } from "@/http/errors";
@@ -17,11 +18,11 @@ void test("normalizes Plex server resources with JSON boolean flags", () => {
       clientIdentifier: "server-1",
       connections: [
         {
-          uri: "http://192.168.1.10:32400",
+          uri: TEST_PLEX_BASE_URL,
           local: true,
           relay: false,
           protocol: "http",
-          address: "192.168.1.10",
+          address: new URL(TEST_PLEX_BASE_URL).hostname,
           port: 32_400,
         },
       ],
@@ -74,7 +75,7 @@ void test("keeps discovered Plex server resources when at least one exists", () 
       connections: [
         {
           id: "connection-1",
-          uri: "http://plex.local:32400",
+          uri: "http://plex.example.test:32400",
           local: true,
           relay: false,
         },

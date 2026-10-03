@@ -1,3 +1,7 @@
+import {
+  TEST_JELLYFIN_BASE_URL,
+  useProviderFixtures,
+} from "@/test/providerFixtures";
 import assert from "node:assert/strict";
 import test from "node:test";
 import type { Request, Response } from "express";
@@ -39,7 +43,7 @@ function createSession(): ProviderSessionRecord {
 function createContext(): JellyfinSourceContext {
   return {
     sourceId: "source-1",
-    baseUrl: "http://192.168.1.50:8096",
+    baseUrl: TEST_JELLYFIN_BASE_URL,
     token: "provider-token",
     userId: "user-1",
     deviceId: "cliparr-device-1",
@@ -53,7 +57,7 @@ function createSource(): MediaSource {
     providerAccountId: "account-1",
     name: "Jellyfin",
     enabled: true,
-    baseUrl: "http://192.168.1.50:8096",
+    baseUrl: TEST_JELLYFIN_BASE_URL,
     connection: {},
     credentials: {
       accessToken: "provider-token",
@@ -485,7 +489,7 @@ void test("preserves Jellyfin base paths for streams, previews, artwork, and sub
     const session = createSession();
     const source = {
       ...createSource(),
-      baseUrl: `http://192.168.1.50:8096${prefix}`,
+      baseUrl: `${TEST_JELLYFIN_BASE_URL}${prefix}`,
     };
     const normalizedPrefix = prefix.replace(/\/$/, "");
     const upstreamFetch = createJellyfinPlaybackFetch({
@@ -920,7 +924,7 @@ void test("strips Jellyfin auth headers from cross-origin media redirects", asyn
     id: "handle-1",
     providerId: "jellyfin",
     sourceId: "source-1",
-    baseUrl: "http://192.168.1.50:8096",
+    baseUrl: TEST_JELLYFIN_BASE_URL,
     path: "/Videos/item-1/stream",
     token: "provider-token",
     providerMetadata: {
@@ -940,7 +944,7 @@ void test("strips Jellyfin auth headers from cross-origin media redirects", asyn
       return new Response(null, {
         status: 302,
         headers: {
-          location: "http://1.1.1.1/video.mp4",
+          location: "http://198.51.100.10/video.mp4",
         },
       });
     }
@@ -1049,3 +1053,5 @@ void test("live Jellyfin preparation propagates transient failures and the same 
   assert.ok(recovered[0].item.previewUrl);
   assert.equal(attempts, 2);
 });
+
+useProviderFixtures();

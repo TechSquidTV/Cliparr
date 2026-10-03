@@ -337,7 +337,9 @@ void test("logs into Jellyfin with a regular account and stores a remembered pro
           body: requestBody || undefined,
         });
 
-        if (requestUrl === "http://1.1.1.1:8096/jellyfin/System/Info/Public") {
+        if (
+          requestUrl === "http://198.51.100.10:8096/jellyfin/System/Info/Public"
+        ) {
           return jsonResponse({
             Id: "jellyfin-server-1",
             ServerName: "Jelly Lab",
@@ -347,7 +349,8 @@ void test("logs into Jellyfin with a regular account and stores a remembered pro
         }
 
         if (
-          requestUrl === "http://1.1.1.1:8096/jellyfin/Users/AuthenticateByName"
+          requestUrl ===
+          "http://198.51.100.10:8096/jellyfin/Users/AuthenticateByName"
         ) {
           return jsonResponse({
             AccessToken: "jellyfin-user-token",
@@ -373,7 +376,8 @@ void test("logs into Jellyfin with a regular account and stores a remembered pro
               "content-type": "application/json",
             },
             body: JSON.stringify({
-              serverUrl: "http://1.1.1.1:8096/jellyfin/?discard=true#fragment",
+              serverUrl:
+                "http://198.51.100.10:8096/jellyfin/?discard=true#fragment",
               username: "viewer",
               password: "secret",
             }),
@@ -405,7 +409,7 @@ void test("logs into Jellyfin with a regular account and stores a remembered pro
         const sources = listMediaSources({ providerId: "jellyfin" });
         assert.equal(sources.length, 1);
         assert.equal(sources[0]?.name, "Jelly Lab");
-        assert.equal(sources[0]?.baseUrl, "http://1.1.1.1:8096/jellyfin");
+        assert.equal(sources[0]?.baseUrl, "http://198.51.100.10:8096/jellyfin");
         assert.equal(
           sources[0]?.credentials.accessToken,
           "jellyfin-user-token",
@@ -430,7 +434,9 @@ void test("rejects Jellyfin credential-login redirects to loopback before connec
           redirectMode: init?.redirect,
         });
 
-        if (requestUrl === "http://1.1.1.1:8096/jellyfin/System/Info/Public") {
+        if (
+          requestUrl === "http://198.51.100.10:8096/jellyfin/System/Info/Public"
+        ) {
           return new Response(null, {
             status: 302,
             headers: {
@@ -450,7 +456,7 @@ void test("rejects Jellyfin credential-login redirects to loopback before connec
               "content-type": "application/json",
             },
             body: JSON.stringify({
-              serverUrl: "http://1.1.1.1:8096/jellyfin",
+              serverUrl: "http://198.51.100.10:8096/jellyfin",
               username: "admin",
               password: "secret",
             }),
@@ -464,7 +470,7 @@ void test("rejects Jellyfin credential-login redirects to loopback before connec
         assert.equal(body.error?.code, "invalid_jellyfin_server_url");
         assert.deepEqual(
           upstreamRequests.map((request) => request.url),
-          ["http://1.1.1.1:8096/jellyfin/System/Info/Public"],
+          ["http://198.51.100.10:8096/jellyfin/System/Info/Public"],
         );
         assert.equal(upstreamRequests[0]?.redirectMode, "manual");
       },
@@ -481,16 +487,20 @@ void test("follows Jellyfin credential-login redirects to public targets", async
         const requestUrl = fetchInputUrl(input);
         upstreamRequests.push(requestUrl);
 
-        if (requestUrl === "http://1.1.1.1:8096/jellyfin/System/Info/Public") {
+        if (
+          requestUrl === "http://198.51.100.10:8096/jellyfin/System/Info/Public"
+        ) {
           return new Response(null, {
             status: 302,
             headers: {
-              location: "http://1.1.1.2:8096/jellyfin/System/Info/Public",
+              location: "http://203.0.113.20:8096/jellyfin/System/Info/Public",
             },
           });
         }
 
-        if (requestUrl === "http://1.1.1.2:8096/jellyfin/System/Info/Public") {
+        if (
+          requestUrl === "http://203.0.113.20:8096/jellyfin/System/Info/Public"
+        ) {
           return jsonResponse({
             Id: "jellyfin-server-1",
             ServerName: "Jelly Lab",
@@ -500,7 +510,8 @@ void test("follows Jellyfin credential-login redirects to public targets", async
         }
 
         if (
-          requestUrl === "http://1.1.1.1:8096/jellyfin/Users/AuthenticateByName"
+          requestUrl ===
+          "http://198.51.100.10:8096/jellyfin/Users/AuthenticateByName"
         ) {
           return jsonResponse({
             AccessToken: "jellyfin-user-token",
@@ -526,7 +537,7 @@ void test("follows Jellyfin credential-login redirects to public targets", async
               "content-type": "application/json",
             },
             body: JSON.stringify({
-              serverUrl: "http://1.1.1.1:8096/jellyfin",
+              serverUrl: "http://198.51.100.10:8096/jellyfin",
               username: "admin",
               password: "secret",
             }),
@@ -539,9 +550,9 @@ void test("follows Jellyfin credential-login redirects to public targets", async
         };
         assert.equal(body.session?.providerId, "jellyfin");
         assert.deepEqual(upstreamRequests, [
-          "http://1.1.1.1:8096/jellyfin/System/Info/Public",
-          "http://1.1.1.2:8096/jellyfin/System/Info/Public",
-          "http://1.1.1.1:8096/jellyfin/Users/AuthenticateByName",
+          "http://198.51.100.10:8096/jellyfin/System/Info/Public",
+          "http://203.0.113.20:8096/jellyfin/System/Info/Public",
+          "http://198.51.100.10:8096/jellyfin/Users/AuthenticateByName",
         ]);
       },
     );
@@ -824,7 +835,7 @@ void test("refreshes Jellyfin source health after account permission changes", a
       providerAccountId: account.id,
       externalId: "jellyfin-server-1",
       name: "Jellyfin",
-      baseUrl: "http://1.1.1.1:8096",
+      baseUrl: "http://198.51.100.10:8096",
       credentials: {
         accessToken: "jellyfin-user-token",
         userId: "admin-user",
@@ -848,7 +859,7 @@ void test("refreshes Jellyfin source health after account permission changes", a
       async (input) => {
         const requestUrl = fetchInputUrl(input);
 
-        if (requestUrl === "http://1.1.1.1:8096/System/Info/Public") {
+        if (requestUrl === "http://198.51.100.10:8096/System/Info/Public") {
           return jsonResponse({
             Id: "jellyfin-server-1",
             ServerName: "Jelly Lab",
@@ -857,7 +868,7 @@ void test("refreshes Jellyfin source health after account permission changes", a
           });
         }
 
-        if (requestUrl === "http://1.1.1.1:8096/Users/Me") {
+        if (requestUrl === "http://198.51.100.10:8096/Users/Me") {
           return jsonResponse({
             Id: "admin-user",
             Name: "Admin",
@@ -868,7 +879,8 @@ void test("refreshes Jellyfin source health after account permission changes", a
         }
 
         if (
-          requestUrl === "http://1.1.1.1:8096/Sessions?activeWithinSeconds=300"
+          requestUrl ===
+          "http://198.51.100.10:8096/Sessions?activeWithinSeconds=300"
         ) {
           return jsonResponse([]);
         }

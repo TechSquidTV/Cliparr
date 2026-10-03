@@ -167,16 +167,18 @@ export const tailscaleDockerRunCommandVariants = [
   },
 ] satisfies readonly CommandExampleVariant[];
 
-const wireguardDockerRunCommand = String.raw`docker run -d \
-  --name cliparr \
-  -p 10.8.0.1:7171:7171 \
-  -e APP_KEY="your-32-char-stable-random-secret" \
-  -v cliparr-data:/data \
+const wireguardDockerRunCommand = `: "\${WIREGUARD_BIND_ADDRESS:?Set WIREGUARD_BIND_ADDRESS to your VPN address}"
+docker run -d \\
+  --name cliparr \\
+  -p "$WIREGUARD_BIND_ADDRESS:7171:7171" \\
+  -e APP_KEY="your-32-char-stable-random-secret" \\
+  -v cliparr-data:/data \\
   ghcr.io/techsquidtv/cliparr:latest`;
 
-const wireguardDockerRunPowerShellCommand = `docker run -d \`
+const wireguardDockerRunPowerShellCommand = `if (-not $env:WIREGUARD_BIND_ADDRESS) { throw "Set WIREGUARD_BIND_ADDRESS to your VPN address" }
+docker run -d \`
   --name cliparr \`
-  -p 10.8.0.1:7171:7171 \`
+  -p "$($env:WIREGUARD_BIND_ADDRESS):7171:7171" \`
   -e APP_KEY="your-32-char-stable-random-secret" \`
   -v cliparr-data:/data \`
   ghcr.io/techsquidtv/cliparr:latest`;

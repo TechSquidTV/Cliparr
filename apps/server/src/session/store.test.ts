@@ -550,7 +550,7 @@ void test("caches mapped sessions without another DB read and refreshes after a 
     assert.equal(first.mediaHandles, created.mediaHandles);
     assert.equal(first.userToken, "user-token");
     first.mediaHandles.set("live", {
-      id: "live", providerId: "plex", sourceId: "source-1", baseUrl: "http://plex.local",
+      id: "live", providerId: "plex", sourceId: "source-1", baseUrl: "http://plex.example.test",
       path: "/segment.ts", token: "provider-token", lastAccessedAt: Date.now(),
     });
     db.update(providerSessions).set({ userToken: encryptSecret("new-user-token") })

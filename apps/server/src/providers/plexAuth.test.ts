@@ -1,3 +1,4 @@
+import { TEST_PLEX_BASE_URL } from "@/test/providerFixtures";
 import assert from "node:assert/strict";
 import test from "node:test";
 import { isApiError } from "@/http/errors";
@@ -71,7 +72,7 @@ void test("requires the starter poll token before completing Plex auth", async (
             clientIdentifier: "server-1",
             connections: [
               {
-                uri: "http://192.168.1.10:32400",
+                uri: TEST_PLEX_BASE_URL,
                 local: true,
                 relay: false,
               },

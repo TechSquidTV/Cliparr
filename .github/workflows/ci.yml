@@ -42,6 +42,10 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Privacy fixture check
+        id: privacy
+        run: pnpm privacy:check
+
       - name: Format
         id: format
         run: pnpm format:check

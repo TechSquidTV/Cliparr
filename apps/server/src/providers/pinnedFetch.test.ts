@@ -1,3 +1,5 @@
+import { TEST_PUBLIC_ADDRESS } from "@/test/providerFixtures";
+import { PRIVATE_IPV4_ADDRESSES } from "@/test/networkPolicyFixtures";
 import assert from "node:assert/strict";
 import dns from "node:dns/promises";
 import { createServer } from "node:http";
@@ -196,7 +198,7 @@ void test("passes validated media DNS addresses to a pinned dispatcher", async (
   context.mock.method(dns, "lookup", async () => {
     resolutions += 1;
     return [
-      { address: resolutions === 1 ? "93.184.216.34" : "127.0.0.1", family: 4 },
+      { address: resolutions === 1 ? "192.0.2.10" : "127.0.0.1", family: 4 },
     ];
   });
   syncBuiltinESMExports();
@@ -217,7 +219,7 @@ void test("passes validated media DNS addresses to a pinned dispatcher", async (
       id: "dns-pinning",
       providerId: "plex",
       sourceId: "source-1",
-      baseUrl: "http://plex.local:32400",
+      baseUrl: "http://plex.example.test:32400",
       path: "https://media-rebinding.invalid/clip.mp4",
       token: "token",
       lastAccessedAt: 0,
@@ -281,7 +283,7 @@ for (const provider of ["plex", "jellyfin"] as const) {
     let requests = 0;
     context.mock.method(dns, "lookup", async () => {
       resolutions += 1;
-      return [{ address: "93.184.216.34", family: 4 }];
+      return [{ address: "192.0.2.10", family: 4 }];
     });
     syncBuiltinESMExports();
     context.mock.method(
@@ -293,7 +295,7 @@ for (const provider of ["plex", "jellyfin"] as const) {
       ) => {
         requests += 1;
         const request = new Request(input, init);
-        if (new URL(request.url).hostname === `${provider}.local`) {
+        if (new URL(request.url).hostname === `${provider}.example.test`) {
           return new Response(null, {
             status: 302,
             headers: { location: `https://${provider}-redirect.invalid/api` },
@@ -312,7 +314,7 @@ for (const provider of ["plex", "jellyfin"] as const) {
     try {
       if (provider === "plex") {
         await requestPlexPmsIdentity(
-          { baseUrl: "http://plex.local", token: "provider-token" },
+          { baseUrl: "http://plex.example.test", token: "provider-token" },
           {
             clientIdentifier: "test",
             product: "Cliparr",
@@ -320,7 +322,9 @@ for (const provider of ["plex", "jellyfin"] as const) {
           },
         );
       } else {
-        await fetchPublicSystemInfo({ baseUrl: "http://jellyfin.local" });
+        await fetchPublicSystemInfo({
+          baseUrl: "http://jellyfin.example.test",
+        });
       }
       assert.equal(resolutions, 2);
       assert.equal(requests, 2);
@@ -331,7 +335,7 @@ for (const provider of ["plex", "jellyfin"] as const) {
   });
 }
 
-for (const address of ["93.184.216.34", "192.168.1.50"]) {
+for (const address of [TEST_PUBLIC_ADDRESS, ...PRIVATE_IPV4_ADDRESSES]) {
   void test(`pins initial Plex PMS requests to validated ${address} addresses`, async (context) => {
     let resolutions = 0;
     context.mock.method(dns, "lookup", async () => {
@@ -381,7 +385,7 @@ for (const address of ["127.0.0.1", "169.254.169.254", "::1"]) {
       }
     });
     context.mock.method(dns, "lookup", async () => [
-      { address: "192.168.1.50", family: 4 },
+      { address: TEST_PUBLIC_ADDRESS, family: 4 },
       { address, family: address === "::1" ? 6 : 4 },
     ]);
     syncBuiltinESMExports();
@@ -404,7 +408,7 @@ for (const address of ["127.0.0.1", "169.254.169.254", "::1"]) {
   });
 }
 
-for (const address of ["93.184.216.34", "192.168.1.50"]) {
+for (const address of [TEST_PUBLIC_ADDRESS, ...PRIVATE_IPV4_ADDRESSES]) {
   void test(`pins initial Jellyfin sign-in requests to validated ${address} addresses`, async (context) => {
     let resolutions = 0;
     const paths: string[] = [];
@@ -463,7 +467,7 @@ void test("rejects Jellyfin DNS rebinding before sending sign-in credentials", a
     resolutions += 1;
     return [
       {
-        address: resolutions < 3 ? "93.184.216.34" : "169.254.169.254",
+        address: resolutions < 3 ? "192.0.2.10" : "169.254.169.254",
         family: 4,
       },
     ];

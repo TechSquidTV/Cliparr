@@ -1,3 +1,7 @@
+import {
+  TEST_PLEX_BASE_URL,
+  useProviderFixtures,
+} from "@/test/providerFixtures";
 import { jellyfinPlaybackIdentity } from "@/providers/jellyfin/playback";
 import assert from "node:assert/strict";
 import test from "node:test";
@@ -17,7 +21,7 @@ const source: MediaSource = {
   providerAccountId: "account",
   name: "Server",
   enabled: true,
-  baseUrl: "http://192.168.1.50:32400",
+  baseUrl: TEST_PLEX_BASE_URL,
   connection: { baseUrlMode: "manual" },
   credentials: { accessToken: "private" },
   metadata: { owned: true, provides: ["server"] },
@@ -328,3 +332,5 @@ for (const phase of ["initial discovery", "snapshot refresh"] as const) {
     },
   );
 }
+
+useProviderFixtures();
