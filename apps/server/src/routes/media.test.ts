@@ -208,6 +208,129 @@ void test("requires an account session for local URL media handles", async () =>
   });
 });
 
+for (const chunkSize of [128, 65_536]) {
+  void test(`bounds and cancels local URL error bodies with ${chunkSize}-byte chunks`, async (context) => {
+    await withMediaApp(async (baseUrl, sessionCookie) => {
+      const originalFetch = globalThis.fetch;
+      let cancelled = false;
+      let pulls = 0;
+      context.mock.method(
+        globalThis,
+        "fetch",
+        async (input: Parameters<typeof fetch>[0], init?: RequestInit) => {
+          if (fetchInputUrl(input).startsWith(baseUrl)) {
+            return originalFetch(input, init);
+          }
+          return new Response(
+            new ReadableStream<Uint8Array>({
+              pull(controller) {
+                pulls++;
+                // Fail quickly if the reader drains this unbounded error stream.
+                if (pulls > Math.ceil(4096 / chunkSize) + 2) {
+                  controller.error(
+                    new Error("Error body read exceeded its limit"),
+                  );
+                  return;
+                }
+                controller.enqueue(
+                  new TextEncoder().encode("x".repeat(chunkSize)),
+                );
+              },
+              cancel() {
+                cancelled = true;
+              },
+            }),
+            { status: 404 },
+          );
+        },
+      );
+      try {
+        const created = await originalFetch(`${baseUrl}/api/media/local-url`, {
+          method: "POST",
+          headers: {
+            cookie: sessionCookie,
+            "content-type": "application/json",
+          },
+          body: JSON.stringify({ url: "http://1.1.1.1/error.mp4" }),
+        });
+        assert.equal(created.status, 201);
+        const { mediaUrl } = (await created.json()) as { mediaUrl: string };
+        const response = await originalFetch(`${baseUrl}${mediaUrl}`, {
+          headers: { cookie: sessionCookie },
+        });
+        assert.equal(response.status, 404);
+        assert.deepEqual(await response.json(), {
+          error: {
+            code: "local_media_url_failed",
+            message: `URL media request failed: ${"x".repeat(400)}`,
+          },
+        });
+        assert.equal(cancelled, true);
+        assert.ok(pulls <= Math.ceil(4096 / chunkSize) + 2);
+      } finally {
+        context.mock.restoreAll();
+      }
+    });
+  });
+}
+
+for (const body of ["  Upstream\n\t failed: café 😞  ", ""]) {
+  void test(`preserves small local URL error details for ${JSON.stringify(body)}`, async (context) => {
+    await withMediaApp(async (baseUrl, sessionCookie) => {
+      const originalFetch = globalThis.fetch;
+      context.mock.method(
+        globalThis,
+        "fetch",
+        async (input: Parameters<typeof fetch>[0], init?: RequestInit) => {
+          if (fetchInputUrl(input).startsWith(baseUrl)) {
+            return originalFetch(input, init);
+          }
+          const bytes = new TextEncoder().encode(body);
+          let offset = 0;
+          return new Response(
+            new ReadableStream<Uint8Array>({
+              pull(controller) {
+                if (offset === bytes.length) {
+                  controller.close();
+                } else {
+                  controller.enqueue(bytes.slice(offset, ++offset));
+                }
+              },
+            }),
+            { status: 404 },
+          );
+        },
+      );
+      try {
+        const created = await originalFetch(`${baseUrl}/api/media/local-url`, {
+          method: "POST",
+          headers: {
+            cookie: sessionCookie,
+            "content-type": "application/json",
+          },
+          body: JSON.stringify({ url: "http://1.1.1.1/error.mp4" }),
+        });
+        const { mediaUrl } = (await created.json()) as { mediaUrl: string };
+        const response = await originalFetch(`${baseUrl}${mediaUrl}`, {
+          headers: { cookie: sessionCookie },
+        });
+        assert.equal(response.status, 404);
+        const detail = body.slice(0, 400).replaceAll(/\s+/g, " ").trim();
+        assert.deepEqual(await response.json(), {
+          error: {
+            code: "local_media_url_failed",
+            message: detail
+              ? `URL media request failed: ${detail}`
+              : "URL media request failed",
+          },
+        });
+      } finally {
+        context.mock.restoreAll();
+      }
+    });
+  });
+}
+
 void test("proxies redirected extensionless HLS through local URL handles with byte ranges", async () => {
   await withMediaApp(async (baseUrl, sessionCookie) => {
     const originalFetch = globalThis.fetch;

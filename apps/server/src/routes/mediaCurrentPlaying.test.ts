@@ -117,7 +117,7 @@ function playbackEntry(
   };
 }
 
-void test("aggregates currently playing results across enabled sources with partial failures", async () => {
+void test("aggregates only the session account's enabled sources with partial failures", async () => {
   await withTestApp(async (baseUrl) => {
     const account = upsertProviderAccountByAccessToken({
       providerId: "plex",
@@ -218,10 +218,10 @@ void test("aggregates currently playing results across enabled sources with part
         }>;
       };
 
-      assert.deepEqual(calls, ["Alpha", "Failure", "Omega", "Zeta"]);
+      assert.deepEqual(calls, ["Alpha", "Failure", "Zeta"]);
       assert.deepEqual(
         body.viewers?.map((group) => group.viewer.name),
-        ["Alice", "Bob", "Carol"],
+        ["Alice", "Bob"],
       );
       assert.deepEqual(
         body.viewers?.[0]?.items.map((item) => item.source.name),

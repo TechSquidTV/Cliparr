@@ -26,6 +26,7 @@ import type { MediaSource } from "@/db/mediaSourcesRepository";
 import { createApiError, isApiError } from "@/http/errors";
 import { fetchWithPinnedDns } from "@/providers/shared/pinnedFetch";
 import {
+  booleanEnv,
   errorMessage,
   numberValue,
   stringValue,
@@ -103,16 +104,6 @@ export type JellyfinAuthenticationResult = AuthenticationResult;
 
 export function booleanValue(value: unknown) {
   return typeof value === "boolean" ? value : undefined;
-}
-
-function booleanEnv(value: string | undefined) {
-  const normalized = value?.trim().toLowerCase();
-  return (
-    normalized === "1" ||
-    normalized === "true" ||
-    normalized === "yes" ||
-    normalized === "on"
-  );
 }
 
 function deriveJellyfinDeviceId() {

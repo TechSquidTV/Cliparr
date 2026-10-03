@@ -15,6 +15,7 @@ import { createApp } from "@/app";
 import { plexProvider } from "@/providers/plex/provider";
 import { createProviderSession, getSessionCookieName } from "@/session/store";
 import { PLEX_BASE_URL_MODE_MANUAL } from "@/providers/plex/connectionState";
+import { isApiError } from "@/http/errors";
 
 const TEST_APP_KEY = "provider-routes-test-key-with-at-least-32-characters";
 
@@ -113,6 +114,48 @@ async function withMockedFetch<T>(
     globalThis.fetch = originalFetch;
   }
 }
+
+void test("rejects a persisted Plex source loopback baseUrl before any upstream fetch", async (context) => {
+  const previousLoopbackSetting = process.env.CLIPARR_ALLOW_LOOPBACK_PLEX_URLS;
+  delete process.env.CLIPARR_ALLOW_LOOPBACK_PLEX_URLS;
+  context.after(() => {
+    restoreEnv("CLIPARR_ALLOW_LOOPBACK_PLEX_URLS", previousLoopbackSetting);
+  });
+  await withTestApp(async () => {
+    const account = upsertProviderAccountByAccessToken({
+      providerId: "plex",
+      label: "Loopback test account",
+      accessToken: "account-token",
+    });
+    assert.ok(account);
+    const source = upsertMediaSource({
+      providerId: "plex",
+      providerAccountId: account.id,
+      externalId: "loopback-server",
+      name: "Loopback",
+      baseUrl: "http://127.0.0.1:32400",
+      connection: { baseUrlMode: PLEX_BASE_URL_MODE_MANUAL },
+      credentials: { accessToken: "server-token" },
+      metadata: { owned: true, provides: ["server"] },
+    });
+    assert.ok(source);
+    const session = createProviderSession({
+      providerId: "plex",
+      providerAccountId: account.id,
+      userToken: "account-token",
+    });
+    await withMockedFetch(
+      async () => assert.fail("Loopback sources must not be fetched"),
+      async () => {
+        await assert.rejects(
+          plexProvider.listCurrentlyPlaying(session, source),
+          (error: Error) =>
+            isApiError(error) && error.code === "plex_unsafe_redirect",
+        );
+      },
+    );
+  });
+});
 
 void test("completes Plex PIN auth through route cookies and persists sources", async () => {
   await withTestApp(async (baseUrl, fetchLocal) => {
@@ -505,7 +548,7 @@ void test("follows Jellyfin credential-login redirects to public targets", async
   });
 });
 
-void test("updates sources across connected accounts and preserves Plex manual URL mode", async () => {
+void test("scopes source routes to the session account and preserves Plex manual URL mode", async () => {
   await withTestApp(async (baseUrl, fetchLocal) => {
     const account = upsertProviderAccountByAccessToken({
       providerId: "plex",
@@ -565,20 +608,43 @@ void test("updates sources across connected accounts and preserves Plex manual U
     });
     const sessionCookie = `${getSessionCookieName()}=${session.id}`;
 
-    const crossAccountResponse = await fetchLocal(
-      `${baseUrl}/api/sources/${jellyfinSource.id}`,
+    for (const foreignSource of [otherSource, jellyfinSource]) {
+      for (const method of ["GET", "PATCH", "DELETE", "POST"]) {
+        const response = await fetchLocal(
+          `${baseUrl}/api/sources/${foreignSource.id}${method === "POST" ? "/check" : ""}`,
+          {
+            method,
+            headers: {
+              cookie: sessionCookie,
+              "content-type": "application/json",
+            },
+            body:
+              method === "PATCH"
+                ? JSON.stringify({ name: "Hijacked" })
+                : undefined,
+          },
+        );
+        assert.equal(response.status, 404);
+        assert.deepEqual(await response.json(), {
+          error: { code: "source_not_found", message: "Source was not found" },
+        });
+      }
+      assert.equal(
+        getMediaSourceForAccount(
+          foreignSource.id,
+          foreignSource.providerAccountId,
+        )?.name,
+        foreignSource.name,
+      );
+    }
+
+    const ownResponse = await fetchLocal(
+      `${baseUrl}/api/sources/${source.id}`,
       {
-        headers: {
-          cookie: sessionCookie,
-        },
+        headers: { cookie: sessionCookie },
       },
     );
-    assert.equal(crossAccountResponse.status, 200);
-    const crossAccountBody = (await crossAccountResponse.json()) as {
-      source?: { id?: string; providerId?: string };
-    };
-    assert.equal(crossAccountBody.source?.id, jellyfinSource.id);
-    assert.equal(crossAccountBody.source?.providerId, "jellyfin");
+    assert.equal(ownResponse.status, 200);
 
     const rejectedPatchResponse = await fetchLocal(
       `${baseUrl}/api/sources/${source.id}`,
@@ -635,10 +701,9 @@ void test("updates sources across connected accounts and preserves Plex manual U
     const listed = (await listResponse.json()) as {
       sources?: Array<{ id: string }>;
     };
-    assert.deepEqual(
-      listed.sources?.map((item) => item.id).toSorted(),
-      [jellyfinSource.id, otherSource.id, source.id].toSorted(),
-    );
+    assert.deepEqual(listed.sources?.map((item) => item.id).toSorted(), [
+      source.id,
+    ]);
   });
 });
 
