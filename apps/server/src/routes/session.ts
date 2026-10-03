@@ -8,6 +8,7 @@ import {
   createRememberedProviderSession,
   getRememberedProviderSession,
   revokeRememberedProviderSession,
+  rotateRememberedProviderSession,
 } from "@/db/rememberedProviderSessionsRepository";
 import { deleteProviderAccount } from "@/db/providerAccountsRepository";
 import { asyncHandler, createApiError } from "@/http/errors";
@@ -49,12 +50,10 @@ sessionRouter.get(
         rememberedSession?.providerAccountId,
       );
     if (!session) {
+      // Another restore may already have refreshed the browser's shared
+      // cookies. A failed request must not erase those newer credentials.
       if (rememberedToken) {
         revokeRememberedProviderSession(rememberedToken);
-        res.clearCookie(
-          getRememberedProviderSessionCookieName(),
-          getRememberedProviderSessionCookieClearOptions(request.secure),
-        );
         logger.info("Remembered provider session was revoked.", {
           ...logEventFields("session.restore", "failure"),
           ...logDurationFields(startedAt),
@@ -86,15 +85,29 @@ sessionRouter.get(
       revokeRememberedProviderSession(rememberedToken);
     }
 
+    // Rotate only after a successful restore, so failure cannot orphan a fresh
+    // token that the client never receives.
+    let rotatedRememberedToken: string | undefined;
+    if (!cookieSession && rememberedToken && rememberedSession) {
+      const rotated = rotateRememberedProviderSession(rememberedToken);
+      if (rotated) {
+        rotatedRememberedToken = rotated.token;
+      }
+      // A lost rotation race must also leave the shared remember cookie alone.
+      // The session established above still authenticates this request.
+    }
+
     res.cookie(
       getSessionCookieName(),
       session.id,
       getSessionCookieOptions(request.secure),
     );
-    if (nextRememberedSession) {
+    const nextRememberedToken =
+      nextRememberedSession?.token ?? rotatedRememberedToken;
+    if (nextRememberedToken) {
       res.cookie(
         getRememberedProviderSessionCookieName(),
-        nextRememberedSession.token,
+        nextRememberedToken,
         getRememberedProviderSessionCookieOptions(request.secure),
       );
     }

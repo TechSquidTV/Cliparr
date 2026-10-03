@@ -5,6 +5,7 @@ import { createApp } from "@/app";
 import { resolveServerPort } from "@/config/serverPort";
 import { closeDatabase } from "@/db/database";
 import { configureLogging, fatalWithError, getServerLogger } from "@/logging";
+import { startExpiredSessionSweep } from "@/session/sweep";
 
 const logger = getServerLogger("lifecycle");
 
@@ -29,6 +30,8 @@ async function startServer() {
     });
   });
 
+  const stopExpiredSessionSweep = startExpiredSessionSweep();
+
   let shuttingDown = false;
   let databaseClosed = false;
 
@@ -49,6 +52,7 @@ async function startServer() {
 
     shuttingDown = true;
     logger.info("Shutting down server.");
+    stopExpiredSessionSweep();
 
     // Close all connections immediately in modern Node.js to release ports faster
     if (hasCloseAllConnections(server)) {

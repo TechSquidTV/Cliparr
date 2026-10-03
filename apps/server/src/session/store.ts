@@ -1,6 +1,6 @@
 import { notifyPlaybackStateChange } from "@/playback/stateChanges";
 import { randomUUID } from "node:crypto";
-import { eq } from "drizzle-orm";
+import { eq, lte } from "drizzle-orm";
 import { logErrorFields, logEventFields } from "@cliparr/shared/logging";
 import { getDatabase } from "@/db/database";
 import { getProviderAccount } from "@/db/providerAccountsRepository";
@@ -241,15 +241,19 @@ export function pruneSessionMediaHandles(
   return prunedCount;
 }
 
+function clearProviderSessionState(sessionId: string) {
+  sessionCache.delete(sessionId);
+  mediaHandlesBySessionId.delete(sessionId);
+  notifyPlaybackStateChange({ type: "session", sessionId });
+}
+
 export function deleteProviderSession(sessionId?: string) {
   if (sessionId) {
     getDatabase()
       .delete(providerSessions)
       .where(eq(providerSessions.id, sessionId))
       .run();
-    sessionCache.delete(sessionId);
-    mediaHandlesBySessionId.delete(sessionId);
-    notifyPlaybackStateChange({ type: "session", sessionId });
+    clearProviderSessionState(sessionId);
   }
 }
 
@@ -272,12 +276,28 @@ export function deleteProviderSessionsForProviderAccount(
     .run();
 
   for (const session of sessionRows) {
-    sessionCache.delete(session.id);
-    mediaHandlesBySessionId.delete(session.id);
-    notifyPlaybackStateChange({ type: "session", sessionId: session.id });
+    clearProviderSessionState(session.id);
   }
 
   return Number(result.changes);
+}
+
+// Deletes provider sessions past their expiry, including their cached
+// records and media handles. Expired sessions are also refused lazily on
+// access; this sweep keeps the table and in-memory maps from growing
+// unboundedly. Returns the number removed.
+export function purgeExpiredProviderSessions(now = Date.now()) {
+  const expiredSessions = getDatabase()
+    .delete(providerSessions)
+    .where(lte(providerSessions.expiresAt, now))
+    .returning({ id: providerSessions.id })
+    .all();
+
+  for (const { id } of expiredSessions) {
+    clearProviderSessionState(id);
+  }
+
+  return expiredSessions.length;
 }
 
 export function getSessionCookieName() {

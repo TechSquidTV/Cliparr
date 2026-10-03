@@ -211,7 +211,17 @@ void test("restores /api/session from a remembered provider session cookie", () 
 
         const setCookies = response.headers.getSetCookie();
         assert(setCookies.some((cookie) => cookie.startsWith(\`\${getSessionCookieName()}=\`)));
-        assert(!setCookies.some((cookie) => cookie.startsWith(\`\${getRememberedProviderSessionCookieName()}=\`)));
+        // Restoring via the remember credential rotates it: the response
+        // carries a fresh remember token different from the presented one.
+        const rotatedCookie = setCookies.find((cookie) =>
+          cookie.startsWith(\`\${getRememberedProviderSessionCookieName()}=\`),
+        );
+        assert(rotatedCookie);
+        assert(
+          !rotatedCookie.startsWith(
+            \`\${getRememberedProviderSessionCookieName()}=\${rememberedSession.token};\`,
+          ),
+        );
       } finally {
         await new Promise((resolve, reject) => server.close((err) => err ? reject(err) : resolve(undefined)));
         closeDatabase();
@@ -224,7 +234,7 @@ void test("restores /api/session from a remembered provider session cookie", () 
   }
 });
 
-void test("clears invalid remembered provider session cookies from /api/session", () => {
+void test("rejects invalid remembered provider session cookies without clearing shared cookies", () => {
   const dataDir = fs.mkdtempSync(
     path.join(os.tmpdir(), "cliparr-session-route-"),
   );
@@ -257,10 +267,7 @@ void test("clears invalid remembered provider session cookies from /api/session"
 
         assert.equal(response.status, 401);
         const setCookies = response.headers.getSetCookie();
-        assert(setCookies.some((cookie) =>
-          cookie.startsWith(\`\${getRememberedProviderSessionCookieName()}=\`)
-          && cookie.includes("Expires=Thu, 01 Jan 1970 00:00:00 GMT")
-        ));
+        assert.deepEqual(setCookies, []);
       } finally {
         await new Promise((resolve, reject) => server.close((err) => err ? reject(err) : resolve(undefined)));
         closeDatabase();

@@ -1,5 +1,5 @@
 import { randomBytes, randomUUID } from "node:crypto";
-import { eq } from "drizzle-orm";
+import { and, eq, gt, isNotNull, isNull, lte, or } from "drizzle-orm";
 import { getDatabase } from "@/db/database";
 import {
   rememberedProviderSessions,
@@ -8,7 +8,7 @@ import {
 import { currentTimestampSql } from "@/db/timestamps";
 import { hashSecret } from "@/security/secrets";
 
-export const REMEMBERED_PROVIDER_SESSION_TTL_MS = 1000 * 60 * 60 * 24 * 365;
+export const REMEMBERED_PROVIDER_SESSION_TTL_MS = 1000 * 60 * 60 * 24 * 30;
 
 export interface RememberedProviderSession {
   id: string;
@@ -105,4 +105,62 @@ export function revokeRememberedProviderSession(token?: string) {
     .run();
 
   return result.changes > 0;
+}
+
+// Issues a fresh token for a live remembered session and revokes the
+// presented one, so a stolen token dies the next time the legitimate client
+// uses it. The pair is applied transactionally: callers must treat an
+// undefined return as an invalid token.
+export function rotateRememberedProviderSession(
+  token?: string,
+): CreatedRememberedProviderSession | undefined {
+  if (!token) {
+    return;
+  }
+
+  return getDatabase().transaction(
+    (tx) => {
+      const now = Date.now();
+      // Claim the live credential under the write lock. A competing rotation,
+      // revocation, or sweep cannot leave us issuing a token from a stale row.
+      const row = tx
+        .update(rememberedProviderSessions)
+        .set({ revokedAt: now, updatedAt: currentTimestampSql() })
+        .where(
+          and(
+            eq(rememberedProviderSessions.tokenHash, hashSecret(token)),
+            isNull(rememberedProviderSessions.revokedAt),
+            gt(rememberedProviderSessions.expiresAt, now),
+          ),
+        )
+        .returning({
+          providerAccountId: rememberedProviderSessions.providerAccountId,
+        })
+        .get();
+      if (!row) {
+        return;
+      }
+
+      // Reuse creation inside the transaction so insertion failure rolls back
+      // the revocation and preserves the client's existing credential.
+      return createRememberedProviderSession(row.providerAccountId);
+    },
+    { behavior: "immediate" },
+  );
+}
+
+// Deletes remembered sessions that can never be used again: expired rows and
+// revoked rows (logout or rotation leftovers). Returns the number removed.
+export function purgeExpiredRememberedProviderSessions(now = Date.now()) {
+  const result = getDatabase()
+    .delete(rememberedProviderSessions)
+    .where(
+      or(
+        lte(rememberedProviderSessions.expiresAt, now),
+        isNotNull(rememberedProviderSessions.revokedAt),
+      ),
+    )
+    .run();
+
+  return Number(result.changes);
 }

@@ -64,6 +64,7 @@ function createCliparrRequestError(
 
 const authFailureListeners = new Set<() => void>();
 let authFailureQueued = false;
+let sessionRequest: Promise<ProviderSession> | null = null;
 let currentlyPlayingRequest: Promise<CurrentlyPlayingResponse> | null = null;
 
 function responseErrorDetails(payload: unknown): ResponseErrorDetails {
@@ -238,9 +239,15 @@ export const cliparrClient = {
     return data.session;
   },
 
-  async getSession() {
-    const data = await request<{ session: ProviderSession }>("/api/session");
-    return data.session;
+  getSession() {
+    // React StrictMode can run startup effects twice. Share the whole restore,
+    // including cookie rotation, until it completes rather than racing it.
+    sessionRequest ??= request<{ session: ProviderSession }>("/api/session")
+      .then((data) => data.session)
+      .finally(() => {
+        sessionRequest = null;
+      });
+    return sessionRequest;
   },
 
   async disconnect() {
