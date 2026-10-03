@@ -17,6 +17,32 @@ permissions:
   contents: read
 
 jobs:
+  changes:
+    name: Detect changed areas
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: read
+    outputs:
+      frontend: ${{ steps.filter.outputs.frontend }}
+    steps:
+      # Only PRs need change detection; pushes and manual dispatches run
+      # everything.
+      - name: Check changed files
+        id: filter
+        if: github.event_name == 'pull_request'
+        uses: dorny/paths-filter@v4
+        with:
+          filters: |
+            frontend:
+              - 'apps/frontend/**'
+              - 'packages/shared/**'
+              - 'package.json'
+              - 'pnpm-lock.yaml'
+              - 'pnpm-workspace.yaml'
+              - '.npmrc'
+              - 'config/**'
+              - '.github/workflows/ci.yml'
+
   lint-build:
     name: Lint and build
     runs-on: ubuntu-latest
@@ -84,6 +110,9 @@ jobs:
     name: Browser audio export
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    needs: changes
+    # Skip costly browser setup unless its inputs change or detection fails.
+    if: ${{ !cancelled() && (github.event_name != 'pull_request' || needs.changes.result != 'success' || needs.changes.outputs.frontend == 'true') }}
     steps:
       - name: Checkout
         uses: actions/checkout@v7

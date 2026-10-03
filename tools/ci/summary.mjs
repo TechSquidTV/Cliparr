@@ -129,7 +129,7 @@ export function renderSummary({
         lines.push(`| ${label} | ${cell(steps[id].outcome)} |`);
       }
     }
-    if (steps.publish && !steps.verify_arm64) {
+    if (steps.publish?.outcome === "success" && !steps.verify_arm64) {
       lines.push("", "ARM64: build only; no runtime smoke test in this job.");
     }
   }
