@@ -8,6 +8,7 @@ import {
   createRememberedProviderSession,
   getRememberedProviderSession,
   revokeRememberedProviderSession,
+  rotateRememberedProviderSession,
 } from "@/db/rememberedProviderSessionsRepository";
 import { deleteProviderAccount } from "@/db/providerAccountsRepository";
 import { asyncHandler, createApiError } from "@/http/errors";
@@ -49,6 +50,10 @@ sessionRouter.get(
         rememberedSession?.providerAccountId,
       );
     if (!session) {
+      res.clearCookie(
+        getSessionCookieName(),
+        getSessionCookieClearOptions(request.secure),
+      );
       if (rememberedToken) {
         revokeRememberedProviderSession(rememberedToken);
         res.clearCookie(
@@ -86,15 +91,34 @@ sessionRouter.get(
       revokeRememberedProviderSession(rememberedToken);
     }
 
+    // Rotate only after a successful restore, so failure cannot orphan a fresh
+    // token that the client never receives.
+    let rotatedRememberedToken: string | undefined;
+    if (!cookieSession && rememberedToken && rememberedSession) {
+      const rotated = rotateRememberedProviderSession(rememberedToken);
+      if (rotated) {
+        rotatedRememberedToken = rotated.token;
+      } else {
+        // The token died between validation and rotation; drop the stale
+        // cookie. The fresh session cookie keeps this request authenticated.
+        res.clearCookie(
+          getRememberedProviderSessionCookieName(),
+          getRememberedProviderSessionCookieClearOptions(request.secure),
+        );
+      }
+    }
+
     res.cookie(
       getSessionCookieName(),
       session.id,
       getSessionCookieOptions(request.secure),
     );
-    if (nextRememberedSession) {
+    const nextRememberedToken =
+      nextRememberedSession?.token ?? rotatedRememberedToken;
+    if (nextRememberedToken) {
       res.cookie(
         getRememberedProviderSessionCookieName(),
-        nextRememberedSession.token,
+        nextRememberedToken,
         getRememberedProviderSessionCookieOptions(request.secure),
       );
     }

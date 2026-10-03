@@ -211,7 +211,17 @@ void test("restores /api/session from a remembered provider session cookie", () 
 
         const setCookies = response.headers.getSetCookie();
         assert(setCookies.some((cookie) => cookie.startsWith(\`\${getSessionCookieName()}=\`)));
-        assert(!setCookies.some((cookie) => cookie.startsWith(\`\${getRememberedProviderSessionCookieName()}=\`)));
+        // Restoring via the remember credential rotates it: the response
+        // carries a fresh remember token different from the presented one.
+        const rotatedCookie = setCookies.find((cookie) =>
+          cookie.startsWith(\`\${getRememberedProviderSessionCookieName()}=\`),
+        );
+        assert(rotatedCookie);
+        assert(
+          !rotatedCookie.startsWith(
+            \`\${getRememberedProviderSessionCookieName()}=\${rememberedSession.token};\`,
+          ),
+        );
       } finally {
         await new Promise((resolve, reject) => server.close((err) => err ? reject(err) : resolve(undefined)));
         closeDatabase();
