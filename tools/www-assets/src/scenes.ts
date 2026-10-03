@@ -47,8 +47,8 @@ export function buildScenes(options: {
       mediaPath: options.hero,
       viewport: { width: 1600, height: 886 },
       selection: {
-        inSeconds: 111.95,
-        outSeconds: 114.89,
+        inSeconds: 496.07,
+        outSeconds: 499.01,
         subtitleFontSize: 72,
         ...(options.heroSubtitle
           ? { subtitleTrackKey: options.heroSubtitle }
