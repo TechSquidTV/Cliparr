@@ -7,12 +7,17 @@ import { getProviderAccount } from "@/db/providerAccountsRepository";
 import { REMEMBERED_PROVIDER_SESSION_TTL_MS } from "@/db/rememberedProviderSessionsRepository";
 import { providerSessions, type ProviderSessionRow } from "@/db/schema";
 import { getServerLogger, warnWithError } from "@/logging";
+import { removeMediaHandleFromIndex } from "@/providers/shared/mediaProxy";
 import type { MediaHandle } from "@/providers/types";
 import { decryptSecret, encryptSecret } from "@/security/secrets";
 
 const SESSION_COOKIE = "cliparr_session";
 const REMEMBERED_PROVIDER_SESSION_COOKIE = "cliparr_remember";
 const SESSION_TTL_MS = 1000 * 60 * 60 * 12;
+const SESSION_CACHE_TTL_MS = 60_000;
+const SESSION_CACHE_MAX_ENTRIES = 128;
+const MEDIA_HANDLE_PRUNE_INTERVAL_MS = 60_000;
+const MEDIA_HANDLE_PRUNE_SIZE_THRESHOLD = 2000;
 const logger = getServerLogger(["session", "store"]);
 
 export interface ProviderSessionRecord {
@@ -25,6 +30,14 @@ export interface ProviderSessionRecord {
   expiresAt: number;
 }
 
+const sessionCache = new Map<
+  string,
+  { record: ProviderSessionRecord; cachedUntil: number }
+>();
+const lastMediaHandlePrune = new WeakMap<
+  Map<string, MediaHandle>,
+  { at: number; size: number }
+>();
 const mediaHandlesBySessionId = new Map<string, Map<string, MediaHandle>>();
 
 function getMediaHandles(sessionId: string) {
@@ -85,6 +98,20 @@ export function getProviderSession(sessionId?: string) {
     return;
   }
 
+  const now = Date.now();
+  const cached = sessionCache.get(sessionId);
+  if (cached) {
+    if (cached.record.expiresAt <= now) {
+      deleteProviderSession(sessionId);
+      return;
+    }
+    sessionCache.delete(sessionId);
+    if (cached.cachedUntil > now) {
+      sessionCache.set(sessionId, cached);
+      return cached.record;
+    }
+  }
+
   const row = getDatabase()
     .select()
     .from(providerSessions)
@@ -95,12 +122,35 @@ export function getProviderSession(sessionId?: string) {
     return;
   }
 
-  if (row.expiresAt <= Date.now()) {
+  if (row.expiresAt <= now) {
     deleteProviderSession(sessionId);
     return;
   }
 
-  return mapProviderSession(row);
+  const record = mapProviderSession(row);
+  sessionCache.set(sessionId, {
+    record,
+    cachedUntil: now + SESSION_CACHE_TTL_MS,
+  });
+  if (sessionCache.size > SESSION_CACHE_MAX_ENTRIES) {
+    const oldestSessionId = sessionCache.keys().next().value;
+    if (oldestSessionId !== undefined) {
+      sessionCache.delete(oldestSessionId);
+    }
+  }
+  return record;
+}
+
+// Called after Plex account reassignment commits, so disconnects immediately
+// read the canonical account ID without losing the session's live handle map.
+export function invalidateProviderSessionCacheForAccounts(
+  providerAccountIds: ReadonlySet<string>,
+) {
+  for (const [sessionId, cached] of sessionCache) {
+    if (providerAccountIds.has(cached.record.providerAccountId)) {
+      sessionCache.delete(sessionId);
+    }
+  }
 }
 
 export function restoreProviderSessionFromProviderAccount(
@@ -142,7 +192,24 @@ export function pruneSessionMediaHandles(
   // available for the full session so later seeks and exports can reuse them.
   maxIdleMs = SESSION_TTL_MS,
 ) {
-  const cutoff = Date.now() - maxIdleMs;
+  const now = Date.now();
+  const lastPrune = lastMediaHandlePrune.get(session.mediaHandles);
+  const size = session.mediaHandles.size;
+  // Allow an early scan on threshold crossing or doubling. An oversized map
+  // that stays the same size must still wait for the normal interval.
+  const grewPastThreshold =
+    lastPrune !== undefined &&
+    size > MEDIA_HANDLE_PRUNE_SIZE_THRESHOLD &&
+    (lastPrune.size <= MEDIA_HANDLE_PRUNE_SIZE_THRESHOLD ||
+      size >= lastPrune.size * 2);
+  if (
+    lastPrune !== undefined &&
+    now - lastPrune.at < MEDIA_HANDLE_PRUNE_INTERVAL_MS &&
+    !grewPastThreshold
+  ) {
+    return 0;
+  }
+  const cutoff = now - maxIdleMs;
   let prunedCount = 0;
 
   for (const [handleId, handle] of session.mediaHandles.entries()) {
@@ -151,8 +218,13 @@ export function pruneSessionMediaHandles(
     }
 
     session.mediaHandles.delete(handleId);
+    removeMediaHandleFromIndex(session.mediaHandles, handle);
     prunedCount += 1;
   }
+  lastMediaHandlePrune.set(session.mediaHandles, {
+    at: now,
+    size: session.mediaHandles.size,
+  });
 
   if (prunedCount > 0) {
     logger.trace("Pruned stale media handles for provider session.", {
@@ -175,6 +247,7 @@ export function deleteProviderSession(sessionId?: string) {
       .delete(providerSessions)
       .where(eq(providerSessions.id, sessionId))
       .run();
+    sessionCache.delete(sessionId);
     mediaHandlesBySessionId.delete(sessionId);
     notifyPlaybackStateChange({ type: "session", sessionId });
   }
@@ -199,6 +272,7 @@ export function deleteProviderSessionsForProviderAccount(
     .run();
 
   for (const session of sessionRows) {
+    sessionCache.delete(session.id);
     mediaHandlesBySessionId.delete(session.id);
     notifyPlaybackStateChange({ type: "session", sessionId: session.id });
   }

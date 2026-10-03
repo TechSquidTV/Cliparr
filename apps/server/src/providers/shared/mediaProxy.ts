@@ -98,6 +98,10 @@ const inflightProxyResponses = new Map<
   string,
   Promise<CachedProxyMediaResponse | null>
 >();
+const mediaHandleIndexes = new WeakMap<
+  Map<string, MediaHandle>,
+  Map<string, string>
+>();
 const resolvedHostnameCache = new Map<string, ResolvedHostnameCacheEntry>();
 const inflightHostnameResolutions = new Map<string, Promise<string[]>>();
 
@@ -128,6 +132,44 @@ function normalizeProviderMetadata(
 
 function providerMetadataKey(metadata: MediaHandle["providerMetadata"]) {
   return JSON.stringify(normalizeProviderMetadata(metadata) ?? {});
+}
+
+function mediaHandleDedupKey(
+  handle: Pick<
+    MediaHandle,
+    | "providerId"
+    | "sourceId"
+    | "baseUrl"
+    | "path"
+    | "token"
+    | "providerMetadata"
+    | "basePath"
+  >,
+) {
+  // Includes secret token material: this key must never be logged.
+  return JSON.stringify([
+    handle.providerId,
+    handle.sourceId,
+    handle.baseUrl,
+    handle.path,
+    handle.token,
+    providerMetadataKey(handle.providerMetadata),
+    handle.basePath,
+  ]);
+}
+
+export function removeMediaHandleFromIndex(
+  handles: Map<string, MediaHandle>,
+  handle: MediaHandle,
+) {
+  const index = mediaHandleIndexes.get(handles);
+  if (!index) {
+    return;
+  }
+  const key = mediaHandleDedupKey(handle);
+  if (index.get(key) === handle.id) {
+    index.delete(key);
+  }
 }
 
 function isAbsoluteUrl(path: string) {
@@ -648,26 +690,30 @@ export function createProviderMediaHandle(
     ? normalizeMediaPath(options.basePath)
     : undefined;
   const providerMetadata = normalizeProviderMetadata(context.providerMetadata);
-  const metadataKey = providerMetadataKey(providerMetadata);
+  const dedupKey = mediaHandleDedupKey({
+    ...context,
+    path: normalizedPath,
+    providerMetadata,
+    basePath: normalizedBasePath,
+  });
+  let index = mediaHandleIndexes.get(session.mediaHandles);
+  if (!index) {
+    index = new Map<string, string>();
+    mediaHandleIndexes.set(session.mediaHandles, index);
+  }
+  const existingHandleId = index.get(dedupKey);
+  const existingHandle = existingHandleId
+    ? session.mediaHandles.get(existingHandleId)
+    : undefined;
   const accessedAt = Date.now();
 
-  for (const existingHandle of session.mediaHandles.values()) {
-    if (
-      existingHandle.providerId === context.providerId &&
-      existingHandle.sourceId === context.sourceId &&
-      existingHandle.baseUrl === context.baseUrl &&
-      existingHandle.path === normalizedPath &&
-      existingHandle.token === context.token &&
-      providerMetadataKey(existingHandle.providerMetadata) === metadataKey &&
-      existingHandle.basePath === normalizedBasePath
-    ) {
-      existingHandle.lastAccessedAt = accessedAt;
-      logger.trace("Reused provider media handle.", {
-        ...logEventFields("media.handle", "reused"),
-        ...mediaHandleLogFields(session, existingHandle, normalizedBasePath),
-      });
-      return `/api/media/${existingHandle.id}`;
-    }
+  if (existingHandle) {
+    existingHandle.lastAccessedAt = accessedAt;
+    logger.trace("Reused provider media handle.", {
+      ...logEventFields("media.handle", "reused"),
+      ...mediaHandleLogFields(session, existingHandle, normalizedBasePath),
+    });
+    return `/api/media/${existingHandle.id}`;
   }
 
   const handle: MediaHandle = {
@@ -682,6 +728,7 @@ export function createProviderMediaHandle(
     lastAccessedAt: accessedAt,
   };
   session.mediaHandles.set(handle.id, handle);
+  index.set(dedupKey, handle.id);
   logger.trace("Created provider media handle.", {
     ...logEventFields("media.handle", "created"),
     ...mediaHandleLogFields(session, handle),
@@ -946,15 +993,21 @@ function isHlsDerivedHandle(handle: MediaHandle) {
   );
 }
 
-function buildProxyCacheKey(
+function isCacheableMediaRequest(
+  handle: MediaHandle,
+  range: string | undefined,
+) {
+  return !range && isHlsDerivedHandle(handle);
+}
+
+export function mediaProxyAcceptHeader(
   handle: MediaHandle,
   request: ProxyMediaRequestOptions,
 ) {
-  if (request.range || !isHlsDerivedHandle(handle)) {
-    return null;
-  }
-
-  return `${handle.id}:${request.accept ?? ""}`;
+  // A handle-only cache key requires a consistent upstream representation.
+  return isCacheableMediaRequest(handle, request.range)
+    ? "*/*"
+    : request.accept;
 }
 
 function pruneCachedProxyResponses(now = Date.now()) {
@@ -1208,7 +1261,9 @@ export async function proxyProviderMediaResponse(
   res: Response,
   options: ProxyMediaResponseOptions = {},
 ) {
-  const cacheKey = buildProxyCacheKey(handle, request);
+  const cacheKey = isCacheableMediaRequest(handle, request.range)
+    ? handle.id
+    : null;
   if (!cacheKey) {
     const upstream = await fetchUpstream();
     await proxyUpstreamMediaResponse(session, handle, upstream, res, options);
