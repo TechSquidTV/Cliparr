@@ -4,6 +4,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { editorIconButtonClassName } from "@/components/ui/control-styles";
 
 interface EditorHeaderProperties {
   title: string;
@@ -59,7 +60,7 @@ export function EditorHeader({
                 type="button"
                 onClick={onBack}
                 aria-label="Back"
-                className="editor-control-focus flex h-8 w-8 items-center justify-center rounded-[var(--radius-control)] border border-editor-border bg-editor-control text-muted-foreground transition-colors hover:bg-editor-control-hover hover:text-foreground"
+                className={editorIconButtonClassName()}
               >
                 <ArrowLeft className="h-4 w-4" />
               </button>

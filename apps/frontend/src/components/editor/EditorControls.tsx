@@ -10,6 +10,7 @@ import {
   ZoomIn,
   ZoomOut,
 } from "lucide-react";
+import { editorIconButtonClassName } from "@/components/ui/control-styles";
 import { ControlTooltip } from "@/components/ui/tooltip";
 import {
   Drawer,
@@ -126,7 +127,9 @@ export function EditorControls({
         onClick={togglePlay}
         disabled={loadingPreview}
         aria-label={playing ? "Pause preview" : "Play preview"}
-        className="editor-control-focus flex h-8 w-8 items-center justify-center rounded-[var(--radius-control)] border border-editor-border bg-editor-control text-muted-foreground transition-colors hover:bg-editor-control-hover hover:text-foreground disabled:cursor-not-allowed disabled:opacity-50"
+        className={editorIconButtonClassName({
+          size: variant === "mobile" ? "lg" : "md",
+        })}
       >
         {playing ? (
           <Pause className="h-4 w-4" />
@@ -165,7 +168,7 @@ export function EditorControls({
         <button
           type="button"
           onClick={() => setMuted((current) => !current)}
-          className="editor-control-focus flex h-8 w-8 items-center justify-center rounded-[var(--radius-control)] border border-editor-border bg-editor-control text-muted-foreground transition-colors hover:bg-editor-control-hover hover:text-foreground"
+          className={editorIconButtonClassName()}
           aria-label={muted || volume === 0 ? "Unmute preview" : "Mute preview"}
         >
           {muted || volume === 0 ? (
@@ -206,7 +209,10 @@ export function EditorControls({
           type="button"
           onClick={handleTimelineZoomOut}
           disabled={!canZoomOut}
-          className="editor-control-focus flex h-8 w-8 items-center justify-center text-muted-foreground transition-colors hover:bg-editor-control-hover hover:text-foreground disabled:cursor-not-allowed disabled:opacity-45"
+          className={editorIconButtonClassName({
+            variant: "ghost",
+            className: "rounded-none disabled:opacity-45",
+          })}
           aria-label="Zoom timeline out"
         >
           <ZoomOut className="h-4 w-4" />
@@ -220,7 +226,11 @@ export function EditorControls({
           type="button"
           onClick={handleTimelineZoomIn}
           disabled={!canZoomIn}
-          className="editor-control-focus flex h-8 w-8 items-center justify-center border-l border-editor-border text-muted-foreground transition-colors hover:bg-editor-control-hover hover:text-foreground disabled:cursor-not-allowed disabled:opacity-45"
+          className={editorIconButtonClassName({
+            variant: "ghost",
+            className:
+              "rounded-none border-l border-editor-border disabled:opacity-45",
+          })}
           aria-label="Zoom timeline in"
         >
           <ZoomIn className="h-4 w-4" />
@@ -237,7 +247,9 @@ export function EditorControls({
         type="button"
         onClick={onFramegrabClick}
         disabled={framegrabDisabled}
-        className="editor-control-focus flex h-8 w-8 items-center justify-center rounded-[var(--radius-control)] border border-editor-border bg-editor-control text-muted-foreground transition-colors hover:bg-editor-control-hover hover:text-foreground disabled:cursor-not-allowed disabled:opacity-45"
+        className={editorIconButtonClassName({
+          className: "disabled:opacity-45",
+        })}
         aria-label="Export current preview frame"
       >
         <Camera className="h-4 w-4" />
@@ -368,7 +380,7 @@ export function EditorControls({
     return (
       <div className="border-b border-editor-border bg-editor-panel px-3 py-2">
         <div className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2">
-          <div className="[&_button]:h-10 [&_button]:w-10">{playControl}</div>
+          <div>{playControl}</div>
           <div className="@container min-w-0 text-center text-sm font-medium">
             {previewTimeControl}
           </div>
@@ -377,7 +389,7 @@ export function EditorControls({
               <button
                 type="button"
                 aria-label="More clip controls"
-                className="editor-control-focus flex h-10 w-10 items-center justify-center rounded-[var(--radius-control)] border border-editor-border bg-editor-control text-muted-foreground transition-colors hover:bg-editor-control-hover hover:text-foreground"
+                className={editorIconButtonClassName({ size: "lg" })}
               >
                 <SlidersHorizontal className="h-4 w-4" />
               </button>

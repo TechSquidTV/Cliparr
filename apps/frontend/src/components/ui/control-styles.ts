@@ -1,3 +1,5 @@
+import { cn } from "#/lib/utilities";
+
 export const fieldLabelWideClasses =
   "text-ui-label font-semibold uppercase tracking-[var(--tracking-caps-lg)] text-muted-foreground";
 
@@ -24,6 +26,23 @@ export const subtleButtonClasses =
 
 export const iconButtonClasses =
   "control-focus inline-flex h-8 w-8 items-center justify-center rounded-md border border-border bg-background text-muted-foreground transition-colors hover:bg-accent hover:text-foreground disabled:cursor-not-allowed disabled:opacity-60";
+
+export function editorIconButtonClassName({
+  size = "md",
+  variant = "outline",
+  className,
+}: {
+  size?: "sm" | "md" | "lg";
+  variant?: "outline" | "ghost";
+  className?: string;
+} = {}) {
+  return cn(
+    "editor-control-focus inline-flex items-center justify-center rounded-[var(--radius-control)] text-muted-foreground transition-colors hover:bg-editor-control-hover hover:text-foreground disabled:cursor-not-allowed disabled:opacity-50",
+    { sm: "h-7 w-7", md: "h-8 w-8", lg: "h-10 w-10" }[size],
+    variant === "outline" && "border border-editor-border bg-editor-control",
+    className,
+  );
+}
 
 export const textInputClasses =
   "control-focus h-9 w-full rounded-md border border-input bg-background px-3 text-sm text-foreground outline-none transition-colors focus-visible:border-ring disabled:cursor-not-allowed disabled:opacity-60";

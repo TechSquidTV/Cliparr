@@ -39,6 +39,7 @@ import { useSubtitleFontOptions } from "@/components/editor/useSubtitleFontOptio
 import { EditorEditableTimecode } from "@/components/editor/EditorEditableTimecode";
 import { formatTimecodeInput } from "@/components/editor/editorUtilities";
 import type { useEditorSubtitles } from "@/components/editor/useEditorSubtitles";
+import { editorIconButtonClassName } from "@/components/ui/control-styles";
 
 interface EditorSubtitlePanelProperties {
   subtitles: Pick<
@@ -266,7 +267,11 @@ export function EditorSubtitlePanel({
                     type="button"
                     onClick={onSelectPreviousSubtitle}
                     aria-label="Select previous subtitle cue"
-                    className="editor-control-focus flex h-11 w-11 lg:h-7 lg:w-7 items-center justify-center rounded-[var(--radius-control)] text-muted-foreground hover:bg-editor-control-hover hover:text-foreground"
+                    className={editorIconButtonClassName({
+                      size: "sm",
+                      variant: "ghost",
+                      className: "h-11 w-11 lg:h-7 lg:w-7",
+                    })}
                   >
                     <ChevronLeft className="h-3.5 w-3.5" />
                   </button>
@@ -274,7 +279,11 @@ export function EditorSubtitlePanel({
                     type="button"
                     onClick={onSelectNextSubtitle}
                     aria-label="Select next subtitle cue"
-                    className="editor-control-focus flex h-11 w-11 lg:h-7 lg:w-7 items-center justify-center rounded-[var(--radius-control)] text-muted-foreground hover:bg-editor-control-hover hover:text-foreground"
+                    className={editorIconButtonClassName({
+                      size: "sm",
+                      variant: "ghost",
+                      className: "h-11 w-11 lg:h-7 lg:w-7",
+                    })}
                   >
                     <ChevronRight className="h-3.5 w-3.5" />
                   </button>
