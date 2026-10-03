@@ -204,12 +204,10 @@ function uniqueSorted(values: Iterable<string | undefined>) {
 
 function groupDuplicateSources(sources: MediaSource[]) {
   const identities = sources
-    .map(
-      (source): SourceIdentity => ({
-        source,
-        identity: plexSourceIdentity(source),
-      }),
-    )
+    .map((source): SourceIdentity => ({
+      source,
+      identity: plexSourceIdentity(source),
+    }))
     .filter(
       ({ identity }) =>
         identity.resourceKey !== undefined || identity.urlKeys.length > 0,

@@ -19,7 +19,8 @@ import { recoveryLinks } from "@/lib/notFound";
           id="not-found-title"
           class="mt-5 text-4xl font-semibold leading-tight text-balance sm:text-6xl"
         >
-          This page didn’t make<br class="hidden sm:block" /> the final cut.
+          This page didn’t make
+          <br class="hidden sm:block" /> the final cut.
         </h1>
         <p class="mt-5 text-base leading-7 text-muted-foreground">
           There’s a gap in this timeline. The page may have moved, or the link
@@ -28,46 +29,56 @@ import { recoveryLinks } from "@/lib/notFound";
         <div class="missing-timeline" aria-hidden="true">
           <div class="timeline-toolbar">
             <span>Untitled sequence</span>
-            <span class="offline-status"><span></span> Clip offline</span>
+            <span class="offline-status">
+              <span></span> Clip offline
+            </span>
           </div>
           <div class="timeline-body">
             <div class="timeline-ruler">
-              <span>00:00</span><span>00:04</span><span>00:08</span><span
-                >00:12</span
-              >
+              <span>00:00</span>
+              <span>00:04</span>
+              <span>00:08</span>
+              <span>00:12</span>
             </div>
             <div class="timeline-tracks">
               <div class="video-track">
-                <div class="timeline-clip"><span>Intro</span></div>
-                <div class="missing-clip">
-                  <strong>404</strong><span>Missing clip</span>
+                <div class="timeline-clip">
+                  <span>Intro</span>
                 </div>
-                <div class="timeline-clip"><span>Outro</span></div>
+                <div class="missing-clip">
+                  <strong>404</strong>
+                  <span>Missing clip</span>
+                </div>
+                <div class="timeline-clip">
+                  <span>Outro</span>
+                </div>
               </div>
-              <div class="audio-track"><span></span><span></span></div>
+              <div class="audio-track">
+                <span></span>
+                <span></span>
+              </div>
               <div class="timeline-playhead"></div>
             </div>
           </div>
           <div class="timeline-footer">
-            <span>One scene short of a full story.</span><span>00:04:04</span>
+            <span>One scene short of a full story.</span>
+            <span>00:04:04</span>
           </div>
         </div>
         <div class="mt-7 flex flex-wrap justify-center gap-3">
-          {
-            recoveryLinks.map(({ label, path }, index) => (
-              <a
-                href={path}
-                class:list={[
-                  "focus-ring inline-flex min-h-11 items-center justify-center rounded-full px-6 text-sm font-semibold transition-colors",
-                  index === 0
-                    ? "bg-foreground text-background hover:bg-primary hover:text-primary-foreground"
-                    : "border border-border bg-card text-foreground hover:bg-accent",
-                ]}
-              >
-                {label}
-              </a>
-            ))
-          }
+          {recoveryLinks.map(({ label, path }, index) => (
+            <a
+              href={path}
+              class:list={[
+                "focus-ring inline-flex min-h-11 items-center justify-center rounded-full px-6 text-sm font-semibold transition-colors",
+                index === 0
+                  ? "bg-foreground text-background hover:bg-primary hover:text-primary-foreground"
+                  : "border border-border bg-card text-foreground hover:bg-accent",
+              ]}
+            >
+              {label}
+            </a>
+          ))}
         </div>
       </div>
     </div>

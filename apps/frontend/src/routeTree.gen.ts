@@ -9,53 +9,53 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as AppRouteImport } from './routes/_app'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as ProvidersConnectRouteImport } from './routes/providers.connect'
-import { Route as AppSourcesRouteImport } from './routes/_app.sources'
+import { Route as AppRouteImport } from './routes/_app'
 import { Route as AppDashboardRouteImport } from './routes/_app.dashboard'
-import { Route as LocalEditSessionIdRouteImport } from './routes/local.edit.$sessionId'
-import { Route as AuthPlexCompleteRouteImport } from './routes/auth.plex.complete'
+import { Route as AppSourcesRouteImport } from './routes/_app.sources'
+import { Route as ProvidersConnectRouteImport } from './routes/providers.connect'
 import { Route as AppEditSessionIdRouteImport } from './routes/_app.edit.$sessionId'
+import { Route as AuthPlexCompleteRouteImport } from './routes/auth.plex.complete'
+import { Route as LocalEditSessionIdRouteImport } from './routes/local.edit.$sessionId'
 
-const AppRoute = AppRouteImport.update({
-  id: '/_app',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ProvidersConnectRoute = ProvidersConnectRouteImport.update({
-  id: '/providers/connect',
-  path: '/providers/connect',
+const AppRoute = AppRouteImport.update({
+  id: '/_app',
   getParentRoute: () => rootRouteImport,
-} as any)
-const AppSourcesRoute = AppSourcesRouteImport.update({
-  id: '/sources',
-  path: '/sources',
-  getParentRoute: () => AppRoute,
 } as any)
 const AppDashboardRoute = AppDashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
   getParentRoute: () => AppRoute,
 } as any)
-const LocalEditSessionIdRoute = LocalEditSessionIdRouteImport.update({
-  id: '/local/edit/$sessionId',
-  path: '/local/edit/$sessionId',
-  getParentRoute: () => rootRouteImport,
+const AppSourcesRoute = AppSourcesRouteImport.update({
+  id: '/sources',
+  path: '/sources',
+  getParentRoute: () => AppRoute,
 } as any)
-const AuthPlexCompleteRoute = AuthPlexCompleteRouteImport.update({
-  id: '/auth/plex/complete',
-  path: '/auth/plex/complete',
+const ProvidersConnectRoute = ProvidersConnectRouteImport.update({
+  id: '/providers/connect',
+  path: '/providers/connect',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AppEditSessionIdRoute = AppEditSessionIdRouteImport.update({
   id: '/edit/$sessionId',
   path: '/edit/$sessionId',
   getParentRoute: () => AppRoute,
+} as any)
+const AuthPlexCompleteRoute = AuthPlexCompleteRouteImport.update({
+  id: '/auth/plex/complete',
+  path: '/auth/plex/complete',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LocalEditSessionIdRoute = LocalEditSessionIdRouteImport.update({
+  id: '/local/edit/$sessionId',
+  path: '/local/edit/$sessionId',
+  getParentRoute: () => rootRouteImport,
 } as any)
 
 export interface FileRoutesByFullPath {
@@ -128,13 +128,6 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/_app': {
-      id: '/_app'
-      path: ''
-      fullPath: '/'
-      preLoaderRoute: typeof AppRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/': {
       id: '/'
       path: '/'
@@ -142,19 +135,12 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/providers/connect': {
-      id: '/providers/connect'
-      path: '/providers/connect'
-      fullPath: '/providers/connect'
-      preLoaderRoute: typeof ProvidersConnectRouteImport
+    '/_app': {
+      id: '/_app'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof AppRouteImport
       parentRoute: typeof rootRouteImport
-    }
-    '/_app/sources': {
-      id: '/_app/sources'
-      path: '/sources'
-      fullPath: '/sources'
-      preLoaderRoute: typeof AppSourcesRouteImport
-      parentRoute: typeof AppRoute
     }
     '/_app/dashboard': {
       id: '/_app/dashboard'
@@ -163,18 +149,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppDashboardRouteImport
       parentRoute: typeof AppRoute
     }
-    '/local/edit/$sessionId': {
-      id: '/local/edit/$sessionId'
-      path: '/local/edit/$sessionId'
-      fullPath: '/local/edit/$sessionId'
-      preLoaderRoute: typeof LocalEditSessionIdRouteImport
-      parentRoute: typeof rootRouteImport
+    '/_app/sources': {
+      id: '/_app/sources'
+      path: '/sources'
+      fullPath: '/sources'
+      preLoaderRoute: typeof AppSourcesRouteImport
+      parentRoute: typeof AppRoute
     }
-    '/auth/plex/complete': {
-      id: '/auth/plex/complete'
-      path: '/auth/plex/complete'
-      fullPath: '/auth/plex/complete'
-      preLoaderRoute: typeof AuthPlexCompleteRouteImport
+    '/providers/connect': {
+      id: '/providers/connect'
+      path: '/providers/connect'
+      fullPath: '/providers/connect'
+      preLoaderRoute: typeof ProvidersConnectRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_app/edit/$sessionId': {
@@ -183,6 +169,20 @@ declare module '@tanstack/react-router' {
       fullPath: '/edit/$sessionId'
       preLoaderRoute: typeof AppEditSessionIdRouteImport
       parentRoute: typeof AppRoute
+    }
+    '/auth/plex/complete': {
+      id: '/auth/plex/complete'
+      path: '/auth/plex/complete'
+      fullPath: '/auth/plex/complete'
+      preLoaderRoute: typeof AuthPlexCompleteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/local/edit/$sessionId': {
+      id: '/local/edit/$sessionId'
+      path: '/local/edit/$sessionId'
+      fullPath: '/local/edit/$sessionId'
+      preLoaderRoute: typeof LocalEditSessionIdRouteImport
+      parentRoute: typeof rootRouteImport
     }
   }
 }

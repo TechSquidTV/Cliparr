@@ -4,7 +4,7 @@
     "pms-supplement.json": "951443aa8fc72aebea6a692c0de082adf62a4146cce5dd09a8b1cf222ca96b1a",
     "cloud.json": "a6b2ac5fd27acd90e90ac5bf3443a60a3be3632f74e464625a41fde7e5d7c090"
   },
-  "generatorVersion": "0.98.2",
+  "generatorVersion": "0.99.0",
   "pipelineSha256": "4adb3e98d6978d8d39ca5349a814f67b3dc35ae7d9b9cb8b5870247eef80f406",
   "extensionSha256": "c6d04e52e37ad41cacefadb853d70f7884048f3fcfea31a39b5c3c8078cc2e46",
   "artifactTransactionSha256": "d2196ae44d040d736168842f7c6a7199976b4b5474404302d6e19102ca833a57"

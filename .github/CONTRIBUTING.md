@@ -6,13 +6,14 @@ Thanks for helping improve Cliparr.
 
 Requirements:
 
-- Node.js 24 or newer
-- The pnpm version pinned by the root `packageManager`, via Corepack
+- Node.js 24.16 or newer
+- The pnpm version pinned by the root `packageManager`, installed through npm
 - A Plex or Jellyfin server, or a local video file, for manual end-to-end testing
 
 Install dependencies:
 
 ```sh
+npm install --global "$(node -p 'require("./package.json").packageManager')"
 pnpm install
 cp .env.example .env
 # Set APP_KEY in .env with a stable random value, for example:

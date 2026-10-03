@@ -89,77 +89,65 @@ const articleStructuredData = {
   <section class="border-b border-border bg-background">
     <div class="container-page py-12">
       <p class="section-eyebrow">Blog</p>
-      <h1
-        class="mt-5 max-w-3xl text-4xl font-semibold text-foreground sm:text-5xl"
-      >
+      <h1 class="mt-5 max-w-3xl text-4xl font-semibold text-foreground sm:text-5xl">
         {entry.data.title}
       </h1>
       <p class="mt-4 max-w-3xl text-base leading-7 text-muted-foreground">
         {entry.data.description}
       </p>
-      <div
-        class="mt-5 flex flex-wrap items-center gap-2 text-sm text-muted-foreground"
-      >
+      <div class="mt-5 flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
         <time datetime={entry.data.publishedAt}>
           {dateFormatter.format(publishedAt)}
         </time>
-        {
-          author && (
-            <span>
-              By{" "}
-              {author.url ? (
-                <a
-                  class="focus-ring rounded-sm font-medium text-foreground underline decoration-border hover:decoration-primary"
-                  href={author.url}
-                  rel="author noreferrer"
-                >
-                  {author.name}
-                </a>
-              ) : (
-                author.name
-              )}
-            </span>
-          )
-        }
-        {
-          updatedAt && (
-            <span>
-              Updated{" "}
-              <time datetime={entry.data.updatedAt}>
-                {dateFormatter.format(updatedAt)}
-              </time>
-            </span>
-          )
-        }
-        {
-          tags.map((tag) => (
-            <a
-              class="focus-ring rounded-full border border-border bg-muted px-2.5 py-1 text-xs font-semibold text-muted-foreground no-underline transition-colors hover:bg-accent hover:text-foreground"
-              href={blogTagPath(tag)}
-            >
-              {blogTagLabel(tag)}
-            </a>
-          ))
-        }
+        {author && (
+          <span>
+            By{" "}
+            {author.url ? (
+              <a
+                class="focus-ring rounded-sm font-medium text-foreground underline decoration-border hover:decoration-primary"
+                href={author.url}
+                rel="author noreferrer"
+              >
+                {author.name}
+              </a>
+            ) : (
+              author.name
+            )}
+          </span>
+        )}
+        {updatedAt && (
+          <span>
+            Updated{" "}
+            <time datetime={entry.data.updatedAt}>
+              {dateFormatter.format(updatedAt)}
+            </time>
+          </span>
+        )}
+        {tags.map((tag) => (
+          <a
+            class="focus-ring rounded-full border border-border bg-muted px-2.5 py-1 text-xs font-semibold text-muted-foreground no-underline transition-colors hover:bg-accent hover:text-foreground"
+            href={blogTagPath(tag)}
+          >
+            {blogTagLabel(tag)}
+          </a>
+        ))}
       </div>
-      {
-        heroImage && (
-          <figure class="mt-8 overflow-hidden rounded-lg border border-border bg-card">
-            <Picture
-              src={heroImage}
-              alt={heroImageAlt}
-              formats={["avif", "webp"]}
-              fallbackFormat="webp"
-              widths={[640, 960, 1280, 1600]}
-              sizes="(min-width: 80rem) 1216px, calc(100vw - 2rem)"
-              quality={76}
-              loading="eager"
-              decoding="async"
-              class="block w-full"
-            />
-          </figure>
-        )
-      }
+      {heroImage && (
+        <figure class="mt-8 overflow-hidden rounded-lg border border-border bg-card">
+          <Picture
+            src={heroImage}
+            alt={heroImageAlt}
+            formats={["avif", "webp"]}
+            fallbackFormat="webp"
+            widths={[640, 960, 1280, 1600]}
+            sizes="(min-width: 80rem) 1216px, calc(100vw - 2rem)"
+            quality={76}
+            loading="eager"
+            decoding="async"
+            class="block w-full"
+          />
+        </figure>
+      )}
     </div>
   </section>
 

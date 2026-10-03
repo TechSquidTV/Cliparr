@@ -87,32 +87,28 @@ const structuredDataItems = [
     />
     {!isNotFound && <link rel="canonical" href={canonicalUrl} />}
     <link rel="sitemap" href="/sitemap-index.xml" />
-    {
-      !isNotFound && (
-        <link
-          rel="alternate"
-          type="text/markdown"
-          href={markdownPath(Astro.url.pathname)}
-          title="Markdown"
-        />
-      )
-    }
+    {!isNotFound && (
+      <link
+        rel="alternate"
+        type="text/markdown"
+        href={markdownPath(Astro.url.pathname)}
+        title="Markdown"
+      />
+    )}
     <link
       rel="describedby"
       type="text/markdown"
       title={`${site.name} LLM context`}
       href="/llms.txt"
     />
-    {
-      rssLinks.map((link) => (
-        <link
-          rel="alternate"
-          type="application/rss+xml"
-          title={link.title}
-          href={new URL(link.href, site.url).toString()}
-        />
-      ))
-    }
+    {rssLinks.map((link) => (
+      <link
+        rel="alternate"
+        type="application/rss+xml"
+        title={link.title}
+        href={new URL(link.href, site.url).toString()}
+      />
+    ))}
     <meta property="og:title" content={pageTitle} />
     <meta property="og:description" content={description} />
     <meta property="og:type" content={ogType} />
@@ -132,34 +128,28 @@ const structuredDataItems = [
     <link rel="icon" href="/favicon.png" />
     {manifestHref ? <link rel="manifest" href={manifestHref} /> : null}
     <meta name="theme-color" content="#171717" />
-    {
-      appleTouchIconHref ? (
-        <link rel="apple-touch-icon" href={appleTouchIconHref} />
-      ) : null
-    }
-    {
-      appleMobileWebAppTitle ? (
-        <>
-          <meta name="mobile-web-app-capable" content="yes" />
-          <meta name="apple-mobile-web-app-capable" content="yes" />
-          <meta
-            name="apple-mobile-web-app-title"
-            content={appleMobileWebAppTitle}
-          />
-        </>
-      ) : null
-    }
+    {appleTouchIconHref ? (
+      <link rel="apple-touch-icon" href={appleTouchIconHref} />
+    ) : null}
+    {appleMobileWebAppTitle ? (
+      <>
+        <meta name="mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta
+          name="apple-mobile-web-app-title"
+          content={appleMobileWebAppTitle}
+        />
+      </>
+    ) : null}
     <title>{pageTitle}</title>
-    {
-      !isNotFound &&
-        structuredDataItems.map((item) => (
-          <script
-            is:inline
-            type="application/ld+json"
-            set:html={jsonLdScriptContent(item)}
-          />
-        ))
-    }
+    {!isNotFound &&
+      structuredDataItems.map((item) => (
+        <script
+          is:inline
+          type="application/ld+json"
+          set:html={jsonLdScriptContent(item)}
+        />
+      ))}
     <script is:inline>
       (() => {
         if (window.__cliparrTheme?.ready) {

@@ -14,11 +14,12 @@ import type {
   UserDto,
 } from "@jellyfin/sdk/lib/generated-client/models/index.js";
 import {
+  getAuthenticationApi,
+  getLibraryApi,
   getMediaInfoApi,
   getSessionApi,
   getSystemApi,
   getUserApi,
-  getUserLibraryApi,
 } from "@jellyfin/sdk/lib/utils/api/index.js";
 import { getAuthorizationHeader } from "@jellyfin/sdk/lib/utils/authentication.js";
 import { CLIPARR_CLIENT_VERSION } from "@/config/version";
@@ -956,7 +957,7 @@ export async function authenticateJellyfinUser(options: {
   return jellyfinSdkJson<JellyfinAuthenticationResult>(
     options.baseUrl,
     (api, config) =>
-      getUserApi(api).authenticateUserByName(
+      getAuthenticationApi(api).authenticateUserByName(
         {
           authenticateUserByName: {
             Username: options.username,
@@ -1006,7 +1007,7 @@ export async function fetchItem(
   return jellyfinSdkJson<JellyfinItem>(
     context.baseUrl,
     (api, config) =>
-      getUserLibraryApi(api).getItem(
+      getLibraryApi(api).getItem(
         {
           itemId,
           userId: context.userId,

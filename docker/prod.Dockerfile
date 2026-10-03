@@ -1,4 +1,4 @@
-# syntax=docker/dockerfile:1.25
+# syntax=docker/dockerfile:1.27.1
 
 ARG CLIPARR_VERSION
 ARG NODE_VERSION=24
@@ -7,8 +7,6 @@ FROM node:${NODE_VERSION}-slim AS base
 
 ENV PNPM_HOME="/pnpm"
 ENV PATH="$PNPM_HOME:$PATH"
-
-RUN corepack enable
 
 WORKDIR /app
 
@@ -20,10 +18,13 @@ ENV CLIPARR_VERSION=$CLIPARR_VERSION
 COPY .npmrc package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY apps/server/package.json apps/server/package.json
 COPY apps/frontend/package.json apps/frontend/package.json
+COPY apps/www/package.json apps/www/package.json
 COPY packages/shared/package.json packages/shared/package.json
 COPY packages/plex/package.json packages/plex/package.json
+COPY tools/www-assets/package.json tools/www-assets/package.json
 
-RUN pnpm install --frozen-lockfile
+RUN npm install --global "$(node -p 'require("./package.json").packageManager')" \
+  && pnpm install --filter @cliparr/server... --filter @cliparr/frontend... --frozen-lockfile
 
 COPY config/tsconfig.json config/tsconfig.base.json ./config/
 COPY packages/shared/src packages/shared/src
@@ -35,7 +36,7 @@ COPY apps/frontend/components.json apps/frontend/index.html apps/frontend/tsconf
 COPY apps/frontend/public apps/frontend/public
 COPY apps/frontend/src apps/frontend/src
 
-RUN CLIPARR_SERVER_SOURCEMAP=false pnpm build
+RUN CLIPARR_SERVER_SOURCEMAP=false pnpm --filter @cliparr/server --filter @cliparr/frontend build
 
 RUN mkdir -p /runtime/data && chown 65532:65532 /runtime/data
 

@@ -4,8 +4,7 @@ export const PLEX_BASE_URL_MODE_AUTO = "auto";
 export const PLEX_BASE_URL_MODE_MANUAL = "manual";
 
 export type PlexBaseUrlMode =
-  | typeof PLEX_BASE_URL_MODE_AUTO
-  | typeof PLEX_BASE_URL_MODE_MANUAL;
+  typeof PLEX_BASE_URL_MODE_AUTO | typeof PLEX_BASE_URL_MODE_MANUAL;
 
 export function plexBaseUrlMode(
   connection: Record<string, unknown>,

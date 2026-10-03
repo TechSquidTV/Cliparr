@@ -208,12 +208,14 @@ export const rotatingFileLoggingCompose = `services:
 const developmentSetupCommands = `git clone https://github.com/techsquidtv/cliparr.git
 cd cliparr
 cp .env.example .env
+npm install --global "$(node -p 'require("./package.json").packageManager')"
 pnpm install
 pnpm dev`;
 
 const developmentSetupPowerShellCommands = `git clone https://github.com/techsquidtv/cliparr.git
 Set-Location cliparr
 Copy-Item .env.example .env
+npm install --global (node -p 'require("./package.json").packageManager')
 pnpm install
 pnpm dev`;
 

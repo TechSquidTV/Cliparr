@@ -16,18 +16,16 @@ const mobileMenuId = "site-mobile-menu";
   data-site-header
   class="sticky top-0 z-30 border-b border-border bg-background/88 backdrop-blur-xl"
 >
-  <div
-    class="container-page flex min-h-16 items-center justify-between gap-2 min-[380px]:gap-3"
-  >
+  <div class="container-page flex min-h-16 items-center justify-between gap-2 min-[380px]:gap-3">
     <a
       href="/"
       aria-label="Cliparr home"
       class="focus-ring flex shrink-0 items-center gap-3 rounded-md"
     >
       <img src={site.logo} alt="" class="site-logo h-8 w-8 shrink-0" />
-      <span class="hidden text-lg font-semibold min-[380px]:inline"
-        >{site.name}</span
-      >
+      <span class="hidden text-lg font-semibold min-[380px]:inline">
+        {site.name}
+      </span>
     </a>
     <div class="flex items-center gap-2 sm:hidden">
       <button
@@ -48,7 +46,8 @@ const mobileMenuId = "site-mobile-menu";
             stroke="currentColor"
             stroke-width="2"
             stroke-linecap="round"
-            stroke-linejoin="round"></path>
+            stroke-linejoin="round"
+          ></path>
         </svg>
         <svg
           class="theme-toggle-icon theme-toggle-icon-sun h-4 w-4"
@@ -61,7 +60,8 @@ const mobileMenuId = "site-mobile-menu";
             stroke="currentColor"
             stroke-width="2"
             stroke-linecap="round"
-            stroke-linejoin="round"></path>
+            stroke-linejoin="round"
+          ></path>
         </svg>
       </button>
       <button
@@ -82,7 +82,8 @@ const mobileMenuId = "site-mobile-menu";
             fill="none"
             stroke="currentColor"
             stroke-width="2"
-            stroke-linecap="round"></path>
+            stroke-linecap="round"
+          ></path>
         </svg>
         <svg
           class="site-mobile-menu-icon-close h-4 w-4"
@@ -94,7 +95,8 @@ const mobileMenuId = "site-mobile-menu";
             fill="none"
             stroke="currentColor"
             stroke-width="2"
-            stroke-linecap="round"></path>
+            stroke-linecap="round"
+          ></path>
         </svg>
       </button>
     </div>
@@ -102,18 +104,16 @@ const mobileMenuId = "site-mobile-menu";
       aria-label="Primary navigation"
       class="hidden min-w-0 items-center gap-2 sm:flex"
     >
-      {
-        links.map((link) => (
-          <a
-            href={link.href}
-            class="focus-ring rounded-full px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
-            target={link.href.startsWith("http") ? "_blank" : undefined}
-            rel={link.href.startsWith("http") ? "noreferrer" : undefined}
-          >
-            {link.label}
-          </a>
-        ))
-      }
+      {links.map((link) => (
+        <a
+          href={link.href}
+          class="focus-ring rounded-full px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+          target={link.href.startsWith("http") ? "_blank" : undefined}
+          rel={link.href.startsWith("http") ? "noreferrer" : undefined}
+        >
+          {link.label}
+        </a>
+      ))}
       <button
         type="button"
         data-theme-toggle
@@ -132,7 +132,8 @@ const mobileMenuId = "site-mobile-menu";
             stroke="currentColor"
             stroke-width="2"
             stroke-linecap="round"
-            stroke-linejoin="round"></path>
+            stroke-linejoin="round"
+          ></path>
         </svg>
         <svg
           class="theme-toggle-icon theme-toggle-icon-sun h-4 w-4"
@@ -145,7 +146,8 @@ const mobileMenuId = "site-mobile-menu";
             stroke="currentColor"
             stroke-width="2"
             stroke-linecap="round"
-            stroke-linejoin="round"></path>
+            stroke-linejoin="round"
+          ></path>
         </svg>
       </button>
       <a
@@ -163,34 +165,32 @@ const mobileMenuId = "site-mobile-menu";
     class="border-t border-border bg-background/95 sm:hidden"
   >
     <nav aria-label="Mobile navigation" class="container-page grid gap-1 py-3">
-      {
-        links.map((link) => (
-          <a
-            href={link.href}
-            class="focus-ring flex min-h-11 items-center justify-between rounded-lg px-3 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
-            target={link.href.startsWith("http") ? "_blank" : undefined}
-            rel={link.href.startsWith("http") ? "noreferrer" : undefined}
-          >
-            {link.label}
-            {link.href.startsWith("http") ? (
-              <svg
-                class="h-3.5 w-3.5 text-muted-foreground"
-                viewBox="0 0 24 24"
-                aria-hidden="true"
-              >
-                <path
-                  d="M7 17 17 7M9 7h8v8"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                />
-              </svg>
-            ) : null}
-          </a>
-        ))
-      }
+      {links.map((link) => (
+        <a
+          href={link.href}
+          class="focus-ring flex min-h-11 items-center justify-between rounded-lg px-3 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+          target={link.href.startsWith("http") ? "_blank" : undefined}
+          rel={link.href.startsWith("http") ? "noreferrer" : undefined}
+        >
+          {link.label}
+          {link.href.startsWith("http") ? (
+            <svg
+              class="h-3.5 w-3.5 text-muted-foreground"
+              viewBox="0 0 24 24"
+              aria-hidden="true"
+            >
+              <path
+                d="M7 17 17 7M9 7h8v8"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+            </svg>
+          ) : null}
+        </a>
+      ))}
       <a
         href="/docs/getting-started"
         class="focus-ring mt-1 flex min-h-11 items-center justify-center rounded-lg bg-foreground px-4 text-sm font-semibold text-background transition-colors hover:bg-primary"

@@ -55,7 +55,7 @@ jobs:
         uses: pnpm/action-setup@v6
 
       - name: Set up Node.js
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v7
         with:
           node-version: 24
           cache: pnpm
@@ -119,7 +119,7 @@ jobs:
       - name: Set up pnpm
         uses: pnpm/action-setup@v6
       - name: Set up Node.js
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v7
         with:
           node-version: 24
           cache: pnpm
@@ -140,14 +140,14 @@ jobs:
         run: pnpm --filter @cliparr/frontend test:browser:loading
       - name: Retain loading measurements
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: media-loading-measurements
           path: build/browser-export/loading/*.json
           retention-days: 7
       - name: Retain failure diagnostics
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: browser-export-failure
           path: build/browser-export/

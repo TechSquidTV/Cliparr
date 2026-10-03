@@ -25,9 +25,7 @@ interface ProviderAuthStart {
 }
 
 type ProviderAuthStatus =
-  | { status: "pending" }
-  | { status: "expired" }
-  | { status: "complete" };
+  { status: "pending" } | { status: "expired" } | { status: "complete" };
 
 export interface ProviderConnection {
   id: string;
