@@ -2,25 +2,19 @@ import fs from "node:fs";
 import path from "node:path";
 import prettier from "prettier";
 import {
-  dockerLinuxContainerNote,
   dockerRunCommand,
   dockerRunPowerShellCommand,
-  envVariables,
   features,
-  warnings,
+  site,
 } from "@/data/product";
 
 const rootDir = path.resolve(import.meta.dirname, "../../..");
 const readmePath = path.join(rootDir, "README.md");
 const prettierConfigPath = path.join(rootDir, "config/prettier.config.js");
 
-type SectionName = "features" | "docker-quick-start" | "configuration";
+type SectionName = "features" | "docker-quick-start";
 
-const sectionOrder: SectionName[] = [
-  "features",
-  "docker-quick-start",
-  "configuration",
-];
+const sectionOrder: SectionName[] = ["features", "docker-quick-start"];
 
 function marker(name: SectionName, edge: "start" | "end") {
   return `<!-- CLIPARR_DOCS_SYNC:${name}:${edge} -->`;
@@ -28,30 +22,20 @@ function marker(name: SectionName, edge: "start" | "end") {
 
 function renderFeatures() {
   return features
-    .map((feature) => `- **${feature.title}**: ${feature.description}`)
+    .map(
+      (feature) =>
+        `- **${feature.title}**: ${feature.description.replaceAll('href="/', `href="${site.url}/`)}`,
+    )
     .join("\n");
 }
 
 function renderDockerQuickStart() {
-  const warningBlocks = warnings
-    .map((warning) => `> [!IMPORTANT]\n> **${warning.title}**: ${warning.body}`)
-    .join("\n\n");
-
-  return `The fastest way to get Cliparr running is via the GitHub Container Registry.\n\n**macOS / Linux**\n\n\`\`\`bash\n${dockerRunCommand}\n\`\`\`\n\n**PowerShell**\n\n\`\`\`powershell\n${dockerRunPowerShellCommand}\n\`\`\`\n\n${dockerLinuxContainerNote}\n\n${warningBlocks}`;
-}
-
-function renderConfiguration() {
-  const rows = envVariables.map((item) => {
-    return `| \`${item.name}\` | ${item.description} | \`${item.defaultValue}\` |`;
-  });
-
-  return `| Variable | Description | Default |\n| :--- | :--- | :--- |\n${rows.join("\n")}`;
+  return `\`\`\`bash\n${dockerRunCommand}\n\`\`\`\n\n<details>\n<summary>PowerShell</summary>\n\n\`\`\`powershell\n${dockerRunPowerShellCommand}\n\`\`\`\n\nUse Docker with Linux containers.\n\n</details>`;
 }
 
 const renderers: Record<SectionName, () => string> = {
   features: renderFeatures,
   "docker-quick-start": renderDockerQuickStart,
-  configuration: renderConfiguration,
 };
 
 function replaceSection(readme: string, name: SectionName) {

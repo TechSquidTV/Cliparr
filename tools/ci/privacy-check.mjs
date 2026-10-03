@@ -40,6 +40,7 @@ const publicHosts = new Set([
   "www.plexopedia.com",
   "beui.dev",
   "canvastimeline.com",
+  "caniuse.com",
   "cliparr.dev",
   "developer.mozilla.org",
   "docs.renovatebot.com",

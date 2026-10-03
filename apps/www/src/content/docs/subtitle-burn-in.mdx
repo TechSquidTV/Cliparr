@@ -31,19 +31,21 @@ New sessions still import the preferred supported subtitle track automatically. 
 
 Choose **Import…** to import or reimport a provider track. If subtitles already exist, confirm their replacement. Your current cues remain visible during the download. Import can be cancelled; a failed or cancelled import leaves your edits intact. Successful replacement can be undone.
 
-Supported imports are downloadable text tracks, including SRT/SubRip, WebVTT, ASS/SSA, TTML, SMI, and related formats exposed by Plex or Jellyfin. Image-based subtitles such as PGS or VobSub cannot be imported. Their absence does not prevent creating your own text.
+You can import SRT/SubRip and WebVTT subtitles, plus other text formats that Plex or Jellyfin can convert for Cliparr. Image-based subtitles such as PGS or VobSub cannot be imported; you can still create your own captions.
 
-<Callout title="Saved draft format changed" tone="warning">
-  Subtitle authoring uses draft version 2. Saved clip ranges and subtitle edits
-  from the previous format are not restored. There is no migration. Shared
-  subtitle style preferences are preserved.
+<Callout title="Finish existing drafts before upgrading to 3.0" tone="warning">
+  Saved clip ranges and subtitle edits from earlier versions cannot be restored
+  after upgrading. Export clips you want to keep first. Your subtitle style
+  preferences are preserved.
 </Callout>
 
 ## Provider notes
 
-Jellyfin can usually expose downloadable text subtitle tracks directly from the selected media source.
+Jellyfin can convert text subtitles such as ASS/SSA, TTML, and SMI for import.
 
-Plex sidecar text subtitles can usually be downloaded directly. Some embedded Plex text subtitles must be selected in Plex first so Plex exposes a subtitle content stream that Cliparr can fetch.
+For Plex, use SRT/SubRip or WebVTT when available. Some embedded text subtitles become available only after you select them during playback in Plex.
+
+**Changed in 3.0:** ASS/SSA, TTML, and SMI tracks are available only when Plex can convert them for Cliparr. If a track no longer appears in **Import…**, choose an SRT/SubRip or WebVTT track, or create your own captions.
 
 [Plex: Adding Local Subtitles to Your Media](https://support.plex.tv/articles/200471133-adding-local-subtitles-to-your-media/)
 

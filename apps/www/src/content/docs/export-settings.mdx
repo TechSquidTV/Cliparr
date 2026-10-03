@@ -9,7 +9,7 @@ import { Picture } from "astro:assets";
 import Callout from "../../components/Callout.astro";
 import exportDialogImage from "../../../public/docs/export-dialog.webp";
 
-Cliparr exports clips in the browser. Video formats use Mediabunny, while GIF exports use Cliparr's optimized GIF encoder with worker-backed frame processing. Open the export dialog from the editor after choosing a clip range, then review the output settings, summary, and estimated size before saving the file.
+Export your clip as video, audio, or a GIF. After choosing a clip range, open the export dialog to review the format, output settings, and estimated size before downloading. Exports are processed in your browser.
 
 <figure class="my-6 overflow-hidden rounded-lg border border-border bg-card">
   <Picture
@@ -53,9 +53,11 @@ Audio defaults to MP3 and groups its formats by compression:
 | FLAC       | Compressed lossless audio, 16 or 24 bit. |
 | WAV        | Uncompressed audio for editing.          |
 
-Some FLAC edge cases, including single-frame clips and extremely small final compressed frames, are not supported by the current media library. Cliparr rejects these exports with an explanation. Choose WAV or adjust the clip boundaries; Cliparr does not pad audio or change its timing.
+If a FLAC export fails because the selected clip is too short or ends at an unsupported point, choose WAV or adjust the clip's start or end time.
 
-Audio encoding settings are automatic. FLAC and WAV show the selected **Bit depth** marked **Auto**, with a visible explanation based on source precision and channel mixing. The summary shows the codec, channels, sample rate, bitrate or bit depth, and any necessary lossy resampling. FLAC and WAV do not silently change the source sample rate. Known integer sources up to 16 bit use 16-bit lossless output when only trimmed; processing or uncertain precision uses 24 bit. WAV can preserve identified 32-bit PCM. Higher precision sources cannot be silently reduced to FLAC.
+Some standalone FLAC files have an ending that Cliparr cannot read. If an error reports missing source audio, shorten the selection to end before that point. Choosing a different output format will not recover the missing audio. This limitation does not apply to FLAC audio inside MP4, MKV, or HLS sources.
+
+Audio settings are chosen automatically. Review the summary for the codec, channels, sample rate, and bitrate or bit depth. FLAC and WAV choose the bit depth automatically and preserve the source sample rate. Use the info button beside **Bit depth** to learn how the value is chosen. If the source's precision cannot be preserved in FLAC, use WAV.
 
 ## Quality
 
@@ -88,7 +90,7 @@ GIF dimensions follow the quality preset's maximum height and preserve the sourc
 
 ## Source
 
-Cliparr may have more than one media path for the same item. The export source chooses which path Mediabunny reads when creating the final file.
+When a media server offers both the original file and a playback stream, you can choose which one to use for export.
 
 | Source            | Behavior                                                                                                |
 | :---------------- | :------------------------------------------------------------------------------------------------------ |
@@ -100,15 +102,15 @@ For most clips, leave source on `Auto`. Choose a specific source when troublesho
 
 ## Audio
 
-**Mix down to stereo** is enabled by default for both modes containing audio. Mono stays mono. Identified surround layouts include dialogue and surround contributions, omit LFE, and use headroom to avoid clipping. The resulting mix can be quieter than older exports. Disable mixdown to preserve channels when the selected codec and browser support their ordering; MP3 and WAV require mono or stereo in this release. Native Opus output also requires mono or stereo until its surround encoder mapping can be verified; AAC and FLAC preserve supported, identified layouts. Unsupported or unknown layouts produce an explanation rather than dropping channels.
+**Mix down to stereo** is enabled by default for video and audio exports. It converts surround sound to stereo; mono stays mono. The result can sound quieter than exports from earlier versions.
+
+Turn it off to keep supported surround channels with AAC or FLAC. MP3, WAV, and Opus exports currently require mono or stereo. If the selected format cannot preserve your channels, Cliparr explains the problem.
 
 ## Estimated size
 
-The export dialog shows an immediate estimated size in the footer before export starts. Cliparr resolves a planned output codec and numeric average bitrate from the selected format, quality, dimensions, and audio settings. `Sharp` exports preserve compatible source video when possible; otherwise they use the same planned target as the encoder.
+The export dialog estimates the file size before you start. The final size can vary with the source and output settings; FLAC size is shown as variable.
 
-Treat the value as approximate. Video uses variable bitrate, so exact output still depends on source motion, detail, browser codec behavior, GIF palette/dither behavior, and whether Cliparr can preserve the source track.
-
-Audio size estimates use the resolved bitrate or WAV PCM parameters. FLAC size is shown as variable. Exports estimated at 100 MiB or larger show nonblocking memory guidance; this is not a browser memory guarantee. The completed file stays in browser memory, and WAV has a 4 GiB file-size limit.
+Large exports can use substantial browser memory. If an export fails or your tab becomes unresponsive, shorten the clip or lower the video resolution. WAV has a 4 GiB file-size limit.
 
 ## Filename templates
 

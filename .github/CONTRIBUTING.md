@@ -34,6 +34,10 @@ Before opening a pull request, run:
 pnpm preflight
 ```
 
+### Optional Docker dev stack
+
+The [Docker dev stack](../docker/compose.dev.yml) seeds Plex and Jellyfin with Sintel, a Blender open movie with embedded subtitle tracks. Run `pnpm docker:dev:build` after Dockerfile or dependency changes, then `pnpm docker:dev:up` to start the stack.
+
 ## Live playback resolvers
 
 Internal API change: `createPlaybackResolverCache` requires `prepareMany(rows)`
@@ -89,6 +93,19 @@ Dry runs build both architectures and smoke-test the local amd64 image, generate
 If publication fails, **rerun the same workflow run** to reuse its saved release plan (retained for 30 days), rather than starting another dispatch that could calculate a different version. Existing GitHub releases are updated only after verifying their tag targets the planned commit. Conflicting tags and superseded stable plans stop recovery. A retry rebuilds and retests its image before promotion, so its digest can change. GitHub and GHCR publication is not atomic; the summary identifies partial publication and which stages completed.
 
 The Cloudflare changelog refresh is a separate job. If only that job fails, rerun the failed job; the release is already published. To retry an older refresh independently, use the Sync Changelog workflow.
+
+### Upgrading source integrations to 3.0
+
+**Breaking changes:**
+
+- Export callers must replace `includeAudio` with export mode and mixdown preferences and use the shared format API.
+- Plex callers must use generated `@cliparr/plex` operations and URL builders. Downloads require provider-returned part links. Conflicting media or part identities can suppress previews and subtitle extraction; unidentified streams no longer inherit selection or track numbers from array positions. Undocumented response aliases and `Network` export tags have been removed.
+- Embedded Cliparr metadata now uses version 1 JSON with `source` and `clip` objects: `clpr` in MP4 and `CLIPARR_METADATA` in other supported containers. The old unversioned payload is no longer written; individual MP4 timing tags remain available.
+- `CLIPARR_DEV_JELLYFIN_URL` has been removed. Configure a directly reachable Jellyfin URL, such as `http://jellyfin:8096` in the Docker dev stack. Localhost URLs always require `CLIPARR_ALLOW_LOOPBACK_JELLYFIN_URLS`. The separate frontend `VITE_CLIPARR_DEV_JELLYFIN_URL` hint does not grant a server-side exception.
+- Development now requires Node.js 24.16 or newer and pnpm 12.8.1. Install the pinned pnpm version through npm using the setup command above; Corepack cannot launch pnpm 12's native executable.
+- The website moves to Astro 7 and Vite 8. Rebuild deployed artifacts with the updated lockfile.
+
+No compatibility aliases or fallback implementations are provided.
 
 ## Security
 
