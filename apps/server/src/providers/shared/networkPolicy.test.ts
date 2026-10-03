@@ -4,7 +4,7 @@ import { requestPlexPmsIdentity } from "@/providers/plex/pmsClient";
 import { assertAllowedMediaHandleRequestUrl } from "@/providers/shared/mediaProxy";
 
 void test("PMS redirects and media references share the unsafe-address policy", async () => {
-  const context = { baseUrl: "http://plex.test:32400", token: "test-token" };
+  const context = { baseUrl: "http://192.168.1.50:32400", token: "test-token" };
   const options = {
     clientIdentifier: "test",
     product: "Cliparr",

@@ -71,7 +71,7 @@ function mappedIpv4Address(hostname: string) {
   return [high >> 8, high & byteMask, low >> 8, low & byteMask].join(".");
 }
 
-function isUnsafeIpv4Host(hostname: string) {
+function isUnsafeIpv4Host(hostname: string, allowPrivate: boolean) {
   const octets = ipv4Octets(hostname);
   if (!octets) {
     return false;
@@ -80,35 +80,39 @@ function isUnsafeIpv4Host(hostname: string) {
   const [first, second] = octets;
   return (
     first === 0 ||
-    first === 10 ||
     first === 127 ||
-    (first === 100 && second >= 64 && second <= 127) ||
     (first === 169 && second === 254) ||
-    (first === 172 && second >= 16 && second <= 31) ||
-    (first === 192 && second === 168) ||
-    first >= 224
+    first >= 224 ||
+    (!allowPrivate &&
+      (first === 10 ||
+        (first === 100 && second >= 64 && second <= 127) ||
+        (first === 172 && second >= 16 && second <= 31) ||
+        (first === 192 && second === 168)))
   );
 }
 
-function isUnsafeIpv6Host(hostname: string) {
+function isUnsafeIpv6Host(hostname: string, allowPrivate: boolean) {
   return (
     hostname === "::" ||
     hostname === "::1" ||
     hostname === "0:0:0:0:0:0:0:1" ||
-    /^f[cd][\da-f]{2}:/i.test(hostname) ||
+    (!allowPrivate && /^f[cd][\da-f]{2}:/i.test(hostname)) ||
     /^fe[89ab][\da-f]:/i.test(hostname) ||
     /^ff[\da-f]{2}:/i.test(hostname)
   );
 }
 
-export function isUnsafeRemoteHostname(hostname: string) {
+export function isUnsafeRemoteHostname(
+  hostname: string,
+  options: { allowPrivate?: boolean } = {},
+) {
   const normalized = normalizeHostname(hostname);
   return (
     normalized === "localhost" ||
     normalized.endsWith(".localhost") ||
     DISALLOWED_REMOTE_HOSTNAMES.has(normalized) ||
-    isUnsafeIpv4Host(normalized) ||
-    isUnsafeIpv6Host(normalized)
+    isUnsafeIpv4Host(normalized, options.allowPrivate === true) ||
+    isUnsafeIpv6Host(normalized, options.allowPrivate === true)
   );
 }
 

@@ -1,5 +1,7 @@
 import assert from "node:assert/strict";
-import test from "node:test";
+import test, { mock } from "node:test";
+import dns from "node:dns/promises";
+import { syncBuiltinESMExports } from "node:module";
 import { isApiError } from "@/http/errors";
 import {
   plexPmsResponseStatusMessage,
@@ -27,12 +29,73 @@ function withMockFetch(
   callback: () => Promise<void>,
 ) {
   const originalFetch = globalThis.fetch;
+  const lookup = mock.method(dns, "lookup", async () => [
+    { address: "192.168.1.50", family: 4 },
+  ]);
+  syncBuiltinESMExports();
   globalThis.fetch = (async (input, init) => {
     return handler(new Request(input, init));
   }) as typeof fetch;
 
   return callback().finally(() => {
     globalThis.fetch = originalFetch;
+    lookup.mock.restore();
+    syncBuiltinESMExports();
+  });
+}
+
+for (const hostname of [
+  "127.0.0.1",
+  "localhost",
+  "[::1]",
+  "[::ffff:127.0.0.1]",
+  "169.254.169.254",
+  "metadata.google.internal",
+  "0.0.0.0",
+  "[::]",
+  "224.0.0.1",
+  "[fe80::1]",
+  "[ff02::1]",
+]) {
+  void test(`rejects initial Plex PMS requests to ${hostname} before fetching`, async () => {
+    await withMockFetch(
+      () => assert.fail("Unsafe Plex URLs must never be fetched"),
+      async () => {
+        await assert.rejects(
+          requestPlexPmsIdentity(
+            { ...context, baseUrl: `http://${hostname}:32400` },
+            options,
+          ),
+          (error: Error) =>
+            isApiError(error) &&
+            error.status === 400 &&
+            error.code === "plex_unsafe_redirect",
+        );
+      },
+    );
+  });
+}
+
+for (const hostname of [
+  "192.168.1.50",
+  "10.0.0.2",
+  "172.16.0.2",
+  "[fd00::1]",
+]) {
+  void test(`allows initial LAN Plex PMS requests to ${hostname}`, async () => {
+    await withMockFetch(
+      (request) => {
+        assert.equal(request.headers.get("X-Plex-Token"), context.token);
+        return jsonResponse({ MediaContainer: { machineIdentifier: "lan" } });
+      },
+      async () => {
+        const result = await requestPlexPmsIdentity(
+          { ...context, baseUrl: `http://${hostname}:32400` },
+          options,
+        );
+        assert.equal(result.MediaContainer?.machineIdentifier, "lan");
+      },
+    );
   });
 }
 

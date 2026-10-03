@@ -12,7 +12,7 @@ import {
 void test(
   "generated PMS streaming remains unbuffered and cancels after headers and GC",
   { timeout: 10_000 },
-  async () => {
+  async (context) => {
     let disconnected = false;
     const server = createServer((request, response) => {
       assert.equal(request.url, "/plex/:/eventsource/notifications");
@@ -29,10 +29,22 @@ void test(
     const address = server.address();
     assert.ok(address && typeof address === "object");
     const controller = new AbortController();
+    const originalFetch = globalThis.fetch;
+    // Model a permitted LAN server while the fixture listens on loopback.
+    context.mock.method(
+      globalThis,
+      "fetch",
+      (input: Parameters<typeof fetch>[0], init?: RequestInit) => {
+        const url = new URL(new Request(input, init).url);
+        assert.equal(url.hostname, "192.168.1.50");
+        url.hostname = "127.0.0.1";
+        return originalFetch(url, init);
+      },
+    );
     try {
       const body = await openPlexEventStream(
         {
-          baseUrl: `http://127.0.0.1:${address.port}/plex`,
+          baseUrl: `http://192.168.1.50:${address.port}/plex`,
           token: "server-token",
         },
         new Headers({ "X-Plex-Client-Identifier": "contract-test" }),
@@ -72,7 +84,7 @@ void test("generated PMS request preserves cancellation before headers", async (
   controller.abort();
   const result = await eventsourceGetSlash({
     client: createPlexPmsSdkClient(
-      { baseUrl: "http://127.0.0.1:1", token: "server-token" },
+      { baseUrl: "http://192.168.1.50:1", token: "server-token" },
       {
         clientIdentifier: "contract-test",
         product: "Cliparr",

@@ -155,6 +155,91 @@ void test("shares upstream subscriptions and same-session normalization without 
   assert.equal(connections[0].signal.aborted, true);
 });
 
+void test("isolates live snapshots, progress, preparation and retry by provider account", async () => {
+  const { hub, connections, replaceSources } = setup();
+  const foreignSource = {
+    ...source,
+    id: "foreign",
+    providerAccountId: "other-account",
+  };
+  replaceSources([source, foreignSource]);
+  const first: PlaybackStreamEvent[] = [];
+  const second: PlaybackStreamEvent[] = [];
+  const stopFirst = hub.subscribe(session("one"), (event) => first.push(event));
+  const stopSecond = hub.subscribe(
+    { ...session("two"), providerAccountId: "other-account" },
+    (event) => second.push(event),
+  );
+  try {
+    assert.equal(connections.length, 2);
+    const owners: string[] = [];
+    connections[0].observer.snapshot(async (owner) => {
+      owners.push(owner.providerAccountId);
+      return [entry("own-movie", owner.id)];
+    });
+    connections[1].observer.snapshot(async (owner) => {
+      owners.push(owner.providerAccountId);
+      const foreignEntry = entry("foreign-movie", owner.id);
+      foreignEntry.item.source.id = foreignSource.id;
+      return [foreignEntry];
+    });
+    await setImmediate();
+    assert.deepEqual(owners, ["account", "other-account"]);
+    assert.deepEqual(
+      latest(first).sources.map((status) => status.sourceId),
+      [source.id],
+    );
+    assert.deepEqual(
+      latest(second).sources.map((status) => status.sourceId),
+      [foreignSource.id],
+    );
+    assert.equal(latest(first).viewers[0].items[0].id, "own-movie");
+    assert.equal(latest(second).viewers[0].items[0].id, "foreign-movie");
+    const secondCount = second.length;
+    connections[0].observer.progress([
+      {
+        sourceId: source.id,
+        sessionId: "own-movie",
+        playerState: "paused",
+        playheadSeconds: 1,
+      },
+    ]);
+    assert.equal(second.length, secondCount);
+    assert.equal(first.at(-1)?.type, "progress");
+    stopFirst();
+    assert.equal(connections[0].signal.aborted, true);
+    assert.equal(connections[1].signal.aborted, false);
+    assert.deepEqual(
+      latest(second).sources.map((status) => status.sourceId),
+      [foreignSource.id],
+    );
+    // Invalidating one account must not expose its errors to another dashboard.
+    let foreignAttempts = 0;
+    connections[1].observer.snapshot(async () => {
+      foreignAttempts++;
+      throw new Error("Foreign error");
+    });
+    await setImmediate();
+    const resumed: PlaybackStreamEvent[] = [];
+    const stopResumed = hub.subscribe(session("three"), (event) =>
+      resumed.push(event),
+    );
+    try {
+      assert.deepEqual(latest(resumed).sourceErrors, []);
+      assert.deepEqual(latest(resumed).viewers, []);
+      hub.retry("account");
+      await setImmediate();
+      assert.equal(foreignAttempts, 1);
+      assert.equal(connections[1].signal.aborted, false);
+    } finally {
+      stopResumed();
+    }
+  } finally {
+    stopFirst();
+    stopSecond();
+  }
+});
+
 void test("subscription admission bounds fanout and releases slots on disconnect and revocation", async (context) => {
   let sourceReads = 0;
   const hub = createLivePlaybackHub({
@@ -296,7 +381,7 @@ void test("source credential changes restart the stream and revoked sessions clo
     await setImmediate();
     assert.equal(events.at(-1)?.type, "unauthorized");
     assert.equal(connections[1].signal.aborted, true);
-    hub.retry();
+    hub.retry("account");
     assert.equal(connections.length, 2);
   } finally {
     stop();
@@ -426,7 +511,7 @@ void test("failed preparation retries automatically without restarting healthy u
     assert.equal(latest(events).sources[0].state, "live");
     assert.equal(latest(events).viewers[0].items[0].id, "recovered");
     assert.equal(attempts, 2);
-    hub.retry();
+    hub.retry("account");
     assert.equal(connections.length, 1);
   } finally {
     stop();
@@ -461,7 +546,7 @@ void test("manual retry restarts only failed sources and preparation retries sto
     throw new Error("Temporary metadata failure");
   });
   await setImmediate();
-  hub.retry();
+  hub.retry("account");
   await setImmediate();
   assert.equal(failedSourceAttempts, 2);
   assert.equal(

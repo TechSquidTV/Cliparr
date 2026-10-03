@@ -69,8 +69,11 @@ function assertHttpUrl(url: URL) {
   }
 }
 
-function assertAllowedRedirectHostname(hostname: string) {
-  if (isUnsafeRemoteHostname(hostname)) {
+function assertAllowedRedirectHostname(
+  hostname: string,
+  allowPrivate: boolean,
+) {
+  if (isUnsafeRemoteHostname(hostname, { allowPrivate })) {
     throw createApiError(
       400,
       "plex_unsafe_redirect",
@@ -108,15 +111,12 @@ async function assertAllowedPlexPmsRequestUrl(
   trustedOrigin: string,
 ) {
   assertHttpUrl(requestUrl);
-  if (requestUrl.origin === trustedOrigin) {
-    return;
-  }
-
-  assertAllowedRedirectHostname(requestUrl.hostname);
+  const allowPrivate = requestUrl.origin === trustedOrigin;
+  assertAllowedRedirectHostname(requestUrl.hostname, allowPrivate);
 
   const addresses = await resolveHostnameAddresses(requestUrl.hostname);
   for (const address of addresses) {
-    assertAllowedRedirectHostname(address);
+    assertAllowedRedirectHostname(address, allowPrivate);
   }
   return addresses;
 }

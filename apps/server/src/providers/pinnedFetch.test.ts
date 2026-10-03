@@ -161,8 +161,71 @@ for (const provider of ["plex", "jellyfin"] as const) {
       } else {
         await fetchPublicSystemInfo({ baseUrl: "http://jellyfin.local" });
       }
-      assert.equal(resolutions, provider === "jellyfin" ? 2 : 1);
+      assert.equal(resolutions, 2);
       assert.equal(requests, 2);
+    } finally {
+      context.mock.restoreAll();
+      syncBuiltinESMExports();
+    }
+  });
+}
+
+for (const address of ["93.184.216.34", "192.168.1.50"]) {
+  void test(`pins initial Plex PMS requests to validated ${address} addresses`, async (context) => {
+    let resolutions = 0;
+    context.mock.method(dns, "lookup", async () => {
+      resolutions++;
+      return [
+        { address: resolutions === 1 ? address : "127.0.0.1", family: 4 },
+      ];
+    });
+    syncBuiltinESMExports();
+    context.mock.method(
+      globalThis,
+      "fetch",
+      async (
+        _input: Parameters<typeof fetch>[0],
+        init?: RequestInit & { dispatcher?: Agent },
+      ) => {
+        assert.ok(init?.dispatcher instanceof Agent);
+        assert.equal(new Headers(init.headers).get("X-Plex-Token"), "token");
+        return Response.json({
+          MediaContainer: { machineIdentifier: "server" },
+        });
+      },
+    );
+    try {
+      await requestPlexPmsIdentity(
+        { baseUrl: "http://plex-rebinding.invalid:32400", token: "token" },
+        { clientIdentifier: "test", product: "Cliparr", timeoutMs: 3000 },
+      );
+      assert.equal(resolutions, 1);
+    } finally {
+      context.mock.restoreAll();
+      syncBuiltinESMExports();
+    }
+  });
+}
+
+for (const address of ["127.0.0.1", "169.254.169.254", "::1"]) {
+  void test(`rejects initial Plex DNS resolving to ${address} before fetching`, async (context) => {
+    context.mock.method(dns, "lookup", async () => [
+      { address: "192.168.1.50", family: 4 },
+      { address, family: address === "::1" ? 6 : 4 },
+    ]);
+    syncBuiltinESMExports();
+    context.mock.method(globalThis, "fetch", () =>
+      assert.fail("Unsafe DNS must not be fetched"),
+    );
+    try {
+      await assert.rejects(
+        requestPlexPmsIdentity(
+          { baseUrl: "http://plex-rebinding.invalid:32400", token: "token" },
+          { clientIdentifier: "test", product: "Cliparr", timeoutMs: 3000 },
+        ),
+        (error: Error) =>
+          isApiError(error) && error.code === "plex_unsafe_redirect",
+      );
     } finally {
       context.mock.restoreAll();
       syncBuiltinESMExports();
