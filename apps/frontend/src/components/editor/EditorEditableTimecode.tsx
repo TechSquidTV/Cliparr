@@ -13,7 +13,7 @@ import {
   parseTimecodeInput,
 } from "@/components/editor/editorUtilities";
 import { cn } from "@/lib/utilities";
-import { Popover } from "radix-ui";
+import { Popover } from "@base-ui/react/popover";
 
 interface EditorEditableTimecodeProperties {
   ariaLabel: string;
@@ -142,49 +142,52 @@ export function EditorEditableTimecode({
     >
       {editing ? (
         <Popover.Root open={invalid}>
-          <Popover.Anchor asChild>
-            <input
-              ref={inputReference}
-              aria-describedby={describedBy}
-              aria-errormessage={invalid ? errorId : undefined}
-              aria-invalid={invalid || undefined}
-              aria-label={`Edit ${ariaLabel}`}
-              autoComplete="off"
-              className={cn(
-                "h-7 border bg-editor-control px-1.5 font-mono text-sm font-semibold text-foreground outline-none transition-colors focus:ring-2",
-                invalid
-                  ? "border-destructive focus:border-destructive focus:ring-destructive/20"
-                  : "border-editor-border focus:border-editor-accent focus:ring-editor-accent/35",
-                inputClassName,
-              )}
-              inputMode="text"
-              onBlur={() => commitDraft({ restoreFocus: false })}
-              onChange={(event) => {
-                setDraftValue(event.target.value);
-                setInvalid(false);
-              }}
-              onKeyDown={handleInputKeyDown}
-              spellCheck={false}
-              style={{ width: inputWidth ?? "100%" }}
-              type="text"
-              value={draftValue}
-            />
-          </Popover.Anchor>
+          <input
+            ref={inputReference}
+            aria-describedby={describedBy}
+            aria-errormessage={invalid ? errorId : undefined}
+            aria-invalid={invalid || undefined}
+            aria-label={`Edit ${ariaLabel}`}
+            autoComplete="off"
+            className={cn(
+              "editor-control-focus h-7 border bg-editor-control px-1.5 font-mono text-sm font-semibold text-foreground outline-none transition-colors",
+              invalid
+                ? "border-destructive focus-visible:border-destructive"
+                : "border-editor-border focus-visible:border-editor-accent",
+              inputClassName,
+            )}
+            inputMode="text"
+            onBlur={() => commitDraft({ restoreFocus: false })}
+            onChange={(event) => {
+              setDraftValue(event.target.value);
+              setInvalid(false);
+            }}
+            onKeyDown={handleInputKeyDown}
+            spellCheck={false}
+            style={{ width: inputWidth ?? "100%" }}
+            type="text"
+            value={draftValue}
+          />
           <Popover.Portal>
-            <Popover.Content
-              id={errorId}
-              role="alert"
+            <Popover.Positioner
+              anchor={inputReference}
               side="bottom"
               align="start"
               sideOffset={4}
               collisionPadding={8}
-              onOpenAutoFocus={(event) => event.preventDefault()}
-              onCloseAutoFocus={(event) => event.preventDefault()}
-              className="z-[60] w-52 max-w-[70vw] rounded-md border border-destructive bg-popover p-2 text-xs font-normal text-popover-foreground shadow-md"
+              className="z-[60]"
             >
-              Enter seconds (12.5), m:ss (1:23), or h:mm:ss (1:02:03). Press
-              Escape to discard this edit.
-            </Popover.Content>
+              <Popover.Popup
+                id={errorId}
+                role="alert"
+                initialFocus={false}
+                finalFocus={false}
+                className="z-[60] w-52 max-w-[70vw] rounded-md border border-destructive bg-popover p-2 text-xs font-normal text-popover-foreground shadow-md"
+              >
+                Enter seconds (12.5), m:ss (1:23), or h:mm:ss (1:02:03). Press
+                Escape to discard this edit.
+              </Popover.Popup>
+            </Popover.Positioner>
           </Popover.Portal>
         </Popover.Root>
       ) : (
@@ -195,7 +198,7 @@ export function EditorEditableTimecode({
               ? `${ariaLabel}: ${accessibleValue}`
               : `Edit ${ariaLabel}: ${accessibleValue}`
           }
-          className={`inline-flex min-w-0 items-center border-0 bg-transparent p-0 text-left outline-none transition-colors focus-visible:ring-2 focus-visible:ring-editor-accent/35 disabled:cursor-default disabled:opacity-100 ${buttonClassName}`}
+          className={`editor-control-focus inline-flex min-w-0 items-center border-0 bg-transparent p-0 text-left outline-none transition-colors disabled:cursor-default disabled:opacity-100 ${buttonClassName}`}
           disabled={disabled}
           onClick={startEditing}
           type="button"

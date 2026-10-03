@@ -232,7 +232,7 @@ export function EditorExportDialog({
         />
       </div>
 
-      <DialogFooter className="shrink-0 flex-col gap-3 border-t border-border bg-card px-4 py-3 sm:flex-row sm:items-end sm:justify-between">
+      <DialogFooter className="flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <ExportStatusPanel
           estimate={outputSizeEstimate}
           exporting={exporting}

@@ -1,3 +1,4 @@
+import { EmptyState } from "@/components/ui/empty-state";
 import { useLivePlayback } from "@/components/useLivePlayback";
 import { ControlTooltip } from "@/components/ui/tooltip";
 import { memo, useCallback, useEffect, useMemo, useState } from "react";
@@ -13,7 +14,11 @@ import {
   Video,
 } from "lucide-react";
 import { cliparrClient, type CliparrVersionInfo } from "@/api/cliparrClient";
-import { compactSecondaryButtonClasses } from "@/components/ui/control-styles";
+import {
+  compactSecondaryButtonClasses,
+  destructiveAlertClasses,
+  warningAlertClasses,
+} from "@/components/ui/control-styles";
 import { cn } from "@/lib/utilities";
 import { EDITOR_THUMBNAIL_VIEW_TRANSITION_NAME } from "@/lib/viewTransitions";
 import {
@@ -417,7 +422,6 @@ function DashboardPlaybackMotionRegion({
           <motion.div
             key="dashboard-playback-empty"
             layout={!reduceMotion}
-            className="bg-card text-card-foreground border border-border rounded-2xl p-12 text-center"
             data-dashboard-empty-state
             initial={
               reduceMotion ? { opacity: 1 } : DASHBOARD_PLAYBACK_STATE_INITIAL
@@ -432,16 +436,11 @@ function DashboardPlaybackMotionRegion({
                 onClearViewerFilter={onClearViewerFilter}
               />
             ) : (
-              <>
-                <div className="bg-background mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full">
-                  <Play className="h-6 w-6 text-muted-foreground" />
-                </div>
-                <h3 className="mb-2 text-lg font-medium">
-                  Nothing is playing right now
-                </h3>
-                <p className="mx-auto max-w-sm text-sm text-muted-foreground">
-                  {emptyMessage}
-                </p>
+              <EmptyState
+                icon={<Play className="h-5 w-5" />}
+                title="Nothing is playing right now"
+                description={emptyMessage}
+              >
                 <p className="mx-auto mt-2 max-w-sm text-sm text-muted-foreground">
                   Start a video in Plex or Jellyfin and it will appear here
                   automatically. If your server is missing, check your connected
@@ -465,7 +464,7 @@ function DashboardPlaybackMotionRegion({
                     Open Video
                   </button>
                 </div>
-              </>
+              </EmptyState>
             )}
           </motion.div>
         )}
@@ -484,7 +483,7 @@ function WarningBanner({
   }
 
   return (
-    <div className="rounded-xl border border-status-warning-border bg-status-warning p-4 text-status-warning-foreground">
+    <div role="status" className={warningAlertClasses}>
       <div className="flex items-start gap-3">
         <AlertTriangle className="w-5 h-5 shrink-0 mt-0.5" />
         <div className="space-y-2 text-sm">
@@ -552,33 +551,35 @@ export function DashboardVersionBadge({
 
   return (
     <Tooltip>
-      <TooltipTrigger asChild>
-        <a
-          href={latestRelease.url}
-          target="_blank"
-          rel="noreferrer"
-          className={cn(
-            DASHBOARD_VERSION_BADGE_CLASS,
-            "gap-1.5 border-primary/40 bg-primary/10 text-primary transition-colors hover:bg-primary/15 focus-visible:ring-2 focus-visible:ring-primary/35 focus-visible:outline-none",
-          )}
-          aria-label={`${updateLabel}. View release notes.`}
-          data-dashboard-version-badge
-          data-dashboard-update-available
-        >
-          <span>{versionLabel}</span>
-          <span
-            className="h-1.5 w-1.5 rounded-full bg-primary"
-            aria-hidden="true"
-            data-dashboard-update-indicator
-          />
-          <span
-            className="text-[11px] leading-none font-medium text-primary/80"
-            data-dashboard-update-label
+      <TooltipTrigger
+        render={
+          <a
+            href={latestRelease.url}
+            target="_blank"
+            rel="noreferrer"
+            className={cn(
+              DASHBOARD_VERSION_BADGE_CLASS,
+              "control-focus gap-1.5 border-primary/40 bg-primary/10 text-primary transition-colors hover:bg-primary/15",
+            )}
+            aria-label={`${updateLabel}. View release notes.`}
+            data-dashboard-version-badge
+            data-dashboard-update-available
           >
-            Update available
-          </span>
-        </a>
-      </TooltipTrigger>
+            <span>{versionLabel}</span>
+            <span
+              className="h-1.5 w-1.5 rounded-full bg-primary"
+              aria-hidden="true"
+              data-dashboard-update-indicator
+            />
+            <span
+              className="text-[11px] leading-none font-medium text-primary/80"
+              data-dashboard-update-label
+            >
+              Update available
+            </span>
+          </a>
+        }
+      />
       <TooltipContent side="top" align="start">
         {updateLabel}
       </TooltipContent>
@@ -849,7 +850,7 @@ export default function DashboardScreen({
                 type="button"
                 onClick={onDisconnect}
                 className={cn(
-                  "flex items-center gap-2 rounded-lg text-sm font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:ring-2 focus-visible:ring-primary/35 focus-visible:outline-none",
+                  "control-focus flex items-center gap-2 rounded-lg text-sm font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground",
                   showViewerFilterControl
                     ? "h-9 w-9 justify-center p-2"
                     : "px-4 py-2",
@@ -909,7 +910,7 @@ export default function DashboardScreen({
           )}
 
           {error && (
-            <div className="bg-destructive/10 border border-destructive/20 text-destructive p-4 rounded-xl text-sm">
+            <div role="alert" className={destructiveAlertClasses}>
               {error}
             </div>
           )}

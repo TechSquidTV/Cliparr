@@ -76,25 +76,27 @@ export function EditorEditingTools({
   );
   const resetButton = (
     <Tooltip>
-      <TooltipTrigger asChild>
-        <button
-          type="button"
-          aria-label="Reset draft"
-          disabled={resetDisabled}
-          className={
-            mobile
-              ? `${compactSecondaryButtonClasses} mx-3 mb-3 min-h-11`
-              : `${iconButtonClasses} disabled:cursor-not-allowed disabled:opacity-60`
-          }
-          onClick={() => {
-            setMenuOpen(false);
-            setResetOpen(true);
-          }}
-        >
-          <RotateCcw className="h-4 w-4" />
-          {mobile && "Reset draft"}
-        </button>
-      </TooltipTrigger>
+      <TooltipTrigger
+        render={
+          <button
+            type="button"
+            aria-label="Reset draft"
+            disabled={resetDisabled}
+            className={
+              mobile
+                ? `${compactSecondaryButtonClasses} mx-3 mb-3 min-h-11`
+                : iconButtonClasses
+            }
+            onClick={() => {
+              setMenuOpen(false);
+              setResetOpen(true);
+            }}
+          >
+            <RotateCcw className="h-4 w-4" />
+            {mobile && "Reset draft"}
+          </button>
+        }
+      />
       <TooltipContent>Reset draft</TooltipContent>
     </Tooltip>
   );

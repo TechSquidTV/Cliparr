@@ -38,7 +38,7 @@ export function DashboardMobileMenu({
   onDisconnect: () => Promise<void> | void;
 }) {
   const menuItemClassName =
-    "flex min-h-14 w-full items-center justify-between gap-3 px-4 text-base font-medium text-foreground transition-colors hover:bg-accent focus-visible:ring-2 focus-visible:ring-primary/35 focus-visible:outline-none";
+    "control-focus flex min-h-14 w-full items-center justify-between gap-3 px-4 text-base font-medium text-foreground transition-colors hover:bg-accent";
   const iconClassName =
     "grid h-8 w-8 shrink-0 place-items-center rounded-full bg-muted text-muted-foreground";
 
@@ -120,7 +120,7 @@ export function DashboardMobileMenu({
                     href={latestRelease.url}
                     target="_blank"
                     rel="noreferrer"
-                    className="inline-flex min-h-11 flex-col items-center justify-center gap-1 rounded-lg border border-primary/35 bg-primary/10 px-3 py-2 text-primary transition-colors hover:bg-primary/15 focus-visible:ring-2 focus-visible:ring-primary/35 focus-visible:outline-none"
+                    className="control-focus inline-flex min-h-11 flex-col items-center justify-center gap-1 rounded-lg border border-primary/35 bg-primary/10 px-3 py-2 text-primary transition-colors hover:bg-primary/15"
                     data-dashboard-mobile-update-available
                   >
                     <span className="font-mono text-muted-foreground">

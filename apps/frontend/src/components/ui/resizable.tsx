@@ -27,7 +27,7 @@ function ResizableHandle({
   return (
     <Separator
       className={cn(
-        "group relative flex shrink-0 items-center justify-center bg-transparent transition-colors hover:bg-editor-border/80 focus-visible:bg-editor-border/80 focus-visible:ring-2 focus-visible:ring-editor-accent/35 focus-visible:outline-none",
+        "editor-control-focus group relative flex shrink-0 items-center justify-center bg-transparent transition-colors hover:bg-editor-border/80 focus-visible:bg-editor-border/80",
         "aria-[orientation=vertical]:h-full aria-[orientation=vertical]:w-2 aria-[orientation=vertical]:cursor-col-resize",
         "aria-[orientation=horizontal]:h-2 aria-[orientation=horizontal]:w-full aria-[orientation=horizontal]:cursor-row-resize",
         className,

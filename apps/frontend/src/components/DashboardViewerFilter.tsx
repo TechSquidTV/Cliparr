@@ -1,3 +1,5 @@
+import { EmptyState } from "@/components/ui/empty-state";
+import { textInputClasses } from "@/components/ui/control-styles";
 import { Popover } from "@base-ui/react/popover";
 import { Check, ChevronDown, Search, Users, X } from "lucide-react";
 import { motion, useReducedMotion } from "motion/react";
@@ -163,7 +165,7 @@ export function DashboardViewerFilterPicker({
         data-dashboard-viewer-filter-active={filterActive || undefined}
         className={(state) =>
           cn(
-            "inline-flex h-11 w-full min-w-0 items-center justify-center gap-1.5 rounded-lg border border-border px-2 text-sm font-semibold text-muted-foreground transition-[color,background-color,border-color,transform] duration-200 hover:-translate-y-px hover:bg-accent hover:text-foreground active:scale-[0.985] focus-visible:ring-2 focus-visible:ring-primary/35 focus-visible:outline-none motion-reduce:transform-none sm:h-9 sm:w-52 sm:shrink-0 sm:gap-2 sm:px-3 sm:font-medium",
+            "control-focus inline-flex h-11 w-full min-w-0 items-center justify-center gap-1.5 rounded-lg border border-border px-2 text-sm font-semibold text-muted-foreground transition-[color,background-color,border-color,transform] duration-200 hover:-translate-y-px hover:bg-accent hover:text-foreground active:scale-[0.985] motion-reduce:transform-none sm:h-9 sm:w-52 sm:shrink-0 sm:gap-2 sm:px-3 sm:font-medium",
             state.open &&
               "[&_[data-dashboard-viewer-filter-chevron]]:rotate-180",
             filterActive &&
@@ -216,7 +218,10 @@ export function DashboardViewerFilterPicker({
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
                 placeholder="Search viewers"
-                className="h-9 w-full rounded-md border border-input bg-background px-3 pl-9 text-sm text-foreground outline-none transition-colors placeholder:text-muted-foreground focus:border-primary/50 focus:ring-2 focus:ring-primary/20"
+                className={cn(
+                  textInputClasses,
+                  "pl-9 placeholder:text-muted-foreground",
+                )}
                 data-dashboard-viewer-filter-search
               />
             </label>
@@ -232,7 +237,7 @@ export function DashboardViewerFilterPicker({
                 onClick={onClearViewerFilter}
                 aria-pressed={!filterActive}
                 className={cn(
-                  "flex min-h-11 w-full items-center gap-3 rounded-md px-2 text-left text-sm transition-colors hover:bg-accent hover:text-foreground focus-visible:ring-2 focus-visible:ring-primary/35 focus-visible:outline-none",
+                  "control-focus flex min-h-11 w-full items-center gap-3 rounded-md px-2 text-left text-sm transition-colors hover:bg-accent hover:text-foreground",
                   !filterActive && "bg-primary/10 text-primary",
                 )}
                 whileHover={microHover}
@@ -285,7 +290,7 @@ export function DashboardViewerFilterPicker({
                       aria-pressed={selected}
                       aria-label={actionLabel}
                       className={cn(
-                        "mt-1 flex min-h-11 w-full items-center gap-3 rounded-md px-2 text-left text-sm transition-colors hover:bg-accent hover:text-foreground focus-visible:ring-2 focus-visible:ring-primary/35 focus-visible:outline-none",
+                        "control-focus mt-1 flex min-h-11 w-full items-center gap-3 rounded-md px-2 text-left text-sm transition-colors hover:bg-accent hover:text-foreground",
                         selected && "bg-primary/10 text-primary",
                       )}
                       whileHover={microHover}
@@ -338,7 +343,7 @@ export function DashboardViewerFilterPicker({
                 <motion.button
                   type="button"
                   onClick={onClearViewerFilter}
-                  className="inline-flex h-8 shrink-0 items-center gap-1.5 rounded-md px-2 text-xs font-semibold text-primary transition-colors hover:bg-primary/10 focus-visible:ring-2 focus-visible:ring-primary/35 focus-visible:outline-none"
+                  className="control-focus inline-flex h-8 shrink-0 items-center gap-1.5 rounded-md px-2 text-xs font-semibold text-primary transition-colors hover:bg-primary/10"
                   whileHover={microHover}
                   whileTap={microTap}
                   transition={microTransition}
@@ -363,24 +368,19 @@ export function DashboardPlaybackFilterEmptyState({
   onClearViewerFilter: () => void;
 }) {
   return (
-    <>
-      <div className="bg-background mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full">
-        <Users className="h-6 w-6 text-muted-foreground" />
-      </div>
-      <h3 className="mb-2 text-lg font-medium">
-        No sessions match this viewer filter
-      </h3>
-      <p className="mx-auto max-w-sm text-sm text-muted-foreground">
-        {formatFilterHiddenCount(hiddenSessionCount)}
-      </p>
+    <EmptyState
+      icon={<Users className="h-5 w-5" />}
+      title="No sessions match this viewer filter"
+      description={formatFilterHiddenCount(hiddenSessionCount)}
+    >
       <button
         type="button"
         onClick={onClearViewerFilter}
-        className="mt-5 inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-border px-4 text-sm font-semibold text-foreground transition-colors hover:bg-accent focus-visible:ring-2 focus-visible:ring-primary/35 focus-visible:outline-none"
+        className="control-focus mt-5 inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-border px-4 text-sm font-semibold text-foreground transition-colors hover:bg-accent"
       >
         <X className="h-4 w-4" />
         Clear filter
       </button>
-    </>
+    </EmptyState>
   );
 }

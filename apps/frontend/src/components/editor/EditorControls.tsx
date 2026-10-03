@@ -126,7 +126,7 @@ export function EditorControls({
         onClick={togglePlay}
         disabled={loadingPreview}
         aria-label={playing ? "Pause preview" : "Play preview"}
-        className="flex h-8 w-8 items-center justify-center rounded-[var(--radius-control)] border border-editor-border bg-editor-control text-muted-foreground transition-colors hover:bg-editor-control-hover hover:text-foreground focus-visible:ring-2 focus-visible:ring-editor-accent/35 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50"
+        className="editor-control-focus flex h-8 w-8 items-center justify-center rounded-[var(--radius-control)] border border-editor-border bg-editor-control text-muted-foreground transition-colors hover:bg-editor-control-hover hover:text-foreground disabled:cursor-not-allowed disabled:opacity-50"
       >
         {playing ? (
           <Pause className="h-4 w-4" />
@@ -139,7 +139,7 @@ export function EditorControls({
   const previewTimeControl = (
     <EditorEditableTimecode
       ariaLabel="preview time"
-      buttonClassName="rounded-[var(--radius-control)] px-1 text-foreground hover:bg-editor-control-hover focus-visible:ring-editor-accent/35"
+      buttonClassName="editor-control-focus rounded-[var(--radius-control)] px-1 text-foreground hover:bg-editor-control-hover"
       disabled={!canEditPreviewTime}
       onCommit={onPreviewTimeCommit}
       value={currentTime}
@@ -165,7 +165,7 @@ export function EditorControls({
         <button
           type="button"
           onClick={() => setMuted((current) => !current)}
-          className="flex h-8 w-8 items-center justify-center rounded-[var(--radius-control)] border border-editor-border bg-editor-control text-muted-foreground transition-colors hover:bg-editor-control-hover hover:text-foreground focus-visible:ring-2 focus-visible:ring-editor-accent/35 focus-visible:outline-none"
+          className="editor-control-focus flex h-8 w-8 items-center justify-center rounded-[var(--radius-control)] border border-editor-border bg-editor-control text-muted-foreground transition-colors hover:bg-editor-control-hover hover:text-foreground"
           aria-label={muted || volume === 0 ? "Unmute preview" : "Mute preview"}
         >
           {muted || volume === 0 ? (
@@ -206,7 +206,7 @@ export function EditorControls({
           type="button"
           onClick={handleTimelineZoomOut}
           disabled={!canZoomOut}
-          className="flex h-8 w-8 items-center justify-center text-muted-foreground transition-colors hover:bg-editor-control-hover hover:text-foreground focus-visible:ring-2 focus-visible:ring-editor-accent/35 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-45"
+          className="editor-control-focus flex h-8 w-8 items-center justify-center text-muted-foreground transition-colors hover:bg-editor-control-hover hover:text-foreground disabled:cursor-not-allowed disabled:opacity-45"
           aria-label="Zoom timeline out"
         >
           <ZoomOut className="h-4 w-4" />
@@ -220,7 +220,7 @@ export function EditorControls({
           type="button"
           onClick={handleTimelineZoomIn}
           disabled={!canZoomIn}
-          className="flex h-8 w-8 items-center justify-center border-l border-editor-border text-muted-foreground transition-colors hover:bg-editor-control-hover hover:text-foreground focus-visible:ring-2 focus-visible:ring-editor-accent/35 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-45"
+          className="editor-control-focus flex h-8 w-8 items-center justify-center border-l border-editor-border text-muted-foreground transition-colors hover:bg-editor-control-hover hover:text-foreground disabled:cursor-not-allowed disabled:opacity-45"
           aria-label="Zoom timeline in"
         >
           <ZoomIn className="h-4 w-4" />
@@ -237,7 +237,7 @@ export function EditorControls({
         type="button"
         onClick={onFramegrabClick}
         disabled={framegrabDisabled}
-        className="flex h-8 w-8 items-center justify-center rounded-[var(--radius-control)] border border-editor-border bg-editor-control text-muted-foreground transition-colors hover:bg-editor-control-hover hover:text-foreground focus-visible:ring-2 focus-visible:ring-editor-accent/35 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-45"
+        className="editor-control-focus flex h-8 w-8 items-center justify-center rounded-[var(--radius-control)] border border-editor-border bg-editor-control text-muted-foreground transition-colors hover:bg-editor-control-hover hover:text-foreground disabled:cursor-not-allowed disabled:opacity-45"
         aria-label="Export current preview frame"
       >
         <Camera className="h-4 w-4" />
@@ -245,7 +245,7 @@ export function EditorControls({
     </ControlTooltip>
   );
   const rangeActionButtonClassName =
-    "flex h-8 items-center justify-center gap-1.5 px-2.5 text-xs font-semibold text-muted-foreground transition-colors hover:bg-editor-control-hover hover:text-foreground focus-visible:ring-2 focus-visible:ring-editor-accent/35 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-45";
+    "editor-control-focus flex h-8 items-center justify-center gap-1.5 px-2.5 text-xs font-semibold text-muted-foreground transition-colors hover:bg-editor-control-hover hover:text-foreground disabled:cursor-not-allowed disabled:opacity-45";
   const rangeActions = (
     <div className="flex items-center overflow-hidden rounded-[var(--radius-control)] border border-editor-border bg-editor-control">
       <ControlTooltip
@@ -318,7 +318,7 @@ export function EditorControls({
                 buttonClassName={
                   variant === "mobile"
                     ? "h-11 w-full justify-center gap-2 rounded-[var(--radius-control)] text-foreground hover:bg-editor-control-hover"
-                    : "w-full justify-end rounded-[var(--radius-control)] px-1 font-mono text-sm font-semibold tabular-nums text-muted-foreground hover:bg-editor-control-hover hover:text-foreground focus-visible:ring-editor-accent/35"
+                    : "editor-control-focus w-full justify-end rounded-[var(--radius-control)] px-1 font-mono text-sm font-semibold tabular-nums text-muted-foreground hover:bg-editor-control-hover hover:text-foreground"
                 }
                 className={
                   variant === "mobile"
@@ -377,7 +377,7 @@ export function EditorControls({
               <button
                 type="button"
                 aria-label="More clip controls"
-                className="flex h-10 w-10 items-center justify-center rounded-[var(--radius-control)] border border-editor-border bg-editor-control text-muted-foreground transition-colors hover:bg-editor-control-hover hover:text-foreground focus-visible:ring-2 focus-visible:ring-editor-accent/35 focus-visible:outline-none"
+                className="editor-control-focus flex h-10 w-10 items-center justify-center rounded-[var(--radius-control)] border border-editor-border bg-editor-control text-muted-foreground transition-colors hover:bg-editor-control-hover hover:text-foreground"
               >
                 <SlidersHorizontal className="h-4 w-4" />
               </button>

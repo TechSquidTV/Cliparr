@@ -1,3 +1,4 @@
+import { EmptyState } from "@/components/ui/empty-state";
 import type { KeyboardEvent, RefObject } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import {
@@ -22,7 +23,11 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
+  compactPrimaryButtonClasses,
+  compactSecondaryButtonClasses,
   destructiveAlertClasses,
+  warningAlertClasses,
+  warningSurfaceClasses,
   iconButtonClasses,
   textInputClasses as inputClasses,
 } from "@/components/ui/control-styles";
@@ -46,16 +51,16 @@ const sourceFilterOptions = [
   ["attention", "Needs attention"],
 ] as const satisfies readonly [SourceFilter, string][];
 
-function joinClassNames(...classes: Array<string | false | null | undefined>) {
-  return classes.filter(Boolean).join(" ");
-}
-
-const sourcePrimaryButtonClasses =
-  "inline-flex h-8 items-center justify-center gap-2 rounded-md border border-primary bg-primary px-3 text-xs font-medium normal-case tracking-normal text-primary-foreground transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-60";
-const sourceSecondaryButtonClasses =
-  "inline-flex h-8 items-center justify-center gap-2 rounded-md border border-border bg-background px-3 text-xs font-medium normal-case tracking-normal text-foreground transition-colors hover:bg-accent disabled:cursor-not-allowed disabled:opacity-60";
+const sourcePrimaryButtonClasses = cn(
+  compactPrimaryButtonClasses,
+  "font-medium normal-case tracking-normal",
+);
+const sourceSecondaryButtonClasses = cn(
+  compactSecondaryButtonClasses,
+  "font-medium normal-case tracking-normal",
+);
 const sourceDestructiveButtonClasses =
-  "inline-flex h-8 items-center justify-center gap-2 rounded-md border border-destructive/30 bg-destructive/10 px-3 text-xs font-medium normal-case tracking-normal text-destructive transition-colors hover:bg-destructive hover:text-destructive-foreground disabled:cursor-not-allowed disabled:opacity-60";
+  "control-focus inline-flex h-8 items-center justify-center gap-2 rounded-md border border-destructive/30 bg-destructive/10 px-3 text-xs font-medium normal-case tracking-normal text-destructive transition-colors hover:bg-destructive hover:text-destructive-foreground disabled:cursor-not-allowed disabled:opacity-60";
 const sourceFieldLabelClasses =
   "text-ui-label font-normal normal-case tracking-normal text-muted-foreground";
 const sourceMetaLabelClasses =
@@ -63,10 +68,8 @@ const sourceMetaLabelClasses =
 const statusBadgeClasses =
   "inline-flex h-6 items-center gap-1.5 rounded-md border px-2 text-ui-label font-medium normal-case tracking-normal";
 const sourceFilterButtonClasses =
-  "inline-flex h-7 items-center gap-1.5 rounded-[var(--radius-control)] px-2 text-ui-label font-medium normal-case tracking-normal transition-colors";
+  "control-focus inline-flex h-7 items-center gap-1.5 rounded-[var(--radius-control)] px-2 text-ui-label font-medium normal-case tracking-normal transition-colors";
 const healthySurfaceClasses = "border-primary/30 bg-primary/10 text-foreground";
-const attentionSurfaceClasses =
-  "border-destructive/30 bg-destructive/10 text-destructive";
 const secondarySurfaceClasses = "border-border bg-muted text-muted-foreground";
 const SOURCE_STATE_INITIAL = {
   opacity: 0,
@@ -116,7 +119,7 @@ function sourceStatus(source: MediaSource) {
   if (source.lastError) {
     return {
       label: "Needs attention",
-      className: attentionSurfaceClasses,
+      className: warningSurfaceClasses,
       icon: AlertTriangle,
     };
   }
@@ -192,7 +195,7 @@ export function SourcesDialogHeader({
     {
       label: "Attention",
       value: counts.attention,
-      className: attentionSurfaceClasses,
+      className: warningSurfaceClasses,
     },
   ];
 
@@ -334,7 +337,21 @@ export function SourcesDialogFilters({
             />
           </label>
 
-          <Select value={providerFilter} onValueChange={onProviderFilterChange}>
+          <Select
+            value={providerFilter}
+            items={[
+              { value: "all", label: "All providers" },
+              ...providerOptions.map((providerId) => ({
+                value: providerId,
+                label: formatProviderName(providerId),
+              })),
+            ]}
+            onValueChange={(value) => {
+              if (value !== null) {
+                onProviderFilterChange(value);
+              }
+            }}
+          >
             <SelectTrigger aria-label="Provider" className="lg:w-52">
               <span className={sourceFieldLabelClasses}>Provider</span>
               <SelectValue />
@@ -358,7 +375,7 @@ export function SourcesDialogFilters({
                 key={value}
                 type="button"
                 onClick={() => onStatusFilterChange(value)}
-                className={joinClassNames(
+                className={cn(
                   sourceFilterButtonClasses,
                   isActive
                     ? "bg-primary text-primary-foreground"
@@ -399,6 +416,7 @@ export function SourcesDialogAlerts({
           key="sources-error"
           layout={!reduceMotion}
           className={destructiveAlertClasses}
+          role="alert"
           data-sources-error-alert
           initial={reduceMotion ? { opacity: 1 } : SOURCE_STATE_INITIAL}
           animate={SOURCE_STATE_VISIBLE}
@@ -415,10 +433,9 @@ export function SourcesDialogAlerts({
           layout={!reduceMotion}
           className={cn(
             "rounded-md border px-3 py-2 text-sm",
-            feedback.tone === "error" &&
-              "border-destructive/30 bg-destructive/10 text-destructive",
+            feedback.tone === "error" && destructiveAlertClasses,
             feedback.tone === "success" && healthySurfaceClasses,
-            feedback.tone === "warning" && attentionSurfaceClasses,
+            feedback.tone === "warning" && warningAlertClasses,
           )}
           data-sources-feedback-alert
           initial={reduceMotion ? { opacity: 1 } : SOURCE_STATE_INITIAL}
@@ -490,15 +507,11 @@ export function SourcesEmptyState({
   description,
 }: SourcesEmptyStateProperties) {
   return (
-    <div className="rounded-lg border border-dashed border-border bg-background px-6 py-10 text-center">
-      <div className="mx-auto mb-3 flex h-10 w-10 items-center justify-center rounded-md border border-border bg-card">
-        <Server className="h-5 w-5 text-muted-foreground" />
-      </div>
-      <h3 className="text-sm font-semibold">{title}</h3>
-      <p className="mx-auto mt-2 max-w-md text-xs text-muted-foreground">
-        {description}
-      </p>
-    </div>
+    <EmptyState
+      icon={<Server className="h-5 w-5" />}
+      title={title}
+      description={description}
+    />
   );
 }
 
@@ -581,7 +594,7 @@ export function SourceCard({
         <div className="flex flex-wrap items-center gap-2">
           <motion.span
             layout={!reduceMotion}
-            className={joinClassNames(
+            className={cn(
               statusBadgeClasses,
               "border-border bg-card text-muted-foreground",
             )}
@@ -591,7 +604,7 @@ export function SourceCard({
           </motion.span>
           <motion.span
             layout={!reduceMotion}
-            className={joinClassNames(
+            className={cn(
               statusBadgeClasses,
               "min-w-36 justify-center",
               status.className,
@@ -606,7 +619,7 @@ export function SourceCard({
               <motion.span
                 key="busy-action"
                 layout={!reduceMotion}
-                className={joinClassNames(
+                className={cn(
                   statusBadgeClasses,
                   "w-32 justify-center border-primary/30 bg-primary/10 text-primary",
                 )}
@@ -672,10 +685,7 @@ export function SourceCard({
           <motion.div
             key="source-last-error"
             layout={!reduceMotion}
-            className={cn(
-              "mt-3 rounded-md border px-3 py-2 text-sm",
-              attentionSurfaceClasses,
-            )}
+            className={cn("mt-3", warningAlertClasses)}
             initial={reduceMotion ? { opacity: 1 } : SOURCE_STATE_INITIAL}
             animate={SOURCE_STATE_VISIBLE}
             exit={SOURCE_STATE_EXIT}
@@ -708,7 +718,7 @@ export function SourceCard({
           </button>
         </ControlTooltip>
         <div
-          className={joinClassNames(
+          className={cn(
             "inline-flex h-8 items-center gap-3 rounded-md border border-border bg-card px-3 text-xs font-medium normal-case tracking-normal text-foreground transition-opacity",
             isBusy && "opacity-60",
           )}

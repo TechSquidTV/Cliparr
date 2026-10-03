@@ -1,5 +1,7 @@
 import * as React from "react";
+// Vaul owns mobile swipe gestures; other headless controls use Base UI.
 import { Drawer as DrawerPrimitive } from "vaul";
+import { dialogFooterClasses } from "@/components/ui/control-styles";
 import { cn } from "@/lib/utilities";
 
 function Drawer({
@@ -72,7 +74,8 @@ function DrawerFooter({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
       className={cn(
-        "mt-auto flex flex-col gap-2 border-t border-border px-4 py-3",
+        "mt-auto flex flex-col gap-2",
+        dialogFooterClasses,
         className,
       )}
       {...props}

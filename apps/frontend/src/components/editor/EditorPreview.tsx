@@ -78,7 +78,7 @@ export function EditorPreview({
               togglePlay();
             }}
             aria-label={playing ? "Pause playback" : "Play playback"}
-            className={`pointer-events-auto flex h-11 w-11 items-center justify-center rounded-[var(--radius-control)] border border-editor-border bg-editor-panel/92 text-foreground transition-all focus-visible:ring-2 focus-visible:ring-editor-accent/35 focus-visible:outline-none ${
+            className={`editor-control-focus pointer-events-auto flex h-11 w-11 items-center justify-center rounded-[var(--radius-control)] border border-editor-border bg-editor-panel/92 text-foreground transition-all ${
               playing
                 ? "scale-95 opacity-0"
                 : "scale-100 opacity-100 group-hover:bg-editor-panel-raised"

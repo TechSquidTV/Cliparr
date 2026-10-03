@@ -1,19 +1,13 @@
 import * as React from "react";
-import { Tooltip as TooltipPrimitive } from "radix-ui";
+import { Tooltip as TooltipPrimitive } from "@base-ui/react/tooltip";
 
 import { cn } from "#/lib/utilities";
 
 function TooltipProvider({
-  delayDuration = 250,
+  delay = 250,
   ...props
 }: React.ComponentProps<typeof TooltipPrimitive.Provider>) {
-  return (
-    <TooltipPrimitive.Provider
-      data-slot="tooltip-provider"
-      delayDuration={delayDuration}
-      {...props}
-    />
-  );
+  return <TooltipPrimitive.Provider delay={delay} {...props} />;
 }
 
 function Tooltip({
@@ -31,23 +25,36 @@ function TooltipTrigger({
 function TooltipContent({
   className,
   sideOffset = 6,
+  side = "top",
+  align = "center",
   children,
   ...props
-}: React.ComponentProps<typeof TooltipPrimitive.Content>) {
+}: Omit<React.ComponentProps<typeof TooltipPrimitive.Popup>, "className"> & {
+  className?: string;
+  side?: React.ComponentProps<typeof TooltipPrimitive.Positioner>["side"];
+  align?: React.ComponentProps<typeof TooltipPrimitive.Positioner>["align"];
+  sideOffset?: number;
+}) {
   return (
     <TooltipPrimitive.Portal>
-      <TooltipPrimitive.Content
-        data-slot="tooltip-content"
+      <TooltipPrimitive.Positioner
+        side={side}
+        align={align}
         sideOffset={sideOffset}
-        className={cn(
-          "z-[60] max-w-72 rounded-md border border-border bg-popover px-3 py-2 text-xs leading-relaxed text-popover-foreground shadow-md animate-in fade-in-0 zoom-in-95 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95",
-          className,
-        )}
-        {...props}
+        className="z-[60]"
       >
-        {children}
-        <TooltipPrimitive.Arrow className="fill-popover" />
-      </TooltipPrimitive.Content>
+        <TooltipPrimitive.Popup
+          data-slot="tooltip-content"
+          className={cn(
+            "max-w-72 rounded-md border border-border bg-popover px-3 py-2 text-xs leading-relaxed text-popover-foreground shadow-md origin-(--transform-origin) data-[starting-style]:animate-in data-[starting-style]:fade-in-0 data-[starting-style]:zoom-in-95 data-[ending-style]:animate-out data-[ending-style]:fade-out-0 data-[ending-style]:zoom-out-95",
+            className,
+          )}
+          {...props}
+        >
+          {children}
+          <TooltipPrimitive.Arrow className="size-2 rotate-45 bg-popover data-[side=top]:-bottom-1 data-[side=bottom]:-top-1 data-[side=left]:-right-1 data-[side=right]:-left-1" />
+        </TooltipPrimitive.Popup>
+      </TooltipPrimitive.Positioner>
     </TooltipPrimitive.Portal>
   );
 }
@@ -95,18 +102,18 @@ function LabeledControlTooltip({
       }}
     >
       <TooltipTrigger
-        asChild
         onFocusCapture={trackTrigger}
         onPointerMoveCapture={trackTrigger}
-      >
-        {disabled ? (
-          <span className="inline-flex" tabIndex={0}>
-            {children}
-          </span>
-        ) : (
-          children
-        )}
-      </TooltipTrigger>
+        render={
+          disabled ? (
+            <span className="inline-flex" tabIndex={0}>
+              {children}
+            </span>
+          ) : (
+            children
+          )
+        }
+      />
       <TooltipContent side={side}>{label}</TooltipContent>
     </Tooltip>
   );

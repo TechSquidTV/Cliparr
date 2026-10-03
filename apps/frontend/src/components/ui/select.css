@@ -1,4 +1,4 @@
-/* BeUI Select's unfold-and-separate motion, with Radix handling focus,
+/* BeUI Select's unfold-and-separate motion, with Base UI handling focus,
  * collisions and scrolling. Animate the surface without changing its measured
  * size, so opening a dropdown never moves the surrounding fields. */
 .cliparr-select-content {
@@ -9,16 +9,16 @@
   --select-attached-offset: 8px;
 }
 
-.cliparr-select-content[data-state="open"] {
+.cliparr-select-content[data-open] {
   animation: select-unfold 420ms cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
-.cliparr-select-content[data-state="closed"] {
+.cliparr-select-content[data-ending-style] {
   animation: select-fold 140ms ease-out both;
   pointer-events: none;
 }
 
-.cliparr-select-content[data-state="open"] [data-slot="select-item"] {
+.cliparr-select-content[data-open] [data-slot="select-item"] {
   --select-item-delay: 140ms;
   animation: select-item-enter 200ms ease-out var(--select-item-delay) both;
 }
@@ -69,15 +69,15 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .cliparr-select-content[data-state="open"] {
+  .cliparr-select-content[data-open] {
     animation: select-fade-in 120ms ease-out both;
   }
 
-  .cliparr-select-content[data-state="closed"] {
+  .cliparr-select-content[data-ending-style] {
     animation: select-fade-in 120ms ease-out reverse both;
   }
 
-  .cliparr-select-content[data-state="open"] [data-slot="select-item"] {
+  .cliparr-select-content[data-open] [data-slot="select-item"] {
     animation: none;
   }
 }

@@ -1,4 +1,8 @@
 import { Dialog as BaseDialog } from "@base-ui/react/dialog";
+import {
+  dialogFooterClasses,
+  iconButtonClasses,
+} from "@/components/ui/control-styles";
 import { X } from "lucide-react";
 import {
   AnimatePresence,
@@ -77,8 +81,6 @@ const popupTransition = {
 const titleClasses =
   "text-sm font-semibold uppercase tracking-[var(--tracking-caps-md)] text-foreground";
 const descriptionClasses = "text-xs text-muted-foreground";
-const iconCloseButtonClasses =
-  "flex h-8 w-8 items-center justify-center rounded-md border border-border bg-background text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/40 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-60";
 
 function useDialogAnimationContext(componentName: string) {
   const context = React.useContext(DialogAnimationContext);
@@ -234,7 +236,9 @@ function DialogPopup({
   const popupChildren = (
     <>
       {showCloseButton ? (
-        <DialogClose className="absolute top-3 right-3 flex h-8 w-8 items-center justify-center rounded-md border border-border bg-background text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/40 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-60">
+        <DialogClose
+          className={cn(iconButtonClasses, "absolute top-3 right-3")}
+        >
           <X className="h-4 w-4" />
           <span className="sr-only">Close</span>
         </DialogClose>
@@ -360,7 +364,7 @@ function DialogWindow({
               <DialogClose
                 disabled={closeDisabled}
                 aria-label={closeLabel}
-                className={iconCloseButtonClasses}
+                className={iconButtonClasses}
               >
                 <X className="h-4 w-4" />
               </DialogClose>
@@ -400,6 +404,7 @@ function DialogFooter({ className, ...props }: React.ComponentProps<"div">) {
     <div
       className={cn(
         "flex flex-col-reverse gap-2 sm:flex-row sm:items-center sm:justify-end",
+        dialogFooterClasses,
         className,
       )}
       {...props}

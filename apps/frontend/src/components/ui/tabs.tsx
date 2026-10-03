@@ -122,7 +122,7 @@ const TabsTab = React.forwardRef<HTMLElement, TabsTabProperties>(
       <BaseTabs.Tab
         ref={ref}
         className={cn(
-          "relative z-10 inline-flex h-8 items-center justify-center gap-2 rounded-[var(--radius-control)] px-3 text-xs font-semibold uppercase tracking-[var(--tracking-caps-sm)] text-muted-foreground transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/40 focus-visible:outline-none data-[active]:text-primary-foreground data-[disabled]:cursor-not-allowed data-[disabled]:opacity-55",
+          "control-focus relative z-10 inline-flex h-8 items-center justify-center gap-2 rounded-[var(--radius-control)] px-3 text-xs font-semibold uppercase tracking-[var(--tracking-caps-sm)] text-muted-foreground transition-colors hover:text-foreground data-[active]:text-primary-foreground data-[disabled]:cursor-not-allowed data-[disabled]:opacity-55",
           className,
         )}
         render={
