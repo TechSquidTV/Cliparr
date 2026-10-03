@@ -3,6 +3,8 @@
   "compilerOptions": {
     "lib": ["ES2023", "DOM"],
     "moduleResolution": "Bundler",
+    "allowImportingTsExtensions": true,
+    "types": ["node"],
     "noEmit": true
   },
   "include": ["src/**/*"]

@@ -1,13 +1,9 @@
 import {
-  normalizeIpCandidate,
-  normalizeHostname,
   isUnsafeRemoteHostname,
   isRedirectStatus,
   removeSensitiveRedirectHeaders,
 } from "@/providers/shared/networkPolicy";
 import { randomUUID } from "node:crypto";
-import { lookup } from "node:dns/promises";
-import { isIP } from "node:net";
 import { Readable } from "node:stream";
 import { pipeline } from "node:stream/promises";
 import type { ReadableStream as WebReadableStream } from "node:stream/web";
@@ -17,6 +13,7 @@ import { createApiError, isApiError } from "@/http/errors";
 import { getServerLogger, warnWithError } from "@/logging";
 import type { ProviderSessionRecord } from "@/session/store";
 import type { MediaHandle } from "@/providers/types";
+import { resolveHostnameAddresses } from "@/providers/shared/dnsCache";
 import { fetchWithPinnedDns } from "@/providers/shared/pinnedFetch";
 
 interface MediaHandleContext {
@@ -58,11 +55,6 @@ interface CachedProxyMediaResponse {
   body: Buffer;
 }
 
-interface ResolvedHostnameCacheEntry {
-  expiresAt: number;
-  addresses: string[];
-}
-
 const RELATIVE_MEDIA_BASE_URL = "http://cliparr.local";
 const PROXY_HEADER_ALLOWLIST = [
   "accept-ranges",
@@ -81,7 +73,6 @@ const MEDIA_PROXY_FETCH_ATTEMPTS = 3;
 const HLS_MEDIA_PROXY_FETCH_ATTEMPTS = 8;
 const MEDIA_PROXY_FETCH_RETRY_BASE_DELAY_MS = 150;
 const MEDIA_PROXY_FETCH_RETRY_MAX_DELAY_MS = 1000;
-const DNS_VALIDATION_CACHE_TTL_MS = 60_000;
 
 const RETRYABLE_MEDIA_STATUS_CODES = new Set([
   408, 425, 429, 500, 502, 503, 504,
@@ -102,8 +93,6 @@ const mediaHandleIndexes = new WeakMap<
   Map<string, MediaHandle>,
   Map<string, string>
 >();
-const resolvedHostnameCache = new Map<string, ResolvedHostnameCacheEntry>();
-const inflightHostnameResolutions = new Map<string, Promise<string[]>>();
 
 function normalizeProviderMetadata(
   metadata: MediaHandle["providerMetadata"],
@@ -210,56 +199,6 @@ export function shouldAttachProviderAuth(
   return providerUrl ? requestUrl.origin === providerUrl.origin : true;
 }
 
-async function resolveHostnameAddresses(hostname: string) {
-  const normalized = normalizeHostname(hostname);
-  if (isIP(normalized)) {
-    return [];
-  }
-
-  const now = Date.now();
-  const cached = resolvedHostnameCache.get(normalized);
-  if (cached && cached.expiresAt > now) {
-    return cached.addresses;
-  }
-
-  let inflight = inflightHostnameResolutions.get(normalized);
-  if (!inflight) {
-    inflight = (async () => {
-      try {
-        const records = await lookup(normalized, {
-          all: true,
-          verbatim: true,
-        });
-        const addresses = [
-          ...new Set(
-            records.map((record) => normalizeIpCandidate(record.address)),
-          ),
-        ];
-        resolvedHostnameCache.set(normalized, {
-          addresses,
-          expiresAt: Date.now() + DNS_VALIDATION_CACHE_TTL_MS,
-        });
-        return addresses;
-      } catch {
-        throw createApiError(
-          502,
-          "media_proxy_unsafe_url",
-          "Media URL hostname could not be resolved for security validation",
-        );
-      }
-    })();
-    inflightHostnameResolutions.set(normalized, inflight);
-    const cleanupInflight = () => {
-      if (inflightHostnameResolutions.get(normalized) === inflight) {
-        inflightHostnameResolutions.delete(normalized);
-      }
-    };
-    void inflight.then(cleanupInflight, cleanupInflight);
-  }
-
-  return inflight;
-}
-
 function unsafeMediaUrlFields(
   handle: Pick<MediaHandle, "baseUrl" | "path">,
   requestUrl: URL,
@@ -293,7 +232,9 @@ function throwUnsafeMediaUrl(
 export async function assertAllowedMediaHandleRequestUrl(
   handle: Pick<MediaHandle, "baseUrl" | "path" | "providerId">,
   requestUrl = mediaHandleRequestUrl(handle),
+  signal = new AbortController().signal,
 ) {
+  signal.throwIfAborted();
   if (requestUrl.protocol !== "http:" && requestUrl.protocol !== "https:") {
     logger.warn(
       "Rejected media URL with unsupported protocol.",
@@ -325,13 +266,18 @@ export async function assertAllowedMediaHandleRequestUrl(
 
   let addresses: string[];
   try {
-    addresses = await resolveHostnameAddresses(requestUrl.hostname);
+    addresses = await resolveHostnameAddresses(requestUrl.hostname, signal);
   } catch (error) {
+    signal.throwIfAborted();
     warnWithError(logger, error, "Media URL hostname validation failed.", {
       ...unsafeMediaUrlFields(handle, requestUrl, "dns_resolution"),
       ...logErrorFields(error),
     });
-    throw error;
+    throw createApiError(
+      502,
+      "media_proxy_unsafe_url",
+      "Media URL hostname could not be resolved for security validation",
+    );
   }
 
   for (const address of addresses) {
@@ -539,6 +485,7 @@ async function fetchMediaHandleRequestOnce(
     const addresses = await assertAllowedMediaHandleRequestUrl(
       handle,
       requestUrl,
+      requestInit.signal ?? undefined,
     );
     const response = await fetchWithPinnedDns(
       requestUrl,

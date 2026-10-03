@@ -9,10 +9,28 @@ Use the repository capture pipeline rather than manually recording the desktop.
 The source media plays through Jellyfin and Cliparr's real media adapter. Playwright
 controls the editor through its capture-only bridge; no mouse interaction is needed.
 
+## Refresh scope
+
+Replace tracked README and website marketing captures only when the user requests
+an asset refresh, using this pipeline. A code change, test run, privacy audit, or
+documentation cleanup does not authorize replacing those assets. Report concrete
+privacy findings without treating a visible media title or filename alone as
+evidence of private information.
+
+Use the user's selected source media and scene. Do not substitute Sintel, another
+development seed, or a different scene unless the user requests that substitution.
+Run without `--write` first and inspect `review.html` and `report.json`; use
+`--write` only for the requested refresh after visual review. Keep the hero poster,
+its README copy, and both hero videos together so the poster matches playback.
+An explicit request to restore previous tracked captures may restore them directly
+from Git history instead of generating a replacement.
+
 ## Inputs and scene configuration
 
-Expect **two original media assets**, one for the hero and one for the mobile
-workspace. Both must retain their original timelines through the out point. Do not
+Expect **two user-selected media assets**, one for the hero and one for the mobile
+workspace. Mount only those sources and their subtitles in a dedicated directory,
+rather than indexing an entire personal library. Both sources must retain their
+original timelines through the out point. Do not
 pre-trim the sources to the selected clips. Prefer an existing non-empty,
 language-tagged Jellyfin sidecar beside each source, such as `<media>.en.srt`.
 Only transcribe when the required sidecar is missing; capture-window-only SRTs are
@@ -25,7 +43,7 @@ The canonical configuration is `tools/www-assets/src/scenes.ts`:
 | Scene  | Cliparr in/out  | Selected duration | Browser/video size | Caption size | Default recording duration |
 | ------ | --------------- | ----------------- | ------------------ | ------------ | -------------------------- |
 | Hero   | 8:16.07–8:19.01 | 2.94 seconds      | 1600×886           | 72 px        | 82/30 seconds (~2.733)     |
-| Mobile | 23:22–23:32     | 10 seconds        | 402×874            | 150 px       | 3 seconds                  |
+| Mobile | 2:09.60–2:19.60 | 10 seconds        | 402×874            | 150 px       | 3 seconds                  |
 
 The fractional hero timecodes are **decimal seconds, not frame numbers**.
 Cliparr selection and website recording length are separate settings. Never infer
@@ -65,6 +83,8 @@ pnpm assets:capture --media-dir /absolute/path/to/media \
 ```
 
 When `--write` is enabled, the hero poster is also copied to `./.github/img/screenshot.webp`.
+The same run refreshes the documentation export dialog, subtitle panel, and social preview.
+Blog images reuse these captures. Preserve attribution required by the selected media.
 The README screenshot points at the homepage hero poster, so it updates automatically when captures complete.
 
 Optional `--hero-seconds` and `--mobile-seconds` control recording duration only.
@@ -124,8 +144,9 @@ reduced-motion static behavior. Keep the Picture dimensions in
 
 For pipeline changes, run `pnpm test:assets`, relevant package type/lint checks,
 and `pnpm --filter @cliparr/frontend test` when editing the capture bridge. Exercise
-both scenes end to end. Synthetic media can validate the pipeline before supplied
-assets arrive, but must never replace the marketing assets. Report separately
+both scenes end to end. Synthetic or development-seed media can validate the
+pipeline before supplied assets arrive, but must not replace the marketing assets
+unless the user selected that media for the refresh. Report separately
 whether supplied-media visual review has been completed.
 
 ## Troubleshooting

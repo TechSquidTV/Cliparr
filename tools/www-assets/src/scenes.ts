@@ -64,8 +64,8 @@ export function buildScenes(options: {
       mediaPath: options.mobile,
       viewport: { width: 402, height: 874 },
       selection: {
-        inSeconds: 1402,
-        outSeconds: 1412,
+        inSeconds: 129.6,
+        outSeconds: 139.6,
         subtitleFontSize: 150,
         ...(options.mobileSubtitle
           ? { subtitleTrackKey: options.mobileSubtitle }

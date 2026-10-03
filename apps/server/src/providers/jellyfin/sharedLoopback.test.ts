@@ -1,3 +1,7 @@
+import {
+  PRIVATE_IPV4_ADDRESSES,
+  PRIVATE_IPV6_ADDRESS,
+} from "@/test/networkPolicyFixtures";
 import assert from "node:assert/strict";
 import dns from "node:dns/promises";
 import { syncBuiltinESMExports } from "node:module";
@@ -5,24 +9,20 @@ import test, { beforeEach, afterEach } from "node:test";
 import { Agent } from "undici";
 import { closePooledPinnedDnsAgents } from "@/providers/shared/pinnedFetch";
 
-const { fetchPublicSystemInfo } = await (async () => {
-  const previous = process.env.CLIPARR_ALLOW_LOOPBACK_JELLYFIN_URLS;
-  const previousDevelopment = process.env.CLIPARR_DEV_JELLYFIN_URL;
-  process.env.CLIPARR_ALLOW_LOOPBACK_JELLYFIN_URLS = "true";
-  delete process.env.CLIPARR_DEV_JELLYFIN_URL;
-  try {
-    return await import("@/providers/jellyfin/shared");
-  } finally {
-    if (previous === undefined) {
-      delete process.env.CLIPARR_ALLOW_LOOPBACK_JELLYFIN_URLS;
-    } else {
-      process.env.CLIPARR_ALLOW_LOOPBACK_JELLYFIN_URLS = previous;
+const { fetchPublicSystemInfo, resolveCredentialServerUrl } =
+  await (async () => {
+    const previous = process.env.CLIPARR_ALLOW_LOOPBACK_JELLYFIN_URLS;
+    process.env.CLIPARR_ALLOW_LOOPBACK_JELLYFIN_URLS = "true";
+    try {
+      return await import("@/providers/jellyfin/shared");
+    } finally {
+      if (previous === undefined) {
+        delete process.env.CLIPARR_ALLOW_LOOPBACK_JELLYFIN_URLS;
+      } else {
+        process.env.CLIPARR_ALLOW_LOOPBACK_JELLYFIN_URLS = previous;
+      }
     }
-    if (previousDevelopment !== undefined) {
-      process.env.CLIPARR_DEV_JELLYFIN_URL = previousDevelopment;
-    }
-  }
-})();
+  })();
 
 beforeEach((context) => {
   assert.ok("mock" in context);
@@ -42,8 +42,8 @@ for (const hostname of [
   "localhost",
   "[::1]",
   "[::ffff:127.0.0.1]",
-  "192.168.1.50",
-  "[fd00::1]",
+  ...PRIVATE_IPV4_ADDRESSES,
+  `[${PRIVATE_IPV6_ADDRESS}]`,
 ]) {
   void test(`opted-in Jellyfin permits the initial ${hostname} destination`, async (context) => {
     context.mock.method(globalThis, "fetch", async () =>
@@ -53,6 +53,15 @@ for (const hostname of [
       baseUrl: `http://${hostname}:8096`,
     });
     assert.equal(result.Id, "server");
+    const normalizedUrl = new URL(
+      `http://${hostname}:8096/jellyfin`,
+    ).toString();
+    assert.equal(
+      await resolveCredentialServerUrl(
+        `${normalizedUrl}/?query=removed#removed`,
+      ),
+      normalizedUrl,
+    );
   });
 }
 
@@ -110,7 +119,7 @@ for (const destination of [
 
 for (const intermediate of [
   "http://127.0.0.1:8096/same-origin",
-  "http://1.1.1.1:8096/other-origin",
+  "http://198.51.100.10:8096/other-origin",
 ]) {
   void test(`opted-in Jellyfin permits redirects returning to the initial origin via ${intermediate}`, async (context) => {
     const requests: Request[] = [];

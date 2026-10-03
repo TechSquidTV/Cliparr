@@ -23,6 +23,39 @@ The optional Docker dev stack seeds Plex and Jellyfin with Sintel, a Blender ope
 
 Run `pnpm docker:dev:build` after Dockerfile or dependency changes, then `pnpm docker:dev:up` to start the stack.
 
+## Portable provider tests
+
+Ordinary tests need neither Docker nor a provider account. Run `pnpm --filter @cliparr/server test`
+and `pnpm test:plex-sdk` with Node 24. Shared fixtures in
+`apps/server/src/test/providerFixtures.ts` use `plex.example.test` and
+`jellyfin.example.test`, fabricated identifiers and tokens, and DNS results from
+RFC 5737 documentation ranges. Install the fixture hooks in every test file that
+uses those endpoints; unexpected DNS and HTTP requests fail, and mocks restore
+after each test. Restore temporary environment changes with the test cleanup hook.
+
+Private address boundaries belong only in the labelled `networkPolicyFixtures.ts`
+classifier fixtures. Socket tests bind loopback with port `0` (an OS-assigned port)
+and explicitly enable the relevant provider's loopback opt-in for that test.
+Never copy addresses, device identifiers, responses, tokens, or paths from a real
+installation into a fixture.
+
+For integration checks, use the Docker dev stack above with its seeded Sintel
+library, service names `plex` and `jellyfin`, and documented development credentials.
+Use a unique Compose project and fresh volumes; remove only resources created by
+your validation run. Personal provider accounts and libraries are unnecessary.
+
+`pnpm privacy:check` runs in preflight and CI without an additional dependency.
+It reports file, line, and category without printing matched values. Exceptions
+are limited to documentation ranges, unsafe network-policy inputs, the explicit
+development network, and hash-verified public Plex specification examples. Review
+changed upstream snapshots against their published source before changing a hash;
+update generated contracts through `pnpm plex:sdk:update`, never by hand.
+
+The check is a fixture policy, not a complete credential detector. Review new
+captures visually and inspect embedded metadata before committing. Use the public
+seed media for screenshots and recordings, with fabricated account/device labels.
+Intentional project attribution and documented development credentials are public.
+
 ## Live session architecture
 
 While dashboards are subscribed, the Cliparr server maintains shared provider notification connections: SSE for Plex and WebSockets for Jellyfin. It loads initial session snapshots, prepares playback metadata and session-scoped media handles, handles reconnects and permission changes, and forwards updates to browsers through authenticated SSE at `/api/media/live`. Browsers do not poll provider sessions.

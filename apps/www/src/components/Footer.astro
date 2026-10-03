@@ -8,7 +8,19 @@ const year = new Date().getFullYear();
   <div
     class="container-page flex flex-col gap-4 py-8 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between"
   >
-    <p>&copy; {year} Cliparr. Released under the MIT License.</p>
+    <div>
+      <p>&copy; {year} Cliparr. Released under the MIT License.</p>
+      <p class="mt-1 text-xs">
+        Demo footage: <a
+          class="underline"
+          href="https://durian.blender.org/sharing/">Sintel</a
+        >
+        &copy; Blender Foundation, <a
+          class="underline"
+          href="https://creativecommons.org/licenses/by/3.0/">CC BY 3.0</a
+        >. Excerpts shown in the editor; comparison GIF resized and dithered.
+      </p>
+    </div>
     <div class="flex flex-wrap items-center gap-4">
       <a
         class="focus-ring rounded-md underline decoration-border hover:decoration-primary"

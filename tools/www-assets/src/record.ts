@@ -11,7 +11,7 @@ import {
   startJellyfinScene,
 } from "#/jellyfin.ts";
 import { encodeScene } from "#/encode.ts";
-import { waitUntil } from "#/process.ts";
+import { run, waitUntil } from "#/process.ts";
 import type { CapturePlan, CaptureScene } from "#/scenes.ts";
 
 const output = "/output";
@@ -234,6 +234,37 @@ async function main() {
         `,
         });
         results.push(await captureScene(page, scene));
+        if (scene.name === "hero") {
+          await prepareScene(page, scene);
+          await page.screenshot({
+            path: path.join(output, "subtitle-panel.png"),
+          });
+          await page.screenshot({
+            path: path.join(output, "og.jpg"),
+            quality: 85,
+          });
+          await page
+            .getByRole("button", { name: "Export", exact: true })
+            .click();
+          await page.getByRole("dialog").waitFor();
+          await page
+            .getByRole("dialog")
+            .screenshot({ path: path.join(output, "export-dialog.png") });
+          for (const name of ["subtitle-panel", "export-dialog"]) {
+            await run("ffmpeg", [
+              "-v",
+              "error",
+              "-y",
+              "-i",
+              path.join(output, `${name}.png`),
+              "-frames:v",
+              "1",
+              "-quality",
+              "85",
+              path.join(output, `${name}.webp`),
+            ]);
+          }
+        }
         playback.check();
         if (pageErrors.length > 0) {
           throw new Error(pageErrors.join("\n"));

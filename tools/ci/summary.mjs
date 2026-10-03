@@ -13,6 +13,7 @@ function cell(value) {
 }
 
 const stepNames = {
+  privacy: "Privacy fixture policy",
   format: "Formatting",
   lint: "Lint and types",
   knip: "Unused code",

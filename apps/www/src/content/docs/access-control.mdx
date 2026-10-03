@@ -163,7 +163,7 @@ Tailscale will give the service a tailnet-only HTTPS URL on the machine's MagicD
 
 With WireGuard, keep the same idea: do not publish Cliparr to the public interface. Bind it to a WireGuard-only address or place Caddy on the host and allow the Caddy port only from the WireGuard interface or VPN subnet.
 
-For example, if the Cliparr host has WireGuard address `10.8.0.1`, bind Docker to that address instead of every interface:
+Set `WIREGUARD_BIND_ADDRESS` in your local shell environment to the Cliparr host’s WireGuard interface address, then bind Docker to that interface instead of every interface. Keep the value in local configuration; do not commit it:
 
 <CommandBlock
   variants={wireguardDockerRunCommandVariants}
@@ -191,5 +191,7 @@ Protect every Cliparr route with the same access policy, including:
 - Media proxy routes used while previewing and exporting clips.
 
 ## Credential storage
+
+New and renewed remembered logins expire after 30 days. If a saved login expires, reconnect the provider. Log out when you want to stop remembering a connection.
 
 Provider credentials and remembered provider sessions are stored under the Cliparr data directory and encrypted or signed with `APP_KEY`. Keep `APP_KEY` stable, private, and backed up with the matching data directory.

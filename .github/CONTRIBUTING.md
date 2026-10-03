@@ -37,6 +37,20 @@ pnpm preflight
 
 The [Docker dev stack](../docker/compose.dev.yml) seeds Plex and Jellyfin with Sintel, a Blender open movie with embedded subtitle tracks. Run `pnpm docker:dev:build` after Dockerfile or dependency changes, then `pnpm docker:dev:up` to start the stack.
 
+## Live playback resolvers
+
+Internal API change: `createPlaybackResolverCache` requires `prepareMany(rows)`
+in place of `prepare(row)`. Return one prepared value per input row in the same
+order. Preparation is lazy, deduplicated by resolver key, and shared across
+Cliparr sessions; bindings and playback handles remain session-owned. Failed
+batches retry through `prepareMany`, without switching to per-row preparation.
+Providers without a batch endpoint can prepare their rows with `Promise.all`.
+
+DNS validation caches successful answers for 60 seconds and shares pending OS
+lookups. Every caller still uses `lookupWithSignal` with its own cancellation;
+already-aborted callers cannot use cached answers. URL/address security policy
+and credential scope are checked by each transport, including on cache hits.
+
 ## Pull Requests
 
 - Keep changes focused and explain the user-visible behavior they affect.
@@ -86,6 +100,7 @@ The Cloudflare changelog refresh is a separate job. If only that job fails, reru
 - Export callers must replace `includeAudio` with export mode and mixdown preferences and use the shared format API.
 - Plex callers must use generated `@cliparr/plex` operations and URL builders. Downloads require provider-returned part links. Conflicting media or part identities can suppress previews and subtitle extraction; unidentified streams no longer inherit selection or track numbers from array positions. Undocumented response aliases and `Network` export tags have been removed.
 - Embedded Cliparr metadata now uses version 1 JSON with `source` and `clip` objects: `clpr` in MP4 and `CLIPARR_METADATA` in other supported containers. The old unversioned payload is no longer written; individual MP4 timing tags remain available.
+- `CLIPARR_DEV_JELLYFIN_URL` has been removed. Configure a directly reachable Jellyfin URL, such as `http://jellyfin:8096` in the Docker dev stack. Localhost URLs always require `CLIPARR_ALLOW_LOOPBACK_JELLYFIN_URLS`. The separate frontend `VITE_CLIPARR_DEV_JELLYFIN_URL` hint does not grant a server-side exception.
 - The website moves to Astro 7 and Vite 8. Rebuild deployed artifacts with the updated lockfile.
 
 No compatibility aliases or fallback implementations are provided.

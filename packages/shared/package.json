@@ -2,10 +2,14 @@
   "name": "@cliparr/shared",
   "private": true,
   "type": "module",
+  "imports": {
+    "#server-events": "./src/serverEvents.ts"
+  },
   "scripts": {
     "lint": "pnpm lint:eslint && pnpm lint:types",
     "lint:eslint": "cd ../.. && pnpm exec eslint --config config/eslint.config.js \"packages/shared/src/**/*.{js,ts}\"",
-    "lint:types": "tsc --noEmit"
+    "lint:types": "tsc --noEmit",
+    "test": "node --test src/*.test.ts"
   },
   "types": "./src/providers.ts",
   "exports": {

@@ -1,3 +1,7 @@
+import {
+  TEST_PLEX_BASE_URL,
+  useProviderFixtures,
+} from "@/test/providerFixtures";
 import type { MediaSource } from "@/db/mediaSourcesRepository";
 import { proxyMedia } from "@/providers/plex/mediaProxy";
 import {
@@ -49,7 +53,7 @@ function createSession(): ProviderSessionRecord {
 function createContext(): PlexSourceContext {
   return {
     sourceId: "source-1",
-    baseUrl: "http://192.168.1.50:32400",
+    baseUrl: TEST_PLEX_BASE_URL,
     token: "provider-token",
   };
 }
@@ -61,17 +65,17 @@ function createSource(): MediaSource {
     providerAccountId: "account-1",
     name: "Plex",
     enabled: true,
-    baseUrl: "http://192.168.1.50:32400",
+    baseUrl: TEST_PLEX_BASE_URL,
     connection: {
       baseUrlMode: "manual",
       connections: [
         {
           id: "plex-connection-1",
-          uri: "http://192.168.1.50:32400",
+          uri: TEST_PLEX_BASE_URL,
           local: true,
           relay: false,
           protocol: "http",
-          address: "192.168.1.50",
+          address: new URL(TEST_PLEX_BASE_URL).hostname,
           port: 32_400,
         },
       ],
@@ -458,7 +462,7 @@ void test("builds Plex HLS preview and embedded SRT extraction with independent 
 
   await withMockFetch(
     (request) => {
-      if (request.url === "http://192.168.1.50:32400/status/sessions") {
+      if (request.url === `${TEST_PLEX_BASE_URL}/status/sessions`) {
         return jsonResponse({
           MediaContainer: {
             Metadata: [currentItem],
@@ -466,7 +470,7 @@ void test("builds Plex HLS preview and embedded SRT extraction with independent 
         });
       }
 
-      if (request.url === "http://192.168.1.50:32400/library/metadata/14447") {
+      if (request.url === `${TEST_PLEX_BASE_URL}/library/metadata/14447`) {
         return jsonResponse({
           MediaContainer: {
             Metadata: [metadataItem],
@@ -2308,24 +2312,24 @@ const livePlexItem = (id: string) => ({
 
 void test("live Plex enriches only changed items and shares metadata across Cliparr sessions", async () => {
   const requests: string[] = [];
+  const batches: string[][] = [];
   await withMockFetch(
     (request) => {
-      const id = new URL(request.url).pathname.split("/").at(-1)!;
-      requests.push(id);
+      // The live resolver batches metadata enrichment: one request carries
+      // every uncached item id as a comma-joined path segment.
+      const ids = new URL(request.url).pathname.split("/").at(-1)!.split(",");
+      requests.push(...ids);
+      batches.push(ids);
       return jsonResponse({
         MediaContainer: {
-          Metadata: [
-            {
-              ...livePlexItem(id),
-              Media: [
-                {
-                  Part: [
-                    { id: `part-${id}`, key: `/library/parts/${id}/file` },
-                  ],
-                },
-              ],
-            },
-          ],
+          Metadata: ids.map((id) => ({
+            ...livePlexItem(id),
+            Media: [
+              {
+                Part: [{ id: `part-${id}`, key: `/library/parts/${id}/file` }],
+              },
+            ],
+          })),
         },
       });
     },
@@ -2343,6 +2347,7 @@ void test("live Plex enriches only changed items and shares metadata across Clip
       });
       const [one, two] = await Promise.all([initial(first), initial(second)]);
       assert.deepEqual(requests.toSorted(), ["one", "two"]);
+      assert.deepEqual(batches, [["one", "two"]]);
       assert.notEqual(one[0].item.mediaUrl, two[0].item.mediaUrl);
       const paused = {
         ...livePlexItem("one"),
@@ -2356,6 +2361,7 @@ void test("live Plex enriches only changed items and shares metadata across Clip
       });
       const [updated] = await Promise.all([next(first), next(second)]);
       assert.deepEqual(requests.toSorted(), ["one", "three", "two"]);
+      assert.deepEqual(batches, [["one", "two"], ["three"]]);
       assert.equal(updated[0].item.playerState, "paused");
       assert.equal(updated[0].item.playheadSeconds, 12);
       assert.equal(updated[0].item.mediaUrl, one[0].item.mediaUrl);
@@ -2370,3 +2376,214 @@ void test("live Plex enriches only changed items and shares metadata across Clip
     },
   );
 });
+
+void test("live Plex fingerprints ignore payload details and refresh selection identities and source indexes", async () => {
+  let requests = 0;
+  await withMockFetch(
+    () => {
+      requests += 1;
+      return jsonResponse({
+        MediaContainer: {
+          Metadata: [
+            {
+              ...livePlexItem("fingerprint"),
+              Media: [{ id: 1, Part: [{ id: 2, key: "/returned/file.mp4" }] }],
+            },
+          ],
+        },
+      });
+    },
+    async () => {
+      const snapshot = createPlexPlaybackResolver(
+        createSource(),
+        createContext(),
+      );
+      const session = createSession();
+      const item = {
+        ...livePlexItem("fingerprint"),
+        Media: [
+          {
+            id: 1,
+            Part: [
+              {
+                id: 2,
+                Stream: [
+                  {
+                    id: 3,
+                    index: 0,
+                    streamType: 2,
+                    selected: true,
+                    codec: "aac",
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      };
+      const resolve = (row: typeof item) =>
+        snapshot({ MediaContainer: { Metadata: [row] } })(session);
+      await resolve(item);
+      await resolve({
+        ...item,
+        Media: [
+          {
+            ...item.Media[0],
+            Part: [
+              {
+                ...item.Media[0].Part[0],
+                Stream: [{ ...item.Media[0].Part[0].Stream[0], codec: "flac" }],
+              },
+            ],
+          },
+        ],
+      });
+      assert.equal(requests, 1, "codec payload changes do not re-enrich");
+      for (const stream of [
+        { id: 3, index: 0, streamType: 2, selected: false, codec: "aac" },
+        { id: 4, index: 0, streamType: 2, selected: false, codec: "aac" },
+        { id: 4, index: 1, streamType: 2, selected: false, codec: "aac" },
+      ]) {
+        await resolve({
+          ...item,
+          Media: [
+            {
+              ...item.Media[0],
+              Part: [{ ...item.Media[0].Part[0], Stream: [stream] }],
+            },
+          ],
+        });
+      }
+      assert.equal(
+        requests,
+        4,
+        "selection, identity and source-index changes each re-enrich",
+      );
+    },
+  );
+});
+
+const livePlexResourceItem = (
+  partKey: string,
+  subtitleKey: string,
+): PlexMetadataItem => ({
+  ...livePlexItem("resource-links"),
+  Media: [
+    {
+      id: 1,
+      selected: true,
+      Part: [
+        {
+          id: 2,
+          key: partKey,
+          selected: true,
+          Stream: [
+            {
+              id: 3,
+              index: 0,
+              streamType: 3,
+              selected: true,
+              codec: "srt",
+              key: subtitleKey,
+            },
+          ],
+        },
+      ],
+    },
+  ],
+});
+
+for (const resource of ["part", "subtitle"] as const) {
+  void test(`live Plex refreshes ${resource} handles when resource keys change with stable IDs`, async () => {
+    const originalPartKey = "/returned/original-file.mp4";
+    const originalSubtitleKey = "/returned/original-subtitle.srt";
+    const partKey =
+      resource === "part" ? "/returned/refreshed-file.mp4" : originalPartKey;
+    const subtitleKey =
+      resource === "subtitle"
+        ? "/returned/refreshed-subtitle.srt"
+        : originalSubtitleKey;
+    let metadataRequests = 0;
+    await withMockFetch(
+      () => {
+        metadataRequests += 1;
+        return jsonResponse({
+          MediaContainer: {
+            Metadata: [
+              livePlexResourceItem(originalPartKey, originalSubtitleKey),
+            ],
+          },
+        });
+      },
+      async () => {
+        const snapshot = createPlexPlaybackResolver(
+          createSource(),
+          createContext(),
+        );
+        const sessions = [
+          createSession(),
+          { ...createSession(), id: "second-resource-session" },
+        ];
+        const initial = snapshot({
+          MediaContainer: {
+            Metadata: [
+              livePlexResourceItem(originalPartKey, originalSubtitleKey),
+            ],
+          },
+        });
+        const before = await Promise.all(
+          sessions.map((session) => initial(session)),
+        );
+        assert.equal(metadataRequests, 1);
+        const updatedItem = livePlexResourceItem(partKey, subtitleKey);
+        const next = snapshot({ MediaContainer: { Metadata: [updatedItem] } });
+        const after = await Promise.all(
+          sessions.map((session) => next(session)),
+        );
+        assert.equal(
+          metadataRequests,
+          2,
+          "changed links trigger one shared enrichment",
+        );
+        for (const [index, session] of sessions.entries()) {
+          const entry = after[index]?.[0];
+          assert.ok(entry);
+          assert.equal(
+            mediaHandleForUrl(session, entry.item.mediaUrl).path,
+            partKey,
+          );
+          assert.equal(
+            mediaHandleForUrl(
+              session,
+              entry.item.subtitleTracks?.[0]?.contentUrl,
+            ).path,
+            subtitleKey,
+          );
+          const initialEntry = before[index]?.[0];
+          assert.ok(initialEntry);
+          assert.notEqual(
+            resource === "part"
+              ? entry.item.mediaUrl
+              : entry.item.subtitleTracks?.[0]?.contentUrl,
+            resource === "part"
+              ? initialEntry.item.mediaUrl
+              : initialEntry.item.subtitleTracks?.[0]?.contentUrl,
+            "the refreshed link gets a new session-owned handle",
+          );
+        }
+        await snapshot({
+          MediaContainer: {
+            Metadata: [{ ...updatedItem, viewOffset: 12_000 }],
+          },
+        })(sessions[0]!);
+        assert.equal(
+          metadataRequests,
+          2,
+          "unchanged links still reuse prepared metadata",
+        );
+      },
+    );
+  });
+}
+
+useProviderFixtures();

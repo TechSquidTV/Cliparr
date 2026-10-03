@@ -41,12 +41,6 @@ const developmentJellyfinUrl =
     ? developmentJellyfinUrlValue.trim()
     : "";
 
-function isLoopbackUrl(value: string) {
-  return /^https?:\/\/(?:localhost|127(?:\.\d{1,3}){3}|\[::1]|::1)(?:[/:]|$)/i.test(
-    value.trim(),
-  );
-}
-
 const panelInputClasses = cn(textInputClasses, "mt-1.5");
 const screenInputClasses = cn(baseScreenInputClasses, "mt-2");
 
@@ -159,10 +153,6 @@ export default function ProviderConnectFlow({
 
   function renderCredentialsContent(provider: ProviderDefinition) {
     const providerDetails = providerPresentation(provider, variant);
-    const jellyfinLoopbackWarning =
-      provider.id === "jellyfin" &&
-      Boolean(developmentJellyfinUrl) &&
-      isLoopbackUrl(serverUrl);
     const isUsingDevelopmentJellyfinUrl =
       provider.id === "jellyfin" &&
       Boolean(developmentJellyfinUrl) &&
@@ -239,21 +229,6 @@ export default function ProviderConnectFlow({
                   </span>
                 )}
               </div>
-            </div>
-          )}
-
-          {jellyfinLoopbackWarning && (
-            <div
-              className={cn(
-                "border border-primary/25 bg-primary/10 text-sm text-foreground",
-                isScreen ? "rounded-2xl px-4 py-3" : "rounded-md px-3 py-2",
-              )}
-            >
-              <p className="leading-6">
-                Docker will use{" "}
-                <span className="font-mono">{developmentJellyfinUrl}</span> for
-                this localhost URL.
-              </p>
             </div>
           )}
 
