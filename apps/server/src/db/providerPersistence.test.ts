@@ -543,7 +543,7 @@ void test("cleans existing duplicate Plex sources and preserves manual URL mode"
       providerId: "plex",
       providerAccountId: canonicalAccount.id,
       externalId: "plex-server-1",
-      name: "plex.rackserver.dev",
+      name: "plex.example.test",
       baseUrl: "https://manual.example:32400",
       connection: {
         baseUrlMode: PLEX_BASE_URL_MODE_MANUAL,
@@ -571,7 +571,7 @@ void test("cleans existing duplicate Plex sources and preserves manual URL mode"
       providerId: "plex",
       providerAccountId: duplicateAccount.id,
       externalId: "plex-server-1",
-      name: "plex.rackserver.dev",
+      name: "plex.example.test",
       baseUrl: "https://192-0-2-10.fixture.plex.direct:32400",
       connection: {
         connections: [

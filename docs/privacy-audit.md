@@ -21,6 +21,18 @@ review. This is not a guarantee about historical commits, external copies, or
 values that cannot be distinguished from fabricated test data. No history rewrite
 or credential revocation is included in this forward correction.
 
+## Review follow-up
+
+Review found two remaining non-synthetic server-name references in
+`apps/server/src/db/providerPersistence.test.ts`. They now use the reserved Plex
+fixture hostname. The check also covers bare hostname literals with common public
+DNS suffixes, using fabricated regression data rather than the removed hostname.
+
+Literal URL hostnames remain subject to validation when ports, paths, queries,
+fragments, or credentials contain template expressions. Only hostnames that are
+themselves dynamic are skipped; source code is never evaluated by the check.
+Regression cases cover both rejected endpoints and permitted fixture/public hosts.
+
 ## Review method
 
 Reviewed tracked source, configuration, docs, fixture responses, URLs, address-derived

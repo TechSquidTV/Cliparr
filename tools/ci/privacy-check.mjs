@@ -123,12 +123,19 @@ function permittedAddress(address, file) {
 }
 
 function endpointCategory(value, file) {
-  if (value.includes("${")) {
+  // Inspect the authority independently of an interpolated port, path, or query.
+  // Only a dynamic hostname (JS or OpenAPI template) cannot be checked statically.
+  const authority = /^https?:\/\/([^/?#]+)/i.exec(value)?.[1];
+  const hostAndPort = authority?.slice(authority.lastIndexOf("@") + 1);
+  const host = hostAndPort?.startsWith("[")
+    ? /^\[[^\]]+\]/.exec(hostAndPort)?.[0]
+    : hostAndPort?.split(":")[0];
+  if (!host || host.includes("${") || /\{[^}]+\}/.test(host)) {
     return;
   }
   let url;
   try {
-    url = new URL(value);
+    url = new URL(`http://${host}`);
   } catch {
     return;
   }
@@ -190,7 +197,7 @@ export function findPrivacyIssues(file, content) {
       }
     }
     for (const match of line.matchAll(
-      /["'`]((?:[a-z\d-]+\.)+(?:local|lan|home|internal|plex\.direct))["'`]/gi,
+      /["'`]((?:[a-z\d-]+\.)+(?:local|lan|home|internal|home\.arpa|plex\.direct|com|net|org|dev|app|io|tv|cloud))["'`]/gi,
     )) {
       const category = endpointCategory(`http://${match[1]}`, file);
       if (category) {

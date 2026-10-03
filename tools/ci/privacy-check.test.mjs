@@ -25,7 +25,7 @@ void test("canonicalizes disguised numeric endpoints and rejects private hostnam
     ["fixture-device", "lan"].join("."),
     ["fixture-device", "plex", "direct"].join("."),
     "fixture-device",
-    "unreviewed-service.dev",
+    ["unreviewed-service", "dev"].join("."),
   ]) {
     assert.ok(
       findPrivacyIssues("fixture.ts", `http://${hostname}/media`).length > 0,
@@ -83,4 +83,88 @@ void test("checks bare private hostname literals and permits reviewed public ori
     findPrivacyIssues("docs.md", "https://developer.plex.tv/pms/"),
     [],
   );
+});
+
+void test("detects fabricated bare hostnames across public DNS suffixes", () => {
+  for (const suffix of [
+    "dev",
+    "com",
+    "net",
+    "org",
+    "app",
+    "io",
+    "tv",
+    "cloud",
+  ]) {
+    const hostname = ["fixture-provider", "fixture-installation", suffix].join(
+      ".",
+    );
+    const issues = findPrivacyIssues("fixture.ts", `name: "${hostname}"`);
+    assert.deepEqual(issues, [
+      { file: "fixture.ts", line: 1, category: "unapproved-endpoint" },
+    ]);
+    assert.equal(JSON.stringify(issues).includes(hostname), false);
+  }
+  assert.deepEqual(
+    findPrivacyIssues("fixture.ts", 'name: "plex.example.test"'),
+    [],
+  );
+  assert.deepEqual(
+    findPrivacyIssues("fixture.ts", 'name: "developer.plex.tv"'),
+    [],
+  );
+});
+
+void test("validates literal hosts with dynamic URL components", () => {
+  const privateAddress = [10, 99, 88, 77].join(".");
+  const cases = [
+    {
+      hostname: ["fixture-device", "lan"].join("."),
+      category: "private-hostname",
+    },
+    {
+      hostname: ["fixture-device", "dev"].join("."),
+      category: "unapproved-endpoint",
+    },
+    { hostname: privateAddress, category: "unapproved-address" },
+    { hostname: `[::ffff:${privateAddress}]`, category: "unapproved-address" },
+  ];
+  for (const { hostname, category } of cases) {
+    for (const suffix of [
+      `:\${port}/media`,
+      ":{port}/media",
+      `/media/\${itemId}`,
+      `?item=\${itemId}`,
+      `#\${fragment}`,
+    ]) {
+      const issues = findPrivacyIssues(
+        "fixture.ts",
+        `http://${hostname}${suffix}`,
+      );
+      assert.deepEqual(issues, [{ file: "fixture.ts", line: 1, category }]);
+      assert.equal(JSON.stringify(issues).includes(hostname), false);
+    }
+    assert.deepEqual(
+      findPrivacyIssues(
+        "fixture.ts",
+        `http://\${user}:\${password}@${hostname}:\${port}/media`,
+      ),
+      [{ file: "fixture.ts", line: 1, category }],
+    );
+  }
+});
+
+void test("permits reserved or reviewed hosts with dynamic URL components", () => {
+  const domain = `\${domain}`;
+  for (const url of [
+    `http://plex.example.test:\${port}/media/\${itemId}`,
+    `https://developer.plex.tv/\${path}`,
+    `http://[::1]:\${port}/media`,
+    `http://\${host}:\${port}/media`,
+    `http://plex.${domain}/media`,
+    "https://{ip}.{identifier}.plex.direct:{port}",
+    `\${baseUrl}/media`,
+  ]) {
+    assert.deepEqual(findPrivacyIssues("fixture.ts", url), []);
+  }
 });
