@@ -250,17 +250,19 @@ function playbackSessionIdentity(item: PlexMetadataItem) {
   );
 }
 
-// Track identities, source indexes and selections without serializing codecs,
-// descriptions or the rest of the potentially large Media payload.
+// Track identities, resource links, source indexes and selections without
+// serializing codecs or the rest of the potentially large Media payload.
 function plexMediaSelectionFingerprint(item: PlexMetadataItem) {
   return asArray(item.Media).map((media) => [
     idValue(media.id),
     Boolean(media.selected),
     asArray(media.Part).map((part) => [
-      idValue(part.id) ?? stringValue(part.key),
+      idValue(part.id),
+      stringValue(part.key),
       Boolean(part.selected),
       asArray(part.Stream).map((stream) => [
         idValue(stream.id),
+        stringValue(stream.key),
         stream.index,
         stream.streamIdentifier,
         stream.streamType,

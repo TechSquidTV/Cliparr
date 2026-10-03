@@ -2463,4 +2463,127 @@ void test("live Plex fingerprints ignore payload details and refresh selection i
   );
 });
 
+const livePlexResourceItem = (
+  partKey: string,
+  subtitleKey: string,
+): PlexMetadataItem => ({
+  ...livePlexItem("resource-links"),
+  Media: [
+    {
+      id: 1,
+      selected: true,
+      Part: [
+        {
+          id: 2,
+          key: partKey,
+          selected: true,
+          Stream: [
+            {
+              id: 3,
+              index: 0,
+              streamType: 3,
+              selected: true,
+              codec: "srt",
+              key: subtitleKey,
+            },
+          ],
+        },
+      ],
+    },
+  ],
+});
+
+for (const resource of ["part", "subtitle"] as const) {
+  void test(`live Plex refreshes ${resource} handles when resource keys change with stable IDs`, async () => {
+    const originalPartKey = "/returned/original-file.mp4";
+    const originalSubtitleKey = "/returned/original-subtitle.srt";
+    const partKey =
+      resource === "part" ? "/returned/refreshed-file.mp4" : originalPartKey;
+    const subtitleKey =
+      resource === "subtitle"
+        ? "/returned/refreshed-subtitle.srt"
+        : originalSubtitleKey;
+    let metadataRequests = 0;
+    await withMockFetch(
+      () => {
+        metadataRequests += 1;
+        return jsonResponse({
+          MediaContainer: {
+            Metadata: [
+              livePlexResourceItem(originalPartKey, originalSubtitleKey),
+            ],
+          },
+        });
+      },
+      async () => {
+        const snapshot = createPlexPlaybackResolver(
+          createSource(),
+          createContext(),
+        );
+        const sessions = [
+          createSession(),
+          { ...createSession(), id: "second-resource-session" },
+        ];
+        const initial = snapshot({
+          MediaContainer: {
+            Metadata: [
+              livePlexResourceItem(originalPartKey, originalSubtitleKey),
+            ],
+          },
+        });
+        const before = await Promise.all(
+          sessions.map((session) => initial(session)),
+        );
+        assert.equal(metadataRequests, 1);
+        const updatedItem = livePlexResourceItem(partKey, subtitleKey);
+        const next = snapshot({ MediaContainer: { Metadata: [updatedItem] } });
+        const after = await Promise.all(
+          sessions.map((session) => next(session)),
+        );
+        assert.equal(
+          metadataRequests,
+          2,
+          "changed links trigger one shared enrichment",
+        );
+        for (const [index, session] of sessions.entries()) {
+          const entry = after[index]?.[0];
+          assert.ok(entry);
+          assert.equal(
+            mediaHandleForUrl(session, entry.item.mediaUrl).path,
+            partKey,
+          );
+          assert.equal(
+            mediaHandleForUrl(
+              session,
+              entry.item.subtitleTracks?.[0]?.contentUrl,
+            ).path,
+            subtitleKey,
+          );
+          const initialEntry = before[index]?.[0];
+          assert.ok(initialEntry);
+          assert.notEqual(
+            resource === "part"
+              ? entry.item.mediaUrl
+              : entry.item.subtitleTracks?.[0]?.contentUrl,
+            resource === "part"
+              ? initialEntry.item.mediaUrl
+              : initialEntry.item.subtitleTracks?.[0]?.contentUrl,
+            "the refreshed link gets a new session-owned handle",
+          );
+        }
+        await snapshot({
+          MediaContainer: {
+            Metadata: [{ ...updatedItem, viewOffset: 12_000 }],
+          },
+        })(sessions[0]!);
+        assert.equal(
+          metadataRequests,
+          2,
+          "unchanged links still reuse prepared metadata",
+        );
+      },
+    );
+  });
+}
+
 useProviderFixtures();
