@@ -104,3 +104,45 @@ void test("prunes above the size threshold even within the prune window", (conte
   assert.equal(pruneSessionMediaHandles(session, 1000), 2001);
   assert.equal(session.mediaHandles.size, 0);
 });
+
+void test("bounds oversized-map scans until substantial growth or the next interval", (context) => {
+  context.mock.timers.enable({ apis: ["Date"], now: 1000 });
+  const session: ProviderSessionRecord = {
+    id: "growing-session",
+    providerId: "jellyfin",
+    providerAccountId: "account-1",
+    userToken: "token",
+    mediaHandles: new Map(),
+    createdAt: 1000,
+    expiresAt: Number.MAX_SAFE_INTEGER,
+  };
+  const provider = {
+    providerId: "jellyfin",
+    sourceId: "source-1",
+    baseUrl: "http://jellyfin.local",
+    token: "token",
+  };
+  const entries = context.mock.method(session.mediaHandles, "entries");
+  assert.equal(pruneSessionMediaHandles(session), 0);
+  for (let index = 0; index < 2001; index += 1) {
+    createProviderMediaHandle(session, provider, `/segment-${index}.ts`);
+  }
+  assert.equal(pruneSessionMediaHandles(session), 0);
+  assert.equal(entries.mock.callCount(), 2);
+  for (let index = 2001; index < 4002; index += 1) {
+    assert.equal(pruneSessionMediaHandles(session), 0);
+    createProviderMediaHandle(session, provider, `/segment-${index}.ts`);
+  }
+  assert.equal(entries.mock.callCount(), 2);
+  assert.equal(pruneSessionMediaHandles(session), 0);
+  assert.equal(entries.mock.callCount(), 3);
+  context.mock.timers.tick(59_999);
+  assert.equal(pruneSessionMediaHandles({ ...session }), 0);
+  assert.equal(entries.mock.callCount(), 3);
+  context.mock.timers.tick(1);
+  assert.equal(pruneSessionMediaHandles(session), 0);
+  assert.equal(entries.mock.callCount(), 4);
+  context.mock.timers.tick(12 * 60 * 60 * 1000);
+  assert.equal(pruneSessionMediaHandles(session), 4002);
+  assert.equal(session.mediaHandles.size, 0);
+});

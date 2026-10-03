@@ -620,3 +620,50 @@ void test("caps the session cache at 128 entries and evicts the least recently u
     assert.equal(select.mock.callCount(), 2);
   `);
 });
+
+void test("disconnect revokes cached sessions immediately after a Plex account merge", () => {
+  runSessionCacheScript(`
+    const { createApp } = await import(${JSON.stringify(appModuleSpecifier)});
+    const { getProviderAccount } = await import(${JSON.stringify(providerAccountsRepositoryModuleSpecifier)});
+    const { upsertMediaSource } = await import(${JSON.stringify(mediaSourcesRepositoryModuleSpecifier)});
+    const { cleanupDuplicatePlexSources } = await import("@/db/plexSourceDeduplication");
+    const { getSessionCookieName } = await import(${JSON.stringify(storeModuleSpecifier)});
+    const { PLEX_BASE_URL_MODE_MANUAL } = await import("@/providers/plex/connectionState");
+    const { app } = await createApp();
+    const duplicate = upsertProviderAccountByAccessToken({
+      providerId: "plex", label: "Duplicate", accessToken: "duplicate-token",
+    });
+    for (const owner of [account, duplicate]) {
+      upsertMediaSource({
+        providerId: "plex", providerAccountId: owner.id, externalId: "same-server",
+        name: "Test server", baseUrl: "https://example.com:32400",
+        connection: owner === account ? { baseUrlMode: PLEX_BASE_URL_MODE_MANUAL } : {},
+        credentials: { accessToken: "test-source-token" },
+      });
+    }
+    const sessions = Array.from({ length: 2 }, () => createProviderSession({
+      providerId: "plex", providerAccountId: duplicate.id, userToken: "duplicate-token",
+    }));
+    for (const session of sessions) {
+      assert.equal(getProviderSession(session.id).providerAccountId, duplicate.id);
+    }
+    cleanupDuplicatePlexSources({ newlyAuthenticatedAccountId: duplicate.id });
+    assert.equal(getProviderAccount(duplicate.id), undefined);
+    const server = app.listen(0, "127.0.0.1");
+    try {
+      await new Promise((resolve) => server.once("listening", resolve));
+      const address = server.address();
+      assert(address && typeof address === "object");
+      const response = await fetch(\`http://127.0.0.1:\${address.port}/api/session\`, {
+        method: "DELETE",
+        headers: { cookie: \`\${getSessionCookieName()}=\${sessions[0].id}\` },
+      });
+      assert.equal(response.status, 204);
+      assert.equal(getProviderAccount(account.id), undefined);
+      for (const session of sessions) assert.equal(getProviderSession(session.id), undefined);
+      assert.equal(db.select().from(providerSessions).all().length, 0);
+    } finally {
+      await new Promise((resolve, reject) => server.close((error) => error ? reject(error) : resolve()));
+    }
+  `);
+});

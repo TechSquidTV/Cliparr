@@ -13,6 +13,7 @@ import {
   assertAllowedMediaHandleRequestUrl,
   createProviderMediaHandle,
   fetchMediaHandleRequest,
+  mediaProxyAcceptHeader,
   proxyProviderMediaResponse,
   proxyUpstreamMediaResponse,
   sanitizeLoggedMediaPath,
@@ -396,7 +397,10 @@ void test("validates cross-origin media redirects before following them", async 
   const originalFetch = globalThis.fetch;
   let redirectMode: unknown;
 
-  globalThis.fetch = (async (_input, init) => {
+  globalThis.fetch = (async (
+    _input: string | URL | Request,
+    init?: RequestInit,
+  ) => {
     redirectMode = init?.redirect;
     return new Response(null, {
       status: 302,
@@ -430,7 +434,10 @@ void test("validates same-origin media redirects before following them", async (
   const originalFetch = globalThis.fetch;
   let redirectMode: unknown;
 
-  globalThis.fetch = (async (_input, init) => {
+  globalThis.fetch = (async (
+    _input: string | URL | Request,
+    init?: RequestInit,
+  ) => {
     redirectMode = init?.redirect;
     return new Response(null, {
       status: 302,
@@ -464,7 +471,10 @@ void test("strips provider auth headers from cross-origin media redirects", asyn
   const originalFetch = globalThis.fetch;
   const requestHeaders: Headers[] = [];
 
-  globalThis.fetch = (async (_input, init) => {
+  globalThis.fetch = (async (
+    _input: string | URL | Request,
+    init?: RequestInit,
+  ) => {
     requestHeaders.push(new Headers(init?.headers));
     if (requestHeaders.length === 1) {
       return new Response(null, {
@@ -1190,19 +1200,36 @@ void test("shares cached and in-flight playlists across Accept headers", async (
     path: "/hls/master.m3u8",
   });
   let fetchCount = 0;
-  const fetchUpstream = async () => {
-    fetchCount += 1;
-    return new globalThis.Response("#EXTM3U\nsegment.ts\n", {
-      headers: { "content-type": "application/vnd.apple.mpegurl" },
-    });
-  };
+  context.mock.method(
+    globalThis,
+    "fetch",
+    async (_input: string | URL | Request, init?: RequestInit) => {
+      fetchCount += 1;
+      const accept = new Headers(init?.headers).get("accept");
+      assert.equal(accept, "*/*");
+      return new globalThis.Response(
+        accept === "*/*" ? "#EXTM3U\nsegment.ts\n" : "#EXTM3U\nother.ts\n",
+        {
+          headers: {
+            "content-type": "application/vnd.apple.mpegurl",
+            vary: "Accept",
+          },
+        },
+      );
+    },
+  );
   const requestPlaylist = async (accept: string) => {
     const response = createBinaryResponseRecorder();
+    const upstreamAccept = mediaProxyAcceptHeader(handle, { accept });
+    assert.ok(upstreamAccept);
     await proxyProviderMediaResponse(
       session,
       handle,
       { accept },
-      fetchUpstream,
+      () =>
+        fetchMediaHandleRequest(handle, {
+          headers: { Accept: upstreamAccept },
+        }),
       response as unknown as Response,
     );
     return response.body;
@@ -1220,4 +1247,71 @@ void test("shares cached and in-flight playlists across Accept headers", async (
   assert.deepEqual(await requestPlaylist("*/*"), first);
   assert.equal(fetchCount, 2);
   assert.equal(session.mediaHandles.size, 1);
+});
+
+void test("normalizes upstream Accept only for cacheable HLS requests across providers", async (context) => {
+  const seenHeaders: Headers[] = [];
+  context.mock.method(
+    globalThis,
+    "fetch",
+    async (_input: string | URL | Request, init?: RequestInit) => {
+      seenHeaders.push(new Headers(init?.headers));
+      return new globalThis.Response("media");
+    },
+  );
+  for (const providerId of ["plex", "jellyfin", "local-url"]) {
+    for (const input of [
+      {
+        path: "/master.m3u8",
+        basePath: undefined,
+        range: undefined,
+        expectedAccept: "*/*",
+      },
+      {
+        path: "/segment.ts",
+        basePath: "/",
+        range: undefined,
+        expectedAccept: "*/*",
+      },
+      { path: "/key", basePath: "/", range: undefined, expectedAccept: "*/*" },
+      {
+        path: "/segment.ts",
+        basePath: "/",
+        range: "bytes=0-3",
+        expectedAccept: "video/mp2t",
+      },
+      {
+        path: "/movie.mp4",
+        basePath: undefined,
+        range: undefined,
+        expectedAccept: "video/mp2t",
+      },
+    ]) {
+      const headers = new Headers({
+        Accept: "video/mp2t",
+        "X-Test-Auth": "test-token",
+      });
+      if (input.range) {
+        headers.set("Range", input.range);
+      }
+      const handle = createMediaHandle({
+        providerId,
+        baseUrl: "http://1.1.1.1",
+        path: input.path,
+        basePath: input.basePath,
+      });
+      const accept = mediaProxyAcceptHeader(handle, {
+        accept: "video/mp2t",
+        range: input.range,
+      });
+      assert.ok(accept);
+      headers.set("Accept", accept);
+      const upstream = await fetchMediaHandleRequest(handle, { headers });
+      await upstream.text();
+      const seen = seenHeaders.at(-1);
+      assert.equal(seen?.get("accept"), input.expectedAccept);
+      assert.equal(seen?.get("range"), input.range ?? null);
+      assert.equal(seen?.get("x-test-auth"), "test-token");
+    }
+  }
 });

@@ -30,13 +30,14 @@ export interface ProviderSessionRecord {
   expiresAt: number;
 }
 
-// Plex account merges rarely reassign providerAccountId directly in SQLite.
-// A fixed 60s TTL bounds that staleness without adding work to media requests.
 const sessionCache = new Map<
   string,
   { record: ProviderSessionRecord; cachedUntil: number }
 >();
-const lastMediaHandlePruneAt = new WeakMap<Map<string, MediaHandle>, number>();
+const lastMediaHandlePrune = new WeakMap<
+  Map<string, MediaHandle>,
+  { at: number; size: number }
+>();
 const mediaHandlesBySessionId = new Map<string, Map<string, MediaHandle>>();
 
 function getMediaHandles(sessionId: string) {
@@ -140,6 +141,18 @@ export function getProviderSession(sessionId?: string) {
   return record;
 }
 
+// Called after Plex account reassignment commits, so disconnects immediately
+// read the canonical account ID without losing the session's live handle map.
+export function invalidateProviderSessionCacheForAccounts(
+  providerAccountIds: ReadonlySet<string>,
+) {
+  for (const [sessionId, cached] of sessionCache) {
+    if (providerAccountIds.has(cached.record.providerAccountId)) {
+      sessionCache.delete(sessionId);
+    }
+  }
+}
+
 export function restoreProviderSessionFromProviderAccount(
   providerAccountId?: string,
 ) {
@@ -180,15 +193,22 @@ export function pruneSessionMediaHandles(
   maxIdleMs = SESSION_TTL_MS,
 ) {
   const now = Date.now();
-  const lastPrunedAt = lastMediaHandlePruneAt.get(session.mediaHandles);
+  const lastPrune = lastMediaHandlePrune.get(session.mediaHandles);
+  const size = session.mediaHandles.size;
+  // Allow an early scan on threshold crossing or doubling. An oversized map
+  // that stays the same size must still wait for the normal interval.
+  const grewPastThreshold =
+    lastPrune !== undefined &&
+    size > MEDIA_HANDLE_PRUNE_SIZE_THRESHOLD &&
+    (lastPrune.size <= MEDIA_HANDLE_PRUNE_SIZE_THRESHOLD ||
+      size >= lastPrune.size * 2);
   if (
-    lastPrunedAt !== undefined &&
-    now - lastPrunedAt < MEDIA_HANDLE_PRUNE_INTERVAL_MS &&
-    session.mediaHandles.size <= MEDIA_HANDLE_PRUNE_SIZE_THRESHOLD
+    lastPrune !== undefined &&
+    now - lastPrune.at < MEDIA_HANDLE_PRUNE_INTERVAL_MS &&
+    !grewPastThreshold
   ) {
     return 0;
   }
-  lastMediaHandlePruneAt.set(session.mediaHandles, now);
   const cutoff = now - maxIdleMs;
   let prunedCount = 0;
 
@@ -201,6 +221,10 @@ export function pruneSessionMediaHandles(
     removeMediaHandleFromIndex(session.mediaHandles, handle);
     prunedCount += 1;
   }
+  lastMediaHandlePrune.set(session.mediaHandles, {
+    at: now,
+    size: session.mediaHandles.size,
+  });
 
   if (prunedCount > 0) {
     logger.trace("Pruned stale media handles for provider session.", {

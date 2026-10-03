@@ -993,15 +993,21 @@ function isHlsDerivedHandle(handle: MediaHandle) {
   );
 }
 
-function buildProxyCacheKey(
+function isCacheableMediaRequest(
+  handle: MediaHandle,
+  range: string | undefined,
+) {
+  return !range && isHlsDerivedHandle(handle);
+}
+
+export function mediaProxyAcceptHeader(
   handle: MediaHandle,
   request: ProxyMediaRequestOptions,
 ) {
-  if (request.range || !isHlsDerivedHandle(handle)) {
-    return null;
-  }
-
-  return handle.id;
+  // A handle-only cache key requires a consistent upstream representation.
+  return isCacheableMediaRequest(handle, request.range)
+    ? "*/*"
+    : request.accept;
 }
 
 function pruneCachedProxyResponses(now = Date.now()) {
@@ -1255,7 +1261,9 @@ export async function proxyProviderMediaResponse(
   res: Response,
   options: ProxyMediaResponseOptions = {},
 ) {
-  const cacheKey = buildProxyCacheKey(handle, request);
+  const cacheKey = isCacheableMediaRequest(handle, request.range)
+    ? handle.id
+    : null;
   if (!cacheKey) {
     const upstream = await fetchUpstream();
     await proxyUpstreamMediaResponse(session, handle, upstream, res, options);

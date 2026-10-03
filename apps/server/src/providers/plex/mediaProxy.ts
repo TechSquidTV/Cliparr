@@ -7,6 +7,7 @@ import {
   fetchMediaHandleRequest,
   mediaHandleHlsLogFields,
   mediaHandleRequestUrl,
+  mediaProxyAcceptHeader,
   proxyProviderMediaResponse,
   sanitizeLoggedMediaPath,
   shouldAttachProviderAuth,
@@ -52,9 +53,12 @@ export async function proxyMedia(
       })
     : new Headers();
 
-  const accept = request.header("accept");
   const requestedRange = request.header("range") ?? undefined;
   const range = shouldForwardMediaRange(handle, requestedRange);
+  const accept = mediaProxyAcceptHeader(handle, {
+    accept: request.header("accept") ?? undefined,
+    range,
+  });
   if (accept) {
     headers.set("Accept", accept);
   }
