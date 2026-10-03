@@ -7,11 +7,10 @@ import {
 } from "@/lib/editorMedia";
 import {
   assessVideoTrackDecodability,
-  getTrackCodec,
   isPlaybackVideoTrack,
   videoTrackPreviewUnavailableMessage,
 } from "@/lib/mediabunnyTrackAccess";
-import { isAc3FamilyCodec } from "@/components/editor/editorUtilities";
+import { ensureAudioDecoder } from "@/lib/mediabunnyCodecs";
 
 type PlaybackSourceLabel =
   | "hls stream"
@@ -226,7 +225,7 @@ export async function assessPreviewAudioTrack(track: InputAudioTrack | null) {
     return { track: null, warning: undefined };
   }
 
-  const audioCodec = await getTrackCodec(track);
+  const audioCodec = await track.getCodec();
   if (audioCodec === null) {
     return {
       track: null,
@@ -234,7 +233,8 @@ export async function assessPreviewAudioTrack(track: InputAudioTrack | null) {
     };
   }
 
-  if (!(await track.canDecode()) && !isAc3FamilyCodec(audioCodec)) {
+  await ensureAudioDecoder(audioCodec);
+  if (!(await track.canDecode())) {
     return {
       track: null,
       warning: `Cannot decode ${audioCodec} audio in this browser.`,

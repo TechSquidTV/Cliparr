@@ -1,25 +1,21 @@
 import type { AudioCodec } from "mediabunny";
 
-let codecRegistration: Promise<void> | undefined;
+let decoderRegistration: Promise<void> | undefined;
 
-export function ensureMediabunnyCodecs() {
-  codecRegistration ??= (async () => {
-    const [{ canEncodeAudio }, { registerAc3Decoder, registerAc3Encoder }] =
-      await Promise.all([import("mediabunny"), import("@mediabunny/ac3")]);
+export function ensureAudioDecoder(codec: AudioCodec | null): Promise<void> {
+  if (codec !== "ac3" && codec !== "eac3") {
+    return Promise.resolve();
+  }
 
+  decoderRegistration ??= (async () => {
+    const { registerAc3Decoder } = await import("@mediabunny/ac3");
     registerAc3Decoder();
-    registerAc3Encoder();
-
-    const canEncodeAac = await canEncodeAudio("aac").catch(() => false);
-    if (!canEncodeAac) {
-      await ensureAudioEncoder("aac");
-    }
   })().catch((error: Error) => {
-    codecRegistration = undefined;
+    decoderRegistration = undefined;
     throw error;
   });
 
-  return codecRegistration;
+  return decoderRegistration;
 }
 
 const encoderRegistrations = new Map<AudioCodec, Promise<void>>();

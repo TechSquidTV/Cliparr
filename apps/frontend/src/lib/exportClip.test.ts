@@ -116,6 +116,7 @@ function createRuntime(overrides: Partial<ExportRuntime> = {}) {
   };
   const audioTrack = {
     id: "audio-1",
+    getCodec: async () => "aac",
     getFirstTimestamp: async () => 0,
     isRelativeToUnixEpoch: async () => false,
     isLive: async () => false,
@@ -140,7 +141,7 @@ function createRuntime(overrides: Partial<ExportRuntime> = {}) {
   } as unknown as CliparrInput;
 
   const runtime: ExportRuntime = {
-    ensureMediabunnyCodecs: async () => {},
+    ensureAudioDecoder: async () => {},
     assertSourceAudioRange: async () => {},
     inspectAudioTrack: async () => ({
       codec: "aac",
@@ -336,7 +337,14 @@ for (const { format, mode } of [
   { format: "gif", mode: "video-only" },
 ] as const) {
   void test(`preserves ProRes video and source timing for ${format} export with audio ${mode}`, async () => {
-    const context = createRuntime({ getTrackTimelineOffsetSeconds });
+    const decoderCodecs: string[] = [];
+    const context = createRuntime({
+      getTrackTimelineOffsetSeconds,
+      ensureAudioDecoder: async (codec) => {
+        assert.ok(codec);
+        decoderCodecs.push(codec);
+      },
+    });
     context.videoTrack.hasOnlyKeyPackets = async () => true;
     context.videoTrack.getCodec = async () => "prores";
     context.videoTrack.getFirstTimestamp = async () => 1000.5;
@@ -385,6 +393,7 @@ for (const { format, mode } of [
       ),
       (error: Error) => error === stop,
     );
+    assert.deepEqual(decoderCodecs, mode === "video-audio" ? ["aac"] : []);
     assert.equal(requestedStart, 1010);
     assert.equal(context.disposed, true);
   });
@@ -1159,7 +1168,7 @@ void test("renders subtitles when burning cues into GIF frames", async () => {
 for (const format of ["mp4", "gif"] as const) {
   void test(`does not open media for a pre-cancelled ${format} export`, async () => {
     const context = createRuntime({
-      ensureMediabunnyCodecs: async () => {
+      ensureAudioDecoder: async () => {
         assert.fail("Cancelled export must not initialize codecs");
       },
     });
@@ -1208,6 +1217,39 @@ for (const format of ["mp4", "gif"] as const) {
     assert.equal(context.disposed, true);
   });
 }
+
+void test("cancellation during decoder loading disposes the input before inspecting audio", async () => {
+  const controller = new AbortController();
+  const started = createDeferred<void>();
+  const loading = createDeferred<void>();
+  const context = createRuntime({
+    ensureAudioDecoder: async () => {
+      started.resolve();
+      await loading.promise;
+    },
+    inspectAudioTrack: async () => {
+      assert.fail("Cancelled decoder loading must not inspect disposed audio");
+    },
+  });
+  const exported = exportClipWithRuntime(
+    {
+      mediaSource,
+      format: "mp4",
+      mode: "video-audio",
+      startTime: 0,
+      endTime: 1,
+      resolution: "original",
+      signal: controller.signal,
+      onProgress: () => {},
+    },
+    context.runtime,
+  );
+  await started.promise;
+  controller.abort();
+  assert.equal(context.disposed, true);
+  loading.resolve();
+  await assert.rejects(exported, { name: "AbortError" });
+});
 
 void test("cancels an executing conversion even when its terminated worker never settles execution", async () => {
   const controller = new AbortController();

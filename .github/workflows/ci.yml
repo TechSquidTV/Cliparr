@@ -101,6 +101,17 @@ jobs:
           mkdir -p build/browser-export
           set -o pipefail
           pnpm --filter @cliparr/frontend test:browser 2>&1 | tee build/browser-export/run.log
+      - name: Test production media loading
+        env:
+          CLIPARR_TEST_BROWSER_CHANNEL: chrome
+        run: pnpm --filter @cliparr/frontend test:browser:loading
+      - name: Retain loading measurements
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: media-loading-measurements
+          path: build/browser-export/loading/*.json
+          retention-days: 7
       - name: Retain failure diagnostics
         if: failure()
         uses: actions/upload-artifact@v4

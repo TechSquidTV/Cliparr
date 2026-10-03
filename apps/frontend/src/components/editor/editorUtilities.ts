@@ -100,10 +100,6 @@ export function errorMessage(error: unknown) {
   return error instanceof Error ? error.message : "Preview failed to load";
 }
 
-export function isAc3FamilyCodec(codec: string | null) {
-  return codec === "ac3" || codec === "eac3";
-}
-
 export function roundTimelineTime(seconds: number) {
   if (!Number.isFinite(seconds)) {
     return 0;

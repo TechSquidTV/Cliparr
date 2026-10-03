@@ -154,6 +154,87 @@ const restrictedSyntaxRulesWithoutRelativeDynamicImports =
     ({ selector }) => selector !== relativeDynamicImportSelector,
   );
 
+const codecExtensions = [
+  "@mediabunny/ac3",
+  "@mediabunny/aac-encoder",
+  "@mediabunny/mp3-encoder",
+  "@mediabunny/flac-encoder",
+];
+const mediaTestFiles = ["**/*.test.ts", "**/*.test-support.ts"];
+const gifRuntimeFiles = [
+  "apps/frontend/src/lib/gifEncodingSettings.ts",
+  "apps/frontend/src/lib/gifFrameChunk.ts",
+  "apps/frontend/src/lib/gifFrameEncoder.ts",
+  "apps/frontend/src/lib/gifFrameEncoder.worker.ts",
+];
+
+function mediaLoadingRestrictions({
+  codecLoader = false,
+  gifRuntime = false,
+  gifLoader = false,
+  ui = false,
+  relativeImports = false,
+} = {}) {
+  const paths = codecExtensions.map((name) => ({
+    name,
+    allowTypeImports: true,
+    message: "Load codec extensions dynamically through mediabunnyCodecs.",
+  }));
+  if (!gifRuntime) {
+    paths.push({
+      name: "@techsquidtv/gifenc",
+      allowTypeImports: true,
+      message:
+        "Keep GIF runtime dependencies inside the lazy GIF implementation.",
+    });
+  }
+  if (ui) {
+    for (const alias of ["@", "#"]) {
+      for (const module of ["exportClip", "exportAudio"]) {
+        paths.push({
+          name: `${alias}/lib/${module}`,
+          allowTypeImports: true,
+          message:
+            "Load export runtime code when export setup or execution begins.",
+        });
+      }
+    }
+  }
+  const syntax = [
+    ...(relativeImports
+      ? restrictedSyntaxRulesWithoutRelativeDynamicImports
+      : restrictedSyntaxRules),
+  ];
+  if (!codecLoader) {
+    for (const name of codecExtensions) {
+      syntax.push({
+        selector: `ImportExpression[source.value='${name}']`,
+        message: "Load codec extensions through mediabunnyCodecs.",
+      });
+    }
+  }
+  if (!gifRuntime && !gifLoader) {
+    syntax.push({
+      selector: "ImportExpression[source.value='@techsquidtv/gifenc']",
+      message:
+        "Keep GIF runtime dependencies inside the lazy GIF implementation.",
+    });
+  }
+  return {
+    "no-restricted-imports": [
+      "error",
+      {
+        paths,
+        patterns: [
+          ...(relativeImports ? [] : [relativeImportRestriction]),
+          ...crossWorkspaceImportRestrictions,
+        ],
+      },
+    ],
+    "no-restricted-syntax": ["error", ...syntax],
+  };
+}
+
 export default tseslint.config(
   {
     ignores: [
@@ -361,21 +442,31 @@ export default tseslint.config(
     },
   },
   {
+    files: ["apps/frontend/src/**/*.{ts,tsx}"],
+    ignores: mediaTestFiles,
+    rules: mediaLoadingRestrictions(),
+  },
+  {
+    files: ["apps/frontend/src/lib/mediabunnyCodecs.ts"],
+    rules: mediaLoadingRestrictions({ codecLoader: true }),
+  },
+  {
+    files: gifRuntimeFiles,
+    rules: mediaLoadingRestrictions({ gifRuntime: true }),
+  },
+  {
+    files: ["apps/frontend/src/lib/exportClip.ts"],
+    rules: mediaLoadingRestrictions({ gifLoader: true }),
+  },
+  {
+    files: ["apps/frontend/src/components/**/*.{ts,tsx}"],
+    ignores: mediaTestFiles,
+    rules: mediaLoadingRestrictions({ ui: true }),
+  },
+  {
     files: ["apps/frontend/src/convert.ts"],
-    rules: {
-      // This package entrypoint is consumed as source by @cliparr/www, so its
-      // specifiers must resolve without the frontend tsconfig aliases.
-      "no-restricted-imports": [
-        "error",
-        {
-          patterns: crossWorkspaceImportRestrictions,
-        },
-      ],
-      "no-restricted-syntax": [
-        "error",
-        ...restrictedSyntaxRulesWithoutRelativeDynamicImports,
-      ],
-    },
+    // This source entrypoint is also bundled by @cliparr/www.
+    rules: mediaLoadingRestrictions({ relativeImports: true }),
   },
   {
     files: ["apps/frontend/src/routes/**/*.{ts,tsx}"],

@@ -7,7 +7,9 @@
         "src/main.tsx",
         "vite.config.js",
         "tests/audio-export.mjs",
-        "tests/audio-export.ts"
+        "tests/audio-export.ts",
+        "tests/media-loading.mjs",
+        "tests/media-loading.ts"
       ],
       "ignoreBinaries": ["eslint"],
       "project": ["src/**/*.{ts,tsx,css}", "tests/**/*.{ts,mjs}"],

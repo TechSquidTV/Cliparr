@@ -20,7 +20,8 @@
     "test": "node --import tsx --test \"src/**/*.test.ts\"",
     "preview": "vite preview",
     "clean": "rm -rf dist",
-    "test:browser": "node tests/audio-export.mjs"
+    "test:browser": "node tests/audio-export.mjs",
+    "test:browser:loading": "node tests/media-loading.mjs"
   },
   "dependencies": {
     "@base-ui/react": "^1.6.0",

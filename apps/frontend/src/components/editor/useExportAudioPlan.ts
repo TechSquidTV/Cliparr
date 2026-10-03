@@ -1,12 +1,9 @@
 import { useEffect, useRef, useState } from "react";
-import {
+import type {
   audioBitDepthSummary,
-  inspectAudioTrack,
-  resolveExportAudioPlan,
-  type AudioSourceInfo,
-  type ExportAudioPlan,
+  AudioSourceInfo,
+  ExportAudioPlan,
 } from "#/lib/exportAudio";
-import { ensureMediabunnyCodecs } from "#/lib/mediabunnyCodecs";
 import { createCliparrInputFromSource } from "#/lib/mediabunnyInput";
 import { isPlaybackVideoTrack } from "#/lib/mediabunnyTrackAccess";
 import { selectPreferredPairableAudioTrack } from "#/lib/selectPreferredAudioTrack";
@@ -38,6 +35,7 @@ export function useExportAudioPlan(
     format: ExportFormat;
     mixdown: boolean;
     plan: ExportAudioPlan | null;
+    bitDepth: ReturnType<typeof audioBitDepthSummary>;
     error: string | null;
     channels: number | null;
   } | null>(null);
@@ -52,14 +50,18 @@ export function useExportAudioPlan(
     const dispose = () => input?.dispose();
     controller.signal.addEventListener("abort", dispose, { once: true });
     void (async () => {
+      const {
+        inspectAudioTrack,
+        resolveExportAudioPlan,
+        audioBitDepthSummary,
+      } = await import("#/lib/exportAudio");
+      controller.signal.throwIfAborted();
       let inspection = cache.current.find(
         (entry) =>
           editorMediaSourcesEqual(entry.source, source) &&
           entry.selection === selection,
       );
       if (!inspection) {
-        await ensureMediabunnyCodecs();
-        controller.signal.throwIfAborted();
         input = await createCliparrInputFromSource(source);
         controller.signal.throwIfAborted();
         const video = await input.getPrimaryVideoTrack({
@@ -91,6 +93,7 @@ export function useExportAudioPlan(
           format,
           mixdown,
           plan,
+          bitDepth: plan ? audioBitDepthSummary(plan) : null,
           error: null,
           channels: inspection.audio?.numberOfChannels ?? 0,
         });
@@ -109,6 +112,7 @@ export function useExportAudioPlan(
             format,
             mixdown,
             plan: null,
+            bitDepth: null,
             error: error.message,
             channels: inspection?.audio?.numberOfChannels ?? null,
           });
@@ -162,8 +166,7 @@ export function useExportAudioPlan(
   }
   return {
     plan: active ? (current?.plan ?? null) : null,
-    bitDepth:
-      active && current?.plan ? audioBitDepthSummary(current.plan) : null,
+    bitDepth: active ? (current?.bitDepth ?? null) : null,
     mixdownDisabledReason,
     disabledReason,
     status,
