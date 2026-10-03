@@ -27,3 +27,21 @@ segments and a nonzero timeline origin. They verify source-range protection,
 valid-prefix retry, container-specific checks, and clip timing across segments.
 The independent upstream reproduction is in [flac-upstream-reproduction.md](flac-upstream-reproduction.md).
 No provider credentials or external media tools are needed.
+
+## Production media loading
+
+Run `CLIPARR_TEST_BROWSER_CHANNEL=chrome pnpm --filter @cliparr/frontend test:browser:loading`.
+This suite runs in the same browser CI job, separately from preflight. It checks
+production editor and converter loading boundaries by mapping emitted chunks to
+capabilities rather than enforcing byte-size limits. Generate fixtures in a
+separate context; measure requests in fresh contexts with service workers disabled.
+
+To extend coverage, update [format expectations](media-loading-scenarios.ts) and the
+relevant [runner scenarios](media-loading.mjs). Dependencies under `@mediabunny/*`
+are discovered automatically and require a successful loading scenario. Other
+optional dependencies need explicit classification in
+[media-loading-policy.mjs](media-loading-policy.mjs).
+
+CI retains `build/browser-export/loading/requests.json` and `chunks.json` with
+expected/observed capabilities, contributing modules, request failures, and sizes.
+Failures also retain a log and screenshot.

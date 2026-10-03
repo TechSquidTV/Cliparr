@@ -44,7 +44,6 @@ import {
   type EditorSession,
   type MediaDimensions,
 } from "@/lib/editorMedia";
-import { ensureMediabunnyCodecs } from "@/lib/mediabunnyCodecs";
 import { createCliparrInputFromSource } from "@/lib/mediabunnyInput";
 import {
   fromSourceTimelineTime,
@@ -213,13 +212,11 @@ export function useEditorTimelineMedia(
     const preparedInputs = new Map<number, EditorMediaMetadata>();
     const inputs = candidates.map<MediabunnySourceInput>((candidate) => ({
       kind: "input-factory",
-      createInput: async () => {
-        await ensureMediabunnyCodecs();
-        return createCliparrInputFromSource(candidate.source, {
+      createInput: () =>
+        createCliparrInputFromSource(candidate.source, {
           hls:
             candidate.label === "hls stream" || candidate.label === "hls url",
-        });
-      },
+        }),
     }));
     const selectTracks = async ({
       input,

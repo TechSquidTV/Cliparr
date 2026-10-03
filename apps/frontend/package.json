@@ -3,7 +3,8 @@
   "private": true,
   "type": "module",
   "imports": {
-    "#/*": "./src/*"
+    "#/*": "./src/*",
+    "#tests/*": "./tests/*"
   },
   "exports": {
     "./convert": {
@@ -17,10 +18,11 @@
     "lint": "pnpm lint:eslint && pnpm lint:types",
     "lint:eslint": "cd ../.. && pnpm exec eslint --config config/eslint.config.js \"apps/frontend/src/**/*.{ts,tsx}\" \"apps/frontend/vite.config.js\" \"apps/frontend/public/service-worker.js\" \"apps/frontend/tests/**/*.{ts,mjs}\"",
     "lint:types": "tsc --noEmit",
-    "test": "node --import tsx --test \"src/**/*.test.ts\"",
+    "test": "node --import tsx --test \"src/**/*.test.ts\" \"tests/*.test.mjs\" \"../../tools/ci/media-loading-lint.test.mjs\"",
     "preview": "vite preview",
     "clean": "rm -rf dist",
-    "test:browser": "node tests/audio-export.mjs"
+    "test:browser": "node tests/audio-export.mjs",
+    "test:browser:loading": "node tests/media-loading.mjs"
   },
   "dependencies": {
     "@base-ui/react": "^1.6.0",
