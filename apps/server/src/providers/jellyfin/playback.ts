@@ -22,6 +22,7 @@ import {
   createProviderMediaHandle,
   fetchMediaHandleRequest,
   mediaHandleRequestUrl,
+  mediaProxyAcceptHeader,
   playlistBasePath,
   proxyProviderMediaResponse,
   sanitizeLoggedMediaPath,
@@ -1164,7 +1165,12 @@ export async function proxyMedia(
 
   handle.lastAccessedAt = Date.now();
 
-  const accept = request.header("accept") ?? undefined;
+  const requestedRange = request.header("range") ?? undefined;
+  const range = shouldForwardMediaRange(handle, requestedRange);
+  const accept = mediaProxyAcceptHeader(handle, {
+    accept: request.header("accept") ?? undefined,
+    range,
+  });
   const useProviderAuth = shouldAttachProviderAuth(handle);
   const headers = useProviderAuth
     ? jellyfinHeaders({
@@ -1173,8 +1179,6 @@ export async function proxyMedia(
         accept,
       })
     : new Headers(accept ? { Accept: accept } : undefined);
-  const requestedRange = request.header("range") ?? undefined;
-  const range = shouldForwardMediaRange(handle, requestedRange);
   if (range) {
     headers.set("Range", range);
   }

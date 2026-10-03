@@ -15,6 +15,7 @@ import {
   assertAllowedMediaHandleRequestUrl,
   fetchMediaHandleRequest,
   mediaHandleRequestUrl,
+  mediaProxyAcceptHeader,
   proxyProviderMediaResponse,
   sanitizeLoggedMediaPath,
   shouldForwardMediaRange,
@@ -237,9 +238,12 @@ mediaRouter.get(
 
     handle.lastAccessedAt = Date.now();
 
-    const accept = request.header("accept") ?? undefined;
     const requestedRange = request.header("range") ?? undefined;
     const range = shouldForwardMediaRange(handle, requestedRange);
+    const accept = mediaProxyAcceptHeader(handle, {
+      accept: request.header("accept") ?? undefined,
+      range,
+    });
     const headers = new Headers(accept ? { Accept: accept } : undefined);
     if (range) {
       headers.set("Range", range);
