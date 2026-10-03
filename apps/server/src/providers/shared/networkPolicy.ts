@@ -71,7 +71,11 @@ function mappedIpv4Address(hostname: string) {
   return [high >> 8, high & byteMask, low >> 8, low & byteMask].join(".");
 }
 
-function isUnsafeIpv4Host(hostname: string, allowPrivate: boolean) {
+function isUnsafeIpv4Host(
+  hostname: string,
+  allowPrivate: boolean,
+  allowLoopback: boolean,
+) {
   const octets = ipv4Octets(hostname);
   if (!octets) {
     return false;
@@ -80,7 +84,7 @@ function isUnsafeIpv4Host(hostname: string, allowPrivate: boolean) {
   const [first, second] = octets;
   return (
     first === 0 ||
-    first === 127 ||
+    (!allowLoopback && first === 127) ||
     (first === 169 && second === 254) ||
     first >= 224 ||
     (!allowPrivate &&
@@ -91,11 +95,15 @@ function isUnsafeIpv4Host(hostname: string, allowPrivate: boolean) {
   );
 }
 
-function isUnsafeIpv6Host(hostname: string, allowPrivate: boolean) {
+function isUnsafeIpv6Host(
+  hostname: string,
+  allowPrivate: boolean,
+  allowLoopback: boolean,
+) {
   return (
     hostname === "::" ||
-    hostname === "::1" ||
-    hostname === "0:0:0:0:0:0:0:1" ||
+    (!allowLoopback &&
+      (hostname === "::1" || hostname === "0:0:0:0:0:0:0:1")) ||
     (!allowPrivate && /^f[cd][\da-f]{2}:/i.test(hostname)) ||
     /^fe[89ab][\da-f]:/i.test(hostname) ||
     /^ff[\da-f]{2}:/i.test(hostname)
@@ -104,15 +112,20 @@ function isUnsafeIpv6Host(hostname: string, allowPrivate: boolean) {
 
 export function isUnsafeRemoteHostname(
   hostname: string,
-  options: { allowPrivate?: boolean } = {},
+  options: { allowPrivate?: boolean; allowLoopback?: boolean } = {},
 ) {
   const normalized = normalizeHostname(hostname);
+  const allowLoopback = options.allowLoopback === true;
   return (
-    normalized === "localhost" ||
-    normalized.endsWith(".localhost") ||
+    (!allowLoopback &&
+      (normalized === "localhost" || normalized.endsWith(".localhost"))) ||
     DISALLOWED_REMOTE_HOSTNAMES.has(normalized) ||
-    isUnsafeIpv4Host(normalized, options.allowPrivate === true) ||
-    isUnsafeIpv6Host(normalized, options.allowPrivate === true)
+    isUnsafeIpv4Host(
+      normalized,
+      options.allowPrivate === true,
+      allowLoopback,
+    ) ||
+    isUnsafeIpv6Host(normalized, options.allowPrivate === true, allowLoopback)
   );
 }
 

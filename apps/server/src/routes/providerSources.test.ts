@@ -115,7 +115,12 @@ async function withMockedFetch<T>(
   }
 }
 
-void test("rejects a persisted Plex source loopback baseUrl before any upstream fetch", async () => {
+void test("rejects a persisted Plex source loopback baseUrl before any upstream fetch", async (context) => {
+  const previousLoopbackSetting = process.env.CLIPARR_ALLOW_LOOPBACK_PLEX_URLS;
+  delete process.env.CLIPARR_ALLOW_LOOPBACK_PLEX_URLS;
+  context.after(() => {
+    restoreEnv("CLIPARR_ALLOW_LOOPBACK_PLEX_URLS", previousLoopbackSetting);
+  });
   await withTestApp(async () => {
     const account = upsertProviderAccountByAccessToken({
       providerId: "plex",

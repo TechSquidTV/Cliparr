@@ -370,6 +370,16 @@ for (const address of ["93.184.216.34", "192.168.1.50"]) {
 
 for (const address of ["127.0.0.1", "169.254.169.254", "::1"]) {
   void test(`rejects initial Plex DNS resolving to ${address} before fetching`, async (context) => {
+    const previousLoopbackSetting =
+      process.env.CLIPARR_ALLOW_LOOPBACK_PLEX_URLS;
+    delete process.env.CLIPARR_ALLOW_LOOPBACK_PLEX_URLS;
+    context.after(() => {
+      if (previousLoopbackSetting === undefined) {
+        delete process.env.CLIPARR_ALLOW_LOOPBACK_PLEX_URLS;
+      } else {
+        process.env.CLIPARR_ALLOW_LOOPBACK_PLEX_URLS = previousLoopbackSetting;
+      }
+    });
     context.mock.method(dns, "lookup", async () => [
       { address: "192.168.1.50", family: 4 },
       { address, family: address === "::1" ? 6 : 4 },

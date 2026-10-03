@@ -26,6 +26,16 @@ export function stringValue(value: unknown) {
   return trimmed || undefined;
 }
 
+export function booleanEnv(value: string | undefined) {
+  const normalized = value?.trim().toLowerCase();
+  return (
+    normalized === "1" ||
+    normalized === "true" ||
+    normalized === "yes" ||
+    normalized === "on"
+  );
+}
+
 export function numberValue(value: unknown) {
   const number = Number(value);
   if (!Number.isFinite(number)) {

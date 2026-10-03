@@ -8,7 +8,11 @@ import {
   removeSensitiveRedirectHeaders,
 } from "@/providers/shared/networkPolicy";
 import { fetchWithPinnedDns } from "@/providers/shared/pinnedFetch";
-import { errorMessage, uniqueStrings } from "@/providers/shared/utilities";
+import {
+  booleanEnv,
+  errorMessage,
+  uniqueStrings,
+} from "@/providers/shared/utilities";
 import {
   getIdentity,
   eventsourceGetSlash,
@@ -74,13 +78,31 @@ function assertAllowedRedirectHostname(
   hostname: string,
   allowPrivate: boolean,
 ) {
-  if (isUnsafeRemoteHostname(hostname, { allowPrivate })) {
+  const loopbackOptIn = booleanEnv(
+    process.env.CLIPARR_ALLOW_LOOPBACK_PLEX_URLS,
+  );
+  // The opt-in applies only to the initial origin, including redirects
+  // returning to that origin. Other origins cannot resolve to loopback.
+  const allowLoopback = allowPrivate && loopbackOptIn;
+  if (!isUnsafeRemoteHostname(hostname, { allowPrivate, allowLoopback })) {
+    return;
+  }
+  if (
+    allowPrivate &&
+    !loopbackOptIn &&
+    !isUnsafeRemoteHostname(hostname, { allowPrivate, allowLoopback: true })
+  ) {
     throw createApiError(
       400,
       "plex_unsafe_redirect",
-      "Plex PMS redirect points at an unsafe internal address",
+      "For security, localhost Plex URLs are disabled unless CLIPARR_ALLOW_LOOPBACK_PLEX_URLS is enabled",
     );
   }
+  throw createApiError(
+    400,
+    "plex_unsafe_redirect",
+    "Plex PMS redirect points at an unsafe internal address",
+  );
 }
 
 async function resolveHostnameAddresses(hostname: string, signal: AbortSignal) {

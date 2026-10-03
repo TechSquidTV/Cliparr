@@ -5,6 +5,7 @@ import type { LookupAddress } from "node:dns";
 import { getEventListeners } from "node:events";
 import { syncBuiltinESMExports } from "node:module";
 import { setImmediate } from "node:timers/promises";
+import { Agent } from "undici";
 import { createDeferred } from "@/test/deferred";
 import { isApiError } from "@/http/errors";
 import {
@@ -29,20 +30,35 @@ const options: PlexPmsRequestOptions = {
 };
 
 function withMockFetch(
-  handler: (request: Request) => Response | Promise<Response>,
+  handler: (
+    request: Request,
+    init?: RequestInit & { dispatcher?: Agent },
+  ) => Response | Promise<Response>,
   callback: () => Promise<void>,
+  allowLoopback = false,
 ) {
   const originalFetch = globalThis.fetch;
+  const previous = process.env.CLIPARR_ALLOW_LOOPBACK_PLEX_URLS;
+  if (allowLoopback) {
+    process.env.CLIPARR_ALLOW_LOOPBACK_PLEX_URLS = "true";
+  } else {
+    delete process.env.CLIPARR_ALLOW_LOOPBACK_PLEX_URLS;
+  }
   const lookup = mock.method(dns, "lookup", async () => [
     { address: "192.168.1.50", family: 4 },
   ]);
   syncBuiltinESMExports();
   globalThis.fetch = (async (input, init) => {
-    return handler(new Request(input, init));
+    return handler(new Request(input, init), init);
   }) as typeof fetch;
 
   return callback().finally(() => {
     globalThis.fetch = originalFetch;
+    if (previous === undefined) {
+      delete process.env.CLIPARR_ALLOW_LOOPBACK_PLEX_URLS;
+    } else {
+      process.env.CLIPARR_ALLOW_LOOPBACK_PLEX_URLS = previous;
+    }
     lookup.mock.restore();
     syncBuiltinESMExports();
   });
@@ -76,6 +92,209 @@ for (const hostname of [
             error.code === "plex_unsafe_redirect",
         );
       },
+    );
+  });
+}
+
+void test("rejects loopback Plex URLs with the opt-in hint by default", async () => {
+  await withMockFetch(
+    () => assert.fail("Loopback Plex URLs must never be fetched by default"),
+    async () => {
+      await assert.rejects(
+        requestPlexPmsIdentity(
+          { ...context, baseUrl: "http://127.0.0.1:32400" },
+          options,
+        ),
+        (error: Error) =>
+          isApiError(error) &&
+          error.status === 400 &&
+          error.code === "plex_unsafe_redirect" &&
+          error.message.includes("CLIPARR_ALLOW_LOOPBACK_PLEX_URLS"),
+      );
+    },
+  );
+});
+
+for (const hostname of ["127.0.0.1", "[::1]", "[::ffff:127.0.0.1]"]) {
+  void test(`allows initial loopback Plex requests to ${hostname} only when opted in`, async () => {
+    await withMockFetch(
+      (request) => {
+        assert.equal(request.headers.get("X-Plex-Token"), context.token);
+        return jsonResponse({
+          MediaContainer: { machineIdentifier: "loopback" },
+        });
+      },
+      async () => {
+        const result = await requestPlexPmsIdentity(
+          { ...context, baseUrl: `http://${hostname}:32400` },
+          options,
+        );
+        assert.equal(result.MediaContainer?.machineIdentifier, "loopback");
+      },
+      true,
+    );
+  });
+}
+
+for (const address of ["127.0.0.1", "::1", "::ffff:127.0.0.1"]) {
+  void test(`pins opted-in initial Plex hostname requests resolving to ${address}`, async () => {
+    await withMockFetch(
+      (request, init) => {
+        assert.equal(request.url, "http://localhost:32400/identity");
+        assert.ok(init?.dispatcher instanceof Agent);
+        assert.equal(request.headers.get("X-Plex-Token"), context.token);
+        return jsonResponse({
+          MediaContainer: { machineIdentifier: "loopback" },
+        });
+      },
+      async () => {
+        const lookup = mock.method(dns, "lookup", async () => [
+          { address, family: address.includes(":") ? 6 : 4 },
+        ]);
+        syncBuiltinESMExports();
+        try {
+          await requestPlexPmsIdentity(
+            { ...context, baseUrl: "http://localhost:32400" },
+            options,
+          );
+          assert.equal(lookup.mock.callCount(), 1);
+        } finally {
+          lookup.mock.restore();
+          syncBuiltinESMExports();
+        }
+      },
+      true,
+    );
+  });
+}
+
+for (const hostname of [
+  "169.254.169.254",
+  "metadata.google.internal",
+  "0.0.0.0",
+  "[::]",
+  "224.0.0.1",
+  "[fe80::1]",
+  "[ff02::1]",
+]) {
+  void test(`still rejects initial Plex requests to ${hostname} when loopback is opted in`, async () => {
+    await withMockFetch(
+      () => assert.fail("Unsafe Plex URLs must never be fetched"),
+      async () => {
+        await assert.rejects(
+          requestPlexPmsIdentity(
+            { ...context, baseUrl: `http://${hostname}:32400` },
+            options,
+          ),
+          { code: "plex_unsafe_redirect" },
+        );
+      },
+      true,
+    );
+  });
+}
+
+void test("rejects unsafe resolved addresses mixed with opted-in loopback", async () => {
+  await withMockFetch(
+    () => assert.fail("Unsafe DNS must never be fetched"),
+    async () => {
+      const lookup = mock.method(dns, "lookup", async () => [
+        { address: "127.0.0.1", family: 4 },
+        { address: "169.254.169.254", family: 4 },
+      ]);
+      syncBuiltinESMExports();
+      try {
+        await assert.rejects(requestPlexPmsIdentity(context, options), {
+          code: "plex_unsafe_redirect",
+        });
+      } finally {
+        lookup.mock.restore();
+        syncBuiltinESMExports();
+      }
+    },
+    true,
+  );
+});
+
+for (const intermediate of [
+  "http://127.0.0.1:32400/same-origin",
+  "http://1.1.1.1:32400/other-origin",
+]) {
+  void test(`allows opted-in redirects returning to the initial origin via ${intermediate}`, async () => {
+    const requests: Request[] = [];
+    const initial = "http://127.0.0.1:32400";
+    await withMockFetch(
+      (request) => {
+        requests.push(request);
+        if (requests.length === 1) {
+          return new Response(null, {
+            status: 302,
+            headers: { location: intermediate },
+          });
+        }
+        if (requests.length === 2) {
+          return new Response(null, {
+            status: 302,
+            headers: { location: `${initial}/returned` },
+          });
+        }
+        return jsonResponse({
+          MediaContainer: { machineIdentifier: "loopback" },
+        });
+      },
+      async () => {
+        await requestPlexPmsIdentity({ ...context, baseUrl: initial }, options);
+        assert.deepEqual(
+          requests.map((request) => request.url),
+          [`${initial}/identity`, intermediate, `${initial}/returned`],
+        );
+        const crossedOrigin = new URL(intermediate).origin !== initial;
+        assert.equal(
+          requests[2]?.headers.get("X-Plex-Token"),
+          crossedOrigin ? null : context.token,
+        );
+      },
+      true,
+    );
+  });
+}
+
+for (const destination of [
+  "http://127.0.0.1:32401/identity",
+  "http://localhost:32400/identity",
+  "http://plex.local:32400/identity",
+]) {
+  void test(`rejects opted-in redirects to loopback on another origin ${destination}`, async () => {
+    let requests = 0;
+    await withMockFetch(
+      () => {
+        requests++;
+        assert.equal(requests, 1);
+        return new Response(null, {
+          status: 302,
+          headers: { location: destination },
+        });
+      },
+      async () => {
+        const lookup = mock.method(dns, "lookup", async () => [
+          { address: "127.0.0.1", family: 4 },
+        ]);
+        syncBuiltinESMExports();
+        try {
+          await assert.rejects(
+            requestPlexPmsIdentity(
+              { ...context, baseUrl: "http://127.0.0.1:32400" },
+              options,
+            ),
+            { code: "plex_unsafe_redirect" },
+          );
+          assert.equal(requests, 1);
+        } finally {
+          lookup.mock.restore();
+          syncBuiltinESMExports();
+        }
+      },
+      true,
     );
   });
 }
