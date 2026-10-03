@@ -7,12 +7,17 @@ import { getProviderAccount } from "@/db/providerAccountsRepository";
 import { REMEMBERED_PROVIDER_SESSION_TTL_MS } from "@/db/rememberedProviderSessionsRepository";
 import { providerSessions, type ProviderSessionRow } from "@/db/schema";
 import { getServerLogger, warnWithError } from "@/logging";
+import { removeMediaHandleFromIndex } from "@/providers/shared/mediaProxy";
 import type { MediaHandle } from "@/providers/types";
 import { decryptSecret, encryptSecret } from "@/security/secrets";
 
 const SESSION_COOKIE = "cliparr_session";
 const REMEMBERED_PROVIDER_SESSION_COOKIE = "cliparr_remember";
 const SESSION_TTL_MS = 1000 * 60 * 60 * 12;
+const SESSION_CACHE_TTL_MS = 60_000;
+const SESSION_CACHE_MAX_ENTRIES = 128;
+const MEDIA_HANDLE_PRUNE_INTERVAL_MS = 60_000;
+const MEDIA_HANDLE_PRUNE_SIZE_THRESHOLD = 2000;
 const logger = getServerLogger(["session", "store"]);
 
 export interface ProviderSessionRecord {
@@ -25,6 +30,13 @@ export interface ProviderSessionRecord {
   expiresAt: number;
 }
 
+// Plex account merges rarely reassign providerAccountId directly in SQLite.
+// A fixed 60s TTL bounds that staleness without adding work to media requests.
+const sessionCache = new Map<
+  string,
+  { record: ProviderSessionRecord; cachedUntil: number }
+>();
+const lastMediaHandlePruneAt = new WeakMap<Map<string, MediaHandle>, number>();
 const mediaHandlesBySessionId = new Map<string, Map<string, MediaHandle>>();
 
 function getMediaHandles(sessionId: string) {
@@ -85,6 +97,20 @@ export function getProviderSession(sessionId?: string) {
     return;
   }
 
+  const now = Date.now();
+  const cached = sessionCache.get(sessionId);
+  if (cached) {
+    if (cached.record.expiresAt <= now) {
+      deleteProviderSession(sessionId);
+      return;
+    }
+    sessionCache.delete(sessionId);
+    if (cached.cachedUntil > now) {
+      sessionCache.set(sessionId, cached);
+      return cached.record;
+    }
+  }
+
   const row = getDatabase()
     .select()
     .from(providerSessions)
@@ -95,12 +121,23 @@ export function getProviderSession(sessionId?: string) {
     return;
   }
 
-  if (row.expiresAt <= Date.now()) {
+  if (row.expiresAt <= now) {
     deleteProviderSession(sessionId);
     return;
   }
 
-  return mapProviderSession(row);
+  const record = mapProviderSession(row);
+  sessionCache.set(sessionId, {
+    record,
+    cachedUntil: now + SESSION_CACHE_TTL_MS,
+  });
+  if (sessionCache.size > SESSION_CACHE_MAX_ENTRIES) {
+    const oldestSessionId = sessionCache.keys().next().value;
+    if (oldestSessionId !== undefined) {
+      sessionCache.delete(oldestSessionId);
+    }
+  }
+  return record;
 }
 
 export function restoreProviderSessionFromProviderAccount(
@@ -142,7 +179,17 @@ export function pruneSessionMediaHandles(
   // available for the full session so later seeks and exports can reuse them.
   maxIdleMs = SESSION_TTL_MS,
 ) {
-  const cutoff = Date.now() - maxIdleMs;
+  const now = Date.now();
+  const lastPrunedAt = lastMediaHandlePruneAt.get(session.mediaHandles);
+  if (
+    lastPrunedAt !== undefined &&
+    now - lastPrunedAt < MEDIA_HANDLE_PRUNE_INTERVAL_MS &&
+    session.mediaHandles.size <= MEDIA_HANDLE_PRUNE_SIZE_THRESHOLD
+  ) {
+    return 0;
+  }
+  lastMediaHandlePruneAt.set(session.mediaHandles, now);
+  const cutoff = now - maxIdleMs;
   let prunedCount = 0;
 
   for (const [handleId, handle] of session.mediaHandles.entries()) {
@@ -151,6 +198,7 @@ export function pruneSessionMediaHandles(
     }
 
     session.mediaHandles.delete(handleId);
+    removeMediaHandleFromIndex(session.mediaHandles, handle);
     prunedCount += 1;
   }
 
@@ -175,6 +223,7 @@ export function deleteProviderSession(sessionId?: string) {
       .delete(providerSessions)
       .where(eq(providerSessions.id, sessionId))
       .run();
+    sessionCache.delete(sessionId);
     mediaHandlesBySessionId.delete(sessionId);
     notifyPlaybackStateChange({ type: "session", sessionId });
   }
@@ -199,6 +248,7 @@ export function deleteProviderSessionsForProviderAccount(
     .run();
 
   for (const session of sessionRows) {
+    sessionCache.delete(session.id);
     mediaHandlesBySessionId.delete(session.id);
     notifyPlaybackStateChange({ type: "session", sessionId: session.id });
   }

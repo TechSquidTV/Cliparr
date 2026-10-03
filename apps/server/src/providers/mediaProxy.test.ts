@@ -4,7 +4,10 @@ import { PassThrough } from "node:stream";
 import test from "node:test";
 import type { Response } from "express";
 import { isApiError } from "@/http/errors";
-import type { ProviderSessionRecord } from "@/session/store";
+import {
+  pruneSessionMediaHandles,
+  type ProviderSessionRecord,
+} from "@/session/store";
 import type { MediaHandle } from "@/providers/types";
 import {
   assertAllowedMediaHandleRequestUrl,
@@ -1087,4 +1090,134 @@ void test("rejects oversized playlists without consuming the entire body", async
   );
   assert.equal(cancelled, true);
   assert.ok(pulls <= 11);
+});
+
+void test("deduplicates normalized media handles without scanning on reuse", (context) => {
+  context.mock.timers.enable({ apis: ["Date"], now: 1000 });
+  const session = createSession();
+  const provider = createMediaHandle({
+    providerMetadata: { plex: { playbackSessionId: "playback-1" } },
+  });
+  const firstUrl = createProviderMediaHandle(session, provider, "segment.ts", {
+    basePath: "hls/",
+  });
+  const values = context.mock.method(session.mediaHandles, "values");
+  context.mock.timers.tick(1000);
+  const secondUrl = createProviderMediaHandle(
+    session,
+    provider,
+    "/segment.ts",
+    {
+      basePath: "/hls/",
+    },
+  );
+  assert.equal(secondUrl, firstUrl);
+  assert.equal(session.mediaHandles.size, 1);
+  assert.equal(values.mock.callCount(), 0);
+  assert.equal([...session.mediaHandles.values()][0]?.lastAccessedAt, 2000);
+
+  const variants: Partial<MediaHandle>[] = [
+    { providerId: "jellyfin" },
+    { sourceId: "source-2" },
+    { baseUrl: "http://other.local:32400" },
+    { token: "other-token" },
+    { providerMetadata: { plex: { playbackSessionId: "playback-2" } } },
+    {
+      providerMetadata: {
+        plex: { playbackSessionId: "playback-1", subtitleStreamId: "2" },
+      },
+    },
+    {
+      providerMetadata: {
+        plex: {
+          playbackSessionId: "playback-1",
+          subtitleDecision: { path: "/subtitles", session: "subtitle-1" },
+        },
+      },
+    },
+    { providerMetadata: { jellyfin: { deviceId: "device-1" } } },
+  ];
+  const urls = variants.map((variant) =>
+    createProviderMediaHandle(
+      session,
+      { ...provider, ...variant },
+      "segment.ts",
+      { basePath: "hls/" },
+    ),
+  );
+  urls.push(
+    createProviderMediaHandle(session, provider, "segment-2.ts", {
+      basePath: "hls/",
+    }),
+    createProviderMediaHandle(session, provider, "segment.ts", {
+      basePath: "other/",
+    }),
+    createProviderMediaHandle(session, provider, "segment.ts"),
+  );
+  assert.equal(new Set([firstUrl, ...urls]).size, urls.length + 1);
+});
+
+void test("recreates pruned media handles and deduplicates their new ids", (context) => {
+  context.mock.timers.enable({ apis: ["Date"], now: 1000 });
+  const session = createSession();
+  const provider = createMediaHandle({
+    providerMetadata: { jellyfin: { deviceId: "device-1" } },
+  });
+  const firstUrl = createProviderMediaHandle(session, provider, "segment.ts", {
+    basePath: "hls/",
+  });
+  context.mock.timers.tick(60_000);
+  assert.equal(pruneSessionMediaHandles(session, 1000), 1);
+  assert.equal(session.mediaHandles.size, 0);
+  const nextUrl = createProviderMediaHandle(session, provider, "segment.ts", {
+    basePath: "hls/",
+  });
+  assert.notEqual(nextUrl, firstUrl);
+  assert.equal(
+    createProviderMediaHandle(session, provider, "segment.ts", {
+      basePath: "hls/",
+    }),
+    nextUrl,
+  );
+  assert.equal(session.mediaHandles.size, 1);
+});
+
+void test("shares cached and in-flight playlists across Accept headers", async (context) => {
+  context.mock.timers.enable({ apis: ["Date"], now: Date.now() });
+  const session = createSession();
+  const handle = createMediaHandle({
+    id: "accept-playlist",
+    path: "/hls/master.m3u8",
+  });
+  let fetchCount = 0;
+  const fetchUpstream = async () => {
+    fetchCount += 1;
+    return new globalThis.Response("#EXTM3U\nsegment.ts\n", {
+      headers: { "content-type": "application/vnd.apple.mpegurl" },
+    });
+  };
+  const requestPlaylist = async (accept: string) => {
+    const response = createBinaryResponseRecorder();
+    await proxyProviderMediaResponse(
+      session,
+      handle,
+      { accept },
+      fetchUpstream,
+      response as unknown as Response,
+    );
+    return response.body;
+  };
+  const [first, second] = await Promise.all([
+    requestPlaylist("application/vnd.apple.mpegurl"),
+    requestPlaylist("*/*"),
+  ]);
+  assert.equal(fetchCount, 1);
+  assert.deepEqual(first, second);
+  assert.deepEqual(await requestPlaylist("application/x-mpegURL"), first);
+  assert.equal(fetchCount, 1);
+  assert.equal(session.mediaHandles.size, 1);
+  context.mock.timers.tick(4000);
+  assert.deepEqual(await requestPlaylist("*/*"), first);
+  assert.equal(fetchCount, 2);
+  assert.equal(session.mediaHandles.size, 1);
 });

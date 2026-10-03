@@ -38,7 +38,69 @@ void test("retains editor playlists and segments for the provider session lifeti
     );
   }
 
-  context.mock.method(Date, "now", () => session.expiresAt + 1);
+  context.mock.method(Date, "now", () => session.expiresAt + 60_000);
   assert.equal(pruneSessionMediaHandles(session), 3);
+  assert.equal(session.mediaHandles.size, 0);
+});
+
+void test("gates prune walks for 60 seconds per handle map", (context) => {
+  context.mock.timers.enable({ apis: ["Date"], now: 1000 });
+  const session: ProviderSessionRecord = {
+    id: "prune-session",
+    providerId: "jellyfin",
+    providerAccountId: "account-1",
+    userToken: "token",
+    mediaHandles: new Map(),
+    createdAt: 1000,
+    expiresAt: 100_000,
+  };
+  createProviderMediaHandle(
+    session,
+    {
+      providerId: "jellyfin",
+      sourceId: "source-1",
+      baseUrl: "http://jellyfin.local",
+      token: "token",
+    },
+    "/segment.ts",
+  );
+  const entries = context.mock.method(session.mediaHandles, "entries");
+  assert.equal(pruneSessionMediaHandles(session, 1000), 0);
+  context.mock.timers.tick(59_999);
+  // Records mapped again from SQLite still share the same map and prune gate.
+  assert.equal(pruneSessionMediaHandles({ ...session }, 1000), 0);
+  assert.equal(entries.mock.callCount(), 1);
+  assert.equal(session.mediaHandles.size, 1);
+  context.mock.timers.tick(1);
+  assert.equal(pruneSessionMediaHandles(session, 1000), 1);
+  assert.equal(entries.mock.callCount(), 2);
+});
+
+void test("prunes above the size threshold even within the prune window", (context) => {
+  context.mock.timers.enable({ apis: ["Date"], now: 1000 });
+  const session: ProviderSessionRecord = {
+    id: "large-session",
+    providerId: "jellyfin",
+    providerAccountId: "account-1",
+    userToken: "token",
+    mediaHandles: new Map(),
+    createdAt: 1000,
+    expiresAt: 100_000,
+  };
+  assert.equal(pruneSessionMediaHandles(session, 1000), 0);
+  for (let index = 0; index < 2001; index += 1) {
+    createProviderMediaHandle(
+      session,
+      {
+        providerId: "jellyfin",
+        sourceId: "source-1",
+        baseUrl: "http://jellyfin.local",
+        token: "token",
+      },
+      `/segment-${index}.ts`,
+    );
+  }
+  context.mock.timers.tick(1001);
+  assert.equal(pruneSessionMediaHandles(session, 1000), 2001);
   assert.equal(session.mediaHandles.size, 0);
 });
