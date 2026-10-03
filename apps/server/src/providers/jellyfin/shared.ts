@@ -41,7 +41,6 @@ export const JELLYFIN_REQUEST_TIMEOUT_MS = 5000;
 const CURRENT_PLAYBACK_REQUEST_TIMEOUT_MS = 5000;
 const JELLYFIN_MAX_REDIRECTS = 5;
 
-const JELLYFIN_DEV_BASE_URL = stringValue(process.env.CLIPARR_DEV_JELLYFIN_URL);
 const ALLOW_LOOPBACK_JELLYFIN_URLS = booleanEnv(
   process.env.CLIPARR_ALLOW_LOOPBACK_JELLYFIN_URLS,
 );
@@ -309,11 +308,7 @@ function assertAllowedResolvedAddress(
     );
   }
 
-  if (
-    isLoopbackHost(address) &&
-    !ALLOW_LOOPBACK_JELLYFIN_URLS &&
-    !JELLYFIN_DEV_BASE_URL
-  ) {
+  if (isLoopbackHost(address) && !ALLOW_LOOPBACK_JELLYFIN_URLS) {
     throw createApiError(
       400,
       "invalid_jellyfin_server_url",
@@ -389,21 +384,7 @@ export async function assertAllowedJellyfinServerUrl(
 
 export async function resolveCredentialServerUrl(serverUrl: string) {
   const { url } = await assertAllowedJellyfinServerUrl(serverUrl);
-  return resolveJellyfinBaseUrl(url.toString());
-}
-
-function resolveJellyfinBaseUrl(url: string) {
-  const normalized = normalizeBaseUrl(url);
-  if (!JELLYFIN_DEV_BASE_URL) {
-    return normalized;
-  }
-
-  const parsed = assertHttpUrl(normalized);
-  if (!isLoopbackHost(parsed.hostname)) {
-    return normalized;
-  }
-
-  return normalizeBaseUrl(JELLYFIN_DEV_BASE_URL);
+  return normalizeBaseUrl(url.toString());
 }
 
 function sourceHostInfo(baseUrl: string) {
@@ -826,11 +807,11 @@ function toJellyfinSdkError(
   }
 
   const parsed = axiosRequestUrl(error, baseUrl);
-  if (JELLYFIN_DEV_BASE_URL && isLoopbackHost(parsed.hostname)) {
+  if (isLoopbackHost(parsed.hostname)) {
     return createApiError(
       502,
       errorCode,
-      `${options.failureMessage ?? "Could not reach that Jellyfin server"}. Cliparr is running in Docker, so localhost points at the Cliparr container. Use ${JELLYFIN_DEV_BASE_URL} for this dev setup.`,
+      `${options.failureMessage ?? "Could not reach that Jellyfin server"}. If Cliparr is running in Docker, localhost points at the Cliparr container, not your host. Use host.docker.internal or your machine's LAN IP address instead.`,
     );
   }
 
@@ -914,7 +895,7 @@ export function sourceContext(source: MediaSource): JellyfinSourceContext {
 
   return {
     sourceId: source.id,
-    baseUrl: resolveJellyfinBaseUrl(source.baseUrl),
+    baseUrl: normalizeBaseUrl(source.baseUrl),
     token,
     userId,
     deviceId,

@@ -118,7 +118,6 @@ services:
       PORT: "3000"
       CLIPARR_DATA_DIR: /data
       CLIPARR_FRONTEND_URL: http://localhost:5173
-      CLIPARR_DEV_JELLYFIN_URL: http://jellyfin:8096
       CHOKIDAR_USEPOLLING: "true"
       VITE_CLIPARR_DEV_JELLYFIN_URL: http://jellyfin:8096
     ports:

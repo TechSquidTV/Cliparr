@@ -9,24 +9,20 @@ import test, { beforeEach, afterEach } from "node:test";
 import { Agent } from "undici";
 import { closePooledPinnedDnsAgents } from "@/providers/shared/pinnedFetch";
 
-const { fetchPublicSystemInfo } = await (async () => {
-  const previous = process.env.CLIPARR_ALLOW_LOOPBACK_JELLYFIN_URLS;
-  const previousDevelopment = process.env.CLIPARR_DEV_JELLYFIN_URL;
-  process.env.CLIPARR_ALLOW_LOOPBACK_JELLYFIN_URLS = "true";
-  delete process.env.CLIPARR_DEV_JELLYFIN_URL;
-  try {
-    return await import("@/providers/jellyfin/shared");
-  } finally {
-    if (previous === undefined) {
-      delete process.env.CLIPARR_ALLOW_LOOPBACK_JELLYFIN_URLS;
-    } else {
-      process.env.CLIPARR_ALLOW_LOOPBACK_JELLYFIN_URLS = previous;
+const { fetchPublicSystemInfo, resolveCredentialServerUrl } =
+  await (async () => {
+    const previous = process.env.CLIPARR_ALLOW_LOOPBACK_JELLYFIN_URLS;
+    process.env.CLIPARR_ALLOW_LOOPBACK_JELLYFIN_URLS = "true";
+    try {
+      return await import("@/providers/jellyfin/shared");
+    } finally {
+      if (previous === undefined) {
+        delete process.env.CLIPARR_ALLOW_LOOPBACK_JELLYFIN_URLS;
+      } else {
+        process.env.CLIPARR_ALLOW_LOOPBACK_JELLYFIN_URLS = previous;
+      }
     }
-    if (previousDevelopment !== undefined) {
-      process.env.CLIPARR_DEV_JELLYFIN_URL = previousDevelopment;
-    }
-  }
-})();
+  })();
 
 beforeEach((context) => {
   assert.ok("mock" in context);
@@ -57,6 +53,15 @@ for (const hostname of [
       baseUrl: `http://${hostname}:8096`,
     });
     assert.equal(result.Id, "server");
+    const normalizedUrl = new URL(
+      `http://${hostname}:8096/jellyfin`,
+    ).toString();
+    assert.equal(
+      await resolveCredentialServerUrl(
+        `${normalizedUrl}/?query=removed#removed`,
+      ),
+      normalizedUrl,
+    );
   });
 }
 

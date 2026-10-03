@@ -13,17 +13,12 @@ const {
   resolveCredentialServerUrl,
 } = await (async () => {
   const previous = process.env.CLIPARR_ALLOW_LOOPBACK_JELLYFIN_URLS;
-  const previousDevelopment = process.env.CLIPARR_DEV_JELLYFIN_URL;
   delete process.env.CLIPARR_ALLOW_LOOPBACK_JELLYFIN_URLS;
-  delete process.env.CLIPARR_DEV_JELLYFIN_URL;
   try {
     return await import("@/providers/jellyfin/shared");
   } finally {
     if (previous !== undefined) {
       process.env.CLIPARR_ALLOW_LOOPBACK_JELLYFIN_URLS = previous;
-    }
-    if (previousDevelopment !== undefined) {
-      process.env.CLIPARR_DEV_JELLYFIN_URL = previousDevelopment;
     }
   }
 })();
@@ -75,6 +70,26 @@ void test("already-aborted Jellyfin requests skip DNS and fetch", async (context
     (error: Error) => error === reason,
   );
 });
+
+for (const address of ["127.0.0.1", "::1", "::ffff:127.0.0.1"]) {
+  void test(`default Jellyfin policy rejects DNS resolving to ${address} before fetch`, async (context) => {
+    context.mock.method(dns, "lookup", async () => [
+      { address, family: address.includes(":") ? 6 : 4 },
+    ]);
+    context.mock.method(globalThis, "fetch", () =>
+      assert.fail("Fetch must not start"),
+    );
+    syncBuiltinESMExports();
+    context.after(() => {
+      context.mock.restoreAll();
+      syncBuiltinESMExports();
+    });
+    await assert.rejects(
+      fetchPublicSystemInfo({ baseUrl: "http://jellyfin.invalid:8096" }),
+      { code: "invalid_jellyfin_server_url" },
+    );
+  });
+}
 
 for (const scenario of ["caller abort", "timeout", "redirect abort"] as const) {
   void test(
