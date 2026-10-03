@@ -46,6 +46,27 @@ function readSetCookieValue(response: Response, name: string) {
   return cookie ? decodeURIComponent(cookie.slice(prefix.length)) : undefined;
 }
 
+function applyResponseCookies(jar: Map<string, string>, response: Response) {
+  for (const header of response.headers.getSetCookie()) {
+    const [pair, ...attributes] = header.split(";");
+    assert.ok(pair);
+    const separator = pair.indexOf("=");
+    assert.ok(separator > 0);
+    const name = pair.slice(0, separator);
+    const expires = attributes.find((attribute) =>
+      attribute.trim().startsWith("Expires="),
+    );
+    if (
+      expires &&
+      Date.parse(expires.trim().slice("Expires=".length)) <= Date.now()
+    ) {
+      jar.delete(name);
+    } else {
+      jar.set(name, pair.slice(separator + 1));
+    }
+  }
+}
+
 async function withTestApp<T>(
   callback: (baseUrl: string, fetchLocal: typeof fetch) => Promise<T>,
 ) {
@@ -161,7 +182,7 @@ void test("a live session cookie does not rotate the remember token", async () =
   });
 });
 
-void test("concurrent restores have one winner and safely clear the loser's cookies", async () => {
+void test("concurrent restore responses preserve fresh credentials in a shared cookie jar in either order", async () => {
   await withTestApp(async (baseUrl, fetchLocal) => {
     const account = upsertProviderAccountByAccessToken({
       providerId: "plex",
@@ -188,11 +209,7 @@ void test("concurrent restores have one winner and safely clear the loser's cook
     const winner = responses.find((response) => response.status === 200);
     const loser = responses.find((response) => response.status === 401);
     assert.ok(winner && loser);
-    assert.equal(
-      readSetCookieValue(loser, getRememberedProviderSessionCookieName()),
-      "",
-    );
-    assert.equal(readSetCookieValue(loser, getSessionCookieName()), "");
+    assert.deepEqual(loser.headers.getSetCookie(), []);
     const sessions = getDatabase().select().from(providerSessions).all();
     assert.equal(sessions.length, 1);
     assert.equal(sessions[0]?.providerAccountId, account.id);
@@ -207,10 +224,42 @@ void test("concurrent restores have one winner and safely clear the loser's cook
       account.id,
     );
     assert.equal(getRememberedProviderSession(remembered.token), undefined);
+
+    // Model two tabs sharing one browser cookie jar, including a delayed 401
+    // that arrives after the winner has installed both refreshed credentials.
+    for (const orderedResponses of [
+      [winner, loser],
+      [loser, winner],
+    ]) {
+      const jar = new Map([
+        [getRememberedProviderSessionCookieName(), remembered.token],
+        [getSessionCookieName(), "stale"],
+      ]);
+      for (const response of orderedResponses) {
+        applyResponseCookies(jar, response);
+      }
+      assert.equal(jar.get(getRememberedProviderSessionCookieName()), token);
+      assert.equal(
+        jar.get(getSessionCookieName()),
+        readSetCookieValue(winner, getSessionCookieName()),
+      );
+      const resumed = await fetchLocal(`${baseUrl}/api/session`, {
+        headers: {
+          cookie: [...jar]
+            .map(([name, value]) => `${name}=${value}`)
+            .join("; "),
+        },
+      });
+      assert.equal(resumed.status, 200);
+      assert.equal(
+        readSetCookieValue(resumed, getRememberedProviderSessionCookieName()),
+        undefined,
+      );
+    }
   });
 });
 
-void test("a failed restore revokes the token and clears both cookies without issuing a replacement", async () => {
+void test("a failed restore revokes the token without modifying shared cookies", async () => {
   await withTestApp(async (baseUrl, fetchLocal) => {
     const account = upsertProviderAccountByAccessToken({
       providerId: "plex",
@@ -232,9 +281,12 @@ void test("a failed restore revokes the token and clears both cookies without is
     assert.equal(response.status, 401);
     assert.equal(
       readSetCookieValue(response, getRememberedProviderSessionCookieName()),
-      "",
+      undefined,
     );
-    assert.equal(readSetCookieValue(response, getSessionCookieName()), "");
+    assert.equal(
+      readSetCookieValue(response, getSessionCookieName()),
+      undefined,
+    );
     assert.equal(getRememberedProviderSession(remembered.token), undefined);
     assert.equal(
       getDatabase().select().from(rememberedProviderSessions).all().length,
@@ -245,7 +297,7 @@ void test("a failed restore revokes the token and clears both cookies without is
   });
 });
 
-void test("revocation during restore clears the remember cookie but preserves the established session", async () => {
+void test("revocation during restore preserves shared cookies and the established session", async () => {
   await withTestApp(async (baseUrl, fetchLocal) => {
     const account = upsertProviderAccountByAccessToken({
       providerId: "plex",
@@ -266,7 +318,7 @@ void test("revocation during restore clears the remember cookie but preserves th
     assert.equal(response.status, 200);
     assert.equal(
       readSetCookieValue(response, getRememberedProviderSessionCookieName()),
-      "",
+      undefined,
     );
     const sessionId = readSetCookieValue(response, getSessionCookieName());
     assert.equal(getProviderSession(sessionId)?.providerAccountId, account.id);
@@ -358,7 +410,7 @@ void test("a live session takes precedence over a remember cookie for another ac
   });
 });
 
-void test("revoked and swept tokens fail closed and clear stale cookies", async () => {
+void test("revoked and swept tokens fail closed without modifying shared cookies", async () => {
   await withTestApp(async (baseUrl, fetchLocal) => {
     const account = upsertProviderAccountByAccessToken({
       providerId: "plex",
@@ -380,9 +432,12 @@ void test("revoked and swept tokens fail closed and clear stale cookies", async 
       assert.equal(response.status, 401);
       assert.equal(
         readSetCookieValue(response, getRememberedProviderSessionCookieName()),
-        "",
+        undefined,
       );
-      assert.equal(readSetCookieValue(response, getSessionCookieName()), "");
+      assert.equal(
+        readSetCookieValue(response, getSessionCookieName()),
+        undefined,
+      );
     }
   });
 });

@@ -234,7 +234,7 @@ void test("restores /api/session from a remembered provider session cookie", () 
   }
 });
 
-void test("clears invalid remembered provider session cookies from /api/session", () => {
+void test("rejects invalid remembered provider session cookies without clearing shared cookies", () => {
   const dataDir = fs.mkdtempSync(
     path.join(os.tmpdir(), "cliparr-session-route-"),
   );
@@ -267,10 +267,7 @@ void test("clears invalid remembered provider session cookies from /api/session"
 
         assert.equal(response.status, 401);
         const setCookies = response.headers.getSetCookie();
-        assert(setCookies.some((cookie) =>
-          cookie.startsWith(\`\${getRememberedProviderSessionCookieName()}=\`)
-          && cookie.includes("Expires=Thu, 01 Jan 1970 00:00:00 GMT")
-        ));
+        assert.deepEqual(setCookies, []);
       } finally {
         await new Promise((resolve, reject) => server.close((err) => err ? reject(err) : resolve(undefined)));
         closeDatabase();

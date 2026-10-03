@@ -50,16 +50,10 @@ sessionRouter.get(
         rememberedSession?.providerAccountId,
       );
     if (!session) {
-      res.clearCookie(
-        getSessionCookieName(),
-        getSessionCookieClearOptions(request.secure),
-      );
+      // Another restore may already have refreshed the browser's shared
+      // cookies. A failed request must not erase those newer credentials.
       if (rememberedToken) {
         revokeRememberedProviderSession(rememberedToken);
-        res.clearCookie(
-          getRememberedProviderSessionCookieName(),
-          getRememberedProviderSessionCookieClearOptions(request.secure),
-        );
         logger.info("Remembered provider session was revoked.", {
           ...logEventFields("session.restore", "failure"),
           ...logDurationFields(startedAt),
@@ -98,14 +92,9 @@ sessionRouter.get(
       const rotated = rotateRememberedProviderSession(rememberedToken);
       if (rotated) {
         rotatedRememberedToken = rotated.token;
-      } else {
-        // The token died between validation and rotation; drop the stale
-        // cookie. The fresh session cookie keeps this request authenticated.
-        res.clearCookie(
-          getRememberedProviderSessionCookieName(),
-          getRememberedProviderSessionCookieClearOptions(request.secure),
-        );
       }
+      // A lost rotation race must also leave the shared remember cookie alone.
+      // The session established above still authenticates this request.
     }
 
     res.cookie(

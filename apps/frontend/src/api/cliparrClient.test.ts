@@ -295,3 +295,77 @@ void test("propagates cancellation while reading an API error body", async () =>
     name: "AbortError",
   });
 });
+
+void test("coalesces in-flight session restores and refreshes after completion", async () => {
+  let fetchCount = 0;
+  let releaseFetch: (() => void) | undefined;
+  const session = {
+    id: "restored-session",
+    providerId: "plex",
+    expiresAt: "2026-10-04T00:00:00Z",
+  };
+  await withMockedFetch(
+    async (input) => {
+      assert.equal(input, "/api/session");
+      fetchCount += 1;
+      await new Promise<void>((resolve) => {
+        releaseFetch = resolve;
+      });
+      return jsonResponse({ session });
+    },
+    async () => {
+      const first = cliparrClient.getSession();
+      const second = cliparrClient.getSession();
+      assert.equal(first, second);
+      assert.equal(fetchCount, 1);
+      releaseFetch?.();
+      assert.deepEqual(await first, session);
+      assert.deepEqual(await second, session);
+      const next = cliparrClient.getSession();
+      assert.equal(fetchCount, 2);
+      releaseFetch?.();
+      assert.deepEqual(await next, session);
+    },
+  );
+});
+
+void test("failed session restores reject all callers and allow a new request", async () => {
+  let fetchCount = 0;
+  await withMockedFetch(
+    async () => {
+      fetchCount += 1;
+      if (fetchCount === 1) {
+        return jsonResponse(
+          {
+            error: {
+              code: "not_authenticated",
+              message: "Sign in with a provider first",
+            },
+          },
+          { status: 401 },
+        );
+      }
+      return jsonResponse({
+        session: {
+          id: "new-session",
+          providerId: "plex",
+          expiresAt: "2026-10-04T00:00:00Z",
+        },
+      });
+    },
+    async () => {
+      const first = cliparrClient.getSession();
+      const second = cliparrClient.getSession();
+      assert.equal(first, second);
+      const results = await Promise.allSettled([first, second]);
+      assert.deepEqual(
+        results.map((result) => result.status),
+        ["rejected", "rejected"],
+      );
+      assert.equal(fetchCount, 1);
+      const restored = await cliparrClient.getSession();
+      assert.equal(restored.id, "new-session");
+      assert.equal(fetchCount, 2);
+    },
+  );
+});
