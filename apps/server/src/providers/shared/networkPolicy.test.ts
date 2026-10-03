@@ -1,3 +1,11 @@
+import {
+  PRIVATE_IPV4_ADDRESSES,
+  MAPPED_PRIVATE_IPV4_HOST,
+} from "@/test/networkPolicyFixtures";
+import {
+  TEST_PLEX_BASE_URL,
+  useProviderFixtures,
+} from "@/test/providerFixtures";
 import assert from "node:assert/strict";
 import test from "node:test";
 import { requestPlexPmsIdentity } from "@/providers/plex/pmsClient";
@@ -75,7 +83,7 @@ void test("Plex loopback opt-in leaves local URL proxy protection intact", async
 });
 
 void test("PMS redirects and media references share the unsafe-address policy", async () => {
-  const context = { baseUrl: "http://192.168.1.50:32400", token: "test-token" };
+  const context = { baseUrl: TEST_PLEX_BASE_URL, token: "test-token" };
   const options = {
     clientIdentifier: "test",
     product: "Cliparr",
@@ -87,8 +95,8 @@ void test("PMS redirects and media references share the unsafe-address policy", 
       "0.1.2.3",
       "240.0.0.1",
       "255.255.255.255",
-      "10.0.0.1",
-      "[::ffff:a00:1]",
+      PRIVATE_IPV4_ADDRESSES[0],
+      MAPPED_PRIVATE_IPV4_HOST,
       "[::1]",
       "metadata.google.internal",
     ]) {
@@ -120,3 +128,5 @@ void test("PMS redirects and media references share the unsafe-address policy", 
     globalThis.fetch = originalFetch;
   }
 });
+
+useProviderFixtures();

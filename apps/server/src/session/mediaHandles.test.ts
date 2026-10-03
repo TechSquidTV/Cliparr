@@ -1,3 +1,4 @@
+import { TEST_JELLYFIN_BASE_URL } from "@/test/providerFixtures";
 import assert from "node:assert/strict";
 import test from "node:test";
 import { createProviderMediaHandle } from "@/providers/shared/mediaProxy";
@@ -20,7 +21,7 @@ void test("retains editor playlists and segments for the provider session lifeti
   const provider = {
     providerId: "jellyfin",
     sourceId: "source-1",
-    baseUrl: "http://192.168.1.50:8096",
+    baseUrl: TEST_JELLYFIN_BASE_URL,
     token: "token",
   };
   const paths = ["/master.m3u8", "/video.m3u8", "/segment-1.ts"];
@@ -59,7 +60,7 @@ void test("gates prune walks for 60 seconds per handle map", (context) => {
     {
       providerId: "jellyfin",
       sourceId: "source-1",
-      baseUrl: "http://jellyfin.local",
+      baseUrl: "http://jellyfin.example.test",
       token: "token",
     },
     "/segment.ts",
@@ -94,7 +95,7 @@ void test("prunes above the size threshold even within the prune window", (conte
       {
         providerId: "jellyfin",
         sourceId: "source-1",
-        baseUrl: "http://jellyfin.local",
+        baseUrl: "http://jellyfin.example.test",
         token: "token",
       },
       `/segment-${index}.ts`,
@@ -119,7 +120,7 @@ void test("bounds oversized-map scans until substantial growth or the next inter
   const provider = {
     providerId: "jellyfin",
     sourceId: "source-1",
-    baseUrl: "http://jellyfin.local",
+    baseUrl: "http://jellyfin.example.test",
     token: "token",
   };
   const entries = context.mock.method(session.mediaHandles, "entries");

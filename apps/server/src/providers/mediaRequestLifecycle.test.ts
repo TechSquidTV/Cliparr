@@ -1,3 +1,7 @@
+import {
+  TEST_PLEX_BASE_URL,
+  useProviderFixtures,
+} from "@/test/providerFixtures";
 import assert from "node:assert/strict";
 import { getEventListeners } from "node:events";
 import test, { type TestContext } from "node:test";
@@ -8,7 +12,7 @@ const handle: MediaHandle = {
   id: "lifecycle",
   providerId: "plex",
   sourceId: "source-1",
-  baseUrl: "http://192.168.1.50:32400",
+  baseUrl: TEST_PLEX_BASE_URL,
   path: "/video.mp4",
   token: "token",
   lastAccessedAt: 0,
@@ -167,3 +171,5 @@ void test("releases timeout and abort listeners immediately for bodyless respons
   assert.equal(upstreamSignal?.aborted, false);
   assert.equal(getEventListeners(caller.signal, "abort").length, 0);
 });
+
+useProviderFixtures();

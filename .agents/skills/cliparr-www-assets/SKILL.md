@@ -11,8 +11,11 @@ controls the editor through its capture-only bridge; no mouse interaction is nee
 
 ## Inputs and scene configuration
 
-Expect **two original media assets**, one for the hero and one for the mobile
-workspace. Both must retain their original timelines through the out point. Do not
+Use the repository’s public **Sintel (2010)** seed for both hero and mobile
+scenes. Run `MEDIA_ROOT=/path/to/dedicated-media sh docker/seed-media.sh` and
+pass its movie directory as `--media-dir`, with `--hero 'Sintel (2010).mkv'`
+and `--mobile 'Sintel (2010).mkv'`. Never use a personal media library.
+The source must retain its original timeline through the out point. Do not
 pre-trim the sources to the selected clips. Prefer an existing non-empty,
 language-tagged Jellyfin sidecar beside each source, such as `<media>.en.srt`.
 Only transcribe when the required sidecar is missing; capture-window-only SRTs are
@@ -24,8 +27,8 @@ The canonical configuration is `tools/www-assets/src/scenes.ts`:
 
 | Scene  | Cliparr in/out  | Selected duration | Browser/video size | Caption size | Default recording duration |
 | ------ | --------------- | ----------------- | ------------------ | ------------ | -------------------------- |
-| Hero   | 8:16.07–8:19.01 | 2.94 seconds      | 1600×886           | 72 px        | 82/30 seconds (~2.733)     |
-| Mobile | 23:22–23:32     | 10 seconds        | 402×874            | 150 px       | 3 seconds                  |
+| Hero   | 1:51.95–1:54.89 | 2.94 seconds      | 1600×886           | 72 px        | 82/30 seconds (~2.733)     |
+| Mobile | 2:09.60–2:19.60 | 10 seconds        | 402×874            | 150 px       | 3 seconds                  |
 
 The fractional hero timecodes are **decimal seconds, not frame numbers**.
 Cliparr selection and website recording length are separate settings. Never infer
@@ -40,7 +43,7 @@ Install workspace dependencies with `pnpm install --frozen-lockfile` first.
 
 ```bash
 pnpm assets:capture --media-dir /absolute/path/to/media \
-  --hero 'hero.mkv' --mobile 'mobile.mkv'
+  --hero 'Sintel (2010).mkv' --mobile 'Sintel (2010).mkv'
 ```
 
 Paths for `--hero` and `--mobile` are relative to `--media-dir` and may include
@@ -61,10 +64,12 @@ replace the website's six assets after both captures validate, add `--write`:
 
 ```bash
 pnpm assets:capture --media-dir /absolute/path/to/media \
-  --hero 'hero.mkv' --mobile 'mobile.mkv' --write
+  --hero 'Sintel (2010).mkv' --mobile 'Sintel (2010).mkv' --write
 ```
 
 When `--write` is enabled, the hero poster is also copied to `./.github/img/screenshot.webp`.
+The same run refreshes the documentation export dialog, subtitle panel, and social preview.
+Blog images reuse these captures. Credit Sintel to the Blender Foundation (CC BY 3.0).
 The README screenshot points at the homepage hero poster, so it updates automatically when captures complete.
 
 Optional `--hero-seconds` and `--mobile-seconds` control recording duration only.

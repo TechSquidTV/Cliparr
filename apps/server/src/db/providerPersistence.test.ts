@@ -572,12 +572,12 @@ void test("cleans existing duplicate Plex sources and preserves manual URL mode"
       providerAccountId: duplicateAccount.id,
       externalId: "plex-server-1",
       name: "plex.rackserver.dev",
-      baseUrl: "https://172-18-0-29.example.plex.direct:32400",
+      baseUrl: "https://192-0-2-10.fixture.plex.direct:32400",
       connection: {
         connections: [
           {
             id: "phone-connection",
-            uri: "https://172-18-0-29.example.plex.direct:32400",
+            uri: "https://192-0-2-10.fixture.plex.direct:32400",
             local: false,
             relay: false,
           },

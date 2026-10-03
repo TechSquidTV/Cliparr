@@ -1,3 +1,7 @@
+import {
+  PRIVATE_IPV4_ADDRESSES,
+  PRIVATE_IPV6_ADDRESS,
+} from "@/test/networkPolicyFixtures";
 import assert from "node:assert/strict";
 import dns from "node:dns/promises";
 import { syncBuiltinESMExports } from "node:module";
@@ -42,8 +46,8 @@ for (const hostname of [
   "localhost",
   "[::1]",
   "[::ffff:127.0.0.1]",
-  "192.168.1.50",
-  "[fd00::1]",
+  ...PRIVATE_IPV4_ADDRESSES,
+  `[${PRIVATE_IPV6_ADDRESS}]`,
 ]) {
   void test(`opted-in Jellyfin permits the initial ${hostname} destination`, async (context) => {
     context.mock.method(globalThis, "fetch", async () =>
@@ -110,7 +114,7 @@ for (const destination of [
 
 for (const intermediate of [
   "http://127.0.0.1:8096/same-origin",
-  "http://1.1.1.1:8096/other-origin",
+  "http://198.51.100.10:8096/other-origin",
 ]) {
   void test(`opted-in Jellyfin permits redirects returning to the initial origin via ${intermediate}`, async (context) => {
     const requests: Request[] = [];

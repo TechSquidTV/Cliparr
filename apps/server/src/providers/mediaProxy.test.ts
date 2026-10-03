@@ -1,3 +1,4 @@
+import { PRIVATE_IPV4_ADDRESSES } from "@/test/networkPolicyFixtures";
 import assert from "node:assert/strict";
 import { once } from "node:events";
 import { PassThrough } from "node:stream";
@@ -38,7 +39,7 @@ function createMediaHandle(overrides: Partial<MediaHandle> = {}): MediaHandle {
     id: "handle-1",
     providerId: "plex",
     sourceId: "source-1",
-    baseUrl: "http://plex.local:32400",
+    baseUrl: "http://plex.example.test:32400",
     path: "/video/master.m3u8",
     token: "provider-token",
     lastAccessedAt: 0,
@@ -190,7 +191,7 @@ void test("preserves playback session ids when rewriting HLS playlist resources"
     {
       providerId: "plex",
       sourceId: "source-1",
-      baseUrl: "http://plex.local:32400",
+      baseUrl: "http://plex.example.test:32400",
       token: "provider-token",
       providerMetadata: {
         plex: {
@@ -369,7 +370,7 @@ void test("allows configured provider origins even when they are private", async
   await assert.doesNotReject(async () => {
     await assertAllowedMediaHandleRequestUrl(
       createMediaHandle({
-        baseUrl: "http://192.168.1.10:32400",
+        baseUrl: `http://${PRIVATE_IPV4_ADDRESSES[2]}:32400`,
         path: "/video/master.m3u8",
       }),
     );
@@ -382,7 +383,7 @@ void test("rejects cross-origin HLS media handles to private addresses", async (
       assertAllowedMediaHandleRequestUrl(
         createMediaHandle({
           path: "http://127.0.0.1:8080/admin",
-          basePath: "http://1.1.1.1/hls/",
+          basePath: "http://198.51.100.10/hls/",
         }),
       ),
     (error: unknown) =>
@@ -415,8 +416,8 @@ void test("validates cross-origin media redirects before following them", async 
       () =>
         fetchMediaHandleRequest(
           createMediaHandle({
-            path: "http://1.1.1.1/hls/segment.ts",
-            basePath: "http://1.1.1.1/hls/",
+            path: "http://198.51.100.10/hls/segment.ts",
+            basePath: "http://198.51.100.10/hls/",
           }),
         ),
       (error: unknown) =>
@@ -452,7 +453,7 @@ void test("validates same-origin media redirects before following them", async (
       () =>
         fetchMediaHandleRequest(
           createMediaHandle({
-            baseUrl: "http://192.168.1.10:32400",
+            baseUrl: `http://${PRIVATE_IPV4_ADDRESSES[2]}:32400`,
             path: "/library/parts/1/file.mp4",
           }),
         ),
@@ -480,7 +481,7 @@ void test("strips provider auth headers from cross-origin media redirects", asyn
       return new Response(null, {
         status: 302,
         headers: {
-          location: "http://1.1.1.1/hls/segment.ts",
+          location: "http://198.51.100.10/hls/segment.ts",
         },
       });
     }
@@ -493,7 +494,7 @@ void test("strips provider auth headers from cross-origin media redirects", asyn
   try {
     const response = await fetchMediaHandleRequest(
       createMediaHandle({
-        baseUrl: "http://192.168.1.10:32400",
+        baseUrl: `http://${PRIVATE_IPV4_ADDRESSES[2]}:32400`,
         path: "/video/master.m3u8",
       }),
       {
@@ -1129,7 +1130,7 @@ void test("deduplicates normalized media handles without scanning on reuse", (co
   const variants: Partial<MediaHandle>[] = [
     { providerId: "jellyfin" },
     { sourceId: "source-2" },
-    { baseUrl: "http://other.local:32400" },
+    { baseUrl: "http://other.example.test:32400" },
     { token: "other-token" },
     { providerMetadata: { plex: { playbackSessionId: "playback-2" } } },
     {
@@ -1296,7 +1297,7 @@ void test("normalizes upstream Accept only for cacheable HLS requests across pro
       }
       const handle = createMediaHandle({
         providerId,
-        baseUrl: "http://1.1.1.1",
+        baseUrl: "http://198.51.100.10",
         path: input.path,
         basePath: input.basePath,
       });
