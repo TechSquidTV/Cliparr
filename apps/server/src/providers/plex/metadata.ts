@@ -4,9 +4,11 @@ import type { ProviderSessionRecord } from "@/session/store";
 import type { Tag } from "@cliparr/plex/pms/types";
 import { imageTranscodeUrl } from "@cliparr/plex/pms/urls";
 import type { MediaExportMetadata } from "@/providers/types";
+import { parseExternalIds } from "@cliparr/shared/external-ids";
 import {
   asArray,
   buildEpisodeSourceTitle,
+  normalizeRating,
   numberValue,
   stringValue,
   uniqueStrings,
@@ -165,6 +167,7 @@ export function createExportMetadata(
 ): MediaExportMetadata {
   const imagePath = metadataHdImagePath(item, context);
   const guid = stringValue(item?.guid);
+  const guids = uniqueStrings([guid, ...tagValues(item?.Guid)]);
 
   return {
     providerId: "plex",
@@ -186,7 +189,10 @@ export function createExportMetadata(
     directors: tagValues(item?.Director),
     writers: tagValues(item?.Writer),
     actors: tagValues(item?.Role).slice(0, 12),
-    guids: uniqueStrings([guid, ...tagValues(item?.Guid)]),
+    guids,
+    externalIds: parseExternalIds(guids),
+    criticRating: normalizeRating(item?.rating),
+    audienceRating: normalizeRating(item?.audienceRating),
     ratingKey: stringValue(item?.ratingKey),
     imageUrl: imagePath
       ? createMediaHandle(session, context, imagePath, {

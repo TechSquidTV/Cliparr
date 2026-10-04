@@ -2587,3 +2587,26 @@ for (const resource of ["part", "subtitle"] as const) {
 }
 
 useProviderFixtures();
+
+void test("Plex export metadata parses legacy and modern IDs and preserves fractional ratings", () => {
+  const result = createExportMetadata(createSession(), createContext(), {
+    type: "movie",
+    guid: "com.plexapp.agents.imdb://tt0133093?lang=en",
+    Guid: [{ id: "tmdb://603" }, { id: "tvdb://123" }, { id: "tmdb://604" }],
+    rating: 8.5,
+    audienceRating: 7.6,
+  });
+  assert.deepEqual(result.externalIds, {
+    imdb: "tt0133093",
+    tmdb: "603",
+    tvdb: "123",
+  });
+  assert.equal(result.criticRating, 8.5);
+  assert.equal(result.audienceRating, 7.6);
+  const missing = createExportMetadata(createSession(), createContext(), {
+    type: "movie",
+  });
+  assert.equal(missing.externalIds, undefined);
+  assert.equal(missing.criticRating, undefined);
+  assert.equal(missing.audienceRating, undefined);
+});
