@@ -15,7 +15,7 @@
       "vite": false
     },
     "apps/www": {
-      "entry": ["src/worker.ts"],
+      "entry": ["src/worker.ts", "src/components/AudioPlayer.astro"],
       "ignoreDependencies": [
         "@fontsource-variable/outfit",
         "@mediabunny/aac-encoder",

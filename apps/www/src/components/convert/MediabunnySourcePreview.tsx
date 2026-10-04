@@ -1,3 +1,4 @@
+import { formatDuration } from "@/lib/formatDuration";
 import { Pause, Play } from "lucide-react";
 import {
   useCallback,
@@ -15,10 +16,7 @@ import {
   type EditorFileMediaSource,
 } from "@cliparr/frontend/convert";
 import type { CanvasSink as MediabunnyCanvasSink } from "mediabunny";
-import {
-  formatDuration,
-  type SourceProbeResult,
-} from "@/components/convert/convertToolUtilities";
+import type { SourceProbeResult } from "@/components/convert/convertToolUtilities";
 
 interface MediabunnySourcePreviewProperties {
   source: EditorFileMediaSource;

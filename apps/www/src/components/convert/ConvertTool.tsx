@@ -1,3 +1,4 @@
+import { formatDuration } from "@/lib/formatDuration";
 import {
   useExportSettings,
   useExportAudioPlan,
@@ -41,7 +42,6 @@ import {
   buildConvertedFileBaseName,
   buildConvertedOutputFileName,
   buildLocalFileSource,
-  formatDuration,
   runConvertExport,
   probeConvertSource,
   type SourceProbeResult,
