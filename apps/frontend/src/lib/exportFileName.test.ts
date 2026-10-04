@@ -231,10 +231,115 @@ void test("exposes expected template tokens by media kind", () => {
     "clip_end",
     "clip_range",
     "provider",
+    "provider_ids",
     "item_type",
     "format",
   ]);
   assert.ok(
     getExportFileNameTemplateTokens("episode").includes("episode_code"),
   );
+  assert.ok(
+    getExportFileNameTemplateTokens("episode").includes("provider_ids"),
+  );
+});
+
+void test("renders provider IDs in filenames using the source convention", () => {
+  const templates = {
+    ...defaultExportFileNameTemplates(),
+    movie: "{source_title} ({year}) {provider_ids}",
+    episode: "{show_title} - {episode_code} {provider_ids}",
+  };
+
+  const plexFile = buildExportFileName({
+    title: "Clip",
+    sessionType: "movie",
+    metadata: {
+      providerId: "plex",
+      itemType: "movie",
+      sourceTitle: "Dune",
+      year: 2021,
+      externalIds: { imdb: "tt1160419", tmdb: "438631" },
+    },
+    startTime: 0,
+    endTime: 10,
+    format: "mp4",
+    templates,
+  });
+  assert.equal(plexFile.baseName, "Dune (2021) {tmdb-438631}");
+
+  const jellyfinEpisode = buildExportFileName({
+    title: "Clip",
+    sessionType: "episode",
+    metadata: {
+      providerId: "jellyfin",
+      itemType: "episode",
+      showTitle: "Severance",
+      seasonNumber: 1,
+      episodeNumber: 2,
+      externalIds: { tvdb: "12345" },
+    },
+    startTime: 0,
+    endTime: 10,
+    format: "mkv",
+    templates,
+  });
+  // Episode GUIDs are episode-level, but the filename conventions expect
+  // series-level IDs, so the token stays empty for episodes.
+  assert.equal(jellyfinEpisode.baseName, "Severance - S01E02");
+
+  const withoutIds = buildExportFileName({
+    title: "Clip",
+    sessionType: "movie",
+    metadata: {
+      providerId: "plex",
+      itemType: "movie",
+      sourceTitle: "Dune",
+      year: 2021,
+    },
+    startTime: 0,
+    endTime: 10,
+    format: "mp4",
+    templates,
+  });
+  assert.equal(withoutIds.baseName, "Dune (2021)");
+});
+
+void test("restricts filename provider IDs to movies for both providers", () => {
+  const templates = {
+    ...defaultExportFileNameTemplates(),
+    movie: "{title} {provider_ids}",
+    episode: "{title} {provider_ids}",
+  };
+  for (const providerId of ["plex", "jellyfin"]) {
+    for (const itemType of ["episode", "Episode", "video", "track"]) {
+      const file = buildExportFileName({
+        title: "Clip",
+        sessionType: "movie",
+        metadata: {
+          providerId,
+          itemType,
+          externalIds: { imdb: "tt123", tmdb: "456", tvdb: "789" },
+        },
+        startTime: 0,
+        endTime: 10,
+        format: "mp4",
+        templates,
+      });
+      assert.equal(file.baseName, "Clip");
+    }
+  }
+  const movie = buildExportFileName({
+    title: "Clip",
+    sessionType: "movie",
+    metadata: {
+      providerId: "jellyfin",
+      itemType: "Movie",
+      externalIds: { tmdb: "456" },
+    },
+    startTime: 0,
+    endTime: 10,
+    format: "mp4",
+    templates,
+  });
+  assert.equal(movie.baseName, "Clip [tmdbid-456]");
 });

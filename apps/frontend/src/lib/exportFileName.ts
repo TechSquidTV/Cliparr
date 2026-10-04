@@ -4,6 +4,7 @@ import {
   framegrabExtensionFor,
   type FramegrabImageFormat,
 } from "#/lib/framegrab";
+import { formatProviderIdForFilename } from "#/lib/metadata/externalIdTags";
 
 export type ExportFileNameTemplateKind = "movie" | "episode";
 
@@ -72,6 +73,7 @@ type ExportFileNameTemplateToken =
   | "clip_range"
   | "frame_time"
   | "provider"
+  | "provider_ids"
   | "item_type"
   | "format";
 
@@ -84,6 +86,7 @@ const MOVIE_EXPORT_FILE_NAME_TEMPLATE_TOKENS: readonly ExportFileNameTemplateTok
     "clip_end",
     "clip_range",
     "provider",
+    "provider_ids",
     "item_type",
     "format",
   ];
@@ -102,6 +105,7 @@ const EPISODE_EXPORT_FILE_NAME_TEMPLATE_TOKENS: readonly ExportFileNameTemplateT
     "clip_end",
     "clip_range",
     "provider",
+    "provider_ids",
     "item_type",
     "format",
   ];
@@ -320,6 +324,17 @@ function templateValues({
     clip_range: `${formatTemplateTime(startTime)} to ${formatTemplateTime(endTime)}`,
     frame_time: formatTemplateTime(frameTime ?? startTime),
     provider: sanitizeTemplateValue(firstText(metadata?.providerId)),
+    // Episode GUIDs are episode-level, but the Plex/Jellyfin filename
+    // conventions expect series-level IDs in this slot, so the token
+    // stays empty for episodes rather than emitting a misleading ID.
+    provider_ids: sanitizeTemplateValue(
+      itemType === "movie"
+        ? formatProviderIdForFilename(
+            metadata?.externalIds,
+            metadata?.providerId,
+          )
+        : undefined,
+    ),
     item_type: sanitizeTemplateValue(itemType),
     format: sanitizeTemplateValue(format),
   };

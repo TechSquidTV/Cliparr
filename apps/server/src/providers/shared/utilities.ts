@@ -45,6 +45,27 @@ export function numberValue(value: unknown) {
   return Math.trunc(number);
 }
 
+/** Normalize provider ratings to 0-10, preserving fractions to one decimal place. */
+export function normalizeRating(
+  value: number | string | null | undefined,
+  sourceScale: 10 | 100 = 10,
+): number | undefined {
+  if (
+    (typeof value !== "number" && typeof value !== "string") ||
+    (typeof value === "string" && !value.trim())
+  ) {
+    return undefined;
+  }
+  const rating = Number(value);
+  if (!Number.isFinite(rating) || rating < 0 || rating > sourceScale) {
+    return undefined;
+  }
+  // Jellyfin's CriticRating is a 0-100 Rotten Tomatoes-style percentage
+  // (CommunityRating is the 0-10 field), so always scale it to 0-10.
+  const normalized = sourceScale === 100 ? rating / 10 : rating;
+  return Math.round(normalized * 10) / 10;
+}
+
 export function uniqueStrings(values: Iterable<string | null | undefined>) {
   const seen = new Set<string>();
   const result: string[] = [];

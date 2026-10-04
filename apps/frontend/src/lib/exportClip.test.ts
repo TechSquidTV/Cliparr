@@ -6,6 +6,7 @@ import {
 /// <reference types="node" />
 
 import { resolveExportAudioPlan } from "@/lib/exportAudio";
+import { buildMetadataTags } from "@/lib/exportMetadata";
 
 import assert from "node:assert/strict";
 import test from "node:test";
@@ -1546,3 +1547,93 @@ void test("video-only exports do not inspect source audio coverage", async () =>
   );
   assert.equal(context.disposed, true);
 });
+
+for (const [format, mode, burnIn] of [
+  ["mp4", "video-audio", false],
+  ["mp4", "video-audio", true],
+  ["wav", "audio-only", true],
+] as const) {
+  void test(`${format} transcript uses editor cue bounds with burn-in ${burnIn}`, async () => {
+    let captured: ConversionOptions | undefined;
+    const expectedTranscript =
+      "Start overlap\nCustom caption 東京 🎬\nEnd overlap";
+    const context = createRuntime({
+      buildMetadataTags: async (...metadataArguments) => {
+        assert.equal(metadataArguments[5]?.transcript, expectedTranscript);
+        return buildMetadataTags(...metadataArguments);
+      },
+      initConversion: async (options) => {
+        captured = options;
+        return createConversion({
+          target: context.target,
+          bytes: [1, 2, 3],
+          utilizedAudio: true,
+          utilizedVideo: mode !== "audio-only",
+        });
+      },
+    });
+    await exportClipWithRuntime(
+      {
+        mediaSource,
+        format,
+        mode,
+        resolution: "original",
+        startTime: 65.125,
+        endTime: 130.75,
+        title: "Transcript clip",
+        includeBurnedSubtitles: burnIn,
+        subtitleStyleSettings:
+          mode === "audio-only" ? undefined : subtitleStyle,
+        subtitleCues: [
+          {
+            startTime: 0,
+            endTime: 65.125,
+            text: "Excluded before",
+            lines: ["Excluded before"],
+          },
+          {
+            startTime: 65,
+            endTime: 66,
+            text: "Start overlap",
+            lines: ["Start overlap"],
+          },
+          {
+            startTime: 70,
+            endTime: 71,
+            text: "Custom caption 東京 🎬",
+            lines: ["Custom caption 東京 🎬"],
+          },
+          {
+            startTime: 130,
+            endTime: 131,
+            text: "End overlap",
+            lines: ["End overlap"],
+          },
+          {
+            startTime: 130.75,
+            endTime: 140,
+            text: "Excluded after",
+            lines: ["Excluded after"],
+          },
+        ],
+        onProgress: () => {},
+      },
+      context.runtime,
+    );
+    // Media trim is offset by five seconds; subtitle/editor timing is not.
+    assert.deepEqual(captured?.trim, { start: 70.125, end: 135.75 });
+    const tags = captured?.tags;
+    assert.ok(tags && typeof tags !== "function");
+    const raw = tags.raw;
+    assert.ok(raw);
+    const json =
+      format === "wav"
+        ? (raw.TXXX as Record<string, string>).CLIPARR_METADATA
+        : raw.clpr;
+    assert.ok(typeof json === "string");
+    const payload = JSON.parse(json) as { transcript?: string };
+    assert.equal(payload.transcript, expectedTranscript);
+    assert.doesNotMatch(json, /Excluded/);
+    assert.equal(context.disposed, true);
+  });
+}

@@ -66,6 +66,7 @@ import {
   isIsobmffExportFormat,
   patchMp4MetadataBoxes,
 } from "#/lib/exportMetadata";
+import { buildTranscript } from "#/lib/metadata/transcript";
 import {
   DEFAULT_GIF_EXPORT_PRESET,
   DEFAULT_VIDEO_EXPORT_QUALITY,
@@ -577,11 +578,13 @@ export async function exportClipWithRuntime(
       format,
     );
     const outputHeight = outputDimensions?.height;
-    const clippedSubtitleCues =
-      includeBurnedSubtitles && subtitleCues.length > 0
-        ? trimSubtitleCues(subtitleCues, startTime, endTime)
-        : [];
-    const shouldBurnSubtitles = clippedSubtitleCues.length > 0;
+    const clippedSubtitleCues = trimSubtitleCues(
+      subtitleCues,
+      startTime,
+      endTime,
+    );
+    const shouldBurnSubtitles =
+      includeBurnedSubtitles && clippedSubtitleCues.length > 0;
 
     if (includeBurnedSubtitles && !subtitleStyleSettings) {
       throw new Error("Subtitle burn-in was requested without style settings.");
@@ -646,13 +649,17 @@ export async function exportClipWithRuntime(
     }
 
     const target = runtime.createBufferTarget();
+    // The transcript is embedded whenever subtitle cues exist for the clip
+    // range, independent of the burn-in toggle: it is metadata for search,
+    // not a display choice.
+    const transcript = buildTranscript(clippedSubtitleCues);
     const metadataTags = await runtime.buildMetadataTags(
       metadata,
       startTime,
       endTime,
       outputHeight,
       format,
-      { signal, title },
+      { signal, title, transcript },
     );
 
     let audioOptions: ConversionOptions["audio"];

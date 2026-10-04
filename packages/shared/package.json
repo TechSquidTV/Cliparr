@@ -3,7 +3,8 @@
   "private": true,
   "type": "module",
   "imports": {
-    "#server-events": "./src/serverEvents.ts"
+    "#server-events": "./src/serverEvents.ts",
+    "#external-ids": "./src/externalIds.ts"
   },
   "scripts": {
     "lint": "pnpm lint:eslint && pnpm lint:types",
@@ -21,6 +22,10 @@
     "./providers": {
       "types": "./src/providers.ts",
       "default": "./src/providers.ts"
+    },
+    "./external-ids": {
+      "types": "./src/externalIds.ts",
+      "default": "./src/externalIds.ts"
     },
     "./asset-capture": {
       "types": "./src/assetCapture.ts",
