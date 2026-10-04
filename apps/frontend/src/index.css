@@ -1,6 +1,7 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "./components/ui/control-styles.css";
+@import "./components/ui/drawer.css";
 @import "./components/ui/select.css";
 
 @custom-variant dark (&:is(.dark *));
@@ -528,6 +529,7 @@
   }
 
   body {
+    position: relative;
     @apply bg-background text-foreground;
     letter-spacing: var(--tracking-normal);
   }

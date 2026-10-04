@@ -44,15 +44,17 @@ export function DashboardMobileMenu({
 
   return (
     <Drawer>
-      <DrawerTrigger asChild>
-        <button
-          type="button"
-          aria-label="Open dashboard menu"
-          className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-border bg-card text-muted-foreground transition-colors hover:bg-accent hover:text-foreground sm:hidden"
-        >
-          <Menu className="h-5 w-5" />
-        </button>
-      </DrawerTrigger>
+      <DrawerTrigger
+        render={
+          <button
+            type="button"
+            aria-label="Open dashboard menu"
+            className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-border bg-card text-muted-foreground transition-colors hover:bg-accent hover:text-foreground sm:hidden"
+          >
+            <Menu className="h-5 w-5" />
+          </button>
+        }
+      />
       <DrawerContent className="border-border bg-background/95 [--drawer-bottom-padding:1rem] sm:hidden">
         <DrawerTitle className="sr-only">Cliparr Menu</DrawerTitle>
         <DrawerDescription className="sr-only">
@@ -60,78 +62,92 @@ export function DashboardMobileMenu({
         </DrawerDescription>
         <div className="px-4 pt-5">
           <div className="overflow-hidden rounded-2xl border border-border bg-card">
-            <DrawerClose asChild>
-              <a
-                href={CLIPARR_WEBSITE_URL}
-                target="_blank"
-                rel="noreferrer"
-                className={menuItemClassName}
-              >
-                <span className="flex min-w-0 items-center gap-3">
-                  <span className={iconClassName}>
-                    <Globe className="h-4 w-4" />
+            <DrawerClose
+              nativeButton={false}
+              role="link"
+              render={
+                <a
+                  href={CLIPARR_WEBSITE_URL}
+                  target="_blank"
+                  rel="noreferrer"
+                  className={menuItemClassName}
+                >
+                  <span className="flex min-w-0 items-center gap-3">
+                    <span className={iconClassName}>
+                      <Globe className="h-4 w-4" />
+                    </span>
+                    <span className="truncate">Website</span>
                   </span>
-                  <span className="truncate">Website</span>
-                </span>
-                <ExternalLink className="h-4 w-4 shrink-0 text-muted-foreground" />
-              </a>
-            </DrawerClose>
+                  <ExternalLink className="h-4 w-4 shrink-0 text-muted-foreground" />
+                </a>
+              }
+            />
             <div className="mx-4 h-px bg-border" />
-            <DrawerClose asChild>
-              <a
-                href={CLIPARR_GITHUB_URL}
-                target="_blank"
-                rel="noreferrer"
-                className={menuItemClassName}
-              >
-                <span className="flex min-w-0 items-center gap-3">
-                  <span className={iconClassName}>
-                    <GithubIcon className="h-4 w-4" />
+            <DrawerClose
+              nativeButton={false}
+              role="link"
+              render={
+                <a
+                  href={CLIPARR_GITHUB_URL}
+                  target="_blank"
+                  rel="noreferrer"
+                  className={menuItemClassName}
+                >
+                  <span className="flex min-w-0 items-center gap-3">
+                    <span className={iconClassName}>
+                      <GithubIcon className="h-4 w-4" />
+                    </span>
+                    <span className="truncate">GitHub</span>
                   </span>
-                  <span className="truncate">GitHub</span>
-                </span>
-                <ExternalLink className="h-4 w-4 shrink-0 text-muted-foreground" />
-              </a>
-            </DrawerClose>
+                  <ExternalLink className="h-4 w-4 shrink-0 text-muted-foreground" />
+                </a>
+              }
+            />
           </div>
 
           <div className="mt-3 overflow-hidden rounded-2xl border border-border bg-card">
-            <DrawerClose asChild>
-              <button
-                type="button"
-                onClick={() => void onDisconnect()}
-                className={menuItemClassName}
-              >
-                <span className="flex min-w-0 items-center gap-3">
-                  <span className={iconClassName}>
-                    <LogOut className="h-4 w-4" />
+            <DrawerClose
+              render={
+                <button
+                  type="button"
+                  onClick={() => void onDisconnect()}
+                  className={menuItemClassName}
+                >
+                  <span className="flex min-w-0 items-center gap-3">
+                    <span className={iconClassName}>
+                      <LogOut className="h-4 w-4" />
+                    </span>
+                    <span className="truncate">Disconnect</span>
                   </span>
-                  <span className="truncate">Disconnect</span>
-                </span>
-              </button>
-            </DrawerClose>
+                </button>
+              }
+            />
           </div>
 
           {appVersion && (
             <DrawerFooter className="border-t-0 px-4 pt-4 pb-0 text-center text-xs text-muted-foreground">
               {latestRelease ? (
-                <DrawerClose asChild>
-                  <a
-                    href={latestRelease.url}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="control-focus inline-flex min-h-11 flex-col items-center justify-center gap-1 rounded-lg border border-primary/35 bg-primary/10 px-3 py-2 text-primary transition-colors hover:bg-primary/15"
-                    data-dashboard-mobile-update-available
-                  >
-                    <span className="font-mono text-muted-foreground">
-                      Cliparr {appVersion}
-                    </span>
-                    <span className="inline-flex items-center gap-1 font-semibold">
-                      {latestRelease.tagName} available
-                      <ExternalLink className="h-3.5 w-3.5" />
-                    </span>
-                  </a>
-                </DrawerClose>
+                <DrawerClose
+                  nativeButton={false}
+                  role="link"
+                  render={
+                    <a
+                      href={latestRelease.url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="control-focus inline-flex min-h-11 flex-col items-center justify-center gap-1 rounded-lg border border-primary/35 bg-primary/10 px-3 py-2 text-primary transition-colors hover:bg-primary/15"
+                      data-dashboard-mobile-update-available
+                    >
+                      <span className="font-mono text-muted-foreground">
+                        Cliparr {appVersion}
+                      </span>
+                      <span className="inline-flex items-center gap-1 font-semibold">
+                        {latestRelease.tagName} available
+                        <ExternalLink className="h-3.5 w-3.5" />
+                      </span>
+                    </a>
+                  }
+                />
               ) : (
                 <span className="font-mono">Cliparr {appVersion}</span>
               )}

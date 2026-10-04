@@ -1,0 +1,35 @@
+/* Base UI updates these variables while dragging; transitions finish dismissal. */
+.drawer-popup {
+  transform: translateY(var(--drawer-swipe-movement-y, 0px));
+  transition: transform 300ms ease-out;
+}
+
+.drawer-popup[data-starting-style],
+.drawer-popup[data-ending-style] {
+  transform: translateY(100%);
+}
+
+.drawer-popup[data-swiping] {
+  transition: none;
+}
+
+.drawer-overlay {
+  opacity: calc(1 - var(--drawer-swipe-progress, 0));
+  transition: opacity 300ms ease-out;
+}
+
+.drawer-overlay[data-starting-style],
+.drawer-overlay[data-ending-style] {
+  opacity: 0;
+}
+
+.drawer-overlay:has(+ [data-slot="drawer-viewport"] [data-swiping]) {
+  transition: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .drawer-popup,
+  .drawer-overlay {
+    transition: none;
+  }
+}

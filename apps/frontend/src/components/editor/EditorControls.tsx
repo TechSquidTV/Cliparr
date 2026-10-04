@@ -385,15 +385,17 @@ export function EditorControls({
             {previewTimeControl}
           </div>
           <Drawer>
-            <DrawerTrigger asChild>
-              <button
-                type="button"
-                aria-label="More clip controls"
-                className={editorIconButtonClassName({ size: "lg" })}
-              >
-                <SlidersHorizontal className="h-4 w-4" />
-              </button>
-            </DrawerTrigger>
+            <DrawerTrigger
+              render={
+                <button
+                  type="button"
+                  aria-label="More clip controls"
+                  className={editorIconButtonClassName({ size: "lg" })}
+                >
+                  <SlidersHorizontal className="h-4 w-4" />
+                </button>
+              }
+            />
             <DrawerContent className="border-editor-border bg-editor-panel text-sidebar-foreground">
               <DrawerHeader className="border-b border-editor-border px-3 text-left">
                 <DrawerTitle>Clip Controls</DrawerTitle>

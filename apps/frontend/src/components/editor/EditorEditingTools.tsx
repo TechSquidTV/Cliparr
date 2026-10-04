@@ -152,17 +152,22 @@ export function EditorEditingTools({
       </span>
       {mobile ? (
         <Drawer open={menuOpen} onOpenChange={setMenuOpen}>
-          <DrawerTrigger asChild>
-            <button
-              ref={menuTriggerReference}
-              type="button"
-              aria-label="More editor options"
-              className={`${historyButtonClassName} ml-auto`}
-            >
-              <MoreHorizontal className="h-4 w-4" />
-            </button>
-          </DrawerTrigger>
-          <DrawerContent className="border-editor-border bg-editor-panel">
+          <DrawerTrigger
+            render={
+              <button
+                ref={menuTriggerReference}
+                type="button"
+                aria-label="More editor options"
+                className={`${historyButtonClassName} ml-auto`}
+              >
+                <MoreHorizontal className="h-4 w-4" />
+              </button>
+            }
+          />
+          <DrawerContent
+            className="border-editor-border bg-editor-panel"
+            finalFocus={() => !resetOpen && !helpOpen}
+          >
             <DrawerHeader>
               <DrawerTitle>Editor options</DrawerTitle>
               <DrawerDescription>
@@ -183,14 +188,8 @@ export function EditorEditingTools({
         <Drawer open={resetOpen} onOpenChange={setResetOpen}>
           <DrawerContent
             className="border-editor-border bg-editor-panel"
-            onOpenAutoFocus={(event) => {
-              event.preventDefault();
-              cancelResetReference.current?.focus();
-            }}
-            onCloseAutoFocus={(event) => {
-              event.preventDefault();
-              menuTriggerReference.current?.focus();
-            }}
+            initialFocus={cancelResetReference}
+            finalFocus={menuTriggerReference}
           >
             <DrawerHeader>
               <DrawerTitle>Reset draft?</DrawerTitle>
@@ -217,6 +216,7 @@ export function EditorEditingTools({
         title="Editor shortcuts"
         description="Use these keys while the editor is focused. Text fields keep their own editing shortcuts."
         closeLabel="Close shortcut help"
+        finalFocus={mobile ? menuTriggerReference : undefined}
       >
         <dl className="space-y-3 overflow-y-auto p-4">
           {shortcuts.map(([action, keys]) => (
