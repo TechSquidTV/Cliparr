@@ -405,6 +405,9 @@ importers:
       lucide-react:
         specifier: ^1.50.0
         version: 1.50.0(@types/react@19.3.0)(react@19.3.0)
+      media-captions:
+        specifier: 0.0.18
+        version: 0.0.18
       mediabunny:
         specifier: 1.61.0
         version: 1.61.0
@@ -5011,6 +5014,10 @@ packages:
 
   mdn-data@2.35.0:
     resolution: {integrity: sha512-k+1+dEIm2z/BEfdvYzT/fIyAGeDBo/1AJNJI4ilFXJRYoxP/3Ds+GP8shAOIq8jYXY9N5nGB3Ag104NsagmLAA==}
+
+  media-captions@0.0.18:
+    resolution: {integrity: sha512-JW18P6FuHdyLSGwC4TQ0kF3WdNj/+wMw2cKOb8BnmY6vSJGtnwJ+vkYj+IjHOV34j3XMc70HDeB/QYKR7E7fuQ==}
+    engines: {node: '>=16'}
 
   media-typer@1.1.0:
     resolution: {integrity: sha512-aisnrDP4GNe06UcKFnV5bfMNPBUw4jsLGaWwWfnH3v02GnBuXX2MCVn5RbrWo0j3pczUilYblq7fQ7Nw2t5XKw==}
@@ -10478,6 +10485,8 @@ snapshots:
   mdn-data@2.27.1: {}
 
   mdn-data@2.35.0: {}
+
+  media-captions@0.0.18: {}
 
   media-typer@1.1.0: {}
 

@@ -1,0 +1,786 @@
+---
+import type { ImageMetadata } from "astro";
+import { Image } from "astro:assets";
+import { parseAudioTranscript } from "@/lib/audioTranscript";
+import { audioWaveformPath, waveformBarCount } from "@/lib/audioWaveform";
+import { formatDuration } from "@/lib/formatDuration";
+
+interface Props {
+  /** Prefer a same-origin MP3 excerpt. Remote audio needs CORS for waveform analysis. */
+  src: string;
+  title: string;
+  poster?: { src: ImageMetadata; alt: string };
+  eyebrow?: string;
+  subtitle?: string;
+  source?: { label: string; url?: string };
+  /** Optional display hint until the file's actual duration is available. */
+  duration?: number;
+  /** Normalized amplitudes (0–1) for an immediate waveform without client decoding. */
+  waveform?: readonly number[];
+  /** SRT or WebVTT content, imported with ?raw, rendered as a readable transcript. */
+  transcript?: string;
+}
+
+const {
+  src,
+  title,
+  poster,
+  eyebrow,
+  subtitle,
+  source,
+  duration,
+  waveform,
+  transcript,
+} = Astro.props;
+const transcriptCues = transcript ? await parseAudioTranscript(transcript) : [];
+const hasWaveform = Boolean(waveform?.length);
+const initialWaveform = audioWaveformPath(
+  waveform?.length
+    ? waveform
+    : Array.from({ length: waveformBarCount }, () => 0),
+);
+---
+
+<figure
+  class="audio-player my-6 overflow-hidden rounded-lg border border-border bg-card text-card-foreground"
+  data-audio-player
+  data-has-poster={poster ? "true" : undefined}
+  data-waveform-ready={hasWaveform ? "true" : undefined}
+>
+  <figcaption class="audio-caption">
+    {eyebrow && <span class="audio-eyebrow">{eyebrow}</span>}
+    <span class="audio-title">{title}</span>
+    {subtitle && <span class="audio-subtitle">{subtitle}</span>}
+  </figcaption>
+  {poster && (
+    <Image
+      src={poster.src}
+      alt={poster.alt}
+      width={232}
+      widths={[80, 116, 160, 232]}
+      sizes="(min-width: 40rem) 116px, 80px"
+      format="webp"
+      loading="lazy"
+      decoding="async"
+      class="audio-poster"
+    />
+  )}
+
+  <audio src={src} controls preload="metadata" aria-label={title}></audio>
+
+  <div class="audio-controls" hidden>
+    <button
+      class="audio-toggle focus-ring"
+      type="button"
+      aria-label={`Play ${title}`}
+      data-title={title}
+    >
+      <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+        <path class="audio-play" d="M8 5.5v13l10-6.5z"></path>
+        <path class="audio-pause" d="M6 5h4v14H6zM14 5h4v14h-4z"></path>
+      </svg>
+    </button>
+
+    <div class="audio-timeline">
+      <div class="audio-waveform">
+        <svg viewBox="0 0 576 64" preserveAspectRatio="none" aria-hidden="true">
+          <path d={initialWaveform} class="audio-waveform-base"></path>
+          <path d={initialWaveform} class="audio-waveform-progress"></path>
+        </svg>
+        <span class="audio-playhead" aria-hidden="true"></span>
+        <input
+          type="range"
+          min="0"
+          max="100"
+          step="0.1"
+          value="0"
+          disabled
+          aria-label={`Seek ${title}`}
+          aria-valuetext="0:00"
+        />
+      </div>
+    </div>
+  </div>
+
+  <div class="audio-footer">
+    <div class="audio-time" aria-hidden="true">
+      <span data-elapsed>0:00</span>
+      <span>/</span>
+      <span data-duration>{duration ? formatDuration(duration) : "—:—"}</span>
+    </div>
+    {source &&
+      (source.url ? (
+        <a class="audio-source focus-ring" href={source.url}>
+          {source.label}
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M7 17 17 7M7 7h10v10" />
+          </svg>
+        </a>
+      ) : (
+        <span class="audio-source">{source.label}</span>
+      ))}
+  </div>
+  <span class="audio-status" role="status">
+    {hasWaveform ? "" : "Waveform loads on play"}
+  </span>
+  {transcriptCues.length > 0 && (
+    <details class="audio-transcript">
+      <summary class="focus-ring">
+        <svg
+          class="audio-transcript-icon"
+          viewBox="0 0 24 24"
+          fill="none"
+          aria-hidden="true"
+        >
+          <path d="M8 5h8M8 9h8M8 13h5M8 17h8M5 3h14v18H5z" />
+        </svg>
+        <span>Read transcript</span>
+        <svg
+          class="audio-transcript-chevron"
+          viewBox="0 0 24 24"
+          fill="none"
+          aria-hidden="true"
+        >
+          <path d="m6 9 6 6 6-6" />
+        </svg>
+      </summary>
+      <div class="audio-transcript-panel">
+        <label class="audio-transcript-follow" hidden data-markdown-exclude>
+          <input type="checkbox" checked />
+          Follow playback
+        </label>
+        <ol class="audio-transcript-list" aria-label={`Transcript of ${title}`}>
+          {transcriptCues.map((cue) => (
+            <li data-cue-start={cue.startTime} data-cue-end={cue.endTime}>
+              <button
+                type="button"
+                class="audio-transcript-seek focus-ring"
+                aria-label={`Seek to ${formatDuration(cue.startTime)}`}
+                disabled
+              >
+                {formatDuration(cue.startTime)}
+              </button>
+              <p>{cue.text}</p>
+            </li>
+          ))}
+        </ol>
+      </div>
+    </details>
+  )}
+</figure>
+
+<script>
+  import { audioWaveformPath, audioWaveformPeaks } from "@/lib/audioWaveform";
+  import { formatDuration } from "@/lib/formatDuration";
+
+  function initializeAudioPlayers() {
+    for (const player of document.querySelectorAll<HTMLElement>(
+      "[data-audio-player]",
+    )) {
+      if (player.dataset.initialized) {
+        continue;
+      }
+
+      const audio = player.querySelector("audio");
+      const toggle = player.querySelector<HTMLButtonElement>(".audio-toggle");
+      const seek = player.querySelector<HTMLInputElement>("input[type=range]");
+      const controls = player.querySelector<HTMLElement>(".audio-controls");
+      const elapsed = player.querySelector("[data-elapsed]");
+      const duration = player.querySelector("[data-duration]");
+      const status = player.querySelector(".audio-status");
+      if (
+        !audio ||
+        !toggle ||
+        !seek ||
+        !controls ||
+        !elapsed ||
+        !duration ||
+        !status
+      ) {
+        continue;
+      }
+
+      player.dataset.initialized = "true";
+      audio.controls = false;
+      audio.hidden = true;
+      controls.hidden = false;
+      let waveformRequested = player.dataset.waveformReady === "true";
+      let animationFrame = 0;
+      const title = toggle.dataset.title ?? "audio";
+      const transcript =
+        player.querySelector<HTMLDetailsElement>(".audio-transcript");
+      const transcriptList = player.querySelector<HTMLElement>(
+        ".audio-transcript-list",
+      );
+      const followLabel = player.querySelector<HTMLElement>(
+        ".audio-transcript-follow",
+      );
+      const follow = followLabel?.querySelector("input");
+      if (followLabel) {
+        followLabel.hidden = false;
+      }
+      let previousActiveRow: HTMLElement | undefined;
+      const transcriptRows = Array.from(
+        player.querySelectorAll<HTMLElement>("[data-cue-start]"),
+        (row) => ({
+          row,
+          start: Number(row.dataset.cueStart),
+          end: Number(row.dataset.cueEnd),
+          button: row.querySelector("button"),
+        }),
+      );
+      const updateTranscript = () => {
+        let activeRow: HTMLElement | undefined;
+        for (const { row, start, end, button } of transcriptRows) {
+          const active = audio.currentTime >= start && audio.currentTime < end;
+          if (active) {
+            row.setAttribute("aria-current", "true");
+            activeRow ??= row;
+          } else {
+            row.removeAttribute("aria-current");
+          }
+          if (button) {
+            button.disabled =
+              !Number.isFinite(audio.duration) ||
+              start >= audio.duration ||
+              Boolean(audio.error);
+          }
+        }
+        if (
+          activeRow &&
+          activeRow !== previousActiveRow &&
+          transcript?.open &&
+          transcriptList &&
+          follow?.checked
+        ) {
+          const rowBounds = activeRow.getBoundingClientRect();
+          const listBounds = transcriptList.getBoundingClientRect();
+          if (
+            rowBounds.top < listBounds.top ||
+            rowBounds.bottom > listBounds.bottom
+          ) {
+            // Move only the transcript pane; keep the page and keyboard focus in place.
+            transcriptList.scrollTop +=
+              rowBounds.top - listBounds.top - listBounds.height / 3;
+          }
+        }
+        previousActiveRow = activeRow;
+      };
+      const refreshTranscript = () => {
+        previousActiveRow = undefined;
+        updateTranscript();
+      };
+      transcript?.addEventListener("toggle", refreshTranscript);
+      const transcriptSummary = transcript?.querySelector("summary");
+      const transcriptPanel = transcript?.querySelector<HTMLElement>(
+        ".audio-transcript-panel",
+      );
+      if (transcript && transcriptSummary && transcriptPanel) {
+        let expanded = transcript.open;
+        let disclosureAnimation: Animation | undefined;
+        transcriptSummary.addEventListener("click", (event) => {
+          event.preventDefault();
+          expanded = !expanded;
+          const height = transcript.open
+            ? transcriptPanel.getBoundingClientRect().height
+            : 0;
+          const opacity = transcript.open
+            ? getComputedStyle(transcriptPanel).opacity
+            : "0";
+          disclosureAnimation?.cancel();
+          transcript.dataset.expanded = String(expanded);
+          transcriptPanel.inert = !expanded;
+          if (matchMedia("(prefers-reduced-motion: reduce)").matches) {
+            transcript.open = expanded;
+            return;
+          }
+          // Keep native disclosure semantics, including keyboard activation, while closing.
+          transcript.open = true;
+          disclosureAnimation = transcriptPanel.animate(
+            [
+              { height: `${height}px`, opacity },
+              {
+                height: `${expanded ? transcriptPanel.scrollHeight : 0}px`,
+                opacity: expanded ? "1" : "0",
+              },
+            ],
+            {
+              duration: 240,
+              easing: "cubic-bezier(0.2, 0, 0, 1)",
+              fill: "both",
+            },
+          );
+          disclosureAnimation.onfinish = () => {
+            transcript.open = expanded;
+            disclosureAnimation?.cancel();
+            disclosureAnimation = undefined;
+            if (expanded) {
+              refreshTranscript();
+            }
+          };
+        });
+      }
+      follow?.addEventListener("change", refreshTranscript);
+      for (const { start, button } of transcriptRows) {
+        button?.addEventListener("click", () => {
+          audio.currentTime = start;
+          updateProgress();
+          updateTranscript();
+        });
+      }
+
+      const updateProgress = () => {
+        const seconds = audio.currentTime;
+        const total = audio.duration;
+        const hasDuration = Number.isFinite(total) && total > 0;
+        const progress = hasDuration
+          ? Math.min(100, (seconds / total) * 100)
+          : 0;
+        seek.disabled = !hasDuration || Boolean(audio.error);
+        seek.value = String(progress);
+        seek.setAttribute(
+          "aria-valuetext",
+          `${formatDuration(seconds)} of ${hasDuration ? formatDuration(total) : "unknown duration"}`,
+        );
+        player.style.setProperty("--audio-progress", `${progress}%`);
+        elapsed.textContent = formatDuration(seconds);
+        if (hasDuration) {
+          duration.textContent = formatDuration(total);
+        }
+      };
+
+      const animateProgress = () => {
+        updateProgress();
+        if (!audio.paused && player.isConnected) {
+          animationFrame = requestAnimationFrame(animateProgress);
+        }
+      };
+
+      const loadWaveform = async () => {
+        if (waveformRequested) {
+          return;
+        }
+        waveformRequested = true;
+        status.textContent = "Loading waveform…";
+        try {
+          const response = await fetch(audio.currentSrc || audio.src, {
+            signal: AbortSignal.timeout(30_000),
+          });
+          if (!response.ok) {
+            throw new Error("Audio unavailable for analysis.");
+          }
+          // Offline decoding does not create an active audio output or interrupt playback.
+          const context = new OfflineAudioContext(1, 1, 44_100);
+          const buffer = await context.decodeAudioData(
+            await response.arrayBuffer(),
+          );
+          const channels = Array.from(
+            { length: buffer.numberOfChannels },
+            (_, channel) => buffer.getChannelData(channel),
+          );
+          const path = audioWaveformPath(audioWaveformPeaks(channels));
+          for (const waveform of player.querySelectorAll(
+            ".audio-waveform path",
+          )) {
+            waveform.setAttribute("d", path);
+          }
+          status.textContent = "";
+        } catch {
+          status.textContent = "Waveform unavailable";
+        }
+      };
+
+      toggle.addEventListener("click", () => {
+        if (audio.paused) {
+          if (audio.ended) {
+            audio.currentTime = 0;
+          }
+          void audio
+            .play()
+            .then(() => {
+              void loadWaveform();
+            })
+            .catch(() => {
+              status.textContent = "Could not play audio. Try again.";
+            });
+        } else {
+          audio.pause();
+        }
+      });
+      seek.addEventListener("input", () => {
+        if (Number.isFinite(audio.duration) && audio.duration > 0) {
+          audio.currentTime = (Number(seek.value) / 100) * audio.duration;
+          updateProgress();
+        }
+      });
+      audio.addEventListener("play", () => {
+        player.dataset.playing = "true";
+        toggle.setAttribute("aria-label", `Pause ${title}`);
+        cancelAnimationFrame(animationFrame);
+        animateProgress();
+      });
+      const stopProgress = () => {
+        delete player.dataset.playing;
+        toggle.setAttribute("aria-label", `Play ${title}`);
+        cancelAnimationFrame(animationFrame);
+        updateProgress();
+      };
+      audio.addEventListener("pause", stopProgress);
+      audio.addEventListener("ended", stopProgress);
+      for (const event of [
+        "loadedmetadata",
+        "durationchange",
+        "timeupdate",
+        "seeked",
+      ]) {
+        audio.addEventListener(event, updateProgress);
+      }
+      audio.addEventListener("error", () => {
+        stopProgress();
+        updateTranscript();
+        status.textContent =
+          "Audio unavailable. Check the source or try again later.";
+      });
+      document.addEventListener(
+        "astro:before-swap",
+        () => {
+          audio.pause();
+          cancelAnimationFrame(animationFrame);
+        },
+        { once: true },
+      );
+      updateProgress();
+      for (const event of [
+        "loadedmetadata",
+        "durationchange",
+        "timeupdate",
+        "seeked",
+      ]) {
+        audio.addEventListener(event, updateTranscript);
+      }
+      updateTranscript();
+    }
+  }
+
+  initializeAudioPlayers();
+  document.addEventListener("astro:page-load", initializeAudioPlayers);
+</script>
+
+<style>
+  .audio-player {
+    --audio-progress: 0%;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.5rem 1rem;
+    padding: 1rem;
+  }
+  .audio-player[data-has-poster] {
+    grid-template-columns: 7.25rem minmax(0, 1fr);
+  }
+  .audio-poster {
+    grid-column: 1;
+    grid-row: 1 / span 3;
+    align-self: center;
+    width: 7.25rem;
+    height: 7.25rem;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--muted);
+    object-fit: contain;
+  }
+  .audio-caption {
+    grid-column: -2 / -1;
+    grid-row: 1;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    gap: 0.125rem;
+    line-height: 1.4;
+    overflow-wrap: anywhere;
+  }
+  .audio-eyebrow {
+    color: var(--muted-foreground);
+    font-size: 0.875rem;
+  }
+  .audio-title {
+    color: var(--foreground);
+    font-size: 1.125rem;
+    font-weight: 600;
+    line-height: 1.4;
+  }
+  .audio-subtitle {
+    color: var(--muted-foreground);
+    font-size: 0.75rem;
+  }
+  audio {
+    grid-column: -2 / -1;
+    grid-row: 2;
+    width: 100%;
+    min-width: 0;
+  }
+  .audio-controls {
+    grid-column: -2 / -1;
+    grid-row: 2;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    min-width: 0;
+  }
+  [hidden] {
+    display: none;
+  }
+  .audio-toggle {
+    display: grid;
+    place-items: center;
+    flex: 0 0 2.75rem;
+    height: 2.75rem;
+    border-radius: 50%;
+    border: 1px solid transparent;
+    background: var(--primary);
+    color: var(--primary-foreground);
+    cursor: pointer;
+    transition: filter 150ms;
+  }
+  .audio-toggle:hover {
+    filter: brightness(1.08);
+  }
+  .audio-toggle svg {
+    width: 1.5rem;
+    height: 1.5rem;
+  }
+  .audio-pause,
+  [data-playing] .audio-play {
+    display: none;
+  }
+  [data-playing] .audio-pause {
+    display: block;
+  }
+  .audio-timeline {
+    min-width: 0;
+    flex: 1;
+  }
+  .audio-waveform {
+    position: relative;
+    height: 2.75rem;
+    border-radius: 0.25rem;
+  }
+  .audio-waveform:focus-within {
+    outline: 2px solid var(--ring);
+    outline-offset: 4px;
+  }
+  .audio-waveform svg {
+    display: block;
+    width: 100%;
+    height: 100%;
+  }
+  .audio-waveform path {
+    fill: none;
+    stroke-width: 3;
+    stroke-linecap: round;
+  }
+  .audio-waveform-base {
+    stroke: var(--muted-foreground);
+    opacity: 0.35;
+  }
+  .audio-waveform-progress {
+    stroke: var(--primary);
+    clip-path: inset(0 calc(100% - var(--audio-progress)) 0 0);
+  }
+  .audio-playhead {
+    position: absolute;
+    left: clamp(0px, var(--audio-progress), calc(100% - 2px));
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background: var(--primary);
+    pointer-events: none;
+  }
+  .audio-waveform input {
+    position: absolute;
+    inset: 0;
+    margin: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0;
+    cursor: pointer;
+  }
+  .audio-waveform input:disabled {
+    cursor: default;
+  }
+  .audio-time {
+    display: flex;
+    gap: 0.25rem;
+    color: var(--muted-foreground);
+    font-size: 0.75rem;
+    font-variant-numeric: tabular-nums;
+    line-height: 1.5;
+  }
+  .audio-footer {
+    grid-column: -2 / -1;
+    grid-row: 3;
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.25rem 0.75rem;
+    margin-left: 3.5rem;
+    font-size: 0.75rem;
+    line-height: 1.5;
+  }
+  .audio-status {
+    grid-column: -2 / -1;
+    color: var(--muted-foreground);
+    font-size: 0.75rem;
+    line-height: 1.5;
+  }
+  .audio-status:empty {
+    display: none;
+  }
+  .audio-source {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    min-height: 1.5rem;
+    border-radius: 0.125rem;
+  }
+  .audio-source svg {
+    flex: 0 0 1rem;
+    height: 1rem;
+    stroke: currentColor;
+    stroke-width: 1.5;
+  }
+  .audio-transcript {
+    grid-column: 1 / -1;
+    margin-top: 0.5rem;
+    border-top: 1px solid var(--border);
+    padding-top: 0.375rem;
+    font-size: 0.875rem;
+    line-height: 1.6;
+  }
+  .audio-transcript summary {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    min-height: 2.75rem;
+    padding: 0.5rem;
+    margin: 0 -0.5rem;
+    list-style: none;
+    cursor: pointer;
+    border-radius: 0.375rem;
+    color: var(--muted-foreground);
+    transition:
+      color 150ms,
+      background-color 150ms;
+  }
+  .audio-transcript summary::-webkit-details-marker {
+    display: none;
+  }
+  .audio-transcript summary:hover {
+    color: var(--foreground);
+    background: var(--muted);
+  }
+  .audio-transcript summary svg {
+    flex: 0 0 1.125rem;
+    height: 1.125rem;
+    stroke: currentColor;
+    stroke-width: 1.5;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+  .audio-transcript-chevron {
+    margin-left: auto;
+    transition: transform 240ms cubic-bezier(0.2, 0, 0, 1);
+  }
+  .audio-transcript[open]:not([data-expanded="false"])
+    .audio-transcript-chevron {
+    transform: rotate(180deg);
+  }
+  .audio-transcript-panel {
+    overflow: hidden;
+  }
+  .audio-transcript-list {
+    list-style: none;
+    padding: 0;
+    margin: 0.75rem 0 0;
+    max-height: 20rem;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-gutter: stable;
+  }
+  .audio-transcript-follow {
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.375rem;
+    margin-top: 0.5rem;
+    color: var(--muted-foreground);
+    font-size: 0.75rem;
+    cursor: pointer;
+  }
+  .audio-transcript-follow:not([hidden]) {
+    display: flex;
+  }
+  .audio-transcript-follow input {
+    accent-color: var(--primary);
+  }
+  .audio-transcript-list li {
+    display: grid;
+    grid-template-columns: 3rem minmax(0, 1fr);
+    align-items: baseline;
+    gap: 0.75rem;
+    margin: 0;
+    padding: 0.5rem;
+    border-left: 2px solid transparent;
+    border-radius: 0.25rem;
+  }
+  .audio-transcript-list li[aria-current] {
+    border-left-color: var(--primary);
+    background: color-mix(in srgb, var(--primary) 8%, var(--card));
+  }
+  .audio-transcript-list p {
+    margin: 0;
+    white-space: pre-line;
+    overflow-wrap: anywhere;
+  }
+  .audio-transcript-seek {
+    border: 0;
+    padding: 0;
+    background: transparent;
+    color: var(--muted-foreground);
+    font: inherit;
+    font-size: 0.75rem;
+    font-variant-numeric: tabular-nums;
+    cursor: pointer;
+    text-align: left;
+    border-radius: 0.125rem;
+  }
+  .audio-transcript-seek:hover:enabled,
+  [aria-current] .audio-transcript-seek {
+    color: var(--primary);
+  }
+  .audio-transcript-seek:disabled {
+    cursor: default;
+  }
+  @media (max-width: 39.999rem) {
+    .audio-player[data-has-poster] {
+      grid-template-columns: 5rem minmax(0, 1fr);
+    }
+    .audio-poster {
+      grid-row: 1;
+      width: 5rem;
+      height: 5rem;
+    }
+    audio,
+    .audio-controls,
+    .audio-footer,
+    .audio-status {
+      grid-column: 1 / -1;
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .audio-toggle,
+    .audio-transcript summary,
+    .audio-transcript-chevron {
+      transition: none;
+    }
+  }
+</style>
