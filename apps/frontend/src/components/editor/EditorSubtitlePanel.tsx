@@ -1,8 +1,8 @@
+import { Spinner } from "@/components/ui/spinner";
 import { useEffect, useRef, type RefObject } from "react";
 import {
   ChevronLeft,
   ChevronRight,
-  LoaderCircle,
   LocateFixed,
   MoreHorizontal,
   Plus,
@@ -239,7 +239,7 @@ export function EditorSubtitlePanel({
         </div>
         {subtitleLoading && (
           <div role="status" className="flex items-center gap-2 text-xs">
-            <LoaderCircle className="h-3.5 w-3.5 animate-spin" />
+            <Spinner className="h-3.5 w-3.5" />
             Importing subtitles…
             <button
               type="button"
@@ -445,7 +445,7 @@ export function EditorSubtitlePanel({
                     )}
                     {loadingLocalFonts && (
                       <div className="flex items-center gap-2 px-2 py-1.5 text-xs text-muted-foreground">
-                        <LoaderCircle className="h-3.5 w-3.5 animate-spin" />
+                        <Spinner className="h-3.5 w-3.5" />
                         Loading installed fonts...
                       </div>
                     )}

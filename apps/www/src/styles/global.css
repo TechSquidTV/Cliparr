@@ -5,6 +5,7 @@
 @source "../../../frontend/src/components/ui/control-styles.ts";
 @source "../../../frontend/src/components/ui/select.tsx";
 @source "../../../frontend/src/components/ui/switch.tsx";
+@source "../../../frontend/src/components/ui/spinner.tsx";
 @source "../../../frontend/src/components/ui/tooltip.tsx";
 
 @font-face {

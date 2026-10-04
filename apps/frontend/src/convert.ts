@@ -73,6 +73,7 @@ export {
 } from "./components/editor/EditorExportDialogSections";
 export type { ExportSourcePreference } from "./components/editor/EditorExportDialog";
 export { TooltipProvider } from "./components/ui/tooltip";
+export { Spinner } from "./components/ui/spinner";
 export {
   compactPrimaryButtonClasses,
   destructiveAlertClasses,

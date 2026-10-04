@@ -9,6 +9,7 @@ import {
   EditorExportSettingsSection,
   EditorExportSummaryPanel,
   TooltipProvider,
+  Spinner,
   compactPrimaryButtonClasses,
   estimateExportOutputSize,
   exportFormatDurationDisabledReason,
@@ -357,7 +358,7 @@ export function ConvertTool() {
     case "loading": {
       sourceProbeContent = (
         <div className="flex items-center gap-3 text-sm text-muted-foreground">
-          <div className="h-4 w-4 animate-spin rounded-full border-2 border-muted-foreground/30 border-t-muted-foreground" />
+          <Spinner />
           Inspecting media
         </div>
       );
@@ -881,7 +882,7 @@ export function ConvertTool() {
               >
                 {exporting ? (
                   <>
-                    <div className="h-4 w-4 shrink-0 animate-spin rounded-full border-2 border-primary-foreground/30 border-t-primary-foreground" />
+                    <Spinner />
                     <span>Converting</span>
                     <span className="inline-block w-[4ch] text-right font-mono tabular-nums">
                       {Math.round(progress * 100)}%

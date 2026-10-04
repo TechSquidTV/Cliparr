@@ -1,4 +1,5 @@
-import { Copy, Download, LoaderCircle } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
+import { Copy, Download } from "lucide-react";
 import type {
   FramegrabImageFormat,
   FramegrabImageQuality,
@@ -193,7 +194,7 @@ export function EditorFramegrabDialog({
           className={compactSecondaryButtonClasses}
         >
           {processingAction === "copy" ? (
-            <LoaderCircle className="h-4 w-4 animate-spin" />
+            <Spinner />
           ) : (
             <Copy className="h-4 w-4" />
           )}
@@ -207,7 +208,7 @@ export function EditorFramegrabDialog({
           className={`${compactPrimaryButtonClasses} w-44`}
         >
           {processingAction === "download" ? (
-            <LoaderCircle className="h-4 w-4 animate-spin" />
+            <Spinner />
           ) : (
             <Download className="h-4 w-4" />
           )}

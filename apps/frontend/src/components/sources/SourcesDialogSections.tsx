@@ -1,3 +1,4 @@
+import { Spinner } from "@/components/ui/spinner";
 import { EmptyState } from "@/components/ui/empty-state";
 import type { KeyboardEvent, RefObject } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
@@ -257,12 +258,11 @@ export function SourcesDialogHeader({
               disabled={loading || reloading || refreshingAll}
               className={sourceSecondaryButtonClasses}
             >
-              <RefreshCw
-                className={cn(
-                  "h-4 w-4",
-                  (reloading || loading) && "animate-spin",
-                )}
-              />
+              {reloading || loading ? (
+                <Spinner />
+              ) : (
+                <RefreshCw className="h-4 w-4" />
+              )}
               Reload
             </button>
           </ControlTooltip>
@@ -279,9 +279,7 @@ export function SourcesDialogHeader({
               }
               className={sourcePrimaryButtonClasses}
             >
-              <RefreshCw
-                className={cn("h-4 w-4", refreshingAll && "animate-spin")}
-              />
+              {refreshingAll ? <Spinner /> : <RefreshCw className="h-4 w-4" />}
               Refresh All
             </button>
           </ControlTooltip>
@@ -628,7 +626,7 @@ export function SourceCard({
                 exit={SOURCE_STATE_EXIT}
                 transition={stateTransition}
               >
-                <RefreshCw className="h-3.5 w-3.5 animate-spin" />
+                <Spinner className="h-3.5 w-3.5" />
                 {busyAction}
               </motion.span>
             )}
@@ -742,12 +740,11 @@ export function SourceCard({
             disabled={isBusy}
             className={sourceSecondaryButtonClasses}
           >
-            <RefreshCw
-              className={cn(
-                "h-4 w-4",
-                busyAction === "Refreshing..." && "animate-spin",
-              )}
-            />
+            {busyAction === "Refreshing..." ? (
+              <Spinner />
+            ) : (
+              <RefreshCw className="h-4 w-4" />
+            )}
             Refresh
           </button>
         </ControlTooltip>

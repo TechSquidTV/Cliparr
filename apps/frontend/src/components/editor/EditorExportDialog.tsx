@@ -1,3 +1,4 @@
+import { Spinner } from "@/components/ui/spinner";
 import type { audioBitDepthSummary, ExportAudioPlan } from "#/lib/exportAudio";
 import type { ExportMode, ExportOutputType } from "#/lib/exportFormats";
 import { Download, FileText } from "lucide-react";
@@ -269,7 +270,7 @@ export function EditorExportDialog({
           >
             {exporting ? (
               <>
-                <div className="h-4 w-4 shrink-0 animate-spin rounded-full border-2 border-primary-foreground/30 border-t-primary-foreground" />
+                <Spinner />
                 <span>Exporting</span>
                 <span className="inline-block w-[4ch] text-right font-mono tabular-nums">
                   {Math.round(progress * 100)}%
