@@ -779,6 +779,22 @@ void test("reports unavailable size estimates without duration or dimensions", (
   );
 });
 
+void test("preserves square source geometry independently of preview sizing", () => {
+  const squareSource = { width: 1080, height: 1080 };
+  assert.deepEqual(getOutputDimensions(squareSource, "original", "mp4"), {
+    width: 1080,
+    height: 1080,
+  });
+  assert.deepEqual(getOutputDimensions(squareSource, "720", "mp4"), {
+    width: 720,
+    height: 720,
+  });
+  assert.deepEqual(getOutputDimensions(squareSource, "original", "gif"), {
+    width: 480,
+    height: 480,
+  });
+});
+
 void test("builds export dimensions and source messaging", () => {
   const hlsSource = createProviderUrlSource("/playback/master.m3u8", "hls");
   const directSource = createProviderUrlSource("/media/movie.mp4", "direct");
