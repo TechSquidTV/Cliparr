@@ -14,6 +14,7 @@ These tags are sent for every audio and video export format when the source fiel
 | Tag           | Source                                                           | Value written                                                                                                                                  |
 | :------------ | :--------------------------------------------------------------- | :--------------------------------------------------------------------------------------------------------------------------------------------- |
 | `title`       | `title`, then `sourceTitle`                                      | First non-empty value.                                                                                                                         |
+| `artist`      | Episode `showTitle`                                              | Show title for episode sources, so players can group clips by series. This is a Cliparr convention, not an authorship claim.                   |
 | `description` | `description`, then `tagline`                                    | First non-empty value.                                                                                                                         |
 | `genre`       | `genres`                                                         | Genres joined with `, `.                                                                                                                       |
 | `date`        | `date`, then `year`                                              | Parsed date. If only `year` exists, Cliparr writes `YYYY-01-01`. Invalid dates are skipped.                                                    |
@@ -42,7 +43,7 @@ MP4, MOV, and M4A exports also receive the current raw container keys below. Cli
 | `tvnn`  | MP4, MOV, M4A episode sources | `network`, then `studio`        | Network name, falling back to studio.                                                          |
 | `stik`  | MP4, MOV movies               | `itemType`                      | `9` for movies.                                                                                |
 
-M4A receives descriptive and timing tags, including TV source information, but does not receive the video-specific `hdvd` or `stik` flags. An episode excerpt remains an episode in its source metadata; Cliparr does not invent album, artist, or music track fields from TV and film fields.
+M4A receives descriptive and timing tags, including TV source information, but does not receive the video-specific `hdvd` or `stik` flags. An episode excerpt remains an episode in its source metadata. Its show title also occupies the artist slot by Cliparr convention; album and music track fields remain unset.
 
 ## Shared provenance and timing
 
@@ -57,7 +58,7 @@ Source start and end are rounded to integer milliseconds once. Clip duration is 
 
 The named timing fields are `CLIPARR_SOURCE_START_SECONDS`, `CLIPARR_SOURCE_END_SECONDS`, `CLIPARR_CLIP_DURATION_SECONDS`, and `CLIPARR_SOURCE_START_TIMECODE`. These and the MP4 timing keys are application-defined; general players may not display them.
 
-`clpr` is Cliparr’s custom metadata tag for MP4, MOV, and M4A files. It is application-defined, not a standard container metadata field. Other supported containers carry the same Cliparr-defined payload under `CLIPARR_METADATA`, as shown above.
+`clpr` is Cliparr’s custom metadata tag for MP4, MOV, and M4A files. It is application-defined, not a standard container metadata field. Other supported containers carry the same Cliparr-defined payload under `CLIPARR_METADATA`, as shown above. WAV explicitly uses an ID3 chunk so Unicode text and cover art remain supported; its provenance is stored in TXXX descriptions.
 
 The shared payload has this shape:
 
@@ -73,6 +74,16 @@ The shared payload has this shape:
 }
 ```
 
-`source` also carries available source/show/season titles, season and episode numbers, date/year, descriptions, genres, studio/network, rating, and director/writer/actor credits. Artwork is embedded separately. Provider IDs, lookup keys, GUIDs, and artwork URLs are excluded.
+`source` also carries available source/show/season titles, season and episode numbers, date/year, descriptions, genres, studio/network, rating, and director/writer/actor credits. Artwork is embedded separately. Parsed external database IDs (`externalIds.imdb`, `externalIds.tmdb`, `externalIds.tvdb`) and available critic/audience scores (`criticRating`, `audienceRating`) are included. Scores use a 0-10 scale with one decimal place; missing or invalid scores are omitted. Jellyfin critic scores above 10 are divided by 10; scores already at or below 10 are preserved. Internal provider identifiers, lookup keys, raw GUIDs, and artwork URLs are excluded.
 
-**Compatibility change:** version 1 replaces the previous unversioned `clpr` JSON. No legacy payload aliases are written. The individual MP4 timing tags remain available.
+## External IDs and ratings
+
+| Container       | Native external ID projection                                                        |
+| :-------------- | :----------------------------------------------------------------------------------- |
+| MP4 / MOV / M4A | JSON payload only; Cliparr’s Mediabunny output cannot write Apple freeform ID atoms. |
+| MKV / WebM      | `IMDB`, `TMDB`, `TVDB` SimpleTags.                                                   |
+| MP3             | `TXXX:IMDB`, `TXXX:TMDB`, `TXXX:TVDB` descriptions.                                  |
+| Ogg / FLAC      | `IMDB`, `TMDB`, `TVDB` Vorbis comments.                                              |
+| WAV             | JSON payload in the ID3 chunk only; no separate native ID projection is written.     |
+
+The version 1 JSON payload is the source of truth. Native ID tags are conveniences for tag readers. Critic and audience scores stay in JSON in every format; MP4’s `rtng` advisory flag is never used as a numeric score. Exports remain single files, without NFO sidecars.

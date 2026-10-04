@@ -231,10 +231,73 @@ void test("exposes expected template tokens by media kind", () => {
     "clip_end",
     "clip_range",
     "provider",
+    "provider_ids",
     "item_type",
     "format",
   ]);
   assert.ok(
     getExportFileNameTemplateTokens("episode").includes("episode_code"),
   );
+  assert.ok(
+    getExportFileNameTemplateTokens("episode").includes("provider_ids"),
+  );
+});
+
+void test("renders provider IDs in filenames using the source convention", () => {
+  const templates = {
+    ...defaultExportFileNameTemplates(),
+    movie: "{source_title} ({year}) {provider_ids}",
+    episode: "{show_title} - {episode_code} {provider_ids}",
+  };
+
+  const plexFile = buildExportFileName({
+    title: "Clip",
+    sessionType: "movie",
+    metadata: {
+      providerId: "plex",
+      itemType: "movie",
+      sourceTitle: "Dune",
+      year: 2021,
+      externalIds: { imdb: "tt1160419", tmdb: "438631" },
+    },
+    startTime: 0,
+    endTime: 10,
+    format: "mp4",
+    templates,
+  });
+  assert.equal(plexFile.baseName, "Dune (2021) {tmdb-438631}");
+
+  const jellyfinFile = buildExportFileName({
+    title: "Clip",
+    sessionType: "episode",
+    metadata: {
+      providerId: "jellyfin",
+      itemType: "episode",
+      showTitle: "Severance",
+      seasonNumber: 1,
+      episodeNumber: 2,
+      externalIds: { tvdb: "12345" },
+    },
+    startTime: 0,
+    endTime: 10,
+    format: "mkv",
+    templates,
+  });
+  assert.equal(jellyfinFile.baseName, "Severance - S01E02 [tvdbid-12345]");
+
+  const withoutIds = buildExportFileName({
+    title: "Clip",
+    sessionType: "movie",
+    metadata: {
+      providerId: "plex",
+      itemType: "movie",
+      sourceTitle: "Dune",
+      year: 2021,
+    },
+    startTime: 0,
+    endTime: 10,
+    format: "mp4",
+    templates,
+  });
+  assert.equal(withoutIds.baseName, "Dune (2021)");
 });

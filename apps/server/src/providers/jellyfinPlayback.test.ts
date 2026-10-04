@@ -19,6 +19,7 @@ import {
   sourceSupportsCurrentlyPlaying,
 } from "@/providers/jellyfin/playback";
 import type {
+  JellyfinItem,
   JellyfinSessionInfo,
   JellyfinSourceContext,
   JellyfinUser,
@@ -140,6 +141,10 @@ function createJellyfinPlaybackFetch(options: {
   audioStreams?: Array<Record<string, unknown>>;
   title?: string;
   withArtwork?: boolean;
+  itemMetadata?: Pick<
+    JellyfinItem,
+    "ProviderIds" | "CriticRating" | "CommunityRating"
+  >;
 }) {
   const {
     itemId,
@@ -162,6 +167,7 @@ function createJellyfinPlaybackFetch(options: {
     ],
     title = "Chapter 1: The Dark Revenge",
     withArtwork = false,
+    itemMetadata,
   } = options;
   const mediaSource = {
     Id: mediaSourceId,
@@ -180,6 +186,7 @@ function createJellyfinPlaybackFetch(options: {
     ],
   };
   const item = {
+    ...itemMetadata,
     Id: itemId,
     ...(withArtwork ? { ImageTags: { Primary: "artwork-tag" } } : {}),
     Name: title,
@@ -1110,3 +1117,41 @@ void test("concurrent Jellyfin resolvers share items within one credential scope
 });
 
 useProviderFixtures();
+
+for (const [critic, expected] of [
+  [85, 8.5],
+  [8.5, 8.5],
+  [10, 10],
+  [null, undefined],
+  [101, undefined],
+] as const) {
+  void test(`Jellyfin export metadata carries external IDs and normalizes critic score ${critic}`, async (context) => {
+    context.mock.method(
+      globalThis,
+      "fetch",
+      createJellyfinPlaybackFetch({
+        itemId: "metadata-enrichment",
+        itemMetadata: {
+          ProviderIds: {
+            Imdb: "tt0133093",
+            Tmdb: "603",
+            Tvdb: "123",
+            Internal: "private-key",
+          },
+          CriticRating: critic,
+          CommunityRating: 7.6,
+        },
+      }),
+    );
+    const entries = await listCurrentlyPlaying(createSession(), createSource());
+    const metadata = entries[0]?.item.exportMetadata;
+    assert.ok(metadata);
+    assert.deepEqual(metadata.externalIds, {
+      imdb: "tt0133093",
+      tmdb: "603",
+      tvdb: "123",
+    });
+    assert.equal(metadata.criticRating, expected);
+    assert.equal(metadata.audienceRating, 7.6);
+  });
+}

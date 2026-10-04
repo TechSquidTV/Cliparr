@@ -3,6 +3,7 @@ import { logErrorFields, logEventFields } from "@cliparr/shared/logging";
 import type { MediaExportMetadata } from "#/providers/types";
 import { describeInputTrack } from "#/lib/mediabunnyTrackAccess";
 import type { ExportFormat } from "#/lib/exportTypes";
+import { buildKeyValueExternalIdTags } from "#/lib/metadata/externalIdTags";
 import { getFrontendLogger, warnWithError } from "#/logging";
 
 const logger = getFrontendLogger(["editor", "artwork"]);
@@ -421,6 +422,9 @@ function buildSourceClipMetadata(
     "directors",
     "writers",
     "actors",
+    "externalIds",
+    "criticRating",
+    "audienceRating",
   ] as const satisfies readonly (keyof ExportSourceMetadata)[];
   for (const key of fields) {
     const value = metadata?.[key];
@@ -478,6 +482,13 @@ export async function buildMetadataTags(
   );
   const tags: MetadataTags = {
     title: source.title,
+    // The episode's show title rides the artist slot (©ART/ARTIST/TPE1/IART)
+    // so players group clips under their series. This is a Cliparr
+    // convention, not an authorship claim.
+    artist:
+      source.itemType?.toLowerCase() === "episode"
+        ? firstText(source.showTitle)
+        : undefined,
     description: firstText(source.description, source.tagline),
     genre: source.genres?.join(", "),
     date: parseMetadataDate(source.date, source.year),
@@ -487,7 +498,13 @@ export async function buildMetadataTags(
   if (image) {
     tags.images = [image];
   }
+  // Ratings stay in the clpr/CLIPARR_METADATA JSON payload only.
+  // MP4 `rtng` is a clean/explicit advisory flag, never a score, so it is
+  // deliberately not used for critic or audience ratings.
+  const externalIds = source.externalIds;
   if (isIsobmffExportFormat(format)) {
+    // Mediabunny cannot write freeform `----` atoms (4-char raw keys only),
+    // so MP4/MOV/M4A carry external IDs in the clpr payload alone.
     tags.raw = {
       ...buildMp4RawTags(source, outputHeight, format !== "m4a"),
       csta: timing.CLIPARR_SOURCE_START_SECONDS,
@@ -496,10 +513,24 @@ export async function buildMetadataTags(
       "©TIM": timing.CLIPARR_SOURCE_START_TIMECODE,
       clpr: payload,
     };
+  } else if (format === "mp3" || format === "wav") {
+    // The export pipeline explicitly uses ID3 for WAV to retain Unicode and artwork.
+    // WAV external IDs stay in JSON; MP3 additionally exposes TXXX ID descriptions.
+    tags.raw = {
+      TXXX: {
+        ...timing,
+        ...(format === "mp3" ? buildKeyValueExternalIdTags(externalIds) : {}),
+        CLIPARR_METADATA: payload,
+      },
+    };
   } else {
-    const comments = { ...timing, CLIPARR_METADATA: payload };
-    tags.raw =
-      format === "mp3" || format === "wav" ? { TXXX: comments } : comments;
+    // MKV/WebM SimpleTags and OGG/FLAC Vorbis comments accept arbitrary
+    // key names, so external IDs ride as native IMDB/TMDB/TVDB tags.
+    tags.raw = {
+      ...timing,
+      ...buildKeyValueExternalIdTags(externalIds),
+      CLIPARR_METADATA: payload,
+    };
   }
   options.signal?.throwIfAborted();
   return tags;

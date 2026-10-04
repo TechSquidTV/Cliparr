@@ -6,6 +6,7 @@ import {
   sanitizeUrlForLog,
 } from "@cliparr/shared/logging";
 import { normalizeExportVideoCodec } from "@cliparr/shared/providers";
+import { parseExternalIds } from "@cliparr/shared/external-ids";
 import type { MediaSource } from "@/db/mediaSourcesRepository";
 import { createApiError } from "@/http/errors";
 import { getServerLogger, warnWithError } from "@/logging";
@@ -39,6 +40,7 @@ import {
   asArray,
   buildEpisodeSourceTitle,
   errorMessage,
+  normalizeRating,
   numberValue,
   stringValue,
   uniqueStrings,
@@ -729,6 +731,7 @@ function createExportMetadata(
   item: JellyfinItem,
 ): MediaExportMetadata {
   const imagePath = itemHdImagePath(item) ?? itemImagePath(item);
+  const guids = providerGuids(item);
 
   return {
     providerId: "jellyfin",
@@ -759,7 +762,10 @@ function createExportMetadata(
       ...peopleNames(item, "GuestStar"),
       ...peopleNames(item, "Artist"),
     ]).slice(0, 12),
-    guids: providerGuids(item),
+    guids,
+    externalIds: parseExternalIds(guids),
+    criticRating: normalizeRating(item?.CriticRating, true),
+    audienceRating: normalizeRating(item?.CommunityRating),
     ratingKey: stringValue(item?.Id),
     imageUrl: imagePath
       ? createMediaHandle(session, context, imagePath)

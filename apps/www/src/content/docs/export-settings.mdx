@@ -130,22 +130,23 @@ Default episode template:
 
 Available tokens:
 
-| Token              | Notes                                               |
-| :----------------- | :-------------------------------------------------- |
-| `{title}`          | Item or clip title.                                 |
-| `{source_title}`   | Source item title.                                  |
-| `{show_title}`     | Series title for episode exports.                   |
-| `{season_title}`   | Season title when available.                        |
-| `{season_number}`  | Two-digit season number.                            |
-| `{episode_number}` | Two-digit episode number.                           |
-| `{episode_code}`   | Episode code such as `S02E05`.                      |
-| `{year}`           | Source year when available.                         |
-| `{clip_start}`     | Rounded clip start, formatted for filenames.        |
-| `{clip_end}`       | Rounded clip end, formatted for filenames.          |
-| `{clip_range}`     | Start and end together.                             |
-| `{provider}`       | Provider id such as `plex`, `jellyfin`, or `local`. |
-| `{item_type}`      | Item type such as `movie`, `episode`, or `video`.   |
-| `{format}`         | Selected export format.                             |
+| Token              | Notes                                                                                                                    |
+| :----------------- | :----------------------------------------------------------------------------------------------------------------------- |
+| `{title}`          | Item or clip title.                                                                                                      |
+| `{source_title}`   | Source item title.                                                                                                       |
+| `{show_title}`     | Series title for episode exports.                                                                                        |
+| `{season_title}`   | Season title when available.                                                                                             |
+| `{season_number}`  | Two-digit season number.                                                                                                 |
+| `{episode_number}` | Two-digit episode number.                                                                                                |
+| `{episode_code}`   | Episode code such as `S02E05`.                                                                                           |
+| `{year}`           | Source year when available.                                                                                              |
+| `{clip_start}`     | Rounded clip start, formatted for filenames.                                                                             |
+| `{clip_end}`       | Rounded clip end, formatted for filenames.                                                                               |
+| `{clip_range}`     | Start and end together.                                                                                                  |
+| `{provider}`       | Provider id such as `plex`, `jellyfin`, or `local`.                                                                      |
+| `{provider_ids}`   | Preferred external ID: Plex `{tmdb-123}` or Jellyfin `[tmdbid-123]`; TMDB, then TVDB, then IMDb. Empty when unavailable. |
+| `{item_type}`      | Item type such as `movie`, `episode`, or `video`.                                                                        |
+| `{format}`         | Selected export format.                                                                                                  |
 
 Unsupported or missing token values resolve to empty text, and Cliparr sanitizes generated filenames for filesystem compatibility.
 

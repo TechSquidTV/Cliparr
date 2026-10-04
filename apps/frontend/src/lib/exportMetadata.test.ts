@@ -3,6 +3,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import type { MetadataTags } from "mediabunny";
+import type { MediaExportMetadata } from "#/providers/types";
 import { buildMetadataTags, patchMp4MetadataBoxes } from "@/lib/exportMetadata";
 
 const byteMask = 255;
@@ -307,6 +308,9 @@ void test("shares source identity and normalized timing across all metadata cont
     directors: ["Director"],
     actors: ["Actor"],
     writers: ["Writer"],
+    externalIds: { imdb: "tt1234567", tmdb: "123", tvdb: "456" },
+    criticRating: 8.5,
+    audienceRating: 7.5,
   };
   let expectedPayload: string | undefined;
   for (const format of [
@@ -330,27 +334,79 @@ void test("shares source identity and normalized timing across all metadata cont
     assert.ok(tags);
     assert.match(tags.comment ?? "", /00:01:05.125 to 00:02:10.750/);
     assert.equal(tags.album, undefined);
-    assert.equal(tags.artist, undefined);
+    assert.equal(tags.artist, "Show");
     assert.equal(tags.trackNumber, undefined);
     const raw = tags.raw;
     assert.ok(raw);
-    const fields = (
-      format === "mp3" || format === "wav" ? raw.TXXX : raw
-    ) as NonNullable<MetadataTags["raw"]>;
-    assert.ok(
-      fields && typeof fields === "object" && !(fields instanceof Uint8Array),
-    );
-    const payload = raw.clpr ?? fields.CLIPARR_METADATA;
+    assert.equal(raw.rtng, undefined);
+    switch (format) {
+      case "mp3": {
+        const txxx = raw.TXXX as Record<string, string>;
+        assert.equal(txxx.CLIPARR_SOURCE_START_SECONDS, "65.125");
+        assert.equal(txxx.IMDB, "tt1234567");
+        assert.equal(txxx.TMDB, "123");
+        assert.equal(txxx.TVDB, "456");
+        assert.equal(raw.clpr, undefined);
+        break;
+      }
+      case "wav": {
+        const txxx = raw.TXXX as Record<string, string>;
+        assert.equal(txxx.CLIPARR_SOURCE_START_SECONDS, "65.125");
+        assert.equal(txxx.CLIPARR_SOURCE_END_SECONDS, "130.750");
+        assert.equal(txxx.CLIPARR_CLIP_DURATION_SECONDS, "65.625");
+        assert.equal(txxx.CLIPARR_SOURCE_START_TIMECODE, "00:01:05.125");
+        assert.equal(txxx.IMDB, undefined);
+        assert.equal(txxx.TMDB, undefined);
+        assert.equal(txxx.TVDB, undefined);
+        break;
+      }
+      case "mp4":
+      case "mov":
+      case "m4a": {
+        // Mediabunny cannot write freeform ---- atoms; IDs stay in clpr.
+        assert.equal(raw.csta, "65.125");
+        assert.equal(raw.cend, "130.750");
+        assert.equal(raw.cdur, "65.625");
+        assert.equal(raw.IMDB, undefined);
+        break;
+      }
+      case "ogg":
+      case "flac":
+      case "webm":
+      case "mkv": {
+        const fields = raw as NonNullable<MetadataTags["raw"]>;
+        assert.equal(fields.CLIPARR_SOURCE_START_SECONDS, "65.125");
+        assert.equal(fields.CLIPARR_SOURCE_END_SECONDS, "130.750");
+        assert.equal(fields.CLIPARR_CLIP_DURATION_SECONDS, "65.625");
+        assert.equal(fields.IMDB, "tt1234567");
+        assert.equal(fields.TMDB, "123");
+        assert.equal(fields.TVDB, "456");
+        break;
+      }
+    }
+    let payload = raw.clpr ?? raw.CLIPARR_METADATA;
+    if (format === "wav" || format === "mp3") {
+      payload = (raw.TXXX as Record<string, string>).CLIPARR_METADATA;
+    }
     assert.ok(typeof payload === "string");
     assert.doesNotMatch(payload, /private/);
+    const parsed = JSON.parse(payload) as {
+      version: number;
+      source: Partial<MediaExportMetadata>;
+    };
+    assert.equal(parsed.version, 1);
+    assert.deepEqual(parsed.source.externalIds, {
+      imdb: "tt1234567",
+      tmdb: "123",
+      tvdb: "456",
+    });
+    assert.equal(parsed.source.criticRating, 8.5);
+    assert.equal(parsed.source.audienceRating, 7.5);
     if (expectedPayload) {
-      assert.equal(payload, expectedPayload);
+      assert.deepEqual(parsed, JSON.parse(expectedPayload) as typeof parsed);
     } else {
       expectedPayload = payload;
     }
-    assert.equal(raw.csta ?? fields.CLIPARR_SOURCE_START_SECONDS, "65.125");
-    assert.equal(raw.cend ?? fields.CLIPARR_SOURCE_END_SECONDS, "130.750");
-    assert.equal(raw.cdur ?? fields.CLIPARR_CLIP_DURATION_SECONDS, "65.625");
     if (format === "m4a") {
       assert.equal(raw.stik, undefined);
       assert.equal(raw.hdvd, undefined);
@@ -409,4 +465,58 @@ void test("artwork cancellation propagates instead of producing a partial metada
       );
     },
   );
+});
+
+void test("maps episode show title to artist and leaves movie artist unset", async () => {
+  const episodeTags = await buildMetadataTags(
+    {
+      providerId: "plex",
+      itemType: "episode",
+      title: "The One",
+      showTitle: "Great Show",
+      seasonNumber: 1,
+      episodeNumber: 2,
+    },
+    0,
+    10,
+    undefined,
+    "mkv",
+  );
+  assert.equal(episodeTags?.artist, "Great Show");
+
+  const movieTags = await buildMetadataTags(
+    {
+      providerId: "plex",
+      itemType: "movie",
+      title: "A Movie",
+      sourceTitle: "A Movie",
+    },
+    0,
+    10,
+    undefined,
+    "mkv",
+  );
+  assert.equal(movieTags?.artist, undefined);
+});
+
+void test("omits native ID tags when no external IDs are present", async () => {
+  const tags = await buildMetadataTags(
+    {
+      providerId: "plex",
+      itemType: "movie",
+      title: "No IDs Here",
+    },
+    0,
+    10,
+    undefined,
+    "mkv",
+  );
+  const raw = tags?.raw as NonNullable<MetadataTags["raw"]>;
+  assert.equal(raw.IMDB, undefined);
+  assert.equal(raw.TMDB, undefined);
+  assert.equal(raw.TVDB, undefined);
+  const parsed = JSON.parse(raw.CLIPARR_METADATA as string) as {
+    source: Partial<MediaExportMetadata>;
+  };
+  assert.equal(parsed.source.externalIds, undefined);
 });

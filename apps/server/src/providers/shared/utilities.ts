@@ -45,6 +45,30 @@ export function numberValue(value: unknown) {
   return Math.trunc(number);
 }
 
+/** Normalize provider ratings to 0-10, preserving fractions to one decimal place. */
+export function normalizeRating(
+  value: number | string | null | undefined,
+  allowHundredScale = false,
+): number | undefined {
+  if (
+    (typeof value !== "number" && typeof value !== "string") ||
+    (typeof value === "string" && !value.trim())
+  ) {
+    return undefined;
+  }
+  const rating = Number(value);
+  if (
+    !Number.isFinite(rating) ||
+    rating < 0 ||
+    rating > (allowHundredScale ? 100 : 10)
+  ) {
+    return undefined;
+  }
+  // Some Jellyfin sources already use 0-10; only scale values above 10.
+  const normalized = allowHundredScale && rating > 10 ? rating / 10 : rating;
+  return Math.round(normalized * 10) / 10;
+}
+
 export function uniqueStrings(values: Iterable<string | null | undefined>) {
   const seen = new Set<string>();
   const result: string[] = [];

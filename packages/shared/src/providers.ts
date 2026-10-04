@@ -1,3 +1,5 @@
+import type { ExternalIds } from "#external-ids";
+
 export interface MediaExportMetadata {
   providerId: string;
   itemType: string;
@@ -19,6 +21,12 @@ export interface MediaExportMetadata {
   writers?: string[];
   actors?: string[];
   guids?: string[];
+  /** External database IDs (IMDb, TMDB, TVDB) parsed from `guids`; provider-internal URIs are never included. */
+  externalIds?: ExternalIds;
+  /** Critic rating on a 0-10 scale, normalized across providers. */
+  criticRating?: number;
+  /** Audience rating on a 0-10 scale, normalized across providers. */
+  audienceRating?: number;
   ratingKey?: string;
   imageUrl?: string;
 }
