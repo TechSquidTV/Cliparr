@@ -31,6 +31,7 @@ void test("WAV ID3 muxing preserves Unicode, cover art, and JSON-only external I
     130.75,
     undefined,
     "wav",
+    { transcript: "Dialogue 東京 🎬\nSecond line." },
   );
   assert.ok(tags);
   const cover = Uint8Array.from(
@@ -79,8 +80,10 @@ void test("WAV ID3 muxing preserves Unicode, cover art, and JSON-only external I
     const payload = JSON.parse(json) as {
       version: number;
       source: Partial<MediaExportMetadata>;
+      transcript?: string;
     };
     assert.equal(payload.version, 1);
+    assert.equal(payload.transcript, "Dialogue 東京 🎬\nSecond line.");
     assert.equal(payload.source.title, title);
     assert.deepEqual(payload.source.externalIds, {
       imdb: "tt0211915",

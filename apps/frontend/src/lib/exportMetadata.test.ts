@@ -330,6 +330,7 @@ void test("shares source identity and normalized timing across all metadata cont
       130.75,
       undefined,
       format,
+      { transcript: "Custom dialogue 日本語 🎬\nSecond line." },
     );
     assert.ok(tags);
     assert.match(tags.comment ?? "", /00:01:05.125 to 00:02:10.750/);
@@ -393,8 +394,10 @@ void test("shares source identity and normalized timing across all metadata cont
     const parsed = JSON.parse(payload) as {
       version: number;
       source: Partial<MediaExportMetadata>;
+      transcript?: string;
     };
     assert.equal(parsed.version, 1);
+    assert.equal(parsed.transcript, "Custom dialogue 日本語 🎬\nSecond line.");
     assert.deepEqual(parsed.source.externalIds, {
       imdb: "tt1234567",
       tmdb: "123",
@@ -519,4 +522,46 @@ void test("omits native ID tags when no external IDs are present", async () => {
     source: Partial<MediaExportMetadata>;
   };
   assert.equal(parsed.source.externalIds, undefined);
+});
+
+void test("embeds the transcript in the clpr payload when provided", async () => {
+  const tags = await buildMetadataTags(
+    {
+      providerId: "plex",
+      itemType: "movie",
+      title: "Transcript Clip",
+    },
+    0,
+    10,
+    undefined,
+    "mkv",
+    { transcript: "You were the one who knocked.\nSay my name." },
+  );
+  const raw = tags?.raw as NonNullable<MetadataTags["raw"]>;
+  const parsed = JSON.parse(raw.CLIPARR_METADATA as string) as {
+    transcript?: string;
+  };
+  assert.equal(
+    parsed.transcript,
+    "You were the one who knocked.\nSay my name.",
+  );
+});
+
+void test("omits the transcript field when none is provided", async () => {
+  const tags = await buildMetadataTags(
+    {
+      providerId: "plex",
+      itemType: "movie",
+      title: "No Transcript Clip",
+    },
+    0,
+    10,
+    undefined,
+    "mkv",
+  );
+  const raw = tags?.raw as NonNullable<MetadataTags["raw"]>;
+  const parsed = JSON.parse(raw.CLIPARR_METADATA as string) as {
+    transcript?: string;
+  };
+  assert.equal("transcript" in parsed, false);
 });

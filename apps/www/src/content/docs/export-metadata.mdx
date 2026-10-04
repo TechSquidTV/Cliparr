@@ -34,7 +34,7 @@ MP4, MOV, and M4A exports also receive the current raw container keys below. Cli
 | `csta`  | MP4, MOV, M4A                 | Clip start time                 | Source start seconds with three decimals.                                                      |
 | `cend`  | MP4, MOV, M4A                 | Clip end time                   | Source end seconds with three decimals.                                                        |
 | `cdur`  | MP4, MOV, M4A                 | Clip duration                   | Clip duration seconds with three decimals.                                                     |
-| `clpr`  | MP4, MOV, M4A                 | Clip start, end, duration       | Version 1 JSON containing `source` and `clip`; see below.                                      |
+| `clpr`  | MP4, MOV, M4A                 | Clip start, end, duration       | Version 1 JSON containing `source`, `clip`, and an optional `transcript`; see below.           |
 | `stik`  | MP4, MOV episodes             | `itemType`                      | `10` for episodes.                                                                             |
 | `tvsh`  | MP4, MOV, M4A episode sources | `showTitle`                     | Show title.                                                                                    |
 | `tvsn`  | MP4, MOV, M4A episode sources | `seasonNumber`                  | Non-negative integer season number.                                                            |
@@ -70,9 +70,12 @@ The shared payload has this shape:
     "sourceStartSeconds": 65.125,
     "sourceEndSeconds": 130.75,
     "durationSeconds": 65.625
-  }
+  },
+  "transcript": "You were the one who knocked.\nSay my name."
 }
 ```
+
+`transcript` is present only when the export had subtitle cues (imported subtitles or custom captions) covering the clip range. It contains text from cues that overlap the selected interval, capped at 4000 UTF-16 code units without splitting Unicode characters. Partially overlapping cues contribute their full text because cue timing does not identify individual word boundaries. The transcript is embedded even when subtitle burn-in is disabled, including audio-only exports, so dialogue can be searched with plain-text tools. GIF exports do not carry this metadata.
 
 `source` also carries available source/show/season titles, season and episode numbers, date/year, descriptions, genres, studio/network, rating, and director/writer/actor credits. Artwork is embedded separately. Parsed external database IDs (`externalIds.imdb`, `externalIds.tmdb`, `externalIds.tvdb`) and available critic/audience scores (`criticRating`, `audienceRating`) are included. Scores use a 0-10 scale with one decimal place; missing or invalid scores are omitted. Jellyfin critic scores use a 0-100 scale and are always divided by 10. Internal provider identifiers, lookup keys, raw GUIDs, and artwork URLs are excluded.
 

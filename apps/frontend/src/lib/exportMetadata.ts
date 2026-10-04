@@ -392,6 +392,7 @@ function buildSourceClipMetadata(
   startTime: number,
   endTime: number,
   title?: string,
+  transcript?: string,
 ) {
   if (
     !Number.isFinite(startTime) ||
@@ -459,7 +460,12 @@ function buildSourceClipMetadata(
     source,
     comment,
     timing,
-    payload: JSON.stringify({ version: 1, source, clip }),
+    payload: JSON.stringify({
+      version: 1,
+      source,
+      clip,
+      ...(transcript ? { transcript } : {}),
+    }),
   };
 }
 
@@ -469,7 +475,7 @@ export async function buildMetadataTags(
   endTime: number,
   outputHeight: number | undefined,
   format: ExportFormat,
-  options: { signal?: AbortSignal; title?: string } = {},
+  options: { signal?: AbortSignal; title?: string; transcript?: string } = {},
 ): Promise<MetadataTags | undefined> {
   if (format === "gif") {
     return undefined;
@@ -479,6 +485,7 @@ export async function buildMetadataTags(
     startTime,
     endTime,
     options.title,
+    options.transcript,
   );
   const tags: MetadataTags = {
     title: source.title,
