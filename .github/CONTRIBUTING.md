@@ -82,6 +82,8 @@ Document user-visible changes and breaking-change upgrade instructions in pull r
 
 When a release is planned, prepare version-specific draft notes and review the final feature scope before running an RC or stable release. Preparing notes does not publish a release.
 
+Store curated highlights and upgrade notes in `tools/release/notes/vX.Y.Z.md`. Release candidates and the stable release for that version use the same notes file.
+
 ### Release validation and recovery
 
 Every workspace test script runs in CI and release validation, including the website. Job summaries show the embedded app version, tested commit (including the distinction between a PR head and its tested merge), actual runner/container Node versions, pnpm version, and validation outcomes.
@@ -102,7 +104,7 @@ The Cloudflare changelog refresh is a separate job. If only that job fails, reru
 - Plex callers must use generated `@cliparr/plex` operations and URL builders. Downloads require provider-returned part links. Conflicting media or part identities can suppress previews and subtitle extraction; unidentified streams no longer inherit selection or track numbers from array positions. Undocumented response aliases and `Network` export tags have been removed.
 - Embedded Cliparr metadata now uses version 1 JSON with `source` and `clip` objects: `clpr` in MP4 and `CLIPARR_METADATA` in other supported containers. The old unversioned payload is no longer written; individual MP4 timing tags remain available.
 - `CLIPARR_DEV_JELLYFIN_URL` has been removed. Configure a directly reachable Jellyfin URL, such as `http://jellyfin:8096` in the Docker dev stack. Localhost URLs always require `CLIPARR_ALLOW_LOOPBACK_JELLYFIN_URLS`. The separate frontend `VITE_CLIPARR_DEV_JELLYFIN_URL` hint does not grant a server-side exception.
-- Development now requires Node.js 24.16 or newer and pnpm 12.8.1. Install the pinned pnpm version through npm using the setup command above; Corepack cannot launch pnpm 12's native executable.
+- Development now requires Node.js 24.16 or newer and the pnpm version pinned in the root `packageManager` field. Install that version through npm using the setup command above; Corepack cannot launch pnpm 12's native executable.
 - The website moves to Astro 7 and Vite 8. Rebuild deployed artifacts with the updated lockfile.
 
 No compatibility aliases or fallback implementations are provided.

@@ -7,6 +7,8 @@ autoInstallPeers: false
 minimumReleaseAge: 1440
 minimumReleaseAgeStrict: true
 minimumReleaseAgeExclude:
+  # Released security fix for GHSA-ch52-4w7c-c8xp.
+  - "http-cache-semantics@4.3.0"
   - "@techsquidtv/canvas-timeline@0.5.0"
   - "@techsquidtv/canvas-timeline-core@0.5.0"
   - "@techsquidtv/canvas-timeline-html-media-adapter@0.5.0"

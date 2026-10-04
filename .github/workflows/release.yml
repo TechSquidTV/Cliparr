@@ -237,7 +237,8 @@ jobs:
             --docker-tags-file "${RUNNER_TEMP}/docker-tags.txt"
           )
 
-          notes_file="tools/release/notes/${{ steps.plan.outputs.tag }}.md"
+          release_tag="${{ steps.plan.outputs.tag }}"
+          notes_file="tools/release/notes/${release_tag%%-*}.md"
           if [[ -f "${notes_file}" ]]; then
             args+=(--notes-file "${notes_file}")
           fi
