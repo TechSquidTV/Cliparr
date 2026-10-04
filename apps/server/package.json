@@ -21,7 +21,7 @@
     "@logtape/logtape": "^2.3.10",
     "axios": "^1.20.0",
     "dotenv": "^18.0.5",
-    "drizzle-orm": "1.0.0-rc.5-5935859",
+    "drizzle-orm": "1.0.0-rc.5-ab785fc",
     "express": "^5.2.1",
     "undici": "^7.30.0",
     "@cliparr/plex": "workspace:*"
@@ -29,7 +29,7 @@
   "devDependencies": {
     "@types/express": "^5.0.6",
     "@types/node": "^24.19.1",
-    "drizzle-kit": "1.0.0-rc.5-5935859",
+    "drizzle-kit": "1.0.0-rc.5-ab785fc",
     "tsdown": "^0.23.0",
     "tsx": "^4.23.15",
     "typescript": "~6.0.3"
