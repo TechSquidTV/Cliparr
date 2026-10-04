@@ -50,6 +50,7 @@ const publicHosts = new Set([
   "http.cat",
   "img.shields.io",
   "kyletryon.github.io",
+  "linuxunplugged.com",
   "mediabunny.dev",
   "schema.org",
   "semver.org",

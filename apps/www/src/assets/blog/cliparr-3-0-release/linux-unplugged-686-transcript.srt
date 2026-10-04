@@ -1,0 +1,199 @@
+1
+00:00:00,000 --> 00:00:04,120
+ Now, I know we're going long here, but this, we couldn't pry this pick out of here.
+
+2
+00:00:04,120 --> 00:00:09,520
+ This is the best pick of my life. I have never, ever had a better pick on this show, ever.
+
+3
+00:00:09,520 --> 00:00:11,520
+ Till next week.
+
+4
+00:00:11,520 --> 00:00:15,160
+ I don't know what I'm going to do. I haven't fully incorporated how I'm going to change
+
+5
+00:00:15,160 --> 00:00:19,360
+ my life around this pick, but I'm beginning to experiment with it, maybe like something
+
+6
+00:00:19,360 --> 00:00:24,200
+ on my phone, something on a laptop, and I got to have like something in VR. So, friends,
+
+7
+00:00:24,200 --> 00:00:28,040
+ I want to tell you about, now, I know this is not going to be a big deal for everybody,
+
+8
+00:00:28,040 --> 00:00:35,920
+ but it's very special to me. I want to tell you about Cliparr. Cliparr is a streamlined
+
+9
+00:00:35,920 --> 00:00:40,780
+ media clipper that allows you to quickly create and download clips from what is currently
+
+10
+00:00:40,780 --> 00:00:47,920
+ playing via Plex or Jellyfin. No way. Say a guy is watching King of the Hill on his TV,
+
+11
+00:00:47,920 --> 00:00:53,200
+ he can pull this page up, and if you hit clip, it will grab just a little handle before the
+
+12
+00:00:53,200 --> 00:00:58,240
+ moment you hit clip, and about 20 seconds after you hit clip. And it brings it up in
+
+13
+00:00:58,240 --> 00:01:02,520
+ what is perhaps the best web interface I've ever seen for editing clips, and I've played
+
+14
+00:01:02,520 --> 00:01:07,220
+ with a lot of them. It includes the transcript if the file has it, it pulls it right from
+
+15
+00:01:07,220 --> 00:01:12,080
+ your Jellyfin or Plex server, and then you can, it has a way to trim it like a standard
+
+16
+00:01:12,080 --> 00:01:16,600
+ linear video editor, you can trim the clip to what you want, and it has a bunch of great
+
+17
+00:01:16,600 --> 00:01:23,720
+ export options to export just that clip. And it works so great. You can also expand beyond
+
+18
+00:01:23,720 --> 00:01:27,920
+ what it clipped. So like if what with a region you wanted was earlier or later, you just expand
+
+19
+00:01:27,920 --> 00:01:34,240
+ the clip and it has the entire file. You can also link MP4 files that are on an HTTP endpoint
+
+20
+00:01:34,240 --> 00:01:39,960
+ or upload video files to it. But for me, there's been so many times when I'm watching something
+
+21
+00:01:39,960 --> 00:01:44,020
+ and I'm like, I would love to play a clip of that on the show, or that would make a great
+
+22
+00:01:44,020 --> 00:01:47,560
+ boost sound bite. Or there's been so many times I've been like, I wish audience members could
+
+23
+00:01:47,560 --> 00:01:51,240
+ send us some great boost soundboard bites. And this way you can just be watching something.
+
+24
+00:01:51,240 --> 00:01:54,800
+ If somebody says something that would make a great clip or something or a ringtone or
+
+25
+00:01:54,800 --> 00:01:58,940
+ whatever, you just hit the button and it grabs a clip of it. Like I was watching Futurama
+
+26
+00:01:58,940 --> 00:02:03,040
+ last night and this just, and I'm like, oh, and I just hit the button. Blockchain's not
+
+27
+00:02:03,040 --> 00:02:08,200
+ the boss of me. I'm like, I gotta have that. Right? I just hit the button and then I just
+
+28
+00:02:08,200 --> 00:02:13,280
+ trim it a little bit. Blockchain's not the boss of me. And I've got it now. I've got
+
+29
+00:02:13,280 --> 00:02:19,160
+ it now. We've been asking for this ever since the boost sort of thing, basically. Yeah. Or
+
+30
+00:02:19,160 --> 00:02:23,400
+ anytime you could play sounds or if you want like funny clips from a movie or if you and
+
+31
+00:02:23,400 --> 00:02:26,680
+ your friends love a scene or something like that, or you want to share something from
+
+32
+00:02:26,680 --> 00:02:34,640
+ a great episode over a messaging app. I mean, it goes on and on buddy. It's so good. It's
+
+33
+00:02:34,640 --> 00:02:40,640
+ so good. It can burn in the subtitles if you want. It pulls from your existing media. Just
+
+34
+00:02:40,640 --> 00:02:44,240
+ five months old it looks like all of the work. Like if there's any transcoding work required,
+
+35
+00:02:44,240 --> 00:02:51,480
+ it's all done in the browser. Wow. It's this is impressive. It's really, really good. And
+
+36
+00:02:51,480 --> 00:02:56,400
+ it's MIT licensed. Is there anything that's not so great about it? Like, I mean, you know,
+
+37
+00:02:56,400 --> 00:03:00,560
+ it's new and so it's going to be, it's not a hundred percent. Like one time I went to
+
+38
+00:03:00,560 --> 00:03:03,920
+ clip, I think it was a movie and it just brought the whole thing into the timeline, but then
+
+39
+00:03:03,920 --> 00:03:09,280
+ it was really easy to just mark it in and out and just drop it. And so that was great. Nice.
+
+40
+00:03:09,280 --> 00:03:12,760
+ And then you got, I haven't tried just uploading the local file, but they offer that. I'm so
+
+41
+00:03:12,760 --> 00:03:17,720
+ happy. I'm so, so, so happy. It's so good. It's so good. It was so easy to set up too.
+
+42
+00:03:17,720 --> 00:03:24,800
+ Oh, I have a question. You have recently when you so choose to do this manually, been taking
+
+43
+00:03:24,800 --> 00:03:31,480
+ like a Dolby 5.1 channel audio and then like selecting the very specific channel you want.
+
+44
+00:03:31,480 --> 00:03:35,600
+ Is that capable here yet? Or is that a feature? I don't think so. But I, one time I did bring
+
+45
+00:03:35,600 --> 00:03:38,680
+ in a clip and I did see multiple tracks and I didn't poke around to see if some of them
+
+46
+00:03:38,680 --> 00:03:42,680
+ were audio, but I don't think it does that. What you're saying is like, if you, if you're,
+
+47
+00:03:42,680 --> 00:03:46,280
+ if you open up like something that surrounds and you grab just the center center channel,
+
+48
+00:03:46,280 --> 00:03:50,600
+ that's almost always the dialogue mostly isolated. So it gets rid of someone like the background
+
+49
+00:03:50,600 --> 00:03:55,640
+ music or sound effects and you get mostly just the dialogue, which is really a neat trick.
+
+50
+00:03:55,640 --> 00:03:59,560
+ Oh gosh, Cliparr, Cliparr. So happy. So happy.
