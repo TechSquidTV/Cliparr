@@ -267,7 +267,7 @@ void test("renders provider IDs in filenames using the source convention", () =>
   });
   assert.equal(plexFile.baseName, "Dune (2021) {tmdb-438631}");
 
-  const jellyfinFile = buildExportFileName({
+  const jellyfinEpisode = buildExportFileName({
     title: "Clip",
     sessionType: "episode",
     metadata: {
@@ -283,7 +283,9 @@ void test("renders provider IDs in filenames using the source convention", () =>
     format: "mkv",
     templates,
   });
-  assert.equal(jellyfinFile.baseName, "Severance - S01E02 [tvdbid-12345]");
+  // Episode GUIDs are episode-level, but the filename conventions expect
+  // series-level IDs, so the token stays empty for episodes.
+  assert.equal(jellyfinEpisode.baseName, "Severance - S01E02");
 
   const withoutIds = buildExportFileName({
     title: "Clip",
@@ -300,4 +302,44 @@ void test("renders provider IDs in filenames using the source convention", () =>
     templates,
   });
   assert.equal(withoutIds.baseName, "Dune (2021)");
+});
+
+void test("restricts filename provider IDs to movies for both providers", () => {
+  const templates = {
+    ...defaultExportFileNameTemplates(),
+    movie: "{title} {provider_ids}",
+    episode: "{title} {provider_ids}",
+  };
+  for (const providerId of ["plex", "jellyfin"]) {
+    for (const itemType of ["episode", "Episode", "video", "track"]) {
+      const file = buildExportFileName({
+        title: "Clip",
+        sessionType: "movie",
+        metadata: {
+          providerId,
+          itemType,
+          externalIds: { imdb: "tt123", tmdb: "456", tvdb: "789" },
+        },
+        startTime: 0,
+        endTime: 10,
+        format: "mp4",
+        templates,
+      });
+      assert.equal(file.baseName, "Clip");
+    }
+  }
+  const movie = buildExportFileName({
+    title: "Clip",
+    sessionType: "movie",
+    metadata: {
+      providerId: "jellyfin",
+      itemType: "Movie",
+      externalIds: { tmdb: "456" },
+    },
+    startTime: 0,
+    endTime: 10,
+    format: "mp4",
+    templates,
+  });
+  assert.equal(movie.baseName, "Clip [tmdbid-456]");
 });

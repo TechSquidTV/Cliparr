@@ -764,7 +764,7 @@ function createExportMetadata(
     ]).slice(0, 12),
     guids,
     externalIds: parseExternalIds(guids),
-    criticRating: normalizeRating(item?.CriticRating, true),
+    criticRating: normalizeRating(item?.CriticRating, 100),
     audienceRating: normalizeRating(item?.CommunityRating),
     ratingKey: stringValue(item?.Id),
     imageUrl: imagePath

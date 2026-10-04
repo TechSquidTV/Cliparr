@@ -74,7 +74,7 @@ The shared payload has this shape:
 }
 ```
 
-`source` also carries available source/show/season titles, season and episode numbers, date/year, descriptions, genres, studio/network, rating, and director/writer/actor credits. Artwork is embedded separately. Parsed external database IDs (`externalIds.imdb`, `externalIds.tmdb`, `externalIds.tvdb`) and available critic/audience scores (`criticRating`, `audienceRating`) are included. Scores use a 0-10 scale with one decimal place; missing or invalid scores are omitted. Jellyfin critic scores above 10 are divided by 10; scores already at or below 10 are preserved. Internal provider identifiers, lookup keys, raw GUIDs, and artwork URLs are excluded.
+`source` also carries available source/show/season titles, season and episode numbers, date/year, descriptions, genres, studio/network, rating, and director/writer/actor credits. Artwork is embedded separately. Parsed external database IDs (`externalIds.imdb`, `externalIds.tmdb`, `externalIds.tvdb`) and available critic/audience scores (`criticRating`, `audienceRating`) are included. Scores use a 0-10 scale with one decimal place; missing or invalid scores are omitted. Jellyfin critic scores use a 0-100 scale and are always divided by 10. Internal provider identifiers, lookup keys, raw GUIDs, and artwork URLs are excluded.
 
 ## External IDs and ratings
 

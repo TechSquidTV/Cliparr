@@ -52,13 +52,15 @@ export function parseExternalIds(
         }
         break;
       }
-      case "tmdb": {
+      case "tmdb":
+      case "themoviedb": {
         if (ids.tmdb === undefined && numericIdPattern.test(id)) {
           ids.tmdb = id;
         }
         break;
       }
-      case "tvdb": {
+      case "tvdb":
+      case "thetvdb": {
         if (ids.tvdb === undefined && numericIdPattern.test(id)) {
           ids.tvdb = id;
         }

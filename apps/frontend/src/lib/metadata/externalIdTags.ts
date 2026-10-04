@@ -57,6 +57,8 @@ template token, using the filename convention of the source provider
 then TVDB, then IMDb: numeric IDs are unambiguous in filenames and
 TMDB covers both movies and series. Returns undefined when there is
 no ID or no known provider convention so the token renders empty.
+Callers must not use this for episodes: episode GUIDs are episode-level
+while the filename conventions expect series-level IDs.
 */
 export function formatProviderIdForFilename(
   ids: ExternalIds | undefined,

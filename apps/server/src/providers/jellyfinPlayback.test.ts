@@ -1120,8 +1120,9 @@ useProviderFixtures();
 
 for (const [critic, expected] of [
   [85, 8.5],
-  [8.5, 8.5],
-  [10, 10],
+  [8, 0.8],
+  [8.5, 0.9],
+  [10, 1],
   [null, undefined],
   [101, undefined],
 ] as const) {

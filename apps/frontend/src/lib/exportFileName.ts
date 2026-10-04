@@ -324,8 +324,16 @@ function templateValues({
     clip_range: `${formatTemplateTime(startTime)} to ${formatTemplateTime(endTime)}`,
     frame_time: formatTemplateTime(frameTime ?? startTime),
     provider: sanitizeTemplateValue(firstText(metadata?.providerId)),
+    // Episode GUIDs are episode-level, but the Plex/Jellyfin filename
+    // conventions expect series-level IDs in this slot, so the token
+    // stays empty for episodes rather than emitting a misleading ID.
     provider_ids: sanitizeTemplateValue(
-      formatProviderIdForFilename(metadata?.externalIds, metadata?.providerId),
+      itemType === "movie"
+        ? formatProviderIdForFilename(
+            metadata?.externalIds,
+            metadata?.providerId,
+          )
+        : undefined,
     ),
     item_type: sanitizeTemplateValue(itemType),
     format: sanitizeTemplateValue(format),

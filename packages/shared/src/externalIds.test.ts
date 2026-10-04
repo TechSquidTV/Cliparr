@@ -56,10 +56,17 @@ void test("recognizes only supported schemes and Plex agent prefixes", () => {
   assert.deepEqual(
     parseExternalIds([
       " IMDB://tt123?lang=en ",
-      "com.plexapp.agents.tmdb://456",
-      "com.plexapp.agents.tvdb://789",
+      "com.plexapp.agents.themoviedb://456?lang=en",
+      "com.plexapp.agents.thetvdb://789?lang=en",
     ]),
     { imdb: "tt123", tmdb: "456", tvdb: "789" },
+  );
+});
+
+void test("rejects legacy TVDB episode GUID paths", () => {
+  assert.equal(
+    parseExternalIds(["com.plexapp.agents.thetvdb://315500/1/2?lang=en"]),
+    undefined,
   );
 });
 
@@ -83,5 +90,18 @@ void test("invalid IDs do not prevent a later valid ID from winning", () => {
       "imdb://tt123#fragment",
     ]),
     undefined,
+  );
+});
+
+void test("shares first-valid precedence between modern and legacy Plex schemes", () => {
+  assert.deepEqual(
+    parseExternalIds([
+      "tmdb://456",
+      "com.plexapp.agents.themoviedb://999?lang=en",
+      "tvdb://bad",
+      "com.plexapp.agents.thetvdb://789?lang=en",
+      "tvdb://999",
+    ]),
+    { tmdb: "456", tvdb: "789" },
   );
 });
