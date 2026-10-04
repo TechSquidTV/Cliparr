@@ -1,5 +1,6 @@
 @import "tailwindcss";
 @import "tw-animate-css";
+@import "./components/ui/control-styles.css";
 @import "./components/ui/select.css";
 
 @custom-variant dark (&:is(.dark *));
@@ -467,24 +468,6 @@
   --spacing-editor-sidebar-rail: var(--editor-sidebar-rail-width);
   --spacing-editor-sidebar-max: var(--editor-sidebar-max-width);
   --spacing-select-content-min: 8rem;
-}
-
-/* Shared keyboard focus treatment. Editor controls change only the color token. */
-@utility control-focus {
-  @apply focus-visible:outline-none focus-visible:ring-2;
-
-  &:focus-visible {
-    --tw-ring-color: color-mix(
-      in oklch,
-      var(--control-focus-color, var(--ring)) 40%,
-      transparent
-    );
-  }
-}
-
-@utility editor-control-focus {
-  @apply control-focus;
-  --control-focus-color: var(--editor-accent);
 }
 
 @utility grid-cols-editor-header {
