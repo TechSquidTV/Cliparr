@@ -1,3 +1,4 @@
+import { editorIconButtonClassName } from "@/components/ui/control-styles";
 import { ControlTooltip } from "@/components/ui/tooltip";
 import {
   CanvasRenderer,
@@ -62,7 +63,10 @@ function TrackHeaderColumn({
                     onClick={() => onMutedChange(!muted)}
                     aria-label={muted ? "Unmute preview" : "Mute preview"}
                     aria-pressed={muted}
-                    className="flex h-7 w-7 shrink-0 items-center justify-center rounded-[var(--radius-control)] border border-editor-border bg-editor-control text-muted-foreground transition-colors hover:bg-editor-control-hover hover:text-foreground focus-visible:ring-2 focus-visible:ring-editor-accent/35 focus-visible:outline-none"
+                    className={editorIconButtonClassName({
+                      size: "sm",
+                      className: "shrink-0",
+                    })}
                   >
                     {muted ? (
                       <VolumeX aria-hidden="true" className="h-3.5 w-3.5" />
@@ -82,7 +86,10 @@ function TrackHeaderColumn({
                       header.visible ? "Hide subtitles" : "Show subtitles"
                     }
                     aria-pressed={!header.visible}
-                    className="flex h-7 w-7 shrink-0 items-center justify-center rounded-[var(--radius-control)] border border-editor-border bg-editor-control text-muted-foreground transition-colors hover:bg-editor-control-hover hover:text-foreground focus-visible:ring-2 focus-visible:ring-editor-accent/35 focus-visible:outline-none"
+                    className={editorIconButtonClassName({
+                      size: "sm",
+                      className: "shrink-0",
+                    })}
                   >
                     {header.visible ? (
                       <Eye aria-hidden="true" className="h-3.5 w-3.5" />
@@ -102,7 +109,11 @@ function TrackHeaderColumn({
                     aria-label="Add subtitle at playhead"
                     disabled={!canAddSubtitle}
                     onClick={onAddSubtitle}
-                    className="flex h-8 w-8 shrink-0 items-center justify-center rounded text-foreground hover:bg-editor-control-hover disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-editor-accent/35"
+                    className={editorIconButtonClassName({
+                      variant: "ghost",
+                      className:
+                        "shrink-0 rounded text-foreground disabled:opacity-40",
+                    })}
                   >
                     <Plus className="h-4 w-4" />
                   </button>
@@ -274,7 +285,7 @@ export function EditorTimeline({
       </div>
       <button
         type="button"
-        className="flex min-h-11 shrink-0 items-center justify-center gap-2 border-t border-editor-border bg-editor-panel px-3 text-xs text-muted-foreground hover:bg-editor-control-hover hover:text-foreground focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-editor-accent/35 focus-visible:outline-none lg:hidden"
+        className="editor-control-focus flex min-h-11 shrink-0 items-center justify-center gap-2 border-t border-editor-border bg-editor-panel px-3 text-xs text-muted-foreground hover:bg-editor-control-hover hover:text-foreground focus-visible:ring-inset lg:hidden"
         onClick={() =>
           horizontalScroller.current?.scrollTo({
             left: trackNamesVisible

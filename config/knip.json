@@ -5,6 +5,7 @@
     "apps/frontend": {
       "entry": [
         "src/main.tsx",
+        "src/styles/motionTheme.ts",
         "vite.config.js",
         "tests/audio-export.ts",
         "tests/media-loading.ts"

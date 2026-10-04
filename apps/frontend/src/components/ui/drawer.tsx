@@ -1,60 +1,54 @@
 import * as React from "react";
-import { Drawer as DrawerPrimitive } from "vaul";
+import { Drawer as DrawerPrimitive } from "@base-ui/react/drawer";
+import { dialogFooterClasses } from "@/components/ui/control-styles";
 import { cn } from "@/lib/utilities";
 
-function Drawer({
-  shouldScaleBackground = true,
-  ...props
-}: React.ComponentProps<typeof DrawerPrimitive.Root>) {
-  return (
-    <DrawerPrimitive.Root
-      shouldScaleBackground={shouldScaleBackground}
-      {...props}
-    />
-  );
-}
-
+const Drawer = DrawerPrimitive.Root;
 const DrawerTrigger = DrawerPrimitive.Trigger;
-const DrawerPortal = DrawerPrimitive.Portal;
 const DrawerClose = DrawerPrimitive.Close;
 
-const DrawerOverlay = React.forwardRef<
-  React.ElementRef<typeof DrawerPrimitive.Overlay>,
-  React.ComponentPropsWithoutRef<typeof DrawerPrimitive.Overlay>
->(function DrawerOverlay({ className, ...props }, ref) {
-  return (
-    <DrawerPrimitive.Overlay
-      ref={ref}
-      className={cn(
-        "fixed inset-0 z-50 bg-foreground/40 backdrop-blur-sm",
-        className,
-      )}
-      {...props}
-    />
-  );
-});
+type DrawerContentProperties = Omit<
+  React.ComponentPropsWithoutRef<typeof DrawerPrimitive.Popup>,
+  "className"
+> & { className?: string };
 
-const DrawerContent = React.forwardRef<
-  React.ElementRef<typeof DrawerPrimitive.Content>,
-  React.ComponentPropsWithoutRef<typeof DrawerPrimitive.Content>
->(function DrawerContent({ className, children, ...props }, ref) {
-  return (
-    <DrawerPortal>
-      <DrawerOverlay />
-      <DrawerPrimitive.Content
-        ref={ref}
-        className={cn(
-          "fixed right-(--safe-area-right) bottom-0 left-(--safe-area-left) z-50 flex max-h-[min(85dvh,calc(100dvh-var(--safe-area-top)-6rem))] flex-col overflow-y-auto rounded-t-2xl border border-border bg-card pb-[max(var(--drawer-bottom-padding,0px),var(--safe-area-bottom))] text-card-foreground shadow-2xl outline-none",
-          className,
-        )}
-        {...props}
-      >
-        <DrawerPrimitive.Handle className="mx-auto mt-3 h-1.5 w-10 rounded-full bg-muted-foreground/35" />
-        {children}
-      </DrawerPrimitive.Content>
-    </DrawerPortal>
-  );
-});
+const DrawerContent = React.forwardRef<HTMLDivElement, DrawerContentProperties>(
+  function DrawerContent({ className, children, ...props }, ref) {
+    return (
+      <DrawerPrimitive.Portal>
+        <DrawerPrimitive.Backdrop
+          data-slot="drawer-overlay"
+          className="drawer-overlay fixed inset-0 z-50 bg-foreground/40 backdrop-blur-sm"
+        />
+        <DrawerPrimitive.Viewport
+          data-slot="drawer-viewport"
+          className="fixed inset-0 z-50 flex items-end pr-(--safe-area-right) pl-(--safe-area-left)"
+        >
+          <DrawerPrimitive.Popup
+            ref={ref}
+            data-slot="drawer-content"
+            className={cn(
+              "drawer-popup relative flex max-h-[min(85dvh,calc(100dvh-var(--safe-area-top)-6rem))] w-full flex-col overflow-hidden rounded-t-2xl border border-border bg-card pb-[max(var(--drawer-bottom-padding,0px),var(--safe-area-bottom))] text-card-foreground shadow-2xl outline-none",
+              className,
+            )}
+            {...props}
+          >
+            <div
+              aria-hidden="true"
+              data-slot="drawer-handle"
+              className="flex h-8 shrink-0 touch-none items-center justify-center"
+            >
+              <div className="h-1.5 w-10 rounded-full bg-muted-foreground/35" />
+            </div>
+            <DrawerPrimitive.Content className="flex min-h-0 flex-col overflow-y-auto overscroll-contain">
+              {children}
+            </DrawerPrimitive.Content>
+          </DrawerPrimitive.Popup>
+        </DrawerPrimitive.Viewport>
+      </DrawerPrimitive.Portal>
+    );
+  },
+);
 
 function DrawerHeader({ className, ...props }: React.ComponentProps<"div">) {
   return (
@@ -72,7 +66,8 @@ function DrawerFooter({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
       className={cn(
-        "mt-auto flex flex-col gap-2 border-t border-border px-4 py-3",
+        "mt-auto flex flex-col gap-2",
+        dialogFooterClasses,
         className,
       )}
       {...props}
@@ -82,7 +77,10 @@ function DrawerFooter({ className, ...props }: React.ComponentProps<"div">) {
 
 const DrawerTitle = React.forwardRef<
   React.ElementRef<typeof DrawerPrimitive.Title>,
-  React.ComponentPropsWithoutRef<typeof DrawerPrimitive.Title>
+  Omit<
+    React.ComponentPropsWithoutRef<typeof DrawerPrimitive.Title>,
+    "className"
+  > & { className?: string }
 >(function DrawerTitle({ className, ...props }, ref) {
   return (
     <DrawerPrimitive.Title
@@ -98,7 +96,10 @@ const DrawerTitle = React.forwardRef<
 
 const DrawerDescription = React.forwardRef<
   React.ElementRef<typeof DrawerPrimitive.Description>,
-  React.ComponentPropsWithoutRef<typeof DrawerPrimitive.Description>
+  Omit<
+    React.ComponentPropsWithoutRef<typeof DrawerPrimitive.Description>,
+    "className"
+  > & { className?: string }
 >(function DrawerDescription({ className, ...props }, ref) {
   return (
     <DrawerPrimitive.Description

@@ -1,3 +1,4 @@
+import { Spinner } from "@/components/ui/spinner";
 import { RouterProvider } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { cliparrClient, subscribeToAuthFailure } from "@/api/cliparrClient";
@@ -80,7 +81,7 @@ export default function App() {
           <div className="absolute -inset-4 animate-pulse rounded-full bg-primary/10 blur-xl" />
         </div>
         <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground uppercase tracking-[var(--tracking-caps-2xl)]">
-          <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary/30 border-t-primary" />
+          <Spinner className="text-primary" />
           Loading Cliparr
         </div>
       </div>

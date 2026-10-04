@@ -34,7 +34,7 @@ export function ConfirmationDialog({
       initialFocus={cancelReference}
       finalFocus={finalFocus}
     >
-      <DialogFooter className="p-4">
+      <DialogFooter>
         <button
           ref={cancelReference}
           type="button"

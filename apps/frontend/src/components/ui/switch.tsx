@@ -36,9 +36,9 @@ const switchTransition = {
 
 const rootVariantClasses: Record<SwitchVariant, string> = {
   default:
-    "border-input bg-input text-muted-foreground focus-visible:ring-ring/40 data-[checked]:border-primary/60 data-[checked]:bg-primary/30",
+    "control-focus border-input bg-input text-muted-foreground data-[checked]:border-primary/60 data-[checked]:bg-primary/30",
   editor:
-    "border-editor-border bg-editor-control text-muted-foreground focus-visible:ring-editor-accent/35 data-[checked]:border-editor-accent/55 data-[checked]:bg-editor-control-active",
+    "editor-control-focus border-editor-border bg-editor-control text-muted-foreground data-[checked]:border-editor-accent/55 data-[checked]:bg-editor-control-active",
 };
 
 const thumbVariantClasses: Record<SwitchVariant, string> = {
@@ -186,7 +186,7 @@ const Switch = React.forwardRef<HTMLElement, SwitchProperties>(function Switch(
     <BaseSwitch.Root
       checked={currentChecked}
       className={cn(
-        "relative inline-flex h-5 w-9 shrink-0 cursor-pointer items-center rounded-full border transition-colors duration-150 focus-visible:ring-2 focus-visible:outline-none data-[disabled]:cursor-not-allowed data-[disabled]:opacity-55",
+        "relative inline-flex h-5 w-9 shrink-0 cursor-pointer items-center rounded-full border transition-colors duration-150 data-[disabled]:cursor-not-allowed data-[disabled]:opacity-55",
         rootVariantClasses[variant],
         className,
       )}

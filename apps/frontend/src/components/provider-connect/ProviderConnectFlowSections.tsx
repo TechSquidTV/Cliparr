@@ -1,5 +1,6 @@
+import { EmptyState } from "@/components/ui/empty-state";
+import { destructiveAlertClasses } from "@/components/ui/control-styles";
 import { AnimatePresence, motion } from "motion/react";
-import { cn } from "@/lib/utilities";
 import type { ProviderDefinition } from "@/providers/types";
 
 export function providerPresentation(
@@ -47,7 +48,7 @@ export function ProviderConnectError({
 
   if (!isScreen) {
     return (
-      <div className="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+      <div role="alert" className={destructiveAlertClasses}>
         {error}
       </div>
     );
@@ -62,7 +63,8 @@ export function ProviderConnectError({
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -8 }}
           transition={{ duration: 0.18, ease: "easeOut" }}
-          className="rounded-2xl border border-destructive/25 bg-destructive/10 px-4 py-3 text-sm text-destructive"
+          role="alert"
+          className={destructiveAlertClasses}
         >
           {error}
         </motion.div>
@@ -71,23 +73,6 @@ export function ProviderConnectError({
   );
 }
 
-export function ProviderStatusMessage({
-  children,
-  isScreen,
-}: {
-  children: string;
-  isScreen: boolean;
-}) {
-  return (
-    <div
-      className={cn(
-        "text-center text-sm text-muted-foreground",
-        isScreen
-          ? "py-12"
-          : "rounded-lg border border-border bg-background px-4 py-8",
-      )}
-    >
-      {children}
-    </div>
-  );
+export function ProviderStatusMessage({ children }: { children: string }) {
+  return <EmptyState description={children} role="status" />;
 }

@@ -1,14 +1,14 @@
+import { Spinner } from "@/components/ui/spinner";
 import { useEffect, useRef, type RefObject } from "react";
 import {
   ChevronLeft,
   ChevronRight,
-  LoaderCircle,
   LocateFixed,
   MoreHorizontal,
   Plus,
   Trash2,
 } from "lucide-react";
-import { DropdownMenu } from "radix-ui";
+import { Menu } from "@base-ui/react/menu";
 import {
   Select,
   SelectContent,
@@ -29,7 +29,6 @@ import {
   EditorPropertyRow,
   EditorPropertySection,
   EditorRangeControl,
-  editorPropertySelectTriggerClassName,
 } from "@/components/editor/EditorPropertyControls";
 import {
   EDITOR_PROPERTIES_SECTION_ID,
@@ -40,6 +39,7 @@ import { useSubtitleFontOptions } from "@/components/editor/useSubtitleFontOptio
 import { EditorEditableTimecode } from "@/components/editor/EditorEditableTimecode";
 import { formatTimecodeInput } from "@/components/editor/editorUtilities";
 import type { useEditorSubtitles } from "@/components/editor/useEditorSubtitles";
+import { editorIconButtonClassName } from "@/components/ui/control-styles";
 
 interface EditorSubtitlePanelProperties {
   subtitles: Pick<
@@ -83,9 +83,9 @@ interface EditorSubtitlePanelProperties {
 }
 
 const actionClasses =
-  "inline-flex min-h-11 items-center justify-center gap-1.5 rounded-[var(--radius-control)] border border-editor-border bg-editor-control px-2.5 text-xs text-foreground hover:bg-editor-control-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-editor-accent/35 disabled:opacity-50 disabled:cursor-not-allowed lg:min-h-8";
+  "editor-control-focus inline-flex min-h-11 items-center justify-center gap-1.5 rounded-[var(--radius-control)] border border-editor-border bg-editor-control px-2.5 text-xs text-foreground hover:bg-editor-control-hover disabled:opacity-50 disabled:cursor-not-allowed lg:min-h-8";
 const menuItemClasses =
-  "cursor-default rounded px-3 py-2 text-xs outline-none focus:bg-editor-control-hover data-[disabled]:opacity-50";
+  "cursor-default rounded px-3 py-2 text-xs outline-none data-[highlighted]:bg-editor-control-hover data-[disabled]:opacity-50";
 
 export function EditorSubtitlePanel({
   subtitles,
@@ -167,79 +167,79 @@ export function EditorSubtitlePanel({
             <Plus className="h-3.5 w-3.5" />
             Add subtitle
           </button>
-          <DropdownMenu.Root>
-            <DropdownMenu.Trigger asChild>
-              <button
-                ref={subtitleTrackTriggerRef}
-                type="button"
-                className={actionClasses}
-                disabled={!subtitles.canImportSubtitles}
-              >
-                Import…
-              </button>
-            </DropdownMenu.Trigger>
-            <DropdownMenu.Portal>
-              <DropdownMenu.Content
-                align="end"
-                onCloseAutoFocus={(event) => {
-                  if (subtitles.subtitleTrackChangePending) {
-                    event.preventDefault();
-                  }
-                }}
-                className="z-50 max-h-80 max-w-80 overflow-y-auto rounded border border-editor-border bg-editor-panel p-1 shadow-lg"
-              >
-                <DropdownMenu.Label className="px-3 py-2 text-xs text-muted-foreground">
-                  Import subtitle track
-                </DropdownMenu.Label>
-                {subtitleTracks.map((track) => (
-                  <DropdownMenu.Item
-                    key={subtitleTrackKey(track)}
-                    className={menuItemClasses}
-                    onSelect={() =>
-                      subtitles.requestImport(subtitleTrackKey(track))
-                    }
-                  >
-                    <SubtitleTrackLabel track={track} />
-                  </DropdownMenu.Item>
-                ))}
-              </DropdownMenu.Content>
-            </DropdownMenu.Portal>
-          </DropdownMenu.Root>
-          <DropdownMenu.Root>
-            <DropdownMenu.Trigger asChild>
-              <button
-                type="button"
-                ref={subtitleOptionsTriggerRef}
-                aria-label="Subtitle options"
-                className={actionClasses}
-              >
-                <MoreHorizontal className="h-4 w-4" />
-              </button>
-            </DropdownMenu.Trigger>
-            <DropdownMenu.Portal>
-              <DropdownMenu.Content
-                align="end"
-                className="z-50 rounded border border-editor-border bg-editor-panel p-1 shadow-lg"
-                onCloseAutoFocus={(event) => {
-                  if (subtitles.clearPending) {
-                    event.preventDefault();
-                  }
-                }}
-              >
-                <DropdownMenu.Item
-                  disabled={subtitleCues.length === 0 && !subtitleLoading}
-                  onSelect={subtitles.requestClear}
-                  className={menuItemClasses}
+          <Menu.Root>
+            <Menu.Trigger
+              render={
+                <button
+                  ref={subtitleTrackTriggerRef}
+                  type="button"
+                  className={actionClasses}
+                  disabled={!subtitles.canImportSubtitles}
                 >
-                  Start blank…
-                </DropdownMenu.Item>
-              </DropdownMenu.Content>
-            </DropdownMenu.Portal>
-          </DropdownMenu.Root>
+                  Import…
+                </button>
+              }
+            />
+            <Menu.Portal>
+              <Menu.Positioner align="end" sideOffset={6} className="z-50">
+                <Menu.Popup
+                  finalFocus={() => !subtitles.subtitleTrackChangePending}
+                  className="z-50 max-h-80 max-w-80 overflow-y-auto rounded border border-editor-border bg-editor-panel p-1 shadow-lg"
+                >
+                  <Menu.Group>
+                    <Menu.GroupLabel className="px-3 py-2 text-xs text-muted-foreground">
+                      Import subtitle track
+                    </Menu.GroupLabel>
+                    {subtitleTracks.map((track) => (
+                      <Menu.Item
+                        key={subtitleTrackKey(track)}
+                        className={menuItemClasses}
+                        onClick={() =>
+                          subtitles.requestImport(subtitleTrackKey(track))
+                        }
+                      >
+                        <SubtitleTrackLabel track={track} />
+                      </Menu.Item>
+                    ))}
+                  </Menu.Group>
+                </Menu.Popup>
+              </Menu.Positioner>
+            </Menu.Portal>
+          </Menu.Root>
+          <Menu.Root>
+            <Menu.Trigger
+              render={
+                <button
+                  type="button"
+                  ref={subtitleOptionsTriggerRef}
+                  aria-label="Subtitle options"
+                  className={actionClasses}
+                >
+                  <MoreHorizontal className="h-4 w-4" />
+                </button>
+              }
+            />
+            <Menu.Portal>
+              <Menu.Positioner align="end" sideOffset={6} className="z-50">
+                <Menu.Popup
+                  className="z-50 rounded border border-editor-border bg-editor-panel p-1 shadow-lg"
+                  finalFocus={() => !subtitles.clearPending}
+                >
+                  <Menu.Item
+                    disabled={subtitleCues.length === 0 && !subtitleLoading}
+                    onClick={subtitles.requestClear}
+                    className={menuItemClasses}
+                  >
+                    Start blank…
+                  </Menu.Item>
+                </Menu.Popup>
+              </Menu.Positioner>
+            </Menu.Portal>
+          </Menu.Root>
         </div>
         {subtitleLoading && (
           <div role="status" className="flex items-center gap-2 text-xs">
-            <LoaderCircle className="h-3.5 w-3.5 animate-spin" />
+            <Spinner className="h-3.5 w-3.5" />
             Importing subtitles…
             <button
               type="button"
@@ -267,7 +267,11 @@ export function EditorSubtitlePanel({
                     type="button"
                     onClick={onSelectPreviousSubtitle}
                     aria-label="Select previous subtitle cue"
-                    className="flex h-11 w-11 lg:h-7 lg:w-7 items-center justify-center rounded-[var(--radius-control)] text-muted-foreground hover:bg-editor-control-hover hover:text-foreground focus-visible:ring-2 focus-visible:ring-editor-accent/35 focus-visible:outline-none"
+                    className={editorIconButtonClassName({
+                      size: "sm",
+                      variant: "ghost",
+                      className: "h-11 w-11 lg:h-7 lg:w-7",
+                    })}
                   >
                     <ChevronLeft className="h-3.5 w-3.5" />
                   </button>
@@ -275,7 +279,11 @@ export function EditorSubtitlePanel({
                     type="button"
                     onClick={onSelectNextSubtitle}
                     aria-label="Select next subtitle cue"
-                    className="flex h-11 w-11 lg:h-7 lg:w-7 items-center justify-center rounded-[var(--radius-control)] text-muted-foreground hover:bg-editor-control-hover hover:text-foreground focus-visible:ring-2 focus-visible:ring-editor-accent/35 focus-visible:outline-none"
+                    className={editorIconButtonClassName({
+                      size: "sm",
+                      variant: "ghost",
+                      className: "h-11 w-11 lg:h-7 lg:w-7",
+                    })}
                   >
                     <ChevronRight className="h-3.5 w-3.5" />
                   </button>
@@ -303,7 +311,7 @@ export function EditorSubtitlePanel({
                         commitText();
                       }
                     }}
-                    className="w-full resize-y rounded-[var(--radius-control)] border border-editor-border bg-editor-control px-2.5 py-2 text-xs leading-relaxed text-foreground outline-none focus:border-editor-accent focus:ring-2 focus:ring-editor-accent/25"
+                    className="editor-control-focus w-full resize-y rounded-[var(--radius-control)] border border-editor-border bg-editor-control px-2.5 py-2 text-xs leading-relaxed text-foreground outline-none focus-visible:border-editor-accent"
                   />
                 </EditorPropertyRow>
                 {textError && (
@@ -352,7 +360,7 @@ export function EditorSubtitlePanel({
                     <button
                       type="button"
                       onClick={onSeekToSelectedSubtitle}
-                      className="inline-flex min-h-11 lg:min-h-8 items-center gap-1.5 rounded-[var(--radius-control)] border border-editor-border bg-editor-control px-2.5 text-xs text-muted-foreground hover:bg-editor-control-hover hover:text-foreground focus-visible:ring-2 focus-visible:ring-editor-accent/35 focus-visible:outline-none"
+                      className="editor-control-focus inline-flex min-h-11 lg:min-h-8 items-center gap-1.5 rounded-[var(--radius-control)] border border-editor-border bg-editor-control px-2.5 text-xs text-muted-foreground hover:bg-editor-control-hover hover:text-foreground"
                     >
                       <LocateFixed className="h-3.5 w-3.5" />
                       Seek
@@ -360,7 +368,7 @@ export function EditorSubtitlePanel({
                     <button
                       type="button"
                       onClick={onDeleteSelectedSubtitle}
-                      className="inline-flex min-h-11 lg:min-h-8 items-center gap-1.5 rounded-[var(--radius-control)] border border-destructive/40 bg-destructive/10 px-2.5 text-xs text-destructive hover:bg-destructive/15 focus-visible:ring-2 focus-visible:ring-destructive/30 focus-visible:outline-none"
+                      className="control-focus inline-flex min-h-11 lg:min-h-8 items-center gap-1.5 rounded-[var(--radius-control)] border border-destructive/40 bg-destructive/10 px-2.5 text-xs text-destructive hover:bg-destructive/15"
                     >
                       <Trash2 className="h-3.5 w-3.5" />
                       Delete subtitle
@@ -389,19 +397,23 @@ export function EditorSubtitlePanel({
               <EditorPropertyRow label="Font">
                 <Select
                   value={subtitleStyleSettings.fontFamily}
-                  onValueChange={(value) =>
-                    updateStyleSetting("fontFamily", value)
-                  }
+                  items={[
+                    ...(currentFontOption ? [currentFontOption] : []),
+                    ...bundledFontOptions,
+                    ...localFontOptions,
+                  ]}
+                  onValueChange={(value) => {
+                    if (value !== null) {
+                      updateStyleSetting("fontFamily", value);
+                    }
+                  }}
                   onOpenChange={(open) => {
                     if (open) {
                       requestLocalFonts();
                     }
                   }}
                 >
-                  <SelectTrigger
-                    size="sm"
-                    className={editorPropertySelectTriggerClassName()}
-                  >
+                  <SelectTrigger size="sm" variant="editor">
                     <SelectValue placeholder="Select font" />
                   </SelectTrigger>
                   <SelectContent>
@@ -433,7 +445,7 @@ export function EditorSubtitlePanel({
                     )}
                     {loadingLocalFonts && (
                       <div className="flex items-center gap-2 px-2 py-1.5 text-xs text-muted-foreground">
-                        <LoaderCircle className="h-3.5 w-3.5 animate-spin" />
+                        <Spinner className="h-3.5 w-3.5" />
                         Loading installed fonts...
                       </div>
                     )}

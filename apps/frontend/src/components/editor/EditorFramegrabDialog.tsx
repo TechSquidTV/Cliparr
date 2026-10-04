@@ -1,4 +1,5 @@
-import { Copy, Download, LoaderCircle } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
+import { Copy, Download } from "lucide-react";
 import type {
   FramegrabImageFormat,
   FramegrabImageQuality,
@@ -13,11 +14,8 @@ import {
   compactPrimaryButtonClasses,
   compactSecondaryButtonClasses,
   destructiveAlertClasses,
+  fieldLabelWideClasses,
 } from "@/components/ui/control-styles";
-import {
-  compactSelectTriggerClassName,
-  sectionLabelClassName,
-} from "@/components/editor/editorDialogStyles";
 import {
   Select,
   SelectContent,
@@ -88,24 +86,27 @@ export function EditorFramegrabDialog({
 
         <section className="rounded-md border border-border bg-card">
           <div className="border-b border-border px-3 py-2">
-            <div className={sectionLabelClassName()}>Image</div>
+            <div className={fieldLabelWideClasses}>Image</div>
           </div>
           <div className="space-y-3 p-3">
             <div className="text-sm font-medium text-foreground">{title}</div>
 
             <div className="grid gap-3 sm:grid-cols-2">
               <label className="block space-y-1.5">
-                <span className={sectionLabelClassName()}>Image Type</span>
+                <span className={fieldLabelWideClasses}>Image Type</span>
                 <Select
                   value={selectedFormat}
-                  onValueChange={(value) =>
-                    onFormatChange(value as FramegrabImageFormat)
-                  }
+                  items={framegrabImageFormatOptions.map((option) => ({
+                    value: option.value,
+                    label: `${option.label} ${option.extension}`,
+                  }))}
+                  onValueChange={(value) => {
+                    if (value !== null) {
+                      onFormatChange(value);
+                    }
+                  }}
                 >
-                  <SelectTrigger
-                    size="sm"
-                    className={compactSelectTriggerClassName()}
-                  >
+                  <SelectTrigger size="sm">
                     <SelectValue placeholder="Select image type" />
                   </SelectTrigger>
                   <SelectContent>
@@ -122,18 +123,18 @@ export function EditorFramegrabDialog({
               </label>
 
               <label className="block space-y-1.5">
-                <span className={sectionLabelClassName()}>Quality</span>
+                <span className={fieldLabelWideClasses}>Quality</span>
                 <Select
                   value={selectedQuality}
-                  onValueChange={(value) =>
-                    onQualityChange(value as FramegrabImageQuality)
-                  }
+                  items={framegrabImageQualityOptions}
+                  onValueChange={(value) => {
+                    if (value !== null) {
+                      onQualityChange(value);
+                    }
+                  }}
                   disabled={qualityDisabled}
                 >
-                  <SelectTrigger
-                    size="sm"
-                    className={compactSelectTriggerClassName()}
-                  >
+                  <SelectTrigger size="sm">
                     <SelectValue placeholder="Select quality" />
                   </SelectTrigger>
                   <SelectContent>
@@ -152,13 +153,13 @@ export function EditorFramegrabDialog({
 
             <dl className="grid gap-2 text-sm sm:grid-cols-2">
               <div className="rounded-md border border-border bg-background px-3 py-2">
-                <dt className={sectionLabelClassName()}>Time</dt>
+                <dt className={fieldLabelWideClasses}>Time</dt>
                 <dd className="mt-1 font-mono text-xs text-foreground">
                   {formatTime(frameTime)}
                 </dd>
               </div>
               <div className="rounded-md border border-border bg-background px-3 py-2">
-                <dt className={sectionLabelClassName()}>Size</dt>
+                <dt className={fieldLabelWideClasses}>Size</dt>
                 <dd className="mt-1 font-mono text-xs text-foreground">
                   {dimensions
                     ? `${dimensions.width} x ${dimensions.height}`
@@ -168,7 +169,7 @@ export function EditorFramegrabDialog({
             </dl>
 
             <div className="rounded-md border border-border bg-background px-3 py-2">
-              <div className={sectionLabelClassName()}>Filename</div>
+              <div className={fieldLabelWideClasses}>Filename</div>
               <div className="mt-1 break-all font-mono text-ui-label text-foreground">
                 {fileNamePreview}
               </div>
@@ -177,7 +178,7 @@ export function EditorFramegrabDialog({
         </section>
       </div>
 
-      <DialogFooter className="border-t border-border bg-card px-4 py-3">
+      <DialogFooter>
         <span
           role="status"
           aria-live="polite"
@@ -193,7 +194,7 @@ export function EditorFramegrabDialog({
           className={compactSecondaryButtonClasses}
         >
           {processingAction === "copy" ? (
-            <LoaderCircle className="h-4 w-4 animate-spin" />
+            <Spinner />
           ) : (
             <Copy className="h-4 w-4" />
           )}
@@ -207,7 +208,7 @@ export function EditorFramegrabDialog({
           className={`${compactPrimaryButtonClasses} w-44`}
         >
           {processingAction === "download" ? (
-            <LoaderCircle className="h-4 w-4 animate-spin" />
+            <Spinner />
           ) : (
             <Download className="h-4 w-4" />
           )}

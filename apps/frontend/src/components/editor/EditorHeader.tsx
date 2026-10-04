@@ -1,9 +1,11 @@
+import { Spinner } from "@/components/ui/spinner";
 import { ArrowLeft, Download } from "lucide-react";
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { editorIconButtonClassName } from "@/components/ui/control-styles";
 
 interface EditorHeaderProperties {
   title: string;
@@ -34,7 +36,7 @@ export function EditorHeader({
     >
       {exporting ? (
         <span className="flex items-center gap-2">
-          <div className="h-4 w-4 shrink-0 animate-spin rounded-full border-2 border-primary-foreground/30 border-t-primary-foreground" />
+          <Spinner />
           <span>Exporting</span>
           <span className="inline-block w-[4ch] text-right font-mono tabular-nums">
             {Math.round(progress * 100)}%
@@ -53,16 +55,18 @@ export function EditorHeader({
     <header className="grid grid-cols-editor-header items-center gap-3 border-b border-editor-border bg-editor-panel px-3 py-2">
       <div className="flex items-center gap-2">
         <Tooltip>
-          <TooltipTrigger asChild>
-            <button
-              type="button"
-              onClick={onBack}
-              aria-label="Back"
-              className="flex h-8 w-8 items-center justify-center rounded-[var(--radius-control)] border border-editor-border bg-editor-control text-muted-foreground transition-colors hover:bg-editor-control-hover hover:text-foreground focus-visible:ring-2 focus-visible:ring-editor-accent/35 focus-visible:outline-none"
-            >
-              <ArrowLeft className="h-4 w-4" />
-            </button>
-          </TooltipTrigger>
+          <TooltipTrigger
+            render={
+              <button
+                type="button"
+                onClick={onBack}
+                aria-label="Back"
+                className={editorIconButtonClassName()}
+              >
+                <ArrowLeft className="h-4 w-4" />
+              </button>
+            }
+          />
           <TooltipContent side="bottom">Back</TooltipContent>
         </Tooltip>
         <div className="flex items-center gap-2 pl-1">
@@ -84,11 +88,13 @@ export function EditorHeader({
       </div>
       <div className="flex items-center justify-self-end">
         <Tooltip>
-          <TooltipTrigger asChild>
-            <span className="inline-flex" tabIndex={exportDisabled ? 0 : -1}>
-              {exportButton}
-            </span>
-          </TooltipTrigger>
+          <TooltipTrigger
+            render={
+              <span className="inline-flex" tabIndex={exportDisabled ? 0 : -1}>
+                {exportButton}
+              </span>
+            }
+          />
           {exportTooltip ? (
             <TooltipContent side="bottom" align="end">
               {exportTooltip}

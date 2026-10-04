@@ -1,12 +1,9 @@
 import { Play } from "lucide-react";
 import { BarsLoader } from "@/components/ui/bars-loader";
-import type { RefCallback } from "react";
-import type { MediaDimensions } from "@/lib/editorMedia";
-import type { ReactNode } from "react";
+import type { ReactNode, RefCallback } from "react";
 
 interface EditorPreviewProperties {
   canvasRef: RefCallback<HTMLCanvasElement>;
-  videoDimensions?: MediaDimensions | null;
   playing: boolean;
   loadingPreview: boolean;
   loadingPreviewFrame: boolean;
@@ -20,7 +17,6 @@ interface EditorPreviewProperties {
 
 export function EditorPreview({
   canvasRef,
-  videoDimensions,
   playing,
   loadingPreview,
   loadingPreviewFrame,
@@ -31,10 +27,6 @@ export function EditorPreview({
   togglePlay,
   overlay,
 }: EditorPreviewProperties) {
-  const aspectRatio =
-    videoDimensions && videoDimensions.width > 0 && videoDimensions.height > 0
-      ? `${videoDimensions.width} / ${videoDimensions.height}`
-      : undefined;
   const showLoadingOverlay = loadingPreview || loadingPreviewFrame;
   const hasPosterImage = Boolean(posterImageUrl);
   const loadingStatus = loadingPreviewFrame
@@ -43,13 +35,12 @@ export function EditorPreview({
 
   return (
     <div
-      className="group relative aspect-video h-full max-h-full w-auto max-w-full overflow-hidden bg-editor-monitor"
-      style={aspectRatio ? { aspectRatio } : undefined}
+      className="group relative h-full min-h-0 w-full min-w-0 overflow-hidden bg-editor-monitor"
       aria-busy={showLoadingOverlay}
     >
       <canvas
         ref={canvasRef}
-        className="h-full w-full object-contain"
+        className="block h-full w-full object-contain"
         onClick={togglePlay}
       />
       {overlay}
@@ -78,7 +69,7 @@ export function EditorPreview({
               togglePlay();
             }}
             aria-label={playing ? "Pause playback" : "Play playback"}
-            className={`pointer-events-auto flex h-11 w-11 items-center justify-center rounded-[var(--radius-control)] border border-editor-border bg-editor-panel/92 text-foreground transition-all focus-visible:ring-2 focus-visible:ring-editor-accent/35 focus-visible:outline-none ${
+            className={`editor-control-focus pointer-events-auto flex h-11 w-11 items-center justify-center rounded-[var(--radius-control)] border border-editor-border bg-editor-panel/92 text-foreground transition-all ${
               playing
                 ? "scale-95 opacity-0"
                 : "scale-100 opacity-100 group-hover:bg-editor-panel-raised"

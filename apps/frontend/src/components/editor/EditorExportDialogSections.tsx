@@ -46,10 +46,7 @@ import {
   type ExportFileNameTemplateSettings,
 } from "#/lib/exportFileName";
 import type { ExportSourcePreference } from "#/components/editor/EditorExportDialog";
-import {
-  compactSelectTriggerClassName,
-  sectionLabelClassName,
-} from "#/components/editor/editorDialogStyles";
+import { fieldLabelWideClasses } from "#/components/ui/control-styles";
 import { formatTime } from "#/components/editor/editorUtilities";
 import type { MediaDimensions } from "#/lib/editorMedia";
 
@@ -154,7 +151,7 @@ function templateOptionFor(kind: ExportFileNameTemplateKind) {
 function SectionHeader({ children }: { children: string }) {
   return (
     <div className="border-b border-border px-3 py-2">
-      <div className={sectionLabelClassName()}>{children}</div>
+      <div className={fieldLabelWideClasses}>{children}</div>
     </div>
   );
 }
@@ -225,18 +222,17 @@ function EditorExportSettingsSectionComponent({
       <div className="grid gap-3 p-3 sm:grid-cols-2">
         <div className="grid grid-cols-[minmax(0,1fr)_8rem] gap-x-3 sm:col-span-2">
           <div className="space-y-1.5">
-            <span className={sectionLabelClassName()}>Export</span>
+            <span className={fieldLabelWideClasses}>Export</span>
             <Select
               value={outputType}
-              onValueChange={(value) =>
-                onOutputTypeChange(value as ExportOutputType)
-              }
+              items={{ video: "Video", audio: "Audio", gif: "GIF" }}
+              onValueChange={(value) => {
+                if (value !== null) {
+                  onOutputTypeChange(value);
+                }
+              }}
             >
-              <SelectTrigger
-                size="sm"
-                aria-label="Export mode"
-                className={compactSelectTriggerClassName()}
-              >
+              <SelectTrigger size="sm" aria-label="Export mode">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -268,15 +264,20 @@ function EditorExportSettingsSectionComponent({
                 : "space-y-1.5"
             }
           >
-            <span className={sectionLabelClassName()}>Format</span>
+            <span className={fieldLabelWideClasses}>Format</span>
             <Select
               value={selectedFormat}
-              onValueChange={(value) => onFormatChange(value as ExportFormat)}
+              items={exportFormats.map((option) => ({
+                value: option.value,
+                label: `${option.label} ${option.extension}`,
+              }))}
+              onValueChange={(value) => {
+                if (value !== null) {
+                  onFormatChange(value);
+                }
+              }}
             >
-              <SelectTrigger
-                size="sm"
-                className={compactSelectTriggerClassName()}
-              >
+              <SelectTrigger size="sm">
                 <SelectValue placeholder="Select format" />
               </SelectTrigger>
               <SelectContent>
@@ -310,17 +311,19 @@ function EditorExportSettingsSectionComponent({
             aria-label="Automatic bit depth"
           >
             <div className="flex items-center gap-1.5">
-              <span className={sectionLabelClassName()}>Bit depth</span>
+              <span className={fieldLabelWideClasses}>Bit depth</span>
               <Tooltip>
-                <TooltipTrigger asChild>
-                  <button
-                    type="button"
-                    aria-label="Automatic bit depth details"
-                    className="inline-flex h-4 w-4 items-center justify-center rounded-full text-muted-foreground transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/50"
-                  >
-                    <Info className="h-3.5 w-3.5" />
-                  </button>
-                </TooltipTrigger>
+                <TooltipTrigger
+                  render={
+                    <button
+                      type="button"
+                      aria-label="Automatic bit depth details"
+                      className="control-focus inline-flex h-4 w-4 items-center justify-center rounded-full text-muted-foreground transition-colors hover:text-foreground"
+                    >
+                      <Info className="h-3.5 w-3.5" />
+                    </button>
+                  }
+                />
                 <TooltipContent side="top" align="start">
                   Matches source precision where possible. Unknown bit depth
                   defaults to 24-bit; mixing uses at least 24-bit. Higher bit
@@ -340,18 +343,17 @@ function EditorExportSettingsSectionComponent({
         {mode !== "audio-only" && (
           <>
             <div className="space-y-1.5">
-              <span className={sectionLabelClassName()}>Quality</span>
+              <span className={fieldLabelWideClasses}>Quality</span>
               <Select
                 value={selectedQuality}
-                onValueChange={(value) =>
-                  onQualityChange(value as ExportQualityPreset)
-                }
+                items={qualityOptions}
+                onValueChange={(value) => {
+                  if (value !== null) {
+                    onQualityChange(value);
+                  }
+                }}
               >
-                <SelectTrigger
-                  size="sm"
-                  className={compactSelectTriggerClassName()}
-                  aria-label="Export quality"
-                >
+                <SelectTrigger size="sm" aria-label="Export quality">
                   <SelectValue placeholder="Select quality" />
                 </SelectTrigger>
                 <SelectContent>
@@ -376,7 +378,7 @@ function EditorExportSettingsSectionComponent({
                 role="group"
                 aria-label="GIF dimensions"
               >
-                <div className={sectionLabelClassName()}>Dimensions</div>
+                <div className={fieldLabelWideClasses}>Dimensions</div>
                 <div className="flex h-8 items-center text-sm font-medium">
                   {outputDimensions
                     ? `${outputDimensions.width} × ${outputDimensions.height}`
@@ -389,17 +391,17 @@ function EditorExportSettingsSectionComponent({
               </div>
             ) : (
               <label className="space-y-1.5">
-                <span className={sectionLabelClassName()}>Resolution</span>
+                <span className={fieldLabelWideClasses}>Resolution</span>
                 <Select
                   value={selectedResolution}
-                  onValueChange={(value) =>
-                    onResolutionChange(value as ExportResolution)
-                  }
+                  items={resolutionOptions}
+                  onValueChange={(value) => {
+                    if (value !== null) {
+                      onResolutionChange(value);
+                    }
+                  }}
                 >
-                  <SelectTrigger
-                    size="sm"
-                    className={compactSelectTriggerClassName()}
-                  >
+                  <SelectTrigger size="sm">
                     <SelectValue placeholder="Select resolution" />
                   </SelectTrigger>
                   <SelectContent>
@@ -424,17 +426,19 @@ function EditorExportSettingsSectionComponent({
         {showSourcePreference && (
           <div className="space-y-1.5">
             <div className="flex items-center gap-1.5">
-              <span className={sectionLabelClassName()}>Source</span>
+              <span className={fieldLabelWideClasses}>Source</span>
               <Tooltip>
-                <TooltipTrigger asChild>
-                  <button
-                    type="button"
-                    aria-label="Export source details"
-                    className="inline-flex h-4 w-4 items-center justify-center rounded-full text-muted-foreground transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/50"
-                  >
-                    <Info className="h-3.5 w-3.5" />
-                  </button>
-                </TooltipTrigger>
+                <TooltipTrigger
+                  render={
+                    <button
+                      type="button"
+                      aria-label="Export source details"
+                      className="control-focus inline-flex h-4 w-4 items-center justify-center rounded-full text-muted-foreground transition-colors hover:text-foreground"
+                    >
+                      <Info className="h-3.5 w-3.5" />
+                    </button>
+                  }
+                />
                 <TooltipContent side="top" align="start">
                   Chooses the media path used for export.
                 </TooltipContent>
@@ -442,14 +446,14 @@ function EditorExportSettingsSectionComponent({
             </div>
             <Select
               value={activeSourcePreference}
-              onValueChange={(value) =>
-                onSourcePreferenceChange?.(value as ExportSourcePreference)
-              }
+              items={sourceOptions}
+              onValueChange={(value) => {
+                if (value !== null) {
+                  onSourcePreferenceChange?.(value);
+                }
+              }}
             >
-              <SelectTrigger
-                size="sm"
-                className={compactSelectTriggerClassName()}
-              >
+              <SelectTrigger size="sm">
                 <SelectValue placeholder="Select source" />
               </SelectTrigger>
               <SelectContent>
@@ -538,17 +542,20 @@ function EditorFilenameTemplateSectionComponent({
       <div className="space-y-3 p-3">
         <div className="grid gap-3 sm:grid-cols-editor-export-template sm:items-end">
           <label className="space-y-1.5">
-            <span className={sectionLabelClassName()}>Template Set</span>
+            <span className={fieldLabelWideClasses}>Template Set</span>
             <Select
               value={editingTemplateKind}
-              onValueChange={(value) =>
-                onEditingTemplateKindChange(value as ExportFileNameTemplateKind)
-              }
+              items={templateOptions.map((option) => ({
+                value: option.kind,
+                label: option.label,
+              }))}
+              onValueChange={(value) => {
+                if (value !== null) {
+                  onEditingTemplateKindChange(value);
+                }
+              }}
             >
-              <SelectTrigger
-                size="sm"
-                className={compactSelectTriggerClassName()}
-              >
+              <SelectTrigger size="sm">
                 <SelectValue placeholder="Select template set" />
               </SelectTrigger>
               <SelectContent>
@@ -574,14 +581,14 @@ function EditorFilenameTemplateSectionComponent({
         </div>
 
         <label className="block space-y-1.5">
-          <span className={sectionLabelClassName()}>Pattern</span>
+          <span className={fieldLabelWideClasses}>Pattern</span>
           <input
             type="text"
             value={fileNameTemplates[editingTemplateKind]}
             onChange={(event) =>
               onFileNameTemplateChange(editingTemplateKind, event.target.value)
             }
-            className="h-8 w-full rounded-md border border-input bg-background px-2.5 font-mono text-xs text-foreground outline-none transition-colors focus:border-ring focus:ring-2 focus:ring-ring/40"
+            className="control-focus h-8 w-full rounded-md border border-input bg-background px-2.5 font-mono text-xs text-foreground outline-none transition-colors focus-visible:border-ring"
             spellCheck={false}
           />
         </label>
@@ -591,7 +598,7 @@ function EditorFilenameTemplateSectionComponent({
         </p>
 
         <div className="rounded-md border border-border bg-background px-3 py-2">
-          <div className={sectionLabelClassName()}>Available Tokens</div>
+          <div className={fieldLabelWideClasses}>Available Tokens</div>
           <div className="mt-2 flex flex-wrap gap-1.5">
             {visibleTokens.map((token) => (
               <code
@@ -683,7 +690,7 @@ function EditorExportSummaryPanelComponent({
   return (
     <aside className="space-y-3 rounded-md border border-border bg-card p-3">
       <div className="border-b border-border pb-2">
-        <div className={sectionLabelClassName()}>Summary</div>
+        <div className={fieldLabelWideClasses}>Summary</div>
       </div>
 
       <div className="text-sm font-medium text-foreground">{title}</div>
@@ -691,7 +698,7 @@ function EditorExportSummaryPanelComponent({
       <dl className="grid gap-2 text-sm">
         {showClipSummary && (
           <div className="rounded-md border border-border bg-background px-3 py-2">
-            <dt className={sectionLabelClassName()}>Clip</dt>
+            <dt className={fieldLabelWideClasses}>Clip</dt>
             <dd className="mt-1 font-mono text-xs text-foreground">
               {formatTime(clipStart)} to {formatTime(clipEnd)}
             </dd>
@@ -699,7 +706,7 @@ function EditorExportSummaryPanelComponent({
         )}
 
         <div className="rounded-md border border-border bg-background px-3 py-2">
-          <dt className={sectionLabelClassName()}>Duration</dt>
+          <dt className={fieldLabelWideClasses}>Duration</dt>
           <dd className="mt-1 font-mono text-xs text-foreground">
             {formatTime(clipLength)}
           </dd>
@@ -707,7 +714,7 @@ function EditorExportSummaryPanelComponent({
 
         {showSourceSummary && (
           <div className="rounded-md border border-border bg-background px-3 py-2">
-            <dt className={sectionLabelClassName()}>Source</dt>
+            <dt className={fieldLabelWideClasses}>Source</dt>
             <dd className="mt-1 text-xs text-foreground">
               {exportSourceLabel}
             </dd>
@@ -720,7 +727,7 @@ function EditorExportSummaryPanelComponent({
         )}
 
         <div className="rounded-md border border-border bg-background px-3 py-2">
-          <dt className={sectionLabelClassName()}>Output</dt>
+          <dt className={fieldLabelWideClasses}>Output</dt>
           <dd className="mt-1 text-xs text-foreground">
             {selectedFormatOption.label}
           </dd>
@@ -748,7 +755,7 @@ function EditorExportSummaryPanelComponent({
 
         {!audioOnly && selectedFormat !== "gif" && (
           <div className="rounded-md border border-border bg-background px-3 py-2">
-            <dt className={sectionLabelClassName()}>Audio</dt>
+            <dt className={fieldLabelWideClasses}>Audio</dt>
             <dd className="mt-2">
               <ExportAudioDetails
                 plan={audioPlan}
@@ -767,7 +774,7 @@ function EditorExportSummaryPanelComponent({
           <div
             className={`rounded-md border px-3 py-2 ${subtitleSummaryClassName}`}
           >
-            <dt className={sectionLabelClassName()}>Subtitles</dt>
+            <dt className={fieldLabelWideClasses}>Subtitles</dt>
             <dd className="mt-1 text-xs font-medium text-foreground">
               {subtitleSummaryLabel}
             </dd>
@@ -779,7 +786,7 @@ function EditorExportSummaryPanelComponent({
 
         {showFilenameSummary && (
           <div className="rounded-md border border-border bg-background px-3 py-2">
-            <dt className={sectionLabelClassName()}>Filename</dt>
+            <dt className={fieldLabelWideClasses}>Filename</dt>
             {displayedFilenameTemplateLabel ? (
               <dd className="mt-1 text-ui-label font-semibold uppercase tracking-[var(--tracking-caps-md)] text-muted-foreground">
                 {displayedFilenameTemplateLabel}

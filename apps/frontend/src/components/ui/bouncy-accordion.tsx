@@ -126,7 +126,7 @@ export function BouncyAccordion({
               aria-expanded={open}
               aria-controls={contentId}
               onClick={() => toggleItem(item.id)}
-              className="flex min-h-11 w-full items-center gap-2 rounded-md px-3 py-3 text-left text-sm font-medium transition-colors hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-60"
+              className="control-focus flex min-h-11 w-full items-center gap-2 rounded-md px-3 py-3 text-left text-sm font-medium transition-colors hover:bg-accent disabled:cursor-not-allowed disabled:opacity-60"
             >
               {item.icon && (
                 <span

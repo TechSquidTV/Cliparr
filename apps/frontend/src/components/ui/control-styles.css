@@ -1,0 +1,17 @@
+/* Shared keyboard focus treatment. Editor controls change only the color token. */
+@utility control-focus {
+  @apply focus-visible:outline-none focus-visible:ring-2;
+
+  &:focus-visible {
+    --tw-ring-color: color-mix(
+      in oklch,
+      var(--control-focus-color, var(--ring)) 40%,
+      transparent
+    );
+  }
+}
+
+@utility editor-control-focus {
+  @apply control-focus;
+  --control-focus-color: var(--editor-accent);
+}

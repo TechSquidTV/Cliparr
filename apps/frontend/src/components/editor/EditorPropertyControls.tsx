@@ -7,10 +7,6 @@ function editorPropertyLabelClassName() {
   return "text-ui-micro font-normal normal-case tracking-normal text-muted-foreground";
 }
 
-export function editorPropertySelectTriggerClassName() {
-  return "h-8 w-full min-w-0 border-editor-border bg-editor-control px-2.5 text-xs font-medium text-sidebar-foreground shadow-none hover:bg-editor-control-hover focus-visible:ring-2 focus-visible:ring-editor-accent/35";
-}
-
 export function EditorPropertySection({
   title,
   action,
@@ -70,7 +66,7 @@ export function EditorPropertyAccordionItem<Value extends string>({
   return (
     <Accordion.Item value={value} className="border-b border-editor-border/80">
       <Accordion.Header className="m-0 flex min-h-10 items-center gap-2 border-b border-editor-border/70 bg-editor-panel-muted/55 px-3 py-2">
-        <Accordion.Trigger className="group flex min-w-0 flex-1 items-center gap-2 bg-transparent text-left text-ui-micro font-semibold uppercase tracking-[var(--tracking-caps-md)] text-sidebar-foreground transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-editor-accent/35 focus-visible:outline-none">
+        <Accordion.Trigger className="editor-control-focus group flex min-w-0 flex-1 items-center gap-2 bg-transparent text-left text-ui-micro font-semibold uppercase tracking-[var(--tracking-caps-md)] text-sidebar-foreground transition-colors hover:text-foreground">
           <ChevronRight className="h-3.5 w-3.5 shrink-0 text-muted-foreground transition-transform duration-150 ease-out group-data-[panel-open]:rotate-90" />
           <span className="min-w-0 truncate">{title}</span>
         </Accordion.Trigger>

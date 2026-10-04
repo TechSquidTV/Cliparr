@@ -509,7 +509,6 @@ function EditorScreenContent({
     >
       <EditorPreview
         canvasRef={connectCanvas}
-        videoDimensions={previewVideoDimensions}
         playing={playing}
         loadingPreview={loadingPreview}
         loadingPreviewFrame={loadingPreviewFrame}

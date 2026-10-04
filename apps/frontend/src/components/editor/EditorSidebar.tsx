@@ -6,6 +6,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { editorIconButtonClassName } from "@/components/ui/control-styles";
 
 interface EditorSidebarProperties {
   open: boolean;
@@ -16,10 +17,6 @@ interface EditorSidebarProperties {
   active?: boolean;
   icon: LucideIcon;
   resizable?: boolean;
-}
-
-function sidebarControlClassName() {
-  return "inline-flex h-8 w-8 items-center justify-center rounded-[var(--radius-control)] border border-editor-border bg-editor-control text-muted-foreground transition-colors hover:bg-editor-control-hover hover:text-foreground focus-visible:ring-2 focus-visible:ring-editor-accent/35 focus-visible:outline-none";
 }
 
 export function EditorSidebar({
@@ -55,16 +52,20 @@ export function EditorSidebar({
             )}
           >
             <Tooltip>
-              <TooltipTrigger asChild>
-                <button
-                  type="button"
-                  onClick={() => onOpenChange(false)}
-                  className={cn(sidebarControlClassName(), "shrink-0")}
-                  aria-label={`Collapse ${title.toLowerCase()} sidebar`}
-                >
-                  <PanelRightClose className="h-4 w-4" />
-                </button>
-              </TooltipTrigger>
+              <TooltipTrigger
+                render={
+                  <button
+                    type="button"
+                    onClick={() => onOpenChange(false)}
+                    className={editorIconButtonClassName({
+                      className: "shrink-0",
+                    })}
+                    aria-label={`Collapse ${title.toLowerCase()} sidebar`}
+                  >
+                    <PanelRightClose className="h-4 w-4" />
+                  </button>
+                }
+              />
               <TooltipContent side="left">
                 Collapse {title.toLowerCase()}
               </TooltipContent>
@@ -92,19 +93,20 @@ export function EditorSidebar({
       ) : (
         <>
           <Tooltip>
-            <TooltipTrigger asChild>
-              <button
-                type="button"
-                onClick={() => onOpenChange(true)}
-                className={cn(
-                  sidebarControlClassName(),
-                  "absolute left-2 top-3 z-10",
-                )}
-                aria-label={`Expand ${title.toLowerCase()} sidebar`}
-              >
-                <PanelRightOpen className="h-4 w-4" />
-              </button>
-            </TooltipTrigger>
+            <TooltipTrigger
+              render={
+                <button
+                  type="button"
+                  onClick={() => onOpenChange(true)}
+                  className={editorIconButtonClassName({
+                    className: "absolute left-2 top-3 z-10",
+                  })}
+                  aria-label={`Expand ${title.toLowerCase()} sidebar`}
+                >
+                  <PanelRightOpen className="h-4 w-4" />
+                </button>
+              }
+            />
             <TooltipContent side="left">
               Expand {title.toLowerCase()}
             </TooltipContent>

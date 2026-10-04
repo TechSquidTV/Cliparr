@@ -404,25 +404,19 @@ export default function ProviderConnectFlow({
       }
 
       return (
-        <ProviderStatusMessage isScreen={isScreen}>
-          Loading providers...
-        </ProviderStatusMessage>
+        <ProviderStatusMessage>Loading providers...</ProviderStatusMessage>
       );
     }
 
     if (!error && providers.length === 0) {
       return (
-        <ProviderStatusMessage isScreen={isScreen}>
-          No providers available.
-        </ProviderStatusMessage>
+        <ProviderStatusMessage>No providers available.</ProviderStatusMessage>
       );
     }
 
     if (providers.length === 0) {
       return (
-        <ProviderStatusMessage isScreen={isScreen}>
-          Could not load providers.
-        </ProviderStatusMessage>
+        <ProviderStatusMessage>Could not load providers.</ProviderStatusMessage>
       );
     }
 

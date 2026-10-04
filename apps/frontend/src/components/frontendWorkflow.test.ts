@@ -1168,6 +1168,7 @@ void test("renders the framegrab export dialog actions", () => {
   assert.match(markup, />Time</);
   assert.match(markup, /Copy Image/);
   assert.match(markup, /Download PNG/);
+  assert.match(markup, /data-slot="select-value">PNG \.png<\/span>/);
   assert.doesNotMatch(markup, />Cancel</);
   assert.match(markup, /w-44/);
   assert.match(markup, /role="status"/);
@@ -1227,6 +1228,7 @@ void test("renders universal quality details for video formats", () => {
   assert.doesNotMatch(markup, /Efficient/);
   assert.match(markup, /Preserves source video when possible\./);
   assert.match(markup, /Sharp quality/);
+  assert.match(markup, /data-slot="select-value">MP4 \.mp4<\/span>/);
   assert.doesNotMatch(markup, /GIF Preset/);
   assert.doesNotMatch(markup, /min-h-\[6\.5rem]/);
   assert.doesNotMatch(markup, /<dt[^>]*>Estimated size<\/dt>/);
