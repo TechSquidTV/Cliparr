@@ -1,0 +1,2 @@
+/* CSS and Motion share the typed values in lib/motionTokens.ts. */
+@plugin "./motionTheme.ts";

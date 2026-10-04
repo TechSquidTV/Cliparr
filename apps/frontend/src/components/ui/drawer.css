@@ -1,7 +1,7 @@
 /* Base UI updates these variables while dragging; transitions finish dismissal. */
 .drawer-popup {
   transform: translateY(var(--drawer-swipe-movement-y, 0px));
-  transition: transform 300ms ease-out;
+  transition: transform var(--motion-duration-standard) ease-out;
 }
 
 .drawer-popup[data-starting-style],
@@ -15,7 +15,7 @@
 
 .drawer-overlay {
   opacity: calc(1 - var(--drawer-swipe-progress, 0));
-  transition: opacity 300ms ease-out;
+  transition: opacity var(--motion-duration-standard) ease-out;
 }
 
 .drawer-overlay[data-starting-style],

@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import "../../../frontend/src/styles/motion.css";
 @import "../../../frontend/src/components/ui/control-styles.css";
 
 @source "../../../frontend/src/components/editor/EditorExportDialogSections.tsx";
