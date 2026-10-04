@@ -22,6 +22,9 @@ development seed, or a different scene unless the user requests that substitutio
 Run without `--write` first and inspect `review.html` and `report.json`; use
 `--write` only for the requested refresh after visual review. Keep the hero poster,
 its README copy, and both hero videos together so the poster matches playback.
+Keep the mobile poster and both mobile videos together as well. The approved
+mobile source is **The Twilight Zone — S01E08, Time Enough at Last**, at
+23:22–23:32. Preserve that source and scene unless the user selects a replacement.
 An explicit request to restore previous tracked captures may restore them directly
 from Git history instead of generating a replacement.
 
@@ -43,7 +46,7 @@ The canonical configuration is `tools/www-assets/src/scenes.ts`:
 | Scene  | Cliparr in/out  | Selected duration | Browser/video size | Caption size | Default recording duration |
 | ------ | --------------- | ----------------- | ------------------ | ------------ | -------------------------- |
 | Hero   | 8:16.07–8:19.01 | 2.94 seconds      | 1600×886           | 72 px        | 82/30 seconds (~2.733)     |
-| Mobile | 2:09.60–2:19.60 | 10 seconds        | 402×874            | 150 px       | 3 seconds                  |
+| Mobile | 23:22–23:32     | 10 seconds        | 402×874            | 150 px       | 3 seconds                  |
 
 The fractional hero timecodes are **decimal seconds, not frame numbers**.
 Cliparr selection and website recording length are separate settings. Never infer

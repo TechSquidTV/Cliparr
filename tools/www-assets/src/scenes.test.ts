@@ -15,8 +15,8 @@ void test("keeps source selection separate from website recording length", () =>
     subtitleFontSize: 72,
   });
   assert.deepEqual(mobile.selection, {
-    inSeconds: 129.6,
-    outSeconds: 139.6,
+    inSeconds: 1402,
+    outSeconds: 1412,
     subtitleFontSize: 150,
   });
   assert.equal(hero.recordingSeconds, 82 / 30);
