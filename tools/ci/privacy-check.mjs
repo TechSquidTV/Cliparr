@@ -53,6 +53,7 @@ const publicHosts = new Set([
   "linuxunplugged.com",
   "mediabunny.dev",
   "schema.org",
+  "selfh.st",
   "semver.org",
   "swagger.io",
   "tailwindcss.com",
