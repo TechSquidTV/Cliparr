@@ -54,6 +54,7 @@ const publicHosts = new Set([
   "mediabunny.dev",
   "schema.org",
   "semver.org",
+  "selfh.st",
   "swagger.io",
   "tailwindcss.com",
   "ui.shadcn.com",
