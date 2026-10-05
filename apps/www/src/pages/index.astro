@@ -2,7 +2,8 @@
 import BaseLayout from "@/components/BaseLayout.astro";
 import CommandBlock from "@/components/CommandBlock.astro";
 import FeatureGrid from "@/components/FeatureGrid.astro";
-import { Picture } from "astro:assets";
+import { Image, Picture } from "astro:assets";
+import linuxUnpluggedLogo from "@/assets/blog/cliparr-3-0-release/linux-unplugged-logo.webp";
 import mobilePreviewMp4 from "@/assets/mobile-pwa-preview.mp4?url";
 import mobilePreviewWebm from "@/assets/mobile-pwa-preview.webm?url";
 import mobilePreviewImage from "@/assets/mobile-pwa-preview.webp";
@@ -15,6 +16,21 @@ import {
   providers,
   site,
 } from "@/data/product";
+
+const asSeenOn = [
+  {
+    name: "LINUX Unplugged",
+    context: "Pick of the week on episode 686",
+    href: "https://linuxunplugged.com/686?t=4626",
+    logo: linuxUnpluggedLogo,
+  },
+  {
+    name: "selfh.st",
+    context: "Listed in the self-hosted apps directory",
+    href: "https://selfh.st/apps/?search=cliparr",
+    logo: "/selfh-st.svg",
+  },
+] as const;
 
 const faqs = [
   {
@@ -304,6 +320,60 @@ const faqStructuredData = {
   </section>
 
   <section class="border-t border-border bg-background py-16 sm:py-20">
+    <div class="container-page">
+      <div class="mx-auto max-w-3xl text-center">
+        <p class="section-eyebrow">As seen on</p>
+        <h2 class="mt-5 text-3xl font-semibold sm:text-5xl">
+          Cliparr in the wild.
+        </h2>
+        <p class="mt-5 text-base leading-7 text-muted-foreground">
+          Places that have mentioned Cliparr.
+        </p>
+      </div>
+      <div class="mx-auto mt-8 grid max-w-4xl gap-4 md:grid-cols-2">
+        {asSeenOn.map((mention) => (
+          <a
+            class="focus-ring rounded-lg border border-border bg-card p-6 transition-colors hover:bg-accent"
+            href={mention.href}
+            target="_blank"
+            rel="noreferrer"
+          >
+            <div class="flex items-center gap-4">
+              <span class="flex h-12 w-12 shrink-0 overflow-hidden rounded-lg border border-border bg-muted">
+                {typeof mention.logo === "string" ? (
+                  <img
+                    src={mention.logo}
+                    alt=""
+                    width={48}
+                    height={48}
+                    loading="lazy"
+                    class="h-full w-full object-cover"
+                  />
+                ) : (
+                  <Image
+                    src={mention.logo}
+                    alt=""
+                    width={48}
+                    height={48}
+                    densities={[1, 2]}
+                    class="h-full w-full object-cover"
+                  />
+                )}
+              </span>
+              <div>
+                <h3 class="text-lg font-semibold">{mention.name}</h3>
+                <p class="mt-1 text-sm leading-6 text-muted-foreground">
+                  {mention.context}
+                </p>
+              </div>
+            </div>
+          </a>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <section class="border-t border-border bg-muted/40 py-16 sm:py-20">
     <div class="container-page">
       <div class="mx-auto max-w-3xl text-center">
         <p class="section-eyebrow">Questions</p>
