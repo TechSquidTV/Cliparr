@@ -36,10 +36,12 @@ export function EditorPreviewPane({
   error,
   variant,
   children,
+  status,
 }: {
   error: string | null;
   variant: EditorLayoutVariant;
   children: ReactNode;
+  status?: ReactNode;
 }) {
   const reduceMotion = useReducedMotion();
   const stateTransition = reduceMotion
@@ -85,6 +87,7 @@ export function EditorPreviewPane({
           </motion.div>
         )}
       </AnimatePresence>
+      {status ? <div className="shrink-0">{status}</div> : null}
       {previewStage}
     </div>
   );
@@ -167,14 +170,14 @@ function EditorPropertiesPanel({
 export function EditorDesktopLayout({
   playbackSidebarOpen,
   onPlaybackSidebarOpenChange,
-  propertiesActive,
+  subtitlesActive,
   previewPane,
   timelinePane,
   propertiesContent,
 }: {
   playbackSidebarOpen: boolean;
   onPlaybackSidebarOpenChange: (open: boolean) => void;
-  propertiesActive: boolean;
+  subtitlesActive: boolean;
   previewPane: ReactNode;
   timelinePane: ReactNode;
   propertiesContent: ReactNode;
@@ -236,7 +239,7 @@ export function EditorDesktopLayout({
             <EditorPropertiesPanel
               open={playbackSidebarOpen}
               onOpenChange={onPlaybackSidebarOpenChange}
-              active={propertiesActive}
+              active={subtitlesActive}
               resizable
             >
               {propertiesContent}
@@ -255,7 +258,7 @@ export function EditorDesktopLayout({
           <EditorPropertiesPanel
             open={playbackSidebarOpen}
             onOpenChange={onPlaybackSidebarOpenChange}
-            active={propertiesActive}
+            active={subtitlesActive}
           >
             <div />
           </EditorPropertiesPanel>

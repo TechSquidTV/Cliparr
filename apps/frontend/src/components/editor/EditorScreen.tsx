@@ -500,12 +500,19 @@ function EditorScreenContent({
     (mode === "audio-only" ? null : subtitleExportSummary.disabledReason);
   const headerExportDisabledReason = durationExportDisabledReason;
   const layoutVariant = isDesktopLayout ? "desktop" : "mobile";
-  const propertiesActive =
-    previewSourceLabel === "Direct source" || Boolean(playbackFallbackReason);
+  const subtitlesActive = subtitleCues.length > 0;
+  const playbackSourcePanel = (
+    <EditorPlaybackSourcePanel
+      previewSourceLabel={previewSourceLabel}
+      fallbackMessage={playbackFallbackReason}
+      className="shrink-0"
+    />
+  );
   const previewPane = (
     <EditorPreviewPane
       error={isDesktopLayout ? error : null}
       variant={layoutVariant}
+      status={isDesktopLayout ? playbackSourcePanel : undefined}
     >
       <EditorPreview
         canvasRef={connectCanvas}
@@ -533,14 +540,6 @@ function EditorScreenContent({
       />
     </EditorPreviewPane>
   );
-  const playbackSourcePanel = (
-    <EditorPlaybackSourcePanel
-      previewSourceLabel={previewSourceLabel}
-      fallbackMessage={playbackFallbackReason}
-      className={isDesktopLayout ? "shrink-0 px-3" : "shrink-0"}
-    />
-  );
-
   const editorControls = (
     <EditorControls
       variant={layoutVariant}
@@ -605,6 +604,7 @@ function EditorScreenContent({
           subtitleOptionsTriggerRef={subtitleOptionsTriggerReference}
           editorPropertiesOpenSections={editorPropertiesOpenSections}
           onEditorPropertiesOpenSectionsChange={setEditorPropertiesOpenSections}
+          showHeading={!isDesktopLayout}
         />
       </div>
     );
@@ -612,7 +612,6 @@ function EditorScreenContent({
 
   const propertiesContent = (
     <div className="flex h-full min-h-0 flex-col gap-3 p-3">
-      {playbackSourcePanel}
       {renderSubtitlePanel("min-h-0 flex-1")}
     </div>
   );
@@ -675,7 +674,7 @@ function EditorScreenContent({
           <EditorDesktopLayout
             playbackSidebarOpen={playbackSidebarOpen}
             onPlaybackSidebarOpenChange={setPlaybackSidebarOpen}
-            propertiesActive={propertiesActive}
+            subtitlesActive={subtitlesActive}
             previewPane={previewPane}
             timelinePane={timelinePane}
             propertiesContent={propertiesContent}
