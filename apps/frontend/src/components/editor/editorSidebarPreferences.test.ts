@@ -10,7 +10,7 @@ import {
 } from "@/components/editor/editorSidebarPreferences";
 
 const editorPropertiesAccordionStorageKey =
-  "cliparr.editor.properties.accordion.v1";
+  "cliparr.editor.subtitles.accordion.v1";
 
 function withStorage<T>(
   initialValues: Record<string, string>,

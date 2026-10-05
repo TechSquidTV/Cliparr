@@ -51,7 +51,7 @@ import { EditorHeader } from "@/components/editor/EditorHeader";
 import { EditorPreview } from "@/components/editor/EditorPreview";
 import { EditorSubtitlePreview } from "@/components/editor/EditorSubtitlePreview";
 import { EditorControls } from "@/components/editor/EditorControls";
-import { EditorPlaybackSourcePanel } from "@/components/editor/EditorPlaybackSourcePanel";
+import { EditorPlaybackSourceControl } from "@/components/editor/EditorPlaybackSourceControl";
 import { EditorTimeline } from "@/components/editor/EditorTimeline";
 import { EditorSubtitlePanel } from "@/components/editor/EditorSubtitlePanel";
 import { EDITOR_DESKTOP_LAYOUT_QUERY } from "@/components/editor/editorLayoutSizing";
@@ -500,8 +500,7 @@ function EditorScreenContent({
     (mode === "audio-only" ? null : subtitleExportSummary.disabledReason);
   const headerExportDisabledReason = durationExportDisabledReason;
   const layoutVariant = isDesktopLayout ? "desktop" : "mobile";
-  const propertiesActive =
-    previewSourceLabel === "Direct source" || Boolean(playbackFallbackReason);
+  const subtitlesActive = subtitleCues.length > 0;
   const previewPane = (
     <EditorPreviewPane
       error={isDesktopLayout ? error : null}
@@ -533,18 +532,9 @@ function EditorScreenContent({
       />
     </EditorPreviewPane>
   );
-  const playbackSourcePanel = (
-    <EditorPlaybackSourcePanel
-      previewSourceLabel={previewSourceLabel}
-      fallbackMessage={playbackFallbackReason}
-      className={isDesktopLayout ? "shrink-0 px-3" : "shrink-0"}
-    />
-  );
-
   const editorControls = (
     <EditorControls
       variant={layoutVariant}
-      playbackSourcePanel={playbackSourcePanel}
       playing={playing}
       loadingPreview={loadingPreview}
       togglePlay={togglePlay}
@@ -605,6 +595,7 @@ function EditorScreenContent({
           subtitleOptionsTriggerRef={subtitleOptionsTriggerReference}
           editorPropertiesOpenSections={editorPropertiesOpenSections}
           onEditorPropertiesOpenSectionsChange={setEditorPropertiesOpenSections}
+          showHeading={!isDesktopLayout}
         />
       </div>
     );
@@ -612,7 +603,6 @@ function EditorScreenContent({
 
   const propertiesContent = (
     <div className="flex h-full min-h-0 flex-col gap-3 p-3">
-      {playbackSourcePanel}
       {renderSubtitlePanel("min-h-0 flex-1")}
     </div>
   );
@@ -644,7 +634,7 @@ function EditorScreenContent({
       <ConfirmationDialog
         open={subtitles.clearPending}
         title="Start with blank subtitles?"
-        description={`Remove all ${subtitleCues.length} subtitles? Your shared style will be kept. You can undo this action.`}
+        description={`Remove all ${subtitleCues.length} subtitles? You can undo this action.`}
         confirmLabel="Start blank"
         onConfirm={subtitles.confirmClear}
         onCancel={subtitles.cancelClear}
@@ -668,6 +658,13 @@ function EditorScreenContent({
         onResetDraft={draft.reset}
         resetDisabled={exporting}
         draftNotice={draft.notice}
+        playbackSourceControl={
+          <EditorPlaybackSourceControl
+            previewSourceLabel={previewSourceLabel}
+            fallbackMessage={playbackFallbackReason}
+            variant={layoutVariant}
+          />
+        }
       />
 
       <main className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto p-2.5 [scrollbar-gutter:stable] sm:p-3 lg:overflow-hidden lg:[scrollbar-gutter:auto]">
@@ -675,7 +672,7 @@ function EditorScreenContent({
           <EditorDesktopLayout
             playbackSidebarOpen={playbackSidebarOpen}
             onPlaybackSidebarOpenChange={setPlaybackSidebarOpen}
-            propertiesActive={propertiesActive}
+            subtitlesActive={subtitlesActive}
             previewPane={previewPane}
             timelinePane={timelinePane}
             propertiesContent={propertiesContent}

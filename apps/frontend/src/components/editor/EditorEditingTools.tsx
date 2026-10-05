@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useRef, useState, type ReactNode } from "react";
 import {
   Keyboard,
   MoreHorizontal,
@@ -48,12 +48,14 @@ export function EditorEditingTools({
   onResetDraft,
   resetDisabled,
   draftNotice,
+  playbackSourceControl,
 }: {
   history: ReturnType<typeof useEditorHistory>;
   variant: EditorLayoutVariant;
   onResetDraft: () => void;
   resetDisabled: boolean;
   draftNotice: string | null;
+  playbackSourceControl: ReactNode;
 }) {
   const [helpOpen, setHelpOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -69,7 +71,7 @@ export function EditorEditingTools({
         setMenuOpen(false);
         setHelpOpen(true);
       }}
-      className={`${compactSecondaryButtonClasses} ${mobile ? "m-3 min-h-11" : "ml-auto"}`}
+      className={`${compactSecondaryButtonClasses} ${mobile ? "m-3 min-h-11" : ""}`}
     >
       <Keyboard className="h-4 w-4" /> Shortcuts
     </button>
@@ -171,18 +173,21 @@ export function EditorEditingTools({
             <DrawerHeader>
               <DrawerTitle>Editor options</DrawerTitle>
               <DrawerDescription>
-                Manage this device’s draft and view keyboard shortcuts.
+                View playback details, manage this device’s draft, and view
+                keyboard shortcuts.
               </DrawerDescription>
             </DrawerHeader>
+            {playbackSourceControl}
             {shortcutsButton}
             {resetButton}
           </DrawerContent>
         </Drawer>
       ) : (
-        <>
+        <div className="ml-auto flex items-center gap-2">
+          {playbackSourceControl}
           {shortcutsButton}
           {resetButton}
-        </>
+        </div>
       )}
       {mobile ? (
         <Drawer open={resetOpen} onOpenChange={setResetOpen}>
