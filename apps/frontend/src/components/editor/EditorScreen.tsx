@@ -51,7 +51,7 @@ import { EditorHeader } from "@/components/editor/EditorHeader";
 import { EditorPreview } from "@/components/editor/EditorPreview";
 import { EditorSubtitlePreview } from "@/components/editor/EditorSubtitlePreview";
 import { EditorControls } from "@/components/editor/EditorControls";
-import { EditorPlaybackSourcePanel } from "@/components/editor/EditorPlaybackSourcePanel";
+import { EditorPlaybackSourceControl } from "@/components/editor/EditorPlaybackSourceControl";
 import { EditorTimeline } from "@/components/editor/EditorTimeline";
 import { EditorSubtitlePanel } from "@/components/editor/EditorSubtitlePanel";
 import { EDITOR_DESKTOP_LAYOUT_QUERY } from "@/components/editor/editorLayoutSizing";
@@ -501,18 +501,10 @@ function EditorScreenContent({
   const headerExportDisabledReason = durationExportDisabledReason;
   const layoutVariant = isDesktopLayout ? "desktop" : "mobile";
   const subtitlesActive = subtitleCues.length > 0;
-  const playbackSourcePanel = (
-    <EditorPlaybackSourcePanel
-      previewSourceLabel={previewSourceLabel}
-      fallbackMessage={playbackFallbackReason}
-      className="shrink-0"
-    />
-  );
   const previewPane = (
     <EditorPreviewPane
       error={isDesktopLayout ? error : null}
       variant={layoutVariant}
-      status={isDesktopLayout ? playbackSourcePanel : undefined}
     >
       <EditorPreview
         canvasRef={connectCanvas}
@@ -543,7 +535,6 @@ function EditorScreenContent({
   const editorControls = (
     <EditorControls
       variant={layoutVariant}
-      playbackSourcePanel={playbackSourcePanel}
       playing={playing}
       loadingPreview={loadingPreview}
       togglePlay={togglePlay}
@@ -667,6 +658,13 @@ function EditorScreenContent({
         onResetDraft={draft.reset}
         resetDisabled={exporting}
         draftNotice={draft.notice}
+        playbackSourceControl={
+          <EditorPlaybackSourceControl
+            previewSourceLabel={previewSourceLabel}
+            fallbackMessage={playbackFallbackReason}
+            variant={layoutVariant}
+          />
+        }
       />
 
       <main className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto p-2.5 [scrollbar-gutter:stable] sm:p-3 lg:overflow-hidden lg:[scrollbar-gutter:auto]">

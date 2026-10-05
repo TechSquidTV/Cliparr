@@ -36,12 +36,10 @@ export function EditorPreviewPane({
   error,
   variant,
   children,
-  status,
 }: {
   error: string | null;
   variant: EditorLayoutVariant;
   children: ReactNode;
-  status?: ReactNode;
 }) {
   const reduceMotion = useReducedMotion();
   const stateTransition = reduceMotion
@@ -87,7 +85,6 @@ export function EditorPreviewPane({
           </motion.div>
         )}
       </AnimatePresence>
-      {status ? <div className="shrink-0">{status}</div> : null}
       {previewStage}
     </div>
   );
