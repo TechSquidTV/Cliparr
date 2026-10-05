@@ -19,3 +19,6 @@
 ../packages/plex/src/generated/
 
 ../.asset-capture/
+
+# Separate Git checkouts are outside this workspace.
+../.claude/worktrees/

@@ -9,7 +9,6 @@ import mobilePreviewWebm from "@/assets/mobile-pwa-preview.webm?url";
 import mobilePreviewImage from "@/assets/mobile-pwa-preview.webp";
 import previewMp4 from "@/assets/preview.mp4?url";
 import previewWebm from "@/assets/preview.webm?url";
-import selfhstLogo from "@/assets/press/selfh-st.svg";
 import screenshotImage from "@/assets/screenshot.webp";
 import {
   dockerRunCommandVariants,
@@ -29,7 +28,7 @@ const asSeenOn = [
     name: "selfh.st",
     context: "Listed in the self-hosted apps directory",
     href: "https://selfh.st/apps/?search=cliparr",
-    logo: selfhstLogo,
+    logo: "/selfh-st.svg",
   },
 ] as const;
 
@@ -341,14 +340,25 @@ const faqStructuredData = {
           >
             <div class="flex items-center gap-4">
               <span class="flex h-12 w-12 shrink-0 overflow-hidden rounded-lg border border-border bg-muted">
-                <Image
-                  src={mention.logo}
-                  alt=""
-                  width={48}
-                  height={48}
-                  densities={[1, 2]}
-                  class="h-full w-full object-cover"
-                />
+                {typeof mention.logo === "string" ? (
+                  <img
+                    src={mention.logo}
+                    alt=""
+                    width={48}
+                    height={48}
+                    loading="lazy"
+                    class="h-full w-full object-cover"
+                  />
+                ) : (
+                  <Image
+                    src={mention.logo}
+                    alt=""
+                    width={48}
+                    height={48}
+                    densities={[1, 2]}
+                    class="h-full w-full object-cover"
+                  />
+                )}
               </span>
               <div>
                 <h3 class="text-lg font-semibold">{mention.name}</h3>

@@ -1,4 +1,4 @@
-import { Eye } from "lucide-react";
+import { Captions } from "lucide-react";
 import type { ReactNode } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import {
@@ -154,8 +154,8 @@ function EditorPropertiesPanel({
     <EditorSidebar
       open={open}
       onOpenChange={onOpenChange}
-      title="Properties"
-      icon={Eye}
+      title="Subtitles"
+      icon={Captions}
       active={active}
       resizable={resizable}
     >
@@ -167,14 +167,14 @@ function EditorPropertiesPanel({
 export function EditorDesktopLayout({
   playbackSidebarOpen,
   onPlaybackSidebarOpenChange,
-  propertiesActive,
+  subtitlesActive,
   previewPane,
   timelinePane,
   propertiesContent,
 }: {
   playbackSidebarOpen: boolean;
   onPlaybackSidebarOpenChange: (open: boolean) => void;
-  propertiesActive: boolean;
+  subtitlesActive: boolean;
   previewPane: ReactNode;
   timelinePane: ReactNode;
   propertiesContent: ReactNode;
@@ -236,7 +236,7 @@ export function EditorDesktopLayout({
             <EditorPropertiesPanel
               open={playbackSidebarOpen}
               onOpenChange={onPlaybackSidebarOpenChange}
-              active={propertiesActive}
+              active={subtitlesActive}
               resizable
             >
               {propertiesContent}
@@ -255,7 +255,7 @@ export function EditorDesktopLayout({
           <EditorPropertiesPanel
             open={playbackSidebarOpen}
             onOpenChange={onPlaybackSidebarOpenChange}
-            active={propertiesActive}
+            active={subtitlesActive}
           >
             <div />
           </EditorPropertiesPanel>

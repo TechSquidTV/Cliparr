@@ -79,10 +79,13 @@ void test("limits private-address exceptions to documented policy fixtures and D
 void test("checks bare private hostname literals and permits reviewed public origins", () => {
   const host = ["fixture-device", "lan"].join(".");
   assert.equal(findPrivacyIssues("fixture.ts", `"${host}"`).length, 1);
-  assert.deepEqual(
-    findPrivacyIssues("docs.md", "https://developer.plex.tv/pms/"),
-    [],
-  );
+  for (const url of [
+    "https://developer.plex.tv/pms/",
+    "https://selfh.st/apps/?search=cliparr",
+    "https://selfh.st/apps/?tag=Media%20Streaming",
+  ]) {
+    assert.deepEqual(findPrivacyIssues("docs.md", url), []);
+  }
 });
 
 void test("checks scheme variants and scheme-relative endpoints without exposing values", () => {
