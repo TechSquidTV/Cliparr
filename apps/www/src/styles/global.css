@@ -226,7 +226,7 @@
 
   .prose-docs > table th,
   .prose-docs > table td {
-    @apply min-w-40 px-4 py-3 text-left align-top;
+    @apply px-4 py-3 text-left align-top sm:min-w-40;
   }
 
   .prose-docs > table th {

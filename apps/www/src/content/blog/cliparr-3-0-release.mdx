@@ -1,0 +1,199 @@
+---
+title: "Cliparr 3.0: audio exports, custom subtitles, and live updates"
+seoTitle: "Cliparr 3.0: audio exports and custom subtitles"
+description: "Cliparr 3.0 brings audio exports, custom subtitle tracks, live Plex and Jellyfin dashboard updates, and versioned JSON metadata for your clips."
+# Placeholder date; update before publishing.
+publishedAt: "2026-10-04"
+heroImage: cliparr-3-0-release-hero
+heroImageAlt: "Cliparr 3.0 hero with metallic V3 lettering beside a laptop displaying the editor and a custom subtitle."
+author:
+  name: KyleTryon
+  url: https://github.com/KyleTryon
+tags:
+  - engineering
+---
+
+import AudioPlayer from "../../components/AudioPlayer.astro";
+import SelfhstListing from "../../components/SelfhstListing.astro";
+import { Image } from "astro:assets";
+import audioExport from "../../assets/blog/cliparr-3-0-release/audio-export.webp";
+import customSubtitleTracks from "../../assets/blog/cliparr-3-0-release/custom-subtitle-tracks.webp";
+import subtitleTimeline from "../../assets/blog/cliparr-3-0-release/subtitle-timeline.webp";
+import podcastWaveform from "../../assets/blog/cliparr-3-0-release/linux-unplugged-686-waveform.json";
+import podcastPoster from "../../assets/blog/cliparr-3-0-release/linux-unplugged-logo.webp";
+import podcastTranscript from "../../assets/blog/cliparr-3-0-release/linux-unplugged-686-transcript.srt?raw";
+
+Version 3.0 so soon after v2? That's right!
+
+New features, "breaking" changes, and boring things that will make Cliparr more stable long term and ensure easier and more frequent maintenace.
+
+Just like last time, the change to Cliparr's major version number is driven by [semantic versioning](https://semver.org/).
+Since the last update (2.0.2), we've incorporated a few changes that are _technically_ "breaking" changes but are unlikely to impact anyone using Cliparr today.
+
+## Featured on the LINUX Unplugged podcast
+
+First, a quick look at a shoutout.
+
+Cliparr was recently featured on the [LINUX Unplugged](https://linuxunplugged.com/) podcast, and the hosts gave it the most exceptional review a developer could hope to hear.
+Check out what [Chris Fisher](https://linuxunplugged.com/hosts/chrislas), [Wes Payne](https://linuxunplugged.com/hosts/wes), and [Brent Gervais](https://linuxunplugged.com/hosts/brent) had to say about [Cliparr](https://cliparr.dev).
+
+<AudioPlayer
+  src="/audio/linux-unplugged-686-cliparr.mp3"
+  title="686: Stop Desktop Slop"
+  poster={{ src: podcastPoster, alt: "LINUX Unplugged podcast artwork" }}
+  eyebrow="LINUX Unplugged"
+  subtitle="Cliparr: Pick of the week"
+  duration={podcastWaveform.duration}
+  waveform={podcastWaveform.peaks}
+  transcript={podcastTranscript}
+  source={{
+    label: "Listen to the full episode",
+    url: "https://linuxunplugged.com/686?t=4626",
+  }}
+/>
+
+## Listed on Selfh.st
+
+[selfh.st](https://selfh.st/apps/) is _the_ directory for discovering self-hosted applications for your home server.
+
+[Cliparr](https://selfh.st/apps/?search=cliparr) is now one of less than 40 applications listed in the [Media Streaming](https://selfh.st/apps/?search=&tag=Media+Streaming) category, alongside apps like Plex, Jellyfin, and other popular companion apps for self-hosted media management.
+
+<SelfhstListing />
+
+## What's new
+
+### Choose video, GIF, or audio
+
+The updated export UI starts with a more deliberate choice of **Video**, **GIF**, or _now **Audio**_, with formats and settings tailored to each one. Your format selections are remembered when you switch export types.
+
+**New audio-only exports** are perfect for soundboards, podcasts, sound bites for streamers, and more.
+
+<Image
+  src={audioExport}
+  alt="Cliparr's updated export settings with Audio selected, MP3 format, automatic source selection, and an option to mix down to stereo."
+  width={558}
+  densities={[1, 2]}
+  format="webp"
+  quality={95}
+  loading="lazy"
+  class="mx-auto mt-6 block h-auto w-full max-w-[558px] rounded-lg border border-border"
+/>
+
+The new audio export options:
+
+| Format     | File  | Type     |
+| ---------- | ----- | -------- |
+| MP3        | .mp3  | Lossy    |
+| M4A / AAC  | .m4a  | Lossy    |
+| Ogg / Opus | .ogg  | Lossy    |
+| FLAC       | .flac | Lossless |
+| WAV        | .wav  | Lossless |
+
+Along with the new audio export option, the export screen should feel more intuitive and easier to use.
+More settings now use smarter defaults based on the original media, and the export screen prevents you from choosing unsupported or incompatible options.
+
+### Fully customizable subtitle tracks
+
+Subtitles are now **fully customizable and independent of your source media**. Freely add, edit, or remove captions, whether the original video includes subtitles or not.
+
+Add your own captions and adjust their text, timing, and styling to suit your clip.
+
+<Image
+  src={customSubtitleTracks}
+  alt="Cliparr's editor with a custom subtitle on the timeline and controls for its text, timing, font, color, shadow, and stroke."
+  width={672}
+  densities={[1, 2]}
+  format="webp"
+  quality={95}
+  loading="lazy"
+  class="mx-auto my-6 block h-auto w-full max-w-[672px] rounded-lg border border-border"
+/>
+
+If no subtitles are found in the stream, the side panel includes a button to add a custom caption. The subtitle track in the editor now also has a **+** button that does the same. The Delete button remains in the side panel, and you can also use the **Delete** key.
+
+<Image
+  src={subtitleTimeline}
+  alt="Cliparr's timeline with a plus button beside the Subtitles track and a custom caption labeled New subtitle."
+  width={672}
+  densities={[1, 2]}
+  format="webp"
+  quality={95}
+  loading="lazy"
+  class="mx-auto my-6 block h-auto w-full max-w-[672px] rounded-lg border border-border"
+/>
+
+In future feature updates we will make the number of subtitle tracks dynamic, so you can layer captions like you might see in a typical TOP BOTTOM meme template. I would have liked to include that in this update, but it is going to have a substantial impact on UX and requires more consideration.
+
+### No more manual refreshing!
+
+<svg
+  xmlns="http://www.w3.org/2000/svg"
+  width="48"
+  height="48"
+  viewBox="0 0 24 24"
+  fill="none"
+  stroke="currentColor"
+  stroke-width="2"
+  stroke-linecap="round"
+  stroke-linejoin="round"
+  aria-hidden="true"
+  class="mx-auto my-8 block"
+>
+  <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"></path>
+  <path d="M21 3v5h-5"></path>
+  <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"></path>
+  <path d="M8 16H3v5"></path>
+</svg>
+
+Until now, if you had Cliparr already open and changed the media on your server, you would often need to refresh the dashboard manually for the changes to appear. Not anymore! Plex and Jellyfin now broadcast changes to Cliparr for live updates. The refresh button in the dashboard has been removed.
+
+This change was not free, however.
+
+While it's a small quality-of-life improvement for users, it required more setup in the Cliparr server to receive those updates and relay them to the Cliparr frontend.
+
+This is a clean update, but if we ever want to make Cliparr a fully browser-based application with no server, this is something we'll need to address. Receiving and relaying these updates is now one of the two main reasons the Cliparr server exists. The other is acting as a proxy to handle CORS issues and support a variety of deployment setups. Otherwise, the server remains a thin wrapper.
+
+### Versioned metadata JSON
+
+Exported video and audio clips retain embedded metadata that links them to their source. Currently, this includes movie titles or TV series, season, and episode details when available, as well as the clip's original start time, end time, and duration.
+
+Cliparr writes standard metadata tags where the selected output format supports them, improving compatibility with existing tools. It also embeds a custom JSON tag containing source details and clip timing. This format is a little easier to work with in modern tools and provides a more predictable structure. As far as I know, no other tools consume it yet.
+
+New in v3.0.0, that existing JSON metadata is now **versioned**, with source details and clip timing organized separately.
+An explicit version should give developers more confidence when building tools that use Cliparr's metadata. It's one more way Cliparr is maturing.
+
+Here's a simplified example for a 30-second clip from a TV episode:
+
+```json
+{
+  "version": 1,
+  "source": {
+    "itemType": "episode",
+    "title": "Example episode",
+    "showTitle": "Example series",
+    "seasonNumber": 1,
+    "episodeNumber": 3
+  },
+  "clip": {
+    "sourceStartSeconds": 65.125,
+    "sourceEndSeconds": 95.125,
+    "durationSeconds": 30
+  }
+}
+```
+
+The timestamps refer to the selected interval in the original source.
+
+**For developers:** Version 1 replaces the previous unversioned `clpr` JSON payload. If you have scripts that read it, update them for the new structure. See the [export metadata documentation](/docs/export-metadata/) for the schema and container-specific tags.
+
+### Performance and security updates
+
+Finally, the boring stuff.
+
+Most of Cliparr's media processing happens in the browser, but security still matters. AI helped identify areas to harden, and this release includes security fixes and dependency updates.
+
+We added several new encoders when adding support for audio exports. So, we took that opportunity to ensure all encoders are lazy-loaded at export, only if they are selected. This might mean a tiny delay before the export button is available, but will reduce overall bandwidth and memory usage.
+
+CI tests and Docker builds are finally significantly faster. We now more intelligently skip certain aspects of the CI workflow when they are not relevant to the changes.
+
+For full release details, see the [Changelog](/changelog/).
