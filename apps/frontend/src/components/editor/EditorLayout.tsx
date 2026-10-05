@@ -1,4 +1,4 @@
-import { Eye } from "lucide-react";
+import { Captions } from "lucide-react";
 import type { ReactNode } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import {
@@ -154,8 +154,8 @@ function EditorPropertiesPanel({
     <EditorSidebar
       open={open}
       onOpenChange={onOpenChange}
-      title="Properties"
-      icon={Eye}
+      title="Subtitles"
+      icon={Captions}
       active={active}
       resizable={resizable}
     >

@@ -644,7 +644,7 @@ function EditorScreenContent({
       <ConfirmationDialog
         open={subtitles.clearPending}
         title="Start with blank subtitles?"
-        description={`Remove all ${subtitleCues.length} subtitles? Your shared style will be kept. You can undo this action.`}
+        description={`Remove all ${subtitleCues.length} subtitles? You can undo this action.`}
         confirmLabel="Start blank"
         onConfirm={subtitles.confirmClear}
         onCancel={subtitles.cancelClear}

@@ -16,7 +16,7 @@ export const DEFAULT_EDITOR_PROPERTIES_OPEN_SECTIONS = [
 ] as const satisfies EditorPropertiesOpenSections;
 
 const EDITOR_PROPERTIES_ACCORDION_STORAGE_KEY =
-  "cliparr.editor.properties.accordion.v1";
+  "cliparr.editor.subtitles.accordion.v1";
 
 interface EditorPropertiesAccordionPreferences {
   openSections: EditorPropertiesOpenSections;

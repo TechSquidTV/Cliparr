@@ -148,8 +148,7 @@ export function EditorSubtitlePanel({
       className="flex h-full min-h-0 flex-col bg-editor-panel text-sidebar-foreground"
     >
       <div className="sticky top-0 z-10 shrink-0 space-y-2 border-b border-editor-border bg-editor-panel p-3">
-        <div className="flex items-center justify-between gap-2">
-          <h2 className="text-sm font-semibold">Subtitles</h2>
+        <div className="flex items-center justify-end gap-2">
           <Switch
             aria-label="Show subtitles"
             checked={subtitleOutputEnabled}
@@ -391,7 +390,7 @@ export function EditorSubtitlePanel({
         >
           <EditorPropertyAccordionItem<EditorPropertiesSectionId>
             value={EDITOR_PROPERTIES_SECTION_ID.subtitleStyle}
-            title="Shared style"
+            title="Subtitle style"
           >
             <EditorPropertySection title="Text">
               <EditorPropertyRow label="Font">
