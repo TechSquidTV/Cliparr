@@ -1,4 +1,4 @@
-import { useMemo, type CSSProperties, type ReactNode } from "react";
+import { useMemo, type CSSProperties } from "react";
 import {
   Camera,
   Pause,
@@ -32,7 +32,6 @@ type EditorControlsVariant = "desktop" | "mobile";
 
 interface EditorControlsProperties {
   variant?: EditorControlsVariant;
-  playbackSourcePanel: ReactNode;
   playing: boolean;
   loadingPreview: boolean;
   togglePlay: () => void;
@@ -61,7 +60,6 @@ interface EditorControlsProperties {
 
 export function EditorControls({
   variant = "desktop",
-  playbackSourcePanel,
   playing,
   loadingPreview,
   togglePlay,
@@ -404,7 +402,6 @@ export function EditorControls({
                 </DrawerDescription>
               </DrawerHeader>
               <div className="min-h-0 overflow-y-auto px-3 pb-4">
-                <div className="pt-3">{playbackSourcePanel}</div>
                 <section className="border-b border-editor-border py-3">
                   <div className="mb-2 text-ui-micro font-semibold uppercase tracking-[var(--tracking-caps-md)] text-muted-foreground">
                     Playback

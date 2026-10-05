@@ -979,7 +979,6 @@ void test("renders mobile editor controls trigger and compact range summary", ()
       TooltipProvider,
       null,
       createElement(EditorControls, {
-        playbackSourcePanel: null,
         variant: "mobile",
         playing: false,
         loadingPreview: false,
@@ -1074,7 +1073,6 @@ void test("renders the editor framegrab camera control", () => {
       TooltipProvider,
       null,
       createElement(EditorControls, {
-        playbackSourcePanel: null,
         playing: false,
         loadingPreview: false,
         togglePlay: () => {},
