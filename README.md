@@ -14,7 +14,7 @@ Self-hosted clipping for Plex, Jellyfin, and local files. Trim video, add subtit
 
 [Documentation](https://cliparr.dev/docs)
 
-<img src="./apps/www/src/assets/screenshot.webp" alt="Cliparr editor showing a video preview, timeline clip selection, and subtitle controls." width="100%" />
+<img src="./.github/img/screenshot.webp" alt="Cliparr editor showing a video preview, timeline clip selection, and subtitle controls." width="100%" />
 
 ## Features
 
