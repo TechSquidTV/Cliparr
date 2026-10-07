@@ -341,6 +341,7 @@ function EditorScreenContent({
       subtitleLoading,
       subtitleError,
       clippedSubtitleCues,
+      subtitleCues,
       setSubtitleEnabled,
       setSubtitleStyleSettings,
       requestImport,

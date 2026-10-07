@@ -18,6 +18,7 @@ export interface AssetCaptureState {
   playing: boolean;
   subtitlesReady: boolean;
   subtitleCueCount: number;
+  activeSubtitleCueCount: number;
   subtitleTracks: { key: string; title: string }[];
   error: string;
 }
@@ -25,6 +26,7 @@ export interface AssetCaptureState {
 export interface AssetCaptureController {
   inspect: () => AssetCaptureState;
   configure: (selection: AssetCaptureSelection) => void;
+  seek: (seconds: number) => void;
   fitSelection: () => void;
   play: () => Promise<void>;
   pause: () => void;

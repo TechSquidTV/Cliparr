@@ -11,9 +11,9 @@ export const site = {
   ogImage: "/og.jpg",
   ogImageAlt:
     "Cliparr editor showing a video preview with subtitles, timeline clip selection, and subtitle controls.",
-  ogImageHeight: 886,
+  ogImageHeight: 630,
   ogImageType: "image/jpeg",
-  ogImageWidth: 1600,
+  ogImageWidth: 1200,
   logo: "/logo-light.svg",
   schemaLogo: "/pwa-icon-512.png",
   sameAs: ["https://github.com/TechSquidTV/Cliparr"],
