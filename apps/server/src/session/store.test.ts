@@ -14,7 +14,7 @@ const databaseModuleSpecifier = "@/db/database";
 const providerAccountsRepositoryModuleSpecifier =
   "@/db/providerAccountsRepository";
 const mediaSourcesRepositoryModuleSpecifier = "@/db/mediaSourcesRepository";
-const providerPersistenceModuleSpecifier = "@/db/providerPersistence";
+const providerPersistenceModuleSpecifier = "@/providers/providerPersistence";
 const rememberedProviderSessionsRepositoryModuleSpecifier =
   "@/db/rememberedProviderSessionsRepository";
 const storeModuleSpecifier = "@/session/store";
@@ -633,7 +633,7 @@ void test("disconnect revokes cached sessions immediately after a Plex account m
     const { createApp } = await import(${JSON.stringify(appModuleSpecifier)});
     const { getProviderAccount } = await import(${JSON.stringify(providerAccountsRepositoryModuleSpecifier)});
     const { upsertMediaSource } = await import(${JSON.stringify(mediaSourcesRepositoryModuleSpecifier)});
-    const { cleanupDuplicatePlexSources } = await import("@/db/plexSourceDeduplication");
+    const { cleanupDuplicatePlexSources } = await import("@/providers/plex/sourceDeduplication");
     const { getSessionCookieName } = await import(${JSON.stringify(storeModuleSpecifier)});
     const { PLEX_BASE_URL_MODE_MANUAL } = await import("@/providers/plex/connectionState");
     const { app } = await createApp();

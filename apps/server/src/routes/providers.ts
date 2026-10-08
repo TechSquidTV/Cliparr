@@ -5,7 +5,7 @@ import {
   logErrorFields,
   logEventFields,
 } from "@cliparr/shared/logging";
-import { persistProviderAuth } from "@/db/providerPersistence";
+import { persistProviderAuth } from "@/providers/providerPersistence";
 import { createRememberedProviderSession } from "@/db/rememberedProviderSessionsRepository";
 import { asyncHandler, createApiError, isApiError } from "@/http/errors";
 import { getRequestRouteUrl } from "@/http/requestOrigin";

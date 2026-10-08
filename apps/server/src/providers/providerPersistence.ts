@@ -10,7 +10,7 @@ import {
   updateMediaSource,
   upsertMediaSource,
 } from "@/db/mediaSourcesRepository";
-import { cleanupDuplicatePlexSources } from "@/db/plexSourceDeduplication";
+import { cleanupDuplicatePlexSources } from "@/providers/plex/sourceDeduplication";
 import {
   getProviderAccount,
   updateProviderAccount,
