@@ -11,8 +11,8 @@ import {
   updateMediaSource,
   upsertMediaSource,
 } from "@/db/mediaSourcesRepository";
-import { cleanupDuplicatePlexSources } from "@/db/plexSourceDeduplication";
-import { persistProviderAuth } from "@/db/providerPersistence";
+import { cleanupDuplicatePlexSources } from "@/providers/plex/sourceDeduplication";
+import { persistProviderAuth } from "@/providers/providerPersistence";
 import {
   getProviderAccount,
   upsertProviderAccountByAccessToken,
