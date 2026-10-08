@@ -1,6 +1,5 @@
 import { randomBytes } from "node:crypto";
 import {
-  copyFile,
   mkdir,
   mkdtemp,
   readFile,
@@ -10,13 +9,15 @@ import {
 } from "node:fs/promises";
 import path from "node:path";
 import { parseArgs } from "node:util";
-import { buildScenes } from "#/scenes.ts";
+import { writeCaptureAssets } from "#/write.ts";
+import { buildScenes, captureTarget } from "#/scenes.ts";
 import { run } from "#/process.ts";
 
 const root = path.resolve(import.meta.dirname, "../../..");
 const { values } = parseArgs({
   options: {
     "media-dir": { type: "string" },
+    target: { type: "string", default: "all" },
     hero: { type: "string", default: "hero.mkv" },
     mobile: { type: "string", default: "mobile.mkv" },
     "hero-seconds": { type: "string" },
@@ -31,13 +32,13 @@ const { values } = parseArgs({
 async function main() {
   if (values.help) {
     process.stdout.write(
-      `Usage: pnpm assets:capture --media-dir /path/to/media [options]\n\n  --hero <relative-file>       Default hero.mkv\n  --mobile <relative-file>     Default mobile.mkv\n  --hero-seconds <seconds>     Recording duration; default 82/30\n  --mobile-seconds <seconds>   Recording duration; default 3\n  --hero-subtitle <track-key>  Override the preferred text subtitle track\n  --mobile-subtitle <track-key>\n  --write                     Replace previews, docs images, and social preview after validation\n\nSelections remain hero 496.07–499.01 and mobile 1402–1412 seconds.\n`,
+      `Usage: pnpm assets:capture --media-dir /path/to/media [options]\n\n  --hero <relative-file>       Default hero.mkv\n  --target <all|readme-social> Default all; readme-social captures only the still pair\n  --mobile <relative-file>     Default mobile.mkv\n  --hero-seconds <seconds>     Recording duration; default 82/30\n  --mobile-seconds <seconds>   Recording duration; default 3\n  --hero-subtitle <track-key>  Override the preferred text subtitle track\n  --mobile-subtitle <track-key>\n  --write                     Replace only the selected target assets after validation\n\nSelections remain hero 496.07–499.01 and mobile 1402–1412 seconds.\n`,
     );
     return;
   }
   if (!values["media-dir"]) {
     throw new Error(
-      "Provide --media-dir containing the two source media assets and subtitles.",
+      "Provide --media-dir containing the selected source media and subtitles.",
     );
   }
   const mediaDirectory = await realpath(values["media-dir"]);
@@ -45,7 +46,9 @@ async function main() {
   if (!mediaDirectoryStat.isDirectory()) {
     throw new Error("--media-dir must be a directory.");
   }
+  const target = captureTarget(values.target);
   const scenes = buildScenes({
+    target,
     hero: values.hero,
     mobile: values.mobile,
     ...(values["hero-seconds"] === undefined
@@ -82,7 +85,7 @@ async function main() {
   const output = await realpath(await mkdtemp(path.join(runs, "run-")));
   await writeFile(
     path.join(output, "plan.json"),
-    JSON.stringify({ scenes }, null, 2),
+    JSON.stringify({ target, scenes }, null, 2),
   );
   const environment = {
     ...process.env,
@@ -125,43 +128,10 @@ async function main() {
     // The recorder writes this last, only after both complete and validate.
     await readFile(path.join(output, "report.json"), "utf8");
     if (values.write) {
-      const readmeAssetsDir = path.join(root, ".github", "img");
-      await mkdir(readmeAssetsDir, { recursive: true });
-      for (const scene of scenes) {
-        for (const extension of ["mp4", "webm"]) {
-          const name = `${scene.videoName}.${extension}`;
-          await copyFile(
-            path.join(output, name),
-            path.join(root, "apps/www/src/assets", name),
-          );
-        }
-        const name = `${scene.posterName}.webp`;
-        await copyFile(
-          path.join(output, name),
-          path.join(root, "apps/www/src/assets", name),
-        );
-        if (scene.name === "hero") {
-          await copyFile(
-            path.join(output, name),
-            path.join(readmeAssetsDir, "screenshot.webp"),
-          );
-        }
-      }
-    }
-    if (values.write) {
-      for (const name of ["export-dialog.webp", "subtitle-panel.webp"]) {
-        await copyFile(
-          path.join(output, name),
-          path.join(root, "apps/www/public/docs", name),
-        );
-      }
-      await copyFile(
-        path.join(output, "og.jpg"),
-        path.join(root, "apps/www/public/og.jpg"),
-      );
+      await writeCaptureAssets(root, output, { target, scenes });
     }
     process.stdout.write(
-      `Capture complete: ${path.join(output, "review.html")}\n${values.write ? "Updated previews, documentation images, and social preview.\n" : "Website assets unchanged; use --write to replace them.\n"}`,
+      `Capture complete: ${path.join(output, "review.html")}\n${values.write ? (target === "readme-social" ? "Updated README and social stills.\n" : "Updated previews, documentation images, and README/social stills.\n") : "Website assets unchanged; use --write to replace them.\n"}`,
     );
   } catch (error) {
     const logs = await docker(

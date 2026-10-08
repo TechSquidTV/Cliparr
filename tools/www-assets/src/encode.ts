@@ -1,7 +1,7 @@
 import { stat } from "node:fs/promises";
 import path from "node:path";
 import { run } from "#/process.ts";
-import type { CaptureScene } from "#/scenes.ts";
+import { readmeSocialCapture, type CaptureScene } from "#/scenes.ts";
 
 interface Probe {
   streams: {
@@ -148,4 +148,57 @@ export async function encodeScene(
     files,
     poster,
   };
+}
+
+export async function encodeReadmeSocial(directory: string, seconds: number) {
+  const source = path.join(directory, "readme-social.png");
+  const outputs = [
+    { name: "readme.webp", codec: "webp", ...readmeSocialCapture.viewport },
+    { name: "og.jpg", codec: "mjpeg", ...readmeSocialCapture.social },
+  ];
+  const files = [];
+  for (const output of outputs) {
+    const destination = path.join(directory, output.name);
+    await run("ffmpeg", [
+      "-v",
+      "error",
+      "-y",
+      "-i",
+      source,
+      "-frames:v",
+      "1",
+      ...(output.codec === "webp"
+        ? ["-c:v", "libwebp", "-quality", "85"]
+        : [
+            "-vf",
+            `scale=${output.width}:${output.height}:flags=lanczos`,
+            "-q:v",
+            "2",
+          ]),
+      destination,
+    ]);
+    const details = await probe(destination);
+    const [image] = details.streams;
+    if (
+      details.streams.length !== 1 ||
+      image?.codec_name !== output.codec ||
+      image.width !== output.width ||
+      image.height !== output.height
+    ) {
+      throw new Error(`${output.name}: unexpected image format or dimensions.`);
+    }
+    await run(
+      "ffmpeg",
+      ["-v", "error", "-xerror", "-i", destination, "-f", "null", "-"],
+      { capture: true },
+    );
+    const { size } = await stat(destination);
+    files.push({
+      name: output.name,
+      width: output.width,
+      height: output.height,
+      bytes: size,
+    });
+  }
+  return { seconds, files };
 }

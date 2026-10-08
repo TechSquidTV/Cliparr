@@ -7,6 +7,7 @@ import {
 import type { AssetCaptureController } from "@cliparr/shared/asset-capture";
 import type { useEditorTimelineMedia } from "@/components/editor/useEditorTimelineMedia";
 import type { useEditorSubtitles } from "@/components/editor/useEditorSubtitles";
+import { getActiveSubtitleCues } from "@/lib/subtitles/getActiveSubtitleCue";
 import { subtitleTrackKey } from "@/lib/selectPreferredSubtitleTrack";
 import { zoomEditorTimeline } from "@/components/editor/editorTimelineZoom";
 
@@ -18,6 +19,7 @@ type CaptureSubtitles = Pick<
   | "subtitleLoading"
   | "subtitleError"
   | "clippedSubtitleCues"
+  | "subtitleCues"
   | "setSubtitleEnabled"
   | "setSubtitleStyleSettings"
   | "requestImport"
@@ -28,6 +30,25 @@ interface CaptureBindings {
   media: ReturnType<typeof useEditorTimelineMedia>;
   subtitles: CaptureSubtitles;
   fitSelection: () => void;
+}
+
+export function seekCaptureFrame(
+  media: Pick<
+    ReturnType<typeof useEditorTimelineMedia>,
+    "metadataReady" | "duration" | "pausePlayback" | "seekToTime"
+  >,
+  seconds: number,
+) {
+  if (
+    !media.metadataReady ||
+    !Number.isFinite(seconds) ||
+    seconds < 0 ||
+    seconds >= media.duration
+  ) {
+    throw new Error("Capture seek is outside the loaded media duration.");
+  }
+  media.pausePlayback();
+  media.seekToTime(seconds);
 }
 
 export function useEditorAssetCapture(bindings: CaptureBindings) {
@@ -64,6 +85,10 @@ export function useEditorAssetCapture(bindings: CaptureBindings) {
             subtitles.initialized &&
             !subtitles.subtitleLoading,
           subtitleCueCount: subtitles.clippedSubtitleCues.length,
+          activeSubtitleCueCount: getActiveSubtitleCues(
+            subtitles.subtitleCues,
+            media.renderedFrameTime ?? media.getPlaybackTime(),
+          ).length,
           subtitleTracks: subtitles.subtitleTracks.map((track) => ({
             key: subtitleTrackKey(track),
             title: track.title ?? track.languageCode ?? "Subtitle",
@@ -129,6 +154,7 @@ export function useEditorAssetCapture(bindings: CaptureBindings) {
         subtitles.setSubtitleEnabled(true);
         media.seekToTime(inSeconds);
       },
+      seek: (seconds) => seekCaptureFrame(current.current.media, seconds),
       fitSelection() {
         const { engine, fitSelection } = current.current;
         fitSelection();

@@ -1,6 +1,6 @@
 ---
 name: cliparr-www-assets
-description: Automatically capture Cliparr's homepage hero and mobile editor videos and matching posters with Playwright, a disposable Jellyfin instance, and FFmpeg. Use when refreshing apps/www marketing previews or maintaining their capture workflow.
+description: Capture Cliparr's homepage hero and mobile videos with matching first-frame posters, plus independent README/Open Graph stills. Use when refreshing these marketing assets or maintaining their Playwright, Jellyfin, and FFmpeg capture workflow.
 ---
 
 # Cliparr Website Asset Capture
@@ -20,8 +20,13 @@ evidence of private information.
 Use the user's selected source media and scene. Do not substitute Sintel, another
 development seed, or a different scene unless the user requests that substitution.
 Run without `--write` first and inspect `review.html` and `report.json`; use
-`--write` only for the requested refresh after visual review. Keep the hero poster,
-its README copy, and both hero videos together so the poster matches playback.
+`--write` only for the requested refresh after visual review. Keep the homepage
+hero poster and both hero videos together: the poster must
+come from the delivered MP4's first frame and match playback at 1600×886.
+The README screenshot is an independent still, not the homepage poster. Its
+Open Graph JPEG is a resized copy of the same captured frame. Refresh this pair
+with `--target readme-social`; changing its framing or timestamp does not
+authorize changing the homepage poster, videos, or mobile assets.
 Keep the mobile poster and both mobile videos together as well. The approved
 mobile source is **The Twilight Zone — S01E08, Time Enough at Last**, at
 23:22–23:32. Preserve that source and scene unless the user selects a replacement.
@@ -30,8 +35,11 @@ from Git history instead of generating a replacement.
 
 ## Inputs and scene configuration
 
-Expect **two user-selected media assets**, one for the hero and one for the mobile
-workspace. Mount only those sources and their subtitles in a dedicated directory,
+Full capture expects **two user-selected media assets**, one for the hero and one
+for the mobile workspace. `--target readme-social` requires only the hero source.
+The approved hero/still source is **Common Side Effects — S01E01, Pilot**. Preserve
+that source unless the user selects a replacement. Mount only those sources and
+their subtitles in a dedicated directory,
 rather than indexing an entire personal library. Both sources must retain their
 original timelines through the out point. Do not
 pre-trim the sources to the selected clips. Prefer an existing non-empty,
@@ -47,6 +55,13 @@ The canonical configuration is `tools/www-assets/src/scenes.ts`:
 | ------ | --------------- | ----------------- | ------------------ | ------------ | -------------------------- |
 | Hero   | 8:16.07–8:19.01 | 2.94 seconds      | 1600×886           | 72 px        | 82/30 seconds (~2.733)     |
 | Mobile | 23:22–23:32     | 10 seconds        | 402×874            | 150 px       | 3 seconds                  |
+
+README/social stills use the hero selection and 72 px subtitles at **8:16.72**
+(0.65 seconds after the in point), with an independent **1600×840** browser
+viewport. One lossless PNG produces the **1600×840 README WebP** and
+**1200×630 Open Graph JPEG**, without cropping or padding. Wait for the paused,
+decoded target frame and an active subtitle cue; do not silently capture without
+the visible subtitle. This viewport must never resize the hero video capture.
 
 The fractional hero timecodes are **decimal seconds, not frame numbers**.
 Cliparr selection and website recording length are separate settings. Never infer
@@ -85,10 +100,24 @@ pnpm assets:capture --media-dir /absolute/path/to/media \
   --hero 'hero.mkv' --mobile 'mobile.mkv' --write
 ```
 
-When `--write` is enabled, the hero poster is also copied to `./.github/img/screenshot.webp`.
-The same run refreshes the documentation export dialog, subtitle panel, and social preview.
-Blog images reuse these captures. Preserve attribution required by the selected media.
-The README screenshot points at the homepage hero poster, so it updates automatically when captures complete.
+The default `--target all` also captures the independent README/social pair and
+documentation export dialog and subtitle panel. `--write` publishes the outputs
+selected by `--target`; the README points at `./.github/img/screenshot.webp`.
+Blog images reuse the homepage captures. Preserve attribution required by the
+selected media.
+
+For a README/social refresh, run the following without `--write` first. This
+skips video recording, mobile setup, and documentation screenshots:
+
+```bash
+pnpm assets:capture --target readme-social --media-dir /absolute/path/to/media \
+  --hero 'hero.mkv'
+```
+
+Review both images in `review.html` and their source timestamp, dimensions, and
+sizes in `report.json`. Then repeat with `--write` to replace only the README
+WebP and `apps/www/public/og.jpg`. The hero and mobile posters and videos must
+remain unchanged. Mount only the approved hero source and subtitles for this mode.
 
 Optional `--hero-seconds` and `--mobile-seconds` control recording duration only.
 They must be positive and fit within the selected range. `--hero-subtitle` and
@@ -127,6 +156,12 @@ supported text track. Failure diagnostics include the available track keys.
 | Hero   | `apps/www/src/assets/screenshot.webp`         | `apps/www/src/assets/preview.mp4`, `preview.webm`                       |
 | Mobile | `apps/www/src/assets/mobile-pwa-preview.webp` | `apps/www/src/assets/mobile-pwa-preview.mp4`, `mobile-pwa-preview.webm` |
 
+The independent still outputs are `.github/img/screenshot.webp` (1600×840)
+and `apps/www/public/og.jpg` (1200×630). The review output `readme-social.png`
+is their lossless source; `readme.webp` must not be confused with the hero's
+first-frame `screenshot.webp`. The report records both still dimensions, sizes,
+and their shared source timestamp.
+
 The pipeline encodes silent H.264 MP4 and VP9 WebM at 30 fps, with fast-start MP4.
 It extracts each WebP poster from the delivered MP4's first frame. FFprobe and a
 full decode validate dimensions, codecs, absent audio, and recording duration.
@@ -140,14 +175,16 @@ The existing 500 KB hero / 100 KB mobile video budgets are advisory. The report
 flags larger files; inspect quality before changing encoding settings. Do not
 silently lower resolution or compress unreadable UI to meet a byte target.
 
-After replacing assets, run `pnpm build:web`, preview the homepage with
+After replacing assets, run `pnpm build:web`. For README/social-only changes,
+verify the pair shows the same subtitle-visible frame and that social metadata
+declares image/jpeg, 1200×630. For video refreshes, preview the homepage with
 `pnpm dev:web`, and check poster/video alignment, hover playback, looping, and
 reduced-motion static behavior. Keep the Picture dimensions in
 `apps/www/src/pages/index.astro` consistent with the source assets.
 
 For pipeline changes, run `pnpm test:assets`, relevant package type/lint checks,
 and `pnpm --filter @cliparr/frontend test` when editing the capture bridge. Exercise
-both scenes end to end. Synthetic or development-seed media can validate the
+both full and README/social-only modes end to end without writes first. Synthetic or development-seed media can validate the
 pipeline before supplied assets arrive, but must not replace the marketing assets
 unless the user selected that media for the refresh. Report separately
 whether supplied-media visual review has been completed.
