@@ -1,4 +1,4 @@
-import type { EditorSession } from "@/lib/editorMedia";
+import type { EditorSession } from "@/components/editor/editorMedia";
 import type { SubtitleCue } from "@/lib/subtitles/types";
 
 export interface EditorDraft {

@@ -6,7 +6,7 @@ import { BarsLoader } from "@/components/ui/bars-loader";
 import {
   editorSessionFromCurrentlyPlaying,
   type EditorSession,
-} from "@/lib/editorMedia";
+} from "@/components/editor/editorMedia";
 import { getPendingEditorTransitionSession } from "@/lib/viewTransitions";
 import { router } from "@/router";
 

@@ -1,4 +1,4 @@
-import type { EditorSession } from "@/lib/editorMedia";
+import type { EditorSession } from "@/components/editor/editorMedia";
 
 export const EDITOR_THUMBNAIL_VIEW_TRANSITION_NAME = "cliparr-editor-thumbnail";
 

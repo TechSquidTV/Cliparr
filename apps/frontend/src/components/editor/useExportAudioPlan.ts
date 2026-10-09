@@ -3,16 +3,19 @@ import type {
   audioBitDepthSummary,
   AudioSourceInfo,
   ExportAudioPlan,
-} from "#/lib/exportAudio";
-import { createCliparrInputFromSource } from "#/lib/mediabunnyInput";
-import { isPlaybackVideoTrack } from "#/lib/mediabunnyTrackAccess";
-import { selectPreferredPairableAudioTrack } from "#/lib/selectPreferredAudioTrack";
+} from "#/lib/export/exportAudio";
+import { createCliparrInputFromSource } from "#/lib/export/mediabunny/mediabunnyInput";
+import { isPlaybackVideoTrack } from "#/lib/export/mediabunny/mediabunnyTrackAccess";
+import { selectPreferredPairableAudioTrack } from "#/lib/subtitles/selectPreferredAudioTrack";
 import {
   editorMediaSourcesEqual,
   type EditorMediaSource,
-} from "#/lib/editorMedia";
+} from "#/components/editor/editorMedia";
 import type { PlaybackAudioSelection } from "#/providers/types";
-import { isAudioExportFormat, type ExportFormat } from "#/lib/exportFormats";
+import {
+  isAudioExportFormat,
+  type ExportFormat,
+} from "#/lib/export/exportFormats";
 
 type AudioInspection = {
   source: EditorMediaSource;
@@ -53,7 +56,7 @@ export function useExportAudioPlan(
         inspectAudioTrack,
         resolveExportAudioPlan,
         audioBitDepthSummary,
-      } = await import("#/lib/exportAudio");
+      } = await import("#/lib/export/exportAudio");
       controller.signal.throwIfAborted();
       let inspection = cache.current.find(
         (entry) =>

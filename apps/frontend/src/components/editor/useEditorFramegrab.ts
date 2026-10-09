@@ -1,17 +1,20 @@
 import { useCallback, useMemo, useState } from "react";
 import type { RefObject } from "react";
 import { errorMessage } from "@/components/editor/editorUtilities";
-import type { EditorSession, MediaDimensions } from "@/lib/editorMedia";
+import type {
+  EditorSession,
+  MediaDimensions,
+} from "@/components/editor/editorMedia";
 import { downloadBlob } from "@/lib/downloadBlob";
-import { buildFramegrabFileName } from "@/lib/exportFileName";
+import { buildFramegrabFileName } from "@/lib/export/exportFileName";
 import {
   cloneCanvasFrame,
   copyFramegrabCanvasToClipboard,
   DEFAULT_FRAMEGRAB_IMAGE_QUALITY,
   encodeFramegrabCanvas,
-  type FramegrabImageFormat,
   type FramegrabImageQuality,
 } from "@/lib/framegrab";
+import type { FramegrabImageFormat } from "@/lib/export/exportFormats";
 
 interface CapturedFramegrab {
   canvas: HTMLCanvasElement;

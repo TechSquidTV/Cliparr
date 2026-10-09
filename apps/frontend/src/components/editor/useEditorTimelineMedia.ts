@@ -43,14 +43,14 @@ import {
   type EditorMediaSource,
   type EditorSession,
   type MediaDimensions,
-} from "@/lib/editorMedia";
-import { createCliparrInputFromSource } from "@/lib/mediabunnyInput";
+} from "@/components/editor/editorMedia";
+import { createCliparrInputFromSource } from "@/lib/export/mediabunny/mediabunnyInput";
 import {
   fromSourceTimelineTime,
   getTrackTimelineOffsetSeconds,
   getVideoTrackDimensions,
-} from "@/lib/mediabunnyTrackAccess";
-import { selectPreferredPairableAudioTrack } from "@/lib/selectPreferredAudioTrack";
+} from "@/lib/export/mediabunny/mediabunnyTrackAccess";
+import { selectPreferredPairableAudioTrack } from "@/lib/subtitles/selectPreferredAudioTrack";
 import {
   createEditorPreviewSourceLoader,
   editorPreviewFrameTime,
