@@ -22,7 +22,7 @@ import {
 import type { PlexSourceContext } from "@/providers/plex/shared";
 import { createExportMetadata } from "@/providers/plex/metadata";
 import { createMediaHandle } from "@/providers/plex/mediaHandles";
-import { mediaHandleRequestUrl } from "@/providers/shared/mediaProxy";
+import { mediaHandleRequestUrl } from "@/providers/shared/mediaUrlPolicy";
 import type { PlexMetadataItem } from "@/providers/plex/selection";
 import {
   deriveSelectedSubtitleTrack,

@@ -1,7 +1,7 @@
 import { TEST_JELLYFIN_BASE_URL } from "@/test/providerFixtures";
 import assert from "node:assert/strict";
 import test from "node:test";
-import { createProviderMediaHandle } from "@/providers/shared/mediaProxy";
+import { createProviderMediaHandle } from "@/providers/shared/mediaHandles";
 import {
   pruneSessionMediaHandles,
   type ProviderSessionRecord,

@@ -5,14 +5,16 @@ import { getServerLogger } from "@/logging";
 import type { ProviderSessionRecord } from "@/session/store";
 import {
   fetchMediaHandleRequest,
-  mediaHandleHlsLogFields,
-  mediaHandleRequestUrl,
   mediaProxyAcceptHeader,
   proxyProviderMediaResponse,
-  sanitizeLoggedMediaPath,
-  shouldAttachProviderAuth,
   shouldForwardMediaRange,
 } from "@/providers/shared/mediaProxy";
+import { mediaHandleHlsLogFields } from "@/providers/shared/mediaHandles";
+import {
+  mediaHandleRequestUrl,
+  sanitizeLoggedMediaPath,
+  shouldAttachProviderAuth,
+} from "@/providers/shared/mediaUrlPolicy";
 import { plexMediaHeaders } from "@/providers/plex/shared";
 import { preparePlexSubtitleTranscode } from "@/providers/plex/subtitles";
 
