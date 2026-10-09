@@ -18,14 +18,16 @@ import {
   storeLocalUrlMediaHandle,
 } from "@/providers/localUrl/mediaHandles";
 import {
-  assertAllowedMediaHandleRequestUrl,
   fetchMediaHandleRequest,
-  mediaHandleRequestUrl,
   mediaProxyAcceptHeader,
   proxyProviderMediaResponse,
-  sanitizeLoggedMediaPath,
   shouldForwardMediaRange,
 } from "@/providers/shared/mediaProxy";
+import {
+  assertAllowedMediaHandleRequestUrl,
+  mediaHandleRequestUrl,
+  sanitizeLoggedMediaPath,
+} from "@/providers/shared/mediaUrlPolicy";
 import { errorMessage } from "@/providers/shared/utilities";
 import type { MediaHandle, ProviderImplementation } from "@/providers/types";
 import type { ProviderSessionRecord } from "@/session/store";

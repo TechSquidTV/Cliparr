@@ -27,7 +27,7 @@ import {
   startExpiredSessionSweep,
 } from "@/session/sweep";
 import { subscribePlaybackStateChanges } from "@/playback/stateChanges";
-import { createProviderMediaHandle } from "@/providers/shared/mediaProxy";
+import { createProviderMediaHandle } from "@/providers/shared/mediaHandles";
 
 const TEST_APP_KEY = "remembered-session-test-key-with-32-characters";
 

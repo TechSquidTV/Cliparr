@@ -9,7 +9,7 @@ import {
 import assert from "node:assert/strict";
 import test from "node:test";
 import { requestPlexPmsIdentity } from "@/providers/plex/pmsClient";
-import { assertAllowedMediaHandleRequestUrl } from "@/providers/shared/mediaProxy";
+import { assertAllowedMediaHandleRequestUrl } from "@/providers/shared/mediaUrlPolicy";
 import { isUnsafeRemoteHostname } from "@/providers/shared/networkPolicy";
 
 void test("loopback allowance changes only loopback address classification", () => {

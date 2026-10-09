@@ -9,7 +9,7 @@ import {
   proxyLocalUrlMedia,
 } from "@/providers/localUrl/provider";
 import { getProvider } from "@/providers/registry";
-import { sanitizeLoggedMediaPath } from "@/providers/shared/mediaProxy";
+import { sanitizeLoggedMediaPath } from "@/providers/shared/mediaUrlPolicy";
 import { errorMessage } from "@/providers/shared/utilities";
 import type {
   CurrentlyPlayingEntry,

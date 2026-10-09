@@ -11,16 +11,18 @@ import {
 } from "@/session/store";
 import type { MediaHandle } from "@/providers/types";
 import {
-  assertAllowedMediaHandleRequestUrl,
-  createProviderMediaHandle,
   fetchMediaHandleRequest,
   mediaProxyAcceptHeader,
   proxyProviderMediaResponse,
   proxyUpstreamMediaResponse,
-  sanitizeLoggedMediaPath,
-  shouldAttachProviderAuth,
   shouldForwardMediaRange,
 } from "@/providers/shared/mediaProxy";
+import { createProviderMediaHandle } from "@/providers/shared/mediaHandles";
+import {
+  assertAllowedMediaHandleRequestUrl,
+  sanitizeLoggedMediaPath,
+  shouldAttachProviderAuth,
+} from "@/providers/shared/mediaUrlPolicy";
 
 function createSession(): ProviderSessionRecord {
   return {

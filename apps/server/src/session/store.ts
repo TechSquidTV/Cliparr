@@ -7,7 +7,7 @@ import { getProviderAccount } from "@/db/providerAccountsRepository";
 import { REMEMBERED_PROVIDER_SESSION_TTL_MS } from "@/db/rememberedProviderSessionsRepository";
 import { providerSessions, type ProviderSessionRow } from "@/db/schema";
 import { getServerLogger, warnWithError } from "@/logging";
-import { removeMediaHandleFromIndex } from "@/providers/shared/mediaProxy";
+import { removeMediaHandleFromIndex } from "@/providers/shared/mediaHandles";
 import type { MediaHandle } from "@/providers/types";
 import { decryptSecret, encryptSecret } from "@/security/secrets";
 

@@ -1,45 +1,37 @@
-import {
-  isUnsafeRemoteHostname,
-  isRedirectStatus,
-  removeSensitiveRedirectHeaders,
-} from "@/providers/shared/networkPolicy";
-import { randomUUID } from "node:crypto";
 import { Readable } from "node:stream";
 import { pipeline } from "node:stream/promises";
 import type { ReadableStream as WebReadableStream } from "node:stream/web";
 import type { Response } from "express";
-import { logErrorFields, logEventFields } from "@cliparr/shared/logging";
+import { logEventFields } from "@cliparr/shared/logging";
 import { createApiError, isApiError } from "@/http/errors";
 import { getServerLogger, warnWithError } from "@/logging";
 import type { ProviderSessionRecord } from "@/session/store";
 import type { MediaHandle } from "@/providers/types";
-import { resolveHostnameAddresses } from "@/providers/shared/dnsCache";
+import {
+  isRedirectStatus,
+  removeSensitiveRedirectHeaders,
+} from "@/providers/shared/networkPolicy";
 import { fetchWithPinnedDns } from "@/providers/shared/pinnedFetch";
+import {
+  HLS_PROXY_RESPONSE_CACHE_MAX_BYTES,
+  bufferProxyBody,
+  isHlsPlaylist,
+  logHlsPlaylistFetch,
+  rewriteHlsPlaylist,
+  type ProxyMediaResponseOptions,
+} from "@/providers/shared/hlsPlaylist";
+import {
+  assertAllowedMediaHandleRequestUrl,
+  isHlsDerivedHandle,
+  mediaHandleRequestUrl,
+  sanitizeLoggedMediaPath,
+} from "@/providers/shared/mediaUrlPolicy";
 
-interface MediaHandleContext {
-  providerId: MediaHandle["providerId"];
-  sourceId: string;
-  baseUrl: string;
-  token: string;
-  providerMetadata?: MediaHandle["providerMetadata"];
-}
-
-interface CreateMediaHandleOptions {
-  basePath?: string;
-}
+const logger = getServerLogger(["media", "proxy"]);
 
 interface ProxyMediaRequestOptions {
   accept?: string;
   range?: string;
-}
-
-interface ProxyMediaResponseOptions {
-  createMediaHandleUrl?: (
-    session: ProviderSessionRecord,
-    handle: MediaHandle,
-    nextPath: string,
-    basePath: string,
-  ) => string;
 }
 
 interface FetchMediaHandleRequestInit extends RequestInit {
@@ -55,7 +47,6 @@ interface CachedProxyMediaResponse {
   body: Buffer;
 }
 
-const RELATIVE_MEDIA_BASE_URL = "http://cliparr.local";
 const PROXY_HEADER_ALLOWLIST = [
   "accept-ranges",
   "cache-control",
@@ -66,18 +57,23 @@ const PROXY_HEADER_ALLOWLIST = [
   "etag",
   "last-modified",
 ] as const;
+
 const HLS_PROXY_RESPONSE_CACHE_TTL_MS = 4000;
-const HLS_PROXY_RESPONSE_CACHE_MAX_BYTES = 8 * 1024 * 1024;
+
 const MEDIA_PROXY_MAX_REDIRECTS = 5;
+
 const MEDIA_PROXY_FETCH_ATTEMPTS = 3;
+
 const HLS_MEDIA_PROXY_FETCH_ATTEMPTS = 8;
+
 const MEDIA_PROXY_FETCH_RETRY_BASE_DELAY_MS = 150;
+
 const MEDIA_PROXY_FETCH_RETRY_MAX_DELAY_MS = 1000;
 
 const RETRYABLE_MEDIA_STATUS_CODES = new Set([
   408, 425, 429, 500, 502, 503, 504,
 ]);
-const logger = getServerLogger(["media", "proxy"]);
+
 const cachedProxyResponses = new Map<
   string,
   {
@@ -85,208 +81,11 @@ const cachedProxyResponses = new Map<
     response: CachedProxyMediaResponse;
   }
 >();
+
 const inflightProxyResponses = new Map<
   string,
   Promise<CachedProxyMediaResponse | null>
 >();
-const mediaHandleIndexes = new WeakMap<
-  Map<string, MediaHandle>,
-  Map<string, string>
->();
-
-function normalizeProviderMetadata(
-  metadata: MediaHandle["providerMetadata"],
-): MediaHandle["providerMetadata"] {
-  const normalized: NonNullable<MediaHandle["providerMetadata"]> = {};
-
-  if (
-    metadata?.plex?.playbackSessionId !== undefined ||
-    metadata?.plex?.subtitleStreamId !== undefined
-  ) {
-    normalized.plex = {
-      playbackSessionId: metadata.plex.playbackSessionId,
-      subtitleStreamId: metadata.plex.subtitleStreamId,
-      subtitleDecision: metadata.plex.subtitleDecision,
-    };
-  }
-
-  if (metadata?.jellyfin?.deviceId !== undefined) {
-    normalized.jellyfin = {
-      deviceId: metadata.jellyfin.deviceId,
-    };
-  }
-
-  return normalized.plex || normalized.jellyfin ? normalized : undefined;
-}
-
-function providerMetadataKey(metadata: MediaHandle["providerMetadata"]) {
-  return JSON.stringify(normalizeProviderMetadata(metadata) ?? {});
-}
-
-function mediaHandleDedupKey(
-  handle: Pick<
-    MediaHandle,
-    | "providerId"
-    | "sourceId"
-    | "baseUrl"
-    | "path"
-    | "token"
-    | "providerMetadata"
-    | "basePath"
-  >,
-) {
-  // Includes secret token material: this key must never be logged.
-  return JSON.stringify([
-    handle.providerId,
-    handle.sourceId,
-    handle.baseUrl,
-    handle.path,
-    handle.token,
-    providerMetadataKey(handle.providerMetadata),
-    handle.basePath,
-  ]);
-}
-
-export function removeMediaHandleFromIndex(
-  handles: Map<string, MediaHandle>,
-  handle: MediaHandle,
-) {
-  const index = mediaHandleIndexes.get(handles);
-  if (!index) {
-    return;
-  }
-  const key = mediaHandleDedupKey(handle);
-  if (index.get(key) === handle.id) {
-    index.delete(key);
-  }
-}
-
-function isAbsoluteUrl(path: string) {
-  return /^[a-z][\d+.a-z-]*:/i.test(path);
-}
-
-function safeUrl(value: string, base?: string) {
-  try {
-    return base ? new URL(value, base) : new URL(value);
-  } catch {
-    return null;
-  }
-}
-
-function normalizeMediaPath(path: string) {
-  if (isAbsoluteUrl(path)) {
-    return path;
-  }
-
-  if (!path.startsWith("/")) {
-    return `/${path}`;
-  }
-
-  return path;
-}
-
-export function mediaHandleRequestUrl(
-  handle: Pick<MediaHandle, "baseUrl" | "path">,
-) {
-  return new URL(handle.path, handle.baseUrl);
-}
-
-export function shouldAttachProviderAuth(
-  handle: Pick<MediaHandle, "baseUrl" | "path">,
-) {
-  const requestUrl = mediaHandleRequestUrl(handle);
-  const providerUrl = safeUrl(handle.baseUrl);
-  return providerUrl ? requestUrl.origin === providerUrl.origin : true;
-}
-
-function unsafeMediaUrlFields(
-  handle: Pick<MediaHandle, "baseUrl" | "path">,
-  requestUrl: URL,
-  reason: string,
-) {
-  return {
-    ...logEventFields("media.proxy.url_validation", "failure"),
-    "media.path": sanitizeLoggedMediaPath(requestUrl.toString()),
-    "media.base_path": sanitizeLoggedMediaPath(handle.baseUrl),
-    "media.url.hostname": requestUrl.hostname,
-    "media.url.reason": reason,
-  };
-}
-
-function throwUnsafeMediaUrl(
-  handle: Pick<MediaHandle, "baseUrl" | "path">,
-  requestUrl: URL,
-  reason: string,
-) {
-  logger.warn(
-    "Rejected unsafe media URL.",
-    unsafeMediaUrlFields(handle, requestUrl, reason),
-  );
-  throw createApiError(
-    400,
-    "media_proxy_unsafe_url",
-    "Media URL points at an unsafe internal address",
-  );
-}
-
-export async function assertAllowedMediaHandleRequestUrl(
-  handle: Pick<MediaHandle, "baseUrl" | "path" | "providerId">,
-  requestUrl = mediaHandleRequestUrl(handle),
-  signal = new AbortController().signal,
-) {
-  signal.throwIfAborted();
-  if (requestUrl.protocol !== "http:" && requestUrl.protocol !== "https:") {
-    logger.warn(
-      "Rejected media URL with unsupported protocol.",
-      unsafeMediaUrlFields(handle, requestUrl, "protocol"),
-    );
-    throw createApiError(
-      400,
-      "media_proxy_unsafe_url",
-      "Media URL must use HTTP or HTTPS",
-    );
-  }
-
-  if (requestUrl.username || requestUrl.password) {
-    throwUnsafeMediaUrl(handle, requestUrl, "credentials");
-  }
-
-  const providerUrl = safeUrl(handle.baseUrl);
-  if (
-    handle.providerId !== "local-url" &&
-    providerUrl &&
-    requestUrl.origin === providerUrl.origin
-  ) {
-    return;
-  }
-
-  if (isUnsafeRemoteHostname(requestUrl.hostname)) {
-    throwUnsafeMediaUrl(handle, requestUrl, "hostname");
-  }
-
-  let addresses: string[];
-  try {
-    addresses = await resolveHostnameAddresses(requestUrl.hostname, signal);
-  } catch (error) {
-    signal.throwIfAborted();
-    warnWithError(logger, error, "Media URL hostname validation failed.", {
-      ...unsafeMediaUrlFields(handle, requestUrl, "dns_resolution"),
-      ...logErrorFields(error),
-    });
-    throw createApiError(
-      502,
-      "media_proxy_unsafe_url",
-      "Media URL hostname could not be resolved for security validation",
-    );
-  }
-
-  for (const address of addresses) {
-    if (isUnsafeRemoteHostname(address)) {
-      throwUnsafeMediaUrl(handle, requestUrl, "resolved_address");
-    }
-  }
-  return addresses;
-}
 
 function retryDelayMs(attemptIndex: number, baseDelayMs: number) {
   return Math.min(
@@ -578,288 +377,6 @@ export async function fetchMediaHandleRequest(
   throw lastError;
 }
 
-export function sanitizeLoggedMediaPath(value: string | undefined) {
-  if (!value) {
-    return value;
-  }
-
-  const absoluteUrl = safeUrl(value);
-  if (absoluteUrl) {
-    return `${absoluteUrl.origin}${absoluteUrl.pathname}`;
-  }
-
-  const relativeUrl = safeUrl(
-    normalizeMediaPath(value),
-    RELATIVE_MEDIA_BASE_URL,
-  );
-  if (relativeUrl) {
-    return relativeUrl.pathname;
-  }
-
-  return value.split(/[#?]/, 1)[0] ?? value;
-}
-
-export function mediaHandleHlsLogFields(handle: MediaHandle) {
-  const isHlsDerived = isHlsDerivedHandle(handle);
-  return {
-    "media.hls.derived": isHlsDerived,
-    "media.hls.uri.kind": isHlsDerived ? hlsUriKind(handle.path) : undefined,
-    "media.hls.segment.index": isHlsDerived
-      ? hlsSegmentIndex(handle.path)
-      : undefined,
-  };
-}
-
-function mediaHandleLogFields(
-  session: ProviderSessionRecord,
-  handle: MediaHandle,
-  basePath = handle.basePath,
-) {
-  return {
-    "media.handle.id": handle.id,
-    "session.id": session.id,
-    "provider.id": handle.providerId,
-    "source.id": handle.sourceId,
-    "media.path": sanitizeLoggedMediaPath(handle.path),
-    "media.base_path": sanitizeLoggedMediaPath(basePath),
-    ...mediaHandleHlsLogFields(handle),
-  };
-}
-
-export function createProviderMediaHandle(
-  session: ProviderSessionRecord,
-  context: MediaHandleContext,
-  path: string,
-  options: CreateMediaHandleOptions = {},
-) {
-  const normalizedPath = normalizeMediaPath(path);
-  const normalizedBasePath = options.basePath
-    ? normalizeMediaPath(options.basePath)
-    : undefined;
-  const providerMetadata = normalizeProviderMetadata(context.providerMetadata);
-  const dedupKey = mediaHandleDedupKey({
-    ...context,
-    path: normalizedPath,
-    providerMetadata,
-    basePath: normalizedBasePath,
-  });
-  let index = mediaHandleIndexes.get(session.mediaHandles);
-  if (!index) {
-    index = new Map<string, string>();
-    mediaHandleIndexes.set(session.mediaHandles, index);
-  }
-  const existingHandleId = index.get(dedupKey);
-  const existingHandle = existingHandleId
-    ? session.mediaHandles.get(existingHandleId)
-    : undefined;
-  const accessedAt = Date.now();
-
-  if (existingHandle) {
-    existingHandle.lastAccessedAt = accessedAt;
-    logger.trace("Reused provider media handle.", {
-      ...logEventFields("media.handle", "reused"),
-      ...mediaHandleLogFields(session, existingHandle, normalizedBasePath),
-    });
-    return `/api/media/${existingHandle.id}`;
-  }
-
-  const handle: MediaHandle = {
-    id: randomUUID(),
-    providerId: context.providerId,
-    sourceId: context.sourceId,
-    baseUrl: context.baseUrl,
-    path: normalizedPath,
-    token: context.token,
-    providerMetadata,
-    basePath: normalizedBasePath,
-    lastAccessedAt: accessedAt,
-  };
-  session.mediaHandles.set(handle.id, handle);
-  index.set(dedupKey, handle.id);
-  logger.trace("Created provider media handle.", {
-    ...logEventFields("media.handle", "created"),
-    ...mediaHandleLogFields(session, handle),
-    "media.path.absolute": isAbsoluteUrl(handle.path),
-  });
-  return `/api/media/${handle.id}`;
-}
-
-export function playlistBasePath(path: string) {
-  const withoutQuery = path.split("?")[0];
-  const lastSlash = withoutQuery.lastIndexOf("/");
-  return lastSlash === -1 ? "/" : withoutQuery.slice(0, lastSlash + 1);
-}
-
-function resolvePlaylistUri(playlistUrl: string, uri: string) {
-  const parsed = new URL(
-    uri,
-    isAbsoluteUrl(playlistUrl)
-      ? playlistUrl
-      : new URL(normalizeMediaPath(playlistUrl), RELATIVE_MEDIA_BASE_URL),
-  );
-  parsed.hash = "";
-
-  if (parsed.origin === RELATIVE_MEDIA_BASE_URL) {
-    return `${parsed.pathname}${parsed.search}`;
-  }
-
-  return parsed.toString();
-}
-
-function hlsUriKind(path: string) {
-  const pathname = handlePathname(path);
-  if (pathname.endsWith(".m3u8")) {
-    return "playlist";
-  }
-  if (pathname.endsWith(".ts") || pathname.endsWith(".m4s")) {
-    return "segment";
-  }
-  if (pathname.endsWith(".key")) {
-    return "key";
-  }
-  return "unknown";
-}
-
-function hlsSegmentIndex(path: string): number | undefined {
-  const pathname = handlePathname(path);
-  const segmentMatch = pathname.match(
-    /(?:^|[/_-])(?:segment)?(\d+)\.(?:ts|m4s)$/,
-  );
-  if (!segmentMatch) {
-    return;
-  }
-
-  const index = Number(segmentMatch[1]);
-  return Number.isSafeInteger(index) ? index : undefined;
-}
-
-function createPlaylistMediaHandleUrl(
-  session: ProviderSessionRecord,
-  handle: MediaHandle,
-  nextPath: string,
-  options: ProxyMediaResponseOptions = {},
-) {
-  if (options.createMediaHandleUrl) {
-    return options.createMediaHandleUrl(
-      session,
-      handle,
-      nextPath,
-      playlistBasePath(nextPath),
-    );
-  }
-
-  return createProviderMediaHandle(
-    session,
-    {
-      providerId: handle.providerId,
-      sourceId: handle.sourceId,
-      baseUrl: handle.baseUrl,
-      token: handle.token,
-      providerMetadata: handle.providerMetadata,
-    },
-    nextPath,
-    {
-      basePath: playlistBasePath(nextPath),
-    },
-  );
-}
-
-function rewritePlaylistUri(
-  session: ProviderSessionRecord,
-  handle: MediaHandle,
-  playlistUrl: string,
-  uri: string,
-  options: ProxyMediaResponseOptions = {},
-) {
-  return createPlaylistMediaHandleUrl(
-    session,
-    handle,
-    resolvePlaylistUri(playlistUrl, uri),
-    options,
-  );
-}
-
-async function rewriteHlsPlaylist(
-  session: ProviderSessionRecord,
-  handle: MediaHandle,
-  upstream: globalThis.Response,
-  options: ProxyMediaResponseOptions = {},
-) {
-  const buffered = await bufferProxyBody(upstream);
-  if (buffered instanceof globalThis.Response) {
-    await buffered.body?.cancel();
-    throw createApiError(
-      502,
-      "media_proxy_playlist_too_large",
-      "HLS playlist exceeds the proxy size limit",
-    );
-  }
-  const body = buffered.toString("utf8");
-  const playlistUrl = upstream.url || handle.path;
-  let rewrittenUriCount = 0;
-  let strippedStartHintCount = 0;
-  let firstMediaUriPath: string | undefined;
-  let firstMediaUriKind: string | undefined;
-
-  const playlist = body
-    .split("\n")
-    .flatMap((line) => {
-      const trimmed = line.trim();
-      if (!trimmed) {
-        return [line];
-      }
-
-      if (trimmed.startsWith("#")) {
-        if (trimmed.toUpperCase().startsWith("#EXT-X-START:")) {
-          strippedStartHintCount += 1;
-          return [];
-        }
-
-        return [
-          line.replaceAll(/URI="([^"]+)"/g, (_match, uri: string) => {
-            rewrittenUriCount += 1;
-            return `URI="${rewritePlaylistUri(session, handle, playlistUrl, uri, options)}"`;
-          }),
-        ];
-      }
-
-      rewrittenUriCount += 1;
-      const nextPath = resolvePlaylistUri(playlistUrl, trimmed);
-      if (!firstMediaUriPath) {
-        firstMediaUriPath = nextPath;
-        firstMediaUriKind = hlsUriKind(nextPath);
-      }
-      return [createPlaylistMediaHandleUrl(session, handle, nextPath, options)];
-    })
-    .join("\n");
-
-  logger.trace("Rewrote HLS playlist for media handle.", {
-    ...logEventFields("media.hls.playlist_rewrite", "success"),
-    ...mediaHandleLogFields(session, handle, playlistBasePath(playlistUrl)),
-    "upstream.status_code": upstream.status,
-    "media.hls.first_media.path": sanitizeLoggedMediaPath(firstMediaUriPath),
-    "media.hls.first_media.kind": firstMediaUriKind,
-    "media.hls.rewritten_uri_count": rewrittenUriCount,
-    "media.hls.stripped_start_hint_count": strippedStartHintCount,
-  });
-
-  return playlist;
-}
-
-function logHlsPlaylistFetch(
-  session: ProviderSessionRecord,
-  handle: MediaHandle,
-  upstream: globalThis.Response,
-  contentType: string,
-) {
-  logger.trace("Fetched HLS playlist for media handle.", {
-    ...logEventFields("media.hls.playlist_fetch", "success"),
-    ...mediaHandleLogFields(session, handle),
-    "upstream.status_code": upstream.status,
-    "upstream.content_type": contentType,
-  });
-}
-
 function copyProxyHeaders(upstream: globalThis.Response, res: Response) {
   for (const [header, value] of snapshotProxyHeaders(upstream)) {
     if (header === "content-length") {
@@ -867,21 +384,6 @@ function copyProxyHeaders(upstream: globalThis.Response, res: Response) {
     }
 
     res.setHeader(header, value);
-  }
-}
-
-function isHlsPlaylist(handle: MediaHandle, contentType: string) {
-  const normalizedContentType = contentType.toLowerCase();
-  if (normalizedContentType.includes("mpegurl")) {
-    return true;
-  }
-
-  try {
-    return new URL(handle.path, "http://cliparr.local").pathname.endsWith(
-      ".m3u8",
-    );
-  } catch {
-    return handle.path.split("?")[0].endsWith(".m3u8");
   }
 }
 
@@ -926,20 +428,6 @@ function applySnapshotHeaders(
   }
 }
 
-function handlePathname(path: string) {
-  try {
-    return new URL(path, RELATIVE_MEDIA_BASE_URL).pathname.toLowerCase();
-  } catch {
-    return path.split("?")[0]?.toLowerCase() ?? path.toLowerCase();
-  }
-}
-
-function isHlsDerivedHandle(handle: MediaHandle) {
-  return (
-    Boolean(handle.basePath) || handlePathname(handle.path).endsWith(".m3u8")
-  );
-}
-
 function isCacheableMediaRequest(
   handle: MediaHandle,
   range: string | undefined,
@@ -972,62 +460,6 @@ function sendCachedProxyResponse(
   res.status(response.status);
   applySnapshotHeaders(response.headers, res);
   res.end(response.body);
-}
-
-/** Buffer small responses only; replay the prefix and stream the rest on overflow. */
-async function bufferProxyBody(upstream: globalThis.Response) {
-  if (!upstream.body) {
-    return Buffer.alloc(0);
-  }
-  const reader = upstream.body.getReader();
-  const chunks: Uint8Array[] = [];
-  let byteLength = 0;
-  try {
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) {
-        reader.releaseLock();
-        return Buffer.concat(chunks, byteLength);
-      }
-      chunks.push(value);
-      byteLength += value.byteLength;
-      if (byteLength > HLS_PROXY_RESPONSE_CACHE_MAX_BYTES) {
-        const body = new ReadableStream<Uint8Array>({
-          start(controller) {
-            for (const chunk of chunks) {
-              controller.enqueue(chunk);
-            }
-            chunks.length = 0;
-          },
-          async pull(controller) {
-            try {
-              const next = await reader.read();
-              if (next.done) {
-                reader.releaseLock();
-                controller.close();
-              } else {
-                controller.enqueue(next.value);
-              }
-            } catch (error) {
-              reader.releaseLock();
-              controller.error(error);
-            }
-          },
-          async cancel(reason) {
-            try {
-              await reader.cancel(reason);
-            } finally {
-              reader.releaseLock();
-            }
-          },
-        });
-        return new globalThis.Response(body, upstream);
-      }
-    }
-  } catch (error) {
-    reader.releaseLock();
-    throw error;
-  }
 }
 
 async function createCachedProxyMediaResponse(

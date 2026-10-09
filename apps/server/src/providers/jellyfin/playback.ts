@@ -20,16 +20,18 @@ import type {
   PlaybackSubtitleTrack,
 } from "@/providers/types";
 import {
-  createProviderMediaHandle,
   fetchMediaHandleRequest,
-  mediaHandleRequestUrl,
   mediaProxyAcceptHeader,
-  playlistBasePath,
   proxyProviderMediaResponse,
-  sanitizeLoggedMediaPath,
-  shouldAttachProviderAuth,
   shouldForwardMediaRange,
 } from "@/providers/shared/mediaProxy";
+import { createProviderMediaHandle } from "@/providers/shared/mediaHandles";
+import { playlistBasePath } from "@/providers/shared/hlsPlaylist";
+import {
+  mediaHandleRequestUrl,
+  sanitizeLoggedMediaPath,
+  shouldAttachProviderAuth,
+} from "@/providers/shared/mediaUrlPolicy";
 import { dedupeInflightFetch } from "@/providers/shared/inflight";
 import {
   isTextSubtitleCodec,

@@ -24,7 +24,7 @@ import type {
   JellyfinSourceContext,
   JellyfinUser,
 } from "@/providers/jellyfin/shared";
-import { mediaHandleRequestUrl } from "@/providers/shared/mediaProxy";
+import { mediaHandleRequestUrl } from "@/providers/shared/mediaUrlPolicy";
 
 let sessionIndex = 0;
 
