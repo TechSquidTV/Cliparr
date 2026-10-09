@@ -1,73 +1,64 @@
 import { createPlaybackResolverCache } from "@/playback/resolverCache";
-import type { Request, Response } from "express";
 import {
   logErrorFields,
   logEventFields,
   sanitizeUrlForLog,
 } from "@cliparr/shared/logging";
-import { normalizeExportVideoCodec } from "@cliparr/shared/providers";
 import { parseExternalIds } from "@cliparr/shared/external-ids";
 import type { MediaSource } from "@/db/mediaSourcesRepository";
-import { createApiError } from "@/http/errors";
 import { getServerLogger, warnWithError } from "@/logging";
 import type { ProviderSessionRecord } from "@/session/store";
 import type {
   CurrentlyPlayingEntry,
   MediaExportMetadata,
-  PlaybackAudioSelection,
-  PlaybackExportEstimateMetadata,
-  PlaybackSubtitleSelection,
-  PlaybackSubtitleTrack,
 } from "@/providers/types";
-import {
-  fetchMediaHandleRequest,
-  mediaProxyAcceptHeader,
-  proxyProviderMediaResponse,
-  shouldForwardMediaRange,
-} from "@/providers/shared/mediaProxy";
-import { createProviderMediaHandle } from "@/providers/shared/mediaHandles";
 import { playlistBasePath } from "@/providers/shared/hlsPlaylist";
-import {
-  mediaHandleRequestUrl,
-  sanitizeLoggedMediaPath,
-  shouldAttachProviderAuth,
-} from "@/providers/shared/mediaUrlPolicy";
 import { dedupeInflightFetch } from "@/providers/shared/inflight";
-import {
-  isTextSubtitleCodec,
-  normalizeSubtitleCodec,
-  subtitleContentFormat,
-} from "@/providers/shared/subtitles";
+import { subtitleTrackSupportsBurnIn } from "@/providers/shared/subtitles";
 import {
   asArray,
   buildEpisodeSourceTitle,
-  errorMessage,
   normalizeRating,
   numberValue,
   stringValue,
   uniqueStrings,
 } from "@/providers/shared/utilities";
 import {
-  booleanValue,
   fetchCurrentUser,
   fetchItem,
   fetchPlaybackInfo,
   fetchSessions,
-  jellyfinHeaders,
-  JELLYFIN_REQUEST_TIMEOUT_MS,
   sourceContext,
   type JellyfinItem,
-  type JellyfinMediaSource,
-  type JellyfinMediaStream,
   type JellyfinPlaybackInfo,
   type JellyfinSessionInfo,
   type JellyfinSourceContext,
 } from "@/providers/jellyfin/shared";
+import {
+  buildPreviewPath,
+  buildStaticStreamPath,
+  createJellyfinExportEstimateMetadata,
+  currentMediaSource,
+  currentMediaSourceId,
+  deriveSelectedAudioTrack,
+  isAudioMediaStream,
+  isVideoMediaStream,
+  normalizedString,
+  selectedJellyfinAudioStreamIndex,
+  ticksToSeconds,
+} from "@/providers/jellyfin/selection";
+import {
+  deriveSelectedSubtitleTrack,
+  deriveSubtitleTracks,
+} from "@/providers/jellyfin/subtitles";
+import { createMediaHandle } from "@/providers/jellyfin/mediaProxy";
 
 const logger = getServerLogger(["provider", "jellyfin", "playback"]);
-const proxyLogger = getServerLogger(["media", "proxy"]);
+
 const HD_ARTWORK_SIZE = 1920;
+
 const HD_ARTWORK_QUALITY = 96;
+
 const PLAYBACK_INFO_CACHE_TTL_MS = 1000 * 60 * 15;
 
 interface CachedPlaybackInfo {
@@ -81,6 +72,7 @@ const playbackInfoCache = new Map<string, CachedPlaybackInfo>();
 // watching the same item trigger one fetch instead of N. Entries are removed
 // as soon as they settle, so failures are retried on the next call.
 const inflightItemFetches = new Map<string, Promise<JellyfinItem>>();
+
 const inflightPlaybackInfoFetches = new Map<
   string,
   Promise<JellyfinPlaybackInfo>
@@ -102,45 +94,6 @@ function fetchSharedItem(context: JellyfinSourceContext, itemId: string) {
     itemFetchKey(context, itemId),
     () => fetchItem(context, itemId),
   );
-}
-
-function createMediaHandle(
-  session: ProviderSessionRecord,
-  context: JellyfinSourceContext,
-  path: string,
-  options: { basePath?: string } = {},
-) {
-  const basePathPrefix = new URL(context.baseUrl).pathname.replace(/\/$/, "");
-  return createProviderMediaHandle(
-    session,
-    {
-      providerId: "jellyfin",
-      sourceId: context.sourceId,
-      baseUrl: context.baseUrl,
-      token: context.token,
-      providerMetadata: {
-        jellyfin: {
-          deviceId: context.deviceId,
-        },
-      },
-    },
-    `${basePathPrefix}${path}`,
-    {
-      ...options,
-      basePath: options.basePath
-        ? `${basePathPrefix}${options.basePath}`
-        : undefined,
-    },
-  );
-}
-
-function ticksToSeconds(value: number | null | undefined) {
-  const ticks = Number(value);
-  if (!Number.isFinite(ticks) || ticks <= 0) {
-    return 0;
-  }
-
-  return ticks / 10_000_000;
 }
 
 export function playheadSecondsFromPositionTicks(value?: number | null) {
@@ -234,450 +187,6 @@ function withHdImageOptions(path: string) {
 function itemHdImagePath(item: JellyfinItem) {
   const imagePath = itemImagePath(item);
   return imagePath ? withHdImageOptions(imagePath) : undefined;
-}
-
-function playbackMediaSources(
-  sessionInfo: JellyfinSessionInfo | undefined,
-  item: JellyfinItem,
-  playbackInfo?: JellyfinPlaybackInfo,
-) {
-  return [
-    ...asArray(playbackInfo?.MediaSources),
-    ...asArray(item?.MediaSources),
-    ...asArray(sessionInfo?.NowPlayingItem?.MediaSources),
-  ];
-}
-
-function currentMediaSourceId(
-  sessionInfo: JellyfinSessionInfo,
-  item: JellyfinItem,
-  playbackInfo?: JellyfinPlaybackInfo,
-) {
-  const playbackInfoMediaSources = asArray(playbackInfo?.MediaSources);
-  const playStateMediaSourceId = stringValue(
-    sessionInfo?.PlayState?.MediaSourceId,
-  );
-  if (
-    playStateMediaSourceId &&
-    playbackInfoMediaSources.some(
-      (mediaSource) => stringValue(mediaSource?.Id) === playStateMediaSourceId,
-    )
-  ) {
-    return playStateMediaSourceId;
-  }
-
-  return (
-    stringValue(playbackInfoMediaSources[0]?.Id) ??
-    playStateMediaSourceId ??
-    stringValue(asArray(item?.MediaSources)[0]?.Id) ??
-    stringValue(asArray(sessionInfo?.NowPlayingItem?.MediaSources)[0]?.Id)
-  );
-}
-
-function currentMediaSource(
-  sessionInfo: JellyfinSessionInfo | undefined,
-  item: JellyfinItem,
-  mediaSourceId?: string,
-  playbackInfo?: JellyfinPlaybackInfo,
-) {
-  const mediaSources = playbackMediaSources(sessionInfo, item, playbackInfo);
-  if (mediaSourceId) {
-    const matchingMediaSource = mediaSources.find(
-      (mediaSource) => stringValue(mediaSource?.Id) === mediaSourceId,
-    );
-    if (matchingMediaSource) {
-      return matchingMediaSource;
-    }
-  }
-
-  return mediaSources[0];
-}
-
-function normalizedString(value: string | null | undefined) {
-  return stringValue(value)?.toLowerCase() ?? "";
-}
-
-function isAudioMediaStream(stream: JellyfinMediaStream) {
-  return normalizedString(stream?.Type) === "audio";
-}
-
-function isVideoMediaStream(stream: JellyfinMediaStream) {
-  return normalizedString(stream?.Type) === "video";
-}
-
-function isSubtitleMediaStream(stream: JellyfinMediaStream) {
-  return normalizedString(stream?.Type) === "subtitle";
-}
-
-function streamIndexValue(value: unknown) {
-  if (value === null || value === undefined) {
-    return;
-  }
-
-  const index = numberValue(value);
-  return index !== undefined && index >= 0 ? index : undefined;
-}
-
-function positiveNumber(value: unknown) {
-  const parsed = Number(value);
-  return Number.isFinite(parsed) && parsed > 0 ? parsed : undefined;
-}
-
-function bpsToKbps(value: unknown) {
-  const bps = positiveNumber(value);
-  return bps === undefined ? undefined : Math.round(bps / 1000);
-}
-
-function firstDefaultOrFirst<T extends { IsDefault?: unknown }>(
-  entries: readonly T[],
-) {
-  return (
-    entries.find((entry) => booleanValue(entry?.IsDefault) === true) ??
-    entries[0]
-  );
-}
-
-function bitrateFromSize(
-  sourceSizeBytes: number | undefined,
-  sourceDurationSeconds: number | undefined,
-) {
-  return sourceSizeBytes && sourceDurationSeconds
-    ? Math.round((sourceSizeBytes * 8) / sourceDurationSeconds / 1000)
-    : undefined;
-}
-
-export function createJellyfinExportEstimateMetadata(
-  mediaSource: JellyfinMediaSource,
-  fallbackDurationSeconds: number,
-): PlaybackExportEstimateMetadata | undefined {
-  const videoStreams = asArray(mediaSource?.MediaStreams).filter((stream) =>
-    isVideoMediaStream(stream),
-  );
-  const audioStreams = asArray(mediaSource?.MediaStreams).filter((stream) =>
-    isAudioMediaStream(stream),
-  );
-  const selectedVideoStream = firstDefaultOrFirst(videoStreams);
-  const selectedAudioStream = firstDefaultOrFirst(audioStreams);
-  const sourceSizeBytes = positiveNumber(mediaSource?.Size);
-  const sourceDurationSeconds =
-    ticksToSeconds(mediaSource?.RunTimeTicks) ||
-    (fallbackDurationSeconds > 0 ? fallbackDurationSeconds : undefined);
-  const sourceBitrateKbps =
-    bpsToKbps(mediaSource?.Bitrate) ??
-    bitrateFromSize(sourceSizeBytes, sourceDurationSeconds);
-  const videoCodec = normalizeExportVideoCodec(
-    stringValue(selectedVideoStream?.Codec),
-  );
-
-  const metadata = {
-    sourceSizeBytes,
-    sourceDurationSeconds,
-    sourceBitrateKbps,
-    videoBitrateKbps: bpsToKbps(selectedVideoStream?.BitRate),
-    audioBitrateKbps: bpsToKbps(selectedAudioStream?.BitRate),
-    ...(videoCodec ? { videoCodec } : {}),
-    width: positiveNumber(selectedVideoStream?.Width),
-    height: positiveNumber(selectedVideoStream?.Height),
-    frameRate:
-      positiveNumber(selectedVideoStream?.AverageFrameRate) ??
-      positiveNumber(selectedVideoStream?.RealFrameRate),
-  } satisfies PlaybackExportEstimateMetadata;
-
-  return Object.values(metadata).some((value) => value !== undefined)
-    ? metadata
-    : undefined;
-}
-
-function jellyfinAudioTrackTitle(stream: JellyfinMediaStream) {
-  return stringValue(stream?.Title) ?? stringValue(stream?.DisplayTitle);
-}
-
-function jellyfinSubtitleTrackTitle(stream: JellyfinMediaStream) {
-  return (
-    stringValue(stream?.Title) ??
-    stringValue(stream?.DisplayTitle) ??
-    stringValue(stream?.Language)
-  );
-}
-
-function selectedJellyfinAudioStreamIndex(
-  sessionInfo: JellyfinSessionInfo,
-  mediaSource?: JellyfinMediaSource,
-) {
-  return (
-    streamIndexValue(sessionInfo?.PlayState?.AudioStreamIndex) ??
-    streamIndexValue(mediaSource?.DefaultAudioStreamIndex)
-  );
-}
-
-function deriveSelectedAudioTrack(
-  sessionInfo: JellyfinSessionInfo,
-  item: JellyfinItem,
-  mediaSourceId?: string,
-  playbackInfo?: JellyfinPlaybackInfo,
-): PlaybackAudioSelection | undefined {
-  const mediaSource = currentMediaSource(
-    sessionInfo,
-    item,
-    mediaSourceId,
-    playbackInfo,
-  );
-  if (!mediaSource) {
-    return undefined;
-  }
-
-  const audioStreams = asArray(mediaSource?.MediaStreams).filter((stream) =>
-    isAudioMediaStream(stream),
-  );
-  if (audioStreams.length === 0) {
-    return undefined;
-  }
-
-  const selectedAudioStreamIndex = selectedJellyfinAudioStreamIndex(
-    sessionInfo,
-    mediaSource,
-  );
-
-  if (selectedAudioStreamIndex === undefined) {
-    if (audioStreams.length !== 1) {
-      return undefined;
-    }
-
-    const onlyAudioStream = audioStreams[0];
-    return {
-      trackNumber: 1,
-      languageCode: stringValue(onlyAudioStream?.Language),
-      title: jellyfinAudioTrackTitle(onlyAudioStream),
-    };
-  }
-
-  const selectedAudioTrackIndex = audioStreams.findIndex(
-    (stream) => numberValue(stream?.Index) === selectedAudioStreamIndex,
-  );
-  if (selectedAudioTrackIndex === -1) {
-    return undefined;
-  }
-
-  const selectedAudioStream = audioStreams[selectedAudioTrackIndex];
-  return {
-    trackNumber: selectedAudioTrackIndex + 1,
-    languageCode: stringValue(selectedAudioStream?.Language),
-    title: jellyfinAudioTrackTitle(selectedAudioStream),
-  };
-}
-
-function buildJellyfinSubtitlePath(
-  itemId: string | undefined,
-  mediaSourceId: string | undefined,
-  subtitleIndex: number | undefined,
-  contentFormat: string | undefined,
-) {
-  if (
-    !itemId ||
-    !mediaSourceId ||
-    subtitleIndex === undefined ||
-    !contentFormat
-  ) {
-    return;
-  }
-
-  return `/Videos/${encodeURIComponent(itemId)}/${encodeURIComponent(mediaSourceId)}/Subtitles/${subtitleIndex}/Stream.${encodeURIComponent(contentFormat)}`;
-}
-
-function jellyfinSubtitleTrack(
-  session: ProviderSessionRecord,
-  context: JellyfinSourceContext,
-  itemId: string | undefined,
-  mediaSourceId: string | undefined,
-  stream: JellyfinMediaStream,
-): PlaybackSubtitleTrack {
-  const codec = normalizeSubtitleCodec(stream?.Codec);
-  const isText =
-    booleanValue(stream?.IsTextSubtitleStream) ?? isTextSubtitleCodec(codec);
-  const contentFormat = isText
-    ? (subtitleContentFormat(codec) ?? "vtt")
-    : undefined;
-  const subtitleIndex = numberValue(stream?.Index);
-  const subtitlePath = buildJellyfinSubtitlePath(
-    itemId,
-    mediaSourceId,
-    subtitleIndex,
-    contentFormat,
-  );
-
-  return {
-    streamId: subtitleIndex === undefined ? undefined : String(subtitleIndex),
-    index: subtitleIndex,
-    languageCode: stringValue(stream?.Language),
-    title: jellyfinSubtitleTrackTitle(stream),
-    codec,
-    contentFormat,
-    isText,
-    isDefault: booleanValue(stream?.IsDefault),
-    isForced: booleanValue(stream?.IsForced),
-    isHearingImpaired: booleanValue(stream?.IsHearingImpaired),
-    isExternal: booleanValue(stream?.IsExternal),
-    contentUrl: subtitlePath
-      ? createMediaHandle(session, context, subtitlePath)
-      : undefined,
-  };
-}
-
-export function deriveSubtitleTracks(
-  session: ProviderSessionRecord,
-  context: JellyfinSourceContext,
-  item: JellyfinItem,
-  mediaSourceId?: string,
-  sessionInfo?: JellyfinSessionInfo,
-  playbackInfo?: JellyfinPlaybackInfo,
-) {
-  const mediaSource = currentMediaSource(
-    sessionInfo,
-    item,
-    mediaSourceId,
-    playbackInfo,
-  );
-  if (!mediaSource) {
-    return [];
-  }
-
-  const itemId = stringValue(item?.Id);
-  const resolvedMediaSourceId = stringValue(mediaSource?.Id) ?? mediaSourceId;
-
-  return asArray(mediaSource?.MediaStreams)
-    .filter((stream) => isSubtitleMediaStream(stream))
-    .map((stream) =>
-      jellyfinSubtitleTrack(
-        session,
-        context,
-        itemId,
-        resolvedMediaSourceId,
-        stream,
-      ),
-    );
-}
-
-export function deriveSelectedSubtitleTrack(
-  sessionInfo: JellyfinSessionInfo,
-  item: JellyfinItem,
-  mediaSourceId: string | undefined,
-  playbackInfo?: JellyfinPlaybackInfo,
-): PlaybackSubtitleSelection | undefined {
-  const mediaSource = currentMediaSource(
-    sessionInfo,
-    item,
-    mediaSourceId,
-    playbackInfo,
-  );
-  if (!mediaSource) {
-    return undefined;
-  }
-
-  const subtitleStreams = asArray(mediaSource?.MediaStreams).filter((stream) =>
-    isSubtitleMediaStream(stream),
-  );
-  if (subtitleStreams.length === 0) {
-    return undefined;
-  }
-
-  const selectedSubtitleStreamIndex =
-    numberValue(sessionInfo?.PlayState?.SubtitleStreamIndex) ??
-    numberValue(mediaSource?.DefaultSubtitleStreamIndex);
-  if (selectedSubtitleStreamIndex === undefined) {
-    return undefined;
-  }
-
-  const selectedSubtitleStream = subtitleStreams.find(
-    (stream) => numberValue(stream?.Index) === selectedSubtitleStreamIndex,
-  );
-  if (!selectedSubtitleStream) {
-    return undefined;
-  }
-
-  const codec = normalizeSubtitleCodec(selectedSubtitleStream?.Codec);
-  const isText =
-    booleanValue(selectedSubtitleStream?.IsTextSubtitleStream) ??
-    isTextSubtitleCodec(codec);
-
-  return {
-    streamId: String(selectedSubtitleStreamIndex),
-    index: selectedSubtitleStreamIndex,
-    languageCode: stringValue(selectedSubtitleStream?.Language),
-    title: jellyfinSubtitleTrackTitle(selectedSubtitleStream),
-    codec,
-    contentFormat: isText ? (subtitleContentFormat(codec) ?? "vtt") : undefined,
-    isText,
-  };
-}
-
-function subtitleTrackSupportsBurnIn(track: PlaybackSubtitleTrack) {
-  return Boolean(track.isText && track.contentUrl);
-}
-
-function buildStaticStreamPath(
-  item: JellyfinItem,
-  mediaSourceId: string | undefined,
-  context: JellyfinSourceContext,
-  jellyfinPlaySessionId: string,
-) {
-  const itemId = stringValue(item?.Id);
-  if (!itemId) {
-    return;
-  }
-
-  const isAudio = normalizedString(item?.MediaType) === "audio";
-  const params = new URLSearchParams({
-    static: "true",
-    deviceId: context.deviceId,
-    playSessionId: jellyfinPlaySessionId,
-    context: "Static",
-  });
-
-  if (mediaSourceId) {
-    params.set("mediaSourceId", mediaSourceId);
-  }
-
-  return `${isAudio ? `/Audio/${encodeURIComponent(itemId)}/stream` : `/Videos/${encodeURIComponent(itemId)}/stream`}?${params.toString()}`;
-}
-
-export function buildPreviewPath(
-  item: JellyfinItem,
-  mediaSourceId: string | undefined,
-  context: JellyfinSourceContext,
-  jellyfinPlaySessionId: string,
-  audioStreamIndex?: number,
-) {
-  const itemId = stringValue(item?.Id);
-  if (
-    !itemId ||
-    normalizedString(item?.MediaType) === "audio" ||
-    !mediaSourceId
-  ) {
-    return;
-  }
-
-  const params = new URLSearchParams({
-    mediaSourceId,
-    deviceId: context.deviceId,
-    playSessionId: jellyfinPlaySessionId,
-    maxAudioChannels: "2",
-    audioCodec: "aac",
-    videoCodec: "h264",
-    videoBitRate: "12000000",
-    maxWidth: "1920",
-    maxHeight: "1080",
-    maxVideoBitDepth: "8",
-    allowVideoStreamCopy: "false",
-    enableAutoStreamCopy: "false",
-    enableAdaptiveBitrateStreaming: "false",
-    alwaysBurnInSubtitleWhenTranscoding: "false",
-  });
-
-  if (audioStreamIndex !== undefined) {
-    params.set("audioStreamIndex", String(audioStreamIndex));
-  }
-
-  return `/Videos/${encodeURIComponent(itemId)}/master.m3u8?${params.toString()}`;
 }
 
 function peopleNames(item: JellyfinItem, kind: string) {
@@ -1191,99 +700,5 @@ async function resolveJellyfinPlayback(
 
   return entries.filter(
     (entry): entry is CurrentlyPlayingEntry => entry !== undefined,
-  );
-}
-
-export async function proxyMedia(
-  session: ProviderSessionRecord,
-  handleId: string,
-  request: Request,
-  res: Response,
-) {
-  const handle = session.mediaHandles.get(handleId);
-  if (!handle) {
-    throw createApiError(
-      404,
-      "media_not_found",
-      "Media handle was not found or has expired",
-    );
-  }
-
-  handle.lastAccessedAt = Date.now();
-
-  const requestedRange = request.header("range") ?? undefined;
-  const range = shouldForwardMediaRange(handle, requestedRange);
-  const accept = mediaProxyAcceptHeader(handle, {
-    accept: request.header("accept") ?? undefined,
-    range,
-  });
-  const useProviderAuth = shouldAttachProviderAuth(handle);
-  const headers = useProviderAuth
-    ? jellyfinHeaders({
-        token: handle.token,
-        deviceId: handle.providerMetadata?.jellyfin?.deviceId,
-        accept,
-      })
-    : new Headers(accept ? { Accept: accept } : undefined);
-  if (range) {
-    headers.set("Range", range);
-  }
-
-  const upstreamUrl = mediaHandleRequestUrl(handle).toString();
-
-  proxyLogger.trace("Fetching Jellyfin media.", {
-    "media.handle.id": handle.id,
-    "session.id": session.id,
-    "source.id": handle.sourceId,
-    "upstream.url": sanitizeLoggedMediaPath(upstreamUrl),
-    "provider.auth.attached": useProviderAuth,
-    "media.range.present": Boolean(range),
-    "http.accept": accept,
-  });
-
-  await proxyProviderMediaResponse(
-    session,
-    handle,
-    {
-      accept,
-      range: range ?? undefined,
-    },
-    async () => {
-      try {
-        const upstream = await fetchMediaHandleRequest(handle, {
-          headers,
-          timeoutMs: JELLYFIN_REQUEST_TIMEOUT_MS,
-        });
-
-        if (!upstream.ok && upstream.status !== 206) {
-          const body = await upstream.text();
-          const detail = body.slice(0, 400).replaceAll(/\s+/g, " ").trim();
-          throw createApiError(
-            upstream.status,
-            "jellyfin_media_failed",
-            detail
-              ? `Jellyfin media request failed: ${detail}`
-              : "Jellyfin media request failed",
-          );
-        }
-
-        return upstream;
-      } catch (error) {
-        warnWithError(proxyLogger, error, "Jellyfin media request failed.", {
-          ...logEventFields("media.proxy.upstream", "failure"),
-          ...logErrorFields(error),
-          "media.handle.id": handle.id,
-          "session.id": session.id,
-          "source.id": handle.sourceId,
-          "upstream.url": sanitizeLoggedMediaPath(upstreamUrl),
-          "provider.auth.attached": useProviderAuth,
-          "media.range.present": Boolean(range),
-          "http.accept": accept,
-          "error.message": errorMessage(error),
-        });
-        throw error;
-      }
-    },
-    res,
   );
 }

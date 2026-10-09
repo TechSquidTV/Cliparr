@@ -245,10 +245,6 @@ export function deriveSelectedSubtitleTrack(
   };
 }
 
-export function subtitleTrackSupportsBurnIn(track: PlaybackSubtitleTrack) {
-  return Boolean(track.isText && track.contentUrl);
-}
-
 export async function preparePlexSubtitleTranscode(
   handle: MediaHandle,
   headers: Headers,

@@ -3,6 +3,7 @@ import { randomUUID } from "node:crypto";
 import type { MediaSource } from "@/db/mediaSourcesRepository";
 import { createApiError } from "@/http/errors";
 import {
+  assertHttpUrl,
   errorMessage,
   numberValue,
   stringValue,
@@ -64,19 +65,6 @@ export function plexMediaHeaders(
   return headers;
 }
 
-function assertHttpUrl(uri: string) {
-  const parsed = new URL(uri);
-  if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
-    throw createApiError(
-      400,
-      "invalid_connection_url",
-      "Plex connection must use HTTP or HTTPS",
-    );
-  }
-
-  return parsed;
-}
-
 function normalizeProvides(provides: unknown): string[] {
   if (Array.isArray(provides)) {
     return provides
@@ -115,7 +103,7 @@ export function normalizeResources(resources: Resource[]): ProviderResource[] {
         if (!uri) {
           return [];
         }
-        assertHttpUrl(uri);
+        assertHttpUrl(uri, "Plex");
         return {
           id: randomUUID(),
           uri,
@@ -215,7 +203,7 @@ function sourceConnections(source: MediaSource) {
     }
 
     try {
-      assertHttpUrl(uri);
+      assertHttpUrl(uri, "Plex");
     } catch {
       return [];
     }
@@ -243,7 +231,7 @@ function manualConnection(source: MediaSource) {
     return;
   }
 
-  const parsed = assertHttpUrl(source.baseUrl);
+  const parsed = assertHttpUrl(source.baseUrl, "Plex");
   let port = 80;
   if (parsed.port) {
     port = Number(parsed.port);

@@ -64,8 +64,8 @@ import {
 import {
   deriveSelectedSubtitleTrack,
   deriveSubtitleTracks,
-  subtitleTrackSupportsBurnIn,
 } from "@/providers/plex/subtitles";
+import { subtitleTrackSupportsBurnIn } from "@/providers/shared/subtitles";
 
 const logger = getServerLogger(["provider", "plex", "playback"]);
 

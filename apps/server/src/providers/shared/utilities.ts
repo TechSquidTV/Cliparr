@@ -1,3 +1,5 @@
+import { createApiError } from "@/http/errors";
+
 interface EpisodeSourceTitleInput {
   title?: string;
   seriesTitle?: string;
@@ -116,4 +118,17 @@ export function buildEpisodeSourceTitle(input: EpisodeSourceTitleInput) {
     uniqueStrings([input.seriesTitle, episodeCode, input.title]).join(" - ") ||
     input.title
   );
+}
+
+export function assertHttpUrl(uri: string, providerName: string) {
+  const parsed = new URL(uri);
+  if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+    throw createApiError(
+      400,
+      "invalid_connection_url",
+      `${providerName} connection must use HTTP or HTTPS`,
+    );
+  }
+
+  return parsed;
 }

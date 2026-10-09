@@ -1,4 +1,5 @@
 import { stringValue } from "@/providers/shared/utilities";
+import type { PlaybackSubtitleTrack } from "@/providers/types";
 
 const TEXT_SUBTITLE_CODECS = new Set([
   "ass",
@@ -92,4 +93,8 @@ export function subtitleFileExtension(codec: unknown, path?: string) {
 
 export function subtitleContentFormat(codec: unknown) {
   return isTextSubtitleCodec(codec) ? "vtt" : undefined;
+}
+
+export function subtitleTrackSupportsBurnIn(track: PlaybackSubtitleTrack) {
+  return Boolean(track.isText && track.contentUrl);
 }
