@@ -1,223 +1,35 @@
 import { groupCurrentPlayback } from "@/playback/groupPlayback";
-import { randomUUID } from "node:crypto";
 import { Router } from "express";
-import {
-  compactLogFields,
-  logDurationFields,
-  logErrorFields,
-  logEventFields,
-} from "@cliparr/shared/logging";
+import { logDurationFields, logEventFields } from "@cliparr/shared/logging";
 import { listMediaSources } from "@/db/mediaSourcesRepository";
-import { asyncHandler, createApiError, isApiError } from "@/http/errors";
-import { getServerLogger, warnWithError } from "@/logging";
-import { getProvider } from "@/providers/registry";
+import { asyncHandler, createApiError } from "@/http/errors";
+import { getServerLogger } from "@/logging";
 import {
-  assertAllowedMediaHandleRequestUrl,
-  fetchMediaHandleRequest,
-  mediaHandleRequestUrl,
-  mediaProxyAcceptHeader,
-  proxyProviderMediaResponse,
-  sanitizeLoggedMediaPath,
-  shouldForwardMediaRange,
-} from "@/providers/shared/mediaProxy";
+  createLocalUrlMedia,
+  proxyLocalUrlMedia,
+} from "@/providers/localUrl/provider";
+import { getProvider } from "@/providers/registry";
+import { sanitizeLoggedMediaPath } from "@/providers/shared/mediaProxy";
+import { errorMessage } from "@/providers/shared/utilities";
 import type {
   CurrentlyPlayingEntry,
-  MediaHandle,
   SourcePlaybackError,
 } from "@/providers/types";
 import { requireAccountSession, setNoStore } from "@/session/request";
-import {
-  pruneSessionMediaHandles,
-  type ProviderSessionRecord,
-} from "@/session/store";
+import { pruneSessionMediaHandles } from "@/session/store";
 
 export const mediaRouter = Router();
 const mediaLogger = getServerLogger("media");
-const localUrlLogger = mediaLogger.getChild("local_url");
 const discoveryLogger = mediaLogger.getChild("discovery");
 const proxyLogger = mediaLogger.getChild("proxy");
-const LOCAL_URL_PROVIDER_ID = "local-url";
-const LOCAL_URL_SOURCE_ID = "remote-url";
-const LOCAL_URL_MEDIA_BASE_URL = "http://cliparr.local";
-const HLS_PLAYLIST_PATTERN = /\.m3u8(?:$|[#?])/i;
-const localUrlMediaHandles = new Map<string, MediaHandle>();
-const LOCAL_URL_ERROR_BODY_MAX_BYTES = 4096;
-const localUrlSession: ProviderSessionRecord = {
-  id: "local-url",
-  providerId: LOCAL_URL_PROVIDER_ID,
-  providerAccountId: LOCAL_URL_SOURCE_ID,
-  userToken: "",
-  mediaHandles: localUrlMediaHandles,
-  createdAt: 0,
-  expiresAt: Number.MAX_SAFE_INTEGER,
-};
-
-function errorMessage(error: unknown) {
-  if (error instanceof Error) {
-    return error.message;
-  }
-
-  return "Unknown error";
-}
-
-async function readLocalUrlErrorBody(response: Response) {
-  if (!response.body) {
-    return "";
-  }
-
-  const reader = response.body.getReader();
-  const bytes = new Uint8Array(LOCAL_URL_ERROR_BODY_MAX_BYTES);
-  let length = 0;
-  try {
-    while (length < bytes.length) {
-      const { done, value } = await reader.read();
-      if (done) {
-        break;
-      }
-      const chunk = value.subarray(0, bytes.length - length);
-      bytes.set(chunk, length);
-      length += chunk.length;
-    }
-    return new TextDecoder().decode(bytes.subarray(0, length));
-  } finally {
-    await reader.cancel().catch(() => {});
-    reader.releaseLock();
-  }
-}
-
-function bodyUrl(value: unknown) {
-  const body =
-    value && typeof value === "object" ? (value as { url?: unknown }) : null;
-  if (typeof body?.url !== "string") {
-    throw createApiError(
-      400,
-      "local_media_url_invalid",
-      "Media URL is required",
-    );
-  }
-
-  return body.url;
-}
-
-function parseLocalMediaUrl(value: string) {
-  const trimmed = value.trim();
-  if (!trimmed) {
-    throw createApiError(
-      400,
-      "local_media_url_invalid",
-      "Media URL is required",
-    );
-  }
-
-  let parsed: URL;
-  try {
-    parsed = new URL(trimmed);
-  } catch {
-    throw createApiError(
-      400,
-      "local_media_url_invalid",
-      "Enter a valid absolute media URL",
-    );
-  }
-
-  if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
-    throw createApiError(
-      400,
-      "local_media_url_invalid",
-      "Media URL must use HTTP or HTTPS",
-    );
-  }
-
-  return parsed;
-}
-
-function localUrlMediaPath(handleId: string) {
-  return `/api/media/local-url/${handleId}`;
-}
-
-function isHlsPlaylistUrl(url: string) {
-  return HLS_PLAYLIST_PATTERN.test(url);
-}
-
-function buildLocalUrlMediaHandle(
-  value: string,
-  basePath?: string,
-): MediaHandle {
-  const url = parseLocalMediaUrl(value);
-
-  return {
-    id: randomUUID(),
-    providerId: LOCAL_URL_PROVIDER_ID,
-    sourceId: LOCAL_URL_SOURCE_ID,
-    baseUrl: LOCAL_URL_MEDIA_BASE_URL,
-    path: url.toString(),
-    token: "",
-    basePath,
-    lastAccessedAt: Date.now(),
-  };
-}
-
-function storeLocalUrlMediaHandle(handle: MediaHandle) {
-  localUrlMediaHandles.set(handle.id, handle);
-  return localUrlMediaPath(handle.id);
-}
-
-function createLocalUrlMediaHandleUrl(
-  _session: ProviderSessionRecord,
-  _handle: MediaHandle,
-  nextPath: string,
-  basePath: string,
-) {
-  return storeLocalUrlMediaHandle(buildLocalUrlMediaHandle(nextPath, basePath));
-}
 
 mediaRouter.post(
   "/local-url",
   asyncHandler(async (request, res) => {
     setNoStore(res);
     requireAccountSession(request);
-    const startedAt = Date.now();
-
-    try {
-      const prunedCount = pruneSessionMediaHandles(localUrlSession);
-      const handle = buildLocalUrlMediaHandle(bodyUrl(request.body));
-      await assertAllowedMediaHandleRequestUrl(handle);
-      const mediaUrl = storeLocalUrlMediaHandle(handle);
-
-      localUrlLogger.trace("Created local URL media handle.", {
-        ...logEventFields("media.local_url.handle", "created"),
-        "media.handle.id": handle.id,
-        "upstream.url": sanitizeLoggedMediaPath(handle.path),
-        "media.hls": isHlsPlaylistUrl(handle.path),
-      });
-
-      res.status(201).json({
-        mediaUrl,
-        hls: isHlsPlaylistUrl(handle.path),
-      });
-
-      localUrlLogger.info("Local URL media handle created.", {
-        ...logEventFields("media.local_url.create", "success"),
-        ...logDurationFields(startedAt),
-        "media.handle.id": handle.id,
-        "upstream.url": sanitizeLoggedMediaPath(handle.path),
-        "media.hls": isHlsPlaylistUrl(handle.path),
-        "media.handle.pruned_count": prunedCount,
-      });
-    } catch (error) {
-      warnWithError(
-        localUrlLogger,
-        error,
-        "Local URL media handle creation failed.",
-        compactLogFields({
-          ...logEventFields("media.local_url.create", "failure"),
-          ...logDurationFields(startedAt),
-          ...logErrorFields(error),
-          "http.status_code": isApiError(error) ? error.status : undefined,
-        }),
-      );
-      throw error;
-    }
+    const { mediaUrl, hls } = await createLocalUrlMedia(request.body);
+    res.status(201).json({ mediaUrl, hls });
   }),
 );
 
@@ -226,92 +38,7 @@ mediaRouter.get(
   asyncHandler(async (request, res) => {
     setNoStore(res);
     requireAccountSession(request);
-    const prunedCount = pruneSessionMediaHandles(localUrlSession);
-    const handle = localUrlMediaHandles.get(request.params.handleId as string);
-    if (!handle) {
-      throw createApiError(
-        404,
-        "local_media_url_not_found",
-        "URL media handle was not found or has expired",
-      );
-    }
-
-    handle.lastAccessedAt = Date.now();
-
-    const requestedRange = request.header("range") ?? undefined;
-    const range = shouldForwardMediaRange(handle, requestedRange);
-    const accept = mediaProxyAcceptHeader(handle, {
-      accept: request.header("accept") ?? undefined,
-      range,
-    });
-    const headers = new Headers(accept ? { Accept: accept } : undefined);
-    if (range) {
-      headers.set("Range", range);
-    }
-
-    const upstreamUrl = mediaHandleRequestUrl(handle).toString();
-    localUrlLogger.trace("Fetching local URL media.", {
-      "media.handle.id": handle.id,
-      "upstream.url": sanitizeLoggedMediaPath(upstreamUrl),
-      "media.range.present": Boolean(range),
-      accept,
-      "media.handle.pruned_count": prunedCount,
-    });
-
-    await proxyProviderMediaResponse(
-      localUrlSession,
-      handle,
-      {
-        accept,
-        range: range ?? undefined,
-      },
-      async () => {
-        try {
-          const upstream = await fetchMediaHandleRequest(handle, { headers });
-          if (!upstream.ok && upstream.status !== 206) {
-            const body = await readLocalUrlErrorBody(upstream);
-            const detail = body.slice(0, 400).replaceAll(/\s+/g, " ").trim();
-            throw createApiError(
-              upstream.status,
-              "local_media_url_failed",
-              detail
-                ? `URL media request failed: ${detail}`
-                : "URL media request failed",
-            );
-          }
-
-          return upstream;
-        } catch (error) {
-          warnWithError(
-            localUrlLogger,
-            error,
-            "Local URL media request failed.",
-            {
-              ...logEventFields("media.local_url.fetch", "failure"),
-              "media.handle.id": handle.id,
-              "upstream.url": sanitizeLoggedMediaPath(upstreamUrl),
-              "media.range.present": Boolean(range),
-              "http.accept": accept,
-              ...logErrorFields(error),
-            },
-          );
-
-          if (isApiError(error)) {
-            throw error;
-          }
-
-          throw createApiError(
-            502,
-            "local_media_url_failed",
-            `URL media request failed: ${errorMessage(error)}`,
-          );
-        }
-      },
-      res,
-      {
-        createMediaHandleUrl: createLocalUrlMediaHandleUrl,
-      },
-    );
+    await proxyLocalUrlMedia(request.params.handleId as string, request, res);
   }),
 );
 

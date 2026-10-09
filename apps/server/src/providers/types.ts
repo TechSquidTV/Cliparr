@@ -9,7 +9,7 @@ import type { MediaSource } from "@/db/mediaSourcesRepository";
 import type { ProviderSessionRecord } from "@/session/store";
 
 type ProviderId = string;
-type ProviderAuthType = "pin" | "credentials";
+type ProviderAuthType = "pin" | "credentials" | "none";
 
 export interface ProviderDefinition {
   id: ProviderId;

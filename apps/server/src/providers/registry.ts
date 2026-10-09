@@ -1,5 +1,6 @@
 import type { ProviderImplementation } from "@/providers/types";
 import { jellyfinProvider } from "@/providers/jellyfin/provider";
+import { localUrlProvider } from "@/providers/localUrl/provider";
 import { plexProvider } from "@/providers/plex/provider";
 
 const providers = new Map<string, ProviderImplementation>();
@@ -18,3 +19,4 @@ export function listProviders() {
 
 registerProvider(plexProvider);
 registerProvider(jellyfinProvider);
+registerProvider(localUrlProvider);
