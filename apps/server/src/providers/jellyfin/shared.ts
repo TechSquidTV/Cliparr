@@ -27,6 +27,7 @@ import type { MediaSource } from "@/db/mediaSourcesRepository";
 import { createApiError, isApiError } from "@/http/errors";
 import { fetchWithPinnedDns } from "@/providers/shared/pinnedFetch";
 import {
+  assertHttpUrl,
   booleanEnv,
   errorMessage,
   numberValue,
@@ -122,21 +123,8 @@ function deriveJellyfinDeviceId() {
 
 export const JELLYFIN_DEVICE_ID = deriveJellyfinDeviceId();
 
-function assertHttpUrl(uri: string) {
-  const parsed = new URL(uri);
-  if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
-    throw createApiError(
-      400,
-      "invalid_connection_url",
-      "Jellyfin connection must use HTTP or HTTPS",
-    );
-  }
-
-  return parsed;
-}
-
 export function normalizeBaseUrl(url: string) {
-  const parsed = assertHttpUrl(url.trim());
+  const parsed = assertHttpUrl(url.trim(), "Jellyfin");
   parsed.username = "";
   parsed.password = "";
   parsed.search = "";
@@ -330,7 +318,7 @@ export async function assertAllowedJellyfinServerUrl(
   const signal =
     options.signal ?? AbortSignal.timeout(JELLYFIN_REQUEST_TIMEOUT_MS);
   signal.throwIfAborted();
-  const parsed = assertHttpUrl(url.trim());
+  const parsed = assertHttpUrl(url.trim(), "Jellyfin");
   const hostname = normalizeHostname(parsed.hostname);
 
   if (parsed.username || parsed.password) {
@@ -389,7 +377,7 @@ export async function resolveCredentialServerUrl(serverUrl: string) {
 }
 
 function sourceHostInfo(baseUrl: string) {
-  const parsed = assertHttpUrl(baseUrl);
+  const parsed = assertHttpUrl(baseUrl, "Jellyfin");
   const hostname = parsed.hostname.trim();
   if (!hostname) {
     return;
@@ -453,7 +441,7 @@ function isLocalConnection(url: URL) {
 }
 
 export function connectionInfo(baseUrl: string) {
-  const parsed = assertHttpUrl(baseUrl);
+  const parsed = assertHttpUrl(baseUrl, "Jellyfin");
   return {
     id: parsed.toString(),
     uri: baseUrl,

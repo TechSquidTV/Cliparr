@@ -6,9 +6,9 @@ import {
 } from "@/providers/jellyfin/auth";
 import {
   listCurrentlyPlaying,
-  proxyMedia,
   sourceSupportsCurrentlyPlaying,
 } from "@/providers/jellyfin/playback";
+import { proxyMedia } from "@/providers/jellyfin/mediaProxy";
 
 export const jellyfinProvider: ProviderImplementation = {
   definition: {

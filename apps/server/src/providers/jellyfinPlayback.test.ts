@@ -8,16 +8,20 @@ import type { Request, Response } from "express";
 import type { MediaSource } from "@/db/mediaSourcesRepository";
 import type { ProviderSessionRecord } from "@/session/store";
 import {
-  buildPreviewPath,
   createJellyfinPlaybackResolver,
-  createJellyfinExportEstimateMetadata,
-  deriveSelectedSubtitleTrack,
-  deriveSubtitleTracks,
   listCurrentlyPlaying,
   playheadSecondsFromPositionTicks,
-  proxyMedia,
   sourceSupportsCurrentlyPlaying,
 } from "@/providers/jellyfin/playback";
+import {
+  buildPreviewPath,
+  createJellyfinExportEstimateMetadata,
+} from "@/providers/jellyfin/selection";
+import {
+  deriveSelectedSubtitleTrack,
+  deriveSubtitleTracks,
+} from "@/providers/jellyfin/subtitles";
+import { proxyMedia } from "@/providers/jellyfin/mediaProxy";
 import type {
   JellyfinItem,
   JellyfinSessionInfo,
