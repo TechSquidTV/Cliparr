@@ -106,7 +106,12 @@ function requireProviderAuthCookie(
 
 providersRouter.get("/", (_request, res) => {
   setNoStore(res);
-  res.json({ providers: listProviders() });
+  // The connect flow only lists providers with an interactive auth method;
+  // providers with auth "none" (like the local URL provider) are reachable
+  // through the registry but not connectable.
+  res.json({
+    providers: listProviders().filter((provider) => provider.auth !== "none"),
+  });
 });
 
 providersRouter.post(
