@@ -1,4 +1,4 @@
-# syntax=docker/dockerfile:1.27.1
+# syntax=docker/dockerfile:1.28.0
 
 ARG CLIPARR_VERSION
 ARG NODE_VERSION=24
