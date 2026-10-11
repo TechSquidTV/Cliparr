@@ -18,7 +18,7 @@ import {
   exportClipWithRuntime,
   type ExportVideoEncodingPlan,
 } from "@/lib/exportClip";
-import type { EditorMediaSource } from "@/lib/editorMedia";
+import type { EditorMediaSource } from "@/components/editor/editorMedia";
 import { gifExportSettingsForPreset } from "@/lib/exportTypes";
 import { createInlineGifFrameEncoder } from "@/lib/gifFrameEncoder";
 import { concatenateGifFrameChunks } from "@/lib/gifFrameChunk";

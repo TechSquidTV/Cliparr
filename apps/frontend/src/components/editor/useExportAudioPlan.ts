@@ -10,7 +10,7 @@ import { selectPreferredPairableAudioTrack } from "#/lib/selectPreferredAudioTra
 import {
   editorMediaSourcesEqual,
   type EditorMediaSource,
-} from "#/lib/editorMedia";
+} from "#/components/editor/editorMedia";
 import type { PlaybackAudioSelection } from "#/providers/types";
 import { isAudioExportFormat, type ExportFormat } from "#/lib/exportFormats";
 

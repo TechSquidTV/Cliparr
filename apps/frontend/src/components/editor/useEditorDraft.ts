@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { fromSeconds, type TimelineEngine } from "@techsquidtv/canvas-timeline";
-import type { EditorSession } from "@/lib/editorMedia";
+import type { EditorSession } from "@/components/editor/editorMedia";
 import {
   editorDraftIdentity,
   editorDrafts,

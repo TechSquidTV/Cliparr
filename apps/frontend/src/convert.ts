@@ -1,6 +1,6 @@
 import type { ExportClipOptions } from "./lib/exportClip";
 import type { InputVideoTrack } from "mediabunny";
-import type { MediaDimensions } from "./lib/editorMedia";
+import type { MediaDimensions } from "./components/editor/editorMedia";
 import { getVideoTrackDimensions as readVideoTrackDimensions } from "./lib/mediabunnyTrackAccess";
 
 export {
@@ -56,7 +56,7 @@ export {
   type EditorMediaSource,
   type EditorSession,
   type MediaDimensions,
-} from "./lib/editorMedia";
+} from "./components/editor/editorMedia";
 export { createCliparrInputFromSource } from "./lib/mediabunnyInput";
 export { selectPreferredPairableAudioTrack } from "./lib/selectPreferredAudioTrack";
 export {
