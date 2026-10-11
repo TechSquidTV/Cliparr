@@ -269,7 +269,31 @@ jobs:
       - name: Write release summary
         if: always()
         env:
-          SUMMARY_STEPS: ${{ toJSON(steps) }}
+          # Build outputs include large provenance metadata; keep the summary input bounded.
+          SUMMARY_STEPS: >-
+            {
+              "format": { "outcome": "${{ steps.format.outcome }}" },
+              "lint": { "outcome": "${{ steps.lint.outcome }}" },
+              "knip": { "outcome": "${{ steps.knip.outcome }}" },
+              "test": { "outcome": "${{ steps.test.outcome }}" },
+              "docs": { "outcome": "${{ steps.docs.outcome }}" },
+              "build": { "outcome": "${{ steps.build.outcome }}" },
+              "smoke": {
+                "outcome": "${{ steps.smoke.outcome }}",
+                "outputs": { "runtime_node": "${{ steps.smoke.outputs.runtime_node }}" }
+              },
+              "publish": { "outcome": "${{ steps.publish.outcome }}" },
+              "verify_amd64": {
+                "outcome": "${{ steps.verify_amd64.outcome }}",
+                "outputs": { "runtime_node": "${{ steps.verify_amd64.outputs.runtime_node }}" }
+              },
+              "verify_arm64": {
+                "outcome": "${{ steps.verify_arm64.outcome }}",
+                "outputs": { "runtime_node": "${{ steps.verify_arm64.outputs.runtime_node }}" }
+              },
+              "github-release": { "outcome": "${{ steps.github-release.outcome }}" },
+              "aliases": { "outcome": "${{ steps.aliases.outcome }}" }
+            }
           JOB_STATUS: ${{ job.status }}
           DRY_RUN: ${{ inputs.dry_run }}
           IMAGE_DIGEST: ${{ steps.publish.outputs.digest }}
