@@ -1,23 +1,21 @@
+import { SESSION_TTL_MS } from "@/session/constants";
+import {
+  getSessionMediaHandles,
+  deleteSessionMediaHandles,
+} from "@/session/mediaHandles";
 import { notifyPlaybackStateChange } from "@/playback/stateChanges";
 import { randomUUID } from "node:crypto";
 import { eq, lte } from "drizzle-orm";
 import { logErrorFields, logEventFields } from "@cliparr/shared/logging";
 import { getDatabase } from "@/db/database";
 import { getProviderAccount } from "@/db/providerAccountsRepository";
-import { REMEMBERED_PROVIDER_SESSION_TTL_MS } from "@/db/rememberedProviderSessionsRepository";
 import { providerSessions, type ProviderSessionRow } from "@/db/schema";
 import { getServerLogger, warnWithError } from "@/logging";
-import { removeMediaHandleFromIndex } from "@/providers/shared/mediaHandles";
 import type { MediaHandle } from "@/providers/types";
 import { decryptSecret, encryptSecret } from "@/security/secrets";
 
-const SESSION_COOKIE = "cliparr_session";
-const REMEMBERED_PROVIDER_SESSION_COOKIE = "cliparr_remember";
-const SESSION_TTL_MS = 1000 * 60 * 60 * 12;
 const SESSION_CACHE_TTL_MS = 60_000;
 const SESSION_CACHE_MAX_ENTRIES = 128;
-const MEDIA_HANDLE_PRUNE_INTERVAL_MS = 60_000;
-const MEDIA_HANDLE_PRUNE_SIZE_THRESHOLD = 2000;
 const logger = getServerLogger(["session", "store"]);
 
 export interface ProviderSessionRecord {
@@ -34,20 +32,6 @@ const sessionCache = new Map<
   string,
   { record: ProviderSessionRecord; cachedUntil: number }
 >();
-const lastMediaHandlePrune = new WeakMap<
-  Map<string, MediaHandle>,
-  { at: number; size: number }
->();
-const mediaHandlesBySessionId = new Map<string, Map<string, MediaHandle>>();
-
-function getMediaHandles(sessionId: string) {
-  let mediaHandles = mediaHandlesBySessionId.get(sessionId);
-  if (!mediaHandles) {
-    mediaHandles = new Map<string, MediaHandle>();
-    mediaHandlesBySessionId.set(sessionId, mediaHandles);
-  }
-  return mediaHandles;
-}
 
 function mapProviderSession(row: ProviderSessionRow): ProviderSessionRecord {
   return {
@@ -55,7 +39,7 @@ function mapProviderSession(row: ProviderSessionRow): ProviderSessionRecord {
     providerId: row.providerId,
     providerAccountId: row.providerAccountId,
     userToken: decryptSecret(row.userToken),
-    mediaHandles: getMediaHandles(row.id),
+    mediaHandles: getSessionMediaHandles(row.id),
     createdAt: row.createdAt,
     expiresAt: row.expiresAt,
   };
@@ -186,64 +170,9 @@ export function restoreProviderSessionFromProviderAccount(
   }
 }
 
-export function pruneSessionMediaHandles(
-  session: ProviderSessionRecord,
-  // Editors retain playlist and segment URLs, even while paused. Keep them
-  // available for the full session so later seeks and exports can reuse them.
-  maxIdleMs = SESSION_TTL_MS,
-) {
-  const now = Date.now();
-  const lastPrune = lastMediaHandlePrune.get(session.mediaHandles);
-  const size = session.mediaHandles.size;
-  // Allow an early scan on threshold crossing or doubling. An oversized map
-  // that stays the same size must still wait for the normal interval.
-  const grewPastThreshold =
-    lastPrune !== undefined &&
-    size > MEDIA_HANDLE_PRUNE_SIZE_THRESHOLD &&
-    (lastPrune.size <= MEDIA_HANDLE_PRUNE_SIZE_THRESHOLD ||
-      size >= lastPrune.size * 2);
-  if (
-    lastPrune !== undefined &&
-    now - lastPrune.at < MEDIA_HANDLE_PRUNE_INTERVAL_MS &&
-    !grewPastThreshold
-  ) {
-    return 0;
-  }
-  const cutoff = now - maxIdleMs;
-  let prunedCount = 0;
-
-  for (const [handleId, handle] of session.mediaHandles.entries()) {
-    if (handle.lastAccessedAt >= cutoff) {
-      continue;
-    }
-
-    session.mediaHandles.delete(handleId);
-    removeMediaHandleFromIndex(session.mediaHandles, handle);
-    prunedCount += 1;
-  }
-  lastMediaHandlePrune.set(session.mediaHandles, {
-    at: now,
-    size: session.mediaHandles.size,
-  });
-
-  if (prunedCount > 0) {
-    logger.trace("Pruned stale media handles for provider session.", {
-      "session.id": session.id,
-      "provider.id": session.providerId,
-      "provider.account.id": session.providerAccountId,
-      "media.handle.pruned_count": prunedCount,
-      "media.handle.remaining_count": session.mediaHandles.size,
-      "media.handle.max_idle_ms": maxIdleMs,
-      "media.handle.cutoff_ms": cutoff,
-    });
-  }
-
-  return prunedCount;
-}
-
 function clearProviderSessionState(sessionId: string) {
   sessionCache.delete(sessionId);
-  mediaHandlesBySessionId.delete(sessionId);
+  deleteSessionMediaHandles(sessionId);
   notifyPlaybackStateChange({ type: "session", sessionId });
 }
 
@@ -298,63 +227,4 @@ export function purgeExpiredProviderSessions(now = Date.now()) {
   }
 
   return expiredSessions.length;
-}
-
-export function getSessionCookieName() {
-  return SESSION_COOKIE;
-}
-
-export function getRememberedProviderSessionCookieName() {
-  return REMEMBERED_PROVIDER_SESSION_COOKIE;
-}
-
-export function getSessionCookieOptions(secure: boolean) {
-  return {
-    path: "/",
-    httpOnly: true,
-    sameSite: "strict" as const,
-    secure,
-    maxAge: SESSION_TTL_MS,
-  };
-}
-
-export function getRememberedProviderSessionCookieOptions(secure: boolean) {
-  return {
-    path: "/",
-    httpOnly: true,
-    sameSite: "strict" as const,
-    secure,
-    maxAge: REMEMBERED_PROVIDER_SESSION_TTL_MS,
-  };
-}
-
-export function getSessionCookieClearOptions(secure: boolean) {
-  return {
-    path: "/",
-    httpOnly: true,
-    sameSite: "strict" as const,
-    secure,
-  };
-}
-
-export function getRememberedProviderSessionCookieClearOptions(
-  secure: boolean,
-) {
-  return {
-    path: "/",
-    httpOnly: true,
-    sameSite: "strict" as const,
-    secure,
-  };
-}
-
-export function readCookie(cookieHeader: string | undefined, name: string) {
-  if (!cookieHeader) {
-    return;
-  }
-
-  const cookies = cookieHeader.split(";").map((cookie) => cookie.trim());
-  const prefix = `${name}=`;
-  const match = cookies.find((cookie) => cookie.startsWith(prefix));
-  return match ? decodeURIComponent(match.slice(prefix.length)) : undefined;
 }

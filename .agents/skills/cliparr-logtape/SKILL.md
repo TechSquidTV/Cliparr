@@ -70,6 +70,7 @@ Use these domain categories:
 - `server.db`
 - `server.session`
 - `server.session.store`
+- `server.session.media_handles`
 - `server.provider.auth`
 - `server.provider.plex.playback`
 - `server.provider.jellyfin.playback`

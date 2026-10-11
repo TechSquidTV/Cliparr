@@ -8,7 +8,7 @@ import {
 import {
   getSessionCookieClearOptions,
   getSessionCookieOptions,
-} from "@/session/store";
+} from "@/http/cookies";
 
 function makeRequest(
   secure: boolean,

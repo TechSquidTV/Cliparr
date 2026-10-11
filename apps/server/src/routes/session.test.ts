@@ -19,12 +19,11 @@ import {
 import { createApp } from "@/app";
 import "@/providers/plex/provider";
 import { purgeExpiredSessions } from "@/session/sweep";
+import { createProviderSession, getProviderSession } from "@/session/store";
 import {
-  createProviderSession,
-  getProviderSession,
   getRememberedProviderSessionCookieName,
   getSessionCookieName,
-} from "@/session/store";
+} from "@/http/cookies";
 
 const TEST_APP_KEY = "session-route-test-key-with-at-least-32-characters";
 
