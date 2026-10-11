@@ -9,7 +9,7 @@
     "#plex/*.mjs": "./tools/plex/*.mjs",
     "#release/*.mjs": "./tools/release/*.mjs"
   },
-  "packageManager": "pnpm@12.8.2",
+  "packageManager": "pnpm@12.10.1",
   "engines": {
     "node": ">=24.16.0"
   },
@@ -67,7 +67,7 @@
     "eslint-plugin-react-hooks": "^7.1.1",
     "eslint-plugin-unicorn": "^76.0.0",
     "globals": "^17.13.0",
-    "knip": "6.39.0",
+    "knip": "6.40.0",
     "prettier": "^3.9.9",
     "prettier-plugin-astro": "^1.1.0",
     "typescript": "~6.0.3",
