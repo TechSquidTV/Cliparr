@@ -12,6 +12,7 @@ import type {
   ExportPhase,
 } from "@/lib/export/exportClip";
 import {
+  type ExportSourcePreference,
   type ExportQualityPreset,
   type ExportSizeEstimate,
   type GifExportSettings,
@@ -37,8 +38,6 @@ import {
   EditorFilenameTemplateSection,
 } from "@/components/editor/EditorExportDialogSections";
 import type { MediaDimensions } from "@/components/editor/editorMedia";
-
-export type ExportSourcePreference = "auto" | "direct" | "hls";
 
 interface EditorExportDialogProperties {
   isOpen: boolean;

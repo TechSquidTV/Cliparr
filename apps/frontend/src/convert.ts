@@ -71,7 +71,7 @@ export {
   EditorExportSettingsSection,
   EditorExportSummaryPanel,
 } from "./components/editor/EditorExportDialogSections";
-export type { ExportSourcePreference } from "./components/editor/EditorExportDialog";
+export type { ExportSourcePreference } from "./lib/export/exportTypes";
 export { TooltipProvider } from "./components/ui/tooltip";
 export { Spinner } from "./components/ui/spinner";
 export {
