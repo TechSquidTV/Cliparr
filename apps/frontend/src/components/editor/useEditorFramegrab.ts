@@ -1,7 +1,10 @@
 import { useCallback, useMemo, useState } from "react";
 import type { RefObject } from "react";
 import { errorMessage } from "@/components/editor/editorUtilities";
-import type { EditorSession, MediaDimensions } from "@/lib/editorMedia";
+import type {
+  EditorSession,
+  MediaDimensions,
+} from "@/components/editor/editorMedia";
 import { downloadBlob } from "@/lib/downloadBlob";
 import { buildFramegrabFileName } from "@/lib/exportFileName";
 import {

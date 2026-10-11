@@ -4,7 +4,7 @@ import { flushSync } from "react-dom";
 import { useAuth } from "@/auth";
 import DashboardScreen from "@/components/DashboardScreen";
 import { LocalVideoOpenDialog } from "@/components/local-media/LocalVideoOpenDialog";
-import { editorSessionFromCurrentlyPlaying } from "@/lib/editorMedia";
+import { editorSessionFromCurrentlyPlaying } from "@/components/editor/editorMedia";
 import {
   runViewTransition,
   setPendingEditorTransitionSession,

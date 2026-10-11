@@ -16,7 +16,7 @@ import {
   synchronizeEditorTimelineSubtitles,
   timelineScrollLeftForCenteredTime,
 } from "@/components/editor/editorTimelineEngine";
-import type { EditorSession } from "@/lib/editorMedia";
+import type { EditorSession } from "@/components/editor/editorMedia";
 import { createEditorHistory } from "@/components/editor/editorHistory";
 
 function createSession(overrides: Partial<EditorSession> = {}): EditorSession {
