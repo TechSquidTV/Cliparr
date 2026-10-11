@@ -14,7 +14,7 @@ export type GifTemporalDitherSettings = Omit<
   "width" | "height" | "format"
 >;
 
-export interface GifTemporalDitherFrameSettings {
+interface GifTemporalDitherFrameSettings {
   ditherMode: GifDitherMode;
   height: number;
   paletteFormat: GifPaletteFormat;

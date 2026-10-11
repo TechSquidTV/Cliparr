@@ -12,7 +12,7 @@ import {
   formatTimecodeInput,
   parseTimecodeInput,
 } from "@/components/editor/editorUtilities";
-import { cn } from "@/lib/utilities";
+import { cn } from "@/lib/cn";
 import { Popover } from "@base-ui/react/popover";
 
 interface EditorEditableTimecodeProperties {

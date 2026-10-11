@@ -13,7 +13,7 @@ import test from "node:test";
 import { setImmediate } from "node:timers/promises";
 import type { MediaSource } from "@/db/mediaSourcesRepository";
 import { createDeferred } from "@/test/deferred";
-import { acceptTestWebSocket } from "@/test/webSocket";
+import { acceptTestWebSocket } from "@/test/webSocketFixtures";
 
 function createSource(baseUrl: string): MediaSource {
   return {

@@ -12,8 +12,9 @@ preservation, low-rate MP3 bitrate, metadata, WebP-to-PNG artwork embedding,
 lossless sample preparation after
 browser decoding, FLAC rejection feedback and independent playback, 7.1 AAC
 stereo mixdown, MP3 cancellation and retry, and encoder-worker cleanup.
-Focused `exportClip.integration.test.ts` checks cover Cliparr trimming and source
-precision through the real export entry point. The fixed 32-bit input lives in
+The Node suite at `src/lib/export/exportClip.integration.test.ts` runs in preflight
+and covers Cliparr trimming and source precision through the real export entry
+point. The fixed 32-bit input lives in
 `src/lib/export/fixtures`; fixture details are documented there. Codec implementations
 and container layout are delegated to MediaBunny.
 

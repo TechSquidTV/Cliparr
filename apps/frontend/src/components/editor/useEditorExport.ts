@@ -17,6 +17,7 @@ import type {
   ExportVideoEncodingPlan,
 } from "@/lib/export/exportClip";
 import {
+  type ExportSourcePreference,
   DEFAULT_VIDEO_EXPORT_QUALITY,
   estimateExportOutputSize,
   exportFormatDurationDisabledReason,
@@ -41,7 +42,6 @@ import {
   type HlsExportEstimateMetadata,
 } from "@/lib/export/hlsExportEstimate";
 import type { SubtitleCue, SubtitleStyleSettings } from "@/lib/subtitles/types";
-import type { ExportSourcePreference } from "@/lib/export/exportTypes";
 import type { PlaybackFallbackInfo } from "@/components/editor/editorPlaybackSources";
 import type { EditorExportMedia } from "@/components/editor/editorMediaLifecycle";
 import { getFrontendLogger, warnWithError } from "@/logging";

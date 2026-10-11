@@ -1,7 +1,7 @@
 import type { CSSProperties, ReactNode } from "react";
 import { Accordion } from "@base-ui/react/accordion";
 import { ChevronRight } from "lucide-react";
-import { cn } from "@/lib/utilities";
+import { cn } from "@/lib/cn";
 
 function editorPropertyLabelClassName() {
   return "text-ui-micro font-normal normal-case tracking-normal text-muted-foreground";

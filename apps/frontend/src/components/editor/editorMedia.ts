@@ -30,8 +30,7 @@ export interface BrowserFileHandle {
   }) => Promise<BrowserFilePermissionState>;
 }
 
-export type EditorMediaSourceRole =
-  "hls" | "direct" | "local-file" | "direct-url";
+type EditorMediaSourceRole = "hls" | "direct" | "local-file" | "direct-url";
 
 interface BaseEditorMediaSource {
   role: EditorMediaSourceRole;
