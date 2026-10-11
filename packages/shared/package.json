@@ -16,8 +16,8 @@
   "exports": {
     "./server-events": "./src/serverEvents.ts",
     "./logging": {
-      "types": "./src/logging.d.ts",
-      "default": "./src/logging.js"
+      "types": "./src/logging.ts",
+      "default": "./src/logging.ts"
     },
     "./providers": {
       "types": "./src/providers.ts",

@@ -1,7 +1,9 @@
+export type LogFields = Record<string, unknown>;
+
 // The placeholder scheme preserves historical protocol-relative log output.
 const SANITIZE_URL_BASE = "http://cliparr.local";
 
-function tryParseAbsoluteUrl(value) {
+function tryParseAbsoluteUrl(value: string) {
   try {
     return new URL(value);
   } catch {
@@ -9,7 +11,7 @@ function tryParseAbsoluteUrl(value) {
   }
 }
 
-function tryParseUrlWithBase(value, base) {
+function tryParseUrlWithBase(value: string, base: string) {
   try {
     return new URL(value, base);
   } catch {
@@ -17,13 +19,13 @@ function tryParseUrlWithBase(value, base) {
   }
 }
 
-export function compactLogFields(fields) {
+export function compactLogFields(fields: LogFields): LogFields {
   return Object.fromEntries(
     Object.entries(fields).filter((entry) => entry[1] !== undefined),
   );
 }
 
-export function logEventFields(name, outcome) {
+export function logEventFields(name: string, outcome?: string): LogFields {
   return compactLogFields({
     "event.name": name,
     "event.outcome": outcome,
@@ -31,21 +33,24 @@ export function logEventFields(name, outcome) {
 }
 
 export function logDurationFields(
-  startedAtMs,
+  startedAtMs: number,
   nowMs = Date.now(),
   fieldName = "event.duration.ms",
-) {
+): LogFields {
   return {
     [fieldName]: Math.max(0, nowMs - startedAtMs),
   };
 }
 
-export function logErrorFields(error) {
+export function logErrorFields(error: unknown): LogFields {
   if (error instanceof Error) {
     return compactLogFields({
       "error.name": error.name,
       "error.message": error.message,
-      "error.code": typeof error.code === "string" ? error.code : undefined,
+      "error.code":
+        "code" in error && typeof error.code === "string"
+          ? error.code
+          : undefined,
     });
   }
 
@@ -54,7 +59,9 @@ export function logErrorFields(error) {
   };
 }
 
-export function sanitizeUrlForLog(value) {
+export function sanitizeUrlForLog(
+  value: string | undefined,
+): string | undefined {
   if (!value) {
     return value;
   }
