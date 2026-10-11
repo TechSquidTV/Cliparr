@@ -6,6 +6,7 @@ import type {
   ExportVideoEncodingPlan,
 } from "@/lib/export/exportClip";
 import {
+  type ExportSourcePreference,
   resolveExportOutputDimensions,
   exportFormatDurationDisabledReason,
   type ExportSizeEstimate,
@@ -23,17 +24,16 @@ import {
   type MediaDimensions,
 } from "@/components/editor/editorMedia";
 import type { EditorExportMedia } from "@/components/editor/editorMediaLifecycle";
-import type { ExportSourcePreference } from "@/lib/export/exportTypes";
 import type { PlaybackFallbackInfo } from "@/components/editor/editorPlaybackSources";
 
-export type ResolvedExportSourceKind = "hls" | "direct" | "none";
+type ResolvedExportSourceKind = "hls" | "direct" | "none";
 
-export interface ResolvedExportSource {
+interface ResolvedExportSource {
   source: EditorMediaSource | null;
   kind: ResolvedExportSourceKind;
 }
 
-export interface ExportReadinessInput {
+interface ExportReadinessInput {
   exportSource: ResolvedExportSource;
   format: ExportFormat;
   exporting: boolean;

@@ -12,7 +12,7 @@ import {
 } from "@/components/editor/editorLayoutSizing";
 import { EditorSidebar } from "@/components/editor/EditorSidebar";
 import { BarsLoader } from "@/components/ui/bars-loader";
-import { cliparrMotionTransitions } from "@/lib/motionPresets";
+import { cliparrMotionTransitions } from "@/lib/motion";
 
 export type EditorLayoutVariant = "desktop" | "mobile";
 

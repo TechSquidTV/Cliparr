@@ -113,7 +113,7 @@ export function exportIncludesAudio(mode: ExportMode, format: ExportFormat) {
 
 export type FramegrabImageFormat = "png" | "jpg" | "webp";
 
-export interface FramegrabImageFormatOption {
+interface FramegrabImageFormatOption {
   value: FramegrabImageFormat;
   label: string;
   extension: string;

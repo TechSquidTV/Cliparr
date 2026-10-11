@@ -1,5 +1,5 @@
 import plugin from "tailwindcss/plugin";
-import { cliparrMotionTokens } from "#/lib/motionTokens.ts";
+import { cliparrMotionTokens } from "#/lib/motion.ts";
 
 export default plugin((theme) => {
   theme.addBase({

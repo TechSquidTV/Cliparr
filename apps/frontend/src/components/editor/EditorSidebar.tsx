@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { PanelRightClose, PanelRightOpen, type LucideIcon } from "lucide-react";
-import { cn } from "@/lib/utilities";
+import { cn } from "@/lib/cn";
 import {
   Tooltip,
   TooltipContent,

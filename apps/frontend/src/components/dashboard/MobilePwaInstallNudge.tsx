@@ -15,7 +15,7 @@ import {
   type BeforeInstallPromptEvent,
   type PwaInstallMode,
 } from "@/lib/pwa";
-import { cn } from "@/lib/utilities";
+import { cn } from "@/lib/cn";
 import {
   compactPrimaryButtonClasses,
   iconButtonClasses,

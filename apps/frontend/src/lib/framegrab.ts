@@ -5,7 +5,7 @@ import {
 
 export type FramegrabImageQuality = "high" | "balanced" | "compact";
 
-export interface FramegrabImageQualityOption {
+interface FramegrabImageQualityOption {
   value: FramegrabImageQuality;
   label: string;
   quality: number;
