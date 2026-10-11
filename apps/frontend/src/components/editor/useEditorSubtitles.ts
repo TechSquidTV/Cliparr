@@ -14,7 +14,7 @@ import {
   selectPreferredSubtitleTrack,
   subtitleTrackKey,
   subtitleTrackSupportsBurnIn,
-} from "@/lib/selectPreferredSubtitleTrack";
+} from "@/lib/subtitles/selectPreferredSubtitleTrack";
 import {
   loadSubtitleStyleSettings,
   saveSubtitleStyleSettings,

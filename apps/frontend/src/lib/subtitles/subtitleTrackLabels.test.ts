@@ -2,7 +2,7 @@
 
 import assert from "node:assert/strict";
 import test from "node:test";
-import { subtitleTrackLabelParts } from "@/lib/subtitleTrackLabels";
+import { subtitleTrackLabelParts } from "@/lib/subtitles/subtitleTrackLabels";
 import type { PlaybackSubtitleTrack } from "@/providers/types";
 
 void test("preserves subtitle language, format, and flags as separate details", () => {

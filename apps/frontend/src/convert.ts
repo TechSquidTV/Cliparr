@@ -58,7 +58,7 @@ export {
   type MediaDimensions,
 } from "./components/editor/editorMedia";
 export { createCliparrInputFromSource } from "./lib/mediabunnyInput";
-export { selectPreferredPairableAudioTrack } from "./lib/selectPreferredAudioTrack";
+export { selectPreferredPairableAudioTrack } from "./lib/subtitles/selectPreferredAudioTrack";
 export {
   assessVideoTrackDecodability,
   isPlaybackVideoTrack,

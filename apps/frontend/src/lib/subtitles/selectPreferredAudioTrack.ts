@@ -1,10 +1,6 @@
+import { normalizedText } from "#/lib/subtitles/normalizedText";
 import type { InputAudioTrack, InputVideoTrack } from "mediabunny";
 import type { PlaybackAudioSelection } from "#/providers/types";
-
-function normalizedText(value: string | null | undefined) {
-  const trimmed = value?.trim().toLowerCase();
-  return trimmed || undefined;
-}
 
 async function selectPreferredAudioTrack(
   audioTracks: readonly InputAudioTrack[],

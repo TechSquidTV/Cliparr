@@ -11,7 +11,7 @@ import {
   subtitleTrackKey,
   subtitleTrackSupportsBurnIn,
   subtitleTrackUnavailableMessage,
-} from "@/lib/selectPreferredSubtitleTrack";
+} from "@/lib/subtitles/selectPreferredSubtitleTrack";
 import { parseSubtitleTextAsync } from "@/lib/subtitles/parseSubtitleTextAsync";
 import type { SubtitleCue } from "@/lib/subtitles/types";
 import { getFrontendLogger, warnWithError } from "@/logging";
