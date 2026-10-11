@@ -1,4 +1,4 @@
-import { subtitleTrackSupportsBurnIn } from "@/lib/selectPreferredSubtitleTrack";
+import { subtitleTrackSupportsBurnIn } from "@/lib/subtitles/selectPreferredSubtitleTrack";
 import type { PlaybackSubtitleTrack } from "@/providers/types";
 
 interface SubtitleTrackLabelParts {
