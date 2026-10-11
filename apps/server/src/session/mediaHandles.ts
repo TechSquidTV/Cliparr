@@ -6,7 +6,7 @@ import type { ProviderSessionRecord } from "@/session/store";
 
 const MEDIA_HANDLE_PRUNE_INTERVAL_MS = 60_000;
 const MEDIA_HANDLE_PRUNE_SIZE_THRESHOLD = 2000;
-const logger = getServerLogger(["session", "store"]);
+const logger = getServerLogger(["session", "media_handles"]);
 
 const lastMediaHandlePrune = new WeakMap<
   Map<string, MediaHandle>,
