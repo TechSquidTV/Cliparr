@@ -1,5 +1,5 @@
 import { createPcmWav } from "#/lib/exportAudioFixtures.test-support";
-import { ensureAudioEncoder } from "#/lib/mediabunnyCodecs";
+import { ensureAudioEncoder } from "#/lib/export/mediabunny/mediabunnyCodecs";
 import {
   ALL_FORMATS,
   AudioSample,

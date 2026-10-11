@@ -4,7 +4,7 @@ import type {
   GifPaletteFormat,
   GifPaletteMode,
   GifTemporalDitherSettings,
-} from "#/lib/gifEncodingSettings";
+} from "#/lib/export/gif/gifEncodingSettings";
 import {
   calibratedEstimatedVideoBitrateBps,
   exportVideoCodecPriorities,
