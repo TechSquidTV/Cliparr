@@ -6,7 +6,7 @@ import type {
   MediaDimensions,
 } from "@/components/editor/editorMedia";
 import { downloadBlob } from "@/lib/downloadBlob";
-import { buildFramegrabFileName } from "@/lib/exportFileName";
+import { buildFramegrabFileName } from "@/lib/export/exportFileName";
 import {
   cloneCanvasFrame,
   copyFramegrabCanvasToClipboard,
@@ -14,7 +14,7 @@ import {
   encodeFramegrabCanvas,
   type FramegrabImageQuality,
 } from "@/lib/framegrab";
-import type { FramegrabImageFormat } from "@/lib/exportFormats";
+import type { FramegrabImageFormat } from "@/lib/export/exportFormats";
 
 interface CapturedFramegrab {
   canvas: HTMLCanvasElement;

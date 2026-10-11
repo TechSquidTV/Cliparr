@@ -1,11 +1,11 @@
 import { Spinner } from "@/components/ui/spinner";
 import { Copy, Download } from "lucide-react";
-import type { FramegrabImageFormat } from "@/lib/exportFormats";
+import type { FramegrabImageFormat } from "@/lib/export/exportFormats";
 import type { FramegrabImageQuality } from "@/lib/framegrab";
 import {
   framegrabFormatOptionFor,
   framegrabImageFormatOptions,
-} from "@/lib/exportFormats";
+} from "@/lib/export/exportFormats";
 import { framegrabImageQualityOptions } from "@/lib/framegrab";
 import { DialogFooter, DialogWindow } from "@/components/ui/dialog";
 import {

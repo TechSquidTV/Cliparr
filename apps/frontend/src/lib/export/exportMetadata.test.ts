@@ -4,7 +4,10 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import type { MetadataTags } from "mediabunny";
 import type { MediaExportMetadata } from "#/providers/types";
-import { buildMetadataTags, patchMp4MetadataBoxes } from "@/lib/exportMetadata";
+import {
+  buildMetadataTags,
+  patchMp4MetadataBoxes,
+} from "@/lib/export/exportMetadata";
 
 const byteMask = 255;
 

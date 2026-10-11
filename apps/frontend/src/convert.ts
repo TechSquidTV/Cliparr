@@ -25,13 +25,13 @@ export {
   type GifExportPreset,
   type GifExportSettings,
   type VideoExportQualityPreset,
-} from "./lib/exportTypes";
+} from "./lib/export/exportTypes";
 export type {
   ExportClipOptions,
   ExportVideoEncodingPlan,
   ExportPhase,
 } from "./lib/exportClip";
-export type { ExportFormat, ExportResolution } from "./lib/exportTypes";
+export type { ExportFormat, ExportResolution } from "./lib/export/exportTypes";
 export {
   calibratedEstimatedVideoBitrateBps,
   exportAudioCodecPriorities,
@@ -47,7 +47,7 @@ export {
   type ExportVideoCodec,
   type VideoEncodingPlan,
   type ResolvedVideoEncodingPlan,
-} from "./lib/exportEncodingPolicy";
+} from "./lib/export/exportEncodingPolicy";
 export { downloadBlob } from "./lib/downloadBlob";
 export {
   buildLocalEditorSession,
@@ -102,7 +102,7 @@ export {
   type ExportMode,
   type AudioExportFormat,
   type VideoExportFormat,
-} from "./lib/exportFormats";
+} from "./lib/export/exportFormats";
 export type { ExportAudioPlan } from "./lib/exportAudio";
 
 export { useExportVideoPlan } from "./components/editor/useExportVideoPlan";

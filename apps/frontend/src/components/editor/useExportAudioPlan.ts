@@ -12,7 +12,10 @@ import {
   type EditorMediaSource,
 } from "#/components/editor/editorMedia";
 import type { PlaybackAudioSelection } from "#/providers/types";
-import { isAudioExportFormat, type ExportFormat } from "#/lib/exportFormats";
+import {
+  isAudioExportFormat,
+  type ExportFormat,
+} from "#/lib/export/exportFormats";
 
 type AudioInspection = {
   source: EditorMediaSource;

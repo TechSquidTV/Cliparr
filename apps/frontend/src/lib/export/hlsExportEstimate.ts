@@ -1,7 +1,7 @@
 import type {
   ExportOutputDimensions,
   HlsManifestBitrateBasis,
-} from "@/lib/exportTypes";
+} from "@/lib/export/exportTypes";
 
 export interface HlsExportEstimateMetadata {
   bitrateKbps?: number;

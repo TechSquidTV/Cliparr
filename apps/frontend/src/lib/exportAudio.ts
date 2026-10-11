@@ -10,10 +10,13 @@ import {
 import {
   exportAudioCodecPriorities,
   EXPORT_AUDIO_BITRATE_BPS,
-} from "#/lib/exportEncodingPolicy";
-import { isAudioExportFormat, type ExportFormat } from "#/lib/exportFormats";
+} from "#/lib/export/exportEncodingPolicy";
+import {
+  isAudioExportFormat,
+  type ExportFormat,
+} from "#/lib/export/exportFormats";
 import { ensureAudioEncoder } from "#/lib/export/mediabunny/mediabunnyCodecs";
-import { estimateAudioExportSize } from "#/lib/exportTypes";
+import { estimateAudioExportSize } from "#/lib/export/exportTypes";
 
 type Speaker = "L" | "R" | "C" | "LFE" | "SL" | "SR" | "BL" | "BR" | "BC";
 type Layout = readonly Speaker[];

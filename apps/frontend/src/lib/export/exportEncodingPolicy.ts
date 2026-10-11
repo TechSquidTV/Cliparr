@@ -1,8 +1,8 @@
 import type {
   ExportOutputDimensions,
   VideoExportQualityPreset,
-} from "#/lib/exportTypes";
-import type { VideoExportFormat } from "#/lib/exportFormats";
+} from "#/lib/export/exportTypes";
+import type { VideoExportFormat } from "#/lib/export/exportFormats";
 import type { ExportVideoCodec as SharedExportVideoCodec } from "@cliparr/shared/providers";
 
 export type ExportVideoCodec = SharedExportVideoCodec;
