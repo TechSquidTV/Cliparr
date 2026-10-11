@@ -62,6 +62,7 @@ async function startServer() {
     server.close(() => {
       logger.info("Server closed.");
       closeDatabaseOnce();
+      // Pinned-DNS agents are process-scoped; exit releases their outbound sockets.
       process.exit(0);
     });
 
