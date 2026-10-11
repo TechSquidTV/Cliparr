@@ -1,10 +1,8 @@
 import { randomUUID } from "node:crypto";
 import { createApiError } from "@/http/errors";
 import type { MediaHandle } from "@/providers/types";
-import {
-  pruneSessionMediaHandles,
-  type ProviderSessionRecord,
-} from "@/session/store";
+import { type ProviderSessionRecord } from "@/session/store";
+import { pruneSessionMediaHandles } from "@/session/mediaHandles";
 
 export const LOCAL_URL_PROVIDER_ID = "local-url";
 const LOCAL_URL_SOURCE_ID = "remote-url";
