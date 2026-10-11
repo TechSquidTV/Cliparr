@@ -13,7 +13,8 @@ import {
 import { upsertProviderAccountByAccessToken } from "@/db/providerAccountsRepository";
 import { createApp } from "@/app";
 import { plexProvider } from "@/providers/plex/provider";
-import { createProviderSession, getSessionCookieName } from "@/session/store";
+import { createProviderSession } from "@/session/store";
+import { getSessionCookieName } from "@/http/cookies";
 import { PLEX_BASE_URL_MODE_MANUAL } from "@/providers/plex/connectionState";
 import { isApiError } from "@/http/errors";
 

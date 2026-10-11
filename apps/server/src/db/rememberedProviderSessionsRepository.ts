@@ -7,8 +7,7 @@ import {
 } from "@/db/schema";
 import { currentTimestampSql } from "@/db/timestamps";
 import { hashSecret } from "@/security/secrets";
-
-export const REMEMBERED_PROVIDER_SESSION_TTL_MS = 1000 * 60 * 60 * 24 * 30;
+import { REMEMBERED_PROVIDER_SESSION_TTL_MS } from "@/session/constants";
 
 export interface RememberedProviderSession {
   id: string;

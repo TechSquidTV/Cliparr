@@ -20,7 +20,8 @@ import {
   withPlexBaseUrlMode,
 } from "@/providers/plex/connectionState";
 import { getProvider } from "@/providers/registry";
-import { requireAccountSession, setNoStore } from "@/session/request";
+import { requireAccountSession } from "@/session/request";
+import { setNoStore } from "@/http/cacheControl";
 import { getServerLogger, warnWithError } from "@/logging";
 
 export const sourcesRouter = Router();

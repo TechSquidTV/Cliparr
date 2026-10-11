@@ -5,10 +5,8 @@ import { PassThrough } from "node:stream";
 import test from "node:test";
 import type { Response } from "express";
 import { isApiError } from "@/http/errors";
-import {
-  pruneSessionMediaHandles,
-  type ProviderSessionRecord,
-} from "@/session/store";
+import { type ProviderSessionRecord } from "@/session/store";
+import { pruneSessionMediaHandles } from "@/session/mediaHandles";
 import type { MediaHandle } from "@/providers/types";
 import {
   fetchMediaHandleRequest,

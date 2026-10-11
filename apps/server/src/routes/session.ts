@@ -16,17 +16,19 @@ import { getProvider } from "@/providers/registry";
 import {
   deleteProviderSession,
   deleteProviderSessionsForProviderAccount,
-  getRememberedProviderSessionCookieClearOptions,
+  getProviderSession,
+  restoreProviderSessionFromProviderAccount,
+} from "@/session/store";
+import {
   getRememberedProviderSessionCookieName,
   getRememberedProviderSessionCookieOptions,
   getSessionCookieClearOptions,
   getSessionCookieName,
   getSessionCookieOptions,
-  getProviderSession,
   readCookie,
-  restoreProviderSessionFromProviderAccount,
-} from "@/session/store";
-import { getRequestSessionId, setNoStore } from "@/session/request";
+} from "@/http/cookies";
+import { getRequestSessionId } from "@/session/request";
+import { setNoStore } from "@/http/cacheControl";
 import { getServerLogger } from "@/logging";
 
 export const sessionRouter = Router();
@@ -154,7 +156,7 @@ sessionRouter.delete("/", (request, res) => {
   );
   res.clearCookie(
     getRememberedProviderSessionCookieName(),
-    getRememberedProviderSessionCookieClearOptions(request.secure),
+    getSessionCookieClearOptions(request.secure),
   );
   res.status(204).end();
 
