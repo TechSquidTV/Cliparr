@@ -18,7 +18,7 @@ import {
   getOutputDimensions,
   resolveExportSource,
   exportTimelineOffsetForSource,
-} from "@/components/editor/useEditorExport";
+} from "@/components/editor/editorExportPlan";
 import type { EditorExportMedia } from "@/components/editor/editorMediaLifecycle";
 import {
   DEFAULT_GIF_EXPORT_PRESET,
