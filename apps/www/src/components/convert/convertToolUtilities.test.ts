@@ -1,5 +1,5 @@
-import { createPcmWav } from "#/lib/exportAudioFixtures.test-support";
-import { ensureAudioEncoder } from "#/lib/mediabunnyCodecs";
+import { createPcmWav } from "#/lib/export/exportAudioFixtures.test-support";
+import { ensureAudioEncoder } from "#/lib/export/mediabunny/mediabunnyCodecs";
 import {
   ALL_FORMATS,
   AudioSample,
@@ -234,7 +234,7 @@ void test("audio-only probing and conversion preserve the full selected track wh
   const source = buildLocalFileSource(file);
   const probe = await probeConvertSource(source, true);
   assert.equal(probe.durationSeconds, 10);
-  const { exportClip } = await import("#/lib/exportClip");
+  const { exportClip } = await import("#/lib/export/exportClip");
   const blob = await runConvertExport(
     {
       source,

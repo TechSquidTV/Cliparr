@@ -6,7 +6,7 @@ import type { InputAudioTrack, InputVideoTrack } from "mediabunny";
 import {
   createProviderUrlSource,
   type EditorMediaSource,
-} from "@/lib/editorMedia";
+} from "@/components/editor/editorMedia";
 import {
   buildPlaybackSourceCandidates,
   playbackAudioSelectionsEqual,

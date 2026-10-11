@@ -1,4 +1,7 @@
-import type { audioBitDepthSummary, ExportAudioPlan } from "#/lib/exportAudio";
+import type {
+  audioBitDepthSummary,
+  ExportAudioPlan,
+} from "#/lib/export/exportAudio";
 import { Switch } from "#/components/ui/switch";
 import {
   isAudioExportFormat,
@@ -7,7 +10,7 @@ import {
   exportFormats,
   type ExportMode,
   type ExportOutputType,
-} from "#/lib/exportFormats";
+} from "#/lib/export/exportFormats";
 import { memo } from "react";
 import { Info } from "lucide-react";
 import {
@@ -28,7 +31,7 @@ import type {
   ExportPhase,
   ExportFormat,
   ExportResolution,
-} from "#/lib/exportClip";
+} from "#/lib/export/exportClip";
 import {
   formatExportSizeEstimate,
   type ExportSizeEstimate,
@@ -39,16 +42,16 @@ import {
   type ExportQualityPreset,
   type GifExportPreset,
   type GifExportSettings,
-} from "#/lib/exportTypes";
+} from "#/lib/export/exportTypes";
 import {
   getExportFileNameTemplateTokens,
   type ExportFileNameTemplateKind,
   type ExportFileNameTemplateSettings,
-} from "#/lib/exportFileName";
+} from "#/lib/export/exportFileName";
 import type { ExportSourcePreference } from "#/components/editor/EditorExportDialog";
 import { fieldLabelWideClasses } from "#/components/ui/control-styles";
 import { formatTime } from "#/components/editor/editorUtilities";
-import type { MediaDimensions } from "#/lib/editorMedia";
+import type { MediaDimensions } from "#/components/editor/editorMedia";
 
 interface ExportOption<T extends string> {
   value: T;

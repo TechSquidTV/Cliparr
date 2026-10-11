@@ -1,4 +1,4 @@
-import { subtitleTrackLabelParts } from "#/lib/subtitleTrackLabels";
+import { subtitleTrackLabelParts } from "#/lib/subtitles/subtitleTrackLabels";
 import type { PlaybackSubtitleTrack } from "#/providers/types";
 
 export function SubtitleTrackLabel({

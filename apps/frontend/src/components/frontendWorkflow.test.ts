@@ -43,8 +43,8 @@ import {
 } from "@/components/MobilePwaInstallNudge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { gifExportSettingsForPreset } from "@/lib/exportTypes";
-import { resolveExportAudioPlan } from "@/lib/exportAudio";
+import { gifExportSettingsForPreset } from "@/lib/export/exportTypes";
+import { resolveExportAudioPlan } from "@/lib/export/exportAudio";
 import {
   COARSE_POINTER_MEDIA_QUERY,
   MOBILE_INSTALL_MEDIA_QUERY,

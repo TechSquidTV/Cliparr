@@ -67,7 +67,10 @@ import {
   loadEditorPropertiesOpenSections,
   saveEditorPropertiesOpenSections,
 } from "@/components/editor/editorSidebarPreferences";
-import { sourceDisplayLabel, type EditorSession } from "@/lib/editorMedia";
+import {
+  sourceDisplayLabel,
+  type EditorSession,
+} from "@/components/editor/editorMedia";
 import { EDITOR_THUMBNAIL_VIEW_TRANSITION_NAME } from "@/lib/viewTransitions";
 
 const EditorExportDialog = lazy(() =>

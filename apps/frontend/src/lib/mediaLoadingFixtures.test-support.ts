@@ -8,7 +8,7 @@ import {
   type AudioCodec,
 } from "mediabunny";
 import { registerAc3Encoder } from "@mediabunny/ac3";
-import { ensureAudioEncoder } from "#/lib/mediabunnyCodecs";
+import { ensureAudioEncoder } from "#/lib/export/mediabunny/mediabunnyCodecs";
 
 /** Generated in an isolated browser context, never the context measuring downloads. */
 export async function createMediaLoadingFixtures() {

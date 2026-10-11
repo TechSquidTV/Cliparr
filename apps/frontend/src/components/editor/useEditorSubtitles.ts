@@ -9,12 +9,12 @@ import {
   type TimelineEngine,
 } from "@techsquidtv/canvas-timeline";
 import type { EditorDraft } from "@/components/editor/editorDrafts";
-import type { EditorSession } from "@/lib/editorMedia";
+import type { EditorSession } from "@/components/editor/editorMedia";
 import {
   selectPreferredSubtitleTrack,
   subtitleTrackKey,
   subtitleTrackSupportsBurnIn,
-} from "@/lib/selectPreferredSubtitleTrack";
+} from "@/lib/subtitles/selectPreferredSubtitleTrack";
 import {
   loadSubtitleStyleSettings,
   saveSubtitleStyleSettings,

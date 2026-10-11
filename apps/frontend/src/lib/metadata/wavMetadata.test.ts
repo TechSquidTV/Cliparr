@@ -11,7 +11,7 @@ import {
   WavOutputFormat,
   WAVE,
 } from "mediabunny";
-import { buildMetadataTags } from "@/lib/exportMetadata";
+import { buildMetadataTags } from "@/lib/export/exportMetadata";
 import type { MediaExportMetadata } from "#/providers/types";
 
 void test("WAV ID3 muxing preserves Unicode, cover art, and JSON-only external IDs", async () => {

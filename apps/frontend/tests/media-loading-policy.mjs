@@ -2,8 +2,8 @@ import assert from "node:assert/strict";
 
 const implementationFeatures = {
   gif: "/node_modules/@techsquidtv/gifenc/",
-  audioPlan: "/src/lib/exportAudio.ts",
-  export: "/src/lib/exportClip.ts",
+  audioPlan: "/src/lib/export/exportAudio.ts",
+  export: "/src/lib/export/exportClip.ts",
 };
 
 export function discoverCodecPackages(dependencies) {

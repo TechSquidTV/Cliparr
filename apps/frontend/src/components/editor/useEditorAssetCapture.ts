@@ -8,7 +8,7 @@ import type { AssetCaptureController } from "@cliparr/shared/asset-capture";
 import type { useEditorTimelineMedia } from "@/components/editor/useEditorTimelineMedia";
 import type { useEditorSubtitles } from "@/components/editor/useEditorSubtitles";
 import { getActiveSubtitleCues } from "@/lib/subtitles/getActiveSubtitleCue";
-import { subtitleTrackKey } from "@/lib/selectPreferredSubtitleTrack";
+import { subtitleTrackKey } from "@/lib/subtitles/selectPreferredSubtitleTrack";
 import { zoomEditorTimeline } from "@/components/editor/editorTimelineZoom";
 
 type CaptureSubtitles = Pick<

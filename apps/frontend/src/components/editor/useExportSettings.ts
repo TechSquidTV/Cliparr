@@ -6,7 +6,7 @@ import {
   type ExportMode,
   type ExportOutputType,
   type VideoExportFormat,
-} from "#/lib/exportFormats";
+} from "#/lib/export/exportFormats";
 import {
   DEFAULT_GIF_EXPORT_PRESET,
   DEFAULT_VIDEO_EXPORT_QUALITY,
@@ -15,7 +15,7 @@ import {
   type ExportResolution,
   type GifExportPreset,
   type VideoExportQualityPreset,
-} from "#/lib/exportTypes";
+} from "#/lib/export/exportTypes";
 
 interface ExportSelection {
   outputType: ExportOutputType;

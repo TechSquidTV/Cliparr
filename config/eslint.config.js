@@ -183,10 +183,10 @@ const restrictedSyntaxRulesWithoutRelativeDynamicImports =
 
 const mediaTestFiles = ["**/*.test.ts", "**/*.test-support.ts"];
 const gifRuntimeFiles = [
-  "apps/frontend/src/lib/gifEncodingSettings.ts",
-  "apps/frontend/src/lib/gifFrameChunk.ts",
-  "apps/frontend/src/lib/gifFrameEncoder.ts",
-  "apps/frontend/src/lib/gifFrameEncoder.worker.ts",
+  "apps/frontend/src/lib/export/gif/gifEncodingSettings.ts",
+  "apps/frontend/src/lib/export/gif/gifFrameChunk.ts",
+  "apps/frontend/src/lib/export/gif/gifFrameEncoder.ts",
+  "apps/frontend/src/lib/export/gif/gifFrameEncoder.worker.ts",
 ];
 
 function mediaLoadingRestrictions({
@@ -207,7 +207,7 @@ function mediaLoadingRestrictions({
   }
   if (ui) {
     for (const alias of ["@", "#"]) {
-      for (const module of ["exportClip", "exportAudio"]) {
+      for (const module of ["export/exportClip", "export/exportAudio"]) {
         paths.push({
           name: `${alias}/lib/${module}`,
           allowTypeImports: true,
@@ -467,7 +467,7 @@ export default tseslint.config(
     rules: mediaLoadingRestrictions(),
   },
   {
-    files: ["apps/frontend/src/lib/mediabunnyCodecs.ts"],
+    files: ["apps/frontend/src/lib/export/mediabunny/mediabunnyCodecs.ts"],
     rules: mediaLoadingRestrictions({ codecLoader: true }),
   },
   {
@@ -475,7 +475,7 @@ export default tseslint.config(
     rules: mediaLoadingRestrictions({ gifRuntime: true }),
   },
   {
-    files: ["apps/frontend/src/lib/exportClip.ts"],
+    files: ["apps/frontend/src/lib/export/exportClip.ts"],
     rules: mediaLoadingRestrictions({ gifLoader: true }),
   },
   {
