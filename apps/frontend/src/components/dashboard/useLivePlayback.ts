@@ -3,8 +3,10 @@ import {
   applyPlaybackProgress,
   type PlaybackSnapshot,
 } from "@cliparr/shared/providers";
-import { cliparrClient } from "@/api/cliparrClient";
-import type { PlaybackConnectionState } from "@/api/playbackStream";
+import {
+  cliparrClient,
+  type PlaybackConnectionState,
+} from "@/api/cliparrClient";
 
 const initialSnapshot: PlaybackSnapshot = {
   viewers: [],

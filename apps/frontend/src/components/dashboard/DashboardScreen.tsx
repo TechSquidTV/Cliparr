@@ -1,5 +1,5 @@
 import { EmptyState } from "@/components/ui/empty-state";
-import { useLivePlayback } from "@/components/useLivePlayback";
+import { useLivePlayback } from "@/components/dashboard/useLivePlayback";
 import { ControlTooltip } from "@/components/ui/tooltip";
 import { memo, useCallback, useEffect, useMemo, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
@@ -30,13 +30,13 @@ import {
   CLIPARR_WEBSITE_URL,
   DashboardMobileMenu,
   GithubIcon,
-} from "@/components/DashboardMobileMenu";
-import { MobilePwaInstallNudge } from "@/components/MobilePwaInstallNudge";
-import { DashboardViewerAvatar } from "@/components/DashboardViewerAvatar";
+} from "@/components/dashboard/DashboardMobileMenu";
+import { MobilePwaInstallNudge } from "@/components/dashboard/MobilePwaInstallNudge";
+import { DashboardViewerAvatar } from "@/components/dashboard/DashboardViewerAvatar";
 import {
   DashboardPlaybackFilterEmptyState,
   DashboardViewerFilterPicker,
-} from "@/components/DashboardViewerFilter";
+} from "@/components/dashboard/DashboardViewerFilter";
 import {
   Tooltip,
   TooltipContent,
@@ -53,9 +53,9 @@ import {
   readDashboardViewerFilter,
   sanitizeDashboardViewerFilterNames,
   writeDashboardViewerFilter,
-} from "@/components/dashboardPlaybackItems";
+} from "@/components/dashboard/dashboardPlaybackItems";
 import { cliparrMotionTransitions } from "@/lib/motionPresets";
-import type { DashboardPlaybackCardItem } from "@/components/dashboardPlaybackItems";
+import type { DashboardPlaybackCardItem } from "@/components/dashboard/dashboardPlaybackItems";
 import type {
   CurrentlyPlayingItem,
   SourcePlaybackError,
