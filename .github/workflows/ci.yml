@@ -101,7 +101,16 @@ jobs:
       - name: Write CI summary
         if: always()
         env:
-          SUMMARY_STEPS: ${{ toJSON(steps) }}
+          SUMMARY_STEPS: >-
+            {
+              "privacy": { "outcome": "${{ steps.privacy.outcome }}" },
+              "format": { "outcome": "${{ steps.format.outcome }}" },
+              "lint": { "outcome": "${{ steps.lint.outcome }}" },
+              "knip": { "outcome": "${{ steps.knip.outcome }}" },
+              "test": { "outcome": "${{ steps.test.outcome }}" },
+              "docs": { "outcome": "${{ steps.docs.outcome }}" },
+              "build": { "outcome": "${{ steps.build.outcome }}" }
+            }
           JOB_STATUS: ${{ job.status }}
           PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
         run: node tools/ci/summary.mjs

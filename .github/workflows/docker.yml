@@ -157,7 +157,15 @@ jobs:
       - name: Write CI summary
         if: always()
         env:
-          SUMMARY_STEPS: ${{ toJSON(steps) }}
+          # Build outputs include large provenance metadata; keep the summary input bounded.
+          SUMMARY_STEPS: >-
+            {
+              "smoke": {
+                "outcome": "${{ steps.smoke.outcome }}",
+                "outputs": { "runtime_node": "${{ steps.smoke.outputs.runtime_node }}" }
+              },
+              "publish": { "outcome": "${{ steps.publish.outcome }}" }
+            }
           JOB_STATUS: ${{ job.status }}
           DRY_RUN: "true"
           PR_HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
