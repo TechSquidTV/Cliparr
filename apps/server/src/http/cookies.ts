@@ -1,5 +1,7 @@
-import { REMEMBERED_PROVIDER_SESSION_TTL_MS } from "@/db/rememberedProviderSessionsRepository";
-import { SESSION_TTL_MS } from "@/session/constants";
+import {
+  REMEMBERED_PROVIDER_SESSION_TTL_MS,
+  SESSION_TTL_MS,
+} from "@/session/constants";
 
 const SESSION_COOKIE = "cliparr_session";
 const REMEMBERED_PROVIDER_SESSION_COOKIE = "cliparr_remember";
@@ -14,36 +16,19 @@ export function getRememberedProviderSessionCookieName() {
 
 export function getSessionCookieOptions(secure: boolean) {
   return {
-    path: "/",
-    httpOnly: true,
-    sameSite: "strict" as const,
-    secure,
+    ...getSessionCookieClearOptions(secure),
     maxAge: SESSION_TTL_MS,
   };
 }
 
 export function getRememberedProviderSessionCookieOptions(secure: boolean) {
   return {
-    path: "/",
-    httpOnly: true,
-    sameSite: "strict" as const,
-    secure,
+    ...getSessionCookieClearOptions(secure),
     maxAge: REMEMBERED_PROVIDER_SESSION_TTL_MS,
   };
 }
 
 export function getSessionCookieClearOptions(secure: boolean) {
-  return {
-    path: "/",
-    httpOnly: true,
-    sameSite: "strict" as const,
-    secure,
-  };
-}
-
-export function getRememberedProviderSessionCookieClearOptions(
-  secure: boolean,
-) {
   return {
     path: "/",
     httpOnly: true,

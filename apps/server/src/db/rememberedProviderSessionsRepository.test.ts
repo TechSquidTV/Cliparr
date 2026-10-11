@@ -12,10 +12,10 @@ import {
   createRememberedProviderSession,
   getRememberedProviderSession,
   purgeExpiredRememberedProviderSessions,
-  REMEMBERED_PROVIDER_SESSION_TTL_MS,
   revokeRememberedProviderSession,
   rotateRememberedProviderSession,
 } from "@/db/rememberedProviderSessionsRepository";
+import { REMEMBERED_PROVIDER_SESSION_TTL_MS } from "@/session/constants";
 import { rememberedProviderSessions, providerSessions } from "@/db/schema";
 import {
   createProviderSession,

@@ -20,7 +20,6 @@ import {
   restoreProviderSessionFromProviderAccount,
 } from "@/session/store";
 import {
-  getRememberedProviderSessionCookieClearOptions,
   getRememberedProviderSessionCookieName,
   getRememberedProviderSessionCookieOptions,
   getSessionCookieClearOptions,
@@ -157,7 +156,7 @@ sessionRouter.delete("/", (request, res) => {
   );
   res.clearCookie(
     getRememberedProviderSessionCookieName(),
-    getRememberedProviderSessionCookieClearOptions(request.secure),
+    getSessionCookieClearOptions(request.secure),
   );
   res.status(204).end();
 
