@@ -41,7 +41,7 @@ import {
   assertWavSize,
   type ExportAudioPlan,
 } from "#/lib/exportAudio";
-import type { EditorMediaSource } from "#/lib/editorMedia";
+import type { EditorMediaSource } from "#/components/editor/editorMedia";
 import { createCliparrInputFromSource } from "#/lib/mediabunnyInput";
 import { assertSourceAudioRange } from "#/lib/exportSourceAudio";
 import { ensureAudioDecoder } from "#/lib/mediabunnyCodecs";

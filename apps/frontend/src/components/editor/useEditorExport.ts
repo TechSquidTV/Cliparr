@@ -45,7 +45,7 @@ import {
   type EditorMediaSource,
   type EditorSession,
   type MediaDimensions,
-} from "@/lib/editorMedia";
+} from "@/components/editor/editorMedia";
 import {
   fetchHlsExportEstimateMetadata,
   type HlsExportEstimateMetadata,

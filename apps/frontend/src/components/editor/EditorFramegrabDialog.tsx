@@ -26,7 +26,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { formatTime } from "@/components/editor/editorUtilities";
-import type { MediaDimensions } from "@/lib/editorMedia";
+import type { MediaDimensions } from "@/components/editor/editorMedia";
 
 type FramegrabAction = "copy" | "download";
 

@@ -4,7 +4,7 @@ import {
   editorMediaSourcesEqual,
   isHlsEditorMediaSource,
   type EditorMediaSource,
-} from "@/lib/editorMedia";
+} from "@/components/editor/editorMedia";
 import {
   assessVideoTrackDecodability,
   isPlaybackVideoTrack,

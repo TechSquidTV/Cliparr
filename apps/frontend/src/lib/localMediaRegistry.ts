@@ -8,7 +8,7 @@ import {
   type EditorUrlMediaSource,
   titleFromFileName,
   titleFromUrl,
-} from "@/lib/editorMedia";
+} from "@/components/editor/editorMedia";
 import { cliparrClient } from "@/api/cliparrClient";
 import { isHlsPlaylistUrl } from "@/lib/mediabunnyInput";
 

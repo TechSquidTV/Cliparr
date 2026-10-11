@@ -6,7 +6,7 @@ import test from "node:test";
 import {
   createProviderUrlSource,
   type EditorMediaSource,
-} from "@/lib/editorMedia";
+} from "@/components/editor/editorMedia";
 import {
   buildExportErrorMessage,
   buildExportSourceLabel,

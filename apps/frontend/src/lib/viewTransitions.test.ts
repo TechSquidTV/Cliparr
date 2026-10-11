@@ -2,7 +2,7 @@
 
 import assert from "node:assert/strict";
 import test from "node:test";
-import type { EditorSession } from "@/lib/editorMedia";
+import type { EditorSession } from "@/components/editor/editorMedia";
 import {
   clearPendingEditorTransitionSession,
   EDITOR_THUMBNAIL_VIEW_TRANSITION_NAME,
