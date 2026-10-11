@@ -1,12 +1,8 @@
+import { normalizedText } from "#/lib/subtitles/normalizedText";
 import type {
   PlaybackSubtitleSelection,
   PlaybackSubtitleTrack,
 } from "@/providers/types";
-
-function normalizedText(value: string | null | undefined) {
-  const trimmed = value?.trim().toLowerCase();
-  return trimmed || undefined;
-}
 
 export function subtitleTrackKey(
   track: Pick<PlaybackSubtitleTrack, "streamId" | "index">,

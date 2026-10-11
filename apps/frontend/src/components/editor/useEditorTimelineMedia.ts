@@ -50,7 +50,7 @@ import {
   getTrackTimelineOffsetSeconds,
   getVideoTrackDimensions,
 } from "@/lib/mediabunnyTrackAccess";
-import { selectPreferredPairableAudioTrack } from "@/lib/selectPreferredAudioTrack";
+import { selectPreferredPairableAudioTrack } from "@/lib/subtitles/selectPreferredAudioTrack";
 import {
   createEditorPreviewSourceLoader,
   editorPreviewFrameTime,

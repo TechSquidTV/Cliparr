@@ -20,7 +20,7 @@ import {
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { ControlTooltip } from "@/components/ui/tooltip";
-import { subtitleTrackKey } from "@/lib/selectPreferredSubtitleTrack";
+import { subtitleTrackKey } from "@/lib/subtitles/selectPreferredSubtitleTrack";
 import { SubtitleTrackLabel } from "@/components/editor/SubtitleTrackLabel";
 import type { SubtitleStyleSettings } from "@/lib/subtitles/types";
 import {
