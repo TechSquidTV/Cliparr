@@ -48,7 +48,7 @@ import {
 import type { ExportSourcePreference } from "#/components/editor/EditorExportDialog";
 import { fieldLabelWideClasses } from "#/components/ui/control-styles";
 import { formatTime } from "#/components/editor/editorUtilities";
-import type { MediaDimensions } from "#/lib/editorMedia";
+import type { MediaDimensions } from "#/components/editor/editorMedia";
 
 interface ExportOption<T extends string> {
   value: T;

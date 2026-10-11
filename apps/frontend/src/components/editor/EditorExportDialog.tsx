@@ -33,7 +33,7 @@ import {
   EditorExportSummaryPanel,
   EditorFilenameTemplateSection,
 } from "@/components/editor/EditorExportDialogSections";
-import type { MediaDimensions } from "@/lib/editorMedia";
+import type { MediaDimensions } from "@/components/editor/editorMedia";
 
 export type ExportSourcePreference = "auto" | "direct" | "hls";
 
