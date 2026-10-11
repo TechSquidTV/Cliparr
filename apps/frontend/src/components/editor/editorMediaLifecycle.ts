@@ -3,7 +3,7 @@ import type {
   MediabunnySourceState,
 } from "@techsquidtv/canvas-timeline-mediabunny-adapter";
 import type { PlaybackSourceCandidate } from "@/components/editor/editorPlaybackSources";
-import type { MediaDimensions } from "@/lib/editorMedia";
+import type { MediaDimensions } from "@/components/editor/editorMedia";
 
 export interface EditorMediaMetadata {
   duration: number;

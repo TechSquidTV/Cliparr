@@ -5,13 +5,15 @@ import test from "node:test";
 import {
   DEFAULT_FRAMEGRAB_IMAGE_QUALITY,
   encodeFramegrabCanvas,
-  framegrabExtensionFor,
-  framegrabFormatOptionFor,
-  framegrabImageFormatOptions,
   framegrabImageQualityOptions,
   framegrabMimeTypeFor,
   framegrabQualityOptionFor,
 } from "@/lib/framegrab";
+import {
+  framegrabExtensionFor,
+  framegrabFormatOptionFor,
+  framegrabImageFormatOptions,
+} from "@/lib/export/exportFormats";
 
 type ToBlobCallback = (blob: Blob | null) => void;
 

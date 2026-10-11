@@ -9,7 +9,7 @@ import {
 } from "@techsquidtv/canvas-timeline";
 import { buildInitialClipRange } from "@/components/editor/initialClipRange";
 import { EDITOR_MAX_ZOOM_SCALE } from "@/components/editor/editorTimelineZoom";
-import type { EditorSession } from "@/lib/editorMedia";
+import type { EditorSession } from "@/components/editor/editorMedia";
 import { normalizeSubtitleCueText } from "@/lib/subtitles/normalizeSubtitleCueText";
 import type { SubtitleCue } from "@/lib/subtitles/types";
 

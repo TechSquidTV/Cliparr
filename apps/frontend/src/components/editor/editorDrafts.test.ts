@@ -5,7 +5,10 @@ import {
   editorDraftIdentity,
   type EditorDraft,
 } from "@/components/editor/editorDrafts";
-import { buildLocalEditorSession, type EditorSession } from "@/lib/editorMedia";
+import {
+  buildLocalEditorSession,
+  type EditorSession,
+} from "@/components/editor/editorMedia";
 
 function session(name = "clip.mp4", size = 5, lastModified = 1): EditorSession {
   const file = new File([new Uint8Array(size)], name, { lastModified });

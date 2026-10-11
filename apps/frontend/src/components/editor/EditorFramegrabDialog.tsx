@@ -1,14 +1,12 @@
 import { Spinner } from "@/components/ui/spinner";
 import { Copy, Download } from "lucide-react";
-import type {
-  FramegrabImageFormat,
-  FramegrabImageQuality,
-} from "@/lib/framegrab";
+import type { FramegrabImageFormat } from "@/lib/export/exportFormats";
+import type { FramegrabImageQuality } from "@/lib/framegrab";
 import {
   framegrabFormatOptionFor,
   framegrabImageFormatOptions,
-  framegrabImageQualityOptions,
-} from "@/lib/framegrab";
+} from "@/lib/export/exportFormats";
+import { framegrabImageQualityOptions } from "@/lib/framegrab";
 import { DialogFooter, DialogWindow } from "@/components/ui/dialog";
 import {
   compactPrimaryButtonClasses,
@@ -26,7 +24,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { formatTime } from "@/components/editor/editorUtilities";
-import type { MediaDimensions } from "@/lib/editorMedia";
+import type { MediaDimensions } from "@/components/editor/editorMedia";
 
 type FramegrabAction = "copy" | "download";
 

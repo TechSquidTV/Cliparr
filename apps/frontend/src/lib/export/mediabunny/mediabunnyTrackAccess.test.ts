@@ -1,0 +1,59 @@
+import assert from "node:assert/strict";
+import test from "node:test";
+import { HLS, MP4, type InputVideoTrack } from "mediabunny";
+import {
+  isPlaybackVideoTrack,
+  videoTrackExportUnsupportedMessage,
+  videoTrackPreviewUnavailableMessage,
+  type VideoTrackDecodabilityAssessment,
+} from "@/lib/export/mediabunny/mediabunnyTrackAccess";
+
+void test("keeps all-keyframe video while excluding HLS trick-play renditions", async () => {
+  const track = {
+    hasOnlyKeyPackets: async () => true,
+    getCodec: async () => "prores",
+    input: { getFormat: async () => MP4 },
+  };
+  assert.equal(await isPlaybackVideoTrack(track as InputVideoTrack), true);
+  track.getCodec = async () => "avc";
+  assert.equal(await isPlaybackVideoTrack(track as InputVideoTrack), true);
+  track.input.getFormat = async () => HLS;
+  assert.equal(await isPlaybackVideoTrack(track as InputVideoTrack), false);
+  track.hasOnlyKeyPackets = async () => false;
+  assert.equal(await isPlaybackVideoTrack(track as InputVideoTrack), true);
+  track.hasOnlyKeyPackets = async () => true;
+  track.getCodec = async () => "prores";
+  assert.equal(await isPlaybackVideoTrack(track as InputVideoTrack), true);
+});
+
+void test("formats unsupported video track messages for preview and export contexts", () => {
+  const unsupportedVp9 = {
+    codec: "vp9",
+    canDecode: false,
+  } satisfies VideoTrackDecodabilityAssessment;
+
+  assert.equal(
+    videoTrackPreviewUnavailableMessage(unsupportedVp9),
+    "Preview unavailable: this browser cannot decode vp9 video.",
+  );
+  assert.equal(
+    videoTrackExportUnsupportedMessage(unsupportedVp9),
+    "This browser cannot decode vp9 video. Try Chrome or Edge, or use a source video codec this browser supports.",
+  );
+});
+
+void test("formats unknown video codec messages for preview and export contexts", () => {
+  const unknownCodec = {
+    codec: null,
+    canDecode: false,
+  } satisfies VideoTrackDecodabilityAssessment;
+
+  assert.equal(
+    videoTrackPreviewUnavailableMessage(unknownCodec),
+    "Preview unavailable: this browser cannot decode the source video track because its codec is unknown.",
+  );
+  assert.equal(
+    videoTrackExportUnsupportedMessage(unknownCodec),
+    "This browser cannot decode the source video track because its codec is unknown.",
+  );
+});
