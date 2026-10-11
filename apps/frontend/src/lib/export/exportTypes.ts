@@ -23,6 +23,8 @@ export type { ExportFormat } from "#/lib/export/exportFormats";
 
 export type ExportResolution = "original" | "1080" | "720";
 
+export type ExportSourcePreference = "auto" | "direct" | "hls";
+
 export type ExportQualityPreset =
   "compact" | "efficient" | "balanced" | "sharp";
 

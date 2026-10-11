@@ -41,7 +41,7 @@ import {
   type HlsExportEstimateMetadata,
 } from "@/lib/export/hlsExportEstimate";
 import type { SubtitleCue, SubtitleStyleSettings } from "@/lib/subtitles/types";
-import type { ExportSourcePreference } from "@/components/editor/EditorExportDialog";
+import type { ExportSourcePreference } from "@/lib/export/exportTypes";
 import type { PlaybackFallbackInfo } from "@/components/editor/editorPlaybackSources";
 import type { EditorExportMedia } from "@/components/editor/editorMediaLifecycle";
 import { getFrontendLogger, warnWithError } from "@/logging";
