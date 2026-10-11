@@ -1,4 +1,7 @@
-import type { audioBitDepthSummary, ExportAudioPlan } from "#/lib/exportAudio";
+import type {
+  audioBitDepthSummary,
+  ExportAudioPlan,
+} from "#/lib/export/exportAudio";
 import { Switch } from "#/components/ui/switch";
 import {
   isAudioExportFormat,
@@ -28,7 +31,7 @@ import type {
   ExportPhase,
   ExportFormat,
   ExportResolution,
-} from "#/lib/exportClip";
+} from "#/lib/export/exportClip";
 import {
   formatExportSizeEstimate,
   type ExportSizeEstimate,

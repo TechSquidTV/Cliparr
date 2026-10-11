@@ -1,4 +1,4 @@
-import type { ExportClipOptions } from "./lib/exportClip";
+import type { ExportClipOptions } from "./lib/export/exportClip";
 import type { InputVideoTrack } from "mediabunny";
 import type { MediaDimensions } from "./components/editor/editorMedia";
 import { getVideoTrackDimensions as readVideoTrackDimensions } from "./lib/export/mediabunny/mediabunnyTrackAccess";
@@ -30,7 +30,7 @@ export type {
   ExportClipOptions,
   ExportVideoEncodingPlan,
   ExportPhase,
-} from "./lib/exportClip";
+} from "./lib/export/exportClip";
 export type { ExportFormat, ExportResolution } from "./lib/export/exportTypes";
 export {
   calibratedEstimatedVideoBitrateBps,
@@ -81,7 +81,7 @@ export {
 } from "./components/ui/control-styles";
 
 export async function exportClip(options: ExportClipOptions) {
-  const module = await import("./lib/exportClip");
+  const module = await import("./lib/export/exportClip");
 
   return module.exportClip(options);
 }
@@ -103,6 +103,6 @@ export {
   type AudioExportFormat,
   type VideoExportFormat,
 } from "./lib/export/exportFormats";
-export type { ExportAudioPlan } from "./lib/exportAudio";
+export type { ExportAudioPlan } from "./lib/export/exportAudio";
 
 export { useExportVideoPlan } from "./components/editor/useExportVideoPlan";

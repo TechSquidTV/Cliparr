@@ -1,11 +1,11 @@
-import { createDeferred } from "#/lib/deferred.test-support";
+import { createDeferred } from "#/lib/export/deferred.test-support";
 import {
   createIncompleteSourceAudioError,
   isIncompleteSourceAudioError,
 } from "#/lib/export/exportSourceAudio";
 /// <reference types="node" />
 
-import { resolveExportAudioPlan } from "@/lib/exportAudio";
+import { resolveExportAudioPlan } from "@/lib/export/exportAudio";
 import { buildMetadataTags } from "@/lib/export/exportMetadata";
 
 import assert from "node:assert/strict";
@@ -17,7 +17,7 @@ import {
   createGifCanvas,
   exportClipWithRuntime,
   type ExportVideoEncodingPlan,
-} from "@/lib/exportClip";
+} from "@/lib/export/exportClip";
 import type { EditorMediaSource } from "@/components/editor/editorMedia";
 import { gifExportSettingsForPreset } from "@/lib/export/exportTypes";
 import { createInlineGifFrameEncoder } from "@/lib/export/gif/gifFrameEncoder";

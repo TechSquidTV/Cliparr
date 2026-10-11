@@ -207,7 +207,7 @@ function mediaLoadingRestrictions({
   }
   if (ui) {
     for (const alias of ["@", "#"]) {
-      for (const module of ["exportClip", "exportAudio"]) {
+      for (const module of ["export/exportClip", "export/exportAudio"]) {
         paths.push({
           name: `${alias}/lib/${module}`,
           allowTypeImports: true,
@@ -475,7 +475,7 @@ export default tseslint.config(
     rules: mediaLoadingRestrictions({ gifRuntime: true }),
   },
   {
-    files: ["apps/frontend/src/lib/exportClip.ts"],
+    files: ["apps/frontend/src/lib/export/exportClip.ts"],
     rules: mediaLoadingRestrictions({ gifLoader: true }),
   },
   {

@@ -1,4 +1,4 @@
-import type { ExportAudioPlan } from "#/lib/exportAudio";
+import type { ExportAudioPlan } from "#/lib/export/exportAudio";
 import type {
   GifDitherMode,
   GifPaletteFormat,

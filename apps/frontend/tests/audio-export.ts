@@ -1,4 +1,4 @@
-import { createBrowserSourceFixtures as buildBrowserSourceFixtures } from "#/lib/exportSourceFixtures.test-support";
+import { createBrowserSourceFixtures as buildBrowserSourceFixtures } from "#/lib/export/exportSourceFixtures.test-support";
 import {
   assertSourceAudioRange,
   isIncompleteSourceAudioError,
@@ -17,10 +17,10 @@ import {
   Input,
   Output,
 } from "mediabunny";
-import { exportClip, type ExportClipOptions } from "#/lib/exportClip";
+import { exportClip, type ExportClipOptions } from "#/lib/export/exportClip";
 import { ensureAudioEncoder } from "#/lib/export/mediabunny/mediabunnyCodecs";
-import { createPcmWav } from "#/lib/exportAudioFixtures.test-support";
-import { inspectAudioTrack } from "#/lib/exportAudio";
+import { createPcmWav } from "#/lib/export/exportAudioFixtures.test-support";
+import { inspectAudioTrack } from "#/lib/export/exportAudio";
 import type { AudioExportFormat } from "#/lib/export/exportFormats";
 
 function check(condition: boolean, message: string): asserts condition {

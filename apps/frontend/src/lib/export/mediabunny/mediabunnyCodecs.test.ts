@@ -1,4 +1,4 @@
-import { createDeferred } from "#/lib/deferred.test-support";
+import { createDeferred } from "#/lib/export/deferred.test-support";
 import assert from "node:assert/strict";
 import test from "node:test";
 import {

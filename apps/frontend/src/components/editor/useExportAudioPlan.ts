@@ -3,7 +3,7 @@ import type {
   audioBitDepthSummary,
   AudioSourceInfo,
   ExportAudioPlan,
-} from "#/lib/exportAudio";
+} from "#/lib/export/exportAudio";
 import { createCliparrInputFromSource } from "#/lib/export/mediabunny/mediabunnyInput";
 import { isPlaybackVideoTrack } from "#/lib/export/mediabunny/mediabunnyTrackAccess";
 import { selectPreferredPairableAudioTrack } from "#/lib/subtitles/selectPreferredAudioTrack";
@@ -56,7 +56,7 @@ export function useExportAudioPlan(
         inspectAudioTrack,
         resolveExportAudioPlan,
         audioBitDepthSummary,
-      } = await import("#/lib/exportAudio");
+      } = await import("#/lib/export/exportAudio");
       controller.signal.throwIfAborted();
       let inspection = cache.current.find(
         (entry) =>
