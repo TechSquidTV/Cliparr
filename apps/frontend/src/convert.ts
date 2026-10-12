@@ -1,7 +1,7 @@
 import type { ExportClipOptions } from "./lib/exportClip";
 import type { InputVideoTrack } from "mediabunny";
 import type { MediaDimensions } from "./components/editor/editorMedia";
-import { getVideoTrackDimensions as readVideoTrackDimensions } from "./lib/mediabunnyTrackAccess";
+import { getVideoTrackDimensions as readVideoTrackDimensions } from "./lib/export/mediabunny/mediabunnyTrackAccess";
 
 export {
   DEFAULT_GIF_EXPORT_PRESET,
@@ -57,14 +57,14 @@ export {
   type EditorSession,
   type MediaDimensions,
 } from "./components/editor/editorMedia";
-export { createCliparrInputFromSource } from "./lib/mediabunnyInput";
+export { createCliparrInputFromSource } from "./lib/export/mediabunny/mediabunnyInput";
 export { selectPreferredPairableAudioTrack } from "./lib/subtitles/selectPreferredAudioTrack";
 export {
   assessVideoTrackDecodability,
   isPlaybackVideoTrack,
   getTrackTimelineOffsetSeconds,
   videoTrackPreviewUnavailableMessage,
-} from "./lib/mediabunnyTrackAccess";
+} from "./lib/export/mediabunny/mediabunnyTrackAccess";
 export type { MediaExportMetadata } from "./providers/types";
 export {
   ExportStatusPanel,

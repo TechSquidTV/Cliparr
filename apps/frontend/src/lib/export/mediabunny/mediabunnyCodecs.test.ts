@@ -1,7 +1,10 @@
 import { createDeferred } from "#/lib/deferred.test-support";
 import assert from "node:assert/strict";
 import test from "node:test";
-import { ensureAudioDecoder, ensureAudioEncoder } from "#/lib/mediabunnyCodecs";
+import {
+  ensureAudioDecoder,
+  ensureAudioEncoder,
+} from "#/lib/export/mediabunny/mediabunnyCodecs";
 
 void test("AC3 and EAC3 share one in-flight and completed decoder registration", async () => {
   const first = ensureAudioDecoder("ac3");
@@ -22,7 +25,8 @@ void test("encoder registration is shared for concurrent requests and retained a
 });
 
 void test("registration failures are shared and cleared before retry", async () => {
-  const { createCodecRegistration } = await import("#/lib/mediabunnyCodecs");
+  const { createCodecRegistration } =
+    await import("#/lib/export/mediabunny/mediabunnyCodecs");
   const failed = createDeferred<void>();
   const failure = new Error("Registration failed");
   let attempts = 0;
@@ -47,7 +51,8 @@ void test("registration failures are shared and cleared before retry", async () 
 });
 
 void test("independent registrations do not block or invalidate each other", async () => {
-  const { createCodecRegistration } = await import("#/lib/mediabunnyCodecs");
+  const { createCodecRegistration } =
+    await import("#/lib/export/mediabunny/mediabunnyCodecs");
   const pending = createDeferred<void>();
   const first = createCodecRegistration(() => pending.promise);
   let attempts = 0;

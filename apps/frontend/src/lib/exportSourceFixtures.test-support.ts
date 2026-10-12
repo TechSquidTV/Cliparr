@@ -11,7 +11,7 @@ import {
   Output,
   PathedTarget,
 } from "mediabunny";
-import { ensureAudioEncoder } from "#/lib/mediabunnyCodecs";
+import { ensureAudioEncoder } from "#/lib/export/mediabunny/mediabunnyCodecs";
 
 /** A valid FLAC whose constant final frame triggers the released reader's tail loss. */
 async function createFlacTailFixture(

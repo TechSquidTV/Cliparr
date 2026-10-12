@@ -110,3 +110,45 @@ export function isAudioExportFormat(
 export function exportIncludesAudio(mode: ExportMode, format: ExportFormat) {
   return mode !== "video-only" && format !== "gif";
 }
+
+export type FramegrabImageFormat = "png" | "jpg" | "webp";
+
+export interface FramegrabImageFormatOption {
+  value: FramegrabImageFormat;
+  label: string;
+  extension: string;
+  mimeType: string;
+}
+
+export const framegrabImageFormatOptions: readonly FramegrabImageFormatOption[] =
+  [
+    {
+      value: "png",
+      label: "PNG",
+      extension: ".png",
+      mimeType: "image/png",
+    },
+    {
+      value: "jpg",
+      label: "JPEG",
+      extension: ".jpg",
+      mimeType: "image/jpeg",
+    },
+    {
+      value: "webp",
+      label: "WEBP",
+      extension: ".webp",
+      mimeType: "image/webp",
+    },
+  ];
+
+export function framegrabFormatOptionFor(format: FramegrabImageFormat) {
+  return (
+    framegrabImageFormatOptions.find((option) => option.value === format) ??
+    framegrabImageFormatOptions[0]
+  );
+}
+
+export function framegrabExtensionFor(format: FramegrabImageFormat) {
+  return framegrabFormatOptionFor(format).extension;
+}
