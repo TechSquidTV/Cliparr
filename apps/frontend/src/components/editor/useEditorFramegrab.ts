@@ -12,9 +12,9 @@ import {
   copyFramegrabCanvasToClipboard,
   DEFAULT_FRAMEGRAB_IMAGE_QUALITY,
   encodeFramegrabCanvas,
-  type FramegrabImageFormat,
   type FramegrabImageQuality,
 } from "@/lib/framegrab";
+import type { FramegrabImageFormat } from "@/lib/exportFormats";
 
 interface CapturedFramegrab {
   canvas: HTMLCanvasElement;

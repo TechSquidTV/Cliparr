@@ -3,7 +3,7 @@ import type { ExportFormat } from "#/lib/exportTypes";
 import {
   framegrabExtensionFor,
   type FramegrabImageFormat,
-} from "#/lib/framegrab";
+} from "#/lib/exportFormats";
 import { formatProviderIdForFilename } from "#/lib/metadata/externalIdTags";
 
 export type ExportFileNameTemplateKind = "movie" | "episode";
