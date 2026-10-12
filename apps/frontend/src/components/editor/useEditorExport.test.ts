@@ -1,4 +1,4 @@
-import { createIncompleteSourceAudioError } from "#/lib/exportSourceAudio";
+import { createIncompleteSourceAudioError } from "#/lib/export/exportSourceAudio";
 /// <reference types="node" />
 
 import assert from "node:assert/strict";
@@ -30,7 +30,7 @@ import {
   gifExportPresetOptions,
   gifExportSettingsForPreset,
   videoExportQualityOptions,
-} from "@/lib/exportTypes";
+} from "@/lib/export/exportTypes";
 
 const localFileSource = {
   kind: "file",

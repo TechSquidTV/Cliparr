@@ -28,12 +28,12 @@ import {
   resolveVideoEncodingPlan,
   type ExportVideoCodec,
   type VideoEncodingPlan,
-} from "#/lib/exportEncodingPolicy";
+} from "#/lib/export/exportEncodingPolicy";
 import {
   isAudioExportFormat,
   exportIncludesAudio,
   type ExportMode,
-} from "#/lib/exportFormats";
+} from "#/lib/export/exportFormats";
 import {
   inspectAudioTrack,
   resolveExportAudioPlan,
@@ -43,7 +43,7 @@ import {
 } from "#/lib/exportAudio";
 import type { EditorMediaSource } from "#/components/editor/editorMedia";
 import { createCliparrInputFromSource } from "#/lib/export/mediabunny/mediabunnyInput";
-import { assertSourceAudioRange } from "#/lib/exportSourceAudio";
+import { assertSourceAudioRange } from "#/lib/export/exportSourceAudio";
 import { ensureAudioDecoder } from "#/lib/export/mediabunny/mediabunnyCodecs";
 import {
   assessVideoTrackDecodability,
@@ -65,7 +65,7 @@ import {
   describeDiscardedTracks,
   isIsobmffExportFormat,
   patchMp4MetadataBoxes,
-} from "#/lib/exportMetadata";
+} from "#/lib/export/exportMetadata";
 import { buildTranscript } from "#/lib/metadata/transcript";
 import {
   DEFAULT_GIF_EXPORT_PRESET,
@@ -77,7 +77,7 @@ import {
   type ExportResolution,
   type GifExportSettings,
   type VideoExportQualityPreset,
-} from "#/lib/exportTypes";
+} from "#/lib/export/exportTypes";
 import type {
   EncodeGifFrameChunkHelpers,
   GifFrameChunk,
@@ -91,7 +91,7 @@ import { renderSubtitleCues } from "#/lib/subtitles/renderSubtitleCue";
 import { trimSubtitleCues } from "#/lib/subtitles/trimSubtitleCues";
 import type { SubtitleCue, SubtitleStyleSettings } from "#/lib/subtitles/types";
 
-export type { ExportFormat, ExportResolution } from "#/lib/exportTypes";
+export type { ExportFormat, ExportResolution } from "#/lib/export/exportTypes";
 
 export type ExportPhase = "preparing" | "encoding" | "finalizing";
 

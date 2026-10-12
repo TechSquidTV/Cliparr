@@ -7,7 +7,7 @@ import {
   exportFormats,
   type ExportMode,
   type ExportOutputType,
-} from "#/lib/exportFormats";
+} from "#/lib/export/exportFormats";
 import { memo } from "react";
 import { Info } from "lucide-react";
 import {
@@ -39,12 +39,12 @@ import {
   type ExportQualityPreset,
   type GifExportPreset,
   type GifExportSettings,
-} from "#/lib/exportTypes";
+} from "#/lib/export/exportTypes";
 import {
   getExportFileNameTemplateTokens,
   type ExportFileNameTemplateKind,
   type ExportFileNameTemplateSettings,
-} from "#/lib/exportFileName";
+} from "#/lib/export/exportFileName";
 import type { ExportSourcePreference } from "#/components/editor/EditorExportDialog";
 import { fieldLabelWideClasses } from "#/components/ui/control-styles";
 import { formatTime } from "#/components/editor/editorUtilities";

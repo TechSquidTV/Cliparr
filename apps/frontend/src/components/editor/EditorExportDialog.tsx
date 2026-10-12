@@ -1,6 +1,6 @@
 import { Spinner } from "@/components/ui/spinner";
 import type { audioBitDepthSummary, ExportAudioPlan } from "#/lib/exportAudio";
-import type { ExportMode, ExportOutputType } from "#/lib/exportFormats";
+import type { ExportMode, ExportOutputType } from "#/lib/export/exportFormats";
 import { Download, FileText } from "lucide-react";
 import { BouncyAccordion } from "@/components/ui/bouncy-accordion";
 import type {
@@ -12,11 +12,11 @@ import {
   type ExportQualityPreset,
   type ExportSizeEstimate,
   type GifExportSettings,
-} from "@/lib/exportTypes";
+} from "@/lib/export/exportTypes";
 import {
   type ExportFileNameTemplateKind,
   type ExportFileNameTemplateSettings,
-} from "@/lib/exportFileName";
+} from "@/lib/export/exportFileName";
 import {
   DialogClose,
   DialogFooter,

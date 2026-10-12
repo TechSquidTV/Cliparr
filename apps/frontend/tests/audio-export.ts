@@ -2,7 +2,7 @@ import { createBrowserSourceFixtures as buildBrowserSourceFixtures } from "#/lib
 import {
   assertSourceAudioRange,
   isIncompleteSourceAudioError,
-} from "#/lib/exportSourceAudio";
+} from "#/lib/export/exportSourceAudio";
 import { createCliparrInputFromSource } from "#/lib/export/mediabunny/mediabunnyInput";
 import { getTrackTimelineOffsetSeconds } from "#/lib/export/mediabunny/mediabunnyTrackAccess";
 import {
@@ -21,7 +21,7 @@ import { exportClip, type ExportClipOptions } from "#/lib/exportClip";
 import { ensureAudioEncoder } from "#/lib/export/mediabunny/mediabunnyCodecs";
 import { createPcmWav } from "#/lib/exportAudioFixtures.test-support";
 import { inspectAudioTrack } from "#/lib/exportAudio";
-import type { AudioExportFormat } from "#/lib/exportFormats";
+import type { AudioExportFormat } from "#/lib/export/exportFormats";
 
 function check(condition: boolean, message: string): asserts condition {
   if (!condition) {

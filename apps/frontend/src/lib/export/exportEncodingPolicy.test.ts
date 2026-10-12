@@ -6,7 +6,7 @@ import {
   calibratedEstimatedVideoBitrateBps,
   exportVideoCodecPriorities,
   formatCanCopyVideoCodec,
-} from "@/lib/exportEncodingPolicy";
+} from "@/lib/export/exportEncodingPolicy";
 
 void test("uses compatibility-first codec priorities", () => {
   assert.deepEqual(exportVideoCodecPriorities("mp4").slice(0, 2), [

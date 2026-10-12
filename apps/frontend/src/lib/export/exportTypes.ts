@@ -11,15 +11,15 @@ import {
   EXPORT_AUDIO_BITRATE_BPS,
   EXPORT_ESTIMATE_CONTAINER_OVERHEAD,
   type ExportVideoCodec,
-} from "#/lib/exportEncodingPolicy";
+} from "#/lib/export/exportEncodingPolicy";
 
 import {
   isAudioExportFormat,
   exportIncludesAudio,
   type ExportMode,
   type ExportFormat,
-} from "#/lib/exportFormats";
-export type { ExportFormat } from "#/lib/exportFormats";
+} from "#/lib/export/exportFormats";
+export type { ExportFormat } from "#/lib/export/exportFormats";
 
 export type ExportResolution = "original" | "1080" | "720";
 

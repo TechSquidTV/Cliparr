@@ -92,7 +92,11 @@ cases.push(
   { file: loader, code: 'import "./local";', restricted: true },
   { file: loader, code: 'void import("../local");', restricted: true },
   { file: loader, code: 'import "@cliparr/server";', restricted: true },
-  { file: converter, code: 'import "./lib/exportTypes";', restricted: false },
+  {
+    file: converter,
+    code: 'import "./lib/export/exportTypes";',
+    restricted: false,
+  },
 );
 
 void test("media import restrictions preserve ownership, type imports and workspace rules", async () => {
