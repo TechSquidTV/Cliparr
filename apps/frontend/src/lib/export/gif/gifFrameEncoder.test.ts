@@ -6,13 +6,13 @@ import {
   GIF_TRAILER_BYTE,
   concatenateGifFrameChunks,
   encodeGifFrameChunk,
-} from "@/lib/gifFrameChunk";
+} from "@/lib/export/gif/gifFrameChunk";
 import {
   copyImageDataBuffer,
   createBestGifFrameEncoder,
   createInlineGifFrameEncoder,
   defaultGifFrameWorkerCount,
-} from "@/lib/gifFrameEncoder";
+} from "@/lib/export/gif/gifFrameEncoder";
 import type { GIFEncoderInstance } from "@techsquidtv/gifenc";
 
 void test("encodes GIF frame chunks without a trailer", () => {

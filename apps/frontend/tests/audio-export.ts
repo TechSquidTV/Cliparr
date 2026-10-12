@@ -3,8 +3,8 @@ import {
   assertSourceAudioRange,
   isIncompleteSourceAudioError,
 } from "#/lib/exportSourceAudio";
-import { createCliparrInputFromSource } from "#/lib/mediabunnyInput";
-import { getTrackTimelineOffsetSeconds } from "#/lib/mediabunnyTrackAccess";
+import { createCliparrInputFromSource } from "#/lib/export/mediabunny/mediabunnyInput";
+import { getTrackTimelineOffsetSeconds } from "#/lib/export/mediabunny/mediabunnyTrackAccess";
 import {
   ALL_FORMATS,
   AudioSample,
@@ -18,7 +18,7 @@ import {
   Output,
 } from "mediabunny";
 import { exportClip, type ExportClipOptions } from "#/lib/exportClip";
-import { ensureAudioEncoder } from "#/lib/mediabunnyCodecs";
+import { ensureAudioEncoder } from "#/lib/export/mediabunny/mediabunnyCodecs";
 import { createPcmWav } from "#/lib/exportAudioFixtures.test-support";
 import { inspectAudioTrack } from "#/lib/exportAudio";
 import type { AudioExportFormat } from "#/lib/exportFormats";

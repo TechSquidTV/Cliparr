@@ -20,11 +20,11 @@ import {
 } from "@/lib/exportClip";
 import type { EditorMediaSource } from "@/components/editor/editorMedia";
 import { gifExportSettingsForPreset } from "@/lib/exportTypes";
-import { createInlineGifFrameEncoder } from "@/lib/gifFrameEncoder";
-import { concatenateGifFrameChunks } from "@/lib/gifFrameChunk";
-import type { EncodeGifFrameChunkHelpers } from "@/lib/gifFrameChunk";
+import { createInlineGifFrameEncoder } from "@/lib/export/gif/gifFrameEncoder";
+import { concatenateGifFrameChunks } from "@/lib/export/gif/gifFrameChunk";
+import type { EncodeGifFrameChunkHelpers } from "@/lib/export/gif/gifFrameChunk";
 import type { SubtitleStyleSettings } from "@/lib/subtitles/types";
-import { getTrackTimelineOffsetSeconds } from "@/lib/mediabunnyTrackAccess";
+import { getTrackTimelineOffsetSeconds } from "@/lib/export/mediabunny/mediabunnyTrackAccess";
 
 type ExportRuntime = Parameters<typeof exportClipWithRuntime>[1];
 type CliparrInput = Awaited<

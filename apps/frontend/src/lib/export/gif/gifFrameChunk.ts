@@ -7,7 +7,7 @@ import type {
 import type {
   GifDitherMode,
   GifPaletteFormat,
-} from "#/lib/gifEncodingSettings";
+} from "#/lib/export/gif/gifEncodingSettings";
 
 export const GIF_TRAILER_BYTE = 59;
 

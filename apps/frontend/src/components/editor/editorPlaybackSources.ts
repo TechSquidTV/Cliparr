@@ -9,8 +9,8 @@ import {
   assessVideoTrackDecodability,
   isPlaybackVideoTrack,
   videoTrackPreviewUnavailableMessage,
-} from "@/lib/mediabunnyTrackAccess";
-import { ensureAudioDecoder } from "@/lib/mediabunnyCodecs";
+} from "@/lib/export/mediabunny/mediabunnyTrackAccess";
+import { ensureAudioDecoder } from "@/lib/export/mediabunny/mediabunnyCodecs";
 
 type PlaybackSourceLabel =
   "hls stream" | "direct source" | "local file" | "url" | "hls url";

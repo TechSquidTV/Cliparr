@@ -42,9 +42,9 @@ import {
   type ExportAudioPlan,
 } from "#/lib/exportAudio";
 import type { EditorMediaSource } from "#/components/editor/editorMedia";
-import { createCliparrInputFromSource } from "#/lib/mediabunnyInput";
+import { createCliparrInputFromSource } from "#/lib/export/mediabunny/mediabunnyInput";
 import { assertSourceAudioRange } from "#/lib/exportSourceAudio";
-import { ensureAudioDecoder } from "#/lib/mediabunnyCodecs";
+import { ensureAudioDecoder } from "#/lib/export/mediabunny/mediabunnyCodecs";
 import {
   assessVideoTrackDecodability,
   getTrackTimelineOffsetSeconds,
@@ -53,7 +53,7 @@ import {
   toSourceTimelineTime,
   videoTrackExportUnsupportedMessage,
   type VideoTrackDecodabilityAssessment,
-} from "#/lib/mediabunnyTrackAccess";
+} from "#/lib/export/mediabunny/mediabunnyTrackAccess";
 import { selectPreferredPairableAudioTrack } from "#/lib/subtitles/selectPreferredAudioTrack";
 import type {
   MediaExportMetadata,
@@ -81,11 +81,11 @@ import {
 import type {
   EncodeGifFrameChunkHelpers,
   GifFrameChunk,
-} from "#/lib/gifFrameChunk";
+} from "#/lib/export/gif/gifFrameChunk";
 import type {
   GifFrameEncoder,
   GifFrameEncoderOptions,
-} from "#/lib/gifFrameEncoder";
+} from "#/lib/export/gif/gifFrameEncoder";
 import { getActiveSubtitleCues } from "#/lib/subtitles/getActiveSubtitleCue";
 import { renderSubtitleCues } from "#/lib/subtitles/renderSubtitleCue";
 import { trimSubtitleCues } from "#/lib/subtitles/trimSubtitleCues";
@@ -1179,8 +1179,8 @@ function copyToArrayBuffer(bytes: Uint8Array) {
 async function loadGifEncodingRuntime(): Promise<GifEncodingRuntime> {
   const [gifenc, gifFrameEncoder, gifFrameChunk] = await Promise.all([
     import("@techsquidtv/gifenc"),
-    import("#/lib/gifFrameEncoder"),
-    import("#/lib/gifFrameChunk"),
+    import("#/lib/export/gif/gifFrameEncoder"),
+    import("#/lib/export/gif/gifFrameChunk"),
   ]);
 
   return {

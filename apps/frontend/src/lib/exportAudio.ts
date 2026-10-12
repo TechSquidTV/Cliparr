@@ -12,7 +12,7 @@ import {
   EXPORT_AUDIO_BITRATE_BPS,
 } from "#/lib/exportEncodingPolicy";
 import { isAudioExportFormat, type ExportFormat } from "#/lib/exportFormats";
-import { ensureAudioEncoder } from "#/lib/mediabunnyCodecs";
+import { ensureAudioEncoder } from "#/lib/export/mediabunny/mediabunnyCodecs";
 import { estimateAudioExportSize } from "#/lib/exportTypes";
 
 type Speaker = "L" | "R" | "C" | "LFE" | "SL" | "SR" | "BL" | "BR" | "BC";

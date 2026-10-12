@@ -6,7 +6,7 @@ import {
   videoTrackExportUnsupportedMessage,
   videoTrackPreviewUnavailableMessage,
   type VideoTrackDecodabilityAssessment,
-} from "@/lib/mediabunnyTrackAccess";
+} from "@/lib/export/mediabunny/mediabunnyTrackAccess";
 
 void test("keeps all-keyframe video while excluding HLS trick-play renditions", async () => {
   const track = {

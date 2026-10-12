@@ -4,8 +4,8 @@ import type {
   AudioSourceInfo,
   ExportAudioPlan,
 } from "#/lib/exportAudio";
-import { createCliparrInputFromSource } from "#/lib/mediabunnyInput";
-import { isPlaybackVideoTrack } from "#/lib/mediabunnyTrackAccess";
+import { createCliparrInputFromSource } from "#/lib/export/mediabunny/mediabunnyInput";
+import { isPlaybackVideoTrack } from "#/lib/export/mediabunny/mediabunnyTrackAccess";
 import { selectPreferredPairableAudioTrack } from "#/lib/subtitles/selectPreferredAudioTrack";
 import {
   editorMediaSourcesEqual,

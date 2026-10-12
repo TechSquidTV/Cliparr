@@ -10,7 +10,7 @@ import {
   titleFromUrl,
 } from "@/components/editor/editorMedia";
 import { cliparrClient } from "@/api/cliparrClient";
-import { isHlsPlaylistUrl } from "@/lib/mediabunnyInput";
+import { isHlsPlaylistUrl } from "@/lib/export/mediabunny/mediabunnyInput";
 
 const DATABASE_NAME = "cliparr-local-media";
 const DATABASE_VERSION = 1;
