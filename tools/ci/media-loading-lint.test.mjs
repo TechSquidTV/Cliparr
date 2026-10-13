@@ -14,7 +14,7 @@ const eslint = new ESLint({
 const ui = "apps/frontend/src/components/editor/editorPlaybackSources.ts";
 const loader = "apps/frontend/src/lib/export/mediabunny/mediabunnyCodecs.ts";
 const gif = "apps/frontend/src/lib/export/gif/gifFrameEncoder.ts";
-const execution = "apps/frontend/src/lib/exportClip.ts";
+const execution = "apps/frontend/src/lib/export/exportClip.ts";
 const fixture = "apps/frontend/src/lib/mediaLoadingFixtures.test-support.ts";
 const unit = "apps/frontend/src/lib/export/mediabunny/mediabunnyCodecs.test.ts";
 const converter = "apps/frontend/src/convert.ts";
@@ -54,7 +54,7 @@ for (const name of [
   );
 }
 for (const alias of ["#", "@"]) {
-  for (const module of ["exportClip", "exportAudio"]) {
+  for (const module of ["export/exportClip", "export/exportAudio"]) {
     cases.push(
       {
         file: ui,

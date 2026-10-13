@@ -1,4 +1,4 @@
-import { identifyDecoderLayout } from "#/lib/audioDecoderLayout";
+import { identifyDecoderLayout } from "#/lib/export/audioDecoderLayout";
 import {
   AudioSample,
   EncodedPacketSink,

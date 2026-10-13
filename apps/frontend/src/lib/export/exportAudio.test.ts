@@ -10,7 +10,7 @@ import {
   processExportAudio,
   assertWavSize,
   type AudioSourceInfo,
-} from "#/lib/exportAudio";
+} from "#/lib/export/exportAudio";
 
 const source: AudioSourceInfo = {
   codec: "pcm-s16",

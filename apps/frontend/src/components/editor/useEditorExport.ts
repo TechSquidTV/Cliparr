@@ -4,7 +4,7 @@ import {
   isAudioExportFormat,
   exportIncludesAudio,
 } from "#/lib/export/exportFormats";
-import type { ExportAudioPlan } from "#/lib/exportAudio";
+import type { ExportAudioPlan } from "#/lib/export/exportAudio";
 import { useExportAudioPlan } from "#/components/editor/useExportAudioPlan";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useExportVideoPlan } from "#/components/editor/useExportVideoPlan";
@@ -19,7 +19,7 @@ import type {
   ExportPhase,
   ExportResolution,
   ExportVideoEncodingPlan,
-} from "@/lib/exportClip";
+} from "@/lib/export/exportClip";
 import {
   DEFAULT_VIDEO_EXPORT_QUALITY,
   estimateExportOutputSize,
@@ -566,7 +566,7 @@ export function useEditorExport({
     let audioEncodingPlan: ExportAudioPlan | undefined;
 
     try {
-      const { exportClip } = await import("@/lib/exportClip");
+      const { exportClip } = await import("@/lib/export/exportClip");
       controller.signal.throwIfAborted();
       const handleProgress = (nextProgress: number) => {
         if (controller.signal.aborted || !mounted.current) {

@@ -22,7 +22,7 @@ void test("discovers future extensions and classifies shared chunks and subpaths
       [
         "/node_modules/.pnpm/example/node_modules/@mediabunny/ac3/dist/index.js",
         String.raw`C:\node_modules\@mediabunny\future-codec\decoder.js`,
-        "/src/lib/exportAudio.ts",
+        "/src/lib/export/exportAudio.ts",
       ],
       packages,
     ),
@@ -59,7 +59,7 @@ void test("loading assertions reject early capabilities and unmapped requests", 
   const chunks = {
     "shared.js": {
       features: [packages[0], "audioPlan"],
-      modules: ["/src/lib/exportAudio.ts"],
+      modules: ["/src/lib/export/exportAudio.ts"],
     },
   };
   assert.deepEqual(

@@ -1,6 +1,6 @@
 import { createElement } from "react";
 import { createRoot } from "react-dom/client";
-import type { ExportClipOptions } from "#/lib/exportClip";
+import type { ExportClipOptions } from "#/lib/export/exportClip";
 import type { ExportFormat, ExportMode } from "#/lib/export/exportFormats";
 import type { EditorFileMediaSource } from "#/components/editor/editorMedia";
 

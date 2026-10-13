@@ -14,7 +14,7 @@ browser decoding, FLAC rejection feedback and independent playback, 7.1 AAC
 stereo mixdown, MP3 cancellation and retry, and encoder-worker cleanup.
 Focused `exportClip.integration.test.ts` checks cover Cliparr trimming and source
 precision through the real export entry point. The fixed 32-bit input lives in
-`src/lib/fixtures`; fixture details are documented there. Codec implementations
+`src/lib/export/fixtures`; fixture details are documented there. Codec implementations
 and container layout are delegated to MediaBunny.
 
 Node tests remain part of repository preflight. The browser suite runs in the
