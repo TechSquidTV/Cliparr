@@ -12,7 +12,7 @@ async function buildLoadingFixtures() {
 
 async function loadConverterModule() {
   const { exportClip } = await import("#/convert/engine");
-  const { useExportAudioPlan } = await import("#/convert/components");
+  const { useExportAudioPlan } = await import("#/convert/ui");
   return { exportClip, useExportAudioPlan };
 }
 let converter: Awaited<ReturnType<typeof loadConverterModule>> | undefined;

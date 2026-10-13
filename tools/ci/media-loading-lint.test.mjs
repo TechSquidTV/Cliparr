@@ -18,8 +18,15 @@ const execution = "apps/frontend/src/lib/export/exportClip.ts";
 const fixture = "apps/frontend/src/lib/mediaLoadingFixtures.test-support.ts";
 const unit = "apps/frontend/src/lib/export/mediabunny/mediabunnyCodecs.test.ts";
 const converter = "apps/frontend/src/convert/engine.ts";
-const converterComponents = "apps/frontend/src/convert/components.ts";
+const converterUi = "apps/frontend/src/convert/ui.ts";
 const cases = [];
+for (const entry of ["engine", "ui", "components", "engine/internal", ""]) {
+  cases.push({
+    file: converter,
+    code: `import "@cliparr/frontend/convert${entry ? `/${entry}` : ""}";`,
+    restricted: !["engine", "ui"].includes(entry),
+  });
+}
 for (const name of [
   "@mediabunny/ac3",
   "@mediabunny/future-codec",
@@ -99,7 +106,7 @@ cases.push(
     restricted: false,
   },
   {
-    file: converterComponents,
+    file: converterUi,
     code: 'import "../components/ui/spinner";',
     restricted: false,
   },

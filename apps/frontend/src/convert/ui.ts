@@ -1,8 +1,5 @@
-// React surface of the published @cliparr/frontend/convert contract.
-//
-// Components, hooks, UI primitives, and class strings. Import this entry only
-// from React code; pure export-engine consumers should use ./engine so they
-// never transitively bundle React dialog code.
+// Converter UI exports shared with @cliparr/www.
+// Use @cliparr/frontend/convert/engine for helpers without React UI dependencies.
 export {
   ExportStatusPanel,
   EditorExportSettingsSection,

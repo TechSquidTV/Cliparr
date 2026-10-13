@@ -27,7 +27,7 @@ import {
   TooltipProvider,
   Spinner,
   compactPrimaryButtonClasses,
-} from "@cliparr/frontend/convert/components";
+} from "@cliparr/frontend/convert/ui";
 import { Download, FolderOpen, RefreshCcw, Upload } from "lucide-react";
 import {
   useCallback,

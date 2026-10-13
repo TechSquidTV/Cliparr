@@ -138,7 +138,7 @@ const relativeImportRestriction = {
 };
 const crossWorkspaceImportRestrictions = [
   {
-    regex: "^@cliparr/frontend(?:$|/(?!convert/(?:engine|components)$).+)",
+    regex: "^@cliparr/frontend(?:$|/(?!convert/(?:engine|ui)$).+)",
     message: "Do not import app internals across workspace boundaries.",
   },
   {
@@ -484,12 +484,14 @@ export default tseslint.config(
     rules: mediaLoadingRestrictions({ ui: true }),
   },
   {
-    files: ["apps/frontend/src/convert/*.ts"],
+    files: [
+      "apps/frontend/src/convert/engine.ts",
+      "apps/frontend/src/convert/ui.ts",
+    ],
     // These source entrypoints are also bundled by @cliparr/www.
     rules: {
       ...mediaLoadingRestrictions({ relativeImports: true }),
-      // The entries are the published @cliparr/frontend contract facades, not
-      // internal barrels; re-exporting the public API is their whole job.
+      // These workspace entrypoints expose the API shared with @cliparr/www.
       "unicorn/no-barrel-files": "off",
     },
   },

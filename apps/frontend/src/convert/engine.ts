@@ -1,9 +1,5 @@
-// Pure export-engine entry of the published @cliparr/frontend/convert contract.
-//
-// This module is intentionally React-free and CSS-free: it re-exports only
-// pure functions and types. Components, hooks, UI primitives, and class
-// strings live in ./components. Keep it that way so www consumers of the
-// engine never transitively bundle React dialog code.
+// Converter functions and types shared with @cliparr/www.
+// Keep this dependency graph free of React and CSS; UI exports belong in ./ui.
 import type { ExportClipOptions } from "../lib/export/exportClip";
 import type { InputVideoTrack } from "mediabunny";
 import type { MediaDimensions } from "../components/editor/editorMedia";

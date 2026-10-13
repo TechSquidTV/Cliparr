@@ -11,9 +11,9 @@
       "types": "./src/convert/engine.ts",
       "default": "./src/convert/engine.ts"
     },
-    "./convert/components": {
-      "types": "./src/convert/components.ts",
-      "default": "./src/convert/components.ts"
+    "./convert/ui": {
+      "types": "./src/convert/ui.ts",
+      "default": "./src/convert/ui.ts"
     }
   },
   "scripts": {
