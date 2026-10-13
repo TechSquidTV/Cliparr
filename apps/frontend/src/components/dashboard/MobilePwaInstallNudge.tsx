@@ -1,25 +1,26 @@
-import { ControlTooltip } from "@/components/ui/tooltip";
 import { Download, Share, Smartphone, X } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
+
 import {
+  compactPrimaryButtonClasses,
+  iconButtonClasses,
+} from "@/components/ui/control-styles";
+import { ControlTooltip } from "@/components/ui/tooltip";
+import { cn } from "@/lib/cn";
+import {
+  type BeforeInstallPromptEvent,
   COARSE_POINTER_MEDIA_QUERY,
   getDeferredPwaInstallPrompt,
   getPwaInstallEnvironment,
   MOBILE_INSTALL_MEDIA_QUERY,
   promptForPwaInstall,
+  type PwaInstallMode,
   readPwaInstallDismissed,
   resolveMobilePwaInstallMode,
   STANDALONE_DISPLAY_MEDIA_QUERY,
   subscribeToPwaInstallPrompt,
   writePwaInstallDismissed,
-  type BeforeInstallPromptEvent,
-  type PwaInstallMode,
 } from "@/lib/pwa";
-import { cn } from "@/lib/cn";
-import {
-  compactPrimaryButtonClasses,
-  iconButtonClasses,
-} from "@/components/ui/control-styles";
 
 export interface MobilePwaInstallNudgeCardProps {
   mode: PwaInstallMode;
@@ -40,13 +41,8 @@ function addMediaQueryChangeListener(query: string, onChange: () => void) {
   const mediaQuery = globalThis.matchMedia(query);
   const listener = () => onChange();
 
-  if (typeof mediaQuery.addEventListener === "function") {
-    mediaQuery.addEventListener("change", listener);
-    return () => mediaQuery.removeEventListener("change", listener);
-  }
-
-  mediaQuery.addListener(listener);
-  return () => mediaQuery.removeListener(listener);
+  mediaQuery.addEventListener("change", listener);
+  return () => mediaQuery.removeEventListener("change", listener);
 }
 
 function getCurrentMobilePwaInstallMode(

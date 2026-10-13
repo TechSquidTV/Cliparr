@@ -1,4 +1,5 @@
-import { memo, useLayoutEffect, useMemo, useRef, type RefObject } from "react";
+import { memo, type RefObject, useLayoutEffect, useMemo, useRef } from "react";
+
 import { cn } from "@/lib/cn";
 
 interface EditorPreviewTimecodeProperties {

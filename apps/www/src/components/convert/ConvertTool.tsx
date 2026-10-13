@@ -1,60 +1,61 @@
-import { formatDuration } from "@/lib/formatDuration";
 import {
-  exportIncludesAudio,
-  isAudioExportFormat,
   DEFAULT_GIF_EXPORT_PRESET,
+  type EditorFileMediaSource,
   estimateExportOutputSize,
+  type ExportFormat,
   exportFormatDurationDisabledReason,
-  formatCanCopyVideoCodec,
   exportFormatFor,
   exportFormats,
-  resolveExportOutputDimensions,
-  titleFromFileName,
-  type EditorFileMediaSource,
-  type ExportVideoEncodingPlan,
+  exportIncludesAudio,
   type ExportPhase,
-  type ExportFormat,
   type ExportQualityPreset,
   type ExportResolution,
+  type ExportVideoEncodingPlan,
+  formatCanCopyVideoCodec,
+  isAudioExportFormat,
+  resolveExportOutputDimensions,
+  titleFromFileName,
 } from "@cliparr/frontend/convert/engine";
 import {
-  useExportSettings,
-  useExportAudioPlan,
-  useExportVideoPlan,
-  ExportStatusPanel,
+  compactPrimaryButtonClasses,
   EditorExportSettingsSection,
   EditorExportSummaryPanel,
-  TooltipProvider,
+  ExportStatusPanel,
   Spinner,
-  compactPrimaryButtonClasses,
+  TooltipProvider,
+  useExportAudioPlan,
+  useExportSettings,
+  useExportVideoPlan,
 } from "@cliparr/frontend/convert/ui";
 import { Download, FolderOpen, RefreshCcw, Upload } from "lucide-react";
 import {
+  type ChangeEvent,
+  type DragEvent,
+  type ReactNode,
   useCallback,
   useEffect,
   useId,
   useMemo,
   useRef,
   useState,
-  type ChangeEvent,
-  type DragEvent,
-  type ReactNode,
 } from "react";
-import {
-  buildConvertedFileBaseName,
-  buildConvertedOutputFileName,
-  buildLocalFileSource,
-  runConvertExport,
-  probeConvertSource,
-  type SourceProbeResult,
-} from "@/components/convert/convertToolUtilities";
+
 import {
   flushConvertMetrics,
   recordConvertExportCompleted,
   recordConvertExportFailed,
   recordConvertExportStarted,
 } from "@/components/convert/convertMetrics";
+import {
+  buildConvertedFileBaseName,
+  buildConvertedOutputFileName,
+  buildLocalFileSource,
+  probeConvertSource,
+  runConvertExport,
+  type SourceProbeResult,
+} from "@/components/convert/convertToolUtilities";
 import { MediabunnySourcePreview } from "@/components/convert/MediabunnySourcePreview";
+import { formatDuration } from "@/lib/formatDuration";
 
 type ProbeState =
   | { status: "idle" }
@@ -109,6 +110,7 @@ function fileTypeLabel(file: File | null) {
     return `${extension} (${mimeType})`;
   }
 
+  // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- Empty format labels must fall through to a usable label.
   return mimeType || extension || "Unknown";
 }
 

@@ -1,26 +1,28 @@
+import assert from "node:assert/strict";
+import type { LookupAddress } from "node:dns";
+import dns from "node:dns/promises";
+import { getEventListeners } from "node:events";
+import { syncBuiltinESMExports } from "node:module";
+import test, { beforeEach, mock } from "node:test";
+import { setImmediate } from "node:timers/promises";
+
+import { Agent } from "undici";
+
+import { isApiError } from "@/http/errors";
+import {
+  openPlexEventStream,
+  type PlexPmsRequestContext,
+  type PlexPmsRequestOptions,
+  plexPmsResponseStatusMessage,
+  requestPlexPmsCurrentSessions,
+  requestPlexPmsIdentity,
+  requestPlexPmsMetadata,
+} from "@/providers/plex/pmsClient";
+import { createDeferred } from "@/test/deferred";
 import {
   PRIVATE_IPV4_ADDRESSES,
   PRIVATE_IPV6_ADDRESS,
 } from "@/test/networkPolicyFixtures";
-import assert from "node:assert/strict";
-import test, { beforeEach, mock } from "node:test";
-import dns from "node:dns/promises";
-import type { LookupAddress } from "node:dns";
-import { getEventListeners } from "node:events";
-import { syncBuiltinESMExports } from "node:module";
-import { setImmediate } from "node:timers/promises";
-import { Agent } from "undici";
-import { createDeferred } from "@/test/deferred";
-import { isApiError } from "@/http/errors";
-import {
-  plexPmsResponseStatusMessage,
-  openPlexEventStream,
-  requestPlexPmsCurrentSessions,
-  requestPlexPmsIdentity,
-  requestPlexPmsMetadata,
-  type PlexPmsRequestContext,
-  type PlexPmsRequestOptions,
-} from "@/providers/plex/pmsClient";
 
 // Each security scenario gets a fresh DNS TTL window for its mocked answers.
 let testTime = Date.now();

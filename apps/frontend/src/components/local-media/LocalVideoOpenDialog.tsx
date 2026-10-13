@@ -1,11 +1,18 @@
 import { FileVideo, FolderOpen, Link, Upload } from "lucide-react";
 import {
+  type DragEvent,
+  type SubmitEvent,
   useCallback,
   useRef,
   useState,
-  type DragEvent,
-  type FormEvent,
 } from "react";
+
+import {
+  destructiveAlertClasses,
+  fieldLabelWideClasses,
+  largeTextInputClasses,
+  primaryButtonClasses,
+} from "@/components/ui/control-styles";
 import { DialogWindow } from "@/components/ui/dialog";
 import {
   Tabs,
@@ -14,12 +21,7 @@ import {
   TabsPanels,
   TabsTab,
 } from "@/components/ui/tabs";
-import {
-  destructiveAlertClasses,
-  fieldLabelWideClasses,
-  largeTextInputClasses,
-  primaryButtonClasses,
-} from "@/components/ui/control-styles";
+import { cn } from "@/lib/cn";
 import {
   createLocalSessionFromFile,
   createLocalSessionFromPicker,
@@ -27,7 +29,6 @@ import {
   LOCAL_VIDEO_FILE_ACCEPT,
   localMediaPickerSupported,
 } from "@/lib/localMediaRegistry";
-import { cn } from "@/lib/cn";
 
 interface LocalVideoOpenDialogProperties {
   isOpen: boolean;
@@ -127,7 +128,7 @@ export function LocalVideoOpenDialog({
   );
 
   const handleUrlSubmit = useCallback(
-    async (event: FormEvent<HTMLFormElement>) => {
+    async (event: SubmitEvent<HTMLFormElement>) => {
       event.preventDefault();
       if (!canOpenUrl) {
         return;

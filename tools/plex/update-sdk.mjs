@@ -1,19 +1,20 @@
 import { mkdir, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { parseArgs } from "node:util";
+
 import {
   copyArtifact,
   withArtifactTransaction,
 } from "#plex/artifact-transaction.mjs";
 import {
+  checkGeneratedPlexPmsSdk,
   fetchPlexPmsHtml,
   generatePlexPmsSdk,
-  writePlexPmsSnapshot,
-  checkGeneratedPlexPmsSdk,
-  PLEX_PMS_SPEC_PATH,
-  PLEX_PMS_MANIFEST_PATH,
   PLEX_PMS_GENERATED_DIR,
+  PLEX_PMS_MANIFEST_PATH,
+  PLEX_PMS_SPEC_PATH,
   run,
+  writePlexPmsSnapshot,
 } from "#plex/pms-openapi.mjs";
 
 const { values } = parseArgs({ options: { "report-dir": { type: "string" } } });

@@ -1,5 +1,5 @@
-import type { MediaSource, MediaSourceCheckResult } from "@/providers/types";
 import type { Feedback, SourceFilter } from "@/components/sources/sourcesTypes";
+import type { MediaSource, MediaSourceCheckResult } from "@/providers/types";
 
 function compareStrings(left: string, right: string) {
   return left.localeCompare(right, undefined, { sensitivity: "base" });

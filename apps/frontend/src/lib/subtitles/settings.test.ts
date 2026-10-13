@@ -2,6 +2,7 @@
 
 import assert from "node:assert/strict";
 import test from "node:test";
+
 import { loadSubtitleStyleSettings } from "@/lib/subtitles/settings";
 
 const subtitleStyleSettingsStorageKey = "cliparr.subtitle.style-settings.v3";

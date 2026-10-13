@@ -1,7 +1,8 @@
 ---
+import { Picture } from "astro:assets";
 import type { CollectionEntry } from "astro:content";
 import { getCollection, render } from "astro:content";
-import { Picture } from "astro:assets";
+
 import BaseLayout from "@/components/BaseLayout.astro";
 import { type BlogTagId, blogTagLabel, blogTagPath } from "@/data/blog";
 import { blogHeroImageFor } from "@/data/blogImages";
@@ -10,8 +11,8 @@ import {
   absoluteSiteUrl,
   canonicalSiteUrl,
   organizationReference,
-  websiteReference,
   webPageId,
+  websiteReference,
 } from "@/lib/structuredData";
 
 type BlogEntry = CollectionEntry<"blog">;

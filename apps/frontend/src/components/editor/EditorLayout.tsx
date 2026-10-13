@@ -1,17 +1,18 @@
 import { Captions } from "lucide-react";
-import type { ReactNode } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
-import {
-  ResizableHandle,
-  ResizablePanel,
-  ResizablePanelGroup,
-} from "@/components/ui/resizable";
+import type { ReactNode } from "react";
+
 import {
   EDITOR_PANEL_SIZES,
   EDITOR_RESIZE_TARGET_MINIMUM_SIZE,
 } from "@/components/editor/editorLayoutSizing";
 import { EditorSidebar } from "@/components/editor/EditorSidebar";
 import { BarsLoader } from "@/components/ui/bars-loader";
+import {
+  ResizableHandle,
+  ResizablePanel,
+  ResizablePanelGroup,
+} from "@/components/ui/resizable";
 import { cliparrMotionTransitions } from "@/lib/motion";
 
 export type EditorLayoutVariant = "desktop" | "mobile";

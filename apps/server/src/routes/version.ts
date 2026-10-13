@@ -1,7 +1,8 @@
 import { Router } from "express";
-import { versionInfoService } from "@/version/versionInfo";
-import { asyncHandler } from "@/http/errors";
+
 import { setNoStore } from "@/http/cacheControl";
+import { asyncHandler } from "@/http/errors";
+import { versionInfoService } from "@/version/versionInfo";
 
 export const versionRouter = Router();
 

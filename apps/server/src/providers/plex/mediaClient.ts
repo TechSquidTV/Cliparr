@@ -1,13 +1,14 @@
-import { createClient } from "@cliparr/plex/pms/client";
 import { transcodeDecision } from "@cliparr/plex/pms";
+import { createClient } from "@cliparr/plex/pms/client";
 import type { TranscodeDecisionData } from "@cliparr/plex/pms/types";
-import type { MediaHandle } from "@/providers/types";
-import { fetchMediaHandleRequest } from "@/providers/shared/mediaProxy";
+
 import { createApiError } from "@/http/errors";
 import {
   CURRENT_PLAYBACK_REQUEST_TIMEOUT_MS,
   PLEX_CLIENT_IDENTIFIER,
 } from "@/providers/plex/shared";
+import { fetchMediaHandleRequest } from "@/providers/shared/mediaProxy";
+import type { MediaHandle } from "@/providers/types";
 
 export async function requestSubtitleDecision(
   handle: MediaHandle,

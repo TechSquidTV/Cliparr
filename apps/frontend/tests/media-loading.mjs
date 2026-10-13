@@ -4,8 +4,10 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { gzipSync } from "node:zlib";
+
 import { chromium } from "playwright";
 import { build, preview } from "vite";
+
 import {
   assertCapabilityCoverage,
   assertLoadedFeatures,

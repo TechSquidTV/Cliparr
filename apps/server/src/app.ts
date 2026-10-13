@@ -1,14 +1,16 @@
-import express from "express";
 import path from "node:path";
+
+import express from "express";
+
 import { CLIPARR_VERSION } from "@/config/version";
 import { checkDatabaseHealth, initializeDatabase } from "@/db/database";
 import { errorHandler, notFoundHandler } from "@/http/errors";
 import { requestOriginIsPotentiallyTrustworthy } from "@/http/requestOrigin";
 import { configureLogging, requestLoggingMiddleware } from "@/logging";
+import { livePlaybackRouter } from "@/routes/livePlayback";
 import { mediaRouter } from "@/routes/media";
 import { providersRouter } from "@/routes/providers";
 import { sessionRouter } from "@/routes/session";
-import { livePlaybackRouter } from "@/routes/livePlayback";
 import { sourcesRouter } from "@/routes/sources";
 import { versionRouter } from "@/routes/version";
 

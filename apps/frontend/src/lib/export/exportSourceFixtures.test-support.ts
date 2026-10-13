@@ -5,12 +5,13 @@ import {
   CmafOutputFormat,
   FlacOutputFormat,
   HlsOutputFormat,
-  Mp4OutputFormat,
   MkvOutputFormat,
-  type OutputFormat,
+  Mp4OutputFormat,
   Output,
+  type OutputFormat,
   PathedTarget,
 } from "mediabunny";
+
 import { ensureAudioEncoder } from "#/lib/export/mediabunny/mediabunnyCodecs";
 
 /** A valid FLAC whose constant final frame triggers the released reader's tail loss. */

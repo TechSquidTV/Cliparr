@@ -1,10 +1,11 @@
 import assert from "node:assert/strict";
-import dns from "node:dns/promises";
 import type { LookupAddress } from "node:dns";
+import dns from "node:dns/promises";
 import { getEventListeners } from "node:events";
 import { syncBuiltinESMExports } from "node:module";
 import test from "node:test";
 import { setImmediate } from "node:timers/promises";
+
 import { createDeferred } from "@/test/deferred";
 
 const {

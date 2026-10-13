@@ -1,7 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { buildScenes, recordingDuration } from "#/scenes.ts";
+
 import { validateVideo } from "#/encode.ts";
+import { buildScenes, recordingDuration } from "#/scenes.ts";
 
 void test("keeps source selection separate from website recording length", () => {
   const [hero, mobile] = buildScenes({

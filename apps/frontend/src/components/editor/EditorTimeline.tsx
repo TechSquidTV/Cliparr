@@ -1,14 +1,14 @@
-import { editorIconButtonClassName } from "@/components/ui/control-styles";
-import { ControlTooltip } from "@/components/ui/tooltip";
+import "@techsquidtv/canvas-timeline/styles.css";
+
 import {
   CanvasRenderer,
   Timeline,
+  type TimelineEngine,
   toSeconds,
   useTimelinePlayback,
+  type UseTimelineTrackHeaderResult,
   useTimelineTracks,
   useTimelineViewport,
-  type TimelineEngine,
-  type UseTimelineTrackHeaderResult,
 } from "@techsquidtv/canvas-timeline";
 import {
   ChevronLeft,
@@ -20,16 +20,18 @@ import {
   VolumeX,
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+
 import { EditorMediaRange } from "@/components/editor/EditorMediaRange";
 import { EditorMediaRangeCanvas } from "@/components/editor/EditorMediaRangeCanvas";
-import { EditorViewportScrollbar } from "@/components/editor/EditorViewportScrollbar";
-import { handleHorizontalScrollKeyDown } from "@/components/ui/scroll-area";
-import { zoomEditorTimeline } from "@/components/editor/editorTimelineZoom";
 import {
   EDITOR_MEDIA_TRACK_ID,
   timelineScrollLeftForCenteredTime,
 } from "@/components/editor/editorTimelineEngine";
-import "@techsquidtv/canvas-timeline/styles.css";
+import { zoomEditorTimeline } from "@/components/editor/editorTimelineZoom";
+import { EditorViewportScrollbar } from "@/components/editor/EditorViewportScrollbar";
+import { editorIconButtonClassName } from "@/components/ui/control-styles";
+import { handleHorizontalScrollKeyDown } from "@/components/ui/scroll-area";
+import { ControlTooltip } from "@/components/ui/tooltip";
 
 interface EditorTimelineProperties {
   muted: boolean;

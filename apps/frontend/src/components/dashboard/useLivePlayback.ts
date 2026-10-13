@@ -1,8 +1,9 @@
-import { useCallback, useEffect, useState } from "react";
 import {
   applyPlaybackProgress,
   type PlaybackSnapshot,
 } from "@cliparr/shared/providers";
+import { useCallback, useEffect, useState } from "react";
+
 import {
   cliparrClient,
   type PlaybackConnectionState,

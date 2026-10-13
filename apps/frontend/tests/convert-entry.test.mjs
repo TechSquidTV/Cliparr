@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import path from "node:path";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
+
 import { build } from "vite";
 
 const root = fileURLToPath(new URL("..", import.meta.url));

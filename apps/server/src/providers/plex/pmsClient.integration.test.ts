@@ -1,9 +1,11 @@
 import assert from "node:assert/strict";
 import { once } from "node:events";
 import { createServer } from "node:http";
-import { setImmediate } from "node:timers/promises";
 import test from "node:test";
+import { setImmediate } from "node:timers/promises";
+
 import { eventsourceGetSlash } from "@cliparr/plex/pms";
+
 import {
   createPlexPmsSdkClient,
   openPlexEventStream,

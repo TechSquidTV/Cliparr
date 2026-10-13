@@ -1,4 +1,3 @@
-import { useMemo, type CSSProperties } from "react";
 import {
   Camera,
   Pause,
@@ -10,8 +9,15 @@ import {
   ZoomIn,
   ZoomOut,
 } from "lucide-react";
+import { type CSSProperties, useMemo } from "react";
+
+import { EditorEditableTimecode } from "@/components/editor/EditorEditableTimecode";
+import { EditorPreviewTimecode } from "@/components/editor/EditorPreviewTimecode";
+import {
+  formatTime,
+  formatTimecodeInput,
+} from "@/components/editor/editorUtilities";
 import { editorIconButtonClassName } from "@/components/ui/control-styles";
-import { ControlTooltip } from "@/components/ui/tooltip";
 import {
   Drawer,
   DrawerContent,
@@ -20,13 +26,8 @@ import {
   DrawerTitle,
   DrawerTrigger,
 } from "@/components/ui/drawer";
-import { EditorEditableTimecode } from "@/components/editor/EditorEditableTimecode";
 import { handleHorizontalScrollKeyDown } from "@/components/ui/scroll-area";
-import { EditorPreviewTimecode } from "@/components/editor/EditorPreviewTimecode";
-import {
-  formatTime,
-  formatTimecodeInput,
-} from "@/components/editor/editorUtilities";
+import { ControlTooltip } from "@/components/ui/tooltip";
 
 type EditorControlsVariant = "desktop" | "mobile";
 

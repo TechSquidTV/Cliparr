@@ -1,8 +1,9 @@
-import { useEffect, type RefObject } from "react";
+import { type RefObject, useEffect } from "react";
+
+import type { MediaDimensions } from "@/components/editor/editorMedia";
 import { getActiveSubtitleCues } from "@/lib/subtitles/getActiveSubtitleCue";
 import { renderSubtitleCues } from "@/lib/subtitles/renderSubtitleCue";
 import type { SubtitleCue, SubtitleStyleSettings } from "@/lib/subtitles/types";
-import type { MediaDimensions } from "@/components/editor/editorMedia";
 
 interface EditorSubtitlePreviewProperties {
   cues: readonly SubtitleCue[];

@@ -1,9 +1,10 @@
-import { eq } from "drizzle-orm";
 import {
   compactLogFields,
   logDurationFields,
   logEventFields,
 } from "@cliparr/shared/logging";
+import { eq } from "drizzle-orm";
+
 import { getDatabase } from "@/db/database";
 import {
   deleteMediaSource,
@@ -17,22 +18,22 @@ import {
   type ProviderAccount,
   updateProviderAccount,
 } from "@/db/providerAccountsRepository";
-import { currentTimestampSql } from "@/db/timestamps";
 import {
   mediaSources,
-  rememberedProviderSessions,
   providerSessions,
+  rememberedProviderSessions,
 } from "@/db/schema";
+import { currentTimestampSql } from "@/db/timestamps";
+import { getServerLogger } from "@/logging";
 import {
-  plexBaseUrlMode,
   PLEX_BASE_URL_MODE_MANUAL,
+  plexBaseUrlMode,
   withPlexBaseUrlMode,
 } from "@/providers/plex/connectionState";
 import {
-  plexSourceIdentity,
   type PlexSourceIdentity,
+  plexSourceIdentity,
 } from "@/providers/plex/sourceIdentity";
-import { getServerLogger } from "@/logging";
 import { invalidateProviderSessionCacheForAccounts } from "@/session/store";
 
 const PLEX_PROVIDER_ID = "plex";

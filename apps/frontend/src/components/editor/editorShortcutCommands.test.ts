@@ -2,11 +2,12 @@
 
 import assert from "node:assert/strict";
 import test from "node:test";
+
 import {
   DEFAULT_EDITOR_FRAME_STEP_SECONDS,
+  frameStepSecondsFromFrameRate,
   resolveEditorShortcutCommand,
   resolveRelativeSeekTime,
-  frameStepSecondsFromFrameRate,
 } from "@/components/editor/editorShortcutCommands";
 
 void test("resolves playback and mark shortcuts", () => {

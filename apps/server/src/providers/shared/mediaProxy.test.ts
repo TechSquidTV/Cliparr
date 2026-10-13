@@ -1,13 +1,12 @@
-import { PRIVATE_IPV4_ADDRESSES } from "@/test/networkPolicyFixtures";
 import assert from "node:assert/strict";
 import { once } from "node:events";
 import { PassThrough } from "node:stream";
 import test from "node:test";
+
 import type { Response } from "express";
+
 import { isApiError } from "@/http/errors";
-import { type ProviderSessionRecord } from "@/session/store";
-import { pruneSessionMediaHandles } from "@/session/mediaHandles";
-import type { MediaHandle } from "@/providers/types";
+import { createProviderMediaHandle } from "@/providers/shared/mediaHandles";
 import {
   fetchMediaHandleRequest,
   mediaProxyAcceptHeader,
@@ -15,12 +14,15 @@ import {
   proxyUpstreamMediaResponse,
   shouldForwardMediaRange,
 } from "@/providers/shared/mediaProxy";
-import { createProviderMediaHandle } from "@/providers/shared/mediaHandles";
 import {
   assertAllowedMediaHandleRequestUrl,
   sanitizeLoggedMediaPath,
   shouldAttachProviderAuth,
 } from "@/providers/shared/mediaUrlPolicy";
+import type { MediaHandle } from "@/providers/types";
+import { pruneSessionMediaHandles } from "@/session/mediaHandles";
+import { type ProviderSessionRecord } from "@/session/store";
+import { PRIVATE_IPV4_ADDRESSES } from "@/test/networkPolicyFixtures";
 
 function createSession(): ProviderSessionRecord {
   return {

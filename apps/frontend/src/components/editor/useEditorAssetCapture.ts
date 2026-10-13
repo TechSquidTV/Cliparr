@@ -1,15 +1,16 @@
-import { useEffect, useRef } from "react";
+import type { AssetCaptureController } from "@cliparr/shared/asset-capture";
 import {
   fromSeconds,
-  toSeconds,
   type TimelineEngine,
+  toSeconds,
 } from "@techsquidtv/canvas-timeline";
-import type { AssetCaptureController } from "@cliparr/shared/asset-capture";
-import type { useEditorTimelineMedia } from "@/components/editor/useEditorTimelineMedia";
+import { useEffect, useRef } from "react";
+
+import { zoomEditorTimeline } from "@/components/editor/editorTimelineZoom";
 import type { useEditorSubtitles } from "@/components/editor/useEditorSubtitles";
+import type { useEditorTimelineMedia } from "@/components/editor/useEditorTimelineMedia";
 import { getActiveSubtitleCues } from "@/lib/subtitles/getActiveSubtitleCue";
 import { subtitleTrackKey } from "@/lib/subtitles/selectPreferredSubtitleTrack";
-import { zoomEditorTimeline } from "@/components/editor/editorTimelineZoom";
 
 type CaptureSubtitles = Pick<
   ReturnType<typeof useEditorSubtitles>,
@@ -93,6 +94,7 @@ export function useEditorAssetCapture(bindings: CaptureBindings) {
             key: subtitleTrackKey(track),
             title: track.title ?? track.languageCode ?? "Subtitle",
           })),
+          // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- An empty media error must allow a subtitle error to surface.
           error: media.error || subtitles.subtitleError || "",
         };
       },

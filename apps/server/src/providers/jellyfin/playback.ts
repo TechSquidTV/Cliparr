@@ -1,39 +1,14 @@
-import { createPlaybackResolverCache } from "@/playback/resolverCache";
+import { parseExternalIds } from "@cliparr/shared/external-ids";
 import {
   logErrorFields,
   logEventFields,
   sanitizeUrlForLog,
 } from "@cliparr/shared/logging";
-import { parseExternalIds } from "@cliparr/shared/external-ids";
+
 import type { MediaSource } from "@/db/mediaSourcesRepository";
 import { getServerLogger, warnWithError } from "@/logging";
-import type { ProviderSessionRecord } from "@/session/store";
-import type {
-  CurrentlyPlayingEntry,
-  MediaExportMetadata,
-} from "@/providers/types";
-import { playlistBasePath } from "@/providers/shared/hlsPlaylist";
-import { dedupeInflightFetch } from "@/providers/shared/inflight";
-import { subtitleTrackSupportsBurnIn } from "@/providers/shared/subtitles";
-import {
-  asArray,
-  buildEpisodeSourceTitle,
-  normalizeRating,
-  numberValue,
-  stringValue,
-  uniqueStrings,
-} from "@/providers/shared/utilities";
-import {
-  fetchCurrentUser,
-  fetchItem,
-  fetchPlaybackInfo,
-  fetchSessions,
-  sourceContext,
-  type JellyfinItem,
-  type JellyfinPlaybackInfo,
-  type JellyfinSessionInfo,
-  type JellyfinSourceContext,
-} from "@/providers/jellyfin/shared";
+import { createPlaybackResolverCache } from "@/playback/resolverCache";
+import { createMediaHandle } from "@/providers/jellyfin/mediaProxy";
 import {
   buildPreviewPath,
   buildStaticStreamPath,
@@ -48,10 +23,36 @@ import {
   ticksToSeconds,
 } from "@/providers/jellyfin/selection";
 import {
+  fetchCurrentUser,
+  fetchItem,
+  fetchPlaybackInfo,
+  fetchSessions,
+  type JellyfinItem,
+  type JellyfinPlaybackInfo,
+  type JellyfinSessionInfo,
+  type JellyfinSourceContext,
+  sourceContext,
+} from "@/providers/jellyfin/shared";
+import {
   deriveSelectedSubtitleTrack,
   deriveSubtitleTracks,
 } from "@/providers/jellyfin/subtitles";
-import { createMediaHandle } from "@/providers/jellyfin/mediaProxy";
+import { playlistBasePath } from "@/providers/shared/hlsPlaylist";
+import { dedupeInflightFetch } from "@/providers/shared/inflight";
+import { subtitleTrackSupportsBurnIn } from "@/providers/shared/subtitles";
+import {
+  asArray,
+  buildEpisodeSourceTitle,
+  normalizeRating,
+  numberValue,
+  stringValue,
+  uniqueStrings,
+} from "@/providers/shared/utilities";
+import type {
+  CurrentlyPlayingEntry,
+  MediaExportMetadata,
+} from "@/providers/types";
+import type { ProviderSessionRecord } from "@/session/store";
 
 const logger = getServerLogger(["provider", "jellyfin", "playback"]);
 

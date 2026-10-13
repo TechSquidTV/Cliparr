@@ -1,16 +1,17 @@
 import type { Input, InputAudioTrack, InputVideoTrack } from "mediabunny";
-import type { PlaybackAudioSelection } from "#/providers/types";
+
 import {
+  type EditorMediaSource,
   editorMediaSourcesEqual,
   isHlsEditorMediaSource,
-  type EditorMediaSource,
 } from "@/components/editor/editorMedia";
+import { ensureAudioDecoder } from "@/lib/export/mediabunny/mediabunnyCodecs";
 import {
   assessVideoTrackDecodability,
   isPlaybackVideoTrack,
   videoTrackPreviewUnavailableMessage,
 } from "@/lib/export/mediabunny/mediabunnyTrackAccess";
-import { ensureAudioDecoder } from "@/lib/export/mediabunny/mediabunnyCodecs";
+import type { PlaybackAudioSelection } from "#/providers/types";
 
 type PlaybackSourceLabel =
   "hls stream" | "direct source" | "local file" | "url" | "hls url";

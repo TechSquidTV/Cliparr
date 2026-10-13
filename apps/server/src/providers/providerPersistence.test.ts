@@ -3,7 +3,9 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import test from "node:test";
+
 import { sql } from "drizzle-orm";
+
 import { closeDatabase, getDatabase, initializeDatabase } from "@/db/database";
 import {
   getMediaSourceByProviderExternalId,
@@ -11,8 +13,6 @@ import {
   updateMediaSource,
   upsertMediaSource,
 } from "@/db/mediaSourcesRepository";
-import { cleanupDuplicatePlexSources } from "@/providers/plex/sourceDeduplication";
-import { persistProviderAuth } from "@/providers/providerPersistence";
 import {
   getProviderAccount,
   upsertProviderAccountByAccessToken,
@@ -21,8 +21,10 @@ import {
   createRememberedProviderSession,
   getRememberedProviderSession,
 } from "@/db/rememberedProviderSessionsRepository";
-import { createProviderSession, getProviderSession } from "@/session/store";
 import { PLEX_BASE_URL_MODE_MANUAL } from "@/providers/plex/connectionState";
+import { cleanupDuplicatePlexSources } from "@/providers/plex/sourceDeduplication";
+import { persistProviderAuth } from "@/providers/providerPersistence";
+import { createProviderSession, getProviderSession } from "@/session/store";
 
 const TEST_APP_KEY = "provider-persistence-test-key-with-32-characters";
 const plexProvider = {

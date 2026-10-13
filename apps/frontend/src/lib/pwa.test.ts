@@ -2,14 +2,15 @@
 
 import assert from "node:assert/strict";
 import test from "node:test";
+
 import {
+  type BeforeInstallPromptEvent,
   isIosLikeDevice,
   promptForPwaInstall,
+  type PwaInstallEnvironment,
   readPwaInstallDismissed,
   resolveMobilePwaInstallMode,
   writePwaInstallDismissed,
-  type BeforeInstallPromptEvent,
-  type PwaInstallEnvironment,
 } from "@/lib/pwa";
 
 function mobileEnvironment(

@@ -1,9 +1,11 @@
-import { notifyPlaybackStateChange } from "@/playback/stateChanges";
 import { randomUUID } from "node:crypto";
+
 import { and, eq, isNotNull, isNull, sql } from "drizzle-orm";
+
 import { getDatabase } from "@/db/database";
-import { providerAccounts, type ProviderAccountRow } from "@/db/schema";
+import { type ProviderAccountRow, providerAccounts } from "@/db/schema";
 import { currentTimestampSql } from "@/db/timestamps";
+import { notifyPlaybackStateChange } from "@/playback/stateChanges";
 import { decryptSecret, encryptSecret, hashSecret } from "@/security/secrets";
 
 export interface ProviderAccount {

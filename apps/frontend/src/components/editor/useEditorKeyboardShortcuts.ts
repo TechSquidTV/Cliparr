@@ -1,7 +1,8 @@
 import { useEffect, useRef } from "react";
+
 import {
-  resolveEditorShortcutCommand,
   type EditorShortcutCommand,
+  resolveEditorShortcutCommand,
 } from "@/components/editor/editorShortcutCommands";
 
 interface UseEditorKeyboardShortcutsProperties {

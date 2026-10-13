@@ -1,15 +1,17 @@
 import fs from "node:fs";
 import path from "node:path";
 import { DatabaseSync } from "node:sqlite";
+
+import { logErrorFields } from "@cliparr/shared/logging";
 import { drizzle, type NodeSQLiteDatabase } from "drizzle-orm/node-sqlite";
 import { migrate } from "drizzle-orm/node-sqlite/migrator";
-import { logErrorFields } from "@cliparr/shared/logging";
-import { prepareDatabaseForMigrations } from "@/db/migrationState";
+
 import {
   resolveConfiguredDataDir,
   serverRoot,
   workspaceRoot,
 } from "@/config/loadEnv";
+import { prepareDatabaseForMigrations } from "@/db/migrationState";
 import { getServerLogger, warnWithError } from "@/logging";
 import { assertAppKeyConfigured } from "@/security/secrets";
 

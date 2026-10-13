@@ -1,9 +1,11 @@
-import { groupCurrentPlayback } from "@/playback/groupPlayback";
-import { Router } from "express";
 import { logDurationFields, logEventFields } from "@cliparr/shared/logging";
+import { Router } from "express";
+
 import { listMediaSources } from "@/db/mediaSourcesRepository";
+import { setNoStore } from "@/http/cacheControl";
 import { asyncHandler, createApiError } from "@/http/errors";
 import { getServerLogger } from "@/logging";
+import { groupCurrentPlayback } from "@/playback/groupPlayback";
 import {
   createLocalUrlMedia,
   proxyLocalUrlMedia,
@@ -15,9 +17,8 @@ import type {
   CurrentlyPlayingEntry,
   SourcePlaybackError,
 } from "@/providers/types";
-import { requireAccountSession } from "@/session/request";
-import { setNoStore } from "@/http/cacheControl";
 import { pruneSessionMediaHandles } from "@/session/mediaHandles";
+import { requireAccountSession } from "@/session/request";
 
 export const mediaRouter = Router();
 const mediaLogger = getServerLogger("media");

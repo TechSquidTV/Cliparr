@@ -1,30 +1,31 @@
-import { isIncompleteSourceAudioError } from "#/lib/export/exportSourceAudio";
-import { isAudioExportFormat } from "#/lib/export/exportFormats";
+import { compactLogFields } from "@cliparr/shared/logging";
+
+import {
+  type EditorMediaSource,
+  editorMediaSourcesEqual,
+  isHlsEditorMediaSource,
+  type MediaDimensions,
+  sourceDisplayLabel,
+} from "@/components/editor/editorMedia";
+import type { EditorExportMedia } from "@/components/editor/editorMediaLifecycle";
+import type { PlaybackFallbackInfo } from "@/components/editor/editorPlaybackSources";
 import type {
   ExportFormat,
   ExportResolution,
   ExportVideoEncodingPlan,
 } from "@/lib/export/exportClip";
+import type { SubtitleCue } from "@/lib/subtitles/types";
+import { EXPORT_ENCODING_POLICY_VERSION } from "#/lib/export/exportEncodingPolicy";
+import { isAudioExportFormat } from "#/lib/export/exportFormats";
+import { isIncompleteSourceAudioError } from "#/lib/export/exportSourceAudio";
 import {
-  type ExportSourcePreference,
-  resolveExportOutputDimensions,
   exportFormatDurationDisabledReason,
   type ExportSizeEstimate,
+  type ExportSourcePreference,
   type GifExportSettings,
+  resolveExportOutputDimensions,
 } from "#/lib/export/exportTypes";
-import { EXPORT_ENCODING_POLICY_VERSION } from "#/lib/export/exportEncodingPolicy";
 import type { HlsExportEstimateMetadata } from "#/lib/export/hlsExportEstimate";
-import type { SubtitleCue } from "@/lib/subtitles/types";
-import { compactLogFields } from "@cliparr/shared/logging";
-import {
-  editorMediaSourcesEqual,
-  isHlsEditorMediaSource,
-  sourceDisplayLabel,
-  type EditorMediaSource,
-  type MediaDimensions,
-} from "@/components/editor/editorMedia";
-import type { EditorExportMedia } from "@/components/editor/editorMediaLifecycle";
-import type { PlaybackFallbackInfo } from "@/components/editor/editorPlaybackSources";
 
 type ResolvedExportSourceKind = "hls" | "direct" | "none";
 

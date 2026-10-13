@@ -1,10 +1,9 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   fromSeconds,
-  toSeconds,
-  useTimelinePlayheadTime,
   type TimelineEngine,
   type TimelineMediaError,
+  toSeconds,
+  useTimelinePlayheadTime,
 } from "@techsquidtv/canvas-timeline";
 import type {
   MediabunnySource,
@@ -17,17 +16,32 @@ import {
   useMediabunnyTimelineMedia,
 } from "@techsquidtv/canvas-timeline-mediabunny-adapter/react";
 import type { Input, InputTrack, InputVideoTrack } from "mediabunny";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+
+import {
+  type EditorMediaSource,
+  editorMediaSourcesEqual,
+  type EditorSession,
+  type MediaDimensions,
+} from "@/components/editor/editorMedia";
+import {
+  createEditorPreviewSourceLoader,
+  type EditorExportMedia,
+  type EditorMediaMetadata,
+  editorPreviewFrameTime,
+  resolveEditorExportMedia,
+} from "@/components/editor/editorMediaLifecycle";
 import {
   assessPreviewAudioTrack,
   buildPlaybackSourceCandidates,
   formatPlaybackSourceLabel,
   isPresent,
   playbackAudioSelectionsEqual,
+  type PlaybackFallbackInfo,
+  type PlaybackSourceCandidate,
   playbackSourceCandidatesEqual,
   resolvePlaybackDuration,
   selectPreviewVideoTrack,
-  type PlaybackFallbackInfo,
-  type PlaybackSourceCandidate,
 } from "@/components/editor/editorPlaybackSources";
 import {
   DEFAULT_EDITOR_FRAME_STEP_SECONDS,
@@ -38,12 +52,6 @@ import {
   synchronizeEditorTimelineMedia,
 } from "@/components/editor/editorTimelineEngine";
 import { errorMessage } from "@/components/editor/editorUtilities";
-import {
-  editorMediaSourcesEqual,
-  type EditorMediaSource,
-  type EditorSession,
-  type MediaDimensions,
-} from "@/components/editor/editorMedia";
 import { createCliparrInputFromSource } from "@/lib/export/mediabunny/mediabunnyInput";
 import {
   fromSourceTimelineTime,
@@ -51,13 +59,6 @@ import {
   getVideoTrackDimensions,
 } from "@/lib/export/mediabunny/mediabunnyTrackAccess";
 import { selectPreferredPairableAudioTrack } from "@/lib/subtitles/selectPreferredAudioTrack";
-import {
-  createEditorPreviewSourceLoader,
-  editorPreviewFrameTime,
-  resolveEditorExportMedia,
-  type EditorExportMedia,
-  type EditorMediaMetadata,
-} from "@/components/editor/editorMediaLifecycle";
 
 const previewLayerSelectors = {
   visuals: { trackKind: "media", sourceId: EDITOR_MEDIA_SOURCE_ID },
@@ -461,6 +462,7 @@ export function useEditorTimelineMedia(
     sourceReady &&
     details.previewVideoDimensions !== null &&
     renderedTimelineFrameTime === null;
+  // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- An empty playback error must allow the media error to surface.
   const previewError = playbackError || media.error?.message || "";
 
   return {

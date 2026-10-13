@@ -1,14 +1,15 @@
-import { TEST_PUBLIC_ADDRESS } from "@/test/providerFixtures";
-import { PRIVATE_IPV4_ADDRESSES } from "@/test/networkPolicyFixtures";
 import assert from "node:assert/strict";
 import type { LookupAddress } from "node:dns";
-import { getEventListeners } from "node:events";
-import { setImmediate } from "node:timers/promises";
-import { createDeferred } from "@/test/deferred";
 import dns from "node:dns/promises";
+import { getEventListeners } from "node:events";
 import { syncBuiltinESMExports } from "node:module";
 import test from "node:test";
+import { setImmediate } from "node:timers/promises";
+
 import { resolveHostnameAddresses } from "@/providers/shared/dnsCache";
+import { createDeferred } from "@/test/deferred";
+import { PRIVATE_IPV4_ADDRESSES } from "@/test/networkPolicyFixtures";
+import { TEST_PUBLIC_ADDRESS } from "@/test/providerFixtures";
 
 void test("concurrent resolutions share one lookup", async (context) => {
   let lookups = 0;

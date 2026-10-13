@@ -1,81 +1,65 @@
+import { normalizeExportVideoCodec } from "@cliparr/shared/providers";
 import type { Palette } from "@techsquidtv/gifenc";
-import {
-  BufferTarget,
-  CanvasSink,
-  Conversion,
-  MkvOutputFormat,
-  MovOutputFormat,
-  Mp4OutputFormat,
-  Mp3OutputFormat,
-  OggOutputFormat,
-  FlacOutputFormat,
-  WavOutputFormat,
-  Output,
-  WebMOutputFormat,
-  canEncodeAudio as canEncodeAudioWithBrowser,
-  canEncodeVideo as canEncodeVideoWithBrowser,
-} from "mediabunny";
 import type {
   CanvasSinkOptions,
   ConversionOptions,
   FlacOutputFormatOptions,
-  InputVideoTrack,
   InputAudioTrack,
+  InputVideoTrack,
   VideoCodec,
   VideoSample,
 } from "mediabunny";
 import {
-  resolveVideoEncodingPlan,
+  BufferTarget,
+  canEncodeAudio as canEncodeAudioWithBrowser,
+  canEncodeVideo as canEncodeVideoWithBrowser,
+  CanvasSink,
+  Conversion,
+  FlacOutputFormat,
+  MkvOutputFormat,
+  MovOutputFormat,
+  Mp3OutputFormat,
+  Mp4OutputFormat,
+  OggOutputFormat,
+  Output,
+  WavOutputFormat,
+  WebMOutputFormat,
+} from "mediabunny";
+
+import type { EditorMediaSource } from "#/components/editor/editorMedia";
+import {
+  assertWavSize,
+  audioConversionOptions,
+  type ExportAudioPlan,
+  inspectAudioTrack,
+  resolveExportAudioPlan,
+} from "#/lib/export/exportAudio";
+import {
   type ExportVideoCodec,
+  resolveVideoEncodingPlan,
   type VideoEncodingPlan,
 } from "#/lib/export/exportEncodingPolicy";
 import {
-  isAudioExportFormat,
   exportIncludesAudio,
   type ExportMode,
+  isAudioExportFormat,
 } from "#/lib/export/exportFormats";
-import {
-  inspectAudioTrack,
-  resolveExportAudioPlan,
-  audioConversionOptions,
-  assertWavSize,
-  type ExportAudioPlan,
-} from "#/lib/export/exportAudio";
-import type { EditorMediaSource } from "#/components/editor/editorMedia";
-import { createCliparrInputFromSource } from "#/lib/export/mediabunny/mediabunnyInput";
-import { assertSourceAudioRange } from "#/lib/export/exportSourceAudio";
-import { ensureAudioDecoder } from "#/lib/export/mediabunny/mediabunnyCodecs";
-import {
-  assessVideoTrackDecodability,
-  getTrackTimelineOffsetSeconds,
-  getVideoTrackDimensions,
-  isPlaybackVideoTrack,
-  toSourceTimelineTime,
-  videoTrackExportUnsupportedMessage,
-  type VideoTrackDecodabilityAssessment,
-} from "#/lib/export/mediabunny/mediabunnyTrackAccess";
-import { selectPreferredPairableAudioTrack } from "#/lib/subtitles/selectPreferredAudioTrack";
-import type {
-  MediaExportMetadata,
-  PlaybackAudioSelection,
-} from "#/providers/types";
-import { normalizeExportVideoCodec } from "@cliparr/shared/providers";
 import {
   buildMetadataTags,
   describeDiscardedTracks,
   isIsobmffExportFormat,
   patchMp4MetadataBoxes,
 } from "#/lib/export/exportMetadata";
-import { buildTranscript } from "#/lib/metadata/transcript";
+import { assertSourceAudioRange } from "#/lib/export/exportSourceAudio";
 import {
   DEFAULT_GIF_EXPORT_PRESET,
   DEFAULT_VIDEO_EXPORT_QUALITY,
-  exportFormatDurationDisabledReason,
-  gifExportSettingsForPreset,
-  resolveExportOutputDimensions,
   type ExportFormat,
+  exportFormatDurationDisabledReason,
   type ExportResolution,
   type GifExportSettings,
+  gifExportSettingsForPreset,
+  resolveExportOutputDimensions,
   type VideoExportQualityPreset,
 } from "#/lib/export/exportTypes";
 import type {
@@ -86,10 +70,27 @@ import type {
   GifFrameEncoder,
   GifFrameEncoderOptions,
 } from "#/lib/export/gif/gifFrameEncoder";
+import { ensureAudioDecoder } from "#/lib/export/mediabunny/mediabunnyCodecs";
+import { createCliparrInputFromSource } from "#/lib/export/mediabunny/mediabunnyInput";
+import {
+  assessVideoTrackDecodability,
+  getTrackTimelineOffsetSeconds,
+  getVideoTrackDimensions,
+  isPlaybackVideoTrack,
+  toSourceTimelineTime,
+  type VideoTrackDecodabilityAssessment,
+  videoTrackExportUnsupportedMessage,
+} from "#/lib/export/mediabunny/mediabunnyTrackAccess";
+import { buildTranscript } from "#/lib/metadata/transcript";
 import { getActiveSubtitleCues } from "#/lib/subtitles/getActiveSubtitleCue";
 import { renderSubtitleCues } from "#/lib/subtitles/renderSubtitleCue";
+import { selectPreferredPairableAudioTrack } from "#/lib/subtitles/selectPreferredAudioTrack";
 import { trimSubtitleCues } from "#/lib/subtitles/trimSubtitleCues";
 import type { SubtitleCue, SubtitleStyleSettings } from "#/lib/subtitles/types";
+import type {
+  MediaExportMetadata,
+  PlaybackAudioSelection,
+} from "#/providers/types";
 
 export type { ExportFormat, ExportResolution } from "#/lib/export/exportTypes";
 

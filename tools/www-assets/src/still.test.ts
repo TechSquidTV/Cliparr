@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+
 import type { AssetCaptureState } from "@cliparr/shared/asset-capture";
+
 import { buildScenes, captureTarget, readmeSocialSeconds } from "#/scenes.ts";
 import { stillFrameReady } from "#/still.ts";
 

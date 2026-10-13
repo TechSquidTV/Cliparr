@@ -1,21 +1,22 @@
 import { useEffect, useRef, useState } from "react";
+
+import {
+  type EditorMediaSource,
+  editorMediaSourcesEqual,
+} from "#/components/editor/editorMedia";
 import type {
   audioBitDepthSummary,
   AudioSourceInfo,
   ExportAudioPlan,
 } from "#/lib/export/exportAudio";
+import {
+  type ExportFormat,
+  isAudioExportFormat,
+} from "#/lib/export/exportFormats";
 import { createCliparrInputFromSource } from "#/lib/export/mediabunny/mediabunnyInput";
 import { isPlaybackVideoTrack } from "#/lib/export/mediabunny/mediabunnyTrackAccess";
 import { selectPreferredPairableAudioTrack } from "#/lib/subtitles/selectPreferredAudioTrack";
-import {
-  editorMediaSourcesEqual,
-  type EditorMediaSource,
-} from "#/components/editor/editorMedia";
 import type { PlaybackAudioSelection } from "#/providers/types";
-import {
-  isAudioExportFormat,
-  type ExportFormat,
-} from "#/lib/export/exportFormats";
 
 type AudioInspection = {
   source: EditorMediaSource;

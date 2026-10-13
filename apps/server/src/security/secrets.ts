@@ -45,13 +45,11 @@ function getConfiguredAppKey() {
 }
 
 function getEncryptionKey() {
-  if (!encryptionKey) {
-    encryptionKey = scryptSync(
-      getConfiguredAppKey(),
-      ENCRYPTION_SALT,
-      ENCRYPTION_KEY_BYTES,
-    );
-  }
+  encryptionKey ??= scryptSync(
+    getConfiguredAppKey(),
+    ENCRYPTION_SALT,
+    ENCRYPTION_KEY_BYTES,
+  );
 
   return encryptionKey;
 }

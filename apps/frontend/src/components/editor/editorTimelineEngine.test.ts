@@ -1,14 +1,18 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
+
 import { fromSeconds, toSeconds } from "@techsquidtv/canvas-timeline";
+
+import { createEditorHistory } from "@/components/editor/editorHistory";
+import type { EditorSession } from "@/components/editor/editorMedia";
 import {
-  EDITOR_MEDIA_CLIP_ID,
-  EDITOR_MEDIA_TRACK_NAME,
-  EDITOR_MEDIA_TRACK_ID,
-  EDITOR_SUBTITLE_TRACK_NAME,
-  EDITOR_SUBTITLE_TRACK_ID,
   createEditorTimelineEngine,
   createSubtitleClip,
+  EDITOR_MEDIA_CLIP_ID,
+  EDITOR_MEDIA_TRACK_ID,
+  EDITOR_MEDIA_TRACK_NAME,
+  EDITOR_SUBTITLE_TRACK_ID,
+  EDITOR_SUBTITLE_TRACK_NAME,
   getSubtitleCreationRange,
   subtitleCuesFromTimeline,
   synchronizeEditorTimelineMedia,
@@ -16,8 +20,6 @@ import {
   synchronizeEditorTimelineSubtitles,
   timelineScrollLeftForCenteredTime,
 } from "@/components/editor/editorTimelineEngine";
-import type { EditorSession } from "@/components/editor/editorMedia";
-import { createEditorHistory } from "@/components/editor/editorHistory";
 
 function createSession(overrides: Partial<EditorSession> = {}): EditorSession {
   return {

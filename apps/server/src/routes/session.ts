@@ -1,24 +1,18 @@
-import { Router } from "express";
 import {
   compactLogFields,
   logDurationFields,
   logEventFields,
 } from "@cliparr/shared/logging";
+import { Router } from "express";
+
+import { deleteProviderAccount } from "@/db/providerAccountsRepository";
 import {
   createRememberedProviderSession,
   getRememberedProviderSession,
   revokeRememberedProviderSession,
   rotateRememberedProviderSession,
 } from "@/db/rememberedProviderSessionsRepository";
-import { deleteProviderAccount } from "@/db/providerAccountsRepository";
-import { asyncHandler, createApiError } from "@/http/errors";
-import { getProvider } from "@/providers/registry";
-import {
-  deleteProviderSession,
-  deleteProviderSessionsForProviderAccount,
-  getProviderSession,
-  restoreProviderSessionFromProviderAccount,
-} from "@/session/store";
+import { setNoStore } from "@/http/cacheControl";
 import {
   getRememberedProviderSessionCookieName,
   getRememberedProviderSessionCookieOptions,
@@ -27,9 +21,16 @@ import {
   getSessionCookieOptions,
   readCookie,
 } from "@/http/cookies";
-import { getRequestSessionId } from "@/session/request";
-import { setNoStore } from "@/http/cacheControl";
+import { asyncHandler, createApiError } from "@/http/errors";
 import { getServerLogger } from "@/logging";
+import { getProvider } from "@/providers/registry";
+import { getRequestSessionId } from "@/session/request";
+import {
+  deleteProviderSession,
+  deleteProviderSessionsForProviderAccount,
+  getProviderSession,
+  restoreProviderSessionFromProviderAccount,
+} from "@/session/store";
 
 export const sessionRouter = Router();
 const logger = getServerLogger("session");

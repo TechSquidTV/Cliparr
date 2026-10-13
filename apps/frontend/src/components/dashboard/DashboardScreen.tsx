@@ -1,8 +1,3 @@
-import { EmptyState } from "@/components/ui/empty-state";
-import { useLivePlayback } from "@/components/dashboard/useLivePlayback";
-import { ControlTooltip } from "@/components/ui/tooltip";
-import { memo, useCallback, useEffect, useMemo, useState } from "react";
-import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import {
   AlertTriangle,
   FolderOpen,
@@ -13,35 +8,17 @@ import {
   Settings2,
   Video,
 } from "lucide-react";
+import { AnimatePresence, motion, useReducedMotion } from "motion/react";
+import { memo, useCallback, useEffect, useMemo, useState } from "react";
+
 import { cliparrClient, type CliparrVersionInfo } from "@/api/cliparrClient";
-import {
-  compactSecondaryButtonClasses,
-  destructiveAlertClasses,
-  warningAlertClasses,
-} from "@/components/ui/control-styles";
-import { cn } from "@/lib/cn";
-import { EDITOR_THUMBNAIL_VIEW_TRANSITION_NAME } from "@/lib/viewTransitions";
-import {
-  formatProviderName,
-  ProviderGlyph,
-} from "@/components/providers/ProviderGlyph";
 import {
   CLIPARR_GITHUB_URL,
   CLIPARR_WEBSITE_URL,
   DashboardMobileMenu,
   GithubIcon,
 } from "@/components/dashboard/DashboardMobileMenu";
-import { MobilePwaInstallNudge } from "@/components/dashboard/MobilePwaInstallNudge";
-import { DashboardViewerAvatar } from "@/components/dashboard/DashboardViewerAvatar";
-import {
-  DashboardPlaybackFilterEmptyState,
-  DashboardViewerFilterPicker,
-} from "@/components/dashboard/DashboardViewerFilter";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
+import type { DashboardPlaybackCardItem } from "@/components/dashboard/dashboardPlaybackItems";
 import {
   activeDashboardViewerFilterNames,
   buildDashboardViewerFilterOptions,
@@ -54,8 +31,32 @@ import {
   sanitizeDashboardViewerFilterNames,
   writeDashboardViewerFilter,
 } from "@/components/dashboard/dashboardPlaybackItems";
+import { DashboardViewerAvatar } from "@/components/dashboard/DashboardViewerAvatar";
+import {
+  DashboardPlaybackFilterEmptyState,
+  DashboardViewerFilterPicker,
+} from "@/components/dashboard/DashboardViewerFilter";
+import { MobilePwaInstallNudge } from "@/components/dashboard/MobilePwaInstallNudge";
+import { useLivePlayback } from "@/components/dashboard/useLivePlayback";
+import {
+  formatProviderName,
+  ProviderGlyph,
+} from "@/components/providers/ProviderGlyph";
+import {
+  compactSecondaryButtonClasses,
+  destructiveAlertClasses,
+  warningAlertClasses,
+} from "@/components/ui/control-styles";
+import { EmptyState } from "@/components/ui/empty-state";
+import { ControlTooltip } from "@/components/ui/tooltip";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { cn } from "@/lib/cn";
 import { cliparrMotionTransitions } from "@/lib/motion";
-import type { DashboardPlaybackCardItem } from "@/components/dashboard/dashboardPlaybackItems";
+import { EDITOR_THUMBNAIL_VIEW_TRANSITION_NAME } from "@/lib/viewTransitions";
 import type {
   CurrentlyPlayingItem,
   SourcePlaybackError,
@@ -85,6 +86,7 @@ function formatSourceLabel(source: { name: string; providerId: string }) {
 function canEditSession(
   session: Pick<CurrentlyPlayingItem, "mediaUrl" | "hlsUrl">,
 ) {
+  // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- An empty URL does not make a session editable.
   return Boolean(session.hlsUrl || session.mediaUrl);
 }
 

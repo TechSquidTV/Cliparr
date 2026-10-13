@@ -1,5 +1,6 @@
 import { createFileRoute, redirect } from "@tanstack/react-router";
 import { useState } from "react";
+
 import { useAuth } from "@/auth";
 import { LocalVideoOpenDialog } from "@/components/local-media/LocalVideoOpenDialog";
 import ProviderConnectScreen from "@/components/provider-connect/ProviderConnectScreen";

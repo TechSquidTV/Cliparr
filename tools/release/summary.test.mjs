@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+
 import { renderSummary } from "#ci/summary.mjs";
 
 void test("dry runs never report successful builds as published", () => {

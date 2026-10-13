@@ -1,5 +1,5 @@
-import type { SubtitleCue } from "@/lib/subtitles/types";
 import { normalizeSubtitleCueText } from "@/lib/subtitles/normalizeSubtitleCueText";
+import type { SubtitleCue } from "@/lib/subtitles/types";
 
 type SubtitleTextFormat = "vtt" | "srt";
 

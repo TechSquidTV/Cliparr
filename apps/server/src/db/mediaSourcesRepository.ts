@@ -1,9 +1,11 @@
-import { notifyPlaybackStateChange } from "@/playback/stateChanges";
 import { randomUUID } from "node:crypto";
+
 import { and, asc, eq, type SQL } from "drizzle-orm";
+
 import { getDatabase } from "@/db/database";
-import { mediaSources, type MediaSourceRow } from "@/db/schema";
+import { type MediaSourceRow, mediaSources } from "@/db/schema";
 import { currentTimestampSql } from "@/db/timestamps";
+import { notifyPlaybackStateChange } from "@/playback/stateChanges";
 import { decryptJsonSecrets, encryptJsonSecrets } from "@/security/secrets";
 
 export interface MediaSource {

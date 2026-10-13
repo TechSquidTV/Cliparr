@@ -1,6 +1,7 @@
-import * as React from "react";
 import { GripVertical } from "lucide-react";
+import * as React from "react";
 import { Group, Panel, Separator } from "react-resizable-panels";
+
 import { cn } from "@/lib/cn";
 
 function ResizablePanelGroup({
@@ -43,4 +44,4 @@ function ResizableHandle({
   );
 }
 
-export { ResizablePanelGroup, ResizablePanel, ResizableHandle };
+export { ResizableHandle, ResizablePanel, ResizablePanelGroup };

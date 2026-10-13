@@ -61,6 +61,7 @@ function plexResourceIdKey(resourceId: string | undefined) {
   if (normalized) {
     return `resource:${normalized}`;
   }
+  return;
 }
 
 export function plexSourceIdentity(source: MediaSource): PlexSourceIdentity {

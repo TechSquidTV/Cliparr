@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 import { appendFileSync, readFileSync } from "node:fs";
-import { writeGithubOutput } from "#release/github-output.mjs";
 import { pathToFileURL } from "node:url";
+
+import { writeGithubOutput } from "#release/github-output.mjs";
 
 const booleanArgumentNames = new Set(["--dry-run", "--prerelease"]);
 const valueArgumentNames = new Set([

@@ -1,6 +1,6 @@
 import type {
-  PlaybackResolver,
   CurrentlyPlayingEntry,
+  PlaybackResolver,
 } from "@/providers/types";
 import type { ProviderSessionRecord } from "@/session/store";
 
@@ -67,7 +67,7 @@ export function createPlaybackResolverCache<Row, Prepared>(options: {
         let result = bound.get(session);
         if (!result) {
           prepared ??= prepareBatch()
-            .then((values) => values[index]!)
+            .then((values) => values[index])
             .catch((error: unknown) => {
               prepared = undefined;
               throw error;
@@ -84,7 +84,10 @@ export function createPlaybackResolverCache<Row, Prepared>(options: {
       });
     }
     const resolvers = keyedRows.map(({ row, key }) => {
-      const resolve = entries.get(key)!;
+      const resolve = entries.get(key);
+      if (!resolve) {
+        throw new Error("Playback resolver is missing for a current row");
+      }
       return async (session: ProviderSessionRecord) => {
         const entry = await resolve(session);
         return entry ? options.update(entry, row) : undefined;

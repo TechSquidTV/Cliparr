@@ -1,13 +1,13 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import {
+  access,
   copyFile,
-  mkdtemp,
   mkdir,
+  mkdtemp,
   readFile,
   rm,
   writeFile,
-  access,
 } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";

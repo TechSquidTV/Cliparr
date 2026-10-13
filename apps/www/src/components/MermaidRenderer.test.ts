@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
 import { runInNewContext } from "node:vm";
+
 import { ModuleKind, ScriptTarget, transpileModule } from "typescript";
 
 const component = readFileSync(

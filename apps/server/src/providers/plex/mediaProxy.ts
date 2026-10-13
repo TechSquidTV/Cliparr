@@ -1,22 +1,23 @@
-import type { Request, Response } from "express";
 import { logEventFields } from "@cliparr/shared/logging";
+import type { Request, Response } from "express";
+
 import { createApiError } from "@/http/errors";
 import { getServerLogger } from "@/logging";
-import type { ProviderSessionRecord } from "@/session/store";
+import { plexMediaHeaders } from "@/providers/plex/shared";
+import { preparePlexSubtitleTranscode } from "@/providers/plex/subtitles";
+import { mediaHandleHlsLogFields } from "@/providers/shared/mediaHandles";
 import {
   fetchMediaHandleRequest,
   mediaProxyAcceptHeader,
   proxyProviderMediaResponse,
   shouldForwardMediaRange,
 } from "@/providers/shared/mediaProxy";
-import { mediaHandleHlsLogFields } from "@/providers/shared/mediaHandles";
 import {
   mediaHandleRequestUrl,
   sanitizeLoggedMediaPath,
   shouldAttachProviderAuth,
 } from "@/providers/shared/mediaUrlPolicy";
-import { plexMediaHeaders } from "@/providers/plex/shared";
-import { preparePlexSubtitleTranscode } from "@/providers/plex/subtitles";
+import type { ProviderSessionRecord } from "@/session/store";
 
 const logger = getServerLogger(["media", "proxy"]);
 

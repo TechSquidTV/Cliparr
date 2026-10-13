@@ -12,6 +12,7 @@ export default {
     const url = new URL(request.url);
     if (url.pathname === "/__cliparr/runtime-config.json") {
       return Response.json(
+        // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- A blank DSN disables Sentry just like a missing DSN.
         { sentryDsn: env.SENTRY_DSN?.trim() || null },
         {
           headers: { "Cache-Control": "no-store" },

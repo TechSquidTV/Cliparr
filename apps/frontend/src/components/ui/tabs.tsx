@@ -1,13 +1,14 @@
 import { Tabs as BaseTabs } from "@base-ui/react/tabs";
 import {
-  motion,
-  useReducedMotion,
   type HTMLMotionProps,
+  motion,
   type Transition,
+  useReducedMotion,
 } from "motion/react";
 import * as React from "react";
-import { cliparrMotionTokens } from "@/lib/motion";
+
 import { cn } from "@/lib/cn";
+import { cliparrMotionTokens } from "@/lib/motion";
 
 type TabsRootProperties = React.ComponentProps<typeof BaseTabs.Root>;
 type TabsListProperties = Omit<

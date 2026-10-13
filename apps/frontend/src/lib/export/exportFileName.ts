@@ -1,10 +1,10 @@
-import type { MediaExportMetadata } from "#/providers/types";
-import type { ExportFormat } from "#/lib/export/exportTypes";
 import {
   framegrabExtensionFor,
   type FramegrabImageFormat,
 } from "#/lib/export/exportFormats";
+import type { ExportFormat } from "#/lib/export/exportTypes";
 import { formatProviderIdForFilename } from "#/lib/metadata/externalIdTags";
+import type { MediaExportMetadata } from "#/providers/types";
 
 export type ExportFileNameTemplateKind = "movie" | "episode";
 
@@ -414,6 +414,7 @@ function sanitizeFileName(value: string) {
 }
 
 function stripControlCharacters(value: string) {
+  // eslint-disable-next-line @typescript-eslint/no-misused-spread -- Control-character filtering operates on Unicode code points, preserving joined emoji sequences.
   return [...value]
     .filter((char) => {
       const code = char.codePointAt(0) ?? 0;

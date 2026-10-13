@@ -1,11 +1,12 @@
 import {
-  TimelineCanvasLayer,
   resolveTimelineRendererThemeFromElement,
+  TimelineCanvasLayer,
+  type TimelineRendererTheme,
   toSeconds,
   useTimelineTrack,
-  type TimelineRendererTheme,
 } from "@techsquidtv/canvas-timeline";
 import { useCallback, useRef } from "react";
+
 import { EDITOR_MEDIA_TRACK_ID } from "@/components/editor/editorTimelineEngine";
 
 export const EDITOR_MEDIA_RANGE_INSET = 4;

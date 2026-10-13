@@ -1,23 +1,25 @@
-import { createDeferred } from "@/test/deferred";
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import test from "node:test";
+
+import type { PlaybackStreamEvent } from "@cliparr/shared/providers";
+import { readServerEvents } from "@cliparr/shared/server-events";
+
+import { createApp } from "@/app";
 import { closeDatabase } from "@/db/database";
 import {
-  upsertMediaSource,
-  updateMediaSource,
   type MediaSource,
+  updateMediaSource,
+  upsertMediaSource,
 } from "@/db/mediaSourcesRepository";
 import { upsertProviderAccountByAccessToken } from "@/db/providerAccountsRepository";
-import { createApp } from "@/app";
+import { getSessionCookieName } from "@/http/cookies";
 import { plexProvider } from "@/providers/plex/provider";
 import type { CurrentlyPlayingEntry } from "@/providers/types";
 import { createProviderSession, deleteProviderSession } from "@/session/store";
-import { getSessionCookieName } from "@/http/cookies";
-import { readServerEvents } from "@cliparr/shared/server-events";
-import type { PlaybackStreamEvent } from "@cliparr/shared/providers";
+import { createDeferred } from "@/test/deferred";
 
 const TEST_APP_KEY = "media-currently-playing-test-key-with-32-chars";
 

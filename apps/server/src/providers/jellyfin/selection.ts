@@ -1,13 +1,5 @@
 import { normalizeExportVideoCodec } from "@cliparr/shared/providers";
-import type {
-  PlaybackAudioSelection,
-  PlaybackExportEstimateMetadata,
-} from "@/providers/types";
-import {
-  asArray,
-  numberValue,
-  stringValue,
-} from "@/providers/shared/utilities";
+
 import {
   booleanValue,
   type JellyfinItem,
@@ -17,6 +9,15 @@ import {
   type JellyfinSessionInfo,
   type JellyfinSourceContext,
 } from "@/providers/jellyfin/shared";
+import {
+  asArray,
+  numberValue,
+  stringValue,
+} from "@/providers/shared/utilities";
+import type {
+  PlaybackAudioSelection,
+  PlaybackExportEstimateMetadata,
+} from "@/providers/types";
 
 export function ticksToSeconds(value: number | null | undefined) {
   const ticks = Number(value);

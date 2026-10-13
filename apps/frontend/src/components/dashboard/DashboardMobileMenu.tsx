@@ -1,4 +1,6 @@
 import { ExternalLink, Globe, LogOut, Menu } from "lucide-react";
+
+import type { LatestReleaseInfo } from "@/api/cliparrClient";
 import {
   Drawer,
   DrawerClose,
@@ -8,7 +10,6 @@ import {
   DrawerTitle,
   DrawerTrigger,
 } from "@/components/ui/drawer";
-import type { LatestReleaseInfo } from "@/api/cliparrClient";
 
 export const CLIPARR_WEBSITE_URL = "https://cliparr.dev/";
 export const CLIPARR_GITHUB_URL = "https://github.com/TechSquidTV/Cliparr";

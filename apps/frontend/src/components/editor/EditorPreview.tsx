@@ -1,6 +1,7 @@
 import { Play } from "lucide-react";
-import { BarsLoader } from "@/components/ui/bars-loader";
 import type { ReactNode, RefCallback } from "react";
+
+import { BarsLoader } from "@/components/ui/bars-loader";
 
 interface EditorPreviewProperties {
   canvasRef: RefCallback<HTMLCanvasElement>;

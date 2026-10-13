@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+
 import { findPrivacyIssues } from "#ci/privacy-check.mjs";
 
 void test("reports fabricated private endpoints and home paths without exposing values", () => {

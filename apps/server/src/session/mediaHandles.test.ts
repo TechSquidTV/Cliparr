@@ -1,9 +1,10 @@
-import { TEST_JELLYFIN_BASE_URL } from "@/test/providerFixtures";
 import assert from "node:assert/strict";
 import test from "node:test";
+
 import { createProviderMediaHandle } from "@/providers/shared/mediaHandles";
-import { type ProviderSessionRecord } from "@/session/store";
 import { pruneSessionMediaHandles } from "@/session/mediaHandles";
+import { type ProviderSessionRecord } from "@/session/store";
+import { TEST_JELLYFIN_BASE_URL } from "@/test/providerFixtures";
 
 void test("retains editor playlists and segments for the provider session lifetime", (context) => {
   const createdAt = Date.now();

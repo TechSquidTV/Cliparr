@@ -2,7 +2,7 @@
 
 import assert from "node:assert/strict";
 import test from "node:test";
-import type { MediaSource, MediaSourceCheckResult } from "@/providers/types";
+
 import {
   buildSourceEditInput,
   draftBaseUrlsFor,
@@ -12,6 +12,7 @@ import {
   sourceCounts,
   sourceProviderOptions,
 } from "@/components/sources/sourcesStateUtilities";
+import type { MediaSource, MediaSourceCheckResult } from "@/providers/types";
 
 function source(
   overrides: Partial<MediaSource> &

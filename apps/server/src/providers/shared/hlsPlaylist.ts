@@ -1,19 +1,20 @@
 import { logEventFields } from "@cliparr/shared/logging";
+
 import { createApiError } from "@/http/errors";
 import { getServerLogger } from "@/logging";
-import type { MediaHandle } from "@/providers/types";
-import type { ProviderSessionRecord } from "@/session/store";
 import {
   createProviderMediaHandle,
   mediaHandleLogFields,
 } from "@/providers/shared/mediaHandles";
 import {
-  RELATIVE_MEDIA_BASE_URL,
   hlsUriKind,
   isAbsoluteUrl,
   normalizeMediaPath,
+  RELATIVE_MEDIA_BASE_URL,
   sanitizeLoggedMediaPath,
 } from "@/providers/shared/mediaUrlPolicy";
+import type { MediaHandle } from "@/providers/types";
+import type { ProviderSessionRecord } from "@/session/store";
 
 const logger = getServerLogger(["media", "proxy"]);
 

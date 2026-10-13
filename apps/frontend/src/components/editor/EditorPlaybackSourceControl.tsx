@@ -1,5 +1,6 @@
 import { Popover } from "@base-ui/react/popover";
 import { Info } from "lucide-react";
+
 import type { EditorLayoutVariant } from "@/components/editor/EditorLayout";
 import { compactSecondaryButtonClasses } from "@/components/ui/control-styles";
 

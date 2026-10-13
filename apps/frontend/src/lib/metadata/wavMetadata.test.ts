@@ -1,6 +1,7 @@
 /// <reference types="node" />
 import assert from "node:assert/strict";
 import test from "node:test";
+
 import {
   BufferSource,
   BufferTarget,
@@ -8,9 +9,10 @@ import {
   EncodedPacket,
   Input,
   Output,
-  WavOutputFormat,
   WAVE,
+  WavOutputFormat,
 } from "mediabunny";
+
 import { buildMetadataTags } from "@/lib/export/exportMetadata";
 import type { MediaExportMetadata } from "#/providers/types";
 

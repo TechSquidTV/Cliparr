@@ -1,3 +1,4 @@
+import type { TimelineEngine } from "@techsquidtv/canvas-timeline";
 import {
   useCallback,
   useEffect,
@@ -5,7 +6,7 @@ import {
   useState,
   useSyncExternalStore,
 } from "react";
-import type { TimelineEngine } from "@techsquidtv/canvas-timeline";
+
 import { createEditorHistory } from "@/components/editor/editorHistory";
 
 const emptyHistory = { canUndo: false, canRedo: false };

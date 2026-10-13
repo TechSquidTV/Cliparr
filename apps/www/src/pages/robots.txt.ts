@@ -1,4 +1,5 @@
 import type { APIRoute } from "astro";
+
 import { site as productSite } from "@/data/product";
 
 const getRobotsTxt = (sitemapUrl: URL) => `User-agent: *

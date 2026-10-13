@@ -1,11 +1,12 @@
 import assert from "node:assert/strict";
+import { Buffer } from "node:buffer";
 import { createServer } from "node:http";
 import test from "node:test";
-import { Buffer } from "node:buffer";
 import { constants, deflateRawSync } from "node:zlib";
+
+import { readLiveWebSocket } from "@/providers/shared/liveWebSocket";
 import { createDeferred } from "@/test/deferred";
 import { acceptTestWebSocket } from "@/test/webSocketFixtures";
-import { readLiveWebSocket } from "@/providers/shared/liveWebSocket";
 
 for (const scenario of [
   { hostname: "127.0.0.1", silent: false },

@@ -1,14 +1,14 @@
+import "@/providers/plex/provider";
+
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import test from "node:test";
+
 import { eq, sql } from "drizzle-orm";
-import {
-  providerAccounts,
-  providerSessions,
-  rememberedProviderSessions,
-} from "@/db/schema";
+
+import { createApp } from "@/app";
 import { closeDatabase, getDatabase } from "@/db/database";
 import { upsertProviderAccountByAccessToken } from "@/db/providerAccountsRepository";
 import {
@@ -16,14 +16,17 @@ import {
   getRememberedProviderSession,
   revokeRememberedProviderSession,
 } from "@/db/rememberedProviderSessionsRepository";
-import { createApp } from "@/app";
-import "@/providers/plex/provider";
-import { purgeExpiredSessions } from "@/session/sweep";
-import { createProviderSession, getProviderSession } from "@/session/store";
+import {
+  providerAccounts,
+  providerSessions,
+  rememberedProviderSessions,
+} from "@/db/schema";
 import {
   getRememberedProviderSessionCookieName,
   getSessionCookieName,
 } from "@/http/cookies";
+import { createProviderSession, getProviderSession } from "@/session/store";
+import { purgeExpiredSessions } from "@/session/sweep";
 
 const TEST_APP_KEY = "session-route-test-key-with-at-least-32-characters";
 

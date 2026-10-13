@@ -1,10 +1,20 @@
-import { logErrorFields, sanitizeUrlForLog } from "@cliparr/shared/logging";
-import { getServerLogger, warnWithError } from "@/logging";
-import type { ProviderSessionRecord } from "@/session/store";
 import type { Tag } from "@cliparr/plex/pms/types";
 import { imageTranscodeUrl } from "@cliparr/plex/pms/urls";
-import type { MediaExportMetadata } from "@/providers/types";
 import { parseExternalIds } from "@cliparr/shared/external-ids";
+import { logErrorFields, sanitizeUrlForLog } from "@cliparr/shared/logging";
+
+import { getServerLogger, warnWithError } from "@/logging";
+import { createMediaHandle } from "@/providers/plex/mediaHandles";
+import type { PlexMetadataItem } from "@/providers/plex/selection";
+import {
+  itemTypeValue,
+  mergePlaybackMetadata,
+  metadataId,
+} from "@/providers/plex/selection";
+import {
+  fetchPmsMetadata,
+  type PlexSourceContext,
+} from "@/providers/plex/shared";
 import {
   asArray,
   buildEpisodeSourceTitle,
@@ -13,17 +23,8 @@ import {
   stringValue,
   uniqueStrings,
 } from "@/providers/shared/utilities";
-import {
-  fetchPmsMetadata,
-  type PlexSourceContext,
-} from "@/providers/plex/shared";
-import type { PlexMetadataItem } from "@/providers/plex/selection";
-import {
-  itemTypeValue,
-  mergePlaybackMetadata,
-  metadataId,
-} from "@/providers/plex/selection";
-import { createMediaHandle } from "@/providers/plex/mediaHandles";
+import type { MediaExportMetadata } from "@/providers/types";
+import type { ProviderSessionRecord } from "@/session/store";
 
 const logger = getServerLogger(["provider", "plex", "playback"]);
 

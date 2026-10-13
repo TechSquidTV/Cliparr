@@ -3,13 +3,15 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import test from "node:test";
+
 import express from "express";
+
 import { closeDatabase, initializeDatabase } from "@/db/database";
 import { upsertProviderAccountByAccessToken } from "@/db/providerAccountsRepository";
+import { getSessionCookieName } from "@/http/cookies";
 import { errorHandler } from "@/http/errors";
 import { mediaRouter } from "@/routes/media";
 import { createProviderSession } from "@/session/store";
-import { getSessionCookieName } from "@/http/cookies";
 
 const TEST_APP_KEY = "media-route-test-key-with-32-characters";
 

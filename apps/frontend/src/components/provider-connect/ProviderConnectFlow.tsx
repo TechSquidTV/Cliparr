@@ -1,10 +1,18 @@
-import { AnimatePresence, motion } from "motion/react";
 import { ArrowRight, Check, ExternalLink, Server } from "lucide-react";
+import { AnimatePresence, motion } from "motion/react";
 import type { ReactNode } from "react";
-import { cn } from "@/lib/cn";
-import { EmptyState } from "@/components/ui/empty-state";
-import { ProviderGlyph } from "@/components/providers/ProviderGlyph";
+
 import { useProviderConnectFlow } from "@/components/provider-connect/useProviderConnectFlow";
+import { ProviderGlyph } from "@/components/providers/ProviderGlyph";
+import {
+  compactSecondaryButtonClasses,
+  densePrimaryButtonClasses as panelPrimaryButtonClasses,
+  denseSecondaryButtonClasses as panelSecondaryButtonClasses,
+  destructiveAlertClasses,
+  screenTextInputClasses as baseScreenInputClasses,
+  textInputClasses,
+} from "@/components/ui/control-styles";
+import { EmptyState } from "@/components/ui/empty-state";
 import {
   Tabs,
   TabsList,
@@ -12,14 +20,7 @@ import {
   TabsPanels,
   TabsTab,
 } from "@/components/ui/tabs";
-import {
-  destructiveAlertClasses,
-  compactSecondaryButtonClasses,
-  densePrimaryButtonClasses as panelPrimaryButtonClasses,
-  denseSecondaryButtonClasses as panelSecondaryButtonClasses,
-  screenTextInputClasses as baseScreenInputClasses,
-  textInputClasses,
-} from "@/components/ui/control-styles";
+import { cn } from "@/lib/cn";
 import type { ProviderDefinition, ProviderSession } from "@/providers/types";
 
 interface Properties {

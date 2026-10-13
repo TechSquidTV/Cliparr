@@ -1,15 +1,29 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   fromSeconds,
+  type TimelineEngine,
   toSeconds,
   useTimelineClips,
   useTimelinePlayheadTime,
   useTimelineSelection,
   useTimelineTracks,
-  type TimelineEngine,
 } from "@techsquidtv/canvas-timeline";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+
 import type { EditorDraft } from "@/components/editor/editorDrafts";
 import type { EditorSession } from "@/components/editor/editorMedia";
+import {
+  createSubtitleClip,
+  EDITOR_SUBTITLE_TRACK_ID,
+  getSubtitleCreationRange,
+  subtitleCueFromTimelineClip,
+  subtitleCuesFromTimeline,
+  synchronizeEditorTimelineSubtitles,
+  timelineScrollLeftForCenteredTime,
+} from "@/components/editor/editorTimelineEngine";
+import { buildSubtitleExportSummary } from "@/components/editor/subtitleExportSummary";
+import { useEditorHistory } from "@/components/editor/useEditorHistory";
+import { useSubtitleCues } from "@/components/editor/useSubtitleCues";
+import { normalizeSubtitleCueText } from "@/lib/subtitles/normalizeSubtitleCueText";
 import {
   selectPreferredSubtitleTrack,
   subtitleTrackKey,
@@ -20,20 +34,7 @@ import {
   saveSubtitleStyleSettings,
 } from "@/lib/subtitles/settings";
 import { trimSubtitleCues } from "@/lib/subtitles/trimSubtitleCues";
-import { normalizeSubtitleCueText } from "@/lib/subtitles/normalizeSubtitleCueText";
 import type { PlaybackSubtitleTrack } from "@/providers/types";
-import { buildSubtitleExportSummary } from "@/components/editor/subtitleExportSummary";
-import { useSubtitleCues } from "@/components/editor/useSubtitleCues";
-import { useEditorHistory } from "@/components/editor/useEditorHistory";
-import {
-  createSubtitleClip,
-  getSubtitleCreationRange,
-  EDITOR_SUBTITLE_TRACK_ID,
-  subtitleCueFromTimelineClip,
-  subtitleCuesFromTimeline,
-  synchronizeEditorTimelineSubtitles,
-  timelineScrollLeftForCenteredTime,
-} from "@/components/editor/editorTimelineEngine";
 
 interface UseEditorSubtitlesProperties {
   initialDraft?: EditorDraft | null;

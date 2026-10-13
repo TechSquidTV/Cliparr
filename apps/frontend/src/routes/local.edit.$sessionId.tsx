@@ -1,19 +1,20 @@
 import { createFileRoute, useCanGoBack } from "@tanstack/react-router";
 import { FolderOpen, ShieldCheck, TriangleAlert } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
+
 import { useAuth } from "@/auth";
 import { editorDrafts } from "@/components/editor/editorDrafts";
 import EditorScreen from "@/components/editor/EditorScreen";
-import { BarsLoader } from "@/components/ui/bars-loader";
 import { LocalVideoOpenDialog } from "@/components/local-media/LocalVideoOpenDialog";
+import { BarsLoader } from "@/components/ui/bars-loader";
 import {
   primaryButtonClasses,
   secondaryButtonClasses,
   subtleButtonClasses,
 } from "@/components/ui/control-styles";
 import {
-  resolveLocalMediaSession,
   type LocalMediaResolution,
+  resolveLocalMediaSession,
 } from "@/lib/localMediaRegistry";
 import { router } from "@/router";
 

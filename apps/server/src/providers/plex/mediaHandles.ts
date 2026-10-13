@@ -1,7 +1,8 @@
-import type { ProviderSessionRecord } from "@/session/store";
 import type { TranscodeDecisionData } from "@cliparr/plex/pms/types";
-import { createProviderMediaHandle } from "@/providers/shared/mediaHandles";
+
 import { type PlexSourceContext } from "@/providers/plex/shared";
+import { createProviderMediaHandle } from "@/providers/shared/mediaHandles";
+import type { ProviderSessionRecord } from "@/session/store";
 
 export function createMediaHandle(
   session: ProviderSessionRecord,

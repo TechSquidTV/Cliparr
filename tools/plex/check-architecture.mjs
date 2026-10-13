@@ -1,7 +1,9 @@
-import { readFile, readdir } from "node:fs/promises";
+import { readdir, readFile } from "node:fs/promises";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
+
 import ts from "typescript";
+
 import { applySupplement } from "#plex/contracts.mjs";
 
 const clientOwners = new Set([

@@ -1,4 +1,5 @@
-import { isIP, type Socket, type LookupFunction } from "node:net";
+import { isIP, type LookupFunction, type Socket } from "node:net";
+
 import { Agent, buildConnector } from "undici";
 
 const PINNED_DNS_IDLE_TIMEOUT_MS = 60_000;

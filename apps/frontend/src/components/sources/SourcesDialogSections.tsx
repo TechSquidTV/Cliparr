@@ -1,7 +1,3 @@
-import { Spinner } from "@/components/ui/spinner";
-import { EmptyState } from "@/components/ui/empty-state";
-import type { KeyboardEvent, RefObject } from "react";
-import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import {
   AlertTriangle,
   CheckCircle2,
@@ -13,9 +9,22 @@ import {
   Trash2,
   X,
 } from "lucide-react";
-import { cn } from "@/lib/cn";
-import { ControlTooltip } from "@/components/ui/tooltip";
-import { Switch } from "@/components/ui/switch";
+import { AnimatePresence, motion, useReducedMotion } from "motion/react";
+import type { KeyboardEvent, RefObject } from "react";
+
+import { formatProviderName } from "@/components/providers/ProviderGlyph";
+import SourceConnectPanel from "@/components/sources/SourceConnectPanel";
+import type { Feedback, SourceFilter } from "@/components/sources/sourcesTypes";
+import {
+  compactPrimaryButtonClasses,
+  compactSecondaryButtonClasses,
+  destructiveAlertClasses,
+  iconButtonClasses,
+  textInputClasses as inputClasses,
+  warningAlertClasses,
+  warningSurfaceClasses,
+} from "@/components/ui/control-styles";
+import { EmptyState } from "@/components/ui/empty-state";
 import {
   Select,
   SelectContent,
@@ -23,20 +32,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  compactPrimaryButtonClasses,
-  compactSecondaryButtonClasses,
-  destructiveAlertClasses,
-  warningAlertClasses,
-  warningSurfaceClasses,
-  iconButtonClasses,
-  textInputClasses as inputClasses,
-} from "@/components/ui/control-styles";
+import { Spinner } from "@/components/ui/spinner";
+import { Switch } from "@/components/ui/switch";
+import { ControlTooltip } from "@/components/ui/tooltip";
+import { cn } from "@/lib/cn";
 import { cliparrMotionTransitions } from "@/lib/motion";
 import type { MediaSource, ProviderSession } from "@/providers/types";
-import { formatProviderName } from "@/components/providers/ProviderGlyph";
-import SourceConnectPanel from "@/components/sources/SourceConnectPanel";
-import type { Feedback, SourceFilter } from "@/components/sources/sourcesTypes";
 
 interface SourceCounts {
   all: number;

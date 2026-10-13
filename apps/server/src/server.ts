@@ -1,6 +1,9 @@
 import "@/config/loadEnv";
+
 import type { Server } from "node:http";
+
 import { logErrorFields, logEventFields } from "@cliparr/shared/logging";
+
 import { createApp } from "@/app";
 import { resolveServerPort } from "@/config/serverPort";
 import { closeDatabase } from "@/db/database";

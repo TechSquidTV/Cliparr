@@ -1,4 +1,5 @@
 import type { Palette } from "@techsquidtv/gifenc";
+
 import {
   createGifTemporalDitherResolver,
   type GifDitherMode,

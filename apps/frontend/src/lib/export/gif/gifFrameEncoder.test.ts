@@ -2,10 +2,13 @@
 
 import assert from "node:assert/strict";
 import test from "node:test";
+
+import type { GIFEncoderInstance } from "@techsquidtv/gifenc";
+
 import {
-  GIF_TRAILER_BYTE,
   concatenateGifFrameChunks,
   encodeGifFrameChunk,
+  GIF_TRAILER_BYTE,
 } from "@/lib/export/gif/gifFrameChunk";
 import {
   copyImageDataBuffer,
@@ -13,7 +16,6 @@ import {
   createInlineGifFrameEncoder,
   defaultGifFrameWorkerCount,
 } from "@/lib/export/gif/gifFrameEncoder";
-import type { GIFEncoderInstance } from "@techsquidtv/gifenc";
 
 void test("encodes GIF frame chunks without a trailer", () => {
   const calls: Array<{

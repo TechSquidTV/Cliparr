@@ -1,14 +1,17 @@
 import { compactPrimaryButtonClasses } from "@cliparr/frontend/convert/ui";
 import { Download, Share, Smartphone, X } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
+
 import {
   flushConvertMetrics,
   recordConvertPwaInstallPromptShown,
 } from "@/components/convert/convertMetrics";
 import {
+  type BeforeInstallPromptEvent,
   CONVERT_COARSE_POINTER_MEDIA_QUERY,
   CONVERT_MOBILE_INSTALL_MEDIA_QUERY,
   CONVERT_STANDALONE_DISPLAY_MEDIA_QUERY,
+  type ConvertPwaInstallState,
   getConvertPwaInstallEnvironment,
   getDeferredConvertPwaInstallPrompt,
   metricInputForConvertPwaInstallState,
@@ -22,8 +25,6 @@ import {
   startConvertPwaInstallPromptHandling,
   subscribeToConvertPwaInstallPrompt,
   writeConvertPwaInstallDismissed,
-  type BeforeInstallPromptEvent,
-  type ConvertPwaInstallState,
 } from "@/components/convert/convertPwa";
 
 startConvertPwaInstallPromptHandling();
