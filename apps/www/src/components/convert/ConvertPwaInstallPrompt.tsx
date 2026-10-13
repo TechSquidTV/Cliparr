@@ -1,4 +1,4 @@
-import { compactPrimaryButtonClasses } from "@cliparr/frontend/convert";
+import { compactPrimaryButtonClasses } from "@cliparr/frontend/convert/components";
 import { Download, Share, Smartphone, X } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
