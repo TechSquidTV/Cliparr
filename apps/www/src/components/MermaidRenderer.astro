@@ -1,5 +1,15 @@
 <script>
+  let currentRender = 0;
+
+  // Invalidate any in-flight render the moment Astro begins swapping the DOM,
+  // so mermaid.run() is never called against detached nodes.
+  document.addEventListener("astro:before-swap", () => {
+    currentRender++;
+  });
+
   async function renderMermaid() {
+    const render = ++currentRender;
+
     const diagrams = document.querySelectorAll<HTMLPreElement>(
       "pre:has(> code.language-mermaid)",
     );
@@ -16,6 +26,12 @@
     }
 
     const { default: mermaid } = await import("mermaid");
+
+    // If navigation started while the async import was in flight, the captured
+    // nodes are now detached. Bail out to avoid the null-node crash in d3.
+    if (render !== currentRender) {
+      return;
+    }
 
     mermaid.initialize({
       flowchart: {
