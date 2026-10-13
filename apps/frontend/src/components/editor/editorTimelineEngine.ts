@@ -1,15 +1,16 @@
 import {
-  TimelineEngine,
-  fromSeconds,
-  toSeconds,
   type Clip,
-  type Track,
-  type TimelineReadonly,
+  fromSeconds,
   type TimelineEditCommand,
+  TimelineEngine,
+  type TimelineReadonly,
+  toSeconds,
+  type Track,
 } from "@techsquidtv/canvas-timeline";
-import { buildInitialClipRange } from "@/components/editor/initialClipRange";
-import { EDITOR_MAX_ZOOM_SCALE } from "@/components/editor/editorTimelineZoom";
+
 import type { EditorSession } from "@/components/editor/editorMedia";
+import { EDITOR_MAX_ZOOM_SCALE } from "@/components/editor/editorTimelineZoom";
+import { buildInitialClipRange } from "@/components/editor/initialClipRange";
 import { normalizeSubtitleCueText } from "@/lib/subtitles/normalizeSubtitleCueText";
 import type { SubtitleCue } from "@/lib/subtitles/types";
 

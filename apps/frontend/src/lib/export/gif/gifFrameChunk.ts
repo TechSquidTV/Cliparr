@@ -1,9 +1,10 @@
-import { GIFEncoder, applyPalette, quantize } from "@techsquidtv/gifenc";
 import type {
   ApplyPaletteOptions,
   Palette,
   TemporalDitherState,
 } from "@techsquidtv/gifenc";
+import { applyPalette, GIFEncoder, quantize } from "@techsquidtv/gifenc";
+
 import type {
   GifDitherMode,
   GifPaletteFormat,

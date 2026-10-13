@@ -1,7 +1,8 @@
 import { stat } from "node:fs/promises";
 import path from "node:path";
+
 import { run } from "#/process.ts";
-import { readmeSocialCapture, type CaptureScene } from "#/scenes.ts";
+import { type CaptureScene, readmeSocialCapture } from "#/scenes.ts";
 
 interface Probe {
   streams: {

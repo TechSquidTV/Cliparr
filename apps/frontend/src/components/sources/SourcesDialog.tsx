@@ -1,16 +1,17 @@
-import { useRef } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
-import { DialogWindow } from "@/components/ui/dialog";
-import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
+import { useRef } from "react";
+
 import {
   SourceCard,
   SourcesConnectSection,
-  SourcesEmptyState,
   SourcesDialogAlerts,
   SourcesDialogFilters,
   SourcesDialogHeader,
+  SourcesEmptyState,
 } from "@/components/sources/SourcesDialogSections";
 import { useSourcesState } from "@/components/sources/useSourcesState";
+import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
+import { DialogWindow } from "@/components/ui/dialog";
 import { cliparrMotionTransitions } from "@/lib/motion";
 
 interface Properties {

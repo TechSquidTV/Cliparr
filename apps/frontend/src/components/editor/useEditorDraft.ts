@@ -1,11 +1,12 @@
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { fromSeconds, type TimelineEngine } from "@techsquidtv/canvas-timeline";
-import type { EditorSession } from "@/components/editor/editorMedia";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
+
 import {
+  type EditorDraft,
   editorDraftIdentity,
   editorDrafts,
-  type EditorDraft,
 } from "@/components/editor/editorDrafts";
+import type { EditorSession } from "@/components/editor/editorMedia";
 import {
   EDITOR_SUBTITLE_TRACK_ID,
   synchronizeEditorTimelineSubtitles,

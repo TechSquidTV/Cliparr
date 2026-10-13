@@ -1,11 +1,13 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
+
 import type { MediabunnySourceState } from "@techsquidtv/canvas-timeline-mediabunny-adapter";
+
 import {
   createEditorPreviewSourceLoader,
+  type EditorMediaMetadata,
   editorPreviewFrameTime,
   resolveEditorExportMedia,
-  type EditorMediaMetadata,
 } from "@/components/editor/editorMediaLifecycle";
 import type { PlaybackSourceCandidate } from "@/components/editor/editorPlaybackSources";
 

@@ -1,9 +1,10 @@
-import { useRef, type ComponentProps } from "react";
-import { DialogFooter, DialogWindow } from "@/components/ui/dialog";
+import { type ComponentProps, useRef } from "react";
+
 import {
   primaryButtonClasses,
   secondaryButtonClasses,
 } from "@/components/ui/control-styles";
+import { DialogFooter, DialogWindow } from "@/components/ui/dialog";
 
 export function ConfirmationDialog({
   open,

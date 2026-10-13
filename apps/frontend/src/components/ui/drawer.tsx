@@ -1,5 +1,6 @@
-import * as React from "react";
 import { Drawer as DrawerPrimitive } from "@base-ui/react/drawer";
+import * as React from "react";
+
 import { dialogFooterClasses } from "@/components/ui/control-styles";
 import { cn } from "@/lib/cn";
 
@@ -76,7 +77,7 @@ function DrawerFooter({ className, ...props }: React.ComponentProps<"div">) {
 }
 
 const DrawerTitle = React.forwardRef<
-  React.ElementRef<typeof DrawerPrimitive.Title>,
+  React.ComponentRef<typeof DrawerPrimitive.Title>,
   Omit<
     React.ComponentPropsWithoutRef<typeof DrawerPrimitive.Title>,
     "className"
@@ -95,7 +96,7 @@ const DrawerTitle = React.forwardRef<
 });
 
 const DrawerDescription = React.forwardRef<
-  React.ElementRef<typeof DrawerPrimitive.Description>,
+  React.ComponentRef<typeof DrawerPrimitive.Description>,
   Omit<
     React.ComponentPropsWithoutRef<typeof DrawerPrimitive.Description>,
     "className"

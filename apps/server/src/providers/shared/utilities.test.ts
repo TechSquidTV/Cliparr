@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+
 import { normalizeRating } from "@/providers/shared/utilities";
 
 void test("normalizes ratings without fabricating missing or out-of-range scores", () => {

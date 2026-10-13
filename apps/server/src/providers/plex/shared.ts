@@ -1,19 +1,14 @@
-import type { Resource } from "@cliparr/plex/cloud/types";
 import { randomUUID } from "node:crypto";
+
+import type { Resource } from "@cliparr/plex/cloud/types";
+
 import type { MediaSource } from "@/db/mediaSourcesRepository";
 import { createApiError } from "@/http/errors";
 import {
-  assertHttpUrl,
-  errorMessage,
-  numberValue,
-  stringValue,
-} from "@/providers/shared/utilities";
-import type { ProviderResource } from "@/providers/types";
-import {
-  plexBaseUrlMode,
   PLEX_BASE_URL_MODE_AUTO,
   PLEX_BASE_URL_MODE_MANUAL,
   type PlexBaseUrlMode,
+  plexBaseUrlMode,
 } from "@/providers/plex/connectionState";
 import {
   plexPmsResponseStatusMessage,
@@ -21,6 +16,13 @@ import {
   requestPlexPmsIdentity,
   requestPlexPmsMetadata,
 } from "@/providers/plex/pmsClient";
+import {
+  assertHttpUrl,
+  errorMessage,
+  numberValue,
+  stringValue,
+} from "@/providers/shared/utilities";
+import type { ProviderResource } from "@/providers/types";
 
 export const PLEX_PRODUCT = "Cliparr";
 export const PLEX_CLIENT_IDENTIFIER =

@@ -1,7 +1,6 @@
 import { createHash, randomUUID } from "node:crypto";
-import { lookupWithSignal } from "@/providers/shared/dnsCache";
 import { isIP } from "node:net";
-import axios, { type AxiosResponse, type RawAxiosRequestConfig } from "axios";
+
 import { Jellyfin } from "@jellyfin/sdk";
 import type {
   AuthenticationResult,
@@ -22,9 +21,12 @@ import {
   getUserApi,
 } from "@jellyfin/sdk/lib/utils/api/index.js";
 import { getAuthorizationHeader } from "@jellyfin/sdk/lib/utils/authentication.js";
+import axios, { type AxiosResponse, type RawAxiosRequestConfig } from "axios";
+
 import { CLIPARR_CLIENT_VERSION } from "@/config/version";
 import type { MediaSource } from "@/db/mediaSourcesRepository";
 import { createApiError, isApiError } from "@/http/errors";
+import { lookupWithSignal } from "@/providers/shared/dnsCache";
 import { fetchWithPinnedDns } from "@/providers/shared/pinnedFetch";
 import {
   assertHttpUrl,

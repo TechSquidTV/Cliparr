@@ -2,11 +2,12 @@
 
 import assert from "node:assert/strict";
 import test from "node:test";
-import type { SubtitleCue } from "#/lib/subtitles/types";
+
 import {
   buildTranscript,
   MAX_TRANSCRIPT_LENGTH,
 } from "@/lib/metadata/transcript";
+import type { SubtitleCue } from "#/lib/subtitles/types";
 
 function cue(text: string): SubtitleCue {
   return { startTime: 0, endTime: 1, text, lines: [text] };

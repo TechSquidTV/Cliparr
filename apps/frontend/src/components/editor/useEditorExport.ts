@@ -1,49 +1,42 @@
-import { useExportSettings } from "#/components/editor/useExportSettings";
-import {
-  isAudioExportFormat,
-  exportIncludesAudio,
-} from "#/lib/export/exportFormats";
-import type { ExportAudioPlan } from "#/lib/export/exportAudio";
-import { useExportAudioPlan } from "#/components/editor/useExportAudioPlan";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useExportVideoPlan } from "#/components/editor/useExportVideoPlan";
 import {
   logDurationFields,
   logErrorFields,
   logEventFields,
 } from "@cliparr/shared/logging";
-import type {
-  ExportPhase,
-  ExportVideoEncodingPlan,
-} from "@/lib/export/exportClip";
-import {
-  type ExportSourcePreference,
-  DEFAULT_VIDEO_EXPORT_QUALITY,
-  estimateExportOutputSize,
-  exportFormatDurationDisabledReason,
-} from "@/lib/export/exportTypes";
-import { formatCanCopyVideoCodec } from "@/lib/export/exportEncodingPolicy";
-import {
-  buildExportFileName,
-  defaultExportFileNameTemplates,
-  loadExportFileNameTemplates,
-  saveExportFileNameTemplates,
-  type ExportFileNameTemplateKind,
-  type ExportFileNameTemplateSettings,
-} from "@/lib/export/exportFileName";
-import { downloadBlob } from "@/lib/downloadBlob";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+
 import {
   type EditorMediaSource,
   type EditorSession,
   type MediaDimensions,
 } from "@/components/editor/editorMedia";
+import type { EditorExportMedia } from "@/components/editor/editorMediaLifecycle";
+import type { PlaybackFallbackInfo } from "@/components/editor/editorPlaybackSources";
+import { downloadBlob } from "@/lib/downloadBlob";
+import type {
+  ExportPhase,
+  ExportVideoEncodingPlan,
+} from "@/lib/export/exportClip";
+import { formatCanCopyVideoCodec } from "@/lib/export/exportEncodingPolicy";
+import {
+  buildExportFileName,
+  defaultExportFileNameTemplates,
+  type ExportFileNameTemplateKind,
+  type ExportFileNameTemplateSettings,
+  loadExportFileNameTemplates,
+  saveExportFileNameTemplates,
+} from "@/lib/export/exportFileName";
+import {
+  DEFAULT_VIDEO_EXPORT_QUALITY,
+  estimateExportOutputSize,
+  exportFormatDurationDisabledReason,
+  type ExportSourcePreference,
+} from "@/lib/export/exportTypes";
 import {
   fetchHlsExportEstimateMetadata,
   type HlsExportEstimateMetadata,
 } from "@/lib/export/hlsExportEstimate";
 import type { SubtitleCue, SubtitleStyleSettings } from "@/lib/subtitles/types";
-import type { PlaybackFallbackInfo } from "@/components/editor/editorPlaybackSources";
-import type { EditorExportMedia } from "@/components/editor/editorMediaLifecycle";
 import { getFrontendLogger, warnWithError } from "@/logging";
 import {
   buildExportErrorMessage,
@@ -59,6 +52,14 @@ import {
   getOutputDimensions,
   resolveExportSource,
 } from "#/components/editor/editorExportPlan";
+import { useExportAudioPlan } from "#/components/editor/useExportAudioPlan";
+import { useExportSettings } from "#/components/editor/useExportSettings";
+import { useExportVideoPlan } from "#/components/editor/useExportVideoPlan";
+import type { ExportAudioPlan } from "#/lib/export/exportAudio";
+import {
+  exportIncludesAudio,
+  isAudioExportFormat,
+} from "#/lib/export/exportFormats";
 
 interface UseEditorExportProperties {
   session: EditorSession;

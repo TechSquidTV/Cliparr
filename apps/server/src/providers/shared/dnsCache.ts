@@ -1,8 +1,9 @@
 import type { LookupAddress } from "node:dns";
-import { dedupeInflightFetch } from "@/providers/shared/inflight";
 import { lookup } from "node:dns/promises";
 import { addAbortListener } from "node:events";
 import { isIP } from "node:net";
+
+import { dedupeInflightFetch } from "@/providers/shared/inflight";
 import {
   normalizeHostname,
   normalizeIpCandidate,

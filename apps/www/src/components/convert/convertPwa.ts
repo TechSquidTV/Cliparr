@@ -1,12 +1,12 @@
 import {
+  type ConvertPwaInstallFormFactor,
+  type ConvertPwaInstallMetricInput,
   flushConvertMetrics,
   recordConvertPwaInstallAccepted,
   recordConvertPwaInstallClicked,
   recordConvertPwaInstallDismissed,
   recordConvertPwaInstalled,
   recordConvertPwaInstallPromptAvailable,
-  type ConvertPwaInstallFormFactor,
-  type ConvertPwaInstallMetricInput,
 } from "@/components/convert/convertMetrics";
 
 const CONVERT_PWA_INSTALL_DISMISSED_KEY =

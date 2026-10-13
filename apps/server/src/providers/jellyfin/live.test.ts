@@ -1,18 +1,19 @@
-import {
-  TEST_JELLYFIN_BASE_URL,
-  TEST_PUBLIC_ADDRESS,
-  mockProviderDns,
-} from "@/test/providerFixtures";
 import assert from "node:assert/strict";
-import dns from "node:dns/promises";
 import type { LookupAddress } from "node:dns";
-import { syncBuiltinESMExports } from "node:module";
+import dns from "node:dns/promises";
 import { createServer } from "node:http";
+import { syncBuiltinESMExports } from "node:module";
 import type { Duplex } from "node:stream";
 import test from "node:test";
 import { setImmediate } from "node:timers/promises";
+
 import type { MediaSource } from "@/db/mediaSourcesRepository";
 import { createDeferred } from "@/test/deferred";
+import {
+  mockProviderDns,
+  TEST_JELLYFIN_BASE_URL,
+  TEST_PUBLIC_ADDRESS,
+} from "@/test/providerFixtures";
 import { acceptTestWebSocket } from "@/test/webSocketFixtures";
 
 function createSource(baseUrl: string): MediaSource {

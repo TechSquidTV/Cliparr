@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+
 import { architectureViolations } from "#plex/check-architecture.mjs";
 
 const consumer = "apps/server/src/providers/plex/example.ts";

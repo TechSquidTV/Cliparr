@@ -1,18 +1,20 @@
-import { SESSION_TTL_MS } from "@/session/constants";
-import {
-  getSessionMediaHandles,
-  deleteSessionMediaHandles,
-} from "@/session/mediaHandles";
-import { notifyPlaybackStateChange } from "@/playback/stateChanges";
 import { randomUUID } from "node:crypto";
-import { eq, lte } from "drizzle-orm";
+
 import { logErrorFields, logEventFields } from "@cliparr/shared/logging";
+import { eq, lte } from "drizzle-orm";
+
 import { getDatabase } from "@/db/database";
 import { getProviderAccount } from "@/db/providerAccountsRepository";
-import { providerSessions, type ProviderSessionRow } from "@/db/schema";
+import { type ProviderSessionRow, providerSessions } from "@/db/schema";
 import { getServerLogger, warnWithError } from "@/logging";
+import { notifyPlaybackStateChange } from "@/playback/stateChanges";
 import type { MediaHandle } from "@/providers/types";
 import { decryptSecret, encryptSecret } from "@/security/secrets";
+import { SESSION_TTL_MS } from "@/session/constants";
+import {
+  deleteSessionMediaHandles,
+  getSessionMediaHandles,
+} from "@/session/mediaHandles";
 
 const SESSION_CACHE_TTL_MS = 60_000;
 const SESSION_CACHE_MAX_ENTRIES = 128;

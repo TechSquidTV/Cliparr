@@ -1,24 +1,12 @@
-import { createApiError } from "@/http/errors";
-import type { ProviderSessionRecord } from "@/session/store";
 import type { TranscodeDecisionData } from "@cliparr/plex/pms/types";
 import {
   libraryGetStreamsStreamUrl,
   startSelectedSubtitleUrl,
 } from "@cliparr/plex/pms/urls";
+
+import { createApiError } from "@/http/errors";
 import { requestSubtitleDecision } from "@/providers/plex/mediaClient";
-import type {
-  MediaHandle,
-  PlaybackSubtitleSelection,
-  PlaybackSubtitleTrack,
-} from "@/providers/types";
-import {
-  booleanFlag,
-  isTextSubtitleCodec,
-  normalizeSubtitleCodec,
-  subtitleFileExtension,
-} from "@/providers/shared/subtitles";
-import { numberValue, stringValue } from "@/providers/shared/utilities";
-import { type PlexSourceContext } from "@/providers/plex/shared";
+import { createMediaHandle } from "@/providers/plex/mediaHandles";
 import type {
   PlexMediaSelection,
   PlexMetadataItem,
@@ -33,7 +21,20 @@ import {
   resolveSelectedPart,
   streamEntries,
 } from "@/providers/plex/selection";
-import { createMediaHandle } from "@/providers/plex/mediaHandles";
+import { type PlexSourceContext } from "@/providers/plex/shared";
+import {
+  booleanFlag,
+  isTextSubtitleCodec,
+  normalizeSubtitleCodec,
+  subtitleFileExtension,
+} from "@/providers/shared/subtitles";
+import { numberValue, stringValue } from "@/providers/shared/utilities";
+import type {
+  MediaHandle,
+  PlaybackSubtitleSelection,
+  PlaybackSubtitleTrack,
+} from "@/providers/types";
+import type { ProviderSessionRecord } from "@/session/store";
 
 function selectedSubtitleTrackTitle(stream: PlexStream) {
   return (
@@ -73,6 +74,7 @@ function directSubtitleResource(stream: PlexStream) {
   if (["srt", "subrip", "vtt", "webvtt"].includes(codec ?? "")) {
     return { path: key, format, generatedOperation: false };
   }
+  return;
 }
 
 function buildSelectedPlexSubtitleTranscodePath(

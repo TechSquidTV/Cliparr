@@ -9,9 +9,10 @@ import {
 } from "node:fs/promises";
 import path from "node:path";
 import { parseArgs } from "node:util";
-import { writeCaptureAssets } from "#/write.ts";
-import { buildScenes, captureTarget } from "#/scenes.ts";
+
 import { run } from "#/process.ts";
+import { buildScenes, captureTarget } from "#/scenes.ts";
+import { writeCaptureAssets } from "#/write.ts";
 
 const root = path.resolve(import.meta.dirname, "../../..");
 const { values } = parseArgs({

@@ -1,11 +1,4 @@
-import { createClient } from "@hey-api/openapi-ts";
-import {
-  applySupplement,
-  inputFingerprints,
-  generateUrlBuilders,
-} from "#plex/contracts.mjs";
 import assert from "node:assert/strict";
-import { withArtifactTransaction } from "#plex/artifact-transaction.mjs";
 import { spawn } from "node:child_process";
 import { createHash } from "node:crypto";
 import {
@@ -19,6 +12,15 @@ import {
 } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
+
+import { createClient } from "@hey-api/openapi-ts";
+
+import { withArtifactTransaction } from "#plex/artifact-transaction.mjs";
+import {
+  applySupplement,
+  generateUrlBuilders,
+  inputFingerprints,
+} from "#plex/contracts.mjs";
 
 export const PLEX_PMS_SPEC_URL = "https://developer.plex.tv/pms/";
 export const PLEX_PMS_SPEC_PATH = "packages/plex/openapi/pms.json";

@@ -1,7 +1,8 @@
+import { cliparrClient } from "@/api/cliparrClient";
 import {
-  buildLocalEditorSession,
   type BrowserFileHandle,
   type BrowserFilePermissionState,
+  buildLocalEditorSession,
   type EditorFileHandleMediaSource,
   type EditorFileMediaSource,
   type EditorSession,
@@ -9,7 +10,6 @@ import {
   titleFromFileName,
   titleFromUrl,
 } from "@/components/editor/editorMedia";
-import { cliparrClient } from "@/api/cliparrClient";
 import { isHlsPlaylistUrl } from "@/lib/export/mediabunny/mediabunnyInput";
 
 const DATABASE_NAME = "cliparr-local-media";

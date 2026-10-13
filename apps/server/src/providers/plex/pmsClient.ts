@@ -1,5 +1,15 @@
+import {
+  eventsourceGetSlash,
+  getIdentity,
+  libraryMetadataGetSlash,
+  statusGetSlash,
+} from "@cliparr/plex/pms";
+import type { Client } from "@cliparr/plex/pms/client";
+import { createClient } from "@cliparr/plex/pms/client";
+
+import { type ApiError, createApiError, isApiError } from "@/http/errors";
 import { PLEX_CLIENT_IDENTIFIER, PLEX_PRODUCT } from "@/providers/plex/shared";
-import { createApiError, isApiError, type ApiError } from "@/http/errors";
+import { resolveHostnameAddresses } from "@/providers/shared/dnsCache";
 import {
   isRedirectStatus,
   isUnsafeRemoteHostname,
@@ -7,15 +17,6 @@ import {
 } from "@/providers/shared/networkPolicy";
 import { fetchWithPinnedDns } from "@/providers/shared/pinnedFetch";
 import { booleanEnv, errorMessage } from "@/providers/shared/utilities";
-import {
-  getIdentity,
-  eventsourceGetSlash,
-  libraryMetadataGetSlash,
-  statusGetSlash,
-} from "@cliparr/plex/pms";
-import type { Client } from "@cliparr/plex/pms/client";
-import { createClient } from "@cliparr/plex/pms/client";
-import { resolveHostnameAddresses } from "@/providers/shared/dnsCache";
 
 export interface PlexPmsRequestContext {
   baseUrl: string;

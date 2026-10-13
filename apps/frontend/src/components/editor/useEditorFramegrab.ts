@@ -1,12 +1,14 @@
-import { useCallback, useMemo, useState } from "react";
 import type { RefObject } from "react";
-import { errorMessage } from "@/components/editor/editorUtilities";
+import { useCallback, useMemo, useState } from "react";
+
 import type {
   EditorSession,
   MediaDimensions,
 } from "@/components/editor/editorMedia";
+import { errorMessage } from "@/components/editor/editorUtilities";
 import { downloadBlob } from "@/lib/downloadBlob";
 import { buildFramegrabFileName } from "@/lib/export/exportFileName";
+import type { FramegrabImageFormat } from "@/lib/export/exportFormats";
 import {
   cloneCanvasFrame,
   copyFramegrabCanvasToClipboard,
@@ -14,7 +16,6 @@ import {
   encodeFramegrabCanvas,
   type FramegrabImageQuality,
 } from "@/lib/framegrab";
-import type { FramegrabImageFormat } from "@/lib/export/exportFormats";
 
 interface CapturedFramegrab {
   canvas: HTMLCanvasElement;
@@ -218,6 +219,7 @@ export function useEditorFramegrab({
   }, [action, capturedFramegrab, fileName.fullName, format, quality]);
 
   return {
+    // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- An empty error should not keep the dialog mounted.
     dialogMounted: dialogOpen || Boolean(capturedFramegrab || error),
     capturedFramegrab,
     dialogOpen,

@@ -1,16 +1,17 @@
 import { Dialog as BaseDialog } from "@base-ui/react/dialog";
+import { X } from "lucide-react";
+import {
+  AnimatePresence,
+  type HTMLMotionProps,
+  motion,
+  type Transition,
+} from "motion/react";
+import * as React from "react";
+
 import {
   dialogFooterClasses,
   iconButtonClasses,
 } from "@/components/ui/control-styles";
-import { X } from "lucide-react";
-import {
-  AnimatePresence,
-  motion,
-  type HTMLMotionProps,
-  type Transition,
-} from "motion/react";
-import * as React from "react";
 import { cn } from "@/lib/cn";
 
 type DialogRootProperties = React.ComponentProps<typeof BaseDialog.Root>;
@@ -311,6 +312,7 @@ function DialogWindow({
   titleClassName,
   ...props
 }: DialogWindowProperties) {
+  // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- Empty titles and descriptions should not create a header.
   const hasHeader = Boolean(title || description);
 
   return (

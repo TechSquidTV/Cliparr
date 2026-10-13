@@ -2,18 +2,20 @@
 
 import assert from "node:assert/strict";
 import test from "node:test";
+
 import type { InputAudioTrack, InputVideoTrack } from "mediabunny";
+
 import {
   createProviderUrlSource,
   type EditorMediaSource,
 } from "@/components/editor/editorMedia";
 import {
+  assessPreviewAudioTrack,
   buildPlaybackSourceCandidates,
   playbackAudioSelectionsEqual,
   playbackSourceCandidatesEqual,
   resolvePlaybackDuration,
   selectPreviewVideoTrack,
-  assessPreviewAudioTrack,
 } from "@/components/editor/editorPlaybackSources";
 
 void test("checks selected AC3 audio decodability after registering its decoder", async () => {

@@ -1,8 +1,16 @@
-import type { ProviderSessionRecord } from "@/session/store";
-import type {
-  PlaybackSubtitleSelection,
-  PlaybackSubtitleTrack,
-} from "@/providers/types";
+import { createMediaHandle } from "@/providers/jellyfin/mediaProxy";
+import {
+  currentMediaSource,
+  isSubtitleMediaStream,
+} from "@/providers/jellyfin/selection";
+import {
+  booleanValue,
+  type JellyfinItem,
+  type JellyfinMediaStream,
+  type JellyfinPlaybackInfo,
+  type JellyfinSessionInfo,
+  type JellyfinSourceContext,
+} from "@/providers/jellyfin/shared";
 import {
   isTextSubtitleCodec,
   normalizeSubtitleCodec,
@@ -13,19 +21,11 @@ import {
   numberValue,
   stringValue,
 } from "@/providers/shared/utilities";
-import {
-  booleanValue,
-  type JellyfinItem,
-  type JellyfinMediaStream,
-  type JellyfinPlaybackInfo,
-  type JellyfinSessionInfo,
-  type JellyfinSourceContext,
-} from "@/providers/jellyfin/shared";
-import { createMediaHandle } from "@/providers/jellyfin/mediaProxy";
-import {
-  currentMediaSource,
-  isSubtitleMediaStream,
-} from "@/providers/jellyfin/selection";
+import type {
+  PlaybackSubtitleSelection,
+  PlaybackSubtitleTrack,
+} from "@/providers/types";
+import type { ProviderSessionRecord } from "@/session/store";
 
 function jellyfinSubtitleTrackTitle(stream: JellyfinMediaStream) {
   return (

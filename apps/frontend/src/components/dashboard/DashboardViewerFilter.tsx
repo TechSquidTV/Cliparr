@@ -1,17 +1,18 @@
-import { EmptyState } from "@/components/ui/empty-state";
-import { textInputClasses } from "@/components/ui/control-styles";
 import { Popover } from "@base-ui/react/popover";
 import { Check, ChevronDown, Search, Users, X } from "lucide-react";
 import { motion, useReducedMotion } from "motion/react";
 import { useState } from "react";
+
 import {
-  sanitizeDashboardViewerFilterNames,
   type DashboardViewerFilterOption,
+  sanitizeDashboardViewerFilterNames,
 } from "@/components/dashboard/dashboardPlaybackItems";
 import { DashboardViewerAvatar } from "@/components/dashboard/DashboardViewerAvatar";
+import { textInputClasses } from "@/components/ui/control-styles";
+import { EmptyState } from "@/components/ui/empty-state";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { cliparrMotionTransitions } from "@/lib/motion";
 import { cn } from "@/lib/cn";
+import { cliparrMotionTransitions } from "@/lib/motion";
 
 const DASHBOARD_VIEWER_FILTER_TRIGGER_VISIBLE_AVATAR_COUNT = 2;
 

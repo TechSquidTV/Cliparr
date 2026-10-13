@@ -2,6 +2,7 @@
 
 import assert from "node:assert/strict";
 import test from "node:test";
+
 import {
   DEFAULT_EDITOR_PROPERTIES_OPEN_SECTIONS,
   EDITOR_PROPERTIES_SECTION_ID,

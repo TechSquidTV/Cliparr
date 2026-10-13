@@ -1,4 +1,5 @@
 import type { Input } from "mediabunny";
+
 import type { EditorMediaSource } from "#/components/editor/editorMedia";
 
 const HLS_PLAYLIST_PATTERN = /\.m3u8(?:$|[#?])/i;

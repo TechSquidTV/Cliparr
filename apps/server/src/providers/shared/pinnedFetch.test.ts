@@ -1,21 +1,23 @@
-import { TEST_PUBLIC_ADDRESS } from "@/test/providerFixtures";
-import { PRIVATE_IPV4_ADDRESSES } from "@/test/networkPolicyFixtures";
 import assert from "node:assert/strict";
 import dns from "node:dns/promises";
 import { createServer } from "node:http";
 import { syncBuiltinESMExports } from "node:module";
 import test, { afterEach, type TestContext } from "node:test";
 import { setImmediate } from "node:timers/promises";
+
 import { Agent } from "undici";
+
+import { isApiError } from "@/http/errors";
+import { authenticateWithCredentials } from "@/providers/jellyfin/auth";
+import { fetchPublicSystemInfo } from "@/providers/jellyfin/shared";
+import { requestPlexPmsIdentity } from "@/providers/plex/pmsClient";
+import { fetchMediaHandleRequest } from "@/providers/shared/mediaProxy";
 import {
   closePooledPinnedDnsAgents,
   fetchWithPinnedDns,
 } from "@/providers/shared/pinnedFetch";
-import { fetchMediaHandleRequest } from "@/providers/shared/mediaProxy";
-import { isApiError } from "@/http/errors";
-import { requestPlexPmsIdentity } from "@/providers/plex/pmsClient";
-import { fetchPublicSystemInfo } from "@/providers/jellyfin/shared";
-import { authenticateWithCredentials } from "@/providers/jellyfin/auth";
+import { PRIVATE_IPV4_ADDRESSES } from "@/test/networkPolicyFixtures";
+import { TEST_PUBLIC_ADDRESS } from "@/test/providerFixtures";
 
 afterEach(closePooledPinnedDnsAgents);
 

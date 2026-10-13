@@ -1,4 +1,5 @@
 import { createRouter } from "@tanstack/react-router";
+
 import type { ProviderSession } from "@/providers/types";
 import { routeTree } from "@/routeTree.gen";
 
@@ -9,13 +10,13 @@ export interface RouterAuthContext {
 }
 
 export interface RouterContext {
-  auth: RouterAuthContext;
+  auth: RouterAuthContext | undefined;
 }
 
 export const router = createRouter({
   routeTree,
   context: {
-    auth: undefined!,
+    auth: undefined,
   },
 });
 

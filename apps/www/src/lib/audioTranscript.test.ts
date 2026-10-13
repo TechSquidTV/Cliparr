@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+
 import { parseAudioTranscript } from "@/lib/audioTranscript";
 
 void test("SRT transcript preserves timing and readable multiline text", async () => {

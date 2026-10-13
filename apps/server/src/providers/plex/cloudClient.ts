@@ -1,6 +1,7 @@
-import type { GetResourcesData } from "@cliparr/plex/cloud/types";
-import { createClient } from "@cliparr/plex/cloud/client";
 import { createPin, getPin, getResources } from "@cliparr/plex/cloud";
+import { createClient } from "@cliparr/plex/cloud/client";
+import type { GetResourcesData } from "@cliparr/plex/cloud/types";
+
 import { createApiError } from "@/http/errors";
 import { PLEX_CLIENT_IDENTIFIER, PLEX_PRODUCT } from "@/providers/plex/shared";
 

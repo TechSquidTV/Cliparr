@@ -1,6 +1,6 @@
 export type {
-  CurrentlyPlayingResponse,
   CurrentlyPlayingItem,
+  CurrentlyPlayingResponse,
   MediaExportMetadata,
   PlaybackAudioSelection,
   PlaybackExportEstimateMetadata,

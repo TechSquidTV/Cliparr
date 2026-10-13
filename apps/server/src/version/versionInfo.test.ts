@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+
 import {
   createVersionInfoService,
   parseStableSemverTag,
@@ -10,13 +11,7 @@ const RELEASE_URL =
   "https://github.com/TechSquidTV/Cliparr/releases/tag/v1.3.0";
 
 function jsonResponse(value: unknown, init: ResponseInit = {}) {
-  return Response.json(value, {
-    ...init,
-    headers: {
-      "content-type": "application/json",
-      ...init.headers,
-    },
-  });
+  return Response.json(value, init);
 }
 
 function releasePayload(tagName: string) {

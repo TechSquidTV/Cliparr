@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+
 import { seekCaptureFrame } from "@/components/editor/useEditorAssetCapture";
 
 void test("capture seeking pauses playback and uses the media adapter", () => {

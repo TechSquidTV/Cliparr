@@ -1,4 +1,3 @@
-import { Router } from "express";
 import {
   compactLogFields,
   logDurationFields,
@@ -6,23 +5,25 @@ import {
   logEventFields,
   sanitizeUrlForLog,
 } from "@cliparr/shared/logging";
+import { Router } from "express";
+
 import {
-  listMediaSources,
   deleteMediaSource,
   getMediaSourceForAccount,
+  listMediaSources,
   type MediaSource,
-  type UpdateMediaSourceInput,
   updateMediaSource,
+  type UpdateMediaSourceInput,
 } from "@/db/mediaSourcesRepository";
+import { setNoStore } from "@/http/cacheControl";
 import { asyncHandler, createApiError, isApiError } from "@/http/errors";
+import { getServerLogger, warnWithError } from "@/logging";
 import {
   PLEX_BASE_URL_MODE_MANUAL,
   withPlexBaseUrlMode,
 } from "@/providers/plex/connectionState";
 import { getProvider } from "@/providers/registry";
 import { requireAccountSession } from "@/session/request";
-import { setNoStore } from "@/http/cacheControl";
-import { getServerLogger, warnWithError } from "@/logging";
 
 export const sourcesRouter = Router();
 const logger = getServerLogger("source");

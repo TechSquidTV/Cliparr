@@ -77,6 +77,7 @@ export function buildDashboardViewerFilterOptions(
     const existing = options.get(normalizedName);
     if (existing) {
       existing.sessionCount += 1;
+      // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- An empty avatar URL should be replaced by a usable one.
       existing.avatarUrl ||= card.viewer.avatarUrl;
       continue;
     }

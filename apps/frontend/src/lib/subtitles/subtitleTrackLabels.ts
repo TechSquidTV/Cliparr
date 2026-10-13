@@ -14,6 +14,7 @@ function isPresent(value: string | null | undefined): value is string {
 
 function trimmedText(value: string | null | undefined) {
   const trimmed = value?.trim();
+  // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- Empty or whitespace-only labels are missing.
   return trimmed || undefined;
 }
 

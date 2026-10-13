@@ -1,12 +1,14 @@
 import assert from "node:assert/strict";
 import test, { type TestContext } from "node:test";
 import { setImmediate } from "node:timers/promises";
-import { subscribePlaybackStream } from "@/api/playbackStream";
+
 import {
   applyPlaybackProgress,
   type PlaybackStreamEvent,
   type ViewerPlaybackGroup,
 } from "@cliparr/shared/providers";
+
+import { subscribePlaybackStream } from "@/api/playbackStream";
 
 function mockPlaybackStream(context: TestContext) {
   const requests: AbortSignal[] = [];

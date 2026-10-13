@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { TimelineEngine, fromSeconds } from "@techsquidtv/canvas-timeline";
+
+import { fromSeconds, TimelineEngine } from "@techsquidtv/canvas-timeline";
+
 import {
   viewportRangeAfterZoomDrag,
   viewportScrollbarGeometry,

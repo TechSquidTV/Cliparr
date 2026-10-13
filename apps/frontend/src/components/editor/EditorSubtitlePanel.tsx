@@ -1,5 +1,4 @@
-import { Spinner } from "@/components/ui/spinner";
-import { useEffect, useRef, type RefObject } from "react";
+import { Menu } from "@base-ui/react/menu";
 import {
   ChevronLeft,
   ChevronRight,
@@ -8,25 +7,13 @@ import {
   Plus,
   Trash2,
 } from "lucide-react";
-import { Menu } from "@base-ui/react/menu";
+import { type RefObject, useEffect, useRef } from "react";
+
+import { EditorEditableTimecode } from "@/components/editor/EditorEditableTimecode";
 import {
-  Select,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-  SelectLabel,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Switch } from "@/components/ui/switch";
-import { ControlTooltip } from "@/components/ui/tooltip";
-import { subtitleTrackKey } from "@/lib/subtitles/selectPreferredSubtitleTrack";
-import { SubtitleTrackLabel } from "@/components/editor/SubtitleTrackLabel";
-import type { SubtitleStyleSettings } from "@/lib/subtitles/types";
-import {
+  EditorColorControl,
   EditorPropertyAccordion,
   EditorPropertyAccordionItem,
-  EditorColorControl,
   EditorPropertyRow,
   EditorPropertySection,
   EditorRangeControl,
@@ -36,11 +23,25 @@ import {
   type EditorPropertiesOpenSections,
   type EditorPropertiesSectionId,
 } from "@/components/editor/editorSidebarPreferences";
-import { useSubtitleFontOptions } from "@/components/editor/useSubtitleFontOptions";
-import { EditorEditableTimecode } from "@/components/editor/EditorEditableTimecode";
 import { formatTimecodeInput } from "@/components/editor/editorUtilities";
+import { SubtitleTrackLabel } from "@/components/editor/SubtitleTrackLabel";
 import type { useEditorSubtitles } from "@/components/editor/useEditorSubtitles";
+import { useSubtitleFontOptions } from "@/components/editor/useSubtitleFontOptions";
 import { editorIconButtonClassName } from "@/components/ui/control-styles";
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectLabel,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Spinner } from "@/components/ui/spinner";
+import { Switch } from "@/components/ui/switch";
+import { ControlTooltip } from "@/components/ui/tooltip";
+import { subtitleTrackKey } from "@/lib/subtitles/selectPreferredSubtitleTrack";
+import type { SubtitleStyleSettings } from "@/lib/subtitles/types";
 
 interface EditorSubtitlePanelProperties {
   subtitles: Pick<

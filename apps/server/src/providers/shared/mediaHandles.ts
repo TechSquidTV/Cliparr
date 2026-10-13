@@ -1,8 +1,8 @@
 import { randomUUID } from "node:crypto";
+
 import { logEventFields } from "@cliparr/shared/logging";
+
 import { getServerLogger } from "@/logging";
-import type { MediaHandle } from "@/providers/types";
-import type { ProviderSessionRecord } from "@/session/store";
 import {
   hlsSegmentIndex,
   hlsUriKind,
@@ -11,6 +11,8 @@ import {
   normalizeMediaPath,
   sanitizeLoggedMediaPath,
 } from "@/providers/shared/mediaUrlPolicy";
+import type { MediaHandle } from "@/providers/types";
+import type { ProviderSessionRecord } from "@/session/store";
 
 const logger = getServerLogger(["media", "proxy"]);
 

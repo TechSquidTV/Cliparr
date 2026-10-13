@@ -1,4 +1,3 @@
-import { useRef, useState, type ReactNode } from "react";
 import {
   Keyboard,
   MoreHorizontal,
@@ -6,20 +5,17 @@ import {
   RotateCcw,
   Undo2,
 } from "lucide-react";
-import { DialogWindow } from "@/components/ui/dialog";
+import { type ReactNode, useRef, useState } from "react";
+
+import type { EditorLayoutVariant } from "@/components/editor/EditorLayout";
+import type { useEditorHistory } from "@/components/editor/useEditorHistory";
 import {
   compactSecondaryButtonClasses,
   iconButtonClasses,
   primaryButtonClasses,
   secondaryButtonClasses,
 } from "@/components/ui/control-styles";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
-import type { useEditorHistory } from "@/components/editor/useEditorHistory";
-import type { EditorLayoutVariant } from "@/components/editor/EditorLayout";
+import { DialogWindow } from "@/components/ui/dialog";
 import {
   Drawer,
   DrawerContent,
@@ -28,6 +24,11 @@ import {
   DrawerTitle,
   DrawerTrigger,
 } from "@/components/ui/drawer";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 const shortcuts = [
   ["Play / pause", "Space"],

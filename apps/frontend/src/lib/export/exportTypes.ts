@@ -1,24 +1,23 @@
 import type { ExportAudioPlan } from "#/lib/export/exportAudio";
+import {
+  calibratedEstimatedVideoBitrateBps,
+  EXPORT_AUDIO_BITRATE_BPS,
+  EXPORT_ESTIMATE_CONTAINER_OVERHEAD,
+  type ExportVideoCodec,
+  exportVideoCodecPriorities,
+} from "#/lib/export/exportEncodingPolicy";
+import {
+  type ExportFormat,
+  exportIncludesAudio,
+  type ExportMode,
+  isAudioExportFormat,
+} from "#/lib/export/exportFormats";
 import type {
   GifDitherMode,
   GifPaletteFormat,
   GifPaletteMode,
   GifTemporalDitherSettings,
 } from "#/lib/export/gif/gifEncodingSettings";
-import {
-  calibratedEstimatedVideoBitrateBps,
-  exportVideoCodecPriorities,
-  EXPORT_AUDIO_BITRATE_BPS,
-  EXPORT_ESTIMATE_CONTAINER_OVERHEAD,
-  type ExportVideoCodec,
-} from "#/lib/export/exportEncodingPolicy";
-
-import {
-  isAudioExportFormat,
-  exportIncludesAudio,
-  type ExportMode,
-  type ExportFormat,
-} from "#/lib/export/exportFormats";
 export type { ExportFormat } from "#/lib/export/exportFormats";
 
 export type ExportResolution = "original" | "1080" | "720";

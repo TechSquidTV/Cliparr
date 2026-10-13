@@ -1,8 +1,11 @@
 ---
+import "@/styles/global.css";
+
 import { ClientRouter, fade } from "astro:transitions";
-import SiteTooltips from "@/components/SiteTooltips.astro";
+
 import Footer from "@/components/Footer.astro";
 import Header from "@/components/Header.astro";
+import SiteTooltips from "@/components/SiteTooltips.astro";
 import { site } from "@/data/product";
 import { markdownPath } from "@/lib/markdown";
 import {
@@ -12,7 +15,6 @@ import {
   pageStructuredData,
   type StructuredDataInput,
 } from "@/lib/structuredData";
-import "@/styles/global.css";
 
 interface Props {
   isNotFound?: boolean;

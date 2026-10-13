@@ -1,13 +1,15 @@
+import assert from "node:assert/strict";
+import dns from "node:dns/promises";
+import { syncBuiltinESMExports } from "node:module";
+import test, { afterEach, beforeEach } from "node:test";
+
+import { Agent } from "undici";
+
+import { closePooledPinnedDnsAgents } from "@/providers/shared/pinnedFetch";
 import {
   PRIVATE_IPV4_ADDRESSES,
   PRIVATE_IPV6_ADDRESS,
 } from "@/test/networkPolicyFixtures";
-import assert from "node:assert/strict";
-import dns from "node:dns/promises";
-import { syncBuiltinESMExports } from "node:module";
-import test, { beforeEach, afterEach } from "node:test";
-import { Agent } from "undici";
-import { closePooledPinnedDnsAgents } from "@/providers/shared/pinnedFetch";
 
 const { fetchPublicSystemInfo, resolveCredentialServerUrl } =
   await (async () => {

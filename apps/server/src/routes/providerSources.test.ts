@@ -3,6 +3,8 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import test from "node:test";
+
+import { createApp } from "@/app";
 import { closeDatabase } from "@/db/database";
 import {
   getMediaSourceByProviderExternalId,
@@ -11,12 +13,11 @@ import {
   upsertMediaSource,
 } from "@/db/mediaSourcesRepository";
 import { upsertProviderAccountByAccessToken } from "@/db/providerAccountsRepository";
-import { createApp } from "@/app";
+import { getSessionCookieName } from "@/http/cookies";
+import { isApiError } from "@/http/errors";
+import { PLEX_BASE_URL_MODE_MANUAL } from "@/providers/plex/connectionState";
 import { plexProvider } from "@/providers/plex/provider";
 import { createProviderSession } from "@/session/store";
-import { getSessionCookieName } from "@/http/cookies";
-import { PLEX_BASE_URL_MODE_MANUAL } from "@/providers/plex/connectionState";
-import { isApiError } from "@/http/errors";
 
 const TEST_APP_KEY = "provider-routes-test-key-with-at-least-32-characters";
 
@@ -30,13 +31,7 @@ function restoreEnv(name: string, value: string | undefined) {
 }
 
 function jsonResponse(value: unknown, init: ResponseInit = {}) {
-  return Response.json(value, {
-    ...init,
-    headers: {
-      "content-type": "application/json",
-      ...init.headers,
-    },
-  });
+  return Response.json(value, init);
 }
 
 function cookieHeader(response: Response) {
@@ -335,6 +330,7 @@ void test("logs into Jellyfin with a regular account and stores a remembered pro
 
         upstreamRequests.push({
           url: requestUrl,
+          // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- An empty request body is recorded as absent.
           body: requestBody || undefined,
         });
 

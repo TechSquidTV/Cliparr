@@ -1,7 +1,5 @@
 import type { MediaSource } from "@/db/mediaSourcesRepository";
 import { createApiError, isApiError } from "@/http/errors";
-import type { ProviderResource } from "@/providers/types";
-import { stringValue } from "@/providers/shared/utilities";
 import {
   authenticateJellyfinUser,
   connectionInfo,
@@ -15,6 +13,8 @@ import {
   resolveCredentialServerUrl,
   sourceContext,
 } from "@/providers/jellyfin/shared";
+import { stringValue } from "@/providers/shared/utilities";
+import type { ProviderResource } from "@/providers/types";
 
 async function parseCredentialsInput(body: unknown) {
   if (!body || typeof body !== "object" || Array.isArray(body)) {

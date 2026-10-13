@@ -1,13 +1,14 @@
+import { registerAc3Encoder } from "@mediabunny/ac3";
 import {
+  type AudioCodec,
   AudioSample,
   AudioSampleSource,
   BufferTarget,
   CanvasSource,
   Mp4OutputFormat,
   Output,
-  type AudioCodec,
 } from "mediabunny";
-import { registerAc3Encoder } from "@mediabunny/ac3";
+
 import { ensureAudioEncoder } from "#/lib/export/mediabunny/mediabunnyCodecs";
 
 /** Generated in an isolated browser context, never the context measuring downloads. */

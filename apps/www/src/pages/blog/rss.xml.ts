@@ -1,6 +1,7 @@
 import rss from "@astrojs/rss";
 import type { APIRoute } from "astro";
 import { getCollection } from "astro:content";
+
 import { type BlogTagId, blogTagLabel, compareBlogPosts } from "@/data/blog";
 import { site as productSite } from "@/data/product";
 

@@ -1,12 +1,13 @@
+import { type LucideIcon, PanelRightClose, PanelRightOpen } from "lucide-react";
 import type { ReactNode } from "react";
-import { PanelRightClose, PanelRightOpen, type LucideIcon } from "lucide-react";
-import { cn } from "@/lib/cn";
+
+import { editorIconButtonClassName } from "@/components/ui/control-styles";
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { editorIconButtonClassName } from "@/components/ui/control-styles";
+import { cn } from "@/lib/cn";
 
 interface EditorSidebarProperties {
   open: boolean;

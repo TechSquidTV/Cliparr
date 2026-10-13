@@ -2,14 +2,18 @@
 
 import assert from "node:assert/strict";
 import test from "node:test";
-import { createElement, type ComponentProps } from "react";
+
+import { type ComponentProps, createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
+
+import AuthCompleteScreen from "@/components/dashboard/AuthCompleteScreen";
+import { DashboardMobileMenu } from "@/components/dashboard/DashboardMobileMenu";
 import {
-  DASHBOARD_VIEWER_FILTER_STORAGE_KEY,
   activeDashboardViewerFilterNames,
   buildDashboardViewerFilterOptions,
   canUseDashboardViewerFilter,
   countDashboardViewerFilterHiddenCards,
+  DASHBOARD_VIEWER_FILTER_STORAGE_KEY,
   filterDashboardPlaybackCardsByViewer,
   flattenDashboardPlaybackItems,
   formatViewerSessionCount,
@@ -18,17 +22,19 @@ import {
   sanitizeDashboardViewerFilterNames,
   writeDashboardViewerFilter,
 } from "@/components/dashboard/dashboardPlaybackItems";
-import AuthCompleteScreen from "@/components/dashboard/AuthCompleteScreen";
+import DashboardScreen from "@/components/dashboard/DashboardScreen";
 import {
   DashboardPlaybackCard,
   DashboardVersionBadge,
 } from "@/components/dashboard/DashboardScreen";
-import DashboardScreen from "@/components/dashboard/DashboardScreen";
 import {
   DashboardPlaybackFilterEmptyState,
   DashboardViewerFilterPicker,
 } from "@/components/dashboard/DashboardViewerFilter";
-import { DashboardMobileMenu } from "@/components/dashboard/DashboardMobileMenu";
+import {
+  MobilePwaInstallNudge,
+  MobilePwaInstallNudgeCard,
+} from "@/components/dashboard/MobilePwaInstallNudge";
 import { EditorControls } from "@/components/editor/EditorControls";
 import { EditorExportDialog } from "@/components/editor/EditorExportDialog";
 import { EditorFramegrabDialog } from "@/components/editor/EditorFramegrabDialog";
@@ -37,14 +43,10 @@ import { EditorTimelinePane } from "@/components/editor/EditorLayout";
 import { EditorPreview } from "@/components/editor/EditorPreview";
 import { LocalVideoOpenDialog } from "@/components/local-media/LocalVideoOpenDialog";
 import ProviderConnectScreen from "@/components/provider-connect/ProviderConnectScreen";
-import {
-  MobilePwaInstallNudge,
-  MobilePwaInstallNudgeCard,
-} from "@/components/dashboard/MobilePwaInstallNudge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { gifExportSettingsForPreset } from "@/lib/export/exportTypes";
 import { resolveExportAudioPlan } from "@/lib/export/exportAudio";
+import { gifExportSettingsForPreset } from "@/lib/export/exportTypes";
 import {
   COARSE_POINTER_MEDIA_QUERY,
   MOBILE_INSTALL_MEDIA_QUERY,

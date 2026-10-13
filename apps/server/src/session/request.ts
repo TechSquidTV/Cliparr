@@ -1,10 +1,11 @@
 import type { Request } from "express";
+
+import { getSessionCookieName, readCookie } from "@/http/cookies";
 import { createApiError } from "@/http/errors";
 import {
   getProviderSession,
   type ProviderSessionRecord,
 } from "@/session/store";
-import { getSessionCookieName, readCookie } from "@/http/cookies";
 
 export function getRequestSessionId(request: Request) {
   return readCookie(request.header("cookie"), getSessionCookieName());

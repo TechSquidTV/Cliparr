@@ -1,13 +1,14 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
+
 import {
+  type ConvertPwaInstallEnvironment,
   isIosLikeDevice,
   metricInputForConvertPwaInstallState,
   readConvertPwaInstallDismissed,
   resolveConvertPwaInstallState,
   writeConvertPwaInstallDismissed,
-  type ConvertPwaInstallEnvironment,
 } from "@/components/convert/convertPwa";
 
 function installEnvironment(

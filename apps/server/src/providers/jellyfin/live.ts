@@ -1,6 +1,5 @@
-import { createApiError } from "@/http/errors";
 import type { MediaSource } from "@/db/mediaSourcesRepository";
-import type { PlaybackObserver } from "@/providers/types";
+import { createApiError } from "@/http/errors";
 import {
   createJellyfinPlaybackResolver,
   jellyfinPlaybackIdentity,
@@ -12,10 +11,11 @@ import {
   fetchPublicSystemInfo,
   fetchSessions,
   jellyfinHeaders,
-  sourceContext,
   type JellyfinSessionInfo,
+  sourceContext,
 } from "@/providers/jellyfin/shared";
 import { readLiveWebSocket } from "@/providers/shared/liveWebSocket";
+import type { PlaybackObserver } from "@/providers/types";
 
 export function jellyfinSupportsLiveSessions(
   version: string,

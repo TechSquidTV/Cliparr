@@ -1,11 +1,13 @@
 import assert from "node:assert/strict";
-import { mkdtemp, readFile, writeFile, cp, rm } from "node:fs/promises";
+import { cp, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import test from "node:test";
+
 import ts from "typescript";
+
 import { applySupplement, contractFingerprint } from "#plex/contracts.mjs";
-import { generatePlexPmsSdk, diffGeneratedSdk } from "#plex/pms-openapi.mjs";
+import { diffGeneratedSdk, generatePlexPmsSdk } from "#plex/pms-openapi.mjs";
 
 const directory = path.resolve("packages/plex/openapi");
 const upstream = JSON.parse(

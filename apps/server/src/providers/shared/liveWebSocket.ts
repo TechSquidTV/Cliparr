@@ -1,6 +1,8 @@
-import { createApiError } from "@/http/errors";
-import { WebSocket } from "undici";
 import { isIP, type Socket } from "node:net";
+
+import { WebSocket } from "undici";
+
+import { createApiError } from "@/http/errors";
 import { createPinnedDnsAgent } from "@/providers/shared/pinnedFetch";
 
 export async function readLiveWebSocket(options: {

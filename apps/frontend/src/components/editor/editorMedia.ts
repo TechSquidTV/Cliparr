@@ -1,3 +1,4 @@
+import { isHlsPlaylistUrl } from "#/lib/export/mediabunny/mediabunnyInput";
 import type {
   CurrentlyPlayingItem,
   MediaExportMetadata,
@@ -7,7 +8,6 @@ import type {
   PlaybackSubtitleSelection,
   PlaybackSubtitleTrack,
 } from "#/providers/types";
-import { isHlsPlaylistUrl } from "#/lib/export/mediabunny/mediabunnyInput";
 
 const LOCAL_PROVIDER_ID = "local";
 

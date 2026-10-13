@@ -1,8 +1,8 @@
 import {
-  toSeconds,
-  type TimelineEngine,
   type RangeScrollbarHandleSide,
   type RangeScrollbarValue,
+  type TimelineEngine,
+  toSeconds,
 } from "@techsquidtv/canvas-timeline";
 
 export const EDITOR_MAX_ZOOM_SCALE = 1000;

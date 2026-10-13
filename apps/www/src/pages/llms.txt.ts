@@ -1,9 +1,10 @@
 import type { APIRoute } from "astro";
 import { getCollection } from "astro:content";
-import { docsForSection, docsSections, type DocsSectionId } from "@/data/docs";
+
+import { docsForSection, type DocsSectionId, docsSections } from "@/data/docs";
 import { site } from "@/data/product";
-import { canonicalSiteUrl } from "@/lib/structuredData";
 import { markdownPath } from "@/lib/markdown";
+import { canonicalSiteUrl } from "@/lib/structuredData";
 
 interface DocumentationIndexEntry {
   data: {

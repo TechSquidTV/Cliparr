@@ -1,6 +1,7 @@
-import type { CSSProperties, ReactNode } from "react";
 import { Accordion } from "@base-ui/react/accordion";
 import { ChevronRight } from "lucide-react";
+import type { CSSProperties, ReactNode } from "react";
+
 import { cn } from "@/lib/cn";
 
 function editorPropertyLabelClassName() {
@@ -16,6 +17,7 @@ export function EditorPropertySection({
   action?: ReactNode;
   children: ReactNode;
 }) {
+  // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- Empty titles and falsy React nodes do not create a header.
   const hasHeader = Boolean(title || action);
 
   return (

@@ -1,9 +1,11 @@
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
+
 import { AudioSampleSink, BlobSource, Input, WAVE } from "mediabunny";
-import { exportClip } from "#/lib/export/exportClip";
+
 import { createPcmWav } from "#/lib/export/exportAudioFixtures.test-support";
+import { exportClip } from "#/lib/export/exportClip";
 
 async function exportWav(file: File, startFrame: number, endFrame: number) {
   const blob = await exportClip({

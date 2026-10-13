@@ -1,30 +1,30 @@
-import { createDeferred } from "#/lib/export/deferred.test-support";
-import {
-  createIncompleteSourceAudioError,
-  isIncompleteSourceAudioError,
-} from "#/lib/export/exportSourceAudio";
-/// <reference types="node" />
-
-import { resolveExportAudioPlan } from "@/lib/export/exportAudio";
-import { buildMetadataTags } from "@/lib/export/exportMetadata";
-
 import assert from "node:assert/strict";
 import test from "node:test";
-import { MP4 } from "mediabunny";
-import type { ConversionOptions } from "mediabunny";
+
 import type { Palette } from "@techsquidtv/gifenc";
+import type { ConversionOptions } from "mediabunny";
+import { MP4 } from "mediabunny";
+
+import type { EditorMediaSource } from "@/components/editor/editorMedia";
+/// <reference types="node" />
+import { resolveExportAudioPlan } from "@/lib/export/exportAudio";
 import {
   createGifCanvas,
   exportClipWithRuntime,
   type ExportVideoEncodingPlan,
 } from "@/lib/export/exportClip";
-import type { EditorMediaSource } from "@/components/editor/editorMedia";
+import { buildMetadataTags } from "@/lib/export/exportMetadata";
 import { gifExportSettingsForPreset } from "@/lib/export/exportTypes";
-import { createInlineGifFrameEncoder } from "@/lib/export/gif/gifFrameEncoder";
-import { concatenateGifFrameChunks } from "@/lib/export/gif/gifFrameChunk";
 import type { EncodeGifFrameChunkHelpers } from "@/lib/export/gif/gifFrameChunk";
-import type { SubtitleStyleSettings } from "@/lib/subtitles/types";
+import { concatenateGifFrameChunks } from "@/lib/export/gif/gifFrameChunk";
+import { createInlineGifFrameEncoder } from "@/lib/export/gif/gifFrameEncoder";
 import { getTrackTimelineOffsetSeconds } from "@/lib/export/mediabunny/mediabunnyTrackAccess";
+import type { SubtitleStyleSettings } from "@/lib/subtitles/types";
+import { createDeferred } from "#/lib/export/deferred.test-support";
+import {
+  createIncompleteSourceAudioError,
+  isIncompleteSourceAudioError,
+} from "#/lib/export/exportSourceAudio";
 
 type ExportRuntime = Parameters<typeof exportClipWithRuntime>[1];
 type CliparrInput = Awaited<

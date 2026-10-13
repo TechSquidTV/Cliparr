@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 import { execFileSync } from "node:child_process";
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
-import { writeGithubOutput } from "#release/github-output.mjs";
 import { pathToFileURL } from "node:url";
+
 import {
   bumpVersion,
   compareSemverTags,
@@ -16,6 +16,7 @@ import {
   parseSemverTag,
   summarizeChanges,
 } from "#release/conventional.mjs";
+import { writeGithubOutput } from "#release/github-output.mjs";
 
 const validChannels = new Set(["stable", "rc", "beta"]);
 const valueArgumentNames = new Set(["--channel", "--target", "--image-name"]);

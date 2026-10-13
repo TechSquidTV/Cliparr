@@ -1,12 +1,13 @@
 import { createFileRoute, useCanGoBack } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
+
 import { cliparrClient } from "@/api/cliparrClient";
+import {
+  type EditorSession,
+  editorSessionFromCurrentlyPlaying,
+} from "@/components/editor/editorMedia";
 import EditorScreen from "@/components/editor/EditorScreen";
 import { BarsLoader } from "@/components/ui/bars-loader";
-import {
-  editorSessionFromCurrentlyPlaying,
-  type EditorSession,
-} from "@/components/editor/editorMedia";
 import { getPendingEditorTransitionSession } from "@/lib/viewTransitions";
 import { router } from "@/router";
 

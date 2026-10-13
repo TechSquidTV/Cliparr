@@ -1,24 +1,25 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   logDurationFields,
   logErrorFields,
   logEventFields,
 } from "@cliparr/shared/logging";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+
 import { cliparrClient } from "@/api/cliparrClient";
 import { useAuth } from "@/auth";
-import type { MediaSource, ProviderSession } from "@/providers/types";
-import type { Feedback, SourceFilter } from "@/components/sources/sourcesTypes";
 import {
   buildSourceEditInput,
   draftBaseUrlsFor,
   draftNamesFor,
   filterSources,
   mergeRefreshAllSourceResults,
+  sortSources,
   sourceCounts,
   sourceProviderOptions,
-  sortSources,
 } from "@/components/sources/sourcesStateUtilities";
+import type { Feedback, SourceFilter } from "@/components/sources/sourcesTypes";
 import { getFrontendLogger, warnWithError } from "@/logging";
+import type { MediaSource, ProviderSession } from "@/providers/types";
 
 interface UseSourcesStateOptions {
   isOpen: boolean;

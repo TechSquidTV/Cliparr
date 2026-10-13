@@ -1,5 +1,6 @@
-import { normalizedText } from "#/lib/subtitles/normalizedText";
 import type { InputAudioTrack, InputVideoTrack } from "mediabunny";
+
+import { normalizedText } from "#/lib/subtitles/normalizedText";
 import type { PlaybackAudioSelection } from "#/providers/types";
 
 async function selectPreferredAudioTrack(

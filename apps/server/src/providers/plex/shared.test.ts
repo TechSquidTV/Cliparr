@@ -1,12 +1,13 @@
-import { TEST_PLEX_BASE_URL } from "@/test/providerFixtures";
 import assert from "node:assert/strict";
 import test from "node:test";
+
 import { isApiError } from "@/http/errors";
-import type { ProviderResource } from "@/providers/types";
 import {
   normalizeResources,
   requirePlexServerResources,
 } from "@/providers/plex/shared";
+import type { ProviderResource } from "@/providers/types";
+import { TEST_PLEX_BASE_URL } from "@/test/providerFixtures";
 
 void test("normalizes Plex server resources with JSON boolean flags", () => {
   const resources = normalizeResources([

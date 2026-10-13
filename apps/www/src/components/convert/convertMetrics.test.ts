@@ -1,7 +1,9 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+
 import {
   buildConvertMetricAttributes,
+  type ConvertMetricsDependencies,
   flushConvertMetrics,
   normalizeConvertSourceFormat,
   recordConvertExportCompleted,
@@ -12,7 +14,6 @@ import {
   recordConvertPwaInstalled,
   recordConvertPwaInstallPromptAvailable,
   recordConvertPwaInstallPromptShown,
-  type ConvertMetricsDependencies,
 } from "@/components/convert/convertMetrics";
 
 type MetricCall = {

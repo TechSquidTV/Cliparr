@@ -1,5 +1,7 @@
 import { isIP } from "node:net";
+
 import type { Request } from "express";
+
 import { createApiError } from "@/http/errors";
 
 type OriginAwareRequest = Pick<Request, "get" | "hostname" | "secure">;
@@ -14,6 +16,7 @@ function isValidRequestHost(host: string) {
 
 function firstHeaderValue(value: string | undefined) {
   const first = value?.split(",")[0]?.trim();
+  // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- An empty forwarded header value is missing.
   return first || undefined;
 }
 

@@ -2,8 +2,9 @@ import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import { readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
-import ts from "typescript";
 import { isDeepStrictEqual } from "node:util";
+
+import ts from "typescript";
 
 export const CONTRACT_INPUTS = [
   "pms.json",

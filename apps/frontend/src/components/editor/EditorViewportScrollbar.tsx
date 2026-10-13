@@ -1,16 +1,17 @@
-import { ControlTooltip } from "@/components/ui/tooltip";
 import {
   RangeScrollbar,
-  Timeline,
-  useTimelineViewportRangeControl,
   type RangeScrollbarHandleSide,
   type RangeScrollbarValue,
+  Timeline,
+  useTimelineViewportRangeControl,
 } from "@techsquidtv/canvas-timeline";
-import { useRef, type PointerEvent, type KeyboardEvent } from "react";
+import { type KeyboardEvent, type PointerEvent, useRef } from "react";
+
 import {
   viewportRangeAfterZoomDrag,
   viewportScrollbarGeometry,
 } from "@/components/editor/editorTimelineZoom";
+import { ControlTooltip } from "@/components/ui/tooltip";
 
 type ViewportControl = ReturnType<typeof useTimelineViewportRangeControl>;
 

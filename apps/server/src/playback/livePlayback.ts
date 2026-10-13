@@ -1,14 +1,22 @@
+import { logEventFields } from "@cliparr/shared/logging";
 import {
   applyPlaybackProgress,
   type PlaybackProgress,
+  type PlaybackSnapshot,
   type PlaybackSourceStatus,
   type PlaybackStreamEvent,
-  type PlaybackSnapshot,
 } from "@cliparr/shared/providers";
+
 import {
   listMediaSources,
   type MediaSource,
 } from "@/db/mediaSourcesRepository";
+import { createApiError } from "@/http/errors";
+import { getServerLogger } from "@/logging";
+import { groupCurrentPlayback } from "@/playback/groupPlayback";
+import { createPlaybackMaterialization } from "@/playback/materialization";
+import { startSourceConnection } from "@/playback/sourceConnection";
+import { subscribePlaybackStateChanges } from "@/playback/stateChanges";
 import { getProvider } from "@/providers/registry";
 import type {
   CurrentlyPlayingEntry,
@@ -16,13 +24,6 @@ import type {
   ProviderImplementation,
 } from "@/providers/types";
 import type { ProviderSessionRecord } from "@/session/store";
-import { startSourceConnection } from "@/playback/sourceConnection";
-import { createPlaybackMaterialization } from "@/playback/materialization";
-import { getServerLogger } from "@/logging";
-import { logEventFields } from "@cliparr/shared/logging";
-import { groupCurrentPlayback } from "@/playback/groupPlayback";
-import { subscribePlaybackStateChanges } from "@/playback/stateChanges";
-import { createApiError } from "@/http/errors";
 
 const logger = getServerLogger(["media", "discovery"]);
 const MAX_LISTENERS_PER_SESSION = 8;

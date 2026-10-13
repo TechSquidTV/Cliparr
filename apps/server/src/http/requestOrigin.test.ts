@@ -1,14 +1,16 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+
 import type { Request } from "express";
-import {
-  getRequestRouteUrl,
-  requestOriginIsPotentiallyTrustworthy,
-} from "@/http/requestOrigin";
+
 import {
   getSessionCookieClearOptions,
   getSessionCookieOptions,
 } from "@/http/cookies";
+import {
+  getRequestRouteUrl,
+  requestOriginIsPotentiallyTrustworthy,
+} from "@/http/requestOrigin";
 
 function makeRequest(
   secure: boolean,

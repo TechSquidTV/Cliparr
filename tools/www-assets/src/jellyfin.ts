@@ -4,6 +4,7 @@ import {
   getLibraryApi,
   getSessionApi,
 } from "@jellyfin/sdk/lib/utils/api/index.js";
+
 import { waitUntil } from "#/process.ts";
 import type { CaptureScene } from "#/scenes.ts";
 

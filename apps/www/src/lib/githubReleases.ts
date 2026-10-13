@@ -1,4 +1,5 @@
 import type { Loader } from "astro/loaders";
+
 import { site } from "@/data/product";
 
 interface GitHubRelease {
@@ -39,6 +40,7 @@ function releaseId(release: GitHubRelease) {
 }
 
 function releaseTitle(release: GitHubRelease) {
+  // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- A blank release name must use the tag.
   const name = release.name?.trim() || release.tag_name;
   const tagPattern = new RegExp(
     String.raw`^${release.tag_name.replaceAll(/[.*+?^${}()|[\]\\]/gu, String.raw`\$&`)}(?:\s+-\s+|\s+)?`,
@@ -149,6 +151,7 @@ export function githubReleasesLoader(): Loader {
             releaseId: release.id,
             url: release.html_url,
             tagName: release.tag_name,
+            // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- A blank release name must use the tag.
             name: release.name?.trim() || release.tag_name,
             title: releaseTitle(release),
             prerelease: release.prerelease,

@@ -1,18 +1,9 @@
-import type {
-  audioBitDepthSummary,
-  ExportAudioPlan,
-} from "#/lib/export/exportAudio";
-import { Switch } from "#/components/ui/switch";
-import {
-  isAudioExportFormat,
-  exportIncludesAudio,
-  exportFormatFor,
-  exportFormats,
-  type ExportMode,
-  type ExportOutputType,
-} from "#/lib/export/exportFormats";
-import { memo } from "react";
 import { Info } from "lucide-react";
+import { memo } from "react";
+
+import type { MediaDimensions } from "#/components/editor/editorMedia";
+import { formatTime } from "#/components/editor/editorUtilities";
+import { fieldLabelWideClasses } from "#/components/ui/control-styles";
 import {
   Select,
   SelectContent,
@@ -22,36 +13,46 @@ import {
   SelectTrigger,
   SelectValue,
 } from "#/components/ui/select";
+import { Switch } from "#/components/ui/switch";
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
 } from "#/components/ui/tooltip";
 import type {
-  ExportPhase,
+  audioBitDepthSummary,
+  ExportAudioPlan,
+} from "#/lib/export/exportAudio";
+import type {
   ExportFormat,
+  ExportPhase,
   ExportResolution,
 } from "#/lib/export/exportClip";
 import {
-  type ExportSourcePreference,
-  formatExportSizeEstimate,
-  type ExportSizeEstimate,
+  type ExportFileNameTemplateKind,
+  type ExportFileNameTemplateSettings,
+  getExportFileNameTemplateTokens,
+} from "#/lib/export/exportFileName";
+import {
+  exportFormatFor,
+  exportFormats,
+  exportIncludesAudio,
+  type ExportMode,
+  type ExportOutputType,
+  isAudioExportFormat,
+} from "#/lib/export/exportFormats";
+import {
   exportQualityDescriptionFor,
   exportQualityOptionFor,
   exportQualityOptionsForFormat,
-  gifExportPresetOptions,
   type ExportQualityPreset,
+  type ExportSizeEstimate,
+  type ExportSourcePreference,
+  formatExportSizeEstimate,
   type GifExportPreset,
+  gifExportPresetOptions,
   type GifExportSettings,
 } from "#/lib/export/exportTypes";
-import {
-  getExportFileNameTemplateTokens,
-  type ExportFileNameTemplateKind,
-  type ExportFileNameTemplateSettings,
-} from "#/lib/export/exportFileName";
-import { fieldLabelWideClasses } from "#/components/ui/control-styles";
-import { formatTime } from "#/components/editor/editorUtilities";
-import type { MediaDimensions } from "#/components/editor/editorMedia";
 
 interface ExportOption<T extends string> {
   value: T;

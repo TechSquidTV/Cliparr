@@ -1,4 +1,5 @@
 import { Film, Server } from "lucide-react";
+
 import { cn } from "@/lib/cn";
 
 const plexLogoUrl = new URL("../../assets/providers/plex.svg", import.meta.url)

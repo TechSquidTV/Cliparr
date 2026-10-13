@@ -1,10 +1,10 @@
 import { isApiError } from "@/http/errors";
-import { watchCurrentlyPlaying } from "@/providers/plex/live";
 import { pollAuth, startAuth } from "@/providers/plex/auth";
 import {
   PLEX_BASE_URL_MODE_AUTO,
   withPlexBaseUrlMode,
 } from "@/providers/plex/connectionState";
+import { watchCurrentlyPlaying } from "@/providers/plex/live";
 import { proxyMedia } from "@/providers/plex/mediaProxy";
 import { listCurrentlyPlaying } from "@/providers/plex/playback";
 import {

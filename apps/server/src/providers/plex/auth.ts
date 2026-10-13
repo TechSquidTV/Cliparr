@@ -1,23 +1,24 @@
 import {
-  requestPin,
-  requestPinStatus,
-  requestResources,
-} from "@/providers/plex/cloudClient";
-import {
   createHash,
   randomBytes,
   randomUUID,
   timingSafeEqual,
 } from "node:crypto";
+
 import { createApiError } from "@/http/errors";
+import {
+  requestPin,
+  requestPinStatus,
+  requestResources,
+} from "@/providers/plex/cloudClient";
 import {
   AUTH_TTL_MS,
   MAX_PENDING_AUTH_REQUESTS,
   normalizeResources,
   PLEX_CLIENT_IDENTIFIER,
   PLEX_PRODUCT,
-  requirePlexServerResources,
   type PlexAuthRequest,
+  requirePlexServerResources,
 } from "@/providers/plex/shared";
 
 const authRequests = new Map<string, PlexAuthRequest>();

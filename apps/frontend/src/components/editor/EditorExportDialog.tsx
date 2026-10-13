@@ -1,43 +1,44 @@
-import { Spinner } from "@/components/ui/spinner";
-import type {
-  audioBitDepthSummary,
-  ExportAudioPlan,
-} from "#/lib/export/exportAudio";
-import type { ExportMode, ExportOutputType } from "#/lib/export/exportFormats";
 import { Download, FileText } from "lucide-react";
+
+import {
+  EditorExportSettingsSection,
+  EditorExportSummaryPanel,
+  EditorFilenameTemplateSection,
+  ExportStatusPanel,
+} from "@/components/editor/EditorExportDialogSections";
+import type { MediaDimensions } from "@/components/editor/editorMedia";
 import { BouncyAccordion } from "@/components/ui/bouncy-accordion";
-import type {
-  ExportFormat,
-  ExportResolution,
-  ExportPhase,
-} from "@/lib/export/exportClip";
-import {
-  type ExportSourcePreference,
-  type ExportQualityPreset,
-  type ExportSizeEstimate,
-  type GifExportSettings,
-} from "@/lib/export/exportTypes";
-import {
-  type ExportFileNameTemplateKind,
-  type ExportFileNameTemplateSettings,
-} from "@/lib/export/exportFileName";
-import {
-  DialogClose,
-  DialogFooter,
-  DialogWindow,
-} from "@/components/ui/dialog";
 import {
   compactPrimaryButtonClasses,
   compactSecondaryButtonClasses,
   primaryAlertClasses,
 } from "@/components/ui/control-styles";
 import {
-  ExportStatusPanel,
-  EditorExportSettingsSection,
-  EditorExportSummaryPanel,
-  EditorFilenameTemplateSection,
-} from "@/components/editor/EditorExportDialogSections";
-import type { MediaDimensions } from "@/components/editor/editorMedia";
+  DialogClose,
+  DialogFooter,
+  DialogWindow,
+} from "@/components/ui/dialog";
+import { Spinner } from "@/components/ui/spinner";
+import type {
+  ExportFormat,
+  ExportPhase,
+  ExportResolution,
+} from "@/lib/export/exportClip";
+import {
+  type ExportFileNameTemplateKind,
+  type ExportFileNameTemplateSettings,
+} from "@/lib/export/exportFileName";
+import {
+  type ExportQualityPreset,
+  type ExportSizeEstimate,
+  type ExportSourcePreference,
+  type GifExportSettings,
+} from "@/lib/export/exportTypes";
+import type {
+  audioBitDepthSummary,
+  ExportAudioPlan,
+} from "#/lib/export/exportAudio";
+import type { ExportMode, ExportOutputType } from "#/lib/export/exportFormats";
 
 interface EditorExportDialogProperties {
   isOpen: boolean;

@@ -12,6 +12,7 @@ export function SubtitleTrackLabel({
       <div className="wrap-anywhere font-medium text-foreground">
         {parts.title ?? parts.language ?? "Unnamed subtitle track"}
       </div>
+      {/* eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- Only nonempty metadata should render the details. */}
       {(parts.codec || (parts.title && parts.language)) && (
         <dl className="flex flex-wrap gap-x-3 gap-y-1 text-muted-foreground">
           {parts.title && parts.language && (
