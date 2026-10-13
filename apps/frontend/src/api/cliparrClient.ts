@@ -1,4 +1,5 @@
 import { subscribePlaybackStream } from "@/api/playbackStream";
+export type { PlaybackConnectionState } from "@/api/playbackStream";
 import type {
   CurrentlyPlayingResponse,
   MediaSource,

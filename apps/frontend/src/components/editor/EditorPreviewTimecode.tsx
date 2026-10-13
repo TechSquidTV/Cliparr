@@ -1,5 +1,5 @@
 import { memo, useLayoutEffect, useMemo, useRef, type RefObject } from "react";
-import { cn } from "@/lib/utilities";
+import { cn } from "@/lib/cn";
 
 interface EditorPreviewTimecodeProperties {
   ariaHidden?: boolean;

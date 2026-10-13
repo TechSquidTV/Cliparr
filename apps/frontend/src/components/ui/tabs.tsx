@@ -6,8 +6,8 @@ import {
   type Transition,
 } from "motion/react";
 import * as React from "react";
-import { cliparrMotionTokens } from "@/lib/motionTokens";
-import { cn } from "@/lib/utilities";
+import { cliparrMotionTokens } from "@/lib/motion";
+import { cn } from "@/lib/cn";
 
 type TabsRootProperties = React.ComponentProps<typeof BaseTabs.Root>;
 type TabsListProperties = Omit<

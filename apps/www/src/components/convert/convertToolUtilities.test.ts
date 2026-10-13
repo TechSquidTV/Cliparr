@@ -1,4 +1,4 @@
-import { createPcmWav } from "#/lib/exportAudioFixtures.test-support";
+import { createPcmWav } from "#/lib/export/exportAudioFixtures.test-support";
 import { ensureAudioEncoder } from "#/lib/export/mediabunny/mediabunnyCodecs";
 import {
   ALL_FORMATS,
@@ -16,7 +16,7 @@ import {
   createCliparrInputFromSource,
   type ExportClipOptions,
   type ExportPhase,
-} from "@cliparr/frontend/convert";
+} from "@cliparr/frontend/convert/engine";
 import {
   buildConvertedFileBaseName,
   buildConvertedFileName,
@@ -234,7 +234,7 @@ void test("audio-only probing and conversion preserve the full selected track wh
   const source = buildLocalFileSource(file);
   const probe = await probeConvertSource(source, true);
   assert.equal(probe.durationSeconds, 10);
-  const { exportClip } = await import("#/lib/exportClip");
+  const { exportClip } = await import("#/lib/export/exportClip");
   const blob = await runConvertExport(
     {
       source,

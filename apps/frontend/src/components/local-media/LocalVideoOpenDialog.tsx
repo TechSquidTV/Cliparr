@@ -27,7 +27,7 @@ import {
   LOCAL_VIDEO_FILE_ACCEPT,
   localMediaPickerSupported,
 } from "@/lib/localMediaRegistry";
-import { cn } from "@/lib/utilities";
+import { cn } from "@/lib/cn";
 
 interface LocalVideoOpenDialogProperties {
   isOpen: boolean;

@@ -1,2 +1,2 @@
-/* CSS and Motion share the typed values in lib/motionTokens.ts. */
+/* CSS and Motion share the typed values in lib/motion.ts. */
 @plugin "./motionTheme.ts";

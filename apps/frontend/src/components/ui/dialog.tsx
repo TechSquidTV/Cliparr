@@ -11,7 +11,7 @@ import {
   type Transition,
 } from "motion/react";
 import * as React from "react";
-import { cn } from "@/lib/utilities";
+import { cn } from "@/lib/cn";
 
 type DialogRootProperties = React.ComponentProps<typeof BaseDialog.Root>;
 type DialogPortalProperties = Omit<

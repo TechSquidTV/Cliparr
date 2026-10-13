@@ -14,7 +14,7 @@ import {
   isPlaybackVideoTrack,
   videoTrackPreviewUnavailableMessage,
   type EditorFileMediaSource,
-} from "@cliparr/frontend/convert";
+} from "@cliparr/frontend/convert/engine";
 import type { CanvasSink as MediabunnyCanvasSink } from "mediabunny";
 import type { SourceProbeResult } from "@/components/convert/convertToolUtilities";
 

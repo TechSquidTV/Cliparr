@@ -15,7 +15,7 @@ let loggingConfigured: Promise<void> | undefined;
 
 type FrontendLogFormat = "pretty" | "json";
 
-export interface ViteLoggingEnv {
+interface ViteLoggingEnv {
   readonly VITE_CLIPARR_LOG_LEVEL?: string;
   readonly PROD: boolean;
 }

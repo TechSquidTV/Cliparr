@@ -1,4 +1,4 @@
-import type { ExportFormat } from "#/lib/exportFormats";
+import type { ExportFormat } from "#/lib/export/exportFormats";
 
 // Expectations are authored independently of the emitted module graph.
 export const setupExpectations = {

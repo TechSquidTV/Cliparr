@@ -1,4 +1,4 @@
-import { cn } from "#/lib/utilities";
+import { cn } from "#/lib/cn";
 
 export const fieldLabelWideClasses =
   "text-ui-label font-semibold uppercase tracking-[var(--tracking-caps-lg)] text-muted-foreground";

@@ -7,9 +7,13 @@
     "#tests/*": "./tests/*"
   },
   "exports": {
-    "./convert": {
-      "types": "./src/convert.ts",
-      "default": "./src/convert.ts"
+    "./convert/engine": {
+      "types": "./src/convert/engine.ts",
+      "default": "./src/convert/engine.ts"
+    },
+    "./convert/ui": {
+      "types": "./src/convert/ui.ts",
+      "default": "./src/convert/ui.ts"
     }
   },
   "scripts": {

@@ -14,7 +14,7 @@ import {
   type ExportClipOptions,
   type ExportFormat,
   type MediaDimensions,
-} from "@cliparr/frontend/convert";
+} from "@cliparr/frontend/convert/engine";
 
 export interface SourceProbeResult {
   durationSeconds: number;

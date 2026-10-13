@@ -21,8 +21,8 @@
 import { ChevronDown } from "lucide-react";
 import { motion, useReducedMotion, type Transition } from "motion/react";
 import { useId, useState, type ReactNode } from "react";
-import { cliparrMotionTransitions } from "@/lib/motionPresets";
-import { cn } from "@/lib/utilities";
+import { cliparrMotionTransitions } from "@/lib/motion";
+import { cn } from "@/lib/cn";
 
 interface BouncyAccordionItem {
   id: string;

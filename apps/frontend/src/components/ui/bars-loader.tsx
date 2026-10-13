@@ -19,7 +19,7 @@
  * SOFTWARE.
  */
 import { motion, useReducedMotion } from "motion/react";
-import { cn } from "@/lib/utilities";
+import { cn } from "@/lib/cn";
 
 interface BarsLoaderProps {
   size?: number;

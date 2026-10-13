@@ -86,7 +86,7 @@ interface MemoryFileRecord extends StoredRecordBase {
   file: File;
 }
 
-export type LocalMediaRecord = StoredLocalMediaRecord | MemoryFileRecord;
+type LocalMediaRecord = StoredLocalMediaRecord | MemoryFileRecord;
 
 export type LocalMediaResolution =
   | { status: "ready"; session: EditorSession }

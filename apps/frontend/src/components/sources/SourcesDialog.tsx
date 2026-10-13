@@ -11,7 +11,7 @@ import {
   SourcesDialogHeader,
 } from "@/components/sources/SourcesDialogSections";
 import { useSourcesState } from "@/components/sources/useSourcesState";
-import { cliparrMotionTransitions } from "@/lib/motionPresets";
+import { cliparrMotionTransitions } from "@/lib/motion";
 
 interface Properties {
   isOpen: boolean;

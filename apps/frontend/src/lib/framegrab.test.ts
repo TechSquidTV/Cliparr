@@ -13,7 +13,7 @@ import {
   framegrabExtensionFor,
   framegrabFormatOptionFor,
   framegrabImageFormatOptions,
-} from "@/lib/exportFormats";
+} from "@/lib/export/exportFormats";
 
 type ToBlobCallback = (blob: Blob | null) => void;
 

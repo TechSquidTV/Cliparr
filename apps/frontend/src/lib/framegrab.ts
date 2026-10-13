@@ -1,11 +1,11 @@
 import {
   framegrabFormatOptionFor,
   type FramegrabImageFormat,
-} from "#/lib/exportFormats";
+} from "#/lib/export/exportFormats";
 
 export type FramegrabImageQuality = "high" | "balanced" | "compact";
 
-export interface FramegrabImageQualityOption {
+interface FramegrabImageQualityOption {
   value: FramegrabImageQuality;
   label: string;
   quality: number;

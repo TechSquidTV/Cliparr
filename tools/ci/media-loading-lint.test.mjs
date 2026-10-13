@@ -14,11 +14,19 @@ const eslint = new ESLint({
 const ui = "apps/frontend/src/components/editor/editorPlaybackSources.ts";
 const loader = "apps/frontend/src/lib/export/mediabunny/mediabunnyCodecs.ts";
 const gif = "apps/frontend/src/lib/export/gif/gifFrameEncoder.ts";
-const execution = "apps/frontend/src/lib/exportClip.ts";
+const execution = "apps/frontend/src/lib/export/exportClip.ts";
 const fixture = "apps/frontend/src/lib/mediaLoadingFixtures.test-support.ts";
 const unit = "apps/frontend/src/lib/export/mediabunny/mediabunnyCodecs.test.ts";
-const converter = "apps/frontend/src/convert.ts";
+const converter = "apps/frontend/src/convert/engine.ts";
+const converterUi = "apps/frontend/src/convert/ui.ts";
 const cases = [];
+for (const entry of ["engine", "ui", "components", "engine/internal", ""]) {
+  cases.push({
+    file: converter,
+    code: `import "@cliparr/frontend/convert${entry ? `/${entry}` : ""}";`,
+    restricted: !["engine", "ui"].includes(entry),
+  });
+}
 for (const name of [
   "@mediabunny/ac3",
   "@mediabunny/future-codec",
@@ -54,7 +62,7 @@ for (const name of [
   );
 }
 for (const alias of ["#", "@"]) {
-  for (const module of ["exportClip", "exportAudio"]) {
+  for (const module of ["export/exportClip", "export/exportAudio"]) {
     cases.push(
       {
         file: ui,
@@ -92,7 +100,16 @@ cases.push(
   { file: loader, code: 'import "./local";', restricted: true },
   { file: loader, code: 'void import("../local");', restricted: true },
   { file: loader, code: 'import "@cliparr/server";', restricted: true },
-  { file: converter, code: 'import "./lib/exportTypes";', restricted: false },
+  {
+    file: converter,
+    code: 'import "../lib/export/exportTypes";',
+    restricted: false,
+  },
+  {
+    file: converterUi,
+    code: 'import "../components/ui/spinner";',
+    restricted: false,
+  },
 );
 
 void test("media import restrictions preserve ownership, type imports and workspace rules", async () => {
