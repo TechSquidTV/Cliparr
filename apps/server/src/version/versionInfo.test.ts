@@ -3,7 +3,7 @@ import test from "node:test";
 import {
   createVersionInfoService,
   parseStableSemverTag,
-} from "@/config/versionInfo";
+} from "@/version/versionInfo";
 
 const CHECKED_AT = Date.parse("2026-06-04T12:00:00.000Z");
 const RELEASE_URL =

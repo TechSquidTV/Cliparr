@@ -1,5 +1,5 @@
 import { createHash, randomUUID } from "node:crypto";
-import { lookupWithSignal } from "@/providers/shared/dnsLookup";
+import { lookupWithSignal } from "@/providers/shared/dnsCache";
 import { isIP } from "node:net";
 import axios, { type AxiosResponse, type RawAxiosRequestConfig } from "axios";
 import { Jellyfin } from "@jellyfin/sdk";

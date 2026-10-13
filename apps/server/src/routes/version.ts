@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { versionInfoService } from "@/config/versionInfo";
+import { versionInfoService } from "@/version/versionInfo";
 import { asyncHandler } from "@/http/errors";
 import { setNoStore } from "@/http/cacheControl";
 

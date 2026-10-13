@@ -1,17 +1,24 @@
-import { Router } from "express";
+import { Router, type Response } from "express";
 import { livePlayback } from "@/playback/livePlayback";
 import { requireAccountSession } from "@/session/request";
 
 export const livePlaybackRouter = Router();
 
+function canWritePlaybackEvent(res: Response) {
+  if (res.destroyed || res.writableEnded) {
+    return false;
+  }
+  if (res.writableLength > 1024 * 1024) {
+    res.destroy();
+    return false;
+  }
+  return true;
+}
+
 livePlaybackRouter.get("/", (request, res) => {
   const session = requireAccountSession(request);
   const unsubscribe = livePlayback.subscribe(session, (event) => {
-    if (res.destroyed || res.writableEnded) {
-      return;
-    }
-    if (res.writableLength > 1024 * 1024) {
-      res.destroy();
+    if (!canWritePlaybackEvent(res)) {
       return;
     }
     // Admission can throw HTTP 429; only start SSE after it succeeds.
@@ -29,12 +36,7 @@ livePlaybackRouter.get("/", (request, res) => {
     }
   });
   const heartbeat = setInterval(() => {
-    if (res.destroyed || res.writableEnded) {
-      return;
-    }
-    if (res.writableLength > 1024 * 1024) {
-      res.destroy();
-    } else {
+    if (canWritePlaybackEvent(res)) {
       res.write("event: heartbeat\ndata: {}\n\n");
     }
   }, 15_000);
