@@ -10,43 +10,62 @@
 
     // Claim the blocks before loading Mermaid so page-load events cannot render
     // them twice. Mermaid reads plain source instead of the code wrapper.
+    const originalContents = new Map<HTMLPreElement, ChildNode[]>();
     for (const diagram of diagrams) {
+      originalContents.set(diagram, [...diagram.childNodes]);
       diagram.classList.add("mermaid");
       diagram.replaceChildren(diagram.textContent);
     }
 
-    const { default: mermaid } = await import("mermaid");
+    try {
+      const { default: mermaid } = await import("mermaid");
 
-    mermaid.initialize({
-      flowchart: {
-        curve: "basis",
-        htmlLabels: false,
-      },
-      fontFamily: "Outfit Variable, ui-sans-serif, sans-serif",
-      startOnLoad: false,
-      theme: "base",
-      themeVariables: {
-        background: "#111111",
-        clusterBkg: "#141414",
-        clusterBorder: "#4b5563",
-        edgeLabelBackground: "#111111",
-        lineColor: "#cbd5e1",
-        mainBkg: "#1f2937",
-        nodeBorder: "#6b7280",
-        primaryBorderColor: "#6b7280",
-        primaryColor: "#1f2937",
-        primaryTextColor: "#f8fafc",
-        secondaryBorderColor: "#6b7280",
-        secondaryColor: "#111827",
-        secondaryTextColor: "#f8fafc",
-        textColor: "#f8fafc",
-        tertiaryBorderColor: "#6b7280",
-        tertiaryColor: "#111827",
-        tertiaryTextColor: "#f8fafc",
-      },
-    });
+      mermaid.initialize({
+        flowchart: {
+          curve: "basis",
+          htmlLabels: false,
+        },
+        fontFamily: "Outfit Variable, ui-sans-serif, sans-serif",
+        startOnLoad: false,
+        theme: "base",
+        themeVariables: {
+          background: "#111111",
+          clusterBkg: "#141414",
+          clusterBorder: "#4b5563",
+          edgeLabelBackground: "#111111",
+          lineColor: "#cbd5e1",
+          mainBkg: "#1f2937",
+          nodeBorder: "#6b7280",
+          primaryBorderColor: "#6b7280",
+          primaryColor: "#1f2937",
+          primaryTextColor: "#f8fafc",
+          secondaryBorderColor: "#6b7280",
+          secondaryColor: "#111827",
+          secondaryTextColor: "#f8fafc",
+          textColor: "#f8fafc",
+          tertiaryBorderColor: "#6b7280",
+          tertiaryColor: "#111827",
+          tertiaryTextColor: "#f8fafc",
+        },
+      });
 
-    await mermaid.run({ nodes: diagrams });
+      await mermaid.run({ nodes: diagrams });
+    } catch (error) {
+      // A stale deployment can cause the content-hashed mermaid chunk URL to
+      // disappear from the server. The browser raises a TypeError when the
+      // dynamic import fetch fails. Restore the diagram nodes to their original
+      // state and reload the page so the browser picks up the fresh bundle.
+      if (error instanceof TypeError) {
+        for (const diagram of diagrams) {
+          const original = originalContents.get(diagram);
+          if (original) {
+            diagram.classList.remove("mermaid");
+            diagram.replaceChildren(...original);
+          }
+        }
+        window.location.reload();
+      }
+    }
   }
 
   document.addEventListener("astro:page-load", renderMermaid);
