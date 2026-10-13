@@ -10,7 +10,7 @@ import {
   loadExportFileNameTemplates,
   saveExportFileNameTemplates,
   type ExportFileNameTemplateSettings,
-} from "@/lib/exportFileName";
+} from "@/lib/export/exportFileName";
 
 const legacyMovieTemplate =
   "{source_title} ({year}) - clip {clip_start} to {clip_end}";

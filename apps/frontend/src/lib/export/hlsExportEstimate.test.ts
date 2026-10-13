@@ -6,7 +6,7 @@ import {
   fetchHlsExportEstimateMetadata,
   parseHlsExportEstimateMetadata,
   selectHlsExportEstimateMetadata,
-} from "@/lib/hlsExportEstimate";
+} from "@/lib/export/hlsExportEstimate";
 
 void test("parses HLS stream bitrate and dimensions from master playlists", () => {
   const variants = parseHlsExportEstimateMetadata(`#EXTM3U
