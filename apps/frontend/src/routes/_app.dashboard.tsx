@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { flushSync } from "react-dom";
 import { useAuth } from "@/auth";
-import DashboardScreen from "@/components/DashboardScreen";
+import DashboardScreen from "@/components/dashboard/DashboardScreen";
 import { LocalVideoOpenDialog } from "@/components/local-media/LocalVideoOpenDialog";
 import { editorSessionFromCurrentlyPlaying } from "@/components/editor/editorMedia";
 import {

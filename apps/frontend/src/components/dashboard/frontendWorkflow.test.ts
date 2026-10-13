@@ -17,18 +17,18 @@ import {
   readDashboardViewerFilter,
   sanitizeDashboardViewerFilterNames,
   writeDashboardViewerFilter,
-} from "@/components/dashboardPlaybackItems";
-import AuthCompleteScreen from "@/components/AuthCompleteScreen";
+} from "@/components/dashboard/dashboardPlaybackItems";
+import AuthCompleteScreen from "@/components/dashboard/AuthCompleteScreen";
 import {
   DashboardPlaybackCard,
   DashboardVersionBadge,
-} from "@/components/DashboardScreen";
-import DashboardScreen from "@/components/DashboardScreen";
+} from "@/components/dashboard/DashboardScreen";
+import DashboardScreen from "@/components/dashboard/DashboardScreen";
 import {
   DashboardPlaybackFilterEmptyState,
   DashboardViewerFilterPicker,
-} from "@/components/DashboardViewerFilter";
-import { DashboardMobileMenu } from "@/components/DashboardMobileMenu";
+} from "@/components/dashboard/DashboardViewerFilter";
+import { DashboardMobileMenu } from "@/components/dashboard/DashboardMobileMenu";
 import { EditorControls } from "@/components/editor/EditorControls";
 import { EditorExportDialog } from "@/components/editor/EditorExportDialog";
 import { EditorFramegrabDialog } from "@/components/editor/EditorFramegrabDialog";
@@ -40,7 +40,7 @@ import ProviderConnectScreen from "@/components/provider-connect/ProviderConnect
 import {
   MobilePwaInstallNudge,
   MobilePwaInstallNudgeCard,
-} from "@/components/MobilePwaInstallNudge";
+} from "@/components/dashboard/MobilePwaInstallNudge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { gifExportSettingsForPreset } from "@/lib/export/exportTypes";
