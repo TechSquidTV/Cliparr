@@ -13,7 +13,7 @@ import {
   Trash2,
   X,
 } from "lucide-react";
-import { cn } from "@/lib/utilities";
+import { cn } from "@/lib/cn";
 import { ControlTooltip } from "@/components/ui/tooltip";
 import { Switch } from "@/components/ui/switch";
 import {
@@ -32,7 +32,7 @@ import {
   iconButtonClasses,
   textInputClasses as inputClasses,
 } from "@/components/ui/control-styles";
-import { cliparrMotionTransitions } from "@/lib/motionPresets";
+import { cliparrMotionTransitions } from "@/lib/motion";
 import type { MediaSource, ProviderSession } from "@/providers/types";
 import { formatProviderName } from "@/components/providers/ProviderGlyph";
 import SourceConnectPanel from "@/components/sources/SourceConnectPanel";

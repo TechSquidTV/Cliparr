@@ -69,7 +69,7 @@ export interface ExportSizeEstimate {
   basis: ExportSizeEstimateBasis;
 }
 
-export interface EstimateExportOutputSizeOptions {
+interface EstimateExportOutputSizeOptions {
   format: ExportFormat;
   durationSeconds: number;
   outputDimensions: ExportOutputDimensions | null;

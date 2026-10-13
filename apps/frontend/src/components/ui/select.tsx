@@ -1,7 +1,7 @@
 import * as React from "react";
 import { CheckIcon, ChevronDownIcon, ChevronUpIcon } from "lucide-react";
 import { Select as SelectPrimitive } from "@base-ui/react/select";
-import { cn } from "#/lib/utilities";
+import { cn } from "#/lib/cn";
 
 function Select<Value extends string>(
   props: SelectPrimitive.Root.Props<Value>,

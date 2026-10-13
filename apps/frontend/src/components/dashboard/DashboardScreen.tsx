@@ -19,7 +19,7 @@ import {
   destructiveAlertClasses,
   warningAlertClasses,
 } from "@/components/ui/control-styles";
-import { cn } from "@/lib/utilities";
+import { cn } from "@/lib/cn";
 import { EDITOR_THUMBNAIL_VIEW_TRANSITION_NAME } from "@/lib/viewTransitions";
 import {
   formatProviderName,
@@ -54,7 +54,7 @@ import {
   sanitizeDashboardViewerFilterNames,
   writeDashboardViewerFilter,
 } from "@/components/dashboard/dashboardPlaybackItems";
-import { cliparrMotionTransitions } from "@/lib/motionPresets";
+import { cliparrMotionTransitions } from "@/lib/motion";
 import type { DashboardPlaybackCardItem } from "@/components/dashboard/dashboardPlaybackItems";
 import type {
   CurrentlyPlayingItem,

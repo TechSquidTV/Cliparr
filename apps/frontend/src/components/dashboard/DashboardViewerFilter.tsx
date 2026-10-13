@@ -10,8 +10,8 @@ import {
 } from "@/components/dashboard/dashboardPlaybackItems";
 import { DashboardViewerAvatar } from "@/components/dashboard/DashboardViewerAvatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { cliparrMotionTransitions } from "@/lib/motionPresets";
-import { cn } from "@/lib/utilities";
+import { cliparrMotionTransitions } from "@/lib/motion";
+import { cn } from "@/lib/cn";
 
 const DASHBOARD_VIEWER_FILTER_TRIGGER_VISIBLE_AVATAR_COUNT = 2;
 

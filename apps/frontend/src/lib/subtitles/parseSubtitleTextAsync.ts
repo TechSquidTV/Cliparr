@@ -21,7 +21,7 @@ export interface SubtitleParseWorker {
   terminate(): void;
 }
 
-export type CreateSubtitleParseWorker = () => SubtitleParseWorker;
+type CreateSubtitleParseWorker = () => SubtitleParseWorker;
 
 function createSubtitleParseWorker(): SubtitleParseWorker {
   return new Worker(new URL("parseSubtitleText.worker.ts", import.meta.url), {

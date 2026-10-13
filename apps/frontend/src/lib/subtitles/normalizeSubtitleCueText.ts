@@ -1,4 +1,4 @@
-export interface NormalizedSubtitleCueText {
+interface NormalizedSubtitleCueText {
   text: string;
   lines: string[];
 }

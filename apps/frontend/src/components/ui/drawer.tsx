@@ -1,7 +1,7 @@
 import * as React from "react";
 import { Drawer as DrawerPrimitive } from "@base-ui/react/drawer";
 import { dialogFooterClasses } from "@/components/ui/control-styles";
-import { cn } from "@/lib/utilities";
+import { cn } from "@/lib/cn";
 
 const Drawer = DrawerPrimitive.Root;
 const DrawerTrigger = DrawerPrimitive.Trigger;
