@@ -15,8 +15,9 @@ import type {
   CurrentlyPlayingEntry,
   SourcePlaybackError,
 } from "@/providers/types";
-import { requireAccountSession, setNoStore } from "@/session/request";
-import { pruneSessionMediaHandles } from "@/session/store";
+import { requireAccountSession } from "@/session/request";
+import { setNoStore } from "@/http/cacheControl";
+import { pruneSessionMediaHandles } from "@/session/mediaHandles";
 
 export const mediaRouter = Router();
 const mediaLogger = getServerLogger("media");

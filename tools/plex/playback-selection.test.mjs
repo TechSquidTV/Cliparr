@@ -94,8 +94,8 @@ void test("Plex audio selection reaches the frontend without inventing ordinals 
     `
     import assert from 'node:assert/strict';
     import { readFileSync } from 'node:fs';
-    import { editorSessionFromCurrentlyPlaying } from './src/lib/editorMedia.ts';
-    import { selectPreferredPairableAudioTrack } from './src/lib/selectPreferredAudioTrack.ts';
+    import { editorSessionFromCurrentlyPlaying } from './src/components/editor/editorMedia.ts';
+    import { selectPreferredPairableAudioTrack } from './src/lib/subtitles/selectPreferredAudioTrack.ts';
     const results = JSON.parse(readFileSync(0, 'utf8'));
     const tracks = [
       { number: 1, getLanguageCode: async () => 'eng', getName: async () => 'English' },

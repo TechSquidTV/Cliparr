@@ -18,6 +18,7 @@ const providerPersistenceModuleSpecifier = "@/providers/providerPersistence";
 const rememberedProviderSessionsRepositoryModuleSpecifier =
   "@/db/rememberedProviderSessionsRepository";
 const storeModuleSpecifier = "@/session/store";
+const cookiesModuleSpecifier = "@/http/cookies";
 
 function runStoreScript(
   script: string,
@@ -178,7 +179,7 @@ void test("restores /api/session from a remembered provider session cookie", () 
       const { closeDatabase } = await import(${JSON.stringify(databaseModuleSpecifier)});
       const { upsertProviderAccountByAccessToken } = await import(${JSON.stringify(providerAccountsRepositoryModuleSpecifier)});
       const { createRememberedProviderSession } = await import(${JSON.stringify(rememberedProviderSessionsRepositoryModuleSpecifier)});
-      const { getRememberedProviderSessionCookieName, getSessionCookieName } = await import(${JSON.stringify(storeModuleSpecifier)});
+      const { getRememberedProviderSessionCookieName, getSessionCookieName } = await import(${JSON.stringify(cookiesModuleSpecifier)});
 
       const { app } = await createApp();
       const server = app.listen(0, "127.0.0.1");
@@ -246,7 +247,7 @@ void test("rejects invalid remembered provider session cookies without clearing 
 
       const { createApp } = await import(${JSON.stringify(appModuleSpecifier)});
       const { closeDatabase } = await import(${JSON.stringify(databaseModuleSpecifier)});
-      const { getRememberedProviderSessionCookieName } = await import(${JSON.stringify(storeModuleSpecifier)});
+      const { getRememberedProviderSessionCookieName } = await import(${JSON.stringify(cookiesModuleSpecifier)});
 
       const { app } = await createApp();
       const server = app.listen(0, "127.0.0.1");
@@ -306,12 +307,8 @@ void test("disconnect removes the provider account and cascades saved sources", 
         createRememberedProviderSession,
         getRememberedProviderSession,
       } = await import(${JSON.stringify(rememberedProviderSessionsRepositoryModuleSpecifier)});
-      const {
-        createProviderSession,
-        getProviderSession,
-        getRememberedProviderSessionCookieName,
-        getSessionCookieName,
-      } = await import(${JSON.stringify(storeModuleSpecifier)});
+      const { createProviderSession, getProviderSession } = await import(${JSON.stringify(storeModuleSpecifier)});
+      const { getRememberedProviderSessionCookieName, getSessionCookieName } = await import(${JSON.stringify(cookiesModuleSpecifier)});
 
       const { app } = await createApp();
       const server = app.listen(0, "127.0.0.1");
@@ -446,9 +443,7 @@ void test("disconnect uses the remembered provider account when the session cook
         createRememberedProviderSession,
         getRememberedProviderSession,
       } = await import(${JSON.stringify(rememberedProviderSessionsRepositoryModuleSpecifier)});
-      const {
-        getRememberedProviderSessionCookieName,
-      } = await import(${JSON.stringify(storeModuleSpecifier)});
+      const { getRememberedProviderSessionCookieName } = await import(${JSON.stringify(cookiesModuleSpecifier)});
 
       const { app } = await createApp();
       const server = app.listen(0, "127.0.0.1");
@@ -634,7 +629,7 @@ void test("disconnect revokes cached sessions immediately after a Plex account m
     const { getProviderAccount } = await import(${JSON.stringify(providerAccountsRepositoryModuleSpecifier)});
     const { upsertMediaSource } = await import(${JSON.stringify(mediaSourcesRepositoryModuleSpecifier)});
     const { cleanupDuplicatePlexSources } = await import("@/providers/plex/sourceDeduplication");
-    const { getSessionCookieName } = await import(${JSON.stringify(storeModuleSpecifier)});
+    const { getSessionCookieName } = await import(${JSON.stringify(cookiesModuleSpecifier)});
     const { PLEX_BASE_URL_MODE_MANUAL } = await import("@/providers/plex/connectionState");
     const { app } = await createApp();
     const duplicate = upsertProviderAccountByAccessToken({

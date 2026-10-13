@@ -1,16 +1,19 @@
 import { useEffect, useState } from "react";
 import { canEncodeVideo } from "mediabunny";
-import { isAudioExportFormat, type ExportFormat } from "#/lib/exportFormats";
+import {
+  isAudioExportFormat,
+  type ExportFormat,
+} from "#/lib/export/exportFormats";
 import {
   exportVideoCodecPriorities,
   resolveVideoEncodingPlan,
   videoEncodingPlanKey,
   type ResolvedVideoEncodingPlan,
-} from "#/lib/exportEncodingPolicy";
+} from "#/lib/export/exportEncodingPolicy";
 import type {
   ExportOutputDimensions,
   VideoExportQualityPreset,
-} from "#/lib/exportTypes";
+} from "#/lib/export/exportTypes";
 
 /** Advisory plan for estimates; conversion validates support again at export time. */
 export function useExportVideoPlan(

@@ -1,12 +1,9 @@
-export type FramegrabImageFormat = "png" | "jpg" | "webp";
-export type FramegrabImageQuality = "high" | "balanced" | "compact";
+import {
+  framegrabFormatOptionFor,
+  type FramegrabImageFormat,
+} from "#/lib/export/exportFormats";
 
-export interface FramegrabImageFormatOption {
-  value: FramegrabImageFormat;
-  label: string;
-  extension: string;
-  mimeType: string;
-}
+export type FramegrabImageQuality = "high" | "balanced" | "compact";
 
 export interface FramegrabImageQualityOption {
   value: FramegrabImageQuality;
@@ -15,28 +12,6 @@ export interface FramegrabImageQualityOption {
 }
 
 export const DEFAULT_FRAMEGRAB_IMAGE_QUALITY: FramegrabImageQuality = "high";
-
-export const framegrabImageFormatOptions: readonly FramegrabImageFormatOption[] =
-  [
-    {
-      value: "png",
-      label: "PNG",
-      extension: ".png",
-      mimeType: "image/png",
-    },
-    {
-      value: "jpg",
-      label: "JPEG",
-      extension: ".jpg",
-      mimeType: "image/jpeg",
-    },
-    {
-      value: "webp",
-      label: "WEBP",
-      extension: ".webp",
-      mimeType: "image/webp",
-    },
-  ];
 
 export const framegrabImageQualityOptions: readonly FramegrabImageQualityOption[] =
   [
@@ -57,19 +32,8 @@ export const framegrabImageQualityOptions: readonly FramegrabImageQualityOption[
     },
   ];
 
-export function framegrabFormatOptionFor(format: FramegrabImageFormat) {
-  return (
-    framegrabImageFormatOptions.find((option) => option.value === format) ??
-    framegrabImageFormatOptions[0]
-  );
-}
-
 export function framegrabMimeTypeFor(format: FramegrabImageFormat) {
   return framegrabFormatOptionFor(format).mimeType;
-}
-
-export function framegrabExtensionFor(format: FramegrabImageFormat) {
-  return framegrabFormatOptionFor(format).extension;
 }
 
 export function framegrabQualityOptionFor(quality: FramegrabImageQuality) {

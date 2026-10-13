@@ -1,11 +1,10 @@
-import type { Request, Response } from "express";
+import type { Request } from "express";
 import { createApiError } from "@/http/errors";
 import {
   getProviderSession,
-  getSessionCookieName,
-  readCookie,
   type ProviderSessionRecord,
 } from "@/session/store";
+import { getSessionCookieName, readCookie } from "@/http/cookies";
 
 export function getRequestSessionId(request: Request) {
   return readCookie(request.header("cookie"), getSessionCookieName());
@@ -25,8 +24,4 @@ function requireSession(request: Request): ProviderSessionRecord {
 
 export function requireAccountSession(request: Request): ProviderSessionRecord {
   return requireSession(request);
-}
-
-export function setNoStore(res: Response) {
-  res.setHeader("Cache-Control", "no-store");
 }

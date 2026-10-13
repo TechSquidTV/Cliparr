@@ -1,7 +1,10 @@
-import { isIncompleteSourceAudioError } from "#/lib/exportSourceAudio";
+import { isIncompleteSourceAudioError } from "#/lib/export/exportSourceAudio";
 import { useExportSettings } from "#/components/editor/useExportSettings";
-import { isAudioExportFormat, exportIncludesAudio } from "#/lib/exportFormats";
-import type { ExportAudioPlan } from "#/lib/exportAudio";
+import {
+  isAudioExportFormat,
+  exportIncludesAudio,
+} from "#/lib/export/exportFormats";
+import type { ExportAudioPlan } from "#/lib/export/exportAudio";
 import { useExportAudioPlan } from "#/components/editor/useExportAudioPlan";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useExportVideoPlan } from "#/components/editor/useExportVideoPlan";
@@ -16,7 +19,7 @@ import type {
   ExportPhase,
   ExportResolution,
   ExportVideoEncodingPlan,
-} from "@/lib/exportClip";
+} from "@/lib/export/exportClip";
 import {
   DEFAULT_VIDEO_EXPORT_QUALITY,
   estimateExportOutputSize,
@@ -24,11 +27,11 @@ import {
   resolveExportOutputDimensions,
   type ExportSizeEstimate,
   type GifExportSettings,
-} from "@/lib/exportTypes";
+} from "@/lib/export/exportTypes";
 import {
   EXPORT_ENCODING_POLICY_VERSION,
   formatCanCopyVideoCodec,
-} from "@/lib/exportEncodingPolicy";
+} from "@/lib/export/exportEncodingPolicy";
 import {
   buildExportFileName,
   defaultExportFileNameTemplates,
@@ -36,7 +39,7 @@ import {
   saveExportFileNameTemplates,
   type ExportFileNameTemplateKind,
   type ExportFileNameTemplateSettings,
-} from "@/lib/exportFileName";
+} from "@/lib/export/exportFileName";
 import { downloadBlob } from "@/lib/downloadBlob";
 import {
   isHlsEditorMediaSource,
@@ -45,11 +48,11 @@ import {
   type EditorMediaSource,
   type EditorSession,
   type MediaDimensions,
-} from "@/lib/editorMedia";
+} from "@/components/editor/editorMedia";
 import {
   fetchHlsExportEstimateMetadata,
   type HlsExportEstimateMetadata,
-} from "@/lib/hlsExportEstimate";
+} from "@/lib/export/hlsExportEstimate";
 import type { SubtitleCue, SubtitleStyleSettings } from "@/lib/subtitles/types";
 import type { ExportSourcePreference } from "@/components/editor/EditorExportDialog";
 import type { PlaybackFallbackInfo } from "@/components/editor/editorPlaybackSources";
@@ -563,7 +566,7 @@ export function useEditorExport({
     let audioEncodingPlan: ExportAudioPlan | undefined;
 
     try {
-      const { exportClip } = await import("@/lib/exportClip");
+      const { exportClip } = await import("@/lib/export/exportClip");
       controller.signal.throwIfAborted();
       const handleProgress = (nextProgress: number) => {
         if (controller.signal.aborted || !mounted.current) {

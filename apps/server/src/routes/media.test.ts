@@ -8,7 +8,8 @@ import { closeDatabase, initializeDatabase } from "@/db/database";
 import { upsertProviderAccountByAccessToken } from "@/db/providerAccountsRepository";
 import { errorHandler } from "@/http/errors";
 import { mediaRouter } from "@/routes/media";
-import { createProviderSession, getSessionCookieName } from "@/session/store";
+import { createProviderSession } from "@/session/store";
+import { getSessionCookieName } from "@/http/cookies";
 
 const TEST_APP_KEY = "media-route-test-key-with-32-characters";
 

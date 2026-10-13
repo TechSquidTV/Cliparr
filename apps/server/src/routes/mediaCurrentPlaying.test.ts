@@ -14,11 +14,8 @@ import { upsertProviderAccountByAccessToken } from "@/db/providerAccountsReposit
 import { createApp } from "@/app";
 import { plexProvider } from "@/providers/plex/provider";
 import type { CurrentlyPlayingEntry } from "@/providers/types";
-import {
-  createProviderSession,
-  deleteProviderSession,
-  getSessionCookieName,
-} from "@/session/store";
+import { createProviderSession, deleteProviderSession } from "@/session/store";
+import { getSessionCookieName } from "@/http/cookies";
 import { readServerEvents } from "@cliparr/shared/server-events";
 import type { PlaybackStreamEvent } from "@cliparr/shared/providers";
 

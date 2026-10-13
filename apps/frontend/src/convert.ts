@@ -1,7 +1,7 @@
-import type { ExportClipOptions } from "./lib/exportClip";
+import type { ExportClipOptions } from "./lib/export/exportClip";
 import type { InputVideoTrack } from "mediabunny";
-import type { MediaDimensions } from "./lib/editorMedia";
-import { getVideoTrackDimensions as readVideoTrackDimensions } from "./lib/mediabunnyTrackAccess";
+import type { MediaDimensions } from "./components/editor/editorMedia";
+import { getVideoTrackDimensions as readVideoTrackDimensions } from "./lib/export/mediabunny/mediabunnyTrackAccess";
 
 export {
   DEFAULT_GIF_EXPORT_PRESET,
@@ -25,13 +25,13 @@ export {
   type GifExportPreset,
   type GifExportSettings,
   type VideoExportQualityPreset,
-} from "./lib/exportTypes";
+} from "./lib/export/exportTypes";
 export type {
   ExportClipOptions,
   ExportVideoEncodingPlan,
   ExportPhase,
-} from "./lib/exportClip";
-export type { ExportFormat, ExportResolution } from "./lib/exportTypes";
+} from "./lib/export/exportClip";
+export type { ExportFormat, ExportResolution } from "./lib/export/exportTypes";
 export {
   calibratedEstimatedVideoBitrateBps,
   exportAudioCodecPriorities,
@@ -47,7 +47,7 @@ export {
   type ExportVideoCodec,
   type VideoEncodingPlan,
   type ResolvedVideoEncodingPlan,
-} from "./lib/exportEncodingPolicy";
+} from "./lib/export/exportEncodingPolicy";
 export { downloadBlob } from "./lib/downloadBlob";
 export {
   buildLocalEditorSession,
@@ -56,15 +56,15 @@ export {
   type EditorMediaSource,
   type EditorSession,
   type MediaDimensions,
-} from "./lib/editorMedia";
-export { createCliparrInputFromSource } from "./lib/mediabunnyInput";
-export { selectPreferredPairableAudioTrack } from "./lib/selectPreferredAudioTrack";
+} from "./components/editor/editorMedia";
+export { createCliparrInputFromSource } from "./lib/export/mediabunny/mediabunnyInput";
+export { selectPreferredPairableAudioTrack } from "./lib/subtitles/selectPreferredAudioTrack";
 export {
   assessVideoTrackDecodability,
   isPlaybackVideoTrack,
   getTrackTimelineOffsetSeconds,
   videoTrackPreviewUnavailableMessage,
-} from "./lib/mediabunnyTrackAccess";
+} from "./lib/export/mediabunny/mediabunnyTrackAccess";
 export type { MediaExportMetadata } from "./providers/types";
 export {
   ExportStatusPanel,
@@ -81,7 +81,7 @@ export {
 } from "./components/ui/control-styles";
 
 export async function exportClip(options: ExportClipOptions) {
-  const module = await import("./lib/exportClip");
+  const module = await import("./lib/export/exportClip");
 
   return module.exportClip(options);
 }
@@ -102,7 +102,7 @@ export {
   type ExportMode,
   type AudioExportFormat,
   type VideoExportFormat,
-} from "./lib/exportFormats";
-export type { ExportAudioPlan } from "./lib/exportAudio";
+} from "./lib/export/exportFormats";
+export type { ExportAudioPlan } from "./lib/export/exportAudio";
 
 export { useExportVideoPlan } from "./components/editor/useExportVideoPlan";
