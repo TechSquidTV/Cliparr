@@ -4,7 +4,7 @@ import test from "node:test";
 import { Buffer } from "node:buffer";
 import { constants, deflateRawSync } from "node:zlib";
 import { createDeferred } from "@/test/deferred";
-import { acceptTestWebSocket } from "@/test/webSocket";
+import { acceptTestWebSocket } from "@/test/webSocketFixtures";
 import { readLiveWebSocket } from "@/providers/shared/liveWebSocket";
 
 for (const scenario of [
