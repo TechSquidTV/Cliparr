@@ -16,7 +16,7 @@ import {
   createCliparrInputFromSource,
   type ExportClipOptions,
   type ExportPhase,
-} from "@cliparr/frontend/convert";
+} from "@cliparr/frontend/convert/engine";
 import {
   buildConvertedFileBaseName,
   buildConvertedFileName,

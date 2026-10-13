@@ -9,7 +9,7 @@ import {
   type ExportResolution,
   type ExportSizeEstimate,
   type GifExportSettings,
-} from "@cliparr/frontend/convert";
+} from "@cliparr/frontend/convert/engine";
 import type { SourceProbeResult } from "@/components/convert/convertToolUtilities";
 
 type ConvertSourceFormat =
