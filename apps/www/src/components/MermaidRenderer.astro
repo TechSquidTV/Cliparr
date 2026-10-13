@@ -17,6 +17,10 @@
     }
 
     const render = ++currentRender;
+    const originalContents = [...diagrams].map((diagram) => ({
+      diagram,
+      children: [...diagram.childNodes],
+    }));
 
     // Claim the blocks before loading Mermaid so page-load events cannot render
     // them twice. Mermaid reads plain source instead of the code wrapper.
@@ -25,7 +29,25 @@
       diagram.replaceChildren(diagram.textContent);
     }
 
-    const { default: mermaid } = await import("mermaid");
+    let mermaid: typeof import("mermaid").default;
+    try {
+      ({ default: mermaid } = await import("mermaid"));
+    } catch (error) {
+      if (render !== currentRender) {
+        return;
+      }
+
+      for (const { diagram, children } of originalContents) {
+        diagram.classList.remove("mermaid");
+        diagram.replaceChildren(...children);
+      }
+
+      if (reloadAfterImportFailure(error)) {
+        return;
+      }
+
+      throw error;
+    }
 
     // If navigation started while the async import was in flight, the captured
     // nodes are now detached. Bail out to avoid the null-node crash in d3.
@@ -63,6 +85,27 @@
     });
 
     await mermaid.run({ nodes: diagrams });
+  }
+
+  function reloadAfterImportFailure(error: unknown): boolean {
+    if (!(error instanceof TypeError)) {
+      return false;
+    }
+
+    // Keep the retry across refreshes so persistent fetch failures cannot loop.
+    const reloadKey = "cliparr:mermaid-import-reload";
+    try {
+      if (sessionStorage.getItem(reloadKey) === "1") {
+        return false;
+      }
+      sessionStorage.setItem(reloadKey, "1");
+    } catch {
+      // Without storage, a reload cannot be bounded safely.
+      return false;
+    }
+
+    window.location.reload();
+    return true;
   }
 
   document.addEventListener("astro:page-load", renderMermaid);
