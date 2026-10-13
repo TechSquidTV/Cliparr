@@ -48,7 +48,7 @@ import {
   type ExportFileNameTemplateKind,
   type ExportFileNameTemplateSettings,
 } from "#/lib/export/exportFileName";
-import type { ExportSourcePreference } from "#/components/editor/EditorExportDialog";
+import type { ExportSourcePreference } from "#/lib/export/exportTypes";
 import { fieldLabelWideClasses } from "#/components/ui/control-styles";
 import { formatTime } from "#/components/editor/editorUtilities";
 import type { MediaDimensions } from "#/components/editor/editorMedia";
