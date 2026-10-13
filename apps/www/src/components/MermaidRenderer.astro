@@ -8,8 +8,6 @@
   });
 
   async function renderMermaid() {
-    const render = ++currentRender;
-
     const diagrams = document.querySelectorAll<HTMLPreElement>(
       "pre:has(> code.language-mermaid)",
     );
@@ -17,6 +15,8 @@
     if (diagrams.length === 0) {
       return;
     }
+
+    const render = ++currentRender;
 
     // Claim the blocks before loading Mermaid so page-load events cannot render
     // them twice. Mermaid reads plain source instead of the code wrapper.
