@@ -21,7 +21,7 @@ import {
   TabsTab,
 } from "@/components/ui/tabs";
 import { cn } from "@/lib/cn";
-import type { ProviderDefinition, ProviderSession } from "@/providers/types";
+import type { ProviderDefinition, ProviderSession } from "@/providers";
 
 interface Properties {
   onConnected: (session: ProviderSession) => Promise<void> | void;

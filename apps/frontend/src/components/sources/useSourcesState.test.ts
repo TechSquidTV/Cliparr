@@ -12,7 +12,7 @@ import {
   sourceCounts,
   sourceProviderOptions,
 } from "@/components/sources/sourcesStateUtilities";
-import type { MediaSource, MediaSourceCheckResult } from "@/providers/types";
+import type { MediaSource, MediaSourceCheckResult } from "@/providers";
 
 function source(
   overrides: Partial<MediaSource> &

@@ -61,7 +61,7 @@ import type {
   CurrentlyPlayingItem,
   SourcePlaybackError,
   ViewerPlaybackGroup,
-} from "@/providers/types";
+} from "@/providers";
 
 interface Properties {
   activeViewTransitionSessionId?: string | null;

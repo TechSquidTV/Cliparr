@@ -79,7 +79,7 @@ export {
   videoTrackPreviewUnavailableMessage,
 } from "../lib/export/mediabunny/mediabunnyTrackAccess";
 export { selectPreferredPairableAudioTrack } from "../lib/subtitles/selectPreferredAudioTrack";
-export type { MediaExportMetadata } from "../providers/types";
+export type { MediaExportMetadata } from "../providers";
 
 export async function exportClip(options: ExportClipOptions) {
   const module = await import("../lib/export/exportClip");

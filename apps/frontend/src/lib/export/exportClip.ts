@@ -87,10 +87,7 @@ import { renderSubtitleCues } from "#/lib/subtitles/renderSubtitleCue";
 import { selectPreferredPairableAudioTrack } from "#/lib/subtitles/selectPreferredAudioTrack";
 import { trimSubtitleCues } from "#/lib/subtitles/trimSubtitleCues";
 import type { SubtitleCue, SubtitleStyleSettings } from "#/lib/subtitles/types";
-import type {
-  MediaExportMetadata,
-  PlaybackAudioSelection,
-} from "#/providers/types";
+import type { MediaExportMetadata, PlaybackAudioSelection } from "#/providers";
 
 export type { ExportFormat, ExportResolution } from "#/lib/export/exportTypes";
 

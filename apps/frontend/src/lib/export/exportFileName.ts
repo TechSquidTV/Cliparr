@@ -4,7 +4,7 @@ import {
 } from "#/lib/export/exportFormats";
 import type { ExportFormat } from "#/lib/export/exportTypes";
 import { formatProviderIdForFilename } from "#/lib/metadata/externalIdTags";
-import type { MediaExportMetadata } from "#/providers/types";
+import type { MediaExportMetadata } from "#/providers";
 
 export type ExportFileNameTemplateKind = "movie" | "episode";
 

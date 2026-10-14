@@ -11,7 +11,7 @@ import {
   isPlaybackVideoTrack,
   videoTrackPreviewUnavailableMessage,
 } from "@/lib/export/mediabunny/mediabunnyTrackAccess";
-import type { PlaybackAudioSelection } from "#/providers/types";
+import type { PlaybackAudioSelection } from "#/providers";
 
 type PlaybackSourceLabel =
   "hls stream" | "direct source" | "local file" | "url" | "hls url";

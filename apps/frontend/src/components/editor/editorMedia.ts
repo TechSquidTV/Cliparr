@@ -7,7 +7,7 @@ import type {
   PlaybackSource,
   PlaybackSubtitleSelection,
   PlaybackSubtitleTrack,
-} from "#/providers/types";
+} from "#/providers";
 
 const LOCAL_PROVIDER_ID = "local";
 

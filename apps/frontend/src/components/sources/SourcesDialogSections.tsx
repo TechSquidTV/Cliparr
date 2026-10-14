@@ -37,7 +37,7 @@ import { Switch } from "@/components/ui/switch";
 import { ControlTooltip } from "@/components/ui/tooltip";
 import { cn } from "@/lib/cn";
 import { cliparrMotionTransitions } from "@/lib/motion";
-import type { MediaSource, ProviderSession } from "@/providers/types";
+import type { MediaSource, ProviderSession } from "@/providers";
 
 interface SourceCounts {
   all: number;

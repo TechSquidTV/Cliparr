@@ -5,7 +5,7 @@ import type { ExportFormat } from "#/lib/export/exportTypes";
 import { describeInputTrack } from "#/lib/export/mediabunny/mediabunnyTrackAccess";
 import { buildKeyValueExternalIdTags } from "#/lib/metadata/externalIdTags";
 import { getFrontendLogger, warnWithError } from "#/logging";
-import type { MediaExportMetadata } from "#/providers/types";
+import type { MediaExportMetadata } from "#/providers";
 
 const logger = getFrontendLogger(["editor", "artwork"]);
 const byteMask = 255;

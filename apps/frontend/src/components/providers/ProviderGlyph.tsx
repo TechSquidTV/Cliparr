@@ -2,10 +2,12 @@ import { Film, Server } from "lucide-react";
 
 import { cn } from "@/lib/cn";
 
-const plexLogoUrl = new URL("../../assets/providers/plex.svg", import.meta.url)
-  .href;
+const plexLogoUrl = new URL(
+  "../../assets/provider-logos/plex.svg",
+  import.meta.url,
+).href;
 const jellyfinLogoUrl = new URL(
-  "../../assets/providers/jellyfin.svg",
+  "../../assets/provider-logos/jellyfin.svg",
   import.meta.url,
 ).href;
 

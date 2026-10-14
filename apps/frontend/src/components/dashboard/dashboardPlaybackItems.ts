@@ -1,7 +1,4 @@
-import type {
-  CurrentlyPlayingItem,
-  ViewerPlaybackGroup,
-} from "@/providers/types";
+import type { CurrentlyPlayingItem, ViewerPlaybackGroup } from "@/providers";
 
 type DashboardPlaybackViewer = ViewerPlaybackGroup["viewer"];
 

@@ -52,7 +52,7 @@ import {
   MOBILE_INSTALL_MEDIA_QUERY,
 } from "@/lib/pwa";
 import { EDITOR_THUMBNAIL_VIEW_TRANSITION_NAME } from "@/lib/viewTransitions";
-import type { ViewerPlaybackGroup } from "@/providers/types";
+import type { ViewerPlaybackGroup } from "@/providers";
 
 const dashboardPlaybackGroups: ViewerPlaybackGroup[] = [
   {
