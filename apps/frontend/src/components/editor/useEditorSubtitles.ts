@@ -34,7 +34,7 @@ import {
   saveSubtitleStyleSettings,
 } from "@/lib/subtitles/settings";
 import { trimSubtitleCues } from "@/lib/subtitles/trimSubtitleCues";
-import type { PlaybackSubtitleTrack } from "@/providers/types";
+import type { PlaybackSubtitleTrack } from "@/providers";
 
 interface UseEditorSubtitlesProperties {
   initialDraft?: EditorDraft | null;

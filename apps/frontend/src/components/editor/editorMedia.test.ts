@@ -7,7 +7,7 @@ import {
   editorSessionFromCurrentlyPlaying,
   titleFromUrl,
 } from "@/components/editor/editorMedia";
-import type { CurrentlyPlayingItem } from "@/providers/types";
+import type { CurrentlyPlayingItem } from "@/providers";
 
 void test("uses the URL host as the title when no path segment is present", () => {
   assert.equal(titleFromUrl("https://example.com/"), "example.com");

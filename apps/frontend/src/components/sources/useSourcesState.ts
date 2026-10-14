@@ -19,7 +19,7 @@ import {
 } from "@/components/sources/sourcesStateUtilities";
 import type { Feedback, SourceFilter } from "@/components/sources/sourcesTypes";
 import { getFrontendLogger, warnWithError } from "@/logging";
-import type { MediaSource, ProviderSession } from "@/providers/types";
+import type { MediaSource, ProviderSession } from "@/providers";
 
 interface UseSourcesStateOptions {
   isOpen: boolean;

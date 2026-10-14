@@ -9,7 +9,7 @@ import {
   buildMetadataTags,
   patchMp4MetadataBoxes,
 } from "@/lib/export/exportMetadata";
-import type { MediaExportMetadata } from "#/providers/types";
+import type { MediaExportMetadata } from "#/providers";
 
 const byteMask = 255;
 

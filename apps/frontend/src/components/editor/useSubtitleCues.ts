@@ -15,7 +15,7 @@ import {
 } from "@/lib/subtitles/selectPreferredSubtitleTrack";
 import type { SubtitleCue } from "@/lib/subtitles/types";
 import { getFrontendLogger, warnWithError } from "@/logging";
-import type { PlaybackSubtitleTrack } from "@/providers/types";
+import type { PlaybackSubtitleTrack } from "@/providers";
 
 interface UseSubtitleCuesOptions {
   selectedSubtitleTrack: PlaybackSubtitleTrack | null;

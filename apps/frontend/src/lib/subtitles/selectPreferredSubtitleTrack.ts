@@ -1,7 +1,7 @@
 import type {
   PlaybackSubtitleSelection,
   PlaybackSubtitleTrack,
-} from "@/providers/types";
+} from "@/providers";
 import { normalizedText } from "#/lib/subtitles/normalizedText";
 
 export function subtitleTrackKey(

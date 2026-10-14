@@ -1,5 +1,5 @@
 import { subtitleTrackSupportsBurnIn } from "@/lib/subtitles/selectPreferredSubtitleTrack";
-import type { PlaybackSubtitleTrack } from "@/providers/types";
+import type { PlaybackSubtitleTrack } from "@/providers";
 
 interface SubtitleTrackLabelParts {
   title?: string;
