@@ -1,15 +1,11 @@
 import "@/providers/plex/provider";
 
 import assert from "node:assert/strict";
-import fs from "node:fs";
-import os from "node:os";
-import path from "node:path";
 import test from "node:test";
 
 import { eq, sql } from "drizzle-orm";
 
-import { createApp } from "@/app";
-import { closeDatabase, getDatabase } from "@/db/database";
+import { getDatabase } from "@/db/database";
 import { upsertProviderAccountByAccessToken } from "@/db/providerAccountsRepository";
 import {
   createRememberedProviderSession,
@@ -27,17 +23,7 @@ import {
 } from "@/http/cookies";
 import { createProviderSession, getProviderSession } from "@/session/store";
 import { purgeExpiredSessions } from "@/session/sweep";
-
-const TEST_APP_KEY = "session-route-test-key-with-at-least-32-characters";
-
-function restoreEnv(name: string, value: string | undefined) {
-  if (value === undefined) {
-    delete process.env[name];
-    return;
-  }
-
-  process.env[name] = value;
-}
+import { withTestApp } from "#test/routeFixtures";
 
 function readSetCookieValue(response: Response, name: string) {
   const prefix = `${name}=`;
@@ -66,46 +52,6 @@ function applyResponseCookies(jar: Map<string, string>, response: Response) {
     } else {
       jar.set(name, pair.slice(separator + 1));
     }
-  }
-}
-
-async function withTestApp<T>(
-  callback: (baseUrl: string, fetchLocal: typeof fetch) => Promise<T>,
-) {
-  const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), "cliparr-session-"));
-  const previousAppKey = process.env.APP_KEY;
-  const previousDataDir = process.env.CLIPARR_DATA_DIR;
-
-  process.env.APP_KEY = TEST_APP_KEY;
-  process.env.CLIPARR_DATA_DIR = dataDir;
-
-  const { app } = await createApp();
-  const server = app.listen(0, "127.0.0.1");
-  const originalFetch = globalThis.fetch;
-
-  try {
-    await new Promise((resolve) => {
-      server.once("listening", resolve);
-    });
-    const address = server.address();
-    assert.ok(address && typeof address === "object");
-    return await callback(`http://127.0.0.1:${address.port}`, originalFetch);
-  } finally {
-    await new Promise<void>((resolve, reject) => {
-      server.close((error) => {
-        if (error) {
-          reject(error);
-          return;
-        }
-
-        resolve();
-      });
-    });
-    globalThis.fetch = originalFetch;
-    closeDatabase();
-    restoreEnv("APP_KEY", previousAppKey);
-    restoreEnv("CLIPARR_DATA_DIR", previousDataDir);
-    fs.rmSync(dataDir, { recursive: true, force: true });
   }
 }
 

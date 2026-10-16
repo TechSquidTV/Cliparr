@@ -14,6 +14,7 @@ const eslint = new ESLint({
 });
 const ui = "apps/frontend/src/components/editor/editorPlaybackSources.ts";
 const loader = "apps/frontend/src/lib/export/mediabunny/mediabunnyCodecs.ts";
+const gifRuntime = "apps/frontend/src/lib/export/gif/gifEncodingRuntime.ts";
 const gif = "apps/frontend/src/lib/export/gif/gifFrameEncoder.ts";
 const execution = "apps/frontend/src/lib/export/exportClip.ts";
 const fixture = "apps/frontend/src/lib/mediaLoadingFixtures.test-support.ts";
@@ -91,11 +92,16 @@ cases.push(
     code: 'import type { Value } from "@techsquidtv/gifenc";',
     restricted: false,
   },
+  {
+    file: gifRuntime,
+    code: 'void import("@techsquidtv/gifenc");',
+    restricted: false,
+  },
   { file: gif, code: 'import "@techsquidtv/gifenc";', restricted: false },
   {
     file: execution,
     code: 'void import("@techsquidtv/gifenc");',
-    restricted: false,
+    restricted: true,
   },
   { file: execution, code: 'import "@techsquidtv/gifenc";', restricted: true },
   { file: loader, code: 'import "./local";', restricted: true },

@@ -9,12 +9,12 @@ import type { EditorMediaSource } from "@/components/editor/editorMedia";
 /// <reference types="node" />
 import { resolveExportAudioPlan } from "@/lib/export/exportAudio";
 import {
-  createGifCanvas,
   exportClipWithRuntime,
   type ExportVideoEncodingPlan,
 } from "@/lib/export/exportClip";
 import { buildMetadataTags } from "@/lib/export/exportMetadata";
 import { gifExportSettingsForPreset } from "@/lib/export/exportTypes";
+import { createGifCanvas } from "@/lib/export/gif/gifCanvas";
 import type { EncodeGifFrameChunkHelpers } from "@/lib/export/gif/gifFrameChunk";
 import { concatenateGifFrameChunks } from "@/lib/export/gif/gifFrameChunk";
 import { createInlineGifFrameEncoder } from "@/lib/export/gif/gifFrameEncoder";

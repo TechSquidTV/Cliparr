@@ -1,6 +1,6 @@
 import type { InputTrack, InputVideoTrack, VideoCodec } from "mediabunny";
 
-import type { MediaDimensions } from "@/components/editor/editorMedia";
+import type { MediaDimensions } from "#/components/editor/editorMedia";
 
 export interface VideoTrackDecodabilityAssessment {
   codec: VideoCodec | null;

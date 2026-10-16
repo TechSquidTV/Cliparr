@@ -2,10 +2,11 @@ import {
   logErrorFields,
   logEventFields,
   sanitizeUrlForLog,
+  warnWithError,
 } from "@cliparr/shared/logging";
 
 import type { MediaSourceRecord } from "@/db/mediaSourcesRepository";
-import { getServerLogger, warnWithError } from "@/logging";
+import { getServerLogger } from "@/logging";
 import { createPlaybackResolverCache } from "@/playback/resolverCache";
 import { createMediaHandle } from "@/providers/jellyfin/mediaProxy";
 import {

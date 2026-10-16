@@ -1,8 +1,12 @@
-import { logErrorFields, logEventFields } from "@cliparr/shared/logging";
+import {
+  logErrorFields,
+  logEventFields,
+  warnWithError,
+} from "@cliparr/shared/logging";
 import type { Request, Response } from "express";
 
 import { createApiError } from "@/http/errors";
-import { getServerLogger, warnWithError } from "@/logging";
+import { getServerLogger } from "@/logging";
 import {
   JELLYFIN_REQUEST_TIMEOUT_MS,
   jellyfinHeaders,

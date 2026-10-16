@@ -3,11 +3,12 @@ import {
   logDurationFields,
   logErrorFields,
   logEventFields,
+  warnWithError,
 } from "@cliparr/shared/logging";
 import type { Request, Response as ExpressResponse } from "express";
 
 import { createApiError, isApiError } from "@/http/errors";
-import { getServerLogger, warnWithError } from "@/logging";
+import { getServerLogger } from "@/logging";
 import {
   bodyUrl,
   buildLocalUrlMediaHandle,

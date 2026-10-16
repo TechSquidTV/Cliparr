@@ -2,6 +2,7 @@ import {
   logDurationFields,
   logErrorFields,
   logEventFields,
+  warnWithError,
 } from "@cliparr/shared/logging";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
@@ -38,7 +39,7 @@ import {
   type HlsExportEstimateMetadata,
 } from "@/lib/export/hlsExportEstimate";
 import type { SubtitleCue, SubtitleStyleSettings } from "@/lib/subtitles/types";
-import { getFrontendLogger, warnWithError } from "@/logging";
+import { getFrontendLogger } from "@/logging";
 import {
   buildExportErrorMessage,
   buildExportEstimateActualLogFields,
