@@ -186,7 +186,6 @@ const restrictedSyntaxRulesWithoutRelativeDynamicImports =
 const mediaTestFiles = ["**/*.test.ts", "**/*.test-support.ts"];
 const gifRuntimeFiles = [
   "apps/frontend/src/lib/export/gif/gifEncodingSettings.ts",
-  "apps/frontend/src/lib/export/gif/gifEncodingRuntime.ts",
   "apps/frontend/src/lib/export/gif/gifFrameChunk.ts",
   "apps/frontend/src/lib/export/gif/gifFrameEncoder.ts",
   "apps/frontend/src/lib/export/gif/gifFrameEncoder.worker.ts",
@@ -195,6 +194,7 @@ const gifRuntimeFiles = [
 function mediaLoadingRestrictions({
   codecLoader = false,
   gifRuntime = false,
+  gifLoader = false,
   ui = false,
   relativeImports = false,
 } = {}) {
@@ -231,7 +231,7 @@ function mediaLoadingRestrictions({
     });
   }
 
-  if (!gifRuntime) {
+  if (!gifRuntime && !gifLoader) {
     syntax.push({
       selector: "ImportExpression[source.value='@techsquidtv/gifenc']",
       message:
@@ -498,6 +498,10 @@ export default tseslint.config(
   {
     files: gifRuntimeFiles,
     rules: mediaLoadingRestrictions({ gifRuntime: true }),
+  },
+  {
+    files: ["apps/frontend/src/lib/export/gif/gifEncodingRuntime.ts"],
+    rules: mediaLoadingRestrictions({ gifLoader: true }),
   },
   {
     files: ["apps/frontend/src/components/**/*.{ts,tsx}"],

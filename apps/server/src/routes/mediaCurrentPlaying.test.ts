@@ -1,14 +1,9 @@
 import assert from "node:assert/strict";
-import fs from "node:fs";
-import os from "node:os";
-import path from "node:path";
 import test from "node:test";
 
 import type { PlaybackStreamEvent } from "@cliparr/shared/providers";
 import { readServerEvents } from "@cliparr/shared/server-events";
 
-import { createApp } from "@/app";
-import { closeDatabase } from "@/db/database";
 import {
   type MediaSourceRecord,
   updateMediaSource,
@@ -20,55 +15,7 @@ import { plexProvider } from "@/providers/plex/provider";
 import type { CurrentlyPlayingEntry } from "@/providers/types";
 import { createProviderSession, deleteProviderSession } from "@/session/store";
 import { createDeferred } from "#test/deferred";
-
-const TEST_APP_KEY = "media-currently-playing-test-key-with-32-chars";
-
-function restoreEnv(name: string, value: string | undefined) {
-  if (value === undefined) {
-    delete process.env[name];
-    return;
-  }
-
-  process.env[name] = value;
-}
-
-async function withTestApp<T>(callback: (baseUrl: string) => Promise<T>) {
-  const dataDir = fs.mkdtempSync(
-    path.join(os.tmpdir(), "cliparr-media-currently-playing-"),
-  );
-  const previousAppKey = process.env.APP_KEY;
-  const previousDataDir = process.env.CLIPARR_DATA_DIR;
-
-  process.env.APP_KEY = TEST_APP_KEY;
-  process.env.CLIPARR_DATA_DIR = dataDir;
-
-  const { app } = await createApp();
-  const server = app.listen(0, "127.0.0.1");
-
-  try {
-    await new Promise((resolve) => {
-      server.once("listening", resolve);
-    });
-    const address = server.address();
-    assert.ok(address && typeof address === "object");
-    return await callback(`http://127.0.0.1:${address.port}`);
-  } finally {
-    await new Promise<void>((resolve, reject) => {
-      server.close((error) => {
-        if (error) {
-          reject(error);
-          return;
-        }
-
-        resolve();
-      });
-    });
-    closeDatabase();
-    restoreEnv("APP_KEY", previousAppKey);
-    restoreEnv("CLIPARR_DATA_DIR", previousDataDir);
-    fs.rmSync(dataDir, { recursive: true, force: true });
-  }
-}
+import { withTestApp } from "#test/routeFixtures";
 
 function createSource(
   providerAccountId: string,
