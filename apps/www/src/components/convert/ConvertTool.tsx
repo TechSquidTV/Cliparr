@@ -18,7 +18,7 @@ import {
   titleFromFileName,
 } from "@cliparr/frontend/convert/engine";
 import {
-  compactPrimaryButtonClasses,
+  buttonClassName,
   EditorExportSettingsSection,
   EditorExportSummaryPanel,
   ExportStatusPanel,
@@ -884,7 +884,7 @@ export function ConvertTool() {
                 type="button"
                 onClick={() => void handleExport()}
                 disabled={exporting || Boolean(exportDisabledReason)}
-                className={`${compactPrimaryButtonClasses} w-44 min-w-0 whitespace-nowrap`}
+                className={`${buttonClassName({ size: "compact" })} w-44 min-w-0 whitespace-nowrap`}
               >
                 {exporting ? (
                   <>

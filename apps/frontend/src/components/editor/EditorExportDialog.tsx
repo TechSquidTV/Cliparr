@@ -5,40 +5,39 @@ import {
   EditorExportSummaryPanel,
   EditorFilenameTemplateSection,
   ExportStatusPanel,
-} from "@/components/editor/EditorExportDialogSections";
-import type { MediaDimensions } from "@/components/editor/editorMedia";
-import { BouncyAccordion } from "@/components/ui/bouncy-accordion";
+} from "#/components/editor/EditorExportDialogSections";
+import type { MediaDimensions } from "#/components/editor/editorMedia";
+import { BouncyAccordion } from "#/components/ui/bouncy-accordion";
 import {
-  compactPrimaryButtonClasses,
-  compactSecondaryButtonClasses,
+  buttonClassName,
   primaryAlertClasses,
-} from "@/components/ui/control-styles";
+} from "#/components/ui/control-styles";
 import {
   DialogClose,
   DialogFooter,
   DialogWindow,
-} from "@/components/ui/dialog";
-import { Spinner } from "@/components/ui/spinner";
+} from "#/components/ui/dialog";
+import { Spinner } from "#/components/ui/spinner";
+import type {
+  audioBitDepthSummary,
+  ExportAudioPlan,
+} from "#/lib/export/exportAudio";
 import type {
   ExportFormat,
   ExportPhase,
   ExportResolution,
-} from "@/lib/export/exportClip";
+} from "#/lib/export/exportClip";
 import {
   type ExportFileNameTemplateKind,
   type ExportFileNameTemplateSettings,
-} from "@/lib/export/exportFileName";
+} from "#/lib/export/exportFileName";
+import type { ExportMode, ExportOutputType } from "#/lib/export/exportFormats";
 import {
   type ExportQualityPreset,
   type ExportSizeEstimate,
   type ExportSourcePreference,
   type GifExportSettings,
-} from "@/lib/export/exportTypes";
-import type {
-  audioBitDepthSummary,
-  ExportAudioPlan,
-} from "#/lib/export/exportAudio";
-import type { ExportMode, ExportOutputType } from "#/lib/export/exportFormats";
+} from "#/lib/export/exportTypes";
 
 interface EditorExportDialogProperties {
   isOpen: boolean;
@@ -252,14 +251,14 @@ export function EditorExportDialog({
             <button
               type="button"
               onClick={onCancelExport}
-              className={`${compactSecondaryButtonClasses} w-20 min-w-16 whitespace-nowrap`}
+              className={`${buttonClassName({ tone: "secondary", size: "compact" })} w-20 min-w-16 whitespace-nowrap`}
               aria-label="Cancel export"
             >
               Cancel
             </button>
           ) : (
             <DialogClose
-              className={`${compactSecondaryButtonClasses} w-20 min-w-16 whitespace-nowrap`}
+              className={`${buttonClassName({ tone: "secondary", size: "compact" })} w-20 min-w-16 whitespace-nowrap`}
             >
               Close
             </DialogClose>
@@ -269,7 +268,7 @@ export function EditorExportDialog({
             type="button"
             onClick={onExport}
             disabled={exporting || Boolean(exportDisabledReason)}
-            className={`${compactPrimaryButtonClasses} w-44 shrink-0 whitespace-nowrap`}
+            className={`${buttonClassName({ size: "compact" })} w-44 shrink-0 whitespace-nowrap`}
           >
             {exporting ? (
               <>

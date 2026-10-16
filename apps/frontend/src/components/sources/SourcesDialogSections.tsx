@@ -13,31 +13,29 @@ import {
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import type { KeyboardEvent, RefObject } from "react";
 
-import { formatProviderName } from "@/components/providers/ProviderGlyph";
-import SourceConnectPanel from "@/components/sources/SourceConnectPanel";
-import type { Feedback, SourceFilter } from "@/components/sources/sourcesTypes";
+import { formatProviderName } from "#/components/providers/ProviderGlyph";
+import SourceConnectPanel from "#/components/sources/SourceConnectPanel";
+import type { Feedback, SourceFilter } from "#/components/sources/sourcesTypes";
 import {
-  compactPrimaryButtonClasses,
-  compactSecondaryButtonClasses,
+  buttonClassName,
   destructiveAlertClasses,
-  iconButtonClasses,
-  textInputClasses as inputClasses,
+  textInputClassName,
   warningAlertClasses,
   warningSurfaceClasses,
-} from "@/components/ui/control-styles";
-import { EmptyState } from "@/components/ui/empty-state";
+} from "#/components/ui/control-styles";
+import { EmptyState } from "#/components/ui/empty-state";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
-import { Spinner } from "@/components/ui/spinner";
-import { Switch } from "@/components/ui/switch";
-import { ControlTooltip } from "@/components/ui/tooltip";
-import { cn } from "@/lib/cn";
-import { motionTransitionFor } from "@/lib/motion";
+} from "#/components/ui/select";
+import { Spinner } from "#/components/ui/spinner";
+import { Switch } from "#/components/ui/switch";
+import { ControlTooltip } from "#/components/ui/tooltip";
+import { cn } from "#/lib/cn";
+import { motionTransitionFor } from "#/lib/motion";
 
 interface SourceCounts {
   all: number;
@@ -53,16 +51,20 @@ const sourceFilterOptions = [
   ["attention", "Needs attention"],
 ] as const satisfies readonly [SourceFilter, string][];
 
-const sourcePrimaryButtonClasses = cn(
-  compactPrimaryButtonClasses,
-  "font-medium normal-case tracking-normal",
-);
-const sourceSecondaryButtonClasses = cn(
-  compactSecondaryButtonClasses,
-  "font-medium normal-case tracking-normal",
-);
-const sourceDestructiveButtonClasses =
-  "control-focus inline-flex h-8 items-center justify-center gap-2 rounded-md border border-destructive/30 bg-destructive/10 px-3 text-xs font-medium normal-case tracking-normal text-destructive transition-colors hover:bg-destructive hover:text-destructive-foreground disabled:cursor-not-allowed disabled:opacity-60";
+const sourcePrimaryButtonClasses = buttonClassName({
+  size: "compact",
+  typography: "plain",
+});
+const sourceSecondaryButtonClasses = buttonClassName({
+  tone: "secondary",
+  size: "compact",
+  typography: "plain",
+});
+const sourceDestructiveButtonClasses = buttonClassName({
+  tone: "destructive",
+  size: "compact",
+  typography: "plain",
+});
 const sourceFieldLabelClasses =
   "text-ui-label font-normal normal-case tracking-normal text-muted-foreground";
 const sourceMetaLabelClasses =
@@ -288,7 +290,7 @@ export function SourcesDialogHeader({
             type="button"
             onClick={onClose}
             aria-label="Close source control"
-            className={iconButtonClasses}
+            className={buttonClassName({ tone: "icon", size: "icon" })}
           >
             <X className="h-4 w-4" />
           </button>
@@ -332,7 +334,7 @@ export function SourcesDialogFilters({
               value={query}
               onChange={(event) => onQueryChange(event.target.value)}
               placeholder="Search by source name, URL, provider, or platform"
-              className={cn(inputClasses, "pl-9")}
+              className={cn(textInputClassName(), "pl-9")}
             />
           </label>
 
@@ -643,7 +645,7 @@ export function SourceCard({
             onChange={(event) => onDraftNameChange(event.target.value)}
             onKeyDown={handleKeyDown}
             disabled={isBusy}
-            className={cn(inputClasses, "mt-1.5")}
+            className={cn(textInputClassName(), "mt-1.5")}
           />
         </label>
 
@@ -654,7 +656,7 @@ export function SourceCard({
             onChange={(event) => onDraftBaseUrlChange(event.target.value)}
             onKeyDown={handleKeyDown}
             disabled={isBusy}
-            className={cn(inputClasses, "mt-1.5")}
+            className={cn(textInputClassName(), "mt-1.5")}
           />
         </label>
       </div>

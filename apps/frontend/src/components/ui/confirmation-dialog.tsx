@@ -1,10 +1,7 @@
 import { type ComponentProps, useRef } from "react";
 
-import {
-  primaryButtonClasses,
-  secondaryButtonClasses,
-} from "@/components/ui/control-styles";
-import { DialogFooter, DialogWindow } from "@/components/ui/dialog";
+import { buttonClassName } from "#/components/ui/control-styles";
+import { DialogFooter, DialogWindow } from "#/components/ui/dialog";
 
 export function ConfirmationDialog({
   open,
@@ -39,14 +36,14 @@ export function ConfirmationDialog({
         <button
           ref={cancelReference}
           type="button"
-          className={`${secondaryButtonClasses} min-h-11 sm:min-h-9`}
+          className={`${buttonClassName({ tone: "secondary" })} min-h-11 sm:min-h-9`}
           onClick={onCancel}
         >
           Cancel
         </button>
         <button
           type="button"
-          className={`${primaryButtonClasses} min-h-11 sm:min-h-9`}
+          className={`${buttonClassName()} min-h-11 sm:min-h-9`}
           onClick={onConfirm}
         >
           {confirmLabel}

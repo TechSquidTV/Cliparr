@@ -9,12 +9,9 @@ import type { ReactNode } from "react";
 import { useProviderConnectFlow } from "#/components/provider-connect/useProviderConnectFlow";
 import { ProviderGlyph } from "#/components/providers/ProviderGlyph";
 import {
-  compactSecondaryButtonClasses,
-  densePrimaryButtonClasses as panelPrimaryButtonClasses,
-  denseSecondaryButtonClasses as panelSecondaryButtonClasses,
+  buttonClassName,
   destructiveAlertClasses,
-  screenTextInputClasses as baseScreenInputClasses,
-  textInputClasses,
+  textInputClassName,
 } from "#/components/ui/control-styles";
 import { EmptyState } from "#/components/ui/empty-state";
 import {
@@ -41,8 +38,8 @@ const developmentJellyfinUrl =
     ? developmentJellyfinUrlValue.trim()
     : "";
 
-const panelInputClasses = cn(textInputClasses, "mt-1.5");
-const screenInputClasses = cn(baseScreenInputClasses, "mt-2");
+const panelInputClasses = cn(textInputClassName(), "mt-1.5");
+const screenInputClasses = cn(textInputClassName({ size: "screen" }), "mt-2");
 
 export default function ProviderConnectFlow({
   onConnected,
@@ -102,7 +99,7 @@ export default function ProviderConnectFlow({
               type="button"
               onClick={() => void startAuth(provider)}
               disabled={authenticating}
-              className={cn(panelPrimaryButtonClasses, "flex-1")}
+              className={cn(buttonClassName({ size: "dense" }), "flex-1")}
             >
               <ExternalLink className="h-4 w-4" />
               {authenticating && providerId === provider.id
@@ -115,7 +112,10 @@ export default function ProviderConnectFlow({
                 type="button"
                 onClick={onCancel}
                 disabled={authenticating}
-                className={panelSecondaryButtonClasses}
+                className={buttonClassName({
+                  tone: "secondary",
+                  size: "dense",
+                })}
               >
                 Cancel
               </button>
@@ -209,7 +209,10 @@ export default function ProviderConnectFlow({
                   type="button"
                   onClick={() => setServerUrl(developmentJellyfinUrl)}
                   disabled={authenticating || isUsingDevelopmentJellyfinUrl}
-                  className={compactSecondaryButtonClasses}
+                  className={buttonClassName({
+                    tone: "secondary",
+                    size: "compact",
+                  })}
                 >
                   {isUsingDevelopmentJellyfinUrl ? (
                     <>
@@ -288,7 +291,7 @@ export default function ProviderConnectFlow({
             <button
               type="submit"
               disabled={authenticating || !serverUrl.trim() || !username.trim()}
-              className={cn(panelPrimaryButtonClasses, "flex-1")}
+              className={cn(buttonClassName({ size: "dense" }), "flex-1")}
             >
               <Server className="h-4 w-4" />
               {authenticating && providerId === provider.id
@@ -301,7 +304,10 @@ export default function ProviderConnectFlow({
                 type="button"
                 onClick={onCancel}
                 disabled={authenticating}
-                className={panelSecondaryButtonClasses}
+                className={buttonClassName({
+                  tone: "secondary",
+                  size: "dense",
+                })}
               >
                 Cancel
               </button>

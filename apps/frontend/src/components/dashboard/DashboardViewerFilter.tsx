@@ -6,13 +6,13 @@ import { useState } from "react";
 import {
   type DashboardViewerFilterOption,
   sanitizeDashboardViewerFilterNames,
-} from "@/components/dashboard/dashboardPlaybackItems";
-import { DashboardViewerAvatar } from "@/components/dashboard/DashboardViewerAvatar";
-import { textInputClasses } from "@/components/ui/control-styles";
-import { EmptyState } from "@/components/ui/empty-state";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { cn } from "@/lib/cn";
-import { motionTransitionFor } from "@/lib/motion";
+} from "#/components/dashboard/dashboardPlaybackItems";
+import { DashboardViewerAvatar } from "#/components/dashboard/DashboardViewerAvatar";
+import { textInputClassName } from "#/components/ui/control-styles";
+import { EmptyState } from "#/components/ui/empty-state";
+import { ScrollArea } from "#/components/ui/scroll-area";
+import { cn } from "#/lib/cn";
+import { motionTransitionFor } from "#/lib/motion";
 
 const DASHBOARD_VIEWER_FILTER_TRIGGER_VISIBLE_AVATAR_COUNT = 2;
 
@@ -218,7 +218,7 @@ export function DashboardViewerFilterPicker({
                 onChange={(event) => setQuery(event.target.value)}
                 placeholder="Search viewers"
                 className={cn(
-                  textInputClasses,
+                  textInputClassName(),
                   "pl-9 placeholder:text-muted-foreground",
                 )}
                 data-dashboard-viewer-filter-search

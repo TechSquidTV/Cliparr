@@ -10,8 +10,8 @@ import {
 import * as React from "react";
 
 import {
+  buttonClassName,
   dialogFooterClasses,
-  iconButtonClasses,
 } from "#/components/ui/control-styles";
 import { cn } from "#/lib/cn";
 
@@ -241,7 +241,10 @@ function DialogPopup({
     <>
       {showCloseButton ? (
         <DialogClose
-          className={cn(iconButtonClasses, "absolute top-3 right-3")}
+          className={cn(
+            buttonClassName({ tone: "icon", size: "icon" }),
+            "absolute top-3 right-3",
+          )}
         >
           <X className="h-4 w-4" />
           <span className="sr-only">Close</span>
@@ -373,7 +376,7 @@ function DialogWindow({
               <DialogClose
                 disabled={closeDisabled}
                 aria-label={closeLabel}
-                className={iconButtonClasses}
+                className={buttonClassName({ tone: "icon", size: "icon" })}
               >
                 <X className="h-4 w-4" />
               </DialogClose>
