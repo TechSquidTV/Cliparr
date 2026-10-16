@@ -41,7 +41,13 @@ try {
   });
   for (const site of ["ui-controls", "ui-controls-www"]) {
     for (const reducedMotion of ["reduce", "no-preference"]) {
-      const page = await browser.newPage({ reducedMotion });
+      const page = await browser.newPage({
+        reducedMotion,
+        viewport: {
+          width: reducedMotion === "reduce" ? 390 : 1280,
+          height: 900,
+        },
+      });
       await page.goto(`http://127.0.0.1:${address.port}/tests/${site}.html`);
       const trigger = page.getByRole("button", { name: "Open controls" });
       await trigger.click();
@@ -125,6 +131,60 @@ try {
         ),
         true,
       );
+      if (site === "ui-controls") {
+        const features = page.getByRole("region", { name: "Feature controls" });
+        await features.getByLabel("Display Name").fill("Renamed server");
+        await features.getByRole("button", { name: "Save Changes" }).click();
+        await features.getByText("Source saved", { exact: true }).waitFor();
+        await features
+          .getByRole("switch", { name: "Disable Renamed server" })
+          .click();
+        await features
+          .getByRole("switch", { name: "Enable Renamed server" })
+          .waitFor();
+        await features
+          .getByRole("button", { name: "Refresh", exact: true })
+          .click();
+        await features
+          .getByText("Source refresh requested", { exact: true })
+          .waitFor();
+        await features
+          .getByRole("button", { name: "Remove", exact: true })
+          .click();
+        await features
+          .getByText("Source removal requested", { exact: true })
+          .waitFor();
+        await features
+          .getByRole("textbox", { name: "Subtitle text" })
+          .fill("Edited subtitle");
+        await features
+          .getByRole("button", { name: "Seek to selected subtitle" })
+          .click();
+        await features
+          .getByText("Subtitle seek requested", { exact: true })
+          .waitFor();
+        await features
+          .getByRole("button", { name: /^Edit subtitle cue in point:/ })
+          .click();
+        await features
+          .getByRole("textbox", { name: "Edit subtitle cue in point" })
+          .fill("2");
+        await page.keyboard.press("Enter");
+        await features
+          .getByText("Subtitle in point changed", { exact: true })
+          .waitFor();
+        const fontSize = features.getByRole("slider", {
+          name: "Size",
+          exact: true,
+        });
+        await fontSize.focus();
+        await page.keyboard.press("End");
+        assert.equal(await fontSize.getAttribute("aria-valuetext"), "150px");
+        await features
+          .getByRole("button", { name: "Delete subtitle", exact: true })
+          .click();
+        await features.getByText("Subtitle deleted", { exact: true }).waitFor();
+      }
       await page.close();
     }
   }

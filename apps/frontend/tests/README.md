@@ -52,5 +52,7 @@ Failures also retain a log and screenshot.
 Run `CLIPARR_TEST_BROWSER_CHANNEL=chrome pnpm --filter @cliparr/frontend test:browser:ui`.
 The production harness uses both application stylesheets and motion preferences to
 check named slider values, keyboard tab selection, dropdown radius and animation,
-and dialog dismissal, locking, and focus restoration. CI runs it alongside the
-media browser suites.
+and dialog dismissal, locking, and focus restoration. At mobile and desktop
+widths, it also exercises source edits/actions and subtitle text, timing, style,
+and deletion callbacks through the extracted components. CI runs it alongside
+the media browser suites.

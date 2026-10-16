@@ -1,18 +1,18 @@
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { useRef } from "react";
 
+import { SourceCard } from "#/components/sources/SourceCard";
+import { SourcesDialogFilters } from "#/components/sources/SourcesDialogFilters";
+import { SourcesDialogHeader } from "#/components/sources/SourcesDialogHeader";
 import {
-  SourceCard,
   SourcesConnectSection,
   SourcesDialogAlerts,
-  SourcesDialogFilters,
-  SourcesDialogHeader,
   SourcesEmptyState,
-} from "@/components/sources/SourcesDialogSections";
-import { useSourcesState } from "@/components/sources/useSourcesState";
-import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
-import { DialogWindow } from "@/components/ui/dialog";
-import { motionTransitionFor } from "@/lib/motion";
+} from "#/components/sources/SourcesFeedback";
+import { useSourcesState } from "#/components/sources/useSourcesState";
+import { ConfirmationDialog } from "#/components/ui/confirmation-dialog";
+import { DialogWindow } from "#/components/ui/dialog";
+import { motionTransitionFor } from "#/lib/motion";
 
 interface Properties {
   isOpen: boolean;

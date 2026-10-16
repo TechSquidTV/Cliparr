@@ -1,11 +1,10 @@
-import { buttonClassName } from "@cliparr/frontend/convert/ui";
+import { PwaInstallCard } from "@cliparr/frontend/convert/ui";
 import {
   createPwaInstallController,
-  PwaInstallAction,
   type PwaInstallState,
   usePwaInstall,
 } from "@cliparr/frontend/pwa";
-import { Download, Share, Smartphone, X } from "lucide-react";
+import { Download, X } from "lucide-react";
 
 import {
   flushConvertMetrics,
@@ -73,30 +72,18 @@ export function ConvertPwaInstallPromptView({
     );
   }
 
-  const isIosGuide = state.mode === "ios";
-  const Icon = isIosGuide ? Share : Smartphone;
-
   return (
-    <section
-      className="mt-5 rounded-lg border border-border bg-card p-3 text-card-foreground shadow-sm sm:hidden"
+    <PwaInstallCard
+      mode={state.mode}
+      prompting={prompting}
+      className="mt-5 sm:hidden"
+      title="Add Cliparr Convert to your home screen"
+      description="Install the converter for quick full-screen access and offline launches."
       aria-label="Install Cliparr Convert"
       data-convert-pwa-install-mode={state.mode}
       data-convert-pwa-form-factor="mobile"
-    >
-      <div className="flex items-start gap-3">
-        <div className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary">
-          <Icon className="h-4 w-4" />
-        </div>
-        <div className="min-w-0 flex-1 space-y-1">
-          <h2 className="text-sm font-semibold text-foreground">
-            Add Cliparr Convert to your home screen
-          </h2>
-          <p className="text-xs leading-5 text-muted-foreground">
-            {isIosGuide
-              ? "Use the browser Share menu, then Add to Home Screen."
-              : "Install the converter for quick full-screen access and offline launches."}
-          </p>
-        </div>
+      onInstall={onInstall}
+      dismissControl={
         <button
           type="button"
           onClick={onDismiss}
@@ -106,17 +93,8 @@ export function ConvertPwaInstallPromptView({
         >
           <X className="h-4 w-4" />
         </button>
-      </div>
-
-      <div className="mt-3 flex flex-wrap items-center gap-2 pl-12">
-        <PwaInstallAction
-          mode={state.mode}
-          prompting={prompting}
-          onInstall={onInstall}
-          buttonClassName={buttonClassName({ size: "compact" })}
-        />
-      </div>
-    </section>
+      }
+    />
   );
 }
 
