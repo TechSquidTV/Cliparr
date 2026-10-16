@@ -924,7 +924,7 @@ async function exportGifClipWithRuntime(
           height: outputDimensions.height,
           maxColors: resolvedGifSettings.maxColors,
           delayMs: frameDelayMs,
-          palette: globalPalette,
+          globalPalette,
           paletteFormat: resolvedGifSettings.paletteFormat,
           ditherMode: resolvedGifSettings.ditherMode,
           ditherStrength: resolvedGifSettings.ditherStrength,

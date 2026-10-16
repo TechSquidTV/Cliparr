@@ -36,7 +36,7 @@ workerScope.addEventListener("message", (event) => {
       height: message.height,
       maxColors: message.maxColors,
       delayMs: message.delayMs,
-      palette: message.palette,
+      globalPalette: message.globalPalette,
       paletteFormat: message.paletteFormat,
       ditherMode: message.ditherMode,
       ditherStrength: message.ditherStrength,

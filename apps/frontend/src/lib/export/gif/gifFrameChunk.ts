@@ -1,6 +1,7 @@
 import type {
   ApplyPaletteOptions,
   Palette,
+  RGBAInput,
   TemporalDitherState,
 } from "@techsquidtv/gifenc";
 import { applyPalette, GIFEncoder, quantize } from "@techsquidtv/gifenc";
@@ -10,17 +11,15 @@ import type {
   GifPaletteFormat,
 } from "#/lib/export/gif/gifEncodingSettings";
 
-export const GIF_TRAILER_BYTE = 59;
-
 export interface EncodeGifFrameChunkInput {
   sequenceIndex: number;
-  rgba: Uint8Array | Uint8ClampedArray;
+  rgba: RGBAInput;
   width: number;
   height: number;
   maxColors: number;
   delayMs: number;
   repeat?: number;
-  palette?: Palette | null;
+  globalPalette?: Palette | null;
   paletteFormat: GifPaletteFormat;
   ditherMode: GifDitherMode;
   ditherStrength?: number;
@@ -48,7 +47,7 @@ export function encodeGifFrameChunk(
     maxColors,
     delayMs,
     repeat = 0,
-    palette,
+    globalPalette,
     paletteFormat,
     ditherMode,
     ditherStrength,
@@ -62,7 +61,8 @@ export function encodeGifFrameChunk(
   }: EncodeGifFrameChunkHelpers = {},
 ): GifFrameChunk {
   const resolvedPalette =
-    palette ?? quantizeGifFrame(rgba, maxColors, { format: paletteFormat });
+    globalPalette ??
+    quantizeGifFrame(rgba, maxColors, { format: paletteFormat });
   const indexedPixels = applyGifPalette(
     rgba,
     resolvedPalette,
@@ -76,22 +76,20 @@ export function encodeGifFrameChunk(
       width,
     }),
   );
-  const gif = createGifEncoder({ auto: false });
-
-  if (sequenceIndex === 0) {
-    gif.writeHeader();
-  }
+  // Only the first independent chunk writes the header and global table.
+  const gif = createGifEncoder({ auto: sequenceIndex === 0 });
 
   gif.writeFrame(indexedPixels, width, height, {
-    first: sequenceIndex === 0,
     repeat,
     delay: delayMs,
-    palette: resolvedPalette,
+    // Omitting later palettes lets gifenc reuse the first chunk's global table.
+    palette:
+      sequenceIndex === 0 || !globalPalette ? resolvedPalette : undefined,
   });
 
   return {
     sequenceIndex,
-    bytes: copyBytes(gif.bytesView()),
+    bytes: gif.bytes(),
   };
 }
 
@@ -141,22 +139,13 @@ export function concatenateGifFrameChunks(
   const byteLength =
     orderedChunks.reduce((total, chunk) => total + chunk.bytes.byteLength, 0) +
     1;
-  const bytes = new Uint8Array(byteLength);
-  let offset = 0;
+  const gif = GIFEncoder({ auto: false, initialCapacity: byteLength });
 
   for (const chunk of orderedChunks) {
-    bytes.set(chunk.bytes, offset);
-    offset += chunk.bytes.byteLength;
+    gif.stream.writeBytesView(chunk.bytes);
   }
 
-  bytes[offset] = GIF_TRAILER_BYTE;
+  gif.finish();
 
-  return bytes;
-}
-
-function copyBytes(bytes: Uint8Array) {
-  const copy = new Uint8Array(bytes.byteLength);
-  copy.set(bytes);
-
-  return copy;
+  return gif.bytesView();
 }
