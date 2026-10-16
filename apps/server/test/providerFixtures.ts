@@ -32,3 +32,17 @@ export function useProviderFixtures() {
     });
   });
 }
+
+/** Isolate mocked DNS answers between tests while retaining cache behavior within a test. */
+export function useFreshDnsCacheWindow() {
+  let now = Date.now();
+  const expireDnsCache = () => {
+    now += 60_001;
+  };
+  beforeEach((context) => {
+    assert.ok("mock" in context);
+    expireDnsCache();
+    context.mock.method(Date, "now", () => now);
+  });
+  return expireDnsCache;
+}

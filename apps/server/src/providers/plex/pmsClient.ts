@@ -11,11 +11,11 @@ import { type ApiError, createApiError, isApiError } from "@/http/errors";
 import { PLEX_CLIENT_IDENTIFIER, PLEX_PRODUCT } from "@/providers/plex/shared";
 import { resolveHostnameAddresses } from "@/providers/shared/dnsCache";
 import {
-  isRedirectStatus,
-  isUnsafeRemoteHostname,
-  removeSensitiveRedirectHeaders,
-} from "@/providers/shared/networkPolicy";
-import { fetchWithPinnedDns } from "@/providers/shared/pinnedFetch";
+  closeRedirectResponse,
+  fetchWithManualRedirects,
+  type RedirectFetchPolicy,
+} from "@/providers/shared/fetchRedirect";
+import { isUnsafeRemoteHostname } from "@/providers/shared/networkPolicy";
 import { booleanEnv, errorMessage } from "@/providers/shared/utilities";
 
 export interface PlexPmsRequestContext {
@@ -125,127 +125,23 @@ async function assertAllowedPlexPmsRequestUrl(
   return addresses;
 }
 
-async function reusableRequestBody(request: Request) {
-  if (request.method === "GET" || request.method === "HEAD" || !request.body) {
-    return;
-  }
-
-  const contentType = (request.headers.get("content-type") ?? "").toLowerCase();
-  if (contentType.includes("json") || contentType.startsWith("text/")) {
-    return request.clone().text();
-  }
-
-  return request.clone().arrayBuffer();
-}
-
-async function discardPlexResponse(response: Response) {
-  try {
-    await response.body?.cancel();
-  } catch {
-    // A generated error response may already be consumed or locked.
-  }
-}
-
-function redirectUrl(location: string, requestUrl: URL) {
-  try {
-    return new URL(location, requestUrl);
-  } catch {
-    throw createApiError(
+const plexRedirectPolicy: RedirectFetchPolicy = {
+  maxRedirects: PLEX_PMS_MAX_REDIRECTS,
+  sensitiveHeaders: ["authorization", "cookie", "x-plex-token"],
+  assertRequestUrl: assertAllowedPlexPmsRequestUrl,
+  invalidRedirectError: () =>
+    createApiError(
       502,
       "plex_invalid_redirect",
       "Plex PMS returned an invalid redirect URL",
-    );
-  }
-}
-
-function updateRedirectRequest(
-  init: RequestInit,
-  response: Response,
-  nextUrl: URL,
-  currentUrl: URL,
-) {
-  const headers = new Headers(
-    nextUrl.origin === currentUrl.origin
-      ? init.headers
-      : removeSensitiveRedirectHeaders(init).headers,
-  );
-  const method = String(init.method ?? "GET").toUpperCase();
-  const shouldSwitchToGet =
-    response.status === 303 ||
-    ((response.status === 301 || response.status === 302) && method === "POST");
-
-  if (!shouldSwitchToGet) {
-    return {
-      ...init,
-      headers,
-    };
-  }
-
-  headers.delete("content-length");
-  headers.delete("content-type");
-
-  return {
-    ...init,
-    method: "GET",
-    headers,
-    body: undefined,
-  };
-}
-
-async function fetchPlexPmsWithManualRedirects(
-  input: Parameters<typeof fetch>[0],
-  init?: Parameters<typeof fetch>[1],
-) {
-  const request = new Request(input, init);
-  const signal = init?.signal ?? request.signal;
-  signal.throwIfAborted();
-  const trustedOrigin = new URL(request.url).origin;
-  let requestUrl = new URL(request.url);
-  let requestInit: RequestInit = {
-    method: request.method,
-    headers: new Headers(request.headers),
-    body: await reusableRequestBody(request),
-    // Retain the caller signal: Request owns its forwarding AbortController.
-    signal,
-  };
-
-  for (
-    let redirectCount = 0;
-    redirectCount <= PLEX_PMS_MAX_REDIRECTS;
-    redirectCount += 1
-  ) {
-    const addresses = await assertAllowedPlexPmsRequestUrl(
-      requestUrl,
-      trustedOrigin,
-      signal,
-    );
-    const response = await fetchWithPinnedDns(
-      requestUrl,
-      { ...requestInit, redirect: "manual" },
-      addresses,
-    );
-    const location = response.headers.get("location");
-    if (!isRedirectStatus(response.status) || !location) {
-      return response;
-    }
-
-    const nextUrl = redirectUrl(location, requestUrl);
-    requestInit = updateRedirectRequest(
-      requestInit,
-      response,
-      nextUrl,
-      requestUrl,
-    );
-    await discardPlexResponse(response);
-    requestUrl = nextUrl;
-  }
-
-  throw createApiError(
-    502,
-    "plex_redirect_limit",
-    "Plex PMS request redirected too many times",
-  );
-}
+    ),
+  redirectLimitError: () =>
+    createApiError(
+      502,
+      "plex_redirect_limit",
+      "Plex PMS request redirected too many times",
+    ),
+};
 
 export function createPlexPmsSdkClient(
   context: PlexPmsRequestContext,
@@ -262,7 +158,7 @@ export function createPlexPmsSdkClient(
     },
     // Keep the original signal alive beyond headers; Request signals forward through GC-sensitive controllers.
     fetch: (input, init) =>
-      fetchPlexPmsWithManualRedirects(input, { ...init, signal }),
+      fetchWithManualRedirects(input, { ...init, signal }, plexRedirectPolicy),
     parseAs: "json",
     signal,
   });
@@ -360,14 +256,14 @@ export async function openPlexEventStream(
     throw sdkRequestError(result.error);
   }
   if (!response.ok) {
-    await discardPlexResponse(response);
+    await closeRedirectResponse(response);
     throw createPlexPmsResponseApiError(response);
   }
   if (
     !response.body ||
     !response.headers.get("content-type")?.includes("text/event-stream")
   ) {
-    await discardPlexResponse(response);
+    await closeRedirectResponse(response);
     throw new Error("Plex did not return an event stream");
   }
   return response.body;
