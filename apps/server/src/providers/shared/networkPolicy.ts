@@ -1,4 +1,4 @@
-const DISALLOWED_REMOTE_HOSTNAMES = new Set([
+export const DISALLOWED_REMOTE_HOSTNAMES = new Set([
   "metadata",
   "metadata.azure.internal",
   "metadata.google.internal",
@@ -25,7 +25,7 @@ export function normalizeHostname(value: string) {
   return normalizeIpCandidate(value.trim()).replace(/\.+$/, "");
 }
 
-function ipv4Octets(hostname: string) {
+export function ipv4Octets(hostname: string) {
   const parts = hostname.split(".");
   if (parts.length !== 4) {
     return;

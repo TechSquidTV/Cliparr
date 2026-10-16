@@ -13,8 +13,11 @@ import {
   mockProviderDns,
   TEST_JELLYFIN_BASE_URL,
   TEST_PUBLIC_ADDRESS,
+  useFreshDnsCacheWindow,
 } from "#test/providerFixtures";
 import { acceptTestWebSocket } from "#test/webSocketFixtures";
+
+const expireDnsCache = useFreshDnsCacheWindow();
 
 function createSource(baseUrl: string): MediaSourceRecord {
   return {
@@ -248,7 +251,7 @@ void test(
 );
 
 void test(
-  "cancelling Jellyfin live startup interrupts WebSocket DNS validation",
+  "cancelling Jellyfin live startup interrupts expired-cache WebSocket DNS validation",
   { timeout: 1000 },
   async (context) => {
     const { watchCurrentlyPlaying } = await import("@/providers/jellyfin/live");
@@ -273,6 +276,10 @@ void test(
       "fetch",
       async (input: Parameters<typeof fetch>[0], init?: RequestInit) => {
         fetchCalls++;
+        if (fetchCalls === 2) {
+          // Force the WebSocket validation to start a new, cancellable lookup.
+          expireDnsCache();
+        }
         const path = new URL(new Request(input, init).url).pathname;
         return Response.json(
           path === "/Users/Me"

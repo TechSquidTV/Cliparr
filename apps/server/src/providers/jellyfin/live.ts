@@ -1,16 +1,18 @@
 import type { MediaSourceRecord } from "@/db/mediaSourcesRepository";
 import { createApiError } from "@/http/errors";
 import {
+  assertAllowedJellyfinServerUrl,
+  jellyfinHeaders,
+} from "@/providers/jellyfin/http";
+import {
   createJellyfinPlaybackResolver,
   jellyfinPlaybackIdentity,
   visibleJellyfinSessions,
 } from "@/providers/jellyfin/playback";
 import {
-  assertAllowedJellyfinServerUrl,
   fetchCurrentUser,
   fetchPublicSystemInfo,
   fetchSessions,
-  jellyfinHeaders,
   type JellyfinSessionInfo,
   sourceContext,
 } from "@/providers/jellyfin/shared";
