@@ -18,6 +18,7 @@ import {
   pruneLocalUrlMediaHandles,
   storeLocalUrlMediaHandle,
 } from "@/providers/localUrl/mediaHandles";
+import { defineProvider } from "@/providers/shared/defineProvider";
 import {
   fetchMediaHandleRequest,
   mediaProxyAcceptHeader,
@@ -30,7 +31,7 @@ import {
   sanitizeLoggedMediaPath,
 } from "@/providers/shared/mediaUrlPolicy";
 import { errorMessage } from "@/providers/shared/utilities";
-import type { MediaHandle, ProviderImplementation } from "@/providers/types";
+import type { MediaHandle } from "@/providers/types";
 import type { ProviderSessionRecord } from "@/session/store";
 
 const localUrlLogger = getServerLogger("media").getChild("local_url");
@@ -208,7 +209,7 @@ export async function proxyLocalUrlMedia(
   );
 }
 
-export const localUrlProvider: ProviderImplementation = {
+export const localUrlProvider = defineProvider({
   definition: {
     id: LOCAL_URL_PROVIDER_ID,
     name: "Local URL",
@@ -219,9 +220,4 @@ export const localUrlProvider: ProviderImplementation = {
   watchCurrentlyPlaying: async () => {},
   proxyMedia: (_session, handleId, request, res) =>
     proxyLocalUrlMedia(handleId, request, res),
-  serializeSession: (session) => ({
-    id: session.id,
-    providerId: LOCAL_URL_PROVIDER_ID,
-    expiresAt: new Date(session.expiresAt).toISOString(),
-  }),
-};
+});

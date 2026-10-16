@@ -1,7 +1,7 @@
 import { logEventFields } from "@cliparr/shared/logging";
 import type { PlaybackSourceStatus } from "@cliparr/shared/providers";
 
-import type { MediaSource } from "@/db/mediaSourcesRepository";
+import type { MediaSourceRecord } from "@/db/mediaSourcesRepository";
 import { isApiError } from "@/http/errors";
 import { getServerLogger } from "@/logging";
 import type {
@@ -29,7 +29,7 @@ function apiFailure(error: unknown) {
 }
 
 export function startSourceConnection(options: {
-  source: MediaSource;
+  source: MediaSourceRecord;
   provider: ProviderImplementation | undefined;
   observer: PlaybackObserver;
   signal: AbortSignal;

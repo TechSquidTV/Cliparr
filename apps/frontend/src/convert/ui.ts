@@ -15,3 +15,4 @@ export {
 } from "../components/ui/control-styles";
 export { Spinner } from "../components/ui/spinner";
 export { TooltipProvider } from "../components/ui/tooltip";
+export { LOCAL_VIDEO_FILE_ACCEPT } from "../lib/localMediaFormats";

@@ -6,7 +6,7 @@ import { syncBuiltinESMExports } from "node:module";
 import test from "node:test";
 import { setImmediate } from "node:timers/promises";
 
-import { createDeferred } from "@/test/deferred";
+import { createDeferred } from "#test/deferred";
 
 const {
   assertAllowedJellyfinServerUrl,

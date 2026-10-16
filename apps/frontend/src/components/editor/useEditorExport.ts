@@ -18,6 +18,7 @@ import type {
   ExportVideoEncodingPlan,
 } from "@/lib/export/exportClip";
 import { formatCanCopyVideoCodec } from "@/lib/export/exportEncodingPolicy";
+import { chooseExportFile } from "@/lib/export/exportFile";
 import {
   buildExportFileName,
   defaultExportFileNameTemplates,
@@ -540,6 +541,16 @@ export function useEditorExport({
     let audioEncodingPlan: ExportAudioPlan | undefined;
 
     try {
+      const destination = await chooseExportFile(
+        fileName.fullName,
+        exportFormat,
+      );
+      if (destination.status === "cancelled") {
+        controller.abort();
+      }
+      controller.signal.throwIfAborted();
+      const outputFile =
+        destination.status === "selected" ? destination.handle : undefined;
       const { exportClip } = await import("@/lib/export/exportClip");
       controller.signal.throwIfAborted();
       const handleProgress = (nextProgress: number) => {
@@ -556,6 +567,7 @@ export function useEditorExport({
         });
       };
       const blob = await exportClip({
+        outputFile,
         signal: controller.signal,
         onPhaseChange: (phase) => {
           if (mounted.current && !controller.signal.aborted) {
@@ -592,8 +604,14 @@ export function useEditorExport({
         onProgress: handleProgress,
       });
       controller.signal.throwIfAborted();
-      downloadBlob(blob, fileName.fullName);
-      setExportNotice(`Download started: ${fileName.fullName}`);
+      if (!outputFile) {
+        downloadBlob(blob, fileName.fullName);
+      }
+      setExportNotice(
+        outputFile
+          ? `Saved: ${outputFile.name}`
+          : `Download started: ${fileName.fullName}`,
+      );
 
       exportLogger.info("Editor export completed.", {
         ...logEventFields("editor.export", "success"),

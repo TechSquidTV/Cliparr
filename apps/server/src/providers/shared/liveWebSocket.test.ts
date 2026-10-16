@@ -5,8 +5,8 @@ import test from "node:test";
 import { constants, deflateRawSync } from "node:zlib";
 
 import { readLiveWebSocket } from "@/providers/shared/liveWebSocket";
-import { createDeferred } from "@/test/deferred";
-import { acceptTestWebSocket } from "@/test/webSocketFixtures";
+import { createDeferred } from "#test/deferred";
+import { acceptTestWebSocket } from "#test/webSocketFixtures";
 
 for (const scenario of [
   { hostname: "127.0.0.1", silent: false },

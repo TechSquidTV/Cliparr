@@ -10,7 +10,7 @@ import { readServerEvents } from "@cliparr/shared/server-events";
 import { createApp } from "@/app";
 import { closeDatabase } from "@/db/database";
 import {
-  type MediaSource,
+  type MediaSourceRecord,
   updateMediaSource,
   upsertMediaSource,
 } from "@/db/mediaSourcesRepository";
@@ -19,7 +19,7 @@ import { getSessionCookieName } from "@/http/cookies";
 import { plexProvider } from "@/providers/plex/provider";
 import type { CurrentlyPlayingEntry } from "@/providers/types";
 import { createProviderSession, deleteProviderSession } from "@/session/store";
-import { createDeferred } from "@/test/deferred";
+import { createDeferred } from "#test/deferred";
 
 const TEST_APP_KEY = "media-currently-playing-test-key-with-32-chars";
 
@@ -89,7 +89,7 @@ function createSource(
 }
 
 function playbackEntry(
-  source: MediaSource,
+  source: MediaSourceRecord,
   viewer: { id: string; name: string },
   itemId: string,
 ): CurrentlyPlayingEntry {

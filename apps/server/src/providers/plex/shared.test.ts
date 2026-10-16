@@ -7,7 +7,7 @@ import {
   requirePlexServerResources,
 } from "@/providers/plex/shared";
 import type { ProviderResource } from "@/providers/types";
-import { TEST_PLEX_BASE_URL } from "@/test/providerFixtures";
+import { TEST_PLEX_BASE_URL } from "#test/providerFixtures";
 
 void test("normalizes Plex server resources with JSON boolean flags", () => {
   const resources = normalizeResources([

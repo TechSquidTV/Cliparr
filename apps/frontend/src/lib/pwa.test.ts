@@ -5,18 +5,29 @@ import test from "node:test";
 
 import {
   type BeforeInstallPromptEvent,
+  createPwaInstallController,
   isIosLikeDevice,
   promptForPwaInstall,
   type PwaInstallEnvironment,
-  readPwaInstallDismissed,
-  resolveMobilePwaInstallMode,
-  writePwaInstallDismissed,
-} from "@/lib/pwa";
+  resolvePwaInstallState,
+} from "@/pwa";
+
+const {
+  readDismissed: readPwaInstallDismissed,
+  writeDismissed: writePwaInstallDismissed,
+} = createPwaInstallController({
+  dismissedKey: "cliparr:pwa-install-dismissed",
+  serviceWorkerUrl: "/service-worker.js",
+});
+function resolveMobilePwaInstallMode(environment: PwaInstallEnvironment) {
+  return resolvePwaInstallState(environment, true).mode;
+}
 
 function mobileEnvironment(
   overrides: Partial<PwaInstallEnvironment> = {},
 ): PwaInstallEnvironment {
   return {
+    appInstalled: false,
     coarsePointer: true,
     dismissed: false,
     hasInstallPrompt: true,
@@ -157,4 +168,98 @@ void test("returns null when a PWA install prompt has no user choice", async () 
 
   assert.equal(await promptForPwaInstall(installPrompt), null);
   assert.equal(prompted, true);
+});
+
+void test("keeps dismissal keys isolated between applications", () => {
+  const storage = memoryStorage();
+  const app = createPwaInstallController({
+    dismissedKey: "app",
+    serviceWorkerUrl: "/service-worker.js",
+  });
+  const converter = createPwaInstallController({
+    dismissedKey: "converter",
+    serviceWorkerUrl: "/convert/service-worker.js",
+  });
+  app.writeDismissed(true, storage);
+  assert.equal(converter.readDismissed(storage), false);
+  assert.equal(app.readDismissed(storage), true);
+});
+
+void test("handles native install events once and clears installed prompts", async () => {
+  const windowDescriptor = Object.getOwnPropertyDescriptor(
+    globalThis,
+    "window",
+  );
+  const navigatorDescriptor = Object.getOwnPropertyDescriptor(
+    globalThis,
+    "navigator",
+  );
+  const browser = Object.assign(new EventTarget(), { isSecureContext: true });
+  const metrics: string[] = [];
+  const controller = createPwaInstallController({
+    dismissedKey: "lifecycle-test",
+    serviceWorkerUrl: "/service-worker.js",
+    recordMetric: (event) => {
+      metrics.push(event);
+    },
+  });
+  let updates = 0;
+  let promptCalls = 0;
+  try {
+    Object.defineProperty(globalThis, "window", {
+      configurable: true,
+      value: browser,
+    });
+    Object.defineProperty(globalThis, "navigator", {
+      configurable: true,
+      value: { userAgent: "Desktop", maxTouchPoints: 0 },
+    });
+    controller.start();
+    controller.start();
+    const unsubscribe = controller.subscribe(() => {
+      updates++;
+    });
+    const event = Object.assign(
+      new Event("beforeinstallprompt", { cancelable: true }),
+      {
+        prompt: async () => {
+          promptCalls++;
+        },
+        userChoice: Promise.resolve({ outcome: "accepted", platform: "web" }),
+      },
+    );
+    browser.dispatchEvent(event);
+    assert.equal(event.defaultPrevented, true);
+    assert.equal(controller.getState().mode, "native");
+    await Promise.all([controller.install(), controller.install()]);
+    assert.equal(
+      promptCalls,
+      1,
+      "a native install event can only be prompted once",
+    );
+    assert.equal(controller.getState().mode, "hidden");
+    browser.dispatchEvent(new Event("appinstalled"));
+    browser.dispatchEvent(event);
+    assert.equal(controller.getState().mode, "hidden");
+    assert.deepEqual(metrics, [
+      "available",
+      "clicked",
+      "accepted",
+      "installed",
+      "available",
+    ]);
+    assert.equal(updates, 5);
+    unsubscribe();
+  } finally {
+    if (windowDescriptor) {
+      Object.defineProperty(globalThis, "window", windowDescriptor);
+    } else {
+      Reflect.deleteProperty(globalThis, "window");
+    }
+    if (navigatorDescriptor) {
+      Object.defineProperty(globalThis, "navigator", navigatorDescriptor);
+    } else {
+      Reflect.deleteProperty(globalThis, "navigator");
+    }
+  }
 });

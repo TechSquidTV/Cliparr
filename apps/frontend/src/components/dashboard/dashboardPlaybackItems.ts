@@ -1,4 +1,7 @@
-import type { CurrentlyPlayingItem, ViewerPlaybackGroup } from "@/providers";
+import type {
+  CurrentlyPlayingItem,
+  ViewerPlaybackGroup,
+} from "@cliparr/shared/providers";
 
 type DashboardPlaybackViewer = ViewerPlaybackGroup["viewer"];
 

@@ -185,6 +185,7 @@ function EditorScreenContent({
     confirmSubtitleTrackChange,
     cancelSubtitleTrackChange,
     history: editHistory,
+    commitText: commitSubtitleText,
   } = subtitles;
   const draft = useEditorDraft({
     engine,
@@ -322,7 +323,7 @@ function EditorScreenContent({
   }, [exportDialogOpen]);
 
   const { viewportWidth, setZoomScale, setScrollLeft } = useTimelineViewport();
-  const handleFitSelection = () => {
+  const handleFitSelection = useCallback(() => {
     if (viewportWidth <= 0 || endTime <= startTime) {
       return;
     }
@@ -333,7 +334,7 @@ function EditorScreenContent({
     );
     setZoomScale(scale);
     setScrollLeft(Math.max(0, startTime * scale - padding));
-  };
+  }, [endTime, setScrollLeft, setZoomScale, startTime, viewportWidth]);
   useEditorAssetCapture({
     engine,
     media: timelineMedia,
@@ -493,6 +494,11 @@ function EditorScreenContent({
       }
     },
   });
+  const { openDialog: openFramegrabDialog } = framegrab;
+  const handleFramegrabClick = useCallback(() => {
+    commitSubtitleText();
+    openFramegrabDialog();
+  }, [commitSubtitleText, openFramegrabDialog]);
   const isDesktopLayout = useEditorDesktopLayout();
 
   const durationExportDisabledReason = hasDuration
@@ -556,10 +562,7 @@ function EditorScreenContent({
       handleTimelineZoomOut={handleTimelineZoomOut}
       canZoomIn={canZoomIn}
       canZoomOut={canZoomOut}
-      onFramegrabClick={() => {
-        subtitles.commitText();
-        framegrab.openDialog();
-      }}
+      onFramegrabClick={handleFramegrabClick}
       framegrabDisabledReason={framegrab.disabledReason}
       onPreviewTimeCommit={handlePreviewTimeCommit}
       onStartTimeCommit={handleStartTimeCommit}
@@ -574,7 +577,7 @@ function EditorScreenContent({
       engine={engine}
       ready={hasDuration}
       subtitleLoading={subtitleLoading}
-      onInteractionStart={subtitles.commitText}
+      onInteractionStart={commitSubtitleText}
       canAddSubtitle={subtitles.canAddSubtitle}
       onAddSubtitle={subtitles.addSubtitle}
       onSubtitleVisibilityChange={setSubtitleEnabled}
@@ -652,7 +655,7 @@ function EditorScreenContent({
         progress={progress}
         exportDisabledReason={headerExportDisabledReason}
         onExportClick={() => {
-          subtitles.commitText();
+          commitSubtitleText();
           handleOpenExportDialog();
         }}
       />

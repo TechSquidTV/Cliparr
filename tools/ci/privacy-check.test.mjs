@@ -54,7 +54,7 @@ void test("limits private-address exceptions to documented policy fixtures and D
   const representative = [10, 0, 0, 1].join(".");
   assert.deepEqual(
     findPrivacyIssues(
-      "apps/server/src/test/networkPolicyFixtures.ts",
+      "apps/server/test/networkPolicyFixtures.ts",
       representative,
     ),
     [],
@@ -65,10 +65,8 @@ void test("limits private-address exceptions to documented policy fixtures and D
   );
   const arbitrary = [10, 99, 88, 77].join(".");
   assert.equal(
-    findPrivacyIssues(
-      "apps/server/src/test/networkPolicyFixtures.ts",
-      arbitrary,
-    ).length,
+    findPrivacyIssues("apps/server/test/networkPolicyFixtures.ts", arbitrary)
+      .length,
     1,
   );
   assert.equal(

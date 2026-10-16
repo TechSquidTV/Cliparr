@@ -18,11 +18,11 @@ import {
   requestPlexPmsIdentity,
   requestPlexPmsMetadata,
 } from "@/providers/plex/pmsClient";
-import { createDeferred } from "@/test/deferred";
+import { createDeferred } from "#test/deferred";
 import {
   PRIVATE_IPV4_ADDRESSES,
   PRIVATE_IPV6_ADDRESS,
-} from "@/test/networkPolicyFixtures";
+} from "#test/networkPolicyFixtures";
 
 // Each security scenario gets a fresh DNS TTL window for its mocked answers.
 let testTime = Date.now();

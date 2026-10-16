@@ -21,7 +21,11 @@ import {
   getSessionCookieOptions,
   readCookie,
 } from "@/http/cookies";
-import { asyncHandler, createApiError } from "@/http/errors";
+import {
+  asyncHandler,
+  createApiError,
+  throwNotAuthenticated,
+} from "@/http/errors";
 import { getServerLogger } from "@/logging";
 import { getProvider } from "@/providers/registry";
 import { getRequestSessionId } from "@/session/request";
@@ -63,11 +67,7 @@ sessionRouter.get(
           "session.remembered.present": true,
         });
       }
-      throw createApiError(
-        401,
-        "not_authenticated",
-        "Sign in with a provider first",
-      );
+      throwNotAuthenticated();
     }
 
     const provider = getProvider(session.providerId);

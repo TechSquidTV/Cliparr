@@ -12,7 +12,7 @@ import { textInputClasses } from "@/components/ui/control-styles";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/cn";
-import { cliparrMotionTransitions } from "@/lib/motion";
+import { motionTransitionFor } from "@/lib/motion";
 
 const DASHBOARD_VIEWER_FILTER_TRIGGER_VISIBLE_AVATAR_COUNT = 2;
 
@@ -132,9 +132,7 @@ export function DashboardViewerFilterPicker({
   const reduceMotion = useReducedMotion();
   const microHover = reduceMotion ? undefined : { y: -1 };
   const microTap = reduceMotion ? undefined : { scale: 0.985 };
-  const microTransition = reduceMotion
-    ? { duration: 0 }
-    : cliparrMotionTransitions.fast;
+  const microTransition = motionTransitionFor("fast", reduceMotion);
   const queryText = query.trim().toLowerCase();
   const filteredViewerOptions = queryText
     ? viewerOptions.filter((option) =>

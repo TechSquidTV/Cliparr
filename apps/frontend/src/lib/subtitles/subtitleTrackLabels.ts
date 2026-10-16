@@ -1,5 +1,6 @@
+import type { PlaybackSubtitleTrack } from "@cliparr/shared/providers";
+
 import { subtitleTrackSupportsBurnIn } from "@/lib/subtitles/selectPreferredSubtitleTrack";
-import type { PlaybackSubtitleTrack } from "@/providers";
 
 interface SubtitleTrackLabelParts {
   title?: string;

@@ -6,7 +6,7 @@
     "dev": "node --watch-path=./src --import tsx ./src/server.ts",
     "build": "tsdown",
     "lint": "pnpm lint:eslint && pnpm lint:types",
-    "lint:eslint": "cd ../.. && pnpm exec eslint --config config/eslint.config.js \"apps/server/src/**/*.ts\" \"apps/server/drizzle.config.ts\" \"apps/server/tsdown.config.ts\"",
+    "lint:eslint": "cd ../.. && pnpm exec eslint --config config/eslint.config.js \"apps/server/src/**/*.ts\" \"apps/server/test/**/*.ts\" \"apps/server/drizzle.config.ts\" \"apps/server/tsdown.config.ts\"",
     "lint:types": "tsc --noEmit",
     "test": "node --expose-gc --import tsx --test \"src/**/*.test.ts\"",
     "db:generate": "drizzle-kit generate",
@@ -33,5 +33,8 @@
     "tsdown": "^0.23.0",
     "tsx": "^4.23.15",
     "typescript": "~6.0.3"
+  },
+  "imports": {
+    "#test/*": "./test/*.ts"
   }
 }

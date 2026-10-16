@@ -1,10 +1,11 @@
+import type { MediaExportMetadata } from "@cliparr/shared/providers";
+
 import {
   framegrabExtensionFor,
   type FramegrabImageFormat,
 } from "#/lib/export/exportFormats";
 import type { ExportFormat } from "#/lib/export/exportTypes";
 import { formatProviderIdForFilename } from "#/lib/metadata/externalIdTags";
-import type { MediaExportMetadata } from "#/providers";
 
 export type ExportFileNameTemplateKind = "movie" | "episode";
 

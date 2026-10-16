@@ -1,4 +1,5 @@
 import {
+  chooseExportFile,
   DEFAULT_GIF_EXPORT_PRESET,
   type EditorFileMediaSource,
   estimateExportOutputSize,
@@ -21,6 +22,7 @@ import {
   EditorExportSettingsSection,
   EditorExportSummaryPanel,
   ExportStatusPanel,
+  LOCAL_VIDEO_FILE_ACCEPT,
   Spinner,
   TooltipProvider,
   useExportAudioPlan,
@@ -64,7 +66,7 @@ type ProbeState =
   | { status: "error"; message: string };
 
 const fileAccept = [
-  "video/*",
+  LOCAL_VIDEO_FILE_ACCEPT,
   "audio/*",
   ".mp3",
   ".m4a",
@@ -73,18 +75,6 @@ const fileAccept = [
   ".opus",
   ".flac",
   ".wav",
-  "video/x-matroska",
-  "application/x-matroska",
-  "video/mp2t",
-  ".mp4",
-  ".m4v",
-  ".mov",
-  ".mkv",
-  ".webm",
-  ".ogv",
-  ".ts",
-  ".m2ts",
-  ".mts",
 ].join(",");
 
 function errorMessage(error: unknown, fallback: string) {
@@ -569,7 +559,15 @@ export function ConvertTool() {
     let videoEncodingPlan: ExportVideoEncodingPlan | undefined;
 
     try {
+      const destination = await chooseExportFile(outputFileName, format);
+      if (destination.status === "cancelled") {
+        controller.abort();
+      }
+      controller.signal.throwIfAborted();
+      const outputFile =
+        destination.status === "selected" ? destination.handle : undefined;
       const blob = await runConvertExport({
+        outputFile,
         signal: controller.signal,
         onPhaseChange: (phase) => {
           if (isCurrent() && !controller.signal.aborted) {
@@ -613,7 +611,11 @@ export function ConvertTool() {
       });
       void flushConvertMetrics();
       setProgress(1);
-      setExportNotice(`Download started: ${outputFileName}`);
+      setExportNotice(
+        outputFile
+          ? `Saved: ${outputFile.name}`
+          : `Download started: ${outputFileName}`,
+      );
     } catch (error) {
       if (!isCurrent()) {
         return;

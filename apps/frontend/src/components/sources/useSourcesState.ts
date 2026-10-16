@@ -3,6 +3,7 @@ import {
   logErrorFields,
   logEventFields,
 } from "@cliparr/shared/logging";
+import type { MediaSource, ProviderSession } from "@cliparr/shared/providers";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { cliparrClient } from "@/api/cliparrClient";
@@ -19,7 +20,6 @@ import {
 } from "@/components/sources/sourcesStateUtilities";
 import type { Feedback, SourceFilter } from "@/components/sources/sourcesTypes";
 import { getFrontendLogger, warnWithError } from "@/logging";
-import type { MediaSource, ProviderSession } from "@/providers";
 
 interface UseSourcesStateOptions {
   isOpen: boolean;

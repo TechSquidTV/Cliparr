@@ -1,4 +1,4 @@
-import type { MediaSource } from "@/db/mediaSourcesRepository";
+import type { MediaSourceRecord } from "@/db/mediaSourcesRepository";
 import { createApiError } from "@/http/errors";
 import {
   createJellyfinPlaybackResolver,
@@ -26,7 +26,7 @@ export function jellyfinSupportsLiveSessions(
 }
 
 export async function watchCurrentlyPlaying(
-  source: MediaSource,
+  source: MediaSourceRecord,
   observer: PlaybackObserver,
   signal: AbortSignal,
 ) {

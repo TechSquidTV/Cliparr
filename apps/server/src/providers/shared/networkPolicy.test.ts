@@ -7,11 +7,11 @@ import { isUnsafeRemoteHostname } from "@/providers/shared/networkPolicy";
 import {
   MAPPED_PRIVATE_IPV4_HOST,
   PRIVATE_IPV4_ADDRESSES,
-} from "@/test/networkPolicyFixtures";
+} from "#test/networkPolicyFixtures";
 import {
   TEST_PLEX_BASE_URL,
   useProviderFixtures,
-} from "@/test/providerFixtures";
+} from "#test/providerFixtures";
 
 void test("loopback allowance changes only loopback address classification", () => {
   for (const hostname of [

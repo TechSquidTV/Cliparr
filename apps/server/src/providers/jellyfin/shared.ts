@@ -24,7 +24,7 @@ import { getAuthorizationHeader } from "@jellyfin/sdk/lib/utils/authentication.j
 import axios, { type AxiosResponse, type RawAxiosRequestConfig } from "axios";
 
 import { CLIPARR_CLIENT_VERSION } from "@/config/version";
-import type { MediaSource } from "@/db/mediaSourcesRepository";
+import type { MediaSourceRecord } from "@/db/mediaSourcesRepository";
 import { createApiError, isApiError } from "@/http/errors";
 import { lookupWithSignal } from "@/providers/shared/dnsCache";
 import { fetchWithPinnedDns } from "@/providers/shared/pinnedFetch";
@@ -860,7 +860,9 @@ async function jellyfinSdkJson<T>(
   }
 }
 
-export function sourceContext(source: MediaSource): JellyfinSourceContext {
+export function sourceContext(
+  source: MediaSourceRecord,
+): JellyfinSourceContext {
   const token = stringValue(source.credentials.accessToken);
   const userId =
     stringValue(source.credentials.userId) ??

@@ -3,7 +3,7 @@ import test from "node:test";
 
 import type { Request, Response } from "express";
 
-import type { MediaSource } from "@/db/mediaSourcesRepository";
+import type { MediaSourceRecord } from "@/db/mediaSourcesRepository";
 import { proxyMedia } from "@/providers/jellyfin/mediaProxy";
 import {
   createJellyfinPlaybackResolver,
@@ -30,7 +30,7 @@ import type { ProviderSessionRecord } from "@/session/store";
 import {
   TEST_JELLYFIN_BASE_URL,
   useProviderFixtures,
-} from "@/test/providerFixtures";
+} from "#test/providerFixtures";
 
 let sessionIndex = 0;
 
@@ -57,7 +57,7 @@ function createContext(): JellyfinSourceContext {
   };
 }
 
-function createSource(): MediaSource {
+function createSource(): MediaSourceRecord {
   return {
     id: "source-1",
     providerId: "jellyfin",

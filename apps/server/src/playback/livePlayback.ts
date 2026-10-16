@@ -9,7 +9,7 @@ import {
 
 import {
   listMediaSources,
-  type MediaSource,
+  type MediaSourceRecord,
 } from "@/db/mediaSourcesRepository";
 import { createApiError } from "@/http/errors";
 import { getServerLogger } from "@/logging";
@@ -30,7 +30,7 @@ const MAX_LISTENERS_PER_SESSION = 8;
 const MAX_LISTENERS = 128;
 
 interface SourceSubscription {
-  source: MediaSource;
+  source: MediaSourceRecord;
   key: string;
   controller: AbortController;
   status: PlaybackSourceStatus;
@@ -54,7 +54,7 @@ interface DashboardSubscription {
   expiry: ReturnType<typeof setTimeout>;
 }
 
-function sourceKey(source: MediaSource) {
+function sourceKey(source: MediaSourceRecord) {
   return JSON.stringify([
     source.providerId,
     source.providerAccountId,
@@ -66,7 +66,7 @@ function sourceKey(source: MediaSource) {
 }
 
 export function createLivePlaybackHub(dependencies: {
-  listSources: (providerAccountId: string) => MediaSource[];
+  listSources: (providerAccountId: string) => MediaSourceRecord[];
   provider: (id: string) => ProviderImplementation | undefined;
 }) {
   const sources = new Map<string, SourceSubscription>();
@@ -74,8 +74,10 @@ export function createLivePlaybackHub(dependencies: {
   let listenerCount = 0;
   let unsubscribeChanges: (() => void) | undefined;
 
-  const ownsSource = (dashboard: DashboardSubscription, source: MediaSource) =>
-    dashboard.session.providerAccountId === source.providerAccountId;
+  const ownsSource = (
+    dashboard: DashboardSubscription,
+    source: MediaSourceRecord,
+  ) => dashboard.session.providerAccountId === source.providerAccountId;
 
   const emit = (
     dashboard: DashboardSubscription,
@@ -182,7 +184,7 @@ export function createLivePlaybackHub(dependencies: {
     job.work.update(subscription.revision, subscription.resolve);
   };
 
-  const startSource = (source: MediaSource) => {
+  const startSource = (source: MediaSourceRecord) => {
     const subscription: SourceSubscription = {
       source,
       key: sourceKey(source),

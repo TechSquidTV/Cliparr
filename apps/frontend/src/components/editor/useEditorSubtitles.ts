@@ -1,3 +1,4 @@
+import type { PlaybackSubtitleTrack } from "@cliparr/shared/providers";
 import {
   fromSeconds,
   type TimelineEngine,
@@ -34,7 +35,6 @@ import {
   saveSubtitleStyleSettings,
 } from "@/lib/subtitles/settings";
 import { trimSubtitleCues } from "@/lib/subtitles/trimSubtitleCues";
-import type { PlaybackSubtitleTrack } from "@/providers";
 
 interface UseEditorSubtitlesProperties {
   initialDraft?: EditorDraft | null;
@@ -133,12 +133,15 @@ export function useEditorSubtitles({
     } else if (
       download.loadedSubtitleTrackKey === subtitleTrackKey(importTrack)
     ) {
+      // One import namespace preserves uniqueness across restored drafts; cue
+      // identities within the batch need only a cheap index.
+      const importId = crypto.randomUUID();
       runAction(() => {
         synchronizeEditorTimelineSubtitles(engine, {
           // Provider identifiers are not editor identities.
-          cues: download.subtitleCues.map((cue) => ({
+          cues: download.subtitleCues.map((cue, index) => ({
             ...cue,
-            id: crypto.randomUUID(),
+            id: `${importId}:${index}`,
           })),
         });
       });

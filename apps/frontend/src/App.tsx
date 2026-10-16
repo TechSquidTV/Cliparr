@@ -1,3 +1,4 @@
+import type { ProviderSession } from "@cliparr/shared/providers";
 import { RouterProvider } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 
@@ -5,7 +6,6 @@ import { cliparrClient, subscribeToAuthFailure } from "@/api/cliparrClient";
 import { AuthProvider } from "@/auth";
 import { Spinner } from "@/components/ui/spinner";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import type { ProviderSession } from "@/providers";
 import { router } from "@/router";
 
 const PLEX_AUTH_COMPLETE_PATH = "/auth/plex/complete";

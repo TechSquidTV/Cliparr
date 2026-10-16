@@ -7,7 +7,7 @@ import type { MediaHandle } from "@/providers/types";
 import {
   TEST_PLEX_BASE_URL,
   useProviderFixtures,
-} from "@/test/providerFixtures";
+} from "#test/providerFixtures";
 
 const handle: MediaHandle = {
   id: "lifecycle",

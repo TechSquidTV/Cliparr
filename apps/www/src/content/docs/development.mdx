@@ -27,7 +27,7 @@ Run `pnpm docker:dev:build` after Dockerfile or dependency changes, then `pnpm d
 
 Ordinary tests need neither Docker nor a provider account. Run `pnpm --filter @cliparr/server test`
 and `pnpm test:plex-sdk` with Node 24. Shared fixtures in
-`apps/server/src/test/providerFixtures.ts` use `plex.example.test` and
+`apps/server/test/providerFixtures.ts` use `plex.example.test` and
 `jellyfin.example.test`, fabricated identifiers and tokens, and DNS results from
 RFC 5737 documentation ranges. Install the fixture hooks in every test file that
 uses those endpoints; unexpected DNS and HTTP requests fail, and mocks restore

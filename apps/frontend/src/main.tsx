@@ -4,17 +4,14 @@ import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 
 import App from "@/App.tsx";
-import {
-  registerCliparrServiceWorker,
-  startPwaInstallPromptHandling,
-} from "@/lib/pwa";
+import { appPwa } from "@/lib/pwa";
 import { configureFrontendLogging } from "@/logging";
 
 document.documentElement.classList.add("dark");
 
 await configureFrontendLogging();
-startPwaInstallPromptHandling();
-registerCliparrServiceWorker();
+appPwa.start();
+appPwa.registerServiceWorker();
 
 const rootElement = document.querySelector("#root");
 if (!rootElement) {

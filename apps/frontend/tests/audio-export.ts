@@ -36,7 +36,10 @@ async function convert(
   mixDownToStereo = true,
   startTime = 0.125,
   endTime = 0.75,
-  lifecycle: Pick<ExportClipOptions, "signal" | "onPhaseChange"> = {},
+  lifecycle: Pick<
+    ExportClipOptions,
+    "signal" | "onPhaseChange" | "outputFile"
+  > = {},
   imageUrl?: string,
 ) {
   return exportClip({
@@ -67,6 +70,69 @@ async function convert(
     },
     onProgress: () => {},
   });
+}
+
+async function checkNativeFileExports() {
+  const root = await navigator.storage.getDirectory();
+  const directoryName = `cliparr-export-${crypto.randomUUID()}`;
+  const directory = await root.getDirectoryHandle(directoryName, {
+    create: true,
+  });
+  try {
+    const file = await createPcmWav({
+      samples: Array.from({ length: 48_000 }, (_, index) =>
+        Math.round(12_000 * Math.sin(index / 10)),
+      ),
+    });
+    for (const format of ["wav", "m4a"] as const) {
+      const handle = await directory.getFileHandle(`renamed.${format}`, {
+        create: true,
+      });
+      const buffered = await convert(file, format);
+      const saved = await convert(file, format, true, 0.125, 0.75, {
+        outputFile: handle,
+      });
+      check(
+        saved instanceof File && saved.name === handle.name,
+        "Disk export did not return the selected file",
+      );
+      const expected = await readMonoPcm(buffered);
+      const actual = await readMonoPcm(saved);
+      check(
+        actual.length === expected.length &&
+          actual.every(
+            (sample, index) => Math.abs(sample - expected[index]) < 0.00001,
+          ),
+        "Native file export changed decoded audio",
+      );
+      const previousBytes = new Uint8Array(await saved.arrayBuffer());
+      const controller = new AbortController();
+      let cancelled = false;
+      try {
+        await convert(file, format, true, 0.125, 0.5, {
+          outputFile: handle,
+          signal: controller.signal,
+          onPhaseChange: (phase) => {
+            if (phase === "finalizing") {
+              controller.abort();
+            }
+          },
+        });
+      } catch (error) {
+        cancelled = error instanceof Error && error.name === "AbortError";
+      }
+      check(cancelled, "Native file export ignored finalization cancellation");
+      const preserved = await handle.getFile();
+      const preservedBytes = new Uint8Array(await preserved.arrayBuffer());
+      check(
+        preservedBytes.length === previousBytes.length &&
+          preservedBytes.every((byte, index) => byte === previousBytes[index]),
+        "Cancelled export overwrote the existing destination",
+      );
+    }
+  } finally {
+    await root.removeEntry(directoryName, { recursive: true });
+  }
 }
 
 async function checkWorkerCancellation() {
@@ -342,6 +408,11 @@ async function checkProviderSourceRanges() {
 
 async function runAudioExportChecks() {
   const checks: string[] = [];
+  document.title = "Checking native disk exports";
+  await checkNativeFileExports();
+  checks.push(
+    "native WAV/M4A file streams and cancelled overwrite preservation",
+  );
   document.title = "Checking provider source ranges";
   await checkProviderSourceRanges();
   checks.push(

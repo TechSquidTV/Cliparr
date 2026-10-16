@@ -278,6 +278,26 @@ function createConversion({
   } as unknown as ConversionResult;
 }
 
+void test("rejects a direct file destination for the buffered GIF encoder", async () => {
+  const context = createRuntime();
+  await assert.rejects(
+    exportClipWithRuntime(
+      {
+        mediaSource,
+        outputFile: { name: "clip.gif" } as FileSystemFileHandle,
+        format: "gif",
+        resolution: "original",
+        mode: "video-only",
+        startTime: 0,
+        endTime: 1,
+        onProgress: () => {},
+      },
+      context.runtime,
+    ),
+    /Direct-to-disk GIF export is unavailable/,
+  );
+});
+
 for (const format of ["mp4", "gif"] as const) {
   void test(`preserves the editor timeline origin for ${format} after a live window advances`, async () => {
     const context = createRuntime({
