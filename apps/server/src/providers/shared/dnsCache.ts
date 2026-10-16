@@ -51,7 +51,7 @@ export async function resolveHostnameAddresses(
 
 const inflightLookups = new Map<string, Promise<LookupAddress[]>>();
 
-export async function lookupWithSignal(hostname: string, signal: AbortSignal) {
+async function lookupWithSignal(hostname: string, signal: AbortSignal) {
   signal.throwIfAborted();
   let subscription: ReturnType<typeof addAbortListener> | undefined;
   try {
