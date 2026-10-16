@@ -8,7 +8,7 @@ import type {
   ProviderAuthStatus,
   ProviderDefinition,
   ProviderSession,
-} from "@/providers";
+} from "@cliparr/shared/providers";
 
 interface ResponseErrorDetails {
   code?: string;

@@ -1,3 +1,7 @@
+import type {
+  ProviderDefinition,
+  ProviderSession,
+} from "@cliparr/shared/providers";
 import { ArrowRight, Check, ExternalLink, Server } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import type { ReactNode } from "react";
@@ -21,7 +25,6 @@ import {
   TabsTab,
 } from "@/components/ui/tabs";
 import { cn } from "@/lib/cn";
-import type { ProviderDefinition, ProviderSession } from "@/providers";
 
 interface Properties {
   onConnected: (session: ProviderSession) => Promise<void> | void;

@@ -3,6 +3,11 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
+import type {
+  MediaSource,
+  MediaSourceCheckResult,
+} from "@cliparr/shared/providers";
+
 import {
   buildSourceEditInput,
   draftBaseUrlsFor,
@@ -12,7 +17,6 @@ import {
   sourceCounts,
   sourceProviderOptions,
 } from "@/components/sources/sourcesStateUtilities";
-import type { MediaSource, MediaSourceCheckResult } from "@/providers";
 
 function source(
   overrides: Partial<MediaSource> &

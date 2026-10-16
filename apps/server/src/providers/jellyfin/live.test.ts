@@ -7,7 +7,7 @@ import type { Duplex } from "node:stream";
 import test from "node:test";
 import { setImmediate } from "node:timers/promises";
 
-import type { MediaSource } from "@/db/mediaSourcesRepository";
+import type { MediaSourceRecord } from "@/db/mediaSourcesRepository";
 import { createDeferred } from "@/test/deferred";
 import {
   mockProviderDns,
@@ -16,7 +16,7 @@ import {
 } from "@/test/providerFixtures";
 import { acceptTestWebSocket } from "@/test/webSocketFixtures";
 
-function createSource(baseUrl: string): MediaSource {
+function createSource(baseUrl: string): MediaSourceRecord {
   return {
     id: "source",
     providerId: "jellyfin",

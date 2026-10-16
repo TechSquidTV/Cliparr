@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 
 import type { Resource } from "@cliparr/plex/cloud/types";
 
-import type { MediaSource } from "@/db/mediaSourcesRepository";
+import type { MediaSourceRecord } from "@/db/mediaSourcesRepository";
 import { createApiError } from "@/http/errors";
 import {
   PLEX_BASE_URL_MODE_AUTO,
@@ -189,7 +189,7 @@ export function unreachableConnectionMessage(
     : `Cliparr could not reach any discovered connection for ${resource.name}. Tried: ${failures.join("; ")}`;
 }
 
-function sourceConnections(source: MediaSource) {
+function sourceConnections(source: MediaSourceRecord) {
   const rawConnections: unknown[] = Array.isArray(source.connection.connections)
     ? source.connection.connections
     : [];
@@ -228,7 +228,7 @@ function manualConnectionId(sourceId: string) {
   return `manual-base-url:${sourceId}`;
 }
 
-function manualConnection(source: MediaSource) {
+function manualConnection(source: MediaSourceRecord) {
   if (plexBaseUrlMode(source.connection) !== PLEX_BASE_URL_MODE_MANUAL) {
     return;
   }
@@ -252,7 +252,7 @@ function manualConnection(source: MediaSource) {
   };
 }
 
-export function sourceResource(source: MediaSource) {
+export function sourceResource(source: MediaSourceRecord) {
   const accessToken = stringValue(source.credentials.accessToken);
   if (!accessToken) {
     throw createApiError(
@@ -327,7 +327,7 @@ export function sourceResource(source: MediaSource) {
   };
 }
 
-export function sourceSupportsCurrentlyPlaying(source: MediaSource) {
+export function sourceSupportsCurrentlyPlaying(source: MediaSourceRecord) {
   return (
     source.metadata.owned === true &&
     normalizeProvides(source.metadata.provides).includes("server")

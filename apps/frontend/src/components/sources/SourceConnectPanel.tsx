@@ -1,5 +1,6 @@
+import type { ProviderSession } from "@cliparr/shared/providers";
+
 import ProviderConnectFlow from "@/components/provider-connect/ProviderConnectFlow";
-import type { ProviderSession } from "@/providers";
 
 interface Properties {
   onConnected: (session: ProviderSession) => Promise<void> | void;

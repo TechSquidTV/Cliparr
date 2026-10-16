@@ -3,8 +3,9 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
+import type { PlaybackSubtitleTrack } from "@cliparr/shared/providers";
+
 import { subtitleTrackLabelParts } from "@/lib/subtitles/subtitleTrackLabels";
-import type { PlaybackSubtitleTrack } from "@/providers";
 
 void test("preserves subtitle language, format, and flags as separate details", () => {
   const track = {

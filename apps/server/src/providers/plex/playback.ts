@@ -4,7 +4,7 @@ import type { StatusGetSlashResponse } from "@cliparr/plex/pms/types";
 import { logEventFields } from "@cliparr/shared/logging";
 
 import {
-  type MediaSource,
+  type MediaSourceRecord,
   updateMediaSource,
 } from "@/db/mediaSourcesRepository";
 import { createApiError, isApiError } from "@/http/errors";
@@ -84,7 +84,7 @@ function isRetryableConnectionError(error: unknown) {
 }
 
 function persistWorkingSourceConnection(
-  source: MediaSource,
+  source: MediaSourceRecord,
   connections: ProviderResource["connections"],
   connection: ProviderConnection,
   options: { baseUrlMode: PlexBaseUrlMode; manualConnectionId?: string },
@@ -126,7 +126,7 @@ function persistWorkingSourceConnection(
 }
 
 export async function fetchCurrentlyPlayingData(
-  source: MediaSource,
+  source: MediaSourceRecord,
   signal?: AbortSignal,
 ) {
   signal?.throwIfAborted();
@@ -318,7 +318,7 @@ function playbackViewer(
 
 function bindPlexPlayback(
   session: ProviderSessionRecord,
-  source: MediaSource,
+  source: MediaSourceRecord,
   context: PlexSourceContext,
   item: PlexMetadataItem,
   prepared: Awaited<ReturnType<typeof enrichPlaybackItems>>[number],
@@ -444,7 +444,7 @@ function bindPlexPlayback(
 }
 
 export function createPlexPlaybackResolver(
-  source: MediaSource,
+  source: MediaSourceRecord,
   context: PlexSourceContext,
 ) {
   const resolve = createPlaybackResolverCache({
@@ -481,7 +481,7 @@ export function createPlexPlaybackResolver(
 
 async function normalizeCurrentPlayback(
   session: ProviderSessionRecord,
-  source: MediaSource,
+  source: MediaSourceRecord,
   context: PlexSourceContext,
   data: StatusGetSlashResponse,
 ): Promise<CurrentlyPlayingEntry[]> {
@@ -496,7 +496,7 @@ async function normalizeCurrentPlayback(
 
 export async function listCurrentlyPlaying(
   session: ProviderSessionRecord,
-  source: MediaSource,
+  source: MediaSourceRecord,
 ) {
   const { context, data } = await fetchCurrentlyPlayingData(source);
   return normalizeCurrentPlayback(session, source, context, data);

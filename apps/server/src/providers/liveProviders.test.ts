@@ -4,7 +4,7 @@ import { setImmediate } from "node:timers/promises";
 
 import { readServerEvents } from "@cliparr/shared/server-events";
 
-import type { MediaSource } from "@/db/mediaSourcesRepository";
+import type { MediaSourceRecord } from "@/db/mediaSourcesRepository";
 import { jellyfinSupportsLiveSessions } from "@/providers/jellyfin/live";
 import { jellyfinPlaybackIdentity } from "@/providers/jellyfin/playback";
 import {
@@ -17,7 +17,7 @@ import {
   useProviderFixtures,
 } from "@/test/providerFixtures";
 
-const source: MediaSource = {
+const source: MediaSourceRecord = {
   id: "source",
   providerId: "plex",
   providerAccountId: "account",

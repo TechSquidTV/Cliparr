@@ -8,7 +8,7 @@ import type {
   Response as ExpressResponse,
 } from "express";
 
-import type { MediaSource } from "@/db/mediaSourcesRepository";
+import type { MediaSourceRecord } from "@/db/mediaSourcesRepository";
 import { createMediaHandle } from "@/providers/plex/mediaHandles";
 import { proxyMedia } from "@/providers/plex/mediaProxy";
 import { createExportMetadata } from "@/providers/plex/metadata";
@@ -60,7 +60,7 @@ function createContext(): PlexSourceContext {
   };
 }
 
-function createSource(): MediaSource {
+function createSource(): MediaSourceRecord {
   return {
     id: "source-1",
     providerId: "plex",

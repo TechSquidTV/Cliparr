@@ -1,3 +1,4 @@
+import type { PlaybackAudioSelection } from "@cliparr/shared/providers";
 import { useEffect, useRef, useState } from "react";
 
 import {
@@ -16,7 +17,6 @@ import {
 import { createCliparrInputFromSource } from "#/lib/export/mediabunny/mediabunnyInput";
 import { isPlaybackVideoTrack } from "#/lib/export/mediabunny/mediabunnyTrackAccess";
 import { selectPreferredPairableAudioTrack } from "#/lib/subtitles/selectPreferredAudioTrack";
-import type { PlaybackAudioSelection } from "#/providers";
 
 type AudioInspection = {
   source: EditorMediaSource;

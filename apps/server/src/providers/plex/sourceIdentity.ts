@@ -1,4 +1,4 @@
-import type { MediaSource } from "@/db/mediaSourcesRepository";
+import type { MediaSourceRecord } from "@/db/mediaSourcesRepository";
 
 export interface PlexSourceIdentity {
   resourceKey?: string;
@@ -64,7 +64,9 @@ function plexResourceIdKey(resourceId: string | undefined) {
   return;
 }
 
-export function plexSourceIdentity(source: MediaSource): PlexSourceIdentity {
+export function plexSourceIdentity(
+  source: MediaSourceRecord,
+): PlexSourceIdentity {
   const urlKeys = new Set<string>();
 
   addUrlKey(urlKeys, source.baseUrl);

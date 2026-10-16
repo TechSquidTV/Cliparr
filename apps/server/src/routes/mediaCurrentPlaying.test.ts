@@ -10,7 +10,7 @@ import { readServerEvents } from "@cliparr/shared/server-events";
 import { createApp } from "@/app";
 import { closeDatabase } from "@/db/database";
 import {
-  type MediaSource,
+  type MediaSourceRecord,
   updateMediaSource,
   upsertMediaSource,
 } from "@/db/mediaSourcesRepository";
@@ -89,7 +89,7 @@ function createSource(
 }
 
 function playbackEntry(
-  source: MediaSource,
+  source: MediaSourceRecord,
   viewer: { id: string; name: string },
   itemId: string,
 ): CurrentlyPlayingEntry {

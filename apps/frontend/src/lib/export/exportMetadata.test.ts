@@ -3,13 +3,13 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
+import type { MediaExportMetadata } from "@cliparr/shared/providers";
 import type { MetadataTags } from "mediabunny";
 
 import {
   buildMetadataTags,
   patchMp4MetadataBoxes,
 } from "@/lib/export/exportMetadata";
-import type { MediaExportMetadata } from "#/providers";
 
 const byteMask = 255;
 

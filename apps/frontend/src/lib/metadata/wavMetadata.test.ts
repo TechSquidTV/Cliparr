@@ -2,6 +2,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
+import type { MediaExportMetadata } from "@cliparr/shared/providers";
 import {
   BufferSource,
   BufferTarget,
@@ -14,7 +15,6 @@ import {
 } from "mediabunny";
 
 import { buildMetadataTags } from "@/lib/export/exportMetadata";
-import type { MediaExportMetadata } from "#/providers";
 
 void test("WAV ID3 muxing preserves Unicode, cover art, and JSON-only external IDs", async () => {
   const title = "Amélie – 東京 🎬";

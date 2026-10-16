@@ -1,6 +1,6 @@
+import type { ProviderSession } from "@cliparr/shared/providers";
 import { createRouter } from "@tanstack/react-router";
 
-import type { ProviderSession } from "@/providers";
 import { routeTree } from "@/routeTree.gen";
 
 export interface RouterAuthContext {

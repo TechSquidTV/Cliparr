@@ -5,7 +5,7 @@ import {
   sanitizeUrlForLog,
 } from "@cliparr/shared/logging";
 
-import type { MediaSource } from "@/db/mediaSourcesRepository";
+import type { MediaSourceRecord } from "@/db/mediaSourcesRepository";
 import { getServerLogger, warnWithError } from "@/logging";
 import { createPlaybackResolverCache } from "@/playback/resolverCache";
 import { createMediaHandle } from "@/providers/jellyfin/mediaProxy";
@@ -414,7 +414,7 @@ function playbackViewer(
 
 async function normalizeCurrentPlayback(
   session: ProviderSessionRecord,
-  source: MediaSource,
+  source: MediaSourceRecord,
   context: JellyfinSourceContext,
   sessionInfo: JellyfinSessionInfo,
   preparedItem?: JellyfinItem,
@@ -591,13 +591,13 @@ async function normalizeCurrentPlayback(
   } satisfies CurrentlyPlayingEntry;
 }
 
-export function sourceSupportsCurrentlyPlaying(source: MediaSource) {
+export function sourceSupportsCurrentlyPlaying(source: MediaSourceRecord) {
   return Boolean(stringValue(source.credentials.accessToken));
 }
 
 export async function listCurrentlyPlaying(
   session: ProviderSessionRecord,
-  source: MediaSource,
+  source: MediaSourceRecord,
 ) {
   const context = sourceContext(source);
   // Recheck permissions because the stored role can outlive an account change.
@@ -648,7 +648,7 @@ export function jellyfinPlaybackIdentity(sessions: JellyfinSessionInfo[]) {
 }
 
 export function createJellyfinPlaybackResolver(
-  source: MediaSource,
+  source: MediaSourceRecord,
   context: JellyfinSourceContext,
 ) {
   return createPlaybackResolverCache({
@@ -683,7 +683,7 @@ export function createJellyfinPlaybackResolver(
 
 async function resolveJellyfinPlayback(
   session: ProviderSessionRecord,
-  source: MediaSource,
+  source: MediaSourceRecord,
   context: JellyfinSourceContext,
   sessions: JellyfinSessionInfo[],
   isAdministrator: boolean,

@@ -1,3 +1,8 @@
+import type {
+  CurrentlyPlayingItem,
+  SourcePlaybackError,
+  ViewerPlaybackGroup,
+} from "@cliparr/shared/providers";
 import {
   AlertTriangle,
   FolderOpen,
@@ -57,11 +62,6 @@ import {
 import { cn } from "@/lib/cn";
 import { cliparrMotionTransitions } from "@/lib/motion";
 import { EDITOR_THUMBNAIL_VIEW_TRANSITION_NAME } from "@/lib/viewTransitions";
-import type {
-  CurrentlyPlayingItem,
-  SourcePlaybackError,
-  ViewerPlaybackGroup,
-} from "@/providers";
 
 interface Properties {
   activeViewTransitionSessionId?: string | null;

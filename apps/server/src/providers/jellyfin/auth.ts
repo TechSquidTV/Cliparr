@@ -1,4 +1,4 @@
-import type { MediaSource } from "@/db/mediaSourcesRepository";
+import type { MediaSourceRecord } from "@/db/mediaSourcesRepository";
 import { createApiError, isApiError } from "@/http/errors";
 import {
   authenticateJellyfinUser,
@@ -141,7 +141,7 @@ export async function authenticateWithCredentials(body: unknown) {
   };
 }
 
-export async function checkSource(source: MediaSource) {
+export async function checkSource(source: MediaSourceRecord) {
   try {
     const context = sourceContext(source);
     const [publicInfo, currentUser] = await Promise.all([

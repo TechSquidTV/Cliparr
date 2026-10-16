@@ -1,3 +1,4 @@
+import type { PlaybackSubtitleTrack } from "@cliparr/shared/providers";
 import {
   fromSeconds,
   type TimelineEngine,
@@ -34,7 +35,6 @@ import {
   saveSubtitleStyleSettings,
 } from "@/lib/subtitles/settings";
 import { trimSubtitleCues } from "@/lib/subtitles/trimSubtitleCues";
-import type { PlaybackSubtitleTrack } from "@/providers";
 
 interface UseEditorSubtitlesProperties {
   initialDraft?: EditorDraft | null;

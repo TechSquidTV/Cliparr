@@ -1,3 +1,4 @@
+import type { PlaybackAudioSelection } from "@cliparr/shared/providers";
 import type { Input, InputAudioTrack, InputVideoTrack } from "mediabunny";
 
 import {
@@ -11,7 +12,6 @@ import {
   isPlaybackVideoTrack,
   videoTrackPreviewUnavailableMessage,
 } from "@/lib/export/mediabunny/mediabunnyTrackAccess";
-import type { PlaybackAudioSelection } from "#/providers";
 
 type PlaybackSourceLabel =
   "hls stream" | "direct source" | "local file" | "url" | "hls url";

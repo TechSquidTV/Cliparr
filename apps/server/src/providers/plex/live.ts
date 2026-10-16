@@ -5,7 +5,7 @@ import type {
 import type { PlaybackProgress } from "@cliparr/shared/providers";
 import { readServerEvents } from "@cliparr/shared/server-events";
 
-import type { MediaSource } from "@/db/mediaSourcesRepository";
+import type { MediaSourceRecord } from "@/db/mediaSourcesRepository";
 import { createApiError } from "@/http/errors";
 import {
   createPlexPlaybackResolver,
@@ -38,7 +38,7 @@ export function readPlexPlayingNotifications(
 }
 
 export async function watchCurrentlyPlaying(
-  source: MediaSource,
+  source: MediaSourceRecord,
   observer: PlaybackObserver,
   signal: AbortSignal,
 ) {

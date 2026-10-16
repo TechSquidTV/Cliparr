@@ -1,3 +1,5 @@
+import type { ProviderDefinition } from "@cliparr/shared/providers";
+
 import {
   getMediaSourceByProviderExternalId,
   listMediaSources,
@@ -17,11 +19,7 @@ import {
   withPlexBaseUrlMode,
 } from "@/providers/plex/connectionState";
 import { cleanupDuplicatePlexSources } from "@/providers/plex/sourceDeduplication";
-import type {
-  ProviderConnection,
-  ProviderDefinition,
-  ProviderResource,
-} from "@/providers/types";
+import type { ProviderConnection, ProviderResource } from "@/providers/types";
 
 function connectionRank(connection: ProviderConnection) {
   if (connection.local && !connection.relay) {

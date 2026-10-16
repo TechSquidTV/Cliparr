@@ -1,3 +1,4 @@
+import type { MediaSource, ProviderSession } from "@cliparr/shared/providers";
 import {
   AlertTriangle,
   CheckCircle2,
@@ -37,7 +38,6 @@ import { Switch } from "@/components/ui/switch";
 import { ControlTooltip } from "@/components/ui/tooltip";
 import { cn } from "@/lib/cn";
 import { cliparrMotionTransitions } from "@/lib/motion";
-import type { MediaSource, ProviderSession } from "@/providers";
 
 interface SourceCounts {
   all: number;

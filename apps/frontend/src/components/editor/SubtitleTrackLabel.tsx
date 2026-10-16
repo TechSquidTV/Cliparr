@@ -1,5 +1,6 @@
+import type { PlaybackSubtitleTrack } from "@cliparr/shared/providers";
+
 import { subtitleTrackLabelParts } from "#/lib/subtitles/subtitleTrackLabels";
-import type { PlaybackSubtitleTrack } from "#/providers";
 
 export function SubtitleTrackLabel({
   track,

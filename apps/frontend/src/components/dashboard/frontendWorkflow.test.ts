@@ -3,6 +3,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
+import type { ViewerPlaybackGroup } from "@cliparr/shared/providers";
 import { type ComponentProps, createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 
@@ -52,7 +53,6 @@ import {
   MOBILE_INSTALL_MEDIA_QUERY,
 } from "@/lib/pwa";
 import { EDITOR_THUMBNAIL_VIEW_TRANSITION_NAME } from "@/lib/viewTransitions";
-import type { ViewerPlaybackGroup } from "@/providers";
 
 const dashboardPlaybackGroups: ViewerPlaybackGroup[] = [
   {

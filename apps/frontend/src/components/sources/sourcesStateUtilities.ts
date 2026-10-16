@@ -1,5 +1,9 @@
+import type {
+  MediaSource,
+  MediaSourceCheckResult,
+} from "@cliparr/shared/providers";
+
 import type { Feedback, SourceFilter } from "@/components/sources/sourcesTypes";
-import type { MediaSource, MediaSourceCheckResult } from "@/providers";
 
 function compareStrings(left: string, right: string) {
   return left.localeCompare(right, undefined, { sensitivity: "base" });

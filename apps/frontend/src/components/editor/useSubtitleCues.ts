@@ -4,6 +4,7 @@ import {
   logErrorFields,
   logEventFields,
 } from "@cliparr/shared/logging";
+import type { PlaybackSubtitleTrack } from "@cliparr/shared/providers";
 import { useCallback, useEffect, useState } from "react";
 
 import { readResponseErrorDetails } from "@/api/cliparrClient";
@@ -15,7 +16,6 @@ import {
 } from "@/lib/subtitles/selectPreferredSubtitleTrack";
 import type { SubtitleCue } from "@/lib/subtitles/types";
 import { getFrontendLogger, warnWithError } from "@/logging";
-import type { PlaybackSubtitleTrack } from "@/providers";
 
 interface UseSubtitleCuesOptions {
   selectedSubtitleTrack: PlaybackSubtitleTrack | null;

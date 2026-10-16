@@ -7,7 +7,7 @@ import type {
   PlaybackStreamEvent,
 } from "@cliparr/shared/providers";
 
-import type { MediaSource } from "@/db/mediaSourcesRepository";
+import type { MediaSourceRecord } from "@/db/mediaSourcesRepository";
 import { createApiError } from "@/http/errors";
 import { createLivePlaybackHub } from "@/playback/livePlayback";
 import { notifyPlaybackStateChange } from "@/playback/stateChanges";
@@ -19,7 +19,7 @@ import type {
 import type { ProviderSessionRecord } from "@/session/store";
 import { createDeferred } from "@/test/deferred";
 
-const source: MediaSource = {
+const source: MediaSourceRecord = {
   id: "source",
   providerId: "plex",
   providerAccountId: "account",
@@ -78,7 +78,7 @@ function setup() {
     ...plexProvider,
     supportsCurrentlyPlayingSource: () => true,
     watchCurrentlyPlaying: (
-      _source: MediaSource,
+      _source: MediaSourceRecord,
       observer: PlaybackObserver,
       signal: AbortSignal,
     ) => {
@@ -96,7 +96,7 @@ function setup() {
     hub,
     connections,
     provider,
-    replaceSources: (next: MediaSource[]) => {
+    replaceSources: (next: MediaSourceRecord[]) => {
       sources = next;
       notifyPlaybackStateChange({ type: "sources" });
     },
