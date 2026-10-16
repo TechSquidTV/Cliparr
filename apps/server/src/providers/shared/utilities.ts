@@ -38,6 +38,10 @@ export function booleanEnv(value: string | undefined) {
   );
 }
 
+export function booleanValue(value: unknown) {
+  return typeof value === "boolean" ? value : undefined;
+}
+
 export function numberValue(value: unknown) {
   const number = Number(value);
   if (!Number.isFinite(number)) {

@@ -6,8 +6,8 @@ import { getServerLogger, warnWithError } from "@/logging";
 import {
   JELLYFIN_REQUEST_TIMEOUT_MS,
   jellyfinHeaders,
-  type JellyfinSourceContext,
-} from "@/providers/jellyfin/shared";
+} from "@/providers/jellyfin/http";
+import type { JellyfinSourceContext } from "@/providers/jellyfin/shared";
 import { createProviderMediaHandle } from "@/providers/shared/mediaHandles";
 import {
   fetchMediaHandleRequest,

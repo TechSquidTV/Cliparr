@@ -17,8 +17,12 @@ import {
   fetchWithPinnedDns,
 } from "@/providers/shared/pinnedFetch";
 import { PRIVATE_IPV4_ADDRESSES } from "#test/networkPolicyFixtures";
-import { TEST_PUBLIC_ADDRESS } from "#test/providerFixtures";
+import {
+  TEST_PUBLIC_ADDRESS,
+  useFreshDnsCacheWindow,
+} from "#test/providerFixtures";
 
+const expireDnsCache = useFreshDnsCacheWindow();
 afterEach(closePooledPinnedDnsAgents);
 
 function capturePinnedDispatchers(context: TestContext) {
@@ -427,6 +431,7 @@ for (const address of [TEST_PUBLIC_ADDRESS, ...PRIVATE_IPV4_ADDRESSES]) {
   void test(`pins initial Jellyfin sign-in requests to validated ${address} addresses`, async (context) => {
     let resolutions = 0;
     const paths: string[] = [];
+    const dispatchers: Agent[] = [];
     context.mock.method(dns, "lookup", async () => {
       resolutions += 1;
       return [{ address, family: 4 }];
@@ -440,6 +445,7 @@ for (const address of [TEST_PUBLIC_ADDRESS, ...PRIVATE_IPV4_ADDRESSES]) {
         init?: RequestInit & { dispatcher?: Agent },
       ) => {
         assert.ok(init?.dispatcher instanceof Agent);
+        dispatchers.push(init.dispatcher);
         const request = new Request(input, init);
         const path = new URL(request.url).pathname;
         paths.push(path);
@@ -463,7 +469,9 @@ for (const address of [TEST_PUBLIC_ADDRESS, ...PRIVATE_IPV4_ADDRESSES]) {
         username: "admin",
         password: "password",
       });
-      assert.equal(resolutions, 3);
+      assert.equal(resolutions, 1);
+      assert.equal(dispatchers.length, 2);
+      assert.equal(dispatchers[0], dispatchers[1]);
       assert.deepEqual(paths, [
         "/System/Info/Public",
         "/Users/AuthenticateByName",
@@ -475,14 +483,14 @@ for (const address of [TEST_PUBLIC_ADDRESS, ...PRIVATE_IPV4_ADDRESSES]) {
   });
 }
 
-void test("rejects Jellyfin DNS rebinding before sending sign-in credentials", async (context) => {
+void test("rejects Jellyfin DNS rebinding after the cache expires before sending credentials", async (context) => {
   let resolutions = 0;
   let requests = 0;
   context.mock.method(dns, "lookup", async () => {
     resolutions += 1;
     return [
       {
-        address: resolutions < 3 ? "192.0.2.10" : "169.254.169.254",
+        address: resolutions === 1 ? "192.0.2.10" : "169.254.169.254",
         family: 4,
       },
     ];
@@ -494,6 +502,8 @@ void test("rejects Jellyfin DNS rebinding before sending sign-in credentials", a
     async (input: Parameters<typeof fetch>[0], init?: RequestInit) => {
       requests += 1;
       assert.equal(new Request(input, init).method, "GET");
+      // The next authenticated request must validate DNS again after expiry.
+      expireDnsCache();
       return Response.json({ Id: "server-1" });
     },
   );
@@ -508,6 +518,7 @@ void test("rejects Jellyfin DNS rebinding before sending sign-in credentials", a
         isApiError(error) && error.code === "invalid_jellyfin_server_url",
     );
     assert.equal(requests, 1);
+    assert.equal(resolutions, 2);
   } finally {
     context.mock.restoreAll();
     syncBuiltinESMExports();

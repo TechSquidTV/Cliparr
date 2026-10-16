@@ -7,22 +7,25 @@ import test from "node:test";
 import { setImmediate } from "node:timers/promises";
 
 import { createDeferred } from "#test/deferred";
+import { PRIVATE_IPV4_ADDRESSES } from "#test/networkPolicyFixtures";
+import { useFreshDnsCacheWindow } from "#test/providerFixtures";
 
-const {
-  assertAllowedJellyfinServerUrl,
-  fetchPublicSystemInfo,
-  resolveCredentialServerUrl,
-} = await (async () => {
-  const previous = process.env.CLIPARR_ALLOW_LOOPBACK_JELLYFIN_URLS;
-  delete process.env.CLIPARR_ALLOW_LOOPBACK_JELLYFIN_URLS;
-  try {
-    return await import("@/providers/jellyfin/shared");
-  } finally {
-    if (previous !== undefined) {
-      process.env.CLIPARR_ALLOW_LOOPBACK_JELLYFIN_URLS = previous;
+useFreshDnsCacheWindow();
+
+const { assertAllowedJellyfinServerUrl, resolveCredentialServerUrl } =
+  await (async () => {
+    const previous = process.env.CLIPARR_ALLOW_LOOPBACK_JELLYFIN_URLS;
+    delete process.env.CLIPARR_ALLOW_LOOPBACK_JELLYFIN_URLS;
+    try {
+      return await import("@/providers/jellyfin/http");
+    } finally {
+      if (previous !== undefined) {
+        process.env.CLIPARR_ALLOW_LOOPBACK_JELLYFIN_URLS = previous;
+      }
     }
-  }
-})();
+  })();
+
+const { fetchPublicSystemInfo } = await import("@/providers/jellyfin/shared");
 
 for (const hostname of [
   "127.0.0.1",
@@ -228,3 +231,27 @@ for (const outcome of ["success", "failure", "late rejection"] as const) {
     }
   });
 }
+
+void test("Jellyfin reuses DNS answers but reapplies each caller's address policy", async (context) => {
+  const address = PRIVATE_IPV4_ADDRESSES[0];
+  const lookup = context.mock.method(dns, "lookup", async () => [
+    { address, family: 4 },
+  ]);
+  syncBuiltinESMExports();
+  context.after(() => {
+    context.mock.restoreAll();
+    syncBuiltinESMExports();
+  });
+  const signal = new AbortController().signal;
+  const url = "http://cached-jellyfin.invalid";
+  const first = await assertAllowedJellyfinServerUrl(url, {
+    allowPrivate: true,
+    signal,
+  });
+  assert.deepEqual(first.addresses, [address]);
+  await assert.rejects(
+    assertAllowedJellyfinServerUrl(url, { allowPrivate: false, signal }),
+    { status: 400, code: "invalid_jellyfin_server_url" },
+  );
+  assert.equal(lookup.mock.callCount(), 1);
+});
