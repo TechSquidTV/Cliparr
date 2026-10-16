@@ -18,19 +18,21 @@
     "./pwa": {
       "types": "./src/pwa.ts",
       "default": "./src/pwa.ts"
-    }
+    },
+    "./ui/styles.css": "./src/components/ui/styles.css"
   },
   "scripts": {
     "dev": "vite",
     "build": "vite build",
     "lint": "pnpm lint:eslint && pnpm lint:types",
-    "lint:eslint": "cd ../.. && pnpm exec eslint --config config/eslint.config.js \"apps/frontend/src/**/*.{ts,tsx}\" \"apps/frontend/vite.config.js\" \"apps/frontend/public/service-worker.js\" \"apps/frontend/tests/**/*.{ts,mjs}\"",
+    "lint:eslint": "cd ../.. && pnpm exec eslint --config config/eslint.config.js \"apps/frontend/src/**/*.{ts,tsx}\" \"apps/frontend/vite.config.js\" \"apps/frontend/public/service-worker.js\" \"apps/frontend/tests/**/*.{ts,tsx,mjs}\"",
     "lint:types": "tsc --noEmit",
     "test": "node --import tsx --test \"src/**/*.test.ts\" \"tests/*.test.mjs\" \"../../tools/ci/media-loading-lint.test.mjs\"",
     "preview": "vite preview",
     "clean": "rm -rf dist",
     "test:browser": "node tests/audio-export.mjs",
-    "test:browser:loading": "node tests/media-loading.mjs"
+    "test:browser:loading": "node tests/media-loading.mjs",
+    "test:browser:ui": "node tests/ui-controls.mjs"
   },
   "dependencies": {
     "@base-ui/react": "^1.8.0",

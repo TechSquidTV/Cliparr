@@ -3,11 +3,11 @@ import type {
   ProviderSession,
 } from "@cliparr/shared/providers";
 import { ArrowRight, Check, ExternalLink, Server } from "lucide-react";
-import { AnimatePresence, motion } from "motion/react";
+import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import type { ReactNode } from "react";
 
-import { useProviderConnectFlow } from "@/components/provider-connect/useProviderConnectFlow";
-import { ProviderGlyph } from "@/components/providers/ProviderGlyph";
+import { useProviderConnectFlow } from "#/components/provider-connect/useProviderConnectFlow";
+import { ProviderGlyph } from "#/components/providers/ProviderGlyph";
 import {
   compactSecondaryButtonClasses,
   densePrimaryButtonClasses as panelPrimaryButtonClasses,
@@ -15,16 +15,16 @@ import {
   destructiveAlertClasses,
   screenTextInputClasses as baseScreenInputClasses,
   textInputClasses,
-} from "@/components/ui/control-styles";
-import { EmptyState } from "@/components/ui/empty-state";
+} from "#/components/ui/control-styles";
+import { EmptyState } from "#/components/ui/empty-state";
 import {
   Tabs,
   TabsList,
   TabsPanel,
   TabsPanels,
   TabsTab,
-} from "@/components/ui/tabs";
-import { cn } from "@/lib/cn";
+} from "#/components/ui/tabs";
+import { cn } from "#/lib/cn";
 
 interface Properties {
   onConnected: (session: ProviderSession) => Promise<void> | void;
@@ -49,6 +49,7 @@ export default function ProviderConnectFlow({
   onCancel,
   variant = "panel",
 }: Properties) {
+  const reducedMotion = useReducedMotion();
   const isScreen = variant === "screen";
   const {
     providers,
@@ -331,10 +332,10 @@ export default function ProviderConnectFlow({
         <AnimatePresence mode="wait">
           <motion.p
             key={`auth-${providerId}`}
-            initial={{ opacity: 0, y: 6 }}
+            initial={{ opacity: 0, y: reducedMotion ? 0 : 6 }}
             animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 6 }}
-            transition={{ duration: 0.16, ease: "easeOut" }}
+            exit={{ opacity: 0, y: reducedMotion ? 0 : 6 }}
+            transition={{ duration: reducedMotion ? 0 : 0.16, ease: "easeOut" }}
             className="text-center text-xs text-muted-foreground"
           >
             {content}
@@ -587,6 +588,7 @@ function ProviderConnectError({
   error: string;
   isScreen: boolean;
 }) {
+  const reducedMotion = useReducedMotion();
   if (!error) {
     return null;
   }
@@ -604,10 +606,10 @@ function ProviderConnectError({
       <AnimatePresence mode="wait">
         <motion.div
           key={error}
-          initial={{ opacity: 0, y: -8 }}
+          initial={{ opacity: 0, y: reducedMotion ? 0 : -8 }}
           animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -8 }}
-          transition={{ duration: 0.18, ease: "easeOut" }}
+          exit={{ opacity: 0, y: reducedMotion ? 0 : -8 }}
+          transition={{ duration: reducedMotion ? 0 : 0.18, ease: "easeOut" }}
           role="alert"
           className={destructiveAlertClasses}
         >

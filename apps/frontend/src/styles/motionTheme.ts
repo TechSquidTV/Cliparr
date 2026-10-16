@@ -1,6 +1,8 @@
 import plugin from "tailwindcss/plugin";
 
-import { cliparrMotionTokens } from "#/lib/motion.ts";
+// Tailwind loads plugins outside Vite and its path aliases.
+// eslint-disable-next-line no-restricted-imports
+import { cliparrMotionTokens } from "../lib/motion.ts";
 
 export default plugin((theme) => {
   theme.addBase({

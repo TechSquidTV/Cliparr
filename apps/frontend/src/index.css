@@ -1,9 +1,5 @@
 @import "tailwindcss";
-@import "tw-animate-css";
-@import "./styles/motion.css";
-@import "./components/ui/control-styles.css";
-@import "./components/ui/drawer.css";
-@import "./components/ui/select.css";
+@import "./components/ui/styles.css";
 
 @custom-variant dark (&:is(.dark *));
 
@@ -87,7 +83,6 @@
     var(--scrollbar-thumb) 74%,
     var(--foreground)
   );
-  --radius-control: calc(var(--radius) - 2px);
   --radius-panel: calc(var(--radius) * 7);
   --editor-preview-stage: var(--editor-monitor);
   --editor-preview-overlay: color-mix(
