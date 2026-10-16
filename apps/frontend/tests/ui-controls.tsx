@@ -18,6 +18,7 @@ import {
   TabsPanels,
   TabsTab,
 } from "#/components/ui/tabs";
+import { FeatureControls } from "#tests/ui-features.tsx";
 
 function Controls() {
   const [open, setOpen] = useState(false);
@@ -82,6 +83,9 @@ function Controls() {
           ))}
         </div>
       </DialogWindow>
+      {globalThis.location.pathname.endsWith("/ui-controls.html") && (
+        <FeatureControls />
+      )}
     </main>
   );
 }

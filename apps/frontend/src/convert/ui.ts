@@ -10,6 +10,7 @@ export {
   ExportOutputSummary,
   ExportSummaryPanel,
 } from "../components/export/ExportSummary";
+export { PwaInstallCard } from "../components/pwa/PwaInstallCard";
 export {
   buttonClassName,
   destructiveAlertClasses,

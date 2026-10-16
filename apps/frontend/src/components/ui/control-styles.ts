@@ -25,8 +25,8 @@ export function buttonClassName({
   className?: string;
 } = {}) {
   return cn(
-    "control-focus inline-flex items-center justify-center gap-2 rounded-md transition-colors disabled:opacity-60",
-    disabledCursorClasses,
+    "control-focus inline-flex items-center justify-center gap-2 rounded-md transition-colors",
+    tone !== "subtle" && [disabledCursorClasses, "disabled:opacity-60"],
     {
       default: "h-9 px-4",
       dense: "h-9 px-3",

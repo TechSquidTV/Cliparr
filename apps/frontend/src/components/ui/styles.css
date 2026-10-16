@@ -7,6 +7,7 @@
 
 @source ".";
 @source "../export";
+@source "../pwa";
 @source "../../pwa.ts";
 
 :root {

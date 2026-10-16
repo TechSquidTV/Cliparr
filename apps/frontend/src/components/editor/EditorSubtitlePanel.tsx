@@ -1,49 +1,18 @@
 import { Menu } from "@base-ui/react/menu";
-import {
-  ChevronLeft,
-  ChevronRight,
-  LocateFixed,
-  MoreHorizontal,
-  Plus,
-  Trash2,
-} from "lucide-react";
+import { MoreHorizontal, Plus } from "lucide-react";
 import { type RefObject, useEffect, useRef } from "react";
 
-import { EditorEditableTimecode } from "@/components/editor/EditorEditableTimecode";
-import {
-  EditorColorControl,
-  EditorPropertyAccordion,
-  EditorPropertyAccordionItem,
-  EditorPropertyRow,
-  EditorPropertySection,
-  EditorRangeControl,
-} from "@/components/editor/EditorPropertyControls";
-import {
-  EDITOR_PROPERTIES_SECTION_ID,
-  type EditorPropertiesOpenSections,
-  type EditorPropertiesSectionId,
-} from "@/components/editor/editorSidebarPreferences";
-import { formatTimecodeInput } from "@/components/editor/editorUtilities";
-import { SubtitleTrackLabel } from "@/components/editor/SubtitleTrackLabel";
-import type { useEditorSubtitles } from "@/components/editor/useEditorSubtitles";
-import { useSubtitleFontOptions } from "@/components/editor/useSubtitleFontOptions";
-import { editorIconButtonClassName } from "@/components/ui/control-styles";
-import {
-  Select,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-  SelectLabel,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Spinner } from "@/components/ui/spinner";
-import { Switch } from "@/components/ui/switch";
-import { ControlTooltip } from "@/components/ui/tooltip";
-import { subtitleTrackKey } from "@/lib/subtitles/selectPreferredSubtitleTrack";
-import type { SubtitleStyleSettings } from "@/lib/subtitles/types";
+import { type EditorPropertiesOpenSections } from "#/components/editor/editorSidebarPreferences";
+import { EditorSubtitleCueEditor } from "#/components/editor/EditorSubtitleCueEditor";
+import { EditorSubtitleStyleControls } from "#/components/editor/EditorSubtitleStyleControls";
+import { SubtitleTrackLabel } from "#/components/editor/SubtitleTrackLabel";
+import type { useEditorSubtitles } from "#/components/editor/useEditorSubtitles";
+import { Spinner } from "#/components/ui/spinner";
+import { Switch } from "#/components/ui/switch";
+import { ControlTooltip } from "#/components/ui/tooltip";
+import { subtitleTrackKey } from "#/lib/subtitles/selectPreferredSubtitleTrack";
 
-interface EditorSubtitlePanelProperties {
+export interface EditorSubtitlePanelProperties {
   subtitles: Pick<
     ReturnType<typeof useEditorSubtitles>,
     | "subtitleTracks"
@@ -106,22 +75,10 @@ export function EditorSubtitlePanel({
     setSubtitleStyleSettings,
     subtitleLoading,
     subtitleError,
-    selectedSubtitleCue,
     subtitleCues,
-    subtitleText,
-    editSubtitleText,
-    commitText,
-    textError,
-    selectedSubtitleOutsideRange,
     canAddSubtitle,
     addSubtitle,
     focusRevision,
-    handleSelectedSubtitleStartCommit: onSelectedSubtitleStartCommit,
-    handleSelectedSubtitleEndCommit: onSelectedSubtitleEndCommit,
-    handleDeleteSelectedSubtitle: onDeleteSelectedSubtitle,
-    handleSelectPreviousSubtitle: onSelectPreviousSubtitle,
-    handleSelectNextSubtitle: onSelectNextSubtitle,
-    handleSeekToSelectedSubtitle: onSeekToSelectedSubtitle,
   } = subtitles;
   const textReference = useRef<HTMLTextAreaElement>(null);
   const panelReference = useRef<HTMLDivElement>(null);
@@ -133,19 +90,6 @@ export function EditorSubtitlePanel({
     textReference.current?.focus({ preventScroll: true });
     textReference.current?.select();
   }, [focusRevision]);
-  const {
-    currentFontOption,
-    bundledFontOptions,
-    localFontOptions,
-    loadingLocalFonts,
-    requestLocalFonts,
-  } = useSubtitleFontOptions(subtitleStyleSettings.fontFamily);
-  function updateStyleSetting<Key extends keyof SubtitleStyleSettings>(
-    key: Key,
-    value: SubtitleStyleSettings[Key],
-  ) {
-    setSubtitleStyleSettings((current) => ({ ...current, [key]: value }));
-  }
   let importDisabledLabel = "Waiting for media to load";
   if (subtitleLoading) {
     importDisabledLabel = "Subtitle import is in progress";
@@ -276,286 +220,18 @@ export function EditorSubtitlePanel({
         )}
       </div>
       <div className="min-h-0 flex-1 overflow-y-auto">
-        <fieldset disabled={subtitleLoading} className="min-w-0">
-          <EditorPropertySection
-            title="Selected subtitle"
-            action={
-              selectedSubtitleCue ? (
-                <div className="flex items-center gap-1">
-                  <button
-                    type="button"
-                    onClick={onSelectPreviousSubtitle}
-                    aria-label="Select previous subtitle cue"
-                    className={editorIconButtonClassName({
-                      size: "sm",
-                      variant: "ghost",
-                      className: "h-11 w-11 lg:h-7 lg:w-7",
-                    })}
-                  >
-                    <ChevronLeft className="h-3.5 w-3.5" />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={onSelectNextSubtitle}
-                    aria-label="Select next subtitle cue"
-                    className={editorIconButtonClassName({
-                      size: "sm",
-                      variant: "ghost",
-                      className: "h-11 w-11 lg:h-7 lg:w-7",
-                    })}
-                  >
-                    <ChevronRight className="h-3.5 w-3.5" />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={onSeekToSelectedSubtitle}
-                    aria-label="Seek to selected subtitle"
-                    className={editorIconButtonClassName({
-                      size: "sm",
-                      variant: "ghost",
-                      className: "h-11 w-11 lg:h-7 lg:w-7",
-                    })}
-                  >
-                    <LocateFixed className="h-3.5 w-3.5" />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={onDeleteSelectedSubtitle}
-                    aria-label="Delete subtitle"
-                    className="editor-control-focus inline-flex h-11 w-11 items-center justify-center rounded-[var(--radius-control)] border border-destructive/40 bg-destructive/10 text-destructive hover:bg-destructive/15 lg:h-7 lg:w-7"
-                  >
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </button>
-                </div>
-              ) : null
-            }
-          >
-            {selectedSubtitleCue ? (
-              <>
-                <EditorPropertyRow label="Text" align="start">
-                  <textarea
-                    aria-label="Subtitle text"
-                    ref={textReference}
-                    disabled={subtitleLoading}
-                    value={subtitleText}
-                    rows={4}
-                    onChange={(event) => editSubtitleText(event.target.value)}
-                    onBlur={commitText}
-                    onKeyDown={(event) => {
-                      if (
-                        (event.metaKey || event.ctrlKey) &&
-                        event.key === "Enter"
-                      ) {
-                        event.preventDefault();
-                        commitText();
-                      }
-                    }}
-                    className="editor-control-focus w-full resize-y rounded-[var(--radius-control)] border border-editor-border bg-editor-control px-2.5 py-2 text-xs leading-relaxed text-foreground outline-none focus-visible:border-editor-accent"
-                  />
-                </EditorPropertyRow>
-                {textError && (
-                  <p role="status" className="px-3 text-xs text-destructive">
-                    {textError}
-                  </p>
-                )}
-                {selectedSubtitleOutsideRange && (
-                  <p className="px-3 text-xs text-muted-foreground">
-                    Outside export range
-                  </p>
-                )}
-                <EditorPropertyRow label="In">
-                  <EditorEditableTimecode
-                    ariaLabel="subtitle cue in point"
-                    value={selectedSubtitleCue.startTime}
-                    onCommit={onSelectedSubtitleStartCommit}
-                    className="w-full justify-end"
-                    buttonClassName="w-full justify-end rounded-[var(--radius-control)] px-2 py-1 font-mono text-xs text-foreground hover:bg-editor-control-hover"
-                  >
-                    <span>
-                      {formatTimecodeInput(selectedSubtitleCue.startTime)}
-                    </span>
-                  </EditorEditableTimecode>
-                </EditorPropertyRow>
-                <EditorPropertyRow label="Out">
-                  <EditorEditableTimecode
-                    ariaLabel="subtitle cue out point"
-                    value={selectedSubtitleCue.endTime}
-                    onCommit={onSelectedSubtitleEndCommit}
-                    className="w-full justify-end"
-                    buttonClassName="w-full justify-end rounded-[var(--radius-control)] px-2 py-1 font-mono text-xs text-foreground hover:bg-editor-control-hover"
-                  >
-                    <span>
-                      {formatTimecodeInput(selectedSubtitleCue.endTime)}
-                    </span>
-                  </EditorEditableTimecode>
-                </EditorPropertyRow>
-                <EditorPropertyRow
-                  label="Duration"
-                  value={formatTimecodeInput(
-                    selectedSubtitleCue.endTime - selectedSubtitleCue.startTime,
-                  )}
-                >
-                  {null}
-                </EditorPropertyRow>
-              </>
-            ) : (
-              <p className="text-xs leading-relaxed text-muted-foreground">
-                {subtitleCues.length === 0
-                  ? "Add your own text at the playhead, or import subtitles."
-                  : "Select a subtitle in the timeline to edit its text and timing."}
-              </p>
-            )}
-          </EditorPropertySection>
-        </fieldset>
-        <EditorPropertyAccordion<EditorPropertiesSectionId>
-          value={editorPropertiesOpenSections}
-          onValueChange={onEditorPropertiesOpenSectionsChange}
-        >
-          <EditorPropertyAccordionItem<EditorPropertiesSectionId>
-            value={EDITOR_PROPERTIES_SECTION_ID.subtitleStyle}
-            title="Subtitle style"
-          >
-            <EditorPropertySection title="Text">
-              <EditorPropertyRow label="Font">
-                <Select
-                  value={subtitleStyleSettings.fontFamily}
-                  items={[
-                    ...(currentFontOption ? [currentFontOption] : []),
-                    ...bundledFontOptions,
-                    ...localFontOptions,
-                  ]}
-                  onValueChange={(value) => {
-                    if (value !== null) {
-                      updateStyleSetting("fontFamily", value);
-                    }
-                  }}
-                  onOpenChange={(open) => {
-                    if (open) {
-                      requestLocalFonts();
-                    }
-                  }}
-                >
-                  <SelectTrigger size="sm" variant="editor">
-                    <SelectValue placeholder="Select font" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {currentFontOption && (
-                      <SelectGroup>
-                        <SelectLabel>Current Font</SelectLabel>
-                        <SelectItem value={currentFontOption.value}>
-                          {currentFontOption.label}
-                        </SelectItem>
-                      </SelectGroup>
-                    )}
-                    <SelectGroup>
-                      <SelectLabel>Included Fonts</SelectLabel>
-                      {bundledFontOptions.map((option) => (
-                        <SelectItem key={option.value} value={option.value}>
-                          {option.label}
-                        </SelectItem>
-                      ))}
-                    </SelectGroup>
-                    {localFontOptions.length > 0 && (
-                      <SelectGroup>
-                        <SelectLabel>Installed Fonts</SelectLabel>
-                        {localFontOptions.map((option) => (
-                          <SelectItem key={option.value} value={option.value}>
-                            {option.label}
-                          </SelectItem>
-                        ))}
-                      </SelectGroup>
-                    )}
-                    {loadingLocalFonts && (
-                      <div className="flex items-center gap-2 px-2 py-1.5 text-xs text-muted-foreground">
-                        <Spinner className="h-3.5 w-3.5" />
-                        Loading installed fonts...
-                      </div>
-                    )}
-                  </SelectContent>
-                </Select>
-              </EditorPropertyRow>
-
-              <EditorColorControl
-                label="Color"
-                value={subtitleStyleSettings.fontColor}
-                onChange={(value) => updateStyleSetting("fontColor", value)}
-              />
-              <EditorRangeControl
-                label="Size"
-                value={subtitleStyleSettings.fontSize}
-                min={16}
-                max={150}
-                step={1}
-                unit="px"
-                onChange={(value) => updateStyleSetting("fontSize", value)}
-              />
-            </EditorPropertySection>
-
-            <EditorPropertySection title="Shadow">
-              <EditorColorControl
-                label="Color"
-                value={subtitleStyleSettings.shadowColor}
-                onChange={(value) => updateStyleSetting("shadowColor", value)}
-              />
-              <EditorRangeControl
-                label="Blur"
-                value={subtitleStyleSettings.shadowBlur}
-                min={0}
-                max={24}
-                step={1}
-                unit="px"
-                onChange={(value) => updateStyleSetting("shadowBlur", value)}
-              />
-              <EditorRangeControl
-                label="Offset"
-                value={subtitleStyleSettings.shadowOffsetY}
-                min={-16}
-                max={24}
-                step={1}
-                unit="px"
-                onChange={(value) => updateStyleSetting("shadowOffsetY", value)}
-              />
-            </EditorPropertySection>
-
-            <EditorPropertySection title="Stroke">
-              <EditorColorControl
-                label="Color"
-                value={subtitleStyleSettings.strokeColor}
-                onChange={(value) => updateStyleSetting("strokeColor", value)}
-              />
-              <EditorRangeControl
-                label="Width"
-                value={subtitleStyleSettings.strokeWidth}
-                min={0}
-                max={32}
-                step={0.5}
-                unit="px"
-                onChange={(value) => updateStyleSetting("strokeWidth", value)}
-              />
-            </EditorPropertySection>
-
-            <EditorPropertySection title="Position">
-              <EditorRangeControl
-                label="X"
-                value={subtitleStyleSettings.positionX}
-                min={0}
-                max={100}
-                step={1}
-                unit="%"
-                onChange={(value) => updateStyleSetting("positionX", value)}
-              />
-              <EditorRangeControl
-                label="Y"
-                value={subtitleStyleSettings.positionY}
-                min={0}
-                max={100}
-                step={1}
-                unit="%"
-                onChange={(value) => updateStyleSetting("positionY", value)}
-              />
-            </EditorPropertySection>
-          </EditorPropertyAccordionItem>
-        </EditorPropertyAccordion>
+        <EditorSubtitleCueEditor
+          subtitles={subtitles}
+          textReference={textReference}
+        />
+        <EditorSubtitleStyleControls
+          subtitleStyleSettings={subtitleStyleSettings}
+          setSubtitleStyleSettings={setSubtitleStyleSettings}
+          editorPropertiesOpenSections={editorPropertiesOpenSections}
+          onEditorPropertiesOpenSectionsChange={
+            onEditorPropertiesOpenSectionsChange
+          }
+        />
       </div>
     </div>
   );
