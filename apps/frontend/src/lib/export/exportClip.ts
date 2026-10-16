@@ -10,6 +10,7 @@ import type {
   FlacOutputFormatOptions,
   InputAudioTrack,
   InputVideoTrack,
+  IsobmffOutputFormatOptions,
   VideoCodec,
   VideoSample,
 } from "mediabunny";
@@ -43,6 +44,7 @@ import {
   resolveVideoEncodingPlan,
   type VideoEncodingPlan,
 } from "#/lib/export/exportEncodingPolicy";
+import { createExportTarget } from "#/lib/export/exportFileTarget";
 import {
   exportIncludesAudio,
   type ExportMode,
@@ -97,6 +99,8 @@ export type { ExportFormat, ExportResolution } from "#/lib/export/exportTypes";
 export type ExportPhase = "preparing" | "encoding" | "finalizing";
 
 export interface ExportClipOptions {
+  /** A user-selected destination for streaming muxed exports to disk. */
+  outputFile?: FileSystemFileHandle;
   signal?: AbortSignal;
   onPhaseChange?: (phase: ExportPhase) => void;
   mediaSource: EditorMediaSource;
@@ -176,11 +180,15 @@ const GIF_GLOBAL_PALETTE_MAX_SAMPLE_PIXELS = 120_000;
 function createOutputFormat(
   format: ExportFormat,
   onFlacFrame?: FlacOutputFormatOptions["onFrame"],
+  onMoov?: IsobmffOutputFormatOptions["onMoov"],
 ) {
   switch (format) {
     case "m4a":
     case "mp4": {
-      return new Mp4OutputFormat({ fastStart: "in-memory" });
+      return new Mp4OutputFormat({
+        fastStart: onMoov ? false : "in-memory",
+        onMoov,
+      });
     }
     case "mp3": {
       return new Mp3OutputFormat();
@@ -199,7 +207,8 @@ function createOutputFormat(
     }
     case "mov": {
       return new MovOutputFormat({
-        fastStart: "in-memory",
+        fastStart: onMoov ? false : "in-memory",
+        onMoov,
         metadataFormat: "mdir",
       });
     }
@@ -463,6 +472,7 @@ const defaultExportClipRuntime: ExportClipRuntime = {
 
 export async function exportClipWithRuntime(
   {
+    outputFile,
     signal,
     onPhaseChange,
     mediaSource,
@@ -538,6 +548,7 @@ export async function exportClipWithRuntime(
     hls,
   });
 
+  let exportTarget: Awaited<ReturnType<typeof createExportTarget>> | undefined;
   const disposeOnAbort = () => input.dispose();
   signal?.addEventListener("abort", disposeOnAbort, { once: true });
 
@@ -597,10 +608,20 @@ export async function exportClipWithRuntime(
 
     let flacFrameCount = 0;
     let lastFlacFrameBytes = 0;
-    const outputFormat = runtime.createOutputFormat(format, (data) => {
-      flacFrameCount++;
-      lastFlacFrameBytes = data.byteLength;
-    });
+    exportTarget = await createExportTarget(
+      outputFile,
+      () => runtime.createBufferTarget(),
+      (bytes) => runtime.patchMp4MetadataBoxes(bytes),
+    );
+    signal?.throwIfAborted();
+    const outputFormat = runtime.createOutputFormat(
+      format,
+      (data) => {
+        flacFrameCount++;
+        lastFlacFrameBytes = data.byteLength;
+      },
+      exportTarget.onMoov,
+    );
     const resolvedVideoQuality = videoQuality ?? DEFAULT_VIDEO_EXPORT_QUALITY;
     let videoQualityOptions: VideoQualityConversionOptions =
       resolvedVideoQuality === "sharp" ? {} : { forceTranscode: true };
@@ -649,7 +670,6 @@ export async function exportClipWithRuntime(
       });
     }
 
-    const target = runtime.createBufferTarget();
     // The transcript is embedded whenever subtitle cues exist for the clip
     // range, independent of the burn-in toggle: it is metadata for search,
     // not a display choice.
@@ -693,7 +713,7 @@ export async function exportClipWithRuntime(
 
     const output = runtime.createOutput({
       format: outputFormat,
-      target,
+      target: exportTarget.target,
     });
 
     const conversionOptions: ConversionOptions = {
@@ -801,19 +821,15 @@ export async function exportClipWithRuntime(
         );
       }
 
-      if (!target.buffer) {
-        throw new Error("Export did not produce a media buffer");
-      }
-
-      if (isIsobmffExportFormat(format)) {
-        runtime.patchMp4MetadataBoxes(new Uint8Array(target.buffer));
-      }
-
-      // The conversion plan preserves the selected video and requested audio;
-      // reparsing the completed file adds memory pressure for long exports.
+      // The conversion plan validates tracks before execution. Finalization
+      // patches only the metadata on disk without reparsing the exported media.
       const mimeType = await output.getMimeType();
       signal?.throwIfAborted();
-      const blob = new Blob([target.buffer], { type: mimeType });
+      const blob = await exportTarget.finish(
+        mimeType,
+        isIsobmffExportFormat(format),
+        signal,
+      );
 
       completed = true;
       return blob;
@@ -830,6 +846,7 @@ export async function exportClipWithRuntime(
   } finally {
     signal?.removeEventListener("abort", disposeOnAbort);
     input.dispose();
+    await exportTarget?.abort().catch(() => {});
   }
 }
 

@@ -1,4 +1,5 @@
 import {
+  chooseExportFile,
   DEFAULT_GIF_EXPORT_PRESET,
   type EditorFileMediaSource,
   estimateExportOutputSize,
@@ -569,7 +570,10 @@ export function ConvertTool() {
     let videoEncodingPlan: ExportVideoEncodingPlan | undefined;
 
     try {
+      const outputFile = await chooseExportFile(outputFileName, format);
+      controller.signal.throwIfAborted();
       const blob = await runConvertExport({
+        outputFile: outputFile ?? undefined,
         signal: controller.signal,
         onPhaseChange: (phase) => {
           if (isCurrent() && !controller.signal.aborted) {
@@ -613,12 +617,17 @@ export function ConvertTool() {
       });
       void flushConvertMetrics();
       setProgress(1);
-      setExportNotice(`Download started: ${outputFileName}`);
+      setExportNotice(
+        `${outputFile ? "Saved" : "Download started"}: ${outputFileName}`,
+      );
     } catch (error) {
       if (!isCurrent()) {
         return;
       }
-      if (controller.signal.aborted) {
+      if (
+        controller.signal.aborted ||
+        (error instanceof Error && error.name === "AbortError")
+      ) {
         setExportNotice("Export cancelled.");
         setProgress(0);
         return;

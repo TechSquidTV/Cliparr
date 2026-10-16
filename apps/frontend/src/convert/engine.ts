@@ -43,6 +43,7 @@ export {
   videoEncodingPlanKey,
   videoTargetBitrateBps,
 } from "../lib/export/exportEncodingPolicy";
+export { chooseExportFile } from "../lib/export/exportFile";
 export {
   type AudioExportFormat,
   exportFormatFor,

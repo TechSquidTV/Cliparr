@@ -26,6 +26,7 @@ export interface SourceProbeResult {
 
 export interface ConvertExportOptions extends Pick<
   ExportClipOptions,
+  | "outputFile"
   | "metadata"
   | "format"
   | "resolution"
@@ -125,7 +126,9 @@ export async function runConvertExport(
     title: titleFromFileName(fileName),
   });
   options.signal?.throwIfAborted();
-  dependencies.downloadBlob(blob, fileName);
+  if (!options.outputFile) {
+    dependencies.downloadBlob(blob, fileName);
+  }
   return blob;
 }
 
