@@ -15,7 +15,7 @@ import {
   useMediabunnyFrameTime,
   useMediabunnyTimelineMedia,
 } from "@techsquidtv/canvas-timeline-mediabunny-adapter/react";
-import type { Input, InputTrack, InputVideoTrack } from "mediabunny";
+import type { Input, InputVideoTrack } from "mediabunny";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import {
@@ -35,7 +35,6 @@ import {
   assessPreviewAudioTrack,
   buildPlaybackSourceCandidates,
   formatPlaybackSourceLabel,
-  isPresent,
   playbackAudioSelectionsEqual,
   type PlaybackFallbackInfo,
   type PlaybackSourceCandidate,
@@ -52,10 +51,10 @@ import {
   synchronizeEditorTimelineMedia,
 } from "@/components/editor/editorTimelineEngine";
 import { errorMessage } from "@/components/editor/editorUtilities";
+import { probeMediaSource } from "@/convert/engine";
 import { createCliparrInputFromSource } from "@/lib/export/mediabunny/mediabunnyInput";
 import {
   fromSourceTimelineTime,
-  getTrackTimelineOffsetSeconds,
   getVideoTrackDimensions,
 } from "@/lib/export/mediabunny/mediabunnyTrackAccess";
 import { selectPreferredPairableAudioTrack } from "@/lib/subtitles/selectPreferredAudioTrack";
@@ -107,13 +106,19 @@ async function prepareInput(
   session: EditorSession,
   previousTimelineOffsetSeconds?: number,
 ): Promise<EditorMediaMetadata & MediabunnyTrackSelection> {
-  const { sourceVideoTrack, previewVideoTrack } =
-    await selectPreviewVideoTrack(input);
-  const audioTracks = await input.getAudioTracks();
-  const sourceAudioTrack = await selectPreferredPairableAudioTrack(
+  const {
     sourceVideoTrack,
     audioTracks,
-    session.selectedAudioTrack,
+    timelineOffsetSeconds,
+    sourceTimelineEnd,
+  } = await probeMediaSource(input, {
+    selectedAudioTrack: session.selectedAudioTrack,
+    timelineOffsetSeconds: previousTimelineOffsetSeconds,
+    skipLiveWait: true,
+  });
+  const { previewVideoTrack } = await selectPreviewVideoTrack(
+    input,
+    sourceVideoTrack,
   );
   const selectedPreviewAudioTrack = await selectPreferredPairableAudioTrack(
     previewVideoTrack,
@@ -129,22 +134,6 @@ async function prepareInput(
     throw new Error("No browser-decodable audio or video track was found.");
   }
 
-  const sourceTracks: InputTrack[] = [
-    sourceVideoTrack,
-    sourceAudioTrack,
-  ].filter(isPresent);
-  const durationTracks =
-    sourceTracks.length > 0
-      ? sourceTracks
-      : [previewVideoTrack, previewAudioTrack].filter(isPresent);
-  const timelineOffsetSeconds =
-    previousTimelineOffsetSeconds ??
-    (await getTrackTimelineOffsetSeconds(durationTracks));
-  const sourceTimelineEnd =
-    (await input.getDurationFromMetadata(durationTracks, {
-      skipLiveWait: true,
-    })) ??
-    (await input.computeDuration(durationTracks, { skipLiveWait: true }));
   const duration = resolvePlaybackDuration(
     candidate,
     fromSourceTimelineTime(sourceTimelineEnd, timelineOffsetSeconds),

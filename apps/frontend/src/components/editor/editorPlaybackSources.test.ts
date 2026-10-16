@@ -49,12 +49,12 @@ void test("uses the export primary video track even when it is not first in the 
     getPrimaryVideoTrack: async () => primary,
     getVideoTracks: async () => [first, primary],
   };
-  const selected = await selectPreviewVideoTrack(input);
+  const selected = await selectPreviewVideoTrack(input, primary);
   assert.equal(selected.sourceVideoTrack, primary);
   assert.equal(selected.previewVideoTrack, primary);
 
   primary.canDecode = async () => false;
-  const recovered = await selectPreviewVideoTrack(input);
+  const recovered = await selectPreviewVideoTrack(input, primary);
   assert.equal(recovered.sourceVideoTrack, primary);
   assert.equal(recovered.previewVideoTrack, first);
 });

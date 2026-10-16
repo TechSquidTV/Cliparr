@@ -122,10 +122,6 @@ export function formatPlaybackSourceLabel(
   }
 }
 
-export function isPresent<T>(value: T | null | undefined): value is T {
-  return value !== null && value !== undefined;
-}
-
 function finiteNonNegativeDuration(value: number) {
   return Number.isFinite(value) ? Math.max(0, value) : 0;
 }
@@ -166,11 +162,9 @@ async function assessPreviewVideoTrack(track: InputVideoTrack | null) {
 }
 
 export async function selectPreviewVideoTrack(
-  input: Pick<Input, "getPrimaryVideoTrack" | "getVideoTracks">,
+  input: Pick<Input, "getVideoTracks">,
+  sourceVideoTrack: InputVideoTrack | null,
 ) {
-  const sourceVideoTrack = await input.getPrimaryVideoTrack({
-    filter: isPlaybackVideoTrack,
-  });
   if (!sourceVideoTrack) {
     return {
       sourceVideoTrack: null,
