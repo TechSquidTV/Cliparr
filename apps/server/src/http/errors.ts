@@ -22,6 +22,14 @@ export function createApiError(
   });
 }
 
+export function throwNotAuthenticated(): never {
+  throw createApiError(
+    401,
+    "not_authenticated",
+    "Sign in with a provider first",
+  );
+}
+
 export function isApiError(error: unknown): error is ApiError {
   const candidate = error as Partial<ApiError>;
 

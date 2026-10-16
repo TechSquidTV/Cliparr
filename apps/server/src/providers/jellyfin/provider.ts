@@ -8,9 +8,9 @@ import {
   listCurrentlyPlaying,
   sourceSupportsCurrentlyPlaying,
 } from "@/providers/jellyfin/playback";
-import type { ProviderImplementation } from "@/providers/types";
+import { defineProvider } from "@/providers/shared/defineProvider";
 
-export const jellyfinProvider: ProviderImplementation = {
+export const jellyfinProvider = defineProvider({
   definition: {
     id: "jellyfin",
     name: "Jellyfin",
@@ -22,11 +22,4 @@ export const jellyfinProvider: ProviderImplementation = {
   watchCurrentlyPlaying,
   listCurrentlyPlaying,
   proxyMedia,
-  serializeSession(session) {
-    return {
-      id: session.id,
-      providerId: "jellyfin",
-      expiresAt: new Date(session.expiresAt).toISOString(),
-    };
-  },
-};
+});

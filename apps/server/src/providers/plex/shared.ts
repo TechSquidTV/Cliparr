@@ -16,6 +16,7 @@ import {
   requestPlexPmsIdentity,
   requestPlexPmsMetadata,
 } from "@/providers/plex/pmsClient";
+import { connectionRank } from "@/providers/shared/connections";
 import {
   assertHttpUrl,
   errorMessage,
@@ -141,16 +142,6 @@ export function requirePlexServerResources(resources: ProviderResource[]) {
     "plex_server_required",
     "Cliparr needs a Plex account that owns at least one Plex Media Server",
   );
-}
-
-function connectionRank(connection: ProviderResource["connections"][number]) {
-  if (connection.local && !connection.relay) {
-    return 0;
-  }
-  if (!connection.relay) {
-    return 1;
-  }
-  return 2;
 }
 
 function orderedConnections(

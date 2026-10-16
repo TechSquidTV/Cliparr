@@ -19,17 +19,8 @@ import {
   withPlexBaseUrlMode,
 } from "@/providers/plex/connectionState";
 import { cleanupDuplicatePlexSources } from "@/providers/plex/sourceDeduplication";
+import { connectionRank } from "@/providers/shared/connections";
 import type { ProviderConnection, ProviderResource } from "@/providers/types";
-
-function connectionRank(connection: ProviderConnection) {
-  if (connection.local && !connection.relay) {
-    return 0;
-  }
-  if (!connection.relay) {
-    return 1;
-  }
-  return 2;
-}
 
 function preferredConnection(
   resource: ProviderResource,
