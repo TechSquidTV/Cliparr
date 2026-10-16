@@ -1,4 +1,3 @@
-import { canEncodeVideo } from "mediabunny";
 import { useEffect, useState } from "react";
 
 import {
@@ -38,15 +37,21 @@ export function useExportVideoPlan(
       return;
     }
     let cancelled = false;
-    void resolveVideoEncodingPlan({
-      format,
-      outputDimensions,
-      quality,
-      supportedVideoCodecs: exportVideoCodecPriorities(format),
-      canEncodeVideo,
-    })
+    void import("mediabunny")
+      .then(({ canEncodeVideo }) => {
+        if (cancelled) {
+          return null;
+        }
+        return resolveVideoEncodingPlan({
+          format,
+          outputDimensions,
+          quality,
+          supportedVideoCodecs: exportVideoCodecPriorities(format),
+          canEncodeVideo,
+        });
+      })
       .then((plan) => {
-        if (!cancelled) {
+        if (!cancelled && plan) {
           setResult({ ...plan, key });
         }
       })
