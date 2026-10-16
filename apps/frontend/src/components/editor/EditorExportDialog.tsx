@@ -1,12 +1,11 @@
 import { Download, FileText } from "lucide-react";
 
-import {
-  EditorExportSettingsSection,
-  EditorExportSummaryPanel,
-  EditorFilenameTemplateSection,
-  ExportStatusPanel,
-} from "#/components/editor/EditorExportDialogSections";
+import { EditorExportSourceControl } from "#/components/editor/EditorExportSourceControl";
+import { EditorExportSummaryPanel } from "#/components/editor/EditorExportSummaryPanel";
+import { EditorFilenameTemplateSection } from "#/components/editor/EditorFilenameTemplateSection";
 import type { MediaDimensions } from "#/components/editor/editorMedia";
+import { ExportSettingsSection } from "#/components/export/ExportSettingsSection";
+import { ExportStatusPanel } from "#/components/export/ExportStatusPanel";
 import { BouncyAccordion } from "#/components/ui/bouncy-accordion";
 import {
   buttonClassName,
@@ -169,7 +168,7 @@ export function EditorExportDialog({
             inert={exporting}
             className="min-w-0 space-y-4 disabled:opacity-60"
           >
-            <EditorExportSettingsSection
+            <ExportSettingsSection
               selectedFormat={selectedFormat}
               onFormatChange={onFormatChange}
               selectedQuality={selectedQuality}
@@ -177,8 +176,6 @@ export function EditorExportDialog({
               outputDimensions={outputDimensions}
               selectedResolution={selectedResolution}
               onResolutionChange={onResolutionChange}
-              selectedSourcePreference={selectedSourcePreference}
-              onSourcePreferenceChange={onSourcePreferenceChange}
               mode={mode}
               onOutputTypeChange={onOutputTypeChange}
               onVideoMutedChange={onVideoMutedChange}
@@ -186,12 +183,18 @@ export function EditorExportDialog({
               onMixDownToStereoChange={onMixDownToStereoChange}
               audioDisabledReason={audioDisabledReason}
               audioBitDepth={audioBitDepth}
-              showSourcePreference={hasHlsSource && hasDirectSource}
-              hasHlsSource={hasHlsSource}
-              hasDirectSource={hasDirectSource}
-              directSourceLabel={directSourceLabel}
-              hlsSourceLabel={hlsSourceLabel}
-            />
+            >
+              {hasHlsSource && hasDirectSource && (
+                <EditorExportSourceControl
+                  selectedSourcePreference={selectedSourcePreference}
+                  onSourcePreferenceChange={onSourcePreferenceChange}
+                  hasHlsSource={hasHlsSource}
+                  hasDirectSource={hasDirectSource}
+                  directSourceLabel={directSourceLabel}
+                  hlsSourceLabel={hlsSourceLabel}
+                />
+              )}
+            </ExportSettingsSection>
 
             <BouncyAccordion
               items={[
