@@ -12,7 +12,7 @@ import {
 import { useSourcesState } from "@/components/sources/useSourcesState";
 import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
 import { DialogWindow } from "@/components/ui/dialog";
-import { cliparrMotionTransitions } from "@/lib/motion";
+import { useMotionTransition } from "@/lib/useMotionTransition";
 
 interface Properties {
   isOpen: boolean;
@@ -82,15 +82,9 @@ export default function SourcesDialog({
     isOpen,
     onSourcesChanged,
   });
-  const stateTransition = reduceMotion
-    ? { duration: 0 }
-    : cliparrMotionTransitions.standard;
-  const exitTransition = reduceMotion
-    ? { duration: 0 }
-    : cliparrMotionTransitions.fast;
-  const layoutTransition = reduceMotion
-    ? { duration: 0 }
-    : cliparrMotionTransitions.layout;
+  const stateTransition = useMotionTransition("standard");
+  const exitTransition = useMotionTransition("fast");
+  const layoutTransition = useMotionTransition("layout");
 
   function renderSourcesContent() {
     if (loading) {

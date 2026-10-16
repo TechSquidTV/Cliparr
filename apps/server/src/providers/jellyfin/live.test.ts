@@ -8,13 +8,13 @@ import test from "node:test";
 import { setImmediate } from "node:timers/promises";
 
 import type { MediaSourceRecord } from "@/db/mediaSourcesRepository";
-import { createDeferred } from "@/test/deferred";
+import { createDeferred } from "#test/deferred";
 import {
   mockProviderDns,
   TEST_JELLYFIN_BASE_URL,
   TEST_PUBLIC_ADDRESS,
-} from "@/test/providerFixtures";
-import { acceptTestWebSocket } from "@/test/webSocketFixtures";
+} from "#test/providerFixtures";
+import { acceptTestWebSocket } from "#test/webSocketFixtures";
 
 function createSource(baseUrl: string): MediaSourceRecord {
   return {

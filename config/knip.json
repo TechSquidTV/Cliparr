@@ -32,7 +32,7 @@
       "paths": {
         "@/*": ["./src/*"]
       },
-      "project": ["src/**/*.ts"]
+      "project": ["src/**/*.ts", "test/**/*.ts"]
     },
     "packages/shared": {
       "ignoreBinaries": ["eslint", "tsc"],

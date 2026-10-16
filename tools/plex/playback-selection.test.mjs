@@ -26,7 +26,7 @@ void test("Plex audio selection reaches the frontend without inventing ordinals 
     `
     import assert from 'node:assert/strict';
     import { listCurrentlyPlaying, createPlexPlaybackResolver } from './src/providers/plex/playback.ts';
-    const { TEST_PLEX_BASE_URL: baseUrl, mockProviderDns } = await import('./src/test/providerFixtures.ts');
+    const { TEST_PLEX_BASE_URL: baseUrl, mockProviderDns } = await import('./test/providerFixtures.ts');
     const restoreDns = mockProviderDns();
     const source = {
       id: 'source', providerId: 'plex', providerAccountId: 'account', name: 'Fixture', enabled: true, baseUrl,
@@ -95,7 +95,7 @@ void test("Plex audio selection reaches the frontend without inventing ordinals 
     import assert from 'node:assert/strict';
     import { readFileSync } from 'node:fs';
     import { editorSessionFromCurrentlyPlaying } from './src/components/editor/editorMedia.ts';
-    import { selectPreferredPairableAudioTrack } from './src/lib/subtitles/selectPreferredAudioTrack.ts';
+    import { selectPreferredPairableAudioTrack } from './src/lib/export/selectPreferredAudioTrack.ts';
     const results = JSON.parse(readFileSync(0, 'utf8'));
     const tracks = [
       { number: 1, getLanguageCode: async () => 'eng', getName: async () => 'English' },

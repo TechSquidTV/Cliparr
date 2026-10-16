@@ -7,9 +7,9 @@ import test from "node:test";
 import { setImmediate } from "node:timers/promises";
 
 import { resolveHostnameAddresses } from "@/providers/shared/dnsCache";
-import { createDeferred } from "@/test/deferred";
-import { PRIVATE_IPV4_ADDRESSES } from "@/test/networkPolicyFixtures";
-import { TEST_PUBLIC_ADDRESS } from "@/test/providerFixtures";
+import { createDeferred } from "#test/deferred";
+import { PRIVATE_IPV4_ADDRESSES } from "#test/networkPolicyFixtures";
+import { TEST_PUBLIC_ADDRESS } from "#test/providerFixtures";
 
 void test("concurrent resolutions share one lookup", async (context) => {
   let lookups = 0;

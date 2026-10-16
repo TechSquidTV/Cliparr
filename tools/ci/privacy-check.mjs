@@ -96,13 +96,13 @@ function permittedAddress(address, file) {
         normalized.startsWith("2001:db8:") ||
         /^fe[89ab]/i.test(normalized) ||
         normalized.startsWith("ff") ||
-        (file === "apps/server/src/test/networkPolicyFixtures.ts" &&
+        (file === "apps/server/test/networkPolicyFixtures.ts" &&
           normalized === ["fd00", "", "1"].join(":"))
       );
     }
   }
   if (
-    file === "apps/server/src/test/networkPolicyFixtures.ts" &&
+    file === "apps/server/test/networkPolicyFixtures.ts" &&
     privatePolicyAddresses.has(normalized)
   ) {
     return true;

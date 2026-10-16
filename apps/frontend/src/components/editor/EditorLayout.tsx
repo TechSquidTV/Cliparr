@@ -13,7 +13,7 @@ import {
   ResizablePanel,
   ResizablePanelGroup,
 } from "@/components/ui/resizable";
-import { cliparrMotionTransitions } from "@/lib/motion";
+import { useMotionTransition } from "@/lib/useMotionTransition";
 
 export type EditorLayoutVariant = "desktop" | "mobile";
 
@@ -43,9 +43,7 @@ export function EditorPreviewPane({
   children: ReactNode;
 }) {
   const reduceMotion = useReducedMotion();
-  const stateTransition = reduceMotion
-    ? { duration: 0 }
-    : cliparrMotionTransitions.fast;
+  const stateTransition = useMotionTransition("fast");
   const previewStage = (
     <section
       data-editor-preview-stage

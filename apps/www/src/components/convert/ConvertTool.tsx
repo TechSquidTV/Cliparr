@@ -22,6 +22,7 @@ import {
   EditorExportSettingsSection,
   EditorExportSummaryPanel,
   ExportStatusPanel,
+  LOCAL_VIDEO_FILE_ACCEPT,
   Spinner,
   TooltipProvider,
   useExportAudioPlan,
@@ -65,7 +66,7 @@ type ProbeState =
   | { status: "error"; message: string };
 
 const fileAccept = [
-  "video/*",
+  LOCAL_VIDEO_FILE_ACCEPT,
   "audio/*",
   ".mp3",
   ".m4a",
@@ -74,18 +75,6 @@ const fileAccept = [
   ".opus",
   ".flac",
   ".wav",
-  "video/x-matroska",
-  "application/x-matroska",
-  "video/mp2t",
-  ".mp4",
-  ".m4v",
-  ".mov",
-  ".mkv",
-  ".webm",
-  ".ogv",
-  ".ts",
-  ".m2ts",
-  ".mts",
 ].join(",");
 
 function errorMessage(error: unknown, fallback: string) {

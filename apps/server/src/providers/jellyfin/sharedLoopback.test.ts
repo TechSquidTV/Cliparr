@@ -9,7 +9,7 @@ import { closePooledPinnedDnsAgents } from "@/providers/shared/pinnedFetch";
 import {
   PRIVATE_IPV4_ADDRESSES,
   PRIVATE_IPV6_ADDRESS,
-} from "@/test/networkPolicyFixtures";
+} from "#test/networkPolicyFixtures";
 
 const { fetchPublicSystemInfo, resolveCredentialServerUrl } =
   await (async () => {

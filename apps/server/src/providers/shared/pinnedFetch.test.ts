@@ -16,8 +16,8 @@ import {
   closePooledPinnedDnsAgents,
   fetchWithPinnedDns,
 } from "@/providers/shared/pinnedFetch";
-import { PRIVATE_IPV4_ADDRESSES } from "@/test/networkPolicyFixtures";
-import { TEST_PUBLIC_ADDRESS } from "@/test/providerFixtures";
+import { PRIVATE_IPV4_ADDRESSES } from "#test/networkPolicyFixtures";
+import { TEST_PUBLIC_ADDRESS } from "#test/providerFixtures";
 
 afterEach(closePooledPinnedDnsAgents);
 

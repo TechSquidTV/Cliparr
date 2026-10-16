@@ -10,7 +10,7 @@ import {
   getVideoTrackDimensions as readVideoTrackDimensions,
   isPlaybackVideoTrack,
 } from "../lib/export/mediabunny/mediabunnyTrackAccess";
-import { selectPreferredPairableAudioTrack } from "../lib/subtitles/selectPreferredAudioTrack";
+import { selectPreferredPairableAudioTrack } from "../lib/export/selectPreferredAudioTrack";
 
 export {
   buildLocalEditorSession,
@@ -85,7 +85,7 @@ export {
   isPlaybackVideoTrack,
   videoTrackPreviewUnavailableMessage,
 } from "../lib/export/mediabunny/mediabunnyTrackAccess";
-export { selectPreferredPairableAudioTrack } from "../lib/subtitles/selectPreferredAudioTrack";
+export { selectPreferredPairableAudioTrack } from "../lib/export/selectPreferredAudioTrack";
 export type { MediaExportMetadata } from "@cliparr/shared/providers";
 
 export async function exportClip(options: ExportClipOptions) {

@@ -17,7 +17,7 @@ import type {
   PlaybackObserver,
 } from "@/providers/types";
 import type { ProviderSessionRecord } from "@/session/store";
-import { createDeferred } from "@/test/deferred";
+import { createDeferred } from "#test/deferred";
 
 const source: MediaSourceRecord = {
   id: "source",

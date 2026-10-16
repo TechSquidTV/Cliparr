@@ -60,7 +60,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { cn } from "@/lib/cn";
-import { cliparrMotionTransitions } from "@/lib/motion";
+import { useMotionTransition } from "@/lib/useMotionTransition";
 import { EDITOR_THUMBNAIL_VIEW_TRANSITION_NAME } from "@/lib/viewTransitions";
 
 interface Properties {
@@ -320,15 +320,9 @@ function DashboardPlaybackMotionRegion({
 }) {
   const reduceMotion = useReducedMotion();
   const hasPlaybackCards = playbackCards.length > 0;
-  const stateTransition = reduceMotion
-    ? { duration: 0 }
-    : cliparrMotionTransitions.standard;
-  const exitTransition = reduceMotion
-    ? { duration: 0 }
-    : cliparrMotionTransitions.fast;
-  const layoutTransition = reduceMotion
-    ? { duration: 0 }
-    : cliparrMotionTransitions.layout;
+  const stateTransition = useMotionTransition("standard");
+  const exitTransition = useMotionTransition("fast");
+  const layoutTransition = useMotionTransition("layout");
 
   return (
     <div data-dashboard-playback-motion>
@@ -628,6 +622,7 @@ export default function DashboardScreen({
     readDashboardViewerFilter(),
   );
   const reduceDashboardMotion = useReducedMotion();
+  const dashboardTransition = useMotionTransition("fast");
 
   useEffect(() => {
     let cancelled = false;
@@ -868,11 +863,7 @@ export default function DashboardScreen({
                     ? { scale: 0.985 }
                     : undefined
                 }
-                transition={
-                  reduceDashboardMotion
-                    ? { duration: 0 }
-                    : cliparrMotionTransitions.fast
-                }
+                transition={dashboardTransition}
               >
                 <LogOut className="w-4 h-4" />
                 {!showViewerFilterControl && "Disconnect"}

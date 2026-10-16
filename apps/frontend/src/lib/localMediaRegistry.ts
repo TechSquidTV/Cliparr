@@ -11,47 +11,11 @@ import {
   titleFromUrl,
 } from "@/components/editor/editorMedia";
 import { isHlsPlaylistUrl } from "@/lib/export/mediabunny/mediabunnyInput";
+import { VIDEO_PICKER_TYPES } from "@/lib/localMediaFormats";
 
 const DATABASE_NAME = "cliparr-local-media";
 const DATABASE_VERSION = 1;
 const STORE_NAME = "media";
-
-const VIDEO_PICKER_TYPES = [
-  {
-    description: "Video files",
-    accept: {
-      "video/*": [
-        ".mp4",
-        ".m4v",
-        ".mov",
-        ".mkv",
-        ".webm",
-        ".ogv",
-        ".ts",
-        ".m2ts",
-        ".mts",
-      ],
-      "application/x-matroska": [".mkv"],
-      "video/mp2t": [".ts", ".m2ts", ".mts"],
-    },
-  },
-] as const;
-
-export const LOCAL_VIDEO_FILE_ACCEPT = [
-  "video/*",
-  "video/x-matroska",
-  "application/x-matroska",
-  "video/mp2t",
-  ".mp4",
-  ".m4v",
-  ".mov",
-  ".mkv",
-  ".webm",
-  ".ogv",
-  ".ts",
-  ".m2ts",
-  ".mts",
-].join(",");
 
 type StoredLocalMediaRecord = StoredUrlRecord | StoredFileHandleRecord;
 

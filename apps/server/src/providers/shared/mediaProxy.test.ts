@@ -22,7 +22,7 @@ import {
 import type { MediaHandle } from "@/providers/types";
 import { pruneSessionMediaHandles } from "@/session/mediaHandles";
 import { type ProviderSessionRecord } from "@/session/store";
-import { PRIVATE_IPV4_ADDRESSES } from "@/test/networkPolicyFixtures";
+import { PRIVATE_IPV4_ADDRESSES } from "#test/networkPolicyFixtures";
 
 function createSession(): ProviderSessionRecord {
   return {

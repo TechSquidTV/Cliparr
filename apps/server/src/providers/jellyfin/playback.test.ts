@@ -30,7 +30,7 @@ import type { ProviderSessionRecord } from "@/session/store";
 import {
   TEST_JELLYFIN_BASE_URL,
   useProviderFixtures,
-} from "@/test/providerFixtures";
+} from "#test/providerFixtures";
 
 let sessionIndex = 0;
 

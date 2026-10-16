@@ -22,11 +22,11 @@ import {
   TabsTab,
 } from "@/components/ui/tabs";
 import { cn } from "@/lib/cn";
+import { LOCAL_VIDEO_FILE_ACCEPT } from "@/lib/localMediaFormats";
 import {
   createLocalSessionFromFile,
   createLocalSessionFromPicker,
   createLocalSessionFromUrl,
-  LOCAL_VIDEO_FILE_ACCEPT,
   localMediaPickerSupported,
 } from "@/lib/localMediaRegistry";
 

@@ -87,10 +87,10 @@ import {
   type VideoTrackDecodabilityAssessment,
   videoTrackExportUnsupportedMessage,
 } from "#/lib/export/mediabunny/mediabunnyTrackAccess";
+import { selectPreferredPairableAudioTrack } from "#/lib/export/selectPreferredAudioTrack";
 import { buildTranscript } from "#/lib/metadata/transcript";
 import { getActiveSubtitleCues } from "#/lib/subtitles/getActiveSubtitleCue";
 import { renderSubtitleCues } from "#/lib/subtitles/renderSubtitleCue";
-import { selectPreferredPairableAudioTrack } from "#/lib/subtitles/selectPreferredAudioTrack";
 import { trimSubtitleCues } from "#/lib/subtitles/trimSubtitleCues";
 import type { SubtitleCue, SubtitleStyleSettings } from "#/lib/subtitles/types";
 

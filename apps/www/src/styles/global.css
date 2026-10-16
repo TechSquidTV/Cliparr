@@ -2,6 +2,7 @@
 @import "../../../frontend/src/styles/motion.css";
 @import "../../../frontend/src/components/ui/control-styles.css";
 
+@source "../../../frontend/src/pwa.ts";
 @source "../../../frontend/src/components/editor/EditorExportDialogSections.tsx";
 @source "../../../frontend/src/components/ui/control-styles.ts";
 @source "../../../frontend/src/components/ui/select.tsx";

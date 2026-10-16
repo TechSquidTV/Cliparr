@@ -37,7 +37,7 @@ import { Spinner } from "@/components/ui/spinner";
 import { Switch } from "@/components/ui/switch";
 import { ControlTooltip } from "@/components/ui/tooltip";
 import { cn } from "@/lib/cn";
-import { cliparrMotionTransitions } from "@/lib/motion";
+import { useMotionTransition } from "@/lib/useMotionTransition";
 
 interface SourceCounts {
   all: number;
@@ -404,9 +404,7 @@ export function SourcesDialogAlerts({
   feedback,
 }: SourcesDialogAlertsProperties) {
   const reduceMotion = useReducedMotion();
-  const transition = reduceMotion
-    ? { duration: 0 }
-    : cliparrMotionTransitions.fast;
+  const transition = useMotionTransition("fast");
 
   return (
     <AnimatePresence mode="popLayout" initial={false}>
@@ -567,9 +565,7 @@ export function SourceCard({
   const product = stringValue(source.metadata.product);
   const platform = stringValue(source.metadata.platform);
   const reduceMotion = useReducedMotion();
-  const stateTransition = reduceMotion
-    ? { duration: 0 }
-    : cliparrMotionTransitions.fast;
+  const stateTransition = useMotionTransition("fast");
 
   function handleKeyDown(event: KeyboardEvent<HTMLInputElement>) {
     if (event.key !== "Enter" || !canSaveEdits) {

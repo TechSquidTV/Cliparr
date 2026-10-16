@@ -11,11 +11,11 @@ import {
   readPlexPlayingNotifications,
   watchCurrentlyPlaying,
 } from "@/providers/plex/live";
-import { createDeferred } from "@/test/deferred";
+import { createDeferred } from "#test/deferred";
 import {
   TEST_PLEX_BASE_URL,
   useProviderFixtures,
-} from "@/test/providerFixtures";
+} from "#test/providerFixtures";
 
 const source: MediaSourceRecord = {
   id: "source",

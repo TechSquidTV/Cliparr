@@ -57,7 +57,7 @@ import {
   fromSourceTimelineTime,
   getVideoTrackDimensions,
 } from "@/lib/export/mediabunny/mediabunnyTrackAccess";
-import { selectPreferredPairableAudioTrack } from "@/lib/subtitles/selectPreferredAudioTrack";
+import { selectPreferredPairableAudioTrack } from "@/lib/export/selectPreferredAudioTrack";
 
 const previewLayerSelectors = {
   visuals: { trackKind: "media", sourceId: EDITOR_MEDIA_SOURCE_ID },

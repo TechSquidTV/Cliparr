@@ -16,7 +16,7 @@ import {
 } from "#/lib/export/exportFormats";
 import { createCliparrInputFromSource } from "#/lib/export/mediabunny/mediabunnyInput";
 import { isPlaybackVideoTrack } from "#/lib/export/mediabunny/mediabunnyTrackAccess";
-import { selectPreferredPairableAudioTrack } from "#/lib/subtitles/selectPreferredAudioTrack";
+import { selectPreferredPairableAudioTrack } from "#/lib/export/selectPreferredAudioTrack";
 
 type AudioInspection = {
   source: EditorMediaSource;

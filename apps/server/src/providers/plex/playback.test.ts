@@ -38,7 +38,7 @@ import type { ProviderSessionRecord } from "@/session/store";
 import {
   TEST_PLEX_BASE_URL,
   useProviderFixtures,
-} from "@/test/providerFixtures";
+} from "#test/providerFixtures";
 
 function createSession(): ProviderSessionRecord {
   return {

@@ -19,7 +19,7 @@ import { getSessionCookieName } from "@/http/cookies";
 import { plexProvider } from "@/providers/plex/provider";
 import type { CurrentlyPlayingEntry } from "@/providers/types";
 import { createProviderSession, deleteProviderSession } from "@/session/store";
-import { createDeferred } from "@/test/deferred";
+import { createDeferred } from "#test/deferred";
 
 const TEST_APP_KEY = "media-currently-playing-test-key-with-32-chars";
 
