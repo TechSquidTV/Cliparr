@@ -1,4 +1,3 @@
-import { parseExternalIds } from "@cliparr/shared/external-ids";
 import {
   logErrorFields,
   logEventFields,
@@ -37,12 +36,12 @@ import {
   deriveSelectedSubtitleTrack,
   deriveSubtitleTracks,
 } from "@/providers/jellyfin/subtitles";
+import { buildMediaExportMetadata } from "@/providers/shared/exportMetadata";
 import { playlistBasePath } from "@/providers/shared/hlsPlaylist";
 import { dedupeInflightFetch } from "@/providers/shared/inflight";
 import { subtitleTrackSupportsBurnIn } from "@/providers/shared/subtitles";
 import {
   asArray,
-  buildEpisodeSourceTitle,
   normalizeRating,
   numberValue,
   stringValue,
@@ -117,22 +116,6 @@ function itemType(item: JellyfinItem) {
 function itemTitle(item: JellyfinItem) {
   return (
     stringValue(item?.Name) ?? stringValue(item?.EpisodeTitle) ?? "Untitled"
-  );
-}
-
-function buildSourceTitle(item: JellyfinItem) {
-  const title = itemTitle(item);
-  if (itemType(item) !== "Episode") {
-    return title;
-  }
-
-  return (
-    buildEpisodeSourceTitle({
-      title,
-      seriesTitle: stringValue(item?.SeriesName),
-      seasonNumber: numberValue(item?.ParentIndexNumber),
-      episodeNumber: numberValue(item?.IndexNumber),
-    }) ?? title
   );
 }
 
@@ -245,11 +228,11 @@ function createExportMetadata(
   const imagePath = itemHdImagePath(item) ?? itemImagePath(item);
   const guids = providerGuids(item);
 
-  return {
+  return buildMediaExportMetadata({
+    isEpisode: itemType(item) === "Episode",
     providerId: "jellyfin",
     itemType: itemType(item).toLowerCase(),
     title: itemTitle(item),
-    sourceTitle: buildSourceTitle(item),
     showTitle: stringValue(item?.SeriesName),
     seasonTitle: stringValue(item?.SeasonName),
     seasonNumber: numberValue(item?.ParentIndexNumber),
@@ -273,16 +256,15 @@ function createExportMetadata(
       ...peopleNames(item, "Actor"),
       ...peopleNames(item, "GuestStar"),
       ...peopleNames(item, "Artist"),
-    ]).slice(0, 12),
+    ]),
     guids,
-    externalIds: parseExternalIds(guids),
     criticRating: normalizeRating(item?.CriticRating, 100),
     audienceRating: normalizeRating(item?.CommunityRating),
     ratingKey: stringValue(item?.Id),
     imageUrl: imagePath
       ? createMediaHandle(session, context, imagePath)
       : undefined,
-  };
+  });
 }
 
 async function enrichMetadataItem(
