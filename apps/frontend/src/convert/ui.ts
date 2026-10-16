@@ -10,7 +10,6 @@ export {
   ExportOutputSummary,
   ExportSummaryPanel,
 } from "../components/export/ExportSummary";
-export { PwaInstallCard } from "../components/pwa/PwaInstallCard";
 export {
   buttonClassName,
   destructiveAlertClasses,
@@ -19,3 +18,6 @@ export {
 export { Spinner } from "../components/ui/spinner";
 export { TooltipProvider } from "../components/ui/tooltip";
 export { LOCAL_VIDEO_FILE_ACCEPT } from "../lib/localMediaFormats";
+
+// Shared PWA presentation.
+export { PwaInstallCard } from "../components/pwa/PwaInstallCard";

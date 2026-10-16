@@ -7,9 +7,10 @@
 
 @source ".";
 @source "../export";
-@source "../pwa";
 @source "../../pwa.ts";
 
 :root {
   --radius-control: calc(var(--radius) - 2px);
 }
+
+@source "../pwa";
