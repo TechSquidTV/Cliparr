@@ -1,16 +1,18 @@
 import type { MediaSourceRecord } from "@/db/mediaSourcesRepository";
 import { createApiError, isApiError } from "@/http/errors";
 import {
+  JELLYFIN_DEVICE_ID,
+  JELLYFIN_REQUEST_TIMEOUT_MS,
+  normalizeBaseUrl,
+  resolveCredentialServerUrl,
+} from "@/providers/jellyfin/http";
+import {
   authenticateJellyfinUser,
   connectionInfo,
   fetchCurrentUser,
   fetchPublicSystemInfo,
   fetchSessions,
-  JELLYFIN_DEVICE_ID,
-  JELLYFIN_REQUEST_TIMEOUT_MS,
   jellyfinSourceName,
-  normalizeBaseUrl,
-  resolveCredentialServerUrl,
   sourceContext,
 } from "@/providers/jellyfin/shared";
 import { stringValue } from "@/providers/shared/utilities";
