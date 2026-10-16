@@ -1,4 +1,4 @@
-import { compactPrimaryButtonClasses } from "@cliparr/frontend/convert/ui";
+import { buttonClassName } from "@cliparr/frontend/convert/ui";
 import {
   createPwaInstallController,
   PwaInstallAction,
@@ -113,7 +113,7 @@ export function ConvertPwaInstallPromptView({
           mode={state.mode}
           prompting={prompting}
           onInstall={onInstall}
-          buttonClassName={compactPrimaryButtonClasses}
+          buttonClassName={buttonClassName({ size: "compact" })}
         />
       </div>
     </section>

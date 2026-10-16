@@ -9,7 +9,7 @@ export { useExportAudioPlan } from "../components/editor/useExportAudioPlan";
 export { useExportSettings } from "../components/editor/useExportSettings";
 export { useExportVideoPlan } from "../components/editor/useExportVideoPlan";
 export {
-  compactPrimaryButtonClasses,
+  buttonClassName,
   destructiveAlertClasses,
   primaryAlertClasses,
 } from "../components/ui/control-styles";

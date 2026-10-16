@@ -16,14 +16,14 @@ import {
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { memo, useCallback, useEffect, useMemo, useState } from "react";
 
-import { cliparrClient, type CliparrVersionInfo } from "@/api/cliparrClient";
+import { cliparrClient, type CliparrVersionInfo } from "#/api/cliparrClient";
 import {
   CLIPARR_GITHUB_URL,
   CLIPARR_WEBSITE_URL,
   DashboardMobileMenu,
   GithubIcon,
-} from "@/components/dashboard/DashboardMobileMenu";
-import type { DashboardPlaybackCardItem } from "@/components/dashboard/dashboardPlaybackItems";
+} from "#/components/dashboard/DashboardMobileMenu";
+import type { DashboardPlaybackCardItem } from "#/components/dashboard/dashboardPlaybackItems";
 import {
   activeDashboardViewerFilterNames,
   buildDashboardViewerFilterOptions,
@@ -35,33 +35,33 @@ import {
   readDashboardViewerFilter,
   sanitizeDashboardViewerFilterNames,
   writeDashboardViewerFilter,
-} from "@/components/dashboard/dashboardPlaybackItems";
-import { DashboardViewerAvatar } from "@/components/dashboard/DashboardViewerAvatar";
+} from "#/components/dashboard/dashboardPlaybackItems";
+import { DashboardViewerAvatar } from "#/components/dashboard/DashboardViewerAvatar";
 import {
   DashboardPlaybackFilterEmptyState,
   DashboardViewerFilterPicker,
-} from "@/components/dashboard/DashboardViewerFilter";
-import { MobilePwaInstallNudge } from "@/components/dashboard/MobilePwaInstallNudge";
-import { useLivePlayback } from "@/components/dashboard/useLivePlayback";
+} from "#/components/dashboard/DashboardViewerFilter";
+import { MobilePwaInstallNudge } from "#/components/dashboard/MobilePwaInstallNudge";
+import { useLivePlayback } from "#/components/dashboard/useLivePlayback";
 import {
   formatProviderName,
   ProviderGlyph,
-} from "@/components/providers/ProviderGlyph";
+} from "#/components/providers/ProviderGlyph";
 import {
-  compactSecondaryButtonClasses,
+  buttonClassName,
   destructiveAlertClasses,
   warningAlertClasses,
-} from "@/components/ui/control-styles";
-import { EmptyState } from "@/components/ui/empty-state";
-import { ControlTooltip } from "@/components/ui/tooltip";
+} from "#/components/ui/control-styles";
+import { EmptyState } from "#/components/ui/empty-state";
+import { ControlTooltip } from "#/components/ui/tooltip";
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
-} from "@/components/ui/tooltip";
-import { cn } from "@/lib/cn";
-import { motionTransitionFor } from "@/lib/motion";
-import { EDITOR_THUMBNAIL_VIEW_TRANSITION_NAME } from "@/lib/viewTransitions";
+} from "#/components/ui/tooltip";
+import { cn } from "#/lib/cn";
+import { motionTransitionFor } from "#/lib/motion";
+import { EDITOR_THUMBNAIL_VIEW_TRANSITION_NAME } from "#/lib/viewTransitions";
 
 interface Properties {
   activeViewTransitionSessionId?: string | null;
@@ -446,7 +446,10 @@ function DashboardPlaybackMotionRegion({
                   <button
                     type="button"
                     onClick={onOpenSources}
-                    className={compactSecondaryButtonClasses}
+                    className={buttonClassName({
+                      tone: "secondary",
+                      size: "compact",
+                    })}
                   >
                     <Settings2 className="h-4 w-4" />
                     Manage sources
@@ -454,7 +457,10 @@ function DashboardPlaybackMotionRegion({
                   <button
                     type="button"
                     onClick={onOpenLocalVideo}
-                    className={compactSecondaryButtonClasses}
+                    className={buttonClassName({
+                      tone: "secondary",
+                      size: "compact",
+                    })}
                   >
                     <FolderOpen className="h-4 w-4" />
                     Open Video
@@ -896,7 +902,10 @@ export default function DashboardScreen({
                 <button
                   type="button"
                   onClick={retry}
-                  className={compactSecondaryButtonClasses}
+                  className={buttonClassName({
+                    tone: "secondary",
+                    size: "compact",
+                  })}
                 >
                   <RefreshCw className="h-4 w-4" />
                   Retry connection

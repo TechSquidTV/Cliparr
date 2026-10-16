@@ -1,13 +1,10 @@
 import { Share, Smartphone, X } from "lucide-react";
 
-import {
-  compactPrimaryButtonClasses,
-  iconButtonClasses,
-} from "@/components/ui/control-styles";
-import { ControlTooltip } from "@/components/ui/tooltip";
-import { cn } from "@/lib/cn";
-import { appPwa } from "@/lib/pwa";
-import { PwaInstallAction, type PwaInstallMode, usePwaInstall } from "@/pwa";
+import { buttonClassName } from "#/components/ui/control-styles";
+import { ControlTooltip } from "#/components/ui/tooltip";
+import { cn } from "#/lib/cn";
+import { appPwa } from "#/lib/pwa";
+import { PwaInstallAction, type PwaInstallMode, usePwaInstall } from "#/pwa";
 
 export interface MobilePwaInstallNudgeCardProps {
   mode: PwaInstallMode;
@@ -58,7 +55,10 @@ export function MobilePwaInstallNudgeCard({
           <button
             type="button"
             onClick={onDismiss}
-            className={cn(iconButtonClasses, "h-8 w-8 shrink-0")}
+            className={cn(
+              buttonClassName({ tone: "icon", size: "icon" }),
+              "h-8 w-8 shrink-0",
+            )}
             aria-label="Dismiss install prompt"
           >
             <X className="h-4 w-4" />
@@ -71,7 +71,7 @@ export function MobilePwaInstallNudgeCard({
           mode={mode}
           prompting={prompting}
           onInstall={onInstall}
-          buttonClassName={compactPrimaryButtonClasses}
+          buttonClassName={buttonClassName({ size: "compact" })}
         />
       </div>
     </section>
