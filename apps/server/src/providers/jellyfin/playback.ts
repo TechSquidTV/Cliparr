@@ -39,6 +39,7 @@ import {
 import { buildMediaExportMetadata } from "@/providers/shared/exportMetadata";
 import { playlistBasePath } from "@/providers/shared/hlsPlaylist";
 import { dedupeInflightFetch } from "@/providers/shared/inflight";
+import { assembleCurrentlyPlayingItem } from "@/providers/shared/playbackEntry";
 import { subtitleTrackSupportsBurnIn } from "@/providers/shared/subtitles";
 import {
   asArray,
@@ -545,7 +546,7 @@ async function normalizeCurrentPlayback(
       jellyfinClientSessionId ?? itemId,
       sessionInfo,
     ),
-    item: {
+    item: assembleCurrentlyPlayingItem({
       id: playbackItemId,
       playbackSessionId: jellyfinClientSessionId,
       source: {
@@ -562,14 +563,13 @@ async function normalizeCurrentPlayback(
       thumbUrl,
       mediaUrl,
       hlsUrl,
-      previewUrl: hlsUrl,
-      previewFormat: previewPath ? "hls" : undefined,
+      previewPath,
       selectedAudioTrack,
       selectedSubtitleTrack,
       subtitleTracks,
       exportMetadata: createExportMetadata(session, context, enrichedItem),
       exportEstimateMetadata,
-    },
+    }),
   } satisfies CurrentlyPlayingEntry;
 }
 

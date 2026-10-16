@@ -56,6 +56,7 @@ import {
   deriveSelectedSubtitleTrack,
   deriveSubtitleTracks,
 } from "@/providers/plex/subtitles";
+import { assembleCurrentlyPlayingItem } from "@/providers/shared/playbackEntry";
 import { subtitleTrackSupportsBurnIn } from "@/providers/shared/subtitles";
 import {
   asArray,
@@ -415,7 +416,7 @@ function bindPlexPlayback(
       source.id,
       plexPlaybackSessionId,
     ),
-    item: {
+    item: assembleCurrentlyPlayingItem({
       id: `${source.id}:${plexPlaybackSessionId}`,
       playbackSessionId: plexPlaybackSessionId,
       source: {
@@ -432,14 +433,13 @@ function bindPlexPlayback(
       thumbUrl,
       mediaUrl,
       hlsUrl,
-      previewUrl: hlsUrl,
-      previewFormat: previewPath ? "hls" : undefined,
+      previewPath,
       selectedAudioTrack,
       selectedSubtitleTrack,
       subtitleTracks,
       exportMetadata: createExportMetadata(session, context, enrichedItem),
       exportEstimateMetadata,
-    },
+    }),
   };
 }
 
