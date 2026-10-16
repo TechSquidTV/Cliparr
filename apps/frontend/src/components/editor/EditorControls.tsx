@@ -9,7 +9,7 @@ import {
   ZoomIn,
   ZoomOut,
 } from "lucide-react";
-import { type CSSProperties, useMemo } from "react";
+import { type CSSProperties, memo, useMemo } from "react";
 
 import { EditorEditableTimecode } from "@/components/editor/EditorEditableTimecode";
 import { EditorPreviewTimecode } from "@/components/editor/EditorPreviewTimecode";
@@ -59,7 +59,7 @@ interface EditorControlsProperties {
   onFitSelection: () => void;
 }
 
-export function EditorControls({
+export const EditorControls = memo(function EditorControls({
   variant = "desktop",
   playing,
   loadingPreview,
@@ -479,4 +479,4 @@ export function EditorControls({
       </div>
     </div>
   );
-}
+});

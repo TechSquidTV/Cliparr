@@ -1,4 +1,4 @@
-import { EncodedPacketSink, FLAC, type InputAudioTrack } from "mediabunny";
+import type { InputAudioTrack } from "mediabunny";
 
 export function createIncompleteSourceAudioError() {
   return Object.assign(
@@ -31,6 +31,7 @@ export async function assertSourceAudioRange(
   if (!includeAudio || !track) {
     return;
   }
+  const { EncodedPacketSink, FLAC } = await import("mediabunny");
   if ((await track.input.getFormat()) !== FLAC) {
     return;
   }
