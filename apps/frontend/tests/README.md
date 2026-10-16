@@ -46,3 +46,11 @@ optional dependencies need explicit classification in
 CI retains `build/browser-export/loading/requests.json` and `chunks.json` with
 expected/observed capabilities, contributing modules, request failures, and sizes.
 Failures also retain a log and screenshot.
+
+## Shared UI controls
+
+Run `CLIPARR_TEST_BROWSER_CHANNEL=chrome pnpm --filter @cliparr/frontend test:browser:ui`.
+The production harness uses both application stylesheets and motion preferences to
+check named slider values, keyboard tab selection, dropdown radius and animation,
+and dialog dismissal, locking, and focus restoration. CI runs it alongside the
+media browser suites.
