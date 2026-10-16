@@ -31,3 +31,14 @@ export const cliparrMotionTransitions = {
     ease: cliparrMotionEase,
   },
 } satisfies Record<string, Transition>;
+
+const reducedMotionTransition = { duration: 0 };
+
+export function motionTransitionFor(
+  kind: keyof typeof cliparrMotionTransitions,
+  reduceMotion: boolean | null,
+) {
+  return reduceMotion
+    ? reducedMotionTransition
+    : cliparrMotionTransitions[kind];
+}

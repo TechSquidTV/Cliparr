@@ -60,7 +60,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { cn } from "@/lib/cn";
-import { useMotionTransition } from "@/lib/useMotionTransition";
+import { motionTransitionFor } from "@/lib/motion";
 import { EDITOR_THUMBNAIL_VIEW_TRANSITION_NAME } from "@/lib/viewTransitions";
 
 interface Properties {
@@ -320,9 +320,9 @@ function DashboardPlaybackMotionRegion({
 }) {
   const reduceMotion = useReducedMotion();
   const hasPlaybackCards = playbackCards.length > 0;
-  const stateTransition = useMotionTransition("standard");
-  const exitTransition = useMotionTransition("fast");
-  const layoutTransition = useMotionTransition("layout");
+  const stateTransition = motionTransitionFor("standard", reduceMotion);
+  const exitTransition = motionTransitionFor("fast", reduceMotion);
+  const layoutTransition = motionTransitionFor("layout", reduceMotion);
 
   return (
     <div data-dashboard-playback-motion>
@@ -622,7 +622,10 @@ export default function DashboardScreen({
     readDashboardViewerFilter(),
   );
   const reduceDashboardMotion = useReducedMotion();
-  const dashboardTransition = useMotionTransition("fast");
+  const dashboardTransition = motionTransitionFor(
+    "fast",
+    reduceDashboardMotion,
+  );
 
   useEffect(() => {
     let cancelled = false;

@@ -539,6 +539,11 @@ export async function exportClipWithRuntime(
   onPhaseChange?.("preparing");
 
   if (format === "gif") {
+    if (outputFile) {
+      throw new Error(
+        "Direct-to-disk GIF export is unavailable. Use a download instead.",
+      );
+    }
     onVideoEncodingPlan?.({ bitrateBps: null, codec: null, mode: "gif" });
     return exportGifClipWithRuntime(options, runtime);
   }

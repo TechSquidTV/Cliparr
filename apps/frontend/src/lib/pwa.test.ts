@@ -204,6 +204,7 @@ void test("handles native install events once and clears installed prompts", asy
     },
   });
   let updates = 0;
+  let promptCalls = 0;
   try {
     Object.defineProperty(globalThis, "window", {
       configurable: true,
@@ -221,14 +222,21 @@ void test("handles native install events once and clears installed prompts", asy
     const event = Object.assign(
       new Event("beforeinstallprompt", { cancelable: true }),
       {
-        prompt: async () => {},
+        prompt: async () => {
+          promptCalls++;
+        },
         userChoice: Promise.resolve({ outcome: "accepted", platform: "web" }),
       },
     );
     browser.dispatchEvent(event);
     assert.equal(event.defaultPrevented, true);
     assert.equal(controller.getState().mode, "native");
-    await controller.install();
+    await Promise.all([controller.install(), controller.install()]);
+    assert.equal(
+      promptCalls,
+      1,
+      "a native install event can only be prompted once",
+    );
     assert.equal(controller.getState().mode, "hidden");
     browser.dispatchEvent(new Event("appinstalled"));
     browser.dispatchEvent(event);

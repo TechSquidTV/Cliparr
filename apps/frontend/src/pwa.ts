@@ -279,8 +279,10 @@ export function createPwaInstallController(options: PwaInstallOptions) {
         return;
       }
       const state = getState();
-      record("clicked", state);
+      // Native prompt events are one-shot, including concurrent install calls.
+      deferredPrompt = null;
       try {
+        record("clicked", state);
         const result = await promptForPwaInstall(prompt);
         if (result) {
           record(result.outcome, state);
@@ -289,10 +291,7 @@ export function createPwaInstallController(options: PwaInstallOptions) {
           }
         }
       } finally {
-        if (prompt === deferredPrompt) {
-          deferredPrompt = null;
-          notify();
-        }
+        notify();
       }
     },
   };

@@ -541,11 +541,16 @@ export function useEditorExport({
     let audioEncodingPlan: ExportAudioPlan | undefined;
 
     try {
-      const outputFile = await chooseExportFile(
+      const destination = await chooseExportFile(
         fileName.fullName,
         exportFormat,
       );
+      if (destination.status === "cancelled") {
+        controller.abort();
+      }
       controller.signal.throwIfAborted();
+      const outputFile =
+        destination.status === "selected" ? destination.handle : undefined;
       const { exportClip } = await import("@/lib/export/exportClip");
       controller.signal.throwIfAborted();
       const handleProgress = (nextProgress: number) => {
@@ -562,7 +567,7 @@ export function useEditorExport({
         });
       };
       const blob = await exportClip({
-        outputFile: outputFile ?? undefined,
+        outputFile,
         signal: controller.signal,
         onPhaseChange: (phase) => {
           if (mounted.current && !controller.signal.aborted) {
@@ -603,7 +608,9 @@ export function useEditorExport({
         downloadBlob(blob, fileName.fullName);
       }
       setExportNotice(
-        `${outputFile ? "Saved" : "Download started"}: ${fileName.fullName}`,
+        outputFile
+          ? `Saved: ${outputFile.name}`
+          : `Download started: ${fileName.fullName}`,
       );
 
       exportLogger.info("Editor export completed.", {
@@ -620,10 +627,7 @@ export function useEditorExport({
         ...buildExportEstimateActualLogFields(outputSizeEstimate, blob.size),
       });
     } catch (error) {
-      if (
-        controller.signal.aborted ||
-        (error instanceof Error && error.name === "AbortError")
-      ) {
+      if (controller.signal.aborted) {
         exportLogger.info("Editor export cancelled.", {
           ...logEventFields("editor.export", "cancelled"),
           ...logDurationFields(startedAt),

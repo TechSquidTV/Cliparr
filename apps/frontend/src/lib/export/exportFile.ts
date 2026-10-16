@@ -11,7 +11,17 @@ export async function chooseExportFile(fileName: string, format: ExportFormat) {
     | undefined;
   // GIF uses its dedicated frame encoder rather than a Mediabunny output target.
   if (format === "gif" || !browserWindow?.showSaveFilePicker) {
-    return null;
+    return { status: "download" as const };
   }
-  return browserWindow.showSaveFilePicker({ suggestedName: fileName });
+  try {
+    const handle = await browserWindow.showSaveFilePicker({
+      suggestedName: fileName,
+    });
+    return { status: "selected" as const, handle };
+  } catch (error) {
+    if (error instanceof Error && error.name === "AbortError") {
+      return { status: "cancelled" as const };
+    }
+    throw error;
+  }
 }

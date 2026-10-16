@@ -12,7 +12,7 @@ import {
 import { useSourcesState } from "@/components/sources/useSourcesState";
 import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
 import { DialogWindow } from "@/components/ui/dialog";
-import { useMotionTransition } from "@/lib/useMotionTransition";
+import { motionTransitionFor } from "@/lib/motion";
 
 interface Properties {
   isOpen: boolean;
@@ -82,9 +82,9 @@ export default function SourcesDialog({
     isOpen,
     onSourcesChanged,
   });
-  const stateTransition = useMotionTransition("standard");
-  const exitTransition = useMotionTransition("fast");
-  const layoutTransition = useMotionTransition("layout");
+  const stateTransition = motionTransitionFor("standard", reduceMotion);
+  const exitTransition = motionTransitionFor("fast", reduceMotion);
+  const layoutTransition = motionTransitionFor("layout", reduceMotion);
 
   function renderSourcesContent() {
     if (loading) {

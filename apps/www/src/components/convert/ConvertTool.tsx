@@ -559,10 +559,15 @@ export function ConvertTool() {
     let videoEncodingPlan: ExportVideoEncodingPlan | undefined;
 
     try {
-      const outputFile = await chooseExportFile(outputFileName, format);
+      const destination = await chooseExportFile(outputFileName, format);
+      if (destination.status === "cancelled") {
+        controller.abort();
+      }
       controller.signal.throwIfAborted();
+      const outputFile =
+        destination.status === "selected" ? destination.handle : undefined;
       const blob = await runConvertExport({
-        outputFile: outputFile ?? undefined,
+        outputFile,
         signal: controller.signal,
         onPhaseChange: (phase) => {
           if (isCurrent() && !controller.signal.aborted) {
@@ -607,16 +612,15 @@ export function ConvertTool() {
       void flushConvertMetrics();
       setProgress(1);
       setExportNotice(
-        `${outputFile ? "Saved" : "Download started"}: ${outputFileName}`,
+        outputFile
+          ? `Saved: ${outputFile.name}`
+          : `Download started: ${outputFileName}`,
       );
     } catch (error) {
       if (!isCurrent()) {
         return;
       }
-      if (
-        controller.signal.aborted ||
-        (error instanceof Error && error.name === "AbortError")
-      ) {
+      if (controller.signal.aborted) {
         setExportNotice("Export cancelled.");
         setProgress(0);
         return;
