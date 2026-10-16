@@ -4,7 +4,6 @@ import {
   isSubtitleMediaStream,
 } from "@/providers/jellyfin/selection";
 import {
-  booleanValue,
   type JellyfinItem,
   type JellyfinMediaStream,
   type JellyfinPlaybackInfo,
@@ -18,6 +17,7 @@ import {
 } from "@/providers/shared/subtitles";
 import {
   asArray,
+  booleanValue,
   numberValue,
   stringValue,
 } from "@/providers/shared/utilities";
