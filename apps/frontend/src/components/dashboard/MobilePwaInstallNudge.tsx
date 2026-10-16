@@ -1,5 +1,4 @@
-import { Download, Share, Smartphone, X } from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
+import { Share, Smartphone, X } from "lucide-react";
 
 import {
   compactPrimaryButtonClasses,
@@ -7,20 +6,8 @@ import {
 } from "@/components/ui/control-styles";
 import { ControlTooltip } from "@/components/ui/tooltip";
 import { cn } from "@/lib/cn";
-import {
-  type BeforeInstallPromptEvent,
-  COARSE_POINTER_MEDIA_QUERY,
-  getDeferredPwaInstallPrompt,
-  getPwaInstallEnvironment,
-  MOBILE_INSTALL_MEDIA_QUERY,
-  promptForPwaInstall,
-  type PwaInstallMode,
-  readPwaInstallDismissed,
-  resolveMobilePwaInstallMode,
-  STANDALONE_DISPLAY_MEDIA_QUERY,
-  subscribeToPwaInstallPrompt,
-  writePwaInstallDismissed,
-} from "@/lib/pwa";
+import { appPwa } from "@/lib/pwa";
+import { PwaInstallAction, type PwaInstallMode, usePwaInstall } from "@/pwa";
 
 export interface MobilePwaInstallNudgeCardProps {
   mode: PwaInstallMode;
@@ -28,35 +15,6 @@ export interface MobilePwaInstallNudgeCardProps {
   className?: string;
   onDismiss: () => void;
   onInstall: () => void;
-}
-
-function addMediaQueryChangeListener(query: string, onChange: () => void) {
-  if (
-    globalThis.window === undefined ||
-    typeof globalThis.matchMedia !== "function"
-  ) {
-    return () => {};
-  }
-
-  const mediaQuery = globalThis.matchMedia(query);
-  const listener = () => onChange();
-
-  mediaQuery.addEventListener("change", listener);
-  return () => mediaQuery.removeEventListener("change", listener);
-}
-
-function getCurrentMobilePwaInstallMode(
-  installPrompt: BeforeInstallPromptEvent | null,
-  dismissed: boolean,
-): PwaInstallMode {
-  if (globalThis.window === undefined || typeof navigator === "undefined") {
-    return "hidden";
-  }
-
-  return resolveMobilePwaInstallMode({
-    ...getPwaInstallEnvironment(installPrompt),
-    dismissed,
-  });
 }
 
 export function MobilePwaInstallNudgeCard({
@@ -109,111 +67,23 @@ export function MobilePwaInstallNudgeCard({
       </div>
 
       <div className="mt-3 flex flex-wrap items-center gap-2 pl-12">
-        {mode === "native" ? (
-          <button
-            type="button"
-            onClick={onInstall}
-            disabled={prompting}
-            className={compactPrimaryButtonClasses}
-          >
-            <Download className="h-4 w-4" />
-            {prompting ? "Opening" : "Install"}
-          </button>
-        ) : (
-          <span className="inline-flex h-8 items-center gap-2 rounded-md border border-border bg-background px-3 text-xs font-semibold uppercase tracking-[var(--tracking-caps-sm)] text-foreground">
-            <Share className="h-4 w-4" />
-            Share
-          </span>
-        )}
+        <PwaInstallAction
+          mode={mode}
+          prompting={prompting}
+          onInstall={onInstall}
+          buttonClassName={compactPrimaryButtonClasses}
+        />
       </div>
     </section>
   );
 }
 
 export function MobilePwaInstallNudge({ className }: { className?: string }) {
-  const [installPrompt, setInstallPrompt] =
-    useState<BeforeInstallPromptEvent | null>(() =>
-      getDeferredPwaInstallPrompt(),
-    );
-  const [dismissed, setDismissed] = useState(() => readPwaInstallDismissed());
-  const [mode, setMode] = useState<PwaInstallMode>(() =>
-    getCurrentMobilePwaInstallMode(
-      getDeferredPwaInstallPrompt(),
-      readPwaInstallDismissed(),
-    ),
-  );
-  const [prompting, setPrompting] = useState(false);
-
-  const refreshMode = useCallback(
-    (nextInstallPrompt = installPrompt, nextDismissed = dismissed) => {
-      setMode(getCurrentMobilePwaInstallMode(nextInstallPrompt, nextDismissed));
-    },
-    [dismissed, installPrompt],
-  );
-
-  useEffect(() => {
-    return subscribeToPwaInstallPrompt((nextInstallPrompt) => {
-      setInstallPrompt(nextInstallPrompt);
-      refreshMode(nextInstallPrompt);
-    });
-  }, [refreshMode]);
-
-  useEffect(() => {
-    const refresh = () => refreshMode();
-    const cleanups = [
-      addMediaQueryChangeListener(MOBILE_INSTALL_MEDIA_QUERY, refresh),
-      addMediaQueryChangeListener(COARSE_POINTER_MEDIA_QUERY, refresh),
-      addMediaQueryChangeListener(STANDALONE_DISPLAY_MEDIA_QUERY, refresh),
-    ];
-
-    window.addEventListener("resize", refresh);
-    globalThis.addEventListener("orientationchange", refresh);
-
-    return () => {
-      for (const cleanup of cleanups) {
-        cleanup();
-      }
-      window.removeEventListener("resize", refresh);
-      globalThis.removeEventListener("orientationchange", refresh);
-    };
-  }, [refreshMode]);
-
-  const dismiss = useCallback(() => {
-    writePwaInstallDismissed(true);
-    setDismissed(true);
-    refreshMode(installPrompt, true);
-  }, [installPrompt, refreshMode]);
-
-  const install = useCallback(async () => {
-    if (!installPrompt) {
-      return;
-    }
-
-    setPrompting(true);
-    try {
-      const result = await promptForPwaInstall(installPrompt);
-      setInstallPrompt(null);
-      if (!result) {
-        refreshMode(null);
-        return;
-      }
-
-      if (result.outcome !== "accepted") {
-        writePwaInstallDismissed(true);
-        setDismissed(true);
-        refreshMode(null, true);
-        return;
-      }
-
-      refreshMode(null);
-    } finally {
-      setPrompting(false);
-    }
-  }, [installPrompt, refreshMode]);
+  const { state, prompting, dismiss, install } = usePwaInstall(appPwa);
 
   return (
     <MobilePwaInstallNudgeCard
-      mode={mode}
+      mode={state.mode}
       prompting={prompting}
       className={className}
       onDismiss={dismiss}

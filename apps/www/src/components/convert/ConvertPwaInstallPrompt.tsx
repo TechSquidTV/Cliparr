@@ -1,75 +1,46 @@
 import { compactPrimaryButtonClasses } from "@cliparr/frontend/convert/ui";
+import {
+  createPwaInstallController,
+  PwaInstallAction,
+  type PwaInstallState,
+  usePwaInstall,
+} from "@cliparr/frontend/pwa";
 import { Download, Share, Smartphone, X } from "lucide-react";
-import { useCallback, useEffect, useRef, useState } from "react";
 
 import {
   flushConvertMetrics,
+  recordConvertPwaInstallAccepted,
+  recordConvertPwaInstallClicked,
+  recordConvertPwaInstallDismissed,
+  recordConvertPwaInstalled,
+  recordConvertPwaInstallPromptAvailable,
   recordConvertPwaInstallPromptShown,
 } from "@/components/convert/convertMetrics";
-import {
-  type BeforeInstallPromptEvent,
-  CONVERT_COARSE_POINTER_MEDIA_QUERY,
-  CONVERT_MOBILE_INSTALL_MEDIA_QUERY,
-  CONVERT_STANDALONE_DISPLAY_MEDIA_QUERY,
-  type ConvertPwaInstallState,
-  getConvertPwaInstallEnvironment,
-  getDeferredConvertPwaInstallPrompt,
-  metricInputForConvertPwaInstallState,
-  promptForConvertPwaInstall,
-  readConvertPwaInstallDismissed,
-  recordConvertPwaInstallAccept,
-  recordConvertPwaInstallClick,
-  recordConvertPwaInstallDismiss,
-  registerConvertServiceWorker,
-  resolveConvertPwaInstallState,
-  startConvertPwaInstallPromptHandling,
-  subscribeToConvertPwaInstallPrompt,
-  writeConvertPwaInstallDismissed,
-} from "@/components/convert/convertPwa";
-
-startConvertPwaInstallPromptHandling();
-registerConvertServiceWorker();
+const convertPwa = createPwaInstallController({
+  dismissedKey: "cliparr-convert:pwa-install-dismissed",
+  serviceWorkerUrl: "/convert/service-worker.js",
+  serviceWorkerScope: "/convert/",
+  recordMetric(event, input) {
+    const recorders = {
+      available: recordConvertPwaInstallPromptAvailable,
+      installed: recordConvertPwaInstalled,
+      shown: recordConvertPwaInstallPromptShown,
+      clicked: recordConvertPwaInstallClicked,
+      accepted: recordConvertPwaInstallAccepted,
+      dismissed: recordConvertPwaInstallDismissed,
+    };
+    recorders[event](input);
+    void flushConvertMetrics();
+  },
+});
+convertPwa.start();
+convertPwa.registerServiceWorker();
 
 export interface ConvertPwaInstallPromptViewProps {
-  state: ConvertPwaInstallState;
+  state: PwaInstallState;
   prompting?: boolean;
   onDismiss: () => void;
   onInstall: () => void;
-}
-
-function addMediaQueryChangeListener(query: string, onChange: () => void) {
-  if (
-    globalThis.window === undefined ||
-    typeof globalThis.matchMedia !== "function"
-  ) {
-    return () => {};
-  }
-
-  const mediaQuery = globalThis.matchMedia(query);
-  if (
-    typeof mediaQuery.addEventListener !== "function" ||
-    typeof mediaQuery.removeEventListener !== "function"
-  ) {
-    return () => {};
-  }
-
-  const listener = () => onChange();
-  mediaQuery.addEventListener("change", listener);
-  return () => mediaQuery.removeEventListener("change", listener);
-}
-
-function getCurrentConvertPwaInstallState(
-  installPrompt: BeforeInstallPromptEvent | null,
-  dismissed: boolean,
-): ConvertPwaInstallState {
-  if (globalThis.window === undefined || typeof navigator === "undefined") {
-    return { formFactor: "desktop", mode: "hidden" };
-  }
-
-  return resolveConvertPwaInstallState({
-    ...getConvertPwaInstallEnvironment(installPrompt),
-    dismissed,
-  });
 }
 
 export function ConvertPwaInstallPromptView({
@@ -138,153 +109,19 @@ export function ConvertPwaInstallPromptView({
       </div>
 
       <div className="mt-3 flex flex-wrap items-center gap-2 pl-12">
-        {state.mode === "native" ? (
-          <button
-            type="button"
-            onClick={onInstall}
-            disabled={prompting}
-            className={compactPrimaryButtonClasses}
-          >
-            <Download className="h-4 w-4" />
-            {prompting ? "Opening" : "Install"}
-          </button>
-        ) : (
-          <span className="inline-flex h-8 items-center gap-2 rounded-md border border-border bg-background px-3 text-xs font-semibold uppercase tracking-[var(--tracking-caps-sm)] text-foreground">
-            <Share className="h-4 w-4" />
-            Share
-          </span>
-        )}
+        <PwaInstallAction
+          mode={state.mode}
+          prompting={prompting}
+          onInstall={onInstall}
+          buttonClassName={compactPrimaryButtonClasses}
+        />
       </div>
     </section>
   );
 }
 
 export function ConvertPwaInstallPrompt() {
-  const [installPrompt, setInstallPrompt] =
-    useState<BeforeInstallPromptEvent | null>(() =>
-      getDeferredConvertPwaInstallPrompt(),
-    );
-  const [dismissed, setDismissed] = useState(() =>
-    readConvertPwaInstallDismissed(),
-  );
-  const [state, setState] = useState<ConvertPwaInstallState>(() =>
-    getCurrentConvertPwaInstallState(
-      getDeferredConvertPwaInstallPrompt(),
-      readConvertPwaInstallDismissed(),
-    ),
-  );
-  const [prompting, setPrompting] = useState(false);
-  const shownMetricKeys = useRef(new Set<string>());
-
-  const refreshState = useCallback(
-    (nextInstallPrompt = installPrompt, nextDismissed = dismissed) => {
-      setState(
-        getCurrentConvertPwaInstallState(nextInstallPrompt, nextDismissed),
-      );
-    },
-    [dismissed, installPrompt],
-  );
-
-  useEffect(() => {
-    startConvertPwaInstallPromptHandling();
-    registerConvertServiceWorker();
-  }, []);
-
-  useEffect(() => {
-    return subscribeToConvertPwaInstallPrompt((nextInstallPrompt) => {
-      setInstallPrompt(nextInstallPrompt);
-      refreshState(nextInstallPrompt);
-    });
-  }, [refreshState]);
-
-  useEffect(() => {
-    const refresh = () => refreshState();
-    const cleanups = [
-      addMediaQueryChangeListener(CONVERT_MOBILE_INSTALL_MEDIA_QUERY, refresh),
-      addMediaQueryChangeListener(CONVERT_COARSE_POINTER_MEDIA_QUERY, refresh),
-      addMediaQueryChangeListener(
-        CONVERT_STANDALONE_DISPLAY_MEDIA_QUERY,
-        refresh,
-      ),
-    ];
-
-    window.addEventListener("resize", refresh);
-    globalThis.addEventListener("orientationchange", refresh);
-
-    return () => {
-      for (const cleanup of cleanups) {
-        cleanup();
-      }
-      window.removeEventListener("resize", refresh);
-      globalThis.removeEventListener("orientationchange", refresh);
-    };
-  }, [refreshState]);
-
-  useEffect(() => {
-    const input = metricInputForConvertPwaInstallState(state);
-    if (!input) {
-      return;
-    }
-
-    const metricKey = `${input.formFactor}:${input.installMode}`;
-    if (shownMetricKeys.current.has(metricKey)) {
-      return;
-    }
-
-    shownMetricKeys.current.add(metricKey);
-    recordConvertPwaInstallPromptShown(input);
-    void flushConvertMetrics();
-  }, [state]);
-
-  const dismiss = useCallback(() => {
-    const input = metricInputForConvertPwaInstallState(state);
-    if (input) {
-      recordConvertPwaInstallDismiss(input);
-    }
-
-    writeConvertPwaInstallDismissed(true);
-    setDismissed(true);
-    refreshState(installPrompt, true);
-  }, [installPrompt, refreshState, state]);
-
-  const install = useCallback(async () => {
-    if (!installPrompt) {
-      return;
-    }
-
-    const input = metricInputForConvertPwaInstallState(state);
-    if (input) {
-      recordConvertPwaInstallClick(input);
-    }
-
-    setPrompting(true);
-    try {
-      const result = await promptForConvertPwaInstall(installPrompt);
-      setInstallPrompt(null);
-
-      if (!result) {
-        refreshState(null);
-        return;
-      }
-
-      if (result.outcome === "accepted") {
-        if (input) {
-          recordConvertPwaInstallAccept(input);
-        }
-        refreshState(null);
-        return;
-      }
-
-      if (input) {
-        recordConvertPwaInstallDismiss(input);
-      }
-      writeConvertPwaInstallDismissed(true);
-      setDismissed(true);
-      refreshState(null, true);
-    } finally {
-      setPrompting(false);
-    }
-  }, [installPrompt, refreshState, state]);
+  const { state, prompting, dismiss, install } = usePwaInstall(convertPwa);
 
   return (
     <ConvertPwaInstallPromptView

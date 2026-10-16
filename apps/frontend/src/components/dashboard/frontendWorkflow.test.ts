@@ -48,11 +48,8 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { resolveExportAudioPlan } from "@/lib/export/exportAudio";
 import { gifExportSettingsForPreset } from "@/lib/export/exportTypes";
-import {
-  COARSE_POINTER_MEDIA_QUERY,
-  MOBILE_INSTALL_MEDIA_QUERY,
-} from "@/lib/pwa";
 import { EDITOR_THUMBNAIL_VIEW_TRANSITION_NAME } from "@/lib/viewTransitions";
+import { COARSE_POINTER_MEDIA_QUERY, MOBILE_INSTALL_MEDIA_QUERY } from "@/pwa";
 
 const dashboardPlaybackGroups: ViewerPlaybackGroup[] = [
   {

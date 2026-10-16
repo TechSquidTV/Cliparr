@@ -140,7 +140,7 @@ const relativeImportRestriction = {
 };
 const crossWorkspaceImportRestrictions = [
   {
-    regex: "^@cliparr/frontend(?:$|/(?!convert/(?:engine|ui)$).+)",
+    regex: "^@cliparr/frontend(?:$|/(?!(?:convert/(?:engine|ui)|pwa)$).+)",
     message: "Do not import app internals across workspace boundaries.",
   },
   {
