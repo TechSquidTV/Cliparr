@@ -19,8 +19,7 @@ import {
 } from "@cliparr/frontend/convert/engine";
 import {
   buttonClassName,
-  EditorExportSettingsSection,
-  EditorExportSummaryPanel,
+  ExportSettingsSection,
   ExportStatusPanel,
   LOCAL_VIDEO_FILE_ACCEPT,
   Spinner,
@@ -42,6 +41,7 @@ import {
   useState,
 } from "react";
 
+import { ConvertExportSummary } from "@/components/convert/ConvertExportSummary";
 import {
   flushConvertMetrics,
   recordConvertExportCompleted,
@@ -819,7 +819,7 @@ export function ConvertTool() {
                   inert={exporting}
                   className="min-w-0 disabled:opacity-60"
                 >
-                  <EditorExportSettingsSection
+                  <ExportSettingsSection
                     selectedFormat={format}
                     onFormatChange={setFormat}
                     selectedQuality={selectedQuality}
@@ -834,15 +834,13 @@ export function ConvertTool() {
                     onMixDownToStereoChange={setMixDownToStereo}
                     audioDisabledReason={audio.mixdownDisabledReason}
                     audioBitDepth={audio.bitDepth}
-                    showSourcePreference={false}
                   />
                 </fieldset>
               </div>
 
-              <EditorExportSummaryPanel
+              <ConvertExportSummary
                 title={sourceTitle}
-                clipStart={0}
-                clipEnd={probeResult?.durationSeconds ?? 0}
+                duration={probeResult?.durationSeconds ?? 0}
                 selectedFormat={format}
                 selectedQuality={selectedQuality}
                 gifSettings={format === "gif" ? gifSettings : null}
@@ -850,10 +848,6 @@ export function ConvertTool() {
                 mode={mode}
                 audioStatus={audio.status}
                 audioPlan={audio.plan}
-                showClipSummary={false}
-                showSourceSummary={false}
-                showSubtitleSummary={false}
-                showFilenameSummary={false}
               />
             </div>
           </TooltipProvider>
