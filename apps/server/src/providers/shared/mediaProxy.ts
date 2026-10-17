@@ -2,11 +2,11 @@ import { Readable } from "node:stream";
 import { pipeline } from "node:stream/promises";
 import type { ReadableStream as WebReadableStream } from "node:stream/web";
 
-import { logEventFields } from "@cliparr/shared/logging";
+import { logEventFields, warnWithError } from "@cliparr/shared/logging";
 import type { Response } from "express";
 
 import { createApiError, isApiError } from "@/http/errors";
-import { getServerLogger, warnWithError } from "@/logging";
+import { getServerLogger } from "@/logging";
 import {
   bufferProxyBody,
   HLS_PROXY_RESPONSE_CACHE_MAX_BYTES,

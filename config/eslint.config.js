@@ -500,7 +500,7 @@ export default tseslint.config(
     rules: mediaLoadingRestrictions({ gifRuntime: true }),
   },
   {
-    files: ["apps/frontend/src/lib/export/exportClip.ts"],
+    files: ["apps/frontend/src/lib/export/gif/gifEncodingRuntime.ts"],
     rules: mediaLoadingRestrictions({ gifLoader: true }),
   },
   {

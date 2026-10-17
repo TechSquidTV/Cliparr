@@ -1,11 +1,38 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { createElement } from "react";
+import { type ComponentProps, createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 
 import { EditorControls } from "#/components/editor/EditorControls";
 import { TooltipProvider } from "#/components/ui/tooltip";
+
+const defaultControlsProps = {
+  playing: false,
+  loadingPreview: false,
+  togglePlay: () => {},
+  currentTime: 12,
+  duration: 120,
+  startTime: 10,
+  endTime: 20,
+  muted: false,
+  setMuted: () => {},
+  volume: 1,
+  setVolume: () => {},
+  handleTimelineZoomIn: () => {},
+  handleTimelineZoomOut: () => {},
+  canZoomIn: true,
+  canZoomOut: true,
+  onFramegrabClick: () => {},
+  framegrabDisabledReason: null,
+  onPreviewTimeCommit: () => {},
+  onStartTimeCommit: () => {},
+  onEndTimeCommit: () => {},
+  onSetInPoint: () => {},
+  onSetOutPoint: () => {},
+  onClearPoints: () => {},
+  onFitSelection: () => {},
+} satisfies ComponentProps<typeof EditorControls>;
 
 void test("renders mobile editor controls trigger and compact range summary", () => {
   const markup = renderToStaticMarkup(
@@ -14,30 +41,7 @@ void test("renders mobile editor controls trigger and compact range summary", ()
       null,
       createElement(EditorControls, {
         variant: "mobile",
-        playing: false,
-        loadingPreview: false,
-        togglePlay: () => {},
-        currentTime: 12,
-        duration: 120,
-        startTime: 10,
-        endTime: 20,
-        muted: false,
-        setMuted: () => {},
-        volume: 1,
-        setVolume: () => {},
-        handleTimelineZoomIn: () => {},
-        handleTimelineZoomOut: () => {},
-        canZoomIn: true,
-        canZoomOut: true,
-        onFramegrabClick: () => {},
-        framegrabDisabledReason: null,
-        onPreviewTimeCommit: () => {},
-        onStartTimeCommit: () => {},
-        onEndTimeCommit: () => {},
-        onSetInPoint: () => {},
-        onSetOutPoint: () => {},
-        onClearPoints: () => {},
-        onFitSelection: () => {},
+        ...defaultControlsProps,
       }),
     ),
   );
@@ -57,30 +61,7 @@ void test("renders the editor framegrab camera control", () => {
       TooltipProvider,
       null,
       createElement(EditorControls, {
-        playing: false,
-        loadingPreview: false,
-        togglePlay: () => {},
-        currentTime: 12,
-        duration: 120,
-        startTime: 10,
-        endTime: 20,
-        muted: false,
-        setMuted: () => {},
-        volume: 1,
-        setVolume: () => {},
-        handleTimelineZoomIn: () => {},
-        handleTimelineZoomOut: () => {},
-        canZoomIn: true,
-        canZoomOut: true,
-        onFramegrabClick: () => {},
-        framegrabDisabledReason: null,
-        onPreviewTimeCommit: () => {},
-        onStartTimeCommit: () => {},
-        onEndTimeCommit: () => {},
-        onSetInPoint: () => {},
-        onSetOutPoint: () => {},
-        onClearPoints: () => {},
-        onFitSelection: () => {},
+        ...defaultControlsProps,
       }),
     ),
   );

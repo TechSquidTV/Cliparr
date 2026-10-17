@@ -4,7 +4,6 @@ import {
   getJsonLinesFormatter,
   getLogger,
   isLogLevel,
-  type Logger,
 } from "@logtape/logtape";
 
 const FRONTEND_LOG_CATEGORY_PREFIX = ["cliparr", "frontend"] as const;
@@ -23,20 +22,6 @@ interface ViteLoggingEnv {
 export function getFrontendLogger(category: string | readonly string[]) {
   const parts = typeof category === "string" ? [category] : [...category];
   return getLogger([...FRONTEND_LOG_CATEGORY_PREFIX, ...parts]);
-}
-
-export function warnWithError(
-  logger: Logger,
-  error: unknown,
-  message: string,
-  properties: Record<string, unknown>,
-) {
-  if (error instanceof Error) {
-    logger.warn(error, properties);
-    return;
-  }
-
-  logger.warn(message, properties);
 }
 
 export function resolveFrontendConsoleLogFormat(

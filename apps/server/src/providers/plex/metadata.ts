@@ -1,8 +1,12 @@
 import type { Tag } from "@cliparr/plex/pms/types";
 import { imageTranscodeUrl } from "@cliparr/plex/pms/urls";
-import { logErrorFields, sanitizeUrlForLog } from "@cliparr/shared/logging";
+import {
+  logErrorFields,
+  sanitizeUrlForLog,
+  warnWithError,
+} from "@cliparr/shared/logging";
 
-import { getServerLogger, warnWithError } from "@/logging";
+import { getServerLogger } from "@/logging";
 import { createMediaHandle } from "@/providers/plex/mediaHandles";
 import type { PlexMetadataItem } from "@/providers/plex/selection";
 import {

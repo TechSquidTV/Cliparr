@@ -4,6 +4,7 @@ import {
   logErrorFields,
   logEventFields,
   sanitizeUrlForLog,
+  warnWithError,
 } from "@cliparr/shared/logging";
 import type {
   MediaSource,
@@ -21,7 +22,7 @@ import {
 } from "@/db/mediaSourcesRepository";
 import { setNoStore } from "@/http/cacheControl";
 import { asyncHandler, createApiError, isApiError } from "@/http/errors";
-import { getServerLogger, warnWithError } from "@/logging";
+import { getServerLogger } from "@/logging";
 import {
   PLEX_BASE_URL_MODE_MANUAL,
   withPlexBaseUrlMode,

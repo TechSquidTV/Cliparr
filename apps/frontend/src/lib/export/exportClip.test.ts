@@ -9,12 +9,12 @@ import type { EditorMediaSource } from "@/components/editor/editorMedia";
 /// <reference types="node" />
 import { resolveExportAudioPlan } from "@/lib/export/exportAudio";
 import {
-  createGifCanvas,
   exportClipWithRuntime,
   type ExportVideoEncodingPlan,
 } from "@/lib/export/exportClip";
 import { buildMetadataTags } from "@/lib/export/exportMetadata";
 import { gifExportSettingsForPreset } from "@/lib/export/exportTypes";
+import { createGifCanvas } from "@/lib/export/gif/gifCanvas";
 import type { EncodeGifFrameChunkHelpers } from "@/lib/export/gif/gifFrameChunk";
 import { concatenateGifFrameChunks } from "@/lib/export/gif/gifFrameChunk";
 import { createInlineGifFrameEncoder } from "@/lib/export/gif/gifFrameEncoder";
@@ -868,7 +868,6 @@ void test("exports GIF frames through the browser encoder path", async () => {
   }> = [];
   const writtenFrames: Array<{
     delay?: number;
-    first?: boolean;
     height: number;
     width: number;
   }> = [];
@@ -900,11 +899,10 @@ void test("exports GIF frames through the browser encoder path", async () => {
         _index: Uint8Array,
         width: number,
         height: number,
-        options?: { delay?: number; first?: boolean },
+        options?: { delay?: number },
       ) => {
         writtenFrames.push({
           delay: options?.delay,
-          first: options?.first,
           height,
           width,
         });
@@ -1007,13 +1005,11 @@ void test("exports GIF frames through the browser encoder path", async () => {
   assert.deepEqual(writtenFrames, [
     {
       delay: 1000 / gifSettings.frameRate,
-      first: true,
       height: 4,
       width: 4,
     },
     {
       delay: 1000 / gifSettings.frameRate,
-      first: false,
       height: 4,
       width: 4,
     },

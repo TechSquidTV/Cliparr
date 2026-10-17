@@ -3,6 +3,7 @@ import {
   logDurationFields,
   logErrorFields,
   logEventFields,
+  warnWithError,
 } from "@cliparr/shared/logging";
 import { Router } from "express";
 
@@ -17,7 +18,7 @@ import {
 } from "@/http/cookies";
 import { asyncHandler, createApiError, isApiError } from "@/http/errors";
 import { getRequestRouteUrl } from "@/http/requestOrigin";
-import { getServerLogger, warnWithError } from "@/logging";
+import { getServerLogger } from "@/logging";
 import { persistProviderAuth } from "@/providers/providerPersistence";
 import { getProvider, listProviders } from "@/providers/registry";
 import { createProviderSession } from "@/session/store";

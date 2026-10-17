@@ -1,27 +1,12 @@
-import { createFileRoute, useCanGoBack } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 
 import SourcesDialog from "@/components/sources/SourcesDialog";
-import { router } from "@/router";
+import { useBackNavigation } from "@/lib/useBackNavigation";
 
 function SourcesRouteComponent() {
-  const canGoBack = useCanGoBack();
+  const navigateBack = useBackNavigation("/dashboard");
 
-  return (
-    <SourcesDialog
-      isOpen
-      onClose={() => {
-        if (canGoBack) {
-          globalThis.history.back();
-          return;
-        }
-
-        void router.navigate({
-          to: "/dashboard",
-          replace: true,
-        });
-      }}
-    />
-  );
+  return <SourcesDialog isOpen onClose={navigateBack} />;
 }
 
 export const Route = createFileRoute("/_app/sources")({

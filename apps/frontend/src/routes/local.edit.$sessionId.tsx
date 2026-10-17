@@ -1,4 +1,4 @@
-import { createFileRoute, useCanGoBack } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { FolderOpen, ShieldCheck, TriangleAlert } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 
@@ -12,26 +12,19 @@ import {
   type LocalMediaResolution,
   resolveLocalMediaSession,
 } from "#/lib/localMediaRegistry";
+import { useBackNavigation } from "#/lib/useBackNavigation";
 import { router } from "#/router";
 
 function LocalEditorRouteComponent() {
   const auth = useAuth();
   const { sessionId } = Route.useParams();
-  const canGoBack = useCanGoBack();
   const [resolution, setResolution] = useState<LocalMediaResolution | null>(
     null,
   );
   const [loading, setLoading] = useState(true);
   const [openDialog, setOpenDialog] = useState(false);
 
-  const navigateHome = useCallback(() => {
-    if (canGoBack) {
-      globalThis.history.back();
-      return;
-    }
-
-    void router.navigate({ to: "/", replace: true });
-  }, [canGoBack]);
+  const navigateHome = useBackNavigation("/");
 
   const loadSession = useCallback(
     async (requestPermission = false) => {
