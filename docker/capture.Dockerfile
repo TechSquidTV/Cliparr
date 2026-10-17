@@ -1,5 +1,5 @@
 # syntax=docker/dockerfile:1.28.0
-FROM node:24.21.0-bookworm-slim
+FROM node:24.22.0-bookworm-slim
 ENV PNPM_HOME=/pnpm
 ENV PATH=$PNPM_HOME:$PATH
 ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
