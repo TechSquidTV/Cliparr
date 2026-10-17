@@ -14,6 +14,7 @@ const eslint = new ESLint({
 });
 const ui = "apps/frontend/src/components/editor/editorPlaybackSources.ts";
 const loader = "apps/frontend/src/lib/export/mediabunny/mediabunnyCodecs.ts";
+const gifLoader = "apps/frontend/src/lib/export/gif/gifEncodingRuntime.ts";
 const gif = "apps/frontend/src/lib/export/gif/gifFrameEncoder.ts";
 const execution = "apps/frontend/src/lib/export/exportClip.ts";
 const fixture = "apps/frontend/src/lib/mediaLoadingFixtures.test-support.ts";
@@ -83,6 +84,21 @@ for (const alias of ["#", "@"]) {
     );
   }
 }
+for (const code of [
+  'import "@techsquidtv/gifenc";',
+  'export * from "@techsquidtv/gifenc";',
+  'export { value } from "@techsquidtv/gifenc";',
+  'import { type Value, value } from "@techsquidtv/gifenc";',
+]) {
+  cases.push({ file: gifLoader, code, restricted: true });
+}
+for (const code of [
+  'import type { Value } from "@techsquidtv/gifenc";',
+  'export type { Value } from "@techsquidtv/gifenc";',
+  'import { type Value } from "@techsquidtv/gifenc";',
+]) {
+  cases.push({ file: gifLoader, code, restricted: false });
+}
 cases.push(
   { file: ui, code: 'import "@techsquidtv/gifenc";', restricted: true },
   { file: ui, code: 'void import("@techsquidtv/gifenc");', restricted: true },
@@ -91,11 +107,16 @@ cases.push(
     code: 'import type { Value } from "@techsquidtv/gifenc";',
     restricted: false,
   },
+  {
+    file: gifLoader,
+    code: 'void import("@techsquidtv/gifenc");',
+    restricted: false,
+  },
   { file: gif, code: 'import "@techsquidtv/gifenc";', restricted: false },
   {
     file: execution,
     code: 'void import("@techsquidtv/gifenc");',
-    restricted: false,
+    restricted: true,
   },
   { file: execution, code: 'import "@techsquidtv/gifenc";', restricted: true },
   { file: loader, code: 'import "./local";', restricted: true },

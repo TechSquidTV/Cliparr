@@ -57,20 +57,6 @@ export function getServerLogger(category: string | readonly string[]) {
   return getLogger([...SERVER_LOG_CATEGORY_PREFIX, ...parts]);
 }
 
-export function warnWithError(
-  logger: Logger,
-  error: unknown,
-  message: string,
-  properties: Record<string, unknown>,
-) {
-  if (error instanceof Error) {
-    logger.warn(error, properties);
-    return;
-  }
-
-  logger.warn(message, properties);
-}
-
 export function errorWithError(
   logger: Logger,
   error: unknown,

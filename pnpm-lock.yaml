@@ -478,7 +478,11 @@ importers:
 
   packages/plex: {}
 
-  packages/shared: {}
+  packages/shared:
+    dependencies:
+      '@logtape/logtape':
+        specifier: ^2.3.10
+        version: 2.4.0
 
   tools/www-assets:
     dependencies:

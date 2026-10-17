@@ -3,10 +3,11 @@ import {
   logDurationFields,
   logErrorFields,
   logEventFields,
+  warnWithError,
 } from "@cliparr/shared/logging";
 
 import { resolveCliparrClientVersion } from "@/config/version";
-import { getServerLogger, warnWithError } from "@/logging";
+import { getServerLogger } from "@/logging";
 
 type VersionInfoStatus =
   "current" | "update_available" | "unknown" | "unavailable";

@@ -1,7 +1,11 @@
-import { logErrorFields, logEventFields } from "@cliparr/shared/logging";
+import {
+  logErrorFields,
+  logEventFields,
+  warnWithError,
+} from "@cliparr/shared/logging";
 
 import { createApiError } from "@/http/errors";
-import { getServerLogger, warnWithError } from "@/logging";
+import { getServerLogger } from "@/logging";
 import { resolveHostnameAddresses } from "@/providers/shared/dnsCache";
 import { isUnsafeRemoteHostname } from "@/providers/shared/networkPolicy";
 import type { MediaHandle } from "@/providers/types";

@@ -1,12 +1,16 @@
 import { randomUUID } from "node:crypto";
 
-import { logErrorFields, logEventFields } from "@cliparr/shared/logging";
+import {
+  logErrorFields,
+  logEventFields,
+  warnWithError,
+} from "@cliparr/shared/logging";
 import { eq, lte } from "drizzle-orm";
 
 import { getDatabase } from "@/db/database";
 import { getProviderAccount } from "@/db/providerAccountsRepository";
 import { type ProviderSessionRow, providerSessions } from "@/db/schema";
-import { getServerLogger, warnWithError } from "@/logging";
+import { getServerLogger } from "@/logging";
 import { notifyPlaybackStateChange } from "@/playback/stateChanges";
 import type { MediaHandle } from "@/providers/types";
 import { decryptSecret, encryptSecret } from "@/security/secrets";

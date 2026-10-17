@@ -1,4 +1,4 @@
-import { createFileRoute, useCanGoBack } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 
 import { cliparrClient } from "@/api/cliparrClient";
@@ -8,6 +8,7 @@ import {
 } from "@/components/editor/editorMedia";
 import EditorScreen from "@/components/editor/EditorScreen";
 import { BarsLoader } from "@/components/ui/bars-loader";
+import { useBackNavigation } from "@/lib/useBackNavigation";
 import { getPendingEditorTransitionSession } from "@/lib/viewTransitions";
 import { router } from "@/router";
 
@@ -16,8 +17,8 @@ function errorMessage(error: unknown, fallback: string) {
 }
 
 function EditorRouteComponent() {
+  const navigateBack = useBackNavigation("/dashboard");
   const { sessionId } = Route.useParams();
-  const canGoBack = useCanGoBack();
   const transitionSession = getPendingEditorTransitionSession(sessionId);
   const [session, setSession] = useState<EditorSession | null>(
     () => transitionSession,
@@ -107,17 +108,7 @@ function EditorRouteComponent() {
             </button>
             <button
               type="button"
-              onClick={() => {
-                if (canGoBack) {
-                  globalThis.history.back();
-                  return;
-                }
-
-                void router.navigate({
-                  to: "/dashboard",
-                  replace: true,
-                });
-              }}
+              onClick={navigateBack}
               className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
             >
               Back to Dashboard
@@ -132,22 +123,7 @@ function EditorRouteComponent() {
     return null;
   }
 
-  return (
-    <EditorScreen
-      session={session}
-      onBack={() => {
-        if (canGoBack) {
-          globalThis.history.back();
-          return;
-        }
-
-        void router.navigate({
-          to: "/dashboard",
-          replace: true,
-        });
-      }}
-    />
-  );
+  return <EditorScreen session={session} onBack={navigateBack} />;
 }
 
 export const Route = createFileRoute("/_app/edit/$sessionId")({

@@ -1,4 +1,20 @@
+import type { Logger } from "@logtape/logtape";
+
 export type LogFields = Record<string, unknown>;
+
+export function warnWithError(
+  logger: Logger,
+  error: unknown,
+  message: string,
+  properties: LogFields,
+) {
+  if (error instanceof Error) {
+    logger.warn(error, properties);
+    return;
+  }
+
+  logger.warn(message, properties);
+}
 
 // The placeholder scheme preserves historical protocol-relative log output.
 const SANITIZE_URL_BASE = "http://cliparr.local";
