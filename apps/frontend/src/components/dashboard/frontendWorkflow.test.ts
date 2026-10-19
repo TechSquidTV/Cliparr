@@ -933,26 +933,32 @@ void test("renders music playback cards inside the video-style card frame", () =
   assert.match(markup, /mt-auto/);
 });
 
-void test("renders the editor thumbnail behind loading preview state", () => {
-  const markup = renderToStaticMarkup(
-    createElement(EditorPreview, {
-      canvasRef: () => {},
-      playing: false,
-      loadingPreview: true,
-      loadingPreviewFrame: false,
-      posterImageUrl: "/api/media/thumb.jpg",
-      previewStatus: "Loading HLS stream...",
-      previewFrameStatus: "",
-      togglePlay: () => {},
-    }),
-  );
+for (const loadingPreviewFrame of [false, true]) {
+  void test(`renders the editor thumbnail while loading ${loadingPreviewFrame ? "the preview frame" : "video"}`, () => {
+    const markup = renderToStaticMarkup(
+      createElement(EditorPreview, {
+        canvasRef: () => {},
+        playing: false,
+        loadingPreview: !loadingPreviewFrame,
+        loadingPreviewFrame,
+        posterImageUrl: "/api/media/thumb.jpg",
+        togglePlay: () => {},
+      }),
+    );
 
-  assert.match(markup, /\/api\/media\/thumb\.jpg/);
-  assert.match(markup, /blur-sm/);
-  assert.match(markup, /transition-opacity/);
-  assert.match(markup, /opacity-75/);
-  assert.match(markup, /Loading HLS stream/);
-});
+    assert.match(markup, /\/api\/media\/thumb\.jpg/);
+    assert.match(markup, /blur-sm/);
+    assert.match(markup, /transition-opacity/);
+    assert.match(markup, /opacity-75/);
+    assert.ok(
+      markup.includes(
+        loadingPreviewFrame ? "Loading preview frame…" : "Loading video…",
+      ),
+    );
+    assert.match(markup, /role="status"/);
+    assert.match(markup, /aria-busy="true"/);
+  });
+}
 
 void test("keeps the editor thumbnail mounted after preview load for fade out", () => {
   const markup = renderToStaticMarkup(
@@ -962,8 +968,6 @@ void test("keeps the editor thumbnail mounted after preview load for fade out", 
       loadingPreview: false,
       loadingPreviewFrame: false,
       posterImageUrl: "/api/media/thumb.jpg",
-      previewStatus: "Loading HLS stream...",
-      previewFrameStatus: "",
       togglePlay: () => {},
     }),
   );
@@ -1055,8 +1059,6 @@ void test("renders editor poster with the shared thumbnail view transition", () 
       loadingPreviewFrame: false,
       posterImageUrl: "/api/media/thumb.jpg",
       posterViewTransitionName: EDITOR_THUMBNAIL_VIEW_TRANSITION_NAME,
-      previewStatus: "Loading HLS stream...",
-      previewFrameStatus: "",
       togglePlay: () => {},
     }),
   );

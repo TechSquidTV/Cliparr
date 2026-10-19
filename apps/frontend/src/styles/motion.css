@@ -1,2 +1,25 @@
 /* CSS and Motion share the typed values in lib/motion.ts. */
 @plugin "./motionTheme.ts";
+
+.bars-loader-bar {
+  height: 30%;
+  animation: bars-loader-grow 1s ease-in-out infinite;
+}
+
+/* Animate geometry so the bars keep painting during composited preview updates. */
+@keyframes bars-loader-grow {
+  0%,
+  100% {
+    height: 30%;
+  }
+  50% {
+    height: 100%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bars-loader-bar {
+    animation: none;
+    height: 60%;
+  }
+}
