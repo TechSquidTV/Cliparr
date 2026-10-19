@@ -1,20 +1,22 @@
-import type { MediaSource } from "@/db/mediaSourcesRepository";
+import type { MediaSourceRecord } from "@/db/mediaSourcesRepository";
 import { createApiError, isApiError } from "@/http/errors";
-import type { ProviderResource } from "@/providers/types";
-import { stringValue } from "@/providers/shared/utilities";
+import {
+  JELLYFIN_DEVICE_ID,
+  JELLYFIN_REQUEST_TIMEOUT_MS,
+  normalizeBaseUrl,
+  resolveCredentialServerUrl,
+} from "@/providers/jellyfin/http";
 import {
   authenticateJellyfinUser,
   connectionInfo,
   fetchCurrentUser,
   fetchPublicSystemInfo,
   fetchSessions,
-  JELLYFIN_DEVICE_ID,
-  JELLYFIN_REQUEST_TIMEOUT_MS,
   jellyfinSourceName,
-  normalizeBaseUrl,
-  resolveCredentialServerUrl,
   sourceContext,
 } from "@/providers/jellyfin/shared";
+import { stringValue } from "@/providers/shared/utilities";
+import type { ProviderResource } from "@/providers/types";
 
 async function parseCredentialsInput(body: unknown) {
   if (!body || typeof body !== "object" || Array.isArray(body)) {
@@ -141,7 +143,7 @@ export async function authenticateWithCredentials(body: unknown) {
   };
 }
 
-export async function checkSource(source: MediaSource) {
+export async function checkSource(source: MediaSourceRecord) {
   try {
     const context = sourceContext(source);
     const [publicInfo, currentUser] = await Promise.all([

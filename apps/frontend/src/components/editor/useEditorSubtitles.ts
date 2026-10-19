@@ -1,15 +1,30 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import type { PlaybackSubtitleTrack } from "@cliparr/shared/providers";
 import {
   fromSeconds,
+  type TimelineEngine,
   toSeconds,
   useTimelineClips,
   useTimelinePlayheadTime,
   useTimelineSelection,
   useTimelineTracks,
-  type TimelineEngine,
 } from "@techsquidtv/canvas-timeline";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+
 import type { EditorDraft } from "@/components/editor/editorDrafts";
 import type { EditorSession } from "@/components/editor/editorMedia";
+import {
+  createSubtitleClip,
+  EDITOR_SUBTITLE_TRACK_ID,
+  getSubtitleCreationRange,
+  subtitleCueFromTimelineClip,
+  subtitleCuesFromTimeline,
+  synchronizeEditorTimelineSubtitles,
+  timelineScrollLeftForCenteredTime,
+} from "@/components/editor/editorTimelineEngine";
+import { buildSubtitleExportSummary } from "@/components/editor/subtitleExportSummary";
+import { useEditorHistory } from "@/components/editor/useEditorHistory";
+import { useSubtitleCues } from "@/components/editor/useSubtitleCues";
+import { normalizeSubtitleCueText } from "@/lib/subtitles/normalizeSubtitleCueText";
 import {
   selectPreferredSubtitleTrack,
   subtitleTrackKey,
@@ -20,20 +35,6 @@ import {
   saveSubtitleStyleSettings,
 } from "@/lib/subtitles/settings";
 import { trimSubtitleCues } from "@/lib/subtitles/trimSubtitleCues";
-import { normalizeSubtitleCueText } from "@/lib/subtitles/normalizeSubtitleCueText";
-import type { PlaybackSubtitleTrack } from "@/providers/types";
-import { buildSubtitleExportSummary } from "@/components/editor/subtitleExportSummary";
-import { useSubtitleCues } from "@/components/editor/useSubtitleCues";
-import { useEditorHistory } from "@/components/editor/useEditorHistory";
-import {
-  createSubtitleClip,
-  getSubtitleCreationRange,
-  EDITOR_SUBTITLE_TRACK_ID,
-  subtitleCueFromTimelineClip,
-  subtitleCuesFromTimeline,
-  synchronizeEditorTimelineSubtitles,
-  timelineScrollLeftForCenteredTime,
-} from "@/components/editor/editorTimelineEngine";
 
 interface UseEditorSubtitlesProperties {
   initialDraft?: EditorDraft | null;
@@ -132,12 +133,15 @@ export function useEditorSubtitles({
     } else if (
       download.loadedSubtitleTrackKey === subtitleTrackKey(importTrack)
     ) {
+      // One import namespace preserves uniqueness across restored drafts; cue
+      // identities within the batch need only a cheap index.
+      const importId = crypto.randomUUID();
       runAction(() => {
         synchronizeEditorTimelineSubtitles(engine, {
           // Provider identifiers are not editor identities.
-          cues: download.subtitleCues.map((cue) => ({
+          cues: download.subtitleCues.map((cue, index) => ({
             ...cue,
-            id: crypto.randomUUID(),
+            id: `${importId}:${index}`,
           })),
         });
       });

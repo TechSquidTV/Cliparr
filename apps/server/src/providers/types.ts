@@ -1,31 +1,17 @@
 import type { TranscodeDecisionData } from "@cliparr/plex/pms/types";
-import type { Request, Response } from "express";
 import type {
   CurrentlyPlayingItem,
-  PlaybackViewer,
   PlaybackProgress,
+  PlaybackViewer,
+  ProviderAuthStart,
+  ProviderAuthStatus,
+  ProviderDefinition,
+  ProviderSession,
 } from "@cliparr/shared/providers";
-import type { MediaSource } from "@/db/mediaSourcesRepository";
+import type { Request, Response } from "express";
+
+import type { MediaSourceRecord } from "@/db/mediaSourcesRepository";
 import type { ProviderSessionRecord } from "@/session/store";
-
-type ProviderId = string;
-type ProviderAuthType = "pin" | "credentials" | "none";
-
-export interface ProviderDefinition {
-  id: ProviderId;
-  name: string;
-  auth: ProviderAuthType;
-}
-
-interface ProviderAuthStart {
-  authId: string;
-  authUrl: string;
-  expiresAt: string;
-  pollToken: string;
-}
-
-type ProviderAuthStatus =
-  { status: "pending" } | { status: "expired" } | { status: "complete" };
 
 export interface ProviderConnection {
   id: string;
@@ -48,12 +34,6 @@ export interface ProviderResource {
   connections: ProviderConnection[];
   credentials?: Record<string, unknown>;
   metadata?: Record<string, unknown>;
-}
-
-interface ProviderSession {
-  id: string;
-  providerId: ProviderId;
-  expiresAt: string;
 }
 
 export interface CurrentlyPlayingEntry {
@@ -84,7 +64,7 @@ interface MediaHandleProviderMetadata {
 
 export interface MediaHandle {
   id: string;
-  providerId: ProviderId;
+  providerId: string;
   sourceId: string;
   baseUrl: string;
   path: string;
@@ -109,7 +89,13 @@ type ProviderSourceCheckResult =
 
 export interface ProviderImplementation {
   definition: ProviderDefinition;
-  startAuth?(callbackUrl: string): Promise<ProviderAuthStart>;
+  /**
+  Starts a PIN auth flow. The pollToken travels in the HttpOnly auth cookie,
+  never in the JSON body, so the wire type stays ProviderAuthStart.
+  */
+  startAuth?(
+    callbackUrl: string,
+  ): Promise<ProviderAuthStart & { pollToken: string }>;
   pollAuth?(
     authId: string,
     pollToken: string,
@@ -122,14 +108,14 @@ export interface ProviderImplementation {
     userToken: string;
     resources: ProviderResource[];
   }>;
-  supportsCurrentlyPlayingSource?(source: MediaSource): boolean;
-  checkSource(source: MediaSource): Promise<ProviderSourceCheckResult>;
+  supportsCurrentlyPlayingSource?(source: MediaSourceRecord): boolean;
+  checkSource(source: MediaSourceRecord): Promise<ProviderSourceCheckResult>;
   listCurrentlyPlaying(
     session: ProviderSessionRecord,
-    source: MediaSource,
+    source: MediaSourceRecord,
   ): Promise<CurrentlyPlayingEntry[]>;
   watchCurrentlyPlaying(
-    source: MediaSource,
+    source: MediaSourceRecord,
     observer: PlaybackObserver,
     signal: AbortSignal,
   ): Promise<void>;

@@ -1,19 +1,13 @@
-import { Spinner } from "@/components/ui/spinner";
 import { Copy, Download } from "lucide-react";
-import type { FramegrabImageFormat } from "@/lib/export/exportFormats";
-import type { FramegrabImageQuality } from "@/lib/framegrab";
+
+import type { MediaDimensions } from "#/components/editor/editorMedia";
+import { formatTime } from "#/components/editor/editorUtilities";
 import {
-  framegrabFormatOptionFor,
-  framegrabImageFormatOptions,
-} from "@/lib/export/exportFormats";
-import { framegrabImageQualityOptions } from "@/lib/framegrab";
-import { DialogFooter, DialogWindow } from "@/components/ui/dialog";
-import {
-  compactPrimaryButtonClasses,
-  compactSecondaryButtonClasses,
+  buttonClassName,
   destructiveAlertClasses,
   fieldLabelWideClasses,
-} from "@/components/ui/control-styles";
+} from "#/components/ui/control-styles";
+import { DialogFooter, DialogWindow } from "#/components/ui/dialog";
 import {
   Select,
   SelectContent,
@@ -22,9 +16,15 @@ import {
   SelectLabel,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
-import { formatTime } from "@/components/editor/editorUtilities";
-import type { MediaDimensions } from "@/components/editor/editorMedia";
+} from "#/components/ui/select";
+import { Spinner } from "#/components/ui/spinner";
+import type { FramegrabImageFormat } from "#/lib/export/exportFormats";
+import {
+  framegrabFormatOptionFor,
+  framegrabImageFormatOptions,
+} from "#/lib/export/exportFormats";
+import type { FramegrabImageQuality } from "#/lib/framegrab";
+import { framegrabImageQualityOptions } from "#/lib/framegrab";
 
 type FramegrabAction = "copy" | "download";
 
@@ -189,7 +189,7 @@ export function EditorFramegrabDialog({
           type="button"
           onClick={onCopy}
           disabled={busy || !hasFrame}
-          className={compactSecondaryButtonClasses}
+          className={buttonClassName({ tone: "secondary", size: "compact" })}
         >
           {processingAction === "copy" ? (
             <Spinner />
@@ -203,7 +203,7 @@ export function EditorFramegrabDialog({
           type="button"
           onClick={onDownload}
           disabled={busy || !hasFrame}
-          className={`${compactPrimaryButtonClasses} w-44`}
+          className={`${buttonClassName({ size: "compact" })} w-44`}
         >
           {processingAction === "download" ? (
             <Spinner />

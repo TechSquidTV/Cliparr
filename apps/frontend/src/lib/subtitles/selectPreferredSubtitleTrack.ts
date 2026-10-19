@@ -1,8 +1,9 @@
-import { normalizedText } from "#/lib/subtitles/normalizedText";
 import type {
   PlaybackSubtitleSelection,
   PlaybackSubtitleTrack,
-} from "@/providers/types";
+} from "@cliparr/shared/providers";
+
+import { normalizedText } from "#/lib/subtitles/normalizedText";
 
 export function subtitleTrackKey(
   track: Pick<PlaybackSubtitleTrack, "streamId" | "index">,

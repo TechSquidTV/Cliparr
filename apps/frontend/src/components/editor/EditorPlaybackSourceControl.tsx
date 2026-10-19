@@ -1,7 +1,8 @@
 import { Popover } from "@base-ui/react/popover";
 import { Info } from "lucide-react";
-import type { EditorLayoutVariant } from "@/components/editor/EditorLayout";
-import { compactSecondaryButtonClasses } from "@/components/ui/control-styles";
+
+import type { EditorLayoutVariant } from "#/components/editor/EditorLayout";
+import { buttonClassName } from "#/components/ui/control-styles";
 
 interface EditorPlaybackSourceControlProperties {
   previewSourceLabel: string;
@@ -56,7 +57,7 @@ export function EditorPlaybackSourceControl({
   return (
     <Popover.Root>
       <Popover.Trigger
-        className={compactSecondaryButtonClasses}
+        className={buttonClassName({ tone: "secondary", size: "compact" })}
         aria-label={`Playback source: ${label}. Show playback details`}
       >
         {label}

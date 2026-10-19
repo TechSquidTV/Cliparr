@@ -1,7 +1,7 @@
 import {
-  toSeconds,
   type TimelineEngine,
   type TimelineStateSnapshot,
+  toSeconds,
 } from "@techsquidtv/canvas-timeline";
 
 type ClipRange = Pick<TimelineStateSnapshot, "inPoint" | "outPoint">;

@@ -1,4 +1,5 @@
 import type { Palette } from "@techsquidtv/gifenc";
+
 import {
   createGifTemporalDitherResolver,
   type GifDitherMode,
@@ -18,7 +19,7 @@ interface GifFrameEncodeInput {
   height: number;
   maxColors: number;
   delayMs: number;
-  palette?: Palette | null;
+  globalPalette?: Palette | null;
   paletteFormat: GifPaletteFormat;
   ditherMode: GifDitherMode;
   ditherStrength?: number;
@@ -45,7 +46,7 @@ export interface GifFrameWorkerEncodeRequest {
   height: number;
   maxColors: number;
   delayMs: number;
-  palette?: Palette | null;
+  globalPalette?: Palette | null;
   paletteFormat: GifPaletteFormat;
   ditherMode: GifDitherMode;
   ditherStrength?: number;
@@ -92,7 +93,7 @@ export function createInlineGifFrameEncoder(
           height: input.height,
           maxColors: input.maxColors,
           delayMs: input.delayMs,
-          palette: input.palette,
+          globalPalette: input.globalPalette,
           paletteFormat: input.paletteFormat,
           ditherMode: input.ditherMode,
           ditherStrength: input.ditherStrength,
@@ -220,7 +221,7 @@ function createGifFrameWorkerEncoder({
               height: input.height,
               maxColors: input.maxColors,
               delayMs: input.delayMs,
-              palette: input.palette,
+              globalPalette: input.globalPalette,
               paletteFormat: input.paletteFormat,
               ditherMode: input.ditherMode,
               ditherStrength: input.ditherStrength,

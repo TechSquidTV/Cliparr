@@ -1,33 +1,34 @@
 import { FileVideo, FolderOpen, Link, Upload } from "lucide-react";
 import {
+  type DragEvent,
+  type SubmitEvent,
   useCallback,
   useRef,
   useState,
-  type DragEvent,
-  type FormEvent,
 } from "react";
-import { DialogWindow } from "@/components/ui/dialog";
+
+import {
+  buttonClassName,
+  destructiveAlertClasses,
+  fieldLabelWideClasses,
+  textInputClassName,
+} from "#/components/ui/control-styles";
+import { DialogWindow } from "#/components/ui/dialog";
 import {
   Tabs,
   TabsList,
   TabsPanel,
   TabsPanels,
   TabsTab,
-} from "@/components/ui/tabs";
-import {
-  destructiveAlertClasses,
-  fieldLabelWideClasses,
-  largeTextInputClasses,
-  primaryButtonClasses,
-} from "@/components/ui/control-styles";
+} from "#/components/ui/tabs";
+import { cn } from "#/lib/cn";
+import { LOCAL_VIDEO_FILE_ACCEPT } from "#/lib/localMediaFormats";
 import {
   createLocalSessionFromFile,
   createLocalSessionFromPicker,
   createLocalSessionFromUrl,
-  LOCAL_VIDEO_FILE_ACCEPT,
   localMediaPickerSupported,
-} from "@/lib/localMediaRegistry";
-import { cn } from "@/lib/cn";
+} from "#/lib/localMediaRegistry";
 
 interface LocalVideoOpenDialogProperties {
   isOpen: boolean;
@@ -127,7 +128,7 @@ export function LocalVideoOpenDialog({
   );
 
   const handleUrlSubmit = useCallback(
-    async (event: FormEvent<HTMLFormElement>) => {
+    async (event: SubmitEvent<HTMLFormElement>) => {
       event.preventDefault();
       if (!canOpenUrl) {
         return;
@@ -244,7 +245,7 @@ export function LocalVideoOpenDialog({
                   type="button"
                   onClick={() => void handleChooseFile()}
                   disabled={opening}
-                  className={cn(primaryButtonClasses, "mt-5")}
+                  className={cn(buttonClassName(), "mt-5")}
                 >
                   <FolderOpen className="h-4 w-4" />
                   {opening ? "Opening" : "Choose File"}
@@ -264,7 +265,7 @@ export function LocalVideoOpenDialog({
                     value={urlValue}
                     onChange={(event) => setUrlValue(event.target.value)}
                     placeholder="https://example.com/video.mp4"
-                    className={largeTextInputClasses}
+                    className={textInputClassName({ size: "large" })}
                   />
                 </label>
                 <p className="text-xs leading-5 text-muted-foreground">
@@ -274,7 +275,7 @@ export function LocalVideoOpenDialog({
                   <button
                     type="submit"
                     disabled={opening || !canOpenUrl}
-                    className={primaryButtonClasses}
+                    className={buttonClassName()}
                   >
                     <Link className="h-4 w-4" />
                     {opening ? "Opening" : "Open URL"}

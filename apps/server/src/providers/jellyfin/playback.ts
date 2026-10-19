@@ -1,39 +1,14 @@
-import { createPlaybackResolverCache } from "@/playback/resolverCache";
 import {
   logErrorFields,
   logEventFields,
   sanitizeUrlForLog,
+  warnWithError,
 } from "@cliparr/shared/logging";
-import { parseExternalIds } from "@cliparr/shared/external-ids";
-import type { MediaSource } from "@/db/mediaSourcesRepository";
-import { getServerLogger, warnWithError } from "@/logging";
-import type { ProviderSessionRecord } from "@/session/store";
-import type {
-  CurrentlyPlayingEntry,
-  MediaExportMetadata,
-} from "@/providers/types";
-import { playlistBasePath } from "@/providers/shared/hlsPlaylist";
-import { dedupeInflightFetch } from "@/providers/shared/inflight";
-import { subtitleTrackSupportsBurnIn } from "@/providers/shared/subtitles";
-import {
-  asArray,
-  buildEpisodeSourceTitle,
-  normalizeRating,
-  numberValue,
-  stringValue,
-  uniqueStrings,
-} from "@/providers/shared/utilities";
-import {
-  fetchCurrentUser,
-  fetchItem,
-  fetchPlaybackInfo,
-  fetchSessions,
-  sourceContext,
-  type JellyfinItem,
-  type JellyfinPlaybackInfo,
-  type JellyfinSessionInfo,
-  type JellyfinSourceContext,
-} from "@/providers/jellyfin/shared";
+
+import type { MediaSourceRecord } from "@/db/mediaSourcesRepository";
+import { getServerLogger } from "@/logging";
+import { createPlaybackResolverCache } from "@/playback/resolverCache";
+import { createMediaHandle } from "@/providers/jellyfin/mediaProxy";
 import {
   buildPreviewPath,
   buildStaticStreamPath,
@@ -48,10 +23,37 @@ import {
   ticksToSeconds,
 } from "@/providers/jellyfin/selection";
 import {
+  fetchCurrentUser,
+  fetchItem,
+  fetchPlaybackInfo,
+  fetchSessions,
+  type JellyfinItem,
+  type JellyfinPlaybackInfo,
+  type JellyfinSessionInfo,
+  type JellyfinSourceContext,
+  sourceContext,
+} from "@/providers/jellyfin/shared";
+import {
   deriveSelectedSubtitleTrack,
   deriveSubtitleTracks,
 } from "@/providers/jellyfin/subtitles";
-import { createMediaHandle } from "@/providers/jellyfin/mediaProxy";
+import { buildMediaExportMetadata } from "@/providers/shared/exportMetadata";
+import { playlistBasePath } from "@/providers/shared/hlsPlaylist";
+import { dedupeInflightFetch } from "@/providers/shared/inflight";
+import { assembleCurrentlyPlayingItem } from "@/providers/shared/playbackEntry";
+import { subtitleTrackSupportsBurnIn } from "@/providers/shared/subtitles";
+import {
+  asArray,
+  normalizeRating,
+  numberValue,
+  stringValue,
+  uniqueStrings,
+} from "@/providers/shared/utilities";
+import type {
+  CurrentlyPlayingEntry,
+  MediaExportMetadata,
+} from "@/providers/types";
+import type { ProviderSessionRecord } from "@/session/store";
 
 const logger = getServerLogger(["provider", "jellyfin", "playback"]);
 
@@ -116,22 +118,6 @@ function itemType(item: JellyfinItem) {
 function itemTitle(item: JellyfinItem) {
   return (
     stringValue(item?.Name) ?? stringValue(item?.EpisodeTitle) ?? "Untitled"
-  );
-}
-
-function buildSourceTitle(item: JellyfinItem) {
-  const title = itemTitle(item);
-  if (itemType(item) !== "Episode") {
-    return title;
-  }
-
-  return (
-    buildEpisodeSourceTitle({
-      title,
-      seriesTitle: stringValue(item?.SeriesName),
-      seasonNumber: numberValue(item?.ParentIndexNumber),
-      episodeNumber: numberValue(item?.IndexNumber),
-    }) ?? title
   );
 }
 
@@ -244,11 +230,11 @@ function createExportMetadata(
   const imagePath = itemHdImagePath(item) ?? itemImagePath(item);
   const guids = providerGuids(item);
 
-  return {
+  return buildMediaExportMetadata({
+    isEpisode: itemType(item) === "Episode",
     providerId: "jellyfin",
     itemType: itemType(item).toLowerCase(),
     title: itemTitle(item),
-    sourceTitle: buildSourceTitle(item),
     showTitle: stringValue(item?.SeriesName),
     seasonTitle: stringValue(item?.SeasonName),
     seasonNumber: numberValue(item?.ParentIndexNumber),
@@ -272,16 +258,15 @@ function createExportMetadata(
       ...peopleNames(item, "Actor"),
       ...peopleNames(item, "GuestStar"),
       ...peopleNames(item, "Artist"),
-    ]).slice(0, 12),
+    ]),
     guids,
-    externalIds: parseExternalIds(guids),
     criticRating: normalizeRating(item?.CriticRating, 100),
     audienceRating: normalizeRating(item?.CommunityRating),
     ratingKey: stringValue(item?.Id),
     imageUrl: imagePath
       ? createMediaHandle(session, context, imagePath)
       : undefined,
-  };
+  });
 }
 
 async function enrichMetadataItem(
@@ -413,7 +398,7 @@ function playbackViewer(
 
 async function normalizeCurrentPlayback(
   session: ProviderSessionRecord,
-  source: MediaSource,
+  source: MediaSourceRecord,
   context: JellyfinSourceContext,
   sessionInfo: JellyfinSessionInfo,
   preparedItem?: JellyfinItem,
@@ -562,7 +547,7 @@ async function normalizeCurrentPlayback(
       jellyfinClientSessionId ?? itemId,
       sessionInfo,
     ),
-    item: {
+    item: assembleCurrentlyPlayingItem({
       id: playbackItemId,
       playbackSessionId: jellyfinClientSessionId,
       source: {
@@ -579,24 +564,23 @@ async function normalizeCurrentPlayback(
       thumbUrl,
       mediaUrl,
       hlsUrl,
-      previewUrl: hlsUrl,
-      previewFormat: previewPath ? "hls" : undefined,
+      previewPath,
       selectedAudioTrack,
       selectedSubtitleTrack,
       subtitleTracks,
       exportMetadata: createExportMetadata(session, context, enrichedItem),
       exportEstimateMetadata,
-    },
+    }),
   } satisfies CurrentlyPlayingEntry;
 }
 
-export function sourceSupportsCurrentlyPlaying(source: MediaSource) {
+export function sourceSupportsCurrentlyPlaying(source: MediaSourceRecord) {
   return Boolean(stringValue(source.credentials.accessToken));
 }
 
 export async function listCurrentlyPlaying(
   session: ProviderSessionRecord,
-  source: MediaSource,
+  source: MediaSourceRecord,
 ) {
   const context = sourceContext(source);
   // Recheck permissions because the stored role can outlive an account change.
@@ -647,7 +631,7 @@ export function jellyfinPlaybackIdentity(sessions: JellyfinSessionInfo[]) {
 }
 
 export function createJellyfinPlaybackResolver(
-  source: MediaSource,
+  source: MediaSourceRecord,
   context: JellyfinSourceContext,
 ) {
   return createPlaybackResolverCache({
@@ -682,7 +666,7 @@ export function createJellyfinPlaybackResolver(
 
 async function resolveJellyfinPlayback(
   session: ProviderSessionRecord,
-  source: MediaSource,
+  source: MediaSourceRecord,
   context: JellyfinSourceContext,
   sessions: JellyfinSessionInfo[],
   isAdministrator: boolean,

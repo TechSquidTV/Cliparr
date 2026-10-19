@@ -3,7 +3,12 @@ import { Buffer } from "node:buffer";
 import { randomUUID } from "node:crypto";
 import * as fs from "node:fs/promises";
 import path from "node:path";
-import type { NextFunction, Request, Response } from "express";
+
+import {
+  compactLogFields,
+  logDurationFields,
+  logEventFields,
+} from "@cliparr/shared/logging";
 import {
   configure,
   fromAsyncSink,
@@ -13,16 +18,12 @@ import {
   getLogger,
   getTextFormatter,
   isLogLevel,
-  withContext,
   type Logger,
   type Sink,
   type TextFormatter,
+  withContext,
 } from "@logtape/logtape";
-import {
-  compactLogFields,
-  logDurationFields,
-  logEventFields,
-} from "@cliparr/shared/logging";
+import type { NextFunction, Request, Response } from "express";
 
 const SERVER_LOG_CATEGORY_PREFIX = ["cliparr", "server"] as const;
 // LogTape reserves this category for its own configuration and sink diagnostics.
@@ -54,20 +55,6 @@ export interface ServerLogFileConfig {
 export function getServerLogger(category: string | readonly string[]) {
   const parts = typeof category === "string" ? [category] : [...category];
   return getLogger([...SERVER_LOG_CATEGORY_PREFIX, ...parts]);
-}
-
-export function warnWithError(
-  logger: Logger,
-  error: unknown,
-  message: string,
-  properties: Record<string, unknown>,
-) {
-  if (error instanceof Error) {
-    logger.warn(error, properties);
-    return;
-  }
-
-  logger.warn(message, properties);
 }
 
 export function errorWithError(
@@ -257,10 +244,8 @@ function rotatingFileSink(config: ServerLogFileConfig) {
     const byteLength = Buffer.byteLength(line);
 
     await ensureDirectory();
-    if (
-      (await logFileSize()) > 0 &&
-      currentSize! + byteLength > config.maxBytes
-    ) {
+    const fileSize = await logFileSize();
+    if (fileSize > 0 && fileSize + byteLength > config.maxBytes) {
       await rotateLogFiles();
     }
 

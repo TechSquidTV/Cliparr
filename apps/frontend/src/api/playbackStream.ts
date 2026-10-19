@@ -1,5 +1,5 @@
-import { readServerEvents } from "@cliparr/shared/server-events";
 import type { PlaybackStreamEvent } from "@cliparr/shared/providers";
+import { readServerEvents } from "@cliparr/shared/server-events";
 
 export type PlaybackConnectionState = "connecting" | "live" | "reconnecting";
 

@@ -1,13 +1,14 @@
 ---
 import type { CollectionEntry } from "astro:content";
 import { getCollection } from "astro:content";
+
 import DocsLayout from "@/components/DocsLayout.astro";
 import { docsForSection, docsSections } from "@/data/docs";
 import {
   canonicalSiteUrl,
   organizationReference,
-  websiteReference,
   webPageId,
+  websiteReference,
 } from "@/lib/structuredData";
 
 type DocsEntry = CollectionEntry<"docs">;

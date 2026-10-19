@@ -1,24 +1,23 @@
-import { createIncompleteSourceAudioError } from "#/lib/export/exportSourceAudio";
 /// <reference types="node" />
-
 import assert from "node:assert/strict";
 import test from "node:test";
+
+import {
+  buildExportErrorMessage,
+  buildExportEstimateActualLogFields,
+  buildExportEstimateLogFields,
+  buildExportSourceLabel,
+  buildExportSourceMessage,
+  buildExportSourceSummaryMessage,
+  exportTimelineOffsetForSource,
+  getEditorExportReadiness,
+  getOutputDimensions,
+  resolveExportSource,
+} from "@/components/editor/editorExportPlan";
 import {
   createProviderUrlSource,
   type EditorMediaSource,
 } from "@/components/editor/editorMedia";
-import {
-  buildExportErrorMessage,
-  buildExportSourceLabel,
-  buildExportSourceMessage,
-  buildExportSourceSummaryMessage,
-  buildExportEstimateActualLogFields,
-  buildExportEstimateLogFields,
-  getEditorExportReadiness,
-  getOutputDimensions,
-  resolveExportSource,
-  exportTimelineOffsetForSource,
-} from "@/components/editor/editorExportPlan";
 import type { EditorExportMedia } from "@/components/editor/editorMediaLifecycle";
 import {
   DEFAULT_GIF_EXPORT_PRESET,
@@ -31,6 +30,7 @@ import {
   gifExportSettingsForPreset,
   videoExportQualityOptions,
 } from "@/lib/export/exportTypes";
+import { createIncompleteSourceAudioError } from "#/lib/export/exportSourceAudio";
 
 const localFileSource = {
   kind: "file",

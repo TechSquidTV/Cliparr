@@ -1,16 +1,16 @@
-import type { ProviderImplementation } from "@/providers/types";
-import { watchCurrentlyPlaying } from "@/providers/jellyfin/live";
 import {
   authenticateWithCredentials,
   checkSource,
 } from "@/providers/jellyfin/auth";
+import { watchCurrentlyPlaying } from "@/providers/jellyfin/live";
+import { proxyMedia } from "@/providers/jellyfin/mediaProxy";
 import {
   listCurrentlyPlaying,
   sourceSupportsCurrentlyPlaying,
 } from "@/providers/jellyfin/playback";
-import { proxyMedia } from "@/providers/jellyfin/mediaProxy";
+import { defineProvider } from "@/providers/shared/defineProvider";
 
-export const jellyfinProvider: ProviderImplementation = {
+export const jellyfinProvider = defineProvider({
   definition: {
     id: "jellyfin",
     name: "Jellyfin",
@@ -22,11 +22,4 @@ export const jellyfinProvider: ProviderImplementation = {
   watchCurrentlyPlaying,
   listCurrentlyPlaying,
   proxyMedia,
-  serializeSession(session) {
-    return {
-      id: session.id,
-      providerId: "jellyfin",
-      expiresAt: new Date(session.expiresAt).toISOString(),
-    };
-  },
-};
+});

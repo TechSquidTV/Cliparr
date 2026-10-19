@@ -2,6 +2,7 @@
 
 import assert from "node:assert/strict";
 import test from "node:test";
+
 import {
   cliparrClient,
   readResponseErrorDetails,
@@ -9,13 +10,7 @@ import {
 } from "@/api/cliparrClient";
 
 function jsonResponse(value: unknown, init: ResponseInit = {}) {
-  return Response.json(value, {
-    ...init,
-    headers: {
-      "content-type": "application/json",
-      ...init.headers,
-    },
-  });
+  return Response.json(value, init);
 }
 
 async function withMockedFetch<T>(

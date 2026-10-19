@@ -1,14 +1,16 @@
-import type { AstroIntegration } from "astro";
-import type { Element, Root } from "hast";
-import { select, selectAll } from "hast-util-select";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+
+import type { AstroIntegration } from "astro";
+import type { Element, Root } from "hast";
+import { select, selectAll } from "hast-util-select";
 import rehypeParse from "rehype-parse";
 import rehypeRemark from "rehype-remark";
 import remarkGfm from "remark-gfm";
 import remarkStringify from "remark-stringify";
 import { unified } from "unified";
+
 // Loaded by Astro configuration before app aliases are available.
 // eslint-disable-next-line no-restricted-imports
 import { markdownAssetPath } from "./markdown";

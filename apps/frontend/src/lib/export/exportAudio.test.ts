@@ -1,16 +1,18 @@
-import { estimateExportOutputSize } from "#/lib/export/exportTypes";
 import assert from "node:assert/strict";
 import test from "node:test";
+
 import { AudioSample } from "mediabunny";
+
 import {
-  resolveExportAudioPlan,
+  assertWavSize,
   audioBitDepthSummary,
+  type AudioSourceInfo,
+  processExportAudio,
+  resolveExportAudioPlan,
   resolveSourceAudioLayout,
   sourceAudioPrecision,
-  processExportAudio,
-  assertWavSize,
-  type AudioSourceInfo,
 } from "#/lib/export/exportAudio";
+import { estimateExportOutputSize } from "#/lib/export/exportTypes";
 
 const source: AudioSourceInfo = {
   codec: "pcm-s16",

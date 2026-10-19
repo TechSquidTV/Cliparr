@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+
 import { readServerEvents } from "#server-events";
 
 function streamFromChunks(chunks: Uint8Array[]) {

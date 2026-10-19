@@ -1,58 +1,63 @@
-import { formatDuration } from "@/lib/formatDuration";
 import {
-  useExportSettings,
-  useExportAudioPlan,
-  useExportVideoPlan,
-  exportIncludesAudio,
-  isAudioExportFormat,
+  chooseExportFile,
   DEFAULT_GIF_EXPORT_PRESET,
-  ExportStatusPanel,
-  EditorExportSettingsSection,
-  EditorExportSummaryPanel,
-  TooltipProvider,
-  Spinner,
-  compactPrimaryButtonClasses,
+  type EditorFileMediaSource,
   estimateExportOutputSize,
+  type ExportFormat,
   exportFormatDurationDisabledReason,
-  formatCanCopyVideoCodec,
   exportFormatFor,
   exportFormats,
-  resolveExportOutputDimensions,
-  titleFromFileName,
-  type EditorFileMediaSource,
-  type ExportVideoEncodingPlan,
+  exportIncludesAudio,
   type ExportPhase,
-  type ExportFormat,
   type ExportQualityPreset,
   type ExportResolution,
-} from "@cliparr/frontend/convert";
+  type ExportVideoEncodingPlan,
+  formatCanCopyVideoCodec,
+  isAudioExportFormat,
+  resolveExportOutputDimensions,
+  titleFromFileName,
+} from "@cliparr/frontend/convert/engine";
+import {
+  buttonClassName,
+  ExportSettingsSection,
+  ExportStatusPanel,
+  LOCAL_VIDEO_FILE_ACCEPT,
+  Spinner,
+  TooltipProvider,
+  useExportAudioPlan,
+  useExportSettings,
+  useExportVideoPlan,
+} from "@cliparr/frontend/convert/ui";
 import { Download, FolderOpen, RefreshCcw, Upload } from "lucide-react";
 import {
+  type ChangeEvent,
+  type DragEvent,
+  type ReactNode,
   useCallback,
   useEffect,
   useId,
   useMemo,
   useRef,
   useState,
-  type ChangeEvent,
-  type DragEvent,
-  type ReactNode,
 } from "react";
-import {
-  buildConvertedFileBaseName,
-  buildConvertedOutputFileName,
-  buildLocalFileSource,
-  runConvertExport,
-  probeConvertSource,
-  type SourceProbeResult,
-} from "@/components/convert/convertToolUtilities";
+
+import { ConvertExportSummary } from "@/components/convert/ConvertExportSummary";
 import {
   flushConvertMetrics,
   recordConvertExportCompleted,
   recordConvertExportFailed,
   recordConvertExportStarted,
 } from "@/components/convert/convertMetrics";
+import {
+  buildConvertedFileBaseName,
+  buildConvertedOutputFileName,
+  buildLocalFileSource,
+  probeConvertSource,
+  runConvertExport,
+  type SourceProbeResult,
+} from "@/components/convert/convertToolUtilities";
 import { MediabunnySourcePreview } from "@/components/convert/MediabunnySourcePreview";
+import { formatDuration } from "@/lib/formatDuration";
 
 type ProbeState =
   | { status: "idle" }
@@ -61,7 +66,7 @@ type ProbeState =
   | { status: "error"; message: string };
 
 const fileAccept = [
-  "video/*",
+  LOCAL_VIDEO_FILE_ACCEPT,
   "audio/*",
   ".mp3",
   ".m4a",
@@ -70,18 +75,6 @@ const fileAccept = [
   ".opus",
   ".flac",
   ".wav",
-  "video/x-matroska",
-  "application/x-matroska",
-  "video/mp2t",
-  ".mp4",
-  ".m4v",
-  ".mov",
-  ".mkv",
-  ".webm",
-  ".ogv",
-  ".ts",
-  ".m2ts",
-  ".mts",
 ].join(",");
 
 function errorMessage(error: unknown, fallback: string) {
@@ -107,6 +100,7 @@ function fileTypeLabel(file: File | null) {
     return `${extension} (${mimeType})`;
   }
 
+  // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- Empty format labels must fall through to a usable label.
   return mimeType || extension || "Unknown";
 }
 
@@ -565,7 +559,15 @@ export function ConvertTool() {
     let videoEncodingPlan: ExportVideoEncodingPlan | undefined;
 
     try {
+      const destination = await chooseExportFile(outputFileName, format);
+      if (destination.status === "cancelled") {
+        controller.abort();
+      }
+      controller.signal.throwIfAborted();
+      const outputFile =
+        destination.status === "selected" ? destination.handle : undefined;
       const blob = await runConvertExport({
+        outputFile,
         signal: controller.signal,
         onPhaseChange: (phase) => {
           if (isCurrent() && !controller.signal.aborted) {
@@ -609,7 +611,11 @@ export function ConvertTool() {
       });
       void flushConvertMetrics();
       setProgress(1);
-      setExportNotice(`Download started: ${outputFileName}`);
+      setExportNotice(
+        outputFile
+          ? `Saved: ${outputFile.name}`
+          : `Download started: ${outputFileName}`,
+      );
     } catch (error) {
       if (!isCurrent()) {
         return;
@@ -813,7 +819,7 @@ export function ConvertTool() {
                   inert={exporting}
                   className="min-w-0 disabled:opacity-60"
                 >
-                  <EditorExportSettingsSection
+                  <ExportSettingsSection
                     selectedFormat={format}
                     onFormatChange={setFormat}
                     selectedQuality={selectedQuality}
@@ -828,15 +834,13 @@ export function ConvertTool() {
                     onMixDownToStereoChange={setMixDownToStereo}
                     audioDisabledReason={audio.mixdownDisabledReason}
                     audioBitDepth={audio.bitDepth}
-                    showSourcePreference={false}
                   />
                 </fieldset>
               </div>
 
-              <EditorExportSummaryPanel
+              <ConvertExportSummary
                 title={sourceTitle}
-                clipStart={0}
-                clipEnd={probeResult?.durationSeconds ?? 0}
+                duration={probeResult?.durationSeconds ?? 0}
                 selectedFormat={format}
                 selectedQuality={selectedQuality}
                 gifSettings={format === "gif" ? gifSettings : null}
@@ -844,10 +848,6 @@ export function ConvertTool() {
                 mode={mode}
                 audioStatus={audio.status}
                 audioPlan={audio.plan}
-                showClipSummary={false}
-                showSourceSummary={false}
-                showSubtitleSummary={false}
-                showFilenameSummary={false}
               />
             </div>
           </TooltipProvider>
@@ -878,7 +878,7 @@ export function ConvertTool() {
                 type="button"
                 onClick={() => void handleExport()}
                 disabled={exporting || Boolean(exportDisabledReason)}
-                className={`${compactPrimaryButtonClasses} w-44 min-w-0 whitespace-nowrap`}
+                className={`${buttonClassName({ size: "compact" })} w-44 min-w-0 whitespace-nowrap`}
               >
                 {exporting ? (
                   <>

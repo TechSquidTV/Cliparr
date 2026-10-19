@@ -1,20 +1,22 @@
-import { useCallback, useEffect, useState } from "react";
 import {
   compactLogFields,
   logDurationFields,
   logErrorFields,
   logEventFields,
+  warnWithError,
 } from "@cliparr/shared/logging";
-import type { PlaybackSubtitleTrack } from "@/providers/types";
+import type { PlaybackSubtitleTrack } from "@cliparr/shared/providers";
+import { useCallback, useEffect, useState } from "react";
+
 import { readResponseErrorDetails } from "@/api/cliparrClient";
+import { parseSubtitleTextAsync } from "@/lib/subtitles/parseSubtitleTextAsync";
 import {
   subtitleTrackKey,
   subtitleTrackSupportsBurnIn,
   subtitleTrackUnavailableMessage,
 } from "@/lib/subtitles/selectPreferredSubtitleTrack";
-import { parseSubtitleTextAsync } from "@/lib/subtitles/parseSubtitleTextAsync";
 import type { SubtitleCue } from "@/lib/subtitles/types";
-import { getFrontendLogger, warnWithError } from "@/logging";
+import { getFrontendLogger } from "@/logging";
 
 interface UseSubtitleCuesOptions {
   selectedSubtitleTrack: PlaybackSubtitleTrack | null;

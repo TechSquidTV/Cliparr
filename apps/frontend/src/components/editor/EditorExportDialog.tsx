@@ -1,43 +1,42 @@
-import { Spinner } from "@/components/ui/spinner";
-import type {
-  audioBitDepthSummary,
-  ExportAudioPlan,
-} from "#/lib/export/exportAudio";
-import type { ExportMode, ExportOutputType } from "#/lib/export/exportFormats";
 import { Download, FileText } from "lucide-react";
-import { BouncyAccordion } from "@/components/ui/bouncy-accordion";
-import type {
-  ExportFormat,
-  ExportResolution,
-  ExportPhase,
-} from "@/lib/export/exportClip";
+
+import { EditorExportSourceControl } from "#/components/editor/EditorExportSourceControl";
+import { EditorExportSummaryPanel } from "#/components/editor/EditorExportSummaryPanel";
+import { EditorFilenameTemplateSection } from "#/components/editor/EditorFilenameTemplateSection";
+import type { MediaDimensions } from "#/components/editor/editorMedia";
+import { ExportSettingsSection } from "#/components/export/ExportSettingsSection";
+import { ExportStatusPanel } from "#/components/export/ExportStatusPanel";
+import { BouncyAccordion } from "#/components/ui/bouncy-accordion";
 import {
-  type ExportSourcePreference,
-  type ExportQualityPreset,
-  type ExportSizeEstimate,
-  type GifExportSettings,
-} from "@/lib/export/exportTypes";
-import {
-  type ExportFileNameTemplateKind,
-  type ExportFileNameTemplateSettings,
-} from "@/lib/export/exportFileName";
+  buttonClassName,
+  primaryAlertClasses,
+} from "#/components/ui/control-styles";
 import {
   DialogClose,
   DialogFooter,
   DialogWindow,
-} from "@/components/ui/dialog";
+} from "#/components/ui/dialog";
+import { Spinner } from "#/components/ui/spinner";
+import type {
+  audioBitDepthSummary,
+  ExportAudioPlan,
+} from "#/lib/export/exportAudio";
+import type {
+  ExportFormat,
+  ExportPhase,
+  ExportResolution,
+} from "#/lib/export/exportClip";
 import {
-  compactPrimaryButtonClasses,
-  compactSecondaryButtonClasses,
-  primaryAlertClasses,
-} from "@/components/ui/control-styles";
+  type ExportFileNameTemplateKind,
+  type ExportFileNameTemplateSettings,
+} from "#/lib/export/exportFileName";
+import type { ExportMode, ExportOutputType } from "#/lib/export/exportFormats";
 import {
-  ExportStatusPanel,
-  EditorExportSettingsSection,
-  EditorExportSummaryPanel,
-  EditorFilenameTemplateSection,
-} from "@/components/editor/EditorExportDialogSections";
-import type { MediaDimensions } from "@/components/editor/editorMedia";
+  type ExportQualityPreset,
+  type ExportSizeEstimate,
+  type ExportSourcePreference,
+  type GifExportSettings,
+} from "#/lib/export/exportTypes";
 
 interface EditorExportDialogProperties {
   isOpen: boolean;
@@ -169,7 +168,7 @@ export function EditorExportDialog({
             inert={exporting}
             className="min-w-0 space-y-4 disabled:opacity-60"
           >
-            <EditorExportSettingsSection
+            <ExportSettingsSection
               selectedFormat={selectedFormat}
               onFormatChange={onFormatChange}
               selectedQuality={selectedQuality}
@@ -177,8 +176,6 @@ export function EditorExportDialog({
               outputDimensions={outputDimensions}
               selectedResolution={selectedResolution}
               onResolutionChange={onResolutionChange}
-              selectedSourcePreference={selectedSourcePreference}
-              onSourcePreferenceChange={onSourcePreferenceChange}
               mode={mode}
               onOutputTypeChange={onOutputTypeChange}
               onVideoMutedChange={onVideoMutedChange}
@@ -186,12 +183,18 @@ export function EditorExportDialog({
               onMixDownToStereoChange={onMixDownToStereoChange}
               audioDisabledReason={audioDisabledReason}
               audioBitDepth={audioBitDepth}
-              showSourcePreference={hasHlsSource && hasDirectSource}
-              hasHlsSource={hasHlsSource}
-              hasDirectSource={hasDirectSource}
-              directSourceLabel={directSourceLabel}
-              hlsSourceLabel={hlsSourceLabel}
-            />
+            >
+              {hasHlsSource && hasDirectSource && (
+                <EditorExportSourceControl
+                  selectedSourcePreference={selectedSourcePreference}
+                  onSourcePreferenceChange={onSourcePreferenceChange}
+                  hasHlsSource={hasHlsSource}
+                  hasDirectSource={hasDirectSource}
+                  directSourceLabel={directSourceLabel}
+                  hlsSourceLabel={hlsSourceLabel}
+                />
+              )}
+            </ExportSettingsSection>
 
             <BouncyAccordion
               items={[
@@ -251,14 +254,14 @@ export function EditorExportDialog({
             <button
               type="button"
               onClick={onCancelExport}
-              className={`${compactSecondaryButtonClasses} w-20 min-w-16 whitespace-nowrap`}
+              className={`${buttonClassName({ tone: "secondary", size: "compact" })} w-20 min-w-16 whitespace-nowrap`}
               aria-label="Cancel export"
             >
               Cancel
             </button>
           ) : (
             <DialogClose
-              className={`${compactSecondaryButtonClasses} w-20 min-w-16 whitespace-nowrap`}
+              className={`${buttonClassName({ tone: "secondary", size: "compact" })} w-20 min-w-16 whitespace-nowrap`}
             >
               Close
             </DialogClose>
@@ -268,7 +271,7 @@ export function EditorExportDialog({
             type="button"
             onClick={onExport}
             disabled={exporting || Boolean(exportDisabledReason)}
-            className={`${compactPrimaryButtonClasses} w-44 shrink-0 whitespace-nowrap`}
+            className={`${buttonClassName({ size: "compact" })} w-44 shrink-0 whitespace-nowrap`}
           >
             {exporting ? (
               <>

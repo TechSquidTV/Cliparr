@@ -1,20 +1,18 @@
 import {
   createCliparrInputFromSource,
-  isPlaybackVideoTrack,
-  selectPreferredPairableAudioTrack,
-  getTrackTimelineOffsetSeconds,
-  getVideoTrackDimensions,
   downloadBlob,
-  exportClip,
-  exportFormatFor,
-  exportFormats,
-  titleFromFileName,
   type EditorFileMediaSource,
   type EditorMediaSource,
+  exportClip,
   type ExportClipOptions,
   type ExportFormat,
+  exportFormatFor,
+  exportFormats,
+  getVideoTrackDimensions,
   type MediaDimensions,
-} from "@cliparr/frontend/convert";
+  probeMediaSource,
+  titleFromFileName,
+} from "@cliparr/frontend/convert/engine";
 
 export interface SourceProbeResult {
   durationSeconds: number;
@@ -28,6 +26,7 @@ export interface SourceProbeResult {
 
 export interface ConvertExportOptions extends Pick<
   ExportClipOptions,
+  | "outputFile"
   | "metadata"
   | "format"
   | "resolution"
@@ -127,7 +126,9 @@ export async function runConvertExport(
     title: titleFromFileName(fileName),
   });
   options.signal?.throwIfAborted();
-  dependencies.downloadBlob(blob, fileName);
+  if (!options.outputFile) {
+    dependencies.downloadBlob(blob, fileName);
+  }
   return blob;
 }
 
@@ -143,37 +144,16 @@ export async function probeConvertSource(
   signal?.addEventListener("abort", dispose, { once: true });
   try {
     signal?.throwIfAborted();
-    // Match export's track pairing without checking video decoding or dimensions.
-    const sourceVideo = await input.getPrimaryVideoTrack({
-      filter: isPlaybackVideoTrack,
+    const {
+      sourceVideoTrack: sourceVideo,
+      sourceAudioTrack: audio,
+      videoTrack: video,
+      timelineOffsetSeconds,
+      durationSeconds,
+    } = await probeMediaSource(input, {
+      audioOnly,
+      requirePositiveDuration: true,
     });
-    const audio = await selectPreferredPairableAudioTrack(
-      sourceVideo,
-      await input.getAudioTracks(),
-    );
-    const video = audioOnly ? null : sourceVideo;
-    if (audioOnly && !audio) {
-      throw new Error("This file does not contain an audio track.");
-    }
-    if (!video && !audio) {
-      throw new Error(
-        "This file does not contain an exportable video or audio track.",
-      );
-    }
-    const tracks = [video, audio].filter((track) => track !== null);
-    const timelineOffsetSeconds = await getTrackTimelineOffsetSeconds(tracks);
-    const metadataDuration = await input.getDurationFromMetadata(tracks);
-    const sourceTimelineEnd =
-      metadataDuration && metadataDuration > 0
-        ? metadataDuration
-        : await input.computeDuration(tracks);
-    const durationSeconds = Math.max(
-      0,
-      sourceTimelineEnd - timelineOffsetSeconds,
-    );
-    if (!Number.isFinite(durationSeconds) || durationSeconds <= 0) {
-      throw new Error("Could not determine this file's duration.");
-    }
     const dimensions = video ? await getVideoTrackDimensions(video) : null;
     const averageBitrate = video ? await video.getAverageBitrate() : null;
     const peakBitrate = video ? await video.getBitrate() : null;

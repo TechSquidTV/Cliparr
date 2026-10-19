@@ -1,17 +1,18 @@
-import { useRef } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
-import { DialogWindow } from "@/components/ui/dialog";
-import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
+import { useRef } from "react";
+
+import { SourceCard } from "#/components/sources/SourceCard";
+import { SourcesDialogFilters } from "#/components/sources/SourcesDialogFilters";
+import { SourcesDialogHeader } from "#/components/sources/SourcesDialogHeader";
 import {
-  SourceCard,
   SourcesConnectSection,
-  SourcesEmptyState,
   SourcesDialogAlerts,
-  SourcesDialogFilters,
-  SourcesDialogHeader,
-} from "@/components/sources/SourcesDialogSections";
-import { useSourcesState } from "@/components/sources/useSourcesState";
-import { cliparrMotionTransitions } from "@/lib/motion";
+  SourcesEmptyState,
+} from "#/components/sources/SourcesFeedback";
+import { useSourcesState } from "#/components/sources/useSourcesState";
+import { ConfirmationDialog } from "#/components/ui/confirmation-dialog";
+import { DialogWindow } from "#/components/ui/dialog";
+import { motionTransitionFor } from "#/lib/motion";
 
 interface Properties {
   isOpen: boolean;
@@ -81,15 +82,9 @@ export default function SourcesDialog({
     isOpen,
     onSourcesChanged,
   });
-  const stateTransition = reduceMotion
-    ? { duration: 0 }
-    : cliparrMotionTransitions.standard;
-  const exitTransition = reduceMotion
-    ? { duration: 0 }
-    : cliparrMotionTransitions.fast;
-  const layoutTransition = reduceMotion
-    ? { duration: 0 }
-    : cliparrMotionTransitions.layout;
+  const stateTransition = motionTransitionFor("standard", reduceMotion);
+  const exitTransition = motionTransitionFor("fast", reduceMotion);
+  const layoutTransition = motionTransitionFor("layout", reduceMotion);
 
   function renderSourcesContent() {
     if (loading) {

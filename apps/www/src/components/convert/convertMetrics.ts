@@ -1,15 +1,17 @@
-import * as Sentry from "@sentry/astro";
 import {
-  EXPORT_SIZE_ESTIMATE_ALGORITHM_VERSION,
   EXPORT_ENCODING_POLICY_VERSION,
+  EXPORT_SIZE_ESTIMATE_ALGORITHM_VERSION,
   type ExportFormat,
   type ExportOutputDimensions,
-  type ExportVideoEncodingPlan,
   type ExportQualityPreset,
   type ExportResolution,
   type ExportSizeEstimate,
+  type ExportVideoEncodingPlan,
   type GifExportSettings,
-} from "@cliparr/frontend/convert";
+} from "@cliparr/frontend/convert/engine";
+import type { PwaInstallMetricInput } from "@cliparr/frontend/pwa";
+import * as Sentry from "@sentry/astro";
+
 import type { SourceProbeResult } from "@/components/convert/convertToolUtilities";
 
 type ConvertSourceFormat =
@@ -57,14 +59,6 @@ interface ConvertExportCompletedMetricInput extends ConvertExportMetricContext {
 
 interface ConvertExportFailedMetricInput extends ConvertExportMetricContext {
   durationMs: number;
-}
-
-export type ConvertPwaInstallFormFactor = "desktop" | "mobile";
-type ConvertPwaInstallMode = "ios" | "native";
-
-export interface ConvertPwaInstallMetricInput {
-  formFactor: ConvertPwaInstallFormFactor;
-  installMode: ConvertPwaInstallMode;
 }
 
 const convertMetricsFlushTimeoutMs = 2000;
@@ -270,7 +264,7 @@ export async function flushConvertMetrics(
 }
 
 export function recordConvertPwaInstallPromptAvailable(
-  input: ConvertPwaInstallMetricInput,
+  input: PwaInstallMetricInput,
   dependencies: ConvertMetricsDependencies = defaultConvertMetricsDependencies,
 ) {
   recordConvertPwaInstallMetric(
@@ -281,7 +275,7 @@ export function recordConvertPwaInstallPromptAvailable(
 }
 
 export function recordConvertPwaInstallPromptShown(
-  input: ConvertPwaInstallMetricInput,
+  input: PwaInstallMetricInput,
   dependencies: ConvertMetricsDependencies = defaultConvertMetricsDependencies,
 ) {
   recordConvertPwaInstallMetric(
@@ -292,7 +286,7 @@ export function recordConvertPwaInstallPromptShown(
 }
 
 export function recordConvertPwaInstallClicked(
-  input: ConvertPwaInstallMetricInput,
+  input: PwaInstallMetricInput,
   dependencies: ConvertMetricsDependencies = defaultConvertMetricsDependencies,
 ) {
   recordConvertPwaInstallMetric(
@@ -303,7 +297,7 @@ export function recordConvertPwaInstallClicked(
 }
 
 export function recordConvertPwaInstallAccepted(
-  input: ConvertPwaInstallMetricInput,
+  input: PwaInstallMetricInput,
   dependencies: ConvertMetricsDependencies = defaultConvertMetricsDependencies,
 ) {
   recordConvertPwaInstallMetric(
@@ -314,7 +308,7 @@ export function recordConvertPwaInstallAccepted(
 }
 
 export function recordConvertPwaInstallDismissed(
-  input: ConvertPwaInstallMetricInput,
+  input: PwaInstallMetricInput,
   dependencies: ConvertMetricsDependencies = defaultConvertMetricsDependencies,
 ) {
   recordConvertPwaInstallMetric(
@@ -325,7 +319,7 @@ export function recordConvertPwaInstallDismissed(
 }
 
 export function recordConvertPwaInstalled(
-  input: ConvertPwaInstallMetricInput,
+  input: PwaInstallMetricInput,
   dependencies: ConvertMetricsDependencies = defaultConvertMetricsDependencies,
 ) {
   recordConvertPwaInstallMetric("convert.pwa.installed", input, dependencies);
@@ -344,7 +338,7 @@ function compactMetricAttributes(
 
 function recordConvertPwaInstallMetric(
   name: string,
-  input: ConvertPwaInstallMetricInput,
+  input: PwaInstallMetricInput,
   dependencies: ConvertMetricsDependencies,
 ) {
   recordCount(dependencies.metrics, name, {

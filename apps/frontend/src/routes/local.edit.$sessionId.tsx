@@ -1,40 +1,30 @@
-import { createFileRoute, useCanGoBack } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { FolderOpen, ShieldCheck, TriangleAlert } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
-import { useAuth } from "@/auth";
-import { editorDrafts } from "@/components/editor/editorDrafts";
-import EditorScreen from "@/components/editor/EditorScreen";
-import { BarsLoader } from "@/components/ui/bars-loader";
-import { LocalVideoOpenDialog } from "@/components/local-media/LocalVideoOpenDialog";
+
+import { useAuth } from "#/auth";
+import { editorDrafts } from "#/components/editor/editorDrafts";
+import EditorScreen from "#/components/editor/EditorScreen";
+import { LocalVideoOpenDialog } from "#/components/local-media/LocalVideoOpenDialog";
+import { BarsLoader } from "#/components/ui/bars-loader";
+import { buttonClassName } from "#/components/ui/control-styles";
 import {
-  primaryButtonClasses,
-  secondaryButtonClasses,
-  subtleButtonClasses,
-} from "@/components/ui/control-styles";
-import {
-  resolveLocalMediaSession,
   type LocalMediaResolution,
-} from "@/lib/localMediaRegistry";
-import { router } from "@/router";
+  resolveLocalMediaSession,
+} from "#/lib/localMediaRegistry";
+import { useBackNavigation } from "#/lib/useBackNavigation";
+import { router } from "#/router";
 
 function LocalEditorRouteComponent() {
   const auth = useAuth();
   const { sessionId } = Route.useParams();
-  const canGoBack = useCanGoBack();
   const [resolution, setResolution] = useState<LocalMediaResolution | null>(
     null,
   );
   const [loading, setLoading] = useState(true);
   const [openDialog, setOpenDialog] = useState(false);
 
-  const navigateHome = useCallback(() => {
-    if (canGoBack) {
-      globalThis.history.back();
-      return;
-    }
-
-    void router.navigate({ to: "/", replace: true });
-  }, [canGoBack]);
+  const navigateHome = useBackNavigation("/");
 
   const loadSession = useCallback(
     async (requestPermission = false) => {
@@ -95,7 +85,7 @@ function LocalEditorRouteComponent() {
             <button
               type="button"
               onClick={() => void loadSession(true)}
-              className={primaryButtonClasses}
+              className={buttonClassName()}
             >
               <ShieldCheck className="h-4 w-4" />
               Grant Access
@@ -104,7 +94,7 @@ function LocalEditorRouteComponent() {
           <button
             type="button"
             onClick={() => setOpenDialog(true)}
-            className={secondaryButtonClasses}
+            className={buttonClassName({ tone: "secondary" })}
           >
             <FolderOpen className="h-4 w-4" />
             Open Video
@@ -112,7 +102,7 @@ function LocalEditorRouteComponent() {
           <button
             type="button"
             onClick={navigateHome}
-            className={subtleButtonClasses}
+            className={buttonClassName({ tone: "subtle", size: "dense" })}
           >
             Back
           </button>

@@ -1,10 +1,11 @@
 import type { Request } from "express";
-import { createApiError } from "@/http/errors";
+
+import { getSessionCookieName, readCookie } from "@/http/cookies";
+import { throwNotAuthenticated } from "@/http/errors";
 import {
   getProviderSession,
   type ProviderSessionRecord,
 } from "@/session/store";
-import { getSessionCookieName, readCookie } from "@/http/cookies";
 
 export function getRequestSessionId(request: Request) {
   return readCookie(request.header("cookie"), getSessionCookieName());
@@ -13,11 +14,7 @@ export function getRequestSessionId(request: Request) {
 function requireSession(request: Request): ProviderSessionRecord {
   const session = getProviderSession(getRequestSessionId(request));
   if (!session) {
-    throw createApiError(
-      401,
-      "not_authenticated",
-      "Sign in with a provider first",
-    );
+    throwNotAuthenticated();
   }
   return session;
 }

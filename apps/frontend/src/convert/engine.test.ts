@@ -1,15 +1,16 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+
 import {
-  exportFormats,
   exportClip,
   exportFormatFor,
+  exportFormats,
   exportIncludesAudio,
   gifExportSettingsForPreset,
   titleFromFileName,
-} from "@cliparr/frontend/convert";
+} from "@cliparr/frontend/convert/engine";
 
-void test("convert facade exposes supported output formats", () => {
+void test("convert engine entry exposes supported output formats", () => {
   assert.deepEqual(
     exportFormats.map((option) => option.value),
     ["mp4", "webm", "gif", "mov", "mkv", "mp3", "m4a", "ogg", "flac", "wav"],
@@ -18,7 +19,7 @@ void test("convert facade exposes supported output formats", () => {
   assert.equal(exportFormatFor("gif").extension, ".gif");
 });
 
-void test("convert facade exposes export helpers", () => {
+void test("convert engine entry exposes export helpers", () => {
   assert.equal(typeof exportClip, "function");
   assert.equal(exportIncludesAudio("video-audio", "mp4"), true);
   assert.equal(exportIncludesAudio("video-only", "gif"), false);

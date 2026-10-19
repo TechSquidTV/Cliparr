@@ -1,18 +1,26 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
+
 import {
+  createPwaInstallController,
   isIosLikeDevice,
-  metricInputForConvertPwaInstallState,
-  readConvertPwaInstallDismissed,
-  resolveConvertPwaInstallState,
-  writeConvertPwaInstallDismissed,
-  type ConvertPwaInstallEnvironment,
-} from "@/components/convert/convertPwa";
+  metricInputForPwaInstallState,
+  type PwaInstallEnvironment,
+  resolvePwaInstallState,
+} from "@cliparr/frontend/pwa";
+
+const {
+  readDismissed: readConvertPwaInstallDismissed,
+  writeDismissed: writeConvertPwaInstallDismissed,
+} = createPwaInstallController({
+  dismissedKey: "cliparr-convert:pwa-install-dismissed",
+  serviceWorkerUrl: "/convert/service-worker.js",
+});
 
 function installEnvironment(
-  overrides: Partial<ConvertPwaInstallEnvironment> = {},
-): ConvertPwaInstallEnvironment {
+  overrides: Partial<PwaInstallEnvironment> = {},
+): PwaInstallEnvironment {
   return {
     appInstalled: false,
     coarsePointer: true,
@@ -30,8 +38,8 @@ function installEnvironment(
 }
 
 function desktopEnvironment(
-  overrides: Partial<ConvertPwaInstallEnvironment> = {},
-): ConvertPwaInstallEnvironment {
+  overrides: Partial<PwaInstallEnvironment> = {},
+): PwaInstallEnvironment {
   return installEnvironment({
     coarsePointer: false,
     maxTouchPoints: 0,
@@ -68,7 +76,7 @@ function memoryStorage(): Storage {
 }
 
 void test("allows native Convert PWA install UI on secure mobile surfaces", () => {
-  assert.deepEqual(resolveConvertPwaInstallState(installEnvironment()), {
+  assert.deepEqual(resolvePwaInstallState(installEnvironment()), {
     formFactor: "mobile",
     mode: "native",
   });
@@ -76,7 +84,7 @@ void test("allows native Convert PWA install UI on secure mobile surfaces", () =
 
 void test("uses iOS guide mode when native install prompts are unavailable", () => {
   assert.deepEqual(
-    resolveConvertPwaInstallState(
+    resolvePwaInstallState(
       installEnvironment({
         hasInstallPrompt: false,
         userAgent:
@@ -92,14 +100,12 @@ void test("uses iOS guide mode when native install prompts are unavailable", () 
 });
 
 void test("keeps desktop install UI subtle and prompt-gated", () => {
-  assert.deepEqual(resolveConvertPwaInstallState(desktopEnvironment()), {
+  assert.deepEqual(resolvePwaInstallState(desktopEnvironment()), {
     formFactor: "desktop",
     mode: "native",
   });
   assert.deepEqual(
-    resolveConvertPwaInstallState(
-      desktopEnvironment({ hasInstallPrompt: false }),
-    ),
+    resolvePwaInstallState(desktopEnvironment({ hasInstallPrompt: false })),
     { formFactor: "desktop", mode: "hidden" },
   );
 });
@@ -111,9 +117,9 @@ void test("hides Convert PWA install UI when unavailable or already handled", ()
     { appInstalled: true },
     { navigatorStandalone: true },
     { standaloneDisplayMode: true },
-  ] satisfies Array<Partial<ConvertPwaInstallEnvironment>>) {
+  ] satisfies Array<Partial<PwaInstallEnvironment>>) {
     assert.equal(
-      resolveConvertPwaInstallState(installEnvironment(overrides)).mode,
+      resolvePwaInstallState(installEnvironment(overrides)).mode,
       "hidden",
     );
   }
@@ -131,14 +137,14 @@ void test("persists Convert PWA install dismissal state", () => {
 
 void test("maps visible install states to bounded metric input", () => {
   assert.deepEqual(
-    metricInputForConvertPwaInstallState({
+    metricInputForPwaInstallState({
       formFactor: "mobile",
       mode: "ios",
     }),
     { formFactor: "mobile", installMode: "ios" },
   );
   assert.equal(
-    metricInputForConvertPwaInstallState({
+    metricInputForPwaInstallState({
       formFactor: "desktop",
       mode: "hidden",
     }),

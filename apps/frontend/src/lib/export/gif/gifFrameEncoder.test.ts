@@ -2,8 +2,11 @@
 
 import assert from "node:assert/strict";
 import test from "node:test";
+
+import type { GIFEncoderInstance } from "@techsquidtv/gifenc";
+import { applyPalette, GIFEncoder, quantize } from "@techsquidtv/gifenc";
+
 import {
-  GIF_TRAILER_BYTE,
   concatenateGifFrameChunks,
   encodeGifFrameChunk,
 } from "@/lib/export/gif/gifFrameChunk";
@@ -13,14 +16,11 @@ import {
   createInlineGifFrameEncoder,
   defaultGifFrameWorkerCount,
 } from "@/lib/export/gif/gifFrameEncoder";
-import type { GIFEncoderInstance } from "@techsquidtv/gifenc";
 
 void test("encodes GIF frame chunks without a trailer", () => {
   const calls: Array<{
     auto?: boolean;
     delay?: number;
-    first?: boolean;
-    header?: boolean;
     format?: string;
     maxColors?: number;
     repeat?: number;
@@ -45,13 +45,9 @@ void test("encodes GIF frame chunks without a trailer", () => {
         return createMockGifEncoder({
           bytes: () => new Uint8Array([1, 2, 3]),
           bytesView: () => new Uint8Array([1, 2, 3]),
-          writeHeader: () => {
-            calls.push({ header: true });
-          },
           writeFrame: (_index, _width, _height, writeOptions) => {
             calls.push({
               delay: writeOptions?.delay,
-              first: writeOptions?.first,
               repeat: writeOptions?.repeat,
             });
           },
@@ -82,11 +78,9 @@ void test("encodes GIF frame chunks without a trailer", () => {
       format: "rgb565",
       temporalDitherPresent: false,
     },
-    { auto: false },
-    { header: true },
+    { auto: true },
     {
       delay: 100,
-      first: true,
       repeat: 0,
     },
   ]);
@@ -98,7 +92,7 @@ void test("concatenates GIF frame chunks in sequence order with a trailer", () =
     { sequenceIndex: 0, bytes: new Uint8Array([1, 2]) },
   ]);
 
-  assert.deepEqual([...bytes], [1, 2, 3, 4, GIF_TRAILER_BYTE]);
+  assert.deepEqual([...bytes], [1, 2, 3, 4, 59]);
 });
 
 void test("real GIF frame chunks include the GIF89a header and trailer", () => {
@@ -115,7 +109,60 @@ void test("real GIF frame chunks include the GIF89a header and trailer", () => {
   const bytes = concatenateGifFrameChunks([chunk]);
 
   assert.equal(new TextDecoder().decode(bytes.slice(0, 6)), "GIF89a");
-  assert.equal(bytes.at(-1), GIF_TRAILER_BYTE);
+  assert.equal(bytes.at(-1), 59);
+});
+
+for (const paletteMode of ["global", "per-frame"] as const) {
+  void test(`parallel GIF chunks match sequential gifenc output with ${paletteMode} palettes`, () => {
+    const frames = [
+      new Uint8ClampedArray([255, 0, 0, 255, 0, 255, 0, 255]),
+      new Uint8ClampedArray([0, 0, 255, 255, 255, 255, 0, 255]),
+      new Uint8ClampedArray([255, 255, 255, 255, 0, 0, 0, 255]),
+    ];
+    const globalPalette =
+      paletteMode === "global"
+        ? quantize(
+            new Uint8ClampedArray(frames.flatMap((frame) => [...frame])),
+            64,
+            { format: "rgb565" },
+          )
+        : null;
+    const sequential = GIFEncoder();
+    const chunks = frames.map((rgba, sequenceIndex) => {
+      const palette = globalPalette ?? quantize(rgba, 64, { format: "rgb565" });
+      const indexedPixels = applyPalette(rgba, palette, { format: "rgb565" });
+      sequential.writeFrame(indexedPixels, 2, 1, {
+        palette:
+          paletteMode === "per-frame" || sequenceIndex === 0
+            ? palette
+            : undefined,
+        delay: 100,
+        repeat: 0,
+      });
+
+      return encodeGifFrameChunk({
+        sequenceIndex,
+        rgba,
+        width: 2,
+        height: 1,
+        maxColors: 64,
+        delayMs: 100,
+        globalPalette,
+        paletteFormat: "rgb565",
+        ditherMode: "none",
+      });
+    });
+    sequential.finish();
+
+    assert.deepEqual(
+      concatenateGifFrameChunks(chunks.toReversed()),
+      sequential.bytes(),
+    );
+  });
+}
+
+void test("empty GIF chunk lists do not produce a trailer-only image", () => {
+  assert.deepEqual(concatenateGifFrameChunks([]), new Uint8Array());
 });
 
 void test("inline GIF frame encoder uses the shared chunk encoder contract", async () => {

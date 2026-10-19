@@ -1,8 +1,9 @@
 import type { LookupAddress } from "node:dns";
-import { dedupeInflightFetch } from "@/providers/shared/inflight";
 import { lookup } from "node:dns/promises";
 import { addAbortListener } from "node:events";
 import { isIP } from "node:net";
+
+import { dedupeInflightFetch } from "@/providers/shared/inflight";
 import {
   normalizeHostname,
   normalizeIpCandidate,
@@ -50,7 +51,7 @@ export async function resolveHostnameAddresses(
 
 const inflightLookups = new Map<string, Promise<LookupAddress[]>>();
 
-export async function lookupWithSignal(hostname: string, signal: AbortSignal) {
+async function lookupWithSignal(hostname: string, signal: AbortSignal) {
   signal.throwIfAborted();
   let subscription: ReturnType<typeof addAbortListener> | undefined;
   try {

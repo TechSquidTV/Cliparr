@@ -1,33 +1,39 @@
-import { Router } from "express";
 import {
   compactLogFields,
   logDurationFields,
   logErrorFields,
   logEventFields,
   sanitizeUrlForLog,
+  warnWithError,
 } from "@cliparr/shared/logging";
+import type {
+  MediaSource,
+  MediaSourceCheckResult,
+} from "@cliparr/shared/providers";
+import { Router } from "express";
+
 import {
-  listMediaSources,
   deleteMediaSource,
   getMediaSourceForAccount,
-  type MediaSource,
-  type UpdateMediaSourceInput,
+  listMediaSources,
+  type MediaSourceRecord,
   updateMediaSource,
+  type UpdateMediaSourceInput,
 } from "@/db/mediaSourcesRepository";
+import { setNoStore } from "@/http/cacheControl";
 import { asyncHandler, createApiError, isApiError } from "@/http/errors";
+import { getServerLogger } from "@/logging";
 import {
   PLEX_BASE_URL_MODE_MANUAL,
   withPlexBaseUrlMode,
 } from "@/providers/plex/connectionState";
 import { getProvider } from "@/providers/registry";
 import { requireAccountSession } from "@/session/request";
-import { setNoStore } from "@/http/cacheControl";
-import { getServerLogger, warnWithError } from "@/logging";
 
 export const sourcesRouter = Router();
 const logger = getServerLogger("source");
 
-function serializeSource(source: MediaSource) {
+function serializeSource(source: MediaSourceRecord): MediaSource {
   return {
     id: source.id,
     providerId: source.providerId,
@@ -183,7 +189,7 @@ sourcesRouter.patch(
     setNoStore(res);
     const startedAt = Date.now();
     const sourceId = request.params.id as string;
-    let source: MediaSource | undefined;
+    let source: MediaSourceRecord | undefined;
 
     try {
       source = requireMediaSource(sourceId, session.providerAccountId);
@@ -241,7 +247,7 @@ sourcesRouter.delete(
     setNoStore(res);
     const startedAt = Date.now();
     const sourceId = request.params.id as string;
-    let source: MediaSource | undefined;
+    let source: MediaSourceRecord | undefined;
 
     try {
       source = requireMediaSource(sourceId, session.providerAccountId);
@@ -287,7 +293,7 @@ sourcesRouter.post(
     setNoStore(res);
     const startedAt = Date.now();
     const sourceId = request.params.id as string;
-    let source: MediaSource | undefined;
+    let source: MediaSourceRecord | undefined;
 
     try {
       source = requireMediaSource(sourceId, session.providerAccountId);
@@ -319,7 +325,7 @@ sourcesRouter.post(
             message: result.message,
           },
           source: serializeSource(updatedSource),
-        });
+        } satisfies MediaSourceCheckResult);
 
         logger.warn("Media source health check failed.", {
           ...logEventFields("source.check", "failure"),
@@ -351,7 +357,7 @@ sourcesRouter.post(
       res.json({
         ok: true,
         source: serializeSource(updatedSource),
-      });
+      } satisfies MediaSourceCheckResult);
 
       logger.info("Media source health check completed.", {
         ...logEventFields("source.check", "success"),

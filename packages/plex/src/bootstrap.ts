@@ -1,11 +1,12 @@
 import { setTimeout as delay } from "node:timers/promises";
 import { pathToFileURL } from "node:url";
-import { createClient } from "@cliparr/plex/pms/client";
+
 import {
   getIdentity,
   libraryGetSections,
   libraryPostSection,
 } from "@cliparr/plex/pms";
+import { createClient } from "@cliparr/plex/pms/client";
 import type { LibraryPostSectionData } from "@cliparr/plex/pms/types";
 
 export async function bootstrapPlex(options: {

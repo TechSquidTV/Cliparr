@@ -1,10 +1,10 @@
 import { isApiError } from "@/http/errors";
-import { watchCurrentlyPlaying } from "@/providers/plex/live";
 import { pollAuth, startAuth } from "@/providers/plex/auth";
 import {
   PLEX_BASE_URL_MODE_AUTO,
   withPlexBaseUrlMode,
 } from "@/providers/plex/connectionState";
+import { watchCurrentlyPlaying } from "@/providers/plex/live";
 import { proxyMedia } from "@/providers/plex/mediaProxy";
 import { listCurrentlyPlaying } from "@/providers/plex/playback";
 import {
@@ -12,6 +12,7 @@ import {
   sourceResource,
   sourceSupportsCurrentlyPlaying,
 } from "@/providers/plex/shared";
+import { defineProvider } from "@/providers/shared/defineProvider";
 import type { ProviderImplementation } from "@/providers/types";
 
 async function checkSource(
@@ -59,7 +60,7 @@ async function checkSource(
   }
 }
 
-export const plexProvider: ProviderImplementation = {
+export const plexProvider = defineProvider({
   definition: {
     id: "plex",
     name: "Plex",
@@ -72,11 +73,4 @@ export const plexProvider: ProviderImplementation = {
   listCurrentlyPlaying,
   watchCurrentlyPlaying,
   proxyMedia,
-  serializeSession(session) {
-    return {
-      id: session.id,
-      providerId: "plex",
-      expiresAt: new Date(session.expiresAt).toISOString(),
-    };
-  },
-};
+});

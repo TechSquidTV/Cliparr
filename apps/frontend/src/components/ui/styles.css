@@ -1,0 +1,16 @@
+/* Shared controls own their CSS and Tailwind source dependencies. */
+@import "tw-animate-css";
+@import "../../styles/motion.css";
+@import "./control-styles.css";
+@import "./drawer.css";
+@import "./select.css";
+
+@source ".";
+@source "../export";
+@source "../../pwa.ts";
+
+:root {
+  --radius-control: calc(var(--radius) - 2px);
+}
+
+@source "../pwa";

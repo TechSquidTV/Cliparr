@@ -1,15 +1,6 @@
 import { normalizeExportVideoCodec } from "@cliparr/shared/providers";
-import type {
-  PlaybackAudioSelection,
-  PlaybackExportEstimateMetadata,
-} from "@/providers/types";
+
 import {
-  asArray,
-  numberValue,
-  stringValue,
-} from "@/providers/shared/utilities";
-import {
-  booleanValue,
   type JellyfinItem,
   type JellyfinMediaSource,
   type JellyfinMediaStream,
@@ -17,6 +8,17 @@ import {
   type JellyfinSessionInfo,
   type JellyfinSourceContext,
 } from "@/providers/jellyfin/shared";
+import { PREVIEW_TRANSCODE_POLICY } from "@/providers/shared/previewPolicy";
+import {
+  asArray,
+  booleanValue,
+  numberValue,
+  stringValue,
+} from "@/providers/shared/utilities";
+import type {
+  PlaybackAudioSelection,
+  PlaybackExportEstimateMetadata,
+} from "@/providers/types";
 
 export function ticksToSeconds(value: number | null | undefined) {
   const ticks = Number(value);
@@ -295,17 +297,19 @@ export function buildPreviewPath(
     mediaSourceId,
     deviceId: context.deviceId,
     playSessionId: jellyfinPlaySessionId,
-    maxAudioChannels: "2",
+    maxAudioChannels: String(PREVIEW_TRANSCODE_POLICY.maxAudioChannels),
     audioCodec: "aac",
     videoCodec: "h264",
-    videoBitRate: "12000000",
-    maxWidth: "1920",
-    maxHeight: "1080",
+    videoBitRate: String(PREVIEW_TRANSCODE_POLICY.videoBitrateBps),
+    maxWidth: String(PREVIEW_TRANSCODE_POLICY.maxWidth),
+    maxHeight: String(PREVIEW_TRANSCODE_POLICY.maxHeight),
     maxVideoBitDepth: "8",
-    allowVideoStreamCopy: "false",
-    enableAutoStreamCopy: "false",
+    allowVideoStreamCopy: String(PREVIEW_TRANSCODE_POLICY.copyStreams),
+    enableAutoStreamCopy: String(PREVIEW_TRANSCODE_POLICY.copyStreams),
     enableAdaptiveBitrateStreaming: "false",
-    alwaysBurnInSubtitleWhenTranscoding: "false",
+    alwaysBurnInSubtitleWhenTranscoding: String(
+      PREVIEW_TRANSCODE_POLICY.burnSubtitles,
+    ),
   });
 
   if (audioStreamIndex !== undefined) {

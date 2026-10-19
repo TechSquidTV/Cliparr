@@ -11,5 +11,5 @@
     "noEmit": true,
     "allowImportingTsExtensions": true
   },
-  "include": ["src", "drizzle.config.ts", "tsdown.config.ts"]
+  "include": ["src", "test", "drizzle.config.ts", "tsdown.config.ts"]
 }

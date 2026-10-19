@@ -1,34 +1,31 @@
-import {
-  PRIVATE_IPV4_ADDRESSES,
-  PRIVATE_IPV6_ADDRESS,
-} from "@/test/networkPolicyFixtures";
 import assert from "node:assert/strict";
-import test, { beforeEach, mock } from "node:test";
-import dns from "node:dns/promises";
 import type { LookupAddress } from "node:dns";
+import dns from "node:dns/promises";
 import { getEventListeners } from "node:events";
 import { syncBuiltinESMExports } from "node:module";
+import test, { mock } from "node:test";
 import { setImmediate } from "node:timers/promises";
+
 import { Agent } from "undici";
-import { createDeferred } from "@/test/deferred";
+
 import { isApiError } from "@/http/errors";
 import {
-  plexPmsResponseStatusMessage,
   openPlexEventStream,
+  type PlexPmsRequestContext,
+  type PlexPmsRequestOptions,
+  plexPmsResponseStatusMessage,
   requestPlexPmsCurrentSessions,
   requestPlexPmsIdentity,
   requestPlexPmsMetadata,
-  type PlexPmsRequestContext,
-  type PlexPmsRequestOptions,
 } from "@/providers/plex/pmsClient";
+import { createDeferred } from "#test/deferred";
+import {
+  PRIVATE_IPV4_ADDRESSES,
+  PRIVATE_IPV6_ADDRESS,
+} from "#test/networkPolicyFixtures";
+import { useFreshDnsCacheWindow } from "#test/providerFixtures";
 
-// Each security scenario gets a fresh DNS TTL window for its mocked answers.
-let testTime = Date.now();
-beforeEach((testContext) => {
-  assert.ok("mock" in testContext);
-  testTime += 60_001;
-  testContext.mock.method(Date, "now", () => testTime);
-});
+useFreshDnsCacheWindow();
 
 const context: PlexPmsRequestContext = {
   baseUrl: "http://plex.example.test:32400",

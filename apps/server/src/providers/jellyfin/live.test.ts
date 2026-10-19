@@ -1,21 +1,25 @@
-import {
-  TEST_JELLYFIN_BASE_URL,
-  TEST_PUBLIC_ADDRESS,
-  mockProviderDns,
-} from "@/test/providerFixtures";
 import assert from "node:assert/strict";
-import dns from "node:dns/promises";
 import type { LookupAddress } from "node:dns";
-import { syncBuiltinESMExports } from "node:module";
+import dns from "node:dns/promises";
 import { createServer } from "node:http";
+import { syncBuiltinESMExports } from "node:module";
 import type { Duplex } from "node:stream";
 import test from "node:test";
 import { setImmediate } from "node:timers/promises";
-import type { MediaSource } from "@/db/mediaSourcesRepository";
-import { createDeferred } from "@/test/deferred";
-import { acceptTestWebSocket } from "@/test/webSocketFixtures";
 
-function createSource(baseUrl: string): MediaSource {
+import type { MediaSourceRecord } from "@/db/mediaSourcesRepository";
+import { createDeferred } from "#test/deferred";
+import {
+  mockProviderDns,
+  TEST_JELLYFIN_BASE_URL,
+  TEST_PUBLIC_ADDRESS,
+  useFreshDnsCacheWindow,
+} from "#test/providerFixtures";
+import { acceptTestWebSocket } from "#test/webSocketFixtures";
+
+const expireDnsCache = useFreshDnsCacheWindow();
+
+function createSource(baseUrl: string): MediaSourceRecord {
   return {
     id: "source",
     providerId: "jellyfin",
@@ -247,7 +251,7 @@ void test(
 );
 
 void test(
-  "cancelling Jellyfin live startup interrupts WebSocket DNS validation",
+  "cancelling Jellyfin live startup interrupts expired-cache WebSocket DNS validation",
   { timeout: 1000 },
   async (context) => {
     const { watchCurrentlyPlaying } = await import("@/providers/jellyfin/live");
@@ -272,6 +276,10 @@ void test(
       "fetch",
       async (input: Parameters<typeof fetch>[0], init?: RequestInit) => {
         fetchCalls++;
+        if (fetchCalls === 2) {
+          // Force the WebSocket validation to start a new, cancellable lookup.
+          expireDnsCache();
+        }
         const path = new URL(new Request(input, init).url).pathname;
         return Response.json(
           path === "/Users/Me"

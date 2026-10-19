@@ -1,27 +1,31 @@
-import { notifyPlaybackStateChange } from "@/playback/stateChanges";
 import { randomUUID } from "node:crypto";
+
+import type { MediaSource } from "@cliparr/shared/providers";
 import { and, asc, eq, type SQL } from "drizzle-orm";
+
 import { getDatabase } from "@/db/database";
-import { mediaSources, type MediaSourceRow } from "@/db/schema";
+import { type MediaSourceRow, mediaSources } from "@/db/schema";
 import { currentTimestampSql } from "@/db/timestamps";
+import { notifyPlaybackStateChange } from "@/playback/stateChanges";
 import { decryptJsonSecrets, encryptJsonSecrets } from "@/security/secrets";
 
-export interface MediaSource {
-  id: string;
-  providerId: string;
+/**
+Database shape of a media source. The shared wire contract is MediaSource;
+this record adds the secrets and internal ids that serializeSource strips
+before responding. Deriving from the wire type keeps the shared fields
+from drifting apart.
+*/
+export type MediaSourceRecord = Omit<
+  MediaSource,
+  "lastCheckedAt" | "lastError"
+> & {
   providerAccountId: string;
   externalId?: string;
-  name: string;
-  enabled: boolean;
-  baseUrl: string;
   connection: Record<string, unknown>;
   credentials: Record<string, unknown>;
-  metadata: Record<string, unknown>;
   lastCheckedAt?: string;
   lastError?: string;
-  createdAt: string;
-  updatedAt: string;
-}
+};
 
 interface CreateMediaSourceInput {
   providerId: string;
@@ -47,7 +51,7 @@ export interface UpdateMediaSourceInput {
   lastError?: string | null;
 }
 
-function mapMediaSource(row: MediaSourceRow): MediaSource {
+function mapMediaSource(row: MediaSourceRow): MediaSourceRecord {
   return {
     id: row.id,
     providerId: row.providerId,

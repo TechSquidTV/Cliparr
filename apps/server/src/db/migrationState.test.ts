@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { DatabaseSync } from "node:sqlite";
 import test from "node:test";
+
 import {
   prepareDatabaseForMigrations,
   V1_BASELINE_MIGRATION_NAME,

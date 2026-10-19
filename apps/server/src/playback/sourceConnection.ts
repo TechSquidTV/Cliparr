@@ -1,12 +1,13 @@
-import type { MediaSource } from "@/db/mediaSourcesRepository";
+import { logEventFields } from "@cliparr/shared/logging";
+import type { PlaybackSourceStatus } from "@cliparr/shared/providers";
+
+import type { MediaSourceRecord } from "@/db/mediaSourcesRepository";
+import { isApiError } from "@/http/errors";
+import { getServerLogger } from "@/logging";
 import type {
   PlaybackObserver,
   ProviderImplementation,
 } from "@/providers/types";
-import type { PlaybackSourceStatus } from "@cliparr/shared/providers";
-import { logEventFields } from "@cliparr/shared/logging";
-import { isApiError } from "@/http/errors";
-import { getServerLogger } from "@/logging";
 
 const logger = getServerLogger(["media", "discovery"]);
 const disconnectedMessage =
@@ -24,10 +25,11 @@ function apiFailure(error: unknown) {
     }
     current = current.cause;
   }
+  return;
 }
 
 export function startSourceConnection(options: {
-  source: MediaSource;
+  source: MediaSourceRecord;
   provider: ProviderImplementation | undefined;
   observer: PlaybackObserver;
   signal: AbortSignal;

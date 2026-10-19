@@ -1,7 +1,8 @@
+import type { ProviderSession } from "@cliparr/shared/providers";
 import { FolderOpen } from "lucide-react";
-import ProviderConnectFlow from "@/components/provider-connect/ProviderConnectFlow";
-import { primaryButtonClasses } from "@/components/ui/control-styles";
-import type { ProviderSession } from "@/providers/types";
+
+import ProviderConnectFlow from "#/components/provider-connect/ProviderConnectFlow";
+import { buttonClassName } from "#/components/ui/control-styles";
 
 interface Properties {
   onConnected: (session: ProviderSession) => Promise<void> | void;
@@ -51,7 +52,7 @@ export default function ProviderConnectScreen({
             <button
               type="button"
               onClick={onOpenLocalVideo}
-              className={`${primaryButtonClasses} min-h-11 shrink-0`}
+              className={`${buttonClassName()} min-h-11 shrink-0`}
             >
               <FolderOpen className="h-4 w-4" />
               Open Video

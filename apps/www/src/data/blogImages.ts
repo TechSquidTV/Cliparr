@@ -1,4 +1,5 @@
 import type { ImageMetadata } from "astro";
+
 import type { BlogHeroImageId } from "@/data/blog";
 
 const blogHeroImagePaths = {

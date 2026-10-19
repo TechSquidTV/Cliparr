@@ -1,12 +1,10 @@
-import {
-  TEST_JELLYFIN_BASE_URL,
-  useProviderFixtures,
-} from "@/test/providerFixtures";
 import assert from "node:assert/strict";
 import test from "node:test";
+
 import type { Request, Response } from "express";
-import type { MediaSource } from "@/db/mediaSourcesRepository";
-import type { ProviderSessionRecord } from "@/session/store";
+
+import type { MediaSourceRecord } from "@/db/mediaSourcesRepository";
+import { proxyMedia } from "@/providers/jellyfin/mediaProxy";
 import {
   createJellyfinPlaybackResolver,
   listCurrentlyPlaying,
@@ -17,18 +15,22 @@ import {
   buildPreviewPath,
   createJellyfinExportEstimateMetadata,
 } from "@/providers/jellyfin/selection";
-import {
-  deriveSelectedSubtitleTrack,
-  deriveSubtitleTracks,
-} from "@/providers/jellyfin/subtitles";
-import { proxyMedia } from "@/providers/jellyfin/mediaProxy";
 import type {
   JellyfinItem,
   JellyfinSessionInfo,
   JellyfinSourceContext,
   JellyfinUser,
 } from "@/providers/jellyfin/shared";
+import {
+  deriveSelectedSubtitleTrack,
+  deriveSubtitleTracks,
+} from "@/providers/jellyfin/subtitles";
 import { mediaHandleRequestUrl } from "@/providers/shared/mediaUrlPolicy";
+import type { ProviderSessionRecord } from "@/session/store";
+import {
+  TEST_JELLYFIN_BASE_URL,
+  useProviderFixtures,
+} from "#test/providerFixtures";
 
 let sessionIndex = 0;
 
@@ -55,7 +57,7 @@ function createContext(): JellyfinSourceContext {
   };
 }
 
-function createSource(): MediaSource {
+function createSource(): MediaSourceRecord {
   return {
     id: "source-1",
     providerId: "jellyfin",

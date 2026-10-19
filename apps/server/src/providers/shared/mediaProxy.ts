@@ -1,24 +1,19 @@
 import { Readable } from "node:stream";
 import { pipeline } from "node:stream/promises";
 import type { ReadableStream as WebReadableStream } from "node:stream/web";
+
+import { logEventFields, warnWithError } from "@cliparr/shared/logging";
 import type { Response } from "express";
-import { logEventFields } from "@cliparr/shared/logging";
+
 import { createApiError, isApiError } from "@/http/errors";
-import { getServerLogger, warnWithError } from "@/logging";
-import type { ProviderSessionRecord } from "@/session/store";
-import type { MediaHandle } from "@/providers/types";
+import { getServerLogger } from "@/logging";
 import {
-  isRedirectStatus,
-  removeSensitiveRedirectHeaders,
-} from "@/providers/shared/networkPolicy";
-import { fetchWithPinnedDns } from "@/providers/shared/pinnedFetch";
-import {
-  HLS_PROXY_RESPONSE_CACHE_MAX_BYTES,
   bufferProxyBody,
+  HLS_PROXY_RESPONSE_CACHE_MAX_BYTES,
   isHlsPlaylist,
   logHlsPlaylistFetch,
-  rewriteHlsPlaylist,
   type ProxyMediaResponseOptions,
+  rewriteHlsPlaylist,
 } from "@/providers/shared/hlsPlaylist";
 import {
   assertAllowedMediaHandleRequestUrl,
@@ -26,6 +21,13 @@ import {
   mediaHandleRequestUrl,
   sanitizeLoggedMediaPath,
 } from "@/providers/shared/mediaUrlPolicy";
+import {
+  isRedirectStatus,
+  removeSensitiveRedirectHeaders,
+} from "@/providers/shared/networkPolicy";
+import { fetchWithPinnedDns } from "@/providers/shared/pinnedFetch";
+import type { MediaHandle } from "@/providers/types";
+import type { ProviderSessionRecord } from "@/session/store";
 
 const logger = getServerLogger(["media", "proxy"]);
 

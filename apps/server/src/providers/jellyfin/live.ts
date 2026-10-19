@@ -1,21 +1,23 @@
+import type { MediaSourceRecord } from "@/db/mediaSourcesRepository";
 import { createApiError } from "@/http/errors";
-import type { MediaSource } from "@/db/mediaSourcesRepository";
-import type { PlaybackObserver } from "@/providers/types";
+import {
+  assertAllowedJellyfinServerUrl,
+  jellyfinHeaders,
+} from "@/providers/jellyfin/http";
 import {
   createJellyfinPlaybackResolver,
   jellyfinPlaybackIdentity,
   visibleJellyfinSessions,
 } from "@/providers/jellyfin/playback";
 import {
-  assertAllowedJellyfinServerUrl,
   fetchCurrentUser,
   fetchPublicSystemInfo,
   fetchSessions,
-  jellyfinHeaders,
-  sourceContext,
   type JellyfinSessionInfo,
+  sourceContext,
 } from "@/providers/jellyfin/shared";
 import { readLiveWebSocket } from "@/providers/shared/liveWebSocket";
+import type { PlaybackObserver } from "@/providers/types";
 
 export function jellyfinSupportsLiveSessions(
   version: string,
@@ -26,7 +28,7 @@ export function jellyfinSupportsLiveSessions(
 }
 
 export async function watchCurrentlyPlaying(
-  source: MediaSource,
+  source: MediaSourceRecord,
   observer: PlaybackObserver,
   signal: AbortSignal,
 ) {

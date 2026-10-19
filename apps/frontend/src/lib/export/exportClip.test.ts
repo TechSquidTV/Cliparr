@@ -1,30 +1,30 @@
+import assert from "node:assert/strict";
+import test from "node:test";
+
+import type { Palette } from "@techsquidtv/gifenc";
+import type { ConversionOptions } from "mediabunny";
+import { MP4 } from "mediabunny";
+
+import type { EditorMediaSource } from "@/components/editor/editorMedia";
+/// <reference types="node" />
+import { resolveExportAudioPlan } from "@/lib/export/exportAudio";
+import {
+  exportClipWithRuntime,
+  type ExportVideoEncodingPlan,
+} from "@/lib/export/exportClip";
+import { buildMetadataTags } from "@/lib/export/exportMetadata";
+import { gifExportSettingsForPreset } from "@/lib/export/exportTypes";
+import { createGifCanvas } from "@/lib/export/gif/gifCanvas";
+import type { EncodeGifFrameChunkHelpers } from "@/lib/export/gif/gifFrameChunk";
+import { concatenateGifFrameChunks } from "@/lib/export/gif/gifFrameChunk";
+import { createInlineGifFrameEncoder } from "@/lib/export/gif/gifFrameEncoder";
+import { getTrackTimelineOffsetSeconds } from "@/lib/export/mediabunny/mediabunnyTrackAccess";
+import type { SubtitleStyleSettings } from "@/lib/subtitles/types";
 import { createDeferred } from "#/lib/export/deferred.test-support";
 import {
   createIncompleteSourceAudioError,
   isIncompleteSourceAudioError,
 } from "#/lib/export/exportSourceAudio";
-/// <reference types="node" />
-
-import { resolveExportAudioPlan } from "@/lib/export/exportAudio";
-import { buildMetadataTags } from "@/lib/export/exportMetadata";
-
-import assert from "node:assert/strict";
-import test from "node:test";
-import { MP4 } from "mediabunny";
-import type { ConversionOptions } from "mediabunny";
-import type { Palette } from "@techsquidtv/gifenc";
-import {
-  createGifCanvas,
-  exportClipWithRuntime,
-  type ExportVideoEncodingPlan,
-} from "@/lib/export/exportClip";
-import type { EditorMediaSource } from "@/components/editor/editorMedia";
-import { gifExportSettingsForPreset } from "@/lib/export/exportTypes";
-import { createInlineGifFrameEncoder } from "@/lib/export/gif/gifFrameEncoder";
-import { concatenateGifFrameChunks } from "@/lib/export/gif/gifFrameChunk";
-import type { EncodeGifFrameChunkHelpers } from "@/lib/export/gif/gifFrameChunk";
-import type { SubtitleStyleSettings } from "@/lib/subtitles/types";
-import { getTrackTimelineOffsetSeconds } from "@/lib/export/mediabunny/mediabunnyTrackAccess";
 
 type ExportRuntime = Parameters<typeof exportClipWithRuntime>[1];
 type CliparrInput = Awaited<
@@ -277,6 +277,26 @@ function createConversion({
     },
   } as unknown as ConversionResult;
 }
+
+void test("rejects a direct file destination for the buffered GIF encoder", async () => {
+  const context = createRuntime();
+  await assert.rejects(
+    exportClipWithRuntime(
+      {
+        mediaSource,
+        outputFile: { name: "clip.gif" } as FileSystemFileHandle,
+        format: "gif",
+        resolution: "original",
+        mode: "video-only",
+        startTime: 0,
+        endTime: 1,
+        onProgress: () => {},
+      },
+      context.runtime,
+    ),
+    /Direct-to-disk GIF export is unavailable/,
+  );
+});
 
 for (const format of ["mp4", "gif"] as const) {
   void test(`preserves the editor timeline origin for ${format} after a live window advances`, async () => {
@@ -848,7 +868,6 @@ void test("exports GIF frames through the browser encoder path", async () => {
   }> = [];
   const writtenFrames: Array<{
     delay?: number;
-    first?: boolean;
     height: number;
     width: number;
   }> = [];
@@ -880,11 +899,10 @@ void test("exports GIF frames through the browser encoder path", async () => {
         _index: Uint8Array,
         width: number,
         height: number,
-        options?: { delay?: number; first?: boolean },
+        options?: { delay?: number },
       ) => {
         writtenFrames.push({
           delay: options?.delay,
-          first: options?.first,
           height,
           width,
         });
@@ -987,13 +1005,11 @@ void test("exports GIF frames through the browser encoder path", async () => {
   assert.deepEqual(writtenFrames, [
     {
       delay: 1000 / gifSettings.frameRate,
-      first: true,
       height: 4,
       width: 4,
     },
     {
       delay: 1000 / gifSettings.frameRate,
-      first: false,
       height: 4,
       width: 4,
     },

@@ -6,7 +6,8 @@ import type {
   PlaybackSource,
   PlaybackSubtitleSelection,
   PlaybackSubtitleTrack,
-} from "#/providers/types";
+} from "@cliparr/shared/providers";
+
 import { isHlsPlaylistUrl } from "#/lib/export/mediabunny/mediabunnyInput";
 
 const LOCAL_PROVIDER_ID = "local";

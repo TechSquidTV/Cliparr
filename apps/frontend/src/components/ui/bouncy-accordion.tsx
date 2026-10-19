@@ -19,10 +19,11 @@
  * SOFTWARE.
  */
 import { ChevronDown } from "lucide-react";
-import { motion, useReducedMotion, type Transition } from "motion/react";
-import { useId, useState, type ReactNode } from "react";
-import { cliparrMotionTransitions } from "@/lib/motion";
+import { motion, type Transition, useReducedMotion } from "motion/react";
+import { type ReactNode, useId, useState } from "react";
+
 import { cn } from "@/lib/cn";
+import { cliparrMotionTransitions } from "@/lib/motion";
 
 interface BouncyAccordionItem {
   id: string;

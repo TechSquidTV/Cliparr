@@ -2,6 +2,12 @@
 
 import assert from "node:assert/strict";
 import test from "node:test";
+
+import {
+  framegrabExtensionFor,
+  framegrabFormatOptionFor,
+  framegrabImageFormatOptions,
+} from "@/lib/export/exportFormats";
 import {
   DEFAULT_FRAMEGRAB_IMAGE_QUALITY,
   encodeFramegrabCanvas,
@@ -9,11 +15,6 @@ import {
   framegrabMimeTypeFor,
   framegrabQualityOptionFor,
 } from "@/lib/framegrab";
-import {
-  framegrabExtensionFor,
-  framegrabFormatOptionFor,
-  framegrabImageFormatOptions,
-} from "@/lib/export/exportFormats";
 
 type ToBlobCallback = (blob: Blob | null) => void;
 

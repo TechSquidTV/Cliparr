@@ -1,6 +1,9 @@
 import "@/config/loadEnv";
+
 import path from "node:path";
+
 import { defineConfig } from "drizzle-kit";
+
 import { resolveConfiguredDataDir, workspaceRoot } from "@/config/loadEnv";
 
 const configuredDataDir = process.env.CLIPARR_DATA_DIR?.trim();

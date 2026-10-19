@@ -1,11 +1,12 @@
-import { Spinner } from "@/components/ui/spinner";
 import { ArrowLeft, Download } from "lucide-react";
+
+import { editorIconButtonClassName } from "@/components/ui/control-styles";
+import { Spinner } from "@/components/ui/spinner";
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { editorIconButtonClassName } from "@/components/ui/control-styles";
 
 interface EditorHeaderProperties {
   title: string;

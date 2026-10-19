@@ -1,4 +1,12 @@
-import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
+import {
+  fromSeconds,
+  type TimelineEngine,
+  TimelineProvider,
+  toSeconds,
+  useTimelinePlayback,
+  useTimelineViewport,
+  useTimelineZoomControl,
+} from "@techsquidtv/canvas-timeline";
 import {
   lazy,
   Suspense,
@@ -8,69 +16,62 @@ import {
   useRef,
   useState,
 } from "react";
+
+import { EditorControls } from "@/components/editor/EditorControls";
 import {
-  TimelineProvider,
-  fromSeconds,
-  toSeconds,
-  useTimelinePlayback,
-  useTimelineZoomControl,
-  useTimelineViewport,
-  type TimelineEngine,
-} from "@techsquidtv/canvas-timeline";
-import {
-  clampClipEndTime,
-  clampClipStartTime,
-  clampPlaybackTime,
-} from "@/components/editor/editorUtilities";
-import {
-  EDITOR_LARGE_SEEK_SECONDS,
-  EDITOR_SMALL_SEEK_SECONDS,
-  resolveRelativeSeekTime,
-} from "@/components/editor/editorShortcutCommands";
-import type { PlaybackFallbackInfo } from "@/components/editor/editorPlaybackSources";
-import { useEditorAssetCapture } from "@/components/editor/useEditorAssetCapture";
-import { useEditorExport } from "@/components/editor/useEditorExport";
-import { useEditorKeyboardShortcuts } from "@/components/editor/useEditorKeyboardShortcuts";
-import { useEditorTimelineMedia } from "@/components/editor/useEditorTimelineMedia";
-import {
-  createEditorTimelineEngine,
-  synchronizeEditorTimelineSession,
-} from "@/components/editor/editorTimelineEngine";
-import {
+  type EditorDraft,
   editorDraftIdentity,
   editorDrafts,
-  type EditorDraft,
 } from "@/components/editor/editorDrafts";
-import { useEditorDraft } from "@/components/editor/useEditorDraft";
-import {
-  EDITOR_MAX_ZOOM_SCALE,
-  zoomEditorTimeline,
-} from "@/components/editor/editorTimelineZoom";
 import { EditorEditingTools } from "@/components/editor/EditorEditingTools";
 import { EditorHeader } from "@/components/editor/EditorHeader";
-import { EditorPreview } from "@/components/editor/EditorPreview";
-import { EditorSubtitlePreview } from "@/components/editor/EditorSubtitlePreview";
-import { EditorControls } from "@/components/editor/EditorControls";
-import { EditorPlaybackSourceControl } from "@/components/editor/EditorPlaybackSourceControl";
-import { EditorTimeline } from "@/components/editor/EditorTimeline";
-import { EditorSubtitlePanel } from "@/components/editor/EditorSubtitlePanel";
-import { EDITOR_DESKTOP_LAYOUT_QUERY } from "@/components/editor/editorLayoutSizing";
 import {
   EditorDesktopLayout,
   EditorMobileLayout,
   EditorPreviewPane,
   EditorTimelinePane,
 } from "@/components/editor/EditorLayout";
-import { useEditorFramegrab } from "@/components/editor/useEditorFramegrab";
-import { useEditorSubtitles } from "@/components/editor/useEditorSubtitles";
+import { EDITOR_DESKTOP_LAYOUT_QUERY } from "@/components/editor/editorLayoutSizing";
+import {
+  type EditorSession,
+  sourceDisplayLabel,
+} from "@/components/editor/editorMedia";
+import { EditorPlaybackSourceControl } from "@/components/editor/EditorPlaybackSourceControl";
+import type { PlaybackFallbackInfo } from "@/components/editor/editorPlaybackSources";
+import { EditorPreview } from "@/components/editor/EditorPreview";
+import {
+  EDITOR_LARGE_SEEK_SECONDS,
+  EDITOR_SMALL_SEEK_SECONDS,
+  resolveRelativeSeekTime,
+} from "@/components/editor/editorShortcutCommands";
 import {
   loadEditorPropertiesOpenSections,
   saveEditorPropertiesOpenSections,
 } from "@/components/editor/editorSidebarPreferences";
+import { EditorSubtitlePanel } from "@/components/editor/EditorSubtitlePanel";
+import { EditorSubtitlePreview } from "@/components/editor/EditorSubtitlePreview";
+import { EditorTimeline } from "@/components/editor/EditorTimeline";
 import {
-  sourceDisplayLabel,
-  type EditorSession,
-} from "@/components/editor/editorMedia";
+  createEditorTimelineEngine,
+  synchronizeEditorTimelineSession,
+} from "@/components/editor/editorTimelineEngine";
+import {
+  EDITOR_MAX_ZOOM_SCALE,
+  zoomEditorTimeline,
+} from "@/components/editor/editorTimelineZoom";
+import {
+  clampClipEndTime,
+  clampClipStartTime,
+  clampPlaybackTime,
+} from "@/components/editor/editorUtilities";
+import { useEditorAssetCapture } from "@/components/editor/useEditorAssetCapture";
+import { useEditorDraft } from "@/components/editor/useEditorDraft";
+import { useEditorExport } from "@/components/editor/useEditorExport";
+import { useEditorFramegrab } from "@/components/editor/useEditorFramegrab";
+import { useEditorKeyboardShortcuts } from "@/components/editor/useEditorKeyboardShortcuts";
+import { useEditorSubtitles } from "@/components/editor/useEditorSubtitles";
+import { useEditorTimelineMedia } from "@/components/editor/useEditorTimelineMedia";
+import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
 import { EDITOR_THUMBNAIL_VIEW_TRANSITION_NAME } from "@/lib/viewTransitions";
 
 const EditorExportDialog = lazy(() =>
@@ -184,6 +185,7 @@ function EditorScreenContent({
     confirmSubtitleTrackChange,
     cancelSubtitleTrackChange,
     history: editHistory,
+    commitText: commitSubtitleText,
   } = subtitles;
   const draft = useEditorDraft({
     engine,
@@ -319,7 +321,7 @@ function EditorScreenContent({
   }, [exportDialogOpen]);
 
   const { viewportWidth, setZoomScale, setScrollLeft } = useTimelineViewport();
-  const handleFitSelection = () => {
+  const handleFitSelection = useCallback(() => {
     if (viewportWidth <= 0 || endTime <= startTime) {
       return;
     }
@@ -330,7 +332,7 @@ function EditorScreenContent({
     );
     setZoomScale(scale);
     setScrollLeft(Math.max(0, startTime * scale - padding));
-  };
+  }, [endTime, setScrollLeft, setZoomScale, startTime, viewportWidth]);
   useEditorAssetCapture({
     engine,
     media: timelineMedia,
@@ -490,6 +492,11 @@ function EditorScreenContent({
       }
     },
   });
+  const { openDialog: openFramegrabDialog } = framegrab;
+  const handleFramegrabClick = useCallback(() => {
+    commitSubtitleText();
+    openFramegrabDialog();
+  }, [commitSubtitleText, openFramegrabDialog]);
   const isDesktopLayout = useEditorDesktopLayout();
 
   const durationExportDisabledReason = hasDuration
@@ -551,10 +558,7 @@ function EditorScreenContent({
       handleTimelineZoomOut={handleTimelineZoomOut}
       canZoomIn={canZoomIn}
       canZoomOut={canZoomOut}
-      onFramegrabClick={() => {
-        subtitles.commitText();
-        framegrab.openDialog();
-      }}
+      onFramegrabClick={handleFramegrabClick}
       framegrabDisabledReason={framegrab.disabledReason}
       onPreviewTimeCommit={handlePreviewTimeCommit}
       onStartTimeCommit={handleStartTimeCommit}
@@ -569,7 +573,7 @@ function EditorScreenContent({
       engine={engine}
       ready={hasDuration}
       subtitleLoading={subtitleLoading}
-      onInteractionStart={subtitles.commitText}
+      onInteractionStart={commitSubtitleText}
       canAddSubtitle={subtitles.canAddSubtitle}
       onAddSubtitle={subtitles.addSubtitle}
       onSubtitleVisibilityChange={setSubtitleEnabled}
@@ -647,7 +651,7 @@ function EditorScreenContent({
         progress={progress}
         exportDisabledReason={headerExportDisabledReason}
         onExportClick={() => {
-          subtitles.commitText();
+          commitSubtitleText();
           handleOpenExportDialog();
         }}
       />
@@ -753,6 +757,7 @@ function EditorScreenContent({
       )}
 
       {framegrab.dialogMounted &&
+        // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- An empty error should not mount the framegrab dialog.
         (framegrab.capturedFramegrab || framegrab.error) && (
           <Suspense fallback={null}>
             <EditorFramegrabDialog

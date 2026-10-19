@@ -5,7 +5,9 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import test from "node:test";
+
 import { eq, sql } from "drizzle-orm";
+
 import { closeDatabase, getDatabase, initializeDatabase } from "@/db/database";
 import { upsertProviderAccountByAccessToken } from "@/db/providerAccountsRepository";
 import {
@@ -15,8 +17,10 @@ import {
   revokeRememberedProviderSession,
   rotateRememberedProviderSession,
 } from "@/db/rememberedProviderSessionsRepository";
+import { providerSessions, rememberedProviderSessions } from "@/db/schema";
+import { subscribePlaybackStateChanges } from "@/playback/stateChanges";
+import { createProviderMediaHandle } from "@/providers/shared/mediaHandles";
 import { REMEMBERED_PROVIDER_SESSION_TTL_MS } from "@/session/constants";
-import { rememberedProviderSessions, providerSessions } from "@/db/schema";
 import {
   createProviderSession,
   getProviderSession,
@@ -26,8 +30,6 @@ import {
   purgeExpiredSessions,
   startExpiredSessionSweep,
 } from "@/session/sweep";
-import { subscribePlaybackStateChanges } from "@/playback/stateChanges";
-import { createProviderMediaHandle } from "@/providers/shared/mediaHandles";
 
 const TEST_APP_KEY = "remembered-session-test-key-with-32-characters";
 

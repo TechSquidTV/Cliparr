@@ -1,9 +1,10 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
+
 import {
   createEditorDraftStore,
-  editorDraftIdentity,
   type EditorDraft,
+  editorDraftIdentity,
 } from "@/components/editor/editorDrafts";
 import {
   buildLocalEditorSession,

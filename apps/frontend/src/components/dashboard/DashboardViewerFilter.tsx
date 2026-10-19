@@ -1,17 +1,18 @@
-import { EmptyState } from "@/components/ui/empty-state";
-import { textInputClasses } from "@/components/ui/control-styles";
 import { Popover } from "@base-ui/react/popover";
 import { Check, ChevronDown, Search, Users, X } from "lucide-react";
 import { motion, useReducedMotion } from "motion/react";
 import { useState } from "react";
+
 import {
-  sanitizeDashboardViewerFilterNames,
   type DashboardViewerFilterOption,
-} from "@/components/dashboard/dashboardPlaybackItems";
-import { DashboardViewerAvatar } from "@/components/dashboard/DashboardViewerAvatar";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { cliparrMotionTransitions } from "@/lib/motion";
-import { cn } from "@/lib/cn";
+  sanitizeDashboardViewerFilterNames,
+} from "#/components/dashboard/dashboardPlaybackItems";
+import { DashboardViewerAvatar } from "#/components/dashboard/DashboardViewerAvatar";
+import { textInputClassName } from "#/components/ui/control-styles";
+import { EmptyState } from "#/components/ui/empty-state";
+import { ScrollArea } from "#/components/ui/scroll-area";
+import { cn } from "#/lib/cn";
+import { motionTransitionFor } from "#/lib/motion";
 
 const DASHBOARD_VIEWER_FILTER_TRIGGER_VISIBLE_AVATAR_COUNT = 2;
 
@@ -131,9 +132,7 @@ export function DashboardViewerFilterPicker({
   const reduceMotion = useReducedMotion();
   const microHover = reduceMotion ? undefined : { y: -1 };
   const microTap = reduceMotion ? undefined : { scale: 0.985 };
-  const microTransition = reduceMotion
-    ? { duration: 0 }
-    : cliparrMotionTransitions.fast;
+  const microTransition = motionTransitionFor("fast", reduceMotion);
   const queryText = query.trim().toLowerCase();
   const filteredViewerOptions = queryText
     ? viewerOptions.filter((option) =>
@@ -219,7 +218,7 @@ export function DashboardViewerFilterPicker({
                 onChange={(event) => setQuery(event.target.value)}
                 placeholder="Search viewers"
                 className={cn(
-                  textInputClasses,
+                  textInputClassName(),
                   "pl-9 placeholder:text-muted-foreground",
                 )}
                 data-dashboard-viewer-filter-search

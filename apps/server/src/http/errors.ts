@@ -1,5 +1,6 @@
-import type { NextFunction, Request, Response } from "express";
 import { logErrorFields, logEventFields } from "@cliparr/shared/logging";
+import type { NextFunction, Request, Response } from "express";
+
 import { errorWithError, getServerLogger } from "@/logging";
 
 const logger = getServerLogger(["http", "error"]);
@@ -19,6 +20,14 @@ export function createApiError(
     status,
     code,
   });
+}
+
+export function throwNotAuthenticated(): never {
+  throw createApiError(
+    401,
+    "not_authenticated",
+    "Sign in with a provider first",
+  );
 }
 
 export function isApiError(error: unknown): error is ApiError {

@@ -1,29 +1,33 @@
-import { logErrorFields, sanitizeUrlForLog } from "@cliparr/shared/logging";
-import { getServerLogger, warnWithError } from "@/logging";
-import type { ProviderSessionRecord } from "@/session/store";
 import type { Tag } from "@cliparr/plex/pms/types";
 import { imageTranscodeUrl } from "@cliparr/plex/pms/urls";
-import type { MediaExportMetadata } from "@/providers/types";
-import { parseExternalIds } from "@cliparr/shared/external-ids";
 import {
-  asArray,
-  buildEpisodeSourceTitle,
-  normalizeRating,
-  numberValue,
-  stringValue,
-  uniqueStrings,
-} from "@/providers/shared/utilities";
-import {
-  fetchPmsMetadata,
-  type PlexSourceContext,
-} from "@/providers/plex/shared";
+  logErrorFields,
+  sanitizeUrlForLog,
+  warnWithError,
+} from "@cliparr/shared/logging";
+
+import { getServerLogger } from "@/logging";
+import { createMediaHandle } from "@/providers/plex/mediaHandles";
 import type { PlexMetadataItem } from "@/providers/plex/selection";
 import {
   itemTypeValue,
   mergePlaybackMetadata,
   metadataId,
 } from "@/providers/plex/selection";
-import { createMediaHandle } from "@/providers/plex/mediaHandles";
+import {
+  fetchPmsMetadata,
+  type PlexSourceContext,
+} from "@/providers/plex/shared";
+import { buildMediaExportMetadata } from "@/providers/shared/exportMetadata";
+import {
+  asArray,
+  normalizeRating,
+  numberValue,
+  stringValue,
+  uniqueStrings,
+} from "@/providers/shared/utilities";
+import type { MediaExportMetadata } from "@/providers/types";
+import type { ProviderSessionRecord } from "@/session/store";
 
 const logger = getServerLogger(["provider", "plex", "playback"]);
 
@@ -102,22 +106,6 @@ function metadataHdImagePath(
   });
 }
 
-function buildSourceTitle(item: PlexMetadataItem) {
-  const title = stringValue(item?.title);
-  if (itemTypeValue(item) !== "episode") {
-    return title;
-  }
-
-  return (
-    buildEpisodeSourceTitle({
-      title,
-      seriesTitle: stringValue(item.grandparentTitle),
-      seasonNumber: numberValue(item.parentIndex),
-      episodeNumber: numberValue(item.index),
-    }) ?? title
-  );
-}
-
 export async function enrichPlaybackItems(
   context: PlexSourceContext,
   items: PlexMetadataItem[],
@@ -169,11 +157,11 @@ export function createExportMetadata(
   const guid = stringValue(item?.guid);
   const guids = uniqueStrings([guid, ...tagValues(item?.Guid)]);
 
-  return {
+  return buildMediaExportMetadata({
+    isEpisode: itemTypeValue(item) === "episode",
     providerId: "plex",
     itemType: stringValue(item?.type) ?? "video",
     title: stringValue(item?.title),
-    sourceTitle: buildSourceTitle(item),
     showTitle: stringValue(item?.grandparentTitle),
     seasonTitle: stringValue(item?.parentTitle),
     seasonNumber: numberValue(item?.parentIndex),
@@ -188,9 +176,8 @@ export function createExportMetadata(
     genres: tagValues(item?.Genre),
     directors: tagValues(item?.Director),
     writers: tagValues(item?.Writer),
-    actors: tagValues(item?.Role).slice(0, 12),
+    actors: tagValues(item?.Role),
     guids,
-    externalIds: parseExternalIds(guids),
     criticRating: normalizeRating(item?.rating),
     audienceRating: normalizeRating(item?.audienceRating),
     ratingKey: stringValue(item?.ratingKey),
@@ -199,5 +186,5 @@ export function createExportMetadata(
           generatedOperation: true,
         })
       : undefined,
-  };
+  });
 }

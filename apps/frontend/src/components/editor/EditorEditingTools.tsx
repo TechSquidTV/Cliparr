@@ -1,4 +1,3 @@
-import { useRef, useState, type ReactNode } from "react";
 import {
   Keyboard,
   MoreHorizontal,
@@ -6,20 +5,12 @@ import {
   RotateCcw,
   Undo2,
 } from "lucide-react";
-import { DialogWindow } from "@/components/ui/dialog";
-import {
-  compactSecondaryButtonClasses,
-  iconButtonClasses,
-  primaryButtonClasses,
-  secondaryButtonClasses,
-} from "@/components/ui/control-styles";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
-import type { useEditorHistory } from "@/components/editor/useEditorHistory";
-import type { EditorLayoutVariant } from "@/components/editor/EditorLayout";
+import { type ReactNode, useRef, useState } from "react";
+
+import type { EditorLayoutVariant } from "#/components/editor/EditorLayout";
+import type { useEditorHistory } from "#/components/editor/useEditorHistory";
+import { buttonClassName } from "#/components/ui/control-styles";
+import { DialogWindow } from "#/components/ui/dialog";
 import {
   Drawer,
   DrawerContent,
@@ -27,7 +18,12 @@ import {
   DrawerHeader,
   DrawerTitle,
   DrawerTrigger,
-} from "@/components/ui/drawer";
+} from "#/components/ui/drawer";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "#/components/ui/tooltip";
 
 const shortcuts = [
   ["Play / pause", "Space"],
@@ -63,7 +59,7 @@ export function EditorEditingTools({
   const cancelResetReference = useRef<HTMLButtonElement>(null);
   const menuTriggerReference = useRef<HTMLButtonElement>(null);
   const mobile = variant === "mobile";
-  const historyButtonClassName = `${compactSecondaryButtonClasses} ${mobile ? "min-h-11 w-11 p-0" : ""}`;
+  const historyButtonClassName = `${buttonClassName({ tone: "secondary", size: "compact" })} ${mobile ? "min-h-11 w-11 p-0" : ""}`;
   const shortcutsButton = (
     <button
       type="button"
@@ -71,7 +67,7 @@ export function EditorEditingTools({
         setMenuOpen(false);
         setHelpOpen(true);
       }}
-      className={`${compactSecondaryButtonClasses} ${mobile ? "m-3 min-h-11" : ""}`}
+      className={`${buttonClassName({ tone: "secondary", size: "compact" })} ${mobile ? "m-3 min-h-11" : ""}`}
     >
       <Keyboard className="h-4 w-4" /> Shortcuts
     </button>
@@ -86,8 +82,8 @@ export function EditorEditingTools({
             disabled={resetDisabled}
             className={
               mobile
-                ? `${compactSecondaryButtonClasses} mx-3 mb-3 min-h-11`
-                : iconButtonClasses
+                ? `${buttonClassName({ tone: "secondary", size: "compact" })} mx-3 mb-3 min-h-11`
+                : buttonClassName({ tone: "icon", size: "icon" })
             }
             onClick={() => {
               setMenuOpen(false);
@@ -109,7 +105,7 @@ export function EditorEditingTools({
       <button
         ref={cancelResetReference}
         type="button"
-        className={`${secondaryButtonClasses} ${mobile ? "min-h-11" : ""}`}
+        className={`${buttonClassName({ tone: "secondary" })} ${mobile ? "min-h-11" : ""}`}
         onClick={() => setResetOpen(false)}
       >
         Cancel
@@ -117,7 +113,7 @@ export function EditorEditingTools({
       <button
         type="button"
         disabled={resetDisabled}
-        className={`${primaryButtonClasses} ${mobile ? "min-h-11" : ""}`}
+        className={`${buttonClassName()} ${mobile ? "min-h-11" : ""}`}
         onClick={() => {
           setResetOpen(false);
           onResetDraft();

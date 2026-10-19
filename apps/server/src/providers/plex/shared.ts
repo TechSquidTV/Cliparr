@@ -1,19 +1,14 @@
-import type { Resource } from "@cliparr/plex/cloud/types";
 import { randomUUID } from "node:crypto";
-import type { MediaSource } from "@/db/mediaSourcesRepository";
+
+import type { Resource } from "@cliparr/plex/cloud/types";
+
+import type { MediaSourceRecord } from "@/db/mediaSourcesRepository";
 import { createApiError } from "@/http/errors";
 import {
-  assertHttpUrl,
-  errorMessage,
-  numberValue,
-  stringValue,
-} from "@/providers/shared/utilities";
-import type { ProviderResource } from "@/providers/types";
-import {
-  plexBaseUrlMode,
   PLEX_BASE_URL_MODE_AUTO,
   PLEX_BASE_URL_MODE_MANUAL,
   type PlexBaseUrlMode,
+  plexBaseUrlMode,
 } from "@/providers/plex/connectionState";
 import {
   plexPmsResponseStatusMessage,
@@ -21,6 +16,14 @@ import {
   requestPlexPmsIdentity,
   requestPlexPmsMetadata,
 } from "@/providers/plex/pmsClient";
+import { connectionRank } from "@/providers/shared/connections";
+import {
+  assertHttpUrl,
+  errorMessage,
+  numberValue,
+  stringValue,
+} from "@/providers/shared/utilities";
+import type { ProviderResource } from "@/providers/types";
 
 export const PLEX_PRODUCT = "Cliparr";
 export const PLEX_CLIENT_IDENTIFIER =
@@ -141,16 +144,6 @@ export function requirePlexServerResources(resources: ProviderResource[]) {
   );
 }
 
-function connectionRank(connection: ProviderResource["connections"][number]) {
-  if (connection.local && !connection.relay) {
-    return 0;
-  }
-  if (!connection.relay) {
-    return 1;
-  }
-  return 2;
-}
-
 function orderedConnections(
   resource: ProviderResource,
   preferredConnectionId: string,
@@ -187,7 +180,7 @@ export function unreachableConnectionMessage(
     : `Cliparr could not reach any discovered connection for ${resource.name}. Tried: ${failures.join("; ")}`;
 }
 
-function sourceConnections(source: MediaSource) {
+function sourceConnections(source: MediaSourceRecord) {
   const rawConnections: unknown[] = Array.isArray(source.connection.connections)
     ? source.connection.connections
     : [];
@@ -226,7 +219,7 @@ function manualConnectionId(sourceId: string) {
   return `manual-base-url:${sourceId}`;
 }
 
-function manualConnection(source: MediaSource) {
+function manualConnection(source: MediaSourceRecord) {
   if (plexBaseUrlMode(source.connection) !== PLEX_BASE_URL_MODE_MANUAL) {
     return;
   }
@@ -250,7 +243,7 @@ function manualConnection(source: MediaSource) {
   };
 }
 
-export function sourceResource(source: MediaSource) {
+export function sourceResource(source: MediaSourceRecord) {
   const accessToken = stringValue(source.credentials.accessToken);
   if (!accessToken) {
     throw createApiError(
@@ -325,7 +318,7 @@ export function sourceResource(source: MediaSource) {
   };
 }
 
-export function sourceSupportsCurrentlyPlaying(source: MediaSource) {
+export function sourceSupportsCurrentlyPlaying(source: MediaSourceRecord) {
   return (
     source.metadata.owned === true &&
     normalizeProvides(source.metadata.provides).includes("server")

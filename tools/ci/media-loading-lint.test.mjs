@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
-import { fileURLToPath } from "node:url";
 import test from "node:test";
+import { fileURLToPath } from "node:url";
+
 import { ESLint } from "eslint";
 import tseslint from "typescript-eslint";
 
@@ -13,12 +14,21 @@ const eslint = new ESLint({
 });
 const ui = "apps/frontend/src/components/editor/editorPlaybackSources.ts";
 const loader = "apps/frontend/src/lib/export/mediabunny/mediabunnyCodecs.ts";
+const gifLoader = "apps/frontend/src/lib/export/gif/gifEncodingRuntime.ts";
 const gif = "apps/frontend/src/lib/export/gif/gifFrameEncoder.ts";
 const execution = "apps/frontend/src/lib/export/exportClip.ts";
 const fixture = "apps/frontend/src/lib/mediaLoadingFixtures.test-support.ts";
 const unit = "apps/frontend/src/lib/export/mediabunny/mediabunnyCodecs.test.ts";
-const converter = "apps/frontend/src/convert.ts";
+const converter = "apps/frontend/src/convert/engine.ts";
+const converterUi = "apps/frontend/src/convert/ui.ts";
 const cases = [];
+for (const entry of ["engine", "ui", "components", "engine/internal", ""]) {
+  cases.push({
+    file: converter,
+    code: `import "@cliparr/frontend/convert${entry ? `/${entry}` : ""}";`,
+    restricted: !["engine", "ui"].includes(entry),
+  });
+}
 for (const name of [
   "@mediabunny/ac3",
   "@mediabunny/future-codec",
@@ -74,6 +84,21 @@ for (const alias of ["#", "@"]) {
     );
   }
 }
+for (const code of [
+  'import "@techsquidtv/gifenc";',
+  'export * from "@techsquidtv/gifenc";',
+  'export { value } from "@techsquidtv/gifenc";',
+  'import { type Value, value } from "@techsquidtv/gifenc";',
+]) {
+  cases.push({ file: gifLoader, code, restricted: true });
+}
+for (const code of [
+  'import type { Value } from "@techsquidtv/gifenc";',
+  'export type { Value } from "@techsquidtv/gifenc";',
+  'import { type Value } from "@techsquidtv/gifenc";',
+]) {
+  cases.push({ file: gifLoader, code, restricted: false });
+}
 cases.push(
   { file: ui, code: 'import "@techsquidtv/gifenc";', restricted: true },
   { file: ui, code: 'void import("@techsquidtv/gifenc");', restricted: true },
@@ -82,11 +107,16 @@ cases.push(
     code: 'import type { Value } from "@techsquidtv/gifenc";',
     restricted: false,
   },
+  {
+    file: gifLoader,
+    code: 'void import("@techsquidtv/gifenc");',
+    restricted: false,
+  },
   { file: gif, code: 'import "@techsquidtv/gifenc";', restricted: false },
   {
     file: execution,
     code: 'void import("@techsquidtv/gifenc");',
-    restricted: false,
+    restricted: true,
   },
   { file: execution, code: 'import "@techsquidtv/gifenc";', restricted: true },
   { file: loader, code: 'import "./local";', restricted: true },
@@ -94,7 +124,12 @@ cases.push(
   { file: loader, code: 'import "@cliparr/server";', restricted: true },
   {
     file: converter,
-    code: 'import "./lib/export/exportTypes";',
+    code: 'import "../lib/export/exportTypes";',
+    restricted: false,
+  },
+  {
+    file: converterUi,
+    code: 'import "../components/ui/spinner";',
     restricted: false,
   },
 );

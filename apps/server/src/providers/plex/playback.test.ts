@@ -1,14 +1,23 @@
-import {
-  TEST_PLEX_BASE_URL,
-  useProviderFixtures,
-} from "@/test/providerFixtures";
-import type { MediaSource } from "@/db/mediaSourcesRepository";
+import assert from "node:assert/strict";
+import { once } from "node:events";
+import { PassThrough } from "node:stream";
+import test from "node:test";
+
+import type {
+  Request as ExpressRequest,
+  Response as ExpressResponse,
+} from "express";
+
+import type { MediaSourceRecord } from "@/db/mediaSourcesRepository";
+import { createMediaHandle } from "@/providers/plex/mediaHandles";
 import { proxyMedia } from "@/providers/plex/mediaProxy";
+import { createExportMetadata } from "@/providers/plex/metadata";
 import {
-  createPlexViewerAvatarUrl,
   createPlexPlaybackResolver,
+  createPlexViewerAvatarUrl,
   listCurrentlyPlaying,
 } from "@/providers/plex/playback";
+import type { PlexMetadataItem } from "@/providers/plex/selection";
 import {
   createCliparrPlexTranscodeSessionId,
   createPlexExportEstimateMetadata,
@@ -16,27 +25,20 @@ import {
   deriveMediaSelection,
   deriveSelectedAudioTrack,
   mergePlaybackMetadata,
-  resolveSelectedPart,
   playheadSecondsFromViewOffset,
+  resolveSelectedPart,
 } from "@/providers/plex/selection";
 import type { PlexSourceContext } from "@/providers/plex/shared";
-import { createExportMetadata } from "@/providers/plex/metadata";
-import { createMediaHandle } from "@/providers/plex/mediaHandles";
-import { mediaHandleRequestUrl } from "@/providers/shared/mediaUrlPolicy";
-import type { PlexMetadataItem } from "@/providers/plex/selection";
 import {
   deriveSelectedSubtitleTrack,
   deriveSubtitleTracks,
 } from "@/providers/plex/subtitles";
+import { mediaHandleRequestUrl } from "@/providers/shared/mediaUrlPolicy";
 import type { ProviderSessionRecord } from "@/session/store";
-import type {
-  Request as ExpressRequest,
-  Response as ExpressResponse,
-} from "express";
-import assert from "node:assert/strict";
-import { once } from "node:events";
-import { PassThrough } from "node:stream";
-import test from "node:test";
+import {
+  TEST_PLEX_BASE_URL,
+  useProviderFixtures,
+} from "#test/providerFixtures";
 
 function createSession(): ProviderSessionRecord {
   return {
@@ -58,7 +60,7 @@ function createContext(): PlexSourceContext {
   };
 }
 
-function createSource(): MediaSource {
+function createSource(): MediaSourceRecord {
   return {
     id: "source-1",
     providerId: "plex",

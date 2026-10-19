@@ -3,6 +3,9 @@ import type {
   HlsManifestBitrateBasis,
 } from "@/lib/export/exportTypes";
 
+// exec() always runs to exhaustion, resetting this shared pattern’s lastIndex.
+const attributePattern = /([\da-z-]+)=("[^"]*"|[^,]*)/gi;
+
 export interface HlsExportEstimateMetadata {
   bitrateKbps?: number;
   bitrateBasis?: HlsManifestBitrateBasis;
@@ -124,7 +127,6 @@ export function selectHlsExportEstimateMetadata(
 
 function parseHlsAttributes(value: string) {
   const attributes = new Map<string, string>();
-  const attributePattern = /([\da-z-]+)=("[^"]*"|[^,]*)/gi;
   let match: RegExpExecArray | null;
 
   while ((match = attributePattern.exec(value))) {

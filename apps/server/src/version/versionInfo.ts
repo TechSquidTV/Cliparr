@@ -3,9 +3,11 @@ import {
   logDurationFields,
   logErrorFields,
   logEventFields,
+  warnWithError,
 } from "@cliparr/shared/logging";
+
 import { resolveCliparrClientVersion } from "@/config/version";
-import { getServerLogger, warnWithError } from "@/logging";
+import { getServerLogger } from "@/logging";
 
 type VersionInfoStatus =
   "current" | "update_available" | "unknown" | "unavailable";
@@ -73,6 +75,7 @@ const logger = getServerLogger("lifecycle");
 
 function normalizeVersion(value: string | undefined) {
   const normalized = value?.trim();
+  // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- An empty configured version is missing.
   return normalized || undefined;
 }
 

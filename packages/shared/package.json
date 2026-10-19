@@ -31,5 +31,8 @@
       "types": "./src/assetCapture.ts",
       "default": "./src/assetCapture.ts"
     }
+  },
+  "dependencies": {
+    "@logtape/logtape": "^2.3.10"
   }
 }

@@ -1,14 +1,15 @@
-import { eq } from "drizzle-orm";
 import {
   compactLogFields,
   logDurationFields,
   logEventFields,
 } from "@cliparr/shared/logging";
+import { eq } from "drizzle-orm";
+
 import { getDatabase } from "@/db/database";
 import {
   deleteMediaSource,
   listMediaSources,
-  type MediaSource,
+  type MediaSourceRecord,
   updateMediaSource,
 } from "@/db/mediaSourcesRepository";
 import {
@@ -17,35 +18,35 @@ import {
   type ProviderAccount,
   updateProviderAccount,
 } from "@/db/providerAccountsRepository";
-import { currentTimestampSql } from "@/db/timestamps";
 import {
   mediaSources,
-  rememberedProviderSessions,
   providerSessions,
+  rememberedProviderSessions,
 } from "@/db/schema";
+import { currentTimestampSql } from "@/db/timestamps";
+import { getServerLogger } from "@/logging";
 import {
-  plexBaseUrlMode,
   PLEX_BASE_URL_MODE_MANUAL,
+  plexBaseUrlMode,
   withPlexBaseUrlMode,
 } from "@/providers/plex/connectionState";
 import {
-  plexSourceIdentity,
   type PlexSourceIdentity,
+  plexSourceIdentity,
 } from "@/providers/plex/sourceIdentity";
-import { getServerLogger } from "@/logging";
 import { invalidateProviderSessionCacheForAccounts } from "@/session/store";
 
 const PLEX_PROVIDER_ID = "plex";
 const logger = getServerLogger(["db"]);
 
 interface SourceIdentity {
-  source: MediaSource;
+  source: MediaSourceRecord;
   identity: PlexSourceIdentity;
 }
 
 interface DuplicateGroupPlan {
-  group: MediaSource[];
-  canonical: MediaSource;
+  group: MediaSourceRecord[];
+  canonical: MediaSourceRecord;
 }
 
 interface CleanupResult {
@@ -66,17 +67,17 @@ function timestampMs(value: string | undefined, fallback: number) {
   return Number.isFinite(parsed) ? parsed : fallback;
 }
 
-function sourceUsesManualPlexUrl(source: MediaSource) {
+function sourceUsesManualPlexUrl(source: MediaSourceRecord) {
   return plexBaseUrlMode(source.connection) === PLEX_BASE_URL_MODE_MANUAL;
 }
 
-function hasHealthHistory(source: MediaSource) {
+function hasHealthHistory(source: MediaSourceRecord) {
   return Boolean(source.lastCheckedAt);
 }
 
 function compareCanonicalSources(
-  left: MediaSource,
-  right: MediaSource,
+  left: MediaSourceRecord,
+  right: MediaSourceRecord,
   newlyAuthenticatedAccountId?: string,
 ) {
   const leftManual = sourceUsesManualPlexUrl(left);
@@ -147,7 +148,7 @@ function compareCanonicalAccounts(
   return left.id.localeCompare(right.id);
 }
 
-function latestUpdatedSource(sources: MediaSource[]) {
+function latestUpdatedSource(sources: MediaSourceRecord[]) {
   return sources.toSorted(
     (left, right) =>
       timestampMs(right.updatedAt, Number.NEGATIVE_INFINITY) -
@@ -163,7 +164,7 @@ function latestUpdatedAccount(accounts: ProviderAccount[]) {
   )[0];
 }
 
-function latestCheckedSource(sources: MediaSource[]) {
+function latestCheckedSource(sources: MediaSourceRecord[]) {
   return sources
     .filter((source) => source.lastCheckedAt)
     .toSorted(
@@ -174,8 +175,8 @@ function latestCheckedSource(sources: MediaSource[]) {
 }
 
 function mergeDataSource(
-  canonical: MediaSource,
-  sources: MediaSource[],
+  canonical: MediaSourceRecord,
+  sources: MediaSourceRecord[],
   newlyAuthenticatedAccountId?: string,
 ) {
   return (
@@ -202,7 +203,7 @@ function uniqueSorted(values: Iterable<string | undefined>) {
   ].toSorted();
 }
 
-function groupDuplicateSources(sources: MediaSource[]) {
+function groupDuplicateSources(sources: MediaSourceRecord[]) {
   const identities = sources
     .map((source): SourceIdentity => ({
       source,
@@ -277,7 +278,7 @@ function groupDuplicateSources(sources: MediaSource[]) {
     }
   }
 
-  const groups = new Map<string, MediaSource[]>();
+  const groups = new Map<string, MediaSourceRecord[]>();
   for (const { source } of identities) {
     const root = find(source.id);
     const group = groups.get(root) ?? [];
@@ -289,8 +290,8 @@ function groupDuplicateSources(sources: MediaSource[]) {
 }
 
 function mergeCanonicalSource(
-  canonical: MediaSource,
-  sources: MediaSource[],
+  canonical: MediaSourceRecord,
+  sources: MediaSourceRecord[],
   newlyAuthenticatedAccountId?: string,
 ) {
   const latest = mergeDataSource(

@@ -2,24 +2,26 @@
 import { readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { setTimeout } from "node:timers/promises";
-import { chromium, type Page } from "playwright";
+
 import type { AssetCaptureState } from "@cliparr/shared/asset-capture";
 import type { CurrentlyPlayingResponse } from "@cliparr/shared/providers";
+import { chromium, type Page } from "playwright";
+
+import { encodeReadmeSocial, encodeScene } from "#/encode.ts";
 import {
   captureUsername,
   jellyfinUrl,
   startJellyfinScene,
 } from "#/jellyfin.ts";
-import { stillFrameReady } from "#/still.ts";
-import { encodeReadmeSocial, encodeScene } from "#/encode.ts";
 import { run, waitUntil } from "#/process.ts";
 import {
+  type CapturePlan,
+  type CaptureScene,
   captureTarget,
   readmeSocialCapture,
   readmeSocialSeconds,
-  type CapturePlan,
-  type CaptureScene,
 } from "#/scenes.ts";
+import { stillFrameReady } from "#/still.ts";
 
 const output = "/output";
 const cliparrUrl = "http://127.0.0.1:7171";

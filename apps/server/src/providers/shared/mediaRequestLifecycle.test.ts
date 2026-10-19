@@ -1,12 +1,13 @@
-import {
-  TEST_PLEX_BASE_URL,
-  useProviderFixtures,
-} from "@/test/providerFixtures";
 import assert from "node:assert/strict";
 import { getEventListeners } from "node:events";
 import test, { type TestContext } from "node:test";
+
 import { fetchMediaHandleRequest } from "@/providers/shared/mediaProxy";
 import type { MediaHandle } from "@/providers/types";
+import {
+  TEST_PLEX_BASE_URL,
+  useProviderFixtures,
+} from "#test/providerFixtures";
 
 const handle: MediaHandle = {
   id: "lifecycle",

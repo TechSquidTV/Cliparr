@@ -1,13 +1,14 @@
 import { Tabs as BaseTabs } from "@base-ui/react/tabs";
 import {
-  motion,
-  useReducedMotion,
   type HTMLMotionProps,
+  motion,
   type Transition,
+  useReducedMotion,
 } from "motion/react";
 import * as React from "react";
-import { cliparrMotionTokens } from "@/lib/motion";
-import { cn } from "@/lib/cn";
+
+import { cn } from "#/lib/cn";
+import { cliparrMotionTokens } from "#/lib/motion";
 
 type TabsRootProperties = React.ComponentProps<typeof BaseTabs.Root>;
 type TabsListProperties = Omit<
@@ -100,9 +101,10 @@ const TabsList = React.forwardRef<HTMLDivElement, TabsListProperties>(
         >
           {!springIndicator && (
             <BaseTabs.Indicator
+              data-slot="tabs-indicator"
               renderBeforeHydration
               className={cn(
-                "absolute z-0 rounded-[var(--radius-control)] bg-primary transition-[top,left,width,height] duration-200 ease-out",
+                "absolute z-0 rounded-[var(--radius-control)] bg-primary transition-[top,left,width,height] duration-200 ease-out motion-reduce:transition-none",
                 "top-[var(--active-tab-top)] left-[var(--active-tab-left)] h-[var(--active-tab-height)] w-[var(--active-tab-width)]",
                 indicatorClassName,
               )}
@@ -170,6 +172,7 @@ const TabsPanels = React.forwardRef<HTMLDivElement, TabsPanelsProperties>(
     },
     ref,
   ) {
+    const reducedMotion = useReducedMotion();
     const contentReference = React.useRef<HTMLDivElement | null>(null);
     const [height, setHeight] = React.useState<number | "auto">("auto");
 
@@ -205,9 +208,9 @@ const TabsPanels = React.forwardRef<HTMLDivElement, TabsPanelsProperties>(
       return (
         <motion.div
           ref={ref}
-          layout
+          layout={!reducedMotion}
           className={className}
-          transition={transition}
+          transition={reducedMotion ? { duration: 0 } : transition}
           {...props}
         >
           {children}
@@ -220,7 +223,7 @@ const TabsPanels = React.forwardRef<HTMLDivElement, TabsPanelsProperties>(
         ref={ref}
         animate={{ height }}
         className={cn("overflow-hidden", className)}
-        transition={transition}
+        transition={reducedMotion ? { duration: 0 } : transition}
         {...props}
       >
         <div ref={contentReference}>{children}</div>
@@ -253,7 +256,7 @@ const TabsPanel = React.forwardRef<HTMLDivElement, TabsPanelProperties>(
             animate={{ opacity: 1, y: 0 }}
             className={cn("outline-none", className)}
             initial={{ opacity: 0, y: 4 }}
-            transition={transition}
+            transition={reducedMotion ? { duration: 0 } : transition}
           />
         )}
         {...props}

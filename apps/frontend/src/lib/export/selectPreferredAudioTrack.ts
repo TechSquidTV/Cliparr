@@ -1,6 +1,7 @@
-import { normalizedText } from "#/lib/subtitles/normalizedText";
+import type { PlaybackAudioSelection } from "@cliparr/shared/providers";
 import type { InputAudioTrack, InputVideoTrack } from "mediabunny";
-import type { PlaybackAudioSelection } from "#/providers/types";
+
+import { normalizedText } from "#/lib/subtitles/normalizedText";
 
 async function selectPreferredAudioTrack(
   audioTracks: readonly InputAudioTrack[],

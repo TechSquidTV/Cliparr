@@ -1,11 +1,13 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { HLS, MP4, type InputVideoTrack } from "mediabunny";
+
+import { HLS, type InputVideoTrack, MP4 } from "mediabunny";
+
 import {
   isPlaybackVideoTrack,
+  type VideoTrackDecodabilityAssessment,
   videoTrackExportUnsupportedMessage,
   videoTrackPreviewUnavailableMessage,
-  type VideoTrackDecodabilityAssessment,
 } from "@/lib/export/mediabunny/mediabunnyTrackAccess";
 
 void test("keeps all-keyframe video while excluding HLS trick-play renditions", async () => {

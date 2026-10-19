@@ -1,16 +1,17 @@
-import {
-  PRIVATE_IPV4_ADDRESSES,
-  MAPPED_PRIVATE_IPV4_HOST,
-} from "@/test/networkPolicyFixtures";
-import {
-  TEST_PLEX_BASE_URL,
-  useProviderFixtures,
-} from "@/test/providerFixtures";
 import assert from "node:assert/strict";
 import test from "node:test";
+
 import { requestPlexPmsIdentity } from "@/providers/plex/pmsClient";
 import { assertAllowedMediaHandleRequestUrl } from "@/providers/shared/mediaUrlPolicy";
 import { isUnsafeRemoteHostname } from "@/providers/shared/networkPolicy";
+import {
+  MAPPED_PRIVATE_IPV4_HOST,
+  PRIVATE_IPV4_ADDRESSES,
+} from "#test/networkPolicyFixtures";
+import {
+  TEST_PLEX_BASE_URL,
+  useProviderFixtures,
+} from "#test/providerFixtures";
 
 void test("loopback allowance changes only loopback address classification", () => {
   for (const hostname of [

@@ -1,12 +1,13 @@
+import { type LucideIcon, PanelRightClose, PanelRightOpen } from "lucide-react";
 import type { ReactNode } from "react";
-import { PanelRightClose, PanelRightOpen, type LucideIcon } from "lucide-react";
-import { cn } from "@/lib/cn";
+
+import { editorIconButtonClassName } from "#/components/ui/control-styles";
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
-} from "@/components/ui/tooltip";
-import { editorIconButtonClassName } from "@/components/ui/control-styles";
+} from "#/components/ui/tooltip";
+import { cn } from "#/lib/cn";
 
 interface EditorSidebarProperties {
   open: boolean;
@@ -39,7 +40,7 @@ export function EditorSidebar({
   return (
     <aside
       className={cn(
-        "relative flex h-full min-h-0 shrink-0 border border-editor-border bg-editor-panel text-sidebar-foreground transition-[width] duration-200 ease-linear",
+        "relative flex h-full min-h-0 shrink-0 border border-editor-border bg-editor-panel text-sidebar-foreground transition-[width] duration-200 ease-linear motion-reduce:transition-none",
         widthClassName,
       )}
     >

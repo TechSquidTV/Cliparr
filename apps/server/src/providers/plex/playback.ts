@@ -1,39 +1,27 @@
-import { createPlaybackResolverCache } from "@/playback/resolverCache";
-import { logEventFields } from "@cliparr/shared/logging";
 import { randomUUID } from "node:crypto";
+
+import type { StatusGetSlashResponse } from "@cliparr/plex/pms/types";
+import { logEventFields } from "@cliparr/shared/logging";
+
 import {
+  type MediaSourceRecord,
   updateMediaSource,
-  type MediaSource,
 } from "@/db/mediaSourcesRepository";
 import { createApiError, isApiError } from "@/http/errors";
 import { getServerLogger } from "@/logging";
-import type { ProviderSessionRecord } from "@/session/store";
-import type { StatusGetSlashResponse } from "@cliparr/plex/pms/types";
-import type {
-  CurrentlyPlayingEntry,
-  ProviderConnection,
-  ProviderResource,
-} from "@/providers/types";
-import {
-  asArray,
-  errorMessage,
-  stringValue,
-} from "@/providers/shared/utilities";
-import {
-  buildSourceContext,
-  candidateConnections,
-  CURRENT_PLAYBACK_REQUEST_TIMEOUT_MS,
-  fetchPmsCurrentSessions,
-  sourceResource,
-  unreachableConnectionMessage,
-  type PlexSourceContext,
-} from "@/providers/plex/shared";
+import { createPlaybackResolverCache } from "@/playback/resolverCache";
 import {
   PLEX_BASE_URL_MODE_AUTO,
   PLEX_BASE_URL_MODE_MANUAL,
-  withPlexBaseUrlMode,
   type PlexBaseUrlMode,
+  withPlexBaseUrlMode,
 } from "@/providers/plex/connectionState";
+import { createMediaHandle } from "@/providers/plex/mediaHandles";
+import {
+  createExportMetadata,
+  enrichPlaybackItems,
+  metadataImagePath,
+} from "@/providers/plex/metadata";
 import type {
   PlexMediaSelection,
   PlexMetadataItem,
@@ -55,17 +43,32 @@ import {
   resolveSelectedPart,
   streamEntries,
 } from "@/providers/plex/selection";
-import { createMediaHandle } from "@/providers/plex/mediaHandles";
 import {
-  createExportMetadata,
-  enrichPlaybackItems,
-  metadataImagePath,
-} from "@/providers/plex/metadata";
+  buildSourceContext,
+  candidateConnections,
+  CURRENT_PLAYBACK_REQUEST_TIMEOUT_MS,
+  fetchPmsCurrentSessions,
+  type PlexSourceContext,
+  sourceResource,
+  unreachableConnectionMessage,
+} from "@/providers/plex/shared";
 import {
   deriveSelectedSubtitleTrack,
   deriveSubtitleTracks,
 } from "@/providers/plex/subtitles";
+import { assembleCurrentlyPlayingItem } from "@/providers/shared/playbackEntry";
 import { subtitleTrackSupportsBurnIn } from "@/providers/shared/subtitles";
+import {
+  asArray,
+  errorMessage,
+  stringValue,
+} from "@/providers/shared/utilities";
+import type {
+  CurrentlyPlayingEntry,
+  ProviderConnection,
+  ProviderResource,
+} from "@/providers/types";
+import type { ProviderSessionRecord } from "@/session/store";
 
 const logger = getServerLogger(["provider", "plex", "playback"]);
 
@@ -82,7 +85,7 @@ function isRetryableConnectionError(error: unknown) {
 }
 
 function persistWorkingSourceConnection(
-  source: MediaSource,
+  source: MediaSourceRecord,
   connections: ProviderResource["connections"],
   connection: ProviderConnection,
   options: { baseUrlMode: PlexBaseUrlMode; manualConnectionId?: string },
@@ -124,7 +127,7 @@ function persistWorkingSourceConnection(
 }
 
 export async function fetchCurrentlyPlayingData(
-  source: MediaSource,
+  source: MediaSourceRecord,
   signal?: AbortSignal,
 ) {
   signal?.throwIfAborted();
@@ -316,7 +319,7 @@ function playbackViewer(
 
 function bindPlexPlayback(
   session: ProviderSessionRecord,
-  source: MediaSource,
+  source: MediaSourceRecord,
   context: PlexSourceContext,
   item: PlexMetadataItem,
   prepared: Awaited<ReturnType<typeof enrichPlaybackItems>>[number],
@@ -413,7 +416,7 @@ function bindPlexPlayback(
       source.id,
       plexPlaybackSessionId,
     ),
-    item: {
+    item: assembleCurrentlyPlayingItem({
       id: `${source.id}:${plexPlaybackSessionId}`,
       playbackSessionId: plexPlaybackSessionId,
       source: {
@@ -430,19 +433,18 @@ function bindPlexPlayback(
       thumbUrl,
       mediaUrl,
       hlsUrl,
-      previewUrl: hlsUrl,
-      previewFormat: previewPath ? "hls" : undefined,
+      previewPath,
       selectedAudioTrack,
       selectedSubtitleTrack,
       subtitleTracks,
       exportMetadata: createExportMetadata(session, context, enrichedItem),
       exportEstimateMetadata,
-    },
+    }),
   };
 }
 
 export function createPlexPlaybackResolver(
-  source: MediaSource,
+  source: MediaSourceRecord,
   context: PlexSourceContext,
 ) {
   const resolve = createPlaybackResolverCache({
@@ -479,7 +481,7 @@ export function createPlexPlaybackResolver(
 
 async function normalizeCurrentPlayback(
   session: ProviderSessionRecord,
-  source: MediaSource,
+  source: MediaSourceRecord,
   context: PlexSourceContext,
   data: StatusGetSlashResponse,
 ): Promise<CurrentlyPlayingEntry[]> {
@@ -494,7 +496,7 @@ async function normalizeCurrentPlayback(
 
 export async function listCurrentlyPlaying(
   session: ProviderSessionRecord,
-  source: MediaSource,
+  source: MediaSourceRecord,
 ) {
   const { context, data } = await fetchCurrentlyPlayingData(source);
   return normalizeCurrentPlayback(session, source, context, data);

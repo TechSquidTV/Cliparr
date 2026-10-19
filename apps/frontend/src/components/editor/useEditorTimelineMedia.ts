@@ -1,10 +1,9 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   fromSeconds,
-  toSeconds,
-  useTimelinePlayheadTime,
   type TimelineEngine,
   type TimelineMediaError,
+  toSeconds,
+  useTimelinePlayheadTime,
 } from "@techsquidtv/canvas-timeline";
 import type {
   MediabunnySource,
@@ -16,18 +15,32 @@ import {
   useMediabunnyFrameTime,
   useMediabunnyTimelineMedia,
 } from "@techsquidtv/canvas-timeline-mediabunny-adapter/react";
-import type { Input, InputTrack, InputVideoTrack } from "mediabunny";
+import type { Input, InputVideoTrack } from "mediabunny";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+
+import {
+  type EditorMediaSource,
+  editorMediaSourcesEqual,
+  type EditorSession,
+  type MediaDimensions,
+} from "@/components/editor/editorMedia";
+import {
+  createEditorPreviewSourceLoader,
+  type EditorExportMedia,
+  type EditorMediaMetadata,
+  editorPreviewFrameTime,
+  resolveEditorExportMedia,
+} from "@/components/editor/editorMediaLifecycle";
 import {
   assessPreviewAudioTrack,
   buildPlaybackSourceCandidates,
   formatPlaybackSourceLabel,
-  isPresent,
   playbackAudioSelectionsEqual,
+  type PlaybackFallbackInfo,
+  type PlaybackSourceCandidate,
   playbackSourceCandidatesEqual,
   resolvePlaybackDuration,
   selectPreviewVideoTrack,
-  type PlaybackFallbackInfo,
-  type PlaybackSourceCandidate,
 } from "@/components/editor/editorPlaybackSources";
 import {
   DEFAULT_EDITOR_FRAME_STEP_SECONDS,
@@ -38,26 +51,13 @@ import {
   synchronizeEditorTimelineMedia,
 } from "@/components/editor/editorTimelineEngine";
 import { errorMessage } from "@/components/editor/editorUtilities";
-import {
-  editorMediaSourcesEqual,
-  type EditorMediaSource,
-  type EditorSession,
-  type MediaDimensions,
-} from "@/components/editor/editorMedia";
+import { probeMediaSource } from "@/convert/engine";
 import { createCliparrInputFromSource } from "@/lib/export/mediabunny/mediabunnyInput";
 import {
   fromSourceTimelineTime,
-  getTrackTimelineOffsetSeconds,
   getVideoTrackDimensions,
 } from "@/lib/export/mediabunny/mediabunnyTrackAccess";
-import { selectPreferredPairableAudioTrack } from "@/lib/subtitles/selectPreferredAudioTrack";
-import {
-  createEditorPreviewSourceLoader,
-  editorPreviewFrameTime,
-  resolveEditorExportMedia,
-  type EditorExportMedia,
-  type EditorMediaMetadata,
-} from "@/components/editor/editorMediaLifecycle";
+import { selectPreferredPairableAudioTrack } from "@/lib/export/selectPreferredAudioTrack";
 
 const previewLayerSelectors = {
   visuals: { trackKind: "media", sourceId: EDITOR_MEDIA_SOURCE_ID },
@@ -106,13 +106,19 @@ async function prepareInput(
   session: EditorSession,
   previousTimelineOffsetSeconds?: number,
 ): Promise<EditorMediaMetadata & MediabunnyTrackSelection> {
-  const { sourceVideoTrack, previewVideoTrack } =
-    await selectPreviewVideoTrack(input);
-  const audioTracks = await input.getAudioTracks();
-  const sourceAudioTrack = await selectPreferredPairableAudioTrack(
+  const {
     sourceVideoTrack,
     audioTracks,
-    session.selectedAudioTrack,
+    timelineOffsetSeconds,
+    sourceTimelineEnd,
+  } = await probeMediaSource(input, {
+    selectedAudioTrack: session.selectedAudioTrack,
+    timelineOffsetSeconds: previousTimelineOffsetSeconds,
+    skipLiveWait: true,
+  });
+  const { previewVideoTrack } = await selectPreviewVideoTrack(
+    input,
+    sourceVideoTrack,
   );
   const selectedPreviewAudioTrack = await selectPreferredPairableAudioTrack(
     previewVideoTrack,
@@ -128,22 +134,6 @@ async function prepareInput(
     throw new Error("No browser-decodable audio or video track was found.");
   }
 
-  const sourceTracks: InputTrack[] = [
-    sourceVideoTrack,
-    sourceAudioTrack,
-  ].filter(isPresent);
-  const durationTracks =
-    sourceTracks.length > 0
-      ? sourceTracks
-      : [previewVideoTrack, previewAudioTrack].filter(isPresent);
-  const timelineOffsetSeconds =
-    previousTimelineOffsetSeconds ??
-    (await getTrackTimelineOffsetSeconds(durationTracks));
-  const sourceTimelineEnd =
-    (await input.getDurationFromMetadata(durationTracks, {
-      skipLiveWait: true,
-    })) ??
-    (await input.computeDuration(durationTracks, { skipLiveWait: true }));
   const duration = resolvePlaybackDuration(
     candidate,
     fromSourceTimelineTime(sourceTimelineEnd, timelineOffsetSeconds),
@@ -461,6 +451,7 @@ export function useEditorTimelineMedia(
     sourceReady &&
     details.previewVideoDimensions !== null &&
     renderedTimelineFrameTime === null;
+  // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- An empty playback error must allow the media error to surface.
   const previewError = playbackError || media.error?.message || "";
 
   return {

@@ -1,8 +1,9 @@
-import { TEST_PLEX_BASE_URL } from "@/test/providerFixtures";
 import assert from "node:assert/strict";
 import test from "node:test";
+
 import { isApiError } from "@/http/errors";
 import { pollAuth, startAuth } from "@/providers/plex/auth";
+import { TEST_PLEX_BASE_URL } from "#test/providerFixtures";
 
 function jsonResponse(value: unknown) {
   return Response.json(value, {

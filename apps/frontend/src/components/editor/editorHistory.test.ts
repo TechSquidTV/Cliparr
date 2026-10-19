@@ -1,16 +1,18 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
+
 import {
-  TimelineEngine,
   fromSeconds,
+  TimelineEngine,
   toSeconds,
 } from "@techsquidtv/canvas-timeline";
+
 import { createEditorHistory } from "@/components/editor/editorHistory";
+import { resolveEditorShortcutCommand } from "@/components/editor/editorShortcutCommands";
 import {
   subtitleCuesFromTimeline,
   synchronizeEditorTimelineSubtitles,
 } from "@/components/editor/editorTimelineEngine";
-import { resolveEditorShortcutCommand } from "@/components/editor/editorShortcutCommands";
 
 function createEngine() {
   const engine = new TimelineEngine({

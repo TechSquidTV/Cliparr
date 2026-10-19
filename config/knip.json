@@ -8,7 +8,8 @@
         "src/styles/motionTheme.ts",
         "vite.config.js",
         "tests/audio-export.ts",
-        "tests/media-loading.ts"
+        "tests/media-loading.ts",
+        "tests/ui-controls.tsx"
       ],
       "ignoreBinaries": ["eslint"],
       "project": ["src/**/*.{ts,tsx,css}", "tests/**/*.{ts,mjs}"],
@@ -32,7 +33,7 @@
       "paths": {
         "@/*": ["./src/*"]
       },
-      "project": ["src/**/*.ts"]
+      "project": ["src/**/*.ts", "test/**/*.ts"]
     },
     "packages/shared": {
       "ignoreBinaries": ["eslint", "tsc"],

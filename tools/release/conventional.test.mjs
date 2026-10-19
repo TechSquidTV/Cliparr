@@ -1,9 +1,10 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+
 import {
   bumpVersion,
-  extractReleaseTitleFromCommitMessage,
   extractPullRequestNumberFromCommitMessage,
+  extractReleaseTitleFromCommitMessage,
   formatVersion,
   latestPrereleaseTag,
   maxReleaseType,

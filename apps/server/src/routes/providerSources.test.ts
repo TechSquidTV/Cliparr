@@ -1,9 +1,6 @@
 import assert from "node:assert/strict";
-import fs from "node:fs";
-import os from "node:os";
-import path from "node:path";
 import test from "node:test";
-import { closeDatabase } from "@/db/database";
+
 import {
   getMediaSourceByProviderExternalId,
   getMediaSourceForAccount,
@@ -11,32 +8,15 @@ import {
   upsertMediaSource,
 } from "@/db/mediaSourcesRepository";
 import { upsertProviderAccountByAccessToken } from "@/db/providerAccountsRepository";
-import { createApp } from "@/app";
+import { getSessionCookieName } from "@/http/cookies";
+import { isApiError } from "@/http/errors";
+import { PLEX_BASE_URL_MODE_MANUAL } from "@/providers/plex/connectionState";
 import { plexProvider } from "@/providers/plex/provider";
 import { createProviderSession } from "@/session/store";
-import { getSessionCookieName } from "@/http/cookies";
-import { PLEX_BASE_URL_MODE_MANUAL } from "@/providers/plex/connectionState";
-import { isApiError } from "@/http/errors";
-
-const TEST_APP_KEY = "provider-routes-test-key-with-at-least-32-characters";
-
-function restoreEnv(name: string, value: string | undefined) {
-  if (value === undefined) {
-    delete process.env[name];
-    return;
-  }
-
-  process.env[name] = value;
-}
+import { restoreEnv, withTestApp } from "#test/routeFixtures";
 
 function jsonResponse(value: unknown, init: ResponseInit = {}) {
-  return Response.json(value, {
-    ...init,
-    headers: {
-      "content-type": "application/json",
-      ...init.headers,
-    },
-  });
+  return Response.json(value, init);
 }
 
 function cookieHeader(response: Response) {
@@ -56,48 +36,6 @@ function fetchInputUrl(input: Parameters<typeof fetch>[0]) {
   }
 
   return input.url;
-}
-
-async function withTestApp<T>(
-  callback: (baseUrl: string, fetchLocal: typeof fetch) => Promise<T>,
-) {
-  const dataDir = fs.mkdtempSync(
-    path.join(os.tmpdir(), "cliparr-provider-routes-"),
-  );
-  const previousAppKey = process.env.APP_KEY;
-  const previousDataDir = process.env.CLIPARR_DATA_DIR;
-
-  process.env.APP_KEY = TEST_APP_KEY;
-  process.env.CLIPARR_DATA_DIR = dataDir;
-
-  const { app } = await createApp();
-  const server = app.listen(0, "127.0.0.1");
-  const originalFetch = globalThis.fetch;
-
-  try {
-    await new Promise((resolve) => {
-      server.once("listening", resolve);
-    });
-    const address = server.address();
-    assert.ok(address && typeof address === "object");
-    return await callback(`http://127.0.0.1:${address.port}`, originalFetch);
-  } finally {
-    await new Promise<void>((resolve, reject) => {
-      server.close((error) => {
-        if (error) {
-          reject(error);
-          return;
-        }
-
-        resolve();
-      });
-    });
-    globalThis.fetch = originalFetch;
-    closeDatabase();
-    restoreEnv("APP_KEY", previousAppKey);
-    restoreEnv("CLIPARR_DATA_DIR", previousDataDir);
-    fs.rmSync(dataDir, { recursive: true, force: true });
-  }
 }
 
 async function withMockedFetch<T>(
@@ -335,6 +273,7 @@ void test("logs into Jellyfin with a regular account and stores a remembered pro
 
         upstreamRequests.push({
           url: requestUrl,
+          // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- An empty request body is recorded as absent.
           body: requestBody || undefined,
         });
 

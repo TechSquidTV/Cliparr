@@ -1,17 +1,14 @@
-import { Router } from "express";
 import {
   compactLogFields,
   logDurationFields,
   logErrorFields,
   logEventFields,
+  warnWithError,
 } from "@cliparr/shared/logging";
-import { persistProviderAuth } from "@/providers/providerPersistence";
+import { Router } from "express";
+
 import { createRememberedProviderSession } from "@/db/rememberedProviderSessionsRepository";
-import { asyncHandler, createApiError, isApiError } from "@/http/errors";
-import { getRequestRouteUrl } from "@/http/requestOrigin";
-import { getProvider, listProviders } from "@/providers/registry";
-import { getServerLogger, warnWithError } from "@/logging";
-import { createProviderSession } from "@/session/store";
+import { setNoStore } from "@/http/cacheControl";
 import {
   getRememberedProviderSessionCookieName,
   getRememberedProviderSessionCookieOptions,
@@ -19,7 +16,12 @@ import {
   getSessionCookieOptions,
   readCookie,
 } from "@/http/cookies";
-import { setNoStore } from "@/http/cacheControl";
+import { asyncHandler, createApiError, isApiError } from "@/http/errors";
+import { getRequestRouteUrl } from "@/http/requestOrigin";
+import { getServerLogger } from "@/logging";
+import { persistProviderAuth } from "@/providers/providerPersistence";
+import { getProvider, listProviders } from "@/providers/registry";
+import { createProviderSession } from "@/session/store";
 
 export const providersRouter = Router();
 const logger = getServerLogger(["provider", "auth"]);

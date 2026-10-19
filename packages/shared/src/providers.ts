@@ -1,5 +1,65 @@
 import type { ExternalIds } from "#external-ids";
 
+/**
+Provider wire contracts shared by the server and the frontend. These
+describe exactly what crosses the HTTP boundary; provider internals
+(connections, credentials, account ids) never appear here.
+*/
+export type ProviderAuthMethod = "pin" | "credentials" | "none";
+
+export interface ProviderDefinition {
+  id: string;
+  name: string;
+  /**
+  "none" marks registry-only providers (like the local URL provider) that
+  need no connect flow. GET /api/providers filters the list to interactive
+  methods, so the connect UI only ever receives "pin" | "credentials".
+  */
+  auth: ProviderAuthMethod;
+}
+
+export interface ProviderAuthStart {
+  authId: string;
+  authUrl: string;
+  expiresAt: string;
+}
+
+export interface ProviderAuthStatus {
+  status: "pending" | "complete" | "expired";
+}
+
+export interface ProviderSession {
+  id: string;
+  providerId: string;
+  expiresAt: string;
+}
+
+/**
+Media source as serialized over the API. Secrets (connection, credentials)
+and internal ids (providerAccountId) are stripped by serializeSource; see
+MediaSourceRecord for the database shape.
+*/
+export interface MediaSource {
+  id: string;
+  providerId: string;
+  name: string;
+  enabled: boolean;
+  baseUrl: string;
+  metadata: Record<string, unknown>;
+  lastCheckedAt: string | null;
+  lastError: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface MediaSourceCheckResult {
+  ok: boolean;
+  source: MediaSource;
+  error?: {
+    message: string;
+  };
+}
+
 export interface MediaExportMetadata {
   providerId: string;
   itemType: string;

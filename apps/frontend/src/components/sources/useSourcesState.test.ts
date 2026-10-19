@@ -2,7 +2,12 @@
 
 import assert from "node:assert/strict";
 import test from "node:test";
-import type { MediaSource, MediaSourceCheckResult } from "@/providers/types";
+
+import type {
+  MediaSource,
+  MediaSourceCheckResult,
+} from "@cliparr/shared/providers";
+
 import {
   buildSourceEditInput,
   draftBaseUrlsFor,

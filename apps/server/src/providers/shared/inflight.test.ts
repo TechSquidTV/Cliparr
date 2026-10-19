@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+
 import { dedupeInflightFetch } from "@/providers/shared/inflight";
 
 void test("concurrent callers share one fetch", async () => {

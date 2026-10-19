@@ -1,25 +1,26 @@
 import {
   ALL_FORMATS,
+  type AudioCodec,
   AudioSample,
   AudioSampleSink,
   BufferSource,
-  Input,
-  EncodedPacketSink,
   canEncodeAudio,
-  type AudioCodec,
   type ConversionAudioOptions,
+  EncodedPacketSink,
+  Input,
   type InputAudioTrack,
 } from "mediabunny";
+
 import {
-  exportAudioCodecPriorities,
   EXPORT_AUDIO_BITRATE_BPS,
+  exportAudioCodecPriorities,
 } from "#/lib/export/exportEncodingPolicy";
 import {
-  isAudioExportFormat,
   type ExportFormat,
+  isAudioExportFormat,
 } from "#/lib/export/exportFormats";
-import { ensureAudioEncoder } from "#/lib/export/mediabunny/mediabunnyCodecs";
 import { estimateAudioExportSize } from "#/lib/export/exportTypes";
+import { ensureAudioEncoder } from "#/lib/export/mediabunny/mediabunnyCodecs";
 
 type Speaker = "L" | "R" | "C" | "LFE" | "SL" | "SR" | "BL" | "BR" | "BC";
 type Layout = readonly Speaker[];

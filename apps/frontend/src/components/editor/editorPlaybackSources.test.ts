@@ -2,18 +2,20 @@
 
 import assert from "node:assert/strict";
 import test from "node:test";
+
 import type { InputAudioTrack, InputVideoTrack } from "mediabunny";
+
 import {
   createProviderUrlSource,
   type EditorMediaSource,
 } from "@/components/editor/editorMedia";
 import {
+  assessPreviewAudioTrack,
   buildPlaybackSourceCandidates,
   playbackAudioSelectionsEqual,
   playbackSourceCandidatesEqual,
   resolvePlaybackDuration,
   selectPreviewVideoTrack,
-  assessPreviewAudioTrack,
 } from "@/components/editor/editorPlaybackSources";
 
 void test("checks selected AC3 audio decodability after registering its decoder", async () => {
@@ -47,12 +49,12 @@ void test("uses the export primary video track even when it is not first in the 
     getPrimaryVideoTrack: async () => primary,
     getVideoTracks: async () => [first, primary],
   };
-  const selected = await selectPreviewVideoTrack(input);
+  const selected = await selectPreviewVideoTrack(input, primary);
   assert.equal(selected.sourceVideoTrack, primary);
   assert.equal(selected.previewVideoTrack, primary);
 
   primary.canDecode = async () => false;
-  const recovered = await selectPreviewVideoTrack(input);
+  const recovered = await selectPreviewVideoTrack(input, primary);
   assert.equal(recovered.sourceVideoTrack, primary);
   assert.equal(recovered.previewVideoTrack, first);
 });

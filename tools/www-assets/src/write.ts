@@ -1,5 +1,6 @@
 import { copyFile, mkdir } from "node:fs/promises";
 import path from "node:path";
+
 import type { CapturePlan } from "#/scenes.ts";
 
 /** Publish only the assets requested by this capture; report.json is written after validation. */

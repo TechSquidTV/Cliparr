@@ -1,10 +1,15 @@
+import {
+  logErrorFields,
+  logEventFields,
+  warnWithError,
+} from "@cliparr/shared/logging";
+import type { MediaExportMetadata } from "@cliparr/shared/providers";
 import type { DiscardedTrack, MetadataTags } from "mediabunny";
-import { logErrorFields, logEventFields } from "@cliparr/shared/logging";
-import type { MediaExportMetadata } from "#/providers/types";
-import { describeInputTrack } from "#/lib/export/mediabunny/mediabunnyTrackAccess";
+
 import type { ExportFormat } from "#/lib/export/exportTypes";
+import { describeInputTrack } from "#/lib/export/mediabunny/mediabunnyTrackAccess";
 import { buildKeyValueExternalIdTags } from "#/lib/metadata/externalIdTags";
-import { getFrontendLogger, warnWithError } from "#/logging";
+import { getFrontendLogger } from "#/logging";
 
 const logger = getFrontendLogger(["editor", "artwork"]);
 const byteMask = 255;

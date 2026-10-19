@@ -34,6 +34,19 @@ Before opening a pull request, run:
 pnpm preflight
 ```
 
+Lint enforces import/export ordering, React hook dependencies, deprecated API
+usage, and non-null assertions in shipped source. Shared TypeScript configuration
+also requires explicit returns, rejects unreachable code, and preserves module
+syntax. Test files may use non-null assertions. Keep intentional falsy-value
+defaults and Unicode code-point spreading with narrowly scoped lint exceptions
+that explain their semantics.
+
+The mobile install nudge uses standard `MediaQueryList.addEventListener` and
+`removeEventListener`. Its obsolete `addListener`/`removeListener` fallback has
+been removed because supported browsers already implement the standard API,
+which the editor also requires. This cleanup stays within Cliparr's existing
+[browser support requirements](https://cliparr.dev/docs/browser-support).
+
 ### Optional Docker dev stack
 
 The [Docker dev stack](../docker/compose.dev.yml) seeds Plex and Jellyfin with Sintel, a Blender open movie with embedded subtitle tracks. Run `pnpm docker:dev:build` after Dockerfile or dependency changes, then `pnpm docker:dev:up` to start the stack.

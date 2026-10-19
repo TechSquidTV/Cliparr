@@ -1,26 +1,31 @@
+import {
+  logErrorFields,
+  logEventFields,
+  warnWithError,
+} from "@cliparr/shared/logging";
 import type { Request, Response } from "express";
-import { logErrorFields, logEventFields } from "@cliparr/shared/logging";
+
 import { createApiError } from "@/http/errors";
-import { getServerLogger, warnWithError } from "@/logging";
-import type { ProviderSessionRecord } from "@/session/store";
+import { getServerLogger } from "@/logging";
+import {
+  JELLYFIN_REQUEST_TIMEOUT_MS,
+  jellyfinHeaders,
+} from "@/providers/jellyfin/http";
+import type { JellyfinSourceContext } from "@/providers/jellyfin/shared";
+import { createProviderMediaHandle } from "@/providers/shared/mediaHandles";
 import {
   fetchMediaHandleRequest,
   mediaProxyAcceptHeader,
   proxyProviderMediaResponse,
   shouldForwardMediaRange,
 } from "@/providers/shared/mediaProxy";
-import { createProviderMediaHandle } from "@/providers/shared/mediaHandles";
 import {
   mediaHandleRequestUrl,
   sanitizeLoggedMediaPath,
   shouldAttachProviderAuth,
 } from "@/providers/shared/mediaUrlPolicy";
 import { errorMessage } from "@/providers/shared/utilities";
-import {
-  jellyfinHeaders,
-  JELLYFIN_REQUEST_TIMEOUT_MS,
-  type JellyfinSourceContext,
-} from "@/providers/jellyfin/shared";
+import type { ProviderSessionRecord } from "@/session/store";
 
 const logger = getServerLogger(["media", "proxy"]);
 

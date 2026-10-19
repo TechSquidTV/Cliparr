@@ -1,91 +1,95 @@
-import type { Palette } from "@techsquidtv/gifenc";
-import {
-  BufferTarget,
-  CanvasSink,
-  Conversion,
-  MkvOutputFormat,
-  MovOutputFormat,
-  Mp4OutputFormat,
-  Mp3OutputFormat,
-  OggOutputFormat,
-  FlacOutputFormat,
-  WavOutputFormat,
-  Output,
-  WebMOutputFormat,
-  canEncodeAudio as canEncodeAudioWithBrowser,
-  canEncodeVideo as canEncodeVideoWithBrowser,
-} from "mediabunny";
+import type {
+  MediaExportMetadata,
+  PlaybackAudioSelection,
+} from "@cliparr/shared/providers";
+import { normalizeExportVideoCodec } from "@cliparr/shared/providers";
 import type {
   CanvasSinkOptions,
   ConversionOptions,
   FlacOutputFormatOptions,
-  InputVideoTrack,
   InputAudioTrack,
+  InputVideoTrack,
+  IsobmffOutputFormatOptions,
   VideoCodec,
-  VideoSample,
 } from "mediabunny";
 import {
-  resolveVideoEncodingPlan,
-  type ExportVideoCodec,
-  type VideoEncodingPlan,
-} from "#/lib/export/exportEncodingPolicy";
+  BufferTarget,
+  canEncodeAudio as canEncodeAudioWithBrowser,
+  canEncodeVideo as canEncodeVideoWithBrowser,
+  CanvasSink,
+  Conversion,
+  FlacOutputFormat,
+  MkvOutputFormat,
+  MovOutputFormat,
+  Mp3OutputFormat,
+  Mp4OutputFormat,
+  OggOutputFormat,
+  Output,
+  WavOutputFormat,
+  WebMOutputFormat,
+} from "mediabunny";
+
+import type { EditorMediaSource } from "#/components/editor/editorMedia";
 import {
-  isAudioExportFormat,
-  exportIncludesAudio,
-  type ExportMode,
-} from "#/lib/export/exportFormats";
-import {
+  assertWavSize,
+  audioConversionOptions,
+  type ExportAudioPlan,
   inspectAudioTrack,
   resolveExportAudioPlan,
-  audioConversionOptions,
-  assertWavSize,
-  type ExportAudioPlan,
 } from "#/lib/export/exportAudio";
-import type { EditorMediaSource } from "#/components/editor/editorMedia";
-import { createCliparrInputFromSource } from "#/lib/export/mediabunny/mediabunnyInput";
-import { assertSourceAudioRange } from "#/lib/export/exportSourceAudio";
-import { ensureAudioDecoder } from "#/lib/export/mediabunny/mediabunnyCodecs";
 import {
-  assessVideoTrackDecodability,
-  getTrackTimelineOffsetSeconds,
-  getVideoTrackDimensions,
-  isPlaybackVideoTrack,
-  toSourceTimelineTime,
-  videoTrackExportUnsupportedMessage,
-  type VideoTrackDecodabilityAssessment,
-} from "#/lib/export/mediabunny/mediabunnyTrackAccess";
-import { selectPreferredPairableAudioTrack } from "#/lib/subtitles/selectPreferredAudioTrack";
-import type {
-  MediaExportMetadata,
-  PlaybackAudioSelection,
-} from "#/providers/types";
-import { normalizeExportVideoCodec } from "@cliparr/shared/providers";
+  type ExportVideoCodec,
+  resolveVideoEncodingPlan,
+  type VideoEncodingPlan,
+} from "#/lib/export/exportEncodingPolicy";
+import { createExportTarget } from "#/lib/export/exportFileTarget";
+import {
+  exportIncludesAudio,
+  type ExportMode,
+  isAudioExportFormat,
+} from "#/lib/export/exportFormats";
 import {
   buildMetadataTags,
   describeDiscardedTracks,
   isIsobmffExportFormat,
   patchMp4MetadataBoxes,
 } from "#/lib/export/exportMetadata";
-import { buildTranscript } from "#/lib/metadata/transcript";
+import { assertSourceAudioRange } from "#/lib/export/exportSourceAudio";
 import {
   DEFAULT_GIF_EXPORT_PRESET,
   DEFAULT_VIDEO_EXPORT_QUALITY,
-  exportFormatDurationDisabledReason,
-  gifExportSettingsForPreset,
-  resolveExportOutputDimensions,
   type ExportFormat,
+  exportFormatDurationDisabledReason,
   type ExportResolution,
   type GifExportSettings,
+  gifExportSettingsForPreset,
+  resolveExportOutputDimensions,
   type VideoExportQualityPreset,
 } from "#/lib/export/exportTypes";
-import type {
-  EncodeGifFrameChunkHelpers,
-  GifFrameChunk,
-} from "#/lib/export/gif/gifFrameChunk";
-import type {
-  GifFrameEncoder,
-  GifFrameEncoderOptions,
-} from "#/lib/export/gif/gifFrameEncoder";
+import {
+  configureGifCanvasContext,
+  createGifCanvas,
+} from "#/lib/export/gif/gifCanvas";
+import {
+  type GifEncodingRuntime,
+  loadGifEncodingRuntime,
+} from "#/lib/export/gif/gifEncodingRuntime";
+import type { GifFrameChunk } from "#/lib/export/gif/gifFrameChunk";
+import { buildGifGlobalPalette } from "#/lib/export/gif/gifPalette";
+import { ensureAudioDecoder } from "#/lib/export/mediabunny/mediabunnyCodecs";
+import { createCliparrInputFromSource } from "#/lib/export/mediabunny/mediabunnyInput";
+import {
+  assessVideoTrackDecodability,
+  getTrackTimelineOffsetSeconds,
+  getVideoTrackDimensions,
+  isPlaybackVideoTrack,
+  toSourceTimelineTime,
+  type VideoTrackDecodabilityAssessment,
+  videoTrackExportUnsupportedMessage,
+} from "#/lib/export/mediabunny/mediabunnyTrackAccess";
+import { selectPreferredPairableAudioTrack } from "#/lib/export/selectPreferredAudioTrack";
+import { buildSubtitleBurnInProcessor } from "#/lib/export/subtitleBurnIn";
+import { buildTranscript } from "#/lib/metadata/transcript";
 import { getActiveSubtitleCues } from "#/lib/subtitles/getActiveSubtitleCue";
 import { renderSubtitleCues } from "#/lib/subtitles/renderSubtitleCue";
 import { trimSubtitleCues } from "#/lib/subtitles/trimSubtitleCues";
@@ -96,6 +100,8 @@ export type { ExportFormat, ExportResolution } from "#/lib/export/exportTypes";
 export type ExportPhase = "preparing" | "encoding" | "finalizing";
 
 export interface ExportClipOptions {
+  /** A user-selected destination for streaming muxed exports to disk. */
+  outputFile?: FileSystemFileHandle;
   signal?: AbortSignal;
   onPhaseChange?: (phase: ExportPhase) => void;
   mediaSource: EditorMediaSource;
@@ -157,29 +163,18 @@ interface ExportClipRuntime {
   buildSubtitleBurnInProcessor: typeof buildSubtitleBurnInProcessor;
 }
 
-interface GifCanvasResources {
-  canvas: HTMLCanvasElement;
-  context: CanvasRenderingContext2D;
-}
-
-type GifPalette = Palette;
-type GifEncodingRuntime = {
-  quantizeGifFrame: NonNullable<EncodeGifFrameChunkHelpers["quantizeGifFrame"]>;
-  createGifFrameEncoder: (options?: GifFrameEncoderOptions) => GifFrameEncoder;
-  concatenateGifFrameChunks: (chunks: readonly GifFrameChunk[]) => Uint8Array;
-};
-
-const GIF_GLOBAL_PALETTE_SAMPLE_FRAME_LIMIT = 24;
-const GIF_GLOBAL_PALETTE_MAX_SAMPLE_PIXELS = 120_000;
-
 function createOutputFormat(
   format: ExportFormat,
   onFlacFrame?: FlacOutputFormatOptions["onFrame"],
+  onMoov?: IsobmffOutputFormatOptions["onMoov"],
 ) {
   switch (format) {
     case "m4a":
     case "mp4": {
-      return new Mp4OutputFormat({ fastStart: "in-memory" });
+      return new Mp4OutputFormat({
+        fastStart: onMoov ? false : "in-memory",
+        onMoov,
+      });
     }
     case "mp3": {
       return new Mp3OutputFormat();
@@ -198,7 +193,8 @@ function createOutputFormat(
     }
     case "mov": {
       return new MovOutputFormat({
-        fastStart: "in-memory",
+        fastStart: onMoov ? false : "in-memory",
+        onMoov,
         metadataFormat: "mdir",
       });
     }
@@ -209,27 +205,6 @@ function createOutputFormat(
       throw new Error("GIF export uses a dedicated encoder.");
     }
   }
-}
-
-export function createGifCanvas(
-  width: number,
-  height: number,
-): GifCanvasResources {
-  const canvas = document.createElement("canvas");
-  canvas.width = width;
-  canvas.height = height;
-
-  const context = canvas.getContext("2d", { willReadFrequently: true });
-  if (!context) {
-    throw new Error("Could not create a GIF rendering canvas.");
-  }
-
-  return { canvas, context };
-}
-
-function configureGifCanvasContext(context: CanvasRenderingContext2D) {
-  context.imageSmoothingEnabled = true;
-  context.imageSmoothingQuality = "high";
 }
 
 function assertVideoTrackDecodableForExport(
@@ -286,150 +261,6 @@ async function videoExportRequiresSourceDecode({
   return (await track.getFirstTimestamp()) < trimStart;
 }
 
-function selectGifPaletteSampleFrameIndexes(frameCount: number) {
-  if (frameCount <= GIF_GLOBAL_PALETTE_SAMPLE_FRAME_LIMIT) {
-    return Array.from({ length: frameCount }, (_value, index) => index);
-  }
-
-  const lastFrameIndex = frameCount - 1;
-  return Array.from(
-    { length: GIF_GLOBAL_PALETTE_SAMPLE_FRAME_LIMIT },
-    (_value, sampleIndex) =>
-      Math.round(
-        (sampleIndex * lastFrameIndex) /
-          (GIF_GLOBAL_PALETTE_SAMPLE_FRAME_LIMIT - 1),
-      ),
-  );
-}
-
-function appendGifPaletteSample(
-  target: Uint8ClampedArray,
-  byteOffset: number,
-  imageData: ImageData,
-  maxPixels: number,
-) {
-  const source = imageData.data;
-  const sourcePixelCount = Math.floor(source.length / 4);
-  const availablePixels = Math.floor((target.length - byteOffset) / 4);
-  const samplePixelCount = Math.min(
-    sourcePixelCount,
-    maxPixels,
-    availablePixels,
-  );
-
-  if (samplePixelCount <= 0) {
-    return byteOffset;
-  }
-
-  const stride = Math.max(1, Math.floor(sourcePixelCount / samplePixelCount));
-  let writtenPixels = 0;
-  let nextByteOffset = byteOffset;
-
-  for (
-    let sourcePixelIndex = 0;
-    sourcePixelIndex < sourcePixelCount && writtenPixels < samplePixelCount;
-    sourcePixelIndex += stride
-  ) {
-    const sourceOffset = sourcePixelIndex * 4;
-    target[nextByteOffset] = source[sourceOffset] ?? 0;
-    target[nextByteOffset + 1] = source[sourceOffset + 1] ?? 0;
-    target[nextByteOffset + 2] = source[sourceOffset + 2] ?? 0;
-    target[nextByteOffset + 3] = source[sourceOffset + 3] ?? 255;
-    nextByteOffset += 4;
-    writtenPixels += 1;
-  }
-
-  return nextByteOffset;
-}
-
-async function buildGifGlobalPalette({
-  frameCount,
-  maxColors,
-  paletteFormat,
-  onSampleProgress,
-  readFrameImageData,
-  gifRuntime,
-}: {
-  frameCount: number;
-  maxColors: number;
-  paletteFormat: GifExportSettings["paletteFormat"];
-  onSampleProgress?: (sampledFrames: number, totalSampleFrames: number) => void;
-  readFrameImageData: (frameIndex: number) => Promise<ImageData | null>;
-  gifRuntime: Pick<GifEncodingRuntime, "quantizeGifFrame">;
-}): Promise<GifPalette | null> {
-  const sampleFrameIndexes = selectGifPaletteSampleFrameIndexes(frameCount);
-  const maxPixelsPerFrame = Math.max(
-    1,
-    Math.floor(
-      GIF_GLOBAL_PALETTE_MAX_SAMPLE_PIXELS / sampleFrameIndexes.length,
-    ),
-  );
-  const sampledPixels = new Uint8ClampedArray(
-    GIF_GLOBAL_PALETTE_MAX_SAMPLE_PIXELS * 4,
-  );
-  let sampleByteOffset = 0;
-  let sampledFrameCount = 0;
-
-  for (const frameIndex of sampleFrameIndexes) {
-    const imageData = await readFrameImageData(frameIndex);
-    sampledFrameCount += 1;
-
-    if (!imageData) {
-      onSampleProgress?.(sampledFrameCount, sampleFrameIndexes.length);
-      continue;
-    }
-
-    sampleByteOffset = appendGifPaletteSample(
-      sampledPixels,
-      sampleByteOffset,
-      imageData,
-      maxPixelsPerFrame,
-    );
-    onSampleProgress?.(sampledFrameCount, sampleFrameIndexes.length);
-  }
-
-  if (sampleByteOffset === 0) {
-    return null;
-  }
-
-  return gifRuntime.quantizeGifFrame(
-    sampledPixels.subarray(0, sampleByteOffset),
-    maxColors,
-    { format: paletteFormat },
-  );
-}
-
-function buildSubtitleBurnInProcessor(
-  cues: readonly SubtitleCue[],
-  styleSettings: SubtitleStyleSettings,
-) {
-  const canvas = document.createElement("canvas");
-  const context = canvas.getContext("2d");
-  if (!context) {
-    throw new Error("Could not create a subtitle rendering canvas.");
-  }
-
-  return (sample: VideoSample) => {
-    const width = Math.max(1, sample.displayWidth);
-    const height = Math.max(1, sample.displayHeight);
-
-    if (canvas.width !== width || canvas.height !== height) {
-      canvas.width = width;
-      canvas.height = height;
-    }
-
-    context.clearRect(0, 0, width, height);
-    sample.draw(context, 0, 0, width, height);
-
-    const activeCues = getActiveSubtitleCues(cues, sample.timestamp);
-    if (activeCues.length > 0) {
-      renderSubtitleCues(context, activeCues, styleSettings, width, height);
-    }
-
-    return canvas;
-  };
-}
-
 export async function exportClip(options: ExportClipOptions) {
   return exportClipWithRuntime(options, defaultExportClipRuntime);
 }
@@ -462,6 +293,7 @@ const defaultExportClipRuntime: ExportClipRuntime = {
 
 export async function exportClipWithRuntime(
   {
+    outputFile,
     signal,
     onPhaseChange,
     mediaSource,
@@ -528,6 +360,11 @@ export async function exportClipWithRuntime(
   onPhaseChange?.("preparing");
 
   if (format === "gif") {
+    if (outputFile) {
+      throw new Error(
+        "Direct-to-disk GIF export is unavailable. Use a download instead.",
+      );
+    }
     onVideoEncodingPlan?.({ bitrateBps: null, codec: null, mode: "gif" });
     return exportGifClipWithRuntime(options, runtime);
   }
@@ -537,6 +374,7 @@ export async function exportClipWithRuntime(
     hls,
   });
 
+  let exportTarget: Awaited<ReturnType<typeof createExportTarget>> | undefined;
   const disposeOnAbort = () => input.dispose();
   signal?.addEventListener("abort", disposeOnAbort, { once: true });
 
@@ -596,10 +434,20 @@ export async function exportClipWithRuntime(
 
     let flacFrameCount = 0;
     let lastFlacFrameBytes = 0;
-    const outputFormat = runtime.createOutputFormat(format, (data) => {
-      flacFrameCount++;
-      lastFlacFrameBytes = data.byteLength;
-    });
+    exportTarget = await createExportTarget(
+      outputFile,
+      () => runtime.createBufferTarget(),
+      (bytes) => runtime.patchMp4MetadataBoxes(bytes),
+    );
+    signal?.throwIfAborted();
+    const outputFormat = runtime.createOutputFormat(
+      format,
+      (data) => {
+        flacFrameCount++;
+        lastFlacFrameBytes = data.byteLength;
+      },
+      exportTarget.onMoov,
+    );
     const resolvedVideoQuality = videoQuality ?? DEFAULT_VIDEO_EXPORT_QUALITY;
     let videoQualityOptions: VideoQualityConversionOptions =
       resolvedVideoQuality === "sharp" ? {} : { forceTranscode: true };
@@ -648,7 +496,6 @@ export async function exportClipWithRuntime(
       });
     }
 
-    const target = runtime.createBufferTarget();
     // The transcript is embedded whenever subtitle cues exist for the clip
     // range, independent of the burn-in toggle: it is metadata for search,
     // not a display choice.
@@ -692,7 +539,7 @@ export async function exportClipWithRuntime(
 
     const output = runtime.createOutput({
       format: outputFormat,
-      target,
+      target: exportTarget.target,
     });
 
     const conversionOptions: ConversionOptions = {
@@ -800,19 +647,15 @@ export async function exportClipWithRuntime(
         );
       }
 
-      if (!target.buffer) {
-        throw new Error("Export did not produce a media buffer");
-      }
-
-      if (isIsobmffExportFormat(format)) {
-        runtime.patchMp4MetadataBoxes(new Uint8Array(target.buffer));
-      }
-
-      // The conversion plan preserves the selected video and requested audio;
-      // reparsing the completed file adds memory pressure for long exports.
+      // The conversion plan validates tracks before execution. Finalization
+      // patches only the metadata on disk without reparsing the exported media.
       const mimeType = await output.getMimeType();
       signal?.throwIfAborted();
-      const blob = new Blob([target.buffer], { type: mimeType });
+      const blob = await exportTarget.finish(
+        mimeType,
+        isIsobmffExportFormat(format),
+        signal,
+      );
 
       completed = true;
       return blob;
@@ -829,6 +672,7 @@ export async function exportClipWithRuntime(
   } finally {
     signal?.removeEventListener("abort", disposeOnAbort);
     input.dispose();
+    await exportTarget?.abort().catch(() => {});
   }
 }
 
@@ -1080,7 +924,7 @@ async function exportGifClipWithRuntime(
           height: outputDimensions.height,
           maxColors: resolvedGifSettings.maxColors,
           delayMs: frameDelayMs,
-          palette: globalPalette,
+          globalPalette,
           paletteFormat: resolvedGifSettings.paletteFormat,
           ditherMode: resolvedGifSettings.ditherMode,
           ditherStrength: resolvedGifSettings.ditherStrength,
@@ -1174,20 +1018,6 @@ function copyToArrayBuffer(bytes: Uint8Array) {
   new Uint8Array(buffer).set(bytes);
 
   return buffer;
-}
-
-async function loadGifEncodingRuntime(): Promise<GifEncodingRuntime> {
-  const [gifenc, gifFrameEncoder, gifFrameChunk] = await Promise.all([
-    import("@techsquidtv/gifenc"),
-    import("#/lib/export/gif/gifFrameEncoder"),
-    import("#/lib/export/gif/gifFrameChunk"),
-  ]);
-
-  return {
-    quantizeGifFrame: gifenc.quantize,
-    createGifFrameEncoder: gifFrameEncoder.createBestGifFrameEncoder,
-    concatenateGifFrameChunks: gifFrameChunk.concatenateGifFrameChunks,
-  };
 }
 
 async function prepareAudioPlan(

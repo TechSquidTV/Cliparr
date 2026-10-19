@@ -1,9 +1,9 @@
-import { createTemporalDither } from "@techsquidtv/gifenc";
 import type {
   Format,
   TemporalDitherOptions,
   TemporalDitherState,
 } from "@techsquidtv/gifenc";
+import { createTemporalDither } from "@techsquidtv/gifenc";
 
 export type GifPaletteMode = "global" | "per-frame";
 export type GifPaletteFormat = Format;

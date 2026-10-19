@@ -1,18 +1,19 @@
 import type {
-  PlexNotificationEnvelope,
   PlaySessionStateNotification,
+  PlexNotificationEnvelope,
 } from "@cliparr/plex/pms/types";
-import { createApiError } from "@/http/errors";
+import type { PlaybackProgress } from "@cliparr/shared/providers";
 import { readServerEvents } from "@cliparr/shared/server-events";
-import type { MediaSource } from "@/db/mediaSourcesRepository";
-import type { PlaybackObserver } from "@/providers/types";
+
+import type { MediaSourceRecord } from "@/db/mediaSourcesRepository";
+import { createApiError } from "@/http/errors";
 import {
-  fetchCurrentlyPlayingData,
   createPlexPlaybackResolver,
+  fetchCurrentlyPlayingData,
 } from "@/providers/plex/playback";
 import { openPlexEventStream } from "@/providers/plex/pmsClient";
 import { plexMediaHeaders } from "@/providers/plex/shared";
-import type { PlaybackProgress } from "@cliparr/shared/providers";
+import type { PlaybackObserver } from "@/providers/types";
 
 export function readPlexPlayingNotifications(
   text: string,
@@ -37,7 +38,7 @@ export function readPlexPlayingNotifications(
 }
 
 export async function watchCurrentlyPlaying(
-  source: MediaSource,
+  source: MediaSourceRecord,
   observer: PlaybackObserver,
   signal: AbortSignal,
 ) {

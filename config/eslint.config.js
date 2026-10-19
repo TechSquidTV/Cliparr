@@ -1,10 +1,12 @@
+import { fileURLToPath } from "node:url";
+
 import js from "@eslint/js";
 import astro from "eslint-plugin-astro";
-import globals from "globals";
 import reactHooks from "eslint-plugin-react-hooks";
+import simpleImportSort from "eslint-plugin-simple-import-sort";
 import eslintPluginUnicorn from "eslint-plugin-unicorn";
+import globals from "globals";
 import tseslint from "typescript-eslint";
-import { fileURLToPath } from "node:url";
 
 const rootDirectory = fileURLToPath(new URL("..", import.meta.url));
 const unicornNameAllowList = Object.fromEntries(
@@ -138,7 +140,7 @@ const relativeImportRestriction = {
 };
 const crossWorkspaceImportRestrictions = [
   {
-    regex: "^@cliparr/frontend(?:$|/(?!convert$).+)",
+    regex: "^@cliparr/frontend(?:$|/(?!(?:convert/(?:engine|ui)|pwa)$).+)",
     message: "Do not import app internals across workspace boundaries.",
   },
   {
@@ -353,6 +355,17 @@ export default tseslint.config(
   },
   ...tseslint.configs.recommendedTypeChecked,
   {
+    plugins: {
+      "simple-import-sort": simpleImportSort,
+    },
+    rules: {
+      // Import order is enforced: side-effect imports stay first, then the
+      // default simple-import-sort grouping. Fully autofixable.
+      "simple-import-sort/imports": "error",
+      "simple-import-sort/exports": "error",
+    },
+  },
+  {
     files: ["**/*.{ts,tsx}"],
     languageOptions: {
       parserOptions: {
@@ -370,6 +383,7 @@ export default tseslint.config(
       "@typescript-eslint/no-array-delete": "error",
       "@typescript-eslint/no-base-to-string": "error",
       "@typescript-eslint/no-confusing-void-expression": "off",
+      "@typescript-eslint/no-deprecated": "error",
       "@typescript-eslint/no-explicit-any": [
         "error",
         {
@@ -394,6 +408,8 @@ export default tseslint.config(
           },
         },
       ],
+      "@typescript-eslint/no-misused-spread": "error",
+      "@typescript-eslint/no-non-null-assertion": "error",
       "@typescript-eslint/no-unnecessary-condition": "off",
       "@typescript-eslint/no-unnecessary-type-arguments": "off",
       "@typescript-eslint/no-unnecessary-type-assertion": "off",
@@ -407,6 +423,7 @@ export default tseslint.config(
       "@typescript-eslint/no-unsafe-return": "error",
       "@typescript-eslint/only-throw-error": "error",
       "@typescript-eslint/prefer-includes": "error",
+      "@typescript-eslint/prefer-nullish-coalescing": "error",
       "@typescript-eslint/prefer-promise-reject-errors": "error",
       "@typescript-eslint/prefer-string-starts-ends-with": "error",
       "@typescript-eslint/require-array-sort-compare": [
@@ -456,9 +473,17 @@ export default tseslint.config(
     },
     plugins: reactHooks.configs.flat.recommended.plugins,
     rules: {
-      "react-hooks/exhaustive-deps": "warn",
+      "react-hooks/exhaustive-deps": "error",
       "react-hooks/rules-of-hooks": "error",
       "react-hooks/set-state-in-effect": "off",
+    },
+  },
+  {
+    // Test assertions and fixtures index into known-shaped data; the
+    // non-null assertion ban applies to shipped source only.
+    files: ["**/*.test.ts"],
+    rules: {
+      "@typescript-eslint/no-non-null-assertion": "off",
     },
   },
   {
@@ -475,7 +500,7 @@ export default tseslint.config(
     rules: mediaLoadingRestrictions({ gifRuntime: true }),
   },
   {
-    files: ["apps/frontend/src/lib/export/exportClip.ts"],
+    files: ["apps/frontend/src/lib/export/gif/gifEncodingRuntime.ts"],
     rules: mediaLoadingRestrictions({ gifLoader: true }),
   },
   {
@@ -484,9 +509,16 @@ export default tseslint.config(
     rules: mediaLoadingRestrictions({ ui: true }),
   },
   {
-    files: ["apps/frontend/src/convert.ts"],
-    // This source entrypoint is also bundled by @cliparr/www.
-    rules: mediaLoadingRestrictions({ relativeImports: true }),
+    files: [
+      "apps/frontend/src/convert/engine.ts",
+      "apps/frontend/src/convert/ui.ts",
+    ],
+    // These source entrypoints are also bundled by @cliparr/www.
+    rules: {
+      ...mediaLoadingRestrictions({ relativeImports: true }),
+      // These workspace entrypoints expose the API shared with @cliparr/www.
+      "unicorn/no-barrel-files": "off",
+    },
   },
   {
     files: ["apps/frontend/src/routes/**/*.{ts,tsx}"],

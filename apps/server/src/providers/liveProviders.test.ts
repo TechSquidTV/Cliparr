@@ -1,21 +1,23 @@
-import {
-  TEST_PLEX_BASE_URL,
-  useProviderFixtures,
-} from "@/test/providerFixtures";
-import { jellyfinPlaybackIdentity } from "@/providers/jellyfin/playback";
 import assert from "node:assert/strict";
 import test from "node:test";
 import { setImmediate } from "node:timers/promises";
-import { createDeferred } from "@/test/deferred";
-import type { MediaSource } from "@/db/mediaSourcesRepository";
+
+import { readServerEvents } from "@cliparr/shared/server-events";
+
+import type { MediaSourceRecord } from "@/db/mediaSourcesRepository";
 import { jellyfinSupportsLiveSessions } from "@/providers/jellyfin/live";
+import { jellyfinPlaybackIdentity } from "@/providers/jellyfin/playback";
 import {
   readPlexPlayingNotifications,
   watchCurrentlyPlaying,
 } from "@/providers/plex/live";
-import { readServerEvents } from "@cliparr/shared/server-events";
+import { createDeferred } from "#test/deferred";
+import {
+  TEST_PLEX_BASE_URL,
+  useProviderFixtures,
+} from "#test/providerFixtures";
 
-const source: MediaSource = {
+const source: MediaSourceRecord = {
   id: "source",
   providerId: "plex",
   providerAccountId: "account",

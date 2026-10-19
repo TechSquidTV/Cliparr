@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { normalizeExportVideoCodec } from "@cliparr/shared/providers";
+
 import type {
   Media,
   Part,
@@ -10,16 +10,19 @@ import {
   libraryMetadataGetSlashUrl,
   transcodeStartUrl,
 } from "@cliparr/plex/pms/urls";
-import type {
-  PlaybackAudioSelection,
-  PlaybackExportEstimateMetadata,
-} from "@/providers/types";
+import { normalizeExportVideoCodec } from "@cliparr/shared/providers";
+
+import { PREVIEW_TRANSCODE_POLICY } from "@/providers/shared/previewPolicy";
 import { booleanFlag } from "@/providers/shared/subtitles";
 import {
   asArray,
   numberValue,
   stringValue,
 } from "@/providers/shared/utilities";
+import type {
+  PlaybackAudioSelection,
+  PlaybackExportEstimateMetadata,
+} from "@/providers/types";
 
 const PLEX_METADATA_PATH_PREFIX = "/library/metadata/";
 
@@ -397,17 +400,17 @@ export function createPreviewPath(
       path,
       transcodeSessionId,
       protocol: "hls",
-      directPlay: 0,
-      directStream: 0,
-      directStreamAudio: 0,
-      subtitles: "none",
+      directPlay: PREVIEW_TRANSCODE_POLICY.copyStreams ? 1 : 0,
+      directStream: PREVIEW_TRANSCODE_POLICY.copyStreams ? 1 : 0,
+      directStreamAudio: PREVIEW_TRANSCODE_POLICY.copyStreams ? 1 : 0,
+      subtitles: PREVIEW_TRANSCODE_POLICY.burnSubtitles ? "burn" : "none",
       mediaIndex: resolvedSelection?.mediaIndex ?? 0,
       partIndex: resolvedSelection?.partIndex ?? 0,
-      audioChannelCount: 2,
+      audioChannelCount: PREVIEW_TRANSCODE_POLICY.maxAudioChannels,
       videoQuality: 80,
-      videoResolution: "1920x1080",
-      videoBitrate: 12_000,
-      peakBitrate: 12_000,
+      videoResolution: `${PREVIEW_TRANSCODE_POLICY.maxWidth}x${PREVIEW_TRANSCODE_POLICY.maxHeight}`,
+      videoBitrate: PREVIEW_TRANSCODE_POLICY.videoBitrateBps / 1000,
+      peakBitrate: PREVIEW_TRANSCODE_POLICY.videoBitrateBps / 1000,
       location: "lan",
       mediaBufferSize: 102_400,
     },

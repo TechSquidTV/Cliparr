@@ -1,26 +1,27 @@
-import { AnimatePresence, motion } from "motion/react";
+import type {
+  ProviderDefinition,
+  ProviderSession,
+} from "@cliparr/shared/providers";
 import { ArrowRight, Check, ExternalLink, Server } from "lucide-react";
+import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import type { ReactNode } from "react";
-import { cn } from "@/lib/cn";
-import { EmptyState } from "@/components/ui/empty-state";
-import { ProviderGlyph } from "@/components/providers/ProviderGlyph";
-import { useProviderConnectFlow } from "@/components/provider-connect/useProviderConnectFlow";
+
+import { useProviderConnectFlow } from "#/components/provider-connect/useProviderConnectFlow";
+import { ProviderGlyph } from "#/components/providers/ProviderGlyph";
+import {
+  buttonClassName,
+  destructiveAlertClasses,
+  textInputClassName,
+} from "#/components/ui/control-styles";
+import { EmptyState } from "#/components/ui/empty-state";
 import {
   Tabs,
   TabsList,
   TabsPanel,
   TabsPanels,
   TabsTab,
-} from "@/components/ui/tabs";
-import {
-  destructiveAlertClasses,
-  compactSecondaryButtonClasses,
-  densePrimaryButtonClasses as panelPrimaryButtonClasses,
-  denseSecondaryButtonClasses as panelSecondaryButtonClasses,
-  screenTextInputClasses as baseScreenInputClasses,
-  textInputClasses,
-} from "@/components/ui/control-styles";
-import type { ProviderDefinition, ProviderSession } from "@/providers/types";
+} from "#/components/ui/tabs";
+import { cn } from "#/lib/cn";
 
 interface Properties {
   onConnected: (session: ProviderSession) => Promise<void> | void;
@@ -37,14 +38,15 @@ const developmentJellyfinUrl =
     ? developmentJellyfinUrlValue.trim()
     : "";
 
-const panelInputClasses = cn(textInputClasses, "mt-1.5");
-const screenInputClasses = cn(baseScreenInputClasses, "mt-2");
+const panelInputClasses = cn(textInputClassName(), "mt-1.5");
+const screenInputClasses = cn(textInputClassName({ size: "screen" }), "mt-2");
 
 export default function ProviderConnectFlow({
   onConnected,
   onCancel,
   variant = "panel",
 }: Properties) {
+  const reducedMotion = useReducedMotion();
   const isScreen = variant === "screen";
   const {
     providers,
@@ -97,7 +99,7 @@ export default function ProviderConnectFlow({
               type="button"
               onClick={() => void startAuth(provider)}
               disabled={authenticating}
-              className={cn(panelPrimaryButtonClasses, "flex-1")}
+              className={cn(buttonClassName({ size: "dense" }), "flex-1")}
             >
               <ExternalLink className="h-4 w-4" />
               {authenticating && providerId === provider.id
@@ -110,7 +112,10 @@ export default function ProviderConnectFlow({
                 type="button"
                 onClick={onCancel}
                 disabled={authenticating}
-                className={panelSecondaryButtonClasses}
+                className={buttonClassName({
+                  tone: "secondary",
+                  size: "dense",
+                })}
               >
                 Cancel
               </button>
@@ -204,7 +209,10 @@ export default function ProviderConnectFlow({
                   type="button"
                   onClick={() => setServerUrl(developmentJellyfinUrl)}
                   disabled={authenticating || isUsingDevelopmentJellyfinUrl}
-                  className={compactSecondaryButtonClasses}
+                  className={buttonClassName({
+                    tone: "secondary",
+                    size: "compact",
+                  })}
                 >
                   {isUsingDevelopmentJellyfinUrl ? (
                     <>
@@ -283,7 +291,7 @@ export default function ProviderConnectFlow({
             <button
               type="submit"
               disabled={authenticating || !serverUrl.trim() || !username.trim()}
-              className={cn(panelPrimaryButtonClasses, "flex-1")}
+              className={cn(buttonClassName({ size: "dense" }), "flex-1")}
             >
               <Server className="h-4 w-4" />
               {authenticating && providerId === provider.id
@@ -296,7 +304,10 @@ export default function ProviderConnectFlow({
                 type="button"
                 onClick={onCancel}
                 disabled={authenticating}
-                className={panelSecondaryButtonClasses}
+                className={buttonClassName({
+                  tone: "secondary",
+                  size: "dense",
+                })}
               >
                 Cancel
               </button>
@@ -327,10 +338,10 @@ export default function ProviderConnectFlow({
         <AnimatePresence mode="wait">
           <motion.p
             key={`auth-${providerId}`}
-            initial={{ opacity: 0, y: 6 }}
+            initial={{ opacity: 0, y: reducedMotion ? 0 : 6 }}
             animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 6 }}
-            transition={{ duration: 0.16, ease: "easeOut" }}
+            exit={{ opacity: 0, y: reducedMotion ? 0 : 6 }}
+            transition={{ duration: reducedMotion ? 0 : 0.16, ease: "easeOut" }}
             className="text-center text-xs text-muted-foreground"
           >
             {content}
@@ -583,6 +594,7 @@ function ProviderConnectError({
   error: string;
   isScreen: boolean;
 }) {
+  const reducedMotion = useReducedMotion();
   if (!error) {
     return null;
   }
@@ -600,10 +612,10 @@ function ProviderConnectError({
       <AnimatePresence mode="wait">
         <motion.div
           key={error}
-          initial={{ opacity: 0, y: -8 }}
+          initial={{ opacity: 0, y: reducedMotion ? 0 : -8 }}
           animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -8 }}
-          transition={{ duration: 0.18, ease: "easeOut" }}
+          exit={{ opacity: 0, y: reducedMotion ? 0 : -8 }}
+          transition={{ duration: reducedMotion ? 0 : 0.18, ease: "easeOut" }}
           role="alert"
           className={destructiveAlertClasses}
         >

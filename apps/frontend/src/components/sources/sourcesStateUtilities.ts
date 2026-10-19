@@ -1,4 +1,8 @@
-import type { MediaSource, MediaSourceCheckResult } from "@/providers/types";
+import type {
+  MediaSource,
+  MediaSourceCheckResult,
+} from "@cliparr/shared/providers";
+
 import type { Feedback, SourceFilter } from "@/components/sources/sourcesTypes";
 
 function compareStrings(left: string, right: string) {

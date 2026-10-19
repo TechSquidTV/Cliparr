@@ -1,7 +1,7 @@
-import type { ProviderImplementation } from "@/providers/types";
 import { jellyfinProvider } from "@/providers/jellyfin/provider";
 import { localUrlProvider } from "@/providers/localUrl/provider";
 import { plexProvider } from "@/providers/plex/provider";
+import type { ProviderImplementation } from "@/providers/types";
 
 const providers = new Map<string, ProviderImplementation>();
 

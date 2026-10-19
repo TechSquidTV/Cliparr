@@ -1,6 +1,12 @@
 import { Switch as BaseSwitch } from "@base-ui/react/switch";
-import { motion, type HTMLMotionProps, type Transition } from "motion/react";
+import {
+  type HTMLMotionProps,
+  motion,
+  type Transition,
+  useReducedMotion,
+} from "motion/react";
 import * as React from "react";
+
 import { cn } from "#/lib/cn";
 
 type BaseSwitchRootProperties = React.ComponentProps<typeof BaseSwitch.Root>;
@@ -74,6 +80,7 @@ const Switch = React.forwardRef<HTMLElement, SwitchProperties>(function Switch(
   },
   ref,
 ) {
+  const reducedMotion = useReducedMotion();
   const isControlled = checked !== undefined;
   const [uncontrolledChecked, setUncontrolledChecked] =
     React.useState(defaultChecked);
@@ -186,7 +193,7 @@ const Switch = React.forwardRef<HTMLElement, SwitchProperties>(function Switch(
     <BaseSwitch.Root
       checked={currentChecked}
       className={cn(
-        "relative inline-flex h-5 w-9 shrink-0 cursor-pointer items-center rounded-full border transition-colors duration-150 data-[disabled]:cursor-not-allowed data-[disabled]:opacity-55",
+        "relative inline-flex h-5 w-9 shrink-0 cursor-pointer items-center rounded-full border transition-colors motion-reduce:transition-none duration-150 data-[disabled]:cursor-not-allowed data-[disabled]:opacity-55",
         rootVariantClasses[variant],
         className,
       )}
@@ -220,11 +227,11 @@ const Switch = React.forwardRef<HTMLElement, SwitchProperties>(function Switch(
             {...(renderProperties as HTMLMotionProps<"span">)}
             animate={{ width: activeThumbWidth, x: thumbX }}
             className={cn(
-              "pointer-events-none absolute left-1 top-1/2 flex h-3 -translate-y-1/2 items-center justify-center rounded-full transition-colors [&_svg]:h-2.5 [&_svg]:w-2.5",
+              "pointer-events-none absolute left-1 top-1/2 flex h-3 -translate-y-1/2 items-center justify-center rounded-full transition-colors motion-reduce:transition-none [&_svg]:h-2.5 [&_svg]:w-2.5",
               thumbVariantClasses[variant],
               thumbClassName,
             )}
-            transition={transition}
+            transition={reducedMotion ? { duration: 0 } : transition}
           >
             {thumbIcon}
           </motion.span>

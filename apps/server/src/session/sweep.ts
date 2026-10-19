@@ -1,6 +1,11 @@
-import { logErrorFields, logEventFields } from "@cliparr/shared/logging";
+import {
+  logErrorFields,
+  logEventFields,
+  warnWithError,
+} from "@cliparr/shared/logging";
+
 import { purgeExpiredRememberedProviderSessions } from "@/db/rememberedProviderSessionsRepository";
-import { getServerLogger, warnWithError } from "@/logging";
+import { getServerLogger } from "@/logging";
 import { purgeExpiredProviderSessions } from "@/session/store";
 
 const SESSION_SWEEP_INTERVAL_MS = 60 * 60 * 1000;

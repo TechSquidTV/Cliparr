@@ -1,29 +1,34 @@
-import {
-  PRIVATE_IPV4_ADDRESSES,
-  PRIVATE_IPV6_ADDRESS,
-} from "@/test/networkPolicyFixtures";
 import assert from "node:assert/strict";
 import dns from "node:dns/promises";
 import { syncBuiltinESMExports } from "node:module";
-import test, { beforeEach, afterEach } from "node:test";
+import test, { afterEach, beforeEach } from "node:test";
+
 import { Agent } from "undici";
+
 import { closePooledPinnedDnsAgents } from "@/providers/shared/pinnedFetch";
+import {
+  PRIVATE_IPV4_ADDRESSES,
+  PRIVATE_IPV6_ADDRESS,
+} from "#test/networkPolicyFixtures";
+import { useFreshDnsCacheWindow } from "#test/providerFixtures";
 
-const { fetchPublicSystemInfo, resolveCredentialServerUrl } =
-  await (async () => {
-    const previous = process.env.CLIPARR_ALLOW_LOOPBACK_JELLYFIN_URLS;
-    process.env.CLIPARR_ALLOW_LOOPBACK_JELLYFIN_URLS = "true";
-    try {
-      return await import("@/providers/jellyfin/shared");
-    } finally {
-      if (previous === undefined) {
-        delete process.env.CLIPARR_ALLOW_LOOPBACK_JELLYFIN_URLS;
-      } else {
-        process.env.CLIPARR_ALLOW_LOOPBACK_JELLYFIN_URLS = previous;
-      }
+const { resolveCredentialServerUrl } = await (async () => {
+  const previous = process.env.CLIPARR_ALLOW_LOOPBACK_JELLYFIN_URLS;
+  process.env.CLIPARR_ALLOW_LOOPBACK_JELLYFIN_URLS = "true";
+  try {
+    return await import("@/providers/jellyfin/http");
+  } finally {
+    if (previous === undefined) {
+      delete process.env.CLIPARR_ALLOW_LOOPBACK_JELLYFIN_URLS;
+    } else {
+      process.env.CLIPARR_ALLOW_LOOPBACK_JELLYFIN_URLS = previous;
     }
-  })();
+  }
+})();
 
+const { fetchPublicSystemInfo } = await import("@/providers/jellyfin/shared");
+
+useFreshDnsCacheWindow();
 beforeEach((context) => {
   assert.ok("mock" in context);
   context.mock.method(dns, "lookup", async () => [

@@ -1,15 +1,15 @@
-import { ControlTooltip } from "@/components/ui/tooltip";
 import {
+  fromSeconds,
   RangeScrollbar,
   Timeline,
-  fromSeconds,
+  type TimelineEngine,
   useTimelineInOutRangeControl,
   useTimelinePlayback,
   useTimelineScrollLeft,
   useTimelineTrack,
   useTimelineZoomScale,
-  type TimelineEngine,
 } from "@techsquidtv/canvas-timeline";
+
 import {
   EDITOR_MEDIA_RANGE_HANDLE_WIDTH,
   EDITOR_MEDIA_RANGE_INSET,
@@ -19,6 +19,7 @@ import {
   formatTime,
   MIN_CLIP_SECONDS,
 } from "@/components/editor/editorUtilities";
+import { ControlTooltip } from "@/components/ui/tooltip";
 
 // The source clip stays full-length for preview and source timestamp mapping.
 // Its visible row represents the export range, using the same In/Out state as

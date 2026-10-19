@@ -1,17 +1,19 @@
 import { Dialog as BaseDialog } from "@base-ui/react/dialog";
-import {
-  dialogFooterClasses,
-  iconButtonClasses,
-} from "@/components/ui/control-styles";
 import { X } from "lucide-react";
 import {
   AnimatePresence,
-  motion,
   type HTMLMotionProps,
+  motion,
   type Transition,
+  useReducedMotion,
 } from "motion/react";
 import * as React from "react";
-import { cn } from "@/lib/cn";
+
+import {
+  buttonClassName,
+  dialogFooterClasses,
+} from "#/components/ui/control-styles";
+import { cn } from "#/lib/cn";
 
 type DialogRootProperties = React.ComponentProps<typeof BaseDialog.Root>;
 type DialogPortalProperties = Omit<
@@ -31,7 +33,6 @@ type DialogPopupProperties = Omit<
   React.ComponentProps<typeof BaseDialog.Popup>,
   "render"
 > & {
-  showCloseButton?: boolean;
   from?: "top" | "bottom" | "left" | "right";
   transition?: Transition;
 };
@@ -94,45 +95,25 @@ function useDialogAnimationContext(componentName: string) {
 
 function Dialog({
   actionsRef,
-  defaultOpen = false,
   disablePointerDismissal = false,
-  onOpenChange,
   open,
   ...props
-}: DialogRootProperties) {
-  const [uncontrolledOpen, setUncontrolledOpen] = React.useState(defaultOpen);
+}: Omit<DialogRootProperties, "open" | "defaultOpen"> & { open: boolean }) {
   const internalActionsReference = React.useRef<DialogRootActions | null>(null);
   const resolvedActionsReference = (actionsRef ??
     internalActionsReference) as React.RefObject<DialogRootActions | null>;
-  const isControlled = open !== undefined;
-  const currentOpen = isControlled ? open : uncontrolledOpen;
-
-  const handleOpenChange = React.useCallback<
-    NonNullable<DialogRootProperties["onOpenChange"]>
-  >(
-    (nextOpen, eventDetails) => {
-      if (!isControlled) {
-        setUncontrolledOpen(nextOpen);
-      }
-
-      onOpenChange?.(nextOpen, eventDetails);
-    },
-    [isControlled, onOpenChange],
-  );
-
   return (
     <DialogAnimationContext.Provider
       value={{
         actionsRef: resolvedActionsReference,
         disablePointerDismissal,
-        open: currentOpen,
+        open,
       }}
     >
       <BaseDialog.Root
         actionsRef={resolvedActionsReference}
         disablePointerDismissal={disablePointerDismissal}
-        open={currentOpen}
-        onOpenChange={handleOpenChange}
+        open={open}
         {...props}
       />
     </DialogAnimationContext.Provider>
@@ -177,6 +158,7 @@ function DialogBackdrop({
   transition = backdropTransition,
   ...props
 }: DialogBackdropProperties) {
+  const reducedMotion = useReducedMotion();
   const { actionsRef, disablePointerDismissal } =
     useDialogAnimationContext("DialogBackdrop");
   const backdropClassName = cn(
@@ -210,7 +192,7 @@ function DialogBackdrop({
               actionsRef.current?.close();
             }
           }}
-          transition={transition}
+          transition={reducedMotion ? { duration: 0 } : transition}
         />
       )}
     />
@@ -223,28 +205,15 @@ function DialogPopup({
   finalFocus,
   from = "top",
   initialFocus,
-  showCloseButton = true,
   transition = popupTransition,
   ...props
 }: DialogPopupProperties) {
   const { actionsRef, open } = useDialogAnimationContext("DialogPopup");
-  const fromOffset = getPopupOffset(from);
+  const reducedMotion = useReducedMotion();
+  const fromOffset = reducedMotion ? { x: 0, y: 0 } : getPopupOffset(from);
   const popupClassName = cn(
     "pointer-events-auto relative flex max-h-full w-full max-w-lg flex-col overflow-hidden rounded-lg border border-border bg-card text-card-foreground shadow-2xl outline-none",
     className,
-  );
-  const popupChildren = (
-    <>
-      {showCloseButton ? (
-        <DialogClose
-          className={cn(iconButtonClasses, "absolute top-3 right-3")}
-        >
-          <X className="h-4 w-4" />
-          <span className="sr-only">Close</span>
-        </DialogClose>
-      ) : null}
-      {children}
-    </>
   );
 
   if (typeof document === "undefined") {
@@ -257,7 +226,7 @@ function DialogPopup({
         aria-modal="true"
         className={popupClassName}
       >
-        {popupChildren}
+        {children}
       </div>
     );
   }
@@ -271,10 +240,14 @@ function DialogPopup({
         <motion.div
           {...(renderProperties as HTMLMotionProps<"div">)}
           className={popupClassName}
-          initial={{ opacity: 0, scale: 0.97, ...fromOffset }}
+          initial={{
+            opacity: 0,
+            scale: reducedMotion ? 1 : 0.97,
+            ...fromOffset,
+          }}
           animate={{ opacity: 1, scale: 1, x: 0, y: 0 }}
-          exit={{ opacity: 0, scale: 0.97, ...fromOffset }}
-          transition={transition}
+          exit={{ opacity: 0, scale: reducedMotion ? 1 : 0.97, ...fromOffset }}
+          transition={reducedMotion ? { duration: 0 } : transition}
           onAnimationComplete={() => {
             if (!open) {
               actionsRef.current?.unmount();
@@ -283,7 +256,7 @@ function DialogPopup({
         />
       )}
     >
-      {popupChildren}
+      {children}
     </BaseDialog.Popup>
   );
 }
@@ -311,6 +284,7 @@ function DialogWindow({
   titleClassName,
   ...props
 }: DialogWindowProperties) {
+  // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- Empty titles and descriptions should not create a header.
   const hasHeader = Boolean(title || description);
 
   return (
@@ -333,7 +307,6 @@ function DialogWindow({
           }}
         />
         <DialogPopup
-          showCloseButton={false}
           initialFocus={initialFocus}
           finalFocus={finalFocus}
           from={from}
@@ -364,7 +337,7 @@ function DialogWindow({
               <DialogClose
                 disabled={closeDisabled}
                 aria-label={closeLabel}
-                className={iconButtonClasses}
+                className={buttonClassName({ tone: "icon", size: "icon" })}
               >
                 <X className="h-4 w-4" />
               </DialogClose>
