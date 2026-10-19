@@ -18,8 +18,6 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-import { motion, useReducedMotion } from "motion/react";
-
 import { cn } from "@/lib/cn";
 
 interface BarsLoaderProps {
@@ -35,8 +33,6 @@ export function BarsLoader({
   showLabel = false,
   className,
 }: BarsLoaderProps) {
-  const reduceMotion = useReducedMotion();
-
   return (
     <span
       role="status"
@@ -47,24 +43,16 @@ export function BarsLoader({
     >
       <span
         aria-hidden="true"
-        className="flex shrink-0 items-center justify-center"
+        className="flex shrink-0 items-end justify-center"
         style={{ width: size, height: size, gap: size * 0.1 }}
       >
         {[0, 1, 2, 3].map((index) => (
-          <motion.span
-            key={`${index}-${Boolean(reduceMotion)}`}
-            className="rounded-full bg-current"
-            style={{ width: size * 0.16, height: size, originY: 1 }}
-            animate={
-              reduceMotion
-                ? { opacity: [0.4, 1, 0.4] }
-                : { scaleY: [0.3, 1, 0.3] }
-            }
-            transition={{
-              duration: reduceMotion ? 1.4 : 1,
-              ease: "easeInOut",
-              repeat: Infinity,
-              delay: index * 0.12,
+          <span
+            key={index}
+            className="bars-loader-bar block shrink-0 rounded-full bg-current"
+            style={{
+              width: size * 0.16,
+              animationDelay: `${index * 0.12}s`,
             }}
           />
         ))}

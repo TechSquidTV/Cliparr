@@ -10,8 +10,6 @@ interface EditorPreviewProperties {
   loadingPreviewFrame: boolean;
   posterImageUrl?: string;
   posterViewTransitionName?: string;
-  previewStatus: string;
-  previewFrameStatus: string;
   togglePlay: () => void;
   overlay?: ReactNode;
 }
@@ -23,16 +21,14 @@ export function EditorPreview({
   loadingPreviewFrame,
   posterImageUrl,
   posterViewTransitionName,
-  previewStatus,
-  previewFrameStatus,
   togglePlay,
   overlay,
 }: EditorPreviewProperties) {
   const showLoadingOverlay = loadingPreview || loadingPreviewFrame;
   const hasPosterImage = Boolean(posterImageUrl);
   const loadingStatus = loadingPreviewFrame
-    ? previewFrameStatus
-    : previewStatus;
+    ? "Loading preview frame…"
+    : "Loading video…";
 
   return (
     <div

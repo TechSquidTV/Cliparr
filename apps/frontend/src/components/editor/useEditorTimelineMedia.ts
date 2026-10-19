@@ -463,8 +463,6 @@ export function useEditorTimelineMedia(
     playing,
     loadingPreview,
     loadingPreviewFrame,
-    previewStatus: media.status,
-    previewFrameStatus: "Loading preview frame...",
     error:
       (sourceState?.status === "failed"
         ? `${previewError} Press Play or seek to retry the preview.`

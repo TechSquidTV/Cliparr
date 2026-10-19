@@ -211,8 +211,6 @@ function EditorScreenContent({
     playing,
     loadingPreview,
     loadingPreviewFrame,
-    previewStatus,
-    previewFrameStatus,
     error,
     activeSourceLabel,
     exportFallbackSource,
@@ -526,8 +524,6 @@ function EditorScreenContent({
         posterViewTransitionName={
           posterImageUrl ? EDITOR_THUMBNAIL_VIEW_TRANSITION_NAME : undefined
         }
-        previewStatus={previewStatus}
-        previewFrameStatus={previewFrameStatus}
         togglePlay={togglePlay}
         overlay={
           <EditorSubtitlePreview
