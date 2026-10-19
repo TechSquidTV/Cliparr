@@ -106,11 +106,17 @@ For most clips, leave source on `Auto`. Choose a specific source when troublesho
 
 Turn it off to keep supported surround channels with AAC or FLAC. MP3, WAV, and Opus exports currently require mono or stereo. If the selected format cannot preserve your channels, Cliparr explains the problem.
 
+## Saving exports
+
+When your browser offers a save picker, choose where to save video and audio exports before processing starts. Cliparr and Cliparr Convert write directly to the selected file. Changes to that file are saved only when export finishes; cancelling before then leaves an existing file's contents unchanged.
+
+GIF exports and browsers without the picker download the completed file through the browser.
+
 ## Estimated size
 
 The export dialog estimates the file size before you start. The final size can vary with the source and output settings; FLAC size is shown as variable.
 
-Large exports can use substantial browser memory. If an export fails or your tab becomes unresponsive, shorten the clip or lower the video resolution. WAV has a 4 GiB file-size limit.
+If a large export fails or your tab becomes unresponsive, shorten the clip or lower the video resolution. WAV has a 4 GiB file-size limit.
 
 ## Filename templates
 
