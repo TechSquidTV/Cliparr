@@ -14,7 +14,7 @@
   },
   "dependencies": {
     "@cliparr/shared": "workspace:*",
-    "@jellyfin/sdk": "1.0.0",
+    "@jellyfin/sdk": "1.0.1",
     "playwright": "1.64.1",
     "axios": "^1.20.0"
   },
