@@ -9,6 +9,7 @@ import {
   EncodedPacketSink,
   Input,
   type InputAudioTrack,
+  Quality,
 } from "mediabunny";
 
 import {
@@ -415,7 +416,11 @@ export async function resolveExportAudioPlan(
       continue;
     }
     if (
-      await supports(codec, { sampleRate, numberOfChannels: channels, bitrate })
+      await supports(codec, {
+        sampleRate,
+        numberOfChannels: channels,
+        quality: bitrate === undefined ? undefined : new Quality({ bitrate }),
+      })
     ) {
       return {
         format,
@@ -620,7 +625,10 @@ export function audioConversionOptions(
 ): ConversionAudioOptions {
   return {
     codec: plan.codec,
-    bitrate: plan.bitrate,
+    quality:
+      plan.bitrate === undefined
+        ? undefined
+        : new Quality({ bitrate: plan.bitrate }),
     forceTranscode: true,
     sampleRate: plan.sampleRate,
     sampleFormat: plan.bits === null ? plan.sampleFormat : undefined,

@@ -10,6 +10,7 @@ import {
   Output,
   type OutputFormat,
   PathedTarget,
+  Quality,
 } from "mediabunny";
 
 import { ensureAudioEncoder } from "#/lib/export/mediabunny/mediabunnyCodecs";
@@ -78,7 +79,10 @@ export async function createBrowserSourceFixtures() {
       targetDuration: 0.5,
     }),
   });
-  const source = new AudioSampleSource({ codec: "aac", bitrate: 96_000 });
+  const source = new AudioSampleSource({
+    codec: "aac",
+    quality: new Quality({ bitrate: 96_000 }),
+  });
   output.addAudioTrack(source, { isRelativeToUnixEpoch: true });
   const sample = new AudioSample({
     data: Float32Array.from(
