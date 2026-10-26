@@ -8,6 +8,7 @@ import {
   writeFile,
 } from "node:fs/promises";
 import path from "node:path";
+import process from "node:process";
 import { parseArgs } from "node:util";
 
 import { run } from "#/process.ts";
@@ -91,6 +92,8 @@ async function main() {
   const environment = {
     ...process.env,
     CAPTURE_MEDIA_DIR: mediaDirectory,
+    CAPTURE_UID: String(process.getuid?.() ?? 1000),
+    CAPTURE_GID: String(process.getgid?.() ?? 1000),
     CAPTURE_OUTPUT_DIR: output,
     CAPTURE_PASSWORD: randomBytes(24).toString("hex"),
     CAPTURE_APP_KEY: randomBytes(32).toString("hex"),

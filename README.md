@@ -38,7 +38,7 @@ Replace `APP_KEY` with a random secret of at least 32 characters; for example, g
 ```bash
 docker run -d \
   --name cliparr \
-  -p 7171:7171 \
+  -p 127.0.0.1:7171:7171 \
   -e APP_KEY="your-32-char-stable-random-secret" \
   -v cliparr-data:/data \
   ghcr.io/techsquidtv/cliparr:latest
@@ -50,7 +50,7 @@ docker run -d \
 ```powershell
 docker run -d `
   --name cliparr `
-  -p 7171:7171 `
+  -p 127.0.0.1:7171:7171 `
   -e APP_KEY="your-32-char-stable-random-secret" `
   -v cliparr-data:/data `
   ghcr.io/techsquidtv/cliparr:latest

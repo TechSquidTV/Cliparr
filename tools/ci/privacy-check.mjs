@@ -107,12 +107,6 @@ function permittedAddress(address, file) {
   ) {
     return true;
   }
-  if (
-    file === "docker/compose.dev.yml" &&
-    normalized === [172, 28, 0, 0].join(".")
-  ) {
-    return true;
-  }
   const [first, second, third] = normalized.split(".").map(Number);
   return (
     first === 0 ||

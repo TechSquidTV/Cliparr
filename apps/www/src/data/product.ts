@@ -80,14 +80,14 @@ export interface CommandExampleVariant {
 
 export const dockerRunCommand = String.raw`docker run -d \
   --name cliparr \
-  -p 7171:7171 \
+  -p 127.0.0.1:7171:7171 \
   -e APP_KEY="your-32-char-stable-random-secret" \
   -v cliparr-data:/data \
   ghcr.io/techsquidtv/cliparr:latest`;
 
 export const dockerRunPowerShellCommand = `docker run -d \`
   --name cliparr \`
-  -p 7171:7171 \`
+  -p 127.0.0.1:7171:7171 \`
   -e APP_KEY="your-32-char-stable-random-secret" \`
   -v cliparr-data:/data \`
   ghcr.io/techsquidtv/cliparr:latest`;
@@ -105,7 +105,7 @@ export const dockerComposeExample = `services:
     image: ghcr.io/techsquidtv/cliparr:latest
     container_name: cliparr
     ports:
-      - "7171:7171"
+      - "127.0.0.1:7171:7171"
     environment:
       - APP_KEY=replace-this-with-a-32-character-secure-random-string
     volumes:
@@ -117,7 +117,7 @@ volumes:
 
 const structuredConsoleLoggingCommand = String.raw`docker run -d \
   --name cliparr \
-  -p 7171:7171 \
+  -p 127.0.0.1:7171:7171 \
   -e APP_KEY="your-32-char-stable-random-secret" \
   -e CLIPARR_LOG_FORMAT=json \
   -v cliparr-data:/data \
@@ -125,7 +125,7 @@ const structuredConsoleLoggingCommand = String.raw`docker run -d \
 
 const structuredConsoleLoggingPowerShellCommand = `docker run -d \`
   --name cliparr \`
-  -p 7171:7171 \`
+  -p 127.0.0.1:7171:7171 \`
   -e APP_KEY="your-32-char-stable-random-secret" \`
   -e CLIPARR_LOG_FORMAT=json \`
   -v cliparr-data:/data \`

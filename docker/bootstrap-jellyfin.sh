@@ -26,7 +26,7 @@ wait_for_public_info() {
   attempt=0
 
   while [ "$attempt" -lt 60 ]; do
-    if public_info="$(curl -fsS "$JELLYFIN_BASE_URL/System/Info/Public" 2>/dev/null)"; then
+    if public_info="$(curl --connect-timeout 5 --max-time 15 -fsS "$JELLYFIN_BASE_URL/System/Info/Public" 2>/dev/null)"; then
       printf '%s' "$public_info"
       return 0
     fi
@@ -55,7 +55,7 @@ wait_for_startup_ready_or_completed() {
       return 0
     fi
 
-    if curl -fsS "$JELLYFIN_BASE_URL/Startup/User" \
+    if curl --connect-timeout 5 --max-time 15 -fsS "$JELLYFIN_BASE_URL/Startup/User" \
       -H "Authorization: $(jellyfin_auth_header)" \
       -H "Accept: application/json" \
       >/dev/null 2>&1; then
@@ -65,7 +65,7 @@ wait_for_startup_ready_or_completed() {
 
     attempt=$((attempt + 1))
     sleep 2
-    public_info="$(wait_for_public_info)"
+    public_info="$(curl --connect-timeout 5 --max-time 15 -fsS "$JELLYFIN_BASE_URL/System/Info/Public")"
   done
 
   echo "Timed out waiting for Jellyfin startup endpoints." >&2
@@ -80,14 +80,14 @@ post_jellyfin_with_retries() {
 
   while [ "$attempt" -lt 30 ]; do
     if [ -n "$body" ]; then
-      if curl -fsS -X POST "$JELLYFIN_BASE_URL$path" \
+      if curl --connect-timeout 5 --max-time 15 -fsS -X POST "$JELLYFIN_BASE_URL$path" \
         -H "Authorization: $(jellyfin_auth_header "$token")" \
         -H "Content-Type: application/json" \
         -d "$body" \
         >/dev/null 2>&1; then
         return 0
       fi
-    elif curl -fsS -X POST "$JELLYFIN_BASE_URL$path" \
+    elif curl --connect-timeout 5 --max-time 15 -fsS -X POST "$JELLYFIN_BASE_URL$path" \
       -H "Authorization: $(jellyfin_auth_header "$token")" \
       >/dev/null 2>&1; then
       return 0
@@ -105,7 +105,7 @@ login_jellyfin() {
   attempt=0
 
   while [ "$attempt" -lt 30 ]; do
-    auth_result="$(curl -fsS -X POST "$JELLYFIN_BASE_URL/Users/AuthenticateByName" \
+    auth_result="$(curl --connect-timeout 5 --max-time 15 -fsS -X POST "$JELLYFIN_BASE_URL/Users/AuthenticateByName" \
       -H "Authorization: $(jellyfin_auth_header)" \
       -H "Accept: application/json" \
       -H "Content-Type: application/json" \
@@ -146,7 +146,7 @@ if [ "$startup_completed" != "true" ]; then
 fi
 
 access_token="$(login_jellyfin)"
-libraries="$(curl -fsS \
+libraries="$(curl --connect-timeout 5 --max-time 15 -fsS \
   -H "Authorization: $(jellyfin_auth_header "$access_token")" \
   -H "Accept: application/json" \
   "$JELLYFIN_BASE_URL/Library/VirtualFolders")"

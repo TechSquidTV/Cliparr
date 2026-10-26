@@ -34,6 +34,8 @@ Open `http://localhost:7171`, connect Plex or Jellyfin, or choose **Open Video**
   feature support snapshot.
 </Callout>
 
+The default port binding accepts connections only from this computer. For remote access, use a VPN or authenticated reverse proxy as described in [Access control](/docs/access-control). `APP_KEY` protects stored credentials; it is not an app login.
+
 ## Docker Compose
 
 For a persistent setup, keep the same `APP_KEY` and volume across updates.

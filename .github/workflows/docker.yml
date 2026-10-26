@@ -34,11 +34,13 @@ jobs:
       - name: Check changed files
         id: filter
         if: github.event_name == 'pull_request'
-        uses: dorny/paths-filter@v4
+        uses: dorny/paths-filter@ceb8a2b8f2d89434be7ff52d3de7ec3738c5cc9d # v4
         with:
           filters: |
             docker:
               - 'docker/**'
+              - '.dockerignore'
+              - '.github/actions/scan-image/**'
               - 'apps/server/**'
               - 'apps/frontend/**'
               - 'packages/**'
@@ -48,6 +50,7 @@ jobs:
               - '.npmrc'
               - 'config/**'
               - 'tools/ci/smoke-image.sh'
+              - 'tools/www-assets/**'
               - 'tools/ci/summary.mjs'
               - '.github/workflows/docker.yml'
 
@@ -60,13 +63,13 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
       - name: Set up pnpm
-        uses: pnpm/action-setup@v6
+        uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6
 
       - name: Set up Node.js
-        uses: actions/setup-node@v7
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
         with:
           node-version: 24
 
@@ -74,14 +77,31 @@ jobs:
       # dispatches, not on PRs.
       - name: Set up QEMU
         if: github.event_name != 'pull_request'
-        uses: docker/setup-qemu-action@v4
+        uses: docker/setup-qemu-action@99012661954931238ded8c8b007157a8430204e1 # v4
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v4
+        uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4
+
+      - name: Validate Compose definitions
+        env:
+          APP_KEY: compose-validation-key-with-at-least-32-characters
+          CAPTURE_MEDIA_DIR: /tmp
+          CAPTURE_OUTPUT_DIR: /tmp
+          CAPTURE_PASSWORD: compose-validation-password
+          CAPTURE_APP_KEY: compose-validation-key-with-at-least-32-characters
+        run: |
+          docker compose -f docker/compose.yml config --quiet
+          for profile in plex jellyfin '*'; do
+            docker compose -f docker/compose.dev.yml --profile "$profile" config --quiet
+          done
+          docker compose -f docker/compose.dev.yml config --quiet
+          docker compose -f docker/compose.capture.yml config --quiet
+          bash -n tools/ci/smoke-image.sh
+          for script in docker/*.sh; do sh -n "$script"; done
 
       - name: Extract Docker metadata
         id: meta
-        uses: docker/metadata-action@v6
+        uses: docker/metadata-action@dc802804100637a589fabce1cb79ff13a1411302 # v6
         with:
           images: ${{ env.IMAGE_NAME }}
           flavor: |
@@ -116,17 +136,23 @@ jobs:
           echo "value=${version}" >> "${GITHUB_OUTPUT}"
 
       - name: Build smoke-test image
-        uses: docker/build-push-action@v7
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7
         with:
           context: .
-          file: ./docker/prod.Dockerfile
+          file: ./docker/Dockerfile
+          target: production
           platforms: linux/amd64
           pull: true
           load: true
           build-args: |
             CLIPARR_VERSION=${{ steps.version.outputs.value }}
           tags: cliparr:smoke
-          cache-from: type=gha
+          cache-from: type=gha,scope=cliparr-production
+
+      - name: Scan image and dependency inventory
+        uses: ./.github/actions/scan-image
+        with:
+          image: cliparr:smoke
 
       - name: Smoke test image
         id: smoke
@@ -140,10 +166,11 @@ jobs:
       - name: Build Docker image
         id: publish
         if: github.event_name != 'pull_request'
-        uses: docker/build-push-action@v7
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7
         with:
           context: .
-          file: ./docker/prod.Dockerfile
+          file: ./docker/Dockerfile
+          target: production
           platforms: linux/amd64,linux/arm64
           pull: true
           push: false
@@ -151,8 +178,8 @@ jobs:
             CLIPARR_VERSION=${{ steps.version.outputs.value }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-from: type=gha,scope=cliparr-production
+          cache-to: type=gha,mode=max,scope=cliparr-production
 
       - name: Write CI summary
         if: always()
@@ -171,3 +198,48 @@ jobs:
           PR_HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
           CLIPARR_VERSION: ${{ steps.version.outputs.value }}
         run: node tools/ci/summary.mjs
+
+  auxiliary:
+    name: Validate ${{ matrix.target }} image
+    runs-on: ubuntu-latest
+    needs: changes
+    if: ${{ !cancelled() && (github.event_name != 'pull_request' || needs.changes.result != 'success' || needs.changes.outputs.docker == 'true') }}
+    strategy:
+      fail-fast: false
+      matrix:
+        target: [development, capture]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4
+      - name: Build auxiliary image
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7
+        with:
+          context: .
+          file: docker/Dockerfile
+          target: ${{ matrix.target }}
+          load: true
+          tags: cliparr-${{ matrix.target }}:check
+          cache-from: |
+            type=gha,scope=cliparr-${{ matrix.target }}
+            type=gha,scope=cliparr-production
+          cache-to: type=gha,mode=max,scope=cliparr-${{ matrix.target }}
+      - name: Scan auxiliary image and dependency inventory
+        uses: ./.github/actions/scan-image
+        with:
+          image: cliparr-${{ matrix.target }}:check
+          artifact-name: ${{ matrix.target }}-dependency-inventory
+      - name: Verify non-root tools
+        env:
+          IMAGE: cliparr-${{ matrix.target }}:check
+          TARGET: ${{ matrix.target }}
+        run: |
+          docker run --rm --entrypoint sh "$IMAGE" -c 'test "$(id -u)" != 0 && command -v node && command -v curl && command -v jq'
+          if [[ "$TARGET" == capture ]]; then
+            browser_smoke='import { chromium } from "playwright"; const browser = await chromium.launch(); const page = await browser.newPage(); await page.setContent("<title>capture smoke</title>"); if (await page.title() !== "capture smoke") throw new Error("Browser smoke failed"); await browser.close();'
+            docker run --rm --read-only --cap-drop ALL --security-opt no-new-privileges \
+              --tmpfs /tmp:rw,nosuid,size=1g --shm-size=1g --entrypoint node "$IMAGE" \
+              --input-type=module -e "$browser_smoke"
+            docker run --rm --entrypoint ffmpeg "$IMAGE" -version
+          fi

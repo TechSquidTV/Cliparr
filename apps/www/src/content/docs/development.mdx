@@ -19,9 +19,11 @@ The frontend runs on `http://localhost:5173`. The API server runs on `http://loc
 
 ## Optional Docker dev stack
 
-The optional Docker dev stack seeds Plex and Jellyfin with Sintel, a Blender open movie with embedded subtitle tracks.
+The optional Docker dev stack runs Cliparr by itself. Enable the `plex` and/or `jellyfin` Compose profiles to seed those providers with Sintel, a Blender open movie with embedded subtitle tracks.
 
-Run `pnpm docker:dev:build` after Dockerfile or dependency changes, then `pnpm docker:dev:up` to start the stack.
+Run `pnpm docker:dev:build` after Dockerfile or dependency changes, then `pnpm docker:dev:up` to start Cliparr. To include both providers, use `COMPOSE_PROFILES=plex,jellyfin pnpm docker:dev:up`. Each provider can also be enabled independently.
+
+**Breaking Docker setup changes:** published ports now bind to loopback, providers are opt-in, and development processes run as a non-root user. On macOS/Linux, set `CLIPARR_DEV_UID=$(id -u)` and `CLIPARR_DEV_GID=$(id -g)` before building to match checkout ownership. Existing root-owned development volumes need an ownership migration; keep their contents and follow [the Docker guide](https://github.com/TechSquidTV/Cliparr/blob/main/docker/README.md). Direct builds use `docker/Dockerfile` with the `development`, `capture`, or `production` target. Custom fixture downloads require `SINTEL_SHA256`; `SINTEL_MD5` has been removed.
 
 ## Portable provider tests
 
@@ -46,8 +48,8 @@ your validation run. Personal provider accounts and libraries are unnecessary.
 
 `pnpm privacy:check` runs in preflight and CI without an additional dependency.
 It reports file, line, and category without printing matched values. Exceptions
-are limited to documentation ranges, unsafe network-policy inputs, the explicit
-development network, and hash-verified public Plex specification examples. Review
+are limited to documentation ranges, unsafe network-policy inputs, and
+hash-verified public Plex specification examples. Review
 changed upstream snapshots against their published source before changing a hash;
 update generated contracts through `pnpm plex:sdk:update`, never by hand.
 

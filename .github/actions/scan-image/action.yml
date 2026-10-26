@@ -1,0 +1,40 @@
+name: Scan container and JavaScript dependencies
+description: Gate fixable high/critical vulnerabilities and retain the exact dependency inventory.
+inputs:
+  image:
+    description: Local image tag or immutable registry reference to scan.
+    required: true
+  artifact-name:
+    description: Unique name for the retained lockfile in this workflow run.
+    default: image-dependency-inventory
+runs:
+  using: composite
+  steps:
+    # Bundled JavaScript is not reliably discoverable from the runtime filesystem.
+    # Scan the matching lockfile as well; keep it beside the image scan results.
+    - name: Retain dependency inventory
+      uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+      with:
+        name: ${{ inputs.artifact-name }}
+        path: pnpm-lock.yaml
+        retention-days: 30
+    - name: Scan container
+      uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+      with:
+        image-ref: ${{ inputs.image }}
+        version: v0.76.1
+        scanners: vuln
+        severity: HIGH,CRITICAL
+        ignore-unfixed: true
+        exit-code: "1"
+    - name: Scan JavaScript dependency inventory
+      if: always()
+      uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+      with:
+        scan-type: fs
+        version: v0.76.1
+        scan-ref: pnpm-lock.yaml
+        scanners: vuln
+        severity: HIGH,CRITICAL
+        ignore-unfixed: true
+        exit-code: "1"

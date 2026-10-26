@@ -1,26 +1,34 @@
 name: cliparr-dev
 
+x-development-image: &development-image
+  image: cliparr-dev:local
+  build:
+    context: ..
+    dockerfile: docker/Dockerfile
+    target: development
+    args:
+      DEV_UID: ${CLIPARR_DEV_UID:-1000}
+      DEV_GID: ${CLIPARR_DEV_GID:-1000}
+
 services:
   media-seed:
-    image: alpine:3.24
-    command:
-      - /bin/sh
-      - -lc
-      - apk add --no-cache curl >/dev/null && sh /scripts/seed-media.sh
+    <<: *development-image
+    profiles: [plex, jellyfin]
+    command: ["sh", "/opt/cliparr/docker/seed-media.sh"]
     environment:
       MEDIA_ROOT: /media
       CI: ${CI:-false}
       GITHUB_ACTIONS: ${GITHUB_ACTIONS:-false}
       SINTEL_URL: ${SINTEL_URL:-}
-      SINTEL_MD5: ${SINTEL_MD5:-}
+      SINTEL_SHA256: ${SINTEL_SHA256:-}
     volumes:
-      - ../docker:/scripts:ro
       - cliparr-dev-media:/media
     networks:
       - cliparr-dev
 
   jellyfin:
-    image: jellyfin/jellyfin:latest
+    profiles: [jellyfin]
+    image: jellyfin/jellyfin:12.3@sha256:2038fe038ab3876a80f6e7b7e0aef6607b032c7dc0c9b3ad3296d0b2eba3bbb5
     hostname: jellyfin
     depends_on:
       media-seed:
@@ -28,7 +36,7 @@ services:
     environment:
       JELLYFIN_PublishedServerUrl: http://localhost:8096
     ports:
-      - "8096:8096"
+      - "127.0.0.1:8096:8096"
     volumes:
       - jellyfin-config:/config
       - jellyfin-cache:/cache
@@ -38,29 +46,26 @@ services:
     restart: unless-stopped
 
   jellyfin-bootstrap:
-    image: alpine:3.24
+    <<: *development-image
     depends_on:
       media-seed:
         condition: service_completed_successfully
       jellyfin:
         condition: service_healthy
-    command:
-      - /bin/sh
-      - -lc
-      - apk add --no-cache curl jq >/dev/null && sh /scripts/bootstrap-jellyfin.sh
+    profiles: [jellyfin]
+    command: ["sh", "/opt/cliparr/docker/bootstrap-jellyfin.sh"]
     environment:
       JELLYFIN_BASE_URL: http://jellyfin:8096
       JELLYFIN_ADMIN_USERNAME: cliparr
       JELLYFIN_ADMIN_PASSWORD: cliparr-dev
       JELLYFIN_LIBRARY_NAME: Movies
       JELLYFIN_LIBRARY_PATH: /media/movies
-    volumes:
-      - ../docker:/scripts:ro
     networks:
       - cliparr-dev
 
   plex:
-    image: plexinc/pms-docker:latest
+    profiles: [plex]
+    image: plexinc/pms-docker:1.43.5.11079-b3b13e506@sha256:6d778d41daae68f89115aa87a44ae14a96b23e71a2093da173b5a9aac4091336
     depends_on:
       media-seed:
         condition: service_completed_successfully
@@ -68,9 +73,10 @@ services:
       TZ: ${TZ:-America/New_York}
       PLEX_CLAIM: ${PLEX_CLAIM:-}
       ADVERTISE_IP: http://localhost:32400/,http://plex:32400/
-      ALLOWED_NETWORKS: 172.28.0.0/16
+      # Bootstrap shares Plex's network namespace; trust only loopback.
+      ALLOWED_NETWORKS: 127.0.0.1/32
     ports:
-      - "32400:32400"
+      - "127.0.0.1:32400:32400"
     volumes:
       - plex-config:/config
       - plex-transcode:/transcode
@@ -80,7 +86,8 @@ services:
     restart: unless-stopped
 
   plex-bootstrap:
-    image: node:24-slim
+    <<: *development-image
+    profiles: [plex]
     depends_on:
       media-seed:
         condition: service_completed_successfully
@@ -97,17 +104,7 @@ services:
       - ../packages/plex:/plex:ro
 
   cliparr:
-    build:
-      context: ..
-      dockerfile: docker/dev.Dockerfile
-    image: cliparr-dev:local
-    depends_on:
-      media-seed:
-        condition: service_completed_successfully
-      jellyfin-bootstrap:
-        condition: service_completed_successfully
-      plex-bootstrap:
-        condition: service_completed_successfully
+    <<: *development-image
     working_dir: /workspace
     command:
       - /bin/sh
@@ -121,23 +118,24 @@ services:
       CHOKIDAR_USEPOLLING: "true"
       VITE_CLIPARR_DEV_JELLYFIN_URL: http://jellyfin:8096
     ports:
-      - "3000:3000"
-      - "5173:5173"
+      - "127.0.0.1:3000:3000"
+      - "127.0.0.1:5173:5173"
     volumes:
       - ..:/workspace
       - cliparr-dev-data:/data
       - cliparr-dev-root-node-modules:/workspace/node_modules
       - cliparr-dev-server-node-modules:/workspace/apps/server/node_modules
       - cliparr-dev-frontend-node-modules:/workspace/apps/frontend/node_modules
-      - cliparr-dev-pnpm-store:/root/.local/share/pnpm/store
+      - cliparr-dev-www-node-modules:/workspace/apps/www/node_modules
+      - cliparr-dev-shared-node-modules:/workspace/packages/shared/node_modules
+      - cliparr-dev-plex-node-modules:/workspace/packages/plex/node_modules
+      - cliparr-dev-assets-node-modules:/workspace/tools/www-assets/node_modules
+      - cliparr-dev-pnpm-store:/pnpm/store
     networks:
       - cliparr-dev
 
 networks:
   cliparr-dev:
-    ipam:
-      config:
-        - subnet: 172.28.0.0/16
 
 volumes:
   cliparr-dev-media:
@@ -149,4 +147,8 @@ volumes:
   cliparr-dev-root-node-modules:
   cliparr-dev-server-node-modules:
   cliparr-dev-frontend-node-modules:
+  cliparr-dev-www-node-modules:
+  cliparr-dev-shared-node-modules:
+  cliparr-dev-plex-node-modules:
+  cliparr-dev-assets-node-modules:
   cliparr-dev-pnpm-store:

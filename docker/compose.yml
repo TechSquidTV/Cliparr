@@ -4,15 +4,21 @@ services:
   cliparr:
     build:
       context: ..
-      dockerfile: docker/prod.Dockerfile
+      dockerfile: docker/Dockerfile
+      target: production
     ports:
-      - "7171:7171"
+      - "${CLIPARR_BIND_ADDRESS:-127.0.0.1}:7171:7171"
     environment:
       APP_KEY: "${APP_KEY:?APP_KEY is required}"
       PORT: "7171"
       CLIPARR_DATA_DIR: "/data"
     volumes:
       - cliparr-data:/data
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=64m
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
     restart: unless-stopped
 
 volumes:
