@@ -1,11 +1,12 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { AudioSample } from "mediabunny";
+import { AudioSample, type canEncodeAudio, Quality } from "mediabunny";
 
 import {
   assertWavSize,
   audioBitDepthSummary,
+  audioConversionOptions,
   type AudioSourceInfo,
   processExportAudio,
   resolveExportAudioPlan,
@@ -33,6 +34,26 @@ const resolve = (
     async () => true,
     async () => {},
   );
+
+void test("probes and converts audio with the same explicit target bitrate", async () => {
+  for (const format of ["m4a", "flac"] as const) {
+    let probedOptions: Parameters<typeof canEncodeAudio>[1];
+    const plan = await resolveExportAudioPlan(
+      source,
+      format,
+      true,
+      async (_codec, options) => {
+        probedOptions = options;
+        return true;
+      },
+      async () => {},
+    );
+    const expectedQuality =
+      format === "m4a" ? new Quality({ bitrate: 192_000 }) : undefined;
+    assert.deepEqual(probedOptions?.quality, expectedQuality);
+    assert.deepEqual(audioConversionOptions(plan).quality, expectedQuality);
+  }
+});
 
 void test("resolves source precision from codec headers rather than decoder sample formats", () => {
   assert.deepEqual(sourceAudioPrecision("pcm-s16", new Uint8Array()), {

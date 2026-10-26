@@ -2,8 +2,8 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import type { Palette } from "@techsquidtv/gifenc";
-import type { ConversionOptions } from "mediabunny";
-import { MP4 } from "mediabunny";
+import type { ConversionOptions, ConversionVideoOptions } from "mediabunny";
+import { MP4, Quality } from "mediabunny";
 
 import type { EditorMediaSource } from "@/components/editor/editorMedia";
 /// <reference types="node" />
@@ -498,12 +498,7 @@ void test("builds and executes a trimmed conversion with selected audio and meta
   const selectedVideoOptions = videoOptionsForTrack(
     { id: "video-1" } as unknown as Parameters<typeof videoOptionsForTrack>[0],
     1,
-  ) as {
-    discard: boolean;
-    height?: number;
-    forceTranscode?: boolean;
-    bitrate?: unknown;
-  };
+  ) as ConversionVideoOptions;
   const otherVideoOptions = videoOptionsForTrack(
     { id: "video-2" } as unknown as Parameters<typeof videoOptionsForTrack>[0],
     2,
@@ -511,7 +506,10 @@ void test("builds and executes a trimmed conversion with selected audio and meta
   assert.equal(selectedVideoOptions.discard, false);
   assert.equal(selectedVideoOptions.height, 720);
   assert.equal(selectedVideoOptions.forceTranscode, true);
-  assert.equal(selectedVideoOptions.bitrate, 2_778_000);
+  assert.deepEqual(
+    selectedVideoOptions.quality,
+    new Quality({ bitrate: 2_778_000 }),
+  );
   assert.equal(otherVideoOptions.discard, true);
 });
 
@@ -559,16 +557,14 @@ void test("forces video transcode for compact and balanced export quality", asyn
         typeof videoOptionsForTrack
       >[0],
       1,
-    ) as {
-      discard: boolean;
-      forceTranscode?: boolean;
-      bitrate?: number;
-      codec?: string;
-    };
+    ) as ConversionVideoOptions;
 
     assert.equal(selectedVideoOptions.discard, false);
     assert.equal(selectedVideoOptions.forceTranscode, true);
-    assert.equal(selectedVideoOptions.bitrate, expectedBitrate);
+    assert.deepEqual(
+      selectedVideoOptions.quality,
+      new Quality({ bitrate: expectedBitrate }),
+    );
     assert.equal(selectedVideoOptions.codec, "avc");
     assert.equal(context.disposed, true);
   }

@@ -6,11 +6,11 @@ import { normalizeExportVideoCodec } from "@cliparr/shared/providers";
 import type {
   CanvasSinkOptions,
   ConversionOptions,
+  ConversionVideoOptions,
   FlacOutputFormatOptions,
   InputAudioTrack,
   InputVideoTrack,
   IsobmffOutputFormatOptions,
-  VideoCodec,
 } from "mediabunny";
 import {
   BufferTarget,
@@ -25,6 +25,7 @@ import {
   Mp4OutputFormat,
   OggOutputFormat,
   Output,
+  Quality,
   WavOutputFormat,
   WebMOutputFormat,
 } from "mediabunny";
@@ -229,14 +230,14 @@ async function videoExportRequiresSourceDecode({
   sourceVideoDimensions: { width: number; height: number } | null;
   outputDimensions: { width: number; height: number } | null;
   outputFormat: ReturnType<typeof createOutputFormat>;
-  videoQualityOptions: VideoQualityConversionOptions;
+  videoQualityOptions: ConversionVideoOptions;
   trimStart: number;
   shouldBurnSubtitles: boolean;
   decodability: VideoTrackDecodabilityAssessment;
 }) {
   if (
     videoQualityOptions.forceTranscode ||
-    videoQualityOptions.bitrate !== undefined ||
+    videoQualityOptions.quality !== undefined ||
     shouldBurnSubtitles
   ) {
     return true;
@@ -449,7 +450,7 @@ export async function exportClipWithRuntime(
       exportTarget.onMoov,
     );
     const resolvedVideoQuality = videoQuality ?? DEFAULT_VIDEO_EXPORT_QUALITY;
-    let videoQualityOptions: VideoQualityConversionOptions =
+    let videoQualityOptions: ConversionVideoOptions =
       resolvedVideoQuality === "sharp" ? {} : { forceTranscode: true };
     let videoRequiresTranscode = !audioOnly && !sourceVideoTrack;
     let sourceVideoCodec: ExportVideoCodec | null = null;
@@ -676,19 +677,13 @@ export async function exportClipWithRuntime(
   }
 }
 
-interface VideoQualityConversionOptions {
-  bitrate?: number;
-  codec?: VideoCodec;
-  forceTranscode?: boolean;
-}
-
 function videoQualityConversionOptions(
   plan: VideoEncodingPlan,
-): VideoQualityConversionOptions {
+): ConversionVideoOptions {
   return {
     forceTranscode: true,
     codec: plan.codec,
-    bitrate: plan.bitrateBps,
+    quality: new Quality({ bitrate: plan.bitrateBps }),
   };
 }
 
