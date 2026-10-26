@@ -61,17 +61,24 @@ permissions. Chromium uses Playwright's default sandbox setting and must only
 load this trusted local application. Running as non-root alone does not enable
 the Chromium sandbox.
 
-## Breaking changes and existing volumes
+## Development setup changes
+
+The published image is unchanged for an existing install. It still listens on
+port 7171, runs as UID 65532, and uses `/data`. Pulling a new image does not
+change an existing `docker run` or Compose port binding.
+
+Checkouts that build the Docker files in this repository need these updates:
 
 - Replace direct `prod.Dockerfile`, `dev.Dockerfile`, and `capture.Dockerfile`
   builds with `docker/Dockerfile --target production|development|capture`.
 - Providers no longer start by default; select their Compose profiles.
-- Published ports now bind to loopback. Configure remote access explicitly.
+- This repository's Compose file publishes loopback unless `CLIPARR_BIND_ADDRESS`
+  is set.
 - `SINTEL_MD5` is removed. Custom fixtures require `SINTEL_SHA256`.
 - Development processes now run as a non-root user (UID/GID 1000 by default,
-  configurable with `CLIPARR_DEV_UID` and `CLIPARR_DEV_GID`). Existing root-owned volumes
-  must be migrated before startup. Production's UID 65532 and data format stay
-  the same; preserve existing volumes and keys.
+  configurable with `CLIPARR_DEV_UID` and `CLIPARR_DEV_GID`). Existing root-owned
+  development volumes must be migrated before startup. Production's UID 65532
+  and data format stay the same; preserve existing volumes and keys.
 
 To migrate development volumes, stop the development stack, rebuild its image,
 and run this one-time ownership change. It targets only named-volume mountpoints,

@@ -23,7 +23,7 @@ The optional Docker dev stack runs Cliparr by itself. Enable the `plex` and/or `
 
 Run `pnpm docker:dev:build` after Dockerfile or dependency changes, then `pnpm docker:dev:up` to start Cliparr. To include both providers, use `COMPOSE_PROFILES=plex,jellyfin pnpm docker:dev:up`. Each provider can also be enabled independently.
 
-**Breaking Docker setup changes:** published ports now bind to loopback, providers are opt-in, and development processes run as a non-root user. On macOS/Linux, set `CLIPARR_DEV_UID=$(id -u)` and `CLIPARR_DEV_GID=$(id -g)` before building to match checkout ownership. Existing root-owned development volumes need an ownership migration; keep their contents and follow [the Docker guide](https://github.com/TechSquidTV/Cliparr/blob/main/docker/README.md). Direct builds use `docker/Dockerfile` with the `development`, `capture`, or `production` target. Custom fixture downloads require `SINTEL_SHA256`; `SINTEL_MD5` has been removed.
+**Docker dev stack changes:** the repository Compose file binds published ports to loopback, providers are opt-in, and development processes run as a non-root user. On macOS/Linux, export `CLIPARR_DEV_UID="$(id -u)"` and `CLIPARR_DEV_GID="$(id -g)"` before building to match checkout ownership. Existing root-owned development volumes need an ownership migration; keep their contents and follow [the Docker guide](https://github.com/TechSquidTV/Cliparr/blob/main/docker/README.md). Direct builds use `docker/Dockerfile` with the `development`, `capture`, or `production` target. Custom fixture downloads require `SINTEL_SHA256`; `SINTEL_MD5` has been removed. Published-image installs are not affected.
 
 ## Portable provider tests
 
