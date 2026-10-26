@@ -1,4 +1,5 @@
 import type { ExportVideoCodec as SharedExportVideoCodec } from "@cliparr/shared/providers";
+import type { canEncodeVideo as canEncodeVideoWithBrowser } from "mediabunny";
 
 import type { VideoExportFormat } from "#/lib/export/exportFormats";
 import type {
@@ -171,11 +172,9 @@ export async function resolveVideoEncodingPlan({
   outputDimensions: ExportOutputDimensions;
   quality: VideoExportQualityPreset;
   supportedVideoCodecs: readonly string[];
-  canEncodeVideo: (
-    codec: ExportVideoCodec,
-    options: { bitrate: number; height: number; width: number },
-  ) => Promise<boolean>;
+  canEncodeVideo: typeof canEncodeVideoWithBrowser;
 }): Promise<VideoEncodingPlan> {
+  const { Quality } = await import("mediabunny");
   for (const codec of exportVideoCodecPriorities(format)) {
     if (!supportedVideoCodecs.includes(codec)) {
       continue;
@@ -190,7 +189,7 @@ export async function resolveVideoEncodingPlan({
       await canEncodeVideo(codec, {
         width: outputDimensions.width,
         height: outputDimensions.height,
-        bitrate: bitrateBps,
+        quality: new Quality({ bitrate: bitrateBps }),
       })
     ) {
       return { codec, bitrateBps };

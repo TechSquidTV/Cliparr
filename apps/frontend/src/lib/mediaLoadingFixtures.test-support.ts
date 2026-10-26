@@ -7,6 +7,7 @@ import {
   CanvasSource,
   Mp4OutputFormat,
   Output,
+  Quality,
 } from "mediabunny";
 
 import { ensureAudioEncoder } from "#/lib/export/mediabunny/mediabunnyCodecs";
@@ -31,10 +32,16 @@ export async function createMediaLoadingFixtures() {
     const target = new BufferTarget();
     const output = new Output({ target, format: new Mp4OutputFormat() });
     // VP9 decoding works in software Chrome on CI as well as local machines.
-    const video = new CanvasSource(canvas, { codec: "vp9", bitrate: 100_000 });
+    const video = new CanvasSource(canvas, {
+      codec: "vp9",
+      quality: new Quality({ bitrate: 100_000 }),
+    });
     output.addVideoTrack(video, { frameRate: 12 });
     const audio = codecs.map((codec) => {
-      const source = new AudioSampleSource({ codec, bitrate: 96_000 });
+      const source = new AudioSampleSource({
+        codec,
+        quality: new Quality({ bitrate: 96_000 }),
+      });
       output.addAudioTrack(source, { name: codec });
       return source;
     });

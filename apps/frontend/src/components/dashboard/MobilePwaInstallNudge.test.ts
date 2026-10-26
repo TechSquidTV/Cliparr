@@ -71,12 +71,11 @@ function withMobilePwaBrowserEnvironment(callback: () => void) {
         return;
       },
       isSecureContext: true,
-      matchMedia(query: string): MediaQueryList {
+      matchMedia(
+        query: string,
+      ): Omit<MediaQueryList, "addListener" | "removeListener"> {
         return {
           addEventListener() {
-            return;
-          },
-          addListener() {
             return;
           },
           dispatchEvent() {
@@ -86,9 +85,6 @@ function withMobilePwaBrowserEnvironment(callback: () => void) {
           media: query,
           onchange: null,
           removeEventListener() {
-            return;
-          },
-          removeListener() {
             return;
           },
         };

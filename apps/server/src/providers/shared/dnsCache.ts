@@ -66,7 +66,7 @@ async function lookupWithSignal(hostname: string, signal: AbortSignal) {
     // lookup() cannot cancel its OS work; stop waiting when the request aborts.
     return await Promise.race([
       dedupeInflightFetch(inflightLookups, hostname, () =>
-        lookup(hostname, { all: true, verbatim: true }),
+        lookup(hostname, { all: true, order: "verbatim" }),
       ),
       cancellation,
     ]);

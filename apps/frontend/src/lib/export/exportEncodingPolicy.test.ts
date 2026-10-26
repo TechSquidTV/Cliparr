@@ -3,11 +3,47 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
+import { type canEncodeVideo, Quality } from "mediabunny";
+
 import {
   calibratedEstimatedVideoBitrateBps,
   exportVideoCodecPriorities,
   formatCanCopyVideoCodec,
+  resolveVideoEncodingPlan,
 } from "@/lib/export/exportEncodingPolicy";
+
+void test("probes codec support at the target dimensions and explicit bitrate", async () => {
+  const probes: Parameters<typeof canEncodeVideo>[] = [];
+  const plan = await resolveVideoEncodingPlan({
+    format: "mp4",
+    outputDimensions: { width: 1920, height: 1080 },
+    quality: "balanced",
+    supportedVideoCodecs: ["avc", "hevc"],
+    canEncodeVideo: async (...probe) => {
+      probes.push(probe);
+      return probe[0] === "hevc";
+    },
+  });
+  assert.deepEqual(probes, [
+    [
+      "avc",
+      {
+        width: 1920,
+        height: 1080,
+        quality: new Quality({ bitrate: 3_000_000 }),
+      },
+    ],
+    [
+      "hevc",
+      {
+        width: 1920,
+        height: 1080,
+        quality: new Quality({ bitrate: 1_800_000 }),
+      },
+    ],
+  ]);
+  assert.deepEqual(plan, { codec: "hevc", bitrateBps: 1_800_000 });
+});
 
 void test("uses compatibility-first codec priorities", () => {
   assert.deepEqual(exportVideoCodecPriorities("mp4").slice(0, 2), [
