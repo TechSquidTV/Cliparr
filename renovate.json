@@ -13,7 +13,25 @@
   "semanticCommitType": "chore",
   "semanticCommitScope": "cliparr",
   "labels": ["dependencies"],
+  "customManagers": [
+    {
+      "customType": "regex",
+      "description": "Track pinned container images in deployment documentation.",
+      "managerFilePatterns": ["/^apps/www/src/content/docs/.+\\.mdx$/"],
+      "matchStrings": [
+        "image:[ \\t]+(?<depName>[^\\s:@]+):(?<currentValue>[^\\s@]+)@(?<currentDigest>sha256:[a-f0-9]{64})"
+      ],
+      "datasourceTemplate": "docker",
+      "versioningTemplate": "docker"
+    }
+  ],
   "packageRules": [
+    {
+      "matchManagers": ["custom.regex"],
+      "matchDatasources": ["docker"],
+      "groupName": "Documentation container images",
+      "semanticCommitType": "docs"
+    },
     {
       "matchManagers": ["npm"],
       "groupName": "npm dependencies"
