@@ -25,6 +25,11 @@ The example generates a key for the initial start only. The published-image
 installation in the website documentation requires no source checkout; this
 Compose file deliberately builds the current source instead.
 
+Self-built images report version `local` in `/api/health` and the UI unless
+you pass `--build-arg CLIPARR_VERSION=<value>` to `docker build`, or set
+`CLIPARR_VERSION` in the environment for Compose. CI and release builds always
+pass an explicit version.
+
 Ports bind to `127.0.0.1`. For an intentional LAN/VPN deployment, set
 `CLIPARR_BIND_ADDRESS` to the appropriate host interface address. Cliparr has no
 app-level access control; use an authenticated reverse proxy or trusted VPN for
