@@ -49,7 +49,7 @@ which the editor also requires. This cleanup stays within Cliparr's existing
 
 ### Optional Docker dev stack
 
-The [Docker dev stack](../docker/compose.dev.yml) seeds Plex and Jellyfin with Sintel, a Blender open movie with embedded subtitle tracks. Run `pnpm docker:dev:build` after Dockerfile or dependency changes, then `pnpm docker:dev:up` to start the stack.
+The [Docker dev stack](../docker/compose.dev.yml) starts Cliparr alone. Run `pnpm docker:dev:build`, then `pnpm docker:dev:up`. Enable either or both seeded providers with `COMPOSE_PROFILES=plex,jellyfin pnpm docker:dev:up`. Ports bind to loopback and development runs as a non-root user. On macOS/Linux, export `CLIPARR_DEV_UID="$(id -u)"` and `CLIPARR_DEV_GID="$(id -g)"` before building to match checkout ownership. See [Docker setup and migration](../docker/README.md) for existing volume ownership and direct build commands.
 
 ## Live playback resolvers
 

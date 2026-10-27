@@ -1,0 +1,41 @@
+name: Released container security
+
+on:
+  schedule:
+    - cron: "23 9 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: container-security
+  cancel-in-progress: false
+
+jobs:
+  scan:
+    name: Scan latest released image
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout scan tooling
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4
+      - name: Resolve released image and matching source
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          image=ghcr.io/techsquidtv/cliparr:latest
+          digest="$(docker buildx imagetools inspect "$image" --format '{{json .Manifest}}' | jq -er .digest)"
+          reference="${image}@${digest}"
+          docker pull "$reference"
+          revision="$(docker image inspect "$reference" --format '{{index .Config.Labels "org.opencontainers.image.revision"}}')"
+          [[ "$revision" =~ ^[0-9a-f]{40}$ ]]
+          gh api "repos/$GITHUB_REPOSITORY/commits/$revision" --jq .sha | grep -Fx "$revision"
+          gh api "repos/$GITHUB_REPOSITORY/contents/pnpm-lock.yaml?ref=$revision" --jq .content | base64 --decode > pnpm-lock.yaml
+          echo "RELEASED_IMAGE=$reference" >> "$GITHUB_ENV"
+      - name: Scan released image and matching dependency inventory
+        uses: ./.github/actions/scan-image
+        with:
+          image: ${{ env.RELEASED_IMAGE }}

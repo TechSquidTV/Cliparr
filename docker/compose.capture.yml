@@ -1,10 +1,15 @@
 # Disposable capture stack; no host ports and no shared development volumes.
 x-capture-image: &capture-image
   image: cliparr-www-capture:local
+  read_only: true
+  tmpfs:
+    - /tmp:rw,nosuid,size=1g
+  cap_drop: [ALL]
+  security_opt: [no-new-privileges:true]
 
 services:
   jellyfin:
-    image: jellyfin/jellyfin:12.3
+    image: jellyfin/jellyfin:12.3@sha256:2038fe038ab3876a80f6e7b7e0aef6607b032c7dc0c9b3ad3296d0b2eba3bbb5
     volumes:
       - jellyfin-config:/config
       - jellyfin-cache:/cache
@@ -17,6 +22,7 @@ services:
 
   jellyfin-bootstrap:
     <<: *capture-image
+    working_dir: /workspace
     depends_on:
       jellyfin:
         condition: service_healthy
@@ -31,6 +37,7 @@ services:
 
   cliparr:
     <<: *capture-image
+    working_dir: /workspace
     depends_on:
       jellyfin-bootstrap:
         condition: service_completed_successfully
@@ -57,7 +64,9 @@ services:
     <<: *capture-image
     build:
       context: ..
-      dockerfile: docker/capture.Dockerfile
+      dockerfile: docker/Dockerfile
+      target: capture
+    user: "${CAPTURE_UID:-1000}:${CAPTURE_GID:-1000}"
     init: true
     shm_size: 1gb
     # Loopback is a secure browser context, required by WebCodecs.
@@ -65,7 +74,7 @@ services:
     depends_on:
       cliparr:
         condition: service_healthy
-    command: ["pnpm", "--filter", "@cliparr/www-assets", "record"]
+    command: ["node", "src/record.ts"]
     environment:
       CAPTURE_PASSWORD: ${CAPTURE_PASSWORD:?Required}
     volumes:

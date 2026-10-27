@@ -1,0 +1,37 @@
+# Only build inputs belong in the context.
+**
+!.npmrc
+!package.json
+!pnpm-lock.yaml
+!pnpm-workspace.yaml
+!config/
+!config/tsconfig*.json
+!apps/
+!apps/*/
+!apps/*/package.json
+!apps/frontend/**
+!apps/server/**
+!packages/
+!packages/shared/**
+!packages/plex/**
+!tools/
+!tools/www-assets/**
+!docker/
+!docker/*.sh
+# Apply recursive exclusions after the allowlist.
+**/node_modules
+**/dist
+**/coverage
+**/.cliparr-data
+**/.env*
+**/*.log
+**/*.tsbuildinfo
+**/.DS_Store
+**/.git
+**/.npmrc
+!.npmrc
+packages/plex/openapi
+**/*.test.*
+**/*.test-support.*
+apps/server/test
+apps/frontend/tests

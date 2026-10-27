@@ -16,18 +16,43 @@ UNZIP_FILE="$TARGET_FILE.unzip"
 # which is unpacked below.
 DEFAULT_SINTEL_URLS="https://download.blender.org/demo/movies/Sintel.2010.720p.mkv https://ftp.halifax.rwth-aachen.de/blender/demo/movies/Sintel.2010.720p.mkv"
 
-# Blender's published checksum for Sintel.2010.720p.mkv, checked after any
-# unzip so a mirror serving different bytes fails here instead of seeding a
-# broken library. SINTEL_URL replaces the default sources with one URL; its
-# download is only checked when SINTEL_MD5 is also set.
-DEFAULT_SINTEL_MD5="08d1108e0160b847f894acfdbce82305"
+# SHA-256 of the public MKV, verified against Blender's published MD5 once.
+# Check the extracted movie bytes; custom sources must supply their own SHA-256.
+DEFAULT_SINTEL_SHA256="60cff51761641626e82eeb4e1c248c471375b2536bb1089f49825b7fb58d8723"
 
 if [ -n "${SINTEL_URL:-}" ]; then
   SINTEL_URLS="$SINTEL_URL"
-  SINTEL_MD5="${SINTEL_MD5:-}"
+  SINTEL_SHA256="${SINTEL_SHA256:?SINTEL_SHA256 is required with SINTEL_URL}"
 else
   SINTEL_URLS="$DEFAULT_SINTEL_URLS"
-  SINTEL_MD5="${SINTEL_MD5:-$DEFAULT_SINTEL_MD5}"
+  SINTEL_SHA256="${SINTEL_SHA256:-$DEFAULT_SINTEL_SHA256}"
+fi
+
+# Ensure provider library paths exist even when CI skips the movie download.
+mkdir -p "$MOVIE_DIR"
+
+require_sha256() {
+  if ! printf '%s' "$SINTEL_SHA256" | grep -Eq '^[a-f0-9]{64}$'; then
+    echo "SINTEL_SHA256 must contain 64 lowercase hexadecimal characters." >&2
+    exit 1
+  fi
+}
+
+verify_media() {
+  actual_sha256="$(sha256sum "$1" | cut -d ' ' -f 1)"
+  if [ "$actual_sha256" != "$SINTEL_SHA256" ]; then
+    echo "Media checksum mismatch; remove the invalid fixture and seed again." >&2
+    return 1
+  fi
+}
+
+# A cached movie is checked before CI skips the download. A mismatch must fail
+# even when CI is set, and the cached bytes stay in place.
+if [ -s "$TARGET_FILE" ]; then
+  require_sha256
+  verify_media "$TARGET_FILE"
+  echo "$MOVIE_TITLE already present at $TARGET_FILE"
+  exit 0
 fi
 
 if [ "${CI:-}" = "true" ] || [ "${GITHUB_ACTIONS:-}" = "true" ]; then
@@ -35,12 +60,7 @@ if [ "${CI:-}" = "true" ] || [ "${GITHUB_ACTIONS:-}" = "true" ]; then
   exit 0
 fi
 
-if [ -s "$TARGET_FILE" ]; then
-  echo "$MOVIE_TITLE already present at $TARGET_FILE"
-  exit 0
-fi
-
-mkdir -p "$MOVIE_DIR"
+require_sha256
 
 cleanup() {
   rm -f "$TMP_FILE" "$UNZIP_FILE"
@@ -52,7 +72,7 @@ try_source() {
   cleanup
 
   echo "Downloading $MOVIE_TITLE from $url"
-  if ! curl -fL --retry 5 --retry-delay 2 --retry-connrefused "$url" -o "$TMP_FILE"; then
+  if ! curl -fL --proto =https --proto-redir =https --connect-timeout 10 --max-time 600 --retry 2 --retry-max-time 900 --retry-delay 2 --retry-connrefused "$url" -o "$TMP_FILE"; then
     echo "Download failed: $url" >&2
     return 1
   fi
@@ -66,12 +86,8 @@ try_source() {
     mv "$UNZIP_FILE" "$TMP_FILE"
   fi
 
-  if [ -n "$SINTEL_MD5" ]; then
-    actual_md5="$(md5sum "$TMP_FILE" | cut -d ' ' -f 1)"
-    if [ "$actual_md5" != "$SINTEL_MD5" ]; then
-      echo "Checksum mismatch from $url: expected $SINTEL_MD5, got $actual_md5" >&2
-      return 1
-    fi
+  if ! verify_media "$TMP_FILE"; then
+    return 1
   fi
 
   mv "$TMP_FILE" "$TARGET_FILE"

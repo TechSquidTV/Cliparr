@@ -16,6 +16,7 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
+    "@cliparr/plex": "workspace:*",
     "@cliparr/shared": "workspace:*",
     "@jellyfin/sdk": "^1.0.0",
     "@logtape/logtape": "^2.3.10",
@@ -23,8 +24,7 @@
     "dotenv": "^18.0.5",
     "drizzle-orm": "1.0.0-rc.5-ab785fc",
     "express": "^5.2.1",
-    "undici": "^7.30.0",
-    "@cliparr/plex": "workspace:*"
+    "undici": "^7.30.1"
   },
   "devDependencies": {
     "@types/express": "^5.0.6",

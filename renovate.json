@@ -3,7 +3,8 @@
   "extends": [
     "config:recommended",
     ":disableDependencyDashboard",
-    "security:minimumReleaseAgeNpm"
+    "security:minimumReleaseAgeNpm",
+    "docker:pinDigests"
   ],
   "timezone": "America/New_York",
   "schedule": ["* 0-4 * * 6"],
@@ -20,12 +21,38 @@
     {
       "matchManagers": ["docker-compose", "dockerfile"],
       "groupName": "Docker images",
-      "semanticCommitType": "build"
+      "semanticCommitType": "build",
+      "description": "Provider images are development and capture fixtures."
+    },
+    {
+      "description": "Production base and build image updates must be included in the next app release.",
+      "matchManagers": ["dockerfile"],
+      "matchFileNames": ["docker/Dockerfile"],
+      "groupName": "Application container images",
+      "semanticCommitType": "fix"
     },
     {
       "matchManagers": ["github-actions"],
       "groupName": "GitHub Actions",
       "semanticCommitType": "ci"
+    },
+    {
+      "description": "Local image names are build outputs, not registry dependencies.",
+      "matchDatasources": ["docker"],
+      "matchPackageNames": ["cliparr-dev", "cliparr-www-capture"],
+      "enabled": false
+    },
+    {
+      "description": "Distroless encodes Node and Debian majors in its image name; track its digest.",
+      "matchDatasources": ["docker"],
+      "matchPackageNames": ["gcr.io/distroless/nodejs24-debian13"],
+      "versioning": "loose"
+    },
+    {
+      "description": "Plex release tags have four numeric components and a build hash.",
+      "matchDatasources": ["docker"],
+      "matchPackageNames": ["plexinc/pms-docker"],
+      "versioning": "regex:^(?<major>\\d+)\\.(?<minor>\\d+)\\.(?<patch>\\d+)\\.(?<build>\\d+)-[a-f0-9]+$"
     }
   ]
 }

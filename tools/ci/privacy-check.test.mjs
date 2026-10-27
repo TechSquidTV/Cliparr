@@ -50,7 +50,7 @@ void test("permits reserved fixtures, loopback, local development services, and 
   }
 });
 
-void test("limits private-address exceptions to documented policy fixtures and Docker network", () => {
+void test("limits private-address exceptions to documented policy fixtures", () => {
   const representative = [10, 0, 0, 1].join(".");
   assert.deepEqual(
     findPrivacyIssues(
