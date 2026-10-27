@@ -98,7 +98,8 @@ COPY --from=server-build /workspace/apps/server/dist apps/server/dist
 COPY --from=server-build /workspace/apps/server/drizzle apps/server/drizzle
 COPY --from=frontend-build /workspace/apps/frontend/dist apps/frontend/dist
 # Version metadata is runtime configuration; changing it must not recompile the app.
-ARG CLIPARR_VERSION
+# Local builds default to "local"; CI and releases always pass an explicit version.
+ARG CLIPARR_VERSION=local
 ENV NODE_ENV=production
 ENV PORT=7171
 ENV CLIPARR_DATA_DIR=/data
