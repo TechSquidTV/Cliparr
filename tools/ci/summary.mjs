@@ -21,6 +21,7 @@ const stepNames = {
   docs: "Documentation",
   build: "Application build",
   smoke: "Local amd64 runtime smoke test",
+  smoke_arm64: "Local arm64 runtime smoke test (QEMU)",
   publish: "Multi-platform image build",
   verify_amd64: "Published amd64 digest smoke test",
   verify_arm64: "Published arm64 digest smoke test (QEMU)",
@@ -102,7 +103,7 @@ export function renderSummary({
     "Runner Node / pnpm",
     `${nodeVersion ?? "unavailable"} / ${pnpmVersion ?? "unavailable"}`,
   );
-  for (const id of ["smoke", "verify_amd64", "verify_arm64"]) {
+  for (const id of ["smoke", "smoke_arm64", "verify_amd64", "verify_arm64"]) {
     if (steps[id]?.outputs?.runtime_node) {
       row(`${stepNames[id]} — Node`, steps[id].outputs.runtime_node);
     }
@@ -129,7 +130,11 @@ export function renderSummary({
         lines.push(`| ${label} | ${cell(steps[id].outcome)} |`);
       }
     }
-    if (steps.publish?.outcome === "success" && !steps.verify_arm64) {
+    if (
+      steps.publish?.outcome === "success" &&
+      !steps.verify_arm64 &&
+      !steps.smoke_arm64
+    ) {
       lines.push("", "ARM64: build only; no runtime smoke test in this job.");
     }
   }

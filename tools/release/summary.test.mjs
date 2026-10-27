@@ -41,3 +41,21 @@ void test("escapes version text and identifies the tested PR merge commit", () =
   assert.match(summary, /commit\/abcdefg/u);
   assert.match(summary, /PR head \(tested commit above is the merge\)/u);
 });
+
+void test("reports local arm64 runtime validation separately from published digest checks", () => {
+  const summary = renderSummary({
+    dryRun: true,
+    status: "success",
+    steps: {
+      smoke_arm64: {
+        outcome: "success",
+        outputs: { runtime_node: "v24.21.0" },
+      },
+      publish: { outcome: "success" },
+    },
+  });
+  assert.match(summary, /Local arm64 runtime smoke test \(QEMU\) — Node/u);
+  assert.match(summary, /v24\.21\.0/u);
+  assert.match(summary, /Local arm64 runtime smoke test \(QEMU\) \| success/u);
+  assert.doesNotMatch(summary, /ARM64: build only|Published arm64/u);
+});
