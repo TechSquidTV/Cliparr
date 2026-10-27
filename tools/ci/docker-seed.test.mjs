@@ -102,3 +102,14 @@ void test("CI does not download or create fixture data", (context) => {
   assert.throws(() => readFileSync(movie), { code: "ENOENT" });
   assert.throws(() => readFileSync(calls), { code: "ENOENT" });
 });
+
+void test("CI rejects a corrupt cached fixture without replacing it", (context) => {
+  const { run, movie, calls } = fixture(context, {
+    existing: "corrupted cache",
+  });
+  const result = run({ CI: "true" });
+  assert.notEqual(result.status, 0);
+  assert.match(result.stderr, /Media checksum mismatch/);
+  assert.equal(readFileSync(movie, "utf8"), "corrupted cache");
+  assert.throws(() => readFileSync(calls), { code: "ENOENT" });
+});

@@ -31,15 +31,12 @@ fi
 # Ensure provider library paths exist even when CI skips the movie download.
 mkdir -p "$MOVIE_DIR"
 
-if [ "${CI:-}" = "true" ] || [ "${GITHUB_ACTIONS:-}" = "true" ]; then
-  echo "Skipping dev media download in CI."
-  exit 0
-fi
-
-if ! printf '%s' "$SINTEL_SHA256" | grep -Eq '^[a-f0-9]{64}$'; then
-  echo "SINTEL_SHA256 must contain 64 lowercase hexadecimal characters." >&2
-  exit 1
-fi
+require_sha256() {
+  if ! printf '%s' "$SINTEL_SHA256" | grep -Eq '^[a-f0-9]{64}$'; then
+    echo "SINTEL_SHA256 must contain 64 lowercase hexadecimal characters." >&2
+    exit 1
+  fi
+}
 
 verify_media() {
   actual_sha256="$(sha256sum "$1" | cut -d ' ' -f 1)"
@@ -49,11 +46,21 @@ verify_media() {
   fi
 }
 
+# A cached movie is checked before CI skips the download. A mismatch must fail
+# even when CI is set, and the cached bytes stay in place.
 if [ -s "$TARGET_FILE" ]; then
+  require_sha256
   verify_media "$TARGET_FILE"
   echo "$MOVIE_TITLE already present at $TARGET_FILE"
   exit 0
 fi
+
+if [ "${CI:-}" = "true" ] || [ "${GITHUB_ACTIONS:-}" = "true" ]; then
+  echo "Skipping dev media download in CI."
+  exit 0
+fi
+
+require_sha256
 
 cleanup() {
   rm -f "$TMP_FILE" "$UNZIP_FILE"
