@@ -6,6 +6,8 @@ services:
       context: ..
       dockerfile: docker/Dockerfile
       target: production
+      args:
+        CLIPARR_VERSION: "${CLIPARR_VERSION:-local}"
     ports:
       - "${CLIPARR_BIND_ADDRESS:-127.0.0.1}:7171:7171"
     environment:
