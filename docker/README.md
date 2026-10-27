@@ -110,6 +110,11 @@ production stage, so changing it reuses dependency and compilation layers.
 BuildKit cache mounts retain local package downloads. CI exports ordinary layers
 to explicit `cliparr-production`, `cliparr-development`, and `cliparr-capture`
 GitHub Actions cache scopes; ephemeral runners do not rely on cache-mount contents.
+Compile stages run on the build platform because the server bundle and the
+frontend output are architecture-independent; only the final production stage
+resolves to the target platform, so multi-arch builds need no QEMU emulation
+of Node, pnpm, or Vite (the release workflow still installs QEMU, but only to
+smoke-test the published arm64 digest).
 
 External image references use multi-platform index digests. Renovate tracks these
 and the Dockerfile frontend, ignores locally built image names, and raises
