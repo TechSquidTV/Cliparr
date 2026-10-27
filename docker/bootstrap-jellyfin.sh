@@ -65,7 +65,10 @@ wait_for_startup_ready_or_completed() {
 
     attempt=$((attempt + 1))
     sleep 2
-    public_info="$(curl --connect-timeout 5 --max-time 15 -fsS "$JELLYFIN_BASE_URL/System/Info/Public")"
+    # A failed probe must not trip set -e. Keep the previous payload and retry.
+    if updated="$(curl --connect-timeout 5 --max-time 15 -fsS "$JELLYFIN_BASE_URL/System/Info/Public" 2>/dev/null)"; then
+      public_info="$updated"
+    fi
   done
 
   echo "Timed out waiting for Jellyfin startup endpoints." >&2
