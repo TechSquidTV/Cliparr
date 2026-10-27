@@ -50,10 +50,15 @@ wait_for_health() {
 # Application files must stay immutable; only /data and temporary storage are writable.
 docker exec "$name" /nodejs/bin/node -e '
   const fs = require("node:fs");
+  const architecture = process.arch === "x64" ? "amd64" : process.arch;
+  const runtimePlatform = process.platform + "/" + architecture;
+  if (runtimePlatform !== process.argv[1]) {
+    throw new Error("Expected " + process.argv[1] + ", got " + runtimePlatform);
+  }
   if (process.getuid() === 0) process.exit(1);
   try { fs.writeFileSync("/app/write-probe", "unexpected"); process.exit(1); }
   catch (error) { if (error.code !== "EROFS" && error.code !== "EACCES") throw error; }
-'
+' "$platform"
 wait_for_health
 jq --exit-status --arg version "$version" \
   '.status == "ok" and .database == "ok" and .version == $version' "$health_file"

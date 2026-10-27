@@ -110,6 +110,18 @@ production stage, so changing it reuses dependency and compilation layers.
 BuildKit cache mounts retain local package downloads. CI exports ordinary layers
 to explicit `cliparr-production`, `cliparr-development`, and `cliparr-capture`
 GitHub Actions cache scopes; ephemeral runners do not rely on cache-mount contents.
+Compile stages run on the build platform because the server bundle and the
+frontend output are architecture-independent; only the final production stage
+resolves to the target platform, so multi-arch builds need no QEMU emulation
+of Node, pnpm, or Vite. Docker CI builds and smoke-tests both amd64 and arm64
+on pull requests, main pushes, and manual runs. QEMU is used only for arm64
+runtime smoke tests in Docker CI and the release workflow. The smoke helper
+checks the running Node architecture, non-root/read-only operation, health,
+frontend serving, and restart with persistent data.
+
+Breaking change: development and capture targets use the build platform as well.
+Build and run those targets on the same architecture; cross-building them for a
+foreign target architecture is no longer supported.
 
 External image references use multi-platform index digests. Renovate tracks these
 and the Dockerfile frontend, ignores locally built image names, and raises
