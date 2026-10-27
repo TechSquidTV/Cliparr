@@ -110,10 +110,15 @@ services:
       - "7171"
     volumes:
       - cliparr-data:/data
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=64m
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
     restart: unless-stopped
 
   caddy:
-    image: caddy:2
+    image: caddy:2.11.7@sha256:504a44d7d74bd2bc28a66afc4774912fc21223ca8a67734af1c54ab2f999b489
     depends_on:
       - authelia
       - cliparr
@@ -127,7 +132,7 @@ services:
     restart: unless-stopped
 
   authelia:
-    image: authelia/authelia:latest
+    image: authelia/authelia:4.39.28@sha256:bd97cff4fcbf715b5ff1f9ae286afbe6033afce385302520b0368122d43a6f54
     expose:
       - "9091"
     volumes:
