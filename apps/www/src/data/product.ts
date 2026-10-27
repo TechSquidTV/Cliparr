@@ -110,6 +110,11 @@ export const dockerComposeExample = `services:
       - APP_KEY=replace-this-with-a-32-character-secure-random-string
     volumes:
       - cliparr-data:/data
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=64m
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
     restart: unless-stopped
 
 volumes:
