@@ -1,3 +1,4 @@
+import { useBlocker } from "@tanstack/react-router";
 import {
   fromSeconds,
   type TimelineEngine,
@@ -85,6 +86,12 @@ const EditorFramegrabDialog = lazy(() =>
     default: module.EditorFramegrabDialog,
   })),
 );
+
+function confirmLeavingExport() {
+  return !globalThis.confirm(
+    "An export is in progress. Leave and cancel the export?",
+  );
+}
 
 interface Properties {
   session: EditorSession;
@@ -288,6 +295,12 @@ function EditorScreenContent({
     subtitleCues,
     subtitleStyleSettings,
   });
+  useBlocker({
+    disabled: !exporting,
+    enableBeforeUnload: exporting,
+    shouldBlockFn: confirmLeavingExport,
+  });
+
   const subtitleCanvasRef = useRef<HTMLCanvasElement>(null);
   const previewFrameTime = renderedFrameTime ?? currentTime;
   const getFramegrabTime = useCallback(
