@@ -110,6 +110,23 @@ try {
       );
       await page.getByRole("option", { name: "Audio", exact: true }).click();
       await page.getByRole("switch", { name: "Lock dialog" }).click();
+      const navigationTrigger = page.getByRole("button", {
+        name: "Request navigation",
+      });
+      await navigationTrigger.click();
+      const confirmation = page.getByRole("dialog", {
+        name: "Leave during export?",
+      });
+      await confirmation.waitFor();
+      await confirmation.getByRole("button", { name: "Stay" }).click();
+      await confirmation.waitFor({ state: "detached" });
+      assert.equal(
+        await navigationTrigger.evaluate(
+          (element) => element === globalThis.document.activeElement,
+        ),
+        true,
+      );
+      assert.equal(await dialog.count(), 1);
       await page.keyboard.press("Escape");
       assert.equal(await dialog.count(), 1);
       await page.getByRole("switch", { name: "Lock dialog" }).click();

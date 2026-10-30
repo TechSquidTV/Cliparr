@@ -87,11 +87,7 @@ const EditorFramegrabDialog = lazy(() =>
   })),
 );
 
-function confirmLeavingExport() {
-  return !globalThis.confirm(
-    "An export is in progress. Leave and cancel the export?",
-  );
-}
+const blockNavigation = () => true;
 
 interface Properties {
   session: EditorSession;
@@ -295,11 +291,17 @@ function EditorScreenContent({
     subtitleCues,
     subtitleStyleSettings,
   });
-  useBlocker({
+  const navigationBlocker = useBlocker({
     disabled: !exporting,
     enableBeforeUnload: exporting,
-    shouldBlockFn: confirmLeavingExport,
+    shouldBlockFn: blockNavigation,
+    withResolver: true,
   });
+  useEffect(() => {
+    if (!exporting && navigationBlocker.status === "blocked") {
+      navigationBlocker.reset();
+    }
+  }, [exporting, navigationBlocker]);
 
   const subtitleCanvasRef = useRef<HTMLCanvasElement>(null);
   const previewFrameTime = renderedFrameTime ?? currentTime;
@@ -792,6 +794,18 @@ function EditorScreenContent({
             />
           </Suspense>
         )}
+      <ConfirmationDialog
+        open={navigationBlocker.status === "blocked"}
+        title="Leave during export?"
+        description="Leaving will cancel the export."
+        cancelLabel="Stay"
+        confirmLabel="Leave"
+        onCancel={() => navigationBlocker.reset?.()}
+        onConfirm={() => {
+          handleCancelExport();
+          navigationBlocker.proceed?.();
+        }}
+      />
     </div>
   );
 }
