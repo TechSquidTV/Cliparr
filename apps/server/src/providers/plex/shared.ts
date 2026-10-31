@@ -23,7 +23,7 @@ import {
   numberValue,
   stringValue,
 } from "@/providers/shared/utilities";
-import type { ProviderResource } from "@/providers/types";
+import type { ProviderConnection, ProviderResource } from "@/providers/types";
 
 export const PLEX_PRODUCT = "Cliparr";
 export const PLEX_CLIENT_IDENTIFIER =
@@ -33,6 +33,8 @@ export const MAX_PENDING_AUTH_REQUESTS = 512;
 export const CURRENT_PLAYBACK_REQUEST_TIMEOUT_MS = 5000;
 
 const CONNECTION_PROBE_TIMEOUT_MS = 2500;
+const CONNECTION_ATTEMPT_DELAY_MS = 250;
+const MAX_CONCURRENT_CONNECTION_ATTEMPTS = 2;
 
 export interface PlexAuthRequest {
   authId: string;
@@ -159,7 +161,7 @@ function orderedConnections(
   });
 }
 
-export function candidateConnections(
+function candidateConnections(
   resource: ProviderResource,
   preferredConnectionId: string,
   baseUrlMode: PlexBaseUrlMode,
@@ -170,7 +172,7 @@ export function candidateConnections(
     : ordered;
 }
 
-export function unreachableConnectionMessage(
+function unreachableConnectionMessage(
   resource: ProviderResource,
   failures: string[],
   baseUrlMode: PlexBaseUrlMode,
@@ -325,28 +327,6 @@ export function sourceSupportsCurrentlyPlaying(source: MediaSourceRecord) {
   );
 }
 
-async function probeConnection(
-  resource: ProviderResource,
-  connection: ProviderResource["connections"][number],
-) {
-  try {
-    await requestPlexPmsIdentity(
-      {
-        baseUrl: connection.uri,
-        token: resource.accessToken,
-      },
-      plexPmsRequestOptions(CONNECTION_PROBE_TIMEOUT_MS),
-    );
-
-    return { ok: true as const };
-  } catch (error) {
-    return {
-      ok: false as const,
-      message: plexPmsResponseStatusMessage(error) ?? errorMessage(error),
-    };
-  }
-}
-
 function plexPmsRequestOptions(timeoutMs: number) {
   return {
     clientIdentifier: PLEX_CLIENT_IDENTIFIER,
@@ -381,32 +361,148 @@ export function fetchPmsMetadata(
   );
 }
 
+/**
+Give the preferred address a head start, then try at most two at once.
+A speculative fatal error waits for earlier-ranked attempts before failing
+selection. Requests must fully consume their response before resolving:
+all attempt signals, including the winner's, abort when selection settles.
+*/
+export function selectPlexConnection<T>(
+  resource: ProviderResource,
+  preferredConnectionId: string,
+  request: (connection: ProviderConnection, signal: AbortSignal) => Promise<T>,
+  options: {
+    baseUrlMode?: PlexBaseUrlMode;
+    signal?: AbortSignal;
+    retryable?: (error: unknown) => boolean;
+  } = {},
+) {
+  const baseUrlMode = options.baseUrlMode ?? PLEX_BASE_URL_MODE_AUTO;
+  const candidates = candidateConnections(
+    resource,
+    preferredConnectionId,
+    baseUrlMode,
+  );
+  const controller = new AbortController();
+  const failures: string[] = [];
+
+  return new Promise<{ connection: ProviderConnection; data: T }>(
+    (resolve, reject) => {
+      let nextIndex = 0;
+      const active = new Set<number>();
+      let fatalFailure: { index: number; error: unknown } | undefined;
+      let settled = false;
+      let timer: ReturnType<typeof setTimeout> | undefined;
+      const cleanup = () => {
+        settled = true;
+        clearTimeout(timer);
+        options.signal?.removeEventListener("abort", abort);
+        controller.abort();
+      };
+      const fail = (error: unknown) => {
+        if (!settled) {
+          cleanup();
+          // AbortSignal reasons may be arbitrary values; preserve the caller's reason.
+          // eslint-disable-next-line @typescript-eslint/prefer-promise-reject-errors
+          reject(error);
+        }
+      };
+      const abort = () => fail(options.signal?.reason);
+      const recordFatalFailure = (index: number, error: unknown) => {
+        if (!fatalFailure || index < fatalFailure.index) {
+          fatalFailure = { index, error };
+        }
+      };
+      const startNext = () => {
+        clearTimeout(timer);
+        if (settled) {
+          return;
+        }
+        if (fatalFailure) {
+          const { index, error } = fatalFailure;
+          // Later candidates could not have been reached by the sequential
+          // selector. Keep earlier attempts alive, but start no further work.
+          if (![...active].some((activeIndex) => activeIndex < index)) {
+            fail(error);
+          }
+          return;
+        }
+        const index = nextIndex;
+        const connection = candidates[index];
+        if (!connection) {
+          if (active.size === 0) {
+            fail(
+              createApiError(
+                502,
+                "plex_unreachable",
+                unreachableConnectionMessage(resource, failures, baseUrlMode),
+              ),
+            );
+          }
+          return;
+        }
+        if (active.size >= MAX_CONCURRENT_CONNECTION_ATTEMPTS) {
+          return;
+        }
+        nextIndex++;
+        active.add(index);
+        if (
+          nextIndex < candidates.length &&
+          active.size < MAX_CONCURRENT_CONNECTION_ATTEMPTS
+        ) {
+          timer = setTimeout(startNext, CONNECTION_ATTEMPT_DELAY_MS);
+        }
+        void (async () => {
+          try {
+            const data = await request(connection, controller.signal);
+            if (!settled) {
+              cleanup();
+              resolve({ connection, data });
+            }
+          } catch (error) {
+            active.delete(index);
+            if (settled) {
+              return;
+            }
+            if (options.retryable && !options.retryable(error)) {
+              recordFatalFailure(index, error);
+            } else {
+              failures[index] =
+                `${connection.uri}: ${plexPmsResponseStatusMessage(error) ?? errorMessage(error)}`;
+            }
+            // Retryable failures free a slot immediately; fatal failures wait
+            // for earlier-ranked attempts without starting another candidate.
+            startNext();
+          }
+        })();
+      };
+
+      if (options.signal?.aborted) {
+        abort();
+        return;
+      }
+      options.signal?.addEventListener("abort", abort, { once: true });
+      startNext();
+    },
+  );
+}
+
 export async function selectReachableConnection(
   resource: ProviderResource,
   preferredConnectionId: string,
   options: { baseUrlMode?: PlexBaseUrlMode } = {},
 ) {
-  const failures: string[] = [];
-  const baseUrlMode = options.baseUrlMode ?? PLEX_BASE_URL_MODE_AUTO;
-
-  for (const connection of candidateConnections(
+  const { connection } = await selectPlexConnection(
     resource,
     preferredConnectionId,
-    baseUrlMode,
-  )) {
-    const result = await probeConnection(resource, connection);
-    if (result.ok) {
-      return connection;
-    }
-
-    failures.push(`${connection.uri}: ${result.message}`);
-  }
-
-  throw createApiError(
-    502,
-    "plex_unreachable",
-    unreachableConnectionMessage(resource, failures, baseUrlMode),
+    (candidate, signal) =>
+      requestPlexPmsIdentity(
+        { baseUrl: candidate.uri, token: resource.accessToken },
+        { ...plexPmsRequestOptions(CONNECTION_PROBE_TIMEOUT_MS), signal },
+      ),
+    options,
   );
+  return connection;
 }
 
 export function buildSourceContext(
