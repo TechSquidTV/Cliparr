@@ -7,7 +7,7 @@ import {
   type MediaSourceRecord,
   updateMediaSource,
 } from "@/db/mediaSourcesRepository";
-import { createApiError, isApiError } from "@/http/errors";
+import { isApiError } from "@/http/errors";
 import { getServerLogger } from "@/logging";
 import { createPlaybackResolverCache } from "@/playback/resolverCache";
 import {
@@ -45,12 +45,11 @@ import {
 } from "@/providers/plex/selection";
 import {
   buildSourceContext,
-  candidateConnections,
   CURRENT_PLAYBACK_REQUEST_TIMEOUT_MS,
   fetchPmsCurrentSessions,
   type PlexSourceContext,
+  selectPlexConnection,
   sourceResource,
-  unreachableConnectionMessage,
 } from "@/providers/plex/shared";
 import {
   deriveSelectedSubtitleTrack,
@@ -58,11 +57,7 @@ import {
 } from "@/providers/plex/subtitles";
 import { assembleCurrentlyPlayingItem } from "@/providers/shared/playbackEntry";
 import { subtitleTrackSupportsBurnIn } from "@/providers/shared/subtitles";
-import {
-  asArray,
-  errorMessage,
-  stringValue,
-} from "@/providers/shared/utilities";
+import { asArray, stringValue } from "@/providers/shared/utilities";
 import type {
   CurrentlyPlayingEntry,
   ProviderConnection,
@@ -138,45 +133,28 @@ export async function fetchCurrentlyPlayingData(
     preferredConnectionId,
     resource,
   } = sourceResource(source);
-  const failures: string[] = [];
-
-  for (const connection of candidateConnections(
+  const { connection, data } = await selectPlexConnection(
     resource,
     preferredConnectionId,
-    baseUrlMode,
-  )) {
-    const context = buildSourceContext(
-      source.id,
-      resource.accessToken,
-      connection,
-    );
-
-    try {
-      const data = await fetchPmsCurrentSessions(context, {
-        timeoutMs: CURRENT_PLAYBACK_REQUEST_TIMEOUT_MS,
-        signal,
-      });
-      signal?.throwIfAborted();
-      persistWorkingSourceConnection(source, persistedConnections, connection, {
-        baseUrlMode,
-        manualConnectionId,
-      });
-      return { context, data };
-    } catch (error) {
-      signal?.throwIfAborted();
-      if (!isRetryableConnectionError(error)) {
-        throw error;
-      }
-
-      failures.push(`${connection.uri}: ${errorMessage(error)}`);
-    }
-  }
-
-  throw createApiError(
-    502,
-    "plex_unreachable",
-    unreachableConnectionMessage(resource, failures, baseUrlMode),
+    (candidate, attemptSignal) =>
+      fetchPmsCurrentSessions(
+        buildSourceContext(source.id, resource.accessToken, candidate),
+        {
+          timeoutMs: CURRENT_PLAYBACK_REQUEST_TIMEOUT_MS,
+          signal: attemptSignal,
+        },
+      ),
+    { baseUrlMode, signal, retryable: isRetryableConnectionError },
   );
+  signal?.throwIfAborted();
+  persistWorkingSourceConnection(source, persistedConnections, connection, {
+    baseUrlMode,
+    manualConnectionId,
+  });
+  return {
+    context: buildSourceContext(source.id, resource.accessToken, connection),
+    data,
+  };
 }
 
 function playbackFallbackIdentity(item: PlexMetadataItem) {
