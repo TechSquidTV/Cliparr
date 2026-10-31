@@ -17,7 +17,6 @@ import type {
 import type { SubtitleCue } from "@/lib/subtitles/types";
 import { EXPORT_ENCODING_POLICY_VERSION } from "#/lib/export/exportEncodingPolicy";
 import { isAudioExportFormat } from "#/lib/export/exportFormats";
-import { isIncompleteSourceAudioError } from "#/lib/export/exportSourceAudio";
 import {
   exportFormatDurationDisabledReason,
   type ExportSizeEstimate,
@@ -350,23 +349,4 @@ export function buildExportSourceSummaryMessage({
   }
 
   return null;
-}
-
-/** Add recovery guidance only when this editor actually has another source. */
-
-export function buildExportErrorMessage(
-  error: unknown,
-  source: ResolvedExportSource,
-  hlsSource?: EditorMediaSource,
-) {
-  if (
-    isIncompleteSourceAudioError(error) &&
-    source.kind === "direct" &&
-    source.source &&
-    hlsSource &&
-    !editorMediaSourcesEqual(source.source, hlsSource)
-  ) {
-    return `Cliparr couldn’t read all audio in this selection. Choose ‘${sourceDisplayLabel(hlsSource)}’ under Source and export again.`;
-  }
-  return error instanceof Error ? error.message : "Export failed";
 }

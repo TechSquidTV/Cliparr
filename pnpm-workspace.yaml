@@ -7,6 +7,12 @@ autoInstallPeers: false
 minimumReleaseAge: 1440
 minimumReleaseAgeStrict: true
 minimumReleaseAgeExclude:
+  # Mediabunny 1.65.0 release; remove after its 24-hour age window.
+  - "mediabunny@1.65.0"
+  - "@mediabunny/aac-encoder@1.65.0"
+  - "@mediabunny/ac3@1.65.0"
+  - "@mediabunny/flac-encoder@1.65.0"
+  - "@mediabunny/mp3-encoder@1.65.0"
   # Released security fix for GHSA-ch52-4w7c-c8xp.
   - "http-cache-semantics@4.3.0"
   - "@techsquidtv/canvas-timeline@0.5.0"

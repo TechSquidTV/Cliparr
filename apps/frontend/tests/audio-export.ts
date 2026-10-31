@@ -15,10 +15,6 @@ import { inspectAudioTrack } from "#/lib/export/exportAudio";
 import { createPcmWav } from "#/lib/export/exportAudioFixtures.test-support";
 import { exportClip, type ExportClipOptions } from "#/lib/export/exportClip";
 import type { AudioExportFormat } from "#/lib/export/exportFormats";
-import {
-  assertSourceAudioRange,
-  isIncompleteSourceAudioError,
-} from "#/lib/export/exportSourceAudio";
 import { createBrowserSourceFixtures as buildBrowserSourceFixtures } from "#/lib/export/exportSourceFixtures.test-support";
 import { ensureAudioEncoder } from "#/lib/export/mediabunny/mediabunnyCodecs";
 import { createCliparrInputFromSource } from "#/lib/export/mediabunny/mediabunnyInput";
@@ -326,23 +322,6 @@ async function checkProviderSourceRanges() {
     label: "Direct source",
     url: new URL("/fixtures/tail.flac", location.href).href,
   } as const;
-  for (const extension of ["mp4", "mkv"]) {
-    const input = await createCliparrInputFromSource({
-      ...source,
-      url: source.url.replace(".flac", `.${extension}`),
-    });
-    try {
-      const track = await input.getPrimaryAudioTrack();
-      check(
-        track !== null && (await track.getCodec()) === "flac",
-        "Missing container FLAC fixture",
-      );
-      // Beyond the file end: only the native FLAC reader is subject to this guard.
-      await assertSourceAudioRange(track, 0, 2, true);
-    } finally {
-      input.dispose();
-    }
-  }
   const options = {
     mediaSource: source,
     format: "wav",
@@ -352,16 +331,26 @@ async function checkProviderSourceRanges() {
     endTime: 1.024,
     onProgress: () => {},
   } as const;
-  let rejected = false;
-  try {
-    await exportClip(options);
-  } catch (error) {
-    rejected = isIncompleteSourceAudioError(error);
+  for (const extension of ["flac", "mp4", "mkv"]) {
+    const blob = await exportClip({
+      ...options,
+      mediaSource: {
+        ...source,
+        url: source.url.replace(".flac", `.${extension}`),
+      },
+    });
+    const samples = await readMonoPcm(blob);
+    check(samples.length === 8192, `${extension} FLAC lost samples`);
+    check(
+      samples.every(
+        (value, index) =>
+          Math.abs(
+            value - (index >= 4096 ? 0 : ((index % 257) * 17 - 2048) / 32_768),
+          ) < 0.0001,
+      ),
+      `${extension} FLAC changed sample values`,
+    );
   }
-  check(rejected, "Incomplete provider FLAC must not produce a download");
-  const prefix = await exportClip({ ...options, endTime: 0.256 });
-  const prefixSamples = await readMonoPcm(prefix);
-  check(prefixSamples.length === 2048, "Readable FLAC prefix changed");
 
   const hlsSource = {
     ...source,
@@ -415,9 +404,7 @@ async function runAudioExportChecks() {
   );
   document.title = "Checking provider source ranges";
   await checkProviderSourceRanges();
-  checks.push(
-    "provider FLAC range protection and cross-segment AAC HLS export",
-  );
+  checks.push("complete provider FLAC tails and cross-segment AAC HLS export");
   document.title = "Checking worker cancellation";
   await checkWorkerCancellation();
   checks.push("MP3 preparation/worker cancellation and retry");

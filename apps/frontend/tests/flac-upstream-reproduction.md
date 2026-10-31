@@ -79,5 +79,5 @@ reads all 8192 frames, metadata declares 1.024 seconds, but MediaBunny exposes
 is shorter than the native FLAC reader's 16-byte minimum header request.
 
 This concerns standalone FLAC demuxing, not all containers carrying FLAC audio.
-Cliparr checks the requested source interval using public packet metadata and
-refuses an incomplete export. It neither repairs bytes nor substitutes a decoder.
+Mediabunny 1.63.0 fixes the short final-frame read. Cliparr verifies full exports
+of this fixture in its browser test.

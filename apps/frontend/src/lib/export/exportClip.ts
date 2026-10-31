@@ -55,7 +55,6 @@ import {
   isIsobmffExportFormat,
   patchMp4MetadataBoxes,
 } from "#/lib/export/exportMetadata";
-import { assertSourceAudioRange } from "#/lib/export/exportSourceAudio";
 import {
   DEFAULT_GIF_EXPORT_PRESET,
   DEFAULT_VIDEO_EXPORT_QUALITY,
@@ -143,7 +142,6 @@ interface ExportClipRuntime {
   getVideoTrackDimensions: typeof getVideoTrackDimensions;
   buildMetadataTags: typeof buildMetadataTags;
   inspectAudioTrack: typeof inspectAudioTrack;
-  assertSourceAudioRange: typeof assertSourceAudioRange;
   resolveExportAudioPlan: typeof resolveExportAudioPlan;
   describeDiscardedTracks: typeof describeDiscardedTracks;
   patchMp4MetadataBoxes: typeof patchMp4MetadataBoxes;
@@ -274,7 +272,6 @@ const defaultExportClipRuntime: ExportClipRuntime = {
   getVideoTrackDimensions,
   buildMetadataTags,
   inspectAudioTrack,
-  assertSourceAudioRange,
   resolveExportAudioPlan,
   describeDiscardedTracks,
   patchMp4MetadataBoxes,
@@ -397,14 +394,6 @@ export async function exportClipWithRuntime(
       { startTime, endTime, timelineOffsetSeconds },
       [sourceVideoTrack, preferredAudioTrack],
       runtime,
-    );
-
-    await runtime.assertSourceAudioRange(
-      preferredAudioTrack,
-      trimStart,
-      trimEnd,
-      includeAudio,
-      signal,
     );
 
     const sourceVideoDimensions =
