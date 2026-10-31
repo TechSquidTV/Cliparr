@@ -103,6 +103,7 @@ export async function watchCurrentlyPlaying(
       connectionSignal,
     );
     activity();
+    observer.connected();
     const stream = readServerEvents(
       body,
       (_event, text) => {

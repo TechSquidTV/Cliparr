@@ -1,3 +1,4 @@
+import { logDurationFields, logEventFields } from "@cliparr/shared/logging";
 import {
   fromSeconds,
   type TimelineEngine,
@@ -58,6 +59,9 @@ import {
   getVideoTrackDimensions,
 } from "@/lib/export/mediabunny/mediabunnyTrackAccess";
 import { selectPreferredPairableAudioTrack } from "@/lib/export/selectPreferredAudioTrack";
+import { getFrontendLogger } from "@/logging";
+
+const logger = getFrontendLogger(["editor", "playback"]);
 
 const previewLayerSelectors = {
   visuals: { trackKind: "media", sourceId: EDITOR_MEDIA_SOURCE_ID },
@@ -235,7 +239,13 @@ export function useEditorTimelineMedia(
     const sources: readonly MediabunnySource[] = input
       ? [{ sourceId: EDITOR_MEDIA_SOURCE_ID, input, fallbacks }]
       : [];
-    return { configurationId: Symbol(), sources, selectTracks, preparedInputs };
+    return {
+      configurationId: Symbol(),
+      startedAt: Date.now(),
+      sources,
+      selectTracks,
+      preparedInputs,
+    };
   }, [candidates, selectedAudioTrack]);
   const handleMediaError = useCallback((error: TimelineMediaError) => {
     setPlaybackError(error.message);
@@ -453,6 +463,58 @@ export function useEditorTimelineMedia(
     renderedTimelineFrameTime === null;
   // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- An empty playback error must allow the media error to surface.
   const previewError = playbackError || media.error?.message || "";
+
+  const previewTiming = useRef({
+    configurationId: mediaSource.configurationId,
+    ready: false,
+    failed: false,
+  });
+  useEffect(() => {
+    if (previewTiming.current.configurationId !== mediaSource.configurationId) {
+      previewTiming.current = {
+        configurationId: mediaSource.configurationId,
+        ready: false,
+        failed: false,
+      };
+    }
+    const timing = previewTiming.current;
+    if (timing.ready) {
+      return;
+    }
+    const ready =
+      sourceReady &&
+      details.configurationId === mediaSource.configurationId &&
+      (details.previewVideoDimensions === null ||
+        renderedTimelineFrameTime !== null);
+    const failed = sourceState?.status === "failed";
+    if (!ready && (!failed || timing.failed)) {
+      return;
+    }
+    const fields = {
+      ...logEventFields("editor.preview.ready", ready ? "success" : "failure"),
+      ...logDurationFields(mediaSource.startedAt),
+      "source.id": session.source.id,
+      "provider.id": session.source.providerId,
+      "preview.recovered": timing.failed,
+      "error.name": ready ? undefined : sourceState?.error?.name,
+    };
+    if (ready) {
+      timing.ready = true;
+      logger.info("First preview ready.", fields);
+    } else {
+      timing.failed = true;
+      logger.warn("Initial preview failed.", fields);
+    }
+  }, [
+    details.configurationId,
+    details.previewVideoDimensions,
+    mediaSource,
+    renderedTimelineFrameTime,
+    session.source.id,
+    session.source.providerId,
+    sourceReady,
+    sourceState,
+  ]);
 
   return {
     canvasRef,

@@ -7,7 +7,6 @@ import {
   FolderOpen,
   Globe,
   LogOut,
-  RefreshCw,
   Settings2,
 } from "lucide-react";
 import { motion, useReducedMotion } from "motion/react";
@@ -33,12 +32,12 @@ import {
   writeDashboardViewerFilter,
 } from "#/components/dashboard/dashboardPlaybackItems";
 import { DashboardPlaybackMotionRegion } from "#/components/dashboard/DashboardPlaybackRegion";
+import { DashboardPlaybackStatus } from "#/components/dashboard/DashboardPlaybackStatus";
 import { DashboardVersionBadge } from "#/components/dashboard/DashboardVersionBadge";
 import { DashboardViewerFilterPicker } from "#/components/dashboard/DashboardViewerFilter";
 import { MobilePwaInstallNudge } from "#/components/dashboard/MobilePwaInstallNudge";
 import { useLivePlayback } from "#/components/dashboard/useLivePlayback";
 import {
-  buttonClassName,
   destructiveAlertClasses,
   warningAlertClasses,
 } from "#/components/ui/control-styles";
@@ -111,17 +110,6 @@ export default function DashboardScreen({
     connection === "reconnecting"
       ? "Reconnecting live updates. Sessions may be out of date."
       : "";
-  let liveStatus: string | null = "Connecting to live sessions…";
-  if (connection === "reconnecting") {
-    liveStatus = "Reconnecting to live sessions…";
-  } else if (sourceErrors.length > 0) {
-    liveStatus = "Some sources are unavailable";
-  } else if (
-    connection === "live" &&
-    sources.every((source) => source.state === "live")
-  ) {
-    liveStatus = null;
-  }
   const [versionInfo, setVersionInfo] = useState<CliparrVersionInfo | null>(
     null,
   );
@@ -392,28 +380,12 @@ export default function DashboardScreen({
             </p>
           </div>
 
-          {liveStatus && (
-            <div
-              className="flex items-center gap-3 text-sm text-muted-foreground"
-              role="status"
-              aria-live="polite"
-            >
-              <span>{liveStatus}</span>
-              {(error || sourceErrors.length > 0) && (
-                <button
-                  type="button"
-                  onClick={retry}
-                  className={buttonClassName({
-                    tone: "secondary",
-                    size: "compact",
-                  })}
-                >
-                  <RefreshCw className="h-4 w-4" />
-                  Retry connection
-                </button>
-              )}
-            </div>
-          )}
+          <DashboardPlaybackStatus
+            sources={sources}
+            connection={connection}
+            hasSourceErrors={sourceErrors.length > 0}
+            onRetry={retry}
+          />
 
           {error && (
             <div role="alert" className={destructiveAlertClasses}>

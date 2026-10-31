@@ -46,6 +46,8 @@ export type PlaybackResolver = (
 ) => Promise<CurrentlyPlayingEntry[]>;
 
 export interface PlaybackObserver {
+  /** Notification transport is open; the initial playback snapshot is still pending. */
+  connected: () => void;
   snapshot: (resolve: PlaybackResolver) => void;
   progress: (updates: PlaybackProgress[]) => void;
   invalidate: () => void;
