@@ -80,4 +80,5 @@ is shorter than the native FLAC reader's 16-byte minimum header request.
 
 This concerns standalone FLAC demuxing, not all containers carrying FLAC audio.
 Mediabunny 1.63.0 fixes the short final-frame read. Cliparr verifies full exports
-of this fixture in its browser test.
+of this fixture in its browser test, while retaining the range check for genuinely
+incomplete sources.

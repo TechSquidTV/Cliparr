@@ -41,6 +41,7 @@ import {
 import type { SubtitleCue, SubtitleStyleSettings } from "@/lib/subtitles/types";
 import { getFrontendLogger } from "@/logging";
 import {
+  buildExportErrorMessage,
   buildExportEstimateActualLogFields,
   buildExportEstimateLogFields,
   buildExportSourceLabel,
@@ -645,7 +646,9 @@ export function useEditorExport({
         ...baseFields,
         ...buildExportVideoEncodingLogFields(videoEncodingPlan),
       });
-      setExportError(error instanceof Error ? error.message : "Export failed");
+      setExportError(
+        buildExportErrorMessage(error, exportSource, session.hlsSource),
+      );
     } finally {
       exportController.current = null;
       if (mounted.current) {
@@ -660,6 +663,7 @@ export function useEditorExport({
     audio.plan,
     audio.disabledReason,
     session.title,
+    session.hlsSource,
     exportFormat,
     exportLogger,
     exportSource,

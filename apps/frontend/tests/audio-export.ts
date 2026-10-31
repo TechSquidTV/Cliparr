@@ -15,6 +15,7 @@ import { inspectAudioTrack } from "#/lib/export/exportAudio";
 import { createPcmWav } from "#/lib/export/exportAudioFixtures.test-support";
 import { exportClip, type ExportClipOptions } from "#/lib/export/exportClip";
 import type { AudioExportFormat } from "#/lib/export/exportFormats";
+import { isIncompleteSourceAudioError } from "#/lib/export/exportSourceAudio";
 import { createBrowserSourceFixtures as buildBrowserSourceFixtures } from "#/lib/export/exportSourceFixtures.test-support";
 import { ensureAudioEncoder } from "#/lib/export/mediabunny/mediabunnyCodecs";
 import { createCliparrInputFromSource } from "#/lib/export/mediabunny/mediabunnyInput";
@@ -352,6 +353,28 @@ async function checkProviderSourceRanges() {
     );
   }
 
+  const response = await fetch(source.url);
+  const complete = await response.arrayBuffer();
+  const truncated = new File([complete.slice(0, -8)], "truncated.flac", {
+    type: "audio/flac",
+  });
+  let rejected = false;
+  try {
+    await exportClip({
+      ...options,
+      mediaSource: {
+        kind: "file",
+        role: "local-file",
+        label: "Truncated FLAC",
+        file: truncated,
+        fileName: truncated.name,
+      },
+    });
+  } catch (error) {
+    rejected = isIncompleteSourceAudioError(error);
+  }
+  check(rejected, "Truncated FLAC must not produce an incomplete export");
+
   const hlsSource = {
     ...source,
     role: "hls",
@@ -404,7 +427,9 @@ async function runAudioExportChecks() {
   );
   document.title = "Checking provider source ranges";
   await checkProviderSourceRanges();
-  checks.push("complete provider FLAC tails and cross-segment AAC HLS export");
+  checks.push(
+    "complete FLAC tails, truncated source rejection, and cross-segment AAC HLS export",
+  );
   document.title = "Checking worker cancellation";
   await checkWorkerCancellation();
   checks.push("MP3 preparation/worker cancellation and retry");
