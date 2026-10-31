@@ -2,6 +2,7 @@ import { useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
 
 import { EditorRangeControl } from "#/components/editor/EditorPropertyControls";
+import { ConfirmationDialog } from "#/components/ui/confirmation-dialog";
 import { DialogWindow } from "#/components/ui/dialog";
 import {
   Select,
@@ -23,6 +24,7 @@ import { FeatureControls } from "#tests/ui-features.tsx";
 function Controls() {
   const [open, setOpen] = useState(false);
   const [locked, setLocked] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
   const [size, setSize] = useState(24);
   const trigger = useRef<HTMLButtonElement>(null);
   return (
@@ -52,6 +54,9 @@ function Controls() {
             checked={locked}
             onCheckedChange={setLocked}
           />
+          <button type="button" onClick={() => setConfirmOpen(true)}>
+            Request navigation
+          </button>
           <Select
             defaultValue="video"
             items={{ video: "Video", audio: "Audio" }}
@@ -83,6 +88,18 @@ function Controls() {
           ))}
         </div>
       </DialogWindow>
+      <ConfirmationDialog
+        open={confirmOpen}
+        title="Leave during export?"
+        description="Leaving will cancel the export."
+        cancelLabel="Stay"
+        confirmLabel="Leave"
+        onCancel={() => setConfirmOpen(false)}
+        onConfirm={() => {
+          setConfirmOpen(false);
+          setOpen(false);
+        }}
+      />
       {globalThis.location.pathname.endsWith("/ui-controls.html") && (
         <FeatureControls />
       )}
