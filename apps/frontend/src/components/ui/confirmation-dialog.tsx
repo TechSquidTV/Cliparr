@@ -8,6 +8,7 @@ export function ConfirmationDialog({
   title,
   description,
   confirmLabel,
+  cancelLabel = "Cancel",
   onConfirm,
   onCancel,
   finalFocus,
@@ -16,6 +17,7 @@ export function ConfirmationDialog({
   title: string;
   description: string;
   confirmLabel: string;
+  cancelLabel?: string;
   onConfirm: () => void;
   onCancel: () => void;
   finalFocus?: ComponentProps<typeof DialogWindow>["finalFocus"];
@@ -39,7 +41,7 @@ export function ConfirmationDialog({
           className={`${buttonClassName({ tone: "secondary" })} min-h-11 sm:min-h-9`}
           onClick={onCancel}
         >
-          Cancel
+          {cancelLabel}
         </button>
         <button
           type="button"
