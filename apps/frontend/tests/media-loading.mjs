@@ -97,6 +97,7 @@ async function openPage(site, disableNativeEncoder = false, label = site.name) {
   const requests = [];
   const errors = [];
   const failures = [];
+  const previewReady = [];
   sessions.push({ scenario, build: site.name, requests, errors, failures });
   context.on("request", (request) => {
     const url = new URL(request.url());
@@ -108,6 +109,11 @@ async function openPage(site, disableNativeEncoder = false, label = site.name) {
     failures.push({ url: request.url(), error: request.failure()?.errorText }),
   );
   page.on("pageerror", (error) => errors.push(error.message));
+  page.on("console", (message) => {
+    if (message.text().includes("First preview ready.")) {
+      previewReady.push(message.text());
+    }
+  });
   await page.route("**/api/**", (route) =>
     route.fulfill({
       json: route.request().url().endsWith("/api/session")
@@ -115,7 +121,7 @@ async function openPage(site, disableNativeEncoder = false, label = site.name) {
         : { providers: [] },
     }),
   );
-  return { context, requests, errors, failures, site };
+  return { context, requests, errors, failures, previewReady, site };
 }
 
 async function checkStage(session, label, expected) {
@@ -277,7 +283,11 @@ try {
   for (const fixture of ["ac3.mp4", "eac3.mp4", "aac-ac3.mp4"]) {
     const session = await openPage(app, false, `preview ${fixture}`);
     await page.goto(app.url);
+    const ready = page.waitForEvent("console", {
+      predicate: (message) => message.text().includes("First preview ready."),
+    });
     await openVideo(app, fixture);
+    await ready;
     await checkStage(
       session,
       `${fixture} selected preview track`,
@@ -289,6 +299,11 @@ try {
     await page
       .getByRole("button", { name: "Pause preview", exact: true })
       .waitFor();
+    assert.equal(
+      session.previewReady.length,
+      1,
+      "preview readiness logs once, not per frame",
+    );
     await session.context.close();
   }
 

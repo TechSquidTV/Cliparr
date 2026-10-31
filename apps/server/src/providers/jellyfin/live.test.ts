@@ -107,10 +107,19 @@ for (const scenario of [
       const next = createDeferred<void>();
       const controller = new AbortController();
       let snapshots = 0;
+      let connectionCount = 0;
       const watching = watchCurrentlyPlaying(
         source,
         {
+          connected() {
+            connectionCount++;
+          },
           snapshot() {
+            assert.equal(
+              connectionCount,
+              1,
+              "transport opens before discovery completes",
+            );
             snapshots++;
             initial.resolve();
           },
@@ -225,7 +234,7 @@ void test(
     );
     const ended = watchCurrentlyPlaying(
       createSource(TEST_JELLYFIN_BASE_URL),
-      { snapshot() {}, progress() {}, invalidate() {} },
+      { connected() {}, snapshot() {}, progress() {}, invalidate() {} },
       controller.signal,
     ).then(
       () => {},
@@ -297,6 +306,7 @@ void test(
     const watching = watchCurrentlyPlaying(
       createSource("http://jellyfin.invalid:8096"),
       {
+        connected() {},
         snapshot() {
           assert.fail("No snapshot before connecting");
         },

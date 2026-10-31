@@ -97,6 +97,7 @@ export async function watchCurrentlyPlaying(
       }),
       signal: connectionSignal,
       onOpen(send) {
+        observer.connected();
         send(JSON.stringify({ MessageType: "SessionsStart", Data: "0,1000" }));
         // Never let an older HTTP response overwrite a newer pushed snapshot.
         initialization = fetchSessions(context, connectionSignal)
