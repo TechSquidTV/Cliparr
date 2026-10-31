@@ -361,7 +361,12 @@ export function fetchPmsMetadata(
   );
 }
 
-/** Give the preferred address a head start, then try at most two at once. */
+/**
+Give the preferred address a head start, then try at most two at once.
+A speculative fatal error waits for earlier-ranked attempts before failing
+selection. Requests must fully consume their response before resolving:
+all attempt signals, including the winner's, abort when selection settles.
+*/
 export function selectPlexConnection<T>(
   resource: ProviderResource,
   preferredConnectionId: string,
@@ -384,7 +389,8 @@ export function selectPlexConnection<T>(
   return new Promise<{ connection: ProviderConnection; data: T }>(
     (resolve, reject) => {
       let nextIndex = 0;
-      let active = 0;
+      const active = new Set<number>();
+      let fatalFailure: { index: number; error: unknown } | undefined;
       let settled = false;
       let timer: ReturnType<typeof setTimeout> | undefined;
       const cleanup = () => {
@@ -402,15 +408,29 @@ export function selectPlexConnection<T>(
         }
       };
       const abort = () => fail(options.signal?.reason);
+      const recordFatalFailure = (index: number, error: unknown) => {
+        if (!fatalFailure || index < fatalFailure.index) {
+          fatalFailure = { index, error };
+        }
+      };
       const startNext = () => {
         clearTimeout(timer);
         if (settled) {
           return;
         }
+        if (fatalFailure) {
+          const { index, error } = fatalFailure;
+          // Later candidates could not have been reached by the sequential
+          // selector. Keep earlier attempts alive, but start no further work.
+          if (![...active].some((activeIndex) => activeIndex < index)) {
+            fail(error);
+          }
+          return;
+        }
         const index = nextIndex;
         const connection = candidates[index];
         if (!connection) {
-          if (active === 0) {
+          if (active.size === 0) {
             fail(
               createApiError(
                 502,
@@ -421,14 +441,14 @@ export function selectPlexConnection<T>(
           }
           return;
         }
-        if (active >= MAX_CONCURRENT_CONNECTION_ATTEMPTS) {
+        if (active.size >= MAX_CONCURRENT_CONNECTION_ATTEMPTS) {
           return;
         }
         nextIndex++;
-        active++;
+        active.add(index);
         if (
           nextIndex < candidates.length &&
-          active < MAX_CONCURRENT_CONNECTION_ATTEMPTS
+          active.size < MAX_CONCURRENT_CONNECTION_ATTEMPTS
         ) {
           timer = setTimeout(startNext, CONNECTION_ATTEMPT_DELAY_MS);
         }
@@ -440,18 +460,18 @@ export function selectPlexConnection<T>(
               resolve({ connection, data });
             }
           } catch (error) {
-            active--;
+            active.delete(index);
             if (settled) {
               return;
             }
             if (options.retryable && !options.retryable(error)) {
-              fail(error);
-              return;
+              recordFatalFailure(index, error);
+            } else {
+              failures[index] =
+                `${connection.uri}: ${plexPmsResponseStatusMessage(error) ?? errorMessage(error)}`;
             }
-            failures[index] =
-              `${connection.uri}: ${plexPmsResponseStatusMessage(error) ?? errorMessage(error)}`;
-            // A failed request frees a slot immediately; only pending requests
-            // need a head start before another address is tried.
+            // Retryable failures free a slot immediately; fatal failures wait
+            // for earlier-ranked attempts without starting another candidate.
             startNext();
           }
         })();

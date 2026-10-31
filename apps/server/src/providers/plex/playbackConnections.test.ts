@@ -12,6 +12,7 @@ import {
 } from "@/db/mediaSourcesRepository";
 import { isApiError } from "@/http/errors";
 import { subscribePlaybackStateChanges } from "@/playback/stateChanges";
+import { PLEX_BASE_URL_MODE_MANUAL } from "@/providers/plex/connectionState";
 import { fetchCurrentlyPlayingData } from "@/providers/plex/playback";
 import {
   selectReachableConnection,
@@ -143,7 +144,8 @@ void test("playback persists only the winner and prefers it on the next discover
 for (const status of [401, 403]) {
   void test(`playback stops on HTTP ${status}, cancels concurrent work, and preserves the saved connection`, async (context) => {
     context.mock.timers.enable({ apis: ["setTimeout"] });
-    const response = createDeferred<Response>();
+    const preferred = createDeferred<Response>();
+    const alternative = createDeferred<Response>();
     const started = createDeferred<void>();
     const requests: Request[] = [];
     context.mock.method(
@@ -155,7 +157,9 @@ for (const status of [401, 403]) {
         if (requests.length === 2) {
           started.resolve();
         }
-        return response.promise;
+        return request.url.startsWith(TEST_PLEX_BASE_URL)
+          ? preferred.promise
+          : alternative.promise;
       },
     );
     const original = source();
@@ -169,13 +173,70 @@ for (const status of [401, 403]) {
     );
     context.mock.timers.tick(250);
     await started.promise;
-    response.resolve(new Response(null, { status }));
+    preferred.resolve(new Response(null, { status }));
     await rejected;
     await setImmediate();
     context.mock.timers.tick(5000);
     assert.equal(requests.length, 2);
     assert.ok(requests.every((request) => request.signal.aborted));
     assert.deepEqual(source(), original);
+    alternative.resolve(sessionsResponse());
+    await setImmediate();
+    assert.deepEqual(source(), original);
+  });
+}
+
+for (const failure of [
+  { label: "HTTP 401", response: () => new Response(null, { status: 401 }) },
+  { label: "HTTP 403", response: () => new Response(null, { status: 403 }) },
+  {
+    label: "unsafe redirect",
+    response: () =>
+      new Response(null, {
+        status: 302,
+        headers: { Location: "ftp://blocked.example.test/resource" },
+      }),
+  },
+]) {
+  void test(`a speculative ${failure.label} cannot veto successful preferred playback`, async (context) => {
+    context.mock.timers.enable({ apis: ["setTimeout"] });
+    const preferred = createDeferred<Response>();
+    context.after(() => preferred.resolve(sessionsResponse()));
+    const started = createDeferred<void>();
+    const requests: Request[] = [];
+    context.mock.method(
+      globalThis,
+      "fetch",
+      async (...[input, init]: Parameters<typeof fetch>) => {
+        const request = new Request(input, init);
+        requests.push(request);
+        if (request.url.startsWith(TEST_PLEX_BASE_URL)) {
+          started.resolve();
+          return preferred.promise;
+        }
+        assert.ok(request.url.startsWith(ALTERNATIVE_URL));
+        return failure.response();
+      },
+    );
+    const original = source();
+    const result = fetchCurrentlyPlayingData(original).then(
+      (data) => ({ ok: true as const, data }),
+      (error: unknown) => ({ ok: false as const, error }),
+    );
+    await started.promise;
+    context.mock.timers.tick(250);
+    await setImmediate();
+    assert.equal(requests.length, 2);
+    assert.equal(requests[0]?.signal.aborted, false);
+    assert.deepEqual(source(), original);
+    context.mock.timers.tick(150);
+    preferred.resolve(sessionsResponse());
+    const selected = await result;
+    assert.ok(selected.ok);
+    assert.equal(selected.data.context.baseUrl, TEST_PLEX_BASE_URL);
+    assert.deepEqual(source(), original);
+    context.mock.timers.tick(5000);
+    assert.equal(requests.length, 2);
   });
 }
 
@@ -214,7 +275,10 @@ void test("manual playback uses only the configured URL and preserves it on succ
   const manualUrl = "http://manual.example.test:32400";
   updateMediaSource(original.id, {
     baseUrl: manualUrl,
-    connection: { ...original.connection, baseUrlMode: "manual" },
+    connection: {
+      ...original.connection,
+      baseUrlMode: PLEX_BASE_URL_MODE_MANUAL,
+    },
   });
   const manual = source();
   let requests = 0;

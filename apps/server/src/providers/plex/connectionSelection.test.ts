@@ -1,7 +1,9 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { setImmediate } from "node:timers/promises";
 
 import { isApiError } from "@/http/errors";
+import { PLEX_BASE_URL_MODE_MANUAL } from "@/providers/plex/connectionState";
 import { selectPlexConnection } from "@/providers/plex/shared";
 import type { ProviderResource } from "@/providers/types";
 import { createDeferred } from "#test/deferred";
@@ -148,7 +150,7 @@ void test("the preferred request can still win after an alternative starts", asy
   alternative.reject(new Error("cancelled alternative"));
 });
 
-void test("synchronous request failures advance without leaving stagger timers behind", async (context) => {
+void test("synchronous request failures advance and settled selection starts no more requests", async (context) => {
   context.mock.timers.enable({ apis: ["setTimeout"] });
   const calls: string[] = [];
   const result = await selectPlexConnection(
@@ -167,6 +169,79 @@ void test("synchronous request failures advance without leaving stagger timers b
   assert.deepEqual(calls, ["remote", "local", "relay"]);
 });
 
+for (const outcome of ["retryable", "fatal", "cancelled"] as const) {
+  void test(`a speculative fatal error waits for the preferred attempt's ${outcome} outcome`, async (context) => {
+    context.mock.timers.enable({ apis: ["setTimeout"] });
+    const controller = new AbortController();
+    const preferred = createDeferred<string>();
+    const alternative = createDeferred<string>();
+    const calls: string[] = [];
+    const signals: AbortSignal[] = [];
+    const retryableError = new Error("preferred unavailable");
+    const preferredError = new Error("preferred fatal or cancelled");
+    const alternativeError = new Error("alternative fatal");
+    const result = selectPlexConnection(
+      createResource(),
+      "remote",
+      (connection, signal) => {
+        calls.push(connection.id);
+        signals.push(signal);
+        return connection.id === "remote"
+          ? preferred.promise
+          : alternative.promise;
+      },
+      {
+        signal: controller.signal,
+        retryable: (error) => error === retryableError,
+      },
+    );
+    const expectedError =
+      outcome === "retryable" ? alternativeError : preferredError;
+    const rejected = assert.rejects(
+      result,
+      (error: unknown) => error === expectedError,
+    );
+    context.mock.timers.tick(250);
+    alternative.reject(alternativeError);
+    await setImmediate();
+    context.mock.timers.tick(5000);
+    assert.deepEqual(calls, ["remote", "local"]);
+    assert.ok(signals.every((signal) => !signal.aborted));
+
+    if (outcome === "cancelled") {
+      controller.abort(preferredError);
+      preferred.resolve("late sessions");
+    } else {
+      preferred.reject(
+        outcome === "retryable" ? retryableError : preferredError,
+      );
+    }
+    await rejected;
+    assert.ok(signals.every((signal) => signal.aborted));
+    context.mock.timers.tick(5000);
+    assert.deepEqual(calls, ["remote", "local"]);
+  });
+}
+
+void test("a queued preferred success wins when a speculative fatal rejection runs first", async (context) => {
+  context.mock.timers.enable({ apis: ["setTimeout"] });
+  const preferred = createDeferred<string>();
+  const alternative = createDeferred<string>();
+  const result = selectPlexConnection(
+    createResource(),
+    "remote",
+    (connection) =>
+      connection.id === "remote" ? preferred.promise : alternative.promise,
+    { retryable: () => false },
+  );
+  context.mock.timers.tick(250);
+  alternative.reject(new Error("speculative fatal"));
+  preferred.resolve("preferred sessions");
+  const selected = await result;
+  assert.equal(selected.connection.id, "remote");
+  assert.equal(selected.data, "preferred sessions");
+});
+
 void test("manual selection never tries discovered alternatives", async (context) => {
   context.mock.timers.enable({ apis: ["setTimeout"] });
   const pending = createDeferred<string>();
@@ -178,7 +253,7 @@ void test("manual selection never tries discovered alternatives", async (context
       calls.push(connection.id);
       return pending.promise;
     },
-    { baseUrlMode: "manual" },
+    { baseUrlMode: PLEX_BASE_URL_MODE_MANUAL },
   );
   const rejected = assert.rejects(
     result,
