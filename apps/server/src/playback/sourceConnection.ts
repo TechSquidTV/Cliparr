@@ -1,4 +1,4 @@
-import { logEventFields } from "@cliparr/shared/logging";
+import { logDurationFields, logEventFields } from "@cliparr/shared/logging";
 import type { PlaybackSourceStatus } from "@cliparr/shared/providers";
 
 import type { MediaSourceRecord } from "@/db/mediaSourcesRepository";
@@ -31,7 +31,7 @@ function apiFailure(error: unknown) {
 export function startSourceConnection(options: {
   source: MediaSourceRecord;
   provider: ProviderImplementation | undefined;
-  observer: PlaybackObserver;
+  observer: Omit<PlaybackObserver, "connected">;
   signal: AbortSignal;
   onStatus: (state: PlaybackSourceStatus["state"], message?: string) => void;
 }) {
@@ -62,7 +62,11 @@ export function startSourceConnection(options: {
         "error.code": failure?.code,
         "http.response.status_code": failure?.status,
       };
-      if (state === "live" || state === "connecting") {
+      if (
+        state === "live" ||
+        state === "connecting" ||
+        state === "discovering"
+      ) {
         logger.info("Live playback connection changed.", fields);
       } else {
         logger.warn("Live playback connection interrupted.", fields);
@@ -76,6 +80,35 @@ export function startSourceConnection(options: {
       return;
     }
     const startedAt = Date.now();
+    let stage: "connect" | "discover" | undefined = "connect";
+    let stageStartedAt = startedAt;
+    const finishStage = (
+      outcome: "success" | "failure" | "cancelled",
+      error?: unknown,
+    ) => {
+      if (!stage) {
+        return;
+      }
+      const failure = apiFailure(error);
+      const fields = {
+        ...logEventFields(`media.live.${stage}`, outcome),
+        ...logDurationFields(stageStartedAt),
+        "source.id": options.source.id,
+        "provider.id": options.source.providerId,
+        "error.name": error instanceof Error ? error.name : undefined,
+        "error.code": failure?.code,
+        "http.response.status_code": failure?.status,
+      };
+      if (outcome === "failure") {
+        logger.warn("Playback loading stage failed.", fields);
+      } else {
+        logger.info("Playback loading stage finished.", fields);
+      }
+      stage = undefined;
+    };
+    const cancel = () => finishStage("cancelled");
+    options.signal.addEventListener("abort", cancel, { once: true });
+    transition("connecting");
     try {
       if (!options.provider) {
         throw new Error("Unknown provider");
@@ -84,7 +117,20 @@ export function startSourceConnection(options: {
         options.source,
         {
           ...options.observer,
+          connected() {
+            if (options.signal.aborted || stage !== "connect") {
+              return;
+            }
+            finishStage("success");
+            stage = "discover";
+            stageStartedAt = Date.now();
+            transition("discovering");
+          },
           snapshot(resolve) {
+            if (options.signal.aborted) {
+              return;
+            }
+            finishStage("success");
             transition("live");
             options.observer.snapshot(resolve);
           },
@@ -96,12 +142,14 @@ export function startSourceConnection(options: {
         options.signal,
       );
       if (!options.signal.aborted) {
+        finishStage("failure");
         transition("reconnecting", disconnectedMessage);
       }
     } catch (error) {
       if (options.signal.aborted) {
         return;
       }
+      finishStage("failure", error);
       const failure = apiFailure(error);
       if (!options.provider || failure?.code === "live_sessions_unsupported") {
         transition(
@@ -121,6 +169,8 @@ export function startSourceConnection(options: {
         return;
       }
       transition("reconnecting", disconnectedMessage, error);
+    } finally {
+      options.signal.removeEventListener("abort", cancel);
     }
     if (options.signal.aborted) {
       return;

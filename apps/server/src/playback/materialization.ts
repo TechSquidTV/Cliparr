@@ -7,8 +7,8 @@ import type { ProviderSessionRecord } from "@/session/store";
 /** Serialize revisions and retry only failed preparation, never poll sessions. */
 export function createPlaybackMaterialization(options: {
   session: ProviderSessionRecord;
-  onSuccess: (entries: CurrentlyPlayingEntry[]) => void;
-  onFailure: (error: unknown, retrying: boolean) => void;
+  onSuccess: (entries: CurrentlyPlayingEntry[], startedAt: number) => void;
+  onFailure: (error: unknown, retrying: boolean, startedAt: number) => void;
 }) {
   let latest: { revision: number; resolve: PlaybackResolver } | undefined;
   let running = false;
@@ -27,6 +27,7 @@ export function createPlaybackMaterialization(options: {
           return;
         }
         const current: NonNullable<typeof latest> = latest;
+        const startedAt = Date.now();
         try {
           const entries = await current.resolve(options.session);
           if (stopped) {
@@ -36,7 +37,7 @@ export function createPlaybackMaterialization(options: {
             continue;
           }
           failures = 0;
-          options.onSuccess(entries);
+          options.onSuccess(entries, startedAt);
         } catch (error) {
           if (stopped) {
             return;
@@ -45,7 +46,7 @@ export function createPlaybackMaterialization(options: {
             continue;
           }
           const retrying = ++failures <= 3;
-          options.onFailure(error, retrying);
+          options.onFailure(error, retrying, startedAt);
           if (retrying) {
             retry = setTimeout(() => void run(), 1000 * 2 ** (failures - 1));
             retry.unref();

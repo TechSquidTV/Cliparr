@@ -228,7 +228,14 @@ export interface PlaybackSourceStatus {
   sourceId: string;
   sourceName: string;
   providerId: string;
-  state: "connecting" | "live" | "reconnecting" | "unsupported" | "error";
+  state:
+    | "connecting"
+    | "discovering"
+    | "preparing"
+    | "live"
+    | "reconnecting"
+    | "unsupported"
+    | "error";
   message?: string;
 }
 
