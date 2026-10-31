@@ -233,17 +233,17 @@ importers:
         specifier: ^2.3.10
         version: 2.4.2
       '@mediabunny/aac-encoder':
-        specifier: 1.62.1
-        version: 1.62.1(mediabunny@1.62.1)
+        specifier: 1.65.0
+        version: 1.65.0(mediabunny@1.65.0)
       '@mediabunny/ac3':
-        specifier: 1.62.1
-        version: 1.62.1(mediabunny@1.62.1)
+        specifier: 1.65.0
+        version: 1.65.0(mediabunny@1.65.0)
       '@mediabunny/flac-encoder':
-        specifier: 1.62.1
-        version: 1.62.1(mediabunny@1.62.1)
+        specifier: 1.65.0
+        version: 1.65.0(mediabunny@1.65.0)
       '@mediabunny/mp3-encoder':
-        specifier: 1.62.1
-        version: 1.62.1(mediabunny@1.62.1)
+        specifier: 1.65.0
+        version: 1.65.0(mediabunny@1.65.0)
       '@tanstack/react-router':
         specifier: ^1.170.41
         version: 1.170.46(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
@@ -252,7 +252,7 @@ importers:
         version: 0.5.0(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
       '@techsquidtv/canvas-timeline-mediabunny-adapter':
         specifier: ^0.5.0
-        version: 0.5.0(@techsquidtv/canvas-timeline-react@0.5.0(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(mediabunny@1.62.1)(react@19.3.1)
+        version: 0.5.0(@techsquidtv/canvas-timeline-react@0.5.0(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(mediabunny@1.65.0)(react@19.3.1)
       '@techsquidtv/gifenc':
         specifier: 1.1.0
         version: 1.1.0
@@ -263,8 +263,8 @@ importers:
         specifier: ^1.50.0
         version: 1.61.0(@types/react@19.3.0)(react@19.3.1)
       mediabunny:
-        specifier: 1.62.1
-        version: 1.62.1
+        specifier: 1.65.0
+        version: 1.65.0
       motion:
         specifier: ^14.0.0
         version: 14.6.0(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
@@ -388,11 +388,11 @@ importers:
         specifier: ^5.3.0
         version: 5.3.0
       '@mediabunny/aac-encoder':
-        specifier: 1.62.1
-        version: 1.62.1(mediabunny@1.62.1)
+        specifier: 1.65.0
+        version: 1.65.0(mediabunny@1.65.0)
       '@mediabunny/ac3':
-        specifier: 1.62.1
-        version: 1.62.1(mediabunny@1.62.1)
+        specifier: 1.65.0
+        version: 1.65.0(mediabunny@1.65.0)
       '@sentry/astro':
         specifier: ^11.3.0
         version: 11.9.0(astro@7.4.2(@types/node@24.19.2)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1))
@@ -412,8 +412,8 @@ importers:
         specifier: 0.0.18
         version: 0.0.18
       mediabunny:
-        specifier: 1.62.1
-        version: 1.62.1
+        specifier: 1.65.0
+        version: 1.65.0
       mermaid:
         specifier: 12.2.0
         version: 12.2.0
@@ -1651,23 +1651,23 @@ packages:
     resolution: {integrity: sha512-9I2Zn6+NJLfaGoz9jN3lpwDgAYvfGeNYdbAIjJOqzs4Tpc+VU3Jqq4IofSUBKajiDS8k9fZIg18/z13mpk1bsA==}
     engines: {node: '>=8'}
 
-  '@mediabunny/aac-encoder@1.62.1':
-    resolution: {integrity: sha512-3fiZYAX95d+TDp2vu0sXMYputLm2+W21fZQMUWTf9awKhsRC/wko9OXj4GLLmGKMRryvI9Ocv9HzhhHVRYWopQ==}
+  '@mediabunny/aac-encoder@1.65.0':
+    resolution: {integrity: sha512-UzlQw3UBMDh8+BItBh8AcfKM2ONKTdLB1pOfkKEkqJ22SUqgn8w1X5M/IS8HcO5ymj0SBf/FYZcayERyXEkohw==}
     peerDependencies:
       mediabunny: ^1.0.0
 
-  '@mediabunny/ac3@1.62.1':
-    resolution: {integrity: sha512-UCSfIyR57epO6xPsCuKaTTUwb9lv9EeI2MjHrXoRcgH3u13qq+IifnKkrA/xAoB+JnhtF8jcgalH4w+QTuN3ZQ==}
+  '@mediabunny/ac3@1.65.0':
+    resolution: {integrity: sha512-xHvE9wIfCzIzzP5XTIr5BDdrE6F5Yty2nDjDKg/hHYws2XGMjqg+7mg1ZoDaS1jzpeaXfTjT8OfVmMTMsvVTQA==}
     peerDependencies:
       mediabunny: ^1.0.0
 
-  '@mediabunny/flac-encoder@1.62.1':
-    resolution: {integrity: sha512-6y2JrjniW6336tcM1UCEY3eU47RmZkb7+BPrb2rne+xnzgQUhCVCMSM12GqmbQTfbmVYfZjiu2VQqNcZYiaoPw==}
+  '@mediabunny/flac-encoder@1.65.0':
+    resolution: {integrity: sha512-CZr9JJnLdM6fzsB8rq9zxJol9mz/9KJ4ELsSV5teDui+pddOvhcawgvvHULK/5p94qPM9zeztedhVUM/qL/gZg==}
     peerDependencies:
       mediabunny: ^1.0.0
 
-  '@mediabunny/mp3-encoder@1.62.1':
-    resolution: {integrity: sha512-v5L8Z9T298IcSWGvWPlGGNhoM2YzY+fOVAtdkwc6Leh8c1HXl5ivJVBKCcRZeCbp4LDJOSuwdu2SE/V67SZo7w==}
+  '@mediabunny/mp3-encoder@1.65.0':
+    resolution: {integrity: sha512-hSlXqJiNK5ZmDIhEQZ4dvZqOaoZMY/G0y7a4s7fswwK5t72EC/6aoTndQkpqg54UNy88m/MPHiwXw2SXvyg8/Q==}
     peerDependencies:
       mediabunny: ^1.0.0
 
@@ -4604,8 +4604,8 @@ packages:
     resolution: {integrity: sha512-aisnrDP4GNe06UcKFnV5bfMNPBUw4jsLGaWwWfnH3v02GnBuXX2MCVn5RbrWo0j3pczUilYblq7fQ7Nw2t5XKw==}
     engines: {node: '>= 0.8'}
 
-  mediabunny@1.62.1:
-    resolution: {integrity: sha512-lYzeerDwo9QLhBCipqQDXOSV7InvaIFplllZQviPO5rPwH+IUr8M1uvumk1olIUgMRGkPiInRriv25WFErUgMw==}
+  mediabunny@1.65.0:
+    resolution: {integrity: sha512-TNnDNOmD5Fme4rwMGWuNv485a9iQwd9lgw88PI9zQ0FMnzEUoo6EJpG7ZhdJ2iwZFWo8AzNkP1KPq5IAHaktKw==}
 
   merge-descriptors@2.0.0:
     resolution: {integrity: sha512-Snk314V5ayFLhp3fkUREub6WtjBfPdCPY1Ln8/8munuLuiYhsABgBVWsozAG+MWMbVEvcdcpbi9R7ww22l9Q3g==}
@@ -6945,21 +6945,21 @@ snapshots:
 
   '@lukeed/ms@2.0.2': {}
 
-  '@mediabunny/aac-encoder@1.62.1(mediabunny@1.62.1)':
+  '@mediabunny/aac-encoder@1.65.0(mediabunny@1.65.0)':
     dependencies:
-      mediabunny: 1.62.1
+      mediabunny: 1.65.0
 
-  '@mediabunny/ac3@1.62.1(mediabunny@1.62.1)':
+  '@mediabunny/ac3@1.65.0(mediabunny@1.65.0)':
     dependencies:
-      mediabunny: 1.62.1
+      mediabunny: 1.65.0
 
-  '@mediabunny/flac-encoder@1.62.1(mediabunny@1.62.1)':
+  '@mediabunny/flac-encoder@1.65.0(mediabunny@1.65.0)':
     dependencies:
-      mediabunny: 1.62.1
+      mediabunny: 1.65.0
 
-  '@mediabunny/mp3-encoder@1.62.1(mediabunny@1.62.1)':
+  '@mediabunny/mp3-encoder@1.65.0(mediabunny@1.65.0)':
     dependencies:
-      mediabunny: 1.62.1
+      mediabunny: 1.65.0
 
   '@mermaid-js/parser@2.0.1':
     dependencies:
@@ -7578,11 +7578,11 @@ snapshots:
       '@techsquidtv/canvas-timeline-react': 0.5.0(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
       react: 19.3.1
 
-  '@techsquidtv/canvas-timeline-mediabunny-adapter@0.5.0(@techsquidtv/canvas-timeline-react@0.5.0(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(mediabunny@1.62.1)(react@19.3.1)':
+  '@techsquidtv/canvas-timeline-mediabunny-adapter@0.5.0(@techsquidtv/canvas-timeline-react@0.5.0(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(mediabunny@1.65.0)(react@19.3.1)':
     dependencies:
       '@techsquidtv/canvas-timeline-core': 0.5.0
       '@techsquidtv/canvas-timeline-utils': 0.5.0
-      mediabunny: 1.62.1
+      mediabunny: 1.65.0
     optionalDependencies:
       '@techsquidtv/canvas-timeline-react': 0.5.0(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
       react: 19.3.1
@@ -9789,7 +9789,7 @@ snapshots:
 
   media-typer@1.1.0: {}
 
-  mediabunny@1.62.1:
+  mediabunny@1.65.0:
     dependencies:
       '@types/dom-mediacapture-transform': 0.1.11
       '@types/dom-webcodecs': 0.1.13
