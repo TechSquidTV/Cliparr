@@ -121,6 +121,7 @@ void test(
     const pending = createDeferred<Response>();
     let discoveryRequests = 0;
     let snapshots = 0;
+    let connected = 0;
     let progress = 0;
     let lastProgressSize = 0;
     let events: ReadableStreamDefaultController<Uint8Array> | undefined;
@@ -162,7 +163,15 @@ void test(
     const watching = watchCurrentlyPlaying(
       source,
       {
+        connected() {
+          connected++;
+        },
         snapshot() {
+          assert.equal(
+            connected,
+            1,
+            "transport opens before discovery completes",
+          );
           snapshots++;
         },
         progress(updates) {
@@ -310,7 +319,7 @@ for (const phase of ["initial discovery", "snapshot refresh"] as const) {
             ],
           },
         },
-        { snapshot() {}, progress() {}, invalidate() {} },
+        { connected() {}, snapshot() {}, progress() {}, invalidate() {} },
         controller.signal,
       ).then(
         () => {},

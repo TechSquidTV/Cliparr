@@ -47,6 +47,10 @@ The dashboard subscribes to Plex and Jellyfin playback notifications. Starting, 
 
 The first connection may take longer while Cliparr finds a reachable server, opens the notification stream, and prepares playback metadata. Subsequent updates use the established connection.
 
+The dashboard shows each source's current stage: connecting, finding playback, or
+preparing playback details. See [Playback loading timings](/docs/logging#playback-loading-timings)
+to identify slow stages in the logs.
+
 If a connection drops, Cliparr keeps the last sessions visible, marks live updates as disconnected, and retries the connection automatically. **Retry connection** is available for failures. Expired credentials require reconnecting the source in **Sources**.
 
 Live updates allow up to eight dashboard connections per browser session and 128 across a Cliparr server. Additional connections receive HTTP 429 and retry automatically; close unused dashboard tabs to free a connection.

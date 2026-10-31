@@ -1,11 +1,12 @@
 import assert from "node:assert/strict";
-import test from "node:test";
+import test, { type TestContext } from "node:test";
 import { setImmediate } from "node:timers/promises";
 
 import type {
   PlaybackSnapshot,
   PlaybackStreamEvent,
 } from "@cliparr/shared/providers";
+import { configure, type LogRecord, reset } from "@logtape/logtape";
 
 import type { MediaSourceRecord } from "@/db/mediaSourcesRepository";
 import { createApiError } from "@/http/errors";
@@ -102,6 +103,159 @@ function setup() {
     },
   };
 }
+
+async function captureLoadingLogs(context: TestContext) {
+  const records: LogRecord[] = [];
+  await configure({
+    sinks: { capture: (record) => records.push(record) },
+    loggers: [
+      {
+        category: ["logtape", "meta"],
+        sinks: ["capture"],
+        lowestLevel: "warning",
+      },
+      {
+        category: ["cliparr", "server", "media", "discovery"],
+        sinks: ["capture"],
+        lowestLevel: "info",
+      },
+    ],
+  });
+  context.after(reset);
+  return records;
+}
+
+void test("reports real initial loading stages and safe durations while other sources remain pending", async (context) => {
+  context.mock.timers.enable({ apis: ["Date", "setTimeout"], now: 1000 });
+  const records = await captureLoadingLogs(context);
+  const { hub, connections, replaceSources } = setup();
+  replaceSources([source, { ...source, id: "slow", name: "Slow server" }]);
+  const events: PlaybackStreamEvent[] = [];
+  const stop = hub.subscribe(session("stages"), (event) => events.push(event));
+  context.after(stop);
+  assert.equal(latest(events).sources[0].state, "connecting");
+  context.mock.timers.tick(125);
+  connections[0].observer.connected();
+  assert.equal(latest(events).sources[0].state, "discovering");
+  assert.equal(latest(events).loading, true);
+  context.mock.timers.tick(250);
+  const details = createDeferred<CurrentlyPlayingEntry[]>();
+  connections[0].observer.snapshot(() => details.promise);
+  assert.equal(latest(events).sources[0].state, "preparing");
+  context.mock.timers.tick(500);
+  details.resolve([entry("private-title", "stages")]);
+  await setImmediate();
+  assert.equal(latest(events).sources[0].state, "live");
+  assert.equal(latest(events).sources[1].state, "connecting");
+  assert.equal(latest(events).viewers[0].items[0].title, "private-title");
+  const timings = records.filter((record) =>
+    [
+      "media.live.connect",
+      "media.live.discover",
+      "media.live.prepare",
+    ].includes(String(record.properties["event.name"])),
+  );
+  assert.deepEqual(
+    timings.map(({ properties }) => [
+      properties["event.name"],
+      properties["event.outcome"],
+      properties["event.duration.ms"],
+    ]),
+    [
+      ["media.live.connect", "success", 125],
+      ["media.live.discover", "success", 250],
+      ["media.live.prepare", "success", 500],
+    ],
+  );
+  for (const record of timings) {
+    assert.deepEqual(record.category, [
+      "cliparr",
+      "server",
+      "media",
+      "discovery",
+    ]);
+    assert.equal(record.properties["source.id"], source.id);
+    assert.equal(record.properties["provider.id"], "plex");
+  }
+  // Progress must not repeat initialization or preparation summaries.
+  connections[0].observer.progress([
+    { sourceId: source.id, sessionId: "private-title", playerState: "paused" },
+  ]);
+  assert.equal(
+    records.filter(
+      (record) => record.properties["event.name"] === "media.live.prepare",
+    ).length,
+    1,
+  );
+  stop();
+  await setImmediate();
+  assert.equal(records.at(-1)?.properties["event.outcome"], "cancelled");
+  assert.doesNotMatch(
+    JSON.stringify(records),
+    /private-title|private-token|secret|https:|Slow server/,
+  );
+});
+
+void test("times failed discovery and preparation retries without logging upstream error messages", async (context) => {
+  context.mock.timers.enable({ apis: ["Date", "setTimeout"], now: 1000 });
+  const records = await captureLoadingLogs(context);
+  const { hub, connections, provider } = setup();
+  const failedDiscovery = createDeferred<void>();
+  const watch = provider.watchCurrentlyPlaying;
+  provider.watchCurrentlyPlaying = (source, observer, signal) => {
+    void watch(source, observer, signal);
+    return failedDiscovery.promise;
+  };
+  const events: PlaybackStreamEvent[] = [];
+  const stop = hub.subscribe(session("retries"), (event) => events.push(event));
+  context.after(stop);
+  connections[0].observer.connected();
+  context.mock.timers.tick(75);
+  failedDiscovery.reject(
+    new Error("https://private.example/movie?token=secret"),
+  );
+  await setImmediate();
+  assert.equal(latest(events).sources[0].state, "reconnecting");
+  const discovery = records.find(
+    (record) => record.properties["event.name"] === "media.live.discover",
+  );
+  assert.equal(discovery?.properties["event.outcome"], "failure");
+  assert.equal(discovery?.properties["event.duration.ms"], 75);
+  provider.watchCurrentlyPlaying = watch;
+  hub.retry("account");
+  assert.equal(latest(events).sources[0].state, "connecting");
+  connections[1].observer.connected();
+  const prepared = createDeferred<CurrentlyPlayingEntry[]>();
+  let attempts = 0;
+  connections[1].observer.snapshot(() =>
+    ++attempts === 1 ? prepared.promise : Promise.resolve([]),
+  );
+  context.mock.timers.tick(50);
+  prepared.reject(new Error("private-title secret"));
+  await setImmediate();
+  assert.equal(latest(events).sources[0].state, "error");
+  context.mock.timers.tick(1000);
+  await setImmediate();
+  assert.equal(latest(events).sources[0].state, "live");
+  assert.equal(latest(events).loading, false);
+  const preparation = records.filter(
+    (record) => record.properties["event.name"] === "media.live.prepare",
+  );
+  assert.deepEqual(
+    preparation.map(({ properties }) => [
+      properties["event.outcome"],
+      properties["event.duration.ms"],
+    ]),
+    [
+      ["failure", 50],
+      ["success", 0],
+    ],
+  );
+  assert.doesNotMatch(
+    JSON.stringify(records),
+    /private-title|private\.example|secret/,
+  );
+});
 
 void test("shares upstream subscriptions and same-session normalization without sharing media handles across sessions", async () => {
   const { hub, connections } = setup();

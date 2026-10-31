@@ -23,6 +23,36 @@ Production server logs default to `pretty`, the readable terminal format that sh
 
 `CLIPARR_LOG_LEVEL` controls how much the server emits. Development defaults to `debug`; production defaults to `info`. Use `trace` only while chasing detailed media proxy or playback behavior because it can be noisy.
 
+## Playback loading timings
+
+The dashboard reports each source's current loading stage: connecting to the server,
+finding playback, or preparing playback details. Other sources can finish while a
+slower source is still loading.
+
+At `info` level, structured server logs include `event.duration.ms` for these events:
+
+- `media.live.connect`: from starting a provider connection until its notification
+  stream opens. Plex also needs an initial session request to select a reachable
+  server during this stage; Jellyfin checks the account and server version.
+- `media.live.discover`: from the open notification stream until the first session
+  snapshot arrives. An empty snapshot completes discovery too.
+- `media.live.prepare`: time spent preparing a snapshot's playback details and
+  session-owned media handles. Failed preparation attempts have their own durations;
+  retry delays are excluded. Cached provider metadata may make later preparation faster.
+
+Connection and discovery timings restart on reconnect. Their outcomes are `success`,
+`failure`, or `cancelled`; preparation reports `success` or `failure`. These timing
+events include source and provider IDs, counts, and safe failure categories, without
+server addresses, media titles, or credentials.
+
+The browser console reports `editor.preview.ready` when the first video frame is
+available, or when an audio-only preview is ready. Its duration starts when the
+editor configures the media source. It reports an initial failure once and, if a
+manual retry succeeds, a success with `preview.recovered: true`; that duration includes
+the time waiting for the retry. Playback and seeking do not repeat the success event.
+Preview timing stays in the browser and is not sent to the Cliparr server. Development
+browser logs include structured fields; production uses the readable console format.
+
 ## File logging
 
 Set `CLIPARR_LOG_FILE` to write a second server log destination in addition to the console. File logging is opt-in and rotates by size so diagnostics do not grow forever on long-running installs.

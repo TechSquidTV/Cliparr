@@ -1,4 +1,4 @@
-import { logEventFields } from "@cliparr/shared/logging";
+import { logDurationFields, logEventFields } from "@cliparr/shared/logging";
 import {
   applyPlaybackProgress,
   type PlaybackProgress,
@@ -93,7 +93,12 @@ export function createLivePlaybackHub(dependencies: {
     );
     const statuses = ownedSources.map(({ status, source }) => {
       const message = dashboard.errors.get(source.id);
-      return message ? { ...status, state: "error" as const, message } : status;
+      if (message) {
+        return { ...status, state: "error" as const, message };
+      }
+      return status.state === "live" && !dashboard.entries.has(source.id)
+        ? { ...status, state: "preparing" as const }
+        : status;
     });
     return {
       viewers: applyPlaybackProgress(
@@ -118,6 +123,7 @@ export function createLivePlaybackHub(dependencies: {
           !dashboard.entries.has(source.source.id) &&
           !dashboard.errors.has(source.source.id) &&
           (source.status.state === "connecting" ||
+            source.status.state === "discovering" ||
             source.status.state === "live"),
       ),
     };
@@ -155,20 +161,27 @@ export function createLivePlaybackHub(dependencies: {
         source: subscription,
         work: createPlaybackMaterialization({
           session: dashboard.session,
-          onSuccess(entries) {
+          onSuccess(entries, startedAt) {
+            logger.info("Playback details prepared.", {
+              ...logEventFields("media.live.prepare", "success"),
+              ...logDurationFields(startedAt),
+              "source.id": id,
+              "provider.id": subscription.source.providerId,
+              "playback.count": entries.length,
+            });
             dashboard.entries.set(id, entries);
             dashboard.errors.delete(id);
             publish(dashboard);
           },
-          onFailure(error, retrying) {
-            if (!dashboard.errors.has(id)) {
-              logger.warn("Live playback preparation failed.", {
-                ...logEventFields("media.live.prepare", "failure"),
-                "source.id": id,
-                "provider.id": subscription.source.providerId,
-                "error.name": error instanceof Error ? error.name : undefined,
-              });
-            }
+          onFailure(error, retrying, startedAt) {
+            logger.warn("Live playback preparation failed.", {
+              ...logEventFields("media.live.prepare", "failure"),
+              ...logDurationFields(startedAt),
+              "source.id": id,
+              "provider.id": subscription.source.providerId,
+              "playback.retrying": retrying,
+              "error.name": error instanceof Error ? error.name : undefined,
+            });
             dashboard.errors.set(
               id,
               retrying
