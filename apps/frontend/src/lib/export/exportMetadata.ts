@@ -23,6 +23,8 @@ const discardReasonLabels: Record<DiscardedTrack["reason"], string> = {
   undecodable_source_codec: "the source codec could not be decoded",
   no_encodable_target_codec: "no compatible output codec could be encoded",
   cannot_copy: "the track cannot be copied without re-encoding",
+  unknown_maximum_packet_count:
+    "the maximum output packet count could not be determined",
 };
 
 export async function describeDiscardedTracks(

@@ -19,7 +19,7 @@ export function isIncompleteSourceAudioError(
   return error instanceof Error && error.name === "IncompleteSourceAudioError";
 }
 
-/** Protect native FLAC selections from the released reader's missing-tail behavior. */
+/** Reject standalone FLAC selections when the source ends before the requested range. */
 export async function assertSourceAudioRange(
   track: InputAudioTrack | null,
   start: number,

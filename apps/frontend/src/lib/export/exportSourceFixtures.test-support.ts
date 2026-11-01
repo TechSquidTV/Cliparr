@@ -15,7 +15,7 @@ import {
 
 import { ensureAudioEncoder } from "#/lib/export/mediabunny/mediabunnyCodecs";
 
-/** A valid FLAC whose constant final frame triggers the released reader's tail loss. */
+/** A valid FLAC with a short constant final frame. */
 async function createFlacTailFixture(
   format: OutputFormat = new FlacOutputFormat(),
 ) {
