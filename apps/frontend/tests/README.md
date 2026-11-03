@@ -70,6 +70,7 @@ The runner writes fresh screenshots to `build/browser-export/crop`. The reviewed
 
 - [Desktop crop](previews/video-crop/desktop-crop.png)
 - [Desktop subtitle accordion](previews/video-crop/desktop-subtitles.png)
+- [Collapsed Properties sidebar](previews/video-crop/desktop-sidebar-collapsed.png)
 - [Phone crop](previews/video-crop/mobile-crop.png)
 - [Phone preview and picture tools](previews/video-crop/mobile-preview.png)
 - [Export dimensions](previews/video-crop/export-dialog.png)
