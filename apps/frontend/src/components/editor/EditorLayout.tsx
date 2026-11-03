@@ -56,13 +56,17 @@ export function EditorPreviewPane({
           ? "flex min-h-0 flex-1 items-center justify-center p-2"
           : "relative w-full flex-none",
         variant === "mobile" &&
-          (cropEditing
-            ? "h-[45dvh] min-h-64"
-            : "aspect-video min-h-editor-preview-min sm:min-h-editor-preview-sm-min"),
+          !cropEditing &&
+          "aspect-video min-h-editor-preview-min sm:min-h-editor-preview-sm-min",
       )}
     >
       {variant === "mobile" ? (
-        <div className="absolute inset-2 flex min-h-0 items-center justify-center">
+        <div
+          className={cn(
+            "flex min-h-0 items-center justify-center",
+            !cropEditing && "absolute inset-2",
+          )}
+        >
           {children}
         </div>
       ) : (

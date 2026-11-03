@@ -72,6 +72,21 @@ try {
       0,
     );
     await page.getByRole("button", { name: "Done", exact: true }).waitFor();
+    if (mobile) {
+      await page.waitForFunction(() => {
+        const stage = globalThis.document
+          .querySelector("[data-editor-preview-stage]")
+          .getBoundingClientRect();
+        const picture = globalThis.document
+          .querySelector("[data-editor-picture]")
+          .getBoundingClientRect();
+        return (
+          picture.width > 0 &&
+          Math.abs(stage.height - picture.height - 50) < 1 &&
+          Math.abs(stage.width - picture.width - 50) < 1
+        );
+      });
+    }
     const originalCanvas = await page
       .locator("[data-editor-picture] > canvas")
       .first()
@@ -261,6 +276,15 @@ try {
     );
     const afterResize = await selection();
     const afterBounds = await page.locator("cropper-canvas").boundingBox();
+    if (mobile) {
+      const stage = await page
+        .locator("[data-editor-preview-stage]")
+        .boundingBox();
+      assert.ok(
+        stage.height <= 390 * 0.45 + 2,
+        "crop stage respects height cap",
+      );
+    }
     for (const key of ["x", "width"]) {
       assert.ok(
         Math.abs(
@@ -308,18 +332,20 @@ try {
     );
     await page.getByRole("button", { name: "Undo", exact: true }).click();
     if (cd) {
+      // A shorter phone needs scrolling even with the compact preview stage.
+      await page.setViewportSize({ width: 390, height: 600 });
       await page.locator("cropper-canvas").scrollIntoViewIfNeeded();
       const scrollBefore = await page
         .locator("main")
         .evaluate((main) => main.scrollTop);
       await cd.send("Input.dispatchTouchEvent", {
         type: "touchStart",
-        touchPoints: [{ x: 20, y: 650, id: 0 }],
+        touchPoints: [{ x: 20, y: 550, id: 0 }],
       });
       for (let offset = 25; offset <= 150; offset += 25) {
         await cd.send("Input.dispatchTouchEvent", {
           type: "touchMove",
-          touchPoints: [{ x: 20, y: 650 - offset, id: 0 }],
+          touchPoints: [{ x: 20, y: 550 - offset, id: 0 }],
         });
       }
       await cd.send("Input.dispatchTouchEvent", {
@@ -331,6 +357,7 @@ try {
           globalThis.document.querySelector("main").scrollTop > before,
         scrollBefore,
       );
+      await page.setViewportSize({ width: 390, height: 844 });
     }
     await page
       .getByRole("button", { name: "Remove crop", exact: true })

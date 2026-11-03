@@ -597,6 +597,7 @@ function EditorScreenContent({
       <EditorPreview
         crop={previewCrop}
         cropEditing={cropEditing}
+        fitHeight={cropEditing && !isDesktopLayout}
         videoDimensions={previewVideoDimensions}
         cropOverlay={
           cropEditing &&

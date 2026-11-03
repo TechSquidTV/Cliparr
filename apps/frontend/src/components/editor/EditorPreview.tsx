@@ -24,6 +24,7 @@ interface EditorPreviewProperties {
   cropOverlay?: ReactNode;
   crop?: VideoCrop | null;
   cropEditing?: boolean;
+  fitHeight?: boolean;
   videoDimensions?: MediaDimensions | null;
 }
 
@@ -39,6 +40,7 @@ export function EditorPreview({
   cropOverlay,
   crop,
   cropEditing = false,
+  fitHeight = false,
   videoDimensions,
 }: EditorPreviewProperties) {
   const container = useRef<HTMLDivElement>(null);
@@ -102,6 +104,19 @@ export function EditorPreview({
     <div
       ref={container}
       className="group relative h-full min-h-0 w-full min-w-0 overflow-hidden bg-editor-monitor"
+      style={
+        fitHeight
+          ? {
+              height:
+                picture && size.width > 0
+                  ? (Math.max(0, size.width - padding * 2) / picture.width) *
+                      picture.height +
+                    padding * 2
+                  : "var(--spacing-editor-crop-preview-max)",
+              maxHeight: "var(--spacing-editor-crop-preview-max)",
+            }
+          : undefined
+      }
       aria-busy={showLoadingOverlay}
     >
       <div style={viewport} data-editor-picture>
