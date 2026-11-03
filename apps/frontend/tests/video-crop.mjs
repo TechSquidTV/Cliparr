@@ -382,8 +382,14 @@ try {
         `Done keeps ${key}`,
       );
     }
-    // The tool button also finishes editing without removing the crop.
-    await crop.click();
+    // Desktop also supports toggling the tool off. The phone crop view hides
+    // the timeline toolbar, so Done remains its exit action.
+    await page
+      .getByRole("button", {
+        name: mobile ? "Done" : "Crop video",
+        exact: true,
+      })
+      .click();
     await page.locator("cropper-selection").waitFor({ state: "detached" });
     assert.equal(
       await originalCanvas.evaluate(
