@@ -21,6 +21,7 @@ interface Properties {
   startTime: number;
   endTime: number;
   subtitles: EditorDraft["subtitles"];
+  crop?: EditorDraft["crop"];
   onReset: () => void;
 }
 
@@ -33,6 +34,7 @@ export function useEditorDraft({
   startTime,
   endTime,
   subtitles,
+  crop,
   onReset,
 }: Properties) {
   const restored = useRef(false);
@@ -81,6 +83,7 @@ export function useEditorDraft({
     }
     const draft: EditorDraft = {
       version: 2,
+      crop,
       identity: editorDraftIdentity(session),
       sessionId: session.id,
       updatedAt: Date.now(),
@@ -97,6 +100,7 @@ export function useEditorDraft({
     }, 250);
     return () => clearTimeout(timeout);
   }, [
+    crop,
     cues,
     duration,
     endTime,

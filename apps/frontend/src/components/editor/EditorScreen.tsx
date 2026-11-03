@@ -74,6 +74,7 @@ import { useEditorSubtitles } from "@/components/editor/useEditorSubtitles";
 import { useEditorTimelineMedia } from "@/components/editor/useEditorTimelineMedia";
 import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
 import { EDITOR_THUMBNAIL_VIEW_TRANSITION_NAME } from "@/lib/viewTransitions";
+import { useEditorCrop } from "#/components/editor/useEditorCrop";
 
 const EditorExportDialog = lazy(() =>
   import("@/components/editor/EditorExportDialog").then((module) => ({
@@ -190,7 +191,9 @@ function EditorScreenContent({
     history: editHistory,
     commitText: commitSubtitleText,
   } = subtitles;
+  const crop = useEditorCrop(initialDraft?.crop, editHistory.recordApplied);
   const draft = useEditorDraft({
+    crop: crop.state,
     engine,
     session,
     initialDraft,
