@@ -58,7 +58,7 @@ function CropNumber({
       </span>
       <input
         aria-label={label}
-        className="editor-control-focus h-11 min-w-0 flex-1 bg-transparent text-right font-mono text-sm tabular-nums text-foreground outline-none lg:h-8 lg:text-xs"
+        className="editor-control-focus h-11 min-w-0 flex-1 bg-transparent text-right font-mono text-base tabular-nums text-foreground outline-none lg:h-8 lg:text-xs"
         type="number"
         inputMode={step === 1 ? "numeric" : "decimal"}
         min={min}

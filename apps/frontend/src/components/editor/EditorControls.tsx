@@ -1,5 +1,6 @@
 import {
   Camera,
+  Crop,
   Pause,
   Play,
   RotateCcw,
@@ -50,6 +51,9 @@ interface EditorControlsProperties {
   canZoomOut: boolean;
   onFramegrabClick: () => void;
   framegrabDisabledReason: string | null;
+  onCropClick?: () => void;
+  cropActive?: boolean;
+  cropDisabled?: boolean;
   onPreviewTimeCommit: (time: number) => void | Promise<void>;
   onStartTimeCommit: (time: number) => void | Promise<void>;
   onEndTimeCommit: (time: number) => void | Promise<void>;
@@ -78,6 +82,9 @@ export const EditorControls = memo(function EditorControls({
   canZoomOut,
   onFramegrabClick,
   framegrabDisabledReason,
+  onCropClick,
+  cropActive,
+  cropDisabled,
   onPreviewTimeCommit,
   onStartTimeCommit,
   onEndTimeCommit,
@@ -255,6 +262,32 @@ export const EditorControls = memo(function EditorControls({
       </button>
     </ControlTooltip>
   );
+  const pictureTools = (
+    <div
+      className="flex items-center gap-1.5"
+      role="group"
+      aria-label="Picture tools"
+    >
+      {framegrabControl}
+      {onCropClick && (
+        <ControlTooltip label="Crop video" disabled={cropDisabled}>
+          <button
+            type="button"
+            onClick={onCropClick}
+            disabled={cropDisabled}
+            aria-label="Crop video"
+            aria-pressed={cropActive}
+            className={editorIconButtonClassName({
+              className:
+                "aria-pressed:bg-editor-control-active aria-pressed:text-foreground",
+            })}
+          >
+            <Crop className="h-4 w-4" />
+          </button>
+        </ControlTooltip>
+      )}
+    </div>
+  );
   const rangeActionButtonClassName =
     "editor-control-focus flex h-8 items-center justify-center gap-1.5 px-2.5 text-xs font-semibold text-muted-foreground transition-colors hover:bg-editor-control-hover hover:text-foreground disabled:cursor-not-allowed disabled:opacity-45";
   const rangeActions = (
@@ -378,11 +411,12 @@ export const EditorControls = memo(function EditorControls({
   if (variant === "mobile") {
     return (
       <div className="border-b border-editor-border bg-editor-panel px-3 py-2">
-        <div className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2">
+        <div className="grid grid-cols-[auto_minmax(0,1fr)_auto_auto] items-center gap-2">
           <div>{playControl}</div>
           <div className="@container min-w-0 text-center text-sm font-medium">
             {previewTimeControl}
           </div>
+          <div className="[&_button]:h-11 [&_button]:w-11">{pictureTools}</div>
           <Drawer>
             <DrawerTrigger
               render={
@@ -424,12 +458,6 @@ export const EditorControls = memo(function EditorControls({
                     </span>
                     {zoomControl}
                   </div>
-                  <div className="mt-3 flex items-center justify-between gap-3">
-                    <span className="text-sm text-sidebar-foreground">
-                      Frame
-                    </span>
-                    {framegrabControl}
-                  </div>
                 </section>
               </div>
             </DrawerContent>
@@ -470,7 +498,7 @@ export const EditorControls = memo(function EditorControls({
         <div className="h-5 w-px bg-editor-border" />
         {volumeControl}
         {zoomControl}
-        {framegrabControl}
+        {pictureTools}
         {rangeActions}
         <div className="min-w-0 flex-1" />
         <div className="flex flex-wrap items-center justify-end gap-x-4 gap-y-2 text-right sm:gap-x-6">

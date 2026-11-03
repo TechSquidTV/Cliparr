@@ -37,6 +37,11 @@
   "dependencies": {
     "@base-ui/react": "^1.8.0",
     "@cliparr/shared": "workspace:*",
+    "@cropper/element-canvas": "2.3.1",
+    "@cropper/element-grid": "2.3.1",
+    "@cropper/element-handle": "2.3.1",
+    "@cropper/element-selection": "2.3.1",
+    "@cropper/element-shade": "2.3.1",
     "@logtape/logtape": "^2.3.10",
     "@mediabunny/aac-encoder": "1.65.0",
     "@mediabunny/ac3": "1.65.0",

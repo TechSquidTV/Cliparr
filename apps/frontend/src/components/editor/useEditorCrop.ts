@@ -54,10 +54,8 @@ export function useEditorCrop(
   useEffect(() => {
     // Keep the last visible region on interruption, as one undoable gesture.
     window.addEventListener("blur", finishGesture);
-    window.addEventListener("pointercancel", finishGesture);
     return () => {
       window.removeEventListener("blur", finishGesture);
-      window.removeEventListener("pointercancel", finishGesture);
     };
   }, [finishGesture]);
 
