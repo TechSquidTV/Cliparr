@@ -1649,3 +1649,144 @@ for (const [format, mode, burnIn] of [
     assert.equal(context.disposed, true);
   });
 }
+
+void test("passes crop, output size, and subtitle processor to video conversion", async () => {
+  const context = createRuntime({
+    getTrackTimelineOffsetSeconds: async () => 0,
+  });
+  const initialize = context.runtime.initConversion;
+  const processor = context.runtime.buildSubtitleBurnInProcessor(
+    [],
+    subtitleStyle,
+  );
+  context.runtime.buildSubtitleBurnInProcessor = () => processor;
+  let inspected = false;
+  context.runtime.initConversion = async (options) => {
+    assert.equal(typeof options.video, "function");
+    if (typeof options.video !== "function") {
+      throw new TypeError("Missing video options");
+    }
+    const track = await context.input.getPrimaryVideoTrack({
+      filter: async () => true,
+    });
+    assert.ok(track);
+    const video = await options.video(track, 0);
+    assert.ok(video && !Array.isArray(video));
+    assert.deepEqual(video.crop, {
+      left: 480,
+      top: 270,
+      width: 960,
+      height: 540,
+    });
+    assert.equal(video.width, 1920);
+    assert.equal(video.height, 1080);
+    assert.equal(video.forceTranscode, true);
+    assert.equal(video.process, processor);
+    inspected = true;
+    return initialize(options);
+  };
+  await exportClipWithRuntime(
+    {
+      mediaSource,
+      startTime: 0,
+      endTime: 1,
+      format: "mp4",
+      resolution: "1080",
+      mode: "video-only",
+      crop: {
+        x: 0.25,
+        y: 0.25,
+        width: 0.5,
+        height: 0.5,
+        sourceAspectRatio: 16 / 9,
+      },
+      includeBurnedSubtitles: true,
+      subtitleStyleSettings: subtitleStyle,
+      subtitleCues: [
+        {
+          id: "crop-caption",
+          text: "Caption",
+          lines: ["Caption"],
+          startTime: 0,
+          endTime: 1,
+        },
+      ],
+      onProgress: () => {},
+    },
+    context.runtime,
+  );
+  assert.equal(inspected, true);
+});
+
+void test("requires a decoder for a cropped sharp export even when resizing restores source dimensions", async () => {
+  const context = createRuntime({
+    getTrackTimelineOffsetSeconds: async () => 0,
+  });
+  context.videoTrack.canDecode = async () => false;
+  await assert.rejects(
+    exportClipWithRuntime(
+      {
+        mediaSource,
+        startTime: 0,
+        endTime: 1,
+        format: "mp4",
+        resolution: "1080",
+        mode: "video-only",
+        crop: {
+          x: 0.25,
+          y: 0.25,
+          width: 0.5,
+          height: 0.5,
+          sourceAspectRatio: 16 / 9,
+        },
+        onProgress: () => {},
+      },
+      context.runtime,
+    ),
+    /decode|support/i,
+  );
+  assert.equal(context.disposed, true);
+});
+
+void test("passes native crop coordinates and cropped dimensions to the GIF sink", async () => {
+  const context = createRuntime();
+  const createSink = context.runtime.createCanvasSink;
+  let inspected = false;
+  context.runtime.createCanvasSink = (track, options) => {
+    assert.deepEqual(options.crop, {
+      left: 480,
+      top: 270,
+      width: 960,
+      height: 540,
+    });
+    assert.equal(options.width, 853);
+    assert.equal(options.height, 480);
+    inspected = true;
+    return createSink(track, options);
+  };
+  // The empty mock source fails after sink construction; geometry is resolved
+  // before any frame decoding or subtitle rendering begins.
+  await assert.rejects(
+    exportClipWithRuntime(
+      {
+        mediaSource,
+        startTime: 0,
+        endTime: 1,
+        format: "gif",
+        resolution: "original",
+        mode: "video-only",
+        crop: {
+          x: 0.25,
+          y: 0.25,
+          width: 0.5,
+          height: 0.5,
+          sourceAspectRatio: 16 / 9,
+        },
+        onProgress: () => {},
+      },
+      context.runtime,
+    ),
+    /frame/i,
+  );
+  assert.equal(inspected, true);
+});
