@@ -90,7 +90,7 @@ export function EditorPropertyAccordionItem<Value extends string>({
       >
         <Accordion.Trigger
           className={cn(
-            "editor-control-focus group flex min-w-0 flex-1 items-center gap-2 bg-transparent text-left text-ui-micro font-semibold uppercase tracking-[var(--tracking-caps-md)] text-sidebar-foreground transition-colors hover:text-foreground disabled:opacity-45",
+            "editor-control-focus group flex min-w-0 flex-1 items-center gap-2 bg-transparent text-left text-xs font-semibold uppercase tracking-[var(--tracking-caps-md)] text-sidebar-foreground transition-colors hover:text-foreground disabled:opacity-45",
             fillAvailable && "min-h-11 lg:min-h-9",
           )}
         >
