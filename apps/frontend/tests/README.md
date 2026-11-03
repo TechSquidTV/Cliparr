@@ -56,3 +56,24 @@ and dialog dismissal, locking, and focus restoration. At mobile and desktop
 widths, it also exercises source edits/actions and subtitle text, timing, style,
 and deletion callbacks through the extracted components. CI runs it alongside
 the media browser suites.
+
+## Video cropping
+
+Run `CLIPARR_TEST_BROWSER_CHANNEL=chrome pnpm --filter @cliparr/frontend test:browser:crop`.
+The production harness generates a synthetic local video and checks mouse/touch
+selection, boundaries, ratio locks, interruption, undo/redo, numeric and keyboard
+edits, scrolling, viewport changes, and draft restoration. Pixel comparisons cover
+cropped screenshots, video/GIF exports, resizing, and subtitle placement.
+
+The runner writes fresh screenshots to `build/browser-export/crop`. The reviewed
+3.1.0 UI previews below are reference images, not pixel-snapshot assertions:
+
+- [Desktop crop](previews/video-crop/desktop-crop.png)
+- [Desktop subtitle accordion](previews/video-crop/desktop-subtitles.png)
+- [Phone crop](previews/video-crop/mobile-crop.png)
+- [Phone preview and picture tools](previews/video-crop/mobile-preview.png)
+- [Export dimensions](previews/video-crop/export-dialog.png)
+- [Screenshot dimensions](previews/video-crop/framegrab-dialog.png)
+
+Physical iOS Safari and Android Chrome checks remain a release gate; emulated
+touch coverage does not replace those checks.
