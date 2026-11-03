@@ -350,6 +350,9 @@ try {
       true,
       "canvas retained",
     );
+    await page.waitForFunction(
+      () => globalThis.document.querySelector("main").scrollTop === 0,
+    );
     await page.screenshot({
       path: path.join(
         screenshots,

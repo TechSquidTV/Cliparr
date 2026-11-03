@@ -364,6 +364,7 @@ function EditorScreenContent({
     crop.finishGesture();
     setDrawingCrop(false);
     setPropertiesPanel("subtitles");
+    mainReference.current?.scrollTo({ top: 0 });
   };
   const subtitleCanvasRef = useRef<HTMLCanvasElement>(null);
   const previewFrameTime = renderedFrameTime ?? currentTime;
