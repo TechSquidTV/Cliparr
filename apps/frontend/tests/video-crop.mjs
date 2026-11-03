@@ -443,6 +443,28 @@ try {
       ),
     });
     if (!mobile) {
+      await page
+        .getByRole("button", {
+          name: "Collapse properties sidebar",
+          exact: true,
+        })
+        .click();
+      await page.waitForFunction(
+        () =>
+          globalThis.document.querySelector("aside").getBoundingClientRect()
+            .width < 80,
+      );
+      await page.screenshot({
+        path: path.join(screenshots, "desktop-sidebar-collapsed.png"),
+      });
+      await page
+        .getByRole("button", { name: "Expand properties sidebar", exact: true })
+        .click();
+      await page.waitForFunction(
+        () =>
+          globalThis.document.querySelector("aside").getBoundingClientRect()
+            .width > 200,
+      );
       for (const [button, filename] of [
         ["Export", "export-dialog"],
         ["Export current preview frame", "framegrab-dialog"],
