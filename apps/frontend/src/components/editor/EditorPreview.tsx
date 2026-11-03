@@ -1,7 +1,16 @@
 import { Play } from "lucide-react";
-import type { ReactNode, RefCallback } from "react";
+import {
+  type CSSProperties,
+  type ReactNode,
+  type RefCallback,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from "react";
 
 import { BarsLoader } from "@/components/ui/bars-loader";
+import type { MediaDimensions } from "#/components/editor/editorMedia";
+import { resolveVideoCrop, type VideoCrop } from "#/lib/videoCrop";
 
 interface EditorPreviewProperties {
   canvasRef: RefCallback<HTMLCanvasElement>;
@@ -12,6 +21,10 @@ interface EditorPreviewProperties {
   posterViewTransitionName?: string;
   togglePlay: () => void;
   overlay?: ReactNode;
+  cropOverlay?: ReactNode;
+  crop?: VideoCrop | null;
+  cropEditing?: boolean;
+  videoDimensions?: MediaDimensions | null;
 }
 
 export function EditorPreview({
@@ -23,7 +36,62 @@ export function EditorPreview({
   posterViewTransitionName,
   togglePlay,
   overlay,
+  cropOverlay,
+  crop,
+  cropEditing = false,
+  videoDimensions,
 }: EditorPreviewProperties) {
+  const container = useRef<HTMLDivElement>(null);
+  const [size, setSize] = useState({ width: 0, height: 0 });
+  useLayoutEffect(() => {
+    const element = container.current;
+    if (!element) {
+      return;
+    }
+    const observer = new ResizeObserver(([entry]) => {
+      if (entry) {
+        setSize({
+          width: entry.contentRect.width,
+          height: entry.contentRect.height,
+        });
+      }
+    });
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, []);
+  const region =
+    !cropEditing && videoDimensions
+      ? resolveVideoCrop(crop, videoDimensions)
+      : null;
+  const picture = region ?? videoDimensions;
+  const padding = cropEditing ? 24 : 0;
+  const scale = picture
+    ? Math.min(
+        Math.max(0, size.width - padding * 2) / picture.width,
+        Math.max(0, size.height - padding * 2) / picture.height,
+      )
+    : 0;
+  const viewport: CSSProperties =
+    picture && scale > 0
+      ? {
+          position: "absolute",
+          width: picture.width * scale,
+          height: picture.height * scale,
+          left: (size.width - picture.width * scale) / 2,
+          top: (size.height - picture.height * scale) / 2,
+          overflow: cropEditing ? "visible" : "hidden",
+        }
+      : { position: "absolute", inset: 0 };
+  const videoStyle: CSSProperties | undefined =
+    region && videoDimensions
+      ? {
+          position: "absolute",
+          width: videoDimensions.width * scale,
+          height: videoDimensions.height * scale,
+          left: -region.left * scale,
+          top: -region.top * scale,
+        }
+      : undefined;
   const showLoadingOverlay = loadingPreview || loadingPreviewFrame;
   const hasPosterImage = Boolean(posterImageUrl);
   const loadingStatus = loadingPreviewFrame
@@ -32,15 +100,20 @@ export function EditorPreview({
 
   return (
     <div
+      ref={container}
       className="group relative h-full min-h-0 w-full min-w-0 overflow-hidden bg-editor-monitor"
       aria-busy={showLoadingOverlay}
     >
-      <canvas
-        ref={canvasRef}
-        className="block h-full w-full object-contain"
-        onClick={togglePlay}
-      />
-      {overlay}
+      <div style={viewport} data-editor-picture>
+        <canvas
+          ref={canvasRef}
+          className="block h-full w-full object-contain"
+          style={videoStyle}
+          onClick={cropEditing ? undefined : togglePlay}
+        />
+        {overlay}
+        {cropOverlay}
+      </div>
       {posterImageUrl && (
         <img
           src={posterImageUrl}
@@ -57,7 +130,7 @@ export function EditorPreview({
           }
         />
       )}
-      {!showLoadingOverlay && (
+      {!showLoadingOverlay && !cropEditing && (
         <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
           <button
             type="button"

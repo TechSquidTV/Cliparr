@@ -2,6 +2,7 @@ import {
   framegrabFormatOptionFor,
   type FramegrabImageFormat,
 } from "#/lib/export/exportFormats";
+import { resolveVideoCrop, type VideoCrop } from "#/lib/videoCrop";
 
 export type FramegrabImageQuality = "high" | "balanced" | "compact";
 
@@ -46,21 +47,37 @@ export function framegrabQualityOptionFor(quality: FramegrabImageQuality) {
 export function cloneCanvasFrame(
   sourceCanvas: HTMLCanvasElement,
   overlayCanvas?: HTMLCanvasElement | null,
+  crop?: VideoCrop | null,
 ) {
   if (sourceCanvas.width <= 0 || sourceCanvas.height <= 0) {
     throw new Error("No preview frame is available yet.");
   }
 
   const canvas = document.createElement("canvas");
-  canvas.width = sourceCanvas.width;
-  canvas.height = sourceCanvas.height;
+  const region = resolveVideoCrop(crop, sourceCanvas);
+  canvas.width = region?.width ?? sourceCanvas.width;
+  canvas.height = region?.height ?? sourceCanvas.height;
 
   const context = canvas.getContext("2d");
   if (!context) {
     throw new Error("Could not create a framegrab canvas.");
   }
 
-  context.drawImage(sourceCanvas, 0, 0, canvas.width, canvas.height);
+  if (region) {
+    context.drawImage(
+      sourceCanvas,
+      region.left,
+      region.top,
+      region.width,
+      region.height,
+      0,
+      0,
+      canvas.width,
+      canvas.height,
+    );
+  } else {
+    context.drawImage(sourceCanvas, 0, 0, canvas.width, canvas.height);
+  }
   if (overlayCanvas && overlayCanvas.width > 0 && overlayCanvas.height > 0) {
     context.drawImage(overlayCanvas, 0, 0, canvas.width, canvas.height);
   }
