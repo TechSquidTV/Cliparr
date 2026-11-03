@@ -70,6 +70,9 @@ export function editorIconButtonClassName({
   );
 }
 
+export const editorActionButtonClasses =
+  "editor-control-focus inline-flex min-h-11 items-center justify-center gap-1.5 rounded-[var(--radius-control)] border border-editor-border bg-editor-control px-2.5 text-xs text-foreground hover:bg-editor-control-hover disabled:opacity-50 disabled:cursor-not-allowed lg:min-h-8";
+
 export function textInputClassName({
   size = "default",
   className,

@@ -37,17 +37,21 @@ export function EditorPropertyAccordion<Value extends string>({
   value,
   onValueChange,
   children,
+  multiple = true,
+  className,
 }: {
   value: readonly Value[];
   onValueChange: (value: Value[]) => void;
   children: ReactNode;
+  multiple?: boolean;
+  className?: string;
 }) {
   return (
     <Accordion.Root
-      multiple
+      multiple={multiple}
       value={[...value]}
       onValueChange={onValueChange}
-      className="flex min-h-0 flex-col"
+      className={cn("flex min-h-0 flex-col", className)}
     >
       {children}
     </Accordion.Root>
@@ -59,23 +63,52 @@ export function EditorPropertyAccordionItem<Value extends string>({
   title,
   action,
   children,
+  fillAvailable = false,
+  disabled = false,
 }: {
   value: Value;
   title: string;
   action?: ReactNode;
   children: ReactNode;
+  fillAvailable?: boolean;
+  disabled?: boolean;
 }) {
   return (
-    <Accordion.Item value={value} className="border-b border-editor-border/80">
-      <Accordion.Header className="m-0 flex min-h-10 items-center gap-2 border-b border-editor-border/70 bg-editor-panel-muted/55 px-3 py-2">
-        <Accordion.Trigger className="editor-control-focus group flex min-w-0 flex-1 items-center gap-2 bg-transparent text-left text-ui-micro font-semibold uppercase tracking-[var(--tracking-caps-md)] text-sidebar-foreground transition-colors hover:text-foreground">
+    <Accordion.Item
+      value={value}
+      disabled={disabled}
+      className={cn(
+        "border-b border-editor-border/80",
+        fillAvailable && "flex min-h-0 shrink-0 flex-col data-[open]:flex-1",
+      )}
+    >
+      <Accordion.Header
+        className={cn(
+          "m-0 flex shrink-0 items-center gap-2 border-b border-editor-border/70 bg-editor-panel-muted/55 px-3",
+          fillAvailable ? "min-h-9" : "min-h-10 py-2",
+        )}
+      >
+        <Accordion.Trigger
+          className={cn(
+            "editor-control-focus group flex min-w-0 flex-1 items-center gap-2 bg-transparent text-left text-ui-micro font-semibold uppercase tracking-[var(--tracking-caps-md)] text-sidebar-foreground transition-colors hover:text-foreground disabled:opacity-45",
+            fillAvailable && "min-h-11 lg:min-h-9",
+          )}
+        >
           <ChevronRight className="h-3.5 w-3.5 shrink-0 text-muted-foreground transition-transform duration-150 ease-out motion-reduce:transition-none group-data-[panel-open]:rotate-90" />
           <span className="min-w-0 truncate">{title}</span>
         </Accordion.Trigger>
         {action ? <span className="shrink-0">{action}</span> : null}
       </Accordion.Header>
-      <Accordion.Panel className="h-[var(--accordion-panel-height)] overflow-hidden transition-[height] duration-150 ease-out motion-reduce:transition-none data-ending-style:h-0 data-starting-style:h-0">
-        <div>{children}</div>
+      <Accordion.Panel
+        className={
+          fillAvailable
+            ? "min-h-0 flex-1 overflow-hidden"
+            : "h-[var(--accordion-panel-height)] overflow-hidden transition-[height] duration-150 ease-out motion-reduce:transition-none data-ending-style:h-0 data-starting-style:h-0"
+        }
+      >
+        <div className={fillAvailable ? "h-full min-h-0" : undefined}>
+          {children}
+        </div>
       </Accordion.Panel>
     </Accordion.Item>
   );
