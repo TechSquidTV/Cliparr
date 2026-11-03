@@ -50,6 +50,7 @@ interface EditorExportDialogProperties {
   gifSettings?: GifExportSettings | null;
   outputSizeEstimate: ExportSizeEstimate;
   selectedResolution: ExportResolution;
+  hasActiveCrop: boolean;
   onResolutionChange: (resolution: ExportResolution) => void;
   selectedSourcePreference: ExportSourcePreference;
   onSourcePreferenceChange: (preference: ExportSourcePreference) => void;
@@ -106,6 +107,7 @@ export function EditorExportDialog({
   gifSettings,
   outputSizeEstimate,
   selectedResolution,
+  hasActiveCrop,
   onResolutionChange,
   selectedSourcePreference,
   onSourcePreferenceChange,
@@ -175,6 +177,7 @@ export function EditorExportDialog({
               onQualityChange={onQualityChange}
               outputDimensions={outputDimensions}
               selectedResolution={selectedResolution}
+              hasActiveCrop={hasActiveCrop}
               onResolutionChange={onResolutionChange}
               mode={mode}
               onOutputTypeChange={onOutputTypeChange}

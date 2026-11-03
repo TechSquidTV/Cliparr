@@ -820,6 +820,7 @@ export function ConvertTool() {
                   className="min-w-0 disabled:opacity-60"
                 >
                   <ExportSettingsSection
+                    hasActiveCrop={false}
                     selectedFormat={format}
                     onFormatChange={setFormat}
                     selectedQuality={selectedQuality}

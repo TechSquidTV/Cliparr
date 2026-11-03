@@ -10,12 +10,16 @@ export interface ExportOption<T extends string> {
   description: string;
 }
 
-export const resolutionOptions: ReadonlyArray<ExportOption<ExportResolution>> =
-  [
+export function resolutionOptionsFor(
+  hasActiveCrop: boolean,
+): ReadonlyArray<ExportOption<ExportResolution>> {
+  return [
     {
       value: "original",
-      label: "Original",
-      description: "Keeps the source dimensions when possible.",
+      label: hasActiveCrop ? "Cropped" : "Original",
+      description: hasActiveCrop
+        ? "Keeps the cropped dimensions, rounded to even pixels for video."
+        : "Keeps the source dimensions when possible.",
     },
     {
       value: "1080",
@@ -28,12 +32,6 @@ export const resolutionOptions: ReadonlyArray<ExportOption<ExportResolution>> =
       description: "Lighter output for faster downloads and sharing.",
     },
   ];
-
-export function resolutionOptionFor(resolution: ExportResolution) {
-  return (
-    resolutionOptions.find((option) => option.value === resolution) ??
-    resolutionOptions[0]
-  );
 }
 
 export function gifPresetOptionFor(preset: GifExportPreset) {

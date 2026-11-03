@@ -888,6 +888,7 @@ function EditorScreenContent({
             gifSettings={gifSettings}
             outputSizeEstimate={outputSizeEstimate}
             selectedResolution={resolution}
+            hasActiveCrop={hasActiveCrop}
             onResolutionChange={handleResolutionChange}
             selectedSourcePreference={effectiveExportSourcePreference}
             onSourcePreferenceChange={handleExportSourceChange}
@@ -924,7 +925,7 @@ function EditorScreenContent({
             exportSourceMessage={exportSourceMessage}
             exportSourceSummaryMessage={
               hasActiveCrop
-                ? `${exportSourceSummaryMessage ?? ""} Cropping re-encodes video. Original resolution uses the cropped size, rounded to even pixels for video.`.trim()
+                ? `${exportSourceSummaryMessage ?? ""} Cropping re-encodes video. Cropped resolution uses the cropped size, rounded to even pixels for video.`.trim()
                 : exportSourceSummaryMessage
             }
             subtitleSummaryLabel={subtitleExportSummary.label}
