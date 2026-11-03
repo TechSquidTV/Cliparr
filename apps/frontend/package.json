@@ -32,7 +32,8 @@
     "clean": "rm -rf dist",
     "test:browser": "node tests/audio-export.mjs",
     "test:browser:loading": "node tests/media-loading.mjs",
-    "test:browser:ui": "node tests/ui-controls.mjs"
+    "test:browser:ui": "node tests/ui-controls.mjs",
+    "test:browser:crop": "node tests/video-crop.mjs"
   },
   "dependencies": {
     "@base-ui/react": "^1.8.0",
