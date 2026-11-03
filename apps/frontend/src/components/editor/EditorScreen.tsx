@@ -74,6 +74,7 @@ import { useEditorSubtitles } from "@/components/editor/useEditorSubtitles";
 import { useEditorTimelineMedia } from "@/components/editor/useEditorTimelineMedia";
 import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
 import { EDITOR_THUMBNAIL_VIEW_TRANSITION_NAME } from "@/lib/viewTransitions";
+import type { EditorCropOverlayHandle } from "#/components/editor/EditorCropOverlay";
 import {
   EditorPropertyAccordion,
   EditorPropertyAccordionItem,
@@ -213,6 +214,22 @@ function EditorScreenContent({
     commitText: commitSubtitleText,
   } = subtitles;
   const crop = useEditorCrop(initialDraft?.crop, editHistory.recordApplied);
+  const cropOverlayRef = useRef<EditorCropOverlayHandle>(null);
+  const finishCropGesture = () => {
+    cropOverlayRef.current?.finishGesture();
+    crop.finishGesture();
+  };
+  const editorHistory = {
+    ...editHistory,
+    undo: () => {
+      finishCropGesture();
+      editHistory.undo();
+    },
+    redo: () => {
+      finishCropGesture();
+      editHistory.redo();
+    },
+  };
   const draft = useEditorDraft({
     crop: crop.state,
     engine,
@@ -360,7 +377,7 @@ function EditorScreenContent({
     mainReference.current?.scrollTo({ top: 0 });
   };
   const closeCrop = () => {
-    crop.finishGesture();
+    finishCropGesture();
     setPropertiesPanel("subtitles");
     mainReference.current?.scrollTo({ top: 0 });
   };
@@ -545,8 +562,8 @@ function EditorScreenContent({
   );
   useEditorKeyboardShortcuts({
     deleteSubtitle: subtitles.handleDeleteSelectedSubtitle,
-    undo: editHistory.undo,
-    redo: editHistory.redo,
+    undo: editorHistory.undo,
+    redo: editorHistory.redo,
     togglePlay: () => void togglePlay(),
     markIn: handleMarkInShortcut,
     markOut: handleMarkOutShortcut,
@@ -608,6 +625,7 @@ function EditorScreenContent({
           !loadingPreviewFrame ? (
             <Suspense fallback={null}>
               <EditorCropOverlay
+                ref={cropOverlayRef}
                 state={crop.state}
                 dimensions={sourceVideoDimensions}
                 onChange={crop.update}
@@ -727,7 +745,7 @@ function EditorScreenContent({
         dimensions={sourceVideoDimensions}
         error={cropPreviewError}
         onChange={(next) => {
-          crop.finishGesture();
+          finishCropGesture();
           crop.update(next);
         }}
         onDone={closeCrop}
@@ -817,7 +835,7 @@ function EditorScreenContent({
       />
 
       <EditorEditingTools
-        history={editHistory}
+        history={editorHistory}
         variant={layoutVariant}
         onResetDraft={draft.reset}
         resetDisabled={exporting}

@@ -3,7 +3,7 @@ import CropperGrid from "@cropper/element-grid";
 import CropperHandle from "@cropper/element-handle";
 import CropperSelection, { type Selection } from "@cropper/element-selection";
 import CropperShade from "@cropper/element-shade";
-import { useLayoutEffect, useRef } from "react";
+import { type Ref, useImperativeHandle, useLayoutEffect, useRef } from "react";
 
 import {
   constrainCropRectangle,
@@ -24,7 +24,12 @@ for (const element of [
   element.$define();
 }
 
+export interface EditorCropOverlayHandle {
+  finishGesture: () => void;
+}
+
 interface Properties {
+  ref?: Ref<EditorCropOverlayHandle>;
   state: EditorCropState;
   dimensions: MediaDimensions;
   onChange: (state: EditorCropState) => void;
@@ -45,6 +50,15 @@ export function EditorCropOverlay(properties: Properties) {
   const latest = useRef(properties);
   latest.current = properties;
   const synchronize = useRef<(() => void) | null>(null);
+
+  const endGesture = useRef<(() => void) | null>(null);
+  useImperativeHandle(
+    properties.ref,
+    () => ({
+      finishGesture: () => endGesture.current?.(),
+    }),
+    [],
+  );
 
   useLayoutEffect(() => {
     const container = host.current;
@@ -129,6 +143,7 @@ export function EditorCropOverlay(properties: Properties) {
         sync();
       }
     };
+    endGesture.current = finish;
     const start = (event: Event) => {
       const { action: next, relatedEvent } = (
         event as CustomEvent<CropperAction>
@@ -262,6 +277,7 @@ export function EditorCropOverlay(properties: Properties) {
       observer.disconnect();
       window.removeEventListener("blur", finish);
       synchronize.current = null;
+      endGesture.current = null;
       canvas.remove();
     };
   }, []);
@@ -290,7 +306,7 @@ export function EditorCropOverlay(properties: Properties) {
         }
         event.preventDefault();
         event.stopPropagation();
-        properties.onGestureEnd();
+        endGesture.current?.();
         const rectangle = cropRectangle(
           properties.state.region,
           properties.dimensions,

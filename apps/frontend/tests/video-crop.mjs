@@ -92,7 +92,15 @@ try {
       .first()
       .elementHandle();
     const cd = mobile ? await context.newCDPSession(page) : null;
-    const drag = async (x, y, tx, ty, steps = 6, cancel = false) => {
+    const drag = async (
+      x,
+      y,
+      tx,
+      ty,
+      steps = 6,
+      cancel = false,
+      beforeRelease,
+    ) => {
       if (cd) {
         await cd.send("Input.dispatchTouchEvent", {
           type: "touchStart",
@@ -122,6 +130,7 @@ try {
             ],
           });
         }
+        await beforeRelease?.();
         await cd.send("Input.dispatchTouchEvent", {
           type: cancel ? "touchCancel" : "touchEnd",
           touchPoints: [],
@@ -130,6 +139,7 @@ try {
         await page.mouse.move(x, y);
         await page.mouse.down();
         await page.mouse.move(tx, ty, { steps });
+        await beforeRelease?.();
         await page.mouse.up();
       }
       await page.evaluate(
@@ -162,6 +172,21 @@ try {
           height: selection.height / bounds.height,
         };
       }, coordinateSpace);
+    };
+    const waitForSelection = async (expected) => {
+      await page.waitForFunction((region) => {
+        const selected = globalThis.document.querySelector("cropper-selection");
+        const bounds = selected?.parentElement.getBoundingClientRect();
+        if (!selected || !bounds?.width || !bounds.height) {
+          return false;
+        }
+        return ["x", "y", "width", "height"].every((key) => {
+          const dimension = key === "x" || key === "width" ? "width" : "height";
+          return (
+            Math.abs(selected[key] / bounds[dimension] - region[key]) < 0.001
+          );
+        });
+      }, expected);
     };
     for (const [sx, sy, ex, ey] of [
       [0.2, 0.2, 0.65, 0.7],
@@ -196,6 +221,47 @@ try {
     await page.getByRole("button", { name: "Redo", exact: true }).click();
     await page.locator("cropper-canvas").scrollIntoViewIfNeeded();
     b = await page.locator("cropper-canvas").boundingBox();
+    // History commands finish a held gesture before undoing it. Releasing the
+    // pointer afterwards must neither add an edit nor clear its redo entry.
+    const beforeHistoryDrag = await selection("normalized");
+    s = await selection();
+    let duringHistoryDrag;
+    await drag(
+      b.x + s.x + s.width / 2,
+      b.y + s.y + s.height / 2,
+      b.x + s.x + s.width / 2 + 12,
+      b.y + s.y + s.height / 2,
+      6,
+      false,
+      async () => {
+        duringHistoryDrag = await selection("normalized");
+        assert.ok(duringHistoryDrag.x > beforeHistoryDrag.x, "drag moved");
+        await page.keyboard.press("Control+z");
+        await waitForSelection(beforeHistoryDrag);
+        const pointerX = b.x + s.x + s.width / 2 + 18;
+        const pointerY = b.y + s.y + s.height / 2;
+        if (cd) {
+          await cd.send("Input.dispatchTouchEvent", {
+            type: "touchMove",
+            touchPoints: [{ x: pointerX, y: pointerY, id: 0 }],
+          });
+        } else {
+          await page.mouse.move(pointerX, pointerY);
+        }
+        await waitForSelection(beforeHistoryDrag);
+        await page.keyboard.press("Control+Shift+z");
+        await waitForSelection(duringHistoryDrag);
+        await page.keyboard.press("Control+z");
+        await waitForSelection(beforeHistoryDrag);
+      },
+    );
+    await waitForSelection(beforeHistoryDrag);
+    const redo = page.getByRole("button", { name: "Redo", exact: true });
+    assert.equal(await redo.isEnabled(), true, "release preserves redo");
+    await redo.click();
+    await waitForSelection(duringHistoryDrag);
+    await page.getByRole("button", { name: "Undo", exact: true }).click();
+    await waitForSelection(beforeHistoryDrag);
     const beforeRedraw = await selection();
     // Starting outside the selection replaces it without a separate drawing mode.
     await drag(
@@ -408,6 +474,7 @@ try {
     assert.equal(await crop.getAttribute("aria-pressed"), "false");
     await crop.click();
     await page.locator("cropper-selection").waitFor();
+    await waitForSelection(beforeDone);
     const afterDone = await selection("normalized");
     for (const key of ["x", "y", "width", "height"]) {
       assert.ok(
@@ -484,13 +551,18 @@ try {
     }
     // Drafts retain source-relative geometry even when adaptive previews resize.
     await crop.click();
-    const saved = await selection("normalized");
-    await page.waitForFunction(() => {
+    const savedDraft = await page.waitForFunction(() => {
       const drafts = JSON.parse(
         globalThis.localStorage.getItem("cliparr.editor.drafts.v2") || "[]",
       );
-      return drafts.some((draft) => draft.crop?.aspectRatio === 9 / 16);
+      const draft = drafts.find(
+        (entry) => entry.sessionId === "crop-browser-fixture",
+      );
+      return draft?.crop?.aspectRatio === 9 / 16 ? draft.crop : null;
     });
+    const saved = await savedDraft.jsonValue();
+    await savedDraft.dispose();
+    await waitForSelection(saved.region);
     await page.reload();
     await page.waitForFunction(
       () =>
@@ -499,10 +571,11 @@ try {
     );
     await crop.click();
     await page.locator("cropper-selection").waitFor();
+    await waitForSelection(saved.region);
     const restored = await selection("normalized");
     for (const key of ["x", "y", "width", "height"]) {
       assert.ok(
-        Math.abs(saved[key] - restored[key]) < 0.001,
+        Math.abs(saved.region[key] - restored[key]) < 0.001,
         `draft restores ${key}: ${JSON.stringify({ saved, restored })}`,
       );
     }
