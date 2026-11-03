@@ -290,9 +290,6 @@ export function EditorCropControls({
               {numberField("height", "Height", "H")}
             </span>
           </EditorPropertyRow>
-          <p className="text-ui-micro text-muted-foreground">
-            Source pixels · Drag the region or its corners to adjust.
-          </p>
         </EditorPropertySection>
       </fieldset>
     </section>
