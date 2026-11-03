@@ -141,7 +141,7 @@ try {
           }),
       );
     };
-    const selection = async () => {
+    const selection = async (coordinateSpace = "pixels") => {
       await page.evaluate(
         () =>
           new Promise((resolve) => {
@@ -150,12 +150,18 @@ try {
             );
           }),
       );
-      return page.locator("cropper-selection").evaluate((selection) => ({
-        x: selection.x,
-        y: selection.y,
-        width: selection.width,
-        height: selection.height,
-      }));
+      return page.locator("cropper-selection").evaluate((selection, space) => {
+        const bounds =
+          space === "normalized"
+            ? selection.parentElement.getBoundingClientRect()
+            : { width: 1, height: 1 };
+        return {
+          x: selection.x / bounds.width,
+          y: selection.y / bounds.height,
+          width: selection.width / bounds.width,
+          height: selection.height / bounds.height,
+        };
+      }, coordinateSpace);
     };
     for (const [sx, sy, ex, ey] of [
       [0.2, 0.2, 0.65, 0.7],
@@ -396,16 +402,16 @@ try {
       });
       await crop.click();
     }
-    const beforeDone = await selection();
+    const beforeDone = await selection("normalized");
     await page.getByRole("button", { name: "Done", exact: true }).click();
     await page.locator("cropper-selection").waitFor({ state: "detached" });
     assert.equal(await crop.getAttribute("aria-pressed"), "false");
     await crop.click();
     await page.locator("cropper-selection").waitFor();
-    const afterDone = await selection();
+    const afterDone = await selection("normalized");
     for (const key of ["x", "y", "width", "height"]) {
       assert.ok(
-        Math.abs(beforeDone[key] - afterDone[key]) < 1,
+        Math.abs(beforeDone[key] - afterDone[key]) < 0.001,
         `Done keeps ${key}`,
       );
     }
@@ -454,9 +460,9 @@ try {
       );
       process.stdout.write(`${checks.join("\n")}\n`);
     }
-    // Reload the actual editor and verify its saved region and ratio.
+    // Drafts retain source-relative geometry even when adaptive previews resize.
     await crop.click();
-    const saved = await selection();
+    const saved = await selection("normalized");
     await page.waitForFunction(() => {
       const drafts = JSON.parse(
         globalThis.localStorage.getItem("cliparr.editor.drafts.v2") || "[]",
@@ -471,10 +477,10 @@ try {
     );
     await crop.click();
     await page.locator("cropper-selection").waitFor();
-    const restored = await selection();
+    const restored = await selection("normalized");
     for (const key of ["x", "y", "width", "height"]) {
       assert.ok(
-        Math.abs(saved[key] - restored[key]) < 1,
+        Math.abs(saved[key] - restored[key]) < 0.001,
         `draft restores ${key}: ${JSON.stringify({ saved, restored })}`,
       );
     }
