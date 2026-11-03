@@ -15,7 +15,10 @@ import {
   EditorPropertyRow,
   EditorPropertySection,
 } from "#/components/editor/EditorPropertyControls";
-import { editorActionButtonClasses } from "#/components/ui/control-styles";
+import {
+  editorActionButtonClasses,
+  editorPropertyControlClasses,
+} from "#/components/ui/control-styles";
 import {
   Select,
   SelectContent,
@@ -52,13 +55,15 @@ function CropNumber({
   const [text, setText] = useState(String(value));
   useEffect(() => setText(String(value)), [value]);
   return (
-    <label className="flex min-w-0 items-center gap-1.5 rounded-[var(--radius-control)] border border-editor-border bg-editor-control px-2 text-ui-micro text-muted-foreground focus-within:border-ring">
+    <label
+      className={`${editorPropertyControlClasses} flex min-w-0 items-center gap-1.5 rounded-[var(--radius-control)] border border-editor-border bg-editor-control px-2 text-muted-foreground focus-within:border-ring`}
+    >
       <span aria-hidden="true" className="shrink-0">
         {prefix}
       </span>
       <input
         aria-label={label}
-        className="editor-control-focus h-11 min-w-0 flex-1 bg-transparent text-right font-mono text-base tabular-nums text-foreground outline-none lg:h-8 lg:text-xs"
+        className="editor-control-focus h-full min-w-0 flex-1 bg-transparent text-right text-foreground outline-none"
         type="number"
         inputMode={step === 1 ? "numeric" : "decimal"}
         min={min}
@@ -244,7 +249,7 @@ export function EditorCropControls({
                 size="sm"
                 variant="editor"
                 aria-label="Aspect ratio"
-                className="h-11 lg:h-8"
+                className={editorPropertyControlClasses}
               >
                 <SelectValue />
               </SelectTrigger>
