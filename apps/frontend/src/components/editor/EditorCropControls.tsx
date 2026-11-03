@@ -88,15 +88,13 @@ export function EditorCropControls({
   dimensions,
   error,
   onChange,
-  onDraw,
   onDone,
 }: {
   state: EditorCropState;
   dimensions: MediaDimensions;
   error?: string | null;
   onChange: (state: EditorCropState) => void;
-  onDraw: () => void;
-  onDone?: () => void;
+  onDone: () => void;
 }) {
   const [custom, setCustom] = useState(false);
   const rectangle = cropRectangle(state.region, dimensions);
@@ -183,28 +181,8 @@ export function EditorCropControls({
       aria-label="Crop controls"
       className="bg-editor-panel text-sidebar-foreground"
     >
-      {onDone && (
-        <div className="flex items-center justify-between border-b border-editor-border px-3 py-2">
-          <h2 className="text-sm font-semibold">Crop</h2>
-          <button
-            type="button"
-            className={editorActionButtonClasses}
-            onClick={onDone}
-          >
-            Done
-          </button>
-        </div>
-      )}
       <div className="border-b border-editor-border p-3">
         <div className="flex gap-2">
-          <button
-            type="button"
-            className={`${editorActionButtonClasses} flex-1`}
-            disabled={Boolean(error)}
-            onClick={onDraw}
-          >
-            Draw crop
-          </button>
           <button
             type="button"
             className={editorActionButtonClasses}
@@ -233,7 +211,14 @@ export function EditorCropControls({
               onChange(EMPTY_EDITOR_CROP);
             }}
           >
-            Reset crop
+            Remove crop
+          </button>
+          <button
+            type="button"
+            className={`${editorActionButtonClasses} ml-auto`}
+            onClick={onDone}
+          >
+            Done
           </button>
         </div>
         {error && (

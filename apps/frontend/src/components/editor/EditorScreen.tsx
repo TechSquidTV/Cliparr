@@ -174,7 +174,6 @@ function EditorScreenContent({
   const endTime = outPoint ? toSeconds(outPoint) : duration;
   const [playbackSidebarOpen, setPlaybackSidebarOpen] = useState(true);
   const [propertiesPanel, setPropertiesPanel] = useState("subtitles");
-  const [drawingCrop, setDrawingCrop] = useState(false);
   const mainReference = useRef<HTMLElement>(null);
   const [editorPropertiesOpenSections, setEditorPropertiesOpenSections] =
     useState(loadEditorPropertiesOpenSections);
@@ -362,7 +361,6 @@ function EditorScreenContent({
   };
   const closeCrop = () => {
     crop.finishGesture();
-    setDrawingCrop(false);
     setPropertiesPanel("subtitles");
     mainReference.current?.scrollTo({ top: 0 });
   };
@@ -611,13 +609,9 @@ function EditorScreenContent({
               <EditorCropOverlay
                 state={crop.state}
                 dimensions={sourceVideoDimensions}
-                drawing={drawingCrop}
                 onChange={crop.update}
                 onGestureStart={crop.beginGesture}
-                onGestureEnd={() => {
-                  crop.finishGesture();
-                  setDrawingCrop(false);
-                }}
+                onGestureEnd={crop.finishGesture}
               />
             </Suspense>
           ) : null
@@ -733,11 +727,9 @@ function EditorScreenContent({
         error={cropPreviewError}
         onChange={(next) => {
           crop.finishGesture();
-          setDrawingCrop(false);
           crop.update(next);
         }}
-        onDraw={() => setDrawingCrop(true)}
-        onDone={isDesktopLayout ? undefined : closeCrop}
+        onDone={closeCrop}
       />
     </Suspense>
   ) : (

@@ -27,7 +27,6 @@ for (const element of [
 interface Properties {
   state: EditorCropState;
   dimensions: MediaDimensions;
-  drawing: boolean;
   onChange: (state: EditorCropState) => void;
   onGestureStart: () => void;
   onGestureEnd: () => void;
@@ -106,11 +105,8 @@ export function EditorCropOverlay(properties: Properties) {
       if (!size.width || !size.height || active) {
         return;
       }
-      const { state, drawing } = latest.current;
-      move.action = drawing || !state.region ? "select" : "move";
-      for (const handle of handles) {
-        handle.hidden = drawing;
-      }
+      const { state } = latest.current;
+      move.action = state.region ? "move" : "select";
       const rectangle = cropRectangle(state.region, size);
       synchronizing = true;
       selection.aspectRatio = state.aspectRatio ?? NaN;
@@ -271,7 +267,7 @@ export function EditorCropOverlay(properties: Properties) {
   }, []);
   useLayoutEffect(
     () => synchronize.current?.(),
-    [properties.state, properties.dimensions, properties.drawing],
+    [properties.state, properties.dimensions],
   );
 
   return (

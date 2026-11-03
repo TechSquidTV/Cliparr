@@ -65,6 +65,13 @@ try {
     }
     await crop.click();
     await page.locator("cropper-selection").waitFor();
+    assert.equal(
+      await page
+        .getByRole("button", { name: "Draw crop", exact: true })
+        .count(),
+      0,
+    );
+    await page.getByRole("button", { name: "Done", exact: true }).waitFor();
     const originalCanvas = await page
       .locator("[data-editor-picture] > canvas")
       .first()
@@ -142,7 +149,7 @@ try {
       [0.65, 0.7, 0.2, 0.2],
     ]) {
       await page
-        .getByRole("button", { name: "Reset crop", exact: true })
+        .getByRole("button", { name: "Remove crop", exact: true })
         .click();
       await page.locator("cropper-canvas").scrollIntoViewIfNeeded();
       const b = await page.locator("cropper-canvas").boundingBox();
@@ -166,6 +173,29 @@ try {
     let b = await page.locator("cropper-canvas").boundingBox();
     assert.ok(Math.abs(s.width - b.width) < 1, "one gesture undo");
     await page.getByRole("button", { name: "Redo", exact: true }).click();
+    await page.locator("cropper-canvas").scrollIntoViewIfNeeded();
+    b = await page.locator("cropper-canvas").boundingBox();
+    const beforeRedraw = await selection();
+    // Starting outside the selection replaces it without a separate drawing mode.
+    await drag(
+      b.x + b.width * 0.9,
+      b.y + b.height * 0.9,
+      b.x + b.width * 0.1,
+      b.y + b.height * 0.1,
+    );
+    s = await selection();
+    assert.ok(Math.abs(s.x - b.width * 0.1) < 1, "replacement x anchor");
+    assert.ok(Math.abs(s.y - b.height * 0.1) < 1, "replacement y anchor");
+    assert.ok(Math.abs(s.width - b.width * 0.8) < 1, "replacement width");
+    assert.ok(Math.abs(s.height - b.height * 0.8) < 1, "replacement height");
+    await page.getByRole("button", { name: "Undo", exact: true }).click();
+    s = await selection();
+    for (const key of ["x", "y", "width", "height"]) {
+      assert.ok(
+        Math.abs(s[key] - beforeRedraw[key]) < 1,
+        `replacement undo ${key}`,
+      );
+    }
     await page.locator("cropper-canvas").scrollIntoViewIfNeeded();
     b = await page.locator("cropper-canvas").boundingBox();
     s = await selection();
@@ -250,7 +280,9 @@ try {
     await page.setViewportSize(
       mobile ? { width: 390, height: 844 } : { width: 1440, height: 1000 },
     );
-    await page.getByRole("button", { name: "Reset crop", exact: true }).click();
+    await page
+      .getByRole("button", { name: "Remove crop", exact: true })
+      .click();
     // Numeric edits and keyboard nudges use source pixels, including on phones.
     for (const [name, value] of [
       ["Width", "240"],
@@ -300,7 +332,9 @@ try {
         scrollBefore,
       );
     }
-    await page.getByRole("button", { name: "Reset crop", exact: true }).click();
+    await page
+      .getByRole("button", { name: "Remove crop", exact: true })
+      .click();
     // Take a portrait screenshot after the menu finishes closing.
     await page
       .getByRole("combobox", { name: "Aspect ratio", exact: true })
@@ -335,12 +369,22 @@ try {
       });
       await crop.click();
     }
-    await page
-      .getByRole("button", {
-        name: mobile ? "Done" : "Crop video",
-        exact: true,
-      })
-      .click();
+    const beforeDone = await selection();
+    await page.getByRole("button", { name: "Done", exact: true }).click();
+    await page.locator("cropper-selection").waitFor({ state: "detached" });
+    assert.equal(await crop.getAttribute("aria-pressed"), "false");
+    await crop.click();
+    await page.locator("cropper-selection").waitFor();
+    const afterDone = await selection();
+    for (const key of ["x", "y", "width", "height"]) {
+      assert.ok(
+        Math.abs(beforeDone[key] - afterDone[key]) < 1,
+        `Done keeps ${key}`,
+      );
+    }
+    // The tool button also finishes editing without removing the crop.
+    await crop.click();
+    await page.locator("cropper-selection").waitFor({ state: "detached" });
     assert.equal(
       await originalCanvas.evaluate(
         (element) =>
