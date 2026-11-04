@@ -283,6 +283,45 @@ try {
       },
     );
     await scenario(
+      "explicit rounded values commit exactly and support undo/redo",
+      async () => {
+        for (const [name, text, coordinate, scale] of [
+          ["X position", "0.0", "x", 960],
+          ["Y position", "0", "y", 540],
+          ["Width", "333", "width", 960],
+          ["Height", "200", "height", 540],
+          ["Custom width / height", "1.6646", null, null],
+        ]) {
+          await removeCrop();
+          await setCropFields([
+            ["Width", 333.333],
+            ["Height", 200.25],
+            ["X position", 0.4],
+            ["Y position", 0.4],
+          ]);
+          if (coordinate === null) {
+            await chooseRatio("Custom");
+          }
+          const before = await selection("normalized");
+          const field = page.getByRole("spinbutton", { name, exact: true });
+          assert.equal(Number(await field.inputValue()), Number(text));
+          // fill dispatches a real input event even when the text is identical.
+          await field.fill(text);
+          await field.press("Enter");
+          const after = await selection("normalized");
+          const actual = coordinate
+            ? after[coordinate] * scale
+            : (after.width * 960) / (after.height * 540);
+          assert.ok(Math.abs(actual - Number(text)) < 0.000001, name);
+          assert.notDeepEqual(after, before, `${name} creates an exact edit`);
+          await page.getByRole("button", { name: "Undo", exact: true }).click();
+          assert.deepEqual(await selection("normalized"), before);
+          await page.getByRole("button", { name: "Redo", exact: true }).click();
+          assert.deepEqual(await selection("normalized"), after);
+        }
+      },
+    );
+    await scenario(
       "numeric edits commit before starting a resize gesture",
       async () => {
         await removeCrop();

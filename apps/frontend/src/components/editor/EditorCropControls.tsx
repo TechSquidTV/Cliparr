@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import {
   constrainCropRectangle,
@@ -53,7 +53,11 @@ function CropNumber({
   onCommit: (value: number) => void;
 }) {
   const [text, setText] = useState(String(value));
-  useEffect(() => setText(String(value)), [value]);
+  const edited = useRef(false);
+  useEffect(() => {
+    setText(String(value));
+    edited.current = false;
+  }, [value]);
   return (
     <label
       className={`${editorPropertyControlClasses} flex min-w-0 items-center gap-1.5 rounded-[var(--radius-control)] border border-editor-border bg-editor-control px-2 text-muted-foreground focus-within:border-ring`}
@@ -70,16 +74,24 @@ function CropNumber({
         max={max}
         step={step}
         value={text}
+        onInput={() => {
+          edited.current = true;
+        }}
         onChange={(event) => setText(event.target.value)}
         onBlur={() => {
           const number = Number(text);
-          if (text.trim() && Number.isFinite(number) && number >= min) {
+          const shouldCommit = edited.current;
+          edited.current = false;
+          if (
+            shouldCommit &&
+            text.trim() &&
+            Number.isFinite(number) &&
+            number >= min
+          ) {
             const next = Math.min(number, max ?? Infinity);
-            // Display values are rounded; leaving an untouched field must not
-            // quantize the underlying crop or create a history entry.
-            if (next !== value) {
-              onCommit(next);
-            }
+            // Explicit edits can match the rounded display while changing the
+            // precise crop. Untouched focus/blur must preserve that precision.
+            onCommit(next);
           }
           setText(String(value));
         }}
