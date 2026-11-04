@@ -95,6 +95,7 @@ import { getActiveSubtitleCues } from "#/lib/subtitles/getActiveSubtitleCue";
 import { renderSubtitleCues } from "#/lib/subtitles/renderSubtitleCue";
 import { trimSubtitleCues } from "#/lib/subtitles/trimSubtitleCues";
 import type { SubtitleCue, SubtitleStyleSettings } from "#/lib/subtitles/types";
+import { resolveVideoCrop, type VideoCrop } from "#/lib/videoCrop";
 
 export type { ExportFormat, ExportResolution } from "#/lib/export/exportTypes";
 
@@ -113,6 +114,7 @@ export interface ExportClipOptions {
   endTime: number;
   format: ExportFormat;
   resolution: ExportResolution;
+  crop?: VideoCrop | null;
   gifSettings?: GifExportSettings;
   videoQuality?: VideoExportQualityPreset;
   mode: ExportMode;
@@ -216,6 +218,38 @@ function assertVideoTrackDecodableForExport(
   }
 }
 
+function videoTransformOptions(
+  crop: VideoCrop | null | undefined,
+  sourceDimensions: ReturnType<typeof resolveExportOutputDimensions>,
+  resolution: ExportResolution,
+  format: ExportFormat,
+) {
+  const outputDimensions = resolveExportOutputDimensions(
+    sourceDimensions,
+    resolution,
+    format,
+    undefined,
+    crop,
+  );
+  const region = isAudioExportFormat(format)
+    ? null
+    : resolveVideoCrop(crop, sourceDimensions);
+  let options: ConversionVideoOptions = {};
+  if (region && outputDimensions) {
+    options = {
+      crop: region,
+      ...outputDimensions,
+      // Pixel alignment can slightly change the ratio; preserve the full crop
+      // without introducing borders that are absent from the editor preview.
+      fit: "fill",
+      forceTranscode: true,
+    };
+  } else if (resolution !== "original") {
+    options = { height: Number.parseInt(resolution, 10), fit: "contain" };
+  }
+  return { outputDimensions, options };
+}
+
 async function videoExportRequiresSourceDecode({
   track,
   sourceVideoDimensions,
@@ -304,6 +338,7 @@ export async function exportClipWithRuntime(
     endTime,
     format,
     resolution,
+    crop,
     gifSettings,
     videoQuality,
     mode,
@@ -333,6 +368,7 @@ export async function exportClipWithRuntime(
     endTime,
     format,
     resolution,
+    crop,
     gifSettings,
     videoQuality,
     mode,
@@ -411,11 +447,8 @@ export async function exportClipWithRuntime(
       !audioOnly && sourceVideoTrack
         ? await runtime.getVideoTrackDimensions(sourceVideoTrack)
         : null;
-    const outputDimensions = resolveExportOutputDimensions(
-      sourceVideoDimensions,
-      resolution,
-      format,
-    );
+    const { outputDimensions, options: transformOptions } =
+      videoTransformOptions(crop, sourceVideoDimensions, resolution, format);
     const outputHeight = outputDimensions?.height;
     const clippedSubtitleCues = trimSubtitleCues(
       subtitleCues,
@@ -451,7 +484,9 @@ export async function exportClipWithRuntime(
     );
     const resolvedVideoQuality = videoQuality ?? DEFAULT_VIDEO_EXPORT_QUALITY;
     let videoQualityOptions: ConversionVideoOptions =
-      resolvedVideoQuality === "sharp" ? {} : { forceTranscode: true };
+      resolvedVideoQuality === "sharp"
+        ? transformOptions
+        : { ...transformOptions, forceTranscode: true };
     let videoRequiresTranscode = !audioOnly && !sourceVideoTrack;
     let sourceVideoCodec: ExportVideoCodec | null = null;
     let targetVideoPlan: VideoEncodingPlan | null = null;
@@ -486,7 +521,10 @@ export async function exportClipWithRuntime(
         supportedVideoCodecs: outputFormat.getSupportedVideoCodecs(),
         canEncodeVideo: runtime.canEncodeVideo,
       });
-      videoQualityOptions = videoQualityConversionOptions(targetVideoPlan);
+      videoQualityOptions = {
+        ...transformOptions,
+        ...videoQualityConversionOptions(targetVideoPlan),
+      };
     }
 
     if (!audioOnly) {
@@ -564,12 +602,6 @@ export async function exportClipWithRuntime(
       conversionOptions.video = (track) => ({
         discard: track.id !== sourceVideoTrack.id,
         ...videoQualityOptions,
-        ...(resolution === "original"
-          ? {}
-          : {
-              height: Number.parseInt(resolution, 10),
-              fit: "contain" as const,
-            }),
         ...(shouldBurnSubtitles && subtitleStyleSettings
           ? {
               forceTranscode: true,
@@ -725,6 +757,7 @@ async function exportGifClipWithRuntime(
     startTime,
     endTime,
     resolution,
+    crop,
     gifSettings,
     selectedAudioTrack,
     includeBurnedSubtitles = false,
@@ -779,7 +812,9 @@ async function exportGifClipWithRuntime(
       resolution,
       "gif",
       resolvedGifSettings,
+      crop,
     );
+    const cropRegion = resolveVideoCrop(crop, sourceVideoDimensions);
     if (!outputDimensions) {
       throw new Error("GIF export could not determine the video dimensions.");
     }
@@ -808,9 +843,12 @@ async function exportGifClipWithRuntime(
     const frameDelayMs = 1000 / resolvedGifSettings.frameRate;
     const videoSink = runtime.createCanvasSink(sourceVideoTrack, {
       poolSize: 2,
-      fit: "contain",
+      fit: cropRegion ? "fill" : "contain",
       alpha: await sourceVideoTrack.canBeTransparent(),
       height: outputDimensions.height,
+      ...(cropRegion
+        ? { crop: cropRegion, width: outputDimensions.width }
+        : {}),
     });
     const { context } = runtime.createGifCanvas(
       outputDimensions.width,

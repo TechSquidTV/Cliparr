@@ -62,6 +62,7 @@ import {
   exportIncludesAudio,
   isAudioExportFormat,
 } from "#/lib/export/exportFormats";
+import { resolveVideoCrop, type VideoCrop } from "#/lib/videoCrop";
 
 interface UseEditorExportProperties {
   session: EditorSession;
@@ -69,6 +70,7 @@ interface UseEditorExportProperties {
   startTime: number;
   endTime: number;
   sourceVideoDimensions: MediaDimensions | null;
+  crop?: VideoCrop | null;
   exportFallbackSource?: EditorMediaSource;
   hlsFallbackInfo: PlaybackFallbackInfo | null;
   subtitleEnabled: boolean;
@@ -86,6 +88,7 @@ export function useEditorExport({
   startTime,
   endTime,
   sourceVideoDimensions,
+  crop,
   exportFallbackSource,
   hlsFallbackInfo,
   subtitleEnabled,
@@ -253,16 +256,31 @@ export function useEditorExport({
     ],
   );
 
-  const outputDimensions = useMemo(
-    () =>
-      getOutputDimensions(
-        sourceVideoDimensions,
-        resolution,
-        exportFormat,
-        exportFormat === "gif" ? gifSettings : undefined,
-      ),
-    [exportFormat, gifSettings, resolution, sourceVideoDimensions],
-  );
+  const { outputDimensions, cropDisabledReason, hasActiveCrop } =
+    useMemo(() => {
+      try {
+        return {
+          outputDimensions: getOutputDimensions(
+            sourceVideoDimensions,
+            resolution,
+            exportFormat,
+            exportFormat === "gif" ? gifSettings : undefined,
+            crop,
+          ),
+          cropDisabledReason: null,
+          hasActiveCrop:
+            !isAudioExportFormat(exportFormat) &&
+            Boolean(resolveVideoCrop(crop, sourceVideoDimensions)),
+        };
+      } catch (error) {
+        return {
+          outputDimensions: null,
+          cropDisabledReason:
+            error instanceof Error ? error.message : "The crop is unavailable.",
+          hasActiveCrop: false,
+        };
+      }
+    }, [crop, exportFormat, gifSettings, resolution, sourceVideoDimensions]);
   const resolvedVideoPlan = useExportVideoPlan(
     exportFormat,
     outputDimensions,
@@ -300,6 +318,7 @@ export function useEditorExport({
   const estimateAudioBitrateKbps =
     exportSource.kind === "none" ? null : audioBitrateKbps;
   const sourceCopyEligible =
+    !hasActiveCrop &&
     !isAudioExportFormat(exportFormat) &&
     exportFormat !== "gif" &&
     exportSource.kind === "direct" &&
@@ -490,6 +509,10 @@ export function useEditorExport({
       return;
     }
 
+    if (cropDisabledReason) {
+      setExportError(cropDisabledReason);
+      return;
+    }
     if (audio.disabledReason) {
       setExportError(audio.disabledReason);
       return;
@@ -585,6 +608,7 @@ export function useEditorExport({
         endTime,
         format: exportFormat,
         resolution,
+        crop,
         gifSettings: exportFormat === "gif" ? gifSettings : undefined,
         videoQuality: exportFormat === "gif" ? undefined : videoQuality,
         mode,
@@ -656,6 +680,8 @@ export function useEditorExport({
       }
     }
   }, [
+    crop,
+    cropDisabledReason,
     clippedSubtitleCues,
     endTime,
     mode,
@@ -692,6 +718,8 @@ export function useEditorExport({
   ]);
 
   return {
+    cropDisabledReason,
+    hasActiveCrop,
     resolution,
     exportFormat,
     selectedQuality,

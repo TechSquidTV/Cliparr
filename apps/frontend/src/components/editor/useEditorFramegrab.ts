@@ -16,6 +16,7 @@ import {
   encodeFramegrabCanvas,
   type FramegrabImageQuality,
 } from "@/lib/framegrab";
+import { resolveVideoCrop, type VideoCrop } from "#/lib/videoCrop";
 
 interface CapturedFramegrab {
   canvas: HTMLCanvasElement;
@@ -36,6 +37,7 @@ interface UseEditorFramegrabProperties {
   subtitleEnabled: boolean;
   subtitleLoading: boolean;
   getCurrentTime?: () => number;
+  crop?: VideoCrop | null;
 }
 
 export function useEditorFramegrab({
@@ -49,6 +51,7 @@ export function useEditorFramegrab({
   subtitleEnabled,
   subtitleLoading,
   getCurrentTime,
+  crop,
 }: UseEditorFramegrabProperties) {
   const [capturedFramegrab, setCapturedFramegrab] =
     useState<CapturedFramegrab | null>(null);
@@ -99,8 +102,14 @@ export function useEditorFramegrab({
       return "No preview frame available.";
     }
 
+    try {
+      resolveVideoCrop(crop, previewVideoDimensions);
+    } catch (error_) {
+      return errorMessage(error_);
+    }
     return null;
   }, [
+    crop,
     canvasRef,
     loadingPreview,
     loadingPreviewFrame,
@@ -122,6 +131,7 @@ export function useEditorFramegrab({
       const clonedCanvas = cloneCanvasFrame(
         canvas,
         subtitleEnabled ? subtitleCanvasRef.current : null,
+        crop,
       );
       const frameTime = getCurrentTime?.() ?? currentTime;
       setCapturedFramegrab({
@@ -142,6 +152,7 @@ export function useEditorFramegrab({
       setDialogOpen(true);
     }
   }, [
+    crop,
     canvasRef,
     currentTime,
     getCurrentTime,

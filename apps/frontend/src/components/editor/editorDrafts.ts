@@ -1,8 +1,13 @@
 import type { EditorSession } from "@/components/editor/editorMedia";
 import type { SubtitleCue } from "@/lib/subtitles/types";
+import {
+  type EditorCropState,
+  isEditorCropState,
+} from "#/components/editor/editorCropState";
 
 export interface EditorDraft {
   version: 2;
+  crop?: EditorCropState;
   identity: string;
   sessionId: string;
   updatedAt: number;
@@ -72,6 +77,7 @@ function isDraft(value: Partial<EditorDraft> | null): value is EditorDraft {
   const subtitles = value.subtitles;
   return (
     value.version === 2 &&
+    (value.crop === undefined || isEditorCropState(value.crop)) &&
     typeof value.identity === "string" &&
     value.identity.length <= 4096 &&
     typeof value.sessionId === "string" &&

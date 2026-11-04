@@ -4,8 +4,7 @@ import { memo, type ReactNode } from "react";
 import type { MediaDimensions } from "#/components/editor/editorMedia";
 import {
   gifPresetOptionFor,
-  resolutionOptionFor,
-  resolutionOptions,
+  resolutionOptionsFor,
 } from "#/components/export/exportOptions";
 import {
   exportHelperTextClassName,
@@ -48,6 +47,7 @@ interface ExportSettingsSectionProperties {
   onQualityChange: (quality: ExportQualityPreset) => void;
   outputDimensions: MediaDimensions | null;
   selectedResolution: ExportResolution;
+  hasActiveCrop: boolean;
   onResolutionChange: (resolution: ExportResolution) => void;
   mode: ExportMode;
   onOutputTypeChange: (outputType: ExportOutputType) => void;
@@ -66,6 +66,7 @@ function ExportSettingsSectionComponent({
   onQualityChange,
   outputDimensions,
   selectedResolution,
+  hasActiveCrop,
   onResolutionChange,
   mode,
   onOutputTypeChange,
@@ -76,6 +77,7 @@ function ExportSettingsSectionComponent({
   audioBitDepth,
 }: ExportSettingsSectionProperties) {
   const qualityOptions = exportQualityOptionsForFormat(selectedFormat);
+  const resolutionOptions = resolutionOptionsFor(hasActiveCrop);
   const gif = selectedFormat === "gif";
   const showMute = mode !== "audio-only" && !gif;
   let outputType: ExportOutputType = "video";
@@ -286,7 +288,11 @@ function ExportSettingsSectionComponent({
                   </SelectContent>
                 </Select>
                 <p className={exportHelperTextClassName}>
-                  {resolutionOptionFor(selectedResolution).description}
+                  {
+                    resolutionOptions.find(
+                      (option) => option.value === selectedResolution,
+                    )?.description
+                  }
                 </p>
               </label>
             )}

@@ -9,6 +9,8 @@ import Callout from "../../components/Callout.astro";
 
 Create your own subtitles for memes, captions, and commentary, or import dialogue from Plex or Jellyfin. Text does not have to match the audio. Local videos and videos without subtitle tracks support the same authoring tools.
 
+On desktop, expand **Subtitles** in the **Properties** sidebar to open its controls. Subtitles and [Crop](/docs/video-cropping) use expandable panels; opening one closes the other. On a phone, choose **Done** to leave crop editing and return to subtitle controls.
+
 ## Add and edit text
 
 Move the playhead to the desired moment and choose **Add subtitle** in the Subtitles panel or the **+** in the subtitle timeline header. Playback pauses, subtitle output becomes visible, and the new text is selected for editing.
@@ -68,5 +70,7 @@ Cliparr includes a small set of common font options. Browsers that support local
 ## Export behavior
 
 Subtitle cues are trimmed to the selected clip range before export. Visible authored text is burned into the video without requiring a selected provider subtitle track. Hidden cues and cues outside the export range are excluded.
+
+When a crop is active, captions are positioned within the cropped picture. Video and GIF exports apply the crop and output size before rendering captions. Choose **Done** after adjusting a crop to review the framing with subtitles.
 
 Export and frame capture wait while an import is pending. Once an import fails or is cancelled, the existing subtitles remain available for output. Preview, frame grabs, and export use the same subtitle text and shared style.

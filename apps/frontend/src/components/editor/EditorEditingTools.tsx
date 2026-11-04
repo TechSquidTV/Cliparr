@@ -99,7 +99,7 @@ export function EditorEditingTools({
     </Tooltip>
   );
   const resetDescription =
-    "This removes the saved clip range and subtitle edits from this device. Your original video is unchanged.";
+    "This removes the saved clip range, crop, and subtitle edits from this device. Your original video is unchanged.";
   const resetActions = (
     <div className="flex justify-end gap-2 border-t border-border p-4">
       <button

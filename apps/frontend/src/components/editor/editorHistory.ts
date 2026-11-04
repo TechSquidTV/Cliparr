@@ -6,7 +6,14 @@ import {
 
 type ClipRange = Pick<TimelineStateSnapshot, "inPoint" | "outPoint">;
 type RangeEdit = { kind: "range"; before: ClipRange; after: ClipRange };
-type Edit = RangeEdit | { kind: "timeline"; steps: number };
+interface AppliedEdit {
+  undo: () => void;
+  redo: () => void;
+}
+type Edit =
+  | RangeEdit
+  | { kind: "timeline"; steps: number }
+  | (AppliedEdit & { kind: "applied" });
 
 function readRange(engine: TimelineEngine): ClipRange {
   const { inPoint, outPoint } = engine.getState();
@@ -23,7 +30,7 @@ function rangesEqual(left: ClipRange, right: ClipRange) {
 }
 
 // Canvas Timeline owns document history. Its history excludes In/Out, so this
-// adapter orders range edits alongside native undo/redo without copying tracks.
+// adapter orders range and crop edits alongside native undo/redo without copying tracks.
 export function createEditorHistory(engine: TimelineEngine) {
   engine.snapshot();
   const past: Edit[] = [];
@@ -43,9 +50,9 @@ export function createEditorHistory(engine: TimelineEngine) {
     const next = future.at(-1);
     snapshot = {
       canUndo: Boolean(
-        previous && (previous.kind === "range" || engine.canUndo),
+        previous && (previous.kind !== "timeline" || engine.canUndo),
       ),
-      canRedo: Boolean(next && (next.kind === "range" || engine.canRedo)),
+      canRedo: Boolean(next && (next.kind !== "timeline" || engine.canRedo)),
     };
     for (const listener of listeners) {
       listener();
@@ -129,6 +136,8 @@ export function createEditorHistory(engine: TimelineEngine) {
     try {
       if (edit.kind === "range") {
         restoreRange(direction === "undo" ? edit.before : edit.after);
+      } else if (edit.kind === "applied") {
+        edit[direction]();
       } else {
         for (let step = 0; step < edit.steps; step += 1) {
           if (direction === "undo") {
@@ -146,6 +155,10 @@ export function createEditorHistory(engine: TimelineEngine) {
     }
   }
   return {
+    recordApplied: (edit: AppliedEdit) => {
+      groupedRange = null;
+      push({ ...edit, kind: "applied" });
+    },
     runAction: (action: () => void) => {
       actionDepth += 1;
       try {

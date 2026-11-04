@@ -53,6 +53,16 @@ export function useEditorHistory(engine: TimelineEngine, ready: boolean) {
       action();
     }
   }, []);
+  const recordApplied = useCallback(
+    (
+      edit: Parameters<
+        ReturnType<typeof createEditorHistory>["recordApplied"]
+      >[0],
+    ) => {
+      historyReference.current?.recordApplied(edit);
+    },
+    [],
+  );
   const state = useSyncExternalStore(
     history?.subscribe ?? subscribeEmptyHistory,
     history?.getSnapshot ?? getEmptyHistory,
@@ -60,6 +70,7 @@ export function useEditorHistory(engine: TimelineEngine, ready: boolean) {
   );
   return {
     runAction,
+    recordApplied,
     canUndo: ready && state.canUndo,
     canRedo: ready && state.canRedo,
     undo: () => {

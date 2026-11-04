@@ -9,7 +9,8 @@
         "vite.config.js",
         "tests/audio-export.ts",
         "tests/media-loading.ts",
-        "tests/ui-controls.tsx"
+        "tests/ui-controls.tsx",
+        "tests/video-crop.tsx"
       ],
       "ignoreBinaries": ["eslint"],
       "project": ["src/**/*.{ts,tsx,css}", "tests/**/*.{ts,mjs}"],

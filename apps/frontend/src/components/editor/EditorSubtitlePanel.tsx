@@ -7,6 +7,7 @@ import { EditorSubtitleCueEditor } from "#/components/editor/EditorSubtitleCueEd
 import { EditorSubtitleStyleControls } from "#/components/editor/EditorSubtitleStyleControls";
 import { SubtitleTrackLabel } from "#/components/editor/SubtitleTrackLabel";
 import type { useEditorSubtitles } from "#/components/editor/useEditorSubtitles";
+import { editorActionButtonClasses } from "#/components/ui/control-styles";
 import { Spinner } from "#/components/ui/spinner";
 import { Switch } from "#/components/ui/switch";
 import { ControlTooltip } from "#/components/ui/tooltip";
@@ -54,8 +55,6 @@ export interface EditorSubtitlePanelProperties {
   showHeading?: boolean;
 }
 
-const actionClasses =
-  "editor-control-focus inline-flex min-h-11 items-center justify-center gap-1.5 rounded-[var(--radius-control)] border border-editor-border bg-editor-control px-2.5 text-xs text-foreground hover:bg-editor-control-hover disabled:opacity-50 disabled:cursor-not-allowed lg:min-h-8";
 const menuItemClasses =
   "cursor-default rounded px-3 py-2 text-xs outline-none data-[highlighted]:bg-editor-control-hover data-[disabled]:opacity-50";
 
@@ -100,7 +99,7 @@ export function EditorSubtitlePanel({
     <button
       ref={subtitleTrackTriggerRef}
       type="button"
-      className={actionClasses}
+      className={editorActionButtonClasses}
       disabled={!subtitles.canImportSubtitles}
     >
       Import…
@@ -128,7 +127,7 @@ export function EditorSubtitlePanel({
         <div className="flex gap-2">
           <button
             type="button"
-            className={`${actionClasses} flex-1`}
+            className={`${editorActionButtonClasses} flex-1`}
             disabled={!canAddSubtitle}
             onClick={addSubtitle}
           >
@@ -176,7 +175,7 @@ export function EditorSubtitlePanel({
                   type="button"
                   ref={subtitleOptionsTriggerRef}
                   aria-label="Subtitle options"
-                  className={actionClasses}
+                  className={editorActionButtonClasses}
                 >
                   <MoreHorizontal className="h-4 w-4" />
                 </button>

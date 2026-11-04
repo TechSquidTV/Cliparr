@@ -17,6 +17,7 @@ void test("targeted writes replace the still pair without touching previews or d
   const preserved = [
     "apps/www/public/docs/export-dialog.webp",
     "apps/www/public/docs/subtitle-panel.webp",
+    "apps/www/public/docs/video-cropping.png",
     ...scenes.flatMap((scene) =>
       [
         `${scene.videoName}.mp4`,
