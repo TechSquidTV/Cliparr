@@ -61,9 +61,10 @@ the media browser suites.
 
 Run `CLIPARR_TEST_BROWSER_CHANNEL=chrome pnpm --filter @cliparr/frontend test:browser:crop`.
 The production harness generates a synthetic local video and checks mouse/touch
-selection, boundaries, ratio locks, interruption, undo/redo, numeric and keyboard
-edits, scrolling, viewport changes, and draft restoration. Pixel comparisons cover
-cropped screenshots, video/GIF exports, resizing, and subtitle placement.
+selection, corner/side resizing, boundaries, ratio locks, interruption, undo/redo,
+numeric and keyboard edits, scrolling, viewport changes, and draft restoration.
+Pixel comparisons cover cropped screenshots, video/GIF exports, resizing, and
+subtitle placement.
 
 The runner writes fresh screenshots to `build/browser-export/crop`. The reviewed
 3.1.0 UI previews below are reference images, not pixel-snapshot assertions:
