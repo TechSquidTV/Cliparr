@@ -27,6 +27,75 @@ for (const element of [
 
 const HANDLE_TARGET_SIZE = 44;
 
+const CROP_HANDLE_STYLES = `
+  :host([action$=-resize])::after {
+    width: 12px;
+    height: 12px;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    background: var(--editor-crop-accent);
+    box-shadow: var(--editor-crop-handle-shadow);
+    border-radius: 50%;
+    transition: transform var(--motion-duration-fast) var(--motion-easing-standard);
+  }
+  :host([action=n-resize])::after,
+  :host([action=s-resize])::after {
+    width: 24px;
+    height: 6px;
+    border-radius: 2px;
+  }
+  :host([action=e-resize])::after,
+  :host([action=w-resize])::after {
+    width: 6px;
+    height: 24px;
+    border-radius: 2px;
+  }
+  @media (hover: hover) and (pointer: fine) {
+    :host([action$=-resize]:hover)::after {
+      transform: translate(-50%, -50%) scale(1.15);
+    }
+  }
+  :host([action$=-resize]:active)::after {
+    transform: translate(-50%, -50%) scale(0.9);
+  }
+  @media (prefers-reduced-motion: reduce) {
+    :host([action$=-resize])::after { transition: none; }
+  }
+`;
+
+function createCropHandles(selection: CropperSelection) {
+  const handles: CropperHandle[] = [];
+  const sideHandles = new Map<CropperHandle, CropResizeAxis>();
+  for (const direction of ["n", "e", "s", "w", "nw", "ne", "sw", "se"]) {
+    const handle = new CropperHandle();
+    handle.action = `${direction}-resize`;
+    handle.setAttribute("aria-hidden", "true");
+    handle.style.cssText = `width:${HANDLE_TARGET_SIZE}px;height:${HANDLE_TARGET_SIZE}px;background:transparent;border:none;transform:none`;
+    const offset = `${-HANDLE_TARGET_SIZE / 2}px`;
+    const midpoint = `calc(50% - ${HANDLE_TARGET_SIZE / 2}px)`;
+    handle.style.top = direction.includes("s") ? "auto" : midpoint;
+    handle.style.bottom = direction.includes("s") ? offset : "auto";
+    handle.style.left = direction.includes("e") ? "auto" : midpoint;
+    handle.style.right = direction.includes("e") ? offset : "auto";
+    if (direction.includes("n")) {
+      handle.style.top = offset;
+    }
+    if (direction.includes("w")) {
+      handle.style.left = offset;
+    }
+    if (direction.length === 1) {
+      sideHandles.set(
+        handle,
+        direction === "n" || direction === "s" ? "vertical" : "horizontal",
+      );
+    }
+    handles.push(handle);
+    selection.append(handle);
+  }
+  return { handles, sideHandles };
+}
+
 export interface EditorCropOverlayHandle {
   finishGesture: () => void;
 }
@@ -96,73 +165,12 @@ export function EditorCropOverlay(properties: Properties) {
       "color-mix(in srgb, var(--editor-crop-accent) 30%, transparent)";
     grid.setAttribute("aria-hidden", "true");
     selection.append(grid, move);
-    const handles: CropperHandle[] = [];
-    const sideHandles = new Map<CropperHandle, CropResizeAxis>();
-    for (const direction of ["n", "e", "s", "w", "nw", "ne", "sw", "se"]) {
-      const handle = new CropperHandle();
-      handle.action = `${direction}-resize`;
-      handle.setAttribute("aria-hidden", "true");
-      handle.style.cssText = `width:${HANDLE_TARGET_SIZE}px;height:${HANDLE_TARGET_SIZE}px;background:transparent;border:none;transform:none`;
-      const offset = `${-HANDLE_TARGET_SIZE / 2}px`;
-      const midpoint = `calc(50% - ${HANDLE_TARGET_SIZE / 2}px)`;
-      handle.style.top = direction.includes("s") ? "auto" : midpoint;
-      handle.style.bottom = direction.includes("s") ? offset : "auto";
-      handle.style.left = direction.includes("e") ? "auto" : midpoint;
-      handle.style.right = direction.includes("e") ? offset : "auto";
-      if (direction.includes("n")) {
-        handle.style.top = offset;
-      }
-      if (direction.includes("w")) {
-        handle.style.left = offset;
-      }
-      if (direction.length === 1) {
-        sideHandles.set(
-          handle,
-          direction === "n" || direction === "s" ? "vertical" : "horizontal",
-        );
-      }
-      handles.push(handle);
-      selection.append(handle);
-    }
+    const { handles, sideHandles } = createCropHandles(selection);
     canvas.append(shade, draw, selection);
     container.append(canvas);
+    // Custom-element shadow roots exist after connecting the canvas.
     for (const handle of handles) {
-      handle.$addStyles(`
-        :host([action$=-resize])::after {
-          width: 12px;
-          height: 12px;
-          left: 50%;
-          top: 50%;
-          transform: translate(-50%, -50%);
-          background: var(--editor-crop-accent);
-          box-shadow: var(--editor-crop-handle-shadow);
-          border-radius: 50%;
-          transition: transform var(--motion-duration-fast) var(--motion-easing-standard);
-        }
-        :host([action=n-resize])::after,
-        :host([action=s-resize])::after {
-          width: 24px;
-          height: 6px;
-          border-radius: 2px;
-        }
-        :host([action=e-resize])::after,
-        :host([action=w-resize])::after {
-          width: 6px;
-          height: 24px;
-          border-radius: 2px;
-        }
-        @media (hover: hover) and (pointer: fine) {
-          :host([action$=-resize]:hover)::after {
-            transform: translate(-50%, -50%) scale(1.15);
-          }
-        }
-        :host([action$=-resize]:active)::after {
-          transform: translate(-50%, -50%) scale(0.9);
-        }
-        @media (prefers-reduced-motion: reduce) {
-          :host([action$=-resize])::after { transition: none; }
-        }
-      `);
+      handle.$addStyles(CROP_HANDLE_STYLES);
     }
     let synchronizing = false;
     let correcting = false;
