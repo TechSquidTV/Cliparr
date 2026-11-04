@@ -3,6 +3,7 @@ import type { VideoCrop } from "#/lib/videoCrop";
 
 type CropRectangle = Pick<VideoCrop, "x" | "y" | "width" | "height">;
 export type CropAnchor = Pick<VideoCrop, "x" | "y">;
+export type CropResizeAxis = "horizontal" | "vertical";
 
 const clamp = (value: number, max: number) => Math.max(0, Math.min(value, max));
 
@@ -12,6 +13,7 @@ export function constrainCropRectangle(
   bounds: MediaDimensions,
   anchor: CropAnchor | null = null,
   aspectRatio: number | null = null,
+  resizeAxis: CropResizeAxis | null = null,
 ): CropRectangle {
   if (!anchor) {
     const width = clamp(rectangle.width, bounds.width);
@@ -25,18 +27,33 @@ export function constrainCropRectangle(
   }
   const west = rectangle.x < anchor.x;
   const north = rectangle.y < anchor.y;
-  let width = clamp(rectangle.width, west ? anchor.x : bounds.width - anchor.x);
+  // Side handles anchor the opposite edge's midpoint. Ratio changes expand
+  // symmetrically along that edge while keeping its midpoint fixed.
+  const centeredX = resizeAxis === "vertical";
+  const centeredY = resizeAxis === "horizontal";
+  const availableWidth = west ? anchor.x : bounds.width - anchor.x;
+  const availableHeight = north ? anchor.y : bounds.height - anchor.y;
+  let width = clamp(
+    rectangle.width,
+    centeredX
+      ? 2 * Math.min(anchor.x, bounds.width - anchor.x)
+      : availableWidth,
+  );
   let height = clamp(
     rectangle.height,
-    north ? anchor.y : bounds.height - anchor.y,
+    centeredY
+      ? 2 * Math.min(anchor.y, bounds.height - anchor.y)
+      : availableHeight,
   );
   if (aspectRatio) {
     width = Math.min(width, height * aspectRatio);
     height = width / aspectRatio;
   }
+  const x = west ? anchor.x - width : anchor.x;
+  const y = north ? anchor.y - height : anchor.y;
   return {
-    x: west ? anchor.x - width : anchor.x,
-    y: north ? anchor.y - height : anchor.y,
+    x: centeredX ? anchor.x - width / 2 : x,
+    y: centeredY ? anchor.y - height / 2 : y,
     width,
     height,
   };

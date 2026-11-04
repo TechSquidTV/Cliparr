@@ -10,6 +10,7 @@ import {
   type CropAnchor,
   cropRectangle,
   cropRegion,
+  type CropResizeAxis,
 } from "#/components/editor/editorCropGeometry";
 import type { EditorCropState } from "#/components/editor/editorCropState";
 import type { MediaDimensions } from "#/components/editor/editorMedia";
@@ -23,6 +24,8 @@ for (const element of [
 ]) {
   element.$define();
 }
+
+const HANDLE_TARGET_SIZE = 44;
 
 export interface EditorCropOverlayHandle {
   finishGesture: () => void;
@@ -94,11 +97,30 @@ export function EditorCropOverlay(properties: Properties) {
     grid.setAttribute("aria-hidden", "true");
     selection.append(grid, move);
     const handles: CropperHandle[] = [];
-    for (const corner of ["nw", "ne", "sw", "se"]) {
+    const sideHandles = new Map<CropperHandle, CropResizeAxis>();
+    for (const direction of ["n", "e", "s", "w", "nw", "ne", "sw", "se"]) {
       const handle = new CropperHandle();
-      handle.action = `${corner}-resize`;
+      handle.action = `${direction}-resize`;
       handle.setAttribute("aria-hidden", "true");
-      handle.style.cssText = `width:44px;height:44px;background:transparent;border:none;${corner.includes("n") ? "top:-22px;bottom:auto" : "bottom:-22px;top:auto"};${corner.includes("w") ? "left:-22px;right:auto" : "right:-22px;left:auto"};transform:none`;
+      handle.style.cssText = `width:${HANDLE_TARGET_SIZE}px;height:${HANDLE_TARGET_SIZE}px;background:transparent;border:none;transform:none`;
+      const offset = `${-HANDLE_TARGET_SIZE / 2}px`;
+      const midpoint = `calc(50% - ${HANDLE_TARGET_SIZE / 2}px)`;
+      handle.style.top = direction.includes("s") ? "auto" : midpoint;
+      handle.style.bottom = direction.includes("s") ? offset : "auto";
+      handle.style.left = direction.includes("e") ? "auto" : midpoint;
+      handle.style.right = direction.includes("e") ? offset : "auto";
+      if (direction.includes("n")) {
+        handle.style.top = offset;
+      }
+      if (direction.includes("w")) {
+        handle.style.left = offset;
+      }
+      if (direction.length === 1) {
+        sideHandles.set(
+          handle,
+          direction === "n" || direction === "s" ? "vertical" : "horizontal",
+        );
+      }
       handles.push(handle);
       selection.append(handle);
     }
@@ -116,6 +138,18 @@ export function EditorCropOverlay(properties: Properties) {
           box-shadow: var(--editor-crop-handle-shadow);
           border-radius: 50%;
           transition: transform var(--motion-duration-fast) var(--motion-easing-standard);
+        }
+        :host([action=n-resize])::after,
+        :host([action=s-resize])::after {
+          width: 24px;
+          height: 6px;
+          border-radius: 2px;
+        }
+        :host([action=e-resize])::after,
+        :host([action=w-resize])::after {
+          width: 6px;
+          height: 24px;
+          border-radius: 2px;
         }
         @media (hover: hover) and (pointer: fine) {
           :host([action$=-resize]:hover)::after {
@@ -135,8 +169,23 @@ export function EditorCropOverlay(properties: Properties) {
     let active = false;
     let activePointerId: number | null = null;
     let action = "";
+    let resizeAxis: CropResizeAxis | null = null;
+    let activeHandle: CropperHandle | null = null;
     let anchor: CropAnchor | null = null;
     const bounds = () => canvas.getBoundingClientRect();
+    const updateSideHandles = (rectangle: Selection) => {
+      for (const [handle, axis] of sideHandles) {
+        // Leave 44px between centers of neighboring targets. Keep a held
+        // handle available until release even when resizing below that limit.
+        const fits =
+          axis === "vertical"
+            ? rectangle.width >= HANDLE_TARGET_SIZE * 2 &&
+              rectangle.height >= HANDLE_TARGET_SIZE
+            : rectangle.height >= HANDLE_TARGET_SIZE * 2 &&
+              rectangle.width >= HANDLE_TARGET_SIZE;
+        handle.hidden = !fits && handle !== activeHandle;
+      }
+    };
     const sync = () => {
       const size = bounds();
       if (!size.width || !size.height || active) {
@@ -145,6 +194,7 @@ export function EditorCropOverlay(properties: Properties) {
       const { state } = latest.current;
       move.action = state.region ? "move" : "select";
       const rectangle = cropRectangle(state.region, size);
+      updateSideHandles(rectangle);
       synchronizing = true;
       selection.aspectRatio = state.aspectRatio ?? NaN;
       selection.$change(
@@ -161,6 +211,7 @@ export function EditorCropOverlay(properties: Properties) {
       if (active) {
         active = false;
         activePointerId = null;
+        activeHandle = null;
         canvas.$setAction("none");
         latest.current.onGestureEnd();
         sync();
@@ -171,25 +222,24 @@ export function EditorCropOverlay(properties: Properties) {
       const { action: next, relatedEvent } = (
         event as CustomEvent<CropperAction>
       ).detail;
-      if (
-        active ||
-        ![
-          "select",
-          "move",
-          "nw-resize",
-          "ne-resize",
-          "sw-resize",
-          "se-resize",
-        ].includes(next)
-      ) {
+      const handle = handles.find((candidate) => candidate.action === next);
+      if (active || !(next === "select" || next === "move" || handle)) {
         event.preventDefault();
         return;
       }
       active = true;
       activePointerId = relatedEvent.pointerId;
       action = next;
+      activeHandle = handle ?? null;
+      resizeAxis = handle ? (sideHandles.get(handle) ?? null) : null;
       container.focus({ preventScroll: true });
       const box = canvas.getBoundingClientRect();
+      const fixedX = next.includes("w")
+        ? selection.x + selection.width
+        : selection.x;
+      const fixedY = next.includes("n")
+        ? selection.y + selection.height
+        : selection.y;
       anchor =
         next === "select"
           ? {
@@ -197,12 +247,14 @@ export function EditorCropOverlay(properties: Properties) {
               y: relatedEvent.clientY - box.top,
             }
           : {
-              x: next.includes("w")
-                ? selection.x + selection.width
-                : selection.x,
-              y: next.includes("n")
-                ? selection.y + selection.height
-                : selection.y,
+              x:
+                resizeAxis === "vertical"
+                  ? selection.x + selection.width / 2
+                  : fixedX,
+              y:
+                resizeAxis === "horizontal"
+                  ? selection.y + selection.height / 2
+                  : fixedY,
             };
       latest.current.onGestureStart();
     };
@@ -245,6 +297,7 @@ export function EditorCropOverlay(properties: Properties) {
         bounds(),
         active && action !== "move" ? anchor : null,
         latest.current.state.aspectRatio,
+        active ? resizeAxis : null,
       );
       if (!bounded.width || !bounded.height) {
         event.preventDefault();
@@ -268,6 +321,7 @@ export function EditorCropOverlay(properties: Properties) {
         );
         correcting = false;
       }
+      updateSideHandles(bounded);
       // Layout resizes and property synchronization must never create edits.
       if (active) {
         const normalized = cropRegion(bounded, bounds());

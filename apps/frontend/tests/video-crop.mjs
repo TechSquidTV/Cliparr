@@ -188,6 +188,111 @@ try {
         });
       }, expected);
     };
+    const sideHandles = page.locator(
+      'cropper-handle:is([action="n-resize"], [action="e-resize"], [action="s-resize"], [action="w-resize"]):visible',
+    );
+    for (const locked of [false, true]) {
+      for (const direction of ["n", "e", "s", "w"]) {
+        await page
+          .getByRole("button", { name: "Remove crop", exact: true })
+          .click();
+        if (locked) {
+          await page
+            .getByRole("combobox", { name: "Aspect ratio", exact: true })
+            .click();
+          await page.getByRole("option", { name: "1:1", exact: true }).click();
+          await page.getByRole("listbox").waitFor({ state: "detached" });
+        }
+        await page.locator("cropper-canvas").scrollIntoViewIfNeeded();
+        const before = await selection("normalized");
+        const initial = await selection();
+        const bounds = await page.locator("cropper-canvas").boundingBox();
+        const handle = page.locator(
+          `cropper-handle[action="${direction}-resize"]`,
+        );
+        const target = await handle.boundingBox();
+        assert.equal(target.width, 44);
+        assert.equal(target.height, 44);
+        const horizontal = direction === "e" || direction === "w";
+        const sign = direction === "n" || direction === "w" ? 1 : -1;
+        await drag(
+          target.x + 22,
+          target.y + 22,
+          target.x + 22 + (horizontal ? sign * 20 : 0),
+          target.y + 22 + (horizontal ? 0 : sign * 20),
+        );
+        const resized = await selection();
+        const after = await selection("normalized");
+        assert.ok(
+          Math.abs(
+            resized[horizontal ? "width" : "height"] -
+              initial[horizontal ? "width" : "height"] +
+              20,
+          ) < 1,
+          `${direction} edge follows pointer`,
+        );
+        if (locked) {
+          assert.ok(
+            Math.abs(resized.width - resized.height) < 1,
+            `${direction} ratio stays locked`,
+          );
+        } else {
+          assert.ok(
+            Math.abs(
+              resized[horizontal ? "height" : "width"] -
+                initial[horizontal ? "height" : "width"],
+            ) < 1,
+            `${direction} keeps perpendicular size`,
+          );
+        }
+        const fixedEdge = (region) => {
+          const edges = {
+            n: region.y + region.height,
+            s: region.y,
+            w: region.x + region.width,
+            e: region.x,
+          };
+          return edges[direction];
+        };
+        const midpoint = (region) =>
+          horizontal
+            ? region.y + region.height / 2
+            : region.x + region.width / 2;
+        assert.ok(
+          Math.abs(fixedEdge(resized) - fixedEdge(initial)) < 1,
+          `${direction} opposite edge fixed`,
+        );
+        assert.ok(
+          Math.abs(midpoint(resized) - midpoint(initial)) < 1,
+          `${direction} midpoint fixed`,
+        );
+        await page.getByRole("button", { name: "Undo", exact: true }).click();
+        await waitForSelection(before);
+        await page.getByRole("button", { name: "Redo", exact: true }).click();
+        await waitForSelection(after);
+        const smaller = await handle.boundingBox();
+        const outwardX =
+          direction === "w" ? bounds.x - 20 : bounds.x + bounds.width + 20;
+        const outwardY =
+          direction === "n" ? bounds.y - 20 : bounds.y + bounds.height + 20;
+        await drag(
+          smaller.x + 22,
+          smaller.y + 22,
+          horizontal ? outwardX : smaller.x + 22,
+          horizontal ? smaller.y + 22 : outwardY,
+          1,
+        );
+        const expanded = await selection();
+        assert.ok(expanded.x >= -0.01 && expanded.y >= -0.01);
+        assert.ok(expanded.x + expanded.width <= bounds.width + 0.01);
+        assert.ok(expanded.y + expanded.height <= bounds.height + 0.01);
+        assert.ok(Math.abs(fixedEdge(expanded) - fixedEdge(initial)) < 1);
+        assert.ok(Math.abs(midpoint(expanded) - midpoint(initial)) < 1);
+        if (locked) {
+          assert.ok(Math.abs(expanded.width - expanded.height) < 1);
+        }
+      }
+    }
     for (const [sx, sy, ex, ey] of [
       [0.2, 0.2, 0.65, 0.7],
       [0.2, 0.7, 0.65, 0.2],
@@ -394,6 +499,13 @@ try {
     b = await page.locator("cropper-canvas").boundingBox();
     assert.ok(Math.abs(s.x / b.width - 100 / 960) < 0.001);
     assert.ok(Math.abs(s.width / b.width - 240 / 960) < 0.001);
+    if (mobile) {
+      assert.equal(
+        await sideHandles.count(),
+        0,
+        "hide overlapping side targets on small crops",
+      );
+    }
     await page.getByRole("button", { name: "Center", exact: true }).click();
     const selectedRegion = page.getByRole("group", { name: /^Crop selection/ });
     await selectedRegion.press("ArrowRight");
@@ -441,6 +553,11 @@ try {
     await page.getByRole("option", { name: "9:16", exact: true }).click();
     await page.getByRole("listbox").waitFor({ state: "detached" });
     await page.locator("cropper-canvas").scrollIntoViewIfNeeded();
+    assert.equal(
+      await sideHandles.count(),
+      4,
+      "side targets return when the crop fits",
+    );
     await page.screenshot({
       path: path.join(screenshots, `${mobile ? "mobile" : "desktop"}-crop.png`),
     });
