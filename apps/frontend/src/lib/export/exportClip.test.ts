@@ -1680,6 +1680,7 @@ void test("passes crop, output size, and subtitle processor to video conversion"
     });
     assert.equal(video.width, 1920);
     assert.equal(video.height, 1080);
+    assert.equal(video.fit, "fill");
     assert.equal(video.forceTranscode, true);
     assert.equal(video.process, processor);
     inspected = true;
@@ -1759,6 +1760,7 @@ void test("passes native crop coordinates and cropped dimensions to the GIF sink
       width: 960,
       height: 540,
     });
+    assert.equal(options.fit, "fill");
     assert.equal(options.width, 853);
     assert.equal(options.height, 480);
     inspected = true;

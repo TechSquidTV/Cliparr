@@ -239,7 +239,9 @@ function videoTransformOptions(
     options = {
       crop: region,
       ...outputDimensions,
-      fit: "contain",
+      // Pixel alignment can slightly change the ratio; preserve the full crop
+      // without introducing borders that are absent from the editor preview.
+      fit: "fill",
       forceTranscode: true,
     };
   } else if (resolution !== "original") {
@@ -841,7 +843,7 @@ async function exportGifClipWithRuntime(
     const frameDelayMs = 1000 / resolvedGifSettings.frameRate;
     const videoSink = runtime.createCanvasSink(sourceVideoTrack, {
       poolSize: 2,
-      fit: "contain",
+      fit: cropRegion ? "fill" : "contain",
       alpha: await sourceVideoTrack.canBeTransparent(),
       height: outputDimensions.height,
       ...(cropRegion
