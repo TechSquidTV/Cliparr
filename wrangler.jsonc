@@ -11,6 +11,7 @@
     "not_found_handling": "404-page",
     // Negotiate page responses (including arbitrary 404s), while static
     // resources stay on the asset-only path without a Worker invocation.
+    // /audio/*.mp3 must reach the Worker for byte-range support used by seeking.
     "run_worker_first": [
       "/*",
       "!/_astro/*",
