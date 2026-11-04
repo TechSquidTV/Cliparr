@@ -1,32 +1,35 @@
 ---
 title: Video cropping
-description: Reframe video with freeform rectangles, aspect ratios, exact pixel controls, and touch-friendly crop handles.
+description: Find the crop tool and see how cropping affects your Cliparr exports.
 section: editing-export
 order: 5
 ---
 
-Available in Cliparr 3.1. Crop the picture to keep the region you want in video, GIF, and screenshot exports. Cropping changes the framing; the timeline still controls which part of the video plays.
+import { Picture } from "astro:assets";
+import { buttonClassName } from "@cliparr/frontend/convert/ui";
+import { Crop } from "lucide-react";
+import cropImage from "../../../public/docs/video-cropping.png";
 
-## Draw and adjust a crop
+Available in Cliparr 3.1. Choose <span aria-hidden="true" className={buttonClassName({ tone: "icon", size: "icon", className: "align-middle rounded-[var(--radius-control)]" })}><Crop className="h-4 w-4" /></span> **Crop** beside the screenshot button, or expand **Crop** in the desktop Properties sidebar.
 
-1. Choose **Crop** beside the screenshot button. Playback pauses and the full picture appears with an editable selection. On desktop, you can also expand **Crop** in the **Properties** sidebar.
-2. Drag across the picture to draw a rectangular crop. Drag inside an existing crop to move it, or drag a corner or side handle to resize it. To replace a crop, start drawing outside the existing selection.
-3. Choose **Done** to view the cropped result. Reopen Crop whenever you want to adjust it.
+<figure class="my-6 overflow-hidden rounded-lg border border-border bg-card">
+  <Picture
+    src={cropImage}
+    alt="Cliparr with the Crop button active beside the screenshot button, a portrait selection, and the Crop settings expanded on the right."
+    formats={["avif", "webp"]}
+    fallbackFormat="webp"
+    widths={[640, 960, 1440]}
+    sizes="(min-width: 80rem) 896px, (min-width: 64rem) calc(100vw - 22rem), calc(100vw - 2rem)"
+    quality={78}
+    loading="lazy"
+    decoding="async"
+    class="block w-full"
+  />
+</figure>
 
-The selection stays editable while the tool is active. Turning the Crop button off also keeps the crop. **Remove crop** restores the full picture and clears the aspect-ratio lock. **Center** centers the current selection without changing its size.
+- **Done** keeps the crop and returns to the preview. **Remove crop** restores the full picture. Reopen the tool to edit at any time.
+- Choose **Free**, an aspect-ratio preset, or **Custom** (width ÷ height). Position and size use source pixels.
+- On phones, settings appear below the preview. Small selections hide side handles to keep touch targets separate; use corners or numeric fields.
+- Crops support undo/redo, are saved in drafts, and apply to video, GIF, and screenshots. Captions are positioned within the cropped picture.
 
-On a phone, use the same drawing and resizing gestures with one finger. Crop controls appear below the preview. Side handles hide when a selection is too small for separate touch targets; use the corners or numeric fields instead. Scroll outside the picture to reach the controls.
-
-## Aspect ratio and exact values
-
-Choose **Free** for an unrestricted rectangle, **Source** to match the video's shape, or a preset: **16:9**, **9:16**, **1:1**, **4:3**, or **4:5**. **Custom** accepts width divided by height, such as `1.5` for a 3:2 crop. A locked ratio applies while drawing or resizing.
-
-**Position** sets X and Y from the source picture's top-left corner. **Size** sets W and H in source pixels. Press Enter or leave a field to apply it. Values stay within the picture; changing a size with a ratio locked adjusts the other dimension too. Displayed values are rounded, but simply focusing and leaving a field preserves the underlying precision.
-
-See [Editor shortcuts](/docs/editor-shortcuts#crop-controls) for keyboard movement and temporary ratio locking with Shift.
-
-## Save and export
-
-Crop changes support Undo and Redo and are saved with your editor draft. A drag is one undo step. **Done** keeps the selection; it does not export a file.
-
-Visible captions are rendered within the cropped output. Review them after choosing Done, then open Export. The native resolution option is labeled **Cropped** while a crop is active. See [Export settings](/docs/export-settings#resolution) for output sizes, pixel rounding, and re-encoding behavior.
+The native export size is labeled **Cropped**. Cropped video re-encodes even at Sharp quality. See [output sizing](/docs/export-settings#resolution) and [crop shortcuts](/docs/editor-shortcuts#crop-controls).
