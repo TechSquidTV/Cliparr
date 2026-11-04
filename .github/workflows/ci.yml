@@ -35,6 +35,7 @@ jobs:
           filters: |
             frontend:
               - 'apps/frontend/**'
+              - 'tools/www-assets/**'
               - 'packages/shared/**'
               - 'package.json'
               - 'pnpm-lock.yaml'

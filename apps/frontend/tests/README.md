@@ -70,12 +70,13 @@ The runner writes fresh screenshots to `build/browser-export/crop`. CI uploads
 these as the `video-crop-previews` artifact, retained for seven days. Reviewed
 3.1.0 UI previews are attached to [PR #305](https://github.com/TechSquidTV/Cliparr/pull/305).
 
-The crop guide uses the reviewed `desktop-crop.png` capture at
-`apps/www/public/docs/video-cropping.png`. To refresh it, download the
-`video-crop-previews` artifact from a passing CI run, review the desktop image,
-and copy it to that path. The website build generates optimized image variants.
-The captures are reference images, not pixel-snapshot assertions. Only the
-reviewed documentation image is kept in the source tree.
+The crop guide's `apps/www/public/docs/video-cropping.png` is included in the
+full `pnpm assets:capture … --write` refresh alongside homepage and other docs
+assets. Both this browser suite and the asset recorder use the same crop capture
+routine, so UI changes are checked in CI. Full captures include the image in
+`review.html`; `--target readme-social` preserves it. No artifact download or
+manual file copy is needed. The website build generates optimized variants.
+These are reference images, not pixel-snapshot assertions.
 
 Physical iOS Safari and Android Chrome checks remain a release gate; emulated
 touch coverage does not replace those checks.

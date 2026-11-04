@@ -4,6 +4,7 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
+import { captureCropGuide } from "@cliparr/www-assets/page";
 import { chromium } from "playwright";
 import { build, preview } from "vite";
 
@@ -816,21 +817,26 @@ try {
       });
     }
     await scenario("portrait handles and property panels", async () => {
-      await removeCrop();
-      // Take a portrait screenshot after the menu finishes closing.
-      await chooseRatio("9:16");
-      await page.locator("cropper-canvas").scrollIntoViewIfNeeded();
+      if (mobile) {
+        await removeCrop();
+        await chooseRatio("9:16");
+        await page.locator("cropper-canvas").scrollIntoViewIfNeeded();
+        await page.screenshot({
+          path: path.join(screenshots, "mobile-crop.png"),
+        });
+      } else {
+        // Start outside crop editing, as the website recorder does after export.
+        await page.getByRole("button", { name: "Done", exact: true }).click();
+        await captureCropGuide(
+          page,
+          path.join(screenshots, "desktop-crop.png"),
+        );
+      }
       assert.equal(
         await sideHandles.count(),
         4,
         "side targets return when the crop fits",
       );
-      await page.screenshot({
-        path: path.join(
-          screenshots,
-          `${mobile ? "mobile" : "desktop"}-crop.png`,
-        ),
-      });
       if (!mobile) {
         const aside = page.locator("aside");
         assert.equal(await aside.getByRole("tab").count(), 0);
