@@ -238,6 +238,93 @@ try {
     const sideHandles = page.locator(
       'cropper-handle:is([action="n-resize"], [action="e-resize"], [action="s-resize"], [action="w-resize"]):visible',
     );
+    await scenario(
+      "untouched numeric fields preserve precision and redo history",
+      async () => {
+        await removeCrop();
+        await setCropFields([
+          ["Width", 333.333],
+          ["Height", 200],
+          ["X position", 100.75],
+          ["Y position", 60.25],
+        ]);
+        await chooseRatio("Custom");
+        await setCropFields([["X position", 140.75]]);
+        await page.getByRole("button", { name: "Undo", exact: true }).click();
+        const before = await selection("normalized");
+        const redo = page.getByRole("button", { name: "Redo", exact: true });
+        assert.equal(await redo.isEnabled(), true);
+        for (const name of [
+          "X position",
+          "Y position",
+          "Width",
+          "Height",
+          "Custom width / height",
+        ]) {
+          const field = page.getByRole("spinbutton", { name, exact: true });
+          await field.focus();
+          await field.press("Tab");
+          assert.deepEqual(
+            await selection("normalized"),
+            before,
+            `${name} blur preserves precision`,
+          );
+          assert.equal(
+            await redo.isEnabled(),
+            true,
+            `${name} blur preserves redo`,
+          );
+        }
+        await redo.click();
+        const restored = await selection("normalized");
+        assert.ok(Math.abs(restored.x - 140.75 / 960) < 0.000001);
+      },
+    );
+    await scenario(
+      "numeric edits commit before starting a resize gesture",
+      async () => {
+        await removeCrop();
+        await setCropFields([
+          ["Width", 360],
+          ["Height", 240],
+          ["X position", 120],
+          ["Y position", 60],
+        ]);
+        const before = await selection("normalized");
+        await page.locator("cropper-canvas").scrollIntoViewIfNeeded();
+        const bounds = await page.locator("cropper-canvas").boundingBox();
+        const corner = await page
+          .locator('cropper-handle[action="se-resize"]')
+          .boundingBox();
+        // Leave the field focused: the pointer-down must commit it, then anchor
+        // the resize to the new X position, with separate undo entries.
+        await page
+          .getByRole("spinbutton", { name: "X position", exact: true })
+          .fill("150");
+        await drag(corner.x + 22, corner.y + 22, corner.x + 42, corner.y + 37);
+        const after = await selection("normalized");
+        const committed = { ...before, x: 150 / 960 };
+        assert.ok(
+          Math.abs(after.x - committed.x) < 0.000001,
+          "resize uses committed position",
+        );
+        assert.ok(
+          Math.abs(after.width - before.width - 20 / bounds.width) < 0.001,
+          "resize is saved",
+        );
+        assert.ok(
+          Math.abs(after.height - before.height - 15 / bounds.height) < 0.001,
+        );
+        await page.getByRole("button", { name: "Undo", exact: true }).click();
+        await waitForSelection(committed);
+        await page.getByRole("button", { name: "Undo", exact: true }).click();
+        await waitForSelection(before);
+        await page.getByRole("button", { name: "Redo", exact: true }).click();
+        await waitForSelection(committed);
+        await page.getByRole("button", { name: "Redo", exact: true }).click();
+        await waitForSelection(after);
+      },
+    );
     await scenario("free and locked side handles", async () => {
       for (const locked of [false, true]) {
         for (const direction of ["n", "e", "s", "w"]) {

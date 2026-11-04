@@ -4,6 +4,7 @@ import CropperHandle from "@cropper/element-handle";
 import CropperSelection, { type Selection } from "@cropper/element-selection";
 import CropperShade from "@cropper/element-shade";
 import { type Ref, useImperativeHandle, useLayoutEffect, useRef } from "react";
+import { flushSync } from "react-dom";
 
 import {
   constrainCropRectangle,
@@ -237,12 +238,15 @@ export function EditorCropOverlay(properties: Properties) {
         event.preventDefault();
         return;
       }
+      // Focusing commits a pending numeric edit through onBlur. Finish that
+      // React update before activating this gesture or reading its anchor.
+      flushSync(() => container.focus({ preventScroll: true }));
+      sync();
       active = true;
       activePointerId = relatedEvent.pointerId;
       action = next;
       activeHandle = handle ?? null;
       resizeAxis = handle ? (sideHandles.get(handle) ?? null) : null;
-      container.focus({ preventScroll: true });
       const box = canvas.getBoundingClientRect();
       const fixedX = next.includes("w")
         ? selection.x + selection.width

@@ -74,7 +74,12 @@ function CropNumber({
         onBlur={() => {
           const number = Number(text);
           if (text.trim() && Number.isFinite(number) && number >= min) {
-            onCommit(Math.min(number, max ?? Infinity));
+            const next = Math.min(number, max ?? Infinity);
+            // Display values are rounded; leaving an untouched field must not
+            // quantize the underlying crop or create a history entry.
+            if (next !== value) {
+              onCommit(next);
+            }
           }
           setText(String(value));
         }}
