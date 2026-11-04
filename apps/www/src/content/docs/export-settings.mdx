@@ -1,6 +1,6 @@
 ---
 title: Export settings
-description: Choose clip format, quality, resolution, source, audio, filenames, estimates, and metadata.
+description: Choose clip format, quality, cropped dimensions, resolution, source, audio, filenames, estimates, and metadata.
 section: editing-export
 order: 10
 ---
@@ -74,19 +74,26 @@ smaller tuned animated-image preset.
 
 For video, `Sharp` is the safest choice when you want the closest match to the source. Use `Balanced` or `Compact` when file size matters more than preserving the original stream. For GIF, `Balanced` is the default because it preserves readable motion and detail. Choose `Efficient` when Balanced is slightly too large, or `Compact` when file size matters most. `Sharp` keeps the same tuned 128-color temporal dither but spends the file-size budget on higher resolution and smoother motion.
 
+Applying a [crop](/docs/video-cropping) always re-encodes video, including at `Sharp` quality.
+
 GIF clips longer than 15 seconds are blocked before export starts. Trim the range or choose `WEBM` for longer animated clips.
 
 ## Resolution
 
-| Resolution | Behavior                                                             |
-| :--------- | :------------------------------------------------------------------- |
-| `Original` | Keeps the source dimensions when possible.                           |
-| `1080p`    | Scales the output to 1080 pixels tall while preserving aspect ratio. |
-| `720p`     | Scales the output to 720 pixels tall while preserving aspect ratio.  |
+| Resolution | Behavior                                                                                                                     |
+| :--------- | :--------------------------------------------------------------------------------------------------------------------------- |
+| `Original` | Keeps the full source dimensions when possible. Shown when no crop is active.                                                |
+| `Cropped`  | Replaces `Original` when a crop is active. Uses the selected region's dimensions, aligned to even pixels for video encoding. |
+| `1080p`    | Scales the full picture or selected crop to 1080 pixels tall.                                                                |
+| `720p`     | Scales the full picture or selected crop to 720 pixels tall.                                                                 |
 
-Use `Original` when you want the closest match to the source. Use `1080p` or `720p` when you want a smaller export for sharing or faster downloads.
+Choose `Original` or `Cropped` to keep native dimensions. `1080p` and `720p` set the output height; they can enlarge a smaller source or crop. Review the resolved dimensions in the export dialog.
 
-GIF dimensions follow the quality preset's maximum height and preserve the source aspect ratio. Smaller sources keep their original dimensions. The GIF settings show the resolved dimensions instead of a resolution dropdown.
+Width follows the picture's aspect ratio, or the crop's ratio when one is active. Cropped video dimensions are rounded to even pixels for encoding. The complete selected region fills that output without added borders or further cropping; pixel rounding can slightly adjust its aspect ratio.
+
+GIF dimensions follow the quality preset's maximum height and use the crop when one is active. Smaller pictures keep their native dimensions. GIF sizes use whole pixels without the even-pixel requirement, and appear as resolved dimensions instead of a resolution dropdown.
+
+Cropping applies to video, GIF, and screenshot output. Audio-only exports are unaffected. See [Video cropping](/docs/video-cropping) for the editing controls.
 
 ## Source
 

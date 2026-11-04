@@ -1,0 +1,32 @@
+---
+title: Video cropping
+description: Reframe video with freeform rectangles, aspect ratios, exact pixel controls, and touch-friendly crop handles.
+section: editing-export
+order: 5
+---
+
+Available in Cliparr 3.1. Crop the picture to keep the region you want in video, GIF, and screenshot exports. Cropping changes the framing; the timeline still controls which part of the video plays.
+
+## Draw and adjust a crop
+
+1. Choose **Crop** beside the screenshot button. Playback pauses and the full picture appears with an editable selection. On desktop, you can also expand **Crop** in the **Properties** sidebar.
+2. Drag across the picture to draw a rectangular crop. Drag inside an existing crop to move it, or drag a corner or side handle to resize it. To replace a crop, start drawing outside the existing selection.
+3. Choose **Done** to view the cropped result. Reopen Crop whenever you want to adjust it.
+
+The selection stays editable while the tool is active. Turning the Crop button off also keeps the crop. **Remove crop** restores the full picture and clears the aspect-ratio lock. **Center** centers the current selection without changing its size.
+
+On a phone, use the same drawing and resizing gestures with one finger. Crop controls appear below the preview. Side handles hide when a selection is too small for separate touch targets; use the corners or numeric fields instead. Scroll outside the picture to reach the controls.
+
+## Aspect ratio and exact values
+
+Choose **Free** for an unrestricted rectangle, **Source** to match the video's shape, or a preset: **16:9**, **9:16**, **1:1**, **4:3**, or **4:5**. **Custom** accepts width divided by height, such as `1.5` for a 3:2 crop. A locked ratio applies while drawing or resizing.
+
+**Position** sets X and Y from the source picture's top-left corner. **Size** sets W and H in source pixels. Press Enter or leave a field to apply it. Values stay within the picture; changing a size with a ratio locked adjusts the other dimension too. Displayed values are rounded, but simply focusing and leaving a field preserves the underlying precision.
+
+See [Editor shortcuts](/docs/editor-shortcuts#crop-controls) for keyboard movement and temporary ratio locking with Shift.
+
+## Save and export
+
+Crop changes support Undo and Redo and are saved with your editor draft. A drag is one undo step. **Done** keeps the selection; it does not export a file.
+
+Visible captions are rendered within the cropped output. Review them after choosing Done, then open Export. The native resolution option is labeled **Cropped** while a crop is active. See [Export settings](/docs/export-settings#resolution) for output sizes, pixel rounding, and re-encoding behavior.

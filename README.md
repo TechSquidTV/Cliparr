@@ -22,7 +22,7 @@ Self-hosted clipping for Plex, Jellyfin, and local files. Trim video, add subtit
 
 - **Live session discovery**: Follow playback automatically from connected <a href="https://cliparr.dev/docs/providers">Plex and Jellyfin servers</a>.
 - **Open local videos**: Clip <a href="https://cliparr.dev/docs/local-videos">local files</a> without uploading them. Direct media URLs require provider sign-in.
-- **Timeline editing**: Trim, zoom, and fine-tune your clip range with a familiar non-linear editor.
+- **Trim and crop**: Fine-tune your clip range, then <a href="https://cliparr.dev/docs/video-cropping">crop the picture</a> freely or to an aspect ratio with mouse or touch controls.
 - **Video, audio, and GIF export**: Choose video or audio-only formats, or make a GIF. <a href="https://cliparr.dev/docs/export-settings">Exports run in your browser</a>.
 - **Metadata included**: Keep source details, artwork, and clip timing in supported <a href="https://cliparr.dev/docs/export-metadata">video and audio containers</a>.
 - **Subtitle authoring**: Create your own captions or import subtitles, then <a href="https://cliparr.dev/docs/subtitle-burn-in">style and burn subtitles</a> into your clip.
