@@ -293,6 +293,97 @@ try {
         }
       }
     }
+    if (!mobile) {
+      // Shift temporarily locks Free resizing, including when a side or corner
+      // hits a boundary. It must not turn the dropdown into a permanent lock.
+      const shiftScenarios = [240, 180].flatMap((height) =>
+        ["n", "e", "s", "w", "nw", "ne", "sw", "se"].map((direction) => ({
+          height,
+          direction,
+        })),
+      );
+      for (const { height, direction } of shiftScenarios) {
+        await page
+          .getByRole("button", { name: "Remove crop", exact: true })
+          .click();
+        for (const [name, value] of [
+          ["Width", 240],
+          ["Height", height],
+          ["X position", 80],
+          ["Y position", 60],
+        ]) {
+          const field = page.getByRole("spinbutton", { name, exact: true });
+          await field.fill(String(value));
+          await field.press("Enter");
+        }
+        const before = await selection("normalized");
+        const bounds = await page.locator("cropper-canvas").boundingBox();
+        const target = await page
+          .locator(`cropper-handle[action="${direction}-resize"]`)
+          .boundingBox();
+        let endX = target.x + 22;
+        let endY = target.y + 22;
+        if (direction.includes("w")) {
+          endX = bounds.x - 20;
+        }
+        if (direction.includes("e")) {
+          endX = bounds.x + bounds.width + 20;
+        }
+        if (direction.includes("n")) {
+          endY = bounds.y - 20;
+        }
+        if (direction.includes("s")) {
+          endY = bounds.y + bounds.height + 20;
+        }
+        await page.keyboard.down("Shift");
+        try {
+          await drag(target.x + 22, target.y + 22, endX, endY);
+        } finally {
+          await page.keyboard.up("Shift");
+        }
+        const resized = await selection();
+        assert.ok(
+          resized.width / bounds.width > before.width + 0.001,
+          `${direction} Shift drag expands the crop`,
+        );
+        assert.ok(
+          Math.min(
+            resized.x,
+            resized.y,
+            bounds.width - resized.x - resized.width,
+            bounds.height - resized.y - resized.height,
+          ) < 1,
+          `${direction} Shift drag reaches a boundary`,
+        );
+        assert.ok(
+          Math.abs(resized.width / resized.height - 240 / height) < 0.001,
+          `${direction} Shift ratio survives boundary`,
+        );
+        assert.ok(resized.x >= -0.01 && resized.y >= -0.01);
+        assert.ok(resized.x + resized.width <= bounds.width + 0.01);
+        assert.ok(resized.y + resized.height <= bounds.height + 0.01);
+        assert.equal(
+          await page
+            .getByRole("combobox", { name: "Aspect ratio", exact: true })
+            .textContent(),
+          "Free",
+        );
+        const after = await selection("normalized");
+        await page.getByRole("button", { name: "Undo", exact: true }).click();
+        await waitForSelection(before);
+        await page.getByRole("button", { name: "Redo", exact: true }).click();
+        await waitForSelection(after);
+      }
+      // Releasing Shift restores free sizing on the next drag.
+      const east = await page
+        .locator('cropper-handle[action="e-resize"]')
+        .boundingBox();
+      const beforeFreeResize = await selection();
+      await drag(east.x + 22, east.y + 22, east.x + 2, east.y + 22);
+      const freeResize = await selection();
+      assert.ok(Math.abs(freeResize.height - beforeFreeResize.height) < 1);
+      assert.ok(Math.abs(freeResize.width - beforeFreeResize.width + 20) < 1);
+    }
     for (const [sx, sy, ex, ey] of [
       [0.2, 0.2, 0.65, 0.7],
       [0.2, 0.7, 0.65, 0.2],

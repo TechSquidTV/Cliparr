@@ -171,6 +171,7 @@ export function EditorCropOverlay(properties: Properties) {
     let action = "";
     let resizeAxis: CropResizeAxis | null = null;
     let activeHandle: CropperHandle | null = null;
+    let shiftResizing = false;
     let anchor: CropAnchor | null = null;
     const bounds = () => canvas.getBoundingClientRect();
     const updateSideHandles = (rectangle: Selection) => {
@@ -212,6 +213,7 @@ export function EditorCropOverlay(properties: Properties) {
         active = false;
         activePointerId = null;
         activeHandle = null;
+        shiftResizing = false;
         canvas.$setAction("none");
         latest.current.onGestureEnd();
         sync();
@@ -271,6 +273,7 @@ export function EditorCropOverlay(properties: Properties) {
     const act = (event: Event) => {
       const detail = (event as CustomEvent<CropperAction>).detail;
       action = detail.action;
+      shiftResizing = Boolean(activeHandle && detail.relatedEvent.shiftKey);
       if (action === "select" && anchor) {
         // Initialize at the actual pointer-down corner. This avoids Cropper's
         // first-movement offset when starting an upward or leftward selection.
@@ -296,7 +299,10 @@ export function EditorCropOverlay(properties: Properties) {
         proposed,
         bounds(),
         active && action !== "move" ? anchor : null,
-        latest.current.state.aspectRatio,
+        // Cropper has already applied the temporary Shift ratio to its proposal.
+        // Preserve that ratio while clamping without changing the saved setting.
+        latest.current.state.aspectRatio ??
+          (shiftResizing ? proposed.width / proposed.height : null),
         active ? resizeAxis : null,
       );
       if (!bounded.width || !bounded.height) {
