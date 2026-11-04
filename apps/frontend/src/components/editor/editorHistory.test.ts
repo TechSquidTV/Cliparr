@@ -220,3 +220,58 @@ void test("does not offer half an authoring action after native history eviction
   );
   history.dispose();
 });
+
+void test("orders crop gestures with subtitle and range edits in the same history", () => {
+  const engine = createEngine();
+  const history = createEditorHistory(engine);
+  engine.setInPoint(fromSeconds(5));
+  let crop = 10;
+  history.recordApplied({
+    undo: () => {
+      crop = 0;
+    },
+    redo: () => {
+      crop = 10;
+    },
+  });
+  engine.updateClipProperties("cue-1", { label: "Edited" });
+  history.undo();
+  assert.equal(
+    subtitleCuesFromTimeline(engine.getState().tracks)[0]?.text,
+    "Original",
+  );
+  assert.equal(crop, 10);
+  history.undo();
+  assert.equal(crop, 0);
+  history.undo();
+  assert.equal(toSeconds(engine.getState().inPoint!), 0);
+  assert.equal(history.getSnapshot().canUndo, false);
+  history.redo();
+  history.redo();
+  assert.equal(crop, 10);
+  history.recordApplied({ undo: () => {}, redo: () => {} });
+  assert.equal(history.getSnapshot().canRedo, false);
+  history.dispose();
+});
+
+void test("crop edits remain undoable when native timeline history is empty", () => {
+  const engine = new TimelineEngine({ tracks: [], duration: fromSeconds(60) });
+  const history = createEditorHistory(engine);
+  let applied = true;
+  history.recordApplied({
+    undo: () => {
+      applied = false;
+    },
+    redo: () => {
+      applied = true;
+    },
+  });
+  assert.equal(engine.canUndo, false);
+  assert.equal(history.getSnapshot().canUndo, true);
+  history.undo();
+  assert.equal(applied, false);
+  assert.equal(history.getSnapshot().canRedo, true);
+  history.redo();
+  assert.equal(applied, true);
+  history.dispose();
+});

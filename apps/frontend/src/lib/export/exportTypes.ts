@@ -18,6 +18,7 @@ import type {
   GifPaletteMode,
   GifTemporalDitherSettings,
 } from "#/lib/export/gif/gifEncodingSettings";
+import { resolveVideoCrop, type VideoCrop } from "#/lib/videoCrop";
 export type { ExportFormat } from "#/lib/export/exportFormats";
 
 export type ExportResolution = "original" | "1080" | "720";
@@ -296,6 +297,7 @@ export function resolveExportOutputDimensions(
   resolution: ExportResolution,
   format: ExportFormat,
   gifSettings?: GifExportSettings | null,
+  crop?: VideoCrop | null,
 ) {
   if (isAudioExportFormat(format)) {
     return null;
@@ -308,25 +310,31 @@ export function resolveExportOutputDimensions(
     return null;
   }
 
+  const region = resolveVideoCrop(crop, sourceVideoDimensions);
+  const picture = region ?? sourceVideoDimensions;
   const requestedHeight =
     resolution === "original"
-      ? sourceVideoDimensions.height
+      ? picture.height
       : Number.parseInt(resolution, 10);
   if (!Number.isFinite(requestedHeight) || requestedHeight <= 0) {
     return sourceVideoDimensions;
   }
 
   const maxHeight = exportFormatMaxHeight(format, gifSettings);
-  const height =
+  const requestedOutputHeight =
     maxHeight === null ? requestedHeight : Math.min(requestedHeight, maxHeight);
-  const width = Math.max(
-    1,
-    Math.round(
-      (sourceVideoDimensions.width / sourceVideoDimensions.height) * height,
-    ),
-  );
-
-  return { width, height };
+  // Cropped video is encoded; use even dimensions accepted by 4:2:0 encoders.
+  // GIFs and unchanged source copies retain their native dimensions.
+  const align = (size: number) =>
+    region && format !== "gif"
+      ? Math.max(2, Math.floor(size / 2) * 2)
+      : Math.max(1, Math.round(size));
+  const requestedOutputWidth =
+    (picture.width / picture.height) * requestedOutputHeight;
+  return {
+    width: align(Math.max(1, Math.round(requestedOutputWidth))),
+    height: align(requestedOutputHeight),
+  };
 }
 
 export function formatExportByteSize(bytes: number) {

@@ -1,6 +1,7 @@
 import { copyFile, mkdir } from "node:fs/promises";
 import path from "node:path";
 
+import { cropGuideImageName } from "#/page.ts";
 import type { CapturePlan } from "#/scenes.ts";
 
 /** Publish only the assets requested by this capture; report.json is written after validation. */
@@ -22,7 +23,11 @@ export async function writeCaptureAssets(
         );
       }
     }
-    for (const name of ["export-dialog.webp", "subtitle-panel.webp"]) {
+    for (const name of [
+      "export-dialog.webp",
+      "subtitle-panel.webp",
+      cropGuideImageName,
+    ]) {
       await copyFile(
         path.join(output, name),
         path.join(root, "apps/www/public/docs", name),

@@ -34,9 +34,9 @@ export const features = [
       'Clip <a href="/docs/local-videos">local files</a> without uploading them. Direct media URLs require provider sign-in.',
   },
   {
-    title: "Timeline editing",
+    title: "Trim and crop",
     description:
-      "Trim, zoom, and fine-tune your clip range with a familiar non-linear editor.",
+      'Fine-tune your clip range, then <a href="/docs/video-cropping">crop the picture</a> freely or to an aspect ratio with mouse or touch controls.',
   },
   {
     title: "Video, audio, and GIF export",

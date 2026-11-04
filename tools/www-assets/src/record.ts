@@ -1,4 +1,4 @@
-/* global window, document, requestAnimationFrame */
+/* global window */
 import { readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { setTimeout } from "node:timers/promises";
@@ -13,6 +13,7 @@ import {
   jellyfinUrl,
   startJellyfinScene,
 } from "#/jellyfin.ts";
+import { captureCropGuide, cropGuideImageName, waitForLayout } from "#/page.ts";
 import { run, waitUntil } from "#/process.ts";
 import {
   type CapturePlan,
@@ -51,17 +52,6 @@ async function waitForEditor(
       { cause: error },
     );
   }
-}
-
-async function waitForLayout(page: Page) {
-  await page.evaluate(async () => {
-    await document.fonts.ready;
-    await new Promise<void>((resolve) => {
-      requestAnimationFrame(() => {
-        requestAnimationFrame(() => resolve());
-      });
-    });
-  });
 }
 
 async function prepareScene(page: Page, scene: CaptureScene) {
@@ -289,6 +279,9 @@ async function main() {
           await page
             .getByRole("dialog")
             .screenshot({ path: path.join(output, "export-dialog.png") });
+          await page.getByRole("dialog").press("Escape");
+          await page.getByRole("dialog").waitFor({ state: "hidden" });
+          await captureCropGuide(page, path.join(output, cropGuideImageName));
           for (const name of ["subtitle-panel", "export-dialog"]) {
             await run("ffmpeg", [
               "-v",
@@ -345,7 +338,7 @@ async function main() {
         )
         .join(
           "",
-        )}<section><h2>README/social still</h2><p>Source timestamp ${still.seconds}s; same frame in both formats.</p>${still.files.map((file) => `<p>${file.name}: ${file.width}×${file.height}, ${file.bytes} bytes</p><img src="${file.name}" width="${file.width}" height="${file.height}" alt="Editor screenshot with visible subtitles">`).join("")}</section></html>`,
+        )}<section><h2>README/social still</h2><p>Source timestamp ${still.seconds}s; same frame in both formats.</p>${still.files.map((file) => `<p>${file.name}: ${file.width}×${file.height}, ${file.bytes} bytes</p><img src="${file.name}" width="${file.width}" height="${file.height}" alt="Editor screenshot with visible subtitles">`).join("")}</section>${plan.target === "all" ? `<section><h2>Crop guide</h2><img src="${cropGuideImageName}" alt="Editor with a portrait crop and crop controls"></section>` : ""}</html>`,
     );
     await writeFile(
       path.join(output, "report.json"),

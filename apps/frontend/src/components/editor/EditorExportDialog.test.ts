@@ -24,6 +24,7 @@ function renderExportDialogMarkup(
     gifSettings: null,
     outputSizeEstimate: { bytes: 7_029_750, basis: "transcode-plan" },
     selectedResolution: "original",
+    hasActiveCrop: false,
     onResolutionChange: () => {},
     selectedSourcePreference: "auto",
     onSourcePreferenceChange: () => {},

@@ -96,6 +96,8 @@
     transparent
   );
   --editor-preview-overlay-foreground: oklch(0.92 0 0);
+  --editor-crop-accent: oklch(1 0 0);
+  --editor-crop-handle-shadow: 0 1px 3px rgb(0 0 0 / 55%);
   --editor-workspace: color-mix(
     in oklch,
     var(--background) 90%,
@@ -450,6 +452,7 @@
   --spacing-editor-properties-min: 28rem;
   --spacing-editor-preview-min: 12rem;
   --spacing-editor-preview-sm-min: 16rem;
+  --spacing-editor-crop-preview-max: 45dvh;
   --spacing-editor-export-sidebar: 18rem;
   --spacing-editor-export-template-label: 12rem;
   --spacing-editor-property-label: 4.75rem;

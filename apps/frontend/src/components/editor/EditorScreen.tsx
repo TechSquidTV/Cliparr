@@ -74,6 +74,13 @@ import { useEditorSubtitles } from "@/components/editor/useEditorSubtitles";
 import { useEditorTimelineMedia } from "@/components/editor/useEditorTimelineMedia";
 import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
 import { EDITOR_THUMBNAIL_VIEW_TRANSITION_NAME } from "@/lib/viewTransitions";
+import type { EditorCropOverlayHandle } from "#/components/editor/EditorCropOverlay";
+import {
+  EditorPropertyAccordion,
+  EditorPropertyAccordionItem,
+} from "#/components/editor/EditorPropertyControls";
+import { useEditorCrop } from "#/components/editor/useEditorCrop";
+import { resolveVideoCrop } from "#/lib/videoCrop";
 
 const EditorExportDialog = lazy(() =>
   import("@/components/editor/EditorExportDialog").then((module) => ({
@@ -84,6 +91,17 @@ const EditorExportDialog = lazy(() =>
 const EditorFramegrabDialog = lazy(() =>
   import("@/components/editor/EditorFramegrabDialog").then((module) => ({
     default: module.EditorFramegrabDialog,
+  })),
+);
+
+const EditorCropOverlay = lazy(() =>
+  import("#/components/editor/EditorCropOverlay").then((module) => ({
+    default: module.EditorCropOverlay,
+  })),
+);
+const EditorCropControls = lazy(() =>
+  import("#/components/editor/EditorCropControls").then((module) => ({
+    default: module.EditorCropControls,
   })),
 );
 
@@ -156,6 +174,8 @@ function EditorScreenContent({
   const startTime = inPoint ? toSeconds(inPoint) : 0;
   const endTime = outPoint ? toSeconds(outPoint) : duration;
   const [playbackSidebarOpen, setPlaybackSidebarOpen] = useState(true);
+  const [propertiesPanel, setPropertiesPanel] = useState("subtitles");
+  const mainReference = useRef<HTMLElement>(null);
   const [editorPropertiesOpenSections, setEditorPropertiesOpenSections] =
     useState(loadEditorPropertiesOpenSections);
   const [exportDialogMounted, setExportDialogMounted] = useState(false);
@@ -170,7 +190,10 @@ function EditorScreenContent({
     duration,
     mediaReady: timelineMedia.metadataReady,
     pausePlayback: timelineMedia.pausePlayback,
-    onSubtitleCreated: () => setPlaybackSidebarOpen(true),
+    onSubtitleCreated: () => {
+      setPlaybackSidebarOpen(true);
+      setPropertiesPanel("subtitles");
+    },
   });
   const {
     subtitleTracks,
@@ -190,7 +213,25 @@ function EditorScreenContent({
     history: editHistory,
     commitText: commitSubtitleText,
   } = subtitles;
+  const crop = useEditorCrop(initialDraft?.crop, editHistory.recordApplied);
+  const cropOverlayRef = useRef<EditorCropOverlayHandle>(null);
+  const finishCropGesture = () => {
+    cropOverlayRef.current?.finishGesture();
+    crop.finishGesture();
+  };
+  const editorHistory = {
+    ...editHistory,
+    undo: () => {
+      finishCropGesture();
+      editHistory.undo();
+    },
+    redo: () => {
+      finishCropGesture();
+      editHistory.redo();
+    },
+  };
   const draft = useEditorDraft({
+    crop: crop.state,
     engine,
     session,
     initialDraft,
@@ -235,6 +276,8 @@ function EditorScreenContent({
     saveEditorPropertiesOpenSections(editorPropertiesOpenSections);
   }, [editorPropertiesOpenSections]);
   const {
+    cropDisabledReason,
+    hasActiveCrop,
     resolution,
     exportFormat,
     selectedQuality,
@@ -278,6 +321,7 @@ function EditorScreenContent({
     handleResetFileNameTemplate,
     handleExport,
   } = useEditorExport({
+    crop: crop.state.region,
     session,
     exportMedia: timelineMedia.exportMedia,
     startTime,
@@ -303,6 +347,48 @@ function EditorScreenContent({
     }
   }, [exporting, navigationBlocker]);
 
+  const cropEditing = propertiesPanel === "crop" && !exporting;
+  let cropPreviewError: string | null = null;
+  try {
+    resolveVideoCrop(crop.state.region, previewVideoDimensions);
+    if (
+      previewVideoDimensions &&
+      sourceVideoDimensions &&
+      Math.abs(
+        previewVideoDimensions.width /
+          previewVideoDimensions.height /
+          (sourceVideoDimensions.width / sourceVideoDimensions.height) -
+          1,
+      ) > 0.01
+    ) {
+      cropPreviewError =
+        "Preview and export have different picture shapes. Choose a matching source before cropping.";
+    }
+  } catch (error_) {
+    cropPreviewError =
+      error_ instanceof Error ? error_.message : "Crop preview is unavailable.";
+  }
+  const previewCrop = cropPreviewError ? null : crop.state.region;
+  const cropDisabled =
+    exporting ||
+    !sourceVideoDimensions ||
+    !previewVideoDimensions ||
+    !subtitles.initialized;
+  const openCrop = () => {
+    if (cropDisabled) {
+      return;
+    }
+    commitSubtitleText();
+    pausePlayback();
+    setPlaybackSidebarOpen(true);
+    setPropertiesPanel("crop");
+    mainReference.current?.scrollTo({ top: 0 });
+  };
+  const closeCrop = () => {
+    finishCropGesture();
+    setPropertiesPanel("subtitles");
+    mainReference.current?.scrollTo({ top: 0 });
+  };
   const subtitleCanvasRef = useRef<HTMLCanvasElement>(null);
   const previewFrameTime = renderedFrameTime ?? currentTime;
   const getFramegrabTime = useCallback(
@@ -310,6 +396,7 @@ function EditorScreenContent({
     [getPlaybackTime, renderedFrameTime],
   );
   const framegrab = useEditorFramegrab({
+    crop: crop.state.region,
     session,
     canvasRef,
     subtitleCanvasRef,
@@ -483,8 +570,8 @@ function EditorScreenContent({
   );
   useEditorKeyboardShortcuts({
     deleteSubtitle: subtitles.handleDeleteSelectedSubtitle,
-    undo: editHistory.undo,
-    redo: editHistory.redo,
+    undo: editorHistory.undo,
+    redo: editorHistory.redo,
     togglePlay: () => void togglePlay(),
     markIn: handleMarkInShortcut,
     markOut: handleMarkOutShortcut,
@@ -519,6 +606,7 @@ function EditorScreenContent({
     : "Waiting for media duration.";
   const exportDisabledReason =
     durationExportDisabledReason ??
+    cropDisabledReason ??
     exportFormatDisabledReason ??
     audioExportDisabledReason ??
     (mode === "audio-only" ? null : subtitleExportSummary.disabledReason);
@@ -528,9 +616,33 @@ function EditorScreenContent({
   const previewPane = (
     <EditorPreviewPane
       error={isDesktopLayout ? error : null}
+      cropEditing={cropEditing}
       variant={layoutVariant}
     >
       <EditorPreview
+        crop={previewCrop}
+        cropEditing={cropEditing}
+        fitHeight={cropEditing && !isDesktopLayout}
+        videoDimensions={previewVideoDimensions}
+        cropOverlay={
+          cropEditing &&
+          previewVideoDimensions &&
+          sourceVideoDimensions &&
+          !cropPreviewError &&
+          !loadingPreview &&
+          !loadingPreviewFrame ? (
+            <Suspense fallback={null}>
+              <EditorCropOverlay
+                ref={cropOverlayRef}
+                state={crop.state}
+                dimensions={sourceVideoDimensions}
+                onChange={crop.update}
+                onGestureStart={crop.beginGesture}
+                onGestureEnd={crop.finishGesture}
+              />
+            </Suspense>
+          ) : null
+        }
         canvasRef={connectCanvas}
         playing={playing}
         loadingPreview={loadingPreview}
@@ -542,8 +654,11 @@ function EditorScreenContent({
         togglePlay={togglePlay}
         overlay={
           <EditorSubtitlePreview
+            crop={previewCrop}
+            cropEditing={cropEditing}
             cues={subtitleCues}
             currentTime={previewFrameTime}
+            frameReady={renderedFrameTime !== null}
             enabled={subtitleOutputEnabled}
             overlayCanvasRef={subtitleCanvasRef}
             style={subtitleStyleSettings}
@@ -556,6 +671,9 @@ function EditorScreenContent({
   );
   const editorControls = (
     <EditorControls
+      onCropClick={cropEditing ? closeCrop : openCrop}
+      cropActive={cropEditing}
+      cropDisabled={cropDisabled}
       variant={layoutVariant}
       playing={playing}
       loadingPreview={loadingPreview}
@@ -620,10 +738,59 @@ function EditorScreenContent({
     );
   }
 
+  const cropControls = sourceVideoDimensions ? (
+    <Suspense
+      fallback={
+        <p className="text-sm text-muted-foreground">Loading crop controls…</p>
+      }
+    >
+      <EditorCropControls
+        state={crop.state}
+        dimensions={sourceVideoDimensions}
+        error={cropPreviewError}
+        onChange={(next) => {
+          finishCropGesture();
+          crop.update(next);
+        }}
+        onDone={closeCrop}
+      />
+    </Suspense>
+  ) : (
+    <p className="text-sm text-muted-foreground">
+      Waiting for video dimensions.
+    </p>
+  );
   const propertiesContent = (
-    <div className="flex h-full min-h-0 flex-col gap-3 p-3">
-      {renderSubtitlePanel("min-h-0 flex-1")}
-    </div>
+    <EditorPropertyAccordion
+      multiple={false}
+      className="h-full"
+      value={propertiesPanel ? [propertiesPanel] : []}
+      onValueChange={(panels) => {
+        const next = panels[0] ?? "";
+        if (next === "crop") {
+          openCrop();
+        } else {
+          closeCrop();
+          setPropertiesPanel(next);
+        }
+      }}
+    >
+      <EditorPropertyAccordionItem
+        value="subtitles"
+        title="Subtitles"
+        fillAvailable
+      >
+        {renderSubtitlePanel("h-full min-h-0")}
+      </EditorPropertyAccordionItem>
+      <EditorPropertyAccordionItem
+        value="crop"
+        title="Crop"
+        fillAvailable
+        disabled={cropDisabled}
+      >
+        <div className="h-full min-h-0 overflow-y-auto">{cropControls}</div>
+      </EditorPropertyAccordionItem>
+    </EditorPropertyAccordion>
   );
 
   if (!exportSource.source) {
@@ -672,7 +839,7 @@ function EditorScreenContent({
       />
 
       <EditorEditingTools
-        history={editHistory}
+        history={editorHistory}
         variant={layoutVariant}
         onResetDraft={draft.reset}
         resetDisabled={exporting}
@@ -686,11 +853,20 @@ function EditorScreenContent({
         }
       />
 
-      <main className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto p-2.5 [scrollbar-gutter:stable] sm:p-3 lg:overflow-hidden lg:[scrollbar-gutter:auto]">
+      <main
+        ref={mainReference}
+        data-crop-editing={cropEditing || undefined}
+        className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto p-2.5 [scrollbar-gutter:stable] sm:p-3 lg:overflow-hidden lg:[scrollbar-gutter:auto]"
+      >
         {isDesktopLayout ? (
           <EditorDesktopLayout
             playbackSidebarOpen={playbackSidebarOpen}
-            onPlaybackSidebarOpenChange={setPlaybackSidebarOpen}
+            onPlaybackSidebarOpenChange={(open) => {
+              setPlaybackSidebarOpen(open);
+              if (!open) {
+                closeCrop();
+              }
+            }}
             subtitlesActive={subtitlesActive}
             previewPane={previewPane}
             timelinePane={timelinePane}
@@ -698,6 +874,13 @@ function EditorScreenContent({
           />
         ) : (
           <EditorMobileLayout
+            cropPanel={
+              cropEditing ? (
+                <div className="border border-editor-border bg-editor-panel">
+                  {cropControls}
+                </div>
+              ) : null
+            }
             error={error}
             previewPane={previewPane}
             timelinePane={timelinePane}
@@ -720,6 +903,7 @@ function EditorScreenContent({
             gifSettings={gifSettings}
             outputSizeEstimate={outputSizeEstimate}
             selectedResolution={resolution}
+            hasActiveCrop={hasActiveCrop}
             onResolutionChange={handleResolutionChange}
             selectedSourcePreference={effectiveExportSourcePreference}
             onSourcePreferenceChange={handleExportSourceChange}
@@ -754,7 +938,11 @@ function EditorScreenContent({
             }
             exportSourceLabel={exportSourceLabel}
             exportSourceMessage={exportSourceMessage}
-            exportSourceSummaryMessage={exportSourceSummaryMessage}
+            exportSourceSummaryMessage={
+              hasActiveCrop
+                ? `${exportSourceSummaryMessage ?? ""} Cropping re-encodes video. Cropped resolution uses the cropped size, rounded to even pixels for video.`.trim()
+                : exportSourceSummaryMessage
+            }
             subtitleSummaryLabel={subtitleExportSummary.label}
             subtitleSummaryDetail={subtitleExportSummary.detail}
             subtitleSummaryTone={subtitleExportSummary.tone}

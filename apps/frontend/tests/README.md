@@ -56,3 +56,27 @@ and dialog dismissal, locking, and focus restoration. At mobile and desktop
 widths, it also exercises source edits/actions and subtitle text, timing, style,
 and deletion callbacks through the extracted components. CI runs it alongside
 the media browser suites.
+
+## Video cropping
+
+Run `CLIPARR_TEST_BROWSER_CHANNEL=chrome pnpm --filter @cliparr/frontend test:browser:crop`.
+The production harness generates a synthetic local video and checks mouse/touch
+selection, corner/side resizing, boundaries, ratio locks, interruption, undo/redo,
+numeric and keyboard edits, scrolling, viewport changes, and draft restoration.
+Pixel comparisons cover cropped screenshots, video/GIF exports, resizing, and
+subtitle placement.
+
+The runner writes fresh screenshots to `build/browser-export/crop`. CI uploads
+these as the `video-crop-previews` artifact, retained for seven days. Reviewed
+3.1.0 UI previews are attached to [PR #305](https://github.com/TechSquidTV/Cliparr/pull/305).
+
+The crop guide's `apps/www/public/docs/video-cropping.png` is included in the
+full `pnpm assets:capture … --write` refresh alongside homepage and other docs
+assets. Both this browser suite and the asset recorder use the same crop capture
+routine, so UI changes are checked in CI. Full captures include the image in
+`review.html`; `--target readme-social` preserves it. No artifact download or
+manual file copy is needed. The website build generates optimized variants.
+These are reference images, not pixel-snapshot assertions.
+
+Physical iOS Safari and Android Chrome checks remain a release gate; emulated
+touch coverage does not replace those checks.

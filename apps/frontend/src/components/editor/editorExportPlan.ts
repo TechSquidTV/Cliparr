@@ -26,6 +26,7 @@ import {
   resolveExportOutputDimensions,
 } from "#/lib/export/exportTypes";
 import type { HlsExportEstimateMetadata } from "#/lib/export/hlsExportEstimate";
+import type { VideoCrop } from "#/lib/videoCrop";
 
 type ResolvedExportSourceKind = "hls" | "direct" | "none";
 
@@ -60,12 +61,14 @@ export function getOutputDimensions(
   resolution: ExportResolution,
   format: ExportFormat = "mp4",
   gifSettings?: GifExportSettings | null,
+  crop?: VideoCrop | null,
 ) {
   return resolveExportOutputDimensions(
     sourceVideoDimensions,
     resolution,
     format,
     gifSettings,
+    crop,
   );
 }
 

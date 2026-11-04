@@ -1,4 +1,4 @@
-import { Captions } from "lucide-react";
+import { SlidersHorizontal } from "lucide-react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import type { ReactNode } from "react";
 
@@ -13,6 +13,7 @@ import {
   ResizablePanel,
   ResizablePanelGroup,
 } from "@/components/ui/resizable";
+import { cn } from "@/lib/cn";
 import { motionTransitionFor } from "@/lib/motion";
 
 export type EditorLayoutVariant = "desktop" | "mobile";
@@ -37,24 +38,35 @@ export function EditorPreviewPane({
   error,
   variant,
   children,
+  cropEditing = false,
 }: {
   error: string | null;
   variant: EditorLayoutVariant;
   children: ReactNode;
+  cropEditing?: boolean;
 }) {
   const reduceMotion = useReducedMotion();
   const stateTransition = motionTransitionFor("fast", reduceMotion);
   const previewStage = (
     <section
       data-editor-preview-stage
-      className={
+      className={cn(
+        "overflow-hidden border border-editor-border bg-editor-monitor",
         variant === "desktop"
-          ? "flex min-h-0 flex-1 items-center justify-center overflow-hidden border border-editor-border bg-editor-monitor p-2"
-          : "relative aspect-video min-h-editor-preview-min w-full flex-none overflow-hidden border border-editor-border bg-editor-monitor sm:min-h-editor-preview-sm-min"
-      }
+          ? "flex min-h-0 flex-1 items-center justify-center p-2"
+          : "relative w-full flex-none",
+        variant === "mobile" &&
+          !cropEditing &&
+          "aspect-video min-h-editor-preview-min sm:min-h-editor-preview-sm-min",
+      )}
     >
       {variant === "mobile" ? (
-        <div className="absolute inset-2 flex min-h-0 items-center justify-center">
+        <div
+          className={cn(
+            "flex min-h-0 items-center justify-center",
+            !cropEditing && "absolute inset-2",
+          )}
+        >
           {children}
         </div>
       ) : (
@@ -153,8 +165,8 @@ function EditorPropertiesPanel({
     <EditorSidebar
       open={open}
       onOpenChange={onOpenChange}
-      title="Subtitles"
-      icon={Captions}
+      title="Properties"
+      icon={SlidersHorizontal}
       active={active}
       resizable={resizable}
     >
@@ -269,11 +281,13 @@ export function EditorMobileLayout({
   previewPane,
   timelinePane,
   subtitlePanel,
+  cropPanel,
 }: {
   error: string | null;
   previewPane: ReactNode;
   timelinePane: ReactNode;
   subtitlePanel: ReactNode;
+  cropPanel?: ReactNode;
 }) {
   return (
     <div className="flex min-h-full flex-col gap-3">
@@ -284,8 +298,9 @@ export function EditorMobileLayout({
       )}
 
       {previewPane}
-      {timelinePane}
-      {subtitlePanel}
+      {cropPanel}
+      <div hidden={Boolean(cropPanel)}>{timelinePane}</div>
+      <div hidden={Boolean(cropPanel)}>{subtitlePanel}</div>
     </div>
   );
 }

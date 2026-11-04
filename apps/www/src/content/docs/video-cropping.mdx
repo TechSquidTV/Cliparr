@@ -1,0 +1,35 @@
+---
+title: Video cropping
+description: Find the crop tool and see how cropping affects your Cliparr exports.
+section: editing-export
+order: 5
+---
+
+import { Picture } from "astro:assets";
+import { buttonClassName } from "@cliparr/frontend/convert/ui";
+import { Crop } from "lucide-react";
+import cropImage from "../../../public/docs/video-cropping.png";
+
+Available in Cliparr 3.1. Choose <span aria-hidden="true" className={buttonClassName({ tone: "icon", size: "icon", className: "align-middle rounded-[var(--radius-control)]" })}><Crop className="h-4 w-4" /></span> **Crop** beside the screenshot button, or expand **Crop** in the desktop Properties sidebar.
+
+<figure class="my-6 overflow-hidden rounded-lg border border-border bg-card">
+  <Picture
+    src={cropImage}
+    alt="Cliparr with the Crop button active beside the screenshot button, a portrait selection, and the Crop settings expanded on the right."
+    formats={["avif", "webp"]}
+    fallbackFormat="webp"
+    widths={[640, 960, 1440]}
+    sizes="(min-width: 80rem) 896px, (min-width: 64rem) calc(100vw - 22rem), calc(100vw - 2rem)"
+    quality={78}
+    loading="lazy"
+    decoding="async"
+    class="block w-full"
+  />
+</figure>
+
+- **Done** keeps the crop and returns to the preview. **Remove crop** restores the full picture. Reopen the tool to edit at any time.
+- Choose **Free**, an aspect-ratio preset, or **Custom** (width ÷ height). Position and size use source pixels.
+- On phones, settings appear below the preview. Small selections hide side handles to keep touch targets separate; use corners or numeric fields.
+- Crops support undo/redo, are saved in drafts, and apply to video, GIF, and screenshots. Captions are positioned within the cropped picture.
+
+The native export size is labeled **Cropped**. Cropped video re-encodes even at Sharp quality. See [output sizing](/docs/export-settings#resolution) and [crop shortcuts](/docs/editor-shortcuts#crop-controls).

@@ -146,3 +146,31 @@ void test("separates different media when a provider reuses its playback session
   store.save(draftFor(media));
   assert.equal(store.read({ ...media, title: "Next episode" }), null);
 });
+
+void test("persists crop geometry and ratio locks alongside subtitles without changing draft identity", () => {
+  const media = session();
+  const persistent = storage();
+  const saved: EditorDraft = {
+    ...draftFor(media),
+    crop: {
+      region: {
+        x: 0.25,
+        y: 0,
+        width: 0.5,
+        height: 1,
+        sourceAspectRatio: 16 / 9,
+      },
+      aspectRatio: 8 / 9,
+    },
+  };
+  assert.equal(createEditorDraftStore(() => persistent).save(saved), true);
+  assert.deepEqual(createEditorDraftStore(() => persistent).read(media), saved);
+  for (const crop of [
+    {},
+    { ...saved.crop, aspectRatio: -1 },
+    { ...saved.crop, region: { ...saved.crop?.region, width: 2 } },
+  ]) {
+    persistent.setItem("", JSON.stringify([{ ...saved, crop }]));
+    assert.equal(createEditorDraftStore(() => persistent).read(media), null);
+  }
+});

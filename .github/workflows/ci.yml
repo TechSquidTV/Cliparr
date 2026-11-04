@@ -35,6 +35,7 @@ jobs:
           filters: |
             frontend:
               - 'apps/frontend/**'
+              - 'tools/www-assets/**'
               - 'packages/shared/**'
               - 'package.json'
               - 'pnpm-lock.yaml'
@@ -151,12 +152,24 @@ jobs:
         env:
           CLIPARR_TEST_BROWSER_CHANNEL: chrome
         run: pnpm --filter @cliparr/frontend test:browser:ui
+      - name: Test video cropping and touch controls
+        env:
+          CLIPARR_TEST_BROWSER_CHANNEL: chrome
+        run: pnpm --filter @cliparr/frontend test:browser:crop
       - name: Retain loading measurements
         if: always()
         uses: actions/upload-artifact@v7
         with:
           name: media-loading-measurements
           path: build/browser-export/loading/*.json
+          retention-days: 7
+      - name: Retain crop previews
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: video-crop-previews
+          path: build/browser-export/crop/*.png
+          if-no-files-found: ignore
           retention-days: 7
       - name: Retain failure diagnostics
         if: failure()

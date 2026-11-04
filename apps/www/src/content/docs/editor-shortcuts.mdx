@@ -1,6 +1,6 @@
 ---
 title: Editor shortcuts
-description: Keyboard and pointer shortcuts for playback, marking, seeking, frame stepping, timeline zoom, and editable timecodes.
+description: Keyboard and pointer shortcuts for playback, cropping, marking, seeking, frame stepping, timeline zoom, and editable timecodes.
 section: editing-export
 order: 40
 ---
@@ -17,7 +17,19 @@ Shortcuts are ignored while typing in inputs, using selects, adjusting sliders o
 | `Ctrl`/`Cmd` + `Shift` + `Z` | Redo the last undo. |
 | `Ctrl` + `Y`                 | Redo the last undo. |
 
-Undo and redo cover changes to your clip range and subtitles, including adding, deleting, clearing, or importing subtitles. While typing in a text field, these shortcuts edit the text instead.
+Undo and redo cover changes to your crop, clip range, and subtitles, including adding, deleting, clearing, or importing subtitles. While typing in a text field, these shortcuts edit the text instead.
+
+## Crop controls
+
+With the [Crop tool](/docs/video-cropping) active and the crop selection focused:
+
+| Shortcut                                                 | Action                                                    |
+| :------------------------------------------------------- | :-------------------------------------------------------- |
+| Arrow keys                                               | Move the crop by one source pixel.                        |
+| `Shift` + Arrow keys                                     | Move the crop by ten source pixels.                       |
+| Hold `Shift` while dragging a resize handle in Free mode | Preserve the crop's current aspect ratio for that resize. |
+
+Click or tap the selection, or focus it with Tab, before using arrow keys. While it is focused, arrows move the crop instead of seeking playback. In a crop numeric field, press **Enter** or leave the field to apply the value.
 
 ## Preview playback
 
