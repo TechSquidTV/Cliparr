@@ -9,6 +9,7 @@ import { resolveVideoCrop, type VideoCrop } from "#/lib/videoCrop";
 interface EditorSubtitlePreviewProperties {
   cues: readonly SubtitleCue[];
   currentTime: number;
+  frameReady: boolean;
   enabled: boolean;
   overlayCanvasRef: RefObject<HTMLCanvasElement | null>;
   style: SubtitleStyleSettings;
@@ -21,6 +22,7 @@ interface EditorSubtitlePreviewProperties {
 export function EditorSubtitlePreview({
   cues,
   currentTime,
+  frameReady,
   enabled,
   overlayCanvasRef,
   style,
@@ -36,15 +38,22 @@ export function EditorSubtitlePreview({
       return;
     }
 
-    // The renderer can still hold its placeholder canvas while a restored crop
-    // and the source metadata arrive. Wait for a frame with matching geometry.
+    const context = overlayCanvas.getContext("2d");
+    if (!context) {
+      return;
+    }
+    context.clearRect(0, 0, overlayCanvas.width, overlayCanvas.height);
+
+    // Metadata may arrive before frame zero. Its timestamp can equal the
+    // paused playhead, so frame readiness must independently trigger rendering.
+    if (!frameReady) {
+      return;
+    }
+
     let region: ReturnType<typeof resolveVideoCrop>;
     try {
       region = resolveVideoCrop(crop, videoCanvas);
     } catch {
-      overlayCanvas
-        .getContext("2d")
-        ?.clearRect(0, 0, overlayCanvas.width, overlayCanvas.height);
       return;
     }
     const width = region?.width ?? videoCanvas.width;
@@ -54,11 +63,6 @@ export function EditorSubtitlePreview({
       overlayCanvas.height = height;
     }
 
-    const context = overlayCanvas.getContext("2d");
-    if (!context) {
-      return;
-    }
-    context.clearRect(0, 0, overlayCanvas.width, overlayCanvas.height);
     if (!enabled || overlayCanvas.width <= 0 || overlayCanvas.height <= 0) {
       return;
     }
@@ -74,6 +78,7 @@ export function EditorSubtitlePreview({
     crop,
     cues,
     currentTime,
+    frameReady,
     enabled,
     overlayCanvasRef,
     style,

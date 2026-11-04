@@ -51,6 +51,12 @@ try {
     page.on("pageerror", (error) => errors.push(error.message));
     await page.goto(url);
     const crop = page.getByRole("button", { name: "Crop video", exact: true });
+    const waitForCropReady = () =>
+      page.waitForFunction(
+        () =>
+          globalThis.document.querySelector('button[aria-label="Crop video"]')
+            ?.disabled === false,
+      );
     const scenario = async (name, run) => {
       const label = `${mobile ? "touch" : "mouse"}: ${name}`;
       try {
@@ -67,11 +73,7 @@ try {
       "open crop tool and verify touch layout",
       async () => {
         await crop.waitFor();
-        await page.waitForFunction(
-          () =>
-            globalThis.document.querySelector('button[aria-label="Crop video"]')
-              ?.disabled === false,
-        );
+        await waitForCropReady();
         const pictureTools = page.getByRole("group", { name: "Picture tools" });
         assert.equal(await pictureTools.getByRole("button").count(), 2);
         if (mobile) {
@@ -929,11 +931,7 @@ try {
       await savedDraft.dispose();
       await waitForSelection(saved.region);
       await page.reload();
-      await page.waitForFunction(
-        () =>
-          globalThis.document.querySelector('button[aria-label="Crop video"]')
-            ?.disabled === false,
-      );
+      await waitForCropReady();
       await crop.click();
       await page.locator("cropper-selection").waitFor();
       await waitForSelection(saved.region);
@@ -951,6 +949,107 @@ try {
         "9:16",
       );
     });
+    await scenario(
+      "crop entry points wait for subtitle history initialization",
+      async () => {
+        const pattern = "**/delayed-crop-subtitles.vtt";
+        const release = Promise.withResolvers();
+        await page.route(pattern, async (route) => {
+          await release.promise;
+          await route.fulfill({
+            contentType: "text/vtt",
+            body: "WEBVTT\n\n00:00.000 --> 00:04.000\nImported subtitle\n",
+          });
+        });
+        try {
+          const requested = page.waitForRequest(pattern);
+          await page.goto(`${url}?fixture=delayed-subtitles`);
+          await requested;
+          await page.waitForFunction(() => {
+            const canvas = globalThis.document.querySelector(
+              "[data-editor-picture] > canvas",
+            );
+            return canvas?.width === 960 && canvas.height === 540;
+          });
+          assert.equal(
+            await crop.isDisabled(),
+            true,
+            "toolbar waits for history",
+          );
+          if (!mobile) {
+            const header = page
+              .locator("aside")
+              .getByRole("button", { name: "Crop", exact: true });
+            assert.equal(
+              await header.isDisabled(),
+              true,
+              "accordion waits for history",
+            );
+          }
+          assert.equal(await page.locator("cropper-selection").count(), 0);
+          release.resolve();
+          await waitForCropReady();
+          if (mobile) {
+            await crop.click();
+          } else {
+            await page
+              .locator("aside")
+              .getByRole("button", { name: "Crop", exact: true })
+              .click();
+          }
+          await page.locator("cropper-selection").waitFor();
+          const before = await selection("normalized");
+          const bounds = await page.locator("cropper-canvas").boundingBox();
+          await drag(
+            bounds.x + bounds.width * 0.25,
+            bounds.y + bounds.height * 0.25,
+            bounds.x + bounds.width * 0.65,
+            bounds.y + bounds.height * 0.65,
+          );
+          const after = await selection("normalized");
+          assert.ok(Math.abs(after.width - 0.4) < 0.001);
+          await page.getByRole("button", { name: "Undo", exact: true }).click();
+          await waitForSelection(before);
+        } finally {
+          release.resolve();
+          await page.unroute(pattern);
+        }
+      },
+    );
+    await scenario(
+      "cropped captions render when paused frame zero becomes ready",
+      async () => {
+        await page.goto(`${url}?fixture=first-frame`);
+        const render = page.getByRole("button", {
+          name: "Render first frame",
+          exact: true,
+        });
+        await render.waitFor();
+        const overlay = page.locator('canvas[aria-hidden="true"]');
+        const hasCaptionPixels = () =>
+          overlay.evaluate((canvas) => {
+            const pixels = canvas
+              .getContext("2d")
+              .getImageData(0, 0, canvas.width, canvas.height).data;
+            return pixels.some((value, index) => index % 4 === 3 && value > 0);
+          });
+        await waitForPaint();
+        assert.equal(
+          await hasCaptionPixels(),
+          false,
+          "no captions on the placeholder frame",
+        );
+        await render.click();
+        await waitForPaint();
+        assert.equal(await overlay.getAttribute("width"), "480");
+        assert.equal(await overlay.getAttribute("height"), "270");
+        assert.equal(
+          await hasCaptionPixels(),
+          true,
+          "first frame renders captions without a seek or edit",
+        );
+      },
+    );
     assert.deepEqual(errors, []);
     process.stdout.write(
       `Crop interaction checks passed (${mobile ? "touch" : "mouse"}).\n`,

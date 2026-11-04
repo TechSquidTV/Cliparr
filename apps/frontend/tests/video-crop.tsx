@@ -10,12 +10,14 @@ import {
   Quality,
   WebMOutputFormat,
 } from "mediabunny";
-import { StrictMode } from "react";
+import { StrictMode, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
 
 import { buildLocalEditorSession } from "#/components/editor/editorMedia";
 import EditorScreen from "#/components/editor/EditorScreen";
+import { EditorSubtitlePreview } from "#/components/editor/EditorSubtitlePreview";
 import { TooltipProvider } from "#/components/ui/tooltip";
+import { loadSubtitleStyleSettings } from "#/lib/subtitles/settings";
 import { checkCropExports } from "#tests/video-crop-exports.ts";
 
 const picture = document.createElement("canvas");
@@ -87,10 +89,69 @@ const session = buildLocalEditorSession({
     fileName: file.name,
   },
 });
+const fixture = new URLSearchParams(window.location.search).get("fixture");
+if (fixture === "delayed-subtitles") {
+  // Reuse the synthetic media while exercising the provider import lifecycle.
+  session.local = false;
+  session.subtitleTracks = [
+    {
+      streamId: "crop-subtitles",
+      isText: true,
+      contentFormat: "vtt",
+      contentUrl: "/tests/delayed-crop-subtitles.vtt",
+    },
+  ];
+}
+const subtitleFrameDimensions = { width: 960, height: 540 };
+const subtitleFrameCrop = {
+  x: 0.25,
+  y: 0.25,
+  width: 0.5,
+  height: 0.5,
+  sourceAspectRatio: 16 / 9,
+};
+const subtitleFrameCues = [
+  { startTime: 0, endTime: 4, text: "FRAME ZERO", lines: ["FRAME ZERO"] },
+];
+const subtitleFrameStyle = loadSubtitleStyleSettings();
+function SubtitleFirstFrameFixture() {
+  const videoCanvasRef = useRef<HTMLCanvasElement>(null);
+  const overlayCanvasRef = useRef<HTMLCanvasElement>(null);
+  const [frameReady, setFrameReady] = useState(false);
+  return (
+    <>
+      <button type="button" onClick={() => setFrameReady(true)}>
+        Render first frame
+      </button>
+      <div className="relative h-60 w-full">
+        <canvas
+          ref={videoCanvasRef}
+          width={frameReady ? 960 : 300}
+          height={frameReady ? 540 : 150}
+        />
+        <EditorSubtitlePreview
+          cues={subtitleFrameCues}
+          currentTime={0}
+          frameReady={frameReady}
+          enabled
+          overlayCanvasRef={overlayCanvasRef}
+          style={subtitleFrameStyle}
+          videoCanvasRef={videoCanvasRef}
+          videoDimensions={subtitleFrameDimensions}
+          crop={subtitleFrameCrop}
+        />
+      </div>
+    </>
+  );
+}
 const route = createRootRoute({
   component: () => (
     <TooltipProvider>
-      <EditorScreen session={session} onBack={() => {}} />
+      {fixture === "first-frame" ? (
+        <SubtitleFirstFrameFixture />
+      ) : (
+        <EditorScreen session={session} onBack={() => {}} />
+      )}
     </TooltipProvider>
   ),
 });

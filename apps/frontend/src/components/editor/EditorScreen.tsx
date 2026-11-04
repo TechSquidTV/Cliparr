@@ -369,7 +369,15 @@ function EditorScreenContent({
       error_ instanceof Error ? error_.message : "Crop preview is unavailable.";
   }
   const previewCrop = cropPreviewError ? null : crop.state.region;
+  const cropDisabled =
+    exporting ||
+    !sourceVideoDimensions ||
+    !previewVideoDimensions ||
+    !subtitles.initialized;
   const openCrop = () => {
+    if (cropDisabled) {
+      return;
+    }
     commitSubtitleText();
     pausePlayback();
     setPlaybackSidebarOpen(true);
@@ -650,6 +658,7 @@ function EditorScreenContent({
             cropEditing={cropEditing}
             cues={subtitleCues}
             currentTime={previewFrameTime}
+            frameReady={renderedFrameTime !== null}
             enabled={subtitleOutputEnabled}
             overlayCanvasRef={subtitleCanvasRef}
             style={subtitleStyleSettings}
@@ -664,12 +673,7 @@ function EditorScreenContent({
     <EditorControls
       onCropClick={cropEditing ? closeCrop : openCrop}
       cropActive={cropEditing}
-      cropDisabled={
-        exporting ||
-        !sourceVideoDimensions ||
-        !previewVideoDimensions ||
-        !subtitles.initialized
-      }
+      cropDisabled={cropDisabled}
       variant={layoutVariant}
       playing={playing}
       loadingPreview={loadingPreview}
@@ -782,7 +786,7 @@ function EditorScreenContent({
         value="crop"
         title="Crop"
         fillAvailable
-        disabled={exporting || !sourceVideoDimensions}
+        disabled={cropDisabled}
       >
         <div className="h-full min-h-0 overflow-y-auto">{cropControls}</div>
       </EditorPropertyAccordionItem>
