@@ -186,36 +186,55 @@ try {
       }
       await waitForPaint();
     };
-    const selection = async (coordinateSpace = "pixels") => {
-      await waitForPaint();
-      return page.locator("cropper-selection").evaluate((selection, space) => {
-        const bounds =
-          space === "normalized"
-            ? selection.parentElement.getBoundingClientRect()
-            : { width: 1, height: 1 };
-        return {
-          x: selection.x / bounds.width,
-          y: selection.y / bounds.height,
-          width: selection.width / bounds.width,
-          height: selection.height / bounds.height,
-        };
-      }, coordinateSpace);
-    };
-    const waitForSelection = async (expected) => {
-      await page.waitForFunction((region) => {
-        const selected = globalThis.document.querySelector("cropper-selection");
-        const bounds = selected?.parentElement.getBoundingClientRect();
-        if (!selected || !bounds?.width || !bounds.height) {
-          return false;
-        }
-        return ["x", "y", "width", "height"].every((key) => {
-          const dimension = key === "x" || key === "width" ? "width" : "height";
-          return (
-            Math.abs(selected[key] / bounds[dimension] - region[key]) < 0.001
+    const selection = async (coordinateSpace = "pixels", expected) => {
+      const deadline = Date.now() + 30_000;
+      let previous;
+      let region;
+      while (Date.now() < deadline) {
+        await waitForPaint();
+        const snapshot = await page
+          .locator("cropper-selection")
+          .evaluate((selected) => {
+            const bounds = selected.parentElement.getBoundingClientRect();
+            return {
+              x: selected.x,
+              y: selected.y,
+              width: selected.width,
+              height: selected.height,
+              canvasWidth: bounds.width,
+              canvasHeight: bounds.height,
+            };
+          });
+        const { canvasWidth, canvasHeight, ...rectangle } = snapshot;
+        region = Object.fromEntries(
+          Object.entries(rectangle).map(([key, value]) => [
+            key,
+            coordinateSpace === "normalized"
+              ? value /
+                (key === "x" || key === "width" ? canvasWidth : canvasHeight)
+              : value,
+          ]),
+        );
+        // Reopening crop mode can resize both the preview and the selection.
+        // Require both to settle, then compare and return that same snapshot.
+        const stable =
+          previous &&
+          Object.keys(snapshot).every((key) => snapshot[key] === previous[key]);
+        const matches =
+          !expected ||
+          Object.keys(region).every(
+            (key) => Math.abs(region[key] - expected[key]) < 0.001,
           );
-        });
-      }, expected);
+        if (canvasWidth > 0 && canvasHeight > 0 && stable && matches) {
+          return region;
+        }
+        previous = snapshot;
+      }
+      assert.fail(
+        `Crop geometry did not settle: ${JSON.stringify({ expected, region, previous })}`,
+      );
     };
+    const waitForSelection = (expected) => selection("normalized", expected);
     const sideHandles = page.locator(
       'cropper-handle:is([action="n-resize"], [action="e-resize"], [action="s-resize"], [action="w-resize"]):visible',
     );
