@@ -66,16 +66,11 @@ numeric and keyboard edits, scrolling, viewport changes, and draft restoration.
 Pixel comparisons cover cropped screenshots, video/GIF exports, resizing, and
 subtitle placement.
 
-The runner writes fresh screenshots to `build/browser-export/crop`. The reviewed
-3.1.0 UI previews below are reference images, not pixel-snapshot assertions:
-
-- [Desktop crop](previews/video-crop/desktop-crop.png)
-- [Desktop subtitle accordion](previews/video-crop/desktop-subtitles.png)
-- [Collapsed Properties sidebar](previews/video-crop/desktop-sidebar-collapsed.png)
-- [Phone crop](previews/video-crop/mobile-crop.png)
-- [Phone preview and picture tools](previews/video-crop/mobile-preview.png)
-- [Export dimensions](previews/video-crop/export-dialog.png)
-- [Screenshot dimensions](previews/video-crop/framegrab-dialog.png)
+The runner writes fresh screenshots to `build/browser-export/crop`. CI uploads
+these as the `video-crop-previews` artifact, retained for seven days. Reviewed
+3.1.0 UI previews are attached to [PR #305](https://github.com/TechSquidTV/Cliparr/pull/305).
+These are reference images, not pixel-snapshot assertions; generated captures
+remain outside the source tree.
 
 Physical iOS Safari and Android Chrome checks remain a release gate; emulated
 touch coverage does not replace those checks.
