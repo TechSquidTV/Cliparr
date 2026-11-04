@@ -96,6 +96,8 @@
     transparent
   );
   --editor-preview-overlay-foreground: oklch(0.92 0 0);
+  --editor-crop-accent: oklch(1 0 0);
+  --editor-crop-handle-shadow: 0 1px 3px rgb(0 0 0 / 55%);
   --editor-workspace: color-mix(
     in oklch,
     var(--background) 90%,

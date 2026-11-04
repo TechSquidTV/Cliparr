@@ -77,8 +77,8 @@ export function EditorCropOverlay(properties: Properties) {
     selection.resizable = true;
     selection.precise = true;
     selection.outlined = true;
-    selection.themeColor = "#ffffff";
-    selection.style.outline = "1px solid #ffffff";
+    selection.themeColor = "var(--editor-crop-accent)";
+    selection.style.outline = "1px solid var(--editor-crop-accent)";
     // Use the cancelable change event for clamping. minInset rejects an entire
     // beyond-boundary movement instead of letting the selection reach the edge.
     const draw = new CropperHandle();
@@ -89,6 +89,8 @@ export function EditorCropOverlay(properties: Properties) {
     move.plain = true;
     const grid = new CropperGrid();
     grid.covered = true;
+    grid.themeColor =
+      "color-mix(in srgb, var(--editor-crop-accent) 30%, transparent)";
     grid.setAttribute("aria-hidden", "true");
     selection.append(grid, move);
     const handles: CropperHandle[] = [];
@@ -103,9 +105,30 @@ export function EditorCropOverlay(properties: Properties) {
     canvas.append(shade, draw, selection);
     container.append(canvas);
     for (const handle of handles) {
-      handle.$addStyles(
-        ":host([action$=-resize])::after{width:12px;height:12px;left:16px;top:16px;transform:none;content:'';position:absolute;inset:16px;background:#18181b;box-shadow:0 0 0 2px #fff,0 0 0 3px #18181b;border-radius:2px}",
-      );
+      handle.$addStyles(`
+        :host([action$=-resize])::after {
+          width: 12px;
+          height: 12px;
+          left: 50%;
+          top: 50%;
+          transform: translate(-50%, -50%);
+          background: var(--editor-crop-accent);
+          box-shadow: var(--editor-crop-handle-shadow);
+          border-radius: 50%;
+          transition: transform var(--motion-duration-fast) var(--motion-easing-standard);
+        }
+        @media (hover: hover) and (pointer: fine) {
+          :host([action$=-resize]:hover)::after {
+            transform: translate(-50%, -50%) scale(1.15);
+          }
+        }
+        :host([action$=-resize]:active)::after {
+          transform: translate(-50%, -50%) scale(0.9);
+        }
+        @media (prefers-reduced-motion: reduce) {
+          :host([action$=-resize])::after { transition: none; }
+        }
+      `);
     }
     let synchronizing = false;
     let correcting = false;
