@@ -329,12 +329,12 @@ export function resolveExportOutputDimensions(
     region && format !== "gif"
       ? Math.max(2, Math.floor(size / 2) * 2)
       : Math.max(1, Math.round(size));
-  const height = align(requestedOutputHeight);
-  const width = align(
-    Math.max(1, Math.round((picture.width / picture.height) * height)),
-  );
-
-  return { width, height };
+  const requestedOutputWidth =
+    (picture.width / picture.height) * requestedOutputHeight;
+  return {
+    width: align(Math.max(1, Math.round(requestedOutputWidth))),
+    height: align(requestedOutputHeight),
+  };
 }
 
 export function formatExportByteSize(bytes: number) {

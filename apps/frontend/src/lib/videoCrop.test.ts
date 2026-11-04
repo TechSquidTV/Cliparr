@@ -67,6 +67,54 @@ void test("rounds edges inside the picture and keeps tiny selections nonempty", 
   );
 });
 
+void test("aligns native crop dimensions independently without shrinking the other axis", () => {
+  for (const [width, height, expected] of [
+    [1000, 101, { width: 1000, height: 100 }],
+    [101, 1000, { width: 100, height: 1000 }],
+    [1001, 101, { width: 1000, height: 100 }],
+    [1, 3, { width: 2, height: 2 }],
+  ] as const) {
+    const region = {
+      ...crop,
+      x: 0,
+      y: 0,
+      width: width / source.width,
+      height: height / source.height,
+    };
+    assert.deepEqual(
+      resolveExportOutputDimensions(
+        source,
+        "original",
+        "mp4",
+        undefined,
+        region,
+      ),
+      expected,
+    );
+  }
+  const wideCrop = {
+    ...crop,
+    x: 0,
+    y: 0,
+    width: 1000 / source.width,
+    height: 101 / source.height,
+  };
+  assert.deepEqual(
+    resolveExportOutputDimensions(source, "720", "mp4", undefined, wideCrop),
+    { width: 7128, height: 720 },
+  );
+  assert.deepEqual(
+    resolveExportOutputDimensions(
+      source,
+      "original",
+      "gif",
+      undefined,
+      wideCrop,
+    ),
+    { width: 1000, height: 101 },
+  );
+});
+
 void test("keeps native full-frame copies unchanged and caps cropped GIF height", () => {
   const full = { ...crop, x: 0, y: 0, width: 1, height: 1 };
   assert.equal(resolveVideoCrop(full, source), null);
