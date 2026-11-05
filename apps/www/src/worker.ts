@@ -1,3 +1,4 @@
+import { audioRangeResponse } from "@/lib/audioRangeResponse";
 import { markdownAssetPath, prefersMarkdown } from "@/lib/markdown";
 import { notFoundMarkdown } from "@/lib/notFound";
 import { canonicalSiteUrl } from "@/lib/structuredData";
@@ -18,6 +19,14 @@ export default {
           headers: { "Cache-Control": "no-store" },
         },
       );
+    }
+    // Workers Static Assets ignores Range; browser audio seeking needs 206 responses.
+    if (
+      ["GET", "HEAD"].includes(request.method) &&
+      url.pathname.startsWith("/audio/") &&
+      url.pathname.endsWith(".mp3")
+    ) {
+      return audioRangeResponse(request, await env.ASSETS.fetch(request));
     }
     const directMarkdown = url.pathname.endsWith(".md");
     if (

@@ -9,6 +9,8 @@ import { defineConfig } from "astro/config";
 
 // Astro loads configuration before resolving the app's path aliases.
 // eslint-disable-next-line no-restricted-imports
+import audioAssetHeaders from "./src/lib/audioAssetHeaders";
+// eslint-disable-next-line no-restricted-imports
 import markdownExport from "./src/lib/markdownExport";
 
 const configDirectory = import.meta.dirname;
@@ -37,6 +39,7 @@ export default defineConfig({
       },
     }),
     sentry(),
+    audioAssetHeaders(),
     markdownExport(),
   ],
   vite: {
