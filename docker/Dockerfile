@@ -6,7 +6,7 @@
 # stage resolves to the target platform. The development and capture targets
 # are built for the host platform in every supported flow, where the build
 # platform is the target platform.
-FROM --platform=$BUILDPLATFORM node:24.22.2-bookworm-slim@sha256:c86ecead9e55a5210ac1727de38a4ca840bf03dcaf34dc9749addbf383b1920c AS toolchain
+FROM --platform=$BUILDPLATFORM node:24.22.2-bookworm-slim@sha256:01d566e8d94d8c619591d78652babfccd3c6992a3dffa9ed5ab39e11cf6c70e9 AS toolchain
 ENV PNPM_HOME=/pnpm
 ENV PATH=$PNPM_HOME:$PATH
 ENV npm_config_store_dir=/pnpm/store
@@ -92,7 +92,7 @@ WORKDIR /workspace/tools/www-assets
 USER node
 CMD ["node", "src/record.ts"]
 
-FROM gcr.io/distroless/nodejs24-debian13:nonroot@sha256:a6c34457f6da4295807e051411c7783739c65b997a324fed14e4fa292615ae91 AS production
+FROM gcr.io/distroless/nodejs24-debian13:nonroot@sha256:b8cec4b2f2126ff7bd034ec9ac207ffb3272667dfdc48376e3b035d3270549ba AS production
 LABEL org.opencontainers.image.title="Cliparr" \
   org.opencontainers.image.description="Instant media clipper for Plex and Jellyfin servers." \
   org.opencontainers.image.source="https://github.com/techsquidtv/cliparr" \
