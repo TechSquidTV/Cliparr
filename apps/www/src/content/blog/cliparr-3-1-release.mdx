@@ -1,0 +1,83 @@
+---
+title: "Cliparr 3.1: video cropping enters a new dimension"
+seoTitle: "Cliparr 3.1: video cropping enters a new dimension"
+description: "Reframe your clips with freeform cropping, aspect-ratio presets, and precise pixel controls. Cliparr 3.1 brings cropping to video, GIFs, and screenshots."
+# Draft: confirm the publication date before merging.
+publishedAt: "2026-11-05"
+author:
+  name: KyleTryon
+  url: https://github.com/KyleTryon
+tags:
+  - engineering
+---
+
+Cliparr is going 4D, through time _and space_. Up until now, Cliparr only allowed you to clip the _timing_ of a video segment, but now, Cliparr can _crop_ your content too!
+
+**Cliparr 3.1 adds video cropping**, adds simple crop controls with free-form rectangles or pre-defined aspect ratios.
+
+## Pick the moment, then frame it
+
+Cliparr's sidebar has once again been turned back into the properties side panel, after briefly becoming an exclusive subtitles area. There are now two sections for the sidebar; the old subtitles area, and the new cropping properties.
+
+<figure class="my-8 overflow-hidden rounded-lg border border-border bg-card">
+  <video
+    controls
+    muted
+    playsinline
+    loop
+    preload="none"
+    poster="/blog/cliparr-3-1-release/crop-demo-poster.webp"
+    width="1286"
+    height="1080"
+    aria-label="Silent demonstration of selecting a crop and reviewing its export settings in Cliparr"
+    class="block h-auto w-full"
+  >
+    <source src="/blog/cliparr-3-1-release/crop-demo.mp4" type="video/mp4" />
+    <a href="/blog/cliparr-3-1-release/crop-demo.mp4">
+      Download the cropping demo.
+    </a>
+  </video>
+  <figcaption class="px-4 py-3 text-sm text-muted-foreground">
+    Cropping NASA's{" "}
+    <a href="https://www.youtube.com/shorts/l6PAhdKxa2c">
+      Six Years of NASA's Mars Curiosity Rover
+    </a>{" "}
+    in Cliparr. Source video by NASA, downloaded with{" "}
+    <a href="https://github.com/techsquidtv/hermes">Hermes</a>.
+  </figcaption>
+</figure>
+
+Perfect for clipping part of a video from a vertical video to make a proper gif.
+Or, simply focusing on what you want to see.
+
+You'll see there is a new dedicated crop tool in the toolbar which will toggle the crop adjustment interface.
+
+## Freeform when you want it, precise when you need it
+
+By default, as you see above, you are able to free-draw a rectangle to fit your content. You can make exact pixel adjustments in the side panel.
+
+For small changes, focus the selection and use the arrow keys to move it one source pixel at a time. Hold **Shift** to move ten pixels. In Free mode, holding Shift while dragging a resize handle preserves the selection's current proportions.
+
+Crop changes support **undo and redo**, and your crop is saved with the draft. You can try a tighter frame, change your mind, and come back to the edit later.
+
+On a phone, crop settings sit below the preview. Touch controls let you adjust the selection directly, while the numeric fields remain available for fine adjustments. Small selections hide side handles to keep the touch targets separate; the corners still work.
+
+## A smoother path to the edit
+
+There are a few more improvements around the editor in 3.1:
+
+- **Expandable Properties panels.** The desktop sidebar groups Subtitles and Crop into expandable panels, keeping their controls together while you work.
+
+- **Clearer playback loading.** Each source shows whether it is connecting, finding playback, or preparing playback details. Ready sources remain available while others continue loading.
+- **Faster Plex connection attempts.** Cliparr tries server addresses in a staggered sequence, reducing the wait when an earlier address is slow or unavailable.
+- **A warning before leaving an active export.** Navigating away from the editor asks for confirmation. Reloading or closing the tab also requests a browser warning.
+- **FLAC export fixes.** Valid standalone FLAC files with short final frames export in full. Incomplete sources are still rejected instead of producing silently truncated audio.
+- **Timeline improvements.** Playback and scrubbing receive fixes around playback boundaries and suspended audio contexts.
+
+## Faster builds and maintenance
+
+For anyone building Cliparr from source, Docker now compiles the app on the builder's native architecture. Producing an ARM64 image no longer needs to emulate dependency installation and frontend/server compilation. CI builds and smoke-tests both AMD64 and ARM64 production images.
+
+This release also refreshes application dependencies and container images, including the Node base image with the APT security fix, and updates the container security scanner. The deployment examples also include stronger defaults.
+
+For the full release details, see the [Changelog](/changelog/).
