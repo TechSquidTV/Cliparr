@@ -49,6 +49,34 @@ try {
         },
       });
       await page.goto(`http://127.0.0.1:${address.port}/tests/${site}.html`);
+      if (site === "ui-controls") {
+        const sidebar = page.getByTestId("sidebar-accordion");
+        const crop = sidebar.getByRole("button", { name: "Crop", exact: true });
+        const samples = await crop.evaluate(async (button) => {
+          const heights = [];
+          button.click();
+          const start = performance.now();
+          while (performance.now() - start < 350) {
+            heights.push(button.getBoundingClientRect().top);
+            await new Promise(globalThis.requestAnimationFrame);
+          }
+          return heights;
+        });
+        const first = samples[0];
+        const last = samples.at(-1);
+        assert.ok(first - last > 200, "opening crop reallocates sidebar space");
+        if (reducedMotion === "no-preference") {
+          assert.ok(
+            samples.filter((top) => top < first - 5 && top > last + 5).length >=
+              3,
+            "sidebar passes through intermediate positions during reveal",
+          );
+        }
+        await crop.click();
+        await sidebar
+          .getByRole("button", { name: "Subtitles", exact: true })
+          .click();
+      }
       const trigger = page.getByRole("button", { name: "Open controls" });
       await trigger.click();
       const dialog = page.getByRole("dialog");

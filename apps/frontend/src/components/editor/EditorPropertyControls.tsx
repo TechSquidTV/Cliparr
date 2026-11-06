@@ -79,7 +79,8 @@ export function EditorPropertyAccordionItem<Value extends string>({
       disabled={disabled}
       className={cn(
         "border-b border-editor-border/80",
-        fillAvailable && "flex min-h-0 shrink-0 flex-col data-[open]:flex-1",
+        fillAvailable &&
+          "flex min-h-0 shrink-0 grow-0 flex-col transition-[flex-grow] duration-250 ease-in-out motion-reduce:transition-none data-[open]:grow",
       )}
     >
       <Accordion.Header
@@ -102,7 +103,7 @@ export function EditorPropertyAccordionItem<Value extends string>({
       <Accordion.Panel
         className={
           fillAvailable
-            ? "min-h-0 flex-1 overflow-hidden"
+            ? "h-0 min-h-0 flex-[1_1_0px] overflow-hidden opacity-100 transition-opacity duration-250 ease-in-out motion-reduce:transition-none data-ending-style:opacity-0 data-starting-style:opacity-0"
             : "h-[var(--accordion-panel-height)] overflow-hidden transition-[height] duration-150 ease-out motion-reduce:transition-none data-ending-style:h-0 data-starting-style:h-0"
         }
       >

@@ -853,6 +853,14 @@ try {
             .getAttribute("aria-expanded"),
           "false",
         );
+        // aria-expanded changes before the sidebar's size transition finishes.
+        await aside.evaluate(async (element) => {
+          await Promise.all(
+            element
+              .getAnimations({ subtree: true })
+              .map((animation) => animation.finished.catch(() => {})),
+          );
+        });
         const cropHeader = await aside
           .getByRole("button", { name: "Crop", exact: true })
           .boundingBox();
