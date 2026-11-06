@@ -1,6 +1,12 @@
-import { SlidersHorizontal } from "lucide-react";
+import {
+  Captions,
+  Crop,
+  Scissors,
+  SlidersHorizontal,
+  Volume2,
+} from "lucide-react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
-import type { ReactNode } from "react";
+import { type ReactNode, useRef } from "react";
 
 import {
   EDITOR_PANEL_SIZES,
@@ -39,11 +45,13 @@ export function EditorPreviewPane({
   variant,
   children,
   cropEditing = false,
+  pictureAspectRatio = 16 / 9,
 }: {
   error: string | null;
   variant: EditorLayoutVariant;
   children: ReactNode;
   cropEditing?: boolean;
+  pictureAspectRatio?: number;
 }) {
   const reduceMotion = useReducedMotion();
   const stateTransition = motionTransitionFor("fast", reduceMotion);
@@ -57,8 +65,13 @@ export function EditorPreviewPane({
           : "relative w-full flex-none",
         variant === "mobile" &&
           !cropEditing &&
-          "aspect-video min-h-editor-preview-min sm:min-h-editor-preview-sm-min",
+          "max-h-[var(--editor-preview-height,46dvh)]",
       )}
+      style={
+        variant === "mobile" && !cropEditing
+          ? { aspectRatio: pictureAspectRatio }
+          : undefined
+      }
     >
       {variant === "mobile" ? (
         <div
@@ -117,17 +130,12 @@ export function EditorTimelinePane({
       className={
         variant === "desktop"
           ? "flex h-full min-h-0 flex-col overflow-hidden border border-editor-border bg-editor-panel text-foreground"
-          : "shrink-0 overflow-hidden border border-editor-border bg-editor-panel text-foreground"
+          : "flex h-full min-h-0 flex-col overflow-hidden bg-editor-panel text-foreground"
       }
     >
       {controls}
 
-      <div
-        className={
-          variant === "desktop" ? "relative min-h-0 flex-1" : "relative"
-        }
-        aria-busy={!hasDuration}
-      >
+      <div className={"relative min-h-0 flex-1"} aria-busy={!hasDuration}>
         <div
           className={`isolate h-full ${hasDuration ? "" : "opacity-40"}`}
           inert={!hasDuration}
@@ -276,31 +284,127 @@ export function EditorDesktopLayout({
   );
 }
 
+const mobileTools = {
+  trim: { label: "Trim", icon: Scissors },
+  subtitles: { label: "Subtitles", icon: Captions },
+  crop: { label: "Crop", icon: Crop },
+  playback: { label: "Playback", icon: Volume2 },
+} as const;
+export type EditorTool = keyof typeof mobileTools;
+
 export function EditorMobileLayout({
   error,
   previewPane,
   timelinePane,
-  subtitlePanel,
-  cropPanel,
+  tool,
+  onToolChange,
+  onDone,
+  inspector,
+  moreControl,
+  cropDisabled,
+  cropTransport,
 }: {
   error: string | null;
   previewPane: ReactNode;
   timelinePane: ReactNode;
-  subtitlePanel: ReactNode;
-  cropPanel?: ReactNode;
+  tool: EditorTool | null;
+  onToolChange: (tool: EditorTool) => void;
+  onDone: () => void;
+  inspector: ReactNode;
+  moreControl: ReactNode;
+  cropDisabled: boolean;
+  cropTransport: ReactNode;
 }) {
+  const inspectorReference = useRef<HTMLElement>(null);
   return (
-    <div className="flex min-h-full flex-col gap-3">
+    <div
+      data-tool={tool ?? undefined}
+      className="editor-mobile-workspace flex h-full min-h-0 flex-col overflow-y-auto"
+    >
       {error && (
-        <div className="border border-destructive/35 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+        <div
+          role="status"
+          className="shrink-0 border border-destructive/35 bg-destructive/10 px-3 py-2 text-sm text-destructive"
+        >
           {error}
         </div>
       )}
-
-      {previewPane}
-      {cropPanel}
-      <div hidden={Boolean(cropPanel)}>{timelinePane}</div>
-      <div hidden={Boolean(cropPanel)}>{subtitlePanel}</div>
+      <div className="editor-mobile-preview shrink-0">{previewPane}</div>
+      <div
+        className={`editor-mobile-timeline flex-1 ${tool ? "min-h-52" : "min-h-72"}`}
+        hidden={tool === "crop"}
+        inert={tool === "crop"}
+      >
+        {timelinePane}
+      </div>
+      {tool === "crop" && (
+        <div className="editor-mobile-crop-transport shrink-0">
+          {cropTransport}
+        </div>
+      )}
+      <section
+        ref={inspectorReference}
+        id="editor-mobile-inspector"
+        tabIndex={-1}
+        aria-label={tool ? mobileTools[tool].label : "Editor tool"}
+        hidden={!tool}
+        className={cn(
+          "editor-mobile-inspector flex min-h-0 shrink-0 flex-col border-t border-editor-border bg-editor-panel",
+          tool === "crop" ? "flex-1" : "h-60",
+          tool === "subtitles" && "h-80",
+        )}
+      >
+        {tool && tool !== "crop" && tool !== "subtitles" && (
+          <div className="flex h-11 shrink-0 items-center justify-between px-3">
+            <h2 className="text-sm font-medium">{mobileTools[tool].label}</h2>
+            <button
+              type="button"
+              onClick={onDone}
+              className="editor-control-focus min-h-11 px-3 text-sm text-primary"
+            >
+              Done
+            </button>
+          </div>
+        )}
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
+          {inspector}
+        </div>
+      </section>
+      <nav
+        aria-label="Editing tools"
+        className="editor-mobile-tools grid min-h-16 shrink-0 grid-cols-[repeat(auto-fit,minmax(min(100%,3.5rem),1fr))] border-t border-editor-border bg-editor-panel px-1"
+      >
+        {(Object.keys(mobileTools) as EditorTool[]).map((key) => {
+          const { label, icon: Icon } = mobileTools[key];
+          return (
+            <button
+              key={key}
+              id={`editor-tool-${key}`}
+              type="button"
+              onClick={(event) => {
+                onToolChange(key);
+                if (event.detail === 0) {
+                  queueMicrotask(() => {
+                    const inspector = inspectorReference.current;
+                    if (inspector && !inspector.hidden) {
+                      inspector.focus({ preventScroll: true });
+                    }
+                  });
+                }
+              }}
+              disabled={key === "crop" && cropDisabled}
+              aria-label={key === "crop" ? "Crop video" : label}
+              aria-expanded={tool === key}
+              aria-controls="editor-mobile-inspector"
+              className="editor-control-focus flex min-h-14 min-w-0 flex-col items-center justify-center gap-1 text-xs text-muted-foreground aria-expanded:text-primary disabled:opacity-40"
+            >
+              <Icon className="h-5 w-5" />
+              <span>{label}</span>
+            </button>
+          );
+        })}
+        {moreControl}
+      </nav>
     </div>
   );
 }

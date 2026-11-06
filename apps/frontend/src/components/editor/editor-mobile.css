@@ -1,0 +1,100 @@
+/* App safe areas are already excluded from the editor's available height. */
+.editor-session {
+  height: var(--editor-visible-height, var(--app-viewport-height));
+}
+.editor-session[data-input-viewport] {
+  translate: 0 var(--editor-visible-offset, 0px);
+}
+.editor-mobile-inspector > div:last-child {
+  touch-action: pan-y pinch-zoom;
+}
+
+.editor-mobile-workspace {
+  --editor-preview-height: calc(
+    var(--editor-visible-height, var(--app-viewport-height)) * 0.46
+  );
+}
+.editor-mobile-workspace[data-tool] {
+  --editor-inspector-space: 36rem;
+  --editor-preview-height: min(
+    calc(var(--editor-visible-height, var(--app-viewport-height)) * 0.35),
+    max(
+      8rem,
+      calc(
+        var(--editor-visible-height, var(--app-viewport-height)) -
+          var(--editor-inspector-space)
+      )
+    )
+  );
+}
+.editor-mobile-workspace[data-tool="subtitles"] {
+  --editor-inspector-space: 41rem;
+}
+
+@media (min-width: 40rem) and (max-width: 63.999rem) and (max-height: 32rem) {
+  .editor-mobile-workspace {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr) minmax(0, 1fr) auto;
+    overflow: hidden;
+  }
+  .editor-mobile-preview {
+    grid-area: 1 / 1 / 3 / 2;
+    display: flex;
+    min-height: 0;
+  }
+  .editor-mobile-preview [data-editor-preview-stage] {
+    height: 100%;
+    max-height: none;
+    --spacing-editor-crop-preview-max: calc(
+      var(--app-viewport-height) - 10.5rem
+    );
+  }
+  .editor-mobile-timeline {
+    grid-area: 1 / 2 / 3 / 3;
+    min-height: 0;
+  }
+  .editor-mobile-workspace[data-tool] .editor-mobile-timeline {
+    grid-row: 1 / 2;
+  }
+  .editor-mobile-inspector {
+    grid-area: 2 / 2 / 3 / 3;
+    height: auto;
+    min-height: 0;
+  }
+  .editor-mobile-workspace[data-tool="crop"] {
+    grid-template-rows: minmax(0, 1fr) 3rem auto;
+  }
+  .editor-mobile-workspace[data-tool="crop"] .editor-mobile-preview {
+    grid-row: 1 / 2;
+  }
+  .editor-mobile-crop-transport {
+    grid-area: 2 / 1 / 3 / 2;
+  }
+  .editor-mobile-workspace[data-tool="crop"] .editor-mobile-inspector {
+    grid-row: 1 / 3;
+  }
+  .editor-mobile-tools {
+    grid-area: 3 / 1 / 4 / 3;
+  }
+}
+
+.editor-session[data-input-viewport] .editor-mobile-workspace {
+  display: flex;
+  overflow-y: auto;
+  --editor-preview-height: calc(var(--editor-visible-height) * 0.25);
+}
+.editor-session[data-input-viewport] .editor-mobile-timeline {
+  min-height: 3rem;
+  max-height: 3rem;
+  flex: none;
+  overflow: hidden;
+}
+.editor-session[data-input-viewport] .editor-mobile-inspector {
+  height: auto;
+  min-height: 9rem;
+  flex: 1;
+}
+.editor-session[data-input-viewport] .editor-mobile-tools {
+  display: none;
+}

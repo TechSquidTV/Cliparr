@@ -5,8 +5,9 @@ import {
   RotateCcw,
   Undo2,
 } from "lucide-react";
-import { type ReactNode, useRef, useState } from "react";
+import { type ReactNode, type RefObject, useRef, useState } from "react";
 
+import { EditorFramegrabControl } from "#/components/editor/EditorControls";
 import type { EditorLayoutVariant } from "#/components/editor/EditorLayout";
 import type { useEditorHistory } from "#/components/editor/useEditorHistory";
 import { buttonClassName } from "#/components/ui/control-styles";
@@ -38,6 +39,43 @@ const shortcuts = [
   ["Redo", "Ctrl / ⌘ + Shift + Z (or Ctrl + Y)"],
 ] as const;
 
+export function EditorHistoryControls({
+  history,
+  variant,
+}: {
+  history: ReturnType<typeof useEditorHistory>;
+  variant: EditorLayoutVariant;
+}) {
+  const mobile = variant === "mobile";
+  const className = mobile
+    ? "editor-control-focus flex h-11 w-11 shrink-0 items-center justify-center text-muted-foreground disabled:opacity-40"
+    : buttonClassName({ tone: "secondary", size: "compact" });
+  return (
+    <>
+      <button
+        type="button"
+        onClick={history.undo}
+        disabled={!history.canUndo}
+        aria-label="Undo"
+        className={className}
+      >
+        <Undo2 className="h-4 w-4" />
+        {!mobile && "Undo"}
+      </button>
+      <button
+        type="button"
+        onClick={history.redo}
+        disabled={!history.canRedo}
+        aria-label="Redo"
+        className={className}
+      >
+        <Redo2 className="h-4 w-4" />
+        {!mobile && "Redo"}
+      </button>
+    </>
+  );
+}
+
 export function EditorEditingTools({
   history,
   variant,
@@ -45,6 +83,9 @@ export function EditorEditingTools({
   resetDisabled,
   draftNotice,
   playbackSourceControl,
+  title,
+  framegrab,
+  menuTriggerReference,
 }: {
   history: ReturnType<typeof useEditorHistory>;
   variant: EditorLayoutVariant;
@@ -52,14 +93,19 @@ export function EditorEditingTools({
   resetDisabled: boolean;
   draftNotice: string | null;
   playbackSourceControl: ReactNode;
+  title?: string;
+  framegrab?: {
+    onClick: () => void;
+    disabledReason: string | null;
+    open: boolean;
+  };
+  menuTriggerReference: RefObject<HTMLButtonElement | null>;
 }) {
   const [helpOpen, setHelpOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [resetOpen, setResetOpen] = useState(false);
   const cancelResetReference = useRef<HTMLButtonElement>(null);
-  const menuTriggerReference = useRef<HTMLButtonElement>(null);
   const mobile = variant === "mobile";
-  const historyButtonClassName = `${buttonClassName({ tone: "secondary", size: "compact" })} ${mobile ? "min-h-11 w-11 p-0" : ""}`;
   const shortcutsButton = (
     <button
       type="button"
@@ -125,26 +171,13 @@ export function EditorEditingTools({
   );
   return (
     <div
-      className={`flex flex-wrap items-center gap-2 border-b border-editor-border bg-editor-panel px-3 ${mobile ? "py-1" : "py-2"}`}
+      className={
+        mobile
+          ? "contents"
+          : "flex shrink-0 flex-wrap items-center gap-2 border-b border-editor-border bg-editor-panel px-3 py-2"
+      }
     >
-      <button
-        type="button"
-        onClick={history.undo}
-        disabled={!history.canUndo}
-        aria-label="Undo"
-        className={historyButtonClassName}
-      >
-        <Undo2 className="h-4 w-4" /> {!mobile && "Undo"}
-      </button>
-      <button
-        type="button"
-        onClick={history.redo}
-        disabled={!history.canRedo}
-        aria-label="Redo"
-        className={historyButtonClassName}
-      >
-        <Redo2 className="h-4 w-4" /> {!mobile && "Redo"}
-      </button>
+      {!mobile && <EditorHistoryControls history={history} variant={variant} />}
       <span role="status" className="sr-only">
         {draftNotice}
       </span>
@@ -156,15 +189,16 @@ export function EditorEditingTools({
                 ref={menuTriggerReference}
                 type="button"
                 aria-label="More editor options"
-                className={`${historyButtonClassName} ml-auto`}
+                className="editor-control-focus flex min-h-14 min-w-0 flex-col items-center justify-center gap-1 text-xs text-muted-foreground"
               >
-                <MoreHorizontal className="h-4 w-4" />
+                <MoreHorizontal className="h-5 w-5" />
+                <span>More</span>
               </button>
             }
           />
           <DrawerContent
             className="border-editor-border bg-editor-panel"
-            finalFocus={() => !resetOpen && !helpOpen}
+            finalFocus={() => !resetOpen && !helpOpen && !framegrab?.open}
           >
             <DrawerHeader>
               <DrawerTitle>Editor options</DrawerTitle>
@@ -173,6 +207,24 @@ export function EditorEditingTools({
                 keyboard shortcuts.
               </DrawerDescription>
             </DrawerHeader>
+            {title && <p className="break-words px-3 pb-3 text-sm">{title}</p>}
+            {draftNotice && (
+              <p className="px-3 pb-3 text-xs text-muted-foreground">
+                {draftNotice}
+              </p>
+            )}
+            {framegrab && (
+              <div className="px-3 pb-3">
+                <EditorFramegrabControl
+                  labelled
+                  disabledReason={framegrab.disabledReason}
+                  onClick={() => {
+                    setMenuOpen(false);
+                    framegrab.onClick();
+                  }}
+                />
+              </div>
+            )}
             {playbackSourceControl}
             {shortcutsButton}
             {resetButton}

@@ -92,6 +92,8 @@ export function useEditorSubtitles({
   const textEditReference = useRef<SubtitleTextEdit | null>(null);
   const [textError, setTextError] = useState<string | null>(null);
   const [focusRevision, setFocusRevision] = useState(0);
+  const textComposing = useRef(false);
+  const textCommitPending = useRef(false);
   const history = useEditorHistory(engine, mediaReady && initialized);
   const { runAction } = history;
   const download = useSubtitleCues({
@@ -163,6 +165,11 @@ export function useEditorSubtitles({
   ]);
 
   const commitText = useCallback(() => {
+    if (textComposing.current) {
+      textCommitPending.current = true;
+      return;
+    }
+    textCommitPending.current = false;
     const edit = textEditReference.current;
     if (!edit) {
       return;
@@ -171,7 +178,9 @@ export function useEditorSubtitles({
     setTextEdit(null);
     const normalized = normalizeSubtitleCueText(edit.text);
     if (!normalized) {
-      setTextError("Enter subtitle text, or use Delete subtitle to remove it.");
+      setTextError(
+        "Blank text was not saved. The previous subtitle text was restored. Use Delete subtitle to remove it.",
+      );
       return;
     }
     const clip = engine.geometry.getClip(edit.clipId)?.clip;
@@ -186,7 +195,6 @@ export function useEditorSubtitles({
     () =>
       engine.on("clip:select", () => {
         commitText();
-        setTextError(null);
       }),
     [commitText, engine],
   );
@@ -378,7 +386,6 @@ export function useEditorSubtitles({
         Math.min(Math.max(index + offset, 0), subtitleClipEntries.length - 1)
       ]?.clip.id ?? null,
     );
-    setTextError(null);
   }
 
   return {
@@ -454,6 +461,15 @@ export function useEditorSubtitles({
       setTextError(null);
     },
     commitText,
+    beginTextComposition: () => {
+      textComposing.current = true;
+    },
+    endTextComposition: () => {
+      textComposing.current = false;
+      if (textCommitPending.current) {
+        commitText();
+      }
+    },
     handleSelectedSubtitleStartCommit: (time: number) =>
       trimSubtitle("start", time),
     handleSelectedSubtitleEndCommit: (time: number) =>

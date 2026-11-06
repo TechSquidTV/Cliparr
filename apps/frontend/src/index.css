@@ -1,5 +1,6 @@
 @import "tailwindcss";
 @import "./components/ui/styles.css";
+@import "./components/editor/editor-mobile.css";
 
 @custom-variant dark (&:is(.dark *));
 
@@ -447,11 +448,13 @@
   --text-ui-micro--line-height: calc(0.875 / 0.625);
   --text-ui-label: 0.6875rem;
   --text-ui-label--line-height: calc(1 / 0.6875);
+  /* Editor properties use readable mobile labels and distinct input sizing. */
+  --text-editor-property: 0.875rem;
+  --text-editor-property--line-height: calc(1.25 / 0.875);
+  --text-editor-input: 1rem;
+  --text-editor-input--line-height: 1.5;
   --text-editor-preview-fallback: var(--editor-preview-fallback-font-size);
   --spacing-source-provider-panel: 22rem;
-  --spacing-editor-properties-min: 28rem;
-  --spacing-editor-preview-min: 12rem;
-  --spacing-editor-preview-sm-min: 16rem;
   --spacing-editor-crop-preview-max: 45dvh;
   --spacing-editor-export-sidebar: 18rem;
   --spacing-editor-export-template-label: 12rem;

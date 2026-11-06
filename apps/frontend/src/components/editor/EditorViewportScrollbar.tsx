@@ -165,6 +165,7 @@ export function EditorViewportScrollbar() {
       }}
     >
       <Timeline.ViewportScrollbarThumb
+        aria-label="Timeline viewport"
         style={{ minWidth: 0 }}
         aria-valuemin={0}
         aria-valuemax={geometry.scrollableDuration}

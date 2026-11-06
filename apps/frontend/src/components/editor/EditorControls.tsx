@@ -10,9 +10,10 @@ import {
   ZoomIn,
   ZoomOut,
 } from "lucide-react";
-import { type CSSProperties, memo, useMemo } from "react";
+import { type CSSProperties, memo, type ReactNode, useMemo } from "react";
 
 import { EditorEditableTimecode } from "@/components/editor/EditorEditableTimecode";
+import type { EditorLayoutVariant } from "@/components/editor/EditorLayout";
 import { EditorPreviewTimecode } from "@/components/editor/EditorPreviewTimecode";
 import {
   formatTime,
@@ -27,13 +28,18 @@ import {
   DrawerTitle,
   DrawerTrigger,
 } from "@/components/ui/drawer";
-import { handleHorizontalScrollKeyDown } from "@/components/ui/scroll-area";
 import { ControlTooltip } from "@/components/ui/tooltip";
 
-type EditorControlsVariant = "desktop" | "mobile";
+export type EditorControlsSection = "workspace" | "trim" | "playback";
 
 interface EditorControlsProperties {
-  variant?: EditorControlsVariant;
+  variant?: EditorLayoutVariant;
+  section?: EditorControlsSection;
+  historyControls?: ReactNode;
+  onTrimClick?: () => void;
+  inspectorOpen?: boolean;
+  trackNamesVisible?: boolean;
+  onTrackNamesVisibleChange?: (visible: boolean) => void;
   playing: boolean;
   loadingPreview: boolean;
   togglePlay: () => void;
@@ -65,6 +71,12 @@ interface EditorControlsProperties {
 
 export const EditorControls = memo(function EditorControls({
   variant = "desktop",
+  section = "workspace",
+  historyControls,
+  onTrimClick,
+  inspectorOpen = false,
+  trackNamesVisible = false,
+  onTrackNamesVisibleChange,
   playing,
   loadingPreview,
   togglePlay,
@@ -112,13 +124,9 @@ export const EditorControls = memo(function EditorControls({
     }),
     [duration],
   );
-  const mobileClipMetricStyle: CSSProperties = {
-    minWidth: `max(8rem, ${formatTimecodeInput(duration).length + 2}ch)`,
-  };
   const volumeRangeFillPercent = `${
     Math.min(Math.max(muted ? 0 : volume, 0), 1) * 100
   }%`;
-  const framegrabDisabled = Boolean(framegrabDisabledReason);
   let playControlLabel = "Play preview";
   if (loadingPreview) {
     playControlLabel = "Preview is loading.";
@@ -134,7 +142,8 @@ export const EditorControls = memo(function EditorControls({
         disabled={loadingPreview}
         aria-label={playing ? "Pause preview" : "Play preview"}
         className={editorIconButtonClassName({
-          size: variant === "mobile" ? "lg" : "md",
+          variant: variant === "mobile" ? "ghost" : "outline",
+          className: variant === "mobile" ? "h-11 w-11" : undefined,
         })}
       >
         {playing ? (
@@ -174,7 +183,10 @@ export const EditorControls = memo(function EditorControls({
         <button
           type="button"
           onClick={() => setMuted((current) => !current)}
-          className={editorIconButtonClassName()}
+          className={editorIconButtonClassName({
+            variant: variant === "mobile" ? "ghost" : "outline",
+            className: variant === "mobile" ? "h-11 w-11" : undefined,
+          })}
           aria-label={muted || volume === 0 ? "Unmute preview" : "Mute preview"}
         >
           {muted || volume === 0 ? (
@@ -195,7 +207,7 @@ export const EditorControls = memo(function EditorControls({
           setVolume(nextVolume);
           setMuted(nextVolume === 0);
         }}
-        className="cliparr-editor-range w-24 sm:w-28"
+        className="cliparr-editor-range min-h-11 w-24 sm:w-28 lg:min-h-6"
         aria-label="Preview volume"
         style={
           {
@@ -245,22 +257,10 @@ export const EditorControls = memo(function EditorControls({
     </div>
   );
   const framegrabControl = (
-    <ControlTooltip
-      label={framegrabDisabledReason ?? "Export current frame"}
-      disabled={framegrabDisabled}
-    >
-      <button
-        type="button"
-        onClick={onFramegrabClick}
-        disabled={framegrabDisabled}
-        className={editorIconButtonClassName({
-          className: "disabled:opacity-45",
-        })}
-        aria-label="Export current preview frame"
-      >
-        <Camera className="h-4 w-4" />
-      </button>
-    </ControlTooltip>
+    <EditorFramegrabControl
+      disabledReason={framegrabDisabledReason}
+      onClick={onFramegrabClick}
+    />
   );
   const pictureTools = (
     <div
@@ -289,7 +289,7 @@ export const EditorControls = memo(function EditorControls({
     </div>
   );
   const rangeActionButtonClassName =
-    "editor-control-focus flex h-8 items-center justify-center gap-1.5 px-2.5 text-xs font-semibold text-muted-foreground transition-colors hover:bg-editor-control-hover hover:text-foreground disabled:cursor-not-allowed disabled:opacity-45";
+    "editor-control-focus flex h-11 lg:h-8 items-center justify-center gap-1.5 px-2.5 text-xs font-semibold text-muted-foreground transition-colors hover:bg-editor-control-hover hover:text-foreground disabled:cursor-not-allowed disabled:opacity-45";
   const rangeActions = (
     <div className="flex items-center overflow-hidden rounded-[var(--radius-control)] border border-editor-border bg-editor-control">
       <ControlTooltip
@@ -341,7 +341,7 @@ export const EditorControls = memo(function EditorControls({
     <>
       {clipMetrics.map((metric) => {
         const label = (
-          <span className="font-sans text-ui-label font-semibold uppercase tracking-[var(--tracking-caps-lg)] text-muted-foreground">
+          <span className="font-sans text-editor-property font-semibold uppercase tracking-[var(--tracking-caps-lg)] text-muted-foreground lg:text-ui-label">
             {metric.label}
           </span>
         );
@@ -350,15 +350,15 @@ export const EditorControls = memo(function EditorControls({
             key={metric.label}
             className={
               variant === "mobile"
-                ? "flex h-11 flex-1 items-center justify-center gap-2 whitespace-nowrap border-r border-editor-border px-2 font-mono last:border-r-0"
+                ? "flex min-h-11 min-w-0 items-center justify-between gap-2 font-mono"
                 : "flex items-center gap-2"
             }
-            style={variant === "mobile" ? mobileClipMetricStyle : undefined}
           >
             {(variant === "desktop" || !metric.onCommit) && label}
             {metric.onCommit ? (
               <EditorEditableTimecode
                 ariaLabel={`${metric.label} time`}
+                tool="trim"
                 buttonClassName={
                   variant === "mobile"
                     ? "h-11 w-full justify-center gap-2 rounded-[var(--radius-control)] text-foreground hover:bg-editor-control-hover"
@@ -372,7 +372,7 @@ export const EditorControls = memo(function EditorControls({
                 disabled={!canEditClipTimecode}
                 inputClassName={
                   variant === "mobile"
-                    ? "h-11 text-base text-right"
+                    ? "h-11 text-editor-input text-right"
                     : "text-right"
                 }
                 onCommit={metric.onCommit}
@@ -408,82 +408,116 @@ export const EditorControls = memo(function EditorControls({
     </>
   );
 
+  if (section === "trim") {
+    return (
+      <div className="space-y-2 p-3">
+        <div className="grid gap-2">{editableClipMetrics}</div>
+        {rangeActions}
+      </div>
+    );
+  }
+  if (section === "playback") {
+    return (
+      <div className="flex flex-wrap items-center justify-between gap-3 p-3">
+        <span className="text-sm">Preview volume</span>
+        {volumeControl}
+        <p className="w-full text-xs text-muted-foreground">
+          Export audio settings are available in Export.
+        </p>
+      </div>
+    );
+  }
   if (variant === "mobile") {
     return (
-      <div className="border-b border-editor-border bg-editor-panel px-3 py-2">
-        <div className="grid grid-cols-[auto_minmax(0,1fr)_auto_auto] items-center gap-2">
-          <div>{playControl}</div>
-          <div className="@container min-w-0 text-center text-sm font-medium">
+      <div className="shrink-0 bg-editor-panel">
+        <div className="flex min-h-12 flex-wrap items-center gap-1 px-2">
+          <div className="@container min-w-0 flex-[1_0_min(100%,10rem)]">
             {previewTimeControl}
           </div>
-          <div className="[&_button]:h-11 [&_button]:w-11">{pictureTools}</div>
-          <Drawer>
-            <DrawerTrigger
-              render={
+          {playControl}
+          {historyControls}
+        </div>
+        {!inspectorOpen && (
+          <>
+            <button
+              type="button"
+              onClick={onTrimClick}
+              aria-label="Edit clip range"
+              className="editor-control-focus flex min-h-11 w-full flex-wrap items-center justify-between gap-x-3 gap-y-1 border-y border-editor-border px-3 py-1 text-xs tabular-nums"
+            >
+              <span>In {formatTime(startTime)}</span>
+              <span>Out {formatTime(endTime)}</span>
+              <span>{formatTime(endTime - startTime)} selected</span>
+            </button>
+            <div className="flex items-center justify-between px-2">
+              <div className="flex">
                 <button
                   type="button"
-                  aria-label="More clip controls"
-                  className={editorIconButtonClassName({ size: "lg" })}
+                  className={rangeActionButtonClassName}
+                  disabled={!canSetClipRange}
+                  onClick={onSetInPoint}
+                  aria-label="Set in point at the playhead"
                 >
-                  <SlidersHorizontal className="h-4 w-4" />
+                  Set in
                 </button>
-              }
-            />
-            <DrawerContent className="border-editor-border bg-editor-panel text-sidebar-foreground">
-              <DrawerHeader className="border-b border-editor-border px-3 text-left">
-                <DrawerTitle>Clip Controls</DrawerTitle>
-                <DrawerDescription className="sr-only">
-                  Additional clip controls
-                </DrawerDescription>
-              </DrawerHeader>
-              <div className="min-h-0 overflow-y-auto px-3 pb-4">
-                <section className="border-b border-editor-border py-3">
-                  <div className="mb-2 text-ui-micro font-semibold uppercase tracking-[var(--tracking-caps-md)] text-muted-foreground">
-                    Playback
-                  </div>
-                  <div className="flex items-center justify-between gap-3">
-                    <span className="text-sm text-sidebar-foreground">
-                      Volume
-                    </span>
-                    <div className="[&_input]:w-36">{volumeControl}</div>
-                  </div>
-                </section>
-                <section className="border-b border-editor-border py-3">
-                  <div className="mb-2 text-ui-micro font-semibold uppercase tracking-[var(--tracking-caps-md)] text-muted-foreground">
-                    Timeline
-                  </div>
-                  <div className="flex items-center justify-between gap-3">
-                    <span className="text-sm text-sidebar-foreground">
-                      Zoom
-                    </span>
-                    {zoomControl}
-                  </div>
-                </section>
+                <button
+                  type="button"
+                  className={rangeActionButtonClassName}
+                  disabled={!canSetClipRange}
+                  onClick={onSetOutPoint}
+                  aria-label="Set out point at the playhead"
+                >
+                  Set out
+                </button>
               </div>
-            </DrawerContent>
-          </Drawer>
-        </div>
-        <div
-          className="mt-2 overflow-x-auto overscroll-x-contain border-y border-editor-border"
-          role="region"
-          aria-label="Clip in, out, and duration"
-          tabIndex={0}
-          onKeyDown={handleHorizontalScrollKeyDown}
-        >
-          <div className="flex w-max min-w-full">{editableClipMetrics}</div>
-        </div>
-        <div className="mt-2 flex items-center justify-between gap-2 [&_button]:min-h-11">
-          {rangeActions}
-          <button
-            type="button"
-            aria-label="Fit selected clip in timeline"
-            disabled={!canSetClipRange || endTime <= startTime}
-            className={`${rangeActionButtonClassName} rounded-[var(--radius-control)] border border-editor-border bg-editor-control`}
-            onClick={onFitSelection}
-          >
-            Fit clip
-          </button>
-        </div>
+              <Drawer>
+                <DrawerTrigger
+                  render={
+                    <button
+                      type="button"
+                      aria-label="Timeline view"
+                      className={editorIconButtonClassName({
+                        variant: "ghost",
+                        className: "h-11 w-11",
+                      })}
+                    >
+                      <SlidersHorizontal className="h-4 w-4" />
+                    </button>
+                  }
+                />
+                <DrawerContent className="border-editor-border bg-editor-panel">
+                  <DrawerHeader>
+                    <DrawerTitle>Timeline view</DrawerTitle>
+                    <DrawerDescription>
+                      Adjust the timeline scale and track labels.
+                    </DrawerDescription>
+                  </DrawerHeader>
+                  <div className="flex flex-wrap items-center justify-between gap-3 px-3 pb-4 [&_button]:min-h-11 [&_button]:min-w-11">
+                    {zoomControl}
+                    <button
+                      type="button"
+                      onClick={onFitSelection}
+                      disabled={!canSetClipRange || endTime <= startTime}
+                      className={rangeActionButtonClassName}
+                    >
+                      Fit clip
+                    </button>
+                    <label className="flex min-h-11 w-full items-center gap-3 text-sm">
+                      <input
+                        type="checkbox"
+                        checked={trackNamesVisible}
+                        onChange={(event) =>
+                          onTrackNamesVisibleChange?.(event.target.checked)
+                        }
+                      />
+                      Show track names
+                    </label>
+                  </div>
+                </DrawerContent>
+              </Drawer>
+            </div>
+          </>
+        )}
       </div>
     );
   }
@@ -508,3 +542,34 @@ export const EditorControls = memo(function EditorControls({
     </div>
   );
 });
+
+export function EditorFramegrabControl({
+  disabledReason,
+  onClick,
+  labelled = false,
+}: {
+  disabledReason: string | null;
+  onClick: () => void;
+  labelled?: boolean;
+}) {
+  return (
+    <ControlTooltip
+      label={disabledReason ?? "Export current frame"}
+      disabled={Boolean(disabledReason)}
+    >
+      <button
+        type="button"
+        onClick={onClick}
+        disabled={Boolean(disabledReason)}
+        className={editorIconButtonClassName({
+          className: labelled ? "min-h-11 w-full gap-2 px-3" : undefined,
+        })}
+        data-editor-save-frame
+        aria-label="Export current preview frame"
+      >
+        <Camera className="h-4 w-4" />
+        {labelled && "Save frame"}
+      </button>
+    </ControlTooltip>
+  );
+}

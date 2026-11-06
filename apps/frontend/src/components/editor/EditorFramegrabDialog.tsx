@@ -1,4 +1,5 @@
 import { Copy, Download } from "lucide-react";
+import type { ComponentProps } from "react";
 
 import type { MediaDimensions } from "#/components/editor/editorMedia";
 import { formatTime } from "#/components/editor/editorUtilities";
@@ -30,6 +31,7 @@ type FramegrabAction = "copy" | "download";
 
 interface EditorFramegrabDialogProperties {
   isOpen: boolean;
+  finalFocus?: ComponentProps<typeof DialogWindow>["finalFocus"];
   title: string;
   frameTime: number;
   dimensions: MediaDimensions | null;
@@ -48,6 +50,7 @@ interface EditorFramegrabDialogProperties {
 
 export function EditorFramegrabDialog({
   isOpen,
+  finalFocus,
   title,
   frameTime,
   dimensions,
@@ -71,6 +74,7 @@ export function EditorFramegrabDialog({
   return (
     <DialogWindow
       open={isOpen}
+      finalFocus={finalFocus}
       onClose={onClose}
       closeDisabled={busy}
       closeLabel="Close frame export dialog"

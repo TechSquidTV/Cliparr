@@ -2,6 +2,7 @@ import { useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
 
 import { EditorRangeControl } from "#/components/editor/EditorPropertyControls";
+import { EditorTimecodeProvider } from "#/components/editor/EditorTimecodeEdit";
 import { ConfirmationDialog } from "#/components/ui/confirmation-dialog";
 import { DialogWindow } from "#/components/ui/dialog";
 import {
@@ -111,4 +112,8 @@ const container = document.querySelector("#root");
 if (!container) {
   throw new Error("Missing controls root");
 }
-createRoot(container).render(<Controls />);
+createRoot(container).render(
+  <EditorTimecodeProvider>
+    <Controls />
+  </EditorTimecodeProvider>,
+);

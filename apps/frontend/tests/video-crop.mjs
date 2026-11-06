@@ -14,6 +14,7 @@ const screenshots = path.resolve(root, "../../build/browser-export/crop");
 await mkdir(screenshots, { recursive: true });
 let server;
 let browser;
+
 try {
   await build({
     root,
@@ -75,8 +76,12 @@ try {
       async () => {
         await crop.waitFor();
         await waitForCropReady();
-        const pictureTools = page.getByRole("group", { name: "Picture tools" });
-        assert.equal(await pictureTools.getByRole("button").count(), 2);
+        if (!mobile) {
+          const pictureTools = page.getByRole("group", {
+            name: "Picture tools",
+          });
+          assert.equal(await pictureTools.getByRole("button").count(), 2);
+        }
         if (mobile) {
           const touchTarget = await crop.boundingBox();
           assert.ok(touchTarget.width >= 44 && touchTarget.height >= 44);
@@ -726,8 +731,10 @@ try {
             .locator("[data-editor-preview-stage]")
             .boundingBox();
           assert.ok(
-            stage.height <= 390 * 0.45 + 2,
-            "crop stage respects height cap",
+            stage.y + stage.height <= 390 - 64 + 1 &&
+              afterBounds.y >= stage.y &&
+              afterBounds.y + afterBounds.height <= stage.y + stage.height + 1,
+            "Landscape crop and handles fit above the tool bar",
           );
         }
         for (const key of ["x", "width"]) {
@@ -787,34 +794,39 @@ try {
       },
     );
     if (cd) {
-      await scenario("scroll outside the crop surface", async () => {
-        // A shorter phone needs scrolling even with the compact preview stage.
-        await page.setViewportSize({ width: 390, height: 600 });
-        await page.locator("cropper-canvas").scrollIntoViewIfNeeded();
-        const scrollBefore = await page
-          .locator("main")
-          .evaluate((main) => main.scrollTop);
-        await cd.send("Input.dispatchTouchEvent", {
-          type: "touchStart",
-          touchPoints: [{ x: 20, y: 550, id: 0 }],
-        });
-        for (let offset = 25; offset <= 150; offset += 25) {
-          await cd.send("Input.dispatchTouchEvent", {
-            type: "touchMove",
-            touchPoints: [{ x: 20, y: 550 - offset, id: 0 }],
+      await scenario(
+        "scroll crop properties without moving the workspace",
+        async () => {
+          await page.setViewportSize({ width: 390, height: 600 });
+          const scroller = page
+            .getByRole("region", { name: "Crop controls", exact: true })
+            .locator("..");
+          await scroller.evaluate((element) => {
+            element.scrollTo({ top: 0 });
           });
-        }
-        await cd.send("Input.dispatchTouchEvent", {
-          type: "touchEnd",
-          touchPoints: [],
-        });
-        await page.waitForFunction(
-          (before) =>
-            globalThis.document.querySelector("main").scrollTop > before,
-          scrollBefore,
-        );
-        await page.setViewportSize({ width: 390, height: 844 });
-      });
+          const scrollBefore = await scroller.evaluate(
+            (element) => element.scrollTop,
+          );
+          const bounds = await scroller.boundingBox();
+          const swipeY = bounds.y + 5;
+          await cd.send("Input.synthesizeScrollGesture", {
+            x: 16,
+            y: swipeY,
+            yDistance: -150,
+            gestureSourceType: "touch",
+          });
+          await page.waitForFunction(
+            ({ element, before }) => element.scrollTop > before,
+            { element: await scroller.elementHandle(), before: scrollBefore },
+          );
+          assert.equal(
+            await page.locator("main").evaluate((element) => element.scrollTop),
+            0,
+            "Property scrolling leaves the editor workspace fixed",
+          );
+          await page.setViewportSize({ width: 390, height: 844 });
+        },
+      );
     }
     await scenario("portrait handles and property panels", async () => {
       if (mobile) {
@@ -868,7 +880,10 @@ try {
         const beforeDone = await selection("normalized");
         await page.getByRole("button", { name: "Done", exact: true }).click();
         await page.locator("cropper-selection").waitFor({ state: "detached" });
-        assert.equal(await crop.getAttribute("aria-pressed"), "false");
+        assert.equal(
+          await crop.getAttribute(mobile ? "aria-expanded" : "aria-pressed"),
+          "false",
+        );
         await crop.click();
         await page.locator("cropper-selection").waitFor();
         await waitForSelection(beforeDone);
@@ -879,8 +894,8 @@ try {
             `Done keeps ${key}`,
           );
         }
-        // Desktop also supports toggling the tool off. The phone crop view hides
-        // the timeline toolbar, so Done remains its exit action.
+        // Desktop toggles its picture tool off; mobile's persistent tool bar
+        // keeps the current tool open until Done.
         await page
           .getByRole("button", {
             name: mobile ? "Done" : "Crop video",

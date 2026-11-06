@@ -150,6 +150,8 @@ try {
       );
       if (site === "ui-controls") {
         const features = page.getByRole("region", { name: "Feature controls" });
+        const mobile = reducedMotion === "reduce";
+        assert.equal(await features.getByRole("tab").count(), mobile ? 3 : 0);
         await features.getByLabel("Display Name").fill("Renamed server");
         await features.getByRole("button", { name: "Save Changes" }).click();
         await features.getByText("Source saved", { exact: true }).waitFor();
@@ -180,6 +182,11 @@ try {
         await features
           .getByText("Subtitle seek requested", { exact: true })
           .waitFor();
+        if (mobile) {
+          await features
+            .getByRole("tab", { name: "Timing", exact: true })
+            .click();
+        }
         await features
           .getByRole("button", { name: /^Edit subtitle cue in point:/ })
           .click();
@@ -190,6 +197,11 @@ try {
         await features
           .getByText("Subtitle in point changed", { exact: true })
           .waitFor();
+        if (mobile) {
+          await features
+            .getByRole("tab", { name: "Style", exact: true })
+            .click();
+        }
         const fontSize = features.getByRole("slider", {
           name: "Size",
           exact: true,
@@ -197,6 +209,11 @@ try {
         await fontSize.focus();
         await page.keyboard.press("End");
         assert.equal(await fontSize.getAttribute("aria-valuetext"), "150px");
+        if (mobile) {
+          await features
+            .getByRole("tab", { name: "Text", exact: true })
+            .click();
+        }
         await features
           .getByRole("button", { name: "Delete subtitle", exact: true })
           .click();
