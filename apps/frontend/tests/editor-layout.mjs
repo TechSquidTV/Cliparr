@@ -31,28 +31,14 @@ async function assertTimecodeEditorLayout(page, field) {
     .getByRole("button", { name: `Cancel ${field} edit`, exact: true })
     .boundingBox();
   const textSize = await inputField.evaluate((element) => {
-    const style = globalThis.getComputedStyle(element);
-    const context = globalThis.document
-      .createElement("canvas")
-      .getContext("2d");
-    if (!context) {
-      throw new Error("Timecode measurement requires a canvas context");
-    }
-    context.font = `${style.fontWeight} ${style.fontSize} ${style.fontFamily}`;
     return {
-      available:
-        element.clientWidth -
-        Number.parseFloat(style.paddingLeft) -
-        Number.parseFloat(style.paddingRight),
-      required: context.measureText(element.value).width,
-      width: style.width,
-      font: context.font,
-      editorWidth: element.closest("[data-editor-timecode-edit]").clientWidth,
+      available: element.clientWidth,
+      required: element.scrollWidth,
     };
   });
   assert.ok(
-    textSize.available >= textSize.required + 1,
-    `${field}: input fits its value and caret ${JSON.stringify(textSize)}`,
+    textSize.available >= textSize.required,
+    `${field}: input fits its value without scrolling ${JSON.stringify(textSize)}`,
   );
   assert.ok(
     input &&
@@ -254,6 +240,16 @@ export async function checkEditorLayouts({ browser, url, screenshots }) {
       }),
       "Default workspace needs no vertical scroll",
     );
+    await page.setViewportSize({ width: 320, height: 874 });
+    await page.getByRole("button", { name: /Edit preview time:/ }).click();
+    await page
+      .getByRole("textbox", { name: "Edit preview time", exact: true })
+      .fill("00:00:02.000");
+    await assertTimecodeEditorLayout(page, "preview time");
+    await page
+      .getByRole("button", { name: "Cancel preview time edit", exact: true })
+      .click();
+    await page.setViewportSize({ width: 402, height: 874 });
     await dock.getByRole("button", { name: "Trim", exact: true }).click();
     const inButton = page.getByRole("button", { name: /Edit In time:/ });
     const initialInLabel = await inButton.getAttribute("aria-label");
@@ -369,7 +365,8 @@ export async function checkEditorLayouts({ browser, url, screenshots }) {
       globalThis.document.documentElement.style.removeProperty("font-size");
     });
     await page.setViewportSize({ width: 1280, height: 900 });
-    await outField.fill("2");
+    await outField.fill("00:00:02.000");
+    await assertTimecodeEditorLayout(page, "Out time");
     await outField.press("Tab");
     const cancelOut = page.getByRole("button", {
       name: "Cancel Out time edit",
@@ -504,6 +501,7 @@ export async function checkEditorLayouts({ browser, url, screenshots }) {
       name: "Edit subtitle cue in point",
       exact: true,
     });
+    await assertTimecodeEditorLayout(page, "subtitle cue in point");
     await cueTime.fill("bad");
     await page.getByRole("tab", { name: "Style", exact: true }).click();
     assert.equal(

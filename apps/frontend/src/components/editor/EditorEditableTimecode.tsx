@@ -25,7 +25,6 @@ interface EditorEditableTimecodeProperties {
   className?: string;
   disabled?: boolean;
   inputClassName?: string;
-  inputWidth?: string;
   onCommit: (seconds: number) => void | Promise<void>;
   style?: CSSProperties;
   tool?: EditorTool;
@@ -40,7 +39,6 @@ export function EditorEditableTimecode({
   className = "",
   disabled = false,
   inputClassName = "",
-  inputWidth,
   onCommit,
   style,
   tool,
@@ -207,12 +205,8 @@ export function EditorEditableTimecode({
               });
               setInvalid(false);
             }}
+            size={Math.max(8, draftValue.length + 1)}
             spellCheck={false}
-            style={{
-              width:
-                inputWidth ??
-                `calc(${Math.max(8, formattedValue.length)}ch + 0.75rem)`,
-            }}
             type="text"
             value={draftValue}
           />
