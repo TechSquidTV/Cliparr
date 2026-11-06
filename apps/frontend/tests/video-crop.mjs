@@ -8,6 +8,8 @@ import { captureCropGuide } from "@cliparr/www-assets/page";
 import { chromium } from "playwright";
 import { build, preview } from "vite";
 
+import { checkEditorLayouts } from "#tests/editor-layout.mjs";
+
 const root = fileURLToPath(new URL("..", import.meta.url));
 const outDir = await mkdtemp(path.join(tmpdir(), "cliparr-video-crop-"));
 const screenshots = path.resolve(root, "../../build/browser-export/crop");
@@ -39,7 +41,8 @@ try {
     headless: true,
     channel: process.env.CLIPARR_TEST_BROWSER_CHANNEL || undefined,
   });
-  for (const mobile of [false, true]) {
+  await checkEditorLayouts({ browser, url, screenshots });
+  for (const mobile of process.argv.includes("--layout") ? [] : [false, true]) {
     const context = await browser.newContext({
       reducedMotion: "reduce",
       viewport: mobile
