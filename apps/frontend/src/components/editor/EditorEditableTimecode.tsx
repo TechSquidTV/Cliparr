@@ -154,7 +154,7 @@ export function EditorEditableTimecode({
       data-editor-timecode-edit={editing || undefined}
       className={cn(
         "relative inline-flex min-w-0",
-        editing && "max-w-full flex-wrap gap-1",
+        editing && "w-max max-w-full shrink-0 flex-wrap gap-1",
         className,
       )}
       onBlur={

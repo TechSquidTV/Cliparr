@@ -45,6 +45,9 @@ async function assertTimecodeEditorLayout(page, field) {
         Number.parseFloat(style.paddingLeft) -
         Number.parseFloat(style.paddingRight),
       required: context.measureText(element.value).width,
+      width: style.width,
+      font: context.font,
+      editorWidth: element.closest("[data-editor-timecode-edit]").clientWidth,
     };
   });
   assert.ok(
@@ -357,6 +360,15 @@ export async function checkEditorLayouts({ browser, url, screenshots }) {
       exact: true,
     });
     await assertTimecodeEditorLayout(page, "Out time");
+    await page.setViewportSize({ width: 1024, height: 768 });
+    await page.evaluate(() => {
+      globalThis.document.documentElement.style.fontSize = "125%";
+    });
+    await assertTimecodeEditorLayout(page, "Out time");
+    await page.evaluate(() => {
+      globalThis.document.documentElement.style.removeProperty("font-size");
+    });
+    await page.setViewportSize({ width: 1280, height: 900 });
     await outField.fill("2");
     await outField.press("Tab");
     const cancelOut = page.getByRole("button", {
