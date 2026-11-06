@@ -216,7 +216,6 @@ function EditorScreenContent({
     return true;
   }, []);
   const [exportDialogMounted, setExportDialogMounted] = useState(false);
-  const subtitleTrackTriggerReference = useRef<HTMLButtonElement>(null);
   const moreTriggerReference = useRef<HTMLButtonElement>(null);
   const subtitleOptionsTriggerReference = useRef<HTMLButtonElement>(null);
   const subtitles = useEditorSubtitles({
@@ -919,7 +918,6 @@ function EditorScreenContent({
         <EditorSubtitlePanel
           variant={layoutVariant}
           subtitles={subtitles}
-          subtitleTrackTriggerRef={subtitleTrackTriggerReference}
           subtitleOptionsTriggerRef={subtitleOptionsTriggerReference}
           tab={subtitleTab}
           onTabChange={setSubtitleTab}
@@ -1091,7 +1089,7 @@ function EditorScreenContent({
         confirmLabel="Replace cues"
         onConfirm={confirmSubtitleTrackChange}
         onCancel={cancelSubtitleTrackChange}
-        finalFocus={subtitleTrackTriggerReference}
+        finalFocus={subtitleOptionsTriggerReference}
       />
       <ConfirmationDialog
         open={subtitles.clearPending}

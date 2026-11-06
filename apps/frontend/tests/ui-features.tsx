@@ -28,7 +28,6 @@ export function FeatureControls() {
     lines: [text],
   });
   const [tab, setTab] = useState<EditorSubtitleTab>("text");
-  const importTrigger = useRef<HTMLButtonElement>(null);
   const optionsTrigger = useRef<HTMLButtonElement>(null);
   const subtitles: EditorSubtitlePanelProperties["subtitles"] = {
     subtitleTracks: [],
@@ -109,7 +108,6 @@ export function FeatureControls() {
                 : "mobile"
             }
             subtitles={subtitles}
-            subtitleTrackTriggerRef={importTrigger}
             subtitleOptionsTriggerRef={optionsTrigger}
             tab={tab}
             onTabChange={setTab}

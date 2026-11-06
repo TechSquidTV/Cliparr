@@ -51,7 +51,6 @@ export interface EditorSubtitlePanelProperties {
     | "requestClear"
     | "clearPending"
   >;
-  subtitleTrackTriggerRef: RefObject<HTMLButtonElement | null>;
   subtitleOptionsTriggerRef: RefObject<HTMLButtonElement | null>;
   tab: EditorSubtitleTab;
   onTabChange: (tab: EditorSubtitleTab) => void;
@@ -68,7 +67,6 @@ const menuItemClasses =
 export function EditorSubtitlePanel({
   variant,
   subtitles,
-  subtitleTrackTriggerRef,
   subtitleOptionsTriggerRef,
   tab,
   onTabChange,
@@ -159,10 +157,7 @@ export function EditorSubtitlePanel({
           <Menu.Trigger
             render={
               <button
-                ref={(button) => {
-                  subtitleTrackTriggerRef.current = button;
-                  subtitleOptionsTriggerRef.current = button;
-                }}
+                ref={subtitleOptionsTriggerRef}
                 type="button"
                 aria-label="Subtitle options"
                 className={editorIconButtonClassName({
