@@ -56,7 +56,6 @@ export function EditorEditableTimecode({
   const [invalid, setInvalid] = useState(
     editing && parseTimecodeInput(draftValue) === null,
   );
-  const [reservedWidth, setReservedWidth] = useState<string | undefined>();
   const formattedValue = formatTimecodeInput(value);
   const accessibleValue = valueLabel ?? formattedValue;
   const descriptionId = useId();
@@ -99,11 +98,6 @@ export function EditorEditableTimecode({
       return;
     }
 
-    const buttonWidth =
-      buttonReference.current?.getBoundingClientRect().width ?? 0;
-    setReservedWidth(
-      buttonWidth > 0 ? `${buttonWidth.toFixed(3)}px` : undefined,
-    );
     update({ id: ariaLabel, value: formattedValue, tool: tool ?? null });
     setInvalid(false);
   }
@@ -139,11 +133,11 @@ export function EditorEditableTimecode({
     commitParsedValue(parsedValue, { restoreFocus });
   }
 
-  function handleInputKeyDown(event: KeyboardEvent<HTMLInputElement>) {
+  function handleEditKeyDown(event: KeyboardEvent<HTMLSpanElement>) {
     if (event.nativeEvent.isComposing) {
       return;
     }
-    if (event.key === "Enter") {
+    if (event.key === "Enter" && event.target === inputReference.current) {
       event.preventDefault();
       commitDraft({ restoreFocus: true });
       return;
@@ -157,10 +151,25 @@ export function EditorEditableTimecode({
 
   return (
     <span
-      className={`relative inline-flex min-w-0 ${className}`}
+      data-editor-timecode-edit={editing || undefined}
+      className={cn(
+        "relative inline-flex min-w-0",
+        editing && "max-w-full flex-wrap gap-1",
+        className,
+      )}
+      onBlur={
+        editing
+          ? (event) => {
+              if (!event.currentTarget.contains(event.relatedTarget)) {
+                commitDraft({ restoreFocus: false });
+              }
+            }
+          : undefined
+      }
+      onKeyDown={editing ? handleEditKeyDown : undefined}
       style={{
         ...style,
-        width: editing ? (reservedWidth ?? style?.width) : style?.width,
+        width: editing ? undefined : style?.width,
       }}
     >
       {editing ? (
@@ -178,14 +187,13 @@ export function EditorEditableTimecode({
             aria-label={`Edit ${ariaLabel}`}
             autoComplete="off"
             className={cn(
-              "editor-control-focus min-w-0 h-11 lg:h-7 border bg-editor-control px-1.5 font-mono text-editor-input lg:text-sm font-semibold text-foreground outline-none transition-colors",
+              "editor-control-focus min-w-0 max-w-full flex-[1_0_auto] h-11 lg:h-7 border bg-editor-control px-1.5 font-mono text-editor-input lg:text-sm font-semibold text-foreground outline-none transition-colors",
               invalid
                 ? "border-destructive focus-visible:border-destructive"
                 : "border-editor-border focus-visible:border-editor-accent",
               inputClassName,
             )}
             inputMode="text"
-            onBlur={() => commitDraft({ restoreFocus: false })}
             onChange={(event) => {
               event.currentTarget.setCustomValidity(
                 parseTimecodeInput(event.target.value) === null
@@ -199,9 +207,12 @@ export function EditorEditableTimecode({
               });
               setInvalid(false);
             }}
-            onKeyDown={handleInputKeyDown}
             spellCheck={false}
-            style={{ width: inputWidth ?? "100%" }}
+            style={{
+              width:
+                inputWidth ??
+                `calc(${Math.max(8, formattedValue.length)}ch + 0.75rem)`,
+            }}
             type="text"
             value={draftValue}
           />
@@ -209,7 +220,7 @@ export function EditorEditableTimecode({
             type="button"
             data-editor-cancel-edit
             aria-label={`Cancel ${ariaLabel} edit`}
-            className="editor-control-focus min-h-11 px-2 text-editor-property lg:text-xs"
+            className="editor-control-focus min-h-11 shrink-0 px-2 text-editor-property lg:min-h-7 lg:text-xs"
             onPointerDown={(event) => event.preventDefault()}
             onClick={() => cancelEditing({ restoreFocus: true })}
           >
