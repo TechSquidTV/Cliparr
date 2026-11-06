@@ -103,7 +103,7 @@ export function EditorPropertyAccordionItem<Value extends string>({
       <Accordion.Panel
         className={
           fillAvailable
-            ? "h-0 min-h-0 flex-1 overflow-hidden opacity-100 transition-opacity duration-250 ease-in-out motion-reduce:transition-none data-ending-style:opacity-0 data-starting-style:opacity-0"
+            ? "h-0 min-h-0 flex-[1_1_0px] overflow-hidden opacity-100 transition-opacity duration-250 ease-in-out motion-reduce:transition-none data-ending-style:opacity-0 data-starting-style:opacity-0"
             : "h-[var(--accordion-panel-height)] overflow-hidden transition-[height] duration-150 ease-out motion-reduce:transition-none data-ending-style:h-0 data-starting-style:h-0"
         }
       >

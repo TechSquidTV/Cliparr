@@ -41,10 +41,14 @@ function SidebarAccordion() {
           title="Subtitles"
           fillAvailable
         >
-          <div className="h-full overflow-auto">Subtitle controls</div>
+          <div className="h-full overflow-auto">
+            <div className="h-[600px]">Subtitle controls</div>
+          </div>
         </EditorPropertyAccordionItem>
         <EditorPropertyAccordionItem value="crop" title="Crop" fillAvailable>
-          <div className="h-full overflow-auto">Crop controls</div>
+          <div className="h-full overflow-auto">
+            <div className="h-[600px]">Crop controls</div>
+          </div>
         </EditorPropertyAccordionItem>
       </EditorPropertyAccordion>
     </div>
