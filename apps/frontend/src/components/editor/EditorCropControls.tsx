@@ -66,8 +66,9 @@ function CropNumber({
         {prefix}
       </span>
       <input
+        data-editor-crop-number
         aria-label={label}
-        className="editor-control-focus h-full min-w-0 flex-1 bg-transparent text-right text-foreground outline-none"
+        className="editor-control-focus h-full min-w-0 flex-1 bg-transparent text-editor-input text-right text-foreground outline-none lg:text-xs"
         type="number"
         inputMode={step === 1 ? "numeric" : "decimal"}
         min={min}
@@ -96,7 +97,7 @@ function CropNumber({
           setText(String(value));
         }}
         onKeyDown={(event) => {
-          if (event.key === "Enter") {
+          if (event.key === "Enter" && !event.nativeEvent.isComposing) {
             event.currentTarget.blur();
           }
         }}

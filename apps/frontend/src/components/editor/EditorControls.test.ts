@@ -5,6 +5,7 @@ import { type ComponentProps, createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 
 import { EditorControls } from "#/components/editor/EditorControls";
+import { EditorTimecodeProvider } from "#/components/editor/EditorTimecodeEdit";
 import { TooltipProvider } from "#/components/ui/tooltip";
 
 const defaultControlsProps = {
@@ -37,32 +38,41 @@ const defaultControlsProps = {
 void test("renders mobile editor controls trigger and compact range summary", () => {
   const markup = renderToStaticMarkup(
     createElement(
-      TooltipProvider,
+      EditorTimecodeProvider,
       null,
-      createElement(EditorControls, {
-        variant: "mobile",
-        ...defaultControlsProps,
-      }),
+      createElement(
+        TooltipProvider,
+        null,
+        createElement(EditorControls, {
+          variant: "mobile",
+          ...defaultControlsProps,
+        }),
+      ),
     ),
   );
 
-  assert.match(markup, /More clip controls/);
+  assert.match(markup, /Timeline view/);
+  assert.match(markup, /Edit clip range/);
   assert.match(markup, />Set in</);
   assert.match(markup, />Set out</);
   assert.doesNotMatch(markup, /aria-label="Edit Duration/);
-  assert.match(markup, />In</);
-  assert.match(markup, />Out</);
-  assert.match(markup, />Duration</);
+  assert.match(markup, /In 0:10/);
+  assert.match(markup, /Out 0:20/);
+  assert.match(markup, /0:10 selected/);
 });
 
 void test("renders the editor framegrab camera control", () => {
   const markup = renderToStaticMarkup(
     createElement(
-      TooltipProvider,
+      EditorTimecodeProvider,
       null,
-      createElement(EditorControls, {
-        ...defaultControlsProps,
-      }),
+      createElement(
+        TooltipProvider,
+        null,
+        createElement(EditorControls, {
+          ...defaultControlsProps,
+        }),
+      ),
     ),
   );
 

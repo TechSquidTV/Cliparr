@@ -9,29 +9,31 @@ import Callout from "../../components/Callout.astro";
 
 Create your own subtitles for memes, captions, and commentary, or import dialogue from Plex or Jellyfin. Text does not have to match the audio. Local videos and videos without subtitle tracks support the same authoring tools.
 
-On desktop, expand **Subtitles** in the **Properties** sidebar to open its controls. Subtitles and [Crop](/docs/video-cropping) use expandable panels; opening one closes the other. On a phone, choose **Done** to leave crop editing and return to subtitle controls.
+On desktop, expand **Subtitles** in the **Properties** sidebar. Text, timing, and style controls are stacked in one scrollable panel. Subtitles and [Crop](/docs/video-cropping) use expandable panels; opening one closes the other.
+
+On a phone, choose **Subtitles** in the bottom action bar, or tap a subtitle in the timeline to open its controls. Use **Text**, **Timing**, and **Style** tabs to choose what to edit. **Done** closes the tool and returns to the workspace; after cropping, choose **Subtitles** to edit captions again. On desktop, selecting a cue keeps your current sidebar and crop mode in place; use the timeline's **Subtitle tools** button to open its controls.
 
 ## Add and edit text
 
-Move the playhead to the desired moment and choose **Add subtitle** in the Subtitles panel or the **+** in the subtitle timeline header. Playback pauses, subtitle output becomes visible, and the new text is selected for editing.
+Move the playhead to the desired moment and choose **Add subtitle** in the Subtitles panel (the **+** button on phones), or the **+** in the subtitle timeline header when visible. Playback pauses, subtitle output becomes visible, and the new cue is selected. On phones, tap the text field to begin typing.
 
 New subtitles last two seconds, shortened when necessary to end at the next subtitle's start or the end of the video. Resizing a subtitle does not change this default. You can place them anywhere in the source; **Outside export range** identifies a selected cue that will not appear in the current export.
 
 **Add subtitle** is disabled when a subtitle already covers the playhead, even when subtitle output is hidden. Move to an empty time to add text. Creation stays exactly at the playhead and preserves all existing text and timing. For example, adding at 4 seconds with the next cue starting at 5 seconds creates a one-second subtitle from 4–5 seconds. At a cue's exact end, creation is available unless another cue starts there. Undo removes the new cue and restores the previous visibility in one step.
 
-Text previews update while you type. Leaving the field or pressing Ctrl/Command+Enter commits one text edit. Empty text restores the previous value; use **Delete subtitle** to remove a cue. Drag timeline edges or edit the In and Out fields to change timing.
+Text previews update while you type. Leaving the field or pressing Ctrl/Command+Enter commits one text edit. Empty text restores the previous value; use **Delete subtitle** to remove a cue. Drag timeline edges or edit the In and Out fields to change timing; on phones, those fields are in the **Timing** tab.
 
 ## Delete or start blank
 
 Select a cue and choose **Delete subtitle**, or press Delete/Backspace while focus is outside text fields and other controls. Use **Subtitle options → Start blank…** to remove all cues after confirmation. Shared styling is preserved, and Undo restores deleted subtitles.
 
-The panel switch and timeline eye control the same subtitle output state. Hidden subtitles remain editable but do not appear in preview, frame grabs, or exports.
+Use the **Show subtitles** switch in the panel header to control subtitle output. The timeline's caption icon opens subtitle tools. Hidden subtitles remain editable but do not appear in preview, frame grabs, or exports.
 
 ## Import dialogue
 
 New sessions still import the preferred supported subtitle track automatically. Saved drafts, including empty drafts, take precedence.
 
-Choose **Import…** to import or reimport a provider track. If subtitles already exist, confirm their replacement. Your current cues remain visible during the download. Import can be cancelled; a failed or cancelled import leaves your edits intact. Successful replacement can be undone.
+Open **Subtitle options** (**…**) and choose a track under **Import subtitle track** to import or reimport it. If subtitles already exist, confirm their replacement. Your current cues remain visible during the download. Import can be cancelled; a failed or cancelled import leaves your edits intact. Successful replacement can be undone. Feedback appears over the preview; **Dismiss subtitle messages** clears errors without removing cues.
 
 You can import SRT/SubRip and WebVTT subtitles, plus other text formats that Plex or Jellyfin can convert for Cliparr. Image-based subtitles such as PGS or VobSub cannot be imported; you can still create your own captions.
 
@@ -47,13 +49,13 @@ Jellyfin can convert text subtitles such as ASS/SSA, TTML, and SMI for import.
 
 For Plex, use SRT/SubRip or WebVTT when available. Some embedded text subtitles become available only after you select them during playback in Plex.
 
-**Changed in 3.0:** ASS/SSA, TTML, and SMI tracks are available only when Plex can convert them for Cliparr. If a track no longer appears in **Import…**, choose an SRT/SubRip or WebVTT track, or create your own captions.
+**Changed in 3.0:** ASS/SSA, TTML, and SMI tracks are available only when Plex can convert them for Cliparr. If a track no longer appears in **Subtitle options**, choose an SRT/SubRip or WebVTT track, or create your own captions.
 
 [Plex: Adding Local Subtitles to Your Media](https://support.plex.tv/articles/200471133-adding-local-subtitles-to-your-media/)
 
 ## Styling
 
-The **Shared style** section applies to all cues, including imported and original text. You can edit these settings while subtitle output is hidden:
+On phones, open the **Style** tab. On desktop, scroll below the selected cue's text and timing controls. Styling applies to all cues, including imported and original text, and remains editable while subtitle output is hidden:
 
 - Font family.
 - Font color and size.

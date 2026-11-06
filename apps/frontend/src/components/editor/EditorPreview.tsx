@@ -146,7 +146,7 @@ export function EditorPreview({
         />
       )}
       {!showLoadingOverlay && !cropEditing && (
-        <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+        <div className="pointer-events-none absolute inset-0 hidden items-center justify-center lg:flex">
           <button
             type="button"
             onClick={(event) => {

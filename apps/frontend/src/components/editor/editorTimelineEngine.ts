@@ -168,7 +168,7 @@ function createSubtitleTrack(
     visible: true,
     selected: false,
     targeted: false,
-    height: 42,
+    height: 44,
     clips,
   };
 }

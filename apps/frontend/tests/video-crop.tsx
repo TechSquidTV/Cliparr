@@ -20,13 +20,36 @@ import { TooltipProvider } from "#/components/ui/tooltip";
 import { loadSubtitleStyleSettings } from "#/lib/subtitles/settings";
 import { checkCropExports } from "#tests/video-crop-exports.ts";
 
+const parameters = new URLSearchParams(window.location.search);
+const shape = parameters.get("shape") ?? "landscape";
+const sampleDuration = parameters.has("long") ? 360 : 0.1;
 const picture = document.createElement("canvas");
 picture.width = 960;
 picture.height = 540;
+switch (shape) {
+  case "portrait": {
+    picture.width = 540;
+    picture.height = 960;
+    break;
+  }
+  case "square": {
+    picture.width = 720;
+    picture.height = 720;
+    break;
+  }
+  case "ultrawide": {
+    picture.height = 240;
+    break;
+  }
+  default: {
+    break;
+  }
+}
 const context = picture.getContext("2d");
 if (!context) {
   throw new Error("Missing fixture context");
 }
+context.scale(picture.width / 960, picture.height / 540);
 const sky = context.createLinearGradient(0, 0, 0, 540);
 sky.addColorStop(0, "#263d66");
 sky.addColorStop(0.6, "#cf977c");
@@ -66,7 +89,7 @@ const source = new CanvasSource(picture, {
 output.addVideoTrack(source, { frameRate: 10 });
 await output.start();
 for (let frame = 0; frame < 40; frame++) {
-  await source.add(frame / 10, 0.1);
+  await source.add(frame * sampleDuration, sampleDuration);
 }
 source.close();
 await output.finalize();
@@ -79,8 +102,12 @@ const file = new File([target.buffer], "coastal-trail.webm", {
 });
 const session = buildLocalEditorSession({
   id: "crop-browser-fixture",
-  title: "Coastal trail",
-  duration: 4,
+  title: parameters.has("long")
+    ? "A very long movie title with episode and source details "
+        .repeat(3)
+        .trim()
+    : "Coastal trail",
+  duration: 40 * sampleDuration,
   source: {
     kind: "file",
     role: "local-file",
@@ -89,7 +116,7 @@ const session = buildLocalEditorSession({
     fileName: file.name,
   },
 });
-const fixture = new URLSearchParams(window.location.search).get("fixture");
+const fixture = parameters.get("fixture");
 if (fixture === "delayed-subtitles") {
   // Reuse the synthetic media while exercising the provider import lifecycle.
   session.local = false;
