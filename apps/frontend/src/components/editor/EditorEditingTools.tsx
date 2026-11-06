@@ -5,7 +5,13 @@ import {
   RotateCcw,
   Undo2,
 } from "lucide-react";
-import { type ReactNode, type RefObject, useRef, useState } from "react";
+import {
+  type ReactNode,
+  type RefObject,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 
 import { EditorFramegrabControl } from "#/components/editor/EditorControls";
 import type { EditorLayoutVariant } from "#/components/editor/EditorLayout";
@@ -76,7 +82,7 @@ export function EditorHistoryControls({
   );
 }
 
-export function EditorEditingTools({
+export function useEditorEditingTools({
   history,
   variant,
   onResetDraft,
@@ -106,8 +112,16 @@ export function EditorEditingTools({
   const [resetOpen, setResetOpen] = useState(false);
   const cancelResetReference = useRef<HTMLButtonElement>(null);
   const mobile = variant === "mobile";
+  const shortcutsReference = useRef<HTMLButtonElement>(null);
+  const resetReference = useRef<HTMLButtonElement>(null);
+  useEffect(() => {
+    if (!mobile) {
+      setMenuOpen(false);
+    }
+  }, [mobile]);
   const shortcutsButton = (
     <button
+      ref={shortcutsReference}
       type="button"
       onClick={() => {
         setMenuOpen(false);
@@ -123,6 +137,7 @@ export function EditorEditingTools({
       <TooltipTrigger
         render={
           <button
+            ref={resetReference}
             type="button"
             aria-label="Reset draft"
             disabled={resetDisabled}
@@ -169,7 +184,7 @@ export function EditorEditingTools({
       </button>
     </div>
   );
-  return (
+  const controls = (
     <div
       className={
         mobile
@@ -237,39 +252,35 @@ export function EditorEditingTools({
           {resetButton}
         </div>
       )}
-      {mobile ? (
-        <Drawer open={resetOpen} onOpenChange={setResetOpen}>
-          <DrawerContent
-            className="border-editor-border bg-editor-panel"
-            initialFocus={cancelResetReference}
-            finalFocus={menuTriggerReference}
-          >
-            <DrawerHeader>
-              <DrawerTitle>Reset draft?</DrawerTitle>
-              <DrawerDescription>{resetDescription}</DrawerDescription>
-            </DrawerHeader>
-            {resetActions}
-          </DrawerContent>
-        </Drawer>
-      ) : (
-        <DialogWindow
-          open={resetOpen}
-          onClose={() => setResetOpen(false)}
-          title="Reset draft?"
-          description={resetDescription}
-          closeLabel="Close reset confirmation"
-          initialFocus={cancelResetReference}
-        >
-          {resetActions}
-        </DialogWindow>
-      )}
+    </div>
+  );
+  const dialogs = (
+    <>
+      <DialogWindow
+        open={resetOpen}
+        onClose={() => setResetOpen(false)}
+        title="Reset draft?"
+        description={resetDescription}
+        closeLabel="Close reset confirmation"
+        initialFocus={cancelResetReference}
+        finalFocus={() =>
+          (mobile ? menuTriggerReference.current : resetReference.current) ??
+          false
+        }
+      >
+        {resetActions}
+      </DialogWindow>
       <DialogWindow
         open={helpOpen}
         onClose={() => setHelpOpen(false)}
         title="Editor shortcuts"
         description="Use these keys while the editor is focused. Text fields keep their own editing shortcuts."
         closeLabel="Close shortcut help"
-        finalFocus={mobile ? menuTriggerReference : undefined}
+        finalFocus={() =>
+          (mobile
+            ? menuTriggerReference.current
+            : shortcutsReference.current) ?? false
+        }
       >
         <dl className="space-y-3 overflow-y-auto p-4">
           {shortcuts.map(([action, keys]) => (
@@ -285,6 +296,7 @@ export function EditorEditingTools({
           ))}
         </dl>
       </DialogWindow>
-    </div>
+    </>
   );
+  return { controls, dialogs };
 }

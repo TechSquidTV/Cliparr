@@ -29,8 +29,8 @@ import {
   editorDrafts,
 } from "@/components/editor/editorDrafts";
 import {
-  EditorEditingTools,
   EditorHistoryControls,
+  useEditorEditingTools,
 } from "@/components/editor/EditorEditingTools";
 import { EditorHeader } from "@/components/editor/EditorHeader";
 import {
@@ -736,7 +736,38 @@ function EditorScreenContent({
     (mode === "audio-only" ? null : subtitleExportSummary.disabledReason);
   const headerExportDisabledReason = durationExportDisabledReason;
   const layoutVariant = isDesktopLayout ? "desktop" : "mobile";
-  const subtitleStatusError = subtitleError ?? subtitles.textError;
+  const hasSubtitleErrors =
+    subtitleError !== null || subtitles.textError !== null;
+  const subtitleStatus = (subtitleLoading || hasSubtitleErrors) && (
+    <div
+      role="status"
+      className="pointer-events-none absolute inset-x-0 top-0 z-20 flex flex-wrap items-center gap-2 border-b border-editor-border bg-editor-panel/95 px-3 py-2 text-xs"
+    >
+      {subtitleLoading && (
+        <>
+          <span>Importing subtitles…</span>
+          <button
+            type="button"
+            onClick={subtitles.cancelImport}
+            className="editor-control-focus pointer-events-auto min-h-11 px-3 underline lg:min-h-7"
+          >
+            Cancel import
+          </button>
+        </>
+      )}
+      {subtitleError && <span>{subtitleError}</span>}
+      {subtitles.textError && <span>{subtitles.textError}</span>}
+      {hasSubtitleErrors && (
+        <button
+          type="button"
+          onClick={subtitles.dismissErrors}
+          className="editor-control-focus pointer-events-auto min-h-11 px-3 underline lg:min-h-7"
+        >
+          Dismiss subtitle messages
+        </button>
+      )}
+    </div>
+  );
   const subtitlesActive = subtitleCues.length > 0;
   const previewPicture = previewVideoDimensions
     ? (resolveVideoCrop(previewCrop, previewVideoDimensions) ??
@@ -744,6 +775,7 @@ function EditorScreenContent({
     : null;
   const previewPane = (
     <EditorPreviewPane
+      status={subtitleStatus}
       error={isDesktopLayout ? error : null}
       cropEditing={cropEditing}
       pictureAspectRatio={
@@ -860,6 +892,7 @@ function EditorScreenContent({
   );
   const editorTimeline = (
     <EditorTimeline
+      variant={layoutVariant}
       engine={engine}
       subtitleLoading={subtitleLoading}
       onInteractionStart={commitSubtitleText}
@@ -941,29 +974,27 @@ function EditorScreenContent({
       }
     }
   }
-  const editingTools = (
-    <EditorEditingTools
-      history={editorHistory}
-      menuTriggerReference={moreTriggerReference}
-      title={session.title}
-      framegrab={{
-        onClick: handleFramegrabClick,
-        disabledReason: framegrab.disabledReason,
-        open: framegrab.dialogOpen,
-      }}
-      variant={layoutVariant}
-      onResetDraft={draft.reset}
-      resetDisabled={exporting}
-      draftNotice={draft.notice}
-      playbackSourceControl={
-        <EditorPlaybackSourceControl
-          previewSourceLabel={previewSourceLabel}
-          fallbackMessage={playbackFallbackReason}
-          variant={layoutVariant}
-        />
-      }
-    />
-  );
+  const editingTools = useEditorEditingTools({
+    history: editorHistory,
+    menuTriggerReference: moreTriggerReference,
+    title: session.title,
+    framegrab: {
+      onClick: handleFramegrabClick,
+      disabledReason: framegrab.disabledReason,
+      open: framegrab.dialogOpen,
+    },
+    variant: layoutVariant,
+    onResetDraft: draft.reset,
+    resetDisabled: exporting,
+    draftNotice: draft.notice,
+    playbackSourceControl: (
+      <EditorPlaybackSourceControl
+        previewSourceLabel={previewSourceLabel}
+        fallbackMessage={playbackFallbackReason}
+        variant={layoutVariant}
+      />
+    ),
+  });
   const propertiesContent = (
     <EditorPropertyAccordion
       multiple={false}
@@ -1086,28 +1117,8 @@ function EditorScreenContent({
         }}
       />
 
-      {isDesktopLayout && editingTools}
-
-      {(subtitleLoading || subtitleStatusError !== null) && (
-        <div
-          role="status"
-          className="absolute inset-x-0 top-13 z-20 flex flex-wrap items-center gap-2 border-b border-editor-border bg-editor-panel px-3 py-2 text-xs"
-        >
-          {subtitleLoading && (
-            <>
-              <span>Importing subtitles…</span>
-              <button
-                type="button"
-                onClick={subtitles.cancelImport}
-                className="editor-control-focus min-h-11 px-3 underline"
-              >
-                Cancel import
-              </button>
-            </>
-          )}
-          {subtitleStatusError && <span>{subtitleStatusError}</span>}
-        </div>
-      )}
+      {editingTools.dialogs}
+      {isDesktopLayout && editingTools.controls}
 
       <main
         ref={mainReference}
@@ -1135,7 +1146,7 @@ function EditorScreenContent({
             onDone={closeTool}
             cropDisabled={cropDisabled}
             cropTransport={cropEditing ? renderControls() : null}
-            moreControl={editingTools}
+            moreControl={editingTools.controls}
             inspector={renderMobileInspector()}
             error={error}
             previewPane={previewPane}

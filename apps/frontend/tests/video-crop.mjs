@@ -10,6 +10,7 @@ import { build, preview } from "vite";
 
 import { scrollWithTouch } from "#tests/browser-gestures.mjs";
 import { checkEditorLayouts } from "#tests/editor-layout.mjs";
+import { checkEditorReviewRegressions } from "#tests/editor-review.mjs";
 
 const root = fileURLToPath(new URL("..", import.meta.url));
 const outDir = await mkdtemp(path.join(tmpdir(), "cliparr-video-crop-"));
@@ -42,6 +43,7 @@ try {
     headless: true,
     channel: process.env.CLIPARR_TEST_BROWSER_CHANNEL || undefined,
   });
+  await checkEditorReviewRegressions({ browser, url });
   await checkEditorLayouts({ browser, url, screenshots });
   for (const mobile of process.argv.includes("--layout") ? [] : [false, true]) {
     const context = await browser.newContext({

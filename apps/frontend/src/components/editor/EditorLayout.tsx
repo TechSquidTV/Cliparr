@@ -46,12 +46,14 @@ export function EditorPreviewPane({
   children,
   cropEditing = false,
   pictureAspectRatio = 16 / 9,
+  status,
 }: {
   error: string | null;
   variant: EditorLayoutVariant;
   children: ReactNode;
   cropEditing?: boolean;
   pictureAspectRatio?: number;
+  status?: ReactNode;
 }) {
   const reduceMotion = useReducedMotion();
   const stateTransition = motionTransitionFor("fast", reduceMotion);
@@ -59,10 +61,10 @@ export function EditorPreviewPane({
     <section
       data-editor-preview-stage
       className={cn(
-        "overflow-hidden border border-editor-border bg-editor-monitor",
+        "relative overflow-hidden border border-editor-border bg-editor-monitor",
         variant === "desktop"
           ? "flex min-h-0 flex-1 items-center justify-center p-2"
-          : "relative w-full flex-none",
+          : "w-full flex-none",
         variant === "mobile" &&
           !cropEditing &&
           "max-h-[var(--editor-preview-height,46dvh)]",
@@ -85,6 +87,7 @@ export function EditorPreviewPane({
       ) : (
         children
       )}
+      {status}
     </section>
   );
 

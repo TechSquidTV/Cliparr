@@ -15,6 +15,7 @@ import {
   useRef,
 } from "react";
 
+import type { EditorLayoutVariant } from "@/components/editor/EditorLayout";
 import { EditorMediaRange } from "@/components/editor/EditorMediaRange";
 import { EditorMediaRangeCanvas } from "@/components/editor/EditorMediaRangeCanvas";
 import {
@@ -154,8 +155,10 @@ export function EditorTimeline({
   trackNamesVisible,
   subtitleLoading,
   onInteractionStart,
+  variant,
 }: EditorTimelineProperties & {
   engine: TimelineEngine;
+  variant: EditorLayoutVariant;
   subtitleLoading: boolean;
   onInteractionStart: () => void;
 }) {
@@ -177,7 +180,7 @@ export function EditorTimeline({
       window.removeEventListener("blur", cancelTap);
       cancelTap();
     };
-  }, []);
+  }, [variant]);
   useEffect(() => {
     const element = root.current;
     if (!element) {
@@ -232,7 +235,11 @@ export function EditorTimeline({
                 onPointerDownCapture={(event: PointerEvent<HTMLDivElement>) => {
                   tap.current = null;
                   cancelAnimationFrame(activationFrame.current);
-                  if (!event.isPrimary || event.button !== 0) {
+                  if (
+                    variant !== "mobile" ||
+                    !event.isPrimary ||
+                    event.button !== 0
+                  ) {
                     return;
                   }
                   const bounds = event.currentTarget.getBoundingClientRect();
@@ -283,6 +290,7 @@ export function EditorTimeline({
                 }}
                 onKeyUp={(event: KeyboardEvent<HTMLDivElement>) => {
                   if (
+                    variant !== "mobile" ||
                     event.key !== "Enter" ||
                     (event.target instanceof Element &&
                       event.target.closest("button,input,textarea"))

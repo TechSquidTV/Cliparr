@@ -418,6 +418,10 @@ export function useEditorSubtitles({
     subtitleCues,
     subtitleLoading,
     subtitleError,
+    dismissErrors: () => {
+      setSubtitleError(null);
+      setTextError(null);
+    },
     clippedSubtitleCues,
     subtitleExportSummary,
     requestImport,
