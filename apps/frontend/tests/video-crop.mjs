@@ -8,6 +8,7 @@ import { captureCropGuide } from "@cliparr/www-assets/page";
 import { chromium } from "playwright";
 import { build, preview } from "vite";
 
+import { scrollWithTouch } from "#tests/browser-gestures.mjs";
 import { checkEditorLayouts } from "#tests/editor-layout.mjs";
 
 const root = fileURLToPath(new URL("..", import.meta.url));
@@ -807,21 +808,7 @@ try {
           await scroller.evaluate((element) => {
             element.scrollTo({ top: 0 });
           });
-          const scrollBefore = await scroller.evaluate(
-            (element) => element.scrollTop,
-          );
-          const bounds = await scroller.boundingBox();
-          const swipeY = bounds.y + 5;
-          await cd.send("Input.synthesizeScrollGesture", {
-            x: 16,
-            y: swipeY,
-            yDistance: -150,
-            gestureSourceType: "touch",
-          });
-          await page.waitForFunction(
-            ({ element, before }) => element.scrollTop > before,
-            { element: await scroller.elementHandle(), before: scrollBefore },
-          );
+          await scrollWithTouch({ page, session: cd, scroller });
           assert.equal(
             await page.locator("main").evaluate((element) => element.scrollTop),
             0,

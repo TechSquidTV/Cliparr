@@ -69,6 +69,9 @@ tablet, and desktop widths; enlarged text checks wrapping and control overlap.
 The scenarios live in `editor-layout.mjs` and reuse the crop runner's production
 bundle and synthetic fixture. They also cover pending crop-number edits through
 breakpoints, IME Enter in time fields, and focus return after closing tools.
+Native swipe checks synchronize the headless window's content size with its
+emulated viewport, verify the gesture starts inside the visible panel, and
+require real scrolling without changing the editor's CSS viewport.
 
 The mobile workspace exposes Trim, Subtitles, Crop, Playback, and More tools.
 Mobile subtitle controls use Text, Timing, and Style tabs; desktop keeps those

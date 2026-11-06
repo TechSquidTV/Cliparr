@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
 import path from "node:path";
 
+import { scrollWithTouch } from "#tests/browser-gestures.mjs";
+
 async function assertTransportLayout(page, label) {
   const time = await page
     .getByRole("button", { name: /Edit preview time:/ })
@@ -694,20 +696,14 @@ export async function checkEditorLayouts({ browser, url, screenshots }) {
     await page.screenshot({
       path: path.join(screenshots, `mobile-${shape}-short-crop.png`),
     });
-    const shortBounds = await shortCropScroller.boundingBox();
     await shortCropScroller.evaluate((element) => {
       element.scrollTo({ top: 0 });
     });
-    await touch.send("Input.synthesizeScrollGesture", {
-      x: 16,
-      y: shortBounds.y + 5,
-      yDistance: -150,
-      gestureSourceType: "touch",
+    await scrollWithTouch({
+      page,
+      session: touch,
+      scroller: shortCropScroller,
     });
-    await page.waitForFunction(
-      (element) => element.scrollTop > 0,
-      await shortCropScroller.elementHandle(),
-    );
     await page.getByRole("button", { name: "Done", exact: true }).click();
     await touch.detach();
     process.stdout.write(`Passed mobile ${shape} layout and edit safety\n`);
