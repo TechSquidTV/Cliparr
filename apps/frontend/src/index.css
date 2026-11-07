@@ -769,6 +769,17 @@
   .editor-playhead .timeline-playhead-grabber-highlight {
     width: min(var(--editor-playhead-touch-width), var(--editor-range-quarter));
   }
+  .editor-playhead:has(
+    + .editor-media-range-row > .editor-media-playhead-padding.is-dragging
+  ) {
+    .timeline-playhead-grabber-highlight {
+      background-color: var(--timeline-playhead-hover-background);
+    }
+    :is(.timeline-playhead-grabber-line, .timeline-playhead-grabber-handle) {
+      background-color: var(--timeline-playhead-hover);
+      box-shadow: var(--timeline-playhead-shadow);
+    }
+  }
   .editor-playhead::before,
   .editor-playhead::after {
     content: "";
