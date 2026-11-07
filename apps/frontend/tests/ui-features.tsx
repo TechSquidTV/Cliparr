@@ -1,3 +1,8 @@
+import {
+  fromSeconds,
+  TimelineEngine,
+  TimelineProvider,
+} from "@techsquidtv/canvas-timeline";
 import { useRef, useState } from "react";
 
 import { EDITOR_DESKTOP_LAYOUT_QUERY } from "#/components/editor/editorLayoutSizing";
@@ -6,6 +11,7 @@ import {
   type EditorSubtitlePanelProperties,
   type EditorSubtitleTab,
 } from "#/components/editor/EditorSubtitlePanel";
+import { EditorTimeline } from "#/components/editor/EditorTimeline";
 import { SourceCard } from "#/components/sources/SourceCard";
 import { TooltipProvider } from "#/components/ui/tooltip";
 import { loadSubtitleStyleSettings } from "#/lib/subtitles/settings";
@@ -70,6 +76,9 @@ export function FeatureControls() {
   return (
     <TooltipProvider>
       <section aria-label="Feature controls" className="space-y-4">
+        {new URLSearchParams(window.location.search).has("timeline") && (
+          <TimelineControls />
+        )}
         <output aria-label="Last test action">{action}</output>
         <SourceCard
           source={{
@@ -116,5 +125,38 @@ export function FeatureControls() {
         </div>
       </section>
     </TooltipProvider>
+  );
+}
+
+function TimelineControls() {
+  const [trackNamesVisible, setTrackNamesVisible] = useState(true);
+  const [engine] = useState(
+    () =>
+      new TimelineEngine({
+        duration: fromSeconds(120),
+        zoomScale: 74,
+        tracks: [],
+      }),
+  );
+  return (
+    <TimelineProvider engine={engine}>
+      <button onClick={() => setTrackNamesVisible(!trackNamesVisible)}>
+        Toggle timeline track names
+      </button>
+      <div className="isolate h-48">
+        <EditorTimeline
+          engine={engine}
+          variant="mobile"
+          trackNamesVisible={trackNamesVisible}
+          muted={false}
+          onMutedChange={() => {}}
+          canAddSubtitle={false}
+          onAddSubtitle={() => {}}
+          onOpenSubtitles={() => {}}
+          subtitleLoading={false}
+          onInteractionStart={() => {}}
+        />
+      </div>
+    </TimelineProvider>
   );
 }
