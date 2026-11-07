@@ -120,6 +120,8 @@ async function prepareInput(
     timelineOffsetSeconds: previousTimelineOffsetSeconds,
     skipLiveWait: true,
   });
+  // Preview decoding may need another track; keep source timing and dimensions
+  // so browser codec support cannot change export alignment or eligibility.
   const { previewVideoTrack } = await selectPreviewVideoTrack(
     input,
     sourceVideoTrack,

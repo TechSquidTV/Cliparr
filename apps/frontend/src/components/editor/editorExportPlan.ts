@@ -188,6 +188,8 @@ export function getEditorExportReadiness({
     };
   }
 
+  // Burn-in uses timeline cues, including authored and restored edits. A provider
+  // subtitle track is only an import source, never an export prerequisite.
   const shouldBurnSubtitles =
     !isAudioExportFormat(format) &&
     subtitleEnabled &&
