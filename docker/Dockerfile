@@ -6,9 +6,7 @@
 # stage resolves to the target platform. The development and capture targets
 # are built for the host platform in every supported flow, where the build
 # platform is the target platform.
-ARG NODE_IMAGE=node:26.13.0-trixie-slim@sha256:5adad64f9a1fca2d51972caa65983634c8a774eb300d72b20f7f2a0f60368072
-
-FROM --platform=$BUILDPLATFORM ${NODE_IMAGE} AS toolchain
+FROM --platform=$BUILDPLATFORM node:26.13.0-trixie-slim@sha256:5adad64f9a1fca2d51972caa65983634c8a774eb300d72b20f7f2a0f60368072 AS toolchain
 ENV PNPM_HOME=/pnpm
 ENV PATH=$PNPM_HOME:$PATH
 ENV npm_config_store_dir=/pnpm/store
@@ -94,8 +92,7 @@ WORKDIR /workspace/tools/www-assets
 USER node
 CMD ["node", "src/record.ts"]
 
-FROM ${NODE_IMAGE} AS production
-RUN npm uninstall --global npm
+FROM gcr.io/distroless/nodejs26-debian13:nonroot@sha256:9b945e92c1b5463a4b75f11e8417515e4bea7355f6adfd79ec220fbbe905dda8 AS production
 LABEL org.opencontainers.image.title="Cliparr" \
   org.opencontainers.image.description="Instant media clipper for Plex and Jellyfin servers." \
   org.opencontainers.image.source="https://github.com/techsquidtv/cliparr" \
@@ -117,6 +114,5 @@ USER 65532:65532
 VOLUME ["/data"]
 EXPOSE 7171
 HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \
-  CMD ["/usr/local/bin/node", "-e", "fetch('http://127.0.0.1:' + (process.env.PORT || 7171) + '/api/health').then((response) => process.exit(response.ok ? 0 : 1)).catch(() => process.exit(1))"]
-ENTRYPOINT ["/usr/local/bin/node"]
+  CMD ["/nodejs/bin/node", "-e", "fetch('http://127.0.0.1:' + (process.env.PORT || 7171) + '/api/health').then((response) => process.exit(response.ok ? 0 : 1)).catch(() => process.exit(1))"]
 CMD ["apps/server/dist/server.js"]

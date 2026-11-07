@@ -89,46 +89,53 @@ export function nodeVersionViolations(
   }
 
   const dockerfile = files.get("docker/Dockerfile") ?? "";
-  const imageArguments = [...dockerfile.matchAll(/^ARG NODE_IMAGE=(\S+)$/gmu)];
-  const image = imageArguments[0]?.[1];
-  const expectedImage = new RegExp(
-    `^node:${version.replaceAll(".", String.raw`\.`)}-trixie-slim@sha256:[a-f0-9]{64}$`,
-    "u",
-  );
-  if (
-    imageArguments.length !== 1 ||
-    !image ||
-    !expectedImage.test(image) ||
-    imageArguments[0].index > dockerfile.search(/^FROM /gmu)
-  ) {
-    errors.push(
-      `docker/Dockerfile: define one global NODE_IMAGE=node:${version}-trixie-slim@sha256:<index digest>.`,
-    );
-  }
   const stages = [
     ...dockerfile.matchAll(
-      /^FROM\s+(?:(--platform=\S+)\s+)?(\S+)(?:\s+AS\s+(\S+))?\s*$/gimu,
+      /^FROM[\t ]+(?:(?<platform>--platform=\S+)[\t ]+)?(?<source>\S+)(?:[\t ]+AS[\t ]+(?<alias>\S+))?[\t ]*$/gimu,
     ),
-  ];
-  for (const name of ["toolchain", "production"]) {
-    const matching = stages.filter((stage) => stage[3]?.toLowerCase() === name);
-    if (matching.length !== 1 || matching[0][2] !== `\${NODE_IMAGE}`) {
-      errors.push(`docker/Dockerfile: ${name} must use FROM \${NODE_IMAGE}.`);
-    } else if (
-      (name === "toolchain" &&
-        matching[0][1] !== "--platform=$BUILDPLATFORM") ||
-      (name === "production" && matching[0][1] !== undefined)
+  ].map((match) => match.groups);
+  for (const [name, tag, platform] of [
+    ["toolchain", `node:${version}-trixie-slim`, "--platform=$BUILDPLATFORM"],
+    [
+      "production",
+      `gcr.io/distroless/nodejs${major}-debian13:nonroot`,
+      undefined,
+    ],
+  ]) {
+    const matching = stages.filter(
+      (stage) => stage.alias?.toLowerCase() === name,
+    );
+    const stage = matching[0];
+    const prefix = `${tag}@sha256:`;
+    if (
+      matching.length !== 1 ||
+      !stage.source.startsWith(prefix) ||
+      !/^[a-f0-9]{64}$/u.test(stage.source.slice(prefix.length))
     ) {
+      errors.push(
+        `docker/Dockerfile: ${name} must use ${prefix}<index digest>.`,
+      );
+    } else if (stage.platform !== platform) {
       errors.push(
         `docker/Dockerfile: ${name} must retain its ${name === "toolchain" ? "build" : "target"} platform.`,
       );
     }
   }
-  for (const stage of stages) {
-    if (/(?:^|\/)node:/u.test(stage[2])) {
-      errors.push(
-        `docker/Dockerfile: Node base images must use \${NODE_IMAGE}.`,
-      );
+  const slimStages = new Set(["toolchain"]);
+  for (const { source, alias } of stages) {
+    if (alias && slimStages.has(source.toLowerCase())) {
+      slimStages.add(alias.toLowerCase());
+    }
+  }
+  for (const target of [
+    "server-build",
+    "frontend-build",
+    "capture-frontend-build",
+    "development",
+    "capture",
+  ]) {
+    if (!slimStages.has(target)) {
+      errors.push(`docker/Dockerfile: ${target} must inherit from toolchain.`);
     }
   }
 

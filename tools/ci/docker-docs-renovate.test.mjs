@@ -50,8 +50,13 @@ void test("Renovate accepts suffixed Node 26 Docker updates without widening the
   assert.deepEqual(packageRules[grouped].matchPackageNames, [
     "node",
     "@types/node",
+    "gcr.io/distroless/nodejs26-debian13",
   ]);
-  assert.equal(packageRules[grouped].allowedVersions, ">=26.0.0 <27.0.0");
+  const range = packageRules.find(
+    (rule) => rule.allowedVersions === ">=26.0.0 <27.0.0",
+  );
+  assert.deepEqual(range?.matchPackageNames, ["node", "@types/node"]);
+  assert.equal(packageRules[grouped].allowedVersions, undefined);
   const override = packageRules[docker];
   assert.deepEqual(override.matchDatasources, ["docker"]);
   assert.deepEqual(override.matchPackageNames, ["node"]);

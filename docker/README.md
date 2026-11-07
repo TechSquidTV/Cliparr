@@ -1,9 +1,8 @@
 # Docker environments
 
-One Dockerfile defines three independent final targets. Production uses the official
-Node.js Debian 13 slim image with Debian security updates and runs as UID/GID 65532.
-Chromium, FFmpeg, JavaScript package managers, and development sources are confined
-to the other targets. Production retains Debian's shell and OS package manager.
+One Dockerfile defines three final targets. Production runs the bundled application
+on non-root distroless. The Debian slim toolchain supplies the development and capture
+targets, including Chromium and FFmpeg for recording.
 The root `.dockerignore` allows only build inputs and recursively excludes local state, dependencies, and secrets.
 
 | Target        | Compose file          | Purpose                                                               |
@@ -70,12 +69,12 @@ permissions. Chromium uses Playwright's default sandbox setting and must only
 load this trusted local application. Running as non-root alone does not enable
 the Chromium sandbox.
 
-## Production runtime change
+## Production runtime
 
-Production gets its OS packages from the digest-pinned official Node.js Debian
-13 slim image. The production stage removes npm. Its Node executable is
-`/usr/local/bin/node`. Application behavior, UID/GID 65532, port 7171, `/data`,
-read-only operation, and the application data format are unchanged.
+Production runs the bundled server with `/nodejs/bin/node` in the non-root
+Google Distroless Node.js Debian 13 image. It runs as UID/GID 65532 on port 7171
+with a read-only root filesystem and writable `/data`. The production image
+has no shell or package manager. Development and capture use Debian slim.
 
 ## Development setup changes
 
@@ -116,9 +115,11 @@ change unrelated files or discard persistent provider volumes.
 ## Caching and updates
 
 The root `.nvmrc` pins the exact Node LTS version for CI and recommends it for
-local development. Compatible newer stable Node 26 versions are accepted locally. One
-`NODE_IMAGE` argument pins that same version and multi-platform digest for every
-Docker target. The shared toolchain installs the pnpm version from root
+local development. Compatible newer stable Node 26 versions are accepted locally.
+The Dockerfile pins two multi-platform image digests. The Debian slim toolchain
+tag contains the exact Node version. The distroless repository name includes
+the Node major, and its `nonroot` tag selects the runtime variant. CI runs Node
+in the built images to verify the exact version embedded in each digest. The shared toolchain installs the pnpm version from root
 `packageManager` once.
 Application dependencies are installed before sources; server and frontend builds
 copy their own inputs independently. Capture installs only recorder production dependencies and its browser before
@@ -146,15 +147,15 @@ External image references use multi-platform index digests. Renovate tracks thes
 and the Dockerfile frontend, ignores locally built image names, and raises
 release-worthy `fix(cliparr)` updates for the application Dockerfile. Provider
 fixture updates remain `build(cliparr)` changes. Node and Debian majors are explicit
-choices; changing them requires a reviewed migration. Renovate groups the Node
-image, `.nvmrc`, source engine requirement, and catalog typings into one Node.js
+choices; changing them requires a reviewed migration. Renovate groups both Node
+image digests, `.nvmrc`, source engine requirement, and catalog typings into one Node.js
 LTS update within the selected major. The offline `pnpm node:check` lint check
 rejects drift; image validation also checks the actual runtime version. Routine
 updates follow the configured Saturday maintenance window.
 A merged update still needs the normal manual Release workflow to reach users.
 
-Docker CI builds all three targets. All image targets and release validation scan the
-image and matching lockfile for fixable HIGH/CRITICAL vulnerabilities.
+Docker CI scans both production architectures, the development and capture images,
+and the matching lockfile for fixable HIGH/CRITICAL vulnerabilities.
 The lockfile inventory is retained as an artifact because bundled JavaScript
 cannot reliably be discovered by scanning the runtime filesystem alone. This
 conservatively includes production dependencies of other workspaces, too; the

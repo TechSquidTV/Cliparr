@@ -7,12 +7,16 @@ inputs:
   artifact-name:
     description: Unique name for the retained lockfile in this workflow run.
     default: image-dependency-inventory
+  scan-inventory:
+    description: Scan and retain the lockfile once for images built from the same revision.
+    default: "true"
 runs:
   using: composite
   steps:
     # Bundled JavaScript is not reliably discoverable from the runtime filesystem.
     # Scan the matching lockfile as well; keep it beside the image scan results.
     - name: Retain dependency inventory
+      if: inputs.scan-inventory == 'true'
       uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
       with:
         name: ${{ inputs.artifact-name }}
@@ -28,7 +32,7 @@ runs:
         ignore-unfixed: true
         exit-code: "1"
     - name: Scan JavaScript dependency inventory
-      if: always()
+      if: always() && inputs.scan-inventory == 'true'
       uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
       with:
         scan-type: fs

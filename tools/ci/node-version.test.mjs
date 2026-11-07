@@ -5,6 +5,7 @@ import { nodeVersionViolations } from "#ci/check-node-version.mjs";
 
 const version = "26.13.0";
 const image = `node:${version}-trixie-slim@sha256:${"a".repeat(64)}`;
+const runtimeImage = `gcr.io/distroless/nodejs26-debian13:nonroot@sha256:${"b".repeat(64)}`;
 
 function fixture() {
   return new Map([
@@ -23,7 +24,15 @@ function fixture() {
     ["pnpm-workspace.yaml", 'catalog:\n  "@types/node": ^26.6.6\n'],
     [
       "docker/Dockerfile",
-      `ARG NODE_IMAGE=${image}\nFROM --platform=$BUILDPLATFORM \${NODE_IMAGE} AS toolchain\nFROM toolchain AS development\nFROM \${NODE_IMAGE} AS production\n`,
+      `FROM --platform=$BUILDPLATFORM ${image} AS toolchain
+FROM toolchain AS development
+FROM toolchain AS manifests
+FROM manifests AS server-build
+FROM manifests AS frontend-build
+FROM manifests AS capture-frontend-build
+FROM manifests AS capture
+FROM ${runtimeImage} AS production
+`,
     ],
     [
       ".github/workflows/ci.yml",
@@ -93,7 +102,7 @@ void test("compatible local Node does not excuse Docker configuration drift", ()
   );
   assert.match(
     nodeVersionViolations(files, "26.13.1").join("\n"),
-    /NODE_IMAGE=node:26\.13\.0-trixie-slim/u,
+    /toolchain must use node:26\.13\.0-trixie-slim/u,
   );
 });
 
@@ -108,50 +117,43 @@ for (const range of [">=24.16.0", "^26.12.0", ">=26.13.0", "26.13.0"]) {
   });
 }
 
-for (const replacement of [
-  image.replace(version, "26.12.1"),
-  image.split("@")[0],
-  image.replace("a".repeat(64), "short"),
+for (const [target, pin, replacement] of [
+  ["toolchain", image, image.replace(version, "26.12.1")],
+  ["toolchain", image, image.split("@")[0]],
+  ["toolchain", image, image.replace("a".repeat(64), "short")],
+  ["production", runtimeImage, image],
+  ["production", runtimeImage, runtimeImage.replace("nodejs26", "nodejs24")],
+  [
+    "production",
+    runtimeImage,
+    runtimeImage.replace(":nonroot", ":debug-nonroot"),
+  ],
+  ["production", runtimeImage, runtimeImage.split("@")[0]],
+  ["production", runtimeImage, runtimeImage.replace("b".repeat(64), "short")],
 ]) {
-  void test(`rejects Docker version/digest drift: ${replacement}`, () => {
+  void test(`rejects ${target} image drift: ${replacement}`, () => {
     const files = fixture();
     files.set(
       "docker/Dockerfile",
-      files.get("docker/Dockerfile").replace(image, replacement),
+      files.get("docker/Dockerfile").replace(pin, replacement),
     );
-    assert.match(
-      nodeVersionViolations(files, version).join("\n"),
-      /global NODE_IMAGE/u,
+    assert.ok(
+      nodeVersionViolations(files, version).some((error) =>
+        error.includes(`${target} must use`),
+      ),
     );
   });
 }
 
-void test("rejects a production stage that bypasses the shared image even if its version matches", () => {
+void test("rejects forcing production onto the build platform", () => {
   const files = fixture();
   files.set(
     "docker/Dockerfile",
     files
       .get("docker/Dockerfile")
       .replace(
-        `FROM \${NODE_IMAGE} AS production`,
-        `FROM ${image} AS production`,
-      ),
-  );
-  assert.match(
-    nodeVersionViolations(files, version).join("\n"),
-    /production must use FROM/u,
-  );
-});
-
-void test("rejects forcing the production runtime onto the build platform", () => {
-  const files = fixture();
-  files.set(
-    "docker/Dockerfile",
-    files
-      .get("docker/Dockerfile")
-      .replace(
-        `FROM \${NODE_IMAGE} AS production`,
-        `FROM --platform=$BUILDPLATFORM \${NODE_IMAGE} AS production`,
+        `FROM ${runtimeImage}`,
+        `FROM --platform=$BUILDPLATFORM ${runtimeImage}`,
       ),
   );
   assert.match(
@@ -160,20 +162,18 @@ void test("rejects forcing the production runtime onto the build platform", () =
   );
 });
 
-void test("rejects duplicate or stage-local image arguments", () => {
-  for (const text of [
-    `ARG NODE_IMAGE=${image}\n${fixture().get("docker/Dockerfile")}`,
-    `${fixture()
+void test("rejects a slim target that bypasses the toolchain through an intermediate stage", () => {
+  const files = fixture();
+  files.set(
+    "docker/Dockerfile",
+    files
       .get("docker/Dockerfile")
-      .replace(`ARG NODE_IMAGE=${image}\n`, "")}ARG NODE_IMAGE=${image}\n`,
-  ]) {
-    const files = fixture();
-    files.set("docker/Dockerfile", text);
-    assert.match(
-      nodeVersionViolations(files, version).join("\n"),
-      /global NODE_IMAGE/u,
-    );
-  }
+      .replace("FROM toolchain AS manifests", `FROM ${image} AS manifests`),
+  );
+  assert.match(
+    nodeVersionViolations(files, version).join("\n"),
+    /capture must inherit from toolchain/u,
+  );
 });
 
 for (const input of [

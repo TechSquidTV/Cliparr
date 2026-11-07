@@ -101,7 +101,7 @@ Store curated highlights and upgrade notes in `tools/release/notes/vX.Y.Z.md`. R
 
 ### Release validation and recovery
 
-`pnpm node:check` runs first in lint and verifies the local runtime, Node engine requirement, shared Docker image, workflow setup, and catalog typings against `.nvmrc`. It runs inside the existing CI job and local preflight, without a separate runner. Local runtimes may satisfy the declared Node 26 range; CI runtimes and container versions must match `.nvmrc` exactly.
+`pnpm node:check` runs first in lint and verifies the local runtime, Node engine requirement, Debian slim and distroless image pins, workflow setup, and catalog typings against `.nvmrc`. It runs inside the existing CI job and local preflight, without a separate runner. Local runtimes may satisfy the declared Node 26 range; CI runtimes and container versions must match `.nvmrc` exactly.
 
 Every workspace test script runs in CI and release validation, including the website. Job summaries show the embedded app version, tested commit (including the distinction between a PR head and its tested merge), actual runner/container Node versions, pnpm version, and validation outcomes.
 

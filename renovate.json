@@ -67,12 +67,20 @@
       "versioning": "regex:^(?<major>\\d+)\\.(?<minor>\\d+)\\.(?<patch>\\d+)\\.(?<build>\\d+)-[a-f0-9]+$"
     },
     {
-      "description": "Keep the selected Node LTS runtime, source requirements, Docker image, and typings in one update. Review future LTS major migrations separately.",
+      "description": "Keep Node LTS runtime and typings updates within the selected major.",
       "matchPackageNames": ["node", "@types/node"],
+      "allowedVersions": ">=26.0.0 <27.0.0"
+    },
+    {
+      "description": "Group the runtime, source requirements, typings, and both container bases.",
+      "matchPackageNames": [
+        "node",
+        "@types/node",
+        "gcr.io/distroless/nodejs26-debian13"
+      ],
       "groupName": "Node.js LTS",
       "groupSlug": "nodejs-lts",
       "semanticCommitType": "fix",
-      "allowedVersions": ">=26.0.0 <27.0.0",
       "rangeStrategy": "bump",
       "separateMinorPatch": false
     },
