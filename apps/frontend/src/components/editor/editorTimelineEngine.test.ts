@@ -20,6 +20,7 @@ import {
   synchronizeEditorTimelineSubtitles,
   timelineScrollLeftForCenteredTime,
 } from "@/components/editor/editorTimelineEngine";
+import { getActiveSubtitleCues } from "@/lib/subtitles/getActiveSubtitleCue";
 
 function createSession(overrides: Partial<EditorSession> = {}): EditorSession {
   return {
@@ -470,6 +471,87 @@ void describe("editor timeline engine", () => {
 });
 
 void describe("subtitle authoring", () => {
+  void it("keeps fractional frame starts visible after timeline tick conversion", () => {
+    const frameTime = 1001 / 24_000;
+    const engine = createEditorTimelineEngine(createSession());
+    const range = getSubtitleCreationRange(
+      engine.getState().tracks,
+      0.05,
+      20,
+      frameTime,
+    );
+    assert.ok(range);
+    const clip = createSubtitleClip({ ...range, text: "Visible now" }, 20);
+    assert.ok(clip);
+    engine.commitEdit({
+      type: "overwrite",
+      targetTrackId: EDITOR_SUBTITLE_TRACK_ID,
+      startTime: fromSeconds(range.startTime),
+      clip,
+      snap: false,
+    });
+    assert.equal(
+      getActiveSubtitleCues(
+        subtitleCuesFromTimeline(engine.getState().tracks),
+        frameTime,
+      ).length,
+      1,
+    );
+  });
+  void it("starts on the displayed frame and caps at the next cue or media end", () => {
+    const engine = createEditorTimelineEngine(createSession());
+    synchronizeEditorTimelineSubtitles(engine, {
+      cues: [{ startTime: 2, endTime: 3, text: "Next", lines: ["Next"] }],
+    });
+    const tracks = engine.getState().tracks;
+    assert.deepEqual(getSubtitleCreationRange(tracks, 1.05, 20, 1), {
+      startTime: 1,
+      endTime: 2,
+    });
+    assert.deepEqual(getSubtitleCreationRange(tracks, 1, 20, 1), {
+      startTime: 1,
+      endTime: 2,
+    });
+    assert.deepEqual(getSubtitleCreationRange(tracks, 19.95, 20, 19.9), {
+      startTime: 19.9,
+      endTime: 20,
+    });
+    // A stale future frame during a backwards seek must not create a future cue.
+    assert.equal(getSubtitleCreationRange(tracks, 1.05, 20, 4), null);
+    for (const frameTime of [-1, Number.NaN, Number.POSITIVE_INFINITY]) {
+      assert.equal(getSubtitleCreationRange(tracks, 1.05, 20, frameTime), null);
+    }
+  });
+  void it("preserves cues occupying any part of the frame-to-playhead span", () => {
+    for (const [startTime, endTime] of [
+      [0.9, 1.02], // Occupies the displayed frame, but not the playhead.
+      [1.01, 1.02], // Entirely between the frame and the playhead.
+      [1.02, 1.1], // Occupies the playhead, but not the frame.
+    ] as const) {
+      const engine = createEditorTimelineEngine(createSession());
+      synchronizeEditorTimelineSubtitles(engine, {
+        cues: [{ startTime, endTime, text: "Existing", lines: ["Existing"] }],
+      });
+      engine.toggleTrackVisibility(EDITOR_SUBTITLE_TRACK_ID, false);
+      const tracks = engine.getState().tracks;
+      assert.equal(getSubtitleCreationRange(tracks, 1.05, 20, 1), null);
+    }
+  });
+  void it("allows creation immediately after an existing cue ends on the frame", () => {
+    const engine = createEditorTimelineEngine(createSession());
+    synchronizeEditorTimelineSubtitles(engine, {
+      cues: [
+        { startTime: 0, endTime: 1, text: "Previous", lines: ["Previous"] },
+      ],
+    });
+    assert.deepEqual(
+      getSubtitleCreationRange(engine.getState().tracks, 1.05, 20, 1),
+      {
+        startTime: 1,
+        endTime: 3,
+      },
+    );
+  });
   for (const [start, expectedEnd] of [
     [0, 2],
     [1, 2],
@@ -518,6 +600,7 @@ void describe("subtitle authoring", () => {
         engine.getState().tracks,
         start,
         20,
+        null,
       );
       if (expectedEnd === null) {
         assert.equal(range, null);
@@ -582,18 +665,18 @@ void describe("subtitle authoring", () => {
   void it("defaults to two seconds on an empty lane and requires a valid media duration", () => {
     const engine = createEditorTimelineEngine(createSession());
     const tracks = engine.getState().tracks;
-    assert.deepEqual(getSubtitleCreationRange(tracks, 0, 20), {
+    assert.deepEqual(getSubtitleCreationRange(tracks, 0, 20, null), {
       startTime: 0,
       endTime: 2,
     });
-    assert.deepEqual(getSubtitleCreationRange(tracks, 0, 1), {
+    assert.deepEqual(getSubtitleCreationRange(tracks, 0, 1, null), {
       startTime: 0,
       endTime: 1,
     });
     for (const duration of [0, -1, Number.NaN, Number.POSITIVE_INFINITY]) {
-      assert.equal(getSubtitleCreationRange(tracks, 0, duration), null);
+      assert.equal(getSubtitleCreationRange(tracks, 0, duration, null), null);
     }
-    assert.equal(getSubtitleCreationRange([], 0, 20), null);
+    assert.equal(getSubtitleCreationRange([], 0, 20, null), null);
   });
   void it("creates text without a provider, normalizes it, and clamps to video end", () => {
     const clip = createSubtitleClip(
