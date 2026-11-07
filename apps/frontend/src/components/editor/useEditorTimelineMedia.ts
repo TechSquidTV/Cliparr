@@ -378,6 +378,15 @@ export function useEditorTimelineMedia(
     details.timelineOffsetSeconds,
     duration,
   );
+  const getRenderedFrameTime = useCallback(
+    () =>
+      editorPreviewFrameTime(
+        adapter.lastFrameTime,
+        details.timelineOffsetSeconds,
+        duration,
+      ),
+    [adapter, details.timelineOffsetSeconds, duration],
+  );
 
   const pausePlayback = useCallback(() => {
     previewRequest.current += 1;
@@ -523,6 +532,7 @@ export function useEditorTimelineMedia(
     connectCanvas,
     currentTime: toSeconds(playheadTime),
     renderedFrameTime: renderedTimelineFrameTime,
+    getRenderedFrameTime,
     duration,
     playing,
     loadingPreview,
