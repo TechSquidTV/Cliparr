@@ -175,6 +175,8 @@ export function MediabunnySourcePreview({
     stopPlayback();
     setCurrentTime(0);
     setState({ status: "loading" });
+    const canvas = canvasRef.current;
+    canvas?.getContext("2d")?.clearRect(0, 0, canvas.width, canvas.height);
 
     let cancelled = false;
     let input: Awaited<ReturnType<typeof createCliparrInputFromSource>> | null =

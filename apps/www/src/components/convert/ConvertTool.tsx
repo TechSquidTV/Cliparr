@@ -345,6 +345,8 @@ export function ConvertTool() {
     sourceDetailsStatus = "Media details ready.";
   } else if (sourceProbeState.status === "loading") {
     sourceDetailsStatus = "Inspecting media…";
+  } else if (sourceProbeState.status === "error") {
+    sourceDetailsStatus = "Media inspection failed.";
   }
   const sourceDetails = [
     [
