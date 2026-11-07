@@ -21,6 +21,7 @@ export interface EditorDraft {
 }
 
 type DraftStorage = Pick<Storage, "getItem" | "setItem">;
+// v2 deliberately starts fresh: v1 clip ranges and subtitle edits are not restored.
 const STORAGE_KEY = "cliparr.editor.drafts.v2";
 const MAX_AGE_MS = 14 * 24 * 60 * 60 * 1000;
 const MAX_STORAGE_BYTES = 1_500_000;

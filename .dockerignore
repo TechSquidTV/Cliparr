@@ -1,6 +1,7 @@
 # Only build inputs belong in the context.
 **
 !.npmrc
+!.nvmrc
 !package.json
 !pnpm-lock.yaml
 !pnpm-workspace.yaml

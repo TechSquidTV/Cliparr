@@ -54,6 +54,7 @@ COPY config/tsconfig.json config/tsconfig.base.json config/
 COPY packages/shared/src packages/shared/src
 
 FROM --platform=$BUILDPLATFORM app-source AS server-build
+COPY .nvmrc ./
 COPY packages/plex/src packages/plex/src
 COPY apps/server/tsconfig.json apps/server/tsconfig.build.json apps/server/tsdown.config.ts apps/server/
 COPY apps/server/src apps/server/src
