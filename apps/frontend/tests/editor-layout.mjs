@@ -95,17 +95,7 @@ async function checkTouchTrimTargets(browser, url) {
     await page.getByRole("button", { name: "Done", exact: true }).click();
   }
 
-  async function drag(part, x, y, delta) {
-    assert.ok(
-      await part.evaluate(
-        (element, point) =>
-          element === globalThis.document.elementFromPoint(point.x, point.y),
-        { x, y },
-      ),
-      `Contact hits ${await part.getAttribute("aria-label")} at ${x}, ${y}`,
-    );
-    const beforeStart = Number(await start.getAttribute("aria-valuenow"));
-    const beforeEnd = Number(await end.getAttribute("aria-valuenow"));
+  async function touchDrag(x, y, delta) {
     await touch.send("Input.dispatchTouchEvent", {
       type: "touchStart",
       touchPoints: [{ x, y }],
@@ -118,6 +108,20 @@ async function checkTouchTrimTargets(browser, url) {
       type: "touchEnd",
       touchPoints: [],
     });
+  }
+
+  async function drag(part, x, y, delta) {
+    assert.ok(
+      await part.evaluate(
+        (element, point) =>
+          element === globalThis.document.elementFromPoint(point.x, point.y),
+        { x, y },
+      ),
+      `Contact hits ${await part.getAttribute("aria-label")} at ${x}, ${y}`,
+    );
+    const beforeStart = Number(await start.getAttribute("aria-valuenow"));
+    const beforeEnd = Number(await end.getAttribute("aria-valuenow"));
+    await touchDrag(x, y, delta);
     const startDelta =
       Number(await start.getAttribute("aria-valuenow")) - beforeStart;
     const endDelta =
@@ -173,6 +177,49 @@ async function checkTouchTrimTargets(browser, url) {
       await drag(part, x, box.y + box.height / 2, direction * 6);
     }
   }
+  await setRange(0.2, 1.3);
+  const beforeStart = await start.getAttribute("aria-valuenow");
+  const beforeEnd = await end.getAttribute("aria-valuenow");
+  // Also start inside the enlarged touch area just beyond each painted grip.
+  for (const [from, to, direction] of [
+    ["0.75", "0:00.85", 1],
+    ["0.30", "0:00.40", 1],
+    ["1.20", "0:01.10", -1],
+  ]) {
+    await page.getByRole("button", { name: /^Edit preview time:/ }).click();
+    const field = page.getByRole("textbox", {
+      name: "Edit preview time",
+      exact: true,
+    });
+    await field.fill(from);
+    await field.press("Enter");
+    const line = await page
+      .locator(".timeline-playhead-grabber-line")
+      .boundingBox();
+    assert.ok(line);
+    await touchDrag(
+      line.x + line.width / 2,
+      row.y + row.height / 2,
+      (direction * scale) / 10,
+    );
+    assert.equal(
+      await start.getAttribute("aria-valuenow"),
+      beforeStart,
+      "Scrubbing preserves the In point",
+    );
+    assert.equal(
+      await end.getAttribute("aria-valuenow"),
+      beforeEnd,
+      "Scrubbing preserves the Out point",
+    );
+    await page
+      .getByRole("button", {
+        name: `Edit preview time: ${to} of 0:04.00`,
+        exact: true,
+      })
+      .waitFor();
+  }
+
   await page.close();
 }
 

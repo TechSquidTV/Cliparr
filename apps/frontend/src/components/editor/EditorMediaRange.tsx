@@ -6,34 +6,40 @@ import {
   useTimelineInOutRangeControl,
   useTimelinePlayback,
   useTimelineScrollLeft,
-  useTimelineTrack,
+  type UseTimelineTrackResult,
   useTimelineZoomScale,
 } from "@techsquidtv/canvas-timeline";
+import type { CSSProperties } from "react";
 
 import {
   EDITOR_MEDIA_RANGE_HANDLE_WIDTH,
   EDITOR_MEDIA_RANGE_INSET,
 } from "@/components/editor/EditorMediaRangeCanvas";
-import { EDITOR_MEDIA_TRACK_ID } from "@/components/editor/editorTimelineEngine";
 import {
   formatTime,
   MIN_CLIP_SECONDS,
 } from "@/components/editor/editorUtilities";
 import { ControlTooltip } from "@/components/ui/tooltip";
 
-const trimInterior = `var(--editor-trim-interior, min(${EDITOR_MEDIA_RANGE_HANDLE_WIDTH}px, 25%))`;
-const trimHandleWidth = `var(--editor-trim-target-width, ${trimInterior})`;
+const gripWidth = `min(var(--editor-range-quarter), ${EDITOR_MEDIA_RANGE_HANDLE_WIDTH}px)`;
+const trimInterior = `var(--editor-trim-interior, ${gripWidth})`;
 
 // The source clip stays full-length for preview and source timestamp mapping.
 // Its visible row represents the export range, using the same In/Out state as
 // time fields, shortcuts, drafts, and history rather than editing source media.
-export function EditorMediaRange({ engine }: { engine: TimelineEngine }) {
+export function EditorMediaRange({
+  engine,
+  rect,
+}: {
+  engine: TimelineEngine;
+  rect: UseTimelineTrackResult["rect"];
+}) {
   const { setPlayheadTime } = useTimelinePlayback();
-  const { rect } = useTimelineTrack(EDITOR_MEDIA_TRACK_ID);
   const scrollLeft = useTimelineScrollLeft();
   const zoomScale = useTimelineZoomScale();
   const range = useTimelineInOutRangeControl();
   const [start, end] = range.value;
+  const selectionWidth = (end - start) * zoomScale;
 
   if (!rect) {
     return null;
@@ -80,12 +86,18 @@ export function EditorMediaRange({ engine }: { engine: TimelineEngine }) {
           top: EDITOR_MEDIA_RANGE_INSET,
           height: rect.height - EDITOR_MEDIA_RANGE_INSET * 2,
           width: range.max * zoomScale,
-          transform: `translateX(${-scrollLeft}px)`,
+          left: -scrollLeft,
         }}
       >
         <div
           className="editor-media-range-selection absolute inset-y-0"
-          style={{ left: start * zoomScale, width: (end - start) * zoomScale }}
+          style={
+            {
+              left: start * zoomScale,
+              width: selectionWidth,
+              "--editor-range-quarter": `${selectionWidth / 4}px`,
+            } as CSSProperties
+          }
         >
           <ControlTooltip label="Drag to move selection; drag either edge to trim">
             <RangeScrollbar.Thumb
@@ -97,10 +109,7 @@ export function EditorMediaRange({ engine }: { engine: TimelineEngine }) {
           <ControlTooltip label="Trim clip start">
             <RangeScrollbar.Handle
               side="start"
-              style={{
-                width: trimHandleWidth,
-                left: "var(--editor-trim-offset, 0px)",
-              }}
+              style={{ width: gripWidth }}
               role="slider"
               aria-label="Clip start"
             />
@@ -108,10 +117,7 @@ export function EditorMediaRange({ engine }: { engine: TimelineEngine }) {
           <ControlTooltip label="Trim clip end">
             <RangeScrollbar.Handle
               side="end"
-              style={{
-                width: trimHandleWidth,
-                right: "var(--editor-trim-offset, 0px)",
-              }}
+              style={{ width: gripWidth }}
               role="slider"
               aria-label="Clip end"
             />

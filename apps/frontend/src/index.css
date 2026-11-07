@@ -701,16 +701,15 @@
 /* The actual handle covers the painted grip, even where the row clips its
    outside edge. Reserve the middle half of short selections for moving them. */
 @media (pointer: coarse) {
-  /* Let the selection receive touches where it crosses the playhead grabber. */
-  .editor-media-range-row {
+  /* Share a stacking context so the playhead can sit between the painted
+     grips and their expanded touch targets. */
+  .editor-media-range-row,
+  .editor-media-range-row .editor-media-range {
     z-index: auto;
   }
   .editor-media-range-selection {
     inset-block: -4px;
-  }
-  .editor-media-range-row .editor-media-range {
-    z-index: 81;
-    --editor-trim-interior: min(25%, 44px);
+    --editor-trim-interior: min(var(--editor-range-quarter), 44px);
     --editor-trim-target-width: max(
       44px,
       calc(var(--editor-trim-interior) + 22px)
@@ -718,5 +717,56 @@
     --editor-trim-offset: calc(
       var(--editor-trim-interior) - var(--editor-trim-target-width)
     );
+  }
+  .editor-media-range .range-scrollbar-thumb {
+    z-index: 31;
+  }
+  .editor-media-range .range-scrollbar-handle {
+    z-index: auto;
+  }
+  .editor-media-range .range-scrollbar-handle::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 81;
+  }
+  .editor-media-range-selection
+    .range-scrollbar-handle[data-side]:empty::before {
+    content: "";
+    position: absolute;
+    inset-block: 0;
+    width: var(--editor-trim-target-width);
+    height: auto;
+    border-radius: 0;
+    z-index: 32;
+    background: transparent;
+    transform: none;
+  }
+  .editor-media-range .range-scrollbar-handle[data-side="start"]::before {
+    left: var(--editor-trim-offset);
+  }
+  .editor-media-range .range-scrollbar-handle[data-side="end"]::before {
+    right: var(--editor-trim-offset);
+  }
+
+  /* Within the media row, the 24px playhead highlight takes the drag.
+     Keep the grabber's full width over the ruler and the other tracks. */
+  .cliparr-timeline-v2 .editor-playhead {
+    pointer-events: none;
+  }
+  .editor-playhead::before,
+  .editor-playhead::after {
+    content: "";
+    position: absolute;
+    inset-inline: 0;
+    pointer-events: auto;
+  }
+  .editor-playhead::before {
+    top: 0;
+    height: var(--editor-media-top);
+  }
+  .editor-playhead::after {
+    top: var(--editor-media-bottom);
+    bottom: 0;
   }
 }
