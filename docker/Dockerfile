@@ -92,7 +92,15 @@ WORKDIR /workspace/tools/www-assets
 USER node
 CMD ["node", "src/record.ts"]
 
-FROM gcr.io/distroless/nodejs24-debian13:nonroot@sha256:b8cec4b2f2126ff7bd034ec9ac207ffb3272667dfdc48376e3b035d3270549ba AS production
+FROM node:24.22.2-trixie-slim@sha256:0820eaa85e07d0490446dd01d14707e17e6108a36988cf374899cd057eb3812d AS production
+# Debian's released security update fixes CVE-2026-76844 and CVE-2026-85091.
+# Install it through APT; fail closed if a mirror does not have the fix yet.
+RUN apt-get update \
+  && apt-get install -y --no-install-recommends --only-upgrade zlib1g \
+  && dpkg --compare-versions "$(dpkg-query -W -f='${Version}' zlib1g)" ge '1:1.3.dfsg+really1.3.1-1+deb13u1' \
+  && rm -rf /var/lib/apt/lists/* \
+  && npm uninstall --global corepack npm \
+  && rm -rf /opt/yarn-v* /usr/local/bin/yarn /usr/local/bin/yarnpkg
 LABEL org.opencontainers.image.title="Cliparr" \
   org.opencontainers.image.description="Instant media clipper for Plex and Jellyfin servers." \
   org.opencontainers.image.source="https://github.com/techsquidtv/cliparr" \
@@ -114,5 +122,6 @@ USER 65532:65532
 VOLUME ["/data"]
 EXPOSE 7171
 HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \
-  CMD ["/nodejs/bin/node", "-e", "fetch('http://127.0.0.1:' + (process.env.PORT || 7171) + '/api/health').then((response) => process.exit(response.ok ? 0 : 1)).catch(() => process.exit(1))"]
+  CMD ["/usr/local/bin/node", "-e", "fetch('http://127.0.0.1:' + (process.env.PORT || 7171) + '/api/health').then((response) => process.exit(response.ok ? 0 : 1)).catch(() => process.exit(1))"]
+ENTRYPOINT ["/usr/local/bin/node"]
 CMD ["apps/server/dist/server.js"]
