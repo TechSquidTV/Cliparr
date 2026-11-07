@@ -197,7 +197,7 @@ function EditorScreenContent({
   );
   const timecodeTool = useEditorTimecodeEdit().draft?.tool;
   const [trackNamesVisible, setTrackNamesVisible] = useState(false);
-  const mainReference = useRef<HTMLElement>(null);
+  const mobileWorkspace = useRef<HTMLDivElement>(null);
   const compositionAction = useRef<HTMLButtonElement | null>(null);
   const [subtitleTab, setSubtitleTab] = useState<EditorSubtitleTab>("text");
   useLayoutEffect(() => {
@@ -227,6 +227,9 @@ function EditorScreenContent({
     endTime,
     duration,
     mediaReady: timelineMedia.metadataReady,
+    previewReady: !timelineMedia.loadingPreviewFrame,
+    renderedFrameTime: timelineMedia.renderedFrameTime,
+    getRenderedFrameTime: timelineMedia.getRenderedFrameTime,
     pausePlayback: timelineMedia.pausePlayback,
     onSubtitleCreated: () => {
       setPlaybackSidebarOpen(true);
@@ -429,13 +432,13 @@ function EditorScreenContent({
     pausePlayback();
     setPlaybackSidebarOpen(true);
     setPropertiesPanel("crop");
-    mainReference.current?.scrollTo({ top: 0 });
+    mobileWorkspace.current?.scrollTo({ top: 0 });
   };
   const closeTool = () => {
     finishEditing();
     setPropertiesPanel(isDesktopLayout ? "subtitles" : null);
     if (propertiesPanel === "crop") {
-      mainReference.current?.scrollTo({ top: 0 });
+      mobileWorkspace.current?.scrollTo({ top: 0 });
     }
     if (!isDesktopLayout && propertiesPanel) {
       document
@@ -1127,7 +1130,6 @@ function EditorScreenContent({
       {isDesktopLayout && editingTools.controls}
 
       <main
-        ref={mainReference}
         data-crop-editing={cropEditing || undefined}
         className="min-h-0 flex-1 overflow-hidden lg:p-3"
       >
@@ -1147,6 +1149,7 @@ function EditorScreenContent({
           />
         ) : (
           <EditorMobileLayout
+            ref={mobileWorkspace}
             tool={propertiesPanel}
             onToolChange={changeTool}
             onDone={closeTool}

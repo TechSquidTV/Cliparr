@@ -6,7 +6,7 @@ import {
   Volume2,
 } from "lucide-react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
-import { type ReactNode, useRef } from "react";
+import { type ReactNode, type Ref, useRef } from "react";
 
 import {
   EDITOR_PANEL_SIZES,
@@ -296,6 +296,7 @@ const mobileTools = {
 export type EditorTool = keyof typeof mobileTools;
 
 export function EditorMobileLayout({
+  ref,
   error,
   previewPane,
   timelinePane,
@@ -307,6 +308,7 @@ export function EditorMobileLayout({
   cropDisabled,
   cropTransport,
 }: {
+  ref: Ref<HTMLDivElement>;
   error: string | null;
   previewPane: ReactNode;
   timelinePane: ReactNode;
@@ -320,10 +322,7 @@ export function EditorMobileLayout({
 }) {
   const inspectorReference = useRef<HTMLElement>(null);
   return (
-    <div
-      data-tool={tool ?? undefined}
-      className="editor-mobile-workspace flex h-full min-h-0 flex-col overflow-y-auto"
-    >
+    <div className="flex h-full min-h-0 flex-col">
       {error && (
         <div
           role="status"
@@ -332,47 +331,53 @@ export function EditorMobileLayout({
           {error}
         </div>
       )}
-      <div className="editor-mobile-preview shrink-0">{previewPane}</div>
       <div
-        className={`editor-mobile-timeline flex-1 ${tool ? "min-h-52" : "min-h-72"}`}
-        hidden={tool === "crop"}
-        inert={tool === "crop"}
+        ref={ref}
+        data-tool={tool ?? undefined}
+        className="editor-mobile-workspace flex min-h-0 flex-1 flex-col overflow-y-auto"
       >
-        {timelinePane}
-      </div>
-      {tool === "crop" && (
-        <div className="editor-mobile-crop-transport shrink-0">
-          {cropTransport}
+        <div className="editor-mobile-preview shrink-0">{previewPane}</div>
+        <div
+          className={`editor-mobile-timeline flex-1 ${tool ? "min-h-52" : "min-h-72"}`}
+          hidden={tool === "crop"}
+          inert={tool === "crop"}
+        >
+          {timelinePane}
         </div>
-      )}
-      <section
-        ref={inspectorReference}
-        id="editor-mobile-inspector"
-        tabIndex={-1}
-        aria-label={tool ? mobileTools[tool].label : "Editor tool"}
-        hidden={!tool}
-        className={cn(
-          "editor-mobile-inspector flex min-h-0 shrink-0 flex-col border-t border-editor-border bg-editor-panel",
-          tool === "crop" ? "flex-1" : "h-60",
-          tool === "subtitles" && "h-80",
-        )}
-      >
-        {tool && tool !== "crop" && tool !== "subtitles" && (
-          <div className="flex h-11 shrink-0 items-center justify-between px-3">
-            <h2 className="text-sm font-medium">{mobileTools[tool].label}</h2>
-            <button
-              type="button"
-              onClick={onDone}
-              className="editor-control-focus min-h-11 px-3 text-sm text-primary"
-            >
-              Done
-            </button>
+        {tool === "crop" && (
+          <div className="editor-mobile-crop-transport shrink-0">
+            {cropTransport}
           </div>
         )}
-        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
-          {inspector}
-        </div>
-      </section>
+        <section
+          ref={inspectorReference}
+          id="editor-mobile-inspector"
+          tabIndex={-1}
+          aria-label={tool ? mobileTools[tool].label : "Editor tool"}
+          hidden={!tool}
+          className={cn(
+            "editor-mobile-inspector flex min-h-36 flex-col border-t border-editor-border bg-editor-panel",
+            tool === "crop" ? "flex-1" : "h-60",
+            tool === "subtitles" && "h-80",
+          )}
+        >
+          {tool && tool !== "crop" && tool !== "subtitles" && (
+            <div className="flex h-11 shrink-0 items-center justify-between px-3">
+              <h2 className="text-sm font-medium">{mobileTools[tool].label}</h2>
+              <button
+                type="button"
+                onClick={onDone}
+                className="editor-control-focus min-h-11 px-3 text-sm text-primary"
+              >
+                Done
+              </button>
+            </div>
+          )}
+          <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
+            {inspector}
+          </div>
+        </section>
+      </div>
       <nav
         aria-label="Editing tools"
         className="editor-mobile-tools grid min-h-16 shrink-0 grid-cols-[repeat(auto-fit,minmax(min(100%,3.5rem),1fr))] border-t border-editor-border bg-editor-panel px-1"
