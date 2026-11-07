@@ -227,6 +227,9 @@ function EditorScreenContent({
     endTime,
     duration,
     mediaReady: timelineMedia.metadataReady,
+    previewReady: !timelineMedia.loadingPreviewFrame,
+    renderedFrameTime: timelineMedia.renderedFrameTime,
+    getRenderedFrameTime: timelineMedia.getRenderedFrameTime,
     pausePlayback: timelineMedia.pausePlayback,
     onSubtitleCreated: () => {
       setPlaybackSidebarOpen(true);

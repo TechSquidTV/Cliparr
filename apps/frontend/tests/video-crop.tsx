@@ -117,6 +117,9 @@ const session = buildLocalEditorSession({
   },
 });
 const fixture = parameters.get("fixture");
+if (fixture === "subtitle-frame") {
+  session.initialPlayheadSeconds = Number(parameters.get("time"));
+}
 if (fixture === "delayed-subtitles") {
   // Reuse the synthetic media while exercising the provider import lifecycle.
   session.local = false;

@@ -1,6 +1,102 @@
 import assert from "node:assert/strict";
 
+async function checkPausedSubtitlePreview({ browser, url }) {
+  for (const time of [1.05, 1]) {
+    const page = await browser.newPage({
+      viewport: { width: 1280, height: 900 },
+      reducedMotion: "reduce",
+    });
+    try {
+      await page.goto(`${url}?fixture=subtitle-frame&time=${time}`);
+      const add = page.getByRole("button", {
+        name: "Add subtitle",
+        exact: true,
+      });
+      await page.waitForFunction(() => {
+        const button = [...globalThis.document.querySelectorAll("button")].find(
+          (element) => element.textContent === "Add subtitle",
+        );
+        return button && !button.disabled;
+      });
+      const overlay = page.locator(
+        '[data-editor-picture] canvas[aria-hidden="true"]',
+      );
+      const readOverlay = () =>
+        overlay.evaluate((canvas) => canvas.toDataURL());
+      const waitForOverlay = (expected) =>
+        page.waitForFunction((value) => {
+          const canvas = globalThis.document.querySelector(
+            '[data-editor-picture] canvas[aria-hidden="true"]',
+          );
+          return canvas.toDataURL() === value;
+        }, expected);
+      const blank = await readOverlay();
+      await add.click();
+      await page
+        .getByRole("button", {
+          name: "Edit subtitle cue in point: 0:01.00",
+          exact: true,
+        })
+        .waitFor();
+      await page.waitForFunction(() => {
+        const canvas = globalThis.document.querySelector(
+          '[data-editor-picture] canvas[aria-hidden="true"]',
+        );
+        const pixels = canvas
+          .getContext("2d")
+          .getImageData(0, 0, canvas.width, canvas.height).data;
+        return pixels.some((value, index) => index % 4 === 3 && value > 0);
+      });
+      const created = await readOverlay();
+      assert.notEqual(
+        created,
+        blank,
+        `Creation at ${time}s renders while paused`,
+      );
+      const text = page.getByRole("textbox", {
+        name: "Subtitle text",
+        exact: true,
+      });
+      await text.fill("Edited while paused");
+      await page.waitForFunction((previous) => {
+        const canvas = globalThis.document.querySelector(
+          '[data-editor-picture] canvas[aria-hidden="true"]',
+        );
+        return canvas.toDataURL() !== previous;
+      }, created);
+      const edited = await readOverlay();
+      assert.notEqual(
+        edited,
+        blank,
+        "Text edits remain visible without playback",
+      );
+      assert.equal(
+        await page
+          .getByRole("button", { name: "Play preview", exact: true })
+          .count(),
+        1,
+      );
+      const undo = page.getByRole("button", { name: "Undo", exact: true });
+      await undo.click();
+      await waitForOverlay(created);
+      await undo.click();
+      await waitForOverlay(blank);
+      assert.equal(await undo.isDisabled(), true, "Creation is one undo step");
+      const redo = page.getByRole("button", { name: "Redo", exact: true });
+      await redo.click();
+      await redo.click();
+      await waitForOverlay(edited);
+    } finally {
+      await page.close();
+    }
+  }
+  process.stdout.write(
+    "Passed paused subtitle creation and live text preview between/on frames\n",
+  );
+}
+
 export async function checkEditorReviewRegressions({ browser, url }) {
+  await checkPausedSubtitlePreview({ browser, url });
   const page = await browser.newPage({
     viewport: { width: 1280, height: 900 },
     reducedMotion: "reduce",
