@@ -75,6 +75,12 @@
       "allowedVersions": ">=26.0.0 <27.0.0",
       "rangeStrategy": "bump",
       "separateMinorPatch": false
+    },
+    {
+      "description": "Docker tags carry a compatibility suffix, so constrain the Node major with a regex instead of a SemVer range.",
+      "matchDatasources": ["docker"],
+      "matchPackageNames": ["node"],
+      "allowedVersions": "/^26\\./"
     }
   ]
 }

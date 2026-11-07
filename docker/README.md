@@ -124,7 +124,8 @@ change unrelated files or discard persistent provider volumes.
 
 ## Caching and updates
 
-The root `.nvmrc` pins the exact Node LTS version for development and CI. One
+The root `.nvmrc` pins the exact Node LTS version for CI and recommends it for
+local development. Compatible newer stable Node 26 versions are accepted locally. One
 `NODE_IMAGE` argument pins that same version and multi-platform digest for every
 Docker target. The shared toolchain installs the pnpm version from root
 `packageManager` once.

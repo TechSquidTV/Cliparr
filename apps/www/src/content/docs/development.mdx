@@ -11,7 +11,7 @@ import {
   preflightCommands,
 } from "@/data/product";
 
-Development uses the root pnpm workspace. You need the exact Node.js version pinned in the root `.nvmrc` (Node 26 LTS) and the pnpm version pinned in the root `packageManager` field. Source installations on Node 24 must upgrade. Install the pinned pnpm version through npm; Corepack cannot launch pnpm 12's native executable.
+Development uses the root pnpm workspace. You need a stable Node 26 LTS version satisfying the root `engines.node` range and the pnpm version pinned in the root `packageManager` field. `.nvmrc` pins the recommended development version and the exact CI/Docker version; newer compatible stable Node 26 releases are also accepted locally. Source installations on Node 24 must upgrade. Install the pinned pnpm version through npm; Corepack cannot launch pnpm 12's native executable.
 
 <CommandBlock variants={developmentSetupCommandVariants} label="Local setup" />
 

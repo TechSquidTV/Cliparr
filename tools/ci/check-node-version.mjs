@@ -5,16 +5,26 @@ import { parseDocument } from "yaml";
 
 const exactVersion = /^(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)$/u;
 
-export function nodeVersionViolations(files, runtimeVersion) {
+export function nodeVersionViolations(
+  files,
+  runtimeVersion,
+  { exactRuntime = false } = {},
+) {
   const errors = [];
   const version = files.get(".nvmrc")?.trim();
   if (!version || !exactVersion.test(version)) {
     return [".nvmrc: pin one exact Node version (major.minor.patch)."];
   }
-  const major = version.split(".")[0];
-  if (runtimeVersion !== version) {
+  const [major, minor, patch] = version.split(".").map(Number);
+  const running = exactVersion.test(runtimeVersion)
+    ? runtimeVersion.split(".").map(Number)
+    : undefined;
+  const compatibleRuntime =
+    running?.[0] === major &&
+    (running[1] > minor || (running[1] === minor && running[2] >= patch));
+  if (exactRuntime ? runtimeVersion !== version : !compatibleRuntime) {
     errors.push(
-      `.nvmrc: running Node ${runtimeVersion}; install and use Node ${version}.`,
+      `.nvmrc: running Node ${runtimeVersion}; ${exactRuntime ? `CI requires Node ${version}` : `use a stable Node ${major} version satisfying ^${version}`}.`,
     );
   }
 
@@ -177,13 +187,15 @@ if (
       .filter((file) => existsSync(file))
       .map((file) => [file, readFileSync(file, "utf8")]),
   );
-  const errors = nodeVersionViolations(files, process.versions.node);
+  const errors = nodeVersionViolations(files, process.versions.node, {
+    exactRuntime: process.env.CI === "true" || process.env.CI === "1",
+  });
   if (errors.length > 0) {
     process.stderr.write(`${errors.join("\n")}\n`);
     process.exitCode = 1;
   } else {
     process.stdout.write(
-      `Node ${files.get(".nvmrc").trim()} is synchronized.\n`,
+      `Node configuration is synchronized at ${files.get(".nvmrc").trim()} (running ${process.versions.node}).\n`,
     );
   }
 }

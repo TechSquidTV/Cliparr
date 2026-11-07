@@ -6,11 +6,11 @@ Thanks for helping improve Cliparr.
 
 Requirements:
 
-- the exact Node.js version pinned in `.nvmrc`
+- A stable Node.js 26 version satisfying the root `engines.node` range; `.nvmrc` pins the recommended version
 - The pnpm version pinned by the root `packageManager`, installed through npm
 - A Plex or Jellyfin server, or a local video file, for manual end-to-end testing
 
-Install the version from `.nvmrc` with your Node version manager before installing dependencies. Source installations on Node 24 must upgrade; Docker images include the selected runtime.
+Use the version from `.nvmrc` for reproducible development, or a newer stable Node 26 version compatible with `engines.node`. CI and Docker require the exact pin. Source installations on Node 24 must upgrade; Docker images include the selected runtime.
 
 Install dependencies:
 
@@ -101,7 +101,7 @@ Store curated highlights and upgrade notes in `tools/release/notes/vX.Y.Z.md`. R
 
 ### Release validation and recovery
 
-`pnpm node:check` runs first in lint and verifies the local runtime, Node engine requirement, shared Docker image, workflow setup, and catalog typings against `.nvmrc`. It runs inside the existing CI job and local preflight, without a separate runner.
+`pnpm node:check` runs first in lint and verifies the local runtime, Node engine requirement, shared Docker image, workflow setup, and catalog typings against `.nvmrc`. It runs inside the existing CI job and local preflight, without a separate runner. Local runtimes may satisfy the declared Node 26 range; CI runtimes and container versions must match `.nvmrc` exactly.
 
 Every workspace test script runs in CI and release validation, including the website. Job summaries show the embedded app version, tested commit (including the distinction between a PR head and its tested merge), actual runner/container Node versions, pnpm version, and validation outcomes.
 

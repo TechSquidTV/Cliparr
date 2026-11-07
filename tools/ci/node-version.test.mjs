@@ -48,10 +48,52 @@ for (const value of [undefined, "26", "lts/*", "v26.13.0", "26.13.0-rc.1"]) {
   });
 }
 
-void test("rejects patch-level runner drift", () => {
+for (const runtimeVersion of [version, "26.13.1", "26.14.0", "26.100.0"]) {
+  void test(`accepts compatible stable local Node: ${runtimeVersion}`, () => {
+    assert.deepEqual(nodeVersionViolations(fixture(), runtimeVersion), []);
+  });
+}
+
+for (const runtimeVersion of [
+  "24.22.2",
+  "26.12.1",
+  "26.9.99",
+  "27.0.0",
+  "26.14.0-rc.1",
+  "invalid",
+]) {
+  void test(`rejects local Node outside the supported range: ${runtimeVersion}`, () => {
+    assert.match(
+      nodeVersionViolations(fixture(), runtimeVersion).join("\n"),
+      /use a stable Node 26 version satisfying \^26\.13\.0/u,
+    );
+  });
+}
+
+void test("CI accepts the exact pin and rejects both older and compatible newer runtimes", () => {
+  assert.deepEqual(
+    nodeVersionViolations(fixture(), version, { exactRuntime: true }),
+    [],
+  );
+  for (const runtimeVersion of ["26.12.1", "26.13.1", "26.14.0", "27.0.0"]) {
+    assert.match(
+      nodeVersionViolations(fixture(), runtimeVersion, {
+        exactRuntime: true,
+      }).join("\n"),
+      /CI requires Node 26\.13\.0/u,
+    );
+  }
+});
+
+void test("compatible local Node does not excuse Docker configuration drift", () => {
+  const files = fixture();
+  files.set(
+    "docker/Dockerfile",
+    files.get("docker/Dockerfile").replace(version, "26.13.1"),
+  );
   assert.match(
-    nodeVersionViolations(fixture(), "26.12.1").join("\n"),
-    /running Node 26\.12\.1.*26\.13\.0/u,
+    nodeVersionViolations(files, "26.13.1").join("\n"),
+    /NODE_IMAGE=node:26\.13\.0-trixie-slim/u,
   );
 });
 
