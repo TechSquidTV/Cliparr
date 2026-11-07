@@ -66,39 +66,46 @@ async function checkTouchTrimTargets(browser, url) {
   await page.goto(url);
   await page.locator("[data-editor-timeline-ready]").waitFor();
   const touch = await page.context().newCDPSession(page);
-  await page.getByRole("button", { name: "Trim", exact: true }).click();
-  for (const [edge, value] of [
-    ["In", "1"],
-    ["Out", "1.16"],
-  ]) {
-    await page
-      .getByRole("button", { name: new RegExp(`^Edit ${edge} time:`) })
-      .click();
-    const field = page.getByRole("textbox", {
-      name: `Edit ${edge} time`,
-      exact: true,
-    });
-    await field.fill(value);
-    await field.press("Enter");
-  }
-  await page.getByRole("button", { name: "Done", exact: true }).click();
   const range = page.getByRole("slider", { name: "Move clip selection" });
+  const selection = page.locator(".editor-media-range-selection");
   const start = page.getByRole("slider", { name: "Clip start" });
   const end = page.getByRole("slider", { name: "Clip end" });
-  for (const part of ["start", "end", "middle"]) {
-    const bounds = await range.boundingBox();
+
+  async function setRange(inTime, outTime) {
+    await page.getByRole("button", { name: "Trim", exact: true }).click();
+    // Set the far edge first when moving the range later in the clip.
+    const fields = [
+      ["In", inTime],
+      ["Out", outTime],
+    ];
+    if (outTime > Number(await end.getAttribute("aria-valuenow"))) {
+      fields.reverse();
+    }
+    for (const [edge, value] of fields) {
+      await page
+        .getByRole("button", { name: new RegExp(`^Edit ${edge} time:`) })
+        .click();
+      const field = page.getByRole("textbox", {
+        name: `Edit ${edge} time`,
+        exact: true,
+      });
+      await field.fill(String(value));
+      await field.press("Enter");
+    }
+    await page.getByRole("button", { name: "Done", exact: true }).click();
+  }
+
+  async function drag(part, x, y, delta) {
     assert.ok(
-      bounds && bounds.width < 44,
-      `Exercise a sub-fingertip selection: ${JSON.stringify(bounds)}`,
+      await part.evaluate(
+        (element, point) =>
+          element === globalThis.document.elementFromPoint(point.x, point.y),
+        { x, y },
+      ),
+      `Contact hits ${await part.getAttribute("aria-label")} at ${x}, ${y}`,
     );
-    const x =
-      bounds.x +
-      { start: -18, end: bounds.width + 18, middle: bounds.width / 2 }[part];
-    const y = bounds.y + bounds.height / 2;
     const beforeStart = Number(await start.getAttribute("aria-valuenow"));
     const beforeEnd = Number(await end.getAttribute("aria-valuenow"));
-    const delta = part === "end" ? -6 : 6;
-
     await touch.send("Input.dispatchTouchEvent", {
       type: "touchStart",
       touchPoints: [{ x, y }],
@@ -111,24 +118,59 @@ async function checkTouchTrimTargets(browser, url) {
       type: "touchEnd",
       touchPoints: [],
     });
-    const afterStart = Number(await start.getAttribute("aria-valuenow"));
-    const afterEnd = Number(await end.getAttribute("aria-valuenow"));
-    if (part === "start") {
+    const startDelta =
+      Number(await start.getAttribute("aria-valuenow")) - beforeStart;
+    const endDelta =
+      Number(await end.getAttribute("aria-valuenow")) - beforeEnd;
+    if (part === start) {
       assert.ok(
-        afterStart > beforeStart && afterEnd === beforeEnd,
-        "Outside left grip trims only the start",
+        startDelta * delta > 0 && endDelta === 0,
+        "Grip trims only the start",
       );
-    } else if (part === "end") {
+    } else if (part === end) {
       assert.ok(
-        afterEnd < beforeEnd && afterStart === beforeStart,
-        "Outside right grip trims only the end",
+        endDelta * delta > 0 && startDelta === 0,
+        "Grip trims only the end",
       );
     } else {
       assert.ok(
-        afterStart > beforeStart &&
-          Math.abs(afterStart - beforeStart - (afterEnd - beforeEnd)) < 0.001,
-        "Center drag moves the entire selection",
+        startDelta * delta > 0 && Math.abs(startDelta - endDelta) < 0.001,
+        "Center moves the whole range",
       );
+    }
+  }
+
+  await setRange(1, 1.16);
+  let box = await selection.boundingBox();
+  assert.ok(box && box.width < 44);
+  const y = box.y + box.height / 2;
+  await drag(start, box.x - 18, y, 6);
+  await drag(end, box.x + box.width + 18, y, -6);
+  box = await selection.boundingBox();
+  await drag(range, box.x + box.width / 2, y, 6);
+
+  // Place a 28px selection flush against each edge of the visible media row.
+  const row = await page.locator(".editor-media-range-row").boundingBox();
+  const track = await page.locator(".editor-media-range").boundingBox();
+  const scale = track.width / Number(await end.getAttribute("aria-valuemax"));
+  for (const side of ["left", "right"]) {
+    const left = side === "left" ? row.x : row.x + row.width - 28;
+    const inTime = (left - track.x) / scale;
+    const outTime = (left + 28 - track.x) / scale;
+    const direction = side === "left" ? 1 : -1;
+    const edge = side === "left" ? start : end;
+    for (const grip of [false, true]) {
+      await setRange(inTime, outTime);
+      box = await selection.boundingBox();
+      assert.ok(
+        Math.abs(box.x - left) < 1 && Math.abs(box.width - 28) < 1,
+        `Short selection sits at the ${side} viewport edge`,
+      );
+      const middle = box.x + box.width / 2;
+      // Each visible grip is centered in the outer quarter of a short clip.
+      const x = grip ? middle - (direction * box.width * 3) / 8 : middle;
+      const part = grip ? edge : range;
+      await drag(part, x, box.y + box.height / 2, direction * 6);
     }
   }
   await page.close();

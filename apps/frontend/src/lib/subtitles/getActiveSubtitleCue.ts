@@ -8,13 +8,18 @@ function collectStartedCues(
   active: SubtitleCue[],
 ) {
   let index = startIndex;
+  let lastBoundary = -Infinity;
   while (index < cues.length && cues[index].startTime <= time) {
     const cue = cues[index++];
+    lastBoundary = Math.max(
+      lastBoundary,
+      time < cue.endTime ? cue.startTime : cue.endTime,
+    );
     if (time < cue.endTime) {
       active.push(cue);
     }
   }
-  return index;
+  return { nextIndex: index, lastBoundary };
 }
 
 export function createSubtitlePreviewCueReader(cues: readonly SubtitleCue[]) {
@@ -32,12 +37,20 @@ export function createSubtitlePreviewCueReader(cues: readonly SubtitleCue[]) {
     }
     if (time < from) {
       nextIndex = 0;
+      from = -Infinity;
       active = [];
     } else {
-      active = active.filter((cue) => time < cue.endTime);
+      active = active.filter((cue) => {
+        if (time < cue.endTime) {
+          return true;
+        }
+        from = Math.max(from, cue.endTime);
+        return false;
+      });
     }
-    nextIndex = collectStartedCues(cues, nextIndex, time, active);
-    from = time;
+    const collected = collectStartedCues(cues, nextIndex, time, active);
+    nextIndex = collected.nextIndex;
+    from = Math.max(from, collected.lastBoundary);
     until = cues[nextIndex]?.startTime ?? Infinity;
     for (const cue of active) {
       until = Math.min(until, cue.endTime);

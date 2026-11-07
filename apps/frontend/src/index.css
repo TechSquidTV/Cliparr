@@ -679,6 +679,7 @@
 
 .editor-media-range .range-scrollbar-handle {
   background: transparent;
+  pointer-events: auto;
   touch-action: none;
 }
 
@@ -697,21 +698,25 @@
   outline-offset: 2px;
 }
 
-/* Extend touch targets outward on short clips so the middle still moves the range. */
+/* The actual handle covers the painted grip, even where the row clips its
+   outside edge. Reserve the middle half of short selections for moving them. */
 @media (pointer: coarse) {
-  .editor-media-range {
-    --editor-trim-interior: clamp(2px, calc(50% - 16px), 22px);
+  /* Let the selection receive touches where it crosses the playhead grabber. */
+  .editor-media-range-row {
+    z-index: auto;
   }
-  .editor-media-range .range-scrollbar-handle::after {
-    content: "";
-    position: absolute;
+  .editor-media-range-selection {
     inset-block: -4px;
-    width: 44px;
   }
-  .editor-media-range .range-scrollbar-handle[data-side="start"]::after {
-    right: 0;
-  }
-  .editor-media-range .range-scrollbar-handle[data-side="end"]::after {
-    left: 0;
+  .editor-media-range-row .editor-media-range {
+    z-index: 81;
+    --editor-trim-interior: min(25%, 44px);
+    --editor-trim-target-width: max(
+      44px,
+      calc(var(--editor-trim-interior) + 22px)
+    );
+    --editor-trim-offset: calc(
+      var(--editor-trim-interior) - var(--editor-trim-target-width)
+    );
   }
 }

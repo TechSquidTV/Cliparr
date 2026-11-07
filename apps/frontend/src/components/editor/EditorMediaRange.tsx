@@ -21,9 +21,8 @@ import {
 } from "@/components/editor/editorUtilities";
 import { ControlTooltip } from "@/components/ui/tooltip";
 
-const trimHandleStyle = {
-  width: `min(var(--editor-trim-interior, ${EDITOR_MEDIA_RANGE_HANDLE_WIDTH}px), 25%)`,
-};
+const trimInterior = `var(--editor-trim-interior, min(${EDITOR_MEDIA_RANGE_HANDLE_WIDTH}px, 25%))`;
+const trimHandleWidth = `var(--editor-trim-target-width, ${trimInterior})`;
 
 // The source clip stays full-length for preview and source timestamp mapping.
 // Its visible row represents the export range, using the same In/Out state as
@@ -84,26 +83,40 @@ export function EditorMediaRange({ engine }: { engine: TimelineEngine }) {
           transform: `translateX(${-scrollLeft}px)`,
         }}
       >
-        <ControlTooltip label="Drag to move selection; drag either edge to trim">
-          <RangeScrollbar.Thumb role="slider" aria-label="Move clip selection">
-            <ControlTooltip label="Trim clip start">
-              <RangeScrollbar.Handle
-                side="start"
-                style={trimHandleStyle}
-                role="slider"
-                aria-label="Clip start"
-              />
-            </ControlTooltip>
-            <ControlTooltip label="Trim clip end">
-              <RangeScrollbar.Handle
-                side="end"
-                style={trimHandleStyle}
-                role="slider"
-                aria-label="Clip end"
-              />
-            </ControlTooltip>
-          </RangeScrollbar.Thumb>
-        </ControlTooltip>
+        <div
+          className="editor-media-range-selection absolute inset-y-0"
+          style={{ left: start * zoomScale, width: (end - start) * zoomScale }}
+        >
+          <ControlTooltip label="Drag to move selection; drag either edge to trim">
+            <RangeScrollbar.Thumb
+              role="slider"
+              aria-label="Move clip selection"
+              style={{ left: trimInterior, right: trimInterior, width: "auto" }}
+            />
+          </ControlTooltip>
+          <ControlTooltip label="Trim clip start">
+            <RangeScrollbar.Handle
+              side="start"
+              style={{
+                width: trimHandleWidth,
+                left: "var(--editor-trim-offset, 0px)",
+              }}
+              role="slider"
+              aria-label="Clip start"
+            />
+          </ControlTooltip>
+          <ControlTooltip label="Trim clip end">
+            <RangeScrollbar.Handle
+              side="end"
+              style={{
+                width: trimHandleWidth,
+                right: "var(--editor-trim-offset, 0px)",
+              }}
+              role="slider"
+              aria-label="Clip end"
+            />
+          </ControlTooltip>
+        </div>
       </RangeScrollbar.Root>
     </div>
   );
