@@ -1,3 +1,4 @@
+import { useMediaQuery } from "@base-ui/react/unstable-use-media-query";
 import {
   fromSeconds,
   RangeScrollbar,
@@ -12,8 +13,8 @@ import {
 import type { CSSProperties } from "react";
 
 import {
-  EDITOR_MEDIA_RANGE_HANDLE_WIDTH,
   EDITOR_MEDIA_RANGE_INSET,
+  getMediaRangeGeometry,
 } from "@/components/editor/EditorMediaRangeCanvas";
 import { EDITOR_MEDIA_TRACK_ID } from "@/components/editor/editorTimelineEngine";
 import {
@@ -21,10 +22,9 @@ import {
   MIN_CLIP_SECONDS,
 } from "@/components/editor/editorUtilities";
 import { ControlTooltip } from "@/components/ui/tooltip";
+import { COARSE_POINTER_MEDIA_QUERY } from "#/pwa";
 
 const playheadTouchWidth = 24;
-const gripWidth = `min(var(--editor-range-quarter), ${EDITOR_MEDIA_RANGE_HANDLE_WIDTH}px)`;
-const trimInterior = `var(--editor-trim-interior, ${gripWidth})`;
 
 // The source clip stays full-length for preview and source timestamp mapping.
 // Its visible row represents the export range, using the same In/Out state as
@@ -36,8 +36,13 @@ export function EditorMediaRange({ engine }: { engine: TimelineEngine }) {
   const zoomScale = useTimelineZoomScale();
   const range = useTimelineInOutRangeControl();
   const [start, end] = range.value;
-  const selectionWidth = (end - start) * zoomScale;
-  const rangeQuarter = selectionWidth / 4;
+  const coarsePointer = useMediaQuery(COARSE_POINTER_MEDIA_QUERY, {});
+  const { selectionWidth, rangeQuarter, gripWidth } = getMediaRangeGeometry(
+    start,
+    end,
+    zoomScale,
+  );
+  const trimInterior = `var(--editor-trim-interior, ${gripWidth}px)`;
 
   const mediaRow = rect && (
     <div
@@ -50,7 +55,7 @@ export function EditorMediaRange({ engine }: { engine: TimelineEngine }) {
           onDoubleClick={setPlayheadTime}
         />
       </ControlTooltip>
-      {rangeQuarter < playheadTouchWidth && (
+      {coarsePointer && rangeQuarter < playheadTouchWidth && (
         <Timeline.PlayheadGrabber
           aria-hidden="true"
           className="editor-media-playhead-padding"

@@ -698,10 +698,6 @@
   outline-offset: 2px;
 }
 
-.editor-media-range-row .editor-media-playhead-padding {
-  display: none;
-}
-
 /* The actual handle covers the painted grip, even where the row clips its
    outside edge. Reserve the middle half of short selections for moving them. */
 @media (pointer: coarse) {
@@ -725,7 +721,6 @@
   /* A short selection puts its move control above the playhead padding.
      Outside that control, scrubbing takes precedence over unpainted trim padding. */
   .editor-media-range-row .editor-media-playhead-padding {
-    display: block;
     width: var(--editor-playhead-touch-width);
     margin-left: calc(var(--editor-playhead-touch-width) / -2);
     z-index: 33;

@@ -183,6 +183,12 @@ async function checkTouchTrimTargets(browser, url) {
   }
 
   await setRange(1, 1.16);
+  const paddedPlayhead = page.locator(".editor-media-playhead-padding");
+  await paddedPlayhead.waitFor();
+  await touch.send("Emulation.setTouchEmulationEnabled", { enabled: false });
+  await paddedPlayhead.waitFor({ state: "detached" });
+  await touch.send("Emulation.setTouchEmulationEnabled", { enabled: true });
+  await paddedPlayhead.waitFor();
   let box = await selection.boundingBox();
   assert.ok(box && box.width < 44);
   const y = box.y + box.height / 2;
@@ -246,22 +252,66 @@ async function checkTouchTrimTargets(browser, url) {
   }
   // Outside the selection, the playhead also accepts touches beside the line
   // where the invisible trim padding would otherwise capture them.
-  for (const [
+  const shortRange = { inTime: 0.4, outTime: 0.58 };
+  const longRange = { inTime: 0.2, outTime: 1.3 };
+  const playhead = page.locator(".editor-playhead");
+  const scrubs = [
+    {
+      ...shortRange,
+      target: paddedPlayhead,
+      from: "0.34",
+      to: "0:00.24",
+      direction: -1,
+      offset: -8,
+    },
+    {
+      ...shortRange,
+      target: paddedPlayhead,
+      from: "0.64",
+      to: "0:00.74",
+      direction: 1,
+      offset: 8,
+      endType: "touchCancel",
+    },
+    {
+      ...shortRange,
+      target: playhead,
+      from: "0.49",
+      to: "0:00.59",
+      direction: 1,
+    },
+    {
+      ...longRange,
+      target: playhead,
+      from: "0.75",
+      to: "0:00.85",
+      direction: 1,
+    },
+    {
+      ...longRange,
+      target: playhead,
+      from: "0.30",
+      to: "0:00.40",
+      direction: 1,
+    },
+    {
+      ...longRange,
+      target: playhead,
+      from: "1.20",
+      to: "0:01.10",
+      direction: -1,
+    },
+  ];
+  for (const {
     inTime,
     outTime,
+    target,
     from,
     to,
     direction,
     offset = 0,
     endType = "touchEnd",
-  ] of [
-    [0.4, 0.58, "0.34", "0:00.24", -1, -8],
-    [0.4, 0.58, "0.64", "0:00.74", 1, 8, "touchCancel"],
-    [0.4, 0.58, "0.49", "0:00.59", 1],
-    [0.2, 1.3, "0.75", "0:00.85", 1],
-    [0.2, 1.3, "0.30", "0:00.40", 1],
-    [0.2, 1.3, "1.20", "0:01.10", -1],
-  ]) {
+  } of scrubs) {
     await setRange(inTime, outTime);
     const playheadX = await positionPlayhead(from);
     await beginTouchDrag(
@@ -270,21 +320,15 @@ async function checkTouchTrimTargets(browser, url) {
       (direction * scale) / 10,
     );
     try {
-      if (offset) {
-        await page
-          .locator(".editor-media-playhead-padding.is-dragging")
-          .waitFor();
-        await waitForPlayheadHighlight(true);
-      }
+      await target.and(page.locator(".is-dragging")).waitFor();
+      await waitForPlayheadHighlight(true);
     } finally {
       await touch.send("Input.dispatchTouchEvent", {
         type: endType,
         touchPoints: [],
       });
     }
-    if (offset) {
-      await waitForPlayheadHighlight(false);
-    }
+    await waitForPlayheadHighlight(false);
     assert.equal(
       Number(await start.getAttribute("aria-valuenow")),
       inTime,

@@ -1,7 +1,7 @@
 import { type RefObject, useEffect, useMemo, useRef } from "react";
 
 import type { MediaDimensions } from "@/components/editor/editorMedia";
-import { createSubtitlePreviewCueReader } from "@/lib/subtitles/getActiveSubtitleCue";
+import { createSubtitleCueReader } from "@/lib/subtitles/getActiveSubtitleCue";
 import { renderSubtitleCues } from "@/lib/subtitles/renderSubtitleCue";
 import type { SubtitleCue, SubtitleStyleSettings } from "@/lib/subtitles/types";
 import { resolveVideoCrop, type VideoCrop } from "#/lib/videoCrop";
@@ -31,7 +31,7 @@ export function EditorSubtitlePreview({
   crop,
   cropEditing = false,
 }: EditorSubtitlePreviewProperties) {
-  const readCues = useMemo(() => createSubtitlePreviewCueReader(cues), [cues]);
+  const readCues = useMemo(() => createSubtitleCueReader(cues), [cues]);
   const painted = useRef<{
     cues: readonly SubtitleCue[];
     style: SubtitleStyleSettings;

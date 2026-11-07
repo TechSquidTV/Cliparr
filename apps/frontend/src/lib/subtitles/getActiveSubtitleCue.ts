@@ -22,7 +22,7 @@ function collectStartedCues(
   return { nextIndex: index, lastBoundary };
 }
 
-export function createSubtitlePreviewCueReader(cues: readonly SubtitleCue[]) {
+export function createSubtitleCueReader(cues: readonly SubtitleCue[]) {
   let nextIndex = 0;
   let from = -Infinity;
   let until = -Infinity;
