@@ -221,8 +221,11 @@ async function checkTouchTrimTargets(browser, url) {
       "Moving the selection preserves preview time",
     );
   }
-  // Scrub directly on the line in the same short clip and beside each long-clip grip.
-  for (const [inTime, outTime, from, to, direction] of [
+  // Outside the selection, the playhead also accepts touches beside the line
+  // where the invisible trim padding would otherwise capture them.
+  for (const [inTime, outTime, from, to, direction, offset = 0] of [
+    [0.4, 0.58, "0.34", "0:00.24", -1, -8],
+    [0.4, 0.58, "0.64", "0:00.74", 1, 8],
     [0.4, 0.58, "0.49", "0:00.59", 1],
     [0.2, 1.3, "0.75", "0:00.85", 1],
     [0.2, 1.3, "0.30", "0:00.40", 1],
@@ -231,7 +234,7 @@ async function checkTouchTrimTargets(browser, url) {
     await setRange(inTime, outTime);
     const playheadX = await positionPlayhead(from);
     await touchDrag(
-      playheadX,
+      playheadX + offset,
       row.y + row.height / 2,
       (direction * scale) / 10,
     );

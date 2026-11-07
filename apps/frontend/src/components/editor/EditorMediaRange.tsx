@@ -22,6 +22,7 @@ import {
 } from "@/components/editor/editorUtilities";
 import { ControlTooltip } from "@/components/ui/tooltip";
 
+const playheadTouchWidth = 24;
 const gripWidth = `min(var(--editor-range-quarter), ${EDITOR_MEDIA_RANGE_HANDLE_WIDTH}px)`;
 const trimInterior = `var(--editor-trim-interior, ${gripWidth})`;
 
@@ -36,6 +37,7 @@ export function EditorMediaRange({ engine }: { engine: TimelineEngine }) {
   const range = useTimelineInOutRangeControl();
   const [start, end] = range.value;
   const selectionWidth = (end - start) * zoomScale;
+  const rangeQuarter = selectionWidth / 4;
 
   const mediaRow = rect && (
     <div
@@ -48,6 +50,14 @@ export function EditorMediaRange({ engine }: { engine: TimelineEngine }) {
           onDoubleClick={setPlayheadTime}
         />
       </ControlTooltip>
+      {rangeQuarter < playheadTouchWidth && (
+        <Timeline.PlayheadGrabber
+          aria-hidden="true"
+          className="editor-media-playhead-padding"
+        >
+          {null}
+        </Timeline.PlayheadGrabber>
+      )}
       <RangeScrollbar.Root
         className="editor-media-range"
         min={range.min}
@@ -118,9 +128,10 @@ export function EditorMediaRange({ engine }: { engine: TimelineEngine }) {
       className="contents"
       style={
         {
+          "--editor-playhead-touch-width": `${playheadTouchWidth}px`,
           "--editor-media-top": `${rect?.y ?? 0}px`,
           "--editor-media-bottom": `${rect ? rect.y + rect.height : 0}px`,
-          "--editor-range-quarter": `${selectionWidth / 4}px`,
+          "--editor-range-quarter": `${rangeQuarter}px`,
         } as CSSProperties
       }
     >
