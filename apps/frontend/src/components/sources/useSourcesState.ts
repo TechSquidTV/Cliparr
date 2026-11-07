@@ -229,7 +229,7 @@ export function useSourcesState({
 
     await runSourceAction(
       source,
-      "Saving...",
+      "Saving…",
       "Could not update source.",
       async () => {
         const updatedSource = await cliparrClient.updateSource(
@@ -251,7 +251,7 @@ export function useSourcesState({
   async function toggleSourceEnabled(source: MediaSource) {
     await runSourceAction(
       source,
-      source.enabled ? "Disabling..." : "Enabling...",
+      source.enabled ? "Disabling…" : "Enabling…",
       "Could not update source.",
       async () => {
         const updatedSource = await cliparrClient.updateSource(source.id, {
@@ -272,7 +272,7 @@ export function useSourcesState({
   async function checkSource(source: MediaSource) {
     await runSourceAction(
       source,
-      "Refreshing...",
+      "Refreshing…",
       "Could not refresh source.",
       async () => {
         const result = await cliparrClient.checkSource(source.id);
@@ -299,7 +299,7 @@ export function useSourcesState({
 
     await runSourceAction(
       source,
-      "Removing...",
+      "Removing…",
       "Could not remove source.",
       async () => {
         await cliparrClient.deleteSource(source.id);
@@ -325,7 +325,7 @@ export function useSourcesState({
     setError("");
     setRefreshingAll(true);
     setBusyActions(
-      Object.fromEntries(sources.map((source) => [source.id, "Refreshing..."])),
+      Object.fromEntries(sources.map((source) => [source.id, "Refreshing…"])),
     );
 
     try {

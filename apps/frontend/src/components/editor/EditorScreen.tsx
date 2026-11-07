@@ -94,6 +94,7 @@ import {
   EditorPropertyAccordionItem,
 } from "#/components/editor/EditorPropertyControls";
 import { useEditorCrop } from "#/components/editor/useEditorCrop";
+import { BarsLoader } from "#/components/ui/bars-loader";
 import { resolveVideoCrop } from "#/lib/videoCrop";
 
 const EditorExportDialog = lazy(() =>
@@ -331,6 +332,7 @@ function EditorScreenContent({
     mode,
     mixDownToStereo,
     setMixDownToStereo,
+    audioPending,
     audioStatus,
     audioPlan,
     audioBitDepth,
@@ -931,12 +933,20 @@ function EditorScreenContent({
     );
   }
 
+  const cropLoading = (
+    <div className="flex h-full min-h-40 items-center justify-center p-4 text-muted-foreground">
+      <BarsLoader
+        label={
+          sourceVideoDimensions
+            ? "Loading crop controls…"
+            : "Preparing crop controls…"
+        }
+        showLabel
+      />
+    </div>
+  );
   const cropControls = sourceVideoDimensions ? (
-    <Suspense
-      fallback={
-        <p className="text-sm text-muted-foreground">Loading crop controls…</p>
-      }
-    >
+    <Suspense fallback={cropLoading}>
       <EditorCropControls
         state={crop.state}
         dimensions={sourceVideoDimensions}
@@ -949,9 +959,7 @@ function EditorScreenContent({
       />
     </Suspense>
   ) : (
-    <p className="text-sm text-muted-foreground">
-      Waiting for video dimensions.
-    </p>
+    cropLoading
   );
   function renderMobileInspector() {
     switch (propertiesPanel) {
@@ -1176,6 +1184,7 @@ function EditorScreenContent({
             onVideoMutedChange={handleVideoMutedChange}
             mixDownToStereo={mixDownToStereo}
             onMixDownToStereoChange={setMixDownToStereo}
+            audioPending={audioPending}
             audioStatus={audioStatus}
             audioPlan={audioPlan}
             audioBitDepth={audioBitDepth}

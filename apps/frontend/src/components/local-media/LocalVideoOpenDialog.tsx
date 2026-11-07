@@ -14,6 +14,7 @@ import {
   textInputClassName,
 } from "#/components/ui/control-styles";
 import { DialogWindow } from "#/components/ui/dialog";
+import { Spinner } from "#/components/ui/spinner";
 import {
   Tabs,
   TabsList,
@@ -245,10 +246,11 @@ export function LocalVideoOpenDialog({
                   type="button"
                   onClick={() => void handleChooseFile()}
                   disabled={opening}
+                  aria-busy={opening}
                   className={cn(buttonClassName(), "mt-5")}
                 >
-                  <FolderOpen className="h-4 w-4" />
-                  {opening ? "Opening" : "Choose File"}
+                  {opening ? <Spinner /> : <FolderOpen className="h-4 w-4" />}
+                  Choose File
                 </button>
               </div>
             </TabsPanel>
@@ -275,10 +277,11 @@ export function LocalVideoOpenDialog({
                   <button
                     type="submit"
                     disabled={opening || !canOpenUrl}
+                    aria-busy={opening}
                     className={buttonClassName()}
                   >
-                    <Link className="h-4 w-4" />
-                    {opening ? "Opening" : "Open URL"}
+                    {opening ? <Spinner /> : <Link className="h-4 w-4" />}
+                    Open URL
                   </button>
                 </div>
               </form>

@@ -59,6 +59,7 @@ interface EditorExportDialogProperties {
   onVideoMutedChange: (muted: boolean) => void;
   mixDownToStereo: boolean;
   onMixDownToStereoChange: (mixdown: boolean) => void;
+  audioPending: boolean;
   audioStatus: string;
   audioPlan: ExportAudioPlan | null;
   audioDisabledReason?: string | null;
@@ -116,6 +117,7 @@ export function EditorExportDialog({
   onVideoMutedChange,
   mixDownToStereo,
   onMixDownToStereoChange,
+  audioPending,
   audioStatus,
   audioPlan,
   audioDisabledReason,
@@ -231,6 +233,7 @@ export function EditorExportDialog({
           exportSourceLabel={exportSourceLabel}
           exportSourceSummaryMessage={exportSourceSummaryMessage}
           mode={mode}
+          audioPending={audioPending}
           audioStatus={audioStatus}
           audioPlan={audioPlan}
           subtitleSummaryLabel={subtitleSummaryLabel}

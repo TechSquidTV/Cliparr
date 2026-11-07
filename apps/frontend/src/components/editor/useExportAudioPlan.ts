@@ -160,6 +160,8 @@ export function useExportAudioPlan(
       }
     }
   }
+  const pending =
+    active && source !== null && format !== "gif" && current === null;
   const channels = current?.channels ?? null;
   let mixdownDisabledReason: string | null = null;
   if (channels === 0) {
@@ -168,6 +170,7 @@ export function useExportAudioPlan(
     mixdownDisabledReason = "The source is already mono or stereo.";
   }
   return {
+    pending,
     plan: active ? (current?.plan ?? null) : null,
     bitDepth: active ? (current?.bitDepth ?? null) : null,
     mixdownDisabledReason,

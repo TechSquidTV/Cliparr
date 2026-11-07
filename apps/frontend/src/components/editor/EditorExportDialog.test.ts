@@ -31,6 +31,7 @@ function renderExportDialogMarkup(
     mode: "video-audio",
     mixDownToStereo: true,
     onMixDownToStereoChange: () => {},
+    audioPending: false,
     audioStatus: "Stereo",
     audioPlan: null,
     audioBitDepth: null,
