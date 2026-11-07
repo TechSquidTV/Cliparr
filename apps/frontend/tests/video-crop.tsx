@@ -145,10 +145,18 @@ function SubtitleFirstFrameFixture() {
   const videoCanvasRef = useRef<HTMLCanvasElement>(null);
   const overlayCanvasRef = useRef<HTMLCanvasElement>(null);
   const [frameReady, setFrameReady] = useState(false);
+  const [time, setTime] = useState(0);
+  const [enabled, setEnabled] = useState(true);
   return (
     <>
       <button type="button" onClick={() => setFrameReady(true)}>
         Render first frame
+      </button>
+      <button type="button" onClick={() => setTime(time + 1)}>
+        Advance frame time
+      </button>
+      <button type="button" onClick={() => setEnabled(!enabled)}>
+        Toggle subtitles
       </button>
       <div className="relative h-60 w-full">
         <canvas
@@ -158,9 +166,9 @@ function SubtitleFirstFrameFixture() {
         />
         <EditorSubtitlePreview
           cues={subtitleFrameCues}
-          currentTime={0}
+          currentTime={time}
           frameReady={frameReady}
-          enabled
+          enabled={enabled}
           overlayCanvasRef={overlayCanvasRef}
           style={subtitleFrameStyle}
           videoCanvasRef={videoCanvasRef}

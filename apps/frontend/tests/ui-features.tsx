@@ -5,6 +5,7 @@ import {
 } from "@techsquidtv/canvas-timeline";
 import { useRef, useState } from "react";
 
+import { DashboardMobileMenu } from "#/components/dashboard/DashboardMobileMenu";
 import { EDITOR_DESKTOP_LAYOUT_QUERY } from "#/components/editor/editorLayoutSizing";
 import {
   EditorSubtitlePanel,
@@ -79,6 +80,11 @@ export function FeatureControls() {
         {new URLSearchParams(window.location.search).has("timeline") && (
           <TimelineControls />
         )}
+        <DashboardMobileMenu
+          appVersion="1.2.3"
+          latestRelease={null}
+          onDisconnect={() => setAction("Disconnected")}
+        />
         <output aria-label="Last test action">{action}</output>
         <SourceCard
           source={{

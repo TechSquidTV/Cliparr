@@ -1,7 +1,7 @@
-import { type RefObject, useEffect } from "react";
+import { type RefObject, useEffect, useMemo, useRef } from "react";
 
 import type { MediaDimensions } from "@/components/editor/editorMedia";
-import { getActiveSubtitleCues } from "@/lib/subtitles/getActiveSubtitleCue";
+import { createSubtitlePreviewCueReader } from "@/lib/subtitles/getActiveSubtitleCue";
 import { renderSubtitleCues } from "@/lib/subtitles/renderSubtitleCue";
 import type { SubtitleCue, SubtitleStyleSettings } from "@/lib/subtitles/types";
 import { resolveVideoCrop, type VideoCrop } from "#/lib/videoCrop";
@@ -31,52 +31,64 @@ export function EditorSubtitlePreview({
   crop,
   cropEditing = false,
 }: EditorSubtitlePreviewProperties) {
+  const readCues = useMemo(() => createSubtitlePreviewCueReader(cues), [cues]);
+  const painted = useRef<{
+    cues: readonly SubtitleCue[];
+    style: SubtitleStyleSettings;
+    crop: VideoCrop | null | undefined;
+  } | null>(null);
   useEffect(() => {
-    const overlayCanvas = overlayCanvasRef.current;
-    const videoCanvas = videoCanvasRef.current;
-    if (!overlayCanvas || !videoCanvas) {
+    const overlay = overlayCanvasRef.current;
+    const video = videoCanvasRef.current;
+    if (!overlay) {
       return;
     }
 
-    const context = overlayCanvas.getContext("2d");
-    if (!context) {
+    const active =
+      enabled && frameReady && video ? readCues(currentTime) : null;
+    let width = 0;
+    let height = 0;
+    if (active?.length && video) {
+      try {
+        const region = resolveVideoCrop(crop, video);
+        width = region?.width ?? video.width;
+        height = region?.height ?? video.height;
+      } catch {
+        // An incompatible crop has no preview until the source or crop changes.
+      }
+    }
+    if (!active?.length || !width || !height) {
+      if (!enabled && overlay.width > 0) {
+        overlay.width = 0;
+        overlay.height = 0;
+      } else if (painted.current) {
+        overlay
+          .getContext("2d")
+          ?.clearRect(0, 0, overlay.width, overlay.height);
+      }
+      painted.current = null;
       return;
     }
-    context.clearRect(0, 0, overlayCanvas.width, overlayCanvas.height);
-
-    // Metadata may arrive before frame zero. Its timestamp can equal the
-    // paused playhead, so frame readiness must independently trigger rendering.
-    if (!frameReady) {
+    const previous = painted.current;
+    if (overlay.width !== width || overlay.height !== height) {
+      overlay.width = width;
+      overlay.height = height;
+    } else if (
+      previous?.cues === active &&
+      previous.style === style &&
+      previous.crop === crop
+    ) {
       return;
     }
-
-    let region: ReturnType<typeof resolveVideoCrop>;
-    try {
-      region = resolveVideoCrop(crop, videoCanvas);
-    } catch {
-      return;
+    const context = overlay.getContext("2d");
+    if (context) {
+      context.clearRect(0, 0, width, height);
+      renderSubtitleCues(context, active, style, width, height);
+      painted.current = { cues: active, style, crop };
     }
-    const width = region?.width ?? videoCanvas.width;
-    const height = region?.height ?? videoCanvas.height;
-    if (overlayCanvas.width !== width || overlayCanvas.height !== height) {
-      overlayCanvas.width = width;
-      overlayCanvas.height = height;
-    }
-
-    if (!enabled || overlayCanvas.width <= 0 || overlayCanvas.height <= 0) {
-      return;
-    }
-
-    renderSubtitleCues(
-      context,
-      getActiveSubtitleCues(cues, currentTime),
-      style,
-      overlayCanvas.width,
-      overlayCanvas.height,
-    );
   }, [
     crop,
-    cues,
+    readCues,
     currentTime,
     frameReady,
     enabled,
@@ -89,6 +101,8 @@ export function EditorSubtitlePreview({
   return (
     <canvas
       ref={overlayCanvasRef}
+      width={0}
+      height={0}
       aria-hidden="true"
       style={
         cropEditing && crop

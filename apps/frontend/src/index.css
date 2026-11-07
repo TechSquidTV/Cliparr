@@ -696,3 +696,22 @@
   outline: 2px solid var(--editor-accent);
   outline-offset: 2px;
 }
+
+/* Extend touch targets outward on short clips so the middle still moves the range. */
+@media (pointer: coarse) {
+  .editor-media-range {
+    --editor-trim-interior: clamp(2px, calc(50% - 16px), 22px);
+  }
+  .editor-media-range .range-scrollbar-handle::after {
+    content: "";
+    position: absolute;
+    inset-block: -4px;
+    width: 44px;
+  }
+  .editor-media-range .range-scrollbar-handle[data-side="start"]::after {
+    right: 0;
+  }
+  .editor-media-range .range-scrollbar-handle[data-side="end"]::after {
+    left: 0;
+  }
+}

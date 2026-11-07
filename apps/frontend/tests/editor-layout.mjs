@@ -57,7 +57,85 @@ async function assertTimecodeEditorLayout(page, field) {
   );
 }
 
+async function checkTouchTrimTargets(browser, url) {
+  const page = await browser.newPage({
+    viewport: { width: 402, height: 874 },
+    isMobile: true,
+    hasTouch: true,
+  });
+  await page.goto(url);
+  await page.locator("[data-editor-timeline-ready]").waitFor();
+  const touch = await page.context().newCDPSession(page);
+  await page.getByRole("button", { name: "Trim", exact: true }).click();
+  for (const [edge, value] of [
+    ["In", "1"],
+    ["Out", "1.16"],
+  ]) {
+    await page
+      .getByRole("button", { name: new RegExp(`^Edit ${edge} time:`) })
+      .click();
+    const field = page.getByRole("textbox", {
+      name: `Edit ${edge} time`,
+      exact: true,
+    });
+    await field.fill(value);
+    await field.press("Enter");
+  }
+  await page.getByRole("button", { name: "Done", exact: true }).click();
+  const range = page.getByRole("slider", { name: "Move clip selection" });
+  const start = page.getByRole("slider", { name: "Clip start" });
+  const end = page.getByRole("slider", { name: "Clip end" });
+  for (const part of ["start", "end", "middle"]) {
+    const bounds = await range.boundingBox();
+    assert.ok(
+      bounds && bounds.width < 44,
+      `Exercise a sub-fingertip selection: ${JSON.stringify(bounds)}`,
+    );
+    const x =
+      bounds.x +
+      { start: -18, end: bounds.width + 18, middle: bounds.width / 2 }[part];
+    const y = bounds.y + bounds.height / 2;
+    const beforeStart = Number(await start.getAttribute("aria-valuenow"));
+    const beforeEnd = Number(await end.getAttribute("aria-valuenow"));
+    const delta = part === "end" ? -6 : 6;
+
+    await touch.send("Input.dispatchTouchEvent", {
+      type: "touchStart",
+      touchPoints: [{ x, y }],
+    });
+    await touch.send("Input.dispatchTouchEvent", {
+      type: "touchMove",
+      touchPoints: [{ x: x + delta, y }],
+    });
+    await touch.send("Input.dispatchTouchEvent", {
+      type: "touchEnd",
+      touchPoints: [],
+    });
+    const afterStart = Number(await start.getAttribute("aria-valuenow"));
+    const afterEnd = Number(await end.getAttribute("aria-valuenow"));
+    if (part === "start") {
+      assert.ok(
+        afterStart > beforeStart && afterEnd === beforeEnd,
+        "Outside left grip trims only the start",
+      );
+    } else if (part === "end") {
+      assert.ok(
+        afterEnd < beforeEnd && afterStart === beforeStart,
+        "Outside right grip trims only the end",
+      );
+    } else {
+      assert.ok(
+        afterStart > beforeStart &&
+          Math.abs(afterStart - beforeStart - (afterEnd - beforeEnd)) < 0.001,
+        "Center drag moves the entire selection",
+      );
+    }
+  }
+  await page.close();
+}
+
 export async function checkEditorLayouts({ browser, url, screenshots }) {
+  await checkTouchTrimTargets(browser, url);
   for (const { shape, ratio } of [
     { shape: "portrait", ratio: 9 / 16 },
     { shape: "square", ratio: 1 },
@@ -76,6 +154,7 @@ export async function checkEditorLayouts({ browser, url, screenshots }) {
       .waitFor();
     for (const viewport of [
       { width: 320, height: 568 },
+      { width: 375, height: 667 },
       { width: 390, height: 844 },
       { width: 402, height: 874 },
       { width: 768, height: 1024 },
@@ -123,12 +202,22 @@ export async function checkEditorLayouts({ browser, url, screenshots }) {
       );
       if (viewport.width < 1024) {
         const dock = page.getByRole("navigation", { name: "Editing tools" });
-        await dock.scrollIntoViewIfNeeded();
         const bounds = await dock.boundingBox();
         assert.ok(
           bounds && bounds.y + bounds.height <= viewport.height + 1,
           `${shape} ${viewport.width}: tools are reachable`,
         );
+        if (viewport.width === 375) {
+          await dock
+            .getByRole("button", { name: "Subtitles", exact: true })
+            .click();
+          assert.deepEqual(
+            await dock.boundingBox(),
+            bounds,
+            "Opening Subtitles keeps the dock in place on a short phone",
+          );
+          await page.getByRole("button", { name: "Done", exact: true }).click();
+        }
         await dock.getByRole("button", { name: "Trim", exact: true }).click();
         await page.getByRole("button", { name: /Edit Out time:/ }).click();
         await page
@@ -234,8 +323,7 @@ export async function checkEditorLayouts({ browser, url, screenshots }) {
       "Tool bar fits the phone viewport",
     );
     assert.ok(
-      await dock.evaluate((element) => {
-        const workspace = element.parentElement;
+      await page.locator(".editor-mobile-workspace").evaluate((workspace) => {
         return workspace.scrollHeight <= workspace.clientHeight + 1;
       }),
       "Default workspace needs no vertical scroll",
@@ -696,11 +784,11 @@ export async function checkEditorLayouts({ browser, url, screenshots }) {
       );
     });
     assert.ok(
-      await dock.evaluate(
-        (element) =>
-          element.parentElement.scrollHeight <=
-          element.parentElement.clientHeight + 1,
-      ),
+      await page
+        .locator(".editor-mobile-workspace")
+        .evaluate(
+          (element) => element.scrollHeight <= element.clientHeight + 1,
+        ),
       "Safe areas do not introduce ordinary workspace scrolling",
     );
     await page.evaluate(() => {

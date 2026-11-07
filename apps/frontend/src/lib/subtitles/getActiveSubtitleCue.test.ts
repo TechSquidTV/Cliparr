@@ -4,6 +4,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import {
+  createSubtitlePreviewCueReader,
   getActiveSubtitleCue,
   getActiveSubtitleCues,
 } from "@/lib/subtitles/getActiveSubtitleCue";
@@ -49,4 +50,13 @@ void test("keeps adjacent subtitle cues from overlapping", () => {
     getActiveSubtitleCues(cues, 4).map((cue) => cue.id),
     ["cue-3"],
   );
+});
+
+void test("reuses preview cues until a boundary and resets on backward seeks", () => {
+  const read = createSubtitlePreviewCueReader(cues);
+  const overlap = read(1);
+  assert.equal(read(2.99), overlap);
+  for (const time of [3, 4, 7, 1.5, 0, -1, 20, 2, NaN]) {
+    assert.deepEqual(read(time), getActiveSubtitleCues(cues, time));
+  }
 });

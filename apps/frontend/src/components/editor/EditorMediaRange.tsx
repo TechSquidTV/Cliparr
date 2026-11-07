@@ -21,6 +21,10 @@ import {
 } from "@/components/editor/editorUtilities";
 import { ControlTooltip } from "@/components/ui/tooltip";
 
+const trimHandleStyle = {
+  width: `min(var(--editor-trim-interior, ${EDITOR_MEDIA_RANGE_HANDLE_WIDTH}px), 25%)`,
+};
+
 // The source clip stays full-length for preview and source timestamp mapping.
 // Its visible row represents the export range, using the same In/Out state as
 // time fields, shortcuts, drafts, and history rather than editing source media.
@@ -85,9 +89,7 @@ export function EditorMediaRange({ engine }: { engine: TimelineEngine }) {
             <ControlTooltip label="Trim clip start">
               <RangeScrollbar.Handle
                 side="start"
-                style={{
-                  width: `min(${EDITOR_MEDIA_RANGE_HANDLE_WIDTH}px, 25%)`,
-                }}
+                style={trimHandleStyle}
                 role="slider"
                 aria-label="Clip start"
               />
@@ -95,9 +97,7 @@ export function EditorMediaRange({ engine }: { engine: TimelineEngine }) {
             <ControlTooltip label="Trim clip end">
               <RangeScrollbar.Handle
                 side="end"
-                style={{
-                  width: `min(${EDITOR_MEDIA_RANGE_HANDLE_WIDTH}px, 25%)`,
-                }}
+                style={trimHandleStyle}
                 role="slider"
                 aria-label="Clip end"
               />
