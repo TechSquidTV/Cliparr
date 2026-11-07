@@ -22,15 +22,48 @@ async function checkPausedSubtitlePreview({ browser, url }) {
         '[data-editor-picture] canvas[aria-hidden="true"]',
       );
       const readOverlay = () =>
-        overlay.evaluate((canvas) => canvas.toDataURL());
-      const waitForOverlay = (expected) =>
-        page.waitForFunction((value) => {
+        overlay.evaluateHandle((canvas) =>
+          canvas
+            .getContext("2d")
+            .getImageData(0, 0, canvas.width, canvas.height),
+        );
+      const waitForOverlay = (expected, matches = true) =>
+        page.waitForFunction(
+          ({ image, matches }) => {
+            const canvas = globalThis.document.querySelector(
+              '[data-editor-picture] canvas[aria-hidden="true"]',
+            );
+            const pixels = canvas
+              .getContext("2d")
+              .getImageData(0, 0, canvas.width, canvas.height).data;
+            // Canvas readback can change rasterization paths and round by one.
+            const equal =
+              canvas.width === image.width &&
+              canvas.height === image.height &&
+              pixels.every(
+                (value, index) => Math.abs(value - image.data[index]) <= 1,
+              );
+            return equal === matches;
+          },
+          { image: expected, matches },
+        );
+      const waitForOverlayContent = (expected) =>
+        page.waitForFunction((hasContent) => {
           const canvas = globalThis.document.querySelector(
             '[data-editor-picture] canvas[aria-hidden="true"]',
           );
-          return canvas.toDataURL() === value;
+          const pixels =
+            canvas.width && canvas.height
+              ? canvas
+                  .getContext("2d")
+                  .getImageData(0, 0, canvas.width, canvas.height).data
+              : [];
+          return (
+            pixels.some((value, index) => index % 4 === 3 && value > 0) ===
+            hasContent
+          );
         }, expected);
-      const blank = await readOverlay();
+      await waitForOverlayContent(false);
       await add.click();
       await page
         .getByRole("button", {
@@ -38,38 +71,16 @@ async function checkPausedSubtitlePreview({ browser, url }) {
           exact: true,
         })
         .waitFor();
-      await page.waitForFunction(() => {
-        const canvas = globalThis.document.querySelector(
-          '[data-editor-picture] canvas[aria-hidden="true"]',
-        );
-        const pixels = canvas
-          .getContext("2d")
-          .getImageData(0, 0, canvas.width, canvas.height).data;
-        return pixels.some((value, index) => index % 4 === 3 && value > 0);
-      });
+      await waitForOverlayContent(true);
       const created = await readOverlay();
-      assert.notEqual(
-        created,
-        blank,
-        `Creation at ${time}s renders while paused`,
-      );
       const text = page.getByRole("textbox", {
         name: "Subtitle text",
         exact: true,
       });
       await text.fill("Edited while paused");
-      await page.waitForFunction((previous) => {
-        const canvas = globalThis.document.querySelector(
-          '[data-editor-picture] canvas[aria-hidden="true"]',
-        );
-        return canvas.toDataURL() !== previous;
-      }, created);
+      await waitForOverlay(created, false);
+      await waitForOverlayContent(true);
       const edited = await readOverlay();
-      assert.notEqual(
-        edited,
-        blank,
-        "Text edits remain visible without playback",
-      );
       assert.equal(
         await page
           .getByRole("button", { name: "Play preview", exact: true })
@@ -80,7 +91,8 @@ async function checkPausedSubtitlePreview({ browser, url }) {
       await undo.click();
       await waitForOverlay(created);
       await undo.click();
-      await waitForOverlay(blank);
+      // Clearing may retain the bitmap size; only visible pixels matter here.
+      await waitForOverlayContent(false);
       assert.equal(await undo.isDisabled(), true, "Creation is one undo step");
       const redo = page.getByRole("button", { name: "Redo", exact: true });
       await redo.click();
