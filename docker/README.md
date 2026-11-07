@@ -74,11 +74,12 @@ the Chromium sandbox.
 
 Production uses the official Node.js Debian 13 slim image to install Debian's
 released security packages through APT. The image includes a shell and Debian's
-package manager, but removes npm, Corepack, and Yarn. Its Node executable is
+package manager, and removes npm. Node 26 images do not bundle Corepack or Yarn. Its Node executable is
 `/usr/local/bin/node`. Application behavior, UID/GID 65532, port 7171, `/data`,
 read-only operation, and the application data format are unchanged.
 
-The production build installs Debian's released `zlib1g` security update and
+Every target installs Debian's released `zlib1g` security update through the shared
+`install-security-updates.sh` helper and
 requires version `1:1.3.dfsg+really1.3.1-1+deb13u1` or newer, which fixes
 `CVE-2026-76844` and `CVE-2026-85091`.
 APT verifies the package through Debian's signed repositories. The build fails if
@@ -123,12 +124,14 @@ change unrelated files or discard persistent provider volumes.
 
 ## Caching and updates
 
-The shared toolchain installs the pnpm version from root `packageManager` once.
+The root `.nvmrc` pins the exact Node LTS version for development and CI. One
+`NODE_IMAGE` argument pins that same version and multi-platform digest for every
+Docker target. The shared toolchain installs the pnpm version from root
+`packageManager` once.
 Application dependencies are installed before sources; server and frontend builds
 copy their own inputs independently. Capture installs only recorder production dependencies and its browser before
-recorder sources, and runs TypeScript with Node 24's native support. It does not
-retain the application build dependencies. Unused npm and Corepack are removed
-from the shared toolchain after installing pnpm. Capture also removes pnpm
+recorder sources, and runs TypeScript with the selected Node LTS runtime's native support. It does not
+retain the application build dependencies. Unused npm is removed from the shared toolchain after installing pnpm. Capture also removes pnpm
 after browser installation; the recorder starts directly with Node. Version metadata exists only in the final
 production stage, so changing it reuses dependency and compilation layers.
 BuildKit cache mounts retain local package downloads. CI exports ordinary layers
@@ -151,8 +154,11 @@ External image references use multi-platform index digests. Renovate tracks thes
 and the Dockerfile frontend, ignores locally built image names, and raises
 release-worthy `fix(cliparr)` updates for the application Dockerfile. Provider
 fixture updates remain `build(cliparr)` changes. Node and Debian majors are explicit
-choices; changing them requires a reviewed migration. Routine updates follow the
-configured Saturday maintenance window.
+choices; changing them requires a reviewed migration. Renovate groups the Node
+image, `.nvmrc`, source engine requirement, and catalog typings into one Node.js
+LTS update within the selected major. The offline `pnpm node:check` lint check
+rejects drift; image validation also checks the actual runtime version. Routine
+updates follow the configured Saturday maintenance window.
 A merged update still needs the normal manual Release workflow to reach users.
 
 Docker CI builds all three targets. All image targets and release validation scan the

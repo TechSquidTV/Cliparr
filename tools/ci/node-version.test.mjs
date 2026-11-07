@@ -1,0 +1,208 @@
+import assert from "node:assert/strict";
+import test from "node:test";
+
+import { nodeVersionViolations } from "#ci/check-node-version.mjs";
+
+const version = "26.13.0";
+const image = `node:${version}-trixie-slim@sha256:${"a".repeat(64)}`;
+
+function fixture() {
+  return new Map([
+    [".nvmrc", `${version}\n`],
+    [
+      "package.json",
+      JSON.stringify({
+        engines: { node: `^${version}` },
+        devDependencies: { "@types/node": "catalog:" },
+      }),
+    ],
+    [
+      "apps/server/package.json",
+      JSON.stringify({ devDependencies: { "@types/node": "catalog:" } }),
+    ],
+    ["pnpm-workspace.yaml", 'catalog:\n  "@types/node": ^26.6.6\n'],
+    [
+      "docker/Dockerfile",
+      `ARG NODE_IMAGE=${image}\nFROM --platform=$BUILDPLATFORM \${NODE_IMAGE} AS toolchain\nFROM toolchain AS development\nFROM \${NODE_IMAGE} AS production\n`,
+    ],
+    [
+      ".github/workflows/ci.yml",
+      "jobs:\n  lint-build:\n    steps:\n      - uses: actions/setup-node@v7\n        with:\n          node-version-file: .nvmrc\n",
+    ],
+  ]);
+}
+
+void test("accepts synchronized runtimes, caret engines, and independently versioned Node typings", () => {
+  assert.deepEqual(nodeVersionViolations(fixture(), version), []);
+});
+
+for (const value of [undefined, "26", "lts/*", "v26.13.0", "26.13.0-rc.1"]) {
+  void test(`rejects missing or non-exact .nvmrc: ${value}`, () => {
+    const files = fixture();
+    if (value === undefined) {
+      files.delete(".nvmrc");
+    } else {
+      files.set(".nvmrc", value);
+    }
+    assert.match(nodeVersionViolations(files, version).join("\n"), /\.nvmrc:/u);
+  });
+}
+
+void test("rejects patch-level runner drift", () => {
+  assert.match(
+    nodeVersionViolations(fixture(), "26.12.1").join("\n"),
+    /running Node 26\.12\.1.*26\.13\.0/u,
+  );
+});
+
+for (const range of [">=24.16.0", "^26.12.0", ">=26.13.0", "26.13.0"]) {
+  void test(`rejects an unsynchronized engine range: ${range}`, () => {
+    const files = fixture();
+    files.set("package.json", JSON.stringify({ engines: { node: range } }));
+    assert.match(
+      nodeVersionViolations(files, version).join("\n"),
+      /package\.json: engines.node must be \^26\.13\.0/u,
+    );
+  });
+}
+
+for (const replacement of [
+  image.replace(version, "26.12.1"),
+  image.split("@")[0],
+  image.replace("a".repeat(64), "short"),
+]) {
+  void test(`rejects Docker version/digest drift: ${replacement}`, () => {
+    const files = fixture();
+    files.set(
+      "docker/Dockerfile",
+      files.get("docker/Dockerfile").replace(image, replacement),
+    );
+    assert.match(
+      nodeVersionViolations(files, version).join("\n"),
+      /global NODE_IMAGE/u,
+    );
+  });
+}
+
+void test("rejects a production stage that bypasses the shared image even if its version matches", () => {
+  const files = fixture();
+  files.set(
+    "docker/Dockerfile",
+    files
+      .get("docker/Dockerfile")
+      .replace(
+        `FROM \${NODE_IMAGE} AS production`,
+        `FROM ${image} AS production`,
+      ),
+  );
+  assert.match(
+    nodeVersionViolations(files, version).join("\n"),
+    /production must use FROM/u,
+  );
+});
+
+void test("rejects forcing the production runtime onto the build platform", () => {
+  const files = fixture();
+  files.set(
+    "docker/Dockerfile",
+    files
+      .get("docker/Dockerfile")
+      .replace(
+        `FROM \${NODE_IMAGE} AS production`,
+        `FROM --platform=$BUILDPLATFORM \${NODE_IMAGE} AS production`,
+      ),
+  );
+  assert.match(
+    nodeVersionViolations(files, version).join("\n"),
+    /production must retain its target platform/u,
+  );
+});
+
+void test("rejects duplicate or stage-local image arguments", () => {
+  for (const text of [
+    `ARG NODE_IMAGE=${image}\n${fixture().get("docker/Dockerfile")}`,
+    `${fixture()
+      .get("docker/Dockerfile")
+      .replace(`ARG NODE_IMAGE=${image}\n`, "")}ARG NODE_IMAGE=${image}\n`,
+  ]) {
+    const files = fixture();
+    files.set("docker/Dockerfile", text);
+    assert.match(
+      nodeVersionViolations(files, version).join("\n"),
+      /global NODE_IMAGE/u,
+    );
+  }
+});
+
+for (const input of [
+  "node-version: 26",
+  "node-version-file: .node-version",
+  "node-version-file: .nvmrc\n          node-version: 26",
+]) {
+  void test(`rejects setup-node configuration drift: ${input}`, () => {
+    const files = fixture();
+    files.set(
+      ".github/workflows/ci.yml",
+      files
+        .get(".github/workflows/ci.yml")
+        .replace("node-version-file: .nvmrc", input),
+    );
+    assert.match(
+      nodeVersionViolations(files, version).join("\n"),
+      /ci.yml: setup-node must use/u,
+    );
+  });
+}
+
+void test("checks pinned setup-node actions inside reusable local actions", () => {
+  const files = fixture();
+  files.set(
+    ".github/actions/setup/action.yaml",
+    `runs:\n  using: composite\n  steps:\n    - uses: actions/setup-node@${"b".repeat(40)}\n      with:\n        node-version: 24\n`,
+  );
+  assert.match(
+    nodeVersionViolations(files, version).join("\n"),
+    /action.yaml: setup-node/u,
+  );
+});
+
+void test("rejects missing and malformed catalog typings and direct workspace versions", () => {
+  for (const contents of [
+    "catalog: {}",
+    'catalog:\n  "@types/node": ^24.19.1',
+    'catalog:\n  "@types/node": latest',
+  ]) {
+    const files = fixture();
+    files.set("pnpm-workspace.yaml", contents);
+    assert.match(
+      nodeVersionViolations(files, version).join("\n"),
+      /catalog @types\/node/u,
+    );
+  }
+  const files = fixture();
+  files.set(
+    "apps/server/package.json",
+    JSON.stringify({ devDependencies: { "@types/node": "^26.6.6" } }),
+  );
+  assert.match(
+    nodeVersionViolations(files, version).join("\n"),
+    /apps\/server\/package.json.*catalog:/u,
+  );
+});
+
+void test("reports invalid YAML/JSON and missing configuration with file context", () => {
+  const files = fixture();
+  files.set(".github/workflows/ci.yml", "jobs: [");
+  files.set("apps/server/package.json", "{");
+  files.delete("pnpm-workspace.yaml");
+  const errors = nodeVersionViolations(files, version).join("\n");
+  assert.match(errors, /ci.yml: configuration could not be parsed/u);
+  assert.match(
+    errors,
+    /apps\/server\/package.json: configuration could not be parsed/u,
+  );
+  assert.match(
+    errors,
+    /pnpm-workspace.yaml: required configuration is missing/u,
+  );
+});

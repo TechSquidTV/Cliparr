@@ -1,0 +1,189 @@
+import { existsSync, globSync, readFileSync } from "node:fs";
+import { pathToFileURL } from "node:url";
+
+import { parseDocument } from "yaml";
+
+const exactVersion = /^(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)$/u;
+
+export function nodeVersionViolations(files, runtimeVersion) {
+  const errors = [];
+  const version = files.get(".nvmrc")?.trim();
+  if (!version || !exactVersion.test(version)) {
+    return [".nvmrc: pin one exact Node version (major.minor.patch)."];
+  }
+  const major = version.split(".")[0];
+  if (runtimeVersion !== version) {
+    errors.push(
+      `.nvmrc: running Node ${runtimeVersion}; install and use Node ${version}.`,
+    );
+  }
+
+  function configuration(file, yaml = false) {
+    const text = files.get(file);
+    if (text === undefined) {
+      errors.push(`${file}: required configuration is missing.`);
+      return;
+    }
+    try {
+      if (!yaml) {
+        return JSON.parse(text);
+      }
+      const document = parseDocument(text);
+      if (document.errors.length > 0) {
+        throw document.errors[0];
+      }
+      return document.toJS();
+    } catch {
+      errors.push(`${file}: configuration could not be parsed.`);
+    }
+  }
+
+  const workspace = configuration("pnpm-workspace.yaml", true);
+  const typings = workspace?.catalog?.["@types/node"];
+  if (
+    typeof typings !== "string" ||
+    !typings.startsWith(`^${major}.`) ||
+    !exactVersion.test(typings.slice(1))
+  ) {
+    errors.push(
+      `pnpm-workspace.yaml: catalog @types/node must use a ^${major}.minor.patch range.`,
+    );
+  }
+  const manifest = configuration("package.json");
+  if (manifest?.engines?.node !== `^${version}`) {
+    errors.push(`package.json: engines.node must be ^${version}.`);
+  }
+  for (const file of files.keys()) {
+    if (!file.endsWith("package.json")) {
+      continue;
+    }
+    const contents = file === "package.json" ? manifest : configuration(file);
+    if (
+      contents?.engines?.node !== undefined &&
+      contents.engines.node !== `^${version}` &&
+      file !== "package.json"
+    ) {
+      errors.push(`${file}: engines.node must be ^${version}.`);
+    }
+    for (const field of [
+      "dependencies",
+      "devDependencies",
+      "optionalDependencies",
+      "peerDependencies",
+    ]) {
+      const dependency = contents?.[field]?.["@types/node"];
+      if (dependency !== undefined && dependency !== "catalog:") {
+        errors.push(`${file}: ${field}.@types/node must use catalog:.`);
+      }
+    }
+  }
+
+  const dockerfile = files.get("docker/Dockerfile") ?? "";
+  const imageArguments = [...dockerfile.matchAll(/^ARG NODE_IMAGE=(\S+)$/gmu)];
+  const image = imageArguments[0]?.[1];
+  const expectedImage = new RegExp(
+    `^node:${version.replaceAll(".", String.raw`\.`)}-trixie-slim@sha256:[a-f0-9]{64}$`,
+    "u",
+  );
+  if (
+    imageArguments.length !== 1 ||
+    !image ||
+    !expectedImage.test(image) ||
+    imageArguments[0].index > dockerfile.search(/^FROM /gmu)
+  ) {
+    errors.push(
+      `docker/Dockerfile: define one global NODE_IMAGE=node:${version}-trixie-slim@sha256:<index digest>.`,
+    );
+  }
+  const stages = [
+    ...dockerfile.matchAll(
+      /^FROM\s+(?:(--platform=\S+)\s+)?(\S+)(?:\s+AS\s+(\S+))?\s*$/gimu,
+    ),
+  ];
+  for (const name of ["toolchain", "production"]) {
+    const matching = stages.filter((stage) => stage[3]?.toLowerCase() === name);
+    if (matching.length !== 1 || matching[0][2] !== `\${NODE_IMAGE}`) {
+      errors.push(`docker/Dockerfile: ${name} must use FROM \${NODE_IMAGE}.`);
+    } else if (
+      (name === "toolchain" &&
+        matching[0][1] !== "--platform=$BUILDPLATFORM") ||
+      (name === "production" && matching[0][1] !== undefined)
+    ) {
+      errors.push(
+        `docker/Dockerfile: ${name} must retain its ${name === "toolchain" ? "build" : "target"} platform.`,
+      );
+    }
+  }
+  for (const stage of stages) {
+    if (/(?:^|\/)node:/u.test(stage[2])) {
+      errors.push(
+        `docker/Dockerfile: Node base images must use \${NODE_IMAGE}.`,
+      );
+    }
+  }
+
+  let setups = 0;
+  function inspectSteps(value, file) {
+    if (!value || typeof value !== "object") {
+      return;
+    }
+    if (
+      typeof value.uses === "string" &&
+      value.uses.startsWith("actions/setup-node@")
+    ) {
+      setups += 1;
+      if (
+        value.with?.["node-version-file"] !== ".nvmrc" ||
+        Object.hasOwn(value.with ?? {}, "node-version")
+      ) {
+        errors.push(
+          `${file}: setup-node must use node-version-file: .nvmrc without node-version.`,
+        );
+      }
+    }
+    for (const child of Object.values(value)) {
+      inspectSteps(child, file);
+    }
+  }
+  for (const file of files.keys()) {
+    if (file.startsWith(".github/") && /\.ya?ml$/u.test(file)) {
+      inspectSteps(configuration(file, true), file);
+    }
+  }
+  if (setups === 0) {
+    errors.push(".github/: no setup-node steps found using .nvmrc.");
+  }
+  return errors;
+}
+
+if (
+  process.argv[1] &&
+  import.meta.url === pathToFileURL(process.argv[1]).href
+) {
+  const paths = new Set([
+    ".nvmrc",
+    "package.json",
+    "pnpm-workspace.yaml",
+    "docker/Dockerfile",
+    ...globSync([
+      ".github/**/*.{yml,yaml}",
+      "apps/*/package.json",
+      "packages/*/package.json",
+      "tools/*/package.json",
+    ]).map((file) => file.replaceAll("\\", "/")),
+  ]);
+  const files = new Map(
+    [...paths]
+      .filter((file) => existsSync(file))
+      .map((file) => [file, readFileSync(file, "utf8")]),
+  );
+  const errors = nodeVersionViolations(files, process.versions.node);
+  if (errors.length > 0) {
+    process.stderr.write(`${errors.join("\n")}\n`);
+    process.exitCode = 1;
+  } else {
+    process.stdout.write(
+      `Node ${files.get(".nvmrc").trim()} is synchronized.\n`,
+    );
+  }
+}

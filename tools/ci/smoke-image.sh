@@ -4,6 +4,7 @@ set -euo pipefail
 image="${1:?image required}"
 version="${2:?version required}"
 platform="${3:-linux/amd64}"
+expected_node="$(tr -d '\r\n' < "$(dirname "${BASH_SOURCE[0]}")/../../.nvmrc")"
 name="cliparr-smoke-${RANDOM}"
 health_file="$(mktemp)"
 index_file="$(mktemp)"
@@ -37,6 +38,12 @@ docker run --detach --name "$name" --platform "$platform" \
   --env APP_KEY="cliparr-smoke-test-key-with-at-least-32-characters" \
   --volume "$name-data:/data" "$image"
 
+runtime_node="$(docker exec "$name" /usr/local/bin/node --version)"
+if [[ "$runtime_node" != "v$expected_node" ]]; then
+  echo "Expected Node v$expected_node from .nvmrc, got $runtime_node." >&2
+  exit 1
+fi
+
 wait_for_health() {
   port="$(docker port "$name" 7171/tcp | head -1 | cut -d: -f2)"
   base_url="http://127.0.0.1:$port"
@@ -67,7 +74,6 @@ grep -q '<div id="root"></div>' "$index_file"
 docker restart "$name" >/dev/null
 wait_for_health
 jq --exit-status '.database == "ok"' "$health_file"
-runtime_node="$(docker exec "$name" /usr/local/bin/node --version)"
 echo "$platform: app $version, Node $runtime_node"
 if [[ -n "${GITHUB_OUTPUT:-}" ]]; then
   echo "runtime_node=$runtime_node" >> "$GITHUB_OUTPUT"

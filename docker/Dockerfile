@@ -6,13 +6,16 @@
 # stage resolves to the target platform. The development and capture targets
 # are built for the host platform in every supported flow, where the build
 # platform is the target platform.
-FROM --platform=$BUILDPLATFORM node:24.22.2-bookworm-slim@sha256:01d566e8d94d8c619591d78652babfccd3c6992a3dffa9ed5ab39e11cf6c70e9 AS toolchain
+ARG NODE_IMAGE=node:26.13.0-trixie-slim@sha256:5adad64f9a1fca2d51972caa65983634c8a774eb300d72b20f7f2a0f60368072
+
+FROM --platform=$BUILDPLATFORM ${NODE_IMAGE} AS toolchain
 ENV PNPM_HOME=/pnpm
 ENV PATH=$PNPM_HOME:$PATH
 ENV npm_config_store_dir=/pnpm/store
 WORKDIR /workspace
 COPY package.json /tmp/cliparr-package.json
-RUN npm uninstall --global corepack \
+RUN --mount=type=bind,source=docker/install-security-updates.sh,target=/tmp/install-security-updates.sh \
+  sh /tmp/install-security-updates.sh \
   && npm install --global "$(node -p 'require("/tmp/cliparr-package.json").packageManager')" \
   && rm /tmp/cliparr-package.json \
   && npm uninstall --global npm
@@ -92,15 +95,10 @@ WORKDIR /workspace/tools/www-assets
 USER node
 CMD ["node", "src/record.ts"]
 
-FROM node:24.22.2-trixie-slim@sha256:0820eaa85e07d0490446dd01d14707e17e6108a36988cf374899cd057eb3812d AS production
-# Debian's released security update fixes CVE-2026-76844 and CVE-2026-85091.
-# Install it through APT; fail closed if a mirror does not have the fix yet.
-RUN apt-get update \
-  && apt-get install -y --no-install-recommends --only-upgrade zlib1g \
-  && dpkg --compare-versions "$(dpkg-query -W -f='${Version}' zlib1g)" ge '1:1.3.dfsg+really1.3.1-1+deb13u1' \
-  && rm -rf /var/lib/apt/lists/* \
-  && npm uninstall --global corepack npm \
-  && rm -rf /opt/yarn-v* /usr/local/bin/yarn /usr/local/bin/yarnpkg
+FROM ${NODE_IMAGE} AS production
+RUN --mount=type=bind,source=docker/install-security-updates.sh,target=/tmp/install-security-updates.sh \
+  sh /tmp/install-security-updates.sh \
+  && npm uninstall --global npm
 LABEL org.opencontainers.image.title="Cliparr" \
   org.opencontainers.image.description="Instant media clipper for Plex and Jellyfin servers." \
   org.opencontainers.image.source="https://github.com/techsquidtv/cliparr" \
