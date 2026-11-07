@@ -72,11 +72,11 @@ the Chromium sandbox.
 
 ## Production runtime change
 
-Breaking change: production uses the official Node.js Debian 13 slim image instead
-of distroless. Node is now `/usr/local/bin/node`; custom commands that explicitly
-referenced `/nodejs/bin/node` must use the new path. The image includes a shell and
-Debian's package manager, but removes npm, Corepack, and Yarn. UID/GID 65532, port
-7171, `/data`, read-only operation, and the application data format are unchanged.
+Production uses the official Node.js Debian 13 slim image to install Debian's
+released security packages through APT. The image includes a shell and Debian's
+package manager, but removes npm, Corepack, and Yarn. Its Node executable is
+`/usr/local/bin/node`. Application behavior, UID/GID 65532, port 7171, `/data`,
+read-only operation, and the application data format are unchanged.
 
 The production build installs Debian's released `zlib1g` security update and
 requires version `1:1.3.dfsg+really1.3.1-1+deb13u1` or newer, which fixes
