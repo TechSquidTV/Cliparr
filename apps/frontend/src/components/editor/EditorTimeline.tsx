@@ -4,13 +4,11 @@ import {
   CanvasRenderer,
   Timeline,
   type TimelineEngine,
-  useTimelineTrack,
   type UseTimelineTrackHeaderResult,
   useTimelineTracks,
 } from "@techsquidtv/canvas-timeline";
 import { Captions, Plus, Volume2, VolumeX } from "lucide-react";
 import {
-  type CSSProperties,
   type KeyboardEvent,
   type PointerEvent,
   useEffect,
@@ -131,27 +129,17 @@ function TrackHeaderColumn({
 
 function EditorTimelineLayers({ engine }: { engine: TimelineEngine }) {
   const { tracks } = useTimelineTracks();
-  const { rect } = useTimelineTrack(EDITOR_MEDIA_TRACK_ID);
 
   return (
     <>
       <Timeline.PlayheadArea />
-      <Timeline.PlayheadGrabber
-        className="editor-playhead"
-        style={
-          {
-            "--editor-media-top": `${rect?.y ?? 0}px`,
-            "--editor-media-bottom": `${rect ? rect.y + rect.height : 0}px`,
-          } as CSSProperties
-        }
-      />
       <Timeline.TrackList className="timeline-track-list-overlay">
         {tracks.map((track) => (
           <Timeline.Track key={track.id} trackId={track.id} />
         ))}
       </Timeline.TrackList>
       <Timeline.ClipInteractionLayer selectOnNavigate />
-      <EditorMediaRange engine={engine} rect={rect} />
+      <EditorMediaRange engine={engine} />
     </>
   );
 }

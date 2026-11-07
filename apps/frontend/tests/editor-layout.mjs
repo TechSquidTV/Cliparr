@@ -70,6 +70,21 @@ async function checkTouchTrimTargets(browser, url) {
   const selection = page.locator(".editor-media-range-selection");
   const start = page.getByRole("slider", { name: "Clip start" });
   const end = page.getByRole("slider", { name: "Clip end" });
+  const preview = page.getByRole("button", { name: /^Edit preview time:/ });
+  const playheadLine = page.locator(".timeline-playhead-grabber-line");
+
+  async function positionPlayhead(time) {
+    await preview.click();
+    const field = page.getByRole("textbox", {
+      name: "Edit preview time",
+      exact: true,
+    });
+    await field.fill(time);
+    await field.press("Enter");
+    const line = await playheadLine.boundingBox();
+    assert.ok(line);
+    return line.x + line.width / 2;
+  }
 
   async function setRange(inTime, outTime) {
     await page.getByRole("button", { name: "Trim", exact: true }).click();
@@ -177,39 +192,57 @@ async function checkTouchTrimTargets(browser, url) {
       await drag(part, x, box.y + box.height / 2, direction * 6);
     }
   }
-  await setRange(0.2, 1.3);
-  const beforeStart = await start.getAttribute("aria-valuenow");
-  const beforeEnd = await end.getAttribute("aria-valuenow");
-  // Also start inside the enlarged touch area just beyond each painted grip.
-  for (const [from, to, direction] of [
-    ["0.75", "0:00.85", 1],
-    ["0.30", "0:00.40", 1],
-    ["1.20", "0:01.10", -1],
+  // A centered playhead and the move control share the middle of this 45px clip.
+  for (const direction of [-1, 1]) {
+    await setRange(0.4, 0.58);
+    const playheadX = await positionPlayhead("0.49");
+    box = await selection.boundingBox();
+    assert.ok(
+      box &&
+        Math.abs(box.width - 45) < 1 &&
+        Math.abs(playheadX - (box.x + box.width / 2)) < 1,
+      "Playhead is centered on the short selection",
+    );
+    const previewBefore = await preview.getAttribute("aria-label");
+    await touchDrag(playheadX + direction * 9, y, (direction * scale) / 10);
+    assert.equal(
+      Number(await start.getAttribute("aria-valuenow")),
+      direction < 0 ? 0.3 : 0.5,
+      "Dragging beside the playhead moves the In point",
+    );
+    assert.equal(
+      Number(await end.getAttribute("aria-valuenow")),
+      direction < 0 ? 0.48 : 0.68,
+      "The Out point moves by the same amount",
+    );
+    assert.equal(
+      await preview.getAttribute("aria-label"),
+      previewBefore,
+      "Moving the selection preserves preview time",
+    );
+  }
+  // Scrub directly on the line in the same short clip and beside each long-clip grip.
+  for (const [inTime, outTime, from, to, direction] of [
+    [0.4, 0.58, "0.49", "0:00.59", 1],
+    [0.2, 1.3, "0.75", "0:00.85", 1],
+    [0.2, 1.3, "0.30", "0:00.40", 1],
+    [0.2, 1.3, "1.20", "0:01.10", -1],
   ]) {
-    await page.getByRole("button", { name: /^Edit preview time:/ }).click();
-    const field = page.getByRole("textbox", {
-      name: "Edit preview time",
-      exact: true,
-    });
-    await field.fill(from);
-    await field.press("Enter");
-    const line = await page
-      .locator(".timeline-playhead-grabber-line")
-      .boundingBox();
-    assert.ok(line);
+    await setRange(inTime, outTime);
+    const playheadX = await positionPlayhead(from);
     await touchDrag(
-      line.x + line.width / 2,
+      playheadX,
       row.y + row.height / 2,
       (direction * scale) / 10,
     );
     assert.equal(
-      await start.getAttribute("aria-valuenow"),
-      beforeStart,
+      Number(await start.getAttribute("aria-valuenow")),
+      inTime,
       "Scrubbing preserves the In point",
     );
     assert.equal(
-      await end.getAttribute("aria-valuenow"),
-      beforeEnd,
+      Number(await end.getAttribute("aria-valuenow")),
+      outTime,
       "Scrubbing preserves the Out point",
     );
     await page

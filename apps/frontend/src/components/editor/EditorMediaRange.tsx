@@ -6,7 +6,7 @@ import {
   useTimelineInOutRangeControl,
   useTimelinePlayback,
   useTimelineScrollLeft,
-  type UseTimelineTrackResult,
+  useTimelineTrack,
   useTimelineZoomScale,
 } from "@techsquidtv/canvas-timeline";
 import type { CSSProperties } from "react";
@@ -15,6 +15,7 @@ import {
   EDITOR_MEDIA_RANGE_HANDLE_WIDTH,
   EDITOR_MEDIA_RANGE_INSET,
 } from "@/components/editor/EditorMediaRangeCanvas";
+import { EDITOR_MEDIA_TRACK_ID } from "@/components/editor/editorTimelineEngine";
 import {
   formatTime,
   MIN_CLIP_SECONDS,
@@ -27,13 +28,8 @@ const trimInterior = `var(--editor-trim-interior, ${gripWidth})`;
 // The source clip stays full-length for preview and source timestamp mapping.
 // Its visible row represents the export range, using the same In/Out state as
 // time fields, shortcuts, drafts, and history rather than editing source media.
-export function EditorMediaRange({
-  engine,
-  rect,
-}: {
-  engine: TimelineEngine;
-  rect: UseTimelineTrackResult["rect"];
-}) {
+export function EditorMediaRange({ engine }: { engine: TimelineEngine }) {
+  const { rect } = useTimelineTrack(EDITOR_MEDIA_TRACK_ID);
   const { setPlayheadTime } = useTimelinePlayback();
   const scrollLeft = useTimelineScrollLeft();
   const zoomScale = useTimelineZoomScale();
@@ -41,11 +37,7 @@ export function EditorMediaRange({
   const [start, end] = range.value;
   const selectionWidth = (end - start) * zoomScale;
 
-  if (!rect) {
-    return null;
-  }
-
-  return (
+  const mediaRow = rect && (
     <div
       className="editor-media-range-row"
       style={{ top: rect.y, height: rect.height }}
@@ -91,13 +83,7 @@ export function EditorMediaRange({
       >
         <div
           className="editor-media-range-selection absolute inset-y-0"
-          style={
-            {
-              left: start * zoomScale,
-              width: selectionWidth,
-              "--editor-range-quarter": `${selectionWidth / 4}px`,
-            } as CSSProperties
-          }
+          style={{ left: start * zoomScale, width: selectionWidth }}
         >
           <ControlTooltip label="Drag to move selection; drag either edge to trim">
             <RangeScrollbar.Thumb
@@ -124,6 +110,22 @@ export function EditorMediaRange({
           </ControlTooltip>
         </div>
       </RangeScrollbar.Root>
+    </div>
+  );
+
+  return (
+    <div
+      className="contents"
+      style={
+        {
+          "--editor-media-top": `${rect?.y ?? 0}px`,
+          "--editor-media-bottom": `${rect ? rect.y + rect.height : 0}px`,
+          "--editor-range-quarter": `${selectionWidth / 4}px`,
+        } as CSSProperties
+      }
+    >
+      <Timeline.PlayheadGrabber className="editor-playhead" />
+      {mediaRow}
     </div>
   );
 }

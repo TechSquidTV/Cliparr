@@ -749,10 +749,13 @@
     right: var(--editor-trim-offset);
   }
 
-  /* Within the media row, the 24px playhead highlight takes the drag.
-     Keep the grabber's full width over the ruler and the other tracks. */
+  /* Leave room to move a short selection on either side of the playhead.
+     The ruler and other tracks keep the full-width grabber. */
   .cliparr-timeline-v2 .editor-playhead {
     pointer-events: none;
+  }
+  .editor-playhead .timeline-playhead-grabber-highlight {
+    width: min(24px, var(--editor-range-quarter));
   }
   .editor-playhead::before,
   .editor-playhead::after {
