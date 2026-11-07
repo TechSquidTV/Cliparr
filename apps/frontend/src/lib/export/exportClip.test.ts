@@ -1103,10 +1103,8 @@ void test("uses per-frame GIF palettes for the sharp preset", async () => {
   ]);
 });
 
-void test("burns the active subtitle into each frame of a trimmed GIF", async () => {
-  const gifSettings = gifExportSettingsForPreset("sharp");
-  const clipStart = 10;
-  const cueChange = clipStart + 0.5 / gifSettings.frameRate;
+void test("switches trimmed GIF captions on the exact frame boundary", async () => {
+  const gifSettings = gifExportSettingsForPreset("compact");
   const renderedFrames: string[][] = [];
   const context = createRuntime({
     getVideoTrackDimensions: async () => ({ width: 4, height: 4 }),
@@ -1139,8 +1137,8 @@ void test("burns the active subtitle into each frame of a trimmed GIF", async ()
   await exportClipWithRuntime(
     {
       mediaSource,
-      startTime: clipStart,
-      endTime: clipStart + 1.5 / gifSettings.frameRate,
+      startTime: 10,
+      endTime: 10.45,
       format: "gif",
       resolution: "original",
       gifSettings,
@@ -1149,24 +1147,42 @@ void test("burns the active subtitle into each frame of a trimmed GIF", async ()
       subtitleStyleSettings: subtitleStyle,
       subtitleCues: [
         {
-          startTime: clipStart,
-          endTime: cueChange,
+          startTime: 9,
+          endTime: 10.3,
           text: "Hello",
           lines: ["Hello"],
         },
         {
-          startTime: cueChange,
-          endTime: clipStart + 1,
+          startTime: 10.3,
+          endTime: 10.301,
+          text: "Boundary",
+          lines: ["Boundary"],
+        },
+        {
+          startTime: 10.301,
+          endTime: 11,
           text: "Goodbye",
           lines: ["Goodbye"],
         },
       ],
+      onPhaseChange: (phase) => {
+        // The compact preset also renders frames to sample its global palette.
+        if (phase === "encoding") {
+          renderedFrames.length = 0;
+        }
+      },
       onProgress: () => {},
     },
     context.runtime,
   );
 
-  assert.deepEqual(renderedFrames, [["Hello"], ["Goodbye"]]);
+  assert.deepEqual(renderedFrames, [
+    ["Hello"],
+    ["Hello"],
+    ["Hello"],
+    ["Boundary"],
+    ["Goodbye"],
+  ]);
 });
 
 for (const format of ["mp4", "gif"] as const) {

@@ -838,6 +838,9 @@ async function exportGifClipWithRuntime(
       clippedSubtitleCues.length > 0
         ? createSubtitleCueReader(clippedSubtitleCues)
         : null;
+    // Subtracting the trim start can round an exact cue boundary just past
+    // its frame. Allow for roundoff at the original timeline's precision.
+    const cueTimeRoundoff = Number.EPSILON * Math.max(1, endTime);
     const frameCount = Math.max(
       1,
       Math.ceil((endTime - startTime) * resolvedGifSettings.frameRate),
@@ -882,7 +885,7 @@ async function exportGifClipWithRuntime(
       );
 
       if (readCues && subtitleStyleSettings) {
-        const activeCues = readCues(clipTimestamp);
+        const activeCues = readCues(clipTimestamp + cueTimeRoundoff);
 
         if (activeCues.length > 0) {
           runtime.renderSubtitleCues(
