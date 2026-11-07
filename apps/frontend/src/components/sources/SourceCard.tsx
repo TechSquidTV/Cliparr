@@ -177,37 +177,23 @@ export function SourceCard({
           >
             {formatProviderName(source.providerId)}
           </motion.span>
-          <motion.span
-            layout={!reduceMotion}
+          <span
+            role="status"
             className={cn(
               statusBadgeClasses,
-              "min-w-36 justify-center",
-              status.className,
+              "w-36 justify-center",
+              isBusy
+                ? "border-primary/30 bg-primary/10 text-primary"
+                : status.className,
             )}
-            transition={stateTransition}
           >
-            <StatusIcon className="h-3.5 w-3.5" />
-            {status.label}
-          </motion.span>
-          <AnimatePresence mode="popLayout" initial={false}>
-            {busyAction && (
-              <motion.span
-                key="busy-action"
-                layout={!reduceMotion}
-                className={cn(
-                  statusBadgeClasses,
-                  "w-32 justify-center border-primary/30 bg-primary/10 text-primary",
-                )}
-                initial={reduceMotion ? { opacity: 1 } : SOURCE_STATE_INITIAL}
-                animate={SOURCE_STATE_VISIBLE}
-                exit={SOURCE_STATE_EXIT}
-                transition={stateTransition}
-              >
-                <Spinner className="h-3.5 w-3.5" />
-                {busyAction}
-              </motion.span>
+            {isBusy ? (
+              <Spinner className="h-3.5 w-3.5" />
+            ) : (
+              <StatusIcon className="h-3.5 w-3.5" />
             )}
-          </AnimatePresence>
+            {busyAction ?? (refreshingAll ? "Refreshing…" : status.label)}
+          </span>
         </div>
         <div className="text-right text-xs text-muted-foreground">
           <div>Checked {formatTimestamp(source.lastCheckedAt)}</div>
@@ -317,7 +303,7 @@ export function SourceCard({
             disabled={isBusy}
             className={sourceSecondaryButtonClasses}
           >
-            {busyAction === "Refreshing..." ? (
+            {busyAction === "Refreshing…" ? (
               <Spinner />
             ) : (
               <RefreshCw className="h-4 w-4" />

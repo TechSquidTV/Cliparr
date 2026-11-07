@@ -177,7 +177,7 @@ export function DashboardPlaybackCardSkeleton({
     <div
       className={cn(
         DASHBOARD_VIDEO_STYLE_CARD_CLASS,
-        "animate-pulse",
+        "animate-pulse motion-reduce:animate-none",
         className,
       )}
       aria-hidden="true"

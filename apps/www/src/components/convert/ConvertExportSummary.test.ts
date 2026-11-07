@@ -21,6 +21,7 @@ void test("converter summaries compose common output rows without editor details
             : "video-audio",
         audioStatus: "Stereo",
         audioPlan: null,
+        audioPending: false,
       }),
     );
     assert.match(markup, />Duration<\/dt>/);

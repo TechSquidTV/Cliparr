@@ -728,6 +728,7 @@ export function useEditorExport({
     mode,
     mixDownToStereo,
     setMixDownToStereo,
+    audioPending: audio.pending,
     audioStatus: audio.status,
     audioPlan: audio.plan,
     audioBitDepth: audio.bitDepth,

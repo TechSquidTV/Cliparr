@@ -1,4 +1,4 @@
-import { PwaInstallCard } from "@cliparr/frontend/convert/ui";
+import { PwaInstallCard, Spinner } from "@cliparr/frontend/convert/ui";
 import {
   createPwaInstallController,
   type PwaInstallState,
@@ -59,14 +59,19 @@ export function ConvertPwaInstallPromptView({
           type="button"
           onClick={onInstall}
           disabled={prompting}
+          aria-busy={prompting}
           className="focus-ring inline-flex h-8 items-center justify-center gap-2 rounded-md border border-border bg-background px-3 text-xs font-semibold uppercase tracking-[var(--tracking-caps-sm)] text-muted-foreground transition-colors hover:bg-accent hover:text-foreground disabled:cursor-not-allowed disabled:opacity-60"
           aria-label="Install Cliparr Convert"
           data-tooltip="Install Cliparr Convert"
           data-convert-pwa-install-mode="native"
           data-convert-pwa-form-factor="desktop"
         >
-          <Download className="h-3.5 w-3.5" />
-          {prompting ? "Opening" : "Install app"}
+          {prompting ? (
+            <Spinner className="h-3.5 w-3.5" />
+          ) : (
+            <Download className="h-3.5 w-3.5" />
+          )}
+          Install app
         </button>
       </div>
     );

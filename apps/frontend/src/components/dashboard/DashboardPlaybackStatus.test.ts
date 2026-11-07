@@ -34,10 +34,11 @@ void test("shows each source's actual wait and removes ready sources from the st
   assert.match(markup, /Connecting to connecting…/);
   assert.match(markup, /Finding playback on discovering…/);
   assert.match(markup, /Preparing playback details from preparing…/);
-  assert.doesNotMatch(markup, /from live|to live|on live|%|Retry connection/);
-  assert.match(markup, /role="status" aria-live="polite"/);
-  assert.equal(render([sources[3]]), "");
-  assert.equal(render([]), "");
+  assert.doesNotMatch(markup, /from live|to live|on live|%/);
+  assert.match(markup, /role="status"/);
+  assert.match(markup, /Loading playback from 3 sources…/);
+  assert.match(render([sources[3]]), /Live updates connected/);
+  assert.match(render([]), /data-dashboard-playback-status/);
 });
 
 void test("keeps retry available during mixed source failures and browser reconnection", () => {
