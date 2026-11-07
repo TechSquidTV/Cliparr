@@ -55,7 +55,9 @@ check named slider values, keyboard tab selection, dropdown radius and animation
 and dialog dismissal, locking, and focus restoration. At mobile and desktop
 widths, it also exercises source edits/actions and subtitle text, timing, style,
 and deletion callbacks through the extracted components. CI runs it alongside
-the media browser suites.
+the media browser suites. The timeline check uses browser touch input to verify
+continuous scrollbar panning and direction changes with track names shown and
+hidden, without browser gesture cancellation; it also checks keyboard panning.
 
 ## Video cropping
 
