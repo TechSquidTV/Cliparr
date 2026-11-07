@@ -65,6 +65,30 @@
       "matchDatasources": ["docker"],
       "matchPackageNames": ["plexinc/pms-docker"],
       "versioning": "regex:^(?<major>\\d+)\\.(?<minor>\\d+)\\.(?<patch>\\d+)\\.(?<build>\\d+)-[a-f0-9]+$"
+    },
+    {
+      "description": "Keep Node LTS runtime and typings updates within the selected major.",
+      "matchPackageNames": ["node", "@types/node"],
+      "allowedVersions": ">=26.0.0 <27.0.0"
+    },
+    {
+      "description": "Group the runtime, source requirements, typings, and both container bases.",
+      "matchPackageNames": [
+        "node",
+        "@types/node",
+        "gcr.io/distroless/nodejs26-debian13"
+      ],
+      "groupName": "Node.js LTS",
+      "groupSlug": "nodejs-lts",
+      "semanticCommitType": "fix",
+      "rangeStrategy": "bump",
+      "separateMinorPatch": false
+    },
+    {
+      "description": "Docker tags carry a compatibility suffix, so constrain the Node major with a regex instead of a SemVer range.",
+      "matchDatasources": ["docker"],
+      "matchPackageNames": ["node"],
+      "allowedVersions": "/^26\\./"
     }
   ]
 }

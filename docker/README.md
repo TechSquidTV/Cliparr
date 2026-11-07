@@ -1,9 +1,8 @@
 # Docker environments
 
-One Dockerfile defines three independent final targets. Production uses the official
-Node.js Debian 13 slim image with Debian security updates and runs as UID/GID 65532.
-Chromium, FFmpeg, JavaScript package managers, and development sources are confined
-to the other targets. Production retains Debian's shell and OS package manager.
+One Dockerfile defines three final targets. Production runs the bundled application
+on non-root distroless. The Debian slim toolchain supplies the development and capture
+targets, including Chromium and FFmpeg for recording.
 The root `.dockerignore` allows only build inputs and recursively excludes local state, dependencies, and secrets.
 
 | Target        | Compose file          | Purpose                                                               |
@@ -70,20 +69,12 @@ permissions. Chromium uses Playwright's default sandbox setting and must only
 load this trusted local application. Running as non-root alone does not enable
 the Chromium sandbox.
 
-## Production runtime change
+## Production runtime
 
-Production uses the official Node.js Debian 13 slim image to install Debian's
-released security packages through APT. The image includes a shell and Debian's
-package manager, but removes npm, Corepack, and Yarn. Its Node executable is
-`/usr/local/bin/node`. Application behavior, UID/GID 65532, port 7171, `/data`,
-read-only operation, and the application data format are unchanged.
-
-The production build installs Debian's released `zlib1g` security update and
-requires version `1:1.3.dfsg+really1.3.1-1+deb13u1` or newer, which fixes
-`CVE-2026-76844` and `CVE-2026-85091`.
-APT verifies the package through Debian's signed repositories. The build fails if
-the available package is older than the fixed version. The normal vulnerability
-scan still gates fixable high/critical findings.
+Production runs the bundled server with `/nodejs/bin/node` in the non-root
+Google Distroless Node.js Debian 13 image. It runs as UID/GID 65532 on port 7171
+with a read-only root filesystem and writable `/data`. The production image
+has no shell or package manager. Development and capture use Debian slim.
 
 ## Development setup changes
 
@@ -123,12 +114,17 @@ change unrelated files or discard persistent provider volumes.
 
 ## Caching and updates
 
-The shared toolchain installs the pnpm version from root `packageManager` once.
+The root `.nvmrc` pins the exact Node LTS version for CI and recommends it for
+local development. Compatible newer stable Node 26 versions are accepted locally.
+The Dockerfile pins two multi-platform image digests. The Debian slim toolchain
+tag contains the exact Node version. The distroless repository name includes
+the Node major, and its `nonroot` tag selects the runtime variant. CI runs Node
+in the built images to verify the exact version embedded in each digest. The shared toolchain installs the pnpm version from root
+`packageManager` once.
 Application dependencies are installed before sources; server and frontend builds
 copy their own inputs independently. Capture installs only recorder production dependencies and its browser before
-recorder sources, and runs TypeScript with Node 24's native support. It does not
-retain the application build dependencies. Unused npm and Corepack are removed
-from the shared toolchain after installing pnpm. Capture also removes pnpm
+recorder sources, and runs TypeScript with the selected Node LTS runtime's native support. It does not
+retain the application build dependencies. Unused npm is removed from the shared toolchain after installing pnpm. Capture also removes pnpm
 after browser installation; the recorder starts directly with Node. Version metadata exists only in the final
 production stage, so changing it reuses dependency and compilation layers.
 BuildKit cache mounts retain local package downloads. CI exports ordinary layers
@@ -151,12 +147,15 @@ External image references use multi-platform index digests. Renovate tracks thes
 and the Dockerfile frontend, ignores locally built image names, and raises
 release-worthy `fix(cliparr)` updates for the application Dockerfile. Provider
 fixture updates remain `build(cliparr)` changes. Node and Debian majors are explicit
-choices; changing them requires a reviewed migration. Routine updates follow the
-configured Saturday maintenance window.
+choices; changing them requires a reviewed migration. Renovate groups both Node
+image digests, `.nvmrc`, source engine requirement, and catalog typings into one Node.js
+LTS update within the selected major. The offline `pnpm node:check` lint check
+rejects drift; image validation also checks the actual runtime version. Routine
+updates follow the configured Saturday maintenance window.
 A merged update still needs the normal manual Release workflow to reach users.
 
-Docker CI builds all three targets. All image targets and release validation scan the
-image and matching lockfile for fixable HIGH/CRITICAL vulnerabilities.
+Docker CI scans both production architectures, the development and capture images,
+and the matching lockfile for fixable HIGH/CRITICAL vulnerabilities.
 The lockfile inventory is retained as an artifact because bundled JavaScript
 cannot reliably be discovered by scanning the runtime filesystem alone. This
 conservatively includes production dependencies of other workspaces, too; the
