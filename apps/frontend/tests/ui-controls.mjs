@@ -180,6 +180,21 @@ try {
         const features = page.getByRole("region", { name: "Feature controls" });
         const mobile = reducedMotion === "reduce";
         assert.equal(await features.getByRole("tab").count(), mobile ? 3 : 0);
+        if (mobile) {
+          const menu = features.getByRole("button", {
+            name: "Open dashboard menu",
+          });
+          await menu.click();
+          const popup = page.getByRole("dialog", { name: "Cliparr Menu" });
+          await popup.waitFor();
+          await page.setViewportSize({ width: 844, height: 390 });
+          await page
+            .locator('[data-slot="drawer-overlay"]')
+            .waitFor({ state: "detached" });
+          await features.getByLabel("Display Name").click();
+          await page.setViewportSize({ width: 390, height: 900 });
+          assert.equal(await menu.getAttribute("aria-expanded"), "false");
+        }
         await features.getByLabel("Display Name").fill("Renamed server");
         await features.getByRole("button", { name: "Save Changes" }).click();
         await features.getByText("Source saved", { exact: true }).waitFor();

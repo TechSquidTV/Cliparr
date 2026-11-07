@@ -1,4 +1,5 @@
 import { ExternalLink, Globe, LogOut, Menu } from "lucide-react";
+import { useEffect, useState } from "react";
 
 import type { LatestReleaseInfo } from "@/api/cliparrClient";
 import {
@@ -38,13 +39,29 @@ export function DashboardMobileMenu({
   latestRelease: LatestReleaseInfo | null;
   onDisconnect: () => Promise<void> | void;
 }) {
+  const [open, setOpen] = useState(false);
+  useEffect(() => {
+    if (!open) {
+      return;
+    }
+    const wide = window.matchMedia("(min-width: 40rem)");
+    const closeWhenWide = () => {
+      if (wide.matches) {
+        setOpen(false);
+      }
+    };
+    wide.addEventListener("change", closeWhenWide);
+    closeWhenWide();
+    return () => wide.removeEventListener("change", closeWhenWide);
+  }, [open]);
+
   const menuItemClassName =
     "control-focus flex min-h-14 w-full items-center justify-between gap-3 px-4 text-base font-medium text-foreground transition-colors hover:bg-accent";
   const iconClassName =
     "grid h-8 w-8 shrink-0 place-items-center rounded-full bg-muted text-muted-foreground";
 
   return (
-    <Drawer>
+    <Drawer open={open} onOpenChange={setOpen}>
       <DrawerTrigger
         render={
           <button
@@ -56,7 +73,7 @@ export function DashboardMobileMenu({
           </button>
         }
       />
-      <DrawerContent className="border-border bg-background/95 [--drawer-bottom-padding:1rem] sm:hidden">
+      <DrawerContent className="border-border bg-background/95 [--drawer-bottom-padding:1rem]">
         <DrawerTitle className="sr-only">Cliparr Menu</DrawerTitle>
         <DrawerDescription className="sr-only">
           Dashboard menu

@@ -133,7 +133,6 @@ function EditorTimelineLayers({ engine }: { engine: TimelineEngine }) {
   return (
     <>
       <Timeline.PlayheadArea />
-      <Timeline.PlayheadGrabber />
       <Timeline.TrackList className="timeline-track-list-overlay">
         {tracks.map((track) => (
           <Timeline.Track key={track.id} trackId={track.id} />

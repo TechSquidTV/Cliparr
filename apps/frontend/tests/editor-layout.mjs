@@ -57,7 +57,301 @@ async function assertTimecodeEditorLayout(page, field) {
   );
 }
 
+async function checkTouchTrimTargets(browser, url) {
+  const page = await browser.newPage({
+    viewport: { width: 402, height: 874 },
+    isMobile: true,
+    hasTouch: true,
+  });
+  await page.goto(url);
+  await page.locator("[data-editor-timeline-ready]").waitFor();
+  const touch = await page.context().newCDPSession(page);
+  const range = page.getByRole("slider", { name: "Move clip selection" });
+  const selection = page.locator(".editor-media-range-selection");
+  const start = page.getByRole("slider", { name: "Clip start" });
+  const end = page.getByRole("slider", { name: "Clip end" });
+  const preview = page.getByRole("button", { name: /^Edit preview time:/ });
+  const playheadLine = page.locator(".timeline-playhead-grabber-line");
+
+  async function positionPlayhead(time) {
+    await preview.click();
+    const field = page.getByRole("textbox", {
+      name: "Edit preview time",
+      exact: true,
+    });
+    await field.fill(time);
+    await field.press("Enter");
+    const line = await playheadLine.boundingBox();
+    assert.ok(line);
+    return line.x + line.width / 2;
+  }
+
+  async function setRange(inTime, outTime) {
+    await page.getByRole("button", { name: "Trim", exact: true }).click();
+    // Set the far edge first when moving the range later in the clip.
+    const fields = [
+      ["In", inTime],
+      ["Out", outTime],
+    ];
+    if (outTime > Number(await end.getAttribute("aria-valuenow"))) {
+      fields.reverse();
+    }
+    for (const [edge, value] of fields) {
+      await page
+        .getByRole("button", { name: new RegExp(`^Edit ${edge} time:`) })
+        .click();
+      const field = page.getByRole("textbox", {
+        name: `Edit ${edge} time`,
+        exact: true,
+      });
+      await field.fill(String(value));
+      await field.press("Enter");
+    }
+    await page.getByRole("button", { name: "Done", exact: true }).click();
+  }
+
+  async function beginTouchDrag(x, y, delta) {
+    await touch.send("Input.dispatchTouchEvent", {
+      type: "touchStart",
+      touchPoints: [{ x, y }],
+    });
+    await touch.send("Input.dispatchTouchEvent", {
+      type: "touchMove",
+      touchPoints: [{ x: x + delta, y }],
+    });
+  }
+
+  async function touchDrag(x, y, delta) {
+    await beginTouchDrag(x, y, delta);
+    await touch.send("Input.dispatchTouchEvent", {
+      type: "touchEnd",
+      touchPoints: [],
+    });
+  }
+
+  async function waitForPlayheadHighlight(active) {
+    await page.waitForFunction(
+      (expected) => {
+        const playhead = globalThis.document.querySelector(".editor-playhead");
+        const style = (part) =>
+          globalThis.getComputedStyle(
+            playhead.querySelector(`.timeline-playhead-grabber-${part}`),
+          );
+        return [
+          style("highlight").backgroundColor !== "rgba(0, 0, 0, 0)",
+          style("line").boxShadow !== "none",
+          style("handle").boxShadow !== "none",
+        ].every((visible) => visible === expected);
+      },
+      active,
+      { timeout: 3000 },
+    );
+  }
+
+  async function drag(part, x, y, delta) {
+    assert.ok(
+      await part.evaluate(
+        (element, point) =>
+          element === globalThis.document.elementFromPoint(point.x, point.y),
+        { x, y },
+      ),
+      `Contact hits ${await part.getAttribute("aria-label")} at ${x}, ${y}`,
+    );
+    const beforeStart = Number(await start.getAttribute("aria-valuenow"));
+    const beforeEnd = Number(await end.getAttribute("aria-valuenow"));
+    await touchDrag(x, y, delta);
+    const startDelta =
+      Number(await start.getAttribute("aria-valuenow")) - beforeStart;
+    const endDelta =
+      Number(await end.getAttribute("aria-valuenow")) - beforeEnd;
+    if (part === start) {
+      assert.ok(
+        startDelta * delta > 0 && endDelta === 0,
+        "Grip trims only the start",
+      );
+    } else if (part === end) {
+      assert.ok(
+        endDelta * delta > 0 && startDelta === 0,
+        "Grip trims only the end",
+      );
+    } else {
+      assert.ok(
+        startDelta * delta > 0 && Math.abs(startDelta - endDelta) < 0.001,
+        "Center moves the whole range",
+      );
+    }
+  }
+
+  await setRange(1, 1.16);
+  const paddedPlayhead = page.locator(".editor-media-playhead-padding");
+  await paddedPlayhead.waitFor();
+  await touch.send("Emulation.setTouchEmulationEnabled", { enabled: false });
+  await paddedPlayhead.waitFor({ state: "detached" });
+  await touch.send("Emulation.setTouchEmulationEnabled", { enabled: true });
+  await paddedPlayhead.waitFor();
+  let box = await selection.boundingBox();
+  assert.ok(box && box.width < 44);
+  const y = box.y + box.height / 2;
+  await drag(start, box.x - 18, y, 6);
+  await drag(end, box.x + box.width + 18, y, -6);
+  box = await selection.boundingBox();
+  await drag(range, box.x + box.width / 2, y, 6);
+
+  // Place a 28px selection flush against each edge of the visible media row.
+  const row = await page.locator(".editor-media-range-row").boundingBox();
+  const track = await page.locator(".editor-media-range").boundingBox();
+  const scale = track.width / Number(await end.getAttribute("aria-valuemax"));
+  for (const side of ["left", "right"]) {
+    const left = side === "left" ? row.x : row.x + row.width - 28;
+    const inTime = (left - track.x) / scale;
+    const outTime = (left + 28 - track.x) / scale;
+    const direction = side === "left" ? 1 : -1;
+    const edge = side === "left" ? start : end;
+    for (const grip of [false, true]) {
+      await setRange(inTime, outTime);
+      box = await selection.boundingBox();
+      assert.ok(
+        Math.abs(box.x - left) < 1 && Math.abs(box.width - 28) < 1,
+        `Short selection sits at the ${side} viewport edge`,
+      );
+      const middle = box.x + box.width / 2;
+      // Each visible grip is centered in the outer quarter of a short clip.
+      const x = grip ? middle - (direction * box.width * 3) / 8 : middle;
+      const part = grip ? edge : range;
+      await drag(part, x, box.y + box.height / 2, direction * 6);
+    }
+  }
+  // A centered playhead and the move control share the middle of this 45px clip.
+  for (const direction of [-1, 1]) {
+    await setRange(0.4, 0.58);
+    const playheadX = await positionPlayhead("0.49");
+    box = await selection.boundingBox();
+    assert.ok(
+      box &&
+        Math.abs(box.width - 45) < 1 &&
+        Math.abs(playheadX - (box.x + box.width / 2)) < 1,
+      "Playhead is centered on the short selection",
+    );
+    const previewBefore = await preview.getAttribute("aria-label");
+    await touchDrag(playheadX + direction * 9, y, (direction * scale) / 10);
+    assert.equal(
+      Number(await start.getAttribute("aria-valuenow")),
+      direction < 0 ? 0.3 : 0.5,
+      "Dragging beside the playhead moves the In point",
+    );
+    assert.equal(
+      Number(await end.getAttribute("aria-valuenow")),
+      direction < 0 ? 0.48 : 0.68,
+      "The Out point moves by the same amount",
+    );
+    assert.equal(
+      await preview.getAttribute("aria-label"),
+      previewBefore,
+      "Moving the selection preserves preview time",
+    );
+  }
+  // Outside the selection, the playhead also accepts touches beside the line
+  // where the invisible trim padding would otherwise capture them.
+  const shortRange = { inTime: 0.4, outTime: 0.58 };
+  const longRange = { inTime: 0.2, outTime: 1.3 };
+  const playhead = page.locator(".editor-playhead");
+  const scrubs = [
+    {
+      ...shortRange,
+      target: paddedPlayhead,
+      from: "0.34",
+      to: "0:00.24",
+      direction: -1,
+      offset: -8,
+    },
+    {
+      ...shortRange,
+      target: paddedPlayhead,
+      from: "0.64",
+      to: "0:00.74",
+      direction: 1,
+      offset: 8,
+      endType: "touchCancel",
+    },
+    {
+      ...shortRange,
+      target: playhead,
+      from: "0.49",
+      to: "0:00.59",
+      direction: 1,
+    },
+    {
+      ...longRange,
+      target: playhead,
+      from: "0.75",
+      to: "0:00.85",
+      direction: 1,
+    },
+    {
+      ...longRange,
+      target: playhead,
+      from: "0.30",
+      to: "0:00.40",
+      direction: 1,
+    },
+    {
+      ...longRange,
+      target: playhead,
+      from: "1.20",
+      to: "0:01.10",
+      direction: -1,
+    },
+  ];
+  for (const {
+    inTime,
+    outTime,
+    target,
+    from,
+    to,
+    direction,
+    offset = 0,
+    endType = "touchEnd",
+  } of scrubs) {
+    await setRange(inTime, outTime);
+    const playheadX = await positionPlayhead(from);
+    await beginTouchDrag(
+      playheadX + offset,
+      row.y + row.height / 2,
+      (direction * scale) / 10,
+    );
+    try {
+      await target.and(page.locator(".is-dragging")).waitFor();
+      await waitForPlayheadHighlight(true);
+    } finally {
+      await touch.send("Input.dispatchTouchEvent", {
+        type: endType,
+        touchPoints: [],
+      });
+    }
+    await waitForPlayheadHighlight(false);
+    assert.equal(
+      Number(await start.getAttribute("aria-valuenow")),
+      inTime,
+      "Scrubbing preserves the In point",
+    );
+    assert.equal(
+      Number(await end.getAttribute("aria-valuenow")),
+      outTime,
+      "Scrubbing preserves the Out point",
+    );
+    await page
+      .getByRole("button", {
+        name: `Edit preview time: ${to} of 0:04.00`,
+        exact: true,
+      })
+      .waitFor();
+  }
+
+  await page.close();
+}
+
 export async function checkEditorLayouts({ browser, url, screenshots }) {
+  await checkTouchTrimTargets(browser, url);
   for (const { shape, ratio } of [
     { shape: "portrait", ratio: 9 / 16 },
     { shape: "square", ratio: 1 },
@@ -76,6 +370,7 @@ export async function checkEditorLayouts({ browser, url, screenshots }) {
       .waitFor();
     for (const viewport of [
       { width: 320, height: 568 },
+      { width: 375, height: 667 },
       { width: 390, height: 844 },
       { width: 402, height: 874 },
       { width: 768, height: 1024 },
@@ -123,12 +418,22 @@ export async function checkEditorLayouts({ browser, url, screenshots }) {
       );
       if (viewport.width < 1024) {
         const dock = page.getByRole("navigation", { name: "Editing tools" });
-        await dock.scrollIntoViewIfNeeded();
         const bounds = await dock.boundingBox();
         assert.ok(
           bounds && bounds.y + bounds.height <= viewport.height + 1,
           `${shape} ${viewport.width}: tools are reachable`,
         );
+        if (viewport.width === 375) {
+          await dock
+            .getByRole("button", { name: "Subtitles", exact: true })
+            .click();
+          assert.deepEqual(
+            await dock.boundingBox(),
+            bounds,
+            "Opening Subtitles keeps the dock in place on a short phone",
+          );
+          await page.getByRole("button", { name: "Done", exact: true }).click();
+        }
         await dock.getByRole("button", { name: "Trim", exact: true }).click();
         await page.getByRole("button", { name: /Edit Out time:/ }).click();
         await page
@@ -234,8 +539,7 @@ export async function checkEditorLayouts({ browser, url, screenshots }) {
       "Tool bar fits the phone viewport",
     );
     assert.ok(
-      await dock.evaluate((element) => {
-        const workspace = element.parentElement;
+      await page.locator(".editor-mobile-workspace").evaluate((workspace) => {
         return workspace.scrollHeight <= workspace.clientHeight + 1;
       }),
       "Default workspace needs no vertical scroll",
@@ -696,11 +1000,11 @@ export async function checkEditorLayouts({ browser, url, screenshots }) {
       );
     });
     assert.ok(
-      await dock.evaluate(
-        (element) =>
-          element.parentElement.scrollHeight <=
-          element.parentElement.clientHeight + 1,
-      ),
+      await page
+        .locator(".editor-mobile-workspace")
+        .evaluate(
+          (element) => element.scrollHeight <= element.clientHeight + 1,
+        ),
       "Safe areas do not introduce ordinary workspace scrolling",
     );
     await page.evaluate(() => {
