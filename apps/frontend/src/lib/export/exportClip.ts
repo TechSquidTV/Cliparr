@@ -680,8 +680,9 @@ export async function exportClipWithRuntime(
         );
       }
 
-      // The conversion plan validates tracks before execution. Finalization
-      // patches only the metadata on disk without reparsing the exported media.
+      // The conversion plan validates tracks before execution. Reopening a large
+      // export for validation can duplicate media buffers; finalization patches
+      // only the metadata on disk without reparsing the exported media.
       const mimeType = await output.getMimeType();
       signal?.throwIfAborted();
       const blob = await exportTarget.finish(
