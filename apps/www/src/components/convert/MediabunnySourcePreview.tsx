@@ -62,6 +62,8 @@ export function MediabunnySourcePreview({
   onDragActiveChange,
   onDropFile,
 }: MediabunnySourcePreviewProperties) {
+  // Audio-only inspection deliberately omits video preview metadata.
+  const hasVideoPreviewMetadata = Boolean(probe?.hasVideo && probe.dimensions);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const inputRef = useRef<Awaited<
     ReturnType<typeof createCliparrInputFromSource>
@@ -278,7 +280,7 @@ export function MediabunnySourcePreview({
       }
     }
 
-    if (probe?.hasVideo && probe.dimensions) {
+    if (probe && hasVideoPreviewMetadata) {
       void loadPreview(probe);
     }
 
@@ -288,7 +290,7 @@ export function MediabunnySourcePreview({
       stopPlayback();
       releaseInput();
     };
-  }, [probe, renderFrameAt, source, stopPlayback]);
+  }, [hasVideoPreviewMetadata, probe, renderFrameAt, source, stopPlayback]);
 
   const handleTogglePlayback = useCallback(() => {
     if (state.status !== "ready") {
@@ -345,14 +347,11 @@ export function MediabunnySourcePreview({
     state.status === "ready"
       ? state.durationSeconds
       : (probe?.durationSeconds ?? 0);
-  let error = inspectionError;
-  if (!error && probe?.hasVideo && !probe.dimensions) {
-    error = "No video dimensions are available for preview.";
-  } else if (!error && state.status === "error") {
-    error = state.message;
-  }
+  const error =
+    inspectionError ?? (state.status === "error" ? state.message : null);
   const loading =
-    !error && (!probe || (probe.hasVideo && state.status === "loading"));
+    !error &&
+    (!probe || (hasVideoPreviewMetadata && state.status === "loading"));
 
   return (
     <div
@@ -399,7 +398,7 @@ export function MediabunnySourcePreview({
           </div>
         ) : null}
 
-        {probe && !probe.hasVideo && !error && (
+        {probe && !hasVideoPreviewMetadata && !error && (
           <span
             role="status"
             className="absolute inset-0 flex items-center justify-center p-4 text-center text-sm text-white"
