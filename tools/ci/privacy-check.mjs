@@ -63,6 +63,7 @@ const publicHosts = new Set([
   "www.contributor-covenant.org",
   "www.npmjs.com",
   "www.w3.org",
+  "www.youtube.com",
 ]);
 const localNames = new Set([
   "localhost",
