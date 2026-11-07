@@ -14,9 +14,7 @@ ENV PATH=$PNPM_HOME:$PATH
 ENV npm_config_store_dir=/pnpm/store
 WORKDIR /workspace
 COPY package.json /tmp/cliparr-package.json
-RUN --mount=type=bind,source=docker/install-security-updates.sh,target=/tmp/install-security-updates.sh \
-  sh /tmp/install-security-updates.sh \
-  && npm install --global "$(node -p 'require("/tmp/cliparr-package.json").packageManager')" \
+RUN npm install --global "$(node -p 'require("/tmp/cliparr-package.json").packageManager')" \
   && rm /tmp/cliparr-package.json \
   && npm uninstall --global npm
 
@@ -97,9 +95,7 @@ USER node
 CMD ["node", "src/record.ts"]
 
 FROM ${NODE_IMAGE} AS production
-RUN --mount=type=bind,source=docker/install-security-updates.sh,target=/tmp/install-security-updates.sh \
-  sh /tmp/install-security-updates.sh \
-  && npm uninstall --global npm
+RUN npm uninstall --global npm
 LABEL org.opencontainers.image.title="Cliparr" \
   org.opencontainers.image.description="Instant media clipper for Plex and Jellyfin servers." \
   org.opencontainers.image.source="https://github.com/techsquidtv/cliparr" \

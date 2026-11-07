@@ -72,19 +72,10 @@ the Chromium sandbox.
 
 ## Production runtime change
 
-Production uses the official Node.js Debian 13 slim image to install Debian's
-released security packages through APT. The image includes a shell and Debian's
-package manager, and removes npm. Node 26 images do not bundle Corepack or Yarn. Its Node executable is
+Production gets its OS packages from the digest-pinned official Node.js Debian
+13 slim image. The production stage removes npm. Its Node executable is
 `/usr/local/bin/node`. Application behavior, UID/GID 65532, port 7171, `/data`,
 read-only operation, and the application data format are unchanged.
-
-Every target installs Debian's released `zlib1g` security update through the shared
-`install-security-updates.sh` helper and
-requires version `1:1.3.dfsg+really1.3.1-1+deb13u1` or newer, which fixes
-`CVE-2026-76844` and `CVE-2026-85091`.
-APT verifies the package through Debian's signed repositories. The build fails if
-the available package is older than the fixed version. The normal vulnerability
-scan still gates fixable high/critical findings.
 
 ## Development setup changes
 
