@@ -1,9 +1,10 @@
 # Docker environments
 
-One Dockerfile defines three independent final targets. Production stays on a
-non-root distroless image; Chromium, FFmpeg, package managers, and development
-sources are confined to the other targets. The root `.dockerignore` allows only
-build inputs and recursively excludes local state, dependencies, and secrets.
+One Dockerfile defines three independent final targets. Production uses the official
+Node.js Debian 13 slim image with Debian security updates and runs as UID/GID 65532.
+Chromium, FFmpeg, JavaScript package managers, and development sources are confined
+to the other targets. Production retains Debian's shell and OS package manager.
+The root `.dockerignore` allows only build inputs and recursively excludes local state, dependencies, and secrets.
 
 | Target        | Compose file          | Purpose                                                               |
 | ------------- | --------------------- | --------------------------------------------------------------------- |
@@ -68,6 +69,21 @@ run as non-root users; the recorder uses the invoking user's UID/GID for output
 permissions. Chromium uses Playwright's default sandbox setting and must only
 load this trusted local application. Running as non-root alone does not enable
 the Chromium sandbox.
+
+## Production runtime change
+
+Production uses the official Node.js Debian 13 slim image to install Debian's
+released security packages through APT. The image includes a shell and Debian's
+package manager, but removes npm, Corepack, and Yarn. Its Node executable is
+`/usr/local/bin/node`. Application behavior, UID/GID 65532, port 7171, `/data`,
+read-only operation, and the application data format are unchanged.
+
+The production build installs Debian's released `zlib1g` security update and
+requires version `1:1.3.dfsg+really1.3.1-1+deb13u1` or newer, which fixes
+`CVE-2026-76844` and `CVE-2026-85091`.
+APT verifies the package through Debian's signed repositories. The build fails if
+the available package is older than the fixed version. The normal vulnerability
+scan still gates fixable high/critical findings.
 
 ## Development setup changes
 
@@ -134,9 +150,9 @@ foreign target architecture is no longer supported.
 External image references use multi-platform index digests. Renovate tracks these
 and the Dockerfile frontend, ignores locally built image names, and raises
 release-worthy `fix(cliparr)` updates for the application Dockerfile. Provider
-fixture updates remain `build(cliparr)` changes. Node's major and the distroless image's
-Node/Debian majors are explicit choices; changing them requires a reviewed
-migration. Routine updates follow the configured Saturday maintenance window.
+fixture updates remain `build(cliparr)` changes. Node and Debian majors are explicit
+choices; changing them requires a reviewed migration. Routine updates follow the
+configured Saturday maintenance window.
 A merged update still needs the normal manual Release workflow to reach users.
 
 Docker CI builds all three targets. All image targets and release validation scan the

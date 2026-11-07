@@ -48,7 +48,7 @@ wait_for_health() {
   return 1
 }
 # Application files must stay immutable; only /data and temporary storage are writable.
-docker exec "$name" /nodejs/bin/node -e '
+docker exec "$name" /usr/local/bin/node -e '
   const fs = require("node:fs");
   const architecture = process.arch === "x64" ? "amd64" : process.arch;
   const runtimePlatform = process.platform + "/" + architecture;
@@ -67,7 +67,7 @@ grep -q '<div id="root"></div>' "$index_file"
 docker restart "$name" >/dev/null
 wait_for_health
 jq --exit-status '.database == "ok"' "$health_file"
-runtime_node="$(docker exec "$name" /nodejs/bin/node --version)"
+runtime_node="$(docker exec "$name" /usr/local/bin/node --version)"
 echo "$platform: app $version, Node $runtime_node"
 if [[ -n "${GITHUB_OUTPUT:-}" ]]; then
   echo "runtime_node=$runtime_node" >> "$GITHUB_OUTPUT"
