@@ -44,6 +44,9 @@ interface UseEditorSubtitlesProperties {
   endTime: number;
   duration: number;
   mediaReady: boolean;
+  previewReady: boolean;
+  renderedFrameTime: number | null;
+  getRenderedFrameTime: () => number | null;
   pausePlayback: () => void;
   onSubtitleCreated: () => void;
 }
@@ -61,6 +64,9 @@ export function useEditorSubtitles({
   endTime,
   duration,
   mediaReady,
+  previewReady,
+  renderedFrameTime,
+  getRenderedFrameTime,
   pausePlayback,
   onSubtitleCreated,
 }: UseEditorSubtitlesProperties) {
@@ -244,8 +250,13 @@ export function useEditorSubtitles({
   const canEditSubtitles = mediaReady && initialized && !subtitleLoading;
   const canAddSubtitle =
     canEditSubtitles &&
-    getSubtitleCreationRange(tracks, toSeconds(playheadTime), duration) !==
-      null;
+    previewReady &&
+    getSubtitleCreationRange(
+      tracks,
+      toSeconds(playheadTime),
+      duration,
+      renderedFrameTime,
+    ) !== null;
 
   function cancelImport() {
     setImportTrack(null);
@@ -277,14 +288,19 @@ export function useEditorSubtitles({
     }
   }
   function addSubtitle() {
-    if (!canEditSubtitles) {
+    if (!canEditSubtitles || !previewReady) {
       return;
     }
     pausePlayback();
     // Recheck live state: playback may have advanced since the button rendered.
     const state = engine.getState();
     const time = toSeconds(state.playheadTime);
-    const range = getSubtitleCreationRange(state.tracks, time, duration);
+    const range = getSubtitleCreationRange(
+      state.tracks,
+      time,
+      duration,
+      getRenderedFrameTime(),
+    );
     if (!range) {
       return;
     }
@@ -304,7 +320,7 @@ export function useEditorSubtitles({
       const result = engine.commitEdit({
         type: "overwrite",
         targetTrackId: EDITOR_SUBTITLE_TRACK_ID,
-        startTime: fromSeconds(time),
+        startTime: fromSeconds(range.startTime),
         clip,
         snap: false,
       });

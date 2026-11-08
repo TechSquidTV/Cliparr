@@ -14,6 +14,8 @@ import {
   textInputClassName,
 } from "#/components/ui/control-styles";
 import { EmptyState } from "#/components/ui/empty-state";
+import { Skeleton } from "#/components/ui/skeleton";
+import { Spinner } from "#/components/ui/spinner";
 import {
   Tabs,
   TabsList,
@@ -41,12 +43,20 @@ const developmentJellyfinUrl =
 const panelInputClasses = cn(textInputClassName(), "mt-1.5");
 const screenInputClasses = cn(textInputClassName({ size: "screen" }), "mt-2");
 
+function providerPanelClassName(isScreen: boolean) {
+  return cn(
+    "h-source-provider-panel overflow-y-auto",
+    isScreen
+      ? "pt-2 sm:rounded-lg sm:border sm:border-border sm:bg-background sm:p-4"
+      : "rounded-lg border border-border bg-background p-4",
+  );
+}
+
 export default function ProviderConnectFlow({
   onConnected,
   onCancel,
   variant = "panel",
 }: Properties) {
-  const reducedMotion = useReducedMotion();
   const isScreen = variant === "screen";
   const {
     providers,
@@ -63,7 +73,6 @@ export default function ProviderConnectFlow({
     setUsername,
     password,
     setPassword,
-    providerLabel,
     startAuth,
     loginWithCredentials,
     setSelectedProviderId,
@@ -82,12 +91,19 @@ export default function ProviderConnectFlow({
 
   function renderPinContent(provider: ProviderDefinition) {
     const providerDetails = providerPresentation(provider, variant);
+    const instruction =
+      authenticating && authId && providerId === provider.id
+        ? `Finish sign-in in the ${provider.name} tab.`
+        : "A new tab will open for sign-in.";
 
     if (!isScreen) {
       return (
         <div className="space-y-3">
-          <div className="rounded-md border border-border bg-card px-3 py-2.5 text-sm text-muted-foreground">
-            A new tab will open for sign-in.
+          <div
+            role="status"
+            className="flex min-h-16 items-center rounded-md border border-border bg-card px-3 py-2.5 text-sm text-muted-foreground"
+          >
+            {instruction}
           </div>
 
           <div className="rounded-md border border-border bg-card px-3 py-2.5 text-sm text-muted-foreground">
@@ -98,13 +114,16 @@ export default function ProviderConnectFlow({
             <button
               type="button"
               onClick={() => void startAuth(provider)}
+              aria-busy={authenticating}
               disabled={authenticating}
               className={cn(buttonClassName({ size: "dense" }), "flex-1")}
             >
-              <ExternalLink className="h-4 w-4" />
-              {authenticating && providerId === provider.id
-                ? `Waiting for ${provider.name}...`
-                : providerDetails.action}
+              {authenticating && providerId === provider.id ? (
+                <Spinner />
+              ) : (
+                <ExternalLink className="h-4 w-4" />
+              )}
+              {providerDetails.action}
             </button>
 
             {onCancel && (
@@ -127,21 +146,24 @@ export default function ProviderConnectFlow({
 
     return (
       <div className="flex flex-col gap-4">
-        <p className="text-sm text-muted-foreground">
-          A new tab will open for sign-in.
+        <p role="status" className="min-h-10 text-sm text-muted-foreground">
+          {instruction}
         </p>
 
         <div className="space-y-4">
           <button
             type="button"
             onClick={() => void startAuth(provider)}
+            aria-busy={authenticating}
             disabled={authenticating}
             className="flex w-full items-center justify-center gap-2 rounded-2xl bg-primary px-4 py-3 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-60"
           >
-            <ExternalLink className="h-4 w-4" />
-            {authenticating && providerId === provider.id
-              ? `Waiting for ${provider.name}...`
-              : providerDetails.action}
+            {authenticating && providerId === provider.id ? (
+              <Spinner />
+            ) : (
+              <ExternalLink className="h-4 w-4" />
+            )}
+            {providerDetails.action}
           </button>
 
           <p className="text-center text-xs leading-6 text-muted-foreground">
@@ -273,13 +295,16 @@ export default function ProviderConnectFlow({
           <div className="space-y-4">
             <button
               type="submit"
+              aria-busy={authenticating}
               disabled={authenticating || !serverUrl.trim() || !username.trim()}
               className="flex w-full items-center justify-center gap-2 rounded-2xl bg-primary px-4 py-3 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-60"
             >
-              <Server className="h-4 w-4" />
-              {authenticating && providerId === provider.id
-                ? `Connecting to ${provider.name}...`
-                : providerDetails.action}
+              {authenticating && providerId === provider.id ? (
+                <Spinner />
+              ) : (
+                <Server className="h-4 w-4" />
+              )}
+              {providerDetails.action}
             </button>
 
             <p className="text-center text-xs leading-6 text-muted-foreground">
@@ -290,13 +315,16 @@ export default function ProviderConnectFlow({
           <div className="flex flex-wrap gap-2 pt-1">
             <button
               type="submit"
+              aria-busy={authenticating}
               disabled={authenticating || !serverUrl.trim() || !username.trim()}
               className={cn(buttonClassName({ size: "dense" }), "flex-1")}
             >
-              <Server className="h-4 w-4" />
-              {authenticating && providerId === provider.id
-                ? `Connecting to ${provider.name}...`
-                : providerDetails.action}
+              {authenticating && providerId === provider.id ? (
+                <Spinner />
+              ) : (
+                <Server className="h-4 w-4" />
+              )}
+              {providerDetails.action}
             </button>
 
             {onCancel && (
@@ -315,39 +343,6 @@ export default function ProviderConnectFlow({
           </div>
         )}
       </form>
-    );
-  }
-
-  function renderAuthProgress(provider: ProviderDefinition) {
-    if (!authenticating || !authId || providerId !== provider.id) {
-      return null;
-    }
-
-    const content = `Finish sign-in in the ${providerLabel(providerId)} tab.`;
-
-    if (!isScreen) {
-      return (
-        <p className="mt-4 text-center text-xs leading-6 text-muted-foreground">
-          {content}
-        </p>
-      );
-    }
-
-    return (
-      <div className="mt-4 min-h-9">
-        <AnimatePresence mode="wait">
-          <motion.p
-            key={`auth-${providerId}`}
-            initial={{ opacity: 0, y: reducedMotion ? 0 : 6 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: reducedMotion ? 0 : 6 }}
-            transition={{ duration: reducedMotion ? 0 : 0.16, ease: "easeOut" }}
-            className="text-center text-xs text-muted-foreground"
-          >
-            {content}
-          </motion.p>
-        </AnimatePresence>
-      </div>
     );
   }
 
@@ -399,32 +394,21 @@ export default function ProviderConnectFlow({
             ? renderPinContent(provider)
             : renderCredentialsContent(provider)}
         </div>
-
-        {renderAuthProgress(provider)}
       </>
     );
   }
 
   function renderContent() {
     if (loading) {
-      if (isScreen) {
-        return <ProviderConnectScreenLoadingLayout />;
-      }
-
-      return (
-        <ProviderStatusMessage>Loading providers...</ProviderStatusMessage>
-      );
-    }
-
-    if (!error && providers.length === 0) {
-      return (
-        <ProviderStatusMessage>No providers available.</ProviderStatusMessage>
-      );
+      return <ProviderConnectPlaceholder isScreen={isScreen} message={null} />;
     }
 
     if (providers.length === 0) {
       return (
-        <ProviderStatusMessage>Could not load providers.</ProviderStatusMessage>
+        <ProviderConnectPlaceholder
+          isScreen={isScreen}
+          message={error || "No providers available."}
+        />
       );
     }
 
@@ -443,7 +427,10 @@ export default function ProviderConnectFlow({
   if (!isScreen) {
     return (
       <div className="space-y-4">
-        <ProviderConnectError error={error} isScreen={isScreen} />
+        <ProviderConnectError
+          error={providers.length > 0 ? error : ""}
+          isScreen={isScreen}
+        />
         {renderContent()}
       </div>
     );
@@ -451,7 +438,10 @@ export default function ProviderConnectFlow({
 
   return (
     <>
-      <ProviderConnectError error={error} isScreen={isScreen} />
+      <ProviderConnectError
+        error={providers.length > 0 ? error : ""}
+        isScreen={isScreen}
+      />
       {renderContent()}
     </>
   );
@@ -489,7 +479,7 @@ function ProviderConnectTabsLayout({
       <TabsList
         springIndicator
         aria-label="Media provider"
-        className="grid w-full"
+        className="grid h-13.5 w-full"
         style={{
           gridTemplateColumns: `repeat(${providers.length}, minmax(0, 1fr))`,
         }}
@@ -513,19 +503,14 @@ function ProviderConnectTabsLayout({
 
       <TabsPanels
         mode="static"
-        className={cn(
-          "@container",
-          isScreen
-            ? "pt-2 sm:rounded-lg sm:border sm:border-border sm:bg-background sm:p-4"
-            : "h-source-provider-panel overflow-y-auto rounded-lg border border-border bg-background p-4",
-        )}
+        className={cn("@container", providerPanelClassName(isScreen))}
       >
         {providers.map((provider) => (
           <TabsPanel
             animated={false}
             key={provider.id}
             value={provider.id}
-            className={isScreen ? undefined : "h-full"}
+            className="h-full"
           >
             {renderProviderContent(provider)}
           </TabsPanel>
@@ -535,21 +520,48 @@ function ProviderConnectTabsLayout({
   );
 }
 
-function ProviderConnectScreenLoadingLayout() {
+function ProviderConnectPlaceholder({
+  isScreen,
+  message,
+}: {
+  isScreen: boolean;
+  message: string | null;
+}) {
   return (
     <div
       className="space-y-3"
-      aria-hidden="true"
-      data-provider-connect-loading-layout
+      data-provider-connect-loading-layout={message === null ? "" : undefined}
     >
-      <div className="h-13 rounded-md border border-border bg-background" />
+      {message === null ? (
+        <>
+          <span role="status" className="sr-only">
+            Loading providers…
+          </span>
+          <Skeleton className="h-13.5 w-full border border-border bg-background" />
+        </>
+      ) : (
+        <div className="flex h-13.5 items-center text-sm text-muted-foreground">
+          Media providers
+        </div>
+      )}
       <div
-        className="space-y-4 pt-2 sm:rounded-lg sm:border sm:border-border sm:bg-background sm:p-4"
+        className={cn(providerPanelClassName(isScreen), "space-y-4")}
+        aria-hidden={message === null}
         data-provider-connect-selected-skeleton
       >
-        <div className="h-5 w-3/4 rounded bg-card" />
-        <div className="h-5 w-1/2 rounded bg-card" />
-        <div className="h-12 rounded-xl bg-primary/10" />
+        {message === null ? (
+          <>
+            <Skeleton className="h-5 w-3/4" />
+            <Skeleton className="h-5 w-1/2" />
+            <Skeleton className="h-12 w-full bg-primary/10" />
+          </>
+        ) : (
+          <EmptyState
+            role="status"
+            description={message}
+            className="flex h-full flex-col justify-center"
+          />
+        )}
       </div>
     </div>
   );
@@ -624,8 +636,4 @@ function ProviderConnectError({
       </AnimatePresence>
     </div>
   );
-}
-
-function ProviderStatusMessage({ children }: { children: string }) {
-  return <EmptyState description={children} role="status" />;
 }

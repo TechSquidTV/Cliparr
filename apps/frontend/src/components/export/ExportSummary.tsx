@@ -2,8 +2,12 @@ import * as React from "react";
 
 import type { MediaDimensions } from "#/components/editor/editorMedia";
 import { formatTime } from "#/components/editor/editorUtilities";
-import { gifPresetOptionFor } from "#/components/export/exportOptions";
+import {
+  audioChannelLabel,
+  gifPresetOptionFor,
+} from "#/components/export/exportOptions";
 import { fieldLabelWideClasses } from "#/components/ui/control-styles";
+import { Skeleton } from "#/components/ui/skeleton";
 import { cn } from "#/lib/cn";
 import type { ExportAudioPlan } from "#/lib/export/exportAudio";
 import type { ExportFormat } from "#/lib/export/exportClip";
@@ -71,6 +75,7 @@ export interface ExportOutputSummaryProperties {
   gifSettings?: GifExportSettings | null;
   outputDimensions: MediaDimensions | null;
   mode: ExportMode;
+  audioPending: boolean;
   audioStatus: string;
   audioPlan: ExportAudioPlan | null;
 }
@@ -80,6 +85,7 @@ export function ExportOutputSummary({
   gifSettings,
   outputDimensions,
   mode,
+  audioPending,
   audioStatus,
   audioPlan,
 }: ExportOutputSummaryProperties) {
@@ -105,6 +111,7 @@ export function ExportOutputSummary({
         {audioOnly ? (
           <dd className="mt-2">
             <ExportAudioDetails
+              pending={audioPending}
               plan={audioPlan}
               status={audioStatus}
               showCodec={selectedFormat === "wav"}
@@ -121,6 +128,7 @@ export function ExportOutputSummary({
         <ExportSummaryItem label="Audio">
           <dd className="mt-2">
             <ExportAudioDetails
+              pending={audioPending}
               plan={audioPlan}
               status={
                 exportIncludesAudio(mode, selectedFormat)
@@ -136,56 +144,69 @@ export function ExportOutputSummary({
   );
 }
 function ExportAudioDetails({
+  pending,
   plan,
   status,
   showCodec,
 }: {
+  pending: boolean;
   plan: ExportAudioPlan | null;
   status: string;
   showCodec: boolean;
 }) {
-  if (!plan) {
-    return <p className="text-xs text-muted-foreground">{status}</p>;
-  }
-  const details: Array<readonly [string, string]> = [];
-  if (showCodec) {
-    let codec = plan.codec === "opus" ? "Opus" : plan.codec.toUpperCase();
-    if (plan.codec.startsWith("pcm-")) {
-      codec = plan.codec === "pcm-f32" ? "PCM (float)" : "PCM";
+  const details: Array<readonly [string, string | null]> = [];
+  if (plan) {
+    if (showCodec) {
+      let codec = plan.codec === "opus" ? "Opus" : plan.codec.toUpperCase();
+      if (plan.codec.startsWith("pcm-")) {
+        codec = plan.codec === "pcm-f32" ? "PCM (float)" : "PCM";
+      }
+      details.push(["Codec", codec]);
     }
-    details.push(["Codec", codec]);
-  }
-  details.push(
-    [
-      "Channels",
-      { 1: "Mono", 2: "Stereo" }[plan.numberOfChannels] ??
-        `${plan.numberOfChannels} channels`,
-    ],
-    ["Sample rate", `${plan.sampleRate / 1000} kHz`],
-  );
-  if (plan.bits !== null) {
-    details.push(["Bit depth", `${plan.bits}-bit`]);
-  } else if (plan.bitrate !== undefined) {
-    details.push(["Bitrate", `${plan.bitrate / 1000} kbps`]);
+    details.push(
+      ["Channels", audioChannelLabel(plan.numberOfChannels)],
+      ["Sample rate", `${plan.sampleRate / 1000} kHz`],
+    );
+    if (plan.bits !== null) {
+      details.push(["Bit depth", `${plan.bits}-bit`]);
+    } else if (plan.bitrate !== undefined) {
+      details.push(["Bitrate", `${plan.bitrate / 1000} kbps`]);
+    }
+  } else if (pending) {
+    for (const label of showCodec
+      ? ["Codec", "Channels", "Sample rate", "Quality"]
+      : ["Channels", "Sample rate", "Quality"]) {
+      details.push([label, null]);
+    }
   }
   return (
-    <>
-      <dl className="space-y-1 text-xs">
+    <div className="h-28 overflow-y-auto" data-export-audio-details>
+      <p
+        role="status"
+        className={
+          plan || pending ? "sr-only" : "text-xs text-muted-foreground"
+        }
+      >
+        {plan ? "Audio details ready." : status}
+      </p>
+      <dl aria-busy={pending} className="space-y-1 text-xs">
         {details.map(([label, value]) => (
           <div
             key={label}
             className="grid grid-cols-[minmax(0,1fr)_auto] gap-x-3"
           >
             <dt className="text-muted-foreground">{label}</dt>
-            <dd className="text-right text-foreground">{value}</dd>
+            <dd className="text-right text-foreground">
+              {value ?? <Skeleton className="h-4 w-16" />}
+            </dd>
           </div>
         ))}
       </dl>
-      {plan.sampleRate !== plan.source.sampleRate && (
+      {plan && plan.sampleRate !== plan.source.sampleRate && (
         <p className="mt-2 text-xs text-muted-foreground">
           Resampled from {plan.source.sampleRate / 1000} kHz.
         </p>
       )}
-    </>
+    </div>
   );
 }

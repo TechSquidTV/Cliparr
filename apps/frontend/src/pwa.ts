@@ -1,6 +1,8 @@
 import { Download, Share } from "lucide-react";
 import { createElement, useCallback, useEffect, useRef, useState } from "react";
 
+import { Spinner } from "#/components/ui/spinner";
+
 export const MOBILE_INSTALL_MEDIA_QUERY = "(max-width: 639.98px)";
 export const COARSE_POINTER_MEDIA_QUERY = "(pointer: coarse)";
 export const STANDALONE_DISPLAY_MEDIA_QUERY = "(display-mode: standalone)";
@@ -369,10 +371,11 @@ export function PwaInstallAction({
           type: "button",
           onClick: onInstall,
           disabled: prompting,
+          "aria-busy": prompting,
           className: buttonClassName,
         },
-        createElement(Download, { className: "h-4 w-4" }),
-        prompting ? "Opening" : "Install",
+        createElement(prompting ? Spinner : Download, { className: "h-4 w-4" }),
+        "Install",
       )
     : createElement(
         "span",

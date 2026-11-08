@@ -40,3 +40,7 @@ export function gifPresetOptionFor(preset: GifExportPreset) {
     gifExportPresetOptions[0]
   );
 }
+
+export function audioChannelLabel(channels: number) {
+  return { 1: "Mono", 2: "Stereo" }[channels] ?? `${channels} channels`;
+}

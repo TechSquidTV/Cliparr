@@ -853,6 +853,14 @@ try {
             .getAttribute("aria-expanded"),
           "false",
         );
+        // aria-expanded changes before the sidebar's size transition finishes.
+        await aside.evaluate(async (element) => {
+          await Promise.all(
+            element
+              .getAnimations({ subtree: true })
+              .map((animation) => animation.finished.catch(() => {})),
+          );
+        });
         const cropHeader = await aside
           .getByRole("button", { name: "Crop", exact: true })
           .boundingBox();
@@ -1080,6 +1088,9 @@ try {
         const overlay = page.locator('canvas[aria-hidden="true"]');
         const hasCaptionPixels = () =>
           overlay.evaluate((canvas) => {
+            if (!canvas.width || !canvas.height) {
+              return false;
+            }
             const pixels = canvas
               .getContext("2d")
               .getImageData(0, 0, canvas.width, canvas.height).data;
@@ -1099,6 +1110,31 @@ try {
           await hasCaptionPixels(),
           true,
           "first frame renders captions without a seek or edit",
+        );
+        // A mark outside the caption survives only if the overlay was reused.
+        await overlay.evaluate((canvas) =>
+          canvas.getContext("2d").fillRect(0, 0, 1, 1),
+        );
+        await page.getByRole("button", { name: "Advance frame time" }).click();
+        await waitForPaint();
+        assert.equal(
+          await overlay.evaluate(
+            (canvas) =>
+              canvas.getContext("2d").getImageData(0, 0, 1, 1).data[3],
+          ),
+          255,
+        );
+        const toggle = page.getByRole("button", { name: "Toggle subtitles" });
+        await toggle.click();
+        await page.getByRole("button", { name: "Advance frame time" }).click();
+        await waitForPaint();
+        assert.equal(await overlay.getAttribute("width"), "0");
+        await toggle.click();
+        await waitForPaint();
+        assert.equal(
+          await hasCaptionPixels(),
+          true,
+          "Re-enabling paints the paused caption",
         );
       },
     );

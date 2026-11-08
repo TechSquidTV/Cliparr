@@ -120,6 +120,8 @@ async function prepareInput(
     timelineOffsetSeconds: previousTimelineOffsetSeconds,
     skipLiveWait: true,
   });
+  // Preview decoding may need another track; keep source timing and dimensions
+  // so browser codec support cannot change export alignment or eligibility.
   const { previewVideoTrack } = await selectPreviewVideoTrack(
     input,
     sourceVideoTrack,
@@ -376,6 +378,15 @@ export function useEditorTimelineMedia(
     details.timelineOffsetSeconds,
     duration,
   );
+  const getRenderedFrameTime = useCallback(
+    () =>
+      editorPreviewFrameTime(
+        adapter.lastFrameTime,
+        details.timelineOffsetSeconds,
+        duration,
+      ),
+    [adapter, details.timelineOffsetSeconds, duration],
+  );
 
   const pausePlayback = useCallback(() => {
     previewRequest.current += 1;
@@ -521,6 +532,7 @@ export function useEditorTimelineMedia(
     connectCanvas,
     currentTime: toSeconds(playheadTime),
     renderedFrameTime: renderedTimelineFrameTime,
+    getRenderedFrameTime,
     duration,
     playing,
     loadingPreview,

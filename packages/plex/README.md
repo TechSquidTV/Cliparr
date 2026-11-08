@@ -1,7 +1,7 @@
 # Plex contracts
 
 `@cliparr/plex` is a source-only workspace package consumed by the server and the
-standalone Node 24 development bootstrap. It has no runtime dependencies or
+standalone development bootstrap using the Node version pinned in the root `.nvmrc`. It has no runtime dependencies or
 server imports. Production server builds bundle it; bootstrap runs its TypeScript
 with Node's built-in type stripping, without installing the application.
 

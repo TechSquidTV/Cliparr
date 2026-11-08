@@ -1,6 +1,114 @@
 import assert from "node:assert/strict";
 
+async function checkPausedSubtitlePreview({ browser, url }) {
+  for (const time of [1.05, 1]) {
+    const page = await browser.newPage({
+      viewport: { width: 1280, height: 900 },
+      reducedMotion: "reduce",
+    });
+    try {
+      await page.goto(`${url}?fixture=subtitle-frame&time=${time}`);
+      const add = page.getByRole("button", {
+        name: "Add subtitle",
+        exact: true,
+      });
+      await page.waitForFunction(() => {
+        const button = [...globalThis.document.querySelectorAll("button")].find(
+          (element) => element.textContent === "Add subtitle",
+        );
+        return button && !button.disabled;
+      });
+      const overlay = page.locator(
+        '[data-editor-picture] canvas[aria-hidden="true"]',
+      );
+      const readOverlay = () =>
+        overlay.evaluateHandle((canvas) =>
+          canvas
+            .getContext("2d")
+            .getImageData(0, 0, canvas.width, canvas.height),
+        );
+      const waitForOverlay = (expected, matches = true) =>
+        page.waitForFunction(
+          ({ image, matches }) => {
+            const canvas = globalThis.document.querySelector(
+              '[data-editor-picture] canvas[aria-hidden="true"]',
+            );
+            const pixels = canvas
+              .getContext("2d")
+              .getImageData(0, 0, canvas.width, canvas.height).data;
+            // Canvas readback can change rasterization paths and round by one.
+            const equal =
+              canvas.width === image.width &&
+              canvas.height === image.height &&
+              pixels.every(
+                (value, index) => Math.abs(value - image.data[index]) <= 1,
+              );
+            return equal === matches;
+          },
+          { image: expected, matches },
+        );
+      const waitForOverlayContent = (expected) =>
+        page.waitForFunction((hasContent) => {
+          const canvas = globalThis.document.querySelector(
+            '[data-editor-picture] canvas[aria-hidden="true"]',
+          );
+          const pixels =
+            canvas.width && canvas.height
+              ? canvas
+                  .getContext("2d")
+                  .getImageData(0, 0, canvas.width, canvas.height).data
+              : [];
+          return (
+            pixels.some((value, index) => index % 4 === 3 && value > 0) ===
+            hasContent
+          );
+        }, expected);
+      await waitForOverlayContent(false);
+      await add.click();
+      await page
+        .getByRole("button", {
+          name: "Edit subtitle cue in point: 0:01.00",
+          exact: true,
+        })
+        .waitFor();
+      await waitForOverlayContent(true);
+      const created = await readOverlay();
+      const text = page.getByRole("textbox", {
+        name: "Subtitle text",
+        exact: true,
+      });
+      await text.fill("Edited while paused");
+      await waitForOverlay(created, false);
+      await waitForOverlayContent(true);
+      const edited = await readOverlay();
+      assert.equal(
+        await page
+          .getByRole("button", { name: "Play preview", exact: true })
+          .count(),
+        1,
+      );
+      const undo = page.getByRole("button", { name: "Undo", exact: true });
+      await undo.click();
+      await waitForOverlay(created);
+      await undo.click();
+      // Clearing may retain the bitmap size; only visible pixels matter here.
+      await waitForOverlayContent(false);
+      assert.equal(await undo.isDisabled(), true, "Creation is one undo step");
+      const redo = page.getByRole("button", { name: "Redo", exact: true });
+      await redo.click();
+      await redo.click();
+      await waitForOverlay(edited);
+    } finally {
+      await page.close();
+    }
+  }
+  process.stdout.write(
+    "Passed paused subtitle creation and live text preview between/on frames\n",
+  );
+}
+
 export async function checkEditorReviewRegressions({ browser, url }) {
+  await checkPausedSubtitlePreview({ browser, url });
   const page = await browser.newPage({
     viewport: { width: 1280, height: 900 },
     reducedMotion: "reduce",

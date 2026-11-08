@@ -35,6 +35,7 @@ function EditorExportSummaryPanelComponent({
   exportSourceLabel = "Auto",
   exportSourceSummaryMessage = null,
   mode,
+  audioPending,
   audioStatus,
   audioPlan,
   subtitleSummaryLabel = "Not included",
@@ -83,6 +84,7 @@ function EditorExportSummaryPanelComponent({
         gifSettings={gifSettings}
         outputDimensions={outputDimensions}
         mode={mode}
+        audioPending={audioPending}
         audioStatus={audioStatus}
         audioPlan={audioPlan}
       />

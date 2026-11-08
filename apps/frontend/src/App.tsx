@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 
 import { cliparrClient, subscribeToAuthFailure } from "@/api/cliparrClient";
 import { AuthProvider } from "@/auth";
-import { Spinner } from "@/components/ui/spinner";
+import { BarsLoader } from "@/components/ui/bars-loader";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { router } from "@/router";
 
@@ -79,12 +79,13 @@ export default function App() {
             height="64"
             decoding="async"
           />
-          <div className="absolute -inset-4 animate-pulse rounded-full bg-primary/10 blur-xl" />
+          <div className="absolute -inset-4 animate-pulse rounded-full bg-primary/10 blur-xl motion-reduce:animate-none" />
         </div>
-        <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground uppercase tracking-[var(--tracking-caps-2xl)]">
-          <Spinner className="text-primary" />
-          Loading Cliparr
-        </div>
+        <BarsLoader
+          label="Loading Cliparr…"
+          showLabel
+          className="text-muted-foreground"
+        />
       </div>
     );
   }

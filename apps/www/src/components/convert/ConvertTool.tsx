@@ -22,6 +22,7 @@ import {
   ExportSettingsSection,
   ExportStatusPanel,
   LOCAL_VIDEO_FILE_ACCEPT,
+  Skeleton,
   Spinner,
   TooltipProvider,
   useExportAudioPlan,
@@ -335,75 +336,27 @@ export function ConvertTool() {
   }
   const outputFileName = buildConvertedOutputFileName(outputNameStem, format);
   const selectedFormatOption = exportFormatFor(format);
-  const emptyDropZoneTitle = isConverterReady
-    ? "Drop a video or audio file here"
-    : "Preparing converter";
-  const emptyDropZoneDescription = isConverterReady
-    ? "MP4, MOV, MKV, WebM, MPEG-TS, MP3, M4A, Ogg, FLAC, and WAV are supported."
-    : "The file picker will be ready in a moment.";
-  let sourceProbeContent: ReactNode;
-  switch (sourceProbeState.status) {
-    case "idle": {
-      sourceProbeContent = (
-        <p className="text-sm text-muted-foreground">No file selected.</p>
-      );
-      break;
-    }
-    case "loading": {
-      sourceProbeContent = (
-        <div className="flex items-center gap-3 text-sm text-muted-foreground">
-          <Spinner />
-          Inspecting media
-        </div>
-      );
-      break;
-    }
-    case "error": {
-      sourceProbeContent = (
-        <p className="text-sm text-destructive">{sourceProbeState.message}</p>
-      );
-      break;
-    }
-    case "ready": {
-      sourceProbeContent = (
-        <dl className="grid gap-3 sm:grid-cols-2">
-          <div>
-            <dt className="text-xs font-semibold uppercase text-muted-foreground">
-              Duration
-            </dt>
-            <dd className="mt-1 font-mono text-sm text-foreground">
-              {formatDuration(sourceProbeState.result.durationSeconds)}
-            </dd>
-          </div>
-          <div>
-            <dt className="text-xs font-semibold uppercase text-muted-foreground">
-              Dimensions
-            </dt>
-            <dd className="mt-1 font-mono text-sm text-foreground">
-              {dimensionsLabel(sourceProbeState.result)}
-            </dd>
-          </div>
-          <div>
-            <dt className="text-xs font-semibold uppercase text-muted-foreground">
-              Type
-            </dt>
-            <dd className="mt-1 font-mono text-sm text-foreground">
-              {fileTypeLabel(sourceFile)}
-            </dd>
-          </div>
-          <div>
-            <dt className="text-xs font-semibold uppercase text-muted-foreground">
-              Audio
-            </dt>
-            <dd className="mt-1 text-sm text-foreground">
-              {sourceProbeState.result.hasAudio ? "Detected" : "None detected"}
-            </dd>
-          </div>
-        </dl>
-      );
-      break;
-    }
+  const inspectedSource =
+    sourceProbeState.status === "ready" ? sourceProbeState.result : null;
+  let sourceAudioLabel: string | null = null;
+  let sourceDetailsStatus = "No file selected.";
+  if (inspectedSource) {
+    sourceAudioLabel = inspectedSource.hasAudio ? "Detected" : "None detected";
+    sourceDetailsStatus = "Media details ready.";
+  } else if (sourceProbeState.status === "loading") {
+    sourceDetailsStatus = "Inspecting media…";
+  } else if (sourceProbeState.status === "error") {
+    sourceDetailsStatus = "Media inspection failed.";
   }
+  const sourceDetails = [
+    [
+      "Duration",
+      inspectedSource ? formatDuration(inspectedSource.durationSeconds) : null,
+    ],
+    ["Dimensions", inspectedSource ? dimensionsLabel(inspectedSource) : null],
+    ["Type", sourceFile ? fileTypeLabel(sourceFile) : null],
+    ["Audio", sourceAudioLabel],
+  ] as const;
 
   useEffect(() => {
     setIsConverterReady(true);
@@ -658,46 +611,19 @@ export function ConvertTool() {
   ]);
 
   let sourcePickerContent: ReactNode;
-  if (source && sourceInspection?.hasVideo && sourceInspection.dimensions) {
+  if (source) {
     sourcePickerContent = (
       <MediabunnySourcePreview
         source={source}
         probe={sourceInspection}
+        inspectionError={
+          sourceProbeState.status === "error" ? sourceProbeState.message : null
+        }
         canSelectFile={canSelectFile}
         dragActive={dragActive}
         onDragActiveChange={setDragActive}
         onDropFile={selectFile}
       />
-    );
-  } else if (source) {
-    let previewMessage = "Preparing preview";
-    if (probeResult) {
-      previewMessage = audioOnly
-        ? "Audio ready for export"
-        : "Audio file selected";
-    }
-    sourcePickerContent = (
-      <div
-        className={`mt-4 flex aspect-video items-center justify-center rounded-lg border border-border bg-background text-sm font-medium text-muted-foreground transition-colors ${
-          dragActive ? "border-secondary bg-secondary/10" : ""
-        }`}
-        onDragOver={(event) => {
-          event.preventDefault();
-          if (canSelectFile) {
-            setDragActive(true);
-          }
-        }}
-        onDragLeave={() => setDragActive(false)}
-        onDrop={(event) => {
-          event.preventDefault();
-          setDragActive(false);
-          if (canSelectFile) {
-            selectFile(event.dataTransfer.files.item(0));
-          }
-        }}
-      >
-        {previewMessage}
-      </div>
     );
   } else {
     sourcePickerContent = (
@@ -723,10 +649,11 @@ export function ConvertTool() {
 
         <div className="mt-4 max-w-sm space-y-1">
           <p className="text-sm font-semibold text-foreground">
-            {emptyDropZoneTitle}
+            Drop a video or audio file here
           </p>
           <p className="text-sm leading-6 text-muted-foreground">
-            {emptyDropZoneDescription}
+            MP4, MOV, MKV, WebM, MPEG-TS, MP3, M4A, Ogg, FLAC, and WAV are
+            supported.
           </p>
         </div>
 
@@ -738,8 +665,8 @@ export function ConvertTool() {
               : "bg-muted text-muted-foreground"
           }`}
         >
-          <FolderOpen className="h-4 w-4" />
-          {isConverterReady ? "Choose File" : "Preparing"}
+          {isConverterReady ? <FolderOpen className="h-4 w-4" /> : <Spinner />}
+          Choose File
         </span>
       </label>
     );
@@ -778,8 +705,45 @@ export function ConvertTool() {
 
           {sourcePickerContent}
 
-          <div className="mt-4 rounded-lg border border-border bg-background p-4">
-            {sourceProbeContent}
+          <div
+            className="relative mt-4 rounded-lg border border-border bg-background p-4"
+            data-convert-source-details
+          >
+            <span role="status" className="sr-only">
+              {sourceDetailsStatus}
+            </span>
+            <dl
+              aria-busy={sourceProbeState.status === "loading"}
+              aria-hidden={sourceProbeState.status === "error"}
+              className={`grid gap-3 sm:grid-cols-2 ${sourceProbeState.status === "error" ? "invisible" : ""}`}
+            >
+              {sourceDetails.map(([label, value]) => (
+                <div key={label} className="min-w-0">
+                  <dt className="text-xs font-semibold uppercase text-muted-foreground">
+                    {label}
+                  </dt>
+                  <dd
+                    className="mt-1 h-5 truncate font-mono text-sm text-foreground"
+                    title={value ?? undefined}
+                  >
+                    {value ??
+                      (sourceProbeState.status === "loading" ? (
+                        <Skeleton className="h-5 w-24 max-w-full" />
+                      ) : (
+                        "—"
+                      ))}
+                  </dd>
+                </div>
+              ))}
+            </dl>
+            {sourceProbeState.status === "error" && (
+              <div
+                role="alert"
+                className="absolute inset-0 overflow-y-auto p-4 text-sm text-destructive"
+              >
+                {sourceProbeState.message}
+              </div>
+            )}
           </div>
 
           {sourceFile ? (
@@ -833,7 +797,8 @@ export function ConvertTool() {
                     onVideoMutedChange={setVideoMuted}
                     mixDownToStereo={mixDownToStereo}
                     onMixDownToStereoChange={setMixDownToStereo}
-                    audioDisabledReason={audio.mixdownDisabledReason}
+                    audioStatus={audio.status}
+                    sourceAudioChannels={audio.sourceAudioChannels}
                     audioBitDepth={audio.bitDepth}
                   />
                 </fieldset>
@@ -847,6 +812,7 @@ export function ConvertTool() {
                 gifSettings={format === "gif" ? gifSettings : null}
                 outputDimensions={outputDimensions}
                 mode={mode}
+                audioPending={audio.pending}
                 audioStatus={audio.status}
                 audioPlan={audio.plan}
               />

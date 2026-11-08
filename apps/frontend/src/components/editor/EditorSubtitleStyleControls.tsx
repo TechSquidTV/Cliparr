@@ -96,9 +96,12 @@ export function EditorSubtitleStyleControls({
                 </SelectGroup>
               )}
               {loadingLocalFonts && (
-                <div className="flex items-center gap-2 px-2 py-1.5 text-xs text-muted-foreground">
+                <div
+                  role="status"
+                  className="flex items-center gap-2 px-2 py-1.5 text-xs text-muted-foreground"
+                >
                   <Spinner className="h-3.5 w-3.5" />
-                  Loading installed fonts...
+                  Loading installed fonts…
                 </div>
               )}
             </SelectContent>

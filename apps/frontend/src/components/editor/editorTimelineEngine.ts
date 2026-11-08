@@ -88,31 +88,51 @@ function createEditorTracks(
 
 export function getSubtitleCreationRange(
   tracks: readonly TimelineReadonly<Track>[],
-  startTime: number,
+  playheadTime: number,
   duration: number,
+  frameTime: number | null,
 ): Pick<SubtitleCue, "startTime" | "endTime"> | null {
   const track = tracks.find((entry) => entry.id === EDITOR_SUBTITLE_TRACK_ID);
+  // Video cues begin on the displayed frame; audio-only media has no frame.
+  const requestedStart = frameTime ?? playheadTime;
   if (
     !track ||
-    !Number.isFinite(startTime) ||
+    !Number.isFinite(playheadTime) ||
+    !Number.isFinite(requestedStart) ||
     !Number.isFinite(duration) ||
-    startTime < 0 ||
-    startTime >= duration
+    requestedStart < 0 ||
+    playheadTime < 0 ||
+    playheadTime >= duration
   ) {
+    return null;
+  }
+  // Nearest-tick rounding can put a fractional frame's cue just after the
+  // displayed timestamp. Choose the preceding tick so it is already visible.
+  const roundedStart = fromSeconds(requestedStart);
+  const startTime = toSeconds({
+    ...roundedStart,
+    v:
+      toSeconds(roundedStart) > requestedStart
+        ? roundedStart.v - 1
+        : roundedStart.v,
+  });
+  if (startTime > playheadTime) {
     return null;
   }
   let endTime = Math.min(startTime + 2, duration);
   // Hidden subtitles still occupy time. Creation never changes another cue.
   for (const clip of track.clips) {
     const start = toSeconds(clip.timelineStart);
-    if (start <= startTime && startTime < toSeconds(clip.timelineEnd)) {
+    // The entire span through the playhead must be empty, including hidden
+    // cues that end between the frame timestamp and the playhead.
+    if (start <= playheadTime && startTime < toSeconds(clip.timelineEnd)) {
       return null;
     }
     if (start > startTime) {
       endTime = Math.min(endTime, start);
     }
   }
-  return { startTime, endTime };
+  return endTime > playheadTime ? { startTime, endTime } : null;
 }
 
 export function createSubtitleClip(

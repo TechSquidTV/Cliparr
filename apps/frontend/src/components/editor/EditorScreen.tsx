@@ -94,6 +94,7 @@ import {
   EditorPropertyAccordionItem,
 } from "#/components/editor/EditorPropertyControls";
 import { useEditorCrop } from "#/components/editor/useEditorCrop";
+import { BarsLoader } from "#/components/ui/bars-loader";
 import { resolveVideoCrop } from "#/lib/videoCrop";
 
 const EditorExportDialog = lazy(() =>
@@ -118,8 +119,6 @@ const EditorCropControls = lazy(() =>
     default: module.EditorCropControls,
   })),
 );
-
-const blockNavigation = () => true;
 
 interface Properties {
   session: EditorSession;
@@ -196,7 +195,7 @@ function EditorScreenContent({
   );
   const timecodeTool = useEditorTimecodeEdit().draft?.tool;
   const [trackNamesVisible, setTrackNamesVisible] = useState(false);
-  const mainReference = useRef<HTMLElement>(null);
+  const mobileWorkspace = useRef<HTMLDivElement>(null);
   const compositionAction = useRef<HTMLButtonElement | null>(null);
   const [subtitleTab, setSubtitleTab] = useState<EditorSubtitleTab>("text");
   useLayoutEffect(() => {
@@ -216,6 +215,7 @@ function EditorScreenContent({
     return true;
   }, []);
   const [exportDialogMounted, setExportDialogMounted] = useState(false);
+  const exportButtonReference = useRef<HTMLButtonElement>(null);
   const moreTriggerReference = useRef<HTMLButtonElement>(null);
   const subtitleOptionsTriggerReference = useRef<HTMLButtonElement>(null);
   const subtitles = useEditorSubtitles({
@@ -226,6 +226,9 @@ function EditorScreenContent({
     endTime,
     duration,
     mediaReady: timelineMedia.metadataReady,
+    previewReady: !timelineMedia.loadingPreviewFrame,
+    renderedFrameTime: timelineMedia.renderedFrameTime,
+    getRenderedFrameTime: timelineMedia.getRenderedFrameTime,
     pausePlayback: timelineMedia.pausePlayback,
     onSubtitleCreated: () => {
       setPlaybackSidebarOpen(true);
@@ -331,11 +334,12 @@ function EditorScreenContent({
     mode,
     mixDownToStereo,
     setMixDownToStereo,
+    audioPending,
     audioStatus,
     audioPlan,
     audioBitDepth,
     audioExportDisabledReason,
-    audioDisabledReason,
+    sourceAudioChannels,
     fileNameTemplates,
     templateEditorKind,
     setTemplateEditorKind,
@@ -380,12 +384,21 @@ function EditorScreenContent({
     subtitleCues,
     subtitleStyleSettings,
   });
+  const [desktopAtConfirmation, setDesktopAtConfirmation] = useState<
+    boolean | null
+  >(null);
+  const blockNavigation = useCallback(() => {
+    // Keep the export surface mounted through the confirmation's exit animation.
+    setDesktopAtConfirmation((current) => current ?? isDesktopLayout);
+    return true;
+  }, [isDesktopLayout]);
   const navigationBlocker = useBlocker({
     disabled: !exporting,
     enableBeforeUnload: exporting,
     shouldBlockFn: blockNavigation,
     withResolver: true,
   });
+  const leaveConfirmationOpen = navigationBlocker.status === "blocked";
   useEffect(() => {
     if (!exporting && navigationBlocker.status === "blocked") {
       navigationBlocker.reset();
@@ -427,13 +440,13 @@ function EditorScreenContent({
     pausePlayback();
     setPlaybackSidebarOpen(true);
     setPropertiesPanel("crop");
-    mainReference.current?.scrollTo({ top: 0 });
+    mobileWorkspace.current?.scrollTo({ top: 0 });
   };
   const closeTool = () => {
     finishEditing();
     setPropertiesPanel(isDesktopLayout ? "subtitles" : null);
     if (propertiesPanel === "crop") {
-      mainReference.current?.scrollTo({ top: 0 });
+      mobileWorkspace.current?.scrollTo({ top: 0 });
     }
     if (!isDesktopLayout && propertiesPanel) {
       document
@@ -931,12 +944,20 @@ function EditorScreenContent({
     );
   }
 
+  const cropLoading = (
+    <div className="flex h-full min-h-40 items-center justify-center p-4 text-muted-foreground">
+      <BarsLoader
+        label={
+          sourceVideoDimensions
+            ? "Loading crop controls…"
+            : "Preparing crop controls…"
+        }
+        showLabel
+      />
+    </div>
+  );
   const cropControls = sourceVideoDimensions ? (
-    <Suspense
-      fallback={
-        <p className="text-sm text-muted-foreground">Loading crop controls…</p>
-      }
-    >
+    <Suspense fallback={cropLoading}>
       <EditorCropControls
         state={crop.state}
         dimensions={sourceVideoDimensions}
@@ -949,9 +970,7 @@ function EditorScreenContent({
       />
     </Suspense>
   ) : (
-    <p className="text-sm text-muted-foreground">
-      Waiting for video dimensions.
-    </p>
+    cropLoading
   );
   function renderMobileInspector() {
     switch (propertiesPanel) {
@@ -1101,6 +1120,7 @@ function EditorScreenContent({
         finalFocus={subtitleOptionsTriggerReference}
       />
       <EditorHeader
+        exportButtonRef={exportButtonReference}
         title={session.title}
         onBack={() => {
           finishEditing();
@@ -1119,7 +1139,6 @@ function EditorScreenContent({
       {isDesktopLayout && editingTools.controls}
 
       <main
-        ref={mainReference}
         data-crop-editing={cropEditing || undefined}
         className="min-h-0 flex-1 overflow-hidden lg:p-3"
       >
@@ -1139,6 +1158,7 @@ function EditorScreenContent({
           />
         ) : (
           <EditorMobileLayout
+            ref={mobileWorkspace}
             tool={propertiesPanel}
             onToolChange={changeTool}
             onDone={closeTool}
@@ -1157,6 +1177,8 @@ function EditorScreenContent({
         <Suspense fallback={null}>
           <EditorExportDialog
             isOpen={exportDialogOpen}
+            mobile={!(desktopAtConfirmation ?? isDesktopLayout)}
+            finalFocus={exportButtonReference}
             title={session.title}
             clipStart={startTime}
             clipEnd={endTime}
@@ -1176,10 +1198,11 @@ function EditorScreenContent({
             onVideoMutedChange={handleVideoMutedChange}
             mixDownToStereo={mixDownToStereo}
             onMixDownToStereoChange={setMixDownToStereo}
+            audioPending={audioPending}
             audioStatus={audioStatus}
             audioPlan={audioPlan}
             audioBitDepth={audioBitDepth}
-            audioDisabledReason={audioDisabledReason}
+            sourceAudioChannels={sourceAudioChannels}
             exporting={exporting}
             progress={progress}
             error={exportError}
@@ -1257,7 +1280,12 @@ function EditorScreenContent({
           </Suspense>
         )}
       <ConfirmationDialog
-        open={navigationBlocker.status === "blocked"}
+        open={leaveConfirmationOpen}
+        onOpenChangeComplete={(open) => {
+          if (!open) {
+            setDesktopAtConfirmation(null);
+          }
+        }}
         title="Leave during export?"
         description="Leaving will cancel the export."
         cancelLabel="Stay"

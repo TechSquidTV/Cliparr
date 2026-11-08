@@ -91,7 +91,7 @@ import {
 import { selectPreferredPairableAudioTrack } from "#/lib/export/selectPreferredAudioTrack";
 import { buildSubtitleBurnInProcessor } from "#/lib/export/subtitleBurnIn";
 import { buildTranscript } from "#/lib/metadata/transcript";
-import { getActiveSubtitleCues } from "#/lib/subtitles/getActiveSubtitleCue";
+import { createSubtitleCueReader } from "#/lib/subtitles/getActiveSubtitleCue";
 import { renderSubtitleCues } from "#/lib/subtitles/renderSubtitleCue";
 import { trimSubtitleCues } from "#/lib/subtitles/trimSubtitleCues";
 import type { SubtitleCue, SubtitleStyleSettings } from "#/lib/subtitles/types";
@@ -158,7 +158,6 @@ interface ExportClipRuntime {
   ) => CanvasSink;
   createGifCanvas: typeof createGifCanvas;
   loadGifEncodingRuntime: () => Promise<GifEncodingRuntime>;
-  getActiveSubtitleCues: typeof getActiveSubtitleCues;
   renderSubtitleCues: typeof renderSubtitleCues;
   initConversion: typeof Conversion.init;
   canEncodeVideo: typeof canEncodeVideoWithBrowser;
@@ -318,7 +317,6 @@ const defaultExportClipRuntime: ExportClipRuntime = {
   createCanvasSink: (track, options) => new CanvasSink(track, options),
   createGifCanvas,
   loadGifEncodingRuntime,
-  getActiveSubtitleCues,
   renderSubtitleCues,
   initConversion: (options) => Conversion.init(options),
   canEncodeVideo: canEncodeVideoWithBrowser,
@@ -680,8 +678,9 @@ export async function exportClipWithRuntime(
         );
       }
 
-      // The conversion plan validates tracks before execution. Finalization
-      // patches only the metadata on disk without reparsing the exported media.
+      // The conversion plan validates tracks before execution. Reopening a large
+      // export for validation can duplicate media buffers; finalization patches
+      // only the metadata on disk without reparsing the exported media.
       const mimeType = await output.getMimeType();
       signal?.throwIfAborted();
       const blob = await exportTarget.finish(
@@ -835,7 +834,13 @@ async function exportGifClipWithRuntime(
       includeBurnedSubtitles && subtitleCues.length > 0
         ? trimSubtitleCues(subtitleCues, startTime, endTime)
         : [];
-    const shouldBurnSubtitles = clippedSubtitleCues.length > 0;
+    const readCues =
+      clippedSubtitleCues.length > 0
+        ? createSubtitleCueReader(clippedSubtitleCues)
+        : null;
+    // Subtracting the trim start can round an exact cue boundary just past
+    // its frame. Allow for roundoff at the original timeline's precision.
+    const cueTimeRoundoff = Number.EPSILON * Math.max(1, endTime);
     const frameCount = Math.max(
       1,
       Math.ceil((endTime - startTime) * resolvedGifSettings.frameRate),
@@ -862,7 +867,6 @@ async function exportGifClipWithRuntime(
     const readRenderedFrameImageData = async (frameIndex: number) => {
       signal?.throwIfAborted();
       const clipTimestamp = frameIndex / resolvedGifSettings.frameRate;
-      const displayTimestamp = startTime + clipTimestamp;
       const sourceTimestamp = Math.min(trimEnd, trimStart + clipTimestamp);
       const frame = await videoSink.getCanvas(sourceTimestamp);
       signal?.throwIfAborted();
@@ -880,11 +884,8 @@ async function exportGifClipWithRuntime(
         outputDimensions.height,
       );
 
-      if (shouldBurnSubtitles && subtitleStyleSettings) {
-        const activeCues = runtime.getActiveSubtitleCues(
-          clippedSubtitleCues,
-          displayTimestamp - startTime,
-        );
+      if (readCues && subtitleStyleSettings) {
+        const activeCues = readCues(clipTimestamp + cueTimeRoundoff);
 
         if (activeCues.length > 0) {
           runtime.renderSubtitleCues(
