@@ -22,7 +22,7 @@ function render(
   );
 }
 
-void test("shows each source's actual wait and removes ready sources from the status", () => {
+void test("summarizes pending sources without counting ready sources", () => {
   const states = ["connecting", "discovering", "preparing", "live"] as const;
   const sources = states.map((state) => ({
     sourceId: state,
@@ -31,9 +31,6 @@ void test("shows each source's actual wait and removes ready sources from the st
     state,
   }));
   const markup = render(sources);
-  assert.match(markup, /Connecting to connecting…/);
-  assert.match(markup, /Finding playback on discovering…/);
-  assert.match(markup, /Preparing playback details from preparing…/);
   assert.doesNotMatch(markup, /from live|to live|on live|%/);
   assert.match(markup, /role="status"/);
   assert.match(markup, /Loading playback from 3 sources…/);
@@ -41,7 +38,7 @@ void test("shows each source's actual wait and removes ready sources from the st
   assert.match(render([]), /data-dashboard-playback-status/);
 });
 
-void test("keeps retry available during mixed source failures and browser reconnection", () => {
+void test("labels source failures and browser reconnection in the header indicator", () => {
   const source: PlaybackSourceStatus = {
     sourceId: "source",
     sourceName: "Jellyfin",
@@ -49,11 +46,17 @@ void test("keeps retry available during mixed source failures and browser reconn
     state: "preparing",
   };
   const mixed = render([source], true);
-  assert.match(mixed, /Preparing playback details from Jellyfin…/);
-  assert.match(mixed, /Some sources are unavailable/);
-  assert.match(mixed, /Retry connection/);
+  assert.match(mixed, /Playback updates: Loading playback from 1 source…/);
+  assert.match(mixed, /text-status-warning-foreground/);
+  assert.match(
+    render([], true),
+    /Playback updates: Some sources are unavailable/,
+  );
   const reconnecting = render([source], false, "reconnecting");
   assert.match(reconnecting, /Reconnecting to live sessions…/);
-  assert.match(reconnecting, /Retry connection/);
+  assert.match(
+    reconnecting,
+    /Playback updates: Reconnecting to live sessions…/,
+  );
   assert.doesNotMatch(reconnecting, /Preparing playback/);
 });

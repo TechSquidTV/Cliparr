@@ -257,6 +257,12 @@ export default function DashboardScreen({
               <div className="space-y-1">
                 <div className="flex flex-wrap items-center gap-2">
                   <h1 className="text-2xl font-bold tracking-tight">Cliparr</h1>
+                  <DashboardPlaybackStatus
+                    sources={sources}
+                    connection={connection}
+                    hasSourceErrors={sourceErrors.length > 0}
+                    onRetry={retry}
+                  />
                   <DashboardVersionBadge
                     versionLabel={versionLabel}
                     latestRelease={latestUpdateRelease}
@@ -379,13 +385,6 @@ export default function DashboardScreen({
               Active sessions across enabled sources.
             </p>
           </div>
-
-          <DashboardPlaybackStatus
-            sources={sources}
-            connection={connection}
-            hasSourceErrors={sourceErrors.length > 0}
-            onRetry={retry}
-          />
 
           {error && (
             <div role="alert" className={destructiveAlertClasses}>
