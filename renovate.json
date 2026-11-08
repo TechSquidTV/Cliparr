@@ -65,6 +65,14 @@
       "matchDatasources": ["docker"],
       "matchPackageNames": ["plexinc/pms-docker"],
       "versioning": "regex:^(?<major>\\d+)\\.(?<minor>\\d+)\\.(?<patch>\\d+)\\.(?<build>\\d+)-[a-f0-9]+$"
+    },
+    {
+      "description": "Update the CI Node pin independently of supported source and container runtimes.",
+      "matchManagers": ["nvm"],
+      "matchPackageNames": ["node"],
+      "allowedVersions": ">=26.0.0 <27.0.0",
+      "groupName": "CI Node.js",
+      "semanticCommitType": "ci"
     }
   ]
 }
