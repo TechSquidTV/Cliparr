@@ -73,7 +73,11 @@
     },
     {
       "description": "Group the runtime, source requirements, typings, and container bases.",
-      "matchPackageNames": ["node", "@types/node"],
+      "matchPackageNames": [
+        "node",
+        "@types/node",
+        "gcr.io/distroless/nodejs26-debian13"
+      ],
       "groupName": "Node.js LTS",
       "groupSlug": "nodejs-lts",
       "semanticCommitType": "fix",

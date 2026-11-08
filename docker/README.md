@@ -1,9 +1,8 @@
 # Docker environments
 
-One Dockerfile defines three independent final targets. Production uses the official
-Node.js Debian 13 slim image with Debian security updates and runs as UID/GID 65532.
-Chromium, FFmpeg, JavaScript package managers, and development sources are confined
-to the other targets. Production retains Debian's shell and OS package manager.
+One Dockerfile defines three final targets. Production runs the bundled application
+on non-root distroless Debian 13. Official Debian slim supplies the build,
+development, and capture targets, including Chromium and FFmpeg for recording.
 The root `.dockerignore` allows only build inputs and recursively excludes local state, dependencies, and secrets.
 
 | Target        | Compose file          | Purpose                                                               |
@@ -70,20 +69,25 @@ permissions. Chromium uses Playwright's default sandbox setting and must only
 load this trusted local application. Running as non-root alone does not enable
 the Chromium sandbox.
 
-## Production runtime change
+## Production runtime
 
-Production uses the official Node.js Debian 13 slim image to install Debian's
-released security packages through APT. The image includes a shell and Debian's
-package manager, but removes npm, Corepack, and Yarn. Its Node executable is
-`/usr/local/bin/node`. Application behavior, UID/GID 65532, port 7171, `/data`,
-read-only operation, and the application data format are unchanged.
+Production runs the bundled server with `/nodejs/bin/node` in the non-root
+Google Distroless Node.js Debian 13 image. It runs as UID/GID 65532 on port 7171
+with a read-only root filesystem and writable `/data`.
 
-The production and toolchain builds install Debian's released `zlib1g` security update and
-require version `1:1.3.dfsg+really1.3.1-1+deb13u1` or newer, which fixes
-`CVE-2026-76844` and `CVE-2026-85091`.
-APT verifies the package through Debian's signed repositories. The build fails if
-the available package is older than the fixed version. The normal vulnerability
-scan still gates fixable high/critical findings.
+**Breaking container operations change:** production no longer includes a shell
+or package manager. The Node executable moves from `/usr/local/bin/node` to
+`/nodejs/bin/node`. Update custom maintenance commands and entrypoint overrides;
+for example, use `docker exec <container> /nodejs/bin/node --version` to inspect
+the runtime. Application data and the normal container start command are preserved.
+
+The toolchain build installs Debian's released `zlib1g` security update and
+requires version `1:1.3.dfsg+really1.3.1-1+deb13u1` or newer, which fixes
+`CVE-2026-76844` and `CVE-2026-85091`. APT verifies the package through Debian's
+signed repositories and the build fails if a mirror lacks the fix. Distroless
+must supply corrected packages in its published base image; production cannot
+install updates. Image and dependency scans still gate fixable HIGH/CRITICAL
+findings in both production architectures and the development and capture images.
 
 ## Development setup changes
 
@@ -125,8 +129,9 @@ change unrelated files or discard persistent provider volumes.
 
 The root `.nvmrc` pins the exact Node 26 version for CI and Docker and recommends
 it for local development. Source installations must use a stable Node 26 version
-satisfying `engines.node`; Node 24 is no longer supported. Both official Debian
-slim bases use that exact Node version and pinned multi-platform digests. CI runs
+satisfying `engines.node`; Node 24 is no longer supported. The Debian slim toolchain
+tag contains the exact Node version. The distroless repository selects Node 26
+and its `nonroot` variant. Both bases use pinned multi-platform digests. CI runs
 Node in each final image to verify its version. The shared toolchain installs the
 pnpm version from root `packageManager` once.
 Application dependencies are installed before sources; server and frontend builds

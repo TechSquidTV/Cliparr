@@ -5,7 +5,7 @@ import { nodeVersionViolations } from "#ci/check-node-version.mjs";
 
 const version = "26.13.0";
 const image = `node:${version}-trixie-slim@sha256:${"a".repeat(64)}`;
-const runtimeImage = `node:${version}-trixie-slim@sha256:${"b".repeat(64)}`;
+const runtimeImage = `gcr.io/distroless/nodejs26-debian13:nonroot@sha256:${"b".repeat(64)}`;
 
 function fixture() {
   return new Map([
@@ -121,13 +121,13 @@ for (const [target, pin, replacement] of [
   ["toolchain", image, image.replace(version, "26.12.1")],
   ["toolchain", image, image.split("@")[0]],
   ["toolchain", image, image.replace("a".repeat(64), "short")],
+  ["production", runtimeImage, image],
+  ["production", runtimeImage, runtimeImage.replace("nodejs26", "nodejs24")],
   [
     "production",
     runtimeImage,
-    runtimeImage.replace("trixie-slim", "bookworm-slim"),
+    runtimeImage.replace(":nonroot", ":debug-nonroot"),
   ],
-  ["production", runtimeImage, runtimeImage.replace(version, "24.22.2")],
-  ["production", runtimeImage, runtimeImage.replace("-trixie-slim", "-trixie")],
   ["production", runtimeImage, runtimeImage.split("@")[0]],
   ["production", runtimeImage, runtimeImage.replace("b".repeat(64), "short")],
 ]) {

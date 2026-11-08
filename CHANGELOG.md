@@ -6,6 +6,8 @@ Published release notes are available in [GitHub Releases](https://github.com/Te
 
 ### Changed
 
+- **Breaking container operations change:** production runs on non-root distroless Debian 13 without a shell or package manager. The Node executable moves from `/usr/local/bin/node` to `/nodejs/bin/node`; update custom maintenance commands and entrypoint overrides.
+
 - **Breaking:** source installations now require a stable Node 26 version satisfying `engines.node`; use `.nvmrc` before installing dependencies. Production, development, and capture images include the pinned Node 26 runtime and retain official Debian slim bases with released zlib security updates.
 
 ### Fixed
