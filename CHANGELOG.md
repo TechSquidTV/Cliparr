@@ -4,6 +4,10 @@ Published release notes are available in [GitHub Releases](https://github.com/Te
 
 ## Unreleased
 
+### Changed
+
+- **Breaking:** source installations now require a stable Node 26 version satisfying `engines.node`; use `.nvmrc` before installing dependencies. Production, development, and capture images include the pinned Node 26 runtime and retain official Debian slim bases with released zlib security updates.
+
 ### Fixed
 
 - New subtitles begin on the displayed video frame and show text edits immediately while paused between frames. Existing subtitles, including hidden cues, retain their timing. ([#320](https://github.com/TechSquidTV/Cliparr/issues/320))

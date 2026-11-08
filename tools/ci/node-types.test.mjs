@@ -24,8 +24,8 @@ const consumers = manifests.filter((file) => {
   );
 });
 
-void test("the shared Node typings catalog retains the supported Node 24 API surface", () => {
-  assert.match(range ?? "", /^\^24\.\d+\.\d+$/u);
+void test("the shared Node typings catalog retains the supported Node 26 API surface", () => {
+  assert.match(range ?? "", /^\^26\.\d+\.\d+$/u);
   assert.ok(
     consumers.length > 0,
     "workspace Node typings consumers must be discovered",
@@ -43,14 +43,14 @@ for (const file of consumers) {
   });
 }
 
-void test("the lockfile resolves every catalog consumer to the same Node 24 typings", () => {
+void test("the lockfile resolves every catalog consumer to the same Node 26 typings", () => {
   const lockfile = readFileSync("pnpm-lock.yaml", "utf8");
   const locked = lockfile.match(
     /^catalogs:\n {2}default:\n {4}'@types\/node':\n {6}specifier: (\S+)\n {6}version: (\S+)$/mu,
   );
   assert.ok(locked, "lockfile must record the shared catalog resolution");
   assert.equal(locked[1], range);
-  assert.match(locked[2], /^24\.\d+\.\d+$/u);
+  assert.match(locked[2], /^26\.\d+\.\d+$/u);
   const versions = [
     ...lockfile.matchAll(
       /^ {6}'@types\/node':\n {8}specifier: 'catalog:'\n {8}version: (\S+)$/gmu,

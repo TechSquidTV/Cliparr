@@ -11,7 +11,7 @@
   },
   "packageManager": "pnpm@12.17.0",
   "engines": {
-    "node": ">=24.16.0"
+    "node": "^26.13.0"
   },
   "repository": {
     "type": "git",
@@ -29,7 +29,7 @@
     "docker:dev:up": "docker compose -f docker/compose.dev.yml up",
     "build": "pnpm -r build",
     "build:web": "pnpm docs:check && pnpm --filter @cliparr/www build",
-    "lint": "pnpm plex:architecture:check && pnpm lint:eslint && pnpm lint:types",
+    "lint": "pnpm node:check && pnpm plex:architecture:check && pnpm lint:eslint && pnpm lint:types",
     "lint:eslint": "pnpm lint:eslint:root && pnpm -r --if-present lint:eslint",
     "lint:eslint:root": "pnpm exec eslint --config config/eslint.config.js \"config/eslint.config.js\" \"tools/**/*.mjs\"",
     "lint:types": "pnpm -r --if-present lint:types",
@@ -57,7 +57,8 @@
     "privacy:check": "node tools/ci/privacy-check.mjs",
     "test:privacy": "node --test tools/ci/privacy-check.test.mjs",
     "test:docker": "node --test tools/ci/docker-*.test.mjs",
-    "test:node": "node --test tools/ci/node-*.test.mjs"
+    "test:node": "node --test tools/ci/node-*.test.mjs",
+    "node:check": "node tools/ci/check-node-version.mjs"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
@@ -75,6 +76,7 @@
     "prettier-plugin-astro": "^1.1.0",
     "typescript": "~6.0.3",
     "typescript-eslint": "^8.71.0",
-    "wrangler": "^4.147.0"
+    "wrangler": "^4.147.0",
+    "yaml": "^2.9.1"
   }
 }

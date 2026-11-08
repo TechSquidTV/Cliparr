@@ -267,6 +267,12 @@ jobs:
           IMAGE: cliparr-${{ matrix.target }}:check
           TARGET: ${{ matrix.target }}
         run: |
+          expected_node="$(tr -d '\r\n' < .nvmrc)"
+          runtime_node="$(docker run --rm --entrypoint node "$IMAGE" --version)"
+          if [[ "$runtime_node" != "v$expected_node" ]]; then
+            echo "Expected Node v$expected_node from .nvmrc, got $runtime_node." >&2
+            exit 1
+          fi
           docker run --rm --entrypoint sh "$IMAGE" -c 'test "$(id -u)" != 0 && command -v node && command -v curl && command -v jq'
           if [[ "$TARGET" == capture ]]; then
             browser_smoke='import { chromium } from "playwright"; const browser = await chromium.launch(); const page = await browser.newPage(); await page.setContent("<title>capture smoke</title>"); if (await page.title() !== "capture smoke") throw new Error("Browser smoke failed"); await browser.close();'

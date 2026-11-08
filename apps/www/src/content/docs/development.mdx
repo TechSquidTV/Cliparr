@@ -11,7 +11,7 @@ import {
   preflightCommands,
 } from "@/data/product";
 
-Development uses the root pnpm workspace. You need Node.js 24.16 or newer and the pnpm version pinned in the root `packageManager` field. Install that version through npm; Corepack cannot launch pnpm 12's native executable.
+Development uses the root pnpm workspace. You need a stable Node 26 LTS version satisfying the root `engines.node` range and the pnpm version pinned in the root `packageManager` field. `.nvmrc` pins the recommended development version and the exact CI/Docker version; newer compatible stable Node 26 releases are also accepted locally. Source installations on Node 24 must upgrade. Install the pinned pnpm version through npm; Corepack cannot launch pnpm 12's native executable.
 
 <CommandBlock variants={developmentSetupCommandVariants} label="Local setup" />
 
@@ -28,7 +28,7 @@ Run `pnpm docker:dev:build` after Dockerfile or dependency changes, then `pnpm d
 ## Portable provider tests
 
 Ordinary tests need neither Docker nor a provider account. Run `pnpm --filter @cliparr/server test`
-and `pnpm test:plex-sdk` with Node 24. Shared fixtures in
+and `pnpm test:plex-sdk` with the Node version from `.nvmrc`. Shared fixtures in
 `apps/server/test/providerFixtures.ts` use `plex.example.test` and
 `jellyfin.example.test`, fabricated identifiers and tokens, and DNS results from
 RFC 5737 documentation ranges. Install the fixture hooks in every test file that
