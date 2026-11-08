@@ -1,10 +1,6 @@
+import { Popover } from "@base-ui/react/popover";
 import type { PlaybackSourceStatus } from "@cliparr/shared/providers";
-import {
-  AlertTriangle,
-  CheckCircle2,
-  ChevronDown,
-  RefreshCw,
-} from "lucide-react";
+import { AlertTriangle, CheckCircle2, RefreshCw } from "lucide-react";
 
 import type { PlaybackConnectionState } from "@/api/cliparrClient";
 import { buttonClassName } from "@/components/ui/control-styles";
@@ -67,57 +63,61 @@ export function DashboardPlaybackStatus({
 
   return (
     <div
-      className="flex h-8 min-w-0 items-center gap-3 text-sm text-muted-foreground"
+      className="inline-flex h-8 w-8 shrink-0"
       data-dashboard-playback-status
     >
-      <details
-        className="group relative min-w-0 flex-1"
-        onKeyDown={(event) => {
-          if (event.key === "Escape") {
-            event.currentTarget.open = false;
-            event.currentTarget.querySelector("summary")?.focus();
-          }
-        }}
-      >
-        <summary className="control-focus flex h-8 cursor-pointer list-none items-center gap-2 rounded-md [&::-webkit-details-marker]:hidden">
+      <span role="status" className="sr-only">
+        {summary}
+      </span>
+      <Popover.Root>
+        <Popover.Trigger
+          aria-label={`Playback updates: ${summary}`}
+          title={summary}
+          className={cn(
+            "control-focus inline-flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground",
+            canRetry && "text-status-warning-foreground",
+          )}
+        >
           {busy ? (
             <Spinner />
           ) : (
             <StatusIcon aria-hidden="true" className="h-4 w-4 shrink-0" />
           )}
-          <span role="status" className="truncate">
-            {summary}
-          </span>
-          <ChevronDown
-            aria-hidden="true"
-            className="h-3.5 w-3.5 shrink-0 transition-transform group-open:rotate-180 motion-reduce:transition-none"
-          />
-        </summary>
-        <div className="absolute left-0 top-full z-20 mt-1 w-80 max-w-[calc(100vw-2rem)] max-h-60 space-y-1 overflow-y-auto break-words rounded-lg border border-border bg-card p-3 text-card-foreground shadow-lg">
-          {connectionMessage ? (
-            <p>{connectionMessage}</p>
-          ) : (
-            pending.map(({ id, message }) => <p key={id}>{message}</p>)
-          )}
-          {hasSourceErrors && <p>Some sources are unavailable</p>}
-          {!busy && !hasSourceErrors && <p>Sessions update automatically.</p>}
-        </div>
-      </details>
-      <button
-        type="button"
-        onClick={onRetry}
-        tabIndex={canRetry ? undefined : -1}
-        aria-hidden={!canRetry}
-        className={cn(
-          buttonClassName({ tone: "secondary", size: "compact" }),
-          "shrink-0",
-          !canRetry && "invisible",
-        )}
-      >
-        <RefreshCw aria-hidden="true" className="h-4 w-4" />
-        <span className="hidden sm:inline">Retry connection</span>
-        <span className="sr-only sm:hidden">Retry connection</span>
-      </button>
+        </Popover.Trigger>
+        <Popover.Portal>
+          <Popover.Positioner
+            sideOffset={8}
+            align="start"
+            collisionPadding={16}
+            className="z-50"
+          >
+            <Popover.Popup className="w-80 max-w-[calc(100vw-2rem)] max-h-60 space-y-2 overflow-y-auto break-words rounded-lg border border-border bg-card p-3 text-sm text-card-foreground shadow-lg">
+              <Popover.Title className="font-medium">{summary}</Popover.Title>
+              <div className="space-y-1 text-muted-foreground">
+                {!connectionMessage &&
+                  pending.map(({ id, message }) => <p key={id}>{message}</p>)}
+                {hasSourceErrors && busy && <p>Some sources are unavailable</p>}
+                {!busy && !hasSourceErrors && (
+                  <p>Sessions update automatically.</p>
+                )}
+              </div>
+              {canRetry && (
+                <button
+                  type="button"
+                  onClick={onRetry}
+                  className={buttonClassName({
+                    tone: "secondary",
+                    size: "compact",
+                  })}
+                >
+                  <RefreshCw aria-hidden="true" className="h-4 w-4" />
+                  Retry connection
+                </button>
+              )}
+            </Popover.Popup>
+          </Popover.Positioner>
+        </Popover.Portal>
+      </Popover.Root>
     </div>
   );
 }
