@@ -10,6 +10,11 @@ Requirements:
 - The pnpm version pinned by the root `packageManager`, installed through npm
 - A Plex or Jellyfin server, or a local video file, for manual end-to-end testing
 
+CI uses the exact Node version pinned in `.nvmrc` through `actions/setup-node`.
+That pin is separate from the supported source minimum (Node 24.16), Node 24
+container runtimes, and server build target. Renovate updates only the CI pin
+within Node 26; a runtime-major migration requires a separate reviewed change.
+
 Install dependencies:
 
 ```sh
