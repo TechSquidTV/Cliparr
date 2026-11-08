@@ -95,3 +95,17 @@
 .editor-session[data-input-viewport] .editor-mobile-tools {
   display: none;
 }
+
+.editor-export-footer {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+@media (min-width: 64rem), (orientation: landscape) and (max-height: 32rem) {
+  .editor-export-footer {
+    flex-direction: row;
+    align-items: center;
+    gap: 1rem;
+  }
+}

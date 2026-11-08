@@ -127,14 +127,16 @@ export function useExportAudioPlan(
       });
     return () => controller.abort();
   }, [active, source, selectedTrack, selection, format, mixdown]);
-  const current =
+  const inspectedSource =
     source &&
     result &&
     editorMediaSourcesEqual(result.source, source) &&
-    result.selection === selection &&
-    result.format === format &&
-    result.mixdown === mixdown
+    result.selection === selection
       ? result
+      : null;
+  const current =
+    inspectedSource?.format === format && inspectedSource.mixdown === mixdown
+      ? inspectedSource
       : null;
   let status = "Not included";
   if (active) {
@@ -162,18 +164,11 @@ export function useExportAudioPlan(
   }
   const pending =
     active && source !== null && format !== "gif" && current === null;
-  const channels = current?.channels ?? null;
-  let mixdownDisabledReason: string | null = null;
-  if (channels === 0) {
-    mixdownDisabledReason = "The source has no audio track.";
-  } else if (channels !== null && channels <= 2) {
-    mixdownDisabledReason = "The source is already mono or stereo.";
-  }
   return {
     pending,
     plan: active ? (current?.plan ?? null) : null,
     bitDepth: active ? (current?.bitDepth ?? null) : null,
-    mixdownDisabledReason,
+    sourceAudioChannels: inspectedSource?.channels ?? null,
     disabledReason,
     status,
   };

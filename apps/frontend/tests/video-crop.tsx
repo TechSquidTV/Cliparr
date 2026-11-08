@@ -4,8 +4,10 @@ import {
   RouterProvider,
 } from "@tanstack/react-router";
 import {
+  AudioBufferSource,
   BufferTarget,
   CanvasSource,
+  MkvOutputFormat,
   Output,
   Quality,
   WebMOutputFormat,
@@ -17,6 +19,7 @@ import { buildLocalEditorSession } from "#/components/editor/editorMedia";
 import EditorScreen from "#/components/editor/EditorScreen";
 import { EditorSubtitlePreview } from "#/components/editor/EditorSubtitlePreview";
 import { TooltipProvider } from "#/components/ui/tooltip";
+import { ensureAudioEncoder } from "#/lib/export/mediabunny/mediabunnyCodecs";
 import { loadSubtitleStyleSettings } from "#/lib/subtitles/settings";
 import { checkCropExports } from "#tests/video-crop-exports.ts";
 
@@ -81,23 +84,46 @@ context.fillText("COASTAL TRAIL", 42, 52);
 context.font = "14px sans-serif";
 context.fillText("Synthetic video · 960 × 540", 42, 78);
 const target = new BufferTarget();
-const output = new Output({ format: new WebMOutputFormat(), target });
+const surround = parameters.get("fixture") === "surround";
+const format = surround ? new MkvOutputFormat() : new WebMOutputFormat();
+const output = new Output({ format, target });
 const source = new CanvasSource(picture, {
   codec: "vp8",
   quality: new Quality({ bitrate: 1_000_000 }),
 });
 output.addVideoTrack(source, { frameRate: 10 });
+const surroundSource = surround
+  ? new AudioBufferSource({ codec: "flac" })
+  : null;
+if (surroundSource) {
+  await ensureAudioEncoder("flac");
+  output.addAudioTrack(surroundSource);
+}
 await output.start();
+async function writeSurroundAudio() {
+  if (surroundSource) {
+    await surroundSource.add(
+      new AudioBuffer({
+        numberOfChannels: 6,
+        sampleRate: 48_000,
+        length: 4 * 48_000,
+      }),
+    );
+    surroundSource.close();
+  }
+}
+const writingAudio = writeSurroundAudio();
 for (let frame = 0; frame < 40; frame++) {
   await source.add(frame * sampleDuration, sampleDuration);
 }
 source.close();
+await writingAudio;
 await output.finalize();
 if (!target.buffer) {
   throw new Error("Missing fixture video");
 }
-const file = new File([target.buffer], "coastal-trail.webm", {
-  type: "video/webm",
+const file = new File([target.buffer], `coastal-trail${format.fileExtension}`, {
+  type: format.mimeType,
   lastModified: 1,
 });
 const session = buildLocalEditorSession({
