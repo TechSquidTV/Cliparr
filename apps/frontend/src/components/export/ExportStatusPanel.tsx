@@ -1,3 +1,4 @@
+import { cn } from "#/lib/cn";
 import type { ExportPhase } from "#/lib/export/exportClip";
 import {
   type ExportSizeEstimate,
@@ -13,6 +14,7 @@ function ExportMemoryGuidance({ bytes }: { bytes: number | null }) {
 }
 
 export function ExportStatusPanel({
+  className,
   estimate,
   exporting,
   phase,
@@ -21,6 +23,7 @@ export function ExportStatusPanel({
   error,
   disabledReason,
 }: {
+  className?: string;
   estimate: ExportSizeEstimate;
   exporting: boolean;
   phase: ExportPhase;
@@ -36,7 +39,12 @@ export function ExportStatusPanel({
   }[phase];
   const message = exporting ? phaseLabel : (error ?? disabledReason ?? notice);
   return (
-    <div className="h-28 min-w-0 overflow-y-auto self-stretch sm:h-20 sm:flex-1">
+    <div
+      className={cn(
+        "h-28 min-w-0 overflow-y-auto self-stretch sm:h-20 sm:flex-1",
+        className,
+      )}
+    >
       <div className="flex min-w-0 flex-wrap items-baseline gap-x-2 gap-y-0.5 text-xs">
         <span className="text-muted-foreground">Estimated size</span>
         <span className="font-mono tabular-nums text-foreground">

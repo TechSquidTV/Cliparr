@@ -4,6 +4,7 @@ import {
   logEventFields,
   warnWithError,
 } from "@cliparr/shared/logging";
+import { useLocation, useRouter } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import {
@@ -63,6 +64,12 @@ import {
   isAudioExportFormat,
 } from "#/lib/export/exportFormats";
 import { resolveVideoCrop, type VideoCrop } from "#/lib/videoCrop";
+
+declare module "@tanstack/react-router" {
+  interface HistoryState {
+    editorExportSessionId?: string;
+  }
+}
 
 interface UseEditorExportProperties {
   session: EditorSession;
@@ -128,7 +135,10 @@ export function useEditorExport({
     );
   const [templateEditorKind, setTemplateEditorKind] =
     useState<ExportFileNameTemplateKind>("movie");
-  const [exportDialogOpen, setExportDialogOpen] = useState(false);
+  const { history } = useRouter();
+  const exportDialogOpen = useLocation({
+    select: (location) => location.state.editorExportSessionId === session.id,
+  });
   const [exporting, setExporting] = useState(false);
   const [progress, setProgress] = useState(0);
   const [exportPhase, setExportPhase] = useState<ExportPhase>("preparing");
@@ -438,20 +448,21 @@ export function useEditorExport({
   const handleOpenExportDialog = useCallback(() => {
     setExportError(null);
     setExportNotice(null);
-    setHlsEstimateMetadata(null);
     setProgress(0);
     setTemplateEditorKind(fileName.templateKind);
-    setExportDialogOpen(true);
-  }, [fileName.templateKind]);
+    if (history.location.state.editorExportSessionId !== session.id) {
+      history.push(history.location.href, {
+        ...history.location.state,
+        editorExportSessionId: session.id,
+      });
+    }
+  }, [fileName.templateKind, history, session.id]);
 
   const handleCloseExportDialog = useCallback(() => {
-    if (exporting) {
-      return;
+    if (history.location.state.editorExportSessionId === session.id) {
+      history.back();
     }
-
-    setExportDialogOpen(false);
-    setHlsEstimateMetadata(null);
-  }, [exporting]);
+  }, [history, session.id]);
 
   const handleExportSourceChange = useCallback(
     (nextSourcePreference: ExportSourcePreference) => {

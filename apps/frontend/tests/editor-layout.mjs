@@ -350,7 +350,175 @@ async function checkTouchTrimTargets(browser, url) {
   await page.close();
 }
 
+async function checkExportNavigation(browser, url, screenshots) {
+  const page = await browser.newPage({
+    viewport: { width: 390, height: 844 },
+    isMobile: true,
+    hasTouch: true,
+    reducedMotion: "reduce",
+  });
+  try {
+    await page.goto(url);
+    const trigger = page.locator("[data-editor-export]");
+    const drawer = page.getByRole("dialog", {
+      name: "Export clip",
+      exact: false,
+    });
+    const back = page.getByRole("button", { name: "Back to editor" });
+    const confirm = page.getByRole("dialog", { name: "Leave during export?" });
+    const exportFile = page.getByRole("button", {
+      name: "Export MP4",
+      exact: true,
+    });
+    const canvas = await page
+      .locator("[data-editor-picture] > canvas:not([aria-hidden])")
+      .elementHandle();
+    const initialLength = await page.evaluate(() => globalThis.history.length);
+    await trigger.click();
+    await back.waitFor();
+    assert.equal(page.url(), url);
+    assert.equal(
+      await page.evaluate(() => globalThis.history.length),
+      initialLength + 1,
+    );
+    assert.equal(
+      await drawer.locator("details").evaluate((element) => element.open),
+      false,
+    );
+    assert.equal(
+      await drawer.locator('[data-slot="drawer-handle"]').count(),
+      0,
+    );
+    await page.evaluate(() => {
+      globalThis.document.documentElement.style.setProperty(
+        "--safe-area-top",
+        "32px",
+      );
+      globalThis.document.documentElement.style.setProperty(
+        "--safe-area-bottom",
+        "20px",
+      );
+    });
+    const backBounds = await back.boundingBox();
+    const exportBounds = await exportFile.boundingBox();
+    assert.ok(backBounds && backBounds.y >= 32);
+    assert.ok(exportBounds && exportBounds.y + exportBounds.height <= 844 - 20);
+    await page.evaluate(() => {
+      globalThis.document.documentElement.style.removeProperty(
+        "--safe-area-top",
+      );
+      globalThis.document.documentElement.style.removeProperty(
+        "--safe-area-bottom",
+      );
+    });
+    await page.screenshot({
+      path: path.join(screenshots, "mobile-export.png"),
+    });
+    for (const viewport of [
+      { width: 320, height: 568 },
+      { width: 874, height: 402 },
+    ]) {
+      await page.setViewportSize(viewport);
+      const action = await exportFile.boundingBox();
+      assert.ok(
+        action &&
+          action.height >= 44 &&
+          action.x + action.width <= viewport.width &&
+          action.y + action.height <= viewport.height,
+      );
+    }
+    await page
+      .getByRole("button", { name: "Advanced filename settings" })
+      .click();
+    const pattern = page.getByRole("textbox", { name: "Pattern" });
+    await pattern.fill("coastal-clip");
+    await page.setViewportSize({ width: 390, height: 430 });
+    assert.equal(await pattern.inputValue(), "coastal-clip");
+    assert.equal(
+      await pattern.evaluate(
+        (element) => globalThis.getComputedStyle(element).fontSize,
+      ),
+      "16px",
+    );
+    await page.goBack();
+    await drawer.waitFor({ state: "hidden" });
+    await page.waitForFunction(() =>
+      globalThis.document.activeElement?.matches("[data-editor-export]"),
+    );
+    assert.ok(await canvas.evaluate((element) => element.isConnected));
+    await page.goForward();
+    await back.waitFor();
+    await page.setViewportSize({ width: 1024, height: 768 });
+    await page.getByRole("button", { name: "Close export dialog" }).waitFor();
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.screenshot({
+      path: path.join(screenshots, "desktop-export.png"),
+    });
+    await page.keyboard.press("Escape");
+    await drawer.waitFor({ state: "hidden" });
+    await page.waitForFunction(() =>
+      globalThis.document.activeElement?.matches("[data-editor-export]"),
+    );
+    await page.goForward();
+    await page.getByRole("button", { name: "Close export dialog" }).waitFor();
+    await page.mouse.click(8, 8);
+    await drawer.waitFor({ state: "hidden" });
+    assert.equal(page.url(), url);
+    await trigger.click();
+    await page.setViewportSize({ width: 390, height: 844 });
+
+    // Hold the native file chooser at the public browser boundary so Back and
+    // cancellation can be exercised deterministically during preparation.
+    await page.evaluate(() => {
+      globalThis.showSaveFilePicker = async () => {
+        await new Promise((resolve) => {
+          globalThis.addEventListener("finish-picker", resolve, { once: true });
+        });
+        const directory = await navigator.storage.getDirectory();
+        return directory.getFileHandle("clip.mp4", { create: true });
+      };
+    });
+    await exportFile.click();
+    await page.getByRole("button", { name: "Cancel export" }).waitFor();
+    await page.setViewportSize({ width: 1280, height: 800 });
+    await page.getByRole("button", { name: "Cancel export" }).waitFor();
+    await page.setViewportSize({ width: 390, height: 844 });
+    await back.click();
+    await confirm.getByRole("button", { name: "Stay" }).click();
+    await page.waitForFunction(() =>
+      Boolean(globalThis.history.state.editorExportSessionId),
+    );
+    await page.getByRole("button", { name: "Cancel export" }).click();
+    await page.evaluate(() =>
+      globalThis.dispatchEvent(new Event("finish-picker")),
+    );
+    await page
+      .getByText("Export cancelled. Your edits are unchanged.")
+      .waitFor();
+    await exportFile.click();
+    await page.evaluate(() => globalThis.history.back());
+    await confirm.getByRole("button", { name: "Leave", exact: true }).click();
+    await drawer.waitFor({ state: "hidden" });
+    await page.evaluate(() => {
+      globalThis.dispatchEvent(new Event("finish-picker"));
+      delete globalThis.showSaveFilePicker;
+    });
+    await trigger.click();
+    const downloadEvent = page.waitForEvent("download");
+    await exportFile.click();
+    const download = await downloadEvent;
+    assert.equal(download.suggestedFilename(), "coastal-clip.mp4");
+    assert.equal(await download.failure(), null);
+    await back.click();
+    await drawer.waitFor({ state: "hidden" });
+    await trigger.waitFor();
+  } finally {
+    await page.close();
+  }
+}
+
 export async function checkEditorLayouts({ browser, url, screenshots }) {
+  await checkExportNavigation(browser, url, screenshots);
   await checkTouchTrimTargets(browser, url);
   for (const { shape, ratio } of [
     { shape: "portrait", ratio: 9 / 16 },

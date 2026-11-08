@@ -1,4 +1,5 @@
 import { ArrowLeft, Download } from "lucide-react";
+import type { Ref } from "react";
 
 import { editorIconButtonClassName } from "@/components/ui/control-styles";
 import { Spinner } from "@/components/ui/spinner";
@@ -14,6 +15,7 @@ interface EditorHeaderProperties {
   exporting: boolean;
   progress: number;
   exportDisabledReason?: string | null;
+  exportButtonRef?: Ref<HTMLButtonElement>;
   onExportClick: () => void;
 }
 
@@ -23,6 +25,7 @@ export function EditorHeader({
   exporting,
   progress,
   exportDisabledReason,
+  exportButtonRef,
   onExportClick,
 }: EditorHeaderProperties) {
   const exportDisabled = exporting || Boolean(exportDisabledReason);
@@ -31,6 +34,7 @@ export function EditorHeader({
   const exportButton = (
     <button
       type="button"
+      ref={exportButtonRef}
       data-editor-export
       onClick={onExportClick}
       disabled={exportDisabled}

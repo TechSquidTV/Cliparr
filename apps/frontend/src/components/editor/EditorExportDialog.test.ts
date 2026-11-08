@@ -14,6 +14,7 @@ function renderExportDialogMarkup(
 ) {
   const props = {
     isOpen: true,
+    mobile: false,
     title: "Example Movie",
     clipStart: 10,
     clipEnd: 20,

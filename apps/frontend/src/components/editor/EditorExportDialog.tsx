@@ -1,9 +1,11 @@
-import { Download, FileText } from "lucide-react";
+import { ArrowLeft, Download, FileText } from "lucide-react";
+import type { RefObject } from "react";
 
 import { EditorExportSourceControl } from "#/components/editor/EditorExportSourceControl";
 import { EditorExportSummaryPanel } from "#/components/editor/EditorExportSummaryPanel";
 import { EditorFilenameTemplateSection } from "#/components/editor/EditorFilenameTemplateSection";
 import type { MediaDimensions } from "#/components/editor/editorMedia";
+import { formatTime } from "#/components/editor/editorUtilities";
 import { ExportSettingsSection } from "#/components/export/ExportSettingsSection";
 import { ExportStatusPanel } from "#/components/export/ExportStatusPanel";
 import { BouncyAccordion } from "#/components/ui/bouncy-accordion";
@@ -16,6 +18,13 @@ import {
   DialogFooter,
   DialogWindow,
 } from "#/components/ui/dialog";
+import {
+  Drawer,
+  DrawerClose,
+  DrawerContent,
+  DrawerDescription,
+  DrawerTitle,
+} from "#/components/ui/drawer";
 import { Spinner } from "#/components/ui/spinner";
 import type {
   audioBitDepthSummary,
@@ -40,6 +49,8 @@ import {
 
 interface EditorExportDialogProperties {
   isOpen: boolean;
+  mobile: boolean;
+  finalFocus?: RefObject<HTMLButtonElement | null>;
   title: string;
   clipStart: number;
   clipEnd: number;
@@ -98,6 +109,8 @@ interface EditorExportDialogProperties {
 
 export function EditorExportDialog({
   isOpen,
+  mobile,
+  finalFocus,
   title,
   clipStart,
   clipEnd,
@@ -150,18 +163,31 @@ export function EditorExportDialog({
   onClose,
   onExport,
 }: EditorExportDialogProperties) {
-  return (
-    <DialogWindow
-      open={isOpen}
-      onClose={onClose}
-      closeDisabled={exporting}
-      closeLabel="Close export dialog"
-      title="Export Clip"
-      description="Review settings before download."
-      popupClassName="h-[min(48rem,100%)] max-w-4xl"
-      headerClassName="shrink-0 bg-card"
-    >
-      <div className="grid min-h-0 flex-1 gap-4 overflow-y-auto p-4 lg:grid-cols-editor-export">
+  const summary = (
+    <EditorExportSummaryPanel
+      title={title}
+      clipStart={clipStart}
+      clipEnd={clipEnd}
+      selectedFormat={selectedFormat}
+      selectedQuality={selectedQuality}
+      gifSettings={gifSettings}
+      outputDimensions={outputDimensions}
+      exportSourceLabel={exportSourceLabel}
+      exportSourceSummaryMessage={exportSourceSummaryMessage}
+      mode={mode}
+      audioPending={audioPending}
+      audioStatus={audioStatus}
+      audioPlan={audioPlan}
+      subtitleSummaryLabel={subtitleSummaryLabel}
+      subtitleSummaryDetail={subtitleSummaryDetail}
+      subtitleSummaryTone={subtitleSummaryTone}
+      activeTemplateKind={activeTemplateKind}
+      fileNamePreview={fileNamePreview}
+    />
+  );
+  const content = (
+    <>
+      <div className="grid min-h-0 flex-1 content-start gap-4 overflow-y-auto overscroll-contain p-3 lg:grid-cols-editor-export lg:content-normal lg:p-4">
         <div className="space-y-4">
           {exportSourceMessage && (
             <div className={primaryAlertClasses}>{exportSourceMessage}</div>
@@ -222,30 +248,23 @@ export function EditorExportDialog({
           </fieldset>
         </div>
 
-        <EditorExportSummaryPanel
-          title={title}
-          clipStart={clipStart}
-          clipEnd={clipEnd}
-          selectedFormat={selectedFormat}
-          selectedQuality={selectedQuality}
-          gifSettings={gifSettings}
-          outputDimensions={outputDimensions}
-          exportSourceLabel={exportSourceLabel}
-          exportSourceSummaryMessage={exportSourceSummaryMessage}
-          mode={mode}
-          audioPending={audioPending}
-          audioStatus={audioStatus}
-          audioPlan={audioPlan}
-          subtitleSummaryLabel={subtitleSummaryLabel}
-          subtitleSummaryDetail={subtitleSummaryDetail}
-          subtitleSummaryTone={subtitleSummaryTone}
-          activeTemplateKind={activeTemplateKind}
-          fileNamePreview={fileNamePreview}
-        />
+        {mobile ? (
+          <details className="rounded-md border border-border">
+            <summary className="control-focus cursor-pointer px-3 py-3 text-sm font-medium">
+              Export details
+            </summary>
+            {summary}
+          </details>
+        ) : (
+          summary
+        )}
       </div>
 
-      <DialogFooter className="flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+      <DialogFooter className="flex-row items-center justify-between gap-2 lg:items-end lg:gap-3">
         <ExportStatusPanel
+          className={
+            mobile ? "h-auto max-h-[24dvh] flex-1 sm:h-auto" : undefined
+          }
           estimate={outputSizeEstimate}
           exporting={exporting}
           phase={exportPhase}
@@ -260,42 +279,99 @@ export function EditorExportDialog({
             <button
               type="button"
               onClick={onCancelExport}
-              className={`${buttonClassName({ tone: "secondary", size: "compact" })} w-20 min-w-16 whitespace-nowrap`}
+              className={`${buttonClassName({ tone: "secondary", size: "compact" })} min-h-11 min-w-16 whitespace-nowrap lg:min-h-8 lg:w-20`}
               aria-label="Cancel export"
             >
               Cancel
             </button>
           ) : (
-            <DialogClose
-              className={`${buttonClassName({ tone: "secondary", size: "compact" })} w-20 min-w-16 whitespace-nowrap`}
-            >
-              Close
-            </DialogClose>
+            !mobile && (
+              <DialogClose
+                className={`${buttonClassName({ tone: "secondary", size: "compact" })} w-20 min-w-16 whitespace-nowrap`}
+              >
+                Close
+              </DialogClose>
+            )
           )}
 
-          <button
-            type="button"
-            onClick={onExport}
-            disabled={exporting || Boolean(exportDisabledReason)}
-            className={`${buttonClassName({ size: "compact" })} w-44 shrink-0 whitespace-nowrap`}
-          >
-            {exporting ? (
-              <>
-                <Spinner />
-                <span>Exporting</span>
-                <span className="inline-block w-[4ch] text-right font-mono tabular-nums">
-                  {Math.round(progress * 100)}%
-                </span>
-              </>
-            ) : (
-              <>
-                <Download className="h-4 w-4" />
-                Export {selectedFormat.toUpperCase()}
-              </>
-            )}
-          </button>
+          {(!mobile || !exporting) && (
+            <button
+              type="button"
+              onClick={onExport}
+              disabled={exporting || Boolean(exportDisabledReason)}
+              className={`${buttonClassName({ size: "compact" })} min-h-11 shrink-0 whitespace-nowrap lg:min-h-8 lg:w-44`}
+            >
+              {exporting ? (
+                <>
+                  <Spinner />
+                  <span>Exporting</span>
+                  <span className="inline-block w-[4ch] text-right font-mono tabular-nums">
+                    {Math.round(progress * 100)}%
+                  </span>
+                </>
+              ) : (
+                <>
+                  <Download className="h-4 w-4" />
+                  Export {selectedFormat.toUpperCase()}
+                </>
+              )}
+            </button>
+          )}
         </div>
       </DialogFooter>
+    </>
+  );
+
+  if (mobile) {
+    return (
+      <Drawer
+        open={isOpen}
+        onOpenChange={(open) => {
+          if (!open) {
+            onClose();
+          }
+        }}
+      >
+        <DrawerContent
+          fullScreen
+          finalFocus={finalFocus}
+          className="[&_[data-slot=select-trigger]]:min-h-11 [&_input]:min-h-11 [&_input]:text-base"
+        >
+          <header className="flex shrink-0 items-center gap-3 border-b border-border px-3 py-2">
+            <DrawerClose
+              aria-label="Back to editor"
+              className={buttonClassName({
+                tone: "icon",
+                className: "size-11 shrink-0 p-0",
+              })}
+            >
+              <ArrowLeft className="size-5" />
+            </DrawerClose>
+            <div className="min-w-0">
+              <DrawerTitle>Export clip</DrawerTitle>
+              <DrawerDescription className="truncate">
+                {formatTime(Math.max(0, clipEnd - clipStart))} · {title}
+              </DrawerDescription>
+            </div>
+          </header>
+          {content}
+        </DrawerContent>
+      </Drawer>
+    );
+  }
+
+  return (
+    <DialogWindow
+      open={isOpen}
+      onClose={onClose}
+      finalFocus={finalFocus}
+      closeLabel="Close export dialog"
+      title="Export Clip"
+      description="Review settings before download."
+      popupClassName="h-[min(48rem,100%)] max-w-4xl"
+      headerClassName="shrink-0 bg-card"
+    >
+      {content}
     </DialogWindow>
   );
 }

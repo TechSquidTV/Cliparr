@@ -217,6 +217,7 @@ function EditorScreenContent({
     return true;
   }, []);
   const [exportDialogMounted, setExportDialogMounted] = useState(false);
+  const exportButtonReference = useRef<HTMLButtonElement>(null);
   const moreTriggerReference = useRef<HTMLButtonElement>(null);
   const subtitleOptionsTriggerReference = useRef<HTMLButtonElement>(null);
   const subtitles = useEditorSubtitles({
@@ -1112,6 +1113,7 @@ function EditorScreenContent({
         finalFocus={subtitleOptionsTriggerReference}
       />
       <EditorHeader
+        exportButtonRef={exportButtonReference}
         title={session.title}
         onBack={() => {
           finishEditing();
@@ -1168,6 +1170,8 @@ function EditorScreenContent({
         <Suspense fallback={null}>
           <EditorExportDialog
             isOpen={exportDialogOpen}
+            mobile={!isDesktopLayout}
+            finalFocus={exportButtonReference}
             title={session.title}
             clipStart={startTime}
             clipEnd={endTime}

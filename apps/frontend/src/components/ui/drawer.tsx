@@ -11,41 +11,61 @@ const DrawerClose = DrawerPrimitive.Close;
 type DrawerContentProperties = Omit<
   React.ComponentPropsWithoutRef<typeof DrawerPrimitive.Popup>,
   "className"
-> & { className?: string };
+> & { className?: string; fullScreen?: boolean };
 
 const DrawerContent = React.forwardRef<HTMLDivElement, DrawerContentProperties>(
-  function DrawerContent({ className, children, ...props }, ref) {
+  function DrawerContent(
+    { className, children, fullScreen = false, ...props },
+    ref,
+  ) {
+    const KeyboardProvider = fullScreen
+      ? DrawerPrimitive.VirtualKeyboardProvider
+      : React.Fragment;
     return (
       <DrawerPrimitive.Portal>
-        <DrawerPrimitive.Backdrop
-          data-slot="drawer-overlay"
-          className="drawer-overlay fixed inset-0 z-50 bg-foreground/40 backdrop-blur-sm"
-        />
-        <DrawerPrimitive.Viewport
-          data-slot="drawer-viewport"
-          className="fixed inset-0 z-50 flex items-end pr-(--safe-area-right) pl-(--safe-area-left)"
-        >
-          <DrawerPrimitive.Popup
-            ref={ref}
-            data-slot="drawer-content"
+        <KeyboardProvider>
+          <DrawerPrimitive.Backdrop
+            data-slot="drawer-overlay"
+            className="drawer-overlay fixed inset-0 z-50 bg-foreground/40 backdrop-blur-sm"
+          />
+          <DrawerPrimitive.Viewport
+            data-slot="drawer-viewport"
             className={cn(
-              "drawer-popup relative flex max-h-[min(85dvh,calc(100dvh-var(--safe-area-top)-6rem))] w-full flex-col overflow-hidden rounded-t-2xl border border-border bg-card pb-[max(var(--drawer-bottom-padding,0px),var(--safe-area-bottom))] text-card-foreground shadow-2xl outline-none",
-              className,
+              "fixed inset-0 z-50 flex items-end pr-(--safe-area-right) pl-(--safe-area-left)",
+              fullScreen && "bottom-[var(--drawer-keyboard-inset,0px)]",
             )}
-            {...props}
           >
-            <div
-              aria-hidden="true"
-              data-slot="drawer-handle"
-              className="flex h-8 shrink-0 touch-none items-center justify-center"
+            <DrawerPrimitive.Popup
+              ref={ref}
+              data-slot="drawer-content"
+              className={cn(
+                "drawer-popup relative flex max-h-[min(85dvh,calc(100dvh-var(--safe-area-top)-6rem))] w-full flex-col overflow-hidden rounded-t-2xl border border-border bg-card pb-[max(var(--drawer-bottom-padding,0px),var(--safe-area-bottom))] text-card-foreground shadow-2xl outline-none",
+                fullScreen &&
+                  "h-full max-h-full rounded-none border-0 pt-(--safe-area-top)",
+                className,
+              )}
+              {...props}
             >
-              <div className="h-1.5 w-10 rounded-full bg-muted-foreground/35" />
-            </div>
-            <DrawerPrimitive.Content className="flex min-h-0 flex-col overflow-y-auto overscroll-contain">
-              {children}
-            </DrawerPrimitive.Content>
-          </DrawerPrimitive.Popup>
-        </DrawerPrimitive.Viewport>
+              {!fullScreen && (
+                <div
+                  aria-hidden="true"
+                  data-slot="drawer-handle"
+                  className="flex h-8 shrink-0 touch-none items-center justify-center"
+                >
+                  <div className="h-1.5 w-10 rounded-full bg-muted-foreground/35" />
+                </div>
+              )}
+              <DrawerPrimitive.Content
+                className={cn(
+                  "flex min-h-0 flex-col",
+                  fullScreen ? "flex-1" : "overflow-y-auto overscroll-contain",
+                )}
+              >
+                {children}
+              </DrawerPrimitive.Content>
+            </DrawerPrimitive.Popup>
+          </DrawerPrimitive.Viewport>
+        </KeyboardProvider>
       </DrawerPrimitive.Portal>
     );
   },

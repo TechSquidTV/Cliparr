@@ -4,6 +4,10 @@ Published release notes are available in [GitHub Releases](https://github.com/Te
 
 ## Unreleased
 
+### Added
+
+- Export clips from a full-screen mobile drawer with a pinned export action. Use Back to return to your edit and Forward to reopen export settings.
+
 ### Fixed
 
 - New subtitles begin on the displayed video frame and show text edits immediately while paused between frames. Existing subtitles, including hidden cues, retain their timing. ([#320](https://github.com/TechSquidTV/Cliparr/issues/320))
