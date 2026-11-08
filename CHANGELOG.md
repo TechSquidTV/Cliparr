@@ -6,7 +6,7 @@ Published release notes are available in [GitHub Releases](https://github.com/Te
 
 ### Added
 
-- Export clips from a full-screen mobile drawer with a full-width export button. Review the estimated file size beside the desktop export action, and adjust mute and stereo mixdown together under Audio. Use Back to return to your edit and Forward to reopen export settings.
+- Clip export opens full screen on mobile and keeps the estimated file size and Export button in view. Back returns to the same clip and playhead, and Forward reopens your settings. Leaving during an export asks for confirmation. On desktop, the size estimate appears beside Export. Mute and stereo mixdown are grouped under Audio on both layouts.
 
 ### Fixed
 
