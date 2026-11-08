@@ -12,7 +12,9 @@ ENV PATH=$PNPM_HOME:$PATH
 ENV npm_config_store_dir=/pnpm/store
 WORKDIR /workspace
 COPY package.json /tmp/cliparr-package.json
-RUN npm install --global "$(node -p 'require("/tmp/cliparr-package.json").packageManager')" \
+RUN --mount=type=bind,source=docker/upgrade-zlib.sh,target=/tmp/upgrade-zlib.sh \
+  sh /tmp/upgrade-zlib.sh \
+  && npm install --global "$(node -p 'require("/tmp/cliparr-package.json").packageManager')" \
   && rm /tmp/cliparr-package.json \
   && npm uninstall --global npm
 
@@ -93,7 +95,9 @@ USER node
 CMD ["node", "src/record.ts"]
 
 FROM node:26.13.0-trixie-slim@sha256:5adad64f9a1fca2d51972caa65983634c8a774eb300d72b20f7f2a0f60368072 AS production
-RUN npm uninstall --global npm \
+RUN --mount=type=bind,source=docker/upgrade-zlib.sh,target=/tmp/upgrade-zlib.sh \
+  sh /tmp/upgrade-zlib.sh \
+  && npm uninstall --global npm \
   && rm -rf /opt/yarn-v* /usr/local/bin/yarn /usr/local/bin/yarnpkg
 LABEL org.opencontainers.image.title="Cliparr" \
   org.opencontainers.image.description="Instant media clipper for Plex and Jellyfin servers." \
