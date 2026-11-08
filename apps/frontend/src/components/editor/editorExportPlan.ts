@@ -291,12 +291,12 @@ export function buildExportSourceMessage({
   directSource?: EditorMediaSource;
   hlsFallbackInfo: PlaybackFallbackInfo | null;
 }) {
-  if (resolvedSourceKind === "none" || !resolvedSource) {
+  if (
+    resolvedSourceKind === "none" ||
+    !resolvedSource ||
+    resolvedSource.role === "local-file"
+  ) {
     return null;
-  }
-
-  if (resolvedSource.role === "local-file") {
-    return "Export reads this local file in your browser.";
   }
 
   if (resolvedSource.role === "direct-url") {

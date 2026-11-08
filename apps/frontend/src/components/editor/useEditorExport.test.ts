@@ -931,6 +931,17 @@ void test("builds export dimensions and source messaging", () => {
     buildExportSourceMessage({
       preference: "auto",
       resolvedSourceKind: "direct",
+      resolvedSource: localFileSource,
+      directSource: localFileSource,
+      hlsFallbackInfo: null,
+    }),
+    null,
+  );
+
+  assert.equal(
+    buildExportSourceMessage({
+      preference: "auto",
+      resolvedSourceKind: "direct",
       resolvedSource: directUrlSource,
       hlsFallbackInfo: null,
     }),
