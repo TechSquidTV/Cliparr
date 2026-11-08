@@ -81,13 +81,11 @@ or package manager. The Node executable moves from `/usr/local/bin/node` to
 for example, use `docker exec <container> /nodejs/bin/node --version` to inspect
 the runtime. Application data and the normal container start command are preserved.
 
-The toolchain build installs Debian's released `zlib1g` security update and
-requires version `1:1.3.dfsg+really1.3.1-1+deb13u1` or newer, which fixes
-`CVE-2026-76844` and `CVE-2026-85091`. APT verifies the package through Debian's
-signed repositories and the build fails if a mirror lacks the fix. Distroless
-must supply corrected packages in its published base image; production cannot
-install updates. Image and dependency scans still gate fixable HIGH/CRITICAL
-findings in both production architectures and the development and capture images.
+Base images must supply security fixes upstream. Do not add package upgrades,
+manual library replacements, or vulnerability-specific patch steps to repair a
+base image during the build. Pin an upstream image containing the fixes and
+require the existing image and dependency security scans to pass before merging.
+Normal development and capture tool installation remains separate from this policy.
 
 ## Development setup changes
 

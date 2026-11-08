@@ -7,13 +7,6 @@
 # are built for the host platform in every supported flow, where the build
 # platform is the target platform.
 FROM --platform=$BUILDPLATFORM node:26.13.0-trixie-slim@sha256:5adad64f9a1fca2d51972caa65983634c8a774eb300d72b20f7f2a0f60368072 AS toolchain
-# Debian's released security update fixes CVE-2026-76844 and CVE-2026-85091.
-# Install it through APT; fail closed if a mirror does not have the fix yet.
-RUN apt-get update \
-  && apt-get install -y --no-install-recommends --only-upgrade zlib1g \
-  && dpkg --compare-versions "$(dpkg-query -W -f='${Version}' zlib1g)" ge '1:1.3.dfsg+really1.3.1-1+deb13u1' \
-  && rm -rf /var/lib/apt/lists/*
-
 ENV PNPM_HOME=/pnpm
 ENV PATH=$PNPM_HOME:$PATH
 ENV npm_config_store_dir=/pnpm/store
