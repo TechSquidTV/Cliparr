@@ -78,12 +78,11 @@ package manager, but removes npm, Corepack, and Yarn. Its Node executable is
 `/usr/local/bin/node`. Application behavior, UID/GID 65532, port 7171, `/data`,
 read-only operation, and the application data format are unchanged.
 
-The production and toolchain builds install Debian's released `zlib1g` security update and
-require version `1:1.3.dfsg+really1.3.1-1+deb13u1` or newer, which fixes
-`CVE-2026-76844` and `CVE-2026-85091`.
-APT verifies the package through Debian's signed repositories. The build fails if
-the available package is older than the fixed version. The normal vulnerability
-scan still gates fixable high/critical findings.
+Base images must supply security fixes upstream. Do not add package upgrades,
+manual library replacements, or vulnerability-specific patch steps to repair a
+base image during the build. Pin an upstream image containing the fixes and
+require the existing image and dependency security scans to pass before merging.
+Normal development and capture tool installation remains separate from this policy.
 
 ## Development setup changes
 
