@@ -75,7 +75,7 @@ Production runs the bundled server with `/nodejs/bin/node` in the non-root
 Google Distroless Node.js Debian 13 image. It runs as UID/GID 65532 on port 7171
 with a read-only root filesystem and writable `/data`.
 
-**Breaking container operations change:** production no longer includes a shell
+**Container maintenance:** production no longer includes a shell
 or package manager. The Node executable moves from `/usr/local/bin/node` to
 `/nodejs/bin/node`. Update custom maintenance commands and entrypoint overrides;
 for example, use `docker exec <container> /nodejs/bin/node --version` to inspect
