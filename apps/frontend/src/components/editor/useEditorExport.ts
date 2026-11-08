@@ -108,7 +108,7 @@ export function useEditorExport({
   const [exportNotice, setExportNotice] = useState<string | null>(null);
   const [hlsEstimateMetadata, setHlsEstimateMetadata] =
     useState<HlsExportEstimateMetadata | null>(null);
-  const handleSettingsChange = useCallback(() => {
+  const clearExportFeedback = useCallback(() => {
     setExportError(null);
     setExportNotice(null);
   }, []);
@@ -126,7 +126,7 @@ export function useEditorExport({
     gifSettings,
     mixDownToStereo,
     setMixDownToStereo,
-  } = useExportSettings(handleSettingsChange);
+  } = useExportSettings(clearExportFeedback);
   const [exportSourcePreference, setExportSourcePreference] =
     useState<ExportSourcePreference>("auto");
   const [fileNameTemplates, setFileNameTemplates] =
@@ -445,18 +445,22 @@ export function useEditorExport({
     videoQuality,
   ]);
 
-  const handleOpenExportDialog = useCallback(() => {
-    setExportError(null);
-    setExportNotice(null);
-    setProgress(0);
+  useEffect(() => {
+    if (!exportDialogOpen) {
+      return;
+    }
+    clearExportFeedback();
     setTemplateEditorKind(fileName.templateKind);
+  }, [exportDialogOpen, fileName.templateKind, clearExportFeedback]);
+
+  const handleOpenExportDialog = useCallback(() => {
     if (history.location.state.editorExportSessionId !== session.id) {
       history.push(history.location.href, {
         ...history.location.state,
         editorExportSessionId: session.id,
       });
     }
-  }, [fileName.templateKind, history, session.id]);
+  }, [history, session.id]);
 
   const handleCloseExportDialog = useCallback(() => {
     if (history.location.state.editorExportSessionId === session.id) {
@@ -467,9 +471,9 @@ export function useEditorExport({
   const handleExportSourceChange = useCallback(
     (nextSourcePreference: ExportSourcePreference) => {
       setExportSourcePreference(nextSourcePreference);
-      handleSettingsChange();
+      clearExportFeedback();
     },
-    [handleSettingsChange],
+    [clearExportFeedback],
   );
 
   const handleFileNameTemplateChange = useCallback(
@@ -478,9 +482,9 @@ export function useEditorExport({
         ...current,
         [kind]: nextTemplate,
       }));
-      handleSettingsChange();
+      clearExportFeedback();
     },
-    [handleSettingsChange],
+    [clearExportFeedback],
   );
 
   const handleResetFileNameTemplate = useCallback(
@@ -491,9 +495,9 @@ export function useEditorExport({
         ...current,
         [kind]: defaults[kind],
       }));
-      handleSettingsChange();
+      clearExportFeedback();
     },
-    [handleSettingsChange],
+    [clearExportFeedback],
   );
 
   const handleExport = useCallback(async () => {
@@ -530,10 +534,9 @@ export function useEditorExport({
     }
     const shouldBurnSubtitles = readiness.shouldBurnSubtitles;
 
-    setExportError(null);
     const controller = new AbortController();
     exportController.current = controller;
-    setExportNotice(null);
+    clearExportFeedback();
     setExportPhase("preparing");
     setExporting(true);
     setProgress(0);
@@ -693,6 +696,7 @@ export function useEditorExport({
   }, [
     crop,
     cropDisabledReason,
+    clearExportFeedback,
     clippedSubtitleCues,
     endTime,
     mode,

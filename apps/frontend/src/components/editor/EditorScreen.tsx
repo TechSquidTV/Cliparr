@@ -120,8 +120,6 @@ const EditorCropControls = lazy(() =>
   })),
 );
 
-const blockNavigation = () => true;
-
 interface Properties {
   session: EditorSession;
   onBack: () => void;
@@ -386,6 +384,14 @@ function EditorScreenContent({
     subtitleCues,
     subtitleStyleSettings,
   });
+  const [desktopAtConfirmation, setDesktopAtConfirmation] = useState<
+    boolean | null
+  >(null);
+  const blockNavigation = useCallback(() => {
+    // Keep the export surface mounted through the confirmation's exit animation.
+    setDesktopAtConfirmation((current) => current ?? isDesktopLayout);
+    return true;
+  }, [isDesktopLayout]);
   const navigationBlocker = useBlocker({
     disabled: !exporting,
     enableBeforeUnload: exporting,
@@ -1171,8 +1177,7 @@ function EditorScreenContent({
         <Suspense fallback={null}>
           <EditorExportDialog
             isOpen={exportDialogOpen}
-            mobile={!isDesktopLayout}
-            leaveConfirmationOpen={leaveConfirmationOpen}
+            mobile={!(desktopAtConfirmation ?? isDesktopLayout)}
             finalFocus={exportButtonReference}
             title={session.title}
             clipStart={startTime}
@@ -1276,6 +1281,11 @@ function EditorScreenContent({
         )}
       <ConfirmationDialog
         open={leaveConfirmationOpen}
+        onOpenChangeComplete={(open) => {
+          if (!open) {
+            setDesktopAtConfirmation(null);
+          }
+        }}
         title="Leave during export?"
         description="Leaving will cancel the export."
         cancelLabel="Stay"

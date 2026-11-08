@@ -1,5 +1,5 @@
 import { ArrowLeft, Download, FileText } from "lucide-react";
-import { type RefObject, useState } from "react";
+import type { RefObject } from "react";
 
 import { EditorExportSourceControl } from "#/components/editor/EditorExportSourceControl";
 import { EditorExportSummaryPanel } from "#/components/editor/EditorExportSummaryPanel";
@@ -46,7 +46,6 @@ import {
 interface EditorExportDialogProperties {
   isOpen: boolean;
   mobile: boolean;
-  leaveConfirmationOpen: boolean;
   finalFocus?: RefObject<HTMLButtonElement | null>;
   title: string;
   clipStart: number;
@@ -107,7 +106,6 @@ interface EditorExportDialogProperties {
 export function EditorExportDialog({
   isOpen,
   mobile,
-  leaveConfirmationOpen,
   finalFocus,
   title,
   clipStart,
@@ -161,12 +159,6 @@ export function EditorExportDialog({
   onClose,
   onExport,
 }: EditorExportDialogProperties) {
-  const [showDrawer, setShowDrawer] = useState(mobile);
-  // Mounting a new drawer or dialog would take focus from the leave confirmation.
-  if (!leaveConfirmationOpen && showDrawer !== mobile) {
-    setShowDrawer(mobile);
-  }
-
   const summary = (
     <EditorExportSummaryPanel
       title={title}
@@ -253,7 +245,7 @@ export function EditorExportDialog({
           </fieldset>
         </div>
 
-        {showDrawer ? (
+        {mobile ? (
           <details className="rounded-md border border-border">
             <summary className="control-focus cursor-pointer px-3 py-3 text-sm font-medium">
               Export details
@@ -304,7 +296,7 @@ export function EditorExportDialog({
     </>
   );
 
-  if (showDrawer) {
+  if (mobile) {
     return (
       <Drawer
         open={isOpen}

@@ -554,15 +554,93 @@ async function checkExportNavigation(browser, baseUrl, screenshots) {
     const download = await downloadEvent;
     assert.equal(download.suggestedFilename(), "coastal-clip.mp4");
     assert.equal(await download.failure(), null);
+    const downloadNotice = drawer.getByText(
+      "Download started: coastal-clip.mp4",
+    );
+    await downloadNotice.waitFor();
     await back.click();
     await drawer.waitFor({ state: "hidden" });
-    await trigger.waitFor();
+    await page.setViewportSize({ width: 1280, height: 800 });
+    await page.getByRole("button", { name: /Edit Out time:/ }).click();
+    const outTime = page.getByRole("textbox", {
+      name: "Edit Out time",
+      exact: true,
+    });
+    await outTime.fill("0:02.00");
+    await outTime.press("Enter");
+    await page
+      .getByRole("button", { name: "Edit Out time: 0:02.00" })
+      .waitFor();
+    await page.goForward();
+    await close.waitFor();
+    await drawer.getByText("coastal-clip.mp4", { exact: true }).waitFor();
+    await downloadNotice.waitFor({ state: "detached" });
+  } finally {
+    await page.close();
+  }
+}
+
+async function checkRepeatedExportDismissal(browser, url) {
+  const page = await browser.newPage({
+    viewport: { width: 390, height: 844 },
+    reducedMotion: "no-preference",
+  });
+  try {
+    await page.goto(url);
+    const trigger = page.locator("[data-editor-export]");
+    await trigger.click();
+    // Keep the same export in progress through Stay, the second dismissal, and Leave.
+    await page.evaluate(() => {
+      globalThis.showSaveFilePicker = () => new Promise(() => {});
+    });
+    await page.getByRole("button", { name: "Export MP4" }).click();
+    await page.getByRole("button", { name: "Back to editor" }).click();
+    const confirm = page.getByRole("dialog", { name: "Leave during export?" });
+    await confirm.waitFor();
+    const mobileWorkspace = page.locator(".editor-mobile-workspace");
+    await page.setViewportSize({ width: 1280, height: 800 });
+    await mobileWorkspace.waitFor({ state: "detached" });
+    const stay = confirm.getByRole("button", { name: "Stay" });
+    await stay.click();
+    // Dismiss as soon as Back is available again, during the animated exit.
+    await page.waitForFunction(() =>
+      Boolean(globalThis.history.state.editorExportSessionId),
+    );
+    await page.keyboard.press("Escape");
+    await page.waitForFunction(
+      () => !globalThis.history.state.editorExportSessionId,
+    );
+    await stay.click();
+    // The desktop surface must handle dismissal as soon as it takes over, too.
+    await page.getByRole("button", { name: "Close export dialog" }).waitFor();
+    await page.keyboard.press("Escape");
+    await confirm.waitFor();
+    await page.setViewportSize({ width: 390, height: 844 });
+    await mobileWorkspace.waitFor({ state: "attached" });
+    await confirm.getByRole("button", { name: "Leave", exact: true }).click();
+    await page
+      .locator('[role="dialog"]')
+      .first()
+      .waitFor({ state: "detached" });
+    await page.waitForFunction(() =>
+      globalThis.document.activeElement?.matches("[data-editor-export]"),
+    );
+    // The chooser is still unwinding. Keyboard focus must not start another export.
+    assert.ok(await trigger.isDisabled());
+    await page.keyboard.press("Enter");
+    assert.equal(await page.getByRole("dialog").count(), 0);
+    assert.ok(
+      await page.evaluate(
+        () => !globalThis.history.state.editorExportSessionId,
+      ),
+    );
   } finally {
     await page.close();
   }
 }
 
 export async function checkEditorLayouts({ browser, url, screenshots }) {
+  await checkRepeatedExportDismissal(browser, url);
   await checkExportNavigation(browser, url, screenshots);
   await checkTouchTrimTargets(browser, url);
   for (const { shape, ratio } of [
