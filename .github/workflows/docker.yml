@@ -137,6 +137,7 @@ jobs:
           echo "value=${version}" >> "${GITHUB_OUTPUT}"
 
       - name: Build smoke-test image
+        id: build_amd64
         uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7
         with:
           context: .
@@ -150,11 +151,6 @@ jobs:
           tags: cliparr:smoke
           cache-from: type=gha,scope=cliparr-production
 
-      - name: Scan image and dependency inventory
-        uses: ./.github/actions/scan-image
-        with:
-          image: cliparr:smoke
-
       - name: Smoke test image
         id: smoke
         env:
@@ -162,6 +158,7 @@ jobs:
         run: bash tools/ci/smoke-image.sh cliparr:smoke "$EXPECTED_VERSION"
 
       - name: Build arm64 smoke-test image
+        id: build_arm64
         uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7
         with:
           context: .
@@ -180,6 +177,21 @@ jobs:
         env:
           EXPECTED_VERSION: ${{ steps.version.outputs.value }}
         run: bash tools/ci/smoke-image.sh cliparr:smoke-arm64 "$EXPECTED_VERSION" linux/arm64
+
+      - name: Scan amd64 image and dependency inventory
+        if: ${{ !cancelled() && steps.build_amd64.outcome == 'success' }}
+        uses: ./.github/actions/scan-image
+        with:
+          image: cliparr:smoke
+
+      - name: Scan arm64 image
+        if: ${{ !cancelled() && steps.build_arm64.outcome == 'success' }}
+        uses: ./.github/actions/scan-image
+        env:
+          TRIVY_PLATFORM: linux/arm64
+        with:
+          image: cliparr:smoke-arm64
+          scan-inventory: "false"
 
       # Both architectures are built and smoke-tested above, including on PRs.
       # Refresh the multi-platform shared cache on main pushes and manual runs.
@@ -238,6 +250,7 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4
       - name: Build auxiliary image
+        id: build_auxiliary
         uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7
         with:
           context: .
@@ -249,11 +262,6 @@ jobs:
             type=gha,scope=cliparr-${{ matrix.target }}
             type=gha,scope=cliparr-production
           cache-to: type=gha,mode=max,scope=cliparr-${{ matrix.target }}
-      - name: Scan auxiliary image and dependency inventory
-        uses: ./.github/actions/scan-image
-        with:
-          image: cliparr-${{ matrix.target }}:check
-          artifact-name: ${{ matrix.target }}-dependency-inventory
       - name: Verify non-root tools
         env:
           IMAGE: cliparr-${{ matrix.target }}:check
@@ -273,3 +281,9 @@ jobs:
               --input-type=module -e "$browser_smoke"
             docker run --rm --entrypoint ffmpeg "$IMAGE" -version
           fi
+      - name: Scan auxiliary image and dependency inventory
+        if: ${{ !cancelled() && steps.build_auxiliary.outcome == 'success' }}
+        uses: ./.github/actions/scan-image
+        with:
+          image: cliparr-${{ matrix.target }}:check
+          artifact-name: ${{ matrix.target }}-dependency-inventory
