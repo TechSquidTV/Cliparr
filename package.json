@@ -62,7 +62,7 @@
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "@hey-api/openapi-ts": "~0.99.0",
-    "@types/node": "^24.19.1",
+    "@types/node": "catalog:",
     "concurrently": "^10.0.5",
     "eslint": "^10.11.0",
     "eslint-plugin-astro": "^3.2.1",
