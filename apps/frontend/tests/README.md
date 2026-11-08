@@ -55,11 +55,35 @@ check named slider values, keyboard tab selection, dropdown radius and animation
 and dialog dismissal, locking, and focus restoration. At mobile and desktop
 widths, it also exercises source edits/actions and subtitle text, timing, style,
 and deletion callbacks through the extracted components. CI runs it alongside
-the media browser suites.
+the media browser suites. The timeline check uses browser touch input to verify
+continuous scrollbar panning and direction changes with track names shown and
+hidden, without browser gesture cancellation; it also checks keyboard panning.
 
 ## Video cropping
 
 Run `CLIPARR_TEST_BROWSER_CHANNEL=chrome pnpm --filter @cliparr/frontend test:browser:crop`.
+For the focused mobile editor scenarios, append `--layout`. These use portrait
+and landscape versions of the shared synthetic fixture at 402 × 874 and check
+picture sizing, tool access, subtitle tabs, invalid time edits across breakpoints,
+blank-text feedback, and composition-safe navigation. A four-hour fixture with a
+long title also covers portrait, square, and ultrawide media at 320px, phone,
+tablet, and desktop widths; enlarged text checks wrapping and control overlap.
+The scenarios live in `editor-layout.mjs` and reuse the crop runner's production
+bundle and synthetic fixture. They also cover pending crop-number edits through
+breakpoints, keyboard cancellation, timecode sizing, IME Enter in time fields,
+and focus return after closing tools. `editor-review.mjs` covers subtitle feedback,
+desktop cue selection, and dialog state and focus across responsive transitions.
+Native swipe checks synchronize the headless window's content size with its
+emulated viewport, verify the gesture starts inside the visible panel, and
+require real scrolling without changing the editor's CSS viewport.
+
+The mobile workspace exposes Trim, Subtitles, Crop, Playback, and More tools.
+Mobile subtitle controls use Text, Timing, and Style tabs; desktop keeps those
+controls stacked in one scrollable subtitle panel. On mobile, track names live
+in Timeline view, and precise range editing lives in Trim. These workflow changes
+replace the previous permanent subtitle panel and track-name footer; the same
+controllers continue to own desktop and mobile edits.
+
 The production harness generates a synthetic local video and checks mouse/touch
 selection, corner/side resizing, boundaries, ratio locks, interruption, undo/redo,
 numeric and keyboard edits, scrolling, viewport changes, and draft restoration.

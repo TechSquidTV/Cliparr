@@ -5,6 +5,7 @@ import {
   isPlaybackVideoTrack,
   videoTrackPreviewUnavailableMessage,
 } from "@cliparr/frontend/convert/engine";
+import { BarsLoader } from "@cliparr/frontend/convert/ui";
 import { Pause, Play } from "lucide-react";
 import type { CanvasSink as MediabunnyCanvasSink } from "mediabunny";
 import {
@@ -21,7 +22,8 @@ import { formatDuration } from "@/lib/formatDuration";
 
 interface MediabunnySourcePreviewProperties {
   source: EditorFileMediaSource;
-  probe: SourceProbeResult;
+  probe: SourceProbeResult | null;
+  inspectionError: string | null;
   canSelectFile: boolean;
   dragActive: boolean;
   onDragActiveChange: (active: boolean) => void;
@@ -54,11 +56,14 @@ function clampTime(seconds: number, durationSeconds: number) {
 export function MediabunnySourcePreview({
   source,
   probe,
+  inspectionError,
   canSelectFile,
   dragActive,
   onDragActiveChange,
   onDropFile,
 }: MediabunnySourcePreviewProperties) {
+  // Audio-only inspection deliberately omits video preview metadata.
+  const hasVideoPreviewMetadata = Boolean(probe?.hasVideo && probe.dimensions);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const inputRef = useRef<Awaited<
     ReturnType<typeof createCliparrInputFromSource>
@@ -172,6 +177,8 @@ export function MediabunnySourcePreview({
     stopPlayback();
     setCurrentTime(0);
     setState({ status: "loading" });
+    const canvas = canvasRef.current;
+    canvas?.getContext("2d")?.clearRect(0, 0, canvas.width, canvas.height);
 
     let cancelled = false;
     let input: Awaited<ReturnType<typeof createCliparrInputFromSource>> | null =
@@ -186,7 +193,7 @@ export function MediabunnySourcePreview({
       sinkRef.current = null;
     };
 
-    async function loadPreview() {
+    async function loadPreview(probe: SourceProbeResult) {
       try {
         const { CanvasSink } = await import("mediabunny");
         if (isStale()) {
@@ -273,7 +280,9 @@ export function MediabunnySourcePreview({
       }
     }
 
-    void loadPreview();
+    if (probe && hasVideoPreviewMetadata) {
+      void loadPreview(probe);
+    }
 
     return () => {
       cancelled = true;
@@ -281,7 +290,7 @@ export function MediabunnySourcePreview({
       stopPlayback();
       releaseInput();
     };
-  }, [probe, renderFrameAt, source, stopPlayback]);
+  }, [hasVideoPreviewMetadata, probe, renderFrameAt, source, stopPlayback]);
 
   const handleTogglePlayback = useCallback(() => {
     if (state.status !== "ready") {
@@ -334,7 +343,15 @@ export function MediabunnySourcePreview({
     [canSelectFile, onDragActiveChange, onDropFile],
   );
 
-  const durationSeconds = state.status === "ready" ? state.durationSeconds : 0;
+  const durationSeconds =
+    state.status === "ready"
+      ? state.durationSeconds
+      : (probe?.durationSeconds ?? 0);
+  const error =
+    inspectionError ?? (state.status === "error" ? state.message : null);
+  const loading =
+    !error &&
+    (!probe || (hasVideoPreviewMetadata && state.status === "loading"));
 
   return (
     <div
@@ -350,33 +367,48 @@ export function MediabunnySourcePreview({
         dragActive ? "border-secondary bg-secondary/10" : ""
       }`}
     >
-      <button
-        type="button"
-        onClick={handleTogglePlayback}
-        disabled={state.status !== "ready"}
-        aria-label={playing ? "Pause preview" : "Play preview"}
-        className="group relative block aspect-video w-full overflow-hidden bg-black text-left disabled:cursor-wait"
-      >
-        <canvas
-          ref={canvasRef}
-          className="h-full w-full object-contain"
-          aria-hidden="true"
-        />
+      <div className="relative">
+        <button
+          type="button"
+          aria-busy={loading}
+          onClick={handleTogglePlayback}
+          disabled={state.status !== "ready"}
+          aria-label={playing ? "Pause preview" : "Play preview"}
+          className="group relative block aspect-video w-full overflow-hidden bg-black text-left disabled:cursor-wait"
+        >
+          <canvas
+            ref={canvasRef}
+            className="h-full w-full object-contain"
+            aria-hidden="true"
+          />
+        </button>
 
-        {state.status === "loading" ? (
+        {loading ? (
           <div className="absolute inset-0 flex items-center justify-center bg-black/70 text-sm font-medium text-white">
-            Loading preview
+            <BarsLoader label="Loading preview…" showLabel />
           </div>
         ) : null}
 
-        {state.status === "error" ? (
-          <div className="absolute inset-0 flex items-center justify-center bg-black/80 p-4 text-center text-sm font-medium text-white">
-            {state.message}
+        {error ? (
+          <div
+            role={inspectionError ? undefined : "alert"}
+            className="absolute inset-0 flex items-center justify-center overflow-y-auto bg-black/80 p-4 text-center text-sm font-medium text-white"
+          >
+            {inspectionError ? "Preview unavailable" : error}
           </div>
         ) : null}
+
+        {probe && !hasVideoPreviewMetadata && !error && (
+          <span
+            role="status"
+            className="absolute inset-0 flex items-center justify-center p-4 text-center text-sm text-white"
+          >
+            {probe.hasAudio ? "Audio ready for export" : "Preview unavailable"}
+          </span>
+        )}
 
         {state.status === "ready" ? (
-          <span className="absolute left-1/2 top-1/2 inline-flex h-14 w-14 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-black/70 text-white opacity-90 transition-opacity group-hover:opacity-100">
+          <span className="pointer-events-none absolute left-1/2 top-1/2 inline-flex h-14 w-14 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-black/70 text-white opacity-90 transition-opacity group-hover:opacity-100">
             {playing ? (
               <Pause className="h-6 w-6" />
             ) : (
@@ -384,7 +416,7 @@ export function MediabunnySourcePreview({
             )}
           </span>
         ) : null}
-      </button>
+      </div>
 
       <div className="grid gap-3 border-t border-border bg-card p-3">
         <div className="flex items-center justify-between gap-3 text-xs text-muted-foreground">

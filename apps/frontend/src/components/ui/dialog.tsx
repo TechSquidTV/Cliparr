@@ -24,9 +24,8 @@ type DialogPortalProperties = Omit<
 };
 type DialogBackdropProperties = Omit<
   React.ComponentProps<typeof BaseDialog.Backdrop>,
-  "onClick" | "render"
+  "render"
 > & {
-  onClick?: () => void;
   transition?: Transition;
 };
 type DialogPopupProperties = Omit<
@@ -66,7 +65,6 @@ type DialogRootActions = {
 
 interface DialogAnimationContextValue {
   actionsRef: React.RefObject<DialogRootActions | null>;
-  disablePointerDismissal: boolean;
   open: boolean;
 }
 
@@ -106,7 +104,6 @@ function Dialog({
     <DialogAnimationContext.Provider
       value={{
         actionsRef: resolvedActionsReference,
-        disablePointerDismissal,
         open,
       }}
     >
@@ -154,13 +151,10 @@ function DialogPortal({
 
 function DialogBackdrop({
   className,
-  onClick,
   transition = backdropTransition,
   ...props
 }: DialogBackdropProperties) {
   const reducedMotion = useReducedMotion();
-  const { actionsRef, disablePointerDismissal } =
-    useDialogAnimationContext("DialogBackdrop");
   const backdropClassName = cn(
     "pointer-events-auto fixed inset-0 bg-foreground/40 backdrop-blur-sm",
     className,
@@ -180,18 +174,6 @@ function DialogBackdrop({
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          onClick={(event) => {
-            renderProperties.onClick?.(event);
-            if (disablePointerDismissal) {
-              return;
-            }
-
-            if (onClick) {
-              onClick();
-            } else {
-              actionsRef.current?.close();
-            }
-          }}
           transition={reducedMotion ? { duration: 0 } : transition}
         />
       )}
@@ -299,13 +281,7 @@ function DialogWindow({
       {...props}
     >
       <DialogPortal className={portalClassName}>
-        <DialogBackdrop
-          onClick={() => {
-            if (!closeDisabled) {
-              onClose();
-            }
-          }}
-        />
+        <DialogBackdrop />
         <DialogPopup
           initialFocus={initialFocus}
           finalFocus={finalFocus}
@@ -402,4 +378,4 @@ function getPopupOffset(from: NonNullable<DialogPopupProperties["from"]>) {
   }
 }
 
-export { DialogClose, DialogFooter, DialogWindow };
+export { DialogFooter, DialogWindow };

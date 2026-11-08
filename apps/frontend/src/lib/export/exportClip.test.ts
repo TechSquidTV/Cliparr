@@ -194,7 +194,6 @@ function createRuntime(overrides: Partial<ExportRuntime> = {}) {
         },
       }) as unknown as ReturnType<ExportRuntime["createGifCanvas"]>,
     loadGifEncodingRuntime: async () => createMockGifRuntime(),
-    getActiveSubtitleCues: () => [],
     renderSubtitleCues: () => {},
     initConversion: async () =>
       createConversion({
@@ -1104,10 +1103,9 @@ void test("uses per-frame GIF palettes for the sharp preset", async () => {
   ]);
 });
 
-void test("renders subtitles when burning cues into GIF frames", async () => {
-  const gifSettings = gifExportSettingsForPreset("sharp");
-  let renderedSubtitleCount = 0;
-  let activeSubtitleTimestamp: number | undefined;
+void test("switches trimmed GIF captions on the exact frame boundary", async () => {
+  const gifSettings = gifExportSettingsForPreset("compact");
+  const renderedFrames: string[][] = [];
   const context = createRuntime({
     getVideoTrackDimensions: async () => ({ width: 4, height: 4 }),
     createCanvasSink: () =>
@@ -1129,15 +1127,10 @@ void test("renders subtitles when burning cues into GIF frames", async () => {
           }),
         },
       }) as unknown as ReturnType<ExportRuntime["createGifCanvas"]>,
-    getActiveSubtitleCues: (cues, timestamp) => {
-      activeSubtitleTimestamp = timestamp;
-      return [...cues];
-    },
     renderSubtitleCues: (_context, cues, _styleSettings, width, height) => {
-      assert.equal(cues[0]?.text, "Hello");
       assert.equal(width, 4);
       assert.equal(height, 4);
-      renderedSubtitleCount += cues.length;
+      renderedFrames.push(cues.map((cue) => cue.text));
     },
   });
 
@@ -1145,7 +1138,7 @@ void test("renders subtitles when burning cues into GIF frames", async () => {
     {
       mediaSource,
       startTime: 10,
-      endTime: 10 + 1 / gifSettings.frameRate,
+      endTime: 10.45,
       format: "gif",
       resolution: "original",
       gifSettings,
@@ -1154,19 +1147,42 @@ void test("renders subtitles when burning cues into GIF frames", async () => {
       subtitleStyleSettings: subtitleStyle,
       subtitleCues: [
         {
-          startTime: 10,
-          endTime: 11,
+          startTime: 9,
+          endTime: 10.3,
           text: "Hello",
           lines: ["Hello"],
         },
+        {
+          startTime: 10.3,
+          endTime: 10.301,
+          text: "Boundary",
+          lines: ["Boundary"],
+        },
+        {
+          startTime: 10.301,
+          endTime: 11,
+          text: "Goodbye",
+          lines: ["Goodbye"],
+        },
       ],
+      onPhaseChange: (phase) => {
+        // The compact preset also renders frames to sample its global palette.
+        if (phase === "encoding") {
+          renderedFrames.length = 0;
+        }
+      },
       onProgress: () => {},
     },
     context.runtime,
   );
 
-  assert.equal(activeSubtitleTimestamp, 0);
-  assert.equal(renderedSubtitleCount, 1);
+  assert.deepEqual(renderedFrames, [
+    ["Hello"],
+    ["Hello"],
+    ["Hello"],
+    ["Boundary"],
+    ["Goodbye"],
+  ]);
 });
 
 for (const format of ["mp4", "gif"] as const) {

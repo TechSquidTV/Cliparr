@@ -4,8 +4,10 @@ import {
   RouterProvider,
 } from "@tanstack/react-router";
 import {
+  AudioBufferSource,
   BufferTarget,
   CanvasSource,
+  MkvOutputFormat,
   Output,
   Quality,
   WebMOutputFormat,
@@ -17,16 +19,40 @@ import { buildLocalEditorSession } from "#/components/editor/editorMedia";
 import EditorScreen from "#/components/editor/EditorScreen";
 import { EditorSubtitlePreview } from "#/components/editor/EditorSubtitlePreview";
 import { TooltipProvider } from "#/components/ui/tooltip";
+import { ensureAudioEncoder } from "#/lib/export/mediabunny/mediabunnyCodecs";
 import { loadSubtitleStyleSettings } from "#/lib/subtitles/settings";
 import { checkCropExports } from "#tests/video-crop-exports.ts";
 
+const parameters = new URLSearchParams(window.location.search);
+const shape = parameters.get("shape") ?? "landscape";
+const sampleDuration = parameters.has("long") ? 360 : 0.1;
 const picture = document.createElement("canvas");
 picture.width = 960;
 picture.height = 540;
+switch (shape) {
+  case "portrait": {
+    picture.width = 540;
+    picture.height = 960;
+    break;
+  }
+  case "square": {
+    picture.width = 720;
+    picture.height = 720;
+    break;
+  }
+  case "ultrawide": {
+    picture.height = 240;
+    break;
+  }
+  default: {
+    break;
+  }
+}
 const context = picture.getContext("2d");
 if (!context) {
   throw new Error("Missing fixture context");
 }
+context.scale(picture.width / 960, picture.height / 540);
 const sky = context.createLinearGradient(0, 0, 0, 540);
 sky.addColorStop(0, "#263d66");
 sky.addColorStop(0.6, "#cf977c");
@@ -58,29 +84,56 @@ context.fillText("COASTAL TRAIL", 42, 52);
 context.font = "14px sans-serif";
 context.fillText("Synthetic video · 960 × 540", 42, 78);
 const target = new BufferTarget();
-const output = new Output({ format: new WebMOutputFormat(), target });
+const surround = parameters.get("fixture") === "surround";
+const format = surround ? new MkvOutputFormat() : new WebMOutputFormat();
+const output = new Output({ format, target });
 const source = new CanvasSource(picture, {
   codec: "vp8",
   quality: new Quality({ bitrate: 1_000_000 }),
 });
 output.addVideoTrack(source, { frameRate: 10 });
+const surroundSource = surround
+  ? new AudioBufferSource({ codec: "flac" })
+  : null;
+if (surroundSource) {
+  await ensureAudioEncoder("flac");
+  output.addAudioTrack(surroundSource);
+}
 await output.start();
+async function writeSurroundAudio() {
+  if (surroundSource) {
+    await surroundSource.add(
+      new AudioBuffer({
+        numberOfChannels: 6,
+        sampleRate: 48_000,
+        length: 4 * 48_000,
+      }),
+    );
+    surroundSource.close();
+  }
+}
+const writingAudio = writeSurroundAudio();
 for (let frame = 0; frame < 40; frame++) {
-  await source.add(frame / 10, 0.1);
+  await source.add(frame * sampleDuration, sampleDuration);
 }
 source.close();
+await writingAudio;
 await output.finalize();
 if (!target.buffer) {
   throw new Error("Missing fixture video");
 }
-const file = new File([target.buffer], "coastal-trail.webm", {
-  type: "video/webm",
+const file = new File([target.buffer], `coastal-trail${format.fileExtension}`, {
+  type: format.mimeType,
   lastModified: 1,
 });
 const session = buildLocalEditorSession({
   id: "crop-browser-fixture",
-  title: "Coastal trail",
-  duration: 4,
+  title: parameters.has("long")
+    ? "A very long movie title with episode and source details "
+        .repeat(3)
+        .trim()
+    : "Coastal trail",
+  duration: 40 * sampleDuration,
   source: {
     kind: "file",
     role: "local-file",
@@ -89,7 +142,10 @@ const session = buildLocalEditorSession({
     fileName: file.name,
   },
 });
-const fixture = new URLSearchParams(window.location.search).get("fixture");
+const fixture = parameters.get("fixture");
+if (fixture === "subtitle-frame") {
+  session.initialPlayheadSeconds = Number(parameters.get("time"));
+}
 if (fixture === "delayed-subtitles") {
   // Reuse the synthetic media while exercising the provider import lifecycle.
   session.local = false;
@@ -118,10 +174,18 @@ function SubtitleFirstFrameFixture() {
   const videoCanvasRef = useRef<HTMLCanvasElement>(null);
   const overlayCanvasRef = useRef<HTMLCanvasElement>(null);
   const [frameReady, setFrameReady] = useState(false);
+  const [time, setTime] = useState(0);
+  const [enabled, setEnabled] = useState(true);
   return (
     <>
       <button type="button" onClick={() => setFrameReady(true)}>
         Render first frame
+      </button>
+      <button type="button" onClick={() => setTime(time + 1)}>
+        Advance frame time
+      </button>
+      <button type="button" onClick={() => setEnabled(!enabled)}>
+        Toggle subtitles
       </button>
       <div className="relative h-60 w-full">
         <canvas
@@ -131,9 +195,9 @@ function SubtitleFirstFrameFixture() {
         />
         <EditorSubtitlePreview
           cues={subtitleFrameCues}
-          currentTime={0}
+          currentTime={time}
           frameReady={frameReady}
-          enabled
+          enabled={enabled}
           overlayCanvasRef={overlayCanvasRef}
           style={subtitleFrameStyle}
           videoCanvasRef={videoCanvasRef}

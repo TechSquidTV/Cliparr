@@ -2,18 +2,24 @@ import { Menu } from "@base-ui/react/menu";
 import { MoreHorizontal, Plus } from "lucide-react";
 import { type RefObject, useEffect, useRef } from "react";
 
-import { type EditorPropertiesOpenSections } from "#/components/editor/editorSidebarPreferences";
+import type { EditorLayoutVariant } from "#/components/editor/EditorLayout";
 import { EditorSubtitleCueEditor } from "#/components/editor/EditorSubtitleCueEditor";
 import { EditorSubtitleStyleControls } from "#/components/editor/EditorSubtitleStyleControls";
+import { completeEditorTimecode } from "#/components/editor/EditorTimecodeEdit";
 import { SubtitleTrackLabel } from "#/components/editor/SubtitleTrackLabel";
 import type { useEditorSubtitles } from "#/components/editor/useEditorSubtitles";
-import { editorActionButtonClasses } from "#/components/ui/control-styles";
-import { Spinner } from "#/components/ui/spinner";
+import {
+  editorActionButtonClasses,
+  editorIconButtonClassName,
+} from "#/components/ui/control-styles";
 import { Switch } from "#/components/ui/switch";
-import { ControlTooltip } from "#/components/ui/tooltip";
+import { Tabs, TabsList, TabsPanel, TabsTab } from "#/components/ui/tabs";
+import { cn } from "#/lib/cn";
 import { subtitleTrackKey } from "#/lib/subtitles/selectPreferredSubtitleTrack";
 
+export type EditorSubtitleTab = "text" | "timing" | "style";
 export interface EditorSubtitlePanelProperties {
+  variant: EditorLayoutVariant;
   subtitles: Pick<
     ReturnType<typeof useEditorSubtitles>,
     | "subtitleTracks"
@@ -22,13 +28,13 @@ export interface EditorSubtitlePanelProperties {
     | "subtitleStyleSettings"
     | "setSubtitleStyleSettings"
     | "subtitleLoading"
-    | "subtitleError"
     | "selectedSubtitleCue"
     | "subtitleCues"
     | "subtitleText"
     | "editSubtitleText"
     | "commitText"
-    | "textError"
+    | "beginTextComposition"
+    | "endTextComposition"
     | "selectedSubtitleOutsideRange"
     | "canAddSubtitle"
     | "addSubtitle"
@@ -41,197 +47,252 @@ export interface EditorSubtitlePanelProperties {
     | "handleSeekToSelectedSubtitle"
     | "canImportSubtitles"
     | "requestImport"
-    | "cancelImport"
     | "subtitleTrackChangePending"
     | "requestClear"
     | "clearPending"
   >;
-  subtitleTrackTriggerRef: RefObject<HTMLButtonElement | null>;
   subtitleOptionsTriggerRef: RefObject<HTMLButtonElement | null>;
-  editorPropertiesOpenSections: EditorPropertiesOpenSections;
-  onEditorPropertiesOpenSectionsChange: (
-    sections: EditorPropertiesOpenSections,
-  ) => void;
+  tab: EditorSubtitleTab;
+  onTabChange: (tab: EditorSubtitleTab) => void;
+  consumeFocus: (revision: number) => boolean;
+  onEditingFocus?: () => void;
+  onDone?: () => void;
   showHeading?: boolean;
+  autoFocusCreated?: boolean;
 }
 
 const menuItemClasses =
-  "cursor-default rounded px-3 py-2 text-xs outline-none data-[highlighted]:bg-editor-control-hover data-[disabled]:opacity-50";
+  "min-h-11 rounded px-3 py-2 text-sm outline-none data-[highlighted]:bg-editor-control-hover data-[disabled]:opacity-50";
 
 export function EditorSubtitlePanel({
+  variant,
   subtitles,
-  subtitleTrackTriggerRef,
   subtitleOptionsTriggerRef,
-  editorPropertiesOpenSections,
-  onEditorPropertiesOpenSectionsChange,
+  tab,
+  onTabChange,
+  consumeFocus,
+  onEditingFocus,
+  onDone,
   showHeading = true,
+  autoFocusCreated = true,
 }: EditorSubtitlePanelProperties) {
-  const {
-    subtitleTracks,
-    subtitleOutputEnabled,
-    setSubtitleEnabled,
-    subtitleStyleSettings,
-    setSubtitleStyleSettings,
-    subtitleLoading,
-    subtitleError,
-    subtitleCues,
-    canAddSubtitle,
-    addSubtitle,
-    focusRevision,
-  } = subtitles;
   const textReference = useRef<HTMLTextAreaElement>(null);
   const panelReference = useRef<HTMLDivElement>(null);
+  const { focusRevision } = subtitles;
   useEffect(() => {
-    if (focusRevision === 0) {
+    if (!consumeFocus(focusRevision)) {
       return;
     }
-    panelReference.current?.scrollIntoView({ block: "nearest" });
-    textReference.current?.focus({ preventScroll: true });
-    textReference.current?.select();
-  }, [focusRevision]);
-  let importDisabledLabel = "Waiting for media to load";
-  if (subtitleLoading) {
-    importDisabledLabel = "Subtitle import is in progress";
-  } else if (subtitleTracks.length === 0) {
-    importDisabledLabel = "No subtitle tracks available to import";
-  }
-  const importTriggerButton = (
-    <button
-      ref={subtitleTrackTriggerRef}
-      type="button"
-      className={editorActionButtonClasses}
-      disabled={!subtitles.canImportSubtitles}
-    >
-      Import…
-    </button>
+    onTabChange("text");
+    if (!autoFocusCreated) {
+      return;
+    }
+    const frame = requestAnimationFrame(() => {
+      textReference.current?.focus({ preventScroll: true });
+      textReference.current?.select();
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [focusRevision, consumeFocus, autoFocusCreated, onTabChange]);
+  const textEditor = (
+    <EditorSubtitleCueEditor
+      section={variant === "desktop" ? "all" : "text"}
+      subtitles={subtitles}
+      textReference={textReference}
+    />
+  );
+  const styleControls = (
+    <EditorSubtitleStyleControls
+      subtitleStyleSettings={subtitles.subtitleStyleSettings}
+      setSubtitleStyleSettings={subtitles.setSubtitleStyleSettings}
+    />
   );
   return (
     <div
       ref={panelReference}
-      className="flex h-full min-h-0 flex-col bg-editor-panel text-sidebar-foreground"
+      className={cn(
+        "flex h-full min-h-0 flex-col bg-editor-panel text-sidebar-foreground",
+        variant === "mobile" && tab === "text" && "min-h-60",
+      )}
+      onFocusCapture={(event) => {
+        if (
+          event.target instanceof HTMLInputElement ||
+          event.target instanceof HTMLTextAreaElement
+        ) {
+          onEditingFocus?.();
+        }
+      }}
     >
-      <div className="sticky top-0 z-10 shrink-0 space-y-2 border-b border-editor-border bg-editor-panel p-3">
-        <div
-          className={`flex items-center gap-2 ${showHeading ? "justify-between" : "justify-end"}`}
+      <div className="flex shrink-0 flex-wrap items-center gap-1 px-2 py-1">
+        {showHeading && (
+          <h2 className="min-w-16 flex-1 truncate text-sm font-medium">
+            Subtitles
+          </h2>
+        )}
+        <button
+          type="button"
+          aria-label="Add subtitle"
+          className={
+            variant === "mobile"
+              ? editorIconButtonClassName({
+                  variant: "ghost",
+                  className: "h-11 w-11 shrink-0",
+                })
+              : `${editorActionButtonClasses} flex-1 border-0 bg-transparent`
+          }
+          disabled={!subtitles.canAddSubtitle}
+          onClick={subtitles.addSubtitle}
         >
-          {showHeading ? (
-            <h2 className="text-sm font-semibold">Subtitles</h2>
-          ) : null}
+          <Plus className="h-4 w-4" />
+          {variant === "desktop" && "Add subtitle"}
+        </button>
+        <label className="inline-flex min-h-11 min-w-11 items-center justify-center">
           <Switch
             aria-label="Show subtitles"
-            checked={subtitleOutputEnabled}
-            onCheckedChange={setSubtitleEnabled}
+            checked={subtitles.subtitleOutputEnabled}
+            onCheckedChange={subtitles.setSubtitleEnabled}
             variant="editor"
           />
-        </div>
-        <div className="flex gap-2">
+        </label>
+        <Menu.Root>
+          <Menu.Trigger
+            render={
+              <button
+                ref={subtitleOptionsTriggerRef}
+                type="button"
+                aria-label="Subtitle options"
+                className={editorIconButtonClassName({
+                  variant: "ghost",
+                  className: "h-11 w-11 shrink-0",
+                })}
+              >
+                <MoreHorizontal className="h-4 w-4" />
+              </button>
+            }
+          />
+          <Menu.Portal>
+            <Menu.Positioner align="end" sideOffset={6} className="z-50">
+              <Menu.Popup
+                finalFocus={() =>
+                  !subtitles.subtitleTrackChangePending &&
+                  !subtitles.clearPending
+                }
+                className="max-h-80 max-w-80 overflow-y-auto rounded border border-editor-border bg-editor-panel p-1 shadow-lg"
+              >
+                {subtitles.subtitleTracks.length > 0 && (
+                  <Menu.Group>
+                    <Menu.GroupLabel className="px-3 py-2 text-xs text-muted-foreground">
+                      Import subtitle track
+                    </Menu.GroupLabel>
+                    {subtitles.subtitleTracks.map((track) => (
+                      <Menu.Item
+                        key={subtitleTrackKey(track)}
+                        disabled={!subtitles.canImportSubtitles}
+                        onClick={() =>
+                          subtitles.requestImport(subtitleTrackKey(track))
+                        }
+                        className={menuItemClasses}
+                      >
+                        <SubtitleTrackLabel track={track} />
+                      </Menu.Item>
+                    ))}
+                  </Menu.Group>
+                )}
+                <Menu.Item
+                  disabled={
+                    subtitles.subtitleCues.length === 0 &&
+                    !subtitles.subtitleLoading
+                  }
+                  onClick={subtitles.requestClear}
+                  className={menuItemClasses}
+                >
+                  Start blank…
+                </Menu.Item>
+              </Menu.Popup>
+            </Menu.Positioner>
+          </Menu.Portal>
+        </Menu.Root>
+        {onDone && (
           <button
             type="button"
-            className={`${editorActionButtonClasses} flex-1`}
-            disabled={!canAddSubtitle}
-            onClick={addSubtitle}
+            onClick={onDone}
+            className="editor-control-focus min-h-11 shrink-0 rounded-[var(--radius-control)] px-2 text-editor-property font-medium text-primary hover:bg-editor-control-hover"
           >
-            <Plus className="h-3.5 w-3.5" />
-            Add subtitle
+            Done
           </button>
-          {subtitles.canImportSubtitles ? (
-            <Menu.Root>
-              <Menu.Trigger render={importTriggerButton} />
-              <Menu.Portal>
-                <Menu.Positioner align="end" sideOffset={6} className="z-50">
-                  <Menu.Popup
-                    finalFocus={() => !subtitles.subtitleTrackChangePending}
-                    className="z-50 max-h-80 max-w-80 overflow-y-auto rounded border border-editor-border bg-editor-panel p-1 shadow-lg"
-                  >
-                    <Menu.Group>
-                      <Menu.GroupLabel className="px-3 py-2 text-xs text-muted-foreground">
-                        Import subtitle track
-                      </Menu.GroupLabel>
-                      {subtitleTracks.map((track) => (
-                        <Menu.Item
-                          key={subtitleTrackKey(track)}
-                          className={menuItemClasses}
-                          onClick={() =>
-                            subtitles.requestImport(subtitleTrackKey(track))
-                          }
-                        >
-                          <SubtitleTrackLabel track={track} />
-                        </Menu.Item>
-                      ))}
-                    </Menu.Group>
-                  </Menu.Popup>
-                </Menu.Positioner>
-              </Menu.Portal>
-            </Menu.Root>
-          ) : (
-            <ControlTooltip disabled label={importDisabledLabel}>
-              {importTriggerButton}
-            </ControlTooltip>
-          )}
-          <Menu.Root>
-            <Menu.Trigger
-              render={
-                <button
-                  type="button"
-                  ref={subtitleOptionsTriggerRef}
-                  aria-label="Subtitle options"
-                  className={editorActionButtonClasses}
-                >
-                  <MoreHorizontal className="h-4 w-4" />
-                </button>
-              }
-            />
-            <Menu.Portal>
-              <Menu.Positioner align="end" sideOffset={6} className="z-50">
-                <Menu.Popup
-                  className="z-50 rounded border border-editor-border bg-editor-panel p-1 shadow-lg"
-                  finalFocus={() => !subtitles.clearPending}
-                >
-                  <Menu.Item
-                    disabled={subtitleCues.length === 0 && !subtitleLoading}
-                    onClick={subtitles.requestClear}
-                    className={menuItemClasses}
-                  >
-                    Start blank…
-                  </Menu.Item>
-                </Menu.Popup>
-              </Menu.Positioner>
-            </Menu.Portal>
-          </Menu.Root>
+        )}
+      </div>
+      {variant === "desktop" ? (
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
+          {textEditor}
+          {styleControls}
         </div>
-        {subtitleLoading && (
-          <div role="status" className="flex items-center gap-2 text-xs">
-            <Spinner className="h-3.5 w-3.5" />
-            Importing subtitles…
-            <button
-              type="button"
-              className="ml-auto underline"
-              onClick={subtitles.cancelImport}
+      ) : (
+        <Tabs
+          value={tab}
+          onValueChange={(value: string) => {
+            if (
+              panelReference.current &&
+              !completeEditorTimecode(panelReference.current)
+            ) {
+              return;
+            }
+            if (value === "text" || value === "timing" || value === "style") {
+              subtitles.commitText();
+              onTabChange(value);
+            }
+          }}
+          className="flex min-h-0 flex-1 flex-col"
+        >
+          <TabsList
+            aria-label="Subtitle editing"
+            className="mx-2 mb-2 shrink-0 border-editor-border bg-editor-panel p-0"
+            indicatorClassName="bg-editor-control-active"
+          >
+            <TabsTab
+              value="text"
+              className="min-h-11 flex-1 text-editor-property font-medium normal-case tracking-normal data-[active]:text-primary"
             >
-              Cancel
-            </button>
+              Text
+            </TabsTab>
+            <TabsTab
+              value="timing"
+              className="min-h-11 flex-1 text-editor-property font-medium normal-case tracking-normal data-[active]:text-primary"
+            >
+              Timing
+            </TabsTab>
+            <TabsTab
+              value="style"
+              className="min-h-11 flex-1 text-editor-property font-medium normal-case tracking-normal data-[active]:text-primary"
+            >
+              Style
+            </TabsTab>
+          </TabsList>
+          <div
+            className={cn(
+              "min-h-0 flex-1",
+              tab === "text"
+                ? "overflow-hidden"
+                : "overflow-y-auto overscroll-contain",
+            )}
+          >
+            <TabsPanel value="text" animated={false} className="h-full min-h-0">
+              {tab === "text" && textEditor}
+            </TabsPanel>
+            <TabsPanel value="timing" animated={false}>
+              {tab === "timing" && (
+                <EditorSubtitleCueEditor
+                  section="timing"
+                  subtitles={subtitles}
+                  textReference={textReference}
+                />
+              )}
+            </TabsPanel>
+            <TabsPanel value="style" animated={false}>
+              {tab === "style" && styleControls}
+            </TabsPanel>
           </div>
-        )}
-        {subtitleError && (
-          <p role="status" className="text-xs text-destructive">
-            {subtitleError}
-          </p>
-        )}
-      </div>
-      <div className="min-h-0 flex-1 overflow-y-auto">
-        <EditorSubtitleCueEditor
-          subtitles={subtitles}
-          textReference={textReference}
-        />
-        <EditorSubtitleStyleControls
-          subtitleStyleSettings={subtitleStyleSettings}
-          setSubtitleStyleSettings={setSubtitleStyleSettings}
-          editorPropertiesOpenSections={editorPropertiesOpenSections}
-          onEditorPropertiesOpenSectionsChange={
-            onEditorPropertiesOpenSectionsChange
-          }
-        />
-      </div>
+        </Tabs>
+      )}
     </div>
   );
 }

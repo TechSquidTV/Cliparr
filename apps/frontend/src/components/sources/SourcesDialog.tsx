@@ -96,11 +96,15 @@ export default function SourcesDialog({
           data-sources-loading-list
           transition={layoutTransition}
         >
+          <span role="status" className="sr-only">
+            Loading sources…
+          </span>
           {Array.from({ length: 4 }).map((_, index) => (
             <motion.div
               key={index}
               layout={!reduceMotion}
-              className="h-56 animate-pulse rounded-lg border border-border bg-muted/60"
+              aria-hidden="true"
+              className="h-56 animate-pulse rounded-lg border border-border bg-muted/60 motion-reduce:animate-none"
               exit={SOURCES_STATE_EXIT}
               transition={
                 reduceMotion

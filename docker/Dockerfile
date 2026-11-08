@@ -6,13 +6,14 @@
 # stage resolves to the target platform. The development and capture targets
 # are built for the host platform in every supported flow, where the build
 # platform is the target platform.
-FROM --platform=$BUILDPLATFORM node:24.22.2-bookworm-slim@sha256:01d566e8d94d8c619591d78652babfccd3c6992a3dffa9ed5ab39e11cf6c70e9 AS toolchain
+FROM --platform=$BUILDPLATFORM node:26.13.0-trixie-slim@sha256:5adad64f9a1fca2d51972caa65983634c8a774eb300d72b20f7f2a0f60368072 AS toolchain
 ENV PNPM_HOME=/pnpm
 ENV PATH=$PNPM_HOME:$PATH
 ENV npm_config_store_dir=/pnpm/store
 WORKDIR /workspace
 COPY package.json /tmp/cliparr-package.json
-RUN npm uninstall --global corepack \
+RUN --mount=type=bind,source=docker/upgrade-zlib.sh,target=/tmp/upgrade-zlib.sh \
+  sh /tmp/upgrade-zlib.sh \
   && npm install --global "$(node -p 'require("/tmp/cliparr-package.json").packageManager')" \
   && rm /tmp/cliparr-package.json \
   && npm uninstall --global npm
@@ -51,6 +52,7 @@ COPY config/tsconfig.json config/tsconfig.base.json config/
 COPY packages/shared/src packages/shared/src
 
 FROM --platform=$BUILDPLATFORM app-source AS server-build
+COPY .nvmrc ./
 COPY packages/plex/src packages/plex/src
 COPY apps/server/tsconfig.json apps/server/tsconfig.build.json apps/server/tsdown.config.ts apps/server/
 COPY apps/server/src apps/server/src
@@ -92,7 +94,11 @@ WORKDIR /workspace/tools/www-assets
 USER node
 CMD ["node", "src/record.ts"]
 
-FROM gcr.io/distroless/nodejs24-debian13:nonroot@sha256:b8cec4b2f2126ff7bd034ec9ac207ffb3272667dfdc48376e3b035d3270549ba AS production
+FROM node:26.13.0-trixie-slim@sha256:5adad64f9a1fca2d51972caa65983634c8a774eb300d72b20f7f2a0f60368072 AS production
+RUN --mount=type=bind,source=docker/upgrade-zlib.sh,target=/tmp/upgrade-zlib.sh \
+  sh /tmp/upgrade-zlib.sh \
+  && npm uninstall --global npm \
+  && rm -rf /opt/yarn-v* /usr/local/bin/yarn /usr/local/bin/yarnpkg
 LABEL org.opencontainers.image.title="Cliparr" \
   org.opencontainers.image.description="Instant media clipper for Plex and Jellyfin servers." \
   org.opencontainers.image.source="https://github.com/techsquidtv/cliparr" \
@@ -114,5 +120,6 @@ USER 65532:65532
 VOLUME ["/data"]
 EXPOSE 7171
 HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \
-  CMD ["/nodejs/bin/node", "-e", "fetch('http://127.0.0.1:' + (process.env.PORT || 7171) + '/api/health').then((response) => process.exit(response.ok ? 0 : 1)).catch(() => process.exit(1))"]
+  CMD ["/usr/local/bin/node", "-e", "fetch('http://127.0.0.1:' + (process.env.PORT || 7171) + '/api/health').then((response) => process.exit(response.ok ? 0 : 1)).catch(() => process.exit(1))"]
+ENTRYPOINT ["/usr/local/bin/node"]
 CMD ["apps/server/dist/server.js"]

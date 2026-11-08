@@ -1,5 +1,6 @@
 @import "tailwindcss";
 @import "./components/ui/styles.css";
+@import "./components/editor/editor-mobile.css";
 
 @custom-variant dark (&:is(.dark *));
 
@@ -447,11 +448,13 @@
   --text-ui-micro--line-height: calc(0.875 / 0.625);
   --text-ui-label: 0.6875rem;
   --text-ui-label--line-height: calc(1 / 0.6875);
+  /* Editor properties use readable mobile labels and distinct input sizing. */
+  --text-editor-property: 0.875rem;
+  --text-editor-property--line-height: calc(1.25 / 0.875);
+  --text-editor-input: 1rem;
+  --text-editor-input--line-height: 1.5;
   --text-editor-preview-fallback: var(--editor-preview-fallback-font-size);
   --spacing-source-provider-panel: 22rem;
-  --spacing-editor-properties-min: 28rem;
-  --spacing-editor-preview-min: 12rem;
-  --spacing-editor-preview-sm-min: 16rem;
   --spacing-editor-crop-preview-max: 45dvh;
   --spacing-editor-export-sidebar: 18rem;
   --spacing-editor-export-template-label: 12rem;
@@ -676,6 +679,7 @@
 
 .editor-media-range .range-scrollbar-handle {
   background: transparent;
+  pointer-events: auto;
   touch-action: none;
 }
 
@@ -692,4 +696,98 @@
   :is(.range-scrollbar-thumb, .range-scrollbar-handle):focus-visible {
   outline: 2px solid var(--editor-accent);
   outline-offset: 2px;
+}
+
+/* The actual handle covers the painted grip, even where the row clips its
+   outside edge. Reserve the middle half of short selections for moving them. */
+@media (pointer: coarse) {
+  /* Share a stacking context so the playhead can sit between the painted
+     grips and their expanded touch targets. */
+  .editor-media-range-row,
+  .editor-media-range-row .editor-media-range {
+    z-index: auto;
+  }
+  .editor-media-range-selection {
+    inset-block: -4px;
+    --editor-trim-interior: min(var(--editor-range-quarter), 44px);
+    --editor-trim-target-width: max(
+      44px,
+      calc(var(--editor-trim-interior) + 22px)
+    );
+    --editor-trim-offset: calc(
+      var(--editor-trim-interior) - var(--editor-trim-target-width)
+    );
+  }
+  /* A short selection puts its move control above the playhead padding.
+     Outside that control, scrubbing takes precedence over unpainted trim padding. */
+  .editor-media-range-row .editor-media-playhead-padding {
+    width: var(--editor-playhead-touch-width);
+    margin-left: calc(var(--editor-playhead-touch-width) / -2);
+    z-index: 33;
+  }
+  .editor-media-range .range-scrollbar-thumb {
+    z-index: 34;
+  }
+  .editor-media-range .range-scrollbar-handle {
+    z-index: auto;
+  }
+  .editor-media-range .range-scrollbar-handle::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 81;
+  }
+  .editor-media-range-selection
+    .range-scrollbar-handle[data-side]:empty::before {
+    content: "";
+    position: absolute;
+    inset-block: 0;
+    width: var(--editor-trim-target-width);
+    height: auto;
+    border-radius: 0;
+    z-index: 32;
+    background: transparent;
+    transform: none;
+  }
+  .editor-media-range .range-scrollbar-handle[data-side="start"]::before {
+    left: var(--editor-trim-offset);
+  }
+  .editor-media-range .range-scrollbar-handle[data-side="end"]::before {
+    right: var(--editor-trim-offset);
+  }
+
+  /* Leave room to move a short selection on either side of the playhead.
+     The ruler and other tracks keep the full-width grabber. */
+  .cliparr-timeline-v2 .editor-playhead {
+    pointer-events: none;
+  }
+  .editor-playhead .timeline-playhead-grabber-highlight {
+    width: min(var(--editor-playhead-touch-width), var(--editor-range-quarter));
+  }
+  .editor-playhead:has(
+    + .editor-media-range-row > .editor-media-playhead-padding.is-dragging
+  ) {
+    .timeline-playhead-grabber-highlight {
+      background-color: var(--timeline-playhead-hover-background);
+    }
+    :is(.timeline-playhead-grabber-line, .timeline-playhead-grabber-handle) {
+      background-color: var(--timeline-playhead-hover);
+      box-shadow: var(--timeline-playhead-shadow);
+    }
+  }
+  .editor-playhead::before,
+  .editor-playhead::after {
+    content: "";
+    position: absolute;
+    inset-inline: 0;
+    pointer-events: auto;
+  }
+  .editor-playhead::before {
+    top: 0;
+    height: var(--editor-media-top);
+  }
+  .editor-playhead::after {
+    top: var(--editor-media-bottom);
+    bottom: 0;
+  }
 }

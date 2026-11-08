@@ -18,7 +18,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-import { cn } from "@/lib/cn";
+import { cn } from "#/lib/cn";
 
 interface BarsLoaderProps {
   size?: number;

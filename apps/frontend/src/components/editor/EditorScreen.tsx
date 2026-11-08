@@ -11,6 +11,7 @@ import {
 import {
   lazy,
   Suspense,
+  type SyntheticEvent,
   useCallback,
   useEffect,
   useLayoutEffect,
@@ -18,19 +19,26 @@ import {
   useState,
 } from "react";
 
-import { EditorControls } from "@/components/editor/EditorControls";
+import {
+  EditorControls,
+  type EditorControlsSection,
+} from "@/components/editor/EditorControls";
 import {
   type EditorDraft,
   editorDraftIdentity,
   editorDrafts,
 } from "@/components/editor/editorDrafts";
-import { EditorEditingTools } from "@/components/editor/EditorEditingTools";
+import {
+  EditorHistoryControls,
+  useEditorEditingTools,
+} from "@/components/editor/EditorEditingTools";
 import { EditorHeader } from "@/components/editor/EditorHeader";
 import {
   EditorDesktopLayout,
   EditorMobileLayout,
   EditorPreviewPane,
   EditorTimelinePane,
+  type EditorTool,
 } from "@/components/editor/EditorLayout";
 import { EDITOR_DESKTOP_LAYOUT_QUERY } from "@/components/editor/editorLayoutSizing";
 import {
@@ -46,15 +54,20 @@ import {
   resolveRelativeSeekTime,
 } from "@/components/editor/editorShortcutCommands";
 import {
-  loadEditorPropertiesOpenSections,
-  saveEditorPropertiesOpenSections,
-} from "@/components/editor/editorSidebarPreferences";
-import { EditorSubtitlePanel } from "@/components/editor/EditorSubtitlePanel";
+  EditorSubtitlePanel,
+  type EditorSubtitleTab,
+} from "@/components/editor/EditorSubtitlePanel";
 import { EditorSubtitlePreview } from "@/components/editor/EditorSubtitlePreview";
+import {
+  completeEditorTimecode,
+  EditorTimecodeProvider,
+  useEditorTimecodeEdit,
+} from "@/components/editor/EditorTimecodeEdit";
 import { EditorTimeline } from "@/components/editor/EditorTimeline";
 import {
   createEditorTimelineEngine,
   synchronizeEditorTimelineSession,
+  timelineScrollLeftForCenteredTime,
 } from "@/components/editor/editorTimelineEngine";
 import {
   EDITOR_MAX_ZOOM_SCALE,
@@ -69,6 +82,7 @@ import { useEditorAssetCapture } from "@/components/editor/useEditorAssetCapture
 import { useEditorDraft } from "@/components/editor/useEditorDraft";
 import { useEditorExport } from "@/components/editor/useEditorExport";
 import { useEditorFramegrab } from "@/components/editor/useEditorFramegrab";
+import { useEditorInputViewport } from "@/components/editor/useEditorInputViewport";
 import { useEditorKeyboardShortcuts } from "@/components/editor/useEditorKeyboardShortcuts";
 import { useEditorSubtitles } from "@/components/editor/useEditorSubtitles";
 import { useEditorTimelineMedia } from "@/components/editor/useEditorTimelineMedia";
@@ -80,6 +94,7 @@ import {
   EditorPropertyAccordionItem,
 } from "#/components/editor/EditorPropertyControls";
 import { useEditorCrop } from "#/components/editor/useEditorCrop";
+import { BarsLoader } from "#/components/ui/bars-loader";
 import { resolveVideoCrop } from "#/lib/videoCrop";
 
 const EditorExportDialog = lazy(() =>
@@ -104,8 +119,6 @@ const EditorCropControls = lazy(() =>
     default: module.EditorCropControls,
   })),
 );
-
-const blockNavigation = () => true;
 
 interface Properties {
   session: EditorSession;
@@ -145,13 +158,15 @@ function EditorSessionScreen({
 
   return (
     <TimelineProvider engine={engine}>
-      <EditorScreenContent
-        session={session}
-        onBack={onBack}
-        engine={engine}
-        initialDraft={initialDraft}
-        onReset={onReset}
-      />
+      <EditorTimecodeProvider>
+        <EditorScreenContent
+          session={session}
+          onBack={onBack}
+          engine={engine}
+          initialDraft={initialDraft}
+          onReset={onReset}
+        />
+      </EditorTimecodeProvider>
     </TimelineProvider>
   );
 }
@@ -173,13 +188,35 @@ function EditorScreenContent({
   const duration = timelineMedia.duration;
   const startTime = inPoint ? toSeconds(inPoint) : 0;
   const endTime = outPoint ? toSeconds(outPoint) : duration;
+  const isDesktopLayout = useEditorDesktopLayout();
   const [playbackSidebarOpen, setPlaybackSidebarOpen] = useState(true);
-  const [propertiesPanel, setPropertiesPanel] = useState("subtitles");
-  const mainReference = useRef<HTMLElement>(null);
-  const [editorPropertiesOpenSections, setEditorPropertiesOpenSections] =
-    useState(loadEditorPropertiesOpenSections);
+  const [propertiesPanel, setPropertiesPanel] = useState<EditorTool | null>(
+    () => (isDesktopLayout ? "subtitles" : null),
+  );
+  const timecodeTool = useEditorTimecodeEdit().draft?.tool;
+  const [trackNamesVisible, setTrackNamesVisible] = useState(false);
+  const mobileWorkspace = useRef<HTMLDivElement>(null);
+  const compositionAction = useRef<HTMLButtonElement | null>(null);
+  const [subtitleTab, setSubtitleTab] = useState<EditorSubtitleTab>("text");
+  useLayoutEffect(() => {
+    if (!isDesktopLayout && timecodeTool) {
+      setPropertiesPanel(timecodeTool);
+      if (timecodeTool === "subtitles") {
+        setSubtitleTab("timing");
+      }
+    }
+  }, [isDesktopLayout, timecodeTool]);
+  const consumedSubtitleFocus = useRef(0);
+  const consumeSubtitleFocus = useCallback((revision: number) => {
+    if (revision <= consumedSubtitleFocus.current) {
+      return false;
+    }
+    consumedSubtitleFocus.current = revision;
+    return true;
+  }, []);
   const [exportDialogMounted, setExportDialogMounted] = useState(false);
-  const subtitleTrackTriggerReference = useRef<HTMLButtonElement>(null);
+  const exportButtonReference = useRef<HTMLButtonElement>(null);
+  const moreTriggerReference = useRef<HTMLButtonElement>(null);
   const subtitleOptionsTriggerReference = useRef<HTMLButtonElement>(null);
   const subtitles = useEditorSubtitles({
     initialDraft,
@@ -189,10 +226,14 @@ function EditorScreenContent({
     endTime,
     duration,
     mediaReady: timelineMedia.metadataReady,
+    previewReady: !timelineMedia.loadingPreviewFrame,
+    renderedFrameTime: timelineMedia.renderedFrameTime,
+    getRenderedFrameTime: timelineMedia.getRenderedFrameTime,
     pausePlayback: timelineMedia.pausePlayback,
     onSubtitleCreated: () => {
       setPlaybackSidebarOpen(true);
       setPropertiesPanel("subtitles");
+      setSubtitleTab("text");
     },
   });
   const {
@@ -215,10 +256,20 @@ function EditorScreenContent({
   } = subtitles;
   const crop = useEditorCrop(initialDraft?.crop, editHistory.recordApplied);
   const cropOverlayRef = useRef<EditorCropOverlayHandle>(null);
-  const finishCropGesture = () => {
+  const { finishGesture: finishCropHistoryGesture } = crop;
+  const finishCropGesture = useCallback(() => {
     cropOverlayRef.current?.finishGesture();
-    crop.finishGesture();
-  };
+    finishCropHistoryGesture();
+  }, [finishCropHistoryGesture]);
+  const finishEditing = useCallback(() => {
+    finishCropGesture();
+    commitSubtitleText();
+  }, [finishCropGesture, commitSubtitleText]);
+  useEffect(() => {
+    window.addEventListener("resize", finishCropGesture);
+    return () => window.removeEventListener("resize", finishCropGesture);
+  }, [finishCropGesture]);
+  const connectWorkspace = useEditorInputViewport(finishCropGesture);
   const editorHistory = {
     ...editHistory,
     undo: () => {
@@ -272,9 +323,6 @@ function EditorScreenContent({
     getPlaybackTime,
   } = timelineMedia;
 
-  useEffect(() => {
-    saveEditorPropertiesOpenSections(editorPropertiesOpenSections);
-  }, [editorPropertiesOpenSections]);
   const {
     cropDisabledReason,
     hasActiveCrop,
@@ -286,11 +334,12 @@ function EditorScreenContent({
     mode,
     mixDownToStereo,
     setMixDownToStereo,
+    audioPending,
     audioStatus,
     audioPlan,
     audioBitDepth,
     audioExportDisabledReason,
-    audioDisabledReason,
+    sourceAudioChannels,
     fileNameTemplates,
     templateEditorKind,
     setTemplateEditorKind,
@@ -335,12 +384,21 @@ function EditorScreenContent({
     subtitleCues,
     subtitleStyleSettings,
   });
+  const [desktopAtConfirmation, setDesktopAtConfirmation] = useState<
+    boolean | null
+  >(null);
+  const blockNavigation = useCallback(() => {
+    // Keep the export surface mounted through the confirmation's exit animation.
+    setDesktopAtConfirmation((current) => current ?? isDesktopLayout);
+    return true;
+  }, [isDesktopLayout]);
   const navigationBlocker = useBlocker({
     disabled: !exporting,
     enableBeforeUnload: exporting,
     shouldBlockFn: blockNavigation,
     withResolver: true,
   });
+  const leaveConfirmationOpen = navigationBlocker.status === "blocked";
   useEffect(() => {
     if (!exporting && navigationBlocker.status === "blocked") {
       navigationBlocker.reset();
@@ -378,16 +436,23 @@ function EditorScreenContent({
     if (cropDisabled) {
       return;
     }
-    commitSubtitleText();
+    finishEditing();
     pausePlayback();
     setPlaybackSidebarOpen(true);
     setPropertiesPanel("crop");
-    mainReference.current?.scrollTo({ top: 0 });
+    mobileWorkspace.current?.scrollTo({ top: 0 });
   };
-  const closeCrop = () => {
-    finishCropGesture();
-    setPropertiesPanel("subtitles");
-    mainReference.current?.scrollTo({ top: 0 });
+  const closeTool = () => {
+    finishEditing();
+    setPropertiesPanel(isDesktopLayout ? "subtitles" : null);
+    if (propertiesPanel === "crop") {
+      mobileWorkspace.current?.scrollTo({ top: 0 });
+    }
+    if (!isDesktopLayout && propertiesPanel) {
+      document
+        .querySelector<HTMLButtonElement>(`#editor-tool-${propertiesPanel}`)
+        ?.focus();
+    }
   };
   const subtitleCanvasRef = useRef<HTMLCanvasElement>(null);
   const previewFrameTime = renderedFrameTime ?? currentTime;
@@ -422,7 +487,14 @@ function EditorScreenContent({
     }
   }, [exportDialogOpen]);
 
-  const { viewportWidth, setZoomScale, setScrollLeft } = useTimelineViewport();
+  const {
+    viewportWidth,
+    setZoomScale,
+    setScrollLeft,
+    maxScrollLeft,
+    zoomScale,
+    scrollLeft,
+  } = useTimelineViewport();
   const handleFitSelection = useCallback(() => {
     if (viewportWidth <= 0 || endTime <= startTime) {
       return;
@@ -457,6 +529,72 @@ function EditorScreenContent({
     max: EDITOR_MAX_ZOOM_SCALE,
   });
   const hasDuration = timelineMedia.metadataReady && duration > 0;
+  const hasCenteredTimeline = useRef(false);
+  useEffect(() => {
+    if (
+      hasCenteredTimeline.current ||
+      !hasDuration ||
+      !inPoint ||
+      viewportWidth <= 0
+    ) {
+      return;
+    }
+    hasCenteredTimeline.current = true;
+    setScrollLeft(
+      timelineScrollLeftForCenteredTime({
+        maxScrollLeft,
+        timeSeconds: startTime,
+        viewportWidth,
+        zoomScale,
+      }),
+    );
+  }, [
+    hasDuration,
+    inPoint,
+    maxScrollLeft,
+    setScrollLeft,
+    startTime,
+    viewportWidth,
+    zoomScale,
+  ]);
+  const previousViewport = useRef<{
+    width: number;
+    centerSeconds: number;
+    scrollLeft: number;
+    zoomScale: number;
+  } | null>(null);
+  const timelineWasHidden = useRef(false);
+  useLayoutEffect(() => {
+    if (viewportWidth <= 0) {
+      timelineWasHidden.current = true;
+      return;
+    }
+    const previous = previousViewport.current;
+    const resizing =
+      previous &&
+      hasCenteredTimeline.current &&
+      (timelineWasHidden.current || previous.width !== viewportWidth);
+    if (resizing) {
+      setScrollLeft(
+        Math.max(0, previous.centerSeconds * zoomScale - viewportWidth / 2),
+      );
+    }
+    const snapshotScrollLeft = engine.getState().scrollLeft;
+    const unchanged =
+      previous &&
+      previous.scrollLeft === snapshotScrollLeft &&
+      previous.zoomScale === zoomScale;
+    timelineWasHidden.current = false;
+    previousViewport.current = {
+      width: viewportWidth,
+      centerSeconds:
+        previous && (resizing || unchanged)
+          ? previous.centerSeconds
+          : (snapshotScrollLeft + viewportWidth / 2) / zoomScale,
+      scrollLeft: snapshotScrollLeft,
+      zoomScale,
+    };
+  }, [engine, viewportWidth, scrollLeft, zoomScale, setScrollLeft]);
   const canZoomOut = zoomControl.value > zoomControl.min;
   const canZoomIn = zoomControl.value < zoomControl.max;
   const handleTimelineZoomOut = useCallback(() => {
@@ -596,11 +734,9 @@ function EditorScreenContent({
   });
   const { openDialog: openFramegrabDialog } = framegrab;
   const handleFramegrabClick = useCallback(() => {
-    commitSubtitleText();
+    finishEditing();
     openFramegrabDialog();
-  }, [commitSubtitleText, openFramegrabDialog]);
-  const isDesktopLayout = useEditorDesktopLayout();
-
+  }, [finishEditing, openFramegrabDialog]);
   const durationExportDisabledReason = hasDuration
     ? null
     : "Waiting for media duration.";
@@ -612,11 +748,53 @@ function EditorScreenContent({
     (mode === "audio-only" ? null : subtitleExportSummary.disabledReason);
   const headerExportDisabledReason = durationExportDisabledReason;
   const layoutVariant = isDesktopLayout ? "desktop" : "mobile";
+  const hasSubtitleErrors =
+    subtitleError !== null || subtitles.textError !== null;
+  const subtitleStatus = (subtitleLoading || hasSubtitleErrors) && (
+    <div
+      role="status"
+      className="pointer-events-none absolute inset-x-0 top-0 z-20 flex flex-wrap items-center gap-2 border-b border-editor-border bg-editor-panel/95 px-3 py-2 text-xs"
+    >
+      {subtitleLoading && (
+        <>
+          <span>Importing subtitles…</span>
+          <button
+            type="button"
+            onClick={subtitles.cancelImport}
+            className="editor-control-focus pointer-events-auto min-h-11 px-3 underline lg:min-h-7"
+          >
+            Cancel import
+          </button>
+        </>
+      )}
+      {subtitleError && <span>{subtitleError}</span>}
+      {subtitles.textError && <span>{subtitles.textError}</span>}
+      {hasSubtitleErrors && (
+        <button
+          type="button"
+          onClick={subtitles.dismissErrors}
+          className="editor-control-focus pointer-events-auto min-h-11 px-3 underline lg:min-h-7"
+        >
+          Dismiss subtitle messages
+        </button>
+      )}
+    </div>
+  );
   const subtitlesActive = subtitleCues.length > 0;
+  const previewPicture = previewVideoDimensions
+    ? (resolveVideoCrop(previewCrop, previewVideoDimensions) ??
+      previewVideoDimensions)
+    : null;
   const previewPane = (
     <EditorPreviewPane
+      status={subtitleStatus}
       error={isDesktopLayout ? error : null}
       cropEditing={cropEditing}
+      pictureAspectRatio={
+        previewPicture
+          ? previewPicture.width / previewPicture.height
+          : undefined
+      }
       variant={layoutVariant}
     >
       <EditorPreview
@@ -638,7 +816,7 @@ function EditorScreenContent({
                 dimensions={sourceVideoDimensions}
                 onChange={crop.update}
                 onGestureStart={crop.beginGesture}
-                onGestureEnd={crop.finishGesture}
+                onGestureEnd={finishCropHistoryGesture}
               />
             </Suspense>
           ) : null
@@ -669,9 +847,32 @@ function EditorScreenContent({
       />
     </EditorPreviewPane>
   );
-  const editorControls = (
+  const changeTool = (tool: EditorTool) => {
+    if (tool === "crop") {
+      openCrop();
+      return;
+    }
+    finishEditing();
+    if (tool === "trim") {
+      pausePlayback();
+    }
+    setPlaybackSidebarOpen(true);
+    setPropertiesPanel(tool);
+  };
+  const renderControls = (section: EditorControlsSection = "workspace") => (
     <EditorControls
-      onCropClick={cropEditing ? closeCrop : openCrop}
+      section={section}
+      onTrimClick={() => changeTool("trim")}
+      inspectorOpen={!isDesktopLayout && propertiesPanel !== null}
+      trackNamesVisible={trackNamesVisible}
+      onTrackNamesVisibleChange={setTrackNamesVisible}
+      historyControls={
+        <EditorHistoryControls
+          history={editorHistory}
+          variant={layoutVariant}
+        />
+      }
+      onCropClick={cropEditing ? closeTool : openCrop}
       cropActive={cropEditing}
       cropDisabled={cropDisabled}
       variant={layoutVariant}
@@ -703,13 +904,14 @@ function EditorScreenContent({
   );
   const editorTimeline = (
     <EditorTimeline
+      variant={layoutVariant}
       engine={engine}
-      ready={hasDuration}
       subtitleLoading={subtitleLoading}
       onInteractionStart={commitSubtitleText}
       canAddSubtitle={subtitles.canAddSubtitle}
       onAddSubtitle={subtitles.addSubtitle}
-      onSubtitleVisibilityChange={setSubtitleEnabled}
+      onOpenSubtitles={() => changeTool("subtitles")}
+      trackNamesVisible={trackNamesVisible}
       muted={muted}
       onMutedChange={setMuted}
     />
@@ -717,7 +919,7 @@ function EditorScreenContent({
   const timelinePane = (
     <EditorTimelinePane
       variant={layoutVariant}
-      controls={editorControls}
+      controls={cropEditing && !isDesktopLayout ? null : renderControls()}
       hasDuration={hasDuration}
       timeline={editorTimeline}
     />
@@ -727,23 +929,35 @@ function EditorScreenContent({
     return (
       <div className={className}>
         <EditorSubtitlePanel
+          variant={layoutVariant}
           subtitles={subtitles}
-          subtitleTrackTriggerRef={subtitleTrackTriggerReference}
           subtitleOptionsTriggerRef={subtitleOptionsTriggerReference}
-          editorPropertiesOpenSections={editorPropertiesOpenSections}
-          onEditorPropertiesOpenSectionsChange={setEditorPropertiesOpenSections}
+          tab={subtitleTab}
+          onTabChange={setSubtitleTab}
+          consumeFocus={consumeSubtitleFocus}
+          onEditingFocus={pausePlayback}
           showHeading={!isDesktopLayout}
+          onDone={isDesktopLayout ? undefined : closeTool}
+          autoFocusCreated={isDesktopLayout}
         />
       </div>
     );
   }
 
+  const cropLoading = (
+    <div className="flex h-full min-h-40 items-center justify-center p-4 text-muted-foreground">
+      <BarsLoader
+        label={
+          sourceVideoDimensions
+            ? "Loading crop controls…"
+            : "Preparing crop controls…"
+        }
+        showLabel
+      />
+    </div>
+  );
   const cropControls = sourceVideoDimensions ? (
-    <Suspense
-      fallback={
-        <p className="text-sm text-muted-foreground">Loading crop controls…</p>
-      }
-    >
+    <Suspense fallback={cropLoading}>
       <EditorCropControls
         state={crop.state}
         dimensions={sourceVideoDimensions}
@@ -752,14 +966,52 @@ function EditorScreenContent({
           finishCropGesture();
           crop.update(next);
         }}
-        onDone={closeCrop}
+        onDone={closeTool}
       />
     </Suspense>
   ) : (
-    <p className="text-sm text-muted-foreground">
-      Waiting for video dimensions.
-    </p>
+    cropLoading
   );
+  function renderMobileInspector() {
+    switch (propertiesPanel) {
+      case "crop": {
+        return cropControls;
+      }
+      case "subtitles": {
+        return renderSubtitlePanel("h-full min-h-0");
+      }
+      case "trim": {
+        return renderControls("trim");
+      }
+      case "playback": {
+        return renderControls("playback");
+      }
+      case null: {
+        return null;
+      }
+    }
+  }
+  const editingTools = useEditorEditingTools({
+    history: editorHistory,
+    menuTriggerReference: moreTriggerReference,
+    title: session.title,
+    framegrab: {
+      onClick: handleFramegrabClick,
+      disabledReason: framegrab.disabledReason,
+      open: framegrab.dialogOpen,
+    },
+    variant: layoutVariant,
+    onResetDraft: draft.reset,
+    resetDisabled: exporting,
+    draftNotice: draft.notice,
+    playbackSourceControl: (
+      <EditorPlaybackSourceControl
+        previewSourceLabel={previewSourceLabel}
+        fallbackMessage={playbackFallbackReason}
+        variant={layoutVariant}
+      />
+    ),
+  });
   const propertiesContent = (
     <EditorPropertyAccordion
       multiple={false}
@@ -770,8 +1022,8 @@ function EditorScreenContent({
         if (next === "crop") {
           openCrop();
         } else {
-          closeCrop();
-          setPropertiesPanel(next);
+          finishEditing();
+          setPropertiesPanel(next === "subtitles" ? "subtitles" : null);
         }
       }}
     >
@@ -793,6 +1045,30 @@ function EditorScreenContent({
     </EditorPropertyAccordion>
   );
 
+  function guardEditorEdit(event: SyntheticEvent<HTMLDivElement>) {
+    const target = event.target;
+    if (!(target instanceof Element)) {
+      return;
+    }
+    const composing = event.currentTarget.querySelector<HTMLTextAreaElement>(
+      'textarea[data-editor-composing="true"]',
+    );
+    if (composing && target !== composing) {
+      compositionAction.current = target.closest<HTMLButtonElement>("button");
+      event.preventDefault();
+      event.stopPropagation();
+      return;
+    }
+    if (
+      target.closest("[data-editor-cancel-edit],input[data-editor-timecode]")
+    ) {
+      return;
+    }
+    if (!completeEditorTimecode(event.currentTarget)) {
+      event.preventDefault();
+      event.stopPropagation();
+    }
+  }
   if (!exportSource.source) {
     return (
       <div className="flex h-(--app-viewport-height) items-center justify-center overflow-hidden bg-background p-8 text-foreground">
@@ -807,7 +1083,24 @@ function EditorScreenContent({
   }
 
   return (
-    <div className="flex h-(--app-viewport-height) flex-col overflow-hidden bg-editor-workspace text-foreground">
+    <div
+      ref={connectWorkspace}
+      className="editor-session relative flex flex-col overflow-hidden bg-editor-workspace text-foreground"
+      onPointerDownCapture={guardEditorEdit}
+      onClickCapture={guardEditorEdit}
+      onKeyDownCapture={guardEditorEdit}
+      onCompositionEndCapture={() => {
+        const action = compositionAction.current;
+        compositionAction.current = null;
+        if (action) {
+          queueMicrotask(() => {
+            if (action.isConnected) {
+              action.click();
+            }
+          });
+        }
+      }}
+    >
       <ConfirmationDialog
         open={subtitleTrackChangePending}
         title="Replace subtitle cues?"
@@ -815,7 +1108,7 @@ function EditorScreenContent({
         confirmLabel="Replace cues"
         onConfirm={confirmSubtitleTrackChange}
         onCancel={cancelSubtitleTrackChange}
-        finalFocus={subtitleTrackTriggerReference}
+        finalFocus={subtitleOptionsTriggerReference}
       />
       <ConfirmationDialog
         open={subtitles.clearPending}
@@ -827,36 +1120,27 @@ function EditorScreenContent({
         finalFocus={subtitleOptionsTriggerReference}
       />
       <EditorHeader
+        exportButtonRef={exportButtonReference}
         title={session.title}
-        onBack={onBack}
+        onBack={() => {
+          finishEditing();
+          onBack();
+        }}
         exporting={exporting}
         progress={progress}
         exportDisabledReason={headerExportDisabledReason}
         onExportClick={() => {
-          commitSubtitleText();
+          finishEditing();
           handleOpenExportDialog();
         }}
       />
 
-      <EditorEditingTools
-        history={editorHistory}
-        variant={layoutVariant}
-        onResetDraft={draft.reset}
-        resetDisabled={exporting}
-        draftNotice={draft.notice}
-        playbackSourceControl={
-          <EditorPlaybackSourceControl
-            previewSourceLabel={previewSourceLabel}
-            fallbackMessage={playbackFallbackReason}
-            variant={layoutVariant}
-          />
-        }
-      />
+      {editingTools.dialogs}
+      {isDesktopLayout && editingTools.controls}
 
       <main
-        ref={mainReference}
         data-crop-editing={cropEditing || undefined}
-        className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto p-2.5 [scrollbar-gutter:stable] sm:p-3 lg:overflow-hidden lg:[scrollbar-gutter:auto]"
+        className="min-h-0 flex-1 overflow-hidden lg:p-3"
       >
         {isDesktopLayout ? (
           <EditorDesktopLayout
@@ -864,7 +1148,7 @@ function EditorScreenContent({
             onPlaybackSidebarOpenChange={(open) => {
               setPlaybackSidebarOpen(open);
               if (!open) {
-                closeCrop();
+                closeTool();
               }
             }}
             subtitlesActive={subtitlesActive}
@@ -874,17 +1158,17 @@ function EditorScreenContent({
           />
         ) : (
           <EditorMobileLayout
-            cropPanel={
-              cropEditing ? (
-                <div className="border border-editor-border bg-editor-panel">
-                  {cropControls}
-                </div>
-              ) : null
-            }
+            ref={mobileWorkspace}
+            tool={propertiesPanel}
+            onToolChange={changeTool}
+            onDone={closeTool}
+            cropDisabled={cropDisabled}
+            cropTransport={cropEditing ? renderControls() : null}
+            moreControl={editingTools.controls}
+            inspector={renderMobileInspector()}
             error={error}
             previewPane={previewPane}
             timelinePane={timelinePane}
-            subtitlePanel={renderSubtitlePanel("min-h-editor-properties-min")}
           />
         )}
       </main>
@@ -893,6 +1177,8 @@ function EditorScreenContent({
         <Suspense fallback={null}>
           <EditorExportDialog
             isOpen={exportDialogOpen}
+            mobile={!(desktopAtConfirmation ?? isDesktopLayout)}
+            finalFocus={exportButtonReference}
             title={session.title}
             clipStart={startTime}
             clipEnd={endTime}
@@ -912,10 +1198,11 @@ function EditorScreenContent({
             onVideoMutedChange={handleVideoMutedChange}
             mixDownToStereo={mixDownToStereo}
             onMixDownToStereoChange={setMixDownToStereo}
+            audioPending={audioPending}
             audioStatus={audioStatus}
             audioPlan={audioPlan}
             audioBitDepth={audioBitDepth}
-            audioDisabledReason={audioDisabledReason}
+            sourceAudioChannels={sourceAudioChannels}
             exporting={exporting}
             progress={progress}
             error={exportError}
@@ -965,6 +1252,16 @@ function EditorScreenContent({
           <Suspense fallback={null}>
             <EditorFramegrabDialog
               isOpen={framegrab.dialogOpen}
+              finalFocus={() =>
+                moreTriggerReference.current ??
+                document.querySelector<HTMLButtonElement>(
+                  "[data-editor-save-frame]",
+                ) ??
+                document.querySelector<HTMLButtonElement>(
+                  "[data-editor-export]",
+                ) ??
+                false
+              }
               title={session.title}
               frameTime={framegrab.capturedFramegrab?.time ?? currentTime}
               dimensions={framegrab.capturedFramegrab?.dimensions ?? null}
@@ -983,7 +1280,12 @@ function EditorScreenContent({
           </Suspense>
         )}
       <ConfirmationDialog
-        open={navigationBlocker.status === "blocked"}
+        open={leaveConfirmationOpen}
+        onOpenChangeComplete={(open) => {
+          if (!open) {
+            setDesktopAtConfirmation(null);
+          }
+        }}
         title="Leave during export?"
         description="Leaving will cancel the export."
         cancelLabel="Stay"
@@ -1009,11 +1311,41 @@ function useEditorDesktopLayout() {
 
   useEffect(() => {
     const query = globalThis.matchMedia(EDITOR_DESKTOP_LAYOUT_QUERY);
-    const updateLayout = () => setIsDesktopLayout(query.matches);
-
+    let disposed = false;
+    let composing: HTMLTextAreaElement | null = null;
+    const finishComposition = () => queueMicrotask(updateLayout);
+    function updateLayout() {
+      if (disposed) {
+        return;
+      }
+      composing?.removeEventListener("compositionend", finishComposition);
+      composing = document.querySelector<HTMLTextAreaElement>(
+        'textarea[data-editor-composing="true"]',
+      );
+      if (composing) {
+        composing.addEventListener("compositionend", finishComposition, {
+          once: true,
+        });
+        return;
+      }
+      // A responsive shell change unmounts the focused field without blur.
+      // Finish explicit crop-number edits while their controller is mounted.
+      const active = document.activeElement;
+      if (
+        active instanceof HTMLInputElement &&
+        Object.hasOwn(active.dataset, "editorCropNumber")
+      ) {
+        active.blur();
+      }
+      setIsDesktopLayout(query.matches);
+    }
     updateLayout();
     query.addEventListener("change", updateLayout);
-    return () => query.removeEventListener("change", updateLayout);
+    return () => {
+      disposed = true;
+      composing?.removeEventListener("compositionend", finishComposition);
+      query.removeEventListener("change", updateLayout);
+    };
   }, []);
 
   return isDesktopLayout;

@@ -188,6 +188,8 @@ export function getEditorExportReadiness({
     };
   }
 
+  // Burn-in uses timeline cues, including authored and restored edits. A provider
+  // subtitle track is only an import source, never an export prerequisite.
   const shouldBurnSubtitles =
     !isAudioExportFormat(format) &&
     subtitleEnabled &&
@@ -289,12 +291,12 @@ export function buildExportSourceMessage({
   directSource?: EditorMediaSource;
   hlsFallbackInfo: PlaybackFallbackInfo | null;
 }) {
-  if (resolvedSourceKind === "none" || !resolvedSource) {
+  if (
+    resolvedSourceKind === "none" ||
+    !resolvedSource ||
+    resolvedSource.role === "local-file"
+  ) {
     return null;
-  }
-
-  if (resolvedSource.role === "local-file") {
-    return "Export reads this local file in your browser.";
   }
 
   if (resolvedSource.role === "direct-url") {

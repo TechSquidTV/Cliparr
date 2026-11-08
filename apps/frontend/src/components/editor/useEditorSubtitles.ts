@@ -44,6 +44,9 @@ interface UseEditorSubtitlesProperties {
   endTime: number;
   duration: number;
   mediaReady: boolean;
+  previewReady: boolean;
+  renderedFrameTime: number | null;
+  getRenderedFrameTime: () => number | null;
   pausePlayback: () => void;
   onSubtitleCreated: () => void;
 }
@@ -61,6 +64,9 @@ export function useEditorSubtitles({
   endTime,
   duration,
   mediaReady,
+  previewReady,
+  renderedFrameTime,
+  getRenderedFrameTime,
   pausePlayback,
   onSubtitleCreated,
 }: UseEditorSubtitlesProperties) {
@@ -92,6 +98,8 @@ export function useEditorSubtitles({
   const textEditReference = useRef<SubtitleTextEdit | null>(null);
   const [textError, setTextError] = useState<string | null>(null);
   const [focusRevision, setFocusRevision] = useState(0);
+  const textComposing = useRef(false);
+  const textCommitPending = useRef(false);
   const history = useEditorHistory(engine, mediaReady && initialized);
   const { runAction } = history;
   const download = useSubtitleCues({
@@ -163,6 +171,11 @@ export function useEditorSubtitles({
   ]);
 
   const commitText = useCallback(() => {
+    if (textComposing.current) {
+      textCommitPending.current = true;
+      return;
+    }
+    textCommitPending.current = false;
     const edit = textEditReference.current;
     if (!edit) {
       return;
@@ -171,7 +184,9 @@ export function useEditorSubtitles({
     setTextEdit(null);
     const normalized = normalizeSubtitleCueText(edit.text);
     if (!normalized) {
-      setTextError("Enter subtitle text, or use Delete subtitle to remove it.");
+      setTextError(
+        "Blank text was not saved. The previous subtitle text was restored. Use Delete subtitle to remove it.",
+      );
       return;
     }
     const clip = engine.geometry.getClip(edit.clipId)?.clip;
@@ -186,7 +201,6 @@ export function useEditorSubtitles({
     () =>
       engine.on("clip:select", () => {
         commitText();
-        setTextError(null);
       }),
     [commitText, engine],
   );
@@ -236,8 +250,13 @@ export function useEditorSubtitles({
   const canEditSubtitles = mediaReady && initialized && !subtitleLoading;
   const canAddSubtitle =
     canEditSubtitles &&
-    getSubtitleCreationRange(tracks, toSeconds(playheadTime), duration) !==
-      null;
+    previewReady &&
+    getSubtitleCreationRange(
+      tracks,
+      toSeconds(playheadTime),
+      duration,
+      renderedFrameTime,
+    ) !== null;
 
   function cancelImport() {
     setImportTrack(null);
@@ -269,14 +288,19 @@ export function useEditorSubtitles({
     }
   }
   function addSubtitle() {
-    if (!canEditSubtitles) {
+    if (!canEditSubtitles || !previewReady) {
       return;
     }
     pausePlayback();
     // Recheck live state: playback may have advanced since the button rendered.
     const state = engine.getState();
     const time = toSeconds(state.playheadTime);
-    const range = getSubtitleCreationRange(state.tracks, time, duration);
+    const range = getSubtitleCreationRange(
+      state.tracks,
+      time,
+      duration,
+      getRenderedFrameTime(),
+    );
     if (!range) {
       return;
     }
@@ -296,7 +320,7 @@ export function useEditorSubtitles({
       const result = engine.commitEdit({
         type: "overwrite",
         targetTrackId: EDITOR_SUBTITLE_TRACK_ID,
-        startTime: fromSeconds(time),
+        startTime: fromSeconds(range.startTime),
         clip,
         snap: false,
       });
@@ -378,7 +402,6 @@ export function useEditorSubtitles({
         Math.min(Math.max(index + offset, 0), subtitleClipEntries.length - 1)
       ]?.clip.id ?? null,
     );
-    setTextError(null);
   }
 
   return {
@@ -411,6 +434,10 @@ export function useEditorSubtitles({
     subtitleCues,
     subtitleLoading,
     subtitleError,
+    dismissErrors: () => {
+      setSubtitleError(null);
+      setTextError(null);
+    },
     clippedSubtitleCues,
     subtitleExportSummary,
     requestImport,
@@ -454,6 +481,15 @@ export function useEditorSubtitles({
       setTextError(null);
     },
     commitText,
+    beginTextComposition: () => {
+      textComposing.current = true;
+    },
+    endTextComposition: () => {
+      textComposing.current = false;
+      if (textCommitPending.current) {
+        commitText();
+      }
+    },
     handleSelectedSubtitleStartCommit: (time: number) =>
       trimSubtitle("start", time),
     handleSelectedSubtitleEndCommit: (time: number) =>

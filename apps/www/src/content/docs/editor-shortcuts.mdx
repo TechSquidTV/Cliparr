@@ -9,6 +9,22 @@ The editor keeps keyboard shortcuts focused on preview playback, range marking, 
 
 Shortcuts are ignored while typing in inputs, using selects, adjusting sliders or scrollbars, or working inside dialogs. Playback, seeking, and subtitle deletion also leave focused buttons and other interactive controls alone. Undo and redo remain available when a toolbar button is focused.
 
+## Find the controls
+
+On phones, use the bottom action bar to open the controls you need:
+
+| Tool          | Controls                                                              |
+| :------------ | :-------------------------------------------------------------------- |
+| **Trim**      | Exact In and Out times, and clip-range actions.                       |
+| **Subtitles** | Text, Timing, and Style tabs for captions.                            |
+| **Crop**      | Picture framing, aspect ratio, position, and size.                    |
+| **Playback**  | Preview volume and mute.                                              |
+| **More**      | Playback details, frame capture, keyboard shortcuts, and draft reset. |
+
+Choose **Done** to close the active tool and return to the workspace. With no tool open, the **Timeline view** sliders button opens zoom controls, **Fit clip**, and **Show track names**. Use **More → Shortcuts** to open keyboard help.
+
+On desktop, subtitle and crop settings live in the **Properties** sidebar. Subtitle text, timing, and style controls are stacked in one panel. Keyboard help opens from **Shortcuts** in the top toolbar.
+
 ## Undo and redo
 
 | Shortcut                     | Action              |
@@ -73,12 +89,16 @@ Frame stepping pauses the preview and moves by the active source video frame rat
 
 Click the preview time, `In`, or `Out` timecode to type an exact time.
 
+On phones, clip boundaries are in **Trim**, and subtitle cue boundaries are in **Subtitles → Timing**.
+
 | Shortcut | Action                                      |
 | :------- | :------------------------------------------ |
 | `Enter`  | Apply the typed timecode.                   |
 | `Escape` | Cancel editing and keep the previous value. |
 
 Timecode fields accept seconds, minutes and seconds, or hours, minutes, and seconds. Examples include `90`, `1:30`, and `1:02:03`.
+
+The **Cancel** button also keeps the previous value. Tab from a valid timecode to reach Cancel without applying the edit. Leaving the field and Cancel applies a valid timecode; correct or cancel an invalid value before changing tools.
 
 ## Pointer controls
 
@@ -88,12 +108,12 @@ Most editor actions are controlled directly on screen:
 - Drag the media block to move `In` and `Out` together, keeping the clip length.
 - Drag either block edge to adjust `In` or `Out`. Click the empty media row or ruler to scrub the source.
 - Focus the block or either edge and use arrow keys for precise adjustments; Page Up and Page Down adjust by one second.
-- Use the zoom buttons to change timeline scale.
+- Use the zoom buttons to change timeline scale; on phones, open **Timeline view** to find them.
 - Drag the scrollbar body to navigate the full video. Drag its edges inward to zoom in or outward to zoom out; zoom changes proportionally to the current view, so fine subtitle adjustments stay precise on long videos.
 - Zoom out to fit the full media duration, or zoom in to inspect subtitle timing. Scrollbar handles, zoom buttons, and wheel zoom share the same limits.
 - Scroll the timeline to move horizontally.
 - Use `Ctrl`/`Cmd` + scroll over the timeline to zoom around the pointer.
-- Use the volume slider and mute button to control preview audio.
+- Use the volume slider and mute button to control preview audio; on phones, open **Playback** to find them.
 
 ## Working with long videos
 

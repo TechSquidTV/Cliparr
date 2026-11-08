@@ -1,13 +1,18 @@
+import {
+  fromSeconds,
+  TimelineEngine,
+  TimelineProvider,
+} from "@techsquidtv/canvas-timeline";
 import { useRef, useState } from "react";
 
-import {
-  DEFAULT_EDITOR_PROPERTIES_OPEN_SECTIONS,
-  type EditorPropertiesOpenSections,
-} from "#/components/editor/editorSidebarPreferences";
+import { DashboardMobileMenu } from "#/components/dashboard/DashboardMobileMenu";
+import { EDITOR_DESKTOP_LAYOUT_QUERY } from "#/components/editor/editorLayoutSizing";
 import {
   EditorSubtitlePanel,
   type EditorSubtitlePanelProperties,
+  type EditorSubtitleTab,
 } from "#/components/editor/EditorSubtitlePanel";
+import { EditorTimeline } from "#/components/editor/EditorTimeline";
 import { SourceCard } from "#/components/sources/SourceCard";
 import { TooltipProvider } from "#/components/ui/tooltip";
 import { loadSubtitleStyleSettings } from "#/lib/subtitles/settings";
@@ -29,10 +34,7 @@ export function FeatureControls() {
     text,
     lines: [text],
   });
-  const [sections, setSections] = useState<EditorPropertiesOpenSections>(
-    DEFAULT_EDITOR_PROPERTIES_OPEN_SECTIONS,
-  );
-  const importTrigger = useRef<HTMLButtonElement>(null);
+  const [tab, setTab] = useState<EditorSubtitleTab>("text");
   const optionsTrigger = useRef<HTMLButtonElement>(null);
   const subtitles: EditorSubtitlePanelProperties["subtitles"] = {
     subtitleTracks: [],
@@ -41,13 +43,13 @@ export function FeatureControls() {
     subtitleStyleSettings: style,
     setSubtitleStyleSettings: setStyle,
     subtitleLoading: false,
-    subtitleError: null,
     selectedSubtitleCue: cue,
     subtitleCues: cue ? [cue] : [],
     subtitleText: text,
     editSubtitleText: setText,
     commitText: () => setAction("Subtitle committed"),
-    textError: null,
+    beginTextComposition: () => {},
+    endTextComposition: () => {},
     selectedSubtitleOutsideRange: false,
     canAddSubtitle: true,
     addSubtitle: () => setAction("Add subtitle requested"),
@@ -68,7 +70,6 @@ export function FeatureControls() {
     handleSeekToSelectedSubtitle: () => setAction("Subtitle seek requested"),
     canImportSubtitles: false,
     requestImport: () => {},
-    cancelImport: () => {},
     subtitleTrackChangePending: false,
     requestClear: () => setAction("Clear subtitles requested"),
     clearPending: false,
@@ -76,6 +77,14 @@ export function FeatureControls() {
   return (
     <TooltipProvider>
       <section aria-label="Feature controls" className="space-y-4">
+        {new URLSearchParams(window.location.search).has("timeline") && (
+          <TimelineControls />
+        )}
+        <DashboardMobileMenu
+          appVersion="1.2.3"
+          latestRelease={null}
+          onDisconnect={() => setAction("Disconnected")}
+        />
         <output aria-label="Last test action">{action}</output>
         <SourceCard
           source={{
@@ -108,14 +117,52 @@ export function FeatureControls() {
         />
         <div className="h-[38rem] max-w-sm">
           <EditorSubtitlePanel
+            variant={
+              globalThis.matchMedia(EDITOR_DESKTOP_LAYOUT_QUERY).matches
+                ? "desktop"
+                : "mobile"
+            }
             subtitles={subtitles}
-            subtitleTrackTriggerRef={importTrigger}
             subtitleOptionsTriggerRef={optionsTrigger}
-            editorPropertiesOpenSections={sections}
-            onEditorPropertiesOpenSectionsChange={setSections}
+            tab={tab}
+            onTabChange={setTab}
+            consumeFocus={() => false}
           />
         </div>
       </section>
     </TooltipProvider>
+  );
+}
+
+function TimelineControls() {
+  const [trackNamesVisible, setTrackNamesVisible] = useState(true);
+  const [engine] = useState(
+    () =>
+      new TimelineEngine({
+        duration: fromSeconds(120),
+        zoomScale: 74,
+        tracks: [],
+      }),
+  );
+  return (
+    <TimelineProvider engine={engine}>
+      <button onClick={() => setTrackNamesVisible(!trackNamesVisible)}>
+        Toggle timeline track names
+      </button>
+      <div className="isolate h-48">
+        <EditorTimeline
+          engine={engine}
+          variant="mobile"
+          trackNamesVisible={trackNamesVisible}
+          muted={false}
+          onMutedChange={() => {}}
+          canAddSubtitle={false}
+          onAddSubtitle={() => {}}
+          onOpenSubtitles={() => {}}
+          subtitleLoading={false}
+          onInteractionStart={() => {}}
+        />
+      </div>
+    </TimelineProvider>
   );
 }

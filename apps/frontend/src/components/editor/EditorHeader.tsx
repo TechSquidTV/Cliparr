@@ -1,4 +1,5 @@
 import { ArrowLeft, Download } from "lucide-react";
+import type { Ref } from "react";
 
 import { editorIconButtonClassName } from "@/components/ui/control-styles";
 import { Spinner } from "@/components/ui/spinner";
@@ -14,6 +15,7 @@ interface EditorHeaderProperties {
   exporting: boolean;
   progress: number;
   exportDisabledReason?: string | null;
+  exportButtonRef?: Ref<HTMLButtonElement>;
   onExportClick: () => void;
 }
 
@@ -23,6 +25,7 @@ export function EditorHeader({
   exporting,
   progress,
   exportDisabledReason,
+  exportButtonRef,
   onExportClick,
 }: EditorHeaderProperties) {
   const exportDisabled = exporting || Boolean(exportDisabledReason);
@@ -31,9 +34,11 @@ export function EditorHeader({
   const exportButton = (
     <button
       type="button"
-      onClick={onExportClick}
-      disabled={exportDisabled}
-      className="flex h-8 w-40 shrink-0 items-center justify-center gap-2 rounded-[var(--radius-control)] border border-primary bg-primary px-3 text-xs font-semibold uppercase tracking-[var(--tracking-caps-sm)] text-primary-foreground transition-[background-color,border-color,color,opacity] duration-150 hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50"
+      ref={exportButtonRef}
+      data-editor-export
+      onClick={exportDisabled ? undefined : onExportClick}
+      aria-disabled={exportDisabled}
+      className="flex h-11 shrink-0 items-center justify-center gap-2 rounded-[var(--radius-control)] border border-primary bg-primary px-3 text-xs font-semibold text-primary-foreground transition-[background-color,border-color,color,opacity] duration-150 hover:bg-primary/90 aria-disabled:cursor-not-allowed aria-disabled:opacity-50 lg:h-8 lg:w-40 lg:uppercase lg:tracking-[var(--tracking-caps-sm)]"
     >
       {exporting ? (
         <span className="flex items-center gap-2">
@@ -53,7 +58,7 @@ export function EditorHeader({
   );
 
   return (
-    <header className="grid grid-cols-editor-header items-center gap-3 border-b border-editor-border bg-editor-panel px-3 py-2">
+    <header className="grid shrink-0 grid-cols-editor-header items-center gap-2 border-b border-editor-border bg-editor-panel px-2 py-1 lg:gap-3 lg:px-3 lg:py-2">
       <div className="flex items-center gap-2">
         <Tooltip>
           <TooltipTrigger
@@ -62,7 +67,10 @@ export function EditorHeader({
                 type="button"
                 onClick={onBack}
                 aria-label="Back"
-                className={editorIconButtonClassName()}
+                className={editorIconButtonClassName({
+                  variant: "ghost",
+                  className: "h-11 w-11 lg:h-8 lg:w-8",
+                })}
               >
                 <ArrowLeft className="h-4 w-4" />
               </button>
@@ -70,7 +78,7 @@ export function EditorHeader({
           />
           <TooltipContent side="bottom">Back</TooltipContent>
         </Tooltip>
-        <div className="flex items-center gap-2 pl-1">
+        <div className="hidden items-center gap-2 pl-1 lg:flex">
           <img
             src="/logo-light.svg"
             alt="Cliparr Logo"
@@ -89,13 +97,7 @@ export function EditorHeader({
       </div>
       <div className="flex items-center justify-self-end">
         <Tooltip>
-          <TooltipTrigger
-            render={
-              <span className="inline-flex" tabIndex={exportDisabled ? 0 : -1}>
-                {exportButton}
-              </span>
-            }
-          />
+          <TooltipTrigger render={exportButton} />
           {exportTooltip ? (
             <TooltipContent side="bottom" align="end">
               {exportTooltip}

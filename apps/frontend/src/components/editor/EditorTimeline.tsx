@@ -4,33 +4,27 @@ import {
   CanvasRenderer,
   Timeline,
   type TimelineEngine,
-  toSeconds,
-  useTimelinePlayback,
   type UseTimelineTrackHeaderResult,
   useTimelineTracks,
-  useTimelineViewport,
 } from "@techsquidtv/canvas-timeline";
+import { Captions, Plus, Volume2, VolumeX } from "lucide-react";
 import {
-  ChevronLeft,
-  ChevronRight,
-  Eye,
-  EyeOff,
-  Plus,
-  Volume2,
-  VolumeX,
-} from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+  type KeyboardEvent,
+  type PointerEvent,
+  useEffect,
+  useRef,
+} from "react";
 
+import type { EditorLayoutVariant } from "@/components/editor/EditorLayout";
 import { EditorMediaRange } from "@/components/editor/EditorMediaRange";
 import { EditorMediaRangeCanvas } from "@/components/editor/EditorMediaRangeCanvas";
 import {
   EDITOR_MEDIA_TRACK_ID,
-  timelineScrollLeftForCenteredTime,
+  EDITOR_SUBTITLE_TRACK_ID,
 } from "@/components/editor/editorTimelineEngine";
 import { zoomEditorTimeline } from "@/components/editor/editorTimelineZoom";
 import { EditorViewportScrollbar } from "@/components/editor/EditorViewportScrollbar";
 import { editorIconButtonClassName } from "@/components/ui/control-styles";
-import { handleHorizontalScrollKeyDown } from "@/components/ui/scroll-area";
 import { ControlTooltip } from "@/components/ui/tooltip";
 
 interface EditorTimelineProperties {
@@ -38,7 +32,8 @@ interface EditorTimelineProperties {
   onMutedChange: (muted: boolean) => void;
   canAddSubtitle: boolean;
   onAddSubtitle: () => void;
-  onSubtitleVisibilityChange: (visible: boolean) => void;
+  onOpenSubtitles: () => void;
+  trackNamesVisible: boolean;
 }
 
 function TrackHeaderColumn({
@@ -46,14 +41,19 @@ function TrackHeaderColumn({
   onMutedChange,
   canAddSubtitle,
   onAddSubtitle,
-  onSubtitleVisibilityChange,
+  onOpenSubtitles,
+  trackNamesVisible,
 }: EditorTimelineProperties) {
   const { tracks } = useTimelineTracks();
 
   return (
     <Timeline.TrackHeaderList className="h-full">
       {tracks.map((track) => (
-        <Timeline.TrackHeader key={track.id} trackId={track.id}>
+        <Timeline.TrackHeader
+          key={track.id}
+          trackId={track.id}
+          className="!px-0 lg:!px-2"
+        >
           {(header: UseTimelineTrackHeaderResult) => (
             <div className="flex h-full min-w-0 flex-1 items-center gap-2">
               {track.id === EDITOR_MEDIA_TRACK_ID ? (
@@ -67,7 +67,8 @@ function TrackHeaderColumn({
                     aria-pressed={muted}
                     className={editorIconButtonClassName({
                       size: "sm",
-                      className: "shrink-0",
+                      variant: "ghost",
+                      className: "h-11 w-11 shrink-0 lg:h-7 lg:w-7",
                     })}
                   >
                     {muted ? (
@@ -78,30 +79,23 @@ function TrackHeaderColumn({
                   </button>
                 </ControlTooltip>
               ) : (
-                <ControlTooltip
-                  label={header.visible ? "Hide subtitles" : "Show subtitles"}
-                >
+                <ControlTooltip label="Subtitle tools">
                   <button
                     type="button"
-                    onClick={() => onSubtitleVisibilityChange(!header.visible)}
-                    aria-label={
-                      header.visible ? "Hide subtitles" : "Show subtitles"
-                    }
-                    aria-pressed={!header.visible}
+                    onClick={onOpenSubtitles}
+                    aria-label="Subtitle tools"
                     className={editorIconButtonClassName({
-                      size: "sm",
-                      className: "shrink-0",
+                      variant: "ghost",
+                      className: "h-11 w-11 shrink-0 lg:h-7 lg:w-7",
                     })}
                   >
-                    {header.visible ? (
-                      <Eye aria-hidden="true" className="h-3.5 w-3.5" />
-                    ) : (
-                      <EyeOff aria-hidden="true" className="h-3.5 w-3.5" />
-                    )}
+                    <Captions className="h-4 w-4" />
                   </button>
                 </ControlTooltip>
               )}
-              <span className="min-w-0 flex-1 truncate text-xs font-medium text-foreground">
+              <span
+                className={`${trackNamesVisible ? "" : "hidden lg:block"} min-w-0 flex-1 truncate text-xs font-medium text-foreground`}
+              >
                 {header.label}
               </span>
               {track.id !== EDITOR_MEDIA_TRACK_ID && (
@@ -113,8 +107,7 @@ function TrackHeaderColumn({
                     onClick={onAddSubtitle}
                     className={editorIconButtonClassName({
                       variant: "ghost",
-                      className:
-                        "shrink-0 rounded text-foreground disabled:opacity-40",
+                      className: `${trackNamesVisible ? "" : "hidden lg:inline-flex"} h-11 w-11 lg:h-8 lg:w-8 shrink-0 rounded text-foreground disabled:opacity-40`,
                     })}
                   >
                     <Plus className="h-4 w-4" />
@@ -124,6 +117,7 @@ function TrackHeaderColumn({
               <Timeline.TrackHeaderResizeHandle
                 trackId={track.id}
                 maxHeight={96}
+                className="hidden lg:block"
               />
             </div>
           )}
@@ -133,81 +127,59 @@ function TrackHeaderColumn({
   );
 }
 
-function EditorTimelineLayers({
-  engine,
-  ready,
-}: {
-  engine: TimelineEngine;
-  ready: boolean;
-}) {
+function EditorTimelineLayers({ engine }: { engine: TimelineEngine }) {
   const { tracks } = useTimelineTracks();
 
   return (
     <>
-      {ready && <CenterViewportOnInPoint />}
       <Timeline.PlayheadArea />
-      <Timeline.PlayheadGrabber />
       <Timeline.TrackList className="timeline-track-list-overlay">
         {tracks.map((track) => (
           <Timeline.Track key={track.id} trackId={track.id} />
         ))}
       </Timeline.TrackList>
-      <Timeline.ClipInteractionLayer />
+      <Timeline.ClipInteractionLayer selectOnNavigate />
       <EditorMediaRange engine={engine} />
     </>
   );
 }
 
-function CenterViewportOnInPoint() {
-  const { inPoint } = useTimelinePlayback();
-  const { maxScrollLeft, setScrollLeft, viewportWidth, zoomScale } =
-    useTimelineViewport();
-  const hasCentered = useRef(false);
-  const inPointSeconds = inPoint ? toSeconds(inPoint) : undefined;
-
-  useEffect(() => {
-    if (
-      hasCentered.current ||
-      inPointSeconds === undefined ||
-      viewportWidth <= 0
-    ) {
-      return;
-    }
-
-    hasCentered.current = true;
-    setScrollLeft(
-      timelineScrollLeftForCenteredTime({
-        maxScrollLeft,
-        timeSeconds: inPointSeconds,
-        viewportWidth,
-        zoomScale,
-      }),
-    );
-  }, [inPointSeconds, maxScrollLeft, setScrollLeft, viewportWidth, zoomScale]);
-
-  return null;
-}
-
 export function EditorTimeline({
   engine,
-  ready,
   muted,
   onMutedChange,
   canAddSubtitle,
   onAddSubtitle,
-  onSubtitleVisibilityChange,
+  onOpenSubtitles,
+  trackNamesVisible,
   subtitleLoading,
   onInteractionStart,
+  variant,
 }: EditorTimelineProperties & {
   engine: TimelineEngine;
-  ready: boolean;
+  variant: EditorLayoutVariant;
   subtitleLoading: boolean;
   onInteractionStart: () => void;
 }) {
   const root = useRef<HTMLDivElement>(null);
-  const horizontalScroller = useRef<HTMLDivElement>(null);
-  const trackHeader = useRef<HTMLDivElement>(null);
-  const [trackNamesVisible, setTrackNamesVisible] = useState(true);
+  const tap = useRef<{
+    pointerId: number;
+    x: number;
+    y: number;
+    clipId: string;
+  } | null>(null);
+  const activationFrame = useRef(0);
+  useEffect(() => {
+    const cancelTap = () => {
+      tap.current = null;
+      cancelAnimationFrame(activationFrame.current);
+    };
+    window.addEventListener("blur", cancelTap);
+    return () => {
+      window.removeEventListener("blur", cancelTap);
+      cancelTap();
+    };
+  }, [variant]);
   useEffect(() => {
     const element = root.current;
     if (!element) {
@@ -239,41 +211,105 @@ export function EditorTimeline({
       inert={subtitleLoading}
       onPointerDownCapture={onInteractionStart}
       onKeyDownCapture={onInteractionStart}
-      className="flex h-full min-h-0 flex-col [--editor-track-header-width:8rem] lg:[--editor-track-header-width:9rem]"
+      className={`flex h-full min-h-0 flex-col ${trackNamesVisible ? "[--editor-track-header-width:10rem]" : "[--editor-track-header-width:2.75rem]"} lg:[--editor-track-header-width:9rem]`}
     >
-      <div
-        ref={horizontalScroller}
-        role="region"
-        aria-label="Timeline tracks and names"
-        tabIndex={0}
-        className="min-h-0 flex-1 overflow-x-auto overscroll-x-contain lg:overflow-x-hidden"
-        onScroll={(event) =>
-          setTrackNamesVisible(
-            event.currentTarget.scrollLeft <
-              (trackHeader.current?.offsetWidth ?? 0) - 1,
-          )
-        }
-        onKeyDown={handleHorizontalScrollKeyDown}
-      >
-        <div className="cliparr-timeline-v2 flex h-full min-h-0 w-[calc(100%+var(--editor-track-header-width))] flex-col bg-editor-panel lg:w-full">
+      <div className="min-h-0 flex-1">
+        <div className="cliparr-timeline-v2 flex h-full min-h-0 w-full flex-col bg-editor-panel lg:w-full">
           <div className="flex min-h-0 flex-1">
-            <div
-              ref={trackHeader}
-              className="w-[var(--editor-track-header-width)] shrink-0 border-r border-editor-border bg-editor-panel-muted/55"
-            >
+            <div className="w-[var(--editor-track-header-width)] shrink-0 border-r border-editor-border bg-editor-panel-muted/55">
               <TrackHeaderColumn
                 muted={muted}
                 onMutedChange={onMutedChange}
                 canAddSubtitle={canAddSubtitle}
                 onAddSubtitle={onAddSubtitle}
-                onSubtitleVisibilityChange={onSubtitleVisibilityChange}
+                onOpenSubtitles={onOpenSubtitles}
+                trackNamesVisible={trackNamesVisible}
               />
             </div>
             <div className="min-w-0 flex-1">
-              <Timeline.Root ref={root} className="h-full w-full">
+              <Timeline.Root
+                ref={root}
+                data-editor-timeline-viewport
+                className="h-full w-full"
+                onPointerDownCapture={(event: PointerEvent<HTMLDivElement>) => {
+                  tap.current = null;
+                  cancelAnimationFrame(activationFrame.current);
+                  if (
+                    variant !== "mobile" ||
+                    !event.isPrimary ||
+                    event.button !== 0
+                  ) {
+                    return;
+                  }
+                  const bounds = event.currentTarget.getBoundingClientRect();
+                  const hit = engine.geometry.getClipAtPoint({
+                    x: event.clientX - bounds.left,
+                    y: event.clientY - bounds.top,
+                    pointerType: event.pointerType,
+                  });
+                  if (
+                    hit?.track.id === EDITOR_SUBTITLE_TRACK_ID &&
+                    hit.region === "body"
+                  ) {
+                    tap.current = {
+                      pointerId: event.pointerId,
+                      x: event.clientX,
+                      y: event.clientY,
+                      clipId: hit.clip.id,
+                    };
+                  }
+                }}
+                onPointerMoveCapture={(event: PointerEvent<HTMLDivElement>) => {
+                  if (
+                    tap.current &&
+                    Math.hypot(
+                      event.clientX - tap.current.x,
+                      event.clientY - tap.current.y,
+                    ) > 6
+                  ) {
+                    tap.current = null;
+                  }
+                }}
+                onPointerCancelCapture={() => {
+                  tap.current = null;
+                }}
+                onPointerUpCapture={(event: PointerEvent<HTMLDivElement>) => {
+                  const activation = tap.current;
+                  tap.current = null;
+                  if (!activation || activation.pointerId !== event.pointerId) {
+                    return;
+                  }
+                  activationFrame.current = requestAnimationFrame(() => {
+                    if (
+                      engine.geometry.getClip(activation.clipId)?.clip.selected
+                    ) {
+                      onOpenSubtitles();
+                    }
+                  });
+                }}
+                onKeyUp={(event: KeyboardEvent<HTMLDivElement>) => {
+                  if (
+                    variant !== "mobile" ||
+                    event.key !== "Enter" ||
+                    (event.target instanceof Element &&
+                      event.target.closest("button,input,textarea"))
+                  ) {
+                    return;
+                  }
+                  const selected = engine
+                    .getState()
+                    .tracks.find(
+                      (track) => track.id === EDITOR_SUBTITLE_TRACK_ID,
+                    )
+                    ?.clips.some((clip) => clip.selected);
+                  if (selected) {
+                    onOpenSubtitles();
+                  }
+                }}
+              >
                 <CanvasRenderer showInOutPoints={false} />
                 <EditorMediaRangeCanvas />
-                <EditorTimelineLayers engine={engine} ready={ready} />
+                <EditorTimelineLayers engine={engine} />
               </Timeline.Root>
             </div>
           </div>
@@ -285,24 +321,6 @@ export function EditorTimeline({
           </div>
         </div>
       </div>
-      <button
-        type="button"
-        className="editor-control-focus flex min-h-11 shrink-0 items-center justify-center gap-2 border-t border-editor-border bg-editor-panel px-3 text-xs text-muted-foreground hover:bg-editor-control-hover hover:text-foreground focus-visible:ring-inset lg:hidden"
-        onClick={() =>
-          horizontalScroller.current?.scrollTo({
-            left: trackNamesVisible
-              ? (trackHeader.current?.offsetWidth ?? 0)
-              : 0,
-          })
-        }
-      >
-        {trackNamesVisible ? (
-          <ChevronLeft className="h-4 w-4" />
-        ) : (
-          <ChevronRight className="h-4 w-4" />
-        )}
-        {trackNamesVisible ? "Hide track names" : "Show track names"}
-      </button>
     </div>
   );
 }

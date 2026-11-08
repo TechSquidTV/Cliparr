@@ -10,7 +10,19 @@ import { useCallback, useRef } from "react";
 import { EDITOR_MEDIA_TRACK_ID } from "@/components/editor/editorTimelineEngine";
 
 export const EDITOR_MEDIA_RANGE_INSET = 4;
-export const EDITOR_MEDIA_RANGE_HANDLE_WIDTH = 12;
+export function getMediaRangeGeometry(
+  start: number,
+  end: number,
+  zoomScale: number,
+) {
+  const selectionWidth = (end - start) * zoomScale;
+  const rangeQuarter = selectionWidth / 4;
+  return {
+    selectionWidth,
+    rangeQuarter,
+    gripWidth: Math.min(12, rangeQuarter),
+  };
+}
 
 export function EditorMediaRangeCanvas() {
   const { rect, track } = useTimelineTrack(EDITOR_MEDIA_TRACK_ID);
@@ -53,7 +65,11 @@ export function EditorMediaRangeCanvas() {
         const start = state.inPoint ? toSeconds(state.inPoint) : 0;
         const end = toSeconds(state.outPoint ?? state.duration);
         const x = start * state.zoomScale - state.scrollLeft;
-        const selectionWidth = (end - start) * state.zoomScale;
+        const { selectionWidth, gripWidth } = getMediaRangeGeometry(
+          start,
+          end,
+          state.zoomScale,
+        );
         const y = rect.y + EDITOR_MEDIA_RANGE_INSET;
         const selectionHeight = rect.height - EDITOR_MEDIA_RANGE_INSET * 2;
         ctx.beginPath();
@@ -65,32 +81,28 @@ export function EditorMediaRangeCanvas() {
         ctx.stroke();
         ctx.clip();
 
-        const handleWidth = Math.min(
-          EDITOR_MEDIA_RANGE_HANDLE_WIDTH,
-          selectionWidth / 4,
-        );
         ctx.fillStyle = theme.colors.clip.borderSelected;
         ctx.globalAlpha = 0.25;
-        ctx.fillRect(x, y, handleWidth, selectionHeight);
+        ctx.fillRect(x, y, gripWidth, selectionHeight);
         ctx.fillRect(
-          x + selectionWidth - handleWidth,
+          x + selectionWidth - gripWidth,
           y,
-          handleWidth,
+          gripWidth,
           selectionHeight,
         );
         ctx.globalAlpha = 1;
         for (const handleX of [
-          x + handleWidth / 2,
-          x + selectionWidth - handleWidth / 2,
+          x + gripWidth / 2,
+          x + selectionWidth - gripWidth / 2,
         ]) {
           ctx.fillRect(handleX - 1, y + (selectionHeight - 14) / 2, 2, 14);
         }
 
         ctx.beginPath();
         ctx.rect(
-          x + handleWidth,
+          x + gripWidth,
           y,
-          Math.max(0, selectionWidth - handleWidth * 2),
+          Math.max(0, selectionWidth - gripWidth * 2),
           selectionHeight,
         );
         ctx.clip();

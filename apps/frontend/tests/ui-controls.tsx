@@ -1,7 +1,12 @@
 import { useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
 
-import { EditorRangeControl } from "#/components/editor/EditorPropertyControls";
+import {
+  EditorPropertyAccordion,
+  EditorPropertyAccordionItem,
+  EditorRangeControl,
+} from "#/components/editor/EditorPropertyControls";
+import { EditorTimecodeProvider } from "#/components/editor/EditorTimecodeEdit";
 import { ConfirmationDialog } from "#/components/ui/confirmation-dialog";
 import { DialogWindow } from "#/components/ui/dialog";
 import {
@@ -21,6 +26,35 @@ import {
 } from "#/components/ui/tabs";
 import { FeatureControls } from "#tests/ui-features.tsx";
 
+function SidebarAccordion() {
+  const [value, setValue] = useState(["subtitles"]);
+  return (
+    <div className="h-96" data-testid="sidebar-accordion">
+      <EditorPropertyAccordion
+        value={value}
+        onValueChange={setValue}
+        multiple={false}
+        className="h-full"
+      >
+        <EditorPropertyAccordionItem
+          value="subtitles"
+          title="Subtitles"
+          fillAvailable
+        >
+          <div className="h-full overflow-auto">
+            <div className="h-[600px]">Subtitle controls</div>
+          </div>
+        </EditorPropertyAccordionItem>
+        <EditorPropertyAccordionItem value="crop" title="Crop" fillAvailable>
+          <div className="h-full overflow-auto">
+            <div className="h-[600px]">Crop controls</div>
+          </div>
+        </EditorPropertyAccordionItem>
+      </EditorPropertyAccordion>
+    </div>
+  );
+}
+
 function Controls() {
   const [open, setOpen] = useState(false);
   const [locked, setLocked] = useState(false);
@@ -29,6 +63,7 @@ function Controls() {
   const trigger = useRef<HTMLButtonElement>(null);
   return (
     <main className="space-y-4 p-6">
+      <SidebarAccordion />
       <button ref={trigger} onClick={() => setOpen(true)}>
         Open controls
       </button>
@@ -111,4 +146,8 @@ const container = document.querySelector("#root");
 if (!container) {
   throw new Error("Missing controls root");
 }
-createRoot(container).render(<Controls />);
+createRoot(container).render(
+  <EditorTimecodeProvider>
+    <Controls />
+  </EditorTimecodeProvider>,
+);

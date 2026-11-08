@@ -1,6 +1,6 @@
 import type { VideoSample } from "mediabunny";
 
-import { getActiveSubtitleCues } from "#/lib/subtitles/getActiveSubtitleCue";
+import { createSubtitleCueReader } from "#/lib/subtitles/getActiveSubtitleCue";
 import { renderSubtitleCues } from "#/lib/subtitles/renderSubtitleCue";
 import type { SubtitleCue, SubtitleStyleSettings } from "#/lib/subtitles/types";
 
@@ -14,6 +14,7 @@ export function buildSubtitleBurnInProcessor(
     throw new Error("Could not create a subtitle rendering canvas.");
   }
 
+  const readCues = createSubtitleCueReader(cues);
   return (sample: VideoSample) => {
     const width = Math.max(1, sample.displayWidth);
     const height = Math.max(1, sample.displayHeight);
@@ -26,7 +27,7 @@ export function buildSubtitleBurnInProcessor(
     context.clearRect(0, 0, width, height);
     sample.draw(context, 0, 0, width, height);
 
-    const activeCues = getActiveSubtitleCues(cues, sample.timestamp);
+    const activeCues = readCues(sample.timestamp);
     if (activeCues.length > 0) {
       renderSubtitleCues(context, activeCues, styleSettings, width, height);
     }
