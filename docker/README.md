@@ -78,12 +78,17 @@ package manager, but removes npm, Corepack, and Yarn. Its Node executable is
 `/usr/local/bin/node`. Application behavior, UID/GID 65532, port 7171, `/data`,
 read-only operation, and the application data format are unchanged.
 
-The production build installs Debian's released `zlib1g` security update and
-requires version `1:1.3.dfsg+really1.3.1-1+deb13u1` or newer, which fixes
-`CVE-2026-76844` and `CVE-2026-85091`.
-APT verifies the package through Debian's signed repositories. The build fails if
-the available package is older than the fixed version. The normal vulnerability
-scan still gates fixable high/critical findings.
+Base images should supply security fixes upstream. As a temporary release
+exception, production and the shared toolchain install Debian's released `zlib1g`
+security update through APT using `docker/upgrade-zlib.sh`. Development and capture
+inherit the updated toolchain. Every target requires version
+`1:1.3.dfsg+really1.3.1-1+deb13u1` or newer to fix `CVE-2026-76844` and
+`CVE-2026-85091`; the build fails if the available package is too old.
+APT verifies packages through Debian's signed repositories. Package resolution
+depends on the current repository contents, so the image digest alone does not
+fully determine the build. Remove the script and both build invocations when the
+pinned upstream Node images include the fix. Manual library replacements remain
+prohibited, and all image and dependency security scans must pass before merging.
 
 ## Development setup changes
 
@@ -123,11 +128,16 @@ change unrelated files or discard persistent provider volumes.
 
 ## Caching and updates
 
-The shared toolchain installs the pnpm version from root `packageManager` once.
+The root `.nvmrc` pins the exact Node 26 version for CI and Docker and recommends
+it for local development. Source installations must use a stable Node 26 version
+satisfying `engines.node`; Node 24 is no longer supported. Both official Debian
+slim bases use that exact Node version and pinned multi-platform digests. CI runs
+Node in each final image to verify its version. The shared toolchain installs the
+pnpm version from root `packageManager` once.
 Application dependencies are installed before sources; server and frontend builds
 copy their own inputs independently. Capture installs only recorder production dependencies and its browser before
-recorder sources, and runs TypeScript with Node 24's native support. It does not
-retain the application build dependencies. Unused npm and Corepack are removed
+recorder sources, and runs TypeScript with Node 26's native support. It does not
+retain the application build dependencies. Unused npm is removed
 from the shared toolchain after installing pnpm. Capture also removes pnpm
 after browser installation; the recorder starts directly with Node. Version metadata exists only in the final
 production stage, so changing it reuses dependency and compilation layers.
@@ -151,14 +161,17 @@ External image references use multi-platform index digests. Renovate tracks thes
 and the Dockerfile frontend, ignores locally built image names, and raises
 release-worthy `fix(cliparr)` updates for the application Dockerfile. Provider
 fixture updates remain `build(cliparr)` changes. Node and Debian majors are explicit
-choices; changing them requires a reviewed migration. Routine updates follow the
-configured Saturday maintenance window.
+choices; changing them requires a reviewed migration. Renovate groups Node
+image digests, `.nvmrc`, the source engine requirement, and catalog typings into
+one Node.js LTS update within the selected major. `pnpm node:check` rejects
+configuration drift; image validation checks actual runtime versions. Routine
+updates follow the configured Saturday maintenance window.
 A merged update still needs the normal manual Release workflow to reach users.
 
 Docker CI scans both production architectures and the development and capture
-images for fixable HIGH/CRITICAL vulnerabilities. The production architectures
-share one lockfile scan and retained inventory; each auxiliary image and release
-validation also scans and retains its matching lockfile. Successfully built images
+images for fixable HIGH/CRITICAL vulnerabilities. All four image scans share one
+lockfile scan and retained inventory in the production job. Release validation
+also scans and retains its matching lockfile. Successfully built images
 are scanned even if another validation step fails.
 The lockfile inventory is retained as an artifact because bundled JavaScript
 cannot reliably be discovered by scanning the runtime filesystem alone. This

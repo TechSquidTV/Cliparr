@@ -33,7 +33,7 @@ README/social: paused, decoded, subtitle-visible frame at **8:16.72** (in + 0.65
 
 ## Run and capture mechanics
 
-Requires Node 24+, pinned pnpm, Docker Compose, and `pnpm install --frozen-lockfile`. The image supplies pinned Playwright/browser and FFmpeg; host ImageMagick is unnecessary.
+Requires the Node version in `.nvmrc`, pinned pnpm, Docker Compose, and `pnpm install --frozen-lockfile`. The image supplies pinned Playwright/browser and FFmpeg; host ImageMagick is unnecessary.
 
 ```bash
 pnpm assets:capture --media-dir /absolute/path/to/media \

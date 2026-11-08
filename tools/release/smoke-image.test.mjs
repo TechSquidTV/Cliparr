@@ -7,6 +7,10 @@ import test from "node:test";
 import { fileURLToPath } from "node:url";
 
 const script = fileURLToPath(new URL("../ci/smoke-image.sh", import.meta.url));
+const nodeVersion = readFileSync(
+  new URL("../../.nvmrc", import.meta.url),
+  "utf8",
+).trim();
 const image = "example/cliparr@sha256:index";
 const manifests = [
   { digest: "sha256:amd64", platform: { os: "linux", architecture: "amd64" } },
@@ -17,7 +21,10 @@ const manifests = [
   },
 ];
 
-function smokeTest(context, entries = manifests) {
+function smokeTest(
+  context,
+  { entries = manifests, runtimeVersion = nodeVersion } = {},
+) {
   const directory = mkdtempSync(path.join(tmpdir(), "cliparr-smoke-"));
   context.after(() => rmSync(directory, { recursive: true, force: true }));
   const log = path.join(directory, "docker.log");
@@ -39,7 +46,7 @@ case "$1" in
       exit 1
     fi
     ;;
-  exec) echo v24.0.0 ;;
+  exec) echo "$SMOKE_TEST_NODE_VERSION" ;;
 esac
 `,
     { mode: 0o755 },
@@ -63,6 +70,7 @@ fi
           ...process.env,
           PATH: `${directory}${path.delimiter}${process.env.PATH}`,
           SMOKE_TEST_DIRECTORY: directory,
+          SMOKE_TEST_NODE_VERSION: `v${runtimeVersion}`,
           GITHUB_OUTPUT: "",
         },
       }),
@@ -89,8 +97,22 @@ void test("smokes both architectures using distinct child digests and ignores at
             command.startsWith("run ") && command.endsWith(reference),
         ),
     );
-    assert.match(result.stdout, /app v2\.0\.0-rc\.1, Node v24\.0\.0/u);
+    assert.ok(result.stdout.includes(`app v2.0.0-rc.1, Node v${nodeVersion}`));
   }
+});
+
+void test("refuses runtime version drift before checking application health", (context) => {
+  const smoke = smokeTest(context, { runtimeVersion: "26.12.1" });
+  const result = smoke.run("linux/amd64", "cliparr:smoke");
+  assert.notEqual(result.status, 0);
+  assert.ok(
+    result.stderr.includes(
+      `Expected Node v${nodeVersion} from .nvmrc, got v26.12.1.`,
+    ),
+  );
+  assert.ok(
+    !smoke.commands().some((command) => command.startsWith("restart ")),
+  );
 });
 
 void test("local smoke tags do not require registry inspection or pulling", (context) => {
@@ -104,7 +126,7 @@ void test("local smoke tags do not require registry inspection or pulling", (con
 
 for (const entries of [[], [manifests[1], manifests[1]]]) {
   void test(`refuses ${entries.length === 0 ? "missing" : "ambiguous"} platform manifests before running an image`, (context) => {
-    const smoke = smokeTest(context, entries);
+    const smoke = smokeTest(context, { entries });
     const result = smoke.run("linux/arm64");
     assert.notEqual(result.status, 0);
     assert.match(
