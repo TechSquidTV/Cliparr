@@ -367,6 +367,8 @@ async function checkExportNavigation(browser, baseUrl, screenshots) {
     });
     const back = page.getByRole("button", { name: "Back to editor" });
     const confirm = page.getByRole("dialog", { name: "Leave during export?" });
+    const mobileWorkspace = page.locator(".editor-mobile-workspace");
+    const close = page.getByRole("button", { name: "Close export dialog" });
     const exportFile = page.getByRole("button", {
       name: "Export MP4",
       exact: true,
@@ -473,7 +475,7 @@ async function checkExportNavigation(browser, baseUrl, screenshots) {
     await page.goForward();
     await back.waitFor();
     await page.setViewportSize({ width: 1024, height: 768 });
-    await page.getByRole("button", { name: "Close export dialog" }).waitFor();
+    await close.waitFor();
     await page.setViewportSize({ width: 1440, height: 900 });
     const sizeValue = await drawer
       .getByText(/^~[\d,.]+ (?:KB|MB|GB|B)$/)
@@ -494,7 +496,7 @@ async function checkExportNavigation(browser, baseUrl, screenshots) {
       globalThis.document.activeElement?.matches("[data-editor-export]"),
     );
     await page.goForward();
-    await page.getByRole("button", { name: "Close export dialog" }).waitFor();
+    await close.waitFor();
     await page.mouse.click(8, 8);
     await drawer.waitFor({ state: "hidden" });
     assert.equal(page.url(), url);
@@ -519,7 +521,11 @@ async function checkExportNavigation(browser, baseUrl, screenshots) {
     await page.getByRole("button", { name: "Cancel export" }).waitFor();
     await page.setViewportSize({ width: 390, height: 844 });
     await back.click();
+    await confirm.waitFor();
+    await page.setViewportSize({ width: 1280, height: 800 });
+    await mobileWorkspace.waitFor({ state: "detached" });
     await confirm.getByRole("button", { name: "Stay" }).click();
+    await close.waitFor();
     await page.waitForFunction(() =>
       Boolean(globalThis.history.state.editorExportSessionId),
     );
@@ -532,7 +538,11 @@ async function checkExportNavigation(browser, baseUrl, screenshots) {
       .waitFor();
     await exportFile.click();
     await page.evaluate(() => globalThis.history.back());
+    await confirm.waitFor();
+    await page.setViewportSize({ width: 390, height: 844 });
+    await mobileWorkspace.waitFor({ state: "attached" });
     await confirm.getByRole("button", { name: "Leave", exact: true }).click();
+    await confirm.waitFor({ state: "hidden" });
     await drawer.waitFor({ state: "hidden" });
     await page.evaluate(() => {
       globalThis.dispatchEvent(new Event("finish-picker"));

@@ -392,6 +392,7 @@ function EditorScreenContent({
     shouldBlockFn: blockNavigation,
     withResolver: true,
   });
+  const leaveConfirmationOpen = navigationBlocker.status === "blocked";
   useEffect(() => {
     if (!exporting && navigationBlocker.status === "blocked") {
       navigationBlocker.reset();
@@ -1171,6 +1172,7 @@ function EditorScreenContent({
           <EditorExportDialog
             isOpen={exportDialogOpen}
             mobile={!isDesktopLayout}
+            leaveConfirmationOpen={leaveConfirmationOpen}
             finalFocus={exportButtonReference}
             title={session.title}
             clipStart={startTime}
@@ -1273,7 +1275,7 @@ function EditorScreenContent({
           </Suspense>
         )}
       <ConfirmationDialog
-        open={navigationBlocker.status === "blocked"}
+        open={leaveConfirmationOpen}
         title="Leave during export?"
         description="Leaving will cancel the export."
         cancelLabel="Stay"
