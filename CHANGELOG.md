@@ -6,7 +6,7 @@ Published release notes are available in [GitHub Releases](https://github.com/Te
 
 ### Changed
 
-- **Breaking:** source installations now require a stable Node 26 version satisfying `engines.node`; use `.nvmrc` before installing dependencies. Production, development, and capture images include the pinned Node 26 runtime and retain official Debian slim bases with released zlib security updates.
+- Source installations now require a stable Node 26 version satisfying `engines.node`; use `.nvmrc` before installing dependencies. Production, development, and capture images include the pinned Node 26 runtime and retain official Debian slim bases with released zlib security updates.
 
 ### Fixed
 
