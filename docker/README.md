@@ -154,8 +154,8 @@ rejects drift; image validation also checks the actual runtime version. Routine
 updates follow the configured Saturday maintenance window.
 A merged update still needs the normal manual Release workflow to reach users.
 
-Docker CI scans both production architectures, the development and capture images,
-and the matching lockfile for fixable HIGH/CRITICAL vulnerabilities.
+Docker CI builds all three targets. All image targets and release validation scan the
+image and matching lockfile for fixable HIGH/CRITICAL vulnerabilities.
 The lockfile inventory is retained as an artifact because bundled JavaScript
 cannot reliably be discovered by scanning the runtime filesystem alone. This
 conservatively includes production dependencies of other workspaces, too; the
