@@ -180,7 +180,7 @@ async function waitForExport(format) {
 }
 
 async function selectMode(name) {
-  await page.getByRole("combobox", { name: "Export mode" }).click();
+  await page.getByRole("combobox", { name: "Output type" }).click();
   await page.getByRole("option", { name, exact: true }).click();
 }
 

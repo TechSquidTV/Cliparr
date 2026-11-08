@@ -1,4 +1,3 @@
-import { cn } from "#/lib/cn";
 import type { ExportPhase } from "#/lib/export/exportClip";
 import {
   type ExportSizeEstimate,
@@ -14,7 +13,6 @@ function ExportMemoryGuidance({ bytes }: { bytes: number | null }) {
 }
 
 export function ExportStatusPanel({
-  className,
   estimate,
   exporting,
   phase,
@@ -23,7 +21,6 @@ export function ExportStatusPanel({
   error,
   disabledReason,
 }: {
-  className?: string;
   estimate: ExportSizeEstimate;
   exporting: boolean;
   phase: ExportPhase;
@@ -39,25 +36,24 @@ export function ExportStatusPanel({
   }[phase];
   const message = exporting ? phaseLabel : (error ?? disabledReason ?? notice);
   return (
-    <div
-      className={cn(
-        "h-28 min-w-0 overflow-y-auto self-stretch sm:h-20 sm:flex-1",
-        className,
-      )}
-    >
-      <div className="flex min-w-0 flex-wrap items-baseline gap-x-2 gap-y-0.5 text-xs">
-        <span className="text-muted-foreground">Estimated size</span>
-        <span className="font-mono tabular-nums text-foreground">
-          {formatExportSizeEstimate(estimate)}
-        </span>
-      </div>
+    <div className="flex min-w-0 flex-1 flex-col gap-1.5 lg:flex-row lg:items-center lg:justify-end lg:gap-4">
       <div
         role="status"
-        className={`mt-1 wrap-anywhere text-xs ${error ? "text-destructive" : "text-muted-foreground"}`}
+        className="min-w-0 max-h-[24dvh] overflow-y-auto wrap-anywhere text-sm text-muted-foreground empty:sr-only lg:mr-auto"
       >
-        {message}
+        {message && (
+          <p className={error ? "text-destructive" : undefined}>{message}</p>
+        )}
+        {!exporting && <ExportMemoryGuidance bytes={estimate.bytes} />}
       </div>
-      <ExportMemoryGuidance bytes={estimate.bytes} />
+      {!exporting && (
+        <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5 text-sm lg:shrink-0">
+          <span className="text-muted-foreground">Estimated file size</span>
+          <span className="font-mono font-semibold tabular-nums text-foreground">
+            {formatExportSizeEstimate(estimate)}
+          </span>
+        </div>
+      )}
     </div>
   );
 }

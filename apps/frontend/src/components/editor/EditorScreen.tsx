@@ -341,7 +341,7 @@ function EditorScreenContent({
     audioPlan,
     audioBitDepth,
     audioExportDisabledReason,
-    audioDisabledReason,
+    sourceAudioChannels,
     fileNameTemplates,
     templateEditorKind,
     setTemplateEditorKind,
@@ -1195,7 +1195,7 @@ function EditorScreenContent({
             audioStatus={audioStatus}
             audioPlan={audioPlan}
             audioBitDepth={audioBitDepth}
-            audioDisabledReason={audioDisabledReason}
+            sourceAudioChannels={sourceAudioChannels}
             exporting={exporting}
             progress={progress}
             error={exportError}

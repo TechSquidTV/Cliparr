@@ -1,7 +1,7 @@
 import { fieldLabelWideClasses } from "#/components/ui/control-styles";
 
 export const exportHelperTextClassName =
-  "min-h-9 text-xs leading-relaxed text-muted-foreground";
+  "lg:min-h-9 text-xs leading-relaxed text-muted-foreground";
 
 export function ExportSectionHeader({ children }: { children: string }) {
   return (

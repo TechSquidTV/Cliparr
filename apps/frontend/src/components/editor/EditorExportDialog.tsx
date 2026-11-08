@@ -11,13 +11,10 @@ import { ExportStatusPanel } from "#/components/export/ExportStatusPanel";
 import { BouncyAccordion } from "#/components/ui/bouncy-accordion";
 import {
   buttonClassName,
+  dialogFooterClasses,
   primaryAlertClasses,
 } from "#/components/ui/control-styles";
-import {
-  DialogClose,
-  DialogFooter,
-  DialogWindow,
-} from "#/components/ui/dialog";
+import { DialogClose, DialogWindow } from "#/components/ui/dialog";
 import {
   Drawer,
   DrawerClose,
@@ -25,7 +22,6 @@ import {
   DrawerDescription,
   DrawerTitle,
 } from "#/components/ui/drawer";
-import { Spinner } from "#/components/ui/spinner";
 import type {
   audioBitDepthSummary,
   ExportAudioPlan,
@@ -73,7 +69,7 @@ interface EditorExportDialogProperties {
   audioPending: boolean;
   audioStatus: string;
   audioPlan: ExportAudioPlan | null;
-  audioDisabledReason?: string | null;
+  sourceAudioChannels: number | null;
   audioBitDepth: ReturnType<typeof audioBitDepthSummary>;
   exporting: boolean;
   progress: number;
@@ -133,7 +129,7 @@ export function EditorExportDialog({
   audioPending,
   audioStatus,
   audioPlan,
-  audioDisabledReason,
+  sourceAudioChannels,
   audioBitDepth,
   exporting,
   progress,
@@ -212,7 +208,8 @@ export function EditorExportDialog({
               onVideoMutedChange={onVideoMutedChange}
               mixDownToStereo={mixDownToStereo}
               onMixDownToStereoChange={onMixDownToStereoChange}
-              audioDisabledReason={audioDisabledReason}
+              audioStatus={audioStatus}
+              sourceAudioChannels={sourceAudioChannels}
               audioBitDepth={audioBitDepth}
             >
               {hasHlsSource && hasDirectSource && (
@@ -260,11 +257,15 @@ export function EditorExportDialog({
         )}
       </div>
 
-      <DialogFooter className="flex-row items-center justify-between gap-2 lg:items-end lg:gap-3">
+      <footer className={`editor-export-footer ${dialogFooterClasses}`}>
+        {!mobile && !exporting && (
+          <DialogClose
+            className={buttonClassName({ tone: "secondary", size: "compact" })}
+          >
+            Close
+          </DialogClose>
+        )}
         <ExportStatusPanel
-          className={
-            mobile ? "h-auto max-h-[24dvh] flex-1 sm:h-auto" : undefined
-          }
           estimate={outputSizeEstimate}
           exporting={exporting}
           phase={exportPhase}
@@ -274,51 +275,31 @@ export function EditorExportDialog({
           disabledReason={exportDisabledReason}
         />
 
-        <div className="flex min-w-0 items-center justify-end gap-2 sm:shrink-0">
-          {exporting ? (
-            <button
-              type="button"
-              onClick={onCancelExport}
-              className={`${buttonClassName({ tone: "secondary", size: "compact" })} min-h-11 min-w-16 whitespace-nowrap lg:min-h-8 lg:w-20`}
-              aria-label="Cancel export"
-            >
-              Cancel
-            </button>
-          ) : (
-            !mobile && (
-              <DialogClose
-                className={`${buttonClassName({ tone: "secondary", size: "compact" })} w-20 min-w-16 whitespace-nowrap`}
-              >
-                Close
-              </DialogClose>
-            )
-          )}
-
-          {(!mobile || !exporting) && (
-            <button
-              type="button"
-              onClick={onExport}
-              disabled={exporting || Boolean(exportDisabledReason)}
-              className={`${buttonClassName({ size: "compact" })} min-h-11 shrink-0 whitespace-nowrap lg:min-h-8 lg:w-44`}
-            >
-              {exporting ? (
-                <>
-                  <Spinner />
-                  <span>Exporting</span>
-                  <span className="inline-block w-[4ch] text-right font-mono tabular-nums">
-                    {Math.round(progress * 100)}%
-                  </span>
-                </>
-              ) : (
-                <>
-                  <Download className="h-4 w-4" />
-                  Export {selectedFormat.toUpperCase()}
-                </>
-              )}
-            </button>
-          )}
-        </div>
-      </DialogFooter>
+        {exporting ? (
+          <button
+            type="button"
+            onClick={onCancelExport}
+            className={buttonClassName({
+              tone: "secondary",
+              className: "h-12 lg:h-8",
+            })}
+          >
+            Cancel export
+          </button>
+        ) : (
+          <button
+            type="button"
+            onClick={onExport}
+            disabled={Boolean(exportDisabledReason)}
+            className={buttonClassName({
+              className: "h-12 lg:h-8 lg:min-w-36",
+            })}
+          >
+            <Download className="size-4" /> Export{" "}
+            {selectedFormat.toUpperCase()}
+          </button>
+        )}
+      </footer>
     </>
   );
 

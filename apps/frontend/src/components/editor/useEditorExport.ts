@@ -744,7 +744,7 @@ export function useEditorExport({
     audioPlan: audio.plan,
     audioBitDepth: audio.bitDepth,
     audioExportDisabledReason: audio.disabledReason,
-    audioDisabledReason: audio.mixdownDisabledReason,
+    sourceAudioChannels: audio.sourceAudioChannels,
     fileNameTemplates,
     templateEditorKind,
     setTemplateEditorKind,

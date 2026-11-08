@@ -350,7 +350,7 @@ async function checkTouchTrimTargets(browser, url) {
   await page.close();
 }
 
-async function checkExportNavigation(browser, url, screenshots) {
+async function checkExportNavigation(browser, baseUrl, screenshots) {
   const page = await browser.newPage({
     viewport: { width: 390, height: 844 },
     isMobile: true,
@@ -358,6 +358,7 @@ async function checkExportNavigation(browser, url, screenshots) {
     reducedMotion: "reduce",
   });
   try {
+    const url = `${baseUrl}?fixture=surround`;
     await page.goto(url);
     const trigger = page.locator("[data-editor-export]");
     const drawer = page.getByRole("dialog", {
@@ -376,6 +377,21 @@ async function checkExportNavigation(browser, url, screenshots) {
     const initialLength = await page.evaluate(() => globalThis.history.length);
     await trigger.click();
     await back.waitFor();
+    const audio = drawer.getByRole("group", { name: "Audio", exact: true });
+    const mute = audio.getByRole("switch", { name: "Mute audio" });
+    const mixdown = audio.getByRole("switch", { name: "Mix down to stereo" });
+    await mixdown.waitFor();
+    await mixdown.click();
+    await mute.click();
+    await mixdown.waitFor({ state: "detached" });
+    await mute.click();
+    await mixdown.waitFor();
+    assert.equal(await mixdown.isChecked(), false);
+    await mixdown.click();
+    const estimate = drawer.getByText("Estimated file size", { exact: true });
+    await drawer
+      .getByRole("button", { name: "Export MP4", exact: true, disabled: false })
+      .waitFor();
     assert.equal(page.url(), url);
     assert.equal(
       await page.evaluate(() => globalThis.history.length),
@@ -420,6 +436,14 @@ async function checkExportNavigation(browser, url, screenshots) {
     ]) {
       await page.setViewportSize(viewport);
       const action = await exportFile.boundingBox();
+      const label = await estimate.boundingBox();
+      assert.ok(label && action);
+      if (viewport.width < viewport.height) {
+        assert.ok(action.width >= viewport.width - 36 && action.height >= 48);
+        assert.ok(label.y + label.height <= action.y);
+      } else {
+        assert.ok(label.x + label.width < action.x && label.y >= action.y);
+      }
       assert.ok(
         action &&
           action.height >= 44 &&
@@ -451,6 +475,16 @@ async function checkExportNavigation(browser, url, screenshots) {
     await page.setViewportSize({ width: 1024, height: 768 });
     await page.getByRole("button", { name: "Close export dialog" }).waitFor();
     await page.setViewportSize({ width: 1440, height: 900 });
+    const sizeValue = await drawer
+      .getByText(/^~[\d,.]+ (?:KB|MB|GB|B)$/)
+      .boundingBox();
+    const action = await exportFile.boundingBox();
+    assert.ok(
+      sizeValue &&
+        action &&
+        Math.abs(sizeValue.x + sizeValue.width - action.x) <= 20 &&
+        sizeValue.y >= action.y,
+    );
     await page.screenshot({
       path: path.join(screenshots, "desktop-export.png"),
     });
@@ -480,6 +514,7 @@ async function checkExportNavigation(browser, url, screenshots) {
     });
     await exportFile.click();
     await page.getByRole("button", { name: "Cancel export" }).waitFor();
+    assert.equal(await estimate.count(), 0);
     await page.setViewportSize({ width: 1280, height: 800 });
     await page.getByRole("button", { name: "Cancel export" }).waitFor();
     await page.setViewportSize({ width: 390, height: 844 });
