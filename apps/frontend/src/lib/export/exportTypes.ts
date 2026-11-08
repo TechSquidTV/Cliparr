@@ -535,7 +535,5 @@ export function formatExportSizeEstimate(estimate: ExportSizeEstimate) {
   if (typeof estimate.bytes === "number") {
     return `~${formatExportByteSize(estimate.bytes)}`;
   }
-  return estimate.basis === "variable"
-    ? "Variable (lossless compression)"
-    : "Unavailable";
+  return estimate.basis === "variable" ? "Variable" : "Unavailable";
 }

@@ -9,6 +9,7 @@ export function ConfirmationDialog({
   description,
   confirmLabel,
   cancelLabel = "Cancel",
+  onOpenChangeComplete,
   onConfirm,
   onCancel,
   finalFocus,
@@ -18,6 +19,9 @@ export function ConfirmationDialog({
   description: string;
   confirmLabel: string;
   cancelLabel?: string;
+  onOpenChangeComplete?: ComponentProps<
+    typeof DialogWindow
+  >["onOpenChangeComplete"];
   onConfirm: () => void;
   onCancel: () => void;
   finalFocus?: ComponentProps<typeof DialogWindow>["finalFocus"];
@@ -27,6 +31,7 @@ export function ConfirmationDialog({
   return (
     <DialogWindow
       open={open}
+      onOpenChangeComplete={onOpenChangeComplete}
       onClose={onCancel}
       title={title}
       description={description}

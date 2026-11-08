@@ -120,8 +120,6 @@ const EditorCropControls = lazy(() =>
   })),
 );
 
-const blockNavigation = () => true;
-
 interface Properties {
   session: EditorSession;
   onBack: () => void;
@@ -217,6 +215,7 @@ function EditorScreenContent({
     return true;
   }, []);
   const [exportDialogMounted, setExportDialogMounted] = useState(false);
+  const exportButtonReference = useRef<HTMLButtonElement>(null);
   const moreTriggerReference = useRef<HTMLButtonElement>(null);
   const subtitleOptionsTriggerReference = useRef<HTMLButtonElement>(null);
   const subtitles = useEditorSubtitles({
@@ -340,7 +339,7 @@ function EditorScreenContent({
     audioPlan,
     audioBitDepth,
     audioExportDisabledReason,
-    audioDisabledReason,
+    sourceAudioChannels,
     fileNameTemplates,
     templateEditorKind,
     setTemplateEditorKind,
@@ -385,12 +384,21 @@ function EditorScreenContent({
     subtitleCues,
     subtitleStyleSettings,
   });
+  const [desktopAtConfirmation, setDesktopAtConfirmation] = useState<
+    boolean | null
+  >(null);
+  const blockNavigation = useCallback(() => {
+    // Keep the export surface mounted through the confirmation's exit animation.
+    setDesktopAtConfirmation((current) => current ?? isDesktopLayout);
+    return true;
+  }, [isDesktopLayout]);
   const navigationBlocker = useBlocker({
     disabled: !exporting,
     enableBeforeUnload: exporting,
     shouldBlockFn: blockNavigation,
     withResolver: true,
   });
+  const leaveConfirmationOpen = navigationBlocker.status === "blocked";
   useEffect(() => {
     if (!exporting && navigationBlocker.status === "blocked") {
       navigationBlocker.reset();
@@ -1112,6 +1120,7 @@ function EditorScreenContent({
         finalFocus={subtitleOptionsTriggerReference}
       />
       <EditorHeader
+        exportButtonRef={exportButtonReference}
         title={session.title}
         onBack={() => {
           finishEditing();
@@ -1168,6 +1177,8 @@ function EditorScreenContent({
         <Suspense fallback={null}>
           <EditorExportDialog
             isOpen={exportDialogOpen}
+            mobile={!(desktopAtConfirmation ?? isDesktopLayout)}
+            finalFocus={exportButtonReference}
             title={session.title}
             clipStart={startTime}
             clipEnd={endTime}
@@ -1191,7 +1202,7 @@ function EditorScreenContent({
             audioStatus={audioStatus}
             audioPlan={audioPlan}
             audioBitDepth={audioBitDepth}
-            audioDisabledReason={audioDisabledReason}
+            sourceAudioChannels={sourceAudioChannels}
             exporting={exporting}
             progress={progress}
             error={exportError}
@@ -1269,7 +1280,12 @@ function EditorScreenContent({
           </Suspense>
         )}
       <ConfirmationDialog
-        open={navigationBlocker.status === "blocked"}
+        open={leaveConfirmationOpen}
+        onOpenChangeComplete={(open) => {
+          if (!open) {
+            setDesktopAtConfirmation(null);
+          }
+        }}
         title="Leave during export?"
         description="Leaving will cancel the export."
         cancelLabel="Stay"

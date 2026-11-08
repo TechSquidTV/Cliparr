@@ -14,6 +14,7 @@ function renderExportDialogMarkup(
 ) {
   const props = {
     isOpen: true,
+    mobile: false,
     title: "Example Movie",
     clipStart: 10,
     clipEnd: 20,
@@ -37,7 +38,7 @@ function renderExportDialogMarkup(
     audioBitDepth: null,
     onOutputTypeChange: () => {},
     onVideoMutedChange: () => {},
-    audioDisabledReason: null,
+    sourceAudioChannels: 6,
     exporting: false,
     progress: 0,
     exportPhase: "preparing",
@@ -87,7 +88,6 @@ void test("renders GIF export quality controls and immediate estimated size", ()
     gifSettings: gifExportSettingsForPreset("balanced"),
     outputSizeEstimate: { bytes: 1_572_864, basis: "gif-profile" },
     mode: "video-only",
-    audioDisabledReason: "GIF exports are video only.",
     fileNamePreview: "Example Movie [00m10s-00m20s].gif",
     outputDimensions: { width: 853, height: 480 },
   });
@@ -103,16 +103,13 @@ void test("renders GIF export quality controls and immediate estimated size", ()
   assert.match(markup, /Up to 480p\. Smaller sources unchanged\./);
   assert.doesNotMatch(markup, /Select resolution/);
   assert.match(markup, /Balanced GIF \/ 12 fps/);
-  assert.doesNotMatch(markup, /<dt[^>]*>Estimated size<\/dt>/);
-  assert.match(markup, /Estimated size[\S\s]*~1\.5 MB[\S\s]*Export GIF/);
+  assert.doesNotMatch(markup, /<dt[^>]*>Estimated file size<\/dt>/);
+  assert.match(markup, /Estimated file size[\S\s]*~1\.5 MB[\S\s]*Export GIF/);
   assert.match(markup, /~1\.5 MB/);
   assert.doesNotMatch(markup, /GIF has no audio/);
   assert.doesNotMatch(markup, /Select format/);
   assert.doesNotMatch(markup, /<dt[^>]*>Audio<\/dt>/);
-  assert.match(
-    markup,
-    /<label[^>]*invisible[^>]*aria-hidden="true"[^>]*inert=""/,
-  );
+  assert.doesNotMatch(markup, /Mute audio|Mix down to stereo/);
   assert.doesNotMatch(markup, /role="radiogroup"/);
   assert.doesNotMatch(markup, /grid-cols-3/);
   assert.doesNotMatch(markup, /role="note"/);
@@ -133,8 +130,8 @@ void test("renders universal quality details for video formats", () => {
   assert.match(markup, /data-slot="select-value">MP4 \.mp4<\/span>/);
   assert.doesNotMatch(markup, /GIF Preset/);
   assert.doesNotMatch(markup, /min-h-\[6\.5rem]/);
-  assert.doesNotMatch(markup, /<dt[^>]*>Estimated size<\/dt>/);
-  assert.match(markup, /Estimated size[\S\s]*~6\.7 MB[\S\s]*Export MP4/);
+  assert.doesNotMatch(markup, /<dt[^>]*>Estimated file size<\/dt>/);
+  assert.match(markup, /Estimated file size[\S\s]*~6\.7 MB[\S\s]*Export MP4/);
   assert.match(markup, /~6\.7 MB/);
   assert.doesNotMatch(markup, /~1\.5 MB/);
   assert.doesNotMatch(markup, /Balanced GIF \/ 12 fps/);
@@ -143,14 +140,34 @@ void test("renders universal quality details for video formats", () => {
   assert.doesNotMatch(markup, /Size Estimate/);
 });
 
+void test("audio settings reflect the inspected source and the video mute selection", () => {
+  const silent = renderExportDialogMarkup({ sourceAudioChannels: 0 });
+  assert.match(silent, /No audio track/);
+  assert.doesNotMatch(silent, /Mute audio|Mix down to stereo/);
+
+  const stereo = renderExportDialogMarkup({ sourceAudioChannels: 2 });
+  assert.match(stereo, /Mute audio/);
+  assert.doesNotMatch(stereo, /Mix down to stereo/);
+
+  const muted = renderExportDialogMarkup({
+    mode: "video-only",
+    sourceAudioChannels: 6,
+  });
+  assert.match(muted, /Mute audio/);
+  assert.doesNotMatch(muted, /Mix down to stereo/);
+});
+
 void test("renders unavailable footer estimate when size inputs are missing", () => {
   const markup = renderExportDialogMarkup({
     outputDimensions: null,
     outputSizeEstimate: { bytes: null, basis: "unavailable" },
   });
 
-  assert.doesNotMatch(markup, /<dt[^>]*>Estimated size<\/dt>/);
-  assert.match(markup, /Estimated size[\S\s]*Unavailable[\S\s]*Export MP4/);
+  assert.doesNotMatch(markup, /<dt[^>]*>Estimated file size<\/dt>/);
+  assert.match(
+    markup,
+    /Estimated file size[\S\s]*Unavailable[\S\s]*Export MP4/,
+  );
   assert.match(markup, /Unavailable/);
 });
 
@@ -158,6 +175,7 @@ void test("audio-only dialog hides video and subtitle controls while showing aud
   const markup = renderExportDialogMarkup({
     mode: "audio-only",
     selectedFormat: "flac",
+    sourceAudioChannels: 2,
     audioStatus: "Ready",
     audioPlan: {
       format: "flac",
@@ -180,12 +198,12 @@ void test("audio-only dialog hides video and subtitle controls while showing aud
     outputDimensions: null,
     outputSizeEstimate: { bytes: null, basis: "variable" },
   });
-  assert.match(markup, /Mix down to stereo/);
+  assert.doesNotMatch(markup, /Mute audio|Mix down to stereo/);
   assert.match(markup, /Channels<\/dt>[\s\S]*Stereo<\/dd>/);
   assert.match(markup, /Sample rate<\/dt>[\s\S]*48 kHz<\/dd>/);
   assert.match(markup, /Bit depth<\/dt>[\s\S]*24-bit<\/dd>/);
   assert.doesNotMatch(markup, /Codec<\/dt>/);
-  assert.match(markup, /Variable \(lossless compression\)/);
+  assert.match(markup, />Variable</);
   assert.doesNotMatch(
     markup,
     /Export quality|>Resolution<|>Subtitles<|Unknown size/,
