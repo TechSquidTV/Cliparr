@@ -14,7 +14,7 @@ import {
   dialogFooterClasses,
   primaryAlertClasses,
 } from "#/components/ui/control-styles";
-import { DialogClose, DialogWindow } from "#/components/ui/dialog";
+import { DialogWindow } from "#/components/ui/dialog";
 import {
   Drawer,
   DrawerClose,
@@ -258,13 +258,6 @@ export function EditorExportDialog({
       </div>
 
       <footer className={`editor-export-footer ${dialogFooterClasses}`}>
-        {!mobile && !exporting && (
-          <DialogClose
-            className={buttonClassName({ tone: "secondary", size: "compact" })}
-          >
-            Close
-          </DialogClose>
-        )}
         <ExportStatusPanel
           estimate={outputSizeEstimate}
           exporting={exporting}

@@ -378,4 +378,4 @@ function getPopupOffset(from: NonNullable<DialogPopupProperties["from"]>) {
   }
 }
 
-export { DialogClose, DialogFooter, DialogWindow };
+export { DialogFooter, DialogWindow };
