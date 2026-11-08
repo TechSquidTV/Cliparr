@@ -1,9 +1,10 @@
 ---
-title: "Cliparr 3.1: video cropping enters a new dimension"
-seoTitle: "Cliparr 3.1: video cropping enters a new dimension"
-description: "Reframe your clips with freeform cropping, aspect-ratio presets, and precise pixel controls. Cliparr 3.1 brings cropping to video, GIFs, and screenshots."
-# Draft: confirm the publication date before merging.
-publishedAt: "2026-11-05"
+title: "Cliparr 3.1: a new mobile experience, now with cropping"
+seoTitle: "Cliparr 3.1: a new mobile experience, now with cropping"
+description: "Meet Cliparr's redesigned mobile editor: more room for your preview, a bottom action bar, and new cropping tools. Trim, reframe, and add your media server's subtitles from your phone."
+publishedAt: "2026-11-08"
+heroImage: cliparr-3-1-release-hero
+heroImageAlt: "Cliparr 3.1 Mobile Experience+ artwork with a phone showing the redesigned editor and bottom action bar."
 author:
   name: KyleTryon
   url: https://github.com/KyleTryon
@@ -11,73 +12,118 @@ tags:
   - engineering
 ---
 
-Cliparr is going 4D, through time _and space_. Up until now, Cliparr only allowed you to clip the _timing_ of a video segment, but now, Cliparr can _crop_ your content too!
+import { buttonClassName } from "@cliparr/frontend/convert/ui";
+import { Crop } from "lucide-react";
+import InlineImage from "../../components/InlineImage.astro";
+import billyMays from "../../assets/emoji/billy-mays.webp";
 
-**Cliparr 3.1 adds video cropping**, adds simple crop controls with free-form rectangles or pre-defined aspect ratios.
+**Cliparr 3.1 brings a new mobile editing experience.** We've cleared out clutter, given the preview more space, and moved the tools into a bottom action bar that keeps everything within reach. Pick a moment, adjust the framing, add subtitles, and export, all from your phone's browser.
 
-## Pick the moment, then frame it
+And there's a new **Crop tool** for videos, GIFs, and screenshots. You can finally choose both _when_ your clip happens and _what_ fits in the frame.
 
-Cliparr's sidebar has once again been turned back into the properties side panel, after briefly becoming an exclusive subtitles area. There are now two sections for the sidebar; the old subtitles area, and the new cropping properties.
+## A full edit from your phone
 
-<figure class="my-8 overflow-hidden rounded-lg border border-border bg-card">
+Here's the new mobile experience in action: trim the moment, crop the picture, style the subtitles, and export the finished clip. The demo uses the subtitle track provided by the media server, so we can quickly drop in the official dialogue text with its existing timing instead of typing it out ourselves.
+
+<figure class="mx-auto my-8 max-w-md overflow-hidden rounded-lg border border-border bg-card">
   <video
     controls
     muted
     playsinline
     loop
     preload="none"
-    poster="/blog/cliparr-3-1-release/crop-demo-poster.webp"
-    width="1286"
-    height="1080"
-    aria-label="Silent demonstration of selecting a crop and reviewing its export settings in Cliparr"
+    poster="/blog/cliparr-3-1-release/mobile-experience-demo-poster.webp"
+    width="1008"
+    height="2244"
+    aria-label="Demonstration of Cliparr's mobile editor: trimming, cropping, styling media-server subtitles, and exporting a clip"
     class="block h-auto w-full"
   >
-    <source src="/blog/cliparr-3-1-release/crop-demo.mp4" type="video/mp4" />
-    <a href="/blog/cliparr-3-1-release/crop-demo.mp4">
-      Download the cropping demo.
+    <source
+      src="/blog/cliparr-3-1-release/mobile-experience-demo.mp4"
+      type="video/mp4"
+    />
+    <a href="/blog/cliparr-3-1-release/mobile-experience-demo.mp4">
+      Download the mobile editing demo.
     </a>
   </video>
   <figcaption class="px-4 py-3 text-sm text-muted-foreground">
-    Cropping NASA's{" "}
-    <a href="https://www.youtube.com/shorts/l6PAhdKxa2c">
-      Six Years of NASA's Mars Curiosity Rover
-    </a>{" "}
-    in Cliparr. Source video by NASA, downloaded with{" "}
-    <a href="https://github.com/techsquidtv/hermes">Hermes</a>.
+    From a media-server session to a finished clip: trim, crop, and style the
+    server's subtitles in the redesigned mobile editor. Unmute to hear the
+    result.
   </figcaption>
 </figure>
 
-Perfect for clipping part of a video from a vertical video to make a proper gif.
-Or, simply focusing on what you want to see.
+## More room for the edit
 
-You'll see there is a new dedicated crop tool in the toolbar which will toggle the crop adjustment interface.
+Cliparr has always worked on a phone, but the old layout carried a lot of desktop baggage: crowded controls, excess padding, and a preview fighting for space. The new layout puts the picture first, with controls arranged for a smaller screen.
 
-## Freeform when you want it, precise when you need it
+{/* Mobile images are frozen copies for this post. After: homepage poster from commit 51f2e1bffe72486e299db8998dfe60ac9ad6b658 (PR #311). Keep both independent of future homepage refreshes. */}
 
-By default, as you see above, you are able to free-draw a rectangle to fit your content. You can make exact pixel adjustments in the side panel.
+<div class="not-prose my-8 grid grid-cols-2 items-start gap-4">
+  <figure class="m-0 min-w-0">
+    <figcaption class="mb-3 text-center text-sm font-semibold">
+      Before
+    </figcaption>
+    <img
+      src="/blog/cliparr-3-1-release/mobile-before.webp"
+      alt="Cliparr mobile editing workspace before the 3.1 redesign"
+      width="402"
+      height="874"
+      loading="lazy"
+      class="block h-auto w-full rounded-lg border border-border"
+    />
+  </figure>
+  <figure class="m-0 min-w-0">
+    <figcaption class="mb-3 text-center text-sm font-semibold">
+      After
+    </figcaption>
+    <img
+      src="/blog/cliparr-3-1-release/mobile-after.webp"
+      alt="Redesigned Cliparr mobile editor with a larger preview and bottom action bar"
+      width="402"
+      height="874"
+      loading="lazy"
+      class="block h-auto w-full rounded-lg border border-border"
+    />
+  </figure>
+</div>
 
-For small changes, focus the selection and use the arrow keys to move it one source pixel at a time. Hold **Shift** to move ten pixels. In Free mode, holding Shift while dragging a resize handle preserves the selection's current proportions.
+The bottom action bar groups your tools into **Trim, Subtitles, Crop, Playback, and More**. Open the controls you need for the current step, then get back to your preview and timeline.
 
-Crop changes support **undo and redo**, and your crop is saved with the draft. You can try a tighter frame, change your mind, and come back to the edit later.
+Cliparr runs in your browser, using WebCodecs and Mediabunny for editing and export. There's no app to install. If you haven't tried it on your phone yet, this is a good time to give it a go.
 
-On a phone, crop settings sit below the preview. Touch controls let you adjust the selection directly, while the numeric fields remain available for fine adjustments. Small selections hide side handles to keep the touch targets separate; the corners still work.
+## Crop your clips
 
-## A smoother path to the edit
+But wait! There's more! <InlineImage src={billyMays} alt="Billy Mays giving a thumbs-up" />
 
-There are a few more improvements around the editor in 3.1:
+Cliparr can now clip through _time and space_, with the new <span aria-hidden="true" className={buttonClassName({ tone: "icon", size: "icon", className: "align-middle rounded-[var(--radius-control)]" })}><Crop className="h-4 w-4" /></span> Crop tool. Before, you could trim the beginning or end of a clip. Now you can clip… the clip! (Did I go too far?)
 
-- **Expandable Properties panels.** The desktop sidebar groups Subtitles and Crop into expandable panels, keeping their controls together while you work.
+Draw a freeform rectangle over the preview, choose an aspect-ratio preset, or enter exact pixel values. Pull a vertical clip out of a wider shot, remove an unwanted edge, or focus on the part of the picture you want to share. The same crop applies to video, GIFs, and screenshots.
+
+On a phone, tap **Crop** in the bottom action bar. Drag the selection on the preview or use the numeric fields below it, then tap **Done** to review the result with subtitles. Small selections hide the side handles so the corner handles stay easy to reach. On desktop, crop settings sit alongside subtitles in the expandable Properties panels.
+
+Cropping supports **undo and redo**, saves with your draft, and includes keyboard shortcuts for precise adjustments. See the [cropping guide](/docs/video-cropping) for the details.
+
+## Bring the dialogue with you
+
+The subtitle tools are part of the mobile workflow too. When Plex or Jellyfin provides a supported text subtitle track, you can use its dialogue and timing as your starting point, then adjust the styling and position for your clip. You can also edit the text or write your own captions.
+
+Subtitles are positioned within the cropped picture and burned into the exported video or GIF, so they stay with the clip when you share it. See [subtitle burn-in](/docs/subtitle-burn-in) for supported tracks and editing options.
+
+## A few other fixes
+
+There's more in 3.1 besides the two big feature changes:
 
 - **Clearer playback loading.** Each source shows whether it is connecting, finding playback, or preparing playback details. Ready sources remain available while others continue loading.
 - **Faster Plex connection attempts.** Cliparr tries server addresses in a staggered sequence, reducing the wait when an earlier address is slow or unavailable.
 - **A warning before leaving an active export.** Navigating away from the editor asks for confirmation. Reloading or closing the tab also requests a browser warning.
 - **FLAC export fixes.** Valid standalone FLAC files with short final frames export in full. Incomplete sources are still rejected instead of producing silently truncated audio.
-- **Timeline improvements.** Playback and scrubbing receive fixes around playback boundaries and suspended audio contexts.
+- **Timeline fixes.** We've fixed playback and scrubbing issues at clip boundaries and when the browser suspends an audio context.
 
-## Faster builds and maintenance
+## Faster builds and security updates
 
 For anyone building Cliparr from source, Docker now compiles the app on the builder's native architecture. Producing an ARM64 image no longer needs to emulate dependency installation and frontend/server compilation. CI builds and smoke-tests both AMD64 and ARM64 production images.
 
-This release also refreshes application dependencies and container images, including the Node base image with the APT security fix, and updates the container security scanner. The deployment examples also include stronger defaults.
+We've also updated dependencies and container images, including the Node base image with the APT security fix. The container security scanner is updated too, and the deployment examples use stronger defaults.
 
 For the full release details, see the [Changelog](/changelog/).
