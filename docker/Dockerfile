@@ -12,7 +12,9 @@ ENV PATH=$PNPM_HOME:$PATH
 ENV npm_config_store_dir=/pnpm/store
 WORKDIR /workspace
 COPY package.json /tmp/cliparr-package.json
-RUN npm install --global "$(node -p 'require("/tmp/cliparr-package.json").packageManager')" \
+RUN --mount=type=bind,source=docker/upgrade-zlib.sh,target=/tmp/upgrade-zlib.sh \
+  sh /tmp/upgrade-zlib.sh \
+  && npm install --global "$(node -p 'require("/tmp/cliparr-package.json").packageManager')" \
   && rm /tmp/cliparr-package.json \
   && npm uninstall --global npm
 

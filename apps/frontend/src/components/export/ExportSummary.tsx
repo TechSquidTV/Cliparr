@@ -2,7 +2,10 @@ import * as React from "react";
 
 import type { MediaDimensions } from "#/components/editor/editorMedia";
 import { formatTime } from "#/components/editor/editorUtilities";
-import { gifPresetOptionFor } from "#/components/export/exportOptions";
+import {
+  audioChannelLabel,
+  gifPresetOptionFor,
+} from "#/components/export/exportOptions";
 import { fieldLabelWideClasses } from "#/components/ui/control-styles";
 import { Skeleton } from "#/components/ui/skeleton";
 import { cn } from "#/lib/cn";
@@ -161,11 +164,7 @@ function ExportAudioDetails({
       details.push(["Codec", codec]);
     }
     details.push(
-      [
-        "Channels",
-        { 1: "Mono", 2: "Stereo" }[plan.numberOfChannels] ??
-          `${plan.numberOfChannels} channels`,
-      ],
+      ["Channels", audioChannelLabel(plan.numberOfChannels)],
       ["Sample rate", `${plan.sampleRate / 1000} kHz`],
     );
     if (plan.bits !== null) {

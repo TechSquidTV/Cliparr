@@ -281,9 +281,10 @@ jobs:
               --input-type=module -e "$browser_smoke"
             docker run --rm --entrypoint ffmpeg "$IMAGE" -version
           fi
-      - name: Scan auxiliary image and dependency inventory
+      # The production job scans and retains this revision's lockfile once.
+      - name: Scan auxiliary image
         if: ${{ !cancelled() && steps.build_auxiliary.outcome == 'success' }}
         uses: ./.github/actions/scan-image
         with:
           image: cliparr-${{ matrix.target }}:check
-          artifact-name: ${{ matrix.target }}-dependency-inventory
+          scan-inventory: "false"

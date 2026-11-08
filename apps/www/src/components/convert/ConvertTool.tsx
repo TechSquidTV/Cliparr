@@ -797,7 +797,8 @@ export function ConvertTool() {
                     onVideoMutedChange={setVideoMuted}
                     mixDownToStereo={mixDownToStereo}
                     onMixDownToStereoChange={setMixDownToStereo}
-                    audioDisabledReason={audio.mixdownDisabledReason}
+                    audioStatus={audio.status}
+                    sourceAudioChannels={audio.sourceAudioChannels}
                     audioBitDepth={audio.bitDepth}
                   />
                 </fieldset>
