@@ -41,6 +41,7 @@ export function useHlsExportEstimate({
     const controller = new AbortController();
     let refreshTimer: ReturnType<typeof setTimeout> | undefined;
     const refresh = async () => {
+      setSource(null);
       try {
         const variants = await fetchHlsExportEstimateVariants(
           url,
@@ -85,6 +86,7 @@ export function useHlsExportEstimate({
       retained.url === url &&
       age < HLS_ESTIMATE_REFRESH_MS
     ) {
+      setSource(retained);
       refreshTimer = setTimeout(() => {
         void refresh();
       }, HLS_ESTIMATE_REFRESH_MS - age);
