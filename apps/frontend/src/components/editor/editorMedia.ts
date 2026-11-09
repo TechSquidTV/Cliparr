@@ -14,11 +14,6 @@ const LOCAL_PROVIDER_ID = "local";
 
 export type BrowserFilePermissionState = "granted" | "denied" | "prompt";
 
-export interface MediaDimensions {
-  width: number;
-  height: number;
-}
-
 export interface BrowserFileHandle {
   kind?: "file";
   name: string;

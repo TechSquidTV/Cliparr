@@ -1,7 +1,6 @@
 import { Copy, Download } from "lucide-react";
 import type { ComponentProps } from "react";
 
-import type { MediaDimensions } from "#/components/editor/editorMedia";
 import { formatTime } from "#/components/editor/editorUtilities";
 import {
   buttonClassName,
@@ -26,6 +25,7 @@ import {
 } from "#/lib/export/exportFormats";
 import type { FramegrabImageQuality } from "#/lib/framegrab";
 import { framegrabImageQualityOptions } from "#/lib/framegrab";
+import type { PixelDimensions } from "#/lib/mediaDimensions";
 
 type FramegrabAction = "copy" | "download";
 
@@ -34,7 +34,7 @@ interface EditorFramegrabDialogProperties {
   finalFocus?: ComponentProps<typeof DialogWindow>["finalFocus"];
   title: string;
   frameTime: number;
-  dimensions: MediaDimensions | null;
+  dimensions: PixelDimensions | null;
   selectedFormat: FramegrabImageFormat;
   onFormatChange: (format: FramegrabImageFormat) => void;
   selectedQuality: FramegrabImageQuality;

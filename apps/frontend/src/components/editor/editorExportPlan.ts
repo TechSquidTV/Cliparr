@@ -4,7 +4,6 @@ import {
   type EditorMediaSource,
   editorMediaSourcesEqual,
   isHlsEditorMediaSource,
-  type MediaDimensions,
   sourceDisplayLabel,
 } from "@/components/editor/editorMedia";
 import type { EditorExportMedia } from "@/components/editor/editorMediaLifecycle";
@@ -26,6 +25,7 @@ import {
   resolveExportOutputDimensions,
 } from "#/lib/export/exportTypes";
 import type { HlsExportEstimateMetadata } from "#/lib/export/hlsExportEstimate";
+import type { PixelDimensions } from "#/lib/mediaDimensions";
 import type { VideoCrop } from "#/lib/videoCrop";
 
 type ResolvedExportSourceKind = "hls" | "direct" | "none";
@@ -57,7 +57,7 @@ export function exportTimelineOffsetForSource(
 }
 
 export function getOutputDimensions(
-  sourceVideoDimensions: MediaDimensions | null,
+  sourceVideoDimensions: PixelDimensions | null,
   resolution: ExportResolution,
   format: ExportFormat = "mp4",
   gifSettings?: GifExportSettings | null,

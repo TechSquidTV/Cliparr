@@ -2,10 +2,8 @@ import type { ExportVideoCodec as SharedExportVideoCodec } from "@cliparr/shared
 import type { canEncodeVideo as canEncodeVideoWithBrowser } from "mediabunny";
 
 import type { VideoExportFormat } from "#/lib/export/exportFormats";
-import type {
-  ExportOutputDimensions,
-  VideoExportQualityPreset,
-} from "#/lib/export/exportTypes";
+import type { VideoExportQualityPreset } from "#/lib/export/exportTypes";
+import type { PixelDimensions } from "#/lib/mediaDimensions";
 
 export type ExportVideoCodec = SharedExportVideoCodec;
 export type ExportAudioCodec = "aac" | "mp3" | "opus" | "vorbis";
@@ -86,7 +84,7 @@ export function videoEncodingPlanKey({
   quality,
 }: {
   format: VideoExportFormat;
-  outputDimensions: ExportOutputDimensions;
+  outputDimensions: PixelDimensions;
   quality: VideoExportQualityPreset;
 }) {
   return `${format}:${outputDimensions.width}x${outputDimensions.height}:${quality}`;
@@ -119,7 +117,7 @@ export function videoTargetBitrateBps({
   quality,
 }: {
   codec: ExportVideoCodec;
-  outputDimensions: ExportOutputDimensions;
+  outputDimensions: PixelDimensions;
   quality: VideoExportQualityPreset;
 }) {
   const pixels = outputDimensions.width * outputDimensions.height;
@@ -144,7 +142,7 @@ export function calibratedEstimatedVideoBitrateBps({
 }: {
   format: VideoExportFormat;
   codec: ExportVideoCodec;
-  outputDimensions: ExportOutputDimensions;
+  outputDimensions: PixelDimensions;
   quality: VideoExportQualityPreset;
 }) {
   const targetBitrateBps = videoTargetBitrateBps({
@@ -169,7 +167,7 @@ export async function resolveVideoEncodingPlan({
   canEncodeVideo,
 }: {
   format: VideoExportFormat;
-  outputDimensions: ExportOutputDimensions;
+  outputDimensions: PixelDimensions;
   quality: VideoExportQualityPreset;
   supportedVideoCodecs: readonly string[];
   canEncodeVideo: typeof canEncodeVideoWithBrowser;

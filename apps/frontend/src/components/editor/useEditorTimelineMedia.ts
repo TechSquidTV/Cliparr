@@ -23,7 +23,6 @@ import {
   type EditorMediaSource,
   editorMediaSourcesEqual,
   type EditorSession,
-  type MediaDimensions,
 } from "@/components/editor/editorMedia";
 import {
   createEditorPreviewSourceLoader,
@@ -60,6 +59,7 @@ import {
 } from "@/lib/export/mediabunny/mediabunnyTrackAccess";
 import { selectPreferredPairableAudioTrack } from "@/lib/export/selectPreferredAudioTrack";
 import { getFrontendLogger } from "@/logging";
+import type { PixelDimensions } from "#/lib/mediaDimensions";
 
 const logger = getFrontendLogger(["editor", "playback"]);
 
@@ -77,7 +77,7 @@ interface LoadedMediaDetails {
   exportFallbackSource?: EditorMediaSource;
   frameStepSeconds: number;
   hlsFallbackInfo: PlaybackFallbackInfo | null;
-  previewVideoDimensions: MediaDimensions | null;
+  previewVideoDimensions: PixelDimensions | null;
   timelineOffsetSeconds: number;
 }
 

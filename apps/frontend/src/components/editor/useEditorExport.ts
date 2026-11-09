@@ -10,7 +10,6 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   type EditorMediaSource,
   type EditorSession,
-  type MediaDimensions,
 } from "@/components/editor/editorMedia";
 import type { EditorExportMedia } from "@/components/editor/editorMediaLifecycle";
 import type { PlaybackFallbackInfo } from "@/components/editor/editorPlaybackSources";
@@ -60,6 +59,7 @@ import {
   exportIncludesAudio,
   isAudioExportFormat,
 } from "#/lib/export/exportFormats";
+import type { PixelDimensions } from "#/lib/mediaDimensions";
 import { resolveVideoCrop, type VideoCrop } from "#/lib/videoCrop";
 
 declare module "@tanstack/react-router" {
@@ -73,7 +73,7 @@ interface UseEditorExportProperties {
   exportMedia: EditorExportMedia | null;
   startTime: number;
   endTime: number;
-  sourceVideoDimensions: MediaDimensions | null;
+  sourceVideoDimensions: PixelDimensions | null;
   crop?: VideoCrop | null;
   exportFallbackSource?: EditorMediaSource;
   hlsFallbackInfo: PlaybackFallbackInfo | null;

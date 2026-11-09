@@ -18,6 +18,7 @@ import type {
   GifPaletteMode,
   GifTemporalDitherSettings,
 } from "#/lib/export/gif/gifEncodingSettings";
+import type { PixelDimensions } from "#/lib/mediaDimensions";
 import { resolveVideoCrop, type VideoCrop } from "#/lib/videoCrop";
 export type { ExportFormat } from "#/lib/export/exportFormats";
 
@@ -36,11 +37,6 @@ export type VideoExportQualityPreset = Exclude<
 >;
 
 export type HlsManifestBitrateBasis = "average-bandwidth" | "bandwidth";
-
-export interface ExportOutputDimensions {
-  width: number;
-  height: number;
-}
 
 export interface GifExportSettings {
   preset: GifExportPreset;
@@ -72,7 +68,7 @@ export interface ExportSizeEstimate {
 interface EstimateExportOutputSizeOptions {
   format: ExportFormat;
   durationSeconds: number;
-  outputDimensions: ExportOutputDimensions | null;
+  outputDimensions: PixelDimensions | null;
   mode: ExportMode;
   audioPlan?: ExportAudioPlan | null;
   resolution: ExportResolution;
@@ -293,7 +289,7 @@ export function exportFormatDurationDisabledReason(
 }
 
 export function resolveExportOutputDimensions(
-  sourceVideoDimensions: ExportOutputDimensions | null,
+  sourceVideoDimensions: PixelDimensions | null,
   resolution: ExportResolution,
   format: ExportFormat,
   gifSettings?: GifExportSettings | null,

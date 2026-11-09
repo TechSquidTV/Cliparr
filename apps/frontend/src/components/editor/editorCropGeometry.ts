@@ -1,4 +1,4 @@
-import type { MediaDimensions } from "#/components/editor/editorMedia";
+import type { PixelDimensions } from "#/lib/mediaDimensions";
 import type { VideoCrop } from "#/lib/videoCrop";
 
 type CropRectangle = Pick<VideoCrop, "x" | "y" | "width" | "height">;
@@ -10,7 +10,7 @@ const clamp = (value: number, max: number) => Math.max(0, Math.min(value, max));
 /** Clamp movement or anchored resizing, including a pointer crossing its anchor. */
 export function constrainCropRectangle(
   rectangle: CropRectangle,
-  bounds: MediaDimensions,
+  bounds: PixelDimensions,
   anchor: CropAnchor | null = null,
   aspectRatio: number | null = null,
   resizeAxis: CropResizeAxis | null = null,
@@ -61,7 +61,7 @@ export function constrainCropRectangle(
 
 export function cropRectangle(
   region: VideoCrop | null,
-  bounds: MediaDimensions,
+  bounds: PixelDimensions,
 ): CropRectangle {
   return {
     x: (region?.x ?? 0) * bounds.width,
@@ -73,7 +73,7 @@ export function cropRectangle(
 
 export function cropRegion(
   rectangle: CropRectangle,
-  bounds: MediaDimensions,
+  bounds: PixelDimensions,
 ): VideoCrop | null {
   const bounded = constrainCropRectangle(rectangle, bounds);
   if (
@@ -95,7 +95,7 @@ export function cropRegion(
 
 export function cropWithAspectRatio(
   region: VideoCrop | null,
-  bounds: MediaDimensions,
+  bounds: PixelDimensions,
   aspectRatio: number,
 ): VideoCrop | null {
   const previous = cropRectangle(region, bounds);

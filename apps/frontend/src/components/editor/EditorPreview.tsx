@@ -9,7 +9,7 @@ import {
 } from "react";
 
 import { BarsLoader } from "@/components/ui/bars-loader";
-import type { MediaDimensions } from "#/components/editor/editorMedia";
+import type { PixelDimensions } from "#/lib/mediaDimensions";
 import { resolveVideoCrop, type VideoCrop } from "#/lib/videoCrop";
 
 interface EditorPreviewProperties {
@@ -25,7 +25,7 @@ interface EditorPreviewProperties {
   crop?: VideoCrop | null;
   cropEditing?: boolean;
   fitHeight?: boolean;
-  videoDimensions?: MediaDimensions | null;
+  videoDimensions?: PixelDimensions | null;
 }
 
 export function EditorPreview({

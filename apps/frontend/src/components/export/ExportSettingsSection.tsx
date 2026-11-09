@@ -1,7 +1,6 @@
 import { Info } from "lucide-react";
 import { memo, type ReactNode } from "react";
 
-import type { MediaDimensions } from "#/components/editor/editorMedia";
 import {
   audioChannelLabel,
   gifPresetOptionFor,
@@ -40,6 +39,7 @@ import {
   exportQualityOptionsForFormat,
   type ExportQualityPreset,
 } from "#/lib/export/exportTypes";
+import type { PixelDimensions } from "#/lib/mediaDimensions";
 const audioSwitchRow =
   "flex min-h-11 cursor-pointer items-center justify-between gap-3 text-sm lg:min-h-9";
 
@@ -49,7 +49,7 @@ interface ExportSettingsSectionProperties {
   onFormatChange: (format: ExportFormat) => void;
   selectedQuality: ExportQualityPreset;
   onQualityChange: (quality: ExportQualityPreset) => void;
-  outputDimensions: MediaDimensions | null;
+  outputDimensions: PixelDimensions | null;
   selectedResolution: ExportResolution;
   hasActiveCrop: boolean;
   onResolutionChange: (resolution: ExportResolution) => void;
