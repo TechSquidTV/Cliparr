@@ -9,7 +9,7 @@ import {
   exportFormatFor,
   exportFormats,
   getVideoTrackDimensions,
-  type MediaDimensions,
+  type PixelDimensions,
   probeMediaSource,
   titleFromFileName,
 } from "@cliparr/frontend/convert/engine";
@@ -17,7 +17,7 @@ import {
 export interface SourceProbeResult {
   durationSeconds: number;
   previewStartTimestampSeconds: number;
-  dimensions: MediaDimensions | null;
+  dimensions: PixelDimensions | null;
   hasAudio: boolean;
   hasVideo: boolean;
   videoCodec?: string | null;

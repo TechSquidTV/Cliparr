@@ -1,6 +1,6 @@
 import type { InputTrack, InputVideoTrack, VideoCodec } from "mediabunny";
 
-import type { MediaDimensions } from "#/components/editor/editorMedia";
+import type { PixelDimensions } from "#/lib/mediaDimensions";
 
 export interface VideoTrackDecodabilityAssessment {
   codec: VideoCodec | null;
@@ -67,7 +67,7 @@ export function videoTrackExportUnsupportedMessage(
 
 export async function getVideoTrackDimensions(
   track: InputVideoTrack,
-): Promise<MediaDimensions> {
+): Promise<PixelDimensions> {
   const [width, height] = await Promise.all([
     track.getDisplayWidth(),
     track.getDisplayHeight(),

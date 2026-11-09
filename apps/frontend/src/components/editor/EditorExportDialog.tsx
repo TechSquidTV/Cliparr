@@ -4,7 +4,6 @@ import type { RefObject } from "react";
 import { EditorExportSourceControl } from "#/components/editor/EditorExportSourceControl";
 import { EditorExportSummaryPanel } from "#/components/editor/EditorExportSummaryPanel";
 import { EditorFilenameTemplateSection } from "#/components/editor/EditorFilenameTemplateSection";
-import type { MediaDimensions } from "#/components/editor/editorMedia";
 import { formatTime } from "#/components/editor/editorUtilities";
 import { ExportSettingsSection } from "#/components/export/ExportSettingsSection";
 import { ExportStatusPanel } from "#/components/export/ExportStatusPanel";
@@ -42,6 +41,7 @@ import {
   type ExportSourcePreference,
   type GifExportSettings,
 } from "#/lib/export/exportTypes";
+import type { PixelDimensions } from "#/lib/mediaDimensions";
 
 interface EditorExportDialogProperties {
   isOpen: boolean;
@@ -78,7 +78,7 @@ interface EditorExportDialogProperties {
   onCancelExport: () => void;
   error: string | null;
   fileNamePreview: string;
-  outputDimensions: MediaDimensions | null;
+  outputDimensions: PixelDimensions | null;
   hasHlsSource: boolean;
   hasDirectSource: boolean;
   directSourceLabel: string;

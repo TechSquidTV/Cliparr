@@ -1,7 +1,5 @@
-import type {
-  ExportOutputDimensions,
-  HlsManifestBitrateBasis,
-} from "@/lib/export/exportTypes";
+import type { HlsManifestBitrateBasis } from "@/lib/export/exportTypes";
+import type { PixelDimensions } from "#/lib/mediaDimensions";
 
 // exec() always runs to exhaustion, resetting this shared pattern’s lastIndex.
 const attributePattern = /([\da-z-]+)=("[^"]*"|[^,]*)/gi;
@@ -83,7 +81,7 @@ export function parseHlsExportEstimateMetadata(
 
 export function selectHlsExportEstimateMetadata(
   variants: readonly HlsVariantEstimate[],
-  outputDimensions: ExportOutputDimensions | null,
+  outputDimensions: PixelDimensions | null,
 ): HlsExportEstimateMetadata | null {
   if (variants.length === 0) {
     return null;

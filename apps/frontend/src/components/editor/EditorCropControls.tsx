@@ -10,7 +10,6 @@ import {
   type EditorCropState,
   EMPTY_EDITOR_CROP,
 } from "#/components/editor/editorCropState";
-import type { MediaDimensions } from "#/components/editor/editorMedia";
 import {
   EditorPropertyRow,
   EditorPropertySection,
@@ -26,6 +25,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "#/components/ui/select";
+import type { PixelDimensions } from "#/lib/mediaDimensions";
 
 const ratios = [
   ["16:9", 16 / 9],
@@ -114,7 +114,7 @@ export function EditorCropControls({
   onDone,
 }: {
   state: EditorCropState;
-  dimensions: MediaDimensions;
+  dimensions: PixelDimensions;
   error?: string | null;
   onChange: (state: EditorCropState) => void;
   onDone: () => void;

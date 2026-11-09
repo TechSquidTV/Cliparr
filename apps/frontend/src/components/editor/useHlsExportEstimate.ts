@@ -2,11 +2,11 @@ import { logEventFields, warnWithError } from "@cliparr/shared/logging";
 import type { Logger } from "@logtape/logtape";
 import { useEffect, useRef, useState } from "react";
 
-import type { ExportOutputDimensions } from "@/lib/export/exportTypes";
 import {
   fetchHlsExportEstimateVariants,
   selectHlsExportEstimateMetadata,
 } from "@/lib/export/hlsExportEstimate";
+import type { PixelDimensions } from "#/lib/mediaDimensions";
 
 const HLS_ESTIMATE_REFRESH_MS = 60_000;
 
@@ -20,7 +20,7 @@ export function useHlsExportEstimate({
   url: string | null;
   role: string | undefined;
   sessionId: string;
-  outputDimensions: ExportOutputDimensions | null;
+  outputDimensions: PixelDimensions | null;
   logger: Logger;
 }) {
   const [source, setSource] = useState<{

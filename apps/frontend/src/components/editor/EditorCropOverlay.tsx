@@ -14,7 +14,7 @@ import {
   type CropResizeAxis,
 } from "#/components/editor/editorCropGeometry";
 import type { EditorCropState } from "#/components/editor/editorCropState";
-import type { MediaDimensions } from "#/components/editor/editorMedia";
+import type { PixelDimensions } from "#/lib/mediaDimensions";
 
 for (const element of [
   CropperCanvas,
@@ -104,7 +104,7 @@ export interface EditorCropOverlayHandle {
 interface Properties {
   ref?: Ref<EditorCropOverlayHandle>;
   state: EditorCropState;
-  dimensions: MediaDimensions;
+  dimensions: PixelDimensions;
   onChange: (state: EditorCropState) => void;
   onGestureStart: () => void;
   onGestureEnd: () => void;

@@ -2,12 +2,12 @@ import {
   EXPORT_ENCODING_POLICY_VERSION,
   EXPORT_SIZE_ESTIMATE_ALGORITHM_VERSION,
   type ExportFormat,
-  type ExportOutputDimensions,
   type ExportQualityPreset,
   type ExportResolution,
   type ExportSizeEstimate,
   type ExportVideoEncodingPlan,
   type GifExportSettings,
+  type PixelDimensions,
 } from "@cliparr/frontend/convert/engine";
 import type { PwaInstallMetricInput } from "@cliparr/frontend/pwa";
 import * as Sentry from "@sentry/astro";
@@ -46,7 +46,7 @@ interface ConvertExportMetricContext {
   selectedQuality: ExportQualityPreset;
   resolution: ExportResolution;
   includeAudio: boolean;
-  outputDimensions: ExportOutputDimensions | null;
+  outputDimensions: PixelDimensions | null;
   outputSizeEstimate: ExportSizeEstimate;
   videoEncodingPlan?: ExportVideoEncodingPlan;
   gifSettings?: GifExportSettings | null;

@@ -3,7 +3,6 @@ import { compactLogFields } from "@cliparr/shared/logging";
 import {
   type EditorMediaSource,
   editorMediaSourcesEqual,
-  type MediaDimensions,
   sourceDisplayLabel,
 } from "@/components/editor/editorMedia";
 import type { EditorExportMedia } from "@/components/editor/editorMediaLifecycle";
@@ -25,6 +24,7 @@ import {
   resolveExportOutputDimensions,
 } from "#/lib/export/exportTypes";
 import type { HlsExportEstimateMetadata } from "#/lib/export/hlsExportEstimate";
+import type { PixelDimensions } from "#/lib/mediaDimensions";
 import { isHlsMediaSource } from "#/lib/mediaSource";
 import type { VideoCrop } from "#/lib/videoCrop";
 
@@ -57,7 +57,7 @@ export function exportTimelineOffsetForSource(
 }
 
 export function getOutputDimensions(
-  sourceVideoDimensions: MediaDimensions | null,
+  sourceVideoDimensions: PixelDimensions | null,
   resolution: ExportResolution,
   format: ExportFormat = "mp4",
   gifSettings?: GifExportSettings | null,

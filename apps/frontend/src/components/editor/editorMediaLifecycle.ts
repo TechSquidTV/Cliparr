@@ -3,14 +3,14 @@ import type {
   MediabunnySourceState,
 } from "@techsquidtv/canvas-timeline-mediabunny-adapter";
 
-import type { MediaDimensions } from "@/components/editor/editorMedia";
 import type { PlaybackSourceCandidate } from "@/components/editor/editorPlaybackSources";
+import type { PixelDimensions } from "#/lib/mediaDimensions";
 
 export interface EditorMediaMetadata {
   duration: number;
   frameStepSeconds: number;
-  previewVideoDimensions: MediaDimensions | null;
-  sourceVideoDimensions: MediaDimensions | null;
+  previewVideoDimensions: PixelDimensions | null;
+  sourceVideoDimensions: PixelDimensions | null;
   timelineOffsetSeconds: number;
 }
 

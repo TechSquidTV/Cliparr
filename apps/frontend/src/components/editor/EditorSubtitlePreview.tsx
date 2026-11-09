@@ -1,9 +1,9 @@
 import { type RefObject, useEffect, useMemo, useRef } from "react";
 
-import type { MediaDimensions } from "@/components/editor/editorMedia";
 import { createSubtitleCueReader } from "@/lib/subtitles/getActiveSubtitleCue";
 import { renderSubtitleCues } from "@/lib/subtitles/renderSubtitleCue";
 import type { SubtitleCue, SubtitleStyleSettings } from "@/lib/subtitles/types";
+import type { PixelDimensions } from "#/lib/mediaDimensions";
 import { resolveVideoCrop, type VideoCrop } from "#/lib/videoCrop";
 
 interface EditorSubtitlePreviewProperties {
@@ -14,7 +14,7 @@ interface EditorSubtitlePreviewProperties {
   overlayCanvasRef: RefObject<HTMLCanvasElement | null>;
   style: SubtitleStyleSettings;
   videoCanvasRef: RefObject<HTMLCanvasElement | null>;
-  videoDimensions?: MediaDimensions | null;
+  videoDimensions?: PixelDimensions | null;
   crop?: VideoCrop | null;
   cropEditing?: boolean;
 }
