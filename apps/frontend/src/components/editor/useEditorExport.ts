@@ -35,10 +35,6 @@ import {
   exportFormatDurationDisabledReason,
   type ExportSourcePreference,
 } from "@/lib/export/exportTypes";
-import {
-  fetchHlsExportEstimateMetadata,
-  type HlsExportEstimateMetadata,
-} from "@/lib/export/hlsExportEstimate";
 import type { SubtitleCue, SubtitleStyleSettings } from "@/lib/subtitles/types";
 import { getFrontendLogger } from "@/logging";
 import {
@@ -58,6 +54,7 @@ import {
 import { useExportAudioPlan } from "#/components/editor/useExportAudioPlan";
 import { useExportSettings } from "#/components/editor/useExportSettings";
 import { useExportVideoPlan } from "#/components/editor/useExportVideoPlan";
+import { useHlsExportEstimate } from "#/components/editor/useHlsExportEstimate";
 import type { ExportAudioPlan } from "#/lib/export/exportAudio";
 import {
   exportIncludesAudio,
@@ -106,8 +103,6 @@ export function useEditorExport({
 }: UseEditorExportProperties) {
   const [exportError, setExportError] = useState<string | null>(null);
   const [exportNotice, setExportNotice] = useState<string | null>(null);
-  const [hlsEstimateMetadata, setHlsEstimateMetadata] =
-    useState<HlsExportEstimateMetadata | null>(null);
   const clearExportFeedback = useCallback(() => {
     setExportError(null);
     setExportNotice(null);
@@ -385,65 +380,24 @@ export function useEditorExport({
     saveExportFileNameTemplates(fileNameTemplates);
   }, [fileNameTemplates]);
 
-  useEffect(() => {
-    setHlsEstimateMetadata(null);
-
-    if (
-      !exportDialogOpen ||
-      isAudioExportFormat(exportFormat) ||
-      exportFormat === "gif" ||
-      videoQuality !== DEFAULT_VIDEO_EXPORT_QUALITY ||
-      exportSource.kind !== "hls" ||
-      exportSource.source?.kind !== "url"
-    ) {
-      return;
-    }
-
-    const controller = new AbortController();
-
-    fetchHlsExportEstimateMetadata(
-      exportSource.source.url,
-      outputDimensions,
-      controller.signal,
-    )
-      .then((metadata) => {
-        if (!controller.signal.aborted) {
-          setHlsEstimateMetadata(metadata);
-        }
-      })
-      .catch((error: unknown) => {
-        const isAbortError =
-          error instanceof Error && error.name === "AbortError";
-        if (!controller.signal.aborted && !isAbortError) {
-          setHlsEstimateMetadata(null);
-          warnWithError(
-            exportLogger,
-            error,
-            "Could not fetch HLS export estimate metadata.",
-            {
-              ...logEventFields("editor.export.hls_estimate", "failure"),
-              "export.format": exportFormat,
-              "export.source.kind": exportSource.kind,
-              "export.source.role": exportSource.source?.role,
-              "export.output.width": outputDimensions?.width,
-              "export.output.height": outputDimensions?.height,
-            },
-          );
-        }
-      });
-
-    return () => {
-      controller.abort();
-    };
-  }, [
-    exportDialogOpen,
-    exportLogger,
-    exportFormat,
-    exportSource.kind,
-    exportSource.source,
+  const hlsEstimateUrl =
+    exportDialogOpen &&
+    !isAudioExportFormat(exportFormat) &&
+    exportFormat !== "gif" &&
+    videoQuality === DEFAULT_VIDEO_EXPORT_QUALITY &&
+    exportSource.kind === "hls" &&
+    exportSource.source?.kind === "url"
+      ? exportSource.source.url
+      : null;
+  const hlsEstimateRole =
+    exportSource.kind === "hls" ? exportSource.source?.role : undefined;
+  const hlsEstimateMetadata = useHlsExportEstimate({
+    url: hlsEstimateUrl,
+    role: hlsEstimateRole,
+    sessionId: session.id,
     outputDimensions,
-    videoQuality,
-  ]);
+    logger: exportLogger,
+  });
 
   useEffect(() => {
     if (!exportDialogOpen) {

@@ -4,7 +4,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import {
-  fetchHlsExportEstimateMetadata,
+  fetchHlsExportEstimateVariants,
   parseHlsExportEstimateMetadata,
   selectHlsExportEstimateMetadata,
 } from "@/lib/export/hlsExportEstimate";
@@ -91,22 +91,24 @@ void test("fetches HLS estimate metadata with same-origin credentials only", asy
   };
 
   try {
-    const metadata = await fetchHlsExportEstimateMetadata(
+    const metadata = await fetchHlsExportEstimateVariants(
       "https://media.example/master.m3u8",
-      { width: 854, height: 480 },
       controller.signal,
     );
 
     assert.equal(capturedUrl, "https://media.example/master.m3u8");
     assert.equal(capturedCredentials, "same-origin");
-    assert.deepEqual(metadata, {
-      bitrateKbps: 1200,
-      bitrateBasis: "bandwidth",
-      width: 854,
-      height: 480,
-      frameRate: undefined,
-      variantCount: 1,
-    });
+    assert.deepEqual(metadata, [
+      {
+        bandwidth: 1_200_000,
+        averageBandwidth: undefined,
+        bitrateKbps: 1200,
+        bitrateBasis: "bandwidth",
+        width: 854,
+        height: 480,
+        frameRate: undefined,
+      },
+    ]);
   } finally {
     globalThis.fetch = originalFetch;
   }
