@@ -20,23 +20,20 @@ interface HlsVariantEstimate extends HlsExportEstimateMetadata {
   averageBandwidth?: number;
 }
 
-export async function fetchHlsExportEstimateMetadata(
+export async function fetchHlsExportEstimateVariants(
   url: string,
-  outputDimensions: ExportOutputDimensions | null,
   signal?: AbortSignal,
 ) {
   const response = await fetch(url, {
     credentials: "same-origin",
+    cache: "no-cache",
     signal,
   });
   if (!response.ok) {
     return null;
   }
 
-  return selectHlsExportEstimateMetadata(
-    parseHlsExportEstimateMetadata(await response.text()),
-    outputDimensions,
-  );
+  return parseHlsExportEstimateMetadata(await response.text());
 }
 
 export function parseHlsExportEstimateMetadata(
