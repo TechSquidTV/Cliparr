@@ -11,10 +11,10 @@ import {
   encodeGifFrameChunk,
 } from "@/lib/export/gif/gifFrameChunk";
 import {
-  copyImageDataBuffer,
   createBestGifFrameEncoder,
   createInlineGifFrameEncoder,
   defaultGifFrameWorkerCount,
+  type GifFrameWorkerEncodeRequest,
 } from "@/lib/export/gif/gifFrameEncoder";
 
 void test("encodes GIF frame chunks without a trailer", () => {
@@ -167,6 +167,7 @@ void test("empty GIF chunk lists do not produce a trailer-only image", () => {
 
 void test("inline GIF frame encoder uses the shared chunk encoder contract", async () => {
   let temporalDitherPresent = false;
+  const pixels = new Uint8ClampedArray(4);
   const encoder = createInlineGifFrameEncoder({
     createGifEncoder: () =>
       createMockGifEncoder({
@@ -174,7 +175,10 @@ void test("inline GIF frame encoder uses the shared chunk encoder contract", asy
         bytesView: () => new Uint8Array([9]),
         writeFrame: () => {},
       }),
-    quantizeGifFrame: () => [[0, 0, 0]],
+    quantizeGifFrame: (rgba) => {
+      assert.equal(rgba, pixels);
+      return [[0, 0, 0]];
+    },
     applyGifPalette: (_rgba, _palette, options) => {
       if (typeof options !== "string") {
         temporalDitherPresent = Boolean(options?.temporalDither);
@@ -187,7 +191,7 @@ void test("inline GIF frame encoder uses the shared chunk encoder contract", asy
   const chunk = await encoder.encodeFrame({
     sequenceIndex: 2,
     imageData: {
-      data: new Uint8ClampedArray(4),
+      data: pixels,
     } as ImageData,
     width: 1,
     height: 1,
@@ -205,6 +209,7 @@ void test("inline GIF frame encoder uses the shared chunk encoder contract", asy
     },
   });
 
+  assert.equal(pixels.buffer.byteLength, 4);
   assert.equal(encoder.concurrency, 1);
   assert.equal(chunk.sequenceIndex, 2);
   assert.deepEqual([...chunk.bytes], [9]);
@@ -277,17 +282,103 @@ void test("bounds GIF frame worker count", () => {
   assert.equal(defaultGifFrameWorkerCount(99), 4);
 });
 
-void test("copies image data before worker transfer", () => {
-  const data = new Uint8ClampedArray([1, 2, 3, 4]);
-  const buffer = copyImageDataBuffer(data);
-  const copiedData = new Uint8ClampedArray(buffer);
+void test("worker transfers frame ownership and preserves the pixel view", async () => {
+  const previousWorker = globalThis.Worker;
+  const backing = new Uint8ClampedArray([
+    99, 99, 99, 99, 255, 0, 0, 255, 88, 88, 88, 88,
+  ]);
+  const pixels = backing.subarray(4, 8);
+  const expected = encodeGifFrameChunk({
+    sequenceIndex: 0,
+    rgba: pixels,
+    width: 1,
+    height: 1,
+    maxColors: 64,
+    delayMs: 100,
+    paletteFormat: "rgb565",
+    ditherMode: "none",
+  });
+  let received: Uint8ClampedArray | undefined;
+  let transferredBuffer: ArrayBufferLike | undefined;
+  let onMessage: ((event: MessageEvent) => void) | undefined;
+  const worker = {
+    addEventListener(type: string, listener: (event: MessageEvent) => void) {
+      if (type === "message") {
+        onMessage = listener;
+      }
+    },
+    removeEventListener() {},
+    postMessage(
+      message: GifFrameWorkerEncodeRequest,
+      transfer: Transferable[],
+    ) {
+      transferredBuffer = transfer[0] as ArrayBuffer;
+      const cloned = structuredClone(message, { transfer });
+      received = cloned.rgba;
+      const chunk = encodeGifFrameChunk({ ...cloned, temporalDither: null });
+      onMessage?.({
+        data: {
+          type: "encoded-frame",
+          id: cloned.id,
+          sequenceIndex: chunk.sequenceIndex,
+          bytes: chunk.bytes.buffer,
+        },
+      } as MessageEvent);
+    },
+    terminate() {},
+  };
+  Object.defineProperty(globalThis, "Worker", {
+    configurable: true,
+    value: function MockWorker() {
+      return worker;
+    },
+  });
 
-  assert.notEqual(buffer, data.buffer);
-  assert.deepEqual([...copiedData], [1, 2, 3, 4]);
-
-  data[0] = 99;
-
-  assert.deepEqual([...copiedData], [1, 2, 3, 4]);
+  try {
+    const encoder = createBestGifFrameEncoder({
+      requiresSequentialFrames: true,
+    });
+    const originalBuffer = pixels.buffer;
+    const chunk = await encoder.encodeFrame({
+      sequenceIndex: 0,
+      imageData: { data: pixels } as ImageData,
+      width: 1,
+      height: 1,
+      maxColors: 64,
+      delayMs: 100,
+      paletteFormat: "rgb565",
+      ditherMode: "none",
+    });
+    assert.equal(transferredBuffer, originalBuffer);
+    assert.equal(originalBuffer.byteLength, 0);
+    assert.equal(received?.byteOffset, 4);
+    assert.deepEqual([...(received ?? [])], [255, 0, 0, 255]);
+    assert.deepEqual(chunk.bytes, expected.bytes);
+    await assert.rejects(
+      () =>
+        encoder.encodeFrame({
+          sequenceIndex: 1,
+          imageData: { data: pixels } as ImageData,
+          width: 1,
+          height: 1,
+          maxColors: 64,
+          delayMs: 100,
+          paletteFormat: "rgb565",
+          ditherMode: "none",
+        }),
+      /attached ArrayBuffer/,
+    );
+    encoder.dispose();
+  } finally {
+    if (previousWorker) {
+      Object.defineProperty(globalThis, "Worker", {
+        configurable: true,
+        value: previousWorker,
+      });
+    } else {
+      Reflect.deleteProperty(globalThis, "Worker");
+    }
+  }
 });
 
 function createMockGifEncoder(
