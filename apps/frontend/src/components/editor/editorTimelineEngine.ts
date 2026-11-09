@@ -86,17 +86,61 @@ function createEditorTracks(
   ];
 }
 
-export function getSubtitleCreationRange(
+interface SubtitleOccupancyIndex {
+  starts: number[];
+  maximumEnds: number[];
+}
+
+export function buildSubtitleOccupancyIndex(
   tracks: readonly TimelineReadonly<Track>[],
+): SubtitleOccupancyIndex | null {
+  const track = tracks.find((entry) => entry.id === EDITOR_SUBTITLE_TRACK_ID);
+  if (!track) {
+    return null;
+  }
+  // Visibility does not affect occupancy. Prefix maxima handle overlapping cues.
+  const intervals = track.clips
+    .map((clip) => ({
+      start: toSeconds(clip.timelineStart),
+      end: toSeconds(clip.timelineEnd),
+    }))
+    .toSorted((a, b) => a.start - b.start);
+  const starts: number[] = [];
+  const maximumEnds: number[] = [];
+  let maximumEnd = Number.NEGATIVE_INFINITY;
+  for (const interval of intervals) {
+    starts.push(interval.start);
+    maximumEnd = Math.max(maximumEnd, interval.end);
+    maximumEnds.push(maximumEnd);
+  }
+  return { starts, maximumEnds };
+}
+
+// Return the first boundary strictly after the requested time.
+function upperBound(values: readonly number[], time: number): number {
+  let low = 0;
+  let high = values.length;
+  while (low < high) {
+    const middle = Math.floor((low + high) / 2);
+    if (values[middle] <= time) {
+      low = middle + 1;
+    } else {
+      high = middle;
+    }
+  }
+  return low;
+}
+
+export function getSubtitleCreationRange(
+  index: SubtitleOccupancyIndex | null,
   playheadTime: number,
   duration: number,
   frameTime: number | null,
 ): Pick<SubtitleCue, "startTime" | "endTime"> | null {
-  const track = tracks.find((entry) => entry.id === EDITOR_SUBTITLE_TRACK_ID);
   // Video cues begin on the displayed frame; audio-only media has no frame.
   const requestedStart = frameTime ?? playheadTime;
   if (
-    !track ||
+    !index ||
     !Number.isFinite(playheadTime) ||
     !Number.isFinite(requestedStart) ||
     !Number.isFinite(duration) ||
@@ -119,19 +163,20 @@ export function getSubtitleCreationRange(
   if (startTime > playheadTime) {
     return null;
   }
-  let endTime = Math.min(startTime + 2, duration);
-  // Hidden subtitles still occupy time. Creation never changes another cue.
-  for (const clip of track.clips) {
-    const start = toSeconds(clip.timelineStart);
-    // The entire span through the playhead must be empty, including hidden
-    // cues that end between the frame timestamp and the playhead.
-    if (start <= playheadTime && startTime < toSeconds(clip.timelineEnd)) {
-      return null;
-    }
-    if (start > startTime) {
-      endTime = Math.min(endTime, start);
-    }
+  // Any cue starting by the playhead and ending after the frame blocks creation.
+  const throughPlayhead = upperBound(index.starts, playheadTime);
+  if (
+    throughPlayhead > 0 &&
+    index.maximumEnds[throughPlayhead - 1] > startTime
+  ) {
+    return null;
   }
+  const next = upperBound(index.starts, startTime);
+  const endTime = Math.min(
+    startTime + 2,
+    duration,
+    index.starts[next] ?? Infinity,
+  );
   return endTime > playheadTime ? { startTime, endTime } : null;
 }
 
