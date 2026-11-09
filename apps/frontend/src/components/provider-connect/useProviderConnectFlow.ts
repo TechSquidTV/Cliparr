@@ -2,9 +2,16 @@ import type {
   ProviderDefinition,
   ProviderSession,
 } from "@cliparr/shared/providers";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useEffectEvent,
+  useMemo,
+  useState,
+} from "react";
 
 import { cliparrClient } from "@/api/cliparrClient";
+import { pollProviderAuth } from "#/components/provider-connect/pollProviderAuth";
 
 interface UseProviderConnectFlowOptions {
   onConnected: (session: ProviderSession) => Promise<void> | void;
@@ -27,6 +34,7 @@ export function useProviderConnectFlow({
   const [serverUrl, setServerUrl] = useState("");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const notifyConnected = useEffectEvent(onConnected);
 
   useEffect(() => {
     let cancelled = false;
@@ -82,24 +90,16 @@ export function useProviderConnectFlow({
       return;
     }
 
-    const pollAuthStatus = async () => {
-      try {
-        const status = await cliparrClient.pollAuth(providerId, authId);
-        if (status.status === "complete") {
-          globalThis.clearInterval(intervalId);
-          const session = await cliparrClient.getSession();
-          await onConnected(session);
-          resetProviderState();
-          return;
-        }
-
-        if (status.status === "expired") {
-          globalThis.clearInterval(intervalId);
-          resetProviderState();
-          setError(`${providerLabel(providerId)} sign-in expired.`);
-        }
-      } catch (error_: unknown) {
-        globalThis.clearInterval(intervalId);
+    return pollProviderAuth({
+      providerId,
+      authId,
+      onConnected: (session) => notifyConnected(session),
+      onComplete: resetProviderState,
+      onExpired: () => {
+        resetProviderState();
+        setError(`${providerLabel(providerId)} sign-in expired.`);
+      },
+      onError: (error_) => {
         resetProviderState();
         setError(
           errorMessage(
@@ -107,16 +107,9 @@ export function useProviderConnectFlow({
             `Could not finish ${providerLabel(providerId)} sign-in.`,
           ),
         );
-      }
-    };
-    const intervalId = globalThis.setInterval(() => {
-      void pollAuthStatus();
-    }, 1500);
-
-    return () => {
-      globalThis.clearInterval(intervalId);
-    };
-  }, [authId, onConnected, providerId, providerLabel, resetProviderState]);
+      },
+    });
+  }, [authId, providerId, providerLabel, resetProviderState]);
 
   const startAuth = useCallback(
     async (provider: ProviderDefinition) => {

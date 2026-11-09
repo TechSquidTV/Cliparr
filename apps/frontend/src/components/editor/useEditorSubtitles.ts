@@ -13,6 +13,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { EditorDraft } from "@/components/editor/editorDrafts";
 import type { EditorSession } from "@/components/editor/editorMedia";
 import {
+  buildSubtitleOccupancyIndex,
   createSubtitleClip,
   EDITOR_SUBTITLE_TRACK_ID,
   getSubtitleCreationRange,
@@ -248,11 +249,15 @@ export function useEditorSubtitles({
     subtitleLoading,
   });
   const canEditSubtitles = mediaReady && initialized && !subtitleLoading;
+  const subtitleOccupancy = useMemo(
+    () => buildSubtitleOccupancyIndex(tracks),
+    [tracks],
+  );
   const canAddSubtitle =
     canEditSubtitles &&
     previewReady &&
     getSubtitleCreationRange(
-      tracks,
+      subtitleOccupancy,
       toSeconds(playheadTime),
       duration,
       renderedFrameTime,
@@ -296,7 +301,7 @@ export function useEditorSubtitles({
     const state = engine.getState();
     const time = toSeconds(state.playheadTime);
     const range = getSubtitleCreationRange(
-      state.tracks,
+      buildSubtitleOccupancyIndex(state.tracks),
       time,
       duration,
       getRenderedFrameTime(),

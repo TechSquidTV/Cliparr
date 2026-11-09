@@ -125,11 +125,14 @@ export function createEditorDraftStore(
   getStorage: () => DraftStorage | null = browserStorage,
 ) {
   let drafts: EditorDraft[] = [];
+  let lastRaw: string | null | undefined;
   const removed = new Set<string>();
   const load = () => {
     try {
       const raw = getStorage()?.getItem(STORAGE_KEY);
-      if (raw && raw.length * 2 <= MAX_STORAGE_BYTES) {
+      const changed = raw !== lastRaw;
+      lastRaw = raw;
+      if (changed && raw && raw.length * 2 <= MAX_STORAGE_BYTES) {
         const stored = JSON.parse(raw) as (Partial<EditorDraft> | null)[];
         if (Array.isArray(stored)) {
           drafts = mergeDrafts(stored.filter(isDraft), drafts).filter(
@@ -151,18 +154,25 @@ export function createEditorDraftStore(
       if (!storage) {
         return false;
       }
-      const retained = [...drafts];
-      while (
-        retained.length > 1 &&
-        JSON.stringify(retained).length * 2 > MAX_STORAGE_BYTES
-      ) {
-        retained.pop();
+      const retained: EditorDraft[] = [];
+      const entries: string[] = [];
+      let length = 2; // Array brackets; storage is measured in UTF-16 bytes.
+      for (const draft of drafts) {
+        const entry = JSON.stringify(draft);
+        const nextLength = length + entry.length + (entries.length > 0 ? 1 : 0);
+        if (nextLength * 2 > MAX_STORAGE_BYTES) {
+          if (entries.length === 0) {
+            return false;
+          }
+          break;
+        }
+        retained.push(draft);
+        entries.push(entry);
+        length = nextLength;
       }
-      const serialized = JSON.stringify(retained);
-      if (serialized.length * 2 > MAX_STORAGE_BYTES) {
-        return false;
-      }
+      const serialized = `[${entries.join(",")}]`;
       storage.setItem(STORAGE_KEY, serialized);
+      lastRaw = serialized;
       drafts = retained;
       return true;
     } catch {

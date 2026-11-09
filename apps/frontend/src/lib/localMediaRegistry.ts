@@ -10,8 +10,8 @@ import {
   titleFromFileName,
   titleFromUrl,
 } from "@/components/editor/editorMedia";
-import { isHlsPlaylistUrl } from "@/lib/export/mediabunny/mediabunnyInput";
 import { VIDEO_PICKER_TYPES } from "@/lib/localMediaFormats";
+import { isHlsPlaylistUrl } from "@/lib/mediaSource";
 
 const DATABASE_NAME = "cliparr-local-media";
 const DATABASE_VERSION = 1;
