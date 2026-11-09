@@ -1,23 +1,12 @@
 import type { Input } from "mediabunny";
 
 import type { EditorMediaSource } from "#/components/editor/editorMedia";
+import { isHlsMediaSource } from "#/lib/mediaSource";
 
-const HLS_PLAYLIST_PATTERN = /\.m3u8(?:$|[#?])/i;
 const HLS_URL_SOURCE_OPTIONS = {
   maxCacheSize: 64 * 1024 * 1024,
   parallelism: 2,
 } as const;
-
-export function isHlsPlaylistUrl(url: string) {
-  return HLS_PLAYLIST_PATTERN.test(url);
-}
-
-function isHlsMediaSource(source: EditorMediaSource) {
-  return (
-    source.kind === "url" &&
-    (source.hls === true || isHlsPlaylistUrl(source.url))
-  );
-}
 
 export async function createCliparrInputFromSource(
   source: EditorMediaSource,

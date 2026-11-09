@@ -4,7 +4,6 @@ import type { Input, InputAudioTrack, InputVideoTrack } from "mediabunny";
 import {
   type EditorMediaSource,
   editorMediaSourcesEqual,
-  isHlsEditorMediaSource,
 } from "@/components/editor/editorMedia";
 import { ensureAudioDecoder } from "@/lib/export/mediabunny/mediabunnyCodecs";
 import {
@@ -12,6 +11,7 @@ import {
   isPlaybackVideoTrack,
   videoTrackPreviewUnavailableMessage,
 } from "@/lib/export/mediabunny/mediabunnyTrackAccess";
+import { isHlsMediaSource } from "@/lib/mediaSource";
 
 type PlaybackSourceLabel =
   "hls stream" | "direct source" | "local file" | "url" | "hls url";
@@ -62,7 +62,7 @@ function playbackLabelForSource(
   }
 
   if (source.role === "direct-url") {
-    return isHlsEditorMediaSource(source)
+    return isHlsMediaSource(source)
       ? ("hls url" satisfies PlaybackSourceLabel)
       : ("url" satisfies PlaybackSourceLabel);
   }
