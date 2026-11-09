@@ -6,6 +6,7 @@ import { fromSeconds, toSeconds } from "@techsquidtv/canvas-timeline";
 import { createEditorHistory } from "@/components/editor/editorHistory";
 import type { EditorSession } from "@/components/editor/editorMedia";
 import {
+  buildSubtitleOccupancyIndex,
   createEditorTimelineEngine,
   createSubtitleClip,
   EDITOR_MEDIA_CLIP_ID,
@@ -13,7 +14,7 @@ import {
   EDITOR_MEDIA_TRACK_NAME,
   EDITOR_SUBTITLE_TRACK_ID,
   EDITOR_SUBTITLE_TRACK_NAME,
-  getSubtitleCreationRange,
+  getSubtitleCreationRange as getIndexedSubtitleCreationRange,
   subtitleCuesFromTimeline,
   synchronizeEditorTimelineMedia,
   synchronizeEditorTimelineSession,
@@ -470,7 +471,61 @@ void describe("editor timeline engine", () => {
   });
 });
 
+const getSubtitleCreationRange = (
+  tracks: Parameters<typeof buildSubtitleOccupancyIndex>[0],
+  playheadTime: number,
+  duration: number,
+  frameTime: number | null,
+) =>
+  getIndexedSubtitleCreationRange(
+    buildSubtitleOccupancyIndex(tracks),
+    playheadTime,
+    duration,
+    frameTime,
+  );
+
 void describe("subtitle authoring", () => {
+  void it("indexes clip geometry once for repeated queries and seeks", () => {
+    const engine = createEditorTimelineEngine(createSession());
+    const tracks = engine.getState().tracks;
+    const subtitleTrack = tracks.find(
+      (track) => track.id === EDITOR_SUBTITLE_TRACK_ID,
+    );
+    assert.ok(subtitleTrack);
+    const template = createSubtitleClip(
+      { startTime: 0, endTime: 1, text: "Cue" },
+      30_000,
+    );
+    assert.ok(template);
+    let startReads = 0;
+    let endReads = 0;
+    const clips = Array.from({ length: 10_000 }, (_, index_) => ({
+      ...template,
+      get timelineStart() {
+        startReads++;
+        return fromSeconds(index_ * 2);
+      },
+      get timelineEnd() {
+        endReads++;
+        return fromSeconds(index_ * 2 + 1);
+      },
+    }));
+    const index = buildSubtitleOccupancyIndex([{ ...subtitleTrack, clips }]);
+    assert.equal(startReads, 10_000);
+    assert.equal(endReads, 10_000);
+    for (let index_ = 0; index_ < 60; index_++) {
+      const time = index_ % 2 === 0 ? 19_999 : 1;
+      assert.deepEqual(
+        getIndexedSubtitleCreationRange(index, time, 30_000, null),
+        {
+          startTime: time,
+          endTime: time + (time === 1 ? 1 : 2),
+        },
+      );
+    }
+    assert.equal(startReads, 10_000);
+    assert.equal(endReads, 10_000);
+  });
   void it("keeps fractional frame starts visible after timeline tick conversion", () => {
     const frameTime = 1001 / 24_000;
     const engine = createEditorTimelineEngine(createSession());
