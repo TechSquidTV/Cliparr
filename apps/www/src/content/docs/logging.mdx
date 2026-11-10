@@ -57,7 +57,11 @@ browser logs include structured fields; production uses the readable console for
 
 Set `CLIPARR_LOG_LEVEL=trace` and `CLIPARR_LOG_FORMAT=json` on the Cliparr server, then open the playing Jellyfin item. Find the `provider.playback.resolve` event with `provider.id` set to `jellyfin`.
 
-`media.subtitle_stream.count` counts subtitle streams on the resolved media source. `media.subtitle_track.offered.count` counts tracks available in the editor. The two exclusion counts, `media.subtitle_track.excluded.non_text.count` and `media.subtitle_track.excluded.missing_url.count`, distinguish non-text tracks from text tracks without a download URL. When Cliparr resolves Jellyfin’s selected subtitle, `media.subtitle_stream.index` and `media.subtitle_stream.codec` identify it, even if the editor cannot import it.
+`media.subtitle_stream.count` counts subtitle streams on the resolved media source. `media.subtitle_track.offered.count` counts tracks available in the editor. The two exclusion counts, `media.subtitle_track.excluded.non_text.count` and `media.subtitle_track.excluded.missing_url.count`, distinguish non-text tracks from text tracks without a download URL.
+
+`media.subtitle_stream.index` is the index reported by Jellyfin’s player, or the media source’s default if the player supplies none. An index of `-1` means subtitles are off. The index can appear even when the source lists no matching track. `media.subtitle_stream.codec` appears when a matching track has a known codec.
+
+For a subtitle support request, share only the fields starting with `media.subtitle_` from this event. Other trace records can contain active session IDs.
 
 ## File logging
 

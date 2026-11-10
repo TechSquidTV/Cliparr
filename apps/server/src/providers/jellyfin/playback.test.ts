@@ -1,7 +1,12 @@
 import assert from "node:assert/strict";
-import test from "node:test";
+import test, { type TestContext } from "node:test";
 
-import { configure, type LogRecord, reset } from "@logtape/logtape";
+import {
+  configure,
+  getJsonLinesFormatter,
+  type LogRecord,
+  reset,
+} from "@logtape/logtape";
 import type { Request, Response } from "express";
 
 import type { MediaSourceRecord } from "@/db/mediaSourcesRepository";
@@ -148,6 +153,8 @@ function createJellyfinPlaybackFetch(options: {
   defaultAudioStreamIndex?: number | null;
   audioStreams?: Array<Record<string, unknown>>;
   subtitleStreams?: JellyfinMediaStream[];
+  subtitleStreamIndex?: number | null;
+  defaultSubtitleStreamIndex?: number | null;
   title?: string;
   withArtwork?: boolean;
   itemMetadata?: Pick<
@@ -181,6 +188,7 @@ function createJellyfinPlaybackFetch(options: {
   } = options;
   const mediaSource = {
     Id: mediaSourceId,
+    DefaultSubtitleStreamIndex: options.defaultSubtitleStreamIndex,
     ...(defaultAudioStreamIndex === null
       ? {}
       : { DefaultAudioStreamIndex: defaultAudioStreamIndex }),
@@ -230,6 +238,7 @@ function createJellyfinPlaybackFetch(options: {
             PlayState: {
               MediaSourceId: mediaSourceId,
               IsPaused: true,
+              SubtitleStreamIndex: options.subtitleStreamIndex,
               ...(playStateAudioStreamIndex === null
                 ? {}
                 : { AudioStreamIndex: playStateAudioStreamIndex }),
@@ -732,7 +741,10 @@ void test("omits Jellyfin stream URLs when PlaybackInfo has no play session id",
   }
 });
 
-void test("traces why Jellyfin subtitle tracks are excluded from the editor", async (context) => {
+async function captureJellyfinPlaybackTrace(
+  context: TestContext,
+  options: Parameters<typeof createJellyfinPlaybackFetch>[0],
+) {
   const records: LogRecord[] = [];
   await configure({
     sinks: { capture: (record) => records.push(record) },
@@ -750,40 +762,47 @@ void test("traces why Jellyfin subtitle tracks are excluded from the editor", as
     ],
   });
   context.after(reset);
-  const itemId = "subtitle-diagnostics";
   context.mock.method(
     globalThis,
     "fetch",
-    createJellyfinPlaybackFetch({
-      itemId,
-      sessions: [
-        {
-          Id: "client-session",
-          UserId: "user-1",
-          NowPlayingItem: { Id: itemId, MediaType: "Video", Type: "Movie" },
-          PlayState: { SubtitleStreamIndex: 3 },
-        },
-      ],
-      subtitleStreams: [
-        { Type: "Subtitle", Index: 2, Codec: "srt" },
-        { Type: "Subtitle", Index: 3, Codec: "PGS" },
-        { Type: "Subtitle", Index: 4, Codec: "dvd_subtitle" },
-        { Type: "Subtitle", Codec: "ass" },
-      ],
-    }),
+    createJellyfinPlaybackFetch(options),
   );
-
-  const entries = await listCurrentlyPlaying(createSession(), createSource());
-  assert.deepEqual(
-    entries[0]?.item.subtitleTracks?.map((track) => track.index),
-    [2],
-  );
+  const session = createSession();
+  const entries = await listCurrentlyPlaying(session, createSource());
   const resolved = records.filter(
     (record) => record.properties["event.name"] === "provider.playback.resolve",
   );
   assert.equal(resolved.length, 1);
   const [record] = resolved;
   assert.equal(record.level, "trace");
+  return { entries, record, session };
+}
+
+void test("omits the Cliparr session cookie from formatted Jellyfin playback traces", async (context) => {
+  const { record, session } = await captureJellyfinPlaybackTrace(context, {
+    itemId: "subtitle-trace-privacy",
+    jellyfinClientSessionId: "jellyfin-client",
+    jellyfinPlaySessionId: "jellyfin-playback",
+  });
+  const format = getJsonLinesFormatter({ properties: "flatten" });
+  assert.ok(!format(record).includes(session.id));
+});
+
+void test("traces why Jellyfin subtitle tracks are excluded from the editor", async (context) => {
+  const { entries, record } = await captureJellyfinPlaybackTrace(context, {
+    itemId: "subtitle-diagnostics",
+    subtitleStreamIndex: 3,
+    subtitleStreams: [
+      { Type: "Subtitle", Index: 2, Codec: "srt" },
+      { Type: "Subtitle", Index: 3, Codec: "PGS" },
+      { Type: "Subtitle", Index: 4, Codec: "dvd_subtitle" },
+      { Type: "Subtitle", Codec: "ass" },
+    ],
+  });
+  assert.deepEqual(
+    entries[0]?.item.subtitleTracks?.map((track) => track.index),
+    [2],
+  );
   assert.deepEqual(
     Object.fromEntries(
       Object.entries(record.properties).filter(([key]) =>
@@ -800,6 +819,31 @@ void test("traces why Jellyfin subtitle tracks are excluded from the editor", as
     },
   );
 });
+
+for (const [name, reported, sourceDefault, expectedIndex, expectedCodec] of [
+  ["unmatched", 7, 2, 7, undefined],
+  ["no selection", undefined, undefined, undefined, undefined],
+  ["default", null, 2, 2, "srt"],
+  ["off", -1, 2, -1, undefined],
+  ["zero", 0, 2, 0, undefined],
+] as const) {
+  void test(`traces Jellyfin's reported subtitle selection: ${name}`, async (context) => {
+    const { record } = await captureJellyfinPlaybackTrace(context, {
+      itemId: `subtitle-selection-${name}`,
+      subtitleStreamIndex: reported,
+      defaultSubtitleStreamIndex: sourceDefault,
+      subtitleStreams: [{ Type: "Subtitle", Index: 2, Codec: "srt" }],
+    });
+    assert.equal(
+      record.properties["media.subtitle_stream.index"],
+      expectedIndex,
+    );
+    assert.equal(
+      record.properties["media.subtitle_stream.codec"],
+      expectedCodec,
+    );
+  });
+}
 
 void test("creates a downloadable content URL for Jellyfin text subtitle streams", () => {
   const session = createSession();
