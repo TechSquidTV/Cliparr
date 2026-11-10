@@ -78,7 +78,7 @@ export function errorHandler(
     apiError = createApiError(
       400,
       "invalid_json",
-      "Request body must be valid JSON.",
+      "Request body must be a valid JSON object or array.",
     );
     logger.warn(apiError.message, {
       ...logEventFields("http.request", "invalid_json"),

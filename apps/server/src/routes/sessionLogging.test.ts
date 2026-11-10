@@ -64,25 +64,30 @@ void test("server logs omit request credentials across authentication, media and
     assert.ok(credential);
     const headers = { cookie };
     // Express parse errors carry the original body and can quote input in the message.
-    const malformedLogin = await fetchLocal(
-      `${baseUrl}/api/providers/jellyfin/auth/login`,
-      {
-        method: "POST",
-        headers: { ...headers, "Content-Type": "application/json" },
-        body: '{"password":"private-password-marker","value":BADINPUT}',
-      },
-    );
-    assert.equal(malformedLogin.status, 400);
-    assert.match(
-      malformedLogin.headers.get("content-type") ?? "",
-      /^application\/json\b/,
-    );
-    assert.deepEqual(await malformedLogin.json(), {
-      error: {
-        code: "invalid_json",
-        message: "Request body must be valid JSON.",
-      },
-    });
+    for (const body of [
+      "null",
+      '{"password":"private-password-marker","value":BADINPUT}',
+    ]) {
+      const response = await fetchLocal(
+        `${baseUrl}/api/providers/jellyfin/auth/login`,
+        {
+          method: "POST",
+          headers: { ...headers, "Content-Type": "application/json" },
+          body,
+        },
+      );
+      assert.equal(response.status, 400);
+      assert.match(
+        response.headers.get("content-type") ?? "",
+        /^application\/json\b/,
+      );
+      assert.deepEqual(await response.json(), {
+        error: {
+          code: "invalid_json",
+          message: "Request body must be a valid JSON object or array.",
+        },
+      });
+    }
     assert.ok(lines.some((line) => line.includes("entity.parse.failed")));
 
     const discovery = await fetchLocal(
