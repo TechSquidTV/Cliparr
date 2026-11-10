@@ -1,10 +1,7 @@
 import type { RefObject } from "react";
 import { useCallback, useMemo, useState } from "react";
 
-import type {
-  EditorSession,
-  MediaDimensions,
-} from "@/components/editor/editorMedia";
+import type { EditorSession } from "@/components/editor/editorMedia";
 import { errorMessage } from "@/components/editor/editorUtilities";
 import { downloadBlob } from "@/lib/downloadBlob";
 import { buildFramegrabFileName } from "@/lib/export/exportFileName";
@@ -16,12 +13,13 @@ import {
   encodeFramegrabCanvas,
   type FramegrabImageQuality,
 } from "@/lib/framegrab";
+import type { PixelDimensions } from "#/lib/mediaDimensions";
 import { resolveVideoCrop, type VideoCrop } from "#/lib/videoCrop";
 
 interface CapturedFramegrab {
   canvas: HTMLCanvasElement;
   time: number;
-  dimensions: MediaDimensions;
+  dimensions: PixelDimensions;
 }
 
 type FramegrabAction = "copy" | "download";
@@ -33,7 +31,7 @@ interface UseEditorFramegrabProperties {
   currentTime: number;
   loadingPreview: boolean;
   loadingPreviewFrame: boolean;
-  previewVideoDimensions: MediaDimensions | null;
+  previewVideoDimensions: PixelDimensions | null;
   subtitleEnabled: boolean;
   subtitleLoading: boolean;
   getCurrentTime?: () => number;

@@ -19,6 +19,7 @@ export const blogHeroImageIds = [
   "convert-video-in-your-browser-hero",
   "cliparr-2-0-release-hero",
   "cliparr-3-0-release-hero",
+  "cliparr-3-1-release-hero",
 ] as const;
 
 export type BlogHeroImageId = (typeof blogHeroImageIds)[number];

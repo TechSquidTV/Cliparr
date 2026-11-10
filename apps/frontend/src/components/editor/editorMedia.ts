@@ -8,16 +8,11 @@ import type {
   PlaybackSubtitleTrack,
 } from "@cliparr/shared/providers";
 
-import { isHlsPlaylistUrl } from "#/lib/export/mediabunny/mediabunnyInput";
+import { isHlsMediaSource, isHlsPlaylistUrl } from "#/lib/mediaSource";
 
 const LOCAL_PROVIDER_ID = "local";
 
 export type BrowserFilePermissionState = "granted" | "denied" | "prompt";
-
-export interface MediaDimensions {
-  width: number;
-  height: number;
-}
 
 export interface BrowserFileHandle {
   kind?: "file";
@@ -153,7 +148,7 @@ export function buildLocalEditorSession(input: {
   source: EditorMediaSource;
   duration?: number;
 }): EditorSession {
-  const isHls = isHlsEditorMediaSource(input.source);
+  const isHls = isHlsMediaSource(input.source);
   const title = input.title.trim() || "Local video";
 
   return {
@@ -208,20 +203,13 @@ function buildLocalExportEstimateMetadata(
   };
 }
 
-export function isHlsEditorMediaSource(source: EditorMediaSource) {
-  return (
-    source.kind === "url" &&
-    (source.hls === true || isHlsPlaylistUrl(source.url))
-  );
-}
-
 export function sourceDisplayLabel(source: EditorMediaSource) {
   if (source.role === "local-file") {
     return "Local file";
   }
 
   if (source.role === "direct-url") {
-    return isHlsEditorMediaSource(source) ? "HLS URL" : "URL";
+    return isHlsMediaSource(source) ? "HLS URL" : "URL";
   }
 
   return source.label;

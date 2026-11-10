@@ -8,6 +8,12 @@
   ],
   "timezone": "America/New_York",
   "schedule": ["* 0-4 * * 6"],
+  "lockFileMaintenance": {
+    "enabled": true,
+    "schedule": ["* 0-4 * * 6"],
+    "semanticCommitType": "build",
+    "semanticCommitScope": "deps"
+  },
   "configMigration": true,
   "semanticCommits": "enabled",
   "semanticCommitType": "chore",

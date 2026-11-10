@@ -31,6 +31,7 @@
     "preview": "vite preview",
     "clean": "rm -rf dist",
     "test:browser": "node tests/audio-export.mjs",
+    "test:browser:hls-estimate": "node tests/hls-estimate.mjs",
     "test:browser:loading": "node tests/media-loading.mjs",
     "test:browser:ui": "node tests/ui-controls.mjs",
     "test:browser:crop": "node tests/video-crop.mjs"

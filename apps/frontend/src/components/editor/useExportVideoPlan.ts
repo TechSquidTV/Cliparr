@@ -10,15 +10,13 @@ import {
   type ExportFormat,
   isAudioExportFormat,
 } from "#/lib/export/exportFormats";
-import type {
-  ExportOutputDimensions,
-  VideoExportQualityPreset,
-} from "#/lib/export/exportTypes";
+import type { VideoExportQualityPreset } from "#/lib/export/exportTypes";
+import type { PixelDimensions } from "#/lib/mediaDimensions";
 
 /** Advisory plan for estimates; conversion validates support again at export time. */
 export function useExportVideoPlan(
   format: ExportFormat,
-  outputDimensions: ExportOutputDimensions | null,
+  outputDimensions: PixelDimensions | null,
   quality: VideoExportQualityPreset,
 ) {
   const [result, setResult] = useState<ResolvedVideoEncodingPlan | null>(null);

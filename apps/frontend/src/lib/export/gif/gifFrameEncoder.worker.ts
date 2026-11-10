@@ -31,7 +31,7 @@ workerScope.addEventListener("message", (event) => {
   try {
     const chunk = encodeGifFrameChunk({
       sequenceIndex: message.sequenceIndex,
-      rgba: new Uint8ClampedArray(message.rgba),
+      rgba: message.rgba,
       width: message.width,
       height: message.height,
       maxColors: message.maxColors,

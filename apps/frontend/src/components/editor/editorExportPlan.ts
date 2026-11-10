@@ -3,8 +3,6 @@ import { compactLogFields } from "@cliparr/shared/logging";
 import {
   type EditorMediaSource,
   editorMediaSourcesEqual,
-  isHlsEditorMediaSource,
-  type MediaDimensions,
   sourceDisplayLabel,
 } from "@/components/editor/editorMedia";
 import type { EditorExportMedia } from "@/components/editor/editorMediaLifecycle";
@@ -26,6 +24,8 @@ import {
   resolveExportOutputDimensions,
 } from "#/lib/export/exportTypes";
 import type { HlsExportEstimateMetadata } from "#/lib/export/hlsExportEstimate";
+import type { PixelDimensions } from "#/lib/mediaDimensions";
+import { isHlsMediaSource } from "#/lib/mediaSource";
 import type { VideoCrop } from "#/lib/videoCrop";
 
 type ResolvedExportSourceKind = "hls" | "direct" | "none";
@@ -57,7 +57,7 @@ export function exportTimelineOffsetForSource(
 }
 
 export function getOutputDimensions(
-  sourceVideoDimensions: MediaDimensions | null,
+  sourceVideoDimensions: PixelDimensions | null,
   resolution: ExportResolution,
   format: ExportFormat = "mp4",
   gifSettings?: GifExportSettings | null,
@@ -237,7 +237,7 @@ export function resolveExportSource({
   if (exportFallbackSource) {
     return {
       source: exportFallbackSource,
-      kind: isHlsEditorMediaSource(exportFallbackSource) ? "hls" : "direct",
+      kind: isHlsMediaSource(exportFallbackSource) ? "hls" : "direct",
     };
   }
 
@@ -300,7 +300,7 @@ export function buildExportSourceMessage({
   }
 
   if (resolvedSource.role === "direct-url") {
-    return isHlsEditorMediaSource(resolvedSource)
+    return isHlsMediaSource(resolvedSource)
       ? "Export reads this HLS URL through Cliparr."
       : "Export reads this media URL through Cliparr.";
   }

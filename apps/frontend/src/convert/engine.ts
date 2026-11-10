@@ -3,7 +3,8 @@
 import type { PlaybackAudioSelection } from "@cliparr/shared/providers";
 import type { Input, InputVideoTrack } from "mediabunny";
 
-import type { MediaDimensions } from "../components/editor/editorMedia";
+import type { PixelDimensions } from "../lib/mediaDimensions";
+export type { PixelDimensions } from "../lib/mediaDimensions";
 import type { ExportClipOptions } from "../lib/export/exportClip";
 import {
   getTrackTimelineOffsetSeconds,
@@ -17,7 +18,6 @@ export {
   type EditorFileMediaSource,
   type EditorMediaSource,
   type EditorSession,
-  type MediaDimensions,
   titleFromFileName,
 } from "../components/editor/editorMedia";
 export { downloadBlob } from "../lib/downloadBlob";
@@ -61,7 +61,6 @@ export {
   estimateExportOutputSize,
   EXPORT_SIZE_ESTIMATE_ALGORITHM_VERSION,
   exportFormatDurationDisabledReason,
-  type ExportOutputDimensions,
   exportQualityDescriptionFor,
   exportQualityOptionFor,
   exportQualityOptions,
@@ -96,7 +95,7 @@ export async function exportClip(options: ExportClipOptions) {
 
 export function getVideoTrackDimensions(
   track: InputVideoTrack,
-): Promise<MediaDimensions> {
+): Promise<PixelDimensions> {
   return readVideoTrackDimensions(track);
 }
 

@@ -29,6 +29,7 @@ interface GifFrameEncodeInput {
 
 export interface GifFrameEncoder {
   concurrency: number;
+  // Consumes the frame data; worker encoding transfers its entire backing buffer.
   encodeFrame(input: GifFrameEncodeInput): Promise<GifFrameChunk>;
   dispose(): void;
 }
@@ -41,7 +42,7 @@ export interface GifFrameWorkerEncodeRequest {
   type: "encode-frame";
   id: number;
   sequenceIndex: number;
-  rgba: ArrayBuffer;
+  rgba: Uint8ClampedArray;
   width: number;
   height: number;
   maxColors: number;
@@ -206,7 +207,13 @@ function createGifFrameWorkerEncoder({
       nextWorkerIndex = (nextWorkerIndex + 1) % workers.length;
       const id = nextRequestId;
       nextRequestId += 1;
-      const rgba = copyImageDataBuffer(input.imageData.data);
+      const rgba = input.imageData.data;
+      const buffer = rgba.buffer;
+      if (!(buffer instanceof ArrayBuffer) || rgba.byteLength === 0) {
+        return Promise.reject(
+          new Error("GIF frame data must have an attached ArrayBuffer."),
+        );
+      }
 
       return new Promise<GifFrameChunk>((resolve, reject) => {
         pendingRequests.set(id, { resolve, reject });
@@ -228,7 +235,7 @@ function createGifFrameWorkerEncoder({
               serpentine: input.serpentine,
               temporalDither: input.temporalDither,
             } satisfies GifFrameWorkerEncodeRequest,
-            [rgba],
+            [buffer],
           );
         } catch (error) {
           pendingRequests.delete(id);
@@ -274,11 +281,4 @@ export function defaultGifFrameWorkerCount(workerCount?: number) {
   }
 
   return Math.max(1, Math.min(4, hardwareConcurrency - 1));
-}
-
-export function copyImageDataBuffer(data: Uint8ClampedArray) {
-  const buffer = new ArrayBuffer(data.byteLength);
-  new Uint8ClampedArray(buffer).set(data);
-
-  return buffer;
 }

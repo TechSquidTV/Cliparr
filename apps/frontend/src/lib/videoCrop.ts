@@ -1,4 +1,4 @@
-import type { MediaDimensions } from "#/components/editor/editorMedia";
+import type { PixelDimensions } from "#/lib/mediaDimensions";
 
 /** A rectangle in the oriented picture, independent of playback resolution. */
 export interface VideoCrop {
@@ -38,7 +38,7 @@ export function isVideoCrop(value: unknown): value is VideoCrop {
 /** Integer bounds shared by export, frame grabs, and preview composition. */
 export function resolveVideoCrop(
   crop: VideoCrop | null | undefined,
-  dimensions: MediaDimensions | null,
+  dimensions: PixelDimensions | null,
 ) {
   if (!crop) {
     return null;

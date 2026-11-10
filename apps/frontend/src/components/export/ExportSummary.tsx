@@ -1,6 +1,5 @@
 import * as React from "react";
 
-import type { MediaDimensions } from "#/components/editor/editorMedia";
 import { formatTime } from "#/components/editor/editorUtilities";
 import {
   audioChannelLabel,
@@ -22,6 +21,7 @@ import {
   type ExportQualityPreset,
   type GifExportSettings,
 } from "#/lib/export/exportTypes";
+import type { PixelDimensions } from "#/lib/mediaDimensions";
 export function ExportSummaryPanel({
   title,
   children,
@@ -73,7 +73,7 @@ export interface ExportOutputSummaryProperties {
   selectedFormat: ExportFormat;
   selectedQuality: ExportQualityPreset;
   gifSettings?: GifExportSettings | null;
-  outputDimensions: MediaDimensions | null;
+  outputDimensions: PixelDimensions | null;
   mode: ExportMode;
   audioPending: boolean;
   audioStatus: string;
