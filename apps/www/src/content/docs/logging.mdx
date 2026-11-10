@@ -53,6 +53,12 @@ the time waiting for the retry. Playback and seeking do not repeat the success e
 Preview timing stays in the browser and is not sent to the Cliparr server. Development
 browser logs include structured fields; production uses the readable console format.
 
+## Missing Jellyfin subtitle tracks
+
+Set `CLIPARR_LOG_LEVEL=trace` and `CLIPARR_LOG_FORMAT=json` on the Cliparr server, then open the playing Jellyfin item. Find the `provider.playback.resolve` event with `provider.id` set to `jellyfin`.
+
+`media.subtitle_stream.count` counts subtitle streams on the resolved media source. `media.subtitle_track.offered.count` counts tracks available in the editor. The two exclusion counts, `media.subtitle_track.excluded.non_text.count` and `media.subtitle_track.excluded.missing_url.count`, distinguish non-text tracks from text tracks without a download URL. When Cliparr resolves Jellyfin’s selected subtitle, `media.subtitle_stream.index` and `media.subtitle_stream.codec` identify it, even if the editor cannot import it.
+
 ## File logging
 
 Set `CLIPARR_LOG_FILE` to write a second server log destination in addition to the console. File logging is opt-in and rotates by size so diagnostics do not grow forever on long-running installs.

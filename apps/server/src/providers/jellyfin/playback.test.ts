@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
+import { configure, type LogRecord, reset } from "@logtape/logtape";
 import type { Request, Response } from "express";
 
 import type { MediaSourceRecord } from "@/db/mediaSourcesRepository";
@@ -17,6 +18,7 @@ import {
 } from "@/providers/jellyfin/selection";
 import type {
   JellyfinItem,
+  JellyfinMediaStream,
   JellyfinSessionInfo,
   JellyfinSourceContext,
   JellyfinUser,
@@ -145,6 +147,7 @@ function createJellyfinPlaybackFetch(options: {
   playStateAudioStreamIndex?: number | null;
   defaultAudioStreamIndex?: number | null;
   audioStreams?: Array<Record<string, unknown>>;
+  subtitleStreams?: JellyfinMediaStream[];
   title?: string;
   withArtwork?: boolean;
   itemMetadata?: Pick<
@@ -172,6 +175,7 @@ function createJellyfinPlaybackFetch(options: {
       },
     ],
     title = "Chapter 1: The Dark Revenge",
+    subtitleStreams = [],
     withArtwork = false,
     itemMetadata,
   } = options;
@@ -189,6 +193,7 @@ function createJellyfinPlaybackFetch(options: {
         Height: 1080,
       },
       ...audioStreams,
+      ...subtitleStreams,
     ],
   };
   const item = {
@@ -725,6 +730,75 @@ void test("omits Jellyfin stream URLs when PlaybackInfo has no play session id",
   } finally {
     globalThis.fetch = originalFetch;
   }
+});
+
+void test("traces why Jellyfin subtitle tracks are excluded from the editor", async (context) => {
+  const records: LogRecord[] = [];
+  await configure({
+    sinks: { capture: (record) => records.push(record) },
+    loggers: [
+      {
+        category: ["logtape", "meta"],
+        sinks: ["capture"],
+        lowestLevel: "warning",
+      },
+      {
+        category: ["cliparr", "server", "provider", "jellyfin", "playback"],
+        sinks: ["capture"],
+        lowestLevel: "trace",
+      },
+    ],
+  });
+  context.after(reset);
+  const itemId = "subtitle-diagnostics";
+  context.mock.method(
+    globalThis,
+    "fetch",
+    createJellyfinPlaybackFetch({
+      itemId,
+      sessions: [
+        {
+          Id: "client-session",
+          UserId: "user-1",
+          NowPlayingItem: { Id: itemId, MediaType: "Video", Type: "Movie" },
+          PlayState: { SubtitleStreamIndex: 3 },
+        },
+      ],
+      subtitleStreams: [
+        { Type: "Subtitle", Index: 2, Codec: "srt" },
+        { Type: "Subtitle", Index: 3, Codec: "PGS" },
+        { Type: "Subtitle", Index: 4, Codec: "dvd_subtitle" },
+        { Type: "Subtitle", Codec: "ass" },
+      ],
+    }),
+  );
+
+  const entries = await listCurrentlyPlaying(createSession(), createSource());
+  assert.deepEqual(
+    entries[0]?.item.subtitleTracks?.map((track) => track.index),
+    [2],
+  );
+  const resolved = records.filter(
+    (record) => record.properties["event.name"] === "provider.playback.resolve",
+  );
+  assert.equal(resolved.length, 1);
+  const [record] = resolved;
+  assert.equal(record.level, "trace");
+  assert.deepEqual(
+    Object.fromEntries(
+      Object.entries(record.properties).filter(([key]) =>
+        key.startsWith("media.subtitle"),
+      ),
+    ),
+    {
+      "media.subtitle_stream.count": 4,
+      "media.subtitle_track.offered.count": 1,
+      "media.subtitle_track.excluded.non_text.count": 2,
+      "media.subtitle_track.excluded.missing_url.count": 1,
+      "media.subtitle_stream.index": 3,
+      "media.subtitle_stream.codec": "pgs",
+    },
+  );
 });
 
 void test("creates a downloadable content URL for Jellyfin text subtitle streams", () => {
