@@ -119,6 +119,10 @@ void test("all server console and file formats redact session fields and cookie 
         getServerLogger("session").info(process.argv[1], {
           Cookie: "cookie-secret-marker",
           headers: { "Set-Cookie": "set-cookie-secret-marker" },
+          "http.request.header.cookie": "request-secret-marker",
+          "http.response.header.Set-Cookie": "response-secret-marker",
+          "http.request.header.authorization": "authorization-secret-marker",
+          "http.request.header.proxy-authorization": "proxy-secret-marker",
           "cliparr_remember": "remember-secret-marker",
           "request.id": "safe-request-marker",
           "plex.playback_session.id": "safe-playback-marker",
@@ -126,7 +130,7 @@ void test("all server console and file formats redact session fields and cookie 
       });
       await dispose();
     `,
-        "Redaction probe {session.id} {Cookie} {request.id}",
+        "Redaction probe {session.id} {Cookie} {http.request.header.cookie} {http.response.header.Set-Cookie} {request.id}",
       ],
       {
         env: {

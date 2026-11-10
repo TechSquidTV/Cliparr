@@ -72,7 +72,18 @@ export function errorHandler(
     ? error
     : createApiError(500, "internal_error", "Something went wrong");
 
-  if (!isApiError(error)) {
+  if (
+    error instanceof Error &&
+    "type" in error &&
+    error.type === "entity.parse.failed"
+  ) {
+    // Express attaches the submitted body, and the message can quote its contents.
+    logger.error("Could not parse the JSON request body.", {
+      ...logEventFields("http.request", "unhandled_error"),
+      "http.method": request.method,
+      "error.type": error.type,
+    });
+  } else if (!isApiError(error)) {
     logServerError(logger, "error", error, "Unhandled request error.", {
       ...logEventFields("http.request", "unhandled_error"),
       "http.method": request.method,

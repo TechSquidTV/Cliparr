@@ -250,11 +250,11 @@ function createJellyfinPlaybackFetch(options: {
       );
     }
 
-    if (url.pathname === `/Items/${itemId}`) {
+    if (url.pathname === `/Items/${encodeURIComponent(itemId)}`) {
       return jsonResponse(item);
     }
 
-    if (url.pathname === `/Items/${itemId}/PlaybackInfo`) {
+    if (url.pathname === `/Items/${encodeURIComponent(itemId)}/PlaybackInfo`) {
       const resolvedJellyfinPlaySessionId =
         typeof jellyfinPlaySessionId === "function"
           ? jellyfinPlaySessionId()
@@ -820,28 +820,39 @@ void test("traces why Jellyfin subtitle tracks are excluded from the editor", as
   );
 });
 
-for (const [name, reported, sourceDefault, expectedIndex, expectedCodec] of [
-  ["unmatched", 7, 2, 7, undefined],
-  ["no selection", undefined, undefined, undefined, undefined],
-  ["default", null, 2, 2, "srt"],
-  ["off", -1, 2, -1, undefined],
-  ["zero", 0, 2, 0, undefined],
+for (const [
+  name,
+  reported,
+  sourceDefault,
+  traceIndex,
+  selectedIndex,
+  codec,
+] of [
+  ["unmatched", 7, 2, 7, undefined, undefined],
+  ["no selection", undefined, undefined, undefined, undefined, undefined],
+  ["null selection and default", null, null, undefined, undefined, undefined],
+  ["default", null, 2, 2, 2, "srt"],
+  ["off", -1, 2, -1, undefined, undefined],
+  ["zero", 0, 2, 0, 0, "vtt"],
+  ["unknown codec", 3, 2, 3, 3, undefined],
 ] as const) {
   void test(`traces Jellyfin's reported subtitle selection: ${name}`, async (context) => {
-    const { record } = await captureJellyfinPlaybackTrace(context, {
+    const { record, entries } = await captureJellyfinPlaybackTrace(context, {
       itemId: `subtitle-selection-${name}`,
       subtitleStreamIndex: reported,
       defaultSubtitleStreamIndex: sourceDefault,
-      subtitleStreams: [{ Type: "Subtitle", Index: 2, Codec: "srt" }],
+      subtitleStreams: [
+        { Type: "Subtitle", Index: 0, Codec: "vtt" },
+        { Type: "Subtitle", Index: 2, Codec: "srt" },
+        { Type: "Subtitle", Index: 3, IsTextSubtitleStream: true },
+      ],
     });
-    assert.equal(
-      record.properties["media.subtitle_stream.index"],
-      expectedIndex,
-    );
-    assert.equal(
-      record.properties["media.subtitle_stream.codec"],
-      expectedCodec,
-    );
+    assert.equal(record.properties["media.subtitle_stream.count"], 3);
+    const selected = entries[0]?.item.selectedSubtitleTrack;
+    assert.equal(selected?.index, selectedIndex);
+    assert.equal(selected?.codec, codec);
+    assert.equal(record.properties["media.subtitle_stream.index"], traceIndex);
+    assert.equal(record.properties["media.subtitle_stream.codec"], codec);
   });
 }
 
@@ -967,7 +978,7 @@ void test("uses resolved Jellyfin media source id for subtitle content URLs", ()
   );
 });
 
-void test("uses Jellyfin PlayState subtitle stream index for selected subtitle matching", () => {
+void test("preserves Jellyfin subtitle selection metadata for the matching stream", () => {
   const item = {
     Id: "item-1",
     MediaSources: [
@@ -994,18 +1005,8 @@ void test("uses Jellyfin PlayState subtitle stream index for selected subtitle m
       },
     ],
   };
-  const sessionInfo = {
-    PlayState: {
-      MediaSourceId: "media-source-1",
-      SubtitleStreamIndex: 4,
-    },
-  };
-
-  const selectedSubtitleTrack = deriveSelectedSubtitleTrack(
-    sessionInfo,
-    item,
-    "media-source-1",
-  );
+  const tracks = deriveSubtitleTracks(createSession(), createContext(), item);
+  const selectedSubtitleTrack = deriveSelectedSubtitleTrack(tracks, 4);
 
   assert.equal(selectedSubtitleTrack?.streamId, "4");
   assert.equal(selectedSubtitleTrack?.index, 4);

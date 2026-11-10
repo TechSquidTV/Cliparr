@@ -66,7 +66,7 @@ function jellyfinSubtitleTrack(
   const contentFormat = isText
     ? (subtitleContentFormat(codec) ?? "vtt")
     : undefined;
-  const subtitleIndex = numberValue(stream?.Index);
+  const subtitleIndex = numberValue(stream?.Index ?? undefined);
   const subtitlePath = buildJellyfinSubtitlePath(
     itemId,
     mediaSourceId,
@@ -127,54 +127,23 @@ export function deriveSubtitleTracks(
 }
 
 export function deriveSelectedSubtitleTrack(
-  sessionInfo: JellyfinSessionInfo,
-  item: JellyfinItem,
-  mediaSourceId: string | undefined,
-  playbackInfo?: JellyfinPlaybackInfo,
+  tracks: readonly PlaybackSubtitleTrack[],
+  index: number | undefined,
 ): PlaybackSubtitleSelection | undefined {
-  const mediaSource = currentMediaSource(
-    sessionInfo,
-    item,
-    mediaSourceId,
-    playbackInfo,
-  );
-  if (!mediaSource) {
-    return undefined;
+  if (index === undefined || index < 0) {
+    return;
   }
-
-  const subtitleStreams = asArray(mediaSource?.MediaStreams).filter((stream) =>
-    isSubtitleMediaStream(stream),
-  );
-  if (subtitleStreams.length === 0) {
-    return undefined;
+  const track = tracks.find((entry) => entry.index === index);
+  if (!track) {
+    return;
   }
-
-  const selectedSubtitleStreamIndex =
-    numberValue(sessionInfo?.PlayState?.SubtitleStreamIndex) ??
-    numberValue(mediaSource?.DefaultSubtitleStreamIndex);
-  if (selectedSubtitleStreamIndex === undefined) {
-    return undefined;
-  }
-
-  const selectedSubtitleStream = subtitleStreams.find(
-    (stream) => numberValue(stream?.Index) === selectedSubtitleStreamIndex,
-  );
-  if (!selectedSubtitleStream) {
-    return undefined;
-  }
-
-  const codec = normalizeSubtitleCodec(selectedSubtitleStream?.Codec);
-  const isText =
-    booleanValue(selectedSubtitleStream?.IsTextSubtitleStream) ??
-    isTextSubtitleCodec(codec);
-
   return {
-    streamId: String(selectedSubtitleStreamIndex),
-    index: selectedSubtitleStreamIndex,
-    languageCode: stringValue(selectedSubtitleStream?.Language),
-    title: jellyfinSubtitleTrackTitle(selectedSubtitleStream),
-    codec,
-    contentFormat: isText ? (subtitleContentFormat(codec) ?? "vtt") : undefined,
-    isText,
+    streamId: track.streamId,
+    index: track.index,
+    languageCode: track.languageCode,
+    title: track.title,
+    codec: track.codec,
+    contentFormat: track.contentFormat,
+    isText: track.isText,
   };
 }

@@ -19,7 +19,7 @@ import { createProviderSession, getProviderSession } from "@/session/store";
 import { mockProviderDns, TEST_PLEX_BASE_URL } from "#test/providerFixtures";
 import { withTestApp } from "#test/routeFixtures";
 
-void test("server logs omit session credentials on restore, discovery, proxy, logout and query failure", async (context) => {
+void test("server logs omit request credentials across authentication, media and failure paths", async (context) => {
   await withTestApp(async (baseUrl, fetchLocal) => {
     const lines: string[] = [];
     const format = getJsonLinesFormatter({ properties: "flatten" });
@@ -63,6 +63,18 @@ void test("server logs omit session credentials on restore, discovery, proxy, lo
     const credential = cookie.slice(getSessionCookieName().length + 1);
     assert.ok(credential);
     const headers = { cookie };
+    // Express parse errors carry the original body and can quote input in the message.
+    const malformedLogin = await fetchLocal(
+      `${baseUrl}/api/providers/jellyfin/auth/login`,
+      {
+        method: "POST",
+        headers: { ...headers, "Content-Type": "application/json" },
+        body: '{"password":"private-password-marker","value":BADINPUT}',
+      },
+    );
+    assert.equal(malformedLogin.status, 500);
+    assert.ok(lines.some((line) => line.includes("entity.parse.failed")));
+
     const discovery = await fetchLocal(
       `${baseUrl}/api/media/currently-playing`,
       { headers },
@@ -144,6 +156,8 @@ void test("server logs omit session credentials on restore, discovery, proxy, lo
       session.id,
       remembered.token,
       "private-query-marker",
+      "private-password-marker",
+      "BADINPUT",
     ]) {
       assert.ok(
         !output.includes(secret),

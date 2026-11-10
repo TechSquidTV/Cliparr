@@ -464,12 +464,6 @@ async function normalizeCurrentPlayback(
     mediaSourceId,
     playbackInfo,
   );
-  const selectedSubtitleTrack = deriveSelectedSubtitleTrack(
-    sessionInfo,
-    enrichedItem,
-    mediaSourceId,
-    playbackInfo,
-  );
   const reportedSubtitleTracks = deriveSubtitleTracks(
     session,
     context,
@@ -477,6 +471,15 @@ async function normalizeCurrentPlayback(
     mediaSourceId,
     sessionInfo,
     playbackInfo,
+  );
+  const reportedSubtitleIndex = numberValue(
+    sessionInfo.PlayState?.SubtitleStreamIndex ??
+      mediaSource?.DefaultSubtitleStreamIndex ??
+      undefined,
+  );
+  const selectedSubtitleTrack = deriveSelectedSubtitleTrack(
+    reportedSubtitleTracks,
+    reportedSubtitleIndex,
   );
   const subtitleTracks = reportedSubtitleTracks.filter(
     subtitleTrackSupportsBurnIn,
@@ -523,11 +526,6 @@ async function normalizeCurrentPlayback(
     !previewPath && normalizedString(enrichedItem?.MediaType) !== "audio";
   const unresolvedSelectedAudioTrack =
     !selectedAudioTrack && audioStreams.length > 1;
-  const reportedSubtitleIndex = numberValue(
-    sessionInfo.PlayState?.SubtitleStreamIndex ??
-      mediaSource?.DefaultSubtitleStreamIndex ??
-      undefined,
-  );
   logger.trace("Resolved Jellyfin playback item.", () => ({
     ...logEventFields("provider.playback.resolve", "success"),
     "provider.id": "jellyfin",
@@ -547,12 +545,7 @@ async function normalizeCurrentPlayback(
         (track) => track.isText && !track.contentUrl,
       ).length,
     "media.subtitle_stream.index": reportedSubtitleIndex,
-    "media.subtitle_stream.codec":
-      reportedSubtitleIndex === undefined
-        ? undefined
-        : reportedSubtitleTracks.find(
-            (track) => track.index === reportedSubtitleIndex,
-          )?.codec,
+    "media.subtitle_stream.codec": selectedSubtitleTrack?.codec,
     "media.preview.missing": missingPreviewPath,
     "media.audio_selection.unresolved": unresolvedSelectedAudioTrack,
     "media.audio_stream.index": numberValue(

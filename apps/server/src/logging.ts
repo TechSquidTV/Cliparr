@@ -253,7 +253,7 @@ function rotatingFileSink(config: ServerLogFileConfig) {
 function redactServerLog(sink: Sink) {
   return redactByField(sink, [
     "session.id",
-    /^(?:cookie|set-cookie|authorization|proxy-authorization|cliparr_session|cliparr_remember|cliparr_provider_auth)$/i,
+    /(?:^|\.)(?:cookie|set-cookie|authorization|proxy-authorization|cliparr_session|cliparr_remember|cliparr_provider_auth)$/i,
   ]);
 }
 
