@@ -458,19 +458,19 @@ async function normalizeCurrentPlayback(
       )
     : undefined;
   const imagePath = itemImagePath(enrichedItem);
+  const audioStreams = asArray(mediaSource?.MediaStreams).filter((stream) =>
+    isAudioMediaStream(stream),
+  );
   const selectedAudioTrack = deriveSelectedAudioTrack(
-    sessionInfo,
-    enrichedItem,
-    mediaSourceId,
-    playbackInfo,
+    audioStreams,
+    audioStreamIndex,
   );
   const reportedSubtitleTracks = deriveSubtitleTracks(
     session,
     context,
-    enrichedItem,
+    stringValue(enrichedItem.Id),
+    mediaSource,
     mediaSourceId,
-    sessionInfo,
-    playbackInfo,
   );
   const reportedSubtitleIndex = numberValue(
     sessionInfo.PlayState?.SubtitleStreamIndex ??
@@ -485,9 +485,6 @@ async function normalizeCurrentPlayback(
     subtitleTrackSupportsBurnIn,
   );
   const playerState = sessionInfo?.PlayState?.IsPaused ? "paused" : "playing";
-  const audioStreams = asArray(mediaSource?.MediaStreams).filter((stream) =>
-    isAudioMediaStream(stream),
-  );
   const videoStreams = asArray(mediaSource?.MediaStreams).filter((stream) =>
     isVideoMediaStream(stream),
   );

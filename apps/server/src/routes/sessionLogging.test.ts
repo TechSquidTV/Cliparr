@@ -10,10 +10,7 @@ import { sql } from "drizzle-orm";
 import { getDatabase } from "@/db/database";
 import { upsertProviderAccountByAccessToken } from "@/db/providerAccountsRepository";
 import { createRememberedProviderSession } from "@/db/rememberedProviderSessionsRepository";
-import {
-  getRememberedProviderSessionCookieName,
-  getSessionCookieName,
-} from "@/http/cookies";
+import { CREDENTIAL_COOKIE_NAMES } from "@/http/cookies";
 import { createProviderMediaHandle } from "@/providers/shared/mediaHandles";
 import { createProviderSession, getProviderSession } from "@/session/store";
 import { mockProviderDns, TEST_PLEX_BASE_URL } from "#test/providerFixtures";
@@ -51,16 +48,16 @@ void test("server logs omit request credentials across authentication, media and
     const remembered = createRememberedProviderSession(account.id);
     const restored = await fetchLocal(`${baseUrl}/api/session`, {
       headers: {
-        cookie: `${getRememberedProviderSessionCookieName()}=${remembered.token}`,
+        cookie: `${CREDENTIAL_COOKIE_NAMES.rememberedSession}=${remembered.token}`,
       },
     });
     assert.equal(restored.status, 200);
     const cookie = restored.headers
       .getSetCookie()
-      .find((value) => value.startsWith(`${getSessionCookieName()}=`))
+      .find((value) => value.startsWith(`${CREDENTIAL_COOKIE_NAMES.session}=`))
       ?.split(";")[0];
     assert.ok(cookie);
-    const credential = cookie.slice(getSessionCookieName().length + 1);
+    const credential = cookie.slice(CREDENTIAL_COOKIE_NAMES.session.length + 1);
     assert.ok(credential);
     const headers = { cookie };
     // Express parse errors carry the original body and can quote input in the message.
@@ -138,7 +135,7 @@ void test("server logs omit request credentials across authentication, media and
     const response = await fetchLocal(
       `${baseUrl}/api/session?debug=private-query-marker`,
       {
-        headers: { cookie: `${getSessionCookieName()}=${session.id}` },
+        headers: { cookie: `${CREDENTIAL_COOKIE_NAMES.session}=${session.id}` },
       },
     );
     assert.equal(response.status, 500);

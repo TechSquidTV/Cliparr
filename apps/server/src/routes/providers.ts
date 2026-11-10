@@ -8,9 +8,8 @@ import { Router } from "express";
 import { createRememberedProviderSession } from "@/db/rememberedProviderSessionsRepository";
 import { setNoStore } from "@/http/cacheControl";
 import {
-  getRememberedProviderSessionCookieName,
+  CREDENTIAL_COOKIE_NAMES,
   getRememberedProviderSessionCookieOptions,
-  getSessionCookieName,
   getSessionCookieOptions,
   readCookie,
 } from "@/http/cookies";
@@ -25,7 +24,6 @@ export const providersRouter = Router();
 const logger = getServerLogger(["provider", "auth"]);
 const PROVIDER_AUTH_COMPLETE_PATH = (providerId: string) =>
   `/auth/${providerId}/complete`;
-const PROVIDER_AUTH_COOKIE = "cliparr_provider_auth";
 
 interface ProviderAuthCookie {
   providerId: string;
@@ -91,7 +89,7 @@ function requireProviderAuthCookie(
   authId: string,
 ) {
   const authCookie = decodeProviderAuthCookie(
-    readCookie(cookieHeader, PROVIDER_AUTH_COOKIE),
+    readCookie(cookieHeader, CREDENTIAL_COOKIE_NAMES.providerAuth),
   );
   if (authCookie?.providerId !== providerId || authCookie.authId !== authId) {
     throw createApiError(
@@ -151,7 +149,7 @@ providersRouter.post(
     }
 
     res.cookie(
-      PROVIDER_AUTH_COOKIE,
+      CREDENTIAL_COOKIE_NAMES.providerAuth,
       encodeProviderAuthCookie({
         providerId: provider.definition.id,
         authId: authStart.authId,
@@ -205,7 +203,7 @@ providersRouter.get(
       if (authStatus.status !== "complete") {
         if (authStatus.status === "expired") {
           res.clearCookie(
-            PROVIDER_AUTH_COOKIE,
+            CREDENTIAL_COOKIE_NAMES.providerAuth,
             providerAuthCookieClearOptions(request.secure),
           );
           logger.info("Provider auth expired.", {
@@ -248,16 +246,16 @@ providersRouter.get(
       );
 
       res.clearCookie(
-        PROVIDER_AUTH_COOKIE,
+        CREDENTIAL_COOKIE_NAMES.providerAuth,
         providerAuthCookieClearOptions(request.secure),
       );
       res.cookie(
-        getSessionCookieName(),
+        CREDENTIAL_COOKIE_NAMES.session,
         session.id,
         getSessionCookieOptions(request.secure),
       );
       res.cookie(
-        getRememberedProviderSessionCookieName(),
+        CREDENTIAL_COOKIE_NAMES.rememberedSession,
         rememberedSession.token,
         getRememberedProviderSessionCookieOptions(request.secure),
       );
@@ -345,12 +343,12 @@ providersRouter.post(
       );
 
       res.cookie(
-        getSessionCookieName(),
+        CREDENTIAL_COOKIE_NAMES.session,
         session.id,
         getSessionCookieOptions(request.secure),
       );
       res.cookie(
-        getRememberedProviderSessionCookieName(),
+        CREDENTIAL_COOKIE_NAMES.rememberedSession,
         rememberedSession.token,
         getRememberedProviderSessionCookieOptions(request.secure),
       );

@@ -8,7 +8,7 @@ import express from "express";
 
 import { closeDatabase, initializeDatabase } from "@/db/database";
 import { upsertProviderAccountByAccessToken } from "@/db/providerAccountsRepository";
-import { getSessionCookieName } from "@/http/cookies";
+import { CREDENTIAL_COOKIE_NAMES } from "@/http/cookies";
 import { errorHandler } from "@/http/errors";
 import { mediaRouter } from "@/routes/media";
 import { createProviderSession } from "@/session/store";
@@ -65,7 +65,7 @@ async function withMediaApp<T>(
     assert.ok(address && typeof address === "object");
     return await callback(
       `http://127.0.0.1:${address.port}`,
-      `${getSessionCookieName()}=${session.id}`,
+      `${CREDENTIAL_COOKIE_NAMES.session}=${session.id}`,
     );
   } finally {
     await new Promise<void>((resolve, reject) => {

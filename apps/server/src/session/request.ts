@@ -1,6 +1,6 @@
 import type { Request } from "express";
 
-import { getSessionCookieName, readCookie } from "@/http/cookies";
+import { CREDENTIAL_COOKIE_NAMES, readCookie } from "@/http/cookies";
 import { throwNotAuthenticated } from "@/http/errors";
 import {
   getProviderSession,
@@ -8,7 +8,7 @@ import {
 } from "@/session/store";
 
 export function getRequestSessionId(request: Request) {
-  return readCookie(request.header("cookie"), getSessionCookieName());
+  return readCookie(request.header("cookie"), CREDENTIAL_COOKIE_NAMES.session);
 }
 
 function requireSession(request: Request): ProviderSessionRecord {

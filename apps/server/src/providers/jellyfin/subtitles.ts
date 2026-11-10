@@ -1,14 +1,9 @@
 import { createMediaHandle } from "@/providers/jellyfin/mediaProxy";
-import {
-  currentMediaSource,
-  isSubtitleMediaStream,
-} from "@/providers/jellyfin/selection";
-import {
-  type JellyfinItem,
-  type JellyfinMediaStream,
-  type JellyfinPlaybackInfo,
-  type JellyfinSessionInfo,
-  type JellyfinSourceContext,
+import { isSubtitleMediaStream } from "@/providers/jellyfin/selection";
+import type {
+  JellyfinMediaSource,
+  JellyfinMediaStream,
+  JellyfinSourceContext,
 } from "@/providers/jellyfin/shared";
 import {
   isTextSubtitleCodec,
@@ -95,23 +90,12 @@ function jellyfinSubtitleTrack(
 export function deriveSubtitleTracks(
   session: ProviderSessionRecord,
   context: JellyfinSourceContext,
-  item: JellyfinItem,
-  mediaSourceId?: string,
-  sessionInfo?: JellyfinSessionInfo,
-  playbackInfo?: JellyfinPlaybackInfo,
+  itemId: string | undefined,
+  mediaSource: JellyfinMediaSource | undefined,
+  fallbackMediaSourceId?: string,
 ) {
-  const mediaSource = currentMediaSource(
-    sessionInfo,
-    item,
-    mediaSourceId,
-    playbackInfo,
-  );
-  if (!mediaSource) {
-    return [];
-  }
-
-  const itemId = stringValue(item?.Id);
-  const resolvedMediaSourceId = stringValue(mediaSource?.Id) ?? mediaSourceId;
+  const resolvedMediaSourceId =
+    stringValue(mediaSource?.Id) ?? fallbackMediaSourceId;
 
   return asArray(mediaSource?.MediaStreams)
     .filter((stream) => isSubtitleMediaStream(stream))

@@ -8,7 +8,7 @@ import {
   upsertMediaSource,
 } from "@/db/mediaSourcesRepository";
 import { upsertProviderAccountByAccessToken } from "@/db/providerAccountsRepository";
-import { getSessionCookieName } from "@/http/cookies";
+import { CREDENTIAL_COOKIE_NAMES } from "@/http/cookies";
 import { isApiError } from "@/http/errors";
 import { PLEX_BASE_URL_MODE_MANUAL } from "@/providers/plex/connectionState";
 import { plexProvider } from "@/providers/plex/provider";
@@ -557,7 +557,7 @@ void test("scopes source routes to the session account and preserves Plex manual
       providerAccountId: account.id,
       userToken: "user-token",
     });
-    const sessionCookie = `${getSessionCookieName()}=${session.id}`;
+    const sessionCookie = `${CREDENTIAL_COOKIE_NAMES.session}=${session.id}`;
 
     for (const foreignSource of [otherSource, jellyfinSource]) {
       for (const method of ["GET", "PATCH", "DELETE", "POST"]) {
@@ -696,7 +696,7 @@ void test("deletes individual source rows and excludes them from dashboard disco
       providerAccountId: account.id,
       userToken: "user-token",
     });
-    const sessionCookie = `${getSessionCookieName()}=${session.id}`;
+    const sessionCookie = `${CREDENTIAL_COOKIE_NAMES.session}=${session.id}`;
 
     const deleteResponse = await fetchLocal(
       `${baseUrl}/api/sources/${removedSource.id}`,
@@ -835,7 +835,7 @@ void test("refreshes Jellyfin source health after account permission changes", a
             {
               method: "POST",
               headers: {
-                cookie: `${getSessionCookieName()}=${session.id}`,
+                cookie: `${CREDENTIAL_COOKIE_NAMES.session}=${session.id}`,
               },
             },
           );

@@ -14,10 +14,9 @@ import {
 } from "@/db/rememberedProviderSessionsRepository";
 import { setNoStore } from "@/http/cacheControl";
 import {
-  getRememberedProviderSessionCookieName,
+  CREDENTIAL_COOKIE_NAMES,
   getRememberedProviderSessionCookieOptions,
   getSessionCookieClearOptions,
-  getSessionCookieName,
   getSessionCookieOptions,
   readCookie,
 } from "@/http/cookies";
@@ -46,7 +45,7 @@ sessionRouter.get(
     const startedAt = Date.now();
     const rememberedToken = readCookie(
       request.header("cookie"),
-      getRememberedProviderSessionCookieName(),
+      CREDENTIAL_COOKIE_NAMES.rememberedSession,
     );
     const rememberedSession = getRememberedProviderSession(rememberedToken);
     const requestSessionId = getRequestSessionId(request);
@@ -101,7 +100,7 @@ sessionRouter.get(
     }
 
     res.cookie(
-      getSessionCookieName(),
+      CREDENTIAL_COOKIE_NAMES.session,
       session.id,
       getSessionCookieOptions(request.secure),
     );
@@ -109,7 +108,7 @@ sessionRouter.get(
       nextRememberedSession?.token ?? rotatedRememberedToken;
     if (nextRememberedToken) {
       res.cookie(
-        getRememberedProviderSessionCookieName(),
+        CREDENTIAL_COOKIE_NAMES.rememberedSession,
         nextRememberedToken,
         getRememberedProviderSessionCookieOptions(request.secure),
       );
@@ -134,7 +133,7 @@ sessionRouter.delete("/", (request, res) => {
   const session = getProviderSession(requestSessionId);
   const rememberedToken = readCookie(
     request.header("cookie"),
-    getRememberedProviderSessionCookieName(),
+    CREDENTIAL_COOKIE_NAMES.rememberedSession,
   );
   const rememberedSession = getRememberedProviderSession(rememberedToken);
   const providerAccountId =
@@ -151,11 +150,11 @@ sessionRouter.delete("/", (request, res) => {
     ? deleteProviderAccount(providerAccountId)
     : false;
   res.clearCookie(
-    getSessionCookieName(),
+    CREDENTIAL_COOKIE_NAMES.session,
     getSessionCookieClearOptions(request.secure),
   );
   res.clearCookie(
-    getRememberedProviderSessionCookieName(),
+    CREDENTIAL_COOKIE_NAMES.rememberedSession,
     getSessionCookieClearOptions(request.secure),
   );
   res.status(204).end();

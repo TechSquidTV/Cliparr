@@ -123,14 +123,16 @@ void test("all server console and file formats redact session fields and cookie 
           "http.response.header.Set-Cookie": "response-secret-marker",
           "http.request.header.authorization": "authorization-secret-marker",
           "http.request.header.proxy-authorization": "proxy-secret-marker",
-          "cliparr_remember": "remember-secret-marker",
+          cliparr_session: "session-cookie-secret-marker",
+          cliparr_remember: "remember-secret-marker",
+          "cookies.CLIPARR_PROVIDER_AUTH": "provider-auth-secret-marker",
           "request.id": "safe-request-marker",
           "plex.playback_session.id": "safe-playback-marker",
         });
       });
       await dispose();
     `,
-        "Redaction probe {session.id} {Cookie} {http.request.header.cookie} {http.response.header.Set-Cookie} {request.id}",
+        "Redaction probe {session.id} {Cookie} {http.request.header.cookie} {http.response.header.Set-Cookie} {cookies.CLIPARR_PROVIDER_AUTH} {request.id}",
       ],
       {
         env: {

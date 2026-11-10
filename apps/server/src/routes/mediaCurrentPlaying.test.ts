@@ -10,7 +10,7 @@ import {
   upsertMediaSource,
 } from "@/db/mediaSourcesRepository";
 import { upsertProviderAccountByAccessToken } from "@/db/providerAccountsRepository";
-import { getSessionCookieName } from "@/http/cookies";
+import { CREDENTIAL_COOKIE_NAMES } from "@/http/cookies";
 import { plexProvider } from "@/providers/plex/provider";
 import type { CurrentlyPlayingEntry } from "@/providers/types";
 import { createProviderSession, deleteProviderSession } from "@/session/store";
@@ -147,7 +147,7 @@ void test("aggregates only the session account's enabled sources with partial fa
     try {
       const response = await fetch(`${baseUrl}/api/media/currently-playing`, {
         headers: {
-          cookie: `${getSessionCookieName()}=${session.id}`,
+          cookie: `${CREDENTIAL_COOKIE_NAMES.session}=${session.id}`,
         },
       });
 
@@ -248,7 +248,9 @@ void test(
       try {
         const response = await fetch(`${baseUrl}/api/media/live`, {
           signal: controller.signal,
-          headers: { cookie: `${getSessionCookieName()}=${session.id}` },
+          headers: {
+            cookie: `${CREDENTIAL_COOKIE_NAMES.session}=${session.id}`,
+          },
         });
         assert.equal(
           response.headers.get("content-type"),
@@ -305,7 +307,9 @@ void test(
         userToken: "limit-test-token",
       });
       const responses: Response[] = [];
-      const headers = { cookie: `${getSessionCookieName()}=${session.id}` };
+      const headers = {
+        cookie: `${CREDENTIAL_COOKIE_NAMES.session}=${session.id}`,
+      };
       try {
         for (let index = 0; index < 8; index++) {
           const response = await fetch(`${baseUrl}/api/media/live`, {

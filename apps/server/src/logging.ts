@@ -28,6 +28,8 @@ import { redactByField } from "@logtape/redaction";
 import { DrizzleQueryError } from "drizzle-orm";
 import type { NextFunction, Request, Response } from "express";
 
+import { CREDENTIAL_COOKIE_NAMES } from "@/http/cookies";
+
 const SERVER_LOG_CATEGORY_PREFIX = ["cliparr", "server"] as const;
 // LogTape reserves this category for its own configuration and sink diagnostics.
 const LOGTAPE_META_CATEGORY = ["logtape", "meta"] as const;
@@ -250,11 +252,20 @@ function rotatingFileSink(config: ServerLogFileConfig) {
   });
 }
 
+const sensitiveFieldNames = [
+  "cookie",
+  "set-cookie",
+  "authorization",
+  "proxy-authorization",
+  ...Object.values(CREDENTIAL_COOKIE_NAMES),
+].map((name) => RegExp.escape(name));
+const sensitiveFieldPattern = new RegExp(
+  String.raw`(?:^|\.)(?:${sensitiveFieldNames.join("|")})$`,
+  "i",
+);
+
 function redactServerLog(sink: Sink) {
-  return redactByField(sink, [
-    "session.id",
-    /(?:^|\.)(?:cookie|set-cookie|authorization|proxy-authorization|cliparr_session|cliparr_remember|cliparr_provider_auth)$/i,
-  ]);
+  return redactByField(sink, ["session.id", sensitiveFieldPattern]);
 }
 
 function serverLogSinks(env: NodeJS.ProcessEnv = process.env) {
