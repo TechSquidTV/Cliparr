@@ -30,7 +30,7 @@ export default defineConfig({
       /^@cliparr\/plex(?:\/.*)?$/,
       /^@cliparr\/shared(?:\/.*)?$/,
       /^@jellyfin\/sdk(?:\/.*)?$/,
-      /^@logtape\/logtape(?:\/.*)?$/,
+      /^@logtape\/(?:logtape|redaction)(?:\/.*)?$/,
       /^axios(?:\/.*)?$/,
       /^dotenv(?:\/.*)?$/,
       /^drizzle-orm(?:\/.*)?$/,
