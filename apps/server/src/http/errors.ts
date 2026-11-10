@@ -68,32 +68,39 @@ export function errorHandler(
   res: Response,
   _next: NextFunction,
 ) {
-  const apiError = isApiError(error)
-    ? error
-    : createApiError(500, "internal_error", "Something went wrong");
-
+  let apiError: ApiError;
   if (
     error instanceof Error &&
     "type" in error &&
     error.type === "entity.parse.failed"
   ) {
     // Express attaches the submitted body, and the message can quote its contents.
-    logger.error("Could not parse the JSON request body.", {
-      ...logEventFields("http.request", "unhandled_error"),
+    apiError = createApiError(
+      400,
+      "invalid_json",
+      "Request body must be valid JSON.",
+    );
+    logger.warn(apiError.message, {
+      ...logEventFields("http.request", "invalid_json"),
       "http.method": request.method,
+      "http.status_code": apiError.status,
       "error.type": error.type,
     });
-  } else if (!isApiError(error)) {
+  } else if (isApiError(error)) {
+    apiError = error;
+    if (apiError.status >= 500) {
+      logger.error(apiError, {
+        ...logEventFields("http.request", "api_error"),
+        "http.status_code": apiError.status,
+        "error.code": apiError.code,
+        "error.message": apiError.message,
+        "http.method": request.method,
+      });
+    }
+  } else {
+    apiError = createApiError(500, "internal_error", "Something went wrong");
     logServerError(logger, "error", error, "Unhandled request error.", {
       ...logEventFields("http.request", "unhandled_error"),
-      "http.method": request.method,
-    });
-  } else if (apiError.status >= 500) {
-    logger.error(apiError, {
-      ...logEventFields("http.request", "api_error"),
-      "http.status_code": apiError.status,
-      "error.code": apiError.code,
-      "error.message": apiError.message,
       "http.method": request.method,
     });
   }

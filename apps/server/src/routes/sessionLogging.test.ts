@@ -72,7 +72,17 @@ void test("server logs omit request credentials across authentication, media and
         body: '{"password":"private-password-marker","value":BADINPUT}',
       },
     );
-    assert.equal(malformedLogin.status, 500);
+    assert.equal(malformedLogin.status, 400);
+    assert.match(
+      malformedLogin.headers.get("content-type") ?? "",
+      /^application\/json\b/,
+    );
+    assert.deepEqual(await malformedLogin.json(), {
+      error: {
+        code: "invalid_json",
+        message: "Request body must be valid JSON.",
+      },
+    });
     assert.ok(lines.some((line) => line.includes("entity.parse.failed")));
 
     const discovery = await fetchLocal(
