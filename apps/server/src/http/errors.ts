@@ -1,7 +1,7 @@
-import { logErrorFields, logEventFields } from "@cliparr/shared/logging";
+import { logEventFields } from "@cliparr/shared/logging";
 import type { NextFunction, Request, Response } from "express";
 
-import { errorWithError, getServerLogger } from "@/logging";
+import { getServerLogger, logServerError } from "@/logging";
 
 const logger = getServerLogger(["http", "error"]);
 
@@ -68,25 +68,40 @@ export function errorHandler(
   res: Response,
   _next: NextFunction,
 ) {
-  const apiError = isApiError(error)
-    ? error
-    : createApiError(500, "internal_error", "Something went wrong");
-
-  if (!isApiError(error)) {
-    errorWithError(logger, error, "Unhandled request error.", {
-      ...logEventFields("http.request", "unhandled_error"),
-      ...logErrorFields(error),
+  let apiError: ApiError;
+  if (
+    error instanceof Error &&
+    "type" in error &&
+    error.type === "entity.parse.failed"
+  ) {
+    // Express attaches the submitted body, and the message can quote its contents.
+    apiError = createApiError(
+      400,
+      "invalid_json",
+      "Request body must be a valid JSON object or array.",
+    );
+    logger.warn(apiError.message, {
+      ...logEventFields("http.request", "invalid_json"),
       "http.method": request.method,
-      "http.original_url": request.originalUrl,
-    });
-  } else if (apiError.status >= 500) {
-    logger.error(apiError, {
-      ...logEventFields("http.request", "api_error"),
       "http.status_code": apiError.status,
-      "error.code": apiError.code,
-      "error.message": apiError.message,
+      "error.type": error.type,
+    });
+  } else if (isApiError(error)) {
+    apiError = error;
+    if (apiError.status >= 500) {
+      logger.error(apiError, {
+        ...logEventFields("http.request", "api_error"),
+        "http.status_code": apiError.status,
+        "error.code": apiError.code,
+        "error.message": apiError.message,
+        "http.method": request.method,
+      });
+    }
+  } else {
+    apiError = createApiError(500, "internal_error", "Something went wrong");
+    logServerError(logger, "error", error, "Unhandled request error.", {
+      ...logEventFields("http.request", "unhandled_error"),
       "http.method": request.method,
-      "http.original_url": request.originalUrl,
     });
   }
 

@@ -1,7 +1,7 @@
 {
   "extends": "../../config/tsconfig.base.json",
   "compilerOptions": {
-    "lib": ["ES2023", "DOM"],
+    "lib": ["ES2023", "ES2025.RegExp", "DOM"],
     "module": "ESNext",
     "moduleResolution": "Bundler",
     "paths": {

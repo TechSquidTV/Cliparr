@@ -151,7 +151,7 @@ export async function rewriteHlsPlaylist(
 
   logger.trace("Rewrote HLS playlist for media handle.", {
     ...logEventFields("media.hls.playlist_rewrite", "success"),
-    ...mediaHandleLogFields(session, handle, playlistBasePath(playlistUrl)),
+    ...mediaHandleLogFields(handle, playlistBasePath(playlistUrl)),
     "upstream.status_code": upstream.status,
     "media.hls.first_media.path": sanitizeLoggedMediaPath(firstMediaUriPath),
     "media.hls.first_media.kind": firstMediaUriKind,
@@ -163,14 +163,13 @@ export async function rewriteHlsPlaylist(
 }
 
 export function logHlsPlaylistFetch(
-  session: ProviderSessionRecord,
   handle: MediaHandle,
   upstream: globalThis.Response,
   contentType: string,
 ) {
   logger.trace("Fetched HLS playlist for media handle.", {
     ...logEventFields("media.hls.playlist_fetch", "success"),
-    ...mediaHandleLogFields(session, handle),
+    ...mediaHandleLogFields(handle),
     "upstream.status_code": upstream.status,
     "upstream.content_type": contentType,
   });

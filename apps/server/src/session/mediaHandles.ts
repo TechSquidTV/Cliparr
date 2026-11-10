@@ -65,7 +65,6 @@ export function pruneSessionMediaHandles(
 
   if (prunedCount > 0) {
     logger.trace("Pruned stale media handles for provider session.", {
-      "session.id": session.id,
       "provider.id": session.providerId,
       "provider.account.id": session.providerAccountId,
       "media.handle.pruned_count": prunedCount,

@@ -3,16 +3,11 @@ import {
   SESSION_TTL_MS,
 } from "@/session/constants";
 
-const SESSION_COOKIE = "cliparr_session";
-const REMEMBERED_PROVIDER_SESSION_COOKIE = "cliparr_remember";
-
-export function getSessionCookieName() {
-  return SESSION_COOKIE;
-}
-
-export function getRememberedProviderSessionCookieName() {
-  return REMEMBERED_PROVIDER_SESSION_COOKIE;
-}
+export const CREDENTIAL_COOKIE_NAMES = {
+  session: "cliparr_session",
+  rememberedSession: "cliparr_remember",
+  providerAuth: "cliparr_provider_auth",
+} as const;
 
 export function getSessionCookieOptions(secure: boolean) {
   return {

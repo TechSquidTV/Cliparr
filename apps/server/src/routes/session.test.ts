@@ -17,10 +17,7 @@ import {
   providerSessions,
   rememberedProviderSessions,
 } from "@/db/schema";
-import {
-  getRememberedProviderSessionCookieName,
-  getSessionCookieName,
-} from "@/http/cookies";
+import { CREDENTIAL_COOKIE_NAMES } from "@/http/cookies";
 import { createProviderSession, getProviderSession } from "@/session/store";
 import { purgeExpiredSessions } from "@/session/sweep";
 import { withTestApp } from "#test/routeFixtures";
@@ -68,14 +65,14 @@ void test("restoring via a remember cookie rotates the token", async () => {
     // No session cookie: the remember credential is exercised.
     const response = await fetchLocal(`${baseUrl}/api/session`, {
       headers: {
-        cookie: `${getRememberedProviderSessionCookieName()}=${remembered.token}`,
+        cookie: `${CREDENTIAL_COOKIE_NAMES.rememberedSession}=${remembered.token}`,
       },
     });
     assert.equal(response.status, 200);
 
     const rotatedToken = readSetCookieValue(
       response,
-      getRememberedProviderSessionCookieName(),
+      CREDENTIAL_COOKIE_NAMES.rememberedSession,
     );
     assert.ok(rotatedToken);
     assert.notEqual(rotatedToken, remembered.token);
@@ -89,7 +86,7 @@ void test("restoring via a remember cookie rotates the token", async () => {
     // Presenting the old token now fails closed.
     const retry = await fetchLocal(`${baseUrl}/api/session`, {
       headers: {
-        cookie: `${getRememberedProviderSessionCookieName()}=${remembered.token}`,
+        cookie: `${CREDENTIAL_COOKIE_NAMES.rememberedSession}=${remembered.token}`,
       },
     });
     assert.equal(retry.status, 401);
@@ -114,8 +111,8 @@ void test("a live session cookie does not rotate the remember token", async () =
     const response = await fetchLocal(`${baseUrl}/api/session`, {
       headers: {
         cookie: [
-          `${getSessionCookieName()}=${session.id}`,
-          `${getRememberedProviderSessionCookieName()}=${remembered.token}`,
+          `${CREDENTIAL_COOKIE_NAMES.session}=${session.id}`,
+          `${CREDENTIAL_COOKIE_NAMES.rememberedSession}=${remembered.token}`,
         ].join("; "),
       },
     });
@@ -123,7 +120,7 @@ void test("a live session cookie does not rotate the remember token", async () =
 
     // The remember credential was not exercised: no rotation.
     assert.equal(
-      readSetCookieValue(response, getRememberedProviderSessionCookieName()),
+      readSetCookieValue(response, CREDENTIAL_COOKIE_NAMES.rememberedSession),
       undefined,
     );
     assert.ok(getRememberedProviderSession(remembered.token));
@@ -143,7 +140,7 @@ void test("concurrent restore responses preserve fresh credentials in a shared c
       [0, 1].map(() =>
         fetchLocal(`${baseUrl}/api/session`, {
           headers: {
-            cookie: `${getRememberedProviderSessionCookieName()}=${remembered.token}; ${getSessionCookieName()}=stale`,
+            cookie: `${CREDENTIAL_COOKIE_NAMES.rememberedSession}=${remembered.token}; ${CREDENTIAL_COOKIE_NAMES.session}=stale`,
           },
         }),
       ),
@@ -163,7 +160,7 @@ void test("concurrent restore responses preserve fresh credentials in a shared c
     assert.equal(sessions[0]?.providerAccountId, account.id);
     const token = readSetCookieValue(
       winner,
-      getRememberedProviderSessionCookieName(),
+      CREDENTIAL_COOKIE_NAMES.rememberedSession,
     );
     assert.ok(token);
     assert.equal(purgeExpiredSessions().purgedRememberedSessions, 1);
@@ -180,16 +177,16 @@ void test("concurrent restore responses preserve fresh credentials in a shared c
       [loser, winner],
     ]) {
       const jar = new Map([
-        [getRememberedProviderSessionCookieName(), remembered.token],
-        [getSessionCookieName(), "stale"],
+        [CREDENTIAL_COOKIE_NAMES.rememberedSession, remembered.token],
+        [CREDENTIAL_COOKIE_NAMES.session, "stale"],
       ]);
       for (const response of orderedResponses) {
         applyResponseCookies(jar, response);
       }
-      assert.equal(jar.get(getRememberedProviderSessionCookieName()), token);
+      assert.equal(jar.get(CREDENTIAL_COOKIE_NAMES.rememberedSession), token);
       assert.equal(
-        jar.get(getSessionCookieName()),
-        readSetCookieValue(winner, getSessionCookieName()),
+        jar.get(CREDENTIAL_COOKIE_NAMES.session),
+        readSetCookieValue(winner, CREDENTIAL_COOKIE_NAMES.session),
       );
       const resumed = await fetchLocal(`${baseUrl}/api/session`, {
         headers: {
@@ -200,7 +197,7 @@ void test("concurrent restore responses preserve fresh credentials in a shared c
       });
       assert.equal(resumed.status, 200);
       assert.equal(
-        readSetCookieValue(resumed, getRememberedProviderSessionCookieName()),
+        readSetCookieValue(resumed, CREDENTIAL_COOKIE_NAMES.rememberedSession),
         undefined,
       );
     }
@@ -223,16 +220,16 @@ void test("a failed restore revokes the token without modifying shared cookies",
       .run();
     const response = await fetchLocal(`${baseUrl}/api/session`, {
       headers: {
-        cookie: `${getRememberedProviderSessionCookieName()}=${remembered.token}; ${getSessionCookieName()}=stale`,
+        cookie: `${CREDENTIAL_COOKIE_NAMES.rememberedSession}=${remembered.token}; ${CREDENTIAL_COOKIE_NAMES.session}=stale`,
       },
     });
     assert.equal(response.status, 401);
     assert.equal(
-      readSetCookieValue(response, getRememberedProviderSessionCookieName()),
+      readSetCookieValue(response, CREDENTIAL_COOKIE_NAMES.rememberedSession),
       undefined,
     );
     assert.equal(
-      readSetCookieValue(response, getSessionCookieName()),
+      readSetCookieValue(response, CREDENTIAL_COOKIE_NAMES.session),
       undefined,
     );
     assert.equal(getRememberedProviderSession(remembered.token), undefined);
@@ -260,19 +257,22 @@ void test("revocation during restore preserves shared cookies and the establishe
     );
     const response = await fetchLocal(`${baseUrl}/api/session`, {
       headers: {
-        cookie: `${getRememberedProviderSessionCookieName()}=${remembered.token}`,
+        cookie: `${CREDENTIAL_COOKIE_NAMES.rememberedSession}=${remembered.token}`,
       },
     });
     assert.equal(response.status, 200);
     assert.equal(
-      readSetCookieValue(response, getRememberedProviderSessionCookieName()),
+      readSetCookieValue(response, CREDENTIAL_COOKIE_NAMES.rememberedSession),
       undefined,
     );
-    const sessionId = readSetCookieValue(response, getSessionCookieName());
+    const sessionId = readSetCookieValue(
+      response,
+      CREDENTIAL_COOKIE_NAMES.session,
+    );
     assert.equal(getProviderSession(sessionId)?.providerAccountId, account.id);
     assert.equal(purgeExpiredSessions().purgedRememberedSessions, 1);
     const retry = await fetchLocal(`${baseUrl}/api/session`, {
-      headers: { cookie: `${getSessionCookieName()}=${sessionId}` },
+      headers: { cookie: `${CREDENTIAL_COOKIE_NAMES.session}=${sessionId}` },
     });
     assert.equal(retry.status, 200);
   });
@@ -289,31 +289,37 @@ void test("logout revokes the rotated token and removes the restored session aft
     const remembered = createRememberedProviderSession(account.id);
     const restored = await fetchLocal(`${baseUrl}/api/session`, {
       headers: {
-        cookie: `${getRememberedProviderSessionCookieName()}=${remembered.token}`,
+        cookie: `${CREDENTIAL_COOKIE_NAMES.rememberedSession}=${remembered.token}`,
       },
     });
     assert.equal(restored.status, 200);
     const token = readSetCookieValue(
       restored,
-      getRememberedProviderSessionCookieName(),
+      CREDENTIAL_COOKIE_NAMES.rememberedSession,
     );
-    const sessionId = readSetCookieValue(restored, getSessionCookieName());
+    const sessionId = readSetCookieValue(
+      restored,
+      CREDENTIAL_COOKIE_NAMES.session,
+    );
     assert.ok(token && sessionId);
     purgeExpiredSessions();
     const response = await fetchLocal(`${baseUrl}/api/session`, {
       method: "DELETE",
       headers: {
-        cookie: `${getRememberedProviderSessionCookieName()}=${token}; ${getSessionCookieName()}=${sessionId}`,
+        cookie: `${CREDENTIAL_COOKIE_NAMES.rememberedSession}=${token}; ${CREDENTIAL_COOKIE_NAMES.session}=${sessionId}`,
       },
     });
     assert.equal(response.status, 204);
     assert.equal(getRememberedProviderSession(token), undefined);
     assert.equal(getProviderSession(sessionId), undefined);
     assert.equal(
-      readSetCookieValue(response, getRememberedProviderSessionCookieName()),
+      readSetCookieValue(response, CREDENTIAL_COOKIE_NAMES.rememberedSession),
       "",
     );
-    assert.equal(readSetCookieValue(response, getSessionCookieName()), "");
+    assert.equal(
+      readSetCookieValue(response, CREDENTIAL_COOKIE_NAMES.session),
+      "",
+    );
   });
 });
 
@@ -338,17 +344,17 @@ void test("a live session takes precedence over a remember cookie for another ac
     const remembered = createRememberedProviderSession(second.id);
     const response = await fetchLocal(`${baseUrl}/api/session`, {
       headers: {
-        cookie: `${getRememberedProviderSessionCookieName()}=${remembered.token}; ${getSessionCookieName()}=${session.id}`,
+        cookie: `${CREDENTIAL_COOKIE_NAMES.rememberedSession}=${remembered.token}; ${CREDENTIAL_COOKIE_NAMES.session}=${session.id}`,
       },
     });
     assert.equal(response.status, 200);
     assert.equal(
-      readSetCookieValue(response, getSessionCookieName()),
+      readSetCookieValue(response, CREDENTIAL_COOKIE_NAMES.session),
       session.id,
     );
     const token = readSetCookieValue(
       response,
-      getRememberedProviderSessionCookieName(),
+      CREDENTIAL_COOKIE_NAMES.rememberedSession,
     );
     assert.equal(
       getRememberedProviderSession(token)?.providerAccountId,
@@ -374,16 +380,16 @@ void test("revoked and swept tokens fail closed without modifying shared cookies
       }
       const response = await fetchLocal(`${baseUrl}/api/session`, {
         headers: {
-          cookie: `${getRememberedProviderSessionCookieName()}=${remembered.token}`,
+          cookie: `${CREDENTIAL_COOKIE_NAMES.rememberedSession}=${remembered.token}`,
         },
       });
       assert.equal(response.status, 401);
       assert.equal(
-        readSetCookieValue(response, getRememberedProviderSessionCookieName()),
+        readSetCookieValue(response, CREDENTIAL_COOKIE_NAMES.rememberedSession),
         undefined,
       );
       assert.equal(
-        readSetCookieValue(response, getSessionCookieName()),
+        readSetCookieValue(response, CREDENTIAL_COOKIE_NAMES.session),
         undefined,
       );
     }

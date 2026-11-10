@@ -179,7 +179,7 @@ void test("restores /api/session from a remembered provider session cookie", () 
       const { closeDatabase } = await import(${JSON.stringify(databaseModuleSpecifier)});
       const { upsertProviderAccountByAccessToken } = await import(${JSON.stringify(providerAccountsRepositoryModuleSpecifier)});
       const { createRememberedProviderSession } = await import(${JSON.stringify(rememberedProviderSessionsRepositoryModuleSpecifier)});
-      const { getRememberedProviderSessionCookieName, getSessionCookieName } = await import(${JSON.stringify(cookiesModuleSpecifier)});
+      const { CREDENTIAL_COOKIE_NAMES } = await import(${JSON.stringify(cookiesModuleSpecifier)});
 
       const { app } = await createApp();
       const server = app.listen(0, "127.0.0.1");
@@ -201,7 +201,7 @@ void test("restores /api/session from a remembered provider session cookie", () 
           \`http://127.0.0.1:\${address.port}/api/session\`,
           {
             headers: {
-              cookie: \`\${getRememberedProviderSessionCookieName()}=\${rememberedSession.token}\`,
+              cookie: \`\${CREDENTIAL_COOKIE_NAMES.rememberedSession}=\${rememberedSession.token}\`,
             },
           }
         );
@@ -211,16 +211,16 @@ void test("restores /api/session from a remembered provider session cookie", () 
         assert.equal(body.session.providerId, "plex");
 
         const setCookies = response.headers.getSetCookie();
-        assert(setCookies.some((cookie) => cookie.startsWith(\`\${getSessionCookieName()}=\`)));
+        assert(setCookies.some((cookie) => cookie.startsWith(\`\${CREDENTIAL_COOKIE_NAMES.session}=\`)));
         // Restoring via the remember credential rotates it: the response
         // carries a fresh remember token different from the presented one.
         const rotatedCookie = setCookies.find((cookie) =>
-          cookie.startsWith(\`\${getRememberedProviderSessionCookieName()}=\`),
+          cookie.startsWith(\`\${CREDENTIAL_COOKIE_NAMES.rememberedSession}=\`),
         );
         assert(rotatedCookie);
         assert(
           !rotatedCookie.startsWith(
-            \`\${getRememberedProviderSessionCookieName()}=\${rememberedSession.token};\`,
+            \`\${CREDENTIAL_COOKIE_NAMES.rememberedSession}=\${rememberedSession.token};\`,
           ),
         );
       } finally {
@@ -247,7 +247,7 @@ void test("rejects invalid remembered provider session cookies without clearing 
 
       const { createApp } = await import(${JSON.stringify(appModuleSpecifier)});
       const { closeDatabase } = await import(${JSON.stringify(databaseModuleSpecifier)});
-      const { getRememberedProviderSessionCookieName } = await import(${JSON.stringify(cookiesModuleSpecifier)});
+      const { CREDENTIAL_COOKIE_NAMES } = await import(${JSON.stringify(cookiesModuleSpecifier)});
 
       const { app } = await createApp();
       const server = app.listen(0, "127.0.0.1");
@@ -261,7 +261,7 @@ void test("rejects invalid remembered provider session cookies without clearing 
           \`http://127.0.0.1:\${address.port}/api/session\`,
           {
             headers: {
-              cookie: \`\${getRememberedProviderSessionCookieName()}=invalid-token\`,
+              cookie: \`\${CREDENTIAL_COOKIE_NAMES.rememberedSession}=invalid-token\`,
             },
           }
         );
@@ -308,7 +308,7 @@ void test("disconnect removes the provider account and cascades saved sources", 
         getRememberedProviderSession,
       } = await import(${JSON.stringify(rememberedProviderSessionsRepositoryModuleSpecifier)});
       const { createProviderSession, getProviderSession } = await import(${JSON.stringify(storeModuleSpecifier)});
-      const { getRememberedProviderSessionCookieName, getSessionCookieName } = await import(${JSON.stringify(cookiesModuleSpecifier)});
+      const { CREDENTIAL_COOKIE_NAMES } = await import(${JSON.stringify(cookiesModuleSpecifier)});
 
       const { app } = await createApp();
       const server = app.listen(0, "127.0.0.1");
@@ -350,8 +350,8 @@ void test("disconnect removes the provider account and cascades saved sources", 
             method: "DELETE",
             headers: {
               cookie: [
-                \`\${getSessionCookieName()}=\${session.id}\`,
-                \`\${getRememberedProviderSessionCookieName()}=\${rememberedSession.token}\`,
+                \`\${CREDENTIAL_COOKIE_NAMES.session}=\${session.id}\`,
+                \`\${CREDENTIAL_COOKIE_NAMES.rememberedSession}=\${rememberedSession.token}\`,
               ].join("; "),
             },
           }
@@ -400,11 +400,11 @@ void test("disconnect removes the provider account and cascades saved sources", 
 
         const setCookies = response.headers.getSetCookie();
         assert(setCookies.some((cookie) =>
-          cookie.startsWith(\`\${getSessionCookieName()}=\`)
+          cookie.startsWith(\`\${CREDENTIAL_COOKIE_NAMES.session}=\`)
           && cookie.includes("Expires=Thu, 01 Jan 1970 00:00:00 GMT")
         ));
         assert(setCookies.some((cookie) =>
-          cookie.startsWith(\`\${getRememberedProviderSessionCookieName()}=\`)
+          cookie.startsWith(\`\${CREDENTIAL_COOKIE_NAMES.rememberedSession}=\`)
           && cookie.includes("Expires=Thu, 01 Jan 1970 00:00:00 GMT")
         ));
       } finally {
@@ -443,7 +443,7 @@ void test("disconnect uses the remembered provider account when the session cook
         createRememberedProviderSession,
         getRememberedProviderSession,
       } = await import(${JSON.stringify(rememberedProviderSessionsRepositoryModuleSpecifier)});
-      const { getRememberedProviderSessionCookieName } = await import(${JSON.stringify(cookiesModuleSpecifier)});
+      const { CREDENTIAL_COOKIE_NAMES } = await import(${JSON.stringify(cookiesModuleSpecifier)});
 
       const { app } = await createApp();
       const server = app.listen(0, "127.0.0.1");
@@ -474,7 +474,7 @@ void test("disconnect uses the remembered provider account when the session cook
           {
             method: "DELETE",
             headers: {
-              cookie: \`\${getRememberedProviderSessionCookieName()}=\${rememberedSession.token}\`,
+              cookie: \`\${CREDENTIAL_COOKIE_NAMES.rememberedSession}=\${rememberedSession.token}\`,
             },
           }
         );
@@ -489,7 +489,7 @@ void test("disconnect uses the remembered provider account when the session cook
 
         const setCookies = response.headers.getSetCookie();
         assert(setCookies.some((cookie) =>
-          cookie.startsWith(\`\${getRememberedProviderSessionCookieName()}=\`)
+          cookie.startsWith(\`\${CREDENTIAL_COOKIE_NAMES.rememberedSession}=\`)
           && cookie.includes("Expires=Thu, 01 Jan 1970 00:00:00 GMT")
         ));
       } finally {
@@ -629,7 +629,7 @@ void test("disconnect revokes cached sessions immediately after a Plex account m
     const { getProviderAccount } = await import(${JSON.stringify(providerAccountsRepositoryModuleSpecifier)});
     const { upsertMediaSource } = await import(${JSON.stringify(mediaSourcesRepositoryModuleSpecifier)});
     const { cleanupDuplicatePlexSources } = await import("@/providers/plex/sourceDeduplication");
-    const { getSessionCookieName } = await import(${JSON.stringify(cookiesModuleSpecifier)});
+    const { CREDENTIAL_COOKIE_NAMES } = await import(${JSON.stringify(cookiesModuleSpecifier)});
     const { PLEX_BASE_URL_MODE_MANUAL } = await import("@/providers/plex/connectionState");
     const { app } = await createApp();
     const duplicate = upsertProviderAccountByAccessToken({
@@ -658,7 +658,7 @@ void test("disconnect revokes cached sessions immediately after a Plex account m
       assert(address && typeof address === "object");
       const response = await fetch(\`http://127.0.0.1:\${address.port}/api/session\`, {
         method: "DELETE",
-        headers: { cookie: \`\${getSessionCookieName()}=\${sessions[0].id}\` },
+        headers: { cookie: \`\${CREDENTIAL_COOKIE_NAMES.session}=\${sessions[0].id}\` },
       });
       assert.equal(response.status, 204);
       assert.equal(getProviderAccount(account.id), undefined);

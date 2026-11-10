@@ -1,24 +1,21 @@
 import {
   compactLogFields,
   logDurationFields,
-  logErrorFields,
   logEventFields,
-  warnWithError,
 } from "@cliparr/shared/logging";
 import { Router } from "express";
 
 import { createRememberedProviderSession } from "@/db/rememberedProviderSessionsRepository";
 import { setNoStore } from "@/http/cacheControl";
 import {
-  getRememberedProviderSessionCookieName,
+  CREDENTIAL_COOKIE_NAMES,
   getRememberedProviderSessionCookieOptions,
-  getSessionCookieName,
   getSessionCookieOptions,
   readCookie,
 } from "@/http/cookies";
 import { asyncHandler, createApiError, isApiError } from "@/http/errors";
 import { getRequestRouteUrl } from "@/http/requestOrigin";
-import { getServerLogger } from "@/logging";
+import { getServerLogger, logServerError } from "@/logging";
 import { persistProviderAuth } from "@/providers/providerPersistence";
 import { getProvider, listProviders } from "@/providers/registry";
 import { createProviderSession } from "@/session/store";
@@ -27,7 +24,6 @@ export const providersRouter = Router();
 const logger = getServerLogger(["provider", "auth"]);
 const PROVIDER_AUTH_COMPLETE_PATH = (providerId: string) =>
   `/auth/${providerId}/complete`;
-const PROVIDER_AUTH_COOKIE = "cliparr_provider_auth";
 
 interface ProviderAuthCookie {
   providerId: string;
@@ -93,7 +89,7 @@ function requireProviderAuthCookie(
   authId: string,
 ) {
   const authCookie = decodeProviderAuthCookie(
-    readCookie(cookieHeader, PROVIDER_AUTH_COOKIE),
+    readCookie(cookieHeader, CREDENTIAL_COOKIE_NAMES.providerAuth),
   );
   if (authCookie?.providerId !== providerId || authCookie.authId !== authId) {
     throw createApiError(
@@ -143,10 +139,9 @@ providersRouter.post(
         ),
       );
     } catch (error) {
-      warnWithError(logger, error, "Provider auth start failed.", {
+      logServerError(logger, "warn", error, "Provider auth start failed.", {
         ...logEventFields("provider.auth.start", "failure"),
         ...logDurationFields(startedAt),
-        ...logErrorFields(error),
         "provider.id": provider.definition.id,
         "provider.auth.method": "pin",
       });
@@ -154,7 +149,7 @@ providersRouter.post(
     }
 
     res.cookie(
-      PROVIDER_AUTH_COOKIE,
+      CREDENTIAL_COOKIE_NAMES.providerAuth,
       encodeProviderAuthCookie({
         providerId: provider.definition.id,
         authId: authStart.authId,
@@ -208,7 +203,7 @@ providersRouter.get(
       if (authStatus.status !== "complete") {
         if (authStatus.status === "expired") {
           res.clearCookie(
-            PROVIDER_AUTH_COOKIE,
+            CREDENTIAL_COOKIE_NAMES.providerAuth,
             providerAuthCookieClearOptions(request.secure),
           );
           logger.info("Provider auth expired.", {
@@ -251,16 +246,16 @@ providersRouter.get(
       );
 
       res.clearCookie(
-        PROVIDER_AUTH_COOKIE,
+        CREDENTIAL_COOKIE_NAMES.providerAuth,
         providerAuthCookieClearOptions(request.secure),
       );
       res.cookie(
-        getSessionCookieName(),
+        CREDENTIAL_COOKIE_NAMES.session,
         session.id,
         getSessionCookieOptions(request.secure),
       );
       res.cookie(
-        getRememberedProviderSessionCookieName(),
+        CREDENTIAL_COOKIE_NAMES.rememberedSession,
         rememberedSession.token,
         getRememberedProviderSessionCookieOptions(request.secure),
       );
@@ -273,17 +268,16 @@ providersRouter.get(
         "provider.auth.method": "pin",
         "provider.account.id": account.id,
         "provider.resource.count": authStatus.resources.length,
-        "session.id": session.id,
       });
     } catch (error) {
-      warnWithError(
+      logServerError(
         logger,
+        "warn",
         error,
         "Provider auth poll failed.",
         compactLogFields({
           ...logEventFields("provider.auth.poll", "failure"),
           ...logDurationFields(startedAt),
-          ...logErrorFields(error),
           "provider.id": provider.definition.id,
           "provider.auth.method": "pin",
           "http.status_code": isApiError(error) ? error.status : undefined,
@@ -349,12 +343,12 @@ providersRouter.post(
       );
 
       res.cookie(
-        getSessionCookieName(),
+        CREDENTIAL_COOKIE_NAMES.session,
         session.id,
         getSessionCookieOptions(request.secure),
       );
       res.cookie(
-        getRememberedProviderSessionCookieName(),
+        CREDENTIAL_COOKIE_NAMES.rememberedSession,
         rememberedSession.token,
         getRememberedProviderSessionCookieOptions(request.secure),
       );
@@ -369,17 +363,16 @@ providersRouter.post(
         "provider.auth.method": "credentials",
         "provider.account.id": account.id,
         "provider.resource.count": authResult.resources.length,
-        "session.id": session.id,
       });
     } catch (error) {
-      warnWithError(
+      logServerError(
         logger,
+        "warn",
         error,
         "Provider credential login failed.",
         compactLogFields({
           ...logEventFields("provider.auth.login", "failure"),
           ...logDurationFields(startedAt),
-          ...logErrorFields(error),
           "provider.id": provider.definition.id,
           "provider.auth.method": "credentials",
           "http.status_code": isApiError(error) ? error.status : undefined,

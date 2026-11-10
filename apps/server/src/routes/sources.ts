@@ -1,10 +1,8 @@
 import {
   compactLogFields,
   logDurationFields,
-  logErrorFields,
   logEventFields,
   sanitizeUrlForLog,
-  warnWithError,
 } from "@cliparr/shared/logging";
 import type {
   MediaSource,
@@ -22,7 +20,7 @@ import {
 } from "@/db/mediaSourcesRepository";
 import { setNoStore } from "@/http/cacheControl";
 import { asyncHandler, createApiError, isApiError } from "@/http/errors";
-import { getServerLogger } from "@/logging";
+import { getServerLogger, logServerError } from "@/logging";
 import {
   PLEX_BASE_URL_MODE_MANUAL,
   withPlexBaseUrlMode,
@@ -220,14 +218,14 @@ sourcesRouter.patch(
         "source.base_url": sanitizeUrlForLog(input.baseUrl),
       });
     } catch (error) {
-      warnWithError(
+      logServerError(
         logger,
+        "warn",
         error,
         "Media source update failed.",
         compactLogFields({
           ...logEventFields("source.update", "failure"),
           ...logDurationFields(startedAt),
-          ...logErrorFields(error),
           "source.id": sourceId,
           "provider.id": source?.providerId,
           "provider.account.id": source?.providerAccountId,
@@ -266,14 +264,14 @@ sourcesRouter.delete(
         "provider.account.id": source.providerAccountId,
       });
     } catch (error) {
-      warnWithError(
+      logServerError(
         logger,
+        "warn",
         error,
         "Media source delete failed.",
         compactLogFields({
           ...logEventFields("source.delete", "failure"),
           ...logDurationFields(startedAt),
-          ...logErrorFields(error),
           "source.id": sourceId,
           "provider.id": source?.providerId,
           "provider.account.id": source?.providerAccountId,
@@ -369,14 +367,14 @@ sourcesRouter.post(
         "source.base_url": sanitizeUrlForLog(result.baseUrl),
       });
     } catch (error) {
-      warnWithError(
+      logServerError(
         logger,
+        "warn",
         error,
         "Media source health check failed.",
         compactLogFields({
           ...logEventFields("source.check", "failure"),
           ...logDurationFields(startedAt),
-          ...logErrorFields(error),
           "source.id": sourceId,
           "provider.id": source?.providerId,
           "provider.account.id": source?.providerAccountId,

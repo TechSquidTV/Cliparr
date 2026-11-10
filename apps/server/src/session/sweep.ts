@@ -1,11 +1,7 @@
-import {
-  logErrorFields,
-  logEventFields,
-  warnWithError,
-} from "@cliparr/shared/logging";
+import { logEventFields } from "@cliparr/shared/logging";
 
 import { purgeExpiredRememberedProviderSessions } from "@/db/rememberedProviderSessionsRepository";
-import { getServerLogger } from "@/logging";
+import { getServerLogger, logServerError } from "@/logging";
 import { purgeExpiredProviderSessions } from "@/session/store";
 
 const SESSION_SWEEP_INTERVAL_MS = 60 * 60 * 1000;
@@ -41,9 +37,8 @@ function runExpiredSessionSweep() {
   try {
     purgeExpiredSessions();
   } catch (error) {
-    warnWithError(logger, error, "Expired session sweep failed.", {
+    logServerError(logger, "warn", error, "Expired session sweep failed.", {
       ...logEventFields("session.sweep", "failure"),
-      ...logErrorFields(error),
     });
   }
 }

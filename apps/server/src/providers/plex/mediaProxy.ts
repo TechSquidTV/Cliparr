@@ -92,7 +92,6 @@ export async function proxyMedia(
 
   logger.trace("Fetching Plex media.", {
     "media.handle.id": handle.id,
-    "session.id": session.id,
     "source.id": handle.sourceId,
     "upstream.url": sanitizeLoggedMediaPath(url.toString()),
     "provider.auth.attached": useProviderAuth,
@@ -136,7 +135,6 @@ export async function proxyMedia(
           logger.warn("Plex media request failed.", {
             ...logEventFields("media.proxy.upstream", "failure"),
             "media.handle.id": handle.id,
-            "session.id": session.id,
             "source.id": handle.sourceId,
             "upstream.url": sanitizeLoggedMediaPath(url.toString()),
             "upstream.status_code": upstream.status,
