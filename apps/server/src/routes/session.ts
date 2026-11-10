@@ -122,7 +122,6 @@ sessionRouter.get(
         ...logDurationFields(startedAt),
         "provider.id": session.providerId,
         "provider.account.id": session.providerAccountId,
-        "session.id": session.id,
       });
     }
   }),
@@ -167,7 +166,6 @@ sessionRouter.delete("/", (request, res) => {
     ...compactLogFields({
       "provider.id": session?.providerId,
       "provider.account.id": providerAccountId,
-      "session.id": session?.id,
       "session.deleted_count": deletedSessionCount,
       "session.remembered.present": Boolean(rememberedToken),
       "provider.account.deleted": deletedProviderAccount,

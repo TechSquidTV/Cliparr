@@ -1,16 +1,12 @@
 import { randomUUID } from "node:crypto";
 
-import {
-  logErrorFields,
-  logEventFields,
-  warnWithError,
-} from "@cliparr/shared/logging";
+import { logEventFields } from "@cliparr/shared/logging";
 import { eq, lte } from "drizzle-orm";
 
 import { getDatabase } from "@/db/database";
 import { getProviderAccount } from "@/db/providerAccountsRepository";
 import { type ProviderSessionRow, providerSessions } from "@/db/schema";
-import { getServerLogger } from "@/logging";
+import { getServerLogger, logServerError } from "@/logging";
 import { notifyPlaybackStateChange } from "@/playback/stateChanges";
 import type { MediaHandle } from "@/providers/types";
 import { decryptSecret, encryptSecret } from "@/security/secrets";
@@ -162,13 +158,13 @@ export function restoreProviderSessionFromProviderAccount(
       userToken: account.accessToken,
     });
   } catch (error) {
-    warnWithError(
+    logServerError(
       logger,
+      "warn",
       error,
       "Failed to restore provider session from remembered provider account.",
       {
         ...logEventFields("session.restore", "failure"),
-        ...logErrorFields(error),
         "provider.account.id": providerAccountId,
       },
     );

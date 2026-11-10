@@ -1,9 +1,7 @@
 import {
   compactLogFields,
   logDurationFields,
-  logErrorFields,
   logEventFields,
-  warnWithError,
 } from "@cliparr/shared/logging";
 import { Router } from "express";
 
@@ -18,7 +16,7 @@ import {
 } from "@/http/cookies";
 import { asyncHandler, createApiError, isApiError } from "@/http/errors";
 import { getRequestRouteUrl } from "@/http/requestOrigin";
-import { getServerLogger } from "@/logging";
+import { getServerLogger, logServerError } from "@/logging";
 import { persistProviderAuth } from "@/providers/providerPersistence";
 import { getProvider, listProviders } from "@/providers/registry";
 import { createProviderSession } from "@/session/store";
@@ -143,10 +141,9 @@ providersRouter.post(
         ),
       );
     } catch (error) {
-      warnWithError(logger, error, "Provider auth start failed.", {
+      logServerError(logger, "warn", error, "Provider auth start failed.", {
         ...logEventFields("provider.auth.start", "failure"),
         ...logDurationFields(startedAt),
-        ...logErrorFields(error),
         "provider.id": provider.definition.id,
         "provider.auth.method": "pin",
       });
@@ -273,17 +270,16 @@ providersRouter.get(
         "provider.auth.method": "pin",
         "provider.account.id": account.id,
         "provider.resource.count": authStatus.resources.length,
-        "session.id": session.id,
       });
     } catch (error) {
-      warnWithError(
+      logServerError(
         logger,
+        "warn",
         error,
         "Provider auth poll failed.",
         compactLogFields({
           ...logEventFields("provider.auth.poll", "failure"),
           ...logDurationFields(startedAt),
-          ...logErrorFields(error),
           "provider.id": provider.definition.id,
           "provider.auth.method": "pin",
           "http.status_code": isApiError(error) ? error.status : undefined,
@@ -369,17 +365,16 @@ providersRouter.post(
         "provider.auth.method": "credentials",
         "provider.account.id": account.id,
         "provider.resource.count": authResult.resources.length,
-        "session.id": session.id,
       });
     } catch (error) {
-      warnWithError(
+      logServerError(
         logger,
+        "warn",
         error,
         "Provider credential login failed.",
         compactLogFields({
           ...logEventFields("provider.auth.login", "failure"),
           ...logDurationFields(startedAt),
-          ...logErrorFields(error),
           "provider.id": provider.definition.id,
           "provider.auth.method": "credentials",
           "http.status_code": isApiError(error) ? error.status : undefined,

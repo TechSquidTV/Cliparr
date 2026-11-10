@@ -101,13 +101,11 @@ export function removeMediaHandleFromIndex(
 }
 
 export function mediaHandleLogFields(
-  session: ProviderSessionRecord,
   handle: MediaHandle,
   basePath = handle.basePath,
 ) {
   return {
     "media.handle.id": handle.id,
-    "session.id": session.id,
     "provider.id": handle.providerId,
     "source.id": handle.sourceId,
     "media.path": sanitizeLoggedMediaPath(handle.path),
@@ -148,7 +146,7 @@ export function createProviderMediaHandle(
     existingHandle.lastAccessedAt = accessedAt;
     logger.trace("Reused provider media handle.", {
       ...logEventFields("media.handle", "reused"),
-      ...mediaHandleLogFields(session, existingHandle, normalizedBasePath),
+      ...mediaHandleLogFields(existingHandle, normalizedBasePath),
     });
     return `/api/media/${existingHandle.id}`;
   }
@@ -168,7 +166,7 @@ export function createProviderMediaHandle(
   index.set(dedupKey, handle.id);
   logger.trace("Created provider media handle.", {
     ...logEventFields("media.handle", "created"),
-    ...mediaHandleLogFields(session, handle),
+    ...mediaHandleLogFields(handle),
     "media.path.absolute": isAbsoluteUrl(handle.path),
   });
   return `/api/media/${handle.id}`;

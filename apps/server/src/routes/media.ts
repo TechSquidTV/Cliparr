@@ -113,7 +113,6 @@ mediaRouter.get(
         sourceErrors.length > 0 ? "partial" : "success",
       ),
       ...logDurationFields(startedAt),
-      "session.id": session.id,
       "session.provider.id": session.providerId,
       "session.provider.account.id": session.providerAccountId,
       "source.provider.ids": [
@@ -164,7 +163,6 @@ mediaRouter.get(
       proxyLogger.warn("Media handle was not found in provider session.", {
         ...logEventFields("media.proxy", "missing_handle"),
         "media.handle.id": request.params.handleId,
-        "session.id": session.id,
         "provider.id": session.providerId,
         "provider.account.id": session.providerAccountId,
         "media.handle.pruned_count": prunedCount,
@@ -182,7 +180,6 @@ mediaRouter.get(
       proxyLogger.error("Provider for media handle is not registered.", {
         ...logEventFields("media.proxy", "provider_not_registered"),
         "media.handle.id": handle.id,
-        "session.id": session.id,
         "provider.id": handle.providerId,
         "source.id": handle.sourceId,
       });
@@ -195,7 +192,6 @@ mediaRouter.get(
 
     proxyLogger.trace("Proxying media handle.", {
       "media.handle.id": handle.id,
-      "session.id": session.id,
       "provider.id": handle.providerId,
       "source.id": handle.sourceId,
       "media.path": sanitizeLoggedMediaPath(handle.path),

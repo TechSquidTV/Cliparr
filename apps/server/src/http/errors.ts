@@ -1,7 +1,7 @@
-import { logErrorFields, logEventFields } from "@cliparr/shared/logging";
+import { logEventFields } from "@cliparr/shared/logging";
 import type { NextFunction, Request, Response } from "express";
 
-import { errorWithError, getServerLogger } from "@/logging";
+import { getServerLogger, logServerError } from "@/logging";
 
 const logger = getServerLogger(["http", "error"]);
 
@@ -73,11 +73,9 @@ export function errorHandler(
     : createApiError(500, "internal_error", "Something went wrong");
 
   if (!isApiError(error)) {
-    errorWithError(logger, error, "Unhandled request error.", {
+    logServerError(logger, "error", error, "Unhandled request error.", {
       ...logEventFields("http.request", "unhandled_error"),
-      ...logErrorFields(error),
       "http.method": request.method,
-      "http.original_url": request.originalUrl,
     });
   } else if (apiError.status >= 500) {
     logger.error(apiError, {
@@ -86,7 +84,6 @@ export function errorHandler(
       "error.code": apiError.code,
       "error.message": apiError.message,
       "http.method": request.method,
-      "http.original_url": request.originalUrl,
     });
   }
 

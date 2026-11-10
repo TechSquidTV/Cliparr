@@ -7,6 +7,7 @@ import path from "node:path";
 import {
   compactLogFields,
   logDurationFields,
+  logErrorFields,
   logEventFields,
 } from "@cliparr/shared/logging";
 import {
@@ -23,6 +24,8 @@ import {
   type TextFormatter,
   withContext,
 } from "@logtape/logtape";
+import { redactByField } from "@logtape/redaction";
+import { DrizzleQueryError } from "drizzle-orm";
 import type { NextFunction, Request, Response } from "express";
 
 const SERVER_LOG_CATEGORY_PREFIX = ["cliparr", "server"] as const;
@@ -57,32 +60,25 @@ export function getServerLogger(category: string | readonly string[]) {
   return getLogger([...SERVER_LOG_CATEGORY_PREFIX, ...parts]);
 }
 
-export function errorWithError(
+export function logServerError(
   logger: Logger,
+  level: "warn" | "error" | "fatal",
   error: unknown,
   message: string,
   properties: Record<string, unknown>,
 ) {
-  if (error instanceof Error) {
-    logger.error(error, properties);
+  // Drizzle includes bound parameters in both the exception and its message.
+  if (error instanceof DrizzleQueryError) {
+    logger[level](message, { ...properties, "error.name": error.name });
     return;
   }
 
-  logger.error(message, properties);
-}
-
-export function fatalWithError(
-  logger: Logger,
-  error: unknown,
-  message: string,
-  properties: Record<string, unknown>,
-) {
+  const fields = { ...properties, ...logErrorFields(error) };
   if (error instanceof Error) {
-    logger.fatal(error, properties);
+    logger[level](error, fields);
     return;
   }
-
-  logger.fatal(message, properties);
+  logger[level](message, fields);
 }
 
 export function resolveServerLogFormat(value?: string) {
@@ -254,15 +250,24 @@ function rotatingFileSink(config: ServerLogFileConfig) {
   });
 }
 
+function redactServerLog(sink: Sink) {
+  return redactByField(sink, [
+    "session.id",
+    /^(?:cookie|set-cookie|authorization|proxy-authorization|cliparr_session|cliparr_remember|cliparr_provider_auth)$/i,
+  ]);
+}
+
 function serverLogSinks(env: NodeJS.ProcessEnv = process.env) {
   const sinks: Record<string, Sink> = {
-    console: serverConsoleSink(resolveServerConsoleLogFormat(env)),
+    console: redactServerLog(
+      serverConsoleSink(resolveServerConsoleLogFormat(env)),
+    ),
   };
   const sinkNames = ["console"];
   const fileConfig = resolveServerLogFileConfig(env);
 
   if (fileConfig) {
-    sinks.file = rotatingFileSink(fileConfig);
+    sinks.file = redactServerLog(rotatingFileSink(fileConfig));
     sinkNames.push("file");
   }
 
@@ -328,7 +333,6 @@ export function requestLoggingMiddleware(
       "request.id": requestId,
       "http.method": request.method,
       "http.path": request.path,
-      "http.original_url": request.originalUrl,
     },
     () => {
       res.setHeader("X-Request-Id", requestId);
