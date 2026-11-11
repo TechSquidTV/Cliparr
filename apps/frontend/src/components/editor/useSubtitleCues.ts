@@ -24,7 +24,8 @@ interface UseSubtitleCuesOptions {
   providerId: string;
 }
 
-const subtitleRequestTimeoutMs = 15_000;
+// Providers may extract an embedded track from the whole file before replying.
+const subtitleRequestTimeoutMs = 120_000;
 const logger = getFrontendLogger(["editor", "subtitle"]);
 
 interface SubtitleDownloadFailure {

@@ -30,6 +30,7 @@ import {
   selectPreferredSubtitleTrack,
   subtitleTrackKey,
   subtitleTrackSupportsBurnIn,
+  subtitleTrackUnavailableMessage,
 } from "@/lib/subtitles/selectPreferredSubtitleTrack";
 import {
   loadSubtitleStyleSettings,
@@ -79,12 +80,24 @@ export function useEditorSubtitles({
   const [subtitleStyleSettings, setSubtitleStyleSettings] = useState(
     loadSubtitleStyleSettings,
   );
-  const subtitleTracks = useMemo<PlaybackSubtitleTrack[]>(
-    () =>
-      session.local
-        ? []
-        : (session.subtitleTracks ?? []).filter(subtitleTrackSupportsBurnIn),
+  const reportedSubtitleTracks = useMemo<PlaybackSubtitleTrack[]>(
+    () => (session.local ? [] : (session.subtitleTracks ?? [])),
     [session.local, session.subtitleTracks],
+  );
+  const subtitleTracks = useMemo(
+    () => reportedSubtitleTracks.filter(subtitleTrackSupportsBurnIn),
+    [reportedSubtitleTracks],
+  );
+  const unavailableSubtitleTracks = useMemo(
+    () =>
+      reportedSubtitleTracks.flatMap((track) => {
+        const reason = subtitleTrackUnavailableMessage(
+          track,
+          session.source.providerId,
+        );
+        return reason ? [{ track, reason }] : [];
+      }),
+    [reportedSubtitleTracks, session.source.providerId],
   );
   const [initialized, setInitialized] = useState(Boolean(initialDraft));
   const initialImportStarted = useRef(Boolean(initialDraft));
@@ -429,6 +442,7 @@ export function useEditorSubtitles({
     },
     initialized,
     subtitleTracks,
+    unavailableSubtitleTracks,
     subtitleOutputEnabled,
     setSubtitleEnabled: (visible: boolean) => {
       commitText();

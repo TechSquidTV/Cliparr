@@ -41,7 +41,7 @@ export function subtitleTrackUnavailableMessage(
     return "This provider cannot download this subtitle track.";
   }
 
-  return "Only text subtitle tracks are supported.";
+  return "Image-based subtitles cannot be imported. Only text tracks are supported.";
 }
 
 export function selectPreferredSubtitleTrack(

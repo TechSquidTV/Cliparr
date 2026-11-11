@@ -38,6 +38,7 @@ export function FeatureControls() {
   const optionsTrigger = useRef<HTMLButtonElement>(null);
   const subtitles: EditorSubtitlePanelProperties["subtitles"] = {
     subtitleTracks: [],
+    unavailableSubtitleTracks: [],
     subtitleOutputEnabled: visible,
     setSubtitleEnabled: setVisible,
     subtitleStyleSettings: style,

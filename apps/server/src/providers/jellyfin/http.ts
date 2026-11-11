@@ -34,6 +34,8 @@ const JELLYFIN_DEVICE_NAME = "Cliparr";
 const JELLYFIN_VERSION = CLIPARR_CLIENT_VERSION;
 
 export const JELLYFIN_REQUEST_TIMEOUT_MS = 5000;
+// Jellyfin extracts embedded subtitles with ffmpeg before it sends headers.
+export const JELLYFIN_SUBTITLE_REQUEST_TIMEOUT_MS = 110_000;
 const JELLYFIN_MAX_REDIRECTS = 5;
 
 const ALLOW_LOOPBACK_JELLYFIN_URLS = booleanEnv(

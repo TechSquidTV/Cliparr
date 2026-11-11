@@ -481,9 +481,6 @@ async function normalizeCurrentPlayback(
     reportedSubtitleTracks,
     reportedSubtitleIndex,
   );
-  const subtitleTracks = reportedSubtitleTracks.filter(
-    subtitleTrackSupportsBurnIn,
-  );
   const playerState = sessionInfo?.PlayState?.IsPaused ? "paused" : "playing";
   const videoStreams = asArray(mediaSource?.MediaStreams).filter((stream) =>
     isVideoMediaStream(stream),
@@ -534,7 +531,9 @@ async function normalizeCurrentPlayback(
     "media.video_stream.count": videoStreams.length,
     "media.audio_stream.count": audioStreams.length,
     "media.subtitle_stream.count": reportedSubtitleTracks.length,
-    "media.subtitle_track.offered.count": subtitleTracks.length,
+    "media.subtitle_track.offered.count": reportedSubtitleTracks.filter(
+      subtitleTrackSupportsBurnIn,
+    ).length,
     "media.subtitle_track.excluded.non_text.count":
       reportedSubtitleTracks.filter((track) => !track.isText).length,
     "media.subtitle_track.excluded.missing_url.count":
@@ -579,7 +578,8 @@ async function normalizeCurrentPlayback(
       previewPath,
       selectedAudioTrack,
       selectedSubtitleTrack,
-      subtitleTracks,
+      // Unsupported tracks stay listed so the editor can explain their absence.
+      subtitleTracks: reportedSubtitleTracks,
       exportMetadata: createExportMetadata(session, context, enrichedItem),
       exportEstimateMetadata,
     }),
