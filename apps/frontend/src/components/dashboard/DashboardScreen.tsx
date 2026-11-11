@@ -182,10 +182,6 @@ export default function DashboardScreen({
   );
   const hasAnyPlaybackCards = playbackCards.length > 0;
   const showPlaybackGrid = loading || hasAnyPlaybackCards;
-  const emptyMessage =
-    sourceErrors.length > 0
-      ? "No active playback on the available sources."
-      : "No one is currently watching anything.";
   const versionLabel = versionInfo?.currentVersion ?? "";
   const latestUpdateRelease =
     versionInfo?.status === "update_available" && versionInfo.latestRelease
@@ -254,24 +250,19 @@ export default function DashboardScreen({
                 height="32"
                 decoding="async"
               />
-              <div className="space-y-1">
-                <div className="flex flex-wrap items-center gap-2">
-                  <h1 className="text-2xl font-bold tracking-tight">Cliparr</h1>
-                  <DashboardPlaybackStatus
-                    sources={sources}
-                    connection={connection}
-                    hasSourceErrors={sourceErrors.length > 0}
-                    onRetry={retry}
-                  />
-                  <DashboardVersionBadge
-                    versionLabel={versionLabel}
-                    latestRelease={latestUpdateRelease}
-                    releaseChecksDisabledReason={releaseChecksDisabledReason}
-                  />
-                </div>
-                <p className="text-sm text-muted-foreground">
-                  Export clips from active playback sessions.
-                </p>
+              <div className="flex flex-wrap items-center gap-2">
+                <h1 className="text-2xl font-bold tracking-tight">Cliparr</h1>
+                <DashboardPlaybackStatus
+                  sources={sources}
+                  connection={connection}
+                  hasSourceErrors={sourceErrors.length > 0}
+                  onRetry={retry}
+                />
+                <DashboardVersionBadge
+                  versionLabel={versionLabel}
+                  latestRelease={latestUpdateRelease}
+                  releaseChecksDisabledReason={releaseChecksDisabledReason}
+                />
               </div>
             </div>
             <DashboardMobileMenu
@@ -380,10 +371,7 @@ export default function DashboardScreen({
           className={showPlaybackGrid ? "space-y-4 sm:space-y-6" : "space-y-6"}
         >
           <div className={showPlaybackGrid ? "sr-only" : ""}>
-            <h2 className="text-xl font-semibold mb-2">Currently Playing</h2>
-            <p className="text-muted-foreground text-sm">
-              Active sessions across enabled sources.
-            </p>
+            <h2 className="text-xl font-semibold">Currently Playing</h2>
           </div>
 
           {error && (
@@ -405,7 +393,6 @@ export default function DashboardScreen({
             playbackCards={filteredPlaybackCards}
             filteredByViewer={selectedViewerFilterNames.length > 0}
             hiddenSessionCount={hiddenViewerFilterCardCount}
-            emptyMessage={emptyMessage}
             activeViewTransitionSessionId={activeViewTransitionSessionId}
             onSelectSession={onSelectSession}
             onClearViewerFilter={clearViewerFilter}
