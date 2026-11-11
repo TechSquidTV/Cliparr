@@ -7,6 +7,7 @@ import {
 } from "@cliparr/shared/logging";
 import {
   type PlaybackSubtitleTrack,
+  SUBTITLE_IMPORT_TIMEOUT_MS,
   subtitleTrackSupportsBurnIn,
 } from "@cliparr/shared/providers";
 import { useCallback, useEffect, useState } from "react";
@@ -26,8 +27,6 @@ interface UseSubtitleCuesOptions {
   providerId: string;
 }
 
-// Providers may extract an embedded track from the whole file before replying.
-const subtitleRequestTimeoutMs = 120_000;
 const logger = getFrontendLogger(["editor", "subtitle"]);
 
 interface SubtitleDownloadFailure {
@@ -121,7 +120,7 @@ export function useSubtitleCues({
     const abortController = new AbortController();
     const timeout = globalThis.setTimeout(() => {
       abortController.abort();
-    }, subtitleRequestTimeoutMs);
+    }, SUBTITLE_IMPORT_TIMEOUT_MS);
 
     async function loadSubtitleCues() {
       if (!subtitleEnabled || !selectedSubtitleTrack) {
@@ -199,7 +198,7 @@ export function useSubtitleCues({
               ...logDurationFields(startedAt),
               ...subtitleTrackLogFields(selectedSubtitleTrack, providerId),
               "subtitle.timeout": true,
-              "subtitle.timeout.ms": subtitleRequestTimeoutMs,
+              "subtitle.timeout.ms": SUBTITLE_IMPORT_TIMEOUT_MS,
             });
           }
           return;

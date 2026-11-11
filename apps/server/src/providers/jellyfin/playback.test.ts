@@ -10,10 +10,7 @@ import {
 import type { Request, Response } from "express";
 
 import type { MediaSourceRecord } from "@/db/mediaSourcesRepository";
-import {
-  jellyfinMediaRequestPolicy,
-  proxyMedia,
-} from "@/providers/jellyfin/mediaProxy";
+import { proxyMedia } from "@/providers/jellyfin/mediaProxy";
 import {
   createJellyfinPlaybackResolver,
   listCurrentlyPlaying,
@@ -848,28 +845,6 @@ for (const [
   });
 }
 
-void test("waits for Jellyfin embedded subtitle extraction without retrying it", () => {
-  const handle = {
-    providerId: "jellyfin",
-    baseUrl: `${TEST_JELLYFIN_BASE_URL}/jellyfin`,
-    token: "provider-token",
-  };
-  assert.deepEqual(
-    jellyfinMediaRequestPolicy({
-      ...handle,
-      path: "/jellyfin/Videos/item-1/media-source-1/Subtitles/2/Stream.vtt",
-    }),
-    { timeoutMs: 110_000, retryAttempts: 1 },
-  );
-  assert.deepEqual(
-    jellyfinMediaRequestPolicy({
-      ...handle,
-      path: "/jellyfin/Videos/item-1/stream?static=true",
-    }),
-    { timeoutMs: 5000 },
-  );
-});
-
 void test("creates a downloadable content URL for Jellyfin text subtitle streams", () => {
   const session = createSession();
   const context = createContext();
@@ -905,6 +880,7 @@ void test("creates a downloadable content URL for Jellyfin text subtitle streams
     handle.path,
     "/Videos/item-1/media-source-1/Subtitles/2/Stream.vtt",
   );
+  assert.equal(handle.kind, "subtitle");
 });
 
 void test("uses Jellyfin session media sources for subtitle track discovery", () => {

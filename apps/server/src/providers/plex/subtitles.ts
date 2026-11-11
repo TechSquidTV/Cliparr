@@ -177,6 +177,7 @@ function plexSubtitleTrack(
             : undefined,
           subtitleStreamId: transcodeSubtitlePath ? streamId : undefined,
           subtitleDecision: transcodeSubtitlePath?.query,
+          kind: "subtitle",
         })
       : undefined,
   };

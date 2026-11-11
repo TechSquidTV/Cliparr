@@ -275,13 +275,6 @@ export function buildSubtitleStreamPath(
   return `/Videos/${encodeURIComponent(itemId)}/${encodeURIComponent(mediaSourceId)}/Subtitles/${subtitleIndex}/Stream.${encodeURIComponent(contentFormat)}`;
 }
 
-/** Matches the request path built by {@link buildSubtitleStreamPath}. */
-export function isSubtitleStreamPath(pathname: string) {
-  return /\/Videos\/[^/]+\/[^/]+\/Subtitles\/\d+\/Stream\.[^/]+$/.test(
-    pathname,
-  );
-}
-
 export function buildPreviewPath(
   item: JellyfinItem,
   mediaSourceId: string | undefined,

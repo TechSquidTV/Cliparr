@@ -2,6 +2,7 @@ import type { TranscodeDecisionData } from "@cliparr/plex/pms/types";
 
 import { type PlexSourceContext } from "@/providers/plex/shared";
 import { createProviderMediaHandle } from "@/providers/shared/mediaHandles";
+import type { MediaHandle } from "@/providers/types";
 import type { ProviderSessionRecord } from "@/session/store";
 
 export function createMediaHandle(
@@ -14,6 +15,7 @@ export function createMediaHandle(
     playbackSessionId?: string;
     subtitleStreamId?: string;
     subtitleDecision?: TranscodeDecisionData["query"];
+    kind?: MediaHandle["kind"];
   } = {},
 ) {
   return createProviderMediaHandle(
@@ -41,6 +43,7 @@ export function createMediaHandle(
       : path,
     {
       basePath: options.basePath,
+      kind: options.kind,
     },
   );
 }

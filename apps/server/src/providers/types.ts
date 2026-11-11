@@ -73,6 +73,7 @@ export interface MediaHandle {
   token: string;
   providerMetadata?: MediaHandleProviderMetadata;
   basePath?: string;
+  kind?: "subtitle";
   lastAccessedAt: number;
 }
 

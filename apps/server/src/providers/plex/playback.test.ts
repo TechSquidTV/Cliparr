@@ -666,6 +666,7 @@ void test("creates a direct content URL for Plex sidecar text subtitle streams",
     mediaHandleRequestUrl(onlyMediaHandle(session)).pathname,
     "/library/streams/101.srt",
   );
+  assert.equal(onlyMediaHandle(session).kind, "subtitle");
 });
 
 void test("proxies Plex viewer avatar URLs through provider media handles", () => {
@@ -734,6 +735,7 @@ void test("creates a subtitle transcode content URL for the selected embedded Pl
   assert.notEqual(transcodeUrl.searchParams.get("session"), "plex-session-1");
   assert.equal(transcodeUrl.searchParams.has("transcodeSessionId"), false);
   assert.equal(handle.providerMetadata?.plex?.subtitleStreamId, "201");
+  assert.equal(handle.kind, "subtitle");
   assert.equal(transcodeUrl.searchParams.get("protocol"), "http");
   assert.equal(transcodeUrl.searchParams.get("directPlay"), "1");
   assert.equal(transcodeUrl.searchParams.get("hasMDE"), "1");

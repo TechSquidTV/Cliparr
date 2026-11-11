@@ -67,7 +67,7 @@ function jellyfinSubtitleTrack(
     isHearingImpaired: booleanValue(stream?.IsHearingImpaired),
     isExternal: booleanValue(stream?.IsExternal),
     contentUrl: subtitlePath
-      ? createMediaHandle(session, context, subtitlePath)
+      ? createMediaHandle(session, context, subtitlePath, { kind: "subtitle" })
       : undefined,
   };
 }

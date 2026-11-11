@@ -17,6 +17,7 @@ import {
   sanitizeLoggedMediaPath,
   shouldAttachProviderAuth,
 } from "@/providers/shared/mediaUrlPolicy";
+import { subtitleRequestPolicy } from "@/providers/shared/subtitles";
 import type { ProviderSessionRecord } from "@/session/store";
 
 const logger = getServerLogger(["media", "proxy"]);
@@ -128,6 +129,7 @@ export async function proxyMedia(
         const upstream = await fetchMediaHandleRequest(handle, {
           headers,
           signal: subtitleRequest?.controller.signal,
+          ...subtitleRequestPolicy(handle),
         });
         if (!upstream.ok && upstream.status !== 206) {
           const body = await upstream.text();

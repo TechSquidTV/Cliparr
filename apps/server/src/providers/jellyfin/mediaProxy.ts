@@ -9,10 +9,8 @@ import { createApiError } from "@/http/errors";
 import { getServerLogger } from "@/logging";
 import {
   JELLYFIN_REQUEST_TIMEOUT_MS,
-  JELLYFIN_SUBTITLE_REQUEST_TIMEOUT_MS,
   jellyfinHeaders,
 } from "@/providers/jellyfin/http";
-import { isSubtitleStreamPath } from "@/providers/jellyfin/selection";
 import type { JellyfinSourceContext } from "@/providers/jellyfin/shared";
 import { createProviderMediaHandle } from "@/providers/shared/mediaHandles";
 import {
@@ -26,25 +24,18 @@ import {
   sanitizeLoggedMediaPath,
   shouldAttachProviderAuth,
 } from "@/providers/shared/mediaUrlPolicy";
+import { subtitleRequestPolicy } from "@/providers/shared/subtitles";
 import { errorMessage } from "@/providers/shared/utilities";
+import type { MediaHandle } from "@/providers/types";
 import type { ProviderSessionRecord } from "@/session/store";
 
 const logger = getServerLogger(["media", "proxy"]);
-
-export function jellyfinMediaRequestPolicy(
-  handle: Parameters<typeof mediaHandleRequestUrl>[0],
-) {
-  // A retried extraction would hold the request far beyond the editor's wait.
-  return isSubtitleStreamPath(mediaHandleRequestUrl(handle).pathname)
-    ? { timeoutMs: JELLYFIN_SUBTITLE_REQUEST_TIMEOUT_MS, retryAttempts: 1 }
-    : { timeoutMs: JELLYFIN_REQUEST_TIMEOUT_MS };
-}
 
 export function createMediaHandle(
   session: ProviderSessionRecord,
   context: JellyfinSourceContext,
   path: string,
-  options: { basePath?: string } = {},
+  options: { basePath?: string; kind?: MediaHandle["kind"] } = {},
 ) {
   const basePathPrefix = new URL(context.baseUrl).pathname.replace(/\/$/, "");
   return createProviderMediaHandle(
@@ -127,7 +118,9 @@ export async function proxyMedia(
       try {
         const upstream = await fetchMediaHandleRequest(handle, {
           headers,
-          ...jellyfinMediaRequestPolicy(handle),
+          ...(subtitleRequestPolicy(handle) ?? {
+            timeoutMs: JELLYFIN_REQUEST_TIMEOUT_MS,
+          }),
         });
 
         if (!upstream.ok && upstream.status !== 206) {
