@@ -3,6 +3,7 @@ import type {
   PlaybackAudioSelection,
 } from "@cliparr/shared/providers";
 import { normalizeExportVideoCodec } from "@cliparr/shared/providers";
+import type { FrameChunk } from "@techsquidtv/gifenc";
 import type {
   CanvasSinkOptions,
   ConversionOptions,
@@ -75,7 +76,7 @@ import {
   type GifEncodingRuntime,
   loadGifEncodingRuntime,
 } from "#/lib/export/gif/gifEncodingRuntime";
-import type { GifFrameChunk } from "#/lib/export/gif/gifFrameChunk";
+import type { GifFrameInput } from "#/lib/export/gif/gifFrameChunk";
 import { buildGifGlobalPalette } from "#/lib/export/gif/gifPalette";
 import { ensureAudioDecoder } from "#/lib/export/mediabunny/mediabunnyCodecs";
 import { createCliparrInputFromSource } from "#/lib/export/mediabunny/mediabunnyInput";
@@ -746,6 +747,9 @@ async function resolveExportTrim(
   return { start, end: toSourceTimelineTime(endTime, offset) };
 }
 
+// Browsers may display GIF delays below two centiseconds for 100 ms.
+const MIN_GIF_PLAYBACK_DELAY_MS = 20;
+
 async function exportGifClipWithRuntime(
   {
     signal,
@@ -838,14 +842,20 @@ async function exportGifClipWithRuntime(
       clippedSubtitleCues.length > 0
         ? createSubtitleCueReader(clippedSubtitleCues)
         : null;
-    // Subtracting the trim start can round an exact cue boundary just past
-    // its frame. Allow for roundoff at the original timeline's precision.
-    const cueTimeRoundoff = Number.EPSILON * Math.max(1, endTime);
+    // Account for timestamp subtraction at exact frame and subtitle boundaries.
+    const timelineRoundoff = Number.EPSILON * Math.max(1, endTime);
     const frameCount = Math.max(
       1,
-      Math.ceil((endTime - startTime) * resolvedGifSettings.frameRate),
+      Math.ceil(
+        (endTime - startTime - timelineRoundoff) *
+          resolvedGifSettings.frameRate,
+      ),
     );
-    const frameDelayMs = 1000 / resolvedGifSettings.frameRate;
+    const durationMs = (endTime - startTime) * 1000;
+    const frameBoundaryMs = (index: number) =>
+      (index * 1000) / resolvedGifSettings.frameRate;
+    const shortTailPossible =
+      durationMs - frameBoundaryMs(frameCount - 1) < MIN_GIF_PLAYBACK_DELAY_MS;
     const videoSink = runtime.createCanvasSink(sourceVideoTrack, {
       poolSize: 2,
       fit: cropRegion ? "fill" : "contain",
@@ -885,7 +895,7 @@ async function exportGifClipWithRuntime(
       );
 
       if (readCues && subtitleStyleSettings) {
-        const activeCues = readCues(clipTimestamp + cueTimeRoundoff);
+        const activeCues = readCues(clipTimestamp + timelineRoundoff);
 
         if (activeCues.length > 0) {
           runtime.renderSubtitleCues(
@@ -906,7 +916,7 @@ async function exportGifClipWithRuntime(
       );
     };
 
-    const globalPalette =
+    const sampledPalette =
       resolvedGifSettings.paletteMode === "global"
         ? await buildGifGlobalPalette({
             frameCount,
@@ -922,22 +932,21 @@ async function exportGifClipWithRuntime(
           })
         : null;
 
-    const requiresSequentialFrameEncoding =
-      resolvedGifSettings.ditherMode === "spatial-temporal";
+    const paletteMode = sampledPalette ? "global" : "per-frame";
     signal?.throwIfAborted();
     onPhaseChange?.("encoding");
     const frameEncoder = gifRuntime.createGifFrameEncoder({
-      requiresSequentialFrames: requiresSequentialFrameEncoding,
+      ...resolvedGifSettings,
+      ...outputDimensions,
+      globalPalette: sampledPalette,
+      paletteMode,
     });
     const cancelFrameEncoder = () => frameEncoder.dispose();
     signal?.addEventListener("abort", cancelFrameEncoder, { once: true });
-    const gifChunks: GifFrameChunk[] = [];
+    const gifChunks: FrameChunk[] = [];
     const inFlightFrames = new Set<Promise<void>>();
     let processedFrameCount = 0;
     let frameEncodingError: Error | null = null;
-    const maxInFlightFrames = requiresSequentialFrameEncoding
-      ? 1
-      : Math.max(1, frameEncoder.concurrency * 2);
 
     const reportFrameProgress = () => {
       onProgress(
@@ -946,28 +955,15 @@ async function exportGifClipWithRuntime(
       );
     };
 
-    const enqueueFrame = (imageData: ImageData) => {
+    type TimedFrame = Omit<GifFrameInput, "sequenceIndex">;
+    const enqueueFrame = async (frame: TimedFrame) => {
       const sequenceIndex = encodedFrameCount;
       encodedFrameCount += 1;
-
       const framePromise = frameEncoder
-        .encodeFrame({
-          sequenceIndex,
-          imageData,
-          width: outputDimensions.width,
-          height: outputDimensions.height,
-          maxColors: resolvedGifSettings.maxColors,
-          delayMs: frameDelayMs,
-          globalPalette,
-          paletteFormat: resolvedGifSettings.paletteFormat,
-          ditherMode: resolvedGifSettings.ditherMode,
-          ditherStrength: resolvedGifSettings.ditherStrength,
-          serpentine: resolvedGifSettings.serpentine,
-          temporalDither: resolvedGifSettings.temporalDither,
-        })
+        .encodeFrame({ ...frame, sequenceIndex })
         .then((chunk) => {
           signal?.throwIfAborted();
-          gifChunks[chunk.sequenceIndex] = chunk;
+          gifChunks.push(chunk);
           processedFrameCount += 1;
           reportFrameProgress();
         })
@@ -979,10 +975,7 @@ async function exportGifClipWithRuntime(
         });
 
       inFlightFrames.add(framePromise);
-    };
-
-    const waitForFrameEncoderSlot = async () => {
-      while (inFlightFrames.size >= maxInFlightFrames) {
+      while (inFlightFrames.size >= frameEncoder.maxInFlightFrames) {
         await Promise.race(inFlightFrames);
         signal?.throwIfAborted();
         if (frameEncodingError) {
@@ -992,6 +985,8 @@ async function exportGifClipWithRuntime(
     };
 
     try {
+      // Only short-tail exports need to hold one rendered frame before encoding.
+      let pending: TimedFrame | undefined;
       for (let frameIndex = 0; frameIndex < frameCount; frameIndex += 1) {
         const imageData = await readRenderedFrameImageData(frameIndex);
 
@@ -1001,8 +996,53 @@ async function exportGifClipWithRuntime(
           continue;
         }
 
-        enqueueFrame(imageData);
-        await waitForFrameEncoderSlot();
+        // Missing source frames are omitted from the output timeline.
+        const outputStart = frameBoundaryMs(
+          encodedFrameCount + (pending ? 1 : 0),
+        );
+        const frameDuration = Math.min(
+          frameBoundaryMs(1),
+          Math.max(0, durationMs - frameBoundaryMs(frameIndex)),
+        );
+        const frame = {
+          rgba: imageData.data,
+          delayMs: gifRuntime.frameDelay(
+            outputStart,
+            outputStart + frameDuration,
+          ),
+        };
+
+        if (
+          pending &&
+          frameIndex === frameCount - 1 &&
+          frame.delayMs < MIN_GIF_PLAYBACK_DELAY_MS
+        ) {
+          const combinedDelay = pending.delayMs + frame.delayMs;
+          if (
+            frame.delayMs === 0 ||
+            combinedDelay < 2 * MIN_GIF_PLAYBACK_DELAY_MS
+          ) {
+            pending.delayMs = combinedDelay;
+            processedFrameCount += 1;
+            reportFrameProgress();
+            break;
+          }
+          pending.delayMs = combinedDelay - MIN_GIF_PLAYBACK_DELAY_MS;
+          frame.delayMs = MIN_GIF_PLAYBACK_DELAY_MS;
+        }
+        if (pending) {
+          await enqueueFrame(pending);
+        }
+        if (shortTailPossible) {
+          pending = frame;
+        } else {
+          await enqueueFrame(frame);
+        }
+      }
+      if (pending) {
+        // A single retained image has no other frame to borrow time from.
+        pending.delayMs = Math.max(MIN_GIF_PLAYBACK_DELAY_MS, pending.delayMs);
+        await enqueueFrame(pending);
       }
 
       await Promise.all(inFlightFrames);
@@ -1022,12 +1062,22 @@ async function exportGifClipWithRuntime(
 
     signal?.throwIfAborted();
     onPhaseChange?.("finalizing");
-    const bytes = gifRuntime.concatenateGifFrameChunks(gifChunks);
+    const bytes = gifRuntime.assembleFrameChunks(gifChunks, encodedFrameCount);
     if (bytes.length === 0) {
       throw new Error("GIF export did not produce an image buffer.");
     }
 
-    return new Blob([copyToArrayBuffer(bytes)], { type: "image/gif" });
+    if (!(bytes.buffer instanceof ArrayBuffer)) {
+      throw new TypeError(
+        "GIF encoder returned an unsupported backing buffer.",
+      );
+    }
+    const view = new Uint8Array(
+      bytes.buffer,
+      bytes.byteOffset,
+      bytes.byteLength,
+    );
+    return new Blob([view], { type: "image/gif" });
   } catch (error) {
     signal?.throwIfAborted();
     throw error;
@@ -1045,13 +1095,6 @@ function toGifFrameEncodingError(error: unknown) {
 
 function throwGifFrameEncodingError(error: Error): never {
   throw new Error(error.message, { cause: error });
-}
-
-function copyToArrayBuffer(bytes: Uint8Array) {
-  const buffer = new ArrayBuffer(bytes.byteLength);
-  new Uint8Array(buffer).set(bytes);
-
-  return buffer;
 }
 
 async function prepareAudioPlan(

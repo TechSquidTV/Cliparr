@@ -1,8 +1,4 @@
-import { createGifTemporalDitherResolver } from "#/lib/export/gif/gifEncodingSettings";
-import {
-  encodeGifFrameChunk,
-  type EncodeGifFrameChunkInput,
-} from "#/lib/export/gif/gifFrameChunk";
+import { createGifFrameChunkEncoder } from "#/lib/export/gif/gifFrameChunk";
 import type {
   GifFrameWorkerEncodeRequest,
   GifFrameWorkerEncodeResponse,
@@ -20,45 +16,28 @@ type GifFrameWorkerGlobal = {
 };
 
 const workerScope = globalThis as unknown as GifFrameWorkerGlobal;
-const temporalDitherResolver = createGifTemporalDitherResolver();
+let chunks: ReturnType<typeof createGifFrameChunkEncoder> | undefined;
 
 workerScope.addEventListener("message", (event) => {
   const message = event.data;
-  if (message.type !== "encode-frame") {
-    return;
-  }
 
   try {
-    const chunk = encodeGifFrameChunk({
-      sequenceIndex: message.sequenceIndex,
-      rgba: message.rgba,
-      width: message.width,
-      height: message.height,
-      maxColors: message.maxColors,
-      delayMs: message.delayMs,
-      globalPalette: message.globalPalette,
-      paletteFormat: message.paletteFormat,
-      ditherMode: message.ditherMode,
-      ditherStrength: message.ditherStrength,
-      serpentine: message.serpentine,
-      temporalDither: temporalDitherResolver.resolve(message),
-    } satisfies EncodeGifFrameChunkInput);
-    const bytes = new ArrayBuffer(chunk.bytes.byteLength);
-    new Uint8Array(bytes).set(chunk.bytes);
-
-    workerScope.postMessage(
-      {
-        type: "encoded-frame",
-        id: message.id,
-        sequenceIndex: chunk.sequenceIndex,
-        bytes,
-      },
-      [bytes],
-    );
+    if (message.job) {
+      chunks = createGifFrameChunkEncoder(message.job);
+    }
+    if (!chunks) {
+      throw new Error("GIF frame worker has no encoder settings.");
+    }
+    const chunk = chunks.encode(message);
+    const buffer = chunk.bytes.buffer;
+    if (!(buffer instanceof ArrayBuffer)) {
+      throw new TypeError("GIF frame chunk must have a transferable buffer.");
+    }
+    workerScope.postMessage({ type: "encoded-frame", chunk }, [buffer]);
   } catch (error) {
     workerScope.postMessage({
       type: "error",
-      id: message.id,
+      sequenceIndex: message.sequenceIndex,
       message:
         error instanceof Error ? error.message : "GIF frame encoding failed.",
     });

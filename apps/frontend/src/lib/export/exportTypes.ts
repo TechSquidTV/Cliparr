@@ -12,12 +12,7 @@ import {
   type ExportMode,
   isAudioExportFormat,
 } from "#/lib/export/exportFormats";
-import type {
-  GifDitherMode,
-  GifPaletteFormat,
-  GifPaletteMode,
-  GifTemporalDitherSettings,
-} from "#/lib/export/gif/gifEncodingSettings";
+import type { GifEncodingSettings } from "#/lib/export/gif/gifEncodingSettings";
 import type { PixelDimensions } from "#/lib/mediaDimensions";
 import { resolveVideoCrop, type VideoCrop } from "#/lib/videoCrop";
 export type { ExportFormat } from "#/lib/export/exportFormats";
@@ -38,17 +33,10 @@ export type VideoExportQualityPreset = Exclude<
 
 export type HlsManifestBitrateBasis = "average-bandwidth" | "bandwidth";
 
-export interface GifExportSettings {
+export interface GifExportSettings extends GifEncodingSettings {
   preset: GifExportPreset;
   maxHeight: number;
   frameRate: number;
-  maxColors: number;
-  paletteMode: GifPaletteMode;
-  paletteFormat: GifPaletteFormat;
-  ditherMode: GifDitherMode;
-  ditherStrength?: number;
-  serpentine?: boolean;
-  temporalDither?: GifTemporalDitherSettings | null;
 }
 
 type ExportSizeEstimateBasis =
@@ -128,12 +116,14 @@ export const videoExportQualityOptions = exportQualityOptions.filter(
   } => option.value !== "efficient" && Boolean(option.videoDescription),
 );
 
-const SOFT_TEMPORAL_DITHER_SETTINGS: GifTemporalDitherSettings = {
-  strength: 0.45,
-  decay: 0.6,
-  maxError: 48,
-  changeDetection: {
-    pixelThreshold: 24,
+const DITHERED_GIF_SETTINGS: GifEncodingSettings = {
+  maxColors: 128,
+  paletteMode: "per-frame",
+  paletteFormat: "rgb565",
+  ditherMode: "spatial-temporal",
+  temporalDither: {
+    strength: 0.45,
+    changeDetection: { pixelThreshold: 24 },
   },
 };
 
@@ -149,34 +139,19 @@ const GIF_EXPORT_PRESET_SETTINGS: Record<
     paletteFormat: "rgb444",
     ditherMode: "none",
   },
-  efficient: {
-    maxHeight: 432,
-    frameRate: 12,
-    maxColors: 128,
-    paletteMode: "per-frame",
-    paletteFormat: "rgb565",
-    ditherMode: "spatial-temporal",
-    temporalDither: SOFT_TEMPORAL_DITHER_SETTINGS,
-  },
-  balanced: {
-    maxHeight: 480,
-    frameRate: 12,
-    maxColors: 128,
-    paletteMode: "per-frame",
-    paletteFormat: "rgb565",
-    ditherMode: "spatial-temporal",
-    temporalDither: SOFT_TEMPORAL_DITHER_SETTINGS,
-  },
-  sharp: {
-    maxHeight: 720,
-    frameRate: 18,
-    maxColors: 128,
-    paletteMode: "per-frame",
-    paletteFormat: "rgb565",
-    ditherMode: "spatial-temporal",
-    temporalDither: SOFT_TEMPORAL_DITHER_SETTINGS,
-  },
+  efficient: { ...DITHERED_GIF_SETTINGS, maxHeight: 432, frameRate: 12 },
+  balanced: { ...DITHERED_GIF_SETTINGS, maxHeight: 480, frameRate: 12 },
+  sharp: { ...DITHERED_GIF_SETTINGS, maxHeight: 720, frameRate: 18 },
 };
+
+export function gifExportSettingsForPreset(
+  preset: GifExportPreset,
+): GifExportSettings {
+  const key = Object.hasOwn(GIF_EXPORT_PRESET_SETTINGS, preset)
+    ? preset
+    : DEFAULT_GIF_EXPORT_PRESET;
+  return structuredClone({ preset: key, ...GIF_EXPORT_PRESET_SETTINGS[key] });
+}
 
 export const gifExportPresetOptions: ReadonlyArray<{
   value: GifExportPreset;
@@ -187,10 +162,7 @@ export const gifExportPresetOptions: ReadonlyArray<{
   value: option.value,
   label: option.label,
   description: option.gifDescription,
-  settings: cloneGifExportSettings({
-    preset: option.value,
-    ...GIF_EXPORT_PRESET_SETTINGS[option.value],
-  }),
+  settings: gifExportSettingsForPreset(option.value),
 }));
 
 const GIF_EXPORT_MAX_DURATION_SECONDS = 15;
@@ -201,35 +173,6 @@ const GIF_ESTIMATE_BYTES_PER_PIXEL_FRAME: Record<GifExportPreset, number> = {
   balanced: 0.48,
   sharp: 0.5,
 };
-
-export function gifExportSettingsForPreset(preset: GifExportPreset) {
-  const option =
-    gifExportPresetOptions.find((option) => option.value === preset) ??
-    gifExportPresetOptions.find(
-      (option) => option.value === DEFAULT_GIF_EXPORT_PRESET,
-    ) ??
-    gifExportPresetOptions[0];
-
-  return cloneGifExportSettings(option.settings);
-}
-
-function cloneGifExportSettings(
-  settings: GifExportSettings,
-): GifExportSettings {
-  return {
-    ...settings,
-    temporalDither: settings.temporalDither
-      ? {
-          ...settings.temporalDither,
-          changeDetection:
-            typeof settings.temporalDither.changeDetection === "object" &&
-            settings.temporalDither.changeDetection !== null
-              ? { ...settings.temporalDither.changeDetection }
-              : settings.temporalDither.changeDetection,
-        }
-      : settings.temporalDither,
-  };
-}
 
 export function exportQualityOptionFor(preset: ExportQualityPreset) {
   return (

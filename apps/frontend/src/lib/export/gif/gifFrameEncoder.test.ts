@@ -3,110 +3,41 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import type { GIFEncoderInstance } from "@techsquidtv/gifenc";
-import { applyPalette, GIFEncoder, quantize } from "@techsquidtv/gifenc";
-
+import type { Palette } from "@techsquidtv/gifenc";
 import {
-  concatenateGifFrameChunks,
-  encodeGifFrameChunk,
+  applyPalette,
+  assembleFrameChunks,
+  createTemporalDither,
+  GIFEncoder,
+  quantize,
+} from "@techsquidtv/gifenc";
+
+import { gifExportSettingsForPreset } from "@/lib/export/exportTypes";
+import {
+  createGifFrameChunkEncoder,
+  type GifEncoderJob,
 } from "@/lib/export/gif/gifFrameChunk";
 import {
   createBestGifFrameEncoder,
-  createInlineGifFrameEncoder,
   defaultGifFrameWorkerCount,
   type GifFrameWorkerEncodeRequest,
 } from "@/lib/export/gif/gifFrameEncoder";
 
-void test("encodes GIF frame chunks without a trailer", () => {
-  const calls: Array<{
-    auto?: boolean;
-    delay?: number;
-    format?: string;
-    maxColors?: number;
-    repeat?: number;
-    temporalDitherPresent?: boolean;
-  }> = [];
-  const palette = [[0, 0, 0]] satisfies Array<[number, number, number]>;
-  const chunk = encodeGifFrameChunk(
-    {
-      sequenceIndex: 0,
-      rgba: new Uint8ClampedArray(4),
-      width: 1,
-      height: 1,
-      maxColors: 64,
-      delayMs: 100,
-      paletteFormat: "rgb565",
-      ditherMode: "spatial",
-    },
-    {
-      createGifEncoder: (options) => {
-        calls.push({ auto: options?.auto });
-
-        return createMockGifEncoder({
-          bytes: () => new Uint8Array([1, 2, 3]),
-          bytesView: () => new Uint8Array([1, 2, 3]),
-          writeFrame: (_index, _width, _height, writeOptions) => {
-            calls.push({
-              delay: writeOptions?.delay,
-              repeat: writeOptions?.repeat,
-            });
-          },
-        });
-      },
-      quantizeGifFrame: (_rgba, maxColors) => {
-        calls.push({ maxColors });
-        return palette;
-      },
-      applyGifPalette: (_rgba, appliedPalette, options) => {
-        assert.equal(appliedPalette, palette);
-        if (typeof options !== "string") {
-          calls.push({
-            format: options?.format,
-            temporalDitherPresent: Boolean(options?.temporalDither),
-          });
-        }
-        return new Uint8Array([0]);
-      },
-    },
-  );
-
-  assert.equal(chunk.sequenceIndex, 0);
-  assert.deepEqual([...chunk.bytes], [1, 2, 3]);
-  assert.deepEqual(calls, [
-    { maxColors: 64 },
-    {
-      format: "rgb565",
-      temporalDitherPresent: false,
-    },
-    { auto: true },
-    {
-      delay: 100,
-      repeat: 0,
-    },
-  ]);
-});
-
-void test("concatenates GIF frame chunks in sequence order with a trailer", () => {
-  const bytes = concatenateGifFrameChunks([
-    { sequenceIndex: 1, bytes: new Uint8Array([3, 4]) },
-    { sequenceIndex: 0, bytes: new Uint8Array([1, 2]) },
-  ]);
-
-  assert.deepEqual([...bytes], [1, 2, 3, 4, 59]);
-});
+const job: GifEncoderJob = {
+  ...gifExportSettingsForPreset("compact"),
+  width: 1,
+  height: 1,
+  paletteMode: "per-frame",
+  globalPalette: null,
+};
 
 void test("real GIF frame chunks include the GIF89a header and trailer", () => {
-  const chunk = encodeGifFrameChunk({
+  const chunk = createGifFrameChunkEncoder(job).encode({
     sequenceIndex: 0,
     rgba: new Uint8ClampedArray([0, 0, 0, 255]),
-    width: 1,
-    height: 1,
-    maxColors: 64,
     delayMs: 100,
-    paletteFormat: "rgb565",
-    ditherMode: "none",
   });
-  const bytes = concatenateGifFrameChunks([chunk]);
+  const bytes = assembleFrameChunks([chunk], 1);
 
   assert.equal(new TextDecoder().decode(bytes.slice(0, 6)), "GIF89a");
   assert.equal(bytes.at(-1), 59);
@@ -119,7 +50,7 @@ for (const paletteMode of ["global", "per-frame"] as const) {
       new Uint8ClampedArray([0, 0, 255, 255, 255, 255, 0, 255]),
       new Uint8ClampedArray([255, 255, 255, 255, 0, 0, 0, 255]),
     ];
-    const globalPalette =
+    const globalPalette: Palette | null =
       paletteMode === "global"
         ? quantize(
             new Uint8ClampedArray(frames.flatMap((frame) => [...frame])),
@@ -128,8 +59,18 @@ for (const paletteMode of ["global", "per-frame"] as const) {
           )
         : null;
     const sequential = GIFEncoder();
+    const encoder = createGifFrameChunkEncoder({
+      ...job,
+      paletteMode,
+      globalPalette,
+      width: 2,
+      paletteFormat: "rgb565",
+    });
     const chunks = frames.map((rgba, sequenceIndex) => {
-      const palette = globalPalette ?? quantize(rgba, 64, { format: "rgb565" });
+      const palette =
+        paletteMode === "global" && globalPalette
+          ? globalPalette
+          : quantize(rgba, 64, { format: "rgb565" });
       const indexedPixels = applyPalette(rgba, palette, { format: "rgb565" });
       sequential.writeFrame(indexedPixels, 2, 1, {
         palette:
@@ -140,80 +81,72 @@ for (const paletteMode of ["global", "per-frame"] as const) {
         repeat: 0,
       });
 
-      return encodeGifFrameChunk({
-        sequenceIndex,
-        rgba,
-        width: 2,
-        height: 1,
-        maxColors: 64,
-        delayMs: 100,
-        globalPalette,
-        paletteFormat: "rgb565",
-        ditherMode: "none",
-      });
+      return encoder.encode({ sequenceIndex, rgba, delayMs: 100 });
     });
     sequential.finish();
 
     assert.deepEqual(
-      concatenateGifFrameChunks(chunks.toReversed()),
+      assembleFrameChunks(chunks.toReversed(), frames.length),
       sequential.bytes(),
     );
   });
 }
 
-void test("empty GIF chunk lists do not produce a trailer-only image", () => {
-  assert.deepEqual(concatenateGifFrameChunks([]), new Uint8Array());
-});
-
-void test("inline GIF frame encoder uses the shared chunk encoder contract", async () => {
-  let temporalDitherPresent = false;
-  const pixels = new Uint8ClampedArray(4);
-  const encoder = createInlineGifFrameEncoder({
-    createGifEncoder: () =>
-      createMockGifEncoder({
-        bytes: () => new Uint8Array([9]),
-        bytesView: () => new Uint8Array([9]),
-        writeFrame: () => {},
-      }),
-    quantizeGifFrame: (rgba) => {
-      assert.equal(rgba, pixels);
-      return [[0, 0, 0]];
-    },
-    applyGifPalette: (_rgba, _palette, options) => {
-      if (typeof options !== "string") {
-        temporalDitherPresent = Boolean(options?.temporalDither);
-      }
-
-      return new Uint8Array([0]);
-    },
-  });
-
-  const chunk = await encoder.encodeFrame({
-    sequenceIndex: 2,
-    imageData: {
-      data: pixels,
-    } as ImageData,
-    width: 1,
+void test("per-frame palettes preserve temporal history across frames", () => {
+  const settings = {
+    ...gifExportSettingsForPreset("balanced"),
+    width: 8,
     height: 1,
-    maxColors: 128,
-    delayMs: 83.33,
-    paletteFormat: "rgb565",
-    ditherMode: "spatial-temporal",
-    temporalDither: {
-      strength: 0.45,
-      decay: 0.6,
-      maxError: 48,
-      changeDetection: {
-        pixelThreshold: 24,
-      },
-    },
+    maxColors: 2,
+    globalPalette: null,
+  };
+  // A small change in the first gray pixel moves a later pixel across a dither boundary.
+  const frames = [0, 4].map(
+    (first) =>
+      new Uint8ClampedArray(
+        [first, 255, 120, 120, 120, 120, 255, 0].flatMap((gray) => [
+          gray,
+          gray,
+          gray,
+          255,
+        ]),
+      ),
+  );
+  const format = settings.paletteFormat;
+  const history = createTemporalDither({
+    width: settings.width,
+    height: settings.height,
+    format,
+    ...settings.temporalDither,
   });
-
-  assert.equal(pixels.buffer.byteLength, 4);
-  assert.equal(encoder.concurrency, 1);
-  assert.equal(chunk.sequenceIndex, 2);
-  assert.deepEqual([...chunk.bytes], [9]);
-  assert.equal(temporalDitherPresent, true);
+  const options = {
+    width: settings.width,
+    height: settings.height,
+    format,
+    dither: true,
+    temporalDither: history,
+  };
+  const reference = GIFEncoder();
+  const encoder = createGifFrameChunkEncoder(settings);
+  const chunks = frames.map((rgba, sequenceIndex) => {
+    const palette = quantize(rgba, settings.maxColors, { format });
+    const indexed = applyPalette(rgba, palette, options);
+    if (sequenceIndex === 1) {
+      history.reset();
+      assert.notDeepEqual(indexed, applyPalette(rgba, palette, options));
+    }
+    reference.writeFrame(indexed, settings.width, settings.height, {
+      palette,
+      delay: 100,
+    });
+    return encoder.encode({ sequenceIndex, rgba, delayMs: 100 });
+  });
+  reference.finish();
+  encoder.dispose();
+  assert.deepEqual(
+    assembleFrameChunks(chunks, frames.length),
+    reference.bytes(),
+  );
 });
 
 void test("worker GIF frame encoder rejects when postMessage throws", async () => {
@@ -242,21 +175,18 @@ void test("worker GIF frame encoder rejects when postMessage throws", async () =
   });
 
   try {
-    const encoder = createBestGifFrameEncoder();
+    const encoder = createBestGifFrameEncoder({
+      ...job,
+      ...gifExportSettingsForPreset("balanced"),
+    });
+    assert.equal(encoder.maxInFlightFrames, 1);
 
     await assert.rejects(
       () =>
         encoder.encodeFrame({
           sequenceIndex: 0,
-          imageData: {
-            data: new Uint8ClampedArray(4),
-          } as ImageData,
-          width: 1,
-          height: 1,
-          maxColors: 64,
+          rgba: new Uint8ClampedArray(4),
           delayMs: 100,
-          paletteFormat: "rgb565",
-          ditherMode: "none",
         }),
       postMessageError,
     );
@@ -282,94 +212,92 @@ void test("bounds GIF frame worker count", () => {
   assert.equal(defaultGifFrameWorkerCount(99), 4);
 });
 
-void test("worker transfers frame ownership and preserves the pixel view", async () => {
+void test("initializes each worker once and transfers only the frame pixel view", async (t) => {
+  t.mock.getter(navigator, "hardwareConcurrency", () => 3);
   const previousWorker = globalThis.Worker;
-  const backing = new Uint8ClampedArray([
-    99, 99, 99, 99, 255, 0, 0, 255, 88, 88, 88, 88,
-  ]);
-  const pixels = backing.subarray(4, 8);
-  const expected = encodeGifFrameChunk({
-    sequenceIndex: 0,
-    rgba: pixels,
-    width: 1,
-    height: 1,
-    maxColors: 64,
-    delayMs: 100,
-    paletteFormat: "rgb565",
-    ditherMode: "none",
-  });
-  let received: Uint8ClampedArray | undefined;
-  let transferredBuffer: ArrayBufferLike | undefined;
-  let onMessage: ((event: MessageEvent) => void) | undefined;
-  const worker = {
-    addEventListener(type: string, listener: (event: MessageEvent) => void) {
-      if (type === "message") {
-        onMessage = listener;
-      }
-    },
-    removeEventListener() {},
-    postMessage(
-      message: GifFrameWorkerEncodeRequest,
-      transfer: Transferable[],
-    ) {
-      transferredBuffer = transfer[0] as ArrayBuffer;
-      const cloned = structuredClone(message, { transfer });
-      received = cloned.rgba;
-      const chunk = encodeGifFrameChunk({ ...cloned, temporalDither: null });
-      onMessage?.({
-        data: {
-          type: "encoded-frame",
-          id: cloned.id,
-          sequenceIndex: chunk.sequenceIndex,
-          bytes: chunk.bytes.buffer,
-        },
-      } as MessageEvent);
-    },
-    terminate() {},
-  };
+  const messages: GifFrameWorkerEncodeRequest[][] = [];
+  function MockWorker() {
+    const worker = new EventTarget();
+    const requests: GifFrameWorkerEncodeRequest[] = [];
+    messages.push(requests);
+    let chunks: ReturnType<typeof createGifFrameChunkEncoder> | undefined;
+    return Object.assign(worker, {
+      postMessage(
+        message: GifFrameWorkerEncodeRequest,
+        transfer: Transferable[],
+      ) {
+        const request = structuredClone(message, { transfer });
+        requests.push(request);
+        if (request.job) {
+          chunks = createGifFrameChunkEncoder(request.job);
+        }
+        assert.ok(chunks);
+        const chunk = chunks.encode(request);
+        queueMicrotask(() =>
+          worker.dispatchEvent(
+            new MessageEvent("message", {
+              data: { type: "encoded-frame", chunk },
+            }),
+          ),
+        );
+      },
+      terminate() {},
+    });
+  }
   Object.defineProperty(globalThis, "Worker", {
     configurable: true,
-    value: function MockWorker() {
-      return worker;
-    },
+    value: MockWorker,
   });
 
+  const encoder = createBestGifFrameEncoder(job);
   try {
-    const encoder = createBestGifFrameEncoder({
-      requiresSequentialFrames: true,
-    });
-    const originalBuffer = pixels.buffer;
-    const chunk = await encoder.encodeFrame({
+    assert.equal(encoder.maxInFlightFrames, 4);
+    const reference = createGifFrameChunkEncoder(job);
+    const backing = new Uint8ClampedArray([
+      99, 99, 99, 99, 255, 0, 0, 255, 88, 88, 88, 88,
+    ]);
+    const first = {
       sequenceIndex: 0,
-      imageData: { data: pixels } as ImageData,
-      width: 1,
-      height: 1,
-      maxColors: 64,
+      rgba: backing.subarray(4, 8),
       delayMs: 100,
-      paletteFormat: "rgb565",
-      ditherMode: "none",
-    });
-    assert.equal(transferredBuffer, originalBuffer);
-    assert.equal(originalBuffer.byteLength, 0);
-    assert.equal(received?.byteOffset, 4);
-    assert.deepEqual([...(received ?? [])], [255, 0, 0, 255]);
-    assert.deepEqual(chunk.bytes, expected.bytes);
+    };
+    const expected = reference.encode(first);
+    const result = await encoder.encodeFrame(first);
+    assert.deepEqual(result, expected);
+    assert.equal(backing.buffer.byteLength, 0);
+    const received = messages[0][0].rgba;
+    assert.equal(received.byteOffset, 4);
+    assert.deepEqual([...received], [255, 0, 0, 255]);
     await assert.rejects(
-      () =>
-        encoder.encodeFrame({
-          sequenceIndex: 1,
-          imageData: { data: pixels } as ImageData,
-          width: 1,
-          height: 1,
-          maxColors: 64,
-          delayMs: 100,
-          paletteFormat: "rgb565",
-          ditherMode: "none",
-        }),
+      () => encoder.encodeFrame(first),
       /attached ArrayBuffer/,
     );
-    encoder.dispose();
+
+    for (let sequenceIndex = 1; sequenceIndex <= 4; sequenceIndex += 1) {
+      const frame = {
+        sequenceIndex,
+        rgba: new Uint8ClampedArray([0, sequenceIndex, 0, 255]),
+        delayMs: 100,
+      };
+      const expectedChunk = reference.encode(frame);
+      assert.deepEqual(await encoder.encodeFrame(frame), expectedChunk);
+    }
+    assert.equal(messages.length, 2);
+    assert.equal(messages[0][0].job?.globalPalette, null);
+    assert.deepEqual(messages[1][0].job?.globalPalette, expected.globalPalette);
+    for (const requests of messages) {
+      assert.ok(requests[0].job);
+      assert.ok(requests.length >= 2);
+      for (const request of requests.slice(1)) {
+        assert.deepEqual(Object.keys(request).toSorted(), [
+          "delayMs",
+          "rgba",
+          "sequenceIndex",
+        ]);
+      }
+    }
   } finally {
+    encoder.dispose();
     if (previousWorker) {
       Object.defineProperty(globalThis, "Worker", {
         configurable: true,
@@ -380,19 +308,3 @@ void test("worker transfers frame ownership and preserves the pixel view", async
     }
   }
 });
-
-function createMockGifEncoder(
-  overrides: Partial<GIFEncoderInstance> = {},
-): GIFEncoderInstance {
-  return {
-    buffer: new ArrayBuffer(0),
-    bytes: () => new Uint8Array(),
-    bytesView: () => new Uint8Array(),
-    finish: () => {},
-    reset: () => {},
-    stream: {} as GIFEncoderInstance["stream"],
-    writeFrame: () => {},
-    writeHeader: () => {},
-    ...overrides,
-  };
-}

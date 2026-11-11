@@ -360,21 +360,19 @@ void test("defines GIF export presets and balanced default", () => {
     ditherMode: "spatial-temporal",
     temporalDither: {
       strength: 0.45,
-      decay: 0.6,
-      maxError: 48,
       changeDetection: {
         pixelThreshold: 24,
       },
     },
   });
 
-  const mutatedSettings = gifExportSettingsForPreset("balanced");
-  if (typeof mutatedSettings.temporalDither?.changeDetection === "object") {
-    mutatedSettings.temporalDither.changeDetection.pixelThreshold = 1;
-  }
+  const detection =
+    gifExportSettingsForPreset("balanced").temporalDither?.changeDetection;
+  assert.ok(typeof detection === "object" && detection);
+  detection.pixelThreshold = 1;
   assert.deepEqual(
-    gifExportSettingsForPreset("balanced").temporalDither,
-    gifExportSettingsForPreset(DEFAULT_GIF_EXPORT_PRESET).temporalDither,
+    gifExportSettingsForPreset("balanced").temporalDither?.changeDetection,
+    { pixelThreshold: 24 },
   );
 });
 

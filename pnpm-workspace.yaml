@@ -19,7 +19,7 @@ minimumReleaseAgeExclude:
   - "@techsquidtv/canvas-timeline-react@0.7.0"
   - "@techsquidtv/canvas-timeline-renderer@0.7.0"
   - "@techsquidtv/canvas-timeline-utils@0.7.0"
-  - "@techsquidtv/gifenc@1.1.0"
+  - "@techsquidtv/gifenc@2.0.0"
 
 allowBuilds:
   "@sentry/cli": true
