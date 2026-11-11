@@ -95,6 +95,18 @@ export function subtitleContentFormat(codec: unknown) {
   return isTextSubtitleCodec(codec) ? "vtt" : undefined;
 }
 
-export function subtitleTrackSupportsBurnIn(track: PlaybackSubtitleTrack) {
-  return Boolean(track.isText && track.contentUrl);
+// Providers report every subtitle track so the editor can explain the ones it
+// cannot import; these fields record how the reported tracks divide.
+export function subtitleTrackTraceFields(
+  tracks: readonly PlaybackSubtitleTrack[],
+) {
+  const text = tracks.filter((track) => track.isText);
+  const offered = text.filter((track) => track.contentUrl);
+  return {
+    "media.subtitle_stream.count": tracks.length,
+    "media.subtitle_track.offered.count": offered.length,
+    "media.subtitle_track.excluded.non_text.count": tracks.length - text.length,
+    "media.subtitle_track.excluded.missing_url.count":
+      text.length - offered.length,
+  };
 }

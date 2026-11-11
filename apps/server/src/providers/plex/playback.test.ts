@@ -455,6 +455,13 @@ void test("builds Plex HLS preview and embedded SRT extraction with independent 
                 selected: true,
                 title: "English SDH",
               },
+              {
+                id: "101152",
+                index: 4,
+                streamType: 3,
+                codec: "pgs",
+                languageCode: "eng",
+              },
             ],
           },
         ],
@@ -492,7 +499,18 @@ void test("builds Plex HLS preview and embedded SRT extraction with independent 
       assert.equal(item.selectedSubtitleTrack?.streamId, "101151");
       assert.equal(item.selectedSubtitleTrack?.contentFormat, "srt");
       const subtitleTracks = item.subtitleTracks ?? [];
-      assert.equal(subtitleTracks.length, 1);
+      // Unimportable tracks are reported so the editor can explain them.
+      assert.deepEqual(
+        subtitleTracks.map((track) => [
+          track.streamId,
+          track.isText,
+          Boolean(track.contentUrl),
+        ]),
+        [
+          ["101151", true, true],
+          ["101152", false, false],
+        ],
+      );
 
       const hlsHandle = mediaHandleForUrl(session, item.hlsUrl);
       const hlsUrl = new URL(hlsHandle.path, "http://cliparr.local");
@@ -1411,7 +1429,14 @@ void test("batch enrichment preserves each viewer's audio and subtitle selection
       assert.equal(entries[1]?.item.selectedAudioTrack?.languageCode, "eng");
       assert.equal(entries[1]?.item.selectedAudioTrack?.trackNumber, 2);
       assert.equal(entries[1]?.item.selectedSubtitleTrack, undefined);
-      assert.equal(entries[1]?.item.subtitleTracks?.length, 0);
+      // The unselected embedded track is reported without a download URL.
+      assert.deepEqual(
+        entries[1]?.item.subtitleTracks?.map((track) => [
+          track.streamId,
+          track.contentUrl,
+        ]),
+        [["20", undefined]],
+      );
       assert.equal(library.Media?.[0]?.Part?.[0]?.Stream?.[0]?.selected, false);
     },
   );

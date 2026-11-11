@@ -56,7 +56,7 @@ import {
   deriveSubtitleTracks,
 } from "@/providers/plex/subtitles";
 import { assembleCurrentlyPlayingItem } from "@/providers/shared/playbackEntry";
-import { subtitleTrackSupportsBurnIn } from "@/providers/shared/subtitles";
+import { subtitleTrackTraceFields } from "@/providers/shared/subtitles";
 import { asArray, stringValue } from "@/providers/shared/utilities";
 import type {
   CurrentlyPlayingEntry,
@@ -332,7 +332,7 @@ function bindPlexPlayback(
     enrichedItem,
     plexPlaybackSessionId,
     mediaSelection,
-  ).filter((track) => subtitleTrackSupportsBurnIn(track));
+  );
   const audioStreams = streamEntries(
     resolveSelectedPart(audioItem, mediaSelection)?.part,
   ).filter((stream) => isAudioStream(stream));
@@ -381,6 +381,7 @@ function bindPlexPlayback(
     "media.part.index": mediaSelection?.partIndex,
     "media.video_stream.count": videoStreams.length,
     "media.audio_stream.count": audioStreams.length,
+    ...subtitleTrackTraceFields(subtitleTracks),
     "media.preview.missing": missingPreviewPath,
     "media.audio_selection.unresolved": unresolvedSelectedAudioTrack,
   });
