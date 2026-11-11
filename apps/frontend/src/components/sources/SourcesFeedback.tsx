@@ -86,16 +86,9 @@ export function SourcesConnectSection({
   return (
     <section className="rounded-lg border border-border bg-card p-4 sm:p-5">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <div>
-          <div>
-            <h3 className="text-sm font-semibold text-foreground">
-              Connect another media server
-            </h3>
-            <p className="mt-1 max-w-2xl text-xs text-muted-foreground">
-              Add or reconnect a media server.
-            </p>
-          </div>
-        </div>
+        <h3 className="text-sm font-semibold text-foreground">
+          Connect another media server
+        </h3>
 
         {!forceAddSourceOpen && (
           <button

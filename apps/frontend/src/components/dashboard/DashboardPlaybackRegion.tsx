@@ -54,7 +54,6 @@ export function DashboardPlaybackMotionRegion({
   playbackCards,
   filteredByViewer,
   hiddenSessionCount,
-  emptyMessage,
   activeViewTransitionSessionId,
   onSelectSession,
   onClearViewerFilter,
@@ -66,7 +65,6 @@ export function DashboardPlaybackMotionRegion({
   playbackCards: DashboardPlaybackCardItem[];
   filteredByViewer: boolean;
   hiddenSessionCount: number;
-  emptyMessage: string;
   activeViewTransitionSessionId?: string | null;
   onSelectSession: (session: CurrentlyPlayingItem) => void;
   onClearViewerFilter: () => void;
@@ -190,13 +188,8 @@ export function DashboardPlaybackMotionRegion({
               <EmptyState
                 icon={<Play className="h-5 w-5" />}
                 title="Nothing is playing right now"
-                description={emptyMessage}
+                description="Start a video in Plex or Jellyfin and it will appear here automatically. If your server is missing, check your connected sources."
               >
-                <p className="mx-auto mt-2 max-w-sm text-sm text-muted-foreground">
-                  Start a video in Plex or Jellyfin and it will appear here
-                  automatically. If your server is missing, check your connected
-                  sources.
-                </p>
                 <div className="mt-5 flex flex-wrap justify-center gap-2">
                   <button
                     type="button"
