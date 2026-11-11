@@ -1,3 +1,5 @@
+import { subtitleTrackSupportsBurnIn } from "@cliparr/shared/providers";
+
 import { stringValue } from "@/providers/shared/utilities";
 import type { PlaybackSubtitleTrack } from "@/providers/types";
 
@@ -101,7 +103,7 @@ export function subtitleTrackTraceFields(
   tracks: readonly PlaybackSubtitleTrack[],
 ) {
   const text = tracks.filter((track) => track.isText);
-  const offered = text.filter((track) => track.contentUrl);
+  const offered = text.filter((track) => subtitleTrackSupportsBurnIn(track));
   return {
     "media.subtitle_stream.count": tracks.length,
     "media.subtitle_track.offered.count": offered.length,

@@ -1,4 +1,7 @@
-import type { PlaybackSubtitleTrack } from "@cliparr/shared/providers";
+import {
+  type PlaybackSubtitleTrack,
+  subtitleTrackSupportsBurnIn,
+} from "@cliparr/shared/providers";
 import {
   fromSeconds,
   type TimelineEngine,
@@ -29,7 +32,6 @@ import { normalizeSubtitleCueText } from "@/lib/subtitles/normalizeSubtitleCueTe
 import {
   selectPreferredSubtitleTrack,
   subtitleTrackKey,
-  subtitleTrackSupportsBurnIn,
   subtitleTrackUnavailableMessage,
 } from "@/lib/subtitles/selectPreferredSubtitleTrack";
 import {
@@ -52,6 +54,9 @@ interface UseEditorSubtitlesProperties {
   pausePlayback: () => void;
   onSubtitleCreated: () => void;
 }
+
+// Past this, the provider is likely extracting the track from the media file.
+const SUBTITLE_SLOW_IMPORT_MS = 8000;
 
 interface SubtitleTextEdit {
   clipId: string;
@@ -85,7 +90,10 @@ export function useEditorSubtitles({
     [session.local, session.subtitleTracks],
   );
   const subtitleTracks = useMemo(
-    () => reportedSubtitleTracks.filter(subtitleTrackSupportsBurnIn),
+    () =>
+      reportedSubtitleTracks.filter((track) =>
+        subtitleTrackSupportsBurnIn(track),
+      ),
     [reportedSubtitleTracks],
   );
   const unavailableSubtitleTracks = useMemo(
@@ -123,6 +131,19 @@ export function useEditorSubtitles({
   });
   const { resetSubtitleCues } = download;
   const subtitleLoading = importTrack !== null;
+  const [subtitleLoadingSlow, setSubtitleLoadingSlow] = useState(false);
+  useEffect(() => {
+    if (!importTrack) {
+      return;
+    }
+    const timeout = globalThis.setTimeout(() => {
+      setSubtitleLoadingSlow(true);
+    }, SUBTITLE_SLOW_IMPORT_MS);
+    return () => {
+      globalThis.clearTimeout(timeout);
+      setSubtitleLoadingSlow(false);
+    };
+  }, [importTrack]);
 
   useEffect(() => {
     saveSubtitleStyleSettings(subtitleStyleSettings);
@@ -452,6 +473,7 @@ export function useEditorSubtitles({
     setSubtitleStyleSettings,
     subtitleCues,
     subtitleLoading,
+    subtitleLoadingSlow,
     subtitleError,
     dismissErrors: () => {
       setSubtitleError(null);

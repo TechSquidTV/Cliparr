@@ -12,6 +12,7 @@ import {
   JELLYFIN_SUBTITLE_REQUEST_TIMEOUT_MS,
   jellyfinHeaders,
 } from "@/providers/jellyfin/http";
+import { isSubtitleStreamPath } from "@/providers/jellyfin/selection";
 import type { JellyfinSourceContext } from "@/providers/jellyfin/shared";
 import { createProviderMediaHandle } from "@/providers/shared/mediaHandles";
 import {
@@ -30,16 +31,11 @@ import type { ProviderSessionRecord } from "@/session/store";
 
 const logger = getServerLogger(["media", "proxy"]);
 
-const JELLYFIN_SUBTITLE_STREAM_PATH =
-  /\/Videos\/[^/]+\/[^/]+\/Subtitles\/\d+\/Stream\.[^/]+$/;
-
 export function jellyfinMediaRequestPolicy(
   handle: Parameters<typeof mediaHandleRequestUrl>[0],
 ) {
   // A retried extraction would hold the request far beyond the editor's wait.
-  return JELLYFIN_SUBTITLE_STREAM_PATH.test(
-    mediaHandleRequestUrl(handle).pathname,
-  )
+  return isSubtitleStreamPath(mediaHandleRequestUrl(handle).pathname)
     ? { timeoutMs: JELLYFIN_SUBTITLE_REQUEST_TIMEOUT_MS, retryAttempts: 1 }
     : { timeoutMs: JELLYFIN_REQUEST_TIMEOUT_MS };
 }

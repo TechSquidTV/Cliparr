@@ -1,11 +1,13 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import type { PlaybackSubtitleTrack } from "@cliparr/shared/providers";
+import {
+  type PlaybackSubtitleTrack,
+  subtitleTrackSupportsBurnIn,
+} from "@cliparr/shared/providers";
 
 import {
   selectPreferredSubtitleTrack,
-  subtitleTrackSupportsBurnIn,
   subtitleTrackUnavailableMessage,
 } from "#/lib/subtitles/selectPreferredSubtitleTrack";
 
@@ -49,8 +51,8 @@ void test("explains why a reported subtitle track cannot be imported", () => {
 });
 
 void test("never imports an image track the viewer selected in the provider", () => {
-  const importable = [imageTrack, textTrack].filter(
-    subtitleTrackSupportsBurnIn,
+  const importable = [imageTrack, textTrack].filter((track) =>
+    subtitleTrackSupportsBurnIn(track),
   );
   assert.deepEqual(importable, [textTrack]);
   assert.equal(

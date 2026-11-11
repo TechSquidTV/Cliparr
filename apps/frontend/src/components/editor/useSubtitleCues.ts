@@ -5,14 +5,16 @@ import {
   logEventFields,
   warnWithError,
 } from "@cliparr/shared/logging";
-import type { PlaybackSubtitleTrack } from "@cliparr/shared/providers";
+import {
+  type PlaybackSubtitleTrack,
+  subtitleTrackSupportsBurnIn,
+} from "@cliparr/shared/providers";
 import { useCallback, useEffect, useState } from "react";
 
 import { readResponseErrorDetails } from "@/api/cliparrClient";
 import { parseSubtitleTextAsync } from "@/lib/subtitles/parseSubtitleTextAsync";
 import {
   subtitleTrackKey,
-  subtitleTrackSupportsBurnIn,
   subtitleTrackUnavailableMessage,
 } from "@/lib/subtitles/selectPreferredSubtitleTrack";
 import type { SubtitleCue } from "@/lib/subtitles/types";

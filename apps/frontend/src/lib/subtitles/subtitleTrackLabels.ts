@@ -1,7 +1,5 @@
 import type { PlaybackSubtitleTrack } from "@cliparr/shared/providers";
 
-import { subtitleTrackSupportsBurnIn } from "@/lib/subtitles/selectPreferredSubtitleTrack";
-
 interface SubtitleTrackLabelParts {
   title?: string;
   language?: string;
@@ -31,7 +29,6 @@ export function subtitleTrackLabelParts(
       track.isHearingImpaired ? "SDH" : null,
       track.isDefault ? "Default" : null,
       track.isExternal ? "External" : null,
-      subtitleTrackSupportsBurnIn(track) ? null : "Unsupported",
     ].filter(isPresent),
   };
 }

@@ -1,6 +1,7 @@
-import type {
-  PlaybackSubtitleSelection,
-  PlaybackSubtitleTrack,
+import {
+  type PlaybackSubtitleSelection,
+  type PlaybackSubtitleTrack,
+  subtitleTrackSupportsBurnIn,
 } from "@cliparr/shared/providers";
 
 import { normalizedText } from "#/lib/subtitles/normalizedText";
@@ -17,12 +18,6 @@ export function subtitleTrackKey(
   }
 
   return "unknown";
-}
-
-export function subtitleTrackSupportsBurnIn(
-  track: PlaybackSubtitleTrack | null | undefined,
-) {
-  return Boolean(track?.isText && track?.contentUrl);
 }
 
 export function subtitleTrackUnavailableMessage(

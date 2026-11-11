@@ -1,5 +1,8 @@
 import { createMediaHandle } from "@/providers/jellyfin/mediaProxy";
-import { isSubtitleMediaStream } from "@/providers/jellyfin/selection";
+import {
+  buildSubtitleStreamPath,
+  isSubtitleMediaStream,
+} from "@/providers/jellyfin/selection";
 import type {
   JellyfinMediaSource,
   JellyfinMediaStream,
@@ -30,24 +33,6 @@ function jellyfinSubtitleTrackTitle(stream: JellyfinMediaStream) {
   );
 }
 
-function buildJellyfinSubtitlePath(
-  itemId: string | undefined,
-  mediaSourceId: string | undefined,
-  subtitleIndex: number | undefined,
-  contentFormat: string | undefined,
-) {
-  if (
-    !itemId ||
-    !mediaSourceId ||
-    subtitleIndex === undefined ||
-    !contentFormat
-  ) {
-    return;
-  }
-
-  return `/Videos/${encodeURIComponent(itemId)}/${encodeURIComponent(mediaSourceId)}/Subtitles/${subtitleIndex}/Stream.${encodeURIComponent(contentFormat)}`;
-}
-
 function jellyfinSubtitleTrack(
   session: ProviderSessionRecord,
   context: JellyfinSourceContext,
@@ -62,7 +47,7 @@ function jellyfinSubtitleTrack(
     ? (subtitleContentFormat(codec) ?? "vtt")
     : undefined;
   const subtitleIndex = numberValue(stream?.Index ?? undefined);
-  const subtitlePath = buildJellyfinSubtitlePath(
+  const subtitlePath = buildSubtitleStreamPath(
     itemId,
     mediaSourceId,
     subtitleIndex,

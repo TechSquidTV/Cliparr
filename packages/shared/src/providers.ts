@@ -154,6 +154,13 @@ export interface PlaybackSubtitleTrack {
   contentUrl?: string;
 }
 
+/** Only text tracks with a download URL can be imported into the editor. */
+export function subtitleTrackSupportsBurnIn(
+  track: PlaybackSubtitleTrack | null | undefined,
+) {
+  return Boolean(track?.isText && track.contentUrl);
+}
+
 export interface PlaybackSubtitleSelection {
   streamId?: string;
   index?: number;
