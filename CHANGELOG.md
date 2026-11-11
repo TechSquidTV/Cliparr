@@ -2,7 +2,15 @@
 
 Published release notes are available in [GitHub Releases](https://github.com/TechSquidTV/Cliparr/releases).
 
-## Unreleased
+## v3.1.1
+
+- **Non-root distroless production images.** Cliparr now ships on Google’s distroless Node.js 26 image for Debian 13 on amd64 and arm64. The server keeps its existing non-root user and data volume. If your maintenance commands use a shell, a package manager, or the old Node path, follow the [Docker upgrade instructions](tools/release/notes/v3.1.1.md#non-root-distroless-production-images).
+- Server logs redact provider login credentials, and dependency updates resolve ten Dependabot security alerts. If you shared older logs, see the [security notes](tools/release/notes/v3.1.1.md#security).
+- GIF exports preserve playback timing across frames and at the end of a trim. Plex and Jellyfin allow longer for embedded subtitle extraction and explain which tracks can be imported.
+- Provider sign-in handles slow responses and cancellation. The editor reuses HLS metadata for export estimates and reduces work when saving drafts, adding subtitles, and exporting GIFs.
+- The website and guides now show the 3.1 mobile editing and cropping workflow, including a sharper mobile preview. Renovate checks the lockfile weekly. See the [full release notes](tools/release/notes/v3.1.1.md).
+
+## v3.1.0
 
 ### Added
 
@@ -10,9 +18,7 @@ Published release notes are available in [GitHub Releases](https://github.com/Te
 
 ### Changed
 
-- **Container maintenance:** production runs on non-root distroless Debian 13 without a shell or package manager. The Node executable moves from `/usr/local/bin/node` to `/nodejs/bin/node`; update custom maintenance commands and entrypoint overrides.
-
-- Source installations now require a stable Node 26 version satisfying `engines.node`; use `.nvmrc` before installing dependencies. All container images include the pinned Node 26 runtime and use pinned upstream base images.
+- Source installations now require a stable Node 26 version satisfying `engines.node`; use `.nvmrc` before installing dependencies. Production, development, and capture images include the pinned Node 26 runtime and use pinned official Debian slim base images.
 
 ### Fixed
 
