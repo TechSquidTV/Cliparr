@@ -10,7 +10,6 @@ import previewWebm from "@/assets/preview.webm?url";
 import screenshotImage from "@/assets/screenshot.webp";
 import BaseLayout from "@/components/BaseLayout.astro";
 import CommandBlock from "@/components/CommandBlock.astro";
-import FeatureGrid from "@/components/FeatureGrid.astro";
 import {
   dockerRunCommandVariants,
   productIntro,
@@ -37,7 +36,7 @@ const faqs = [
   {
     question: "Where does Cliparr process video?",
     answer:
-      "Cliparr processes video in the browser. Local files are read directly by the browser; Plex, Jellyfin, and direct media URL sources can route through your self-hosted Cliparr server's media proxy so the browser can preview and export them.",
+      "Your browser edits and exports the clip. If you open a file from your device, it stays there. For Plex, Jellyfin, or a direct media URL, your Cliparr server can relay the video to your browser.",
     links: [
       { href: "/docs/local-videos", label: "Local videos and URLs" },
       { href: "/docs/providers", label: "Plex and Jellyfin providers" },
@@ -46,7 +45,7 @@ const faqs = [
   {
     question: "What does the Cliparr server do?",
     answer:
-      "The server handles media server authentication, encrypted provider records, active playback discovery, and proxy work for media routes. It helps the browser reach authenticated sources, while editing and export processing run in the browser.",
+      "It connects to Plex and Jellyfin and tells the dashboard what’s playing. It encrypts your saved credentials so it can reconnect later.",
     links: [
       { href: "/docs/providers", label: "Provider setup" },
       { href: "/docs/configuration", label: "Configuration" },
@@ -55,7 +54,7 @@ const faqs = [
   {
     question: "Does Cliparr use FFmpeg?",
     answer:
-      "No. Cliparr processes video, audio, and GIF exports in your browser. You do not need to install FFmpeg.",
+      "No. You can export video, audio, and GIFs without installing FFmpeg, including on your phone and tablet.",
     links: [
       { href: "/docs/export-settings", label: "Export settings" },
       { href: "https://mediabunny.dev/", label: "Mediabunny" },
@@ -63,15 +62,9 @@ const faqs = [
     ],
   },
   {
-    question: "Does Cliparr work with Plex and Jellyfin?",
-    answer:
-      "Yes. Cliparr can connect to Plex and Jellyfin providers, discover active playback sessions, open the current media, and start clipping from the playback position.",
-    links: [{ href: "/docs/providers", label: "Plex and Jellyfin" }],
-  },
-  {
     question: "When should I use Cliparr Convert instead?",
     answer:
-      "Use Cliparr Convert when you only need whole-file conversion without self-hosting. The hosted converter runs in your browser and is separate from the full Cliparr app for Plex, Jellyfin, local sources, and timeline clipping.",
+      "If you need a whole file in another format, open Cliparr Convert in your browser. There’s no server to set up. Use the self-hosted editor to cut a clip or work with a Plex or Jellyfin session.",
     links: [{ href: "/convert", label: "Open Cliparr Convert" }],
   },
 ] as const;
@@ -97,7 +90,7 @@ const faqStructuredData = {
       <div class="mx-auto max-w-4xl text-center">
         <p class="section-eyebrow">Self-hosted video clipping</p>
         <h1 class="mt-4 text-4xl font-semibold leading-tight sm:text-6xl">
-          Clip your personal media.
+          Clip what you’re watching.
         </h1>
         <p class="mx-auto mt-4 max-w-2xl text-lg leading-8 text-muted-foreground sm:text-xl">
           {productIntro}
@@ -118,9 +111,6 @@ const faqStructuredData = {
             View on GitHub
           </a>
         </div>
-        <p class="mt-4 text-sm text-muted-foreground">
-          Transcoded locally in your browser.
-        </p>
       </div>
 
       <div class="mx-auto mt-7 max-w-5xl">
@@ -165,66 +155,93 @@ const faqStructuredData = {
     </div>
   </section>
 
-  <section id="features" class="bg-background py-16 sm:py-20">
-    <div class="container-page">
-      <div class="mx-auto max-w-3xl text-center">
-        <p class="section-eyebrow">Focused editing</p>
-        <h2 class="mt-5 text-3xl font-semibold sm:text-5xl">
-          The shortest path from playback to shareable clip.
+  <section id="features" class="scroll-mt-16 bg-background py-12 sm:py-16">
+    <div class="container-page grid items-center gap-8 lg:grid-cols-2 lg:gap-16">
+      <div class="max-w-xl">
+        <div class="mb-6 flex flex-wrap items-center gap-x-7 gap-y-3">
+          {providers.map((provider) => (
+            <span class="inline-flex items-center gap-2 text-xl font-semibold">
+              <img
+                src={provider.iconPath}
+                alt=""
+                width="32"
+                height="32"
+                class="provider-logo"
+              />
+              {provider.name}
+            </span>
+          ))}
+        </div>
+        <h2 class="text-3xl font-semibold sm:text-5xl">
+          Clip a scene and caption it
         </h2>
-        <p class="mt-5 text-base leading-7 text-muted-foreground">
-          Cliparr keeps the workflow small: find the source, choose the range,
-          export the clip.
-        </p>
-        <p class="mx-auto mt-3 max-w-2xl text-sm leading-6 text-muted-foreground [&_a]:font-medium [&_a]:text-foreground [&_a]:underline [&_a]:underline-offset-4">
-          Use Cliparr with <a href="/docs/providers">Plex and Jellyfin</a>, open{" "}
-          <a href="/docs/local-videos">local videos</a>, tune
-          <a href="/docs/export-settings">export settings</a>, and burn in
-          supported <a href="/docs/subtitle-burn-in">subtitles</a> without
-          turning your home server into a render box.
-        </p>
+        <div class="mt-5 space-y-4 text-base leading-7 text-muted-foreground [&_a]:font-medium [&_a]:text-foreground [&_a]:underline [&_a]:underline-offset-4">
+          <p>
+            Pick what’s playing on{" "}
+            <a href="/docs/providers">Plex or Jellyfin</a>, or open{" "}
+            <a href="/docs/local-videos">local videos</a> without uploading
+            them. <a href="/docs/video-cropping">Crop it</a>,{" "}
+            <a href="/docs/subtitle-burn-in">import and edit subtitles</a> or
+            add your own, then{" "}
+            <a href="/docs/export-settings">export the clip</a>.
+          </p>
+          <p>
+            Your browser handles the transcoding. Save your clip as MP4, WebM,
+            MOV, or MKV, export just the audio, or make a GIF. Work on local
+            files offline.
+          </p>
+        </div>
       </div>
-      <div class="mt-8">
-        <FeatureGrid />
-      </div>
+      <figure class="mx-auto w-full max-w-lg">
+        <img
+          src="/docs/export-dialog.webp"
+          alt="Cliparr’s export dialog with MP4 selected, a duration of 2.94 seconds, and one subtitle included."
+          width="896"
+          height="768"
+          loading="lazy"
+          decoding="async"
+          class="block w-full rounded-lg border border-border"
+        />
+        <figcaption class="mt-3 text-sm text-muted-foreground">
+          The three-second scene above, ready to save as a subtitled 1080p MP4.
+          Estimated file size is 2.2 MB.
+        </figcaption>
+      </figure>
     </div>
   </section>
 
   <section class="border-y border-border bg-muted/40 py-16 sm:py-20">
-    <div class="container-page grid gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(20rem,28rem)] lg:items-center">
-      <div class="max-w-2xl">
-        <p class="section-eyebrow">Mobile PWA</p>
+    <div class="container-page grid gap-8 lg:grid-cols-[1fr_1.1fr] lg:items-start">
+      <div>
+        <p class="section-eyebrow">Self-hosted quick start</p>
         <h2 class="mt-5 text-3xl font-semibold sm:text-5xl">
-          A mobile workspace that feels installed.
+          Run Cliparr with Docker
         </h2>
         <p class="mt-5 text-base leading-7 text-muted-foreground">
-          Open Cliparr from a phone, install it to your home screen, and keep a
-          focused clipping workspace close to the media you are already
-          watching.
+          Replace the example <code>APP_KEY</code> with a random secret of at
+          least 32 characters. Keep it for future updates. Run the command, then
+          open <code>http://localhost:7171</code> on the same computer.
         </p>
-        <div class="mt-8 grid gap-5 sm:grid-cols-3">
-          <div class="border-t border-border pt-4">
-            <h3 class="text-base font-semibold">Home screen ready</h3>
-            <p class="mt-2 text-sm leading-6 text-muted-foreground">
-              Manifest icons, shortcuts, and standalone display support make the
-              app feel at home outside the browser chrome.
-            </p>
-          </div>
-          <div class="border-t border-border pt-4">
-            <h3 class="text-base font-semibold">Touch-first controls</h3>
-            <p class="mt-2 text-sm leading-6 text-muted-foreground">
-              Source selection, playback, and export flows stay reachable on a
-              small screen without losing the desktop workflow.
-            </p>
-          </div>
-          <div class="border-t border-border pt-4">
-            <h3 class="text-base font-semibold">Ready when you come back</h3>
-            <p class="mt-2 text-sm leading-6 text-muted-foreground">
-              Cliparr keeps the main interface quick to reopen, then refreshes
-              your media sessions and source details live.
-            </p>
-          </div>
-        </div>
+      </div>
+      <CommandBlock variants={dockerRunCommandVariants} label="Docker" />
+    </div>
+  </section>
+
+  <section class="bg-background py-16 sm:py-20">
+    <div class="container-page grid gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(20rem,28rem)] lg:items-center">
+      <div class="max-w-2xl">
+        <h2 class="text-3xl font-semibold sm:text-5xl">
+          Runs on all your mobile devices
+        </h2>
+        <p class="mt-5 text-base leading-7 text-muted-foreground">
+          Native-like controls and speed. Clip local files from your camera or
+          elsewhere.
+        </p>
+        <p class="mt-3 text-base leading-7 text-muted-foreground">
+          Install the PWA from your browser. On iPhone or iPad, tap Share → Add
+          to Home Screen in Safari. On Android, use the install option in a
+          supported browser.
+        </p>
         <a
           href="/docs/browser-support"
           class="focus-ring mt-8 inline-flex min-h-11 items-center justify-center rounded-full border border-border bg-card px-5 text-sm font-semibold text-foreground transition-colors hover:bg-accent"
@@ -278,66 +295,10 @@ const faqStructuredData = {
     </div>
   </section>
 
-  <section class="border-b border-border bg-background py-16 sm:py-20">
-    <div class="container-page grid gap-8 lg:grid-cols-[1fr_1.1fr] lg:items-start">
-      <div>
-        <p class="section-eyebrow">Self-hosted quick start</p>
-        <h2 class="mt-5 text-3xl font-semibold sm:text-5xl">
-          Run Cliparr with one Docker command.
-        </h2>
-        <p class="mt-5 text-base leading-7 text-muted-foreground">
-          Self-host Cliparr in Docker, keep your sources connected, and make
-          clips whenever something worth saving is playing.
-        </p>
-      </div>
-      <CommandBlock variants={dockerRunCommandVariants} label="Docker" />
-    </div>
-  </section>
-
-  <section class="bg-muted/40 py-16 sm:py-20">
-    <div class="container-page">
-      <div class="mx-auto max-w-3xl text-center">
-        <p class="section-eyebrow">Sources</p>
-        <h2 class="mt-5 text-3xl font-semibold sm:text-5xl">
-          Plex, Jellyfin, and local files.
-        </h2>
-        <p class="mt-5 text-base leading-7 text-muted-foreground">
-          Connect a server source for active playback discovery, or open a video
-          directly from your device when you just need a local clip.
-        </p>
-      </div>
-      <div class="mt-8 grid gap-4 md:grid-cols-2">
-        {providers.map((provider) => (
-          <article class="rounded-lg border border-border bg-card p-6">
-            <div class="flex items-center gap-4">
-              <span class="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg border border-border bg-muted p-2.5">
-                <img
-                  src={provider.iconPath}
-                  alt=""
-                  class="provider-logo h-full w-full"
-                />
-              </span>
-              <h3 class="text-lg font-semibold">{provider.name}</h3>
-            </div>
-            <p class="mt-3 text-sm leading-6 text-muted-foreground">
-              {provider.setup}
-            </p>
-          </article>
-        ))}
-      </div>
-    </div>
-  </section>
-
   <section class="border-t border-border bg-background py-16 sm:py-20">
     <div class="container-page">
       <div class="mx-auto max-w-3xl text-center">
-        <p class="section-eyebrow">As seen on</p>
-        <h2 class="mt-5 text-3xl font-semibold sm:text-5xl">
-          Cliparr in the wild.
-        </h2>
-        <p class="mt-5 text-base leading-7 text-muted-foreground">
-          Places that have mentioned Cliparr.
-        </p>
+        <h2 class="text-3xl font-semibold sm:text-5xl">Cliparr in the wild</h2>
       </div>
       <div class="mx-auto mt-8 grid max-w-4xl gap-4 md:grid-cols-2">
         {asSeenOn.map((mention) => (
@@ -385,12 +346,9 @@ const faqStructuredData = {
   <section class="border-t border-border bg-muted/40 py-16 sm:py-20">
     <div class="container-page">
       <div class="mx-auto max-w-3xl text-center">
-        <p class="section-eyebrow">Questions</p>
-        <h2 class="mt-5 text-3xl font-semibold sm:text-5xl">Cliparr basics.</h2>
-        <p class="mt-5 text-base leading-7 text-muted-foreground">
-          A few quick answers about self-hosting, provider support, browser
-          exports, and where Cliparr Convert fits.
-        </p>
+        <h2 class="text-3xl font-semibold sm:text-5xl">
+          Frequently asked questions
+        </h2>
       </div>
       <div class="mx-auto mt-8 grid max-w-4xl gap-3">
         {faqs.map((faq) => (
