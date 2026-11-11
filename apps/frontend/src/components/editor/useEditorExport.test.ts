@@ -366,13 +366,13 @@ void test("defines GIF export presets and balanced default", () => {
     },
   });
 
-  const mutatedSettings = gifExportSettingsForPreset("balanced");
-  if (typeof mutatedSettings.temporalDither?.changeDetection === "object") {
-    mutatedSettings.temporalDither.changeDetection.pixelThreshold = 1;
-  }
+  const detection =
+    gifExportSettingsForPreset("balanced").temporalDither?.changeDetection;
+  assert.ok(typeof detection === "object" && detection);
+  detection.pixelThreshold = 1;
   assert.deepEqual(
-    gifExportSettingsForPreset("balanced").temporalDither,
-    gifExportSettingsForPreset(DEFAULT_GIF_EXPORT_PRESET).temporalDither,
+    gifExportSettingsForPreset("balanced").temporalDither?.changeDetection,
+    { pixelThreshold: 24 },
   );
 });
 

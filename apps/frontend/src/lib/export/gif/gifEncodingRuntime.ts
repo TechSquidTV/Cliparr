@@ -1,19 +1,8 @@
-import type {
-  assembleFrameChunks,
-  createPaletteSampler,
-  frameDelay,
-} from "@techsquidtv/gifenc";
+export type GifEncodingRuntime = Awaited<
+  ReturnType<typeof loadGifEncodingRuntime>
+>;
 
-import type { createBestGifFrameEncoder } from "#/lib/export/gif/gifFrameEncoder";
-
-export type GifEncodingRuntime = {
-  createPaletteSampler: typeof createPaletteSampler;
-  frameDelay: typeof frameDelay;
-  assembleFrameChunks: typeof assembleFrameChunks;
-  createGifFrameEncoder: typeof createBestGifFrameEncoder;
-};
-
-export async function loadGifEncodingRuntime(): Promise<GifEncodingRuntime> {
+export async function loadGifEncodingRuntime() {
   const [gifenc, gifFrameEncoder] = await Promise.all([
     import("@techsquidtv/gifenc"),
     import("#/lib/export/gif/gifFrameEncoder"),

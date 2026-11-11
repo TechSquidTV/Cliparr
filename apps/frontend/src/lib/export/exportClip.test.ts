@@ -1299,7 +1299,7 @@ void test("cancels pending GIF worker frames and disposes their encoder", async 
   context.runtime.loadGifEncodingRuntime = async () => ({
     ...(await loadGifEncodingRuntime()),
     createGifFrameEncoder: () => ({
-      concurrency: 1,
+      maxInFlightFrames: 1,
       encodeFrame: async () => {
         started.resolve();
         return pending.promise;

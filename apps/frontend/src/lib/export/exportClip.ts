@@ -933,8 +933,6 @@ async function exportGifClipWithRuntime(
         : null;
 
     const paletteMode = sampledPalette ? "global" : "per-frame";
-    const requiresSequentialFrameEncoding =
-      resolvedGifSettings.ditherMode === "spatial-temporal";
     signal?.throwIfAborted();
     onPhaseChange?.("encoding");
     const frameEncoder = gifRuntime.createGifFrameEncoder({
@@ -949,9 +947,6 @@ async function exportGifClipWithRuntime(
     const inFlightFrames = new Set<Promise<void>>();
     let processedFrameCount = 0;
     let frameEncodingError: Error | null = null;
-    const maxInFlightFrames = requiresSequentialFrameEncoding
-      ? 1
-      : Math.max(1, frameEncoder.concurrency * 2);
 
     const reportFrameProgress = () => {
       onProgress(
@@ -980,7 +975,7 @@ async function exportGifClipWithRuntime(
         });
 
       inFlightFrames.add(framePromise);
-      while (inFlightFrames.size >= maxInFlightFrames) {
+      while (inFlightFrames.size >= frameEncoder.maxInFlightFrames) {
         await Promise.race(inFlightFrames);
         signal?.throwIfAborted();
         if (frameEncodingError) {

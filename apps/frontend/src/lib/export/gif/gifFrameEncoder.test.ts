@@ -175,7 +175,11 @@ void test("worker GIF frame encoder rejects when postMessage throws", async () =
   });
 
   try {
-    const encoder = createBestGifFrameEncoder(job);
+    const encoder = createBestGifFrameEncoder({
+      ...job,
+      ...gifExportSettingsForPreset("balanced"),
+    });
+    assert.equal(encoder.maxInFlightFrames, 1);
 
     await assert.rejects(
       () =>
@@ -247,6 +251,7 @@ void test("initializes each worker once and transfers only the frame pixel view"
 
   const encoder = createBestGifFrameEncoder(job);
   try {
+    assert.equal(encoder.maxInFlightFrames, 4);
     const reference = createGifFrameChunkEncoder(job);
     const backing = new Uint8ClampedArray([
       99, 99, 99, 99, 255, 0, 0, 255, 88, 88, 88, 88,

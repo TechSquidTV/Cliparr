@@ -7,7 +7,7 @@ import {
 } from "#/lib/export/gif/gifFrameChunk";
 
 interface GifFrameEncoder {
-  concurrency: number;
+  readonly maxInFlightFrames: number;
   // Worker encoding transfers the entire backing buffer of the pixel view.
   encodeFrame(input: GifFrameInput): Promise<FrameChunk>;
   dispose(): void;
@@ -30,14 +30,17 @@ export type GifFrameWorkerEncodeResponse =
     };
 
 export function createBestGifFrameEncoder(job: GifEncoderJob): GifFrameEncoder {
-  const pool = createGifFrameWorkerEncoder(job);
+  const sequential = job.ditherMode === "spatial-temporal";
+  const workerCount = sequential ? 1 : defaultGifFrameWorkerCount();
+  const framesPerWorker = sequential ? 1 : 2;
+  const pool = createGifFrameWorkerEncoder(job, workerCount);
   if (pool) {
-    return pool;
+    return { ...pool, maxInFlightFrames: workerCount * framesPerWorker };
   }
   let chunks: ReturnType<typeof createGifFrameChunkEncoder> | undefined =
     createGifFrameChunkEncoder(job);
   return {
-    concurrency: 1,
+    maxInFlightFrames: framesPerWorker,
     async encodeFrame(frame) {
       if (!chunks) {
         throw new Error("GIF frame encoder was disposed.");
@@ -53,17 +56,16 @@ export function createBestGifFrameEncoder(job: GifEncoderJob): GifFrameEncoder {
 
 function createGifFrameWorkerEncoder(
   job: GifEncoderJob,
-): GifFrameEncoder | null {
+  workerCount: number,
+): Omit<GifFrameEncoder, "maxInFlightFrames"> | null {
   if (typeof Worker === "undefined") {
     return null;
   }
 
-  const resolvedWorkerCount =
-    job.ditherMode === "spatial-temporal" ? 1 : defaultGifFrameWorkerCount();
   const workers: Worker[] = [];
 
   try {
-    for (let index = 0; index < resolvedWorkerCount; index += 1) {
+    for (let index = 0; index < workerCount; index += 1) {
       workers.push(createGifFrameWorker());
     }
   } catch {
@@ -132,7 +134,6 @@ function createGifFrameWorkerEncoder(
   }
 
   return {
-    concurrency: workers.length,
     encodeFrame(frame) {
       if (disposed) {
         return Promise.reject(new Error("GIF frame encoder was disposed."));
