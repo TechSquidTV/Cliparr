@@ -130,8 +130,6 @@ export const videoExportQualityOptions = exportQualityOptions.filter(
 
 const SOFT_TEMPORAL_DITHER_SETTINGS: GifTemporalDitherSettings = {
   strength: 0.45,
-  decay: 0.6,
-  maxError: 48,
   changeDetection: {
     pixelThreshold: 24,
   },

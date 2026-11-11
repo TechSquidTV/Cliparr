@@ -360,8 +360,6 @@ void test("defines GIF export presets and balanced default", () => {
     ditherMode: "spatial-temporal",
     temporalDither: {
       strength: 0.45,
-      decay: 0.6,
-      maxError: 48,
       changeDetection: {
         pixelThreshold: 24,
       },

@@ -25,7 +25,7 @@
     "@mediabunny/ac3": "1.65.1",
     "@sentry/astro": "^11.11.0",
     "@tailwindcss/vite": "^4.3.3",
-    "@techsquidtv/gifenc": "1.1.0",
+    "@techsquidtv/gifenc": "2.0.0",
     "astro": "^7.3.5",
     "lucide-react": "^1.50.0",
     "media-captions": "0.0.18",

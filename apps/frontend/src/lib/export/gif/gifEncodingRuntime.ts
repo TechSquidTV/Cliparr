@@ -1,28 +1,28 @@
 import type {
-  EncodeGifFrameChunkHelpers,
-  GifFrameChunk,
-} from "#/lib/export/gif/gifFrameChunk";
-import type {
-  GifFrameEncoder,
-  GifFrameEncoderOptions,
-} from "#/lib/export/gif/gifFrameEncoder";
+  assembleFrameChunks,
+  createPaletteSampler,
+  frameDelay,
+} from "@techsquidtv/gifenc";
+
+import type { createBestGifFrameEncoder } from "#/lib/export/gif/gifFrameEncoder";
 
 export type GifEncodingRuntime = {
-  quantizeGifFrame: NonNullable<EncodeGifFrameChunkHelpers["quantizeGifFrame"]>;
-  createGifFrameEncoder: (options?: GifFrameEncoderOptions) => GifFrameEncoder;
-  concatenateGifFrameChunks: (chunks: readonly GifFrameChunk[]) => Uint8Array;
+  createPaletteSampler: typeof createPaletteSampler;
+  frameDelay: typeof frameDelay;
+  assembleFrameChunks: typeof assembleFrameChunks;
+  createGifFrameEncoder: typeof createBestGifFrameEncoder;
 };
 
 export async function loadGifEncodingRuntime(): Promise<GifEncodingRuntime> {
-  const [gifenc, gifFrameEncoder, gifFrameChunk] = await Promise.all([
+  const [gifenc, gifFrameEncoder] = await Promise.all([
     import("@techsquidtv/gifenc"),
     import("#/lib/export/gif/gifFrameEncoder"),
-    import("#/lib/export/gif/gifFrameChunk"),
   ]);
 
   return {
-    quantizeGifFrame: gifenc.quantize,
+    createPaletteSampler: gifenc.createPaletteSampler,
+    frameDelay: gifenc.frameDelay,
+    assembleFrameChunks: gifenc.assembleFrameChunks,
     createGifFrameEncoder: gifFrameEncoder.createBestGifFrameEncoder,
-    concatenateGifFrameChunks: gifFrameChunk.concatenateGifFrameChunks,
   };
 }

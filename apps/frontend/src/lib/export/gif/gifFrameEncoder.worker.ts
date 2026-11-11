@@ -1,8 +1,4 @@
-import { createGifTemporalDitherResolver } from "#/lib/export/gif/gifEncodingSettings";
-import {
-  encodeGifFrameChunk,
-  type EncodeGifFrameChunkInput,
-} from "#/lib/export/gif/gifFrameChunk";
+import { createGifFrameChunkEncoder } from "#/lib/export/gif/gifFrameChunk";
 import type {
   GifFrameWorkerEncodeRequest,
   GifFrameWorkerEncodeResponse,
@@ -20,7 +16,7 @@ type GifFrameWorkerGlobal = {
 };
 
 const workerScope = globalThis as unknown as GifFrameWorkerGlobal;
-const temporalDitherResolver = createGifTemporalDitherResolver();
+const chunks = createGifFrameChunkEncoder();
 
 workerScope.addEventListener("message", (event) => {
   const message = event.data;
@@ -29,32 +25,14 @@ workerScope.addEventListener("message", (event) => {
   }
 
   try {
-    const chunk = encodeGifFrameChunk({
-      sequenceIndex: message.sequenceIndex,
-      rgba: message.rgba,
-      width: message.width,
-      height: message.height,
-      maxColors: message.maxColors,
-      delayMs: message.delayMs,
-      globalPalette: message.globalPalette,
-      paletteFormat: message.paletteFormat,
-      ditherMode: message.ditherMode,
-      ditherStrength: message.ditherStrength,
-      serpentine: message.serpentine,
-      temporalDither: temporalDitherResolver.resolve(message),
-    } satisfies EncodeGifFrameChunkInput);
-    const bytes = new ArrayBuffer(chunk.bytes.byteLength);
-    new Uint8Array(bytes).set(chunk.bytes);
-
-    workerScope.postMessage(
-      {
-        type: "encoded-frame",
-        id: message.id,
-        sequenceIndex: chunk.sequenceIndex,
-        bytes,
-      },
-      [bytes],
-    );
+    const chunk = chunks.encode(message);
+    const buffer = chunk.bytes.buffer;
+    if (!(buffer instanceof ArrayBuffer)) {
+      throw new TypeError("GIF frame chunk must have a transferable buffer.");
+    }
+    workerScope.postMessage({ type: "encoded-frame", id: message.id, chunk }, [
+      buffer,
+    ]);
   } catch (error) {
     workerScope.postMessage({
       type: "error",

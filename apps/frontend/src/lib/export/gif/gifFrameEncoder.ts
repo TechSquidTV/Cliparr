@@ -1,66 +1,39 @@
-import type { Palette } from "@techsquidtv/gifenc";
+import type { FrameChunk } from "@techsquidtv/gifenc";
 
 import {
-  createGifTemporalDitherResolver,
-  type GifDitherMode,
-  type GifPaletteFormat,
-  type GifTemporalDitherSettings,
-} from "#/lib/export/gif/gifEncodingSettings";
-import {
-  encodeGifFrameChunk,
-  type EncodeGifFrameChunkHelpers,
-  type GifFrameChunk,
+  createGifFrameChunkEncoder,
+  type EncodeGifFrameChunkInput,
 } from "#/lib/export/gif/gifFrameChunk";
 
-interface GifFrameEncodeInput {
-  sequenceIndex: number;
+interface GifFrameEncodeInput extends Omit<EncodeGifFrameChunkInput, "rgba"> {
   imageData: ImageData;
-  width: number;
-  height: number;
-  maxColors: number;
-  delayMs: number;
-  globalPalette?: Palette | null;
-  paletteFormat: GifPaletteFormat;
-  ditherMode: GifDitherMode;
-  ditherStrength?: number;
-  serpentine?: boolean;
-  temporalDither?: GifTemporalDitherSettings | null;
 }
 
-export interface GifFrameEncoder {
+interface GifFrameEncoder {
   concurrency: number;
   // Consumes the frame data; worker encoding transfers its entire backing buffer.
-  encodeFrame(input: GifFrameEncodeInput): Promise<GifFrameChunk>;
+  encodeFrame(input: GifFrameEncodeInput): Promise<FrameChunk>;
   dispose(): void;
 }
 
-export interface GifFrameEncoderOptions {
+interface GifFrameEncoderOptions {
   requiresSequentialFrames?: boolean;
 }
 
-export interface GifFrameWorkerEncodeRequest {
+export interface GifFrameWorkerEncodeRequest extends Omit<
+  GifFrameEncodeInput,
+  "imageData"
+> {
   type: "encode-frame";
   id: number;
-  sequenceIndex: number;
   rgba: Uint8ClampedArray;
-  width: number;
-  height: number;
-  maxColors: number;
-  delayMs: number;
-  globalPalette?: Palette | null;
-  paletteFormat: GifPaletteFormat;
-  ditherMode: GifDitherMode;
-  ditherStrength?: number;
-  serpentine?: boolean;
-  temporalDither?: GifTemporalDitherSettings | null;
 }
 
 export type GifFrameWorkerEncodeResponse =
   | {
       type: "encoded-frame";
       id: number;
-      sequenceIndex: number;
-      bytes: ArrayBuffer;
+      chunk: FrameChunk;
     }
   | {
       type: "error";
@@ -78,40 +51,19 @@ export function createBestGifFrameEncoder(
   );
 }
 
-export function createInlineGifFrameEncoder(
-  helpers: EncodeGifFrameChunkHelpers = {},
-): GifFrameEncoder {
-  const temporalDitherResolver = createGifTemporalDitherResolver();
+function createInlineGifFrameEncoder(): GifFrameEncoder {
+  const chunks = createGifFrameChunkEncoder();
 
   return {
     concurrency: 1,
-    async encodeFrame(input) {
-      return encodeGifFrameChunk(
-        {
-          sequenceIndex: input.sequenceIndex,
-          rgba: input.imageData.data,
-          width: input.width,
-          height: input.height,
-          maxColors: input.maxColors,
-          delayMs: input.delayMs,
-          globalPalette: input.globalPalette,
-          paletteFormat: input.paletteFormat,
-          ditherMode: input.ditherMode,
-          ditherStrength: input.ditherStrength,
-          serpentine: input.serpentine,
-          temporalDither: temporalDitherResolver.resolve({
-            ditherMode: input.ditherMode,
-            height: input.height,
-            paletteFormat: input.paletteFormat,
-            temporalDither: input.temporalDither,
-            width: input.width,
-          }),
-        },
-        helpers,
-      );
+    async encodeFrame({ imageData, ...settings }) {
+      return chunks.encode({
+        ...settings,
+        rgba: imageData.data,
+      });
     },
     dispose() {
-      // Inline encoding owns no long-lived resources.
+      chunks.dispose();
     },
   };
 }
@@ -148,7 +100,7 @@ function createGifFrameWorkerEncoder({
   const pendingRequests = new Map<
     number,
     {
-      resolve: (chunk: GifFrameChunk) => void;
+      resolve: (chunk: FrameChunk) => void;
       reject: (error: Error) => void;
     }
   >();
@@ -174,10 +126,7 @@ function createGifFrameWorkerEncoder({
       return;
     }
 
-    pendingRequest.resolve({
-      sequenceIndex: message.sequenceIndex,
-      bytes: new Uint8Array(message.bytes),
-    });
+    pendingRequest.resolve(message.chunk);
   };
   const handleError = (event: ErrorEvent) => {
     rejectPendingRequests(
@@ -198,7 +147,7 @@ function createGifFrameWorkerEncoder({
 
   return {
     concurrency: workers.length,
-    encodeFrame(input) {
+    encodeFrame({ imageData, ...settings }) {
       if (disposed) {
         return Promise.reject(new Error("GIF frame encoder was disposed."));
       }
@@ -207,7 +156,7 @@ function createGifFrameWorkerEncoder({
       nextWorkerIndex = (nextWorkerIndex + 1) % workers.length;
       const id = nextRequestId;
       nextRequestId += 1;
-      const rgba = input.imageData.data;
+      const rgba = imageData.data;
       const buffer = rgba.buffer;
       if (!(buffer instanceof ArrayBuffer) || rgba.byteLength === 0) {
         return Promise.reject(
@@ -215,25 +164,15 @@ function createGifFrameWorkerEncoder({
         );
       }
 
-      return new Promise<GifFrameChunk>((resolve, reject) => {
+      return new Promise<FrameChunk>((resolve, reject) => {
         pendingRequests.set(id, { resolve, reject });
         try {
           worker.postMessage(
             {
               type: "encode-frame",
               id,
-              sequenceIndex: input.sequenceIndex,
+              ...settings,
               rgba,
-              width: input.width,
-              height: input.height,
-              maxColors: input.maxColors,
-              delayMs: input.delayMs,
-              globalPalette: input.globalPalette,
-              paletteFormat: input.paletteFormat,
-              ditherMode: input.ditherMode,
-              ditherStrength: input.ditherStrength,
-              serpentine: input.serpentine,
-              temporalDither: input.temporalDither,
             } satisfies GifFrameWorkerEncodeRequest,
             [buffer],
           );
