@@ -1,6 +1,12 @@
 import assert from "node:assert/strict";
-import test from "node:test";
+import test, { type TestContext } from "node:test";
 
+import {
+  configure,
+  getJsonLinesFormatter,
+  type LogRecord,
+  reset,
+} from "@logtape/logtape";
 import type { Request, Response } from "express";
 
 import type { MediaSourceRecord } from "@/db/mediaSourcesRepository";
@@ -14,9 +20,11 @@ import {
 import {
   buildPreviewPath,
   createJellyfinExportEstimateMetadata,
+  currentMediaSource,
 } from "@/providers/jellyfin/selection";
 import type {
   JellyfinItem,
+  JellyfinMediaStream,
   JellyfinSessionInfo,
   JellyfinSourceContext,
   JellyfinUser,
@@ -145,6 +153,9 @@ function createJellyfinPlaybackFetch(options: {
   playStateAudioStreamIndex?: number | null;
   defaultAudioStreamIndex?: number | null;
   audioStreams?: Array<Record<string, unknown>>;
+  subtitleStreams?: JellyfinMediaStream[];
+  subtitleStreamIndex?: number | null;
+  defaultSubtitleStreamIndex?: number | null;
   title?: string;
   withArtwork?: boolean;
   itemMetadata?: Pick<
@@ -172,11 +183,13 @@ function createJellyfinPlaybackFetch(options: {
       },
     ],
     title = "Chapter 1: The Dark Revenge",
+    subtitleStreams = [],
     withArtwork = false,
     itemMetadata,
   } = options;
   const mediaSource = {
     Id: mediaSourceId,
+    DefaultSubtitleStreamIndex: options.defaultSubtitleStreamIndex,
     ...(defaultAudioStreamIndex === null
       ? {}
       : { DefaultAudioStreamIndex: defaultAudioStreamIndex }),
@@ -189,6 +202,7 @@ function createJellyfinPlaybackFetch(options: {
         Height: 1080,
       },
       ...audioStreams,
+      ...subtitleStreams,
     ],
   };
   const item = {
@@ -225,6 +239,7 @@ function createJellyfinPlaybackFetch(options: {
             PlayState: {
               MediaSourceId: mediaSourceId,
               IsPaused: true,
+              SubtitleStreamIndex: options.subtitleStreamIndex,
               ...(playStateAudioStreamIndex === null
                 ? {}
                 : { AudioStreamIndex: playStateAudioStreamIndex }),
@@ -236,11 +251,11 @@ function createJellyfinPlaybackFetch(options: {
       );
     }
 
-    if (url.pathname === `/Items/${itemId}`) {
+    if (url.pathname === `/Items/${encodeURIComponent(itemId)}`) {
       return jsonResponse(item);
     }
 
-    if (url.pathname === `/Items/${itemId}/PlaybackInfo`) {
+    if (url.pathname === `/Items/${encodeURIComponent(itemId)}/PlaybackInfo`) {
       const resolvedJellyfinPlaySessionId =
         typeof jellyfinPlaySessionId === "function"
           ? jellyfinPlaySessionId()
@@ -508,6 +523,7 @@ void test("preserves Jellyfin base paths for streams, previews, artwork, and sub
     const upstreamFetch = createJellyfinPlaybackFetch({
       itemId: "item-prefix",
       withArtwork: true,
+      subtitleStreams: [{ Type: "Subtitle", Index: 2, Codec: "srt" }],
     });
     context.mock.method(
       globalThis,
@@ -523,28 +539,6 @@ void test("preserves Jellyfin base paths for streams, previews, artwork, and sub
     assert.equal(entries.length, 1);
     assert.ok(entries[0]?.item.mediaUrl);
     assert.ok(entries[0]?.item.hlsUrl);
-    const providerContext = { ...createContext(), baseUrl: source.baseUrl };
-    deriveSubtitleTracks(
-      session,
-      providerContext,
-      {
-        Id: "item-prefix",
-        MediaSources: [
-          {
-            Id: "media-source-1",
-            MediaStreams: [
-              {
-                Type: "Subtitle",
-                Index: 2,
-                Codec: "srt",
-                IsTextSubtitleStream: true,
-              },
-            ],
-          },
-        ],
-      },
-      "media-source-1",
-    );
     const paths = new Set(
       [...session.mediaHandles.values()].map(
         (handle) => mediaHandleRequestUrl(handle).pathname,
@@ -727,32 +721,142 @@ void test("omits Jellyfin stream URLs when PlaybackInfo has no play session id",
   }
 });
 
+async function captureJellyfinPlaybackTrace(
+  context: TestContext,
+  options: Parameters<typeof createJellyfinPlaybackFetch>[0],
+) {
+  const records: LogRecord[] = [];
+  await configure({
+    sinks: { capture: (record) => records.push(record) },
+    loggers: [
+      {
+        category: ["logtape", "meta"],
+        sinks: ["capture"],
+        lowestLevel: "warning",
+      },
+      {
+        category: ["cliparr", "server", "provider", "jellyfin", "playback"],
+        sinks: ["capture"],
+        lowestLevel: "trace",
+      },
+    ],
+  });
+  context.after(reset);
+  context.mock.method(
+    globalThis,
+    "fetch",
+    createJellyfinPlaybackFetch(options),
+  );
+  const session = createSession();
+  const entries = await listCurrentlyPlaying(session, createSource());
+  const resolved = records.filter(
+    (record) => record.properties["event.name"] === "provider.playback.resolve",
+  );
+  assert.equal(resolved.length, 1);
+  const [record] = resolved;
+  assert.equal(record.level, "trace");
+  return { entries, record, session };
+}
+
+void test("omits the Cliparr session cookie from formatted Jellyfin playback traces", async (context) => {
+  const { record, session } = await captureJellyfinPlaybackTrace(context, {
+    itemId: "subtitle-trace-privacy",
+    jellyfinClientSessionId: "jellyfin-client",
+    jellyfinPlaySessionId: "jellyfin-playback",
+  });
+  const format = getJsonLinesFormatter({ properties: "flatten" });
+  assert.ok(!format(record).includes(session.id));
+});
+
+void test("traces why Jellyfin subtitle tracks are excluded from the editor", async (context) => {
+  const { entries, record } = await captureJellyfinPlaybackTrace(context, {
+    itemId: "subtitle-diagnostics",
+    subtitleStreamIndex: 3,
+    subtitleStreams: [
+      { Type: "Subtitle", Index: 2, Codec: "srt" },
+      { Type: "Subtitle", Index: 3, Codec: "PGS" },
+      { Type: "Subtitle", Index: 4, Codec: "dvd_subtitle" },
+      { Type: "Subtitle", Codec: "ass" },
+    ],
+  });
+  assert.deepEqual(
+    entries[0]?.item.subtitleTracks?.map((track) => track.index),
+    [2],
+  );
+  assert.deepEqual(
+    Object.fromEntries(
+      Object.entries(record.properties).filter(([key]) =>
+        key.startsWith("media.subtitle"),
+      ),
+    ),
+    {
+      "media.subtitle_stream.count": 4,
+      "media.subtitle_track.offered.count": 1,
+      "media.subtitle_track.excluded.non_text.count": 2,
+      "media.subtitle_track.excluded.missing_url.count": 1,
+      "media.subtitle_stream.index": 3,
+      "media.subtitle_stream.codec": "pgs",
+    },
+  );
+});
+
+for (const [
+  name,
+  reported,
+  sourceDefault,
+  traceIndex,
+  selectedIndex,
+  codec,
+] of [
+  ["unmatched", 7, 2, 7, undefined, undefined],
+  ["no selection", undefined, undefined, undefined, undefined, undefined],
+  ["null selection and default", null, null, undefined, undefined, undefined],
+  ["default", null, 2, 2, 2, "srt"],
+  ["off", -1, 2, -1, undefined, undefined],
+  ["zero", 0, 2, 0, 0, "vtt"],
+  ["unknown codec", 3, 2, 3, 3, undefined],
+] as const) {
+  void test(`traces Jellyfin's reported subtitle selection: ${name}`, async (context) => {
+    const { record, entries } = await captureJellyfinPlaybackTrace(context, {
+      itemId: `subtitle-selection-${name}`,
+      subtitleStreamIndex: reported,
+      defaultSubtitleStreamIndex: sourceDefault,
+      subtitleStreams: [
+        { Type: "Subtitle", Index: 0, Codec: "vtt" },
+        { Type: "Subtitle", Index: 2, Codec: "srt" },
+        { Type: "Subtitle", Index: 3, IsTextSubtitleStream: true },
+      ],
+    });
+    assert.equal(record.properties["media.subtitle_stream.count"], 3);
+    const selected = entries[0]?.item.selectedSubtitleTrack;
+    assert.equal(selected?.index, selectedIndex);
+    assert.equal(selected?.codec, codec);
+    assert.equal(record.properties["media.subtitle_stream.index"], traceIndex);
+    assert.equal(record.properties["media.subtitle_stream.codec"], codec);
+  });
+}
+
 void test("creates a downloadable content URL for Jellyfin text subtitle streams", () => {
   const session = createSession();
   const context = createContext();
-  const item = {
-    Id: "item-1",
-    MediaSources: [
+  const mediaSource = {
+    Id: "media-source-1",
+    MediaStreams: [
       {
-        Id: "media-source-1",
-        MediaStreams: [
-          {
-            Type: "Subtitle",
-            Index: 2,
-            Codec: "srt",
-            Language: "eng",
-            Title: "English",
-            IsTextSubtitleStream: true,
-            IsExternal: true,
-            IsForced: true,
-            IsHearingImpaired: true,
-          },
-        ],
+        Type: "Subtitle",
+        Index: 2,
+        Codec: "srt",
+        Language: "eng",
+        Title: "English",
+        IsTextSubtitleStream: true,
+        IsExternal: true,
+        IsForced: true,
+        IsHearingImpaired: true,
       },
     ],
   };
 
-  const tracks = deriveSubtitleTracks(session, context, item, "media-source-1");
+  const tracks = deriveSubtitleTracks(session, context, "item-1", mediaSource);
   const handle = onlyMediaHandle(session);
 
   assert.equal(tracks.length, 1);
@@ -799,9 +903,9 @@ void test("uses Jellyfin session media sources for subtitle track discovery", ()
   const tracks = deriveSubtitleTracks(
     session,
     context,
-    item,
+    item.Id,
+    currentMediaSource(sessionInfo, item, "session-media-source-1"),
     "session-media-source-1",
-    sessionInfo,
   );
   const handle = onlyMediaHandle(session);
 
@@ -815,79 +919,64 @@ void test("uses Jellyfin session media sources for subtitle track discovery", ()
   );
 });
 
-void test("uses resolved Jellyfin media source id for subtitle content URLs", () => {
-  const session = createSession();
-  const context = createContext();
-  const item = {
-    Id: "item-1",
-    MediaSources: [
+for (const [sourceId, expectedId] of [
+  ["resolved-source", "resolved-source"],
+  [undefined, "playback-source"],
+] as const) {
+  void test(`uses ${expectedId} for the Jellyfin subtitle URL when the media source ID is ${sourceId ?? "missing"}`, () => {
+    const session = createSession();
+    const mediaSource = {
+      Id: sourceId,
+      MediaStreams: [{ Type: "Subtitle", Index: 6, Codec: "srt" }],
+    };
+    const tracks = deriveSubtitleTracks(
+      session,
+      createContext(),
+      "item-1",
+      mediaSource,
+      "playback-source",
+    );
+    const handle = onlyMediaHandle(session);
+
+    assert.equal(tracks.length, 1);
+    assert.equal(tracks[0]?.streamId, "6");
+    assert.equal(tracks[0]?.contentUrl, `/api/media/${handle.id}`);
+    assert.equal(
+      handle.path,
+      `/Videos/item-1/${expectedId}/Subtitles/6/Stream.vtt`,
+    );
+  });
+}
+
+void test("preserves Jellyfin subtitle selection metadata for the matching stream", () => {
+  const mediaSource = {
+    Id: "media-source-1",
+    MediaStreams: [
       {
-        Id: "resolved-media-source-1",
-        MediaStreams: [
-          {
-            Type: "Subtitle",
-            Index: 6,
-            Codec: "srt",
-            Language: "eng",
-            Title: "Resolved English",
-            IsTextSubtitleStream: true,
-          },
-        ],
+        Type: "Subtitle",
+        Index: 2,
+        Codec: "srt",
+        Language: "eng",
+        Title: "English",
+        IsTextSubtitleStream: true,
+      },
+      {
+        Type: "Subtitle",
+        Index: 4,
+        Codec: "vtt",
+        Language: "spa",
+        Title: "Spanish",
+        IsTextSubtitleStream: true,
       },
     ],
   };
-
-  const tracks = deriveSubtitleTracks(session, context, item);
-  const handle = onlyMediaHandle(session);
-
-  assert.equal(tracks.length, 1);
-  assert.equal(tracks[0]?.streamId, "6");
-  assert.equal(tracks[0]?.contentUrl, `/api/media/${handle.id}`);
-  assert.equal(
-    handle.path,
-    "/Videos/item-1/resolved-media-source-1/Subtitles/6/Stream.vtt",
+  const tracks = deriveSubtitleTracks(
+    createSession(),
+    createContext(),
+    "item-1",
+    mediaSource,
   );
-});
-
-void test("uses Jellyfin PlayState subtitle stream index for selected subtitle matching", () => {
-  const item = {
-    Id: "item-1",
-    MediaSources: [
-      {
-        Id: "media-source-1",
-        MediaStreams: [
-          {
-            Type: "Subtitle",
-            Index: 2,
-            Codec: "srt",
-            Language: "eng",
-            Title: "English",
-            IsTextSubtitleStream: true,
-          },
-          {
-            Type: "Subtitle",
-            Index: 4,
-            Codec: "vtt",
-            Language: "spa",
-            Title: "Spanish",
-            IsTextSubtitleStream: true,
-          },
-        ],
-      },
-    ],
-  };
-  const sessionInfo = {
-    PlayState: {
-      MediaSourceId: "media-source-1",
-      SubtitleStreamIndex: 4,
-    },
-  };
-
-  const selectedSubtitleTrack = deriveSelectedSubtitleTrack(
-    sessionInfo,
-    item,
-    "media-source-1",
-  );
+  const selectedSubtitleTrack = deriveSelectedSubtitleTrack(tracks, 4);
 
   assert.equal(selectedSubtitleTrack?.streamId, "4");
   assert.equal(selectedSubtitleTrack?.index, 4);
@@ -901,26 +990,21 @@ void test("uses Jellyfin PlayState subtitle stream index for selected subtitle m
 void test("leaves Jellyfin image subtitle streams visible but unsupported for burn-in", () => {
   const session = createSession();
   const context = createContext();
-  const item = {
-    Id: "item-1",
-    MediaSources: [
+  const mediaSource = {
+    Id: "media-source-1",
+    MediaStreams: [
       {
-        Id: "media-source-1",
-        MediaStreams: [
-          {
-            Type: "Subtitle",
-            Index: 3,
-            Codec: "pgs",
-            Language: "eng",
-            Title: "English PGS",
-            IsTextSubtitleStream: false,
-          },
-        ],
+        Type: "Subtitle",
+        Index: 3,
+        Codec: "pgs",
+        Language: "eng",
+        Title: "English PGS",
+        IsTextSubtitleStream: false,
       },
     ],
   };
 
-  const tracks = deriveSubtitleTracks(session, context, item, "media-source-1");
+  const tracks = deriveSubtitleTracks(session, context, "item-1", mediaSource);
 
   assert.equal(tracks.length, 1);
   assert.equal(tracks[0]?.streamId, "3");

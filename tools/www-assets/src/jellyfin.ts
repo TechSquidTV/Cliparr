@@ -33,18 +33,32 @@ export async function startJellyfinScene(
     );
   }
   const api = jellyfin.createApi(jellyfinUrl, authentication.AccessToken);
+  const library = getLibraryApi(api);
+  let requestedScan = false;
   const item = await waitUntil(
-    `${scene.name} to be indexed in Jellyfin`,
+    `${scene.name} source and stream metadata in Jellyfin`,
     async () => {
-      const { data } = await getLibraryApi(api).getItems({
+      const { data } = await library.getItems({
         userId,
         recursive: true,
         fields: ["Path", "MediaSources", "MediaStreams"],
         includeItemTypes: ["Movie", "Video"],
       });
-      return data.Items?.find(
+      const match = data.Items?.find(
         (candidate) => candidate.Path === `/media/${scene.mediaPath}`,
       );
+      // A new library can list the item before probing its duration and streams.
+      if (
+        match?.RunTimeTicks &&
+        match.MediaSources?.[0]?.MediaStreams?.length
+      ) {
+        return match;
+      }
+      if (!requestedScan) {
+        await library.refreshLibrary();
+        requestedScan = true;
+      }
+      return;
     },
   );
   const itemId = item.Id;

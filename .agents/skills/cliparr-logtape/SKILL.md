@@ -20,7 +20,7 @@ Domain taxonomy below the app root (dots denote hierarchy):
 
 Categories identify ownership/filtering; `event.name` identifies the stable operation. Fields must be flat, dot-notated keys: `request.id`, `provider.id`, `media.handle.id`, `error.code`.
 
-Reuse `@cliparr/shared/logging`: `logEventFields(name, outcome)`, `logDurationFields(startedAt)`, `logErrorFields(err)`, `compactLogFields(fields)`, `sanitizeUrlForLog(value)`. Repeat explicit context with `logger.with()` (e.g. `editor.session.id`, provider IDs); server request context is implicit through `withContext()`, also flat. Pass actual `Error` objects through `warnWithError`, `errorWithError`, or `fatalWithError` to retain the error and extra fields.
+Reuse `@cliparr/shared/logging`: `logEventFields(name, outcome)`, `logDurationFields(startedAt)`, `logErrorFields(err)`, `compactLogFields(fields)`, `sanitizeUrlForLog(value)`. Repeat explicit context with `logger.with()` (e.g. `editor.session.id`, provider IDs); server request context is implicit through `withContext()`, also flat. Use `logServerError` at server boundaries that can catch database errors. Pass the original exception and safe operation fields. The helper records the error type for query failures and handles error details for other exceptions. Use `warnWithError` for frontend and provider warnings that cannot carry query parameters.
 
 ## Operation boundaries and noise
 
@@ -33,7 +33,7 @@ Prefer one summary per meaningful operation/outcome. Hot media internals use `tr
 - Handles/proxy: creation, reuse, retries, cache, playlist rewrite `trace`; missing handles, unsafe URLs, upstream/stream failures `warning`/`error`.
 - Editor playback: one source-attempt event for success/degraded/failure. Export: start/success/failure. Subtitles/artwork: concise load success/failure.
 
-Never log credentials (including tokens/cookies/passwords), raw auth URLs, query-bearing media URLs, subtitle text, full track/metadata arrays, or unnecessary usernames. Prefer IDs, counts, booleans, sanitized origin/path, statuses, durations, and failure categories. No repeated per-frame/per-chunk details by default.
+The Cliparr provider session ID is the login cookie. Omit it at the call site. Use request or media handle IDs for correlation. Keep LogTape field redaction on both server outputs. Never log credentials (including tokens/cookies/passwords), raw auth URLs, query-bearing media URLs, subtitle text, full track/metadata arrays, or unnecessary usernames. Prefer IDs, counts, booleans, sanitized origin/path, statuses, durations, and failure categories. No repeated per-frame/per-chunk details by default.
 
 Do not add `console.*` (ESLint enforced); CLI/user-facing scripts use `process.stdout.write` / `process.stderr.write`.
 

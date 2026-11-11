@@ -196,32 +196,12 @@ export function selectedJellyfinAudioStreamIndex(
 }
 
 export function deriveSelectedAudioTrack(
-  sessionInfo: JellyfinSessionInfo,
-  item: JellyfinItem,
-  mediaSourceId?: string,
-  playbackInfo?: JellyfinPlaybackInfo,
+  audioStreams: readonly JellyfinMediaStream[],
+  selectedAudioStreamIndex: number | undefined,
 ): PlaybackAudioSelection | undefined {
-  const mediaSource = currentMediaSource(
-    sessionInfo,
-    item,
-    mediaSourceId,
-    playbackInfo,
-  );
-  if (!mediaSource) {
-    return undefined;
-  }
-
-  const audioStreams = asArray(mediaSource?.MediaStreams).filter((stream) =>
-    isAudioMediaStream(stream),
-  );
   if (audioStreams.length === 0) {
     return undefined;
   }
-
-  const selectedAudioStreamIndex = selectedJellyfinAudioStreamIndex(
-    sessionInfo,
-    mediaSource,
-  );
 
   if (selectedAudioStreamIndex === undefined) {
     if (audioStreams.length !== 1) {

@@ -53,6 +53,16 @@ the time waiting for the retry. Playback and seeking do not repeat the success e
 Preview timing stays in the browser and is not sent to the Cliparr server. Development
 browser logs include structured fields; production uses the readable console format.
 
+## Missing Jellyfin subtitle tracks
+
+Set `CLIPARR_LOG_LEVEL=trace` and `CLIPARR_LOG_FORMAT=json` on the Cliparr server, then open the playing Jellyfin item. Find the `provider.playback.resolve` event with `provider.id` set to `jellyfin`.
+
+`media.subtitle_stream.count` counts subtitle streams on the resolved media source. `media.subtitle_track.offered.count` counts tracks available in the editor. The two exclusion counts, `media.subtitle_track.excluded.non_text.count` and `media.subtitle_track.excluded.missing_url.count`, distinguish non-text tracks from text tracks without a download URL.
+
+`media.subtitle_stream.index` is the index reported by Jellyfin’s player, or the media source’s default if the player supplies none. An index of `-1` means subtitles are off. The index can appear even when the source lists no matching track. `media.subtitle_stream.codec` appears when a matching track has a known codec.
+
+For a subtitle support request, share only the fields starting with `media.subtitle_` from this event.
+
 ## File logging
 
 Set `CLIPARR_LOG_FILE` to write a second server log destination in addition to the console. File logging is opt-in and rotates by size so diagnostics do not grow forever on long-running installs.
@@ -68,8 +78,14 @@ Relative file paths resolve from the server working directory. In containers, pr
 `CLIPARR_LOG_FILE_MAX_SIZE` accepts byte sizes with optional `b`, `kb`, `mb`, `gb`, `kib`, `mib`, or `gib` suffixes and defaults to `10mb`. `CLIPARR_LOG_FILE_MAX_FILES` defaults to `5` and includes the active file, so the default keeps `cliparr.log` plus up to four rotated files.
 
 <Callout title="Sharing logs" tone="info">
-  Cliparr avoids logging tokens, credentials, raw auth URLs, subtitle text, and
-  full media metadata by default. Logs can still include source IDs, media
-  handle IDs, request paths, durations, status codes, and sanitized upstream
-  paths, so review them before posting publicly.
+  Server logs omit the Cliparr login cookie. Console and file output also redact
+  session credential fields and cookie headers. Request logs record the path,
+  and database query failures omit SQL parameters. Logs can include request,
+  source, media handle, and provider playback IDs. Review excerpts before posting.
+
+Older structured logs can contain login cookies at the default info level.
+If you shared one containing an active cookie, disconnecting the affected
+provider account in Cliparr revokes its sessions and removes its saved sources.
+Signing in again lets you reconnect those sources.
+
 </Callout>

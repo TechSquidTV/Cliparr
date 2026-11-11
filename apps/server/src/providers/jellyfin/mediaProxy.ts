@@ -98,7 +98,6 @@ export async function proxyMedia(
 
   logger.trace("Fetching Jellyfin media.", {
     "media.handle.id": handle.id,
-    "session.id": session.id,
     "source.id": handle.sourceId,
     "upstream.url": sanitizeLoggedMediaPath(upstreamUrl),
     "provider.auth.attached": useProviderAuth,
@@ -138,7 +137,6 @@ export async function proxyMedia(
           ...logEventFields("media.proxy.upstream", "failure"),
           ...logErrorFields(error),
           "media.handle.id": handle.id,
-          "session.id": session.id,
           "source.id": handle.sourceId,
           "upstream.url": sanitizeLoggedMediaPath(upstreamUrl),
           "provider.auth.attached": useProviderAuth,

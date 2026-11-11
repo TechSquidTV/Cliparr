@@ -458,30 +458,33 @@ async function normalizeCurrentPlayback(
       )
     : undefined;
   const imagePath = itemImagePath(enrichedItem);
-  const selectedAudioTrack = deriveSelectedAudioTrack(
-    sessionInfo,
-    enrichedItem,
-    mediaSourceId,
-    playbackInfo,
-  );
-  const selectedSubtitleTrack = deriveSelectedSubtitleTrack(
-    sessionInfo,
-    enrichedItem,
-    mediaSourceId,
-    playbackInfo,
-  );
-  const subtitleTracks = deriveSubtitleTracks(
-    session,
-    context,
-    enrichedItem,
-    mediaSourceId,
-    sessionInfo,
-    playbackInfo,
-  ).filter((track) => subtitleTrackSupportsBurnIn(track));
-  const playerState = sessionInfo?.PlayState?.IsPaused ? "paused" : "playing";
   const audioStreams = asArray(mediaSource?.MediaStreams).filter((stream) =>
     isAudioMediaStream(stream),
   );
+  const selectedAudioTrack = deriveSelectedAudioTrack(
+    audioStreams,
+    audioStreamIndex,
+  );
+  const reportedSubtitleTracks = deriveSubtitleTracks(
+    session,
+    context,
+    stringValue(enrichedItem.Id),
+    mediaSource,
+    mediaSourceId,
+  );
+  const reportedSubtitleIndex = numberValue(
+    sessionInfo.PlayState?.SubtitleStreamIndex ??
+      mediaSource?.DefaultSubtitleStreamIndex ??
+      undefined,
+  );
+  const selectedSubtitleTrack = deriveSelectedSubtitleTrack(
+    reportedSubtitleTracks,
+    reportedSubtitleIndex,
+  );
+  const subtitleTracks = reportedSubtitleTracks.filter(
+    subtitleTrackSupportsBurnIn,
+  );
+  const playerState = sessionInfo?.PlayState?.IsPaused ? "paused" : "playing";
   const videoStreams = asArray(mediaSource?.MediaStreams).filter((stream) =>
     isVideoMediaStream(stream),
   );
@@ -520,10 +523,9 @@ async function normalizeCurrentPlayback(
     !previewPath && normalizedString(enrichedItem?.MediaType) !== "audio";
   const unresolvedSelectedAudioTrack =
     !selectedAudioTrack && audioStreams.length > 1;
-  logger.trace("Resolved Jellyfin playback item.", {
+  logger.trace("Resolved Jellyfin playback item.", () => ({
     ...logEventFields("provider.playback.resolve", "success"),
     "provider.id": "jellyfin",
-    "session.id": session.id,
     "source.id": source.id,
     "provider.account.id": source.providerAccountId,
     "jellyfin.play_session.id": jellyfinPlaySessionId,
@@ -531,6 +533,16 @@ async function normalizeCurrentPlayback(
     "media.source.id": mediaSourceId,
     "media.video_stream.count": videoStreams.length,
     "media.audio_stream.count": audioStreams.length,
+    "media.subtitle_stream.count": reportedSubtitleTracks.length,
+    "media.subtitle_track.offered.count": subtitleTracks.length,
+    "media.subtitle_track.excluded.non_text.count":
+      reportedSubtitleTracks.filter((track) => !track.isText).length,
+    "media.subtitle_track.excluded.missing_url.count":
+      reportedSubtitleTracks.filter(
+        (track) => track.isText && !track.contentUrl,
+      ).length,
+    "media.subtitle_stream.index": reportedSubtitleIndex,
+    "media.subtitle_stream.codec": selectedSubtitleTrack?.codec,
     "media.preview.missing": missingPreviewPath,
     "media.audio_selection.unresolved": unresolvedSelectedAudioTrack,
     "media.audio_stream.index": numberValue(
@@ -539,7 +551,7 @@ async function normalizeCurrentPlayback(
     "media.audio_stream.default_index": numberValue(
       mediaSource?.DefaultAudioStreamIndex,
     ),
-  });
+  }));
 
   return {
     viewer: playbackViewer(

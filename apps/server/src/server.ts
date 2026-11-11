@@ -2,12 +2,12 @@ import "@/config/loadEnv";
 
 import type { Server } from "node:http";
 
-import { logErrorFields, logEventFields } from "@cliparr/shared/logging";
+import { logEventFields } from "@cliparr/shared/logging";
 
 import { createApp } from "@/app";
 import { resolveServerPort } from "@/config/serverPort";
 import { closeDatabase } from "@/db/database";
-import { configureLogging, fatalWithError, getServerLogger } from "@/logging";
+import { configureLogging, getServerLogger, logServerError } from "@/logging";
 import { startExpiredSessionSweep } from "@/session/sweep";
 
 const logger = getServerLogger("lifecycle");
@@ -91,9 +91,8 @@ async function startServer() {
 try {
   await startServer();
 } catch (error: unknown) {
-  fatalWithError(logger, error, "Failed to start server.", {
+  logServerError(logger, "fatal", error, "Failed to start server.", {
     ...logEventFields("server.start", "failure"),
-    ...logErrorFields(error),
   });
   closeDatabase();
   process.exit(1);

@@ -7,7 +7,11 @@ import type { AssetCaptureState } from "@cliparr/shared/asset-capture";
 import type { CurrentlyPlayingResponse } from "@cliparr/shared/providers";
 import { chromium, type Page } from "playwright";
 
-import { encodeReadmeSocial, encodeScene } from "#/encode.ts";
+import {
+  encodeReadmeSocial,
+  encodeScene,
+  validateImageDimensions,
+} from "#/encode.ts";
 import {
   captureUsername,
   jellyfinUrl,
@@ -16,6 +20,7 @@ import {
 import { captureCropGuide, cropGuideImageName, waitForLayout } from "#/page.ts";
 import { run, waitUntil } from "#/process.ts";
 import {
+  capturePixels,
   type CapturePlan,
   type CaptureScene,
   captureTarget,
@@ -98,11 +103,13 @@ async function captureScene(page: Page, scene: CaptureScene) {
     path: path.join(output, `${scene.name}-prepared.png`),
   });
   const frameTimes: number[] = [];
+  let nativeFrame: Buffer | undefined;
   await page.screencast.start({
     path: path.join(output, `${scene.name}-raw.webm`),
-    size: scene.viewport,
+    size: capturePixels(scene),
     quality: 100,
-    onFrame: ({ timestamp }) => {
+    onFrame: ({ data, timestamp }) => {
+      nativeFrame ??= data;
       frameTimes.push(timestamp);
       return Promise.resolve();
     },
@@ -134,9 +141,13 @@ async function captureScene(page: Page, scene: CaptureScene) {
     await page.evaluate(() => window.cliparrAssetCapture?.pause());
   }
   const firstFrame = frameTimes[0];
-  if (firstFrame === undefined || frameTimes.length < 3) {
+  if (!nativeFrame || firstFrame === undefined || frameTimes.length < 3) {
     throw new Error(`${scene.name}: no usable screencast frames.`);
   }
+  // The video writer can pad undersized Chromium frames to the requested size.
+  const framePath = path.join(output, `${scene.name}-first-frame.jpg`);
+  await writeFile(framePath, nativeFrame);
+  await validateImageDimensions(framePath, scene);
   const rendered = samples.flatMap((state) =>
     state.renderedSeconds === null ? [] : [state.renderedSeconds],
   );
@@ -173,25 +184,29 @@ async function main() {
     await readFile(path.join(output, "plan.json"), "utf8"),
   ) as CapturePlan;
   captureTarget(plan.target);
-  const browser = await chromium.launch({
-    args: ["--autoplay-policy=no-user-gesture-required"],
-  });
+  let browserVersion: string | undefined;
   const results = [];
   let still: Awaited<ReturnType<typeof encodeReadmeSocial>> | undefined;
-  try {
-    for (const scene of plan.scenes) {
+  for (const scene of plan.scenes) {
+    // Chromium uses the native surface density for screencast frames.
+    const browser = await chromium.launch({
+      args: [
+        "--autoplay-policy=no-user-gesture-required",
+        `--force-device-scale-factor=${scene.deviceScaleFactor}`,
+      ],
+    });
+    try {
+      browserVersion = browser.version();
       process.stdout.write(`Preparing ${scene.name} capture.\n`);
       const playback = await startJellyfinScene(scene, password);
+      const viewport =
+        plan.target === "readme-social"
+          ? readmeSocialCapture.viewport
+          : scene.viewport;
       const context = await browser.newContext({
-        viewport:
-          plan.target === "readme-social"
-            ? readmeSocialCapture.viewport
-            : scene.viewport,
-        screen:
-          plan.target === "readme-social"
-            ? readmeSocialCapture.viewport
-            : scene.viewport,
-        deviceScaleFactor: 1,
+        viewport,
+        screen: viewport,
+        deviceScaleFactor: scene.deviceScaleFactor,
         isMobile: scene.name === "mobile",
         hasTouch: scene.name === "mobile",
         colorScheme: "dark",
@@ -244,7 +259,7 @@ async function main() {
           }
         `,
         });
-        if (plan.target === "all") {
+        if (plan.target !== "readme-social") {
           results.push(await captureScene(page, scene));
         }
         if (scene.name === "hero") {
@@ -324,39 +339,39 @@ async function main() {
           await playback.stop();
         }
       }
+    } finally {
+      await browser.close();
     }
-    if (!still) {
-      throw new Error("README/social capture is missing.");
+  }
+  if (plan.target !== "mobile" && !still) {
+    throw new Error("README/social capture is missing.");
+  }
+  await writeFile(
+    path.join(output, "review.html"),
+    `<!doctype html><html lang="en"><meta charset="utf-8"><title>Cliparr asset capture</title><style>body{background:#111;color:#eee;font:16px system-ui;margin:32px}section{margin:32px 0}video,img{max-width:100%;height:auto}p{max-width:80ch}</style><h1>Cliparr asset capture</h1><p>Compare each poster with its video, check subtitle rendering and the loop boundary. See report.json for sizes and selected ranges.</p>${plan.scenes
+      .filter(() => plan.target !== "readme-social")
+      .map(
+        (scene) =>
+          `<section><h2>${scene.name}</h2><p>Selection ${scene.selection.inSeconds}–${scene.selection.outSeconds}s; recording ${scene.recordingSeconds.toFixed(3)}s</p><video controls muted loop playsinline width="${scene.viewport.width}" height="${scene.viewport.height}" poster="${scene.posterName}.webp"><source src="${scene.videoName}.webm" type="video/webm"><source src="${scene.videoName}.mp4" type="video/mp4"></video><details><summary>Poster</summary><img src="${scene.posterName}.webp" width="${scene.viewport.width}" height="${scene.viewport.height}" alt="${scene.name} capture poster"></details></section>`,
+      )
+      .join(
+        "",
+      )}${still ? `<section><h2>README/social still</h2><p>Source timestamp ${still.seconds}s; same frame in both formats.</p>${still.files.map((file) => `<p>${file.name}: ${file.width}×${file.height}, ${file.bytes} bytes</p><img src="${file.name}" width="${file.width}" height="${file.height}" alt="Editor screenshot with visible subtitles">`).join("")}</section>` : ""}${plan.target === "all" ? `<section><h2>Crop guide</h2><img src="${cropGuideImageName}" alt="Editor with a portrait crop and crop controls"></section>` : ""}</html>`,
+  );
+  await writeFile(
+    path.join(output, "report.json"),
+    JSON.stringify(
+      { target: plan.target, browser: browserVersion, results, still },
+      null,
+      2,
+    ),
+  );
+  for (const result of results) {
+    for (const file of result.files) {
+      process.stdout.write(
+        `${file.name}: ${file.bytes} bytes${file.overTarget ? " (above target; review quality/size)" : ""}\n`,
+      );
     }
-    await writeFile(
-      path.join(output, "review.html"),
-      `<!doctype html><html lang="en"><meta charset="utf-8"><title>Cliparr asset capture</title><style>body{background:#111;color:#eee;font:16px system-ui;margin:32px}section{margin:32px 0}video,img{max-width:100%;height:auto}p{max-width:80ch}</style><h1>Cliparr asset capture</h1><p>Compare each poster with its video, check subtitle rendering and the loop boundary. See report.json for sizes and selected ranges.</p>${plan.scenes
-        .filter(() => plan.target === "all")
-        .map(
-          (scene) =>
-            `<section><h2>${scene.name}</h2><p>Selection ${scene.selection.inSeconds}–${scene.selection.outSeconds}s; recording ${scene.recordingSeconds.toFixed(3)}s</p><video controls muted loop playsinline width="${scene.viewport.width}" height="${scene.viewport.height}" poster="${scene.posterName}.webp"><source src="${scene.videoName}.webm" type="video/webm"><source src="${scene.videoName}.mp4" type="video/mp4"></video><details><summary>Poster</summary><img src="${scene.posterName}.webp" width="${scene.viewport.width}" height="${scene.viewport.height}" alt="${scene.name} capture poster"></details></section>`,
-        )
-        .join(
-          "",
-        )}<section><h2>README/social still</h2><p>Source timestamp ${still.seconds}s; same frame in both formats.</p>${still.files.map((file) => `<p>${file.name}: ${file.width}×${file.height}, ${file.bytes} bytes</p><img src="${file.name}" width="${file.width}" height="${file.height}" alt="Editor screenshot with visible subtitles">`).join("")}</section>${plan.target === "all" ? `<section><h2>Crop guide</h2><img src="${cropGuideImageName}" alt="Editor with a portrait crop and crop controls"></section>` : ""}</html>`,
-    );
-    await writeFile(
-      path.join(output, "report.json"),
-      JSON.stringify(
-        { target: plan.target, browser: browser.version(), results, still },
-        null,
-        2,
-      ),
-    );
-    for (const result of results) {
-      for (const file of result.files) {
-        process.stdout.write(
-          `${file.name}: ${file.bytes} bytes${file.overTarget ? " (above target; review quality/size)" : ""}\n`,
-        );
-      }
-    }
-  } finally {
-    await browser.close();
   }
 }
 

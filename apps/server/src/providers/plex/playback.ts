@@ -370,7 +370,6 @@ function bindPlexPlayback(
   logger.trace("Resolved Plex playback item.", {
     ...logEventFields("provider.playback.resolve", "success"),
     "provider.id": "plex",
-    "session.id": session.id,
     "source.id": source.id,
     "provider.account.id": source.providerAccountId,
     "plex.playback_session.id": plexPlaybackSessionId,

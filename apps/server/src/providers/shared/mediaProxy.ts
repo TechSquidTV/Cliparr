@@ -474,7 +474,7 @@ async function createCachedProxyMediaResponse(
   const headers = snapshotProxyHeaders(upstream);
 
   if (isHlsPlaylist(handle, contentType)) {
-    logHlsPlaylistFetch(session, handle, upstream, contentType);
+    logHlsPlaylistFetch(handle, upstream, contentType);
     const playlist = await rewriteHlsPlaylist(
       session,
       handle,
@@ -565,7 +565,6 @@ export async function proxyUpstreamMediaResponse(
   const contentType = upstream.headers.get("content-type") ?? "";
   logger.trace("Proxying upstream media response.", {
     "media.handle.id": handle.id,
-    "session.id": session.id,
     "provider.id": handle.providerId,
     "media.path": sanitizeLoggedMediaPath(handle.path),
     "upstream.status_code": upstream.status,
@@ -573,7 +572,7 @@ export async function proxyUpstreamMediaResponse(
   });
 
   if (isHlsPlaylist(handle, contentType)) {
-    logHlsPlaylistFetch(session, handle, upstream, contentType);
+    logHlsPlaylistFetch(handle, upstream, contentType);
     const playlist = await rewriteHlsPlaylist(
       session,
       handle,
@@ -613,7 +612,6 @@ export async function proxyUpstreamMediaResponse(
     const properties = {
       ...logEventFields("media.proxy.stream", "failure"),
       "media.handle.id": handle.id,
-      "session.id": session.id,
       "provider.id": handle.providerId,
       "media.path": sanitizeLoggedMediaPath(handle.path),
       "http.response.closed": responseClosed,
@@ -658,7 +656,6 @@ export async function proxyProviderMediaResponse(
     logger.trace("Served cached proxied media response.", {
       ...logEventFields("media.proxy.cache", "hit"),
       "media.handle.id": handle.id,
-      "session.id": session.id,
       "provider.id": handle.providerId,
       "media.path": sanitizeLoggedMediaPath(handle.path),
       "media.cache.key": cacheKey,
@@ -673,7 +670,6 @@ export async function proxyProviderMediaResponse(
     logger.trace("Waiting for in-flight proxied media response.", {
       ...logEventFields("media.proxy.cache", "wait"),
       "media.handle.id": handle.id,
-      "session.id": session.id,
       "provider.id": handle.providerId,
       "media.path": sanitizeLoggedMediaPath(handle.path),
       "media.cache.key": cacheKey,
