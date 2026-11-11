@@ -38,7 +38,7 @@ docker run --detach --name "$name" --platform "$platform" \
   --env APP_KEY="cliparr-smoke-test-key-with-at-least-32-characters" \
   --volume "$name-data:/data" "$image"
 
-runtime_node="$(docker exec "$name" /usr/local/bin/node --version)"
+runtime_node="$(docker exec "$name" /nodejs/bin/node --version)"
 if [[ "$runtime_node" != "v$expected_node" ]]; then
   echo "Expected Node v$expected_node from .nvmrc, got $runtime_node." >&2
   exit 1
@@ -55,7 +55,7 @@ wait_for_health() {
   return 1
 }
 # Application files must stay immutable; only /data and temporary storage are writable.
-docker exec "$name" /usr/local/bin/node -e '
+docker exec "$name" /nodejs/bin/node -e '
   const fs = require("node:fs");
   const architecture = process.arch === "x64" ? "amd64" : process.arch;
   const runtimePlatform = process.platform + "/" + architecture;

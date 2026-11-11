@@ -94,11 +94,7 @@ WORKDIR /workspace/tools/www-assets
 USER node
 CMD ["node", "src/record.ts"]
 
-FROM node:26.13.0-trixie-slim@sha256:5adad64f9a1fca2d51972caa65983634c8a774eb300d72b20f7f2a0f60368072 AS production
-RUN --mount=type=bind,source=docker/upgrade-zlib.sh,target=/tmp/upgrade-zlib.sh \
-  sh /tmp/upgrade-zlib.sh \
-  && npm uninstall --global npm \
-  && rm -rf /opt/yarn-v* /usr/local/bin/yarn /usr/local/bin/yarnpkg
+FROM gcr.io/distroless/nodejs26-debian13:nonroot@sha256:33c86a63859efc2ebd88ea0a355863582ec6f1220d048de62baffb2584e709b3 AS production
 LABEL org.opencontainers.image.title="Cliparr" \
   org.opencontainers.image.description="Instant media clipper for Plex and Jellyfin servers." \
   org.opencontainers.image.source="https://github.com/techsquidtv/cliparr" \
@@ -120,6 +116,5 @@ USER 65532:65532
 VOLUME ["/data"]
 EXPOSE 7171
 HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \
-  CMD ["/usr/local/bin/node", "-e", "fetch('http://127.0.0.1:' + (process.env.PORT || 7171) + '/api/health').then((response) => process.exit(response.ok ? 0 : 1)).catch(() => process.exit(1))"]
-ENTRYPOINT ["/usr/local/bin/node"]
+  CMD ["/nodejs/bin/node", "-e", "fetch('http://127.0.0.1:' + (process.env.PORT || 7171) + '/api/health').then((response) => process.exit(response.ok ? 0 : 1)).catch(() => process.exit(1))"]
 CMD ["apps/server/dist/server.js"]
