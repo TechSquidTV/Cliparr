@@ -34,7 +34,7 @@ const { values } = parseArgs({
 async function main() {
   if (values.help) {
     process.stdout.write(
-      `Usage: pnpm assets:capture --media-dir /path/to/media [options]\n\n  --hero <relative-file>       Default hero.mkv\n  --target <all|readme-social> Default all; readme-social captures only the still pair\n  --mobile <relative-file>     Default mobile.mkv\n  --hero-seconds <seconds>     Recording duration; default 82/30\n  --mobile-seconds <seconds>   Recording duration; default 3\n  --hero-subtitle <track-key>  Override the preferred text subtitle track\n  --mobile-subtitle <track-key>\n  --write                     Replace only the selected target assets after validation\n\nSelections remain hero 496.07–499.01 and mobile 1402–1412 seconds.\n`,
+      `Usage: pnpm assets:capture --media-dir /path/to/media [options]\n\n  --hero <relative-file>       Default hero.mkv\n  --target <all|mobile|readme-social> Default all; mobile captures only the phone preview\n  --mobile <relative-file>     Default mobile.mkv\n  --hero-seconds <seconds>     Recording duration; default 82/30\n  --mobile-seconds <seconds>   Recording duration; default 3\n  --hero-subtitle <track-key>  Override the preferred text subtitle track\n  --mobile-subtitle <track-key>\n  --write                     Replace only the selected target assets after validation\n\nSelections remain hero 496.07–499.01 and mobile 1402–1412 seconds.\n`,
     );
     return;
   }
@@ -129,13 +129,13 @@ async function main() {
       "cliparr",
     ]);
     await docker(["run", "--rm", "--no-deps", "capture"]);
-    // The recorder writes this last, only after both complete and validate.
+    // The recorder writes this last, after validating all requested outputs.
     await readFile(path.join(output, "report.json"), "utf8");
     if (values.write) {
       await writeCaptureAssets(root, output, { target, scenes });
     }
     process.stdout.write(
-      `Capture complete: ${path.join(output, "review.html")}\n${values.write ? (target === "readme-social" ? "Updated README and social stills.\n" : "Updated previews, documentation images, and README/social stills.\n") : "Website assets unchanged; use --write to replace them.\n"}`,
+      `Capture complete: ${path.join(output, "review.html")}\n${values.write ? `Updated assets for target ${target}.\n` : "Website assets unchanged; use --write to replace them.\n"}`,
     );
   } catch (error) {
     const logs = await docker(
