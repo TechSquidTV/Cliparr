@@ -1,10 +1,4 @@
-import type {
-  FrameChunk,
-  Palette,
-  PaletteMapper,
-  RGBAInput,
-  TemporalDitherState,
-} from "@techsquidtv/gifenc";
+import type { FrameChunk, Palette } from "@techsquidtv/gifenc";
 import {
   applyPalette,
   createPaletteMapper,
@@ -13,92 +7,74 @@ import {
   quantize,
 } from "@techsquidtv/gifenc";
 
-import type {
-  GifDitherMode,
-  GifPaletteFormat,
-  GifPaletteMode,
-  GifTemporalDitherSettings,
-} from "#/lib/export/gif/gifEncodingSettings";
+import type { GifEncodingSettings } from "#/lib/export/gif/gifEncodingSettings";
+import type { PixelDimensions } from "#/lib/mediaDimensions";
 
-export interface EncodeGifFrameChunkInput {
-  sequenceIndex: number;
-  rgba: RGBAInput;
-  width: number;
-  height: number;
-  maxColors: number;
-  delayMs: number;
-  paletteMode: GifPaletteMode;
-  globalPalette?: Palette | null;
-  paletteFormat: GifPaletteFormat;
-  ditherMode: GifDitherMode;
-  ditherStrength?: number;
-  serpentine?: boolean;
-  temporalDither?: GifTemporalDitherSettings | null;
+export interface GifEncoderJob extends GifEncodingSettings, PixelDimensions {
+  globalPalette: Palette | null;
 }
 
-// One encoder serves one export with fixed dimensions, settings and global table.
-export function createGifFrameChunkEncoder() {
-  let mapper: PaletteMapper | undefined;
+export interface GifFrameInput {
+  sequenceIndex: number;
+  rgba: Uint8ClampedArray;
+  delayMs: number;
+}
+
+export function createGifFrameChunkEncoder({
+  width,
+  height,
+  maxColors,
+  globalPalette: initialPalette,
+  paletteMode,
+  paletteFormat,
+  ditherMode,
+  ditherStrength,
+  serpentine,
+  temporalDither,
+}: GifEncoderJob) {
+  let globalPalette = initialPalette;
+  const mapper =
+    globalPalette && paletteMode === "global" && ditherMode === "none"
+      ? createPaletteMapper(globalPalette, { format: paletteFormat })
+      : null;
   const sequence = createTemporalDitherSequence();
-  let history: TemporalDitherState | undefined;
-  function encode({
-    sequenceIndex,
-    rgba,
+  const paletteOptions = {
+    format: paletteFormat,
     width,
     height,
-    maxColors,
-    delayMs,
-    globalPalette,
-    paletteMode,
-    paletteFormat,
-    ditherMode,
+    dither: ditherMode !== "none",
     ditherStrength,
     serpentine,
-    temporalDither,
-  }: EncodeGifFrameChunkInput): FrameChunk {
-    const useLocalPalette = sequenceIndex > 0 && paletteMode === "per-frame";
-    const resolvedPalette =
-      globalPalette && !useLocalPalette
-        ? globalPalette
-        : quantize(rgba, maxColors, { format: paletteFormat });
-    if (paletteMode === "global" && ditherMode === "none") {
-      mapper ??= createPaletteMapper(resolvedPalette, {
-        format: paletteFormat,
-      });
-    }
-    if (ditherMode === "spatial-temporal") {
-      history ??= sequence.start({
-        width,
-        height,
-        format: paletteFormat,
-        ...temporalDither,
-      });
-    }
-    const indexedPixels = mapper
-      ? mapper.map(rgba)
-      : applyPalette(rgba, resolvedPalette, {
-          format: paletteFormat,
-          dither: ditherMode === "none" ? false : "floyd-steinberg",
-          ditherStrength,
-          height,
-          serpentine,
-          temporalDither: history,
-          width,
-        });
-    return encodeFrameChunk(indexedPixels, width, height, {
-      sequenceIndex,
-      globalPalette: globalPalette ?? resolvedPalette,
-      palette: useLocalPalette ? resolvedPalette : undefined,
-      delay: delayMs,
-    });
-  }
-
+    temporalDither:
+      ditherMode === "spatial-temporal"
+        ? sequence.start({
+            width,
+            height,
+            format: paletteFormat,
+            ...temporalDither,
+          })
+        : null,
+  };
   return {
-    encode,
+    encode({ sequenceIndex, rgba, delayMs }: GifFrameInput): FrameChunk {
+      const useLocalPalette = sequenceIndex > 0 && paletteMode === "per-frame";
+      const palette =
+        globalPalette && !useLocalPalette
+          ? globalPalette
+          : quantize(rgba, maxColors, { format: paletteFormat });
+      globalPalette ??= palette;
+      const indexed = mapper
+        ? mapper.map(rgba)
+        : applyPalette(rgba, palette, paletteOptions);
+      return encodeFrameChunk(indexed, width, height, {
+        sequenceIndex,
+        globalPalette,
+        palette: useLocalPalette ? palette : undefined,
+        delay: delayMs,
+      });
+    },
     dispose() {
       sequence.end();
-      history = undefined;
-      mapper = undefined;
     },
   };
 }

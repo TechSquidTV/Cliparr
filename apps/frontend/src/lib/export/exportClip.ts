@@ -926,14 +926,16 @@ async function exportGifClipWithRuntime(
           })
         : null;
 
-    let globalPalette = sampledPalette;
     const paletteMode = sampledPalette ? "global" : "per-frame";
     const requiresSequentialFrameEncoding =
       resolvedGifSettings.ditherMode === "spatial-temporal";
     signal?.throwIfAborted();
     onPhaseChange?.("encoding");
     const frameEncoder = gifRuntime.createGifFrameEncoder({
-      requiresSequentialFrames: requiresSequentialFrameEncoding,
+      ...resolvedGifSettings,
+      ...outputDimensions,
+      globalPalette: sampledPalette,
+      paletteMode,
     });
     const cancelFrameEncoder = () => frameEncoder.dispose();
     signal?.addEventListener("abort", cancelFrameEncoder, { once: true });
@@ -969,22 +971,11 @@ async function exportGifClipWithRuntime(
       const framePromise = frameEncoder
         .encodeFrame({
           sequenceIndex,
-          imageData,
-          width: outputDimensions.width,
-          height: outputDimensions.height,
-          maxColors: resolvedGifSettings.maxColors,
+          rgba: imageData.data,
           delayMs,
-          paletteMode,
-          globalPalette,
-          paletteFormat: resolvedGifSettings.paletteFormat,
-          ditherMode: resolvedGifSettings.ditherMode,
-          ditherStrength: resolvedGifSettings.ditherStrength,
-          serpentine: resolvedGifSettings.serpentine,
-          temporalDither: resolvedGifSettings.temporalDither,
         })
         .then((chunk) => {
           signal?.throwIfAborted();
-          globalPalette ??= chunk.globalPalette;
           gifChunks.push(chunk);
           processedFrameCount += 1;
           reportFrameProgress();
@@ -1000,8 +991,7 @@ async function exportGifClipWithRuntime(
     };
 
     const waitForFrameEncoderSlot = async () => {
-      // Every chunk needs the global table established by the first retained frame.
-      while (inFlightFrames.size >= (globalPalette ? maxInFlightFrames : 1)) {
+      while (inFlightFrames.size >= maxInFlightFrames) {
         await Promise.race(inFlightFrames);
         signal?.throwIfAborted();
         if (frameEncodingError) {
@@ -1046,7 +1036,17 @@ async function exportGifClipWithRuntime(
       throw new Error("GIF export did not produce an image buffer.");
     }
 
-    return new Blob([copyToArrayBuffer(bytes)], { type: "image/gif" });
+    if (!(bytes.buffer instanceof ArrayBuffer)) {
+      throw new TypeError(
+        "GIF encoder returned an unsupported backing buffer.",
+      );
+    }
+    const view = new Uint8Array(
+      bytes.buffer,
+      bytes.byteOffset,
+      bytes.byteLength,
+    );
+    return new Blob([view], { type: "image/gif" });
   } catch (error) {
     signal?.throwIfAborted();
     throw error;
@@ -1064,13 +1064,6 @@ function toGifFrameEncodingError(error: unknown) {
 
 function throwGifFrameEncodingError(error: Error): never {
   throw new Error(error.message, { cause: error });
-}
-
-function copyToArrayBuffer(bytes: Uint8Array) {
-  const buffer = new ArrayBuffer(bytes.byteLength);
-  new Uint8Array(buffer).set(bytes);
-
-  return buffer;
 }
 
 async function prepareAudioPlan(

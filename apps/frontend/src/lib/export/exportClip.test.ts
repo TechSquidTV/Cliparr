@@ -858,17 +858,23 @@ void test("exports GIF frames through the browser encoder path", async () => {
       const runtime = await loadGifEncodingRuntime();
       return {
         ...runtime,
+        assembleFrameChunks(chunks, count) {
+          const encoded = runtime.assembleFrameChunks(chunks, count);
+          const padded = new Uint8Array(encoded.length + 2);
+          padded.set(encoded, 1);
+          return padded.subarray(1, -1);
+        },
         createGifFrameEncoder: (options) => {
+          assert.equal(options.paletteMode, "global");
+          assert.ok(options.globalPalette?.length);
           const encoder = runtime.createGifFrameEncoder(options);
           return {
             ...encoder,
             async encodeFrame(input) {
-              assert.equal(input.paletteMode, "global");
-              assert.ok(input.globalPalette?.length);
               writtenFrames.push({
                 delay: input.delayMs,
-                width: input.width,
-                height: input.height,
+                width: options.width,
+                height: options.height,
               });
               return encoder.encodeFrame(input);
             },

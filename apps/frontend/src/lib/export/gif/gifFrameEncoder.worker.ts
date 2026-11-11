@@ -16,27 +16,28 @@ type GifFrameWorkerGlobal = {
 };
 
 const workerScope = globalThis as unknown as GifFrameWorkerGlobal;
-const chunks = createGifFrameChunkEncoder();
+let chunks: ReturnType<typeof createGifFrameChunkEncoder> | undefined;
 
 workerScope.addEventListener("message", (event) => {
   const message = event.data;
-  if (message.type !== "encode-frame") {
-    return;
-  }
 
   try {
+    if (message.job) {
+      chunks = createGifFrameChunkEncoder(message.job);
+    }
+    if (!chunks) {
+      throw new Error("GIF frame worker has no encoder settings.");
+    }
     const chunk = chunks.encode(message);
     const buffer = chunk.bytes.buffer;
     if (!(buffer instanceof ArrayBuffer)) {
       throw new TypeError("GIF frame chunk must have a transferable buffer.");
     }
-    workerScope.postMessage({ type: "encoded-frame", id: message.id, chunk }, [
-      buffer,
-    ]);
+    workerScope.postMessage({ type: "encoded-frame", chunk }, [buffer]);
   } catch (error) {
     workerScope.postMessage({
       type: "error",
-      id: message.id,
+      sequenceIndex: message.sequenceIndex,
       message:
         error instanceof Error ? error.message : "GIF frame encoding failed.",
     });

@@ -12,12 +12,7 @@ import {
   type ExportMode,
   isAudioExportFormat,
 } from "#/lib/export/exportFormats";
-import type {
-  GifDitherMode,
-  GifPaletteFormat,
-  GifPaletteMode,
-  GifTemporalDitherSettings,
-} from "#/lib/export/gif/gifEncodingSettings";
+import type { GifEncodingSettings } from "#/lib/export/gif/gifEncodingSettings";
 import type { PixelDimensions } from "#/lib/mediaDimensions";
 import { resolveVideoCrop, type VideoCrop } from "#/lib/videoCrop";
 export type { ExportFormat } from "#/lib/export/exportFormats";
@@ -38,17 +33,10 @@ export type VideoExportQualityPreset = Exclude<
 
 export type HlsManifestBitrateBasis = "average-bandwidth" | "bandwidth";
 
-export interface GifExportSettings {
+export interface GifExportSettings extends GifEncodingSettings {
   preset: GifExportPreset;
   maxHeight: number;
   frameRate: number;
-  maxColors: number;
-  paletteMode: GifPaletteMode;
-  paletteFormat: GifPaletteFormat;
-  ditherMode: GifDitherMode;
-  ditherStrength?: number;
-  serpentine?: boolean;
-  temporalDither?: GifTemporalDitherSettings | null;
 }
 
 type ExportSizeEstimateBasis =
@@ -128,7 +116,9 @@ export const videoExportQualityOptions = exportQualityOptions.filter(
   } => option.value !== "efficient" && Boolean(option.videoDescription),
 );
 
-const SOFT_TEMPORAL_DITHER_SETTINGS: GifTemporalDitherSettings = {
+const SOFT_TEMPORAL_DITHER_SETTINGS: NonNullable<
+  GifEncodingSettings["temporalDither"]
+> = {
   strength: 0.45,
   changeDetection: {
     pixelThreshold: 24,

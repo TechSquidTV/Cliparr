@@ -2,89 +2,69 @@ import type { FrameChunk } from "@techsquidtv/gifenc";
 
 import {
   createGifFrameChunkEncoder,
-  type EncodeGifFrameChunkInput,
+  type GifEncoderJob,
+  type GifFrameInput,
 } from "#/lib/export/gif/gifFrameChunk";
-
-interface GifFrameEncodeInput extends Omit<EncodeGifFrameChunkInput, "rgba"> {
-  imageData: ImageData;
-}
 
 interface GifFrameEncoder {
   concurrency: number;
-  // Consumes the frame data; worker encoding transfers its entire backing buffer.
-  encodeFrame(input: GifFrameEncodeInput): Promise<FrameChunk>;
+  // Worker encoding transfers the entire backing buffer of the pixel view.
+  encodeFrame(input: GifFrameInput): Promise<FrameChunk>;
   dispose(): void;
 }
 
-interface GifFrameEncoderOptions {
-  requiresSequentialFrames?: boolean;
-}
-
-export interface GifFrameWorkerEncodeRequest extends Omit<
-  GifFrameEncodeInput,
-  "imageData"
-> {
-  type: "encode-frame";
-  id: number;
-  rgba: Uint8ClampedArray;
+export interface GifFrameWorkerEncodeRequest extends GifFrameInput {
+  // Sent on the first frame assigned to this worker.
+  job?: GifEncoderJob;
 }
 
 export type GifFrameWorkerEncodeResponse =
   | {
       type: "encoded-frame";
-      id: number;
       chunk: FrameChunk;
     }
   | {
       type: "error";
-      id: number;
+      sequenceIndex: number;
       message: string;
     };
 
-export function createBestGifFrameEncoder(
-  options: GifFrameEncoderOptions = {},
-) {
-  return (
-    createGifFrameWorkerEncoder({
-      workerCount: options.requiresSequentialFrames ? 1 : undefined,
-    }) ?? createInlineGifFrameEncoder()
-  );
-}
-
-function createInlineGifFrameEncoder(): GifFrameEncoder {
-  const chunks = createGifFrameChunkEncoder();
-
+export function createBestGifFrameEncoder(job: GifEncoderJob): GifFrameEncoder {
+  const pool = createGifFrameWorkerEncoder(job);
+  if (pool) {
+    return pool;
+  }
+  let chunks: ReturnType<typeof createGifFrameChunkEncoder> | undefined =
+    createGifFrameChunkEncoder(job);
   return {
     concurrency: 1,
-    async encodeFrame({ imageData, ...settings }) {
-      return chunks.encode({
-        ...settings,
-        rgba: imageData.data,
-      });
+    async encodeFrame(frame) {
+      if (!chunks) {
+        throw new Error("GIF frame encoder was disposed.");
+      }
+      return chunks.encode(frame);
     },
     dispose() {
-      chunks.dispose();
+      chunks?.dispose();
+      chunks = undefined;
     },
   };
 }
 
-function createGifFrameWorkerEncoder({
-  createWorker = createGifFrameWorker,
-  workerCount,
-}: {
-  createWorker?: () => Worker;
-  workerCount?: number;
-} = {}): GifFrameEncoder | null {
-  if (createWorker === createGifFrameWorker && typeof Worker === "undefined") {
+function createGifFrameWorkerEncoder(
+  job: GifEncoderJob,
+): GifFrameEncoder | null {
+  if (typeof Worker === "undefined") {
     return null;
   }
 
-  const resolvedWorkerCount = defaultGifFrameWorkerCount(workerCount);
+  const resolvedWorkerCount =
+    job.ditherMode === "spatial-temporal" ? 1 : defaultGifFrameWorkerCount();
   const workers: Worker[] = [];
 
   try {
     for (let index = 0; index < resolvedWorkerCount; index += 1) {
-      workers.push(createWorker());
+      workers.push(createGifFrameWorker());
     }
   } catch {
     for (const worker of workers) {
@@ -95,7 +75,8 @@ function createGifFrameWorkerEncoder({
   }
 
   let disposed = false;
-  let nextRequestId = 1;
+  const initializedWorkers = new WeakSet<Worker>();
+  let globalPalette = job.globalPalette;
   let nextWorkerIndex = 0;
   const pendingRequests = new Map<
     number,
@@ -114,18 +95,23 @@ function createGifFrameWorkerEncoder({
 
   const handleMessage = (event: MessageEvent<GifFrameWorkerEncodeResponse>) => {
     const message = event.data;
-    const pendingRequest = pendingRequests.get(message.id);
+    const sequenceIndex =
+      message.type === "error"
+        ? message.sequenceIndex
+        : message.chunk.sequenceIndex;
+    const pendingRequest = pendingRequests.get(sequenceIndex);
     if (!pendingRequest) {
       return;
     }
 
-    pendingRequests.delete(message.id);
+    pendingRequests.delete(sequenceIndex);
 
     if (message.type === "error") {
       pendingRequest.reject(new Error(message.message));
       return;
     }
 
+    globalPalette ??= message.chunk.globalPalette;
     pendingRequest.resolve(message.chunk);
   };
   const handleError = (event: ErrorEvent) => {
@@ -147,16 +133,16 @@ function createGifFrameWorkerEncoder({
 
   return {
     concurrency: workers.length,
-    encodeFrame({ imageData, ...settings }) {
+    encodeFrame(frame) {
       if (disposed) {
         return Promise.reject(new Error("GIF frame encoder was disposed."));
       }
 
-      const worker = workers[nextWorkerIndex];
-      nextWorkerIndex = (nextWorkerIndex + 1) % workers.length;
-      const id = nextRequestId;
-      nextRequestId += 1;
-      const rgba = imageData.data;
+      // Without a sampled palette the first worker establishes the global table.
+      const workerIndex = globalPalette ? nextWorkerIndex : 0;
+      const worker = workers[workerIndex];
+      nextWorkerIndex = (workerIndex + 1) % workers.length;
+      const { rgba } = frame;
       const buffer = rgba.buffer;
       if (!(buffer instanceof ArrayBuffer) || rgba.byteLength === 0) {
         return Promise.reject(
@@ -165,19 +151,20 @@ function createGifFrameWorkerEncoder({
       }
 
       return new Promise<FrameChunk>((resolve, reject) => {
-        pendingRequests.set(id, { resolve, reject });
+        pendingRequests.set(frame.sequenceIndex, { resolve, reject });
         try {
           worker.postMessage(
             {
-              type: "encode-frame",
-              id,
-              ...settings,
-              rgba,
+              ...frame,
+              ...(initializedWorkers.has(worker)
+                ? {}
+                : { job: { ...job, globalPalette } }),
             } satisfies GifFrameWorkerEncodeRequest,
             [buffer],
           );
+          initializedWorkers.add(worker);
         } catch (error) {
-          pendingRequests.delete(id);
+          pendingRequests.delete(frame.sequenceIndex);
           reject(
             error instanceof Error
               ? error
