@@ -1,5 +1,10 @@
+import {
+  SUBTITLE_IMPORT_TIMEOUT_MS,
+  subtitleTrackSupportsBurnIn,
+} from "@cliparr/shared/providers";
+
 import { stringValue } from "@/providers/shared/utilities";
-import type { PlaybackSubtitleTrack } from "@/providers/types";
+import type { MediaHandle, PlaybackSubtitleTrack } from "@/providers/types";
 
 const TEXT_SUBTITLE_CODECS = new Set([
   "ass",
@@ -95,6 +100,29 @@ export function subtitleContentFormat(codec: unknown) {
   return isTextSubtitleCodec(codec) ? "vtt" : undefined;
 }
 
-export function subtitleTrackSupportsBurnIn(track: PlaybackSubtitleTrack) {
-  return Boolean(track.isText && track.contentUrl);
+// The proxy gives up just before the editor does so the editor receives the
+// provider's error. A retried extraction would outlast the editor's wait.
+const SUBTITLE_REQUEST_POLICY = {
+  timeoutMs: SUBTITLE_IMPORT_TIMEOUT_MS - 10_000,
+  retryAttempts: 1,
+};
+
+export function subtitleRequestPolicy(handle: Pick<MediaHandle, "kind">) {
+  return handle.kind === "subtitle" ? SUBTITLE_REQUEST_POLICY : undefined;
+}
+
+// Providers report every subtitle track so the editor can explain the ones it
+// cannot import; these fields record how the reported tracks divide.
+export function subtitleTrackTraceFields(
+  tracks: readonly PlaybackSubtitleTrack[],
+) {
+  const text = tracks.filter((track) => track.isText);
+  const offered = text.filter((track) => subtitleTrackSupportsBurnIn(track));
+  return {
+    "media.subtitle_stream.count": tracks.length,
+    "media.subtitle_track.offered.count": offered.length,
+    "media.subtitle_track.excluded.non_text.count": tracks.length - text.length,
+    "media.subtitle_track.excluded.missing_url.count":
+      text.length - offered.length,
+  };
 }

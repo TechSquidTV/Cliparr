@@ -261,6 +261,36 @@ try {
           .getByRole("button", { name: "Delete subtitle", exact: true })
           .click();
         await features.getByText("Subtitle deleted", { exact: true }).waitFor();
+        await features
+          .getByRole("button", { name: "Subtitle options", exact: true })
+          .click();
+        const unavailable = page.getByRole("group", {
+          name: "Cannot be imported",
+        });
+        for (const reason of [
+          "Image-based subtitles cannot be imported. Only text tracks are supported.",
+          "Select this embedded subtitle in Plex first.",
+        ]) {
+          const item = unavailable.getByRole("menuitem").filter({
+            hasText: reason,
+          });
+          assert.equal(await item.getAttribute("aria-disabled"), "true");
+        }
+        if (process.env.CLIPARR_UI_SCREENSHOT_DIR) {
+          await page.screenshot({
+            path: path.join(
+              process.env.CLIPARR_UI_SCREENSHOT_DIR,
+              `subtitle-menu-${reducedMotion}.png`,
+            ),
+          });
+        }
+        await page
+          .getByRole("group", { name: "Import subtitle track" })
+          .getByRole("menuitem", { name: /English/ })
+          .click();
+        await features
+          .getByText("Subtitle import requested", { exact: true })
+          .waitFor();
       }
       await page.close();
     }

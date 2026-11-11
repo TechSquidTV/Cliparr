@@ -41,7 +41,7 @@ import { buildMediaExportMetadata } from "@/providers/shared/exportMetadata";
 import { playlistBasePath } from "@/providers/shared/hlsPlaylist";
 import { dedupeInflightFetch } from "@/providers/shared/inflight";
 import { assembleCurrentlyPlayingItem } from "@/providers/shared/playbackEntry";
-import { subtitleTrackSupportsBurnIn } from "@/providers/shared/subtitles";
+import { subtitleTrackTraceFields } from "@/providers/shared/subtitles";
 import {
   asArray,
   normalizeRating,
@@ -465,7 +465,7 @@ async function normalizeCurrentPlayback(
     audioStreams,
     audioStreamIndex,
   );
-  const reportedSubtitleTracks = deriveSubtitleTracks(
+  const subtitleTracks = deriveSubtitleTracks(
     session,
     context,
     stringValue(enrichedItem.Id),
@@ -478,11 +478,8 @@ async function normalizeCurrentPlayback(
       undefined,
   );
   const selectedSubtitleTrack = deriveSelectedSubtitleTrack(
-    reportedSubtitleTracks,
+    subtitleTracks,
     reportedSubtitleIndex,
-  );
-  const subtitleTracks = reportedSubtitleTracks.filter(
-    subtitleTrackSupportsBurnIn,
   );
   const playerState = sessionInfo?.PlayState?.IsPaused ? "paused" : "playing";
   const videoStreams = asArray(mediaSource?.MediaStreams).filter((stream) =>
@@ -533,14 +530,7 @@ async function normalizeCurrentPlayback(
     "media.source.id": mediaSourceId,
     "media.video_stream.count": videoStreams.length,
     "media.audio_stream.count": audioStreams.length,
-    "media.subtitle_stream.count": reportedSubtitleTracks.length,
-    "media.subtitle_track.offered.count": subtitleTracks.length,
-    "media.subtitle_track.excluded.non_text.count":
-      reportedSubtitleTracks.filter((track) => !track.isText).length,
-    "media.subtitle_track.excluded.missing_url.count":
-      reportedSubtitleTracks.filter(
-        (track) => track.isText && !track.contentUrl,
-      ).length,
+    ...subtitleTrackTraceFields(subtitleTracks),
     "media.subtitle_stream.index": reportedSubtitleIndex,
     "media.subtitle_stream.codec": selectedSubtitleTrack?.codec,
     "media.preview.missing": missingPreviewPath,

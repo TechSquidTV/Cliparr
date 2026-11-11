@@ -5,14 +5,17 @@ import {
   logEventFields,
   warnWithError,
 } from "@cliparr/shared/logging";
-import type { PlaybackSubtitleTrack } from "@cliparr/shared/providers";
+import {
+  type PlaybackSubtitleTrack,
+  SUBTITLE_IMPORT_TIMEOUT_MS,
+  subtitleTrackSupportsBurnIn,
+} from "@cliparr/shared/providers";
 import { useCallback, useEffect, useState } from "react";
 
 import { readResponseErrorDetails } from "@/api/cliparrClient";
 import { parseSubtitleTextAsync } from "@/lib/subtitles/parseSubtitleTextAsync";
 import {
   subtitleTrackKey,
-  subtitleTrackSupportsBurnIn,
   subtitleTrackUnavailableMessage,
 } from "@/lib/subtitles/selectPreferredSubtitleTrack";
 import type { SubtitleCue } from "@/lib/subtitles/types";
@@ -24,7 +27,6 @@ interface UseSubtitleCuesOptions {
   providerId: string;
 }
 
-const subtitleRequestTimeoutMs = 15_000;
 const logger = getFrontendLogger(["editor", "subtitle"]);
 
 interface SubtitleDownloadFailure {
@@ -118,7 +120,7 @@ export function useSubtitleCues({
     const abortController = new AbortController();
     const timeout = globalThis.setTimeout(() => {
       abortController.abort();
-    }, subtitleRequestTimeoutMs);
+    }, SUBTITLE_IMPORT_TIMEOUT_MS);
 
     async function loadSubtitleCues() {
       if (!subtitleEnabled || !selectedSubtitleTrack) {
@@ -196,7 +198,7 @@ export function useSubtitleCues({
               ...logDurationFields(startedAt),
               ...subtitleTrackLogFields(selectedSubtitleTrack, providerId),
               "subtitle.timeout": true,
-              "subtitle.timeout.ms": subtitleRequestTimeoutMs,
+              "subtitle.timeout.ms": SUBTITLE_IMPORT_TIMEOUT_MS,
             });
           }
           return;

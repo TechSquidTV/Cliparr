@@ -768,7 +768,7 @@ void test("omits the Cliparr session cookie from formatted Jellyfin playback tra
   assert.ok(!format(record).includes(session.id));
 });
 
-void test("traces why Jellyfin subtitle tracks are excluded from the editor", async (context) => {
+void test("reports unsupported Jellyfin subtitle tracks and traces why they cannot be imported", async (context) => {
   const { entries, record } = await captureJellyfinPlaybackTrace(context, {
     itemId: "subtitle-diagnostics",
     subtitleStreamIndex: 3,
@@ -780,8 +780,17 @@ void test("traces why Jellyfin subtitle tracks are excluded from the editor", as
     ],
   });
   assert.deepEqual(
-    entries[0]?.item.subtitleTracks?.map((track) => track.index),
-    [2],
+    entries[0]?.item.subtitleTracks?.map((track) => [
+      track.index,
+      track.isText,
+      Boolean(track.contentUrl),
+    ]),
+    [
+      [2, true, true],
+      [3, false, false],
+      [4, false, false],
+      [undefined, true, false],
+    ],
   );
   assert.deepEqual(
     Object.fromEntries(
@@ -871,6 +880,7 @@ void test("creates a downloadable content URL for Jellyfin text subtitle streams
     handle.path,
     "/Videos/item-1/media-source-1/Subtitles/2/Stream.vtt",
   );
+  assert.equal(handle.kind, "subtitle");
 });
 
 void test("uses Jellyfin session media sources for subtitle track discovery", () => {

@@ -37,7 +37,42 @@ export function FeatureControls() {
   const [tab, setTab] = useState<EditorSubtitleTab>("text");
   const optionsTrigger = useRef<HTMLButtonElement>(null);
   const subtitles: EditorSubtitlePanelProperties["subtitles"] = {
-    subtitleTracks: [],
+    subtitleTracks: [
+      {
+        streamId: "2",
+        index: 2,
+        languageCode: "eng",
+        title: "English",
+        codec: "subrip",
+        isText: true,
+        contentUrl: "/api/media/example",
+      },
+    ],
+    unavailableSubtitleTracks: [
+      {
+        track: {
+          streamId: "3",
+          index: 3,
+          languageCode: "eng",
+          title: "English (Blu-ray)",
+          codec: "pgssub",
+          isText: false,
+          isForced: true,
+        },
+        reason:
+          "Image-based subtitles cannot be imported. Only text tracks are supported.",
+      },
+      {
+        track: {
+          streamId: "4",
+          index: 4,
+          languageCode: "spa",
+          codec: "ass",
+          isText: true,
+        },
+        reason: "Select this embedded subtitle in Plex first.",
+      },
+    ],
     subtitleOutputEnabled: visible,
     setSubtitleEnabled: setVisible,
     subtitleStyleSettings: style,
@@ -68,8 +103,8 @@ export function FeatureControls() {
     handleSelectPreviousSubtitle: () => {},
     handleSelectNextSubtitle: () => {},
     handleSeekToSelectedSubtitle: () => setAction("Subtitle seek requested"),
-    canImportSubtitles: false,
-    requestImport: () => {},
+    canImportSubtitles: true,
+    requestImport: () => setAction("Subtitle import requested"),
     subtitleTrackChangePending: false,
     requestClear: () => setAction("Clear subtitles requested"),
     clearPending: false,

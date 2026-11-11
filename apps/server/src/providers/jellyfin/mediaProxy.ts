@@ -24,7 +24,9 @@ import {
   sanitizeLoggedMediaPath,
   shouldAttachProviderAuth,
 } from "@/providers/shared/mediaUrlPolicy";
+import { subtitleRequestPolicy } from "@/providers/shared/subtitles";
 import { errorMessage } from "@/providers/shared/utilities";
+import type { MediaHandle } from "@/providers/types";
 import type { ProviderSessionRecord } from "@/session/store";
 
 const logger = getServerLogger(["media", "proxy"]);
@@ -33,7 +35,7 @@ export function createMediaHandle(
   session: ProviderSessionRecord,
   context: JellyfinSourceContext,
   path: string,
-  options: { basePath?: string } = {},
+  options: { basePath?: string; kind?: MediaHandle["kind"] } = {},
 ) {
   const basePathPrefix = new URL(context.baseUrl).pathname.replace(/\/$/, "");
   return createProviderMediaHandle(
@@ -116,7 +118,9 @@ export async function proxyMedia(
       try {
         const upstream = await fetchMediaHandleRequest(handle, {
           headers,
-          timeoutMs: JELLYFIN_REQUEST_TIMEOUT_MS,
+          ...(subtitleRequestPolicy(handle) ?? {
+            timeoutMs: JELLYFIN_REQUEST_TIMEOUT_MS,
+          }),
         });
 
         if (!upstream.ok && upstream.status !== 206) {

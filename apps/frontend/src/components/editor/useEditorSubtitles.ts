@@ -1,4 +1,7 @@
-import type { PlaybackSubtitleTrack } from "@cliparr/shared/providers";
+import {
+  type PlaybackSubtitleTrack,
+  subtitleTrackSupportsBurnIn,
+} from "@cliparr/shared/providers";
 import {
   fromSeconds,
   type TimelineEngine,
@@ -29,7 +32,7 @@ import { normalizeSubtitleCueText } from "@/lib/subtitles/normalizeSubtitleCueTe
 import {
   selectPreferredSubtitleTrack,
   subtitleTrackKey,
-  subtitleTrackSupportsBurnIn,
+  subtitleTrackUnavailableMessage,
 } from "@/lib/subtitles/selectPreferredSubtitleTrack";
 import {
   loadSubtitleStyleSettings,
@@ -51,6 +54,9 @@ interface UseEditorSubtitlesProperties {
   pausePlayback: () => void;
   onSubtitleCreated: () => void;
 }
+
+// Past this, the provider is likely extracting the track from the media file.
+const SUBTITLE_SLOW_IMPORT_MS = 8000;
 
 interface SubtitleTextEdit {
   clipId: string;
@@ -79,12 +85,27 @@ export function useEditorSubtitles({
   const [subtitleStyleSettings, setSubtitleStyleSettings] = useState(
     loadSubtitleStyleSettings,
   );
-  const subtitleTracks = useMemo<PlaybackSubtitleTrack[]>(
-    () =>
-      session.local
-        ? []
-        : (session.subtitleTracks ?? []).filter(subtitleTrackSupportsBurnIn),
+  const reportedSubtitleTracks = useMemo<PlaybackSubtitleTrack[]>(
+    () => (session.local ? [] : (session.subtitleTracks ?? [])),
     [session.local, session.subtitleTracks],
+  );
+  const subtitleTracks = useMemo(
+    () =>
+      reportedSubtitleTracks.filter((track) =>
+        subtitleTrackSupportsBurnIn(track),
+      ),
+    [reportedSubtitleTracks],
+  );
+  const unavailableSubtitleTracks = useMemo(
+    () =>
+      reportedSubtitleTracks.flatMap((track) => {
+        const reason = subtitleTrackUnavailableMessage(
+          track,
+          session.source.providerId,
+        );
+        return reason ? [{ track, reason }] : [];
+      }),
+    [reportedSubtitleTracks, session.source.providerId],
   );
   const [initialized, setInitialized] = useState(Boolean(initialDraft));
   const initialImportStarted = useRef(Boolean(initialDraft));
@@ -110,6 +131,19 @@ export function useEditorSubtitles({
   });
   const { resetSubtitleCues } = download;
   const subtitleLoading = importTrack !== null;
+  const [subtitleLoadingSlow, setSubtitleLoadingSlow] = useState(false);
+  useEffect(() => {
+    if (!importTrack) {
+      return;
+    }
+    const timeout = globalThis.setTimeout(() => {
+      setSubtitleLoadingSlow(true);
+    }, SUBTITLE_SLOW_IMPORT_MS);
+    return () => {
+      globalThis.clearTimeout(timeout);
+      setSubtitleLoadingSlow(false);
+    };
+  }, [importTrack]);
 
   useEffect(() => {
     saveSubtitleStyleSettings(subtitleStyleSettings);
@@ -429,6 +463,7 @@ export function useEditorSubtitles({
     },
     initialized,
     subtitleTracks,
+    unavailableSubtitleTracks,
     subtitleOutputEnabled,
     setSubtitleEnabled: (visible: boolean) => {
       commitText();
@@ -438,6 +473,7 @@ export function useEditorSubtitles({
     setSubtitleStyleSettings,
     subtitleCues,
     subtitleLoading,
+    subtitleLoadingSlow,
     subtitleError,
     dismissErrors: () => {
       setSubtitleError(null);

@@ -23,6 +23,7 @@ export interface EditorSubtitlePanelProperties {
   subtitles: Pick<
     ReturnType<typeof useEditorSubtitles>,
     | "subtitleTracks"
+    | "unavailableSubtitleTracks"
     | "subtitleOutputEnabled"
     | "setSubtitleEnabled"
     | "subtitleStyleSettings"
@@ -207,6 +208,30 @@ export function EditorSubtitlePanel({
                 >
                   Start blank…
                 </Menu.Item>
+                {subtitles.unavailableSubtitleTracks.length > 0 && (
+                  <Menu.Group className="mt-1 border-t border-editor-border pt-1">
+                    <Menu.GroupLabel className="px-3 py-2 text-xs text-muted-foreground">
+                      Cannot be imported
+                    </Menu.GroupLabel>
+                    {subtitles.unavailableSubtitleTracks.map(
+                      ({ track, reason }, index) => (
+                        <Menu.Item
+                          // Tracks without a provider index share one key.
+                          key={`${subtitleTrackKey(track)}:${index}`}
+                          disabled
+                          className="rounded px-3 py-2 text-sm outline-none"
+                        >
+                          <div className="opacity-60">
+                            <SubtitleTrackLabel track={track} />
+                          </div>
+                          <div className="mt-1.5 text-xs text-muted-foreground">
+                            {reason}
+                          </div>
+                        </Menu.Item>
+                      ),
+                    )}
+                  </Menu.Group>
+                )}
               </Menu.Popup>
             </Menu.Positioner>
           </Menu.Portal>

@@ -26,6 +26,7 @@ interface MediaHandleContext {
 
 interface CreateMediaHandleOptions {
   basePath?: string;
+  kind?: MediaHandle["kind"];
 }
 
 const mediaHandleIndexes = new WeakMap<
@@ -160,6 +161,7 @@ export function createProviderMediaHandle(
     token: context.token,
     providerMetadata,
     basePath: normalizedBasePath,
+    kind: options.kind,
     lastAccessedAt: accessedAt,
   };
   session.mediaHandles.set(handle.id, handle);

@@ -154,6 +154,17 @@ export interface PlaybackSubtitleTrack {
   contentUrl?: string;
 }
 
+// How long the editor waits for a subtitle track. A provider may extract an
+// embedded track from the whole media file before it replies.
+export const SUBTITLE_IMPORT_TIMEOUT_MS = 120_000;
+
+/** Only text tracks with a download URL can be imported into the editor. */
+export function subtitleTrackSupportsBurnIn(
+  track: PlaybackSubtitleTrack | null | undefined,
+) {
+  return Boolean(track?.isText && track.contentUrl);
+}
+
 export interface PlaybackSubtitleSelection {
   streamId?: string;
   index?: number;

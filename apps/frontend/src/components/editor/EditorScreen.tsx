@@ -757,7 +757,11 @@ function EditorScreenContent({
     >
       {subtitleLoading && (
         <>
-          <span>Importing subtitles…</span>
+          <span>
+            {subtitles.subtitleLoadingSlow
+              ? "Still importing subtitles. Tracks embedded in large files can take a minute or two."
+              : "Importing subtitles…"}
+          </span>
           <button
             type="button"
             onClick={subtitles.cancelImport}

@@ -257,6 +257,24 @@ export function buildStaticStreamPath(
   return `${isAudio ? `/Audio/${encodeURIComponent(itemId)}/stream` : `/Videos/${encodeURIComponent(itemId)}/stream`}?${params.toString()}`;
 }
 
+export function buildSubtitleStreamPath(
+  itemId: string | undefined,
+  mediaSourceId: string | undefined,
+  subtitleIndex: number | undefined,
+  contentFormat: string | undefined,
+) {
+  if (
+    !itemId ||
+    !mediaSourceId ||
+    subtitleIndex === undefined ||
+    !contentFormat
+  ) {
+    return;
+  }
+
+  return `/Videos/${encodeURIComponent(itemId)}/${encodeURIComponent(mediaSourceId)}/Subtitles/${subtitleIndex}/Stream.${encodeURIComponent(contentFormat)}`;
+}
+
 export function buildPreviewPath(
   item: JellyfinItem,
   mediaSourceId: string | undefined,

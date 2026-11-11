@@ -33,12 +33,12 @@ void test("handles missing and blank subtitle metadata without empty labels", ()
     title: undefined,
     language: "ES",
     codec: undefined,
-    flags: ["Unsupported"],
+    flags: [],
   });
   assert.deepEqual(subtitleTrackLabelParts({ title: " ", codec: " " }), {
     title: undefined,
     language: undefined,
     codec: undefined,
-    flags: ["Unsupported"],
+    flags: [],
   });
 });
