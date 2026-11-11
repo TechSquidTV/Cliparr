@@ -20,7 +20,7 @@ export const site = {
 };
 
 export const productIntro =
-  "Open a Plex or Jellyfin session, or choose a video from your device. Trim it on the timeline and export the clip in your browser.";
+  "Start a clip right where you’re watching in Plex or Jellyfin, or open a video from your device. Trim it and export it in your browser.";
 
 export const features = [
   {

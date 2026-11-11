@@ -10,7 +10,6 @@ import previewWebm from "@/assets/preview.webm?url";
 import screenshotImage from "@/assets/screenshot.webp";
 import BaseLayout from "@/components/BaseLayout.astro";
 import CommandBlock from "@/components/CommandBlock.astro";
-import FeatureGrid from "@/components/FeatureGrid.astro";
 import {
   dockerRunCommandVariants,
   productIntro,
@@ -55,7 +54,7 @@ const faqs = [
   {
     question: "Does Cliparr use FFmpeg?",
     answer:
-      "No. You can export video, audio, and GIFs without installing FFmpeg.",
+      "No. You can export video, audio, and GIFs without installing FFmpeg, including on your phone and tablet.",
     links: [
       { href: "/docs/export-settings", label: "Export settings" },
       { href: "https://mediabunny.dev/", label: "Mediabunny" },
@@ -156,32 +155,92 @@ const faqStructuredData = {
     </div>
   </section>
 
-  <section id="features" class="bg-background py-16 sm:py-20">
-    <div class="container-page">
-      <div class="mx-auto max-w-3xl text-center">
-        <h2 class="text-3xl font-semibold sm:text-5xl">Inside the editor</h2>
+  <section id="features" class="scroll-mt-16 bg-background py-12 sm:py-16">
+    <div class="container-page grid items-center gap-8 lg:grid-cols-2 lg:gap-16">
+      <div class="max-w-xl">
+        <div class="mb-6 flex flex-wrap items-center gap-x-7 gap-y-3">
+          {providers.map((provider) => (
+            <span class="inline-flex items-center gap-2 text-xl font-semibold">
+              <img
+                src={provider.iconPath}
+                alt=""
+                width="32"
+                height="32"
+                class="provider-logo"
+              />
+              {provider.name}
+            </span>
+          ))}
+        </div>
+        <h2 class="text-3xl font-semibold sm:text-5xl">
+          Clip a scene and caption it
+        </h2>
+        <div class="mt-5 space-y-4 text-base leading-7 text-muted-foreground [&_a]:font-medium [&_a]:text-foreground [&_a]:underline [&_a]:underline-offset-4">
+          <p>
+            Pick what’s playing on{" "}
+            <a href="/docs/providers">Plex or Jellyfin</a>, or open{" "}
+            <a href="/docs/local-videos">local videos</a> without uploading
+            them. <a href="/docs/video-cropping">Crop it</a>,{" "}
+            <a href="/docs/subtitle-burn-in">import and edit subtitles</a> or
+            add your own, then{" "}
+            <a href="/docs/export-settings">export the clip</a>.
+          </p>
+          <p>
+            Your browser handles the transcoding. Save your clip as MP4, WebM,
+            MOV, or MKV, export just the audio, or make a GIF. Work on local
+            files offline.
+          </p>
+        </div>
       </div>
-      <div class="mt-8">
-        <FeatureGrid />
-      </div>
+      <figure class="mx-auto w-full max-w-lg">
+        <img
+          src="/docs/export-dialog.webp"
+          alt="Cliparr’s export dialog with MP4 selected, a duration of 2.94 seconds, and one subtitle included."
+          width="896"
+          height="768"
+          loading="lazy"
+          decoding="async"
+          class="block w-full rounded-lg border border-border"
+        />
+        <figcaption class="mt-3 text-sm text-muted-foreground">
+          The three-second scene above, ready to save as a subtitled 1080p MP4.
+          Estimated file size is 2.2 MB.
+        </figcaption>
+      </figure>
     </div>
   </section>
 
   <section class="border-y border-border bg-muted/40 py-16 sm:py-20">
+    <div class="container-page grid gap-8 lg:grid-cols-[1fr_1.1fr] lg:items-start">
+      <div>
+        <p class="section-eyebrow">Self-hosted quick start</p>
+        <h2 class="mt-5 text-3xl font-semibold sm:text-5xl">
+          Run Cliparr with Docker
+        </h2>
+        <p class="mt-5 text-base leading-7 text-muted-foreground">
+          Replace the example <code>APP_KEY</code> with a random secret of at
+          least 32 characters. Keep it for future updates. Run the command, then
+          open <code>http://localhost:7171</code> on the same computer.
+        </p>
+      </div>
+      <CommandBlock variants={dockerRunCommandVariants} label="Docker" />
+    </div>
+  </section>
+
+  <section class="bg-background py-16 sm:py-20">
     <div class="container-page grid gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(20rem,28rem)] lg:items-center">
       <div class="max-w-2xl">
         <h2 class="text-3xl font-semibold sm:text-5xl">
-          Make a clip on your phone
+          Runs on all your mobile devices
         </h2>
         <p class="mt-5 text-base leading-7 text-muted-foreground">
-          Drag either end of the selection to trim your clip. Tap Crop to change
-          the framing or Subtitles to add captions. Both tools sit below the
-          preview.
+          Native-like controls and speed. Clip local files from your camera or
+          elsewhere.
         </p>
         <p class="mt-3 text-base leading-7 text-muted-foreground">
-          To keep Cliparr on your home screen, use Share → Add to Home Screen in
-          Safari on iPhone, or the install option in a supported Android
-          browser.
+          Install the PWA from your browser. On iPhone or iPad, tap Share → Add
+          to Home Screen in Safari. On Android, use the install option in a
+          supported browser.
         </p>
         <a
           href="/docs/browser-support"
@@ -232,56 +291,6 @@ const faqStructuredData = {
             </div>
           </div>
         </div>
-      </div>
-    </div>
-  </section>
-
-  <section class="border-b border-border bg-background py-16 sm:py-20">
-    <div class="container-page grid gap-8 lg:grid-cols-[1fr_1.1fr] lg:items-start">
-      <div>
-        <p class="section-eyebrow">Self-hosted quick start</p>
-        <h2 class="mt-5 text-3xl font-semibold sm:text-5xl">
-          Run Cliparr with Docker
-        </h2>
-        <p class="mt-5 text-base leading-7 text-muted-foreground">
-          Replace the example <code>APP_KEY</code> with a random secret of at
-          least 32 characters. Keep it for future updates. Run the command, then
-          open <code>http://localhost:7171</code> on the same computer.
-        </p>
-      </div>
-      <CommandBlock variants={dockerRunCommandVariants} label="Docker" />
-    </div>
-  </section>
-
-  <section class="bg-muted/40 py-16 sm:py-20">
-    <div class="container-page">
-      <div class="mx-auto max-w-3xl text-center">
-        <h2 class="text-3xl font-semibold sm:text-5xl">
-          Clip from Plex or Jellyfin
-        </h2>
-        <p class="mt-5 text-base leading-7 text-muted-foreground">
-          Pick a session on the dashboard to start at the current playback
-          position. For a file on your device, choose Open Video instead.
-        </p>
-      </div>
-      <div class="mt-8 grid gap-4 md:grid-cols-2">
-        {providers.map((provider) => (
-          <article class="rounded-lg border border-border bg-card p-6">
-            <div class="flex items-center gap-4">
-              <span class="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg border border-border bg-muted p-2.5">
-                <img
-                  src={provider.iconPath}
-                  alt=""
-                  class="provider-logo h-full w-full"
-                />
-              </span>
-              <h3 class="text-lg font-semibold">{provider.name}</h3>
-            </div>
-            <p class="mt-3 text-sm leading-6 text-muted-foreground">
-              {provider.setup}
-            </p>
-          </article>
-        ))}
       </div>
     </div>
   </section>
