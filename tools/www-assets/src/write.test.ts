@@ -7,7 +7,7 @@ import test from "node:test";
 import { buildScenes } from "#/scenes.ts";
 import { writeCaptureAssets } from "#/write.ts";
 
-void test("targeted writes replace the still pair without touching previews or docs", async () => {
+void test("writes only the assets selected by each capture target", async () => {
   const directory = await mkdtemp(
     path.join(os.tmpdir(), "cliparr-write-stills-"),
   );
@@ -59,6 +59,31 @@ void test("targeted writes replace the still pair without touching previews or d
         "new full capture",
       );
     }
+    const mobile = buildScenes({
+      target: "mobile",
+      hero: "",
+      mobile: "mobile.mkv",
+    });
+    await writeFile(path.join(output, "readme.webp"), "new full still");
+    await writeFile(path.join(output, "og.jpg"), "new full social");
+    await writeCaptureAssets(root, output, {
+      target: "mobile",
+      scenes: mobile,
+    });
+    for (const name of preserved) {
+      assert.equal(
+        await readFile(path.join(root, name), "utf8"),
+        name.includes("mobile-pwa-preview") ? "new full capture" : "original",
+      );
+    }
+    assert.equal(
+      await readFile(path.join(root, ".github/img/screenshot.webp"), "utf8"),
+      "new readme",
+    );
+    assert.equal(
+      await readFile(path.join(root, "apps/www/public/og.jpg"), "utf8"),
+      "new social",
+    );
     await writeCaptureAssets(root, output, { target: "all", scenes });
     for (const name of preserved) {
       assert.equal(
@@ -68,7 +93,7 @@ void test("targeted writes replace the still pair without touching previews or d
     }
     assert.equal(
       await readFile(path.join(root, ".github/img/screenshot.webp"), "utf8"),
-      "new readme",
+      "new full still",
     );
   } finally {
     await rm(directory, { recursive: true, force: true });

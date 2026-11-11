@@ -2,7 +2,11 @@ import { stat } from "node:fs/promises";
 import path from "node:path";
 
 import { run } from "#/process.ts";
-import { type CaptureScene, readmeSocialCapture } from "#/scenes.ts";
+import {
+  capturePixels,
+  type CaptureScene,
+  readmeSocialCapture,
+} from "#/scenes.ts";
 
 interface Probe {
   streams: {
@@ -25,18 +29,33 @@ async function probe(file: string): Promise<Probe> {
   ) as Probe;
 }
 
+export async function validateImageDimensions(
+  file: string,
+  scene: CaptureScene,
+) {
+  const { width, height } = capturePixels(scene);
+  const { streams } = await probe(file);
+  const [image] = streams;
+  if (image?.width !== width || image.height !== height) {
+    throw new Error(
+      `${path.basename(file)}: expected ${width}×${height}, received ${image?.width}×${image?.height}.`,
+    );
+  }
+}
+
 export function validateVideo(
   details: Probe,
   scene: CaptureScene,
   codec: string,
 ) {
   const [video] = details.streams;
+  const pixels = capturePixels(scene);
   if (
     details.streams.length !== 1 ||
     video?.codec_type !== "video" ||
     video.codec_name !== codec ||
-    video.width !== scene.viewport.width ||
-    video.height !== scene.viewport.height ||
+    video.width !== pixels.width ||
+    video.height !== pixels.height ||
     video.pix_fmt !== "yuv420p"
   ) {
     throw new Error(
@@ -135,13 +154,7 @@ export async function encodeScene(
     const { size } = await stat(file);
     files.push({ name, bytes: size, overTarget: size > scene.targetBytes });
   }
-  const posterProbe = await probe(path.join(directory, poster));
-  if (
-    posterProbe.streams[0]?.width !== scene.viewport.width ||
-    posterProbe.streams[0].height !== scene.viewport.height
-  ) {
-    throw new Error(`${scene.name}: poster dimensions do not match video.`);
-  }
+  await validateImageDimensions(path.join(directory, poster), scene);
   return {
     scene: scene.name,
     selection: scene.selection,
