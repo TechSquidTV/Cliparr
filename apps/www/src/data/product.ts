@@ -20,7 +20,7 @@ export const site = {
 };
 
 export const productIntro =
-  "Self-hosted video clipping for Plex, Jellyfin, and local files. Trim the moment and export it in your browser.";
+  "Open a Plex or Jellyfin session, or choose a video from your device. Trim it on the timeline and export the clip in your browser.";
 
 export const features = [
   {
