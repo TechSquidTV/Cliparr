@@ -10,7 +10,9 @@ Published release notes are available in [GitHub Releases](https://github.com/Te
 
 ### Changed
 
-- Source installations now require a stable Node 26 version satisfying `engines.node`; use `.nvmrc` before installing dependencies. Production, development, and capture images include the pinned Node 26 runtime and use pinned official Debian slim base images.
+- **Container maintenance:** production runs on non-root distroless Debian 13 without a shell or package manager. The Node executable moves from `/usr/local/bin/node` to `/nodejs/bin/node`; update custom maintenance commands and entrypoint overrides.
+
+- Source installations now require a stable Node 26 version satisfying `engines.node`; use `.nvmrc` before installing dependencies. All container images include the pinned Node 26 runtime and use pinned upstream base images.
 
 ### Fixed
 

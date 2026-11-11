@@ -4,6 +4,7 @@ export interface CaptureScene {
   name: "hero" | "mobile";
   mediaPath: string;
   viewport: { width: number; height: number };
+  deviceScaleFactor: number;
   selection: AssetCaptureSelection;
   recordingSeconds: number;
   videoName: string;
@@ -11,7 +12,14 @@ export interface CaptureScene {
   targetBytes: number;
 }
 
-export type CaptureTarget = "all" | "readme-social";
+export function capturePixels(scene: CaptureScene) {
+  return {
+    width: scene.viewport.width * scene.deviceScaleFactor,
+    height: scene.viewport.height * scene.deviceScaleFactor,
+  };
+}
+
+export type CaptureTarget = "all" | "mobile" | "readme-social";
 
 export interface CapturePlan {
   target: CaptureTarget;
@@ -25,8 +33,8 @@ export const readmeSocialCapture = {
 } as const;
 
 export function captureTarget(value: string): CaptureTarget {
-  if (value !== "all" && value !== "readme-social") {
-    throw new Error("--target must be all or readme-social.");
+  if (value !== "all" && value !== "mobile" && value !== "readme-social") {
+    throw new Error("--target must be all, mobile, or readme-social.");
   }
   return value;
 }
@@ -72,32 +80,33 @@ export function buildScenes(options: {
   heroSubtitle?: string;
   mobileSubtitle?: string;
 }): CaptureScene[] {
-  const hero: CaptureScene = {
-    name: "hero",
-    mediaPath: options.hero,
-    viewport: { width: 1600, height: 886 },
-    selection: {
-      inSeconds: 496.07,
-      outSeconds: 499.01,
-      subtitleFontSize: 72,
-      ...(options.heroSubtitle
-        ? { subtitleTrackKey: options.heroSubtitle }
-        : {}),
-    },
-    recordingSeconds: recordingDuration(options.heroSeconds, 82 / 30, 2.94),
-    videoName: "preview",
-    posterName: "screenshot",
-    targetBytes: 500_000,
-  };
-  if (options.target === "readme-social") {
-    return [hero];
+  const scenes: CaptureScene[] = [];
+  if (options.target !== "mobile") {
+    scenes.push({
+      name: "hero",
+      mediaPath: options.hero,
+      viewport: { width: 1600, height: 886 },
+      deviceScaleFactor: 1,
+      selection: {
+        inSeconds: 496.07,
+        outSeconds: 499.01,
+        subtitleFontSize: 72,
+        ...(options.heroSubtitle
+          ? { subtitleTrackKey: options.heroSubtitle }
+          : {}),
+      },
+      recordingSeconds: recordingDuration(options.heroSeconds, 82 / 30, 2.94),
+      videoName: "preview",
+      posterName: "screenshot",
+      targetBytes: 500_000,
+    });
   }
-  return [
-    hero,
-    {
+  if (options.target !== "readme-social") {
+    scenes.push({
       name: "mobile",
       mediaPath: options.mobile,
       viewport: { width: 402, height: 874 },
+      deviceScaleFactor: 3,
       selection: {
         inSeconds: 1402,
         outSeconds: 1412,
@@ -110,6 +119,7 @@ export function buildScenes(options: {
       videoName: "mobile-pwa-preview",
       posterName: "mobile-pwa-preview",
       targetBytes: 100_000,
-    },
-  ];
+    });
+  }
+  return scenes;
 }

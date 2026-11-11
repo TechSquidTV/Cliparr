@@ -10,7 +10,7 @@ export async function writeCaptureAssets(
   output: string,
   plan: CapturePlan,
 ) {
-  if (plan.target === "all") {
+  if (plan.target !== "readme-social") {
     for (const scene of plan.scenes) {
       for (const name of [
         `${scene.videoName}.mp4`,
@@ -23,6 +23,11 @@ export async function writeCaptureAssets(
         );
       }
     }
+    if (plan.target === "mobile") {
+      return;
+    }
+  }
+  if (plan.target === "all") {
     for (const name of [
       "export-dialog.webp",
       "subtitle-panel.webp",

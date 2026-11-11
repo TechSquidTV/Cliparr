@@ -96,7 +96,11 @@ export function nodeVersionViolations(
   ].map((match) => match.groups);
   for (const [name, tag, platform] of [
     ["toolchain", `node:${version}-trixie-slim`, "--platform=$BUILDPLATFORM"],
-    ["production", `node:${version}-trixie-slim`, undefined],
+    [
+      "production",
+      `gcr.io/distroless/nodejs${major}-debian13:nonroot`,
+      undefined,
+    ],
   ]) {
     const matching = stages.filter(
       (stage) => stage.alias?.toLowerCase() === name,

@@ -14,7 +14,7 @@ Use `pnpm assets:capture`: real Jellyfin playback through Cliparr's media adapte
 - Run without `--write`, inspect `review.html` and `report.json`, then repeat with `--write` only for the requested, visually reviewed target. An explicit restoration request may restore tracked captures directly from Git history.
 - Hero poster + MP4 + WebM form one refresh unit; so do mobile's three assets. Each poster comes from its delivered MP4's first frame. README/social are an independent pair: changing them never authorizes changes to hero/mobile assets.
 
-Full capture needs two selected sources; `--target readme-social` needs only hero. Mount only the required sources/subtitles in a dedicated directory (recursively indexed), not a personal library. Sources are read-only and must retain original timelines through the out point; never pre-trim.
+Full capture needs both selected sources. Use `--target mobile` with only the mobile source and subtitles, or `--target readme-social` with only hero and subtitles. Mount only the required sources/subtitles in a dedicated directory (recursively indexed), not a personal library. Sources are read-only and must retain original timelines through the out point; never pre-trim.
 
 Prefer existing non-empty, language-tagged Jellyfin sidecars, e.g. `<media>.en.srt`. Transcribe only if the required sidecar is absent; capture-window-only SRTs must retain original timestamps. The disposable Jellyfin session prefers English text subtitles, otherwise the first supported text track. Image-only subtitles do not qualify.
 
@@ -22,10 +22,10 @@ Prefer existing non-empty, language-tagged Jellyfin sidecars, e.g. `<media>.en.s
 
 Canonical configuration: `tools/www-assets/src/scenes.ts`.
 
-| Scene  | Cliparr in/out  | Selection | Browser/video size | Caption size     | Recording duration |
-| ------ | --------------- | --------- | ------------------ | ---------------- | ------------------ |
-| Hero   | 8:16.07–8:19.01 | 2.94 s    | 1600×886           | 72 px            | 82/30 s (~2.733)   |
-| Mobile | 23:22–23:32     | 10 s      | 402×874            | 150 px (maximum) | 3 s                |
+| Scene  | Cliparr in/out  | Selection | CSS viewport → capture | Caption size     | Recording duration |
+| ------ | --------------- | --------- | ---------------------- | ---------------- | ------------------ |
+| Hero   | 8:16.07–8:19.01 | 2.94 s    | 1600×886               | 72 px            | 82/30 s (~2.733)   |
+| Mobile | 23:22–23:32     | 10 s      | 402×874 → 1206×2622    | 150 px (maximum) | 3 s                |
 
 Hero fractional timecodes are decimal seconds, not frame numbers. Recording starts at the in point; its length is independent of selection duration. `--hero-seconds` / `--mobile-seconds` override recording only, must be positive, and must fit the selection. `--hero-subtitle` / `--mobile-subtitle` accept Cliparr track keys; failures list available keys.
 
@@ -46,7 +46,7 @@ The pipeline builds production-mode Cliparr with the bridge, bootstraps disposab
 
 - Use `window.cliparrAssetCapture` for selection, seeking, timeline fit, readiness, playback/pause. It wraps existing hooks and `TimelineEngine.setInOutRange`; no engine-only playback bypass or fake editor.
 - Bridge flag `VITE_CLIPARR_ASSET_CAPTURE=true` is capture-only: never deploy it; verify normal bundles exclude it.
-- Keep configured dimensions and device scale 1. Apply configured caption sizes through the bridge; subtitles must be enabled, loaded, and overlap the selection.
+- Keep the CSS viewport fixed. Use device scale 3 for mobile and 1 for hero and stills. Set screencast and encoded dimensions to viewport × device scale. Apply configured caption sizes through the bridge; subtitles must be enabled, loaded, and overlap the selection.
 - Await metadata, decoded starting frame, subtitle cues, fonts, and layout. Explicit Playwright screencast + programmatic playback; trim pre-play lead-in using captured frame timestamps. Exclude login/loading/setup, cursors, pointer annotations, and overlays.
 - After fitting selection, zoom to 65% of fitted scale, centered on the viewport, to show surrounding media/boundaries.
 - No screenshot tracing or context-level video alongside the final screencast: they can override frame size. Mobile is responsive-browser capture, not evidence of native PWA behavior.
@@ -67,5 +67,5 @@ Encoding: silent H.264 MP4 (fast-start) / VP9 WebM, 30 fps; WebP posters extract
 500 KB hero / 100 KB mobile video budgets are advisory; inspect reported overages/quality before adjusting encoding. Never silently reduce resolution or make UI unreadable to meet size targets.
 
 - After asset writes: `pnpm build:web`. Still-only: verify matching subtitle-visible frames and social metadata `image/jpeg`, 1200×630. Video refresh: preview with `pnpm dev:web`; check poster alignment, hover playback, looping, reduced-motion static behavior, and matching `Picture` dimensions in `apps/www/src/pages/index.astro`.
-- Pipeline changes: `pnpm test:assets`, relevant package type/lint checks, `pnpm --filter @cliparr/frontend test` for bridge edits. Exercise full and still-only modes end to end without writes. Seeds may validate the pipeline but cannot replace marketing assets unless selected for that refresh; separately report whether supplied-media visual review is complete.
+- Pipeline changes: `pnpm test:assets`, relevant package type/lint checks, `pnpm --filter @cliparr/frontend test` for bridge edits. Exercise full, mobile-only, and still-only modes end to end without writes. Seeds may validate the pipeline but cannot replace marketing assets unless selected for that refresh; separately report whether supplied-media visual review is complete.
 - Diagnose via `*-failure.png`, `*-failure.json`, `*-playback.json`, `containers.log`. Missing/short sources are input errors: never alter requested in/out points to pass. Missing subtitles need supported embedded text/sidecars; decoder failures belong in Cliparr source/codec handling. Run-owned Docker resources are cleaned on completion/failure; review files remain.

@@ -1,9 +1,8 @@
 # Docker environments
 
-One Dockerfile defines three independent final targets. Production uses the official
-Node.js Debian 13 slim image with Debian security updates and runs as UID/GID 65532.
-Chromium, FFmpeg, JavaScript package managers, and development sources are confined
-to the other targets. Production retains Debian's shell and OS package manager.
+One Dockerfile defines three final targets. Production runs the bundled application
+on non-root distroless Debian 13. Official Debian slim supplies the build,
+development, and capture targets, including Chromium and FFmpeg for recording.
 The root `.dockerignore` allows only build inputs and recursively excludes local state, dependencies, and secrets.
 
 | Target        | Compose file          | Purpose                                                               |
@@ -70,24 +69,32 @@ permissions. Chromium uses Playwright's default sandbox setting and must only
 load this trusted local application. Running as non-root alone does not enable
 the Chromium sandbox.
 
-## Production runtime change
+## Production runtime
 
-Production uses the official Node.js Debian 13 slim image to install Debian's
-released security packages through APT. The image includes a shell and Debian's
-package manager, but removes npm, Corepack, and Yarn. Its Node executable is
-`/usr/local/bin/node`. Application behavior, UID/GID 65532, port 7171, `/data`,
-read-only operation, and the application data format are unchanged.
+Production runs the bundled server with `/nodejs/bin/node` in the non-root
+Google Distroless Node.js Debian 13 image. It runs as UID/GID 65532 on port 7171
+with a read-only root filesystem and writable `/data`.
 
-Base images should supply security fixes upstream. As a temporary release
-exception, production and the shared toolchain install Debian's released `zlib1g`
-security update through APT using `docker/upgrade-zlib.sh`. Development and capture
-inherit the updated toolchain. Every target requires version
+**Container maintenance:** production no longer includes a shell
+or package manager. The Node executable moves from `/usr/local/bin/node` to
+`/nodejs/bin/node`. Update custom maintenance commands and entrypoint overrides;
+for example, use `docker exec <container> /nodejs/bin/node --version` to inspect
+the runtime. Application data and the normal container start command are preserved.
+
+Production must receive security fixes through its pinned upstream distroless
+image. Keep the migration blocked until production scans pass on both amd64 and
+arm64; do not repair the distroless image or suppress its findings.
+
+As a temporary release exception, the shared Debian slim toolchain installs
+Debian's released `zlib1g` security update through APT using
+`docker/upgrade-zlib.sh`. Development and capture inherit the updated toolchain.
+The toolchain requires version
 `1:1.3.dfsg+really1.3.1-1+deb13u1` or newer to fix `CVE-2026-76844` and
 `CVE-2026-85091`; the build fails if the available package is too old.
 APT verifies packages through Debian's signed repositories. Package resolution
 depends on the current repository contents, so the image digest alone does not
-fully determine the build. Remove the script and both build invocations when the
-pinned upstream Node images include the fix. Manual library replacements remain
+fully determine the build. Remove the script and its toolchain invocation when
+the pinned upstream Node image includes the fix. Manual library replacements remain
 prohibited, and all image and dependency security scans must pass before merging.
 
 ## Development setup changes
@@ -130,8 +137,9 @@ change unrelated files or discard persistent provider volumes.
 
 The root `.nvmrc` pins the exact Node 26 version for CI and Docker and recommends
 it for local development. Source installations must use a stable Node 26 version
-satisfying `engines.node`; Node 24 is no longer supported. Both official Debian
-slim bases use that exact Node version and pinned multi-platform digests. CI runs
+satisfying `engines.node`; Node 24 is no longer supported. The Debian slim toolchain
+tag contains the exact Node version. The distroless repository selects Node 26
+and its `nonroot` variant. Both bases use pinned multi-platform digests. CI runs
 Node in each final image to verify its version. The shared toolchain installs the
 pnpm version from root `packageManager` once.
 Application dependencies are installed before sources; server and frontend builds

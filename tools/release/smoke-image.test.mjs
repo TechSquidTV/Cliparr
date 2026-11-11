@@ -122,6 +122,20 @@ void test("local smoke tags do not require registry inspection or pulling", (con
   assert.ok(
     !smoke.commands().some((command) => /^(?:buildx|pull) /u.test(command)),
   );
+  assert.ok(
+    smoke
+      .commands()
+      .some((command) =>
+        /^exec \S+ \/nodejs\/bin\/node --version$/u.test(command),
+      ),
+    "runtime validation must use the distroless Node executable",
+  );
+  assert.ok(
+    !smoke
+      .commands()
+      .some((command) => command.includes("/usr/local/bin/node")),
+    "smoke checks must not depend on the former slim executable path",
+  );
 });
 
 for (const entries of [[], [manifests[1], manifests[1]]]) {
