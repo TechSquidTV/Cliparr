@@ -2,7 +2,14 @@
 
 Published release notes are available in [GitHub Releases](https://github.com/TechSquidTV/Cliparr/releases).
 
-## Unreleased
+## v3.1.1 (planned)
+
+- Server logs redact provider login credentials. If you shared older logs, see the [security and upgrade notes](tools/release/notes/v3.1.1.md#security).
+- GIF exports preserve playback timing across frames and at the end of a trim. Plex and Jellyfin allow longer for embedded subtitle extraction and explain which tracks can be imported.
+- Provider sign-in handles slow responses and cancellation. The editor reuses HLS metadata for export estimates and reduces work when saving drafts, adding subtitles, and exporting GIFs.
+- **Docker maintenance change.** The production image uses distroless Debian 13. Custom commands that rely on a shell, a package manager, or the old Node path need updating. [Docker upgrade instructions](tools/release/notes/v3.1.1.md#docker-upgrade)
+
+## v3.1.0
 
 ### Added
 
@@ -10,9 +17,7 @@ Published release notes are available in [GitHub Releases](https://github.com/Te
 
 ### Changed
 
-- **Container maintenance:** production runs on non-root distroless Debian 13 without a shell or package manager. The Node executable moves from `/usr/local/bin/node` to `/nodejs/bin/node`; update custom maintenance commands and entrypoint overrides.
-
-- Source installations now require a stable Node 26 version satisfying `engines.node`; use `.nvmrc` before installing dependencies. All container images include the pinned Node 26 runtime and use pinned upstream base images.
+- Source installations now require a stable Node 26 version satisfying `engines.node`; use `.nvmrc` before installing dependencies. Production, development, and capture images include the pinned Node 26 runtime and use pinned official Debian slim base images.
 
 ### Fixed
 
