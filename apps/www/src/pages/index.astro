@@ -242,10 +242,18 @@ const faqStructuredData = {
                 alt="Cliparr mobile editor showing a video preview, subtitles, timeline selection, and bottom editing toolbar."
                 formats={["avif", "webp"]}
                 fallbackFormat="jpg"
-                width={402}
-                height={874}
-                widths={[201, 302, 402]}
-                sizes="(min-width: 64rem) 22rem, min(78vw, 22rem)"
+                width={mobilePreviewImage.width}
+                height={mobilePreviewImage.height}
+                widths={[
+                  288,
+                  336,
+                  576,
+                  672,
+                  864,
+                  1008,
+                  mobilePreviewImage.width,
+                ]}
+                sizes="(max-width: 40rem) calc(min(74vw, 18.5rem) - 0.75rem - 2px), calc(22rem - 0.9rem - 2px)"
                 quality={72}
                 loading="lazy"
                 decoding="async"

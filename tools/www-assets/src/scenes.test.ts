@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import { validateVideo } from "#/encode.ts";
-import { buildScenes, recordingDuration } from "#/scenes.ts";
+import { buildScenes, captureTarget, recordingDuration } from "#/scenes.ts";
 
 void test("keeps source selection separate from website recording length", () => {
   const [hero, mobile] = buildScenes({
@@ -65,5 +65,35 @@ void test("rejects accidentally downscaled, truncated, or audible video", () => 
   );
   assert.throws(() =>
     validateVideo({ ...details, format: { duration: "1" } }, scene, "h264"),
+  );
+});
+
+void test("mobile-only capture preserves the phone layout and requires 3× video pixels", () => {
+  const scenes = buildScenes({
+    target: captureTarget("mobile"),
+    hero: "unused.mkv",
+    heroSeconds: "unused",
+    mobile: "mobile.mkv",
+  });
+  const [mobile] = scenes;
+  assert.ok(mobile);
+  assert.equal(scenes.length, 1);
+  assert.equal(mobile.name, "mobile");
+  assert.deepEqual(mobile.viewport, { width: 402, height: 874 });
+  const stream = {
+    codec_type: "video",
+    codec_name: "vp9",
+    pix_fmt: "yuv420p",
+    width: 1206,
+    height: 2622,
+  };
+  const format = { duration: "3" };
+  validateVideo({ streams: [stream], format }, mobile, "vp9");
+  assert.throws(() =>
+    validateVideo(
+      { streams: [{ ...stream, ...mobile.viewport }], format },
+      mobile,
+      "vp9",
+    ),
   );
 });
