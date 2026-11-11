@@ -973,64 +973,102 @@ void test("fails before creating a GIF canvas sink when the source video codec c
   assert.equal(context.disposed, true);
 });
 
-void test("encodes the sharp preset with cumulative delays and a partial final frame", async () => {
-  const gifSettings = gifExportSettingsForPreset("sharp");
-  const timestamps: string[] = [];
-  const delays: number[] = [];
-  const context = createRuntime({
-    getVideoTrackDimensions: async () => ({ width: 4, height: 4 }),
-    createCanvasSink: () =>
-      ({
-        getCanvas: async (timestamp: number) => {
-          timestamps.push(timestamp.toFixed(4));
-          return {
-            canvas: {},
-            timestamp,
-            duration: 1 / gifSettings.frameRate,
-          };
-        },
-      }) as unknown as ReturnType<ExportRuntime["createCanvasSink"]>,
-    createGifCanvas: (width, height) =>
-      ({
-        canvas: { height, width },
-        context: {
-          clearRect: () => {},
-          drawImage: () => {},
-          getImageData: () => ({
-            data: new Uint8ClampedArray(width * height * 4),
-          }),
-        },
-      }) as unknown as ReturnType<ExportRuntime["createGifCanvas"]>,
-    loadGifEncodingRuntime: async () => {
-      const runtime = await loadGifEncodingRuntime();
-      return {
-        ...runtime,
-        frameDelay(start, end) {
-          const delay = runtime.frameDelay(start, end);
-          delays.push(delay);
-          return delay;
-        },
-      };
-    },
+for (const { name, endTime, missingFrame, expectedDelays } of [
+  {
+    name: "preserves a 30 ms final frame",
+    endTime: 10.09,
+    expectedDelays: [60, 30],
+  },
+  {
+    name: "omits a final frame rounded to 0 ms",
+    endTime: 10.061,
+    expectedDelays: [60],
+  },
+  {
+    name: "borrows time from the preceding frame for a 10 ms tail",
+    endTime: 10.07,
+    expectedDelays: [50, 20],
+  },
+  {
+    name: "keeps the preceding delay when the short final frame is missing",
+    endTime: 10.07,
+    missingFrame: 1,
+    expectedDelays: [60],
+  },
+  {
+    name: "keeps a sole available short frame as a still",
+    endTime: 10.07,
+    missingFrame: 0,
+    expectedDelays: [20],
+  },
+]) {
+  void test(`GIF timing ${name}`, async () => {
+    const gifSettings = gifExportSettingsForPreset("sharp");
+    const timestamps: string[] = [];
+    const delays: number[] = [];
+    const context = createRuntime({
+      getVideoTrackDimensions: async () => ({ width: 4, height: 4 }),
+      createCanvasSink: () =>
+        ({
+          getCanvas: async (timestamp: number) => {
+            timestamps.push(timestamp.toFixed(4));
+            if (missingFrame === timestamps.length - 1) {
+              return null;
+            }
+            return {
+              canvas: {},
+              timestamp,
+              duration: 1 / gifSettings.frameRate,
+            };
+          },
+        }) as unknown as ReturnType<ExportRuntime["createCanvasSink"]>,
+      createGifCanvas: (width, height) =>
+        ({
+          canvas: { height, width },
+          context: {
+            clearRect: () => {},
+            drawImage: () => {},
+            getImageData: () => ({
+              data: new Uint8ClampedArray(width * height * 4),
+            }),
+          },
+        }) as unknown as ReturnType<ExportRuntime["createGifCanvas"]>,
+      loadGifEncodingRuntime: async () => {
+        const runtime = await loadGifEncodingRuntime();
+        return {
+          ...runtime,
+          createGifFrameEncoder(job) {
+            const encoder = runtime.createGifFrameEncoder(job);
+            return {
+              ...encoder,
+              encodeFrame(frame) {
+                delays.push(frame.delayMs);
+                return encoder.encodeFrame(frame);
+              },
+            };
+          },
+        };
+      },
+    });
+
+    await exportClipWithRuntime(
+      {
+        mediaSource,
+        startTime: 10,
+        endTime,
+        format: "gif",
+        resolution: "original",
+        gifSettings,
+        mode: "video-only" as const,
+        onProgress: () => {},
+      },
+      context.runtime,
+    );
+
+    assert.deepEqual(timestamps, ["15.0000", "15.0556"]);
+    assert.deepEqual(delays, expectedDelays);
   });
-
-  await exportClipWithRuntime(
-    {
-      mediaSource,
-      startTime: 10,
-      endTime: 10.09,
-      format: "gif",
-      resolution: "original",
-      gifSettings,
-      mode: "video-only" as const,
-      onProgress: () => {},
-    },
-    context.runtime,
-  );
-
-  assert.deepEqual(timestamps, ["15.0000", "15.0556"]);
-  assert.deepEqual(delays, [60, 30]);
-});
+}
 
 void test("switches trimmed GIF captions on the exact frame boundary", async () => {
   const gifSettings = gifExportSettingsForPreset("compact");

@@ -76,6 +76,7 @@ import {
   type GifEncodingRuntime,
   loadGifEncodingRuntime,
 } from "#/lib/export/gif/gifEncodingRuntime";
+import type { GifFrameInput } from "#/lib/export/gif/gifFrameChunk";
 import { buildGifGlobalPalette } from "#/lib/export/gif/gifPalette";
 import { ensureAudioDecoder } from "#/lib/export/mediabunny/mediabunnyCodecs";
 import { createCliparrInputFromSource } from "#/lib/export/mediabunny/mediabunnyInput";
@@ -746,6 +747,9 @@ async function resolveExportTrim(
   return { start, end: toSourceTimelineTime(endTime, offset) };
 }
 
+// Browsers may display GIF delays below two centiseconds for 100 ms.
+const MIN_GIF_PLAYBACK_DELAY_MS = 20;
+
 async function exportGifClipWithRuntime(
   {
     signal,
@@ -850,6 +854,8 @@ async function exportGifClipWithRuntime(
     const durationMs = (endTime - startTime) * 1000;
     const frameBoundaryMs = (index: number) =>
       (index * 1000) / resolvedGifSettings.frameRate;
+    const shortTailPossible =
+      durationMs - frameBoundaryMs(frameCount - 1) < MIN_GIF_PLAYBACK_DELAY_MS;
     const videoSink = runtime.createCanvasSink(sourceVideoTrack, {
       poolSize: 2,
       fit: cropRegion ? "fill" : "contain",
@@ -954,26 +960,12 @@ async function exportGifClipWithRuntime(
       );
     };
 
-    const enqueueFrame = (imageData: ImageData, frameIndex: number) => {
+    type TimedFrame = Omit<GifFrameInput, "sequenceIndex">;
+    const enqueueFrame = async (frame: TimedFrame) => {
       const sequenceIndex = encodedFrameCount;
       encodedFrameCount += 1;
-      // Missing source frames are omitted from the output timeline.
-      const outputStart = frameBoundaryMs(sequenceIndex);
-      const frameDuration = Math.min(
-        frameBoundaryMs(1),
-        Math.max(0, durationMs - frameBoundaryMs(frameIndex)),
-      );
-      const delayMs = gifRuntime.frameDelay(
-        outputStart,
-        outputStart + frameDuration,
-      );
-
       const framePromise = frameEncoder
-        .encodeFrame({
-          sequenceIndex,
-          rgba: imageData.data,
-          delayMs,
-        })
+        .encodeFrame({ ...frame, sequenceIndex })
         .then((chunk) => {
           signal?.throwIfAborted();
           gifChunks.push(chunk);
@@ -988,9 +980,6 @@ async function exportGifClipWithRuntime(
         });
 
       inFlightFrames.add(framePromise);
-    };
-
-    const waitForFrameEncoderSlot = async () => {
       while (inFlightFrames.size >= maxInFlightFrames) {
         await Promise.race(inFlightFrames);
         signal?.throwIfAborted();
@@ -1001,6 +990,8 @@ async function exportGifClipWithRuntime(
     };
 
     try {
+      // Only short-tail exports need to hold one rendered frame before encoding.
+      let pending: TimedFrame | undefined;
       for (let frameIndex = 0; frameIndex < frameCount; frameIndex += 1) {
         const imageData = await readRenderedFrameImageData(frameIndex);
 
@@ -1010,8 +1001,53 @@ async function exportGifClipWithRuntime(
           continue;
         }
 
-        enqueueFrame(imageData, frameIndex);
-        await waitForFrameEncoderSlot();
+        // Missing source frames are omitted from the output timeline.
+        const outputStart = frameBoundaryMs(
+          encodedFrameCount + (pending ? 1 : 0),
+        );
+        const frameDuration = Math.min(
+          frameBoundaryMs(1),
+          Math.max(0, durationMs - frameBoundaryMs(frameIndex)),
+        );
+        const frame = {
+          rgba: imageData.data,
+          delayMs: gifRuntime.frameDelay(
+            outputStart,
+            outputStart + frameDuration,
+          ),
+        };
+
+        if (
+          pending &&
+          frameIndex === frameCount - 1 &&
+          frame.delayMs < MIN_GIF_PLAYBACK_DELAY_MS
+        ) {
+          const combinedDelay = pending.delayMs + frame.delayMs;
+          if (
+            frame.delayMs === 0 ||
+            combinedDelay < 2 * MIN_GIF_PLAYBACK_DELAY_MS
+          ) {
+            pending.delayMs = combinedDelay;
+            processedFrameCount += 1;
+            reportFrameProgress();
+            break;
+          }
+          pending.delayMs = combinedDelay - MIN_GIF_PLAYBACK_DELAY_MS;
+          frame.delayMs = MIN_GIF_PLAYBACK_DELAY_MS;
+        }
+        if (pending) {
+          await enqueueFrame(pending);
+        }
+        if (shortTailPossible) {
+          pending = frame;
+        } else {
+          await enqueueFrame(frame);
+        }
+      }
+      if (pending) {
+        // A single retained image has no other frame to borrow time from.
+        pending.delayMs = Math.max(MIN_GIF_PLAYBACK_DELAY_MS, pending.delayMs);
+        await enqueueFrame(pending);
       }
 
       await Promise.all(inFlightFrames);
