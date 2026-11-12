@@ -1,3 +1,4 @@
+import { formatTimecode } from "@techsquidtv/canvas-timeline/utils";
 import {
   Camera,
   Crop,
@@ -15,10 +16,7 @@ import { type CSSProperties, memo, type ReactNode, useMemo } from "react";
 import { EditorEditableTimecode } from "@/components/editor/EditorEditableTimecode";
 import type { EditorLayoutVariant } from "@/components/editor/EditorLayout";
 import { EditorPreviewTimecode } from "@/components/editor/EditorPreviewTimecode";
-import {
-  formatTime,
-  formatTimecodeInput,
-} from "@/components/editor/editorUtilities";
+import { formatTime } from "@/components/editor/editorUtilities";
 import { editorIconButtonClassName } from "@/components/ui/control-styles";
 import {
   Drawer,
@@ -120,7 +118,7 @@ export const EditorControls = memo(function EditorControls({
   }, [endTime, onEndTimeCommit, onStartTimeCommit, startTime]);
   const clipMetricTimeStyle = useMemo<CSSProperties>(
     () => ({
-      width: `${Math.max(7, formatTimecodeInput(duration).length)}ch`,
+      width: `calc(${formatTimecode(duration).length}ch + 1.5rem + 2px)`,
     }),
     [duration],
   );
@@ -161,7 +159,7 @@ export const EditorControls = memo(function EditorControls({
       disabled={!canEditPreviewTime}
       onCommit={onPreviewTimeCommit}
       value={currentTime}
-      valueLabel={`${formatTimecodeInput(currentTime)} of ${formatTimecodeInput(duration)}`}
+      valueLabel={`${formatTimecode(currentTime)} of ${formatTimecode(duration)}`}
     >
       <EditorPreviewTimecode
         ariaHidden
@@ -350,46 +348,23 @@ export const EditorControls = memo(function EditorControls({
             key={metric.label}
             className={
               variant === "mobile"
-                ? "flex min-h-11 min-w-0 items-center justify-between gap-2 font-mono"
+                ? "col-span-2 grid min-h-11 min-w-0 grid-cols-subgrid items-center font-mono"
                 : "flex items-center gap-2"
             }
           >
-            {(variant === "desktop" || !metric.onCommit) && label}
+            {label}
             {metric.onCommit ? (
               <EditorEditableTimecode
                 ariaLabel={`${metric.label} time`}
                 tool="trim"
-                buttonClassName={
-                  variant === "mobile"
-                    ? "h-11 w-full justify-center gap-2 rounded-[var(--radius-control)] text-foreground hover:bg-editor-control-hover"
-                    : "editor-control-focus w-full justify-end rounded-[var(--radius-control)] px-1 font-mono text-sm font-semibold tabular-nums text-muted-foreground hover:bg-editor-control-hover hover:text-foreground"
-                }
                 className={
-                  variant === "mobile"
-                    ? "min-h-11 w-full items-center"
-                    : "justify-end"
+                  variant === "desktop" ? "font-mono text-sm" : undefined
                 }
                 disabled={!canEditClipTimecode}
-                inputClassName={
-                  variant === "mobile"
-                    ? "h-11 text-editor-input text-right"
-                    : "text-right"
-                }
                 onCommit={metric.onCommit}
                 style={variant === "desktop" ? clipMetricTimeStyle : undefined}
                 value={metric.value}
-              >
-                {variant === "mobile" && label}
-                <span
-                  className={
-                    variant === "mobile"
-                      ? "font-mono text-sm font-semibold tabular-nums"
-                      : "block w-full text-right"
-                  }
-                >
-                  {formatTime(metric.value)}
-                </span>
-              </EditorEditableTimecode>
+              />
             ) : (
               <span
                 className={`inline-block text-right font-mono text-sm font-semibold tabular-nums ${
@@ -411,7 +386,15 @@ export const EditorControls = memo(function EditorControls({
   if (section === "trim") {
     return (
       <div className="space-y-2 p-3">
-        <div className="grid gap-2">{editableClipMetrics}</div>
+        <div
+          className={
+            variant === "mobile"
+              ? "grid grid-cols-[auto_minmax(0,1fr)] gap-2"
+              : "grid gap-2"
+          }
+        >
+          {editableClipMetrics}
+        </div>
         {rangeActions}
       </div>
     );

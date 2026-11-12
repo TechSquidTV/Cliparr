@@ -65,12 +65,15 @@ async function checkPausedSubtitlePreview({ browser, url }) {
         }, expected);
       await waitForOverlayContent(false);
       await add.click();
-      await page
-        .getByRole("button", {
-          name: "Edit subtitle cue in point: 0:01.00",
-          exact: true,
-        })
-        .waitFor();
+      assert.equal(
+        await page
+          .getByRole("textbox", {
+            name: "Edit subtitle cue in point",
+            exact: true,
+          })
+          .inputValue(),
+        "0:01.00",
+      );
       await waitForOverlayContent(true);
       const created = await readOverlay();
       const text = page.getByRole("textbox", {

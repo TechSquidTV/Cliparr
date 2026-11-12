@@ -21,39 +21,30 @@ async function assertTransportLayout(page, label) {
   );
 }
 
-async function assertTimecodeEditorLayout(page, field) {
-  const inputField = page.getByRole("textbox", {
+async function assertTimecodeEditorLayout(page, field, expectedBounds) {
+  const input = page.getByRole("textbox", {
     name: `Edit ${field}`,
     exact: true,
   });
-  const input = await inputField.boundingBox();
-  const cancel = await page
-    .getByRole("button", { name: `Cancel ${field} edit`, exact: true })
-    .boundingBox();
-  const textSize = await inputField.evaluate((element) => {
-    return {
-      available: element.clientWidth,
-      required: element.scrollWidth,
-    };
-  });
-  assert.ok(
-    textSize.available >= textSize.required,
-    `${field}: input fits its value without scrolling ${JSON.stringify(textSize)}`,
-  );
-  assert.ok(
-    input &&
-      cancel &&
-      (input.x + input.width <= cancel.x + 1 ||
-        input.y + input.height <= cancel.y + 1),
-    `${field}: Cancel has its own space`,
-  );
+  const bounds = await input.boundingBox();
   const viewport = page.viewportSize();
   assert.ok(
-    viewport &&
-      cancel &&
-      cancel.x >= 0 &&
-      cancel.x + cancel.width <= viewport.width + 1,
-    `${field}: Cancel stays inside the viewport`,
+    bounds &&
+      viewport &&
+      bounds.x >= 0 &&
+      bounds.x + bounds.width <= viewport.width + 1,
+    `${field}: input stays inside the viewport`,
+  );
+  if (expectedBounds) {
+    assert.deepEqual(
+      bounds,
+      expectedBounds,
+      `${field}: editing preserves the field's position and size`,
+    );
+  }
+  assert.equal(
+    await page.getByRole("button", { name: `Cancel ${field} edit` }).count(),
+    0,
   );
 }
 
@@ -97,9 +88,6 @@ async function checkTouchTrimTargets(browser, url) {
       fields.reverse();
     }
     for (const [edge, value] of fields) {
-      await page
-        .getByRole("button", { name: new RegExp(`^Edit ${edge} time:`) })
-        .click();
       const field = page.getByRole("textbox", {
         name: `Edit ${edge} time`,
         exact: true,
@@ -561,16 +549,13 @@ async function checkExportNavigation(browser, baseUrl, screenshots) {
     await back.click();
     await drawer.waitFor({ state: "hidden" });
     await page.setViewportSize({ width: 1280, height: 800 });
-    await page.getByRole("button", { name: /Edit Out time:/ }).click();
     const outTime = page.getByRole("textbox", {
       name: "Edit Out time",
       exact: true,
     });
     await outTime.fill("0:02.00");
     await outTime.press("Enter");
-    await page
-      .getByRole("button", { name: "Edit Out time: 0:02.00" })
-      .waitFor();
+    assert.equal(await outTime.inputValue(), "0:02.00");
     await page.goForward();
     await close.waitFor();
     await drawer.getByText("coastal-clip.mp4", { exact: true }).waitFor();
@@ -726,7 +711,6 @@ export async function checkEditorLayouts({ browser, url, screenshots }) {
           await page.getByRole("button", { name: "Done", exact: true }).click();
         }
         await dock.getByRole("button", { name: "Trim", exact: true }).click();
-        await page.getByRole("button", { name: /Edit Out time:/ }).click();
         await page
           .getByRole("textbox", { name: "Edit Out time", exact: true })
           .fill("3:59:59");
@@ -836,27 +820,42 @@ export async function checkEditorLayouts({ browser, url, screenshots }) {
       "Default workspace needs no vertical scroll",
     );
     await page.setViewportSize({ width: 320, height: 874 });
-    await page.getByRole("button", { name: /Edit preview time:/ }).click();
+    const previewTrigger = page.getByRole("button", {
+      name: /Edit preview time:/,
+    });
+    const previewBounds = await previewTrigger.boundingBox();
+    await previewTrigger.click();
     await page
       .getByRole("textbox", { name: "Edit preview time", exact: true })
       .fill("00:00:02.000");
-    await assertTimecodeEditorLayout(page, "preview time");
+    await assertTimecodeEditorLayout(page, "preview time", previewBounds);
     await page
-      .getByRole("button", { name: "Cancel preview time edit", exact: true })
-      .click();
+      .getByRole("textbox", { name: "Edit preview time", exact: true })
+      .press("Escape");
     await page.setViewportSize({ width: 402, height: 874 });
     await dock.getByRole("button", { name: "Trim", exact: true }).click();
-    const inButton = page.getByRole("button", { name: /Edit In time:/ });
-    const initialInLabel = await inButton.getAttribute("aria-label");
-    assert.equal(
-      await page.getByRole("button", { name: "Undo", exact: true }).isEnabled(),
-      false,
-    );
-    await page.getByRole("button", { name: /Edit In time:/ }).click();
     const inField = page.getByRole("textbox", {
       name: "Edit In time",
       exact: true,
     });
+    const outField = page.getByRole("textbox", {
+      name: "Edit Out time",
+      exact: true,
+    });
+    const initialIn = await inField.inputValue();
+    const inBounds = await inField.boundingBox();
+    const mobileOutBounds = await outField.boundingBox();
+    assert.ok(
+      inBounds &&
+        inBounds.height >= 44 &&
+        mobileOutBounds &&
+        mobileOutBounds.height >= 44,
+      "Both timecodes retain full-height touch targets",
+    );
+    assert.equal(
+      await page.getByRole("button", { name: "Undo", exact: true }).isEnabled(),
+      false,
+    );
     await inField.fill("0.25");
     await inField.dispatchEvent("keydown", {
       key: "Enter",
@@ -864,54 +863,41 @@ export async function checkEditorLayouts({ browser, url, screenshots }) {
       isComposing: true,
     });
     assert.equal(
-      await inField.count(),
-      1,
+      await inField.inputValue(),
+      "0.25",
       "IME Enter does not finish a time edit",
     );
-    await assertTimecodeEditorLayout(page, "In time");
-    await inField.press("Tab");
-    const cancelIn = page.getByRole("button", {
-      name: "Cancel In time edit",
-      exact: true,
-    });
-    assert.equal(
-      await inField.count(),
-      1,
-      "Tabbing to Cancel keeps the draft open",
+    await assertTimecodeEditorLayout(page, "In time", inBounds);
+    assert.deepEqual(
+      await outField.boundingBox(),
+      mobileOutBounds,
+      "Editing In keeps Out in place",
     );
-    assert.ok(
-      await cancelIn.evaluate(
-        (element) => element === globalThis.document.activeElement,
-      ),
-    );
-    await cancelIn.press("Enter");
+    await inField.press("Escape");
     assert.equal(
-      await inButton.getAttribute("aria-label"),
-      initialInLabel,
-      "Keyboard Cancel discards the mobile draft",
+      await inField.inputValue(),
+      initialIn,
+      "Escape discards the mobile draft",
     );
     assert.equal(
       await page.getByRole("button", { name: "Undo", exact: true }).isEnabled(),
       false,
-      "Keyboard Cancel adds no history entry",
     );
-    await inButton.click();
     await inField.fill("0.25");
     await inField.press("Tab");
     await page.getByRole("button", { name: "Done", exact: true }).click();
     await dock.getByRole("button", { name: "Trim", exact: true }).click();
     assert.match(
-      await inButton.getAttribute("aria-label"),
+      await inField.inputValue(),
       /0:00\.25/,
-      "A tool transition commits even when Cancel owned focus",
+      "Tab applies the edit before changing tools",
     );
     await page.getByRole("button", { name: "Undo", exact: true }).click();
     assert.equal(
-      await inButton.getAttribute("aria-label"),
-      initialInLabel,
+      await inField.inputValue(),
+      initialIn,
       "Leaving the edit records one undo step",
     );
-    await inButton.click();
     await inField.fill("bad");
     await page.getByRole("button", { name: "Done", exact: true }).click();
     assert.equal(
@@ -928,29 +914,26 @@ export async function checkEditorLayouts({ browser, url, screenshots }) {
     );
     await page.setViewportSize({ width: 402, height: 874 });
     await inField.waitFor();
-    await page
-      .getByRole("button", { name: "Cancel In time edit", exact: true })
-      .click();
-    await page.getByRole("button", { name: /Edit In time:/ }).click();
-    await page
-      .getByRole("textbox", { name: "Edit In time", exact: true })
-      .fill("0.5");
-    await page
-      .getByRole("textbox", { name: "Edit In time", exact: true })
-      .press("Enter");
+    await inField.fill("");
+    await page.getByRole("button", { name: "Done", exact: true }).tap();
+    await dock.getByRole("button", { name: "Trim", exact: true }).tap();
+    assert.equal(
+      await inField.inputValue(),
+      initialIn,
+      "Clearing a time and tapping Done discards the draft",
+    );
+    assert.equal(
+      await page.getByRole("button", { name: "Undo", exact: true }).isEnabled(),
+      false,
+    );
+    await inField.fill("0.5");
+    await inField.press("Enter");
     await page.getByRole("button", { name: "Done", exact: true }).click();
     await page
       .getByRole("button", { name: "Edit clip range", exact: true })
       .waitFor();
     await page.setViewportSize({ width: 1280, height: 900 });
-    const outButton = page.getByRole("button", { name: /Edit Out time:/ });
-    const initialOutLabel = await outButton.getAttribute("aria-label");
-    await outButton.click();
-    const outField = page.getByRole("textbox", {
-      name: "Edit Out time",
-      exact: true,
-    });
-    await assertTimecodeEditorLayout(page, "Out time");
+    const initialOut = await outField.inputValue();
     await page.setViewportSize({ width: 1024, height: 768 });
     await page.evaluate(() => {
       globalThis.document.documentElement.style.fontSize = "125%";
@@ -960,25 +943,28 @@ export async function checkEditorLayouts({ browser, url, screenshots }) {
       globalThis.document.documentElement.style.removeProperty("font-size");
     });
     await page.setViewportSize({ width: 1280, height: 900 });
+    await outField.click({ trial: true });
+    const outBounds = await outField.boundingBox();
+    const desktopInBounds = await inField.boundingBox();
+    assert.ok(
+      await outField.evaluate(
+        (input) => input.scrollWidth <= input.clientWidth,
+      ),
+      "The formatted Out time fits without scrolling",
+    );
     await outField.fill("00:00:02.000");
-    await assertTimecodeEditorLayout(page, "Out time");
-    await outField.press("Tab");
-    const cancelOut = page.getByRole("button", {
-      name: "Cancel Out time edit",
-      exact: true,
-    });
-    assert.equal(
-      await outField.count(),
-      1,
-      "Desktop keyboard cancellation keeps the draft open",
+    await assertTimecodeEditorLayout(page, "Out time", outBounds);
+    assert.deepEqual(
+      await inField.boundingBox(),
+      desktopInBounds,
+      "Editing Out keeps In in place",
     );
-    await cancelOut.press("Enter");
+    await outField.press("Escape");
     assert.equal(
-      await outButton.getAttribute("aria-label"),
-      initialOutLabel,
-      "Keyboard Cancel discards the desktop draft",
+      await outField.inputValue(),
+      initialOut,
+      "Escape discards the desktop draft",
     );
-    await outButton.click();
     await outField.fill("unfinished");
     await page.setViewportSize({ width: 402, height: 874 });
     await dock.waitFor();
@@ -988,9 +974,7 @@ export async function checkEditorLayouts({ browser, url, screenshots }) {
       "unfinished",
       "Desktop range edit opens Trim when narrowing the viewport",
     );
-    await page
-      .getByRole("button", { name: "Cancel Out time edit", exact: true })
-      .click();
+    await outField.press("Escape");
     await page.getByRole("button", { name: "Done", exact: true }).click();
     await dock.getByRole("button", { name: "Trim", exact: true }).focus();
     await page.keyboard.press("Enter");
@@ -1089,9 +1073,6 @@ export async function checkEditorLayouts({ browser, url, screenshots }) {
     );
     await subtitleText.fill("Updated cue");
     await page.getByRole("tab", { name: "Timing", exact: true }).click();
-    await page
-      .getByRole("button", { name: /Edit subtitle cue in point:/ })
-      .click();
     const cueTime = page.getByRole("textbox", {
       name: "Edit subtitle cue in point",
       exact: true,
@@ -1104,12 +1085,7 @@ export async function checkEditorLayouts({ browser, url, screenshots }) {
       "bad",
       "Invalid cue timing blocks a tab change",
     );
-    await page
-      .getByRole("button", {
-        name: "Cancel subtitle cue in point edit",
-        exact: true,
-      })
-      .click();
+    await cueTime.press("Escape");
     await page.getByRole("tab", { name: "Style", exact: true }).click();
     await page.getByRole("slider", { name: "Size", exact: true }).waitFor();
     await page.getByRole("tab", { name: "Text", exact: true }).click();
@@ -1233,9 +1209,6 @@ export async function checkEditorLayouts({ browser, url, screenshots }) {
       path: path.join(screenshots, `desktop-${shape}-subtitles-stacked.png`),
     });
     await page
-      .getByRole("button", { name: /Edit subtitle cue in point:/ })
-      .click();
-    await page
       .getByRole("textbox", { name: "Edit subtitle cue in point", exact: true })
       .fill("unfinished");
     await page.setViewportSize({ width: 402, height: 874 });
@@ -1253,12 +1226,7 @@ export async function checkEditorLayouts({ browser, url, screenshots }) {
       "unfinished",
       "Desktop cue timing edits open the mobile Timing tab without losing the draft",
     );
-    await page
-      .getByRole("button", {
-        name: "Cancel subtitle cue in point edit",
-        exact: true,
-      })
-      .click();
+    await cueTime.press("Escape");
     await page.getByRole("tab", { name: "Text", exact: true }).click();
     assert.equal(await subtitleText.inputValue(), "旋转");
     await page.getByRole("button", { name: "Done", exact: true }).click();
