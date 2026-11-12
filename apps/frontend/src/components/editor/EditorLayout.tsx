@@ -61,10 +61,10 @@ export function EditorPreviewPane({
     <section
       data-editor-preview-stage
       className={cn(
-        "relative overflow-hidden border border-editor-border bg-editor-monitor",
+        "relative overflow-hidden border-editor-border bg-editor-monitor",
         variant === "desktop"
-          ? "flex min-h-0 flex-1 items-center justify-center p-2"
-          : "w-full flex-none",
+          ? "flex min-h-0 flex-1 items-center justify-center border p-2"
+          : "w-full flex-none border-x border-b",
         variant === "mobile" &&
           !cropEditing &&
           "max-h-[var(--editor-preview-height,46dvh)]",

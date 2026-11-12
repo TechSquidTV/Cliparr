@@ -58,7 +58,7 @@ export function EditorHeader({
   );
 
   return (
-    <header className="grid shrink-0 grid-cols-editor-header items-center gap-2 border-b border-editor-border bg-editor-panel pl-2 lg:gap-3 lg:px-3 lg:py-2">
+    <header className="grid shrink-0 grid-cols-editor-header items-center gap-2 border-b border-editor-border bg-editor-panel py-1 pl-2 lg:gap-3 lg:px-3 lg:py-2">
       <div className="flex items-center gap-2">
         <Tooltip>
           <TooltipTrigger
