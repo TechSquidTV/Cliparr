@@ -1,0 +1,117 @@
+import { FolderOpen, ShieldCheck, TriangleAlert } from "lucide-react";
+import { useCallback, useEffect, useState } from "react";
+
+import { editorDrafts } from "#/components/editor/editorDrafts";
+import EditorScreen from "#/components/editor/EditorScreen";
+import { BarsLoader } from "#/components/ui/bars-loader";
+import { buttonClassName } from "#/components/ui/control-styles";
+import {
+  type LocalMediaResolution,
+  type LocalMediaUrlResolver,
+  resolveLocalMediaSession,
+} from "#/lib/localMediaRegistry";
+
+export function LocalEditorSessionView({
+  sessionId,
+  onBack: navigateHome,
+  onReopen,
+  resolveUrl,
+}: {
+  sessionId: string;
+  onBack: () => void;
+  onReopen: () => void;
+  resolveUrl?: LocalMediaUrlResolver;
+}) {
+  const [resolution, setResolution] = useState<LocalMediaResolution | null>(
+    null,
+  );
+  const [loading, setLoading] = useState(true);
+
+  const loadSession = useCallback(
+    async (requestPermission = false) => {
+      setLoading(true);
+      try {
+        setResolution(
+          await resolveLocalMediaSession(sessionId, {
+            requestPermission,
+            resolveUrl,
+          }),
+        );
+      } finally {
+        setLoading(false);
+      }
+    },
+    [sessionId, resolveUrl],
+  );
+
+  useEffect(() => {
+    void loadSession();
+  }, [loadSession]);
+
+  if (loading) {
+    return (
+      <div className="flex min-h-(--app-viewport-height) items-center justify-center bg-background text-foreground">
+        <BarsLoader label="Loading local video…" showLabel />
+      </div>
+    );
+  }
+
+  if (resolution?.status === "ready") {
+    return <EditorScreen session={resolution.session} onBack={navigateHome} />;
+  }
+
+  const title = resolution?.title ?? "Local video";
+  const message = resolution?.message ?? "Could not open this video.";
+  const needsPermission = resolution?.status === "permission-needed";
+
+  return (
+    <div className="flex min-h-(--app-viewport-height) items-center justify-center bg-background p-6 text-foreground">
+      <div className="w-full max-w-md rounded-lg border border-border bg-card p-5 text-card-foreground shadow-lg">
+        <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-full border border-border bg-background text-muted-foreground">
+          {needsPermission ? (
+            <ShieldCheck className="h-5 w-5" />
+          ) : (
+            <TriangleAlert className="h-5 w-5" />
+          )}
+        </div>
+        <div className="space-y-2">
+          <h1 className="text-lg font-semibold text-foreground">{title}</h1>
+          <p className="text-sm leading-6 text-muted-foreground">{message}</p>
+          {editorDrafts.hasSession(sessionId) && (
+            <p className="text-sm leading-6 text-muted-foreground">
+              Reopen the same unchanged file to restore your draft on this
+              device.
+            </p>
+          )}
+        </div>
+        <div className="mt-5 flex flex-wrap items-center gap-3">
+          {needsPermission && (
+            <button
+              type="button"
+              onClick={() => void loadSession(true)}
+              className={buttonClassName()}
+            >
+              <ShieldCheck className="h-4 w-4" />
+              Grant Access
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={onReopen}
+            className={buttonClassName({ tone: "secondary" })}
+          >
+            <FolderOpen className="h-4 w-4" />
+            Open Video
+          </button>
+          <button
+            type="button"
+            onClick={navigateHome}
+            className={buttonClassName({ tone: "subtle", size: "dense" })}
+          >
+            Back
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}

@@ -80,7 +80,7 @@ export function EditorHeader({
         </Tooltip>
         <div className="hidden items-center gap-2 pl-1 lg:flex">
           <img
-            src="/logo-light.svg"
+            src={`${import.meta.env?.BASE_URL ?? "/"}logo-light.svg`}
             alt="Cliparr Logo"
             className="h-5 w-5"
             width="20"

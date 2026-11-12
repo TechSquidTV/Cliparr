@@ -25,7 +25,7 @@
     "dev": "vite",
     "build": "vite build",
     "lint": "pnpm lint:eslint && pnpm lint:types",
-    "lint:eslint": "cd ../.. && pnpm exec eslint --config config/eslint.config.js \"apps/frontend/src/**/*.{ts,tsx}\" \"apps/frontend/vite.config.js\" \"apps/frontend/public/service-worker.js\" \"apps/frontend/tests/**/*.{ts,tsx,mjs}\"",
+    "lint:eslint": "cd ../.. && pnpm exec eslint --config config/eslint.config.js \"apps/frontend/src/**/*.{ts,tsx}\" \"apps/frontend/vite.config.js\" \"apps/frontend/src/try/*.js\" \"apps/frontend/public/service-worker.js\" \"apps/frontend/tests/**/*.{ts,tsx,mjs}\"",
     "lint:types": "tsc --noEmit",
     "test": "node --import tsx --test \"src/**/*.test.ts\" \"tests/*.test.{ts,mjs}\" \"../../tools/ci/media-loading-lint.test.mjs\"",
     "preview": "vite preview",
@@ -34,7 +34,8 @@
     "test:browser:hls-estimate": "node tests/hls-estimate.mjs",
     "test:browser:loading": "node tests/media-loading.mjs",
     "test:browser:ui": "node tests/ui-controls.mjs",
-    "test:browser:crop": "node tests/video-crop.mjs"
+    "test:browser:crop": "node tests/video-crop.mjs",
+    "build:try": "vite build --mode try"
   },
   "dependencies": {
     "@base-ui/react": "^1.8.0",
