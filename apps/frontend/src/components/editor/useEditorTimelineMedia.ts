@@ -1,9 +1,13 @@
 import { logDurationFields, logEventFields } from "@cliparr/shared/logging";
 import {
+  type ActiveLayerResult,
+  compareRational,
   fromSeconds,
   type TimelineEngine,
   type TimelineMediaError,
+  type TimelineMediaSyncAdapter,
   toSeconds,
+  useTimelineMediaSync,
   useTimelinePlayheadTime,
 } from "@techsquidtv/canvas-timeline";
 import type {
@@ -13,8 +17,8 @@ import type {
   MediabunnyTrackSelectionContext,
 } from "@techsquidtv/canvas-timeline-mediabunny-adapter";
 import {
+  useMediabunnyAdapter,
   useMediabunnyFrameTime,
-  useMediabunnyTimelineMedia,
 } from "@techsquidtv/canvas-timeline-mediabunny-adapter/react";
 import type { Input, InputVideoTrack } from "mediabunny";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -67,6 +71,9 @@ const previewLayerSelectors = {
   visuals: { trackKind: "media", sourceId: EDITOR_MEDIA_SOURCE_ID },
   audio: { trackKind: "media", sourceId: EDITOR_MEDIA_SOURCE_ID },
 } as const;
+const loadMediabunny = () => import("mediabunny");
+type PreviewLayer = keyof typeof previewLayerSelectors;
+
 const mediaTrackKinds = ["media"] as const;
 const previewPlaybackOptions = { respectInOut: true, loop: false } as const;
 
@@ -252,17 +259,58 @@ export function useEditorTimelineMedia(
   const handleMediaError = useCallback((error: TimelineMediaError) => {
     setPlaybackError(error.message);
   }, []);
-  const media = useMediabunnyTimelineMedia({
+  const [canvas, setCanvas] = useState<HTMLCanvasElement | null>(null);
+  const adapter = useMediabunnyAdapter({
+    canvas,
+    mediabunny: loadMediabunny,
     sources: mediaSource.sources,
     selectTracks: mediaSource.selectTracks,
     audio: { muted, volume },
     audioTrackKinds: mediaTrackKinds,
     visualTrackKinds: mediaTrackKinds,
+  });
+  const previewTransport = useMemo<
+    TimelineMediaSyncAdapter<PreviewLayer>
+  >(() => {
+    function layersForPreview(layers: ActiveLayerResult<PreviewLayer>) {
+      const end = engine.getState().duration;
+      if (
+        layers.hasActiveClips ||
+        !end ||
+        end.v <= 0 ||
+        compareRational(layers.time, end) !== 0
+      ) {
+        return layers;
+      }
+      // Clip intervals exclude their end. Sample the final timeline tick for
+      // decoding while passing the exact end time to the transport.
+      return engine.media.getActiveLayers({
+        time: { v: end.v - 1, r: end.r },
+        layers: previewLayerSelectors,
+      });
+    }
+    return {
+      getClockTime: adapter.getClockTime,
+      startClock: adapter.startClock,
+      stopClock: adapter.stopClock,
+      setClockRate: adapter.setClockRate,
+      requestClockActivation: adapter.requestClockActivation,
+      onStatus: adapter.onStatus,
+      seek: (time, layers) => adapter.seek(time, layersForPreview(layers)),
+      syncLayers: (details) =>
+        adapter.syncLayers({
+          ...details,
+          activeLayers: layersForPreview(details.activeLayers),
+        }),
+    };
+  }, [adapter, engine]);
+  const { pause, play, playing } = useTimelineMediaSync({
+    adapter: previewTransport,
+    ready: adapter.ready,
     layers: previewLayerSelectors,
     onError: handleMediaError,
     playbackOptions: previewPlaybackOptions,
   });
-  const { adapter, pause, play, playing, canvasRef: mediaCanvasRef } = media;
   const previewRequest = useRef(0);
   const loadPreviewSource = useMemo(
     () => createEditorPreviewSourceLoader(adapter, EDITOR_MEDIA_SOURCE_ID),
@@ -284,14 +332,11 @@ export function useEditorTimelineMedia(
   }, [adapter, loadPreviewSource]);
   const renderedFrameTime = useMediabunnyFrameTime(adapter);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  const connectCanvas = useCallback(
-    (canvas: HTMLCanvasElement | null) => {
-      canvasRef.current = canvas;
-      mediaCanvasRef(canvas);
-    },
-    [mediaCanvasRef],
-  );
-  const sourceState = media.sourceStateById.get(EDITOR_MEDIA_SOURCE_ID);
+  const connectCanvas = useCallback((canvas: HTMLCanvasElement | null) => {
+    canvasRef.current = canvas;
+    setCanvas(canvas);
+  }, []);
+  const sourceState = adapter.sourceStateById.get(EDITOR_MEDIA_SOURCE_ID);
   const preparedInput =
     sourceState?.status === "ready" && sourceState.selectedInputIndex !== null
       ? mediaSource.preparedInputs.get(sourceState.selectedInputIndex)
@@ -467,13 +512,13 @@ export function useEditorTimelineMedia(
     !sourceReady &&
     (sourceState?.status === "loading" ||
       sourceState?.status === "recovering" ||
-      !media.error);
+      !adapter.error);
   const loadingPreviewFrame =
     sourceReady &&
     details.previewVideoDimensions !== null &&
     renderedTimelineFrameTime === null;
   // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- An empty playback error must allow the media error to surface.
-  const previewError = playbackError || media.error?.message || "";
+  const previewError = playbackError || adapter.error?.message || "";
 
   const previewTiming = useRef({
     configurationId: mediaSource.configurationId,
