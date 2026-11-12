@@ -77,6 +77,7 @@ export function EditorSubtitlePanel({
   showHeading = true,
   autoFocusCreated = true,
 }: EditorSubtitlePanelProperties) {
+  const subtitleFileInput = useRef<HTMLInputElement>(null);
   const textReference = useRef<HTMLTextAreaElement>(null);
   const panelReference = useRef<HTMLDivElement>(null);
   const { focusRevision } = subtitles;
@@ -154,6 +155,20 @@ export function EditorSubtitlePanel({
             variant="editor"
           />
         </label>
+        <input
+          ref={subtitleFileInput}
+          type="file"
+          hidden
+          accept=".srt,.vtt"
+          aria-label="Subtitle file"
+          onChange={(event) => {
+            const file = event.currentTarget.files?.item(0);
+            event.currentTarget.value = "";
+            if (file) {
+              subtitles.requestImport(file);
+            }
+          }}
+        />
         <Menu.Root>
           <Menu.Trigger
             render={
@@ -179,6 +194,13 @@ export function EditorSubtitlePanel({
                 }
                 className="max-h-80 max-w-80 overflow-y-auto rounded border border-editor-border bg-editor-panel p-1 shadow-lg"
               >
+                <Menu.Item
+                  disabled={!subtitles.canImportSubtitles}
+                  className={menuItemClasses}
+                  onClick={() => subtitleFileInput.current?.click()}
+                >
+                  Import subtitle file…
+                </Menu.Item>
                 {subtitles.subtitleTracks.length > 0 && (
                   <Menu.Group>
                     <Menu.GroupLabel className="px-3 py-2 text-xs text-muted-foreground">

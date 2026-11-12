@@ -12,47 +12,20 @@ import {
 } from "@cliparr/shared/providers";
 import { useCallback, useEffect, useState } from "react";
 
-import { readResponseErrorDetails } from "@/api/cliparrClient";
+import { readResponseErrorDetails } from "@/api/responseError";
 import { parseSubtitleTextAsync } from "@/lib/subtitles/parseSubtitleTextAsync";
-import {
-  subtitleTrackKey,
-  subtitleTrackUnavailableMessage,
-} from "@/lib/subtitles/selectPreferredSubtitleTrack";
+import { subtitleTrackUnavailableMessage } from "@/lib/subtitles/selectPreferredSubtitleTrack";
 import type { SubtitleCue } from "@/lib/subtitles/types";
 import { getFrontendLogger } from "@/logging";
 
+export type SubtitleImportSource = File | PlaybackSubtitleTrack;
+
 interface UseSubtitleCuesOptions {
-  selectedSubtitleTrack: PlaybackSubtitleTrack | null;
-  subtitleEnabled: boolean;
+  source: SubtitleImportSource | null;
   providerId: string;
 }
 
 const logger = getFrontendLogger(["editor", "subtitle"]);
-
-interface SubtitleDownloadFailure {
-  status: number;
-  message: string;
-}
-
-type SubtitleDownloadResult =
-  | {
-      ok: true;
-      cues: SubtitleCue[];
-    }
-  | {
-      ok: false;
-      failure: SubtitleDownloadFailure;
-    };
-
-async function subtitleDownloadFailure(
-  response: Response,
-): Promise<SubtitleDownloadFailure> {
-  const error = await readResponseErrorDetails(response);
-  return {
-    status: response.status,
-    message: error.message ?? `Could not load subtitles (${response.status}).`,
-  };
-}
 
 function subtitleTrackLogFields(
   track: PlaybackSubtitleTrack,
@@ -69,112 +42,116 @@ function subtitleTrackLogFields(
   });
 }
 
-async function downloadSubtitleCues(
-  track: PlaybackSubtitleTrack,
-  contentUrl: string,
+async function readSubtitleSource(
+  source: SubtitleImportSource,
+  providerId: string,
   signal: AbortSignal,
-): Promise<SubtitleDownloadResult> {
-  const response = await fetch(contentUrl, { signal });
-  if (!response.ok) {
-    return {
-      ok: false,
-      failure: await subtitleDownloadFailure(response),
-    };
+): Promise<
+  | { ok: true; text: string; format?: string }
+  | { ok: false; status: number; message: string }
+> {
+  if (source instanceof File) {
+    const format = source.name.split(".").at(-1)?.toLowerCase();
+    if (format !== "srt" && format !== "vtt") {
+      throw new Error("Choose an SRT or WebVTT subtitle file.");
+    }
+    return { ok: true, text: await source.text(), format };
   }
 
+  if (!source.contentUrl || !subtitleTrackSupportsBurnIn(source)) {
+    throw new Error(
+      subtitleTrackUnavailableMessage(source, providerId) ??
+        "This subtitle track is not supported.",
+    );
+  }
+  const response = await fetch(source.contentUrl, { signal });
+  if (!response.ok) {
+    const error = await readResponseErrorDetails(response);
+    return {
+      ok: false,
+      status: response.status,
+      message:
+        error.message ?? `Could not load subtitles (${response.status}).`,
+    };
+  }
   return {
     ok: true,
-    cues: await parseSubtitleTextAsync(
-      await response.text(),
-      track.contentFormat,
-      signal,
-    ),
+    text: await response.text(),
+    format: source.contentFormat,
   };
 }
 
 export function useSubtitleCues({
-  selectedSubtitleTrack,
-  subtitleEnabled,
+  source,
   providerId,
 }: UseSubtitleCuesOptions) {
   const [subtitleCues, setSubtitleCues] = useState<SubtitleCue[]>([]);
-  const [subtitleLoading, setSubtitleLoading] = useState(false);
   const [subtitleError, setSubtitleError] = useState<string | null>(null);
-  const [loadedSubtitleTrackKey, setLoadedSubtitleTrackKey] = useState<
-    string | null
-  >(null);
+  const [loadedSource, setLoadedSource] = useState<SubtitleImportSource | null>(
+    null,
+  );
 
   const resetSubtitleCues = useCallback(() => {
     setSubtitleCues([]);
-    setSubtitleLoading(false);
     setSubtitleError(null);
-    setLoadedSubtitleTrackKey(null);
-  }, []);
-
-  const clearSubtitleError = useCallback(() => {
-    setSubtitleError(null);
+    setLoadedSource(null);
   }, []);
 
   useEffect(() => {
+    if (!source) {
+      resetSubtitleCues();
+      return;
+    }
     let cancelled = false;
     const abortController = new AbortController();
     const timeout = globalThis.setTimeout(() => {
       abortController.abort();
     }, SUBTITLE_IMPORT_TIMEOUT_MS);
 
-    async function loadSubtitleCues() {
-      if (!subtitleEnabled || !selectedSubtitleTrack) {
-        resetSubtitleCues();
-        return;
-      }
-
-      const contentUrl = selectedSubtitleTrack.contentUrl;
-      if (!subtitleTrackSupportsBurnIn(selectedSubtitleTrack) || !contentUrl) {
-        setSubtitleLoading(false);
-        setSubtitleCues([]);
-        setLoadedSubtitleTrackKey(null);
-        setSubtitleError(
-          subtitleTrackUnavailableMessage(selectedSubtitleTrack, providerId) ??
-            "This subtitle track is not supported.",
-        );
-        return;
-      }
-
-      setSubtitleCues([]);
-      setLoadedSubtitleTrackKey(null);
-      setSubtitleLoading(true);
-      setSubtitleError(null);
-
+    async function loadSubtitleCues(input: SubtitleImportSource) {
       const startedAt = Date.now();
+      const fields =
+        input instanceof File
+          ? { "subtitle.external": true }
+          : subtitleTrackLogFields(input, providerId);
+      setSubtitleCues([]);
+      setLoadedSource(null);
+      setSubtitleError(null);
       try {
-        const downloadResult = await downloadSubtitleCues(
-          selectedSubtitleTrack,
-          contentUrl,
+        const result = await readSubtitleSource(
+          input,
+          providerId,
           abortController.signal,
         );
-
         if (cancelled) {
           return;
         }
 
-        if (!downloadResult.ok) {
+        if (!result.ok) {
           logger.warn("Could not load subtitle cues.", {
             ...logEventFields("editor.subtitle.load", "failure"),
             ...logDurationFields(startedAt),
-            ...subtitleTrackLogFields(selectedSubtitleTrack, providerId),
+            ...fields,
             "subtitle.timeout": false,
-            "http.status_code": downloadResult.failure.status,
+            "http.status_code": result.status,
             "error.name": "SubtitleDownloadFailure",
-            "error.message": downloadResult.failure.message,
+            "error.message": result.message,
           });
           setSubtitleCues([]);
-          setSubtitleError(downloadResult.failure.message);
+          setSubtitleError(result.message);
           return;
         }
 
-        const parsedSubtitleCues = downloadResult.cues;
+        const parsedSubtitleCues = await parseSubtitleTextAsync(
+          result.text,
+          result.format,
+          abortController.signal,
+        );
+        if (cancelled) {
+          return;
+        }
         setSubtitleCues(parsedSubtitleCues);
-        setLoadedSubtitleTrackKey(subtitleTrackKey(selectedSubtitleTrack));
+        setLoadedSource(input);
         setSubtitleError(
           parsedSubtitleCues.length === 0
             ? "No subtitles found in this track."
@@ -183,20 +160,19 @@ export function useSubtitleCues({
         logger.info("Subtitle cues loaded.", {
           ...logEventFields("editor.subtitle.load", "success"),
           ...logDurationFields(startedAt),
-          ...subtitleTrackLogFields(selectedSubtitleTrack, providerId),
+          ...fields,
           "subtitle.cue.count": parsedSubtitleCues.length,
         });
       } catch (error) {
         if (cancelled || abortController.signal.aborted) {
           if (!cancelled) {
             setSubtitleCues([]);
-            setLoadedSubtitleTrackKey(null);
+            setLoadedSource(null);
             setSubtitleError("Subtitles timed out. Try again.");
-            setSubtitleLoading(false);
             logger.warn("Subtitle cue load timed out.", {
               ...logEventFields("editor.subtitle.load", "failure"),
               ...logDurationFields(startedAt),
-              ...subtitleTrackLogFields(selectedSubtitleTrack, providerId),
+              ...fields,
               "subtitle.timeout": true,
               "subtitle.timeout.ms": SUBTITLE_IMPORT_TIMEOUT_MS,
             });
@@ -208,36 +184,30 @@ export function useSubtitleCues({
           ...logEventFields("editor.subtitle.load", "failure"),
           ...logDurationFields(startedAt),
           ...logErrorFields(error),
-          ...subtitleTrackLogFields(selectedSubtitleTrack, providerId),
+          ...fields,
           "subtitle.timeout": false,
         });
         setSubtitleCues([]);
-        setLoadedSubtitleTrackKey(null);
+        setLoadedSource(null);
         setSubtitleError(
           error instanceof Error ? error.message : "Could not load subtitles.",
         );
-      } finally {
-        if (!cancelled) {
-          setSubtitleLoading(false);
-        }
       }
     }
 
-    void loadSubtitleCues();
+    void loadSubtitleCues(source);
 
     return () => {
       cancelled = true;
       globalThis.clearTimeout(timeout);
       abortController.abort();
     };
-  }, [providerId, resetSubtitleCues, selectedSubtitleTrack, subtitleEnabled]);
+  }, [providerId, resetSubtitleCues, source]);
 
   return {
     subtitleCues,
-    subtitleLoading,
     subtitleError,
-    loadedSubtitleTrackKey,
+    loadedSource,
     resetSubtitleCues,
-    clearSubtitleError,
   };
 }

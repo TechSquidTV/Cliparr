@@ -1,5 +1,4 @@
 /// <reference types="node" />
-
 import assert from "node:assert/strict";
 import test from "node:test";
 
@@ -11,6 +10,7 @@ import {
   resolveLocalMediaSession,
   validateLocalMediaUrl,
 } from "@/lib/localMediaRegistry";
+import { resolveProxiedMediaUrl } from "@/lib/proxiedMediaSource";
 
 async function withMockedLocalMediaUrl<T>(callback: () => Promise<T>) {
   const originalFetch = globalThis.fetch;
@@ -87,6 +87,7 @@ void test("creates and resolves memory-backed URL sessions when IndexedDB is una
   await withMockedLocalMediaUrl(async () => {
     const result = await createLocalSessionFromUrl(
       "https://example.com/video.mp4",
+      resolveProxiedMediaUrl,
     );
 
     assert.equal(result.status, "ready");
@@ -109,7 +110,9 @@ void test("creates and resolves memory-backed URL sessions when IndexedDB is una
 
     const resolved =
       result.status === "ready"
-        ? await resolveLocalMediaSession(result.session.id)
+        ? await resolveLocalMediaSession(result.session.id, {
+            resolveUrl: resolveProxiedMediaUrl,
+          })
         : null;
     assert.equal(resolved?.status, "ready");
     assert.equal(

@@ -27,7 +27,10 @@ import {
 } from "@/components/editor/editorTimelineEngine";
 import { buildSubtitleExportSummary } from "@/components/editor/subtitleExportSummary";
 import { useEditorHistory } from "@/components/editor/useEditorHistory";
-import { useSubtitleCues } from "@/components/editor/useSubtitleCues";
+import {
+  type SubtitleImportSource,
+  useSubtitleCues,
+} from "@/components/editor/useSubtitleCues";
 import { normalizeSubtitleCueText } from "@/lib/subtitles/normalizeSubtitleCueText";
 import {
   selectPreferredSubtitleTrack,
@@ -109,11 +112,11 @@ export function useEditorSubtitles({
   );
   const [initialized, setInitialized] = useState(Boolean(initialDraft));
   const initialImportStarted = useRef(Boolean(initialDraft));
-  const [importTrack, setImportTrack] = useState<PlaybackSubtitleTrack | null>(
+  const [importSource, setImportSource] = useState<SubtitleImportSource | null>(
     null,
   );
   const [pendingImport, setPendingImport] =
-    useState<PlaybackSubtitleTrack | null>(null);
+    useState<SubtitleImportSource | null>(null);
   const [subtitleError, setSubtitleError] = useState<string | null>(null);
   const [clearPending, setClearPending] = useState(false);
   const [textEdit, setTextEdit] = useState<SubtitleTextEdit | null>(null);
@@ -124,16 +127,15 @@ export function useEditorSubtitles({
   const textCommitPending = useRef(false);
   const history = useEditorHistory(engine, mediaReady && initialized);
   const { runAction } = history;
-  const download = useSubtitleCues({
-    selectedSubtitleTrack: importTrack,
-    subtitleEnabled: importTrack !== null,
+  const loaded = useSubtitleCues({
+    source: importSource,
     providerId: session.source.providerId,
   });
-  const { resetSubtitleCues } = download;
-  const subtitleLoading = importTrack !== null;
+  const { resetSubtitleCues } = loaded;
+  const subtitleLoading = importSource !== null;
   const [subtitleLoadingSlow, setSubtitleLoadingSlow] = useState(false);
   useEffect(() => {
-    if (!importTrack) {
+    if (!importSource || importSource instanceof File) {
       return;
     }
     const timeout = globalThis.setTimeout(() => {
@@ -143,7 +145,7 @@ export function useEditorSubtitles({
       globalThis.clearTimeout(timeout);
       setSubtitleLoadingSlow(false);
     };
-  }, [importTrack]);
+  }, [importSource]);
 
   useEffect(() => {
     saveSubtitleStyleSettings(subtitleStyleSettings);
@@ -158,47 +160,45 @@ export function useEditorSubtitles({
       session.selectedSubtitleTrack,
     );
     if (track) {
-      setImportTrack(track);
+      setImportSource(track);
     } else {
       setInitialized(true);
     }
   }, [duration, mediaReady, session.selectedSubtitleTrack, subtitleTracks]);
 
   useEffect(() => {
-    if (!importTrack || !mediaReady) {
+    if (!importSource || !mediaReady) {
       return;
     }
-    if (download.subtitleError) {
-      setSubtitleError(download.subtitleError);
-      setImportTrack(null);
+    if (loaded.subtitleError) {
+      setSubtitleError(loaded.subtitleError);
+      setImportSource(null);
       resetSubtitleCues();
       setInitialized(true);
-    } else if (
-      download.loadedSubtitleTrackKey === subtitleTrackKey(importTrack)
-    ) {
+    } else if (loaded.loadedSource === importSource) {
       // One import namespace preserves uniqueness across restored drafts; cue
       // identities within the batch need only a cheap index.
       const importId = crypto.randomUUID();
       runAction(() => {
         synchronizeEditorTimelineSubtitles(engine, {
           // Provider identifiers are not editor identities.
-          cues: download.subtitleCues.map((cue, index) => ({
+          cues: loaded.subtitleCues.map((cue, index) => ({
             ...cue,
             id: `${importId}:${index}`,
           })),
         });
       });
       selectClip(null);
-      setImportTrack(null);
+      setImportSource(null);
       resetSubtitleCues();
       setInitialized(true);
     }
   }, [
-    download.loadedSubtitleTrackKey,
-    download.subtitleCues,
-    download.subtitleError,
+    loaded.loadedSource,
+    loaded.subtitleCues,
+    loaded.subtitleError,
     engine,
-    importTrack,
+    importSource,
     mediaReady,
     resetSubtitleCues,
     runAction,
@@ -298,24 +298,27 @@ export function useEditorSubtitles({
     ) !== null;
 
   function cancelImport() {
-    setImportTrack(null);
+    setImportSource(null);
     resetSubtitleCues();
     setInitialized(true);
   }
-  function beginImport(track: PlaybackSubtitleTrack) {
+  function beginImport(source: SubtitleImportSource) {
     commitText();
     resetSubtitleCues();
     setSubtitleError(null);
     setPendingImport(null);
-    setImportTrack(track);
+    setImportSource(source);
   }
-  function requestImport(key: string) {
+  function requestImport(source: string | File) {
     if (!canEditSubtitles) {
       return;
     }
-    const track = subtitleTracks.find(
-      (candidate) => subtitleTrackKey(candidate) === key,
-    );
+    const track =
+      typeof source === "string"
+        ? subtitleTracks.find(
+            (candidate) => subtitleTrackKey(candidate) === source,
+          )
+        : source;
     if (!track) {
       return;
     }
@@ -497,7 +500,7 @@ export function useEditorSubtitles({
     },
     confirmClear: clearSubtitles,
     cancelClear: () => setClearPending(false),
-    canImportSubtitles: canEditSubtitles && subtitleTracks.length > 0,
+    canImportSubtitles: canEditSubtitles,
     canAddSubtitle,
     addSubtitle,
     focusRevision,

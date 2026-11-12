@@ -1,12 +1,7 @@
-import { FileVideo, FolderOpen, Link, Upload } from "lucide-react";
-import {
-  type DragEvent,
-  type SubmitEvent,
-  useCallback,
-  useRef,
-  useState,
-} from "react";
+import { FileVideo, Link } from "lucide-react";
+import { type SubmitEvent, useCallback, useRef, useState } from "react";
 
+import { LocalFilePicker } from "#/components/local-media/LocalFilePicker";
 import {
   buttonClassName,
   destructiveAlertClasses,
@@ -23,14 +18,8 @@ import {
   TabsTab,
 } from "#/components/ui/tabs";
 import { cn } from "#/lib/cn";
-import { LOCAL_VIDEO_FILE_ACCEPT } from "#/lib/localMediaFormats";
-import {
-  createLocalSessionFromFile,
-  createLocalSessionFromPicker,
-  createLocalSessionFromUrl,
-  localMediaPickerSupported,
-} from "#/lib/localMediaRegistry";
-
+import { createLocalSessionFromUrl } from "#/lib/localMediaRegistry";
+import { resolveProxiedMediaUrl } from "#/lib/proxiedMediaSource";
 interface LocalVideoOpenDialogProperties {
   isOpen: boolean;
   canOpenUrl: boolean;
@@ -51,11 +40,9 @@ export function LocalVideoOpenDialog({
   onOpened,
 }: LocalVideoOpenDialogProperties) {
   const initialFocusReference = useRef<HTMLElement | null>(null);
-  const fileInputReference = useRef<HTMLInputElement | null>(null);
   const [activeTab, setActiveTab] = useState<LocalOpenTab>("file");
   const [urlValue, setUrlValue] = useState("");
   const [opening, setOpening] = useState(false);
-  const [dragActive, setDragActive] = useState(false);
   const [error, setError] = useState("");
 
   const completeOpen = useCallback(
@@ -68,66 +55,6 @@ export function LocalVideoOpenDialog({
     [onClose, onOpened],
   );
 
-  const openFile = useCallback(
-    async (file: File | null | undefined) => {
-      if (!file) {
-        return;
-      }
-
-      setOpening(true);
-      setError("");
-      try {
-        const session = await createLocalSessionFromFile(file);
-        completeOpen(session.id);
-      } catch (error_) {
-        setError(errorMessage(error_, "Could not open that file."));
-      } finally {
-        setOpening(false);
-      }
-    },
-    [completeOpen],
-  );
-
-  const handleChooseFile = useCallback(async () => {
-    setError("");
-
-    if (!localMediaPickerSupported()) {
-      fileInputReference.current?.click();
-      return;
-    }
-
-    setOpening(true);
-    try {
-      const result = await createLocalSessionFromPicker();
-      if (result.status === "ready") {
-        completeOpen(result.session.id);
-        return;
-      }
-
-      if (result.status === "unsupported") {
-        fileInputReference.current?.click();
-        return;
-      }
-
-      if (result.status === "error") {
-        setError(result.message);
-      }
-    } catch (error_) {
-      setError(errorMessage(error_, "Could not open that file."));
-    } finally {
-      setOpening(false);
-    }
-  }, [completeOpen]);
-
-  const handleDrop = useCallback(
-    (event: DragEvent<HTMLDivElement>) => {
-      event.preventDefault();
-      setDragActive(false);
-      void openFile(event.dataTransfer.files.item(0));
-    },
-    [openFile],
-  );
-
   const handleUrlSubmit = useCallback(
     async (event: SubmitEvent<HTMLFormElement>) => {
       event.preventDefault();
@@ -138,7 +65,10 @@ export function LocalVideoOpenDialog({
       setError("");
 
       try {
-        const result = await createLocalSessionFromUrl(urlValue);
+        const result = await createLocalSessionFromUrl(
+          urlValue,
+          resolveProxiedMediaUrl,
+        );
         if (result.status === "ready") {
           completeOpen(result.session.id);
           return;
@@ -207,52 +137,11 @@ export function LocalVideoOpenDialog({
 
           <TabsPanels>
             <TabsPanel value="file">
-              <div
-                onDragOver={(event) => {
-                  event.preventDefault();
-                  setDragActive(true);
-                }}
-                onDragLeave={() => setDragActive(false)}
-                onDrop={handleDrop}
-                className={`flex min-h-52 flex-col items-center justify-center border border-dashed p-6 text-center transition-colors ${
-                  dragActive
-                    ? "border-primary bg-primary/8"
-                    : "border-border bg-background"
-                }`}
-              >
-                <input
-                  ref={fileInputReference}
-                  type="file"
-                  accept={LOCAL_VIDEO_FILE_ACCEPT}
-                  className="hidden"
-                  onChange={(event) => {
-                    const file = event.currentTarget.files?.item(0) ?? null;
-                    event.currentTarget.value = "";
-                    void openFile(file);
-                  }}
-                />
-                <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full border border-border bg-card text-muted-foreground">
-                  <Upload className="h-5 w-5" />
-                </div>
-                <div className="space-y-1">
-                  <p className="text-sm font-medium text-foreground">
-                    Drop a video file here
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    MP4, MOV, MKV, WebM, Ogg video, and MPEG-TS are supported.
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => void handleChooseFile()}
-                  disabled={opening}
-                  aria-busy={opening}
-                  className={cn(buttonClassName(), "mt-5")}
-                >
-                  {opening ? <Spinner /> : <FolderOpen className="h-4 w-4" />}
-                  Choose File
-                </button>
-              </div>
+              <LocalFilePicker
+                onOpened={completeOpen}
+                opening={opening}
+                onOpeningChange={setOpening}
+              />
             </TabsPanel>
             <TabsPanel value="url">
               <form

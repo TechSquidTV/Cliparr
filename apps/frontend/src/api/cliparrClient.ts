@@ -1,4 +1,5 @@
 import { subscribePlaybackStream } from "@/api/playbackStream";
+import { readResponseErrorDetails } from "@/api/responseError";
 export type { PlaybackConnectionState } from "@/api/playbackStream";
 import type {
   CurrentlyPlayingResponse,
@@ -9,11 +10,6 @@ import type {
   ProviderDefinition,
   ProviderSession,
 } from "@cliparr/shared/providers";
-
-interface ResponseErrorDetails {
-  code?: string;
-  message?: string;
-}
 
 interface HealthResponse {
   status: string;
@@ -64,43 +60,6 @@ const authFailureListeners = new Set<() => void>();
 let authFailureQueued = false;
 let sessionRequest: Promise<ProviderSession> | null = null;
 let currentlyPlayingRequest: Promise<CurrentlyPlayingResponse> | null = null;
-
-function responseErrorDetails(payload: unknown): ResponseErrorDetails {
-  if (!payload || typeof payload !== "object") {
-    return {};
-  }
-
-  const error = "error" in payload ? payload.error : undefined;
-  if (!error || typeof error !== "object") {
-    return {};
-  }
-
-  return {
-    code:
-      "code" in error && typeof error.code === "string"
-        ? error.code
-        : undefined,
-    message:
-      "message" in error && typeof error.message === "string"
-        ? error.message
-        : undefined,
-  };
-}
-
-export async function readResponseErrorDetails(
-  response: Response,
-): Promise<ResponseErrorDetails> {
-  if (!response.headers.get("content-type")?.includes("application/json")) {
-    return {};
-  }
-
-  const text = await response.text();
-  try {
-    return responseErrorDetails(JSON.parse(text));
-  } catch {
-    return {};
-  }
-}
 
 function queueAuthFailureNotification() {
   if (authFailureQueued) {

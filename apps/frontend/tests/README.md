@@ -37,6 +37,8 @@ production editor and converter loading boundaries by mapping emitted chunks to
 capabilities rather than enforcing byte-size limits. Generate fixtures in a
 separate context; measure requests in fresh contexts with service workers disabled.
 
+The suite also builds the local-only editor under `/try/`, reloads offline, imports SRT and VTT files, restores a draft, and verifies subtitle timing in the downloaded MP4.
+
 To extend coverage, update [format expectations](media-loading-scenarios.ts) and the
 relevant [runner scenarios](media-loading.mjs). Dependencies under `@mediabunny/*`
 are discovered automatically and require a successful loading scenario. Other
