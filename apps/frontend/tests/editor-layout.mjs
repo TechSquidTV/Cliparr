@@ -807,6 +807,19 @@ export async function checkEditorLayouts({ browser, url, screenshots }) {
     assert.ok(
       exportButton && exportButton.height >= 44 && exportButton.width < 160,
     );
+    assert.equal(
+      exportButton.x + exportButton.width,
+      page.viewportSize().width,
+      "Export sits flush with the right edge of the mobile header",
+    );
+    const preview = await page
+      .locator("[data-editor-preview-stage]")
+      .boundingBox();
+    assert.equal(
+      preview.y - (exportButton.y + exportButton.height),
+      5,
+      "Four pixels of header padding and a one-pixel divider separate Export from the preview",
+    );
     const dock = page.getByRole("navigation", { name: "Editing tools" });
     const dockBounds = await dock.boundingBox();
     assert.ok(
