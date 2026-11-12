@@ -110,7 +110,63 @@ async function checkPausedSubtitlePreview({ browser, url }) {
   );
 }
 
+async function checkFinalFrame({ browser, url }) {
+  const page = await browser.newPage();
+  try {
+    await page.goto(`${url}?fixture=final-frame`);
+    const play = page.getByRole("button", {
+      name: "Play preview",
+      exact: true,
+    });
+    const waitForPicture = (final) =>
+      page.waitForFunction((expectFinal) => {
+        const canvas = globalThis.document.querySelector(
+          "[data-editor-picture] > canvas",
+        );
+        if (!canvas || canvas.width !== 960) {
+          return false;
+        }
+        const [r, g, b, a] = canvas
+          .getContext("2d")
+          .getImageData(16, 16, 1, 1).data;
+        return a === 255 && (r > 200 && g < 50 && b < 50) === expectFinal;
+      }, final);
+    const checkEnd = async () => {
+      await waitForPicture(true);
+      await page
+        .getByRole("button", {
+          name: "Edit preview time: 0:04.00 of 0:04.00",
+          exact: true,
+        })
+        .waitFor();
+      await page
+        .getByText("Loading preview frame…")
+        .waitFor({ state: "hidden" });
+    };
+
+    await waitForPicture(false);
+    await page.keyboard.press("Shift+o");
+    await checkEnd();
+    await play.click();
+    await waitForPicture(false);
+    await page
+      .getByRole("button", { name: "Pause preview", exact: true })
+      .waitFor();
+    await play.waitFor();
+    await checkEnd();
+    await play.blur();
+    await page.keyboard.press("Shift+i");
+    await waitForPicture(false);
+  } finally {
+    await page.close();
+  }
+  process.stdout.write(
+    "Passed final preview frame after seeking, replay, and playback completion\n",
+  );
+}
+
 export async function checkEditorReviewRegressions({ browser, url }) {
+  await checkFinalFrame({ browser, url });
   await checkPausedSubtitlePreview({ browser, url });
   const page = await browser.newPage({
     viewport: { width: 1280, height: 900 },

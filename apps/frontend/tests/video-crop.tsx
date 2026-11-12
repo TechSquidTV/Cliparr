@@ -25,6 +25,7 @@ import { checkCropExports } from "#tests/video-crop-exports.ts";
 
 const parameters = new URLSearchParams(window.location.search);
 const shape = parameters.get("shape") ?? "landscape";
+const fixture = parameters.get("fixture");
 const sampleDuration = parameters.has("long") ? 360 : 0.1;
 const picture = document.createElement("canvas");
 picture.width = 960;
@@ -114,6 +115,10 @@ async function writeSurroundAudio() {
 }
 const writingAudio = writeSurroundAudio();
 for (let frame = 0; frame < 40; frame++) {
+  if (fixture === "final-frame" && frame === 39) {
+    context.fillStyle = "#ff0000";
+    context.fillRect(0, 0, 32, 32);
+  }
   await source.add(frame * sampleDuration, sampleDuration);
 }
 source.close();
@@ -142,7 +147,6 @@ const session = buildLocalEditorSession({
     fileName: file.name,
   },
 });
-const fixture = parameters.get("fixture");
 if (fixture === "subtitle-frame") {
   session.initialPlayheadSeconds = Number(parameters.get("time"));
 }
