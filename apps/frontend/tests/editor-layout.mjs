@@ -807,6 +807,11 @@ export async function checkEditorLayouts({ browser, url, screenshots }) {
     assert.ok(
       exportButton && exportButton.height >= 44 && exportButton.width < 160,
     );
+    assert.equal(
+      exportButton.x + exportButton.width,
+      page.viewportSize().width,
+      "Export sits flush with the right edge of the mobile header",
+    );
     const dock = page.getByRole("navigation", { name: "Editing tools" });
     const dockBounds = await dock.boundingBox();
     assert.ok(
