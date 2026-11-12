@@ -1,10 +1,10 @@
+import { formatTimecode } from "@techsquidtv/canvas-timeline/utils";
 import { ChevronLeft, ChevronRight, LocateFixed, Trash2 } from "lucide-react";
 import { type RefObject } from "react";
 
 import { EditorEditableTimecode } from "#/components/editor/EditorEditableTimecode";
 import { EditorPropertyRow } from "#/components/editor/EditorPropertyControls";
 import type { EditorSubtitlePanelProperties } from "#/components/editor/EditorSubtitlePanel";
-import { formatTimecodeInput } from "#/components/editor/editorUtilities";
 import { editorIconButtonClassName } from "#/components/ui/control-styles";
 import { cn } from "#/lib/cn";
 
@@ -105,13 +105,8 @@ export function EditorSubtitleCueEditor({
                   tool="subtitles"
                   value={selectedSubtitleCue.startTime}
                   onCommit={onSelectedSubtitleStartCommit}
-                  className="w-full justify-end"
-                  buttonClassName="w-full justify-end rounded-[var(--radius-control)] px-2 py-1 font-mono text-editor-property text-foreground hover:bg-editor-control-hover lg:text-xs"
-                >
-                  <span>
-                    {formatTimecodeInput(selectedSubtitleCue.startTime)}
-                  </span>
-                </EditorEditableTimecode>
+                  className="w-full"
+                />
               </EditorPropertyRow>
               <EditorPropertyRow label="Out">
                 <EditorEditableTimecode
@@ -119,17 +114,12 @@ export function EditorSubtitleCueEditor({
                   tool="subtitles"
                   value={selectedSubtitleCue.endTime}
                   onCommit={onSelectedSubtitleEndCommit}
-                  className="w-full justify-end"
-                  buttonClassName="w-full justify-end rounded-[var(--radius-control)] px-2 py-1 font-mono text-editor-property text-foreground hover:bg-editor-control-hover lg:text-xs"
-                >
-                  <span>
-                    {formatTimecodeInput(selectedSubtitleCue.endTime)}
-                  </span>
-                </EditorEditableTimecode>
+                  className="w-full"
+                />
               </EditorPropertyRow>
               <EditorPropertyRow
                 label="Duration"
-                value={formatTimecodeInput(
+                value={formatTimecode(
                   selectedSubtitleCue.endTime - selectedSubtitleCue.startTime,
                 )}
               >

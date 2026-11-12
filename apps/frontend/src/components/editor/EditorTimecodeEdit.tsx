@@ -65,10 +65,6 @@ export function completeEditorTimecode(root: HTMLElement) {
     input.focus({ preventScroll: true });
     return false;
   }
-  const editor = input.closest("[data-editor-timecode-edit]");
-  const active = root.ownerDocument.activeElement;
-  if (active instanceof HTMLElement && editor?.contains(active)) {
-    active.blur();
-  }
+  input.blur();
   return true;
 }

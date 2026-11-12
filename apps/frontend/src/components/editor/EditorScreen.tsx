@@ -1063,9 +1063,7 @@ function EditorScreenContent({
       event.stopPropagation();
       return;
     }
-    if (
-      target.closest("[data-editor-cancel-edit],input[data-editor-timecode]")
-    ) {
+    if (target.matches("input[data-editor-timecode]")) {
       return;
     }
     if (!completeEditorTimecode(event.currentTarget)) {

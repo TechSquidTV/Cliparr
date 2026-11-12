@@ -1,7 +1,11 @@
 import { Popover } from "@base-ui/react/popover";
+import { TimecodeInput } from "@techsquidtv/canvas-timeline/react";
+import {
+  formatTimecode,
+  parseTimecode,
+} from "@techsquidtv/canvas-timeline/utils";
 import {
   type CSSProperties,
-  type KeyboardEvent,
   type ReactNode,
   useEffect,
   useId,
@@ -12,19 +16,14 @@ import {
 
 import type { EditorTool } from "@/components/editor/EditorLayout";
 import { useEditorTimecodeEdit } from "@/components/editor/EditorTimecodeEdit";
-import {
-  formatTimecodeInput,
-  parseTimecodeInput,
-} from "@/components/editor/editorUtilities";
 import { cn } from "@/lib/cn";
 
 interface EditorEditableTimecodeProperties {
   ariaLabel: string;
   buttonClassName?: string;
-  children: ReactNode;
+  children?: ReactNode;
   className?: string;
   disabled?: boolean;
-  inputClassName?: string;
   onCommit: (seconds: number) => void | Promise<void>;
   style?: CSSProperties;
   tool?: EditorTool;
@@ -34,11 +33,10 @@ interface EditorEditableTimecodeProperties {
 
 export function EditorEditableTimecode({
   ariaLabel,
-  buttonClassName = "",
+  buttonClassName,
   children,
-  className = "",
+  className,
   disabled = false,
-  inputClassName = "",
   onCommit,
   style,
   tool,
@@ -47,179 +45,130 @@ export function EditorEditableTimecode({
 }: EditorEditableTimecodeProperties) {
   const buttonReference = useRef<HTMLButtonElement>(null);
   const inputReference = useRef<HTMLInputElement>(null);
-  const restoreFocusAfterEditReference = useRef(false);
+  const restoreButtonFocus = useRef(false);
   const { draft, update, finish } = useEditorTimecodeEdit();
   const editing = draft?.id === ariaLabel;
-  const draftValue = editing ? (draft?.value ?? "") : "";
-  const [invalid, setInvalid] = useState(
-    editing && parseTimecodeInput(draftValue) === null,
-  );
-  const formattedValue = formatTimecodeInput(value);
-  const accessibleValue = valueLabel ?? formattedValue;
-  const descriptionId = useId();
-  const hintId = `${descriptionId}-hint`;
-  const errorId = `${descriptionId}-error`;
-  const describedBy = invalid ? `${hintId} ${errorId}` : hintId;
+  const text = editing ? draft.value : formatTimecode(value);
+  const seconds = editing
+    ? parseTimecode(text, { rounding: "centisecond" })
+    : null;
+  const invalid = editing && text.trim() !== "" && seconds === null;
+  const [showError, setShowError] = useState(invalid);
+  const errorId = useId();
+  const hintId = useId();
 
   useLayoutEffect(() => {
-    if (editing) {
-      inputReference.current?.focus();
-      inputReference.current?.select();
-      return;
-    }
-
-    if (restoreFocusAfterEditReference.current) {
-      restoreFocusAfterEditReference.current = false;
+    const input = inputReference.current;
+    if (editing && input && input !== input.ownerDocument.activeElement) {
+      input.focus({ preventScroll: true });
+    } else if (!editing && restoreButtonFocus.current) {
+      restoreButtonFocus.current = false;
       buttonReference.current?.focus();
     }
   }, [editing]);
 
   useLayoutEffect(() => {
-    if (editing) {
-      inputReference.current?.setCustomValidity(
-        parseTimecodeInput(draftValue) === null
-          ? "Enter a valid time or cancel this edit."
-          : "",
-      );
-    }
-  }, [editing, draftValue]);
+    inputReference.current?.setCustomValidity(
+      invalid ? "Enter a valid time." : "",
+    );
+  }, [invalid]);
+
   useEffect(() => {
     if (disabled && editing) {
-      restoreFocusAfterEditReference.current = false;
-      setInvalid(false);
       finish(ariaLabel);
     }
   }, [disabled, editing, finish, ariaLabel]);
 
-  function startEditing() {
-    if (disabled) {
-      return;
-    }
-
-    update({ id: ariaLabel, value: formattedValue, tool: tool ?? null });
-    setInvalid(false);
+  function changeDraft(next: string) {
+    update({ id: ariaLabel, value: next, tool: tool ?? null });
+    setShowError(false);
   }
 
-  function cancelEditing({ restoreFocus }: { restoreFocus: boolean }) {
-    restoreFocusAfterEditReference.current = restoreFocus;
-    setInvalid(false);
-    finish(ariaLabel);
-  }
-
-  function commitParsedValue(
-    nextValue: number,
-    { restoreFocus }: { restoreFocus: boolean },
-  ) {
-    restoreFocusAfterEditReference.current = restoreFocus;
-    setInvalid(false);
-    if (finish(ariaLabel)) {
-      void onCommit(nextValue);
-    }
-  }
-
-  function commitDraft({ restoreFocus }: { restoreFocus: boolean }) {
-    const parsedValue = parseTimecodeInput(draftValue);
-
-    if (parsedValue === null) {
-      inputReference.current?.setCustomValidity(
-        "Enter a valid time or cancel this edit.",
-      );
-      setInvalid(true);
+  function finishEdit() {
+    if (!editing) {
       return;
     }
-
-    commitParsedValue(parsedValue, { restoreFocus });
-  }
-
-  function handleEditKeyDown(event: KeyboardEvent<HTMLSpanElement>) {
-    if (event.nativeEvent.isComposing) {
+    if (invalid) {
+      setShowError(true);
       return;
     }
-    if (event.key === "Enter" && event.target === inputReference.current) {
-      event.preventDefault();
-      commitDraft({ restoreFocus: true });
-      return;
-    }
-
-    if (event.key === "Escape") {
-      event.preventDefault();
-      cancelEditing({ restoreFocus: true });
+    if (finish(ariaLabel) && seconds !== null) {
+      void onCommit(seconds);
     }
   }
 
   return (
     <span
-      data-editor-timecode-edit={editing || undefined}
-      className={cn(
-        "relative inline-flex min-w-0",
-        editing && "w-max max-w-full shrink-0 flex-wrap gap-1",
-        className,
-      )}
-      onBlur={
-        editing
-          ? (event) => {
-              if (!event.currentTarget.contains(event.relatedTarget)) {
-                commitDraft({ restoreFocus: false });
-              }
-            }
-          : undefined
-      }
-      onKeyDown={editing ? handleEditKeyDown : undefined}
-      style={{
-        ...style,
-        width: editing ? undefined : style?.width,
-      }}
+      className={cn("relative inline-flex min-w-0", className)}
+      style={style}
     >
-      {editing ? (
-        <Popover.Root open={invalid}>
-          <input
+      {children && (
+        <button
+          ref={buttonReference}
+          aria-label={
+            disabled
+              ? `${ariaLabel}: ${valueLabel ?? text}`
+              : `Edit ${ariaLabel}: ${valueLabel ?? text}`
+          }
+          className={cn(
+            "editor-control-focus inline-flex min-h-11 min-w-0 items-center border-0 bg-transparent p-0 text-left outline-none disabled:cursor-default lg:min-h-7",
+            buttonClassName,
+            editing && "invisible",
+          )}
+          disabled={disabled}
+          onClick={() => changeDraft(formatTimecode(value))}
+          type="button"
+        >
+          {children}
+        </button>
+      )}
+      {(!children || editing) && (
+        <Popover.Root open={invalid && showError}>
+          <TimecodeInput
             ref={inputReference}
-            data-editor-timecode
+            data-editor-timecode={editing || undefined}
+            aria-describedby={
+              invalid && showError ? `${hintId} ${errorId}` : hintId
+            }
+            aria-label={`Edit ${ariaLabel}`}
+            className={cn(
+              "w-full min-h-11 text-right max-lg:text-editor-input! lg:min-h-0",
+              children && "absolute inset-0 h-full max-h-full text-left",
+            )}
+            disabled={disabled}
+            enterKeyHint="done"
+            invalid={invalid}
             onInvalid={(event) => {
               event.preventDefault();
-              setInvalid(true);
+              setShowError(true);
             }}
-            aria-describedby={describedBy}
-            aria-errormessage={invalid ? errorId : undefined}
-            aria-invalid={invalid || undefined}
-            aria-label={`Edit ${ariaLabel}`}
-            autoComplete="off"
-            className={cn(
-              "editor-control-focus min-w-0 max-w-full flex-[1_0_auto] h-11 lg:h-7 border bg-editor-control px-1.5 font-mono text-editor-input lg:text-sm font-semibold text-foreground outline-none transition-colors",
-              invalid
-                ? "border-destructive focus-visible:border-destructive"
-                : "border-editor-border focus-visible:border-editor-accent",
-              inputClassName,
-            )}
-            inputMode="text"
-            onChange={(event) => {
-              event.currentTarget.setCustomValidity(
-                parseTimecodeInput(event.target.value) === null
-                  ? "Enter a valid time or cancel this edit."
-                  : "",
-              );
-              update({
-                id: ariaLabel,
-                value: event.target.value,
-                tool: tool ?? null,
-              });
-              setInvalid(false);
+            onFocus={(event) => event.currentTarget.select()}
+            onValueChange={changeDraft}
+            onBlur={finishEdit}
+            onKeyDown={(event) => {
+              if (event.nativeEvent.isComposing) {
+                return;
+              }
+              if ((event.key === "Enter" || event.key === "Tab") && invalid) {
+                event.preventDefault();
+                setShowError(true);
+              } else if (event.key === "Enter") {
+                event.preventDefault();
+                restoreButtonFocus.current = Boolean(children);
+                event.currentTarget.blur();
+              } else if (event.key === "Escape" && editing) {
+                event.preventDefault();
+                restoreButtonFocus.current = Boolean(children);
+                finish(ariaLabel);
+              }
             }}
-            size={Math.max(8, draftValue.length + 1)}
-            spellCheck={false}
-            type="text"
-            value={draftValue}
+            value={text}
           />
-          <button
-            type="button"
-            data-editor-cancel-edit
-            aria-label={`Cancel ${ariaLabel} edit`}
-            className="editor-control-focus min-h-11 shrink-0 px-2 text-editor-property lg:min-h-7 lg:text-xs"
-            onPointerDown={(event) => event.preventDefault()}
-            onClick={() => cancelEditing({ restoreFocus: true })}
-          >
-            Cancel
-          </button>
+          <span id={hintId} className="sr-only">
+            Enter seconds, minutes and seconds, or hours minutes and seconds.
+            Press Enter to apply. To discard, press Escape or clear the field
+            and leave it.
+          </span>
           <Popover.Portal>
             <Popover.Positioner
               anchor={inputReference}
@@ -236,33 +185,12 @@ export function EditorEditableTimecode({
                 finalFocus={false}
                 className="z-[60] w-52 max-w-[70vw] rounded-md border border-destructive bg-popover p-2 text-xs font-normal text-popover-foreground shadow-md"
               >
-                Enter seconds (12.5), m:ss (1:23), or h:mm:ss (1:02:03). Press
-                Escape to discard this edit.
+                Enter seconds (12.5), m:ss (1:23), or h:mm:ss (1:02:03). Clear
+                the field to keep the previous time.
               </Popover.Popup>
             </Popover.Positioner>
           </Popover.Portal>
         </Popover.Root>
-      ) : (
-        <button
-          ref={buttonReference}
-          aria-label={
-            disabled
-              ? `${ariaLabel}: ${accessibleValue}`
-              : `Edit ${ariaLabel}: ${accessibleValue}`
-          }
-          className={`editor-control-focus inline-flex min-h-11 min-w-0 items-center border-0 bg-transparent p-0 text-left outline-none transition-colors disabled:cursor-default disabled:opacity-100 lg:min-h-0 ${buttonClassName}`}
-          disabled={disabled}
-          onClick={startEditing}
-          type="button"
-        >
-          {children}
-        </button>
-      )}
-      {editing && (
-        <span id={hintId} className="sr-only">
-          Enter seconds, minutes and seconds, or hours minutes and seconds.
-          Press Enter to apply or Escape to cancel.
-        </span>
       )}
     </span>
   );

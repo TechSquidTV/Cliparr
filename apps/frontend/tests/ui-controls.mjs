@@ -231,9 +231,6 @@ try {
             .click();
         }
         await features
-          .getByRole("button", { name: /^Edit subtitle cue in point:/ })
-          .click();
-        await features
           .getByRole("textbox", { name: "Edit subtitle cue in point" })
           .fill("2");
         await page.keyboard.press("Enter");
