@@ -899,6 +899,16 @@ export async function checkEditorLayouts({ browser, url, screenshots }) {
       "Leaving the edit records one undo step",
     );
     await inField.fill("bad");
+    await inField.press("Enter");
+    await page
+      .getByRole("alert")
+      .filter({ hasText: "Enter seconds" })
+      .waitFor();
+    assert.equal(
+      await inField.and(page.locator(":focus")).count(),
+      1,
+      "Invalid Enter keeps the time field focused for correction",
+    );
     await page.getByRole("button", { name: "Done", exact: true }).click();
     assert.equal(
       await inField.inputValue(),
@@ -927,7 +937,20 @@ export async function checkEditorLayouts({ browser, url, screenshots }) {
       false,
     );
     await inField.fill("0.5");
+    assert.equal(await inField.getAttribute("enterkeyhint"), "done");
     await inField.press("Enter");
+    assert.equal(
+      await inField.and(page.locator(":focus")).count(),
+      0,
+      "Valid Enter releases input focus",
+    );
+    assert.equal(
+      await page
+        .getByRole("slider", { name: "Clip start", exact: true })
+        .getAttribute("aria-valuenow"),
+      "0.5",
+      "Enter applies the trim before leaving the panel",
+    );
     await page.getByRole("button", { name: "Done", exact: true }).click();
     await page
       .getByRole("button", { name: "Edit clip range", exact: true })
