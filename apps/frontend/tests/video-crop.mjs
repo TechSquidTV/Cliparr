@@ -103,16 +103,16 @@ try {
         await page.getByRole("button", { name: "Done", exact: true }).waitFor();
         if (mobile) {
           await page.waitForFunction(() => {
-            const stage = globalThis.document
-              .querySelector("[data-editor-preview-stage]")
-              .getBoundingClientRect();
+            const stage = globalThis.document.querySelector(
+              "[data-editor-preview-stage]",
+            );
             const picture = globalThis.document
               .querySelector("[data-editor-picture]")
               .getBoundingClientRect();
             return (
               picture.width > 0 &&
-              Math.abs(stage.height - picture.height - 50) < 1 &&
-              Math.abs(stage.width - picture.width - 50) < 1
+              Math.abs(stage.clientHeight - picture.height - 48) < 1 &&
+              Math.abs(stage.clientWidth - picture.width - 48) < 1
             );
           });
         }
