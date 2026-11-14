@@ -20,6 +20,8 @@ minimumReleaseAgeExclude:
   - "@techsquidtv/canvas-timeline-renderer@0.7.0"
   - "@techsquidtv/canvas-timeline-utils@0.7.0"
   - "@techsquidtv/gifenc@2.0.0"
+  # Renovate security update: astro@7.4.7
+  - astro@7.4.7
 
 allowBuilds:
   "@sentry/cli": true
