@@ -34,7 +34,7 @@ overrides:
   "@hey-api/json-schema-ref-parser>js-yaml": 4.3.2
   # ESLint and typescript-eslint still require vulnerable minimatch 10.
   # Remove when their released dependency ranges accept minimatch >=11.0.1.
-  "minimatch@>=7.0.0 <11.0.1": 11.0.5
+  "minimatch@>=7.0.0 <11.0.1": 11.0.8
   enhanced-resolve: 5.26.1
   es-object-atoms: 1.1.2
 
