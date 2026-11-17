@@ -8,12 +8,20 @@ order: 10
 import Callout from "@/components/Callout.astro";
 import CommandBlock from "@/components/CommandBlock.astro";
 import {
+  appKeyGenerationCommandVariants,
   dockerComposeExample,
   dockerLinuxContainerNote,
   dockerRunCommandVariants,
 } from "@/data/product";
 
 Run Cliparr in Docker, then open the app and connect Plex, Jellyfin, or a local video. Mount `/data` before connecting media servers so settings and encrypted credentials survive updates.
+
+Generate a random `APP_KEY` first. Save the output so you can reuse the same key across updates, then replace the placeholder in the Docker command with it.
+
+<CommandBlock
+  variants={appKeyGenerationCommandVariants}
+  label="Generate APP_KEY"
+/>
 
 <CommandBlock variants={dockerRunCommandVariants} label="Docker quick start" />
 

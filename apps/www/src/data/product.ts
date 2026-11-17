@@ -78,17 +78,32 @@ export interface CommandExampleVariant {
   lang: CommandExampleLanguage;
 }
 
+const appKeyPlaceholder = "replace-with-generated-key";
+
+export const appKeyGenerationCommandVariants = [
+  { label: "macOS / Linux", code: "openssl rand -hex 32", lang: "bash" },
+  {
+    label: "PowerShell",
+    code: `$bytes = New-Object byte[] 32
+$generator = [Security.Cryptography.RandomNumberGenerator]::Create()
+$generator.GetBytes($bytes)
+$generator.Dispose()
+[BitConverter]::ToString($bytes).Replace('-', '').ToLowerInvariant()`,
+    lang: "powershell",
+  },
+] satisfies readonly CommandExampleVariant[];
+
 export const dockerRunCommand = String.raw`docker run -d \
   --name cliparr \
   -p 127.0.0.1:7171:7171 \
-  -e APP_KEY="your-32-char-stable-random-secret" \
+  -e APP_KEY="${appKeyPlaceholder}" \
   -v cliparr-data:/data \
   ghcr.io/techsquidtv/cliparr:latest`;
 
 export const dockerRunPowerShellCommand = `docker run -d \`
   --name cliparr \`
   -p 127.0.0.1:7171:7171 \`
-  -e APP_KEY="your-32-char-stable-random-secret" \`
+  -e APP_KEY="${appKeyPlaceholder}" \`
   -v cliparr-data:/data \`
   ghcr.io/techsquidtv/cliparr:latest`;
 
@@ -107,7 +122,7 @@ export const dockerComposeExample = `services:
     ports:
       - "127.0.0.1:7171:7171"
     environment:
-      - APP_KEY=replace-this-with-a-32-character-secure-random-string
+      - APP_KEY=${appKeyPlaceholder}
     volumes:
       - cliparr-data:/data
     read_only: true
@@ -123,7 +138,7 @@ volumes:
 const structuredConsoleLoggingCommand = String.raw`docker run -d \
   --name cliparr \
   -p 127.0.0.1:7171:7171 \
-  -e APP_KEY="your-32-char-stable-random-secret" \
+  -e APP_KEY="${appKeyPlaceholder}" \
   -e CLIPARR_LOG_FORMAT=json \
   -v cliparr-data:/data \
   ghcr.io/techsquidtv/cliparr:latest`;
@@ -131,7 +146,7 @@ const structuredConsoleLoggingCommand = String.raw`docker run -d \
 const structuredConsoleLoggingPowerShellCommand = `docker run -d \`
   --name cliparr \`
   -p 127.0.0.1:7171:7171 \`
-  -e APP_KEY="your-32-char-stable-random-secret" \`
+  -e APP_KEY="${appKeyPlaceholder}" \`
   -e CLIPARR_LOG_FORMAT=json \`
   -v cliparr-data:/data \`
   ghcr.io/techsquidtv/cliparr:latest`;
@@ -152,14 +167,14 @@ export const structuredConsoleLoggingCommandVariants = [
 const tailscaleDockerRunCommand = String.raw`docker run -d \
   --name cliparr \
   -p 127.0.0.1:7171:7171 \
-  -e APP_KEY="your-32-char-stable-random-secret" \
+  -e APP_KEY="${appKeyPlaceholder}" \
   -v cliparr-data:/data \
   ghcr.io/techsquidtv/cliparr:latest`;
 
 const tailscaleDockerRunPowerShellCommand = `docker run -d \`
   --name cliparr \`
   -p 127.0.0.1:7171:7171 \`
-  -e APP_KEY="your-32-char-stable-random-secret" \`
+  -e APP_KEY="${appKeyPlaceholder}" \`
   -v cliparr-data:/data \`
   ghcr.io/techsquidtv/cliparr:latest`;
 
@@ -176,7 +191,7 @@ const wireguardDockerRunCommand = `: "\${WIREGUARD_BIND_ADDRESS:?Set WIREGUARD_B
 docker run -d \\
   --name cliparr \\
   -p "$WIREGUARD_BIND_ADDRESS:7171:7171" \\
-  -e APP_KEY="your-32-char-stable-random-secret" \\
+  -e APP_KEY="${appKeyPlaceholder}" \\
   -v cliparr-data:/data \\
   ghcr.io/techsquidtv/cliparr:latest`;
 
@@ -184,7 +199,7 @@ const wireguardDockerRunPowerShellCommand = `if (-not $env:WIREGUARD_BIND_ADDRES
 docker run -d \`
   --name cliparr \`
   -p "$($env:WIREGUARD_BIND_ADDRESS):7171:7171" \`
-  -e APP_KEY="your-32-char-stable-random-secret" \`
+  -e APP_KEY="${appKeyPlaceholder}" \`
   -v cliparr-data:/data \`
   ghcr.io/techsquidtv/cliparr:latest`;
 
@@ -201,7 +216,7 @@ export const rotatingFileLoggingCompose = `services:
   cliparr:
     image: ghcr.io/techsquidtv/cliparr:latest
     environment:
-      - APP_KEY=replace-this-with-a-32-character-secure-random-string
+      - APP_KEY=${appKeyPlaceholder}
       - CLIPARR_LOG_FORMAT=pretty
       - CLIPARR_LOG_FILE=/data/logs/cliparr.log
       - CLIPARR_LOG_FILE_FORMAT=json
