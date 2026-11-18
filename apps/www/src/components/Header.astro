@@ -2,6 +2,7 @@
 import { site } from "@/data/product";
 
 const links = [
+  { href: "/try/", label: "Try Cliparr", featured: true },
   { href: "/docs", label: "Docs" },
   { href: "/blog", label: "Blog" },
   { href: "/convert", label: "Convert" },
@@ -27,7 +28,7 @@ const mobileMenuId = "site-mobile-menu";
         {site.name}
       </span>
     </a>
-    <div class="flex items-center gap-2 sm:hidden">
+    <div class="flex items-center gap-2 lg:hidden">
       <button
         type="button"
         data-theme-toggle
@@ -102,12 +103,17 @@ const mobileMenuId = "site-mobile-menu";
     </div>
     <nav
       aria-label="Primary navigation"
-      class="hidden min-w-0 items-center gap-2 sm:flex"
+      class="hidden min-w-0 items-center gap-2 lg:flex"
     >
       {links.map((link) => (
         <a
           href={link.href}
-          class="focus-ring rounded-full px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+          class:list={[
+            "focus-ring rounded-full px-3 py-2 text-sm font-medium transition-colors hover:bg-accent hover:text-foreground",
+            link.featured
+              ? "border border-border bg-card text-foreground"
+              : "text-muted-foreground",
+          ]}
           target={link.href.startsWith("http") ? "_blank" : undefined}
           rel={link.href.startsWith("http") ? "noreferrer" : undefined}
         >
@@ -152,7 +158,7 @@ const mobileMenuId = "site-mobile-menu";
       </button>
       <a
         href="/docs/getting-started"
-        class="focus-ring hidden min-h-9 items-center justify-center rounded-full bg-foreground px-4 text-sm font-semibold text-background transition-colors hover:bg-primary md:inline-flex"
+        class="focus-ring hidden min-h-9 items-center justify-center rounded-full bg-foreground px-4 text-sm font-semibold text-background transition-colors hover:bg-primary lg:inline-flex"
       >
         Get started
       </a>
@@ -162,13 +168,18 @@ const mobileMenuId = "site-mobile-menu";
     id={mobileMenuId}
     data-mobile-nav
     hidden
-    class="border-t border-border bg-background/95 sm:hidden"
+    class="border-t border-border bg-background/95 lg:hidden"
   >
     <nav aria-label="Mobile navigation" class="container-page grid gap-1 py-3">
       {links.map((link) => (
         <a
           href={link.href}
-          class="focus-ring flex min-h-11 items-center justify-between rounded-lg px-3 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+          class:list={[
+            "focus-ring flex min-h-11 items-center justify-between rounded-lg px-3 text-sm font-medium transition-colors hover:bg-accent hover:text-foreground",
+            link.featured
+              ? "border border-border bg-card text-foreground"
+              : "text-muted-foreground",
+          ]}
           target={link.href.startsWith("http") ? "_blank" : undefined}
           rel={link.href.startsWith("http") ? "noreferrer" : undefined}
         >
