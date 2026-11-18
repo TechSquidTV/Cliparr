@@ -78,7 +78,7 @@ export interface CommandExampleVariant {
   lang: CommandExampleLanguage;
 }
 
-const appKeyPlaceholder = "replace-with-generated-key";
+const appKeyPlaceholder = "replace-me";
 
 export const appKeyGenerationCommandVariants = [
   { label: "macOS / Linux", code: "openssl rand -hex 32", lang: "bash" },

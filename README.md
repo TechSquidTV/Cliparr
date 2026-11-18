@@ -39,7 +39,7 @@ Replace `APP_KEY` with a random secret of at least 32 characters; on macOS or Li
 docker run -d \
   --name cliparr \
   -p 127.0.0.1:7171:7171 \
-  -e APP_KEY="replace-with-generated-key" \
+  -e APP_KEY="replace-me" \
   -v cliparr-data:/data \
   ghcr.io/techsquidtv/cliparr:latest
 ```
@@ -51,7 +51,7 @@ docker run -d \
 docker run -d `
   --name cliparr `
   -p 127.0.0.1:7171:7171 `
-  -e APP_KEY="replace-with-generated-key" `
+  -e APP_KEY="replace-me" `
   -v cliparr-data:/data `
   ghcr.io/techsquidtv/cliparr:latest
 ```
