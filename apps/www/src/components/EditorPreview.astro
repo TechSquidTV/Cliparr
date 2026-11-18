@@ -29,16 +29,12 @@ const { label, webm, mp4, class: className } = Astro.props;
   <button
     type="button"
     hidden
-    data-label={label}
-    aria-label={`Play ${label}`}
     class="absolute inset-0 cursor-pointer rounded-[inherit] focus-visible:outline-2 focus-visible:-outline-offset-4 focus-visible:outline-white"
   >
-    <span
-      class="absolute right-3 bottom-3 rounded-full border border-white/40 bg-black/85 px-3 py-1 text-sm font-semibold text-white"
-      aria-hidden="true"
-    >
+    <span class="absolute right-3 bottom-3 rounded-full border border-white/40 bg-black/85 px-3 py-1 text-sm font-semibold text-white">
       Play demo
     </span>
+    <span class="sr-only"> — {label}</span>
   </button>
 </div>
 
@@ -53,10 +49,24 @@ const { label, webm, mp4, class: className } = Astro.props;
       if (!button || !video || !caption || !button.hidden) continue;
       button.hidden = false;
       let hovering = false;
+      const visibility = new IntersectionObserver((entries) => {
+        const entry = entries.at(-1);
+        if (entry && !entry.isIntersecting) {
+          hovering = false;
+          video.pause();
+        }
+      });
+      visibility.observe(preview);
+      document.addEventListener(
+        "astro:before-swap",
+        () => visibility.disconnect(),
+        {
+          once: true,
+        },
+      );
       const updateControl = () => {
         const action = video.paused ? "Play" : "Pause";
         caption.textContent = action + " demo";
-        button.setAttribute("aria-label", action + " " + button.dataset.label);
       };
       const play = () => {
         void video.play().catch(updateControl);
