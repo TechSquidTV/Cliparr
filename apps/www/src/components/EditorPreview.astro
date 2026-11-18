@@ -1,0 +1,93 @@
+---
+interface Props {
+  label: string;
+  webm: string;
+  mp4: string;
+  class?: string;
+}
+const { label, webm, mp4, class: className } = Astro.props;
+---
+
+<div
+  class:list={[
+    "editor-preview relative overflow-hidden rounded-md bg-[#0A0A0A]",
+    className,
+  ]}
+>
+  <slot />
+  <video
+    class="editor-preview-video absolute inset-0 h-full w-full object-cover motion-reduce:transition-none"
+    muted
+    loop
+    playsinline
+    preload="none"
+    aria-hidden="true"
+  >
+    <source src={webm} type="video/webm" />
+    <source src={mp4} type="video/mp4" />
+  </video>
+  <button
+    type="button"
+    hidden
+    data-label={label}
+    aria-label={`Play ${label}`}
+    class="absolute inset-0 cursor-pointer rounded-[inherit] focus-visible:outline-2 focus-visible:-outline-offset-4 focus-visible:outline-white"
+  >
+    <span
+      class="absolute right-3 bottom-3 rounded-full border border-white/40 bg-black/85 px-3 py-1 text-sm font-semibold text-white"
+      aria-hidden="true"
+    >
+      Play demo
+    </span>
+  </button>
+</div>
+
+<script>
+  document.addEventListener("astro:page-load", () => {
+    for (const preview of document.querySelectorAll<HTMLElement>(
+      ".editor-preview",
+    )) {
+      const button = preview.querySelector("button");
+      const video = preview.querySelector("video");
+      const caption = button?.querySelector("span");
+      if (!button || !video || !caption || !button.hidden) continue;
+      button.hidden = false;
+      let hovering = false;
+      const updateControl = () => {
+        const action = video.paused ? "Play" : "Pause";
+        caption.textContent = action + " demo";
+        button.setAttribute("aria-label", action + " " + button.dataset.label);
+      };
+      const play = () => {
+        void video.play().catch(updateControl);
+      };
+      video.addEventListener("play", updateControl);
+      video.addEventListener("pause", updateControl);
+      video.addEventListener("playing", () => {
+        if (!video.paused) preview.toggleAttribute("data-show-video", true);
+      });
+      button.addEventListener("click", () => {
+        hovering = false;
+        if (video.paused) play();
+        else video.pause();
+      });
+      button.addEventListener("pointerenter", (event) => {
+        if (
+          event.pointerType !== "mouse" ||
+          !video.paused ||
+          window.matchMedia("(prefers-reduced-motion: reduce)").matches
+        )
+          return;
+        hovering = true;
+        play();
+      });
+      button.addEventListener("pointerleave", () => {
+        if (!hovering) return;
+        hovering = false;
+        video.pause();
+        video.currentTime = 0;
+        preview.removeAttribute("data-show-video");
+      });
+    }
+  });
+</script>
