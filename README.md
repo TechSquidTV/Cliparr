@@ -31,7 +31,7 @@ Self-hosted clipping for Plex, Jellyfin, and local files. Trim video, add subtit
 
 ## Quick start
 
-Replace `APP_KEY` with a random secret of at least 32 characters; for example, generate one with `openssl rand -base64 32`. Keep the secret and data volume across updates. Changing `APP_KEY` requires reconnecting your media servers.
+Replace `APP_KEY` with a random secret of at least 32 characters; on macOS or Linux, generate one with `openssl rand -hex 32`. See [Getting started](https://cliparr.dev/docs/getting-started) for a PowerShell command. Keep the secret and data volume across updates. Changing `APP_KEY` requires reconnecting your media servers.
 
 <!-- CLIPARR_DOCS_SYNC:docker-quick-start:start -->
 
@@ -39,7 +39,7 @@ Replace `APP_KEY` with a random secret of at least 32 characters; for example, g
 docker run -d \
   --name cliparr \
   -p 127.0.0.1:7171:7171 \
-  -e APP_KEY="your-32-char-stable-random-secret" \
+  -e APP_KEY="replace-me" \
   -v cliparr-data:/data \
   ghcr.io/techsquidtv/cliparr:latest
 ```
@@ -51,7 +51,7 @@ docker run -d \
 docker run -d `
   --name cliparr `
   -p 127.0.0.1:7171:7171 `
-  -e APP_KEY="your-32-char-stable-random-secret" `
+  -e APP_KEY="replace-me" `
   -v cliparr-data:/data `
   ghcr.io/techsquidtv/cliparr:latest
 ```

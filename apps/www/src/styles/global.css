@@ -463,7 +463,7 @@
     display: block;
   }
 
-  .editor-preview[data-playing="true"] .editor-preview-video {
+  .editor-preview[data-show-video] .editor-preview-video {
     opacity: 1;
   }
 
