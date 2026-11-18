@@ -37,7 +37,15 @@ production editor and converter loading boundaries by mapping emitted chunks to
 capabilities rather than enforcing byte-size limits. Generate fixtures in a
 separate context; measure requests in fresh contexts with service workers disabled.
 
-The suite also builds the local-only editor under `/try/`, reloads offline, imports SRT and VTT files, restores a draft, and verifies subtitle timing in the downloaded MP4.
+The suite also builds the local-only editor under `/try/`, reloads offline, opens a
+video by drag-and-drop, imports SRT and VTT files, restores a draft, and verifies
+subtitle timing in the downloaded MP4. Exact draft assertions cover replacement,
+undo, empty/invalid files, invalid UTF-8, and large input. Worker lifecycle checks
+cover failed installation, readiness tied to the current build, updates with two
+tabs open, continued lazy editor loading, cache cleanup, and offline navigation
+within `/try/`. Bare `/try` remains outside that worker scope and needs the site's
+online redirect. The native picker receiver is covered by a Node regression test;
+physical iPhone Files picker testing remains a separate release check.
 
 To extend coverage, update [format expectations](media-loading-scenarios.ts) and the
 relevant [runner scenarios](media-loading.mjs). Dependencies under `@mediabunny/*`

@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { readFile } from "node:fs/promises";
+import { readFile, stat } from "node:fs/promises";
 
 export async function checkLocalEditor(browser, url, fixture) {
   const context = await browser.newContext({
@@ -8,6 +8,7 @@ export async function checkLocalEditor(browser, url, fixture) {
   try {
     await context.addInitScript(() => {
       Reflect.deleteProperty(globalThis, "showSaveFilePicker");
+      Reflect.deleteProperty(globalThis, "showOpenFilePicker");
     });
     const page = await context.newPage();
     const unexpected = [];
@@ -27,7 +28,27 @@ export async function checkLocalEditor(browser, url, fixture) {
     await page.getByText("Ready to use offline").waitFor();
     await context.setOffline(true);
     await page.reload();
-    await page.locator('input[type="file"]').setInputFiles(fixture);
+    const fixtureMetadata = await stat(fixture);
+    const transfer = await page.evaluateHandle(
+      ({ bytes, lastModified }) => {
+        const data = new globalThis.DataTransfer();
+        data.items.add(
+          new File([Uint8Array.from(bytes)], "aac.mp4", {
+            type: "video/mp4",
+            lastModified,
+          }),
+        );
+        return data;
+      },
+      {
+        bytes: [...(await readFile(fixture))],
+        lastModified: fixtureMetadata.mtimeMs,
+      },
+    );
+    await page
+      .getByText("Drop a video file here")
+      .dispatchEvent("drop", { dataTransfer: transfer });
+    await transfer.dispose();
     await page
       .getByRole("button", { name: "Play preview", exact: true })
       .click();
@@ -47,33 +68,75 @@ export async function checkLocalEditor(browser, url, fixture) {
       const picker = await chooser;
       await picker.setFiles({ name, mimeType: "", buffer: Buffer.from(text) });
     };
-    const hasCue = async (text) => {
+    const assertCue = async (text, startTime, endTime) => {
       await page.waitForFunction(
-        (expected) =>
-          Object.values(localStorage).some((raw) => raw.includes(expected)),
-        text,
+        (expected) => {
+          const sessionId = globalThis.location.hash.split("/").at(-1);
+          const drafts = JSON.parse(
+            localStorage.getItem("cliparr.editor.drafts.v2") ?? "[]",
+          );
+          const draft = drafts.find(
+            (candidate) => candidate.sessionId === sessionId,
+          );
+          const cues = draft?.subtitles.cues;
+          return (
+            cues?.length === 1 &&
+            cues[0].text === expected.text &&
+            cues[0].startTime === expected.startTime &&
+            cues[0].endTime === expected.endTime
+          );
+        },
+        { text, startTime, endTime },
       );
     };
     await pickSubtitle(
       "captions.SRT",
       "\uFEFF1\r\n00:00:00,300 --> 00:00:00,700\r\nSRT caption\r\n",
     );
-    await hasCue("SRT caption");
+    await assertCue("SRT caption", 0.3, 0.7);
     await pickSubtitle(
       "replacement.vtt",
-      "WEBVTT\n\n00:00.300 --> 00:00.700\nVTT caption\n",
+      "WEBVTT\n\n00:00.750 --> 00:00.950\nVTT caption\n",
     );
     await page.getByRole("button", { name: "Replace cues" }).click();
-    await hasCue("VTT caption");
+    await assertCue("VTT caption", 0.75, 0.95);
     await page.getByRole("button", { name: "Undo", exact: true }).click();
-    await hasCue("SRT caption");
+    await assertCue("SRT caption", 0.3, 0.7);
     await pickSubtitle("empty.vtt", "WEBVTT\n");
     await page.getByRole("button", { name: "Replace cues" }).click();
-    await page.getByText("No subtitles found in this track.").waitFor();
+    await page.getByText("No subtitles found in this file.").waitFor();
+    await assertCue("SRT caption", 0.3, 0.7);
+
+    for (const [name, data, message] of [
+      ["unsupported.txt", "bad", "Choose an SRT or WebVTT subtitle file."],
+      [
+        "encoding.srt",
+        Buffer.from([255, 254, 0x31, 0]),
+        "Save the subtitle file as UTF-8 and try again.",
+      ],
+    ]) {
+      await pickSubtitle(name, data);
+      await page.getByRole("button", { name: "Replace cues" }).click();
+      await page.getByText(message).waitFor();
+      await assertCue("SRT caption", 0.3, 0.7);
+    }
+
+    // Large inputs with few cues should retain the same parsing behavior.
+    await pickSubtitle(
+      "large.srt",
+      `${"\n".repeat(
+        2 * 1024 * 1024,
+      )}1\n00:00:00,300 --> 00:00:00,700\nLarge caption\n`,
+    );
+    await page.getByRole("button", { name: "Replace cues" }).click();
+    await assertCue("Large caption", 0.3, 0.7);
+    await page.getByRole("button", { name: "Undo", exact: true }).click();
+    await assertCue("SRT caption", 0.3, 0.7);
 
     await page.reload();
     await page.getByRole("button", { name: "Open Video", exact: true }).click();
     await page.locator('input[type="file"]').setInputFiles(fixture);
+    await assertCue("SRT caption", 0.3, 0.7);
     await page.getByRole("button", { name: "Export", exact: true }).click();
     const downloading = page.waitForEvent("download");
     await page.getByRole("button", { name: "Export MP4", exact: true }).click();

@@ -159,7 +159,7 @@ export function EditorSubtitlePanel({
           ref={subtitleFileInput}
           type="file"
           hidden
-          accept=".srt,.vtt"
+          accept=".srt,.vtt,text/vtt,application/x-subrip,text/plain"
           aria-label="Subtitle file"
           onChange={(event) => {
             const file = event.currentTarget.files?.item(0);

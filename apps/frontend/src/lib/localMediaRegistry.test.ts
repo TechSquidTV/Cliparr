@@ -5,6 +5,7 @@ import test from "node:test";
 import type { BrowserFileHandle } from "@/components/editor/editorMedia";
 import {
   createLocalSessionFromFile,
+  createLocalSessionFromPicker,
   createLocalSessionFromUrl,
   resolveFileHandleReadPermission,
   resolveLocalMediaSession,
@@ -151,4 +152,34 @@ void test("resolves file handle permission states", async () => {
   } satisfies BrowserFileHandle;
 
   assert.equal(await resolveFileHandleReadPermission(legacyHandle), "granted");
+});
+
+void test("calls the native file picker with its window receiver", async (t) => {
+  const file = new File(["video"], "picker.mp4", { type: "video/mp4" });
+  const picker = t.mock.fn(async () => [
+    {
+      name: file.name,
+      getFile: async () => file,
+    },
+  ]);
+  Object.defineProperty(globalThis, "window", {
+    configurable: true,
+    value: globalThis,
+  });
+  Object.defineProperty(globalThis, "showOpenFilePicker", {
+    configurable: true,
+    value: picker,
+  });
+  try {
+    const result = await createLocalSessionFromPicker();
+    assert.equal(result.status, "ready");
+    assert.equal(picker.mock.calls[0]?.this, globalThis.window);
+    if (result.status === "ready") {
+      assert.equal(result.session.title, "picker");
+      assert.equal(result.session.directSource?.kind, "file-handle");
+    }
+  } finally {
+    Reflect.deleteProperty(globalThis, "showOpenFilePicker");
+    Reflect.deleteProperty(globalThis, "window");
+  }
 });

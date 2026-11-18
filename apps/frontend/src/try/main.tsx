@@ -60,22 +60,79 @@ const router = createRouter({
 function FileLanding() {
   const [opening, setOpening] = useState(false);
   const [offlineReady, setOfflineReady] = useState(false);
+  const [updateMessage, setUpdateMessage] = useState("");
   useEffect(() => {
     let mounted = true;
-    void offlineRegistration.then((ready) => {
-      if (mounted) {
-        setOfflineReady(ready);
+    const cleanups: (() => void)[] = [];
+    void offlineRegistration.then((registration) => {
+      if (!mounted || !registration) {
+        return;
       }
+      function refresh() {
+        const worker = registration?.active;
+        if (worker) {
+          void readOfflineVersion(worker).then((version) => {
+            if (mounted && worker === registration?.active) {
+              setOfflineReady(version === buildVersion);
+            }
+          });
+        } else {
+          setOfflineReady(false);
+        }
+        setUpdateMessage(
+          registration?.waiting
+            ? "Update available. Close all editor tabs and reopen to update."
+            : "",
+        );
+      }
+      function watchInstall() {
+        const worker = registration?.installing;
+        if (!worker) {
+          return;
+        }
+        function changed() {
+          refresh();
+          if (worker?.state === "redundant") {
+            setUpdateMessage(
+              "Could not download the update. Reopen the editor online to try again.",
+            );
+          }
+        }
+        worker.addEventListener("statechange", changed);
+        cleanups.push(() => worker.removeEventListener("statechange", changed));
+      }
+      registration.addEventListener("updatefound", watchInstall);
+      navigator.serviceWorker.addEventListener("controllerchange", refresh);
+      cleanups.push(() => {
+        registration.removeEventListener("updatefound", watchInstall);
+        navigator.serviceWorker.removeEventListener(
+          "controllerchange",
+          refresh,
+        );
+      });
+      watchInstall();
+      refresh();
     });
     return () => {
       mounted = false;
+      for (const cleanup of cleanups) {
+        cleanup();
+      }
     };
   }, []);
   return (
     <main className="flex min-h-dvh flex-col bg-background text-foreground">
       <header className="border-b border-border px-6 py-4">
-        <a href="/" className="inline-flex items-center gap-2 font-semibold">
-          <img src="./logo-light.svg" width="28" height="28" alt="" />
+        <a
+          href={import.meta.env.BASE_URL}
+          className="inline-flex items-center gap-2 font-semibold"
+        >
+          <img
+            src={`${import.meta.env.BASE_URL}logo-light.svg`}
+            width="28"
+            height="28"
+            alt=""
+          />
           Cliparr
         </a>
       </header>
@@ -104,39 +161,71 @@ function FileLanding() {
             Ready to use offline
           </p>
         )}
+        {updateMessage && (
+          <p
+            role="status"
+            className="mt-3 text-center text-sm text-muted-foreground"
+          >
+            {updateMessage}
+          </p>
+        )}
+        <p className="mt-4 text-center text-sm text-muted-foreground">
+          Have a Plex or Jellyfin server?{" "}
+          <a
+            href="/docs/getting-started/"
+            className="text-foreground underline underline-offset-4 hover:text-primary"
+          >
+            Connect your library with self-hosted Cliparr{" "}
+            <span aria-hidden="true">→</span>
+          </a>
+        </p>
       </section>
     </main>
   );
 }
 
+const offlineWorkerUrl = new URL(
+  "service-worker.js",
+  new URL(import.meta.env.BASE_URL, location.origin),
+);
+const buildVersion = document.querySelector<HTMLMetaElement>(
+  'meta[name="cliparr-build"]',
+)?.content;
+function readOfflineVersion(worker: ServiceWorker): Promise<string | null> {
+  return new Promise((resolve) => {
+    const channel = new MessageChannel();
+    function finish(version: string | null) {
+      clearTimeout(timeout);
+      channel.port1.close();
+      resolve(version);
+    }
+    const timeout = setTimeout(() => finish(null), 2000);
+    channel.port1.addEventListener(
+      "message",
+      (event: MessageEvent<unknown>) => {
+        finish(typeof event.data === "string" ? event.data : null);
+      },
+      { once: true },
+    );
+    channel.port1.start();
+    try {
+      worker.postMessage("cliparr-build", [channel.port2]);
+    } catch {
+      finish(null);
+    }
+  });
+}
+
 async function registerOfflineEditor() {
   if (!import.meta.env.PROD || !("serviceWorker" in navigator)) {
-    return false;
+    return null;
   }
   try {
-    const registration = await navigator.serviceWorker.register(
-      "./service-worker.js",
-      { scope: "./" },
-    );
-    if (registration.active) {
-      return true;
-    }
-    const worker = registration.installing ?? registration.waiting;
-    if (!worker) {
-      return false;
-    }
-    return await new Promise<boolean>((resolve) => {
-      function checkState() {
-        if (worker?.state === "activated" || worker?.state === "redundant") {
-          worker.removeEventListener("statechange", checkState);
-          resolve(worker.state === "activated");
-        }
-      }
-      worker.addEventListener("statechange", checkState);
-      checkState();
+    return await navigator.serviceWorker.register(offlineWorkerUrl, {
+      scope: import.meta.env.BASE_URL,
     });
   } catch {
-    return false;
+    return null;
   }
 }
 const offlineRegistration = registerOfflineEditor();

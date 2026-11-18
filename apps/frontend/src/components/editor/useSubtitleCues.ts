@@ -55,7 +55,20 @@ async function readSubtitleSource(
     if (format !== "srt" && format !== "vtt") {
       throw new Error("Choose an SRT or WebVTT subtitle file.");
     }
-    return { ok: true, text: await source.text(), format };
+    let text: string;
+    try {
+      text = new TextDecoder("utf-8", { fatal: true }).decode(
+        await source.arrayBuffer(),
+      );
+    } catch (error) {
+      if (error instanceof TypeError) {
+        throw new Error("Save the subtitle file as UTF-8 and try again.", {
+          cause: error,
+        });
+      }
+      throw error;
+    }
+    return { ok: true, text, format };
   }
 
   if (!source.contentUrl || !subtitleTrackSupportsBurnIn(source)) {
@@ -112,8 +125,11 @@ export function useSubtitleCues({
       const startedAt = Date.now();
       const fields =
         input instanceof File
-          ? { "subtitle.external": true }
-          : subtitleTrackLogFields(input, providerId);
+          ? { "subtitle.source": "file" }
+          : {
+              "subtitle.source": "provider",
+              ...subtitleTrackLogFields(input, providerId),
+            };
       setSubtitleCues([]);
       setLoadedSource(null);
       setSubtitleError(null);
@@ -152,9 +168,10 @@ export function useSubtitleCues({
         }
         setSubtitleCues(parsedSubtitleCues);
         setLoadedSource(input);
+        const sourceLabel = input instanceof File ? "file" : "track";
         setSubtitleError(
           parsedSubtitleCues.length === 0
-            ? "No subtitles found in this track."
+            ? `No subtitles found in this ${sourceLabel}.`
             : null,
         );
         logger.info("Subtitle cues loaded.", {

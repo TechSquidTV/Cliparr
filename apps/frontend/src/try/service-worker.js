@@ -1,6 +1,13 @@
 /* global self, caches, CACHE_VERSION, ASSET_URLS */
+// Wait for open editor tabs to close before activating a new build. Their
+// lazy export modules must keep using the matching cache for the whole session.
 const cachePrefix = "cliparr-try-";
 const cacheName = `${cachePrefix}${CACHE_VERSION}`;
+self.addEventListener("message", (event) => {
+  if (event.data === "cliparr-build") {
+    event.ports[0]?.postMessage(CACHE_VERSION, []);
+  }
+});
 self.addEventListener("install", (event) => {
   event.waitUntil(
     caches
@@ -30,7 +37,11 @@ self.addEventListener("fetch", (event) => {
   if (request.method !== "GET" || url.origin !== self.location.origin) {
     return;
   }
-  const key = url.pathname;
+  const scope = new URL(self.registration.scope);
+  const key =
+    request.mode === "navigate" && url.pathname.startsWith(scope.pathname)
+      ? scope.pathname
+      : url.pathname;
   if (!ASSET_URLS.includes(key)) {
     return;
   }

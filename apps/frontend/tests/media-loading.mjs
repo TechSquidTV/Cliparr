@@ -9,6 +9,7 @@ import { chromium } from "playwright";
 import { build, preview } from "vite";
 
 import { checkLocalEditor } from "#tests/local-editor.mjs";
+import { checkLocalEditorUpdates } from "#tests/local-editor-offline.mjs";
 import {
   assertCapabilityCoverage,
   assertLoadedFeatures,
@@ -236,6 +237,13 @@ try {
       },
     ],
   });
+  scenario = "offline editor updates and failed installs";
+  await checkLocalEditorUpdates(
+    browser,
+    tryDistribution,
+    path.join(app.outDir, "fixtures", "aac.mp4"),
+  );
+  scenario = "offline local editor and subtitle export";
   const localServer = await preview({
     configFile: false,
     root,
