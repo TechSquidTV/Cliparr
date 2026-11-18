@@ -41,7 +41,7 @@ The suite also builds the local-only editor under `/try/`, reloads offline, open
 video by drag-and-drop, imports SRT and VTT files, restores a draft, and verifies
 subtitle timing in the downloaded MP4. Exact draft assertions cover replacement,
 undo, empty/invalid files, invalid UTF-8, and large input. Worker lifecycle checks
-cover failed installation, readiness tied to the current build, updates with two
+cover failed installation, updates with two
 tabs open, continued lazy editor loading, cache cleanup, and offline navigation
 within `/try/`. Bare `/try` remains outside that worker scope and needs the site's
 online redirect. The native picker receiver is covered by a Node regression test;

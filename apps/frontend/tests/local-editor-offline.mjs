@@ -4,8 +4,13 @@ import path from "node:path";
 
 import { preview } from "vite";
 
+export async function waitForOfflineEditor(page) {
+  await page.waitForFunction(
+    () => navigator.serviceWorker.controller?.state === "activated",
+  );
+}
+
 export async function checkLocalEditorUpdates(browser, outDir, fixture) {
-  const html = await readFile(path.join(outDir, "index.html"), "utf8");
   const worker = await readFile(path.join(outDir, "service-worker.js"), "utf8");
   const originalVersion = /const CACHE_VERSION = "([^"]+)"/u.exec(worker)?.[1];
   assert.ok(originalVersion);
@@ -33,9 +38,6 @@ export async function checkLocalEditorUpdates(browser, outDir, fixture) {
                 );
               }
               contentType = "text/javascript";
-            } else if (["/try/", "/fresh"].includes(pathname)) {
-              body = html.replaceAll(originalVersion, deployment);
-              contentType = "text/html";
             } else if (pathname === "/try/missing.js") {
               response.writeHead(404).end();
               return;
@@ -59,10 +61,10 @@ export async function checkLocalEditorUpdates(browser, outDir, fixture) {
     const url = server.resolvedUrls.local[0];
     const page = await context.newPage();
     await page.goto(url);
-    await page.getByText("Ready to use offline").waitFor();
+    await waitForOfflineEditor(page);
     const second = await context.newPage();
     await second.goto(url);
-    await second.getByText("Ready to use offline").waitFor();
+    await waitForOfflineEditor(second);
 
     const update = (page) =>
       page.evaluate(async () => {
@@ -92,43 +94,8 @@ export async function checkLocalEditorUpdates(browser, outDir, fixture) {
     await page
       .getByText("Could not download the update.", { exact: false })
       .waitFor();
-    assert.equal(
-      await page.getByText("Ready to use offline").isVisible(),
-      true,
-    );
     const retainedCaches = await cacheNames();
     assert.ok(retainedCaches.includes(`cliparr-try-${originalVersion}`));
-
-    // A newly served page must not advertise readiness from an older active worker.
-    // /fresh is outside the worker scope so it receives the current deployment's HTML.
-    const fresh = await context.newPage();
-    await fresh.goto(new URL("/fresh", url).href);
-    await fresh
-      .getByRole("heading", { name: "Make a clip in your browser" })
-      .waitFor();
-    // Worker messages use a separate channel; a round trip plus two paints lets the
-    // readiness effect settle without relying on a timing-based sleep.
-    await fresh.evaluate(async () => {
-      const registration =
-        await navigator.serviceWorker.getRegistration("/try/");
-      await new Promise((resolve) => {
-        const channel = new MessageChannel();
-        channel.port1.addEventListener(
-          "message",
-          () => {
-            channel.port1.close();
-            globalThis.requestAnimationFrame(() =>
-              globalThis.requestAnimationFrame(resolve),
-            );
-          },
-          { once: true },
-        );
-        channel.port1.start();
-        registration.active.postMessage("cliparr-build", [channel.port2]);
-      });
-    });
-    assert.equal(await fresh.getByText("Ready to use offline").count(), 0);
-    await fresh.close();
 
     deployment = "updated";
     assert.equal(await update(page), "installed");
@@ -153,21 +120,14 @@ export async function checkLocalEditorUpdates(browser, outDir, fixture) {
 
     const reopened = await context.newPage();
     await reopened.goto(url);
-    await reopened.waitForFunction(
-      () =>
-        globalThis.document.querySelector('meta[name="cliparr-build"]')
-          ?.content === "updated",
-    );
-    await reopened.getByText("Ready to use offline").waitFor();
+    await waitForOfflineEditor(reopened);
     await reopened.waitForFunction(async () => {
       const names = await globalThis.caches.keys();
       return names.length === 1 && names[0] === "cliparr-try-updated";
     });
     for (const suffix of ["index.html", "nested/path"]) {
       await reopened.goto(new URL(suffix, url).href);
-      await reopened
-        .getByRole("heading", { name: "Make a clip in your browser" })
-        .waitFor();
+      await reopened.getByRole("heading", { name: "Capture A Clip" }).waitFor();
       await reopened
         .getByRole("link", { name: "Cliparr", exact: true })
         .click();

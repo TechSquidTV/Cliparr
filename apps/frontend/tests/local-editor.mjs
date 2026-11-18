@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
 import { readFile, stat } from "node:fs/promises";
 
+import { waitForOfflineEditor } from "#tests/local-editor-offline.mjs";
+
 export async function checkLocalEditor(browser, url, fixture) {
   const context = await browser.newContext({
     viewport: { width: 1440, height: 960 },
@@ -25,7 +27,7 @@ export async function checkLocalEditor(browser, url, fixture) {
       }
     });
     await page.goto(url);
-    await page.getByText("Ready to use offline").waitFor();
+    await waitForOfflineEditor(page);
     await context.setOffline(true);
     await page.reload();
     const fixtureMetadata = await stat(fixture);

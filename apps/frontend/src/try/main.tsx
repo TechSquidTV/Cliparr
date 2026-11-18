@@ -59,7 +59,6 @@ const router = createRouter({
 
 function FileLanding() {
   const [opening, setOpening] = useState(false);
-  const [offlineReady, setOfflineReady] = useState(false);
   const [updateMessage, setUpdateMessage] = useState("");
   useEffect(() => {
     let mounted = true;
@@ -69,16 +68,6 @@ function FileLanding() {
         return;
       }
       function refresh() {
-        const worker = registration?.active;
-        if (worker) {
-          void readOfflineVersion(worker).then((version) => {
-            if (mounted && worker === registration?.active) {
-              setOfflineReady(version === buildVersion);
-            }
-          });
-        } else {
-          setOfflineReady(false);
-        }
         setUpdateMessage(
           registration?.waiting
             ? "Update available. Close all editor tabs and reopen to update."
@@ -138,7 +127,7 @@ function FileLanding() {
       </header>
       <section className="m-auto w-full max-w-xl px-6 py-12">
         <h1 className="mb-3 text-center text-3xl font-semibold tracking-tight text-balance">
-          Make a clip in your browser
+          Capture A Clip
         </h1>
         <p className="mb-6 text-center text-muted-foreground">
           Trim, crop, add subtitles, and export.
@@ -158,16 +147,8 @@ function FileLanding() {
           Your files stay on this device. Nothing is uploaded.
         </p>
         <p className="mt-2 text-center text-sm text-muted-foreground">
-          Add your own SRT or VTT subtitles once your video is open.
+          Import subtitles or add your own captions
         </p>
-        {offlineReady && (
-          <p
-            role="status"
-            className="mt-3 text-center text-sm text-muted-foreground"
-          >
-            Ready to use offline
-          </p>
-        )}
         {updateMessage && (
           <p
             role="status"
@@ -195,34 +176,6 @@ const offlineWorkerUrl = new URL(
   "service-worker.js",
   new URL(import.meta.env.BASE_URL, location.origin),
 );
-const buildVersion = document.querySelector<HTMLMetaElement>(
-  'meta[name="cliparr-build"]',
-)?.content;
-function readOfflineVersion(worker: ServiceWorker): Promise<string | null> {
-  return new Promise((resolve) => {
-    const channel = new MessageChannel();
-    function finish(version: string | null) {
-      clearTimeout(timeout);
-      channel.port1.close();
-      resolve(version);
-    }
-    const timeout = setTimeout(() => finish(null), 2000);
-    channel.port1.addEventListener(
-      "message",
-      (event: MessageEvent<unknown>) => {
-        finish(typeof event.data === "string" ? event.data : null);
-      },
-      { once: true },
-    );
-    channel.port1.start();
-    try {
-      worker.postMessage("cliparr-build", [channel.port2]);
-    } catch {
-      finish(null);
-    }
-  });
-}
-
 async function registerOfflineEditor() {
   if (!import.meta.env.PROD || !("serviceWorker" in navigator)) {
     return null;

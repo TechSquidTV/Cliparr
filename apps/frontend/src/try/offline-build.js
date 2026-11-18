@@ -50,15 +50,6 @@ export function offlineEditorAssets() {
         urls.push(name === "index.html" ? base : `${base}${name}`);
       }
       const version = hash.digest("hex").slice(0, 16);
-      const htmlPath = path.join(dir, "index.html");
-      const html = await readFile(htmlPath, "utf8");
-      await writeFile(
-        htmlPath,
-        html.replace(
-          "</head>",
-          `<meta name="cliparr-build" content="${version}"></head>`,
-        ),
-      );
       await writeFile(
         path.join(dir, "service-worker.js"),
         `const CACHE_VERSION = ${JSON.stringify(version)};\nconst ASSET_URLS = ${JSON.stringify(urls)};\n${template}`,

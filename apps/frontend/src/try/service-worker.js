@@ -3,11 +3,6 @@
 // lazy export modules must keep using the matching cache for the whole session.
 const cachePrefix = "cliparr-try-";
 const cacheName = `${cachePrefix}${CACHE_VERSION}`;
-self.addEventListener("message", (event) => {
-  if (event.data === "cliparr-build") {
-    event.ports[0]?.postMessage(CACHE_VERSION, []);
-  }
-});
 self.addEventListener("install", (event) => {
   event.waitUntil(
     caches
