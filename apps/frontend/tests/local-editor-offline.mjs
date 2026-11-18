@@ -103,7 +103,9 @@ export async function checkLocalEditorUpdates(browser, outDir, fixture) {
     // /fresh is outside the worker scope so it receives the current deployment's HTML.
     const fresh = await context.newPage();
     await fresh.goto(new URL("/fresh", url).href);
-    await fresh.getByRole("heading", { name: "Local clip editor" }).waitFor();
+    await fresh
+      .getByRole("heading", { name: "Make a clip in your browser" })
+      .waitFor();
     // Worker messages use a separate channel; a round trip plus two paints lets the
     // readiness effect settle without relying on a timing-based sleep.
     await fresh.evaluate(async () => {
@@ -164,7 +166,7 @@ export async function checkLocalEditorUpdates(browser, outDir, fixture) {
     for (const suffix of ["index.html", "nested/path"]) {
       await reopened.goto(new URL(suffix, url).href);
       await reopened
-        .getByRole("heading", { name: "Local clip editor" })
+        .getByRole("heading", { name: "Make a clip in your browser" })
         .waitFor();
       await reopened
         .getByRole("link", { name: "Cliparr", exact: true })

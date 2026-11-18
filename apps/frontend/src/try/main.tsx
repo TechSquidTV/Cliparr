@@ -137,11 +137,12 @@ function FileLanding() {
         </a>
       </header>
       <section className="m-auto w-full max-w-xl px-6 py-12">
-        <h1 className="mb-2 text-3xl font-semibold tracking-tight">
-          Local clip editor
+        <h1 className="mb-3 text-center text-3xl font-semibold tracking-tight text-balance">
+          Make a clip in your browser
         </h1>
-        <p className="mb-6 text-muted-foreground">
-          Trim, add subtitles, and export.
+        <p className="mb-6 text-center text-muted-foreground">
+          Trim, crop, add subtitles, and export.
+          <span className="block">No installation required.</span>
         </p>
         <LocalFilePicker
           opening={opening}
@@ -153,6 +154,12 @@ function FileLanding() {
             });
           }}
         />
+        <p className="mt-4 text-center text-sm text-foreground">
+          Your files stay on this device. Nothing is uploaded.
+        </p>
+        <p className="mt-2 text-center text-sm text-muted-foreground">
+          Add your own SRT or VTT subtitles once your video is open.
+        </p>
         {offlineReady && (
           <p
             role="status"
