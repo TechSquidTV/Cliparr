@@ -128,13 +128,15 @@ export async function checkLocalEditorUpdates(browser, outDir, fixture) {
     for (const suffix of ["index.html", "nested/path"]) {
       await reopened.goto(new URL(suffix, url).href);
       await reopened.getByRole("heading", { name: "Capture A Clip" }).waitFor();
-      await reopened
-        .getByRole("link", { name: "Cliparr", exact: true })
-        .click();
-      assert.equal(new URL(reopened.url()).pathname, "/try/");
+      assert.equal(
+        await reopened
+          .getByRole("link", { name: "Cliparr home" })
+          .getAttribute("href"),
+        "/",
+      );
     }
     process.stdout.write(
-      "PASS offline editor updates, failed install, cached navigations, and scoped home link\n",
+      "PASS offline editor updates, failed install, and cached navigations\n",
     );
   } finally {
     await context.close();

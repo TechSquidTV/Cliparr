@@ -11,6 +11,11 @@ import { lazy, StrictMode, Suspense, useEffect, useState } from "react";
 import { createRoot } from "react-dom/client";
 
 import { LocalFilePicker } from "#/components/local-media/LocalFilePicker";
+import {
+  SiteBrand,
+  siteNavigation,
+  SiteNavLink,
+} from "#/components/ui/site-navigation";
 import { TooltipProvider } from "#/components/ui/tooltip";
 import { configureFrontendLogging } from "#/logging";
 
@@ -111,19 +116,27 @@ function FileLanding() {
   }, []);
   return (
     <main className="flex min-h-dvh flex-col bg-background text-foreground">
-      <header className="border-b border-border px-6 py-4">
-        <a
-          href={import.meta.env.BASE_URL}
-          className="inline-flex items-center gap-2 font-semibold"
-        >
-          <img
-            src={`${import.meta.env.BASE_URL}logo-light.svg`}
-            width="28"
-            height="28"
-            alt=""
+      <header className="border-b border-border">
+        <div className="flex min-h-16 items-center justify-between gap-2 px-4 sm:px-6">
+          <SiteBrand
+            logo={`${import.meta.env.BASE_URL}logo-light.svg`}
+            name="Cliparr"
           />
-          Cliparr
-        </a>
+          <nav
+            aria-label="Primary navigation"
+            className="flex items-center gap-2"
+          >
+            <SiteNavLink href={siteNavigation.docs.href}>
+              {siteNavigation.docs.label}
+            </SiteNavLink>
+            <SiteNavLink
+              href={siteNavigation.getStarted.href}
+              variant="primary"
+            >
+              {siteNavigation.getStarted.label}
+            </SiteNavLink>
+          </nav>
+        </div>
       </header>
       <section className="m-auto w-full max-w-xl px-6 py-12">
         <h1 className="mb-3 text-center text-3xl font-semibold tracking-tight text-balance">

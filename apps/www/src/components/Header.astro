@@ -1,9 +1,14 @@
 ---
 import { site } from "@/data/product";
+import {
+  SiteBrand,
+  siteNavigation,
+  SiteNavLink,
+} from "#/components/ui/site-navigation";
 
-const links = [
+const links: { href: string; label: string; featured?: boolean }[] = [
   { href: "/try/", label: "Try Cliparr", featured: true },
-  { href: "/docs", label: "Docs" },
+  siteNavigation.docs,
   { href: "/blog", label: "Blog" },
   { href: "/convert", label: "Convert" },
   { href: "/changelog", label: "Releases" },
@@ -18,16 +23,7 @@ const mobileMenuId = "site-mobile-menu";
   class="sticky top-0 z-30 border-b border-border bg-background/88 backdrop-blur-xl"
 >
   <div class="container-page flex min-h-16 items-center justify-between gap-2 min-[380px]:gap-3">
-    <a
-      href="/"
-      aria-label="Cliparr home"
-      class="focus-ring flex shrink-0 items-center gap-3 rounded-md"
-    >
-      <img src={site.logo} alt="" class="site-logo h-8 w-8 shrink-0" />
-      <span class="hidden text-lg font-semibold min-[380px]:inline">
-        {site.name}
-      </span>
-    </a>
+    <SiteBrand logo={site.logo} name={site.name} />
     <div class="flex items-center gap-2 lg:hidden">
       <button
         type="button"
@@ -106,19 +102,14 @@ const mobileMenuId = "site-mobile-menu";
       class="hidden min-w-0 items-center gap-2 lg:flex"
     >
       {links.map((link) => (
-        <a
+        <SiteNavLink
           href={link.href}
-          class:list={[
-            "focus-ring rounded-full px-3 py-2 text-sm font-medium transition-colors hover:bg-accent hover:text-foreground",
-            link.featured
-              ? "border border-border bg-card text-foreground"
-              : "text-muted-foreground",
-          ]}
+          variant={link.featured ? "featured" : "plain"}
           target={link.href.startsWith("http") ? "_blank" : undefined}
           rel={link.href.startsWith("http") ? "noreferrer" : undefined}
         >
           {link.label}
-        </a>
+        </SiteNavLink>
       ))}
       <button
         type="button"
@@ -156,12 +147,9 @@ const mobileMenuId = "site-mobile-menu";
           ></path>
         </svg>
       </button>
-      <a
-        href="/docs/getting-started"
-        class="focus-ring hidden min-h-9 items-center justify-center rounded-full bg-foreground px-4 text-sm font-semibold text-background transition-colors hover:bg-primary lg:inline-flex"
-      >
-        Get started
-      </a>
+      <SiteNavLink href={siteNavigation.getStarted.href} variant="primary">
+        {siteNavigation.getStarted.label}
+      </SiteNavLink>
     </nav>
   </div>
   <div
@@ -172,14 +160,10 @@ const mobileMenuId = "site-mobile-menu";
   >
     <nav aria-label="Mobile navigation" class="container-page grid gap-1 py-3">
       {links.map((link) => (
-        <a
+        <SiteNavLink
           href={link.href}
-          class:list={[
-            "focus-ring flex min-h-11 items-center justify-between rounded-lg px-3 text-sm font-medium transition-colors hover:bg-accent hover:text-foreground",
-            link.featured
-              ? "border border-border bg-card text-foreground"
-              : "text-muted-foreground",
-          ]}
+          variant={link.featured ? "featured" : "plain"}
+          layout="mobile"
           target={link.href.startsWith("http") ? "_blank" : undefined}
           rel={link.href.startsWith("http") ? "noreferrer" : undefined}
         >
@@ -200,14 +184,16 @@ const mobileMenuId = "site-mobile-menu";
               />
             </svg>
           ) : null}
-        </a>
+        </SiteNavLink>
       ))}
-      <a
-        href="/docs/getting-started"
-        class="focus-ring mt-1 flex min-h-11 items-center justify-center rounded-lg bg-foreground px-4 text-sm font-semibold text-background transition-colors hover:bg-primary"
+      <SiteNavLink
+        href={siteNavigation.getStarted.href}
+        variant="primary"
+        layout="mobile"
+        className="mt-1"
       >
-        Get started
-      </a>
+        {siteNavigation.getStarted.label}
+      </SiteNavLink>
     </nav>
   </div>
 </header>

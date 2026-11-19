@@ -43,7 +43,7 @@ subtitle timing in the downloaded MP4. Exact draft assertions cover replacement,
 undo, empty/invalid files, invalid UTF-8, and large input. Worker lifecycle checks
 cover failed installation, updates with two
 tabs open, continued lazy editor loading, cache cleanup, and offline navigation
-within `/try/`. Bare `/try` remains outside that worker scope and needs the site's
+within `/try/`. Website navigation links require a network connection. Bare `/try` remains outside that worker scope and needs the site's
 online redirect. The native picker receiver is covered by a Node regression test;
 physical iPhone Files picker testing remains a separate release check.
 
