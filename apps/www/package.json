@@ -49,7 +49,7 @@
     "remark-stringify": "^11.0.0",
     "sharp": "^0.35.5",
     "tsx": "^4.23.15",
-    "typescript": "~6.0.3",
+    "typescript": "~7.0.0",
     "unified": "^11.0.5",
     "vite": "^8.3.2"
   }
