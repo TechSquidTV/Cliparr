@@ -43,6 +43,11 @@
       "groupName": "npm dependencies"
     },
     {
+      "description": "Keep TypeScript 6 while the Plex architecture check uses the JavaScript compiler API and Astro check requires TypeScript 5 or 6.",
+      "matchPackageNames": ["typescript"],
+      "allowedVersions": "<7"
+    },
+    {
       "matchManagers": ["docker-compose", "dockerfile"],
       "groupName": "Docker images",
       "semanticCommitType": "build",

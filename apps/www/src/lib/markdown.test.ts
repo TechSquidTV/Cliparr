@@ -52,7 +52,7 @@ void test("rendered MDX keeps commands, warning callouts, tables, and resolved l
     "https://cliparr.dev/docs/setup/",
   );
   assert.match(markdown, /# Install/u);
-  assert.ok(markdown.includes(String.raw`Stable APP\_KEY required`));
+  assert.match(markdown, /Stable APP\\?_KEY required/u);
   assert.match(markdown, /```bash\ndocker run cliparr\necho ready\n```/u);
   assert.match(markdown, /\| PORT\s*\| 7171/u);
   assert.match(
