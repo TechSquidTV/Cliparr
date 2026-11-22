@@ -1,16 +1,17 @@
 /// <reference types="node" />
-
 import assert from "node:assert/strict";
 import test from "node:test";
 
 import type { BrowserFileHandle } from "@/components/editor/editorMedia";
 import {
   createLocalSessionFromFile,
+  createLocalSessionFromPicker,
   createLocalSessionFromUrl,
   resolveFileHandleReadPermission,
   resolveLocalMediaSession,
   validateLocalMediaUrl,
 } from "@/lib/localMediaRegistry";
+import { resolveProxiedMediaUrl } from "@/lib/proxiedMediaSource";
 
 async function withMockedLocalMediaUrl<T>(callback: () => Promise<T>) {
   const originalFetch = globalThis.fetch;
@@ -87,6 +88,7 @@ void test("creates and resolves memory-backed URL sessions when IndexedDB is una
   await withMockedLocalMediaUrl(async () => {
     const result = await createLocalSessionFromUrl(
       "https://example.com/video.mp4",
+      resolveProxiedMediaUrl,
     );
 
     assert.equal(result.status, "ready");
@@ -109,7 +111,9 @@ void test("creates and resolves memory-backed URL sessions when IndexedDB is una
 
     const resolved =
       result.status === "ready"
-        ? await resolveLocalMediaSession(result.session.id)
+        ? await resolveLocalMediaSession(result.session.id, {
+            resolveUrl: resolveProxiedMediaUrl,
+          })
         : null;
     assert.equal(resolved?.status, "ready");
     assert.equal(
@@ -148,4 +152,34 @@ void test("resolves file handle permission states", async () => {
   } satisfies BrowserFileHandle;
 
   assert.equal(await resolveFileHandleReadPermission(legacyHandle), "granted");
+});
+
+void test("calls the native file picker with its window receiver", async (t) => {
+  const file = new File(["video"], "picker.mp4", { type: "video/mp4" });
+  const picker = t.mock.fn(async () => [
+    {
+      name: file.name,
+      getFile: async () => file,
+    },
+  ]);
+  Object.defineProperty(globalThis, "window", {
+    configurable: true,
+    value: globalThis,
+  });
+  Object.defineProperty(globalThis, "showOpenFilePicker", {
+    configurable: true,
+    value: picker,
+  });
+  try {
+    const result = await createLocalSessionFromPicker();
+    assert.equal(result.status, "ready");
+    assert.equal(picker.mock.calls[0]?.this, globalThis.window);
+    if (result.status === "ready") {
+      assert.equal(result.session.title, "picker");
+      assert.equal(result.session.directSource?.kind, "file-handle");
+    }
+  } finally {
+    Reflect.deleteProperty(globalThis, "showOpenFilePicker");
+    Reflect.deleteProperty(globalThis, "window");
+  }
 });

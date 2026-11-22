@@ -2,6 +2,8 @@
 @import "./components/ui/styles.css";
 @import "./components/editor/editor-mobile.css";
 
+@source "./";
+
 @custom-variant dark (&:is(.dark *));
 
 :root {

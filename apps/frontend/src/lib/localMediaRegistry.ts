@@ -1,4 +1,3 @@
-import { cliparrClient } from "@/api/cliparrClient";
 import {
   type BrowserFileHandle,
   type BrowserFilePermissionState,
@@ -192,22 +191,15 @@ function errorMessage(error: unknown, fallback: string) {
   return error instanceof Error && error.message ? error.message : fallback;
 }
 
-async function createUrlSource(
-  record: StoredUrlRecord,
-): Promise<EditorUrlMediaSource> {
-  const proxied = await cliparrClient.createLocalMediaUrl(record.url);
+export type LocalMediaUrlResolver = (
+  url: string,
+  hls: boolean,
+) => Promise<EditorUrlMediaSource>;
 
-  return {
-    kind: "url",
-    role: "direct-url",
-    label: record.hls ? "HLS URL" : "URL",
-    url: proxied.mediaUrl,
-    originalUrl: record.url,
-    hls: record.hls || proxied.hls,
-  };
-}
-
-async function sessionFromRecord(record: LocalMediaRecord) {
+async function sessionFromRecord(
+  record: LocalMediaRecord,
+  resolveUrl?: LocalMediaUrlResolver,
+) {
   if (record.kind === "memory-file") {
     return buildLocalEditorSession({
       id: record.id,
@@ -224,10 +216,14 @@ async function sessionFromRecord(record: LocalMediaRecord) {
     });
   }
 
+  if (!resolveUrl) {
+    throw new Error("Open a video file to continue.");
+  }
+
   return buildLocalEditorSession({
     id: record.id,
     title: record.title,
-    source: await createUrlSource(record),
+    source: await resolveUrl(record.url, record.hls),
   });
 }
 
@@ -329,7 +325,7 @@ export async function createLocalSessionFromPicker() {
   }
 
   try {
-    const handles = await picker({
+    const handles = await picker.call(window, {
       excludeAcceptAllOption: false,
       multiple: false,
       types: VIDEO_PICKER_TYPES,
@@ -373,7 +369,10 @@ export async function createLocalSessionFromPicker() {
   }
 }
 
-export async function createLocalSessionFromUrl(value: string) {
+export async function createLocalSessionFromUrl(
+  value: string,
+  resolveUrl: LocalMediaUrlResolver,
+) {
   const validation = validateLocalMediaUrl(value);
   if (!validation.ok) {
     return {
@@ -395,7 +394,7 @@ export async function createLocalSessionFromUrl(value: string) {
 
   let session: EditorSession;
   try {
-    session = await sessionFromRecord(record);
+    session = await sessionFromRecord(record, resolveUrl);
   } catch (error) {
     return {
       status: "invalid" as const,
@@ -414,14 +413,17 @@ export async function createLocalSessionFromUrl(value: string) {
 
 export async function resolveLocalMediaSession(
   id: string,
-  options: { requestPermission?: boolean } = {},
+  options: {
+    requestPermission?: boolean;
+    resolveUrl?: LocalMediaUrlResolver;
+  } = {},
 ): Promise<LocalMediaResolution> {
   const memoryRecord = memoryRecords.get(id);
   if (memoryRecord) {
     try {
       return {
         status: "ready",
-        session: await sessionFromRecord(memoryRecord),
+        session: await sessionFromRecord(memoryRecord, options.resolveUrl),
       };
     } catch (error) {
       return {
@@ -457,7 +459,7 @@ export async function resolveLocalMediaSession(
     try {
       return {
         status: "ready",
-        session: await sessionFromRecord(storedRecord),
+        session: await sessionFromRecord(storedRecord, options.resolveUrl),
       };
     } catch (error) {
       return {

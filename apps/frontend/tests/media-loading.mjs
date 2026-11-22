@@ -8,6 +8,8 @@ import { gzipSync } from "node:zlib";
 import { chromium } from "playwright";
 import { build, preview } from "vite";
 
+import { checkLocalEditor } from "#tests/local-editor.mjs";
+import { checkLocalEditorUpdates } from "#tests/local-editor-offline.mjs";
 import {
   assertCapabilityCoverage,
   assertLoadedFeatures,
@@ -207,6 +209,56 @@ try {
     }
   }
   await generation.close();
+
+  scenario = "offline local editor and subtitle export";
+  const tryDistribution = path.join(temporary, "try");
+  await build({
+    mode: "try",
+    configFile: path.join(root, "vite.config.js"),
+    logLevel: "error",
+    build: { outDir: tryDistribution },
+    plugins: [
+      {
+        name: "verify-file-only-modules",
+        generateBundle(_options, bundle) {
+          for (const output of Object.values(bundle)) {
+            if (output.type === "chunk") {
+              assert.ok(
+                !Object.keys(output.modules).some((id) =>
+                  /\/(?:api\/cliparrClient|api\/playbackStream|routeTree\.gen)\./u.test(
+                    id,
+                  ),
+                ),
+                "Hosted editor imported the full app",
+              );
+            }
+          }
+        },
+      },
+    ],
+  });
+  scenario = "offline editor updates and failed installs";
+  await checkLocalEditorUpdates(
+    browser,
+    tryDistribution,
+    path.join(app.outDir, "fixtures", "aac.mp4"),
+  );
+  scenario = "offline local editor and subtitle export";
+  const localServer = await preview({
+    configFile: false,
+    root,
+    base: "/try/",
+    logLevel: "error",
+    build: { outDir: tryDistribution },
+    preview: { host: "127.0.0.1", port: 0 },
+  });
+  servers.push(localServer);
+  await checkLocalEditor(
+    browser,
+    localServer.resolvedUrls.local[0],
+    path.join(app.outDir, "fixtures", "aac.mp4"),
+  );
+  process.stdout.write("PASS offline local editor and subtitle export\n");
 
   for (const disableNativeEncoder of [false, true]) {
     const session = await openPage(

@@ -1,13 +1,9 @@
 /// <reference types="node" />
-
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import {
-  cliparrClient,
-  readResponseErrorDetails,
-  subscribeToAuthFailure,
-} from "@/api/cliparrClient";
+import { cliparrClient, subscribeToAuthFailure } from "@/api/cliparrClient";
+import { readResponseErrorDetails } from "@/api/responseError";
 
 function jsonResponse(value: unknown, init: ResponseInit = {}) {
   return Response.json(value, init);
