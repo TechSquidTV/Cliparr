@@ -286,7 +286,7 @@ importers:
         version: 0.7.0(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
       '@techsquidtv/canvas-timeline-mediabunny-adapter':
         specifier: ^0.7.0
-        version: 0.7.0(@techsquidtv/canvas-timeline-react@0.7.0(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(mediabunny@1.65.1)(react@19.3.1)
+        version: 0.7.0(@techsquidtv/canvas-timeline-react@0.7.0(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(mediabunny@1.66.1)(react@19.3.1)
       '@techsquidtv/gifenc':
         specifier: 2.0.0
         version: 2.0.0
@@ -550,7 +550,6 @@ importers:
         version: 6.0.3
 
 packages:
-
   '@antfu/install-pkg@2.1.0':
     resolution: {integrity: sha512-sdg9NxU3zR4Mnawfbc/x6GB5Wf17WYud5qOuEuxXjaKpYpMkISSJEjItGebXJ2bQ4DIcly4NYH23mtkGJjvKUw==}
 
@@ -2745,9 +2744,6 @@ packages:
   '@types/dom-mediacapture-transform@0.1.11':
     resolution: {integrity: sha512-Y2p+nGf1bF2XMttBnsVPHUWzRRZzqUoJAKmiP10b5umnO6DDrWI0BrGDJy1pOHoOULVmGSfFNkQrAlC5dcj6nQ==}
 
-  '@types/dom-mediacapture-transform@0.1.12':
-    resolution: {integrity: sha512-d7/QsLRwF864A5mgIM/YrfiglHoYn7zgCcAoJgW404r+2DwnNr7EBbLnCWpmOMgH8y0te73L1AV6H1bmauaWFw==}
-
   '@types/dom-webcodecs@0.1.13':
     resolution: {integrity: sha512-O5hkiFIcjjszPIYyUSyvScyvrBoV3NOEEZx/pMlsu44TKzWNkLVBBxnxJz42in5n3QIolYOcBYFCPZZ0h8SkwQ==}
 
@@ -4606,9 +4602,6 @@ packages:
     resolution: {integrity: sha512-yz3xRaG20c6/BOzvYoDaGtPmGscs7YivItZEEqe6GbwNfHuxu9YNmvnEkMzKldAGY4/80pRcQRZSEnhquk9XuQ==}
     engines: {node: '>= 0.8'}
 
-  mediabunny@1.65.1:
-    resolution: {integrity: sha512-SDyhXooCNd8TYKNLf9jC4o/0I0MTft1pYc5/k4ztkKbGEMvcbYXWrAri5SozEu7DHI8PsG9IfN9XwKmPOg/VkQ==}
-
   mediabunny@1.66.1:
     resolution: {integrity: sha512-Jl+EfJbUASHtWVtOAGX8AK5WyNNG1RNJGjccAXcI2R6wQmIkdAzpyVgyCxvc5DXGSSRAuhGIevCPs43mXDq2ug==}
 
@@ -5991,7 +5984,6 @@ packages:
     resolution: {integrity: sha512-bXE4cR/kVZhKZX/RjPEflHaKVhUVl85noU3v6b8apfQEc1x4A+zBxjZ4lN8LqGd6WZ3dl98pY4o717VFmoPp+A==}
 
 snapshots:
-
   '@antfu/install-pkg@2.1.0':
     dependencies:
       package-manager-detector: 1.9.0
@@ -7673,11 +7665,11 @@ snapshots:
       '@techsquidtv/canvas-timeline-react': 0.7.0(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
       react: 19.3.1
 
-  '@techsquidtv/canvas-timeline-mediabunny-adapter@0.7.0(@techsquidtv/canvas-timeline-react@0.7.0(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(mediabunny@1.65.1)(react@19.3.1)':
+  '@techsquidtv/canvas-timeline-mediabunny-adapter@0.7.0(@techsquidtv/canvas-timeline-react@0.7.0(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(mediabunny@1.66.1)(react@19.3.1)':
     dependencies:
       '@techsquidtv/canvas-timeline-core': 0.7.0
       '@techsquidtv/canvas-timeline-utils': 0.7.0
-      mediabunny: 1.65.1
+      mediabunny: 1.66.1
     optionalDependencies:
       '@techsquidtv/canvas-timeline-react': 0.7.0(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
       react: 19.3.1
@@ -7859,10 +7851,6 @@ snapshots:
       '@types/ms': 2.1.0
 
   '@types/dom-mediacapture-transform@0.1.11':
-    dependencies:
-      '@types/dom-webcodecs': 0.1.13
-
-  '@types/dom-mediacapture-transform@0.1.12':
     dependencies:
       '@types/dom-webcodecs': 0.1.13
 
@@ -9872,11 +9860,6 @@ snapshots:
   media-captions@0.0.18: {}
 
   media-typer@1.1.1: {}
-
-  mediabunny@1.65.1:
-    dependencies:
-      '@types/dom-mediacapture-transform': 0.1.12
-      '@types/dom-webcodecs': 0.1.13
 
   mediabunny@1.66.1:
     dependencies:
