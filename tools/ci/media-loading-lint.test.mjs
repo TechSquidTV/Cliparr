@@ -6,11 +6,16 @@ import { ESLint } from "eslint";
 import tseslint from "typescript-eslint";
 
 const root = fileURLToPath(new URL("../..", import.meta.url));
+const boundaryRules = new Set([
+  "no-restricted-imports",
+  "no-restricted-syntax",
+]);
 const eslint = new ESLint({
   cwd: root,
   overrideConfigFile: "config/eslint.config.js",
   // Import boundaries need syntax only; ordinary lint still checks types.
   overrideConfig: tseslint.configs.disableTypeChecked,
+  ruleFilter: ({ ruleId }) => boundaryRules.has(ruleId),
 });
 const ui = "apps/frontend/src/components/editor/editorPlaybackSources.ts";
 const loader = "apps/frontend/src/lib/export/mediabunny/mediabunnyCodecs.ts";
@@ -139,7 +144,7 @@ void test("media import restrictions preserve ownership, type imports and worksp
     const [result] = await eslint.lintText(code, { filePath: file });
     assert.equal(result.fatalErrorCount, 0, JSON.stringify(result.messages));
     const restrictions = result.messages.filter(({ ruleId }) =>
-      ["no-restricted-imports", "no-restricted-syntax"].includes(ruleId),
+      boundaryRules.has(ruleId),
     );
     assert.equal(
       restrictions.length > 0,
