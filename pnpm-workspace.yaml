@@ -32,12 +32,12 @@ allowBuilds:
 overrides:
   # Astro augments HAST types; converters must share that same type instance.
   "@types/hast": 3.0.5
-  # The OpenAPI parser pins vulnerable js-yaml; remove when it requires >=4.3.2.
-  "@hey-api/json-schema-ref-parser>js-yaml": 4.3.2
+  # The OpenAPI parser uses the named load export supported by js-yaml 5.
+  "@hey-api/json-schema-ref-parser>js-yaml": 5.5.0
   # ESLint and typescript-eslint still require vulnerable minimatch 10.
   # Remove when their released dependency ranges accept minimatch >=11.0.1.
-  "minimatch@>=7.0.0 <11.0.1": 11.0.5
-  enhanced-resolve: 5.26.1
+  "minimatch@>=7.0.0 <11.0.1": 11.0.9
+  enhanced-resolve: 5.27.0
   es-object-atoms: 1.1.2
 
 peerDependencyRules:
