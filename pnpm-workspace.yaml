@@ -4,7 +4,7 @@ packages:
   - "tools/www-assets"
 
 catalog:
-  "@types/node": ^26.6.6
+  "@types/node": ^26.6.10
 
 autoInstallPeers: false
 minimumReleaseAge: 1440
